@@ -7369,3 +7369,75 @@ sus propias pruebas.
 **Familia.** `se_contradice` — dos afirmaciones incompatibles sobre el mismo
 objeto, ninguna mal por su cuenta, con el fallo viviendo en el hueco entre las
 dos. Hermana de REG-312.
+
+---
+
+## REG-314 — la agenda vacía decía lo mismo en tres situaciones distintas, y una de ellas era mentira
+
+**Fecha:** 14-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media
+
+**Qué fallaba.** `/citas` estrecha su lista por CUATRO cosas —fecha, estado,
+búsqueda y médico— y el estado vacío no miraba ninguna: pintaba «No hay citas
+para este filtro · Cambia de fecha o de médico, o agenda una nueva cita», con
+la ilustración de agenda vacía y un primario «Nueva cita», en tres situaciones
+que no son la misma:
+
+1. el día está libre de verdad,
+2. el día **tiene** citas y un filtro las esconde,
+3. hay filtro puesto y además el día está libre.
+
+En el caso 2 el mensaje es falso por partida doble: dibuja una agenda vacía
+sobre un día que no lo está, y ofrece como gesto principal **agendar encima**
+de citas que el médico no está viendo.
+
+**Cómo se descubrió.** Leyendo `filtered` para otra cosa. Al bajar al cierre
+del riel apareció la contradicción escrita: el comentario dice «el riel no
+muere en el vacío: apunta al día siguiente» y la condición era
+`filtered.length > 0`, así que el puntero al día siguiente **desaparecía
+exactamente el día vacío** — el único en que «el que viene tiene 6» es la
+información que hace falta.
+
+**Causa raíz.** El vacío se trató como un solo estado («no hay filas») cuando
+son tres causas con tres respuestas distintas. Y el caso peligroso ya había
+mordido a este producto por otro sitio: `useFiltroMedico` lleva escrito que un
+filtro guardado en el navegador, apuntando a un médico dado de baja, dejaba la
+agenda vacía todos los días sin control visible para quitarlo. Aquello se
+reparó en el origen; el **mensaje** seguía sin poder distinguir «no hay» de
+«no se ven». Es la regla 4 de seguridad clínica dicha en la pantalla: ausencia
+de filas no es ausencia de citas.
+
+**Arreglo.** `src/lib/agenda/vacio-de-la-agenda.ts` decide la clase de vacío y
+el gesto que le corresponde; la pantalla la consume. Con citas escondidas se
+dice cuántas hay y por qué filtro, **en línea y sin ilustración** —el día no
+está vacío—, y el único gesto es quitar el filtro. Con el día libre de verdad
+se dice qué trae el día siguiente y se ofrece ir, que es lo que el riel decía
+sólo cuando había filas.
+
+**Guardián.** `src/__tests__/v15-el-dia-vacio-dice-cual-de-los-tres.test.ts`
+(7 casos). Probado al revés: sustituida la decisión por la conducta vieja —un
+solo mensaje— caen 5 de 7. El caso 6 es el de conexión: la pantalla tiene que
+consumir el módulo, o la decisión queda bien y no llega a ninguna pantalla.
+
+**Verificado en navegador real** (escritorio 1440 + móvil 390, 0 errores de
+consola), `scripts/design/medir-dia-vacio-citas-v15.mjs`:
+
+| | escritorio | móvil |
+|---|---|---|
+| aviso de «6 escondidas» | línea, 62px, sin ilustración | línea, 134px |
+| día libre | héroe, 332px | héroe, 340px |
+| «Quitar los filtros» | devuelve 6 filas | 6 filas |
+| «Ver el día siguiente» | aterriza en 6 filas | 6 filas |
+
+Y la medición corrigió el trabajo: la primera versión titulaba «Jueves 13 de
+agosto: sin citas agendadas.» — la captura enseñó que la cabecera ya dice el
+día dos veces encima, así que el vacío lo decía por tercera vez y la noticia
+quedaba de acompañante. El título pasó a «Sin citas agendadas.» Misma
+corrección que RTC-22 le hizo a la marca.
+
+**Qué NO cubre.** Qué citas debe esconder un filtro (eso no se tocó); el
+estado de ERROR de carga, que ya distinguía «no se pudieron leer» de «no hay»;
+y el resto de estados vacíos del producto — RTC-30 sigue abierto en las demás
+pantallas, y éste se pagó porque su vacío **miente**, no porque sea genérico.
+
+**Familia.** `se_contradice` — dos afirmaciones incompatibles sobre el mismo
+día, y un comentario que dice lo contrario de su propia condición.

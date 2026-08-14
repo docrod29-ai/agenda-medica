@@ -2,7 +2,7 @@
   "sellado": "2026-08-10",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4582,
+  "totalCasos": 4589,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -965,6 +965,10 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts",
+      "minCasos": 9
+    },
+    {
       "archivo": "src/__tests__/respaldo-consultorio.test.ts",
       "minCasos": 21
     },
@@ -975,6 +979,10 @@
     {
       "archivo": "src/__tests__/roles-de-hablante.test.ts",
       "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/rt-08-ventana-de-clic-ciego.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/segunda-opinion-por-tramos.test.ts",
@@ -1245,6 +1253,14 @@
       "minCasos": 16
     },
     {
+      "archivo": "src/__tests__/v15-el-dia-vacio-dice-cual-de-los-tres.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/v15-rtc21-exportar-dice-el-trabajo.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/via-no-dictada-avisa.test.ts",
       "minCasos": 17
     },
@@ -1267,18 +1283,6 @@
     {
       "archivo": "src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts",
       "minCasos": 15
-    },
-    {
-      "archivo": "src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts",
-      "minCasos": 9
-    },
-    {
-      "archivo": "src/__tests__/rt-08-ventana-de-clic-ciego.test.ts",
-      "minCasos": 6
-    },
-    {
-      "archivo": "src/__tests__/v15-rtc21-exportar-dice-el-trabajo.test.ts",
-      "minCasos": 7
     }
   ]
 }

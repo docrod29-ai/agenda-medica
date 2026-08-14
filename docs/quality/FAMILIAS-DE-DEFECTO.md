@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 35 de 161, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 162, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -86,7 +86,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 31 de 161.**
+**«El sistema se contradice a sí mismo» — 32 de 162.**
 
 Sumó REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
 avisos que se contradecían sobre el mismo archivo** —«los borradores van
