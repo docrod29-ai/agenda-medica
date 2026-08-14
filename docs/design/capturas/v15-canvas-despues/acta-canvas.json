@@ -1,0 +1,148 @@
+{
+  "fecha": "2026-08-14T16:58:06.608Z",
+  "viewport": "1440×900",
+  "medidas": {
+    "hoy": {
+      "ruta": "/dashboard",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeclarado": "1100px",
+      "claseDelContenedor": "nx-canvas hoy",
+      "anchoRenderizado": 1100,
+      "bordeIzquierdoDelContenido": 282,
+      "sangriaDelTitular": 24,
+      "medidaEnCaracteres": null
+    },
+    "pendientes": {
+      "ruta": "/pendientes",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeclarado": "1100px",
+      "claseDelContenedor": "nx-canvas",
+      "anchoRenderizado": 1100,
+      "bordeIzquierdoDelContenido": 282,
+      "sangriaDelTitular": 24,
+      "medidaEnCaracteres": null
+    },
+    "pacientes": {
+      "ruta": "/pacientes",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeclarado": "1100px",
+      "claseDelContenedor": "nx-canvas",
+      "anchoRenderizado": 1100,
+      "bordeIzquierdoDelContenido": 282,
+      "sangriaDelTitular": 24,
+      "medidaEnCaracteres": null
+    },
+    "expediente": {
+      "ruta": "/expediente/pac-refugio-alcantara",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeclarado": "1100px",
+      "claseDelContenedor": "nx-canvas",
+      "anchoRenderizado": 1100,
+      "bordeIzquierdoDelContenido": 282,
+      "sangriaDelTitular": 80,
+      "medidaEnCaracteres": 74
+    },
+    "consulta": {
+      "ruta": "/consulta/pac-refugio-alcantara",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeclarado": "1100px",
+      "claseDelContenedor": "nx-canvas",
+      "anchoRenderizado": 1100,
+      "bordeIzquierdoDelContenido": 282,
+      "sangriaDelTitular": 24,
+      "medidaEnCaracteres": null
+    },
+    "operaciones": {
+      "ruta": "/operaciones",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeclarado": "1100px",
+      "claseDelContenedor": "nx-canvas",
+      "anchoRenderizado": 1100,
+      "bordeIzquierdoDelContenido": 282,
+      "sangriaDelTitular": 24,
+      "medidaEnCaracteres": null
+    }
+  },
+  "movil": {
+    "hoy": {
+      "recorte": "16px",
+      "anchoDelLienzo": 390,
+      "desbordaDeLado": false,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    },
+    "pendientes": {
+      "recorte": "16px",
+      "anchoDelLienzo": 390,
+      "desbordaDeLado": false,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    },
+    "pacientes": {
+      "recorte": "16px",
+      "anchoDelLienzo": 390,
+      "desbordaDeLado": false,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    },
+    "expediente": {
+      "recorte": "16px",
+      "anchoDelLienzo": 390,
+      "desbordaDeLado": false,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    },
+    "consulta": {
+      "recorte": "16px",
+      "anchoDelLienzo": 390,
+      "desbordaDeLado": false,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    },
+    "operaciones": {
+      "recorte": "16px",
+      "anchoDelLienzo": 390,
+      "desbordaDeLado": false,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    }
+  },
+  "saltosAlNavegar": [
+    {
+      "de": "hoy",
+      "a": "pendientes",
+      "salto": 0
+    },
+    {
+      "de": "pendientes",
+      "a": "pacientes",
+      "salto": 0
+    },
+    {
+      "de": "pacientes",
+      "a": "expediente",
+      "salto": 0
+    },
+    {
+      "de": "expediente",
+      "a": "consulta",
+      "salto": 0
+    },
+    {
+      "de": "consulta",
+      "a": "operaciones",
+      "salto": 0
+    }
+  ],
+  "saltoMaximo": 0,
+  "anchosDeclaradosDistintos": [
+    "1100px"
+  ],
+  "erroresDeConsola": []
+}

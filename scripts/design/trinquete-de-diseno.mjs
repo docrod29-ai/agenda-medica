@@ -111,10 +111,36 @@ function genericidadEn(src) {
   return { gradientes, cristal, halos }
 }
 
+/**
+ * LIENZOS A MANO (RTC-12a/RTC-16) — un `maxWidth` de página escrito en el JSX.
+ *
+ * Medido el 14-ago-2026: **41 páginas del dashboard con contenedor propio en
+ * TRECE valores distintos** (480 · 520 · 720 · 800 · 820 · 860 · 880 · 900 ·
+ * 920 · 980 · 1000 · 1100 · 1180). No es una decisión tomada trece veces: es
+ * la ausencia de una decisión, repetida — y su consecuencia medida en navegador
+ * fue que el borde izquierdo del contenido salta hasta 182px al navegar de una
+ * pantalla a otra.
+ *
+ * La regla vive en `.nx-canvas` (globals.css). Este contador vigila el resto:
+ * sólo puede bajar, así que una pantalla nueva no puede inventarse su ancho y
+ * una vieja sólo sale de la lista convirtiéndose.
+ *
+ * Cuenta SÓLO contenedores de página (`maxWidth` ≥ 400 en una ruta del
+ * dashboard). Un `maxWidth: 420` sobre un buscador o un `62ch` sobre un párrafo
+ * NO es un lienzo: es la medida de un bloque, que es justo lo que el sistema
+ * pide. Por eso el umbral, y por eso sólo `(dashboard)`.
+ */
+function lienzosAMano(rel, src) {
+  if (!rel.includes('(dashboard)') || !rel.endsWith('page.tsx')) return 0
+  let n = 0
+  for (const m of src.matchAll(/maxWidth:\s*([0-9.]+)\b/g)) if (Number(m[1]) >= 400) n++
+  return n
+}
+
 export function medir() {
   const conteo = {
     respaldosDeToken: 0, hexEnLinea: 0, tamanosFueraDeEscala: 0, radiosFueraDeEscala: 0, sombrasEnLinea: 0,
-    gradientes: 0, cristal: 0, halosDeColor: 0,
+    gradientes: 0, cristal: 0, halosDeColor: 0, lienzosAMano: 0,
   }
   const porArchivo = {}
 
@@ -137,9 +163,10 @@ export function medir() {
     const sombras = (src.match(/boxShadow:\s*['"`]/g) ?? []).length
 
     const { gradientes, cristal, halos } = genericidadEn(src)
+    const lienzos = lienzosAMano(rel, src)
 
-    const total = respaldos + hex + tam + rad + sombras + gradientes + cristal + halos
-    if (total) porArchivo[rel] = { respaldos, hex, tam, rad, sombras, gradientes, cristal, halos, total }
+    const total = respaldos + hex + tam + rad + sombras + gradientes + cristal + halos + lienzos
+    if (total) porArchivo[rel] = { respaldos, hex, tam, rad, sombras, gradientes, cristal, halos, lienzos, total }
     conteo.respaldosDeToken += respaldos
     conteo.hexEnLinea += hex
     conteo.tamanosFueraDeEscala += tam
@@ -148,6 +175,7 @@ export function medir() {
     conteo.gradientes += gradientes
     conteo.cristal += cristal
     conteo.halosDeColor += halos
+    conteo.lienzosAMano += lienzos
   }
 
   // La genericidad no depende de dónde viva el valor: globals.css también
@@ -157,7 +185,7 @@ export function medir() {
   const g = genericidadEn(hoja)
   if (g.gradientes + g.cristal + g.halos) {
     porArchivo['src/app/globals.css'] = {
-      respaldos: 0, hex: 0, tam: 0, rad: 0, sombras: 0,
+      respaldos: 0, hex: 0, tam: 0, rad: 0, sombras: 0, lienzos: 0,
       gradientes: g.gradientes, cristal: g.cristal, halos: g.halos,
       total: g.gradientes + g.cristal + g.halos,
     }

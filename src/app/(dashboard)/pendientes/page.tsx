@@ -306,7 +306,7 @@ export default function PendientesPage() {
   )
 
   return (
-    <div>
+    <div className="nx-canvas">
       <PageHeader
         title="Pendientes"
         subtitle="Estudios pedidos, resultados sin revisar y recetas sin entregar. Salen solos al firmar la nota."

@@ -4,16 +4,23 @@
 
 ## Iteración en curso
 
-`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO. 14-ago, 5ª
-corrida: RTC-32 pagó el tercer y último residuo de la 4ª pasada de §29 (el cromo
-flotante del escritorio, 6/6 → 0/6). Con él NO queda trabajo estructural
-nombrado por delante: lo que falta para cerrar la iteración es la lectura
-INDEPENDIENTE de §26/§29 — quien implementa no puede ser el juez.**
+`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO. 14-ago: RTC-32
+pagó el tercer y último residuo de la 4ª pasada de §29 (el cromo flotante del
+escritorio, 6/6 → 0/6), y RTC-12(a) pagó el último P1 abierto (un lienzo de
+página compartido: 4 anchos + 1 sin ninguno → 1, salto lateral 110px → 0px).
+No queda P1 abierto ni trabajo estructural nombrado por delante: lo que falta
+para cerrar la iteración es la lectura INDEPENDIENTE de §26/§29 — quien
+implementa no puede ser el juez.**
+
+La cola viva es P2/P3 (RTC-30 en el resto de pantallas, RTC-23 a medias, RTC-24,
+RTC-26) más **un hueco que RTC-12(a) dejó nombrado y con sitio físico
+reservado: la Capa 4 de §5 —la lente contextual— no existe como pieza en este
+repositorio**, aunque §33 Fase 2 la pide y `V15-SHELL-GREYBOX-001` cerró sin
+ella.
 
 Historia previa — **registros UNIFICADOS 13-ago-2026. P0 cerrados y NUEVE P1
-pagados** (RTC-03, RTC-04,
-RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10, RTC-11). Queda RTC-12,
-declarado deuda dimensionada del monolito:
+pagados** (RTC-03, RTC-04, RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10,
+RTC-11):
 
 - **Registro canónico**: `docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md`
   (IDs `RTC-01..28`, mapeo ORT↔RT por CONTENIDO — los paréntesis RT/DS/CW
@@ -7896,6 +7903,132 @@ página.
 
 **Siguen abiertas** las otras dos mitades de RTC-23: la cascada 520+120ms de
 Hoy y la luna que rota al hover.
+
+---
+
+## RTC-12(a) PAGADA — un lienzo de página, y el enunciado era medio falso (14-ago)
+
+**El defecto no era el que estaba escrito.** RTC-12(a) llevaba desde el 13-ago
+aparcado como «deuda dimensionada del monolito» con este enunciado: «ninguna
+superficie usa el lienzo de escritorio: columna única 880–1100px en todas». Da
+por hecho que lo malo es **el ancho sobrante**, y eso no se sostiene: 880px de
+historia clínica son **74 caracteres medidos**, dentro del rango legible.
+Ensanchar para llenar 1440 habría sido el error contrario y más caro — repintar
+con más píxeles.
+
+Lo que sí era un defecto no estaba escrito en ninguna parte: **no había una
+regla**. Barrido estático del mismo día — **41 páginas del dashboard con
+`maxWidth` propio en TRECE valores distintos** (480 · 520 · 720 · 800 · 820 ·
+860 · 880 · 900 · 920 · 980 · 1000 · 1100 · 1180). No es una decisión tomada
+trece veces: es la ausencia de una decisión, repetida por quien tuviera prisa.
+
+### La consecuencia, medida en navegador
+
+Arnés nuevo `scripts/design/medir-canvas-de-pagina-v15.mjs`. **No mide cuánto
+sobra: mide el borde izquierdo del marco** —el píxel por el que se entra a
+leer— y cuánto se mueve al navegar (§20: navegar debe sentirse como el mismo
+objeto haciéndose más detallado).
+
+| superficie | antes | después |
+|---|---|---|
+| hoy | 900px · marco izq **382** | 1100px · **282** |
+| pendientes | **sin contenedor de ningún tipo** | 1100px · **282** |
+| pacientes | 1100px · 282 | 1100px · 282 |
+| expediente | 880px · **392** | 1100px · **282** |
+| consulta | 980px · **342** | 1100px · **282** |
+| operaciones | 880px · **392** | 1100px · **282** |
+| **anchos declarados distintos** | **4** (+1 sin ninguno) | **1** |
+| **salto lateral máximo al navegar** | **110px** | **0px** |
+
+Y el peor caso ni siquiera entraba en el número de antes: `/pendientes` —la
+superficie de referencia, la que puntúa 1.0— era la única **sin contenedor**,
+así que su ancho lo decidía el `<main>` y el arnés no podía compararla con
+ninguna.
+
+### La regla
+
+`.nx-canvas` en `globals.css`: un bloque compartido (`--nx-lienzo`, **1100px**)
+y `.nx-medida-lectura`, que **acorta por la DERECHA sin mover el borde por el
+que se entra**. Dos pantallas distintas empiezan en el mismo píxel; una acaba
+antes. El valor no se eligió por gusto: 1100 es el que el propio producto ya
+usaba más veces (15 páginas). **La decisión es que haya UNO, no cuál.**
+
+Vive en la HOJA, no en el JSX (lección `nx-stat-grid`): al convertir una
+pantalla el número escrito a mano **se borra, no se acompaña** — si no, la
+pantalla llevaría `.nx-canvas` puesta y el lienzo no serviría de nada. El caso 3
+del guardián es exactamente ese candado.
+
+### El arnés se equivocó primero, y por eso hubo que arreglarlo
+
+La primera versión medía el `<h1>`, razonando que es donde el ojo empieza a
+leer. Con los cuatro anchos viejos daba la respuesta correcta **por
+casualidad**; en cuanto el lienzo se unificó siguió informando **56px de salto**
+en `/expediente` — donde el `<h1>` es el nombre del paciente y va DESPUÉS del
+disco del avatar (44px + 12 de hueco). El número no medía el marco: medía la
+sangría interna de un componente. Ahora mide el contenedor y anota la sangría
+aparte. **Quinta vez en la iteración que el instrumento resulta ser el defecto**
+(`window.scrollTo` de RTC-12, el logo-off con selectores huérfanos, el «0 de 0»
+de RTC-23, la vara del riel de RTC-20).
+
+Y la comparación antes/después se rehízo **con el arnés corregido en las dos
+puntas** —rama sin cambios reconstruida y vuelta a medir— porque comparar dos
+instrumentos distintos no es comparar.
+
+### Guardián, probado al revés ×3
+
+`src/__tests__/v15-rtc12-el-lienzo-de-pagina.test.ts` (4 casos):
+devolviendo `max-width: 900px` a `.hoy` → falla el 3; quitando `.nx-canvas` de
+`/pendientes` → falla el 2; borrando `--nx-lienzo` → falla el 1. Los tres
+comprobados en rojo antes de dejarlos en verde.
+
+Y trinquete nuevo `lienzosAMano` en `trinquete-de-diseno.mjs`, **sellado en 52,
+sólo baja**: cuenta contenedores de página (`maxWidth ≥ 400` en `page.tsx` del
+dashboard) para que ninguna pantalla nueva se invente su ancho y las 35 que
+quedan sólo puedan encogerse. Umbral y alcance declarados: un `maxWidth: 420`
+sobre un buscador o un `62ch` sobre un párrafo NO es un lienzo, es la medida de
+un bloque — que es justo lo que el sistema pide.
+
+### Verificado en navegador real (14-ago) — escritorio y móvil
+
+Build de producción + emuladores + siembra con historia. Actas en
+`docs/design/capturas/v15-canvas-antes/` y `v15-canvas-despues/` (12 capturas:
+las seis a 1440 y las seis a 390).
+
+- **Escritorio 1440**: salto 0px en los cinco pasos, 1 ancho declarado.
+- **Móvil 390**: las seis con recorte **16px** y **cero desbordamiento
+  horizontal**. Era el riesgo real del cambio — convertir una pantalla le quita
+  su `padding` escrito a mano, y un recorte perdido se ve primero en el teléfono
+  de alguien, no aquí. Por eso el arnés lo comprueba del otro lado.
+- **La medida de lectura de `/expediente` NO se movió**: 74ch antes y después.
+  El lienzo más ancho no estiró la prosa, que era lo único que podía empeorar.
+- 0 errores de consola en las dos pasadas.
+
+### Lo que NO cubre
+
+- **No cubre las 41 páginas**: convierte las SEIS que puntúa §29 y deja 35
+  declaradas, con el trinquete impidiendo que crezcan.
+- **No decide qué vive en el ancho que queda a la derecha.** El lienzo lo
+  reserva; hoy está vacío. Es el sitio de la **Capa 4 de §5 —la lente
+  contextual—, que no existe todavía como pieza en este repositorio** (§33
+  Fase 2 la pide y `V15-SHELL-GREYBOX-001` cerró sin ella). No se rellena con
+  nada mientras tanto.
+- **No re-puntúa §29.** La 5ª pasada dejó dicho que el siguiente juez no puede
+  ser quien hizo el trabajo.
+
+**Siguiente tarea exacta:** la **Capa 4 de §5 — la lente contextual**, que es el
+hueco que esta rebanada dejó nombrado y con sitio físico reservado. Antes de
+construirla, medir lo que §21 ya tiene: cómo se revela hoy la procedencia
+(`SelloProcedencia`, REG-213/REG-250) y si sale de la pantalla, abre modal o
+pierde el sitio — «fact → inspect → source → return exactly where you were», sin
+pérdida de contexto. Si la medición dice que el patrón actual ya cumple, se
+declara y se pasa a lo que quede de la cola P3 (RTC-24, cuatro nombres para el
+objeto central; RTC-26, `style={{` en absoluto).
+
+**Nota de concurrencia (consolidado al empujar):** RTC-25, RTC-27, RTC-32 y las
+dos mitades de RTC-23 los pagaron corridas concurrentes de esta misma fecha —
+tres fusiones sin conflicto de código en esta corrida y un conflicto de texto en
+este mismo archivo, resuelto conservando las dos historias. No se reabre
+ninguno.
 
 ---
 
