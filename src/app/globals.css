@@ -1503,6 +1503,37 @@ html[data-vt-continuidad] .page-transition { animation: none; }
     width: max(100%, 44px);
     height: max(100%, 44px);
   }
+
+  /* LOS DESTINOS DEL RIEL — la misma causa raíz que los dos enlaces de arriba,
+     y con la peor consecuencia de las tres.
+
+     RTC-32 midió el disparador de ayuda del riel en 207×36 y dejó la deuda
+     declarada «del riel entero, se paga como unidad: subir sólo éste haría la
+     ayuda más prominente que los destinos clínicos». Medido después en
+     navegador real (`medir-tactiles-del-riel-v15.mjs`, iPad horizontal 1024
+     con puntero grueso — el riel enciende a ≥769px, así que ese ancho existe
+     y es táctil), esa inversión NO estaba por llegar: ya estaba publicada, y
+     no la creó una decisión sino esta omisión.
+
+       <button> «Ayuda», «Cerrar sesión», las 18 secciones de /configuracion → 44
+       <a>      «Hoy», «Paciente», «Encuentro», «Seguimiento»              → 36.3
+       <a>      «Operaciones» (subordinado, 12px)                          → 34
+
+     `button:not(.mobile-topbar-btn)` los cubría desde hace tiempo; `<a>` nunca
+     entró en este bloque. Resultado con el dedo: cerrar la sesión es un blanco
+     más grande que entrar al encuentro.
+
+     Aquí SÍ vale un `min-height` —y no el pseudo estirado que necesitaron
+     `a.nx-ident` y `.nx-cta-aviso`— porque en el riel lo visible y el golpe son
+     la misma caja: la fila entera pinta su fondo en hover/activo, no hay línea
+     de base compartida con un vecino, y crecer 8px empuja hacia abajo dentro de
+     una columna que ya tiene su propio scroll (`.sidebar { overflow-y: auto }`).
+     Engordar lo visible es aquí la respuesta correcta, no un efecto colateral.
+
+     Sólo puntero grueso, por la misma razón que la regla hermana: con ratón
+     207×36 no es un objetivo táctil, y estirar el riel en escritorio sería
+     inflar el cromo sin que §24 lo pida. */
+  .nav-item { min-height: 44px; }
 }
 
 /* Áreas seguras (notch / home indicator de iPhone) */
