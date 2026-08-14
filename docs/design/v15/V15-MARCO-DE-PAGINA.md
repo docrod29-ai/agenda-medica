@@ -87,7 +87,7 @@ que el sistema de diseño existe para evitar.
 |---|---|
 | `/pendientes` | Es el patrón. No se toca. |
 | `/pacientes` | **Convertida** (14-ago): subtítulo + lista sin tarjeta + encabezados que hablan. |
-| `/operaciones` | Media hecha por RTC-29 (lista con propósito y cadencia); le falta la cabecera. |
+| `/operaciones` | **Convertida** (14-ago, 3ª rebanada): RTC-29 le dio la lista; ahora su cabecera es la pieza compartida (`PageHeader`) en vez de un par de etiquetas propias. |
 | `/dashboard` (Hoy) | **Convertida** (14-ago, 2ª rebanada): sus dos bloques dejaron la tarjeta, y su vacío pasó a línea (RTC-30). |
-| `/expediente` | Pendiente — su marco es distinto (ancla de paciente), hay que decidir qué le aplica. |
+| `/expediente` | **A medias** (14-ago): su vacío de historia pasó a línea (RTC-30) y la pantalla entera cabe ahora en el primer viewport. Su marco de cabecera es distinto —el ancla de paciente, con su serif y su banda de alergias— y NO se le aplica la regla 1: ahí el `<h1>` es el nombre del paciente, no el de la pantalla. Queda observado que «Nueva consulta» flota en una fila vacía; se mide antes de tocarlo. |
 | `/consulta` | Pendiente — íd. |

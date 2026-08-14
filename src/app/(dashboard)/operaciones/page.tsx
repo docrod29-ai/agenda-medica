@@ -15,6 +15,7 @@
  */
 import { useState } from 'react'
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui'
 import {
   CalendarPlus, CalendarDays, Calendar, Clock, BedDouble, Activity,
   TrendingUp, Star, HeartHandshake, Pill, ShieldCheck, FileText, ArrowLeftRight,
@@ -182,14 +183,14 @@ export default function OperacionesPage() {
 
   return (
     <div style={{ maxWidth: 880, margin: '0 auto', padding: '28px 20px 60px' }}>
-      <h1 className="t-h1" style={{ margin: '0 0 4px' }}>
-        Operaciones
-      </h1>
-      <p className="t-body" style={{ color: 'var(--text2)', margin: '0 0 28px', maxWidth: 560 }}>
-        La administración del consultorio y los módulos de hospital, aparte del
-        trabajo clínico del día. Cada cosa dice para qué sirve, y los grupos van
-        de lo que se usa todos los días a lo que se configura una vez.
-      </p>
+      {/* RTC-31: la misma cabecera que el resto de pantallas. Este índice ya
+          decía qué es y de dónde sale su contenido —era de las pocas que lo
+          hacían— pero lo decía con su propio par de etiquetas. La pieza es
+          `PageHeader`, que además garantiza el subtítulo por tipo. */}
+      <PageHeader
+        title="Operaciones"
+        subtitle="La administración del consultorio y los módulos de hospital, aparte del trabajo clínico del día. Cada cosa dice para qué sirve, y los grupos van de lo que se usa todos los días a lo que se configura una vez."
+      />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
         {/**

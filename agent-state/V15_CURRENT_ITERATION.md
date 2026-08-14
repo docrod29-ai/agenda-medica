@@ -467,9 +467,26 @@ golpe sin volver a puntuar sería repintar.
 - Medido en navegador: 0 errores de consola, y el worklist entero cabe ahora en
   el primer viewport de Hoy. Capturas en `docs/design/capturas/v15-rtc31-hoy/`.
 
+### RTC-31, 3ª rebanada (14-ago) — el expediente respira y Operaciones habla la pieza
+
+- **`/expediente`**: el vacío de la historia («Sin notas todavía», con
+  ilustración y botón) era un hero de media pantalla dentro de una pantalla que
+  NO estaba vacía —arriba ya había identidad, alergias y el riel del Spine—.
+  Pasó a línea: ahora el expediente entero (identidad → estado → historia →
+  datos → herramientas clínicas) cabe en el primer viewport. El **error** de
+  carga conserva su hero, por lo mismo de siempre.
+- **`/operaciones`**: su cabecera era un `<h1>` + `<p>` propios. Ahora es
+  `PageHeader`, que además garantiza el subtítulo por tipo. El guardián de
+  cromo se movió CON el código: comprueba que use la pieza compartida y que el
+  `t-h1` siga existiendo donde ahora vive — más de lo que fijaba antes.
+- **Observado y NO tocado**: en `/expediente`, «Nueva consulta» flota solo en
+  una fila vacía a la derecha. Se ve raro, pero moverlo al ancla del paciente
+  toca la rejilla móvil de V10-DEBT-006 y compite con «Consulta sin cerrar —
+  continuar». Se mide antes de tocarlo: cambiar sin medir es repintar.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
 DIEZ P1 originales, **RTC-15**, **RTC-29**, **RTC-30**, las dos pasadas de §29 y
-dos rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
+tres rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
 medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
 —empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
 Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.

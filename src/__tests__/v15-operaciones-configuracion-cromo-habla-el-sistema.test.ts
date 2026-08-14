@@ -187,16 +187,25 @@ describe('V15 /configuracion — freeze funcional (§1/§42): el guardado y las 
 })
 
 describe('V15 /operaciones — roles §2 y freeze del índice administrativo', () => {
-  it('el título habla t-h1 y los grupos hablan t-overline (no 12/700 inline)', () => {
-    expect(OPS).toMatch(/<h1 className="t-h1"/)
+  it('la cabecera y los grupos hablan el sistema (no un dialecto de 12/700 inline)', () => {
+    /**
+     * La condición SIGUE al código. Esta pantalla dibujaba su cabecera a mano
+     * —`<h1 className="t-h1">` + `<p className="t-body">`— y esos dos roles
+     * eran lo que este caso comprobaba. RTC-31 la pasó a `PageHeader`, que es
+     * quien posee ahora el `t-h1` y el subtítulo, y que además **garantiza el
+     * subtítulo por tipo**: eso es MÁS de lo que fijaba la aserción vieja, no
+     * menos. Lo que se protege sigue siendo lo mismo: que el cromo no hable un
+     * dialecto propio.
+     */
+    expect(OPS).toMatch(/<PageHeader\n?\s*title="Operaciones"/)
+    expect(OPS).toMatch(/subtitle="[^"]{40,}"/)
     expect(OPS).toMatch(/<h2 className="t-overline"/)
     const src = sinComentarios(OPS)
     expect(src).not.toMatch(/fontSize:\s*12,\s*fontWeight:\s*700/)
     expect(src).not.toMatch(/fontSize:\s*20,\s*fontWeight:\s*700/)
-  })
-
-  it('la introducción habla t-body', () => {
-    expect(OPS).toMatch(/<p className="t-body"/)
+    // Y el `t-h1` sigue existiendo donde ahora vive: en la pieza compartida.
+    expect(readFileSync(join('src', 'components', 'ui', 'PageHeader.tsx'), 'utf8'))
+      .toMatch(/<h1 className="t-h1"/)
   })
 
   it('toda fila de /operaciones declara mínimo táctil de 44 (§24)', () => {

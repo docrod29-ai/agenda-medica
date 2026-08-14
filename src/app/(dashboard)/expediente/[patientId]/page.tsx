@@ -349,11 +349,18 @@ export default function ExpedientePage() {
             action={<Button onClick={() => reload()}>Reintentar</Button>}
           />
         ) : (
+        /* RTC-30 — este vacío es de UN BLOQUE, no de la pantalla. Arriba ya
+           están la identidad del paciente, sus alergias y el riel del Clinical
+           Spine: la pantalla no está vacía, la historia sí. El hero ilustrado
+           ocupaba media pantalla para decir «no hay notas» y empujaba fuera
+           del pliegue lo que sí había. El error de carga (arriba) SÍ conserva
+           su hero: ahí distinguir «no hay» de «no se pudo leer» es la regla 4.
+           Y la acción no se pierde: «Nueva consulta» sigue en la cabecera. */
         <EmptyState
-          illustration={<ExpedienteVacio />}
-          title="Sin notas todavía"
-          description="Inicia una consulta para crear la primera nota clínica de este paciente."
-          action={<Button icon={<Plus size={16} />} onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))}>Crear primera nota</Button>}
+          variante="linea"
+          title="Sin notas todavía."
+          description="La primera consulta que firmes aparece aquí."
+          action={<Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))}>Crear primera nota</Button>}
         />
         )
       ) : (
