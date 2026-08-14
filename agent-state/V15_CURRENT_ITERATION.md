@@ -596,7 +596,28 @@ escondía:
 
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
 DIEZ P1 originales, **RTC-15**, **RTC-29**, **RTC-30**, las dos pasadas de §29 y
-cinco rebanadas de **RTC-31**. Siguiente: **RTC-14** (P1, medido). **No se cierra**: la compuerta pide ≤1.0 y la última
+cinco rebanadas de **RTC-31** y **RTC-14** (la mitad de la duplicación).
+
+### RTC-14 PAGADA (14-ago) — una presentación, los dos hechos
+
+Sobrevive la franja de arriba: es la primera, es la que permite **escribir** la
+alergia durante la consulta, y ya tenía color e icono medidos en los dos temas.
+Lo único que la píldora aportaba de más —la lectura semántica de `alergenosDe`—
+**sube a la franja, junto al texto del que sale**. Y sólo se enseña cuando añade
+algo: si lo escrito ya es el alérgeno, repetirlo al lado sería el mismo defecto.
+
+    ×2 → ×1 en el pliegue · 49px → 20px
+    «Grabar la consulta» 452 → 416px (escritorio) · 564 → 527px (móvil)
+
+**El dato LLEGA, comprobado**: se sembró a propósito el caso de REG-311 —«Niega
+penicilina. Alérgico a sulfas», la frase que una copia local del criterio llegó
+a pintar como neutra— y la franja enseña «se lee: sulfas» en los dos anchos.
+Sin ese paciente, esa mitad quedaba escrita y sin comprobar, que es exactamente
+por lo que RTC-14 tardó un día en poder medirse.
+
+**Queda abierta la otra mitad de RTC-14**: la salience cromática de la franja
+(«en gris es el elemento MENOS saliente») no se ha medido. Y sigue en pie el
+hallazgo de la identidad a 287/404px con historia: es otra rebanada, no ésta. **No se cierra**: la compuerta pide ≤1.0 y la última
 medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
 —empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
 Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.

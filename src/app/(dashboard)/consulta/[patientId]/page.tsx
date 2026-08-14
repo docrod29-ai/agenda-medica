@@ -3985,7 +3985,7 @@ export default function ConsultaActivaPage() {
           mera presencia de texto: «Niega alergias» pintaba esta franja ROJA y
           la píldora de más abajo NEUTRA — dos alarmas contradictorias para el
           mismo dato en el mismo viewport (REG-311). */}
-      {(() => { const hayAlergias = alergenosDe(patient ?? {}).length > 0; return (
+      {(() => { const alergenosDelPaciente = alergenosDe(patient ?? {}); const hayAlergias = alergenosDelPaciente.length > 0; return (
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
         background: hayAlergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
@@ -4033,6 +4033,30 @@ export default function ConsultaActivaPage() {
           disabled={firmada}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
         />
+        {/**
+          * RTC-14 — LA LECTURA DEL SISTEMA, AQUÍ Y NO EN OTRA CAJA.
+          *
+          * Esto es lo ÚNICO que aportaba la píldora de bajo el nombre que esta
+          * rebanada retira: el campo de arriba enseña lo que hay ESCRITO, y
+          * esto enseña lo que el sistema ENTIENDE que son alérgenos. Los dos
+          * hechos son distintos y los dos hacen falta — «Niega penicilina.
+          * Alérgico a sulfas» se lee entero en el campo, y aquí se ve que de
+          * ahí sale «sulfas» (REG-279/REG-311: una copia local del criterio
+          * llegó a pintar eso como neutro).
+          *
+          * Sólo aparece cuando la lectura AÑADE algo: si el texto escrito es
+          * exactamente el alérgeno, repetirlo al lado sería el mismo defecto
+          * que esta rebanada viene a quitar.
+          */}
+        {hayAlergias && alergenosDelPaciente.join(' · ') !== (patient?.alergias ?? '').trim() && (
+          <span
+            className="nx-critico"
+            style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700 }}
+            title="Lo que el sistema entiende como alérgeno a partir de lo escrito"
+          >
+            se lee: {alergenosDelPaciente.join(' · ')}
+          </span>
+        )}
       </div>
       ) })()}
 
@@ -4178,29 +4202,21 @@ export default function ConsultaActivaPage() {
             justo mientras se dicta y se prescribe cuando hay que tenerlas
             enfrente. Rojo si el paciente tiene alergias; discreto si no.
           */}
-          {(() => {
-            /* El criterio NO vive aquí — REG-311: la copia local
-               («empieza por niega/no/sin…», sin leer las estructuradas)
-               pintaba NEUTRO «Niega penicilina. Alérgico a sulfas» y callaba
-               una alergia sólo-estructurada. `alergenosDe` es la semántica
-               sellada de REG-279; en rojo se enseñan los ALÉRGENOS, no la
-               frase cruda que los esconde. */
-            const a = (patient?.alergias ?? '').trim()
-            const alergenos = alergenosDe(patient ?? {})
-            const sin = alergenos.length === 0
-            if (!a && sin) return null
-            return (
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
-                background: sin ? 'var(--s2)' : 'color-mix(in srgb, var(--red) 10%, transparent)',
-                border: `1px solid ${sin ? 'var(--border)' : 'color-mix(in srgb, var(--red) 40%, transparent)'}`,
-                borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 12.5,
-                color: sin ? 'var(--text2)' : 'var(--red)', fontWeight: 600,
-              }}>
-                <AlertTriangle size={13} /> Alergias: <span style={{ fontWeight: 700 }}>{sin ? a : alergenos.join(' · ')}</span>
-              </div>
-            )
-          })()}
+          {/**
+            * RTC-14 — AQUÍ HABÍA UNA SEGUNDA PÍLDORA DE ALERGIAS.
+            *
+            * Medido el 14-ago en navegador, con un paciente que POR FIN tenía
+            * alergia registrada: la alergia se pintaba **dos veces en el primer
+            * pliegue** de la consulta (49px entre las dos) — la franja
+            * editable de arriba y esta píldora de sólo lectura, a 200px de
+            * distancia. Dos avisos del mismo dato compiten entre sí: el
+            * segundo se aprende a ignorar, y el día que digan cosas distintas
+            * —ya pasó, REG-311— el médico no sabe cuál creer.
+            *
+            * Lo que esta píldora aportaba de más era la LECTURA semántica
+            * (`alergenosDe`), y eso no se pierde: subió a la franja, junto al
+            * texto del que sale. Una presentación, los dos hechos.
+            */}
         </div>
         {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
       </div>

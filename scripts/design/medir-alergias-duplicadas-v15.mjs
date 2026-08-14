@@ -35,6 +35,10 @@ const EMAIL = 'medico@capturas.demo'
 const PASSWORD = 'captura-v10-demo'
 /* Con alergia registrada y con historia: el caso que hasta hoy no existía. */
 const CON_ALERGIA = 'pac-luzmaria-cervantes'
+/* El caso de REG-311: «Niega penicilina. Alérgico a sulfas» — el texto escrito
+   y la lectura del sistema NO coinciden, que es cuando la franja tiene que
+   enseñar las dos cosas. */
+const MEZCLA_NEGACION = 'pac-catalina-ibarra'
 
 fs.mkdirSync(DESTINO, { recursive: true })
 const navegador = await chromium.launch(
@@ -64,7 +68,7 @@ for (const [ancho, alto, etiqueta] of [[1440, 900, 'escritorio'], [390, 844, 'mo
     await s.waitFor({ state: 'hidden', timeout: 4000 })
   } catch { /* sin tour */ }
 
-  for (const ruta of [`/consulta/${CON_ALERGIA}`, `/expediente/${CON_ALERGIA}`]) {
+  for (const ruta of [`/consulta/${CON_ALERGIA}`, `/expediente/${CON_ALERGIA}`, `/consulta/${MEZCLA_NEGACION}`]) {
     await page.goto(`${BASE}${ruta}`, { waitUntil: 'load' })
     await page.waitForTimeout(2600)
     const m = await page.evaluate(() => {
@@ -89,6 +93,11 @@ for (const [ancho, alto, etiqueta] of [[1440, 900, 'escritorio'], [390, 844, 'mo
         donde: enPliegue.map(el => ({ ...caja(el), texto: (el.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 60) })),
         pixelesDeAlergiaEnElPliegue: enPliegue.reduce((n, el) => n + caja(el).h, 0),
         identidadA: identidad ? caja(identidad).y : null,
+        /* ¿Llega la LECTURA del sistema a la pantalla, o se quedó escrita? */
+        lecturaDelSistema: (() => {
+          const el = [...raiz.querySelectorAll('span')].find(x => (x.textContent ?? '').trim().startsWith('se lee:'))
+          return el ? (el.textContent ?? '').trim() : null
+        })(),
         grabarA: grabar ? caja(grabar).y : null,
         viewport: window.innerHeight,
       }
@@ -96,9 +105,9 @@ for (const [ancho, alto, etiqueta] of [[1440, 900, 'escritorio'], [390, 844, 'mo
     medidas[`${etiqueta}${ruta}`] = m
     console.log(
       `  ${etiqueta.padEnd(11)} ${ruta.padEnd(34)} alergia ×${m.aparicionesEnElPrimerPliegue} en el pliegue ` +
-      `(${m.pixelesDeAlergiaEnElPliegue}px de ${m.viewport}) · identidad a ${m.identidadA}px · grabar a ${m.grabarA}px`,
+      `(${m.pixelesDeAlergiaEnElPliegue}px de ${m.viewport}) · identidad a ${m.identidadA}px · grabar a ${m.grabarA}px · lectura: ${m.lecturaDelSistema ?? '—'}`,
     )
-    await page.screenshot({ path: path.join(DESTINO, `${ruta.split('/')[1]}-${etiqueta}.png`) })
+    await page.screenshot({ path: path.join(DESTINO, `${ruta.split('/')[1]}-${ruta.split('/')[2]}-${etiqueta}.png`) })
   }
   await contexto.close()
 }

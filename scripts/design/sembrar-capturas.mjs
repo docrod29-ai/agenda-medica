@@ -127,7 +127,13 @@ async function main() {
       fechaNacimiento: '1947-01-30',
       edad: 79,
       sexo: 'Femenino',
-      alergias: 'Sulfas',
+      /* EL CASO DE REG-311, SEMBRADO A PROPÓSITO: una frase que MEZCLA una
+         negación con una alergia real. Es la que una copia local del criterio
+         llegó a pintar como «sin alergias» en gris, y la única forma de ver en
+         navegador que la franja enseña la LECTURA del sistema («se lee:
+         sulfas») además del texto escrito. Sin este paciente, esa mitad de
+         RTC-14 quedaba escrita y sin comprobar. */
+      alergias: 'Niega penicilina. Alérgico a sulfas',
       seguroMedico: 'IMSS + particular',
       tags: [],
       notas: 'EPOC GOLD II. Esquema de vacunación al corriente.',
