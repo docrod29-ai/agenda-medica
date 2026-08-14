@@ -28,9 +28,17 @@ RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10, RTC-11), cada uno con guardián
 probado al revés y verificación en navegador real. Del décimo (RTC-12) se midió
 que su mitad de identidad **no se reproduce** —y quedó con candado— y su mitad
 estructural queda declarada como deuda del monolito con dueño. La compuerta
-§29/§34 pide **re-puntuar las superficies** (§29) sobre capturas nuevas antes de
-declararse PASS: los pagos están hechos, el score no se hereda de la corrida
-que los encontró. Los dos paneles COINCIDEN en las refutaciones: no
+§29/§34 pedía **re-puntuar las superficies** (§29) sobre capturas nuevas antes
+de declararse PASS: los pagos estaban hechos, pero el score no se hereda de la
+corrida que los encontró.
+
+**Re-puntuado el 14-ago sobre 18 capturas nuevas** (`docs/design/v15/V15-REPUNTUACION-V29.md`):
+Pendientes **1.0** · Hoy **2.0** · Consulta **2.0** · Expediente **2.5** ·
+Operaciones **4.0** · Pacientes **5.0**. Cuatro de seis superficies quedaron
+entre 1.0 y 2.5 — pero la compuerta se juzga por la PEOR, así que
+`GENERIC_AI_LOOK ≤ 1` sigue **FAIL** y esta iteración **no se cierra**. Las dos
+que fallan lo hacen por razones que ningún P1 había tocado: se convierten en
+RTC-15 (subido a P1) y RTC-29. Los dos paneles COINCIDEN en las refutaciones: no
 hay imitación de competidor, §14 PASS (4+1 destinos), las superficies se
 distinguen entre sí en gris, y la cola de cierre de Pendientes es la semilla
 de identidad del producto (único Logo-off PASS).
@@ -60,12 +68,21 @@ una corrida del panel · `PARCIAL` = primera tanda pagada · `OPEN`.
 
 ### P1 abiertos (orden de pago)
 
-Ninguno pendiente de pago. Los diez se cerraron entre el 13 y el 14-ago-2026;
-el único que sigue teniendo trabajo por delante es **RTC-12(a)** —el lienzo
-multicolumna— y no está aquí porque no es una rebanada de esta iteración: es
-deuda del monolito de 6147 líneas, dimensionada arriba y con dueño declarado
-(V15-NOTE-PLAN-CONTINUITY / refactor). Ponerlo en «abiertos» invitaría a
-abrirlo a ciegas, que es justo lo que el registro pide no hacer.
+Los diez P1 originales se cerraron entre el 13 y el 14-ago-2026. Los dos de
+aquí abajo **no son P1 originales**: los abrió la re-puntuación §29 del 14-ago,
+que es la que manda sobre el cierre de la iteración. Uno ya existía como P2 y
+sube de prioridad con un número delante; el otro es nuevo.
+
+| ID | Sev | Origen | Defecto | Pago |
+|---|---|---|---|---|
+| RTC-15 | **P1** (era P2) | ORT-09 + RT-13 + re-puntuación §29 | **Peor superficie del producto: 5.0/10.** Pacientes con anatomía CRUD (título → racimo de botones → búsqueda → píldoras → filas idénticas): inicial en disco de color, nombre, teléfono, edad, «Editar», chevron. **No dice nada clínico de nadie** — ni quién tiene algo abierto, ni a quién se vio ayer, ni quién tiene alerta; la única pista es un chip «Con alerta» que hay que ir a buscar. RTC-11 arregló su identidad en móvil y NO cambió lo que la pantalla es | Estado clínico por fila (abierto de antes · resultado sin revisar · alerta · última vez visto) en lugar del teléfono; «Abrir» explícito; «Respaldo» (operación §11) fuera de la cabecera primaria. La cirugía que ya funcionó en `/pendientes`, en la pantalla que más se abre |
+| RTC-29 | **P1** | re-puntuación §29 (14-ago) | **Operaciones 4.0/10: es un lanzador de aplicaciones.** Diecinueve azulejos idénticos —mismo borde, mismo radio, mismo peso— bajo antetítulos en versalitas. Nada dice qué se hace primero, qué es raro, qué está caliente. RTC-09 arregló QUÉ vive en esa pantalla; nadie ha tocado QUÉ ES esa pantalla. §34: «un tablero donde todo pesa lo mismo no tiene jerarquía: tiene inventario» | Jerarquía real por frecuencia y consecuencia; que lo que necesita atención se vea desde la pantalla en vez de tras el azulejo |
+
+**RTC-12(a)** —el lienzo multicolumna— sigue teniendo trabajo por delante y
+deliberadamente **no está en esta tabla**: no es una rebanada de esta iteración
+sino deuda del monolito de 6147 líneas, dimensionada arriba y con dueño
+declarado (V15-NOTE-PLAN-CONTINUITY / refactor). Ponerlo en «abiertos»
+invitaría a abrirlo a ciegas, que es justo lo que el registro pide no hacer.
 
 
 ### P2 abiertos
@@ -74,12 +91,13 @@ abrirlo a ciegas, que es justo lo que el registro pide no hacer.
 |---|---|---|---|---|
 | RTC-13 | P2 | ORT-15 + RT-05 | Etiquetas de IA como feature en cromo clínico (§25). PARCIAL: 4 sitios pagados («Nueva consulta con IA», «Razonar con IA (… Claude + GPT)», «Claude estructurando…» ×2) | Restante: «Procesar con IA» + Sparkles (19 usos), «Pedir segunda opinión (otra IA revisa la nota)», y un guardián de CONTENIDO §25 |
 | RTC-14 | P2 | RT-10 + ORT-11 | Alergias: pintadas DOS veces en el mismo pliegue (consulta y expediente; ~12 % del viewport móvil, empuja «Grabar»); y su salience es 100 % cromática — en gris es el elemento MENOS saliente | UNA presentación anclada al ancla, con canal no cromático; en móvil la píldora abre la edición |
-| RTC-15 | P2 | ORT-09 + RT-13 | Pacientes: anatomía CRUD (título → botones → búsqueda → pills → filas idénticas); única affordance por fila = «Editar»; «Respaldo» (operación §11) en cabecera primaria | Respaldo a /operaciones; «Abrir» explícito; estado clínico por fila |
+| RTC-15 | — | — | **SUBIDO A P1** por la re-puntuación §29 del 14-ago (5.0/10, peor superficie). Ver la tabla de P1 abiertos | — |
 | RTC-16 | P2 | ORT-12 | No hay UN contenedor de página: 4 contenedores distintos; `.page-pad` clase muerta en escritorio; /pendientes a sangre hasta x=1440 | Contenedor unificado del shell |
 | RTC-17 | P2 | ORT-13 + RT-12 | Pendientes: `NexusClosureTrack` degradado a 8 chips de 10.5px (2 renglones a 390px); etapa activa sólo por color; `sin_dato` sólo en cursiva; explicación sólo en `title=` (inexistente en táctil) | Canal no cromático (relleno/check) + representación móvil compacta («Etapa 3 de 8 · sigue: Dueño») expandible |
 | RTC-18 | P2 | RT-15 | `ClinicalSpine` con silueta de filtro: el elemento longitudinal de §7 se rinde como fila de píldoras igual a los filtros de /pacientes; corta a media palabra sin affordance de scroll | Forma propia (indicador de posición, fade de corte) |
 | RTC-19 | P2 | RT-14 | 67 literales teal-500 fuera de tokens, dos en cromo persistente (halo del FAB central con DOS teales distintos; BotonAyuda) | Guardián que prohíba `14b8a6`/`20,184,166` fuera de `--receta-*`; el trinquete ya cuenta los halos de color (RTC-02) |
 | RTC-20 | P2 | ORT-16 | Los guardianes del riel certifican REUBICACIÓN, no reducción: ≤5 contando nodos JSX; reachability exige ≥21 rutas alcanzables | Guardián de reducción real cuando la IA se re-corte |
+| RTC-30 | P2 | re-puntuación §29 (14-ago) | Estado vacío de plantilla —icono centrado + título + frase + botón primario— en 3 de 6 superficies (Hoy, Expediente, y la historia clínica del expediente). Es el estado vacío que genera cualquier andamio. En Hoy hay ya una versión mejor a medio camino: «Tu agenda de hoy está libre. Mañana tienes 6» es información, no consuelo | Un patrón decidido UNA vez: qué se sabe, qué sigue, y el gesto — sin ilustración de relleno |
 | RTC-21 | P2 | RT-16 | Expediente móvil: exportaciones a un gesto y «FHIR» de cara al médico en un teléfono (§25 jargon; §22: exportar no es trabajo móvil) | Hoja «Compartir y exportar» de un botón; signos/diagnósticos suben |
 
 ### P3 abiertos

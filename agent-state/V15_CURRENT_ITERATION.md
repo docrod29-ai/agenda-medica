@@ -255,12 +255,51 @@ que no tener instrumento.
   ocurrió es peor que una que falla; es la tercera vez en dos corridas que el
   instrumento, y no el producto, resulta ser el defecto.
 
+### Re-puntuación §29 (14-ago, 7ª corrida) — hecha, y la compuerta sigue FAIL
+
+18 capturas NUEVAS (6 superficies × escritorio/móvil/logo-off), 0 errores de
+consola, sobre build de producción + emuladores + siembra. Veredicto entero en
+`docs/design/v15/V15-REPUNTUACION-V29.md`:
+
+| Pendientes | Hoy | Consulta | Expediente | Operaciones | Pacientes |
+|---|---|---|---|---|---|
+| **1.0** | **2.0** | **2.0** | **2.5** | **4.0** | **5.0** |
+
+Cuatro de seis entre 1.0 y 2.5 — los diez P1 se VEN pagados en la pantalla. Pero
+la compuerta se juzga por la peor: `GENERIC_AI_LOOK ≤ 1` → **FAIL**.
+
+Las dos que fallan lo hacen por razones que **ningún P1 había tocado**, y por eso
+no son una sorpresa sino el trabajo siguiente:
+
+- **RTC-15 sube de P2 a P1** — `/pacientes` (5.0) es la lista de contactos de un
+  CRM: no dice nada clínico de nadie. Ya estaba escrito en el registro; la
+  medición le pone número y prioridad.
+- **RTC-29, nuevo P1** — `/operaciones` (4.0) es un lanzador de aplicaciones:
+  19 azulejos idénticos. RTC-09 arregló QUÉ vive ahí; nadie ha tocado QUÉ ES.
+- **RTC-30, nuevo P2** — el estado vacío de plantilla (icono + título + frase +
+  botón) en 3 de 6 superficies.
+- **NO es trabajo nuevo** el par de FAB de escritorio: RTC-05 se pagó con alcance
+  declarado y que sigan flotando en escritorio es decisión tomada, no resto.
+
+**Cuarta vez que el defecto estaba en el instrumento.** La pasada «logo-off»
+ocultaba `.nx-marca, [data-marca], svg[aria-label*="Ausculta"]` — ninguno de los
+tres existe en este repositorio, así que las seis capturas «sin logotipo»
+salieron CON el logotipo puesto y habrían contestado la pregunta de §34 sin
+haber quitado nada. Misma forma exacta que el `window.scrollTo` de RTC-12. El
+arnés ahora cuenta los nodos que oculta (3–4 por superficie, en
+`marcas-ocultadas.json`) y lo grita si cuenta cero; guardián
+`v15-arnes-logo-off-oculta-algo.test.ts` (3 casos, probado al revés) para que
+ningún selector huérfano vuelva a colarse — **y ese guardián falló primero por
+leerse a sí mismo**, porque su propia cabecera cita `.nx-marca` para explicar el
+defecto: la misma ceguera de `grafo-de-dependencias` («el lector veía texto donde
+tenía que ver código») por tercera vez en la iteración.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0 y los
-DIEZ P1 resueltos o declarados con dueño. **No se declara CERRADA todavía**: la
-compuerta §29/§34 pide **re-puntuar las superficies** (§29) sobre capturas
-NUEVAS — los pagos están hechos, pero el score no se hereda de la corrida que
-encontró los defectos. Esa re-puntuación es la siguiente rebanada; después,
-§43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
+DIEZ P1 resueltos o declarados con dueño, y la re-puntuación §29 **hecha**.
+**No se declara CERRADA**: la compuerta §29/§34 quedó FAIL en 5.0 y el cierre
+pide pagar **RTC-15** y **RTC-29** y volver a puntuar. Siguiente rebanada:
+**RTC-15** (la peor superficie, y la que más se abre). Después RTC-29, después
+re-puntuar; sólo entonces §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
 
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
