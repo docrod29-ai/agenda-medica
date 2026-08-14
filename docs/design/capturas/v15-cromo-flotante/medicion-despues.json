@@ -1,0 +1,313 @@
+{
+  "fase": "despues",
+  "viewports": {
+    "desktop": {
+      "porSuperficie": {
+        "hoy": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Iniciar consulta"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 8,
+                "y": 790,
+                "w": 207,
+                "h": 36
+              },
+              "enElRiel": true,
+              "enLaTopbar": false,
+              "flotante": false
+            }
+          ]
+        },
+        "pacientes": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Nuevo paciente",
+            "Recientes (5)"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 8,
+                "y": 790,
+                "w": 207,
+                "h": 36
+              },
+              "enElRiel": true,
+              "enLaTopbar": false,
+              "flotante": false
+            }
+          ]
+        },
+        "expediente": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Nueva consulta",
+            "Consulta"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 8,
+                "y": 790,
+                "w": 207,
+                "h": 36
+              },
+              "enElRiel": true,
+              "enLaTopbar": false,
+              "flotante": false
+            }
+          ]
+        },
+        "consulta": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Todo a la nota"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 8,
+                "y": 790,
+                "w": 207,
+                "h": 36
+              },
+              "enElRiel": true,
+              "enLaTopbar": false,
+              "flotante": false
+            }
+          ]
+        },
+        "pendientes": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 8,
+                "y": 790,
+                "w": 207,
+                "h": 36
+              },
+              "enElRiel": true,
+              "enLaTopbar": false,
+              "flotante": false
+            }
+          ]
+        },
+        "operaciones": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 8,
+                "y": 790,
+                "w": 207,
+                "h": 36
+              },
+              "enElRiel": true,
+              "enLaTopbar": false,
+              "flotante": false
+            }
+          ]
+        }
+      },
+      "ayudaDesdeHoy": {
+        "disparadorEncontrado": true,
+        "panelAbierto": true,
+        "gestos": 1,
+        "rectPanel": {
+          "x": 236,
+          "y": 435,
+          "w": 380,
+          "h": 449
+        }
+      },
+      "temaEnOperaciones": {
+        "texto": "Tema: oscuroClaro, oscuro o el del siste",
+        "alto": 60
+      }
+    },
+    "mobile": {
+      "porSuperficie": {
+        "hoy": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Iniciar consulta"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "pacientes": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Nuevo paciente",
+            "Recientes (5)"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "expediente": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Nueva consulta",
+            "Consulta"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "consulta": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Todo a la nota"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "pendientes": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "operaciones": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        }
+      },
+      "ayudaDesdeHoy": {
+        "disparadorEncontrado": true,
+        "panelAbierto": true,
+        "gestos": 1,
+        "rectPanel": {
+          "x": 19,
+          "y": 60,
+          "w": 359,
+          "h": 453
+        }
+      },
+      "temaEnOperaciones": {
+        "texto": "Tema: oscuroClaro, oscuro o el del siste",
+        "alto": 60
+      }
+    }
+  },
+  "erroresConsola": [],
+  "resumen": {
+    "superficiesConCromoFlotante_desktop": [],
+    "superficiesDondeLaAyudaEsElUnicoRellenoDeMarca_desktop": [],
+    "superficiesConCromoFlotante_mobile": []
+  }
+}

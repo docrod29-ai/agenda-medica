@@ -4,8 +4,14 @@
 
 ## Iteración en curso
 
-`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO; registros
-UNIFICADOS 13-ago-2026. P0 cerrados y NUEVE P1 pagados** (RTC-03, RTC-04,
+`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO. 14-ago, 5ª
+corrida: RTC-32 pagó el tercer y último residuo de la 4ª pasada de §29 (el cromo
+flotante del escritorio, 6/6 → 0/6). Con él NO queda trabajo estructural
+nombrado por delante: lo que falta para cerrar la iteración es la lectura
+INDEPENDIENTE de §26/§29 — quien implementa no puede ser el juez.**
+
+Historia previa — **registros UNIFICADOS 13-ago-2026. P0 cerrados y NUEVE P1
+pagados** (RTC-03, RTC-04,
 RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10, RTC-11). Queda RTC-12,
 declarado deuda dimensionada del monolito:
 
@@ -839,11 +845,128 @@ la captura. Si un día se pliega algo aquí, el chevron hay que ponerlo a mano.
 
 **No se cierra**: la compuerta §29 pide ≤1.0 y la 5ª pasada dejó cuatro
 superficies en 1.5, **puntuadas por quien hizo el trabajo** — el sesgo que §29
-nombra cuando pide un panel. Siguiente tarea exacta: **una lectura independiente
-de las capturas de la 5ª pasada** (§26/§29), que es lo que falta para declarar
-PASS o FAIL sin ser juez y parte; y con ella, seguir RTC-31 por las pantallas que
-falten. Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
+nombra cuando pide un panel.
 
+**Siguiente tarea exacta** (actualizada tras RTC-32, que pagó el tercer y último
+residuo de la 4ª pasada): **una lectura independiente** de las capturas, ahora
+con las de RTC-32 incluidas (§26/§29). Es lo único que falta para declarar PASS
+o FAIL sin ser juez y parte, y ya no hay trabajo estructural nombrado por
+delante: los tres residuos están pagados y el único P1 abierto del registro
+—RTC-31— quedó cerrado en seis rebanadas. Si la lectura independiente encuentra
+más, eso es la cola; si da PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
+
+Trabajo estructural que sigue declarado y con dueño, por si la lectura no llega
+antes: **RTC-12(a)** (el lienzo multicolumna — deuda del monolito de 6147
+líneas, va con V15-NOTE-PLAN-CONTINUITY / refactor) y la deuda táctil del riel
+que dejó anotada RTC-32 (`.nav-item` a 36px, se paga como unidad).
+
+
+---
+
+## RTC-32 — en el shell no flota nada (14-ago, 5ª corrida)
+
+**El tercero y último de los tres residuos que nombró la 4ª pasada de §29.**
+Los otros dos ya estaban pagados (RTC-18 y la fila de KPIs del expediente).
+
+### Medido ANTES de construir, y la medición corrigió el diagnóstico
+
+`scripts/design/medir-cromo-flotante-v15.mjs`, actas en
+`docs/design/capturas/v15-cromo-flotante/`:
+
+| | escritorio 1440 | móvil 390 (control) |
+|---|---|---|
+| superficies con cromo flotante | **6 de 6** | 0 de 6 |
+| rellenos de marca en `/consulta` | 2 (`Todo a la nota` + `Abrir ayuda`) | 1 |
+| rellenos de marca en `/operaciones` | 1 — **y era la ayuda** | 0 |
+| coste de la ayuda | 1 gesto | 1 gesto |
+
+- **REFUTADO: la oclusión.** En escritorio el FAB cae sobre el envoltorio de la
+  página, nunca sobre texto clínico. RTC-05 tenía razón cuando declaró el hueco
+  («ahí la esquina no ocluye la columna clínica»), y por eso ése **no** es el
+  motivo del cambio. Cuarta vez en la fase que medir cambia lo que se iba a
+  escribir.
+- **CONFIRMADO: el peso.** El FAB se pintaba con `--nexus-solido`, el mismo
+  relleno que la acción primaria de la pantalla. Es exactamente el defecto que
+  RTC-06 pagó DENTRO del contenido de Hoy — mientras el cromo lo repetía por
+  encima de las seis. Y en `/operaciones` lo más enfático de la pantalla era el
+  botón de ayuda.
+- **El control no había que imaginarlo**: móvil ya estaba en el estado objetivo
+  desde RTC-05, con las dos capacidades intactas y al mismo coste.
+
+### El pago
+
+- En el shell **no flota nada**, y la regla del toggle pierde la media query:
+  el alcance es el shell, no el ancho. Fuera —login, registro, marketing— el
+  toggle sigue flotando, porque allí no hay ni columna clínica ni riel con pie.
+- **La ayuda se muda, no se ampu­ta**, y a los DOS roles: pie del riel en
+  `FlowRail` (médico) y en `Sidebar` (asistente), más la topbar en móvil. Va
+  **fuera del `<nav>`** de los ≤5 contextos: abre un panel, no lleva a un sitio,
+  y dentro del nav sería un sexto destino para cualquier vara que cuente hijos.
+- Los tres sitios usan `DisparadorAyuda`, que trae dentro el nombre del evento y
+  la compuerta `useGrabando` — ningún consumidor teclea la cadena.
+- **El panel se abre al lado del riel** (x=236 medido, riel de 224): un panel
+  que aparece en la esquina opuesta a lo que se pulsó rompe §20.
+- El tema ya tenía casa desde RTC-05 (`/operaciones` → «Apariencia»), y responde
+  en los dos anchos: mover no costó construir nada nuevo.
+
+### Medido DESPUÉS
+
+    cromo flotante escritorio     6/6 → 0/6
+    rellenos de marca escritorio  coinciden EXACTAMENTE con los de móvil
+                                  en las seis superficies (era el control)
+    ayuda                         1 gesto en los dos anchos, panel pegado al riel
+    móvil                         sin cambio (0 regresiones)
+    consola                       0 errores
+
+**Muere la familia entera de parches de convivencia**, no se le añade otro: los
+bottoms 78/92/120/136, el arbitraje con el aviso de push (el FAB tapaba su X) y
+el apartado al enfocar un campo *dentro* del shell. Todos existían para negociar
+con algo que ya no está. El trinquete de diseño **bajó solo**: `sombrasEnLinea`
+22 → 21 (la sombra en línea del FAB), re-sellado con `--actualizar`.
+
+### Cinco guardianes ajustados con intención — ninguno silenciado
+
+La suite dio 9 rojos y **todos eran guardianes cuyo sujeto había muerto**:
+oclusión de campo, push opt-in, contraste de /chat, «una voz por elemento» y el
+propio RTC-05. Ninguno se borró y ninguno se relajó: cada uno pasa a exigir **la
+condición que hace imposible la colisión** en vez del apaño que la sorteaba, con
+el porqué escrito dentro. El precedente es el de RTC-31 (5ª rebanada): un
+guardián que se borra porque su código se movió deja de proteger justo cuando el
+código es más frágil.
+
+El de RTC-05 lleva además el aviso de que su «qué NO cubre» —el hueco del
+escritorio— ya está cerrado, porque ese texto fue durante un día la única razón
+por la que nadie miraba ahí.
+
+### Compuertas
+
+- Guardián nuevo `v15-rtc32-en-el-shell-nada-flota.test.ts` (7 casos). **Al
+  revés**: los 7 fallan contra el árbol previo; y dos reversiones quirúrgicas
+  sobre el árbol nuevo — devolverle la media query a la regla del toggle rompe
+  *sólo* el caso 2, y meter el disparador DENTRO del `<nav>` rompe el 4 (sexto
+  destino) y el 3 (sale del pie): las dos quejas son ciertas y se dejan las dos.
+- `npx tsc --noEmit` limpio · `npx vitest run` **9433/9433 en 669 archivos, cero
+  fallos** (incluso el ambiental `ops-timeout-y-punto-ciego` pasó en este
+  contenedor) · lint 96 = techo · trinquete de diseño sin deuda nueva y con un
+  techo bajado · `npm run build` compila.
+- Navegador real (§40) antes y después, 1440 + 390, con `capturar-pulgar-y-fabs`
+  re-corrido en verde tras invertirle la mitad de escritorio con su porqué.
+
+### Defecto del instrumento, cazado por él mismo
+
+La pasada «antes» informó **«ayuda inalcanzable en escritorio»** con el FAB ahí a
+la vista: el localizador cogía el primer `[aria-label="Abrir ayuda"]` del DOM, que
+en escritorio es el de la topbar —presente pero oculto por CSS—. Corregido a
+`:visible` en los dos arneses (el mío y el de RTC-05/07, que tenía el mismo
+patrón), y anotado: décimo defecto de instrumento cazado midiendo en esta fase.
+
+### Declarado y NO pagado
+
+El disparador del riel mide **207×36px**, por debajo del mínimo táctil de §24.
+Usa `.nav-item`, que es la geometría de **todos** los destinos del riel,
+«Cerrar sesión» incluido. Si 36 es deuda, es deuda **del riel entero** y se paga
+como unidad: subir sólo éste haría la ayuda más prominente que los destinos
+clínicos, que es lo contrario de esta rebanada. El de móvil mide 44×44.
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
 (2) RT-08 → REG-312; (3) RT-01 → contadores de genericidad; (4) RTC-04 →
