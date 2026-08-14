@@ -1,0 +1,72 @@
+{
+  "base": "http://localhost:3000",
+  "viewports": {
+    "escritorio-1440": {
+      "conFilas": {
+        "hay": false,
+        "filas": 6
+      },
+      "ocultas": {
+        "hay": true,
+        "filas": 0,
+        "linea": true,
+        "alto": 62,
+        "titulo": "Hay 6 citas este día, y el filtro las esconde.",
+        "desc": "Filtrando por estado «Canceladas».",
+        "ilustracion": false,
+        "botones": [
+          "Quitar los filtros"
+        ]
+      },
+      "filasTrasQuitar": 6,
+      "libre": {
+        "hay": true,
+        "filas": 0,
+        "linea": false,
+        "alto": 332,
+        "titulo": "Sin citas agendadas.",
+        "desc": "El día siguiente tiene 6.",
+        "ilustracion": true,
+        "botones": [
+          "Nueva cita",
+          "Ver el día siguiente"
+        ]
+      },
+      "volvioAlDiaSiguiente": 6
+    },
+    "movil-390": {
+      "conFilas": {
+        "hay": false,
+        "filas": 6
+      },
+      "ocultas": {
+        "hay": true,
+        "filas": 0,
+        "linea": true,
+        "alto": 134,
+        "titulo": "Hay 6 citas este día, y el filtro las esconde.",
+        "desc": "Filtrando por estado «Canceladas».",
+        "ilustracion": false,
+        "botones": [
+          "Quitar los filtros"
+        ]
+      },
+      "filasTrasQuitar": 6,
+      "libre": {
+        "hay": true,
+        "filas": 0,
+        "linea": false,
+        "alto": 340,
+        "titulo": "Sin citas agendadas.",
+        "desc": "El día siguiente tiene 6.",
+        "ilustracion": true,
+        "botones": [
+          "Nueva cita",
+          "Ver el día siguiente"
+        ]
+      },
+      "volvioAlDiaSiguiente": 6
+    }
+  },
+  "errores": []
+}

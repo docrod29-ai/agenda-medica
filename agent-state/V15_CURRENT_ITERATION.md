@@ -4,6 +4,28 @@
 
 ## Iteración en curso
 
+**14-ago (última rebanada) — REG-314: la agenda vacía decía lo mismo en tres
+situaciones distintas, y una era mentira.** `/citas` estrecha su lista por
+cuatro cosas —fecha, estado, búsqueda y médico— y su estado vacío no miraba
+ninguna: con un filtro escondiendo seis citas dibujaba la ilustración de
+agenda vacía sobre un día que no lo estaba y ofrecía «Nueva cita» como gesto
+principal, es decir, agendar encima de lo que el médico no veía. Y el cierre
+del riel —«el riel no muere en el vacío: apunta al día siguiente»— vivía
+dentro de la rama CON filas, así que desaparecía justo el día vacío. La
+decisión vive ahora en `src/lib/agenda/vacio-de-la-agenda.ts` (guardián de 7
+casos, probado al revés: 5 caen con la conducta vieja; el caso 6 comprueba que
+la pantalla la CONSUME). Verificado en navegador escritorio+móvil con 0
+errores de consola: el aviso de «6 escondidas» pesa 62px en línea y sin
+ilustración frente a los 332px del héroe, «Quitar los filtros» devuelve las 6
+filas y «Ver el día siguiente» aterriza en ellas. La medición corrigió el
+trabajo: el título decía el día por TERCERA vez (la cabecera ya lo dice dos) y
+pasó a «Sin citas agendadas.» — la corrección de RTC-22 aplicada aquí.
+
+**No es RTC-30 y no lo cierra**: RTC-30 sigue abierto en el resto de
+pantallas. Éste se pagó porque su vacío **miente**, no porque sea genérico —
+un estado vacío de plantilla es feo; uno que afirma que un día está libre
+cuando tiene seis citas es otra cosa.
+
 `V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO. 14-ago: RTC-32
 pagó el tercer y último residuo de la 4ª pasada de §29 (el cromo flotante del
 escritorio, 6/6 → 0/6), y RTC-12(a) pagó el último P1 abierto (un lienzo de
