@@ -88,3 +88,49 @@ nombrado**, y que es UNA cosa repetida cinco veces en vez de cinco cosas.
   de la primera. Lo que sí se hizo fue mirar sus capturas nuevas para descartar
   regresión — ninguna la tiene.
 - No es reproducible por un guardián: un score es un juicio documentado.
+
+
+---
+
+# Tercera pasada — después de las tres rebanadas de RTC-31
+
+**Fecha:** 14-ago-2026 · **Capturas:** `docs/design/capturas/v15-rtc31-b/`
+(escritorio, las seis superficies, build de producción + emuladores + siembra,
+0 errores de consola) y `v15-rtc31-hoy/` · `v15-rtc31/`.
+
+| Superficie | 1ª pasada | 2ª pasada | **3ª** | Qué la movió |
+|---|---|---|---|---|
+| Pendientes | 1.0 | 1.0 | **1.0** | Nada: es el patrón. |
+| **Hoy** | 2.0 | 2.0 | **1.5** | Sus dos bloques soltaron la tarjeta; el vacío pasó a línea y el worklist entero cabe en el primer viewport. |
+| **Pacientes** | 5.0 | 2.0 | **1.5** | Subtítulo, lista sin tarjeta, encabezados que agrupan hablando. |
+| **Operaciones** | 4.0 | 2.0 | **1.5** | Cabecera compartida sobre la lista con propósito y cadencia de RTC-29. |
+| **Expediente** | 2.5 | 2.5 | **2.0** | El vacío de la historia dejó de ser un hero: la pantalla entera cabe arriba. |
+| Consulta | 2.0 | 2.0 | **2.0** | **Nada — no se tocó.** |
+
+**GENERIC_AI_LOOK_SCORE = 2.0.** Objetivo ≤ 1.0 → **sigue FAIL**.
+
+## El control que hace creíble la medición
+
+`/consulta` no se tocó en ninguna de las tres rebanadas y **no se movió**: 2.0
+en las tres pasadas. Eso importa porque quien puntúa es quien hizo el trabajo, y
+un score que baja en todo lo que uno toca —y sólo ahí— es lo mínimo que se le
+puede pedir a una medición hecha por parte interesada. No la vuelve objetiva;
+la vuelve comprobable por otro.
+
+## Lo que queda, con nombre
+
+- **`/consulta` y `/expediente` (2.0)** son ahora las peores, y su marco es el
+  que RTC-31 todavía **no ha decidido**: los dos tienen ancla de paciente, y ahí
+  el `<h1>` es el nombre de la persona, no el de la pantalla — la regla 1 no les
+  aplica tal cual. Decidir qué les aplica es la rebanada siguiente.
+- **Observado y no tocado** en `/expediente`: «Nueva consulta» flota solo en una
+  fila vacía. Moverlo al ancla toca la rejilla móvil de V10-DEBT-006 y competiría
+  con «Consulta sin cerrar — continuar»; se mide antes.
+- **Las píldoras de filtro** siguen en tres superficies, sin decidir.
+- **Los dos FAB de escritorio** siguen en 6/6 (RTC-05, alcance declarado).
+
+## Honestidad sobre el número
+
+Ninguna superficie llega al objetivo salvo la que ya estaba. El producto pasó de
+**5.0 a 2.0** en una jornada y eso es real y medido, pero **2.0 no es ≤1.0** y la
+iteración `V15-ORIGINALITY-REDTEAM-001` **no se cierra**.
