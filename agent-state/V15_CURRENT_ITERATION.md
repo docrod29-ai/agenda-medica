@@ -8178,6 +8178,100 @@ lint 96 = techo · trinquete sin deuda nueva. Sin cambios de producto.
 
 ---
 
+## La deuda táctil del riel — PAGADA, y el defecto era peor que el denunciado (14-ago, 6ª corrida)
+
+RTC-32 dejó escrito, sin pagar: «el disparador del riel mide 207×36, por debajo
+del mínimo táctil de §24. Usa `.nav-item`, que es la geometría de TODOS los
+destinos del riel; si 36 es deuda, es deuda del riel entero y se paga como
+unidad». Era el único trabajo de producto nombrado que quedaba por delante.
+
+### La nota se tomó en un solo régimen, y ahí estaba el error
+
+Esa medición fue en escritorio con ratón. Pero el producto ya tiene doctrina
+escrita sobre esto —6ª rebanada de `V15-A11Y-001`—: el mínimo de 44 vive dentro
+de `@media (pointer: coarse)` porque «en escritorio el clic fino no necesita
+44px y estirarlo robaría clics de selección de texto». Con ratón, 207×36 no es
+un objetivo táctil: es un objetivo de ratón.
+
+Así que la pregunta correcta no era «¿mide 36 en mi portátil?». `scripts/design/
+medir-tactiles-del-riel-v15.mjs` midió TRES regímenes al mismo lado del corte
+del shell (el riel enciende a ≥769px, así que el ancho táctil existe: un iPad
+horizontal son 1024). Actas en `docs/design/capturas/v15-tactiles-del-riel/`.
+
+### Lo que apareció: la inversión que RTC-32 se negó a crear ya estaba publicada
+
+| ítem | etiqueta HTML | antes | después |
+|---|---|---|---|
+| «Ayuda», «Cerrar sesión», 18 secciones de /configuracion | `<button>` | **44** | 44 |
+| «Hoy», «Paciente», «Encuentro», «Seguimiento» | `<a>` | **36.3** | 44 |
+| «Operaciones» (subordinado, 12px) | `<a>` | **34** | 44 |
+
+Con el dedo, **cerrar la sesión era un blanco más grande que entrar al
+encuentro**. RTC-32 se negó explícitamente a crear esa inversión subiendo sólo
+la ayuda —«haría la ayuda más prominente que los destinos clínicos»— y la
+inversión ya existía por otra puerta: `button:not(.mobile-topbar-btn)` cubre los
+botones desde hace tiempo y **`<a>` nunca entró en el bloque coarse**. Es la
+tercera vez que esa misma omisión produce un defecto: las dos primeras las pagó
+la 6ª rebanada de A11Y (`a.nx-ident`, `.nx-cta-aviso`).
+
+Los cuatro contextos clínicos del riel son `<a>` porque son rutas (`Link`).
+
+### El pago
+
+`.nav-item { min-height: 44px }` dentro del bloque coarse. Aquí sí vale un
+`min-height` —y no el pseudo invisible que necesitaron los otros dos enlaces—
+porque en el riel lo visible y el golpe son la misma caja: la fila entera pinta
+su fondo en hover/activo, no hay línea de base compartida con un vecino, y la
+columna ya tiene scroll propio.
+
+**Puntero fino sin tocar, a propósito**: 1440 y 1280×720 siguen en 36.3/34
+después del cambio — lo que además prueba que la regla no se escapó del bloque.
+
+### Medido, no supuesto: el alto no es el golpe
+
+Un `min-height` que computa 44 y cuyo canto tapa el vecino no entregó nada
+(«el dato tiene que LLEGAR»). El arnés hit-testea con `elementFromPoint` a 3px
+del borde inferior de cada ítem: **7 de 7 reciben el golpe, 0 tapados**.
+
+Y el riel no se rompió al crecer: contenido 768 en un viewport de 768, sin
+scroll nuevo. El riel de secciones de `/configuracion` mide lo mismo antes y
+después (929 en táctil, 805 con ratón) porque sus 18 botones ya estaban en 44:
+el exceso sobre el viewport que se ve ahí es previo y ajeno a esta rebanada.
+
+### Guardián
+
+`src/__tests__/v15-tactil-del-riel-en-puntero-grueso.test.ts` (5 casos).
+**Probado al revés** quitando la regla del bloque: fallan el 1 y el 2. El caso 2
+no acepta `button.nav-item` —una etiqueta delante devolvería el hueco entero—,
+el 3 vigila que la regla no salga del bloque coarse, y el 4 congela que los
+cuatro contextos siguen siendo `<a>`: si dejaran de serlo, cambia la razón de
+existir de este pago y hay que releerlo.
+
+**No cubierto y declarado**: el cajón de la ASISTENTE (≤768px) usa los mismos
+`.nav-item` y hereda el arreglo, pero no está medido en navegador — la siembra
+de capturas sólo trae cuenta de médico.
+
+**Compuertas**: build compila · vitest 9472/9473 (el rojo conocido del proxy,
+`ops-timeout-y-punto-ciego`) · lint 96 = techo · trinquete de diseño sin deuda
+nueva · navegador real en tres regímenes, 0 errores de página · capturas
+antes/después en los tres anchos.
+
+**Siguiente tarea exacta**: sigue siendo la **lectura INDEPENDIENTE** de §26/§29
+sobre las capturas (quien implementa no puede ser el juez) — es lo único que
+falta para declarar PASS o FAIL de la iteración. Con esta rebanada ya no queda
+NINGÚN trabajo de producto nombrado y sin dueño: lo que sigue declarado es
+RTC-12(a) (lienzo multicolumna, deuda del monolito de 6147 líneas, va con
+V15-NOTE-PLAN-CONTINUITY / refactor). Si la lectura da PASS, §43 orden 17:
+`V15-WORKFLOW-BENCHMARK-001`.
+
+**Corregido al consolidar (§39)**: esta corrida escribió «la cola P3 (RTC-26)»
+como trabajo pendiente. Una corrida concurrente del mismo día ya lo había
+medido y REFUTADO como métrica de defecto — su entrada va justo debajo. Se
+corrige aquí y no borrando la historia, que es la regla que dejó escrita la
+consolidación anterior.
+
+---
+
 ## RTC-26 — medido y refutado como métrica de defecto (14-ago)
 
 Recontado hoy sobre el árbol vivo:

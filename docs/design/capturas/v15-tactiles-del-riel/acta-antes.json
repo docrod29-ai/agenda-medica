@@ -1,0 +1,1769 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "antes",
+  "minimo": 44,
+  "regimenes": {
+    "escritorio-raton-1440": {
+      "hoy": {
+        "punteroGrueso": false,
+        "cualquierPunteroGrueso": false,
+        "items": [
+          {
+            "etiqueta": "Hoy",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Paciente",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Encuentro",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Seguimiento",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Operaciones",
+            "tag": "A",
+            "w": 207,
+            "h": 34,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Ayuda",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Cerrar sesión",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          }
+        ],
+        "porTag": {
+          "a": [
+            {
+              "etiqueta": "Hoy",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Paciente",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Encuentro",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Seguimiento",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Operaciones",
+              "tag": "A",
+              "w": 207,
+              "h": 34,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ],
+          "button": [
+            {
+              "etiqueta": "Ayuda",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Cerrar sesión",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ]
+        },
+        "incumplen": 7,
+        "geometriaRiel": {
+          "alto": 900,
+          "contenido": 900,
+          "desplaza": false,
+          "overflowY": "auto"
+        },
+        "geometriaConfig": null
+      },
+      "configuracion": {
+        "punteroGrueso": false,
+        "cualquierPunteroGrueso": false,
+        "items": [
+          {
+            "etiqueta": "Hoy",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Paciente",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Encuentro",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Seguimiento",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Operaciones",
+            "tag": "A",
+            "w": 207,
+            "h": 34,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Ayuda",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Cerrar sesión",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Datos del consultorio",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Horario de atención",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Duración de citas",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Vacaciones y bloqueos",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Notificaciones",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Mensajes de WhatsApp",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Entregas de WhatsApp",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Portal de auto-agenda",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Bot de preguntas frecuentes",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Recetas, órdenes y notas",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Palabras que aprendió el dic",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Médicos (ilimitados)",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Equipo (asistentes y hospita",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Integraciones",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Seguridad",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Mi suscripción",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          }
+        ],
+        "porTag": {
+          "a": [
+            {
+              "etiqueta": "Hoy",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Paciente",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Encuentro",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Seguimiento",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Operaciones",
+              "tag": "A",
+              "w": 207,
+              "h": 34,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ],
+          "button": [
+            {
+              "etiqueta": "Ayuda",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Cerrar sesión",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Datos del consultorio",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Horario de atención",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Duración de citas",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Vacaciones y bloqueos",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Notificaciones",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Mensajes de WhatsApp",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Entregas de WhatsApp",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Portal de auto-agenda",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Bot de preguntas frecuentes",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Recetas, órdenes y notas",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Palabras que aprendió el dic",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Médicos (ilimitados)",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Equipo (asistentes y hospita",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Integraciones",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Seguridad",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Mi suscripción",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ]
+        },
+        "incumplen": 23,
+        "geometriaRiel": {
+          "alto": 900,
+          "contenido": 900,
+          "desplaza": false,
+          "overflowY": "auto"
+        },
+        "geometriaConfig": {
+          "alto": 805,
+          "contenido": 803,
+          "excedeViewport": false,
+          "overflowY": "visible"
+        }
+      }
+    },
+    "tableta-tactil-1024": {
+      "hoy": {
+        "punteroGrueso": true,
+        "cualquierPunteroGrueso": true,
+        "items": [
+          {
+            "etiqueta": "Hoy",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Paciente",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Encuentro",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Seguimiento",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Operaciones",
+            "tag": "A",
+            "w": 207,
+            "h": 34,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Ayuda",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Cerrar sesión",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          }
+        ],
+        "porTag": {
+          "a": [
+            {
+              "etiqueta": "Hoy",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Paciente",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Encuentro",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Seguimiento",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Operaciones",
+              "tag": "A",
+              "w": 207,
+              "h": 34,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ],
+          "button": [
+            {
+              "etiqueta": "Ayuda",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Cerrar sesión",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            }
+          ]
+        },
+        "incumplen": 5,
+        "geometriaRiel": {
+          "alto": 768,
+          "contenido": 768,
+          "desplaza": false,
+          "overflowY": "auto"
+        },
+        "geometriaConfig": null
+      },
+      "configuracion": {
+        "punteroGrueso": true,
+        "cualquierPunteroGrueso": true,
+        "items": [
+          {
+            "etiqueta": "Hoy",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Paciente",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Encuentro",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Seguimiento",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Operaciones",
+            "tag": "A",
+            "w": 207,
+            "h": 34,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Ayuda",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Cerrar sesión",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Datos del consultorio",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Horario de atención",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Duración de citas",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Vacaciones y bloqueos",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Notificaciones",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Mensajes de WhatsApp",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Entregas de WhatsApp",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Portal de auto-agenda",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Bot de preguntas frecuentes",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Recetas, órdenes y notas",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Palabras que aprendió el dic",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Médicos (ilimitados)",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Equipo (asistentes y hospita",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Integraciones",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Seguridad",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          },
+          {
+            "etiqueta": "Mi suscripción",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 44,
+            "minHeight": "44px",
+            "padding": "8px 8px",
+            "cumple": true
+          }
+        ],
+        "porTag": {
+          "a": [
+            {
+              "etiqueta": "Hoy",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Paciente",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Encuentro",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Seguimiento",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Operaciones",
+              "tag": "A",
+              "w": 207,
+              "h": 34,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ],
+          "button": [
+            {
+              "etiqueta": "Ayuda",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Cerrar sesión",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Datos del consultorio",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Horario de atención",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Duración de citas",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Vacaciones y bloqueos",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Notificaciones",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Mensajes de WhatsApp",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Entregas de WhatsApp",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Portal de auto-agenda",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Bot de preguntas frecuentes",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Recetas, órdenes y notas",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Palabras que aprendió el dic",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Médicos (ilimitados)",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Equipo (asistentes y hospita",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Integraciones",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Seguridad",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            },
+            {
+              "etiqueta": "Mi suscripción",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 44,
+              "minHeight": "44px",
+              "padding": "8px 8px",
+              "cumple": true
+            }
+          ]
+        },
+        "incumplen": 5,
+        "geometriaRiel": {
+          "alto": 768,
+          "contenido": 768,
+          "desplaza": false,
+          "overflowY": "auto"
+        },
+        "geometriaConfig": {
+          "alto": 929,
+          "contenido": 927,
+          "excedeViewport": true,
+          "overflowY": "visible"
+        }
+      }
+    },
+    "portatil-corto-1280x720": {
+      "hoy": {
+        "punteroGrueso": false,
+        "cualquierPunteroGrueso": false,
+        "items": [
+          {
+            "etiqueta": "Hoy",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Paciente",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Encuentro",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Seguimiento",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Operaciones",
+            "tag": "A",
+            "w": 207,
+            "h": 34,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Ayuda",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Cerrar sesión",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          }
+        ],
+        "porTag": {
+          "a": [
+            {
+              "etiqueta": "Hoy",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Paciente",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Encuentro",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Seguimiento",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Operaciones",
+              "tag": "A",
+              "w": 207,
+              "h": 34,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ],
+          "button": [
+            {
+              "etiqueta": "Ayuda",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Cerrar sesión",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ]
+        },
+        "incumplen": 7,
+        "geometriaRiel": {
+          "alto": 720,
+          "contenido": 720,
+          "desplaza": false,
+          "overflowY": "auto"
+        },
+        "geometriaConfig": null
+      },
+      "configuracion": {
+        "punteroGrueso": false,
+        "cualquierPunteroGrueso": false,
+        "items": [
+          {
+            "etiqueta": "Hoy",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Paciente",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Encuentro",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Seguimiento",
+            "tag": "A",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Operaciones",
+            "tag": "A",
+            "w": 207,
+            "h": 34,
+            "minHeight": "auto",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Ayuda",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Cerrar sesión",
+            "tag": "BUTTON",
+            "w": 207,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Datos del consultorio",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Horario de atención",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Duración de citas",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Vacaciones y bloqueos",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Notificaciones",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Mensajes de WhatsApp",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Entregas de WhatsApp",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Portal de auto-agenda",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Bot de preguntas frecuentes",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Recetas, órdenes y notas",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Palabras que aprendió el dic",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Médicos (ilimitados)",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Equipo (asistentes y hospita",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Integraciones",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Seguridad",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          },
+          {
+            "etiqueta": "Mi suscripción",
+            "tag": "BUTTON",
+            "w": 242,
+            "h": 36.3,
+            "minHeight": "0px",
+            "padding": "8px 8px",
+            "cumple": false
+          }
+        ],
+        "porTag": {
+          "a": [
+            {
+              "etiqueta": "Hoy",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Paciente",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Encuentro",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Seguimiento",
+              "tag": "A",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Operaciones",
+              "tag": "A",
+              "w": 207,
+              "h": 34,
+              "minHeight": "auto",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ],
+          "button": [
+            {
+              "etiqueta": "Ayuda",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Cerrar sesión",
+              "tag": "BUTTON",
+              "w": 207,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Datos del consultorio",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Horario de atención",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Duración de citas",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Vacaciones y bloqueos",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Notificaciones",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Mensajes de WhatsApp",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Entregas de WhatsApp",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Portal de auto-agenda",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Bot de preguntas frecuentes",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Recetas, órdenes y notas",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Palabras que aprendió el dic",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Médicos (ilimitados)",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Equipo (asistentes y hospita",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Integraciones",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Seguridad",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            },
+            {
+              "etiqueta": "Mi suscripción",
+              "tag": "BUTTON",
+              "w": 242,
+              "h": 36.3,
+              "minHeight": "0px",
+              "padding": "8px 8px",
+              "cumple": false
+            }
+          ]
+        },
+        "incumplen": 23,
+        "geometriaRiel": {
+          "alto": 720,
+          "contenido": 720,
+          "desplaza": false,
+          "overflowY": "auto"
+        },
+        "geometriaConfig": {
+          "alto": 805,
+          "contenido": 803,
+          "excedeViewport": true,
+          "overflowY": "visible"
+        }
+      }
+    }
+  },
+  "errores": []
+}
