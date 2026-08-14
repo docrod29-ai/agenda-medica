@@ -7773,3 +7773,40 @@ página.
 
 **Siguen abiertas** las otras dos mitades de RTC-23: la cascada 520+120ms de
 Hoy y la luna que rota al hover.
+
+---
+
+## RTC-27 — el radio de la caja hermana, y los 154 que no se barren (14-ago)
+
+De los dos sitios que RT-19 señaló, **uno ya no existe**: `ResumenPaciente:104`
+se lo llevó la reescritura del resumen (las tarjetas KPI que pasaron a prosa).
+
+El que quedaba —«Datos del paciente» del expediente— se paga, y visto de cerca
+el defecto es mejor que «12 no está en la escala»: **la caja hermana de la
+misma pantalla** («Herramientas clínicas», unas líneas más abajo) usa 10. Dos
+contenedores del mismo rango, en el mismo pliegue, con esquinas distintas por
+2px. Techo `radiosFueraDeEscala` **627 → 626**, re-sellado.
+
+**Lo que no se hace, y es la parte importante**: hay **154 apariciones de
+`borderRadius: 12` en 79 archivos**. Eso no dice «154 defectos»: dice que 12 es
+un valor de facto del producto que la escala {6,10,14,50,9999} no reconoce. Dos
+salidas posibles, las dos de diseño — ampliar la escala, o migrar 154 sitios con
+revisión visual. **Ninguna se decide barriendo**: un `sed` de 154 sitios sería
+el cambio visual más grande de todo V15 y no lo habría mirado nadie. Declarado
+para el dueño del diseño.
+
+### Dos errores propios, y los dos del mismo tipo
+
+1. Puse el comentario como **comentario de JSX delante del elemento raíz de un
+   `return`**: son dos nodos hermanos y el archivo dejó de compilar. Ya había
+   pasado en `secciones-recetas.tsx`, dentro de un ternario.
+2. Al reescribirlo como comentario de JS, **cité dentro la sintaxis de cierre**
+   de un comentario de bloque, que cerró el bloque a mitad de frase.
+
+Los dos los cazó `npx tsc --noEmit` antes del commit, que es exactamente para
+lo que se corre: `npm run build` no habría bastado en el primero y el segundo
+ni siquiera es de tipos.
+
+**Compuertas**: tsc limpio · vitest 9446/9448 → tras regenerar el inventario
+queda 1 rojo (el artefacto conocido del proxy) · lint 96 = techo · trinquete
+con un techo más bajo · build compila.

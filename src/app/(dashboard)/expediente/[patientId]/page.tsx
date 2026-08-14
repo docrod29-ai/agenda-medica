@@ -703,8 +703,23 @@ function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | nu
     ['Notas', patient.notas],
   ]
   const conValor = campos.filter(([, v]) => v && String(v).trim())
+  /*
+    RTC-27 — radio 12 → 10, el de la escala.
+
+    No es cosmética suelta: la caja hermana de esta misma pantalla
+    («Herramientas clínicas», más abajo) usa 10, así que dos contenedores del
+    mismo rango tenían esquinas distintas por 2px. La escala del trinquete es
+    {6, 10, 14, 50, 9999}; 12 no está en ella.
+
+    (Comentario de JS, no de JSX. Un comentario de JSX delante del elemento
+    raíz de un `return` son DOS nodos hermanos y el archivo no compila; ya
+    pasó una vez en `secciones-recetas.tsx`, dentro de un ternario. Y este
+    texto no puede CITAR la sintaxis de un comentario de JSX: la secuencia de
+    cierre cerraría este bloque a mitad de frase — que es, literalmente, el
+    segundo intento de escribir esta nota.)
+  */
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', marginBottom: 16, overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', marginBottom: 16, overflow: 'hidden' }}>
       <button onClick={() => setAbierto(a => !a)} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
         background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
