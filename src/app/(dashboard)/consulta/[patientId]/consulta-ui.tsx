@@ -128,6 +128,27 @@ export const S = {
   alergia: { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 } as React.CSSProperties,
   firmadaBadge: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--nexus-soft)', color: 'var(--teal)', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 'var(--r-pill)' } as React.CSSProperties,
   grabCard: { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 20 } as React.CSSProperties,
+  /**
+   * RTC-31 — UN CONTENEDOR QUE NO CONTIENE MÁS QUE UNA COSA NO CONTIENE NADA.
+   *
+   * `grabCard` existe para agrupar los controles de la grabación en curso: el
+   * medidor de nivel, el tamaño del archivo, los avisos de micrófono, el botón
+   * de descarga de emergencia. Con varios elementos sueltos, la caja hace su
+   * trabajo.
+   *
+   * Antes de pulsar no hay nada de eso: sólo `EmpezarAGrabar`, que YA es una
+   * superficie con su borde y su radio de 16. La caja de fuera dibujaba un
+   * segundo marco alrededor del primero —tarjeta dentro de tarjeta— que es
+   * literalmente lo que la re-puntuación §29 penaliza en `/consulta`, y encima
+   * con dos radios distintos (12 y 16) a 18px de distancia.
+   *
+   * No se borra el contenedor: se le quita la piel mientras no tenga nada que
+   * agrupar. Misma separación, mismo sitio, mismo DOM.
+   */
+  /* Sin `borderRadius`: una caja transparente y sin borde no tiene esquina
+     que redondear, y un `0` explícito entra en el trinquete como radio fuera
+     de escala — el guardián lo cazó en la misma corrida. */
+  grabCardSola: { background: 'transparent', border: 0, padding: 0, marginBottom: 20 } as React.CSSProperties,
   transcripcion: { width: '100%', marginTop: 14, minHeight: 100, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, resize: 'vertical', outline: 'none' } as React.CSSProperties,
   resumen: { display: 'flex', gap: 8, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 8, padding: '12px 14px', marginBottom: 18 } as React.CSSProperties,
   textarea: { width: '100%', minHeight: 70, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, fontSize: 13, color: 'var(--text)', lineHeight: 1.6, resize: 'vertical', outline: 'none' } as React.CSSProperties,

@@ -41,6 +41,13 @@ decisión sobre qué es esa pantalla.
 
 ## 2 · Una lista de trabajo no lleva tarjeta alrededor
 
+**Ni un contenedor que no contiene más que una cosa.** Es la misma regla dicha
+en general: la caja existe para agrupar. Cuando dentro hay un solo elemento —y
+más aún si ese elemento ya es una superficie con su borde— el contenedor sólo
+añade un marco alrededor de otro marco. Pasó en `/consulta`: dos radios
+distintos (12 y 16) a 18px de distancia, alrededor del mismo botón.
+
+
 El contenedor `.card` dibujaba un marco alrededor de la lista entera: una
 frontera que no separa nada de nada, porque dentro hay una sola cosa. Sumado a
 la tarjeta de cada fila, el resultado es el tablero «hecho enteramente de
@@ -90,4 +97,4 @@ que el sistema de diseño existe para evitar.
 | `/operaciones` | **Convertida** (14-ago, 3ª rebanada): RTC-29 le dio la lista; ahora su cabecera es la pieza compartida (`PageHeader`) en vez de un par de etiquetas propias. |
 | `/dashboard` (Hoy) | **Convertida** (14-ago, 2ª rebanada): sus dos bloques dejaron la tarjeta, y su vacío pasó a línea (RTC-30). |
 | `/expediente` | **A medias** (14-ago): su vacío de historia pasó a línea (RTC-30) y la pantalla entera cabe ahora en el primer viewport. Su marco de cabecera es distinto —el ancla de paciente, con su serif y su banda de alergias— y NO se le aplica la regla 1: ahí el `<h1>` es el nombre del paciente, no el de la pantalla. Queda observado que «Nueva consulta» flota en una fila vacía; se mide antes de tocarlo. |
-| `/consulta` | Pendiente — íd. |
+| `/consulta` | **A medias** (14-ago, 4ª rebanada): la caja de grabación ya no dibuja un segundo marco alrededor del botón —sólo se pinta cuando agrupa varios controles—. Su cabecera es el ancla de paciente, igual que el expediente: la regla 1 no le aplica tal cual. |

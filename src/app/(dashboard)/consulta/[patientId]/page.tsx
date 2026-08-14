@@ -4277,7 +4277,11 @@ export default function ConsultaActivaPage() {
 
       {/* ── Grabación ── */}
       {!firmada && (
-        <div style={S.grabCard}>
+        /* RTC-31: la caja sólo se pinta cuando tiene VARIOS controles que
+           agrupar. Antes de pulsar sólo está `EmpezarAGrabar`, que ya es una
+           superficie con su borde — y una tarjeta dentro de otra tarjeta es lo
+           que §29 penaliza aquí. Ver `grabCardSola` en consulta-ui. */
+        <div style={esElPrincipio ? S.grabCardSola : S.grabCard}>
           {/*
             EL BOTÓN, Y NADA MÁS, HASTA QUE HAY ALGO GRABADO.
             El rótulo de modo que vivía aquí —«Conversación completa (médico +

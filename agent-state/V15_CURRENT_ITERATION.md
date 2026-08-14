@@ -484,9 +484,25 @@ golpe sin volver a puntuar sería repintar.
   toca la rejilla móvil de V10-DEBT-006 y compite con «Consulta sin cerrar —
   continuar». Se mide antes de tocarlo: cambiar sin medir es repintar.
 
+### RTC-31, 4ª rebanada (14-ago) — /consulta pierde el marco dentro del marco
+
+- `grabCard` envolvía a `EmpezarAGrabar`, que YA es una superficie con su borde
+  y su radio de 16: tarjeta dentro de tarjeta, con dos radios distintos a 18px
+  de distancia. La caja existe para agrupar los controles de la grabación EN
+  CURSO (medidor, tamaño, avisos, descarga de emergencia); antes de pulsar no
+  hay nada que agrupar. No se borra: se le quita la piel mientras esté sola.
+- Es la regla 2 del marco dicha en general, y así queda escrita en el
+  documento: **un contenedor que no contiene más que una cosa no contiene
+  nada.**
+- El trinquete de diseño lo cazó en la misma corrida: `borderRadius: 0` es un
+  radio fuera de escala. Se quitó — una caja transparente y sin borde no tiene
+  esquina que redondear.
+- Medido en navegador: la lista de herramientas clínicas sube ~120px y entra
+  entera en el primer viewport. 0 errores de consola.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
 DIEZ P1 originales, **RTC-15**, **RTC-29**, **RTC-30**, las dos pasadas de §29 y
-tres rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
+cuatro rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
 medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
 —empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
 Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.

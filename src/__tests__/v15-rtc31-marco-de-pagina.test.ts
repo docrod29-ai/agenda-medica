@@ -115,6 +115,27 @@ describe('RTC-31 — una lista de trabajo no lleva tarjeta alrededor', () => {
     expect(cuerpo).not.toMatch(/background: 'var\(--s1\)'/)
   })
 
+  it('7 · en /consulta, la caja de grabación sólo se pinta cuando agrupa VARIOS controles', () => {
+    /**
+     * 4ª rebanada. `grabCard` existe para agrupar los controles de la grabación
+     * EN CURSO —medidor de nivel, tamaño del archivo, avisos de micrófono, la
+     * descarga de emergencia—. Antes de pulsar no hay nada de eso: sólo
+     * `EmpezarAGrabar`, que ya es una superficie con su borde y su radio de 16.
+     * La caja de fuera dibujaba un segundo marco alrededor del primero, con dos
+     * radios distintos (12 y 16) a 18px de distancia. Un contenedor que no
+     * contiene más que una cosa no contiene nada.
+     *
+     * No se borra: se le quita la piel mientras no tenga nada que agrupar —
+     * mismo DOM, misma separación, misma conducta al grabar.
+     */
+    const CONSULTA = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
+    const UI = leer('src/app/(dashboard)/consulta/[patientId]/consulta-ui.tsx')
+    expect(CONSULTA).toContain('esElPrincipio ? S.grabCardSola : S.grabCard')
+    expect(UI).toMatch(/grabCardSola: \{ background: 'transparent', border: 0, padding: 0/)
+    // Y la caja de la grabación en curso NO se toca: sigue teniendo su piel.
+    expect(UI).toMatch(/grabCard: \{ background: 'var\(--s1\)', border: '1px solid var\(--border\)'/)
+  })
+
   it('6 · los dos bloques de Hoy tampoco: agrupa su encabezado, no la caja', () => {
     // 2ª rebanada. «Agenda de hoy» y «Sigue abierto de antes» ya traían
     // encabezado con línea inferior; lo que sobraba era la tarjeta alrededor.
