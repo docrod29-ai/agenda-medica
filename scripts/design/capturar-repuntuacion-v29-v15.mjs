@@ -29,15 +29,28 @@ const BASE = process.env.CAPTURA_BASE_URL || 'http://localhost:3000'
 const DESTINO = process.argv[2] || 'docs/design/capturas/v15-repuntuacion-v29'
 const EMAIL = 'medico@capturas.demo'
 const PASSWORD = 'captura-v10-demo'
-const PACIENTE = 'pac-refugio-alcantara'
+/**
+ * DOS PACIENTES, PORQUE SON DOS PANTALLAS DISTINTAS.
+ *
+ * Las tres primeras pasadas de §29 puntuaron `/expediente` y `/consulta` sobre
+ * `pac-refugio-alcantara`, que **no tiene ni una nota**: se puntuó la pantalla
+ * del paciente nuevo creyendo que era la pantalla. Desde que la siembra crea
+ * historia (14-ago) hay las dos, y las dos hay que mirarlas: la vacía es un
+ * estado real del producto, pero la llena es la que el médico ve todos los
+ * días.
+ */
+const VACIO = 'pac-refugio-alcantara'
+const CON_HISTORIA = 'pac-luzmaria-cervantes'
 
 const SUPERFICIES = [
   ['/dashboard', 'hoy'],
   ['/pacientes', 'pacientes'],
-  [`/expediente/${PACIENTE}`, 'expediente'],
-  [`/consulta/${PACIENTE}`, 'consulta'],
+  [`/expediente/${CON_HISTORIA}`, 'expediente'],
+  [`/consulta/${CON_HISTORIA}`, 'consulta'],
   ['/pendientes', 'pendientes'],
   ['/operaciones', 'operaciones'],
+  [`/expediente/${VACIO}`, 'expediente-vacio'],
+  [`/consulta/${VACIO}`, 'consulta-vacia'],
 ]
 
 fs.mkdirSync(DESTINO, { recursive: true })

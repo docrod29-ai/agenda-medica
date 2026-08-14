@@ -1,0 +1,82 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/consulta/pac-luzmaria-cervantes": {
+      "apariciones": 2,
+      "aparicionesEnElPrimerPliegue": 2,
+      "donde": [
+        {
+          "y": 115,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        },
+        {
+          "y": 346,
+          "h": 29,
+          "w": 266,
+          "texto": "Alergias: Levofloxacino (tendinopatía)"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 49,
+      "identidadA": 287,
+      "grabarA": 452,
+      "viewport": 900
+    },
+    "escritorio/expediente/pac-luzmaria-cervantes": {
+      "apariciones": 1,
+      "aparicionesEnElPrimerPliegue": 1,
+      "donde": [
+        {
+          "y": 179,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 20,
+      "identidadA": 117,
+      "grabarA": null,
+      "viewport": 900
+    },
+    "movil/consulta/pac-luzmaria-cervantes": {
+      "apariciones": 2,
+      "aparicionesEnElPrimerPliegue": 2,
+      "donde": [
+        {
+          "y": 195,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        },
+        {
+          "y": 457,
+          "h": 29,
+          "w": 266,
+          "texto": "Alergias: Levofloxacino (tendinopatía)"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 49,
+      "identidadA": 404,
+      "grabarA": 564,
+      "viewport": 844
+    },
+    "movil/expediente/pac-luzmaria-cervantes": {
+      "apariciones": 1,
+      "aparicionesEnElPrimerPliegue": 1,
+      "donde": [
+        {
+          "y": 314,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 20,
+      "identidadA": 195,
+      "grabarA": null,
+      "viewport": 844
+    }
+  },
+  "errores": []
+}

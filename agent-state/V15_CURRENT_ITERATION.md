@@ -570,9 +570,33 @@ silencio.
 §29 son de la pantalla vacía. La cuarta tendrá que puntuar la llena, que es la
 que el médico ve. Los números viejos no se corrigen: se declara de qué eran.
 
+### Lo primero que enseñó la siembra con historia: RTC-14 se puede medir (14-ago)
+
+La 4ª tanda de capturas —ahora con `/expediente` y `/consulta` en sus DOS
+estados, con historia y vacíos— encontró a la primera lo que el pliegue vacío
+escondía:
+
+- **RTC-14 confirmado y medido, y sube a P1.** En `/consulta` la alergia se
+  pinta **×2 en el primer pliegue** (49px): la franja EDITABLE de arriba y una
+  píldora de sólo lectura bajo el nombre. En `/expediente` es ×1 — esa mitad ya
+  estaba pagada. Llevaba desde el panel del equipo rojo sin poder medirse
+  porque ningún paciente sembrado tenía alergias.
+- **Y un hallazgo nuevo**: con historia, la identidad del paciente cae a
+  **287px en escritorio y 404px en móvil** —las cajas de alergias, problemas y
+  visitas anteriores van por delante— y «Grabar la consulta» a 452/564px. El
+  trabajo de la pantalla queda en el tercio inferior del teléfono, y de quién
+  es la consulta se lee a media pantalla. Con el expediente vacío la identidad
+  estaba a ~172px: el defecto sólo existe cuando el paciente tiene historia,
+  que es siempre menos el primer día.
+- **No se paga a ciegas**: cuál de las dos presentaciones sobrevive tiene peso
+  clínico —una es editable (el médico registra la alergia durante la consulta)
+  y la otra enseña la lectura semántica de `alergenosDe` (REG-279/REG-311)—.
+  Hay que conservar las dos capacidades en un solo sitio. Ésa es la rebanada
+  siguiente, con el acta delante.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
 DIEZ P1 originales, **RTC-15**, **RTC-29**, **RTC-30**, las dos pasadas de §29 y
-cinco rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
+cinco rebanadas de **RTC-31**. Siguiente: **RTC-14** (P1, medido). **No se cierra**: la compuerta pide ≤1.0 y la última
 medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
 —empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
 Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
