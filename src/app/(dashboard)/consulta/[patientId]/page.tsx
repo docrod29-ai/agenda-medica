@@ -5090,7 +5090,7 @@ export default function ConsultaActivaPage() {
       {/* ── Análisis basado en evidencia (PubMed) ── */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && !evidencia && (
         <button onClick={analizarEvidencia} disabled={analizandoEv}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(20,184,166,0.10)', color: 'var(--teal)', border: '1px solid rgba(20,184,166,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: analizandoEv ? 'default' : 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'color-mix(in srgb, var(--nexus) 10%, transparent)', color: 'var(--teal)', border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: analizandoEv ? 'default' : 'pointer' }}>
           {analizandoEv
             ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Cruzando con la literatura médica…</>
             : <><FlaskConical size={14} /> Análisis basado en evidencia (NEJM · JAMA · Cochrane · PubMed)</>}
@@ -5114,7 +5114,7 @@ export default function ConsultaActivaPage() {
           </div>
         )
         return (
-          <div style={{ marginBottom: 12, border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,0.05)' }}>
+          <div style={{ marginBottom: 12, border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 12, padding: 14, background: 'color-mix(in srgb, var(--nexus) 5%, transparent)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
               <FlaskConical size={15} /> Análisis basado en evidencia
               <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--nexus-solido)', color: generandoAnalisis ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>

@@ -39,7 +39,7 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
     })
 
   return (
-    <div style={embebido ? {} : { border: '1px solid rgba(20,184,166,.3)', borderRadius: 12, background: 'rgba(20,184,166,.05)', padding: 14, marginBottom: 12 }}>
+    <div style={embebido ? {} : { border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 12, background: 'color-mix(in srgb, var(--nexus) 5%, transparent)', padding: 14, marginBottom: 12 }}>
       {!embebido && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
           <Calculator size={15} color="var(--teal)" />

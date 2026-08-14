@@ -161,7 +161,7 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
               <span style={{ fontSize: 11, color: 'var(--text3)' }}>{g.fotos.length} foto(s)</span>
               {par && (
                 <button type="button" onClick={() => setComparar({ a: par.antes, b: par.despues })}
-                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(20,184,166,.12)', color: 'var(--teal)', border: '1px solid rgba(20,184,166,.35)', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, background: 'color-mix(in srgb, var(--nexus) 12%, transparent)', color: 'var(--teal)', border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                   <GitCompare size={13} /> Comparar antes/después
                 </button>
               )}
@@ -189,7 +189,7 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
 
       {/* Comparación lado a lado */}
       {modo === 'completo' && comparar && (
-        <div style={{ border: '1px solid rgba(20,184,166,.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,.05)' }}>
+        <div style={{ border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 12, padding: 14, background: 'color-mix(in srgb, var(--nexus) 5%, transparent)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <GitCompare size={15} color="var(--teal)" />
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>

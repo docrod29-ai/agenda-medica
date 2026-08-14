@@ -279,7 +279,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <FlaskConical size={22} color="var(--teal)" />
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Antibiograma inteligente — PROA</h1>
-        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,.12)', border: '1px solid rgba(20,184,166,.3)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{version.replace('ausculta-', '')}</span>}
+        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'color-mix(in srgb, var(--nexus) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{version.replace('ausculta-', '')}</span>}
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
         Captura organismo, sitio y panel S/I/R (con CMI si la tienes). El motor infiere fenotipos,
@@ -445,7 +445,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
         ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, padding: '10px 14px', borderRadius: 10, background: 'rgba(20,184,166,.08)', border: '1px solid rgba(20,184,166,.25)', color: 'var(--teal)', fontSize: 12.5, fontWeight: 600 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--nexus) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 25%, transparent)', color: 'var(--teal)', fontSize: 12.5, fontWeight: 600 }}>
         <FlaskConical size={15} />
         {organismo.trim()
           ? 'Interpretación en vivo — se actualiza sola al cambiar organismo, S/I/R, CMI o pruebas.'

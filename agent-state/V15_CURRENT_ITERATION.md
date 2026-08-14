@@ -8225,3 +8225,40 @@ sitios. Sin cambios de producto.
 color acaba?), el icono `Sparkles` de RTC-13, los 154 radios 12, el sustantivo
 del objeto central, y la compuerta §29 — que sigue en FAIL y cuyo cierre pide
 una lectura independiente del equipo rojo.
+
+---
+
+## RTC-19 · 3ª tanda — las superficies clínicas (14-ago)
+
+**19 literales en 6 ficheros**: consulta, fotos del expediente, copiloto,
+calculadoras, antibiograma y consultor.
+
+Aquí el defecto tenía su forma más nítida: literal y token **dentro del mismo
+elemento**.
+
+```
+background: 'rgba(20,184,166,.15)', color: 'var(--teal)'
+```
+
+`--teal` es alias de `--nexus` (#2AA5B5): el texto de la insignia se pintaba
+con el acento del producto y su fondo con **otro** teal, en la misma línea de
+código. No es «un hex suelto» — es un elemento que se contradice a sí mismo, y
+en las pantallas que el médico usa con un paciente delante.
+
+**Verificado en navegador**, buscando `20, 184, 166` tal como lo calcula el
+navegador (única forma de cazar un teal que entre por clase o por herencia):
+
+| ruta | elementos | teal-500 | color-mix sin resolver |
+|---|---|---|---|
+| `/antibiograma` | 201 | 0 | 0 |
+| `/expediente/[id]` | 195 | 0 | 0 |
+| `/consulta/[id]` | 321 | 0 | 0 |
+
+Acento calculado `rgb(42, 165, 181)` en las tres · 0 errores de página.
+
+**Quedan ~33**: receta impresa, superadmin, landing, ilustraciones. En la
+receta impresa la respuesta a la pregunta de la familia es **NO** —el token no
+resuelve donde ese color acaba—, así que ésos no se barren nunca.
+
+**Compuertas**: tsc limpio · vitest 9474/9475 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete sin deuda nueva · build compila.
