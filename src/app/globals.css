@@ -1605,6 +1605,12 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 @media (min-width: 769px) {
   .nx-lado-escritorio { display: flex; }
   .nx-franja-escritorio { display: block; }
+
+  /* RTC-22 — la marca no se dice dos veces.
+     A partir de 769px el riel está en pantalla con el nombre del consultorio
+     en su cabecera; la franja de la topbar lo repetía. Por debajo, el riel no
+     existe y esta copia es la ÚNICA identidad, así que ahí se queda. */
+  .nx-marca-de-respaldo { display: none; }
 }
 
 /* ── Responsive ───────────────────────────────────────────── */

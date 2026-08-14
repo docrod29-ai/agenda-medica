@@ -7690,3 +7690,42 @@ que el panel creyó ver y el único que puede aparecer de verdad.
 **Compuertas**: tsc limpio · vitest 9435/9436 (el rojo conocido del proxy) ·
 lint 96 = techo · trinquete sin deuda nueva · navegador real, 0 errores de
 página. Sin cambios de producto: esta rebanada es una medición y su guardián.
+
+---
+
+## RTC-22 — la marca se decía dos veces, y la peor copia no era la denunciada (14-ago)
+
+Medido en navegador (`medir-rtc22-marca-duplicada-v15.mjs`), contando **nodos
+hoja** con el texto exacto — buscar por «contiene» habría contado también a
+cada ancestro y dado un número inventado:
+
+|                     | antes | después |
+|---|---|---|
+| escritorio sin paciente | 2 (riel + franja) | 1 (riel) |
+| escritorio con paciente | 2 (riel + franja) | 1 (riel) |
+| móvil sin paciente      | 1 (franja)        | 1 · intacto a propósito |
+| móvil con paciente      | 0                 | 0 |
+
+**Dos fuentes, no una.** El panel denunció el respaldo de la topbar; midiendo
+apareció la de escritorio, que era peor: pintaba el consultorio **siempre**,
+incluso con un paciente delante («Ausculta · María del Refugio Alcántara»). El
+elemento cuyo trabajo es el estado clínico (§5) empezaba diciendo la marca.
+
+- **El respaldo de la topbar no se borra**: a ≤768px el riel no está en
+  pantalla y ésa es la única identidad de la aplicación. Se oculta por ANCHO
+  (media query a 769px): quién dice el nombre depende de qué cromo hay en
+  pantalla, y eso lo sabe el CSS, no un `if`. Borrarlo habría sido el defecto
+  contrario y más caro.
+- **Sin paciente ni grabación, la franja de escritorio devuelve `null`.**
+  Quitada la marca, habría quedado una banda de 30px con una línea de
+  separación y nada dentro en todas las pantallas sin paciente.
+
+**Dos guardianes de tipografía ajustados con su porqué dentro** (precedente de
+guardián obsoleto: se muda al mismo invariante, no se borra): el respaldo pasó
+a llevar dos clases y la comparación exacta dejó de verlo; y el separador «·»
+dejó de tener trabajo al no haber nada que separar — se conserva la mitad que
+importa, que nunca vuelva DENTRO del enlace.
+
+**Compuertas**: tsc limpio · vitest 9440/9441 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete sin deuda nueva · build compila · navegador real
+antes/después, escritorio y móvil, **0 errores de consola**.
