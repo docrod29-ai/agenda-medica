@@ -126,6 +126,20 @@ y con dueño (V15-NOTE-PLAN-CONTINUITY / refactor).
 | RTC-27 | P3 | RT-19 | Deriva de radio 12 fuera de escala (`ResumenPaciente.tsx:104`, `expediente:539`); `secciones-recetas` PAGADO 12→10 |
 | RTC-28 | P3 | RT-21 | Tema claro: riel/topbar/FABs permanecen oscuros — verificar si es decisión o resto |
 
+## Defectos del INSTRUMENTO (no vienen de los paneles: los encontró el trabajo)
+
+Misma familia que RTC-02 —la vara rota— y por eso viven aquí, separados: no
+son defectos del producto, son defectos de lo que mide al producto. Un
+instrumento equivocado no falla ruidosamente: da un número y se le cree.
+
+| ID | Qué medía mal | Cómo se descubrió | Estado |
+|---|---|---|---|
+| INS-01 | **El gate `e2e-publico` medía PRODUCCIÓN con una lista del ÁRBOL.** El grupo A3 recorre `RUTAS_PRIVADAS` —lista de este checkout— y comprobaba las cabeceras contra el sitio vivo. En cuanto V15 añadió `/operaciones`, el caso preguntó por una ruta que sólo existe en el código del PR: `operaciones: falta X-Frame-Options`. El rojo se leía como «la rama rompió una cabecera» cuando decía «producción va por detrás» | El CI, mal: el mismo job estaba rojo en el commit anterior, que no tocaba rutas. Confirmado mirando los dos lados —`curl -I localhost:3000/operaciones` sobre el build de la rama devuelve `DENY`— y comprobando el historial del job | **FIXED 14-ago** — el job mide **el build del PR** (`npm run build` + `PLAYWRIGHT_LOCAL=1` contra localhost, camino que ya existía en el config). Medido antes de cambiarlo: los 67 casos pasan contra el build local SIN credenciales. La comprobación contra producción **no se pierde**: es `npm run e2e:seguridad:prod` y se muda al ciclo de despliegue, después de publicar, que es donde es accionable. Guardián `el-gate-mide-el-artefacto-que-revisa.test.ts` (4 casos, probado al revés ×3). Declarado: entre despliegues, nada en CI vigila ya las cabeceras del sitio vivo |
+
+Causa raíz común con RTC-02: **un gate que sólo se puede poner en verde con
+una acción que el agente no puede tomar —desplegar— deja de proteger y enseña
+a ignorar el rojo.** Es como murió el gate de ADRs.
+
 ## Hueco de evidencia declarado (de los dos paneles)
 
 El paquete de 27 capturas NO contiene el encuentro GRABANDO (transcripción

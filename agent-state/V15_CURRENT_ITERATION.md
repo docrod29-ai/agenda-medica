@@ -7419,3 +7419,44 @@ siguiente paquete de capturas.
   verdad; acta y 8 capturas en `docs/design/capturas/v15-pulgar-y-fabs/`.
   PASS con 0 errores de consola. El «antes» es el paquete del equipo rojo
   (v15-redteam/hoy-movil*.png).
+
+---
+
+## INS-01 — el gate del PR medía producción, no el PR (14-ago, 4ª corrida)
+
+**No es una rebanada de V15: es el instrumento que juzga a V15.** El job
+`e2e-publico` llevaba muchos commits en rojo por un caso —`/operaciones`
+sin `X-Frame-Options`— que no dice nada de la rama.
+
+- **Diagnóstico.** El grupo A3 de `e2e/seguridad.spec.ts` recorre
+  `RUTAS_PRIVADAS`, que es una lista **del árbol de este checkout**, y
+  comprobaba las cabeceras contra **producción**. V15 añadió `/operaciones`
+  al dashboard (commit `526a893a`); desde entonces el caso le preguntaba al
+  sitio vivo por una ruta que sólo existe en el código del PR. Instrumento y
+  sujeto salían de sitios distintos.
+- **Mirado por los dos lados antes de tocar nada**: el mismo job estaba rojo
+  en el commit anterior (RTC-17, que no toca rutas), y
+  `curl -I localhost:3000/operaciones` sobre el build de la rama devuelve
+  `X-Frame-Options: DENY`. La cabecera está bien; lo que falta es el
+  despliegue, que es decisión del dueño.
+- **Arreglo.** El job construye el PR y mide **ese** build
+  (`PLAYWRIGHT_LOCAL=1` + localhost, camino que ya existía en
+  `playwright.config.ts` y en `npm run e2e:seguridad`). Medido ANTES de
+  cambiar el YAML: los 67 casos —incluidos B1 (violaciones de CSP en
+  navegador real), B2 y C1— pasan contra el build local **sin credenciales
+  de Firebase**.
+- **Lo que se pierde, declarado y mudado, no borrado**: entre despliegues
+  nada en CI vigila ya las cabeceras del sitio vivo. `npm run
+  e2e:seguridad:prod` pasa al ciclo de despliegue de
+  `.claude/rules/deployment-and-flags.md`, justo después de publicar, que es
+  donde ese rojo sí es accionable.
+- **Guardián** `el-gate-mide-el-artefacto-que-revisa.test.ts` (4 casos,
+  probado al revés ×3: sin `PLAYWRIGHT_LOCAL` cae el 1, sin el `npm run
+  build` previo cae el 2, borrando la invocación de producción cae el 3).
+- **Compuertas**: `npx tsc --noEmit` limpio · `npx vitest run` 9414/9414 en
+  666 archivos · lint 96 = techo · trinquete de diseño sin deuda nueva ·
+  `npm run build` compila.
+
+Regla que deja: **un gate que sólo se puede poner en verde con una acción
+que el agente no puede tomar —desplegar— deja de proteger.** Misma familia
+que RTC-02 (la vara rota). Registrado como INS-01 en el registro canónico.
