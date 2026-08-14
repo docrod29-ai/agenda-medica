@@ -3978,6 +3978,51 @@ export default function ConsultaActivaPage() {
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
 
+      {/* RTC-31/§5 — LA IDENTIDAD ENCABEZA, TAMBIÉN AQUÍ.
+          Medido el 14-ago con un paciente CON historia: el nombre caía a 287px
+          en escritorio y 404px en móvil, porque las cajas de contexto —
+          alergias, problemas, visitas anteriores— iban por delante. Con el
+          expediente vacío estaba a ~172px: el defecto sólo existía cuando el
+          paciente tiene historia, que es siempre menos el primer día. De quién
+          es la consulta no puede leerse a media pantalla.
+          El orden es el que el expediente ya había elegido en su ancla:
+          identidad → alergias → el resto del contexto. */}
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div>
+          {/* `.nx-vt-paciente` (§20, continuidad.ts): en una navegación
+              coreografiada, el nombre del paciente que venía en la fila de Hoy
+              o en el ancla del expediente ATERRIZA aquí — el mismo objeto
+              ganando detalle, no una pantalla que reemplaza a otra. */}
+          <h1 className="nx-vt-paciente" style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{patient?.nombre ?? 'Consulta'}</h1>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
+            {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''} · {TIPO_NOTA_LABEL[tipo]}
+          </div>
+          {/*
+            ALERGIAS SIEMPRE A LA VISTA durante la consulta.
+            Antes solo aparecían al desplegar los datos del paciente, pero es
+            justo mientras se dicta y se prescribe cuando hay que tenerlas
+            enfrente. Rojo si el paciente tiene alergias; discreto si no.
+          */}
+          {/**
+            * RTC-14 — AQUÍ HABÍA UNA SEGUNDA PÍLDORA DE ALERGIAS.
+            *
+            * Medido el 14-ago en navegador, con un paciente que POR FIN tenía
+            * alergia registrada: la alergia se pintaba **dos veces en el primer
+            * pliegue** de la consulta (49px entre las dos) — la franja
+            * editable de arriba y esta píldora de sólo lectura, a 200px de
+            * distancia. Dos avisos del mismo dato compiten entre sí: el
+            * segundo se aprende a ignorar, y el día que digan cosas distintas
+            * —ya pasó, REG-311— el médico no sabe cuál creer.
+            *
+            * Lo que esta píldora aportaba de más era la LECTURA semántica
+            * (`alergenosDe`), y eso no se pierde: subió a la franja, junto al
+            * texto del que sale. Una presentación, los dos hechos.
+            */}
+        </div>
+        {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
+      </div>
+
       {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde
           ponerlas). Se guarda en el expediente del paciente y alimenta las alertas
           de fármaco. Rojo cuando hay alergias; neutro cuando no.
@@ -4185,41 +4230,6 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div>
-          {/* `.nx-vt-paciente` (§20, continuidad.ts): en una navegación
-              coreografiada, el nombre del paciente que venía en la fila de Hoy
-              o en el ancla del expediente ATERRIZA aquí — el mismo objeto
-              ganando detalle, no una pantalla que reemplaza a otra. */}
-          <h1 className="nx-vt-paciente" style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{patient?.nombre ?? 'Consulta'}</h1>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-            {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''} · {TIPO_NOTA_LABEL[tipo]}
-          </div>
-          {/*
-            ALERGIAS SIEMPRE A LA VISTA durante la consulta.
-            Antes solo aparecían al desplegar los datos del paciente, pero es
-            justo mientras se dicta y se prescribe cuando hay que tenerlas
-            enfrente. Rojo si el paciente tiene alergias; discreto si no.
-          */}
-          {/**
-            * RTC-14 — AQUÍ HABÍA UNA SEGUNDA PÍLDORA DE ALERGIAS.
-            *
-            * Medido el 14-ago en navegador, con un paciente que POR FIN tenía
-            * alergia registrada: la alergia se pintaba **dos veces en el primer
-            * pliegue** de la consulta (49px entre las dos) — la franja
-            * editable de arriba y esta píldora de sólo lectura, a 200px de
-            * distancia. Dos avisos del mismo dato compiten entre sí: el
-            * segundo se aprende a ignorar, y el día que digan cosas distintas
-            * —ya pasó, REG-311— el médico no sabe cuál creer.
-            *
-            * Lo que esta píldora aportaba de más era la LECTURA semántica
-            * (`alergenosDe`), y eso no se pierde: subió a la franja, junto al
-            * texto del que sale. Una presentación, los dos hechos.
-            */}
-        </div>
-        {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
-      </div>
 
       {/* Red de seguridad: ofrecer restaurar respaldo local si el formulario está vacío */}
       {respaldoDisponible && !firmada && !resumen.trim() && !secciones.some(s => s.value?.trim()) && (

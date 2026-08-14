@@ -115,6 +115,40 @@ describe('RTC-31 — una lista de trabajo no lleva tarjeta alrededor', () => {
     expect(cuerpo).not.toMatch(/background: 'var\(--s1\)'/)
   })
 
+  it('9 · en /consulta la identidad ENCABEZA, como ya hacía el expediente', () => {
+    /**
+     * 6ª rebanada, y otra que sólo se vio con historia sembrada. Medido:
+     *
+     *   con historia, ANTES   identidad a 287px (escritorio) · 404px (móvil)
+     *   con historia, DESPUÉS identidad a 105px · 183px
+     *   el expediente, para comparar                117px · 195px
+     *
+     * Las cajas de contexto —alergias, problemas, visitas anteriores— iban por
+     * delante del nombre. Con el paciente vacío la identidad estaba a ~172px,
+     * así que el defecto **sólo existía cuando el paciente tiene historia**,
+     * que es siempre menos el primer día: la pantalla se veía bien justo en el
+     * caso que no importa.
+     *
+     * El orden no se inventa: es el que el expediente ya había elegido en su
+     * ancla —identidad → alergias → el resto—, y ahora el mismo paciente se
+     * ancla igual en las dos pantallas.
+     *
+     * Probado al revés: devolviendo la franja de alergias por encima del
+     * `<h1>` falla.
+     */
+    const CONSULTA = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
+    const identidad = CONSULTA.indexOf('<h1 className="nx-vt-paciente"')
+    const alergias = CONSULTA.indexOf('{/* Alergias — SIEMPRE visible y EDITABLE')
+    const problemas = CONSULTA.indexOf('LOS PROBLEMAS DEL PACIENTE Y CUÁNDO VINO LA ÚLTIMA VEZ')
+    const visitas = CONSULTA.indexOf('{/* Continuidad: contexto de las últimas visitas')
+    for (const [n, i] of [['identidad', identidad], ['alergias', alergias], ['problemas', problemas], ['visitas', visitas]]) {
+      expect(i, `falta el marcador ${n}`).toBeGreaterThan(0)
+    }
+    expect(identidad, 'la franja de alergias volvió por encima del nombre').toBeLessThan(alergias)
+    expect(identidad).toBeLessThan(problemas)
+    expect(identidad).toBeLessThan(visitas)
+  })
+
   it('8 · la acción primaria del expediente vive en el ancla, y no entre el paciente y sus alergias', () => {
     /**
      * 5ª rebanada, y la única que se tomó CON UNA MEDICIÓN DELANTE porque la

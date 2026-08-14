@@ -616,8 +616,28 @@ Sin ese paciente, esa mitad quedaba escrita y sin comprobar, que es exactamente
 por lo que RTC-14 tardó un día en poder medirse.
 
 **Queda abierta la otra mitad de RTC-14**: la salience cromática de la franja
-(«en gris es el elemento MENOS saliente») no se ha medido. Y sigue en pie el
-hallazgo de la identidad a 287/404px con historia: es otra rebanada, no ésta. **No se cierra**: la compuerta pide ≤1.0 y la última
+(«en gris es el elemento MENOS saliente») no se ha medido.
+
+### RTC-31, 6ª rebanada (14-ago) — en /consulta la identidad encabeza
+
+    con historia, ANTES   identidad a 287px (escritorio) · 404px (móvil)
+    con historia, DESPUÉS               105px           · 183px
+    el expediente, para comparar        117px           · 195px
+
+Las cajas de contexto —alergias, problemas, visitas anteriores— iban por delante
+del nombre. **Con el paciente vacío la identidad estaba a ~172px**, así que el
+defecto sólo existía cuando el paciente tiene historia: la pantalla se veía bien
+justo en el caso que no importa. El orden no se inventa —es el que el expediente
+ya había elegido en su ancla— y ahora el mismo paciente se ancla igual en las
+dos pantallas.
+
+### Lección de método: `npm run build` NO teclea las pruebas
+
+CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:
+`npm run build` compila la app pero **no** typechea `src/__tests__`, y yo había
+corrido vitest y build, no `npx tsc --noEmit`. La regla del repositorio dice
+«tsc cubre lo que vitest no ve»; a partir de aquí, `npx tsc --noEmit` antes de
+cada commit, no sólo `npm run build`. **No se cierra**: la compuerta pide ≤1.0 y la última
 medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
 —empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
 Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.

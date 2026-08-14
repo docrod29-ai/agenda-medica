@@ -99,7 +99,7 @@ describe('RTC-14 — una sola presentación de la alergia en la consulta', () =>
      * sitio y se importa.
      */
     expect(CONSULTA).toMatch(/const alergenosDelPaciente = alergenosDe\(patient \?\? \{\}\)/)
-    expect(CONSULTA).toMatch(/import \{[^}]*alergenosDe/s)
+    expect(CONSULTA).toMatch(/import \{[^}]*alergenosDe/)
   })
 
   it('4 · sólo se enseña la lectura cuando AÑADE algo', () => {
