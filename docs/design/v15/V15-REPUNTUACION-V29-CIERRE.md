@@ -134,3 +134,28 @@ la vuelve comprobable por otro.
 Ninguna superficie llega al objetivo salvo la que ya estaba. El producto pasó de
 **5.0 a 2.0** en una jornada y eso es real y medido, pero **2.0 no es ≤1.0** y la
 iteración `V15-ORIGINALITY-REDTEAM-001` **no se cierra**.
+
+
+---
+
+## Nota del 14-ago (posterior): las tres pasadas se puntuaron con expedientes VACÍOS
+
+Las tres declararon la misma limitación —«no cubre pantallas llenas: la siembra
+deja el expediente con 0 encuentros»— sin darse cuenta de que la limitación
+tenía arreglo. La siembra sintética **no creaba ni una sola nota**; ese mismo
+hueco es el que impidió a RTC-10 medir `#spine-problemas` y a RTC-31 medir la
+convivencia del primario con «Consulta sin cerrar — continuar».
+
+**Cerrado el 14-ago**: la siembra crea ahora cuatro notas (tres firmadas con
+diagnósticos y signos, una en borrador) y deja pacientes sin notas a propósito,
+porque el expediente vacío es el estado del paciente nuevo y también hay que
+poder medirlo. Con historia real, `/expediente` enseña lo que no se había visto
+nunca en una medición: banda de alergias con alérgeno real y su procedencia,
+riel del Spine con «1 dx · 0 fármacos», tarjetas de signos y diagnósticos con
+contenido, el bloque de problemas, los pendientes del paciente con «1 vencido ·
+1 en plazo», y la historia con su badge de borrador.
+
+**Consecuencia para el score:** las lecturas de `/expediente` de las tres
+pasadas son de la pantalla vacía. La cuarta pasada tendrá que puntuar la
+pantalla llena, que es la que el médico ve. No se corrigen aquí los números
+viejos: se declara de qué eran.

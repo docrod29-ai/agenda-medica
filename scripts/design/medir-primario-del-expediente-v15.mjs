@@ -133,8 +133,11 @@ for (const [ancho, alto, etiqueta] of [[1440, 900, 'escritorio'], [390, 844, 'mo
       `${m.copiasVisibles}/${m.copiasEnElDom} visible(s) · aviso de alergias antes: ${m.avisoAntesQueLaAccion} · hueco junto al nombre ${m.huecoALaDerechaDelNombre ?? '?'}px · ` +
       `encuentro sin cerrar: ${m.hayEncuentroSinCerrar ? 'SÍ' : 'no'} · historia a ${m.inicioDeLaHistoria ?? '?'}px de ${m.viewport}px`,
     )
+    /* Una captura POR PACIENTE: la versión anterior sólo guardaba la del
+       último del bucle, así que el caso más interesante —el que tiene un
+       encuentro sin cerrar— no se veía nunca. */
+    await page.screenshot({ path: path.join(DESTINO, `${pid}-${etiqueta}.png`) })
   }
-  await page.screenshot({ path: path.join(DESTINO, `expediente-${etiqueta}.png`) })
   await contexto.close()
 }
 

@@ -432,7 +432,132 @@ async function main() {
     await db.doc(`clinics/${CLINIC_ID}/tareas_clinicas/${id}`).set(datos)
   }
 
-  console.log(`Sembrado: clínica ${CLINIC_ID}, médico ${CUENTA.email} (uid ${uid}), ${pacientes.length} pacientes, ${citas.length} citas, ${tareas.length} tareas clínicas (${HOY}).`)
+  /**
+   * ── NOTAS CLÍNICAS ────────────────────────────────────────────────────
+   *
+   * ── EL HUECO QUE ESTO TAPA ────────────────────────────────────────────
+   *
+   * Hasta el 14-ago-2026 esta siembra NO creaba ni una sola nota. Todos los
+   * expedientes salían con «Sin notas todavía», 0 encuentros y sin signos ni
+   * diagnósticos — y sobre eso se midió media docena de rebanadas de V15:
+   *
+   *   · RTC-10 declaró que `#spine-problemas` NO llegó a pintarse en la
+   *     medición «porque ningún paciente sembrado tiene notas firmadas con
+   *     dx ni fármacos»;
+   *   · las tres pasadas de re-puntuación §29 puntuaron el expediente VACÍO,
+   *     y lo dejaron escrito como limitación;
+   *   · RTC-31 no pudo medir la convivencia del primario con «Consulta sin
+   *     cerrar — continuar», porque para eso hace falta un borrador.
+   *
+   * Tres huecos declarados con la misma causa. Un arnés que sólo sabe
+   * enseñar la pantalla vacía mide el producto que nadie usa.
+   *
+   * ── QUÉ SE SIEMBRA, Y QUÉ NO ──────────────────────────────────────────
+   *
+   * Todo inventado y determinista (regla `data-privacy.md`: cero pacientes
+   * reales). Las cifras son verosímiles y **no son guía clínica**: existen
+   * para que la pantalla tenga volumen real, no para que nadie las lea como
+   * referencia. Por eso no hay dosis en mg de nada.
+   *
+   *   · Aurelio  — DOS notas firmadas (dx crónicos activos) → el Clinical
+   *     Spine tiene problemas que pintar y la historia tiene profundidad.
+   *   · Luz María — UNA firmada + UN BORRADOR sin firmar → el ancla enseña
+   *     «Consulta sin cerrar — continuar», que es lo que no se podía medir.
+   *   · Los demás se quedan SIN notas a propósito: el expediente vacío
+   *     también hay que poder medirlo, y es el estado del paciente nuevo.
+   */
+  const seccion = (key, label, value) => ({ key, label, value })
+  const metadatos = (id, tipo, pacienteId, estado, fecha) => ({
+    id, tipoNota: tipo, clinicId: CLINIC_ID, pacienteId,
+    medicoId: uid, cedulaProfesional: '00000000', especialidad: 'Medicina Interna',
+    establecimiento: 'Consultorio de capturas', fechaCreacion: fecha, fechaModificacion: fecha,
+    /* Sello de mentira A PROPÓSITO y con su nombre: estas notas no pasan por
+       `sellar()`, así que un hash inventado dejaría creer que sí. */
+    hashIntegridad: 'siembra-sintetica-sin-sello', hashVersion: 0,
+    version: 1, estado, fuenteGeneracion: 'manual',
+  })
+
+  const notas = [
+    {
+      id: 'nota-aurelio-1', pacienteId: 'pac-aurelio-dominguez', pacienteNombre: 'Aurelio Domínguez Peña',
+      tipo: 'primera_vez', estado: 'firmada', fecha: diaISO(-45),
+      resumenEjecutivo: 'DM2 e HAS en control irregular; se ajusta seguimiento y se piden laboratorios.',
+      secciones: [
+        seccion('subjetivo', 'Subjetivo', 'Refiere apego irregular al tratamiento en los últimos dos meses. Niega hipoglucemias, poliuria ni pérdida de peso.'),
+        seccion('objetivo', 'Objetivo', 'Consciente, orientado, hidratado. Sin datos de dificultad respiratoria. Exploración cardiopulmonar sin agregados.'),
+        seccion('analisis', 'Análisis', 'Control metabólico subóptimo, probablemente por apego. Sin datos de descompensación aguda.'),
+        seccion('plan', 'Plan', 'Refuerzo de apego, perfil lipídico y HbA1c de control, cita en cuatro semanas.'),
+      ],
+      signosVitales: { ta: '138/86', fc: '78', fr: '16', temperatura: '36.4', spo2: '96', peso: '84', talla: '1.72', imc: '28.4' },
+      diagnosticos: [
+        { descripcion: 'Diabetes mellitus tipo 2', tipo: 'definitivo', estado: 'cronico', fechaDiagnostico: diaISO(-2000) },
+        { descripcion: 'Hipertensión arterial sistémica', tipo: 'definitivo', estado: 'cronico', fechaDiagnostico: diaISO(-1500) },
+      ],
+    },
+    {
+      id: 'nota-aurelio-2', pacienteId: 'pac-aurelio-dominguez', pacienteNombre: 'Aurelio Domínguez Peña',
+      tipo: 'seguimiento', estado: 'firmada', fecha: diaISO(-12),
+      resumenEjecutivo: 'Mejor apego; queda por confirmar si la metformina sigue vigente.',
+      secciones: [
+        seccion('subjetivo', 'Subjetivo', 'Mejor apego desde la consulta previa. Menciona haber suspendido uno de los medicamentos por cuenta propia; no recuerda cuál.'),
+        seccion('objetivo', 'Objetivo', 'Sin cambios relevantes en la exploración.'),
+        seccion('analisis', 'Análisis', 'Discrepancia entre lo que el paciente refiere y la lista activa: requiere reconciliación antes de renovar receta.'),
+        seccion('plan', 'Plan', 'Reconciliar la lista de medicamentos con el paciente en la próxima visita.'),
+      ],
+      signosVitales: { ta: '132/84', fc: '74', fr: '16', temperatura: '36.5', spo2: '97', peso: '83', imc: '28.1' },
+      diagnosticos: [
+        { descripcion: 'Diabetes mellitus tipo 2', tipo: 'definitivo', estado: 'cronico' },
+        { descripcion: 'Hipertensión arterial sistémica', tipo: 'definitivo', estado: 'cronico' },
+      ],
+    },
+    {
+      id: 'nota-luzmaria-1', pacienteId: 'pac-luzmaria-cervantes', pacienteNombre: 'Luz María Cervantes Ochoa',
+      tipo: 'primera_vez', estado: 'firmada', fecha: diaISO(-20),
+      resumenEjecutivo: 'ITU de repetición; se solicita urocultivo con antibiograma.',
+      secciones: [
+        seccion('subjetivo', 'Subjetivo', 'Tercer episodio de disuria y urgencia en seis meses. Niega fiebre y dolor lumbar.'),
+        seccion('objetivo', 'Objetivo', 'Afebril. Abdomen blando, sin dolor a la puñopercusión.'),
+        seccion('analisis', 'Análisis', 'Infección urinaria de repetición; conviene documentar sensibilidad antes de repetir esquema.'),
+        seccion('plan', 'Plan', 'Urocultivo con antibiograma y revisión del resultado antes de decidir tratamiento.'),
+      ],
+      signosVitales: { ta: '118/74', fc: '82', fr: '17', temperatura: '36.8', spo2: '98' },
+      diagnosticos: [
+        { descripcion: 'Infección de vías urinarias de repetición', tipo: 'definitivo', estado: 'activo', fechaDiagnostico: diaISO(-20) },
+      ],
+    },
+    {
+      /* EL BORRADOR. Sin él, `PatientAnchor` nunca enseña «Consulta sin
+         cerrar — continuar» y esa mitad de la pantalla queda sin medir. */
+      id: 'nota-luzmaria-borrador', pacienteId: 'pac-luzmaria-cervantes', pacienteNombre: 'Luz María Cervantes Ochoa',
+      tipo: 'seguimiento', estado: 'borrador', fecha: diaISO(-1),
+      resumenEjecutivo: '',
+      secciones: [
+        seccion('subjetivo', 'Subjetivo', 'Acude por el resultado del urocultivo. Refiere mejoría parcial de la disuria.'),
+        seccion('objetivo', 'Objetivo', ''),
+        seccion('analisis', 'Análisis', ''),
+        seccion('plan', 'Plan', ''),
+      ],
+      diagnosticos: [],
+    },
+  ]
+
+  for (const n of notas) {
+    const { id, fecha, ...datos } = n
+    await db.doc(`clinics/${CLINIC_ID}/patients/${datos.pacienteId}/notas/${id}`).set({
+      id,
+      clinicId: CLINIC_ID,
+      ...datos,
+      medicamentos: [],
+      alergias: [],
+      metadata: metadatos(id, datos.tipo, datos.pacienteId, datos.estado, fecha),
+      fechaConsulta: fecha,
+      createdAt: fecha,
+      updatedAt: fecha,
+      creadoPor: CUENTA.email,
+    })
+  }
+
+  console.log(`Sembrado: clínica ${CLINIC_ID}, médico ${CUENTA.email} (uid ${uid}), ${pacientes.length} pacientes, ${citas.length} citas, ${tareas.length} tareas clínicas, ${notas.length} notas (${notas.filter(n => n.estado === 'borrador').length} sin firmar) (${HOY}).`)
 }
 
 main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1) })

@@ -531,6 +531,45 @@ observación («se ve raro») no bastaba y moverlo tocaba la deuda V10-DEBT-006.
   móvil, el de escritorio oculto); y no medía el orden respecto al aviso de
   alergias hasta que se lo añadí.
 
+### La siembra tenía expedientes sin historia (14-ago) — tres huecos, una causa
+
+Buscando cómo medir el hueco que dejó RTC-31 (la convivencia del primario con
+«Consulta sin cerrar — continuar»), la respuesta no estaba en el arnés sino en
+la siembra: **`sembrar-capturas.mjs` no creaba ni una sola nota**. Todos los
+expedientes salían con «Sin notas todavía», 0 encuentros, sin signos y sin
+diagnósticos. Sobre esa pantalla vacía se midió media docena de rebanadas.
+
+Los tres huecos declarados por separado tenían la misma causa:
+
+  · RTC-10 — `#spine-problemas` «no llegó a pintarse: ningún paciente sembrado
+    tiene notas firmadas con dx ni fármacos».
+  · Las TRES pasadas de §29 — «no cubre pantallas llenas».
+  · RTC-31 5ª rebanada — sin borrador no hay «Consulta sin cerrar».
+
+Ahora la siembra crea cuatro notas: tres firmadas (con diagnósticos, signos y
+un alérgeno real) y **una en borrador**; y deja pacientes SIN notas a propósito,
+porque el expediente vacío es el estado del paciente nuevo y también hay que
+poder medirlo. El sello de integridad se declara falso por su nombre
+(`siembra-sintetica-sin-sello`): estas notas no pasan por `sellar()` y un hash
+inventado dejaría creer que sí.
+
+**Lo que se vio la primera vez que el expediente tuvo historia** (acta y
+capturas en `docs/design/capturas/v15-rtc31-primario-con-notas/`): banda de
+alergias con alérgeno real y su procedencia («Último cambio: Nota de Primera Vez
+· hace 20 días»), riel del Spine con «1 dx · 0 fármacos», tarjetas de signos y
+dx con contenido, el bloque de problemas —el que RTC-10 nunca pudo medir—, los
+pendientes del paciente con «1 vencido · 1 en plazo», y la historia con su badge
+de borrador. **La convivencia medida**: el primario mide 160×43 junto a la
+píldora ámbar de «continuar», 1 de 2 copias visible, 0 errores de consola.
+
+Guardián `v15-la-siembra-tiene-expedientes-con-historia.test.ts` (5 casos,
+probado al revés ×2) para que la siembra no vuelva a quedarse sin historia en
+silencio.
+
+**Consecuencia honesta:** las lecturas de `/expediente` de las TRES pasadas de
+§29 son de la pantalla vacía. La cuarta tendrá que puntuar la llena, que es la
+que el médico ve. Los números viejos no se corrigen: se declara de qué eran.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
 DIEZ P1 originales, **RTC-15**, **RTC-29**, **RTC-30**, las dos pasadas de §29 y
 cinco rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última

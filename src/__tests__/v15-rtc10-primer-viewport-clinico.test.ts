@@ -50,10 +50,15 @@
  *
  * · No mide píxeles: jsdom no tiene layout. El antes/después está en
  *   `docs/design/capturas/v15-rtc10/medicion-{baseline,despues}.json`.
- * · No cubre el estado clínico (`#spine-problemas`) en navegador: NINGÚN
- *   paciente sembrado tiene notas firmadas con dx ni fármacos, así que ese
- *   ancla no llegó a pintarse en la medición. Queda declarado como hueco del
- *   arnés — y por eso el caso 1 de aquí lo cubre por ORDEN en el fuente.
+ * · El estado clínico (`#spine-problemas`) NO se pudo medir en navegador
+ *   cuando se escribió esto: ningún paciente sembrado tenía notas firmadas con
+ *   dx, así que ese ancla no llegaba a pintarse. Por eso el caso 1 lo cubre por
+ *   ORDEN en el fuente. **HUECO CERRADO el 14-ago**: la siembra ya crea notas
+ *   firmadas con diagnósticos (`v15-la-siembra-tiene-expedientes-con-historia`)
+ *   y el bloque se ve en `docs/design/capturas/v15-rtc31-primario-con-notas/`
+ *   — «Problemas: … · Toma: … · De lo último que se dijo de cada uno en sus
+ *   notas firmadas». Lo que sigue sin hacerse es re-medir el primer viewport
+ *   CON historia: los números de arriba son de expedientes vacíos.
  * · No cubre `/consulta`: RTC-12 (el lienzo de escritorio) sigue abierto.
  */
 import { describe, it, expect } from 'vitest'
