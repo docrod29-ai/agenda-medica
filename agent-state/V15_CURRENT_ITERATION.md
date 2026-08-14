@@ -655,6 +655,34 @@ El control se sostiene: `/pendientes` no se ha tocado en ninguna rebanada y
 sigue en 1.0; Hoy, pacientes y operaciones no se tocaron desde la 3ª y no se
 movieron. Sólo se movió lo que se tocó.
 
+### RTC-18 PAGADA (14-ago) — lo que navega deja de vestirse de filtro
+
+La 4ª pasada nombró «las píldoras» como el residuo más caro y la tentación era
+convertirlas en frases, como `/pendientes`. Se contaron primero, y la respuesta
+NO era la esperada: cuatro de seis superficies tienen CERO píldoras y la fila de
+`/pacientes` lleva conteos —un filtro que dice cuántos hay informa—. **El
+outlier era `/expediente`**: 8 píldoras en 3 filas, 270px del primer pliegue, y
+las tres filas haciendo **tres trabajos distintos vestidos igual** (navegar,
+filtrar, mostrar datos).
+
+O sea: el defecto nunca fue la cantidad, era **la silueta compartida**. Si no se
+cuenta, se convierte en frases un filtro que sirve y se deja intacto el defecto.
+
+- El riel habla ahora el idioma de navegación del producto: barra de acento,
+  texto que sube de peso, sin relleno. La barra va debajo porque el riel es
+  horizontal; en el FlowRail va al costado — misma gramática, otra orientación.
+- Táctil 32 → **44**: como píldora nadie lo miró porque parecía un chip.
+- **El corte cae entre ítems** (`scroll-snap`), no tapado con un degradado —que
+  habría sido deuda nueva del trinquete y, sobre todo, esconder el defecto en
+  vez de quitarlo.
+- Medido: **8 en 3 filas (270px) → 4 en 2 (134px)** escritorio · **5 en 2
+  (220px) → 1 en 1 (44px)** móvil.
+- El guardián del acento de Fase 10 se movió CON el código: su invariante
+  —selección = cobalto, y el acento sólo en la selección— se comprueba igual
+  sobre la barra. Lo que ya no aplica es el par de contraste
+  texto-blanco-sobre-relleno, porque no hay relleno.
+- El trinquete cazó de paso un `fontSize: 13` mío fuera de la escala.
+
 ### Lección de método: `npm run build` NO teclea las pruebas
 
 CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:

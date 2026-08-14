@@ -1,0 +1,141 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/pendientes": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 900
+    },
+    "escritorio/pacientes": {
+      "pildorasEnElPliegue": 3,
+      "filasDePildoras": 1,
+      "conDato": 2,
+      "soloEtiqueta": 1,
+      "rellenas": 1,
+      "alturaTotal": 102,
+      "textos": [
+        "Recientes (5)",
+        "Todos A-Z (6)",
+        "Con alerta"
+      ],
+      "viewport": 900
+    },
+    "escritorio/expediente": {
+      "pildorasEnElPliegue": 4,
+      "filasDePildoras": 2,
+      "conDato": 0,
+      "soloEtiqueta": 4,
+      "rellenas": 1,
+      "alturaTotal": 134,
+      "textos": [
+        "Consulta sin cerrar — contin",
+        "Todas",
+        "Consulta",
+        "Hospital"
+      ],
+      "viewport": 900
+    },
+    "escritorio/consulta": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 900
+    },
+    "escritorio/hoy": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 900
+    },
+    "escritorio/operaciones": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 900
+    },
+    "movil/pendientes": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 844
+    },
+    "movil/pacientes": {
+      "pildorasEnElPliegue": 3,
+      "filasDePildoras": 1,
+      "conDato": 2,
+      "soloEtiqueta": 1,
+      "rellenas": 1,
+      "alturaTotal": 132,
+      "textos": [
+        "Recientes (5)",
+        "Todos A-Z (6)",
+        "Con alerta"
+      ],
+      "viewport": 844
+    },
+    "movil/expediente": {
+      "pildorasEnElPliegue": 1,
+      "filasDePildoras": 1,
+      "conDato": 0,
+      "soloEtiqueta": 1,
+      "rellenas": 0,
+      "alturaTotal": 44,
+      "textos": [
+        "Consulta sin cerrar — contin"
+      ],
+      "viewport": 844
+    },
+    "movil/consulta": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 844
+    },
+    "movil/hoy": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 844
+    },
+    "movil/operaciones": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 844
+    }
+  },
+  "errores": []
+}

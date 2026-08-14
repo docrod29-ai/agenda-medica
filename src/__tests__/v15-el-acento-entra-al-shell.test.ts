@@ -79,25 +79,42 @@ describe('V15 Fase 10 — el override greybox del FlowRail se retiró (no se re-
   })
 })
 
-describe('V15 Fase 10 — ClinicalSpine: selección en cobalto sólido, no en neutro greybox', () => {
-  it('la categoría seleccionada rellena con var(--nexus-solido)', () => {
-    expect(SPINE).toContain("background: seleccionado ? 'var(--nexus-solido)' : 'var(--s2)'")
-    expect(SPINE).toContain("border: `1px solid ${seleccionado ? 'var(--nexus-solido)' : 'var(--border)'}`")
+describe('V15 Fase 10 — ClinicalSpine: la selección se dice en cobalto', () => {
+  /**
+   * LA CONDICIÓN SIGUE AL CÓDIGO, Y EL INVARIANTE NO CAMBIA.
+   *
+   * Estos casos fijaban la selección del riel como RELLENO cobalto con texto
+   * blanco. RTC-18 (14-ago) le quitó al riel la forma de píldora —medido: era
+   * indistinguible de los filtros de la historia clínica, dos filas más abajo—
+   * y lo pasó al idioma de navegación de este producto: **barra de acento**,
+   * como el FlowRail, con la barra debajo porque el riel es horizontal.
+   *
+   * Lo que estos casos protegen sigue siendo lo mismo y se comprueba igual:
+   * **selección = cobalto** (no el neutro greybox), y **el acento entra SÓLO
+   * en la selección**. Lo que ya no aplica es el par de contraste
+   * texto-blanco-sobre-relleno, porque no hay relleno: el texto va sobre el
+   * fondo de la página, con los tokens de siempre.
+   */
+  it('la categoría seleccionada se marca en cobalto (barra de acento, no relleno)', () => {
+    expect(SPINE).toContain("boxShadow: seleccionado ? 'inset 0 -2px 0 0 var(--nexus)' : 'none'")
+    // Y no vuelve el relleno: competía con los datos que tiene al lado.
+    expect(SPINE).not.toContain("background: seleccionado ? 'var(--nexus-solido)'")
   })
 
-  it('el texto encima del relleno es blanco (el par AA documentado del token), no var(--bg)', () => {
-    // `--nexus-solido` documenta en globals.css su contraste CON BLANCO
-    // (5.16:1 oscuro / 7.0:1 claro). `var(--bg)` encima de cobalto no tiene
-    // contraste documentado en ningún tema — sería una cifra inventada.
-    expect(SPINE).toContain("color: seleccionado ? '#fff' : 'var(--text2)'")
+  it('el texto no se apoya en un par de contraste inventado', () => {
+    // `--nexus-solido` documentaba su contraste CON BLANCO (5.16:1 oscuro /
+    // 7.0:1 claro) porque el texto iba ENCIMA del relleno. Sin relleno, el
+    // texto va sobre el fondo de la página y usa los tokens medidos de
+    // siempre: nada de `#fff` suelto ni de `var(--bg)` sobre cobalto.
+    expect(SPINE).not.toContain("color: seleccionado ? '#fff'")
     expect(SPINE).not.toContain("color: seleccionado ? 'var(--bg)'")
+    expect(SPINE).toContain("color: seleccionado ? 'var(--text)' : 'var(--text2)'")
   })
 
-  it('el estado NO seleccionado no cambió — el acento entra sólo en la selección', () => {
-    // Freeze: fondo var(--s2), texto var(--text2), borde var(--border) — la
-    // forma greybox del resto del riel sobrevive a la fase de estilo.
-    expect(SPINE).toContain("'var(--s2)'")
+  it('el estado NO seleccionado sigue siendo el neutro del sistema', () => {
+    // El acento entra sólo en la selección: lo demás, en la voz secundaria.
     expect(SPINE).toContain("'var(--text2)'")
+    expect(SPINE).toContain("fontWeight: seleccionado ? 600 : 500")
   })
 })
 
