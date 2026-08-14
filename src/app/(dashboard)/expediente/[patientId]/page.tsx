@@ -490,16 +490,31 @@ export default function ExpedientePage() {
           mismos avisos de lo que cada formato NO lleva— y el primer viewport
           queda para el paciente. */}
       <section style={{ marginTop: 32, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-        <h2 className="t-overline" style={{ margin: '0 0 10px' }}>
+        <h2 className="t-overline" style={{ margin: '0 0 6px' }}>
           Documentos y exportación
         </h2>
+        {/*
+          RTC-21 — LA DIFERENCIA SE DICE ANTES DE DESCARGAR, NO DESPUÉS.
+          Cuál de los dos archivos lleva qué vivía en un comentario del código
+          y en el aviso que sale CUANDO EL ARCHIVO YA SE BAJÓ. El médico elige
+          antes, no después: si se entera al terminar de que las notas en
+          borrador no iban, ya mandó el archivo equivocado.
+        */}
+        <p style={{ margin: '0 0 12px', fontSize: 12, lineHeight: 1.5, color: 'var(--text3)', maxWidth: '62ch' }}>
+          «Expediente completo» lleva todo lo que esta aplicación guarda del
+          paciente. «Enviar a otro sistema» arma el archivo estándar de
+          intercambio: las notas firmadas van enteras y las que están{' '}
+          <strong style={{ fontWeight: 600, color: 'var(--text2)' }}>en borrador
+          también viajan</strong>, marcadas como preliminares y sólo con su
+          texto — sin diagnósticos ni recetas estructuradas.
+        </p>
         <div className="actions-row">
           <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Send size={15} /> Carta de referencia
           </button>
           {/*
             EXPEDIENTE COMPLETO — lo que el archivo llamado «expediente» nunca fue.
-            El botón de FHIR de al lado lleva paciente + notas FIRMADAS. Éste
+            «Enviar a otro sistema» lleva paciente + notas FIRMADAS. Éste
             lleva TODO lo que la aplicación guarda del paciente (adendas,
             laboratorios, fotografía clínica, antecedentes, formularios,
             internamientos con sus signos, citas y bitácora) y DECLARA lo que no
@@ -555,25 +570,60 @@ export default function ExpedientePage() {
              * archivo en silencio: un expediente con huecos que nadie señala se
              * entrega creyendo que está completo.
              */
+            /**
+             * SE DICE QUÉ LLEVA, UNA VEZ Y VERDAD. — REG-313
+             *
+             * Aquí salían DOS avisos por una sola descarga, y **se
+             * contradecían sobre el mismo archivo**:
+             *
+             *   1. «… y N en borrador, marcadas como preliminares» → van
+             *   2. «N en borrador NO van en FHIR — usa Expediente completo» → no van
+             *
+             * Mirado del otro lado (`src/lib/fhir-export.ts`, el bucle
+             * `notas.filter(n => n.estado !== 'firmada')`): **los borradores SÍ
+             * viajan**, con `status: 'preliminary'` y sólo con su narrativa. El
+             * aviso 2 era falso, y era el último en pintarse — o sea, el que se
+             * leía.
+             *
+             * Qué costaba: el médico creía que el archivo que acababa de mandar
+             * a otra institución no llevaba nada sin firmar. Llevaba. Y de
+             * propina le mandaba a exportar el expediente entero para incluir
+             * algo que ya estaba dentro.
+             *
+             * Se queda UN aviso, y dice lo que el exportador hace de verdad.
+             */
             const rn = resumenNotasExportadas(notas)
             toast(
               rn.borradores > 0
-                ? `Archivo FHIR descargado: ${rn.firmadas} nota(s) firmada(s) y ${rn.borradores} en borrador, marcadas como preliminares. Los borradores van sin diagnósticos ni recetas estructuradas.`
-                : `Archivo FHIR descargado: ${rn.firmadas} nota(s) firmada(s).`,
-              'success',
+                ? `Archivo listo: ${rn.firmadas} nota(s) firmada(s) y ${rn.borradores} en borrador, que viajan marcadas como preliminares y sólo con su texto — sin diagnósticos ni recetas estructuradas.`
+                : `Archivo listo con ${rn.firmadas} nota(s) firmada(s).`,
+              rn.borradores > 0 ? 'info' : 'success',
             )
             logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notas.length, borradores: rn.borradores } })
-            /**
-             * FHIR sólo lleva las notas FIRMADAS, y antes se descartaban las
-             * demás en silencio. Se dice cuántas quedaron fuera: un archivo con
-             * huecos que nadie señala se entrega creyendo que está completo.
-             */
-            const borradores = notas.filter(n => n.estado !== 'firmada').length
-            toast(borradores
-              ? `FHIR R4 exportado con ${notas.length - borradores} notas firmadas. ${borradores} en borrador NO van en FHIR — usa «Expediente completo».`
-              : 'Expediente exportado en FHIR R4', borradores ? 'info' : 'success')
-          }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            <Upload size={15} /> FHIR
+          }}
+          /*
+            EL NOMBRE ACCESIBLE, A MANO — y no por gusto: medido en navegador,
+            las dos líneas del botón se concatenaban SIN espacio y quien lo oye
+            con voz escuchaba «Enviar a otro sistemaFHIR R4». El texto en dos
+            renglones es para el ojo; el oído necesita que alguien decida dónde
+            acaba una frase.
+          */
+          aria-label="Enviar a otro sistema — archivo FHIR R4"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+            <Upload size={15} />
+            {/*
+              RTC-21 (§25) — EL BOTÓN DICE EL TRABAJO; LA SIGLA SE QUEDA DEBAJO.
+              «FHIR» solo es jerga de interoperabilidad: no dice qué hace ni
+              para quién es. Pero **borrarla sería peor**: cuando otro hospital
+              pide «el FHIR», el médico tiene que poder encontrarlo por ese
+              nombre. Misma distinción que en RTC-13 con «créditos con IA» —
+              §25 prohíbe vender la tecnología como característica, no esconder
+              el nombre de un artefacto real que alguien de fuera va a pedir.
+            */}
+            <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+              Enviar a otro sistema
+              <span style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--text3)' }}>FHIR R4</span>
+            </span>
           </button>
         </div>
       </section>

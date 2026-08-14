@@ -20,20 +20,18 @@
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
-    " M docs/design/V15_ORIGINALITY_REDTEAM_VEREDICTO.md",
-    " M docs/design/v15/ORIGINALITY-REDTEAM-001-veredicto.md",
-    " M scripts/design/techos-de-diseno.json",
-    " M scripts/design/trinquete-de-diseno.mjs",
-    " M src/__tests__/v15-motion-continuidad-de-objeto.test.ts",
-    " M src/app/globals.css",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/__tests__/exportacion-completa.test.ts",
+    " M src/__tests__/v15-rtc10-primer-viewport-clinico.test.ts",
+    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/ui/continuidad.ts",
-    "?? docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md",
-    "?? src/__tests__/rt-08-ventana-de-clic-ciego.test.ts"
+    "?? docs/design/capturas/v15-rtc21-exportar/",
+    "?? scripts/design/medir-rtc21-exportar-v15.mjs",
+    "?? src/__tests__/v15-rtc21-exportar-dice-el-trabajo.test.ts"
   ],
-  "actualizado": "2026-08-13",
+  "actualizado": "2026-08-14",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -67,10 +65,10 @@
   ],
   "ramaActual": "v15/structural-uiux",
   "derivado": {
-    "regsEnElLedger": 160,
-    "ultimaREG": "REG-312",
-    "archivosDePrueba": 644,
-    "casosDePrueba": 8224,
+    "regsEnElLedger": 161,
+    "ultimaREG": "REG-313",
+    "archivosDePrueba": 667,
+    "casosDePrueba": 8364,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

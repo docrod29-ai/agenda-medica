@@ -58,7 +58,7 @@
 | `/cumplimiento/retencion` | medico | ✅ | 177 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 291 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 356 | 7 | — | ✅ | — |
-| `/expediente/[patientId]` | medico | ✅ | 823 | 14 | — | ✅ | — |
+| `/expediente/[patientId]` | medico | ✅ | 873 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 683 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 675 | 0 | — | ✅ | — |

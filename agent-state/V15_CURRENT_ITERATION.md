@@ -7460,3 +7460,65 @@ sin `X-Frame-Options`— que no dice nada de la rama.
 Regla que deja: **un gate que sólo se puede poner en verde con una acción
 que el agente no puede tomar —desplegar— deja de proteger.** Misma familia
 que RTC-02 (la vara rota). Registrado como INS-01 en el registro canónico.
+
+---
+
+## RTC-21 — medir refutó la mitad del pago, y destapó REG-313 (14-ago)
+
+**Lo que se midió antes de construir nada**
+(`scripts/design/medir-rtc21-exportar-v15.mjs`, acta y capturas en
+`docs/design/capturas/v15-rtc21-exportar/`):
+
+|            | controles | bajo 44px | tras la historia | empieza en |
+|---|---|---|---|---|
+| escritorio | 3 | 0 | sí | 820px |
+| móvil 390  | 3 | 0 | sí | 1105px |
+
+- **La hoja «Compartir y exportar» NO se construyó, y es la decisión.** RTC-10
+  ya había bajado el bloque al pie; los tres controles se apilan a ancho
+  completo con 45px de táctil y cada exportación cuesta **un** gesto. La hoja
+  habría costado **dos** y habría escondido al pie de una pantalla lo que ya
+  estaba al pie de una pantalla. Tercera vez en la corrida que medir evita
+  repintar (filtros de `/pacientes`, píldoras del expediente).
+- **Lo que sí se pagó**: «FHIR» → **«Enviar a otro sistema»**, con `FHIR R4` en
+  segunda línea. La sigla **no se borra**: cuando otro hospital la pide por su
+  nombre, el médico tiene que encontrarla. Y la diferencia entre los dos
+  archivos sube a una línea bajo el rótulo — se decía sólo en el aviso
+  POSTERIOR a la descarga, y elegir es una decisión previa.
+- **Defecto que encontró el propio arnés, después del cambio**: las dos líneas
+  del botón se leían pegadas («Enviar a otro sistemaFHIR R4»). `aria-label`
+  explícito. Noveno defecto de instrumento/accesibilidad cazado midiendo.
+
+### REG-313 — el hallazgo que no era de diseño
+
+Al consolidar el manejador aparecieron **dos `toast()` por una sola descarga
+que se contradecían sobre el mismo archivo**: uno decía que los borradores
+viajan «marcados como preliminares» y el otro que «NO van en FHIR — usa
+Expediente completo». Mirado del otro lado (`src/lib/fhir-export.ts`, bucle
+`notas.filter(n => n.estado !== 'firmada')`), **los borradores SÍ van**, como
+`Composition.status: 'preliminary'`. El aviso falso era el último en pintarse
+— el que se lee.
+
+Coste real: el médico creía que el archivo que mandaba a otra institución no
+llevaba nada sin firmar. Lo llevaba. Y de propina se le mandaba a exportar el
+expediente completo para incluir algo que ya estaba dentro.
+
+Y lo peor: **tres guardianes protegían la mentira** porque fijaban literales de
+la frase (`'NO van en FHIR'`, el recuento a mano) en vez de la conducta. Los
+tres se corrigieron con su porqué escrito dentro, conservando la intención.
+
+### Compuertas
+
+- Guardián `v15-rtc21-exportar-dice-el-trabajo.test.ts` (7 casos, probado al
+  revés ×4), **sellado** en `invariantes-clinicos.json` (4575 → 4582). Su caso
+  6 llama a `exportarPacienteAFhir` y ata la promesa de la pantalla a lo que el
+  exportador hace.
+- Colaterales del ledger: `familias-de-defecto.ts` (313 → `se_contradice`),
+  `FAMILIAS-DE-DEFECTO.md` (31 de 161), sala de datos y tablero regenerados,
+  inventario de pantallas regenerado.
+- `npx tsc --noEmit` limpio · `npx vitest run` 9420/9421 (el único rojo es
+  `ops-timeout-y-punto-ciego`, artefacto CONOCIDO del proxy del contenedor —
+  reconfirmado con `git stash`: falla igual en el árbol limpio) · lint 96 =
+  techo · trinquete de diseño sin deuda nueva · `npm run build` compila.
+- Navegador real (§40), antes y después, escritorio + móvil, **0 errores de
+  consola**.

@@ -7298,3 +7298,74 @@ riesgo aceptado y anotado.
 RECIBE el clic (DOM nuevo) afirman cosas incompatibles y ninguna está mal
 por su cuenta: el fallo vive en el hueco entre las dos. Hermana conceptual
 de «el dato tiene que llegar»: aquí el clic tiene que llegar A LO QUE SE VE.
+
+---
+
+## REG-313 — Dos avisos se contradecían sobre el MISMO archivo, y el que se leía era el falso
+
+**Fecha.** 14-ago-2026 · **Encontrado por.** RTC-21 (V15), al consolidar el
+bloque de exportación del expediente.
+
+**Qué pasaba.** El botón de exportación estándar del expediente lanzaba
+`toast()` **dos veces** por una sola descarga, y los dos avisos afirmaban cosas
+incompatibles sobre el archivo que el médico acababa de bajar:
+
+1. «Archivo FHIR descargado: N nota(s) firmada(s) y M en borrador, **marcadas
+   como preliminares**. Los borradores van sin diagnósticos ni recetas
+   estructuradas.» → los borradores **van**.
+2. «FHIR R4 exportado con X notas firmadas. M en borrador **NO van en FHIR** —
+   usa «Expediente completo».» → los borradores **no van**.
+
+**Cuál era verdad.** Se miró del otro lado, que es lo que la regla «el dato
+tiene que LLEGAR» pide: `src/lib/fhir-export.ts` tiene, desde que se arregló
+que los borradores se cayeran en silencio, un segundo bucle
+`notas.filter(n => n.estado !== 'firmada')` que los exporta como
+`Composition.status: 'preliminary'`, con su narrativa y **sin** `Condition` ni
+`MedicationRequest`. O sea: **el aviso 1 era cierto y el 2 era falso**.
+
+**Por qué importa, y no es cosmético.** El aviso falso era el **último en
+pintarse** — el que queda en pantalla y el que se lee. De modo que, cada vez
+que había una nota sin firmar, la aplicación le decía al médico que el archivo
+que estaba a punto de mandar a otra institución no llevaba nada sin firmar.
+Sí lo llevaba. Dos consecuencias:
+
+- **Contenido clínico sin firmar salía del consultorio** mientras el médico
+  creía lo contrario. La firma existe justo para separar lo que se afirma de lo
+  que todavía se está escribiendo.
+- De propina, el aviso mandaba a exportar el expediente completo «para
+  incluirlas» — a duplicar una salida de PHI para conseguir algo que ya estaba
+  dentro del primer archivo.
+
+**Causa raíz.** Dos redacciones del mismo hecho escritas en momentos
+distintos, una encima de la otra, sin que ninguna prueba comparase la promesa
+de la pantalla con la conducta del exportador. Los guardianes que existían
+fijaban **literales de la frase** (`'NO van en FHIR'`,
+`const borradores = notas.filter(...)`), así que protegían la mentira: cuando
+el exportador cambió de conducta, el texto no tenía que seguirlo.
+
+**Arreglo.** Un solo aviso, con lo que el exportador hace de verdad («… y M en
+borrador, que viajan marcadas como preliminares y sólo con su texto — sin
+diagnósticos ni recetas estructuradas»), y la misma explicación **antes** de
+descargar, bajo el rótulo del bloque: elegir el archivo es una decisión previa,
+no una lectura posterior.
+
+**Guardián.** `src/__tests__/v15-rtc21-exportar-dice-el-trabajo.test.ts`, caso
+6: **llama a `exportarPacienteAFhir` con una nota firmada y una en borrador**,
+comprueba que sale una `Composition` `preliminary` y, con eso demostrado, exige
+que la pantalla no prometa una exclusión que no ocurre. Ata los dos lados para
+que no puedan volver a divergir. Probado al revés: devolviendo el segundo
+`toast` cae el caso 4; devolviendo la frase falsa cae el 6.
+
+Los otros tres guardianes que fijaban la redacción vieja
+(`exportacion-completa`, `fhir-borradores`, `v15-rtc10-primer-viewport-clinico`)
+se corrigieron **con su porqué escrito dentro**: mantienen la intención —que la
+pantalla declare qué pasa con lo que no está firmado— y dejan de exigir la
+frase que era mentira.
+
+**Qué NO cubre.** Que el sistema receptor trate bien un `preliminary` (eso es
+del otro extremo del cable); y el contenido del expediente completo, que tiene
+sus propias pruebas.
+
+**Familia.** `se_contradice` — dos afirmaciones incompatibles sobre el mismo
+objeto, ninguna mal por su cuenta, con el fallo viviendo en el hueco entre las
+dos. Hermana de REG-312.

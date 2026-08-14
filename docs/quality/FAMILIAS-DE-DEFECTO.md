@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 35 de 160, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 161, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -86,9 +86,17 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 30 de 160.**
+**«El sistema se contradice a sí mismo» — 31 de 161.**
 
-Sumó REG-312: la ventana de clic ciego de la coreografía de continuidad —
+Sumó REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
+avisos que se contradecían sobre el mismo archivo** —«los borradores van
+marcados como preliminares» y «los borradores NO van»—, y el falso era el
+último en pintarse, o sea el que se leía. El médico creía que el archivo que
+mandaba a otra institución no llevaba nada sin firmar; sí lo llevaba. El
+guardián nuevo ata los dos lados: llama al exportador y exige que la pantalla
+no prometa una exclusión que no ocurre.
+
+Y antes REG-312: la ventana de clic ciego de la coreografía de continuidad —
 lo que se PINTA (instantánea vieja) y lo que RECIBE el clic (DOM nuevo)
 afirmaban cosas incompatibles durante el callback de la view transition, y
 ninguna pieza estaba mal por su cuenta. Riesgo de paciente equivocado desde

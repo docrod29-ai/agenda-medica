@@ -161,10 +161,15 @@ describe('RTC-10 — una tarjeta vacía no es información', () => {
 describe('RTC-10 — la exportación conserva su conducta entera', () => {
   it('7 · los tres formatos siguen existiendo, con sus avisos de lo que NO llevan', () => {
     // Mover no puede significar perder: el expediente completo declara lo que
-    // no se pudo leer, y FHIR declara los borradores que deja fuera.
+    // no se pudo leer, y el archivo de intercambio declara qué pasa con las
+    // notas sin firmar.
+    //
+    // 14-ago-2026 (REG-313): este caso exigía la frase «NO van en FHIR», que
+    // era FALSA —el exportador las manda como `preliminary`—. Se exige la
+    // declaración, no aquella redacción concreta.
     expect(EXPEDIENTE).toContain('/api/expediente/exportar/')
     expect(EXPEDIENTE).toContain('no se pudieron leer')
-    expect(EXPEDIENTE).toContain('NO van en FHIR')
+    expect(EXPEDIENTE).toMatch(/marcadas como preliminares/)
     expect(EXPEDIENTE).toContain('/referencia/${patientId}')
   })
 

@@ -190,14 +190,31 @@ describe('la pantalla lo ofrece, y ya no calla los borradores', () => {
     expect(pag).toContain('no se pudieron leer')
   })
 
-  it('el botón de FHIR DICE cuántas notas en borrador deja fuera', () => {
+  it('el botón de intercambio DICE qué pasa con las notas en borrador', () => {
     /**
-     * FHIR sólo lleva las firmadas y antes las descartaba en silencio: un
-     * archivo con huecos que nadie señala se entrega creyendo que está
-     * completo.
+     * ── CORREGIDO 14-ago-2026 (REG-313) ──────────────────────────────────
+     *
+     * Este caso fijaba la frase «en borrador NO van en FHIR» y el recuento a
+     * mano que la acompañaba. **Las dos cosas eran mentira**, y este guardián
+     * las estaba protegiendo: `src/lib/fhir-export.ts` exporta los borradores
+     * con `status: 'preliminary'` desde que se arregló que se cayeran en
+     * silencio. Lo que la pantalla tenía que decir no era «se quedan fuera»
+     * sino «van, y así».
+     *
+     * La intención del caso NO cambia —que la pantalla declare qué pasa con
+     * lo que no está firmado— y por eso sigue aquí. Lo que cambia es que
+     * ahora se comprueba contra lo que el exportador HACE.
      */
-    expect(pag).toContain("const borradores = notas.filter(n => n.estado !== 'firmada').length")
-    expect(pag).toContain('en borrador NO van en FHIR')
+    expect(pag).toContain('resumenNotasExportadas(notas)')
+    expect(pag).toMatch(/marcadas como preliminares/)
+    /* Y no puede volver a prometer lo contrario. Sin comentarios: el código
+       CITA la frase falsa para explicar por qué se fue — si se mirara el
+       fichero entero, la propia explicación haría fallar el caso. */
+    const sinComentarios = pag
+      .split('\n').filter(l => !l.trimStart().startsWith('*') && !l.trimStart().startsWith('//')).join('\n')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    expect(sinComentarios).not.toMatch(/NO van en (FHIR|este formato)/)
   })
 })
 

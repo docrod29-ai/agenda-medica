@@ -1,0 +1,130 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/pac-refugio-alcantara": {
+      "bloqueExiste": true,
+      "empiezaEn": 820,
+      "altoDelDocumento": 900,
+      "viewport": 900,
+      "despuesDeLaHistoria": true,
+      "controlesVisibles": 3,
+      "controles": [
+        {
+          "nombre": "Carta de referencia",
+          "w": 178,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Expediente completo",
+          "w": 191,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "FHIR",
+          "w": 88,
+          "h": 45,
+          "tactilOk": true
+        }
+      ],
+      "nombresQueSonSiglas": [
+        "FHIR"
+      ]
+    },
+    "escritorio/pac-luzmaria-cervantes": {
+      "bloqueExiste": true,
+      "empiezaEn": 1384,
+      "altoDelDocumento": 900,
+      "viewport": 900,
+      "despuesDeLaHistoria": true,
+      "controlesVisibles": 3,
+      "controles": [
+        {
+          "nombre": "Carta de referencia",
+          "w": 178,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Expediente completo",
+          "w": 191,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "FHIR",
+          "w": 88,
+          "h": 45,
+          "tactilOk": true
+        }
+      ],
+      "nombresQueSonSiglas": [
+        "FHIR"
+      ]
+    },
+    "movil/pac-refugio-alcantara": {
+      "bloqueExiste": true,
+      "empiezaEn": 1105,
+      "altoDelDocumento": 844,
+      "viewport": 844,
+      "despuesDeLaHistoria": true,
+      "controlesVisibles": 3,
+      "controles": [
+        {
+          "nombre": "Carta de referencia",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Expediente completo",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "FHIR",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        }
+      ],
+      "nombresQueSonSiglas": [
+        "FHIR"
+      ]
+    },
+    "movil/pac-luzmaria-cervantes": {
+      "bloqueExiste": true,
+      "empiezaEn": 1747,
+      "altoDelDocumento": 844,
+      "viewport": 844,
+      "despuesDeLaHistoria": true,
+      "controlesVisibles": 3,
+      "controles": [
+        {
+          "nombre": "Carta de referencia",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Expediente completo",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "FHIR",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        }
+      ],
+      "nombresQueSonSiglas": [
+        "FHIR"
+      ]
+    }
+  },
+  "errores": []
+}
