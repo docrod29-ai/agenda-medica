@@ -727,6 +727,27 @@ tenga formas de píldora — su cola de cierre pinta ocho chips de estado por
 fila, que son `<span>` no interactivos. La conclusión no cambia; el «0» hay que
 leerlo como «cero píldoras PULSABLES».
 
+### RTC-19, mitad de cromo (14-ago) — el teal escrito a mano sale de lo que se ve siempre
+
+`#14b8a6` / `rgba(20,184,166,…)` es teal-500 a mano: no cambia con el tema, no
+lo ve ningún token y no lo mide nadie. De los 67 que contó el equipo rojo, los
+**dos que importaban** vivían en el cromo persistente —lo que está en pantalla
+en todas las rutas, todo el día—: el halo del botón central del pulgar (con un
+teal DISTINTO del que usa el propio círculo) y el tinte del panel de ayuda.
+
+- El halo pasa a `var(--elev-2)`: la elevación está medida en los dos temas, y
+  el color de la acción ya lo pone el fondo del círculo — no hace falta
+  repetirlo en el halo.
+- El tinte, a `color-mix` sobre `var(--nexus)`, como el resto de la familia.
+- **Trinquete `halosDeColor` 8 → 7**: la deuda no se declara, se retira.
+- RTC-05 ya había matado el halo teal del FAB de ayuda por esta misma razón;
+  estos dos sobrevivieron por vivir en otros archivos — la forma clásica de
+  este repositorio: se arregla lo que se está mirando y la copia de al lado se
+  queda.
+- **Quedan ~74 fuera del cromo** y NO se barren a ciegas: muchos son colores de
+  impresión (documentos de receta), donde un token puede no resolverse.
+  Declarado como otra rebanada.
+
 ### Lección de método: `npm run build` NO teclea las pruebas
 
 CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:

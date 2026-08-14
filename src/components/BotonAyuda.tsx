@@ -69,7 +69,7 @@ export function BotonAyuda() {
             display: 'flex', flexDirection: 'column',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'rgba(20,184,166,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb, var(--nexus) 6%, transparent)' }}>
             <HelpCircle size={17} style={{ color: 'var(--teal)' }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', flex: 1 }}>Asistente de ayuda</span>
             <Link href="/guia" onClick={() => setAbierto(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}>

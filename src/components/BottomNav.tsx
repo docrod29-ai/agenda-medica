@@ -176,7 +176,16 @@ export function BottomNav({ navPrimaria = false }: { navPrimaria?: boolean }) {
             width: 46, height: 46, borderRadius: '50%', marginTop: -18,
             background: 'var(--nexus-solido)', color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(20,184,166,0.45)', border: '3px solid var(--s1)',
+            /* RTC-19 — EL HALO DEJA DE SER TEAL CRUDO.
+               `rgba(20,184,166,0.45)` es teal-500 escrito a mano: no cambia con
+               el tema, no lo ve ningún token, y era uno de los DOS que quedaban
+               en cromo persistente (el otro, el tinte de BotonAyuda). RTC-05 ya
+               mató el halo teal del FAB de ayuda por la misma razón; éste se
+               quedó porque vive en otro archivo.
+               La elevación la da la sombra del sistema, que está medida en los
+               dos temas; el color de la acción ya lo pone el fondo del círculo
+               (`--nexus-solido`), que no necesita repetirse en el halo. */
+            boxShadow: 'var(--elev-2)', border: '3px solid var(--s1)',
           }}>
             <AccionIcon size={22} strokeWidth={2.2} />
           </span>
