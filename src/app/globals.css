@@ -2307,6 +2307,19 @@ body:has(.nx-lienzo-completo) .theme-toggle {
 .empty-state-title { font-size: 15px; font-weight: 600; color: var(--text2); }
 .empty-state-desc  { font-size: 13px; color: var(--text3); max-width: 360px; }
 
+/* RTC-17 — LA PISTA DE OCHO ETAPAS, SEGÚN QUEPA.
+   A 390px las ocho píldoras caían en DOS renglones dentro de una fila de
+   worklist, y ocho etiquetas de 10.5px no se leen: se miran. En el teléfono
+   la pista se resume en una línea —«Etapa 3 de 8 · sigue: Dueño»— que se
+   despliega entera con un `<details>` nativo. En escritorio cabe, así que se
+   enseña sin pedir permiso. Sólo una de las dos formas existe a cada ancho:
+   dos pistas a la vez serían dos veces el mismo dato. */
+.nx-progreso-estrecho { display: none; }
+@media (max-width: 560px) {
+  .nx-progreso-ancho { display: none; }
+  .nx-progreso-estrecho { display: block; }
+}
+
 /* RTC-31 — EL BLOQUE DE HOY DEJA DE SER UNA TARJETA.
    La 2ª pasada de §29 midió que lo que queda de genérico en cinco superficies
    es el marco, no el contenido: «contenedor de tarjeta con filas dentro» está

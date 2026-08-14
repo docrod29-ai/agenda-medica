@@ -748,6 +748,27 @@ teal DISTINTO del que usa el propio círculo) y el tinte del panel de ayuda.
   impresión (documentos de receta), donde un token puede no resolverse.
   Declarado como otra rebanada.
 
+### RTC-17 PAGADA (14-ago) — la pista de ocho etapas deja de informar sólo con color
+
+Tres defectos en la superficie de REFERENCIA del producto —`/pendientes` es la
+única que llega al objetivo de §29, y la pista es lo que la hace distinta—:
+
+1. La etapa actual se distinguía **sólo por color**. En gris (impresión,
+   monitor mal calibrado, médico daltónico) la pista dejaba de decir dónde está
+   el trabajo, que es lo único que existe para decir. Ahora hay un **glifo por
+   estado**: `✓` hecha · `●` actual · `○` todavía no · `—` sin dato.
+2. El **porqué** de un «sin dato» vivía sólo en el `title=`, que en táctil no
+   existe. Ahora entra en el resumen accesible: es la diferencia entre
+   «todavía no ha pasado» y «esto no lo registramos».
+3. A 390px las ocho píldoras caían en **dos renglones**. Ahora, una línea —
+   «Etapa 2 de 8 · sigue: Dueño»— en un `<details>` **nativo** (teclado, foco y
+   lectores gratis), cerrado por defecto: ocho etapas desplegadas en una fila
+   de worklist serían el defecto otra vez.
+
+El cálculo de las etapas **no se tocó**: esto es cómo se dicen, no qué se dice.
+Y una tarea terminal no promete «lo que sigue» — prometerlo sería inventarlo,
+la misma regla que hace que tres de las ocho nunca se marquen como hechas.
+
 ### Lección de método: `npm run build` NO teclea las pruebas
 
 CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:
