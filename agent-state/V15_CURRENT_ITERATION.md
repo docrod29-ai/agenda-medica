@@ -8021,9 +8021,14 @@ construirla, medir lo que §21 ya tiene: cómo se revela hoy la procedencia
 (`SelloProcedencia`, REG-213/REG-250) y si sale de la pantalla, abre modal o
 pierde el sitio — «fact → inspect → source → return exactly where you were», sin
 pérdida de contexto. Si la medición dice que el patrón actual ya cumple, se
-declara y se pasa a la cola P3 abierta (RTC-24 cuatro nombres para el objeto
-central · las dos mitades de RTC-23). RTC-25 lo pagó la corrida concurrente de
-esta misma fecha; no se vuelve a abrir.
+declara y se pasa a lo que quede de la cola P3 (RTC-24, cuatro nombres para el
+objeto central; RTC-26, `style={{` en absoluto).
+
+**Nota de concurrencia (consolidado al empujar):** RTC-25, RTC-27, RTC-32 y las
+dos mitades de RTC-23 los pagaron corridas concurrentes de esta misma fecha —
+tres fusiones sin conflicto de código en esta corrida y un conflicto de texto en
+este mismo archivo, resuelto conservando las dos historias. No se reabre
+ninguno.
 
 ---
 
