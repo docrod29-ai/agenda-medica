@@ -405,12 +405,49 @@ Eso es **RTC-31 (P1, nuevo)**, y **absorbe RTC-16** (P2, «no hay UN contenedor
 de página»), que deja de ser un detalle de consistencia y pasa a ser la causa
 medida del score que queda.
 
+### RTC-31, 1ª rebanada (14-ago) — el marco de página, y `/pacientes` convertida
+
+La ley entera en `docs/design/v15/V15-MARCO-DE-PAGINA.md`, derivada **por
+comparación con `/pendientes`** (la que puntúa 1.0), no inventada:
+
+1. **Toda pantalla dice qué es y de dónde sale su contenido.** `subtitle` pasó
+   a ser OBLIGATORIO en el tipo de `PageHeader`. Ocho de las nueve pantallas ya
+   lo ponían; la novena era `/pacientes`, la más visitada del producto — una
+   regla que se cumple ocho de nueve veces no es una regla, es una costumbre, y
+   la excepción cae siempre en la pantalla que más prisa tuvo. En el tipo, el
+   compilador se encarga.
+2. **Una lista de trabajo no lleva tarjeta alrededor.** La `.card` contenedora
+   dibujaba una frontera que no separa nada de nada (dentro hay una sola cosa),
+   y sumada a la tarjeta de cada fila daba el tablero «hecho enteramente de
+   tarjetas redondeadas» que la regla de diseño prohíbe por su nombre. Agrupa
+   **el encabezado, que además DICE algo**, no la caja.
+3. **Un solo primario relleno por cabecera, y sólo si la pantalla tiene una
+   acción primaria.** Ya se aplicó de hecho al sacar «Respaldo» en RTC-29.
+
+`/pacientes` convertida y medida: 17/17 en navegador (1440+390), 0 errores de
+consola, sin regresión de RTC-15 ni de RTC-11.
+
+**Lo que se vio al quitar la caja, y no antes:** las bandas de inicial de «Todos
+A-Z» (`--s2` a todo lo ancho) pasaron de ser separadores DENTRO de una tarjeta a
+ser el elemento más pesado de la pantalla — más que los nombres de los
+pacientes. Quitar un contenedor cambia el peso de todo lo que había dentro; se
+mira después, no se supone.
+
+Guardián `v15-rtc31-marco-de-pagina.test.ts` (5 casos, probado al revés ×3). El
+trinquete de diseño BAJÓ solo: `tamanosFueraDeEscala` 1970 → 1969, re-sellado
+con `--actualizar`.
+
+**Declarado, no olvidado** (en la tabla del documento): faltan `/dashboard`,
+`/expediente`, `/consulta` y la cabecera de `/operaciones`; las píldoras de
+filtro y el estado vacío (RTC-30) siguen abiertos. Convertir cinco pantallas de
+golpe sin volver a puntuar sería repintar.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
-DIEZ P1 originales, **RTC-15**, **RTC-29** y las dos pasadas de re-puntuación
-§29 hechas. **No se cierra**: la compuerta pide ≤1.0 y está en 2.5. Siguiente
-rebanada: **RTC-31** — el marco de página, con `/pendientes` como prueba de que
-este producto ya sabe hacerlo. Después, re-puntuar otra vez; y sólo con PASS,
-§43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
+DIEZ P1 originales, **RTC-15**, **RTC-29**, las dos pasadas de §29 y la primera
+rebanada de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
+medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
+—empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
+Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
 
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;

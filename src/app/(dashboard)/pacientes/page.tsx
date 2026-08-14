@@ -219,6 +219,11 @@ export default function PacientesPage() {
       {/* Header. Modo Secretaria: solo Agendar (unifica flujo). Modo Médico: Agendar + Nuevo paciente. */}
       <PageHeader
         title="Pacientes"
+        /* RTC-31: la pantalla dice qué es y de dónde sale lo que hay dentro.
+           «Pacientes» a secas no informaba a nadie —el riel ya anuncia dónde
+           estás— y era la ÚNICA de las nueve pantallas con cabecera que no lo
+           decía, justo la más visitada. */
+        subtitle="Todo el que tiene expediente aquí. Cada uno dice lo que quedó abierto y cuándo se le vio."
         actions={mode === 'secretaria' ? (
           <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar (registra paciente)</Button></Link>
         ) : (
@@ -337,8 +342,15 @@ export default function PacientesPage() {
         </div>
       )}
 
-      {/* Lista */}
-      <div className="card" style={{ padding: 0 }}>
+      {/* RTC-31 — UNA LISTA DE TRABAJO NO NECESITA UNA TARJETA ALREDEDOR.
+          La tarjeta contenedora (`.card`) dibujaba un marco alrededor de la
+          lista entera: una frontera que no separa nada de nada, porque dentro
+          hay una sola cosa. `/pendientes` —la superficie que puntúa 1.0 en
+          §29— no la tiene: sus filas van a la página y quien agrupa es el
+          encabezado del grupo, que además DICE algo («Vistos recientemente»,
+          «3 con inasistencias»). El marco era lo genérico; el encabezado es lo
+          que informa. */}
+      <div style={{ borderTop: '1px solid var(--border)' }}>
         {loading ? (
           <Spinner center label="Cargando pacientes…" />
         ) : errorCarga ? (
@@ -400,11 +412,19 @@ export default function PacientesPage() {
           // Todos A-Z agrupados por inicial
           grupos.map(([letra, lista]) => (
             <div key={letra}>
-              <div style={{
-                position: 'sticky', top: 0, zIndex: 1,
-                background: 'var(--s2)', padding: '5px 16px', fontSize: 12, fontWeight: 700,
-                color: 'var(--text3)', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)',
-              }}>{letra}</div>
+              {/* RTC-31: la inicial agrupa hablando, no pintando una banda.
+                  Al quitar la tarjeta contenedora, la barra de --s2 a todo lo
+                  ancho pasó de ser un separador dentro de una caja a ser el
+                  elemento más pesado de la pantalla — más que los nombres de
+                  los pacientes. Sigue siendo pegajosa (que es lo que sirve al
+                  recorrer 300 filas) y sigue hablando el rol del sistema. */}
+              <div
+                className="t-overline"
+                style={{
+                  position: 'sticky', top: 0, zIndex: 1,
+                  background: 'var(--bg)', padding: '14px 2px 6px',
+                }}
+              >{letra}</div>
               {lista.map(p => (
                 <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
@@ -439,7 +459,10 @@ export default function PacientesPage() {
 /** Encabezado gris de una sección de la lista. */
 function ListaEncabezado({ texto }: { texto: string }) {
   return (
-    <div style={{ padding: '8px 16px', fontSize: 11.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)', background: 'var(--s1)' }}>
+    /* Sin fondo ni caja: el encabezado agrupa hablando, no dibujando. Es el
+       rol `.t-overline` del sistema, el mismo que usan los grupos de
+       /operaciones desde RTC-29. */
+    <div className="t-overline" style={{ padding: '14px 2px 8px' }}>
       {texto}
     </div>
   )
