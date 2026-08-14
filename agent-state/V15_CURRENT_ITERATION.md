@@ -7998,3 +7998,47 @@ ordena jerarquía).
 **Compuertas**: tsc limpio · vitest 9460/9461 (el rojo conocido del proxy) ·
 lint 96 = techo · trinquete sin deuda nueva · build compila · navegador real
 con `:hover` de verdad, 0 errores de página.
+
+---
+
+## RTC-24 — no eran cuatro sinónimos; queda UNA decisión, y es del dueño (14-ago)
+
+Medido en navegador qué se pinta, dónde y con qué destino, en dos anchos y con
+y sin paciente:
+
+| nombre | dónde | qué es |
+|---|---|---|
+| «Encuentro» | riel | **lugar** (un contexto) |
+| «Iniciar consulta» | héroe de Hoy, fila de citas | **acción**: entrar en la cita que existe |
+| «Nueva consulta» | expediente | **acción**: abrir una que no estaba agendada |
+| «Consulta» | filas, pulgar | la misma acción, abreviada por espacio |
+
+**Unificarlas habría borrado una distinción que el médico usa todos los días.**
+«Iniciar» y «Nueva» no dicen lo mismo.
+
+Y el destino que parecía un hallazgo —«Encuentro» lleva a `/pacientes` cuando
+no hay ninguno abierto— está decidido y escrito en su propio `title`: «ninguno
+abierto; elige un paciente para empezar». No se puede entrar a un encuentro sin
+paciente. **Refutado.**
+
+### Lo que sí queda: dos sustantivos, y no lo decide una prueba
+
+El lugar se llama *encuentro*; las acciones, *consulta*.
+
+- *encuentro* es el término de la especificación (y de FHIR: `Encounter`);
+- *consulta* es lo que dice un médico mexicano, y lo que dice el paciente.
+
+El dueño es internista en ejercicio: esta corrida no tiene opinión sobre cómo
+se llama su trabajo. **Decisión declarada, vocabulario congelado** mientras
+espera — que es lo único que un guardián puede hacer aquí sin invadir.
+
+### Tercera ceguera de instrumento de la corrida
+
+El arnés filtraba por destino leyendo `a[href]` y devolvió «ningún control
+lleva a un encuentro» en una pantalla donde «Nueva consulta» se ve a simple
+vista: ese control es un `<button>` que navega por JS (§20) y no tiene `href`.
+Se cambió a enumerar por lo que se LEE. Lo delató el número: «ninguno»
+contradecía una captura de hacía media hora.
+
+**Compuertas**: tsc limpio · vitest 9463/9464 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete sin deuda nueva. Sin cambios de producto.

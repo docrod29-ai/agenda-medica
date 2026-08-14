@@ -1,0 +1,191 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/con paciente": {
+      "haciaElEncuentro": [
+        {
+          "rotulo": "Encuentro",
+          "destino": "/pacientes",
+          "navegaPorJs": false,
+          "zona": "riel"
+        },
+        {
+          "rotulo": "Nueva consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Encuentros0",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        }
+      ],
+      "porDestino": {
+        "/pacientes": [
+          "Encuentro (riel)"
+        ],
+        "destino por JS (sin href)": [
+          "Nueva consulta (pantalla)",
+          "Encuentros0 (pantalla)",
+          "Consulta (pantalla)"
+        ]
+      }
+    },
+    "escritorio/sin paciente": {
+      "haciaElEncuentro": [
+        {
+          "rotulo": "Encuentro",
+          "destino": "/pacientes",
+          "navegaPorJs": false,
+          "zona": "riel"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        }
+      ],
+      "porDestino": {
+        "/pacientes": [
+          "Encuentro (riel)"
+        ],
+        "destino por JS (sin href)": [
+          "Consulta (pantalla)",
+          "Consulta (pantalla)",
+          "Consulta (pantalla)",
+          "Consulta (pantalla)",
+          "Consulta (pantalla)",
+          "Consulta (pantalla)"
+        ]
+      }
+    },
+    "movil/con paciente": {
+      "haciaElEncuentro": [
+        {
+          "rotulo": "Nueva consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Encuentros0",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": "/consulta/pac-refugio-alcantara",
+          "navegaPorJs": false,
+          "zona": "pulgar"
+        }
+      ],
+      "porDestino": {
+        "destino por JS (sin href)": [
+          "Nueva consulta (pantalla)",
+          "Encuentros0 (pantalla)",
+          "Consulta (pantalla)"
+        ],
+        "/consulta/pac-refugio-alcantara": [
+          "Consulta (pulgar)"
+        ]
+      }
+    },
+    "movil/sin paciente": {
+      "haciaElEncuentro": [
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        },
+        {
+          "rotulo": "Consulta",
+          "destino": null,
+          "navegaPorJs": true,
+          "zona": "pantalla"
+        }
+      ],
+      "porDestino": {
+        "destino por JS (sin href)": [
+          "Consulta (pantalla)",
+          "Consulta (pantalla)",
+          "Consulta (pantalla)",
+          "Consulta (pantalla)",
+          "Consulta (pantalla)",
+          "Consulta (pantalla)"
+        ]
+      }
+    }
+  },
+  "errores": []
+}
