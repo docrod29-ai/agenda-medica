@@ -798,10 +798,51 @@ CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:
 `npm run build` compila la app pero **no** typechea `src/__tests__`, y yo había
 corrido vitest y build, no `npx tsc --noEmit`. La regla del repositorio dice
 «tsc cubre lo que vitest no ve»; a partir de aquí, `npx tsc --noEmit` antes de
-cada commit, no sólo `npm run build`. **No se cierra**: la compuerta pide ≤1.0 y la última
-medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
-—empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
-Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
+cada commit, no sólo `npm run build`.
+
+### §39 — RTC-21 se implementó DOS veces el mismo día, y una se tiró (14-ago)
+
+Dos corridas concurrentes del routine tomaron RTC-21 a la vez. La otra
+(`fb95630a`) es la que vive; **ésta se descartó entera antes de publicarse**, y
+queda escrita porque la razón importa más que el trabajo perdido.
+
+Las dos leyeron el mismo defecto y llegaron a diseños incompatibles:
+
+    ésta      una LISTA con el `para` de cada documento, tras UN gesto
+              (`<details>` nativo). Medido: el bloque pasa de 231px a 44px
+              en escritorio y de 308 a 83 en el teléfono.
+    la otra   los tres controles se quedan a la vista; «FHIR» pasa a
+              «Enviar a otro sistema» con la sigla debajo; y una línea que
+              dice qué lleva cada archivo ANTES de descargarlo.
+
+**Gana la otra, y no por llegar primero: por haber medido la pregunta correcta.**
+Antes de construir nada midió DÓNDE empieza el bloque —820px en escritorio,
+1105px en el teléfono, detrás de la historia clínica— y con eso refutó la mitad
+del pago que el propio registro pedía: plegar lo que ya está al pie no recupera
+pantalla que nadie estuviera peleando, y **cuesta un gesto más por exportación**.
+Mi «231px → 44px» medía el alto del bloque, que es una cifra verdadera que no
+contesta la pregunta: es la misma familia que el estado ya tenía escrita cuando
+la métrica de RTC-10 «mentía en las dos direcciones». Un número correcto sobre lo
+que no importa se lee igual que un número bueno.
+
+Y la otra corrida encontró, mirando el exportador **del otro lado**, lo que ésta
+copió sin mirar: **REG-313**, dos avisos que se contradecían sobre si las notas
+en borrador viajan en el archivo FHIR (viajan). Yo moví esos dos `toast()`
+íntegros a una función con nombre y no leí lo que decían. Reordenar un defecto no
+lo arregla, y lo deja pareciendo revisado.
+
+Lo único que esta corrida deja en pie es una advertencia para quien vuelva a
+tocar un `<summary>`: **`display:flex` mata el marcador nativo del navegador**, y
+el bloque se queda plegado sin una sola señal de que haya algo dentro. No se ve
+en el fuente —el `<details>` era correcto— y el guardián estaba verde; se vio en
+la captura. Si un día se pliega algo aquí, el chevron hay que ponerlo a mano.
+
+**No se cierra**: la compuerta §29 pide ≤1.0 y la 5ª pasada dejó cuatro
+superficies en 1.5, **puntuadas por quien hizo el trabajo** — el sesgo que §29
+nombra cuando pide un panel. Siguiente tarea exacta: **una lectura independiente
+de las capturas de la 5ª pasada** (§26/§29), que es lo que falta para declarar
+PASS o FAIL sin ser juez y parte; y con ella, seguir RTC-31 por las pantallas que
+falten. Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
 
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
