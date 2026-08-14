@@ -42,6 +42,19 @@
  * Por eso RTC-28 se cierra **REFUTADO en riel y topbar, y DECISIÓN en el
  * FAB** — no «arreglado».
  *
+ * ── NOTA POSTERIOR, EL MISMO DÍA (§39): EL FAB YA NO EXISTE ─────────────────
+ *
+ * Otra corrida concurrente (RTC-32) midió ese mismo relleno desde una pregunta
+ * anterior —no cómo se pinta, sino si debe estar— y lo retiró: `--nexus-solido`
+ * es el relleno de la acción PRIMARIA, así que el FAB ponía un SEGUNDO relleno
+ * de marca en 6 de 6 superficies, y en `/operaciones` era el único de la
+ * pantalla. La ayuda vive ahora en el pie del riel y en la topbar.
+ *
+ * Las dos mediciones son ciertas y no se contradicen: si ese botón existiera,
+ * el token seguiría siendo la forma correcta de pintarlo. La fila «botón de
+ * ayuda 0.0999» de la tabla de arriba queda como ACTA de lo que se midió ese
+ * día, no como descripción del producto de hoy. El caso 3 lo dice dentro.
+ *
  * ── QUÉ PROTEGE ESTE GUARDIÁN ───────────────────────────────────────────────
  *
  * Que nadie ancle el cromo a un color fijo. Un `background: '#0b0f14'` en el
@@ -49,7 +62,8 @@
  * la única prueba que lo cazaría es ésta.
  *
  * Probado al revés: poniendo un fondo literal oscuro en el riel falla el caso
- * 1; cambiando el relleno del FAB por un color crudo falla el 3.
+ * 1; el 3 muerde de dos formas — anclando un color crudo en `BotonAyuda`, y
+ * devolviendo el FAB (que es como volvería el defecto que midió RTC-32).
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
@@ -91,14 +105,33 @@ describe('RTC-28 — el cromo sigue al tema, y lo que parece oscuro es un rellen
     expect(TEMA).not.toMatch(COLOR_ANCLADO)
   })
 
-  it('3 · el botón de ayuda se rellena con el TOKEN de acento, no con un color crudo', () => {
+  it('3 · la ayuda no ancla ningún fondo a un color fijo — y ya no se rellena', () => {
     /**
-     * Es lo único que la medición encontró más oscuro que la superficie en
-     * tema claro (0.0999 contra 0.9541), y está bien así: un botón de acción
-     * relleno es más oscuro que la página, y por eso se lee.
+     * ── DOS CORRIDAS CONCURRENTES, EL MISMO DÍA (§39) ─────────────────────
+     *
+     * Este caso nació exigiendo `background: 'var(--nexus-solido)'` en el FAB
+     * de ayuda: la medición de RTC-28 lo encontró como lo único más oscuro que
+     * la superficie en tema claro (0.0999 contra 0.9541) y concluyó, con
+     * razón sobre lo que estaba mirando, que **un botón de acción relleno es
+     * más oscuro que la página, y por eso se lee**.
+     *
+     * La otra corrida (RTC-32) midió ese mismo relleno desde otra pregunta y
+     * encontró que era el defecto: `--nexus-solido` es el relleno de la acción
+     * PRIMARIA, así que el FAB ponía un segundo relleno de marca en 6 de 6
+     * superficies —y en `/operaciones` era el único de la pantalla—. El FAB se
+     * retiró: la ayuda vive en el pie del riel y en la topbar.
+     *
+     * Las dos lecturas son ciertas y no se contradicen: si ese botón existiera,
+     * el token sería la forma correcta de pintarlo. Gana RTC-32 porque su
+     * pregunta era anterior — no cómo se pinta, sino si debe estar.
+     *
+     * Lo que este caso protege desde aquí es el invariante COMPARTIDO por los
+     * tres casos de este bloque, que es el que RTC-28 vino a defender: ninguna
+     * pieza del cromo ancla un fondo a un color que no puede seguir al tema.
+     * Y de paso, que el relleno no vuelva por la puerta de atrás.
      */
-    expect(AYUDA).toContain("background: 'var(--nexus-solido)'")
     expect(AYUDA).not.toMatch(COLOR_ANCLADO)
+    expect(AYUDA).not.toContain('boton-ayuda-fab')
   })
 
   it('4 · y ese token existe con su contraste escrito, no de oídas', () => {

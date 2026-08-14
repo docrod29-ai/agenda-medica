@@ -1017,19 +1017,14 @@ tbody tr:last-child { border-bottom: none; }
     margin: -10px -10px 0 0;
   }
 }
-/* Mientras el aviso pregunta, los widgets flotantes de la esquina le ceden
-   el paso (mismo patrón que ya usan al enfocar un input): comparten la
-   esquina inferior derecha en TODOS los tamaños. El FAB (z-60) taparía la X
-   del aviso; el toggle de tema (z-199) pintaba SOBRE el borde derecho de la
-   hoja en 390px (medido en capturar-push-optin-v15 — colisión anotada por
-   Fase 9 y pagada por V15-A11Y-001, 4ª rebanada). Vuelven solos, al decidir
-   o descartar. Si el navegador no soporta :has, la regla se ignora y quedan
-   como antes — degradación segura. */
-body:has(.nx-push-optin) .boton-ayuda-fab,
-body:has(.nx-push-optin) .theme-toggle {
-  opacity: 0;
-  pointer-events: none;
-}
+/* RTC-32 — aquí vivía la regla que apartaba los widgets flotantes de la
+   esquina mientras el aviso de push preguntaba: el FAB (z-60) tapaba su X y el
+   toggle (z-199) pintaba sobre el borde de la hoja a 390px. La convivencia
+   MURIÓ con su causa: `.nx-push-optin` sólo existe dentro del shell del
+   dashboard, y en el shell ya no flota nada (el FAB de ayuda no existe y el
+   toggle de tema vive en Operaciones). Una regla que arbitra entre dos cosas
+   de las que una desapareció no protege nada; se retira en vez de dejarla de
+   adorno. */
 
 /*
   V15-MOBILE-001 (Fase 9, §23 «what remains persistent») — el shell del
@@ -2046,16 +2041,16 @@ html, body, .card, .modal, .topbar, .sidebar {
    apartan. Vuelven en cuanto se deja de escribir. `:has()` lo resuelve sin una
    línea de JavaScript, y donde no exista simplemente no se aplica — el
    comportamiento de hoy, que es el peor caso, no el único. */
+   RTC-32: la mitad del FAB de ayuda murió con el FAB. Esta regla sobrevive
+   SÓLO para lo que queda flotando fuera del shell —login, registro,
+   marketing—, donde el toggle sigue siendo un botón de esquina sobre
+   formularios de verdad. Dentro del shell ya no hay nada que apartar. */
 @media (max-width: 900px) {
-  html:has(input:focus, textarea:focus, select:focus) .theme-toggle,
-  html:has(input:focus, textarea:focus, select:focus) .boton-ayuda-fab {
+  html:has(input:focus, textarea:focus, select:focus) .theme-toggle {
     opacity: 0;
     pointer-events: none;
   }
 }
-/* El toggle de tema lleva su opacity en SU shorthand (una voz por elemento);
-   aquí sólo el FAB de ayuda, que no declara transición en ningún otro sitio. */
-.boton-ayuda-fab { transition: opacity var(--mov-rapido) var(--mov-curva); }
 .theme-toggle svg {
   width: 18px;
   height: 18px;
@@ -2063,36 +2058,37 @@ html, body, .card, .modal, .topbar, .sidebar {
 }
 .theme-toggle:hover svg { transform: rotate(20deg); }
 
-/* ── RTC-05: en el shell móvil NINGÚN FAB flota sobre trabajo clínico ──────
-   El equipo rojo midió los dos botones de esquina ocluyendo contenido en 4 de
-   6 superficies móviles (defecto #7 de la DNA). En móvil, la ayuda vive en la
-   topbar (trigger estático) y el tema vive en Operaciones (§11: es sistema).
-   El alcance es el shell (body con BottomNav): fuera del dashboard —login,
-   marketing— el toggle flotante sigue, porque ahí no hay ni columna clínica
-   ni barra del pulgar con la que chocar. Con esto mueren los parches de
-   convivencia por-pantalla (bottom: 78/120/136px según superficie). */
+/* ── RTC-05 → RTC-32: en el shell NO FLOTA NADA, en ningún ancho ───────────
+   RTC-05 sacó los dos botones de esquina del arco del pulgar en MÓVIL (el
+   equipo rojo los midió ocluyendo contenido en 4 de 6 superficies) y dejó
+   escrito el hueco: en escritorio la esquina no ocluye la columna clínica, así
+   que allí seguían flotando.
+
+   RTC-32 cierra el hueco, y el motivo medido NO es la oclusión —que en
+   escritorio no se reproduce— sino el PESO (§16, §29): en las 6 superficies el
+   FAB se pintaba con `--nexus-solido`, el mismo relleno que la acción primaria
+   de la pantalla, y en `/operaciones` era el único relleno de marca que había.
+   Lo más enfático de Operaciones era el botón de ayuda.
+
+   Así que el alcance sube de «shell móvil» a «shell», sin media query: la
+   ayuda vive en el pie del riel (escritorio) y en la topbar (móvil), y el tema
+   vive en Operaciones (§11: es sistema). Fuera del dashboard —login,
+   registro, marketing— el toggle flotante SIGUE: ahí no hay ni columna clínica
+   ni riel con pie donde alojarlo. Con esto mueren también los parches de
+   convivencia por-pantalla (bottom: 78/92/120/136px según superficie). */
+body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 @media (max-width: 768px) {
-  body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
-  /* !important: el FAB declara display:flex EN LÍNEA (posición y forma viven
-     en su style), y una regla de hoja sin peso pierde contra eso. */
-  .boton-ayuda-fab { display: none !important; }
   .theme-toggle { right: 12px; }
   .theme-toggle svg { width: 16px; height: 16px; }
 }
 
-/* Una pantalla-LIENZO (hoy: /chat) ancla su composer al borde inferior del
-   shell — la esquina del toggle cae ENCIMA del botón Enviar. No es teoría:
-   el arnés de diagnóstico de la 4ª rebanada de V15-A11Y-001 no pudo pulsar
-   Enviar en 1440 NI en 390 («.theme-toggle subtree intercepts pointer
-   events», ver v15-chat-contraste). El toggle sube hasta librar el composer:
-   16 + ~68 del composer (44 táctil + 12+12 de colchón) + aire en
-   escritorio; en móvil además los 53px medidos del BottomNav. Flota sobre
-   la COLA de la lista de mensajes — contenido desplazable, ningún control. */
-body:has(.nx-lienzo-completo) .theme-toggle {
-  bottom: 92px;
-}
-/* El parche móvil hermano (BottomNav+composer+aire, medido a mano) murió con
-   RTC-05: en el shell móvil el toggle ya no flota — vive en Operaciones. */
+/* RTC-32 — aquí vivía el último número mágico de esta familia: en /chat
+   (`.nx-lienzo-completo`) el toggle caía ENCIMA del botón Enviar y no se podía
+   pulsar ni en 1440 ni en 390 («.theme-toggle subtree intercepts pointer
+   events», arnés de la 4ª rebanada de V15-A11Y-001), así que subía a 92px.
+   /chat es una pantalla del shell y en el shell el toggle ya no flota: la
+   colisión no se sortea, deja de existir. El parche móvil hermano ya había
+   muerto con RTC-05; con éste se acaba la serie 78/92/120/136. */
 
 /* ── Tipografía premium para headers de página ──────────────────── */
 .nx-page-title {

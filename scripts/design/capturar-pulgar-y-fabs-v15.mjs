@@ -18,9 +18,13 @@
  *   6. en móvil NI el FAB de ayuda NI el toggle de tema flotan en el shell;
  *   7. el trigger de ayuda vive en la topbar (≥44px), abre el panel real
  *      (role=dialog) y desaparece al grabar;
- *   8. en escritorio ambos flotan, el toggle SIN cristal (backdrop-filter:
- *      none) y con fondo sólido, y los dos desaparecen al grabar y VUELVEN
- *      al detener;
+ *   8. RTC-32 INVIRTIÓ este caso, con su porqué escrito abajo, junto a las
+ *      comprobaciones: en escritorio ya NO flota ninguno de los dos (el FAB
+ *      llevaba el relleno de marca en 6/6 superficies y en /operaciones era el
+ *      único de la pantalla). Lo que se exige ahora es que el disparador del
+ *      pie del riel esté pintado, se aquiete al grabar y vuelva al detener.
+ *      El cristal del toggle lo sigue vigilando el guardián estático de
+ *      RTC-05 (caso 6): fuera del shell —login— el botón sigue existiendo.
  *   9. /operaciones ofrece la fila de tema (móvil y escritorio).
  *
  * El «antes» de esta medición es el paquete del equipo rojo
@@ -84,7 +88,17 @@ async function medir(page) {
     const hoyAccion = document.querySelector('.hoy-accion')
     const fab = document.querySelector('.boton-ayuda-fab')
     const toggle = document.querySelector('.theme-toggle')
-    const trigger = document.querySelector('.mobile-topbar [aria-label="Abrir ayuda"]')
+    /* RTC-32 — el disparador de la ayuda ya no es sólo el de la topbar móvil:
+       en escritorio vive en el pie del riel. Se busca el que esté PINTADO, no
+       el primero del DOM: en escritorio el de la topbar existe pero está
+       oculto por CSS, y coger el primero devolvía un elemento invisible (el
+       propio arnés de RTC-32 se cazó ese fallo midiendo «ayuda inalcanzable
+       en escritorio» cuando sí lo era). */
+    const trigger = [...document.querySelectorAll('[aria-label="Abrir ayuda"]')]
+      .find(el => {
+        const cs = getComputedStyle(el)
+        return cs.display !== 'none' && cs.visibility !== 'hidden' && el.getClientRects().length > 0
+      }) || null
     const central = document.querySelector('.bottom-nav a[aria-label="Nueva cita"], .bottom-nav a[aria-label="Consulta"]')
     let centralRelleno = null, centralLabel = null, centralIconOpacidad = null
     if (central) {
@@ -203,12 +217,19 @@ async function main() {
   if (m.hoyGrabando.triggerAyudaVisible) fallos.push('mobile: el trigger de ayuda no se aquieta al grabar')
   if (!m.operacionesTema) fallos.push('mobile: /operaciones no ofrece la fila de tema')
   if (m.operacionesTema && m.operacionesTema.alto < 44) fallos.push('mobile: la fila de tema mide <44px')
-  if (!d.hoy.ayudaFabVisible) fallos.push('desktop: el FAB de ayuda no está')
-  if (!d.hoy.toggleVisible) fallos.push('desktop: el toggle no está')
-  if (d.hoy.toggleCristal && d.hoy.toggleCristal !== 'none') fallos.push(`desktop: el toggle sigue con cristal (${d.hoy.toggleCristal})`)
-  if (d.hoy.toggleBgAlfa !== null && d.hoy.toggleBgAlfa < 0.99) fallos.push(`desktop: el fondo del toggle no es sólido (alfa ${d.hoy.toggleBgAlfa})`)
-  if (d.hoyGrabando.ayudaFabVisible || d.hoyGrabando.toggleVisible) fallos.push('desktop: los flotantes no se aquietan al grabar')
-  if (!d.hoyAlDetener.ayudaFabVisible || !d.hoyAlDetener.toggleVisible) fallos.push('desktop: los flotantes no VUELVEN al detener')
+  /* ── RTC-32: la mitad de escritorio de este arnés se INVIERTE, con su razón ──
+     Hasta aquí estas líneas exigían que en escritorio los dos widgets FLOTARAN
+     («desktop: el FAB de ayuda no está»), porque RTC-05 había decidido a
+     propósito no juzgar el escritorio. RTC-32 lo midió y lo pagó: en las 6
+     superficies el FAB llevaba el relleno de marca —el mismo peso que la
+     acción clínica primaria— y en /operaciones era el único de la pantalla.
+     Así que ahora se exige lo contrario, y el invariante que sobrevive intacto
+     es el de §8.5: el disparador se aquieta al grabar y VUELVE al detener. */
+  if (d.hoy.ayudaFabVisible) fallos.push('desktop: el FAB de ayuda volvió a flotar sobre la columna clínica')
+  if (d.hoy.toggleVisible) fallos.push('desktop: el toggle de tema volvió a flotar en el shell (su casa es /operaciones)')
+  if (!d.hoy.triggerAyudaVisible) fallos.push('desktop: no hay disparador de ayuda pintado (el pie del riel)')
+  if (d.hoyGrabando.triggerAyudaVisible) fallos.push('desktop: el disparador de ayuda no se aquieta al grabar')
+  if (!d.hoyAlDetener.triggerAyudaVisible) fallos.push('desktop: el disparador de ayuda no VUELVE al detener')
 
   await browser.close()
   resultado.veredicto = fallos.length ? { PASS: false, fallos } : { PASS: true }

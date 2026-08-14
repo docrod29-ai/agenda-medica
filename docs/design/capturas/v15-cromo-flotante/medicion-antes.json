@@ -1,0 +1,521 @@
+{
+  "fase": "antes",
+  "viewports": {
+    "desktop": {
+      "porSuperficie": {
+        "hoy": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [
+            {
+              "nombre": "ayuda",
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "viernes, 14 de agosto de 2026Buenos días, ElenaNueva citaAPr"
+              },
+              "rellenoDeMarca": true
+            },
+            {
+              "nombre": "tema",
+              "rect": {
+                "x": 1380,
+                "y": 840,
+                "w": 44,
+                "h": 44
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "viernes, 14 de agosto de 2026Buenos días, ElenaNueva citaAPr"
+              },
+              "rellenoDeMarca": false
+            }
+          ],
+          "cuantosFlotan": 2,
+          "rellenosDeMarca": [
+            "Iniciar consulta",
+            "Abrir ayuda"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "enElRiel": false,
+              "enLaTopbar": false,
+              "flotante": true
+            }
+          ]
+        },
+        "pacientes": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [
+            {
+              "nombre": "ayuda",
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "main",
+                "dentroDeMain": true,
+                "texto": "PacientesTodo el que tiene expediente aquí. Cada uno dice lo"
+              },
+              "rellenoDeMarca": true
+            },
+            {
+              "nombre": "tema",
+              "rect": {
+                "x": 1380,
+                "y": 840,
+                "w": 44,
+                "h": 44
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "main",
+                "dentroDeMain": true,
+                "texto": "PacientesTodo el que tiene expediente aquí. Cada uno dice lo"
+              },
+              "rellenoDeMarca": false
+            }
+          ],
+          "cuantosFlotan": 2,
+          "rellenosDeMarca": [
+            "Nuevo paciente",
+            "Recientes (5)",
+            "Abrir ayuda"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "enElRiel": false,
+              "enLaTopbar": false,
+              "flotante": true
+            }
+          ]
+        },
+        "expediente": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [
+            {
+              "nombre": "ayuda",
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "AtrásAAurelio Domínguez Peña72 años · Masculino · +52 55 555"
+              },
+              "rellenoDeMarca": true
+            },
+            {
+              "nombre": "tema",
+              "rect": {
+                "x": 1380,
+                "y": 840,
+                "w": 44,
+                "h": 44
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "AtrásAAurelio Domínguez Peña72 años · Masculino · +52 55 555"
+              },
+              "rellenoDeMarca": false
+            }
+          ],
+          "cuantosFlotan": 2,
+          "rellenosDeMarca": [
+            "Nueva consulta",
+            "Consulta",
+            "Abrir ayuda"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "enElRiel": false,
+              "enLaTopbar": false,
+              "flotante": true
+            }
+          ]
+        },
+        "consulta": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [
+            {
+              "nombre": "ayuda",
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "ExpedienteAurelio Domínguez Peña72 años · Masculino · Nota d"
+              },
+              "rellenoDeMarca": true
+            },
+            {
+              "nombre": "tema",
+              "rect": {
+                "x": 1380,
+                "y": 840,
+                "w": 44,
+                "h": 44
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "ExpedienteAurelio Domínguez Peña72 años · Masculino · Nota d"
+              },
+              "rellenoDeMarca": false
+            }
+          ],
+          "cuantosFlotan": 2,
+          "rellenosDeMarca": [
+            "Todo a la nota",
+            "Abrir ayuda"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "enElRiel": false,
+              "enLaTopbar": false,
+              "flotante": true
+            }
+          ]
+        },
+        "pendientes": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [
+            {
+              "nombre": "ayuda",
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "Dra. Elena Sandoval Rivas"
+              },
+              "rellenoDeMarca": true
+            },
+            {
+              "nombre": "tema",
+              "rect": {
+                "x": 1380,
+                "y": 840,
+                "w": 44,
+                "h": 44
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "Lo revisé — cerrarHecha, pero nadie la ha revisado todavía. "
+              },
+              "rellenoDeMarca": false
+            }
+          ],
+          "cuantosFlotan": 2,
+          "rellenosDeMarca": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Tomarla",
+            "Abrir ayuda"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "enElRiel": false,
+              "enLaTopbar": false,
+              "flotante": true
+            }
+          ]
+        },
+        "operaciones": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [
+            {
+              "nombre": "ayuda",
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "OperacionesLa administración del consultorio y los módulos d"
+              },
+              "rellenoDeMarca": true
+            },
+            {
+              "nombre": "tema",
+              "rect": {
+                "x": 1380,
+                "y": 840,
+                "w": 44,
+                "h": 44
+              },
+              "posicion": "fixed",
+              "debajo": {
+                "tag": "div",
+                "dentroDeMain": true,
+                "texto": "OperacionesLa administración del consultorio y los módulos d"
+              },
+              "rellenoDeMarca": false
+            }
+          ],
+          "cuantosFlotan": 2,
+          "rellenosDeMarca": [
+            "Abrir ayuda"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 1368,
+                "y": 784,
+                "w": 52,
+                "h": 52
+              },
+              "enElRiel": false,
+              "enLaTopbar": false,
+              "flotante": true
+            }
+          ]
+        }
+      },
+      "ayudaDesdeHoy": {
+        "disparadorEncontrado": false,
+        "panelAbierto": false,
+        "gestos": null
+      },
+      "temaEnOperaciones": {
+        "texto": "Tema: oscuroClaro, oscuro o el del siste",
+        "alto": 60
+      }
+    },
+    "mobile": {
+      "porSuperficie": {
+        "hoy": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Iniciar consulta"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "pacientes": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Nuevo paciente",
+            "Recientes (5)"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "expediente": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Nueva consulta",
+            "Consulta"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "consulta": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Todo a la nota"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "pendientes": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        },
+        "operaciones": {
+          "marcaResuelta": "rgb(23, 120, 134)",
+          "flotantes": [],
+          "cuantosFlotan": 0,
+          "rellenosDeMarca": [],
+          "disparadoresDeAyuda": [
+            {
+              "rect": {
+                "x": 330,
+                "y": 4,
+                "w": 44,
+                "h": 44
+              },
+              "enElRiel": false,
+              "enLaTopbar": true,
+              "flotante": false
+            }
+          ]
+        }
+      },
+      "ayudaDesdeHoy": {
+        "disparadorEncontrado": true,
+        "panelAbierto": true,
+        "gestos": 1,
+        "rectPanel": {
+          "x": 11,
+          "y": 60,
+          "w": 359,
+          "h": 453
+        }
+      },
+      "temaEnOperaciones": {
+        "texto": "Tema: oscuroClaro, oscuro o el del siste",
+        "alto": 60
+      }
+    }
+  },
+  "erroresConsola": [],
+  "resumen": {
+    "superficiesConCromoFlotante_desktop": [
+      "hoy",
+      "pacientes",
+      "expediente",
+      "consulta",
+      "pendientes",
+      "operaciones"
+    ],
+    "superficiesDondeLaAyudaEsElUnicoRellenoDeMarca_desktop": [
+      "operaciones"
+    ],
+    "superficiesConCromoFlotante_mobile": []
+  }
+}

@@ -3,6 +3,16 @@
  * los widgets flotantes se aquietan al grabar, salen del arco del pulgar en
  * móvil, y el tema tiene UNA fuente de verdad.
  *
+ * ── AVISO: RTC-32 MOVIÓ PARTE DE LO QUE ESTE GUARDIÁN MEDÍA ─────────────────
+ *
+ * Este guardián nació cuando el escritorio conservaba los dos FAB a propósito
+ * (ver «QUÉ NO CUBRE» abajo, que lo declaraba). RTC-32 midió el escritorio y
+ * los retiró: la ayuda vive en el pie del riel y el tema en Operaciones, en
+ * TODOS los anchos. Los casos 3 y 4 se reescribieron para seguir al código —
+ * el invariante que protegen (la capacidad se muda, no se ampu­ta; el evento se
+ * declara una vez) es el mismo, y ahora se cumple más fuerte. La medida fina
+ * del cromo flotante vive en `v15-rtc32-en-el-shell-nada-flota.test.ts`.
+ *
  * ── QUÉ FALLABA Y CÓMO SE DESCUBRIÓ ─────────────────────────────────────────
  *
  * El equipo rojo (13-ago-2026) midió DOS FAB permanentes sobre TODA pantalla
@@ -40,8 +50,10 @@
  * · La oclusión PINTADA y el aquietado real los mide el arnés de navegador
  *   (`capturar-pulgar-y-fabs-v15.mjs`) despachando `nx:grabando` de verdad.
  * · No cubre la acción central del BottomNav (RTC-07, guardián hermano).
- * · No juzga si la ayuda merece FAB en escritorio (el arco del pulgar es un
- *   argumento móvil; en escritorio la esquina no ocluye la columna clínica).
+ * · Ya NO deja fuera el escritorio: ese hueco («no juzga si la ayuda merece
+ *   FAB en escritorio») lo cerró RTC-32 midiéndolo, y su guardián es
+ *   `v15-rtc32-en-el-shell-nada-flota.test.ts`. Se deja escrito aquí porque
+ *   este texto fue durante un día la única razón por la que nadie lo miraba.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -66,23 +78,23 @@ describe('RTC-05 — los FAB se aquietan al grabar y salen del arco del pulgar',
     expect(TOGGLE).not.toContain('EVENTO_GRABANDO')
   })
 
-  it('3 · en móvil la ayuda no flota: FAB oculto ≤768 y trigger estático en la topbar', () => {
-    const idx = CSS.indexOf('.boton-ayuda-fab { display: none')
-    expect(idx).toBeGreaterThan(-1)
-    expect(CSS.slice(Math.max(0, idx - 600), idx)).toMatch(/@media \(max-width: 768px\)/)
-    // El trigger de la topbar despacha el evento declarado por BotonAyuda…
-    expect(LAYOUT).toMatch(/EVENTO_ABRIR_AYUDA/)
-    expect(LAYOUT).toMatch(/import \{ BotonAyuda, EVENTO_ABRIR_AYUDA \} from '@\/components\/BotonAyuda'/)
+  it('3 · la ayuda no flota y su trigger es estático — el evento se declara UNA vez', () => {
+    // RTC-32: el FAB ya no existe (antes bastaba con ocultarlo ≤768px).
+    expect(AYUDA).not.toContain('boton-ayuda-fab')
+    // El layout usa la pieza compartida, que trae el evento y la compuerta
+    // dentro: ningún consumidor teclea la cadena del evento.
+    expect(LAYOUT).toMatch(/import \{ BotonAyuda, DisparadorAyuda \} from '@\/components\/BotonAyuda'/)
+    expect(LAYOUT).not.toContain("'nx:abrir-ayuda'")
     // …y BotonAyuda lo declara UNA vez y lo escucha.
-    expect(AYUDA).toMatch(/export const EVENTO_ABRIR_AYUDA/)
+    expect(AYUDA).toMatch(/export const EVENTO_ABRIR_AYUDA = 'nx:abrir-ayuda'/)
     expect(AYUDA).toMatch(/addEventListener\(EVENTO_ABRIR_AYUDA/)
   })
 
-  it('4 · en móvil el tema no flota en el shell: vive en Operaciones (§11)', () => {
-    // El toggle flotante se oculta en el shell móvil (donde hay BottomNav)…
-    const idx = CSS.indexOf('body:has(.bottom-nav-wrap) .theme-toggle')
+  it('4 · el tema no flota en el shell: vive en Operaciones (§11)', () => {
+    // El toggle flotante se oculta en el shell (donde hay BottomNav). RTC-32
+    // le quitó la media query: el alcance subió de «shell móvil» a «shell».
+    const idx = CSS.indexOf('body:has(.bottom-nav-wrap) .theme-toggle { display: none; }')
     expect(idx).toBeGreaterThan(-1)
-    expect(CSS.slice(Math.max(0, idx - 600), idx)).toMatch(/@media \(max-width: 768px\)/)
     // …y Operaciones ofrece el control con el MISMO estado compartido.
     expect(OPERACIONES).toMatch(/import \{ useTema \} from '@\/hooks\/useTema'/)
   })

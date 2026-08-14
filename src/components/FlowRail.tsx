@@ -57,11 +57,12 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  CalendarClock, UserSquare2, Stethoscope, ListChecks, Search, Settings2, LogOut,
+  CalendarClock, UserSquare2, Stethoscope, ListChecks, Search, Settings2, LogOut, HelpCircle,
 } from 'lucide-react'
 import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
+import { DisparadorAyuda } from '@/components/BotonAyuda'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { useGrabando } from '@/hooks/useGrabando'
 import { useEncuentroAbierto } from '@/hooks/useEncuentroAbierto'
@@ -222,6 +223,15 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div style={{ padding: '12px 8px 16px', borderTop: '1px solid var(--border)' }}>
+        {/* RTC-32 — la ayuda ya no flota sobre la columna clínica: vive aquí,
+            en el pie subordinado, que es su familia (sistema, no destino
+            clínico — §15). No suma un destino al riel: es un botón que abre un
+            panel, y por eso está FUERA del <nav> que cuenta los ≤5 contextos.
+            La compuerta de grabación viene dentro de `DisparadorAyuda`. */}
+        <DisparadorAyuda className="nav-item" style={{ color: 'var(--text3)', width: '100%' }}>
+          <HelpCircle size={16} className="nx-flow-rail-quiet-icon" />
+          Ayuda
+        </DisparadorAyuda>
         <button onClick={handleLogout} className="nav-item" style={{ color: 'var(--text3)', width: '100%' }}>
           <LogOut size={16} className="nx-flow-rail-quiet-icon" />
           Cerrar sesión

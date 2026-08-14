@@ -105,14 +105,18 @@ describe('V15 — push opt-in móvil: hoja ENCIMA del BottomNav, nunca sobre él
     expect(Number(cerrar.match(/min-height:\s*(\d+)px/)?.[1])).toBeGreaterThanOrEqual(44)
   })
 
-  it('los widgets flotantes ceden el paso mientras la hoja pregunta', () => {
-    // Nota histórica: al nacer, esta regla sólo cubría al FAB. La 4ª rebanada
-    // de V15-A11Y-001 midió que el toggle de tema (z-199) pintaba sobre el
-    // borde de la hoja en 390px y lo sumó al MISMO bloque — el guardián sigue
-    // al mecanismo (precedente: el guardián del alto táctil de la franja).
-    const widgets = bloqueCss('body:has(.nx-push-optin) .boton-ayuda-fab,')
-    expect(widgets).toContain('body:has(.nx-push-optin) .theme-toggle {')
-    expect(widgets).toContain('pointer-events: none')
+  it('ningún widget flotante puede tapar la hoja mientras pregunta', () => {
+    // Nota histórica: al nacer, la regla que apartaba los flotantes sólo cubría
+    // al FAB; la 4ª rebanada de V15-A11Y-001 sumó el toggle al mismo bloque
+    // tras medir que pintaba sobre el borde de la hoja a 390px.
+    //
+    // RTC-32 quitó la CAUSA en vez de seguir arbitrándola: `.nx-push-optin`
+    // vive sólo dentro del shell del dashboard y en el shell ya no flota nada
+    // (la ayuda pasó al pie del riel y a la topbar; el tema, a Operaciones).
+    // El guardián sigue al mecanismo, como cuando creció: ahora exige la
+    // condición que hace imposible la colisión, no el apaño que la sorteaba.
+    expect(CSS).not.toContain('boton-ayuda-fab')
+    expect(CSS).toMatch(/body:has\(\.bottom-nav-wrap\)\s+\.theme-toggle\s*\{\s*display:\s*none;\s*\}/)
   })
 })
 
