@@ -8710,3 +8710,174 @@ fase «antes».
 —quien implementa no puede ser el juez—. Trabajo de producto con dueño: el punto
 1 (llevar la fuente a las cuatro superficies que faltan, empezando por
 `/expediente`, donde la Clinical Spine de §7 es el sitio natural) y el punto 2.
+
+---
+
+## §21 LLEGA AL ARCHIVO — y los dos campos guardados para la discusión medicolegal no tenían quién los leyera el día de la discusión (15-ago)
+
+**La rebanada que el estado dejó nombrada como punto 1**: el alcance de §21
+estaba en **2 de 6** superficies (`/consulta` y `/pendientes`). Esta corrida lo
+sube a **3 de 6** llevando la inspección de la fuente a `/expediente` — la
+superficie donde la pregunta se hace de verdad, porque **nadie audita una nota
+el día que la firma**.
+
+### El hallazgo no era de interfaz. Eran dos, y de la misma familia
+
+```
+NotaMedica.transcripcionMotor      →  «el material de origen» (v996)
+  escrito por  →  /consulta al guardar
+  leído por    →  el bucle de aprendizaje del ASR
+  leído por una PANTALLA → NADIE
+
+NotaMedica.iaAuditoria.extraction  →  la trazabilidad de la IA (Fase B)
+  escrito por  →  /consulta al guardar
+  leído por    →  la propia /consulta, para restaurar SU borrador
+  leído en el ARCHIVO → NADIE
+```
+
+Los dos se escribieron **para una discusión medicolegal**, y ninguno tenía quién
+lo leyera el día de la discusión. «El dato tiene que LLEGAR» en su forma más
+cara: REG-160/167/170 son la misma familia. El motor (`rastrearNota`) tenía
+corpus oro; las dos piezas de pantalla (`SelloProcedencia`, `DeDondeSalioEsto`)
+llevaban desde ayer en la Capa 4. **Faltaba el lector.**
+
+### Las tres decisiones que no son de estilo
+
+1. **En el archivo se contrasta contra el MATERIAL DE ORIGEN**, no contra el
+   texto de trabajo. Y no es preferencia: si el médico editó el texto de trabajo
+   para que dijera lo que la nota dice, contrastar contra él **fabrica el
+   respaldo** — la frase sale en verde porque alguien la escribió en los dos
+   sitios. El original del reconocedor no se puede editar. `/consulta` usa el de
+   trabajo porque en la consulta viva es el único que tiene en la mano; en el
+   archivo hay que elegir, y **se dice cuál se eligió** en la propia pantalla.
+2. **Sin bloque de extracción no se pinta el sello.** `construirManifiesto`
+   clasifica en cinco orígenes y **no tiene «no consta»**: lo que no casa cae en
+   `manual`. Sellar una nota sin extracción imprimiría **«a mano» sobre datos
+   que quizá salieron del dictado** — autoría humana falsa, en la superficie
+   donde se discute la autoría. Regla 4 de seguridad clínica. La otra pieza sí
+   se pinta siempre, porque es honesta por construcción: dice «no aparece en el
+   dictado», que es comprobable, y no dice quién lo escribió.
+3. **En el archivo no hay botón de escuchar.** La nota guarda `dialogoDiarizado`
+   **sin tiempos por palabra** a propósito (guardarlos reventaba el tope de 1 MB
+   de Firestore y bloqueaba todo guardado posterior). Sin el segundo exacto no
+   se aproxima: una prueba en el segundo equivocado es peor que ninguna
+   (REG-250). Sellado en el guardián, no sólo omitido.
+
+Y una cuarta, más pequeña: **las alergias del sello son las de la NOTA**, no las
+del paciente hoy. Mezclarlas haría que una nota de hace un año pareciera haber
+conocido una alergia registrada anteayer.
+
+### La medición, en navegador real (1440 y 390, antes y después)
+
+`scripts/design/medir-procedencia-expediente-v15.mjs` — **dos builds de
+producción**, uno por fase.
+
+| | antes | después |
+|---|---|---|
+| notas que pueden inspeccionar su origen | **0 de 2** | **2 de 2** |
+| bloque §21 dentro de la nota abierta | no existe | sí, rótulo **`<h4>`** |
+| sello donde HAY extracción | — | sí |
+| sello donde NO la hay | — | **no** (la rama que importa) |
+| se dice contra qué se contrasta | **NO SE DICE** | sí, y **distinto** por nota |
+| **el panel enseña el ORIGINAL** | — | **«glucosa hilada» ✓** |
+| crecimiento del expediente al abrir | — | +21 / +16px (1440) · **+0px** (390) |
+| `aria-expanded` | — | false → **true** |
+| lentes abiertas | — | **1** |
+| Escape cierra | — | sí, los dos anchos |
+| foco vuelve al disparador | — | sí, los dos anchos |
+| desplazamiento restaurado | — | **exacto** (947→947 · 1110→1110 · 1428→1635→**1428**) |
+| errores de consola | 0 | **0** |
+
+**La fila que de verdad prueba la rebanada es la del original.** No basta con
+que la pantalla escriba «se contrasta contra el original»: la siembra pone al
+reconocedor oyendo «hemoglobina **glucosa hilada**» donde el médico escribió
+«**glucosilada**», y la sonda comprueba **cuál de las dos aparece dentro del
+panel**. Aparece la del motor. Si apareciera la del médico, el respaldo estaría
+fabricado y la pantalla estaría mintiendo con las palabras correctas. Es la
+mitad que la regla «el dato tiene que LLEGAR» dice que casi nadie hace.
+
+### El sexto hueco de siembra, y van seis
+
+Ninguna nota sembrada traía `transcripcionMotor` ni `iaAuditoria.extraction`.
+Sin arreglarlo, la medición habría fotografiado el estado pobre en las tres
+notas y lo habría dado por bueno — igual que las cinco veces anteriores. Se
+siembran **los dos estados a propósito**: `nota-aurelio-1` con original que
+DIFIERE del texto de trabajo y con bloque de extracción (sello + contraste
+contra el original), y `nota-aurelio-2` sólo con texto de trabajo y sin
+extracción, que es la nota honesta a medias — **y la pantalla lo dice**.
+
+### Una copia que llevaba versiones pasando en verde
+
+`textoDeLaNota` sale del monolito de `/consulta` a
+`lib/expediente/texto-de-la-nota.ts`: dos definiciones de qué es «la nota» para
+el mismo motor de trazabilidad acaban divergiendo, y la que se quede atrás
+miente en silencio. Al mudarla apareció lo de verdad interesante: la prueba
+`la-nota-entera-se-contrasta` **replicaba la función** en vez de importarla —
+lo decía con todas las letras, «replicada para probarla»—. Una copia en una
+prueba es la peor de todas: **pasa en verde para siempre** aunque el original
+cambie, y entonces certifica una función que ya nadie ejecuta. Ahora la importa.
+
+El tipo de los parámetros se relajó a lo que la función LEE (`descripcion`,
+`codigoCIE10`, `value`) y no a `Diagnostico[]`/`NotaSeccion[]`: exigir el tipo
+completo era justo el peaje que empujó a esa prueba a copiar en vez de importar.
+
+### Compuertas
+
+`npx tsc --noEmit` limpio · `npx vitest run` **9528/9529** en la corrida final
+(único rojo: `ops-timeout-y-punto-ciego`, el conocido del proxy del contenedor).
+En la corrida intermedia hubo un segundo rojo,
+`el-inventario-de-pantallas-no-miente` — el guardián haciendo su trabajo: al
+cambiar las líneas de dos `page.tsx` el inventario quedó desfasado y se
+regeneró · lint
+**96 = techo** · trinquete de diseño **sin deuda nueva** · `npm run build`
+compila (162 páginas) · navegador real 1440 + 390 en las **dos** fases, 12
+capturas del después y 6 del antes, **0 errores de consola**.
+
+Guardián `v15-procedencia-en-el-expediente.test.ts` (15 casos). **Probado al
+revés**: contra el árbol previo el fichero no carga. Cuatro reversiones
+quirúrgicas sobre el árbol nuevo, comprobadas en rojo **una a una**:
+
+- `fuente` prefiriendo 'trabajo' sobre 'motor' → rompe el 2 ✓
+- `puedeSellar` cableado a `true` → rompe el 5 ✓
+- la pieza volviendo a pasar `resolverUrlDeAudio` → rompe el 12 ✓
+- `textoDeLaNota` volviendo a declararse en `/consulta` → rompe el 13 ✓
+
+**Defecto propio, del instrumento, y van trece en la fase**: el `.env.local` del
+arnés se escribió con `NEXT_PUBLIC_FIREBASE_EMULATOR` (singular). El candado de
+`src/lib/firebase.ts` lee `NEXT_PUBLIC_FIREBASE_EMULATORS` (plural), así que el
+navegador se conectó a Firebase de verdad, el login nunca llegó a `/dashboard` y
+costó un build entero. La nota operativa del estado lo decía bien; lo transcribí
+mal.
+
+### Declarado y NO pagado
+
+1. **El alcance sigue en 3 de 6.** Faltan `/dashboard`, `/pacientes` y
+   `/operaciones`. La capa está montada en las seis; falta quién la use.
+2. **En el teléfono, la hoja tapa el disparador** (`disparadorTapado: true` en
+   las dos notas, los dos casos). Medido y **no es un defecto de comprensión**:
+   cada fila del panel lleva la frase de la nota **y** el trozo de dictado que la
+   sostiene, así que la comparación es autosuficiente y no necesita ver la nota
+   detrás. Lo que sí queda mal es que `aria-expanded="true"` apunte a un control
+   que no se ve. Es comportamiento **preexistente** de la hoja inferior de la
+   Capa 4, no introducido aquí, y con la nota larga se hace visible. Anotado.
+3. **La mitad de PROSA del manifiesto sigue sin conectar.**
+   `construirManifiesto` audita `secciones` y `resumenEjecutivo` desde hace
+   versiones y **ninguna** superficie se los pasa —ni `/consulta` ni ésta—.
+   «Escrito y sin conectar» de manual. Arreglarlo toca las dos pantallas a la
+   vez, así que es unidad propia: hacerlo sólo aquí dejaría dos sellos que
+   cuentan distinto para la misma nota.
+4. **`alergiasDe` parte dentro del paréntesis** — sigue sin pagar, sigue siendo
+   `src/lib/seguridad/alergias.ts`, que §1 congela. Se vuelve a ver en la franja
+   de alergias de las capturas: «Penicilina (rash generalizado · 2019)».
+5. **La divergencia de `mostrarAlergias` entre `/orden` y `/receta`** sigue
+   congelada por su guardián, esperando decisión del dueño.
+6. **RTC-12(a)** (lienzo multicolumna) sigue nombrado, con el refactor del
+   monolito.
+
+**Siguiente tarea exacta**: sigue siendo la **lectura INDEPENDIENTE** de §26/§29
+—quien implementa no puede ser el juez—, ahora con `/expediente` puntuable de
+verdad (antes se puntuó el expediente vacío tres veces). Trabajo de producto con
+dueño: el punto 1 (llevar la fuente a `/dashboard`, `/pacientes` y
+`/operaciones`), el punto 3 (la prosa del manifiesto, unidad que toca las dos
+pantallas) y el punto 4 (el paréntesis de `alergiasDe`, unidad de seguridad
+clínica con su entrada de regresión y su sello).

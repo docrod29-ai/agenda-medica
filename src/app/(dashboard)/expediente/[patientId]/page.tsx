@@ -27,6 +27,7 @@ import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { PatientAnchor } from '@/components/expediente/PatientAnchor'
 import { ClinicalSpine, type ClinicalSpineItem } from '@/components/expediente/ClinicalSpine'
+import { ProcedenciaDeLaNota } from '@/components/expediente/ProcedenciaDeLaNota'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { Herramientas } from '@/components/Herramientas'
 import { CAPACIDADES_DEL_PACIENTE } from '@/lib/nav/capacidades-del-paciente'
@@ -873,6 +874,19 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
                 Firmada por {nota.firma.nombreMedico} · Céd. {nota.firma.cedulaProfesional} · Sello {nota.metadata.hashIntegridad.slice(0, 12)}…
               </div>
             )}
+
+            {/*
+              §21 EN EL SITIO DONDE SE PREGUNTA. La inspección de la fuente
+              vivía sólo en la consulta VIVA; la pregunta «¿de dónde salió
+              esto?» se hace semanas después, y ese día se entra por aquí.
+
+              Va junto a la firma y no arriba de los botones a propósito: la
+              firma dice quién responde por la nota y con qué sello, y la
+              procedencia dice de dónde salió su contenido. Son el mismo
+              registro medicolegal, y §16 pide agrupar antes que encajonar.
+              De paso, ningún control existente cambia de sitio.
+            */}
+            <ProcedenciaDeLaNota nota={nota} />
           </div>
         )}
       </div>

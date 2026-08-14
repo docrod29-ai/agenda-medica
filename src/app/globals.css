@@ -1808,6 +1808,47 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   padding-left: 10px;
 }
 
+/* §21 EN EL EXPEDIENTE — «de dónde salió esta nota», colgando de la nota.
+
+   VIVE EN LA HOJA por la misma lección que el bloque de arriba: un tamaño
+   escrito en línea es un rol tipográfico sin nombre, y el trinquete de diseño
+   lo caza. Escala declarada: 10.5 · 12 · 14 · 16 · 20 · 28.
+
+   El rótulo es un <h4> de verdad y no un <span> en versalitas: dentro de una
+   nota abierta —cuyas secciones ya son estructura— «De dónde salió esta nota»
+   es una sección más por la que un lector de pantalla navega. El `Section` de
+   la consulta rotula con un <span> y la sonda de la Capa 4 lo dejó anotado
+   como defecto de §24; no se repite aquí.
+
+   La franja separadora es UN borde superior, no una caja: §16 pide posición y
+   agrupación antes que contenedores, y una tarjeta dentro de la tarjeta de la
+   nota sería la tercera caja anidada de la misma pantalla. */
+.nx-proc-nota {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.nx-proc-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+/* CONTRA QUÉ SE CONTRASTA. Es texto terciario a propósito —no compite con la
+   nota— pero NO se degrada por debajo de 10.5: en una discusión medicolegal
+   esta frase es la que dice qué significa el verde. */
+.nx-proc-fuente {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--text3);
+}
+
 /* ESCRITORIO ANCHO — LA LENTE SE ACOPLA, NO SE SUPERPONE.
 
    EL DISEÑO QUE LA ARITMÉTICA REFUTÓ. La primera versión de esta rebanada iba

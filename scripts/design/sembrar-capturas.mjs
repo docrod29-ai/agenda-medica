@@ -511,6 +511,30 @@ async function main() {
    * es el caso interesante: el panel existe para enseñar qué frase NO tiene
    * respaldo—. El borrador se queda sin dictado a propósito: una consulta
    * recién abierta tampoco lo tiene.
+   *
+   * ── EL SEXTO HUECO: EL ARCHIVO NO TENÍA NI ORIGINAL NI EXTRACCIÓN ─────
+   *
+   * Al llevar §21 a `/expediente` (15-ago) aparecieron los dos que faltaban,
+   * y los dos son la misma familia otra vez:
+   *
+   *   · **`transcripcionMotor`** — el material de ORIGEN, lo que oyó el
+   *     reconocedor antes de que nadie editara nada. Ninguna nota sembrada lo
+   *     traía, así que el expediente sólo podía contrastar contra el texto de
+   *     trabajo y la distinción que decide qué significa el verde —original
+   *     contra texto editable— no se podía fotografiar.
+   *   · **`iaAuditoria.extraction`** — sin él, `SelloProcedencia` no se pinta
+   *     en el archivo por decisión explícita (imprimiría «a mano» sobre datos
+   *     de máquina). Sin siembra, esa mitad de la rebanada quedaba invisible.
+   *
+   * Se siembran los DOS estados a propósito, para que la medición vea la
+   * diferencia y no una sola cara:
+   *
+   *   · `nota-aurelio-1` — motor + trabajo **que difieren** (el médico corrigió
+   *     el dictado) + bloque de extracción con campos aceptados. Es la nota
+   *     completa: sello y contraste contra el original.
+   *   · `nota-aurelio-2` — sólo texto de trabajo, sin extracción. Es la nota
+   *     honesta a medias, y la pantalla tiene que DECIRLO.
+   *   · `nota-luzmaria-1` — se queda como estaba: dictado sin original.
    */
   const seccion = (key, label, value) => ({ key, label, value })
   const metadatos = (id, tipo, pacienteId, estado, fecha) => ({
@@ -547,6 +571,44 @@ async function main() {
         'exploración cardiopulmonar sin agregados. Reforzamos el apego, pedimos ' +
         'perfil de lípidos y hemoglobina glucosilada de control y lo cito en cuatro ' +
         'semanas.',
+      /* EL MATERIAL DE ORIGEN, y difiere del de trabajo a propósito: el
+         reconocedor oyó «hemoglobina glucosa hilada» y el médico lo corrigió.
+         Es el caso que hace visible por qué el archivo contrasta contra ESTE y
+         no contra el editable — contra el texto corregido, la frase saldría
+         respaldada porque alguien la escribió en los dos sitios. */
+      transcripcionMotor:
+        'Viene a control. Refiere que ha tomado el tratamiento de manera irregular ' +
+        'en los últimos dos meses. Niega hipoglucemias, niega poliuria y niega ' +
+        'pérdida de peso. Tensión arterial ciento treinta y ocho sobre ochenta y ' +
+        'seis, frecuencia cardiaca setenta y ocho. A la exploración está consciente ' +
+        'y orientado, hidratado, sin datos de dificultad respiratoria; la ' +
+        'exploración cardiopulmonar sin agregados. Reforzamos el apego, pedimos ' +
+        'perfil de lípidos y hemoglobina glucosa hilada de control y lo cito en ' +
+        'cuatro semanas.',
+      /* EL BLOQUE DE EXTRACCIÓN ARCHIVADO. Sin él, el expediente NO pinta el
+         sello —decidido así para no imprimir «a mano» sobre datos de máquina—,
+         y esa mitad de §21 no se puede fotografiar. Las citas son literales del
+         dictado del MOTOR: si no lo fueran, el sello las marcaría como cita que
+         no existe, que es justo la defensa de REG-213. */
+      iaAuditoria: {
+        procesadoEn: diaISO(-45),
+        aprobadosPorMedico: ['dx:0'],
+        extraction: {
+          /* Los dos diagnósticos van SIN cita: son crónicos que venían del
+             expediente y no se nombraron en voz alta. El sello los marca como
+             inferencia, que es la verdad — y uno lleva el visto bueno del
+             médico, para que se vea la diferencia entre «la IA lo propuso» y
+             «la IA lo propuso Y él lo hizo suyo». */
+          diagnosticos: [
+            { descripcion: 'Diabetes mellitus tipo 2', confidence: 'alta' },
+            { descripcion: 'Hipertensión arterial sistémica', confidence: 'media' },
+          ],
+          signosVitales: {
+            ta: { value: '138/86', confidence: 'alta', source_quote: 'Tensión arterial ciento treinta y ocho sobre ochenta y seis' },
+            fc: { value: '78', confidence: 'alta', source_quote: 'frecuencia cardiaca setenta y ocho' },
+          },
+        },
+      },
       diagnosticos: [
         { descripcion: 'Diabetes mellitus tipo 2', tipo: 'definitivo', estado: 'cronico', fechaDiagnostico: diaISO(-2000) },
         { descripcion: 'Hipertensión arterial sistémica', tipo: 'definitivo', estado: 'cronico', fechaDiagnostico: diaISO(-1500) },

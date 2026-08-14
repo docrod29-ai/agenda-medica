@@ -1,0 +1,179 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "despues",
+  "viewports": {
+    "escritorio-1440": {
+      "encuadre": {
+        "huecoDeLente": true,
+        "notasEnElExpediente": 2,
+        "alto": 1536
+      },
+      "notas": [
+        {
+          "indice": 0,
+          "titulo": "Nota de SeguimientoFirmadaMejor apego; queda por confirmar s",
+          "bloqueDe21": true,
+          "rotulo": "H4",
+          "conSello": false,
+          "conFuente": true,
+          "fuenteDicha": "Se contrasta contra el dictado de trabajo, que pudo editarse. No se archivó el original del reconocedor para esta nota.",
+          "inspeccion": {
+            "antes": {
+              "scrollTop": 947,
+              "alto": 2048,
+              "rect": 463,
+              "expandido": "false"
+            },
+            "despues": {
+              "scrollTop": 947,
+              "alto": 2069,
+              "rect": 484,
+              "expandido": "true",
+              "lentesAbiertas": 1,
+              "disparadorTapado": false,
+              "frasesDelPanel": 24,
+              "textoDelPanel": "¿De dónde salió esto?6 frases de la nota sin apoyo claro en el dictadoMejor apego;«Dice que ha tomado mejor el tratamiento desde la consulta previa.»queda por confirmar si la metformina sigue vigente.No se encuentra en el dictado — no aparece: queda, confirmar, metformina, sigue, vigenteDiabetes mellitus tipo 2No se encuentra en el dictado — no aparece: diabetes, mellitus, tipo, 2Hipertensión arterial sistémicaNo se encuentra en el dictado — no aparece: hipertension, arterial, sistemicaMejor apego desde la consulta previa.«Dice que ha tomado mejor el tratamiento desde la consulta previa.»Menciona haber suspendido uno de los medicamentos por cuenta propia;No se encuentra en el dictado — no aparece: haberno recuerda cuál.«Menciona que suspendió uno de los medicamentos por cuenta propia y no recuerda cuál.»Sin cambios relevantes en la exploración.«La exploración sin cambios relevantes.»Discrepancia entre lo que el paciente refiere y la lista activa:No se encuentra en el dictado — no aparece: discrepancia, activarequiere reconciliación antes de renovar receta.«Hay que reconciliar la lista de medicamentos con el paciente en la próxima visita antes de renovar la receta.»Reconciliar la lista de medicamentos con el paciente en la próxima visita.«Hay que reconciliar la lista de medicamentos con el paciente en la próxima visita antes de renovar la receta.»Compara la nota contra lo que usted dictó. Que una frase no aparezca aquí no la vuelve falsa —puede venir del expediente o de la exploración que no narró en voz alta—: significa que el dictado no la sostiene, y que si alguien la discute, no hay dónde enseñarla."
+            },
+            "trasEscape": {
+              "alto": 2048,
+              "scrollTop": 947,
+              "expandido": "false",
+              "lentesAbiertas": 0,
+              "focoEnElDisparador": true
+            }
+          },
+          "sello": null
+        },
+        {
+          "indice": 1,
+          "titulo": "Nota de Primera VezFirmadaDM2 e HAS en control irregular; se",
+          "bloqueDe21": true,
+          "rotulo": "H4",
+          "conSello": true,
+          "conFuente": true,
+          "fuenteDicha": "Se contrasta contra lo que oyó el reconocedor, antes de cualquier edición. El texto de trabajo se editó después de transcribir; el contraste usa el original.",
+          "inspeccion": {
+            "antes": {
+              "scrollTop": 1110,
+              "alto": 2098,
+              "rect": 463,
+              "expandido": "false"
+            },
+            "despues": {
+              "scrollTop": 1110,
+              "alto": 2114,
+              "rect": 463,
+              "expandido": "true",
+              "lentesAbiertas": 1,
+              "disparadorTapado": false,
+              "frasesDelPanel": 26,
+              "textoDelPanel": "¿De dónde salió esto?7 frases de la nota sin apoyo claro en el dictadoDM2 e HAS en control irregular;«Viene a control.»se ajusta seguimiento y se piden laboratorios.No se encuentra en el dictado — no aparece: ajusta, seguimiento, piden, laboratoriosDiabetes mellitus tipo 2No se encuentra en el dictado — no aparece: diabetes, mellitus, tipo, 2Hipertensión arterial sistémicaNo se encuentra en el dictado — no aparece: hipertension, sistemicaRefiere apego irregular al tratamiento en los últimos dos meses.«Refiere que ha tomado el tratamiento de manera irregular en los últimos dos meses.»Niega hipoglucemias, poliuria ni pérdida de peso.«Niega hipoglucemias, niega poliuria y niega pérdida de peso.»Consciente, orientado, hidratado.«A la exploración está consciente y orientado, hidratado, sin datos de dificultad respiratoria;»Sin datos de dificultad respiratoria.«A la exploración está consciente y orientado, hidratado, sin datos de dificultad respiratoria;»Exploración cardiopulmonar sin agregados.«la exploración cardiopulmonar sin agregados.»Control metabólico subóptimo, probablemente por apego.«Reforzamos el apego, pedimos perfil de lípidos y hemoglobina glucosa hilada de control y lo cito en cuatro semanas.»Sin datos de descompensación aguda.No se encuentra en el dictado — no aparece: descompensacion, agudaRefuerzo de apego, perfil lipídico y HbA1c de control, cita en cuatro semanas.«Reforzamos el apego, pedimos perfil de lípidos y hemoglobina glucosa hilada de control y lo cito en cuatro semanas.»Compara la nota contra lo que usted dictó. Que una frase no aparezca aquí no la vuelve falsa —puede venir del expediente o de la exploración que no narró en voz alta—: significa que el dictado no la sostiene, y que si alguien la discute, no hay dónde enseñarla."
+            },
+            "trasEscape": {
+              "alto": 2098,
+              "scrollTop": 1110,
+              "expandido": "false",
+              "lentesAbiertas": 0,
+              "focoEnElDisparador": true
+            }
+          },
+          "sello": {
+            "abrio": true,
+            "expandido": "true",
+            "campos": 10,
+            "diceIA": true,
+            "diceDictado": true,
+            "diceAceptado": true
+          }
+        }
+      ]
+    },
+    "movil-390": {
+      "encuadre": {
+        "huecoDeLente": true,
+        "notasEnElExpediente": 2,
+        "alto": 2042
+      },
+      "notas": [
+        {
+          "indice": 0,
+          "titulo": "Nota de SeguimientoFirmadaMejor apego; queda por confirmar s",
+          "bloqueDe21": true,
+          "rotulo": "H4",
+          "conSello": false,
+          "conFuente": true,
+          "fuenteDicha": "Se contrasta contra el dictado de trabajo, que pudo editarse. No se archivó el original del reconocedor para esta nota.",
+          "inspeccion": {
+            "antes": {
+              "scrollTop": 1428,
+              "alto": 2773,
+              "rect": 409,
+              "expandido": "false"
+            },
+            "despues": {
+              "scrollTop": 1635,
+              "alto": 2773,
+              "rect": 202,
+              "expandido": "true",
+              "lentesAbiertas": 1,
+              "disparadorTapado": true,
+              "frasesDelPanel": 24,
+              "textoDelPanel": "¿De dónde salió esto?6 frases de la nota sin apoyo claro en el dictadoMejor apego;«Dice que ha tomado mejor el tratamiento desde la consulta previa.»queda por confirmar si la metformina sigue vigente.No se encuentra en el dictado — no aparece: queda, confirmar, metformina, sigue, vigenteDiabetes mellitus tipo 2No se encuentra en el dictado — no aparece: diabetes, mellitus, tipo, 2Hipertensión arterial sistémicaNo se encuentra en el dictado — no aparece: hipertension, arterial, sistemicaMejor apego desde la consulta previa.«Dice que ha tomado mejor el tratamiento desde la consulta previa.»Menciona haber suspendido uno de los medicamentos por cuenta propia;No se encuentra en el dictado — no aparece: haberno recuerda cuál.«Menciona que suspendió uno de los medicamentos por cuenta propia y no recuerda cuál.»Sin cambios relevantes en la exploración.«La exploración sin cambios relevantes.»Discrepancia entre lo que el paciente refiere y la lista activa:No se encuentra en el dictado — no aparece: discrepancia, activarequiere reconciliación antes de renovar receta.«Hay que reconciliar la lista de medicamentos con el paciente en la próxima visita antes de renovar la receta.»Reconciliar la lista de medicamentos con el paciente en la próxima visita.«Hay que reconciliar la lista de medicamentos con el paciente en la próxima visita antes de renovar la receta.»Compara la nota contra lo que usted dictó. Que una frase no aparezca aquí no la vuelve falsa —puede venir del expediente o de la exploración que no narró en voz alta—: significa que el dictado no la sostiene, y que si alguien la discute, no hay dónde enseñarla."
+            },
+            "trasEscape": {
+              "alto": 2773,
+              "scrollTop": 1428,
+              "expandido": "false",
+              "lentesAbiertas": 0,
+              "focoEnElDisparador": true
+            }
+          },
+          "sello": null
+        },
+        {
+          "indice": 1,
+          "titulo": "Nota de Primera VezFirmadaDM2 e HAS en control irregular; se",
+          "bloqueDe21": true,
+          "rotulo": "H4",
+          "conSello": true,
+          "conFuente": true,
+          "fuenteDicha": "Se contrasta contra lo que oyó el reconocedor, antes de cualquier edición. El texto de trabajo se editó después de transcribir; el contraste usa el original.",
+          "inspeccion": {
+            "antes": {
+              "scrollTop": 1685,
+              "alto": 2898,
+              "rect": 409,
+              "expandido": "false"
+            },
+            "despues": {
+              "scrollTop": 1892,
+              "alto": 2898,
+              "rect": 202,
+              "expandido": "true",
+              "lentesAbiertas": 1,
+              "disparadorTapado": true,
+              "frasesDelPanel": 26,
+              "textoDelPanel": "¿De dónde salió esto?7 frases de la nota sin apoyo claro en el dictadoDM2 e HAS en control irregular;«Viene a control.»se ajusta seguimiento y se piden laboratorios.No se encuentra en el dictado — no aparece: ajusta, seguimiento, piden, laboratoriosDiabetes mellitus tipo 2No se encuentra en el dictado — no aparece: diabetes, mellitus, tipo, 2Hipertensión arterial sistémicaNo se encuentra en el dictado — no aparece: hipertension, sistemicaRefiere apego irregular al tratamiento en los últimos dos meses.«Refiere que ha tomado el tratamiento de manera irregular en los últimos dos meses.»Niega hipoglucemias, poliuria ni pérdida de peso.«Niega hipoglucemias, niega poliuria y niega pérdida de peso.»Consciente, orientado, hidratado.«A la exploración está consciente y orientado, hidratado, sin datos de dificultad respiratoria;»Sin datos de dificultad respiratoria.«A la exploración está consciente y orientado, hidratado, sin datos de dificultad respiratoria;»Exploración cardiopulmonar sin agregados.«la exploración cardiopulmonar sin agregados.»Control metabólico subóptimo, probablemente por apego.«Reforzamos el apego, pedimos perfil de lípidos y hemoglobina glucosa hilada de control y lo cito en cuatro semanas.»Sin datos de descompensación aguda.No se encuentra en el dictado — no aparece: descompensacion, agudaRefuerzo de apego, perfil lipídico y HbA1c de control, cita en cuatro semanas.«Reforzamos el apego, pedimos perfil de lípidos y hemoglobina glucosa hilada de control y lo cito en cuatro semanas.»Compara la nota contra lo que usted dictó. Que una frase no aparezca aquí no la vuelve falsa —puede venir del expediente o de la exploración que no narró en voz alta—: significa que el dictado no la sostiene, y que si alguien la discute, no hay dónde enseñarla."
+            },
+            "trasEscape": {
+              "alto": 2898,
+              "scrollTop": 1685,
+              "expandido": "false",
+              "lentesAbiertas": 0,
+              "focoEnElDisparador": true
+            }
+          },
+          "sello": {
+            "abrio": true,
+            "expandido": "true",
+            "campos": 10,
+            "diceIA": true,
+            "diceDictado": true,
+            "diceAceptado": true
+          }
+        }
+      ]
+    }
+  },
+  "errores": []
+}

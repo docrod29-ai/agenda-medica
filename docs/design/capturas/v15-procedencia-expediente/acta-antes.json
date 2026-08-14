@@ -1,0 +1,69 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "antes",
+  "viewports": {
+    "escritorio-1440": {
+      "encuadre": {
+        "huecoDeLente": true,
+        "notasEnElExpediente": 2,
+        "alto": 1536
+      },
+      "notas": [
+        {
+          "indice": 0,
+          "titulo": "Nota de SeguimientoFirmadaMejor apego; queda por confirmar s",
+          "bloqueDe21": false,
+          "rotulo": null,
+          "conSello": false,
+          "conFuente": false,
+          "fuenteDicha": null,
+          "inspeccion": null,
+          "sello": null
+        },
+        {
+          "indice": 1,
+          "titulo": "Nota de Primera VezFirmadaDM2 e HAS en control irregular; se",
+          "bloqueDe21": false,
+          "rotulo": null,
+          "conSello": false,
+          "conFuente": false,
+          "fuenteDicha": null,
+          "inspeccion": null,
+          "sello": null
+        }
+      ]
+    },
+    "movil-390": {
+      "encuadre": {
+        "huecoDeLente": true,
+        "notasEnElExpediente": 2,
+        "alto": 2042
+      },
+      "notas": [
+        {
+          "indice": 0,
+          "titulo": "Nota de SeguimientoFirmadaMejor apego; queda por confirmar s",
+          "bloqueDe21": false,
+          "rotulo": null,
+          "conSello": false,
+          "conFuente": false,
+          "fuenteDicha": null,
+          "inspeccion": null,
+          "sello": null
+        },
+        {
+          "indice": 1,
+          "titulo": "Nota de Primera VezFirmadaDM2 e HAS en control irregular; se",
+          "bloqueDe21": false,
+          "rotulo": null,
+          "conSello": false,
+          "conFuente": false,
+          "fuenteDicha": null,
+          "inspeccion": null,
+          "sello": null
+        }
+      ]
+    }
+  },
+  "errores": []
+}

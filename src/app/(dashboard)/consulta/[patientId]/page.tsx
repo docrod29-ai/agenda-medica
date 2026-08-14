@@ -48,6 +48,7 @@ import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
 import { frasesInciertas } from '@/lib/expediente/certeza'
 import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
+import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
@@ -67,46 +68,15 @@ import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/proced
  * era una alergia para el sello y dos para la alerta. El mismo campo no puede
  * significar dos cosas según quién lo lea.
  */
-/**
- * TODO LO QUE LA NOTA AFIRMA, EN TEXTO — y de verdad.
+/*
+ * `textoDeLaNota` VIVÍA AQUÍ y se mudó a `lib/expediente/texto-de-la-nota.ts`.
  *
- * ── EL HUECO ─────────────────────────────────────────────────────────────────
- *
- * Las defensas de negación y temporalidad se contrastan contra «lo que la nota
- * dice», y el comentario que las acompaña lo prometía: «resumen, diagnósticos y
- * las secciones, no sólo el resumen».
- *
- * El código armaba ese texto uniendo el resumen con un `join` sobre el arreglo
- * de diagnósticos y un `Object.values` sobre el de secciones.
- *
- * `diagnosticos` es `Diagnostico[]` y `secciones` es `NotaSeccion[]`: **objetos**.
- * `join` y `Object.values` sobre objetos producen `[object Object]`. Así que la
- * comprobación sólo veía **el resumen** — todo el cuerpo de la nota y la lista de
- * diagnósticos eran invisibles para ella.
- *
- * Se vio en producción, en la propia alerta, que citaba la nota como
- * «…Diabetes mellitus tipo 2. [object Object] [object Object]…».
- *
- * ── POR QUÉ ES GRAVE Y NO COSMÉTICO ──────────────────────────────────────────
- *
- * Un antecedente que el paciente NEGÓ y que la nota guarda **sólo como
- * diagnóstico estructurado** —sin repetirlo en la prosa— no disparaba nada. Y el
- * diagnóstico estructurado es justo el que se arrastra a la receta, al resumen
- * de la próxima consulta y al expediente.
- *
- * La defensa existía, estaba probada, y miraba a un sitio equivocado.
+ * No por limpieza: `/expediente` necesita el MISMO texto para contrastar una
+ * nota archivada contra su dictado (§21). Dos copias serían dos definiciones de
+ * qué es «la nota» para el mismo motor de trazabilidad, y la que se quedara
+ * atrás mentiría en silencio. El porqué del formato —y el defecto de
+ * `[object Object]` que lo originó— está escrito en su casa nueva.
  */
-function textoDeLaNota(
-  resumen: string,
-  diagnosticos: readonly Diagnostico[],
-  secciones: readonly NotaSeccion[],
-): string {
-  return [
-    resumen,
-    ...(diagnosticos ?? []).map(d => [d?.descripcion, d?.codigoCIE10].filter(Boolean).join(' ')),
-    ...(secciones ?? []).map(s => s?.value),
-  ].filter(Boolean).join('\n')
-}
 
 /**
  * ── EL SELLO DE PROCEDENCIA CONTABA CERO ALERGIAS — REG-278 ──────────────────
