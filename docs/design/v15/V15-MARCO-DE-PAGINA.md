@@ -70,6 +70,15 @@ sitio es `/operaciones` — así salió «Respaldo» de `/pacientes` en RTC-29.
 
 `/pendientes` no tiene ninguno relleno, porque su trabajo vive en las filas.
 
+**Y en las pantallas con ancla de paciente, el primario vive EN el ancla.** No
+en una fila propia: medido en `/expediente` sobre los tres expedientes
+sembrados, esa fila costaba 43px + 24px de margen con **720px sin usar a su
+izquierda** — media lienzo vacío para sostener un botón que ya tenía sitio
+junto al nombre (172px libres). En el teléfono, en cambio, la fila completa de
+44px es lo correcto (es el objetivo del pulgar), pero **va después del aviso de
+alergias**: en un ancho donde todo va en columna el orden es la jerarquía, y lo
+único que hay que leer antes de empezar a atender es ese aviso.
+
 ## Lo que este documento NO decide todavía
 
 - **Las píldoras de filtro.** Están en la lista de residuos y se ven genéricas,
@@ -96,5 +105,5 @@ que el sistema de diseño existe para evitar.
 | `/pacientes` | **Convertida** (14-ago): subtítulo + lista sin tarjeta + encabezados que hablan. |
 | `/operaciones` | **Convertida** (14-ago, 3ª rebanada): RTC-29 le dio la lista; ahora su cabecera es la pieza compartida (`PageHeader`) en vez de un par de etiquetas propias. |
 | `/dashboard` (Hoy) | **Convertida** (14-ago, 2ª rebanada): sus dos bloques dejaron la tarjeta, y su vacío pasó a línea (RTC-30). |
-| `/expediente` | **A medias** (14-ago): su vacío de historia pasó a línea (RTC-30) y la pantalla entera cabe ahora en el primer viewport. Su marco de cabecera es distinto —el ancla de paciente, con su serif y su banda de alergias— y NO se le aplica la regla 1: ahí el `<h1>` es el nombre del paciente, no el de la pantalla. Queda observado que «Nueva consulta» flota en una fila vacía; se mide antes de tocarlo. |
+| `/expediente` | **A medias** (14-ago): su vacío de historia pasó a línea (RTC-30) y la pantalla entera cabe ahora en el primer viewport. Su marco de cabecera es distinto —el ancla de paciente, con su serif y su banda de alergias— y NO se le aplica la regla 1: ahí el `<h1>` es el nombre del paciente, no el de la pantalla. «Nueva consulta» subió al ancla tras medirlo (5ª rebanada): la historia clínica pasa de 491px a 424px. |
 | `/consulta` | **A medias** (14-ago, 4ª rebanada): la caja de grabación ya no dibuja un segundo marco alrededor del botón —sólo se pinta cuando agrupa varios controles—. Su cabecera es el ancla de paciente, igual que el expediente: la regla 1 no le aplica tal cual. |

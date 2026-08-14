@@ -163,10 +163,24 @@ describe('RTC-10 — la exportación conserva su conducta entera', () => {
     expect(EXPEDIENTE).toContain('/referencia/${patientId}')
   })
 
-  it('8 · la cabecera se queda con el primario clínico y nada más', () => {
-    const fila = EXPEDIENTE.slice(pos('className="actions-row exp-actions"'))
-    const hastaElCierre = fila.slice(0, fila.indexOf('</div>'))
+  it('8 · el primario clínico sigue solo, y ahora vive en el ancla del paciente', () => {
+    /**
+     * La condición SIGUE al código. RTC-10 dejó a «Nueva consulta» solo en su
+     * fila —lo que este caso fijaba: UN botón, y que fuera el clínico—. RTC-31
+     * midió esa fila (43px + 24px de margen con **720px sin usar a su
+     * izquierda**) y subió el botón al ancla, junto a la otra acción de ese
+     * paciente. La fila desapareció con su rejilla móvil.
+     *
+     * Lo que este caso protege no era la fila: era que la acción clínica no
+     * volviera a compartir peso con los tres botones de documentos. Eso se
+     * comprueba igual —mejor, de hecho— sobre el slot del ancla.
+     */
+    expect(EXPEDIENTE, 'volvió la fila propia del primario').not.toContain('className="actions-row exp-actions"')
+    const slot = EXPEDIENTE.slice(pos('accion={'))
+    const hastaElCierre = slot.slice(0, slot.indexOf('}\n      />'))
     expect((hastaElCierre.match(/<button/g) ?? []).length).toBe(1)
     expect(hastaElCierre).toContain('Nueva consulta')
+    // Y los tres de exportación siguen abajo, con su nombre propio.
+    expect(pos('Documentos y exportación')).toBeGreaterThan(pos('<DatosPaciente'))
   })
 })

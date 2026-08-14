@@ -5,78 +5,103 @@
  *
  * Captura `expediente--390.png` del arnés V10 (9-ago-2026, pacientes
  * sintéticos sembrados): bajo 480px la regla global `.actions-row` apila cada
- * botón a fila completa EN ORDEN DOM, y el orden DOM del expediente pone el
+ * botón a fila completa EN ORDEN DOM, y el orden DOM del expediente ponía el
  * primario al final (a la derecha en escritorio). Resultado en móvil: «Nueva
  * consulta con IA» — la acción que arranca el flujo dorado — quedaba en CUARTO
  * lugar, debajo de Carta de referencia, Expediente completo y FHIR, tres
  * secundarios de idéntico peso visual. V10 §8.3: «One primary action per
  * visual region»; §48: «THE NEXT SAFE ACTION IS OBVIOUS» — no lo era.
  *
- * ── LA CAUSA RAÍZ ───────────────────────────────────────────────────────────
+ * ── QUÉ CAMBIÓ, Y POR QUÉ ESTE GUARDIÁN SIGUE VIVO ──────────────────────────
  *
- * `.actions-row` global (globals.css) hace `flex: 1 1 100%` bajo 480px: cada
- * botón una fila, sin noción de jerarquía. El orden correcto de escritorio
- * (primario a la derecha, o sea al FINAL del DOM) se convierte en el orden
- * incorrecto de móvil (primario al FONDO de la pila).
+ * El arreglo original fue una rejilla de 2 columnas (`exp-actions`) que subía
+ * al primario a la primera fila completa. Después:
  *
- * ── LA REGLA QUE LO HACE SEGURO ─────────────────────────────────────────────
+ *   · **RTC-10** (14-ago) bajó los TRES secundarios de documentos al final de
+ *     la página, con nombre propio. La rejilla quedó ordenando un solo botón.
+ *   · **RTC-31** (14-ago, 5ª rebanada) midió esa fila —43px + 24px de margen
+ *     con **720px sin usar a su izquierda** sobre los tres expedientes
+ *     sembrados— y subió el primario al **ancla del paciente**. La fila murió,
+ *     y con ella su rejilla.
  *
- * La página lleva `exp-actions`: bajo 480px pasa a rejilla de 2 columnas donde
- * el último hijo (el primario) sube a la primera fila completa (`order: -1` +
- * `grid-column: 1 / -1`) con objetivos táctiles de 44px. El DOM no cambia:
- * escritorio conserva primario-a-la-derecha y el orden de tabulación.
- * Es el mismo patrón que `nota-toolbar` (DEBT-009) — coherencia V10 §8.33.
+ * **El invariante NO murió**: «el primario es lo primero que encuentra el
+ * pulgar» sigue siendo la regla, y ahora se cumple mejor —el botón está más
+ * arriba, a 44px y a todo el ancho, justo bajo la identidad—. Lo que cambia es
+ * DÓNDE se comprueba. Un guardián que se borra porque su código se movió deja
+ * de proteger justo cuando el código es más frágil.
+ *
+ * ── LA REGLA QUE LO HACE SEGURO, HOY ────────────────────────────────────────
+ *
+ * En el teléfono el primario vive en `.nx-ancla-accion-movil`: fila completa,
+ * 44px de alto mínimo, y **después del aviso de alergias**. Ese orden no es
+ * estético — en un ancho donde todo va en columna el orden ES la jerarquía, y
+ * lo único que hay que leer antes de empezar a atender es el aviso. La primera
+ * versión de RTC-31 metió la acción entre el nombre y las alergias; se vio en
+ * la captura, no en el código.
+ *
+ * En escritorio el primario va en la fila del nombre (172px libres medidos a su
+ * derecha) y el aviso conserva su renglón entero. Sólo uno de los dos sitios se
+ * pinta a cada ancho: dos primarios idénticos a la vez serían dos veces la
+ * misma acción (medido: 1 de 2 visible en los dos anchos).
  *
  * ── PROBADO AL REVÉS ────────────────────────────────────────────────────────
  *
- * Corrido contra el código sin el arreglo (git stash, 9-ago-2026): los 4
- * casos de la rejilla fallan. Con el arreglo pasan todos.
+ * 9-ago-2026, versión de rejilla: los 4 casos fallaban sin el arreglo.
+ * 14-ago-2026, versión de ancla: quitando el slot móvil falla el caso 2;
+ * poniéndolo antes del aviso de alergias falla el 3; quitando el mínimo táctil
+ * falla el 4.
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
- * Es un barrido de FUENTE: no mide lo que pinta el navegador (eso lo hacen las
- * capturas del arnés `tests/visual/`). No cubre la jerarquía de escritorio
- * (ahí el primario ya era el único botón relleno, a la derecha) ni el resto de
- * DEBT-006 (los círculos de icono de hoy-escritorio → V10-TODAY-001). El
- * orden de foco en móvil sigue al DOM (secundarios antes que el primario):
- * decisión deliberada para no romper el orden de tabulación de escritorio,
- * documentada aquí para que nadie la «arregle» rompiendo la otra mitad.
+ * Es un barrido de FUENTE: no mide lo que pinta el navegador — eso lo hace
+ * `scripts/design/medir-primario-del-expediente-v15.mjs`, cuyas actas
+ * (`docs/design/capturas/v15-rtc31-primario{,-despues}/medicion.json`) traen el
+ * antes y el después. **No cubre el caso de un encuentro SIN CERRAR**: ninguno
+ * de los tres expedientes sembrados lo tiene, así que la convivencia del
+ * primario con «Consulta sin cerrar — continuar» en la misma fila no se ha
+ * medido en navegador. Queda declarado como hueco del arnés.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
-const pagina = () =>
-  readFileSync(join(process.cwd(), 'src/app/(dashboard)/expediente/[patientId]/page.tsx'), 'utf8')
+const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
+const pagina = () => leer('src/app/(dashboard)/expediente/[patientId]/page.tsx')
+const ancla = () => leer('src/components/expediente/PatientAnchor.tsx')
 
 describe('V10-DEBT-006 · el CTA primario del expediente va primero en móvil', () => {
-  it('la fila de acciones lleva la clase de rejilla móvil exp-actions', () => {
-    expect(pagina()).toMatch(/className="actions-row exp-actions"/)
+  it('1 · la acción primaria la porta el ancla del paciente, no una fila propia', () => {
+    const src = pagina()
+    expect(src, 'volvió la fila propia que RTC-31 midió vacía').not.toMatch(/className="actions-row exp-actions"/)
+    expect(src).toMatch(/accion=\{/)
+    expect(src).toMatch(/<Mic size=\{16\} \/> Nueva consulta/)
   })
 
-  it('bajo 480px las acciones pasan a rejilla de 2 columnas', () => {
-    const src = pagina()
-    expect(src).toMatch(/@media \(max-width: 480px\)[\s\S]{0,600}\.exp-actions\s*\{[^}]*display: grid/)
-    expect(src).toMatch(/\.exp-actions\s*\{[^}]*grid-template-columns: 1fr 1fr/)
+  it('2 · en el teléfono ocupa su propia fila completa, con 44px para el pulgar', () => {
+    const src = ancla()
+    expect(src).toContain('className="nx-ancla-accion-movil"')
+    expect(src).toMatch(/\.nx-ancla-accion-movil > button \{ width: 100%; justify-content: center; min-height: 44px; \}/)
   })
 
-  it('el primario (último hijo del DOM) sube a la primera fila completa', () => {
-    const src = pagina()
-    expect(src).toMatch(/\.exp-actions > button:last-child\s*\{[^}]*order: -1/)
-    expect(src).toMatch(/\.exp-actions > button:last-child\s*\{[^}]*grid-column: 1 \/ -1/)
+  it('3 · y va DESPUÉS del aviso de alergias: el orden es la jerarquía', () => {
+    const src = ancla()
+    const aviso = src.indexOf('<strong>Alergias:</strong>')
+    const slot = src.indexOf('className="nx-ancla-accion-movil"')
+    expect(aviso).toBeGreaterThan(0)
+    expect(slot, 'la acción se metió entre el paciente y sus alergias').toBeGreaterThan(aviso)
   })
 
-  it('los objetivos táctiles miden 44px y no quedan celdas huérfanas', () => {
-    const src = pagina()
-    expect(src).toMatch(/\.exp-actions > button\s*\{[^}]*min-height: 44px/)
-    expect(src).toMatch(/\.exp-actions > button:first-child\s*\{[^}]*grid-column: 1 \/ -1/)
+  it('4 · sólo uno de los dos sitios se pinta a cada ancho', () => {
+    // Dos primarios idénticos a la vez serían dos veces la misma acción.
+    const src = ancla()
+    expect(src).toMatch(/@media \(max-width: 768px\)\s*\{\s*\.nx-ancla-accion \{ display: none; \}/)
+    expect(src).toMatch(/@media \(min-width: 769px\)\s*\{\s*\.nx-ancla-accion-movil \{ display: none; \}/)
   })
 
-  it('el último hijo del DOM sigue siendo «Nueva consulta» (si esto falla, la regla last-child apunta a otro botón)', () => {
+  it('5 · los tres secundarios de documentos siguen fuera del primer viewport (RTC-10)', () => {
+    // La mitad del hallazgo original: el primario no puede volver a compartir
+    // peso con Carta de referencia, Expediente completo y FHIR.
     const src = pagina()
-    // Dentro del div exp-actions, el botón con primaryBtn es el último antes
-    // del cierre de la fila, y es el de Nueva consulta. (El sufijo «con IA»
-    // murió con el equipo rojo V15: §25 — la IA se experimenta, no se rotula.)
-    expect(src).toMatch(/primaryBtn\}>\s*<Mic size=\{16\} \/> Nueva consulta\s*<\/button>\s*<\/div>/)
+    expect(src.indexOf('Documentos y exportación')).toBeGreaterThan(src.indexOf('<DatosPaciente'))
   })
 })

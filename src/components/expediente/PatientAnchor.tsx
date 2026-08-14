@@ -1,5 +1,5 @@
 'use client'
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { AlertTriangle, Mic } from 'lucide-react'
 import type { Patient } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
@@ -23,12 +23,30 @@ import { alergenosDe, negacionesEnTexto } from '@/lib/seguridad/alergias'
  * `useExpediente` en la página — una entidad, una fuente de verdad.
  */
 export function PatientAnchor({
-  patient, notas, errorPaciente, onContinuarEncuentro,
+  patient, notas, errorPaciente, onContinuarEncuentro, accion,
 }: {
   patient: Patient | null
   notas: NotaMedica[]
   errorPaciente?: string
   onContinuarEncuentro: (notaId: string) => void
+  /**
+   * RTC-31 (5ª rebanada) — LA ACCIÓN PRIMARIA DEL EXPEDIENTE, MEDIDA.
+   *
+   * «Nueva consulta» vivía en una fila propia debajo del riel del Spine.
+   * Medido en navegador sobre los tres expedientes sembrados:
+   *
+   *   escritorio  fila de 43px + 24px de margen · **720px sin usar a su
+   *               izquierda** (la mitad del lienzo, vacía)
+   *   móvil       44px + 24px, a todo el ancho — ahí NO sobra espacio: es el
+   *               objetivo del pulgar de V10-DEBT-006
+   *
+   * Así que la fila entera existía para sostener un botón que ya tenía sitio:
+   * el ancla, que es donde vive la otra acción del paciente («Consulta sin
+   * cerrar — continuar»). Sube aquí, y en el teléfono la fila del ancla la
+   * deja caer a su propio renglón completo — la misma variante que ya usa
+   * `continuar`, no una amputación.
+   */
+  accion?: ReactNode
 }) {
   const { encuentroActivo, ultimoCambio } = useMemo(() => {
     const orden = [...notas].sort((a, b) =>
@@ -101,6 +119,7 @@ export function PatientAnchor({
             <Mic size={13} /> Consulta sin cerrar — continuar
           </button>
         )}
+        {accion && <div className="nx-ancla-accion">{accion}</div>}
       </div>
       {/* Bajo 480px el nombre puede partirse en varias líneas: el CTA de
           "continuar" comparte fila con un bloque de ancho variable y queda
@@ -110,6 +129,25 @@ export function PatientAnchor({
         @media (max-width: 480px) {
           .nx-anchor-continuar { flex-basis: 100%; }
         }
+        /* LA ACCIÓN NO PUEDE METERSE ENTRE EL PACIENTE Y SUS ALERGIAS.
+           Primera versión de esta rebanada: en el teléfono la acción caía a su
+           propio renglón dentro de la fila de identidad… y empujaba el aviso de
+           alergias 60px hacia abajo, quedando ENTRE el nombre y lo único que
+           hay que leer antes de empezar a atender. Se vio en la captura, no en
+           el código. En un ancho donde todo va en columna, el orden ES la
+           jerarquía: identidad → alergias → acción.
+           Por eso hay dos sitios y sólo uno se pinta a la vez: en escritorio la
+           acción vive en la fila del nombre (hay 172px libres a su derecha, y
+           el aviso conserva su renglón entero); en el teléfono va DESPUÉS del
+           aviso, a todo el ancho y con 44px para el pulgar. */
+        @media (max-width: 768px) {
+          .nx-ancla-accion { display: none; }
+        }
+        @media (min-width: 769px) {
+          .nx-ancla-accion-movil { display: none; }
+        }
+        .nx-ancla-accion-movil { margin-top: 10px; }
+        .nx-ancla-accion-movil > button { width: 100%; justify-content: center; min-height: 44px; }
       `}</style>
 
       {/* Ausencia de lectura ≠ ausencia de alergia (regla de seguridad clínica
@@ -152,6 +190,11 @@ export function PatientAnchor({
           )}
         </div>
       )}
+
+      {/* El segundo sitio de la acción — sólo visible en el teléfono. Ver el
+          porqué en el bloque de estilos: aquí el orden es la jerarquía y las
+          alergias van antes que empezar a atender. */}
+      {accion && <div className="nx-ancla-accion-movil">{accion}</div>}
     </div>
   )
 }

@@ -182,6 +182,14 @@ export default function ExpedientePage() {
           /* §20 Paciente→Encuentro: el <h1> del ancla ya lleva .nx-vt-paciente,
              así que es el ORIGEN automático — no hay que pasarlo. */
           navegarConContinuidad(() => router.push(`/consulta/${patientId}?nota=${notaId}`))}
+        /* RTC-31 (5ª rebanada): la acción primaria sube al ancla. Ver el
+           porqué medido en `PatientAnchor` — 720px sin usar a la izquierda de
+           un botón que tenía su propia fila. */
+        accion={
+          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} style={primaryBtn}>
+            <Mic size={16} /> Nueva consulta
+          </button>
+        }
       />
 
       {/* CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — recorrido
@@ -190,26 +198,21 @@ export default function ExpedientePage() {
           resaltada mientras se recorre la página. */}
       <ClinicalSpine items={spineItems} />
 
-      {/* RTC-10 — LO PRIMERO DE UN EXPEDIENTE ES EL PACIENTE, NO SU ARCHIVO.
-          Aquí había CUATRO botones al mismo peso: tres de documentos/exportación
-          (Carta de referencia · Expediente completo · FHIR) y el primario
-          clínico. Medido en navegador el 14-ago: los tres empujaban la historia
-          clínica a 743px, y el primer viewport de un expediente se gastaba en
-          gestión documental. Los tres bajaron al FINAL, agrupados y con nombre
-          («Documentos y exportación»): siguen a un clic, con la MISMA conducta
-          y los mismos avisos de lo que cada archivo no lleva, pero ya no
-          compiten con el paciente por la primera pantalla (§7).
-          `exp-actions` se queda: su rejilla móvil (V10-DEBT-006) sigue rigiendo
-          esta fila, ahora con el primario como único ocupante — el invariante
-          de aquella deuda («el primario es lo primero que encuentra el pulgar»)
-          pasa a cumplirse porque ya no hay nada más con quien competir. */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
-        <div className="actions-row exp-actions">
-          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} style={primaryBtn}>
-            <Mic size={16} /> Nueva consulta
-          </button>
-        </div>
-      </div>
+      {/* RTC-10 → RTC-31 — LO PRIMERO DE UN EXPEDIENTE ES EL PACIENTE, NO SU
+          ARCHIVO, Y SU ACCIÓN VIVE CON ÉL.
+
+          Aquí hubo CUATRO botones al mismo peso: tres de documentos/exportación
+          y el primario clínico. RTC-10 bajó los tres al final («Documentos y
+          exportación», misma conducta y mismos avisos) y dejó al primario solo
+          en esta fila. Medido después, esa fila costaba 43px + 24px de margen
+          con **720px sin usar a su izquierda**: existía para sostener un botón
+          que ya tenía sitio en el ancla del paciente, junto a la otra acción de
+          ese paciente. Subió allí, y con la fila se fue su rejilla móvil
+          (V10-DEBT-006), que ordenaba cuatro botones donde quedaba uno.
+          El invariante de aquella deuda —«el primario es lo primero que
+          encuentra el pulgar»— se cumple mejor ahora: en el teléfono cae a un
+          renglón completo de 44px justo bajo la identidad, más arriba que
+          antes. */}
 
       {/* Resumen del paciente: alergias, últimos signos, diagnósticos activos y
           actividad — todo de un vistazo (lo que la competencia enseña como fuerte,
@@ -577,17 +580,14 @@ export default function ExpedientePage() {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 480px) {
-          /* V10-DEBT-006: el CTA primario va PRIMERO en el teléfono. El orden
-             DOM se queda como en escritorio (primario a la derecha, foco al
-             final de la fila); aquí sólo cambia el orden VISUAL táctil. */
-          .exp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
-          .exp-actions > button { width: 100%; min-height: 44px; justify-content: center; }
-          .exp-actions > button:last-child { order: -1; grid-column: 1 / -1; }
-          /* 3 secundarios en 2 columnas dejarían una celda huérfana: el primero
-             (Carta de referencia) toma su fila y los otros dos comparten. */
-          .exp-actions > button:first-child { grid-column: 1 / -1; }
-        }
+        /* Aquí vivían las reglas de .exp-actions (V10-DEBT-006): una rejilla
+           de 2 columnas para ordenar CUATRO botones en el teléfono. RTC-10
+           dejó uno y RTC-31 lo subió al ancla, así que la rejilla ordenaba una
+           fila que ya no existe. Se va con ella — el invariante («el primario
+           es lo primero que encuentra el pulgar») lo cumple ahora
+           .nx-ancla-accion, más arriba en la pantalla.
+           (Sin comillas invertidas: esto vive DENTRO de una plantilla de
+           cadena y una sola la cerraría a mitad de comentario.) */
       `}</style>
     </div>
   )

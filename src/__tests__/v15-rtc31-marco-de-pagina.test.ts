@@ -115,6 +115,49 @@ describe('RTC-31 — una lista de trabajo no lleva tarjeta alrededor', () => {
     expect(cuerpo).not.toMatch(/background: 'var\(--s1\)'/)
   })
 
+  it('8 · la acción primaria del expediente vive en el ancla, y no entre el paciente y sus alergias', () => {
+    /**
+     * 5ª rebanada, y la única que se tomó CON UNA MEDICIÓN DELANTE porque la
+     * observación («se ve raro») no bastaba. Medido sobre los tres expedientes
+     * sembrados: la fila propia costaba 43px + 24px de margen con **720px sin
+     * usar a su izquierda** — media lienzo vacío para sostener un botón que ya
+     * tenía sitio junto al nombre del paciente (172px libres). Después: la
+     * historia clínica sube de 491px a 424px.
+     *
+     * Y la primera versión metió la acción ENTRE el nombre y el aviso de
+     * alergias en el teléfono. En un ancho donde todo va en columna el orden ES
+     * la jerarquía, y lo único que hay que leer antes de empezar a atender es
+     * el aviso. Por eso hay DOS sitios y sólo uno se pinta por ancho.
+     *
+     * Probado al revés: devolviendo la fila propia falla el primer expect;
+     * quitando el slot móvil falla el tercero; poniendo el slot móvil ANTES del
+     * aviso falla el cuarto.
+     */
+    const EXP = leer('src/app/(dashboard)/expediente/[patientId]/page.tsx')
+    const ANCLA = leer('src/components/expediente/PatientAnchor.tsx')
+
+    // Ya no hay fila propia — ni su rejilla móvil, que ordenaba cuatro botones
+    // donde quedaba uno.
+    expect(EXP).not.toContain('className="actions-row exp-actions"')
+    expect(EXP).not.toContain('.exp-actions { display: grid')
+
+    // La acción se pasa al ancla, y sigue siendo la MISMA (mismo destino).
+    expect(EXP).toMatch(/accion=\{\s*<button onClick=\{\(\) => navegarConContinuidad/)
+    expect(EXP).toContain('Nueva consulta')
+
+    // Dos sitios, uno por ancho.
+    expect(ANCLA).toContain('className="nx-ancla-accion"')
+    expect(ANCLA).toContain('className="nx-ancla-accion-movil"')
+    expect(ANCLA).toMatch(/max-width: 768px\)\s*\{\s*\.nx-ancla-accion \{ display: none; \}/)
+    expect(ANCLA).toMatch(/min-width: 769px\)\s*\{\s*\.nx-ancla-accion-movil \{ display: none; \}/)
+
+    // Y en el teléfono, el aviso de alergias va ANTES.
+    const aviso = ANCLA.indexOf('<strong>Alergias:</strong>')
+    const slotMovil = ANCLA.indexOf('className="nx-ancla-accion-movil"')
+    expect(aviso).toBeGreaterThan(0)
+    expect(slotMovil, 'la acción se metió entre el paciente y sus alergias').toBeGreaterThan(aviso)
+  })
+
   it('7 · en /consulta, la caja de grabación sólo se pinta cuando agrupa VARIOS controles', () => {
     /**
      * 4ª rebanada. `grabCard` existe para agrupar los controles de la grabación

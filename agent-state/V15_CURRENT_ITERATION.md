@@ -500,9 +500,40 @@ golpe sin volver a puntuar sería repintar.
 - Medido en navegador: la lista de herramientas clínicas sube ~120px y entra
   entera en el primer viewport. 0 errores de consola.
 
+### RTC-31, 5ª rebanada (14-ago) — el primario del expediente, medido y mudado
+
+La única rebanada que se tomó **con una medición delante**, porque la
+observación («se ve raro») no bastaba y moverlo tocaba la deuda V10-DEBT-006.
+
+    ANTES   fila propia de 43px + 24px de margen · 720px sin usar a su izquierda
+            historia clínica a 491px (y 736px en los otros dos expedientes)
+    DESPUÉS en el ancla, junto al nombre (172px libres medidos a su derecha)
+            historia clínica a 424px (669px) — 67px recuperados, exactos
+
+- En el **teléfono** la fila completa de 44px sigue siendo lo correcto, pero va
+  **después del aviso de alergias**. La primera versión la metió ENTRE el nombre
+  y el aviso: en un ancho donde todo va en columna el orden ES la jerarquía, y
+  lo único que hay que leer antes de empezar a atender es ese aviso. Se vio en
+  la captura, no en el código.
+- Dos sitios, uno por ancho (medido: 1 de 2 visible en los dos). Murió la
+  rejilla `.exp-actions` de V10-DEBT-006, que ordenaba cuatro botones donde
+  quedaba uno.
+- **El guardián de V10-DEBT-006 no se borró: se reescribió.** Su invariante —«el
+  primario es lo primero que encuentra el pulgar»— sigue vivo y ahora se cumple
+  mejor; lo que cambió es dónde se comprueba. Un guardián que se borra porque su
+  código se movió deja de proteger justo cuando el código es más frágil.
+- **Hueco declarado**: ningún expediente sembrado tiene encuentro sin cerrar, así
+  que la convivencia del primario con «Consulta sin cerrar — continuar» en la
+  misma fila NO se ha medido en navegador.
+- **Y el instrumento falló tres veces más**: buscaba el botón sólo dentro de
+  `.exp-actions` (la fila que él mismo recomendó quitar, así que el «después»
+  informaba «?» en todo); cogía el primero del DOM en vez del VISIBLE (0×0 en
+  móvil, el de escritorio oculto); y no medía el orden respecto al aviso de
+  alergias hasta que se lo añadí.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
 DIEZ P1 originales, **RTC-15**, **RTC-29**, **RTC-30**, las dos pasadas de §29 y
-cuatro rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
+cinco rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
 medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
 —empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
 Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
