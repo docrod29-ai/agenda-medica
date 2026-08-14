@@ -127,7 +127,7 @@ export default function DashboardPage() {
   const saludo = nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)
 
   return (
-    <div className="hoy">
+    <div className="nx-canvas hoy">
       {/* Encabezado — fecha y saludo como KICKER, con «Nueva cita» disponible
           pero SUBORDINADA (RTC-06). El equipo rojo midió esta cabecera al
           revés: el saludo era el texto más grande de la pantalla y «Nueva

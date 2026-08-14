@@ -79,6 +79,44 @@ junto al nombre (172px libres). En el teléfono, en cambio, la fila completa de
 alergias**: en un ancho donde todo va en columna el orden es la jerarquía, y lo
 único que hay que leer antes de empezar a atender es ese aviso.
 
+## 4 · Un lienzo, un borde izquierdo — RTC-12(a), contestado midiendo
+
+Esta regla nació aparcada («el ancho de la columna es deuda del monolito») y se
+resolvió el 14-ago **cambiando qué se medía**.
+
+El enunciado original de RTC-12(a) —«ninguna superficie usa el lienzo de
+escritorio: columna única 880–1100px en todas»— da por hecho que el defecto es
+**el ancho sobrante**. Medido, no lo es: 880px de historia clínica son **74
+caracteres**, dentro del rango legible, y estirarlos hasta 1440 para llenar
+píxeles sería el error contrario y más caro. Ensanchar no era la respuesta.
+
+Lo que sí era un defecto, y no estaba escrito en ninguna parte, es que **no
+había una regla**. El barrido estático contó **41 páginas del dashboard con
+`maxWidth` propio en TRECE valores distintos** (480 · 520 · 720 · 800 · 820 ·
+860 · 880 · 900 · 920 · 980 · 1000 · 1100 · 1180). Eso no es una decisión tomada
+trece veces: es la ausencia de una decisión, repetida por quien tuviera prisa.
+
+Y su consecuencia se ve en navegador (`medir-canvas-de-pagina-v15.mjs`, 1440px):
+con cada contenedor centrado en su propio número, **el borde izquierdo del marco
+—el píxel por el que se entra a leer— se movía al cambiar de pantalla**. El
+médico no navega a un ancho: navega a una pantalla, y §20 pide que eso se sienta
+como el mismo objeto haciéndose más detallado.
+
+**La regla: un bloque compartido, un solo borde izquierdo.** `--nx-lienzo` fija
+el ancho del bloque y no depende de la pantalla. Lo que cambia según el trabajo
+es la MEDIDA del contenido dentro de él (`.nx-medida-lectura`), que **acorta por
+la derecha sin mover el borde por el que se entra**. Dos pantallas distintas
+empiezan en el mismo píxel; una acaba antes.
+
+El valor —1100px— no se eligió por gusto: es el que el propio producto ya usaba
+más veces (15 páginas), más que cualquier otro. La decisión aquí es que haya
+**uno**, no cuál.
+
+Y vive en la hoja, no en el JSX: la lección `nx-stat-grid` dice que un
+`maxWidth` en línea vence a la hoja en silencio, así que al convertir una
+pantalla el número escrito a mano **se borra, no se acompaña**. El trinquete
+`lienzosAMano` cuenta los que quedan y sólo puede bajar.
+
 ## Lo que este documento NO decide todavía
 
 - **Las píldoras de filtro — MEDIDAS el 14-ago, y la respuesta no era la
@@ -112,7 +150,13 @@ alergias**: en un ancho donde todo va en columna el orden es la jerarquía, y lo
   por caso — a veces el vacío ES la pantalla y el hero es correcto.
 - **Los dos FAB de escritorio** — RTC-05 se pagó con alcance declarado; se
   vuelven a mirar cuando el marco esté hecho, no antes.
-- **El ancho de la columna** — es RTC-12(a), deuda dimensionada del monolito.
+- **Las 35 páginas del dashboard que siguen con su ancho a mano.** La regla 4
+  las cubre a todas; esta rebanada convirtió las SEIS que puntúa §29. El
+  trinquete `lienzosAMano` (techo 52, sólo baja) impide que aparezca una
+  nueva y hace que la cola sólo pueda encogerse.
+- **Qué vive en el ancho que queda a la derecha.** El lienzo lo reserva; hoy
+  está vacío. Es el sitio de la Capa 4 de §5 —la lente contextual— que no
+  existe todavía como pieza. No se rellena con nada mientras tanto.
 
 ## Cómo se aplica
 
@@ -122,9 +166,12 @@ que el sistema de diseño existe para evitar.
 
 | Pantalla | Estado |
 |---|---|
-| `/pendientes` | Es el patrón. No se toca. |
+| `/pendientes` | Es el patrón. Sólo se le puso el lienzo compartido (6ª rebanada): era la única de las seis **sin contenedor de ningún tipo**, así que su ancho lo decidía el `<main>`. |
 | `/pacientes` | **Convertida** (14-ago): subtítulo + lista sin tarjeta + encabezados que hablan. |
 | `/operaciones` | **Convertida** (14-ago, 3ª rebanada): RTC-29 le dio la lista; ahora su cabecera es la pieza compartida (`PageHeader`) en vez de un par de etiquetas propias. |
 | `/dashboard` (Hoy) | **Convertida** (14-ago, 2ª rebanada): sus dos bloques dejaron la tarjeta, y su vacío pasó a línea (RTC-30). |
 | `/expediente` | **A medias** (14-ago): su vacío de historia pasó a línea (RTC-30) y la pantalla entera cabe ahora en el primer viewport. Su marco de cabecera es distinto —el ancla de paciente, con su serif y su banda de alergias— y NO se le aplica la regla 1: ahí el `<h1>` es el nombre del paciente, no el de la pantalla. «Nueva consulta» subió al ancla tras medirlo (5ª rebanada): la historia clínica pasa de 491px a 424px. |
 | `/consulta` | **A medias** (14-ago, 4ª rebanada): la caja de grabación ya no dibuja un segundo marco alrededor del botón —sólo se pinta cuando agrupa varios controles—. Su cabecera es el ancla de paciente, igual que el expediente: la regla 1 no le aplica tal cual. |
+
+**6ª rebanada (14-ago) — el lienzo, en las seis.** Las seis entran ya por `.nx-canvas`: un ancho declarado en vez de cuatro (más `/pendientes` sin ninguno), y el borde izquierdo del marco idéntico en todas — salto **110px → 0px**, medido en navegador. Lo que cambia según el trabajo es la medida del contenido, no la puerta por la que se entra.
+

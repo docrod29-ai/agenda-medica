@@ -182,7 +182,7 @@ export default function OperacionesPage() {
     .filter(g => g.items.length > 0)
 
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '28px 20px 60px' }}>
+    <div className="nx-canvas" style={{ paddingBottom: 60 }}>
       {/* RTC-31: la misma cabecera que el resto de pantallas. Este índice ya
           decía qué es y de dónde sale su contenido —era de las pocas que lo
           hacían— pero lo decía con su propio par de etiquetas. La pieza es

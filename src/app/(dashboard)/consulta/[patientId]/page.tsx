@@ -3973,7 +3973,7 @@ export default function ConsultaActivaPage() {
   const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
 
   return (
-    <div className="page-pad" style={{ maxWidth: 980, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <button onClick={volverAtras} style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>

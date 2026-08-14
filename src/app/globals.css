@@ -2349,6 +2349,53 @@ body:has(.nx-lienzo-completo) .theme-toggle {
 .hoy-bloque > div > .cita-fila { padding-left: 2px; padding-right: 2px; }
 .hoy-bloque .empty-state { padding-left: 2px; padding-right: 2px; }
 
+/* ── EL LIENZO DE PÁGINA — RTC-12(a) / RTC-16 ────────────────────────────────
+
+   MEDIDO ANTES DE ESCRIBIRSE (`medir-canvas-de-pagina-v15.mjs`, 14-ago, 1440px):
+   las seis superficies de §29 declaraban CUATRO anchos distintos —900 · 1100 ·
+   880 · 980— y `/pendientes` ninguno. La consecuencia no es «sobra lienzo»:
+
+     hoy → pendientes   el contenido salta 182px de lado
+     pendientes → pacientes                  82px
+     pacientes → expediente                 142px
+     expediente → consulta                  106px
+     consulta → operaciones                  70px
+
+   El médico no navega a un ancho: navega a una pantalla. Con cada contenedor
+   centrado en su propio número, **el renglón donde empieza a leer se mueve en
+   CADA paso**, hasta 182px. §20 pide que navegar se sienta como el mismo objeto
+   haciéndose más detallado; ese brinco lateral lo rompe, y lo rompe el marco,
+   no el contenido.
+
+   POR QUÉ NO SE «ENSANCHAN» LAS COLUMNAS. El enunciado original de RTC-12(a)
+   —«ninguna superficie usa el lienzo de escritorio»— da por hecho que el ancho
+   sobrante es el defecto. No lo es: 880px de historia clínica son 74 caracteres
+   medidos, dentro del rango legible, y estirarlos a 1440 para llenar píxeles
+   sería el error contrario y más caro. Lo que faltaba no era ancho: era UNA
+   REGLA.
+
+   LA REGLA. Un solo bloque, un solo borde izquierdo. `--nx-lienzo` es el ancho
+   del bloque compartido y no depende de la pantalla; lo que sí cambia según el
+   trabajo es la MEDIDA del contenido dentro de él (`.nx-medida-lectura`), que
+   se acorta por la derecha sin mover el borde por el que se entra. Dos
+   pantallas distintas empiezan en el mismo píxel; una acaba antes.
+
+   VIVE EN LA HOJA, NO EN EL JSX (lección `nx-stat-grid`): un `maxWidth` en
+   línea vence a la hoja en silencio, así que al convertir una pantalla el
+   número escrito a mano **se borra**, no se acompaña. El trinquete
+   `lienzosAMano` cuenta los que quedan y sólo puede bajar. */
+.nx-canvas {
+  --nx-lienzo: 1100px;
+  width: 100%;
+  max-width: var(--nx-lienzo);
+  margin: 0 auto;
+  padding: 24px;
+}
+/* La medida de lectura: prosa y narrativa clínica. Acorta por la DERECHA. */
+.nx-canvas .nx-medida-lectura { max-width: 820px; }
+/* Teléfonos pequeños: mismo recorte que `.page-pad`, un solo sitio que lo diga. */
+@media (max-width: 480px) { .nx-canvas { padding: 16px; } }
+
 /* PageHeader — encabezado de pantalla con acciones */
 .page-header {
   display: flex;
@@ -2425,10 +2472,10 @@ body:has(.nx-lienzo-completo) .theme-toggle {
    FIJA: a 390 px la columna derecha se salía de la pantalla.  No se arregla
    con un `minmax` — se arregla no teniendo dos columnas que defender.
    Constitución V10, regla 39: responsive no es escritorio encogido.        */
+/* Hoy compone en columna; su ANCHO ya no lo decide ella (`.nx-canvas`). El
+   `padding-top` de 28px sí es suyo: el saludo respira más que un título. */
 .hoy {
-  padding: 28px 24px;
-  max-width: 900px;
-  margin: 0 auto;
+  padding-top: 4px;
   display: flex;
   flex-direction: column;
   gap: 22px;

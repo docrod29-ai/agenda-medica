@@ -163,7 +163,7 @@ export default function ExpedientePage() {
   ]
 
   return (
-    <div className="page-pad" style={{ maxWidth: 880, margin: '0 auto' }}>
+    <div className="nx-canvas">
       {/* Back */}
       <button onClick={volver} style={backBtn}>
         <ArrowLeft size={15} /> Atrás
