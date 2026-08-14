@@ -2054,9 +2054,15 @@ html, body, .card, .modal, .topbar, .sidebar {
 .theme-toggle svg {
   width: 18px;
   height: 18px;
-  transition: transform var(--mov-lento) var(--mov-curva);
 }
-.theme-toggle:hover svg { transform: rotate(20deg); }
+/* RTC-23 — AQUÍ GIRABA LA LUNA AL PASAR EL RATÓN, Y NO DECÍA NADA.
+   Un icono que rota 20° no informa de nada: ni de que el control se puede
+   pulsar (eso ya lo dicen el cursor y el `:hover` de abajo), ni de qué va a
+   pasar al pulsarlo. Era movimiento decorativo puntual — §29, «motion que se
+   anuncia» — sobre el único cromo que sigue flotando fuera del panel (login,
+   registro, marketing), o sea delante de quien todavía no es cliente.
+   El `:hover` conserva sus DOS señales útiles: sube el contraste del icono y
+   crece un 5 %. La transición se va con la rotación: era su único sujeto. */
 
 /* ── RTC-05 → RTC-32: en el shell NO FLOTA NADA, en ningún ancho ───────────
    RTC-05 sacó los dos botones de esquina del arco del pulgar en MÓVIL (el
