@@ -5,9 +5,9 @@
 ## Iteración en curso
 
 `V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO; registros
-UNIFICADOS 13-ago-2026. P0 cerrados y SIETE P1 pagados** (RTC-03, RTC-04,
-RTC-05, RTC-06, RTC-07, RTC-09, RTC-11). Quedan RTC-08, RTC-10 y RTC-12, los
-tres declarados dependientes de rebanadas estructurales mayores:
+UNIFICADOS 13-ago-2026. P0 cerrados y OCHO P1 pagados** (RTC-03, RTC-04,
+RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-11). Quedan RTC-10 y RTC-12, los
+dos declarados dependientes de rebanadas estructurales mayores:
 
 - **Registro canónico**: `docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md`
   (IDs `RTC-01..28`, mapeo ORT↔RT por CONTENIDO — los paréntesis RT/DS/CW
@@ -179,9 +179,30 @@ grupo aparece si y sólo si su módulo está permitido» — un grupo vacío pin
 SÍ sería defecto); (2) «Datos del paciente» viene plegado, así que el botón de
 editar no existe en el DOM hasta abrirlo y el clic caía en la nada.
 
-**Siguiente rebanada exacta:** seguir con los P1 del registro canónico —
-**RTC-08** (destino «Encuentro» con estado real de encuentro activo; pertenece
-a Fase 5 / NOTE-PLAN-CONTINUITY), **RTC-10** (primer viewport del expediente:
+- **RTC-08 («Encuentro» es un lugar, o dice que no lo hay): FIXED 14-ago (5ª
+  corrida).** El riel tiene TRES respuestas y ninguna es el silencio: estás
+  dentro · hay uno abierto y lo RETOMA · no hay ninguno y lo DICE en su nombre
+  accesible (`title` Y `aria-label`: un `title` suelto no lo oye nadie). El
+  estado NO se inventó — `@/lib/nav/encuentro-abierto` lo lee del respaldo
+  local que la consulta ya escribía mientras se dicta, que es exactamente «hay
+  un encuentro abierto en este dispositivo». Saca IDs y sello de tiempo, ni un
+  dato clínico; un respaldo ilegible sigue contando (esconder una consulta a
+  medias es el caso que más duele). La cabecera de `FlowRail`, que desde
+  V15-IA-001 decía «no hay que inventarlo aquí», quedó reescrita: la decisión
+  fue correcta entonces y lo que faltó fue volver cuando el estado ya existía.
+  Guardián `v15-rtc08-encuentro-es-un-lugar.test.ts` (10 casos, 6 CONDUCTUALES
+  sobre el módulo real con `window` sustituido; probado al revés: 3 rojos).
+  Nota de método: la primera versión pintaba la señal con `var(--nexus)` EN
+  LÍNEA y la suite completa la cazó — `v15-el-acento-entra-al-shell` (Fase 10)
+  exige que el riel no lleve acento propio. El color se movió a `.nx-rail-senal`
+  en la hoja y el guardián de Fase 10 volvió a verde **sin tocarlo**: cuando
+  dos guardianes se contradicen, casi siempre el que está mal es el arreglo.
+  Navegador real recorriendo el ciclo entero —sin encuentro → abrir y escribir
+  → salir a Hoy → retomar—: `docs/design/capturas/v15-rtc08/acta-rtc08.json`,
+  **13/13 PASS**, 0 errores de consola, 4 capturas.
+
+**Siguiente rebanada exacta:** quedan DOS P1, los dos declarados dependientes
+de rebanadas estructurales mayores — **RTC-10** (primer viewport del expediente:
 rebanada estructural grande — planearla entera antes de abrirla) y **RTC-12**
 (el lienzo de escritorio; deuda dimensionada del monolito de 6147 líneas).
 

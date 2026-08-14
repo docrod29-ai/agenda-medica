@@ -36,15 +36,23 @@
  * ya hablaba en móvil. La jerarquía que aprobó el gate no se tocó: misma
  * barra, mismo peso, sólo el color del acento.
  *
- * ── ENCOUNTER: por qué apunta a /pacientes cuando no hay encuentro activo ────
+ * ── ENCOUNTER: de «apunta a /pacientes» a estado real (RTC-08) ───────────────
  *
- * No existe todavía un concepto de "encuentro activo" fuera de una ruta
- * /consulta/[id] concreta — no hay que inventarlo aquí (V15-ENCOUNTER-MODE-001,
- * Fase 5, es quien construye ese modo real). Mientras tanto, ENCOUNTER se
- * resuelve exactamente como ya resolvía la antigua entrada «Consulta» del
- * Sidebar: to /pacientes. No es una regresión — es el mismo comportamiento
- * de hoy, con IA explícita en vez de una sola entrada ambigua llamada
- * «Consulta» que en realidad abría la lista de pacientes.
+ * Aquí decía que no existía todavía un concepto de «encuentro activo» fuera de
+ * una ruta /consulta/[id] concreta, y que mientras tanto ENCOUNTER se resolvía
+ * como la vieja entrada «Consulta» del Sidebar: a /pacientes. Era cierto y era
+ * defendible — hasta que el equipo rojo lo usó por primera vez (RTC-08): pides
+ * «Encuentro», apareces en la lista de pacientes, y el riel ilumina
+ * «Paciente». El destino no mentía solo: encima marcaba el otro sitio como si
+ * fuera el que habías pedido. Eso rompe la pregunta de §15 justo cuando el
+ * médico está decidiendo si puede fiarse de la barra.
+ *
+ * Hoy el estado existe sin inventar nada: el producto ya guarda un respaldo
+ * local por consulta en curso, y eso ES un encuentro abierto
+ * (`@/lib/nav/encuentro-abierto`). Con uno abierto, ENCOUNTER lo RETOMA y lo
+ * señala; sin ninguno sigue llevando a /pacientes —así se empieza uno— pero lo
+ * DICE en su nombre accesible. La regla: o hay un lugar, o se dice que no lo
+ * hay. Teletransportar en silencio no es una tercera opción.
  */
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -56,6 +64,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { useGrabando } from '@/hooks/useGrabando'
+import { useEncuentroAbierto } from '@/hooks/useEncuentroAbierto'
+import { rutaDelEncuentro } from '@/lib/nav/encuentro-abierto'
 
 /**
  * V15-ENCOUNTER-MODE-001, §8.1 «navigation visually quiets»: medido en la
@@ -117,8 +127,31 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
   const { user } = useAuth()
   const grabando = useGrabando()
 
+  /**
+   * RTC-08 — ENCUENTRO deja de teletransportar en silencio.
+   *
+   * Tres estados, y el riel dice cuál es en vez de fingir que siempre es el
+   * mismo (§15: «¿dónde estoy y a dónde puedo ir?»):
+   *
+   *   1. Estás DENTRO de un encuentro → el destino es donde ya estás, y se
+   *      ilumina (comportamiento de siempre).
+   *   2. Hay uno ABIERTO en otra parte → el destino lo RETOMA. Antes esto no
+   *      existía: la consulta a medio escribir se quedaba esperando a que el
+   *      médico recordara de qué paciente era.
+   *   3. No hay ninguno → sigue llevando a /pacientes, porque elegir paciente
+   *      es como se empieza uno, pero el nombre accesible lo DICE. El defecto
+   *      no era el destino: era la promesa. Un ítem que dice «Encuentro», te
+   *      deja en la lista de pacientes y encima ilumina «Paciente» rompe la
+   *      pregunta de §15 en el primer uso.
+   */
   const enEncuentro = ES_CONTEXTO_ENCUENTRO(pathname)
-  const encounterHref = enEncuentro ? pathname : '/pacientes'
+  const abierto = useEncuentroAbierto()
+  const encounterHref = enEncuentro
+    ? pathname
+    : abierto ? rutaDelEncuentro(abierto) : '/pacientes'
+  const encounterTitulo = enEncuentro
+    ? 'Encuentro — estás en él'
+    : abierto ? 'Encuentro — retomar la consulta abierta' : 'Encuentro — ninguno abierto; elige un paciente para empezar'
 
   const abrirBusqueda = () => {
     onNavigate?.()
@@ -173,7 +206,12 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
         <RailLink href="/pacientes" label="Paciente" icon={UserSquare2}
           activo={ES_CONTEXTO_PACIENTE(pathname)} onNavigate={onNavigate} />
         <RailLink href={encounterHref} label="Encuentro" icon={Stethoscope}
-          activo={enEncuentro} onNavigate={onNavigate} />
+          activo={enEncuentro} onNavigate={onNavigate}
+          titulo={encounterTitulo}
+          /* La señal de «hay uno abierto» sólo se pinta cuando NO estás dentro:
+             estando dentro, el estado activo ya lo dice y un punto más sería
+             ruido sobre la superficie clínica (§8.5). */
+          senal={!enEncuentro && !!abierto} />
         <RailLink href="/pendientes" label="Seguimiento" icon={ListChecks}
           activo={pathname.startsWith('/pendientes')} onNavigate={onNavigate} />
 
@@ -198,9 +236,17 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
-function RailLink({ href, label, icon: Icon, activo, onNavigate, subordinado }: {
+function RailLink({ href, label, icon: Icon, activo, onNavigate, subordinado, titulo, senal }: {
   href: string; label: string; icon: typeof CalendarClock; activo: boolean
   onNavigate?: () => void; subordinado?: boolean
+  /**
+   * RTC-08: lo que el ítem promete de verdad, cuando el rótulo por sí solo no
+   * alcanza. Va a `title` Y a `aria-label`: el ratón y el lector de pantalla
+   * merecen la misma frase — un `title` suelto no lo oye nadie.
+   */
+  titulo?: string
+  /** Punto de estado real (hay un encuentro abierto que retomar). */
+  senal?: boolean
 }) {
   return (
     <Link
@@ -208,10 +254,21 @@ function RailLink({ href, label, icon: Icon, activo, onNavigate, subordinado }: 
       onClick={onNavigate}
       className={`nav-item${activo ? ' active' : ''}`}
       aria-current={activo ? 'page' : undefined}
+      title={titulo}
+      aria-label={titulo}
       style={subordinado ? { color: 'var(--text3)', fontSize: 12 } : undefined}
     >
       <Icon size={17} className="nav-icon" />
       <span style={{ flex: 1 }}>{label}</span>
+      {senal && (
+        /* Punto SÓLIDO (no halo: el trinquete de genericidad cuenta los halos
+           de color, y con razón) y con su color en la HOJA, no aquí: el
+           guardián de Fase 10 exige que el riel no pinte acento propio — el
+           acento vive en las reglas base compartidas. Es estado, no adorno, y
+           su significado viaja en el nombre accesible del enlace, nunca en el
+           color a solas (§24). */
+        <span aria-hidden="true" className="nx-rail-senal" />
+      )}
     </Link>
   )
 }

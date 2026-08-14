@@ -2871,3 +2871,21 @@ span.riel-aviso { cursor: default; }
   .nx-fila-paciente .nx-fila-editar,
   .nx-fila-paciente .nx-fila-chevron { display: none !important; }
 }
+
+/* ── RTC-08 · la señal de «hay un encuentro abierto» ─────────────────────────
+   Punto de ESTADO del riel: dice que hay una consulta a medio escribir que se
+   puede retomar. Vive aquí y no en FlowRail.tsx porque el guardián de Fase 10
+   (`v15-el-acento-entra-al-shell`) exige que el riel no pinte acento propio —
+   el acento vive en las reglas base compartidas, para que el greybox que se
+   aprobó no se deshaga a fuerza de colores sueltos por componente.
+
+   Sólido, nunca halo: el trinquete de genericidad cuenta los halos de color.
+   Y el color no carga el significado a solas — el enlace lleva su nombre
+   accesible («retomar la consulta abierta»), que es lo que se oye (§24). */
+.nx-rail-senal {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nexus);
+  flex-shrink: 0;
+}
