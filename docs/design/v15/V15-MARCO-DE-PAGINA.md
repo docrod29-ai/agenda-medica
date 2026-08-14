@@ -81,10 +81,31 @@ alergias**: en un ancho donde todo va en columna el orden es la jerarquía, y lo
 
 ## Lo que este documento NO decide todavía
 
-- **Las píldoras de filtro.** Están en la lista de residuos y se ven genéricas,
-  pero las de `/pacientes` llevan conteos reales y sirven. Cambiarlas sin medir
-  sería repintar. Queda para la rebanada que las mida contra el patrón de
-  `/pendientes` («Ver sólo los míos» es una frase, no una píldora).
+- **Las píldoras de filtro — MEDIDAS el 14-ago, y la respuesta no era la
+  esperada.** Contadas en las seis superficies
+  (`docs/design/capturas/v15-pildoras/medicion.json`):
+
+  | | píldoras | filas | con dato | sólo etiqueta | alto del pliegue |
+  |---|---|---|---|---|---|
+  | pendientes · consulta · hoy · operaciones | **0** | 0 | — | — | 0px |
+  | pacientes | 3 | 1 | 2 | 1 | 102px |
+  | **expediente** | **8** | **3** | 3 | **5** | **270px** |
+
+  **No hay «exceso de píldoras» en el producto**: cuatro de seis superficies no
+  tienen ninguna, y la fila de `/pacientes` lleva conteos reales — un filtro que
+  dice cuántos hay informa; uno que sólo se pinta, decora. Convertirla en
+  frases habría sido copiarle la forma a `/pendientes` sin mirar el trabajo:
+  ahí las «píldoras» son conmutadores de una cosa, no un filtro sobre la misma
+  lista.
+
+  **El outlier es `/expediente`**: 8 píldoras en TRES filas y 270px del primer
+  pliegue, con 5 de las 8 sin dato. Y las tres filas hacen **tres trabajos
+  distintos** —el riel del Clinical Spine (navegación longitudinal, §7), el
+  filtro de la historia clínica, y los chips de diagnósticos (datos)— vestidos
+  igual. Eso no es «demasiadas píldoras»: es **RTC-18** («el elemento
+  longitudinal de §7 se rinde como fila de píldoras igual a los filtros de
+  /pacientes»), ahora confirmado con números. La rebanada que toque esto tiene
+  que darle forma propia al Spine, no borrar píldoras.
 - **El estado vacío** — es RTC-30. **Pagado en Hoy** el 14-ago, porque quitar
   la tarjeta lo dejó insostenible (250px de vacío ilustrado por encima de dos
   pendientes críticos); el resto de pantallas sigue con el hero y se mira caso
