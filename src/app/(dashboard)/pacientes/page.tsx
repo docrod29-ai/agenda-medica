@@ -307,10 +307,23 @@ export default function PacientesPage() {
         </Modal>
       )}
 
-      {/* Search */}
+      {/*
+        Search — RTC-25: EL PLACEHOLDER NO CABÍA EN UN TELÉFONO.
+
+        Decía «Buscar por nombre, teléfono, correo o CURP…»: medido a 390px,
+        327px de texto en un campo de 296px útiles. El médico veía la frase
+        cortada, y el propio equipo rojo la transcribió mal («…correo o CUI»)
+        — leyendo, justamente, lo que le cabía en la pantalla.
+
+        Se quita «Buscar por», que es lo único que el campo NO necesita decir:
+        la lupa a la izquierda ya dice que se busca. Los cuatro campos por los
+        que se puede buscar se conservan enteros, que es la información que
+        sólo puede dar el placeholder. Y el `aria-label` sigue diciendo la
+        frase completa para quien lo oye.
+      */}
       <div style={{ position: 'relative', marginBottom: 12, maxWidth: 420 }}>
         <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
-        <input className="input" style={{ paddingLeft: 32 }} placeholder="Buscar por nombre, teléfono, correo o CURP…" aria-label="Buscar un paciente por nombre, teléfono, correo o CURP" value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="input" style={{ paddingLeft: 32 }} placeholder="Nombre, teléfono, correo o CURP…" aria-label="Buscar un paciente por nombre, teléfono, correo o CURP" value={search} onChange={e => setSearch(e.target.value)} />
         {search && (
           <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}>
             <X size={14} />

@@ -7933,3 +7933,36 @@ ni siquiera es de tipos.
 **Compuertas**: tsc limpio · vitest 9446/9448 → tras regenerar el inventario
 queda 1 rojo (el artefacto conocido del proxy) · lint 96 = techo · trinquete
 con un techo más bajo · build compila.
+
+---
+
+## RTC-25 — de cinco quejas de texto móvil, una se reproducía (14-ago)
+
+Medido a 390×844 en cuatro rutas (`medir-rtc25-textos-moviles-v15.mjs`):
+
+| | |
+|---|---|
+| la página desborda | no, en ninguna ruta |
+| elementos que no caben en su caja | 0 (salvo un input de fecha de 1px) |
+| truncados con ellipsis efectiva | 0 |
+| placeholder de `/pacientes` | **327px de texto en 296px útiles** |
+
+- **Rótulo del héroe: REFUTADO** — ningún título pasa de un renglón (lo pagó
+  RT-03 con su breakpoint).
+- **Píldoras sangrando: REFUTADO** — cero desbordes reales.
+- **Descriptores bajo los FABs: SIN SUJETO** — ya no flotan (RTC-05) y el de
+  ayuda se retiró entero (RTC-32).
+- **«Urgente» como metadato gris: NO MEDIBLE con esta siembra.** Declarado, no
+  refutado: no es lo mismo «no pasa» que «no se pudo mirar».
+
+**Lo que sí, y con una ironía útil.** El placeholder de `/pacientes` no cabía,
+y el propio equipo rojo lo transcribió como «…correo o **CUI**» — leyendo,
+justamente, lo que le cabía en la pantalla. **La errata era la prueba.**
+
+El arreglo quita «Buscar por» (la lupa ya dice que se busca) y **conserva los
+cuatro campos**, que es la información que sólo puede dar el placeholder; el
+`aria-label` sigue diciendo la frase entera. Medido después: 248px de 296.
+
+**Compuertas**: tsc limpio · vitest 9456/9458 → tras regenerar el inventario
+queda 1 rojo (el artefacto del proxy) · lint 96 = techo · trinquete sin deuda
+nueva · build compila · navegador real antes/después, 0 errores de página.
