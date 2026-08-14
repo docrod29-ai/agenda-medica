@@ -23,6 +23,10 @@ Ningún score consolidado cumplía `GENERIC_AI_LOOK ≤ 1` (mejor: Pendientes
 2–3; peor: Pacientes/Operaciones 7) y la compuerta quedó **FAIL** hasta pagar
 los P1 de este registro.
 
+**14-ago-2026 (estado más reciente):** score **2.5** (peor superficie), FAIL
+contra el objetivo ≤1.0, con las seis superficies entre 1.0 y 2.5 y un único
+residuo compartido — el marco de página, RTC-31. Historial completo abajo.
+
 **14-ago-2026:** pagados los DOS P0 y NUEVE de los diez P1 (RTC-03, RTC-04,
 RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10, RTC-11), cada uno con guardián
 probado al revés y verificación en navegador real. Del décimo (RTC-12) se midió
@@ -72,14 +76,23 @@ una corrida del panel · `PARCIAL` = primera tanda pagada · `OPEN`.
 
 ### P1 abiertos (orden de pago)
 
-Ninguno pendiente de pago. Los diez P1 originales se cerraron entre el 13 y el
-14-ago-2026; la re-puntuación §29 del mismo día abrió dos más —**RTC-15**
-(existía como P2 y subió con un número delante) y **RTC-29** (nuevo)— y los dos
-se pagaron en esa misma jornada. Están arriba, en Cerrados.
+Los diez P1 originales se cerraron entre el 13 y el 14-ago-2026; la
+re-puntuación §29 del mismo día abrió dos más —**RTC-15** (existía como P2 y
+subió con un número delante) y **RTC-29** (nuevo)— y los dos se pagaron en esa
+misma jornada. Están arriba, en Cerrados.
 
-Lo que falta para cerrar la iteración **no es un defecto abierto**: es
-**volver a puntuar §29** sobre capturas nuevas. El score no se hereda, y eso
-vale también para el que acaba de mejorar.
+La **segunda pasada de §29** (`V15-REPUNTUACION-V29-CIERRE.md`) confirmó los
+pagos —Pacientes 5.0 → **2.0**, Operaciones 4.0 → **2.0**, ninguna regresión en
+las otras cuatro— y dejó la compuerta en **2.5 (peor superficie), sigue FAIL**.
+Y encontró algo que la primera pasada no podía ver: pagadas las dos superficies
+malas, **lo que queda ya no se reparte por pantalla**. Cinco de las seis
+comparten el MISMO marco de página genérico, y la única que no lo tiene es
+`/pendientes` — la que puntúa 1.0. Eso es **RTC-31**.
+
+| ID | Sev | Origen | Defecto | Pago |
+|---|---|---|---|---|
+| RTC-31 | **P1** | re-puntuación §29, 2ª pasada (14-ago) | **El marco de página es la parte genérica.** Cinco superficies comparten la misma anatomía —título + racimo de botones · buscador/filtros de ancho completo · fila de píldoras · contenedor de tarjeta con filas dentro · estado vacío ilustrado— que es el esqueleto que genera cualquier andamio. La única que NO lo tiene es `/pendientes` (filas a sangre, sin tarjeta, sin píldoras, cabecera que explica en vez de titular), y es justo la que puntúa 1.0. Por eso el resto se atasca en 2.0–2.5 por más que mejore su contenido: **el contenido ya es de este producto; el marco sigue siendo de cualquiera** | Un contenedor de página propio: qué hace la cabecera cuando la pantalla ya se anuncia en el riel, dónde viven los filtros, y por qué una lista de trabajo no necesita una tarjeta alrededor. `/pendientes` es la prueba de que el producto ya sabe hacerlo. **Absorbe RTC-16** (P2, «no hay UN contenedor de página»), que deja de ser consistencia y pasa a ser la causa medida |
+
 
 **RTC-12(a)** —el lienzo multicolumna— sigue teniendo trabajo por delante y
 deliberadamente no está aquí: es deuda del monolito de 6147 líneas, dimensionada
@@ -93,7 +106,7 @@ y con dueño (V15-NOTE-PLAN-CONTINUITY / refactor).
 | RTC-13 | P2 | ORT-15 + RT-05 | Etiquetas de IA como feature en cromo clínico (§25). PARCIAL: 4 sitios pagados («Nueva consulta con IA», «Razonar con IA (… Claude + GPT)», «Claude estructurando…» ×2) | Restante: «Procesar con IA» + Sparkles (19 usos), «Pedir segunda opinión (otra IA revisa la nota)», y un guardián de CONTENIDO §25 |
 | RTC-14 | P2 | RT-10 + ORT-11 | Alergias: pintadas DOS veces en el mismo pliegue (consulta y expediente; ~12 % del viewport móvil, empuja «Grabar»); y su salience es 100 % cromática — en gris es el elemento MENOS saliente | UNA presentación anclada al ancla, con canal no cromático; en móvil la píldora abre la edición |
 | RTC-15 | — | — | **SUBIDO A P1** por la re-puntuación §29 del 14-ago (5.0/10, peor superficie). Ver la tabla de P1 abiertos | — |
-| RTC-16 | P2 | ORT-12 | No hay UN contenedor de página: 4 contenedores distintos; `.page-pad` clase muerta en escritorio; /pendientes a sangre hasta x=1440 | Contenedor unificado del shell |
+| RTC-16 | — | ORT-12 | **ABSORBIDO POR RTC-31** (P1) tras la 2ª pasada de §29: lo que se veía como inconsistencia de contenedores resultó ser la causa medida del score que queda. Ver la tabla de P1 abiertos | — |
 | RTC-17 | P2 | ORT-13 + RT-12 | Pendientes: `NexusClosureTrack` degradado a 8 chips de 10.5px (2 renglones a 390px); etapa activa sólo por color; `sin_dato` sólo en cursiva; explicación sólo en `title=` (inexistente en táctil) | Canal no cromático (relleno/check) + representación móvil compacta («Etapa 3 de 8 · sigue: Dueño») expandible |
 | RTC-18 | P2 | RT-15 | `ClinicalSpine` con silueta de filtro: el elemento longitudinal de §7 se rinde como fila de píldoras igual a los filtros de /pacientes; corta a media palabra sin affordance de scroll | Forma propia (indicador de posición, fade de corte) |
 | RTC-19 | P2 | RT-14 | 67 literales teal-500 fuera de tokens, dos en cromo persistente (halo del FAB central con DOS teales distintos; BotonAyuda) | Guardián que prohíba `14b8a6`/`20,184,166` fuera de `--receta-*`; el trinquete ya cuenta los halos de color (RTC-02) |

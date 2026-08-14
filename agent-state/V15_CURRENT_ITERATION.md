@@ -380,14 +380,37 @@ el contenido, y el contenido resultante era un menú de iconos.
   pieza compartida y que ninguna fila se pinte fuera) y el del armado del
   respaldo (sigue al módulo donde la conducta vive hoy).
 
+### Re-puntuación §29, 2ª pasada (14-ago) — 5.0 → 2.5, y el residuo es UNO
+
+18 capturas nuevas, 0 errores de consola. Veredicto entero en
+`docs/design/v15/V15-REPUNTUACION-V29-CIERRE.md`:
+
+| Pendientes | Hoy | Consulta | **Pacientes** | **Operaciones** | Expediente |
+|---|---|---|---|---|---|
+| 1.0 | 2.0 | 2.0 | **5.0 → 2.0** | **4.0 → 2.0** | 2.5 |
+
+Los dos pagos se VEN, y ninguna de las otras cuatro regresó. La compuerta queda
+en **2.5 (peor superficie): sigue FAIL** contra ≤1.0.
+
+**Lo que enseñó esta pasada y la primera no podía:** pagadas las dos
+superficies malas, lo que queda **ya no se reparte por pantalla**. Cinco de las
+seis comparten el MISMO marco —título + racimo de botones · buscador de ancho
+completo · fila de píldoras · contenedor de tarjeta · estado vacío ilustrado—
+que es el esqueleto que genera cualquier andamio. **La única que no lo tiene es
+`/pendientes`, y es justo la que puntúa 1.0.** Por eso el resto se atasca en
+2.0–2.5 por más que mejore su contenido: el contenido ya es de este producto;
+el marco sigue siendo de cualquiera.
+
+Eso es **RTC-31 (P1, nuevo)**, y **absorbe RTC-16** (P2, «no hay UN contenedor
+de página»), que deja de ser un detalle de consistencia y pasa a ser la causa
+medida del score que queda.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
-DIEZ P1 originales, la re-puntuación §29 y los dos P1 que ésta abrió —**RTC-15**
-y **RTC-29**— hechos. **No se declara CERRADA todavía**, y lo que falta no es un
-defecto: es **volver a puntuar §29** sobre capturas nuevas de las seis
-superficies. El score no se hereda ni cuando mejora. Ésa es la siguiente
-rebanada; si da PASS (≤1.0 en todas), la iteración cierra y sigue §43 orden 17:
-`V15-WORKFLOW-BENCHMARK-001`. Si alguna sigue por encima, esa superficie es la
-rebanada de después.
+DIEZ P1 originales, **RTC-15**, **RTC-29** y las dos pasadas de re-puntuación
+§29 hechas. **No se cierra**: la compuerta pide ≤1.0 y está en 2.5. Siguiente
+rebanada: **RTC-31** — el marco de página, con `/pendientes` como prueba de que
+este producto ya sabe hacerlo. Después, re-puntuar otra vez; y sólo con PASS,
+§43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
 
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
