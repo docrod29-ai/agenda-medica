@@ -183,6 +183,34 @@ export default function PacientesPage() {
   const openEdit = (p: Patient) => { setEditPatient(p); setModalOpen(true) }
   const openNew = () => { setEditPatient(null); setModalOpen(true) }
 
+  /**
+   * RTC-11 — `?editar=<id>` abre el editor de ESE paciente.
+   *
+   * El botón «Editar datos» del expediente hacía `push('/pacientes')` y te
+   * soltaba en la lista con el editor cerrado: un viaje que no llegaba. Con
+   * «Editar» fuera de la fila en móvil (la identidad no cabía compartiendo
+   * ancho con un botón administrativo), ése pasó a ser el único camino — así
+   * que tenía que llegar de verdad.
+   *
+   * Se espera a que los pacientes estén cargados: antes de eso no hay a quién
+   * abrir. Corre una sola vez por id (la bandera) para que cerrar el modal no
+   * lo vuelva a abrir mientras el parámetro siga en la URL.
+   */
+  const editarAtendido = useRef<string | null>(null)
+  useEffect(() => {
+    if (patients.length === 0) return
+    const id = new URLSearchParams(window.location.search).get('editar')
+    if (!id || editarAtendido.current === id) return
+    const p = patients.find(x => x.id === id)
+    if (!p) return
+    editarAtendido.current = id
+    // El `setState` va DENTRO del temporizador, no en el cuerpo del efecto:
+    // lo segundo encadena renders y el linter lo marca con razón (mismo patrón
+    // que el barrido de duplicados de más abajo).
+    const t = setTimeout(() => openEdit(p), 0)
+    return () => clearTimeout(t)
+  }, [patients])
+
   const onSaved = () => {
     setModalOpen(false); setEditPatient(null)
     load()
@@ -441,6 +469,22 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
 }) {
   return (
     <div
+      /**
+       * RTC-11 — la fila tiene variante MÓVIL, y la decide la hoja.
+       *
+       * Medido a 390px: avatar 38 + «Editar» ~78 + chevron 14 + 3 huecos de 14
+       * + padding 32 dejaban ~96px de columna para el nombre, y `.nx-ident` no
+       * trunca a propósito (§24) — así que la identidad caía en TRES renglones
+       * y el teléfono se partía. Era el defecto #13 de la DNA reaparecido: el
+       * dato más importante de la fila comprimido por cromo administrativo.
+       *
+       * En móvil «Editar» (datos de CONTACTO: administrativo) sale de la fila
+       * y el chevron decorativo también. La capacidad no se pierde — vive en
+       * el expediente, cuyo «Editar datos» ahora sí abre el editor de ESE
+       * paciente (`?editar=`). Es la misma regla de §8.5 que ya se aplicó al
+       * pulgar y a los FAB: en el ancho del teléfono, lo clínico gana.
+       */
+      className="nx-fila-paciente"
       style={{
         position: 'relative',
         display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
@@ -492,6 +536,7 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
       )}
       {mode === 'medico' && (
         <button
+          className="nx-fila-editar"
           onClick={e => { e.stopPropagation(); onEditar() }}
           title="Editar datos de contacto"
           style={{
@@ -506,7 +551,7 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
           <Pencil size={12} /> Editar
         </button>
       )}
-      {mode === 'medico' && <FileText size={14} color="var(--text3)" style={{ flexShrink: 0 }} />}
+      {mode === 'medico' && <FileText className="nx-fila-chevron" size={14} color="var(--text3)" style={{ flexShrink: 0 }} />}
     </div>
   )
 }

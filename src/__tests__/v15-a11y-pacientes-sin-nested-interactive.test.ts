@@ -114,6 +114,16 @@ describe('freeze funcional — la rebanada es de estructura accesible, no de con
   })
 
   it('Editar sólo existe en modo médico, como siempre', () => {
-    expect(FILA).toMatch(/\{mode === 'medico' && \(\s*\n\s*<button\s*\n\s*onClick=\{e => \{ e\.stopPropagation\(\); onEditar\(\) \}\}/)
+    /**
+     * El MECANISMO cambió en RTC-11: el botón ganó `className="nx-fila-editar"`
+     * (la hoja lo oculta bajo 768px, donde la identidad necesitaba el ancho).
+     * El patrón viejo exigía que `onClick` fuera el atributo pegado a
+     * `<button>`, así que se rompió por el ORDEN de los atributos y no por lo
+     * que este caso defiende. El INVARIANTE no cambia: el botón de editar sólo
+     * se pinta en modo médico y sigue deteniendo la propagación (es hermano
+     * del control que abre, no hijo — ésa es la razón de esta prueba).
+     */
+    expect(FILA).toMatch(/\{mode === 'medico' && \(\s*\n\s*<button\b/)
+    expect(FILA).toMatch(/onClick=\{e => \{ e\.stopPropagation\(\); onEditar\(\) \}\}/)
   })
 })

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -18,7 +19,7 @@ import {
   ArrowLeft, Mic, FileText, Loader2, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
-  Camera, FlaskConical, Link2Off,
+  Camera, FlaskConical, Link2Off, Sparkles, Bug, ExternalLink,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
@@ -28,6 +29,7 @@ import { PatientAnchor } from '@/components/expediente/PatientAnchor'
 import { ClinicalSpine, type ClinicalSpineItem } from '@/components/expediente/ClinicalSpine'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { Herramientas } from '@/components/Herramientas'
+import { CAPACIDADES_DEL_PACIENTE } from '@/lib/nav/capacidades-del-paciente'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
 import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
@@ -282,7 +284,16 @@ export default function ExpedientePage() {
       {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
       <DatosPaciente
         patient={patient}
-        onEditar={() => router.push('/pacientes')}
+        /**
+         * RTC-11: esto era `router.push('/pacientes')` a secas — un viaje de
+         * ida sin destino: te dejaba en la lista, con el editor cerrado, y a
+         * buscar de nuevo al paciente que acababas de tener abierto. Pasaba
+         * inadvertido en escritorio porque «Editar» también vivía en la fila;
+         * al quitarlo de la fila en móvil, este rebote se volvía el ÚNICO
+         * camino — y no llegaba. Ahora la lista abre el editor de ESE paciente
+         * (`?editar=`), que es lo que el botón siempre prometió.
+         */
+        onEditar={() => router.push(`/pacientes?editar=${encodeURIComponent(patientId)}`)}
         onRevocar={async () => {
           if (!clinicId || !patientId) return
           if (!(await confirm(
@@ -300,7 +311,14 @@ export default function ExpedientePage() {
 
       {/* Herramientas del expediente en UN SOLO bloque (antes eran dos cajas
           separadas, cada una con su encabezado "Herramientas clínicas" — se veían
-          duplicadas). Laboratorios y la fotografía seriada, ambas plegadas. */}
+          duplicadas). Laboratorios y la fotografía seriada, ambas plegadas.
+
+          RTC-09: aquí entran también las dos capacidades que estaban como
+          páginas-módulo en el índice ADMINISTRATIVO (§3.2: la IA es contextual,
+          nunca un módulo feature-first). El encuentro ya las tenía así —embebe
+          `AntibiogramaTool` y abre el consultor con `?paciente=`—; el expediente
+          no las había recibido. Las declara `@/lib/nav/capacidades-del-paciente`
+          UNA vez, y de ahí las lee el guardián de alcanzabilidad. */}
       {clinicId && patientId && (
         <div id="spine-herramientas">
           <Herramientas items={[
@@ -314,6 +332,16 @@ export default function ExpedientePage() {
               para: 'Serie por región · comparación antes/después con días de evolución',
               contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
             },
+            ...CAPACIDADES_DEL_PACIENTE.map(cap => ({
+              id: cap.id,
+              nombre: cap.nombre,
+              color: 'var(--teal)',
+              icono: cap.id === 'consultor' ? <Sparkles size={14} /> : <Bug size={14} />,
+              para: cap.para,
+              contenido: cap.conPaciente
+                ? <CapacidadQueLleva href={cap.conPaciente(patientId)} nombre={cap.nombre} paciente={patient?.nombre ?? ''} />
+                : <AntibiogramaDelPaciente />,
+            })),
           ]} />
         </div>
       )}
@@ -520,6 +548,48 @@ export default function ExpedientePage() {
 
 /** Tarjeta colapsable con los datos de contacto del paciente (unificación
  *  de Pacientes + Expedientes en una sola pantalla). */
+/**
+ * RTC-09 — la capacidad que SE LLEVA al paciente.
+ *
+ * El consultor razona sobre el caso, así que necesita saber de quién se habla:
+ * su página lee `?paciente=` desde antes (no es una ruta inventada aquí). Se
+ * abre en pestaña nueva por la misma razón que en la consulta: la pregunta se
+ * hace CON el expediente delante, no en vez de él.
+ */
+function CapacidadQueLleva({ href, nombre, paciente }: { href: string; nombre: string; paciente: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
+      {/* La voz del sistema (t-body), no un tamaño a mano: 13px estaba fuera
+          de la escala y el trinquete de diseño lo cazó en la misma corrida. */}
+      <p className="t-body" style={{ margin: 0, color: 'var(--text2)' }}>
+        {paciente
+          ? <>Se abre con <strong style={{ color: 'var(--text)' }}>{paciente}</strong> ya cargado como contexto: no hay que volver a decir de quién se trata.</>
+          : <>Se abre con este paciente ya cargado como contexto.</>}
+      </p>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        onClick={() => window.open(href, '_blank', 'noopener')}
+      >
+        <ExternalLink size={13} /> Abrir {nombre.toLowerCase()}
+      </button>
+    </div>
+  )
+}
+
+/**
+ * RTC-09 — la capacidad que NO se navega: se USA aquí.
+ *
+ * El antibiograma interpreta un panel S/I/R que el médico teclea en el momento;
+ * mandarlo a otra pantalla era justo el viaje que §3.2 quiere borrar. La
+ * consulta ya lo embebía así — este import perezoso es el MISMO patrón, y su
+ * chunk sólo se descarga cuando la fila se abre.
+ */
+const AntibiogramaDelPaciente = dynamic(
+  () => import('@/app/(dashboard)/antibiograma/page').then(m => m.AntibiogramaTool),
+  { ssr: false, loading: () => <Spinner /> },
+)
+
 function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | null; onEditar: () => void; onRevocar: () => void }) {
   const [abierto, setAbierto] = useState(false)
   if (!patient) return null

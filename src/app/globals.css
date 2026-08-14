@@ -2852,3 +2852,22 @@ span.riel-aviso { cursor: default; }
     0%, 100% { box-shadow: inset 0 0 0 3px var(--nexus); }
   }
 }
+
+/* ── RTC-11 · la fila de /pacientes tiene variante MÓVIL ─────────────────────
+   Medido a 390px: avatar 38 + «Editar» ~78 + chevron 14 + 3 huecos de 14 +
+   padding 32 dejaban ~96px para el nombre — y `.nx-ident` no trunca a
+   propósito (§24), así que la identidad caía en TRES renglones y el teléfono
+   se partía (defecto #13 de la DNA, reaparecido).
+
+   En el ancho del teléfono lo clínico gana (§8.5): «Editar» —datos de
+   CONTACTO, administrativo— y el chevron decorativo salen de la fila. La
+   capacidad NO se pierde: vive en el expediente, cuyo «Editar datos» abre el
+   editor de ESE paciente (`/pacientes?editar=`).
+
+   `!important` no es pereza: los dos elementos declaran su `display` EN LÍNEA
+   y una regla de hoja sin peso pierde contra el atributo `style` — es la misma
+   trampa que el arnés cazó en RTC-05 con el FAB flotante. */
+@media (max-width: 768px) {
+  .nx-fila-paciente .nx-fila-editar,
+  .nx-fila-paciente .nx-fila-chevron { display: none !important; }
+}

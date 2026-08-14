@@ -67,6 +67,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { RUTAS_DE_CAPACIDADES } from '@/lib/nav/capacidades-del-paciente'
 
 const CONFIG = readFileSync(join('src', 'app', '(dashboard)', 'configuracion', 'page.tsx'), 'utf8')
 const OPS = readFileSync(join('src', 'app', '(dashboard)', 'operaciones', 'page.tsx'), 'utf8')
@@ -212,12 +213,35 @@ describe('V15 /operaciones — roles §2 y freeze del índice administrativo', (
     expect(sinComentarios(OPS)).not.toMatch(/btn-primary/)
   })
 
-  it('freeze: los 20 destinos de siempre, ninguno se cayó del índice', () => {
-    const rutas = ['/asistente', '/citas', '/calendario', '/lista-espera', '/hospitalizacion',
-      '/uci', '/consultor', '/antibiograma', '/crm', '/resenas', '/reactivacion', '/farmacia',
+  it('freeze: los 20 destinos de siempre, ninguno se cayó — 18 en el índice y 2 en el paciente', () => {
+    /**
+     * EL INVARIANTE ES «NINGUNO SE CAYÓ», NO «TODOS SIGUEN AQUÍ».
+     *
+     * RTC-09 sacó `/consultor` y `/antibiograma` del índice administrativo a
+     * propósito: una capacidad de IA en un menú es IA feature-first (§3.2), y
+     * además el grupo que las alojaba se llamaba «Clínico» dentro de una
+     * pantalla que se define como «lo administrativo, aparte del trabajo
+     * clínico». Ahora viven en el expediente del paciente.
+     *
+     * Este freeze sigue defendiendo lo mismo que el día que se escribió —que
+     * nadie pierda un destino por descuido— pero cuenta las DOS casas, y las
+     * dos las lee del código: el índice, y la declaración única de
+     * `CAPACIDADES_DEL_PACIENTE`. Escribir aquí las dos rutas a mano habría
+     * convertido el freeze en una lista de deseos.
+     */
+    const enElIndice = ['/asistente', '/citas', '/calendario', '/lista-espera', '/hospitalizacion',
+      '/uci', '/crm', '/resenas', '/reactivacion', '/farmacia',
       '/finanzas', '/membresias', '/cumplimiento', '/legal', '/migracion', '/chat', '/guia',
       '/configuracion']
-    for (const r of rutas) expect(OPS).toMatch(new RegExp(`href: '${r}'`))
+    for (const r of enElIndice) expect(OPS, `${r} se cayó del índice`).toMatch(new RegExp(`href: '${r}'`))
+
+    // Y las dos que se mudaron siguen teniendo puerta, en su casa nueva.
+    expect(RUTAS_DE_CAPACIDADES).toContain('/consultor')
+    expect(RUTAS_DE_CAPACIDADES).toContain('/antibiograma')
+    expect(enElIndice.length + RUTAS_DE_CAPACIDADES.length).toBe(20)
+
+    // El índice ya NO las enlaza: si volvieran, volvería el defecto de §3.2.
+    for (const r of RUTAS_DE_CAPACIDADES) expect(OPS).not.toMatch(new RegExp(`href: '${r}'`))
   })
 
   it('freeze: el filtro por modo y rutaPermitida sigue, y la salida es salirSeguro', () => {

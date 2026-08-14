@@ -5,7 +5,9 @@
 ## Iteración en curso
 
 `V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO; registros
-UNIFICADOS 13-ago-2026 y los DOS pagos prioritarios CERRADOS**:
+UNIFICADOS 13-ago-2026. P0 cerrados y SIETE P1 pagados** (RTC-03, RTC-04,
+RTC-05, RTC-06, RTC-07, RTC-09, RTC-11). Quedan RTC-08, RTC-10 y RTC-12, los
+tres declarados dependientes de rebanadas estructurales mayores:
 
 - **Registro canónico**: `docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md`
   (IDs `RTC-01..28`, mapeo ORT↔RT por CONTENIDO — los paréntesis RT/DS/CW
@@ -134,20 +136,62 @@ diagnosticar CSS.
   (`docs/design/capturas/v15-pulgar-y-fabs/acta-pulgar-y-fabs.json`, PASS,
   0 errores de consola, 8 capturas).
 
-**Siguiente rebanada exacta:** seguir pagando los P1 del registro canónico:
-(a) **RTC-09** (Operaciones sin grupo «Clínico»: Consultor IA/Antibiograma
-como capacidad contextual, no página-módulo); (b) **RTC-11** (fila de
-/pacientes con variante móvil — identidad rota, defecto #13 de la DNA).
-RTC-08 (destino «Encuentro» con estado real) pertenece a Fase 5 /
-NOTE-PLAN-CONTINUITY y RTC-10 (primer viewport del expediente) es rebanada
-estructural grande — planearla entera antes de abrirla. La rebanada de esta
-corrida (RTC-07 + RTC-05) está al FINAL del archivo.
+- **RTC-09 (la IA es contextual, no un módulo del índice admin): FIXED
+  14-ago (4ª corrida).** El grupo «Clínico» de `/operaciones` MURIÓ. Consultor
+  y Antibiograma se declaran UNA vez en `@/lib/nav/capacidades-del-paciente` y
+  viven en la barra de `Herramientas` del EXPEDIENTE: el consultor se abre
+  LLEVANDO al paciente (`?paciente=`, que su página ya leía) y el antibiograma
+  se USA ahí mismo (import perezoso del MISMO `AntibiogramaTool` que la
+  consulta ya embebía — esto termina de aplicar el patrón del encuentro, no lo
+  inventa). Hospitalización/UCI se quedan en el índice secundario con el nombre
+  de lo que son —«Hospital y UCI»: otro escenario de atención, ALPHA tras
+  bandera (§11)— y el copy de la pantalla dejó de prometer sólo «lo
+  administrativo». **Ninguna ruta se borró.** Los dos freeze que tocaban esto
+  (los 20 destinos, la alcanzabilidad post-Sidebar) ahora cuentan las DOS casas
+  LEYENDO la declaración, no una lista escrita a mano: el invariante («ninguno
+  se cayó») es el mismo, el mecanismo tiene una superficie más. Guardián
+  `v15-rtc09-ia-contextual.test.ts` (7 casos, probado al revés: 4 rojos).
+
+- **RTC-11 (la identidad del paciente cabe en un teléfono): FIXED 14-ago (4ª
+  corrida).** La fila de `/pacientes` tiene variante MÓVIL: bajo 768px salen
+  «Editar» (datos de CONTACTO: administrativo) y el chevron decorativo, y la
+  identidad se queda con el ancho. Medido en navegador real: **de 3 renglones
+  en ~90px a 1 renglón en 228px**; en escritorio «Editar» sigue pintado — es
+  variante, no amputación. Y la capacidad se MUEVE de verdad: «Editar datos»
+  del expediente hacía `push('/pacientes')` —un viaje que no llegaba: soltaba
+  al médico en la lista con el editor cerrado, agujero que sólo se volvía
+  visible al quitar el botón de la fila— y ahora abre `?editar=<id>`, que la
+  lista obedece (con el `setState` dentro del temporizador: el linter marca con
+  razón el encadenado de renders). El `!important` de la regla no es pereza:
+  los dos elementos declaran su `display` EN LÍNEA — la trampa que el arnés
+  cazó en RTC-05. Guardián `v15-rtc11-fila-paciente-movil.test.ts` (5 casos,
+  probado al revés: 3 rojos).
+
+**Arnés de esta corrida:** `scripts/design/verificar-rtc09-rtc11-v15.mjs`
+(390×844 + 1440×900, build de producción + emuladores + siembra sintética):
+**23/23 condiciones PASS, 0 errores de consola**, 5 capturas en
+`docs/design/capturas/v15-rtc09-rtc11/`. Dos condiciones fallaron en la primera
+pasada y NINGUNA era defecto del producto — las dos eran del arnés, y quedan
+escritas porque la próxima corrida tropezaría igual: (1) Hospital/UCI son
+`MODULOS_OPT_IN` y la clínica de capturas no los contrata, así que
+`rutaPermitida` filtra el grupo entero (la condición se reescribió como «el
+grupo aparece si y sólo si su módulo está permitido» — un grupo vacío pintado
+SÍ sería defecto); (2) «Datos del paciente» viene plegado, así que el botón de
+editar no existe en el DOM hasta abrirlo y el clic caía en la nada.
+
+**Siguiente rebanada exacta:** seguir con los P1 del registro canónico —
+**RTC-08** (destino «Encuentro» con estado real de encuentro activo; pertenece
+a Fase 5 / NOTE-PLAN-CONTINUITY), **RTC-10** (primer viewport del expediente:
+rebanada estructural grande — planearla entera antes de abrirla) y **RTC-12**
+(el lienzo de escritorio; deuda dimensionada del monolito de 6147 líneas).
+
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
 (2) RT-08 → REG-312; (3) RT-01 → contadores de genericidad; (4) RTC-04 →
 compuerta compartida + pila de avisos; (5) RTC-06 → una primaria clínica
 en Hoy; (6) 3ª corrida: RTC-07 + RTC-05 → el pulgar es clínico y los FAB
-se aquietan.]
+se aquietan; (7) 14-ago, 4ª corrida: RTC-09 + RTC-11 → la IA vive en el
+paciente y la identidad cabe en el teléfono.]
 
 Iteración anterior:
 `V15-PERF-001` (§43 orden 15, §30) — **CERRADA 13-ago-2026** tras CINCO

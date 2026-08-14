@@ -15,7 +15,7 @@
  */
 import Link from 'next/link'
 import {
-  CalendarPlus, CalendarDays, Calendar, Clock, BedDouble, Activity, FlaskConical, Bug,
+  CalendarPlus, CalendarDays, Calendar, Clock, BedDouble, Activity,
   TrendingUp, Star, HeartHandshake, Pill, ShieldCheck, FileText, ArrowLeftRight,
   MessageCircle, BookOpen, Settings, CreditCard, LogOut, Moon, Sun, Monitor,
   type LucideIcon,
@@ -39,13 +39,29 @@ const GRUPOS: Grupo[] = [
       { href: '/lista-espera', label: 'Lista de espera', icon: Clock, modos: 'ambos' },
     ],
   },
+  /**
+   * RTC-09: aquí había un grupo titulado «Clínico» — dentro del índice que se
+   * define a sí mismo como «lo administrativo, APARTE del trabajo clínico».
+   *
+   * Dos cosas distintas vivían juntas y las dos salieron mal:
+   *
+   * 1. **Consultor IA y Antibiograma** eran páginas-módulo de IA en un menú:
+   *    IA feature-first, la antítesis de §3.2. Se fueron al PACIENTE, que es
+   *    donde ocurre la pregunta que contestan (ver `capacidades-del-paciente`
+   *    y la barra de Herramientas del expediente). No se borró ninguna ruta.
+   *
+   * 2. **Hospitalización y UCI** no son capacidades: son otro ESCENARIO de
+   *    atención (producto Hospital/UCI, ALPHA tras bandera — se usa, no se
+   *    vende). Se quedan en el índice secundario porque no son el flujo
+   *    primario del médico de consultorio (§11), pero con el nombre de lo que
+   *    son. El título viejo afirmaba que el área admin contenía «lo clínico»,
+   *    y eso era justo lo que §11 pide que no pase.
+   */
   {
-    titulo: 'Clínico',
+    titulo: 'Hospital y UCI',
     items: [
       { href: '/hospitalizacion', label: 'Hospitalización', icon: BedDouble, modos: 'ambos' },
       { href: '/uci', label: 'UCI', icon: Activity, modos: 'medico' },
-      { href: '/consultor', label: 'Consultor IA', icon: FlaskConical, modos: 'medico' },
-      { href: '/antibiograma', label: 'Antibiograma', icon: Bug, modos: 'medico' },
     ],
   },
   {
@@ -100,8 +116,9 @@ export default function OperacionesPage() {
         Operaciones
       </h1>
       <p className="t-body" style={{ color: 'var(--text2)', margin: '0 0 28px', maxWidth: 560 }}>
-        Todo lo administrativo del consultorio, aparte del trabajo clínico del día.
-        Nada de esto cambió de sitio — sólo se llega desde aquí en vez del menú principal.
+        La administración del consultorio y los módulos de hospital, aparte del
+        trabajo clínico del día. Nada de esto cambió de sitio — sólo se llega
+        desde aquí en vez del menú principal.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>

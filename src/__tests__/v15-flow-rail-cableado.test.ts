@@ -22,7 +22,9 @@
  *    (Hoy, Paciente, Encuentro, Seguimiento, Buscar) — no una lista de 20+.
  * 3. Toda ruta que vivía en el `Sidebar` de médico (los 21 `NAV` + Guía +
  *    Configuración) sigue siendo alcanzable: o quedó en `FlowRail`, o quedó
- *    en algún grupo de `/operaciones`. Ninguna se perdió en la reforma de IA.
+ *    en algún grupo de `/operaciones`, o —desde RTC-09— es una capacidad que
+ *    vive en el PACIENTE (`CAPACIDADES_DEL_PACIENTE`). Ninguna se perdió en la
+ *    reforma de IA.
  *
  * Probado al revés: si a `layout.tsx` se le quita la rama `navPrimaria` y
  * vuelve a renderizar `<Sidebar />` sin condición, el caso 1 falla. Si se
@@ -42,6 +44,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { RUTAS_DE_CAPACIDADES } from '@/lib/nav/capacidades-del-paciente'
 
 const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 
@@ -97,13 +100,30 @@ describe('V15 — plan de compatibilidad de rutas: nada de lo que vivía en Side
     return [...bloque.matchAll(/href:\s*'([^']+)'/g)].map(m => m[1])
   }
 
-  it('toda ruta del Sidebar de médico (NAV + Guía + Configuración) sigue alcanzable desde FlowRail u Operaciones', () => {
+  it('toda ruta del Sidebar de médico (NAV + Guía + Configuración) sigue alcanzable desde FlowRail, Operaciones o el PACIENTE', () => {
+    /**
+     * EL MECANISMO CAMBIÓ EN RTC-09; EL INVARIANTE NO.
+     *
+     * Hasta hoy había dos superficies donde podía vivir una ruta que salió del
+     * Sidebar: el `FlowRail` (lo primario) y `/operaciones` (lo secundario).
+     * RTC-09 abrió una TERCERA que no existía cuando se escribió esta prueba:
+     * la capacidad que vive en el PACIENTE (§3.2 — la IA es contextual). El
+     * consultor y el antibiograma se fueron del índice administrativo a la
+     * barra de Herramientas del expediente.
+     *
+     * El invariante que esta prueba defiende sigue siendo el mismo —«ninguna
+     * ruta se quedó huérfana en la reforma de IA»— y por eso NO se le añade
+     * una lista de excepciones escrita a mano: se lee la declaración real
+     * (`CAPACIDADES_DEL_PACIENTE`). Si mañana alguien borra la fila del
+     * expediente sin borrar la declaración, lo caza el guardián de RTC-09
+     * (`v15-rtc09-ia-contextual`), que exige que el expediente la consuma.
+     */
     const rutasAntiguas = [...hrefsDeArreglo(SIDEBAR, /const NAV:/), '/guia', '/configuracion']
     expect(rutasAntiguas.length).toBeGreaterThanOrEqual(21)
 
     const rutasFlowRail = [...FLOW_RAIL.matchAll(/href="([^"{]+)"/g)].map(m => m[1])
     const rutasOperaciones = hrefsDeArreglo(OPERACIONES, /const GRUPOS:/)
-    const alcanzables = new Set([...rutasFlowRail, ...rutasOperaciones])
+    const alcanzables = new Set([...rutasFlowRail, ...rutasOperaciones, ...RUTAS_DE_CAPACIDADES])
 
     const huerfanas = rutasAntiguas.filter(r => !alcanzables.has(r))
     expect(huerfanas).toEqual([])
