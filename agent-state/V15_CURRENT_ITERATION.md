@@ -699,6 +699,34 @@ No se pierde un dato, y lo que falta se sigue diciendo hablando del REGISTRO
 **bajó solo**: `tamanosFueraDeEscala` 1969 → **1963**, seis tamaños inline
 menos, re-sellado con `--actualizar`.
 
+### 5ª pasada de §29 (14-ago) — y el LÍMITE del método
+
+| Pendientes | Hoy | Pacientes | Operaciones | Consulta | Expediente |
+|---|---|---|---|---|---|
+| 1.0 | 1.5 | 1.5 | 1.5 | 1.5 | **≈1.0–1.5** |
+
+`/expediente` bajó por RTC-18 y por la fila de KPIs convertida en prosa; en la
+lectura general ya no se distingue de `/pendientes`. **Y ahí está el problema
+con el número**: entre 1.0 y 1.5 este score deja de discriminar. Las
+diferencias que quedan son de juicio, no de estructura — dos personas mirando
+la misma captura pondrían 1.0 y 1.5 sin que ninguna se equivoque. Y quien
+puntúa es quien hizo el trabajo, que es el peor sesgo posible cuando los
+márgenes se estrechan.
+
+Por eso la 5ª pasada **no declara PASS** aunque una lectura amable pudiera:
+
+1. La compuerta sigue formalmente en **FAIL** (≤1.0 exige que lleguen TODAS, y
+   cuatro están en 1.5 por lecturas mías).
+2. **El siguiente juez no puedo ser yo.** §29 nombra un panel de equipo rojo
+   precisamente para esto. Lo que falta no es implementar a ciegas: es una
+   lectura independiente sobre las capturas de la 5ª pasada.
+
+**Corrección al alcance de mi propia medición de píldoras**: el arnés cuenta
+CONTROLES (`button`, `a`). `/pendientes` salió con 0 y eso no significa que no
+tenga formas de píldora — su cola de cierre pinta ocho chips de estado por
+fila, que son `<span>` no interactivos. La conclusión no cambia; el «0» hay que
+leerlo como «cero píldoras PULSABLES».
+
 ### Lección de método: `npm run build` NO teclea las pruebas
 
 CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:

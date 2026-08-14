@@ -212,3 +212,58 @@ que puede ofrecer un score documentado.
 De **5.0 a 1.5** en una jornada, medido cuatro veces sobre capturas nuevas. Y
 sigue sin cumplir: **1.5 no es ≤1.0**, la compuerta §29/§34 continúa en FAIL y
 `V15-ORIGINALITY-REDTEAM-001` no se cierra.
+
+
+---
+
+# Quinta pasada — y el límite del método
+
+**Fecha:** 14-ago-2026 · **Capturas:** `docs/design/capturas/v15-repuntuacion-v29-5a/`.
+0 errores de consola.
+
+| Superficie | 1ª | 2ª | 3ª | 4ª | **5ª** |
+|---|---|---|---|---|---|
+| Pendientes | 1.0 | 1.0 | 1.0 | 1.0 | **1.0** |
+| Hoy | 2.0 | 2.0 | 1.5 | 1.5 | **1.5** |
+| Pacientes | 5.0 | 2.0 | 1.5 | 1.5 | **1.5** |
+| Operaciones | 4.0 | 2.0 | 1.5 | 1.5 | **1.5** |
+| Consulta | 2.0 | 2.0 | 2.0 | 1.5 | **1.5** |
+| **Expediente** | 2.5 | 2.5 | 2.0 | 1.5 | **≈1.0–1.5** |
+
+`/expediente` bajó por RTC-18 (el riel dejó de vestirse de filtro) y por la
+fila de KPIs convertida en prosa. En la lectura general ya no se distingue de
+`/pendientes`… **y ahí está el problema con el número.**
+
+## El método llegó a su resolución
+
+Entre 1.0 y 1.5 este score deja de discriminar. Las diferencias que quedan son
+de juicio, no de estructura: dos personas mirando la misma captura pondrían
+1.0 y 1.5 sin que ninguna se equivoque. Y quien puntúa es quien hizo el
+trabajo, que es el peor sesgo posible justo cuando los márgenes se estrechan.
+
+Por eso la 5ª pasada **no declara PASS**, aunque una lectura amable podría
+hacerlo. Lo honesto es decir dos cosas:
+
+1. **La compuerta sigue formalmente en FAIL**, porque `≤1.0` exige que TODAS
+   las superficies lleguen, y cuatro están en 1.5 por lecturas que yo mismo
+   hice.
+2. **El siguiente juez no puedo ser yo.** §29 nombra un panel de equipo rojo
+   precisamente para esto. Lo que queda no es implementación a ciegas: es una
+   lectura independiente sobre las capturas de la 5ª pasada.
+
+## Lo que sigue abierto, con su decisión ya tomada
+
+- **Las píldoras de `/pacientes`** — se quedan: la medición dice que informan
+  (3 en una fila, 2 con conteos). Convertirlas en frases sería copiarle la
+  forma a `/pendientes` sin mirar el trabajo.
+- **Los dos FAB de escritorio** (6/6) — RTC-05 se pagó con alcance declarado.
+  Si el panel independiente los nombra, se reabre; no antes.
+
+## Corrección al alcance de la medición de píldoras
+
+El arnés cuenta **controles** (`button`, `a`) con radio de píldora. `/pendientes`
+salió con **0**, y eso no significa que no tenga formas de píldora: su cola de
+cierre pinta ocho *chips* de estado por fila, que son `<span>` no interactivos.
+La conclusión —«lo que navega y lo que filtra no pueden compartir silueta»— no
+cambia, pero el «0» hay que leerlo como «cero píldoras PULSABLES», no como
+«cero píldoras».
