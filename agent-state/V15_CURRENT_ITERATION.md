@@ -7728,3 +7728,127 @@ dentro qué no mide y adónde mudó la medición fina.
 **Compuertas**: tsc limpio · vitest 9425/9426 (el rojo es el artefacto conocido
 del proxy del contenedor) · lint 96 = techo · trinquete de diseño sin deuda
 nueva · build compila. Sin arnés de navegador: esta rebanada no cambia píxeles.
+
+---
+
+## RTC-19 · 2ª tanda — `/configuracion` habla el token (14-ago)
+
+**Recontado antes de tocar nada** (sin comentarios, sin pruebas): **83
+literales vivos en 28 archivos**, y **31 en una sola superficie**. Ésa fue la
+rebanada.
+
+- **Pagados 20** de cromo de pantalla → `var(--nexus)` / `color-mix`. Dos
+  degradados de dos paradas casi idénticas (`0.06 → 0.02`) pasan a tinte plano:
+  nadie los percibía como degradado y el trinquete sí los contaba. **Techos
+  bajados y re-sellados: `hexEnLinea` 493 → 489, `gradientes` 16 → 14.**
+- **El hallazgo es lo que NO se toca.** Once literales se quedan porque
+  barrerlos rompería cosas sin que ninguna prueba se pusiera roja:
+  - `snippetBoton` / `snippetFlotante` se copian al **sitio web del
+    consultorio**, donde no existe `globals.css`. Un `var(--nexus)` ahí pegaría
+    un botón sin color en la página del médico. Y sus vistas previas llevan el
+    mismo hex a propósito, o enseñarían un botón distinto del que se pega.
+  - `colorAccento` no es cromo: es **dato**. Se edita en un
+    `<input type="color">` —que sólo acepta `#rrggbb`—, se guarda en Firestore
+    y acaba **impreso**.
+- **El navegador encontró lo que el `grep` no podía.** Con los dos ficheros de
+  la sección ya limpios, «Recetas, órdenes y notas» **seguía pintando
+  teal-500**: venía de `GuiaConfigurarReceta`, un componente de otra carpeta que
+  se pinta ahí dentro. Por fichero la superficie estaba limpia; en pantalla, no.
+- **`color-mix` verificado, no supuesto**: si no resolviera, el elemento se
+  queda sin fondo y el `git diff` se ve perfecto. Medido: soporte `true`, **0
+  elementos sin fondo**, tono calculado `rgb(42, 165, 181)` = `--nexus`.
+  Arnés nuevo `scripts/design/medir-rtc19-configuracion-v15.mjs`.
+- Y la razón de fondo: `#14b8a6` (teal-500) **no es** `--nexus` (#2AA5B5). No
+  era «un hex en línea»: era otro teal en la pantalla que más se abre después
+  de las clínicas.
+
+**Compuertas**: tsc limpio · vitest 9430/9432 → tras regenerar el inventario de
+pantallas queda 1 rojo, el artefacto conocido del proxy del contenedor · lint
+96 = techo · trinquete de diseño **con dos techos más bajos** · build compila ·
+navegador real (axe sin hallazgos, sin desbordes, táctiles ≥44). El acta
+registra 2 avisos de consola del emulador (Firestore no alcanzable desde el
+contexto del arnés) y 1 `pageerror` de reglas del emulador — ambientales, no
+del cambio.
+
+**Quedan ~52 literales** en documentos de receta, superadmin, landing e
+ilustraciones. Cada familia necesita la misma pregunta: **¿resuelve el token
+donde ese color acaba?**
+
+---
+
+## RTC-28 — contestado midiendo, y refutado en su mayor parte (14-ago)
+
+RT-21 lo dejó como **pregunta**, no como veredicto: «riel/topbar/FABs
+permanecen oscuros — verificar si es decisión o resto». Un P3 así no se paga
+escribiendo código.
+
+**Luminancia relativa del fondo realmente pintado** (subiendo por los ancestros
+cuando el elemento es translúcido — leer `rgba(0,0,0,0)` habría dado un falso
+«negro»), tres rutas, los dos temas:
+
+|                | claro | oscuro |
+|---|---|---|
+| superficie     | 0.9541 | 0.0037 |
+| riel           | 0.9541 | 0.0037 |
+| topbar         | 0.9541 | 0.0037 |
+| botón de tema  | 1      | 0.0074 |
+| botón de ayuda | 0.0999 | 0.1534 |
+
+- **Riel y topbar siguen al tema, exactamente.** La observación no se reproduce
+  hoy: entre medias, RTC-05 sacó los FABs del arco del pulgar y unificó el tema
+  en `@/hooks/useTema`.
+- **Lo único más oscuro que la superficie en claro es el botón de ayuda, y es
+  decisión**: `var(--nexus-solido)` (#177886), el token de RELLENO del acento,
+  documentado con su 5,16 : 1 con blanco encima y compartido con la corona del
+  pulgar. Un botón de acción relleno **es** más oscuro que la página en tema
+  claro — eso es lo que lo hace legible. Llamarlo «resto del tema oscuro» sería
+  confundir un relleno de acento con un fondo sin migrar.
+
+Cerrado **REFUTADO (riel, topbar) + DECISIÓN (FAB)**, no «arreglado» — un
+registro que apunta un arreglo donde no hubo defecto envenena la siguiente
+lectura. Guardián `v15-rtc28-el-cromo-sigue-al-tema.test.ts` (4 casos, probado
+al revés ×2) para que nadie ancle el cromo a un color fijo, que es el defecto
+que el panel creyó ver y el único que puede aparecer de verdad.
+
+**Compuertas**: tsc limpio · vitest 9435/9436 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete sin deuda nueva · navegador real, 0 errores de
+página. Sin cambios de producto: esta rebanada es una medición y su guardián.
+
+---
+
+## RTC-22 — la marca se decía dos veces, y la peor copia no era la denunciada (14-ago)
+
+Medido en navegador (`medir-rtc22-marca-duplicada-v15.mjs`), contando **nodos
+hoja** con el texto exacto — buscar por «contiene» habría contado también a
+cada ancestro y dado un número inventado:
+
+|                     | antes | después |
+|---|---|---|
+| escritorio sin paciente | 2 (riel + franja) | 1 (riel) |
+| escritorio con paciente | 2 (riel + franja) | 1 (riel) |
+| móvil sin paciente      | 1 (franja)        | 1 · intacto a propósito |
+| móvil con paciente      | 0                 | 0 |
+
+**Dos fuentes, no una.** El panel denunció el respaldo de la topbar; midiendo
+apareció la de escritorio, que era peor: pintaba el consultorio **siempre**,
+incluso con un paciente delante («Ausculta · María del Refugio Alcántara»). El
+elemento cuyo trabajo es el estado clínico (§5) empezaba diciendo la marca.
+
+- **El respaldo de la topbar no se borra**: a ≤768px el riel no está en
+  pantalla y ésa es la única identidad de la aplicación. Se oculta por ANCHO
+  (media query a 769px): quién dice el nombre depende de qué cromo hay en
+  pantalla, y eso lo sabe el CSS, no un `if`. Borrarlo habría sido el defecto
+  contrario y más caro.
+- **Sin paciente ni grabación, la franja de escritorio devuelve `null`.**
+  Quitada la marca, habría quedado una banda de 30px con una línea de
+  separación y nada dentro en todas las pantallas sin paciente.
+
+**Dos guardianes de tipografía ajustados con su porqué dentro** (precedente de
+guardián obsoleto: se muda al mismo invariante, no se borra): el respaldo pasó
+a llevar dos clases y la comparación exacta dejó de verlo; y el separador «·»
+dejó de tener trabajo al no haber nada que separar — se conserva la mitad que
+importa, que nunca vuelva DENTRO del enlace.
+
+**Compuertas**: tsc limpio · vitest 9440/9441 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete sin deuda nueva · build compila · navegador real
+antes/después, escritorio y móvil, **0 errores de consola**.

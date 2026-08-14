@@ -51,8 +51,8 @@ export function GuiaConfigurarReceta({ yaConfigurado }: GuiaConfigurarRecetaProp
 
   return (
     <div style={{
-      border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12,
-      background: 'rgba(20,184,166,0.06)', overflow: 'hidden',
+      border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 12,
+      background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', overflow: 'hidden',
     }}>
       <button
         onClick={() => setAbierta(v => !v)}

@@ -177,11 +177,22 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
             <span className="nx-ident-franja--clamp">{paciente.nombre}</span>
           </Link>
         ) : (
-          /* Sin paciente en la ruta, el consultorio porta la MISMA voz de
-             identidad de la franja — antes pintaba 16px mientras el paciente
-             pintaba 12: la franja hablaba más fuerte enseñando lo menos
-             importante (§5: «current patient» es el primer estado periférico). */
-          <span className="nx-ident-franja" style={{
+          /* SIN PACIENTE: EL CONSULTORIO, PERO SÓLO DONDE NO ESTÁ YA (RTC-22).
+             La franja porta la MISMA voz de identidad que el paciente — antes
+             pintaba 16px mientras el paciente pintaba 12: hablaba más fuerte
+             enseñando lo menos importante (§5: «current patient» es el primer
+             estado periférico).
+
+             Lo que RTC-22 añade es DÓNDE. En escritorio el riel ya lleva el
+             nombre del consultorio en su cabecera, así que esta copia lo
+             repetía: dos elementos con el mismo texto en la misma pantalla, y
+             ninguno de los dos es estado clínico. A ≤768px el riel no existe
+             —la barra del pulgar es la navegación— y entonces ésta es la
+             ÚNICA identidad que queda: ahí se conserva.
+
+             Se resuelve con ancho, no con JavaScript: quién pinta el nombre
+             depende de qué cromo hay en pantalla, y eso lo sabe el CSS. */
+          <span className="nx-ident-franja nx-marca-de-respaldo" style={{
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {config.nombreClinica || 'Ausculta'}
@@ -202,6 +213,19 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
     )
   }
 
+  /*
+    RTC-22 — SIN ESTADO CLÍNICO, NO HAY FRANJA.
+
+    Quitada la marca (ver abajo), esta variante se quedaría pintando una banda
+    de 30px con una línea de separación y nada dentro, en todas las pantallas
+    sin paciente. Una banda vacía no es estado periférico: es un renglón que
+    hay que saltarse.
+
+    Se devuelve `null`, que es lo que §5 pide cuando no hay nada que informar.
+    Vuelve sola en cuanto hay paciente o el micrófono se abre.
+  */
+  if (!paciente && segundos == null) return null
+
   return (
     <div
       role="status"
@@ -213,14 +237,26 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
       }}
       className="nx-instrument-strip"
     >
-      <span style={{ fontWeight: 600, color: 'var(--text2)' }}>
-        {config.nombreClinica || 'Ausculta'}
-      </span>
+      {/*
+        RTC-22 — AQUÍ VIVÍA LA SEGUNDA MARCA, Y ERA LA PEOR DE LAS DOS.
+
+        Esta franja pintaba el nombre del consultorio SIEMPRE, incluso con un
+        paciente delante: «Ausculta · Refugio Alcántara». O sea, el elemento
+        cuyo trabajo es el estado clínico (§5) empezaba diciendo la marca, y
+        el riel —que está en pantalla a dos centímetros a la izquierda, porque
+        esta variante sólo existe a partir de 769px— ya lo había dicho.
+
+        Medido en navegador antes y después: 2 apariciones visibles en
+        escritorio → 1 (la del riel). En el teléfono no cambia nada: esta
+        variante no se pinta ahí, y la de la topbar conserva su respaldo
+        porque allí el riel no existe.
+
+        Sin paciente, esta franja no dice nada — y está bien: no hay estado
+        clínico que decir. Lo que no puede es rellenarse con la marca para
+        justificar su banda.
+      */}
       {paciente && (
         <>
-          {/* El separador vive FUERA del enlace: subrayar «·» diría que el
-              punto también navega. */}
-          <span aria-hidden="true">·</span>
           {/* 8ª rebanada: el paciente es la voz de identidad de la franja
               (.nx-ident-franja, 14/600/var(--text)) — antes era cromo 12/
               --text2, indistinguible del nombre del consultorio de al lado.

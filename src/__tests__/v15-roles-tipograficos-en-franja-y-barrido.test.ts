@@ -89,8 +89,26 @@ describe('V15 §2 — InstrumentStrip: la identidad de la franja tiene una voz',
   it('el enlace del paciente habla nx-ident-franja en las DOS variantes (topbar y escritorio)', () => {
     const enlaces = FRANJA.match(/href=\{`\/expediente\/\$\{paciente\.id\}`\}/g) ?? []
     expect(enlaces.length).toBe(2)
-    const clases = FRANJA.match(/className="nx-ident-franja"/g) ?? []
-    // topbar (Link), respaldo del consultorio (span) y escritorio (Link)
+    /*
+      RTC-22 (14-ago-2026) — MISMO INVARIANTE, EL MECANISMO CAMBIÓ.
+
+      Este caso contaba `className="nx-ident-franja"` EXACTO y esperaba tres:
+      el enlace de la topbar, el respaldo del consultorio y el enlace de
+      escritorio. RTC-22 quitó la marca duplicada, y de las tres queda esto:
+
+        · el respaldo de la topbar sigue existiendo —a ≤768px es la única
+          identidad de la aplicación— pero ahora lleva DOS clases
+          (`nx-ident-franja nx-marca-de-respaldo`), así que la comparación
+          exacta ya no lo veía;
+        · el respaldo de ESCRITORIO se fue del todo: el riel dice el nombre a
+          dos centímetros y la franja existe para el estado clínico.
+
+      Lo que este caso defiende —que la identidad de la franja hable con UNA
+      voz, la de la clase— no cambia. Se cuenta la clase esté sola o
+      acompañada, que es lo que de verdad se quería contar.
+    */
+    const clases = FRANJA.match(/className="nx-ident-franja(?:[ "])/g) ?? []
+    // los dos enlaces de paciente + el respaldo de la topbar
     expect(clases.length).toBeGreaterThanOrEqual(3)
   })
 
@@ -130,9 +148,26 @@ describe('V15 §2 — InstrumentStrip: la identidad de la franja tiene una voz',
     expect(FRANJA).toContain('return cargado && cargado.id === patientId ? cargado : null')
   })
 
-  it('el separador «·» del escritorio vive FUERA del enlace — subrayar el punto diría que también navega', () => {
-    expect(FRANJA).toMatch(/<span aria-hidden="true">·<\/span>/)
+  it('el separador «·» ya no hace falta, y el punto NUNCA vuelve dentro del enlace', () => {
+    /*
+      RTC-22 (14-ago-2026) — EL DEFECTO SE FUE POR LA RAÍZ.
+
+      Este caso exigía que el «·» viviera FUERA del enlace del paciente:
+      subrayar el punto diría que el punto también navega. Tenía sentido
+      mientras la franja de escritorio pintaba «Ausculta · <paciente>», porque
+      el separador unía dos cosas.
+
+      RTC-22 quitó la marca de esa franja —el riel ya la dice, y la franja
+      existe para el estado clínico (§5)—, así que no queda nada que separar y
+      el «·» se fue con ella. El separador no se «rompió»: dejó de tener
+      trabajo.
+
+      Lo que este caso protege sigue vivo y es la mitad que importa: si algún
+      día vuelve un separador, **no puede meterse dentro del enlace**. Esa
+      afirmación se comprueba igual de bien sin exigir que el punto exista.
+    */
     expect(FRANJA).not.toMatch(/>\s*· \{paciente\.nombre\}/)
+    expect(FRANJA).not.toMatch(/<Link[^>]*>[^<]*·/)
   })
 })
 
