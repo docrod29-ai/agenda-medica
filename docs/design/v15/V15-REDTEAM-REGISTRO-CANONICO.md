@@ -19,9 +19,18 @@
 
 ## Estado de la compuerta §29/§34
 
-Ningún score consolidado cumple `GENERIC_AI_LOOK ≤ 1` (mejor: Pendientes
-2–3; peor: Pacientes/Operaciones 7). La compuerta queda **FAIL** hasta pagar
-los P1 de este registro. Los dos paneles COINCIDEN en las refutaciones: no
+Ningún score consolidado cumplía `GENERIC_AI_LOOK ≤ 1` (mejor: Pendientes
+2–3; peor: Pacientes/Operaciones 7) y la compuerta quedó **FAIL** hasta pagar
+los P1 de este registro.
+
+**14-ago-2026:** pagados los DOS P0 y NUEVE de los diez P1 (RTC-03, RTC-04,
+RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10, RTC-11), cada uno con guardián
+probado al revés y verificación en navegador real. Del décimo (RTC-12) se midió
+que su mitad de identidad **no se reproduce** —y quedó con candado— y su mitad
+estructural queda declarada como deuda del monolito con dueño. La compuerta
+§29/§34 pide **re-puntuar las superficies** (§29) sobre capturas nuevas antes de
+declararse PASS: los pagos están hechos, el score no se hereda de la corrida
+que los encontró. Los dos paneles COINCIDEN en las refutaciones: no
 hay imitación de competidor, §14 PASS (4+1 destinos), las superficies se
 distinguen entre sí en gris, y la cola de cierre de Pendientes es la semilla
 de identidad del producto (único Logo-off PASS).
@@ -47,12 +56,17 @@ una corrida del panel · `PARCIAL` = primera tanda pagada · `OPEN`.
 | RTC-09 | P1 | ORT-02 + RT-09 | Operaciones: grupo «CLÍNICO» (Consultor IA, Antibiograma) dentro del área admin; «Consultor IA» es página-módulo de IA feature-first — la antítesis de §3.2 y del propio copy de la pantalla | **FIXED 14-ago (4ª corrida)** — el grupo «Clínico» MURIÓ. Consultor y Antibiograma se declaran UNA vez en `@/lib/nav/capacidades-del-paciente` y viven en la barra de Herramientas del EXPEDIENTE (el encuentro ya lo hacía así: embebía `AntibiogramaTool` y abría el consultor con `?paciente=` — esto termina de aplicar el patrón, no lo inventa): el consultor se abre LLEVANDO al paciente, el antibiograma se USA ahí mismo sin navegar. Hospitalización/UCI se quedan en el índice secundario (§11) con el nombre de lo que son —«Hospital y UCI», otro escenario de atención, ALPHA tras bandera— y el copy de la pantalla dejó de prometer sólo «lo administrativo». Ninguna ruta se borró. Guardián `v15-rtc09-ia-contextual.test.ts` (7 casos, probado al revés: 4 rojos); el freeze de los 20 destinos y el de alcanzabilidad pasan a contar las DOS casas leyendo la declaración, no una lista a mano. Navegador real desktop+móvil (acta-rtc09-rtc11.json, 23/23 PASS, 0 errores de consola) |
 | RTC-10 | P1 | ORT-07 + RT-02 | Expediente: primer viewport sin un solo dato clínico (fila de exportación + 3 KPI-cards, 2 VACÍAS; historia bajo el pliegue ~675px); sin Clinical Spine real (§7): pila de cajas-módulo | **FIXED 14-ago (6ª corrida)** — el orden de la página dice ahora lo que la pantalla ES: identidad → estado → pendientes → historia → utilidades → documentos. Los tres botones de documentos/exportación bajaron al final con nombre propio («Documentos y exportación»), conservando conducta y avisos de lo que cada formato NO lleva; las tarjetas de signos y dx sólo se pintan CON contenido y su ausencia se dice en una línea que habla del REGISTRO («este expediente todavía no tiene … registrados»), no del paciente — regla 4 de seguridad clínica en las dos direcciones; las dos cajas-módulo plegadas (contacto, herramientas) bajaron bajo la historia; y el riel del Clinical Spine sigue el orden VISUAL (un índice que anuncia otro orden manda al médico abajo para volver a subir). Medido en navegador antes/después con el MISMO instrumento sobre los 3 expedientes sembrados (1440×900): pendientes **775px bajo el pliegue → 492px antes de la historia**, cajas-módulo sobre la historia **2 → 0**, tarjetas vacías **2 → 0**, export sobre la historia **3 → 0**. Guardián `v15-rtc10-primer-viewport-clinico.test.ts` (8 casos, probado al revés ×2: 2 rojos por las tarjetas, 1 por el orden). Actas: `docs/design/capturas/v15-rtc10/medicion-{baseline,despues}.json` |
 | RTC-11 | P1 | ORT-08 + RT-13 (móvil) | Pacientes móvil: identidad rota (nombre en 3 renglones en columna ~90px, teléfono partido, «Editar» intacto) — defecto #13 de la DNA reaparecido | **FIXED 14-ago (4ª corrida)** — la fila tiene variante MÓVIL: bajo 768px «Editar» (datos de CONTACTO: administrativo) y el chevron decorativo salen, y la identidad se queda con el ancho. Medido en navegador: **de 3 renglones en ~90px a 1 renglón en 228px**; en escritorio «Editar» sigue pintado (variante, no amputación). La capacidad se MUEVE, no se ampu­ta: «Editar datos» del expediente hacía `push('/pacientes')` —un viaje que no llegaba: te soltaba en la lista con el editor cerrado— y ahora abre `?editar=<id>`, que la lista obedece. `!important` en la regla porque los dos elementos declaran su `display` en línea (la trampa que el arnés cazó en RTC-05). Guardián `v15-rtc11-fila-paciente-movil.test.ts` (5 casos, probado al revés: 3 rojos); navegador real 390+1440 (acta-rtc09-rtc11.json, 23/23 PASS) |
+| RTC-12 | P1 | RT-07 | Ninguna superficie usa el lienzo de escritorio: columna única 880–1100px en todas; en consulta a 1440 el paciente se pierde al desplazar | **PARTIDO 14-ago (6ª corrida), medido en navegador.** (b) «el paciente se pierde al desplazar»: **NO SE REPRODUCE** — con el `<main>` desplazado 1500 de 2549px reales en /consulta a 1440, la identidad SIGUE a la vista, porque el `InstrumentStrip` (Capa 1, §5) vive FUERA del contenedor con `overflow-y:auto`. No es suerte y no se deja sin candado: guardián `v15-rtc12-la-identidad-no-se-desplaza.test.ts` (3 casos, probado al revés) para que un refactor de layout no lo rompa en silencio — es la familia «paciente equivocado» de REG-312. (a) «columna única»: **CONFIRMADO y dimensionado** — hoy 900px, pacientes 1100px, expediente 880px, consulta 980px, de 1440 (340–560px sin usar). Sigue **ABIERTO** y es lo que el propio registro declara deuda del monolito de 6147 líneas → V15-NOTE-PLAN-CONTINUITY / refactor: se planea entero antes de abrirlo. Acta: `docs/design/capturas/v15-rtc12/medicion-baseline.json` |
 
 ### P1 abiertos (orden de pago)
 
-| ID | Sev | Origen | Defecto | Pago |
-|---|---|---|---|---|
-| RTC-12 | P1 | RT-07 | Ninguna superficie usa el lienzo de escritorio: columna única 880–1100px en todas; en consulta a 1440 el paciente se pierde al desplazar | Deuda dimensionada del monolito (6147 líneas) → V15-NOTE-PLAN-CONTINUITY / refactor |
+Ninguno pendiente de pago. Los diez se cerraron entre el 13 y el 14-ago-2026;
+el único que sigue teniendo trabajo por delante es **RTC-12(a)** —el lienzo
+multicolumna— y no está aquí porque no es una rebanada de esta iteración: es
+deuda del monolito de 6147 líneas, dimensionada arriba y con dueño declarado
+(V15-NOTE-PLAN-CONTINUITY / refactor). Ponerlo en «abiertos» invitaría a
+abrirlo a ciegas, que es justo lo que el registro pide no hacer.
+
 
 ### P2 abiertos
 

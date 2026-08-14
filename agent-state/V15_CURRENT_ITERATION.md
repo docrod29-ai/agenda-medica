@@ -232,12 +232,35 @@ limpiador, no por el producto. Las tres son la misma familia que
 ver código**. Un instrumento que aprueba el defecto que viene a medir es peor
 que no tener instrumento.
 
-**Siguiente rebanada exacta:** queda UN P1 — **RTC-12** (ninguna superficie usa
-el lienzo de escritorio: columna única 880–1100px en todas; en consulta a 1440
-el paciente se pierde al desplazar). El registro lo declara deuda dimensionada
-del monolito de 6147 líneas → V15-NOTE-PLAN-CONTINUITY / refactor: **planearlo
-entero antes de abrirlo**, y decidir si cabe en esta iteración o si
-ORIGINALITY-REDTEAM-001 cierra con él declarado y con dueño.
+- **RTC-12 — PARTIDO por la medición (14-ago, 6ª corrida).** El defecto juntaba
+  dos cosas y sólo una era cierta hoy:
+  · **(b) «en consulta a 1440 el paciente se pierde al desplazar»: NO SE
+    REPRODUCE.** Con el `<main>` desplazado 1500 de 2549px REALES, la identidad
+    sigue a la vista — el `InstrumentStrip` vive FUERA del contenedor con
+    `overflow-y:auto`, así que por construcción no puede irse con el contenido.
+    Lo contestó el shell de V15-SHELL-GREYBOX-001 antes de que nadie lo
+    preguntara. No se deja sin candado: guardián
+    `v15-rtc12-la-identidad-no-se-desplaza.test.ts` (3 casos, probado al revés)
+    porque basta un refactor de layout que meta la franja dentro del `<main>`
+    para que el nombre del paciente empiece a irse a mitad de una nota — familia
+    «paciente equivocado», la de REG-312.
+  · **(a) «columna única 880–1100px»: CONFIRMADO y dimensionado** — hoy 900,
+    pacientes 1100, expediente 880, consulta 980, de 1440 (340–560px sin usar).
+    Sigue ABIERTO y es lo que el propio registro declara deuda del monolito de
+    6147 líneas → V15-NOTE-PLAN-CONTINUITY / refactor. **No se abre aquí**: se
+    planea entero antes, que es lo que el registro pedía desde el principio.
+  Nota de método: la primera pasada del arnés hacía `window.scrollTo` y no movía
+  NADA —el contenedor con scroll es `<main>`, no la ventana— y aun así informaba
+  «la identidad sigue a la vista». Una condición que pasa porque el gesto no
+  ocurrió es peor que una que falla; es la tercera vez en dos corridas que el
+  instrumento, y no el producto, resulta ser el defecto.
+
+**Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0 y los
+DIEZ P1 resueltos o declarados con dueño. **No se declara CERRADA todavía**: la
+compuerta §29/§34 pide **re-puntuar las superficies** (§29) sobre capturas
+NUEVAS — los pagos están hechos, pero el score no se hereda de la corrida que
+encontró los defectos. Esa re-puntuación es la siguiente rebanada; después,
+§43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
 
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;

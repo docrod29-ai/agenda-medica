@@ -1,0 +1,78 @@
+{
+  "base": "http://localhost:3000",
+  "viewport": "1440x900",
+  "medidas": {
+    "hoy": {
+      "ruta": "/dashboard",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeLaColumna": 900,
+      "alturaDelDocumento": 900,
+      "scrollY": 0,
+      "scrollDelMain": 95,
+      "altoScrollDelMain": 924,
+      "posicionDeLaFranja": "static (fuera del scroll)",
+      "marcasDeIdentidad": 6,
+      "identidadVisibleTrasDesplazar": true,
+      "textoVisible": [
+        "Aurelio Domínguez Peña",
+        "Luz María Cervantes Ochoa"
+      ],
+      "anchoDesaprovechado": 540
+    },
+    "pacientes": {
+      "ruta": "/pacientes",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeLaColumna": 1100,
+      "alturaDelDocumento": 900,
+      "scrollY": 0,
+      "scrollDelMain": 0,
+      "altoScrollDelMain": 829,
+      "posicionDeLaFranja": "static (fuera del scroll)",
+      "marcasDeIdentidad": 6,
+      "identidadVisibleTrasDesplazar": true,
+      "textoVisible": [
+        "Luz María Cervantes Ochoa",
+        "Joaquín Esparza Villarreal"
+      ],
+      "anchoDesaprovechado": 340
+    },
+    "expediente": {
+      "ruta": "/expediente/pac-refugio-alcantara",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeLaColumna": 880,
+      "alturaDelDocumento": 900,
+      "scrollY": 0,
+      "scrollDelMain": 412,
+      "altoScrollDelMain": 1241,
+      "posicionDeLaFranja": "static (fuera del scroll)",
+      "marcasDeIdentidad": 3,
+      "identidadVisibleTrasDesplazar": true,
+      "textoVisible": [
+        "María del Refugio Alcántara Solís",
+        "María del Refugio Alcántara Solís"
+      ],
+      "anchoDesaprovechado": 560
+    },
+    "consulta": {
+      "ruta": "/consulta/pac-refugio-alcantara",
+      "anchoDelViewport": 1440,
+      "anchoDelMain": 1216,
+      "anchoDeLaColumna": 980,
+      "alturaDelDocumento": 900,
+      "scrollY": 0,
+      "scrollDelMain": 1500,
+      "altoScrollDelMain": 2549,
+      "posicionDeLaFranja": "static (fuera del scroll)",
+      "marcasDeIdentidad": 3,
+      "identidadVisibleTrasDesplazar": true,
+      "textoVisible": [
+        "María del Refugio Alcántara Solís"
+      ],
+      "anchoDesaprovechado": 460
+    }
+  },
+  "erroresDeConsola": []
+}
