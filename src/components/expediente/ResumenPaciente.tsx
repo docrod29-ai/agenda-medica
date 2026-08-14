@@ -57,46 +57,83 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
     if (signos.glucometria) vitales.push({ label: 'Gluc', valor: `${signos.glucometria}` })
   }
 
+  /**
+   * RTC-10 — UNA TARJETA VACÍA NO ES INFORMACIÓN: ES INVENTARIO.
+   *
+   * Medido en navegador el 14-ago sobre los TRES expedientes sembrados —el que
+   * tiene notas incluido—: dos de las tres tarjetas decían «Sin signos
+   * registrados aún» / «Sin diagnósticos activos», con su caja, su borde y su
+   * encabezado a peso completo. Dos cajas del primer viewport de un expediente
+   * clínico ocupadas por la ausencia de dato, empujando la historia clínica a
+   * 743px. Es el §7 al revés: el primer viewport tenía que ser el paciente.
+   *
+   * Lo que NO se hace: desaparecer el hecho. «Ausencia de dato no es dato de
+   * ausencia» (regla 4 de seguridad clínica) va en las dos direcciones — que no
+   * haya signos registrados es información sobre el EXPEDIENTE y el médico
+   * tiene derecho a leerla. Así que lo vacío no se borra: se degrada a una
+   * línea callada, y por eso el texto habla del registro («sin registro»), no
+   * del paciente. «Sin diagnósticos activos» sonaba a afirmación clínica sobre
+   * la persona; era el mismo defecto en palabras.
+   */
+  const conSignos = vitales.length > 0
+  const conDx = dxActivos.length > 0
+  const ausentes = [
+    ...(conSignos ? [] : ['signos']),
+    ...(conDx ? [] : ['diagnósticos']),
+  ]
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12, marginBottom: 16 }}>
-      <div style={tarjeta}>
-        <div style={encabezado}><Activity size={13} /> Últimos signos</div>
-        {vitales.length > 0 ? (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12 }}>
+        {conSignos && (
+          <div style={tarjeta}>
+            <div style={encabezado}><Activity size={13} /> Últimos signos</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: 8 }}>
+              {vitales.map(v => (
+                <div key={v.label}>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{v.label}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{v.valor}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {conDx && (
+          <div style={tarjeta}>
+            <div style={encabezado}><Stethoscope size={13} /> Diagnósticos activos</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {dxActivos.map((d, i) => (
+                <span key={i} style={{ fontSize: 12, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '3px 10px', color: 'var(--text2)' }}>{d}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={tarjeta}>
+          <div style={encabezado}><CalendarClock size={13} /> Actividad</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: 8 }}>
-            {vitales.map(v => (
-              <div key={v.label}>
-                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{v.label}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{v.valor}</div>
-              </div>
-            ))}
-          </div>
-        ) : <div style={vacio}>Sin signos registrados aún</div>}
-      </div>
-
-      <div style={tarjeta}>
-        <div style={encabezado}><Stethoscope size={13} /> Diagnósticos activos</div>
-        {dxActivos.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-            {dxActivos.map((d, i) => (
-              <span key={i} style={{ fontSize: 12, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '3px 10px', color: 'var(--text2)' }}>{d}</span>
-            ))}
-          </div>
-        ) : <div style={vacio}>Sin diagnósticos activos</div>}
-      </div>
-
-      <div style={tarjeta}>
-        <div style={encabezado}><CalendarClock size={13} /> Actividad</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: 8 }}>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>Consultas</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{notas.length}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>Última visita</div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{fmt(ultimaFecha) ?? '—'}</div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>Consultas</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{notas.length}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>Última visita</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{fmt(ultimaFecha) ?? '—'}</div>
+            </div>
           </div>
         </div>
       </div>
+
+      {ausentes.length > 0 && (
+        /* Lo que falta se DICE, en una línea y hablando del registro. No es una
+           tarjeta porque no tiene contenido que enseñar; no desaparece porque
+           que el expediente no traiga signos es algo que el médico necesita
+           saber antes de prescribir. */
+        <div style={{ ...vacio, marginTop: 8 }}>
+          Este expediente todavía no tiene {ausentes.join(' ni ')} registrados.
+        </div>
+      )}
     </div>
   )
 }

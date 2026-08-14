@@ -141,18 +141,25 @@ export default function ExpedientePage() {
     entradas del riel para secciones que no existen; quedan para cuando esas
     pantallas se construyan.
   */
+  /**
+   * RTC-10: el riel sigue el orden VISUAL de la página, no al revés. Al subir
+   * el estado clínico y los pendientes por encima de las cajas-módulo, un riel
+   * que siguiera anunciando «Encuentros» primero mandaría al médico hacia
+   * abajo para volver a subir — un índice que miente sobre su propio documento
+   * es peor que no tenerlo (§7).
+   */
   const spineItems: ClinicalSpineItem[] = [
-    { id: 'encuentros', label: 'Encuentros', count: loading ? undefined : notas.length },
     ...(problemas.length > 0 || vigentes.length > 0
       ? [{ id: 'problemas', label: 'Diagnósticos y medicamentos', detail: `${problemas.length} dx · ${vigentes.length} fármaco${vigentes.length === 1 ? '' : 's'}` }]
       : []),
-    ...(clinicId && patientId ? [{ id: 'herramientas', label: 'Laboratorios y fotografía' }] : []),
     ...(pendientesPaciente && pendientesPaciente.lista.length > 0
       ? [{ id: 'pendientes', label: 'Pendientes', count: pendientesPaciente.lista.length }]
       : []),
+    { id: 'encuentros', label: 'Encuentros', count: loading ? undefined : notas.length },
     ...(internamientosPaciente && internamientosPaciente.length > 0
       ? [{ id: 'internamientos', label: 'Ingresos', count: internamientosPaciente.length }]
       : []),
+    ...(clinicId && patientId ? [{ id: 'herramientas', label: 'Laboratorios y fotografía' }] : []),
   ]
 
   return (
@@ -183,93 +190,21 @@ export default function ExpedientePage() {
           resaltada mientras se recorre la página. */}
       <ClinicalSpine items={spineItems} />
 
-      {/* `exp-actions`: bajo 480px la rejilla pone el CTA primario (Nueva
-          consulta con IA) ARRIBA a fila completa — sin ella, .actions-row
-          global apila los 4 botones a lo ancho en orden DOM y el primario
-          queda CUARTO, bajo tres secundarios de igual peso (V10-DEBT-006). */}
+      {/* RTC-10 — LO PRIMERO DE UN EXPEDIENTE ES EL PACIENTE, NO SU ARCHIVO.
+          Aquí había CUATRO botones al mismo peso: tres de documentos/exportación
+          (Carta de referencia · Expediente completo · FHIR) y el primario
+          clínico. Medido en navegador el 14-ago: los tres empujaban la historia
+          clínica a 743px, y el primer viewport de un expediente se gastaba en
+          gestión documental. Los tres bajaron al FINAL, agrupados y con nombre
+          («Documentos y exportación»): siguen a un clic, con la MISMA conducta
+          y los mismos avisos de lo que cada archivo no lleva, pero ya no
+          compiten con el paciente por la primera pantalla (§7).
+          `exp-actions` se queda: su rejilla móvil (V10-DEBT-006) sigue rigiendo
+          esta fila, ahora con el primario como único ocupante — el invariante
+          de aquella deuda («el primario es lo primero que encuentra el pulgar»)
+          pasa a cumplirse porque ya no hay nada más con quien competir. */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
         <div className="actions-row exp-actions">
-          <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            <Send size={15} /> Carta de referencia
-          </button>
-          {/*
-            EXPEDIENTE COMPLETO — lo que el archivo llamado «expediente» nunca fue.
-            El botón de FHIR de al lado lleva paciente + notas FIRMADAS. Éste
-            lleva TODO lo que la aplicación guarda del paciente (adendas,
-            laboratorios, fotografía clínica, antecedentes, formularios,
-            internamientos con sus signos, citas y bitácora) y DECLARA lo que no
-            se pudo leer.
-          */}
-          <button onClick={async () => {
-            if (!clinicId || !patient) return
-            setDescargandoTodo(true)
-            try {
-              const r = await fetchAutenticado(`/api/expediente/exportar/${patientId}?clinicId=${encodeURIComponent(clinicId)}`)
-              const cuerpo = await r.json()
-              if (!r.ok) { toast(cuerpo?.error || 'No se pudo armar el expediente', 'error'); return }
-              const nombre = patient.nombre.replace(/[^\w]/g, '_').slice(0, 30)
-              const blob = new Blob([JSON.stringify(cuerpo, null, 2)], { type: 'application/json' })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = `expediente_completo_${nombre}.json`
-              a.click()
-              URL.revokeObjectURL(url)
-              // Lo que falta se DICE. Un expediente incompleto que no lo declara
-              // se entrega creyendo que está completo.
-              const faltan = (cuerpo.faltantes ?? []) as { seccion: string }[]
-              toast(faltan.length
-                ? `Expediente descargado, pero ${faltan.length} sección(es) no se pudieron leer: ${faltan.map(f => f.seccion).join(', ')}. Vienen listadas en el archivo.`
-                : 'Expediente completo descargado.', faltan.length ? 'info' : 'success')
-            } catch {
-              toast('No se pudo conectar para armar el expediente', 'error')
-            } finally { setDescargandoTodo(false) }
-          }} disabled={descargandoTodo} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
-            <Upload size={15} /> {descargandoTodo ? 'Armando…' : 'Expediente completo'}
-          </button>
-          <button onClick={async () => {
-            if (!clinicId || !patient) return
-            const { exportarPacienteAFhir, resumenNotasExportadas } = await import('@/lib/fhir-export')
-            const { logAudit } = await import('@/lib/expediente/audit-log')
-            const { config } = await (async () => {
-              const { getConfig } = await import('@/lib/firestore')
-              return { config: await getConfig(clinicId) }
-            })()
-            const bundle = exportarPacienteAFhir({ paciente: patient, notas, config })
-            const json = JSON.stringify(bundle, null, 2)
-            const nombre = patient.nombre.replace(/[^\w]/g, '_').slice(0, 30)
-            const blob = new Blob([json], { type: 'application/fhir+json' })
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = `expediente_${nombre}_FHIR_R4.json`
-            a.click()
-            URL.revokeObjectURL(url)
-            /**
-             * SE DICE QUÉ LLEVA. Antes las notas en borrador se caían del
-             * archivo en silencio: un expediente con huecos que nadie señala se
-             * entrega creyendo que está completo.
-             */
-            const rn = resumenNotasExportadas(notas)
-            toast(
-              rn.borradores > 0
-                ? `Archivo FHIR descargado: ${rn.firmadas} nota(s) firmada(s) y ${rn.borradores} en borrador, marcadas como preliminares. Los borradores van sin diagnósticos ni recetas estructuradas.`
-                : `Archivo FHIR descargado: ${rn.firmadas} nota(s) firmada(s).`,
-              'success',
-            )
-            logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notas.length, borradores: rn.borradores } })
-            /**
-             * FHIR sólo lleva las notas FIRMADAS, y antes se descartaban las
-             * demás en silencio. Se dice cuántas quedaron fuera: un archivo con
-             * huecos que nadie señala se entrega creyendo que está completo.
-             */
-            const borradores = notas.filter(n => n.estado !== 'firmada').length
-            toast(borradores
-              ? `FHIR R4 exportado con ${notas.length - borradores} notas firmadas. ${borradores} en borrador NO van en FHIR — usa «Expediente completo».`
-              : 'Expediente exportado en FHIR R4', borradores ? 'info' : 'success')
-          }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            <Upload size={15} /> FHIR
-          </button>
           <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} style={primaryBtn}>
             <Mic size={16} /> Nueva consulta
           </button>
@@ -281,79 +216,16 @@ export default function ExpedientePage() {
           pero aquí la info ya existía, solo estaba dispersa). */}
       <ResumenPaciente patient={patient} notas={notas} />
 
-      {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
-      <DatosPaciente
-        patient={patient}
-        /**
-         * RTC-11: esto era `router.push('/pacientes')` a secas — un viaje de
-         * ida sin destino: te dejaba en la lista, con el editor cerrado, y a
-         * buscar de nuevo al paciente que acababas de tener abierto. Pasaba
-         * inadvertido en escritorio porque «Editar» también vivía en la fila;
-         * al quitarlo de la fila en móvil, este rebote se volvía el ÚNICO
-         * camino — y no llegaba. Ahora la lista abre el editor de ESE paciente
-         * (`?editar=`), que es lo que el botón siempre prometió.
-         */
-        onEditar={() => router.push(`/pacientes?editar=${encodeURIComponent(patientId)}`)}
-        onRevocar={async () => {
-          if (!clinicId || !patientId) return
-          if (!(await confirm(
-            'Los enlaces del portal que ya le enviaste a este paciente dejarán de funcionar. Tendrás que mandarle uno nuevo. ¿Continuar?',
-            { peligro: true, confirmar: 'Invalidar' },
-          ))) return
-          try {
-            await updatePatient(clinicId, patientId, { portalTokenVersion: (patient?.portalTokenVersion ?? 0) + 1 })
-            toast('Listo: los enlaces anteriores ya no sirven.', 'success')
-          } catch {
-            toast('No se pudieron invalidar. Revisa tu conexión.', 'error')
-          }
-        }}
-      />
-
-      {/* Herramientas del expediente en UN SOLO bloque (antes eran dos cajas
-          separadas, cada una con su encabezado "Herramientas clínicas" — se veían
-          duplicadas). Laboratorios y la fotografía seriada, ambas plegadas.
-
-          RTC-09: aquí entran también las dos capacidades que estaban como
-          páginas-módulo en el índice ADMINISTRATIVO (§3.2: la IA es contextual,
-          nunca un módulo feature-first). El encuentro ya las tenía así —embebe
-          `AntibiogramaTool` y abre el consultor con `?paciente=`—; el expediente
-          no las había recibido. Las declara `@/lib/nav/capacidades-del-paciente`
-          UNA vez, y de ahí las lee el guardián de alcanzabilidad. */}
-      {clinicId && patientId && (
-        <div id="spine-herramientas">
-          <Herramientas items={[
-            {
-              id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
-              para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
-              contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
-            },
-            {
-              id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
-              para: 'Serie por región · comparación antes/después con días de evolución',
-              contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
-            },
-            ...CAPACIDADES_DEL_PACIENTE.map(cap => ({
-              id: cap.id,
-              nombre: cap.nombre,
-              color: 'var(--teal)',
-              icono: cap.id === 'consultor' ? <Sparkles size={14} /> : <Bug size={14} />,
-              para: cap.para,
-              contenido: cap.conPaciente
-                ? <CapacidadQueLleva href={cap.conPaciente(patientId)} nombre={cap.nombre} paciente={patient?.nombre ?? ''} />
-                : <AntibiogramaDelPaciente />,
-            })),
-          ]} />
-        </div>
-      )}
-
-      {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la
-          consulta ("Valoración Inmunocomprometido"), no como sección aquí. */}
-
-      {/* Historia clínica — ancla del Clinical Spine ("Encuentros"). */}
-      <div id="spine-encuentros" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
-        Historia clínica
-      </div>
-
+      {/* RTC-10 — LO CLÍNICO ANTES QUE LAS CAJAS-MÓDULO.
+          Estos dos bloques —el estado actual en una línea (dx y qué toma) y lo
+          que quedó pendiente de ESTE paciente— vivían DEBAJO del contacto
+          plegado y de la barra de herramientas. Medido en navegador el 14-ago:
+          el primer viewport de un expediente no traía un solo dato clínico, y
+          la historia empezaba a 743px. El equipo rojo lo llamó por su nombre:
+          «pila de cajas-módulo» en vez del §7. El orden ahora dice lo que la
+          pantalla es: identidad → estado → pendientes → historia; las
+          utilidades (contacto, laboratorios, fotografía, capacidades) quedan
+          después, que es cuando se buscan. */}
       {/*
         EL ESTADO ACTUAL, EN UNA LÍNEA (REG-262).
 
@@ -409,6 +281,12 @@ export default function ExpedientePage() {
           />
         </div>
       )}
+
+
+      {/* Historia clínica — ancla del Clinical Spine ("Encuentros"). */}
+      <div id="spine-encuentros" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
+        Historia clínica
+      </div>
 
       {/*
         LOS INGRESOS DE ESTE PACIENTE (REG-261).
@@ -528,6 +406,168 @@ export default function ExpedientePage() {
           ))}
         </div>
       )}
+      {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
+      <DatosPaciente
+        patient={patient}
+        /**
+         * RTC-11: esto era `router.push('/pacientes')` a secas — un viaje de
+         * ida sin destino: te dejaba en la lista, con el editor cerrado, y a
+         * buscar de nuevo al paciente que acababas de tener abierto. Pasaba
+         * inadvertido en escritorio porque «Editar» también vivía en la fila;
+         * al quitarlo de la fila en móvil, este rebote se volvía el ÚNICO
+         * camino — y no llegaba. Ahora la lista abre el editor de ESE paciente
+         * (`?editar=`), que es lo que el botón siempre prometió.
+         */
+        onEditar={() => router.push(`/pacientes?editar=${encodeURIComponent(patientId)}`)}
+        onRevocar={async () => {
+          if (!clinicId || !patientId) return
+          if (!(await confirm(
+            'Los enlaces del portal que ya le enviaste a este paciente dejarán de funcionar. Tendrás que mandarle uno nuevo. ¿Continuar?',
+            { peligro: true, confirmar: 'Invalidar' },
+          ))) return
+          try {
+            await updatePatient(clinicId, patientId, { portalTokenVersion: (patient?.portalTokenVersion ?? 0) + 1 })
+            toast('Listo: los enlaces anteriores ya no sirven.', 'success')
+          } catch {
+            toast('No se pudieron invalidar. Revisa tu conexión.', 'error')
+          }
+        }}
+      />
+
+      {/* Herramientas del expediente en UN SOLO bloque (antes eran dos cajas
+          separadas, cada una con su encabezado "Herramientas clínicas" — se veían
+          duplicadas). Laboratorios y la fotografía seriada, ambas plegadas.
+
+          RTC-09: aquí entran también las dos capacidades que estaban como
+          páginas-módulo en el índice ADMINISTRATIVO (§3.2: la IA es contextual,
+          nunca un módulo feature-first). El encuentro ya las tenía así —embebe
+          `AntibiogramaTool` y abre el consultor con `?paciente=`—; el expediente
+          no las había recibido. Las declara `@/lib/nav/capacidades-del-paciente`
+          UNA vez, y de ahí las lee el guardián de alcanzabilidad. */}
+      {clinicId && patientId && (
+        <div id="spine-herramientas">
+          <Herramientas items={[
+            {
+              id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+              para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
+              contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
+            },
+            {
+              id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
+              para: 'Serie por región · comparación antes/después con días de evolución',
+              contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
+            },
+            ...CAPACIDADES_DEL_PACIENTE.map(cap => ({
+              id: cap.id,
+              nombre: cap.nombre,
+              color: 'var(--teal)',
+              icono: cap.id === 'consultor' ? <Sparkles size={14} /> : <Bug size={14} />,
+              para: cap.para,
+              contenido: cap.conPaciente
+                ? <CapacidadQueLleva href={cap.conPaciente(patientId)} nombre={cap.nombre} paciente={patient?.nombre ?? ''} />
+                : <AntibiogramaDelPaciente />,
+            })),
+          ]} />
+        </div>
+      )}
+
+      {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la
+          consulta ("Valoración Inmunocomprometido"), no como sección aquí. */}
+
+      {/* RTC-10 — DOCUMENTOS Y EXPORTACIÓN, subordinados y con nombre.
+          Vivían en la cabecera al mismo peso que el CTA clínico. No son el
+          trabajo del día: son el archivo. Aquí siguen enteros —misma conducta,
+          mismos avisos de lo que cada formato NO lleva— y el primer viewport
+          queda para el paciente. */}
+      <section style={{ marginTop: 32, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+        <h2 className="t-overline" style={{ margin: '0 0 10px' }}>
+          Documentos y exportación
+        </h2>
+        <div className="actions-row">
+          <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            <Send size={15} /> Carta de referencia
+          </button>
+          {/*
+            EXPEDIENTE COMPLETO — lo que el archivo llamado «expediente» nunca fue.
+            El botón de FHIR de al lado lleva paciente + notas FIRMADAS. Éste
+            lleva TODO lo que la aplicación guarda del paciente (adendas,
+            laboratorios, fotografía clínica, antecedentes, formularios,
+            internamientos con sus signos, citas y bitácora) y DECLARA lo que no
+            se pudo leer.
+          */}
+          <button onClick={async () => {
+            if (!clinicId || !patient) return
+            setDescargandoTodo(true)
+            try {
+              const r = await fetchAutenticado(`/api/expediente/exportar/${patientId}?clinicId=${encodeURIComponent(clinicId)}`)
+              const cuerpo = await r.json()
+              if (!r.ok) { toast(cuerpo?.error || 'No se pudo armar el expediente', 'error'); return }
+              const nombre = patient.nombre.replace(/[^\w]/g, '_').slice(0, 30)
+              const blob = new Blob([JSON.stringify(cuerpo, null, 2)], { type: 'application/json' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `expediente_completo_${nombre}.json`
+              a.click()
+              URL.revokeObjectURL(url)
+              // Lo que falta se DICE. Un expediente incompleto que no lo declara
+              // se entrega creyendo que está completo.
+              const faltan = (cuerpo.faltantes ?? []) as { seccion: string }[]
+              toast(faltan.length
+                ? `Expediente descargado, pero ${faltan.length} sección(es) no se pudieron leer: ${faltan.map(f => f.seccion).join(', ')}. Vienen listadas en el archivo.`
+                : 'Expediente completo descargado.', faltan.length ? 'info' : 'success')
+            } catch {
+              toast('No se pudo conectar para armar el expediente', 'error')
+            } finally { setDescargandoTodo(false) }
+          }} disabled={descargandoTodo} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
+            <Upload size={15} /> {descargandoTodo ? 'Armando…' : 'Expediente completo'}
+          </button>
+          <button onClick={async () => {
+            if (!clinicId || !patient) return
+            const { exportarPacienteAFhir, resumenNotasExportadas } = await import('@/lib/fhir-export')
+            const { logAudit } = await import('@/lib/expediente/audit-log')
+            const { config } = await (async () => {
+              const { getConfig } = await import('@/lib/firestore')
+              return { config: await getConfig(clinicId) }
+            })()
+            const bundle = exportarPacienteAFhir({ paciente: patient, notas, config })
+            const json = JSON.stringify(bundle, null, 2)
+            const nombre = patient.nombre.replace(/[^\w]/g, '_').slice(0, 30)
+            const blob = new Blob([json], { type: 'application/fhir+json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `expediente_${nombre}_FHIR_R4.json`
+            a.click()
+            URL.revokeObjectURL(url)
+            /**
+             * SE DICE QUÉ LLEVA. Antes las notas en borrador se caían del
+             * archivo en silencio: un expediente con huecos que nadie señala se
+             * entrega creyendo que está completo.
+             */
+            const rn = resumenNotasExportadas(notas)
+            toast(
+              rn.borradores > 0
+                ? `Archivo FHIR descargado: ${rn.firmadas} nota(s) firmada(s) y ${rn.borradores} en borrador, marcadas como preliminares. Los borradores van sin diagnósticos ni recetas estructuradas.`
+                : `Archivo FHIR descargado: ${rn.firmadas} nota(s) firmada(s).`,
+              'success',
+            )
+            logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notas.length, borradores: rn.borradores } })
+            /**
+             * FHIR sólo lleva las notas FIRMADAS, y antes se descartaban las
+             * demás en silencio. Se dice cuántas quedaron fuera: un archivo con
+             * huecos que nadie señala se entrega creyendo que está completo.
+             */
+            const borradores = notas.filter(n => n.estado !== 'firmada').length
+            toast(borradores
+              ? `FHIR R4 exportado con ${notas.length - borradores} notas firmadas. ${borradores} en borrador NO van en FHIR — usa «Expediente completo».`
+              : 'Expediente exportado en FHIR R4', borradores ? 'info' : 'success')
+          }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            <Upload size={15} /> FHIR
+          </button>
+        </div>
+      </section>
+
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 480px) {

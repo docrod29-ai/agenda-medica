@@ -5,9 +5,9 @@
 ## Iteración en curso
 
 `V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO; registros
-UNIFICADOS 13-ago-2026. P0 cerrados y OCHO P1 pagados** (RTC-03, RTC-04,
-RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-11). Quedan RTC-10 y RTC-12, los
-dos declarados dependientes de rebanadas estructurales mayores:
+UNIFICADOS 13-ago-2026. P0 cerrados y NUEVE P1 pagados** (RTC-03, RTC-04,
+RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10, RTC-11). Queda RTC-12,
+declarado deuda dimensionada del monolito:
 
 - **Registro canónico**: `docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md`
   (IDs `RTC-01..28`, mapeo ORT↔RT por CONTENIDO — los paréntesis RT/DS/CW
@@ -201,10 +201,43 @@ editar no existe en el DOM hasta abrirlo y el clic caía en la nada.
   → salir a Hoy → retomar—: `docs/design/capturas/v15-rtc08/acta-rtc08.json`,
   **13/13 PASS**, 0 errores de consola, 4 capturas.
 
-**Siguiente rebanada exacta:** quedan DOS P1, los dos declarados dependientes
-de rebanadas estructurales mayores — **RTC-10** (primer viewport del expediente:
-rebanada estructural grande — planearla entera antes de abrirla) y **RTC-12**
-(el lienzo de escritorio; deuda dimensionada del monolito de 6147 líneas).
+- **RTC-10 (el primer viewport del expediente es el PACIENTE): FIXED 14-ago
+  (6ª corrida).** El orden de la página dice ahora lo que la pantalla ES:
+  identidad → estado → pendientes → historia → utilidades → documentos. Los
+  tres botones de documentos/exportación bajaron al final con nombre propio
+  (misma conducta, mismos avisos de lo que cada formato no lleva); las tarjetas
+  de signos y dx sólo se pintan CON contenido —y su ausencia se DICE en una
+  línea que habla del REGISTRO, no del paciente: la regla 4 corta en las dos
+  direcciones—; las dos cajas-módulo plegadas bajaron bajo la historia; y el
+  riel del Clinical Spine sigue el orden visual. Antes/después con el MISMO
+  instrumento (3 expedientes, 1440×900): pendientes **775px bajo el pliegue →
+  492px antes de la historia**, cajas-módulo sobre la historia **2 → 0**,
+  tarjetas vacías **2 → 0**, export sobre la historia **3 → 0**. Guardián
+  `v15-rtc10-primer-viewport-clinico.test.ts` (8 casos, probado al revés ×2).
+
+**Lecciones de método de esta corrida — tres, y las tres del INSTRUMENTO:**
+(1) La primera métrica elegida («a qué altura empieza la historia clínica»)
+MIENTE en las dos direcciones: baja al borrar cromo, pero también sube al meter
+contenido clínico encima, que es justo lo que se quería — un expediente
+«empeoró» de 745 a 798px precisamente porque su primer viewport se llenó de
+datos del paciente. (2) El detector de «primer dato clínico» escrito a ojo
+contaba el contador «Consultas: 6» de la tarjeta Actividad y **aprobaba el
+baseline** que el equipo rojo acababa de reprobar; se sustituyó por landmarks
+con `id` del propio Clinical Spine, que no admiten interpretación. (3) El
+guardián falló contra SUS PROPIOS COMENTARIOS (mencionan «Documentos y
+exportación»), y el limpiador que se escribió para evitarlo borraba también los
+cierres ` */` y se comía código hasta el siguiente — cinco casos rojos por el
+limpiador, no por el producto. Las tres son la misma familia que
+`grafo-de-dependencias` ya tenía escrita: **el lector veía texto donde tenía que
+ver código**. Un instrumento que aprueba el defecto que viene a medir es peor
+que no tener instrumento.
+
+**Siguiente rebanada exacta:** queda UN P1 — **RTC-12** (ninguna superficie usa
+el lienzo de escritorio: columna única 880–1100px en todas; en consulta a 1440
+el paciente se pierde al desplazar). El registro lo declara deuda dimensionada
+del monolito de 6147 líneas → V15-NOTE-PLAN-CONTINUITY / refactor: **planearlo
+entero antes de abrirlo**, y decidir si cabe en esta iteración o si
+ORIGINALITY-REDTEAM-001 cierra con él declarado y con dueño.
 
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;

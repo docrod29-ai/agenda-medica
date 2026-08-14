@@ -1,0 +1,55 @@
+{
+  "base": "http://localhost:3000",
+  "viewport": "1440x900",
+  "medidas": {
+    "/expediente/pac-refugio-alcantara": {
+      "alto": 900,
+      "yEstadoClinico": null,
+      "yPendientes": 491,
+      "yHistoria": 491,
+      "yDatosPaciente": 928,
+      "yHerramientas": 990,
+      "estadoClinicoPresente": false,
+      "estadoClinicoAntesDeLaHistoria": null,
+      "pendientesPresentes": false,
+      "pendientesAntesDeLaHistoria": false,
+      "cajasModuloAntesDeLaHistoria": 0,
+      "estadoClinicoDentroDelPliegue": false,
+      "tarjetasVacias": 0,
+      "botonesDeExportSobreLaHistoria": 0
+    },
+    "/expediente/pac-catalina-ibarra": {
+      "alto": 900,
+      "yEstadoClinico": null,
+      "yPendientes": 492,
+      "yHistoria": 798,
+      "yDatosPaciente": 1236,
+      "yHerramientas": 1298,
+      "estadoClinicoPresente": false,
+      "estadoClinicoAntesDeLaHistoria": null,
+      "pendientesPresentes": true,
+      "pendientesAntesDeLaHistoria": true,
+      "cajasModuloAntesDeLaHistoria": 0,
+      "estadoClinicoDentroDelPliegue": false,
+      "tarjetasVacias": 0,
+      "botonesDeExportSobreLaHistoria": 0
+    },
+    "/expediente/pac-luzmaria-cervantes": {
+      "alto": 900,
+      "yEstadoClinico": null,
+      "yPendientes": 492,
+      "yHistoria": 736,
+      "yDatosPaciente": 1174,
+      "yHerramientas": 1236,
+      "estadoClinicoPresente": false,
+      "estadoClinicoAntesDeLaHistoria": null,
+      "pendientesPresentes": true,
+      "pendientesAntesDeLaHistoria": true,
+      "cajasModuloAntesDeLaHistoria": 0,
+      "estadoClinicoDentroDelPliegue": false,
+      "tarjetasVacias": 0,
+      "botonesDeExportSobreLaHistoria": 0
+    }
+  },
+  "erroresDeConsola": []
+}
