@@ -115,6 +115,36 @@ describe('RTC-31 — una lista de trabajo no lleva tarjeta alrededor', () => {
     expect(cuerpo).not.toMatch(/background: 'var\(--s1\)'/)
   })
 
+  it('10 · el resumen del paciente no es una fila de KPIs', () => {
+    /**
+     * 7ª rebanada. La 4ª pasada de §29 nombró la fila de tarjetas-estadística
+     * del expediente (ÚLTIMOS SIGNOS · DIAGNÓSTICOS ACTIVOS · ACTIVIDAD) como
+     * uno de los tres residuos: su CONTENIDO era clínico y específico, su
+     * FORMA era la fila de KPIs de cualquier tablero — tres cajas con borde,
+     * encabezado en versalitas y una cifra grande dentro.
+     *
+     * Ahora se pinta como lo escribe un médico: los signos en una línea, los
+     * diagnósticos en la suya, la actividad al final en voz baja. Y es la
+     * MISMA anatomía del bloque de «Problemas / Toma» que va justo debajo: dos
+     * bloques vecinos que dicen cosas del mismo orden ya no hablan idiomas
+     * distintos.
+     *
+     * No se pierde un dato — eso lo siguen fijando los casos 4 y 5 de RTC-10
+     * (las secciones vacías se pliegan y la ausencia se dice hablando del
+     * REGISTRO, no del paciente).
+     *
+     * Probado al revés: devolviendo las tres tarjetas falla.
+     */
+    const RESUMEN = leer('src/components/expediente/ResumenPaciente.tsx')
+    expect(RESUMEN, 'volvió la rejilla de tarjetas').not.toMatch(/gridTemplateColumns: 'repeat\(auto-fit/)
+    expect(RESUMEN).not.toMatch(/const tarjeta: React\.CSSProperties/)
+    expect(RESUMEN).not.toMatch(/textTransform: 'uppercase'/)
+    // La anatomía del vecino: caja de --s2 con borde, icono y líneas «etiqueta: valor».
+    expect(RESUMEN).toMatch(/background: 'var\(--s2\)', border: '1px solid var\(--border\)'/)
+    expect(RESUMEN).toContain('<strong style={{ color: \'var(--text)\' }}>Últimos signos:</strong>')
+    expect(RESUMEN).toContain('<strong style={{ color: \'var(--text)\' }}>Diagnósticos activos:</strong>')
+  })
+
   it('9 · en /consulta la identidad ENCABEZA, como ya hacía el expediente', () => {
     /**
      * 6ª rebanada, y otra que sólo se vio con historia sembrada. Medido:

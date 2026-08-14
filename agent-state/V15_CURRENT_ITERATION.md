@@ -683,6 +683,22 @@ cuenta, se convierte en frases un filtro que sirve y se deja intacto el defecto.
   texto-blanco-sobre-relleno, porque no hay relleno.
 - El trinquete cazó de paso un `fontSize: 13` mío fuera de la escala.
 
+### 7ª rebanada (14-ago) — el resumen del paciente deja de ser una fila de KPIs
+
+El segundo de los tres residuos que nombró la 4ª pasada. Su CONTENIDO siempre
+fue clínico y específico; su FORMA era la fila de KPIs de cualquier tablero:
+tres cajas con borde, encabezado en versalitas y una cifra grande dentro.
+
+Ahora se pinta como lo escribe un médico —«Últimos signos: TA 118/74 · FC 82 ·
+T° 36.8», los diagnósticos en su línea, la actividad al final en voz baja— y es
+**la misma anatomía del bloque de «Problemas / Toma» que va justo debajo**: dos
+bloques vecinos que dicen cosas del mismo orden ya no hablan idiomas distintos.
+
+No se pierde un dato, y lo que falta se sigue diciendo hablando del REGISTRO
+(los casos 4 y 5 de RTC-10 lo fijan y siguen en verde). El trinquete de diseño
+**bajó solo**: `tamanosFueraDeEscala` 1969 → **1963**, seis tamaños inline
+menos, re-sellado con `--actualizar`.
+
 ### Lección de método: `npm run build` NO teclea las pruebas
 
 CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:
