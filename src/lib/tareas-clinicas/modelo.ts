@@ -202,6 +202,28 @@ export function ordenWorklist(a: TareaClinica, b: TareaClinica, ahoraMs: number)
   return esc(a) - esc(b) || pri(a) - pri(b) || String(a.creadaEn).localeCompare(String(b.creadaEn))
 }
 
+/**
+ * CÓMO SE LLAMA CADA TIPO DE PENDIENTE EN LA PANTALLA — una sola vez.
+ *
+ * Estaba copiado tal cual en `/pendientes` y en `ContinuidadPanel`, y la
+ * tercera copia iba a nacer con `/pacientes`. Dos copias ya eran la trampa que
+ * `AGENTS.md` nombra: el día que «Reconciliar» cambie de nombre habrá que
+ * acordarse de tres sitios, y el tercero se queda.
+ *
+ * Vive con el modelo y no en un componente porque el nombre pertenece al TIPO,
+ * no a la pantalla que lo pinta; y fuera del componente desde el primer día es
+ * además lo que pide la regla de diseño para no retroajustar i18n después.
+ */
+export const ETIQUETA_TIPO: Record<TipoTarea | string, string> = {
+  estudio_pendiente: 'Estudio',
+  resultado_por_revisar: 'Resultado',
+  seguimiento: 'Seguimiento',
+  receta_por_entregar: 'Receta',
+  indicacion_paciente: 'Indicación',
+  reconciliacion_medicamento: 'Reconciliar',
+  otra: 'Pendiente',
+}
+
 export const POR_QUE_COMPLETADA_NO_ES_CERRADA =
   '«Completada» es que el trabajo se hizo: se sacó la sangre, salió el ' +
   'resultado. «Cerrada» es que alguien LO MIRÓ y decidió. Entre esas dos vive ' +

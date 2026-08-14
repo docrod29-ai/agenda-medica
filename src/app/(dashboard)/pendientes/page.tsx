@@ -24,22 +24,12 @@ import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
 import { tareasVivas, tareasCerradasRecientes, cambiarEstado } from '@/lib/tareas-clinicas/firestore'
-import { ordenWorklist, debeEscalar, estaVencida, type TareaClinica, type EstadoTarea } from '@/lib/tareas-clinicas/modelo'
+import { ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO, type TareaClinica, type EstadoTarea } from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type EstadoDeAccion } from '@/lib/tareas-clinicas/estado-de-accion'
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
-
-const ETIQUETA_TIPO: Record<string, string> = {
-  estudio_pendiente: 'Estudio',
-  resultado_por_revisar: 'Resultado',
-  seguimiento: 'Seguimiento',
-  receta_por_entregar: 'Receta',
-  indicacion_paciente: 'Indicación',
-  reconciliacion_medicamento: 'Reconciliar',
-  otra: 'Pendiente',
-}
 
 /** Qué botón toca ahora. Enseñar los seis estados sería enseñar el modelo, no el trabajo. */
 function siguientePaso(t: TareaClinica): { estado: EstadoTarea; texto: string } | null {

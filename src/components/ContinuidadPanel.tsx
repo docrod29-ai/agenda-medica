@@ -26,19 +26,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
-import { ordenWorklist, debeEscalar, type TareaClinica } from '@/lib/tareas-clinicas/modelo'
+import { ordenWorklist, debeEscalar, ETIQUETA_TIPO, type TareaClinica } from '@/lib/tareas-clinicas/modelo'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 import { ChevronRight, FileClock, AlertTriangle } from 'lucide-react'
-
-const ETIQUETA_TIPO: Record<string, string> = {
-  estudio_pendiente: 'Estudio',
-  resultado_por_revisar: 'Resultado',
-  seguimiento: 'Seguimiento',
-  receta_por_entregar: 'Receta',
-  indicacion_paciente: 'Indicación',
-  reconciliacion_medicamento: 'Reconciliar',
-  otra: 'Pendiente',
-}
 
 /** Vista previa, no el worklist entero: eso ya es `/pendientes`. */
 const TOPE_VISIBLE = 5

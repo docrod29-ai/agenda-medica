@@ -1,0 +1,93 @@
+{
+  "base": "http://localhost:3000",
+  "pasan": 17,
+  "total": 17,
+  "condiciones": [
+    {
+      "ok": true,
+      "texto": "[escritorio] la lista pinta filas",
+      "detalle": "6 filas"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] alguna fila DICE su estado clínico",
+      "detalle": "Aurelio Domínguez Peña: Reconciliar— crítica, sin dueño· 2 pendientes en total · Catalina Ibarra Fuentes: Seguimiento— sin dueño· 3 pendientes en total · Luz María Cervantes Ochoa: Resultado— venció y nadie la tomó· 2 pendientes en total"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] ningún paciente con pendientes vivos se queda sin marcar",
+      "detalle": "worklist: 3 · marcados: 3"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] lo clínico se pinta ARRIBA del teléfono (geometría real)",
+      "detalle": "Aurelio Domínguez Peña: clínico 311 < tel 329 · Catalina Ibarra Fuentes: clínico 422 < tel 441 · Luz María Cervantes Ochoa: clínico 720 < tel 738"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] el estado se dice con palabras, no sólo con color",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] «visto hace…» llega a la fila",
+      "detalle": "Aurelio Domínguez Peña: visto hace 1 mes · Catalina Ibarra Fuentes: visto hace 14 días · Joaquín Esparza Villarreal: visto hace 7 días"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] la fila lleva su affordance de «lleva a otro sitio»",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[movil] la lista pinta filas",
+      "detalle": "6 filas"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] alguna fila DICE su estado clínico",
+      "detalle": "Aurelio Domínguez Peña: Reconciliar— crítica, sin dueño· 2 pendientes en total · Catalina Ibarra Fuentes: Seguimiento— sin dueño· 3 pendientes en total · Luz María Cervantes Ochoa: Resultado— venció y nadie la tomó· 2 pendientes en total"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] ningún paciente con pendientes vivos se queda sin marcar",
+      "detalle": "worklist: 3 · marcados: 3"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] lo clínico se pinta ARRIBA del teléfono (geometría real)",
+      "detalle": "Aurelio Domínguez Peña: clínico 501 < tel 575 · Catalina Ibarra Fuentes: clínico 692 < tel 766 · Luz María Cervantes Ochoa: clínico 1147 < tel 1221"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] el estado se dice con palabras, no sólo con color",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[movil] «visto hace…» llega a la fila",
+      "detalle": "Aurelio Domínguez Peña: visto hace 1 mes · Catalina Ibarra Fuentes: visto hace 14 días · Joaquín Esparza Villarreal: visto hace 7 días"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] el chevron decorativo sigue fuera (RTC-11)",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[movil] la línea clínica SOBREVIVE al ancho del teléfono",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[movil] la identidad conserva su columna (RTC-11: 228px, defecto: ~90px)",
+      "detalle": "todas ≥200px (mín 228px)"
+    },
+    {
+      "ok": true,
+      "texto": "cero errores de consola",
+      "detalle": "ninguno"
+    }
+  ],
+  "errores": []
+}

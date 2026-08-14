@@ -9,7 +9,7 @@ import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake, Download, Loader2, BedDouble } from 'lucide-react'
+import { Plus, Search, X, Users, Phone, AlertCircle, Calendar, Pencil, Cake, Download, Loader2, BedDouble, ChevronRight, FileClock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
@@ -19,6 +19,8 @@ import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
+import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
+import { estadoClinicoDeFila, ultimaVezVisto, type LecturaDelWorklist, type EstadoClinicoDeFila } from '@/lib/pacientes/estado-clinico'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -67,6 +69,33 @@ export default function PacientesPage() {
   }
 
   useEffect(() => { load() }, [clinicId])
+
+  /**
+   * RTC-15 — LA LISTA TIENE QUE DECIR ALGO CLÍNICO DE CADA PACIENTE.
+   *
+   * La re-puntuación §29 dejó a esta pantalla en 5.0/10 (peor superficie del
+   * producto) por una sola razón: nombre, teléfono, edad, «Editar». Un CRM.
+   *
+   * La lectura es la MISMA que ya hacen `/pendientes` y el `ContinuidadPanel`
+   * de Hoy — una consulta por consultorio, no una por paciente. Va DESPUÉS de
+   * `load()` y sin bloquearlo: los pacientes se pintan cuando llegan, y el
+   * estado clínico aterriza encima. Que tarde el worklist no puede retrasar la
+   * pantalla a la que se entra veinte veces al día.
+   *
+   * Si falla, la lectura queda en `sin-leer` y las filas NO dicen «sin
+   * pendientes»: dicen nada. Ausencia de dato no es dato de ausencia, y aquí la
+   * diferencia es que un cabo suelto invisible se lee como que no existe.
+   */
+  const [worklist, setWorklist] = useState<LecturaDelWorklist>({ estado: 'sin-leer' })
+  const [ahora, setAhora] = useState(0)
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    tareasVivas(clinicId)
+      .then(t => { if (vivo) { setWorklist({ estado: 'lista', tareas: t }); setAhora(Date.now()) } })
+      .catch(e => { console.error('[pacientes] no se pudo leer el worklist', e) })
+    return () => { vivo = false }
+  }, [clinicId])
 
   /**
    * RESPALDO COMPLETO — del servidor, en streaming, y de verdad completo.
@@ -379,7 +408,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${resultadosBusqueda.length} resultado${resultadosBusqueda.length !== 1 ? 's' : ''}`} />
               {resultadosBusqueda.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -392,7 +421,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto="Vistos recientemente" />
               {recientes.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -405,7 +434,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${conAlerta.length} con inasistencias / cancelaciones`} />
               {conAlerta.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -419,7 +448,7 @@ export default function PacientesPage() {
                 color: 'var(--text3)', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)',
               }}>{letra}</div>
               {lista.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </div>
           ))
@@ -459,10 +488,14 @@ function ListaEncabezado({ texto }: { texto: string }) {
 }
 
 /** Fila de paciente reutilizable (búsqueda, recientes, alerta, A-Z). */
-function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
+function PacienteRow({ p, mode, internado, clinico, visto, onAbrir, onEditar }: {
   p: Patient
   mode: string
   internado?: boolean
+  /** RTC-15: lo que la fila dice CLÍNICAMENTE. Se calcula en `@/lib/pacientes/estado-clinico`. */
+  clinico: EstadoClinicoDeFila
+  /** «visto hace 3 días» — el dato ya estaba leído y no se pintaba en ningún sitio. */
+  visto: string | null
   /** Recibe el .nx-ident de la fila: el objeto compartido de la coreografía (§20). */
   onAbrir: (origen?: HTMLElement | null) => void
   onEditar: () => void
@@ -518,7 +551,49 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
         >
           <span className="nx-ident" style={{ display: 'block' }}>{p.nombre}</span>
         </button>
+        {/**
+          * RTC-15 — LO CLÍNICO VA PRIMERO, Y EN PROSA.
+          *
+          * Esta línea es la que convierte una libreta de contactos en una lista
+          * de trabajo. Va ANTES del teléfono y de la edad porque el orden de la
+          * fila dice qué importa: si de este paciente quedó algo abierto, eso
+          * pesa más que su número.
+          *
+          * Habla como `/pendientes` —la superficie que mejor puntuó en §29—:
+          * dice la CONSECUENCIA, no el estado. «Resultado — venció y nadie la
+          * tomó» no necesita que nadie sepa qué significa un chip rojo. El
+          * color acompaña, no informa solo (§29, RTC-17).
+          *
+          * Y no se pinta nada cuando la lectura no llegó: una fila muda es
+          * honesta, una que dice «sin pendientes» por un error de red no.
+          */}
+        {clinico.clase === 'con-pendientes' && (
+          <div
+            className="nx-meta nx-fila-clinico"
+            style={{
+              display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap',
+              color: clinico.urgente ? 'var(--red)' : 'var(--text2)',
+              fontWeight: clinico.urgente ? 600 : 500,
+            }}
+          >
+            {clinico.urgente
+              ? <AlertCircle size={11} style={{ flexShrink: 0 }} />
+              : <FileClock size={11} className="ds-icon" style={{ flexShrink: 0 }} />}
+            <span>{clinico.etiqueta}</span>
+            {clinico.porQue && <span>— {clinico.porQue}</span>}
+            {clinico.vivas > 1 && (
+              <span style={{ color: 'var(--text3)', fontWeight: 400 }}>
+                · {clinico.vivas} pendientes en total
+              </span>
+            )}
+          </div>
+        )}
         <div className="nx-meta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* «visto hace 3 días» sale de `ultimaCita`, que ya se leía para
+              ordenar la pestaña Recientes y no se pintaba en ningún sitio: el
+              dato estaba en la mano y el médico tenía que abrir el expediente
+              para enterarse de algo que la lista ya sabía. */}
+          {visto && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={11} className="ds-icon" /> {visto}</span>}
           {p.telefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {p.telefono}</span>}
           {p.edad && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad} años</span>}
           {internado && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--nexus)', fontWeight: 600 }}><BedDouble size={11} /> Internado — ver Hospitalización</span>}
@@ -551,7 +626,24 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
           <Pencil size={12} /> Editar
         </button>
       )}
-      {mode === 'medico' && <FileText className="nx-fila-chevron" size={14} color="var(--text3)" style={{ flexShrink: 0 }} />}
+      {/**
+        * RTC-15 (parte de affordance) — un CHEVRON, no un documento.
+        *
+        * El hallazgo decía «la única affordance por fila es Editar»: lo único
+        * que PARECÍA pulsable era el botón administrativo, mientras que abrir
+        * el expediente —el trabajo de la pantalla— no se anunciaba. El icono
+        * de la derecha era un `FileText`, que dibuja un documento: describe el
+        * destino, no el gesto.
+        *
+        * Se cambia por el chevron, que es lo que dice «esta fila lleva a otro
+        * sitio» sin añadir un control. Un botón «Abrir» con texto se descartó a
+        * propósito: sería un SEGUNDO control que hace lo mismo que la fila
+        * entera, en la pantalla que §29 penaliza justamente por exceso de
+        * cromo. La fila ya es pulsable en toda su superficie
+        * (`.nx-fila-abrir::after`) y su nombre accesible ya dice el gesto
+        * («Abrir el expediente de …»).
+        */}
+      {mode === 'medico' && <ChevronRight className="nx-fila-chevron" size={16} color="var(--text3)" style={{ flexShrink: 0 }} aria-hidden="true" />}
     </div>
   )
 }

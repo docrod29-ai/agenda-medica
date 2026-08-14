@@ -294,12 +294,60 @@ leerse a sí mismo**, porque su propia cabecera cita `.nx-marca` para explicar e
 defecto: la misma ceguera de `grafo-de-dependencias` («el lector veía texto donde
 tenía que ver código») por tercera vez en la iteración.
 
-**Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0 y los
-DIEZ P1 resueltos o declarados con dueño, y la re-puntuación §29 **hecha**.
-**No se declara CERRADA**: la compuerta §29/§34 quedó FAIL en 5.0 y el cierre
-pide pagar **RTC-15** y **RTC-29** y volver a puntuar. Siguiente rebanada:
-**RTC-15** (la peor superficie, y la que más se abre). Después RTC-29, después
-re-puntuar; sólo entonces §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
+### RTC-15 PAGADA (14-ago, 8ª corrida) — la lista de pacientes es un worklist
+
+La peor superficie del producto (5.0/10) dejó de ser una libreta de contactos.
+Cada fila dice ahora su estado clínico, en prosa y ANTES del teléfono:
+
+    Aurelio Domínguez Peña
+    ⊙ Reconciliar — crítica, sin dueño · 2 pendientes en total
+      visto hace 1 mes · +52 55 5555 0101 · 72 años
+
+- **No es una fuente de datos nueva.** `tareasVivas()` es la MISMA lectura que
+  ya hacen `/pendientes` y el `ContinuidadPanel` de Hoy —una consulta por
+  consultorio, no una por paciente— y el orden lo pone `ordenWorklist`, el
+  mismo del worklist. Un segundo criterio de urgencia aquí sería una segunda
+  verdad sobre la misma entidad clínica.
+- **Tres respuestas, no dos:** `con-pendientes`, `sin-pendientes` (la lectura
+  llegó y no había nada) y `sin-leer` (falló o no ha llegado). `sin-leer`
+  **nunca** se pinta como «sin pendientes» — una fila que afirma que no hay
+  nada abierto por un error de red es el daño exacto que esto evita. Regla 4,
+  en la dirección que se olvida.
+- **La consecuencia, en prosa** («venció y nadie la tomó»), que es lo que hace
+  que `/pendientes` sea la superficie mejor puntuada; el color acompaña sin ser
+  el único canal.
+- **`ultimaCita` se pinta por fin**: estaba leída desde siempre para ORDENAR la
+  pestaña «Recientes» y no aparecía en ningún sitio. «visto hace 14 días».
+- **`ETIQUETA_TIPO` tenía DOS copias** y ésta iba a ser la tercera. Ahora vive
+  una vez en el modelo; el guardián de cableado de reconciliación se movió CON
+  el dato y comprueba las dos mitades (que la etiqueta exista y que la pantalla
+  la reciba), que es más de lo que comprobaba antes.
+- El icono de la derecha pasó de `FileText` (un documento: describe el destino)
+  a chevron (dice el gesto). Un botón «Abrir» con texto se descartó a propósito:
+  sería un segundo control que hace lo que ya hace la fila entera, en la
+  pantalla que §29 penaliza por exceso de cromo.
+- Guardián `v15-rtc15-la-lista-dice-algo-clinico.test.ts` (12 casos, probado al
+  revés ×5). Navegador real 1440+390: **17/17, 0 errores de consola**, con la
+  condición que de verdad importa —los pacientes que `/pendientes` enseña con
+  trabajo vivo son exactamente los que la lista marca—.
+- **Y otra vez el instrumento**: la primera pasada del arnés dio 13/17 y las
+  cuatro rojas eran suyas, no del producto — barría `[class*="nx-ident"]` y se
+  llevaba la identidad del InstrumentStrip («Ausculta» contaba como paciente sin
+  marcar); preguntaba si el chevron EXISTE cuando RTC-11 lo esconde con
+  `display:none` (presencia no es visibilidad); y contaba RENGLONES de la
+  identidad cuando el defecto de RTC-11 se midió en ANCHO, así que marcaba en
+  rojo a «María del Refugio Alcántara Solís» por tener el nombre largo.
+- **Declarado sin pagar:** «Respaldo» sigue en la cabecera primaria de
+  `/pacientes` siendo una operación de §11. Mudarlo exige darle casa en
+  `/operaciones`, que es justo la pantalla que RTC-29 va a rehacer; hacerlo dos
+  veces sería trabajo tirado.
+
+**Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
+DIEZ P1 originales, la re-puntuación §29 y **RTC-15** hechos. **No se declara
+CERRADA**: falta **RTC-29** (`/operaciones` es un lanzador, 4.0) y después
+**volver a puntuar §29** sobre capturas nuevas — el score no se hereda, y eso
+vale también para el que acaba de mejorar. Siguiente rebanada: **RTC-29**.
+Sólo cuando la compuerta dé PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
 
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
