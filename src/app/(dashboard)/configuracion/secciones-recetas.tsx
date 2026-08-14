@@ -26,6 +26,14 @@ import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText, Loader2, Ru
 const RX_DEFAULTS: RecetaConfig = {
   paperSize: 'media-carta',
   estilo: 'minimalista',
+  /*
+    ESTE LITERAL SE QUEDA, Y NO ES DEUDA (RTC-19).
+    `colorAccento` no es cromo: es un DATO del consultorio. Se guarda en
+    Firestore, se ofrece en un `<input type="color">` —que sólo acepta un hex
+    de 7 caracteres— y acaba impreso en la receta, donde no hay hoja de
+    estilos que resuelva una variable. Un `var(--nexus)` aquí rompería el
+    selector de color y se guardaría como texto inservible.
+  */
   colorAccento: '#14b8a6',
   mostrarQR: true,
   copiasEnHoja: 1,
@@ -470,8 +478,8 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           ) : (
             <label style={{
               display: 'block', textAlign: 'center', padding: '26px 14px',
-              border: '2px dashed rgba(20,184,166,0.5)', borderRadius: 10,
-              background: 'rgba(20,184,166,0.06)', cursor: subiendoDiseno ? 'wait' : 'pointer',
+              border: '2px dashed color-mix(in srgb, var(--nexus) 50%, transparent)', borderRadius: 10,
+              background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', cursor: subiendoDiseno ? 'wait' : 'pointer',
               color: 'var(--text2)',
             }}>
               {subiendoDiseno ? (
@@ -593,8 +601,8 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
               {/* Toggle "Solo Rx" — para diseños que ya tienen campos pre-impresos */}
               <label style={{
                 display: 'flex', alignItems: 'center', gap: 10, marginTop: 12,
-                padding: 10, background: 'rgba(20,184,166,0.06)', borderRadius: 6,
-                border: '1px solid rgba(20,184,166,0.25)', cursor: 'pointer',
+                padding: 10, background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', borderRadius: 6,
+                border: '1px solid color-mix(in srgb, var(--nexus) 25%, transparent)', cursor: 'pointer',
               }}>
                 <input
                   type="checkbox"
@@ -1008,7 +1016,7 @@ function PreviewReceta({
           onClick={() => setTipoPreview('receta')}
           style={{
             padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            background: tipoPreview === 'receta' ? 'rgba(20,184,166,0.15)' : 'var(--s2)',
+            background: tipoPreview === 'receta' ? 'color-mix(in srgb, var(--nexus) 15%, transparent)' : 'var(--s2)',
             border: tipoPreview === 'receta' ? '1px solid var(--teal)' : '1px solid var(--border)',
             color: tipoPreview === 'receta' ? 'var(--teal)' : 'var(--text3)',
             display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -1222,7 +1230,7 @@ function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
   }
 
   const asa = (cursor: string, extra: React.CSSProperties): React.CSSProperties => ({
-    position: 'absolute', background: '#14b8a6', borderRadius: 3, touchAction: 'none',
+    position: 'absolute', background: 'var(--nexus)', borderRadius: 3, touchAction: 'none',
     cursor, zIndex: 2, ...extra,
   })
 
@@ -1232,11 +1240,11 @@ function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
       style={{
         position: 'absolute',
         top: `${m.top}mm`, right: `${m.right}mm`, bottom: `${m.bottom}mm`, left: `${m.left}mm`,
-        border: '2px dashed #14b8a6', background: 'rgba(20,184,166,0.10)',
+        border: '2px dashed var(--nexus)', background: 'color-mix(in srgb, var(--nexus) 10%, transparent)',
         borderRadius: 2, cursor: 'move', touchAction: 'none',
       }}
     >
-      <div style={{ position: 'absolute', top: -22, left: 0, background: '#14b8a6', color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: -22, left: 0, background: 'var(--nexus-solido)', color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
         ✥ arrastra · jala los bordes
       </div>
       {/* Asas de borde (centro de cada lado) */}

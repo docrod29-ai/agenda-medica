@@ -1,0 +1,79 @@
+{
+  "operacionesRoles": {
+    "h1Fuente": "20px/600",
+    "grupoFuente": "10.5px/600",
+    "grupoMayusculas": "uppercase",
+    "tiles": 16,
+    "tilesBajoTactil": [],
+    "primarias": []
+  },
+  "axeOperacionesOscuro": [],
+  "axeOperacionesClaro": [],
+  "clicTileConfiguracion": {
+    "llega": true,
+    "url": "http://localhost:3000/configuracion"
+  },
+  "rielOscuro": {
+    "encontrado": true,
+    "ariaLabel": "Secciones de configuración",
+    "totalBotones": 16,
+    "todosNavItem": true,
+    "activoTexto": "Datos del consultorio",
+    "activoAriaCurrent": "true",
+    "activoFondo": "rgb(26, 29, 33)",
+    "activoColor": "rgb(242, 239, 233)",
+    "barraAncho": "3px",
+    "barraColor": "rgb(42, 165, 181)",
+    "inactivoColor": "rgb(168, 172, 174)",
+    "botonesConIndigoMuerto": [],
+    "titulosDeGrupo": 5
+  },
+  "encabezadoTab": {
+    "texto": "Datos del consultorio",
+    "clase": "t-h2",
+    "fs": "16px"
+  },
+  "axeConfiguracionOscuro": [],
+  "cambioDeSeccion": {
+    "encabezado": "Horario de atención",
+    "activo": "Horario de atención",
+    "ariaCurrent": "true"
+  },
+  "rielClaro": {
+    "encontrado": true,
+    "ariaLabel": "Secciones de configuración",
+    "totalBotones": 16,
+    "todosNavItem": true,
+    "activoTexto": "Horario de atención",
+    "activoAriaCurrent": "true",
+    "activoFondo": "rgb(245, 243, 238)",
+    "activoColor": "rgb(11, 12, 14)",
+    "barraAncho": "3px",
+    "barraColor": "rgb(18, 98, 110)",
+    "inactivoColor": "rgb(86, 90, 96)",
+    "botonesConIndigoMuerto": [],
+    "titulosDeGrupo": 5
+  },
+  "axeConfiguracionClaro": [],
+  "barraCambiaDeTema": true,
+  "movilConfiguracion": {
+    "anchoDocumento": 390,
+    "desborda": false,
+    "rielOculto": true,
+    "selectVisible": true,
+    "selectAlto": 48,
+    "selectAriaLabel": "Sección de configuración"
+  },
+  "axeConfiguracionMovil": [],
+  "movilOperaciones": {
+    "anchoDocumento": 390,
+    "desborda": false,
+    "tiles": 16,
+    "tilesBajoTactil": []
+  },
+  "axeOperacionesMovil": [],
+  "erroresConsola": [
+    "[2026-08-14T15:20:06.604Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "[móvil] [2026-08-14T15:20:12.924Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+  ]
+}

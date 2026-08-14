@@ -2419,6 +2419,21 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
   const safeUrl = url.replace(/"/g, '&quot;')
   const safeName = clinicNombre.replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
+  /*
+    LOS HEX DE ESTOS FRAGMENTOS SE QUEDAN LITERALES, Y ES LA RAZÓN DE QUE
+    EXISTAN (RTC-19).
+
+    Este código se copia y se pega en el SITIO WEB DEL CONSULTORIO. Allí no
+    existe `globals.css`, así que un `var(--nexus)` no resolvería: el médico
+    pegaría un botón sin color en su propia página y no sabría por qué.
+
+    Y las vistas previas de más abajo llevan el MISMO hex a propósito: una
+    previsualización que se pinta con el token del producto enseñaría un botón
+    distinto del que el médico va a pegar.
+
+    Barrer estos literales «para terminar el trabajo» rompería un contrato
+    externo sin que ninguna prueba de esta aplicación se pusiera roja.
+  */
   // 1) Botón inline (a tag con estilos inline → funciona en cualquier sitio sin clases CSS)
   const snippetBoton = `<a href="${safeUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#14b8a6;color:#000;font-family:system-ui,-apple-system,sans-serif;font-weight:700;font-size:15px;padding:12px 22px;border-radius:10px;text-decoration:none;box-shadow:0 2px 8px rgba(20,184,166,.3)">📅 Agendar cita</a>`
 

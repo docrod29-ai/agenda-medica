@@ -1,0 +1,70 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "soportaColorMix": true,
+    "secciones": {
+      "Recetas, órdenes y notas": {
+        "pintados": [
+          {
+            "fondo": "rgba(42, 165, 181, 0.14)",
+            "borde": "color(srgb 0.164706 0.647059 0.709804 / 0.4)",
+            "estilo": "solid"
+          },
+          {
+            "fondo": "color(srgb 0.164706 0.647059 0.709804 / 0.06)",
+            "borde": "color(srgb 0.164706 0.647059 0.709804 / 0.5)",
+            "estilo": "dashed"
+          },
+          {
+            "fondo": "rgba(42, 165, 181, 0.14)",
+            "borde": "rgb(42, 165, 181)",
+            "estilo": "solid"
+          },
+          {
+            "fondo": "rgba(42, 165, 181, 0.14)",
+            "borde": "rgb(42, 165, 181)",
+            "estilo": "solid"
+          },
+          {
+            "fondo": "rgb(26, 29, 33)",
+            "borde": "rgba(242, 239, 233, 0.08)",
+            "estilo": "dashed"
+          },
+          {
+            "fondo": "rgb(26, 29, 33)",
+            "borde": "rgba(242, 239, 233, 0.08)",
+            "estilo": "dashed"
+          },
+          {
+            "fondo": "rgba(0, 0, 0, 0)",
+            "borde": "rgb(204, 204, 204) rgb(102, 102, 102) rgb(102, 102, 102)",
+            "estilo": "dashed solid solid"
+          },
+          {
+            "fondo": "color(srgb 0.164706 0.647059 0.709804 / 0.04)",
+            "borde": "color(srgb 0.164706 0.647059 0.709804 / 0.4)",
+            "estilo": "dashed"
+          },
+          {
+            "fondo": "rgba(255, 200, 0, 0.05)",
+            "borde": "rgb(138, 143, 148) rgb(138, 143, 148) rgb(138, 143, 148) rgb(245, 158, 11)",
+            "estilo": "solid"
+          },
+          {
+            "fondo": "color(srgb 0.164706 0.647059 0.709804 / 0.04)",
+            "borde": "color(srgb 0.164706 0.647059 0.709804 / 0.4)",
+            "estilo": "dashed"
+          }
+        ],
+        "acento": "rgb(42, 165, 181)"
+      },
+      "Equipo (asistentes y hospital)": {
+        "pintados": [],
+        "acento": "rgb(42, 165, 181)"
+      }
+    }
+  },
+  "errores": [
+    "pageerror: \nfalse for 'list' @ L1005, false for 'list' @ L1094"
+  ]
+}

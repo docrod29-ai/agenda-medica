@@ -2,11 +2,11 @@
   "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
   "techos": {
     "respaldosDeToken": 0,
-    "hexEnLinea": 493,
+    "hexEnLinea": 489,
     "tamanosFueraDeEscala": 1963,
     "radiosFueraDeEscala": 627,
     "sombrasEnLinea": 22,
-    "gradientes": 16,
+    "gradientes": 14,
     "cristal": 14,
     "halosDeColor": 7
   },
@@ -98,14 +98,14 @@
     {
       "archivo": "src/app/(dashboard)/configuracion/secciones-recetas.tsx",
       "respaldos": 0,
-      "hex": 9,
+      "hex": 6,
       "tam": 36,
       "rad": 16,
       "sombras": 1,
       "gradientes": 0,
       "cristal": 0,
       "halos": 0,
-      "total": 62
+      "total": 59
     },
     {
       "archivo": "src/app/(dashboard)/antibiograma/page.tsx",

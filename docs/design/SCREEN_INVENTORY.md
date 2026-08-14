@@ -48,7 +48,7 @@
 | `/calendario` | medico | ✅ | 436 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 356 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1017 | 6 | — | ✅ | — |
-| `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
+| `/configuracion` | medico | ✅ | 2621 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 6191 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |

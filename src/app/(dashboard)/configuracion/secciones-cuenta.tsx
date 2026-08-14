@@ -324,7 +324,7 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(20,184,166,0.06), rgba(20,184,166,0.02))',
+      background: 'color-mix(in srgb, var(--nexus) 5%, transparent)',
       border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 4,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -378,8 +378,8 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
       ) : (
         <label style={{
           display: 'block', textAlign: 'center', padding: '20px 14px',
-          border: '2px dashed rgba(20,184,166,0.4)', borderRadius: 10,
-          background: 'rgba(20,184,166,0.04)', cursor: procesando ? 'wait' : 'pointer',
+          border: '2px dashed color-mix(in srgb, var(--nexus) 40%, transparent)', borderRadius: 10,
+          background: 'color-mix(in srgb, var(--nexus) 4%, transparent)', cursor: procesando ? 'wait' : 'pointer',
           color: 'var(--text2)',
         }}>
           {procesando ? (
@@ -501,7 +501,7 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
   const setM = (k: 'top' | 'right' | 'bottom' | 'left', v: number) => persistir(membreteUrl, { ...m, [k]: Math.max(0, v) })
 
   return (
-    <div style={{ background: 'linear-gradient(135deg, rgba(20,184,166,0.06), rgba(20,184,166,0.02))', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 4 }}>
+    <div style={{ background: 'color-mix(in srgb, var(--nexus) 5%, transparent)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 4 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <FileText size={18} style={{ color: 'var(--teal)' }} />
         <div>
@@ -532,7 +532,7 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
       })()}
 
       {!membreteUrl ? (
-        <label style={{ display: 'block', textAlign: 'center', padding: '20px 14px', border: '2px dashed rgba(20,184,166,0.4)', borderRadius: 10, background: 'rgba(20,184,166,0.04)', cursor: procesando ? 'wait' : 'pointer', color: 'var(--text2)' }}>
+        <label style={{ display: 'block', textAlign: 'center', padding: '20px 14px', border: '2px dashed color-mix(in srgb, var(--nexus) 40%, transparent)', borderRadius: 10, background: 'color-mix(in srgb, var(--nexus) 4%, transparent)', cursor: procesando ? 'wait' : 'pointer', color: 'var(--text2)' }}>
           {procesando ? (
             <><Loader2 size={20} style={{ animation: 'spin 1s linear infinite', marginBottom: 6 }} /><div style={{ fontSize: 12.5, fontWeight: 600 }}>Procesando…</div></>
           ) : (
@@ -548,7 +548,7 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
           <div style={{ position: 'relative', width: 160, aspectRatio: `${CW} / ${CH}`, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={membreteUrl} alt="Hoja membretada" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} />
-            <div style={{ position: 'absolute', top: `${m.top / CH * 100}%`, bottom: `${m.bottom / CH * 100}%`, left: `${m.left / CW * 100}%`, right: `${m.right / CW * 100}%`, border: '1.5px dashed #14b8a6', background: 'rgba(20,184,166,0.10)' }} />
+            <div style={{ position: 'absolute', top: `${m.top / CH * 100}%`, bottom: `${m.bottom / CH * 100}%`, left: `${m.left / CW * 100}%`, right: `${m.right / CW * 100}%`, border: '1.5px dashed var(--nexus)', background: 'color-mix(in srgb, var(--nexus) 10%, transparent)' }} />
           </div>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Zona de la nota (mm)</div>
@@ -644,7 +644,7 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
             <div key={m.uid} style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '10px 12px', background: 'var(--s2)', borderRadius: 8,
-              border: m.uid === miUid ? '1px solid rgba(20,184,166,0.4)' : '1px solid var(--border)',
+              border: m.uid === miUid ? '1px solid color-mix(in srgb, var(--nexus) 40%, transparent)' : '1px solid var(--border)',
             }}>
               {/* Avatar inicial */}
               <div style={{
