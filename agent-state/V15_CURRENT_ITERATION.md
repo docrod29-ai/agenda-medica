@@ -8094,3 +8094,35 @@ cuatro campos**, que es la información que sólo puede dar el placeholder; el
 **Compuertas**: tsc limpio · vitest 9456/9458 → tras regenerar el inventario
 queda 1 rojo (el artefacto del proxy) · lint 96 = techo · trinquete sin deuda
 nueva · build compila · navegador real antes/después, 0 errores de página.
+
+---
+
+## RTC-23 (mitad de la luna) — CERRADA la entrada entera (14-ago)
+
+`.theme-toggle:hover svg { transform: rotate(20deg) }` no informaba de nada.
+
+**Y no estaba muerta, que era la duda razonable**: RTC-32 sacó del shell todo
+lo que flotaba, pero el botón **sigue fuera del panel** —login, registro,
+marketing—, donde no hay riel ni topbar donde alojarlo. La luna giraba delante
+de quien todavía no es cliente.
+
+Medido en `/login` leyendo la **matriz calculada** (`rotate(20deg)` llega como
+`matrix(0.94, 0.34, -0.34, 0.94, 0, 0)`, no como el texto original):
+
+|        | antes | después |
+|---|---|---|
+| svg    | `matrix(0.94, 0.34, …)` | `none` |
+| botón  | `matrix(1.05, …)` | igual |
+| color  | 168 → 242 | igual |
+
+**Las dos señales útiles del `:hover` siguen.** Comprobarlo era la mitad del
+trabajo: quitar la decoración sin dejar afordancia habría sido cambiar un
+defecto por otro peor — un control que ya no dice que se puede pulsar.
+
+Con esto **RTC-23 queda cerrada entera**: `/citas` pagada, la luna pagada, y la
+cascada de Hoy declarada NO defecto por el propio panel (2 elementos, 120ms,
+ordena jerarquía).
+
+**Compuertas**: tsc limpio · vitest 9460/9461 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete sin deuda nueva · build compila · navegador real
+con `:hover` de verdad, 0 errores de página.
