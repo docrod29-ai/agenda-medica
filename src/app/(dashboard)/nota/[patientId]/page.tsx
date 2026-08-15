@@ -61,12 +61,20 @@ export default function NotaRescuePage() {
           ? 'No localizamos esa nota en tu clínica. Es posible que el enlace esté roto.'
           : 'Hubo un error al buscar la nota. Intenta de nuevo desde el expediente.'}
       </p>
+      {/* V15-FINAL-COHERENCE-001 — el rótulo decía «Ir a Consulta» y el destino
+          era `/pacientes`. Es exactamente la familia de RTC-08, que este
+          producto YA resolvió en el riel: «un ítem que dice Encuentro, te deja
+          en la lista de pacientes … rompe la pregunta de §15 en el primer
+          uso». La regla que se fijó entonces —o hay un lugar, o se dice cuál
+          es— no había llegado hasta aquí. No se cambia el destino, que es el
+          correcto (no se entra a una consulta sin elegir paciente): se cambia
+          la promesa, que era la que mentía. */}
       <button
         onClick={() => router.push('/pacientes')}
         className="btn btn-primary"
         style={{ display: 'inline-flex' }}
       >
-        <ArrowLeft size={14} /> Ir a Consulta
+        <ArrowLeft size={14} /> Ir a Pacientes
       </button>
     </div>
   )

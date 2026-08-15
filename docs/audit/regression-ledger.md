@@ -7889,3 +7889,101 @@ que lo que hay en Firestore también se ofrece, a propósito — la decisión de
 vale es del médico, y el aviso enseña la hora a la que se guardó. Aplicarlo
 automáticamente por ser más nuevo sería volver a la corrección silenciosa que la
 regla 3 prohíbe.
+
+---
+
+## REG-321 — la familia documental decía tres gramáticas, y ninguna nombraba al paciente
+
+**Área.** Coherencia de producto / jerarquía de identidad clínica. Encontrado
+por `V15-FINAL-COHERENCE-001` **midiendo el DOM vivo de once superficies a la
+vez**, no leyendo una pantalla.
+
+**Qué fallaba.** La matriz de coherencia
+(`scripts/design/medir-coherencia-de-producto-v15.mjs`) lee el `<h1>` y la voz
+tipográfica **calculada** del nombre del paciente en cada superficie, a
+1440×900 y a 390×844. Escritorio:
+
+```
+expediente   h1 = «Aurelio Domínguez Peña»    paciente a 20px/600 (ancla)
+consulta     h1 = «Aurelio Domínguez Peña»    paciente a 20px/700 (h1)
+nota         NO HAY <h1>                      paciente a 14px/600 (franja)
+receta       h1 = «Generador de Receta»       paciente a 14px/600 (franja)
+orden        h1 = «Orden Médica»              paciente a 14px/600 (franja)
+```
+
+Dicho en una frase: **en las dos superficies donde el médico LEE sobre el
+paciente, su nombre es la voz más fuerte de la pantalla; en las tres donde
+EMITE un documento que cambia su tratamiento, cae a cromo periférico de 14px y
+el sitio dominante lo ocupa el nombre de la herramienta.** El degradado ocurre
+justo en las superficies consecuentes, que es al revés de lo que pediría la
+seguridad. En la misma pantalla, la vista previa del papel sí encabeza con
+«PACIENTE · Luz María Cervantes Ochoa»: el impreso sabía quién era el sujeto;
+la pantalla de trabajo, no.
+
+`/nota` era además la única superficie clínica medida **sin encabezado de
+nivel uno**, y ninguna corrida de axe lo había visto porque la familia
+documental nunca entró en su lista de pantallas
+(`scripts/design/axe-encuentro-v15.mjs`, `PANTALLAS`).
+
+**Causa raíz.** No fue un descuido repetido tres veces: **nadie era dueño de la
+pregunta** «¿qué nombra el encabezado de un documento clínico?». Cada pantalla
+la contestó sola, con su literal, mientras los comentarios de las tres afirman
+pertenecer a una familia que «habla el mismo idioma y el mismo orden».
+
+**Control permanente.** `src/components/TituloDeDocumentoClinico.tsx` es el
+dueño que faltaba: el `<h1>` dice el nombre del paciente y el tipo de documento
+baja a rótulo subordinado. La invariante que obliga a que exista un dueño —y no
+tres copias— es la cláusula de seguridad: **el nombre nunca se inventa mientras
+carga**; sin paciente resuelto el encabezado dice qué documento es, que es
+cierto, en vez de a quién pertenece, que aún no se sabe. Es la misma regla que
+ya cumplen `InstrumentStrip` y el ancla del expediente.
+`src/__tests__/v15-el-documento-clinico-nombra-al-paciente.test.ts` (10 casos,
+probado al revés ×3).
+
+**Qué NO cubre, declarado.** El documento **impreso** no cambia: la reparación
+vive en la barra `no-print` de la pantalla de trabajo, y PDF, impresión y Word
+salen idénticos. Y **no cubre `/referencia`**: su `<h1>` («CARTA DE
+REFERENCIA») está dentro del papel, como título del propio oficio, así que
+cambiarlo cambiaría un documento medicolegal emitido. Es una diferencia de
+contexto clínico legítima y queda declarada como deuda P3 **no pagada**, no
+como olvido.
+
+---
+
+## REG-322 — un destino que prometía un sitio y llevaba a otro, y un título que sólo lo parecía
+
+**Área.** Gramática de acción y semántica de encabezado. Encontrado por
+`V15-FINAL-COHERENCE-001` inventariando el encabezado de las 45 pantallas del
+dashboard a la vez.
+
+**Qué fallaba.** Dos cosas pequeñas, y sólo visibles comparando superficies:
+
+1. **La ruta de rescate de nota** (`/nota/[patientId]`, la que atrapa un URL
+   mal formado) remataba con un botón que decía **«Ir a Consulta»** y navegaba
+   a **`/pacientes`**.
+2. **`/chat`** pintaba «Chat de la clínica» en un `<div>` a 15/700 — en el
+   sitio exacto de un título y con su misma voz, pero sin serlo. Era la única
+   superficie del producto que fingía su encabezado en vez de declararlo
+   (propio o vía `PageHeader`), así que la pantalla no tenía encabezado de
+   nivel uno para quien la recorre por índice de encabezados.
+
+**Causa raíz.** El primero es la familia de **RTC-08**, que este producto ya
+declaró defecto y reparó en el riel — «un ítem que dice Encuentro, te deja en la
+lista de pacientes y encima ilumina Paciente rompe la pregunta de §15 en el
+primer uso». La regla que se fijó entonces —o hay un lugar, o se dice cuál es—
+nunca llegó hasta esta pantalla. Es la misma **forma** que REG-319: el producto
+aprendió la lección en un contenedor y no la aplicó en el hermano.
+
+**Control permanente.** El **destino no se toca** (no se entra a una consulta
+sin elegir paciente: `/pacientes` es correcto); se corrige la **promesa**, que
+era la que mentía. Y el título de `/chat` pasa a `<h1>` conservando tamaño y
+peso: cambia la semántica, no la voz — si además hubiera cambiado de tamaño
+sería un rediseño encubierto.
+`src/__tests__/v15-cada-destino-declara-su-encabezado.test.ts` (5 casos,
+probado al revés ×2).
+
+**Qué NO cubre, declarado.** No es un barrido de accesibilidad del producto:
+cubre las dos superficies que la matriz señaló, no «todas las pantallas tienen
+h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
+de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
+a poner encabezados donde no hay pantalla que encabezar.

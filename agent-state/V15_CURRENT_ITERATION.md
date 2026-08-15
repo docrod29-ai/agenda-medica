@@ -13,7 +13,145 @@ Quien implementó no fue el juez: ésa era la condición y se cumplió. **No se
 reabre.** Su deuda P2/P3 —declarada abajo, íntegra— **no se borra ni se paga**
 salvo que una regresión la vuelva inseparable del trabajo en curso.
 
+## Iteración 17 — CERRADA por lectura independiente
+
+**`V15-WORKFLOW-BENCHMARK-INDEPENDENT-CLOSURE-001` — PASS.**
+Árbol inmutable **`89865c2f6fe21c6c82b4509ab66f1da43ccc16a1`**.
+`P0 = 0` · `BLOQUEANTES P1 = 0`.
+
+Quien implementó el banco no fue quien lo cerró. **No se reabre.** Su deuda
+P2/P3 —los cuatro puntos declarados abajo, íntegros— **no se borra ni se
+paga** salvo que una regresión la vuelva inseparable del trabajo en curso, y
+**no se asciende de severidad** por el hecho de que la iteración siguiente se
+llame «Final Coherence». Las propiedades `UNVERIFIABLE` (proveedor de
+transcripción, nota nacida de la transcripción, comunicación real al paciente,
+`PORTAL_PACIENTE_SECRET`, el `ops-timeout` ambiental) **siguen
+`UNVERIFIABLE`**: no se convierten a PASS.
+
 ## Iteración en curso
+
+**15-ago · `V15-FINAL-COHERENCE-001` (§43 orden 18) — la coherencia de
+producto entero.** Arranca en `89865c2f`. Pregunta única: ¿Ausculta V15 se
+comporta como UN producto clínico coherente, o como una colección de
+superficies localmente correctas? No es pulido visual. No es V16. No es
+Production Hardening (`AUSCULTA-PROFESSIONAL-HARDENING-001` sigue **EN COLA**,
+fuera de V15). No se empieza la Iteración 19.
+
+Acta y razonamiento completos en
+[`docs/design/v15/V15-COHERENCIA-DE-PRODUCTO.md`](../docs/design/v15/V15-COHERENCIA-DE-PRODUCTO.md).
+
+**Lo primero, porque cambia cómo se lee lo demás: TRES corridas del arnés
+murieron antes de medir nada, y las tres por el INSTRUMENTO** — el
+`@playwright/test` instalado es más nuevo que los navegadores del contenedor (y
+el repositorio ya tenía la convención de caer a `/opt/pw-browsers/chromium`, que
+el medidor nuevo no heredó); el `.env.local` apuntaba a `demo-nexusmed-v10`
+mientras las siembras escriben en `demo-nexusmed-test`; y la variable que abre
+los emuladores en el cliente es `NEXT_PUBLIC_FIREBASE_EMULATORS` (**plural**),
+no la singular que sólo vive en un comentario. Ninguna es del producto.
+Atribuirle a la aplicación un login roto que era del arnés habría sido el
+defecto más caro de esta corrida. **Y una cuarta, del entorno:** el contenedor
+llegó **sin `node_modules`**.
+
+**El hallazgo, medido en once superficies a la vez, a 1440 y a 390, leyendo la
+voz tipográfica CALCULADA:** en las dos superficies donde el médico **LEE**
+sobre el paciente (expediente, consulta) su nombre es la voz más fuerte de la
+pantalla —20px—; en las tres donde **EMITE** un documento que cambia su
+tratamiento (nota, receta, orden) caía a **14px de cromo periférico** y el
+sitio dominante lo ocupaba el nombre de la HERRAMIENTA («Generador de Receta»,
+«Orden Médica») — y `/nota` no tenía **ningún** `<h1>`. El degradado ocurría
+justo en las superficies consecuentes, al revés de lo que pediría la
+seguridad. En la misma pantalla, la vista previa del papel sí encabezaba con
+«PACIENTE · …»: el impreso sabía quién era el sujeto; la pantalla de trabajo,
+no.
+
+**Causa raíz:** no un descuido repetido tres veces, sino que **nadie era dueño
+de la pregunta** «¿qué nombra el encabezado de un documento clínico?» —
+mientras los comentarios de las tres afirman pertenecer a una familia que
+«habla el mismo idioma y el mismo orden». Y el hueco de `/nota` no lo había
+visto ninguna corrida de axe porque la familia documental **nunca entró en su
+lista de pantallas**.
+
+**Lo pagado** (dos entradas nuevas en el ledger, las dos selladas):
+
+1. **REG-321 · el documento clínico nombra al paciente.**
+   `TituloDeDocumentoClinico` es el dueño que faltaba: el `<h1>` dice el nombre
+   del paciente y el tipo de documento baja a rótulo subordinado. La invariante
+   que obliga a que haya UN dueño y no tres copias es la cláusula de seguridad
+   —**el nombre nunca se inventa mientras carga**—, la misma que ya cumplen
+   `InstrumentStrip` y el ancla del expediente. Medido después, en navegador y
+   en los dos anchos: nota/receta/orden pasan de `14/600 (franja)` a
+   `20/700 (h1)` y las cinco superficies de paciente hablan por fin la misma
+   jerarquía. **El impreso NO cambia** (vive en la barra `no-print`), y la voz
+   tampoco: 20/700, el mismo tamaño y peso de antes — cambia QUÉ dice, no
+   cuánto pesa. Guardián de 10 casos, probado al revés ×3.
+2. **REG-322 · dos contradicciones pequeñas de gramática.** La ruta de rescate
+   de nota decía «Ir a Consulta» y navegaba a `/pacientes` —la familia de
+   RTC-08, que el producto YA declaró defecto y reparó en el riel, y cuya regla
+   nunca llegó hasta aquí: la misma forma que REG-319—; y `/chat` fingía su
+   encabezado en un `<div>` a 15/700. Se corrige la promesa, **no el destino**
+   (a una consulta no se entra sin elegir paciente), y la semántica del título,
+   **no su voz**. Guardián de 5 casos, probado al revés ×2.
+
+**Un error propio, del tipo que esta casa ya tiene fichado:** el primer
+guardián falló **contra sus propios comentarios** —leía el archivo entero y el
+literal `<h1>` aparece en la prosa que explica la reparación—. Es el reverso
+exacto de REG-316: allí la prosa se escapó del comentario; aquí la prosa de
+dentro se coló en una medición. Se filtra el comentario **y se prueba el
+filtro**, porque uno que borrase de más dejaría el caso verde por no mirar
+nada.
+
+**Refutado midiendo, no por opinión:** la barra del pulgar NO tiene un tercer
+destino distinto al riel (son 4 destinos + una acción central contextual,
+decidido en RTC-07) · «Consulta» en las filas de Hoy ya está adjudicado en
+RTC-24 («la misma acción, abreviada por espacio») y **no se reabre** ·
+`/pendientes` con 7 primarias y `/citas` con 6 son colas de trabajo, una por
+fila, que es su forma correcta · el vocabulario de trabajo sin resolver tiene
+fuente única (`ETIQUETA_ESTADO_DE_ACCION`) y no diverge.
+
+**Deuda NUEVA registrada y NO pagada:** **P3** · `/referencia` encabeza «CARTA
+DE REFERENCIA» y **se queda así** — su `<h1>` está DENTRO del papel, como
+título del oficio, y cambiarlo cambiaría un documento medicolegal emitido: es
+una diferencia de contexto clínico legítima de las que §7 prohíbe aplanar.
+**P3** · expediente y consulta pintan su primaria con estilo inline propio y no
+con `.btn-primary` — es el punto ciego que explica los «0 primarias» de esas
+dos filas de la tabla, declarado para que nadie lea el 0 como ausencia de
+acción.
+
+**Deuda de la Iteración 17:** las cuatro siguen dichas una a una en el acta.
+Se paga **una** —el `<h1>` de la receta, que resultó ser familia entera y no
+una pantalla—; las otras tres quedan `UNCHANGED_DEBT`, sin inflarles la
+severidad. Las propiedades `UNVERIFIABLE` siguen `UNVERIFIABLE`.
+
+**Compuertas**: `npx vitest run` **9697 casos, 1 rojo** — el ambiental conocido
+(`ops-timeout-y-punto-ciego`: el proxy del contenedor responde en vez de
+agotarse, así que `TiempoAgotado` nunca se lanza; es el mismo rojo que la
+Iteración 17 comprobó también contra HEAD limpio) · `tsc --noEmit` limpio ·
+lint **96 = techo** · trinquete de diseño **sin deuda nueva** (los nueve techos
+intactos) · `npm run build` compila · sello de invariantes al día (328
+archivos, 4663 casos) y `clinical-safety-gate` en verde ·
+`SCREEN_INVENTORY.md`, `INDICE.md` de la sala de datos y el tablero del loop
+regenerados · navegador real 1440×900 y 390×844, con el ANTES conservado ·
+**errores de consola: los 2 `500` conocidos de `PORTAL_PACIENTE_SECRET` en
+`/receta`, en los dos anchos; las demás superficies con 0.**
+
+Los +15 casos respecto de los 9682 de la Iteración 17 son exactamente los dos
+guardianes nuevos (10 + 5).
+
+**Regresión del banco de flujos — re-corrido ENTERO sobre el árbol reparado**
+(la matriz mide superficies al aterrizar, no recorre flujos, y `/receta` está
+en mitad de WF-05): **20 corridas, 20 COMPLETA, 0 pérdidas de contexto, 0
+callejones**, con los mismos 10 errores de consola de siempre y de los mismos
+dos grupos ambientales (6×503 del proveedor en WF-04, 4×500 del secreto del
+portal en WF-05) — **paridad exacta con la Iteración 17**. WF-07 y WF-08, la
+cadena de §21, completan en los dos anchos: **Source Reveal no regresó**. El
+expediente en el teléfono sigue en 15.85 pantallas (era 15.9): deuda P2
+heredada, intacta. Las capturas y el acta de `v15-flujos/` **se restauraron a
+las de la Iteración 17** tras leer el resultado: esa iteración está cerrada por
+lectura independiente y su evidencia no se reescribe.
+
+---
+
+## Iteración 17 — bitácora (cerrada, se conserva)
 
 **15-ago · `V15-WORKFLOW-BENCHMARK-001` — el banco de flujos clínicos.
 20 corridas, 20 completas, 0 pérdidas de contexto. DOS P1 bloqueantes
@@ -109,10 +247,10 @@ nueva** (los nueve techos intactos) · `npm run build` compila ·
 `SCREEN_INVENTORY.md` regenerado · navegador real 1440 y 390, 20 corridas, 60
 capturas.
 
-**Siguiente tarea exacta**: congelar el END_SHA y pedir la **lectura
-INDEPENDIENTE de cierre** de `V15-WORKFLOW-BENCHMARK-001` — de Codex, no de
-quien lo implementó. Si da PASS, §43 orden 18: `V15-FINAL-COHERENCE-001`. **No
-se empieza Final Coherence antes de esa lectura.**
+**Siguiente tarea exacta** (cumplida): congelar el END_SHA y pedir la **lectura
+INDEPENDIENTE de cierre** de `V15-WORKFLOW-BENCHMARK-001`. **Hecho:** END_SHA
+`89865c2f`, lectura independiente **PASS**, `P0 = 0`, `BLOQUEANTES P1 = 0`.
+§43 orden 18 (`V15-FINAL-COHERENCE-001`) queda **autorizado y arrancado**.
 
 ---
 

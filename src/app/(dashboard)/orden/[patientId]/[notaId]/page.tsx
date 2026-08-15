@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
+import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
 
 /** Sugerencias de estudios agrupadas por categoría (catálogo amplio por especialidad) */
 const SUGERENCIAS: Record<string, string[]> = {
@@ -592,7 +593,10 @@ export default function GeneradorOrdenPage() {
         <button onClick={volver} className="btn btn-ghost btn-sm">
           <ArrowLeft size={15} /> Atrás
         </button>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Orden Médica</h1>
+        {/* V15-FINAL-COHERENCE-001 — misma reparación y mismo porqué que en
+            /receta: el `<h1>` nombra al paciente y «Orden médica» baja a
+            rótulo subordinado. El impreso no cambia (barra `no-print`). */}
+        <TituloDeDocumentoClinico nombreDelPaciente={patient?.nombre} clase="orden" />
         <div className="actions-row" style={{ display: 'flex', gap: 8 }}>
           {/* La primaria va PRIMERO, como en /nota y /receta: la familia
               documental habla el mismo orden. onClick/disabled intactos. */}

@@ -153,7 +153,14 @@ export default function ChatPage() {
       }}>
         <MessageCircle size={18} color="var(--teal)" />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Chat de la clínica</div>
+          {/* V15-FINAL-COHERENCE-001 — era un `<div>` con pinta de título:
+              15/700, en el sitio del encabezado, pero sin serlo. Todas las
+              demás superficies del producto declaran el suyo como encabezado
+              de verdad (propio o vía `PageHeader`); ésta era la única que lo
+              fingía, así que la pantalla no tenía encabezado de nivel uno para
+              quien la recorre con lector o por índice de encabezados. Cambia
+              la SEMÁNTICA, no la voz: mismo tamaño, mismo peso, mismo sitio. */}
+          <h1 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Chat de la clínica</h1>
           <div style={{ fontSize: 12, color: 'var(--text3)' }}>
             {mensajes.length} mensaje{mensajes.length !== 1 ? 's' : ''} · entre médico y asistente
           </div>

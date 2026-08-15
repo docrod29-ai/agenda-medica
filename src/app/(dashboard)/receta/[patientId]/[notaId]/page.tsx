@@ -51,6 +51,7 @@ import {
 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
+import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
 
 const VIAS: Medicamento['via'][] = ['oral', 'iv', 'im', 'sc', 'topica', 'inhalatoria', 'sublingual', 'rectal', 'otra']
 
@@ -588,7 +589,13 @@ export default function GeneradorRecetaPage() {
         <button onClick={volver} className="btn btn-ghost btn-sm">
           <ArrowLeft size={15} /> Atrás
         </button>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Generador de Receta</h1>
+        {/* V15-FINAL-COHERENCE-001: el encabezado dominante nombra AL PACIENTE,
+            no a la herramienta. Medido: era «Generador de Receta» a 20/700
+            mientras el nombre de quien se receta vivía a 14px en la franja del
+            shell — la superficie que imprime una dosis con cédula profesional
+            era la única de su familia cuya voz más fuerte no era el paciente.
+            El documento impreso NO cambia: esto vive en la barra `no-print`. */}
+        <TituloDeDocumentoClinico nombreDelPaciente={patient?.nombre} clase="receta" />
         <div className="actions-row" style={{ display: 'flex', gap: 8 }}>
           {/* La primaria va PRIMERO, como en /nota: las dos pantallas de la
               familia documental hablan el mismo orden. onClick/disabled intactos. */}

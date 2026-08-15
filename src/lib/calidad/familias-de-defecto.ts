@@ -48,7 +48,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314],
+    /**
+     * 321 y 322 entran aquí y no en `sin_medir` a propósito. Es cierto que
+     * los destapó un instrumento nuevo —la matriz de coherencia—, pero el
+     * defecto NO era la falta del instrumento: era que dos partes del producto
+     * afirmaban cosas incompatibles y ninguna estaba mal por su cuenta. El
+     * expediente dice que el sujeto es el paciente; la receta decía que era la
+     * herramienta. El rótulo prometía «Ir a Consulta»; el destino era la lista
+     * de pacientes. El fallo vivía en el hueco entre las dos, que es
+     * exactamente el patrón de esta familia.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322],
   },
   {
     clave: 'habla_real',

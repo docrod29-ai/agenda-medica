@@ -24,6 +24,7 @@ import { Spinner, EmptyState, Modal } from '@/components/ui'
 import { descargarComoPDF, descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
+import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 
 /**
@@ -319,6 +320,15 @@ export default function NotaImprimiblePage() {
         <button onClick={volver} className="btn btn-ghost btn-sm">
           <ArrowLeft size={15} /> Atrás
         </button>
+        {/* V15-FINAL-COHERENCE-001 — esta pantalla no tenía NINGÚN `<h1>`.
+            Sus dos hermanas de familia (/receta, /orden) sí, y los comentarios
+            de las tres declaran «la familia documental habla el mismo idioma y
+            el mismo orden»: eran tres gramáticas, no una. Y era además la
+            única superficie clínica medida sin encabezado de nivel uno, un
+            hueco que ninguna corrida de axe había visto porque la familia
+            documental nunca entró en su lista de pantallas. Ahora dice de
+            QUIÉN es la nota, igual que sus hermanas. */}
+        <TituloDeDocumentoClinico nombreDelPaciente={patient?.nombre} clase="nota" />
         <div className="actions-row">
           <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
             {descargando
