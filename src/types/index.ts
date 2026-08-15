@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react'
 // Unión canónica de roles (E0-06). Se importa en vez de redeclararse: este archivo
 // tenía la 3.ª de las cuatro listas de roles que había en el repo (ver E0-07).
 import type { Rol } from '@/lib/authz/matriz-acceso'
+import type { MarcaBloqueo } from '@/lib/arco/cancelacion'
 import { UserPlus, RefreshCw, Siren, Microscope, Video, ClipboardCheck, Stethoscope, ClipboardList } from 'lucide-react'
 
 // Planes actuales: agenda · clinica · premium (Pro) · hospital. Se conservan
@@ -314,6 +315,20 @@ export interface Patient {
   txValoracionAt?: string
   /** Historial de valoraciones fechadas. */
   txValoracionHist?: { fecha: string; modo: string; huesped: string; texto: string }[]
+  /**
+   * CANCELACIÓN ARCO — el expediente que pidió quedar fuera de todo contacto.
+   *
+   * Lo escribe `api/arco/cancelar` y lo lee `estaBloqueadoArco`, que es quien
+   * impide que este paciente entre en reactivación, recordatorios o campañas.
+   * Es un campo con consecuencia LEGAL, no una preferencia.
+   *
+   * Estaba vivo en el producto —escrito y leído— y **no existía en este
+   * tipo**: por eso `estaBloqueadoArco` recibe un parámetro con forma
+   * estructural (`{ arcoBloqueo?: MarcaBloqueo | null }`) en vez del paciente,
+   * un rodeo alrededor del hueco. Declararlo aquí lo cierra: hay UNA forma
+   * (`MarcaBloqueo`, en `@/lib/arco/cancelacion`) y este campo la usa.
+   */
+  arcoBloqueo?: MarcaBloqueo | null
   createdAt: string
   updatedAt: string
   creadoPor: string

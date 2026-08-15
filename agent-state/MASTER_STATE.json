@@ -19,26 +19,9 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M agent-state/V15_CURRENT_ITERATION.md",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M scripts/design/sembrar-capturas.mjs",
-    " M src/__tests__/procedencia-de-la-prosa.test.ts",
-    " M src/__tests__/v15-rtc30-el-vacio-dice-cuantos-hay-fuera.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/globals.css",
-    " M src/components/SelloProcedencia.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/procedencia-de-la-nota-archivada.ts",
-    " M src/lib/expediente/procedencia.ts",
-    " M src/types/expediente.ts",
-    "?? docs/design/capturas/v15-prosa-en-el-sello/",
-    "?? scripts/design/medir-prosa-en-el-sello-v15.mjs",
-    "?? src/__tests__/v15-el-sello-que-se-ve-cuenta-lo-mismo-que-el-sellado.test.ts"
+    "UU agent-state/MASTER_STATE.json",
+    "A  src/__tests__/el-bloqueo-arco-existe-en-el-tipo.test.ts",
+    "M  src/types/index.ts"
   ],
   "actualizado": "2026-08-15",
   "resumenDesdeElUltimoEstado": {
@@ -76,8 +59,8 @@
   "derivado": {
     "regsEnElLedger": 166,
     "ultimaREG": "REG-318",
-    "archivosDePrueba": 691,
-    "casosDePrueba": 8522,
+    "archivosDePrueba": 692,
+    "casosDePrueba": 8525,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

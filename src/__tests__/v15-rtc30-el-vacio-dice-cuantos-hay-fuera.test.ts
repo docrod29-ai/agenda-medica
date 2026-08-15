@@ -247,12 +247,7 @@ describe('RTC-30 · /reactivacion: por qué NO aparece quien lleva meses sin vol
         bloqueadoEn: '2026-01-01T00:00:00.000Z',
         bloqueadoPor: 'uid', solicitudId: 's1', motivo: 'lo pidió',
       } as never,
-      /* `arcoBloqueo` vive en el documento y `estaBloqueadoArco` lo lee, pero el
-         tipo `Patient` no lo declara — por eso `reactivacion.ts` también castea.
-         Sin esta aserción el literal no compila y `npx tsc --noEmit` queda rojo
-         en la rama. Declarar el campo en `Patient` es tocar el modelo de datos,
-         que §1 del Master Loop V15 congela: se anota y no se toca aquí. */
-    } as Partial<Patient>)
+    })
     expect(pacientesParaReactivar([bloqueado], HOY, 90).length).toBe(0)
     expect(desgloseDeReactivacion([bloqueado], HOY, 90, 90).bloqueoArco).toBe(1)
   })
