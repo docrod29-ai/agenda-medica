@@ -285,7 +285,7 @@ export default function PendientesPage() {
    * de un dato clínico en vez del dato (la razón por la que la propia lente
    * renderiza `children` del consumidor y no guarda copia).
    */
-  const { porQueId, disparador: disparadorPorQue, alternar: alternarPorQue, cerrar: cerrarPorQue } = usePorQue()
+  const { porQueId, disparador: disparadorPorQue, scrollAlAbrir: scrollPorQue, alternar: alternarPorQue, cerrar: cerrarPorQue } = usePorQue()
 
   const uid = auth.currentUser?.uid ?? ''
 
@@ -480,6 +480,7 @@ export default function PendientesPage() {
         tarea={porQueId ? ([...tareas, ...(cerradas ?? [])].find(x => x.id === porQueId) ?? null) : null}
         uid={uid}
         invocador={disparadorPorQue}
+        scrollAlAbrir={scrollPorQue}
         alCerrar={cerrarPorQue}
       />
 

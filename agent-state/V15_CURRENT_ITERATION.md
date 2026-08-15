@@ -4,6 +4,46 @@
 
 ## Iteración en curso
 
+`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO.**
+
+**15-ago · `V15-ORIGINALITY-BLOCKERS-REPAIR-002`.** La re-auditoría
+independiente `V15-ORIGINALITY-INDEPENDENT-REAUDIT-002` (árbol inmutable
+`01a1086`) devolvió **FAIL · P0 = 0 · P1 bloqueantes = 2 · P2 = 0 · P3 = 0**.
+
+- **P1 #2 · La vuelta exacta de §21 — PAGADO.** La traza a la consulta de
+  origen era un `<Link href>`: navegación normal, sin hilo de vuelta. Ahora hay
+  un **contrato de regreso** (`@/lib/ui/regreso-a-la-fuente`) que anota ruta,
+  sitio de la lista, foco, hecho inspeccionado y las **tres fronteras**
+  (consultorio · paciente · encuentro). En la URL viaja sólo un testigo opaco;
+  el cuerpo vive en la pestaña, así que otra pestaña o un enlace pegado fallan
+  cerrados por construcción. **Un contrato de otro paciente o rancio se declina
+  y lo dice** — se compara contra el destino real, nunca contra lo que el
+  contrato afirma. Guardián de 14 casos **probado al revés ×7**; navegador real
+  1440+390 sobre build de producción: **24/24 PASS, 0 errores de consola**, con
+  la cadena entera y el fallo seguro medidos. Doc:
+  `docs/design/v15/V15-CONTRATO-DE-REGRESO.md`.
+- **P1 #1 · §29 por superficie — NO IMPLEMENTADO, y se dice así.** Pide que las
+  seis superficies lleguen a ≤1.0 de forma independiente (hoy: cinco en 1.5 y
+  `/pendientes` en 1.0), con rediseño estructural de Hoy, Pacientes,
+  Expediente, Consulta y Operaciones más móvil/escritorio/grabación. Es un
+  programa de varias rebanadas medidas, no una corrida: intentarlo a medias
+  habría sido exactamente el juego cosmético que el encargo prohíbe, y además
+  arriesga `/pendientes`, que ya PASA. **No se tocó ninguna de las seis.**
+
+**Lo que esta corrida NO hace, por contrato:** no marca §26 ni §29 PASS, no
+cierra `V15-ORIGINALITY-REDTEAM-001` y no empieza
+`V15-WORKFLOW-BENCHMARK-001`. Esas decisiones son del revisor independiente.
+
+**Nota de entorno (15-ago), medida y reproducida:**
+`src/__tests__/ops-timeout-y-punto-ciego.test.ts` falla en este contenedor y
+falla **igual en `01a1086` con el árbol limpio** (3 de 3 corridas con los
+cambios guardados aparte). Causa: el interceptor de salida del entorno contesta
+**403 en ~102 ms** a `http://10.255.255.1/nunca`, la IP que la prueba usa como
+agujero negro; con la conexión caliente la respuesta gana al aborto de 30 ms.
+No es del producto y no es de V15.
+
+---
+
 **15-ago (última rebanada) — §21 llega a Hoy: la fila que enseñaba el pendiente
 no podía preguntarle nada, y las cuatro respuestas casi nacen por duplicado.**
 

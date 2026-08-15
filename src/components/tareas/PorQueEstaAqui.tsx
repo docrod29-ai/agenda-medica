@@ -49,12 +49,28 @@
  *   §1 permite: «component extraction», «presentation-layer adapters».
  */
 import { useCallback, useRef, useState } from 'react'
-import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui'
 import { Lente } from '@/components/LenteContextual'
+import { useClinic } from '@/context/ClinicContext'
 import { responderPorElPendiente } from '@/lib/tareas-clinicas/por-que-esta-aqui'
 import type { TareaClinica } from '@/lib/tareas-clinicas/modelo'
+import {
+  guardarContrato, nuevoTestigo, rutaConRegreso,
+} from '@/lib/ui/regreso-a-la-fuente'
 import { AlertTriangle, FileText, HelpCircle } from 'lucide-react'
+
+/**
+ * EL `id` DEL DISPARADOR — estable, derivado del pendiente.
+ *
+ * El foco vuelve por `getElementById` después de un cambio de ruta, así que no
+ * sirve guardar el nodo: al volver de la consulta, el botón que abrió la lente
+ * es OTRO nodo del DOM aunque se vea igual. Lo único que sobrevive a la
+ * navegación es su nombre, y por eso tiene que ser determinista.
+ */
+export function idDelDisparador(tareaId: string | undefined): string {
+  return `porque-${tareaId ?? 'sin-id'}`
+}
 
 /**
  * Con día Y HORA, y la razón importa al mudarla aquí: en la línea de tiempo de
@@ -87,15 +103,34 @@ export function usePorQue() {
   const [porQueId, setPorQueId] = useState<string | null>(null)
   /** El control que abrió la lente, para que el foco vuelva ahí al cerrarla. */
   const disparador = useRef<HTMLElement | null>(null)
+  /**
+   * DÓNDE ESTABA LA LISTA EN EL INSTANTE DE ABRIR — no al salir.
+   *
+   * Lo cazó el navegador y no una prueba: en el teléfono la lente es una hoja
+   * EN FLUJO, hermana de `<main>`, así que al abrirse `<main>` cede alto y su
+   * `scrollTop` se desplaza. Si el contrato de regreso anotara el sitio al
+   * pulsar la traza —con la lente ya abierta— guardaría una coordenada del
+   * layout ENCOGIDO para reponerla sobre el layout normal: medido, **41px de
+   * diferencia en móvil y 0 en escritorio**, porque ahí la lente no toca el
+   * alto de `<main>`.
+   *
+   * Cuarenta y un píxeles no arruinan una consulta, pero la promesa de §21 es
+   * «exactly where you were», y una que se cumple en escritorio y no en el
+   * teléfono es justo el medio-cumplimiento que §22 existe para no aceptar. Se
+   * anota en el gesto de ABRIR, cuando la pantalla todavía es la que el médico
+   * estaba mirando.
+   */
+  const scrollAlAbrir = useRef(0)
 
   const alternar = useCallback((t: TareaClinica, control: HTMLElement) => {
     disparador.current = control
+    scrollAlAbrir.current = document.querySelector('main')?.scrollTop ?? 0
     setPorQueId(id => (id === t.id ? null : t.id ?? null))
   }, [])
 
   const cerrar = useCallback(() => setPorQueId(null), [])
 
-  return { porQueId, disparador, alternar, cerrar }
+  return { porQueId, disparador, scrollAlAbrir, alternar, cerrar }
 }
 
 /**
@@ -114,6 +149,7 @@ export function DisparadorPorQue({ tarea, abierta, onAbrir }: {
     <Button
       size="sm"
       variant="ghost"
+      id={idDelDisparador(tarea.id)}
       aria-expanded={abierta}
       onClick={e => onAbrir(tarea, e.currentTarget as HTMLElement)}
     >
@@ -149,12 +185,73 @@ function Bloque({ titulo, children }: { titulo: string; children: React.ReactNod
  * Por eso el consumidor BUSCA la tarea por id en cada render en vez de
  * guardársela: lo que se lee es el pendiente de ahora, no una copia.
  */
-export function LentePorQue({ tarea, uid, invocador, alCerrar }: {
+/**
+ * CÓMO SE LLAMA LA PANTALLA DE LA QUE SE SALE.
+ *
+ * El regreso se rotula con el sitio, no con un genérico: «Volver a Pendientes»
+ * dice a dónde va; «Volver» obliga a recordar de dónde se vino, que es
+ * exactamente lo que §21 existe para no tener que hacer. Son las dos
+ * superficies que hoy consumen esta pieza; cualquier otra cae en el respaldo
+ * honesto y neutro en vez de inventarse un nombre.
+ *
+ * (Y el nombre de la lectura del worklist NO se teclea aquí: el guardián de
+ * esta pieza mide el CUERPO del archivo, no su cabecera, y con razón — citar
+ * una función que la pieza no debe llamar la haría parecer que la llama.)
+ */
+const NOMBRE_DE_LA_PANTALLA: Record<string, string> = {
+  '/pendientes': 'Pendientes',
+  '/dashboard': 'Hoy',
+}
+
+export function LentePorQue({ tarea, uid, invocador, scrollAlAbrir, alCerrar }: {
   tarea: TareaClinica | null
   uid: string
   invocador: React.RefObject<HTMLElement | null>
+  /** El sitio de la lista ANTES de que la lente cambiara el alto. Ver `usePorQue`. */
+  scrollAlAbrir?: React.RefObject<number>
   alCerrar: () => void
 }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { clinicId } = useClinic()
+
+  /**
+   * SALIR A LA FUENTE FIRMANDO EL HILO DE VUELTA.
+   *
+   * Antes esto era un `<Link href>`: navegación normal, y con ella se perdía
+   * todo lo que §21 pide conservar. Ahora, en el mismo gesto, queda anotado a
+   * dónde se vuelve (ruta y punto exacto de la lista), a qué control vuelve el
+   * foco, qué hecho se estaba inspeccionando y **de quién es todo esto**
+   * —consultorio, paciente y nota—, que es lo que la consulta comparará contra
+   * sí misma antes de ofrecer el regreso.
+   *
+   * El desplazamiento se lee de `<main>`, que es el contenedor que desplaza en
+   * este shell (`nx-app-shell` deja el documento sin scroll): leer
+   * `window.scrollY` daría 0 siempre y el regreso aterrizaría arriba diciendo
+   * que había restaurado.
+   */
+  /* Sin `useCallback`: el compilador de React memoiza este componente solo, y
+     una memoización manual que él no puede preservar le hace SALTARSE el
+     archivo entero — el trinquete de lint lo caza como «Compilation Skipped».
+     Aquí no la preserva porque lee `scrollAlAbrir.current`, que es justo lo que
+     tiene que leerse en el momento del gesto y no en el del render. */
+  const irALaFuente = (traza: { href: string; notaId: string; patientId: string }) => {
+    const id = nuevoTestigo()
+    guardarContrato({
+      id,
+      creadoEnMs: Date.now(),
+      origen: {
+        ruta: pathname ?? '',
+        scrollTop: scrollAlAbrir?.current ?? document.querySelector('main')?.scrollTop ?? 0,
+        disparadorId: idDelDisparador(tarea?.id),
+        nombre: NOMBRE_DE_LA_PANTALLA[pathname ?? ''] ?? 'donde estabas',
+      },
+      hecho: { clase: 'pendiente', id: tarea?.id ?? '' },
+      limite: { clinicId: clinicId ?? '', patientId: traza.patientId, notaId: traza.notaId },
+    })
+    router.push(rutaConRegreso(traza.href, id))
+  }
+
   if (!tarea) return null
   const r = responderPorElPendiente(tarea, uid)
 
@@ -177,9 +274,13 @@ export function LentePorQue({ tarea, uid, invocador, alCerrar }: {
             cadena de §21 sin saltos.
           */}
           {r.traza && (
-            <Link href={r.traza.href} className="nx-porque-traza">
-              <FileText size={14} /> Ver la consulta de la que salió
-            </Link>
+            <button
+              type="button"
+              className="nx-porque-traza"
+              onClick={() => irALaFuente(r.traza!)}
+            >
+              <FileText size={14} aria-hidden="true" /> Ver la consulta de la que salió
+            </button>
           )}
           {/* Ausencia de dato no es dato de ausencia: se dice que no consta la
               traza, no que la tarea nació de la nada. */}

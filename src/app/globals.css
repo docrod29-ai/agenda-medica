@@ -3277,3 +3277,55 @@ span.riel-aviso { cursor: default; }
   background: var(--nexus);
   flex-shrink: 0;
 }
+
+/* ── EL HILO DE VUELTA — §21 «return exactly where you were» ─────────────────
+   El regreso es una ACCIÓN de navegación, no un aviso: `<button>` de verdad,
+   con su objetivo táctil en puntero grueso. Va en la misma esquina donde ya
+   vive «Expediente», que es donde el médico ya busca la salida de la consulta.
+
+   Sin relleno de marca: la acción primaria de la consulta es grabar (RTC-06:
+   un solo relleno primario por pantalla), y un regreso que pesa como el
+   micrófono compite con lo único que importa con un paciente delante. */
+.nx-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--nexus);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nx-volver:hover { background: var(--s2); }
+@media (pointer: coarse) { .nx-volver { min-height: 44px; } }
+
+/* Cuando el hilo se DECLINA se dice, y se dice como hueco del registro —ámbar—,
+   no como error rojo ni en gris de nota al pie: hubo un hilo de vuelta y el
+   producto se negó a usarlo a propósito. Callarlo dejaría al médico creyendo
+   que se olvidó. */
+.nx-volver-declinado {
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  color: var(--amber);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* La traza dejó de ser un enlace y pasó a ser un botón (firma el contrato de
+   regreso antes de navegar). Se le quita el cromo de botón para que siga
+   leyéndose como la traza que era: el cambio es de MECANISMO, no de conducta
+   percibida. */
+.nx-porque-traza {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-weight: 600;
+}

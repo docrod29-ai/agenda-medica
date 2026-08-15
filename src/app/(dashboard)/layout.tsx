@@ -39,6 +39,7 @@ import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { CORREO_SOPORTE } from '@/lib/contacto'
 import { MarcoEscuchando } from '@/components/MarcoEscuchando'
+import { RestauradorDeRegreso } from '@/components/lente/VolverALaFuente'
 import { useGrabando } from '@/hooks/useGrabando'
 
 function ModeBanner() {
@@ -805,6 +806,14 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
+        {/*
+          EL RESTAURADOR DEL REGRESO (§21) vive en el shell, no en cada pantalla
+          de origen: la pantalla a la que se vuelve cambia según de dónde se
+          saliera, y montarlo caso por caso sería `depende_de_recordar` — la
+          próxima superficie que inspeccione nacería sin él y nadie se enteraría.
+          No pinta nada; repone desplazamiento y foco una sola vez al aterrizar.
+        */}
+        <RestauradorDeRegreso />
         {/*
           CAPA 4 DE §5 — LA LENTE CONTEXTUAL. El shell tenía tres capas desde
           V15-SHELL-GREYBOX-001 (franja · riel · lienzo) y ésta faltaba; RTC-12(a)

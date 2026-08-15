@@ -66,7 +66,7 @@ export function ContinuidadPanel() {
      urgencia en cada `setAhora`, y una fila que se guardara si está abierta
      perdería la lente al reordenarse. Es la misma decisión —y la misma
      razón— que ya documenta `/pendientes`. */
-  const { porQueId, disparador, alternar, cerrar } = usePorQue()
+  const { porQueId, disparador, scrollAlAbrir, alternar, cerrar } = usePorQue()
   const uid = auth.currentUser?.uid ?? ''
 
   useEffect(() => {
@@ -126,7 +126,7 @@ export function ContinuidadPanel() {
         pendiente cambia debajo, lo que se lee es el de ahora; y si desaparece
         de la lista, la lente se queda sin sujeto y no se abre.
       */}
-      <LentePorQue tarea={abierta} uid={uid} invocador={disparador} alCerrar={cerrar} />
+      <LentePorQue tarea={abierta} uid={uid} invocador={disparador} scrollAlAbrir={scrollAlAbrir} alCerrar={cerrar} />
     </section>
   )
 }

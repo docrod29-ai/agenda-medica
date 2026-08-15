@@ -14,6 +14,7 @@ import { sugerenciasPendientes, resolverSugerencias, lineasSugeridas } from '@/l
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
+import { VolverALaFuente } from '@/components/lente/VolverALaFuente'
 import { useBorrador } from '@/context/BorradorContext'
 import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -3962,6 +3963,27 @@ export default function ConsultaActivaPage() {
       <button onClick={volverAtras} style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
+
+      {/*
+        EL HILO DE VUELTA (§21) — sólo cuando el médico llegó aquí desde una
+        inspección, y sólo si el contrato cuadra con ESTA consulta.
+
+        `destino` se arma con lo que esta pantalla sabe de sí misma: el
+        consultorio de la sesión, el paciente de su propia ruta y la nota que
+        el parámetro pidió abrir. Se compara contra el contrato, y si no
+        coinciden los tres NO se ofrece volver — un testigo de otro paciente o
+        de otra nota se declina en voz alta en vez de devolver al médico a una
+        lista afirmando que venía de un encuentro en el que nunca estuvo.
+
+        `notaIdParam` y no el `notaId` de estado: el estado cambia si esta
+        pantalla crea una nota nueva, y entonces la comparación dejaría de
+        hablar del encuentro por el que se entró.
+      */}
+      <VolverALaFuente destino={{
+        clinicId: clinicId ?? '',
+        patientId: String(patientId ?? ''),
+        notaId: notaIdParam ?? '',
+      }} />
 
       {/* RTC-31/§5 — LA IDENTIDAD ENCABEZA, TAMBIÉN AQUÍ.
           Medido el 14-ago con un paciente CON historia: el nombre caía a 287px
