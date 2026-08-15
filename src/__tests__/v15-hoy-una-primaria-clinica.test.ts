@@ -66,16 +66,33 @@ describe('RTC-06 — una sola acción primaria, y es clínica', () => {
     expect(PAGINA.match(/className="prox-hero-cta"/g)?.length).toBe(1)
   })
 
-  it('2 · «Nueva cita» del header es secundaria — admin no compite con clínica', () => {
+  it('2 · «Nueva cita» NO vive en la cabecera clínica — y sigue sin ser primaria', () => {
     /**
-     * VARA MUDADA, NO BAJADA: el control pasó de `<Link><Button…></Link>` a
-     * `ButtonLink` — un enlace que parece botón, sin un botón dentro (dos
-     * paradas de teclado para un destino, §24). Lo que este caso defiende no
-     * cambia: sigue siendo `secondary`, y lo que NO puede volver es que la
-     * acción administrativa suba a primaria.
+     * VARA ENDURECIDA DOS VECES, Y LA SEGUNDA LA PIDIÓ UNA MEDICIÓN.
+     *
+     * v1: el control era `<Link><Button…></Link>` y este caso exigía que fuera
+     *     `secondary` en la cabecera — que no compitiera con «Iniciar consulta».
+     * v2: pasó a `ButtonLink` (un enlace que parece botón, sin un botón dentro:
+     *     §24, dos paradas de teclado para un destino). Misma exigencia.
+     * v3 (ésta): bajarle el peso NO bastaba. La medición de anatomía §29
+     *     encontró que «Nueva cita» seguía siendo **la primera acción
+     *     consecuente de Hoy, a 8px**: lo primero que la pantalla clínica
+     *     ofrecía hacer era administración. El peso no cambia el orden; el
+     *     sitio sí. La acción se mudó al bloque de la AGENDA, que es de lo que
+     *     habla, y la cabecera se quedó sin ninguna acción.
+     *
+     * Lo que este caso defiende ahora es más fuerte que antes: no que la acción
+     * administrativa pese poco, sino que **no esté en la cabecera clínica**.
      */
-    expect(PAGINA).toMatch(/<ButtonLink href="\/asistente" className="hoy-accion" variant="secondary" icon=\{<Plus size=\{16\} \/>\}>/)
+    const cabecera = PAGINA.slice(PAGINA.indexOf('<header className="hoy-head'), PAGINA.indexOf('</header>'))
+    expect(cabecera).not.toMatch(/Nueva cita/)
+    expect(cabecera).not.toMatch(/<ButtonLink|<Button\b/)
+
+    // Sigue existiendo, y sigue sin ser primaria: mudarla no es amputarla.
+    expect(PAGINA).toMatch(/Nueva cita/)
     expect(PAGINA).not.toMatch(/variant="primary"[^>]*>\s*Nueva cita/)
+    // Y vive donde habla: el bloque de la agenda.
+    expect(PAGINA).toMatch(/hoy-bloque-acciones[\s\S]{0,400}Nueva cita/)
   })
 
   it('3 · el «Consulta» por fila es btn-secondary: presente, no dominante', () => {

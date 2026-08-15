@@ -3329,3 +3329,9 @@ span.riel-aviso { cursor: default; }
   cursor: pointer;
   font-weight: 600;
 }
+
+/* La agenda de Hoy agrupa SUS acciones — agendar y ver todas — en su propio
+   bloque. La cabecera clínica de la pantalla se queda sin ninguna: lo primero
+   que Hoy ofrece hacer tiene que ser clínico (medición de anatomía §29: la
+   primera acción consecuente era «Nueva cita», a 8px). */
+.hoy-bloque-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

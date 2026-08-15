@@ -57,7 +57,7 @@
 | `/cumplimiento/motores` | medico | ✅ | 188 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 177 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 291 | 1 | — | ✅ | — |
-| `/dashboard` | medico | ✅ | 362 | 5 | — | ✅ | — |
+| `/dashboard` | medico | ✅ | 373 | 5 | — | ✅ | — |
 | `/expediente/[patientId]` | medico | ✅ | 964 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 735 | 0 | — | ✅ | — |
@@ -71,7 +71,7 @@
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 933 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 345 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 836 | 2 | — | ✅ | — |
-| `/pacientes` | medico | ✅ | 1077 | 4 | — | ✅ | — |
+| `/pacientes` | medico | ✅ | 1146 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 520 | 3 | — | ✅ | — |
 | `/reactivacion` | medico | ✅ | 336 | 0 | — | ✅ | — |
 | `/receta/[patientId]/[notaId]` | medico | ✅ | 1016 | 2 | — | ✅ | — |

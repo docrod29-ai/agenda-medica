@@ -19,7 +19,10 @@ import { describirListaVacia } from '@/lib/pacientes/vacio-de-la-lista'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
-import { estadoClinicoDeFila, ultimaVezVisto, type LecturaDelWorklist, type EstadoClinicoDeFila } from '@/lib/pacientes/estado-clinico'
+import { estadoClinicoDeFila, pendienteQueManda, ultimaVezVisto, type LecturaDelWorklist, type EstadoClinicoDeFila } from '@/lib/pacientes/estado-clinico'
+import type { TareaClinica } from '@/lib/tareas-clinicas/modelo'
+import { DisparadorPorQue, LentePorQue, usePorQue } from '@/components/tareas/PorQueEstaAqui'
+import { auth } from '@/lib/firebase'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -86,6 +89,13 @@ export default function PacientesPage() {
    */
   const [worklist, setWorklist] = useState<LecturaDelWorklist>({ estado: 'sin-leer' })
   const [ahora, setAhora] = useState(0)
+  /**
+   * LA LENTE, UNA POR PÁGINA. Misma pieza que `/pendientes` y Hoy: una sola
+   * plantilla para las cuatro respuestas de §10 sobre la misma entidad. El
+   * estado vive aquí arriba y el id baja; ninguna fila guarda si está abierta.
+   */
+  const { porQueId, disparador: disparadorPorQue, scrollAlAbrir, alternar: alternarPorQue, cerrar: cerrarPorQue } = usePorQue()
+  const uid = auth.currentUser?.uid ?? ''
   useEffect(() => {
     if (!clinicId) return
     let vivo = true
@@ -254,7 +264,7 @@ export default function PacientesPage() {
                 encontró ninguno—, son expedientes que se parecen al nombre. */}
             <ListaEncabezado texto="Se parecen al nombre que buscaste" />
             {parecidos.map(c => (
-              <PacienteRow key={c.paciente.id} p={c.paciente} mode={mode} internado={internados.has(c.paciente.id)} clinico={estadoClinicoDeFila(c.paciente.id, worklist, ahora)} visto={ultimaVezVisto(c.paciente.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(c.paciente, origen) : openEdit(c.paciente)} onEditar={() => openEdit(c.paciente)} />
+              <PacienteRow key={c.paciente.id} p={c.paciente} mode={mode} internado={internados.has(c.paciente.id)} clinico={estadoClinicoDeFila(c.paciente.id, worklist, ahora)} manda={pendienteQueManda(c.paciente.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(c.paciente.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(c.paciente, origen) : openEdit(c.paciente)} onEditar={() => openEdit(c.paciente)} />
             ))}
           </>
         )}
@@ -463,7 +473,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${resultadosBusqueda.length} resultado${resultadosBusqueda.length !== 1 ? 's' : ''}`} />
               {resultadosBusqueda.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} manda={pendienteQueManda(p.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -474,7 +484,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto="Vistos recientemente" />
               {recientes.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} manda={pendienteQueManda(p.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -485,7 +495,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${conAlerta.length} con inasistencias / cancelaciones`} />
               {conAlerta.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} manda={pendienteQueManda(p.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -507,7 +517,7 @@ export default function PacientesPage() {
                 }}
               >{letra}</div>
               {lista.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} manda={pendienteQueManda(p.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </div>
           ))
@@ -533,6 +543,22 @@ export default function PacientesPage() {
           }}
         />
       )}
+
+      {/*
+        LA LENTE — se busca la tarea por id en cada render en vez de guardarla:
+        lo que se lee es el pendiente de AHORA, no una copia. Si desapareció de
+        la lectura (se cerró en otra pestaña), la lente se queda sin sujeto y no
+        se abre, que es mejor que enseñar la ficha de algo que ya no está.
+      */}
+      <LentePorQue
+        tarea={porQueId && worklist.estado === 'lista'
+          ? (worklist.tareas.find(t => t.id === porQueId) ?? null)
+          : null}
+        uid={uid}
+        invocador={disparadorPorQue}
+        scrollAlAbrir={scrollAlAbrir}
+        alCerrar={cerrarPorQue}
+      />
     </div>
   )
 }
@@ -550,12 +576,22 @@ function ListaEncabezado({ texto }: { texto: string }) {
 }
 
 /** Fila de paciente reutilizable (búsqueda, recientes, alerta, A-Z). */
-function PacienteRow({ p, mode, internado, clinico, visto, onAbrir, onEditar }: {
+function PacienteRow({ p, mode, internado, clinico, manda, porQueId, onAbrirPorQue, visto, onAbrir, onEditar }: {
   p: Patient
   mode: string
   internado?: boolean
   /** RTC-15: lo que la fila dice CLÍNICAMENTE. Se calcula en `@/lib/pacientes/estado-clinico`. */
   clinico: EstadoClinicoDeFila
+  /**
+   * EL PENDIENTE QUE LA LÍNEA CLÍNICA RESUME — el mismo, no otra lectura.
+   *
+   * Es lo que convierte la fila de «texto que informa» en «hecho que se puede
+   * inspeccionar»: sin él, para saber por qué un resultado venció había que
+   * irse a `/pendientes` y buscar al paciente, o sea abandonar la lista.
+   */
+  manda: TareaClinica | null
+  porQueId: string | null
+  onAbrirPorQue: (t: TareaClinica, control: HTMLElement) => void
   /** «visto hace 3 días» — el dato ya estaba leído y no se pintaba en ningún sitio. */
   visto: string | null
   /** Recibe el .nx-ident de la fila: el objeto compartido de la coreografía (§20). */
@@ -646,6 +682,39 @@ function PacienteRow({ p, mode, internado, clinico, visto, onAbrir, onEditar }: 
             {clinico.vivas > 1 && (
               <span style={{ color: 'var(--text3)', fontWeight: 400 }}>
                 · {clinico.vivas} pendientes en total
+              </span>
+            )}
+            {/*
+              INSPECCIONAR EN EL SITIO — y NUNCA mutar en el sitio.
+
+              La fila decía «Resultado — venció y nadie la tomó» y su único
+              verbo era «Editar»: estado clínico presentado como información,
+              con un gesto de CRM al lado. Para atenderlo había que abandonar
+              la pantalla, que es el modelo de interacción que la re-auditoría
+              llamó genérico.
+
+              Lo que NO se hace, y es deliberado: traer aquí los botones de
+              avance de estado de `/pendientes`. Esa pantalla separa a
+              propósito «Ya se hizo» de «Lo revisé — cerrar»
+              (`POR_QUE_COMPLETADA_NO_ES_CERRADA`) porque entre las dos vive el
+              daño que el worklist existe para evitar. Un toque para cerrar en
+              una lista donde el detalle NO está en pantalla permitiría cerrar
+              un resultado sin haberlo leído. Inspeccionar contesta la pregunta
+              sin conceder esa autoridad.
+
+              Es la MISMA pieza que usan `/pendientes` y Hoy: una sola
+              plantilla para las cuatro respuestas de §10 sobre la misma
+              entidad. Y es hermano del botón que abre el expediente, nunca su
+              hijo — un control dentro de otro es `nested-interactive`, que
+              esta fila ya pagó una vez.
+            */}
+            {manda && (
+              <span className="nx-fila-porque">
+                <DisparadorPorQue
+                  tarea={manda}
+                  abierta={porQueId === manda.id}
+                  onAbrir={onAbrirPorQue}
+                />
               </span>
             )}
           </div>

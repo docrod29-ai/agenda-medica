@@ -94,6 +94,37 @@ function porQueImporta(t: TareaClinica, ahoraMs: number): string | null {
  * muchas veces y «vencida» tiene que significar lo mismo en todas ellas
  * durante un mismo pintado — además de ser lo que hace la función probable.
  */
+/**
+ * EL PENDIENTE QUE MANDA — el mismo que la fila resume, devuelto entero.
+ *
+ * ── POR QUÉ EXISTE ──────────────────────────────────────────────────────────
+ *
+ * `estadoClinicoDeFila` ya lo calculaba y se guardaba sólo su etiqueta. La fila
+ * quedaba diciendo «Resultado — venció y nadie la tomó» **sin poder contestar
+ * por qué**: para saberlo había que salir a `/pendientes` y buscar al paciente,
+ * o sea abandonar la lista — que es exactamente el modelo de interacción que la
+ * re-auditoría independiente señaló como genérico.
+ *
+ * Devolver la tarea permite INSPECCIONARLA donde está, con la lente que ya
+ * existe pagada. No se recalcula nada: mismo filtro por paciente, mismo
+ * `ordenWorklist`. Un segundo criterio de «cuál manda» sería una segunda verdad
+ * sobre la misma entidad clínica.
+ *
+ * Devuelve `null` cuando la lectura no llegó o el paciente no tiene ninguna —
+ * y quien lo pinte tiene que distinguir esos dos casos por la CLASE, no por el
+ * `null`: ausencia de lectura no es ausencia de pendientes.
+ */
+export function pendienteQueManda(
+  patientId: string,
+  lectura: LecturaDelWorklist,
+  ahoraMs: number,
+): TareaClinica | null {
+  if (lectura.estado === 'sin-leer') return null
+  const suyas = lectura.tareas.filter(t => t.patientId === patientId)
+  if (!suyas.length) return null
+  return [...suyas].sort((a, b) => ordenWorklist(a, b, ahoraMs))[0]
+}
+
 export function estadoClinicoDeFila(
   patientId: string,
   lectura: LecturaDelWorklist,
@@ -107,8 +138,10 @@ export function estadoClinicoDeFila(
   }
 
   // El MISMO orden del worklist: primero lo que hay que escalar, después por
-  // prioridad, y dentro de cada grupo lo más viejo arriba.
-  const manda = [...suyas].sort((a, b) => ordenWorklist(a, b, ahoraMs))[0]
+  // prioridad, y dentro de cada grupo lo más viejo arriba. `pendienteQueManda`
+  // aplica esta misma línea — si algún día divergen, la fila resumiría un
+  // pendiente y la lente explicaría otro.
+  const manda = pendienteQueManda(patientId, lectura, ahoraMs)!
   return {
     clase: 'con-pendientes',
     vivas: suyas.length,

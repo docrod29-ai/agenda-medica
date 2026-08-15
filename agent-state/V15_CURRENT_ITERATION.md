@@ -4,6 +4,38 @@
 
 ## Iteración en curso
 
+**15-ago · `V15-ITERATION16-COMPLETE-BLOCKER-CLOSURE-006` — DOS superficies
+reparadas de cinco. §29 sigue abierto.**
+
+Sobre el diagnóstico de `REPAIR-003` (que refutó la vara de contar
+contenedores), esta corrida implementó la hipótesis causal en las dos
+superficies con la raíz más nítida y el arreglo más seguro:
+
+- **HOY — pagada y medida.** La primera acción consecuente de la pantalla
+  clínica era «Nueva cita» **a 8px**: administración por delante de todo el
+  trabajo clínico. Bajarle el peso (RTC-06) no había cambiado el ORDEN; sólo
+  cambiarla de sitio lo cambia. «Nueva cita» se mudó al bloque de la AGENDA,
+  que es de lo que habla, y la cabecera se quedó sin acciones. **Medido antes y
+  después en navegador: «Nueva cita» 8px → «Iniciar consulta» 91px
+  (escritorio) y 187px (móvil).** Guardián endurecido y probado al revés.
+- **PACIENTES — pagada.** La fila decía «Resultado — venció y nadie la tomó» y
+  su único verbo era «Editar». Ahora el pendiente que la línea resume se
+  **inspecciona en el sitio** con la lente ya pagada (las cuatro respuestas de
+  §10 + la traza a la consulta de origen). **Lo que NO se hizo, y es la
+  decisión importante: no se trajeron los controles que MUTAN el estado.**
+  Cerrar un resultado desde una lista donde el detalle no está en pantalla
+  permitiría cerrarlo sin haberlo leído (`POR_QUE_COMPLETADA_NO_ES_CERRADA`);
+  §1 lo congela. Guardián nuevo de 6 casos, probado al revés ×3.
+
+**SIN PAGAR — y se dice sin adornos: Expediente, Consulta y Operaciones.** La
+raíz de cada una está medida y nombrada en `V15-DIAGNOSTICO-V29.md` (Consulta:
+12 campos y 20 grupos repetidos, primera acción consecuente a 393/518px;
+Operaciones: índice agrupado; Expediente: hueco de evidencia). No se tocaron.
+
+`/pendientes` intacta. El contrato de regreso de `060aade0` reverificado
+después de estos cambios: **41/41**.
+
+
 **15-ago · `V15-SECTION29-STRUCTURAL-REPAIR-003` — DIAGNÓSTICO, no reparación.**
 
 §29 sigue siendo el único P1 bloqueante y **sigue sin pagarse**. Lo que esta

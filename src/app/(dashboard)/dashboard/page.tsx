@@ -128,14 +128,21 @@ export default function DashboardPage() {
 
   return (
     <div className="nx-canvas hoy">
-      {/* Encabezado — fecha y saludo como KICKER, con «Nueva cita» disponible
-          pero SUBORDINADA (RTC-06). El equipo rojo midió esta cabecera al
-          revés: el saludo era el texto más grande de la pantalla y «Nueva
-          cita» (admin) llevaba el mismo relleno que «Iniciar consulta»
-          (clínica) — dos primarias co-iguales. La única acción primaria de
-          Hoy es la del héroe NOW: el paciente que sigue. El recuento de citas
-          tampoco vive aquí: vivía aquí y otra vez en la primera tarjeta, y el
-          mismo número dos veces no es jerarquía. */}
+      {/* Encabezado — fecha y saludo como KICKER, y SIN ninguna acción.
+
+          RTC-06 ya había bajado «Nueva cita» de primaria a secundaria. No
+          bastaba, y la medición de anatomía §29 dijo por qué: seguía siendo
+          **la primera acción consecuente de la pantalla, a 8px**. O sea que lo
+          primero que Hoy ofrecía hacer era crear una cita — administración —
+          por delante de todo el trabajo clínico vivo. Bajarla de peso no
+          cambia el orden; sólo cambiarla de sitio lo cambia.
+
+          Ahora vive en el bloque de la AGENDA, que es de lo que habla: sigue a
+          un gesto, y ya no compite con el paciente que sigue. La primera
+          acción consecuente de Hoy es clínica.
+
+          El recuento de citas tampoco vive aquí: vivía aquí y otra vez en la
+          primera tarjeta, y el mismo número dos veces no es jerarquía. */}
       <header className="hoy-head nx-reveal">
         <div>
           <p className="t-overline" style={{ color: 'var(--text3)', textTransform: 'uppercase' }}>{fechaLabel}</p>
@@ -144,9 +151,6 @@ export default function DashboardPage() {
             {saludo && <>, <span style={{ fontStyle: 'italic' }}>{saludo}</span></>}
           </h1>
         </div>
-        <ButtonLink href="/asistente" className="hoy-accion" variant="secondary" icon={<Plus size={16} />}>
-          Nueva cita
-        </ButtonLink>
       </header>
 
       {/* 1 · ¿QUIÉN SIGUE? — lo primero que hace falta a las nueve de la mañana. */}
@@ -165,9 +169,16 @@ export default function DashboardPage() {
               <ResumenDelDia {...stats} />
             )}
           </div>
-          <Link href="/citas" className="hoy-vertodas">
-            Ver todas <ChevronRight size={14} />
-          </Link>
+          <div className="hoy-bloque-acciones">
+            {/* Agendar es trabajo de la AGENDA, y por eso vive en su bloque y
+                no en la cabecera clínica de la pantalla. Sigue a un gesto. */}
+            <ButtonLink href="/asistente" variant="ghost" size="sm" icon={<Plus size={14} />}>
+              Nueva cita
+            </ButtonLink>
+            <Link href="/citas" className="hoy-vertodas">
+              Ver todas <ChevronRight size={14} />
+            </Link>
+          </div>
         </div>
 
         {loading ? (
