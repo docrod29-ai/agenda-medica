@@ -13,7 +13,7 @@
  * a «destino que pesa». El cromo habla las clases del sistema (t-h1,
  * t-overline, t-body) — V15-REMAINING-SCREENS-001, 5ª rebanada.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/ui'
 import {
@@ -24,6 +24,12 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
+import { where } from 'firebase/firestore'
+import { getAppointments, getWaitlist } from '@/lib/firestore'
+import { listarItems } from '@/lib/farmacia'
+import { hoyISO } from '@/lib/timezone'
+import { estadoDeOperaciones, type EstadoDeOperaciones as EstadoOps } from '@/lib/operaciones/estado-de-operaciones'
+import { EstadoDeOperaciones } from '@/components/operaciones/EstadoDeOperaciones'
 import { useMode } from '@/context/ModeContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { salirSeguro } from '@/lib/salir-seguro'
@@ -169,9 +175,49 @@ function CabeceraDeGrupo({ titulo, cadencia }: { titulo: string; cadencia: strin
   )
 }
 
+/**
+ * LO QUE PIDE ATENCIÓN, ANTES DE LOS DESTINOS.
+ *
+ * Las tres lecturas van EN PARALELO y cada una se rescata por separado: si
+ * farmacia falla, citas y lista de espera siguen contestando y farmacia queda
+ * `null` — que el motor traduce a «no se pudo leer», no a «sin novedad». Un
+ * `Promise.all` sin `catch` por rama dejaría la franja entera muda por una
+ * colección rota, y una franja muda se lee como consultorio en orden.
+ */
+function useEstadoOperativo(clinicId: string | null | undefined) {
+  const [estado, setEstado] = useState<EstadoOps | null>(null)
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    setCargando(true)
+    const rescatar = <T,>(p: Promise<T[]>, que: string): Promise<T[] | null> =>
+      p.catch(e => { console.error(`[operaciones] no se pudo leer ${que}`, e); return null })
+
+    // Sólo de hoy en adelante, y con el filtro EN LA CONSULTA: el motor
+    // vuelve a descartar las viejas, pero traerse el histórico entero de citas
+    // para tirarlo en el cliente crece con los años del consultorio.
+    const desde = hoyISO()
+    Promise.all([
+      rescatar(getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]), 'citas'),
+      rescatar(getWaitlist(clinicId), 'lista de espera'),
+      rescatar(listarItems(clinicId), 'farmacia'),
+    ]).then(([citas, listaEspera, farmacia]) => {
+      if (!vivo) return
+      setEstado(estadoDeOperaciones({ citas, listaEspera, farmacia, hoyISO: desde }))
+      setCargando(false)
+    })
+    return () => { vivo = false }
+  }, [clinicId])
+
+  return { estado, cargando }
+}
+
 export default function OperacionesPage() {
-  const { clinic } = useClinic()
+  const { clinic, clinicId } = useClinic()
   const { mode } = useMode()
+  const { estado, cargando } = useEstadoOperativo(clinicId)
 
   const grupos = GRUPOS
     .map(g => ({
@@ -191,6 +237,8 @@ export default function OperacionesPage() {
         title="Operaciones"
         subtitle="La administración del consultorio y los módulos de hospital, aparte del trabajo clínico del día. Cada cosa dice para qué sirve, y los grupos van de lo que se usa todos los días a lo que se configura una vez."
       />
+
+      <EstadoDeOperaciones estado={estado} cargando={cargando} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
         {/**

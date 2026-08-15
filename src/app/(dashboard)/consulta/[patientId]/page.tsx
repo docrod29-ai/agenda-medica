@@ -5001,98 +5001,6 @@ export default function ConsultaActivaPage() {
         </button>
       )}
 
-      {/* ── Herramientas clínicas: un solo bloque plegado. Antes eran cinco cajas
-             siempre abiertas apiladas aquí; la mayoría de las consultas no usa
-             ninguna, así que ahora se abren solo cuando se necesitan. ── */}
-      <Herramientas {...(() => {
-        const TODAS = [
-        ...(esCasoQuirurgico ? [{
-          id: 'cirugia', nombre: 'Cirugía', color: 'var(--blue)', icono: <Scissors size={14} />,
-          para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
-          contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
-        }] : []),
-        ...(esGineco ? [{
-          id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
-          para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
-          contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
-            onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
-        }] : []),
-        ...(esPediatrico ? [{
-          id: 'pediatria', nombre: 'Pediatría', color: 'var(--purple)', icono: <Baby size={14} />,
-          para: 'Dosis por peso con tope de adulto · vacunación',
-          aviso: vacunasAtrasadas > 0
-            ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
-            : undefined,
-          abrirPorDefecto: vacunasAtrasadas > 0,
-          contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
-            fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
-            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
-        }] : []),
-        ...(calcSugeridas.length > 0 ? [{
-          id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
-          para: 'Escalas sugeridas por el diagnóstico',
-          aviso: { texto: `${calcSugeridas.length} sugerida${calcSugeridas.length > 1 ? 's' : ''}` },
-          contenido: <CalculadorasClinicas embebido contexto={contextoCalc}
-            onAgregarANota={agregarASeccion('escalas_clinicas', 'Escalas y calculadoras clínicas')} />,
-        }] : []),
-        {
-          id: 'cardiometabolico', nombre: 'Cardiometabólico', color: 'var(--green)', icono: <HeartPulse size={14} />,
-          para: 'Lípidos · obesidad · hígado graso · hoja para el paciente',
-          contenido: <PanelCardiometabolico embebido nombre={patient?.nombre} edad={patient?.edad} sexo={patient?.sexo}
-            onAgregarANota={agregarASeccion('cardiometabolico', 'Valoración cardiometabólica')} />,
-        },
-        {
-          id: 'preventivo', nombre: 'Preventivo y tendencias', color: '#38bdf8', icono: <ShieldCheck size={14} />,
-          para: 'Tamizajes por edad y sexo · tendencia de laboratorios',
-          contenido: <PanelPreventivo embebido edad={patient?.edad} sexo={patient?.sexo}
-            onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
-        },
-        {
-          id: 'antibiograma', nombre: 'Antibiograma', color: 'var(--amber)', icono: <FlaskConical size={14} />,
-          para: 'Interpretar un cultivo: fenotipo, mecanismo de resistencia y terapia dirigida',
-          contenido: <AntibiogramaTool embebido onAgregarANota={agregarASeccion('antibiograma', 'Antibiograma e interpretación')} />,
-        },
-        {
-          id: 'fotos', nombre: 'Fotografía clínica', color: 'var(--teal)', icono: <Camera size={14} />,
-          para: 'Tomar foto de esta consulta (la serie está en el expediente)',
-          contenido: clinicId
-            ? <FotosClinicas embebido modo="captura" clinicId={clinicId} patientId={patientId} notaId={notaId ?? undefined} />
-            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
-        },
-        {
-          id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
-          para: 'Adjunta un PDF o foto → la IA lo interpreta → gráficas de tendencia',
-          contenido: clinicId
-            ? <PanelLaboratorios clinicId={clinicId} patientId={patientId}
-                onAgregarANota={agregarASeccion('laboratorios', 'Laboratorios')} />
-            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
-        },
-        ]
-
-        /**
-         * FILTRADO POR ESPECIALIDAD.
-         *
-         * Un internista no atiende partos ni calcula dosis por peso pediátrico,
-         * pero tenía esas herramientas ocupando espacio en cada consulta: hay que
-         * leerlas para descartarlas, en cada paciente. Ahora se muestran las de su
-         * especialidad y el resto queda en el buscador — no desaparece ninguna.
-         *
-         * Solo `esCasoQuirurgico` se fuerza, y a propósito: es una señal CLÍNICA
-         * —el diagnóstico dictado es una hernia, o el tipo de nota es
-         * preoperatoria— así que el panel de cirugía aparece aunque el médico sea
-         * internista. El contexto del paciente pesa más que la configuración.
-         *
-         * `esGineco` NO se fuerza: solo comprueba que la paciente sea mujer, que
-         * es un filtro de pertinencia, no una señal de que haga falta la
-         * herramienta. Si se forzara, un internista volvería a ver el panel de
-         * gineco en cada paciente mujer — justo lo que se quiere evitar. Sigue
-         * disponible en el buscador.
-         */
-        const forzadas = esCasoQuirurgico ? ['cirugia'] : []
-        const visibles = filtrarHerramientas(TODAS, especialidadEfectiva, forzadas)
-        const idsVisibles = new Set(visibles.map(h => h.id))
-        return { items: visibles, ocultas: TODAS.filter(h => !idsVisibles.has(h.id)) }
-      })()} />
 
       {/* ── Análisis basado en evidencia (PubMed) ── */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && !evidencia && (
@@ -5808,6 +5716,119 @@ export default function ConsultaActivaPage() {
           </div>
         </details>
       )}
+
+      {/*
+        ── HERRAMIENTAS CLÍNICAS, DESPUÉS DE LA NOTA (V15-ITERATION16, 15-ago) ──
+
+        Vivían aquí arriba, en el hueco que hay entre el grabador y la nota. La
+        medición corregida de §29 —la que entra por el encuentro SIN FIRMAR, que
+        es donde el grabador existe— las encontró en `y=635` de escritorio y
+        `y=740` de móvil: el SEGUNDO bloque del encuentro, por delante de los
+        signos, de las secciones narrativas, de los diagnósticos y de los
+        medicamentos. Un catálogo de cinco módulos con su propio buscador,
+        ocupando el sitio inmediatamente posterior al instrumento principal.
+
+        Eso es exactamente lo que §29 llama inventario de módulos: la pantalla
+        ofrecía OTRAS capacidades antes de ofrecer ESTE encuentro.
+
+        No se quita ninguna herramienta ni se esconde detrás de un botón mágico:
+        se mueve DÓNDE se pinta, igual que el Copiloto en §8.8 y por el mismo
+        motivo. Aquí abajo el médico ya capturó, ya vio lo que el copiloto
+        razonó sobre lo capturado, y sólo entonces se le ofrece abrir un
+        instrumento — que es cuando sabe si le hace falta.
+
+        El buscador de `Herramientas` sigue siendo el que alcanza a las ocultas
+        por especialidad: no se toca su contrato.
+      */}
+      <Herramientas {...(() => {
+        const TODAS = [
+        ...(esCasoQuirurgico ? [{
+          id: 'cirugia', nombre: 'Cirugía', color: 'var(--blue)', icono: <Scissors size={14} />,
+          para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
+          contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
+        }] : []),
+        ...(esGineco ? [{
+          id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
+          para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
+          contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
+            onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
+        }] : []),
+        ...(esPediatrico ? [{
+          id: 'pediatria', nombre: 'Pediatría', color: 'var(--purple)', icono: <Baby size={14} />,
+          para: 'Dosis por peso con tope de adulto · vacunación',
+          aviso: vacunasAtrasadas > 0
+            ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
+            : undefined,
+          abrirPorDefecto: vacunasAtrasadas > 0,
+          contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
+            fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
+            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
+        }] : []),
+        ...(calcSugeridas.length > 0 ? [{
+          id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
+          para: 'Escalas sugeridas por el diagnóstico',
+          aviso: { texto: `${calcSugeridas.length} sugerida${calcSugeridas.length > 1 ? 's' : ''}` },
+          contenido: <CalculadorasClinicas embebido contexto={contextoCalc}
+            onAgregarANota={agregarASeccion('escalas_clinicas', 'Escalas y calculadoras clínicas')} />,
+        }] : []),
+        {
+          id: 'cardiometabolico', nombre: 'Cardiometabólico', color: 'var(--green)', icono: <HeartPulse size={14} />,
+          para: 'Lípidos · obesidad · hígado graso · hoja para el paciente',
+          contenido: <PanelCardiometabolico embebido nombre={patient?.nombre} edad={patient?.edad} sexo={patient?.sexo}
+            onAgregarANota={agregarASeccion('cardiometabolico', 'Valoración cardiometabólica')} />,
+        },
+        {
+          id: 'preventivo', nombre: 'Preventivo y tendencias', color: '#38bdf8', icono: <ShieldCheck size={14} />,
+          para: 'Tamizajes por edad y sexo · tendencia de laboratorios',
+          contenido: <PanelPreventivo embebido edad={patient?.edad} sexo={patient?.sexo}
+            onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
+        },
+        {
+          id: 'antibiograma', nombre: 'Antibiograma', color: 'var(--amber)', icono: <FlaskConical size={14} />,
+          para: 'Interpretar un cultivo: fenotipo, mecanismo de resistencia y terapia dirigida',
+          contenido: <AntibiogramaTool embebido onAgregarANota={agregarASeccion('antibiograma', 'Antibiograma e interpretación')} />,
+        },
+        {
+          id: 'fotos', nombre: 'Fotografía clínica', color: 'var(--teal)', icono: <Camera size={14} />,
+          para: 'Tomar foto de esta consulta (la serie está en el expediente)',
+          contenido: clinicId
+            ? <FotosClinicas embebido modo="captura" clinicId={clinicId} patientId={patientId} notaId={notaId ?? undefined} />
+            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
+        },
+        {
+          id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+          para: 'Adjunta un PDF o foto → la IA lo interpreta → gráficas de tendencia',
+          contenido: clinicId
+            ? <PanelLaboratorios clinicId={clinicId} patientId={patientId}
+                onAgregarANota={agregarASeccion('laboratorios', 'Laboratorios')} />
+            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
+        },
+        ]
+
+        /**
+         * FILTRADO POR ESPECIALIDAD.
+         *
+         * Un internista no atiende partos ni calcula dosis por peso pediátrico,
+         * pero tenía esas herramientas ocupando espacio en cada consulta: hay que
+         * leerlas para descartarlas, en cada paciente. Ahora se muestran las de su
+         * especialidad y el resto queda en el buscador — no desaparece ninguna.
+         *
+         * Solo `esCasoQuirurgico` se fuerza, y a propósito: es una señal CLÍNICA
+         * —el diagnóstico dictado es una hernia, o el tipo de nota es
+         * preoperatoria— así que el panel de cirugía aparece aunque el médico sea
+         * internista. El contexto del paciente pesa más que la configuración.
+         *
+         * `esGineco` NO se fuerza: solo comprueba que la paciente sea mujer, que
+         * es un filtro de pertinencia, no una señal de que haga falta la
+         * herramienta. Si se forzara, un internista volvería a ver el panel de
+         * gineco en cada paciente mujer — justo lo que se quiere evitar. Sigue
+         * disponible en el buscador.
+         */
+        const forzadas = esCasoQuirurgico ? ['cirugia'] : []
+        const visibles = filtrarHerramientas(TODAS, especialidadEfectiva, forzadas)
+        const idsVisibles = new Set(visibles.map(h => h.id))
+        return { items: visibles, ocultas: TODAS.filter(h => !idsVisibles.has(h.id)) }
+      })()} />
 
       {/* ── Validación + Acciones ── */}
       {!firmada && (
