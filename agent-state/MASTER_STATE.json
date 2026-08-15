@@ -18,19 +18,8 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
-  "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M src/app/(dashboard)/pacientes/page.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/capturas/v15-lista-vacia-pacientes/",
-    "?? scripts/design/medir-lista-vacia-pacientes-v15.mjs",
-    "?? src/__tests__/v15-la-lista-vacia-dice-cuantos-hay-fuera.test.ts",
-    "?? src/lib/pacientes/vacio-de-la-lista.ts"
-  ],
-  "actualizado": "2026-08-14",
+  "trabajoLocalSinSubir": [],
+  "actualizado": "2026-08-15",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -66,8 +55,8 @@
   "derivado": {
     "regsEnElLedger": 163,
     "ultimaREG": "REG-315",
-    "archivosDePrueba": 687,
-    "casosDePrueba": 8486,
+    "archivosDePrueba": 688,
+    "casosDePrueba": 8491,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
