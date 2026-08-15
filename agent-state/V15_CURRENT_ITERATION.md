@@ -4,6 +4,41 @@
 
 ## Iteración en curso
 
+**15-ago · `V15-SECTION29-STRUCTURAL-REPAIR-003` — DIAGNÓSTICO, no reparación.**
+
+§29 sigue siendo el único P1 bloqueante y **sigue sin pagarse**. Lo que esta
+corrida entrega es la medición previa que el encargo exige antes de tocar código
+— y la medición encontró algo que cambia el plan: **la vara obvia está
+refutada.**
+
+Contadas las seis superficies en 1440 y 390 (`medir-anatomia-v29.mjs`, acta y 12
+capturas, 0 errores de consola): `/pendientes`, la única que el revisor
+independiente aprueba con 1.0, tiene **los peores números** —7 cajas y 7 rellenos
+de marca, el doble que cualquiera que falla— y `/pacientes`, que falla, tiene
+**cero cajas**. Optimizar contenedores y rellenos habría empujado a las cinco en
+dirección contraria a la única aprobada. Familia RTC-02/RTC-20/INS-01, cazada
+antes de escribir producto.
+
+La causa raíz reformulada, con las capturas al lado de los números: la diferencia
+no es de forma sino de **modelo de interacción**. En `/pendientes` cada entrada
+lleva encima su siguiente acción segura; en las cinco que fallan el estado
+clínico es texto que obliga a abandonar la pantalla para atenderlo —`/pacientes`
+llega a decir «Resultado — venció y nadie la tomó» y ofrecer «Editar» como único
+gesto de esa fila—.
+
+Y una línea que esta corrida NO cruza: poner los botones de avance de estado de
+`/pendientes` en la fila de `/pacientes` permitiría cerrar un resultado sin
+haberlo leído, que es exactamente el daño que ese worklist existe para evitar
+(`POR_QUE_COMPLETADA_NO_ES_CERRADA`). El camino seguro es inspeccionar en el
+sitio, no mutar en el sitio.
+
+Detalle completo, tabla de medición y cola priorizada:
+`docs/design/v15/V15-DIAGNOSTICO-V29.md`.
+
+Fase anterior (`REPAIR-002`, commit `060aade0`) **intacta y verificada**: la
+suite del contrato de regreso y las de la lente pasan 41/41 tras esta corrida.
+
+
 `V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO.**
 
 **15-ago · `V15-ORIGINALITY-BLOCKERS-REPAIR-002`.** La re-auditoría
