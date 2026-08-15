@@ -144,10 +144,20 @@ pantalla el número escrito a mano **se borra, no se acompaña**. El trinquete
   longitudinal de §7 se rinde como fila de píldoras igual a los filtros de
   /pacientes»), ahora confirmado con números. La rebanada que toque esto tiene
   que darle forma propia al Spine, no borrar píldoras.
-- **El estado vacío** — es RTC-30. **Pagado en Hoy** el 14-ago, porque quitar
-  la tarjeta lo dejó insostenible (250px de vacío ilustrado por encima de dos
-  pendientes críticos); el resto de pantallas sigue con el hero y se mira caso
-  por caso — a veces el vacío ES la pantalla y el hero es correcto.
+- **El estado vacío** — es RTC-30, y a la tercera aplicación ya es regla. **Hoy**
+  (14-ago, porque quitar la tarjeta dejó 250px de vacío ilustrado por encima de
+  dos pendientes críticos), **`/citas`** (REG-314) y **`/pacientes`** (REG-315,
+  15-ago). Lo que las tres comparten, y no se sabía al empezar:
+
+  > **Todo vacío dice cuántos hay FUERA de lo que se está mirando**, y el gesto
+  > sale de la CAUSA. Sólo el registro entero vacío conserva el héroe y ofrece
+  > crear: ofrecer crear sobre lo que un filtro esconde es invitar al duplicado
+  > — un expediente partido en `/pacientes`, una cita encima de otras seis en
+  > `/citas`.
+
+  Siguen con el hero, y se miran caso por caso: lista de espera, farmacia,
+  cumplimiento, reactivación. A veces el vacío ES la pantalla y el hero es
+  correcto.
 - **Los dos FAB de escritorio** — RTC-05 se pagó con alcance declarado; se
   vuelven a mirar cuando el marco esté hecho, no antes.
 - **Las 35 páginas del dashboard que siguen con su ancho a mano.** La regla 4
@@ -167,7 +177,7 @@ que el sistema de diseño existe para evitar.
 | Pantalla | Estado |
 |---|---|
 | `/pendientes` | Es el patrón. Sólo se le puso el lienzo compartido (6ª rebanada): era la única de las seis **sin contenedor de ningún tipo**, así que su ancho lo decidía el `<main>`. |
-| `/pacientes` | **Convertida** (14-ago): subtítulo + lista sin tarjeta + encabezados que hablan. |
+| `/pacientes` | **Convertida** (14-ago): subtítulo + lista sin tarjeta + encabezados que hablan. **Sus cuatro estados vacíos, 15-ago** (REG-315): de tres párrafos grises sin control a una decisión sola (`vacio-de-la-lista.ts`) que dice cuántos expedientes hay fuera y ofrece el gesto de la causa. |
 | `/operaciones` | **Convertida** (14-ago, 3ª rebanada): RTC-29 le dio la lista; ahora su cabecera es la pieza compartida (`PageHeader`) en vez de un par de etiquetas propias. |
 | `/dashboard` (Hoy) | **Convertida** (14-ago, 2ª rebanada): sus dos bloques dejaron la tarjeta, y su vacío pasó a línea (RTC-30). |
 | `/expediente` | **A medias** (14-ago): su vacío de historia pasó a línea (RTC-30) y la pantalla entera cabe ahora en el primer viewport. Su marco de cabecera es distinto —el ancla de paciente, con su serif y su banda de alergias— y NO se le aplica la regla 1: ahí el `<h1>` es el nombre del paciente, no el de la pantalla. «Nueva consulta» subió al ancla tras medirlo (5ª rebanada): la historia clínica pasa de 491px a 424px. |

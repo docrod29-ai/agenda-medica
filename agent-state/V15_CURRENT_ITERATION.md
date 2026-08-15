@@ -4,7 +4,59 @@
 
 ## Iteración en curso
 
-**14-ago (última rebanada) — REG-314: la agenda vacía decía lo mismo en tres
+**15-ago (última rebanada) — REG-315: la lista de pacientes vacía no decía
+cuántos había fuera, y el momento en que nace un expediente repetido no
+preguntaba nada.** `/pacientes` —la pantalla más visitada del producto— tenía
+CUATRO estados vacíos y tres eran un `<div>` suelto con un párrafo gris a 40px:
+sin componente, sin clase y **sin ningún control**. Ninguno decía que la lista
+NO estaba vacía: con seis expedientes dentro, el chip «Con alerta» pintaba una
+pantalla en blanco indistinguible de un consultorio recién abierto, y el de
+«Recientes» —la vista POR DEFECTO— mandaba a buscar un chip en NEGRITA («Usa
+**Todos A-Z**») en vez de ofrecerlo, que ni siquiera es un control (§24).
+
+**Y lo que apareció al mirarlo no era de interfaz.** Buscar y no encontrar es el
+momento exacto en que nace un expediente repetido, y este repositorio ya sabe lo
+que eso cuesta: lo dice su propio aviso de duplicados —«su historial queda
+partido: las alergias en uno y las notas en el otro»— y tiene el módulo que lo
+detecta. Pero `buscarPosiblesDuplicados` se consultaba **sólo dentro del
+formulario de alta**, o sea después de que el médico ya decidió crear y con medio
+formulario tecleado; en la búsqueda, que es donde se hace la misma pregunta
+ANTES, nadie lo llamaba. La capacidad existía, el lector existía, y no se
+llamaban donde hacía falta: «el dato tiene que LLEGAR», la familia de
+REG-160/167/170 — y ahí quedó clasificado (`no_conectado`).
+
+La decisión vive en `src/lib/pacientes/vacio-de-la-lista.ts` (hermana de
+`vacio-de-la-agenda.ts`) y la pantalla la consume en los cuatro sitios. Sin
+criterio nuevo: el rescate entra el término como nombre y decide el módulo con
+su umbral declarado (`UMBRAL_NOMBRE`), que caza justo lo que la búsqueda por
+subcadena no puede —el orden de los apellidos, el dedazo, el apellido de en
+medio que falta—. **Medido en navegador real con el MISMO instrumento sobre las
+dos versiones** (dos builds de producción + emuladores + siembra, 1440 y 390,
+0 errores de consola en las cuatro pasadas):
+
+| | antes | después |
+|---|---|---|
+| vacíos que dicen cuántos hay fuera | 0 de 3 | 3 de 3 |
+| controles dentro del bloque vacío | 0 | 1 en cada uno |
+| «Ver todos A-Z» / «Limpiar la búsqueda» | no existían | devuelven las 6 filas |
+| rescatados con «Villareal Esparsa, Joaquin» | 0 | 1 (Joaquín Esparza Villarreal) |
+
+**Tercera aplicación de RTC-30, y a la tercera ya es regla**: todo vacío dice
+cuántos hay FUERA de lo que se está mirando, y sólo el registro entero vacío
+conserva el héroe y ofrece crear — ofrecer crear sobre lo que un filtro esconde
+es invitar al duplicado. Escrito en `V15-MARCO-DE-PAGINA.md`. **RTC-30 sigue
+abierto** en lista de espera, farmacia, cumplimiento y reactivación.
+
+**Lección de método de esta rebanada — y la cazó el probar al revés.** El caso
+10 del guardián («la lista pregunta por los parecidos, no sólo el formulario»)
+**pasó en verde con la llamada borrada**: el identificador seguía escrito en la
+línea del `import`, así que el instrumento leía una declaración donde tenía que
+leer un uso. Es la ceguera de `grafo-de-dependencias` otra vez. Una reversión
+que no pone el caso en rojo es un caso que no prueba nada — por eso las cuatro
+reversiones se hacen una a una y se mira cuál muerde.
+
+
+**14-ago — REG-314: la agenda vacía decía lo mismo en tres
 situaciones distintas, y una era mentira.** `/citas` estrecha su lista por
 cuatro cosas —fecha, estado, búsqueda y médico— y su estado vacío no miraba
 ninguna: con un filtro escondiendo seis citas dibujaba la ilustración de
