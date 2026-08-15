@@ -1,7 +1,7 @@
 {
   "fase": "despues",
   "base": "http://localhost:3000",
-  "fecha": "2026-08-15T15:21:16.122Z",
+  "fecha": "2026-08-15T15:46:47.290Z",
   "viewports": {
     "escritorio": {
       "hoy": {
@@ -20,7 +20,7 @@
             "clase": "prox-hero nx-reveal",
             "y": 66,
             "alto": 94,
-            "encabezado": "Próxima cita · en 1h 39min",
+            "encabezado": "Próxima cita · en 1h 13min",
             "controles": 1,
             "primerControl": "Iniciar consulta"
           },
@@ -929,7 +929,7 @@
             "tag": "section",
             "clase": "",
             "y": 110,
-            "alto": 264,
+            "alto": 260,
             "encabezado": "Pide atención (2)",
             "controles": 2,
             "primerControl": "Citas"
@@ -937,7 +937,7 @@
           {
             "tag": "section",
             "clase": "",
-            "y": 400,
+            "y": 396,
             "alto": 273,
             "encabezado": "Agenda",
             "controles": 4,
@@ -946,7 +946,7 @@
           {
             "tag": "section",
             "clase": "",
-            "y": 699,
+            "y": 694,
             "alto": 394,
             "encabezado": "Negocio",
             "controles": 6,
@@ -955,7 +955,7 @@
           {
             "tag": "section",
             "clase": "",
-            "y": 1119,
+            "y": 1115,
             "alto": 212,
             "encabezado": "Cumplimiento y documentos",
             "controles": 3,
@@ -964,7 +964,7 @@
           {
             "tag": "section",
             "clase": "",
-            "y": 1357,
+            "y": 1353,
             "alto": 91,
             "encabezado": "Comunicación",
             "controles": 1,
@@ -973,7 +973,7 @@
           {
             "tag": "section",
             "clase": "",
-            "y": 1474,
+            "y": 1469,
             "alto": 151,
             "encabezado": "Sistema",
             "controles": 2,
@@ -982,7 +982,7 @@
           {
             "tag": "section",
             "clase": "",
-            "y": 1651,
+            "y": 1646,
             "alto": 91,
             "encabezado": "Respaldo",
             "controles": 1,
@@ -991,7 +991,7 @@
           {
             "tag": "section",
             "clase": "",
-            "y": 1768,
+            "y": 1763,
             "alto": 91,
             "encabezado": "Apariencia",
             "controles": 1,
@@ -1000,7 +1000,7 @@
           {
             "tag": "section",
             "clase": "",
-            "y": 1884,
+            "y": 1879,
             "alto": 91,
             "encabezado": "Sesión",
             "controles": 1,
@@ -1021,7 +1021,7 @@
           "Apariencia",
           "Sesión"
         ],
-        "altoTotal": 2035
+        "altoTotal": 2030
       },
       "pendientes": {
         "esqueleto": [
@@ -1138,7 +1138,7 @@
             "clase": "prox-hero nx-reveal",
             "y": 94,
             "alto": 154,
-            "encabezado": "Próxima cita · en 1h 38min",
+            "encabezado": "Próxima cita · en 1h 13min",
             "controles": 1,
             "primerControl": "Iniciar consulta"
           },
@@ -2092,19 +2092,82 @@
             "tag": "section",
             "clase": "",
             "y": 157,
-            "alto": 321,
+            "alto": 296,
             "encabezado": "Pide atención (2)",
             "controles": 2,
             "primerControl": "Citas"
           },
           {
-            "tag": "div",
+            "tag": "section",
             "clase": "",
-            "y": 503,
-            "alto": 1631,
+            "y": 478,
+            "alto": 273,
             "encabezado": "Agenda",
-            "controles": 19,
+            "controles": 4,
             "primerControl": "Agendar rápidoDar cita en un par d"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 777,
+            "alto": 413,
+            "encabezado": "Negocio",
+            "controles": 6,
+            "primerControl": "CRMDe dónde llegan los pacientes y"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1216,
+            "alto": 212,
+            "encabezado": "Cumplimiento y documentos",
+            "controles": 3,
+            "primerControl": "CumplimientoNOM-004, avisos de pri"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1454,
+            "alto": 91,
+            "encabezado": "Comunicación",
+            "controles": 1,
+            "primerControl": "ChatMensajes con pacientes y con e"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1571,
+            "alto": 151,
+            "encabezado": "Sistema",
+            "controles": 2,
+            "primerControl": "Guía de usoCómo se hace cada cosa "
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1748,
+            "alto": 109,
+            "encabezado": "Respaldo",
+            "controles": 1,
+            "primerControl": "Descargar todo el consultorioPacie"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1883,
+            "alto": 91,
+            "encabezado": "Apariencia",
+            "controles": 1,
+            "primerControl": "Tema: oscuroClaro, oscuro o el del"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 2000,
+            "alto": 109,
+            "encabezado": "Sesión",
+            "controles": 1,
+            "primerControl": "Cerrar sesiónCierra y limpia este "
           }
         ],
         "instrumento": null,
@@ -2121,7 +2184,7 @@
           "Apariencia",
           "Sesión"
         ],
-        "altoTotal": 2282
+        "altoTotal": 2257
       },
       "pendientes": {
         "esqueleto": [
