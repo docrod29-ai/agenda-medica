@@ -1,0 +1,60 @@
+{
+  "fecha": "2026-08-15T23:36:17.529Z",
+  "base": "http://localhost:3000",
+  "hallazgos": [
+    {
+      "pantalla": "receta",
+      "ruta": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+      "nodos": [
+        {
+          "selector": ".receta-sheet > div:nth-child(2) > div:nth-child(1)",
+          "texto": "Receta Médica",
+          "etiqueta": "DIV",
+          "esControl": false,
+          "dentroDeVistaPrevia": true,
+          "color": "rgb(20, 184, 166)",
+          "fondo": "rgba(0, 0, 0, 0)",
+          "px": "11px",
+          "peso": "700",
+          "razon": "Element has insufficient color contrast of 2.48 (foreground color: #14b8a6, background color: #ffffff, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1",
+          "datos": {
+            "fgColor": "#14b8a6",
+            "bgColor": "#ffffff",
+            "contrastRatio": 2.48,
+            "fontSize": "8.3pt (11px)",
+            "fontWeight": "bold",
+            "messageKey": null,
+            "expectedContrastRatio": "4.5:1"
+          }
+        }
+      ]
+    },
+    {
+      "pantalla": "orden",
+      "ruta": "/orden/pac-aurelio-dominguez/nota-aurelio-1",
+      "nodos": [
+        {
+          "selector": ".receta-sheet > div:nth-child(2) > div:nth-child(1)",
+          "texto": "Orden Médica",
+          "etiqueta": "DIV",
+          "esControl": false,
+          "dentroDeVistaPrevia": true,
+          "color": "rgb(20, 184, 166)",
+          "fondo": "rgba(0, 0, 0, 0)",
+          "px": "11px",
+          "peso": "700",
+          "razon": "Element has insufficient color contrast of 2.48 (foreground color: #14b8a6, background color: #ffffff, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1",
+          "datos": {
+            "fgColor": "#14b8a6",
+            "bgColor": "#ffffff",
+            "contrastRatio": 2.48,
+            "fontSize": "8.3pt (11px)",
+            "fontWeight": "bold",
+            "messageKey": null,
+            "expectedContrastRatio": "4.5:1"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -19,7 +19,9 @@ solas y aun así obligar al médico a reaprender el idioma al entrar.
 Instrumento: `scripts/design/medir-coherencia-de-producto-v15.mjs`.
 Arnés: `scripts/design/arnes-coherencia-v15.sh`.
 Acta cruda: `docs/design/capturas/v15-coherencia/acta-coherencia.json`
-(+ el ANTES conservado en `antes/`, y 22 capturas por corrida).
+(+ el ANTES conservado en `antes/`). Capturas: **22 en el ANTES** (11
+superficies × 2 anchos) y **24 en el DESPUÉS** (12 × 2) — el desglose y el
+motivo de la superficie que se añadió están en la tabla de más abajo.
 
 El instrumento mide **lo mismo en todas las superficies** y el defecto es la
 **varianza**, no el valor: por eso no lleva umbrales por pantalla, lleva una
@@ -55,6 +57,23 @@ antes de nada.
 ## La matriz, medida (ANTES)
 
 Escritorio 1440×900. El móvil 390×844 es idéntico salvo ~1px de escala.
+
+**Cuántas filas tiene cada corrida, dicho antes de la tabla porque las dos
+corridas NO miden lo mismo** (corregido en `V15-RELEASE-GATE-001`; la redacción
+anterior dejaba creer que el instrumento cubría once superficies y punto):
+
+| corrida | superficies | filas | evidencia cruda |
+|---|---|---|---|
+| **ANTES** | **11** | **22** (11 × 2 anchos) | `antes/acta-coherencia-antes.json` |
+| **DESPUÉS** | **12** | **24** (12 × 2 anchos) | `acta-coherencia.json` |
+
+La superficie número 12 es **`/chat`**, y no estaba en el ANTES por una razón
+que es del método, no del descuido: entró al instrumento **durante** la
+iteración, cuando el inventario de encabezados de las 45 pantallas la señaló
+como defecto real (C-02). Medirla en el DESPUÉS y no en el ANTES es correcto
+—no se puede medir un ANTES de algo que aún no se sabía que había que medir—
+pero **callarlo no lo es**: quien compara las dos actas cuenta 22 y 24 y
+necesita saber por qué.
 
 | superficie | qué nombra el `<h1>` | h1 px/peso | voz más fuerte del paciente | primarias en `<main>` |
 |---|---|---|---|---|
@@ -291,10 +310,46 @@ iteración se llame «Coherencia Final».
 ## No comprobable, con la dependencia dicha por su nombre
 
 - **`PORTAL_PACIENTE_SECRET no configurada`** — los dos `500` de `/receta`,
-  en los dos anchos. Son **los únicos errores de consola de la corrida**: las
-  otras diez superficies corrieron con 0 en escritorio y en móvil. Mismo grupo
-  que ya declaró la Iteración 17; no es defecto del producto y **no se cuenta
-  como PASA**.
+  en los dos anchos. Mismo grupo que ya declaró la Iteración 17; no es defecto
+  del producto y **no se cuenta como PASA**.
+
+> **CORRECCIÓN DE EVIDENCIA — `V15-RELEASE-GATE-001`.** Aquí decía que esos
+> dos `500` eran «los únicos errores de consola de la corrida» y que «las
+> otras diez superficies corrieron con 0». **Las dos frases son falsas para la
+> corrida del DESPUÉS**, y el acta cruda —que sí lo registró— las desmiente:
+>
+> ```
+> receta  escritorio  2 × «500 (Internal Server Error)»
+> receta  movil       2 × «500 (Internal Server Error)»
+> chat    escritorio  1 × «false for 'get' @ L1094»
+> chat    movil       1 × «false for 'get' @ L1094»
+> ```
+>
+> Son **cuatro filas con error, no dos**, y las que corrieron con 0 son
+> **diez superficies, no once**. El error de `/chat` no se inventó al
+> redactar: estaba en `acta-coherencia.json` desde el primer volcado. Lo que
+> falló fue la prosa, que se escribió contra la corrida del ANTES —donde
+> `/chat` no se medía— y no se volvió a leer contra la del DESPUÉS.
+>
+> Es exactamente el defecto que esta casa persigue en el producto —el dato
+> estaba y no llegó al lector— cometido en el acta que lo persigue. Se corrige
+> aquí, no se borra: un banco que tapa su propio error deja de ser un banco.
+>
+> **Qué es ese error, medido y no supuesto.** `L1094` de `firestore.rules` es
+> el `match /{document=**} { allow read, write: if false }` final —el cierre
+> por defecto—. `/chat` lee y escribe
+> `clinics/{clinicId}/members/{uid}` para el nombre visible del médico
+> (`src/app/(dashboard)/chat/page.tsx`), y **esa ruta no tiene regla propia**:
+> la pertenencia vive en la colección de primer nivel `clinic_members/{uid}`
+> (L1027). El `get` cae al cierre por defecto y se deniega.
+>
+> **Deniega hacia el lado seguro** —no expone nada, no hay fuga entre
+> consultorios, no toca PHI— pero deja una función muerta en silencio: editar
+> el nombre visible no persiste, y el `setDoc` de `guardarNombre` se rechaza
+> sin `catch`. Queda **P2 ESCALADO CON EVIDENCIA y NO pagado**: repararlo
+> exige tocar `firestore.rules`, o sea semántica de autorización, que §17
+> congela y §5 prohíbe cambiar en esta iteración. `/chat` no es superficie
+> clínica crítica y ningún flujo del banco lo atraviesa.
 - **La transcripción y la nota que nace de ella**, y **la comunicación real al
   paciente**: fuera del alcance de esta matriz, que no graba ni envía nada.
   Siguen `UNVERIFIABLE`, y **no se convierten a PASS**.

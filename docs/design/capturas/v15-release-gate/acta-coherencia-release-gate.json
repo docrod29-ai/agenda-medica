@@ -1,0 +1,1699 @@
+{
+  "generado": "medir-coherencia-de-producto-v15.mjs",
+  "filas": [
+    {
+      "superficie": "hoy",
+      "ruta": "/dashboard",
+      "clase": "clinica-lista",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/dashboard",
+      "encabezado": {
+        "texto": "Buenas tardes, Elena",
+        "px": 15,
+        "peso": "500",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1.hoy-saludo"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Buenas tardes, Elena",
+        "px": 15,
+        "peso": "500",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1.hoy-saludo"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Buenas tardes, Elena",
+          "px": 15,
+          "peso": "500",
+          "y": 24,
+          "enPrimerViewport": true,
+          "selector": "h1.hoy-saludo"
+        }
+      ],
+      "primarias": [
+        "Iniciar consulta"
+      ],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [
+        "Próxima cita · en 40 min"
+      ],
+      "pantallas": 1.67,
+      "controles": 30,
+      "errores": []
+    },
+    {
+      "superficie": "pacientes",
+      "ruta": "/pacientes",
+      "clase": "clinica-lista",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/pacientes",
+      "encabezado": {
+        "texto": "Pacientes",
+        "px": 20,
+        "peso": "600",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Pacientes",
+        "px": 20,
+        "peso": "600",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Pacientes",
+          "px": 20,
+          "peso": "600",
+          "y": 24,
+          "enPrimerViewport": true,
+          "selector": "h1.t-h1"
+        }
+      ],
+      "primarias": [
+        "Nuevo paciente"
+      ],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [],
+      "pantallas": 1,
+      "controles": 25,
+      "errores": []
+    },
+    {
+      "superficie": "pendientes",
+      "ruta": "/pendientes",
+      "clase": "clinica-lista",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/pendientes",
+      "encabezado": {
+        "texto": "Pendientes",
+        "px": 20,
+        "peso": "600",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Pendientes",
+        "px": 20,
+        "peso": "600",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Pendientes",
+          "px": 20,
+          "peso": "600",
+          "y": 24,
+          "enPrimerViewport": true,
+          "selector": "h1.t-h1"
+        }
+      ],
+      "primarias": [
+        "Tomarla",
+        "Tomarla",
+        "Lo revisé — cerrar",
+        "Ya se hizo",
+        "Tomarla",
+        "Tomarla",
+        "Tomarla"
+      ],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [
+        "Pendiente"
+      ],
+      "pantallas": 2.14,
+      "controles": 31,
+      "errores": []
+    },
+    {
+      "superficie": "expediente",
+      "ruta": "/expediente/pac-aurelio-dominguez",
+      "clase": "clinica-paciente",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/expediente/pac-aurelio-dominguez",
+      "encabezado": {
+        "texto": "Aurelio Domínguez Peña",
+        "px": 20,
+        "peso": "600",
+        "y": 70,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-display.nx-ancla-nombre"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "ancla",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 20,
+        "peso": "600",
+        "y": 70,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-display.nx-ancla-nombre"
+      },
+      "portadores": [
+        {
+          "papel": "ancla",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 20,
+          "peso": "600",
+          "y": 70,
+          "enPrimerViewport": true,
+          "selector": "h1.nx-display.nx-ancla-nombre"
+        },
+        {
+          "papel": "h1",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 20,
+          "peso": "600",
+          "y": 70,
+          "enPrimerViewport": true,
+          "selector": "h1.nx-display.nx-ancla-nombre"
+        },
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -65,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [
+        "Firmada"
+      ],
+      "pantallas": 1.85,
+      "controles": 21,
+      "errores": []
+    },
+    {
+      "superficie": "consulta",
+      "ruta": "/consulta/pac-aurelio-dominguez",
+      "clase": "clinica-paciente",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/consulta/pac-aurelio-dominguez",
+      "encabezado": {
+        "texto": "Aurelio Domínguez Peña",
+        "px": 20,
+        "peso": "700",
+        "y": 58,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-vt-paciente"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 20,
+        "peso": "700",
+        "y": 58,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-vt-paciente"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 20,
+          "peso": "700",
+          "y": 58,
+          "enPrimerViewport": true,
+          "selector": "h1.nx-vt-paciente"
+        },
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -65,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [],
+      "pantallas": 3.55,
+      "controles": 39,
+      "errores": []
+    },
+    {
+      "superficie": "nota",
+      "ruta": "/nota/pac-aurelio-dominguez/nota-aurelio-1",
+      "clase": "clinica-paciente",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/nota/pac-aurelio-dominguez/nota-aurelio-1",
+      "encabezado": {
+        "texto": "Aurelio Domínguez Peña",
+        "px": 20,
+        "peso": "700",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 20,
+        "peso": "700",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 20,
+          "peso": "700",
+          "y": 24,
+          "enPrimerViewport": true,
+          "selector": "h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -65,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [
+        "Descargar PDF"
+      ],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [],
+      "pantallas": 1.35,
+      "controles": 9,
+      "errores": []
+    },
+    {
+      "superficie": "receta",
+      "ruta": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+      "clase": "clinica-paciente",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+      "encabezado": {
+        "texto": "Luz María Cervantes Ochoa",
+        "px": 20,
+        "peso": "700",
+        "y": 234,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Luz María Cervantes Ochoa",
+        "px": 20,
+        "peso": "700",
+        "y": 234,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Luz María Cervantes Ochoa",
+          "px": 20,
+          "peso": "700",
+          "y": 234,
+          "enPrimerViewport": true,
+          "selector": "h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Luz María Cervantes Ochoa",
+          "px": 14,
+          "peso": "600",
+          "y": -65,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [
+        "Descargar PDF"
+      ],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [],
+      "pantallas": 1.41,
+      "controles": 25,
+      "errores": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    {
+      "superficie": "orden",
+      "ruta": "/orden/pac-aurelio-dominguez/nota-aurelio-1",
+      "clase": "clinica-paciente",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/orden/pac-aurelio-dominguez/nota-aurelio-1",
+      "encabezado": {
+        "texto": "Aurelio Domínguez Peña",
+        "px": 20,
+        "peso": "700",
+        "y": 171,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 20,
+        "peso": "700",
+        "y": 171,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 20,
+          "peso": "700",
+          "y": 171,
+          "enPrimerViewport": true,
+          "selector": "h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -65,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [
+        "Descargar PDF"
+      ],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [],
+      "pantallas": 2.51,
+      "controles": 45,
+      "errores": []
+    },
+    {
+      "superficie": "referencia",
+      "ruta": "/referencia/pac-aurelio-dominguez",
+      "clase": "clinica-paciente",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/referencia/pac-aurelio-dominguez",
+      "encabezado": {
+        "texto": "CARTA DE REFERENCIA",
+        "px": 15,
+        "peso": "700",
+        "y": 943,
+        "enPrimerViewport": false,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "no-paciente",
+      "identidadMasFuerte": {
+        "papel": "franja",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 14,
+        "peso": "600",
+        "y": -65,
+        "enPrimerViewport": true,
+        "selector": "a.nx-ident-franja"
+      },
+      "portadores": [
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -65,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [],
+      "pantallas": 1.65,
+      "controles": 12,
+      "errores": []
+    },
+    {
+      "superficie": "operaciones",
+      "ruta": "/operaciones",
+      "clase": "operaciones",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/operaciones",
+      "encabezado": {
+        "texto": "Operaciones",
+        "px": 20,
+        "peso": "600",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Operaciones",
+        "px": 20,
+        "peso": "600",
+        "y": 24,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Operaciones",
+          "px": 20,
+          "peso": "600",
+          "y": 24,
+          "enPrimerViewport": true,
+          "selector": "h1.t-h1"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [],
+      "pantallas": 2.36,
+      "controles": 21,
+      "errores": []
+    },
+    {
+      "superficie": "citas",
+      "ruta": "/citas",
+      "clase": "clinica-lista",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/citas",
+      "encabezado": {
+        "texto": "Hoy",
+        "px": 16,
+        "peso": "500",
+        "y": 27,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-display"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Hoy",
+        "px": 16,
+        "peso": "500",
+        "y": 27,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-display"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Hoy",
+          "px": 16,
+          "peso": "500",
+          "y": 27,
+          "enPrimerViewport": true,
+          "selector": "h1.nx-display"
+        }
+      ],
+      "primarias": [
+        "Nueva cita",
+        "Iniciar consulta",
+        "Iniciar consulta",
+        "Confirmar",
+        "Unirse",
+        "Iniciar consulta"
+      ],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [
+        "En sala de espera",
+        "Confirmada",
+        "Pendiente confirmar"
+      ],
+      "pantallas": 1,
+      "controles": 21,
+      "errores": []
+    },
+    {
+      "superficie": "chat",
+      "ruta": "/chat",
+      "clase": "operaciones",
+      "viewport": "escritorio",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/chat",
+      "encabezado": {
+        "texto": "Chat de la clínica",
+        "px": 15,
+        "peso": "700",
+        "y": 14,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Chat de la clínica",
+        "px": 15,
+        "peso": "700",
+        "y": 14,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Chat de la clínica",
+          "px": 15,
+          "peso": "700",
+          "y": 14,
+          "enPrimerViewport": true,
+          "selector": "h1"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [
+          {
+            "texto": "Hoy",
+            "subordinado": false
+          },
+          {
+            "texto": "Paciente",
+            "subordinado": false
+          },
+          {
+            "texto": "Encuentro",
+            "subordinado": false
+          },
+          {
+            "texto": "Seguimiento",
+            "subordinado": false
+          },
+          {
+            "texto": "Operaciones",
+            "subordinado": true
+          }
+        ],
+        "barra": []
+      },
+      "momento": [],
+      "pantallas": 1,
+      "controles": 3,
+      "errores": [
+        "\nfalse for 'get' @ L1094"
+      ]
+    },
+    {
+      "superficie": "hoy",
+      "ruta": "/dashboard",
+      "clase": "clinica-lista",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/dashboard",
+      "encabezado": {
+        "texto": "Buenas tardes, Elena",
+        "px": 15,
+        "peso": "500",
+        "y": 56,
+        "enPrimerViewport": true,
+        "selector": "h1.hoy-saludo"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Buenas tardes, Elena",
+        "px": 15,
+        "peso": "500",
+        "y": 56,
+        "enPrimerViewport": true,
+        "selector": "h1.hoy-saludo"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Buenas tardes, Elena",
+          "px": 15,
+          "peso": "500",
+          "y": 56,
+          "enPrimerViewport": true,
+          "selector": "h1.hoy-saludo"
+        },
+        {
+          "papel": "franja",
+          "texto": "Ausculta",
+          "px": 14,
+          "peso": "600",
+          "y": -76,
+          "enPrimerViewport": true,
+          "selector": "span.nx-ident-franja.nx-marca-de-respaldo"
+        }
+      ],
+      "primarias": [
+        "Iniciar consulta"
+      ],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [
+        "Próxima cita · en 39 min"
+      ],
+      "pantallas": 3.65,
+      "controles": 30,
+      "errores": []
+    },
+    {
+      "superficie": "pacientes",
+      "ruta": "/pacientes",
+      "clase": "clinica-lista",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/pacientes",
+      "encabezado": {
+        "texto": "Pacientes",
+        "px": 19,
+        "peso": "600",
+        "y": 32,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Pacientes",
+        "px": 19,
+        "peso": "600",
+        "y": 32,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Pacientes",
+          "px": 19,
+          "peso": "600",
+          "y": 32,
+          "enPrimerViewport": true,
+          "selector": "h1.t-h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Ausculta",
+          "px": 14,
+          "peso": "600",
+          "y": -76,
+          "enPrimerViewport": true,
+          "selector": "span.nx-ident-franja.nx-marca-de-respaldo"
+        }
+      ],
+      "primarias": [
+        "Nuevo paciente"
+      ],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [],
+      "pantallas": 2.34,
+      "controles": 17,
+      "errores": []
+    },
+    {
+      "superficie": "pendientes",
+      "ruta": "/pendientes",
+      "clase": "clinica-lista",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/pendientes",
+      "encabezado": {
+        "texto": "Pendientes",
+        "px": 19,
+        "peso": "600",
+        "y": 32,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Pendientes",
+        "px": 19,
+        "peso": "600",
+        "y": 32,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Pendientes",
+          "px": 19,
+          "peso": "600",
+          "y": 32,
+          "enPrimerViewport": true,
+          "selector": "h1.t-h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Ausculta",
+          "px": 14,
+          "peso": "600",
+          "y": -76,
+          "enPrimerViewport": true,
+          "selector": "span.nx-ident-franja.nx-marca-de-respaldo"
+        }
+      ],
+      "primarias": [
+        "Tomarla",
+        "Tomarla",
+        "Lo revisé — cerrar",
+        "Ya se hizo",
+        "Tomarla",
+        "Tomarla",
+        "Tomarla"
+      ],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [
+        "Pendiente"
+      ],
+      "pantallas": 3.7,
+      "controles": 31,
+      "errores": []
+    },
+    {
+      "superficie": "expediente",
+      "ruta": "/expediente/pac-aurelio-dominguez",
+      "clase": "clinica-paciente",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/expediente/pac-aurelio-dominguez",
+      "encabezado": {
+        "texto": "Aurelio Domínguez Peña",
+        "px": 19,
+        "peso": "600",
+        "y": 102,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-display.nx-ancla-nombre"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "ancla",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 19,
+        "peso": "600",
+        "y": 102,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-display.nx-ancla-nombre"
+      },
+      "portadores": [
+        {
+          "papel": "ancla",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 19,
+          "peso": "600",
+          "y": 102,
+          "enPrimerViewport": true,
+          "selector": "h1.nx-display.nx-ancla-nombre"
+        },
+        {
+          "papel": "h1",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 19,
+          "peso": "600",
+          "y": 102,
+          "enPrimerViewport": true,
+          "selector": "h1.nx-display.nx-ancla-nombre"
+        },
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -89,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Consulta",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [
+        "Firmada"
+      ],
+      "pantallas": 2.93,
+      "controles": 21,
+      "errores": []
+    },
+    {
+      "superficie": "consulta",
+      "ruta": "/consulta/pac-aurelio-dominguez",
+      "clase": "clinica-paciente",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/consulta/pac-aurelio-dominguez",
+      "encabezado": {
+        "texto": "Aurelio Domínguez Peña",
+        "px": 19,
+        "peso": "700",
+        "y": 90,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-vt-paciente"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 19,
+        "peso": "700",
+        "y": 90,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-vt-paciente"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 19,
+          "peso": "700",
+          "y": 90,
+          "enPrimerViewport": true,
+          "selector": "h1.nx-vt-paciente"
+        },
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -89,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Consulta",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [],
+      "pantallas": 5.05,
+      "controles": 39,
+      "errores": []
+    },
+    {
+      "superficie": "nota",
+      "ruta": "/nota/pac-aurelio-dominguez/nota-aurelio-1",
+      "clase": "clinica-paciente",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/nota/pac-aurelio-dominguez/nota-aurelio-1",
+      "encabezado": {
+        "texto": "Aurelio Domínguez Peña",
+        "px": 19,
+        "peso": "700",
+        "y": 40,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 19,
+        "peso": "700",
+        "y": 40,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 19,
+          "peso": "700",
+          "y": 40,
+          "enPrimerViewport": true,
+          "selector": "h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -89,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [
+        "Descargar PDF"
+      ],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [],
+      "pantallas": 2.42,
+      "controles": 9,
+      "errores": []
+    },
+    {
+      "superficie": "receta",
+      "ruta": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+      "clase": "clinica-paciente",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+      "encabezado": {
+        "texto": "Luz María Cervantes Ochoa",
+        "px": 19,
+        "peso": "700",
+        "y": 430,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Luz María Cervantes Ochoa",
+        "px": 19,
+        "peso": "700",
+        "y": 430,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Luz María Cervantes Ochoa",
+          "px": 19,
+          "peso": "700",
+          "y": 430,
+          "enPrimerViewport": true,
+          "selector": "h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Luz María Cervantes Ochoa",
+          "px": 14,
+          "peso": "600",
+          "y": -89,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [
+        "Descargar PDF"
+      ],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [],
+      "pantallas": 3.28,
+      "controles": 25,
+      "errores": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    {
+      "superficie": "orden",
+      "ruta": "/orden/pac-aurelio-dominguez/nota-aurelio-1",
+      "clase": "clinica-paciente",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/orden/pac-aurelio-dominguez/nota-aurelio-1",
+      "encabezado": {
+        "texto": "Aurelio Domínguez Peña",
+        "px": 19,
+        "peso": "700",
+        "y": 325,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "paciente",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 19,
+        "peso": "700",
+        "y": 325,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 19,
+          "peso": "700",
+          "y": 325,
+          "enPrimerViewport": true,
+          "selector": "h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -89,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [
+        "Descargar PDF"
+      ],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [],
+      "pantallas": 4.83,
+      "controles": 45,
+      "errores": []
+    },
+    {
+      "superficie": "referencia",
+      "ruta": "/referencia/pac-aurelio-dominguez",
+      "clase": "clinica-paciente",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/referencia/pac-aurelio-dominguez",
+      "encabezado": {
+        "texto": "CARTA DE REFERENCIA",
+        "px": 19,
+        "peso": "700",
+        "y": 1334,
+        "enPrimerViewport": false,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "no-paciente",
+      "identidadMasFuerte": {
+        "papel": "franja",
+        "texto": "Aurelio Domínguez Peña",
+        "px": 14,
+        "peso": "600",
+        "y": -89,
+        "enPrimerViewport": true,
+        "selector": "a.nx-ident-franja"
+      },
+      "portadores": [
+        {
+          "papel": "franja",
+          "texto": "Aurelio Domínguez Peña",
+          "px": 14,
+          "peso": "600",
+          "y": -89,
+          "enPrimerViewport": true,
+          "selector": "a.nx-ident-franja"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [],
+      "pantallas": 2.83,
+      "controles": 12,
+      "errores": []
+    },
+    {
+      "superficie": "operaciones",
+      "ruta": "/operaciones",
+      "clase": "operaciones",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/operaciones",
+      "encabezado": {
+        "texto": "Operaciones",
+        "px": 19,
+        "peso": "600",
+        "y": 32,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Operaciones",
+        "px": 19,
+        "peso": "600",
+        "y": 32,
+        "enPrimerViewport": true,
+        "selector": "h1.t-h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Operaciones",
+          "px": 19,
+          "peso": "600",
+          "y": 32,
+          "enPrimerViewport": true,
+          "selector": "h1.t-h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Ausculta",
+          "px": 14,
+          "peso": "600",
+          "y": -76,
+          "enPrimerViewport": true,
+          "selector": "span.nx-ident-franja.nx-marca-de-respaldo"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [],
+      "pantallas": 3.23,
+      "controles": 21,
+      "errores": []
+    },
+    {
+      "superficie": "citas",
+      "ruta": "/citas",
+      "clase": "clinica-lista",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/citas",
+      "encabezado": {
+        "texto": "Hoy",
+        "px": 19,
+        "peso": "500",
+        "y": 42,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-display"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Hoy",
+        "px": 19,
+        "peso": "500",
+        "y": 42,
+        "enPrimerViewport": true,
+        "selector": "h1.nx-display"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Hoy",
+          "px": 19,
+          "peso": "500",
+          "y": 42,
+          "enPrimerViewport": true,
+          "selector": "h1.nx-display"
+        },
+        {
+          "papel": "franja",
+          "texto": "Ausculta",
+          "px": 14,
+          "peso": "600",
+          "y": -76,
+          "enPrimerViewport": true,
+          "selector": "span.nx-ident-franja.nx-marca-de-respaldo"
+        }
+      ],
+      "primarias": [
+        "Nueva cita",
+        "Iniciar consulta",
+        "Iniciar consulta",
+        "Confirmar",
+        "Unirse",
+        "Iniciar consulta"
+      ],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [
+        "En sala de espera",
+        "Confirmada",
+        "Pendiente confirmar"
+      ],
+      "pantallas": 2.11,
+      "controles": 21,
+      "errores": []
+    },
+    {
+      "superficie": "chat",
+      "ruta": "/chat",
+      "clase": "operaciones",
+      "viewport": "movil",
+      "alcanzable": true,
+      "razon": null,
+      "urlFinal": "/chat",
+      "encabezado": {
+        "texto": "Chat de la clínica",
+        "px": 19,
+        "peso": "700",
+        "y": 14,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "encabezadoNombra": "sin-paciente-en-ruta",
+      "identidadMasFuerte": {
+        "papel": "h1",
+        "texto": "Chat de la clínica",
+        "px": 19,
+        "peso": "700",
+        "y": 14,
+        "enPrimerViewport": true,
+        "selector": "h1"
+      },
+      "portadores": [
+        {
+          "papel": "h1",
+          "texto": "Chat de la clínica",
+          "px": 19,
+          "peso": "700",
+          "y": 14,
+          "enPrimerViewport": true,
+          "selector": "h1"
+        },
+        {
+          "papel": "franja",
+          "texto": "Ausculta",
+          "px": 14,
+          "peso": "600",
+          "y": -76,
+          "enPrimerViewport": true,
+          "selector": "span.nx-ident-franja.nx-marca-de-respaldo"
+        }
+      ],
+      "primarias": [],
+      "navegacion": {
+        "riel": [],
+        "barra": [
+          "Hoy",
+          "Paciente",
+          "Nueva cita",
+          "Seguimiento",
+          "Operaciones"
+        ]
+      },
+      "momento": [],
+      "pantallas": 1,
+      "controles": 3,
+      "errores": [
+        "\nfalse for 'get' @ L1094"
+      ]
+    }
+  ]
+}

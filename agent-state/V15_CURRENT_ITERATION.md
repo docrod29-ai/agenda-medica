@@ -28,10 +28,49 @@ transcripción, nota nacida de la transcripción, comunicación real al paciente
 `PORTAL_PACIENTE_SECRET`, el `ops-timeout` ambiental) **siguen
 `UNVERIFIABLE`**: no se convierten a PASS.
 
+## Iteración 18 — CERRADA por lectura independiente
+
+**`V15-FINAL-COHERENCE-INDEPENDENT-CLOSURE-001` — PASS.**
+Árbol inmutable **`7e593451900b7fe5a2e574df8df951c79be31bfe`**.
+`P0 = 0` · `BLOQUEANTES P1 = 0` ·
+`CAN_CLOSE_V15_FINAL_COHERENCE_001 = YES` ·
+`CAN_ADVANCE_TO_V15_RELEASE_GATE_001 = YES` · `V15_COMPLETE = NO`.
+
+Quien implementó la coherencia no fue quien la cerró. **No se reabre.** Su
+deuda P2/P3 **no se borra ni se paga** salvo que una regresión la vuelva
+inseparable del trabajo en curso, y **no se asciende de severidad** por el
+hecho de que la iteración siguiente se llame «Release Gate». Lo
+`UNVERIFIABLE` (proveedor de transcripción, nota nacida de la transcripción,
+comunicación real al paciente, `PORTAL_PACIENTE_SECRET`, el `ops-timeout`
+ambiental) **sigue `UNVERIFIABLE`**: no se convierte a PASS.
+
+La lectura independiente dejó además cuatro observaciones **NO bloqueantes**
+sobre la evidencia, que la Iteración 19 reconcilió en vez de olvidar — el
+detalle, con lo que resultó cierto y lo que no, está en
+[`docs/design/v15/V15-RELEASE-GATE.md`](../docs/design/v15/V15-RELEASE-GATE.md).
+
 ## Iteración en curso
 
+**15-ago · `V15-RELEASE-GATE-001` (§43 orden 19) — ¿es este árbol un
+candidato de publicación válido?** Arranca en `7e593451`, el árbol que la
+lectura independiente cerró con PASS. Es la **última** iteración de
+implementación/compuerta del programa V15: después sólo queda la Auditoría
+Final de Verdad independiente, y luego la aceptación del dueño.
+
+No es rediseño, no es limpieza, no es endurecimiento de producción, no es
+V16. Sólo repara P0, P1 bloqueante, el fallo de una propiedad obligatoria de
+V15, o un defecto de integridad de la evidencia que haga materialmente falso
+el paquete de publicación. Todo lo demás **sigue siendo deuda visible**.
+
+Acta completa en
+[`docs/design/v15/V15-RELEASE-GATE.md`](../docs/design/v15/V15-RELEASE-GATE.md).
+
+---
+
+## Iteración 18 — la corrida de implementación (histórico)
+
 **15-ago · `V15-FINAL-COHERENCE-001` (§43 orden 18) — la coherencia de
-producto entero.** Arranca en `89865c2f`. Pregunta única: ¿Ausculta V15 se
+producto entero.** Arrancó en `89865c2f`. Pregunta única: ¿Ausculta V15 se
 comporta como UN producto clínico coherente, o como una colección de
 superficies localmente correctas? No es pulido visual. No es V16. No es
 Production Hardening (`AUSCULTA-PROFESSIONAL-HARDENING-001` sigue **EN COLA**,

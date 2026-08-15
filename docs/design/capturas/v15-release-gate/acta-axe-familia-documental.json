@@ -1,0 +1,80 @@
+{
+  "fecha": "2026-08-15T23:34:24.038Z",
+  "base": "http://localhost:3000",
+  "viewports": {
+    "escritorio": {
+      "nota": {
+        "violaciones": [],
+        "h1": {
+          "texto": "Aurelio Domínguez Peña",
+          "px": "20px"
+        }
+      },
+      "receta": {
+        "violaciones": [
+          {
+            "regla": "color-contrast",
+            "impacto": "serious",
+            "nodos": 1,
+            "ayuda": "Elements must meet minimum color contrast ratio thresholds"
+          }
+        ],
+        "h1": {
+          "texto": "Luz María Cervantes Ochoa",
+          "px": "20px"
+        }
+      },
+      "orden": {
+        "violaciones": [
+          {
+            "regla": "color-contrast",
+            "impacto": "serious",
+            "nodos": 1,
+            "ayuda": "Elements must meet minimum color contrast ratio thresholds"
+          }
+        ],
+        "h1": {
+          "texto": "Aurelio Domínguez Peña",
+          "px": "20px"
+        }
+      },
+      "referencia": {
+        "violaciones": [],
+        "h1": {
+          "texto": "CARTA DE REFERENCIA",
+          "px": "15px"
+        }
+      }
+    },
+    "movil": {
+      "nota": {
+        "violaciones": [],
+        "h1": {
+          "texto": "Aurelio Domínguez Peña",
+          "px": "19px"
+        }
+      },
+      "receta": {
+        "violaciones": [],
+        "h1": {
+          "texto": "Luz María Cervantes Ochoa",
+          "px": "19px"
+        }
+      },
+      "orden": {
+        "violaciones": [],
+        "h1": {
+          "texto": "Aurelio Domínguez Peña",
+          "px": "19px"
+        }
+      },
+      "referencia": {
+        "violaciones": [],
+        "h1": {
+          "texto": "CARTA DE REFERENCIA",
+          "px": "19px"
+        }
+      }
+    }
+  }
+}

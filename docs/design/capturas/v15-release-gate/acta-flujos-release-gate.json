@@ -1,0 +1,2216 @@
+{
+  "base": "http://localhost:3000",
+  "fecha": "2026-08-15T23:23:24.790Z",
+  "corridas": [
+    {
+      "flujo": "WF-01",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 3,
+      "clics": 1,
+      "navegaciones": 1,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "Hoy dice que sigue: Aurelio Domínguez Peña",
+        "paciente en la ruta: pac-aurelio-dominguez · en pantalla: Aurelio Domínguez Peña"
+      ],
+      "maxPantallasDeScroll": 3.55,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Hoy",
+          "url": "/dashboard",
+          "ms": 979,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Iniciar consulta"
+          ],
+          "controles": 30,
+          "pantallasDeScroll": 1.67,
+          "momento": [
+            "Próxima cita · en 40 min"
+          ],
+          "foco": null,
+          "encabezado": "Buenas tardes, Elena",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "iniciar la consulta de quien sigue",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 3487,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 3.55,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "el encuentro abierto",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 1201,
+          "clics": 0,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 3.55,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-02",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 4,
+      "clics": 1,
+      "navegaciones": 1,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "pacientes listados antes de buscar: 8",
+        "resultados con «Cervantes»: 1 → Luz María Cervantes Ochoa",
+        "momento legible al aterrizar: Borrador · Firmada"
+      ],
+      "maxPantallasDeScroll": 1.85,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Pacientes",
+          "url": "/pacientes",
+          "ms": 975,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Nuevo paciente"
+          ],
+          "controles": 25,
+          "pantallasDeScroll": 1,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Pacientes",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "teclear el apellido",
+          "url": "/pacientes",
+          "ms": 1616,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Nuevo paciente"
+          ],
+          "controles": 7,
+          "pantallasDeScroll": 1,
+          "momento": [],
+          "foco": {
+            "tag": "input",
+            "id": null,
+            "texto": "Buscar un paciente por nombre, teléfono, correo o CURP"
+          },
+          "encabezado": "Pacientes",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "abrir el expediente del resultado",
+          "url": "/expediente/pac-luzmaria-cervantes",
+          "ms": 3333,
+          "clics": 1,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 22,
+          "pantallasDeScroll": 1.85,
+          "momento": [
+            "Borrador",
+            "Firmada"
+          ],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "leer el estado actual sin abrir nada",
+          "url": "/expediente/pac-luzmaria-cervantes",
+          "ms": 1601,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 22,
+          "pantallasDeScroll": 1.85,
+          "momento": [
+            "Borrador",
+            "Firmada"
+          ],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-03",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 4,
+      "clics": 2,
+      "navegaciones": 0,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "notas abribles en el expediente: 2",
+        "la nota ofrece inspeccionar su procedencia: true",
+        "la inspección ocurre sin salir del expediente: true",
+        "ruta ida /expediente/pac-aurelio-dominguez · vuelta /expediente/pac-aurelio-dominguez · scroll 538 → 947"
+      ],
+      "maxPantallasDeScroll": 2.5,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir el expediente",
+          "url": "/expediente/pac-aurelio-dominguez",
+          "ms": 3669,
+          "clics": 0,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 21,
+          "pantallasDeScroll": 1.85,
+          "momento": [
+            "Firmada"
+          ],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "abrir una nota del expediente",
+          "url": "/expediente/pac-aurelio-dominguez",
+          "ms": 3047,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 25,
+          "pantallasDeScroll": 2.47,
+          "momento": [
+            "Firmada"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "Nota de SeguimientoFirmadaMejor ap"
+          },
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "inspeccionar la procedencia",
+          "url": "/expediente/pac-aurelio-dominguez",
+          "ms": 2071,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 25,
+          "pantallasDeScroll": 2.5,
+          "momento": [
+            "Firmada"
+          ],
+          "foco": {
+            "tag": "h2",
+            "id": "lente-titulo-r0",
+            "texto": "¿De dónde salió esto?"
+          },
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "volver al punto exacto del expediente",
+          "url": "/expediente/pac-aurelio-dominguez",
+          "ms": 3115,
+          "clics": 0,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 25,
+          "pantallasDeScroll": 2.47,
+          "momento": [
+            "Firmada"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "¿De dónde salió esto?cada frase, j"
+          },
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-04",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 6,
+      "clics": 5,
+      "navegaciones": 0,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [
+        {
+          "paso": "aparece la transcripción",
+          "dependencia": "llaves del proveedor de transcripción, ausentes en este contenedor"
+        },
+        {
+          "paso": "de la transcripción nace la nota",
+          "dependencia": "el mismo proveedor + audio sintético"
+        }
+      ],
+      "errores": [
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+      ],
+      "notas": [
+        "paciente de este ancho: pac-aurelio-dominguez (uno por ancho: el consentimiento queda en el expediente y no se vuelve a pedir)",
+        "transiciones: {\"consentimiento\":true,\"grabando\":true,\"enPausa\":true,\"reanudada\":true,\"cerrada\":true}"
+      ],
+      "maxPantallasDeScroll": 3.55,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir el encuentro SIN firmar",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 4135,
+          "clics": 0,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 3.55,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "preparar: pedir grabar exige consentimiento",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 2984,
+          "clics": 2,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [
+            "Detener y generar nota"
+          ],
+          "controles": 46,
+          "pantallasDeScroll": 3.42,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "iniciar: la pantalla pasa a estado de grabación",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 807,
+          "clics": 0,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [
+            "Detener y generar nota"
+          ],
+          "controles": 46,
+          "pantallasDeScroll": 3.34,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "pausar",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 866,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 45,
+          "pantallasDeScroll": 3.34,
+          "momento": [],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "Reanudar la grabación"
+          },
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 5,
+          "que": "reanudar",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 864,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [
+            "Detener y generar nota"
+          ],
+          "controles": 46,
+          "pantallasDeScroll": 3.34,
+          "momento": [],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "Pausar la grabación"
+          },
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 6,
+          "que": "cerrar la grabación",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 2672,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 43,
+          "pantallasDeScroll": 3.46,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-05",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 4,
+      "clics": 1,
+      "navegaciones": 2,
+      "retrocesos": 1,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "notas": [
+        "el paciente en la receta — ancla del shell: null",
+        "el paciente en el cuerpo de la receta: {\"enElEncabezado\":true,\"apariciones\":4,\"papelDelPrimero\":\"div.nx-titulo-documento\",\"yDelPrimero\":234,\"enElPrimerViewport\":true}",
+        "ida /consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-1 · vuelta /consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-1 · el cierre recuerda lo hecho: false"
+      ],
+      "maxPantallasDeScroll": 2.92,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir el encuentro ya firmado",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-1",
+          "ms": 4323,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 54,
+          "pantallasDeScroll": 2.92,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "salir a la receta desde el cierre del encuentro",
+          "url": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+          "ms": 3490,
+          "clics": 1,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": null,
+          "primarias": [
+            "Descargar PDF"
+          ],
+          "controles": 25,
+          "pantallasDeScroll": 1.41,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "la receta habla del mismo paciente",
+          "url": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+          "ms": 801,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": null,
+          "primarias": [
+            "Descargar PDF"
+          ],
+          "controles": 25,
+          "pantallasDeScroll": 1.41,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "volver al encuentro",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-1",
+          "ms": 3413,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 54,
+          "pantallasDeScroll": 2.9,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-06",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 3,
+      "clics": 2,
+      "navegaciones": 0,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [
+        {
+          "paso": "la comunicación al paciente sale de verdad",
+          "dependencia": "no hay mensajería real en este contenedor, y mandar mensajes reales está prohibido sin autorización del dueño"
+        }
+      ],
+      "errores": [],
+      "notas": [
+        "asuntos vivos listados: 7",
+        "la lente contesta: POR QUÉ ESTÁ AQUÍ · QUIÉN RESPONDE · QUÉ HA PASADO · QUÉ SIGUE",
+        "la acción de avance se llama: «Tomarla»"
+      ],
+      "maxPantallasDeScroll": 2.14,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Pendientes",
+          "url": "/pendientes",
+          "ms": 3279,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 2.14,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": null,
+          "encabezado": "Pendientes",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "revisar: por qué está aquí",
+          "url": "/pendientes",
+          "ms": 1471,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 2.14,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": {
+            "tag": "h2",
+            "id": "lente-titulo-r1",
+            "texto": "Confirmar si la metformina sigue v"
+          },
+          "encabezado": "Pendientes",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "cerrar la lente y actuar sobre el asunto",
+          "url": "/pendientes",
+          "ms": 3385,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Ya se hizo"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 2.14,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "Ya se hizo"
+          },
+          "encabezado": "Pendientes",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-07",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 4,
+      "clics": 2,
+      "navegaciones": 2,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "pendientes con lente: 7 · el primero con traza a su fuente: #0",
+        "la fuente se abrió en /consulta/pac-aurelio-dominguez?nota=nota-aurelio-2&volver=38634305-9f2d-4178-9c99-2297997d7d40 · testigo de regreso en la URL: true",
+        "la fuente ofrece el regreso rotulado: true («Volver a Pendientes»)",
+        "vuelta a /pendientes · scroll 120 → 120 · foco «¿Por qué está aquí?»",
+        "el foco vuelve a un control: true"
+      ],
+      "maxPantallasDeScroll": 2.51,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Pendientes",
+          "url": "/pendientes",
+          "ms": 3278,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Ya se hizo"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 2.14,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": null,
+          "encabezado": "Pendientes",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "abrir la lente sobre un pendiente con fuente",
+          "url": "/pendientes",
+          "ms": 2074,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Ya se hizo"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 2.14,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": {
+            "tag": "h2",
+            "id": "lente-titulo-r1",
+            "texto": "Confirmar si la metformina sigue v"
+          },
+          "encabezado": "Pendientes",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "ir a la fuente que lo originó",
+          "url": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2&volver=38634305-9f2d-4178-9c99-2297997d7d40",
+          "ms": 3792,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 46,
+          "pantallasDeScroll": 2.51,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "volver exactamente a Pendientes",
+          "url": "/pendientes",
+          "ms": 3234,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Ya se hizo"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 2.14,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": "porque-tarea-reconciliacion-aurelio",
+            "texto": "¿Por qué está aquí?"
+          },
+          "encabezado": "Pendientes",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-08",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 4,
+      "clics": 2,
+      "navegaciones": 2,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "pendientes con lente: 5 · el primero con traza a su fuente: #0",
+        "la inspección ocurre en el sitio: true",
+        "la fuente ofrece el regreso: true («Volver a Hoy»)"
+      ],
+      "maxPantallasDeScroll": 2.51,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Hoy",
+          "url": "/dashboard",
+          "ms": 3673,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Iniciar consulta"
+          ],
+          "controles": 30,
+          "pantallasDeScroll": 1.67,
+          "momento": [
+            "Próxima cita · en 38 min"
+          ],
+          "foco": null,
+          "encabezado": "Buenas tardes, Elena",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "inspeccionar EN HOY, sin irse",
+          "url": "/dashboard",
+          "ms": 2069,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Iniciar consulta"
+          ],
+          "controles": 30,
+          "pantallasDeScroll": 1.69,
+          "momento": [
+            "Próxima cita · en 38 min"
+          ],
+          "foco": {
+            "tag": "h2",
+            "id": "lente-titulo-r0",
+            "texto": "Confirmar si la metformina sigue v"
+          },
+          "encabezado": "Buenas tardes, Elena",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "ir a la fuente desde Hoy",
+          "url": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2&volver=d2668e8c-a39f-4f7f-a0bb-b2402c1f7988",
+          "ms": 3790,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 46,
+          "pantallasDeScroll": 2.51,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "volver exactamente a Hoy",
+          "url": "/dashboard",
+          "ms": 3231,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Iniciar consulta"
+          ],
+          "controles": 30,
+          "pantallasDeScroll": 1.67,
+          "momento": [
+            "Próxima cita · en 38 min"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": "porque-tarea-reconciliacion-aurelio",
+            "texto": "¿Por qué está aquí?"
+          },
+          "encabezado": "Buenas tardes, Elena",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-09",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 2,
+      "clics": 1,
+      "navegaciones": 1,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "franja: con-excepcion · rótulo «Pide atención (2)»",
+        "comprobado y limpio: «Sin novedad: lista de espera.»",
+        "excepciones nombradas: 2",
+        "   · «2 · Citas sin responder» — 2 sin confirmar. Cada una es una persona esperando respuesta. — Responde: el consultorio → /citas",
+        "   · «1 · Existencias del consultorio» — 1 bajo mínimo — Jeringas 5 mL. — Responde: el consultorio → /farmacia",
+        "de ellas, con un dato concreto (una cifra): 2",
+        "destino declarado /citas · aterrizaje real /citas"
+      ],
+      "maxPantallasDeScroll": 2.36,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Operaciones",
+          "url": "/operaciones",
+          "ms": 3676,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [],
+          "controles": 21,
+          "pantallasDeScroll": 2.36,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Operaciones",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "seguir la excepción a su destino",
+          "url": "/citas",
+          "ms": 3458,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": null,
+          "primarias": [
+            "Nueva cita",
+            "Iniciar consulta",
+            "Iniciar consulta",
+            "Confirmar",
+            "Unirse",
+            "Iniciar consulta"
+          ],
+          "controles": 21,
+          "pantallasDeScroll": 1,
+          "momento": [
+            "En sala de espera",
+            "Confirmada",
+            "Pendiente confirmar"
+          ],
+          "foco": null,
+          "encabezado": "Hoy",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-10",
+      "viewport": "escritorio",
+      "completado": true,
+      "pasos": 4,
+      "clics": 0,
+      "navegaciones": 0,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "respaldo local escrito antes de la interrupción: [\"nx.consulta.bkp.pac-luzmaria-cervantes\"]",
+        "ruta /consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador → /consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+        "lo escrito sigue en pantalla: false · respaldo local tras recargar: [\"nx.consulta.bkp.pac-luzmaria-cervantes\"] · se ofrece restaurar: true"
+      ],
+      "maxPantallasDeScroll": 3.09,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir el encuentro a medias",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+          "ms": 4308,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 38,
+          "pantallasDeScroll": 3,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "escribir en la nota",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+          "ms": 5222,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 38,
+          "pantallasDeScroll": 3,
+          "momento": [],
+          "foco": {
+            "tag": "textarea",
+            "id": null,
+            "texto": "Acude por el resultado del urocult"
+          },
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "interrupción: la app se va a segundo plano",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+          "ms": 1604,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 38,
+          "pantallasDeScroll": 3,
+          "momento": [],
+          "foco": {
+            "tag": "textarea",
+            "id": null,
+            "texto": "Acude por el resultado del urocult"
+          },
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "el médico vuelve: recarga",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+          "ms": 5077,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [
+            "Restaurar"
+          ],
+          "controles": 40,
+          "pantallasDeScroll": 3.09,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-01",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 3,
+      "clics": 1,
+      "navegaciones": 1,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "Hoy dice que sigue: Aurelio Domínguez Peña",
+        "paciente en la ruta: pac-aurelio-dominguez · en pantalla: Aurelio Domínguez Peña"
+      ],
+      "maxPantallasDeScroll": 5.05,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Hoy",
+          "url": "/dashboard",
+          "ms": 1048,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Iniciar consulta"
+          ],
+          "controles": 30,
+          "pantallasDeScroll": 3.65,
+          "momento": [
+            "Próxima cita · en 37 min"
+          ],
+          "foco": null,
+          "encabezado": "Buenas tardes, Elena",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "iniciar la consulta de quien sigue",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 3444,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 5.05,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "el encuentro abierto",
+          "url": "/consulta/pac-aurelio-dominguez",
+          "ms": 1201,
+          "clics": 0,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 5.05,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-02",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 4,
+      "clics": 1,
+      "navegaciones": 1,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "pacientes listados antes de buscar: 8",
+        "resultados con «Cervantes»: 1 → Luz María Cervantes Ochoa",
+        "momento legible al aterrizar: Borrador · Firmada"
+      ],
+      "maxPantallasDeScroll": 2.95,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Pacientes",
+          "url": "/pacientes",
+          "ms": 980,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Nuevo paciente"
+          ],
+          "controles": 17,
+          "pantallasDeScroll": 2.34,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Pacientes",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "teclear el apellido",
+          "url": "/pacientes",
+          "ms": 1614,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Nuevo paciente"
+          ],
+          "controles": 6,
+          "pantallasDeScroll": 1,
+          "momento": [],
+          "foco": {
+            "tag": "input",
+            "id": null,
+            "texto": "Buscar un paciente por nombre, teléfono, correo o CURP"
+          },
+          "encabezado": "Pacientes",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "abrir el expediente del resultado",
+          "url": "/expediente/pac-luzmaria-cervantes",
+          "ms": 3309,
+          "clics": 1,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 22,
+          "pantallasDeScroll": 2.95,
+          "momento": [
+            "Borrador",
+            "Firmada"
+          ],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "leer el estado actual sin abrir nada",
+          "url": "/expediente/pac-luzmaria-cervantes",
+          "ms": 1601,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 22,
+          "pantallasDeScroll": 2.95,
+          "momento": [
+            "Borrador",
+            "Firmada"
+          ],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-03",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 4,
+      "clics": 2,
+      "navegaciones": 0,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "notas abribles en el expediente: 2",
+        "la nota ofrece inspeccionar su procedencia: true",
+        "la inspección ocurre sin salir del expediente: true",
+        "ruta ida /expediente/pac-aurelio-dominguez · vuelta /expediente/pac-aurelio-dominguez · scroll 715 → 1428"
+      ],
+      "maxPantallasDeScroll": 15.85,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir el expediente",
+          "url": "/expediente/pac-aurelio-dominguez",
+          "ms": 3513,
+          "clics": 0,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 21,
+          "pantallasDeScroll": 2.93,
+          "momento": [
+            "Firmada"
+          ],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "abrir una nota del expediente",
+          "url": "/expediente/pac-aurelio-dominguez",
+          "ms": 3051,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 25,
+          "pantallasDeScroll": 3.97,
+          "momento": [
+            "Firmada"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "Nota de SeguimientoFirmadaMejor ap"
+          },
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "inspeccionar la procedencia",
+          "url": "/expediente/pac-aurelio-dominguez",
+          "ms": 2054,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 25,
+          "pantallasDeScroll": 15.85,
+          "momento": [
+            "Firmada"
+          ],
+          "foco": {
+            "tag": "h2",
+            "id": "lente-titulo-r0",
+            "texto": "¿De dónde salió esto?"
+          },
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "volver al punto exacto del expediente",
+          "url": "/expediente/pac-aurelio-dominguez",
+          "ms": 3118,
+          "clics": 0,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "ancla",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 25,
+          "pantallasDeScroll": 3.97,
+          "momento": [
+            "Firmada"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "¿De dónde salió esto?cada frase, j"
+          },
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-04",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 6,
+      "clics": 5,
+      "navegaciones": 0,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [
+        {
+          "paso": "aparece la transcripción",
+          "dependencia": "llaves del proveedor de transcripción, ausentes en este contenedor"
+        },
+        {
+          "paso": "de la transcripción nace la nota",
+          "dependencia": "el mismo proveedor + audio sintético"
+        }
+      ],
+      "errores": [
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+      ],
+      "notas": [
+        "paciente de este ancho: pac-joaquin-esparza (uno por ancho: el consentimiento queda en el expediente y no se vuelve a pedir)",
+        "transiciones: {\"consentimiento\":true,\"grabando\":true,\"enPausa\":true,\"reanudada\":true,\"cerrada\":true}"
+      ],
+      "maxPantallasDeScroll": 4.6,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir el encuentro SIN firmar",
+          "url": "/consulta/pac-joaquin-esparza",
+          "ms": 4144,
+          "clics": 0,
+          "pacienteURL": "pac-joaquin-esparza",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Joaquín Esparza Villarreal"
+          },
+          "primarias": [],
+          "controles": 34,
+          "pantallasDeScroll": 4.26,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Joaquín Esparza Villarreal",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "preparar: pedir grabar exige consentimiento",
+          "url": "/consulta/pac-joaquin-esparza",
+          "ms": 2957,
+          "clics": 2,
+          "pacienteURL": "pac-joaquin-esparza",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Joaquín Esparza Villarreal"
+          },
+          "primarias": [
+            "Detener y generar nota"
+          ],
+          "controles": 41,
+          "pantallasDeScroll": 4.15,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Joaquín Esparza Villarreal",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "iniciar: la pantalla pasa a estado de grabación",
+          "url": "/consulta/pac-joaquin-esparza",
+          "ms": 810,
+          "clics": 0,
+          "pacienteURL": "pac-joaquin-esparza",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Joaquín Esparza Villarreal"
+          },
+          "primarias": [
+            "Detener y generar nota"
+          ],
+          "controles": 41,
+          "pantallasDeScroll": 4.15,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Joaquín Esparza Villarreal",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "pausar",
+          "url": "/consulta/pac-joaquin-esparza",
+          "ms": 872,
+          "clics": 1,
+          "pacienteURL": "pac-joaquin-esparza",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Joaquín Esparza Villarreal"
+          },
+          "primarias": [],
+          "controles": 40,
+          "pantallasDeScroll": 4.15,
+          "momento": [],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "Reanudar la grabación"
+          },
+          "encabezado": "Joaquín Esparza Villarreal",
+          "fallo": null
+        },
+        {
+          "n": 5,
+          "que": "reanudar",
+          "url": "/consulta/pac-joaquin-esparza",
+          "ms": 867,
+          "clics": 1,
+          "pacienteURL": "pac-joaquin-esparza",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Joaquín Esparza Villarreal"
+          },
+          "primarias": [
+            "Detener y generar nota"
+          ],
+          "controles": 41,
+          "pantallasDeScroll": 4.15,
+          "momento": [],
+          "foco": {
+            "tag": "button",
+            "id": null,
+            "texto": "Pausar la grabación"
+          },
+          "encabezado": "Joaquín Esparza Villarreal",
+          "fallo": null
+        },
+        {
+          "n": 6,
+          "que": "cerrar la grabación",
+          "url": "/consulta/pac-joaquin-esparza",
+          "ms": 2672,
+          "clics": 1,
+          "pacienteURL": "pac-joaquin-esparza",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Joaquín Esparza Villarreal"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 4.6,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Joaquín Esparza Villarreal",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-05",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 4,
+      "clics": 1,
+      "navegaciones": 2,
+      "retrocesos": 1,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "notas": [
+        "el paciente en la receta — ancla del shell: {\"fuente\":\"franja\",\"nombre\":\"Luz María Cervantes Ochoa\"}",
+        "el paciente en el cuerpo de la receta: {\"enElEncabezado\":true,\"apariciones\":4,\"papelDelPrimero\":\"div.nx-titulo-documento\",\"yDelPrimero\":430,\"enElPrimerViewport\":true}",
+        "ida /consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-1 · vuelta /consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-1 · el cierre recuerda lo hecho: false"
+      ],
+      "maxPantallasDeScroll": 4.9,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir el encuentro ya firmado",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-1",
+          "ms": 4306,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 54,
+          "pantallasDeScroll": 4.9,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "salir a la receta desde el cierre del encuentro",
+          "url": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+          "ms": 3493,
+          "clics": 1,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [
+            "Descargar PDF"
+          ],
+          "controles": 25,
+          "pantallasDeScroll": 3.28,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "la receta habla del mismo paciente",
+          "url": "/receta/pac-luzmaria-cervantes/nota-luzmaria-1",
+          "ms": 801,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [
+            "Descargar PDF"
+          ],
+          "controles": 25,
+          "pantallasDeScroll": 3.28,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "volver al encuentro",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-1",
+          "ms": 3413,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 54,
+          "pantallasDeScroll": 4.84,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-06",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 3,
+      "clics": 2,
+      "navegaciones": 0,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [
+        {
+          "paso": "la comunicación al paciente sale de verdad",
+          "dependencia": "no hay mensajería real en este contenedor, y mandar mensajes reales está prohibido sin autorización del dueño"
+        }
+      ],
+      "errores": [],
+      "notas": [
+        "asuntos vivos listados: 7",
+        "la lente contesta: POR QUÉ ESTÁ AQUÍ · QUIÉN RESPONDE · QUÉ HA PASADO · QUÉ SIGUE",
+        "la acción de avance se llama: «Ya se hizo»"
+      ],
+      "maxPantallasDeScroll": 7.83,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Pendientes",
+          "url": "/pendientes",
+          "ms": 3272,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Ya se hizo"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 3.7,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": null,
+          "encabezado": "Pendientes",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "revisar: por qué está aquí",
+          "url": "/pendientes",
+          "ms": 1470,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla",
+            "Ya se hizo"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 7.83,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": {
+            "tag": "h2",
+            "id": "lente-titulo-r1",
+            "texto": "Confirmar si la metformina sigue v"
+          },
+          "encabezado": "Pendientes",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "cerrar la lente y actuar sobre el asunto",
+          "url": "/pendientes",
+          "ms": 3371,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 3.68,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": null,
+          "encabezado": "Pendientes",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-07",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 4,
+      "clics": 2,
+      "navegaciones": 2,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "pendientes con lente: 7 · el primero con traza a su fuente: #0",
+        "la fuente se abrió en /consulta/pac-aurelio-dominguez?nota=nota-aurelio-2&volver=331eea51-ae66-4a72-b0db-28ca0155d85c · testigo de regreso en la URL: true",
+        "la fuente ofrece el regreso rotulado: true («Volver a Pendientes»)",
+        "vuelta a /pendientes · scroll 120 → 120 · foco «¿Por qué está aquí?»",
+        "el foco vuelve a un control: true"
+      ],
+      "maxPantallasDeScroll": 7.79,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Pendientes",
+          "url": "/pendientes",
+          "ms": 3279,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 3.68,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": null,
+          "encabezado": "Pendientes",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "abrir la lente sobre un pendiente con fuente",
+          "url": "/pendientes",
+          "ms": 2082,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 7.79,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": {
+            "tag": "h2",
+            "id": "lente-titulo-r1",
+            "texto": "Confirmar si la metformina sigue v"
+          },
+          "encabezado": "Pendientes",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "ir a la fuente que lo originó",
+          "url": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2&volver=331eea51-ae66-4a72-b0db-28ca0155d85c",
+          "ms": 3793,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 46,
+          "pantallasDeScroll": 3.89,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "volver exactamente a Pendientes",
+          "url": "/pendientes",
+          "ms": 3238,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Tomarla",
+            "Tomarla",
+            "Lo revisé — cerrar",
+            "Lo revisé — cerrar",
+            "Ya se hizo",
+            "Tomarla",
+            "Tomarla"
+          ],
+          "controles": 31,
+          "pantallasDeScroll": 3.68,
+          "momento": [
+            "Pendiente"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": "porque-tarea-reconciliacion-aurelio",
+            "texto": "¿Por qué está aquí?"
+          },
+          "encabezado": "Pendientes",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-08",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 4,
+      "clics": 2,
+      "navegaciones": 2,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "pendientes con lente: 5 · el primero con traza a su fuente: #0",
+        "la inspección ocurre en el sitio: true",
+        "la fuente ofrece el regreso: true («Volver a Hoy»)"
+      ],
+      "maxPantallasDeScroll": 7.72,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Hoy",
+          "url": "/dashboard",
+          "ms": 3679,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Iniciar consulta"
+          ],
+          "controles": 30,
+          "pantallasDeScroll": 3.65,
+          "momento": [
+            "Próxima cita · en 36 min"
+          ],
+          "foco": null,
+          "encabezado": "Buenas tardes, Elena",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "inspeccionar EN HOY, sin irse",
+          "url": "/dashboard",
+          "ms": 2086,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Iniciar consulta"
+          ],
+          "controles": 30,
+          "pantallasDeScroll": 7.72,
+          "momento": [
+            "Próxima cita · en 36 min"
+          ],
+          "foco": {
+            "tag": "h2",
+            "id": "lente-titulo-r0",
+            "texto": "Confirmar si la metformina sigue v"
+          },
+          "encabezado": "Buenas tardes, Elena",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "ir a la fuente desde Hoy",
+          "url": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2&volver=3d47d663-e66f-4976-a23c-42b00a1c9b6e",
+          "ms": 3794,
+          "clics": 1,
+          "pacienteURL": "pac-aurelio-dominguez",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Aurelio Domínguez Peña"
+          },
+          "primarias": [],
+          "controles": 46,
+          "pantallasDeScroll": 3.89,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Aurelio Domínguez Peña",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "volver exactamente a Hoy",
+          "url": "/dashboard",
+          "ms": 3222,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Iniciar consulta"
+          ],
+          "controles": 30,
+          "pantallasDeScroll": 3.65,
+          "momento": [
+            "Próxima cita · en 36 min"
+          ],
+          "foco": {
+            "tag": "button",
+            "id": "porque-tarea-reconciliacion-aurelio",
+            "texto": "¿Por qué está aquí?"
+          },
+          "encabezado": "Buenas tardes, Elena",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-09",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 2,
+      "clics": 1,
+      "navegaciones": 1,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "franja: con-excepcion · rótulo «Pide atención (2)»",
+        "comprobado y limpio: «Sin novedad: lista de espera.»",
+        "excepciones nombradas: 2",
+        "   · «2 · Citas sin responder» — 2 sin confirmar. Cada una es una persona esperando respuesta. — Responde: el consultorio → /citas",
+        "   · «1 · Existencias del consultorio» — 1 bajo mínimo — Jeringas 5 mL. — Responde: el consultorio → /farmacia",
+        "de ellas, con un dato concreto (una cifra): 2",
+        "destino declarado /citas · aterrizaje real /citas"
+      ],
+      "maxPantallasDeScroll": 3.23,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir Operaciones",
+          "url": "/operaciones",
+          "ms": 3679,
+          "clics": 0,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [],
+          "controles": 21,
+          "pantallasDeScroll": 3.23,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Operaciones",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "seguir la excepción a su destino",
+          "url": "/citas",
+          "ms": 3453,
+          "clics": 1,
+          "pacienteURL": null,
+          "identidad": {
+            "fuente": "franja",
+            "nombre": "Ausculta"
+          },
+          "primarias": [
+            "Nueva cita",
+            "Iniciar consulta",
+            "Iniciar consulta",
+            "Confirmar",
+            "Unirse",
+            "Iniciar consulta"
+          ],
+          "controles": 21,
+          "pantallasDeScroll": 2.11,
+          "momento": [
+            "En sala de espera",
+            "Confirmada",
+            "Pendiente confirmar"
+          ],
+          "foco": null,
+          "encabezado": "Hoy",
+          "fallo": null
+        }
+      ]
+    },
+    {
+      "flujo": "WF-10",
+      "viewport": "movil",
+      "completado": true,
+      "pasos": 4,
+      "clics": 0,
+      "navegaciones": 0,
+      "retrocesos": 0,
+      "perdidasDeContexto": [],
+      "callejones": [],
+      "noComprobables": [],
+      "errores": [],
+      "notas": [
+        "respaldo local escrito antes de la interrupción: [\"nx.consulta.bkp.pac-luzmaria-cervantes\"]",
+        "ruta /consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador → /consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+        "lo escrito sigue en pantalla: false · respaldo local tras recargar: [\"nx.consulta.bkp.pac-luzmaria-cervantes\"] · se ofrece restaurar: true"
+      ],
+      "maxPantallasDeScroll": 4.78,
+      "detalle": [
+        {
+          "n": 1,
+          "que": "abrir el encuentro a medias",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+          "ms": 4326,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 4.51,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 2,
+          "que": "escribir en la nota",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+          "ms": 5228,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 4.51,
+          "momento": [],
+          "foco": {
+            "tag": "textarea",
+            "id": null,
+            "texto": "Acude por el resultado del urocult"
+          },
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 3,
+          "que": "interrupción: la app se va a segundo plano",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+          "ms": 1609,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [],
+          "controles": 39,
+          "pantallasDeScroll": 4.51,
+          "momento": [],
+          "foco": {
+            "tag": "textarea",
+            "id": null,
+            "texto": "Acude por el resultado del urocult"
+          },
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        },
+        {
+          "n": 4,
+          "que": "el médico vuelve: recarga",
+          "url": "/consulta/pac-luzmaria-cervantes?nota=nota-luzmaria-borrador",
+          "ms": 5073,
+          "clics": 0,
+          "pacienteURL": "pac-luzmaria-cervantes",
+          "identidad": {
+            "fuente": "h1-encuentro",
+            "nombre": "Luz María Cervantes Ochoa"
+          },
+          "primarias": [
+            "Restaurar"
+          ],
+          "controles": 41,
+          "pantallasDeScroll": 4.78,
+          "momento": [],
+          "foco": null,
+          "encabezado": "Luz María Cervantes Ochoa",
+          "fallo": null
+        }
+      ]
+    }
+  ]
+}
