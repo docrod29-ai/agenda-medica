@@ -185,13 +185,21 @@ function CabeceraDeGrupo({ titulo, cadencia }: { titulo: string; cadencia: strin
  * colección rota, y una franja muda se lee como consultorio en orden.
  */
 function useEstadoOperativo(clinicId: string | null | undefined) {
-  const [estado, setEstado] = useState<EstadoOps | null>(null)
-  const [cargando, setCargando] = useState(true)
+  /**
+   * La lectura se guarda CON el consultorio del que salió, y «cargando» se
+   * DERIVA de comparar ese consultorio con el actual. Así no hace falta poner
+   * `setCargando(true)` en el cuerpo del efecto —que es una cascada de renders
+   * y la regla `react-hooks/set-state-in-effect` lo caza— y de paso se cierra
+   * un defecto que la versión con dos estados tenía: al cambiar de consultorio,
+   * la franja seguía enseñando las excepciones del anterior hasta que llegaran
+   * las nuevas. Estado operativo de OTRO consultorio es exactamente lo que esta
+   * pantalla no puede pintar.
+   */
+  const [leido, setLeido] = useState<{ clinicId: string; estado: EstadoOps } | null>(null)
 
   useEffect(() => {
     if (!clinicId) return
     let vivo = true
-    setCargando(true)
     const rescatar = <T,>(p: Promise<T[]>, que: string): Promise<T[] | null> =>
       p.catch(e => { console.error(`[operaciones] no se pudo leer ${que}`, e); return null })
 
@@ -205,13 +213,13 @@ function useEstadoOperativo(clinicId: string | null | undefined) {
       rescatar(listarItems(clinicId), 'farmacia'),
     ]).then(([citas, listaEspera, farmacia]) => {
       if (!vivo) return
-      setEstado(estadoDeOperaciones({ citas, listaEspera, farmacia, hoyISO: desde }))
-      setCargando(false)
+      setLeido({ clinicId, estado: estadoDeOperaciones({ citas, listaEspera, farmacia, hoyISO: desde }) })
     })
     return () => { vivo = false }
   }, [clinicId])
 
-  return { estado, cargando }
+  const listo = !!leido && leido.clinicId === clinicId
+  return { estado: listo ? leido.estado : null, cargando: !listo }
 }
 
 export default function OperacionesPage() {

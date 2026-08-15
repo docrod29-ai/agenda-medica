@@ -57,21 +57,22 @@ function Fila({ c }: { c: Comprobacion }) {
         {c.estado === 'no-se-pudo-leer' ? <EyeOff size={16} /> : <AlertTriangle size={16} />}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+        <div className="t-body" style={{ fontWeight: 700 }}>
           {c.cuantos > 0 && <span style={{ color }}>{c.cuantos} · </span>}{c.titulo}
         </div>
-        <p style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, margin: '3px 0 0' }}>{c.detalle}</p>
-        <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '4px 0 0' }}>
+        <p className="t-caption" style={{ lineHeight: 1.5, margin: '3px 0 0' }}>{c.detalle}</p>
+        <p className="t-caption" style={{ color: 'var(--text3)', margin: '4px 0 0' }}>
           Responde: {c.quien}
         </p>
       </div>
       <Link
         href={c.destino}
         data-destino={c.id}
+        className="t-body"
         style={{
           flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4,
           minHeight: 44, padding: '0 4px',
-          fontSize: 13, fontWeight: 600, color: 'var(--nexus)',
+          fontWeight: 600, color: 'var(--nexus)',
         }}>
         {c.destinoLabel} <ChevronRight size={14} aria-hidden />
       </Link>
@@ -82,7 +83,7 @@ function Fila({ c }: { c: Comprobacion }) {
 export function EstadoDeOperaciones({ estado, cargando }: { estado: Estado | null; cargando: boolean }) {
   if (cargando) {
     return (
-      <p data-estado-operaciones="cargando" style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 18px' }}>
+      <p data-estado-operaciones="cargando" className="t-caption" style={{ color: 'var(--text3)', margin: '0 0 18px' }}>
         Comprobando el estado del consultorio…
       </p>
     )
@@ -100,12 +101,13 @@ export function EstadoDeOperaciones({ estado, cargando }: { estado: Estado | nul
       style={{ margin: '0 0 26px' }}>
       <h2
         id="ops-estado-titulo"
-        style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: '0 0 2px' }}>
+        className="t-h2"
+        style={{ margin: '0 0 2px' }}>
         {piden.length
           ? `Pide atención (${piden.length})`
           : 'Nada del consultorio pide atención ahora'}
       </h2>
-      <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 6px', lineHeight: 1.5 }}>
+      <p className="t-caption" style={{ color: 'var(--text3)', margin: '0 0 6px', lineHeight: 1.5 }}>
         {piden.length
           ? 'Sale de las citas, la lista de espera y las existencias que ya guarda este consultorio. Se actúa en la pantalla que manda, no aquí.'
           : 'Se comprobaron las citas, la lista de espera y las existencias. Nada de eso está esperando una decisión.'}
@@ -116,9 +118,10 @@ export function EstadoDeOperaciones({ estado, cargando }: { estado: Estado | nul
       {(limpias.length > 0 || fuera.length > 0) && (
         <p
           data-comprobado-limpio
+          className="t-caption"
           style={{
             display: 'flex', gap: 7, alignItems: 'baseline',
-            fontSize: 12, color: 'var(--text3)', lineHeight: 1.6,
+            color: 'var(--text3)', lineHeight: 1.6,
             margin: 0, paddingTop: piden.length ? 13 : 0,
             borderTop: piden.length ? '1px solid var(--border)' : 'none',
           }}>
