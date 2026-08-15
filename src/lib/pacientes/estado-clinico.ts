@@ -88,6 +88,26 @@ function porQueImporta(t: TareaClinica, ahoraMs: number): string | null {
 }
 
 /**
+ * LAS TAREAS VIVAS DE UN PACIENTE — el filtro, UNA sola vez.
+ *
+ * Existe porque la lente contextual necesita enseñar EXACTAMENTE las mismas
+ * tareas que la fila resumió. Si la lente aplicara su propio filtro, dos
+ * criterios distintos podrían discrepar y el plano acabaría explicando algo
+ * que la fila no dice — una explicación que no coincide con lo explicado es
+ * peor que no explicar. Por eso `estadoClinicoDeFila` también pasa por aquí.
+ *
+ * Devuelve vacío cuando la lectura no llegó: quien pinte el resultado tiene que
+ * distinguir eso de «no hay ninguna» mirando la CLASE, no la longitud.
+ */
+export function tareasDelPaciente(
+  patientId: string,
+  lectura: LecturaDelWorklist,
+): readonly TareaClinica[] {
+  if (lectura.estado === 'sin-leer') return []
+  return lectura.tareas.filter(t => t.patientId === patientId)
+}
+
+/**
  * El estado clínico de UN paciente a partir de la lectura del worklist.
  *
  * `ahoraMs` se recibe y no se toma de `Date.now()` aquí: la fila se pinta
@@ -101,7 +121,7 @@ export function estadoClinicoDeFila(
 ): EstadoClinicoDeFila {
   if (lectura.estado === 'sin-leer') return SIN_LEER
 
-  const suyas = lectura.tareas.filter(t => t.patientId === patientId)
+  const suyas = tareasDelPaciente(patientId, lectura)
   if (suyas.length === 0) {
     return { clase: 'sin-pendientes', vivas: 0, etiqueta: null, porQue: null, urgente: false }
   }

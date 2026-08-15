@@ -3026,3 +3026,183 @@ span.riel-aviso { cursor: default; }
   background: var(--nexus);
   flex-shrink: 0;
 }
+
+/* ── LA LENTE CONTEXTUAL — Capa 4 de §5 ─────────────────────────────────────
+   El porqué del producto vive en `src/lib/lente/modelo.ts`. Aquí sólo lo que
+   decide la hoja: DÓNDE se pinta el plano, que depende del ancho y por tanto
+   no puede decidirlo un `if` de JavaScript (lección de RTC-22).
+
+   ESCRITORIO — columna hermana del lienzo. Es literalmente lo que §5 dibuja:
+   Capa 3 (lienzo clínico) y Capa 4 (lente) una al lado de la otra. No flota
+   sobre el trabajo —RTC-32 sacó del shell todo lo que flotaba— y no lo tapa:
+   el médico sigue leyendo la fila que acaba de inspeccionar.
+
+   TELÉFONO — hoja desde abajo. NO es esta columna encogida (§22 lo prohíbe por
+   su nombre): a 390px una columna de 420 no cabe, y media pantalla partida en
+   vertical no deja leer ninguna de las dos mitades. La hoja es el gesto que un
+   teléfono ya conoce, y al cerrarse devuelve la pantalla intacta — que es la
+   promesa entera de esta pieza.
+
+   SIN CRISTAL Y SIN DEGRADADO, a propósito: los dos contadores de genericidad
+   del trinquete (`cristal`, `gradientes`) están sellados y esta pieza no es
+   excepción de nada. Fondo sólido de token, un borde, y ya. */
+.nx-area-de-trabajo {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+/* `flex: 1` vive EN LÍNEA en el layout (contrato de dos guardianes); aquí
+   sólo lo que la fila necesita para poder encoger. */
+.nx-area-de-trabajo > main { min-width: 0; }
+
+.nx-lente {
+  flex-shrink: 0;
+  width: min(420px, 34vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--s1);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  /* El plano recibe el foco al abrirse (`tabIndex={-1}`): sin esto el anillo
+     del contenedor se pinta alrededor de toda la columna y parece un error. */
+  outline: none;
+}
+.nx-lente-telon { display: none; }
+
+.nx-lente-cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--s1);
+  z-index: 1;
+}
+.nx-lente-cabecera > div:first-child { flex: 1; }
+.nx-lente-cerrar { flex-shrink: 0; }
+.nx-lente-cuerpo { padding: 16px; display: flex; flex-direction: column; gap: 20px; }
+
+.nx-lente-bloque { display: flex; flex-direction: column; gap: 6px; }
+.nx-lente-prosa { margin: 0; font-size: 14px; color: var(--text); line-height: 1.55; }
+.nx-lente-meta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.nx-lente-meta > span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* La CITA — lo que dice la nota, literal. Barra al costado y no caja cerrada:
+   una tarjeta más dentro de un plano ya delimitado sería el marco alrededor
+   del marco que el marco de página (RTC-31) existe para no repetir. */
+.nx-lente-cita {
+  margin: 10px 0 0;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--nexus);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: start;
+}
+.nx-lente-cita > svg { color: var(--text3); margin-top: 4px; }
+.nx-lente-cita blockquote {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.nx-lente-cita figcaption { grid-column: 2; }
+
+/* Lo que NO consta: ámbar, como el «alergias no registradas» del ancla. Es un
+   hueco del registro — ni un fallo (rojo) ni una tranquilidad (gris). */
+.nx-lente-hueco,
+.nx-lente-fallo {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid;
+}
+.nx-lente-hueco {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 35%, transparent);
+}
+/* Un fallo de LECTURA sí es rojo: no se sabe, y no saber no puede parecerse a
+   saber que no hay nada. Es `sin-leer` frente a `sin-pendientes`. */
+.nx-lente-fallo {
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border-color: color-mix(in srgb, var(--red) 35%, transparent);
+}
+
+.nx-lente-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.nx-lente-lista > li { display: grid; gap: 3px; }
+/* Filas a sangre separadas por una línea, no tarjetas: es la anatomía de
+   `/pendientes`, la superficie que mejor puntúa §29. */
+.nx-lente-lista > li + li { border-top: 1px solid var(--border); padding-top: 14px; }
+.nx-lente-lista-titulo { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.nx-lente-lista-titulo strong { font-size: 14px; font-weight: 500; color: var(--text); }
+
+/* Irse de la lente ES un gesto explícito, y se ve que lleva fuera. */
+.nx-lente-salida {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nexus);
+}
+
+/* El disparador. En puntero grueso, 44 — la omisión que costó tres defectos
+   fue que el bloque `coarse` no cubría un selector; aquí se declara entero. */
+.nx-inspeccionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nx-inspeccionar:hover { color: var(--nexus); border-color: var(--border); }
+.nx-inspeccionar[aria-expanded='true'] { color: var(--nexus); border-color: var(--border); }
+.nx-inspeccionar--icono { padding: 6px; }
+@media (pointer: coarse) {
+  .nx-inspeccionar { min-height: 44px; min-width: 44px; justify-content: center; }
+}
+
+@media (max-width: 768px) {
+  .nx-lente {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: auto;
+    max-height: 80vh;
+    z-index: 47;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    /* La hoja tapa la barra del pulgar, así que su último control tiene que
+       quedar por encima del indicador de inicio del teléfono. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .nx-lente-telon {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 46;
+    background: rgba(0, 0, 0, 0.6);
+  }
+}

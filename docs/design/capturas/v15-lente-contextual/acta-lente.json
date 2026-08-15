@@ -1,0 +1,211 @@
+{
+  "fecha": "2026-08-15T00:52:41.448Z",
+  "base": "http://localhost:3000",
+  "casos": [
+    {
+      "nombre": "[escritorio] la lente se abre sobre el hecho",
+      "pasa": true,
+      "detalle": "Urocultivo con antibiograma"
+    },
+    {
+      "nombre": "[escritorio] CITA LITERAL la línea de la orden de la nota",
+      "pasa": true,
+      "detalle": "cita=«Urocultivo con antibiograma»"
+    },
+    {
+      "nombre": "[escritorio] con fuente NO pinta hueco ni fallo",
+      "pasa": true,
+      "detalle": "huecos=0 fallos=0"
+    },
+    {
+      "nombre": "[escritorio] inspeccionar NO cambia de ruta",
+      "pasa": true,
+      "detalle": "/pendientes → /pendientes"
+    },
+    {
+      "nombre": "[escritorio] inspeccionar NO mueve el lienzo",
+      "pasa": true,
+      "detalle": "0 → 0"
+    },
+    {
+      "nombre": "[escritorio] el foco entra al plano",
+      "pasa": true,
+      "detalle": "true"
+    },
+    {
+      "nombre": "[escritorio] el plano NO flota sobre el trabajo",
+      "pasa": true,
+      "detalle": "position=static"
+    },
+    {
+      "nombre": "[escritorio] es columna hermana, a la derecha del lienzo",
+      "pasa": true,
+      "detalle": "ancho=420"
+    },
+    {
+      "nombre": "[escritorio] no es modal: el trabajo sigue legible",
+      "pasa": true,
+      "detalle": "aria-modal=false telón=false"
+    },
+    {
+      "nombre": "[escritorio] Escape cierra el plano",
+      "pasa": true
+    },
+    {
+      "nombre": "[escritorio] VUELVE a la misma ruta",
+      "pasa": true,
+      "detalle": "/pendientes → /pendientes"
+    },
+    {
+      "nombre": "[escritorio] VUELVE al mismo sitio del lienzo",
+      "pasa": true,
+      "detalle": "0 → 0"
+    },
+    {
+      "nombre": "[escritorio] el foco VUELVE al disparador",
+      "pasa": true,
+      "detalle": "true"
+    },
+    {
+      "nombre": "[escritorio] sin nota de origen lo DICE, y dice por qué",
+      "pasa": true,
+      "detalle": "Este pendiente nació al llegar el resultado, no de una nota firmada."
+    },
+    {
+      "nombre": "[escritorio] y no inventa ninguna cita",
+      "pasa": true,
+      "detalle": "citas=0"
+    },
+    {
+      "nombre": "[escritorio] cambiar de paciente CIERRA la lente (no se reata)",
+      "pasa": true,
+      "detalle": "/expediente/pac-aurelio-dominguez"
+    },
+    {
+      "nombre": "[escritorio] en el expediente SÍ hay scroll que perder",
+      "pasa": true,
+      "detalle": "scrollTop=199"
+    },
+    {
+      "nombre": "[escritorio] la banda de alergias enseña de dónde se leyó",
+      "pasa": true,
+      "detalle": "Alergias de Aurelio Domínguez Peña"
+    },
+    {
+      "nombre": "[escritorio] abrir en el expediente no mueve nada",
+      "pasa": true,
+      "detalle": "199 → 199"
+    },
+    {
+      "nombre": "[escritorio] EXPEDIENTE · vuelve al mismo sitio, misma ruta, mismo paciente",
+      "pasa": true,
+      "detalle": "scroll 199 → 199 · Aurelio Domínguez Peña"
+    },
+    {
+      "nombre": "[escritorio] EXPEDIENTE · el foco vuelve al disparador",
+      "pasa": true,
+      "detalle": "true"
+    },
+    {
+      "nombre": "[movil] la lente se abre sobre el hecho",
+      "pasa": true,
+      "detalle": "Urocultivo con antibiograma"
+    },
+    {
+      "nombre": "[movil] CITA LITERAL la línea de la orden de la nota",
+      "pasa": true,
+      "detalle": "cita=«Urocultivo con antibiograma»"
+    },
+    {
+      "nombre": "[movil] con fuente NO pinta hueco ni fallo",
+      "pasa": true,
+      "detalle": "huecos=0 fallos=0"
+    },
+    {
+      "nombre": "[movil] inspeccionar NO cambia de ruta",
+      "pasa": true,
+      "detalle": "/pendientes → /pendientes"
+    },
+    {
+      "nombre": "[movil] inspeccionar NO mueve el lienzo",
+      "pasa": true,
+      "detalle": "586 → 586"
+    },
+    {
+      "nombre": "[movil] el foco entra al plano",
+      "pasa": true,
+      "detalle": "true"
+    },
+    {
+      "nombre": "[movil] es una HOJA anclada abajo, no la columna encogida",
+      "pasa": true,
+      "detalle": "ancho=390 abajo=true"
+    },
+    {
+      "nombre": "[movil] es modal, con telón y foco atrapado",
+      "pasa": true,
+      "detalle": "aria-modal=true telón=true"
+    },
+    {
+      "nombre": "[movil] Escape cierra el plano",
+      "pasa": true
+    },
+    {
+      "nombre": "[movil] VUELVE a la misma ruta",
+      "pasa": true,
+      "detalle": "/pendientes → /pendientes"
+    },
+    {
+      "nombre": "[movil] VUELVE al mismo sitio del lienzo",
+      "pasa": true,
+      "detalle": "586 → 586"
+    },
+    {
+      "nombre": "[movil] el foco VUELVE al disparador",
+      "pasa": true,
+      "detalle": "true"
+    },
+    {
+      "nombre": "[movil] sin nota de origen lo DICE, y dice por qué",
+      "pasa": true,
+      "detalle": "Este pendiente nació al llegar el resultado, no de una nota firmada."
+    },
+    {
+      "nombre": "[movil] y no inventa ninguna cita",
+      "pasa": true,
+      "detalle": "citas=0"
+    },
+    {
+      "nombre": "[movil] cambiar de paciente CIERRA la lente (no se reata)",
+      "pasa": true,
+      "detalle": "/expediente/pac-aurelio-dominguez"
+    },
+    {
+      "nombre": "[movil] en el expediente SÍ hay scroll que perder",
+      "pasa": true,
+      "detalle": "scrollTop=320"
+    },
+    {
+      "nombre": "[movil] la banda de alergias enseña de dónde se leyó",
+      "pasa": true,
+      "detalle": "Alergias de Aurelio Domínguez Peña"
+    },
+    {
+      "nombre": "[movil] abrir en el expediente no mueve nada",
+      "pasa": true,
+      "detalle": "320 → 320"
+    },
+    {
+      "nombre": "[movil] EXPEDIENTE · vuelve al mismo sitio, misma ruta, mismo paciente",
+      "pasa": true,
+      "detalle": "scroll 320 → 320 · Aurelio Domínguez Peña"
+    },
+    {
+      "nombre": "[movil] EXPEDIENTE · el foco vuelve al disparador",
+      "pasa": true,
+      "detalle": "true"
+    }
+  ],
+  "erroresDeConsola": [],
+  "resumen": "41/41 PASS · 0 errores de consola"
+}

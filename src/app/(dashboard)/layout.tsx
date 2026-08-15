@@ -39,6 +39,7 @@ import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { CORREO_SOPORTE } from '@/lib/contacto'
 import { MarcoEscuchando } from '@/components/MarcoEscuchando'
+import { LenteProvider, PlanoDeLente } from '@/components/lente/LenteContextual'
 import { useGrabando } from '@/hooks/useGrabando'
 
 function ModeBanner() {
@@ -802,9 +803,34 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <AvisoIncidenteIA esDueno={esSuperadminCliente(user?.email)} />
         <PilaDeAvisosAdmin />
         <FirmadorDisenos />
-        <main style={{ flex: 1, overflowY: 'auto' }}>
-          {children}
-        </main>
+        {/*
+          EL ÁREA DE TRABAJO — Capa 3 y Capa 4 de §5, una al lado de la otra.
+
+          `<main>` sigue siendo EL contenedor de scroll (`overflowY: auto`), que
+          es de lo que dependen todos los `position: sticky` del producto — el
+          ancla del paciente, los encabezados de tabla, el cierre al pulgar — y
+          que el `nx-app-shell` mantiene posible al no dejar scroll al documento.
+          Lo único que cambia es que ahora tiene un hermano: el plano de la lente,
+          que sólo existe cuando hay algo que inspeccionar.
+
+          Con la lente cerrada este envoltorio es una fila de un solo hijo y el
+          layout es idéntico al de antes — medido, no supuesto.
+
+          `flex: 1` SE QUEDA EN LÍNEA, y no es estilo: es el contrato que dos
+          guardianes vigilan por su nombre (`v15-rtc12-la-identidad-no-se-desplaza`
+          y `v15-chat-cabe-en-el-shell`). La primera versión de esta rebanada lo
+          movió a la hoja y los dos se pusieron rojos — con razón: de ese `flex: 1`
+          depende que `<main>` tome el alto restante y sea ÉL quien desplaza, que
+          es lo que sostiene cada `position: sticky` del producto y lo que impide
+          que la identidad del paciente se vaya con el scroll. El eje cambia (antes
+          columna, ahora fila) pero el significado no: toma el espacio que queda.
+        */}
+        <div className="nx-area-de-trabajo">
+          <main style={{ flex: 1, overflowY: 'auto' }}>
+            {children}
+          </main>
+          <PlanoDeLente />
+        </div>
         {/* Barra inferior — solo móvil (gestionada por CSS). V15-MOBILE-001:
             recibe el MISMO criterio que elige FlowRail vs Sidebar, para que el
             médico tenga la misma IA en el pulgar que en el escritorio. */}
@@ -832,7 +858,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <AvisoModuloBloqueado />
           <BorradorProvider>
             <TareasProvider>
-              <DashboardInner>{children}</DashboardInner>
+              {/*
+                La lente envuelve al shell entero porque su estado es del SHELL:
+                una pantalla que guardara su propio «panel abierto» no sería la
+                Capa 4, sería un panel lateral más. Aquí arriba también es donde
+                puede cerrarse sola al cambiar de ruta — la defensa contra
+                enseñar la procedencia de un paciente sobre el expediente de
+                otro vive en un sitio, no en cada llamador.
+              */}
+              <LenteProvider>
+                <DashboardInner>{children}</DashboardInner>
+              </LenteProvider>
               {/*
                 El marco de escucha: grabar es un MODO y se ve desde el otro
                 lado del consultorio. Se monta AQUÍ, una sola vez, para que

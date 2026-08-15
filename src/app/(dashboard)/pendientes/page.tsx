@@ -29,6 +29,7 @@ import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type EstadoDeAccion } from '@/lib/tareas-clinicas/estado-de-accion'
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
+import { Inspeccionar } from '@/components/lente/Inspeccionar'
 import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
 
 /** Qué botón toca ahora. Enseñar los seis estados sería enseñar el modelo, no el trabajo. */
@@ -137,9 +138,16 @@ export default function PendientesPage() {
    * (R3) viaja hasta el <h1> del Patient Anchor. No es el título del
    * resultado: ese no tiene caja estable en el expediente y morfear hacia un
    * elemento invisible es animar hacia la nada (la decisión entera, con §9 y
-   * §21 leídos, vive en src/lib/ui/continuidad.ts). El tramo «→ Source» es
-   * Source Reveal (§21): revelación en el flujo, sin ruta que coreografiar.
+   * §21 leídos, vive en src/lib/ui/continuidad.ts).
    * Sólo el click simple intercepta; Ctrl/Cmd/central conservan su pestaña.
+   *
+   * EL TRAMO «→ Source» YA NO ES UNA PROMESA DE COMENTARIO. Aquí decía que era
+   * «Source Reveal (§21): revelación en el flujo, sin ruta que coreografiar» —
+   * y no existía ninguna revelación: la frase describía una pieza que nadie
+   * había escrito, que es la familia «escrito y sin conectar» cometida sobre la
+   * propia documentación. Lo que la cumple es el botón «De dónde sale» de cada
+   * fila: abre la Capa 4 sobre la nota de la que salió ese pendiente y la cierra
+   * devolviendo al médico al mismo sitio, sin cambiar de ruta.
    */
   const irAlExpediente = useCallback((e: React.MouseEvent<HTMLAnchorElement>, patientId: string) => {
     if (!esClickDeNavegacionSimple(e)) return
@@ -258,6 +266,27 @@ export default function PendientesPage() {
           <Button size="sm" variant="ghost" onClick={() => { setCancelando(t); setMotivo('') }}>
             <X size={14} /> Ya no aplica
           </Button>
+          {/*
+            INSPECCIONAR VA CON LAS ACCIONES, PERO NO ES UNA DE ELLAS.
+            Comparte fila porque es lo que se hace con este pendiente; se
+            distingue porque no lo mueve de estado — no tiene relleno, no tiene
+            la anatomía de `Button`, y su rótulo es una pregunta y no un verbo
+            de trabajo. El médico que duda de un pendiente pregunta de dónde
+            salió antes de tomarlo, y esa duda ocurre aquí, no en otra pantalla.
+          */}
+          {clinicId && t.patientId && (
+            <Inspeccionar
+              className="nx-pendiente-inspeccionar"
+              describe={`${t.titulo}${t.patientNombre ? ` de ${t.patientNombre}` : ''}`}
+              hecho={{
+                clase: 'tarea',
+                clinicId,
+                patientId: t.patientId,
+                pacienteNombre: t.patientNombre,
+                tarea: t,
+              }}
+            />
+          )}
         </div>
       </div>
     )

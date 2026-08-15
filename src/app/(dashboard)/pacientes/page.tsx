@@ -19,7 +19,9 @@ import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
-import { estadoClinicoDeFila, ultimaVezVisto, type LecturaDelWorklist, type EstadoClinicoDeFila } from '@/lib/pacientes/estado-clinico'
+import { estadoClinicoDeFila, tareasDelPaciente, ultimaVezVisto, type LecturaDelWorklist, type EstadoClinicoDeFila } from '@/lib/pacientes/estado-clinico'
+import type { TareaClinica } from '@/lib/tareas-clinicas/modelo'
+import { Inspeccionar } from '@/components/lente/Inspeccionar'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -391,7 +393,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${resultadosBusqueda.length} resultado${resultadosBusqueda.length !== 1 ? 's' : ''}`} />
               {resultadosBusqueda.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} clinicId={clinicId} tareas={tareasDelPaciente(p.id, worklist)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -404,7 +406,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto="Vistos recientemente" />
               {recientes.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} clinicId={clinicId} tareas={tareasDelPaciente(p.id, worklist)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -417,7 +419,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${conAlerta.length} con inasistencias / cancelaciones`} />
               {conAlerta.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} clinicId={clinicId} tareas={tareasDelPaciente(p.id, worklist)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -439,7 +441,7 @@ export default function PacientesPage() {
                 }}
               >{letra}</div>
               {lista.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} visto={ultimaVezVisto(p.ultimaCita, ahora)} clinicId={clinicId} tareas={tareasDelPaciente(p.id, worklist)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </div>
           ))
@@ -482,12 +484,21 @@ function ListaEncabezado({ texto }: { texto: string }) {
 }
 
 /** Fila de paciente reutilizable (búsqueda, recientes, alerta, A-Z). */
-function PacienteRow({ p, mode, internado, clinico, visto, onAbrir, onEditar }: {
+function PacienteRow({ p, mode, internado, clinico, visto, clinicId, tareas, onAbrir, onEditar }: {
   p: Patient
   mode: string
   internado?: boolean
   /** RTC-15: lo que la fila dice CLÍNICAMENTE. Se calcula en `@/lib/pacientes/estado-clinico`. */
   clinico: EstadoClinicoDeFila
+  /** El límite de la lente: sin consultorio no se inspecciona nada. */
+  clinicId: string | null | undefined
+  /**
+   * Las MISMAS tareas que `clinico` resumió — mismo filtro, una sola vez
+   * (`tareasDelPaciente`). Viajan hasta aquí para que la lente no vuelva a
+   * preguntar por ellas: una segunda lectura podría discrepar de lo que esta
+   * fila está enseñando.
+   */
+  tareas: readonly TareaClinica[]
   /** «visto hace 3 días» — el dato ya estaba leído y no se pintaba en ningún sitio. */
   visto: string | null
   /** Recibe el .nx-ident de la fila: el objeto compartido de la coreografía (§20). */
@@ -579,6 +590,35 @@ function PacienteRow({ p, mode, internado, clinico, visto, onAbrir, onEditar }: 
               <span style={{ color: 'var(--text3)', fontWeight: 400 }}>
                 · {clinico.vivas} pendientes en total
               </span>
+            )}
+            {/*
+              LA FILA DEJA DE SER SÓLO LEGIBLE Y PASA A SER INSPECCIONABLE.
+
+              RTC-15 consiguió que la fila DIGA algo clínico. Lo que no podía
+              hacer es sostenerlo: «Resultado — venció y nadie la tomó» resume
+              el pendiente que manda, y el médico que quiere saber cuáles son
+              los otros dos tenía que salir a `/pendientes` y buscar al paciente
+              — o sea, perder la lista donde estaba.
+
+              El botón vive DENTRO de la línea clínica, no en un racimo de
+              acciones al final de la fila: pertenece a esta frase y a ninguna
+              otra. Y es hermano del botón de abrir, nunca su hijo: un control
+              dentro de otro control es `nested-interactive`, que esta misma
+              fila ya pagó una vez.
+            */}
+            {clinicId && (
+              <Inspeccionar
+                className="nx-fila-inspeccionar"
+                compacto
+                describe={`lo que queda abierto de ${p.nombre}`}
+                hecho={{
+                  clase: 'estado-clinico',
+                  clinicId,
+                  patientId: p.id,
+                  pacienteNombre: p.nombre,
+                  tareas,
+                }}
+              />
             )}
           </div>
         )}

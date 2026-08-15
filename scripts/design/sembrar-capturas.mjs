@@ -300,6 +300,33 @@ async function main() {
       origen: 'laboratorio',
     },
     {
+      /**
+       * EL PENDIENTE CON TRAZA HACIA ATRÁS — el caso que la lente cita.
+       *
+       * `notaId` lleva documentado desde el primer día del modelo como «de qué
+       * consulta salió: es la traza hacia atrás», y ninguna tarea sembrada lo
+       * traía: la siembra sólo producía pendientes huérfanos, así que la única
+       * respuesta que se podía fotografiar era «no consta». Éste sale de
+       * `nota-luzmaria-1` y su título COINCIDE con una línea de su orden, que
+       * es lo que `citaDeOrigen` exige para citar — si alguien cambia uno de
+       * los dos textos, la lente dirá que el estudio ya no aparece en la orden,
+       * y eso es correcto y es justo lo que hay que poder ver.
+       */
+      id: 'tarea-urocultivo-pedido-luzmaria',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-luzmaria-cervantes',
+      patientNombre: 'Luz María Cervantes Ochoa',
+      notaId: 'nota-luzmaria-1',
+      tipo: 'estudio_pendiente',
+      titulo: 'Urocultivo con antibiograma',
+      detalle: 'Pedido en esta consulta. Se cierra cuando el resultado esté revisado, no cuando el estudio esté hecho.',
+      prioridad: 'normal',
+      estado: 'solicitada',
+      creadaEn: diaISO(-20),
+      venceEn: diaISO(-6),
+      origen: 'nota',
+    },
+    {
       id: 'tarea-seguimiento-catalina',
       clinicId: CLINIC_ID,
       patientId: 'pac-catalina-ibarra',
@@ -319,6 +346,7 @@ async function main() {
       patientId: 'pac-aurelio-dominguez',
       patientNombre: 'Aurelio Domínguez Peña',
       tipo: 'reconciliacion_medicamento',
+      notaId: 'nota-aurelio-2',
       titulo: 'Confirmar si la metformina sigue vigente',
       detalle: 'El paciente mencionó suspenderla; no coincide con la lista activa.',
       prioridad: 'critica',
@@ -530,6 +558,12 @@ async function main() {
       diagnosticos: [
         { descripcion: 'Infección de vías urinarias de repetición', tipo: 'definitivo', estado: 'activo', fechaDiagnostico: diaISO(-20) },
       ],
+      /* LO QUE SE PIDIÓ EN ESTA CONSULTA, y que la lente contextual (Capa 4,
+         §5/§21) cita LITERALMENTE cuando se inspecciona el pendiente que salió
+         de aquí. Sin esto, la siembra sólo podía enseñar el camino de fallar
+         cerrado —«no consta procedencia»— y la mitad que importa, la de la
+         fuente que SÍ existe, quedaba sin poder medirse en navegador. */
+      estudiosOrden: ['Urocultivo con antibiograma', 'Examen general de orina'],
     },
     {
       /* EL BORRADOR. Sin él, `PatientAnchor` nunca enseña «Consulta sin

@@ -6,6 +6,8 @@ import type { NotaMedica } from '@/types/expediente'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import { avatarColor } from '@/lib/avatar-color'
 import { alergenosDe, negacionesEnTexto } from '@/lib/seguridad/alergias'
+import { useClinic } from '@/context/ClinicContext'
+import { Inspeccionar } from '@/components/lente/Inspeccionar'
 
 /**
  * PATIENT ANCHOR — V15-PATIENT-WORKSPACE-001 (§7: identidad, edad/sexo,
@@ -67,6 +69,7 @@ export function PatientAnchor({
      (negadas exige negación explícita Y que no quede ningún alérgeno, leyendo
      también `alergiasEstructuradas`), y «no registradas» queda en ámbar:
      ausencia de dato no es dato de ausencia (regla 4). */
+  const { clinicId } = useClinic()
   const alergenos = useMemo(() => alergenosDe(patient ?? {}), [patient])
   const alergiasNegadas = alergenos.length === 0 && negacionesEnTexto(patient?.alergias).length > 0
   const colores = avatarColor(patient?.nombre ?? 'Paciente')
@@ -183,6 +186,39 @@ export function PatientAnchor({
               ? alergenos.join(' · ')
               : alergiasNegadas ? 'negadas por el paciente' : 'no registradas'}
           </span>
+          {/*
+            LA BANDA NO PINTA EL CAMPO: PINTA LO QUE SE ENTENDIÓ DEL CAMPO.
+
+            `alergenosDe` aplica la semántica sellada de REG-311 — «Niega
+            penicilina. Alérgico a sulfas» se lee como *sulfas*, y esa lectura
+            es la que acaba en el cruce alergia↔fármaco y en la receta impresa
+            con cédula. Hasta ahora el texto de origen no se podía ver desde
+            aquí: para comprobar una lectura sospechosa había que salir a editar
+            al paciente, es decir, abandonar el expediente que se estaba leyendo.
+
+            Inspeccionar enseña las dos cosas juntas —el texto tal como está
+            escrito y lo que se entendió— sin moverse de la pantalla. Es la
+            única forma de cazar una lectura equivocada ANTES de que se imprima.
+
+            Se pinta también sin alérgenos: «no registradas» es precisamente el
+            caso en el que hay que poder ver que el campo está vacío y no que
+            alguien escribió algo que no se supo leer.
+          */}
+          {clinicId && patient?.id && (
+            <Inspeccionar
+              compacto
+              describe={`las alergias de ${patient.nombre}`}
+              hecho={{
+                clase: 'alergias',
+                clinicId,
+                patientId: patient.id,
+                pacienteNombre: patient.nombre,
+                alergenos,
+                textoLibre: typeof patient.alergias === 'string' ? patient.alergias : undefined,
+                estructuradas: patient.alergiasEstructuradas,
+              }}
+            />
+          )}
           {ultimoCambio && (
             <span className="nx-meta" style={{ marginLeft: 'auto' }}>
               Último cambio: {TIPO_NOTA_LABEL[ultimoCambio.tipo]} · {formatoRelativo(ultimoCambio.fechaConsulta || ultimoCambio.createdAt)}

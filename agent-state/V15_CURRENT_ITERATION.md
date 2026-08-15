@@ -4,19 +4,49 @@
 
 ## Iteración en curso
 
-`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO. 14-ago: RTC-32
-pagó el tercer y último residuo de la 4ª pasada de §29 (el cromo flotante del
-escritorio, 6/6 → 0/6), y RTC-12(a) pagó el último P1 abierto (un lienzo de
-página compartido: 4 anchos + 1 sin ninguno → 1, salto lateral 110px → 0px).
-No queda P1 abierto ni trabajo estructural nombrado por delante: lo que falta
-para cerrar la iteración es la lectura INDEPENDIENTE de §26/§29 — quien
-implementa no puede ser el juez.**
+`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO, y ahora con un
+juez que no soy yo.**
 
-La cola viva es P2/P3 (RTC-30 en el resto de pantallas, RTC-23 a medias, RTC-24,
-RTC-26) más **un hueco que RTC-12(a) dejó nombrado y con sitio físico
-reservado: la Capa 4 de §5 —la lente contextual— no existe como pieza en este
-repositorio**, aunque §33 Fase 2 la pide y `V15-SHELL-GREYBOX-001` cerró sin
-ella.
+**15-ago · `V15-ORIGINALITY-BLOCKERS-REPAIR-001`.** La auditoría independiente
+`V15-ORIGINALITY-INDEPENDENT-GATE-001`, sobre el árbol inmutable `b72378d`,
+devolvió **FAIL con P0 = 0 y DOS P1 bloqueantes**. Esta corrida es la reparación
+de esos dos, y **no puede cerrarlos**: quien implementa no puntúa.
+
+- **IND-02 · La Capa 4 (lente contextual) estaba genuinamente ausente — PAGADO.**
+  Existe como pieza del shell y está cableada en tres llamadores reales
+  (pendiente → nota de origen con cita literal; estado clínico de la fila →
+  los pendientes que lo producen; banda de alergias → el texto del que se
+  leyó). Falla cerrado, distingue «no consta» de «no se pudo leer», y el hecho
+  va atado a su ruta para que no exista ni un frame de lente vieja sobre
+  pantalla nueva. Guardián de 19 casos probado al revés ×7 y navegador real
+  **41/41 PASS, 0 errores de consola** en 1440 y 390, con la cadena completa
+  medida. Doc: `docs/design/v15/V15-LENTE-CONTEXTUAL.md`.
+- **IND-01 · §29 por encima del umbral en todas las superficies — PARCIAL, y se
+  declara parcial.** Pagada la causa que el auditor puso primero y que cruza
+  cuatro superficies: **no existía el verbo inspeccionar**. Sin pagar: la
+  anatomía de escriba de `/consulta` y el modelo de contenido móvil de
+  Pacientes y Operaciones.
+
+**Lo que esta corrida NO hace, por contrato:** no marca §26 PASS, no marca §29
+PASS, no cierra `V15-ORIGINALITY-REDTEAM-001` y no empieza
+`V15-WORKFLOW-BENCHMARK-001`. Esas decisiones son del revisor independiente.
+
+La cola viva sigue siendo P2/P3 (RTC-30 en el resto de pantallas, RTC-24,
+RTC-26) más lo que IND-01 dejó nombrado y sin pagar.
+
+**Nota de entorno (15-ago), para que nadie la diagnostique dos veces:**
+
+- `src/__tests__/ops-timeout-y-punto-ciego.test.ts` falla en este contenedor y
+  **falla igual en el SHA de partida, antes de tocar nada**. Causa medida: el
+  interceptor de salida del entorno contesta **403 en ~102 ms** a
+  `http://10.255.255.1/nunca`, la IP que la prueba usa como agujero negro; con
+  la conexión ya caliente la respuesta llega antes que el aborto de 30 ms y el
+  helper resuelve en vez de agotarse. No es del producto y no es de V15.
+- `npm run build` exige las `NEXT_PUBLIC_FIREBASE_*` horneadas: sin ellas
+  revienta en `/dr/[clinicId]` con `auth/invalid-api-key`. Y el arnés necesita
+  que el build lleve **`NEXT_PUBLIC_FIREBASE_EMULATORS`** (plural) y el mismo
+  `PROJECT_ID` que la siembra (`demo-nexusmed-test`), o el login se queda en
+  «Entrando…» para siempre sin un solo error en consola.
 
 Historia previa — **registros UNIFICADOS 13-ago-2026. P0 cerrados y NUEVE P1
 pagados** (RTC-03, RTC-04, RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10,
