@@ -336,7 +336,7 @@ export default function ConfiguracionPage() {
   const tabActual = TABS.find(t => t.key === tab)
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       {/* Aviso si la config NO cargó (auditoría P1): sin esto se veía el formulario
           en blanco sin avisar y Guardar podía sobreescribir cédula/horario reales. */}
       <AvisoConfigNoCargada error={configError} />

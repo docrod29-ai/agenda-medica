@@ -21,6 +21,23 @@ filas y «Ver el día siguiente» aterriza en ellas. La medición corrigió el
 trabajo: el título decía el día por TERCERA vez (la cabecera ya lo dice dos) y
 pasó a «Sin citas agendadas.» — la corrección de RTC-22 aplicada aquí.
 
+**15-ago — el lienzo de página deja de escribirse a mano en nueve pantallas.**
+De los 52 `lienzosAMano` que RTC-31 dejó declarados, **once escribían
+exactamente 1100** —el mismo número que `--nx-lienzo`— y nueve copiaban la
+definición entera byte por byte (`padding: 24 · maxWidth: 1100 · margin: 0
+auto`). No era sólo duplicación: por la lección `nx-stat-grid`, un número en
+línea vence a la hoja en silencio, así que mover `--nx-lienzo` habría movido
+seis pantallas y dejado nueve donde estaban sin que nada se pusiera rojo. Las
+nueve entran ya por `.nx-canvas`; techo **52 → 43**. Medido en navegador (7
+rutas × 2 anchos, 0 errores de consola): escritorio **idéntico** —1100px,
+padding 24, borde de texto 306px, salto lateral 0px— y móvil recortado a 16px,
+que es lo que ganan las ocho que no llevaban `.page-pad`. Guardián de 5 casos,
+probado al revés (cae el caso 1 y el trinquete sube a 44). **No se convierten**
+`/hospitalizacion` y `/hospitalizacion/camas`: su padding es `8px 4px 40px`, y
+cambiarlo es una decisión visual sobre un módulo en ALPHA, no una limpieza.
+Quedan 26 páginas con anchos distintos de 1100 (800, 900, 820, 880…), y cada
+una es elegir un ancho, no retirar una copia.
+
 **No es RTC-30 y no lo cierra**: RTC-30 sigue abierto en el resto de
 pantallas. Éste se pagó porque su vacío **miente**, no porque sea genérico —
 un estado vacío de plantilla es feo; uno que afirma que un día está libre

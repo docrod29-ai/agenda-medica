@@ -550,7 +550,7 @@ export default function GeneradorOrdenPage() {
   const ordenVacia = estudios.filter(e => e.trim()).length === 0
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <AvisoConfigNoCargada error={configError} />
 
       {/* Avisos del impreso: tokens de badge POR TEMA — los rgba crudos de antes

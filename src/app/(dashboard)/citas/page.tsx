@@ -519,7 +519,7 @@ export default function CitasPage() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       {/*
         CABECERA — el DÍA es el título, no el nombre del módulo (Visual DNA
         §6 defecto 20). «Citas» ya lo dice la navegación; lo que el médico

@@ -523,7 +523,7 @@ export default function GeneradorRecetaPage() {
   const recetaVacia = !medicamentos.some(m => m.nombre?.trim()) && !indicaciones.trim()
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <AvisoConfigNoCargada error={configError} />
 
       {/* Avisos del impreso: tokens de badge POR TEMA — los rgba crudos de antes

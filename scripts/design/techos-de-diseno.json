@@ -9,7 +9,7 @@
     "gradientes": 14,
     "cristal": 14,
     "halosDeColor": 7,
-    "lienzosAMano": 52
+    "lienzosAMano": 43
   },
   "peores": [
     {
@@ -22,8 +22,8 @@
       "gradientes": 1,
       "cristal": 0,
       "halos": 4,
-      "lienzos": 1,
-      "total": 164
+      "lienzos": 0,
+      "total": 163
     },
     {
       "archivo": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",

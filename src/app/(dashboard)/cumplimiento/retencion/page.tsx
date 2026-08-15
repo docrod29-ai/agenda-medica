@@ -47,7 +47,7 @@ export default function RetencionPage() {
   const lista = filtro === 'por_revisar' ? porRevisar : evaluaciones
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <button onClick={() => router.push('/cumplimiento')} style={{
         display: 'flex', alignItems: 'center', gap: 6,
         background: 'none', border: 'none', color: 'var(--text3)',

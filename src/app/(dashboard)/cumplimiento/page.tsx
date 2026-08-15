@@ -363,7 +363,7 @@ export default function CumplimientoPage() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <ShieldCheck size={22} color="var(--teal)" />
         <h1 className="t-h1" style={{ margin: 0 }}>Cumplimiento normativo</h1>
