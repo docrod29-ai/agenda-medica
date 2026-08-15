@@ -135,6 +135,21 @@ filas y «Ver el día siguiente» aterriza en ellas. La medición corrigió el
 trabajo: el título decía el día por TERCERA vez (la cabecera ya lo dice dos) y
 pasó a «Sin citas agendadas.» — la corrección de RTC-22 aplicada aquí.
 
+**15-ago — RTC-30 medida en `/lista-espera` y REFUTADA; queda cerrada en lo
+alcanzable.** Con `/pacientes` (REG-315) y `/reactivacion` (REG-317) pagadas por
+la corrida concurrente y `farmacia`/`cumplimiento` consumiendo ya su módulo
+`vacio-de-una-lista`, la única declarada sin dueño era `/lista-espera`. Medida
+antes de tocar: **no tiene filtro** —`entries` es la lista entera—, así que su
+vacío SÍ es la pantalla y el héroe con «Agregar» es el gesto correcto. Es el
+caso que RTC-30 nombró desde el principio: «a veces el vacío ES la pantalla».
+De paso se comprobó su promesa —«te avisamos cuando se libere una cita»—, que
+podía ser de la familia de REG-313 (texto que promete lo que el código no
+hace): está respaldada y **conectada por tres caminos reales** de cancelación
+(`AppointmentModal.tsx:316`, el webhook de WhatsApp y el portal del paciente),
+los tres llamando a `ofrecerHuecoLiberado`. Lo que queda con héroe es
+`/hospitalizacion` (ALPHA, detrás de bandera), `/nota`, `/cumplimiento/retencion`
+y `/expediente` — esta última en manos de la otra corrida.
+
 **15-ago — el lienzo de página deja de escribirse a mano en nueve pantallas.**
 De los 52 `lienzosAMano` que RTC-31 dejó declarados, **once escribían
 exactamente 1100** —el mismo número que `--nx-lienzo`— y nueve copiaban la
