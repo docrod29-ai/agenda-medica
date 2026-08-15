@@ -7690,3 +7690,108 @@ modales ni los de los módulos en ALPHA (Hospital/UCI).
 
 **Familia.** `ausencia_no_es_dato` — una lista vacía que no distingue «no hay»
 de «no se ven», y que además felicitaba por la diferencia.
+
+
+---
+
+## REG-318 — el sello que se archiva contaba la prosa; el que el médico lee, no
+
+**Fecha:** 15-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media-alta
+
+**Qué fallaba.** `construirManifiesto` audita la prosa de la nota —cada sección
+y el resumen ejecutivo, con su cita textual— desde hace versiones. Al FIRMAR,
+`/consulta` se la pasaba, así que el sello que queda en `iaAuditoria.procedencia`
+la contaba. Las dos superficies donde un humano LEE ese sello construían su
+propio objeto a mano y omitían `secciones` y `resumen`.
+
+Sobre la misma nota, medido en navegador:
+
+    lo que se ARCHIVA  ->  15 campos, «5 del dictado · 3 de IA · 7 a mano»
+    lo que se VEÍA     ->  10 campos, «2 del dictado · 2 de IA · 6 a mano»
+
+**Y los cinco campos que faltaban no eran cinco cualesquiera.** Eran la prosa,
+que es donde vivieron los tres fallos que el Dr. encontró en producción —«la de
+la docencia» convertido en «vesícula»; un «no, nada de eso» a la pregunta por
+diabetes redactado como «Paciente con DM2 e HTA»—. El sello legible contaba con
+precisión la parte que nunca había fallado, y callaba justo las filas cuya cita
+permite ver que el respaldo dice lo contrario de lo que la nota afirma.
+
+Dos sellos que cuentan distinto sobre el mismo documento no son un detalle de
+presentación: uno de los dos miente ante quien lo lea, y el que miente es el
+único que un humano llega a ver. El comentario del tipo
+(`iaAuditoria.procedencia`) decía además «datos estructurados», con lo que la
+documentación del registro respaldaba la cuenta equivocada.
+
+Colateral del mismo defecto: una nota que sólo trae texto redactado —la de
+evolución que no cambia el plan— no enseñaba **ningún** sello en `/consulta`: la
+condición miraba diagnósticos y medicamentos, dos de las seis familias que el
+sello cuenta.
+
+**Cómo se descubrió.** El estado de la iteración lo llevaba nombrado como deuda
+declarada («la mitad de PROSA del manifiesto sigue sin conectar»), con la mitad
+del diagnóstico equivocada: se creía que NINGUNA superficie le pasaba la prosa.
+Al mirar del otro lado —«el dato tiene que LLEGAR»— resultó que el guardado sí y
+sólo las pantallas no, que es peor: no era una capacidad sin estrenar, era una
+divergencia viva entre el registro y su lectura.
+
+**Causa raíz.** Tres listas independientes de «qué es una nota para el sello»:
+una en el guardado de `/consulta`, otra en las props de `SelloProcedencia` —un
+`interface FinalNota` local que ni siquiera DEJABA pasar la prosa: el compilador
+la habría rechazado— y otra en `procedencia-de-la-nota-archivada.ts`. Sólo la
+primera estaba completa.
+
+**La regla que lo hace seguro.** Una sola definición, `notaParaElSello()` en
+`lib/expediente/procedencia.ts`, y el tipo `FinalNota` exportado en vez de
+recopiado. En `/consulta` el objeto se calcula UNA vez (`notaDelSello`) y lo
+consumen el sello que se archiva y la tira que se ve, así que no pueden volver a
+divergir. El prefijo de los campos de prosa (`PREFIJO_PROSA`) también se declara
+una vez: la pantalla necesita separar las dos familias, y comparar cadenas a
+mano en cada superficie era la misma trampa otra vez.
+
+**Prueba.** `src/__tests__/v15-el-sello-que-se-ve-cuenta-lo-mismo-que-el-sellado.test.ts`
+(14 casos). **Probado al revés**, cinco reversiones quirúrgicas comprobadas en
+rojo una a una: `notaParaElSello` soltando la prosa (caen 5 casos), el
+expediente volviendo a su lista a mano (caen 2), el panel volviendo a una lista
+plana (cae 1), `/consulta` volviendo al objeto a mano en el JSX (cae 1) y la
+condición volviendo a mirar sólo dos familias (cae 1).
+
+Y una vara ajustada **al alza**, no a la baja: `procedencia-de-la-prosa.test.ts`
+exigía la forma literal del objeto que `/consulta` escribía a mano. Esa forma se
+retiró porque era el problema; ahora exige que la prosa entre **por la
+definición compartida** y que las dos lecturas consuman el mismo objeto — sin
+esa segunda mitad, el defecto volvería con una pantalla que se escribiera su
+copia otra vez.
+
+**Verificado en navegador real**, mismo instrumento sobre las dos versiones (dos
+builds de producción + emuladores + siembra sintética; escritorio 1440 y móvil
+390; **0 errores de consola** en las cuatro pasadas),
+`scripts/design/medir-prosa-en-el-sello-v15.mjs`:
+
+| | antes | después |
+|---|---|---|
+| campos en el panel (`/expediente`) | 10 | **15** |
+| frase que el médico lee sin abrir | «2 del dictado · 2 de IA · 6 a mano» | «5 del dictado · 3 de IA · 7 a mano» |
+| secciones y resumen enseñados | **0 de 5** | **5 de 5** |
+| cita de la sección «Plan» | (ninguna) | «…hemoglobina **glucosa hilada** de control…» |
+| familias separadas, con rótulo `<h3>` | no existían | «Texto redactado» · «Datos estructurados» |
+| `/consulta` con nota sólo-prosa | **NO HAY SELLO** | «2 a mano», 2 campos |
+| crecimiento al abrir la lente | +16px escritorio · +0px móvil | +16px escritorio · +0px móvil |
+| Escape cierra · foco vuelve · scroll exacto | sí | sí |
+
+La fila que de verdad prueba la rebanada es la de la cita del Plan: la siembra
+pone al reconocedor oyendo «hemoglobina **glucosa hilada**» donde el médico
+escribió «HbA1c». Que el panel enseñe esa cita —y no la corregida— comprueba del
+otro lado que la prosa llegó con su respaldo real y no con uno fabricado.
+
+**Qué NO cubre.** La compuerta de firma sigue igual: `camposSinEvidencia()`
+construye su propia lista SIN prosa, así que el aviso previo a firmar («estos
+datos no se pudieron comprobar contra el dictado») no mira los párrafos.
+Ampliar una compuerta de firma es conducta clínica sobre un acto medicolegal y
+§1 del Master Loop V15 congela la lógica de negocio: queda **declarado y sin
+pagar**, para decisión del dueño. Tampoco se toca `iaAuditoria.procedencia`, que
+sigue guardando sólo el resumen numérico y que **ninguna** pantalla lee: el
+detalle campo por campo se recalcula de lo archivado.
+
+**Familia.** `no_conectado` — la misma de REG-160/167/170: el dato se escribe,
+las pruebas de contrato pasan, y del otro lado no hay quien lo lea. Con el
+agravante de que aquí sí había lector, y contaba otra cosa.

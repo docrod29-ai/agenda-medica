@@ -169,9 +169,19 @@ La cola viva es P2/P3 (RTC-23 a medias, RTC-24, RTC-26). **RTC-30 quedó CERRADO
 el 15-ago** (REG-317): las cuatro pantallas que faltaban, miradas una a una —
 tres convertidas y `/lista-espera` declarada como NO-defecto.
 
-**Siguiente tarea exacta (15-ago, tras REG-316/317):** sigue siendo **la lectura
-INDEPENDIENTE de §26/§29** — quien implementa no puede ser el juez, y es lo
-único que falta para declarar PASS o FAIL de
+**15-ago — REG-318: el sello que se archiva contaba la prosa de la nota y el que
+el médico lee, no.** 15 campos sellados frente a 10 enseñados sobre la MISMA
+nota, y los cinco que faltaban eran justo el texto redactado, donde vivieron los
+tres fallos reales. Había tres listas de «qué es una nota para el sello» y sólo
+la del guardado estaba completa; ahora hay una (`notaParaElSello()`). Medido en
+navegador: 0 de 5 párrafos enseñados → 5 de 5, con la cita del Plan enseñando el
+original del reconocedor («glucosa hilada»), y `/consulta` pasando de **no
+enseñar sello ninguno** en una nota sólo-prosa a enseñarlo. Declarado y del
+dueño: la compuerta de firma sigue sin mirar la prosa (§1 congela la lógica).
+
+**Siguiente tarea exacta (15-ago, tras REG-318):** sigue siendo **la lectura
+INDEPENDIENTE de §26/§29** — quien implementa no puede ser el juez; el routine
+se la asigna a Codex, y es lo único que falta para declarar PASS o FAIL de
 `V15-ORIGINALITY-REDTEAM-001`. Ahora con dos superficies más que puntuar
 (`/farmacia` y `/reactivacion`, que esta rebanada tocó) y con las capturas de
 `docs/design/capturas/v15-rtc30/` (antes y después, ×2 anchos) ya en disco. Si
@@ -9044,3 +9054,159 @@ dueño: el punto 1 (llevar la fuente a `/dashboard`, `/pacientes` y
 `/operaciones`), el punto 3 (la prosa del manifiesto, unidad que toca las dos
 pantallas) y el punto 4 (el paréntesis de `alergiasDe`, unidad de seguridad
 clínica con su entrada de regresión y su sello).
+
+
+---
+
+## §21 CUENTA LO MISMO EN LOS DOS SITIOS — el sello que se archiva contaba la prosa y el que el médico lee, no (15-ago)
+
+**La rebanada que el estado dejó nombrada como punto 3** («la mitad de PROSA del
+manifiesto sigue sin conectar»). Al ir a pagarla resultó que el diagnóstico
+escrito estaba a medias, y la mitad que faltaba es peor que la escrita.
+
+### Lo que el estado decía, y lo que había
+
+El estado afirmaba que `construirManifiesto` audita `secciones` y
+`resumenEjecutivo` desde hace versiones y que **ninguna** superficie se los pasa
+—ni `/consulta` ni el expediente—. La primera mitad es cierta. La segunda no:
+
+```
+/consulta al FIRMAR   →  SÍ le pasa la prosa  →  el sello ARCHIVADO la cuenta
+/consulta en pantalla →  NO                    →  la tira dice otro número
+/expediente           →  NO                    →  la tira dice otro número
+```
+
+O sea que no era una capacidad sin estrenar: eran **dos sellos que cuentan
+distinto sobre el mismo documento**, y el que se queda corto es el único que un
+humano llega a ver. Medido en navegador sobre la misma nota: **15 campos
+sellados frente a 10 enseñados**, «5 del dictado · 3 de IA · 7 a mano» contra
+«2 del dictado · 2 de IA · 6 a mano».
+
+**Y los cinco que faltaban no eran cinco cualesquiera.** Eran la prosa, que es
+donde vivieron los tres fallos que el Dr. encontró en producción — «la de la
+docencia» convertido en «vesícula»; un «no, nada de eso» a la pregunta por
+diabetes redactado como «Paciente con DM2 e HTA». El sello legible contaba con
+precisión la parte que nunca había fallado.
+
+Familia `no_conectado`, la de REG-160/167/170, con el agravante de que aquí sí
+había lector y contaba otra cosa. Queda como **REG-318**.
+
+### La causa raíz no era teclear mal
+
+Tres listas independientes de «qué es una nota para el sello»: la del guardado
+de `/consulta`, la de las props de `SelloProcedencia` —un `interface FinalNota`
+LOCAL que ni siquiera dejaba pasar la prosa: el compilador la habría
+rechazado— y la de `procedencia-de-la-nota-archivada.ts`. Sólo la primera estaba
+completa. Ahora hay una: `notaParaElSello()`, y el tipo se exporta en vez de
+recopiarse. En `/consulta` el objeto se calcula UNA vez (`notaDelSello`) y lo
+consumen las dos lecturas, así que no pueden volver a divergir.
+
+### Tres decisiones que no son de estilo
+
+1. **El texto redactado va PRIMERO en el panel** (§16). Es la familia cuya cita
+   hay que LEER para juzgarla: un diagnóstico se comprueba de un vistazo, un
+   párrafo no. Y va en su propio grupo porque una fila de prosa ocupa tres
+   líneas y una de signo vital media — mezcladas, las largas mandan sin que
+   nadie lo haya decidido.
+2. **La condición de `/consulta` mira lo que el sello va a contar**, no dos
+   familias de seis. Una nota que sólo trae texto redactado —la de evolución que
+   no cambia el plan— no enseñaba **ningún** sello, aunque el archivado sí
+   contara sus párrafos.
+3. **`PREFIJO_PROSA` se declara en el motor.** La pantalla necesita separar las
+   dos familias, y comparar cadenas a mano en cada superficie es la misma trampa
+   que la rebanada acaba de cerrar.
+
+### El séptimo hueco de siembra, y van siete
+
+Ninguna nota sembrada traía `secciones` ni `resumenEjecutivo` en su bloque de
+extracción. Sin arreglarlo, la medición habría fotografiado los cinco párrafos
+sellados como «a mano» —autoría humana sobre texto que salió del dictado— y lo
+habría dado por bueno. Se siembran los TRES estados a propósito: dos secciones
+del dictado con cita literal, el Plan con una cita que lleva dentro «hemoglobina
+**glucosa hilada**» (lo que oyó el reconocedor, no lo que escribió el médico),
+el resumen SIN cita (inferencia) y el Análisis sin declarar (a mano).
+
+### La medición, en navegador real (1440 y 390, antes y después)
+
+`scripts/design/medir-prosa-en-el-sello-v15.mjs` — dos builds de producción, uno
+por fase, mismo instrumento.
+
+| | antes | después |
+|---|---|---|
+| campos en el panel (`/expediente`) | 10 | **15** |
+| frase que se lee sin abrir | «2 del dictado · 2 de IA · 6 a mano» | «5 del dictado · 3 de IA · 7 a mano» |
+| secciones y resumen enseñados | **0 de 5** | **5 de 5** |
+| **cita del Plan** | (ninguna) | **«…hemoglobina glucosa hilada…»** |
+| familias separadas, rótulo `<h3>` | no existían | «Texto redactado» · «Datos estructurados» |
+| `/consulta` con nota sólo-prosa | **NO HAY SELLO** | «2 a mano», 2 campos |
+| crecimiento al abrir la lente | +16px · +0px móvil | +16px · +0px móvil |
+| Escape cierra · foco vuelve · scroll exacto | sí | sí |
+| errores de consola | 0 | **0** |
+
+**La fila que prueba la rebanada es la de la cita del Plan.** No basta con que
+el panel liste cinco párrafos más: hay que ver que la cita que los sostiene sea
+la del MATERIAL DE ORIGEN. La siembra pone al reconocedor oyendo «glucosa
+hilada» donde la nota dice «HbA1c»; si el panel enseñara la corregida, el
+respaldo estaría fabricado y la pantalla mentiría con las palabras correctas.
+
+### Compuertas
+
+`npx tsc --noEmit` limpio · `npx vitest run` **9583/9584** (único rojo:
+`ops-timeout-y-punto-ciego`, el conocido del proxy del contenedor — verificado
+en rojo también contra HEAD limpio) · lint **96 = techo** · trinquete de diseño
+**sin deuda nueva** · `npm run build` compila · navegador real 1440 + 390 en las
+**dos** fases, 16 capturas, **0 errores de consola**.
+
+Guardián `v15-el-sello-que-se-ve-cuenta-lo-mismo-que-el-sellado.test.ts` (14
+casos). **Probado al revés**, cinco reversiones quirúrgicas comprobadas en rojo
+una a una: `notaParaElSello` soltando la prosa (caen 5), el expediente volviendo
+a su lista a mano (caen 2), el panel volviendo a una lista plana (cae 1),
+`/consulta` volviendo al objeto a mano en el JSX (cae 1) y la condición volviendo
+a mirar dos familias (cae 1).
+
+Y una vara ajustada **al alza**: `procedencia-de-la-prosa.test.ts` exigía la
+forma literal del objeto que `/consulta` escribía a mano — la forma que era el
+problema. Ahora exige que la prosa entre por la definición compartida Y que las
+dos lecturas consuman el mismo objeto.
+
+**Defecto propio, del instrumento, y van catorce en la fase**: la sonda abría
+`notas()[0]`, que es la de Seguimiento —la que por diseño NO archivó bloque de
+extracción y no pinta sello—. La primera pasada dio «no hay sello» en las dos
+fases y habría parecido que la rebanada no hace nada. La nota se elige ahora por
+su nombre.
+
+**Colateral pagado**: `npx tsc --noEmit` estaba **rojo en la rama** desde la
+corrida anterior (`arcoBloqueo` no existe en `Partial<Patient>`, en el guardián
+de RTC-30). Se cierra con la aserción y su motivo escrito: declarar el campo en
+`Patient` es tocar el modelo de datos, que §1 congela.
+
+### Declarado y NO pagado
+
+1. **La compuerta de firma no mira la prosa.** `camposSinEvidencia()` construye
+   su propia lista SIN secciones ni resumen, así que el aviso previo a firmar
+   —«estos datos no se pudieron comprobar contra el dictado»— no mira los
+   párrafos, que es justo donde ocurrieron los fallos. **No se toca aquí**:
+   ampliar una compuerta de firma es conducta clínica sobre un acto medicolegal
+   y §1 congela la lógica de negocio. **Es del dueño.**
+2. **`iaAuditoria.procedencia` sigue guardando sólo el resumen numérico**, y no
+   lo lee **ninguna** pantalla: el detalle campo por campo se recalcula de lo
+   archivado. Recalcular puede divergir de lo que se selló el día que se firmó
+   si el motor cambia. Anotado, no decidido.
+3. **El alcance de §21 sigue en 3 de 6 superficies.** Esta rebanada profundiza
+   dos de las tres que ya lo tenían; `/dashboard`, `/pacientes` y `/operaciones`
+   siguen sin usar la Capa 4.
+4. **`alergiasDe` parte dentro del paréntesis** — sigue sin pagar, sigue siendo
+   `src/lib/seguridad/alergias.ts`, que §1 congela. Se vuelve a ver en la franja
+   de alergias de las capturas.
+5. **La divergencia de `mostrarAlergias` entre `/orden` y `/receta`** sigue
+   congelada por su guardián, esperando decisión del dueño.
+6. **RTC-12(a)** (lienzo multicolumna) sigue nombrado, con el refactor del
+   monolito.
+
+**Siguiente tarea exacta**: sigue siendo la **lectura INDEPENDIENTE de §26/§29**
+—quien implementa no puede ser el juez, y el routine se la asigna a Codex—. Si
+da PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`. Trabajo de producto con
+dueño: el punto 3 (llevar la fuente a `/dashboard`, `/pacientes` y
+`/operaciones`) y el punto 4 (el paréntesis de `alergiasDe`, unidad de seguridad
+clínica con su entrada de regresión y su sello). El punto 1 **no es trabajo de
+Claude**: es una decisión del dueño sobre la compuerta de firma.

@@ -58,7 +58,7 @@ import { CierreAlPulgar, cierreAlPulgarVisible } from '@/components/CierreAlPulg
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
 import { leerHechosDeCierre, marcarHechoDeCierre, guardarSeguimientoDeCierre, leerSeguimientoDeCierre } from '@/lib/expediente/cierre-hechos'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
-import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
+import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/expediente/procedencia'
 
 /**
  * Alergias del paciente (texto libre) → lista para el sello de procedencia.
@@ -799,6 +799,24 @@ export default function ConsultaActivaPage() {
     ),
   }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, extraction])
   const [resumen, setResumen] = useState('')
+  /**
+   * QUÉ ES ESTA NOTA PARA EL SELLO — una vez, para las dos lecturas.
+   *
+   * Había dos listas: la del guardado (que incluía la prosa y por eso el sello
+   * ARCHIVADO la contaba) y la de la tira en pantalla (que no). Sobre la misma
+   * nota, el registro decía «3 del dictado · 4 a mano» y la pantalla «4 a
+   * mano»: los tres campos que faltaban eran justo la prosa, donde vivieron los
+   * fallos reales. Con un solo objeto no pueden volver a divergir.
+   */
+  const notaDelSello = useMemo(
+    () => notaParaElSello({
+      diagnosticos, medicamentos,
+      alergias: alergiasArray(patient ?? {}),
+      signosVitales: signosNum as unknown as Record<string, unknown>,
+      secciones, resumen,
+    }),
+    [diagnosticos, medicamentos, patient, signosNum, secciones, resumen],
+  )
   const [procesando, setProcesando] = useState(false)
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
   // Lo llena Claude al terminar la diarización; editable en el diálogo.
@@ -2421,22 +2439,19 @@ export default function ConsultaActivaPage() {
         aprobadosPorMedico: Array.from(aprobados),
         // Sello de procedencia: cuántos datos vinieron del dictado / IA / a mano.
         // Aditivo y derivado (no inventa); queda en el registro medicolegal.
+        /**
+         * LA PROSA ENTRA AL SELLO, y entra por el MISMO objeto que la tira
+         * de pantalla (`notaDelSello`). Antes esta lista se escribía aquí
+         * a mano y la de la pantalla aparte: el registro contaba la prosa y lo
+         * que el médico leía no, sobre la misma nota.
+         *
+         * Los tres fallos que el Dr. encontró en producción vivieron en la
+         * prosa —«la de la docencia» convertido en «vesícula»; un «no» a la
+         * pregunta por diabetes redactado como «paciente con DM2 e HTA»—, así
+         * que el sello legible contaba con precisión la parte que no falló.
+         */
         procedencia: construirManifiesto(
-          {
-            diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}),
-            signosVitales: signosNum as unknown as Record<string, unknown>,
-            /**
-             * Y LA PROSA, que era justo lo que faltaba.
-             *
-             * El manifiesto cubría datos estructurados, y los tres fallos que
-             * el Dr. encontró en producción vivieron en la prosa: «la de la
-             * docencia» convertido en «vesícula», y un «no» a la pregunta por
-             * diabetes redactado como «paciente con DM2 e HTA». El sello
-             * contaba con precisión la parte que no había fallado.
-             */
-            secciones: secciones.map(sec => ({ key: sec.key, label: sec.label, value: sec.value })),
-            resumen,
-          },
+          notaDelSello,
           extraction as never,
           // Los vistos buenos del panel de revisión. Ya se guardaban como un
           // número suelto (`camposAprobados`), que dice cuántos aceptó el médico
@@ -2521,7 +2536,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances, notaDelSello])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -5282,9 +5297,18 @@ export default function ConsultaActivaPage() {
       {/* Sello de procedencia: de dónde salió CADA dato de la nota (dictado con
           cita / inferencia de IA / a mano). Medicolegal, solo lectura. Se muestra
           también en la nota firmada — es parte del registro. */}
-      {(diagnosticos.length > 0 || medicamentos.length > 0) && (
+      {/*
+        LA CONDICIÓN MIRA LO QUE EL SELLO VA A CONTAR, no dos familias de seis.
+
+        Estaba atada a diagnósticos y medicamentos, así que una nota que sólo
+        trae texto redactado —la de evolución que no cambia el plan— no
+        enseñaba sello ninguno, aunque el que se archiva al firmar sí contara
+        sus párrafos. El propio componente ya se calla cuando no hay nada que
+        contar (`resumen.total === 0`); aquí basta con no adelantarse a él.
+      */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0 || secciones.some(s => s.value?.trim()) || resumen.trim()) && (
         <SelloProcedencia
-          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}), signosVitales: signosNum as unknown as Record<string, unknown> }}
+          final={notaDelSello}
           extraction={extraction}
           aprobados={aprobados}
           transcripcion={voz.transcripcion}

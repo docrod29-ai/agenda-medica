@@ -1,8 +1,8 @@
 {
-  "sellado": "2026-08-10",
+  "sellado": "2026-08-15",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4617,
+  "totalCasos": 4631,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -1259,6 +1259,10 @@
     {
       "archivo": "src/__tests__/v15-el-dia-vacio-dice-cual-de-los-tres.test.ts",
       "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/v15-el-sello-que-se-ve-cuenta-lo-mismo-que-el-sellado.test.ts",
+      "minCasos": 14
     },
     {
       "archivo": "src/__tests__/v15-la-lista-vacia-dice-cuantos-hay-fuera.test.ts",

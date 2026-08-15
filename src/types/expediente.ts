@@ -285,9 +285,15 @@ export interface NotaMedica {
     procesadoEn?: string                   // ISO timestamp del último procesamiento
     aprobadoPor?: string                   // email del médico que aprobó al firmar
     /**
-     * Sello de procedencia: cuántos datos estructurados de la nota vinieron del
-     * dictado (con cita), de inferencia de IA (sin cita) o capturados a mano.
+     * Sello de procedencia: cuántos campos de la nota vinieron del dictado (con
+     * cita), de inferencia de IA (sin cita) o capturados a mano.
      * Derivado (no inventado), aditivo; refuerza la trazabilidad medicolegal.
+     *
+     * **Cuenta también la PROSA** —secciones y resumen ejecutivo—, no sólo los
+     * datos estructurados: este comentario decía «estructurados» y era falso
+     * desde que el guardado empezó a pasarle la prosa al manifiesto. Un total
+     * mal descrito en el tipo es lo que hizo que las dos pantallas que leen
+     * este sello construyeran su propia lista más corta.
      */
     procedencia?: { dictado: number; ia: number; manual: number; total: number }
     /**

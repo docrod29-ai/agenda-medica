@@ -607,6 +607,53 @@ async function main() {
             ta: { value: '138/86', confidence: 'alta', source_quote: 'Tensión arterial ciento treinta y ocho sobre ochenta y seis' },
             fc: { value: '78', confidence: 'alta', source_quote: 'frecuencia cardiaca setenta y ocho' },
           },
+          /* ── LA PROSA AUDITADA — séptimo hueco de siembra de esta familia ──
+             El manifiesto audita las secciones y el resumen desde hace
+             versiones y la siembra no las traía, así que una medición habría
+             fotografiado los cuatro párrafos sellados como «a mano» —autoría
+             humana sobre texto que salió del dictado— y lo habría dado por
+             bueno.
+
+             Se siembran los TRES estados a propósito, que es lo que hace la
+             foto útil:
+
+               · `subjetivo` y `objetivo` → del dictado, con cita literal del
+                 MOTOR.
+               · `plan` → del dictado, y su cita lleva dentro «glucosa hilada»:
+                 el original del reconocedor, no la corrección del médico. Es
+                 la fila que enseña contra qué se está contrastando.
+               · `resumenEjecutivo` → SIN cita: la IA lo redactó resumiendo, no
+                 hay una frase que lo sostenga. Se sella como inferencia, que
+                 es la verdad.
+               · `analisis` → no se declara. Lo escribió el médico y el sello
+                 tiene que decir «a mano». Es también la sección que
+                 `DeDondeSalioEsto` marca como sin respaldo: las dos piezas
+                 cuentan lo mismo sobre el mismo párrafo.
+
+             `value` va IGUAL al texto final a propósito: si difiriera, el
+             manifiesto lo sellaría como «a mano» —el médico reescribió el
+             párrafo—, que es otra rama y no la que se quiere fotografiar. */
+          secciones: {
+            subjetivo: {
+              value: 'Refiere apego irregular al tratamiento en los últimos dos meses. Niega hipoglucemias, poliuria ni pérdida de peso.',
+              confidence: 'alta',
+              source_quote: 'Refiere que ha tomado el tratamiento de manera irregular en los últimos dos meses',
+            },
+            objetivo: {
+              value: 'Consciente, orientado, hidratado. Sin datos de dificultad respiratoria. Exploración cardiopulmonar sin agregados.',
+              confidence: 'alta',
+              source_quote: 'está consciente y orientado, hidratado, sin datos de dificultad respiratoria',
+            },
+            plan: {
+              value: 'Refuerzo de apego, perfil lipídico y HbA1c de control, cita en cuatro semanas.',
+              confidence: 'media',
+              source_quote: 'Reforzamos el apego, pedimos perfil de lípidos y hemoglobina glucosa hilada de control y lo cito en cuatro semanas',
+            },
+          },
+          resumenEjecutivo: {
+            value: 'DM2 e HAS en control irregular; se ajusta seguimiento y se piden laboratorios.',
+            confidence: 'media',
+          },
         },
       },
       diagnosticos: [

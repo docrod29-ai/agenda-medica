@@ -74,6 +74,7 @@
  */
 import type { NotaMedica } from '@/types/expediente'
 import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
+import { notaParaElSello, type FinalNota } from '@/lib/expediente/procedencia'
 
 /** Cuál de las dos transcripciones se está usando como fuente. */
 export type FuenteDelContraste = 'motor' | 'trabajo'
@@ -96,13 +97,14 @@ export interface ProcedenciaArchivada {
    * afirmaría autoría humana sobre datos de máquina (decisión 2).
    */
   puedeSellar: boolean
-  /** Lo que el sello necesita, tomado de la nota y de nada más. */
-  final: {
-    diagnosticos: { descripcion?: string }[]
-    medicamentos: { nombre?: string; dosis?: string }[]
-    alergias: string[]
-    signosVitales: Record<string, unknown>
-  }
+  /**
+   * Lo que el sello necesita, tomado de la nota y de nada más.
+   *
+   * El tipo se IMPORTA (`FinalNota`) en vez de volver a enumerarse: la lista
+   * escrita a mano que vivía aquí omitía la prosa, así que el expediente
+   * enseñaba menos campos de los que la propia nota lleva sellados.
+   */
+  final: FinalNota
   /** El bloque de extracción archivado, si lo hay. */
   extraction?: Record<string, unknown>
   /** Los campos que el médico aceptó explícitamente antes de firmar. */
@@ -149,12 +151,25 @@ export function procedenciaDeLaNotaArchivada(nota: NotaMedica): ProcedenciaArchi
     fuente,
     trabajoEditado: !!motor && !!trabajo && motor !== trabajo,
     puedeSellar: !!extraction,
-    final: {
+    final: notaParaElSello({
       diagnosticos: (nota.diagnosticos ?? []).map(d => ({ descripcion: d?.descripcion })),
       medicamentos: (nota.medicamentos ?? []).map(m => ({ nombre: m?.nombre, dosis: m?.dosis })),
       alergias: alergiasArchivadas(nota),
       signosVitales: (nota.signosVitales ?? {}) as unknown as Record<string, unknown>,
-    },
+      /**
+       * LA PROSA ARCHIVADA — y son los mismos dos campos que la nota ya guarda
+       * y que ninguna pantalla leía. `resumenEjecutivo` y `secciones` viajan al
+       * manifiesto con la extracción archivada al lado, que es la que dice si
+       * cada párrafo salió del dictado (con su cita), de una inferencia sin
+       * respaldo, o de la mano del médico.
+       *
+       * Es la familia que importa el día de la discusión: un diagnóstico mal
+       * sellado se ve de un vistazo; un párrafo que afirma «Paciente con DM2 e
+       * HTA» sobre un «no, nada de eso» sólo se ve leyendo la cita.
+       */
+      secciones: nota.secciones,
+      resumen: nota.resumenEjecutivo,
+    }),
     extraction,
     aprobados,
   }

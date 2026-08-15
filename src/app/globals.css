@@ -1839,6 +1839,27 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   text-transform: uppercase;
   color: var(--text3);
 }
+/* LAS DOS FAMILIAS DEL SELLO — texto redactado y datos estructurados.
+
+   No es decoración: hasta hoy el panel enseñaba SÓLO datos estructurados
+   mientras el sello archivado contaba también la prosa (7 campos sellados
+   frente a 4 enseñados). Al entrar la prosa, una fila pasa a ocupar tres
+   líneas y otra media, así que sin agrupar mandan las largas sin que nadie lo
+   haya decidido — §16.
+
+   El envoltorio es `display: contents` a propósito: los grupos organizan el
+   ORDEN y el rótulo, no meten una caja más. La columna sigue siendo una sola y
+   el `gap` del panel sigue midiendo entre filas, no entre grupos. */
+.nx-sello-grupo { display: contents; }
+.nx-sello-grupo-rotulo {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
 /* CONTRA QUÉ SE CONTRASTA. Es texto terciario a propósito —no compite con la
    nota— pero NO se degrada por debajo de 10.5: en una discusión medicolegal
    esta frase es la que dice qué significa el verde. */
