@@ -10,8 +10,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
 import { Plus, Search, X, Users, Phone, AlertCircle, Calendar, Pencil, Cake, BedDouble, ChevronRight, FileClock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
+import { PageHeader, Button, ButtonLink, EmptyState, Spinner, Modal } from '@/components/ui'
 import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
@@ -244,7 +243,7 @@ export default function PacientesPage() {
             ) : v.gesto.nuevoPaciente ? (
               mode === 'medico'
                 ? <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
-                : <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar</Button></Link>
+                : <ButtonLink href="/asistente" icon={<Calendar size={16} />}>Agendar</ButtonLink>
             ) : undefined
           }
         />
@@ -307,10 +306,10 @@ export default function PacientesPage() {
            decía, justo la más visitada. */
         subtitle="Todo el que tiene expediente aquí. Cada uno dice lo que quedó abierto y cuándo se le vio."
         actions={mode === 'secretaria' ? (
-          <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar (registra paciente)</Button></Link>
+          <ButtonLink href="/asistente" icon={<Calendar size={16} />}>Agendar (registra paciente)</ButtonLink>
         ) : (
           <>
-            <Link href="/asistente"><Button variant="secondary" icon={<Calendar size={16} />}>Agendar</Button></Link>
+            <ButtonLink href="/asistente" variant="secondary" icon={<Calendar size={16} />}>Agendar</ButtonLink>
             <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
           </>
         )}

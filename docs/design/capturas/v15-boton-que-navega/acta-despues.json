@@ -1,0 +1,111 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "despues",
+  "viewports": {
+    "escritorio-1440": {
+      "superficies": {
+        "hoy": {
+          "axe": {
+            "nodos": 0,
+            "detalle": []
+          },
+          "anidados": []
+        },
+        "pacientes": {
+          "axe": {
+            "nodos": 0,
+            "detalle": []
+          },
+          "anidados": []
+        }
+      },
+      "cta": {
+        "existe": true,
+        "estilo": {
+          "etiqueta": "a",
+          "href": "/consulta/pac-aurelio-dominguez",
+          "fondo": "rgb(23, 120, 134)",
+          "color": "rgb(255, 255, 255)",
+          "radio": "10px",
+          "fuente": "14px/600",
+          "familia": "\"IBM Plex Sans\"",
+          "subrayado": "none",
+          "display": "flex",
+          "relleno": "18px 18px",
+          "w": 160,
+          "h": 44
+        },
+        "envoltorio": {
+          "etiqueta": "div",
+          "href": null,
+          "clase": "prox-hero nx-reveal"
+        },
+        "paradasEnElHeroe": [
+          {
+            "etiqueta": "a",
+            "clase": "prox-hero-cta",
+            "nombre": "Iniciar consulta"
+          }
+        ]
+      },
+      "destino": {
+        "url": "/consulta/pac-aurelio-dominguez",
+        "cargó": true,
+        "errores": 0
+      }
+    },
+    "movil-390": {
+      "superficies": {
+        "hoy": {
+          "axe": {
+            "nodos": 0,
+            "detalle": []
+          },
+          "anidados": []
+        },
+        "pacientes": {
+          "axe": {
+            "nodos": 0,
+            "detalle": []
+          },
+          "anidados": []
+        }
+      },
+      "cta": {
+        "existe": true,
+        "estilo": {
+          "etiqueta": "a",
+          "href": "/consulta/pac-aurelio-dominguez",
+          "fondo": "rgb(23, 120, 134)",
+          "color": "rgb(255, 255, 255)",
+          "radio": "10px",
+          "fuente": "14px/600",
+          "familia": "\"IBM Plex Sans\"",
+          "subrayado": "none",
+          "display": "flex",
+          "relleno": "18px 18px",
+          "w": 320,
+          "h": 44
+        },
+        "envoltorio": {
+          "etiqueta": "div",
+          "href": null,
+          "clase": "prox-hero nx-reveal"
+        },
+        "paradasEnElHeroe": [
+          {
+            "etiqueta": "a",
+            "clase": "prox-hero-cta",
+            "nombre": "Iniciar consulta"
+          }
+        ]
+      },
+      "destino": {
+        "url": "/consulta/pac-aurelio-dominguez",
+        "cargó": true,
+        "errores": 0
+      }
+    }
+  },
+  "errores": []
+}

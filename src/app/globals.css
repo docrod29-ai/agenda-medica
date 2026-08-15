@@ -623,6 +623,12 @@ a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
   border: 1px solid transparent;
   white-space: nowrap;
   font-family: inherit;
+  /* `.btn` también lo lleva un ENLACE (`ButtonLink`, el control que navega).
+     Sin esto, cada sitio tenía que acordarse de un `textDecoration: 'none'`
+     en línea — y tres de ellos no se acordaban. La apariencia vive en la
+     HOJA, no en el JSX (la lección de nx-stat-grid). En un `<button>` es
+     inerte: ya no venía subrayado. */
+  text-decoration: none;
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -2718,6 +2724,14 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   border: none; border-radius: var(--r-md);
   font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: inherit; white-space: nowrap;
+  /* El CTA dejó de ser un <button> DENTRO del <a> y pasó a ser el <a>: dos
+     paradas de teclado para un destino, medidas en 1440 y 390. Estas dos
+     declaraciones estaban en línea sobre el enlace, y una de ellas —
+     `flex-shrink: 0` — dejaba MUERTA la regla de abajo (`.prox-hero > a`
+     manda `flex-shrink: 1` bajo 560px y un estilo en línea le gana en
+     silencio: nx-stat-grid otra vez). En la hoja, la media query gana por
+     especificidad (0,1,1 > 0,1,0) y vuelve a estar viva. */
+  text-decoration: none; flex-shrink: 0;
   transition: background var(--mov-rapido) var(--mov-curva),
               transform var(--mov-rapido) var(--mov-curva);
 }
@@ -2847,7 +2861,9 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   /* El saludo y la acción dejan de pelearse por el mismo renglón. El saludo
      ya no crece en móvil: es kicker en todos los viewports (RTC-06). */
   .hoy-head { flex-direction: column; align-items: stretch; gap: 14px; }
-  .hoy-accion, .hoy-accion .btn { width: 100%; justify-content: center; }
+  /* `.hoy-accion` ES el botón desde que el control que navega dejó de llevar
+     uno dentro: ya no hay `.hoy-accion .btn` que estirar. */
+  .hoy-accion { width: 100%; justify-content: center; }
   .hoy-bloque-head { padding: 14px 16px; }
   .cita-fila { padding: 12px 16px; }
 }

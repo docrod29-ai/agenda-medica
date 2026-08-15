@@ -184,7 +184,18 @@ describe('el área táctil de lo que se toca con el dedo', () => {
   })
 
   it('y el botón de nueva cita ocupa el ancho en pantalla estrecha', () => {
-    expect(CSS).toMatch(/\.hoy-accion,\s*\.hoy-accion \.btn\s*\{[^}]*width:\s*100%/)
+    /**
+     * VARA MUDADA, NO BAJADA (V15-A11Y-001, «el botón que navega»): el selector
+     * era `.hoy-accion, .hoy-accion .btn` porque el control era un `<button>`
+     * DENTRO del `<a>` — dos paradas de teclado para un destino. Ahora
+     * `.hoy-accion` **es** el botón (`ButtonLink`), así que ya no hay
+     * descendiente que estirar y pedirlo sería pedir que el defecto vuelva.
+     * El INVARIANTE es el mismo: en pantalla estrecha ocupa el ancho.
+     */
+    expect(CSS).toMatch(/\.hoy-accion\s*\{[^}]*width:\s*100%/)
+    // Y no vuelve el selector al descendiente. Los comentarios EXPLICAN el
+    // defecto, así que no pueden contar como el defecto: se quitan antes.
+    expect(CSS.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\.hoy-accion \.btn/)
   })
 })
 

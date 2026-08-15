@@ -48,7 +48,7 @@ import { useMode } from '@/context/ModeContext'
 import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
-import { Button, EmptyState, Spinner } from '@/components/ui'
+import { Button, ButtonLink, EmptyState, Spinner } from '@/components/ui'
 import { avatarColor } from '@/lib/avatar-color'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { Plus, ChevronRight, CalendarDays, Mic } from 'lucide-react'
@@ -144,9 +144,9 @@ export default function DashboardPage() {
             {saludo && <>, <span style={{ fontStyle: 'italic' }}>{saludo}</span></>}
           </h1>
         </div>
-        <Link href="/asistente" className="hoy-accion">
-          <Button variant="secondary" icon={<Plus size={16} />}>Nueva cita</Button>
-        </Link>
+        <ButtonLink href="/asistente" className="hoy-accion" variant="secondary" icon={<Plus size={16} />}>
+          Nueva cita
+        </ButtonLink>
       </header>
 
       {/* 1 · ¿QUIÉN SIGUE? — lo primero que hace falta a las nueve de la mañana. */}
@@ -190,7 +190,7 @@ export default function DashboardPage() {
             variante="linea"
             title="Hoy no hay citas."
             description={stats.manana > 0 ? `Mañana tienes ${stats.manana}.` : 'La agenda está libre.'}
-            action={<Link href="/asistente"><Button variant="ghost" size="sm" icon={<Plus size={14} />}>Agendar cita</Button></Link>}
+            action={<ButtonLink href="/asistente" variant="ghost" size="sm" icon={<Plus size={14} />}>Agendar cita</ButtonLink>}
           />
         ) : (
           <div>
@@ -335,9 +335,15 @@ function ProxHero({ appt }: { appt: Appointment }) {
           {appt.lugar ? <span>· {appt.lugar}</span> : null}
         </div>
       </div>
+      {/* La acción PRIMARIA de Hoy. Era un <button> dentro de este <a>: dos
+          paradas de teclado para un destino (medido en 1440 y en 390) y HTML
+          inválido — `<a>` prohíbe contenido interactivo dentro. Ahora el
+          enlace ES el control, y parece un botón porque lo dice la hoja
+          (`.prox-hero-cta`, que se llevó también el `text-decoration` y el
+          `flex-shrink` que vivían aquí en línea). §24. */}
       <Link
         href={`/consulta/${appt.pacienteId}`}
-        style={{ textDecoration: 'none', flexShrink: 0 }}
+        className="prox-hero-cta"
         onClick={(e) => {
           /* §20: sólo el click simple se coreografía; Ctrl/Cmd/central siguen
              abriendo pestaña como cualquier enlace. El objeto compartido es el
@@ -348,7 +354,7 @@ function ProxHero({ appt }: { appt: Appointment }) {
           navegarConContinuidad(() => router.push(`/consulta/${appt.pacienteId}`), origen)
         }}
       >
-        <button className="prox-hero-cta"><Mic size={16} /> Iniciar consulta</button>
+        <Mic size={16} /> Iniciar consulta
       </Link>
     </div>
   )

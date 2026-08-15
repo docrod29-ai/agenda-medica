@@ -9408,3 +9408,193 @@ que §24 llama bloqueante) y el punto 3 (el alcance de §21 en `/pacientes` y
 `/operaciones`, midiendo antes si esas pantallas tienen siquiera un hecho con
 procedencia que inspeccionar — puede acabar REFUTADO, como RTC-30 en
 `/lista-espera`).
+
+---
+
+## EL BOTÓN QUE NAVEGA — la acción primaria de Hoy eran dos paradas de teclado (15-ago)
+
+**La rebanada que el estado dejó nombrada como «punto 2»**: los `anidados` de
+Hoy, uno de ellos en el CTA del héroe NOW. Se pagó, y de paso quedó corregida
+la etiqueta con la que el acta anterior los había nombrado.
+
+### La corrección primero, porque cambia cómo se lee la deuda anterior
+
+El acta de §21 en Hoy llamó a esos dos nodos **`nested-interactive`**, la regla
+de axe. **No lo son.** Esta corrida los midió con axe-core de verdad —no con el
+nombre de la regla escrito en un comentario— y la regla devuelve **0 nodos**,
+antes y después: `nested-interactive` sólo casa con roles
+`childrenPresentational` (botón, casilla, pestaña…) y **`link` no es uno**.
+
+Aquel `anidados: 2` salía de `querySelectorAll('a button, button a, a a')`, que
+es una sonda de DOM honesta con una etiqueta prestada. La familia que **sí**
+midió axe fue otra: la de las filas de `/pacientes`, con el contenedor en
+`role="button"` (`v15-a11y-pacientes-sin-nested-interactive.test.ts`). Son dos
+defectos distintos y ahora tienen dos guardianes distintos.
+
+**Defecto propio, del instrumento, y van dieciséis en la fase**: la primera
+versión de este medidor iba a publicar «axe: 2 nodos» sin haber corrido axe.
+
+### Lo que había, medido antes de tocar
+
+`scripts/design/medir-boton-que-navega-v15.mjs`, acta
+`docs/design/capturas/v15-boton-que-navega/acta-antes.json` (build de producción
++ emuladores + siembra, 1440 y 390, **0 errores de consola**):
+
+```
+HOY         2 controles anidados
+            <a class="hoy-accion" href=/asistente> ⊃ <button class="btn btn-secondary"> «Nueva cita»
+            <a href=/consulta/pac-aurelio-dominguez> ⊃ <button class="prox-hero-cta"> «Iniciar consulta»
+PACIENTES   1 control anidado (la cabecera «Agendar»)
+EL DAÑO     2 PARADAS DE TECLADO para UN destino en el CTA del héroe, en los dos anchos
+AXE         0 nodos — no lo veía, y por eso nadie lo había cazado
+```
+
+Y ocho sitios en el árbol, no dos: `/dashboard` ×3, `/pacientes` ×3,
+`not-found` ×1 (el octavo era el propio CTA del héroe). Cinco de ellos no se
+pintan a la vez —estados vacíos, modo secretaria, 404—, así que el navegador
+sólo podía enseñar tres. Los cinco restantes los caza el guardián estático.
+
+### Lo que hace mal, dicho sin prestar etiquetas
+
+1. **HTML inválido.** El modelo de contenido de `<a>` prohíbe contenido
+   interactivo dentro. Ningún navegador se queja: el árbol de accesibilidad
+   queda a interpretación de cada lector de pantalla.
+2. **Dos paradas de teclado para un destino.** El médico tabula, cree que llegó
+   al control, vuelve a tabular y sigue en el mismo sitio. §24 llama bloqueante
+   a un defecto de accesibilidad sobre una acción clínica crítica, y «Iniciar
+   consulta» en el héroe NOW **es** la acción primaria de la pantalla que se
+   abre a las nueve de la mañana.
+3. **El mismo nombre accesible dos veces**, una como enlace y otra como botón, y
+   las dos navegan: el clic del botón burbujea hasta el `<a>`.
+
+### La causa raíz no era un descuido repetido ocho veces
+
+`Button` sólo sabía pintar un `<button>`. Quien necesitaba un control que
+**navegara** no tenía dónde pedirlo, así que envolvía. El patrón se copió a ocho
+sitios porque era el único que había.
+
+`ButtonLink` (`src/components/ui/Button.tsx`) es ese sitio: un enlace que parece
+un botón porque lo dice la HOJA, sin un botón dentro. Y **comparte
+`clasesDeBoton()` con `Button`** — una sola composición de clases para los dos,
+para que no empiecen idénticos y diverjan a la tercera edición (REG-318).
+Deliberadamente **no** tiene `loading` ni `disabled`: un enlace no se
+deshabilita, y `pointer-events: none` lo esconde del teclado en vez de
+anunciarlo.
+
+### El segundo hallazgo: una regla de CSS que llevaba muerta
+
+El enlace del héroe llevaba `style={{ textDecoration: 'none', flexShrink: 0 }}`
+en línea. La hoja manda `.prox-hero > a { flex-shrink: 1 }` bajo 560px — y un
+estilo en línea le gana en silencio. **La media query no pintaba nada.** Es
+`nx-stat-grid` otra vez, en su tercera aparición de la fase.
+
+Las dos declaraciones se mudaron a `.prox-hero-cta` en la hoja, donde la media
+query vuelve a ganar por especificidad (0,1,1 > 0,1,0). Y `.btn` se llevó su
+`text-decoration: none`, que hasta hoy cada sitio con `<a className="btn">`
+tenía que acordarse de poner en línea — **tres no se acordaban**.
+
+### La medición, en navegador real (1440 y 390, antes y después)
+
+| | antes | después |
+|---|---|---|
+| controles anidados en Hoy | **2** | **0** |
+| controles anidados en /pacientes | **1** | **0** |
+| paradas de teclado en el héroe | **2** | **1** |
+| qué es el CTA | `<button>` dentro de `<a>` | **`<a href>`**, y el envoltorio es el `<div>` del héroe |
+| fondo · color | rgb(23,120,134) · #fff | **idéntico** |
+| radio · tipografía · relleno | 10px · 14px/600 IBM Plex Sans · 18px | **idéntico** |
+| subrayado | none | **none** |
+| táctil 1440 · 390 | 160×44 · 320×44 | **160×44 · 320×44** |
+| al pulsarlo | `/consulta/pac-aurelio-dominguez`, carga | **igual, carga** |
+| errores de consola | 0 | **0** |
+| axe `nested-interactive` | 0 | 0 *(control negativo declarado)* |
+
+Las capturas de `/pacientes` salieron **byte a byte idénticas** en las dos fases,
+en los dos anchos. Las del héroe sólo difieren en la hora sembrada.
+
+### El instrumento tenía que dejar de depender del reloj
+
+El héroe NOW sólo se pinta si queda una cita por delante, y la hora la manda el
+reloj del **consultorio** (`America/Mexico_City`), no el del contenedor. Una
+corrida de madrugada UTC —de noche en México— abre Hoy **sin héroe**: la primera
+pasada de este medidor auditó la pantalla sin su control primario y no lo dijo.
+
+`scripts/design/sembrar-cita-por-delante-v15.mjs` añade UNA cita sintética 40
+minutos por delante de la hora del consultorio, con la forma **leída de una cita
+ya sembrada** —no una segunda lista escrita a mano en el instrumento, que sería
+REG-318 dentro de la vara—. Va en un arnés propio
+(`arnes-boton-que-navega-v15.sh`): meterla en el compartido movería los números
+de todas las demás actas.
+
+### Compuertas
+
+`npx tsc --noEmit` limpio · `npx vitest run` **9608/9609**; el único rojo es el
+ambiental conocido (`ops-timeout-y-punto-ciego`: el proxy del contenedor
+responde en vez de agotarse — **comprobado en rojo también contra HEAD limpio en
+esta corrida**) · lint **96 = techo** · trinquete de diseño **sin deuda nueva**
+(los nueve techos intactos) · `npm run build` compila · navegador real 1440 +
+390 en las **dos** fases, 12 capturas, **0 errores de consola** ·
+`SCREEN_INVENTORY.md` regenerado.
+
+Guardián `v15-el-boton-que-navega-es-un-enlace.test.ts` (11 casos). **Probado al
+revés**, siete reversiones quirúrgicas comprobadas en rojo **una a una**, y cada
+una muerde exactamente un caso:
+
+- vuelve `<Link><Button>` a la cabecera de Hoy → cae «cero sitios» ✓
+- `.btn` pierde su `text-decoration` → cae el de la hoja ✓
+- `.prox-hero-cta` pierde `flex-shrink: 0` → cae el suyo ✓
+- vuelve `flexShrink: 0` en línea sobre el enlace → cae el de la regla muerta ✓
+- `ButtonLink` se escribe su propia lista de clases → cae el de la fuente única ✓
+- el enlace del héroe pierde `className="prox-hero-cta"` → cae el freeze ✓
+- el 404 pierde su `display: inline-flex` → cae el suyo ✓
+
+**Tres varas MUDADAS, no bajadas.** Sus patrones citaban el árbol viejo:
+
+- `la-pantalla-de-hoy-no-es-un-tablero` exigía `.hoy-accion, .hoy-accion .btn`.
+  Ahora `.hoy-accion` **es** el botón: pedir el descendiente sería pedir que el
+  defecto vuelva. El invariante —ocupa el ancho en pantalla estrecha— no cambia,
+  y se le añadió que el selector al descendiente **no puede reaparecer**.
+- `v15-hoy-una-primaria-clinica` caso 1 contaba apariciones del TEXTO
+  `prox-hero-cta`; ahora cuenta el ATRIBUTO `className="prox-hero-cta"`, que es
+  lo que el invariante siempre quiso decir. Caso 2 pasa a exigir el `ButtonLink`
+  con `variant="secondary"` y que «Nueva cita» **no** suba a primaria
+  (comprobado en rojo subiéndola).
+- `el-inventario-de-pantallas-no-miente`: regenerado, cambiaron las líneas de
+  dos pantallas.
+
+**Sin entrada de regresión, y con motivo.** Ninguna pantalla decía nada falso:
+faltaba una estructura accesible. Misma clasificación que
+`v15-a11y-pacientes-sin-nested-interactive`, su hermana de familia, que tampoco
+está en el ledger ni en el sello.
+
+### Declarado y NO pagado
+
+1. **`.hoy-accion` sigue declarando `text-decoration: none` por su cuenta**
+   aunque `.btn` ya lo trae. Es inerte, no incorrecto; quitarlo tocaría una
+   regla que también gobierna el `flex-shrink`, y no hay medición que lo pida.
+2. **El alcance de §21 sigue en 3 de 6.** Quedan `/pacientes` y `/operaciones`
+   sin ninguna fuente que inspeccionar, y `/expediente` sólo la enseña tras
+   abrir una nota firmada. **Antes de construir hay que medir si esas pantallas
+   tienen siquiera un hecho con procedencia**: puede acabar REFUTADO, como
+   RTC-30 en `/lista-espera`.
+3. **En el teléfono, Hoy crece 887 → 1124px** por las cinco filas de
+   continuidad con su acción en renglón propio. Medido y nombrado en la
+   rebanada anterior; la palanca es el `TOPE_VISIBLE` de 5, y es del dueño.
+4. **El aviso de notificaciones tapa la hoja inferior en el teléfono**
+   (`NotificacionesPushOptIn` sobre la Capa 4 a 390px). Preexistente, de otra
+   pieza, y **visible otra vez** en `despues-escritorio-1440-hoy.png`.
+5. **`alergiasDe` parte dentro del paréntesis** — sigue sin pagar, sigue siendo
+   `src/lib/seguridad/alergias.ts`, que §1 congela.
+6. **La divergencia de `mostrarAlergias` entre `/orden` y `/receta`** sigue
+   congelada por su guardián, esperando decisión del dueño.
+7. **RTC-12(a)** (lienzo multicolumna) sigue nombrado, con el refactor del
+   monolito.
+8. **La compuerta de firma no mira la prosa**: sigue siendo decisión del dueño,
+   no trabajo de Claude.
+
+**Siguiente tarea exacta**: la **lectura INDEPENDIENTE de §26/§29** sigue
+pendiente y sigue siendo de Codex — quien implementa no puede ser el juez. Si da
+PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`. Trabajo de producto sin
+esperar a nadie: el punto 2 (medir primero si `/pacientes` y `/operaciones`
+tienen un hecho con procedencia que inspeccionar, y sólo entonces construir) y
+el punto 1 de la lista anterior, que era del dueño y sigue siéndolo.

@@ -55,12 +55,27 @@ describe('RTC-06 — una sola acción primaria, y es clínica', () => {
   it('1 · el único relleno primario es el CTA clínico del héroe (prox-hero-cta)', () => {
     // Ningún botón de la página usa la clase de relleno primario del sistema…
     expect(PAGINA).not.toContain('btn-primary')
-    // …y el CTA del héroe existe, una sola vez.
-    expect(PAGINA.split('prox-hero-cta').length - 1).toBe(1)
+    /**
+     * …y el CTA del héroe existe, una sola vez. VARA MUDADA, NO BAJADA
+     * (V15-A11Y-001, «el botón que navega»): antes se contaban las
+     * apariciones del TEXTO `prox-hero-cta`, y ahora la cabecera del enlace
+     * explica en prosa por qué dejó de ser un `<button>` dentro del `<a>`. Se
+     * cuenta el ATRIBUTO, que es lo que el invariante siempre quiso decir:
+     * un solo control lleva el relleno primario.
+     */
+    expect(PAGINA.match(/className="prox-hero-cta"/g)?.length).toBe(1)
   })
 
   it('2 · «Nueva cita» del header es secundaria — admin no compite con clínica', () => {
-    expect(PAGINA).toMatch(/<Button variant="secondary" icon=\{<Plus size=\{16\} \/>\}>Nueva cita<\/Button>/)
+    /**
+     * VARA MUDADA, NO BAJADA: el control pasó de `<Link><Button…></Link>` a
+     * `ButtonLink` — un enlace que parece botón, sin un botón dentro (dos
+     * paradas de teclado para un destino, §24). Lo que este caso defiende no
+     * cambia: sigue siendo `secondary`, y lo que NO puede volver es que la
+     * acción administrativa suba a primaria.
+     */
+    expect(PAGINA).toMatch(/<ButtonLink href="\/asistente" className="hoy-accion" variant="secondary" icon=\{<Plus size=\{16\} \/>\}>/)
+    expect(PAGINA).not.toMatch(/variant="primary"[^>]*>\s*Nueva cita/)
   })
 
   it('3 · el «Consulta» por fila es btn-secondary: presente, no dominante', () => {

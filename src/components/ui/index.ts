@@ -1,6 +1,6 @@
 // Librería de componentes base — design system "técnico-preciso" (Linear).
 // Wrappers tipados sobre las clases de globals.css. Ver docs/DESIGN_SYSTEM.md.
-export { Button } from './Button'
+export { Button, ButtonLink } from './Button'
 export { Card } from './Card'
 export { Spinner } from './Spinner'
 export { Field, Input, Textarea, Select } from './Field'
