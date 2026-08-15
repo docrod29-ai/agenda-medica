@@ -48,6 +48,10 @@ const EMAIL = 'medico@capturas.demo'
 const PASSWORD = 'captura-v10-demo'
 
 const SUPERFICIES = [
+  // Las dos superficies PAGADAS: van aquí para la validación integrada, y para
+  // que una regresión en ellas salga en el mismo acta que lo que sí se tocó.
+  ['hoy', '/dashboard'],
+  ['pacientes', '/pacientes'],
   // El encuentro SIN FIRMAR: sin `?nota=`. Es la corrección de esta corrida.
   ['consulta-sin-firmar', '/consulta/pac-aurelio-dominguez'],
   // El BORRADOR ya sembrado (`nota-luzmaria-borrador`, `estado: 'borrador'`):

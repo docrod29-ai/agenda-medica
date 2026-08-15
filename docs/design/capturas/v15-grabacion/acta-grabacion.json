@@ -1,0 +1,76 @@
+{
+  "base": "http://localhost:3000",
+  "fecha": "2026-08-15T15:28:25.627Z",
+  "pasos": [
+    {
+      "paso": "PREPARAR",
+      "veredicto": "PASA",
+      "nota": "el encuentro sin firmar abre con el grabador visible"
+    },
+    {
+      "paso": "CONSENTIMIENTO",
+      "veredicto": "PASA",
+      "nota": "grabar exige confirmar que el paciente fue informado; no arranca sin eso"
+    },
+    {
+      "paso": "INICIAR",
+      "veredicto": "PASA",
+      "nota": "la pantalla pasa a estado de grabación"
+    },
+    {
+      "paso": "ESTADO EN VIVO",
+      "veredicto": "PASA",
+      "nota": "el cronómetro avanza mientras se graba"
+    },
+    {
+      "paso": "PAUSAR",
+      "veredicto": "PASA",
+      "nota": "la sesión queda en pausa y se ofrece reanudar"
+    },
+    {
+      "paso": "REANUDAR",
+      "veredicto": "PASA",
+      "nota": "vuelve a grabar sin perder la sesión"
+    },
+    {
+      "paso": "INTERRUPCIÓN",
+      "veredicto": "PASA",
+      "nota": "salir con la grabación viva queda bloqueado por el aviso del navegador"
+    },
+    {
+      "paso": "RECUPERACIÓN",
+      "veredicto": "NO SE PUEDE COMPROBAR",
+      "nota": "el aviso de salida impidió recargar dentro del plazo: el ciclo no llegó a reabrirse"
+    },
+    {
+      "paso": "TRANSCRIPCIÓN",
+      "veredicto": "NO SE PUEDE COMPROBAR",
+      "nota": "dependencia externa: st:3000/api/expediente/transcribir-chunk → 503"
+    },
+    {
+      "paso": "NOTA",
+      "veredicto": "NO SE PUEDE COMPROBAR",
+      "nota": "la nota nace de la transcripción; sin transcripción no hay qué redactar"
+    },
+    {
+      "paso": "CIERRE",
+      "veredicto": "NO SE PUEDE COMPROBAR",
+      "nota": "firmar exige una nota con contenido; sin transcripción no se llega al cierre por esta vía"
+    }
+  ],
+  "errores": [
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  ],
+  "proveedor": [
+    {
+      "url": "st:3000/api/expediente/transcribir-chunk",
+      "status": 503
+    },
+    {
+      "url": "st:3000/api/expediente/transcribir-chunk",
+      "status": 503
+    }
+  ],
+  "erroresDeConsola": 2
+}
