@@ -1,0 +1,432 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "despues",
+  "viewports": {
+    "escritorio-1440": {
+      "alcance": {
+        "hoy": {
+          "reveladores": [
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?"
+          ],
+          "huecoDeLente": true,
+          "anidados": 2,
+          "altoDeLaPagina": 859
+        },
+        "pacientes": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 1,
+          "altoDeLaPagina": 859
+        },
+        "expediente": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 1536
+        },
+        "pendientes": {
+          "reveladores": [
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?"
+          ],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 1841
+        },
+        "operaciones": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 1744
+        },
+        "consulta": {
+          "reveladores": [
+            "Procedencia de la nota4 del dictado · 4 de",
+            "¿De dónde salió esto?cada frase, junto a l"
+          ],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 2141
+        }
+      },
+      "hoy": {
+        "zonaExiste": true,
+        "filas": 5,
+        "filasConRevelador": 5,
+        "reveladoresEnLaZona": 5,
+        "filaEsEnlaceEntero": 0,
+        "tactiles": [
+          {
+            "w": 162,
+            "h": 30
+          },
+          {
+            "w": 162,
+            "h": 30
+          },
+          {
+            "w": 162,
+            "h": 30
+          },
+          {
+            "w": 162,
+            "h": 30
+          },
+          {
+            "w": 162,
+            "h": 30
+          }
+        ]
+      },
+      "costeIda": {
+        "desde": {
+          "url": "/dashboard",
+          "scrollTop": 0
+        },
+        "alLlegar": {
+          "url": "/pendientes",
+          "scrollTop": 0
+        },
+        "alVolver": {
+          "url": "/dashboard",
+          "scrollTop": 0
+        }
+      },
+      "comportamiento": [
+        {
+          "entrada": "Aurelio Domínguez Peña",
+          "antes": {
+            "scrollTop": 0,
+            "alto": 859,
+            "rect": 363,
+            "expandido": "false"
+          },
+          "despues": {
+            "url": "/dashboard",
+            "scrollTop": 0,
+            "alto": 859,
+            "rect": 363,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 98
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 52
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 45
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 61
+              }
+            ],
+            "traza": {
+              "href": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+              "texto": "Ver la consulta de la que salió"
+            },
+            "sinTraza": false
+          },
+          "trasEscape": {
+            "url": "/dashboard",
+            "alto": 859,
+            "scrollTop": 0,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        },
+        {
+          "entrada": "Luz María Cervantes Ochoa",
+          "antes": {
+            "scrollTop": 0,
+            "alto": 859,
+            "rect": 431,
+            "expandido": "false"
+          },
+          "despues": {
+            "url": "/dashboard",
+            "scrollTop": 0,
+            "alto": 859,
+            "rect": 431,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 105
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 52
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 45
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 61
+              }
+            ],
+            "traza": null,
+            "sinTraza": true
+          },
+          "trasEscape": {
+            "url": "/dashboard",
+            "alto": 859,
+            "scrollTop": 0,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        }
+      ],
+      "traza": {
+        "href": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+        "url": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+        "cargó": true,
+        "errores": 0
+      }
+    },
+    "movil-390": {
+      "alcance": {
+        "hoy": {
+          "reveladores": [
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?"
+          ],
+          "huecoDeLente": true,
+          "anidados": 2,
+          "altoDeLaPagina": 1124
+        },
+        "pacientes": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 1,
+          "altoDeLaPagina": 1156
+        },
+        "expediente": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 2042
+        },
+        "pendientes": {
+          "reveladores": [
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?"
+          ],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 2584
+        },
+        "operaciones": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 1935
+        },
+        "consulta": {
+          "reveladores": [
+            "Procedencia de la nota4 del dictado · 4 de",
+            "¿De dónde salió esto?cada frase, junto a l"
+          ],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 2681
+        }
+      },
+      "hoy": {
+        "zonaExiste": true,
+        "filas": 5,
+        "filasConRevelador": 5,
+        "reveladoresEnLaZona": 5,
+        "filaEsEnlaceEntero": 0,
+        "tactiles": [
+          {
+            "w": 162,
+            "h": 44
+          },
+          {
+            "w": 162,
+            "h": 44
+          },
+          {
+            "w": 162,
+            "h": 44
+          },
+          {
+            "w": 162,
+            "h": 44
+          },
+          {
+            "w": 162,
+            "h": 44
+          }
+        ]
+      },
+      "costeIda": {
+        "desde": {
+          "url": "/dashboard",
+          "scrollTop": 289
+        },
+        "alLlegar": {
+          "url": "/pendientes",
+          "scrollTop": 0
+        },
+        "alVolver": {
+          "url": "/dashboard",
+          "scrollTop": 0
+        }
+      },
+      "comportamiento": [
+        {
+          "entrada": "Aurelio Domínguez Peña",
+          "antes": {
+            "scrollTop": 83,
+            "alto": 1124,
+            "rect": 420,
+            "expandido": "false"
+          },
+          "despues": {
+            "url": "/dashboard",
+            "scrollTop": 97,
+            "alto": 1124,
+            "rect": 406,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 98
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 52
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 45
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 61
+              }
+            ],
+            "traza": {
+              "href": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+              "texto": "Ver la consulta de la que salió"
+            },
+            "sinTraza": false
+          },
+          "trasEscape": {
+            "url": "/dashboard",
+            "alto": 1124,
+            "scrollTop": 83,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        },
+        {
+          "entrada": "Luz María Cervantes Ochoa",
+          "antes": {
+            "scrollTop": 215,
+            "alto": 1124,
+            "rect": 420,
+            "expandido": "false"
+          },
+          "despues": {
+            "url": "/dashboard",
+            "scrollTop": 247,
+            "alto": 1124,
+            "rect": 388,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 105
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 52
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 45
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 61
+              }
+            ],
+            "traza": null,
+            "sinTraza": true
+          },
+          "trasEscape": {
+            "url": "/dashboard",
+            "alto": 1124,
+            "scrollTop": 215,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        }
+      ],
+      "traza": {
+        "href": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+        "url": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+        "cargó": true,
+        "errores": 0
+      }
+    }
+  },
+  "errores": [],
+  "resumen": {
+    "errores": 0
+  }
+}

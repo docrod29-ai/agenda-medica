@@ -97,6 +97,11 @@ import type { TareaClinica } from '@/lib/tareas-clinicas/modelo'
 const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 
 const PAGINA = leer('src/app/(dashboard)/pendientes/page.tsx')
+/** La pieza compartida: desde que Hoy contesta lo mismo, las cuatro respuestas
+    se escriben aquí y en ningún otro sitio. */
+const PIEZA = leer('src/components/tareas/PorQueEstaAqui.tsx')
+/** El segundo lector de `tareasVivas()`: la zona CONTINUITY de Hoy. */
+const HOY = leer('src/components/ContinuidadPanel.tsx')
 const MODULO = leer('src/lib/tareas-clinicas/por-que-esta-aqui.ts')
 const SIEMBRA = leer('scripts/design/sembrar-capturas.mjs')
 
@@ -261,17 +266,45 @@ describe('§10 — las cuatro preguntas de la cola de cierre', () => {
   })
 
   it('12 · la pantalla abre las cuatro respuestas en la Capa 4, no en línea', () => {
-    expect(PAGINA).toMatch(/import \{ Lente \} from '@\/components\/LenteContextual'/)
-    expect(PAGINA).toContain('<Lente')
-    expect(PAGINA).toMatch(/responderPorElPendiente\(/)
+    /* La vara se mudó con la pieza. Antes exigía que ESTA pantalla montara la
+       `<Lente>`; desde que Hoy contesta lo mismo sobre el mismo pendiente, lo
+       que hay que exigir es que las dos consuman la MISMA — si cada una monta
+       la suya, la divergencia vuelve a ser posible y la prueba no la vería. */
+    expect(PIEZA).toMatch(/import \{ Lente \} from '@\/components\/LenteContextual'/)
+    expect(PIEZA).toContain('<Lente')
+    expect(PIEZA).toMatch(/responderPorElPendiente\(/)
+    // Y la pantalla la consume en vez de re-escribirla.
+    expect(PAGINA).toMatch(/import \{[^}]*LentePorQue[^}]*\} from '@\/components\/tareas\/PorQueEstaAqui'/)
+    expect(PAGINA).toContain('<LentePorQue')
+    // Nadie vuelve a montar la Capa 4 a mano desde esta pantalla.
+    expect(PAGINA).not.toContain('<Lente ')
     // La vuelta del foco necesita saber a quién vuelve (§21).
     expect(PAGINA).toMatch(/invocador=\{disparadorPorQue\}/)
+    expect(PIEZA).toMatch(/invocador=\{invocador\}/)
     // Y el disparador dice que abre algo. Los dos lados del enlace, no uno:
     // el botón declara `aria-expanded` con lo que le llega, y las dos tarjetas
     // le pasan el estado REAL de la lente. Comprobar sólo el primero dejaría
     // pasar un `aria-expanded` cableado a `false` constante.
-    expect(PAGINA).toMatch(/aria-expanded=\{abierta\}/)
+    expect(PIEZA).toMatch(/aria-expanded=\{abierta\}/)
     expect((PAGINA.match(/abierta=\{porQueId === t\.id\}/g) ?? []).length).toBe(2)
+  })
+
+  it('12b · las cuatro respuestas se escriben UNA vez, y las dos superficies las leen', () => {
+    /* EL CASO QUE NACE DE REG-318, y por eso está aquí y no en el guardián de
+       Hoy: el sello de procedencia tenía TRES listas independientes de «qué es
+       una nota para el sello», sólo una completa, y acabaron siendo dos sellos
+       que contaban distinto sobre el mismo documento. `tareasVivas()` es una
+       fuente con DOS lectores; los cuatro rótulos de §10 sólo pueden estar
+       escritos en un sitio. */
+    for (const rotulo of ['Por qué está aquí', 'Quién responde', 'Qué ha pasado', 'Qué sigue']) {
+      expect(PIEZA, `«${rotulo}» no lo escribe la pieza`).toContain(`titulo="${rotulo}"`)
+      expect(PAGINA, `«${rotulo}» se volvió a escribir en /pendientes`).not.toContain(`titulo="${rotulo}"`)
+      expect(HOY, `«${rotulo}» se volvió a escribir en Hoy`).not.toContain(`titulo="${rotulo}"`)
+    }
+    // Y ninguna de las dos vuelve a llamar al motor por su cuenta: la única
+    // llamada viva a `responderPorElPendiente` es la de la pieza.
+    expect(PAGINA).not.toMatch(/responderPorElPendiente\(/)
+    expect(HOY).not.toMatch(/responderPorElPendiente\(/)
   })
 
   it('13 · las tarjetas NO se declaran dentro del render — lo cazó el navegador', () => {
@@ -309,9 +342,13 @@ describe('§10 — las cuatro preguntas de la cola de cierre', () => {
     // La lente vive en la página, y guarda el ID y no una copia de la tarea:
     // con una copia, recargar la lista con la lente abierta enseñaría el
     // estado viejo — la foto de un dato clínico en vez del dato.
-    expect(PAGINA).toMatch(/useState<string \| null>\(null\)/)
-    expect(PAGINA.indexOf('<Lente'))
+    expect(PIEZA).toMatch(/useState<string \| null>\(null\)/)
+    expect(PAGINA.indexOf('<LentePorQue'))
       .toBeGreaterThan(PAGINA.indexOf('export default function PendientesPage'))
+    // Y el estado se pide con el hook COMPARTIDO: si cada pantalla se escribe
+    // el suyo, la próxima puede olvidarse de la vuelta del foco sin que nada
+    // se ponga rojo.
+    expect(PAGINA).toMatch(/usePorQue\(\)/)
   })
 
   it('14 · la pregunta se puede hacer también sobre lo ya cerrado', () => {
@@ -320,7 +357,7 @@ describe('§10 — las cuatro preguntas de la cola de cierre', () => {
     const i = PAGINA.indexOf('function TarjetaCerrada')
     const cerrada = PAGINA.slice(i, PAGINA.indexOf('export default function PendientesPage'))
     expect(i).toBeGreaterThan(-1)
-    expect(cerrada).toContain('<AbrirPorQue')
+    expect(cerrada).toContain('<DisparadorPorQue')
   })
 
   it('15 · el módulo es PURO: ni Firestore, ni reloj propio, ni JSX', () => {

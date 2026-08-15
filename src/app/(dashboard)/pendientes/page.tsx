@@ -34,8 +34,16 @@
  * dentro de la tarjeta se perdería en cuanto cualquier cosa de la página
  * cambiara de estado (recargar, filtrar, mover una tarea), y la lente se
  * cerraría sola sin que nadie la cerrara.
+ *
+ * **Y ya no es de esta pantalla.** El disparador, la lente, los cuatro bloques
+ * y la traza viven en `@/components/tareas/PorQueEstaAqui` desde que Hoy
+ * necesitó contestar lo mismo sobre el mismo pendiente: `tareasVivas()` es una
+ * fuente con dos lectores, y dos plantillas para las cuatro respuestas es la
+ * trampa de REG-318 montada otra vez sobre la misma entidad. Esta pantalla
+ * conserva lo suyo —los filtros, mover de estado, cancelar con motivo— y
+ * consume la pieza.
  */
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PageHeader, Button, EmptyState, Spinner, Modal, Textarea } from '@/components/ui'
@@ -48,77 +56,14 @@ import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type EstadoDeAccion } from '@/lib/tareas-clinicas/estado-de-accion'
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
-import { responderPorElPendiente, siguientePaso } from '@/lib/tareas-clinicas/por-que-esta-aqui'
-import { Lente } from '@/components/LenteContextual'
-import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList, ChevronDown, ChevronUp, HelpCircle, FileText } from 'lucide-react'
+import { siguientePaso } from '@/lib/tareas-clinicas/por-que-esta-aqui'
+import { DisparadorPorQue, LentePorQue, usePorQue } from '@/components/tareas/PorQueEstaAqui'
+import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
 
 function fechaCorta(iso?: string): string {
   if (!iso) return ''
   const d = new Date(iso)
   return Number.isFinite(d.getTime()) ? d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : ''
-}
-
-/** Con día y hora: en la línea de tiempo de un pendiente, el día solo no basta
-    para saber si el resultado se marcó antes o después de la consulta. */
-function fechaLarga(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return Number.isFinite(d.getTime())
-    ? d.toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : ''
-}
-
-/**
- * EL DISPARADOR DE LAS DOS PREGUNTAS QUE FALTABAN (§10).
- *
- * Va en las DOS clases de tarjeta —abierta y cerrada— a propósito: «¿qué ha
- * pasado?» es justamente lo que se le pregunta a algo que ya se cerró, y una
- * cerrada sin su historia es otra vez un documento al que nadie vuelve.
- *
- * Subordinado por posición y peso (§16: lo que no es la tarea principal se ve
- * menos), y con `aria-expanded` porque abre algo — la deuda que la medición de
- * la Capa 4 encontró en `SelloProcedencia` sin buscarla.
- *
- * **Declarado FUERA del componente de página**, como `Bloque`: el linter marcó
- * las dos primeras versiones («Cannot create components during render»), y
- * tenía razón por la misma razón que este fichero ya documenta para `Tarjeta`
- * — un componente creado en el render es un tipo nuevo en cada render, y su
- * subárbol se remonta. Aquí no había estado que perder todavía, pero el día que
- * lo hubiera el fallo sería invisible y difícil de atribuir.
- */
-function AbrirPorQue({ t, abierta, onAbrir }: {
-  t: TareaClinica
-  abierta: boolean
-  onAbrir: (t: TareaClinica, disparador: HTMLElement) => void
-}) {
-  return (
-    <Button
-      size="sm"
-      variant="ghost"
-      aria-expanded={abierta}
-      onClick={e => onAbrir(t, e.currentTarget as HTMLElement)}
-    >
-      <HelpCircle size={14} /> ¿Por qué está aquí?
-    </Button>
-  )
-}
-
-/**
- * Cada una de las cuatro respuestas de §10 dentro de la lente.
- *
- * El rótulo es un <h3> DE VERDAD, no un span en versalitas: la lente ya se
- * anuncia como región con nombre, y dentro de ella las cuatro preguntas son la
- * estructura por la que navega un lector de pantalla. Toda la tipografía vive
- * en la hoja (`.nx-porque*`) — el trinquete de diseño paró la primera versión,
- * que la escribía en línea fuera de la escala.
- */
-function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <section className="nx-porque-bloque">
-      <h3 className="nx-porque-rotulo">{titulo}</h3>
-      {children}
-    </section>
-  )
 }
 
 /*
@@ -246,7 +191,7 @@ function Tarjeta({ t, ahora, porQueId, onAbrirPorQue, onMover, onCancelar, onIrA
           <Button size="sm" variant="ghost" onClick={() => onCancelar(t)}>
             <X size={14} /> Ya no aplica
           </Button>
-          <AbrirPorQue t={t} abierta={porQueId === t.id} onAbrir={onAbrirPorQue} />
+          <DisparadorPorQue tarea={t} abierta={porQueId === t.id} onAbrir={onAbrirPorQue} />
         </div>
       </div>
     )
@@ -296,7 +241,7 @@ function TarjetaCerrada({ t, porQueId, onAbrirPorQue, onIrAlExpediente }: {
         <span className="nx-num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <CheckCircle2 size={13} /> Cerrada {fechaCorta(t.cerradaEn)}
         </span>
-        <AbrirPorQue t={t} abierta={porQueId === t.id} onAbrir={onAbrirPorQue} />
+        <DisparadorPorQue tarea={t} abierta={porQueId === t.id} onAbrir={onAbrirPorQue} />
       </div>
     </div>
   )
@@ -340,9 +285,7 @@ export default function PendientesPage() {
    * de un dato clínico en vez del dato (la razón por la que la propia lente
    * renderiza `children` del consumidor y no guarda copia).
    */
-  const [porQueId, setPorQueId] = useState<string | null>(null)
-  /** El control que abrió la lente, para que el foco vuelva ahí al cerrarla. */
-  const disparadorPorQue = useRef<HTMLElement | null>(null)
+  const { porQueId, disparador: disparadorPorQue, alternar: alternarPorQue, cerrar: cerrarPorQue } = usePorQue()
 
   const uid = auth.currentUser?.uid ?? ''
 
@@ -440,13 +383,6 @@ export default function PendientesPage() {
     setMotivo('')
   }, [])
 
-  /** Abrir/cerrar la lente de §10, recordando a qué control vuelve el foco. */
-  const alternarPorQue = useCallback((t: TareaClinica, disparador: HTMLElement) => {
-    disparadorPorQue.current = disparador
-    setPorQueId(id => (id === t.id ? null : t.id ?? null))
-  }, [])
-
-
   return (
     <div className="nx-canvas">
       <PageHeader
@@ -535,85 +471,17 @@ export default function PendientesPage() {
         que se lee es el pendiente de ahora. Si desaparece de las dos (se cerró
         y salió de `tareasVivas`), la lente se queda sin sujeto y no se abre —
         que es mejor que enseñar la ficha de algo que ya no está donde dice.
+
+        Buscar aquí y no dentro de la pieza es deliberado: sólo esta pantalla
+        sabe en qué listas mirar (las vivas Y las cerradas recientes). La pieza
+        recibe la tarea de ahora, o `null`.
       */}
-      {(() => {
-        const t = porQueId
-          ? ([...tareas, ...(cerradas ?? [])].find(x => x.id === porQueId) ?? null)
-          : null
-        if (!t) return null
-        const r = responderPorElPendiente(t, uid)
-        return (
-          <Lente
-            abierta
-            titulo={t.titulo}
-            subtitulo={t.patientNombre}
-            invocador={disparadorPorQue}
-            alCerrar={() => setPorQueId(null)}
-          >
-            <div className="nx-porque">
-              <Bloque titulo="Por qué está aquí">
-                <p className="nx-porque-texto">{r.porQue}</p>
-                {/*
-                  LA TRAZA HACIA ATRÁS, POR FIN A LA VISTA. `notaId` se escribe
-                  desde que existe `derivar.ts` y hasta hoy sólo lo leía el
-                  compositor de ids de Firestore. Aterriza en la consulta con la
-                  nota abierta: ahí está el sello de procedencia, y con él el
-                  segundo exacto del dictado. La cadena de §21 sin saltos.
-                */}
-                {r.traza && (
-                  <Link
-                    href={r.traza.href}
-                    className="nx-porque-traza"
-                  >
-                    <FileText size={14} /> Ver la consulta de la que salió
-                  </Link>
-                )}
-                {/* Ausencia de dato no es dato de ausencia: se dice que no
-                    consta la traza, no que la tarea nació de la nada. */}
-                {!r.traza && (
-                  <p className="nx-meta" style={{ margin: 0 }}>
-                    No consta de qué consulta salió.
-                  </p>
-                )}
-              </Bloque>
-
-              <Bloque titulo="Quién responde">
-                <p className="nx-porque-texto">{r.quienResponde}</p>
-              </Bloque>
-
-              <Bloque titulo="Qué ha pasado">
-                {r.queHaPasado.length === 0 ? (
-                  <p className="nx-meta" style={{ margin: 0 }}>No consta ningún movimiento.</p>
-                ) : (
-                  <ol className="nx-porque-hitos">
-                    {r.queHaPasado.map((h, i) => (
-                      <li key={i} className="nx-porque-hito">
-                        <span className="nx-porque-texto">{h.que}</span>
-                        {h.cuando && <span className="nx-num nx-meta">{fechaLarga(h.cuando)}</span>}
-                        {/*
-                          El hueco entero por el que se pierde un resultado: el
-                          estudio hecho, el resultado en el sistema, y nadie que
-                          lo haya leído. Va en rojo y con su nombre porque leer
-                          «el trabajo se hizo» y entender «listo» es el error.
-                        */}
-                        {h.sinRevisar && (
-                          <span className="nx-critico" style={{ margin: 0 }}>
-                            <AlertTriangle size={13} /> Hecho, pero nadie lo ha revisado todavía.
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </Bloque>
-
-              <Bloque titulo="Qué sigue">
-                <p className="nx-porque-texto">{r.queSigue}</p>
-              </Bloque>
-            </div>
-          </Lente>
-        )
-      })()}
+      <LentePorQue
+        tarea={porQueId ? ([...tareas, ...(cerradas ?? [])].find(x => x.id === porQueId) ?? null) : null}
+        uid={uid}
+        invocador={disparadorPorQue}
+        alCerrar={cerrarPorQue}
+      />
 
       {/*
         Cancelar EXIGE motivo. Sin él, «ya no aplica» y «lo quité de la lista»

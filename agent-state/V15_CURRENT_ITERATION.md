@@ -4,7 +4,22 @@
 
 ## Iteración en curso
 
-**15-ago (última rebanada) — REG-316 y REG-317: una regla de CSS llevaba
+**15-ago (última rebanada) — §21 llega a Hoy: la fila que enseñaba el pendiente
+no podía preguntarle nada, y las cuatro respuestas casi nacen por duplicado.**
+
+`tareasVivas()` es una fuente con dos lectores y sólo uno podía inspeccionarla.
+Medido antes de tocar: la zona CONTINUITY de Hoy pintaba **5 filas y 0 podían
+preguntar**, las 5 eran un `<a>` entero —o sea que la mudez era la FORMA de la
+fila, no un botón olvidado— y llegar a las cuatro respuestas de §10 costaba
+irse a `/pendientes`, 171px de desplazamiento que no vuelven en el teléfono.
+Después: **5 de 5**, la URL no cambia, Hoy crece **+0px** al abrir, Escape
+cierra, el foco vuelve y el scroll es exacto. Alcance de §21: **2 → 3 de 6**
+(el «3 de 6» que este estado declaraba estaba mal contado: `/expediente` sólo
+enseña su sello tras abrir una nota firmada). La pieza compartida
+`components/tareas/PorQueEstaAqui.tsx` evita la copia que habría repetido
+REG-318 sobre la misma entidad. Detalle completo al final del fichero.
+
+**15-ago — REG-316 y REG-317: una regla de CSS llevaba
 muerta desde RTC-32, y `/reactivacion` felicitaba al médico por esconder a
 cuatro pacientes.**
 
@@ -9225,3 +9240,171 @@ dueño: el punto 3 (llevar la fuente a `/dashboard`, `/pacientes` y
 `/operaciones`) y el punto 4 (el paréntesis de `alergiasDe`, unidad de seguridad
 clínica con su entrada de regresión y su sello). El punto 1 **no es trabajo de
 Claude**: es una decisión del dueño sobre la compuerta de firma.
+
+---
+
+## §21 LLEGA A HOY — la fila que enseñaba el pendiente no podía preguntarle nada (15-ago)
+
+**La rebanada que el estado dejó nombrada como «punto 3»**: llevar la fuente a
+las superficies que no la tenían. Al medir, la que lo pedía a gritos no era una
+de las tres nombradas — era **Hoy**, y por una razón que el estado no había
+visto: Hoy es donde el médico ve el pendiente **por primera vez**.
+
+### Lo que había, medido antes de tocar
+
+`scripts/design/medir-porque-en-hoy-v15.mjs`, acta
+`docs/design/capturas/v15-porque-en-hoy/acta-antes.json` (build de producción +
+emuladores + siembra, 1440 y 390, **0 errores de consola**):
+
+```
+ALCANCE §21   2 de 6 al abrir la ruta: /pendientes y /consulta
+HOY           la zona CONTINUITY pinta 5 filas · 0 pueden preguntar
+LA FORMA      las 5 son un <a> ENTERO
+EL COSTE      para las cuatro respuestas de §10 había que IRSE a /pendientes;
+              en el teléfono, 171px de desplazamiento que no vuelven
+```
+
+**El estado decía «3 de 6». Son 2.** `/expediente` enseña su sello sólo tras
+abrir una nota firmada, no al abrir la ruta — la corrida de REG-318 lo midió
+con la nota ya abierta y el estado se quedó con ese número. Queda corregido.
+
+`tareasVivas()` es **una** fuente de verdad con **dos** lectores —la cola de
+cierre y la zona CONTINUITY de §6— y sólo uno podía preguntarle nada.
+
+### La causa raíz no era un botón olvidado: era la forma de la fila
+
+Las cinco filas eran un `<a>` que envolvía todo. Cómodo —cualquier píxel
+navega— y **estructuralmente incompatible con un control dentro**: un `<button>`
+dentro de un `<a>` es `nested-interactive` (axe) y dos destinos para el mismo
+gesto. La mudez estaba construida.
+
+La fila pasa a la composición que Hoy **ya usa** dos metros más arriba en la
+misma pantalla (`AppointmentRow`): `.cita-fila` como contenedor, `.cita-principal`
+como el enlace que navega, `.cita-acciones` para lo que se le hace a la entrada
+sin salir de la lista. **Ni una regla de CSS nueva** — el patrón, y su plegado a
+560px, ya estaban en la hoja.
+
+### El segundo defecto, el que no se ve: casi nace la copia
+
+La salida barata era copiar el bloque de la lente de `/pendientes`. Es la trampa
+de **REG-318** exactamente, y es de hace unas horas: tres listas independientes
+de «qué es una nota para el sello» acabaron en dos sellos que contaban distinto
+sobre el mismo documento. Dos plantillas para las cuatro respuestas de §10 sobre
+la MISMA entidad clínica empiezan idénticas y divergen a la tercera edición.
+
+El disparador, la lente, los cuatro bloques, la traza y el estado (`usePorQue`)
+viven en `src/components/tareas/PorQueEstaAqui.tsx`. Las dos superficies lo
+consumen; ninguna de las dos escribe ya un rótulo de §10 ni llama al motor.
+
+**Y la extracción no redondeó nada.** `/pendientes` formateaba los hitos con día
+Y HORA, con su razón escrita: en la línea de tiempo de un pendiente el día solo
+no basta para saber si el resultado se marcó antes o después de la consulta. Se
+mudó tal cual, y hay un caso que lo vigila — una extracción que «simplifica» un
+formato al mudarlo es un cambio de conducta disfrazado de refactor, y la
+pantalla de origen ya no tiene el código con el que compararlo.
+
+### La medición, en navegador real (1440 y 390, antes y después)
+
+| | antes | después |
+|---|---|---|
+| alcance §21 al abrir la ruta | 2 de 6 | **3 de 6** |
+| filas de continuidad en Hoy | 5 | 5 |
+| filas que pueden preguntar | **0** | **5** |
+| filas que son un `<a>` entero | 5 | **0** |
+| la URL al inspeccionar | (había que navegar) | **no cambia** |
+| crecimiento de Hoy al abrir | — | **+0px** escritorio · **+0px** móvil |
+| las cuatro respuestas | — | **4/4**, ninguna vacía |
+| la traza | — | `/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2`, **carga** |
+| la rama honesta | — | «no consta de qué consulta salió» en la que no tiene |
+| Escape cierra · foco vuelve · scroll exacto | — | sí · sí · **83→83 y 215→215** |
+| táctil del disparador en móvil | — | 162×44, **ninguno bajo 44** |
+| errores de consola | 0 | **0** |
+
+**La fila que prueba la rebanada es «crecimiento +0px».** Que aparezcan cinco
+botones no vale nada si abrir uno empuja Hoy bajo el dedo: eso es lo que §21
+llama perder el sitio, y es justo lo que hacía el patrón en línea que la Capa 4
+vino a matar. En escritorio el lienzo cede el canalón y la lente se acopla; en
+el teléfono la hoja entra **en flujo** debajo de la fila, y el disparador sigue
+visible (`disparadorTapado: false` en los dos casos, los dos anchos).
+
+### Compuertas
+
+`npx tsc --noEmit` limpio · `npx vitest run` **9596/9598**; los dos rojos son
+conocidos y verificados: `ops-timeout-y-punto-ciego` (proxy del contenedor,
+**comprobado en rojo también contra HEAD limpio en esta corrida**) y
+`el-inventario-de-pantallas-no-miente`, que es el guardián haciendo su trabajo
+—cambiaron las líneas de `pendientes/page.tsx`— y se regeneró · lint **96 =
+techo** · trinquete de diseño **sin deuda nueva** (los nueve techos intactos) ·
+`npm run build` compila · navegador real 1440 + 390 en las **dos** fases, 9
+capturas, **0 errores de consola**.
+
+Guardián `v15-hoy-tambien-pregunta.test.ts` (10 casos). **Probado al revés**,
+cinco reversiones quirúrgicas comprobadas en rojo **una a una**, y cada una
+muerde exactamente un caso:
+
+- la fila vuelve a ser un `<a>` entero → cae el 1 ✓
+- `usePorQue()` bajado a la fila → cae el 4 ✓
+- un rótulo de §10 copiado en Hoy → cae el 3 ✓
+- `fechaLarga` pierde la hora → cae el 9 ✓
+- la tarea abierta buscada en la lista sin ordenar → cae el 5 ✓
+
+Y una vara **mudada, no bajada**: `v15-por-que-esta-aqui.test.ts` exigía que
+`/pendientes` montara la `<Lente>`. Ahora exige que la monte la PIEZA, que la
+pantalla la consuma, que **nadie** vuelva a montarla a mano — y hay un caso
+nuevo (12b) que falla si un rótulo de §10 o una llamada al motor reaparece en
+cualquiera de las dos superficies. Sin esa segunda mitad, la divergencia
+volvería con una pantalla que se escribiera su copia otra vez.
+
+**Sin entrada de regresión, y con motivo.** Esto es alcance de §21, no un
+defecto de los que mienten: ninguna pantalla decía nada falso — faltaba una
+capacidad. Misma clasificación que sus dos hermanas (`v15-por-que-esta-aqui` y
+`v15-lente-contextual-es-la-capa-4`), que tampoco están en el ledger ni en el
+sello.
+
+**Defecto propio, del instrumento, y van quince en la fase**: la primera pasada
+del medidor recorrió las seis superficies por la RAÍZ de la ruta (`/consulta`,
+`/expediente`) y declaró «1 de 6». Tres de las seis necesitan id de paciente:
+`/consulta` sin paciente no es la nota. La vara se igualó a la de
+`medir-lente-contextual-v15.mjs` —mismas rutas, mismos ids— antes de tomar
+ningún número como bueno.
+
+### Declarado y NO pagado
+
+1. **En el teléfono, Hoy crece 887 → 1124px** (+237). Es la consecuencia real y
+   medida de la regla que ya vivía en la hoja: por debajo de 560px
+   `.cita-acciones` baja a su propio renglón, y son cinco filas. No se compensa
+   con un control más chico —eso divergiría del idioma de `/pendientes` sobre la
+   misma entidad, que es lo que esta rebanada acaba de cerrar—. La zona es la
+   ÚLTIMA de Hoy, así que no empuja ninguna otra: alarga la cola de la página.
+   Queda medido y nombrado; si el dueño lo quiere más corto, la palanca es el
+   `TOPE_VISIBLE` de 5, que es una decisión suya y no de estilo.
+2. **`anidados: 2` en Hoy, en las DOS fases.** No lo introduce esta rebanada
+   —estaba antes y sigue igual— pero el instrumento lo cazó y aquí queda dicho:
+   Hoy tiene dos `nested-interactive` preexistentes, y uno es el CTA del héroe
+   NOW (`<Link><button className="prox-hero-cta">`), o sea el control primario
+   de la pantalla. `/pacientes` tiene uno. Unidad de accesibilidad propia, con
+   su medición y su guardián; no se toca de paso.
+3. **El alcance de §21 sigue en 3 de 6.** Quedan `/pacientes` y `/operaciones`
+   sin ninguna fuente que inspeccionar, y `/expediente` sólo la enseña tras
+   abrir una nota firmada.
+4. **El aviso de notificaciones tapa la hoja inferior en el teléfono.**
+   `NotificacionesPushOptIn` se pinta encima de la Capa 4 en 390px (visible en
+   `despues-movil-390-hoy-lente-0.png`). Preexistente y de otra pieza; anotado.
+5. **`alergiasDe` parte dentro del paréntesis** — sigue sin pagar, sigue siendo
+   `src/lib/seguridad/alergias.ts`, que §1 congela.
+6. **La divergencia de `mostrarAlergias` entre `/orden` y `/receta`** sigue
+   congelada por su guardián, esperando decisión del dueño.
+7. **RTC-12(a)** (lienzo multicolumna) sigue nombrado, con el refactor del
+   monolito.
+8. **La compuerta de firma no mira la prosa** (punto 1 de la rebanada anterior):
+   sigue siendo decisión del dueño, no trabajo de Claude.
+
+**Siguiente tarea exacta**: la **lectura INDEPENDIENTE de §26/§29** sigue
+pendiente y sigue siendo de Codex — quien implementa no puede ser el juez. Si da
+PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`. Trabajo de producto sin
+esperar a nadie, por orden de daño: el punto 2 (los dos `nested-interactive` de
+Hoy, uno de ellos en el CTA del héroe — accesibilidad sobre la acción primaria,
+que §24 llama bloqueante) y el punto 3 (el alcance de §21 en `/pacientes` y
+`/operaciones`, midiendo antes si esas pantallas tienen siquiera un hecho con
+procedencia que inspeccionar — puede acabar REFUTADO, como RTC-30 en
+`/lista-espera`).
