@@ -155,9 +155,26 @@ pantalla el número escrito a mano **se borra, no se acompaña**. El trinquete
   > — un expediente partido en `/pacientes`, una cita encima de otras seis en
   > `/citas`.
 
-  Siguen con el hero, y se miran caso por caso: lista de espera, farmacia,
-  cumplimiento, reactivación. A veces el vacío ES la pantalla y el hero es
-  correcto.
+  **Las cuatro que quedaban, miradas una a una el 15-ago (REG-317) — y la
+  cuarta vez la regla dejó de escribirse a mano.** Vive en
+  `src/lib/ui/vacio-de-una-lista.ts`: héroe y gesto de alta sólo con el
+  conjunto entero vacío; con filas escondidas, línea + recuento de lo que
+  queda fuera + el gesto de la causa; y una causa que **no se puede soltar se
+  dice igual, sin botón**. Los dos módulos anteriores no se convierten: llevan
+  conocimiento propio (los parecidos por nombre, el día siguiente) y están
+  medidos en navegador.
+
+  | Pantalla | Veredicto |
+  |---|---|
+  | `/lista-espera` | **NO era defecto.** Sin buscador ni filtro, cero filas es cero de verdad: el héroe con «Agregar» es correcto. Queda declarado para que nadie lo «arregle». |
+  | `/farmacia` | Convertida. «Sin resultados con esos filtros» + ilustración de 253px y cero controles → línea de 62px con el recuento y el gesto. |
+  | `/cumplimiento` (bitácora) | Convertida. Con 200 asientos y el filtro de tipo puesto decía «Sin eventos registrados aún», dos líneas encima de la cita a NOM-024. |
+  | `/reactivacion` | Convertida, y era el peor: **felicitaba** («¡Buen seguimiento!») escondiendo a cuatro pacientes por cuatro causas distintas — el umbral, la baja, ARCO y no tener teléfono. |
+
+  Lo que enseñó la cuarta: **una causa que no se puede soltar sigue siendo una
+  causa.** Antes sólo se pintaba lo que tenía botón, y por eso «no tiene
+  teléfono registrado» —el caso que más se parecía a un éxito y menos lo era—
+  no se decía en ninguna parte.
 - **Los dos FAB de escritorio** — RTC-05 se pagó con alcance declarado; se
   vuelven a mirar cuando el marco esté hecho, no antes.
 - **Las 35 páginas del dashboard que siguen con su ancho a mano.** La regla 4

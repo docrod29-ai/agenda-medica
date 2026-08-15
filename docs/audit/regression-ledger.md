@@ -7540,3 +7540,153 @@ reactivación— siguen con el hero: **RTC-30 sigue abierto ahí**.
 **Familia.** `el_dato_no_llega` en la causa raíz (un módulo que existe y no se
 consulta donde importa) y `ausencia_no_es_dato` en el síntoma (una lista
 vacía que no distingue «no hay» de «no se ven»).
+
+---
+
+## REG-316 — cuatro líneas de prosa fuera de un comentario mataron una regla de CSS, y el fuente se leía perfecto
+
+**Fecha:** 15-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media
+
+**Qué fallaba.** En `globals.css`, RTC-32 añadió un párrafo a un comentario que
+ya estaba **cerrado**: cuatro líneas de prosa en español quedaron fuera del
+bloque `/* … */`, seguidas de un segundo cierre huérfano, justo encima de un
+`@media`.
+
+Un analizador de CSS que encuentra basura en el nivel superior no la salta:
+abre una regla y consume hasta la PRIMERA llave. La primera llave después de la
+prosa era la del `@media (max-width: 900px)` siguiente, así que **la regla
+entera quedó dentro de un selector inválido y se descartó con él**.
+
+La regla muerta era la que aparta los botones flotantes mientras hay un campo
+con el foco — la que nació de tres capturas del iPhone del dueño con el botón de
+ayuda encima de **Peso** y de **Exploración física**. Desde RTC-32 no existía en
+el navegador.
+
+**Cómo se descubrió.** No leyendo el CSS: `npm run build` lo decía —«Found 1
+warning while optimizing generated CSS … Invalid token in pseudo element»— en
+una salida que nadie lee. Confirmado **del otro lado**, en el CSS construido:
+`theme-toggle` aparecía ocho veces y `html:has(input:focus, …) .theme-toggle`
+ninguna.
+
+**Causa raíz.** El mismo mecanismo que `nx-stat-grid` con otra ropa: allí un
+estilo en línea vencía a la hoja **en silencio**, aquí un comentario mal cerrado
+se come la regla siguiente **en silencio**. Las dos veces el fuente parecía
+correcto y la suite estaba en verde.
+
+**La regla que lo hace seguro.** No se vigila este defecto: se vigila el
+analizador. `globals.css` se pasa por el mismo motor de la construcción
+(lightningcss) y sólo se toleran los avisos declarados por su nombre — hoy uno,
+`@theme` de Tailwind v4, con su motivo escrito. Cualquier aviso nuevo pone el
+caso en rojo con su número de línea.
+
+**Guardián.** `src/__tests__/la-hoja-de-estilos-llega-entera.test.ts` (3 casos).
+Probado al revés: devolviendo la prosa suelta a `globals.css` caen los casos 1 y
+2. El caso 3 es **control positivo** —inyecta el defecto en una copia en memoria
+y comprueba que el instrumento lo caza y que la regla desaparece de la salida—,
+sin el cual esta prueba pasaría igual el día que el analizador dejara de avisar
+de nada.
+
+**Verificado del otro lado.** Con el arreglo, `npm run build` termina sin
+avisos y `has(input:focus,textarea:focus,select:focus) .theme-toggle` aparece en
+`.next/static/chunks/*.css`. Antes del arreglo, el mismo build vuelve a emitir
+el aviso: la reversión se comprobó, no se supuso.
+
+**Qué NO cubre.** Sólo `globals.css` (el CSS en línea del JSX lo vigila el
+trinquete de diseño); no comprueba que el selector CASE con algo en un navegador
+—eso es del arnés—, ni valida propiedades desconocidas o compatibilidad.
+
+**Familia.** `el_dato_no_llega` — lo escrito no llega al destinatario, y del
+otro lado no lo miraba nadie.
+
+---
+
+## REG-317 — `/reactivacion` felicitaba al médico por una lista que escondía a cuatro pacientes
+
+**Fecha:** 15-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media
+
+**Qué fallaba.** Con la lista vacía, `/reactivacion` pintaba siempre lo mismo:
+
+    «Nadie pendiente de reactivar
+     No hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!»
+
+Eso es cierto en UNA de cinco situaciones. En las otras cuatro hay gente que
+lleva meses sin volver y la pantalla no la enseña: porque la píldora del umbral
+está más alta, porque el paciente pidió la baja de WhatsApp, porque ejerció su
+derecho ARCO, o —la que más duele— porque **no tiene un teléfono al que
+escribir**. Un paciente sin datos de contacto que lleva dos años sin volver era
+invisible aquí, y su ausencia se leía como buen seguimiento.
+
+Medido en navegador con cuatro pacientes escondidos, la pantalla vieja seguía
+felicitando. Es la regla 4 de seguridad clínica —ausencia de dato no es dato de
+ausencia— dicha en la continuidad del paciente.
+
+Dos pantallas más de la misma cola tenían la mitad del defecto:
+
+- **`/farmacia`** — «Sin resultados con esos filtros» sobre una ilustración de
+  página entera y **sin ningún control**: con ítems dentro se lee igual que una
+  farmacia recién abierta, y para recuperarlos había que acordarse de vaciar el
+  buscador Y de devolver el desplegable a «Todas las categorías».
+- **`/cumplimiento` (bitácora)** — con 200 asientos traídos y el filtro de tipo
+  puesto decía «Sin eventos registrados aún · Cada acceso, escritura, impresión
+  y firma quedará aquí»: describía una bitácora que todavía no existe, sobre una
+  que sí. Dos líneas más abajo la pantalla cita NOM-024 Art. 6.5.
+
+**`/lista-espera` NO era defecto** y queda declarado para que nadie lo
+«arregle»: no tiene buscador ni filtro, así que cero filas significa cero de
+verdad y el héroe con «Agregar» es la respuesta correcta.
+
+**Causa raíz.** RTC-30 se había descubierto TRES veces (Hoy, REG-314 en
+`/citas`, REG-315 en `/pacientes`) y las tres se había vuelto a escribir entera.
+No existía como pieza, así que la cuarta pantalla no podía heredarla. En
+`/reactivacion` había una segunda causa más honda: el desglose no se podía
+pintar porque **no se calculaba** — `pacientesParaReactivar` devolvía la lista y
+tiraba por el camino el motivo de cada ausencia.
+
+**La regla que lo hace seguro.** `src/lib/ui/vacio-de-una-lista.ts` decide una
+sola vez: héroe y gesto de alta **sólo** con el conjunto entero vacío; con filas
+escondidas, variante línea, título que dice cuántas hay FUERA y gestos que
+sueltan la causa —nunca el de alta, que sobre lo escondido invita al duplicado—;
+una causa que no se puede soltar (`gesto: null`) **se dice igual**; y sin causa
+declarada no se inventa una frase amable. Y `clasificarParaReactivar` es ahora
+la única fuente de verdad sobre a quién se reactiva: `pacientesParaReactivar` es
+una VISTA suya, así que el desglose que se pinta y la lista que se enseña no
+pueden divergir.
+
+Los dos módulos anteriores (`vacio-de-la-agenda`, `vacio-de-la-lista`) **no se
+tocan**: llevan conocimiento que aquí no cabe —los parecidos por nombre, el día
+siguiente— y están medidos en navegador. Quedan como los casos especiales.
+
+**Guardián.** `src/__tests__/v15-rtc30-el-vacio-dice-cuantos-hay-fuera.test.ts`
+(13 casos). Probado al revés con seis reversiones quirúrgicas, una a una y en
+rojo: devolviendo `variante: 'hero'` siempre caen el 2 y el 9; devolviendo el
+gesto de alta con restricciones activas caen el 3 y el 4; filtrando las causas
+sin gesto antes de la frase cae el 4; con una frase amable sin causa declarada
+cae el 5; con el desglose contando sólo candidatos caen el 8, el 9 y el 10; con
+los literales viejos de vuelta cae el 12; y con el módulo importado pero no
+llamado cae el 11. El caso 11 se escribe contra el USO
+(`describirVacioDeUnaLista({`) y no contra el identificador suelto — la lección
+que dejó REG-315.
+
+**Verificado en navegador real**, mismo instrumento sobre las dos versiones (dos
+builds de producción + emuladores + siembra sintética propia; escritorio 1440 y
+móvil 390; **0 errores de consola** en las cuatro pasadas),
+`scripts/design/verificar-rtc30-v15.mjs` — **antes 4/24, después 24/24**:
+
+| | antes | después |
+|---|---|---|
+| `/reactivacion` con 4 pacientes escondidos | «¡Buen seguimiento!» | «Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.» |
+| alto del bloque vacío de `/reactivacion` | 300px (héroe ilustrado) | 96px escritorio · 158px móvil |
+| alto del bloque vacío de `/farmacia` | 253px (héroe ilustrado) | 62px escritorio · 134px móvil |
+| controles dentro del bloque vacío | 0 en las dos | 1 en cada una, ≥44px en móvil |
+| «Limpiar la búsqueda» | no existía | devuelve los 4 ítems |
+| «Ver +3 meses» | no existía | devuelve 3 pacientes |
+| «Agregar» sobre lo que un filtro esconde | — | no se ofrece (comprobado) |
+
+**Qué NO cubre.** No se fotografió el vacío de la bitácora de `/cumplimiento`:
+la siembra sintética no genera 200 asientos con tipos variados, así que ahí sólo
+está probada la decisión, no la pantalla. Tampoco se convierten los dos módulos
+de vacío anteriores. Y RTC-30 no toca los estados vacíos que viven dentro de
+modales ni los de los módulos en ALPHA (Hospital/UCI).
+
+**Familia.** `ausencia_no_es_dato` — una lista vacía que no distingue «no hay»
+de «no se ven», y que además felicitaba por la diferencia.

@@ -1,0 +1,178 @@
+{
+  "arnes": "verificar-rtc30-v15",
+  "cuando": "2026-08-15T01:56:34.367Z",
+  "resultado": "PASS",
+  "condiciones": [
+    {
+      "ok": true,
+      "texto": "[escritorio] /farmacia dice cuántos ítems hay fuera",
+      "detalle": "Hay 4 ítems fuera de lo que estás mirando. ninguno coincide con «zzzz-no-existe».Limpiar l"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] el bloque es de LÍNEA, sin ilustración de página entera",
+      "detalle": "62px"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] NO se ofrece «Agregar» sobre lo que el filtro esconde",
+      "detalle": "Limpiar la búsqueda"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] el bloque trae control",
+      "detalle": "Limpiar la búsqueda"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] «Limpiar la búsqueda» devuelve el inventario",
+      "detalle": "4 ítems"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] /reactivacion dice cuántos pacientes hay sin volver",
+      "detalle": "Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfon"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] se dice la causa que NO se puede soltar (sin teléfono)",
+      "detalle": "Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.Ver +3 "
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] se dice la baja de WhatsApp",
+      "detalle": "Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.Ver +3 "
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] ya NO felicita con gente escondida dentro",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] el bloque es de LÍNEA",
+      "detalle": "96px"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] «Ver +3 meses» devuelve pacientes de verdad",
+      "detalle": "3 filas"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] /farmacia dice cuántos ítems hay fuera",
+      "detalle": "Hay 4 ítems fuera de lo que estás mirando. ninguno coincide con «zzzz-no-existe».Limpiar l"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] el bloque es de LÍNEA, sin ilustración de página entera",
+      "detalle": "134px"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] NO se ofrece «Agregar» sobre lo que el filtro esconde",
+      "detalle": "Limpiar la búsqueda"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] el bloque trae control",
+      "detalle": "Limpiar la búsqueda"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] «Limpiar la búsqueda» devuelve el inventario",
+      "detalle": "4 ítems"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] /reactivacion dice cuántos pacientes hay sin volver",
+      "detalle": "Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfon"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] se dice la causa que NO se puede soltar (sin teléfono)",
+      "detalle": "Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.Ver +3 "
+    },
+    {
+      "ok": true,
+      "texto": "[movil] se dice la baja de WhatsApp",
+      "detalle": "Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.Ver +3 "
+    },
+    {
+      "ok": true,
+      "texto": "[movil] ya NO felicita con gente escondida dentro",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[movil] el bloque es de LÍNEA",
+      "detalle": "158px"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] «Ver +3 meses» devuelve pacientes de verdad",
+      "detalle": "3 filas"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] los controles del vacío llegan a 44px",
+      "detalle": "todos ≥44"
+    },
+    {
+      "ok": true,
+      "texto": "cero errores de consola",
+      "detalle": "ninguno"
+    }
+  ],
+  "medidas": {
+    "farmacia_filtrado_escritorio": {
+      "linea": true,
+      "texto": "Hay 4 ítems fuera de lo que estás mirando. ninguno coincide con «zzzz-no-existe».Limpiar la búsqueda",
+      "alto": 62,
+      "ilustracion": false,
+      "controles": [
+        {
+          "texto": "Limpiar la búsqueda",
+          "alto": 30
+        }
+      ]
+    },
+    "reactivacion_umbral_alto_escritorio": {
+      "linea": true,
+      "texto": "Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.Ver +3 meses",
+      "alto": 96,
+      "ilustracion": false,
+      "controles": [
+        {
+          "texto": "Ver +3 meses",
+          "alto": 30
+        }
+      ]
+    },
+    "farmacia_filtrado_movil": {
+      "linea": true,
+      "texto": "Hay 4 ítems fuera de lo que estás mirando. ninguno coincide con «zzzz-no-existe».Limpiar la búsqueda",
+      "alto": 134,
+      "ilustracion": false,
+      "controles": [
+        {
+          "texto": "Limpiar la búsqueda",
+          "alto": 44
+        }
+      ]
+    },
+    "reactivacion_umbral_alto_movil": {
+      "linea": true,
+      "texto": "Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.Ver +3 meses",
+      "alto": 158,
+      "ilustracion": false,
+      "controles": [
+        {
+          "texto": "Ver +3 meses",
+          "alto": 44
+        }
+      ]
+    }
+  },
+  "errores": []
+}

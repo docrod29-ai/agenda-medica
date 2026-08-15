@@ -2284,7 +2284,8 @@ html, body, .card, .modal, .topbar, .sidebar {
    La solución es de momento, no de sitio: mientras hay un campo con el foco, se
    apartan. Vuelven en cuanto se deja de escribir. `:has()` lo resuelve sin una
    línea de JavaScript, y donde no exista simplemente no se aplica — el
-   comportamiento de hoy, que es el peor caso, no el único. */
+   comportamiento de hoy, que es el peor caso, no el único.
+
    RTC-32: la mitad del FAB de ayuda murió con el FAB. Esta regla sobrevive
    SÓLO para lo que queda flotando fuera del shell —login, registro,
    marketing—, donde el toggle sigue siendo un botón de esquina sobre

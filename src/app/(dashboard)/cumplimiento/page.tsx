@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { motoresSinValidar } from '@/components/SelloMotor'
 import { Tabs, Spinner, EmptyState, Modal, Button } from '@/components/ui'
+import { describirVacioDeUnaLista } from '@/lib/ui/vacio-de-una-lista'
 import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
 
@@ -709,11 +710,42 @@ function Bitacora({
         </button>
       </div>
       {loading ? <div style={{ padding: 24 }}><Spinner center label="Cargando…" /></div> : visibles.length === 0 ? (
-        <EmptyState icon={<FileSearch size={22} />}
-          title={pacienteFiltro ? 'Sin asientos para este paciente' : 'Sin eventos registrados aún'}
-          description={pacienteFiltro
-            ? 'Nadie ha tocado este expediente, o los asientos son anteriores a que existiera la bitácora.'
-            : 'Cada acceso, escritura, impresión y firma quedará aquí con sello de tiempo.'} />
+        /*
+          RTC-30 EN LA BITÁCORA — y aquí la mentira era la más cara del
+          producto. Con 200 asientos traídos y el filtro de tipo puesto en uno
+          que este paciente no tiene, la pantalla decía «Sin eventos
+          registrados aún» y describía una bitácora que aún no existe. Un
+          registro de accesos que dice «no hay» cuando sí los hay es
+          exactamente lo que NOM-024 Art. 6.5 existe para impedir.
+
+          `total` es lo que se trajo con el alcance actual (toda la clínica o
+          un paciente): cambiar de paciente cambia el conjunto, no lo esconde,
+          y por eso ese caso sigue siendo un vacío de registro con su frase de
+          siempre.
+        */
+        (() => {
+          const v = describirVacioDeUnaLista({
+            total: entries.length,
+            sustantivo: ['asiento', 'asientos'],
+            restricciones: eventoFiltro
+              ? [{ id: 'tipo', frase: `sólo se están mirando los de tipo «${etiquetaEvento(eventoFiltro)}»`, gesto: 'Todos los tipos' }]
+              : [],
+            registroVacio: {
+              titulo: pacienteFiltro ? 'Sin asientos para este paciente' : 'Sin eventos registrados aún',
+              descripcion: pacienteFiltro
+                ? 'Nadie ha tocado este expediente, o los asientos son anteriores a que existiera la bitácora.'
+                : 'Cada acceso, escritura, impresión y firma quedará aquí con sello de tiempo.',
+            },
+          })
+          return (
+            <EmptyState variante={v.variante}
+              icon={v.variante === 'hero' ? <FileSearch size={22} /> : undefined}
+              title={v.titulo} description={v.descripcion}
+              action={v.gestos[0]
+                ? <Button variant="ghost" size="sm" onClick={() => setEventoFiltro('')}>{v.gestos[0].etiqueta}</Button>
+                : undefined} />
+          )
+        })()
       ) : (<>
       <div style={{ padding: 12, borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text3)', display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
         {/*

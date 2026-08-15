@@ -21,10 +21,10 @@ import {
 } from '@/lib/farmacia'
 import {
   Pill, Search, Plus, AlertTriangle, Clock, Edit2, Trash2,
-  Package, ArrowUpCircle, ArrowDownCircle, MapPin, History,
+  Package, ArrowUpCircle, ArrowDownCircle, MapPin, History, X,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Modal } from '@/components/ui'
-import { SinResultados } from '@/components/brand/EmptyArt'
+import { describirVacioDeUnaLista, type RestriccionDeLista } from '@/lib/ui/vacio-de-una-lista'
 
 export default function FarmaciaPage() {
   const { clinicId } = useClinic()
@@ -87,6 +87,43 @@ export default function FarmaciaPage() {
     return r
   }, [items, search, categoriaFiltro])
 
+  /**
+   * RTC-30 — QUÉ DICE EL INVENTARIO CUANDO NO ENSEÑA NINGUNA FILA.
+   *
+   * Decía «Sin resultados con esos filtros» sobre una ilustración de página
+   * entera: describe la consulta, no el inventario, y con 24 ítems dentro se
+   * lee igual que una farmacia recién abierta. Sin ningún control: para volver
+   * a ver el inventario había que acordarse de vaciar el buscador Y de volver
+   * el desplegable a «Todas las categorías».
+   *
+   * La decisión vive fuera de la pantalla; esto sólo la pinta.
+   */
+  const vacio = useMemo(() => {
+    const r: RestriccionDeLista[] = []
+    if (categoriaFiltro !== 'todas') r.push({
+      id: 'categoria',
+      frase: categoriaFiltro === 'alertas'
+        ? 'sólo se están mirando los que tienen alertas'
+        : `sólo se está mirando la categoría ${CATEGORIA_LABEL[categoriaFiltro]}`,
+      gesto: 'Todas las categorías',
+    })
+    if (search.trim()) r.push({
+      id: 'busqueda',
+      frase: `ninguno coincide con «${search.trim()}»`,
+      gesto: 'Limpiar la búsqueda',
+    })
+    return describirVacioDeUnaLista({
+      total: items.length,
+      sustantivo: ['ítem', 'ítems'],
+      restricciones: r,
+      registroVacio: {
+        titulo: 'Aún no tienes ítems en farmacia',
+        descripcion: 'Registra tu inventario para controlar existencias, lotes y caducidades.',
+        gesto: 'Agregar',
+      },
+    })
+  }, [items.length, search, categoriaFiltro])
+
   // Conteos para badges
   const alertas = items.filter(i => bajoMinimo(i) || estaCaducado(i) || caducaPronto(i)).length
   const caducados = items.filter(estaCaducado).length
@@ -147,16 +184,31 @@ export default function FarmaciaPage() {
       {loading ? (
         <Spinner center label="Cargando inventario…" />
       ) : visibles.length === 0 ? (
-        items.length === 0 ? (
-          <EmptyState
-            icon={<Package size={22} />}
-            title="Aún no tienes ítems en farmacia"
-            description="Registra tu inventario para controlar existencias, lotes y caducidades."
-            action={<Button icon={<Plus size={14} />} onClick={() => setCreando(true)}>Agregar</Button>}
-          />
-        ) : (
-          <EmptyState illustration={<SinResultados />} title="Sin resultados con esos filtros" />
-        )
+        <EmptyState
+          variante={vacio.variante}
+          icon={vacio.variante === 'hero' ? <Package size={22} /> : undefined}
+          title={vacio.titulo}
+          description={vacio.descripcion}
+          action={
+            /* El gesto sale de la CAUSA. Nunca «Agregar» sobre lo que un filtro
+               esconde: es como nace un segundo lote del mismo medicamento — y
+               por eso el módulo sólo devuelve el gesto de alta cuando el
+               inventario entero está vacío. */
+            vacio.clase === 'registro-vacio' ? (
+              <Button icon={<Plus size={14} />} onClick={() => setCreando(true)}>Agregar</Button>
+            ) : vacio.gestos.length > 0 ? (
+              <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                {vacio.gestos.map(g => (
+                  <Button key={g.id} variant="ghost" size="sm"
+                    icon={g.id === 'busqueda' ? <X size={14} /> : <Package size={14} />}
+                    onClick={() => g.id === 'busqueda' ? setSearch('') : setCategoriaFiltro('todas')}>
+                    {g.etiqueta}
+                  </Button>
+                ))}
+              </span>
+            ) : undefined
+          }
+        />
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
           {visibles.map(item => (

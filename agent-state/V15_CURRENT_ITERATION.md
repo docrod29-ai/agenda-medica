@@ -4,7 +4,69 @@
 
 ## Iteración en curso
 
-**15-ago (última rebanada) — REG-315: la lista de pacientes vacía no decía
+**15-ago (última rebanada) — REG-316 y REG-317: una regla de CSS llevaba
+muerta desde RTC-32, y `/reactivacion` felicitaba al médico por esconder a
+cuatro pacientes.**
+
+**Lo primero salió de la prioridad 1 del routine, y estaba vivo.** El asunto de
+`.nx-stat-grid` sigue resuelto y sellado desde `c98525d`, pero la FAMILIA no:
+`npm run build` venía diciendo «Found 1 warning while optimizing generated CSS
+… Invalid token in pseudo element» en una salida que nadie lee. En
+`globals.css`, RTC-32 había añadido su párrafo a un comentario **ya cerrado**:
+cuatro líneas de prosa en español fuera del `/* … */` y un segundo cierre
+huérfano, justo encima de un `@media`. Un analizador de CSS no salta la basura
+del nivel superior: abre una regla y consume hasta la PRIMERA llave — que era
+la del `@media` siguiente. **La regla entera se descartó con el selector
+inválido**, y comprobado del otro lado en el CSS construido: `theme-toggle`
+ocho veces, `html:has(input:focus, …) .theme-toggle` **ninguna**. La regla
+muerta era la que aparta los botones flotantes mientras hay un campo con el
+foco — la de las tres capturas del iPhone del dueño con el botón encima de
+**Peso** y de **Exploración física**. El guardián no vigila ESTE defecto:
+vigila el analizador (lightningcss, el mismo de la construcción) y sólo tolera
+los avisos declarados por su nombre — hoy uno, `@theme` de Tailwind. Con
+control positivo: inyecta el defecto en una copia y comprueba que la regla
+desaparece de la salida.
+
+**Lo segundo cerró la cola declarada de RTC-30, y la cuarta vez dejó de
+escribirse a mano.** Las cuatro pantallas que el marco dejó nombradas, miradas
+una a una: **`/lista-espera` NO era defecto** (sin buscador ni filtro, cero
+filas es cero de verdad — queda declarado para que nadie lo «arregle»);
+`/farmacia` decía «Sin resultados con esos filtros» sobre 253px de ilustración
+y **cero controles**; la bitácora de `/cumplimiento` decía «Sin eventos
+registrados aún» con 200 asientos traídos, dos líneas encima de su propia cita
+a NOM-024; y `/reactivacion` era el peor, **porque felicitaba**: «¡Buen
+seguimiento!» se pintaba igual con la lista de verdad vacía que con cuatro
+pacientes escondidos por el umbral, la baja de WhatsApp, ARCO o —el que más
+duele— **no tener un teléfono al que escribir**.
+
+La regla vive ahora en `src/lib/ui/vacio-de-una-lista.ts` (una vez, no una por
+pantalla) y `clasificarParaReactivar` es la única fuente de verdad sobre a
+quién se reactiva: `pacientesParaReactivar` es una VISTA suya, así que el
+desglose que se pinta y la lista que se enseña no pueden divergir. **Medido en
+navegador con el MISMO instrumento sobre las dos versiones** (dos builds de
+producción + emuladores + siembra propia, 1440 y 390, 0 errores de consola):
+**antes 4/24, después 24/24**.
+
+| | antes | después |
+|---|---|---|
+| `/reactivacion` con 4 escondidos | «¡Buen seguimiento!» | «Hay 4 pacientes fuera… 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.» |
+| alto del vacío de `/reactivacion` | 300px | 96px escritorio · 158px móvil |
+| alto del vacío de `/farmacia` | 253px | 62px escritorio · 134px móvil |
+| controles dentro del vacío | 0 en las dos | 1 en cada una, ≥44px en móvil |
+| «Ver +3 meses» / «Limpiar la búsqueda» | no existían | devuelven 3 pacientes / 4 ítems |
+
+**Lo que enseñó la cuarta aplicación: una causa que no se puede soltar sigue
+siendo una causa.** Antes sólo se pintaba lo que tenía botón, y por eso «no
+tiene teléfono registrado» no se decía en ninguna parte. **RTC-30 queda
+CERRADO** en la cola que el marco declaró.
+
+**Nota de método:** `npm run build` fallaba en el contenedor por
+`auth/invalid-api-key` —faltan las `NEXT_PUBLIC_FIREBASE_*`—. No es defecto del
+producto: el propio CI las pone como relleno de construcción (`ci.yml`, con su
+motivo escrito). Un `.env.local` con esos valores + `NEXT_PUBLIC_FIREBASE_EMULATORS=1`
+y el build pasa. Si una corrida futura ve ese error, es esto y no el código.
+
+**15-ago — REG-315: la lista de pacientes vacía no decía
 cuántos había fuera, y el momento en que nace un expediente repetido no
 preguntaba nada.** `/pacientes` —la pantalla más visitada del producto— tenía
 CUATRO estados vacíos y tres eran un `<div>` suelto con un párrafo gris a 40px:
@@ -103,11 +165,21 @@ No queda P1 abierto ni trabajo estructural nombrado por delante: lo que falta
 para cerrar la iteración es la lectura INDEPENDIENTE de §26/§29 — quien
 implementa no puede ser el juez.**
 
-La cola viva es P2/P3 (RTC-30 en el resto de pantallas, RTC-23 a medias, RTC-24,
-RTC-26) más **un hueco que RTC-12(a) dejó nombrado y con sitio físico
-reservado: la Capa 4 de §5 —la lente contextual— no existe como pieza en este
-repositorio**, aunque §33 Fase 2 la pide y `V15-SHELL-GREYBOX-001` cerró sin
-ella.
+La cola viva es P2/P3 (RTC-23 a medias, RTC-24, RTC-26). **RTC-30 quedó CERRADO
+el 15-ago** (REG-317): las cuatro pantallas que faltaban, miradas una a una —
+tres convertidas y `/lista-espera` declarada como NO-defecto.
+
+**Siguiente tarea exacta (15-ago, tras REG-316/317):** sigue siendo **la lectura
+INDEPENDIENTE de §26/§29** — quien implementa no puede ser el juez, y es lo
+único que falta para declarar PASS o FAIL de
+`V15-ORIGINALITY-REDTEAM-001`. Ahora con dos superficies más que puntuar
+(`/farmacia` y `/reactivacion`, que esta rebanada tocó) y con las capturas de
+`docs/design/capturas/v15-rtc30/` (antes y después, ×2 anchos) ya en disco. Si
+da PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
+
+Y queda anotado, con sitio físico ya reservado por RTC-12(a): la Capa 4 de §5
+—la lente contextual— existe como pieza desde la 9ª rebanada, pero el canalón
+que el lienzo le reserva sigue vacío en la mayoría de pantallas.
 
 Historia previa — **registros UNIFICADOS 13-ago-2026. P0 cerrados y NUEVE P1
 pagados** (RTC-03, RTC-04, RTC-05, RTC-06, RTC-07, RTC-08, RTC-09, RTC-10,

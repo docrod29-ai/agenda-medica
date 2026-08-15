@@ -43,10 +43,18 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 36 de 163, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 37 de 165, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-315** (15-ago-2026) y enseña la variante más
+El miembro más reciente es **REG-316** (15-ago-2026) y lo trae desde un sitio
+donde nadie la había buscado: **una hoja de estilos**. Cuatro líneas de prosa
+fuera de un comentario dejaron muerta una regla de `globals.css` —la que aparta
+los botones flotantes mientras el médico escribe— sin que el fuente lo
+enseñara, sin que ninguna prueba se pusiera roja y con el aviso del propio
+`npm run build` diciéndolo en una salida que nadie lee. Escrito, probado por
+inspección visual, y **sin llegar al navegador**.
+
+Antes que él, **REG-315** enseña la variante más
 cara de la familia: no es que el módulo no corra en ningún sitio, es que **corre
 en el sitio equivocado del tiempo**. `buscarPosiblesDuplicados` se consultaba
 dentro del formulario de alta —cuando el médico ya decidió crear— y no en la

@@ -53,14 +53,14 @@
 | `/consultor` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
-| `/cumplimiento` | medico | ✅ | 945 | 0 | — | ✅ | — |
+| `/cumplimiento` | medico | ✅ | 977 | 0 | — | ✅ | — |
 | `/cumplimiento/motores` | medico | ✅ | 188 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 177 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 291 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 356 | 7 | — | ✅ | — |
 | `/expediente/[patientId]` | medico | ✅ | 902 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
-| `/farmacia` | medico | ✅ | 683 | 0 | — | ✅ | — |
+| `/farmacia` | medico | ✅ | 735 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 675 | 0 | — | ✅ | — |
 | `/guia` | medico | ✅ | 131 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 285 | 0 | — | ✅ | — |
@@ -73,7 +73,7 @@
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 836 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1078 | 7 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 651 | 4 | — | ✅ | — |
-| `/reactivacion` | medico | ✅ | 250 | 0 | — | ✅ | — |
+| `/reactivacion` | medico | ✅ | 336 | 0 | — | ✅ | — |
 | `/receta/[patientId]/[notaId]` | medico | ✅ | 1016 | 2 | — | ✅ | — |
 | `/referencia/[patientId]` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
