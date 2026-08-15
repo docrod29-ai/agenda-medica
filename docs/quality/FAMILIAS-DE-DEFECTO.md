@@ -25,14 +25,14 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **32** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **Escrito, probado y sin conectar** | **39** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
 | El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
-| Estorba al médico | 6 | Correcto por dentro, insoportable por fuera |
+| Estorba al médico | 7 | Correcto por dentro, insoportable por fuera |
 | Pérdida de datos | 11 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
@@ -43,10 +43,17 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 38 de 166, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 39 de 168, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-316** (15-ago-2026) y lo trae desde un sitio
+El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
+flujos haciendo el trabajo del médico en el teléfono: el respaldo local de la
+nota se escribía, se conservaba en disco y **no se ofrecía nunca** al reabrir
+una nota por `?nota=`, porque la única condición capaz de enseñarlo probaba que
+el formulario estuviera vacío — y al reabrir una nota nunca lo está. Escrito,
+probado, en disco, y sin llegar a nadie.
+
+Antes que él, **REG-316** (15-ago-2026) y lo trae desde un sitio
 donde nadie la había buscado: **una hoja de estilos**. Cuatro líneas de prosa
 fuera de un comentario dejaron muerta una regla de `globals.css` —la que aparta
 los botones flotantes mientras el médico escribe— sin que el fuente lo

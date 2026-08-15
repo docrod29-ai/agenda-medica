@@ -20,11 +20,21 @@
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M agent-state/V15_CURRENT_ITERATION.md",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
     " M docs/design/SCREEN_INVENTORY.md",
-    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
-    "?? docs/design/capturas/v15-vacio-del-expediente/",
-    "?? scripts/design/medir-vacio-del-expediente-v15.mjs",
-    "?? src/__tests__/v15-el-expediente-lleno-no-dice-que-esta-vacio.test.ts"
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/globals.css",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/mobile/local-drafts.ts",
+    "?? docs/design/capturas/v15-flujos/",
+    "?? docs/design/v15/V15-BANCO-DE-FLUJOS-CLINICOS.md",
+    "?? scripts/design/arnes-flujos-v15.sh",
+    "?? scripts/design/medir-flujos-clinicos-v15.mjs",
+    "?? scripts/design/sembrar-receta-en-nota-firmada-v15.mjs",
+    "?? src/__tests__/v15-el-respaldo-local-llega-al-medico.test.ts",
+    "?? src/__tests__/v15-la-hoja-inferior-no-la-tapa-la-barra.test.ts"
   ],
   "actualizado": "2026-08-15",
   "resumenDesdeElUltimoEstado": {
@@ -58,12 +68,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "v15/structural-uiux",
+  "ramaActual": "claude/ausculta-v15-workflow-benchmark-ssmu8u",
   "derivado": {
-    "regsEnElLedger": 166,
-    "ultimaREG": "REG-318",
-    "archivosDePrueba": 696,
-    "casosDePrueba": 8566,
+    "regsEnElLedger": 168,
+    "ultimaREG": "REG-320",
+    "archivosDePrueba": 703,
+    "casosDePrueba": 8620,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

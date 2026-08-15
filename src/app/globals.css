@@ -1651,6 +1651,28 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   .sidebar.open { display: flex; position: fixed; inset-y: 0; left: 0; z-index: 50; width: 260px; }
   .modal { max-width: 100%; margin: 0; border-radius: 16px 16px 0 0; align-self: flex-end; }
   .modal-overlay { align-items: flex-end; padding: 0; }
+  /*
+    ── EL PIE DE LA HOJA INFERIOR RESERVA LA BANDA DE LA BARRA DEL PULGAR ────
+
+    Medido en navegador real a 390×844 (WF-04 del banco de flujos,
+    `docs/design/capturas/v15-flujos/movil-WF-04-grabando.png`): la hoja se
+    pega al borde inferior (`align-items: flex-end; padding: 0`) y su pie
+    aterriza DENTRO de la barra del pulgar — «Confirmo el consentimiento e
+    iniciar» ocupaba 779–823 y la barra empieza en 791. `elementFromPoint` en
+    el centro del botón devolvía un enlace de la barra: el control no recibía
+    el toque. Consecuencia: en el teléfono NO se podía empezar a grabar a un
+    paciente que no hubiera consentido antes — la compuerta legal del
+    instrumento principal del producto, sin salida.
+
+    `<main>` ya reservaba esta misma banda desde V15-MOBILE-001, con este mismo
+    comentario y este mismo número; la hoja inferior nunca lo recibió. Aquí se
+    usa LA MISMA constante a propósito: dos reservas distintas de la misma
+    barra divergirían a la primera vez que la barra cambie de alto.
+
+    Se rellena el PIE y no el overlay para que la hoja siga pegada al borde:
+    subirla entera dejaría un hueco con la barra asomando por debajo.
+  */
+  .modal-footer { padding-bottom: calc(20px + 72px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* Teléfonos pequeños: reducir padding de página marcada con .page-pad */

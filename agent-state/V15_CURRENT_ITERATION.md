@@ -2,7 +2,121 @@
 
 **Rama canónica:** `v15/structural-uiux` · **PRs V15 abiertos:** 1 (#292)
 
+## Iteración 16 — CERRADA por lectura independiente
+
+**`V15-ITERATION16-INDEPENDENT-CLOSURE-AUDIT-003` (Codex) — PASS.**
+Árbol inmutable **`a9e8ae4fd9c85b8066828ecf59bedafd19117d53`**.
+`P0 = 0` · `BLOQUEANTES P1 = 0` · `§26 = PASS` · `§29 = PASS` ·
+`CAN_ADVANCE_TO_V15_WORKFLOW_BENCHMARK_001 = YES`.
+
+Quien implementó no fue el juez: ésa era la condición y se cumplió. **No se
+reabre.** Su deuda P2/P3 —declarada abajo, íntegra— **no se borra ni se paga**
+salvo que una regresión la vuelva inseparable del trabajo en curso.
+
 ## Iteración en curso
+
+**15-ago · `V15-WORKFLOW-BENCHMARK-001` — el banco de flujos clínicos.
+20 corridas, 20 completas, 0 pérdidas de contexto. DOS P1 bloqueantes
+encontrados y reparados.** Acta y razonamiento completos en
+[`docs/design/v15/V15-BANCO-DE-FLUJOS-CLINICOS.md`](../docs/design/v15/V15-BANCO-DE-FLUJOS-CLINICOS.md).
+
+**Lo primero, porque cambia cómo se lee lo demás: la primera corrida dio 8/20 y
+21 callejones, y DIECINUEVE de esos rojos eran del INSTRUMENTO.** La lente se
+pinta por portal fuera de `<main>`; las filas de `/pacientes` son botones, no
+enlaces; pausar y reanudar llevan su rótulo en `aria-label`, no en el texto; y
+`button:has-text("Cerrar")` casó con **«Cerrar sesión»** — el medidor cerró la
+sesión y publicó «la vuelta aterriza en /login» como defecto del expediente. Se
+cazaron uno a uno contra el DOM real antes de atribuirle nada al producto. La
+tabla entera está en el acta: un banco que no publica sus propios errores no es
+un banco.
+
+**Los dos defectos de verdad, los dos en el teléfono, los dos de la misma
+familia — algo que el producto ya sabía en un sitio y no había aplicado en el
+otro:**
+
+1. **P1 · la barra del pulgar tapaba la compuerta de consentimiento.** Medido a
+   390×844 con el modal abierto: el botón «Confirmo el consentimiento e iniciar»
+   ocupaba 779–823, `.bottom-nav` empieza en 791, y `elementFromPoint` en el
+   centro del botón devolvía un enlace de la barra. **En el teléfono no se podía
+   empezar a grabar a un paciente que no hubiera consentido antes**, sin salida
+   («Cancelar» estaba igual de tapado). `<main>` ya reservaba esa banda desde
+   V15-MOBILE-001 —con el comentario que explica por qué—; la hoja inferior
+   nunca la recibió. Ahora el pie reserva **la misma constante**. Después:
+   707–751, `elementFromPoint` devuelve el botón. Guardián de 4 casos, probado
+   al revés ×3. **Sigue SIN explicar por qué la barra (z 45) le ganaba al
+   overlay (z 100) el `elementFromPoint`**, y se deja dicho en vez de inventar
+   una razón: la reserva es cierta gane quien gane el apilado.
+2. **P1 · el respaldo local se escribía, se conservaba y no llegaba.** Al
+   reabrir una nota por `?nota=`, teclear y recargar: lo escrito no volvía y no
+   se ofrecía recuperarlo — con el respaldo intacto en `localStorage` las dos
+   veces. Causa raíz: una sola condición gobernaba «aplicarlo solo» y
+   «ofrecerlo», y al reabrir una nota el formulario **nunca** está vacío, así
+   que la única rama capaz de enseñarlo se apagaba justo en su caso.
+   `queHacerConElRespaldoLocal` lo parte en tres (`APLICAR_SOLO` / `OFRECER` /
+   `CALLAR`) y vive en `@/lib/mobile/local-drafts`, **que ya era dueño de la
+   clave — no se creó módulo nuevo**. Calla si el respaldo es de otro encuentro,
+   si no puede demostrar de cuál es, o si la nota está firmada. Guardián de 13
+   casos, probado al revés ×3.
+
+**Este defecto sólo aparece con un paciente que no ha consentido nunca**, y por
+eso llevaba tiempo tapado: `yaConsintio` lee el EXPEDIENTE, así que la corrida
+de escritorio del propio banco dejaba el consentimiento asentado y la del
+teléfono entraba sin ver la compuerta. Un paciente por ancho, y salió.
+
+**Veredicto contra la intención de V15** — UN PACIENTE · UN ESPACIO CLÍNICO ·
+UN MOMENTO ACTUAL · UNA SIGUIENTE ACCIÓN SEGURA · CONTEXTO PRESERVADO ·
+SEGURIDAD CLÍNICA: **PASS**, con su dato cada uno. **EQUIVALENCIA FUNCIONAL:
+`UNVERIFIABLE` para el ANTES** — no hay medición pre-V15 de estos flujos en el
+repositorio y **no se reconstruye de memoria**; los flujos se miden en absoluto.
+**No se compara contra Abridge/Suki/Nabla/Huli**: no hay evidencia comparable en
+este árbol y afirmarlo sería inventarlo.
+
+**Deuda NUEVA registrada y NO pagada** (el detalle, en el acta):
+
+1. **P2 · Hoy mezcla el reloj del consultorio con el del dispositivo.**
+   `stats.prox` filtra por la FECHA del consultorio (zona MX) y compara la hora
+   con `new Date().toTimeString()`, que es la del NAVEGADOR. Con el contenedor
+   en UTC y una cita sembrada 40 min por delante en hora de México, **el héroe
+   NOW no se pinta**. Al médico con el reloj en hora de México no le pasa; al
+   que viaja, sí. El banco lo esquiva fijando `timezoneId`; la mezcla sigue ahí.
+2. **P2 · el expediente mide 15.9 pantallas en el teléfono** — el número más
+   alto del banco con diferencia (el segundo es 7.8). No bloquea WF-03.
+3. **P3 · el `<h1>` de la receta nombra la herramienta, no al paciente.** La
+   identidad la sostiene la franja del shell, persistente y visible en los dos
+   anchos — por eso no es defecto de seguridad; sí es la única superficie
+   clínica medida cuyo encabezado dominante no es el paciente.
+4. **P3 · el cierre del encuentro no acusó lo hecho al volver de la receta.**
+   Anotado sin diagnosticar: fuera del alcance del banco, no rompe WF-05.
+
+**No comprobable, con la dependencia dicha por su nombre**: la transcripción y
+la nota que nace de ella (503 del proveedor, los mismos de la Iteración 16); la
+comunicación real al paciente (no hay mensajería, y mandarla está prohibido sin
+autorización del dueño); `PORTAL_PACIENTE_SECRET no configurada` (los dos 500 de
+la receta). **Los 10 errores de consola del acta son exactamente esos dos
+grupos; los ocho flujos restantes corrieron con 0 en los dos anchos.**
+
+**Los dos quedan en el ledger**: **REG-319** (la compuerta tapada, familia
+`estorba`) y **REG-320** (el respaldo que no llega, familia `no_conectado` — la
+de REG-160/167/170/318), con sus dos guardianes **sellados** en
+`invariantes-clinicos.json` y las cuentas de `FAMILIAS-DE-DEFECTO.md` y del
+tablero del loop regeneradas.
+
+**Compuertas**: `npx vitest run` **9682 casos, 1 rojo** — el ambiental conocido
+(`ops-timeout-y-punto-ciego`: el proxy del contenedor responde en vez de
+agotarse), **comprobado en rojo también contra HEAD limpio en esta corrida** ·
+`tsc --noEmit` limpio · lint **96 = techo** · trinquete de diseño **sin deuda
+nueva** (los nueve techos intactos) · `npm run build` compila ·
+`SCREEN_INVENTORY.md` regenerado · navegador real 1440 y 390, 20 corridas, 60
+capturas.
+
+**Siguiente tarea exacta**: congelar el END_SHA y pedir la **lectura
+INDEPENDIENTE de cierre** de `V15-WORKFLOW-BENCHMARK-001` — de Codex, no de
+quien lo implementó. Si da PASS, §43 orden 18: `V15-FINAL-COHERENCE-001`. **No
+se empieza Final Coherence antes de esa lectura.**
+
+---
+
+## Iteración 16 — bitácora (cerrada, se conserva)
 
 **15-ago · `V15-ITERATION16-COMPLETE-BLOCKER-CLOSURE-006` — DOS superficies
 reparadas de cinco. §29 sigue abierto.**

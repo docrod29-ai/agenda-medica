@@ -7795,3 +7795,97 @@ detalle campo por campo se recalcula de lo archivado.
 **Familia.** `no_conectado` — la misma de REG-160/167/170: el dato se escribe,
 las pruebas de contrato pasan, y del otro lado no hay quien lo lea. Con el
 agravante de que aquí sí había lector, y contaba otra cosa.
+
+---
+
+## REG-319 — la barra del pulgar tapaba la compuerta de consentimiento del dictado
+
+**Área.** Clínico-legal / accesibilidad de una acción crítica. Encontrado por
+`V15-WORKFLOW-BENCHMARK-001` (WF-04) **haciendo el flujo**, no leyendo código.
+
+**Qué fallaba.** En el teléfono (390×844), pedir «Grabar la consulta» sobre un
+paciente que no había consentido nunca abría la compuerta de consentimiento —y
+su pie quedaba **debajo de la barra del pulgar**. Medido con el modal abierto:
+
+```
+«Confirmo el consentimiento e iniciar»          779 → 823
+.bottom-nav empieza en                          791
+document.elementFromPoint(centro del botón)     <a> de la barra
+```
+
+El toque no llegaba al botón. **No se podía empezar a grabar**, y no había
+salida: «Cancelar» estaba igual de tapado. La compuerta legal del instrumento
+principal del producto, sin salida, en el ancho en el que más se usa.
+
+**Cómo se descubrió, y por qué llevaba tiempo tapado.** `yaConsintio` lee
+`patient.consentimientoGrabacion.fecha`, que vive en el EXPEDIENTE. La primera
+corrida del banco midió los dos anchos sobre el mismo paciente: la de escritorio
+dejaba el consentimiento asentado y la del teléfono entraba a grabar sin ver la
+compuerta. El defecto sólo aparece con un paciente que no ha consentido nunca.
+
+**Causa raíz.** Por debajo de 768px el modal es una hoja inferior
+(`.modal-overlay { align-items: flex-end; padding: 0 }`) y se pega al borde de
+abajo, donde vive la barra. `<main>` ya reservaba esa banda desde V15-MOBILE-001
+—con el comentario que explica que «si solo dejáramos 70px, esos botones
+quedaban debajo y no se podían tocar»—. La hoja inferior nunca la recibió: un
+contenedor aprendió la lección y el otro no.
+
+**Control permanente.** El pie de la hoja reserva **la misma constante** que
+`<main>` (72px + `env(safe-area-inset-bottom)`) — la misma a propósito: dos
+reservas de la misma barra divergen la primera vez que la barra cambie de alto.
+Después: botón en 707 → 751, `elementFromPoint` devuelve el botón.
+`src/__tests__/v15-la-hoja-inferior-no-la-tapa-la-barra.test.ts` (4 casos,
+probado al revés ×3).
+
+**Qué NO cubre, declarado.** El overlay declara `z-index: 100` y la barra `45`,
+y aun así la barra ganaba el `elementFromPoint`. **Por qué exactamente sigue sin
+explicar**, y se deja escrito en vez de inventar una razón: la reserva es cierta
+gane quien gane el apilado. Si alguien arregla el apilado, esta regla sigue
+siendo correcta y deja de ser lo único que sostiene el caso.
+
+---
+
+## REG-320 — el respaldo local de la nota se escribía, se conservaba y no llegaba
+
+**Área.** Integridad de datos clínicos. Familia `no_conectado` —la de REG-160,
+REG-167, REG-170 y REG-318—, con el agravante de que aquí el dato estaba en
+disco, intacto, y la pantalla se negaba a ofrecerlo.
+
+**Qué fallaba.** Abrir un encuentro por su nota (`/consulta/<paciente>?nota=
+<id>`), teclear, y perder la pestaña antes del autoguardado de 30 s. Medido en
+navegador (`V15-WORKFLOW-BENCHMARK-001`, WF-10):
+
+```
+claves de respaldo tras teclear   ["nx.consulta.bkp.pac-luzmaria-cervantes"]
+¿el texto sobrevive a la recarga? false
+¿se ofrece restaurar?             false
+claves tras recargar              ["nx.consulta.bkp.pac-luzmaria-cervantes"]
+```
+
+Ventana de pérdida **silenciosa** de hasta medio minuto de nota dictada o
+tecleada. Control negativo de la misma corrida: el mismo gesto **sin** `?nota=`
+sí conserva lo escrito — la red de seguridad funcionaba, sólo que nunca en el
+caso que la necesita.
+
+**Causa raíz.** Una sola condición gobernaba dos decisiones distintas:
+«aplicarlo solo» y «ofrecerlo», las dos probando que el formulario estuviera
+VACÍO. Para aplicar solo es la prueba correcta y no se toca —no se pisa en
+silencio lo que el médico ve escrito, regla 3 de seguridad clínica—. Para
+ofrecer es la prueba equivocada: al reabrir una nota concreta el formulario
+**nunca** está vacío, porque trae la nota. La única rama capaz de enseñar el
+respaldo se apagaba justo en el caso para el que existe.
+
+**Control permanente.** `queHacerConElRespaldoLocal` en
+`@/lib/mobile/local-drafts` —que ya era dueño de la clave y del pestillo
+anti-resurrección; **no se creó módulo nuevo**— parte la decisión en
+`APLICAR_SOLO` / `OFRECER` / `CALLAR`, y las dos ramas de la pantalla la
+comparten para que no puedan divergir. Calla si el respaldo es de otro
+encuentro, si no puede demostrar de cuál es, o si la nota ya está firmada
+(inmutable, NOM-024). `src/__tests__/v15-el-respaldo-local-llega-al-medico.test.ts`
+(13 casos, probado al revés ×3).
+
+**Qué NO cubre, declarado.** No compara marcas de tiempo: un respaldo más VIEJO
+que lo que hay en Firestore también se ofrece, a propósito — la decisión de cuál
+vale es del médico, y el aviso enseña la hora a la que se guardó. Aplicarlo
+automáticamente por ser más nuevo sería volver a la corrección silenciosa que la
+regla 3 prohíbe.

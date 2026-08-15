@@ -32,7 +32,7 @@ import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
 import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
-import { borradoresBloqueados } from '@/lib/mobile/local-drafts'
+import { borradoresBloqueados, queHacerConElRespaldoLocal } from '@/lib/mobile/local-drafts'
 import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
@@ -863,6 +863,14 @@ export default function ConsultaActivaPage() {
   const [verFuente, setVerFuente] = useState(false)
   // Red de seguridad local: respaldo de la nota en el navegador (anti-pérdida)
   const [respaldoDisponible, setRespaldoDisponible] = useState(false)
+  /**
+   * DE QUÉ NOTA ES EL RESPALDO, Y DE CUÁNDO. Sin esto el aviso no puede
+   * decidir si el respaldo es de ESTE encuentro (WF-10 del banco de flujos:
+   * el respaldo se escribía, se conservaba y no se ofrecía nunca al reabrir
+   * una nota por `?nota=`). Lo decide `queHacerConElRespaldoLocal`, que es
+   * pura y vive con la clave a la que pertenece.
+   */
+  const [respaldoMeta, setRespaldoMeta] = useState<{ notaId: string | null; ts: number | null } | null>(null)
   // NOTA EN TIEMPO REAL: la nota se va armando mientras hablas (cada ~30s).
   const [notaEnVivo] = useState(true)  // SIEMPRE activa (la nota se arma sola al hablar)
   const [estructurandoVivo, setEstructurandoVivo] = useState(false)
@@ -2848,12 +2856,35 @@ export default function ConsultaActivaPage() {
     const mem = borradorMem.leer(respaldoKey) as Record<string, unknown> | null
     let b = mem
     if (!b) {
-      try { const raw = localStorage.getItem(respaldoKey); if (raw) { b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw); setRespaldoDisponible(true) } } catch { /* */ }
+      try {
+        const raw = localStorage.getItem(respaldoKey)
+        if (raw) {
+          b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
+          setRespaldoDisponible(true)
+          setRespaldoMeta({
+            notaId: typeof b?.notaId === 'string' ? b.notaId : null,
+            ts: typeof b?.ts === 'number' ? b.ts : null,
+          })
+        }
+      } catch { /* */ }
     }
     if (!b) return
     const vacio = !resumen.trim() && !secciones.some(s => s.value?.trim()) &&
       diagnosticos.length === 0 && medicamentos.length === 0 && !voz.transcripcion.trim()
-    if (notaIdParam || !vacio) return   // abriendo otra nota o ya hay contenido → no pisar
+    /**
+     * APLICAR SOLO y OFRECER son dos decisiones, no una. Antes las gobernaba la
+     * misma prueba (`vacio`) y por eso al reabrir una nota concreta el respaldo
+     * no se aplicaba —correcto— pero tampoco se ofrecía —el defecto—. Aquí sólo
+     * se resuelve la primera; la segunda la resuelve el aviso, con la misma
+     * función, para que las dos ramas no puedan divergir.
+     */
+    if (queHacerConElRespaldoLocal({
+      hayRespaldo: true,
+      respaldoNotaId: typeof b.notaId === 'string' ? b.notaId : null,
+      notaAbierta: notaIdParam ?? null,
+      notaFirmada: firmada,
+      formularioVacio: vacio,
+    }) !== 'APLICAR_SOLO') return
     autoRestRef.current = true
     /**
      * Recuperar la nota a la que pertenecía el respaldo: sin esto se creaba una
@@ -2899,9 +2930,11 @@ export default function ConsultaActivaPage() {
     if (b.preop) setPreop(b.preop as typeof preop)
     if (typeof b.proximoSeguimiento === 'string') setProximoSeguimiento(b.proximoSeguimiento)
     if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
-    setRespaldoDisponible(false)
+    setRespaldoDisponible(false); setRespaldoMeta(null)
     if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
-  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast, borradorMem])
+    // `firmada` entra en las deps porque la decisión la mira: sobre una nota
+    // firmada no se repone nada (es inmutable, NOM-024).
+  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast, borradorMem, firmada])
 
   // GUARDADO INMEDIATO al salir (anti-pérdida). El respaldo con debounce se
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
@@ -3087,7 +3120,7 @@ export default function ConsultaActivaPage() {
   const restaurarRespaldo = async () => {
     try {
       const raw = localStorage.getItem(respaldoKey)
-      if (!raw) { setRespaldoDisponible(false); return }
+      if (!raw) { setRespaldoDisponible(false); setRespaldoMeta(null); return }
       const b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
       if (b.tipo) setTipo(b.tipo)
       // Mismo saneo que arriba: tres sitios con la misma regla, no tres reglas.
@@ -3122,7 +3155,7 @@ export default function ConsultaActivaPage() {
           setNotaId(idPrevio)
         }
       }
-      setRespaldoDisponible(false)
+      setRespaldoDisponible(false); setRespaldoMeta(null)
       toast('Respaldo local restaurado', 'success')
     } catch { toast('No se pudo restaurar el respaldo', 'error') }
   }
@@ -4238,8 +4271,26 @@ export default function ConsultaActivaPage() {
       )}
 
 
-      {/* Red de seguridad: ofrecer restaurar respaldo local si el formulario está vacío */}
-      {respaldoDisponible && !firmada && !resumen.trim() && !secciones.some(s => s.value?.trim()) && (
+      {/*
+        Red de seguridad: OFRECER el respaldo local.
+
+        La condición era «el formulario está vacío», que es la prueba de
+        APLICARLO SOLO, no la de ofrecerlo. Al reabrir una nota por `?nota=` el
+        formulario nunca está vacío —trae la nota—, así que el aviso no aparecía
+        jamás en el único caso para el que existe: la interrupción a mitad del
+        encuentro, antes del autoguardado de 30 s. El respaldo se escribía, se
+        conservaba y no llegaba a nadie (WF-10, `V15-WORKFLOW-BENCHMARK-001`).
+
+        La decisión vive en `queHacerConElRespaldoLocal` y la comparten las dos
+        ramas para que no puedan divergir.
+      */}
+      {respaldoDisponible && queHacerConElRespaldoLocal({
+        hayRespaldo: true,
+        respaldoNotaId: respaldoMeta?.notaId ?? null,
+        notaAbierta: notaIdParam ?? null,
+        notaFirmada: firmada,
+        formularioVacio: !resumen.trim() && !secciones.some(s => s.value?.trim()),
+      }) === 'OFRECER' && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16,
           padding: '10px 14px', borderRadius: 10,
@@ -4247,11 +4298,15 @@ export default function ConsultaActivaPage() {
         }}>
           <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
-            Hay un <strong>respaldo local</strong> de una nota sin terminar en este dispositivo.
+            Hay un <strong>respaldo local</strong> de una nota sin terminar en este dispositivo
+            {respaldoMeta?.ts
+              ? <> — guardado a las {new Date(respaldoMeta.ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</>
+              : null}.
+            {' '}Restaurarlo reemplaza lo que ves con lo que había sin guardar.
           </span>
           <button onClick={restaurarRespaldo} className="btn btn-sm btn-primary">Restaurar</button>
           <button
-            onClick={() => { try { localStorage.removeItem(respaldoKey) } catch { /* */ } setRespaldoDisponible(false) }}
+            onClick={() => { try { localStorage.removeItem(respaldoKey) } catch { /* */ } setRespaldoDisponible(false); setRespaldoMeta(null) }}
             className="btn btn-sm btn-ghost"
           >
             Descartar
