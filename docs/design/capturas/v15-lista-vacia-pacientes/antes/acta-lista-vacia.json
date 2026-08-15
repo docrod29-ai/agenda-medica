@@ -1,0 +1,78 @@
+{
+  "base": "http://localhost:3000",
+  "terminos": {
+    "TERMINO_CON_PARECIDO": "Villareal Esparsa, Joaquin",
+    "TERMINO_SIN_PARECIDO": "Zenaida Quiroz Bermúdez"
+  },
+  "viewports": {
+    "escritorio-1440": {
+      "conFilas": {
+        "filas": 5,
+        "hay": false
+      },
+      "porChip": {
+        "filas": 0,
+        "hay": false,
+        "crudo": "Ningún paciente con inasistencias o cancelaciones.",
+        "controlesEnElVacio": 0
+      },
+      "filasTrasVerTodos": null,
+      "conParecido": {
+        "filas": 0,
+        "hay": false,
+        "crudo": "Sin resultados para “Villareal Esparsa, Joaquin”.",
+        "controlesEnElVacio": 0
+      },
+      "rescate": {
+        "cabecera": null,
+        "nombres": []
+      },
+      "sinParecido": {
+        "filas": 0,
+        "hay": false,
+        "crudo": "Sin resultados para “Zenaida Quiroz Bermúdez”.",
+        "controlesEnElVacio": 0
+      },
+      "sinRescate": {
+        "cabecera": null,
+        "nombres": []
+      },
+      "filasTrasLimpiar": null
+    },
+    "movil-390": {
+      "conFilas": {
+        "filas": 5,
+        "hay": false
+      },
+      "porChip": {
+        "filas": 0,
+        "hay": false,
+        "crudo": "Ningún paciente con inasistencias o cancelaciones.",
+        "controlesEnElVacio": 0
+      },
+      "filasTrasVerTodos": null,
+      "conParecido": {
+        "filas": 0,
+        "hay": false,
+        "crudo": "Sin resultados para “Villareal Esparsa, Joaquin”.",
+        "controlesEnElVacio": 0
+      },
+      "rescate": {
+        "cabecera": null,
+        "nombres": []
+      },
+      "sinParecido": {
+        "filas": 0,
+        "hay": false,
+        "crudo": "Sin resultados para “Zenaida Quiroz Bermúdez”.",
+        "controlesEnElVacio": 0
+      },
+      "sinRescate": {
+        "cabecera": null,
+        "nombres": []
+      },
+      "filasTrasLimpiar": null
+    }
+  },
+  "errores": []
+}

@@ -7441,3 +7441,102 @@ pantallas, y éste se pagó porque su vacío **miente**, no porque sea genérico
 
 **Familia.** `se_contradice` — dos afirmaciones incompatibles sobre el mismo
 día, y un comentario que dice lo contrario de su propia condición.
+
+---
+
+## REG-315 — la lista de pacientes vacía no decía cuántos había fuera, y el momento en que nace un expediente repetido no preguntaba nada
+
+**Fecha:** 15-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media
+
+**Qué fallaba.** `/pacientes` —la pantalla más visitada del producto— tenía
+CUATRO estados vacíos, y tres de ellos eran un `<div>` suelto con un párrafo
+gris centrado a 40px: sin componente, sin clase y **sin ningún control**:
+
+    «Sin resultados para “x”.»
+    «Aún no hay pacientes con citas recientes. Usa **Todos A-Z** o busca…»
+    «Ningún paciente con inasistencias o cancelaciones.»
+
+Los tres comparten el mismo defecto: **ninguno dice que la lista NO está
+vacía.** Con seis expedientes dentro, el chip «Con alerta» pinta una pantalla
+en blanco indistinguible de un consultorio recién abierto. Es la misma familia
+que REG-314 acababa de pagar en `/citas`: ausencia de FILAS no es ausencia de
+expedientes.
+
+Y el de «Recientes» —que es la vista POR DEFECTO— mandaba a buscar un control
+en NEGRITA («Usa **Todos A-Z**») en lugar de ofrecerlo. §24 falla un control
+interactivo que no es un `<button>`; esto ni siquiera era un control, era una
+instrucción para ir a buscar uno.
+
+**Cómo se descubrió.** Contando los estados vacíos de las seis superficies de
+§29 para cerrar RTC-30 («un patrón decidido UNA vez»). Hoy y Expediente ya
+estaban convertidos; al abrir `/pacientes` aparecieron tres a mano en el mismo
+archivo.
+
+**Causa raíz — y no era de interfaz.** Buscar y no encontrar es el momento
+exacto en que nace un expediente repetido. Este repositorio ya sabe lo que eso
+cuesta: lo dice el propio aviso de duplicados de esta misma pantalla —«su
+historial queda partido: las alergias en uno y las notas en el otro»— y tiene
+el módulo que lo detecta, `buscarPosiblesDuplicados`, que sabe que «López
+García, María» y «María López García» son la misma persona. Pero ese módulo
+se consultaba **sólo dentro del formulario de alta**, es decir, después de que
+el médico ya decidió crear y con medio formulario tecleado. En el único
+momento anterior en que se hace la misma pregunta —la búsqueda— nadie lo
+llamaba, y la respuesta era un callejón sin salida con el único primario de la
+pantalla («Nuevo paciente») esperando arriba a la derecha.
+
+La capacidad existía, el lector existía, y no se llamaban donde hacía falta:
+«el dato tiene que LLEGAR», la familia de REG-160/167/170.
+
+**Arreglo.** `src/lib/pacientes/vacio-de-la-lista.ts` decide la clase del
+vacío, su peso y el gesto que corresponde a la causa; la pantalla lo consume
+en los cuatro sitios. Todo vacío dice **cuántos expedientes hay fuera de lo
+que se está mirando**. Sólo el registro entero vacío conserva el héroe
+ilustrado y ofrece «Nuevo paciente» — ofrecer crear sobre una lista con
+expedientes escondidos es la misma decisión que REG-314 tomó al no ofrecer
+«Nueva cita» sobre un día con seis citas ocultas por un filtro. Y la búsqueda
+sin coincidencias consulta ahora `buscarPosiblesDuplicados` con su umbral
+declarado (`UMBRAL_NOMBRE`), sin criterio nuevo: lo que sobrevive hasta ahí es
+exactamente lo que la búsqueda por subcadena no puede cazar —el orden de los
+apellidos, el dedazo, el apellido de en medio que falta—, que es el caso que
+parte expedientes.
+
+**Guardián.** `src/__tests__/v15-la-lista-vacia-dice-cuantos-hay-fuera.test.ts`
+(12 casos, 2 conductuales sobre el módulo real de duplicados). Probado al
+revés con cuatro reversiones quirúrgicas, en rojo una a una: con los tres
+párrafos grises de vuelta caen los casos 8 y 9; con `nuevoPaciente: true` en
+una clase que no sea `sin-expedientes` cae el 6; sin el número de expedientes
+en el título cae el 2; sin la llamada al módulo de duplicados cae el 10.
+
+El caso 10 **pasó en verde con la llamada borrada** en la primera pasada,
+porque el identificador seguía escrito en la línea del `import`: el
+instrumento leía una declaración donde tenía que leer un uso. Es la ceguera de
+`grafo-de-dependencias` otra vez, y la cazó justamente el probar al revés —
+una reversión que no pone el caso en rojo es un caso que no prueba nada.
+
+**Verificado en navegador real**, mismo instrumento sobre las dos versiones
+(dos builds de producción + emuladores + siembra sintética; escritorio 1440 y
+móvil 390; **0 errores de consola** en las cuatro pasadas),
+`scripts/design/medir-lista-vacia-pacientes-v15.mjs`:
+
+| | antes | después |
+|---|---|---|
+| vacíos que dicen cuántos hay fuera | 0 de 3 | 3 de 3 |
+| controles dentro del bloque vacío | 0 | 1 en cada uno |
+| «Ver todos A-Z» | no existía | devuelve las 6 filas |
+| «Limpiar la búsqueda» | no existía | devuelve las 6 filas |
+| expedientes rescatados con «Villareal Esparsa, Joaquin» | 0 | 1 (Joaquín Esparza Villarreal) |
+| bloque con clase de estado vacío | no (`<div>` suelto) | sí, variante línea (62px escritorio / 134px móvil) |
+
+**Qué NO cubre.** El rescate **no** cubre el nombre abreviado: «Ma Guadalupe
+Hernández» contra «María Guadalupe Hernández» da 0.67 y el umbral declarado
+del producto es 0.8, así que no se ofrece. Se deja así a propósito — bajar el
+umbral aquí sería inventar un criterio distinto del que usa el resto del
+producto para decidir si dos nombres son la misma persona. Tampoco se
+fotografió el vacío de «Recientes»: la siembra tiene cinco pacientes con cita
+previa y ese caso no se produce (probado sólo en la decisión). Y el resto de
+estados vacíos del producto —lista de espera, farmacia, cumplimiento,
+reactivación— siguen con el hero: **RTC-30 sigue abierto ahí**.
+
+**Familia.** `el_dato_no_llega` en la causa raíz (un módulo que existe y no se
+consulta donde importa) y `ausencia_no_es_dato` en el síntoma (una lista
+vacía que no distingue «no hay» de «no se ven»).

@@ -20,15 +20,15 @@
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
     " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/(dashboard)/citas/page.tsx",
+    " M src/app/(dashboard)/pacientes/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/capturas/v15-dia-vacio-citas/",
-    "?? scripts/design/medir-dia-vacio-citas-v15.mjs",
-    "?? src/__tests__/v15-el-dia-vacio-dice-cual-de-los-tres.test.ts",
-    "?? src/lib/agenda/vacio-de-la-agenda.ts"
+    "?? docs/design/capturas/v15-lista-vacia-pacientes/",
+    "?? scripts/design/medir-lista-vacia-pacientes-v15.mjs",
+    "?? src/__tests__/v15-la-lista-vacia-dice-cuantos-hay-fuera.test.ts",
+    "?? src/lib/pacientes/vacio-de-la-lista.ts"
   ],
   "actualizado": "2026-08-14",
   "resumenDesdeElUltimoEstado": {
@@ -64,10 +64,10 @@
   ],
   "ramaActual": "v15/structural-uiux",
   "derivado": {
-    "regsEnElLedger": 162,
-    "ultimaREG": "REG-314",
-    "archivosDePrueba": 685,
-    "casosDePrueba": 8459,
+    "regsEnElLedger": 163,
+    "ultimaREG": "REG-315",
+    "archivosDePrueba": 687,
+    "casosDePrueba": 8486,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

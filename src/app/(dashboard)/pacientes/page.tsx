@@ -16,6 +16,7 @@ import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
+import { describirListaVacia } from '@/lib/pacientes/vacio-de-la-lista'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
@@ -121,6 +122,35 @@ export default function PacientesPage() {
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
   }, [patients, search])
 
+  /**
+   * A QUIÉN SE PARECE LO QUE NO ENCONTRÓ.
+   *
+   * `buscarPosiblesDuplicados` vivía sólo en el formulario de alta: avisaba
+   * cuando el médico YA había decidido crear y llevaba medio formulario
+   * tecleado. Pero la pregunta «¿este paciente ya está?» se hace antes, y se
+   * hace aquí — y aquí la pantalla contestaba «Sin resultados» y se callaba.
+   *
+   * No se inventa criterio: entra el término como nombre y decide el módulo
+   * con su umbral declarado (`UMBRAL_NOMBRE`), que es lo que caza justo lo que
+   * la búsqueda por subcadena NO puede cazar — el orden de los apellidos
+   * («López García, María» / «María López García»), el dedazo («Gonzáles») y
+   * el apellido de en medio que falta. Los acentos y las mayúsculas ya los
+   * resuelve la búsqueda normal, así que lo que sobrevive hasta aquí es
+   * exactamente el caso que parte expedientes.
+   *
+   * Sólo con búsqueda VACÍA de resultados: mientras haya filas que enseñar, la
+   * respuesta a la búsqueda son las filas.
+   */
+  const parecidos = useMemo(() => {
+    const q = search.trim()
+    if (!q || (resultadosBusqueda?.length ?? 0) > 0) return []
+    // Un término de sólo dígitos es un teléfono: comparar nombres contra él no
+    // significa nada, y el módulo tiene escrito que el teléfono por sí solo
+    // NUNCA identifica (lo comparte la familia).
+    if (!/[a-zA-ZÀ-ÿñÑ]/.test(q)) return []
+    return buscarPosiblesDuplicados({ nombre: q }, patients)
+  }, [search, resultadosBusqueda, patients])
+
   // Recientes: por última cita (desc), top 15. "No se ve toda la lista".
   const recientes = useMemo(() =>
     [...patients]
@@ -180,6 +210,58 @@ export default function PacientesPage() {
 
   const openEdit = (p: Patient) => { setEditPatient(p); setModalOpen(true) }
   const openNew = () => { setEditPatient(null); setModalOpen(true) }
+
+  /**
+   * EL VACÍO DE LA LISTA, DICHO UNA VEZ.
+   *
+   * Eran cuatro sitios: un héroe ilustrado y tres párrafos grises centrados a
+   * 40px, cada uno con su frase escrita a mano y ninguno con un control —el de
+   * «Recientes» llegaba a mandar al médico a buscar un chip en NEGRITA en vez
+   * de ofrecérselo, que además es un control que no es un `<button>` (§24).
+   *
+   * La decisión vive fuera de la pantalla (`describirListaVacia`); esto sólo
+   * la pinta. El gesto que se ofrece sale de la CAUSA, no del sitio.
+   */
+  const bloqueVacio = (chip: 'recientes' | 'todos' | 'alerta') => {
+    const v = describirListaVacia({
+      totalExpedientes: patients.length,
+      busqueda: search,
+      chip,
+      parecidos: parecidos.length,
+    })
+    return (
+      <>
+        <EmptyState
+          variante={v.variante}
+          illustration={v.variante === 'hero' ? <ExpedienteVacio /> : undefined}
+          title={v.titulo}
+          description={v.descripcion}
+          action={
+            v.gesto.limpiarBusqueda ? (
+              <Button variant="ghost" size="sm" icon={<X size={14} />} onClick={() => setSearch('')}>Limpiar la búsqueda</Button>
+            ) : v.gesto.verTodos ? (
+              <Button variant="ghost" size="sm" icon={<Users size={14} />} onClick={() => setFiltro('todos')}>Ver todos A-Z</Button>
+            ) : v.gesto.nuevoPaciente ? (
+              mode === 'medico'
+                ? <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
+                : <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar</Button></Link>
+            ) : undefined
+          }
+        />
+        {v.enseñarParecidos && (
+          <>
+            {/* El encabezado agrupa hablando (RTC-31) y dice de dónde salen
+                estas filas: no son resultados de la búsqueda —la búsqueda no
+                encontró ninguno—, son expedientes que se parecen al nombre. */}
+            <ListaEncabezado texto="Se parecen al nombre que buscaste" />
+            {parecidos.map(c => (
+              <PacienteRow key={c.paciente.id} p={c.paciente} mode={mode} internado={internados.has(c.paciente.id)} clinico={estadoClinicoDeFila(c.paciente.id, worklist, ahora)} visto={ultimaVezVisto(c.paciente.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(c.paciente, origen) : openEdit(c.paciente)} onEditar={() => openEdit(c.paciente)} />
+            ))}
+          </>
+        )}
+      </>
+    )
+  }
 
   /**
    * RTC-11 — `?editar=<id>` abre el editor de ESE paciente.
@@ -373,20 +455,11 @@ export default function PacientesPage() {
             action={<Button onClick={() => window.location.reload()}>Reintentar</Button>}
           />
         ) : patients.length === 0 ? (
-          <EmptyState
-            illustration={<ExpedienteVacio />}
-            title="No hay pacientes registrados"
-            description="Registra tu primer paciente o agéndalo directamente desde el asistente."
-            action={mode === 'medico'
-              ? <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
-              : <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar</Button></Link>}
-          />
+          bloqueVacio(filtro)
         ) : resultadosBusqueda ? (
           // Búsqueda activa → resultados aplanados
           resultadosBusqueda.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-              Sin resultados para “{search}”.
-            </div>
+            bloqueVacio(filtro)
           ) : (
             <>
               <ListaEncabezado texto={`${resultadosBusqueda.length} resultado${resultadosBusqueda.length !== 1 ? 's' : ''}`} />
@@ -397,9 +470,7 @@ export default function PacientesPage() {
           )
         ) : filtro === 'recientes' ? (
           recientes.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-              Aún no hay pacientes con citas recientes. Usa <strong>Todos A-Z</strong> o busca por nombre.
-            </div>
+            bloqueVacio('recientes')
           ) : (
             <>
               <ListaEncabezado texto="Vistos recientemente" />
@@ -410,9 +481,7 @@ export default function PacientesPage() {
           )
         ) : filtro === 'alerta' ? (
           conAlerta.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-              Ningún paciente con inasistencias o cancelaciones.
-            </div>
+            bloqueVacio('alerta')
           ) : (
             <>
               <ListaEncabezado texto={`${conAlerta.length} con inasistencias / cancelaciones`} />
