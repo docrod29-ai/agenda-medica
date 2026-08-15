@@ -29,6 +29,7 @@ import { PatientAnchor } from '@/components/expediente/PatientAnchor'
 import { ClinicalSpine, type ClinicalSpineItem } from '@/components/expediente/ClinicalSpine'
 import { ProcedenciaDeLaNota } from '@/components/expediente/ProcedenciaDeLaNota'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
+import { describirVacioDeUnaLista, contar } from '@/lib/ui/vacio-de-una-lista'
 import { Herramientas } from '@/components/Herramientas'
 import { CAPACIDADES_DEL_PACIENTE } from '@/lib/nav/capacidades-del-paciente'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
@@ -38,6 +39,23 @@ import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
 import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'
 import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
+
+/**
+ * ¿ESTA NOTA ES HOSPITALARIA? UNA regla, no dos.
+ *
+ * Marca fiable: pertenece a un internamiento. La lista de tipos es respaldo
+ * para notas viejas sin ese campo (postop/anestesia/consentimiento también
+ * cuelgan de un internamiento → van a Hospital, no a Consulta).
+ *
+ * Vivía SUELTA dentro del filtro, y el aviso de «están en la otra pestaña»
+ * preguntaba lo mismo con una regla MÁS POBRE —sólo la lista de tipos—. Con
+ * eso, un paciente cuyas notas de hospital fueran todas `postop` contaba como
+ * hospitalaria para filtrar y NO para avisar: la pestaña Consulta decía «sin
+ * notas» sin mandar a ninguna parte. Dos respuestas a la misma pregunta, que
+ * es el defecto que este repositorio persigue por nombre.
+ */
+const esHospitalaria = (n: NotaMedica) =>
+  !!n.internamientoId || ['ingreso', 'evolucion', 'egreso'].includes(n.tipo)
 
 /** Icono lineal por tipo de nota — nodo del timeline clínico. */
 const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
@@ -109,12 +127,43 @@ export default function ExpedientePage() {
 
   const notasFiltradas = notas.filter(n => {
     if (filtro === 'todas') return true
-    // Marca fiable de nota hospitalaria: pertenece a un internamiento. La lista de
-    // tipos es respaldo para notas viejas sin ese campo (postop/anestesia/consent.
-    // también cuelgan de un internamiento → van a Hospital, no a Consulta).
-    const hosp = !!n.internamientoId || ['ingreso', 'evolucion', 'egreso'].includes(n.tipo)
-    return filtro === 'hospital' ? hosp : !hosp
+    return filtro === 'hospital' ? esHospitalaria(n) : !esHospitalaria(n)
   })
+
+  /*
+    EL VACÍO DE LA HISTORIA, DICHO POR EL MÓDULO QUE YA DECIDE ESTO.
+
+    Antes lo decidía la propia pantalla, y le faltaba media respuesta: el aviso
+    de «no te confundas, están en la otra pestaña» existía SÓLO para el filtro
+    `consulta`. Estando en **Hospital** un paciente con doce notas de
+    consultorio caía en «Sin notas todavía. La primera consulta que firmes
+    aparece aquí.» — el expediente lleno diciendo que está vacío, que es
+    exactamente lo que la rama hermana existía para impedir.
+
+    Se delega en `describirVacioDeUnaLista` porque la regla ya está escrita ahí
+    («todo vacío dice cuántos hay FUERA de lo que se está mirando, y el gesto
+    sale de la CAUSA»), y escribirla otra vez aquí sería la quinta copia de la
+    misma decisión.
+  */
+  const vacioDeLaHistoria = useMemo(() => {
+    const fuera = notas.filter(n => (filtro === 'hospital' ? !esHospitalaria(n) : esHospitalaria(n)))
+    return describirVacioDeUnaLista({
+      total: notas.length,
+      sustantivo: ['nota', 'notas'],
+      restricciones: filtro === 'todas' || fuera.length === 0 ? [] : [{
+        id: 'ambito',
+        // El módulo ya dice CUÁNTAS hay fuera; esta frase dice DÓNDE están.
+        frase: `${fuera.length === notas.length ? 'todas' : contar(fuera.length, ['nota', 'notas'])}`
+          + ` ${fuera.length === 1 ? 'está' : 'están'} en la pestaña «${filtro === 'hospital' ? 'Consulta' : 'Hospital'}»`,
+        gesto: filtro === 'hospital' ? 'Ver notas de Consulta' : 'Ver notas de Hospital',
+      }],
+      registroVacio: {
+        titulo: 'Sin notas todavía.',
+        descripcion: 'La primera consulta que firmes aparece aquí.',
+        gesto: 'Crear primera nota',
+      },
+    })
+  }, [notas, filtro])
 
   /*
     EL ESTADO ACTUAL, EN UNA LÍNEA (REG-262) — levantado a `useMemo` para que
@@ -327,16 +376,7 @@ export default function ExpedientePage() {
       {loading ? (
         <Spinner center label="Cargando expediente…" />
       ) : notasFiltradas.length === 0 ? (
-        // Si estás en "Consulta" y no hay notas de consultorio PERO sí de hospital,
-        // no muestres un vacío engañoso: apunta a la pestaña Hospital.
-        (filtro === 'consulta' && notas.some(n => ['ingreso', 'evolucion', 'egreso'].includes(n.tipo))) ? (
-          <EmptyState
-            icon={<FileText size={22} />}
-            title="Sin notas de consultorio"
-            description="Este paciente solo tiene notas de hospitalización. Cambia a la pestaña “Hospital” para verlas."
-            action={<Button variant="secondary" onClick={() => setFiltro('hospital')}>Ver notas de Hospital</Button>}
-          />
-        ) : errorNotas ? (
+        errorNotas ? (
           /**
            * NO CONFUNDIR "falló la lectura" CON "no hay notas".
            *
@@ -345,6 +385,10 @@ export default function ExpedientePage() {
            * todavía · Crear primera nota". Un paciente con años de historia se veía
            * como paciente nuevo con la red caída o el token vencido — exactamente
            * el patrón que ya provocó un susto de pérdida de datos con el censo.
+           *
+           * VA PRIMERO, y eso es deliberado: con la lectura caída no se sabe
+           * cuántas notas hay, así que ningún recuento de «cuántas están en la
+           * otra pestaña» sería cierto. Un fallo no se cuenta, se dice.
            */
           <EmptyState
             illustration={<ExpedienteVacio />}
@@ -357,14 +401,32 @@ export default function ExpedientePage() {
            están la identidad del paciente, sus alergias y el riel del Clinical
            Spine: la pantalla no está vacía, la historia sí. El hero ilustrado
            ocupaba media pantalla para decir «no hay notas» y empujaba fuera
-           del pliegue lo que sí había. El error de carga (arriba) SÍ conserva
-           su hero: ahí distinguir «no hay» de «no se pudo leer» es la regla 4.
-           Y la acción no se pierde: «Nueva consulta» sigue en la cabecera. */
+           del pliegue lo que sí había.
+
+           Lo que dice ahora lo decide `describirVacioDeUnaLista`, y con eso
+           deja de haber un aviso que sólo servía en una dirección: en la
+           pestaña Hospital, un paciente con doce notas de consultorio leía
+           «Sin notas todavía» sobre un expediente lleno. */
         <EmptyState
-          variante="linea"
-          title="Sin notas todavía."
-          description="La primera consulta que firmes aparece aquí."
-          action={<Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))}>Crear primera nota</Button>}
+          variante={vacioDeLaHistoria.variante}
+          illustration={vacioDeLaHistoria.variante === 'hero' ? <ExpedienteVacio /> : undefined}
+          title={vacioDeLaHistoria.titulo}
+          description={vacioDeLaHistoria.descripcion}
+          action={vacioDeLaHistoria.gestos.length ? (
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {vacioDeLaHistoria.gestos.map(g => (
+                <Button
+                  key={g.id}
+                  variant={g.id === 'alta' ? 'ghost' : 'secondary'}
+                  size="sm"
+                  icon={g.id === 'alta' ? <Plus size={14} /> : undefined}
+                  onClick={g.id === 'alta'
+                    ? () => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))
+                    : () => setFiltro(filtro === 'hospital' ? 'consulta' : 'hospital')}
+                >{g.etiqueta}</Button>
+              ))}
+            </div>
+          ) : undefined}
         />
         )
       ) : (

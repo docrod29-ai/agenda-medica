@@ -225,6 +225,27 @@ filas y «Ver el día siguiente» aterriza en ellas. La medición corrigió el
 trabajo: el título decía el día por TERCERA vez (la cabecera ya lo dice dos) y
 pasó a «Sin citas agendadas.» — la corrección de RTC-22 aplicada aquí.
 
+**15-ago — el expediente LLENO decía que estaba vacío, y el aviso valía en una
+sola dirección.** Con la corrida concurrente parada 4h, se midió RTC-30 en las
+tres pantallas que quedaban suyas. `/nota` refutada (`if (!nota)`: la nota que
+no existe ES la pantalla) y `/cumplimiento/retencion` también (sus pestañas ya
+llevan los conteos de ambos lados, que es lo que REG-315 añadió en
+`/pacientes`). En `/expediente` el peso del bloque ya estaba bien —línea, con
+su razón escrita— pero apareció OTRA cosa al leer la condición: el aviso de
+«están en la otra pestaña» existía **sólo para el filtro Consulta**, así que
+en la pestaña **Hospital** un paciente con doce notas de consultorio leía «Sin
+notas todavía. La primera consulta que firmes aparece aquí.» Y un segundo
+defecto más callado: el filtro y el aviso preguntaban «¿es hospitalaria?» con
+reglas distintas (`!!internamientoId || tipos` frente a sólo `tipos`), así que
+un `postop` colgado de un internamiento —el caso que el propio comentario
+menciona— contaba para filtrar y no para avisar. Un solo predicado
+`esHospitalaria`, y la decisión del vacío delegada en
+`describirVacioDeUnaLista` (el módulo de la otra corrida) en vez de escribir su
+quinta copia. Guardián de 5 casos, probado al revés en las dos direcciones.
+Navegador escritorio+móvil, 0 errores de consola: en Hospital, «Hay 2 notas
+fuera de lo que estás mirando · todas están en la pestaña Consulta», línea de
+62px sin ilustración, y el gesto devuelve las 2 notas.
+
 **15-ago — RTC-30 medida en `/lista-espera` y REFUTADA; queda cerrada en lo
 alcanzable.** Con `/pacientes` (REG-315) y `/reactivacion` (REG-317) pagadas por
 la corrida concurrente y `farmacia`/`cumplimiento` consumiendo ya su módulo

@@ -19,9 +19,12 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "UU agent-state/MASTER_STATE.json",
-    "A  src/__tests__/el-bloqueo-arco-existe-en-el-tipo.test.ts",
-    "M  src/types/index.ts"
+    "M agent-state/V15_CURRENT_ITERATION.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
+    "?? docs/design/capturas/v15-vacio-del-expediente/",
+    "?? scripts/design/medir-vacio-del-expediente-v15.mjs",
+    "?? src/__tests__/v15-el-expediente-lleno-no-dice-que-esta-vacio.test.ts"
   ],
   "actualizado": "2026-08-15",
   "resumenDesdeElUltimoEstado": {
@@ -59,8 +62,8 @@
   "derivado": {
     "regsEnElLedger": 166,
     "ultimaREG": "REG-318",
-    "archivosDePrueba": 692,
-    "casosDePrueba": 8525,
+    "archivosDePrueba": 696,
+    "casosDePrueba": 8566,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

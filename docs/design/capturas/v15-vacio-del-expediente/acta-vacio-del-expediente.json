@@ -1,0 +1,48 @@
+{
+  "base": "http://localhost:3000",
+  "viewports": {
+    "escritorio-1440": {
+      "abierto": "/expediente/pac-aurelio-dominguez",
+      "pulsado": true,
+      "enConsulta": {
+        "hay": false,
+        "filas": 2
+      },
+      "enHospital": {
+        "hay": true,
+        "filas": 0,
+        "linea": true,
+        "alto": 62,
+        "titulo": "Hay 2 notas fuera de lo que estás mirando.",
+        "desc": "todas están en la pestaña «Consulta».",
+        "ilustracion": false,
+        "botones": [
+          "Ver notas de Consulta"
+        ]
+      },
+      "filasTrasVolver": 2
+    },
+    "movil-390": {
+      "abierto": "/expediente/pac-aurelio-dominguez",
+      "pulsado": true,
+      "enConsulta": {
+        "hay": false,
+        "filas": 2
+      },
+      "enHospital": {
+        "hay": true,
+        "filas": 0,
+        "linea": true,
+        "alto": 134,
+        "titulo": "Hay 2 notas fuera de lo que estás mirando.",
+        "desc": "todas están en la pestaña «Consulta».",
+        "ilustracion": false,
+        "botones": [
+          "Ver notas de Consulta"
+        ]
+      },
+      "filasTrasVolver": 2
+    }
+  },
+  "errores": []
+}
