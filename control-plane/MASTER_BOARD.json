@@ -79,13 +79,13 @@
     {
       "id": "ACP-001",
       "title": "Executable state contract and validator",
-      "status": "REPAIR_READY",
+      "status": "RUNNING_WRITER",
       "owner": "CLAUDE_OPUS",
       "dependencies": [
         "ACP-000"
       ],
       "blocked_by": [],
-      "next_action": "Launch exactly one bounded Claude/Opus repair for the three recorded blocking Codex P1 findings. Keep ACP-002 QUEUED.",
+      "next_action": "Claude/Opus repair writer is the only active writer. Repair only the three recorded blocking Codex P1 findings, then run focused verification and leave ACP-001 at WRITER_DONE if successful. Do not start ACP-002.",
       "evidence": [
         "control-plane/kernel.mjs implements schema validation, the explicit transition table, writer-lock semantics, policy invariants, dependency checks, and deterministic next-item selection",
         "control-plane/kernel.test.mjs: 50 focused cases including reverse/mutation proofs for each central guard",
@@ -101,7 +101,9 @@
         "Blocking P1: unsupported schema constraints can be silently skipped when absent from the current value.",
         "Blocking P1: RUNNING_JUDGE -> JUDGE_PASS can be accepted without explicit judge verdict evidence.",
         "Blocking P1: reverse/mutation proof omits the single-active-program guard.",
-        "Transition recorded: RUNNING_JUDGE -> JUDGE_FAIL after structured Codex FAIL; repair is now explicitly queued and bounded to the three P1 findings."
+        "Transition recorded: RUNNING_JUDGE -> JUDGE_FAIL after structured Codex FAIL; repair is now explicitly queued and bounded to the three P1 findings.",
+        "Transition recorded: JUDGE_FAIL -> REPAIR_READY; bounded repair approved by the active Control Plane program.",
+        "Transition recorded: REPAIR_READY -> RUNNING_WRITER; exactly one Claude/Opus repair writer requested in GitHub Actions."
       ],
       "closed_by": null
     },
