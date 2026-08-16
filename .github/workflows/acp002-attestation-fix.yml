@@ -1,0 +1,153 @@
+name: ACP-002 Attestation Harness Fix
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/acp002-attestation-fix.yml'
+
+concurrency:
+  group: ausculta-acp002-attestation-fix
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    if: github.event.pull_request.head.ref == 'claude/acp-001-codex-verdict-zwzvjk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      TARGET_BRANCH: claude/acp-001-codex-verdict-zwzvjk
+      EXPECTED_PARENT_SHA: 26ccbfa45044db93045d747c5531f5367551fc34
+    steps:
+      - name: Checkout exact PR head without persisted credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify bounded P3 attestation-fix preconditions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          const board = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json', 'utf8'))
+          const acp2 = board.items.find(x => x.id === 'ACP-002')
+          const acp3 = board.items.find(x => x.id === 'ACP-003')
+          if (!acp2 || acp2.status !== 'WRITER_DONE') throw new Error(`ACP-002 must be WRITER_DONE, got ${acp2?.status}`)
+          if (!acp3 || acp3.status !== 'QUEUED') throw new Error(`ACP-003 must remain QUEUED, got ${acp3?.status}`)
+          for (const key of ['production_deploy_authorized','main_merge_authorized','phi_allowed','destructive_changes_authorized','clinical_policy_changes_authorized','production_secret_rotation_authorized']) {
+            if (board.execution_policy?.[key] !== false) throw new Error(`fail-closed policy drift: ${key}`)
+          }
+          NODE
+
+      - name: Install Claude Code CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Run one bounded Claude harness repair
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/prompt.txt <<'PROMPT'
+          AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001 — ACP-002 P3 ATTESTATION HARNESS FIX
+
+          You are CLAUDE_OPUS acting as the single bounded writer for a NON-BLOCKING P3 harness defect discovered only after the six blocking P1 repairs were completed.
+
+          Current truth:
+          - ACP-002 is WRITER_DONE.
+          - The six blocking P1s from Codex run 31956327110 were repaired at parent SHA 26ccbfa45044db93045d747c5531f5367551fc34.
+          - The focused suite passes 160/160 and kernel validation is green.
+          - PR attestation run 31959714663 failed only because its embedded synthetic request still uses the OLD preflight request shape.
+          - The repaired preflight now correctly requires `run_attempt` and actual `judge_workflows`; the attestation fixture omitted both.
+          - This is analogous to the earlier non-blocking fixture repair: fix the harness, do not weaken the production guard.
+
+          READ:
+          - .github/workflows/control-plane-writer.yml
+          - control-plane/preflight.mjs
+          - control-plane/preflight.test.mjs
+          - control-plane/MASTER_BOARD.json
+          - control-plane/kernel.mjs
+
+          CHANGE ONLY `.github/workflows/control-plane-writer.yml`.
+
+          Required fix:
+          1. In the PR attestation step `The preflight refuses a bad request — fail closed, proved in the cloud`, make the synthetic valid control request satisfy the CURRENT preflight contract:
+             - `run_attempt: 1`
+             - supply the actual committed judge workflow(s) for condition 11, including path, job `codex-judge`, and source read from disk.
+          2. Keep every defect case genuinely attributable to the intended defect and keep assertions fail-closed.
+          3. Update the `Record the live preflight decision on real PR state` request so it also speaks the CURRENT contract. Prefer building that request in Node so the real committed judge workflow source is supplied rather than hand-encoding YAML into JSON.
+          4. Do NOT change `control-plane/preflight.mjs`, tests, kernel, schema, board, writer permissions, writer tool permissions, scope guard, item scopes, any product/clinical code, or ACP-003.
+          5. Do not weaken any guard or assertion to make attestation green.
+          6. No Bash tool, no Web, no Git. You only edit the one workflow file; the outer workflow will verify and push mechanically.
+
+          Final response: concise explanation and `READY_FOR_ATTESTATION=YES` only if the harness now calls the repaired preflight correctly.
+          PROMPT
+
+          claude -p "$(cat /tmp/prompt.txt)" \
+            --model opus \
+            --max-turns 40 \
+            --output-format json \
+            --allowedTools "Read" "Write" "Edit" "Glob" "Grep" \
+            --disallowedTools "Bash" "WebSearch" "WebFetch" \
+            2>&1 | tee /tmp/claude-attestation-fix.log
+
+      - name: Enforce exact one-file scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(git status --porcelain)"
+          test -n "$status"
+          printf '%s\n' "$status"
+          while IFS= read -r line; do
+            path="${line:3}"
+            case "$path" in
+              .github/workflows/control-plane-writer.yml) ;;
+              *) echo "::error::FORBIDDEN_SCOPE_CHANGE: $path"; exit 80 ;;
+            esac
+          done <<< "$status"
+
+      - name: Verify focused contract and attestation contract markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import { readFileSync } from 'node:fs'
+          const src = readFileSync('.github/workflows/control-plane-writer.yml', 'utf8')
+          const attest = src.slice(src.indexOf('  attest:'))
+          assert.ok(attest.includes('run_attempt'), 'attestation must supply run_attempt')
+          assert.ok(attest.includes('judge_workflows'), 'attestation must supply judge_workflows')
+          assert.ok(attest.includes('codex-judge'), 'attestation must inspect codex-judge permissions')
+          NODE
+
+      - name: Commit and push harness fix with token isolated to this step
+        env:
+          PUSH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/acp002-attestation-fix.yml
+          git config user.name "Ausculta Control Plane"
+          git config user.email "control-plane@users.noreply.github.com"
+          git add .github/workflows/control-plane-writer.yml
+          git diff --cached --check
+          git commit -m "control-plane: repair ACP-002 PR attestation fixture"
+          git -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" \
+            push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:${TARGET_BRANCH}"
+          echo "ATTESTATION_FIX_SHA=$(git rev-parse HEAD)"
