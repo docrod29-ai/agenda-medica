@@ -202,3 +202,50 @@ test('reverse proof: without the governance check, an item writer edits executio
   assert.equal(checkWriterScope(input).ok, false)
   assert.equal(mutant.checkWriterScope(input).ok, true)
 })
+
+// ---------------------------------------------------------------------------
+// The platform's own limit: a writer token cannot push a workflow file.
+//
+// Found the expensive way. A real cloud run passed its preflight, ran Claude,
+// passed the scope check and the focused suite, and then died on the push with
+// "refusing to allow a GitHub App to create or update workflow ... without
+// `workflows` permission". The work was correct and unlandable. Better to say
+// no at the start, and to make the declaration itself unable to promise it.
+// ---------------------------------------------------------------------------
+
+test('a changed workflow path is refused, because the writer token can never push it', () => {
+  const result = run({ changedPaths: ['control-plane/MASTER_BOARD.json', '.github/workflows/control-plane-writer.yml'] })
+  assert.equal(result.ok, false)
+  assert.ok(codes(result).includes(SCOPE_VIOLATIONS.WORKFLOW_PATH_UNPUSHABLE))
+})
+
+test('a scope that DECLARES a workflow path is itself refused', () => {
+  const scopes = { items: { 'ACP-002': ['control-plane/MASTER_BOARD.json', '.github/workflows/control-plane-writer.yml'] } }
+  const result = run({ scopes, changedPaths: ['control-plane/MASTER_BOARD.json'] })
+  assert.equal(result.ok, false)
+  assert.ok(codes(result).includes(SCOPE_VIOLATIONS.WORKFLOW_PATH_UNPUSHABLE))
+})
+
+test('the committed scopes declare no workflow path', () => {
+  for (const [item, paths] of Object.entries(SCOPES.items)) {
+    for (const path of paths) {
+      assert.ok(!path.startsWith('.github/'), `${item} declares unpushable ${path}`)
+    }
+  }
+})
+
+test('reverse proof: without the workflow-path refusal, an unpushable change is allowed', async () => {
+  const mutant = await mutateScopeGuard([["    if (path.startsWith('.github/')) {", '    if (false) {']])
+  const { boardBefore, boardAfter } = legalWrite()
+  const scopes = { items: { 'ACP-002': ['control-plane/MASTER_BOARD.json', '.github/workflows/control-plane-writer.yml'] } }
+  const input = { itemId: 'ACP-002', changedPaths: ['control-plane/MASTER_BOARD.json', '.github/workflows/control-plane-writer.yml'], scopes, boardBefore, boardAfter }
+  assert.equal(checkWriterScope(input).ok, false)
+  // The declaration guard still fires, so remove it too to show the path check
+  // is what stops the changed FILE.
+  const both = await mutateScopeGuard([
+    ["    if (path.startsWith('.github/')) {", '    if (false) {'],
+    ["    if (pattern.startsWith('.github/')) {", '    if (false) {'],
+  ])
+  assert.equal(both.checkWriterScope(input).ok, true, 'with both refusals gone the unpushable change is allowed')
+  void mutant
+})

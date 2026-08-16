@@ -353,7 +353,9 @@ jobs:
           fi
           git config user.name "Ausculta Control Plane"
           git config user.email "control-plane@users.noreply.github.com"
-          git add control-plane .github/workflows/control-plane-writer.yml
+          # Only control-plane/. GitHub refuses a GITHUB_TOKEN push that touches
+          # .github/workflows/**, so staging one guarantees a late rejection.
+          git add control-plane
           if git diff --cached --quiet; then
             echo "::error::NO_STAGED_CHANGES_AFTER_SCOPE_VALIDATION"
             exit 81

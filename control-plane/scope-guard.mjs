@@ -26,6 +26,7 @@ export const SCOPE_GUARD_CONTRACT_VERSION = 'control-plane/scope-guard/1'
 export const SCOPE_VIOLATIONS = Object.freeze({
   NO_DECLARED_SCOPE: 'NO_DECLARED_SCOPE',
   PATH_OUTSIDE_ITEM_SCOPE: 'PATH_OUTSIDE_ITEM_SCOPE',
+  WORKFLOW_PATH_UNPUSHABLE: 'WORKFLOW_PATH_UNPUSHABLE',
   FOREIGN_ITEM_MODIFIED: 'FOREIGN_ITEM_MODIFIED',
   GOVERNANCE_MODIFIED: 'GOVERNANCE_MODIFIED',
   AUTHORIZED_ITEM_MISSING: 'AUTHORIZED_ITEM_MISSING',
@@ -95,8 +96,27 @@ export function checkWriterScope({ itemId, changedPaths, scopes, boardBefore, bo
   }
 
   for (const path of changedPaths) {
+    // A writer can never land a workflow change, and GitHub is the one that
+    // says so: `GITHUB_TOKEN` is refused at the server with "refusing to allow
+    // a GitHub App to create or update workflow ... without `workflows`
+    // permission". Learned from a real run that did the whole job and then died
+    // on the push. Refuse here instead, at the start, with a reason — a late
+    // rejection after a writer has spent its budget is a worse version of the
+    // same no. It also makes "a writer cannot edit its own runner" a property
+    // the platform enforces, not just an allowlist we maintain.
+    if (path.startsWith('.github/')) {
+      violations.push(violation(SCOPE_VIOLATIONS.WORKFLOW_PATH_UNPUSHABLE, path, `${path} is a workflow-scope path; the writer's token can never push it, so it may not be changed by a writer`))
+      continue
+    }
     if (!pathAllowed(path, allowed)) {
       violations.push(violation(SCOPE_VIOLATIONS.PATH_OUTSIDE_ITEM_SCOPE, path, `${path} is not in ${itemId}'s declared scope`))
+    }
+  }
+
+  // The declaration itself must not promise something unpushable.
+  for (const pattern of allowed ?? []) {
+    if (pattern.startsWith('.github/')) {
+      violations.push(violation(SCOPE_VIOLATIONS.WORKFLOW_PATH_UNPUSHABLE, `item-scopes.json/items/${itemId}`, `${itemId} declares ${pattern}, which a writer's token can never push`))
     }
   }
 
