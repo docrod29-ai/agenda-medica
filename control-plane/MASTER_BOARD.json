@@ -79,18 +79,21 @@
     {
       "id": "ACP-001",
       "title": "Executable state contract and validator",
-      "status": "WRITER_DONE",
+      "status": "CI_PENDING",
       "owner": "CLAUDE_OPUS",
-      "dependencies": ["ACP-000"],
+      "dependencies": [
+        "ACP-000"
+      ],
       "blocked_by": [],
-      "next_action": "Writer finished. Next legal statuses are CI_PENDING or BLOCKED. Run CI, freeze the SHA, then let the independent Codex judge decide. Closure requires JUDGE_PASS with an independent read-only judge; the writer must not close this item.",
+      "next_action": "CI is confirmed green on the immutable writer checkpoint. Freeze the exact audited candidate SHA before starting the independent Codex judge.",
       "evidence": [
         "control-plane/kernel.mjs implements schema validation, the explicit transition table, writer-lock semantics, policy invariants, dependency checks, and deterministic next-item selection",
         "control-plane/kernel.test.mjs: 50 focused cases including reverse/mutation proofs for each central guard",
         "transition path taken by the writer: READY -> RUNNING_WRITER -> WRITER_DONE (no state skipped)",
         "node --test control-plane/*.test.mjs: 50 pass, 0 fail",
         "node control-plane/kernel.mjs check: ok=true on the canonical board, exit code 0",
-        "no production deploy, no merge to main, no PHI, no destructive change, no clinical-policy change was made or authorized"
+        "no production deploy, no merge to main, no PHI, no destructive change, no clinical-policy change was made or authorized",
+        "CI #1007 run 31919118803 completed SUCCESS on writer checkpoint 0e6469e2a22b9398c0103fd5e52ac59406fddfe3; all five jobs passed after the targeted verify retry"
       ],
       "closed_by": null
     },
@@ -99,8 +102,12 @@
       "title": "Cloud writer runner",
       "status": "QUEUED",
       "owner": "CLAUDE_OPUS",
-      "dependencies": ["ACP-001"],
-      "blocked_by": ["ACP-001"],
+      "dependencies": [
+        "ACP-001"
+      ],
+      "blocked_by": [
+        "ACP-001"
+      ],
       "next_action": "Run one bounded writer task in GitHub Actions with least privilege and no production access.",
       "evidence": [],
       "closed_by": null
@@ -110,8 +117,12 @@
       "title": "Independent Codex judge runner",
       "status": "QUEUED",
       "owner": "CLAUDE_OPUS",
-      "dependencies": ["ACP-002"],
-      "blocked_by": ["ACP-002"],
+      "dependencies": [
+        "ACP-002"
+      ],
+      "blocked_by": [
+        "ACP-002"
+      ],
       "next_action": "Run Codex read-only against an immutable writer SHA and emit a structured verdict.",
       "evidence": [],
       "closed_by": null
@@ -121,8 +132,12 @@
       "title": "Sequential orchestration loop",
       "status": "QUEUED",
       "owner": "CLAUDE_OPUS",
-      "dependencies": ["ACP-003"],
-      "blocked_by": ["ACP-003"],
+      "dependencies": [
+        "ACP-003"
+      ],
+      "blocked_by": [
+        "ACP-003"
+      ],
       "next_action": "Automate READY -> writer -> CI -> freeze -> judge -> close/repair/block -> next.",
       "evidence": [],
       "closed_by": null
@@ -132,8 +147,12 @@
       "title": "Safety, budget, retry, and owner-approval gates",
       "status": "QUEUED",
       "owner": "CLAUDE_OPUS",
-      "dependencies": ["ACP-004"],
-      "blocked_by": ["ACP-004"],
+      "dependencies": [
+        "ACP-004"
+      ],
+      "blocked_by": [
+        "ACP-004"
+      ],
       "next_action": "Enforce budgets, bounded retries, forbidden scopes, and hard owner gates for merge/deploy/clinical-policy actions.",
       "evidence": [],
       "closed_by": null
@@ -143,8 +162,12 @@
       "title": "Cloud-only overnight end-to-end proof",
       "status": "QUEUED",
       "owner": "CLAUDE_OPUS",
-      "dependencies": ["ACP-005"],
-      "blocked_by": ["ACP-005"],
+      "dependencies": [
+        "ACP-005"
+      ],
+      "blocked_by": [
+        "ACP-005"
+      ],
       "next_action": "Demonstrate two sequential synthetic tasks completing without local-machine involvement, including one failure/repair or blocked path.",
       "evidence": [],
       "closed_by": null
@@ -154,8 +177,12 @@
       "title": "Independent closure audit",
       "status": "QUEUED",
       "owner": "CODEX_INDEPENDENT",
-      "dependencies": ["ACP-006"],
-      "blocked_by": ["ACP-006"],
+      "dependencies": [
+        "ACP-006"
+      ],
+      "blocked_by": [
+        "ACP-006"
+      ],
       "next_action": "Audit the immutable Control Plane candidate and authorize closure or list only mandatory blockers.",
       "evidence": [],
       "closed_by": null
