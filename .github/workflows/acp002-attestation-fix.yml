@@ -19,7 +19,7 @@ jobs:
       contents: write
     env:
       TARGET_BRANCH: claude/acp-001-codex-verdict-zwzvjk
-      EXPECTED_PARENT_SHA: 26ccbfa45044db93045d747c5531f5367551fc34
+      EXPECTED_PARENT_SHA: 3afcc6b2494f7457a8f638e4be944f406b18ab38
     steps:
       - name: Checkout exact PR head without persisted credentials
         uses: actions/checkout@v5
@@ -148,6 +148,5 @@ jobs:
           git add .github/workflows/control-plane-writer.yml
           git diff --cached --check
           git commit -m "control-plane: repair ACP-002 PR attestation fixture"
-          git -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" \
-            push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:${TARGET_BRANCH}"
+          git push "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${TARGET_BRANCH}"
           echo "ATTESTATION_FIX_SHA=$(git rev-parse HEAD)"
