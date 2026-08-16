@@ -79,13 +79,13 @@
     {
       "id": "ACP-001",
       "title": "Executable state contract and validator",
-      "status": "CI_PENDING",
+      "status": "SHA_FROZEN",
       "owner": "CLAUDE_OPUS",
       "dependencies": [
         "ACP-000"
       ],
       "blocked_by": [],
-      "next_action": "CI is confirmed green on the immutable writer checkpoint. Freeze the exact audited candidate SHA before starting the independent Codex judge.",
+      "next_action": "Run one independent read-only Codex audit against the exact frozen candidate SHA. Do not allow the judge to write, merge, deploy, or change the audited candidate.",
       "evidence": [
         "control-plane/kernel.mjs implements schema validation, the explicit transition table, writer-lock semantics, policy invariants, dependency checks, and deterministic next-item selection",
         "control-plane/kernel.test.mjs: 50 focused cases including reverse/mutation proofs for each central guard",
@@ -93,7 +93,8 @@
         "node --test control-plane/*.test.mjs: 50 pass, 0 fail",
         "node control-plane/kernel.mjs check: ok=true on the canonical board, exit code 0",
         "no production deploy, no merge to main, no PHI, no destructive change, no clinical-policy change was made or authorized",
-        "CI #1007 run 31919118803 completed SUCCESS on writer checkpoint 0e6469e2a22b9398c0103fd5e52ac59406fddfe3; all five jobs passed after the targeted verify retry"
+        "CI #1007 run 31919118803 completed SUCCESS on writer checkpoint 0e6469e2a22b9398c0103fd5e52ac59406fddfe3; all five jobs passed after the targeted verify retry",
+        "FROZEN_CANDIDATE_SHA=0e6469e2a22b9398c0103fd5e52ac59406fddfe3; immutable Git object selected for independent ACP-001 audit"
       ],
       "closed_by": null
     },
