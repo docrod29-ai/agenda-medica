@@ -137,15 +137,19 @@
     {
       "id": "ACP-002",
       "title": "Cloud writer runner",
-      "status": "QUEUED",
+      "status": "RUNNING_WRITER",
       "owner": "CLAUDE_OPUS",
       "dependencies": [
         "ACP-001"
       ],
       "blocked_by": [],
-      "next_action": "Run one bounded writer task in GitHub Actions with least privilege and no production access.",
+      "next_action": "Build the bounded, least-privilege cloud writer runner: a fail-closed preflight implementing the thirteen BASELINE.md conditions as testable code, and one GitHub Actions workflow that runs exactly one writer against the deterministically selected item and can neither deploy to production nor merge to main.",
       "evidence": [
-        "Unblocked by the closure of ACP-001 on independent Codex PASS (run 31951393592, frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539). The dependency is met, so `blocked_by` may no longer name ACP-001 — the kernel rejects a closed item left standing as a blocker (BLOCKED_BY_OUT_OF_SYNC)."
+        "Unblocked by the closure of ACP-001 on independent Codex PASS (run 31951393592, frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539). The dependency is met, so `blocked_by` may no longer name ACP-001 — the kernel rejects a closed item left standing as a blocker (BLOCKED_BY_OUT_OF_SYNC).",
+        "FROZEN_ORCHESTRATION_SHA=8cda1aac5c59749e2196f7fbde6eed1334c8f067 — the immutable post-closure orchestration state ACP-002 starts from. At that SHA ACP-001 is CLOSED with its closer recorded, the board validates with zero violations, and the focused suite is 67/67.",
+        "Transition recorded: QUEUED -> READY. evaluateTransition('QUEUED','READY') returns ok=true, and the unblocking is real rather than declared: ACP-001 is CLOSED, so ACP-002's dependency is met and its blocker list is legitimately empty.",
+        "Transition recorded: READY -> RUNNING_WRITER. acquireWriterLock(NO_LOCK,{item_id:'ACP-002',holder:'CLAUDE_OPUS',run_id:'session_015nBJM7SgZNm63MtpxVNsVg'}) granted the lock, and evaluateTransition('READY','RUNNING_WRITER',{item_id:'ACP-002',writer_lock:<granted>}) returns ok=true. The same call without the lock is refused with WRITER_LOCK_NOT_HELD, and a second run claiming the held lock is refused with WRITER_LOCK_HELD — so the single-writer rule is enforced, not merely asserted.",
+        "One active writer, one active program: ACP-002 is the only item in an in-flight status, and the board's own concurrency check would report MULTIPLE_IN_FLIGHT_ITEMS if that stopped being true."
       ],
       "closed_by": null
     },
