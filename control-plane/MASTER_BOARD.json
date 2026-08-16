@@ -79,13 +79,13 @@
     {
       "id": "ACP-001",
       "title": "Executable state contract and validator",
-      "status": "SHA_FROZEN",
+      "status": "RUNNING_JUDGE",
       "owner": "CLAUDE_OPUS",
       "dependencies": [
         "ACP-000"
       ],
       "blocked_by": [],
-      "next_action": "Run one independent read-only Codex audit against the exact frozen candidate SHA. Do not allow the judge to write, merge, deploy, or change the audited candidate.",
+      "next_action": "Independent Codex judge is running read-only against the exact frozen SHA. Record only its structured PASS, FAIL, or UNVERIFIABLE verdict; do not start ACP-002 before ACP-001 closes.",
       "evidence": [
         "control-plane/kernel.mjs implements schema validation, the explicit transition table, writer-lock semantics, policy invariants, dependency checks, and deterministic next-item selection",
         "control-plane/kernel.test.mjs: 50 focused cases including reverse/mutation proofs for each central guard",
@@ -94,7 +94,8 @@
         "node control-plane/kernel.mjs check: ok=true on the canonical board, exit code 0",
         "no production deploy, no merge to main, no PHI, no destructive change, no clinical-policy change was made or authorized",
         "CI #1007 run 31919118803 completed SUCCESS on writer checkpoint 0e6469e2a22b9398c0103fd5e52ac59406fddfe3; all five jobs passed after the targeted verify retry",
-        "FROZEN_CANDIDATE_SHA=0e6469e2a22b9398c0103fd5e52ac59406fddfe3; immutable Git object selected for independent ACP-001 audit"
+        "FROZEN_CANDIDATE_SHA=0e6469e2a22b9398c0103fd5e52ac59406fddfe3; immutable Git object selected for independent ACP-001 audit",
+        "Codex independent judge workflow run 31920287375 job 95098990491 started with contents:read and permission-profile :read-only; OPENAI_API_KEY preflight passed before Codex invocation"
       ],
       "closed_by": null
     },
