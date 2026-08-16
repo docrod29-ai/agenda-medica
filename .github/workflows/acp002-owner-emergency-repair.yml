@@ -1,0 +1,187 @@
+name: ACP-002 Owner Emergency Repair
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/acp002-owner-emergency-repair.yml'
+
+concurrency:
+  group: ausculta-acp002-owner-emergency-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.event.pull_request.head.ref == 'claude/acp-001-codex-verdict-zwzvjk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      REPAIR_BRANCH: claude/acp-001-codex-verdict-zwzvjk
+      VERDICT_PATH: control-plane/verdicts/acp002-codex-verdict-31956327110.json
+      EXPECTED_AUDITED_SHA: 437a119b2978972f54992c85ab7e60c7b929e2b7
+    steps:
+      - name: Checkout exact PR head without credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify immutable FAIL evidence and canonical repair preconditions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$VERDICT_PATH"
+          jq -e --arg sha "$EXPECTED_AUDITED_SHA" \
+            '.verdict == "FAIL" and .audited_sha == $sha and .independent == true and .read_only == true and ([.findings[] | select(.severity == "P1" and .blocking == true)] | length) == 6' \
+            "$VERDICT_PATH" >/dev/null
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const board = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json','utf8'))
+          const item = board.items.find(x => x.id === 'ACP-002')
+          const next = board.items.find(x => x.id === 'ACP-003')
+          if (!item || item.status !== 'RUNNING_JUDGE') throw new Error(`ACP-002 must start RUNNING_JUDGE, got ${item?.status}`)
+          if (!next || next.status !== 'QUEUED') throw new Error(`ACP-003 must remain QUEUED, got ${next?.status}`)
+          if (board.execution_policy?.production_deploy_authorized !== false || board.execution_policy?.main_merge_authorized !== false || board.execution_policy?.phi_allowed !== false) throw new Error('fail-closed owner policy drift')
+          writeFileSync('/tmp/board-before.json', JSON.stringify(board, null, 2))
+          NODE
+
+      - name: Install Claude Code CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Run one owner-authorized bounded Claude repair
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/acp002-repair-prompt.txt <<'PROMPT'
+          AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001 — ACP-002 BOUNDED P1 REPAIR
+
+          Owner has explicitly authorized this one emergency repair because the local Mac is unavailable.
+          You remain CLAUDE_OPUS, the ONE WRITER. Codex remains the independent judge.
+
+          READ COMPLETELY BEFORE EDITING:
+          - CLAUDE.md
+          - AGENTS.md
+          - control-plane/BASELINE.md
+          - control-plane/MASTER_BOARD.json
+          - control-plane/MASTER_BOARD.schema.json
+          - control-plane/kernel.mjs
+          - control-plane/preflight.mjs
+          - control-plane/preflight.test.mjs
+          - .github/workflows/control-plane-writer.yml
+          - control-plane/verdicts/acp002-codex-verdict-31956327110.json
+
+          The immutable Codex verdict is FAIL against SHA 437a119b2978972f54992c85ab7e60c7b929e2b7 with exactly six blocking P1 findings. Repair ONLY those findings:
+
+          P1-1 Preflight malformed/hostile input: fail closed on unknown/missing request structure, recursively detect credential-bearing values including nested/arbitrary fields, and make every CLI error use the full machine contract with authorized:null, next_board_status:BLOCKED and a stop_condition.
+
+          P1-2 Branch/production fence bypass: the Claude writer must never possess a reusable GitHub write credential and must not have Bash/node/npm/npx tools capable of spawning git while the Anthropic credential is present. Checkout for the writer must use persist-credentials:false. Give Claude only non-shell repository editing tools; run verification and the final push in separate workflow steps. The GitHub token may exist only in the final mechanically constrained commit/push step after all scope checks pass.
+
+          P1-3 Selected-item scope: enforce item-specific scope, not merely control-plane/**. A writer authorized for ACP-002 must be mechanically unable to modify ACP-003's board record or ACP-003 implementation. Use a fail-closed explicit allowlist captured before the writer runs, and ensure only ACP-002's board item may change; all other items and top-level governance must remain byte/structurally unchanged. Future items with no declared scope must fail closed.
+
+          P1-4 Retry ceiling: enforce budget.max_retries against the actual GitHub run attempt. With max_retries=0, attempt 2+ must fail before Claude invocation.
+
+          P1-5 BASELINE condition 11: verify actual committed judge workflow job permissions are read-only, not merely board.execution_policy.judge_must_be_read_only. Fail closed on missing/unparseable/write permissions.
+
+          P1-6 Reverse proofs: replace or strengthen the named reverse/mutation proofs so the mutant demonstrates OVERALL unsafe authorization (result.ok === true and authorized != null) when the specific guard is removed, with all unrelated gates made valid. Do not claim a writer would start if another gate still blocks it. Add adversarial tests for every P1 above.
+
+          LEGAL STATE PATH TO RECORD IN ACP-002 EVIDENCE:
+          RUNNING_JUDGE -> JUDGE_FAIL -> REPAIR_READY -> RUNNING_WRITER -> WRITER_DONE.
+          The immutable FAIL verdict is the authority for the first transition. Do not mark CI_PENDING, SHA_FROZEN, JUDGE_PASS, CLOSED, or start ACP-003.
+
+          HARD BOUNDARIES:
+          - Do not touch kernel.mjs or MASTER_BOARD.schema.json.
+          - Do not touch product/clinical code, Firestore, deployment, main/master, secrets, PHI, billing, or production.
+          - Do not merge or deploy.
+          - Do not change ACP-003 or later item records.
+          - Do not weaken tests or guards.
+          - Do not commit or push; the workflow does that after independent mechanical checks.
+          - You do NOT have Bash or shell tools. That is intentional. Edit only with Read/Write/Edit/Glob/Grep.
+
+          ALLOWED WRITER-EDIT PATHS ONLY:
+          - control-plane/preflight.mjs
+          - control-plane/preflight.test.mjs
+          - control-plane/MASTER_BOARD.json
+          - control-plane/item-scopes.json (optional new file)
+          - control-plane/scope-guard.mjs (optional new file)
+          - control-plane/scope-guard.test.mjs (optional new file)
+          - .github/workflows/control-plane-writer.yml
+
+          The workflow will run tests and kernel validation after you finish. Make the repair complete, internally consistent, and fail closed.
+
+          Final response must state READY_FOR_VERIFICATION=YES only if you believe all six P1s are fully repaired.
+          PROMPT
+
+          claude -p "$(cat /tmp/acp002-repair-prompt.txt)" \
+            --model opus \
+            --max-turns 100 \
+            --output-format json \
+            --allowedTools "Read" "Write" "Edit" "Glob" "Grep" \
+            --disallowedTools "Bash" "WebSearch" "WebFetch" \
+            2>&1 | tee /tmp/acp002-repair.log
+
+      - name: Enforce exact emergency repair scope and ACP-002-only board delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(git status --porcelain)"
+          test -n "$status"
+          printf '%s\n' "$status"
+          while IFS= read -r line; do
+            path="${line:3}"
+            case "$path" in
+              control-plane/preflight.mjs|control-plane/preflight.test.mjs|control-plane/MASTER_BOARD.json|control-plane/item-scopes.json|control-plane/scope-guard.mjs|control-plane/scope-guard.test.mjs|.github/workflows/control-plane-writer.yml) ;;
+              *) echo "::error::FORBIDDEN_SCOPE_CHANGE: $path"; exit 80 ;;
+            esac
+          done <<< "$status"
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          const before = JSON.parse(readFileSync('/tmp/board-before.json','utf8'))
+          const after = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json','utf8'))
+          const b2 = before.items.find(x => x.id === 'ACP-002')
+          const a2 = after.items.find(x => x.id === 'ACP-002')
+          if (!a2 || a2.status !== 'WRITER_DONE') throw new Error(`ACP-002 must finish WRITER_DONE, got ${a2?.status}`)
+          const strip2 = b => ({...b, items: b.items.filter(x => x.id !== 'ACP-002')})
+          if (JSON.stringify(strip2(before)) !== JSON.stringify(strip2(after))) throw new Error('ACP-002 repair changed top-level governance or another item')
+          if (a2.id !== b2.id || a2.owner !== b2.owner || JSON.stringify(a2.dependencies) !== JSON.stringify(b2.dependencies)) throw new Error('ACP-002 identity/dependency drift')
+          const evidence = Array.isArray(a2.evidence) ? a2.evidence.join('\n') : ''
+          for (const token of ['JUDGE_FAIL','REPAIR_READY','RUNNING_WRITER','WRITER_DONE','31956327110']) {
+            if (!evidence.includes(token)) throw new Error(`ACP-002 evidence missing ${token}`)
+          }
+          NODE
+
+      - name: Verify focused contract after repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+
+      - name: Commit and push repaired checkpoint with token isolated to this step
+        env:
+          PUSH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The owner emergency workflow must not become part of the candidate.
+          git rm .github/workflows/acp002-owner-emergency-repair.yml
+          git config user.name "Ausculta Control Plane"
+          git config user.email "control-plane@users.noreply.github.com"
+          git add control-plane .github/workflows/control-plane-writer.yml
+          git diff --cached --check
+          git commit -m "control-plane: repair ACP-002 six blocking P1 findings"
+          git -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:${REPAIR_BRANCH}"
+          echo "REPAIRED_SHA=$(git rev-parse HEAD)"
