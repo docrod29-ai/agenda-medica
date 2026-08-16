@@ -1,0 +1,61 @@
+{
+  "verdict": "FAIL",
+  "audited_sha": "821a44b0da15959041e4af22990b2bcd499a59a7",
+  "independent": true,
+  "read_only": true,
+  "findings": [
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Credential scan authorizes deeply nested secret values",
+      "evidence": "preflight.mjs:318-344 returns null once depth exceeds 8. A valid request containing a credential at ten nested levels returned ok=true, authorized ACP-002, and condition 7 reported \"value never read\"."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Permission parser can judge another job's permissions",
+      "evidence": "writerPermissionsFromWorkflow searches for any permissions block after the writer job without stopping at the next job. Removing the writer block from the committed workflow made it parse attest's {contents:\"read\"}; runPreflight then returned ok=true and authorized ACP-002 although the writer permissions were absent."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Retry ceiling is bypassed by a fresh dispatch",
+      "evidence": "The only retry accounting is GITHUB_RUN_ATTEMPT (workflow lines 179-182). A new workflow_dispatch for the same item/SHA starts a new run at attempt 1; no board or durable counter limits repeated dispatches. max_retries:0 therefore does not bound total writer invocations."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Writer can rewrite its own post-write scope enforcement",
+      "evidence": "ACP-002's declared scope includes scope-guard.mjs and item-scopes.json. The writer has unrestricted Write/Edit tools, and workflow lines 295-327 execute those working-tree versions only after the writer finishes. It can weaken the guard/declaration, modify ACP-003, and have the weakened guard approve the result."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Branch fence is mutable before the token-bearing push",
+      "evidence": "The scope check observes only git-status paths and does not validate or restore .git/config. Write/Edit remain available during the writer step; the final push later supplies github.token through http.extraheader. Git URL rewriting in modified repository metadata can redirect that token-bearing push, defeating the asserted branch fence and exposing a token capable of direct contents writes."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Reverse-proof coverage remains incomplete",
+      "evidence": "Condition 5 has no removal/inversion proof. The condition-2 proof at preflight.test.mjs:346-351 asserts only that checks[1].ok becomes true, not that result.ok is true and authorized is non-null, despite the suite's stated end-to-end proof standard."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Latest repaired SHA lacks verifiable cloud attestation",
+      "evidence": "The board records the post-repair attestation run 31959714663 as FAILED and its current next_action still requires CI and PR attestation before freezing a new candidate. No successful cloud attestation for 821a44b0 is present in the immutable candidate."
+    },
+    {
+      "severity": "P2",
+      "blocking": false,
+      "title": "Focused suite could not be independently completed in this sandbox",
+      "evidence": "node --test control-plane/*.test.mjs exited 1 because kernel.test.mjs's CLI test received EPERM spawning Node. The preflight and scope-guard suites passed, and node control-plane/kernel.mjs check exited 0 with ok=true, but the required full command is not independently green."
+    }
+  ],
+  "summary": "FAIL: hostile inputs can bypass credential and permission checks; retry accounting is not durable; and mutable post-write enforcement permits foreign-item changes. The latest SHA also lacks independently verifiable cloud attestation, while the full focused suite was unverified due the read-only sandbox's child-process restriction.",
+  "orchestration_head_at_start": "c911260630ffe28c22a186b8057d65cb71a4f4e4",
+  "workflow_run_id": "31963800078",
+  "artifact_id": 9268002438,
+  "artifact_digest": "sha256:f462731274d32eea7e4d86f976f77a67a5e5a570a8d23d61a68b23493352cfbd"
+}
