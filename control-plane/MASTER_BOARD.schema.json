@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ausculta.local/control-plane/MASTER_BOARD.schema.json",
+  "title": "Ausculta Autonomous Control Plane Master Board",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "program_id",
+    "product",
+    "status",
+    "canonical",
+    "source_branch",
+    "accepted_v15_sha",
+    "execution_policy",
+    "stop_conditions",
+    "status_model",
+    "items",
+    "post_control_plane_queue",
+    "legacy_state_policy"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "program_id": { "const": "AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001" },
+    "product": { "const": "Ausculta" },
+    "status": { "enum": ["QUEUED", "IN_PROGRESS", "BLOCKED", "CLOSED"] },
+    "canonical": { "const": true },
+    "created_at": { "type": "string" },
+    "source_branch": { "type": "string", "minLength": 1 },
+    "accepted_v15_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "execution_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_active_programs",
+        "max_active_writers",
+        "writer_role",
+        "judge_role",
+        "research_role",
+        "orchestrator_role",
+        "owner_role",
+        "freeze_sha_before_judge",
+        "judge_must_be_read_only",
+        "unverifiable_is_pass",
+        "p2_p3_auto_repair",
+        "production_deploy_authorized",
+        "main_merge_authorized",
+        "phi_allowed",
+        "destructive_changes_authorized",
+        "clinical_policy_changes_authorized",
+        "production_secret_rotation_authorized"
+      ],
+      "properties": {
+        "max_active_programs": { "const": 1 },
+        "max_active_writers": { "const": 1 },
+        "writer_role": { "const": "CLAUDE_OPUS" },
+        "judge_role": { "const": "CODEX_INDEPENDENT" },
+        "research_role": { "const": "PERPLEXITY_READ_ONLY" },
+        "orchestrator_role": { "const": "CONTROL_PLANE" },
+        "owner_role": { "const": "OWNER" },
+        "freeze_sha_before_judge": { "const": true },
+        "judge_must_be_read_only": { "const": true },
+        "unverifiable_is_pass": { "const": false },
+        "p2_p3_auto_repair": { "const": false },
+        "production_deploy_authorized": { "const": false },
+        "main_merge_authorized": { "const": false },
+        "phi_allowed": { "const": false },
+        "destructive_changes_authorized": { "const": false },
+        "clinical_policy_changes_authorized": { "const": false },
+        "production_secret_rotation_authorized": { "const": false }
+      }
+    },
+    "stop_conditions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "status_model": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "QUEUED",
+          "READY",
+          "RUNNING_WRITER",
+          "WRITER_DONE",
+          "CI_PENDING",
+          "CI_FAILED",
+          "SHA_FROZEN",
+          "RUNNING_JUDGE",
+          "JUDGE_PASS",
+          "JUDGE_FAIL",
+          "REPAIR_READY",
+          "BLOCKED",
+          "OWNER_APPROVAL_REQUIRED",
+          "CLOSED"
+        ]
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "status",
+          "owner",
+          "dependencies",
+          "blocked_by",
+          "next_action",
+          "evidence",
+          "closed_by"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^ACP-[0-9]{3}$" },
+          "title": { "type": "string", "minLength": 1 },
+          "status": {
+            "enum": [
+              "QUEUED",
+              "IN_PROGRESS",
+              "READY",
+              "RUNNING_WRITER",
+              "WRITER_DONE",
+              "CI_PENDING",
+              "CI_FAILED",
+              "SHA_FROZEN",
+              "RUNNING_JUDGE",
+              "JUDGE_PASS",
+              "JUDGE_FAIL",
+              "REPAIR_READY",
+              "BLOCKED",
+              "OWNER_APPROVAL_REQUIRED",
+              "CLOSED"
+            ]
+          },
+          "owner": { "enum": ["CONTROL_PLANE", "CLAUDE_OPUS", "CODEX_INDEPENDENT", "OWNER"] },
+          "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "blocked_by": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "next_action": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "closed_by": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "post_control_plane_queue": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "legacy_state_policy": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}
