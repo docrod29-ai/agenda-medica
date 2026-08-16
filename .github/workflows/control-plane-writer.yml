@@ -1,0 +1,287 @@
+# ACP-002 — Cloud writer runner
+#
+# One bounded writer task, in GitHub Actions, with least privilege and no
+# production access.
+#
+# What makes this different from the ACP-001 bootstrap it replaces:
+#
+#   - It is not hardcoded to one item. The item comes from the board's own
+#     deterministic selection, and the runner refuses to write anything else.
+#   - The preflight is `control-plane/preflight.mjs`, which is unit tested with
+#     reverse proofs, instead of bash pasted into a step. Fourteen BASELINE.md
+#     conditions, one machine-readable answer, one exact stop condition.
+#   - The permissions handed to the preflight are PARSED OUT OF THIS FILE rather
+#     than typed twice. A future edit that widens the token is therefore checked
+#     against the allowlist instead of quietly disagreeing with a comment.
+#   - It is `workflow_dispatch` only. Nothing auto-fires a writer.
+#
+# It cannot deploy to production and it cannot merge to main: it holds no
+# deployment scope, and the preflight refuses any target branch other than the
+# one the board declares — never `main` or `master`.
+
+name: Control Plane Writer
+
+on:
+  workflow_dispatch:
+    inputs:
+      item_id:
+        description: 'Board item the writer is authorized to work on (must match the board selection, e.g. ACP-003)'
+        required: true
+        type: string
+      expected_sha:
+        description: 'Full 40-character SHA the writer must run against'
+        required: true
+        type: string
+
+# One writer at a time, and never cancel one mid-flight: a half-written
+# checkpoint is worse than a slow queue.
+concurrency:
+  group: ausculta-control-plane-writer
+  cancel-in-progress: false
+
+jobs:
+  writer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # LEAST PRIVILEGE. `contents: write` is the only write scope, because the
+    # writer's whole product is a pushed checkpoint. Every production-reaching
+    # scope is disclaimed explicitly rather than left to the default, so the
+    # preflight can read this block back and prove it.
+    permissions:
+      contents: write
+      pull-requests: none
+      issues: none
+      actions: none
+      deployments: none
+      id-token: none
+      packages: none
+    env:
+      # Single source of truth for the budget: fed to the preflight AND to the
+      # CLI below, so an unbounded run cannot be authorized by one and started
+      # by the other.
+      WRITER_MAX_TURNS: '60'
+      WRITER_TIMEOUT_MINUTES: '60'
+      WRITER_MAX_RETRIES: '0'
+      ITEM_ID: ${{ inputs.item_id }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+    steps:
+      - name: Checkout the exact authorized SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve the target branch the board declares
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="$(node -p "JSON.parse(require('fs').readFileSync('control-plane/MASTER_BOARD.json','utf8')).source_branch")"
+          if [[ -z "$branch" || "$branch" == "main" || "$branch" == "master" || "$branch" == "undefined" ]]; then
+            echo "::error::FORBIDDEN_TARGET_BRANCH: $branch"
+            exit 90
+          fi
+          # The authorized SHA must actually be on that branch; a writer must not
+          # be pointed at a commit from somewhere else.
+          git fetch origin "$branch"
+          if ! git merge-base --is-ancestor "$EXPECTED_SHA" "origin/$branch"; then
+            echo "::error::AUTHORIZED_SHA_NOT_ON_TARGET_BRANCH: $EXPECTED_SHA is not an ancestor of origin/$branch"
+            exit 91
+          fi
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Build the preflight request
+        id: request
+        env:
+          # Presence only. The value is never written to a file, an output, or a
+          # log — the preflight refuses a request that carries one.
+          ANTHROPIC_SECRET_PRESENT: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKTREE_CLEAN=true
+          if [[ -n "$(git status --porcelain)" ]]; then WORKTREE_CLEAN=false; fi
+          export WORKTREE_CLEAN
+
+          # Read this workflow's OWN permissions block instead of retyping it.
+          # Two hand-maintained copies of a permission list drift, and the copy
+          # that drifts is always the one being checked.
+          node --input-type=module <<'NODE' > /tmp/acp-preflight-request.json
+          import { readFileSync } from 'node:fs'
+          import { writerPermissionsFromWorkflow } from './control-plane/preflight.mjs'
+          const permissions = writerPermissionsFromWorkflow(
+            readFileSync('.github/workflows/control-plane-writer.yml', 'utf8'),
+          )
+
+          const request = {
+            item_id: process.env.ITEM_ID,
+            holder: 'CLAUDE_OPUS',
+            run_id: `${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`,
+            branch: process.env.TARGET_BRANCH,
+            expected_sha: process.env.EXPECTED_SHA,
+            head_sha: process.env.GITHUB_SHA,
+            worktree_clean: process.env.WORKTREE_CLEAN === 'true',
+            secret_name: 'ANTHROPIC_API_KEY',
+            secret_present: process.env.ANTHROPIC_SECRET_PRESENT === 'true',
+            budget: {
+              max_turns: Number(process.env.WRITER_MAX_TURNS),
+              timeout_minutes: Number(process.env.WRITER_TIMEOUT_MINUTES),
+              max_retries: Number(process.env.WRITER_MAX_RETRIES),
+            },
+            permissions,
+          }
+          process.stdout.write(JSON.stringify(request, null, 2))
+          NODE
+
+      - name: Fail closed on the fourteen BASELINE preflight conditions
+        id: preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node control-plane/preflight.mjs --request /tmp/acp-preflight-request.json | tee /tmp/acp-preflight-result.json
+          preflight_rc=${PIPESTATUS[0]}
+          set -e
+          if [[ "$preflight_rc" -ne 0 ]]; then
+            stop="$(node -p "JSON.parse(require('fs').readFileSync('/tmp/acp-preflight-result.json','utf8')).stop_condition")"
+            echo "::error::PREFLIGHT_STOP_CONDITION: $stop"
+            echo "The program transitions to BLOCKED. It does not guess, weaken policy, or continue."
+            exit "$preflight_rc"
+          fi
+          authorized="$(node -p "JSON.parse(require('fs').readFileSync('/tmp/acp-preflight-result.json','utf8')).authorized.item_id")"
+          echo "authorized_item=$authorized" >> "$GITHUB_OUTPUT"
+
+      - name: Install Claude Code CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Run exactly one bounded Claude/Opus writer
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AUTHORIZED_ITEM: ${{ steps.preflight.outputs.authorized_item }}
+          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The task text is the board's own `next_action` for the authorized
+          # item. The runner does not invent work, and it cannot be pointed at a
+          # different item than the one the preflight authorized.
+          node --input-type=module <<'NODE' > /tmp/acp-task.txt
+          import { readFileSync } from 'node:fs'
+          const board = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json', 'utf8'))
+          const item = board.items.find((entry) => entry.id === process.env.AUTHORIZED_ITEM)
+          if (!item) throw new Error(`AUTHORIZED_ITEM_MISSING_FROM_BOARD: ${process.env.AUTHORIZED_ITEM}`)
+          process.stdout.write(`${item.id} — ${item.title}\n\n${item.next_action}\n`)
+          NODE
+
+          cat > /tmp/acp-prompt.txt <<PROMPT
+          AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001
+          WORK ITEM: $(cat /tmp/acp-task.txt)
+
+          You are the ONE WRITER, and the control plane has already proved you are
+          the only one: the board selected this item deterministically and the
+          preflight granted the writer lock for it.
+
+          READ FIRST, completely: CLAUDE.md, AGENTS.md, control-plane/BASELINE.md,
+          control-plane/MASTER_BOARD.json, control-plane/MASTER_BOARD.schema.json,
+          control-plane/kernel.mjs, control-plane/preflight.mjs.
+
+          BOUNDARIES — these are enforced after you finish, not merely requested:
+          - Work only on ${AUTHORIZED_ITEM}. Do not start the next item.
+          - Change only files under control-plane/. Anything else fails the run.
+          - Do not touch product code, clinical code, Firestore rules, or deployment.
+          - Do not merge, do not deploy, do not rotate secrets, do not use PHI.
+          - Do not commit or push. The workflow verifies, commits and pushes.
+          - Do not weaken a guard or delete a test to get green.
+
+          Run \`node --test control-plane/*.test.mjs\` and
+          \`node control-plane/kernel.mjs check\` yourself before you finish.
+
+          Update control-plane/MASTER_BOARD.json truthfully to WRITER_DONE with
+          concise evidence if and only if the work is genuinely complete and the
+          focused verification passes. Never mark JUDGE_PASS or CLOSED: closure
+          belongs to the independent judge.
+
+          Final response: what changed, what you proved, and
+          READY_FOR_INDEPENDENT_REVIEW=YES/NO.
+          PROMPT
+
+          set +e
+          claude -p "$(cat /tmp/acp-prompt.txt)" \
+            --model opus \
+            --max-turns "$WRITER_MAX_TURNS" \
+            --output-format json \
+            --allowedTools "Read" "Write" "Edit" "Glob" "Grep" \
+              "Bash(node:*)" "Bash(npm:*)" "Bash(npx:*)" \
+              "Bash(git status:*)" "Bash(git diff:*)" "Bash(git log:*)" "Bash(git rev-parse:*)" \
+            --disallowedTools "WebSearch" "WebFetch" \
+            2>&1 | tee /tmp/acp-writer.log
+          claude_rc=${PIPESTATUS[0]}
+          set -e
+
+          if [[ "$claude_rc" -ne 0 ]]; then
+            echo "::error::CLAUDE_WRITER_EXIT_${claude_rc}"
+            tail -n 200 /tmp/acp-writer.log || true
+            exit "$claude_rc"
+          fi
+
+      - name: Enforce writer scope and require a real delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(git status --porcelain)"
+          if [[ -z "$status" ]]; then
+            echo "::error::WRITER_PRODUCED_NO_DELTA"
+            exit 79
+          fi
+          printf '%s\n' "$status"
+          while IFS= read -r line; do
+            path="${line:3}"
+            case "$path" in
+              # `.github/**` is deliberately absent: a writer that can edit its
+              # own runner can widen its own permissions next run.
+              control-plane/*) ;;
+              *)
+                echo "::error::FORBIDDEN_SCOPE_CHANGE: $path"
+                exit 80
+                ;;
+            esac
+          done <<< "$status"
+
+      - name: Verify the focused contract before anything is pushed
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+
+      - name: Commit and push the immutable writer checkpoint
+        env:
+          AUTHORIZED_ITEM: ${{ steps.preflight.outputs.authorized_item }}
+          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$TARGET_BRANCH" == "main" || "$TARGET_BRANCH" == "master" ]]; then
+            echo "::error::FORBIDDEN_TARGET_BRANCH: $TARGET_BRANCH"
+            exit 92
+          fi
+          git config user.name "Ausculta Control Plane"
+          git config user.email "control-plane@users.noreply.github.com"
+          git add control-plane
+          if git diff --cached --quiet; then
+            echo "::error::NO_STAGED_CHANGES_AFTER_SCOPE_VALIDATION"
+            exit 81
+          fi
+          git commit -m "control-plane: ${AUTHORIZED_ITEM} cloud writer checkpoint"
+          git push origin "HEAD:${TARGET_BRANCH}"
+          echo "END_SHA=$(git rev-parse HEAD)"
