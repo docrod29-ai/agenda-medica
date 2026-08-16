@@ -13,11 +13,28 @@
 #   - The permissions handed to the preflight are PARSED OUT OF THIS FILE rather
 #     than typed twice. A future edit that widens the token is therefore checked
 #     against the allowlist instead of quietly disagreeing with a comment.
-#   - It is `workflow_dispatch` only. Nothing auto-fires a writer.
+#   - Nothing auto-fires a writer: the `writer` job runs on `workflow_dispatch`
+#     and on nothing else.
 #
 # It cannot deploy to production and it cannot merge to main: it holds no
 # deployment scope, and the preflight refuses any target branch other than the
 # one the board declares — never `main` or `master`.
+#
+# THE ATTESTATION JOB, and why the trigger list is not just `workflow_dispatch`.
+#
+# The first version of this file was dispatch-only, and that made it unrunnable.
+# GitHub exposes `workflow_dispatch` only for workflow files present on the
+# DEFAULT branch, and no control-plane workflow has ever been on `main` — not
+# the ACP-001 bootstrap, not the Codex judge. Both of those use `pull_request`,
+# and that is not an accident or a shortcut: before a workflow reaches the
+# default branch, `pull_request` is the only trigger it can have. A runner that
+# cannot run until someone performs a forbidden merge has not been delivered.
+#
+# So a second job runs on `pull_request` to attest the harness — and it is a
+# strictly READ-ONLY job. It proves the preflight and the focused suite execute
+# entirely in GitHub Actions and that the preflight refuses a bad request. It
+# never installs the Claude CLI, never invokes a writer, and never pushes.
+# Attesting a writer must not require running one.
 
 name: Control Plane Writer
 
@@ -32,6 +49,11 @@ on:
         description: 'Full 40-character SHA the writer must run against'
         required: true
         type: string
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'control-plane/**'
+      - '.github/workflows/control-plane-writer.yml'
 
 # One writer at a time, and never cancel one mid-flight: a half-written
 # checkpoint is worse than a slow queue.
@@ -41,6 +63,9 @@ concurrency:
 
 jobs:
   writer:
+    # A writer starts only when a human dispatches it. `pull_request` reaches
+    # this file now, and must never reach this job.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # LEAST PRIVILEGE. `contents: write` is the only write scope, because the
@@ -285,3 +310,166 @@ jobs:
           git commit -m "control-plane: ${AUTHORIZED_ITEM} cloud writer checkpoint"
           git push origin "HEAD:${TARGET_BRANCH}"
           echo "END_SHA=$(git rev-parse HEAD)"
+
+  # ---------------------------------------------------------------------------
+  # ACP-002 attestation — read-only, runs on the pull request, proves the runner
+  # harness works in GitHub Actions without running a writer.
+  #
+  # `contents: read` is the ONLY scope. No secret is referenced, so this job
+  # cannot reach a provider even by accident, and there is nothing here that
+  # could push.
+  # ---------------------------------------------------------------------------
+  attest:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout the pull request head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: The harness itself runs here, not on anybody's laptop
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+
+      - name: The preflight refuses a bad request — fail closed, proved in the cloud
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import { readFileSync } from 'node:fs'
+          import { BOARD_PATH, SCHEMA_PATH } from './control-plane/kernel.mjs'
+          import { STOP_CONDITIONS, runPreflight, writerPermissionsFromWorkflow } from './control-plane/preflight.mjs'
+
+          const board = JSON.parse(readFileSync(BOARD_PATH, 'utf8'))
+          const schema = JSON.parse(readFileSync(SCHEMA_PATH, 'utf8'))
+          const WORKFLOW = readFileSync('.github/workflows/control-plane-writer.yml', 'utf8')
+
+          // A board on which a writer WOULD be authorized, so the refusals below
+          // are caused by the defect under test and not by the board's state.
+          const eligible = structuredClone(board)
+          for (const item of eligible.items) {
+            if (item.id < 'ACP-002') continue
+            item.status = item.id === 'ACP-002' ? 'READY' : 'QUEUED'
+            item.closed_by = null
+            item.blocked_by = (item.dependencies ?? []).filter(
+              (id) => eligible.items.find((entry) => entry.id === id)?.status !== 'CLOSED',
+            )
+          }
+          const base = {
+            item_id: 'ACP-002',
+            holder: 'CLAUDE_OPUS',
+            run_id: `${process.env.GITHUB_RUN_ID}-attest`,
+            branch: eligible.source_branch,
+            expected_sha: 'a'.repeat(40),
+            head_sha: 'a'.repeat(40),
+            worktree_clean: true,
+            secret_name: 'ANTHROPIC_API_KEY',
+            secret_present: true,
+            budget: { max_turns: 60, timeout_minutes: 60, max_retries: 0 },
+            permissions: writerPermissionsFromWorkflow(WORKFLOW),
+          }
+
+          // Control: the real declared writer permissions are authorized.
+          const clean = runPreflight({ board: eligible, schema, request: base })
+          assert.equal(clean.ok, true, `the committed writer permissions must pass: ${JSON.stringify(clean.checks.filter((c) => !c.ok))}`)
+
+          // Each defect must produce its exact stop condition. If any of these is
+          // waved through, the runner is not fail-closed and this job fails.
+          const defects = [
+            ['targets main', { branch: 'main' }, STOP_CONDITIONS.FORBIDDEN_TARGET_BRANCH],
+            ['credential absent', { secret_present: false }, STOP_CONDITIONS.MISSING_REQUIRED_SECRET_OR_EXTERNAL_CREDENTIAL],
+            ['carries a credential value', { secret_value: 'sk-ant-not-a-real-key' }, STOP_CONDITIONS.SECRET_VALUE_LEAKED],
+            ['unbounded budget', { budget: null }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED],
+            ['dirty worktree', { worktree_clean: false }, STOP_CONDITIONS.UNCLEAN_WORKTREE_AT_FREEZE],
+            ['deployment scope', { permissions: { contents: 'write', deployments: 'write' } }, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD],
+            ['item the board did not select', { item_id: 'ACP-003' }, STOP_CONDITIONS.ITEM_NOT_AUTHORIZED],
+            ['checkout drifted from the authorized SHA', { head_sha: 'b'.repeat(40) }, STOP_CONDITIONS.BRANCH_OR_SHA_NOT_EXPLICIT],
+          ]
+          for (const [label, override, expected] of defects) {
+            const result = runPreflight({ board: eligible, schema, request: { ...base, ...override } })
+            assert.equal(result.ok, false, `${label} must be refused`)
+            assert.equal(result.next_board_status, 'BLOCKED', `${label} must route the program to BLOCKED`)
+            assert.equal(result.authorized, null, `${label} must authorize nothing`)
+            const stops = result.checks.filter((c) => !c.ok).map((c) => c.stop_condition)
+            assert.ok(stops.includes(expected), `${label}: expected ${expected}, got ${JSON.stringify(stops)}`)
+            console.log(`refused: ${label} -> ${expected}`)
+          }
+
+          // A drifted production authorization on the board stops the writer too,
+          // and it is caught TWICE: the committed schema pins the flag with
+          // `const: false`, and the policy invariants check it independently of
+          // the schema. So the reported `stop_condition` is BOARD_INVALID (the
+          // first failing condition) and the drift shows up alongside it — which
+          // is why membership is asserted here rather than first-place.
+          const drifted = structuredClone(eligible)
+          drifted.execution_policy.production_deploy_authorized = true
+          const driftResult = runPreflight({ board: drifted, schema, request: base })
+          assert.equal(driftResult.ok, false)
+          assert.equal(driftResult.authorized, null)
+          const driftStops = driftResult.checks.filter((c) => !c.ok).map((c) => c.stop_condition)
+          assert.ok(driftStops.includes(STOP_CONDITIONS.POLICY_AUTHORIZATION_DRIFT), `expected the policy layer to fire, got ${JSON.stringify(driftStops)}`)
+          assert.ok(driftStops.includes(STOP_CONDITIONS.BOARD_INVALID), `expected the schema layer to fire, got ${JSON.stringify(driftStops)}`)
+          console.log(`refused: board authorizing production deploy -> ${JSON.stringify(driftStops)} (two independent layers)`)
+          NODE
+
+      - name: This job holds no write scope, and says so from the file itself
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import { readFileSync } from 'node:fs'
+          import { writerPermissionsFromWorkflow } from './control-plane/preflight.mjs'
+
+          const WORKFLOW = readFileSync('.github/workflows/control-plane-writer.yml', 'utf8')
+          const attest = writerPermissionsFromWorkflow(WORKFLOW, 'attest')
+          assert.deepEqual(attest, { contents: 'read' }, `the attestation job must be read-only, found ${JSON.stringify(attest)}`)
+
+          // And the repair must not have widened the writer while it was here.
+          const writer = writerPermissionsFromWorkflow(WORKFLOW, 'writer')
+          const writes = Object.entries(writer).filter(([, level]) => level === 'write')
+          assert.deepEqual(writes, [['contents', 'write']], `the writer job gained a write scope: ${JSON.stringify(writer)}`)
+          for (const scope of ['deployments', 'id-token', 'packages']) {
+            assert.equal(writer[scope], 'none', `${scope} must stay disclaimed in the writer job`)
+          }
+          console.log(`attest=${JSON.stringify(attest)} writer=${JSON.stringify(writer)}`)
+          NODE
+
+      - name: Record the live preflight decision on real PR state
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/acp-attest-request.json <<JSON
+          {
+            "item_id": "ACP-002",
+            "holder": "CLAUDE_OPUS",
+            "run_id": "${GITHUB_RUN_ID}-attest-live",
+            "branch": "$(node -p "JSON.parse(require('fs').readFileSync('control-plane/MASTER_BOARD.json','utf8')).source_branch")",
+            "expected_sha": "${GITHUB_SHA}",
+            "head_sha": "${GITHUB_SHA}",
+            "worktree_clean": true,
+            "secret_name": "ANTHROPIC_API_KEY",
+            "secret_present": false,
+            "budget": {"max_turns": 60, "timeout_minutes": 60, "max_retries": 0},
+            "permissions": {"contents": "read"}
+          }
+          JSON
+          echo '=== ACP-002_LIVE_PREFLIGHT_BEGIN ==='
+          # Exit status is NOT asserted here: this records what the preflight
+          # decides about the board as it actually stands. The pass/fail proof
+          # is the deterministic suite above.
+          node control-plane/preflight.mjs --request /tmp/acp-attest-request.json || true
+          echo '=== ACP-002_LIVE_PREFLIGHT_END ==='

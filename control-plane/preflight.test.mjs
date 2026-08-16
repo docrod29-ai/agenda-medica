@@ -598,6 +598,65 @@ test('the permission parser refuses a shape it does not understand instead of re
   assert.throws(() => writerPermissionsFromWorkflow('  writer:\n    permissions:\n    steps:\n'), /empty permissions block/)
 })
 
+// ---------------------------------------------------------------------------
+// 16. The attestation job (ACP-002 repair)
+//
+// The runner was dispatch-only, and workflow_dispatch is unavailable to a file
+// that has never been on the default branch — so it could not be attested at
+// all. A pull_request-triggered READ-ONLY job fixes that. These tests hold the
+// line the repair was allowed to draw and no further.
+// ---------------------------------------------------------------------------
+
+test('the attestation job is read-only and holds no other scope', () => {
+  assert.deepEqual(writerPermissionsFromWorkflow(WRITER_WORKFLOW, 'attest'), { contents: 'read' })
+})
+
+test('the repair did not widen the writer job', () => {
+  const writer = writerPermissionsFromWorkflow(WRITER_WORKFLOW, 'writer')
+  assert.deepEqual(
+    Object.entries(writer).filter(([, level]) => level === 'write'),
+    [['contents', 'write']],
+    'contents:write must remain the writer job\'s only write scope',
+  )
+  for (const scope of PRODUCTION_REACHING_PERMISSIONS) {
+    if (scope in writer) assert.equal(writer[scope], 'none', `${scope} must stay disclaimed`)
+  }
+})
+
+test('the parser reads each job separately — no bleed between the two blocks', () => {
+  const writer = writerPermissionsFromWorkflow(WRITER_WORKFLOW, 'writer')
+  const attest = writerPermissionsFromWorkflow(WRITER_WORKFLOW, 'attest')
+  assert.notDeepEqual(writer, attest, 'two different jobs must yield two different permission sets')
+  assert.equal(writer.contents, 'write')
+  assert.equal(attest.contents, 'read')
+  assert.equal(attest.deployments, undefined, 'the attest block must not pick up the writer block')
+})
+
+test('a writer can only be started by a human dispatch, never by a pull request', () => {
+  assert.match(WRITER_WORKFLOW, /on:\n {2}workflow_dispatch:/, 'workflow_dispatch must remain a trigger')
+  assert.match(WRITER_WORKFLOW, /^ {2}pull_request:$/m, 'pull_request is required or the runner cannot be attested before merge')
+  assert.match(
+    WRITER_WORKFLOW,
+    /^ {2}writer:\n {4}#[^\n]*\n {4}#[^\n]*\n {4}if: github\.event_name == 'workflow_dispatch'$/m,
+    'the writer job must be gated to workflow_dispatch now that pull_request reaches this file',
+  )
+  assert.match(WRITER_WORKFLOW, /^ {2}attest:\n {4}if: github\.event_name == 'pull_request'$/m)
+})
+
+test('the attestation never runs a writer: no CLI, no credential, no push', () => {
+  const attestSection = WRITER_WORKFLOW.slice(WRITER_WORKFLOW.indexOf('\n  attest:'))
+  assert.ok(attestSection.length > 0)
+  assert.doesNotMatch(attestSection, /@anthropic-ai\/claude-code/, 'the attestation must not install the Claude CLI')
+  assert.doesNotMatch(attestSection, /ANTHROPIC_API_KEY: \$\{\{ secrets/, 'the attestation must not receive a provider credential')
+  assert.doesNotMatch(attestSection, /git push/, 'the attestation must never push')
+  assert.doesNotMatch(attestSection, /git commit/, 'the attestation must never commit')
+  // The writer half still does all three; otherwise the assertions above would
+  // pass against an empty slice and prove nothing.
+  const writerSection = WRITER_WORKFLOW.slice(0, WRITER_WORKFLOW.indexOf('\n  attest:'))
+  assert.match(writerSection, /@anthropic-ai\/claude-code/)
+  assert.match(writerSection, /git push/)
+})
+
 test('the writer workflow cannot edit itself: .github is outside the enforced scope', () => {
   assert.match(WRITER_WORKFLOW, /FORBIDDEN_SCOPE_CHANGE/, 'the runner must enforce a path allowlist')
   assert.doesNotMatch(WRITER_WORKFLOW, /^ +\.github\/\*\)/m, 'a writer that can edit its own runner can widen its own permissions')

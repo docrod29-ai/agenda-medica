@@ -137,13 +137,13 @@
     {
       "id": "ACP-002",
       "title": "Cloud writer runner",
-      "status": "RUNNING_WRITER",
+      "status": "WRITER_DONE",
       "owner": "CLAUDE_OPUS",
       "dependencies": [
         "ACP-001"
       ],
       "blocked_by": [],
-      "next_action": "Bounded repair authorized by the owner: make ACP-002 attestable on PR #295 before any merge, by adding a pull_request-triggered read-only attestation job. Nothing else. Do not widen the writer job's permissions and do not start ACP-003.",
+      "next_action": "Let the PR attestation and the required CI run on the repaired SHA. If every mandatory ACP-002 gate passes, advance WRITER_DONE -> CI_PENDING -> SHA_FROZEN and freeze that exact SHA for the independent judge. Do not start ACP-003.",
       "evidence": [
         "Unblocked by the closure of ACP-001 on independent Codex PASS (run 31951393592, frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539). The dependency is met, so `blocked_by` may no longer name ACP-001 — the kernel rejects a closed item left standing as a blocker (BLOCKED_BY_OUT_OF_SYNC).",
         "FROZEN_ORCHESTRATION_SHA=8cda1aac5c59749e2196f7fbde6eed1334c8f067 — the immutable post-closure orchestration state ACP-002 starts from. At that SHA ACP-001 is CLOSED with its closer recorded, the board validates with zero violations, and the focused suite is 67/67.",
@@ -177,7 +177,13 @@
         "Transition recorded: CI_PENDING -> BLOCKED. The item was parked because its own definition of done could not be met, which is what BLOCKED is for.",
         "Transition recorded: BLOCKED -> OWNER_APPROVAL_REQUIRED. Legal without approval — the kernel lets a blocked item be escalated to the owner, it just will not let it leave on its own.",
         "Transition recorded: OWNER_APPROVAL_REQUIRED -> READY with owner_approval=true. The gate is real and was proved so at the moment of use: the same call without approval is refused with OWNER_APPROVAL_REQUIRED, BLOCKED -> READY is refused with SKIPPED_STATE, and CI_PENDING -> READY is refused with SKIPPED_STATE. There was no way to shortcut back into the writer state.",
-        "Transition recorded: READY -> RUNNING_WRITER, one writer, lock granted to run session_015nBJM7SgZNm63MtpxVNsVg-repair for ACP-002. Marked before the repair was written, so the lock is visible on the board while the writer works."
+        "Transition recorded: READY -> RUNNING_WRITER, one writer, lock granted to run session_015nBJM7SgZNm63MtpxVNsVg-repair for ACP-002. Marked before the repair was written, so the lock is visible on the board while the writer works.",
+        "REPAIR DELIVERED, and only this: .github/workflows/control-plane-writer.yml gained a `pull_request` trigger and a second job, `attest`. Nothing else in the repository changed except this board and control-plane/preflight.test.mjs, which gained the tests that hold the repair in place. control-plane/preflight.mjs and control-plane/kernel.mjs were not touched.",
+        "The writer job is now gated with `if: github.event_name == 'workflow_dispatch'`. pull_request reaches this file, and it must never reach the writer; a test asserts the gate rather than trusting the comment.",
+        "The attest job holds `contents: read` and nothing else. It references no secret at all, so it cannot reach a provider even by accident, and there is nothing in it that could push. Tests assert: the attest block parses to exactly {contents:read}; the writer job's only write scope is still contents:write with every production-reaching scope still `none`; the two jobs' permission blocks are parsed separately with no bleed; and the attest half of the file contains no Claude CLI install, no ANTHROPIC_API_KEY, no git commit and no git push — with a counter-assertion that the writer half still does, so the check cannot pass against an empty slice.",
+        "What the attestation proves in GitHub Actions, without running a writer: (a) `node --test control-plane/*.test.mjs` and `node control-plane/kernel.mjs check` execute on the runner, so the harness is cloud-executable and does not depend on any local machine; (b) the committed writer permission block, parsed out of the workflow itself, is AUTHORIZED by the preflight; (c) eight deliberately defective requests are each REFUSED with their exact stop condition — targeting main, absent credential, a request carrying a credential value, an unbounded budget, a dirty worktree, a deployment scope, an item the board did not select, and a checkout drifted from the authorized SHA — each also asserted to route the program to BLOCKED and to authorize nothing; (d) a board with a drifted production-deploy authorization is refused; (e) the live preflight decision on real PR state is printed for the record without asserting its verdict, because the board's state legitimately changes and a gate must not depend on it.",
+        "Found by dry-running the attestation locally before pushing it, which is why it was dry-run: the drifted-policy case asserted stop_condition === POLICY_AUTHORIZATION_DRIFT and got BOARD_INVALID. Both are correct — the committed schema pins production_deploy_authorized with `const: false` AND the policy invariants check it independently, so the drift trips two layers and the first-reported condition is the schema one. The assertion now requires both to appear rather than requiring the policy layer to be first. A speculative push would have turned this into a red CI run.",
+        "Transition recorded: RUNNING_WRITER -> WRITER_DONE after the bounded repair passed focused verification: node --test control-plane/*.test.mjs -> 126 pass, 0 fail (was 121; +5 for the repair, none deleted or relaxed); node control-plane/kernel.mjs check -> ok=true, violation_count=0; the workflow parses as valid YAML with two jobs, correct triggers and correct permission blocks."
       ],
       "closed_by": null
     },
