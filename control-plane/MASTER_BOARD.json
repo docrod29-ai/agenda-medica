@@ -137,13 +137,13 @@
     {
       "id": "ACP-002",
       "title": "Cloud writer runner",
-      "status": "SHA_FROZEN",
+      "status": "RUNNING_JUDGE",
       "owner": "CLAUDE_OPUS",
       "dependencies": [
         "ACP-001"
       ],
       "blocked_by": [],
-      "next_action": "Hand frozen candidate 437a119b2978972f54992c85ab7e60c7b929e2b7 to one independent read-only Codex audit. Do not merge, do not deploy, and do not start ACP-003; a generalised judge runner is ACP-003 scope and the workflow used here is a one-off, exactly as ACP-001 had.",
+      "next_action": "Await the structured PASS/FAIL/UNVERIFIABLE verdict on frozen SHA 437a119b2978972f54992c85ab7e60c7b929e2b7. UNVERIFIABLE is not PASS and fails closed. Do not merge, do not deploy, do not start ACP-003.",
       "evidence": [
         "Unblocked by the closure of ACP-001 on independent Codex PASS (run 31951393592, frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539). The dependency is met, so `blocked_by` may no longer name ACP-001 — the kernel rejects a closed item left standing as a blocker (BLOCKED_BY_OUT_OF_SYNC).",
         "FROZEN_ORCHESTRATION_SHA=8cda1aac5c59749e2196f7fbde6eed1334c8f067 — the immutable post-closure orchestration state ACP-002 starts from. At that SHA ACP-001 is CLOSED with its closer recorded, the board validates with zero violations, and the focused suite is 67/67.",
@@ -190,7 +190,12 @@
         "REQUIRED CI OBTAINED ON THE REPAIRED SHA: CI run 31956005227 on 437a119b2978972f54992c85ab7e60c7b929e2b7 completed SUCCESS across all five required jobs — clinical-safety 95186636546, aislamiento-tenant 95186636562, lint (trinquete) 95186636591, verificar 95186636606, e2e-publico 95186636674. The ACP-001 bootstrap run 31956005203 concluded 'skipped' again; no writer fired.",
         "Transition recorded: WRITER_DONE -> CI_PENDING on the repaired candidate.",
         "Transition recorded: CI_PENDING -> SHA_FROZEN. FROZEN_CANDIDATE_SHA=437a119b2978972f54992c85ab7e60c7b929e2b7 — the immutable ACP-002 candidate selected for independent audit. It is the exact object that passed both the required CI and the cloud attestation. Every mandatory ACP-002 gate passed before the freeze, so this is not a candidate known to be defective: the dispatchability blocker that stopped the previous freeze is repaired and proved repaired in Actions.",
-        "The freeze does not skip the judge: SHA_FROZEN -> JUDGE_PASS is rejected with SKIPPED_STATE, so closure still has to pass through RUNNING_JUDGE and an independent verdict."
+        "The freeze does not skip the judge: SHA_FROZEN -> JUDGE_PASS is rejected with SKIPPED_STATE, so closure still has to pass through RUNNING_JUDGE and an independent verdict.",
+        "Transition recorded: SHA_FROZEN -> RUNNING_JUDGE. One independent read-only Codex audit is authorized against frozen SHA 437a119b2978972f54992c85ab7e60c7b929e2b7.",
+        ".github/workflows/control-plane-acp002-judge.yml added as ORCHESTRATION, not as part of the candidate. It is committed after the freeze on purpose, exactly as the ACP-001 judge was (commit 06cb256f followed freeze 09ca7c51): the auditor's harness must never be part of the artefact under audit, so the frozen tree does not contain it and the judge checks that tree out from outside.",
+        "This is NOT ACP-003. ACP-003 is a generalised, reusable judge runner; this is a one-off judge pinned to a single immutable SHA, the same shape ACP-001 used. ACP-003 remains QUEUED and the judge workflow asserts that as a precondition, exiting 85 if ACP-003 has moved.",
+        "Judge governance: permissions contents:read, actions:read, pull-requests:read; openai/codex-action with permission-profile ':read-only' and safety-strategy drop-sudo; the candidate checkout carries persist-credentials:false so nothing in the audit can push; the run fails closed with MISSING_REQUIRED_SECRET_OR_EXTERNAL_CREDENTIAL if OPENAI_API_KEY is absent; the structured verdict is validated with jq for audited_sha == the frozen SHA, independent == true, read_only == true and a verdict within {PASS, FAIL, UNVERIFIABLE}; and the orchestration head is proved not to have moved during the audit.",
+        "Fourteen mandatory gates are put to the judge, derived from what ACP-002 actually claims: preflight_conditions_complete, fail_closed_on_every_condition, least_privilege_writer, no_production_reach, no_main_merge_path, credential_never_read, bounded_budget, single_writer_lock, board_driven_selection, cloud_executable_attestation, attestation_is_read_only, reverse_mutation_proof, no_acp003_scope_leak, focused_tests. UNVERIFIABLE may never be reported as PASS."
       ],
       "closed_by": null
     },
