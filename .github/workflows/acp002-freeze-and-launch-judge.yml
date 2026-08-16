@@ -1,0 +1,120 @@
+name: ACP-002 Freeze and Launch Judge
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/acp002-freeze-and-launch-judge.yml'
+
+concurrency:
+  group: ausculta-acp002-freeze-and-launch-judge
+  cancel-in-progress: false
+
+jobs:
+  advance:
+    if: github.event.pull_request.head.ref == 'claude/acp-001-codex-verdict-zwzvjk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      REPAIR_BRANCH: claude/acp-001-codex-verdict-zwzvjk
+      CANDIDATE_SHA: 821a44b0da15959041e4af22990b2bcd499a59a7
+      REQUIRED_CI_RUN: '31963015797'
+      REQUIRED_ATTEST_RUN: '31963015715'
+      OLD_REJECTED_SHA: 437a119b2978972f54992c85ab7e60c7b929e2b7
+    steps:
+      - name: Checkout orchestration head without persisted credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify exact candidate and required cloud gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$CANDIDATE_SHA"
+          test "$(git log -1 --pretty=%s)" = "control-plane: arm ACP-002 freeze and judge launch"
+          for run in "$REQUIRED_CI_RUN" "$REQUIRED_ATTEST_RUN"; do
+            payload="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${run}")"
+            test "$(printf '%s' "$payload" | jq -r '.head_sha')" = "$CANDIDATE_SHA"
+            test "$(printf '%s' "$payload" | jq -r '.status')" = "completed"
+            test "$(printf '%s' "$payload" | jq -r '.conclusion')" = "success"
+          done
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          import { evaluateTransition } from './control-plane/kernel.mjs'
+          const board = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json','utf8'))
+          const item = board.items.find(x => x.id === 'ACP-002')
+          const next = board.items.find(x => x.id === 'ACP-003')
+          if (!item || item.status !== 'WRITER_DONE') throw new Error(`ACP-002 must start WRITER_DONE, got ${item?.status}`)
+          if (!next || next.status !== 'QUEUED') throw new Error(`ACP-003 must remain QUEUED, got ${next?.status}`)
+          if (board.execution_policy?.production_deploy_authorized !== false || board.execution_policy?.main_merge_authorized !== false || board.execution_policy?.phi_allowed !== false) throw new Error('owner policy drift')
+          for (const [from,to] of [['WRITER_DONE','CI_PENDING'],['CI_PENDING','SHA_FROZEN'],['SHA_FROZEN','RUNNING_JUDGE']]) {
+            const r = evaluateTransition(from,to,{})
+            if (!r.ok) throw new Error(`illegal transition ${from}->${to}: ${JSON.stringify(r)}`)
+          }
+          NODE
+
+      - name: Record CI, freeze exact SHA, and enter RUNNING_JUDGE
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const path = 'control-plane/MASTER_BOARD.json'
+          const board = JSON.parse(readFileSync(path,'utf8'))
+          const item = board.items.find(x => x.id === 'ACP-002')
+          item.evidence.push(
+            `REPAIRED CANDIDATE CLOUD GATES: CI run ${process.env.REQUIRED_CI_RUN} completed SUCCESS on exact SHA ${process.env.CANDIDATE_SHA}; Control Plane Writer attestation run ${process.env.REQUIRED_ATTEST_RUN} completed SUCCESS on the same SHA, including 160 focused tests, kernel validation, fail-closed adversarial preflight cases, and read-only attestation permission checks.`,
+            `Transition recorded: WRITER_DONE -> CI_PENDING after required CI and PR attestation both passed on exact repaired SHA ${process.env.CANDIDATE_SHA}.`,
+            `FROZEN_CANDIDATE_SHA=${process.env.CANDIDATE_SHA}; immutable repaired ACP-002 candidate selected for fresh independent Codex re-audit. The previously rejected ${process.env.OLD_REJECTED_SHA} candidate remains rejected and is not reused.`,
+            `Transition recorded: CI_PENDING -> SHA_FROZEN after exact-SHA cloud gates passed.`,
+            `Transition recorded: SHA_FROZEN -> RUNNING_JUDGE; one fresh independent read-only Codex audit is authorized against ${process.env.CANDIDATE_SHA}. ACP-003 remains QUEUED; no merge, deploy, PHI, clinical-policy change, secret rotation, or destructive action is authorized.`
+          )
+          item.status = 'RUNNING_JUDGE'
+          item.next_action = `Await the fresh independent read-only Codex verdict on frozen SHA ${process.env.CANDIDATE_SHA}. Do not start ACP-003. PASS may advance only through JUDGE_PASS -> CLOSED; blocking P0/P1 may open only a bounded repair loop.`
+          writeFileSync(path, JSON.stringify(board,null,2) + '\n')
+          NODE
+
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const path = '.github/workflows/control-plane-acp002-judge.yml'
+          let s = readFileSync(path,'utf8')
+          const old = process.env.OLD_REJECTED_SHA
+          const next = process.env.CANDIDATE_SHA
+          const count = s.split(old).length - 1
+          if (count < 4) throw new Error(`judge workflow expected multiple old SHA anchors, found ${count}`)
+          s = s.split(old).join(next)
+          writeFileSync(path,s)
+          NODE
+
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+
+      - name: Commit launch atomically and push only orchestration branch
+        env:
+          PUSH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/acp002-freeze-and-launch-judge.yml
+          changed="$(git status --porcelain | sed 's/^...//' | sort)"
+          printf '%s\n' "$changed"
+          expected="$(printf '%s\n' '.github/workflows/control-plane-acp002-judge.yml' 'control-plane/MASTER_BOARD.json' | sort)"
+          test "$changed" = "$expected"
+          git config user.name "Ausculta Control Plane"
+          git config user.email "control-plane@users.noreply.github.com"
+          git add control-plane/MASTER_BOARD.json .github/workflows/control-plane-acp002-judge.yml
+          git diff --cached --check
+          git commit -m "control-plane: launch ACP-002 independent Codex judge"
+          git -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:${REPAIR_BRANCH}"
