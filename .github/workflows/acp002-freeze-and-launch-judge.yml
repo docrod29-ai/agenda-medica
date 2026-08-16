@@ -43,11 +43,9 @@ jobs:
         run: |
           set -euo pipefail
           git merge-base --is-ancestor "$CANDIDATE_SHA" HEAD
-          # Since the frozen candidate, only this orchestration helper may differ
-          # before the freeze record is committed. Candidate code itself must be immutable.
           changed_since_candidate="$(git diff --name-only "$CANDIDATE_SHA"..HEAD | sort)"
           test "$changed_since_candidate" = '.github/workflows/acp002-freeze-and-launch-judge.yml'
-          test "$(git log -1 --pretty=%s)" = "control-plane: make ACP-002 freeze board-only"
+          test "$(git log -1 --pretty=%s)" = 'control-plane: make ACP-002 freeze use contents API'
           for run in "$REQUIRED_CI_RUN" "$REQUIRED_ATTEST_RUN"; do
             payload="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${run}")"
             test "$(printf '%s' "$payload" | jq -r '.head_sha')" = "$CANDIDATE_SHA"
@@ -73,6 +71,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cp control-plane/MASTER_BOARD.json /tmp/board-before.json
           node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs'
           const path = 'control-plane/MASTER_BOARD.json'
@@ -91,18 +90,24 @@ jobs:
           NODE
           node --test control-plane/*.test.mjs
           node control-plane/kernel.mjs check
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          const before = JSON.parse(readFileSync('/tmp/board-before.json','utf8'))
+          const after = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json','utf8'))
+          const strip = b => ({...b, items:b.items.map(x => x.id === 'ACP-002' ? {...x,status:'__ACP002__',next_action:'__ACP002__',evidence:'__ACP002__'} : x)})
+          if (JSON.stringify(strip(before)) !== JSON.stringify(strip(after))) throw new Error('freeze transition changed governance or a foreign item')
+          NODE
 
-      - name: Commit only the canonical board transition
+      - name: Commit canonical board transition through GitHub Contents API
         env:
-          PUSH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          changed="$(git status --porcelain | sed 's/^...//' | sort)"
-          test "$changed" = 'control-plane/MASTER_BOARD.json'
-          git config user.name 'Ausculta Control Plane'
-          git config user.email 'control-plane@users.noreply.github.com'
-          git add control-plane/MASTER_BOARD.json
-          git diff --cached --check
-          git commit -m 'control-plane: freeze ACP-002 repaired candidate'
-          git -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:${REPAIR_BRANCH}"
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/control-plane/MASTER_BOARD.json?ref=${REPAIR_BRANCH}"
+          current="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "$api")"
+          current_sha="$(printf '%s' "$current" | jq -r '.sha')"
+          content_b64="$(base64 -w0 control-plane/MASTER_BOARD.json)"
+          jq -n --arg message 'control-plane: freeze ACP-002 repaired candidate' --arg content "$content_b64" --arg sha "$current_sha" --arg branch "$REPAIR_BRANCH" '{message:$message,content:$content,sha:$sha,branch:$branch}' > /tmp/put.json
+          curl -fsSL -X PUT -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' -H 'Content-Type: application/json' --data-binary @/tmp/put.json "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/control-plane/MASTER_BOARD.json" | tee /tmp/put-result.json
+          test "$(jq -r '.commit.sha // empty' /tmp/put-result.json | wc -c)" -gt 1
