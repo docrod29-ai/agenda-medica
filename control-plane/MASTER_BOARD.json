@@ -79,12 +79,19 @@
     {
       "id": "ACP-001",
       "title": "Executable state contract and validator",
-      "status": "READY",
+      "status": "WRITER_DONE",
       "owner": "CLAUDE_OPUS",
       "dependencies": ["ACP-000"],
       "blocked_by": [],
-      "next_action": "Implement schema validation, deterministic next-item selection, transition guards, lock semantics, and tests. Do not invoke external AI providers yet.",
-      "evidence": [],
+      "next_action": "Writer finished. Next legal statuses are CI_PENDING or BLOCKED. Run CI, freeze the SHA, then let the independent Codex judge decide. Closure requires JUDGE_PASS with an independent read-only judge; the writer must not close this item.",
+      "evidence": [
+        "control-plane/kernel.mjs implements schema validation, the explicit transition table, writer-lock semantics, policy invariants, dependency checks, and deterministic next-item selection",
+        "control-plane/kernel.test.mjs: 50 focused cases including reverse/mutation proofs for each central guard",
+        "transition path taken by the writer: READY -> RUNNING_WRITER -> WRITER_DONE (no state skipped)",
+        "node --test control-plane/*.test.mjs: 50 pass, 0 fail",
+        "node control-plane/kernel.mjs check: ok=true on the canonical board, exit code 0",
+        "no production deploy, no merge to main, no PHI, no destructive change, no clinical-policy change was made or authorized"
+      ],
       "closed_by": null
     },
     {
