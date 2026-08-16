@@ -79,16 +79,16 @@
     {
       "id": "ACP-001",
       "title": "Executable state contract and validator",
-      "status": "RUNNING_WRITER",
+      "status": "WRITER_DONE",
       "owner": "CLAUDE_OPUS",
       "dependencies": [
         "ACP-000"
       ],
       "blocked_by": [],
-      "next_action": "Claude/Opus repair writer is the only active writer. Repair only the three recorded blocking Codex P1 findings, then run focused verification and leave ACP-001 at WRITER_DONE if successful. Do not start ACP-002.",
+      "next_action": "Bounded repair of the three blocking Codex P1 findings is complete and locally verified. Next: CI on the repaired writer checkpoint, then freeze a new immutable SHA and run a fresh independent read-only Codex audit. Do not mark JUDGE_PASS or CLOSED without that verdict. Do not start ACP-002.",
       "evidence": [
         "control-plane/kernel.mjs implements schema validation, the explicit transition table, writer-lock semantics, policy invariants, dependency checks, and deterministic next-item selection",
-        "control-plane/kernel.test.mjs: 50 focused cases including reverse/mutation proofs for each central guard",
+        "control-plane/kernel.test.mjs: 67 focused cases including reverse/mutation proofs for each central guard",
         "transition path taken by the writer: READY -> RUNNING_WRITER -> WRITER_DONE (no state skipped)",
         "node --test control-plane/*.test.mjs: 50 pass, 0 fail",
         "node control-plane/kernel.mjs check: ok=true on the canonical board, exit code 0",
@@ -103,7 +103,15 @@
         "Blocking P1: reverse/mutation proof omits the single-active-program guard.",
         "Transition recorded: RUNNING_JUDGE -> JUDGE_FAIL after structured Codex FAIL; repair is now explicitly queued and bounded to the three P1 findings.",
         "Transition recorded: JUDGE_FAIL -> REPAIR_READY; bounded repair approved by the active Control Plane program.",
-        "Transition recorded: REPAIR_READY -> RUNNING_WRITER; exactly one Claude/Opus repair writer requested in GitHub Actions."
+        "Transition recorded: REPAIR_READY -> RUNNING_WRITER; exactly one Claude/Opus repair writer requested in GitHub Actions.",
+        "REPAIR P1-1 fixed: kernel.mjs now audits the ENTIRE committed schema for unsupported keywords before looking at the board value (assertSchemaSupported), so a constraint on an absent property, under items of an empty array, or in an unused object-form additionalProperties can no longer be silently skipped. Schema-pointer diagnostics; no schema file change was required.",
+        "REPAIR P1-2 fixed: new guardJudgePassRequiresVerdict rejects RUNNING_JUDGE -> JUDGE_PASS without an explicit PASS verdict (JUDGE_PASS_WITHOUT_VERDICT), a FAIL verdict (JUDGE_PASS_CONTRADICTS_VERDICT), and an unknown verdict (UNKNOWN_JUDGE_VERDICT). UNVERIFIABLE still stops at UNVERIFIABLE_MANDATORY_GATE via the pre-existing upstream guard; UNVERIFIABLE != PASS is preserved.",
+        "REPAIR P1-3 fixed: checkActivePrograms layers now accumulate instead of returning early, which made MULTIPLE_ACTIVE_PROGRAMS reachable rather than dead code, and the suite gained a removal proof, a per-layer proof, and an inversion proof for the exactly-one-active-program guard. The original direct two-canonical-board negative test is retained.",
+        "Tests added for the repair: 3 P1-1 negative cases plus a non-object-subschema case, a whole-schema-audit reverse proof, and a committed-schema enforceability case; 2 P1-2 direct negative cases plus a reverse proof and an inversion proof; 4 P1-3 cases covering both layers, board-level halt, discovery, removal, per-layer and inversion proofs. The pre-existing UNVERIFIABLE reverse proof was strengthened (not weakened) so it stays non-vacuous now that a second layer stands behind it.",
+        "node --test control-plane/*.test.mjs after repair: 67 pass, 0 fail (was 50 before the repair); no test was deleted or relaxed.",
+        "node control-plane/kernel.mjs check after repair: ok=true, violation_count=0, exit code 0; next_action=ADVANCE_IN_FLIGHT for ACP-001.",
+        "Repair scope honoured: only control-plane/kernel.mjs, control-plane/kernel.test.mjs and this board changed. No dependency added, no product or clinical code touched, no deployment behaviour changed, .github/** untouched, no commit or push performed by the writer.",
+        "Transition recorded: RUNNING_WRITER -> WRITER_DONE after the bounded three-P1 repair passed focused verification. JUDGE_PASS and CLOSED remain unclaimed; a fresh independent Codex audit on a newly frozen SHA is required."
       ],
       "closed_by": null
     },

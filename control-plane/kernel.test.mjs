@@ -37,6 +37,7 @@ import {
   checkConcurrency,
   checkDependencies,
   checkPolicyInvariants,
+  discoverBoards,
   evaluateBoard,
   evaluateTransition,
   runCheck,
@@ -298,6 +299,115 @@ test('two programs: a second canonical board is rejected', () => {
   assert.deepEqual(checkActivePrograms([boards[0]]), [])
 })
 
+/*
+ * REPAIR/ACP-001/P1-3 — the missing reverse proof.
+ *
+ * What failed: nothing in the kernel; the TEST SUITE was incomplete. The
+ * exactly-one-active-program guard had only a direct negative test, so deleting
+ * or inverting it would not have turned the focused suite red, and a second
+ * concurrently active control-plane program could have shipped unnoticed.
+ * How it was found: independent Codex audit of frozen SHA
+ * 0e6469e2a22b9398c0103fd5e52ac59406fddfe3.
+ * Root cause: the guard had two layers, but `MULTIPLE_ACTIVE_PROGRAMS` sat
+ * behind an early return and `active` is a subset of `canonical` — so the second
+ * layer was unreachable and therefore unprovable. The layers now accumulate.
+ * Why the fix is safe: both layers are exercised independently below, and the
+ * suite fails if either is removed or inverted.
+ * What these cases do NOT cover: they say nothing about whether a program is
+ * active in some external system (a running GitHub Actions job). This is the
+ * board-level invariant only; the writer lock covers concurrent runs.
+ */
+function twoActivePrograms() {
+  return [
+    { path: 'control-plane/MASTER_BOARD.json', board: structuredClone(CANONICAL_BOARD) },
+    { path: 'control-plane/SECOND_BOARD.json', board: structuredClone(CANONICAL_BOARD) },
+  ]
+}
+
+test('P1-3: exactly one active program — both layers fire on two active canonical boards', () => {
+  const found = codes(checkActivePrograms(twoActivePrograms()))
+  assert.ok(found.includes('MULTIPLE_CANONICAL_BOARDS'), 'layer 1: more than one canonical board')
+  assert.ok(found.includes('MULTIPLE_ACTIVE_PROGRAMS'), 'layer 2: more than one non-closed program')
+
+  // A closed second program is not a second ACTIVE program, but it is still a
+  // second canonical board — the two layers must not be collapsed into one.
+  const withClosed = twoActivePrograms()
+  withClosed[1].board.status = 'CLOSED'
+  const closedCodes = codes(checkActivePrograms(withClosed))
+  assert.ok(closedCodes.includes('MULTIPLE_CANONICAL_BOARDS'))
+  assert.ok(!closedCodes.includes('MULTIPLE_ACTIVE_PROGRAMS'))
+
+  // Zero canonical boards fails closed rather than defaulting to "nothing to do".
+  assert.deepEqual(codes(checkActivePrograms([])), ['NO_CANONICAL_BOARD'])
+})
+
+test('P1-3: a second active program halts the whole board evaluation', () => {
+  const siblings = twoActivePrograms()
+  const result = evaluateBoard({ board: siblings[0].board, schema: SCHEMA, siblingBoards: siblings })
+  assert.equal(result.ok, false)
+  assert.equal(result.next_action, NEXT_ACTIONS.HALT)
+  assert.equal(result.next_item, null, 'two active programs must never hand out a next item')
+  assert.ok(codes(result).includes('MULTIPLE_ACTIVE_PROGRAMS'))
+})
+
+test('P1-3 reverse proof: removing the active-program guard accepts two active programs', async () => {
+  const mutant = await loadMutant([
+    ['if (canonical.length > 1) {', 'if (false) {'],
+    ['if (active.length > 1) {', 'if (false) {'],
+  ])
+  const siblings = twoActivePrograms()
+
+  assert.ok(codes(checkActivePrograms(siblings)).length > 0)
+  assert.deepEqual(
+    mutant.checkActivePrograms(siblings),
+    [],
+    'with the guard removed, two active programs must be accepted — otherwise the direct test proves nothing',
+  )
+
+  // ...and the whole evaluation goes green, which is the failure that matters.
+  const mutated = mutant.evaluateBoard({ board: siblings[0].board, schema: SCHEMA, siblingBoards: siblings })
+  assert.equal(mutated.ok, true, 'the mutation must reproduce a program that ships two active writers-in-waiting')
+  assert.equal(evaluateBoard({ board: siblings[0].board, schema: SCHEMA, siblingBoards: siblings }).ok, false)
+})
+
+test('P1-3 reverse proof: each layer alone still catches two active programs', async () => {
+  const siblings = twoActivePrograms()
+
+  const withoutLayer1 = await loadMutant([['if (canonical.length > 1) {', 'if (false) {']])
+  const layer1Gone = codes(withoutLayer1.checkActivePrograms(siblings))
+  assert.ok(!layer1Gone.includes('MULTIPLE_CANONICAL_BOARDS'), 'the mutation must actually disable layer 1')
+  assert.ok(layer1Gone.includes('MULTIPLE_ACTIVE_PROGRAMS'), 'layer 2 must stand on its own')
+
+  const withoutLayer2 = await loadMutant([['if (active.length > 1) {', 'if (false) {']])
+  const layer2Gone = codes(withoutLayer2.checkActivePrograms(siblings))
+  assert.ok(!layer2Gone.includes('MULTIPLE_ACTIVE_PROGRAMS'), 'the mutation must actually disable layer 2')
+  assert.ok(layer2Gone.includes('MULTIPLE_CANONICAL_BOARDS'), 'layer 1 must stand on its own')
+})
+
+test('P1-3 inversion proof: an inverted active-program guard accepts two and rejects one', async () => {
+  const mutant = await loadMutant([
+    ['if (canonical.length > 1) {', 'if (canonical.length <= 1) {'],
+    ['if (active.length > 1) {', 'if (active.length <= 1) {'],
+  ])
+  const siblings = twoActivePrograms()
+  const single = [siblings[0]]
+
+  assert.deepEqual(mutant.checkActivePrograms(siblings), [], 'inverted: two active programs slip through')
+  assert.ok(mutant.checkActivePrograms(single).length > 0, 'inverted: the one legitimate program is rejected')
+
+  // The real kernel is the other way round, in both directions.
+  assert.ok(checkActivePrograms(siblings).length > 0)
+  assert.deepEqual(checkActivePrograms(single), [])
+})
+
+test('P1-3: a real second board file in control-plane/ is discovered, not assumed absent', () => {
+  // The guard is only worth anything if the discovery step feeds it every board.
+  const discovered = discoverBoards()
+  assert.ok(discovered.length >= 1, 'the canonical board must be discovered')
+  assert.ok(discovered.some((entry) => entry.path === CANONICAL_BOARD_RELATIVE_PATH))
+  assert.deepEqual(checkActivePrograms(discovered), [], 'the repository must contain exactly one active program')
+})
+
 test('reverse proof: without the lock-held check, two runs would both hold the lock', async () => {
   const mutant = await loadMutant([['if (currentLock && currentLock.active === true) {', 'if (false) {']])
   const held = acquireWriterLock(NO_LOCK, { item_id: 'ACP-001', holder: 'CLAUDE_OPUS', run_id: 'run-1' }).lock
@@ -533,6 +643,78 @@ test('an unknown judge verdict is rejected rather than treated as a pass', () =>
   assert.equal(result.violation.code, 'UNKNOWN_JUDGE_VERDICT')
 })
 
+/*
+ * REPAIR/ACP-001/P1-2 — the Codex counterexample.
+ *
+ * What failed: `evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', {})` returned
+ * ok=true. The table allowed the edge and no guard asked whether a judge had
+ * actually returned a verdict, so an orchestrator could award itself the one
+ * status that opens the door to CLOSED.
+ * How it was found: independent Codex audit of frozen SHA
+ * 0e6469e2a22b9398c0103fd5e52ac59406fddfe3.
+ * Root cause: verdict evidence was only demanded at CLOSED, never at JUDGE_PASS,
+ * and the UNVERIFIABLE guard returned null for an absent verdict.
+ * Why the fix is safe: JUDGE_PASS now requires `judge_verdict === 'PASS'`;
+ * absent, FAIL and unknown verdicts each get their own rejection code, and
+ * UNVERIFIABLE still stops at UNVERIFIABLE_MANDATORY_GATE.
+ * What these cases do NOT cover: they do not verify that the verdict came from a
+ * genuinely independent read-only judge — that stays enforced at closure by
+ * `guardClosureRequiresIndependentJudge`, asserted separately above.
+ */
+test('P1-2: JUDGE_PASS without a verdict is rejected', () => {
+  const bare = evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', {})
+  assert.equal(bare.ok, false, 'the exact pre-repair counterexample must now fail')
+  assert.equal(bare.violation.code, 'JUDGE_PASS_WITHOUT_VERDICT')
+  assert.equal(bare.violation.path, 'context.judge_verdict')
+
+  // A verdict-shaped object that carries no verdict is still no verdict.
+  const emptyVerdict = evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_independent: true, judge_read_only: true })
+  assert.equal(emptyVerdict.ok, false)
+  assert.equal(emptyVerdict.violation.code, 'JUDGE_PASS_WITHOUT_VERDICT')
+})
+
+test('P1-2: a FAIL or unknown verdict may not produce JUDGE_PASS, and UNVERIFIABLE keeps its own gate', () => {
+  const failed = evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'FAIL' })
+  assert.equal(failed.ok, false)
+  assert.equal(failed.violation.code, 'JUDGE_PASS_CONTRADICTS_VERDICT')
+
+  const unknown = evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'PROBABLY_FINE' })
+  assert.equal(unknown.ok, false)
+  assert.equal(unknown.violation.code, 'UNKNOWN_JUDGE_VERDICT')
+
+  // Preserved invariant: UNVERIFIABLE != PASS, and it keeps its distinct code.
+  const unverifiable = evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'UNVERIFIABLE' })
+  assert.equal(unverifiable.ok, false)
+  assert.equal(unverifiable.violation.code, 'UNVERIFIABLE_MANDATORY_GATE')
+
+  // The legitimate path still works, and JUDGE_FAIL needs no PASS evidence.
+  assert.equal(evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'PASS' }).ok, true)
+  assert.equal(evaluateTransition('RUNNING_JUDGE', 'JUDGE_FAIL', { judge_verdict: 'FAIL' }).ok, true)
+  assert.equal(evaluateTransition('RUNNING_JUDGE', 'BLOCKED', {}).ok, true)
+})
+
+test('P1-2 reverse proof: without the verdict guard, a bare JUDGE_PASS would be accepted', async () => {
+  const mutant = await loadMutant([['  guardJudgePassRequiresVerdict,\n', '']])
+  assert.equal(evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', {}).ok, false)
+  assert.equal(
+    mutant.evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', {}).ok,
+    true,
+    'the mutation must reproduce the reported defect',
+  )
+  assert.equal(mutant.evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'FAIL' }).ok, true)
+  // Even without this guard, UNVERIFIABLE must not pass — the two are separate.
+  assert.equal(mutant.evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'UNVERIFIABLE' }).ok, false)
+})
+
+test('P1-2 inversion proof: an inverted verdict check would accept exactly the wrong verdicts', async () => {
+  const mutant = await loadMutant([["  if (verdict !== 'PASS') {", "  if (verdict === 'PASS') {"]])
+  assert.equal(mutant.evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'PASS' }).ok, false)
+  assert.equal(mutant.evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'FAIL' }).ok, true)
+  // The real kernel is the other way round.
+  assert.equal(evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'PASS' }).ok, true)
+  assert.equal(evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', { judge_verdict: 'FAIL' }).ok, false)
+})
+
 test('P2/P3 findings never open an automatic repair loop', () => {
   const lowSeverity = evaluateTransition('JUDGE_FAIL', 'REPAIR_READY', {
     findings: [{ id: 'F1', severity: 'P2' }, { id: 'F2', severity: 'P3' }],
@@ -551,10 +733,36 @@ test('P2/P3 findings never open an automatic repair loop', () => {
 })
 
 test('reverse proof: without the UNVERIFIABLE guard, it would be promoted to PASS', async () => {
-  const mutant = await loadMutant([['  guardUnverifiableNeverPasses,\n', '']])
   const context = { judge_verdict: 'UNVERIFIABLE' }
-  assert.equal(evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', context).ok, false)
-  assert.equal(mutant.evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', context).ok, true)
+  assert.equal(evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', context).violation.code, 'UNVERIFIABLE_MANDATORY_GATE')
+
+  // Layer 1 removed: the specific stop condition disappears, which is what
+  // proves it comes from THIS guard. Since the P1-2 repair, the verdict guard
+  // stands behind it and still refuses — so this mutation alone no longer
+  // promotes UNVERIFIABLE, and asserting `ok === true` here would be false.
+  const withoutUnverifiableGuard = await loadMutant([['  guardUnverifiableNeverPasses,\n', '']])
+  const layer1Gone = withoutUnverifiableGuard.evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', context)
+  assert.equal(layer1Gone.ok, false, 'the verdict guard is the second layer')
+  assert.equal(layer1Gone.violation.code, 'JUDGE_PASS_CONTRADICTS_VERDICT')
+  assert.notEqual(layer1Gone.violation.code, 'UNVERIFIABLE_MANDATORY_GATE', 'the mutation must disable layer 1')
+
+  // Both layers removed: UNVERIFIABLE is promoted to PASS. That is the failure
+  // the pair of guards exists to prevent.
+  const withoutBoth = await loadMutant([
+    ['  guardUnverifiableNeverPasses,\n', ''],
+    ['  guardJudgePassRequiresVerdict,\n', ''],
+  ])
+  assert.equal(withoutBoth.evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', context).ok, true)
+
+  // The UNVERIFIABLE guard is also the only thing stopping the JUDGE_PASS ->
+  // CLOSED leg from being reached on an unverifiable audit.
+  const closure = { judge_verdict: 'UNVERIFIABLE', judge_independent: true, judge_read_only: true }
+  assert.equal(evaluateTransition('JUDGE_PASS', 'CLOSED', closure).violation.code, 'UNVERIFIABLE_MANDATORY_GATE')
+  assert.equal(
+    withoutUnverifiableGuard.evaluateTransition('JUDGE_PASS', 'CLOSED', closure).violation.code,
+    'CLOSURE_WITHOUT_JUDGE_PASS',
+    'closure keeps its own PASS requirement',
+  )
 })
 
 test('reverse proof: without the severity guard, P2/P3 would open a repair loop', async () => {
@@ -595,6 +803,68 @@ test('a schema keyword this validator does not implement throws instead of passi
   assert.ok(codes(result).includes('SCHEMA_UNSUPPORTED'))
 })
 
+/*
+ * REPAIR/ACP-001/P1-1 — the Codex counterexample.
+ *
+ * What failed: `walkSchema` descended by following the VALUE. An unsupported
+ * keyword on a property the current board does not carry was never visited, so
+ * `validateAgainstSchema` returned ok=true on a schema it cannot enforce.
+ * How it was found: independent Codex audit of frozen SHA
+ * 0e6469e2a22b9398c0103fd5e52ac59406fddfe3.
+ * Root cause: the fail-closed keyword check lived on the value-driven traversal
+ * instead of on the schema itself.
+ * Why the fix is safe: the whole schema tree is audited before the value is
+ * looked at, so acceptance no longer depends on which keys the board happens to
+ * have today.
+ * What these cases do NOT cover: they do not claim the SUPPORTED_KEYWORDS set is
+ * the right subset, only that anything outside it is refused. They also do not
+ * cover schema composition keywords (`$ref`, `allOf`, `oneOf`, `if`) beyond
+ * refusing them — this validator implements no composition.
+ */
+test('P1-1: an unsupported constraint on an ABSENT property still fails closed', () => {
+  const schema = { type: 'object', properties: { future: { type: 'number', maximum: 3 } } }
+  // The exact Codex counterexample: the value carries no `future` key at all.
+  assert.throws(() => validateAgainstSchema(schema, {}), /UNSUPPORTED_SCHEMA_KEYWORD:maximum at \/properties\/future/)
+
+  // ...and nested one level deeper, still absent from the value.
+  const nested = {
+    type: 'object',
+    properties: { future: { type: 'object', properties: { deeper: { type: 'string', maxLength: 2 } } } },
+  }
+  assert.throws(() => validateAgainstSchema(nested, {}), /UNSUPPORTED_SCHEMA_KEYWORD:maxLength/)
+
+  // Reached through the real entry point, on a board that validates today.
+  const result = evaluateBoard({ board: readyBoard(), schema: { ...SCHEMA, properties: { ...SCHEMA.properties, future_flag: { type: 'boolean', maximum: 1 } } } })
+  assert.equal(result.ok, false)
+  assert.equal(result.next_item, null, 'an unenforceable schema must never hand out a next item')
+  assert.ok(codes(result).includes('SCHEMA_UNSUPPORTED'))
+})
+
+test('P1-1: an unsupported constraint under `items` of an EMPTY array fails closed', () => {
+  const schema = { type: 'array', items: { type: 'number', maximum: 3 } }
+  assert.throws(() => validateAgainstSchema(schema, []), /UNSUPPORTED_SCHEMA_KEYWORD:maximum at \/items/)
+  // Non-empty is the case that already worked; asserted so the two cannot diverge.
+  assert.throws(() => validateAgainstSchema(schema, [1]), /UNSUPPORTED_SCHEMA_KEYWORD:maximum/)
+})
+
+test('P1-1: an UNUSED object-form additionalProperties subschema fails closed', () => {
+  const schema = { type: 'object', additionalProperties: { type: 'string', maxLength: 4 } }
+  assert.throws(
+    () => validateAgainstSchema(schema, {}),
+    /UNSUPPORTED_SCHEMA_KEYWORD:maxLength at \/additionalProperties/,
+  )
+  // The boolean forms remain legal: they are keywords this validator implements.
+  assert.equal(validateAgainstSchema({ type: 'object', additionalProperties: false }, {}).ok, true)
+  assert.equal(validateAgainstSchema({ type: 'object', additionalProperties: true }, { x: 1 }).ok, true)
+})
+
+test('P1-1: a non-object subschema node is refused even where the value never reaches it', () => {
+  assert.throws(
+    () => validateAgainstSchema({ type: 'object', properties: { future: 'not-a-schema' } }, {}),
+    /UNSUPPORTED_SCHEMA_NODE at \/properties\/future/,
+  )
+})
+
 test('reverse proof: without the unknown-keyword check, an unenforced constraint would pass silently', async () => {
   const mutant = await loadMutant([
     ['if (!SUPPORTED_KEYWORDS.has(keyword) && !ANNOTATION_KEYWORDS.has(keyword)) {', 'if (false) {'],
@@ -602,6 +872,33 @@ test('reverse proof: without the unknown-keyword check, an unenforced constraint
   const schema = { type: 'object', properties: { a: { type: 'number', maximum: 3 } } }
   assert.throws(() => validateAgainstSchema(schema, { a: 99 }))
   assert.equal(mutant.validateAgainstSchema(schema, { a: 99 }).ok, true)
+})
+
+test('P1-1 reverse proof: without the whole-schema audit, the absent-property case is accepted again', async () => {
+  // Disabling only the value-independent audit leaves the original value-driven
+  // traversal, which is precisely the pre-repair behaviour Codex reported.
+  const mutant = await loadMutant([["  assertSchemaSupported(schema, '')\n", '']])
+  const schema = { type: 'object', properties: { future: { type: 'number', maximum: 3 } } }
+
+  assert.throws(() => validateAgainstSchema(schema, {}), /UNSUPPORTED_SCHEMA_KEYWORD:maximum/)
+  assert.equal(mutant.validateAgainstSchema(schema, {}).ok, true, 'the mutation must reproduce the reported defect')
+
+  // The mutant still catches the present-property case — proving the repair adds
+  // exactly the missing coverage rather than duplicating what already worked.
+  assert.throws(() => mutant.validateAgainstSchema(schema, { future: 99 }), /UNSUPPORTED_SCHEMA_KEYWORD:maximum/)
+
+  // Empty-array and unused-additionalProperties regress the same way.
+  assert.equal(mutant.validateAgainstSchema({ type: 'array', items: { type: 'number', maximum: 3 } }, []).ok, true)
+  assert.equal(
+    mutant.validateAgainstSchema({ type: 'object', additionalProperties: { type: 'string', maxLength: 4 } }, {}).ok,
+    true,
+  )
+})
+
+test('P1-1: the committed schema is fully enforceable by this validator', () => {
+  // If someone adds a keyword to MASTER_BOARD.schema.json that the kernel cannot
+  // enforce, this fails before any board is judged against it.
+  assert.doesNotThrow(() => validateAgainstSchema(SCHEMA, CANONICAL_BOARD))
 })
 
 // ---------------------------------------------------------------------------

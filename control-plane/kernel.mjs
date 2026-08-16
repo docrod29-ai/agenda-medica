@@ -9,7 +9,10 @@
  *   - `control-plane/MASTER_BOARD.schema.json` is the structural authority.
  *     The validator below implements exactly the JSON Schema keyword subset
  *     that schema uses, and THROWS on any keyword it does not implement, so a
- *     future schema constraint can never be silently ignored.
+ *     future schema constraint can never be silently ignored. The unsupported
+ *     keyword audit walks the WHOLE schema before the value is looked at, so a
+ *     constraint on a property that the current board happens not to carry is
+ *     still rejected (REPAIR/ACP-001/P1-1).
  *   - `control-plane/MASTER_BOARD.json` is the state. Nothing else is.
  *     `agent-state/MASTER_STATE.json` is stale legacy authority (BASELINE.md §5)
  *     and is rejected as an execution source.
@@ -84,20 +87,72 @@ function schemaError(pointer, keyword, message) {
   return { path: pointer === '' ? '/' : pointer, keyword, message }
 }
 
+function asPointer(pointer) {
+  return pointer === '' ? '/' : pointer
+}
+
 /**
  * Throws `UNSUPPORTED_SCHEMA_KEYWORD:<kw>` rather than ignoring an unknown
  * constraint. Ignoring one would let an unvalidated board look valid.
  */
-function walkSchema(schema, value, pointer, errors) {
-  if (schema === null || typeof schema !== 'object' || Array.isArray(schema)) {
-    throw new Error(`UNSUPPORTED_SCHEMA_NODE at ${pointer === '' ? '/' : pointer}`)
-  }
-
+function assertKeywordsSupported(schema, pointer) {
   for (const keyword of Object.keys(schema)) {
     if (!SUPPORTED_KEYWORDS.has(keyword) && !ANNOTATION_KEYWORDS.has(keyword)) {
-      throw new Error(`UNSUPPORTED_SCHEMA_KEYWORD:${keyword} at ${pointer === '' ? '/' : pointer}`)
+      throw new Error(`UNSUPPORTED_SCHEMA_KEYWORD:${keyword} at ${asPointer(pointer)}`)
     }
   }
+}
+
+function assertSchemaNode(schema, pointer) {
+  if (schema === null || typeof schema !== 'object' || Array.isArray(schema)) {
+    throw new Error(`UNSUPPORTED_SCHEMA_NODE at ${asPointer(pointer)}`)
+  }
+}
+
+/**
+ * Value-independent audit of the ENTIRE schema tree.
+ *
+ * REPAIR/ACP-001/P1-1. `walkSchema` descends by following the *value*: it only
+ * ever reaches the subschema of a property the current board actually carries,
+ * of an element an array actually contains, or of an additional property that is
+ * actually present. That made the fail-closed keyword check conditional on the
+ * data. A schema carrying `{"properties": {"future": {"maximum": 3}}}` was
+ * accepted against a board with no `future` key, and the day someone added that
+ * key the constraint would still not be enforced — silently, with green tests.
+ *
+ * So the audit runs first, over the whole schema, driven by the schema alone.
+ * Pointers here are SCHEMA pointers (`/properties/x/items`), not value pointers,
+ * because the defect is in the schema, not in the board.
+ */
+function assertSchemaSupported(schema, pointer) {
+  assertSchemaNode(schema, pointer)
+  assertKeywordsSupported(schema, pointer)
+
+  if (schema.properties !== undefined) {
+    assertSchemaNode(schema.properties, `${pointer}/properties`)
+    for (const [key, child] of Object.entries(schema.properties)) {
+      assertSchemaSupported(child, `${pointer}/properties/${key}`)
+    }
+  }
+
+  // Audited even for an empty array: `items` describes elements that do not
+  // exist yet, which is exactly the blind spot being closed.
+  if (schema.items !== undefined) {
+    assertSchemaSupported(schema.items, `${pointer}/items`)
+  }
+
+  // `false`/`true` are the two boolean forms this validator implements; any
+  // object form is a subschema and is audited even when unused by the value.
+  if (schema.additionalProperties !== undefined && typeof schema.additionalProperties !== 'boolean') {
+    assertSchemaSupported(schema.additionalProperties, `${pointer}/additionalProperties`)
+  }
+}
+
+function walkSchema(schema, value, pointer, errors) {
+  assertSchemaNode(schema, pointer)
+  // Second layer: `validateAgainstSchema` has already audited the whole tree,
+  // but a caller that reached this function by another route still fails closed.
+  assertKeywordsSupported(schema, pointer)
 
   if ('type' in schema) {
     const types = Array.isArray(schema.type) ? schema.type : [schema.type]
@@ -163,8 +218,15 @@ function walkSchema(schema, value, pointer, errors) {
   }
 }
 
-/** @returns {{ok: boolean, errors: Array<{path: string, keyword: string, message: string}>}} */
+/**
+ * Throws on any schema this validator cannot fully enforce; otherwise reports
+ * value errors. The audit is deliberately BEFORE the value walk: an
+ * unenforceable schema is a defect regardless of what the current board says.
+ *
+ * @returns {{ok: boolean, errors: Array<{path: string, keyword: string, message: string}>}}
+ */
 export function validateAgainstSchema(schema, value) {
+  assertSchemaSupported(schema, '')
   const errors = []
   walkSchema(schema, value, '', errors)
   return { ok: errors.length === 0, errors }
@@ -284,6 +346,41 @@ function guardUnverifiableNeverPasses(from, to, context) {
   )
 }
 
+/**
+ * REPAIR/ACP-001/P1-2. A PASS is evidence, not a default.
+ *
+ * `evaluateTransition('RUNNING_JUDGE', 'JUDGE_PASS', {})` used to return
+ * ok=true: the table allowed the edge and no guard asked whether a judge had
+ * actually spoken. That is the one transition an orchestrator must never be able
+ * to take on its own, because JUDGE_PASS is the only door to CLOSED.
+ *
+ * UNVERIFIABLE is handled upstream by `guardUnverifiableNeverPasses` so it keeps
+ * its own explicit stop condition; independence and read-onlyness stay enforced
+ * at closure by `guardClosureRequiresIndependentJudge`.
+ */
+function guardJudgePassRequiresVerdict(from, to, context) {
+  if (to !== 'JUDGE_PASS') return null
+  const verdict = context.judge_verdict
+  if (verdict === undefined) {
+    return violation(
+      'JUDGE_PASS_WITHOUT_VERDICT',
+      'context.judge_verdict',
+      'JUDGE_PASS requires an explicit machine-readable PASS verdict from the judge',
+    )
+  }
+  if (!JUDGE_VERDICTS.includes(verdict)) {
+    return violation('UNKNOWN_JUDGE_VERDICT', 'context.judge_verdict', `unknown verdict ${verdict}`)
+  }
+  if (verdict !== 'PASS') {
+    return violation(
+      'JUDGE_PASS_CONTRADICTS_VERDICT',
+      'context.judge_verdict',
+      `a ${verdict} verdict may not produce JUDGE_PASS`,
+    )
+  }
+  return null
+}
+
 function guardNoAutoRepairForP2P3(from, to, context) {
   if (to !== 'REPAIR_READY') return null
   const findings = context.findings
@@ -332,6 +429,7 @@ const TRANSITION_GUARDS = [
   guardTableAndSkips,
   guardOwnerGate,
   guardUnverifiableNeverPasses,
+  guardJudgePassRequiresVerdict,
   guardNoAutoRepairForP2P3,
   guardClosureRequiresIndependentJudge,
   guardWriterStartRequiresLock,
@@ -548,26 +646,44 @@ export function assertExecutionAuthority(board, sourcePath) {
   return { ok: true, violation: null }
 }
 
-/** Exactly one canonical, non-closed program may exist. */
+/**
+ * Exactly one canonical, non-closed program may exist.
+ *
+ * REPAIR/ACP-001/P1-3. The two layers accumulate instead of returning early.
+ * Behind an early return the active-program count was unreachable — `active` is
+ * a subset of `canonical`, so `active.length > 1` implied `canonical.length > 1`
+ * and the first return always won. An unreachable guard cannot be mutation-proved
+ * and is not defence in depth; it is decoration.
+ */
 export function checkActivePrograms(boards) {
+  const violations = []
   const canonical = boards.filter((entry) => entry.board?.canonical === true)
+
   if (canonical.length === 0) {
     return [violation('NO_CANONICAL_BOARD', 'control-plane', 'no canonical board found')]
   }
   if (canonical.length > 1) {
-    return [
+    violations.push(
       violation(
         'MULTIPLE_CANONICAL_BOARDS',
         'control-plane',
         `found ${canonical.length}: ${canonical.map((entry) => entry.path).join(', ')}`,
       ),
-    ]
+    )
   }
+
   const active = canonical.filter((entry) => entry.board.status !== 'CLOSED')
   if (active.length > 1) {
-    return [violation('MULTIPLE_ACTIVE_PROGRAMS', 'control-plane', `${active.length} active programs`)]
+    violations.push(
+      violation(
+        'MULTIPLE_ACTIVE_PROGRAMS',
+        'control-plane',
+        `${active.length} active programs: ${active.map((entry) => entry.path).join(', ')}`,
+      ),
+    )
   }
-  return []
+
+  return violations
 }
 
 // ---------------------------------------------------------------------------
