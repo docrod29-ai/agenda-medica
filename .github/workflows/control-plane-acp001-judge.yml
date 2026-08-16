@@ -20,7 +20,7 @@ jobs:
       actions: read
       pull-requests: read
     env:
-      FROZEN_SHA: '0e6469e2a22b9398c0103fd5e52ac59406fddfe3'
+      FROZEN_SHA: '907447a20c93c60483e1e6a0156e49964cd7e539'
       ORCHESTRATION_HEAD_AT_START: ${{ github.event.pull_request.head.sha }}
     steps:
       - name: Checkout orchestration head for clean re-audit gate
@@ -53,7 +53,7 @@ jobs:
             console.error('::error::Judge governance invariants are not fail-closed')
             process.exit(83)
           }
-          const expected = 'FROZEN_CANDIDATE_SHA=0e6469e2a22b9398c0103fd5e52ac59406fddfe3'
+          const expected = 'FROZEN_CANDIDATE_SHA=907447a20c93c60483e1e6a0156e49964cd7e539'
           if (!item.evidence.some((e) => typeof e === 'string' && e.includes(expected))) {
             console.error('::error::Frozen candidate SHA evidence is missing')
             process.exit(84)
@@ -83,7 +83,7 @@ jobs:
         if: steps.verify.outputs.run == 'true'
         uses: actions/checkout@v5
         with:
-          ref: 0e6469e2a22b9398c0103fd5e52ac59406fddfe3
+          ref: 907447a20c93c60483e1e6a0156e49964cd7e539
           fetch-depth: 0
           persist-credentials: false
 
@@ -113,7 +113,7 @@ jobs:
               "required": ["verdict", "audited_sha", "independent", "read_only", "mandatory_gates", "findings", "summary"],
               "properties": {
                 "verdict": {"type": "string", "enum": ["PASS", "FAIL", "UNVERIFIABLE"]},
-                "audited_sha": {"type": "string", "const": "0e6469e2a22b9398c0103fd5e52ac59406fddfe3"},
+                "audited_sha": {"type": "string", "const": "907447a20c93c60483e1e6a0156e49964cd7e539"},
                 "independent": {"type": "boolean", "const": true},
                 "read_only": {"type": "boolean", "const": true},
                 "mandatory_gates": {
@@ -157,11 +157,10 @@ jobs:
             CLEAN INDEPENDENT RE-AUDIT FOR ACP-001 ONLY.
 
             You are CODEX_INDEPENDENT. You did not implement this candidate.
-            Audit EXACTLY immutable SHA 0e6469e2a22b9398c0103fd5e52ac59406fddfe3.
+            Audit EXACTLY immutable SHA 907447a20c93c60483e1e6a0156e49964cd7e539.
             Accepted V15 base SHA is 317c6c5695b69e1a543d99d65e897f638db563a8.
 
-            The earlier judge attempt is diagnostic only and MUST NOT be used as closure evidence.
-            This run must independently reproduce the evidence from the immutable candidate.
+            The prior FAIL on 0e6469e2a22b9398c0103fd5e52ac59406fddfe3 is historical evidence only. This run must independently verify the repaired immutable candidate and must not inherit PASS/FAIL from any earlier run.
 
             This is a READ-ONLY adversarial audit. Do not edit files, do not commit, do not push,
             do not merge, do not deploy, do not change product code, and do not start ACP-002.
@@ -173,18 +172,18 @@ jobs:
             `node control-plane/kernel.mjs check` where useful.
 
             Mandatory ACP-001 requirements to prove, not merely assert:
-            1. MASTER_BOARD parses and validates against committed schema, fail-closed on unsupported constraints.
+            1. MASTER_BOARD parses and validates against committed schema, fail-closed on unsupported constraints anywhere relevant in the committed schema, including absent/future properties and empty/unused branches.
             2. Exactly one active program and at most one active writer are enforced.
             3. The next eligible dependency-satisfied item is deterministic and singular.
-            4. Explicit state transitions reject skips and illegal transitions.
+            4. Explicit state transitions reject skips and illegal transitions, and RUNNING_JUDGE -> JUDGE_PASS requires explicit machine-readable PASS verdict evidence; missing, FAIL, or UNVERIFIABLE must not pass.
             5. Production deploy, main merge, PHI, destructive changes, and clinical-policy changes remain false unless an explicit owner gate is present; no stale authority may bypass them.
             6. Lock semantics prevent two writer claims.
             7. UNVERIFIABLE can never become PASS.
             8. P2/P3 findings do not automatically create a repair loop.
             9. Machine-readable output contract is deterministic and fail-closed.
-            10. Tests include the required happy path and negative cases plus reverse/mutation proof for central guards.
+            10. Tests include the required happy path and negative cases plus genuine reverse/mutation proof for central guards, including the exactly-one-active-program guard.
             11. `agent-state/MASTER_STATE.json` and `agent-state/BACKLOG.json` cannot become execution authority.
-            12. No ACP-002 implementation or forbidden product/deploy scope leaked into the ACP-001 writer candidate.
+            12. No ACP-002 implementation or forbidden product/deploy scope leaked into the ACP-001 repaired writer candidate.
 
             PASS requires every mandatory gate to be independently verifiable and no demonstrated P0 or blocking P1.
             If any mandatory gate cannot be verified from the immutable candidate, verdict MUST be UNVERIFIABLE, never PASS.
