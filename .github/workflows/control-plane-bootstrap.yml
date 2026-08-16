@@ -179,6 +179,7 @@ jobs:
           - Do not add dependencies unless absolutely unavoidable; prefer no new dependency.
           - Do not touch product/clinical code or deployment behavior.
           - Do not change `.github/**`.
+          - Do not recreate, execute, or benchmark the pre-repair SHA during this writer run; Codex already established the counterexamples. Spend the bounded run only on the current repair, current focused tests, and canonical-board check.
 
           ALLOWED REPAIR FILES:
           - control-plane/kernel.mjs
@@ -262,7 +263,7 @@ jobs:
           set +e
           claude -p "$(cat /tmp/acp001-prompt.txt)" \
             --model opus \
-            --max-turns 30 \
+            --max-turns 60 \
             --output-format json \
             --allowedTools "Read" "Write" "Edit" "Glob" "Grep" \
               "Bash(npm:*)" "Bash(npx:*)" "Bash(node:*)" \
