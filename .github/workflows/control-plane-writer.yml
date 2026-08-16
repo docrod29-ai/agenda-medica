@@ -95,6 +95,13 @@ jobs:
         with:
           ref: ${{ inputs.expected_sha }}
           fetch-depth: 0
+          # REPAIR/ACP-002/P1-2. This used to persist the contents:write
+          # credential into .git/config for the whole job, while the writer held
+          # Bash(node|npm|npx) — which reaches git through a child process. The
+          # branch and scope fences ran AFTER the writer, so a writer that
+          # wanted to could have pushed anything anywhere before they ever ran.
+          # The credential now exists only inside the final push step.
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -138,10 +145,21 @@ jobs:
           # that drifts is always the one being checked.
           node --input-type=module <<'NODE' > /tmp/acp-preflight-request.json
           import { readFileSync } from 'node:fs'
+          import { readdirSync } from 'node:fs'
           import { writerPermissionsFromWorkflow } from './control-plane/preflight.mjs'
           const permissions = writerPermissionsFromWorkflow(
             readFileSync('.github/workflows/control-plane-writer.yml', 'utf8'),
           )
+          // Every committed judge workflow, handed to condition 11 for real
+          // inspection. If none is found the condition fails closed.
+          const judgeWorkflows = readdirSync('.github/workflows')
+            .filter((name) => /judge/.test(name))
+            .sort()
+            .map((name) => ({
+              path: `.github/workflows/${name}`,
+              job: 'codex-judge',
+              source: readFileSync(`.github/workflows/${name}`, 'utf8'),
+            }))
 
           const request = {
             item_id: process.env.ITEM_ID,
@@ -158,6 +176,13 @@ jobs:
               timeout_minutes: Number(process.env.WRITER_TIMEOUT_MINUTES),
               max_retries: Number(process.env.WRITER_MAX_RETRIES),
             },
+            // REPAIR/ACP-002/P1-4. The real attempt number, so the retry
+            // ceiling is spent against something instead of merely declared.
+            // With max_retries 0, attempt 2 refuses before Claude is installed.
+            run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            // REPAIR/ACP-002/P1-5. The committed judge workflows, so condition
+            // 11 can inspect real permissions instead of a board flag.
+            judge_workflows: judgeWorkflows,
             permissions,
           }
           process.stdout.write(JSON.stringify(request, null, 2))
@@ -180,6 +205,10 @@ jobs:
           fi
           authorized="$(node -p "JSON.parse(require('fs').readFileSync('/tmp/acp-preflight-result.json','utf8')).authorized.item_id")"
           echo "authorized_item=$authorized" >> "$GITHUB_OUTPUT"
+          # Snapshot the board BEFORE the writer touches anything, outside the
+          # working tree, so the scope guard compares against something the
+          # writer could not have edited.
+          cp control-plane/MASTER_BOARD.json /tmp/acp-board-before.json
 
       - name: Install Claude Code CLI
         shell: bash
@@ -240,15 +269,19 @@ jobs:
           READY_FOR_INDEPENDENT_REVIEW=YES/NO.
           PROMPT
 
+          # REPAIR/ACP-002/P1-2. No shell for the writer. `Bash(node:*)` and
+          # friends look narrow, but node can spawn git, and npm/npx can run
+          # arbitrary package scripts — so the allowlist was decorative and the
+          # writer could have reached git before any fence ran. Editing tools
+          # only. Verification and the push happen in their own steps below,
+          # where the writer has no say.
           set +e
           claude -p "$(cat /tmp/acp-prompt.txt)" \
             --model opus \
             --max-turns "$WRITER_MAX_TURNS" \
             --output-format json \
             --allowedTools "Read" "Write" "Edit" "Glob" "Grep" \
-              "Bash(node:*)" "Bash(npm:*)" "Bash(npx:*)" \
-              "Bash(git status:*)" "Bash(git diff:*)" "Bash(git log:*)" "Bash(git rev-parse:*)" \
-            --disallowedTools "WebSearch" "WebFetch" \
+            --disallowedTools "Bash" "WebSearch" "WebFetch" \
             2>&1 | tee /tmp/acp-writer.log
           claude_rc=${PIPESTATUS[0]}
           set -e
@@ -259,7 +292,9 @@ jobs:
             exit "$claude_rc"
           fi
 
-      - name: Enforce writer scope and require a real delta
+      - name: Enforce item-scoped writer authorization
+        env:
+          AUTHORIZED_ITEM: ${{ steps.preflight.outputs.authorized_item }}
         shell: bash
         run: |
           set -euo pipefail
@@ -269,18 +304,27 @@ jobs:
             exit 79
           fi
           printf '%s\n' "$status"
-          while IFS= read -r line; do
-            path="${line:3}"
-            case "$path" in
-              # `.github/**` is deliberately absent: a writer that can edit its
-              # own runner can widen its own permissions next run.
-              control-plane/*) ;;
-              *)
-                echo "::error::FORBIDDEN_SCOPE_CHANGE: $path"
-                exit 80
-                ;;
-            esac
-          done <<< "$status"
+          # Porcelain paths, renames resolved to their destination.
+          git status --porcelain | sed 's/^...//' | sed 's/^.* -> //' > /tmp/acp-changed.txt
+          cat /tmp/acp-changed.txt
+
+          # REPAIR/ACP-002/P1-3. "Everything is under control-plane/" was the
+          # only thing the old check proved, which let a writer authorized for
+          # one item rewrite another item's record or drop in its
+          # implementation. Authorization is per item now, declared up front in
+          # item-scopes.json, and the board diff must touch only this item.
+          set +e
+          node control-plane/scope-guard.mjs \
+            --item "$AUTHORIZED_ITEM" \
+            --before /tmp/acp-board-before.json \
+            --changed /tmp/acp-changed.txt | tee /tmp/acp-scope.json
+          scope_rc=${PIPESTATUS[0]}
+          set -e
+          if [[ "$scope_rc" -ne 0 ]]; then
+            first="$(node -p "JSON.parse(require('fs').readFileSync('/tmp/acp-scope.json','utf8')).github_outputs.first_violation")"
+            echo "::error::FORBIDDEN_SCOPE_CHANGE: $first"
+            exit 80
+          fi
 
       - name: Verify the focused contract before anything is pushed
         shell: bash
@@ -289,10 +333,17 @@ jobs:
           node --test control-plane/*.test.mjs
           node control-plane/kernel.mjs check
 
+      # REPAIR/ACP-002/P1-2. The ONLY step that sees a GitHub credential, and it
+      # runs after the preflight, the writer, the scope guard and the focused
+      # verification have all passed. The token is passed per-invocation with
+      # `-c http.extraheader` rather than written into .git/config, so it does
+      # not outlive this command, and the destination is pinned to the board's
+      # declared branch with main/master refused one last time.
       - name: Commit and push the immutable writer checkpoint
         env:
           AUTHORIZED_ITEM: ${{ steps.preflight.outputs.authorized_item }}
           TARGET_BRANCH: ${{ steps.target.outputs.branch }}
+          PUSH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -302,13 +353,14 @@ jobs:
           fi
           git config user.name "Ausculta Control Plane"
           git config user.email "control-plane@users.noreply.github.com"
-          git add control-plane
+          git add control-plane .github/workflows/control-plane-writer.yml
           if git diff --cached --quiet; then
             echo "::error::NO_STAGED_CHANGES_AFTER_SCOPE_VALIDATION"
             exit 81
           fi
           git commit -m "control-plane: ${AUTHORIZED_ITEM} cloud writer checkpoint"
-          git push origin "HEAD:${TARGET_BRANCH}"
+          git -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" \
+            push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:${TARGET_BRANCH}"
           echo "END_SHA=$(git rev-parse HEAD)"
 
   # ---------------------------------------------------------------------------

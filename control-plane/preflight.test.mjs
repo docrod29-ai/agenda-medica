@@ -21,8 +21,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -32,6 +31,7 @@ import {
   PREFLIGHT_CONTRACT_VERSION,
   PRODUCTION_REACHING_PERMISSIONS,
   STOP_CONDITIONS,
+  main as mainCli,
   runPreflight,
   writerLockFromBoard,
   writerPermissionsFromWorkflow,
@@ -70,6 +70,21 @@ function itemOf(board, id) {
 
 const SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678'
 
+/** A minimal committed judge workflow shape for condition 11 to inspect. */
+const READ_ONLY_JUDGE_WORKFLOW = [
+  'jobs:',
+  '  codex-judge:',
+  '    runs-on: ubuntu-latest',
+  '    permissions:',
+  '      contents: read',
+  '      actions: read',
+  '',
+].join('\n')
+
+function judgeWorkflows(source = READ_ONLY_JUDGE_WORKFLOW) {
+  return [{ path: '.github/workflows/judge.yml', job: 'codex-judge', source }]
+}
+
 function validRequest(overrides = {}) {
   return {
     item_id: 'ACP-002',
@@ -82,6 +97,8 @@ function validRequest(overrides = {}) {
     secret_name: 'ANTHROPIC_API_KEY',
     secret_present: true,
     budget: { max_turns: 60, timeout_minutes: 60, max_retries: 0 },
+    run_attempt: 1,
+    judge_workflows: judgeWorkflows(),
     permissions: { contents: 'write', 'pull-requests': 'read' },
     ...overrides,
   }
@@ -98,13 +115,21 @@ function conditionById(result, id) {
 let mutantCounter = 0
 
 /**
- * Textually mutate a control-plane module and import the copy. Relative imports
- * are rewritten to absolute file URLs first, because the mutant is written to a
- * temporary directory where `./kernel.mjs` does not exist. Each anchor must
+ * Textually mutate a control-plane module and import the copy.
+ *
+ * REPAIR/ACP-002/P1-6b. Mutants used to be written to `os.tmpdir()`. That works
+ * on a developer machine and fails on a read-only auditor: the independent
+ * judge ran this suite in a sandbox with a read-only filesystem, hit EROFS, and
+ * had to report `focused_tests: UNVERIFIABLE`. A proof the auditor cannot
+ * execute is not a proof. Mutants are now imported from `data:` URLs, so the
+ * suite touches no filesystem and any read-only reviewer can reproduce it.
+ *
+ * Relative imports are rewritten to absolute file URLs first, because a `data:`
+ * module has no directory to resolve `./kernel.mjs` against. Each anchor must
  * appear exactly once, so renaming a guard breaks the proof loudly instead of
  * silently turning the mutation into a no-op.
  */
-async function loadMutant(sourcePath, source, replacements) {
+async function loadMutant(source, replacements) {
   let mutated = source
   for (const [find, replace] of replacements) {
     const occurrences = mutated.split(find).length - 1
@@ -114,12 +139,37 @@ async function loadMutant(sourcePath, source, replacements) {
   assert.notEqual(mutated, source, 'mutation must actually change the source')
   mutated = mutated.replace(/from '\.\/([a-zA-Z.]+\.mjs)'/g, (_match, name) => `from '${pathToFileURL(join(HERE, name)).href}'`)
   mutated = mutated.replace(/import\('\.\/([a-zA-Z.]+\.mjs)'\)/g, (_match, name) => `import('${pathToFileURL(join(HERE, name)).href}')`)
-  const file = join(tmpdir(), `acp002-mutant-${process.pid}-${mutantCounter++}.mjs`)
-  writeFileSync(file, mutated, 'utf8')
-  return import(pathToFileURL(file).href)
+  // The cache-busting fragment keeps each mutant a distinct module.
+  return import(`data:text/javascript;base64,${Buffer.from(mutated).toString('base64')}#${mutantCounter++}`)
 }
 
-const mutatePreflight = (replacements) => loadMutant(PREFLIGHT_PATH, PREFLIGHT_SOURCE, replacements)
+const mutatePreflight = (replacements) => loadMutant(PREFLIGHT_SOURCE, replacements)
+
+/**
+ * The bar the judge set, and it is the right one: a reverse proof must show the
+ * mutant AUTHORIZES A WRITER — `ok === true` and a non-null `authorized` — not
+ * merely that one internal check flipped while some other gate still refused.
+ * "Without guard X a writer would start" is a claim about the whole decision.
+ */
+function assertMutantAuthorizes(mutant, { board = writerReadyBoard(), request = validRequest() } = {}) {
+  const result = mutant.runPreflight({ board, schema: SCHEMA, request })
+  assert.equal(result.ok, true, `the mutant must authorize overall; still failing: ${JSON.stringify(result.failed_conditions)}`)
+  assert.notEqual(result.authorized, null, 'the mutant must hand out an authorization')
+  assert.equal(result.authorized.item_id, request.item_id)
+  return result
+}
+
+/** And the unmutated preflight must refuse the very same input. */
+function assertRealPreflightRefuses({ board = writerReadyBoard(), request = validRequest() } = {}, expectedStop) {
+  const result = runPreflight({ board, schema: SCHEMA, request })
+  assert.equal(result.ok, false, 'the committed preflight must refuse this input')
+  assert.equal(result.authorized, null)
+  if (expectedStop) {
+    const stops = result.checks.filter((c) => !c.ok).map((c) => c.stop_condition)
+    assert.ok(stops.includes(expectedStop), `expected ${expectedStop}, got ${JSON.stringify(stops)}`)
+  }
+  return result
+}
 
 /**
  * Mutate the KERNEL and hand the weakened copy to a preflight that imports it.
@@ -134,13 +184,27 @@ async function preflightOverMutatedKernel(replacements) {
     kernel = kernel.replace(find, replace)
   }
   assert.notEqual(kernel, KERNEL_SOURCE, 'kernel mutation must actually change the source')
-  const kernelFile = join(tmpdir(), `acp002-kernel-mutant-${process.pid}-${mutantCounter++}.mjs`)
-  writeFileSync(kernelFile, kernel, 'utf8')
-  const preflightSource = PREFLIGHT_SOURCE.replace("from './kernel.mjs'", `from '${pathToFileURL(kernelFile).href}'`)
+  // kernel.mjs ends with a CLI guard that resolves `import.meta.url` as a file
+  // path, which throws for a data: module. Neutralise it in the COPY; the
+  // committed kernel is ACP-001's closed artefact and is never edited here.
+  // kernel.mjs resolves its own directory from `import.meta.url` at module
+  // top level, and guards its CLI the same way. Both throw for a data:
+  // module, so both are rewritten in the COPY. The committed kernel is
+  // ACP-001's closed artefact and is never edited here.
+  const dirAnchor = 'export const CONTROL_PLANE_DIR = dirname(fileURLToPath(import.meta.url))'
+  const cliGuard = "if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {"
+  for (const anchor of [dirAnchor, cliGuard]) {
+    assert.equal(kernel.split(anchor).length - 1, 1, `kernel anchor must appear exactly once: ${anchor}`)
+  }
+  kernel = kernel.replace(dirAnchor, `export const CONTROL_PLANE_DIR = ${JSON.stringify(HERE)}`)
+  kernel = kernel.replace(cliGuard, 'if (false) {')
+  // Filesystem-free, same reason as loadMutant: a read-only auditor must be
+  // able to run this. The mutated kernel becomes a data: URL, and the preflight
+  // copy is pointed at that URL instead of at './kernel.mjs'.
+  const kernelUrl = `data:text/javascript;base64,${Buffer.from(kernel).toString('base64')}`
+  const preflightSource = PREFLIGHT_SOURCE.replace("from './kernel.mjs'", `from '${kernelUrl}'`)
   assert.notEqual(preflightSource, PREFLIGHT_SOURCE, 'the preflight must import the mutated kernel')
-  const preflightFile = join(tmpdir(), `acp002-preflight-over-mutant-${process.pid}-${mutantCounter++}.mjs`)
-  writeFileSync(preflightFile, preflightSource, 'utf8')
-  return import(pathToFileURL(preflightFile).href)
+  return import(`data:text/javascript;base64,${Buffer.from(preflightSource).toString('base64')}#${mutantCounter++}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -208,12 +272,38 @@ test('condition 1: an invalid board stops the writer', () => {
   assert.equal(result.stop_condition, STOP_CONDITIONS.BOARD_INVALID)
 })
 
-test('reverse proof: without condition 1, an invalid board would start a writer', async () => {
+/**
+ * REPAIR/ACP-002/P1-6. The old version of this test mutated condition 1, saw
+ * `checks[0].ok` flip to true, and was named "an invalid board would start a
+ * writer". It did not show that. An invalid board also halts deterministic
+ * selection, so condition 2 kept refusing and no writer would have started.
+ * The judge reproduced exactly that and was right to call it out.
+ *
+ * The property is genuinely defended twice. So the honest proof is in two
+ * parts: removing one layer is NOT enough (asserted, because that is the
+ * interesting fact), and removing both DOES authorize a writer.
+ */
+test('reverse proof: condition 1 alone falling does not authorize — selection still refuses', async () => {
   const mutant = await mutatePreflight([['const ok = evaluation.schema_valid === true && evaluation.violation_count === 0', 'const ok = true']])
   const board = writerReadyBoard()
   board.items[0].status = 'NOT_A_STATUS'
   assert.equal(preflight({ board }).checks[0].ok, false)
-  assert.equal(mutant.runPreflight({ board, schema: SCHEMA, request: validRequest() }).checks[0].ok, true)
+  const over = mutant.runPreflight({ board, schema: SCHEMA, request: validRequest() })
+  assert.equal(over.checks[0].ok, true, 'the mutation must actually disable condition 1')
+  assert.equal(over.ok, false, 'condition 2 must still refuse an unvalidatable board')
+  assert.equal(over.authorized, null)
+  assert.deepEqual(over.failed_conditions, [2])
+})
+
+test('reverse proof: with BOTH the schema and selection gates removed, an invalid board authorizes a writer', async () => {
+  const mutant = await mutatePreflight([
+    ['const ok = evaluation.schema_valid === true && evaluation.violation_count === 0', 'const ok = true'],
+    ['function conditionExactlyOneEligibleTask(context) {', "function conditionExactlyOneEligibleTask(context) {\n  if (true) return check(2, 'exactly one task is eligible', true, null, 'mutant: condition 2 removed')"],
+  ])
+  const board = writerReadyBoard()
+  board.items[0].status = 'NOT_A_STATUS'
+  assertRealPreflightRefuses({ board }, STOP_CONDITIONS.BOARD_INVALID)
+  assertMutantAuthorizes(mutant, { board })
 })
 
 // ---------------------------------------------------------------------------
@@ -292,13 +382,35 @@ test('condition 3: a run may not talk its way past the lock by claiming to be th
   }
 })
 
-test('reverse proof: without condition 3, two writers could hold the same item', async () => {
+/**
+ * REPAIR/ACP-002/P1-6. Same correction as condition 1. An item at
+ * RUNNING_WRITER also moves deterministic selection to ADVANCE_IN_FLIGHT, so
+ * condition 2 refuses too — removing only the lock check never started a second
+ * writer. That double cover is real and worth asserting; the overall proof
+ * needs both layers gone.
+ */
+test('reverse proof: condition 3 alone falling does not authorize — selection still refuses', async () => {
   const mutant = await mutatePreflight([['const current = writerLockFromBoard(board)', 'const current = NO_LOCK']])
   const board = writerReadyBoard()
   itemOf(board, 'ACP-002').status = 'RUNNING_WRITER'
   const request = validRequest({ run_id: 'a-different-run' })
   assert.equal(preflight({ board, request }).checks[2].ok, false)
-  assert.equal(mutant.runPreflight({ board, schema: SCHEMA, request }).checks[2].ok, true)
+  const over = mutant.runPreflight({ board, schema: SCHEMA, request })
+  assert.equal(over.checks[2].ok, true, 'the mutation must actually disable the lock check')
+  assert.equal(over.ok, false, 'an in-flight item must still refuse a fresh writer start')
+  assert.equal(over.authorized, null)
+})
+
+test('reverse proof: with BOTH the lock and selection gates removed, a second writer is authorized on a held item', async () => {
+  const mutant = await mutatePreflight([
+    ['const current = writerLockFromBoard(board)', 'const current = NO_LOCK'],
+    ["if (evaluation.next_action !== NEXT_ACTIONS.RUN_WRITER) {", 'if (false) {'],
+  ])
+  const board = writerReadyBoard()
+  itemOf(board, 'ACP-002').status = 'RUNNING_WRITER'
+  const request = validRequest({ run_id: 'a-different-run' })
+  assertRealPreflightRefuses({ board, request }, STOP_CONDITIONS.WRITER_LOCK_HELD)
+  assertMutantAuthorizes(mutant, { board, request })
 })
 
 // ---------------------------------------------------------------------------
@@ -324,13 +436,14 @@ test('condition 4: a writer may never target main, master, or a branch the board
   }
 })
 
-test('reverse proof: without the protected-branch rule, a writer could target main', async () => {
+test('reverse proof: without the protected-branch rule, a writer is authorized against main', async () => {
   const mutant = await mutatePreflight([['if (PROTECTED_BRANCHES.includes(request.branch)) {', 'if (false) {']])
   const board = writerReadyBoard()
   board.source_branch = 'main'
   const request = validRequest({ branch: 'main' })
-  assert.equal(preflight({ board, request }).checks[3].ok, false)
-  assert.equal(mutant.runPreflight({ board, schema: SCHEMA, request }).checks[3].ok, true)
+  assertRealPreflightRefuses({ board, request }, STOP_CONDITIONS.FORBIDDEN_TARGET_BRANCH)
+  const over = assertMutantAuthorizes(mutant, { board, request })
+  assert.equal(over.authorized.branch, 'main', 'the mutant hands out an authorization pointed at main')
 })
 
 test('condition 5: an unclean worktree stops the writer', () => {
@@ -358,12 +471,34 @@ test('condition 6: a drifted production or main authorization stops the writer',
   }
 })
 
-test('reverse proof: without condition 6, a board authorizing production deploy would start a writer', async () => {
+/**
+ * REPAIR/ACP-002/P1-6. A drifted production authorization trips the committed
+ * schema (`const: false`) as well as the policy invariants, so removing the
+ * policy check alone left conditions 1 and 2 refusing. Two independent layers,
+ * asserted as such, then the overall proof with both removed.
+ */
+test('reverse proof: condition 6 alone falling does not authorize — the schema still pins the flag', async () => {
   const mutant = await mutatePreflight([['const violations = checkPolicyInvariants(context.board)', 'const violations = []']])
   const board = writerReadyBoard()
   board.execution_policy.production_deploy_authorized = true
   assert.equal(preflight({ board }).checks[5].ok, false)
-  assert.equal(mutant.runPreflight({ board, schema: SCHEMA, request: validRequest() }).checks[5].ok, true)
+  const over = mutant.runPreflight({ board, schema: SCHEMA, request: validRequest() })
+  assert.equal(over.checks[5].ok, true, 'the mutation must actually disable the policy check')
+  assert.equal(over.ok, false, 'the committed schema must still refuse the drifted flag')
+  assert.equal(over.authorized, null)
+  assert.deepEqual(over.failed_conditions, [1, 2])
+})
+
+test('reverse proof: with the policy AND schema gates removed, a production-authorizing board starts a writer', async () => {
+  const mutant = await mutatePreflight([
+    ['const violations = checkPolicyInvariants(context.board)', 'const violations = []'],
+    ['const ok = evaluation.schema_valid === true && evaluation.violation_count === 0', 'const ok = true'],
+    ['function conditionExactlyOneEligibleTask(context) {', "function conditionExactlyOneEligibleTask(context) {\n  if (true) return check(2, 'exactly one task is eligible', true, null, 'mutant: condition 2 removed')"],
+  ])
+  const board = writerReadyBoard()
+  board.execution_policy.production_deploy_authorized = true
+  assertRealPreflightRefuses({ board }, STOP_CONDITIONS.POLICY_AUTHORIZATION_DRIFT)
+  assertMutantAuthorizes(mutant, { board })
 })
 
 // ---------------------------------------------------------------------------
@@ -394,11 +529,11 @@ test('condition 7: the leak check does not fire on presence-only fields', () => 
   assert.equal(conditionById(preflight({ request: validRequest({ secret_value: '' }) }), 7).ok, true, 'an empty value is an absent value')
 })
 
-test('reverse proof: without the leak check, a request carrying a credential would be accepted', async () => {
-  const mutant = await mutatePreflight([['if (/(_value|_token|_key|secret_value)$/i.test(key) && request[key] !== null && request[key] !== undefined && request[key] !== \'\') {', 'if (false) {']])
+test('reverse proof: without the leak scan, a request carrying a credential authorizes a writer', async () => {
+  const mutant = await mutatePreflight([['  const leaked = findCredentialBearingPath(request)', '  const leaked = null']])
   const request = validRequest({ secret_value: 'sk-ant-oops' })
-  assert.equal(conditionById(preflight({ request }), 7).stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
-  assert.equal(mutant.runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request }).checks[6].ok, true)
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+  assertMutantAuthorizes(mutant, { request })
 })
 
 // ---------------------------------------------------------------------------
@@ -428,13 +563,13 @@ test('condition 8: zero retries is a budget; no retry ceiling is not', () => {
   assert.equal(conditionById(preflight({ request: validRequest({ budget: { max_turns: 1, timeout_minutes: 1, max_retries: 0 } }) }), 8).ok, true)
 })
 
-test('reverse proof: without the ceilings, a runaway budget would be accepted', async () => {
+test('reverse proof: without the ceilings, a runaway budget authorizes a writer', async () => {
   const mutant = await mutatePreflight([
     ['  max_turns: 120,\n  timeout_minutes: 90,\n  max_retries: 2,', '  max_turns: 1e9,\n  timeout_minutes: 1e9,\n  max_retries: 1e9,'],
   ])
   const request = validRequest({ budget: { max_turns: 100000, timeout_minutes: 100000, max_retries: 100000 } })
-  assert.equal(conditionById(preflight({ request }), 8).ok, false)
-  assert.equal(mutant.runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request }).checks[7].ok, true)
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED)
+  assertMutantAuthorizes(mutant, { request })
 })
 
 // ---------------------------------------------------------------------------
@@ -462,11 +597,11 @@ test('condition 9: production scopes explicitly set to none are allowed', () => 
   assert.equal(conditionById(preflight({ request: validRequest({ permissions: { contents: 'write', deployments: 'none' } }) }), 9).ok, true)
 })
 
-test('reverse proof: without the allowlist, an unanticipated scope would pass', async () => {
+test('reverse proof: without the allowlist, an unanticipated scope authorizes a writer', async () => {
   const mutant = await mutatePreflight([['failures.push(`${scope} is not an anticipated writer scope`)', 'void scope']])
   const request = validRequest({ permissions: { contents: 'write', 'security-events': 'write' } })
-  assert.equal(conditionById(preflight({ request }), 9).ok, false)
-  assert.equal(mutant.runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request }).checks[8].ok, true)
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD)
+  assertMutantAuthorizes(mutant, { request })
 })
 
 // ---------------------------------------------------------------------------
@@ -654,7 +789,7 @@ test('the attestation never runs a writer: no CLI, no credential, no push', () =
   // pass against an empty slice and prove nothing.
   const writerSection = WRITER_WORKFLOW.slice(0, WRITER_WORKFLOW.indexOf('\n  attest:'))
   assert.match(writerSection, /@anthropic-ai\/claude-code/)
-  assert.match(writerSection, /git push/)
+  assert.match(writerSection, /\bpush "https:\/\/github\.com/)
 })
 
 test('the writer workflow cannot edit itself: .github is outside the enforced scope', () => {
@@ -667,4 +802,152 @@ test('condition 14 is proved against the kernel: removing the owner gate stops t
   assert.equal(conditionById(preflight(), 14).ok, true)
   const over = mutant.runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request: validRequest() })
   assert.equal(over.checks[13].ok, false, 'a kernel whose owner gate can be walked out of must stop the writer')
+})
+
+// ---------------------------------------------------------------------------
+// 17. The six blocking P1s from Codex run 31956327110
+//
+// Each finding gets the input that demonstrated it, asserted to be refused now,
+// plus a reverse proof that the specific new guard is what refuses it.
+// ---------------------------------------------------------------------------
+
+test('P1-1: an empty permissions block is refused, not read as modest', () => {
+  const result = preflight({ request: validRequest({ permissions: {} }) })
+  assert.equal(conditionById(result, 9).stop_condition, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD)
+  assert.equal(result.ok, false)
+  assert.equal(result.authorized, null)
+})
+
+test('P1-1: a permissions block that never mentions contents is refused', () => {
+  assert.equal(conditionById(preflight({ request: validRequest({ permissions: { issues: 'read' } }) }), 9).ok, false)
+})
+
+test('reverse proof: without BOTH new permission guards, {} authorizes a writer', async () => {
+  // The repair added two: "declare something" and "declare contents". An empty
+  // block trips both, so both must go before the mutant can authorize — which
+  // is the point of asserting it rather than assuming it.
+  const mutant = await mutatePreflight([
+    ['  if (Object.keys(permissions).length === 0) {', '  if (false) {'],
+    ['  if (permissions.contents === undefined) {', '  if (false) {'],
+  ])
+  const request = validRequest({ permissions: {} })
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD)
+  assertMutantAuthorizes(mutant, { request })
+})
+
+test('P1-1: a credential nested inside an object is found', () => {
+  for (const leak of [
+    { creds: { api_key: 'sk-ant-oops' } },
+    { nested: { deeper: { authorization: 'bearer oops' } } },
+    { token: 'ghp_oops' },
+    { list: [{ password: 'hunter2' }] },
+  ]) {
+    const result = preflight({ request: validRequest(leak) })
+    assert.equal(conditionById(result, 7).stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED, JSON.stringify(leak))
+  }
+})
+
+test('P1-1: a credential-shaped VALUE is found even under an innocent key', () => {
+  assert.equal(conditionById(preflight({ request: validRequest({ note: 'sk-ant-api03-xxxx' }) }), 7).stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+})
+
+test('P1-1: the scan tolerates a cyclic request instead of hanging', () => {
+  const request = validRequest()
+  request.self = request
+  assert.equal(conditionById(preflight({ request }), 7).ok, true)
+})
+
+test('P1-1: every CLI exit speaks the full machine contract', () => {
+  const captured = []
+  const write = process.stdout.write.bind(process.stdout)
+  process.stdout.write = (chunk) => { captured.push(String(chunk)); return true }
+  let code
+  try {
+    code = mainCli([], { readFileSync: () => { throw new Error('unreachable') }, boardPath: 'x', schemaPath: 'y' })
+  } finally {
+    process.stdout.write = write
+  }
+  assert.equal(code, 2)
+  const parsed = JSON.parse(captured.join(''))
+  assert.equal(parsed.ok, false)
+  assert.equal(parsed.authorized, null, 'a usage error must still say nothing was authorized')
+  assert.equal(parsed.next_board_status, 'BLOCKED')
+  assert.equal(parsed.stop_condition, STOP_CONDITIONS.MALFORMED_PREFLIGHT_REQUEST)
+  assert.equal(parsed.github_outputs.authorized_item, '')
+})
+
+test('P1-4: the retry ceiling is spent against the real attempt', () => {
+  const zero = { max_turns: 60, timeout_minutes: 60, max_retries: 0 }
+  assert.equal(conditionById(preflight({ request: validRequest({ budget: zero, run_attempt: 1 }) }), 8).ok, true)
+  const retried = preflight({ request: validRequest({ budget: zero, run_attempt: 2 }) })
+  assert.equal(conditionById(retried, 8).stop_condition, STOP_CONDITIONS.BUDGET_NOT_BOUNDED)
+  assert.equal(retried.ok, false)
+  // One retry allowed means attempts 1 and 2 pass, 3 does not.
+  const one = { max_turns: 60, timeout_minutes: 60, max_retries: 1 }
+  assert.equal(conditionById(preflight({ request: validRequest({ budget: one, run_attempt: 2 }) }), 8).ok, true)
+  assert.equal(conditionById(preflight({ request: validRequest({ budget: one, run_attempt: 3 }) }), 8).ok, false)
+})
+
+test('P1-4: an undeclared or nonsense attempt is refused', () => {
+  for (const run_attempt of [undefined, 0, -1, 1.5, '1', null]) {
+    assert.equal(conditionById(preflight({ request: validRequest({ run_attempt }) }), 8).ok, false, String(run_attempt))
+  }
+})
+
+test('reverse proof: without the attempt check, a re-run authorizes a writer despite max_retries 0', async () => {
+  const mutant = await mutatePreflight([
+    ["  const attempt = context.request.run_attempt", '  const attempt = 1; void context.request.run_attempt'],
+  ])
+  const request = validRequest({ run_attempt: 7 })
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED)
+  assertMutantAuthorizes(mutant, { request })
+})
+
+test('P1-5: condition 11 inspects the real judge workflow, not just the board flag', () => {
+  const writeJudge = READ_ONLY_JUDGE_WORKFLOW.replace('      contents: read', '      contents: write')
+  const result = preflight({ request: validRequest({ judge_workflows: judgeWorkflows(writeJudge) }) })
+  assert.equal(conditionById(result, 11).stop_condition, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY)
+  assert.match(conditionById(result, 11).detail, /contents:write/)
+  assert.equal(result.ok, false)
+})
+
+test('P1-5: a missing or unparseable judge workflow fails closed', () => {
+  for (const judge_workflows of [undefined, [], [{ path: 'j', job: 'codex-judge', source: 'jobs:\n  other:\n' }]]) {
+    assert.equal(conditionById(preflight({ request: validRequest({ judge_workflows }) }), 11).ok, false, JSON.stringify(judge_workflows))
+  }
+})
+
+test('P1-5: the real committed ACP-002 judge workflow is read-only', () => {
+  const source = readFileSync(join(HERE, '..', '.github', 'workflows', 'control-plane-acp002-judge.yml'), 'utf8')
+  const permissions = writerPermissionsFromWorkflow(source, 'codex-judge')
+  assert.deepEqual(permissions, { contents: 'read', actions: 'read', 'pull-requests': 'read' })
+  assert.equal(conditionById(preflight({ request: validRequest({ judge_workflows: [{ path: 'acp002', job: 'codex-judge', source }] }) }), 11).ok, true)
+})
+
+test('reverse proof: without the workflow inspection, a write-granting judge is accepted', async () => {
+  // Condition 11 checks write levels AND pins contents to read/none. A judge
+  // granted contents:write trips both, so both go.
+  const mutant = await mutatePreflight([
+    ['      if (WRITE_LEVELS.includes(level)) failures.push(`${label}: job grants ${scope}:${level}`)', '      void level'],
+    ["    if (permissions.contents !== 'read' && permissions.contents !== 'none') {", '    if (false) {'],
+  ])
+  const writeJudge = READ_ONLY_JUDGE_WORKFLOW.replace('      contents: read', '      contents: write')
+  const request = validRequest({ judge_workflows: judgeWorkflows(writeJudge) })
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY)
+  // With the write-level detection gone, condition 11 is back to being the
+  // cosmetic board-flag check the judge rejected — and it authorizes a writer
+  // whose judge can write to the repository.
+  assertMutantAuthorizes(mutant, { request })
+})
+
+test('P1-2: the writer holds no shell and no persisted credential', () => {
+  const writerSection = WRITER_WORKFLOW.slice(0, WRITER_WORKFLOW.indexOf('\n  attest:'))
+  assert.match(writerSection, /persist-credentials: false/, 'the writer checkout must not keep a git credential')
+  assert.match(writerSection, /--disallowedTools "Bash"/, 'the writer must not hold any shell tool')
+  assert.doesNotMatch(writerSection, /"Bash\(node:\*\)"/, 'node can spawn git; it was never a narrow allowance')
+  assert.doesNotMatch(writerSection, /"Bash\(npm:\*\)"/)
+  assert.doesNotMatch(writerSection, /"Bash\(npx:\*\)"/)
+  // The token appears once, in the final push step, and never as a job-wide env.
+  assert.equal(writerSection.split('PUSH_TOKEN:').length - 1, 1)
+  assert.match(writerSection, /git -c http\.extraheader=.*push "https:\/\/github\.com/s)
 })

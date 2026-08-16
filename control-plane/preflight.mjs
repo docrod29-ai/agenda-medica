@@ -294,13 +294,62 @@ function conditionPolicyFlagsFalse(context) {
   )
 }
 
+/**
+ * Keys that may carry a credential. REPAIR/ACP-002/P1-1: the first version
+ * matched only an underscore-suffixed tail (`/(_value|_token|_key)$/`), so a
+ * plain `token` walked straight through — the judge found it in one try. Match
+ * the word anywhere in the key instead, and let the caller pay the cost of a
+ * false positive: a request refused for looking like it carries a secret is a
+ * nuisance, a request accepted while carrying one is the incident.
+ */
+const CREDENTIAL_KEY_PATTERN = /(secret|token|credential|password|passphrase|api[-_]?key|_key|^key$|bearer|authorization|cookie|session)/i
+
+/** Value shapes that are credentials regardless of what the key is called. */
+const CREDENTIAL_VALUE_PATTERN = /^(sk-|ghp_|gho_|ghs_|github_pat_|xox[abprs]-|AKIA|ey[A-Za-z0-9_-]{10,}\.)/
+
+/**
+ * Walks the WHOLE request, not just its top level.
+ *
+ * REPAIR/ACP-002/P1-1. The scan used to iterate `Object.keys(request)` once, so
+ * `{creds: {api_key: '...'}}` was invisible. A credential does not become safe
+ * by being one level deeper. Arrays and nested objects are walked, cycles are
+ * tolerated, and depth is bounded so a hostile request cannot spin the guard.
+ */
+function findCredentialBearingPath(value, path = '', seen = new WeakSet(), depth = 0) {
+  if (depth > 8) return null
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value === 'string') {
+    return CREDENTIAL_VALUE_PATTERN.test(value) ? `${path} (value looks like a credential)` : null
+  }
+  if (typeof value !== 'object') return null
+  if (seen.has(value)) return null
+  seen.add(value)
+  for (const [key, child] of Object.entries(value)) {
+    const childPath = path === '' ? key : `${path}.${key}`
+    const emptyish = child === null || child === undefined || child === ''
+    // A GitHub permission LEVEL is a closed vocabulary, and one of the scope
+    // names is `id-token` — which the key pattern rightly finds suspicious and
+    // wrongly flags. `id-token: none` is a permission being disclaimed, not a
+    // credential being smuggled. Narrow the exemption to the four legal levels
+    // so a genuine secret can never hide behind it.
+    const isPermissionLevel = typeof child === 'string' && /^(none|read|write|admin)$/.test(child)
+    if (CREDENTIAL_KEY_PATTERN.test(key) && !emptyish && !isPermissionLevel) {
+      // `secret_name` and `secret_present` are the two presence-only fields the
+      // contract requires; everything else matching the pattern is a leak.
+      if (childPath !== 'secret_name' && childPath !== 'secret_present') return childPath
+    }
+    const found = findCredentialBearingPath(child, childPath, seen, depth + 1)
+    if (found) return found
+  }
+  return null
+}
+
 function conditionSecretPresent(context) {
   const { request } = context
   // Checked first: a leaked value is worse than a missing one.
-  for (const key of Object.keys(request)) {
-    if (/(_value|_token|_key|secret_value)$/i.test(key) && request[key] !== null && request[key] !== undefined && request[key] !== '') {
-      return check(7, 'required provider secret is present', false, STOP_CONDITIONS.SECRET_VALUE_LEAKED, `request carries ${key}; the preflight must only ever be told presence`)
-    }
+  const leaked = findCredentialBearingPath(request)
+  if (leaked) {
+    return check(7, 'required provider secret is present', false, STOP_CONDITIONS.SECRET_VALUE_LEAKED, `request carries ${leaked}; the preflight must only ever be told presence`)
   }
   if (!WRITER_SECRET_NAMES.includes(request.secret_name)) {
     return check(
@@ -334,14 +383,39 @@ function conditionBudgetBounded(context) {
   if (!(typeof retries === 'number' && Number.isInteger(retries) && retries >= 0 && retries <= BUDGET_CEILINGS.max_retries)) {
     failures.push(`max_retries must be 0..${BUDGET_CEILINGS.max_retries}`)
   }
+
+  // REPAIR/ACP-002/P1-4. The retry ceiling used to be a number the request
+  // carried and nobody compared to anything, so `max_retries: 0` still allowed
+  // a re-run to invoke the writer again on the same authorized SHA. A budget
+  // nothing spends against is a comment. The actual attempt must be declared
+  // and must fit inside the ceiling: attempt 1 is the run itself, so attempt N
+  // is legal only while N <= max_retries + 1.
+  const attempt = context.request.run_attempt
+  if (!(typeof attempt === 'number' && Number.isInteger(attempt) && attempt >= 1)) {
+    failures.push('run_attempt must be declared as an integer >= 1 so the retry ceiling can be enforced')
+  } else if (typeof retries === 'number' && Number.isInteger(retries) && attempt > retries + 1) {
+    failures.push(`run_attempt ${attempt} exceeds the retry ceiling (max_retries ${retries} allows at most ${retries + 1} attempt(s))`)
+  }
+
   const ok = failures.length === 0
-  return check(8, 'task has bounded max turns / runtime / retry budget', ok, STOP_CONDITIONS.BUDGET_NOT_BOUNDED, ok ? JSON.stringify(budget) : failures.join('; '))
+  return check(8, 'task has bounded max turns / runtime / retry budget', ok, STOP_CONDITIONS.BUDGET_NOT_BOUNDED, ok ? `${JSON.stringify(budget)} attempt ${attempt}` : failures.join('; '))
 }
 
 function conditionWriterPermissions(context) {
   const permissions = context.request.permissions
   if (permissions === null || typeof permissions !== 'object' || Array.isArray(permissions)) {
     return check(9, 'writer permissions exclude production deployment and main merge', false, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD, 'permissions must be declared explicitly')
+  }
+  // REPAIR/ACP-002/P1-1. `permissions: {}` used to be AUTHORIZED, because the
+  // loop below simply had nothing to iterate and an empty failure list reads as
+  // success. An absent declaration is not a modest one — a job that declares no
+  // permissions inherits whatever the workflow default is, which is exactly the
+  // thing this condition exists to pin down. Nothing declared, nothing granted.
+  if (Object.keys(permissions).length === 0) {
+    return check(9, 'writer permissions exclude production deployment and main merge', false, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD, 'an empty permissions block declares nothing and cannot be verified; declare each scope explicitly')
+  }
+  if (permissions.contents === undefined) {
+    return check(9, 'writer permissions exclude production deployment and main merge', false, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD, 'the contents scope must be declared explicitly, even to disclaim it')
   }
   const failures = []
   for (const [scope, level] of Object.entries(permissions)) {
@@ -379,9 +453,63 @@ function conditionJudgeRunsOnlyAfterFreeze(context) {
   )
 }
 
+/** Write levels. Anything here in a judge job is disqualifying. */
+const WRITE_LEVELS = Object.freeze(['write', 'admin'])
+
+/**
+ * REPAIR/ACP-002/P1-5. This condition used to read one boolean off the board
+ * and call it proof: `judge_must_be_read_only === true`. That is the board
+ * agreeing with itself. It says nothing about whether any judge job actually
+ * holds read-only permissions, which is the only fact the condition is named
+ * after. So the committed judge workflows are parsed and their real permission
+ * blocks are checked — the board flag is kept as a necessary precondition, not
+ * as the evidence.
+ *
+ * Fail closed: no judge workflow supplied, an unparseable one, or one that
+ * grants any write scope all refuse.
+ */
 function conditionJudgeReadOnly(context) {
-  const ok = context.board.execution_policy?.judge_must_be_read_only === true
-  return check(11, 'judge receives read-only repository permissions', ok, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY, ok ? 'judge_must_be_read_only is true' : 'judge_must_be_read_only is not true')
+  if (context.board.execution_policy?.judge_must_be_read_only !== true) {
+    return check(11, 'judge receives read-only repository permissions', false, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY, 'judge_must_be_read_only is not true')
+  }
+
+  const workflows = context.request.judge_workflows
+  if (!Array.isArray(workflows) || workflows.length === 0) {
+    return check(
+      11,
+      'judge receives read-only repository permissions',
+      false,
+      STOP_CONDITIONS.JUDGE_NOT_READ_ONLY,
+      'no judge workflow was supplied for inspection; the board flag alone is not evidence that any judge job is read-only',
+    )
+  }
+
+  const failures = []
+  for (const workflow of workflows) {
+    const label = workflow?.path ?? '<unnamed>'
+    let permissions
+    try {
+      permissions = writerPermissionsFromWorkflow(workflow?.source ?? '', workflow?.job ?? 'codex-judge')
+    } catch (error) {
+      failures.push(`${label}: ${error.message}`)
+      continue
+    }
+    for (const [scope, level] of Object.entries(permissions)) {
+      if (WRITE_LEVELS.includes(level)) failures.push(`${label}: job grants ${scope}:${level}`)
+    }
+    if (permissions.contents !== 'read' && permissions.contents !== 'none') {
+      failures.push(`${label}: contents must be read or none, found ${JSON.stringify(permissions.contents)}`)
+    }
+  }
+
+  const ok = failures.length === 0
+  return check(
+    11,
+    'judge receives read-only repository permissions',
+    ok,
+    STOP_CONDITIONS.JUDGE_NOT_READ_ONLY,
+    ok ? `${workflows.length} judge workflow(s) inspected, all read-only` : failures.join('; '),
+  )
 }
 
 function conditionUnverifiableNeverPasses(context) {
@@ -526,7 +654,14 @@ export function runPreflight({ board, schema, request }) {
 export function main(argv, { readFileSync, boardPath, schemaPath }) {
   const flagIndex = argv.indexOf('--request')
   if (flagIndex === -1 || !argv[flagIndex + 1]) {
-    process.stdout.write(`${JSON.stringify({ contract: PREFLIGHT_CONTRACT_VERSION, ok: false, error: 'MISSING_REQUEST', usage: 'preflight.mjs --request <path.json>' }, null, 2)}\n`)
+    // REPAIR/ACP-002/P1-1. This path used to emit a bespoke `{ok:false, error,
+    // usage}` shape with no `authorized`, no `next_board_status` and no
+    // `stop_condition`. Any caller reading the machine contract — a workflow
+    // step asking "was anything authorized?" — got `undefined` for every field
+    // it checks. Undefined is not a refusal. Every exit now speaks the same
+    // contract, so a reader cannot mistake a usage error for an authorization.
+    const result = malformed('preflight.mjs --request <path.json>: no request supplied')
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
     return 2
   }
   let request
@@ -546,7 +681,10 @@ export function main(argv, { readFileSync, boardPath, schemaPath }) {
   return result.ok ? 0 : 1
 }
 
-if (process.argv[1]) {
+// `import.meta.url` is only a file URL when this module was loaded from disk.
+// The mutation proofs import it from a `data:` URL so a read-only auditor can
+// run them, and `fileURLToPath` throws on any other scheme — so check first.
+if (process.argv[1] && import.meta.url.startsWith('file:')) {
   const { readFileSync } = await import('node:fs')
   const { resolve } = await import('node:path')
   const { fileURLToPath } = await import('node:url')

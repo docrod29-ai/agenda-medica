@@ -18,8 +18,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -114,9 +113,22 @@ async function loadMutant(replacements) {
     source = source.replace(find, replace)
   }
   assert.notEqual(source, KERNEL_SOURCE, 'mutation must actually change the source')
-  const file = join(tmpdir(), `acp001-mutant-${process.pid}-${mutantCounter++}.mjs`)
-  writeFileSync(file, source, 'utf8')
-  return import(pathToFileURL(file).href)
+  // REPAIR/ACP-002/P1-6b. Mutants used to be written to os.tmpdir(). The
+  // independent ACP-002 judge ran this suite in a read-only sandbox, hit EROFS,
+  // and had to report focused_tests: UNVERIFIABLE. A proof an auditor cannot
+  // execute is not a proof, so mutants are imported from data: URLs instead and
+  // the suite touches no filesystem. kernel.mjs resolves its own directory from
+  // import.meta.url, which has no file path under a data: URL, so those two
+  // lines are rewritten in the COPY only. No assertion changed.
+  source = source.replace(
+    'export const CONTROL_PLANE_DIR = dirname(fileURLToPath(import.meta.url))',
+    `export const CONTROL_PLANE_DIR = ${JSON.stringify(HERE)}`,
+  )
+  source = source.replace(
+    'if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {',
+    'if (false) {',
+  )
+  return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}#${mutantCounter++}`)
 }
 
 const LOCK = { active: true, item_id: 'ACP-001', holder: 'CLAUDE_OPUS', run_id: 'run-1' }

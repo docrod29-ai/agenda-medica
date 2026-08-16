@@ -1,0 +1,15 @@
+{
+  "$comment": "REPAIR/ACP-002/P1-3. Per-item write scope for the cloud writer. An item with no entry here has NO scope and its writer cannot start: absence is a refusal, never a wildcard. Paths are exact repository paths; a trailing /** allows anything beneath that directory. The board itself is handled separately by scope-guard.mjs, which additionally requires that only the authorized item's record changed. ACP-002's scope includes control-plane/kernel.test.mjs for one declared reason: the P1-6b repair had to stop that suite writing mutants to os.tmpdir(), which is what made the independent judge report focused_tests UNVERIFIABLE under a read-only sandbox. Only the mutant-loading mechanism changed; no assertion, guard, or expected code was touched, and control-plane/kernel.mjs itself is deliberately NOT in scope.",
+  "items": {
+    "ACP-002": [
+      "control-plane/preflight.mjs",
+      "control-plane/preflight.test.mjs",
+      "control-plane/scope-guard.mjs",
+      "control-plane/scope-guard.test.mjs",
+      "control-plane/item-scopes.json",
+      "control-plane/MASTER_BOARD.json",
+      ".github/workflows/control-plane-writer.yml",
+      "control-plane/kernel.test.mjs"
+    ]
+  }
+}
