@@ -79,13 +79,13 @@
     {
       "id": "ACP-001",
       "title": "Executable state contract and validator",
-      "status": "RUNNING_JUDGE",
+      "status": "CLOSED",
       "owner": "CLAUDE_OPUS",
       "dependencies": [
         "ACP-000"
       ],
       "blocked_by": [],
-      "next_action": "One fresh independent read-only Codex audit must run against frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539. Await structured PASS/FAIL/UNVERIFIABLE verdict; do not start ACP-002.",
+      "next_action": "None. ACP-001 is closed on an independent read-only Codex PASS against frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539. Do not reopen without contradictory evidence; the kernel is now the execution authority for every later item.",
       "evidence": [
         "control-plane/kernel.mjs implements schema validation, the explicit transition table, writer-lock semantics, policy invariants, dependency checks, and deterministic next-item selection",
         "control-plane/kernel.test.mjs: 67 focused cases including reverse/mutation proofs for each central guard",
@@ -117,9 +117,22 @@
         "FROZEN_CANDIDATE_SHA=907447a20c93c60483e1e6a0156e49964cd7e539; immutable repaired Git object selected for fresh independent ACP-001 re-audit.",
         "Transition recorded: CI_PENDING -> SHA_FROZEN after CI #1018 SUCCESS on the exact repaired writer checkpoint.",
         "Transition recorded: SHA_FROZEN -> RUNNING_JUDGE; one independent Codex re-audit is authorized against frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539.",
-        "Judge requirements preserved: CODEX_INDEPENDENT, read-only, UNVERIFIABLE != PASS, no merge, no deploy, no PHI."
+        "Judge requirements preserved: CODEX_INDEPENDENT, read-only, UNVERIFIABLE != PASS, no merge, no deploy, no PHI.",
+        "Independent Codex judge workflow run 31951393592 job 95175279018 completed with conclusion SUCCESS; permissions were contents:read, actions:read, pull-requests:read and the Codex action ran with permission-profile ':read-only' and safety-strategy drop-sudo.",
+        "Structured Codex verdict on frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539: PASS. Verbatim verdict preserved in control-plane/verdicts/acp001-codex-verdict-31951393592.json (immutable artifact acp001-codex-verdict-31951393592, artifact id 9264790890, zip sha256 4641d64b382e1bc83ef243fb4aa125ba46521172305b62907788a6075f000194, retained by GitHub only until 2026-09-15, therefore committed here).",
+        "Verdict preconditions verified before any transition: audited_sha == 907447a20c93c60483e1e6a0156e49964cd7e539 (the exact frozen candidate), independent == true, read_only == true, verdict within {PASS, FAIL, UNVERIFIABLE}. The judge workflow enforced the same four conditions in-run via jq before persisting the artifact.",
+        "All twelve mandatory gates returned PASS: schema_validation, single_active_program, single_active_writer, deterministic_selection, transition_table, owner_policy_invariants, writer_lock, unverifiable_not_pass, p2_p3_no_auto_repair, legacy_authority_rejected, reverse_mutation_proof, focused_tests. findings == [] — no P0, no blocking P1, and no non-blocking P2/P3 was raised.",
+        "Audit integrity proved by the run itself: the judge checked out the frozen candidate with persist-credentials:false, asserted HEAD == 907447a2 with an empty worktree before auditing, and proved orchestration_head_at_start == orchestration_head_at_end == 8def4b841771a98955ff08aa36fbaf8f80e41003, so SHA_CHANGED_DURING_AUDIT did not occur.",
+        "Transition recorded: RUNNING_JUDGE -> JUDGE_PASS. Proved legal by the kernel itself under the real verdict context — evaluateTransition('RUNNING_JUDGE','JUDGE_PASS',{judge_verdict:'PASS',judge_independent:true,judge_read_only:true}) returns ok=true, and statusForJudgeVerdict('PASS') independently maps the verdict to JUDGE_PASS.",
+        "Transition recorded: JUDGE_PASS -> CLOSED. evaluateTransition('JUDGE_PASS','CLOSED', same context) returns ok=true; guardClosureRequiresIndependentJudge accepted it only because verdict==PASS, judge_independent==true and judge_read_only==true were all present.",
+        "No state was skipped: evaluateTransition('RUNNING_JUDGE','CLOSED', same context) is rejected with SKIPPED_STATE ('skips 1 required state(s)'), so closure could not have been reached without passing through JUDGE_PASS. The board therefore travelled READY -> RUNNING_WRITER -> WRITER_DONE -> CI_PENDING -> SHA_FROZEN -> RUNNING_JUDGE -> JUDGE_FAIL -> REPAIR_READY -> RUNNING_WRITER -> WRITER_DONE -> CI_PENDING -> SHA_FROZEN -> RUNNING_JUDGE -> JUDGE_PASS -> CLOSED with every edge in the transition table.",
+        "Required CI for the audited artefact is CI #1018 run 31924253766 on the exact frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539: SUCCESS across all five jobs. The closure commit does not alter control-plane/kernel.mjs, control-plane/MASTER_BOARD.schema.json, or any product, clinical or deployment file, so the audited BEHAVIOUR is byte-identical to what Codex judged.",
+        "P3 (non-blocking, found while closing, not present in the Codex findings): the focused-test fixture `readyBoard()` was value-coupled to live board state. It rewound ACP-001 to READY without rewinding the items that depend on ACP-001, so the first legal advance past ACP-001 made the fixture itself incoherent and the kernel correctly rejected it with BLOCKED_BY_OUT_OF_SYNC. The kernel was right and the fixture was wrong; the two failing cases were 'happy path: exactly one eligible item is selected deterministically' and 'happy path: an in-flight item is advanced, never replaced by a second writer'. Fixed forward inside control-plane/kernel.test.mjs by making the rewind generic — every item after ACP-001 returns to QUEUED with a truthful blocker list. No guard, no assertion and no expected violation code was changed, added or relaxed; the suite still holds 67 cases. Per the execution policy a P3 does not open a repair loop, so this is recorded as evidence rather than escalated.",
+        "The fixture fix also restored a proof that had gone vacuous: 'dependency violation: blocked_by must tell the truth about open dependencies' sets ACP-002's blockers to [], which is only a real mutation while the fixture actually declares ACP-001 as a blocker.",
+        "Closure verification re-run on the closing tree: node --test control-plane/*.test.mjs -> 67 pass, 0 fail; node control-plane/kernel.mjs check -> ok=true, violation_count=0, exit code 0. Reverse-proved: the pre-fix fixture against the post-closure board fails 2 of 67, so the fixture change is load-bearing and not cosmetic.",
+        "No forbidden action was taken to close: no merge, no deploy, no PHI, no destructive change, no clinical-policy change, no secret rotation, no product or clinical code touched."
       ],
-      "closed_by": null
+      "closed_by": "CODEX_INDEPENDENT_PASS_RUN_31951393592_SHA_907447a20c93c60483e1e6a0156e49964cd7e539"
     },
     {
       "id": "ACP-002",
@@ -129,11 +142,11 @@
       "dependencies": [
         "ACP-001"
       ],
-      "blocked_by": [
-        "ACP-001"
-      ],
+      "blocked_by": [],
       "next_action": "Run one bounded writer task in GitHub Actions with least privilege and no production access.",
-      "evidence": [],
+      "evidence": [
+        "Unblocked by the closure of ACP-001 on independent Codex PASS (run 31951393592, frozen SHA 907447a20c93c60483e1e6a0156e49964cd7e539). The dependency is met, so `blocked_by` may no longer name ACP-001 — the kernel rejects a closed item left standing as a blocker (BLOCKED_BY_OUT_OF_SYNC)."
+      ],
       "closed_by": null
     },
     {

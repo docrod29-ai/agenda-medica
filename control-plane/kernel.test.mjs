@@ -55,12 +55,39 @@ const CANONICAL_BOARD = JSON.parse(readFileSync(BOARD_PATH, 'utf8'))
 
 // --- helpers ---------------------------------------------------------------
 
-/** A board whose only eligible item is ACP-001 in READY. */
+/**
+ * A board whose only eligible item is ACP-001 in READY.
+ *
+ * The fixture is derived from the live canonical board on purpose: it keeps the
+ * tests honest about the real schema and the real item graph instead of drifting
+ * away from them. But deriving from live state means the fixture has to REWIND
+ * coherently, not just flip one status.
+ *
+ * The first version rewound ACP-001 alone. That worked only while ACP-001 was
+ * the newest item on the board; the moment ACP-001 legitimately closed and
+ * ACP-002 dropped it from `blocked_by`, rewinding ACP-001 to READY produced a
+ * board in which ACP-001 is an unmet dependency that nobody declares — and the
+ * kernel rightly rejected the fixture with BLOCKED_BY_OUT_OF_SYNC. The
+ * assertions never changed; the world underneath them did.
+ *
+ * So the rewind is generic: every item that comes after ACP-001 goes back to
+ * QUEUED with a truthful blocker list. That also keeps the negative tests
+ * meaningful — `blocked_by must tell the truth` sets ACP-002's blockers to `[]`,
+ * which is only a mutation if the fixture actually put ACP-001 there.
+ */
 function readyBoard() {
   const board = structuredClone(CANONICAL_BOARD)
   const item = board.items.find((entry) => entry.id === 'ACP-001')
   item.status = 'READY'
   item.closed_by = null
+  for (const other of board.items) {
+    if (other.id <= item.id) continue
+    other.status = 'QUEUED'
+    other.closed_by = null
+    // Nothing after ACP-001 is closed in this rewound world, so every declared
+    // dependency is genuinely unmet and must appear as a blocker.
+    other.blocked_by = [...(other.dependencies ?? [])]
+  }
   return board
 }
 

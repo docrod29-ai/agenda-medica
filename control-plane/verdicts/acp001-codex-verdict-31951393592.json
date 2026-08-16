@@ -1,0 +1,24 @@
+{
+  "verdict": "PASS",
+  "audited_sha": "907447a20c93c60483e1e6a0156e49964cd7e539",
+  "independent": true,
+  "read_only": true,
+  "mandatory_gates": {
+    "schema_validation": "PASS",
+    "single_active_program": "PASS",
+    "single_active_writer": "PASS",
+    "deterministic_selection": "PASS",
+    "transition_table": "PASS",
+    "owner_policy_invariants": "PASS",
+    "writer_lock": "PASS",
+    "unverifiable_not_pass": "PASS",
+    "p2_p3_no_auto_repair": "PASS",
+    "legacy_authority_rejected": "PASS",
+    "reverse_mutation_proof": "PASS",
+    "focused_tests": "PASS"
+  },
+  "findings": [],
+  "summary": "All mandatory ACP-001 gates independently verified. Canonical check passed; direct cases and mutation proofs were reproduced read-only/in-memory. No ACP-002 or forbidden product/deploy scope leaked, and no P0 or blocking P1 was found.",
+  "orchestration_head_at_start": "8def4b841771a98955ff08aa36fbaf8f80e41003",
+  "workflow_run_id": "31951393592"
+}
