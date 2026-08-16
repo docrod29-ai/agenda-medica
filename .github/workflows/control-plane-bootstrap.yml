@@ -130,6 +130,7 @@ jobs:
           and READY_FOR_INDEPENDENT_REVIEW=YES/NO. Do not start ACP-002.
           PROMPT
 
+          set +e
           claude -p "$(cat /tmp/acp001-prompt.txt)" \
             --model opus \
             --max-turns 30 \
@@ -139,9 +140,16 @@ jobs:
               "Bash(git status:*)" "Bash(git diff:*)" "Bash(git log:*)" \
               "Bash(git rev-parse:*)" \
             --disallowedTools "WebSearch" "WebFetch" \
-            > /tmp/acp001-result.json
+            2>&1 | tee /tmp/acp001-result.log
+          claude_rc=${PIPESTATUS[0]}
+          set -e
 
-          cat /tmp/acp001-result.json
+          if [[ "$claude_rc" -ne 0 ]]; then
+            echo "::error::CLAUDE_WRITER_EXIT_${claude_rc}"
+            echo "--- Claude diagnostic tail ---"
+            tail -n 200 /tmp/acp001-result.log || true
+            exit "$claude_rc"
+          fi
 
       - name: Enforce writer scope and require a real delta
         if: steps.gate.outputs.run == 'true'
