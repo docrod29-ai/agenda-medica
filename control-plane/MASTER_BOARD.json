@@ -58,29 +58,32 @@
     {
       "id": "ACP-000",
       "title": "Read-only baseline and authority reconciliation",
-      "status": "IN_PROGRESS",
+      "status": "CLOSED",
       "owner": "CONTROL_PLANE",
       "dependencies": [],
       "blocked_by": [],
-      "next_action": "Finish baseline evidence and invalidate stale autonomous authority sources.",
+      "next_action": "None. Baseline is closed; do not reopen without contradictory evidence.",
       "evidence": [
+        "control-plane/BASELINE.md",
+        "control-plane/MASTER_BOARD.schema.json",
         "CLAUDE.md",
         "AGENTS.md",
         ".github/workflows/ci.yml",
-        "agent-state/MASTER_STATE.json",
-        "agent-state/BACKLOG.json",
-        "GitHub environments metadata"
+        "agent-state/MASTER_STATE.json classified LEGACY_NON_CANONICAL_DO_NOT_EXECUTE",
+        "agent-state/BACKLOG.json classified LEGACY_INPUT_ONLY_NOT_EXECUTION_ORDER",
+        "GitHub environments metadata: Preview and Production have no protection rules at baseline",
+        "baseline commit 42ee62f8e034c48f8e456a2d1507382b5a9c77cb"
       ],
-      "closed_by": null
+      "closed_by": "CONTROL_PLANE_BASELINE_2026-08-15"
     },
     {
       "id": "ACP-001",
       "title": "Executable state contract and validator",
-      "status": "QUEUED",
+      "status": "READY",
       "owner": "CLAUDE_OPUS",
       "dependencies": ["ACP-000"],
-      "blocked_by": ["ACP-000"],
-      "next_action": "Implement schema, validator, transition guards, and deterministic next-item selection.",
+      "blocked_by": [],
+      "next_action": "Implement schema validation, deterministic next-item selection, transition guards, lock semantics, and tests. Do not invoke external AI providers yet.",
       "evidence": [],
       "closed_by": null
     },
