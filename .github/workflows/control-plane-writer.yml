@@ -401,7 +401,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict'
-          import { readFileSync } from 'node:fs'
+          import { readFileSync, readdirSync } from 'node:fs'
           import { BOARD_PATH, SCHEMA_PATH } from './control-plane/kernel.mjs'
           import { STOP_CONDITIONS, runPreflight, writerPermissionsFromWorkflow } from './control-plane/preflight.mjs'
 
@@ -420,6 +420,11 @@ jobs:
               (id) => eligible.items.find((entry) => entry.id === id)?.status !== 'CLOSED',
             )
           }
+          const JUDGE_WORKFLOWS = readdirSync('.github/workflows')
+            .filter((name) => /judge/.test(name))
+            .sort()
+            .map((name) => ({ path: `.github/workflows/${name}`, job: 'codex-judge', source: readFileSync(`.github/workflows/${name}`, 'utf8') }))
+
           const base = {
             item_id: 'ACP-002',
             holder: 'CLAUDE_OPUS',
@@ -431,6 +436,8 @@ jobs:
             secret_name: 'ANTHROPIC_API_KEY',
             secret_present: true,
             budget: { max_turns: 60, timeout_minutes: 60, max_retries: 0 },
+            run_attempt: 1,
+            judge_workflows: JUDGE_WORKFLOWS,
             permissions: writerPermissionsFromWorkflow(WORKFLOW),
           }
 
@@ -449,6 +456,15 @@ jobs:
             ['deployment scope', { permissions: { contents: 'write', deployments: 'write' } }, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD],
             ['item the board did not select', { item_id: 'ACP-003' }, STOP_CONDITIONS.ITEM_NOT_AUTHORIZED],
             ['checkout drifted from the authorized SHA', { head_sha: 'b'.repeat(40) }, STOP_CONDITIONS.BRANCH_OR_SHA_NOT_EXPLICIT],
+            // The six-P1 repair's own guards, attested in the cloud too.
+            ['empty permissions block', { permissions: {} }, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD],
+            ['permissions that never mention contents', { permissions: { issues: 'read' } }, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD],
+            ['credential nested inside an object', { creds: { api_key: 'sk-ant-not-a-real-key' } }, STOP_CONDITIONS.SECRET_VALUE_LEAKED],
+            ['credential under a short key name', { token: 'ghp_not_a_real_token' }, STOP_CONDITIONS.SECRET_VALUE_LEAKED],
+            ['re-run beyond the retry ceiling', { run_attempt: 2 }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED],
+            ['undeclared run attempt', { run_attempt: undefined }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED],
+            ['judge workflow granting write', { judge_workflows: [{ path: 'j', job: 'codex-judge', source: 'jobs:\n  codex-judge:\n    permissions:\n      contents: write\n' }] }, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY],
+            ['no judge workflow to inspect', { judge_workflows: [] }, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY],
           ]
           for (const [label, override, expected] of defects) {
             const result = runPreflight({ board: eligible, schema, request: { ...base, ...override } })
@@ -475,6 +491,24 @@ jobs:
           assert.ok(driftStops.includes(STOP_CONDITIONS.POLICY_AUTHORIZATION_DRIFT), `expected the policy layer to fire, got ${JSON.stringify(driftStops)}`)
           assert.ok(driftStops.includes(STOP_CONDITIONS.BOARD_INVALID), `expected the schema layer to fire, got ${JSON.stringify(driftStops)}`)
           console.log(`refused: board authorizing production deploy -> ${JSON.stringify(driftStops)} (two independent layers)`)
+
+          // REPAIR/ACP-002/P1-3, attested here too: an ACP-002 writer reaching
+          // into ACP-003 must be refused even though every path is under
+          // control-plane/, which is precisely what the old check allowed.
+          const { SCOPE_VIOLATIONS, checkWriterScope } = await import('./control-plane/scope-guard.mjs')
+          const scopes = JSON.parse(readFileSync('control-plane/item-scopes.json', 'utf8'))
+          const boardBefore = JSON.parse(readFileSync(BOARD_PATH, 'utf8'))
+          const reachIntoAcp003 = structuredClone(boardBefore)
+          reachIntoAcp003.items.find((x) => x.id === 'ACP-003').status = 'READY'
+          const foreign = checkWriterScope({ itemId: 'ACP-002', changedPaths: ['control-plane/MASTER_BOARD.json'], scopes, boardBefore, boardAfter: reachIntoAcp003 })
+          assert.equal(foreign.ok, false, 'an ACP-002 writer must not be able to move ACP-003')
+          assert.ok(foreign.violations.map((v) => v.code).includes(SCOPE_VIOLATIONS.FOREIGN_ITEM_MODIFIED))
+          console.log('refused: ACP-002 writer modifying ACP-003 -> FOREIGN_ITEM_MODIFIED')
+
+          const undeclared = checkWriterScope({ itemId: 'ACP-003', changedPaths: [], scopes, boardBefore, boardAfter: structuredClone(boardBefore) })
+          assert.equal(undeclared.ok, false, 'an item with no declared scope must not be able to write')
+          assert.ok(undeclared.violations.map((v) => v.code).includes(SCOPE_VIOLATIONS.NO_DECLARED_SCOPE))
+          console.log('refused: undeclared item scope -> NO_DECLARED_SCOPE')
           NODE
 
       - name: This job holds no write scope, and says so from the file itself
