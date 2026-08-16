@@ -28,21 +28,71 @@ jobs:
       - name: Checkout exact PR head
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: One-shot bootstrap gate
+      - name: One-shot ACP-001 writer gate
         id: gate
         shell: bash
         run: |
           set -euo pipefail
           subject="$(git log -1 --pretty=%s)"
+          mode="none"
           if [[ "$subject" == "control-plane: run ACP-001 cloud writer (direct CLI)" ]]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "ACP-001 bootstrap not requested by this commit; exiting without invoking an AI writer."
+            mode="initial"
+          elif [[ "$subject" == "control-plane: run ACP-001 repair writer" ]]; then
+            mode="repair"
           fi
+
+          if [[ "$mode" == "none" ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+            echo "ACP-001 writer not requested by this commit; exiting without invoking Claude."
+            exit 0
+          fi
+
+          MODE="$mode" node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          const board = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json', 'utf8'))
+          const item = board.items.find((x) => x.id === 'ACP-001')
+          const next = board.items.find((x) => x.id === 'ACP-002')
+          const mode = process.env.MODE
+          const expected = mode === 'repair' ? 'RUNNING_WRITER' : 'READY'
+          if (!item || item.status !== expected) {
+            console.error(`::error::ACP-001 ${mode} writer requires ${expected}; got ${item?.status ?? 'MISSING'}`)
+            process.exit(82)
+          }
+          if (!next || next.status !== 'QUEUED') {
+            console.error(`::error::ACP-002 must remain QUEUED; got ${next?.status ?? 'MISSING'}`)
+            process.exit(83)
+          }
+          if (board.execution_policy?.max_active_writers !== 1 ||
+              board.execution_policy?.production_deploy_authorized !== false ||
+              board.execution_policy?.main_merge_authorized !== false ||
+              board.execution_policy?.phi_allowed !== false ||
+              board.execution_policy?.destructive_changes_authorized !== false ||
+              board.execution_policy?.clinical_policy_changes_authorized !== false) {
+            console.error('::error::ACP-001 writer governance is not fail-closed')
+            process.exit(84)
+          }
+          if (mode === 'repair') {
+            const required = [
+              'Structured Codex verdict on frozen SHA 0e6469e2a22b9398c0103fd5e52ac59406fddfe3: FAIL.',
+              'Blocking P1: unsupported schema constraints can be silently skipped',
+              'Blocking P1: RUNNING_JUDGE -> JUDGE_PASS can be accepted without explicit judge verdict evidence.',
+              'Blocking P1: reverse/mutation proof omits the single-active-program guard.'
+            ]
+            for (const token of required) {
+              if (!item.evidence.some((e) => typeof e === 'string' && e.includes(token))) {
+                console.error(`::error::Missing repair evidence: ${token}`)
+                process.exit(85)
+              }
+            }
+          }
+          NODE
+
+          echo "run=true" >> "$GITHUB_OUTPUT"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
 
       - name: Fail closed if Anthropic credential is absent
         if: steps.gate.outputs.run == 'true'
@@ -68,10 +118,90 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          WRITER_MODE: ${{ steps.gate.outputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/acp001-prompt.txt <<'PROMPT'
+
+          if [[ "$WRITER_MODE" == "repair" ]]; then
+            cat > /tmp/acp001-prompt.txt <<'PROMPT'
+          AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001
+          WORK ITEM: ACP-001 — BOUNDED REPAIR AFTER INDEPENDENT CODEX FAIL.
+
+          You are the ONE WRITER. This is a repair of ACP-001 only.
+          Work only in the current checkout of existing branch `control-plane/autonomous-001`
+          and existing draft PR #293. Do not create another branch or PR.
+          Do not merge. Do not deploy. Do not start ACP-002.
+
+          READ FIRST, completely:
+          - CLAUDE.md
+          - AGENTS.md
+          - control-plane/BASELINE.md
+          - control-plane/MASTER_BOARD.json
+          - control-plane/MASTER_BOARD.schema.json
+          - control-plane/kernel.mjs
+          - control-plane/kernel.test.mjs
+
+          The clean independent Codex audit of immutable SHA
+          0e6469e2a22b9398c0103fd5e52ac59406fddfe3 returned FAIL.
+          Repair EXACTLY these three blocking P1 findings:
+
+          P1-1 — Unsupported schema constraints can be silently skipped.
+          Evidence: schema traversal currently only visits constraints represented by the
+          current data value. A schema containing a future/absent property with an unsupported
+          constraint such as `maximum` can be accepted without detecting the unsupported
+          keyword. Make committed-schema validation fail closed for unsupported constraints
+          anywhere relevant in the schema, independent of whether the corresponding property
+          exists in the current board value. Add direct negative tests reproducing the Codex
+          counterexample and nearby empty-array / unused-additionalProperties cases as appropriate.
+          Do not broaden into a general schema-engine rewrite beyond what is needed for a
+          deterministic fail-closed ACP-001 contract.
+
+          P1-2 — JUDGE_PASS is accepted without a judge verdict.
+          Evidence: evaluateTransition('RUNNING_JUDGE','JUDGE_PASS',{}) returned ok=true.
+          Require explicit machine-readable PASS verdict evidence for RUNNING_JUDGE -> JUDGE_PASS.
+          Missing verdict, FAIL, or UNVERIFIABLE must not pass. Preserve UNVERIFIABLE != PASS.
+          Add direct positive and negative tests.
+
+          P1-3 — Reverse proof omits the active-program guard.
+          Add a real reverse/mutation proof for the exactly-one-active-program guard so the
+          focused suite would fail if that guard were removed or inverted. Keep the existing
+          direct two-program negative test as well.
+
+          REQUIRED:
+          - Preserve all previously passing ACP-001 invariants.
+          - Keep one active program and at most one active writer.
+          - Preserve deterministic next-item selection and explicit transition rejection.
+          - Keep production deploy, main merge, PHI, destructive changes, and clinical-policy
+            changes fail-closed.
+          - Legacy agent-state files remain non-authoritative.
+          - P2/P3 findings do not auto-create repair loops.
+          - Do not add dependencies unless absolutely unavoidable; prefer no new dependency.
+          - Do not touch product/clinical code or deployment behavior.
+          - Do not change `.github/**`.
+
+          ALLOWED REPAIR FILES:
+          - control-plane/kernel.mjs
+          - control-plane/kernel.test.mjs
+          - control-plane/MASTER_BOARD.schema.json only if the repair genuinely requires it
+          - control-plane/MASTER_BOARD.json for truthful state/evidence only
+
+          Run:
+          - node --test control-plane/*.test.mjs
+          - node control-plane/kernel.mjs check
+
+          The board starts this run at RUNNING_WRITER. If and only if the three P1s are repaired
+          and focused verification passes, update ACP-001 truthfully to WRITER_DONE and record
+          concise repair evidence. DO NOT mark JUDGE_PASS or CLOSED. Do not alter ACP-002.
+
+          IMPORTANT: do NOT commit or push. The workflow will scope-check, verify, commit, and
+          push after you finish. Leave only intended working-tree changes.
+
+          Final response: summarize the three repairs, exact tests added, focused test result,
+          canonical-board check, and READY_FOR_INDEPENDENT_REVIEW=YES/NO.
+          PROMPT
+          else
+            cat > /tmp/acp001-prompt.txt <<'PROMPT'
           AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001
           WORK ITEM: ACP-001 — Executable state contract and validator.
 
@@ -86,8 +216,6 @@ jobs:
           - control-plane/BASELINE.md
           - control-plane/MASTER_BOARD.json
           - control-plane/MASTER_BOARD.schema.json
-
-          The complete ACP-001 requirements are below; no GitHub issue lookup is required.
 
           IMPLEMENT ONLY ACP-001:
           1. Parse and validate MASTER_BOARD.json using the committed schema as authority.
@@ -129,6 +257,7 @@ jobs:
           In your final response report what you changed, invariants, tests, reverse proof,
           and READY_FOR_INDEPENDENT_REVIEW=YES/NO. Do not start ACP-002.
           PROMPT
+          fi
 
           set +e
           claude -p "$(cat /tmp/acp001-prompt.txt)" \
@@ -153,6 +282,8 @@ jobs:
 
       - name: Enforce writer scope and require a real delta
         if: steps.gate.outputs.run == 'true'
+        env:
+          WRITER_MODE: ${{ steps.gate.outputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
@@ -164,13 +295,23 @@ jobs:
           printf '%s\n' "$status"
           while IFS= read -r line; do
             path="${line:3}"
-            case "$path" in
-              control-plane/*|package.json|package-lock.json) ;;
-              *)
-                echo "::error::FORBIDDEN_SCOPE_CHANGE: $path"
-                exit 80
-                ;;
-            esac
+            if [[ "$WRITER_MODE" == "repair" ]]; then
+              case "$path" in
+                control-plane/kernel.mjs|control-plane/kernel.test.mjs|control-plane/MASTER_BOARD.json|control-plane/MASTER_BOARD.schema.json) ;;
+                *)
+                  echo "::error::FORBIDDEN_REPAIR_SCOPE_CHANGE: $path"
+                  exit 80
+                  ;;
+              esac
+            else
+              case "$path" in
+                control-plane/*|package.json|package-lock.json) ;;
+                *)
+                  echo "::error::FORBIDDEN_SCOPE_CHANGE: $path"
+                  exit 80
+                  ;;
+              esac
+            fi
           done <<< "$status"
 
       - name: Verify ACP-001 focused contract
@@ -183,16 +324,25 @@ jobs:
 
       - name: Commit and push ACP-001 immutable writer checkpoint
         if: steps.gate.outputs.run == 'true'
+        env:
+          WRITER_MODE: ${{ steps.gate.outputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "Ausculta Control Plane"
           git config user.email "control-plane@users.noreply.github.com"
-          git add control-plane package.json package-lock.json 2>/dev/null || true
+          if [[ "$WRITER_MODE" == "repair" ]]; then
+            git add control-plane/kernel.mjs control-plane/kernel.test.mjs \
+              control-plane/MASTER_BOARD.json control-plane/MASTER_BOARD.schema.json 2>/dev/null || true
+            commit_message="control-plane: repair ACP-001 Codex P1s"
+          else
+            git add control-plane package.json package-lock.json 2>/dev/null || true
+            commit_message="control-plane: implement ACP-001 state kernel"
+          fi
           if git diff --cached --quiet; then
             echo "::error::No staged ACP-001 changes after scope validation"
             exit 81
           fi
-          git commit -m "control-plane: implement ACP-001 state kernel"
+          git commit -m "$commit_message"
           git push origin HEAD:control-plane/autonomous-001
           echo "END_SHA=$(git rev-parse HEAD)"
