@@ -1,0 +1,116 @@
+name: Control Plane Bootstrap
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'control-plane/**'
+      - '.github/workflows/control-plane-bootstrap.yml'
+
+concurrency:
+  group: ausculta-control-plane-bootstrap
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+  id-token: write
+
+jobs:
+  acp001-writer:
+    if: github.event.pull_request.head.ref == 'control-plane/autonomous-001'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: One-shot bootstrap gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject="$(git log -1 --pretty=%s)"
+          if [[ "$subject" == "control-plane: bootstrap ACP-001 cloud writer" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "ACP-001 bootstrap not requested by this commit; exiting without invoking an AI writer."
+          fi
+
+      - name: Fail closed if Anthropic credential is absent
+        if: steps.gate.outputs.run == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+            echo "::error::MISSING_REQUIRED_SECRET_OR_EXTERNAL_CREDENTIAL: ANTHROPIC_API_KEY"
+            exit 78
+          fi
+
+      - name: Run Claude/Opus as the single ACP-001 writer
+        if: steps.gate.outputs.run == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          additional_permissions: |
+            actions: read
+          prompt: |
+            AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001
+            WORK ITEM: ACP-001 — Executable state contract and validator.
+
+            You are the ONE WRITER. Work only on the existing PR branch
+            `control-plane/autonomous-001` and existing draft PR #293.
+            Do not create another branch or PR. Do not merge. Do not deploy.
+            Do not start ACP-002.
+
+            READ FIRST, completely:
+            - CLAUDE.md
+            - AGENTS.md
+            - control-plane/BASELINE.md
+            - control-plane/MASTER_BOARD.json
+            - control-plane/MASTER_BOARD.schema.json
+            - GitHub issue #294
+
+            IMPLEMENT ONLY ACP-001:
+            1. Parse and validate MASTER_BOARD.json against its committed schema.
+            2. Enforce exactly one active program and at most one active writer.
+            3. Deterministically compute the single next eligible item from dependencies.
+            4. Enforce an explicit transition table; reject skips and illegal transitions.
+            5. Enforce fail-closed policy invariants: production deploy false, main merge false,
+               PHI false, destructive false, clinical-policy changes false unless an explicit
+               OWNER_APPROVAL_REQUIRED state exists.
+            6. Implement lock semantics preventing two writer claims.
+            7. `UNVERIFIABLE` must never become PASS. P2/P3 must never automatically create a
+               repair loop.
+            8. Emit machine-readable output suitable for later GitHub Actions orchestration.
+            9. Add focused tests for happy path, illegal transition, two writers, dependency
+               violation, stale legacy-authority attempt, production/main authorization drift,
+               and UNVERIFIABLE promotion attempt.
+            10. Include reverse/mutation proof for each central guard.
+
+            Keep the module explicit and small under control-plane/. No generic Engine/Manager/
+            Factory architecture. Do not touch clinical product code, Firestore rules, deployment
+            logic, V16, Hardening, or provider integrations.
+
+            Run targeted tests, then the repository gates appropriate to this isolated change.
+            Update MASTER_BOARD.json truthfully to show ACP-001 writer completion, but DO NOT mark
+            ACP-001 CLOSED: closure requires the independent Codex judge. Use a state such as
+            WRITER_DONE or SHA_FROZEN consistent with the implemented transition contract.
+
+            Leave a clean worktree, commit, and push to this same branch. In your final response
+            report START_SHA, END_SHA, files changed, invariants, tests, reverse proof, gates,
+            worktree cleanliness, pushed branch head, READY_FOR_INDEPENDENT_REVIEW=YES/NO, and
+            NEXT_ALLOWED_ACTION="independent Codex review of ACP-001" if YES.
+          claude_args: |
+            --model opus
+            --max-turns 30
+            --allowedTools "Read,Write,Edit,Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git rev-parse:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*)"
+            --disallowedTools "WebSearch,WebFetch"
