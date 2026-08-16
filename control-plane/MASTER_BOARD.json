@@ -1,0 +1,168 @@
+{
+  "$schema": "./MASTER_BOARD.schema.json",
+  "program_id": "AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001",
+  "product": "Ausculta",
+  "status": "IN_PROGRESS",
+  "canonical": true,
+  "created_at": "2026-08-15",
+  "source_branch": "control-plane/autonomous-001",
+  "accepted_v15_sha": "317c6c5695b69e1a543d99d65e897f638db563a8",
+  "execution_policy": {
+    "max_active_programs": 1,
+    "max_active_writers": 1,
+    "writer_role": "CLAUDE_OPUS",
+    "judge_role": "CODEX_INDEPENDENT",
+    "research_role": "PERPLEXITY_READ_ONLY",
+    "orchestrator_role": "CONTROL_PLANE",
+    "owner_role": "OWNER",
+    "freeze_sha_before_judge": true,
+    "judge_must_be_read_only": true,
+    "unverifiable_is_pass": false,
+    "p2_p3_auto_repair": false,
+    "production_deploy_authorized": false,
+    "main_merge_authorized": false,
+    "phi_allowed": false,
+    "destructive_changes_authorized": false,
+    "clinical_policy_changes_authorized": false,
+    "production_secret_rotation_authorized": false
+  },
+  "stop_conditions": [
+    "P0_FOUND",
+    "BLOCKING_P1_FOUND",
+    "FORBIDDEN_SCOPE_CHANGE",
+    "SHA_CHANGED_DURING_AUDIT",
+    "UNCLEAN_WORKTREE_AT_FREEZE",
+    "BUDGET_EXCEEDED",
+    "MAX_REPAIR_LOOPS_EXCEEDED",
+    "OWNER_APPROVAL_REQUIRED",
+    "MISSING_REQUIRED_SECRET_OR_EXTERNAL_CREDENTIAL",
+    "UNVERIFIABLE_MANDATORY_GATE"
+  ],
+  "status_model": [
+    "QUEUED",
+    "READY",
+    "RUNNING_WRITER",
+    "WRITER_DONE",
+    "CI_PENDING",
+    "CI_FAILED",
+    "SHA_FROZEN",
+    "RUNNING_JUDGE",
+    "JUDGE_PASS",
+    "JUDGE_FAIL",
+    "REPAIR_READY",
+    "BLOCKED",
+    "OWNER_APPROVAL_REQUIRED",
+    "CLOSED"
+  ],
+  "items": [
+    {
+      "id": "ACP-000",
+      "title": "Read-only baseline and authority reconciliation",
+      "status": "IN_PROGRESS",
+      "owner": "CONTROL_PLANE",
+      "dependencies": [],
+      "blocked_by": [],
+      "next_action": "Finish baseline evidence and invalidate stale autonomous authority sources.",
+      "evidence": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".github/workflows/ci.yml",
+        "agent-state/MASTER_STATE.json",
+        "agent-state/BACKLOG.json",
+        "GitHub environments metadata"
+      ],
+      "closed_by": null
+    },
+    {
+      "id": "ACP-001",
+      "title": "Executable state contract and validator",
+      "status": "QUEUED",
+      "owner": "CLAUDE_OPUS",
+      "dependencies": ["ACP-000"],
+      "blocked_by": ["ACP-000"],
+      "next_action": "Implement schema, validator, transition guards, and deterministic next-item selection.",
+      "evidence": [],
+      "closed_by": null
+    },
+    {
+      "id": "ACP-002",
+      "title": "Cloud writer runner",
+      "status": "QUEUED",
+      "owner": "CLAUDE_OPUS",
+      "dependencies": ["ACP-001"],
+      "blocked_by": ["ACP-001"],
+      "next_action": "Run one bounded writer task in GitHub Actions with least privilege and no production access.",
+      "evidence": [],
+      "closed_by": null
+    },
+    {
+      "id": "ACP-003",
+      "title": "Independent Codex judge runner",
+      "status": "QUEUED",
+      "owner": "CLAUDE_OPUS",
+      "dependencies": ["ACP-002"],
+      "blocked_by": ["ACP-002"],
+      "next_action": "Run Codex read-only against an immutable writer SHA and emit a structured verdict.",
+      "evidence": [],
+      "closed_by": null
+    },
+    {
+      "id": "ACP-004",
+      "title": "Sequential orchestration loop",
+      "status": "QUEUED",
+      "owner": "CLAUDE_OPUS",
+      "dependencies": ["ACP-003"],
+      "blocked_by": ["ACP-003"],
+      "next_action": "Automate READY -> writer -> CI -> freeze -> judge -> close/repair/block -> next.",
+      "evidence": [],
+      "closed_by": null
+    },
+    {
+      "id": "ACP-005",
+      "title": "Safety, budget, retry, and owner-approval gates",
+      "status": "QUEUED",
+      "owner": "CLAUDE_OPUS",
+      "dependencies": ["ACP-004"],
+      "blocked_by": ["ACP-004"],
+      "next_action": "Enforce budgets, bounded retries, forbidden scopes, and hard owner gates for merge/deploy/clinical-policy actions.",
+      "evidence": [],
+      "closed_by": null
+    },
+    {
+      "id": "ACP-006",
+      "title": "Cloud-only overnight end-to-end proof",
+      "status": "QUEUED",
+      "owner": "CLAUDE_OPUS",
+      "dependencies": ["ACP-005"],
+      "blocked_by": ["ACP-005"],
+      "next_action": "Demonstrate two sequential synthetic tasks completing without local-machine involvement, including one failure/repair or blocked path.",
+      "evidence": [],
+      "closed_by": null
+    },
+    {
+      "id": "ACP-007",
+      "title": "Independent closure audit",
+      "status": "QUEUED",
+      "owner": "CODEX_INDEPENDENT",
+      "dependencies": ["ACP-006"],
+      "blocked_by": ["ACP-006"],
+      "next_action": "Audit the immutable Control Plane candidate and authorize closure or list only mandatory blockers.",
+      "evidence": [],
+      "closed_by": null
+    }
+  ],
+  "post_control_plane_queue": [
+    "CONTEXT-CANONICALIZATION",
+    "PROFESSIONAL-ENGINEERING-PRODUCTION-GATE",
+    "AUSCULTA-PROFESSIONAL-HARDENING-001",
+    "GLOBAL-BRAND-001",
+    "AGENT-SKILLS-LAB",
+    "AUSCULTA-SKILLS",
+    "V16.1-001"
+  ],
+  "legacy_state_policy": {
+    "agent-state/MASTER_STATE.json": "LEGACY_NON_CANONICAL_DO_NOT_EXECUTE",
+    "agent-state/BACKLOG.json": "LEGACY_INPUT_ONLY_NOT_EXECUTION_ORDER",
+    "reason": "Legacy state contains stale autonomous/deployment authorizations that conflict with current owner governance."
+  }
+}
