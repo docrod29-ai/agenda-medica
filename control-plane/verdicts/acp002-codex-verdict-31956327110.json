@@ -1,0 +1,65 @@
+{
+  "verdict": "FAIL",
+  "audited_sha": "437a119b2978972f54992c85ab7e60c7b929e2b7",
+  "independent": true,
+  "read_only": true,
+  "mandatory_gates": {
+    "preflight_conditions_complete": "FAIL",
+    "fail_closed_on_every_condition": "FAIL",
+    "least_privilege_writer": "PASS",
+    "no_production_reach": "FAIL",
+    "no_main_merge_path": "FAIL",
+    "credential_never_read": "FAIL",
+    "bounded_budget": "FAIL",
+    "single_writer_lock": "PASS",
+    "board_driven_selection": "FAIL",
+    "cloud_executable_attestation": "PASS",
+    "attestation_is_read_only": "PASS",
+    "reverse_mutation_proof": "FAIL",
+    "no_acp003_scope_leak": "PASS",
+    "focused_tests": "UNVERIFIABLE"
+  },
+  "findings": [
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Preflight authorizes malformed and hostile requests",
+      "evidence": "Direct reproduction authorized permissions={} and requests carrying credential values under arbitrary or nested fields. Invoking the CLI without --request returns ok=false but omits authorized=null, next_board_status=BLOCKED, and stop_condition."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Writer can bypass the branch and production fences",
+      "evidence": "actions/checkout preserves the contents:write credential. Claude is allowed Bash(node:*), Bash(npm:*), and Bash(npx:*), permitting nested child-process git commands before the later scope and branch checks. It can therefore commit and push arbitrary files or main; immutable candidate evidence does not prove branch protection blocks this."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Selected-item scope is not enforced",
+      "evidence": "The preflight selects an item, but post-write enforcement only checks that paths are under control-plane/. A writer authorized for ACP-002 can modify ACP-003's board record or implementation, and git add control-plane will commit it."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Retry ceiling is declarative only",
+      "evidence": "WRITER_MAX_RETRIES is supplied to the request but never enforced against GITHUB_RUN_ATTEMPT. A rerun can invoke Claude again against the same authorized ancestor SHA despite max_retries=0."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "BASELINE condition 11 is cosmetic",
+      "evidence": "conditionJudgeReadOnly checks only board.execution_policy.judge_must_be_read_only === true; it does not inspect any judge job's actual repository permissions."
+    },
+    {
+      "severity": "P1",
+      "blocking": true,
+      "title": "Named reverse proofs do not prove unsafe authorization",
+      "evidence": "In-memory reproduction of the condition 1, 3, and 6 mutants produced their locally mutated check as true while overall ok remained false and authorized remained null (failed conditions [2], [2], and [1,2]). The committed tests assert only the individual check, so their claims that a writer would start are not genuine reverse proofs."
+    }
+  ],
+  "summary": "Blocking failures exist in fail-closed input handling, credential containment, branch/production fencing, retry enforcement, item scoping, and mutation proofs. Kernel check passed. The required full test command could not be independently completed because the enforced read-only filesystem rejected its temporary mutant files with EROFS.",
+  "orchestration_head_at_start": "2c6fcb9486a28179051398aff416da0d3f3d6a53",
+  "workflow_run_id": "31956327110",
+  "artifact_id": 9266088312,
+  "artifact_digest": "sha256:545634257262e9d34fe8994d2dd2ba77b6d527a8ef5f989cfa04ac1c72fdd052"
+}
