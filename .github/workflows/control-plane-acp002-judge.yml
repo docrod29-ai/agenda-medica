@@ -34,7 +34,7 @@ jobs:
       actions: read
       pull-requests: read
     env:
-      FROZEN_SHA: '437a119b2978972f54992c85ab7e60c7b929e2b7'
+      FROZEN_SHA: '821a44b0da15959041e4af22990b2bcd499a59a7'
       ORCHESTRATION_HEAD_AT_START: ${{ github.event.pull_request.head.sha }}
     steps:
       - name: Checkout orchestration head for the audit gate
@@ -67,7 +67,7 @@ jobs:
             console.error('::error::Judge governance invariants are not fail-closed')
             process.exit(83)
           }
-          const expected = 'FROZEN_CANDIDATE_SHA=437a119b2978972f54992c85ab7e60c7b929e2b7'
+          const expected = 'FROZEN_CANDIDATE_SHA=821a44b0da15959041e4af22990b2bcd499a59a7'
           if (!item.evidence.some((e) => typeof e === 'string' && e.includes(expected))) {
             console.error('::error::Frozen candidate SHA evidence is missing')
             process.exit(84)
@@ -102,7 +102,7 @@ jobs:
         if: steps.verify.outputs.run == 'true'
         uses: actions/checkout@v5
         with:
-          ref: 437a119b2978972f54992c85ab7e60c7b929e2b7
+          ref: 821a44b0da15959041e4af22990b2bcd499a59a7
           fetch-depth: 0
           persist-credentials: false
 
@@ -132,7 +132,7 @@ jobs:
               "required": ["verdict", "audited_sha", "independent", "read_only", "mandatory_gates", "findings", "summary"],
               "properties": {
                 "verdict": {"type": "string", "enum": ["PASS", "FAIL", "UNVERIFIABLE"]},
-                "audited_sha": {"type": "string", "const": "437a119b2978972f54992c85ab7e60c7b929e2b7"},
+                "audited_sha": {"type": "string", "const": "821a44b0da15959041e4af22990b2bcd499a59a7"},
                 "independent": {"type": "boolean", "const": true},
                 "read_only": {"type": "boolean", "const": true},
                 "mandatory_gates": {
@@ -178,7 +178,7 @@ jobs:
             INDEPENDENT AUDIT FOR ACP-002 ONLY.
 
             You are CODEX_INDEPENDENT. You did not implement this candidate.
-            Audit EXACTLY immutable SHA 437a119b2978972f54992c85ab7e60c7b929e2b7.
+            Audit EXACTLY immutable SHA 821a44b0da15959041e4af22990b2bcd499a59a7.
             ACP-001 closed on your earlier PASS of 907447a20c93c60483e1e6a0156e49964cd7e539; treat
             that as settled history and do not re-audit it except where ACP-002 depends on it.
 
