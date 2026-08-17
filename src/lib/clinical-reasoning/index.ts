@@ -49,7 +49,7 @@ export interface ClinicalReasoningEnvelope {
   claims: ReasoningClaim[]
   evidenceReferences: EvidenceReference[]
   safetyFindings: SafetyFinding[]
-  unresolved: { factId: string; state: Extract<TruthState,'INCIERTO'|'CONFLICTIVO'|'NO_DOCUMENTADO'|'NO_INTERROGADO'|'DESCONOCIDO'>; reason?: string }[]
+  unresolved: { factId: string; state: Extract<TruthState,'INFERIDO'|'INCIERTO'|'CONFLICTIVO'|'NO_DOCUMENTADO'|'NO_INTERROGADO'|'DESCONOCIDO'>; reason?: string }[]
   limitedMode?: 'model_unavailable'|'evidence_unavailable'|'insufficient_patient_data'
   dispositionHistory: ClinicianDispositionEvent[]
 }
@@ -96,7 +96,7 @@ export function createReasoningEnvelope(input: {
   }
 
   const unresolved = input.encounter.facts
-    .filter((fact) => sourceSet.has(fact.id) && ['INCIERTO','CONFLICTIVO','NO_DOCUMENTADO','NO_INTERROGADO','DESCONOCIDO'].includes(fact.truthState))
+    .filter((fact) => sourceSet.has(fact.id) && ['INFERIDO','INCIERTO','CONFLICTIVO','NO_DOCUMENTADO','NO_INTERROGADO','DESCONOCIDO'].includes(fact.truthState))
     .map((fact) => ({ factId: fact.id, state: fact.truthState as ClinicalReasoningEnvelope['unresolved'][number]['state'], reason: fact.uncertaintyReason }))
 
   const limitedMode = input.limitedMode ?? (input.sourceFactIds.length === 0 ? 'insufficient_patient_data' : undefined)
