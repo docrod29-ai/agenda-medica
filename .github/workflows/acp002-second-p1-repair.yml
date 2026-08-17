@@ -1,4 +1,4 @@
-name: ACP-002 Second P1 Repair
+name: ACP-002 Checkpointed P1 Repair
 
 on:
   pull_request:
@@ -7,23 +7,22 @@ on:
       - '.github/workflows/acp002-second-p1-repair.yml'
 
 concurrency:
-  group: ausculta-acp002-second-p1-repair
+  group: ausculta-acp002-checkpointed-repair
   cancel-in-progress: false
 
 jobs:
   repair:
     if: github.event.pull_request.head.ref == 'claude/acp-001-codex-verdict-zwzvjk'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     permissions:
       contents: write
-      actions: read
     env:
       REPAIR_BRANCH: claude/acp-001-codex-verdict-zwzvjk
       VERDICT_PATH: control-plane/verdicts/acp002-codex-verdict-31963800078.json
       EXPECTED_AUDITED_SHA: 821a44b0da15959041e4af22990b2bcd499a59a7
     steps:
-      - name: Checkout exact PR head without credentials
+      - name: Checkout orchestration head without persisted credentials
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -34,7 +33,9 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify immutable FAIL and canonical repair state
+      - name: Verify immutable FAIL and take the writer state before spending credit
+        env:
+          PUSH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -44,136 +45,239 @@ jobs:
             "$VERDICT_PATH" >/dev/null
           node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs'
-          const board = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json','utf8'))
-          const item = board.items.find(x => x.id === 'ACP-002')
-          const next = board.items.find(x => x.id === 'ACP-003')
-          if (!item || item.status !== 'REPAIR_READY') throw new Error(`ACP-002 must be REPAIR_READY, got ${item?.status}`)
-          if (!next || next.status !== 'QUEUED') throw new Error(`ACP-003 must remain QUEUED, got ${next?.status}`)
+          const p='control-plane/MASTER_BOARD.json'
+          const board=JSON.parse(readFileSync(p,'utf8'))
+          const item=board.items.find(x=>x.id==='ACP-002')
+          const next=board.items.find(x=>x.id==='ACP-003')
+          if (!item || item.status!=='REPAIR_READY') throw new Error(`ACP-002 must be REPAIR_READY, got ${item?.status}`)
+          if (!next || next.status!=='QUEUED') throw new Error(`ACP-003 must remain QUEUED, got ${next?.status}`)
           for (const key of ['production_deploy_authorized','main_merge_authorized','phi_allowed','destructive_changes_authorized','clinical_policy_changes_authorized','production_secret_rotation_authorized']) {
-            if (board.execution_policy?.[key] !== false) throw new Error(`fail-closed policy drift: ${key}`)
+            if (board.execution_policy?.[key]!==false) throw new Error(`fail-closed owner-policy drift: ${key}`)
           }
-          writeFileSync('/tmp/board-before.json', JSON.stringify(board, null, 2))
+          item.status='RUNNING_WRITER'
+          item.next_action='Checkpointed bounded repair of the seven blocking P1s from Codex run 31963800078 is in progress. One Claude/Opus writer is reserved; ACP-003 must remain QUEUED.'
+          item.evidence.push(`Transition recorded: REPAIR_READY -> RUNNING_WRITER for owner-authorized checkpointed repair workflow run ${process.env.GITHUB_RUN_ID}. The repair is split into small persisted checkpoints to bound Anthropic spend; this is one writer allocation, not parallel writers.`)
+          writeFileSync(p,JSON.stringify(board,null,2)+'\n')
           NODE
+          node control-plane/kernel.mjs check
+          git config user.name 'Ausculta Control Plane'
+          git config user.email 'control-plane@users.noreply.github.com'
+          git add control-plane/MASTER_BOARD.json
+          git commit -m 'control-plane: enter checkpointed ACP-002 writer repair'
+          git -c credential.helper= -c core.askPass= -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" \
+            push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${REPAIR_BRANCH}"
 
-      - name: Install Claude Code CLI
+      - name: Install Claude Code once
         shell: bash
         run: |
           set -euo pipefail
           npm install -g @anthropic-ai/claude-code
           claude --version
 
-      - name: Run one bounded Claude Opus repair
+      - name: Chunk 1 — hostile input, permission parser, reverse proofs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/prompt.txt <<'PROMPT'
-          AUSCULTA-AUTONOMOUS-CONTROL-PLANE-001 — ACP-002 SECOND BOUNDED P1 REPAIR
+          rm -rf /tmp/chunk1
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/chunk1
+          cd /tmp/chunk1
+          git checkout --quiet "origin/${REPAIR_BRANCH}"
+          cat > /tmp/chunk1-prompt.txt <<'PROMPT'
+          AUSCULTA ACP-002 — CHECKPOINT 1 OF 3. You are CLAUDE_OPUS, the single writer. Codex remains the independent read-only judge.
 
-          You are CLAUDE_OPUS, the ONE WRITER. Codex remains the independent read-only judge.
-          The immutable authority is control-plane/verdicts/acp002-codex-verdict-31963800078.json: FAIL against 821a44b0da15959041e4af22990b2bcd499a59a7 with exactly seven blocking P1 findings.
+          Repair ONLY P1-1, P1-2 and the P1-6 reverse-proof defects from control-plane/verdicts/acp002-codex-verdict-31963800078.json.
+          Read only what is necessary: CLAUDE.md, AGENTS.md, the immutable verdict, control-plane/preflight.mjs and control-plane/preflight.test.mjs. Avoid loading the large MASTER_BOARD unless absolutely necessary.
 
-          Read completely before editing: CLAUDE.md, AGENTS.md, control-plane/BASELINE.md, control-plane/MASTER_BOARD.json, control-plane/MASTER_BOARD.schema.json, control-plane/kernel.mjs, control-plane/preflight.mjs, control-plane/preflight.test.mjs, control-plane/scope-guard.mjs, control-plane/scope-guard.test.mjs, control-plane/item-scopes.json, .github/workflows/control-plane-writer.yml, .github/workflows/acp002-codex-judge.yml, and the immutable verdict above.
+          Requirements:
+          - credential scanning must have no nesting-depth bypass; remain cycle-safe and use a bounded node/size budget that FAILS CLOSED if exhausted rather than silently stopping;
+          - writerPermissionsFromWorkflow must be strictly job-bounded: missing writer permissions may never bleed into the next job; missing/unparseable/empty blocks fail closed;
+          - complete the missing reverse proofs: condition 5 must have a real removal/inversion proof, and condition 2 must prove overall unsafe authorization (`result.ok === true` and `authorized != null`) when the relevant guard is removed with unrelated gates valid;
+          - add adversarial tests; do not weaken existing guards/assertions.
 
-          Repair ONLY these seven P1s:
-          1) Credential scan must fail closed at arbitrary nesting depth without a depth-bypass; remain cycle-safe and bounded against DoS by a defensible node/size budget that FAILS rather than stops scanning.
-          2) writerPermissionsFromWorkflow must be job-bounded: missing writer permissions must never bleed into the next job. Missing/unparseable/empty blocks fail closed. Add adversarial tests.
-          3) Retry ceiling must survive a FRESH workflow_dispatch, not only GITHUB_RUN_ATTEMPT. Implement durable, repository-visible invocation accounting or another mechanically enforceable scheme tied to item + authorized SHA. max_retries=0 must make a second fresh dispatch impossible before Claude invocation. Do not depend on mutable prose. Avoid schema/kernel changes unless absolutely necessary; prefer a dedicated deterministic control-plane ledger/guard with focused tests and a pre-writer mechanical step.
-          4) The writer must not be able to rewrite its own post-write enforcement. The authoritative scope declaration and enforcement logic used AFTER the writer must be immutable to that writer invocation: snapshot/copy/hash them before Claude runs and execute/compare against the pre-writer trusted copy, or otherwise structurally separate writer-editable implementation from enforcement. A writer for ACP-002 must not weaken a guard then modify ACP-003.
-          5) Branch/token fence must not trust writer-mutable .git metadata. Before the token-bearing push, use a fresh mechanically created checkout/repository or otherwise prove and reset all relevant git config/remotes/url rewrites. The push destination and branch must be pinned independently of writer-mutated repository metadata. Token appears only in the final mechanical push context.
-          6) Complete reverse proofs: condition 5 needs a real removal/inversion proof, and condition 2 must prove overall unsafe authorization (result.ok === true and authorized != null) when the relevant guard is removed, with unrelated gates valid. Do not make claims stronger than the mutant demonstrates.
-          7) Cloud attestation must be genuinely successful for the repaired candidate BEFORE freezing. Fix the attestation harness so it supplies every new preflight field, inspects real judge workflow permissions, and proves fail-closed behavior in GitHub Actions. The freeze workflow must consume exact successful CI + attestation evidence for the same candidate SHA; evidence added after the fact is invalid.
-
-          REQUIRED STATE: ACP-002 currently REPAIR_READY. Record REPAIR_READY -> RUNNING_WRITER -> WRITER_DONE truthfully in ACP-002 evidence only. Do not advance to CI_PENDING/SHA_FROZEN/RUNNING_JUDGE. Do not touch ACP-003 or later records.
-
-          HARD BOUNDARIES: no product/clinical code, Firestore, deployment, main/master, PHI, secrets, billing, destructive action, clinical policy, merge, or deploy. Do not weaken tests/gates. Do not commit or push. You have NO Bash/Web tools intentionally.
-
-          ALLOWED EDITS:
+          EDIT ONLY:
           - control-plane/preflight.mjs
           - control-plane/preflight.test.mjs
-          - control-plane/scope-guard.mjs
-          - control-plane/scope-guard.test.mjs
-          - control-plane/item-scopes.json
-          - control-plane/MASTER_BOARD.json
-          - control-plane/writer-attempt-guard.mjs (optional new)
-          - control-plane/writer-attempt-guard.test.mjs (optional new)
-          - control-plane/writer-attempts.json (optional new durable ledger template/state)
-          - .github/workflows/control-plane-writer.yml
-          - .github/workflows/acp002-freeze-and-judge.yml
 
-          kernel.mjs and MASTER_BOARD.schema.json are OUT OF SCOPE. If you cannot solve all seven within these boundaries, stop without pretending success.
-          Final response: READY_FOR_VERIFICATION=YES only if all seven P1s are fully addressed.
+          No Bash, Web, git, board changes, workflow changes, product/clinical code, merge, deploy, PHI or secrets. Do not touch kernel.mjs or schema.
+          Finish with CHECKPOINT_1_READY=YES only if this subset is complete.
           PROMPT
-
-          claude -p "$(cat /tmp/prompt.txt)" \
-            --model opus \
-            --max-turns 120 \
-            --output-format json \
-            --allowedTools "Read" "Write" "Edit" "Glob" "Grep" \
-            --disallowedTools "Bash" "WebSearch" "WebFetch" \
-            2>&1 | tee /tmp/claude-repair.log
-
-      - name: Enforce emergency repair scope and ACP-002-only board delta
-        shell: bash
-        run: |
-          set -euo pipefail
-          status="$(git status --porcelain)"
-          test -n "$status"
-          printf '%s\n' "$status"
+          claude -p "$(cat /tmp/chunk1-prompt.txt)" --model opus --max-turns 24 --output-format json \
+            --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" \
+            2>&1 | tee /tmp/chunk1.log
+          git status --porcelain
+          test -n "$(git status --porcelain)"
           while IFS= read -r line; do
-            path="${line:3}"
-            path="${path##* -> }"
-            case "$path" in
-              control-plane/preflight.mjs|control-plane/preflight.test.mjs|control-plane/scope-guard.mjs|control-plane/scope-guard.test.mjs|control-plane/item-scopes.json|control-plane/MASTER_BOARD.json|control-plane/writer-attempt-guard.mjs|control-plane/writer-attempt-guard.test.mjs|control-plane/writer-attempts.json|.github/workflows/control-plane-writer.yml|.github/workflows/acp002-freeze-and-judge.yml) ;;
-              *) echo "::error::FORBIDDEN_SCOPE_CHANGE: $path"; exit 80 ;;
-            esac
-          done <<< "$status"
-
-          node --input-type=module <<'NODE'
-          import { readFileSync } from 'node:fs'
-          const before = JSON.parse(readFileSync('/tmp/board-before.json','utf8'))
-          const after = JSON.parse(readFileSync('control-plane/MASTER_BOARD.json','utf8'))
-          const b = before.items.find(x => x.id === 'ACP-002')
-          const a = after.items.find(x => x.id === 'ACP-002')
-          if (!a || a.status !== 'WRITER_DONE') throw new Error(`ACP-002 must finish WRITER_DONE, got ${a?.status}`)
-          const strip = x => ({...x, items:x.items.filter(i => i.id !== 'ACP-002')})
-          if (JSON.stringify(strip(before)) !== JSON.stringify(strip(after))) throw new Error('foreign item or governance changed')
-          if (a.id !== b.id || a.owner !== b.owner || JSON.stringify(a.dependencies) !== JSON.stringify(b.dependencies)) throw new Error('ACP-002 identity/dependency drift')
-          const ev = Array.isArray(a.evidence) ? a.evidence.join('\n') : ''
-          for (const token of ['31963800078','REPAIR_READY','RUNNING_WRITER','WRITER_DONE']) if (!ev.includes(token)) throw new Error(`missing evidence ${token}`)
-          NODE
-
-      - name: Verify focused contract
-        shell: bash
-        run: |
-          set -euo pipefail
+            p="${line:3}"; p="${p##* -> }"
+            case "$p" in control-plane/preflight.mjs|control-plane/preflight.test.mjs) ;; *) echo "::error::CHUNK1_FORBIDDEN:$p"; exit 80;; esac
+          done <<< "$(git status --porcelain)"
+          node --test control-plane/preflight.test.mjs
           node --test control-plane/*.test.mjs
           node control-plane/kernel.mjs check
 
-      - name: Commit and push from a fresh trusted repository
+      - name: Persist checkpoint 1 from a fresh trusted clone
         env:
           PUSH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir /tmp/trusted
-          git -c credential.helper= -c core.askPass= clone --no-checkout "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/trusted/repo
-          cd /tmp/trusted/repo
-          git checkout "${{ github.event.pull_request.head.sha }}"
-          git config user.name "Ausculta Control Plane"
-          git config user.email "control-plane@users.noreply.github.com"
-          cd "$GITHUB_WORKSPACE"
-          while IFS= read -r line; do
-            path="${line:3}"; path="${path##* -> }"
-            mkdir -p "/tmp/trusted/repo/$(dirname "$path")"
-            if [[ -e "$path" ]]; then cp -a "$path" "/tmp/trusted/repo/$path"; else rm -f "/tmp/trusted/repo/$path"; fi
-          done <<< "$(git status --porcelain)"
-          cd /tmp/trusted/repo
-          rm -f .github/workflows/acp002-second-p1-repair.yml
-          git add control-plane .github/workflows/control-plane-writer.yml .github/workflows/acp002-freeze-and-judge.yml 2>/dev/null || true
+          rm -rf /tmp/trusted1
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/trusted1
+          cd /tmp/trusted1
+          git checkout --quiet "origin/${REPAIR_BRANCH}"
+          cp /tmp/chunk1/control-plane/preflight.mjs control-plane/preflight.mjs
+          cp /tmp/chunk1/control-plane/preflight.test.mjs control-plane/preflight.test.mjs
+          git config user.name 'Ausculta Control Plane'
+          git config user.email 'control-plane@users.noreply.github.com'
+          git add control-plane/preflight.mjs control-plane/preflight.test.mjs
           git diff --cached --check
-          git commit -m "control-plane: repair second ACP-002 blocking P1 set"
+          git commit -m 'control-plane: checkpoint ACP-002 input and parser P1 repairs'
           git -c credential.helper= -c core.askPass= -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" \
             push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${REPAIR_BRANCH}"
-          echo "REPAIRED_SHA=$(git rev-parse HEAD)"
+          echo "CHECKPOINT_1_SHA=$(git rev-parse HEAD)"
+
+      - name: Chunk 2 — durable retry and immutable post-write enforcement
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/chunk2
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/chunk2
+          cd /tmp/chunk2
+          git checkout --quiet "origin/${REPAIR_BRANCH}"
+          cat > /tmp/chunk2-prompt.txt <<'PROMPT'
+          AUSCULTA ACP-002 — CHECKPOINT 2 OF 3. You are CLAUDE_OPUS, the same single writer allocation. Codex remains judge.
+
+          Repair ONLY P1-3 and P1-4 from the immutable verdict 31963800078.
+          Read only: CLAUDE.md, AGENTS.md, the verdict, control-plane/scope-guard.mjs, control-plane/scope-guard.test.mjs, control-plane/item-scopes.json, and any writer-attempt guard files you create. Do not read the large board unless necessary.
+
+          Requirements:
+          - max_retries must survive a brand-new workflow_dispatch, not only GITHUB_RUN_ATTEMPT. Implement deterministic durable repository-visible accounting tied to item + authorized SHA so max_retries=0 mechanically refuses a second fresh invocation BEFORE Claude runs;
+          - post-write scope enforcement must be immutable to the writer invocation: a writer must not be able to weaken the guard/scope declaration that will judge its own changes and then alter ACP-003;
+          - fail closed on missing/corrupt ledger/scope state; add focused adversarial and reverse tests.
+
+          EDIT ONLY:
+          - control-plane/scope-guard.mjs
+          - control-plane/scope-guard.test.mjs
+          - control-plane/item-scopes.json
+          - control-plane/writer-attempt-guard.mjs (new if useful)
+          - control-plane/writer-attempt-guard.test.mjs (new if useful)
+          - control-plane/writer-attempts.json (new if useful)
+
+          Do NOT edit any .github workflow in this checkpoint; integration is checkpoint 3. No Bash/Web/git/board/product/clinical changes. Do not touch kernel or schema.
+          Finish with CHECKPOINT_2_READY=YES only if the deterministic core is complete.
+          PROMPT
+          claude -p "$(cat /tmp/chunk2-prompt.txt)" --model opus --max-turns 28 --output-format json \
+            --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" \
+            2>&1 | tee /tmp/chunk2.log
+          git status --porcelain
+          test -n "$(git status --porcelain)"
+          while IFS= read -r line; do
+            p="${line:3}"; p="${p##* -> }"
+            case "$p" in control-plane/scope-guard.mjs|control-plane/scope-guard.test.mjs|control-plane/item-scopes.json|control-plane/writer-attempt-guard.mjs|control-plane/writer-attempt-guard.test.mjs|control-plane/writer-attempts.json) ;; *) echo "::error::CHUNK2_FORBIDDEN:$p"; exit 81;; esac
+          done <<< "$(git status --porcelain)"
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+
+      - name: Persist checkpoint 2 from a fresh trusted clone
+        env:
+          PUSH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/trusted2
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/trusted2
+          cd /tmp/trusted2
+          git checkout --quiet "origin/${REPAIR_BRANCH}"
+          for p in control-plane/scope-guard.mjs control-plane/scope-guard.test.mjs control-plane/item-scopes.json control-plane/writer-attempt-guard.mjs control-plane/writer-attempt-guard.test.mjs control-plane/writer-attempts.json; do
+            if [[ -f "/tmp/chunk2/$p" ]]; then mkdir -p "$(dirname "$p")"; cp "/tmp/chunk2/$p" "$p"; fi
+          done
+          git config user.name 'Ausculta Control Plane'
+          git config user.email 'control-plane@users.noreply.github.com'
+          git add control-plane
+          git diff --cached --check
+          git commit -m 'control-plane: checkpoint ACP-002 retry and scope P1 repairs'
+          git -c credential.helper= -c core.askPass= -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" \
+            push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${REPAIR_BRANCH}"
+          echo "CHECKPOINT_2_SHA=$(git rev-parse HEAD)"
+
+      - name: Chunk 3 — trusted push, attestation, freeze integration staged for owner transport
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/chunk3
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/chunk3
+          cd /tmp/chunk3
+          git checkout --quiet "origin/${REPAIR_BRANCH}"
+          mkdir -p control-plane/staged-workflows
+          cp .github/workflows/control-plane-writer.yml control-plane/staged-workflows/control-plane-writer.yml
+          cp .github/workflows/acp002-freeze-and-judge.yml control-plane/staged-workflows/acp002-freeze-and-judge.yml
+          cat > /tmp/chunk3-prompt.txt <<'PROMPT'
+          AUSCULTA ACP-002 — CHECKPOINT 3 OF 3. You are CLAUDE_OPUS, same single writer allocation. Codex remains independent judge.
+
+          Finish ONLY P1-5 and P1-7 and integrate the already-checkpointed P1-3/P1-4 mechanisms into STAGED workflow copies.
+          Read: CLAUDE.md, AGENTS.md, immutable verdict 31963800078, the current control-plane repair modules/tests, the real .github/workflows/control-plane-writer.yml and .github/workflows/acp002-freeze-and-judge.yml, and the two staged copies under control-plane/staged-workflows/.
+
+          Requirements:
+          - token-bearing push must not trust writer-mutable .git metadata. Build the final push from a fresh mechanically created repository/checkout with independently pinned repo + branch + candidate SHA; token exists only in the final constrained push context;
+          - integrate durable fresh-dispatch accounting BEFORE Claude invocation and immutable pre-writer scope enforcement/snapshots;
+          - PR attestation must exercise the CURRENT contract and genuinely pass fail-closed adversarial cases;
+          - freeze must consume exact successful CI + attestation evidence for the SAME candidate SHA, and the immutable candidate being judged must itself contain its green evidence. No after-the-fact evidence commit may be treated as belonging to the earlier SHA;
+          - keep Claude writer permissions/tooling narrow; no deploy/main/PHI/clinical/secret/billing authority;
+          - do not claim PASS. Codex must re-audit after a new exact SHA is frozen.
+
+          IMPORTANT PLATFORM RULE: do NOT edit files under .github in the working tree. GitHub's job token cannot push workflow files. Edit ONLY the staged copies; an owner-controlled deterministic transport will copy those bytes into .github after this checkpoint.
+
+          EDIT ONLY:
+          - control-plane/staged-workflows/control-plane-writer.yml
+          - control-plane/staged-workflows/acp002-freeze-and-judge.yml
+          - control-plane/preflight.test.mjs (only if a static integration proof is genuinely needed)
+          - control-plane/scope-guard.test.mjs (only if a static integration proof is genuinely needed)
+          - control-plane/writer-attempt-guard.test.mjs (only if needed)
+
+          No Bash/Web/git/board changes. Do not touch kernel/schema/product/clinical code.
+          Finish with CHECKPOINT_3_READY_FOR_TRANSPORT=YES only if the staged workflows integrate all remaining blocking requirements.
+          PROMPT
+          claude -p "$(cat /tmp/chunk3-prompt.txt)" --model opus --max-turns 24 --output-format json \
+            --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" \
+            2>&1 | tee /tmp/chunk3.log
+          git status --porcelain
+          test -n "$(git status --porcelain)"
+          while IFS= read -r line; do
+            p="${line:3}"; p="${p##* -> }"
+            case "$p" in control-plane/staged-workflows/control-plane-writer.yml|control-plane/staged-workflows/acp002-freeze-and-judge.yml|control-plane/preflight.test.mjs|control-plane/scope-guard.test.mjs|control-plane/writer-attempt-guard.test.mjs) ;; *) echo "::error::CHUNK3_FORBIDDEN:$p"; exit 82;; esac
+          done <<< "$(git status --porcelain)"
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+          test -s control-plane/staged-workflows/control-plane-writer.yml
+          test -s control-plane/staged-workflows/acp002-freeze-and-judge.yml
+
+      - name: Persist checkpoint 3 staged integration from a fresh trusted clone
+        env:
+          PUSH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/trusted3
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/trusted3
+          cd /tmp/trusted3
+          git checkout --quiet "origin/${REPAIR_BRANCH}"
+          mkdir -p control-plane/staged-workflows
+          cp /tmp/chunk3/control-plane/staged-workflows/control-plane-writer.yml control-plane/staged-workflows/control-plane-writer.yml
+          cp /tmp/chunk3/control-plane/staged-workflows/acp002-freeze-and-judge.yml control-plane/staged-workflows/acp002-freeze-and-judge.yml
+          for p in control-plane/preflight.test.mjs control-plane/scope-guard.test.mjs control-plane/writer-attempt-guard.test.mjs; do
+            if [[ -f "/tmp/chunk3/$p" ]]; then cp "/tmp/chunk3/$p" "$p"; fi
+          done
+          git config user.name 'Ausculta Control Plane'
+          git config user.email 'control-plane@users.noreply.github.com'
+          git add control-plane
+          git diff --cached --check
+          git commit -m 'control-plane: stage ACP-002 trusted workflow integration'
+          git -c credential.helper= -c core.askPass= -c http.extraheader="AUTHORIZATION: bearer ${PUSH_TOKEN}" \
+            push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${REPAIR_BRANCH}"
+          echo "STAGED_INTEGRATION_SHA=$(git rev-parse HEAD)"
+          echo 'Repair checkpoints are persisted. ACP-002 intentionally remains RUNNING_WRITER until owner-controlled workflow-byte transport and final verification complete.'
