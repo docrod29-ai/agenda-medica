@@ -5,8 +5,8 @@ Baseline: V15 accepted `317c6c5695b69e1a543d99d65e897f638db563a8`.
 
 | Order | Slice | Status |
 |---:|---|---|
-| 1 | CONTEXT-CANONICALIZATION | ACTIVE |
-| 2 | DOCUMENTATION ENGINE / CLINICAL TRUTH | QUEUED |
+| 1 | CONTEXT-CANONICALIZATION | COMPLETE |
+| 2 | DOCUMENTATION ENGINE / CLINICAL TRUTH | ACTIVE |
 | 3 | VOICE ENGINE | QUEUED |
 | 4 | CLINICAL REASONING + EVIDENCE + SAFETY | QUEUED |
 | 5 | CONSULTORIO / AGENDA / RECETA / PAGOS / SECRETARIA | QUEUED |
@@ -25,12 +25,25 @@ Baseline: V15 accepted `317c6c5695b69e1a543d99d65e897f638db563a8`.
 - Control Plane P2/P3: DEFERRED. Only blocking P0/P1 can interrupt product execution.
 - Product merge/deploy and other owner-gated actions require explicit owner approval.
 
-## Current milestone
-CONTEXT-CANONICALIZATION deliverables:
+## Completed milestone — CONTEXT-CANONICALIZATION
+Deliverables present:
 - `docs/product/CONTEXT_CANONICAL.md`
 - `docs/product/PRODUCT_BOARD.md`
 - `docs/product/DECISION_REGISTER.md`
 - `scripts/product/context-verifier.mjs`
 - focused deterministic tests under `tests/product/`
 
-On completion, move ACTIVE status to DOCUMENTATION ENGINE / CLINICAL TRUTH; do not run both slices as ACTIVE simultaneously.
+CI for the frozen context checkpoint passed. Codex-specific transport was not discoverable from the repository workflow surface; this is not treated as PASS and does not block moving to the next slice because the independent judge is required when available/appropriate, not as a substitute for deterministic acceptance.
+
+## Current milestone — DOCUMENTATION ENGINE / CLINICAL TRUTH
+Mandatory direction:
+- one clinical truth -> structured facts/encounter model -> multiple document renderers;
+- absolute NO INVENTAR;
+- explicit truth states: NEGADO / NO_INTERROGADO / NO_DOCUMENTADO / DESCONOCIDO / INFERIDO / INCIERTO / CONFLICTIVO;
+- preserve provenance and encounter/time context;
+- draft/signed lifecycle with auditable amendments rather than silent rewrite;
+- physician corrections may shape ClinicianPreferenceProfile but never rewrite underlying clinical truth;
+- accept dictation, free text, mixed voice+text, abbreviated/disorganized input, spelling errors, medical terminology, Spanish/English/Spanglish without requiring re-dictation;
+- support the 15 canonical document outputs enumerated in `CONTEXT_CANONICAL.md`.
+
+Next action: implement the smallest production-grade Clinical Truth core and focused deterministic tests on a dedicated product branch without broad UI or Voice Engine work.
