@@ -1,0 +1,106 @@
+name: ACP-002 P1-2 Resume
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/acp002-p12-resume.yml'
+
+concurrency:
+  group: ausculta-acp002-p12-resume
+  cancel-in-progress: false
+
+jobs:
+  repair-p12:
+    if: github.event.pull_request.head.ref == 'claude/acp-001-codex-verdict-zwzvjk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      REPAIR_BRANCH: claude/acp-001-codex-verdict-zwzvjk
+      VERDICT_PATH: control-plane/verdicts/acp002-codex-verdict-31963800078.json
+      EXPECTED_AUDITED_SHA: 821a44b0da15959041e4af22990b2bcd499a59a7
+      PROGRESS_PATH: control-plane/acp002-repair-progress.json
+    steps:
+      - name: Checkout exact PR head without persisted credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify only P1-2 is next incomplete checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$VERDICT_PATH"
+          jq -e --arg sha "$EXPECTED_AUDITED_SHA" '.verdict == "FAIL" and .audited_sha == $sha and .independent == true and .read_only == true' "$VERDICT_PATH" >/dev/null
+          jq -e '.completed | index("P1-1") != null and index("P1-2") == null' "$PROGRESS_PATH" >/dev/null
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          const board=JSON.parse(readFileSync('control-plane/MASTER_BOARD.json','utf8'))
+          const a=board.items.find(x=>x.id==='ACP-002')
+          const b=board.items.find(x=>x.id==='ACP-003')
+          if (!a || a.status!=='RUNNING_WRITER') throw new Error(`ACP-002 must be RUNNING_WRITER, got ${a?.status}`)
+          if (!b || b.status!=='QUEUED') throw new Error(`ACP-003 must remain QUEUED, got ${b?.status}`)
+          for (const key of ['production_deploy_authorized','main_merge_authorized','phi_allowed','destructive_changes_authorized','clinical_policy_changes_authorized','production_secret_rotation_authorized']) if (board.execution_policy?.[key]!==false) throw new Error(`policy drift: ${key}`)
+          NODE
+          node control-plane/kernel.mjs check
+
+      - name: Install Claude Code
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Repair P1-2 only
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PUSH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/p12 /tmp/t12
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/p12
+          cd /tmp/p12
+          git checkout --quiet "origin/${REPAIR_BRANCH}"
+          jq -e '.completed | index("P1-1") != null and index("P1-2") == null' "$PROGRESS_PATH" >/dev/null
+          cat > /tmp/p12.prompt <<'PROMPT'
+          AUSCULTA ACP-002 — P1-2 ONLY. You are CLAUDE_OPUS, the single writer. Codex remains the independent read-only judge.
+          Repair ONLY P1-2 from control-plane/verdicts/acp002-codex-verdict-31963800078.json.
+          The permission parser must be strictly bounded to the requested job. Missing, malformed, empty, or unparseable permissions fail closed. It must never read permissions from the next job. Cover the exact judge repro: remove the writer permissions while a following attest/other job has valid permissions; authorization must refuse. Add adversarial tests for sibling-job bleed, malformed indentation/job boundaries, duplicate-looking job names, empty permissions, and missing selected job. Preserve all P1-1 behavior already checkpointed. Do not broaden scope or refactor unrelated code.
+          EDIT ONLY control-plane/preflight.mjs and control-plane/preflight.test.mjs. No workflow/board/kernel/schema/product/clinical edits. No Bash/Web/git. End with CHECKPOINT_P1_2_READY=YES only when complete.
+          PROMPT
+          claude -p "$(cat /tmp/p12.prompt)" --model opus --max-turns 22 --output-format json --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" 2>&1 | tee /tmp/p12.log
+          grep -q 'CHECKPOINT_P1_2_READY=YES' /tmp/p12.log
+          status="$(git status --porcelain)"; test -n "$status"
+          while IFS= read -r line; do p="${line:3}"; p="${p##* -> }"; case "$p" in control-plane/preflight.mjs|control-plane/preflight.test.mjs) ;; *) echo "::error::P1_2_FORBIDDEN:$p"; exit 81;; esac; done <<< "$status"
+          node --test control-plane/preflight.test.mjs
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/t12
+          cd /tmp/t12
+          git checkout --quiet "origin/${REPAIR_BRANCH}"
+          jq -e '.completed | index("P1-1") != null and index("P1-2") == null' "$PROGRESS_PATH" >/dev/null
+          cp /tmp/p12/control-plane/preflight.mjs control-plane/preflight.mjs
+          cp /tmp/p12/control-plane/preflight.test.mjs control-plane/preflight.test.mjs
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs'
+          const p=process.env.PROGRESS_PATH
+          const x=JSON.parse(readFileSync(p,'utf8'))
+          if(!x.completed.includes('P1-2')) x.completed.push('P1-2')
+          writeFileSync(p,JSON.stringify(x,null,2)+'\n')
+          NODE
+          git config user.name 'Ausculta Control Plane'
+          git config user.email 'control-plane@users.noreply.github.com'
+          git add control-plane/preflight.mjs control-plane/preflight.test.mjs "$PROGRESS_PATH"
+          git diff --cached --check
+          git commit -m 'control-plane: checkpoint ACP-002 P1-2 permission parser repair'
+          BASIC="$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)"
+          git -c credential.helper= -c core.askPass= -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${BASIC}" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${REPAIR_BRANCH}"
