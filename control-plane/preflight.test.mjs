@@ -28,11 +28,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { BOARD_PATH, SCHEMA_PATH } from './kernel.mjs'
 import {
   BUDGET_CEILINGS,
+  CREDENTIAL_SCAN_BUDGET,
+  CREDENTIAL_SCAN_STATUS,
   PREFLIGHT_CONTRACT_VERSION,
   PRODUCTION_REACHING_PERMISSIONS,
   STOP_CONDITIONS,
   main as mainCli,
   runPreflight,
+  scanRequestForCredentials,
   writerLockFromBoard,
   writerPermissionsFromWorkflow,
 } from './preflight.mjs'
@@ -530,7 +533,9 @@ test('condition 7: the leak check does not fire on presence-only fields', () => 
 })
 
 test('reverse proof: without the leak scan, a request carrying a credential authorizes a writer', async () => {
-  const mutant = await mutatePreflight([['  const leaked = findCredentialBearingPath(request)', '  const leaked = null']])
+  const mutant = await mutatePreflight([
+    ['  const scan = scanRequestForCredentials(request)', "  const scan = { status: 'CLEAN', detail: 'mutant: the scan was removed' }"],
+  ])
   const request = validRequest({ secret_value: 'sk-ant-oops' })
   assertRealPreflightRefuses({ request }, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
   assertMutantAuthorizes(mutant, { request })
@@ -950,4 +955,231 @@ test('P1-2: the writer holds no shell and no persisted credential', () => {
   // The token appears once, in the final push step, and never as a job-wide env.
   assert.equal(writerSection.split('PUSH_TOKEN:').length - 1, 1)
   assert.match(writerSection, /git -c http\.extraheader=.*push "https:\/\/github\.com/s)
+})
+
+// ---------------------------------------------------------------------------
+// 18. P1-1 again — Codex run 31963800078: "authorizes deeply nested secret values"
+//
+// The previous repair walked the whole request but capped recursion at eight
+// levels and returned null past the cap. The judge put a credential at ten
+// levels, got ok=true with condition 7 reporting "value never read", and was
+// right: a depth cutoff that answers "clean" is a documented bypass, and the
+// depth needed to use it is written in the source.
+//
+// The repaired scan has no depth cutoff at all. It is bounded by a node and
+// character budget instead, and exhausting that budget REFUSES. These tests
+// hold three separate lines: no depth is safe, exhaustion fails closed, and
+// neither property was bought by weakening the permission-level exemption or
+// the cycle tolerance.
+// ---------------------------------------------------------------------------
+
+/** `inner` deliberately matches no credential key pattern: only the leaf does. */
+function nestDeep(depth, leaf) {
+  let value = leaf
+  for (let level = 0; level < depth; level += 1) value = { inner: value }
+  return value
+}
+
+/** More nodes than the scan will ever agree to read. */
+function oversizedPayload(count = CREDENTIAL_SCAN_BUDGET.max_nodes + 2000) {
+  return Array.from({ length: count }, (_, index) => ({ inner: index }))
+}
+
+test('P1-1: the judge\'s exact repro — a credential at ten levels is refused, not authorized', () => {
+  const request = validRequest({ deep: nestDeep(10, { api_key: 'sk-ant-do-not-print-me' }) })
+  const result = preflight({ request })
+  assert.equal(conditionById(result, 7).stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+  assert.equal(result.ok, false, 'the request that returned ok=true for the judge must now be refused')
+  assert.equal(result.authorized, null, 'nothing may be authorized while the request carries a credential')
+  assert.equal(result.next_board_status, 'BLOCKED')
+  assert.equal(result.github_outputs.authorized_item, '')
+})
+
+test('P1-1: there is no depth at which a credential becomes invisible', () => {
+  for (const depth of [0, 1, 7, 8, 9, 10, 11, 25, 64, 300]) {
+    for (const leaf of [{ api_key: 'sk-ant-do-not-print-me' }, { harmless: 'ghp_do_not_print_me' }, [{ password: 'hunter2' }]]) {
+      const result = preflight({ request: validRequest({ deep: nestDeep(depth, leaf) }) })
+      assert.equal(
+        conditionById(result, 7).stop_condition,
+        STOP_CONDITIONS.SECRET_VALUE_LEAKED,
+        `depth ${depth} / ${JSON.stringify(leaf)}`,
+      )
+      assert.equal(result.ok, false, `depth ${depth} must not authorize`)
+    }
+  }
+})
+
+test('P1-1: depth alone is not suspicion — a deep but clean request still authorizes', () => {
+  const result = preflight({ request: validRequest({ deep: nestDeep(300, { note: 'nothing secret here' }) }) })
+  assert.equal(conditionById(result, 7).ok, true, JSON.stringify(conditionById(result, 7)))
+  assert.equal(result.ok, true, 'the repair must refuse credentials, not depth')
+})
+
+test('reverse proof: reinstating the depth-8 cutoff authorizes a writer carrying a credential', async () => {
+  // The mutation is the deleted defect itself, restored: children past eight
+  // path segments are never walked, so the scan answers "clean" for a request
+  // it never finished reading — which is precisely what the judge exploited.
+  const mutant = await mutatePreflight([
+    [
+      '    for (let index = children.length - 1; index >= 0; index -= 1) stack.push(children[index])',
+      "    for (let index = children.length - 1; index >= 0; index -= 1) { if (pathOf(children[index]).split('.').length <= 8) stack.push(children[index]) }",
+    ],
+  ])
+  const request = validRequest({ deep: nestDeep(12, { api_key: 'sk-ant-do-not-print-me' }) })
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+  const over = assertMutantAuthorizes(mutant, { request })
+  assert.equal(over.checks.find((entry) => entry.id === 7).ok, true, 'the mutant is blind exactly where the old cutoff was')
+})
+
+test('P1-1: an unreadably large request is REFUSED, never reported clean', () => {
+  const request = validRequest({ bulk: oversizedPayload() })
+  const result = preflight({ request })
+  const condition = conditionById(result, 7)
+  assert.equal(condition.ok, false)
+  assert.equal(condition.stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+  assert.match(condition.detail, /credential-scan budget/, 'the refusal must say the budget was exhausted, not invent a finding')
+  assert.equal(result.ok, false)
+  assert.equal(result.authorized, null)
+  assert.equal(result.next_board_status, 'BLOCKED')
+})
+
+test('P1-1: the budget is spent on characters too, not only on node count', () => {
+  const request = validRequest({ blob: 'a'.repeat(CREDENTIAL_SCAN_BUDGET.max_chars + 1) })
+  const result = preflight({ request })
+  assert.equal(conditionById(result, 7).stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+  assert.match(conditionById(result, 7).detail, /credential-scan budget/)
+  assert.equal(result.ok, false)
+})
+
+test('P1-1: exhaustion is its own answer — the scan never returns CLEAN for what it could not read', () => {
+  const tiny = { max_nodes: 3, max_chars: 8 }
+  for (const value of [
+    { a: { b: { c: { d: 'x' } } } },
+    { one: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
+    validRequest(),
+  ]) {
+    const scan = scanRequestForCredentials(value, tiny)
+    assert.equal(scan.status, CREDENTIAL_SCAN_STATUS.BUDGET_EXHAUSTED, JSON.stringify(value).slice(0, 60))
+    assert.notEqual(scan.status, CREDENTIAL_SCAN_STATUS.CLEAN)
+  }
+  // And a request that fits is still answered on its merits, not by the budget.
+  assert.equal(scanRequestForCredentials({ ok: 'y' }, tiny).status, CREDENTIAL_SCAN_STATUS.CLEAN)
+  assert.equal(scanRequestForCredentials({ token: 'ghp_x' }, tiny).status, CREDENTIAL_SCAN_STATUS.CREDENTIAL_FOUND)
+})
+
+test('reverse proof: a budget that stops silently instead of failing closed authorizes a writer', async () => {
+  // Two ways to get the old behaviour back, and both must be shown to start a
+  // writer: calling exhaustion "clean", and simply not counting.
+  const silent = await mutatePreflight([['    status: CREDENTIAL_SCAN_STATUS.BUDGET_EXHAUSTED,', '    status: CREDENTIAL_SCAN_STATUS.CLEAN,']])
+  const uncounted = await mutatePreflight([
+    ['    if (nodes > budget.max_nodes) return exhausted(`more than ${budget.max_nodes} nodes`)', '    if (false) return exhausted(`more than ${budget.max_nodes} nodes`)'],
+  ])
+  const request = validRequest({ bulk: oversizedPayload() })
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+  assertMutantAuthorizes(silent, { request })
+  assertMutantAuthorizes(uncounted, { request })
+})
+
+test('P1-1: a cycle is tolerated, not mistaken for exhaustion — including a deep one', () => {
+  const cyclic = validRequest()
+  cyclic.self = cyclic
+  const deep = nestDeep(200, { note: 'clean' })
+  deep.back_to_the_top = cyclic
+  cyclic.deep = deep
+  const result = preflight({ request: cyclic })
+  assert.equal(conditionById(result, 7).ok, true, JSON.stringify(conditionById(result, 7)))
+  assert.equal(result.ok, true, 'revisiting a seen object must not burn budget into a false refusal')
+})
+
+test('P1-1: a credential hidden inside a cycle is still found', () => {
+  const cyclic = validRequest()
+  const ring = { inner: { deeper: { api_key: 'sk-ant-do-not-print-me' } } }
+  ring.inner.deeper.loop = ring
+  cyclic.ring = ring
+  cyclic.self = cyclic
+  assert.equal(conditionById(preflight({ request: cyclic }), 7).stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+})
+
+test('P1-1: GitHub permission levels are exempt inside a permissions block, and only there', () => {
+  const permissions = { contents: 'write', 'pull-requests': 'none', issues: 'none', actions: 'none', deployments: 'none', 'id-token': 'none', packages: 'none' }
+  const clean = preflight({ request: validRequest({ permissions }) })
+  assert.equal(conditionById(clean, 7).ok, true, 'id-token: none is a scope being disclaimed, not a credential')
+  assert.equal(clean.ok, true)
+  // The real workflow's own block, for the same reason condition 9 reads it
+  // from the YAML rather than from a hand-typed copy.
+  assert.equal(conditionById(preflight({ request: validRequest({ permissions: writerPermissionsFromWorkflow(WRITER_WORKFLOW) }) }), 7).ok, true)
+  // Outside a permissions block the four levels buy nothing: a value that
+  // happens to read "admin" or "read" is not a licence to carry a token.
+  for (const leak of [{ vault: { token: 'admin' } }, { session: 'read' }, { api_key: 'write' }, { permissions_backup: { token: 'none' } }]) {
+    const result = preflight({ request: validRequest(leak) })
+    assert.equal(conditionById(result, 7).stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED, JSON.stringify(leak))
+  }
+})
+
+test('P1-1: the presence-only exemption is the request ROOT, not the two names anywhere', () => {
+  assert.equal(conditionById(preflight(), 7).ok, true, 'the root secret_name/secret_present pair stays legal')
+  for (const leak of [{ shadow: { secret_name: 'ANTHROPIC_API_KEY' } }, { list: [{ secret_present: 'sk-ant-do-not-print-me' }] }]) {
+    assert.equal(conditionById(preflight({ request: validRequest(leak) }), 7).stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED, JSON.stringify(leak))
+  }
+})
+
+test('P1-1: the scan is deterministic and names the same path every time', () => {
+  const request = validRequest({ deep: nestDeep(12, { api_key: 'sk-ant-do-not-print-me' }) })
+  const first = runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request })
+  const second = runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request })
+  assert.equal(JSON.stringify(first), JSON.stringify(second))
+  assert.match(conditionById(first, 7).detail, /^request carries deep(\.inner){12}\.api_key;/)
+})
+
+test('P1-1: the refusal reports the path and never the value', () => {
+  const secret = 'sk-ant-do-not-print-me-anywhere'
+  for (const request of [
+    validRequest({ deep: nestDeep(12, { api_key: secret }) }),
+    validRequest({ deep: nestDeep(12, { harmless: secret }) }),
+  ]) {
+    const printed = JSON.stringify(runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request }))
+    assert.equal(printed.includes(secret), false, 'a preflight that prints the credential is the leak it is reporting')
+    assert.match(printed, /SECRET_VALUE_LEAKED/)
+  }
+})
+
+test('P1-1: the CLI keeps the full fail-closed contract on a deeply nested credential', () => {
+  const secret = 'sk-ant-do-not-print-me'
+  const request = validRequest({ deep: nestDeep(12, { api_key: secret }) })
+  const files = {
+    '/virtual/request.json': JSON.stringify(request),
+    '/virtual/board.json': JSON.stringify(writerReadyBoard()),
+    '/virtual/schema.json': JSON.stringify(SCHEMA),
+  }
+  const captured = []
+  const write = process.stdout.write.bind(process.stdout)
+  process.stdout.write = (chunk) => { captured.push(String(chunk)); return true }
+  let code
+  try {
+    code = mainCli(['--request', '/virtual/request.json'], {
+      readFileSync: (path) => {
+        if (!(path in files)) throw new Error(`unexpected read: ${path}`)
+        return files[path]
+      },
+      boardPath: '/virtual/board.json',
+      schemaPath: '/virtual/schema.json',
+    })
+  } finally {
+    process.stdout.write = write
+  }
+  assert.equal(code, 1, 'a refused preflight must exit non-zero')
+  const output = captured.join('')
+  const parsed = JSON.parse(output)
+  assert.equal(parsed.contract, PREFLIGHT_CONTRACT_VERSION)
+  assert.equal(parsed.ok, false)
+  assert.equal(parsed.authorized, null)
+  assert.equal(parsed.next_board_status, 'BLOCKED')
+  assert.equal(parsed.stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+  assert.deepEqual(parsed.failed_conditions, [7])
+  assert.equal(parsed.github_outputs.ok, 'false')
+  assert.equal(parsed.github_outputs.authorized_item, '')
+  assert.equal(parsed.github_outputs.stop_condition, STOP_CONDITIONS.SECRET_VALUE_LEAKED)
+  assert.equal(parsed.github_outputs.failed_condition_count, '1')
+  for (const value of Object.values(parsed.github_outputs)) assert.equal(typeof value, 'string')
+  assert.equal(output.includes(secret), false, 'the CLI must not print the credential it is refusing')
 })

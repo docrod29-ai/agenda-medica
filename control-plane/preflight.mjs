@@ -308,48 +308,143 @@ const CREDENTIAL_KEY_PATTERN = /(secret|token|credential|password|passphrase|api
 const CREDENTIAL_VALUE_PATTERN = /^(sk-|ghp_|gho_|ghs_|github_pat_|xox[abprs]-|AKIA|ey[A-Za-z0-9_-]{10,}\.)/
 
 /**
- * Walks the WHOLE request, not just its top level.
- *
- * REPAIR/ACP-002/P1-1. The scan used to iterate `Object.keys(request)` once, so
- * `{creds: {api_key: '...'}}` was invisible. A credential does not become safe
- * by being one level deeper. Arrays and nested objects are walked, cycles are
- * tolerated, and depth is bounded so a hostile request cannot spin the guard.
+ * The closed vocabulary of GitHub permission LEVELS. Only these four, and only
+ * inside a `permissions:` block — see the exemption below.
  */
-function findCredentialBearingPath(value, path = '', seen = new WeakSet(), depth = 0) {
-  if (depth > 8) return null
-  if (value === null || value === undefined || value === '') return null
-  if (typeof value === 'string') {
-    return CREDENTIAL_VALUE_PATTERN.test(value) ? `${path} (value looks like a credential)` : null
-  }
-  if (typeof value !== 'object') return null
-  if (seen.has(value)) return null
-  seen.add(value)
-  for (const [key, child] of Object.entries(value)) {
-    const childPath = path === '' ? key : `${path}.${key}`
-    const emptyish = child === null || child === undefined || child === ''
+const PERMISSION_LEVEL_PATTERN = /^(none|read|write|admin)$/
+
+/** The two presence-only fields the contract requires, at the request root. */
+const PRESENCE_ONLY_KEYS = Object.freeze(['secret_name', 'secret_present'])
+
+export const CREDENTIAL_SCAN_STATUS = Object.freeze({
+  CLEAN: 'CLEAN',
+  CREDENTIAL_FOUND: 'CREDENTIAL_FOUND',
+  BUDGET_EXHAUSTED: 'BUDGET_EXHAUSTED',
+})
+
+/**
+ * How much request the scan will read before it gives up — and refuses.
+ *
+ * A real preflight request is a few dozen nodes and a few tens of kilobytes
+ * (the judge workflow sources are the bulk of it), so these are roughly two
+ * orders of magnitude of headroom. They exist to bound work against a hostile
+ * request, not to trim a legitimate one.
+ */
+export const CREDENTIAL_SCAN_BUDGET = Object.freeze({ max_nodes: 10000, max_chars: 1000000 })
+
+/** Rebuilds a dotted path from the parent chain — only when reporting. */
+function pathOf(node, key) {
+  const segments = key === undefined ? [] : [key]
+  for (let cursor = node; cursor.parent !== null; cursor = cursor.parent) segments.unshift(cursor.key)
+  return segments.join('.')
+}
+
+/**
+ * Walks the WHOLE request — every level of it — and says one of three things:
+ * clean, a credential is here, or "I could not finish".
+ *
+ * REPAIR/ACP-002/P1-1 (first pass). The scan used to iterate
+ * `Object.keys(request)` once, so `{creds: {api_key: '...'}}` was invisible. A
+ * credential does not become safe by being one level deeper.
+ *
+ * REPAIR/ACP-002/P1-1 (this pass). The fix for that was a recursive walk with
+ * `if (depth > 8) return null`, and the judge read that line for exactly what
+ * it was: a published bypass. A credential at ten levels was reported by
+ * condition 7 as "value never read", the preflight returned ok=true, and ACP-002
+ * was authorized while the request carried a secret. **Returning "clean" is not
+ * a legal way to run out of budget.** So:
+ *
+ *   - There is no depth cutoff at all. The walk is iterative over an explicit
+ *     stack, so a deep request costs heap rather than call frames and cannot be
+ *     stopped by the engine either.
+ *   - Work is bounded by a node/character budget instead, and exhausting it
+ *     returns BUDGET_EXHAUSTED — which condition 7 treats as a refusal. The
+ *     request the scan could not finish reading is the request that does not
+ *     start a writer.
+ *   - Cycles are still tolerated (`seen`), and a cycle is not exhaustion: an
+ *     already-visited object is skipped, not re-walked.
+ *   - Paths are reconstructed from the parent chain only when something is
+ *     reported, so a deep request cannot make the guard build O(n²) characters
+ *     of path string on its way to the budget.
+ *
+ * Deterministic: entries are walked in key order (children are pushed in
+ * reverse so the stack pops them forwards), so the same request always names
+ * the same first offending path.
+ */
+export function scanRequestForCredentials(root, budget = CREDENTIAL_SCAN_BUDGET) {
+  const seen = new WeakSet()
+  const stack = [{ value: root, key: undefined, parent: null }]
+  let nodes = 0
+  let chars = 0
+  const exhausted = (limit) => ({
+    status: CREDENTIAL_SCAN_STATUS.BUDGET_EXHAUSTED,
+    detail: `the request exceeds the credential-scan budget (${limit}), so it cannot be shown to be free of credential values`,
+  })
+  const found = (detail) => ({ status: CREDENTIAL_SCAN_STATUS.CREDENTIAL_FOUND, detail })
+
+  while (stack.length > 0) {
+    const node = stack.pop()
+    nodes += 1
+    if (nodes > budget.max_nodes) return exhausted(`more than ${budget.max_nodes} nodes`)
+    const value = node.value
+    if (value === null || value === undefined) continue
+    if (typeof value === 'string') {
+      chars += value.length
+      if (chars > budget.max_chars) return exhausted(`more than ${budget.max_chars} characters`)
+      if (value !== '' && CREDENTIAL_VALUE_PATTERN.test(value)) return found(`${pathOf(node)} (value looks like a credential)`)
+      continue
+    }
+    if (typeof value !== 'object') continue
+    if (seen.has(value)) continue
+    seen.add(value)
     // A GitHub permission LEVEL is a closed vocabulary, and one of the scope
     // names is `id-token` — which the key pattern rightly finds suspicious and
     // wrongly flags. `id-token: none` is a permission being disclaimed, not a
-    // credential being smuggled. Narrow the exemption to the four legal levels
-    // so a genuine secret can never hide behind it.
-    const isPermissionLevel = typeof child === 'string' && /^(none|read|write|admin)$/.test(child)
-    if (CREDENTIAL_KEY_PATTERN.test(key) && !emptyish && !isPermissionLevel) {
-      // `secret_name` and `secret_present` are the two presence-only fields the
-      // contract requires; everything else matching the pattern is a leak.
-      if (childPath !== 'secret_name' && childPath !== 'secret_present') return childPath
+    // credential being smuggled. The exemption is narrowed twice: the value
+    // must be one of the four legal levels, AND the container must be a
+    // `permissions:` block. `{vault: {token: 'admin'}}` is not a permission
+    // declaration and does not get the benefit of the doubt.
+    const isPermissionsBlock = node.key === 'permissions'
+    const isRoot = node.parent === null
+    const children = []
+    for (const [key, child] of Object.entries(value)) {
+      chars += key.length
+      if (chars > budget.max_chars) return exhausted(`more than ${budget.max_chars} characters`)
+      const emptyish = child === null || child === undefined || child === ''
+      const isPermissionLevel = isPermissionsBlock && typeof child === 'string' && PERMISSION_LEVEL_PATTERN.test(child)
+      // `secret_name` and `secret_present` are presence-only fields AT THE ROOT;
+      // the same names nested anywhere else are a leak like any other.
+      const isPresenceOnly = isRoot && PRESENCE_ONLY_KEYS.includes(key)
+      if (CREDENTIAL_KEY_PATTERN.test(key) && !emptyish && !isPermissionLevel && !isPresenceOnly) {
+        return found(pathOf(node, key))
+      }
+      children.push({ value: child, key, parent: node })
     }
-    const found = findCredentialBearingPath(child, childPath, seen, depth + 1)
-    if (found) return found
+    for (let index = children.length - 1; index >= 0; index -= 1) stack.push(children[index])
   }
-  return null
+  return { status: CREDENTIAL_SCAN_STATUS.CLEAN, detail: `${nodes} node(s) scanned` }
 }
 
 function conditionSecretPresent(context) {
   const { request } = context
   // Checked first: a leaked value is worse than a missing one.
-  const leaked = findCredentialBearingPath(request)
-  if (leaked) {
-    return check(7, 'required provider secret is present', false, STOP_CONDITIONS.SECRET_VALUE_LEAKED, `request carries ${leaked}; the preflight must only ever be told presence`)
+  const scan = scanRequestForCredentials(request)
+  if (scan.status !== CREDENTIAL_SCAN_STATUS.CLEAN) {
+    // Both non-clean outcomes refuse, and both refuse under SECRET_VALUE_LEAKED.
+    // The stop-condition vocabulary is the machine contract shared with the
+    // board and the runner, so this repair does not widen it; the detail says
+    // which of the two happened. "I could not finish reading the request" is
+    // not evidence of absence — ausencia de dato no es dato de ausencia — and
+    // the fail-closed answer to it is the same as to a value found outright.
+    return check(
+      7,
+      'required provider secret is present',
+      false,
+      STOP_CONDITIONS.SECRET_VALUE_LEAKED,
+      scan.status === CREDENTIAL_SCAN_STATUS.CREDENTIAL_FOUND
+        ? `request carries ${scan.detail}; the preflight must only ever be told presence`
+        : `${scan.detail}; the preflight refuses what it cannot read to the end`,
+    )
   }
   if (!WRITER_SECRET_NAMES.includes(request.secret_name)) {
     return check(
