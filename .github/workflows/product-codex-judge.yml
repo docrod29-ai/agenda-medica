@@ -1,0 +1,96 @@
+name: Ausculta Product Codex Judge
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ausculta-product-codex-judge
+  cancel-in-progress: false
+
+jobs:
+  judge:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == github.repository_owner &&
+      startsWith(github.event.comment.body, '/ausculta-codex-judge ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - name: Resolve and verify exact product PR head
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT: ${{ github.event.comment.body }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(printf '%s' "$COMMENT" | awk '{print $2}')"
+          [[ "$expected" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::INVALID_EXPECTED_SHA'; exit 90; }
+          pr="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          head_sha="$(jq -r '.head.sha' <<<"$pr")"
+          head_ref="$(jq -r '.head.ref' <<<"$pr")"
+          head_repo="$(jq -r '.head.repo.full_name' <<<"$pr")"
+          [[ "$head_ref" == product/* ]] || { echo "::error::NOT_PRODUCT_BRANCH=$head_ref"; exit 91; }
+          [[ "$head_repo" == "$GITHUB_REPOSITORY" ]] || { echo '::error::FORK_NOT_ALLOWED'; exit 92; }
+          [[ "$head_sha" == "$expected" ]] || { echo "::error::SHA_CHANGED expected=$expected actual=$head_sha"; exit 93; }
+          echo "sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Fail closed if OpenAI credential is absent
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${OPENAI_API_KEY:-}" ]] || { echo '::error::MISSING_REQUIRED_SECRET_OR_EXTERNAL_CREDENTIAL: OPENAI_API_KEY'; exit 78; }
+
+      - name: Checkout immutable product candidate
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.target.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run independent read-only Codex audit
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ':read-only'
+          safety-strategy: drop-sudo
+          effort: high
+          output-schema: |
+            {"type":"object","additionalProperties":false,"required":["verdict","audited_sha","independent","read_only","findings","summary"],"properties":{"verdict":{"type":"string","enum":["PASS","FAIL","UNVERIFIABLE"]},"audited_sha":{"type":"string"},"independent":{"type":"boolean","const":true},"read_only":{"type":"boolean","const":true},"findings":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["severity","blocking","title","evidence"],"properties":{"severity":{"type":"string","enum":["P0","P1","P2","P3"]},"blocking":{"type":"boolean"},"title":{"type":"string"},"evidence":{"type":"string"}}}},"summary":{"type":"string"}}}
+          prompt: |
+            AUSCULTA PRODUCT BOARD #296 — INDEPENDENT PRODUCT SLICE AUDIT.
+            You are CODEX_INDEPENDENT and did not implement this candidate.
+            Audit exactly the checked-out immutable SHA and the product PR slice it represents.
+            Read AGENTS.md, CLAUDE.md, docs/product/CONTEXT_CANONICAL.md, docs/product/PRODUCT_BOARD.md, docs/product/DECISION_REGISTER.md and the relevant slice contract/diff.
+            This is READ-ONLY. Do not edit, commit, push, merge, deploy, use network access, or start another slice.
+            Verify mandatory acceptance criteria, NO INVENTAR, provenance, explicit uncertainty/conflict, safety boundaries, regression risk, test adequacy, and scope discipline. Run relevant local tests where useful.
+            PASS only if mandatory criteria are verifiable and there is no P0/blocking P1. If a mandatory claim cannot be verified, return UNVERIFIABLE. P2/P3 are nonblocking unless they prove a mandatory failure.
+            audited_sha MUST equal git HEAD. Return only the structured result.
+
+      - name: Validate and persist verdict artifact
+        env:
+          VERDICT: ${{ steps.codex.outputs.final-message }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$VERDICT" > product-codex-verdict.json
+          jq -e --arg sha "$EXPECTED_SHA" '.audited_sha == $sha and .independent == true and .read_only == true and (.verdict=="PASS" or .verdict=="FAIL" or .verdict=="UNVERIFIABLE")' product-codex-verdict.json >/dev/null
+          cat product-codex-verdict.json
+
+      - name: Upload immutable verdict
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-codex-verdict-${{ github.run_id }}
+          path: product-codex-verdict.json
+          if-no-files-found: error
+          retention-days: 30
