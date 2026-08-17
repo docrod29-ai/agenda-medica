@@ -21,6 +21,11 @@ This register prevents implicit decisions and context drift. Product assertions 
 | D-015 | Specific commercial integrations/providers not yet explicitly accepted are not assumed. | UNKNOWN |
 | D-016 | Exact production scale/SLO targets must be defined and validated in the Reliability/Scale slice rather than invented now. | DEFERRED |
 | D-017 | Competitive superiority claims require Evaluation Kernel evidence; target ambition is not proof. | ACCEPTED |
+| D-018 | Minimum acceptable physician experience is competitive with leading ambient-clinical products such as Suki, Abridge, and Nabla; knowingly shipping below that quality floor is unacceptable. | ACCEPTED |
+| D-019 | Voice must feel conversational, near-realtime, fast, and first-pass accurate enough that physicians do not routinely repeat or adapt natural speech. | ACCEPTED |
+| D-020 | Voice/AI must robustly handle Spanish, English, Spanglish, accents, abbreviations, medications, doses, labs, specialty and ICU terminology, background noise, self-corrections, and disorganized speech. | ACCEPTED |
+| D-021 | AI may use clinical context to rapidly repair uncertain acoustic recognition, but uncertainty must remain explicit and no uncertain reconstruction may be silently converted into clinical fact. | ACCEPTED |
+| D-022 | Voice release criteria must include accuracy, clinically significant error/omission rates, latency, contextual recovery quality, unnecessary-repeat rate, physician edit time, and physician satisfaction. | ACCEPTED |
 
 ## Conflict rule
 If repository prose, stale Control Plane state, or an agent output conflicts with this canonical product context, do not silently reconcile it. Classify the conflict as CONFLICTIVO/UNKNOWN as appropriate and escalate only when it blocks safe execution.
