@@ -7,8 +7,8 @@ const decisions = `ACCEPTED DEFERRED UNKNOWN OWNER_APPROVAL_REQUIRED`
 const board = `
 | Order | Slice | Status |
 |---:|---|---|
-| 1 | CONTEXT-CANONICALIZATION | ACTIVE |
-| 2 | DOCUMENTATION ENGINE / CLINICAL TRUTH | QUEUED |
+| 1 | CONTEXT-CANONICALIZATION | COMPLETE |
+| 2 | DOCUMENTATION ENGINE / CLINICAL TRUTH | ACTIVE |
 | 3 | VOICE ENGINE | QUEUED |
 | 4 | CLINICAL REASONING + EVIDENCE + SAFETY | QUEUED |
 | 5 | CONSULTORIO / AGENDA / RECETA / PAGOS / SECRETARIA | QUEUED |
@@ -26,7 +26,7 @@ const good = () => ({
   'DECISION_REGISTER.md': decisions,
 })
 
-test('accepts canonical context', () => {
+test('accepts canonical context after advancing to the next slice', () => {
   assert.deepEqual(verifyContext({ files: good() }), { ok: true, errors: [] })
 })
 
@@ -36,12 +36,17 @@ test('rejects missing truth state', () => {
 })
 
 test('rejects duplicate active slices', () => {
-  const files = good(); files['PRODUCT_BOARD.md'] = board.replace('| 2 | DOCUMENTATION ENGINE / CLINICAL TRUTH | QUEUED |', '| 2 | DOCUMENTATION ENGINE / CLINICAL TRUTH | ACTIVE |')
+  const files = good(); files['PRODUCT_BOARD.md'] = board.replace('| 3 | VOICE ENGINE | QUEUED |', '| 3 | VOICE ENGINE | ACTIVE |')
   assert.ok(verifyContext({ files }).errors.some(e => e.startsWith('ACTIVE_SLICE_COUNT:')))
 })
 
+test('rejects active slice when a prior slice is not complete', () => {
+  const files = good(); files['PRODUCT_BOARD.md'] = board.replace('| 1 | CONTEXT-CANONICALIZATION | COMPLETE |', '| 1 | CONTEXT-CANONICALIZATION | QUEUED |')
+  assert.ok(verifyContext({ files }).errors.some(e => e.startsWith('WRONG_ACTIVE_SLICE:') || e.startsWith('PRIOR_SLICE_NOT_COMPLETE:')))
+})
+
 test('rejects wrong work order', () => {
-  const files = good(); files['PRODUCT_BOARD.md'] = board.replace('| 2 | DOCUMENTATION ENGINE / CLINICAL TRUTH | QUEUED |\n| 3 | VOICE ENGINE | QUEUED |', '| 2 | VOICE ENGINE | QUEUED |\n| 3 | DOCUMENTATION ENGINE / CLINICAL TRUTH | QUEUED |')
+  const files = good(); files['PRODUCT_BOARD.md'] = board.replace('| 2 | DOCUMENTATION ENGINE / CLINICAL TRUTH | ACTIVE |\n| 3 | VOICE ENGINE | QUEUED |', '| 2 | VOICE ENGINE | ACTIVE |\n| 3 | DOCUMENTATION ENGINE / CLINICAL TRUTH | QUEUED |')
   assert.ok(verifyContext({ files }).errors.includes('WRONG_PRODUCT_WORK_ORDER'))
 })
 
