@@ -346,11 +346,119 @@ test('condition 2: an authorized repair pass is still a legal writer start', () 
   assert.equal(result.ok, true)
 })
 
-test('reverse proof: without condition 2, the runner would write an unselected item', async () => {
+/**
+ * REPAIR/ACP-002/P1-6b. The judge's finding, verbatim: "The condition-2 proof at
+ * preflight.test.mjs:346-351 asserts only that checks[1].ok becomes true, not
+ * that result.ok is true and authorized is non-null, despite the suite's stated
+ * end-to-end proof standard." That was exactly right, and it is the same defect
+ * the conditions 1, 3 and 6 proofs above were already repaired for: `checks[1].ok
+ * === true` proves the mutation landed, not that a writer would have started.
+ * Every other gate could still have been refusing, and this test would have
+ * looked green either way — which is the one thing a reverse proof exists to
+ * rule out.
+ *
+ * The claim now proved is the dangerous one. With this comparison gone the runner
+ * is authorized to write an item THE BOARD NEVER SELECTED: it asks for ACP-003
+ * while the board's single eligible item is ACP-002, and the preflight says go.
+ * Nothing downstream re-derives the board's choice — the authorization the
+ * preflight hands out is what names the item for the rest of the run
+ * (preflight.mjs:828 and its `authorized_item` output at :835), so a writer would
+ * open ACP-003's scope, spend ACP-002's turn, and be judged against an item
+ * nobody selected.
+ *
+ * ONE LAYER, PROVED RATHER THAN ASSUMED. `request.item_id` is read in exactly two
+ * conditions: 2, which compares it against the deterministic selection, and 3,
+ * which forwards it to `acquireWriterLock` without ever asking whether the board
+ * chose it. So one mutation is the minimal proof here, and the layer count is
+ * ASSERTED below instead of claimed in this comment — if a second layer ever
+ * appears, that assertion fails and this proof must remove it too.
+ *
+ * What this section does NOT cover: it proves what the preflight decides about
+ * the `item_id` it is handed. The OTHER branch of condition 2 — deterministic
+ * selection must say RUN_WRITER at all — is a different property, it is genuinely
+ * covered twice (an ambiguous or in-flight board also produces a board violation,
+ * so condition 1 refuses alongside condition 2), and its two-layer proofs are the
+ * ones in sections 1 and 3. That branch survives this mutation untouched, which
+ * is asserted at the end of the narrowness test rather than assumed.
+ */
+test('condition 2: the unselected-item property has exactly ONE layer — so one mutation is the minimal proof', () => {
+  const result = preflight({ request: validRequest({ item_id: 'ACP-003' }) })
+  assert.equal(result.ok, false)
+  assert.equal(result.authorized, null)
+  assert.deepEqual(
+    result.failed_conditions,
+    [2],
+    'nothing else compares the requested item against the board selection; if this ever grows a second entry, the reverse proof below must remove that layer too',
+  )
+  assert.equal(result.stop_condition, STOP_CONDITIONS.ITEM_NOT_AUTHORIZED)
+  // Said the other way round, so the claim cannot be satisfied by a preflight
+  // that refuses everything: the item the board DID select authorizes.
+  assert.equal(preflight({ request: validRequest({ item_id: 'ACP-002' }) }).ok, true)
+})
+
+test('reverse proof: without condition 2, a writer is AUTHORIZED end to end for an item the board never selected', async () => {
   const mutant = await mutatePreflight([['const ok = selected === request.item_id', 'const ok = true']])
   const request = validRequest({ item_id: 'ACP-003' })
-  assert.equal(preflight({ request }).ok, false)
-  assert.equal(mutant.runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request }).checks[1].ok, true)
+  const refused = assertRealPreflightRefuses({ request }, STOP_CONDITIONS.ITEM_NOT_AUTHORIZED)
+  // Pins what the board actually chose, so "the mutant authorized ACP-003" is a
+  // statement about a real disagreement and not about an echo of the request.
+  assert.equal(conditionById(refused, 2).detail, 'runner asked for ACP-003; the board selected ACP-002')
+  const over = assertMutantAuthorizes(mutant, { request })
+  assert.equal(over.checks[1].ok, true, 'the mutation must actually disable the selection comparison')
+  // The whole decision, not one internal boolean: nothing refuses, and the
+  // authorization handed out names the unselected item.
+  assert.deepEqual(over.failed_conditions, [])
+  assert.equal(over.stop_condition, null)
+  assert.equal(over.next_board_status, null)
+  assert.deepEqual(over.authorized, { item_id: 'ACP-003', branch: CANONICAL_BOARD.source_branch, sha: SHA })
+  // And the machine contract a workflow step acts on says "go", naming ACP-003.
+  assert.equal(over.github_outputs.ok, 'true')
+  assert.equal(over.github_outputs.authorized_item, 'ACP-003')
+  assert.equal(over.github_outputs.stop_condition, '')
+  assert.equal(over.github_outputs.failed_condition_count, '0')
+})
+
+test('reverse proof: the condition-2 mutant is narrowly weakened — it still refuses every other defect', async () => {
+  // Without this, "the mutant authorized" would be worth nothing: a mutant that
+  // authorizes anything proves only that it authorizes anything.
+  const mutant = await mutatePreflight([['const ok = selected === request.item_id', 'const ok = true']])
+  const cases = [
+    ['unclean worktree', { worktree_clean: false }, STOP_CONDITIONS.UNCLEAN_WORKTREE_AT_FREEZE],
+    ['targets a protected branch', { branch: 'main' }, STOP_CONDITIONS.FORBIDDEN_TARGET_BRANCH],
+    ['checkout drifted from the authorized SHA', { head_sha: 'b'.repeat(40) }, STOP_CONDITIONS.BRANCH_OR_SHA_NOT_EXPLICIT],
+    ['credential absent', { secret_present: false }, STOP_CONDITIONS.MISSING_REQUIRED_SECRET_OR_EXTERNAL_CREDENTIAL],
+    ['request carries a credential value', { secret_value: 'sk-ant-do-not-print-me' }, STOP_CONDITIONS.SECRET_VALUE_LEAKED],
+    ['unbounded budget', { budget: null }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED],
+    ['a re-run past the retry ceiling', { run_attempt: 7 }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED],
+    ['a production-reaching scope', { permissions: { contents: 'write', deployments: 'write' } }, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD],
+    ['a write-granting judge', { judge_workflows: judgeWorkflows(READ_ONLY_JUDGE_WORKFLOW.replace('      contents: read', '      contents: write')) }, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY],
+  ]
+  for (const [label, overrides, expected] of cases) {
+    const request = validRequest({ item_id: 'ACP-003', ...overrides })
+    const over = mutant.runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request })
+    assert.equal(over.ok, false, label)
+    assert.equal(over.authorized, null, label)
+    assert.equal(over.next_board_status, 'BLOCKED', label)
+    const stops = over.checks.filter((entry) => !entry.ok).map((entry) => entry.stop_condition)
+    assert.ok(stops.includes(expected), `${label}: expected ${expected}, got ${JSON.stringify(stops)}`)
+    // The selection comparison is the ONLY thing switched off, so the unselected
+    // item never appears among the reasons.
+    assert.equal(stops.includes(STOP_CONDITIONS.ITEM_NOT_AUTHORIZED), false, label)
+  }
+  // And the board-side branch of condition 2 is untouched: two simultaneously
+  // eligible items still refuse, through deterministic selection as well as
+  // through the board violation condition 1 reports. That is the defence in depth
+  // this proof deliberately does not claim for the comparison itself.
+  const board = writerReadyBoard()
+  const acp003 = itemOf(board, 'ACP-003')
+  acp003.status = 'READY'
+  acp003.dependencies = []
+  acp003.blocked_by = []
+  const ambiguous = mutant.runPreflight({ board, schema: SCHEMA, request: validRequest() })
+  assert.equal(ambiguous.ok, false, 'an ambiguous board must still refuse a writer')
+  assert.equal(ambiguous.authorized, null)
+  const ambiguousStops = ambiguous.checks.filter((entry) => !entry.ok).map((entry) => entry.stop_condition)
+  assert.ok(ambiguousStops.includes(STOP_CONDITIONS.AMBIGUOUS_NEXT_ITEM), JSON.stringify(ambiguousStops))
 })
 
 // ---------------------------------------------------------------------------
