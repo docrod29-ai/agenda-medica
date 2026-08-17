@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { evaluateVoiceBenchmarkCase, summarizeVoiceBenchmark } from '@/lib/voice-engine/benchmark'
+import { evaluateVoiceBenchmarkCase, summarizeVoiceBenchmark } from '@/lib/voice-engine'
 
 describe('Voice Engine benchmark contract', () => {
   it('scores exact clinical transcription as zero error', () => {
