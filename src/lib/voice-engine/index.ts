@@ -1,5 +1,7 @@
 import type { ClinicalInput } from '@/lib/clinical-truth'
 
+export * from './benchmark'
+
 export type VoiceLanguage = 'es' | 'en' | 'spanglish'
 export type TranscriptStatus = 'partial' | 'final'
 
