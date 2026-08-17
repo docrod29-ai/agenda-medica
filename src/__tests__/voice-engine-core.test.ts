@@ -21,24 +21,46 @@ describe('Voice Engine core', () => {
     expect(input.encounterId).toBe('enc-1')
   })
 
-  it('does not allow a finalized segment to be silently replaced', () => {
+  it('does not allow a finalized segment to be silently replaced and freezes returned state', () => {
     const finalized = appendTranscriptSegment(session(), {
       id: 'seg-1', sequence: 0, text: 'metotrexate', status: 'final', receivedAt: '2026-08-17T18:00:00.100Z', finalizedAt: '2026-08-17T18:00:00.300Z', needsReview: false,
     })
     expect(() => reviseTranscriptSegment({ session: finalized, segmentId: 'seg-1', revisedText: 'metronidazole', revisedAt: '2026-08-17T18:00:00.400Z', reason: 'contextual_correction' })).toThrow(/cannot be silently replaced/)
+    expect(Object.isFrozen(finalized)).toBe(true)
+    expect(Object.isFrozen(finalized.segments)).toBe(true)
+    expect(Object.isFrozen(finalized.segments[0])).toBe(true)
+    expect(Object.isFrozen(finalized.segments[0].revisions)).toBe(true)
+    expect(() => { (finalized.segments[0] as unknown as { text: string }).text = 'metronidazole' }).toThrow()
+    expect(finalized.segments[0].text).toBe('metotrexate')
 
     const corrected = reviseTranscriptSegment({ session: finalized, segmentId: 'seg-1', revisedText: 'metotrexate 2 gramos', revisedAt: '2026-08-17T18:00:00.500Z', reason: 'clinician_correction' })
     expect(corrected.segments[0].revisions[0]).toMatchObject({ previousText: 'metotrexate', revisedText: 'metotrexate 2 gramos', reason: 'clinician_correction' })
   })
 
-  it('keeps unresolved ambiguity explicit and never invents confidence', () => {
+  it('keeps unresolved ambiguity and transcript provenance through the Clinical Truth bridge', () => {
+    const current = appendTranscriptSegment(session('spanglish'), {
+      id: 'seg-1', sequence: 0, text: 'start vanco fifteen', status: 'final', receivedAt: '2026-08-17T18:00:00.120Z', finalizedAt: '2026-08-17T18:00:00.500Z', speaker: 'clinician',
+      alternatives: [{ text: 'start vanco fifty', confidence: 0.41 }, { text: 'start vanco fifteen', confidence: 0.44 }], confidence: 0.44, needsReview: true,
+    })
+    const input = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.600Z')
+    expect(current.segments[0].needsReview).toBe(true)
+    expect(measureVoiceSession(current).unresolvedReviewCount).toBe(1)
+    expect(input.voiceProvenance).toMatchObject({ sessionId: 'voice-1', provider: 'synthetic-test-provider', needsReview: true })
+    expect(input.voiceProvenance.segments[0]).toMatchObject({ id: 'seg-1', speaker: 'clinician', confidence: 0.44, needsReview: true, receivedAt: '2026-08-17T18:00:00.120Z', finalizedAt: '2026-08-17T18:00:00.500Z' })
+    expect(input.voiceProvenance.segments[0].alternatives).toHaveLength(2)
+    expect(Object.isFrozen(input)).toBe(true)
+    expect(Object.isFrozen(input.voiceProvenance)).toBe(true)
+    expect(Object.isFrozen(input.voiceProvenance.segments[0])).toBe(true)
+  })
+
+  it('never invents missing confidence', () => {
     const current = appendTranscriptSegment(session('spanglish'), {
       id: 'seg-1', sequence: 0, text: 'start vanco fifteen', status: 'final', receivedAt: '2026-08-17T18:00:00.120Z', finalizedAt: '2026-08-17T18:00:00.500Z',
       alternatives: [{ text: 'start vanco fifty' }, { text: 'start vanco fifteen' }], needsReview: true,
     })
-    expect(current.segments[0].needsReview).toBe(true)
+    const input = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.600Z')
     expect(current.segments[0].confidence).toBeUndefined()
-    expect(measureVoiceSession(current).unresolvedReviewCount).toBe(1)
+    expect(input.voiceProvenance.segments[0].confidence).toBeUndefined()
   })
 
   it.each(['es', 'en', 'spanglish'] as const)('preserves %s language through the Clinical Truth bridge', (language) => {
@@ -55,6 +77,15 @@ describe('Voice Engine core', () => {
     const input = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.400Z')
     expect(input.raw).toBe('posible neumonía, confirmar')
     expect('facts' in input).toBe(false)
+    expect(input.voiceProvenance.needsReview).toBe(true)
+  })
+
+  it('retains time-to-first-partial after finalization even when no revision occurred', () => {
+    let current = appendTranscriptSegment(session(), {
+      id: 'seg-1', sequence: 0, text: 'ceftriaxona 2 gramos IV', status: 'partial', receivedAt: '2026-08-17T18:00:00.120Z', needsReview: false,
+    })
+    current = finalizeTranscriptSegment({ session: current, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.620Z' })
+    expect(measureVoiceSession(current)).toEqual({ timeToFirstPartialMs: 120, timeToFinalMs: 620, revisionCount: 0, unresolvedReviewCount: 0 })
   })
 
   it('measures deterministic latency and revision metrics from supplied timestamps', () => {
