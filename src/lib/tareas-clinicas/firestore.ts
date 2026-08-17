@@ -101,6 +101,29 @@ export async function tareasVivas(clinicId: string, tope = 200): Promise<TareaCl
   return snap.docs.map(d => ({ ...(d.data() as TareaClinica), id: d.id }))
 }
 
+/**
+ * Las tareas CERRADAS más recientes — «closed recently» de §10 (V15
+ * Master Loop, Fase 7). NO es parte de `tareasVivas()` a propósito (esa
+ * consulta excluye `cerrada`, es el worklist de lo VIVO): quien quiere ver
+ * lo ya resuelto paga su propia lectura, aparte, y sólo cuando la pide —
+ * `/pendientes` la llama bajo demanda, no en cada carga de la pantalla más
+ * visitada del médico.
+ *
+ * Sin `orderBy` por el mismo motivo que `tareasVivas()`: evitar el índice
+ * compuesto que `where + orderBy` exigiría. El orden por fecha lo pone quien
+ * llama, en cliente.
+ *
+ * Sólo `cerrada` — no `cancelada`. «Closed recently» en §9/§10 es la
+ * constancia de que alguien revisó y decidió; cancelar es «ya no aplica»,
+ * un cierre distinto que ya tiene su propio motivo visible en la bitácora.
+ */
+export async function tareasCerradasRecientes(clinicId: string, tope = 30): Promise<TareaClinica[]> {
+  if (!clinicId) return []
+  const q = query(COL(clinicId), where('estado', '==', 'cerrada'), limit(tope))
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ ...(d.data() as TareaClinica), id: d.id }))
+}
+
 /** Los pendientes de UN paciente, para su expediente. */
 export async function tareasDePaciente(clinicId: string, patientId: string): Promise<TareaClinica[]> {
   if (!clinicId || !patientId) return []

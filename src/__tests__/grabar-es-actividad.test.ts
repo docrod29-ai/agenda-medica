@@ -79,7 +79,11 @@ describe('el latido', () => {
 
   it('sólo late mientras se graba o está en pausa', () => {
     /** Latir siempre convertiría el cierre por inactividad en decorativo. */
-    expect(HOOK).toMatch(/if \(estado !== 'grabando' && estado !== 'pausado'\) return/)
+    /* La CONDUCTA es «sólo late con el micrófono abierto». Se comprueba eso y no
+       la forma de escribirlo: la condición pasó a una variable `abierto` al nacer
+       el marco de escucha, y la conducta no cambió ni un ápice. */
+    expect(HOOK).toMatch(/const abierto = estado === 'grabando' \|\| estado === 'pausado'/)
+    expect(HOOK).toMatch(/if \(!abierto\) \{/)
   })
 
   it('y se limpia al parar', () => {

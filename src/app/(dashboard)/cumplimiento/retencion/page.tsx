@@ -47,7 +47,7 @@ export default function RetencionPage() {
   const lista = filtro === 'por_revisar' ? porRevisar : evaluaciones
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <button onClick={() => router.push('/cumplimiento')} style={{
         display: 'flex', alignItems: 'center', gap: 6,
         background: 'none', border: 'none', color: 'var(--text3)',
@@ -66,7 +66,7 @@ export default function RetencionPage() {
       </p>
 
       {/* Resumen rápido */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
+      <div className="nx-stat-grid" style={{ gap: 12, marginBottom: 18 }}>
         <Tarjeta titulo="Total" valor={evaluaciones.length} color="var(--text)" />
         <Tarjeta titulo="Cerca del límite (4½ años)" valor={cercanos.length} color="var(--amber)" icon={<Clock size={14} />} />
         <Tarjeta titulo="Superan 5 años" valor={vencidos.length} color="var(--red)" icon={<AlertTriangle size={14} />} />
@@ -170,7 +170,7 @@ function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; 
 
 const tabStyle = (activo: boolean): React.CSSProperties => ({
   padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-  background: activo ? 'rgba(20,184,166,0.12)' : 'var(--s2)',
+  background: activo ? 'color-mix(in srgb, var(--nexus) 12%, transparent)' : 'var(--s2)',
   color: activo ? 'var(--teal)' : 'var(--text2)',
-  border: activo ? '1px solid rgba(20,184,166,0.3)' : '1px solid var(--border)',
+  border: activo ? '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)' : '1px solid var(--border)',
 })

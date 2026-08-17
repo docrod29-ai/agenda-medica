@@ -1,0 +1,30 @@
+[
+  {
+    "pantalla": "today-dashboard",
+    "ruta": "/dashboard",
+    "violaciones": []
+  },
+  {
+    "pantalla": "patient-pacientes",
+    "ruta": "/pacientes",
+    "violaciones": [
+      {
+        "id": "nested-interactive",
+        "impact": "serious",
+        "help": "Interactive controls must not be nested",
+        "nodos": 5,
+        "ejemplo": "div[role=\"button\"]:nth-child(2)"
+      }
+    ]
+  },
+  {
+    "pantalla": "work-pendientes",
+    "ruta": "/pendientes",
+    "violaciones": []
+  },
+  {
+    "pantalla": "operaciones",
+    "ruta": "/operaciones",
+    "violaciones": []
+  }
+]

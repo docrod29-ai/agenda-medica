@@ -1,0 +1,120 @@
+{
+  "fecha": "2026-08-13T12:54:18.634Z",
+  "casos": [
+    {
+      "nombre": "el navegador del arnés soporta startViewTransition",
+      "ok": true
+    },
+    {
+      "nombre": "la regla ::view-transition {pointer-events:none} SOBREVIVIÓ el parseo",
+      "ok": true
+    },
+    {
+      "nombre": "el gate del destino (html[data-vt-continuidad] .nx-vt-paciente) sobrevivió",
+      "ok": true
+    },
+    {
+      "nombre": "::view-transition-group(nx-paciente) con --mov-lento sobrevivió",
+      "ok": true
+    },
+    {
+      "nombre": "el apagador de §24 para view transitions sobrevivió",
+      "ok": true
+    },
+    {
+      "nombre": "el candado RT-08 (html[data-vt-congelada] body) SOBREVIVIÓ el parseo",
+      "ok": true
+    },
+    {
+      "nombre": "Hoy→Encuentro invoca la view transition",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "el atributo data-vt-continuidad estaba puesto al capturar",
+      "ok": true
+    },
+    {
+      "nombre": "RT-08: el puntero estaba CONGELADO durante el callback (data-vt-congelada)",
+      "ok": true
+    },
+    {
+      "nombre": "el atributo se LIMPIA al terminar la transición",
+      "ok": true
+    },
+    {
+      "nombre": "RT-08: el candado NO sobrevive a la transición (se soltó)",
+      "ok": true
+    },
+    {
+      "nombre": "el destino lleva .nx-vt-paciente (el objeto ATERRIZA)",
+      "ok": true,
+      "detalle": "nodos=1"
+    },
+    {
+      "nombre": "Paciente→Encuentro invoca la view transition (el ancla es el origen)",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "Result queue→Patient result invoca la view transition",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "…y el par SE FORMÓ (ready resolvió — la animación arrancó, no se saltó)",
+      "ok": true,
+      "detalle": "readyOk=true"
+    },
+    {
+      "nombre": "/pacientes→expediente invoca la view transition (la fila entrega su .nx-ident)",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "franja→expediente (sin ancla en pantalla) invoca la view transition",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "…con la franja VIVA de origen el par se formó igual (la limpieza del callback funciona)",
+      "ok": true,
+      "detalle": "readyOk=true"
+    },
+    {
+      "nombre": "…y la franja no se queda con el nombre puesto (cero nombres inline residuales)",
+      "ok": true,
+      "detalle": "residuales=0"
+    },
+    {
+      "nombre": "en el expediente del mismo paciente la franja navega a secas (0 coreografías)",
+      "ok": true,
+      "detalle": "llamadas=0"
+    },
+    {
+      "nombre": "bajo reduced-motion el API NO se invoca (candado JS, §24)",
+      "ok": true,
+      "detalle": "llamadas=0"
+    },
+    {
+      "nombre": "bajo reduced-motion la navegación LLEGA igual",
+      "ok": true
+    },
+    {
+      "nombre": "móvil 390: el salto desde Hoy también coreografía",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "móvil 390: Result queue→Patient result coreografía",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "consola sin errores de la app",
+      "ok": true,
+      "detalle": ""
+    }
+  ],
+  "consola": []
+}

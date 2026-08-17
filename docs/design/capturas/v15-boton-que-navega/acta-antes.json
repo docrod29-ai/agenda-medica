@@ -1,0 +1,179 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "antes",
+  "viewports": {
+    "escritorio-1440": {
+      "superficies": {
+        "hoy": {
+          "axe": {
+            "nodos": 0,
+            "detalle": []
+          },
+          "anidados": [
+            {
+              "fuera": "a",
+              "claseFuera": "hoy-accion",
+              "hrefFuera": "/asistente",
+              "dentro": "button",
+              "claseDentro": "btn btn-secondary",
+              "texto": "Nueva cita",
+              "paradas": 2
+            },
+            {
+              "fuera": "a",
+              "claseFuera": "",
+              "hrefFuera": "/consulta/pac-aurelio-dominguez",
+              "dentro": "button",
+              "claseDentro": "prox-hero-cta",
+              "texto": "Iniciar consulta",
+              "paradas": 2
+            }
+          ]
+        },
+        "pacientes": {
+          "axe": {
+            "nodos": 0,
+            "detalle": []
+          },
+          "anidados": [
+            {
+              "fuera": "a",
+              "claseFuera": "",
+              "hrefFuera": "/asistente",
+              "dentro": "button",
+              "claseDentro": "btn btn-secondary",
+              "texto": "Agendar",
+              "paradas": 2
+            }
+          ]
+        }
+      },
+      "cta": {
+        "existe": true,
+        "estilo": {
+          "etiqueta": "button",
+          "href": null,
+          "fondo": "rgb(23, 120, 134)",
+          "color": "rgb(255, 255, 255)",
+          "radio": "10px",
+          "fuente": "14px/600",
+          "familia": "\"IBM Plex Sans\"",
+          "subrayado": "none",
+          "display": "inline-flex",
+          "relleno": "18px 18px",
+          "w": 160,
+          "h": 44
+        },
+        "envoltorio": {
+          "etiqueta": "a",
+          "href": "/consulta/pac-aurelio-dominguez",
+          "clase": ""
+        },
+        "paradasEnElHeroe": [
+          {
+            "etiqueta": "a",
+            "clase": "",
+            "nombre": "Iniciar consulta"
+          },
+          {
+            "etiqueta": "button",
+            "clase": "prox-hero-cta",
+            "nombre": "Iniciar consulta"
+          }
+        ]
+      },
+      "destino": {
+        "url": "/consulta/pac-aurelio-dominguez",
+        "cargó": true,
+        "errores": 0
+      }
+    },
+    "movil-390": {
+      "superficies": {
+        "hoy": {
+          "axe": {
+            "nodos": 0,
+            "detalle": []
+          },
+          "anidados": [
+            {
+              "fuera": "a",
+              "claseFuera": "hoy-accion",
+              "hrefFuera": "/asistente",
+              "dentro": "button",
+              "claseDentro": "btn btn-secondary",
+              "texto": "Nueva cita",
+              "paradas": 1
+            },
+            {
+              "fuera": "a",
+              "claseFuera": "",
+              "hrefFuera": "/consulta/pac-aurelio-dominguez",
+              "dentro": "button",
+              "claseDentro": "prox-hero-cta",
+              "texto": "Iniciar consulta",
+              "paradas": 2
+            }
+          ]
+        },
+        "pacientes": {
+          "axe": {
+            "nodos": 0,
+            "detalle": []
+          },
+          "anidados": [
+            {
+              "fuera": "a",
+              "claseFuera": "",
+              "hrefFuera": "/asistente",
+              "dentro": "button",
+              "claseDentro": "btn btn-secondary",
+              "texto": "Agendar",
+              "paradas": 2
+            }
+          ]
+        }
+      },
+      "cta": {
+        "existe": true,
+        "estilo": {
+          "etiqueta": "button",
+          "href": null,
+          "fondo": "rgb(23, 120, 134)",
+          "color": "rgb(255, 255, 255)",
+          "radio": "10px",
+          "fuente": "14px/600",
+          "familia": "\"IBM Plex Sans\"",
+          "subrayado": "none",
+          "display": "inline-flex",
+          "relleno": "18px 18px",
+          "w": 320,
+          "h": 44
+        },
+        "envoltorio": {
+          "etiqueta": "a",
+          "href": "/consulta/pac-aurelio-dominguez",
+          "clase": ""
+        },
+        "paradasEnElHeroe": [
+          {
+            "etiqueta": "a",
+            "clase": "",
+            "nombre": "Iniciar consulta"
+          },
+          {
+            "etiqueta": "button",
+            "clase": "prox-hero-cta",
+            "nombre": "Iniciar consulta"
+          }
+        ]
+      },
+      "destino": {
+        "url": "/consulta/pac-aurelio-dominguez",
+        "cargó": true,
+        "errores": 0
+      }
+    }
+  },
+  "errores": []
+}

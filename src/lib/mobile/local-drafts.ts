@@ -65,6 +65,78 @@ export function clavesABorrar(claves: readonly string[]): string[] {
 }
 
 /**
+ * ── QUÉ SE HACE CON EL RESPALDO LOCAL AL ABRIR UN ENCUENTRO ─────────────────
+ *
+ * LO QUE FALLABA (medido, no leído: `V15-WORKFLOW-BENCHMARK-001`, WF-10).
+ *
+ * Se abre un encuentro por su nota (`/consulta/<paciente>?nota=<id>`), se
+ * teclea, y el teléfono se interrumpe antes de que corra el autoguardado de 30
+ * segundos. Al volver, **lo tecleado no está y no se ofrece recuperarlo** — aun
+ * cuando el respaldo local SÍ se escribió (comprobado en el navegador: la clave
+ * `nx.consulta.bkp.<paciente>` está en `localStorage` antes y después de la
+ * recarga). El dato se guarda, se conserva, y no LLEGA a nadie: es exactamente
+ * la regla «el dato tiene que LLEGAR» con la escritura del lado correcto y el
+ * lector del lado equivocado.
+ *
+ * LA CAUSA RAÍZ: una sola condición hacía dos trabajos.
+ *
+ * «Aplicar el respaldo solo» y «ofrecerlo» estaban gobernados por la misma
+ * prueba —que el formulario estuviera VACÍO—. Para APLICAR SOLO eso es
+ * correcto y no se toca: no se pisa en silencio lo que el médico ve escrito.
+ * Para OFRECER es la prueba equivocada, porque al reabrir una nota concreta el
+ * formulario **nunca** está vacío: trae la nota. O sea que la única rama capaz
+ * de enseñar el respaldo se apagaba justo en el caso para el que existe.
+ *
+ * LO QUE ESTA FUNCIÓN GARANTIZA
+ *
+ *  · Un respaldo de OTRO encuentro no se ofrece jamás. La clave es por
+ *    paciente, así que no es la familia «paciente equivocado», pero sí la de
+ *    «encuentro equivocado»: pegar lo dictado de la nota A dentro de la nota B
+ *    es un error medicolegal, no una molestia.
+ *  · Sobre una nota FIRMADA no se ofrece nada. Es inmutable (NOM-024).
+ *  · Cuando no se puede afirmar de qué nota es el respaldo y se abrió una nota
+ *    concreta, se calla. Ausencia de dato no es dato de pertenencia.
+ *  · Nunca se aplica solo si hay algo escrito. Se ofrece, que es visible y
+ *    reversible — la regla 3 de seguridad clínica dicha en interfaz.
+ *
+ * Pura a propósito: no mira `window`, no lee `localStorage` y no decide CÓMO se
+ * enseña. Quien la llama ya tiene todo esto en la mano.
+ */
+export type EstadoDelRespaldoLocal = {
+  /** ¿Hay un respaldo local leído para este paciente? */
+  hayRespaldo: boolean
+  /** De qué nota dice el respaldo que es. `null` si no lo dice. */
+  respaldoNotaId: string | null
+  /** La nota que se pidió abrir (`?nota=`). `null` si es un encuentro nuevo. */
+  notaAbierta: string | null
+  /** ¿La nota que hay en pantalla ya está firmada? */
+  notaFirmada: boolean
+  /** ¿El formulario está sin nada escrito? */
+  formularioVacio: boolean
+}
+
+/**
+ * `APLICAR_SOLO` — reponerlo sin preguntar (nada que pisar).
+ * `OFRECER`      — enseñarlo y que el médico decida.
+ * `CALLAR`       — no hay nada que se pueda afirmar de este respaldo.
+ */
+export type QueHacerConElRespaldo = 'APLICAR_SOLO' | 'OFRECER' | 'CALLAR'
+
+export function queHacerConElRespaldoLocal(e: EstadoDelRespaldoLocal): QueHacerConElRespaldo {
+  if (!e.hayRespaldo) return 'CALLAR'
+  if (e.notaFirmada) return 'CALLAR'
+  if (e.notaAbierta) {
+    // Se abrió una nota concreta: el respaldo tiene que ser DE ELLA, y tiene
+    // que poder demostrarlo. Un respaldo mudo no se adopta.
+    if (!e.respaldoNotaId || e.respaldoNotaId !== e.notaAbierta) return 'CALLAR'
+    return 'OFRECER'
+  }
+  // Encuentro nuevo: si no hay nada escrito se repone solo (conducta de
+  // siempre); si ya hay algo, se ofrece en vez de pisarlo.
+  return e.formularioVacio ? 'APLICAR_SOLO' : 'OFRECER'
+}
+
+/**
  * Borra los borradores clínicos locales. Segura: no lanza si no hay localStorage
  * (SSR) y solo toca claves de borrador. Devuelve cuántas borró.
  */

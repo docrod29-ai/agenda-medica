@@ -28,7 +28,7 @@ const ROLES: { id: Rol; label: string }[] = [
 
 function AsistenteAyuda() {
   return (
-    <div style={{ border: '1px solid rgba(20,184,166,0.35)', borderRadius: 14, background: 'rgba(20,184,166,0.05)', padding: 14, marginBottom: 20 }}>
+    <div style={{ border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 14, background: 'color-mix(in srgb, var(--nexus) 5%, transparent)', padding: 14, marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>
         <Sparkles size={16} style={{ color: 'var(--teal)' }} /> Asistente de ayuda
       </div>
@@ -79,7 +79,7 @@ export default function GuiaPage() {
           <button key={r.id} onClick={() => setRol(r.id)} style={{
             fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
             border: '1px solid ' + (rol === r.id ? 'var(--teal)' : 'var(--border)'),
-            background: rol === r.id ? 'rgba(20,184,166,0.1)' : 'var(--s2)', color: rol === r.id ? 'var(--teal)' : 'var(--text2)',
+            background: rol === r.id ? 'color-mix(in srgb, var(--nexus) 10%, transparent)' : 'var(--s2)', color: rol === r.id ? 'var(--teal)' : 'var(--text2)',
           }}>{r.label}</button>
         ))}
       </div>
@@ -97,7 +97,7 @@ export default function GuiaPage() {
                   <span style={{ fontSize: 15, fontWeight: 700, display: 'block' }}>{s.titulo}</span>
                   <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>{s.intro}</span>
                 </span>
-                <ChevronDown size={18} style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }} />
+                <ChevronDown size={18} style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform var(--mov-rapido) var(--mov-curva)', transform: open ? 'rotate(180deg)' : 'none' }} />
               </button>
               {open && (
                 <div style={{ padding: '0 16px 16px 46px' }}>
@@ -109,7 +109,7 @@ export default function GuiaPage() {
                     ))}
                   </ol>
                   {s.tips?.map((t, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, marginTop: 12, fontSize: 12.5, color: 'var(--text2)', background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)', borderRadius: 8, padding: '9px 11px' }}>
+                    <div key={i} style={{ display: 'flex', gap: 8, marginTop: 12, fontSize: 12.5, color: 'var(--text2)', background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 20%, transparent)', borderRadius: 8, padding: '9px 11px' }}>
                       <Lightbulb size={14} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} /> {t}
                     </div>
                   ))}

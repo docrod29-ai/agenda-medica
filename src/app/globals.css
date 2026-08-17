@@ -165,6 +165,14 @@
   --aviso:          var(--amber);
   --aviso-suave:    color-mix(in srgb, var(--amber) 14%, var(--s1));
   --aviso-borde:    color-mix(in srgb, var(--amber) 38%, transparent);
+  /* Texto ENCIMA de un relleno sólido --amber o --red (el CTA del banner de
+     prueba). Un literal no sirve: sobre el ámbar OSCURO (#D97706) el texto
+     tiene que ser tinta (#0B0C0E → 5.9:1 en amber, 5.8:1 en red), pero sobre
+     el ámbar del tema claro (#B45309, más profundo para pasar AA como TEXTO)
+     la tinta se hunde a ~3.5:1 y lo que pasa es el blanco (4.8:1 en amber,
+     6.5:1 en red). Medido con la fórmula de luminancia WCAG 2.1 en los dos
+     temas — ver la redefinición en cada bloque claro. */
+  --sobre-aviso:    #0B0C0E;
 
   --bien:           var(--green);
   --bien-suave:     color-mix(in srgb, var(--green) 14%, var(--s1));
@@ -229,11 +237,21 @@
 
   /* Movimiento. `--mov-nada` es el que se usa bajo `prefers-reduced-motion`:
      tenerlo con nombre evita que cada componente decida por su cuenta qué
-     significa «sin animación». */
+     significa «sin animación».
+     V15-MOTION-001: la curva del token era cubic-bezier(0.2,0,0,1) y se usaba
+     CERO veces; la curva de facto del producto —39 usos medidos, validada en
+     todas las capturas de la rama— era (0.16,1,0.3,1). El token adopta la
+     curva real: nada cambia visualmente donde ya se usaba, y desde aquí toda
+     transición de esta hoja habla var(--mov-*) — el guardián lo vigila.
+     Papeles: rapido = feedback de color/fondo/opacidad; normal = énfasis,
+     lift y cross-fade de tema; lento = movimiento espacial (rotaciones,
+     desplazamientos largos); presion = estados :active, que deben responder
+     por debajo de 100ms para sentirse táctiles. */
+  --mov-presion: 80ms;
   --mov-rapido: 120ms;
   --mov-normal: 200ms;
   --mov-lento:  320ms;
-  --mov-curva:  cubic-bezier(0.2, 0, 0, 1);
+  --mov-curva:  cubic-bezier(0.16, 1, 0.3, 1);
   --mov-nada:   0ms;
 
   /* Escala tipográfica — los mismos seis pasos que ya definen las clases
@@ -399,6 +417,131 @@ html, body {
   font-weight: 500;
 }
 
+/* ── Roles tipográficos — VISUAL_DNA §2: «mapear a clases, no inventar
+   tamaños» (V15-VISUAL-SYSTEM-001, 2ª rebanada). `.nx-num` vive arriba y
+   `.nx-estado` junto al riel del día; aquí los tres roles que faltaban como
+   clase. Un texto que cumple uno de estos papeles usa SU clase: un fontSize
+   inline nuevo para el mismo papel es deriva, y el trinquete de diseño la
+   cuenta. */
+
+/* Identidad del paciente (R3): el elemento tipográfico dominante de su
+   entrada — cita, resultado, tarea, medicamento. Sin avatar, sin caja.
+   El peso: la especificación dice 550, pero IBM Plex Sans se carga en cortes
+   estáticos 400/500/600/700 (src/app/layout.tsx) — 550 resolvería a 600 por
+   el algoritmo de font-matching de todos modos; se declara 600 para que lo
+   escrito sea lo que se pinta (mismo peso que .riel-nombre, la primera
+   implementación de R3). */
+.nx-ident {
+  font-size: 15.5px; line-height: 1.3; font-weight: 600;
+  color: var(--text); overflow-wrap: anywhere;
+}
+/* Cuando la identidad además navega (al expediente), el subrayado atenuado
+   dice «esto se abre» sin ceder el color de identidad al teal de los enlaces
+   de metadato: dentro de una fila donde todo lo demás es texto plano, un
+   enlace que sólo se distingue por color no se distingue (WCAG 1.4.1). */
+a.nx-ident {
+  text-decoration: underline;
+  text-decoration-color: var(--text3);
+  text-underline-offset: 3px;
+}
+a.nx-ident:hover,
+a.nx-ident:focus-visible { text-decoration-color: var(--text); }
+
+/* Identidad que ABRE su fila — patrón de acción extendida (V15-A11Y-001,
+   3ª rebanada). El problema que resuelve: una fila-lista con acción
+   secundaria dentro. Hacer la fila entera role="button" y meterle un
+   <button> Editar es nested-interactive (axe, WCAG 4.1.2): un control dentro
+   de otro control, ilegible para lector de pantalla y ambiguo para teclado.
+   La salida NO es quitarle el clic a la fila: la identidad es un <button>
+   real y su área de golpe se ESTIRA sobre la fila con un ::after; la acción
+   secundaria es un HERMANO por encima del velo (position:relative + z-index).
+   La fila contenedora deja de ser control — el DOM queda plano: dos botones
+   hermanos, cero anidamiento — y el ratón conserva exactamente el gesto de
+   antes (clic en cualquier punto de la fila abre).
+   Sin subrayado, a diferencia de a.nx-ident: aquí el control percibido sigue
+   siendo la FILA (velo + hover de fondo), no una palabra dentro de un texto —
+   WCAG 1.4.1 pide distinguir el enlace de su prosa, y esta identidad no vive
+   en prosa. El foco de teclado pinta el anillo sobre la fila completa (el
+   ::after), que es el área que de verdad se activa. */
+.nx-fila-abrir {
+  display: block; width: 100%; text-align: left;
+  background: none; border: 0; padding: 0; margin: 0;
+  color: inherit; font: inherit; cursor: pointer;
+}
+.nx-fila-abrir::after { content: ''; position: absolute; inset: 0; cursor: pointer; }
+.nx-fila-abrir:focus-visible { outline: none; }
+.nx-fila-abrir:focus-visible::after {
+  outline: 2px solid var(--nexus);
+  outline-offset: -2px;
+  border-radius: var(--r-sm);
+}
+
+/* Identidad en la FRANJA (Instrument Strip, §5 Capa 1) — V15-VISUAL-SYSTEM-001
+   (8ª rebanada). La decisión de diseño que la 7ª dejó nombrada: ¿qué significa
+   la identidad dentro de una franja periférica de 30px?
+   Respuesta: la identidad de la franja tiene UNA voz — la porta el paciente
+   cuando hay paciente en la ruta («current patient» es el PRIMER estado
+   periférico de §5) y el consultorio cuando no. 14px de la escala oficial,
+   600, var(--text): más fuerte que el cromo de la franja (12/--text3), por
+   debajo de la identidad de lienzo (.nx-ident, 15.5) y del ancla (20) —
+   periférica, no protagonista. Antes el paciente era cromo de 12/--text2 CON
+   ellipsis mientras el respaldo del consultorio pintaba 16: la franja hablaba
+   más fuerte cuando enseñaba lo MENOS importante. */
+.nx-ident-franja {
+  font-size: 14px; line-height: 1.2; font-weight: 600; color: var(--text);
+  overflow-wrap: anywhere; min-width: 0;
+}
+/* En la topbar de una fila (móvil), la identidad ENVUELVE hasta 2 líneas
+   (caben dentro del objetivo táctil de 44px de la fila de 52) y sólo más allá
+   se recorta — excepción DECLARADA a «la identidad no se trunca» (§24): la
+   franja es un eco periférico y este mismo enlace lleva al ancla del
+   expediente, donde el nombre vive completo a nivel display; dejarla crecer
+   sin tope empujaría el indicador de grabación (señal de seguridad) fuera de
+   la fila. El nombre accesible del enlace conserva el texto completo. */
+.nx-ident-franja--clamp {
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
+}
+/* Cuando la identidad de la franja navega (al expediente), mismo subrayado
+   atenuado que a.nx-ident y por la misma razón (WCAG 1.4.1): junto al nombre
+   del consultorio en texto plano, un enlace que sólo se distingue por color
+   no se distingue. */
+a.nx-ident-franja {
+  text-decoration: underline;
+  text-decoration-color: var(--text3);
+  text-underline-offset: 3px;
+}
+a.nx-ident-franja:hover,
+a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
+
+/* Metadato clínico: dueño, vencimiento, detalle. Se lee después de la
+   identidad y del título, nunca compite con ellos. */
+.nx-meta { font-size: 12.5px; color: var(--text3); line-height: 1.5; }
+
+/* Valor crítico: peso e ICONO al lado en el JSX — nunca sólo color (§2 y
+   regla «no-color state» de §24 del master loop V15). El guardián de cada
+   superficie que lo use vigila que el icono exista de verdad. */
+.nx-critico {
+  font-size: 13px; font-weight: 700; color: var(--red);
+  display: inline-flex; align-items: center; gap: 6px;
+  /* Un valor crítico largo (una alergia con su reacción entre paréntesis)
+     ENVUELVE: recortar justo el texto crítico sería la truncación que §24
+     prohíbe. inline-flex sin wrap lo desbordaba en 390px. */
+  flex-wrap: wrap;
+}
+
+/* Identidad del paciente en SU espacio clínico (el Patient Anchor del
+   expediente): nivel display por VISUAL_DNA §1 R3 — «Serif Fraunces SOLO en
+   el nivel display (saludo, nombre del paciente en su espacio clínico)».
+   No es el papel R3 de fila (.nx-ident, 15.5 grotesca): el workspace del
+   paciente es el único sitio donde su nombre ES el título del espacio.
+   20px de la escala oficial — el ancla es pegajosa y compacta, no el saludo
+   de 32px de /dashboard. Se usa junto a .nx-display (que pone la familia). */
+.nx-ancla-nombre {
+  font-size: 20px; line-height: 1.2; font-weight: 600;
+  color: var(--text); overflow-wrap: anywhere; margin: 0;
+}
+
 /* Scrollbar minimalista */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -452,10 +595,9 @@ html, body {
   padding: 20px;
 }
 
-.card-hover {
-  transition: border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-              background 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
+/* La transición de .card-hover vive en el bloque de micro-interacciones
+   (más abajo): esta declaración temprana quedaba MUERTA — el shorthand
+   posterior la reemplazaba entera. Una clase, una voz de transición. */
 .card-hover:hover {
   border-color: var(--border2);
   background: var(--s2);
@@ -474,13 +616,19 @@ html, body {
   font-weight: 500;
   letter-spacing: -0.005em;
   cursor: pointer;
-  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              color 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background var(--mov-rapido) var(--mov-curva),
+              color var(--mov-rapido) var(--mov-curva),
+              border-color var(--mov-rapido) var(--mov-curva),
+              opacity var(--mov-rapido) var(--mov-curva);
   border: 1px solid transparent;
   white-space: nowrap;
   font-family: inherit;
+  /* `.btn` también lo lleva un ENLACE (`ButtonLink`, el control que navega).
+     Sin esto, cada sitio tenía que acordarse de un `textDecoration: 'none'`
+     en línea — y tres de ellos no se acordaban. La apariencia vive en la
+     HOJA, no en el JSX (la lección de nx-stat-grid). En un `<button>` es
+     inerte: ya no venía subrayado. */
+  text-decoration: none;
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -565,9 +713,9 @@ html, body {
   font-size: 14px;
   color: var(--text);
   font-family: inherit;
-  transition: border-color 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              background 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color var(--mov-rapido) var(--mov-curva),
+              box-shadow var(--mov-rapido) var(--mov-curva),
+              background var(--mov-rapido) var(--mov-curva);
   outline: none;
 }
 /* PLACEHOLDERS LEGIBLES EN TODAS PARTES.
@@ -655,7 +803,7 @@ thead th {
 }
 tbody tr {
   border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
+  transition: background var(--mov-rapido) var(--mov-curva);
 }
 tbody tr:hover { background: var(--s2); }
 tbody td { padding: 12px; color: var(--text2); }
@@ -695,8 +843,8 @@ tbody tr:last-child { border-bottom: none; }
   font-weight: 500;
   color: var(--text2);
   cursor: pointer;
-  transition: background 140ms cubic-bezier(0.16, 1, 0.3, 1),
-              color 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background var(--mov-rapido) var(--mov-curva),
+              color var(--mov-rapido) var(--mov-curva);
   text-decoration: none;
   border: none;
   background: none;
@@ -733,6 +881,206 @@ tbody tr:last-child { border-bottom: none; }
   text-transform: uppercase;
   letter-spacing: 0.1em;
   padding: 14px 12px 6px;
+}
+
+/*
+  V15-VISUAL-SYSTEM-001 (Fase 10, §18 paso 7) — EL ACENTO ENTRA AL SHELL.
+
+  Aquí vivió el override greybox de V15-SHELL-GREYBOX-001 (`var(--text)` en
+  barra e icono del contexto activo): la compuerta §12 exigía probar que la
+  jerarquía sobrevive sin acento, y sobrevivió — el gate pasó con capturas el
+  11-ago-2026 (`docs/design/capturas/v15-shell-greybox/`). Fase 10 tomó la
+  decisión que el greybox dejó pendiente: el estado activo vuelve a las reglas
+  base de `.nav-item.active` (barra + icono en `var(--nexus)`), porque el
+  cobalto significa acción/selección/AHORA (VISUAL_DNA §3) y porque el móvil
+  (`BottomNav`) nunca dejó de marcarlo así — el shell hablaba dos idiomas.
+  No se re-declara nada: quitar el override ES el cambio, y el guardián
+  `v15-el-acento-entra-al-shell.test.ts` falla si el override regresa.
+*/
+
+/*
+  V15-ENCOUNTER-MODE-001 (§8.1, «navigation visually quiets») — mientras el
+  médico graba, lo que no es el contexto activo baja de peso visual. Ver el
+  comentario largo en `FlowRail.tsx` (`useGrabando`) para el porqué de esta
+  forma exacta: un `opacity` plano sobre las ETIQUETAS de texto viola
+  contraste AA en este tema (`--text3` sobre `--s1` mide ~5.6:1 en oscuro,
+  sin margen para atenuar) — medido con
+  `scripts/design/_probar-opacidad-quieta.mjs` contra el riel real. Por eso
+  se separa en dos:
+
+  - `.nx-flow-rail-quiet-icon` — SVG decorativos, sujetos al umbral no-textual
+    de WCAG 1.4.11 (3:1, no 4.5:1): sí hay margen para atenuar. `opacity`, no
+    `display:none` — son parte de controles enfocables (búsqueda, cerrar
+    sesión, marca), y el ícono no debe desaparecer del control que lo
+    contiene. El foco/hover del control padre restaura el peso normal.
+  - `.nx-flow-rail-quiet-hide` — texto puramente secundario y NO interactivo
+    (nunca recibe el foco): se oculta de verdad, no se atenúa. No hay orden
+    de tabulación que perder porque nada de esto era alcanzable por teclado.
+
+  Las etiquetas de navegación (Hoy/Paciente/Encuentro/Seguimiento/
+  Operaciones) y el nombre del consultorio no llevan ninguna de las dos
+  clases — se quedan con su contraste de siempre.
+*/
+.nx-flow-rail--quieto .nx-flow-rail-quiet-icon,
+.nx-flow-rail--quieto .nav-item:not(.active) .nav-icon {
+  opacity: 0.4;
+  transition: opacity var(--mov-normal) var(--mov-curva);
+}
+.nx-flow-rail--quieto button:focus .nx-flow-rail-quiet-icon,
+.nx-flow-rail--quieto button:hover .nx-flow-rail-quiet-icon,
+.nx-flow-rail--quieto .nav-item:hover .nav-icon,
+.nx-flow-rail--quieto .nav-item:focus .nav-icon {
+  opacity: 1;
+}
+.nx-flow-rail--quieto .nx-flow-rail-quiet-hide {
+  display: none;
+}
+
+/*
+  V15-MOBILE-001 (Fase 9, §22, «sign/close desde el teléfono») — la barra que
+  acerca el cierre de /consulta al pulgar. SÓLO existe en móvil: en escritorio
+  el cierre está a un scroll corto y la barra sería ruido (por eso el default
+  es display:none y el media query la enciende, no al revés). `position:
+  sticky; bottom: 0` DENTRO de <main> (el contenedor de scroll real del
+  dashboard): queda pegada al borde inferior del área de trabajo, justo
+  encima del BottomNav, sin taparlo — el porqué del sticky-en-main y no un
+  fixed está en `CierreAlPulgar.tsx`. Greybox: superficies neutras (§12).
+*/
+.nx-cierre-al-pulgar {
+  display: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  margin: 16px 0 0;
+}
+@media (max-width: 768px) {
+  .nx-cierre-al-pulgar { display: block; }
+}
+.nx-cierre-al-pulgar-btn {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+/*
+  V15-MOBILE-001 (Fase 9, §22/§24) — el aviso de recordatorios push
+  (`NotificacionesPushOptIn`). En escritorio: tarjeta flotante abajo-derecha,
+  como siempre. En móvil era `position:fixed; bottom:16; z-index:1000` SOBRE
+  el BottomNav (z-45): tapaba la navegación completa de la zona del pulgar y
+  se comió el tap de los arneses dos veces (documentado en
+  capturar-cierre-al-pulgar-v15.mjs, que lo esquivaba sembrando el flag de
+  descarte). Ahora en ≤768px es una hoja anclada ENCIMA del BottomNav
+  (53px medidos en v15-cierre-al-pulgar, + separación + safe-area), y su
+  z-index (44) queda DEBAJO del BottomNav (45): si algún día vuelven a
+  solaparse, gana la navegación — nunca al revés. La posición vive en la
+  HOJA y no inline por la lección de nx-stat-grid: un estilo inline
+  vencería al media query en silencio.
+*/
+.nx-push-optin {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 44;
+  max-width: 360px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+@media (max-width: 768px) {
+  .nx-push-optin {
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    /* 53px = alto real del BottomNav medido en v15-cierre-al-pulgar. */
+    bottom: calc(53px + 8px + env(safe-area-inset-bottom, 0px));
+  }
+  /* §24: en pantalla táctil, Activar/Después suben al mínimo de 44px. */
+  .nx-push-optin-accion {
+    min-height: 44px;
+  }
+  .nx-push-optin-cerrar {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Compensa el área táctil para que la X siga viéndose en la esquina. */
+    margin: -10px -10px 0 0;
+  }
+}
+/* RTC-32 — aquí vivía la regla que apartaba los widgets flotantes de la
+   esquina mientras el aviso de push preguntaba: el FAB (z-60) tapaba su X y el
+   toggle (z-199) pintaba sobre el borde de la hoja a 390px. La convivencia
+   MURIÓ con su causa: `.nx-push-optin` sólo existe dentro del shell del
+   dashboard, y en el shell ya no flota nada (el FAB de ayuda no existe y el
+   toggle de tema vive en Operaciones). Una regla que arbitra entre dos cosas
+   de las que una desapareció no protege nada; se retira en vez de dejarla de
+   adorno. */
+
+/*
+  V15-MOBILE-001 (Fase 9, §23 «what remains persistent») — el shell del
+  dashboard tiene FONDO: alto exacto del viewport y overflow oculto, para que
+  el scroll viva en <main> (que SIEMPRE tuvo `overflowY: auto` con esa
+  intención) y no en el documento. Sin este tope, `min-height` dejaba crecer
+  la columna entera y TODO el sistema sticky del producto quedaba mudo sin
+  que nadie lo viera: el ancla del paciente, el encabezado del calendario, el
+  encabezado de la tabla de pacientes, los paneles laterales de receta/orden
+  y el BottomNav apuntaban a un scrollport que jamás se desplazaba — medido
+  en navegador real con `scripts/design/capturar-cierre-al-pulgar-v15.mjs`
+  (main.clientHeight === main.scrollHeight en /consulta, con el BottomNav a
+  2,321px del borde en un viewport de 844). Las dos declaraciones de height
+  son fallback: dvh donde existe (altura real del viewport móvil), vh donde no.
+*/
+.nx-app-shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+/* Dentro del shell con tope, el riel/menú lateral necesita su propio scroll
+   cuando el contenido exceda el viewport (antes crecía con el documento). */
+.sidebar { overflow-y: auto; }
+
+/* Pantalla-LIENZO (V15-MOBILE-001, 6ª rebanada, §22/§23): una pantalla
+   app-like (hoy: /chat) que llena EXACTO el espacio visible y desplaza su
+   propio contenido, en vez de crecer con el documento. `height: 100%` a secas
+   no le llega: entre <main> y la página vive `.page-transition` (template.tsx,
+   alto auto), así que la cadena entera transmite el alto por flex — SOLO
+   cuando la pantalla lo pide (`:has`, mismo patrón que el FAB de ayuda con
+   .nx-push-optin). Sin esto el lienzo colapsa al alto de su contenido: el
+   composer del chat se medía a 889px en un viewport de 844, enterrado bajo el
+   BottomNav (docs/design/capturas/v15-trabajos-moviles-2/). */
+main:has(.nx-lienzo-completo) { display: flex; flex-direction: column; }
+main:has(.nx-lienzo-completo) > .page-transition {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nx-lienzo-completo { flex: 1; min-height: 0; }
+/* En móvil, el lienzo tampoco hereda los colchones de las páginas-documento:
+   el padding-bottom de 72px de main era el claro para el BottomNav de cuando
+   la página desplazaba el documento — dentro del shell la barra vive DEBAJO
+   de main (sticky en flujo), así que bajo un lienzo ese claro es doble y se
+   medía como 104px de aire muerto entre el composer y la barra (72 + 16 + 16
+   de main > div). El propio composer conserva su padding y su safe-area. */
+@media (max-width: 768px) {
+  main:has(.nx-lienzo-completo) { padding-bottom: 0 !important; }
+  main:has(.nx-lienzo-completo) > .page-transition { padding-top: 0; padding-bottom: 0; }
 }
 
 /* ── Topbar ───────────────────────────────────────────────── */
@@ -820,8 +1168,8 @@ tbody tr:last-child { border-bottom: none; }
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: color 140ms cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color var(--mov-rapido) var(--mov-curva),
+              border-color var(--mov-rapido) var(--mov-curva);
   white-space: nowrap;
   border-top: none; border-left: none; border-right: none;
   background: none;
@@ -844,8 +1192,9 @@ tbody tr:last-child { border-bottom: none; }
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-              background 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* La transición de .kpi-card vive en el bloque de micro-interacciones
+     (más abajo): la declaración temprana quedaba MUERTA — el shorthand
+     posterior la reemplazaba entera. Una clase, una voz de transición. */
 }
 .kpi-card:hover {
   border-color: var(--border2);
@@ -902,7 +1251,7 @@ tbody tr:last-child { border-bottom: none; }
   min-height: 48px;
   position: relative;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--mov-rapido) var(--mov-curva);
 }
 .cal-cell:hover { background: var(--s2); }
 .cal-cell:last-child { border-right: none; }
@@ -918,7 +1267,7 @@ tbody tr:last-child { border-bottom: none; }
   overflow: hidden;
   cursor: pointer;
   border-left: 3px solid;
-  transition: opacity 0.15s;
+  transition: opacity var(--mov-rapido) var(--mov-curva);
 }
 .appt-chip:hover { opacity: 0.85; }
 
@@ -1006,6 +1355,73 @@ tbody tr:last-child { border-bottom: none; }
 @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .page-transition { animation: pageFadeIn 200ms ease both; }
 @media (prefers-reduced-motion: reduce) { .page-transition { animation: none; } }
+
+/* ── §20 Coreografía de continuidad (V15-MOTION-001, 4ª rebanada) ───────────
+   «Hoy → Paciente → Encuentro debe sentirse como EL MISMO OBJETO ganando
+   detalle.» El mecanismo vive en src/lib/ui/continuidad.ts: view transition
+   NATIVA, mejora progresiva — sin el API, o bajo prefers-reduced-motion, la
+   navegación es la de siempre (JS lo decide ANTES de llamar al API; las
+   reglas de abajo son el cinturón por si algo la llama igual).
+
+   Interrumpible por diseño (§20 «transitions must be interruptible»): el
+   overlay ::view-transition NO captura el puntero — la pantalla nueva sigue
+   viva debajo y un segundo click navega encima, saltando la transición. */
+::view-transition { pointer-events: none; }
+
+/* RT-08 — el candado de la ventana de clic ciego. Mientras corre el CALLBACK
+   de la transición (continuidad.ts pone y quita el atributo), el navegador
+   pinta la instantánea VIEJA pero el DOM de debajo ya es el NUEVO: un clic
+   ahí aterriza a ciegas — desde una worklist, en el encuentro de OTRO
+   paciente. El candado dura lo que el callback (≤400ms por tope); la fase de
+   animación no lo lleva — ahí el overlay ya enseña el estado nuevo y la
+   regla de arriba la mantiene interrumpible. */
+html[data-vt-congelada] body { pointer-events: none; }
+
+/* El DESTINO del objeto compartido sólo tiene nombre DURANTE una navegación
+   coreografiada (el atributo lo pone y lo quita continuidad.ts). Fuera de
+   ella, cero view-transition-name en reposo: nada que capturar, ningún par
+   duplicado si dos pantallas con destino conviven en el DOM. */
+html[data-vt-continuidad] .nx-vt-paciente { view-transition-name: nx-paciente; }
+
+/* Una sola voz por navegación: durante la coreografía, el crossfade del
+   template se calla — el fundido de raíz ya lo pone la view transition, y
+   dos fundidos encimados parpadean. */
+html[data-vt-continuidad] .page-transition { animation: none; }
+
+/* Duraciones y curva: papeles del sistema, no números a mano. La raíz funde
+   a normal (es un fundido de estado); el objeto compartido VIAJA — papel
+   espacial, lento — con la curva de facto. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--mov-normal);
+  animation-timing-function: var(--mov-curva);
+}
+::view-transition-group(nx-paciente) {
+  animation-duration: var(--mov-lento);
+  animation-timing-function: var(--mov-curva);
+}
+/* height:100% en las instantáneas del par evita el estirón cuando la caja
+   de origen (fila) y la de destino (encabezado) no comparten proporción. */
+::view-transition-old(nx-paciente),
+::view-transition-new(nx-paciente) {
+  height: 100%;
+  animation-duration: var(--mov-lento);
+  animation-timing-function: var(--mov-curva);
+}
+
+/* §24: el apagador global de arriba usa `*`, que NO alcanza a los
+   pseudo-elementos de view transition — se apagan aparte, explícitos. El
+   primer candado es JS (puedeCoreografiar consulta matchMedia y ni llama al
+   API); éste es el segundo. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
 
 /* ── Teal glow effect ─────────────────────────────────────── */
@@ -1062,6 +1478,68 @@ tbody tr:last-child { border-bottom: none; }
      La mayoría de los paneles clínicos y calculadoras usan <button style={...}>
      inline (22-30px) y no recibían el mínimo. */
   button:not(.mobile-topbar-btn) { min-height: 44px !important; }
+
+  /* Los ENLACES quedaban fuera de este bloque — por eso los dos táctiles
+     chicos que la radiografía de trabajos móviles (Fase 9) anotó eran <a>:
+     la identidad de paciente en /pendientes (a.nx-ident, 156×20) y el CTA
+     del TrialBanner (.nx-cta-aviso, 100×24). Un min-height aquí NO sirve:
+     engordaría lo visible (la píldora del banner pinta su fondo sobre el
+     padding) y movería la línea de base de la fila. El área de GOLPE se
+     estira con un pseudo invisible centrado — el mismo mecanismo que
+     .nx-fila-abrir::after (V15-A11Y-001, 3ª rebanada) — y lo visible no se
+     mueve un píxel. El pseudo puede pisar TEXTO vecino (el título de la
+     tarea, el borde del aviso), nunca otro control: los controles vecinos
+     más cercanos (botones de la tarjeta, franja) quedan a más de lo que el
+     pseudo alcanza. Sólo puntero grueso: en escritorio el clic de ratón no
+     necesita 44px y estirarlo robaría clics de selección de texto.
+     Dos ajustes que el arnés midió, no que se supusieron
+     (capturar-tactiles-de-enlace-v15): el CTA del banner vive en un corredor
+     de 41px — la topbar pegajosa (z-45) le come todo lo que asome por
+     arriba, y ELLA debe ganar: tiene sus propios controles. Por eso el
+     estirón se sesga 2px hacia ABAJO (hacia el pulgar, que llega desde
+     abajo) y el enlace lleva z-index 1 para que la capa de transición de
+     página no se coma el borde inferior del golpe. Sin los dos, el área
+     efectiva medía 40, no 44. */
+  a.nx-ident, .nx-cta-aviso { position: relative; z-index: 1; }
+  a.nx-ident::before, .nx-cta-aviso::before {
+    content: '';
+    position: absolute;
+    top: calc(50% + 2px); left: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+  }
+
+  /* LOS DESTINOS DEL RIEL — la misma causa raíz que los dos enlaces de arriba,
+     y con la peor consecuencia de las tres.
+
+     RTC-32 midió el disparador de ayuda del riel en 207×36 y dejó la deuda
+     declarada «del riel entero, se paga como unidad: subir sólo éste haría la
+     ayuda más prominente que los destinos clínicos». Medido después en
+     navegador real (`medir-tactiles-del-riel-v15.mjs`, iPad horizontal 1024
+     con puntero grueso — el riel enciende a ≥769px, así que ese ancho existe
+     y es táctil), esa inversión NO estaba por llegar: ya estaba publicada, y
+     no la creó una decisión sino esta omisión.
+
+       <button> «Ayuda», «Cerrar sesión», las 18 secciones de /configuracion → 44
+       <a>      «Hoy», «Paciente», «Encuentro», «Seguimiento»              → 36.3
+       <a>      «Operaciones» (subordinado, 12px)                          → 34
+
+     `button:not(.mobile-topbar-btn)` los cubría desde hace tiempo; `<a>` nunca
+     entró en este bloque. Resultado con el dedo: cerrar la sesión es un blanco
+     más grande que entrar al encuentro.
+
+     Aquí SÍ vale un `min-height` —y no el pseudo estirado que necesitaron
+     `a.nx-ident` y `.nx-cta-aviso`— porque en el riel lo visible y el golpe son
+     la misma caja: la fila entera pinta su fondo en hover/activo, no hay línea
+     de base compartida con un vecino, y crecer 8px empuja hacia abajo dentro de
+     una columna que ya tiene su propio scroll (`.sidebar { overflow-y: auto }`).
+     Engordar lo visible es aquí la respuesta correcta, no un efecto colateral.
+
+     Sólo puntero grueso, por la misma razón que la regla hermana: con ratón
+     207×36 no es un objetivo táctil, y estirar el riel en escritorio sería
+     inflar el cromo sin que §24 lo pida. */
+  .nav-item { min-height: 44px; }
 }
 
 /* Áreas seguras (notch / home indicator de iPhone) */
@@ -1097,6 +1575,15 @@ tbody tr:last-child { border-bottom: none; }
   flex-shrink: 0;
 }
 
+/* Pistas de teclado (⌘K, flechas, ↵): no existen en un teléfono — se ocultan
+   bajo el mismo corte de 768px que gobierna topbar/bottom-nav (V15-MOBILE-001,
+   §25: nada de desktop-isms de contenido en móvil). El display base vive AQUÍ
+   y no inline en el componente: un display inline vencería al media query. */
+.nx-pista-teclado { display: flex; gap: 14px; }
+@media (max-width: 768px) {
+  .nx-pista-teclado { display: none; }
+}
+
 /* ── Barra superior móvil (con área segura para notch) ─────── */
 .mobile-topbar {
   display: flex;
@@ -1113,8 +1600,13 @@ tbody tr:last-child { border-bottom: none; }
   top: 0;
   z-index: 45;
 }
-/* En tablet/escritorio se oculta (la barra lateral toma su lugar) */
-@media (min-width: 768px) {
+/* En tablet/escritorio se oculta (la barra lateral toma su lugar).
+   769, no 768: el lado móvil del shell vive bajo `max-width: 768px`, así que
+   768 EXACTO (el ancho CSS de un iPad vertical) le pertenece al móvil. Con
+   min-width: 768px las dos familias aplicaban a la vez en ese ancho — la
+   radiografía de breakpoints (v15-breakpoints) midió topbar móvil + franja de
+   escritorio + BottomNav pintados juntos. Un solo shell por ancho. */
+@media (min-width: 769px) {
   .mobile-topbar { display: none; }
 }
 .mobile-topbar-btn {
@@ -1132,12 +1624,55 @@ tbody tr:last-child { border-bottom: none; }
 }
 .mobile-topbar-btn:active { background: var(--s2); }
 
+/* ── Las dos piezas de shell EXCLUSIVAS de escritorio ───────
+   La barra lateral (FlowRail/Sidebar) y la franja de instrumentos de fila
+   propia. Vivían bajo Tailwind `md:` (`min-width: 768px`) mientras TODO el
+   lado móvil del shell vive bajo `max-width: 768px`: en 768 exacto —el ancho
+   CSS de un iPad vertical, no un ancho teórico— las dos familias aplicaban a
+   la vez y la radiografía de breakpoints midió el shell híbrido (topbar
+   móvil + franja de escritorio + BottomNav + colchones móviles, y el rail
+   ahogado por la regla `.sidebar` móvil). La frontera es UNA: móvil ≤768,
+   escritorio ≥769 — la misma que ya usa `.mobile-sidebar-wrap`. */
+.nx-lado-escritorio, .nx-franja-escritorio { display: none; }
+@media (min-width: 769px) {
+  .nx-lado-escritorio { display: flex; }
+  .nx-franja-escritorio { display: block; }
+
+  /* RTC-22 — la marca no se dice dos veces.
+     A partir de 769px el riel está en pantalla con el nombre del consultorio
+     en su cabecera; la franja de la topbar lo repetía. Por debajo, el riel no
+     existe y esta copia es la ÚNICA identidad, así que ahí se queda. */
+  .nx-marca-de-respaldo { display: none; }
+}
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .sidebar.open { display: flex; position: fixed; inset-y: 0; left: 0; z-index: 50; width: 260px; }
   .modal { max-width: 100%; margin: 0; border-radius: 16px 16px 0 0; align-self: flex-end; }
   .modal-overlay { align-items: flex-end; padding: 0; }
+  /*
+    ── EL PIE DE LA HOJA INFERIOR RESERVA LA BANDA DE LA BARRA DEL PULGAR ────
+
+    Medido en navegador real a 390×844 (WF-04 del banco de flujos,
+    `docs/design/capturas/v15-flujos/movil-WF-04-grabando.png`): la hoja se
+    pega al borde inferior (`align-items: flex-end; padding: 0`) y su pie
+    aterriza DENTRO de la barra del pulgar — «Confirmo el consentimiento e
+    iniciar» ocupaba 779–823 y la barra empieza en 791. `elementFromPoint` en
+    el centro del botón devolvía un enlace de la barra: el control no recibía
+    el toque. Consecuencia: en el teléfono NO se podía empezar a grabar a un
+    paciente que no hubiera consentido antes — la compuerta legal del
+    instrumento principal del producto, sin salida.
+
+    `<main>` ya reservaba esta misma banda desde V15-MOBILE-001, con este mismo
+    comentario y este mismo número; la hoja inferior nunca lo recibió. Aquí se
+    usa LA MISMA constante a propósito: dos reservas distintas de la misma
+    barra divergirían a la primera vez que la barra cambie de alto.
+
+    Se rellena el PIE y no el overlay para que la hoja siga pegada al borde:
+    subirla entera dejaría un hueco con la barra asomando por debajo.
+  */
+  .modal-footer { padding-bottom: calc(20px + 72px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* Teléfonos pequeños: reducir padding de página marcada con .page-pad */
@@ -1149,8 +1684,9 @@ tbody tr:last-child { border-bottom: none; }
 @media (max-width: 768px) {
   /* Reducir padding de páginas que aún no usan .page-pad */
   main > div { padding-top: 16px; padding-bottom: 16px; }
-  /* Títulos h1 ligeramente menores */
-  main h1 { font-size: 19px !important; line-height: 1.25; }
+  /* Títulos h1 ligeramente menores. El saludo de Hoy queda fuera: es KICKER
+     (15px, RTC-06) y este achique-para-displays lo AGRANDABA en móvil. */
+  main h1:not(.hoy-saludo) { font-size: 19px !important; line-height: 1.25; }
   /* Tarjetas pegadas a los bordes para usar todo el ancho */
   main .card { padding: 14px !important; }
   /* Sidebar móvil: que ocupe mejor el ancho cuando se abre */
@@ -1175,6 +1711,240 @@ tbody tr:last-child { border-bottom: none; }
 .mobile-sidebar-wrap .sidebar-nav,
 .mobile-sidebar-wrap .sidebar-logo {
   display: flex !important;
+}
+
+/* ── CAPA 4 DE §5 — LA LENTE CONTEXTUAL ─────────────────────────────────────
+   La cuarta capa del shell: fuente, procedencia, evidencia y detalle SIN salir
+   de donde se estaba (§21). El componente y las razones viven en
+   `src/components/LenteContextual.tsx`; aquí sólo la geometría, y aquí porque
+   un `maxWidth`/`position` en línea vencería a la hoja en silencio (lección
+   `nx-stat-grid`).
+
+   EL HUECO NO OCUPA NADA SI NO HAY LENTE. `Lente` cerrada no renderiza, así
+   que `:empty` lo apaga; sin esta línea, la columna del shell reservaría un
+   borde y un hueco flex vacíos en TODAS las pantallas. */
+.nx-lente-hueco:empty { display: none; }
+
+.nx-lente {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  /* HOJA INFERIOR (por debajo de 1200px): hermana de <main> DENTRO de la
+     columna del shell, en flujo. `main` es `flex: 1`, así que cede el alto y
+     el BottomNav se queda exactamente donde estaba — sin un `bottom` a mano,
+     que es el número mágico que este repositorio ya pagó cuatro veces. */
+  max-height: 62vh;
+  max-height: 62dvh;
+}
+.nx-lente-cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nx-lente-rotulo { flex: 1; min-width: 0; }
+.nx-lente-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  /* Recibe el foco al abrir (tabIndex -1): sin contorno propio, un lector de
+     pantalla anuncia el panel y un teclado no ve nada. */
+  outline-offset: 3px;
+}
+.nx-lente-sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text3);
+}
+.nx-lente-cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text3);
+  cursor: pointer;
+}
+.nx-lente-cerrar:hover { background: var(--s3); color: var(--text); }
+.nx-lente-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+}
+
+/* LAS CUATRO RESPUESTAS DE §10 — «¿por qué está aquí?» en la cola de cierre.
+
+   VIVE EN LA HOJA, NO EN EL JSX, y no por gusto: la primera versión escribió
+   los tamaños en línea (11, 13, 11.5) y el trinquete de diseño la paró en
+   seco —`tamanosFueraDeEscala` 1963 → 1969—, además del guardián propio de
+   `/pendientes`, que tiene sellado desde la rebanada de roles tipográficos
+   que 11/13/15 no vuelven inline a esa pantalla. Las dos varas medían lo
+   mismo desde ángulos distintos y las dos tenían razón: un rol tipográfico
+   escrito a mano es un rol sin nombre, y el siguiente que lo copie no sabrá
+   que estaba copiando. La escala declarada es 10.5 · 12 · 14 · 16 · 20 · 28.
+
+   Los rótulos son <h3> de verdad (§24): la lente ya se anuncia como región
+   con nombre, y dentro de ella «Por qué está aquí» / «Qué ha pasado» son la
+   estructura por la que un lector de pantalla navega. Un <span> en versalitas
+   se vería igual y no sería navegable — el mismo defecto que la sonda de la
+   Capa 4 encontró en el `Section` de la consulta. */
+.nx-porque { display: grid; gap: 16px; }
+.nx-porque-bloque { display: grid; gap: 4px; }
+.nx-porque-rotulo {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.nx-porque-texto {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+/* La traza hacia atrás: el único enlace del panel, y va con el acento porque
+   es la acción — abrir la consulta de la que salió el pendiente. */
+.nx-porque-traza {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--nexus);
+}
+.nx-porque-hitos { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+/* La línea de tiempo se dibuja con UN borde, no con una caja por hito: §16
+   pide posición y agrupación antes que contenedores, y siete tarjetas dentro
+   de un panel serían inventario, no historia. */
+.nx-porque-hito {
+  display: grid;
+  gap: 2px;
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+}
+
+/* §21 EN EL EXPEDIENTE — «de dónde salió esta nota», colgando de la nota.
+
+   VIVE EN LA HOJA por la misma lección que el bloque de arriba: un tamaño
+   escrito en línea es un rol tipográfico sin nombre, y el trinquete de diseño
+   lo caza. Escala declarada: 10.5 · 12 · 14 · 16 · 20 · 28.
+
+   El rótulo es un <h4> de verdad y no un <span> en versalitas: dentro de una
+   nota abierta —cuyas secciones ya son estructura— «De dónde salió esta nota»
+   es una sección más por la que un lector de pantalla navega. El `Section` de
+   la consulta rotula con un <span> y la sonda de la Capa 4 lo dejó anotado
+   como defecto de §24; no se repite aquí.
+
+   La franja separadora es UN borde superior, no una caja: §16 pide posición y
+   agrupación antes que contenedores, y una tarjeta dentro de la tarjeta de la
+   nota sería la tercera caja anidada de la misma pantalla. */
+.nx-proc-nota {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.nx-proc-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+/* LAS DOS FAMILIAS DEL SELLO — texto redactado y datos estructurados.
+
+   No es decoración: hasta hoy el panel enseñaba SÓLO datos estructurados
+   mientras el sello archivado contaba también la prosa (7 campos sellados
+   frente a 4 enseñados). Al entrar la prosa, una fila pasa a ocupar tres
+   líneas y otra media, así que sin agrupar mandan las largas sin que nadie lo
+   haya decidido — §16.
+
+   El envoltorio es `display: contents` a propósito: los grupos organizan el
+   ORDEN y el rótulo, no meten una caja más. La columna sigue siendo una sola y
+   el `gap` del panel sigue midiendo entre filas, no entre grupos. */
+.nx-sello-grupo { display: contents; }
+.nx-sello-grupo-rotulo {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+/* CONTRA QUÉ SE CONTRASTA. Es texto terciario a propósito —no compite con la
+   nota— pero NO se degrada por debajo de 10.5: en una discusión medicolegal
+   esta frase es la que dice qué significa el verde. */
+.nx-proc-fuente {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--text3);
+}
+
+/* ESCRITORIO ANCHO — LA LENTE SE ACOPLA, NO SE SUPERPONE.
+
+   EL DISEÑO QUE LA ARITMÉTICA REFUTÓ. La primera versión de esta rebanada iba
+   a flotar el panel sobre «el canalón que el lienzo reserva a la derecha»
+   (RTC-12(a)), contando con no tapar nada. Con los números del propio shell
+   —riel 224, lienzo 1100 centrado, medida de lectura 820, panel 400— el borde
+   derecho del texto y el borde izquierdo del panel se cruzan en TODOS los
+   anchos reales:
+
+     1200 → el panel empieza en 800 y el texto acaba en 1068  (tapa 268px)
+     1440 → empieza en 1040 y el texto acaba en 1126          (tapa  86px)
+     1600 → empieza en 1200 y el texto acaba en 1206          (tapa   6px)
+     1920 → deja de tapar la medida de lectura, pero sigue tapando el
+            contenido de ancho completo hasta ~2560.
+
+   Una lente que tapa el hecho que explica no es una lente. Así que se ACOPLA:
+   `.nx-app-shell` cede a la derecha exactamente el ancho del panel y toda la
+   columna de trabajo —franja, lienzo, todo— se estrecha con ella. El texto se
+   re-fluye, que es un coste real y menor: nada queda escondido, y al cerrar
+   vuelve todo exactamente a donde estaba.
+
+   El acoplamiento va por `padding-right` sobre el shell + panel `fixed`, y no
+   por un tercer hermano flex, porque el hueco vive DENTRO de la columna (ahí
+   es donde en móvil tiene que ser hermano de <main> para no calcularle un
+   `bottom` al BottomNav). `:has` es el mismo mecanismo que ya usan
+   `main:has(.nx-lienzo-completo)` y `body:has(.bottom-nav-wrap)`.
+
+   Por debajo de 1200 no hay ancho que ceder: ahí manda la hoja inferior. */
+.nx-app-shell { --nx-lente-ancho: min(400px, 30vw); }
+@media (min-width: 1200px) {
+  .nx-app-shell:has(.nx-lente) { padding-right: var(--nx-lente-ancho); }
+  .nx-lente-hueco {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--nx-lente-ancho);
+    /* Debajo del BottomNav (45) y muy por debajo del modal (100): la lente es
+       contexto, no interrupción. */
+    z-index: 44;
+  }
+  .nx-lente {
+    height: 100%;
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
 }
 
 /* ── Bottom Nav — solo visible en móvil ─────────────────── */
@@ -1227,7 +1997,8 @@ tbody tr:last-child { border-bottom: none; }
   justify-content: center;
   padding: 6px;
   border-radius: var(--r-sm);
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--mov-rapido) var(--mov-curva),
+              color var(--mov-rapido) var(--mov-curva);
 }
 .mobile-topbar-btn:hover { background: var(--s2); color: var(--text); }
 .mobile-topbar-btn:active { background: var(--s3); }
@@ -1310,6 +2081,8 @@ tbody tr:last-child { border-bottom: none; }
   --red:       #B91C1C;
   --green:     #14532D;
   --purple:    #6D28D9;
+  /* Sobre el ámbar/rojo profundos del claro gana el blanco (ver :root). */
+  --sobre-aviso: #FFFFFF;
 
   /* Badges de estado — LIGHT. Texto OSCURO sobre fondo MUY claro del mismo tono;
      medido ≥4.6:1. Tintar el fondo con el mismo tono del texto (lo que se hacía
@@ -1365,6 +2138,7 @@ tbody tr:last-child { border-bottom: none; }
     --red:       #B91C1C;
     --green:     #14532D;
     --purple:    #6D28D9;
+    --sobre-aviso: #FFFFFF;   /* ver :root — blanco sobre los rellenos claros */
     --badge-green-t:  #0F5C2E; --badge-green-b:  #E1F0E7;
     --badge-blue-t:   #1B3FA8; --badge-blue-b:   #E4EAFB;
     --badge-amber-t:  #92400E; --badge-amber-b:  #FBEEDD;
@@ -1381,12 +2155,26 @@ tbody tr:last-child { border-bottom: none; }
 }
 
 /* ── Transición global suave al cambiar de tema ─────────────────── */
+/* UNA VOZ POR ELEMENTO (V15-MOTION-001, 2ª rebanada). CSS no distingue POR
+   QUÉ cambió una propiedad: un elemento sólo puede tener UNA velocidad por
+   propiedad, gane el tema o gane el hover. Esta regla agrupada venía DESPUÉS
+   de las reglas base y REEMPLAZABA entero el shorthand de .btn/.input/
+   .nav-item/.tab: el botón perdía su fade de opacity (disabled), el input
+   perdía box-shadow (el halo de foco aparecía a golpe) y los cuatro
+   respondían al hover a 200ms — lag en el feedback que el médico toca todo
+   el día. Política: el cross-fade de tema lo cargan las SUPERFICIES (esta
+   regla); los CONTROLES conservan su voz propia con papel rapido — sus
+   propiedades de tema (fondo/color/borde) ya transicionan ahí, y en un
+   cambio de tema un control de 36px fundiéndose a 120ms dentro de un lienzo
+   que se funde a 200ms es imperceptible. .kpi-card y .card-hover tampoco
+   viven aquí: su shorthand de micro-interacción (más abajo) es su única voz
+   y ahora incluye color para no perder el fade de tema. */
 html { color-scheme: dark light; }
-html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item, .tab {
+html, body, .card, .modal, .topbar, .sidebar {
   transition:
-    background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    background-color var(--mov-normal) var(--mov-curva),
+    color var(--mov-normal) var(--mov-curva),
+    border-color var(--mov-normal) var(--mov-curva);
 }
 
 /* ── Glassmorphism — solo donde aporta jerarquía ────────────────── */
@@ -1415,16 +2203,18 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 /* Active scale en botones — feedback táctil sutil */
 .btn:active:not(:disabled) {
   transform: scale(0.97);
-  transition-duration: 80ms;
+  transition-duration: var(--mov-presion);
 }
 
-/* Hover lift en cards interactivas */
+/* Hover lift en cards interactivas — color incluido: este shorthand es la
+   única voz de la clase y sin él la tarjeta perdía el cross-fade de tema. */
 .card-hover {
   transition:
-    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    border-color var(--mov-normal) var(--mov-curva),
+    background var(--mov-normal) var(--mov-curva),
+    color var(--mov-normal) var(--mov-curva),
+    transform var(--mov-normal) var(--mov-curva),
+    box-shadow var(--mov-normal) var(--mov-curva);
 }
 .card-hover:hover {
   transform: translateY(-1px);
@@ -1434,10 +2224,11 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 /* KPI cards con misma personalidad */
 .kpi-card {
   transition:
-    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    border-color var(--mov-normal) var(--mov-curva),
+    background var(--mov-normal) var(--mov-curva),
+    color var(--mov-normal) var(--mov-curva),
+    transform var(--mov-normal) var(--mov-curva),
+    box-shadow var(--mov-normal) var(--mov-curva);
 }
 .kpi-card:hover {
   transform: translateY(-1px);
@@ -1473,7 +2264,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   border-radius: 2px 2px 0 0;
   transform: scaleX(0);
   transform-origin: center;
-  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--mov-normal) var(--mov-curva);
 }
 .tab.active::after { transform: scaleX(1); }
 .tab.active { border-bottom-color: transparent; }
@@ -1493,12 +2284,14 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   position: fixed;
   bottom: 16px;
   right: 16px;
-  width: 38px;
-  height: 38px;
+  /* §24: 44×44 mínimo táctil — estaba en 38 (y 34 en móvil), anotado como
+     «táctil chico» por la radiografía de trabajos móviles de Fase 9. */
+  width: 44px;
+  height: 44px;
   border-radius: var(--r-circulo);
-  background: color-mix(in srgb, var(--s1) 80%, transparent);
-  backdrop-filter: saturate(180%) blur(10px);
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  /* RTC-05: fondo SÓLIDO del sistema — el cristal era la segunda señal de
+     genericidad del trinquete, y en un botón de sistema no compraba nada. */
+  background: var(--s1);
   border: 1px solid var(--border2);
   color: var(--text2);
   display: flex;
@@ -1507,10 +2300,16 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   cursor: pointer;
   z-index: 199;
   box-shadow: var(--elev-2);
+  /* UNA voz (V15-MOTION-001, 2ª rebanada): el fade de opacity de los botones
+     flotantes vivía en otra regla posterior y SOMBREABA este shorthand entero
+     — el hover del toggle (color, scale) aparecía a golpe. Aquí viven las
+     cuatro propiedades con su papel: feedback de color/opacidad = rapido,
+     lift de transform = normal. */
   transition:
-    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva),
+    transform var(--mov-normal) var(--mov-curva),
+    opacity var(--mov-rapido) var(--mov-curva);
 }
 .theme-toggle:hover {
   color: var(--text);
@@ -1534,32 +2333,62 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
    La solución es de momento, no de sitio: mientras hay un campo con el foco, se
    apartan. Vuelven en cuanto se deja de escribir. `:has()` lo resuelve sin una
    línea de JavaScript, y donde no exista simplemente no se aplica — el
-   comportamiento de hoy, que es el peor caso, no el único. */
+   comportamiento de hoy, que es el peor caso, no el único.
+
+   RTC-32: la mitad del FAB de ayuda murió con el FAB. Esta regla sobrevive
+   SÓLO para lo que queda flotando fuera del shell —login, registro,
+   marketing—, donde el toggle sigue siendo un botón de esquina sobre
+   formularios de verdad. Dentro del shell ya no hay nada que apartar. */
 @media (max-width: 900px) {
-  html:has(input:focus, textarea:focus, select:focus) .theme-toggle,
-  html:has(input:focus, textarea:focus, select:focus) .boton-ayuda-fab {
+  html:has(input:focus, textarea:focus, select:focus) .theme-toggle {
     opacity: 0;
     pointer-events: none;
   }
 }
-.theme-toggle, .boton-ayuda-fab { transition: opacity 140ms ease; }
 .theme-toggle svg {
   width: 18px;
   height: 18px;
-  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.theme-toggle:hover svg { transform: rotate(20deg); }
+/* RTC-23 — AQUÍ GIRABA LA LUNA AL PASAR EL RATÓN, Y NO DECÍA NADA.
+   Un icono que rota 20° no informa de nada: ni de que el control se puede
+   pulsar (eso ya lo dicen el cursor y el `:hover` de abajo), ni de qué va a
+   pasar al pulsarlo. Era movimiento decorativo puntual — §29, «motion que se
+   anuncia» — sobre el único cromo que sigue flotando fuera del panel (login,
+   registro, marketing), o sea delante de quien todavía no es cliente.
+   El `:hover` conserva sus DOS señales útiles: sube el contraste del icono y
+   crece un 5 %. La transición se va con la rotación: era su único sujeto. */
 
-/* En móvil con bottom-nav, sube el toggle para no chocar */
+/* ── RTC-05 → RTC-32: en el shell NO FLOTA NADA, en ningún ancho ───────────
+   RTC-05 sacó los dos botones de esquina del arco del pulgar en MÓVIL (el
+   equipo rojo los midió ocluyendo contenido en 4 de 6 superficies) y dejó
+   escrito el hueco: en escritorio la esquina no ocluye la columna clínica, así
+   que allí seguían flotando.
+
+   RTC-32 cierra el hueco, y el motivo medido NO es la oclusión —que en
+   escritorio no se reproduce— sino el PESO (§16, §29): en las 6 superficies el
+   FAB se pintaba con `--nexus-solido`, el mismo relleno que la acción primaria
+   de la pantalla, y en `/operaciones` era el único relleno de marca que había.
+   Lo más enfático de Operaciones era el botón de ayuda.
+
+   Así que el alcance sube de «shell móvil» a «shell», sin media query: la
+   ayuda vive en el pie del riel (escritorio) y en la topbar (móvil), y el tema
+   vive en Operaciones (§11: es sistema). Fuera del dashboard —login,
+   registro, marketing— el toggle flotante SIGUE: ahí no hay ni columna clínica
+   ni riel con pie donde alojarlo. Con esto mueren también los parches de
+   convivencia por-pantalla (bottom: 78/92/120/136px según superficie). */
+body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 @media (max-width: 768px) {
-  .theme-toggle {
-    bottom: 78px;
-    right: 12px;
-    width: 34px;
-    height: 34px;
-  }
+  .theme-toggle { right: 12px; }
   .theme-toggle svg { width: 16px; height: 16px; }
 }
+
+/* RTC-32 — aquí vivía el último número mágico de esta familia: en /chat
+   (`.nx-lienzo-completo`) el toggle caía ENCIMA del botón Enviar y no se podía
+   pulsar ni en 1440 ni en 390 («.theme-toggle subtree intercepts pointer
+   events», arnés de la 4ª rebanada de V15-A11Y-001), así que subía a 92px.
+   /chat es una pantalla del shell y en el shell el toggle ya no flota: la
+   colisión no se sortea, deja de existir. El parche móvil hermano ya había
+   muerto con RTC-05; con éste se acaba la serie 78/92/120/136. */
 
 /* ── Tipografía premium para headers de página ──────────────────── */
 .nx-page-title {
@@ -1614,6 +2443,8 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     /* Los que entraron con la segunda tanda de migración (v913): el trinquete
        vigilaba el color del error y dejaba pasar el del acierto. */
     --purple: #6D28D9;
+    /* En papel rigen los rellenos del claro → texto blanco encima (ver :root). */
+    --sobre-aviso: #FFFFFF;
   }
   .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
 
@@ -1760,8 +2591,106 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   color: var(--text3);
   margin-bottom: 4px;
 }
+/* RTC-30 — la variante de LÍNEA: el vacío de un bloque, no el de una pantalla.
+   Sin centrado, sin icono y sin 48px de aire: a la izquierda, en el renglón,
+   con su acción al lado. Ver el porqué en EmptyState.tsx. */
+.empty-state--linea {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 10px;
+  padding: 14px 2px 18px;
+  flex-wrap: wrap;
+}
+.empty-state--linea .empty-state-desc { max-width: none; display: inline; }
+.empty-state--linea .empty-state-title { font-size: 14px; }
+
 .empty-state-title { font-size: 15px; font-weight: 600; color: var(--text2); }
 .empty-state-desc  { font-size: 13px; color: var(--text3); max-width: 360px; }
+
+/* RTC-17 — LA PISTA DE OCHO ETAPAS, SEGÚN QUEPA.
+   A 390px las ocho píldoras caían en DOS renglones dentro de una fila de
+   worklist, y ocho etiquetas de 10.5px no se leen: se miran. En el teléfono
+   la pista se resume en una línea —«Etapa 3 de 8 · sigue: Dueño»— que se
+   despliega entera con un `<details>` nativo. En escritorio cabe, así que se
+   enseña sin pedir permiso. Sólo una de las dos formas existe a cada ancho:
+   dos pistas a la vez serían dos veces el mismo dato. */
+.nx-progreso-estrecho { display: none; }
+@media (max-width: 560px) {
+  .nx-progreso-ancho { display: none; }
+  .nx-progreso-estrecho { display: block; }
+}
+
+/* RTC-31 — EL BLOQUE DE HOY DEJA DE SER UNA TARJETA.
+   La 2ª pasada de §29 midió que lo que queda de genérico en cinco superficies
+   es el marco, no el contenido: «contenedor de tarjeta con filas dentro» está
+   en la lista literal de lo que la regla de diseño prohíbe («tablero hecho
+   enteramente de tarjetas redondeadas»). La superficie que puntúa 1.0
+   —/pendientes— no envuelve nada: agrupa el ENCABEZADO, que además dice algo.
+   Aquí los encabezados ya existen («Agenda de hoy», «Sigue abierto de antes»)
+   y ya llevan su línea inferior; lo que sobraba era la caja.
+   Los laterales se van con ella: dentro de una tarjeta, 20px de padding es
+   margen interior; sin tarjeta, es una sangría que desalinea el bloque del
+   resto de la página. */
+.hoy-bloque {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.hoy-bloque > .hoy-bloque-head { padding-left: 2px; padding-right: 2px; }
+.hoy-bloque > .hoy-bloque-head + * .cita-fila,
+.hoy-bloque > .cita-fila,
+.hoy-bloque > div > .cita-fila { padding-left: 2px; padding-right: 2px; }
+.hoy-bloque .empty-state { padding-left: 2px; padding-right: 2px; }
+
+/* ── EL LIENZO DE PÁGINA — RTC-12(a) / RTC-16 ────────────────────────────────
+
+   MEDIDO ANTES DE ESCRIBIRSE (`medir-canvas-de-pagina-v15.mjs`, 14-ago, 1440px):
+   las seis superficies de §29 declaraban CUATRO anchos distintos —900 · 1100 ·
+   880 · 980— y `/pendientes` ninguno. La consecuencia no es «sobra lienzo»:
+
+     hoy → pendientes   el contenido salta 182px de lado
+     pendientes → pacientes                  82px
+     pacientes → expediente                 142px
+     expediente → consulta                  106px
+     consulta → operaciones                  70px
+
+   El médico no navega a un ancho: navega a una pantalla. Con cada contenedor
+   centrado en su propio número, **el renglón donde empieza a leer se mueve en
+   CADA paso**, hasta 182px. §20 pide que navegar se sienta como el mismo objeto
+   haciéndose más detallado; ese brinco lateral lo rompe, y lo rompe el marco,
+   no el contenido.
+
+   POR QUÉ NO SE «ENSANCHAN» LAS COLUMNAS. El enunciado original de RTC-12(a)
+   —«ninguna superficie usa el lienzo de escritorio»— da por hecho que el ancho
+   sobrante es el defecto. No lo es: 880px de historia clínica son 74 caracteres
+   medidos, dentro del rango legible, y estirarlos a 1440 para llenar píxeles
+   sería el error contrario y más caro. Lo que faltaba no era ancho: era UNA
+   REGLA.
+
+   LA REGLA. Un solo bloque, un solo borde izquierdo. `--nx-lienzo` es el ancho
+   del bloque compartido y no depende de la pantalla; lo que sí cambia según el
+   trabajo es la MEDIDA del contenido dentro de él (`.nx-medida-lectura`), que
+   se acorta por la derecha sin mover el borde por el que se entra. Dos
+   pantallas distintas empiezan en el mismo píxel; una acaba antes.
+
+   VIVE EN LA HOJA, NO EN EL JSX (lección `nx-stat-grid`): un `maxWidth` en
+   línea vence a la hoja en silencio, así que al convertir una pantalla el
+   número escrito a mano **se borra**, no se acompaña. El trinquete
+   `lienzosAMano` cuenta los que quedan y sólo puede bajar. */
+.nx-canvas {
+  --nx-lienzo: 1100px;
+  width: 100%;
+  max-width: var(--nx-lienzo);
+  margin: 0 auto;
+  padding: 24px;
+}
+/* La medida de lectura: prosa y narrativa clínica. Acorta por la DERECHA. */
+.nx-canvas .nx-medida-lectura { max-width: 820px; }
+/* Teléfonos pequeños: mismo recorte que `.page-pad`, un solo sitio que lo diga. */
+@media (max-width: 480px) { .nx-canvas { padding: 16px; } }
 
 /* PageHeader — encabezado de pantalla con acciones */
 .page-header {
@@ -1817,20 +2746,40 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   border: none; border-radius: var(--r-md);
   font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: inherit; white-space: nowrap;
-  transition: background 140ms cubic-bezier(0.16, 1, 0.3, 1), transform 140ms;
+  /* El CTA dejó de ser un <button> DENTRO del <a> y pasó a ser el <a>: dos
+     paradas de teclado para un destino, medidas en 1440 y 390. Estas dos
+     declaraciones estaban en línea sobre el enlace, y una de ellas —
+     `flex-shrink: 0` — dejaba MUERTA la regla de abajo (`.prox-hero > a`
+     manda `flex-shrink: 1` bajo 560px y un estilo en línea le gana en
+     silencio: nx-stat-grid otra vez). En la hoja, la media query gana por
+     especificidad (0,1,1 > 0,1,0) y vuelve a estar viva. */
+  text-decoration: none; flex-shrink: 0;
+  transition: background var(--mov-rapido) var(--mov-curva),
+              transform var(--mov-rapido) var(--mov-curva);
 }
 .prox-hero-cta:hover { background: var(--nexus-hover); }
 .prox-hero-cta:active { transform: scale(0.98); }
+
+/* Por debajo de esto, el CTA (flexShrink 0) le comía el ancho al nombre: la
+   identidad del héroe —el trabajo móvil nº1, «ver al siguiente paciente»—
+   quedaba en una columna de ~110px partida en tres renglones. Es la misma
+   lección que .cita-fila ya pagó más abajo, aplicada al héroe: identidad a
+   todo el ancho arriba, la acción baja a su propio renglón completo. */
+@media (max-width: 560px) {
+  .prox-hero { flex-wrap: wrap; }
+  .prox-hero > a { width: 100%; flex-shrink: 1; }
+  .prox-hero-cta { width: 100%; justify-content: center; }
+}
 
 /* ══ V10 · HOY (pantalla de inicio) ═══════════════════════════════════════
    Una sola columna a cualquier ancho.  La rejilla anterior era `1fr 300px`
    FIJA: a 390 px la columna derecha se salía de la pantalla.  No se arregla
    con un `minmax` — se arregla no teniendo dos columnas que defender.
    Constitución V10, regla 39: responsive no es escritorio encogido.        */
+/* Hoy compone en columna; su ANCHO ya no lo decide ella (`.nx-canvas`). El
+   `padding-top` de 28px sí es suyo: el saludo respira más que un título. */
 .hoy {
-  padding: 28px 24px;
-  max-width: 900px;
-  margin: 0 auto;
+  padding-top: 4px;
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -1842,13 +2791,25 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   justify-content: space-between;
   gap: 16px;
 }
+/* KICKER, no display (RTC-06): el saludo acompaña a la fecha en la escala de
+   metadato. Era el texto más grande de la pantalla (32px display) y el equipo
+   rojo lo midió pesando más que el paciente que sigue — decoración ganándole
+   al trabajo. El elemento dominante de Hoy es el héroe NOW. Sigue siendo el
+   <h1> de la página: la jerarquía semántica no cambió, sólo el peso pintado. */
 .hoy-saludo {
-  font-size: 32px;
-  color: var(--text);
-  margin: 7px 0 0;
+  font-size: 15px;
+  color: var(--text2);
+  margin: 4px 0 0;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.35;
   text-wrap: balance;
+}
+/* RTC-07: en móvil «Nueva cita» del header se SUPRIME — la misma acción ya
+   vive en la barra del pulgar (BottomNav, ≤768px), y el equipo rojo la midió
+   DOS veces en el primer viewport de Hoy con la emisión máxima. En escritorio
+   no hay BottomNav: el header la conserva. */
+@media (max-width: 768px) {
+  .hoy-accion { display: none; }
 }
 .hoy-accion { text-decoration: none; flex-shrink: 0; }
 
@@ -1899,7 +2860,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   align-items: center;
   gap: 14px;
   padding: 12px 20px;
-  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background var(--mov-rapido) var(--mov-curva);
 }
 .cita-fila:hover { background: var(--s2); }
 .cita-principal {
@@ -1919,10 +2880,12 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 
 @media (max-width: 640px) {
   .hoy { padding: 20px 16px; gap: 18px; }
-  /* El saludo y la acción dejan de pelearse por el mismo renglón. */
+  /* El saludo y la acción dejan de pelearse por el mismo renglón. El saludo
+     ya no crece en móvil: es kicker en todos los viewports (RTC-06). */
   .hoy-head { flex-direction: column; align-items: stretch; gap: 14px; }
-  .hoy-saludo { font-size: 26px; }
-  .hoy-accion, .hoy-accion .btn { width: 100%; justify-content: center; }
+  /* `.hoy-accion` ES el botón desde que el control que navega dejó de llevar
+     uno dentro: ya no hay `.hoy-accion .btn` que estirar. */
+  .hoy-accion { width: 100%; justify-content: center; }
   .hoy-bloque-head { padding: 14px 16px; }
   .cita-fila { padding: 12px 16px; }
 }
@@ -2261,9 +3224,136 @@ span.riel-aviso { cursor: default; }
   width: 100%; text-align: left;
   padding: 7px 10px; border-radius: 6px; border: none; cursor: pointer;
   font-size: 13px; color: var(--text2); background: transparent;
-  font-family: inherit; transition: background 0.1s;
+  font-family: inherit; transition: background var(--mov-rapido) var(--mov-curva);
 }
 .riel-menu-item:hover { background: var(--s2); }
 .riel-menu-peligro { color: var(--red); }
 .riel-menu-sep { height: 1px; background: var(--border); margin: 6px 0; }
 .riel-menu-nota { padding: 7px 10px; font-size: 11.5px; color: var(--text3); line-height: 1.5; }
+
+/* ── EL MARCO DE ESCUCHA ───────────────────────────────────────────────────
+   `pointer-events: none` no es un detalle: cubre la pantalla entera, y sin eso
+   se traga cada clic y la aplicación queda muerta mientras graba —veinte
+   minutos—. El grosor va por DENTRO (`inset`) para no desplazar ni un píxel al
+   encenderse: un salto de layout a mitad de consulta es peor que no tener
+   marco. */
+.nx-marco-escuchando {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 3px var(--nexus);
+  animation: nx-escuchando 2.4s ease-in-out infinite;
+}
+
+/* ── EL LATIDO DEL MARCO DE ESCUCHA ────────────────────────────────────────
+   Late despacio (2,4 s) y con poco recorrido: tiene que verse desde el otro
+   lado del consultorio sin ser un estroboscopio delante de un paciente que
+   lleva veinte minutos mirándolo. */
+@keyframes nx-escuchando {
+  0%, 100% { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--nexus) 55%, transparent); }
+  50%      { box-shadow: inset 0 0 0 3px var(--nexus); }
+}
+
+/* Quien pide menos movimiento recibe un marco FIJO, no ninguno: apagar la
+   animación no puede apagar la información de que el micrófono está abierto. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes nx-escuchando {
+    0%, 100% { box-shadow: inset 0 0 0 3px var(--nexus); }
+  }
+}
+
+/* ── RTC-11 · la fila de /pacientes tiene variante MÓVIL ─────────────────────
+   Medido a 390px: avatar 38 + «Editar» ~78 + chevron 14 + 3 huecos de 14 +
+   padding 32 dejaban ~96px para el nombre — y `.nx-ident` no trunca a
+   propósito (§24), así que la identidad caía en TRES renglones y el teléfono
+   se partía (defecto #13 de la DNA, reaparecido).
+
+   En el ancho del teléfono lo clínico gana (§8.5): «Editar» —datos de
+   CONTACTO, administrativo— y el chevron decorativo salen de la fila. La
+   capacidad NO se pierde: vive en el expediente, cuyo «Editar datos» abre el
+   editor de ESE paciente (`/pacientes?editar=`).
+
+   `!important` no es pereza: los dos elementos declaran su `display` EN LÍNEA
+   y una regla de hoja sin peso pierde contra el atributo `style` — es la misma
+   trampa que el arnés cazó en RTC-05 con el FAB flotante. */
+@media (max-width: 768px) {
+  .nx-fila-paciente .nx-fila-editar,
+  .nx-fila-paciente .nx-fila-chevron { display: none !important; }
+}
+
+/* ── RTC-08 · la señal de «hay un encuentro abierto» ─────────────────────────
+   Punto de ESTADO del riel: dice que hay una consulta a medio escribir que se
+   puede retomar. Vive aquí y no en FlowRail.tsx porque el guardián de Fase 10
+   (`v15-el-acento-entra-al-shell`) exige que el riel no pinte acento propio —
+   el acento vive en las reglas base compartidas, para que el greybox que se
+   aprobó no se deshaga a fuerza de colores sueltos por componente.
+
+   Sólido, nunca halo: el trinquete de genericidad cuenta los halos de color.
+   Y el color no carga el significado a solas — el enlace lleva su nombre
+   accesible («retomar la consulta abierta»), que es lo que se oye (§24). */
+.nx-rail-senal {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nexus);
+  flex-shrink: 0;
+}
+
+/* ── EL HILO DE VUELTA — §21 «return exactly where you were» ─────────────────
+   El regreso es una ACCIÓN de navegación, no un aviso: `<button>` de verdad,
+   con su objetivo táctil en puntero grueso. Va en la misma esquina donde ya
+   vive «Expediente», que es donde el médico ya busca la salida de la consulta.
+
+   Sin relleno de marca: la acción primaria de la consulta es grabar (RTC-06:
+   un solo relleno primario por pantalla), y un regreso que pesa como el
+   micrófono compite con lo único que importa con un paciente delante. */
+.nx-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--nexus);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nx-volver:hover { background: var(--s2); }
+@media (pointer: coarse) { .nx-volver { min-height: 44px; } }
+
+/* Cuando el hilo se DECLINA se dice, y se dice como hueco del registro —ámbar—,
+   no como error rojo ni en gris de nota al pie: hubo un hilo de vuelta y el
+   producto se negó a usarlo a propósito. Callarlo dejaría al médico creyendo
+   que se olvidó. */
+.nx-volver-declinado {
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  color: var(--amber);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* La traza dejó de ser un enlace y pasó a ser un botón (firma el contrato de
+   regreso antes de navegar). Se le quita el cromo de botón para que siga
+   leyéndose como la traza que era: el cambio es de MECANISMO, no de conducta
+   percibida. */
+.nx-porque-traza {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* La agenda de Hoy agrupa SUS acciones — agendar y ver todas — en su propio
+   bloque. La cabecera clínica de la pantalla se queda sin ninguna: lo primero
+   que Hoy ofrece hacer tiene que ser clínico (medición de anatomía §29: la
+   primera acción consecuente era «Nueva cita», a 8px). */
+.hoy-bloque-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

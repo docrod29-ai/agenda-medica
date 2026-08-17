@@ -14,8 +14,18 @@ import { Send, Loader2, MessageCircle, Stethoscope, UserSquare2, Edit2, Check, X
 const ROL_LABEL: Record<string, string> = {
   admin: 'Médico', medico: 'Médico', secretaria: 'Asistente',
 }
+/*
+ * Colores de rol por TOKEN, nunca por hex: el lila fijo de antes sólo era
+ * legible en tema oscuro (2.7:1 sobre blanco — reprobaba AA en claro).
+ * --teal y --purple se redefinen por tema con contraste AA medido en
+ * globals.css; --badge-gris-t es el gris de texto medido para roles que el
+ * mapa no conoce. Sobre estos rellenos escribe --sobre-aviso: el token
+ * «texto encima de un relleno semántico», que ya invierte su polaridad por
+ * tema (tinta sobre los rellenos brillantes del oscuro, blanco sobre los
+ * profundos del claro) — la misma pareja medida que usan los avisos.
+ */
 const ROL_COLOR: Record<string, string> = {
-  admin: 'var(--teal)', medico: 'var(--teal)', secretaria: '#a78bfa',
+  admin: 'var(--teal)', medico: 'var(--teal)', secretaria: 'var(--purple)',
 }
 
 export default function ChatPage() {
@@ -127,7 +137,15 @@ export default function ChatPage() {
   }, [mensajes])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 52px)', maxHeight: '100vh' }}>
+    // `nx-lienzo-completo` (globals.css): el alto real lo dicta <main> — dentro
+    // del nx-app-shell su alto ya descuenta topbar, banners y BottomNav, y la
+    // cadena main → .page-transition se lo transmite a esta pantalla-lienzo.
+    // Antes la página restaba 52px al viewport (la topbar de escritorio) por su
+    // cuenta: en 390px el composer quedaba a 889px en un viewport de 844,
+    // ENTERRADO bajo el BottomNav (medido en medir-trabajos-moviles-2-v15). Un
+    // height de viewport aquí re-adivinaría el shell; la clase deja que el
+    // shell mande (la lección de nx-stat-grid: la geometría vive en la HOJA).
+    <div className="nx-lienzo-completo" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
@@ -135,7 +153,14 @@ export default function ChatPage() {
       }}>
         <MessageCircle size={18} color="var(--teal)" />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Chat de la clínica</div>
+          {/* V15-FINAL-COHERENCE-001 — era un `<div>` con pinta de título:
+              15/700, en el sitio del encabezado, pero sin serlo. Todas las
+              demás superficies del producto declaran el suyo como encabezado
+              de verdad (propio o vía `PageHeader`); ésta era la única que lo
+              fingía, así que la pantalla no tenía encabezado de nivel uno para
+              quien la recorre con lector o por índice de encabezados. Cambia
+              la SEMÁNTICA, no la voz: mismo tamaño, mismo peso, mismo sitio. */}
+          <h1 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Chat de la clínica</h1>
           <div style={{ fontSize: 12, color: 'var(--text3)' }}>
             {mensajes.length} mensaje{mensajes.length !== 1 ? 's' : ''} · entre médico y asistente
           </div>
@@ -202,7 +227,7 @@ export default function ChatPage() {
               const prev = i > 0 ? g.msgs[i - 1] : null
               const mismoEmisor = prev && prev.senderId === m.senderId
               const noLeidoPorMi = !mio && (!lastReadAt || m.createdAt > lastReadAt)
-              const rolColor = ROL_COLOR[m.senderRol] ?? '#94a3b8'
+              const rolColor = ROL_COLOR[m.senderRol] ?? 'var(--badge-gris-t)'
               const rolLabel = ROL_LABEL[m.senderRol] ?? m.senderRol
               const inicial = (m.senderName ?? '?').replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').trim()[0]?.toUpperCase() ?? '?'
               return (
@@ -216,7 +241,7 @@ export default function ChatPage() {
                     <div style={{
                       width: mismoEmisor ? 30 : 30, height: 30, borderRadius: '50%',
                       background: mismoEmisor ? 'transparent' : rolColor,
-                      color: '#000', fontWeight: 700, fontSize: 12,
+                      color: 'var(--sobre-aviso)', fontWeight: 700, fontSize: 12,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0, visibility: mismoEmisor ? 'hidden' : 'visible',
                     }}>
@@ -227,7 +252,9 @@ export default function ChatPage() {
                   <div style={{
                     maxWidth: '74%',
                     background: mio ? rolColor : 'var(--s1)',
-                    color: mio ? '#040b12' : 'var(--text)',
+                    /* En claro el relleno del rol es PROFUNDO (#12626E): la
+                       tinta casi-negra fija de antes medía 2.8:1 ahí. */
+                    color: mio ? 'var(--sobre-aviso)' : 'var(--text)',
                     border: mio
                       ? 'none'
                       : `1px solid ${noLeidoPorMi ? 'rgba(96,165,250,0.5)' : `color-mix(in srgb, ${rolColor} 20%, transparent)`}`,
@@ -239,19 +266,25 @@ export default function ChatPage() {
                     whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     boxShadow: noLeidoPorMi ? '0 0 0 2px rgba(96,165,250,0.18)' : 'none',
                   }}>
+                    {/* Los alfa fijos de negro (0.7/0.55) medían 3.4–4.5:1
+                        sobre el relleno del rol — axe los cazó (3 nodos,
+                        v15-chat-al-pulgar). --sobre-aviso da el contraste
+                        completo por tema; la jerarquía la dan tamaño y peso. */}
                     {!mismoEmisor && (
                       <div style={{
                         fontSize: 11, fontWeight: 700,
-                        color: mio ? 'rgba(0,0,0,0.7)' : rolColor,
+                        color: mio ? 'var(--sobre-aviso)' : rolColor,
                         display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3,
                       }}>
                         {m.senderRol === 'secretaria' ? <UserSquare2 size={11} /> : <Stethoscope size={11} />}
                         <span>{m.senderName}</span>
                         <span style={{
-                          fontSize: 9.5, fontWeight: 600,
+                          fontSize: 10, fontWeight: 600,
                           padding: '1px 6px', borderRadius: 'var(--r-pill)',
-                          background: mio ? 'rgba(0,0,0,0.15)' : `color-mix(in srgb, ${rolColor} 13%, transparent)`,
-                          color: mio ? 'rgba(0,0,0,0.7)' : rolColor,
+                          background: mio
+                            ? 'color-mix(in srgb, var(--sobre-aviso) 14%, transparent)'
+                            : 'var(--s2)',
+                          color: mio ? 'var(--sobre-aviso)' : rolColor,
                           marginLeft: 2,
                         }}>{rolLabel}</span>
                       </div>
@@ -259,7 +292,7 @@ export default function ChatPage() {
                     {m.text}
                     <div style={{
                       fontSize: 10, marginTop: 3, textAlign: 'right',
-                      color: mio ? 'rgba(0,0,0,0.55)' : 'var(--text3)',
+                      color: mio ? 'var(--sobre-aviso)' : 'var(--text3)',
                     }}>
                       {new Date(m.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                     </div>
@@ -270,7 +303,7 @@ export default function ChatPage() {
                     <div style={{
                       width: 30, height: 30, borderRadius: '50%',
                       background: mismoEmisor ? 'transparent' : rolColor,
-                      color: '#000', fontWeight: 700, fontSize: 12,
+                      color: 'var(--sobre-aviso)', fontWeight: 700, fontSize: 12,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0, visibility: mismoEmisor ? 'hidden' : 'visible',
                     }}>
@@ -302,7 +335,7 @@ export default function ChatPage() {
           style={{
             flex: 1, background: 'var(--s2)', border: '1px solid var(--border)',
             borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text)',
-            outline: 'none', resize: 'none', minHeight: 42, maxHeight: 120,
+            outline: 'none', resize: 'none', minHeight: 44, maxHeight: 120,
             fontFamily: 'inherit',
           }}
         />
@@ -312,11 +345,11 @@ export default function ChatPage() {
           aria-label="Enviar"
           style={{
             background: texto.trim() ? 'var(--teal)' : 'var(--s3)',
-            color: texto.trim() ? '#040b12' : 'var(--text3)',
+            color: texto.trim() ? 'var(--sobre-aviso)' : 'var(--text3)',
             border: 'none', borderRadius: 12, padding: '0 18px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: texto.trim() && !enviando ? 'pointer' : 'default',
-            flexShrink: 0,
+            flexShrink: 0, minWidth: 44, minHeight: 44,
           }}
         >
           {enviando ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={18} />}

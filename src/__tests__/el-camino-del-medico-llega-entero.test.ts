@@ -136,6 +136,30 @@ describe('el camino del médico llega entero', () => {
     expect(alcanzables.has('src/lib/expediente/firestore.ts')).toBe(true)
   })
 
+  it('el pipeline de voz diferido sigue EN el camino (p ??= import)', () => {
+    /**
+     * QUÉ FALLABA — 13-ago-2026, commit 86530a3f (V15-PERF, 4ª rebanada): los
+     * dos hooks de dictado difirieron el pipeline con el memoizado canónico
+     * `pipelinePromise ??= import('@/lib/asr/pipeline')`. El lector del grafo
+     * sólo reconocía `await import(` y `=> import(`, así que declaró fuera del
+     * camino a pipeline/normalizacion/siglas (29 → 32) — con el dictado
+     * FUNCIONANDO, probado en navegador real. CI en rojo por ceguera del
+     * instrumento, no por cable roto.
+     *
+     * LA CAUSA RAÍZ: quinta ceguera de la misma familia — el lector veía texto
+     * donde tenía que ver código (ver DINAMICO_REAL en el propio grafo).
+     *
+     * LA REGLA QUE LO HACE SEGURO: las asignaciones lógicas (`??=`, `||=`,
+     * `&&=`) cuentan como carga real; el `=` a secas no, porque `type X =
+     * import('…')` es posición de tipo.
+     *
+     * Probada al revés: sin la tercera regex de DINAMICO_REAL este caso falla
+     * (así se encontró). QUÉ NO CUBRE: que el pipeline corra a TIEMPO — eso lo
+     * prueba v15-perf-el-dictado-no-carga-hasta-hablar y el arnés de navegador.
+     */
+    expect(alcanzables.has('src/lib/asr/pipeline.ts')).toBe(true)
+  })
+
   it('el documento del camino existe', () => {
     expect(existsSync(DOC)).toBe(true)
   })

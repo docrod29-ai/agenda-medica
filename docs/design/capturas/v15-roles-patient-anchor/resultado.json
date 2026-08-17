@@ -1,0 +1,98 @@
+{
+  "oscuro": {
+    "temaActual": "dark",
+    "h1": {
+      "texto": "Aurelio Domínguez Peña",
+      "fontFamily": "Fraunces",
+      "fontSize": "20px",
+      "fontWeight": "600",
+      "color": "rgb(242, 239, 233)",
+      "flexWrap": "nowrap",
+      "overflowWrap": "anywhere"
+    },
+    "meta": {
+      "texto": "72 años · Masculino · +52 55 5555 0101",
+      "fontFamily": "\"IBM Plex Sans\"",
+      "fontSize": "12.5px",
+      "fontWeight": "400",
+      "color": "rgb(138, 143, 148)",
+      "flexWrap": "nowrap",
+      "overflowWrap": "normal"
+    },
+    "critico": {
+      "texto": "Alergias: Penicilina (rash generalizado, 2019)",
+      "fontFamily": "\"IBM Plex Sans\"",
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "color": "rgb(230, 100, 100)",
+      "flexWrap": "wrap",
+      "overflowWrap": "normal"
+    },
+    "iconoJuntoAlCritico": true
+  },
+  "axeOscuro": [],
+  "sticky": {
+    "scrolleado": 446,
+    "visibleTrasScroll": true
+  },
+  "claro": {
+    "temaActual": "light",
+    "h1": {
+      "texto": "Aurelio Domínguez Peña",
+      "fontFamily": "Fraunces",
+      "fontSize": "20px",
+      "fontWeight": "600",
+      "color": "rgb(11, 12, 14)",
+      "flexWrap": "nowrap",
+      "overflowWrap": "anywhere"
+    },
+    "meta": {
+      "texto": "72 años · Masculino · +52 55 5555 0101",
+      "fontFamily": "\"IBM Plex Sans\"",
+      "fontSize": "12.5px",
+      "fontWeight": "400",
+      "color": "rgb(107, 111, 117)",
+      "flexWrap": "nowrap",
+      "overflowWrap": "normal"
+    },
+    "critico": {
+      "texto": "Alergias: Penicilina (rash generalizado, 2019)",
+      "fontFamily": "\"IBM Plex Sans\"",
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "color": "rgb(185, 28, 28)",
+      "flexWrap": "wrap",
+      "overflowWrap": "normal"
+    },
+    "iconoJuntoAlCritico": true
+  },
+  "axeClaro": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodos": 1,
+      "targets": [
+        ".nx-app-shell > div:nth-child(2) > div:nth-child(3) > span"
+      ]
+    }
+  ],
+  "sinAlergia": {
+    "textoDelAviso": "Alergias: no registradas",
+    "elAvisoNeutroLlevaCritico": false
+  },
+  "movilNombreLargo": {
+    "desbordeHorizontal": false,
+    "anchoDocumento": 390,
+    "nombre": "María del Refugio Alcántara Solís",
+    "esElSembrado": true,
+    "recortado": false,
+    "lineas": 1
+  },
+  "movilAlergia": {
+    "desbordeHorizontal": false,
+    "criticoRecortado": false,
+    "criticoFlexWrap": "wrap"
+  },
+  "axeMovil": []
+}

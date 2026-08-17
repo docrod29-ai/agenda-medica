@@ -36,16 +36,20 @@ import { mencionesEnPasado, desajustesTemporales } from '@/lib/expediente/tempor
 
 const page = readFileSync(join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
 
-/** La misma función que arma el texto en la pantalla, replicada para probarla. */
-const textoDeLaNota = (
-  resumen: string,
-  diagnosticos: { descripcion: string; codigoCIE10?: string }[],
-  secciones: { value: string }[],
-) => [
-  resumen,
-  ...diagnosticos.map(d => [d?.descripcion, d?.codigoCIE10].filter(Boolean).join(' ')),
-  ...secciones.map(s => s?.value),
-].filter(Boolean).join('\n')
+/**
+ * LA FUNCIÓN DE VERDAD, IMPORTADA — y antes era una RÉPLICA.
+ *
+ * Hasta el 15-ago esta prueba declaraba su propia copia de `textoDeLaNota`
+ * («la misma función que arma el texto en la pantalla, replicada para
+ * probarla»), porque la original vivía privada dentro del monolito de
+ * `/consulta` y no había de dónde importarla.
+ *
+ * Una copia en una prueba es la peor de todas: **pasa en verde para siempre**
+ * aunque el original cambie, y entonces la prueba certifica una función que ya
+ * nadie ejecuta. Con la función mudada a `lib/expediente/texto-de-la-nota.ts`
+ * (§21 en el expediente necesitaba el mismo texto), se importa.
+ */
+import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
 
 describe('EL CASO QUE SE VIO EN PRODUCCIÓN', () => {
   it('ya no aparece «[object Object]» en el texto contrastado', () => {

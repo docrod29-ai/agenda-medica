@@ -12,6 +12,7 @@ import { GuiaConfigurarReceta } from '@/components/GuiaConfigurarReceta'
 import { resizeImageFile, formatBytes, reducirDataUrlSiPesa } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize, NOTA_PAPER_SIZES, papelPersonalizado, PAPEL_MIN_MM, PAPEL_MAX_MM, type NotaPaperSize as NotaPaperSizeT } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT, ClinicConfig } from '@/types'
+import { DEFAULT_CONFIG } from '@/types'
 import { getDoctors, saveConfig } from '@/lib/firestore'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -23,18 +24,23 @@ import { auth, storage } from '@/lib/firebase'
 import { cfgInput, cfgLabel } from './estilos'
 import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText, Loader2, Ruler, Save, Sparkles, Star, UserRound, AlertTriangle, Check} from 'lucide-react'
 
-const RX_DEFAULTS: RecetaConfig = {
-  paperSize: 'media-carta',
-  estilo: 'minimalista',
-  colorAccento: '#14b8a6',
-  mostrarQR: true,
-  copiasEnHoja: 1,
-  vigenciaDias: 30,
-  mostrarAlergias: true,
-  mostrarDiagnostico: true,
-  mostrarSignosVitales: false,
-  avisoLegal: 'Esta receta es personal e intransferible. Conserve este documento como respaldo médico.',
-}
+/*
+  UNA SOLA FUENTE DE VERDAD PARA LOS VALORES POR DEFECTO DE LA RECETA.
+
+  Aquí vivía una segunda copia, campo por campo, de lo que `DEFAULT_CONFIG`
+  ya declara en `@/types`. Comparadas hoy coincidían **exactamente** — y ése
+  es justo el problema: coincidían por suerte, no por construcción. La
+  siguiente vez que alguien cambie el aviso legal, la vigencia o el tamaño de
+  papel en un sitio, el otro se queda atrás y la diferencia sale IMPRESA en
+  una receta, que es donde nadie la busca.
+
+  Lo que se guarda en Firestore y lo que se imprime tienen que salir del
+  mismo sitio. `colorAccento` sigue siendo un hex literal por la razón
+  escrita en `@/types` (un `<input type="color">` sólo acepta `#rrggbb` y la
+  receta se imprime sin hoja de estilos que resuelva una variable).
+*/
+const RX_DEFAULTS: RecetaConfig = DEFAULT_CONFIG.recetaConfig!
+
 
 export function RecetasTab({ clinicId }: { clinicId: string | null }) {
   const { config, loading: configLoading } = useConfig()
@@ -414,8 +420,9 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
         {/* MODO TU PROPIO DISEÑO — primera sección, destacada */}
         <div style={{
-          background: 'linear-gradient(135deg, var(--nexus-soft), rgba(124,58,237,0.10))',
-          border: '1px solid rgba(20,184,166,0.4)', borderRadius: 12, padding: 16,
+          background: 'var(--nexus-soft)',
+          border: '1px solid color-mix(in srgb, var(--nexus) 40%, transparent)',
+          borderRadius: 10, padding: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
             <div>
@@ -469,8 +476,8 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           ) : (
             <label style={{
               display: 'block', textAlign: 'center', padding: '26px 14px',
-              border: '2px dashed rgba(20,184,166,0.5)', borderRadius: 10,
-              background: 'rgba(20,184,166,0.06)', cursor: subiendoDiseno ? 'wait' : 'pointer',
+              border: '2px dashed color-mix(in srgb, var(--nexus) 50%, transparent)', borderRadius: 10,
+              background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', cursor: subiendoDiseno ? 'wait' : 'pointer',
               color: 'var(--text2)',
             }}>
               {subiendoDiseno ? (
@@ -592,8 +599,8 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
               {/* Toggle "Solo Rx" — para diseños que ya tienen campos pre-impresos */}
               <label style={{
                 display: 'flex', alignItems: 'center', gap: 10, marginTop: 12,
-                padding: 10, background: 'rgba(20,184,166,0.06)', borderRadius: 6,
-                border: '1px solid rgba(20,184,166,0.25)', cursor: 'pointer',
+                padding: 10, background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', borderRadius: 6,
+                border: '1px solid color-mix(in srgb, var(--nexus) 25%, transparent)', cursor: 'pointer',
               }}>
                 <input
                   type="checkbox"
@@ -739,7 +746,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
         {/* Estilo visual */}
         <Grupo n={2} t="Cómo se ve" d="Estilo, color y tu membrete. Es la parte que el paciente reconoce como tuya." />
         <Section title="Estilo visual">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <div className="nx-stat-grid" style={{ gap: 8 }}>
             {(Object.keys(ESTILOS_RECETA) as EstiloT[]).map(k => {
               const activo = rx.estilo === k
               return (
@@ -1007,7 +1014,7 @@ function PreviewReceta({
           onClick={() => setTipoPreview('receta')}
           style={{
             padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            background: tipoPreview === 'receta' ? 'rgba(20,184,166,0.15)' : 'var(--s2)',
+            background: tipoPreview === 'receta' ? 'color-mix(in srgb, var(--nexus) 15%, transparent)' : 'var(--s2)',
             border: tipoPreview === 'receta' ? '1px solid var(--teal)' : '1px solid var(--border)',
             color: tipoPreview === 'receta' ? 'var(--teal)' : 'var(--text3)',
             display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -1221,7 +1228,7 @@ function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
   }
 
   const asa = (cursor: string, extra: React.CSSProperties): React.CSSProperties => ({
-    position: 'absolute', background: '#14b8a6', borderRadius: 3, touchAction: 'none',
+    position: 'absolute', background: 'var(--nexus)', borderRadius: 3, touchAction: 'none',
     cursor, zIndex: 2, ...extra,
   })
 
@@ -1231,11 +1238,11 @@ function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
       style={{
         position: 'absolute',
         top: `${m.top}mm`, right: `${m.right}mm`, bottom: `${m.bottom}mm`, left: `${m.left}mm`,
-        border: '2px dashed #14b8a6', background: 'rgba(20,184,166,0.10)',
+        border: '2px dashed var(--nexus)', background: 'color-mix(in srgb, var(--nexus) 10%, transparent)',
         borderRadius: 2, cursor: 'move', touchAction: 'none',
       }}
     >
-      <div style={{ position: 'absolute', top: -22, left: 0, background: '#14b8a6', color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: -22, left: 0, background: 'var(--nexus-solido)', color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
         ✥ arrastra · jala los bordes
       </div>
       {/* Asas de borde (centro de cada lado) */}
@@ -1347,7 +1354,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
         toast(data.error ?? 'La IA no pudo detectar; colócalos a mano arrastrando', 'error')
       }
     } catch {
-      toast('No se pudo detectar con IA; colócalos a mano arrastrando', 'error')
+      toast('No se pudieron detectar los campos; colócalos a mano arrastrando', 'error')
     } finally {
       setDetectando(false)
     }
@@ -1382,12 +1389,15 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
           background: 'var(--nexus-solido)', color: '#fff',
         }}
       >
+        {/* RTC-13 / §25: el botón dice lo que HACE, no con qué está hecho.
+            «Detectar campos con IA» vendía la tecnología; «Detectar los campos»
+            promete el resultado, que es lo que el médico quiere. */}
         {detectando
           ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Detectando campos…</>
-          : <><Sparkles size={14} /> Detectar campos con IA</>}
+          : <><Sparkles size={14} /> Detectar los campos</>}
       </button>
       <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
-        La IA lee tu formato y coloca Nombre/Edad/Fecha… solos. Luego los puedes arrastrar para ajustar.
+        Lee tu formato y coloca Nombre/Edad/Fecha… solos. Luego los puedes arrastrar para ajustar.
       </div>
       {sinColocar.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, alignItems: 'center' }}>

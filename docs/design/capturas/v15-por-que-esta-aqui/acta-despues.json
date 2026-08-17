@@ -1,0 +1,336 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "despues",
+  "viewports": {
+    "escritorio-1440": {
+      "alcance": {
+        "entradas": 7,
+        "reveladores": 7,
+        "huecoDeLente": true,
+        "altoDeLaCola": 1841
+      },
+      "comportamiento": [
+        {
+          "entrada": "Aurelio Domínguez Peña",
+          "antes": {
+            "scrollTop": 0,
+            "alto": 1841,
+            "rect": 357,
+            "expandido": "false"
+          },
+          "despues": {
+            "scrollTop": 0,
+            "alto": 1841,
+            "rect": 357,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 98
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 52
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 45
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 61
+              }
+            ],
+            "traza": {
+              "href": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+              "texto": "Ver la consulta de la que salió"
+            },
+            "sinTraza": false
+          },
+          "trasEscape": {
+            "alto": 1841,
+            "scrollTop": 0,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        },
+        {
+          "entrada": "Luz María Cervantes Ochoa",
+          "antes": {
+            "scrollTop": 136,
+            "alto": 1841,
+            "rect": 455,
+            "expandido": "false"
+          },
+          "despues": {
+            "scrollTop": 136,
+            "alto": 1841,
+            "rect": 455,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 105
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 52
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 45
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 61
+              }
+            ],
+            "traza": null,
+            "sinTraza": true
+          },
+          "trasEscape": {
+            "alto": 1841,
+            "scrollTop": 136,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        },
+        {
+          "entrada": "Aurelio Domínguez Peña",
+          "antes": {
+            "scrollTop": 384,
+            "alto": 1841,
+            "rect": 455,
+            "expandido": "false"
+          },
+          "despues": {
+            "scrollTop": 384,
+            "alto": 1841,
+            "rect": 455,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 105
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 25
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 129
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 102
+              }
+            ],
+            "traza": null,
+            "sinTraza": true
+          },
+          "trasEscape": {
+            "alto": 1841,
+            "scrollTop": 384,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        }
+      ],
+      "traza": {
+        "href": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+        "url": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+        "cargó": true,
+        "errores": 0
+      }
+    },
+    "movil-390": {
+      "alcance": {
+        "entradas": 7,
+        "reveladores": 7,
+        "huecoDeLente": true,
+        "altoDeLaCola": 2584
+      },
+      "comportamiento": [
+        {
+          "entrada": "Aurelio Domínguez Peña",
+          "antes": {
+            "scrollTop": 101,
+            "alto": 2584,
+            "rect": 420,
+            "expandido": "false"
+          },
+          "despues": {
+            "scrollTop": 116,
+            "alto": 2584,
+            "rect": 405,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 98
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 52
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 45
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 61
+              }
+            ],
+            "traza": {
+              "href": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+              "texto": "Ver la consulta de la que salió"
+            },
+            "sinTraza": false
+          },
+          "trasEscape": {
+            "alto": 2584,
+            "scrollTop": 101,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        },
+        {
+          "entrada": "Luz María Cervantes Ochoa",
+          "antes": {
+            "scrollTop": 422,
+            "alto": 2584,
+            "rect": 420,
+            "expandido": "false"
+          },
+          "despues": {
+            "scrollTop": 453,
+            "alto": 2584,
+            "rect": 389,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 105
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 52
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 45
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 61
+              }
+            ],
+            "traza": null,
+            "sinTraza": true
+          },
+          "trasEscape": {
+            "alto": 2584,
+            "scrollTop": 422,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        },
+        {
+          "entrada": "Aurelio Domínguez Peña",
+          "antes": {
+            "scrollTop": 763,
+            "alto": 2584,
+            "rect": 420,
+            "expandido": "false"
+          },
+          "despues": {
+            "scrollTop": 881,
+            "alto": 2584,
+            "rect": 302,
+            "expandido": "true",
+            "lentesAbiertas": 1,
+            "disparadorTapado": false,
+            "respuestas": [
+              {
+                "rotulo": "Por qué está aquí",
+                "etiqueta": "H3",
+                "largo": 105
+              },
+              {
+                "rotulo": "Quién responde",
+                "etiqueta": "H3",
+                "largo": 25
+              },
+              {
+                "rotulo": "Qué ha pasado",
+                "etiqueta": "H3",
+                "largo": 129
+              },
+              {
+                "rotulo": "Qué sigue",
+                "etiqueta": "H3",
+                "largo": 102
+              }
+            ],
+            "traza": null,
+            "sinTraza": true
+          },
+          "trasEscape": {
+            "alto": 2584,
+            "scrollTop": 763,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        }
+      ],
+      "traza": {
+        "href": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+        "url": "/consulta/pac-aurelio-dominguez?nota=nota-aurelio-2",
+        "cargó": true,
+        "errores": 0
+      }
+    }
+  },
+  "errores": [],
+  "resumen": {
+    "errores": 0
+  }
+}

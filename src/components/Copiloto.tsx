@@ -123,8 +123,8 @@ export function Copiloto({ entrada, onAgregarANota, prefs, onAceptar }: Props) {
                   {s.textoNota && onAgregarANota && !puesta && (
                     <button type="button" onClick={() => poner(s)} style={{
                       marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 5,
-                      background: 'rgba(20,184,166,.15)', color: 'var(--teal)',
-                      border: '1px solid rgba(20,184,166,.35)', borderRadius: 8,
+                      background: 'color-mix(in srgb, var(--nexus) 15%, transparent)', color: 'var(--teal)',
+                      border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 8,
                       padding: '7px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', minHeight: 36,
                     }}>
                       <Plus size={13} /> Agregar a la nota

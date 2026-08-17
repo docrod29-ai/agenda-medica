@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320],
   },
   {
     clave: 'se_contradice',
@@ -48,7 +48,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307],
+    /**
+     * 321 y 322 entran aquí y no en `sin_medir` a propósito. Es cierto que
+     * los destapó un instrumento nuevo —la matriz de coherencia—, pero el
+     * defecto NO era la falta del instrumento: era que dos partes del producto
+     * afirmaban cosas incompatibles y ninguna estaba mal por su cuenta. El
+     * expediente dice que el sujeto es el paciente; la receta decía que era la
+     * herramienta. El rótulo prometía «Ir a Consulta»; el destino era la lista
+     * de pacientes. El fallo vivía en el hueco entre las dos, que es
+     * exactamente el patrón de esta familia.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322],
   },
   {
     clave: 'habla_real',
@@ -100,7 +110,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Correcto por dentro, insoportable por fuera: avisos que interrumpen, se ' +
       'repiten o tapan la nota. Un aviso que estorba se aprende a ignorar, y ' +
       'entonces deja de proteger.',
-    regs: [178, 181, 184, 231, 233, 301],
+    regs: [178, 181, 184, 231, 233, 301, 319],
   },
   {
     clave: 'perdida',
@@ -126,7 +136,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Falla algo y el sistema culpa a otra cosa. Cuesta doble: la avería y las ' +
       'horas persiguiendo la avería equivocada.',
-    regs: [155, 156, 251],
+    regs: [155, 156, 251, 317],
   },
   {
     clave: 'decision_del_dueno',
@@ -155,7 +165,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'registro oficial se le cree más que a la fuente. La reparación nunca es ' +
       'volver a copiarlo bien: es DERIVARLO, y poner una compuerta que falle ' +
       'cuando se separen.',
-    regs: [241, 253],
+    regs: [241, 253, 310],
   },
   {
     /**

@@ -212,7 +212,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
 
           {/* Embudo */}
           <Panel titulo="Agendadas → Atendidas → Cobradas">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, textAlign: 'center' }}>
+            <div className="nx-stat-grid" style={{ textAlign: 'center' }}>
               <Etapa n={embudo.agendadas} label="Agendadas" />
               <Etapa n={embudo.atendidas} label="Atendidas" sub={`${Math.round(embudo.tasaAsistencia * 100)}% asistencia`} />
               <Etapa n={embudo.cobradas} label="Cobradas" sub={`${Math.round(embudo.tasaCobro * 100)}% cobro`} />

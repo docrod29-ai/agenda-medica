@@ -1,0 +1,388 @@
+{
+  "fase": "despues",
+  "base": "http://localhost:3000",
+  "fecha": "2026-08-15T14:10:53.671Z",
+  "viewports": {
+    "escritorio": {
+      "hoy": {
+        "cajasDelimitadas": 4,
+        "rellenosDeMarca": [
+          "Iniciar consulta"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 12
+        },
+        "filtrosYBusqueda": {
+          "campos": 0,
+          "pildoras": 0
+        },
+        "cromoPersistente": {
+          "px": 0,
+          "viewport": 900,
+          "fraccion": 0
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Iniciar consulta",
+          "y": 91
+        },
+        "encabezados": [
+          "Buenas tardes, Elena",
+          "Siguiente acción",
+          "Agenda de hoy",
+          "Sigue abierto de antes"
+        ],
+        "altoTotal": 1374
+      },
+      "pacientes": {
+        "cajasDelimitadas": 0,
+        "rellenosDeMarca": [
+          "Nuevo paciente",
+          "Recientes (5)"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 6
+        },
+        "filtrosYBusqueda": {
+          "campos": 1,
+          "pildoras": 3
+        },
+        "cromoPersistente": {
+          "px": 0,
+          "viewport": 900,
+          "fraccion": 0
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Agendar",
+          "y": 24
+        },
+        "encabezados": [
+          "Pacientes"
+        ],
+        "altoTotal": 859
+      },
+      "expediente": {
+        "cajasDelimitadas": 5,
+        "rellenosDeMarca": [
+          "Nueva consulta",
+          "Consulta"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 9
+        },
+        "filtrosYBusqueda": {
+          "campos": 0,
+          "pildoras": 3
+        },
+        "cromoPersistente": {
+          "px": 0,
+          "viewport": 900,
+          "fraccion": 0
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Atrás",
+          "y": 24
+        },
+        "encabezados": [
+          "Aurelio Domínguez Peña",
+          "Documentos y exportación"
+        ],
+        "altoTotal": 1536
+      },
+      "consulta": {
+        "cajasDelimitadas": 5,
+        "rellenosDeMarca": [
+          "Preguntar a la evidencia (chat",
+          "Análisis basado en evidencia (",
+          "Todo a la nota"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 20
+        },
+        "filtrosYBusqueda": {
+          "campos": 12,
+          "pildoras": 0
+        },
+        "cromoPersistente": {
+          "px": 0,
+          "viewport": 900,
+          "fraccion": 0
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Preguntar a la evidencia (chat) ↗",
+          "y": 393
+        },
+        "encabezados": [
+          "Aurelio Domínguez Peña"
+        ],
+        "altoTotal": 2141
+      },
+      "operaciones": {
+        "cajasDelimitadas": 4,
+        "rellenosDeMarca": [],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 4
+        },
+        "filtrosYBusqueda": {
+          "campos": 0,
+          "pildoras": 0
+        },
+        "cromoPersistente": {
+          "px": 0,
+          "viewport": 900,
+          "fraccion": 0
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Agendar rápidoDar cita en un par d",
+          "y": 140
+        },
+        "encabezados": [
+          "Operaciones",
+          "Agenda",
+          "Negocio",
+          "Cumplimiento y documentos",
+          "Comunicación",
+          "Sistema",
+          "Respaldo",
+          "Apariencia",
+          "Sesión"
+        ],
+        "altoTotal": 1744
+      },
+      "pendientes": {
+        "cajasDelimitadas": 7,
+        "rellenosDeMarca": [
+          "Tomarla",
+          "Tomarla",
+          "Lo revisé — cerrar",
+          "Ya se hizo",
+          "Tomarla",
+          "Tomarla",
+          "Tomarla"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 4
+        },
+        "filtrosYBusqueda": {
+          "campos": 0,
+          "pildoras": 0
+        },
+        "cromoPersistente": {
+          "px": 0,
+          "viewport": 900,
+          "fraccion": 0
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Aurelio Domínguez Peña",
+          "y": 183
+        },
+        "encabezados": [
+          "Pendientes",
+          "Requiere atención (2)",
+          "Necesita revisión (1)",
+          "Esperando resultado (1)",
+          "Necesita agendar (1)",
+          "Esperando al paciente (1)",
+          "Otros pendientes (1)"
+        ],
+        "altoTotal": 1841
+      }
+    },
+    "movil": {
+      "hoy": {
+        "cajasDelimitadas": 4,
+        "rellenosDeMarca": [
+          "Iniciar consulta"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 12
+        },
+        "filtrosYBusqueda": {
+          "campos": 0,
+          "pildoras": 0
+        },
+        "cromoPersistente": {
+          "px": 105,
+          "viewport": 844,
+          "fraccion": 0.124
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Iniciar consulta",
+          "y": 187
+        },
+        "encabezados": [
+          "Buenas tardes, Elena",
+          "Siguiente acción",
+          "Agenda de hoy",
+          "Sigue abierto de antes"
+        ],
+        "altoTotal": 2389
+      },
+      "pacientes": {
+        "cajasDelimitadas": 0,
+        "rellenosDeMarca": [
+          "Nuevo paciente",
+          "Recientes (5)"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 6
+        },
+        "filtrosYBusqueda": {
+          "campos": 1,
+          "pildoras": 3
+        },
+        "cromoPersistente": {
+          "px": 105,
+          "viewport": 844,
+          "fraccion": 0.124
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Agendar",
+          "y": 114
+        },
+        "encabezados": [
+          "Pacientes"
+        ],
+        "altoTotal": 1306
+      },
+      "expediente": {
+        "cajasDelimitadas": 6,
+        "rellenosDeMarca": [
+          "Nueva consulta",
+          "Consulta"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 9
+        },
+        "filtrosYBusqueda": {
+          "campos": 0,
+          "pildoras": 3
+        },
+        "cromoPersistente": {
+          "px": 105,
+          "viewport": 844,
+          "fraccion": 0.124
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Atrás",
+          "y": 32
+        },
+        "encabezados": [
+          "Aurelio Domínguez Peña",
+          "Documentos y exportación"
+        ],
+        "altoTotal": 2042
+      },
+      "consulta": {
+        "cajasDelimitadas": 7,
+        "rellenosDeMarca": [
+          "Preguntar a la evidencia (chat",
+          "Análisis basado en evidencia (",
+          "Todo a la nota"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 20
+        },
+        "filtrosYBusqueda": {
+          "campos": 12,
+          "pildoras": 0
+        },
+        "cromoPersistente": {
+          "px": 105,
+          "viewport": 844,
+          "fraccion": 0.124
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Preguntar a la evidencia (chat) ↗",
+          "y": 518
+        },
+        "encabezados": [
+          "Aurelio Domínguez Peña"
+        ],
+        "altoTotal": 2681
+      },
+      "operaciones": {
+        "cajasDelimitadas": 4,
+        "rellenosDeMarca": [],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 4
+        },
+        "filtrosYBusqueda": {
+          "campos": 0,
+          "pildoras": 0
+        },
+        "cromoPersistente": {
+          "px": 105,
+          "viewport": 844,
+          "fraccion": 0.124
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Agendar rápidoDar cita en un par d",
+          "y": 187
+        },
+        "encabezados": [
+          "Operaciones",
+          "Agenda",
+          "Negocio",
+          "Cumplimiento y documentos",
+          "Comunicación",
+          "Sistema",
+          "Respaldo",
+          "Apariencia",
+          "Sesión"
+        ],
+        "altoTotal": 1935
+      },
+      "pendientes": {
+        "cajasDelimitadas": 7,
+        "rellenosDeMarca": [
+          "Tomarla",
+          "Tomarla",
+          "Lo revisé — cerrar",
+          "Ya se hizo",
+          "Tomarla",
+          "Tomarla",
+          "Tomarla"
+        ],
+        "primitivasDeLista": {
+          "semanticas": 0,
+          "repeticiones": 4
+        },
+        "filtrosYBusqueda": {
+          "campos": 0,
+          "pildoras": 0
+        },
+        "cromoPersistente": {
+          "px": 105,
+          "viewport": 844,
+          "fraccion": 0.124
+        },
+        "primeraAccionConsecuente": {
+          "texto": "Aurelio Domínguez Peña",
+          "y": 224
+        },
+        "encabezados": [
+          "Pendientes",
+          "Requiere atención (2)",
+          "Necesita revisión (1)",
+          "Esperando resultado (1)",
+          "Necesita agendar (1)",
+          "Esperando al paciente (1)",
+          "Otros pendientes (1)"
+        ],
+        "altoTotal": 2584
+      }
+    }
+  },
+  "errores": []
+}

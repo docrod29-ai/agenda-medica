@@ -7126,3 +7126,864 @@ que el par ilegible vuelva a ese selector. Los demás usos de `--nexus` como
 relleno van saliendo pantalla por pantalla con el arnés — señalar de menos.
 
 **Familia.** `sin_medir`.
+
+## REG-309 — Desmontar el grabador dejaba la pantalla diciendo «escuchando»
+
+**Encontrado por** la auditoría de sólo lectura del modo escuchando (10-ago-2026).
+
+**Qué pasaba.** Al entrar en `grabando` o `pausado`, `useGrabacionAudio` emitía
+`activo: true` para el marco global. Al detener normalmente, el siguiente render
+emitía `activo: false`; al navegar con el micrófono abierto, en cambio, el hook
+se desmontaba y ya no existía ese render. El cleanup retiraba el latido y el
+aviso de salida, pero no cerraba la señal. La UI podía seguir afirmando que el
+micrófono estaba activo después de haberlo cerrado.
+
+**Causa raíz.** El cierre de una señal global se confió a una transición de
+estado local. Un unmount ejecuta efectos de limpieza, no produce una transición
+final a `inactivo`.
+
+**Arreglo.** El mismo montaje que abre la señal devuelve ahora un cleanup que
+retira sus recursos y emite `activo: false`. No cambia el grabador, el evento ni
+el consumidor existentes.
+
+**Guardián.** `src/__tests__/grabacion-unmount-cierra-escucha.test.ts` (1 caso)
+ejecuta el ciclo observable mount activo → recording → unmount y exige la
+secuencia `[true, false]`. Probado al revés: sin el aviso del cleanup termina en
+`[true]` y falla.
+
+**Qué NO cubre.** La transcripción, IndexedDB y el buffer final de
+`MediaRecorder`; conservan sus guardianes propios.
+
+**Familia.** `no_conectado` — el cierre existía para la transición de estado,
+pero no estaba conectado al camino de unmount.
+
+---
+
+## REG-310 — La fecha de control tecleada al final nunca llegaba: firmar la ignoraba
+
+**Encontrado por** el arnés de navegador de `V15-NOTE-PLAN-CONTINUITY-001`
+(quinta rebanada, 11-ago-2026), verificando OTRA cosa: que el paso «Agendar el
+seguimiento» del checklist de cierre sobreviviera a volver de `/citas`.
+
+**Qué pasaba.** `firmar` es un `useCallback` y `proximoSeguimiento` no estaba
+en sus dependencias — ni en las de `construirNota`, su único camino indirecto.
+Teclear la fecha de «Próxima consulta» como ÚLTIMO gesto antes de firmar (el
+orden natural: el control se decide al cerrar) no recreaba el callback, así que
+firmar corría con la fecha memorizada de un render anterior: `''`. Las dos
+salidas de REG-300 —la tarea «Agendar el seguimiento» del worklist y
+`patient.proximoSeguimiento` del CRM— recibían vacío y no escribían nada.
+
+**Medido, no supuesto.** Contra el emulador de Firestore, con el arnés de la
+Fase 8: cinco notas firmadas con fecha `2026-09-08` → sus `estudio_pendiente`
+y `receta_por_entregar` SÍ nacieron (estudios y medicamentos son dependencias
+de `construirNota`, que sí recrea el callback) y cero tareas
+`tipo: 'seguimiento'`, con `patient.proximoSeguimiento` intacto en su valor
+sembrado — el recorte quirúrgico exacto que predice la clausura obsoleta, no
+un fallo general de escritura. Tras el arreglo, dos firmas → dos tareas
+`seguimiento` y el campo del paciente actualizado. La pantalla mientras tanto
+SÍ pintaba el paso en el checklist (el render usa el estado vivo), así que
+todo se veía correcto.
+
+**Causa raíz.** El tercer camino de pérdida del MISMO dato (REG-193 el respaldo,
+REG-300 los espejos, éste el cierre): una lista de dependencias escrita a mano
+que no se actualizó cuando REG-300 conectó el dato al firmar. Familia
+`depende_de_recordar` — y hermana directa de «el dato tiene que LLEGAR»: la
+prueba de contrato del motor (`derivar.ts`) estaba en verde porque el motor sí
+sabe derivar; lo que nunca se miró fue si el dato le llegaba desde la pantalla.
+
+**Arreglo.** `proximoSeguimiento` en el array de dependencias de `firmar`
+(`src/app/(dashboard)/consulta/[patientId]/page.tsx`).
+
+**Guardián.** `src/__tests__/v15-cierre-agenda-el-seguimiento.test.ts` — el caso
+REG-310 lee el array de dependencias REAL de la fuente y falla si el campo sale
+de la lista. Probado al revés contra el árbol sin el arreglo. Los demás casos
+del archivo protegen la rebanada que lo descubrió (paso de cierre + hoja del
+paciente + persistencia en `sessionStorage`).
+
+**Qué NO cubre.** Que React ejecute el callback recreado (eso es React, no este
+código); los otros consumidores de `proximoSeguimiento` (respaldo local,
+espejos) conservan sus guardianes de REG-193/REG-300. Tampoco cubre las demás
+dependencias de `firmar`: una lista a mano puede volver a desactualizarse por
+otro campo — el caso sólo vigila éste.
+
+**Familia.** `depende_de_recordar`.
+
+## REG-311 — El ancla del paciente volvió a decidir la negación de alergias por su cuenta
+
+**Encontrado por** el equipo rojo de originalidad de
+`V15-ORIGINALITY-REDTEAM-001` (13-ago-2026), contrastando las capturas del
+panel §26/§41 contra el golden de REG-279.
+
+**Qué pasaba.** `PatientAnchor` — el componente que V15 escribió para que
+identidad y seguridad estén SIEMPRE visibles en el expediente — nació con la
+SÉPTIMA copia local de la regla de negación:
+`/^(ninguna|niega|no|sin|nkda|negad)/i`, peor que la que REG-279 condenó
+(perdió el `\b`). «Niega penicilina. Alérgico a sulfas» —la cadena motivadora
+de REG-279— salía como «sin alergias» en gris; «Nolotil» empieza por «no» y
+también; una alergia sólo en `alergiasEstructuradas` salía como
+«no registradas». En `/consulta` convivían además DOS criterios en el mismo
+viewport: la franja editable pintaba rojo con CUALQUIER texto («Niega
+alergias» → ROJO) y la píldora del encabezado usaba el prefijo («Niega
+penicilina. Alérgico a sulfas» → NEUTRO): dos alarmas contradictorias para el
+mismo dato donde se prescribe.
+
+**Causa raíz.** El golden de REG-279 fija la semántica pero su guarda de
+fuente sólo mira `hospitalizacion/[internamientoId]/page.tsx`: nada impedía
+que un componente NUEVO trajera la octava copia. La regla existía; el barrido
+no.
+
+**Arreglo.** Las tres piezas (ancla + franja editable + píldora de consulta)
+derivan de `alergenosDe`/`negacionesEnTexto` (el módulo sellado): rojo con los
+ALÉRGENOS enseñados, gris sólo con negación explícita y nada restante, y el
+hueco en ámbar («no registradas» — regla 4). En rojo se pintan los alérgenos,
+no la frase cruda que los esconde.
+
+**Guardián.** `src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts`
+(9 casos): la decisión del ancla con las cadenas de REG-279 + «Nolotil» +
+sólo-estructuradas, las guardas de fuente de las tres piezas, y el BARRIDO de
+repositorio que impide la octava copia (la familia de regex de prefijo, en
+todo `src/app` + `src/components`). Probado al revés: contra el árbol sin el
+arreglo fallan 3.
+
+**Qué NO cubre.** El render real (colores/DOM — arnés de capturas); una
+reimplementación futura sin regex (`startsWith('niega')`); la franja de
+hospitalización (golden propio de REG-279).
+
+**Familia.** `copia_local_de_regla_sellada` (hermana de REG-279, REG-171,
+REG-201).
+
+## REG-312 — La coreografía de continuidad abría una ventana de clic ciego: pantalla vieja pintada, DOM nuevo debajo
+
+**Encontrado por** el equipo rojo de originalidad de
+`V15-ORIGINALITY-REDTEAM-001` (panel B, hallazgo RT-08, 13-ago-2026), leyendo
+`continuidad.ts` en busca de motion decorativo. El único hallazgo del panel
+con riesgo clínico: **paciente equivocado**.
+
+**Qué pasaba.** Mientras corre el callback de `document.startViewTransition`,
+el navegador pinta la instantánea VIEJA congelada pero el hit-testing corre
+contra el DOM vivo — que ya es la ruta NUEVA (`navegar()` es lo primero que
+hace el callback). Con el tope de espera en 1200ms, un médico que venía de una
+worklist con un «Consulta» por renglón podía hacer clic sobre lo que VEÍA (la
+fila del paciente A) y aterrizar sobre lo que HABÍA debajo: el encuentro de
+OTRO paciente. El guardián de motion existente sólo cubría la fase de
+animación (`::view-transition { pointer-events: none }`, §20) — ese overlay ni
+existe durante el callback.
+
+**Causa raíz.** El API separa lo que se PINTA (instantánea vieja) de lo que
+RECIBE eventos (DOM nuevo) durante el callback, y el diseño original sólo
+pensó en el cuadro (tope para que la pantalla no se congele de más), no en el
+puntero (que durante ese tramo apunta a una pantalla que no se ve).
+
+**Arreglo.** (1) Candado: el callback pone `data-vt-congelada` en `<html>` y
+globals.css lo traduce a `pointer-events: none` sobre `<body>`; se suelta en
+un `finally` — commit, tope o excepción de `navegar()`. (2) La ventana se
+acorta: tope 1200 → 400ms. Una ruta más lenta pierde el morph (la cubre el
+crossfade de siempre), no la seguridad.
+
+**Guardián.** `src/__tests__/rt-08-ventana-de-clic-ciego.test.ts` (6 casos):
+candado puesto durante el callback y suelto al commit / al tope / ante
+excepción (DOM de mentira con el contrato exacto del API), la regla CSS, la
+igualdad del atributo y el tope declarado. **Probado al revés ×2**: sin el
+candado fallan 5; con el tope viejo (1200) fallan 2 — incluido el caso de
+temporizador, que no es lectura de fuente.
+
+**Qué NO cubre.** El hit-testing verdadero en navegador (lo mide
+`scripts/design/medir-continuidad-v15.mjs` con el API real); la fase de
+animación (contrato de §20 en `v15-motion-continuidad-de-objeto.test.ts`); y
+un teclado durante la ventana — `pointer-events` no bloquea Enter sobre un
+elemento ya enfocado; ventana ≤400ms y el foco no viaja solo al DOM nuevo,
+riesgo aceptado y anotado.
+
+**Familia.** `se_contradice` — lo que se PINTA (instantánea vieja) y lo que
+RECIBE el clic (DOM nuevo) afirman cosas incompatibles y ninguna está mal
+por su cuenta: el fallo vive en el hueco entre las dos. Hermana conceptual
+de «el dato tiene que llegar»: aquí el clic tiene que llegar A LO QUE SE VE.
+
+---
+
+## REG-313 — Dos avisos se contradecían sobre el MISMO archivo, y el que se leía era el falso
+
+**Fecha.** 14-ago-2026 · **Encontrado por.** RTC-21 (V15), al consolidar el
+bloque de exportación del expediente.
+
+**Qué pasaba.** El botón de exportación estándar del expediente lanzaba
+`toast()` **dos veces** por una sola descarga, y los dos avisos afirmaban cosas
+incompatibles sobre el archivo que el médico acababa de bajar:
+
+1. «Archivo FHIR descargado: N nota(s) firmada(s) y M en borrador, **marcadas
+   como preliminares**. Los borradores van sin diagnósticos ni recetas
+   estructuradas.» → los borradores **van**.
+2. «FHIR R4 exportado con X notas firmadas. M en borrador **NO van en FHIR** —
+   usa «Expediente completo».» → los borradores **no van**.
+
+**Cuál era verdad.** Se miró del otro lado, que es lo que la regla «el dato
+tiene que LLEGAR» pide: `src/lib/fhir-export.ts` tiene, desde que se arregló
+que los borradores se cayeran en silencio, un segundo bucle
+`notas.filter(n => n.estado !== 'firmada')` que los exporta como
+`Composition.status: 'preliminary'`, con su narrativa y **sin** `Condition` ni
+`MedicationRequest`. O sea: **el aviso 1 era cierto y el 2 era falso**.
+
+**Por qué importa, y no es cosmético.** El aviso falso era el **último en
+pintarse** — el que queda en pantalla y el que se lee. De modo que, cada vez
+que había una nota sin firmar, la aplicación le decía al médico que el archivo
+que estaba a punto de mandar a otra institución no llevaba nada sin firmar.
+Sí lo llevaba. Dos consecuencias:
+
+- **Contenido clínico sin firmar salía del consultorio** mientras el médico
+  creía lo contrario. La firma existe justo para separar lo que se afirma de lo
+  que todavía se está escribiendo.
+- De propina, el aviso mandaba a exportar el expediente completo «para
+  incluirlas» — a duplicar una salida de PHI para conseguir algo que ya estaba
+  dentro del primer archivo.
+
+**Causa raíz.** Dos redacciones del mismo hecho escritas en momentos
+distintos, una encima de la otra, sin que ninguna prueba comparase la promesa
+de la pantalla con la conducta del exportador. Los guardianes que existían
+fijaban **literales de la frase** (`'NO van en FHIR'`,
+`const borradores = notas.filter(...)`), así que protegían la mentira: cuando
+el exportador cambió de conducta, el texto no tenía que seguirlo.
+
+**Arreglo.** Un solo aviso, con lo que el exportador hace de verdad («… y M en
+borrador, que viajan marcadas como preliminares y sólo con su texto — sin
+diagnósticos ni recetas estructuradas»), y la misma explicación **antes** de
+descargar, bajo el rótulo del bloque: elegir el archivo es una decisión previa,
+no una lectura posterior.
+
+**Guardián.** `src/__tests__/v15-rtc21-exportar-dice-el-trabajo.test.ts`, caso
+6: **llama a `exportarPacienteAFhir` con una nota firmada y una en borrador**,
+comprueba que sale una `Composition` `preliminary` y, con eso demostrado, exige
+que la pantalla no prometa una exclusión que no ocurre. Ata los dos lados para
+que no puedan volver a divergir. Probado al revés: devolviendo el segundo
+`toast` cae el caso 4; devolviendo la frase falsa cae el 6.
+
+Los otros tres guardianes que fijaban la redacción vieja
+(`exportacion-completa`, `fhir-borradores`, `v15-rtc10-primer-viewport-clinico`)
+se corrigieron **con su porqué escrito dentro**: mantienen la intención —que la
+pantalla declare qué pasa con lo que no está firmado— y dejan de exigir la
+frase que era mentira.
+
+**Qué NO cubre.** Que el sistema receptor trate bien un `preliminary` (eso es
+del otro extremo del cable); y el contenido del expediente completo, que tiene
+sus propias pruebas.
+
+**Familia.** `se_contradice` — dos afirmaciones incompatibles sobre el mismo
+objeto, ninguna mal por su cuenta, con el fallo viviendo en el hueco entre las
+dos. Hermana de REG-312.
+
+---
+
+## REG-314 — la agenda vacía decía lo mismo en tres situaciones distintas, y una de ellas era mentira
+
+**Fecha:** 14-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media
+
+**Qué fallaba.** `/citas` estrecha su lista por CUATRO cosas —fecha, estado,
+búsqueda y médico— y el estado vacío no miraba ninguna: pintaba «No hay citas
+para este filtro · Cambia de fecha o de médico, o agenda una nueva cita», con
+la ilustración de agenda vacía y un primario «Nueva cita», en tres situaciones
+que no son la misma:
+
+1. el día está libre de verdad,
+2. el día **tiene** citas y un filtro las esconde,
+3. hay filtro puesto y además el día está libre.
+
+En el caso 2 el mensaje es falso por partida doble: dibuja una agenda vacía
+sobre un día que no lo está, y ofrece como gesto principal **agendar encima**
+de citas que el médico no está viendo.
+
+**Cómo se descubrió.** Leyendo `filtered` para otra cosa. Al bajar al cierre
+del riel apareció la contradicción escrita: el comentario dice «el riel no
+muere en el vacío: apunta al día siguiente» y la condición era
+`filtered.length > 0`, así que el puntero al día siguiente **desaparecía
+exactamente el día vacío** — el único en que «el que viene tiene 6» es la
+información que hace falta.
+
+**Causa raíz.** El vacío se trató como un solo estado («no hay filas») cuando
+son tres causas con tres respuestas distintas. Y el caso peligroso ya había
+mordido a este producto por otro sitio: `useFiltroMedico` lleva escrito que un
+filtro guardado en el navegador, apuntando a un médico dado de baja, dejaba la
+agenda vacía todos los días sin control visible para quitarlo. Aquello se
+reparó en el origen; el **mensaje** seguía sin poder distinguir «no hay» de
+«no se ven». Es la regla 4 de seguridad clínica dicha en la pantalla: ausencia
+de filas no es ausencia de citas.
+
+**Arreglo.** `src/lib/agenda/vacio-de-la-agenda.ts` decide la clase de vacío y
+el gesto que le corresponde; la pantalla la consume. Con citas escondidas se
+dice cuántas hay y por qué filtro, **en línea y sin ilustración** —el día no
+está vacío—, y el único gesto es quitar el filtro. Con el día libre de verdad
+se dice qué trae el día siguiente y se ofrece ir, que es lo que el riel decía
+sólo cuando había filas.
+
+**Guardián.** `src/__tests__/v15-el-dia-vacio-dice-cual-de-los-tres.test.ts`
+(7 casos). Probado al revés: sustituida la decisión por la conducta vieja —un
+solo mensaje— caen 5 de 7. El caso 6 es el de conexión: la pantalla tiene que
+consumir el módulo, o la decisión queda bien y no llega a ninguna pantalla.
+
+**Verificado en navegador real** (escritorio 1440 + móvil 390, 0 errores de
+consola), `scripts/design/medir-dia-vacio-citas-v15.mjs`:
+
+| | escritorio | móvil |
+|---|---|---|
+| aviso de «6 escondidas» | línea, 62px, sin ilustración | línea, 134px |
+| día libre | héroe, 332px | héroe, 340px |
+| «Quitar los filtros» | devuelve 6 filas | 6 filas |
+| «Ver el día siguiente» | aterriza en 6 filas | 6 filas |
+
+Y la medición corrigió el trabajo: la primera versión titulaba «Jueves 13 de
+agosto: sin citas agendadas.» — la captura enseñó que la cabecera ya dice el
+día dos veces encima, así que el vacío lo decía por tercera vez y la noticia
+quedaba de acompañante. El título pasó a «Sin citas agendadas.» Misma
+corrección que RTC-22 le hizo a la marca.
+
+**Qué NO cubre.** Qué citas debe esconder un filtro (eso no se tocó); el
+estado de ERROR de carga, que ya distinguía «no se pudieron leer» de «no hay»;
+y el resto de estados vacíos del producto — RTC-30 sigue abierto en las demás
+pantallas, y éste se pagó porque su vacío **miente**, no porque sea genérico.
+
+**Familia.** `se_contradice` — dos afirmaciones incompatibles sobre el mismo
+día, y un comentario que dice lo contrario de su propia condición.
+
+---
+
+## REG-315 — la lista de pacientes vacía no decía cuántos había fuera, y el momento en que nace un expediente repetido no preguntaba nada
+
+**Fecha:** 15-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media
+
+**Qué fallaba.** `/pacientes` —la pantalla más visitada del producto— tenía
+CUATRO estados vacíos, y tres de ellos eran un `<div>` suelto con un párrafo
+gris centrado a 40px: sin componente, sin clase y **sin ningún control**:
+
+    «Sin resultados para “x”.»
+    «Aún no hay pacientes con citas recientes. Usa **Todos A-Z** o busca…»
+    «Ningún paciente con inasistencias o cancelaciones.»
+
+Los tres comparten el mismo defecto: **ninguno dice que la lista NO está
+vacía.** Con seis expedientes dentro, el chip «Con alerta» pinta una pantalla
+en blanco indistinguible de un consultorio recién abierto. Es la misma familia
+que REG-314 acababa de pagar en `/citas`: ausencia de FILAS no es ausencia de
+expedientes.
+
+Y el de «Recientes» —que es la vista POR DEFECTO— mandaba a buscar un control
+en NEGRITA («Usa **Todos A-Z**») en lugar de ofrecerlo. §24 falla un control
+interactivo que no es un `<button>`; esto ni siquiera era un control, era una
+instrucción para ir a buscar uno.
+
+**Cómo se descubrió.** Contando los estados vacíos de las seis superficies de
+§29 para cerrar RTC-30 («un patrón decidido UNA vez»). Hoy y Expediente ya
+estaban convertidos; al abrir `/pacientes` aparecieron tres a mano en el mismo
+archivo.
+
+**Causa raíz — y no era de interfaz.** Buscar y no encontrar es el momento
+exacto en que nace un expediente repetido. Este repositorio ya sabe lo que eso
+cuesta: lo dice el propio aviso de duplicados de esta misma pantalla —«su
+historial queda partido: las alergias en uno y las notas en el otro»— y tiene
+el módulo que lo detecta, `buscarPosiblesDuplicados`, que sabe que «López
+García, María» y «María López García» son la misma persona. Pero ese módulo
+se consultaba **sólo dentro del formulario de alta**, es decir, después de que
+el médico ya decidió crear y con medio formulario tecleado. En el único
+momento anterior en que se hace la misma pregunta —la búsqueda— nadie lo
+llamaba, y la respuesta era un callejón sin salida con el único primario de la
+pantalla («Nuevo paciente») esperando arriba a la derecha.
+
+La capacidad existía, el lector existía, y no se llamaban donde hacía falta:
+«el dato tiene que LLEGAR», la familia de REG-160/167/170.
+
+**Arreglo.** `src/lib/pacientes/vacio-de-la-lista.ts` decide la clase del
+vacío, su peso y el gesto que corresponde a la causa; la pantalla lo consume
+en los cuatro sitios. Todo vacío dice **cuántos expedientes hay fuera de lo
+que se está mirando**. Sólo el registro entero vacío conserva el héroe
+ilustrado y ofrece «Nuevo paciente» — ofrecer crear sobre una lista con
+expedientes escondidos es la misma decisión que REG-314 tomó al no ofrecer
+«Nueva cita» sobre un día con seis citas ocultas por un filtro. Y la búsqueda
+sin coincidencias consulta ahora `buscarPosiblesDuplicados` con su umbral
+declarado (`UMBRAL_NOMBRE`), sin criterio nuevo: lo que sobrevive hasta ahí es
+exactamente lo que la búsqueda por subcadena no puede cazar —el orden de los
+apellidos, el dedazo, el apellido de en medio que falta—, que es el caso que
+parte expedientes.
+
+**Guardián.** `src/__tests__/v15-la-lista-vacia-dice-cuantos-hay-fuera.test.ts`
+(12 casos, 2 conductuales sobre el módulo real de duplicados). Probado al
+revés con cuatro reversiones quirúrgicas, en rojo una a una: con los tres
+párrafos grises de vuelta caen los casos 8 y 9; con `nuevoPaciente: true` en
+una clase que no sea `sin-expedientes` cae el 6; sin el número de expedientes
+en el título cae el 2; sin la llamada al módulo de duplicados cae el 10.
+
+El caso 10 **pasó en verde con la llamada borrada** en la primera pasada,
+porque el identificador seguía escrito en la línea del `import`: el
+instrumento leía una declaración donde tenía que leer un uso. Es la ceguera de
+`grafo-de-dependencias` otra vez, y la cazó justamente el probar al revés —
+una reversión que no pone el caso en rojo es un caso que no prueba nada.
+
+**Verificado en navegador real**, mismo instrumento sobre las dos versiones
+(dos builds de producción + emuladores + siembra sintética; escritorio 1440 y
+móvil 390; **0 errores de consola** en las cuatro pasadas),
+`scripts/design/medir-lista-vacia-pacientes-v15.mjs`:
+
+| | antes | después |
+|---|---|---|
+| vacíos que dicen cuántos hay fuera | 0 de 3 | 3 de 3 |
+| controles dentro del bloque vacío | 0 | 1 en cada uno |
+| «Ver todos A-Z» | no existía | devuelve las 6 filas |
+| «Limpiar la búsqueda» | no existía | devuelve las 6 filas |
+| expedientes rescatados con «Villareal Esparsa, Joaquin» | 0 | 1 (Joaquín Esparza Villarreal) |
+| bloque con clase de estado vacío | no (`<div>` suelto) | sí, variante línea (62px escritorio / 134px móvil) |
+
+**Qué NO cubre.** El rescate **no** cubre el nombre abreviado: «Ma Guadalupe
+Hernández» contra «María Guadalupe Hernández» da 0.67 y el umbral declarado
+del producto es 0.8, así que no se ofrece. Se deja así a propósito — bajar el
+umbral aquí sería inventar un criterio distinto del que usa el resto del
+producto para decidir si dos nombres son la misma persona. Tampoco se
+fotografió el vacío de «Recientes»: la siembra tiene cinco pacientes con cita
+previa y ese caso no se produce (probado sólo en la decisión). Y el resto de
+estados vacíos del producto —lista de espera, farmacia, cumplimiento,
+reactivación— siguen con el hero: **RTC-30 sigue abierto ahí**.
+
+**Familia.** `el_dato_no_llega` en la causa raíz (un módulo que existe y no se
+consulta donde importa) y `ausencia_no_es_dato` en el síntoma (una lista
+vacía que no distingue «no hay» de «no se ven»).
+
+---
+
+## REG-316 — cuatro líneas de prosa fuera de un comentario mataron una regla de CSS, y el fuente se leía perfecto
+
+**Fecha:** 15-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media
+
+**Qué fallaba.** En `globals.css`, RTC-32 añadió un párrafo a un comentario que
+ya estaba **cerrado**: cuatro líneas de prosa en español quedaron fuera del
+bloque `/* … */`, seguidas de un segundo cierre huérfano, justo encima de un
+`@media`.
+
+Un analizador de CSS que encuentra basura en el nivel superior no la salta:
+abre una regla y consume hasta la PRIMERA llave. La primera llave después de la
+prosa era la del `@media (max-width: 900px)` siguiente, así que **la regla
+entera quedó dentro de un selector inválido y se descartó con él**.
+
+La regla muerta era la que aparta los botones flotantes mientras hay un campo
+con el foco — la que nació de tres capturas del iPhone del dueño con el botón de
+ayuda encima de **Peso** y de **Exploración física**. Desde RTC-32 no existía en
+el navegador.
+
+**Cómo se descubrió.** No leyendo el CSS: `npm run build` lo decía —«Found 1
+warning while optimizing generated CSS … Invalid token in pseudo element»— en
+una salida que nadie lee. Confirmado **del otro lado**, en el CSS construido:
+`theme-toggle` aparecía ocho veces y `html:has(input:focus, …) .theme-toggle`
+ninguna.
+
+**Causa raíz.** El mismo mecanismo que `nx-stat-grid` con otra ropa: allí un
+estilo en línea vencía a la hoja **en silencio**, aquí un comentario mal cerrado
+se come la regla siguiente **en silencio**. Las dos veces el fuente parecía
+correcto y la suite estaba en verde.
+
+**La regla que lo hace seguro.** No se vigila este defecto: se vigila el
+analizador. `globals.css` se pasa por el mismo motor de la construcción
+(lightningcss) y sólo se toleran los avisos declarados por su nombre — hoy uno,
+`@theme` de Tailwind v4, con su motivo escrito. Cualquier aviso nuevo pone el
+caso en rojo con su número de línea.
+
+**Guardián.** `src/__tests__/la-hoja-de-estilos-llega-entera.test.ts` (3 casos).
+Probado al revés: devolviendo la prosa suelta a `globals.css` caen los casos 1 y
+2. El caso 3 es **control positivo** —inyecta el defecto en una copia en memoria
+y comprueba que el instrumento lo caza y que la regla desaparece de la salida—,
+sin el cual esta prueba pasaría igual el día que el analizador dejara de avisar
+de nada.
+
+**Verificado del otro lado.** Con el arreglo, `npm run build` termina sin
+avisos y `has(input:focus,textarea:focus,select:focus) .theme-toggle` aparece en
+`.next/static/chunks/*.css`. Antes del arreglo, el mismo build vuelve a emitir
+el aviso: la reversión se comprobó, no se supuso.
+
+**Qué NO cubre.** Sólo `globals.css` (el CSS en línea del JSX lo vigila el
+trinquete de diseño); no comprueba que el selector CASE con algo en un navegador
+—eso es del arnés—, ni valida propiedades desconocidas o compatibilidad.
+
+**Familia.** `el_dato_no_llega` — lo escrito no llega al destinatario, y del
+otro lado no lo miraba nadie.
+
+---
+
+## REG-317 — `/reactivacion` felicitaba al médico por una lista que escondía a cuatro pacientes
+
+**Fecha:** 15-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media
+
+**Qué fallaba.** Con la lista vacía, `/reactivacion` pintaba siempre lo mismo:
+
+    «Nadie pendiente de reactivar
+     No hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!»
+
+Eso es cierto en UNA de cinco situaciones. En las otras cuatro hay gente que
+lleva meses sin volver y la pantalla no la enseña: porque la píldora del umbral
+está más alta, porque el paciente pidió la baja de WhatsApp, porque ejerció su
+derecho ARCO, o —la que más duele— porque **no tiene un teléfono al que
+escribir**. Un paciente sin datos de contacto que lleva dos años sin volver era
+invisible aquí, y su ausencia se leía como buen seguimiento.
+
+Medido en navegador con cuatro pacientes escondidos, la pantalla vieja seguía
+felicitando. Es la regla 4 de seguridad clínica —ausencia de dato no es dato de
+ausencia— dicha en la continuidad del paciente.
+
+Dos pantallas más de la misma cola tenían la mitad del defecto:
+
+- **`/farmacia`** — «Sin resultados con esos filtros» sobre una ilustración de
+  página entera y **sin ningún control**: con ítems dentro se lee igual que una
+  farmacia recién abierta, y para recuperarlos había que acordarse de vaciar el
+  buscador Y de devolver el desplegable a «Todas las categorías».
+- **`/cumplimiento` (bitácora)** — con 200 asientos traídos y el filtro de tipo
+  puesto decía «Sin eventos registrados aún · Cada acceso, escritura, impresión
+  y firma quedará aquí»: describía una bitácora que todavía no existe, sobre una
+  que sí. Dos líneas más abajo la pantalla cita NOM-024 Art. 6.5.
+
+**`/lista-espera` NO era defecto** y queda declarado para que nadie lo
+«arregle»: no tiene buscador ni filtro, así que cero filas significa cero de
+verdad y el héroe con «Agregar» es la respuesta correcta.
+
+**Causa raíz.** RTC-30 se había descubierto TRES veces (Hoy, REG-314 en
+`/citas`, REG-315 en `/pacientes`) y las tres se había vuelto a escribir entera.
+No existía como pieza, así que la cuarta pantalla no podía heredarla. En
+`/reactivacion` había una segunda causa más honda: el desglose no se podía
+pintar porque **no se calculaba** — `pacientesParaReactivar` devolvía la lista y
+tiraba por el camino el motivo de cada ausencia.
+
+**La regla que lo hace seguro.** `src/lib/ui/vacio-de-una-lista.ts` decide una
+sola vez: héroe y gesto de alta **sólo** con el conjunto entero vacío; con filas
+escondidas, variante línea, título que dice cuántas hay FUERA y gestos que
+sueltan la causa —nunca el de alta, que sobre lo escondido invita al duplicado—;
+una causa que no se puede soltar (`gesto: null`) **se dice igual**; y sin causa
+declarada no se inventa una frase amable. Y `clasificarParaReactivar` es ahora
+la única fuente de verdad sobre a quién se reactiva: `pacientesParaReactivar` es
+una VISTA suya, así que el desglose que se pinta y la lista que se enseña no
+pueden divergir.
+
+Los dos módulos anteriores (`vacio-de-la-agenda`, `vacio-de-la-lista`) **no se
+tocan**: llevan conocimiento que aquí no cabe —los parecidos por nombre, el día
+siguiente— y están medidos en navegador. Quedan como los casos especiales.
+
+**Guardián.** `src/__tests__/v15-rtc30-el-vacio-dice-cuantos-hay-fuera.test.ts`
+(13 casos). Probado al revés con seis reversiones quirúrgicas, una a una y en
+rojo: devolviendo `variante: 'hero'` siempre caen el 2 y el 9; devolviendo el
+gesto de alta con restricciones activas caen el 3 y el 4; filtrando las causas
+sin gesto antes de la frase cae el 4; con una frase amable sin causa declarada
+cae el 5; con el desglose contando sólo candidatos caen el 8, el 9 y el 10; con
+los literales viejos de vuelta cae el 12; y con el módulo importado pero no
+llamado cae el 11. El caso 11 se escribe contra el USO
+(`describirVacioDeUnaLista({`) y no contra el identificador suelto — la lección
+que dejó REG-315.
+
+**Verificado en navegador real**, mismo instrumento sobre las dos versiones (dos
+builds de producción + emuladores + siembra sintética propia; escritorio 1440 y
+móvil 390; **0 errores de consola** en las cuatro pasadas),
+`scripts/design/verificar-rtc30-v15.mjs` — **antes 4/24, después 24/24**:
+
+| | antes | después |
+|---|---|---|
+| `/reactivacion` con 4 pacientes escondidos | «¡Buen seguimiento!» | «Hay 4 pacientes fuera de lo que estás mirando. 2 llevan menos de 1 año, 1 pidió no recibir mensajes y 1 no tiene teléfono registrado.» |
+| alto del bloque vacío de `/reactivacion` | 300px (héroe ilustrado) | 96px escritorio · 158px móvil |
+| alto del bloque vacío de `/farmacia` | 253px (héroe ilustrado) | 62px escritorio · 134px móvil |
+| controles dentro del bloque vacío | 0 en las dos | 1 en cada una, ≥44px en móvil |
+| «Limpiar la búsqueda» | no existía | devuelve los 4 ítems |
+| «Ver +3 meses» | no existía | devuelve 3 pacientes |
+| «Agregar» sobre lo que un filtro esconde | — | no se ofrece (comprobado) |
+
+**Qué NO cubre.** No se fotografió el vacío de la bitácora de `/cumplimiento`:
+la siembra sintética no genera 200 asientos con tipos variados, así que ahí sólo
+está probada la decisión, no la pantalla. Tampoco se convierten los dos módulos
+de vacío anteriores. Y RTC-30 no toca los estados vacíos que viven dentro de
+modales ni los de los módulos en ALPHA (Hospital/UCI).
+
+**Familia.** `ausencia_no_es_dato` — una lista vacía que no distingue «no hay»
+de «no se ven», y que además felicitaba por la diferencia.
+
+
+---
+
+## REG-318 — el sello que se archiva contaba la prosa; el que el médico lee, no
+
+**Fecha:** 15-ago-2026 · **Rama:** `v15/structural-uiux` · **Sev:** media-alta
+
+**Qué fallaba.** `construirManifiesto` audita la prosa de la nota —cada sección
+y el resumen ejecutivo, con su cita textual— desde hace versiones. Al FIRMAR,
+`/consulta` se la pasaba, así que el sello que queda en `iaAuditoria.procedencia`
+la contaba. Las dos superficies donde un humano LEE ese sello construían su
+propio objeto a mano y omitían `secciones` y `resumen`.
+
+Sobre la misma nota, medido en navegador:
+
+    lo que se ARCHIVA  ->  15 campos, «5 del dictado · 3 de IA · 7 a mano»
+    lo que se VEÍA     ->  10 campos, «2 del dictado · 2 de IA · 6 a mano»
+
+**Y los cinco campos que faltaban no eran cinco cualesquiera.** Eran la prosa,
+que es donde vivieron los tres fallos que el Dr. encontró en producción —«la de
+la docencia» convertido en «vesícula»; un «no, nada de eso» a la pregunta por
+diabetes redactado como «Paciente con DM2 e HTA»—. El sello legible contaba con
+precisión la parte que nunca había fallado, y callaba justo las filas cuya cita
+permite ver que el respaldo dice lo contrario de lo que la nota afirma.
+
+Dos sellos que cuentan distinto sobre el mismo documento no son un detalle de
+presentación: uno de los dos miente ante quien lo lea, y el que miente es el
+único que un humano llega a ver. El comentario del tipo
+(`iaAuditoria.procedencia`) decía además «datos estructurados», con lo que la
+documentación del registro respaldaba la cuenta equivocada.
+
+Colateral del mismo defecto: una nota que sólo trae texto redactado —la de
+evolución que no cambia el plan— no enseñaba **ningún** sello en `/consulta`: la
+condición miraba diagnósticos y medicamentos, dos de las seis familias que el
+sello cuenta.
+
+**Cómo se descubrió.** El estado de la iteración lo llevaba nombrado como deuda
+declarada («la mitad de PROSA del manifiesto sigue sin conectar»), con la mitad
+del diagnóstico equivocada: se creía que NINGUNA superficie le pasaba la prosa.
+Al mirar del otro lado —«el dato tiene que LLEGAR»— resultó que el guardado sí y
+sólo las pantallas no, que es peor: no era una capacidad sin estrenar, era una
+divergencia viva entre el registro y su lectura.
+
+**Causa raíz.** Tres listas independientes de «qué es una nota para el sello»:
+una en el guardado de `/consulta`, otra en las props de `SelloProcedencia` —un
+`interface FinalNota` local que ni siquiera DEJABA pasar la prosa: el compilador
+la habría rechazado— y otra en `procedencia-de-la-nota-archivada.ts`. Sólo la
+primera estaba completa.
+
+**La regla que lo hace seguro.** Una sola definición, `notaParaElSello()` en
+`lib/expediente/procedencia.ts`, y el tipo `FinalNota` exportado en vez de
+recopiado. En `/consulta` el objeto se calcula UNA vez (`notaDelSello`) y lo
+consumen el sello que se archiva y la tira que se ve, así que no pueden volver a
+divergir. El prefijo de los campos de prosa (`PREFIJO_PROSA`) también se declara
+una vez: la pantalla necesita separar las dos familias, y comparar cadenas a
+mano en cada superficie era la misma trampa otra vez.
+
+**Prueba.** `src/__tests__/v15-el-sello-que-se-ve-cuenta-lo-mismo-que-el-sellado.test.ts`
+(14 casos). **Probado al revés**, cinco reversiones quirúrgicas comprobadas en
+rojo una a una: `notaParaElSello` soltando la prosa (caen 5 casos), el
+expediente volviendo a su lista a mano (caen 2), el panel volviendo a una lista
+plana (cae 1), `/consulta` volviendo al objeto a mano en el JSX (cae 1) y la
+condición volviendo a mirar sólo dos familias (cae 1).
+
+Y una vara ajustada **al alza**, no a la baja: `procedencia-de-la-prosa.test.ts`
+exigía la forma literal del objeto que `/consulta` escribía a mano. Esa forma se
+retiró porque era el problema; ahora exige que la prosa entre **por la
+definición compartida** y que las dos lecturas consuman el mismo objeto — sin
+esa segunda mitad, el defecto volvería con una pantalla que se escribiera su
+copia otra vez.
+
+**Verificado en navegador real**, mismo instrumento sobre las dos versiones (dos
+builds de producción + emuladores + siembra sintética; escritorio 1440 y móvil
+390; **0 errores de consola** en las cuatro pasadas),
+`scripts/design/medir-prosa-en-el-sello-v15.mjs`:
+
+| | antes | después |
+|---|---|---|
+| campos en el panel (`/expediente`) | 10 | **15** |
+| frase que el médico lee sin abrir | «2 del dictado · 2 de IA · 6 a mano» | «5 del dictado · 3 de IA · 7 a mano» |
+| secciones y resumen enseñados | **0 de 5** | **5 de 5** |
+| cita de la sección «Plan» | (ninguna) | «…hemoglobina **glucosa hilada** de control…» |
+| familias separadas, con rótulo `<h3>` | no existían | «Texto redactado» · «Datos estructurados» |
+| `/consulta` con nota sólo-prosa | **NO HAY SELLO** | «2 a mano», 2 campos |
+| crecimiento al abrir la lente | +16px escritorio · +0px móvil | +16px escritorio · +0px móvil |
+| Escape cierra · foco vuelve · scroll exacto | sí | sí |
+
+La fila que de verdad prueba la rebanada es la de la cita del Plan: la siembra
+pone al reconocedor oyendo «hemoglobina **glucosa hilada**» donde el médico
+escribió «HbA1c». Que el panel enseñe esa cita —y no la corregida— comprueba del
+otro lado que la prosa llegó con su respaldo real y no con uno fabricado.
+
+**Qué NO cubre.** La compuerta de firma sigue igual: `camposSinEvidencia()`
+construye su propia lista SIN prosa, así que el aviso previo a firmar («estos
+datos no se pudieron comprobar contra el dictado») no mira los párrafos.
+Ampliar una compuerta de firma es conducta clínica sobre un acto medicolegal y
+§1 del Master Loop V15 congela la lógica de negocio: queda **declarado y sin
+pagar**, para decisión del dueño. Tampoco se toca `iaAuditoria.procedencia`, que
+sigue guardando sólo el resumen numérico y que **ninguna** pantalla lee: el
+detalle campo por campo se recalcula de lo archivado.
+
+**Familia.** `no_conectado` — la misma de REG-160/167/170: el dato se escribe,
+las pruebas de contrato pasan, y del otro lado no hay quien lo lea. Con el
+agravante de que aquí sí había lector, y contaba otra cosa.
+
+---
+
+## REG-319 — la barra del pulgar tapaba la compuerta de consentimiento del dictado
+
+**Área.** Clínico-legal / accesibilidad de una acción crítica. Encontrado por
+`V15-WORKFLOW-BENCHMARK-001` (WF-04) **haciendo el flujo**, no leyendo código.
+
+**Qué fallaba.** En el teléfono (390×844), pedir «Grabar la consulta» sobre un
+paciente que no había consentido nunca abría la compuerta de consentimiento —y
+su pie quedaba **debajo de la barra del pulgar**. Medido con el modal abierto:
+
+```
+«Confirmo el consentimiento e iniciar»          779 → 823
+.bottom-nav empieza en                          791
+document.elementFromPoint(centro del botón)     <a> de la barra
+```
+
+El toque no llegaba al botón. **No se podía empezar a grabar**, y no había
+salida: «Cancelar» estaba igual de tapado. La compuerta legal del instrumento
+principal del producto, sin salida, en el ancho en el que más se usa.
+
+**Cómo se descubrió, y por qué llevaba tiempo tapado.** `yaConsintio` lee
+`patient.consentimientoGrabacion.fecha`, que vive en el EXPEDIENTE. La primera
+corrida del banco midió los dos anchos sobre el mismo paciente: la de escritorio
+dejaba el consentimiento asentado y la del teléfono entraba a grabar sin ver la
+compuerta. El defecto sólo aparece con un paciente que no ha consentido nunca.
+
+**Causa raíz.** Por debajo de 768px el modal es una hoja inferior
+(`.modal-overlay { align-items: flex-end; padding: 0 }`) y se pega al borde de
+abajo, donde vive la barra. `<main>` ya reservaba esa banda desde V15-MOBILE-001
+—con el comentario que explica que «si solo dejáramos 70px, esos botones
+quedaban debajo y no se podían tocar»—. La hoja inferior nunca la recibió: un
+contenedor aprendió la lección y el otro no.
+
+**Control permanente.** El pie de la hoja reserva **la misma constante** que
+`<main>` (72px + `env(safe-area-inset-bottom)`) — la misma a propósito: dos
+reservas de la misma barra divergen la primera vez que la barra cambie de alto.
+Después: botón en 707 → 751, `elementFromPoint` devuelve el botón.
+`src/__tests__/v15-la-hoja-inferior-no-la-tapa-la-barra.test.ts` (4 casos,
+probado al revés ×3).
+
+**Qué NO cubre, declarado.** El overlay declara `z-index: 100` y la barra `45`,
+y aun así la barra ganaba el `elementFromPoint`. **Por qué exactamente sigue sin
+explicar**, y se deja escrito en vez de inventar una razón: la reserva es cierta
+gane quien gane el apilado. Si alguien arregla el apilado, esta regla sigue
+siendo correcta y deja de ser lo único que sostiene el caso.
+
+---
+
+## REG-320 — el respaldo local de la nota se escribía, se conservaba y no llegaba
+
+**Área.** Integridad de datos clínicos. Familia `no_conectado` —la de REG-160,
+REG-167, REG-170 y REG-318—, con el agravante de que aquí el dato estaba en
+disco, intacto, y la pantalla se negaba a ofrecerlo.
+
+**Qué fallaba.** Abrir un encuentro por su nota (`/consulta/<paciente>?nota=
+<id>`), teclear, y perder la pestaña antes del autoguardado de 30 s. Medido en
+navegador (`V15-WORKFLOW-BENCHMARK-001`, WF-10):
+
+```
+claves de respaldo tras teclear   ["nx.consulta.bkp.pac-luzmaria-cervantes"]
+¿el texto sobrevive a la recarga? false
+¿se ofrece restaurar?             false
+claves tras recargar              ["nx.consulta.bkp.pac-luzmaria-cervantes"]
+```
+
+Ventana de pérdida **silenciosa** de hasta medio minuto de nota dictada o
+tecleada. Control negativo de la misma corrida: el mismo gesto **sin** `?nota=`
+sí conserva lo escrito — la red de seguridad funcionaba, sólo que nunca en el
+caso que la necesita.
+
+**Causa raíz.** Una sola condición gobernaba dos decisiones distintas:
+«aplicarlo solo» y «ofrecerlo», las dos probando que el formulario estuviera
+VACÍO. Para aplicar solo es la prueba correcta y no se toca —no se pisa en
+silencio lo que el médico ve escrito, regla 3 de seguridad clínica—. Para
+ofrecer es la prueba equivocada: al reabrir una nota concreta el formulario
+**nunca** está vacío, porque trae la nota. La única rama capaz de enseñar el
+respaldo se apagaba justo en el caso para el que existe.
+
+**Control permanente.** `queHacerConElRespaldoLocal` en
+`@/lib/mobile/local-drafts` —que ya era dueño de la clave y del pestillo
+anti-resurrección; **no se creó módulo nuevo**— parte la decisión en
+`APLICAR_SOLO` / `OFRECER` / `CALLAR`, y las dos ramas de la pantalla la
+comparten para que no puedan divergir. Calla si el respaldo es de otro
+encuentro, si no puede demostrar de cuál es, o si la nota ya está firmada
+(inmutable, NOM-024). `src/__tests__/v15-el-respaldo-local-llega-al-medico.test.ts`
+(13 casos, probado al revés ×3).
+
+**Qué NO cubre, declarado.** No compara marcas de tiempo: un respaldo más VIEJO
+que lo que hay en Firestore también se ofrece, a propósito — la decisión de cuál
+vale es del médico, y el aviso enseña la hora a la que se guardó. Aplicarlo
+automáticamente por ser más nuevo sería volver a la corrección silenciosa que la
+regla 3 prohíbe.
+
+---
+
+## REG-321 — la familia documental decía tres gramáticas, y ninguna nombraba al paciente
+
+**Área.** Coherencia de producto / jerarquía de identidad clínica. Encontrado
+por `V15-FINAL-COHERENCE-001` **midiendo el DOM vivo de once superficies a la
+vez**, no leyendo una pantalla.
+
+**Qué fallaba.** La matriz de coherencia
+(`scripts/design/medir-coherencia-de-producto-v15.mjs`) lee el `<h1>` y la voz
+tipográfica **calculada** del nombre del paciente en cada superficie, a
+1440×900 y a 390×844. Escritorio:
+
+```
+expediente   h1 = «Aurelio Domínguez Peña»    paciente a 20px/600 (ancla)
+consulta     h1 = «Aurelio Domínguez Peña»    paciente a 20px/700 (h1)
+nota         NO HAY <h1>                      paciente a 14px/600 (franja)
+receta       h1 = «Generador de Receta»       paciente a 14px/600 (franja)
+orden        h1 = «Orden Médica»              paciente a 14px/600 (franja)
+```
+
+Dicho en una frase: **en las dos superficies donde el médico LEE sobre el
+paciente, su nombre es la voz más fuerte de la pantalla; en las tres donde
+EMITE un documento que cambia su tratamiento, cae a cromo periférico de 14px y
+el sitio dominante lo ocupa el nombre de la herramienta.** El degradado ocurre
+justo en las superficies consecuentes, que es al revés de lo que pediría la
+seguridad. En la misma pantalla, la vista previa del papel sí encabeza con
+«PACIENTE · Luz María Cervantes Ochoa»: el impreso sabía quién era el sujeto;
+la pantalla de trabajo, no.
+
+`/nota` era además la única superficie clínica medida **sin encabezado de
+nivel uno**, y ninguna corrida de axe lo había visto porque la familia
+documental nunca entró en su lista de pantallas
+(`scripts/design/axe-encuentro-v15.mjs`, `PANTALLAS`).
+
+**Causa raíz.** No fue un descuido repetido tres veces: **nadie era dueño de la
+pregunta** «¿qué nombra el encabezado de un documento clínico?». Cada pantalla
+la contestó sola, con su literal, mientras los comentarios de las tres afirman
+pertenecer a una familia que «habla el mismo idioma y el mismo orden».
+
+**Control permanente.** `src/components/TituloDeDocumentoClinico.tsx` es el
+dueño que faltaba: el `<h1>` dice el nombre del paciente y el tipo de documento
+baja a rótulo subordinado. La invariante que obliga a que exista un dueño —y no
+tres copias— es la cláusula de seguridad: **el nombre nunca se inventa mientras
+carga**; sin paciente resuelto el encabezado dice qué documento es, que es
+cierto, en vez de a quién pertenece, que aún no se sabe. Es la misma regla que
+ya cumplen `InstrumentStrip` y el ancla del expediente.
+`src/__tests__/v15-el-documento-clinico-nombra-al-paciente.test.ts` (10 casos,
+probado al revés ×3).
+
+**Qué NO cubre, declarado.** El documento **impreso** no cambia: la reparación
+vive en la barra `no-print` de la pantalla de trabajo, y PDF, impresión y Word
+salen idénticos. Y **no cubre `/referencia`**: su `<h1>` («CARTA DE
+REFERENCIA») está dentro del papel, como título del propio oficio, así que
+cambiarlo cambiaría un documento medicolegal emitido. Es una diferencia de
+contexto clínico legítima y queda declarada como deuda P3 **no pagada**, no
+como olvido.
+
+---
+
+## REG-322 — un destino que prometía un sitio y llevaba a otro, y un título que sólo lo parecía
+
+**Área.** Gramática de acción y semántica de encabezado. Encontrado por
+`V15-FINAL-COHERENCE-001` inventariando el encabezado de las 45 pantallas del
+dashboard a la vez.
+
+**Qué fallaba.** Dos cosas pequeñas, y sólo visibles comparando superficies:
+
+1. **La ruta de rescate de nota** (`/nota/[patientId]`, la que atrapa un URL
+   mal formado) remataba con un botón que decía **«Ir a Consulta»** y navegaba
+   a **`/pacientes`**.
+2. **`/chat`** pintaba «Chat de la clínica» en un `<div>` a 15/700 — en el
+   sitio exacto de un título y con su misma voz, pero sin serlo. Era la única
+   superficie del producto que fingía su encabezado en vez de declararlo
+   (propio o vía `PageHeader`), así que la pantalla no tenía encabezado de
+   nivel uno para quien la recorre por índice de encabezados.
+
+**Causa raíz.** El primero es la familia de **RTC-08**, que este producto ya
+declaró defecto y reparó en el riel — «un ítem que dice Encuentro, te deja en la
+lista de pacientes y encima ilumina Paciente rompe la pregunta de §15 en el
+primer uso». La regla que se fijó entonces —o hay un lugar, o se dice cuál es—
+nunca llegó hasta esta pantalla. Es la misma **forma** que REG-319: el producto
+aprendió la lección en un contenedor y no la aplicó en el hermano.
+
+**Control permanente.** El **destino no se toca** (no se entra a una consulta
+sin elegir paciente: `/pacientes` es correcto); se corrige la **promesa**, que
+era la que mentía. Y el título de `/chat` pasa a `<h1>` conservando tamaño y
+peso: cambia la semántica, no la voz — si además hubiera cambiado de tamaño
+sería un rediseño encubierto.
+`src/__tests__/v15-cada-destino-declara-su-encabezado.test.ts` (5 casos,
+probado al revés ×2).
+
+**Qué NO cubre, declarado.** No es un barrido de accesibilidad del producto:
+cubre las dos superficies que la matriz señaló, no «todas las pantallas tienen
+h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
+de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
+a poner encabezados donde no hay pantalla que encabezar.

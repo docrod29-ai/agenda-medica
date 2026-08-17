@@ -170,9 +170,20 @@ describe('lo que NO se respalda, y por qué', () => {
 
 describe('la ruta: servidor, streaming y paginada', () => {
   it('el armado ya NO vive en el navegador', () => {
+    /**
+     * La condición SIGUE al código: RTC-29 mudó el respaldo de la cabecera de
+     * `/pacientes` —donde era una operación (§11) disfrazada de acción
+     * clínica— a `/operaciones`, y de paso extrajo la conducta entera a
+     * `@/lib/clinica/descargar-respaldo`. Lo que esta prueba cuida no es EN QUÉ
+     * PANTALLA está el botón: es que nadie vuelva a armar el respaldo en el
+     * navegador leyendo notas paciente a paciente. Por eso mira el módulo donde
+     * la conducta vive hoy, y sigue vigilando que la pantalla no lo rehaga.
+     */
     const pacientes = leer('src', 'app', '(dashboard)', 'pacientes', 'page.tsx')
     expect(pacientes).not.toContain('const historial = await getNotas(clinicId, p.id)')
-    expect(pacientes).toContain('/api/clinic/exportar')
+    const lib = leer('src', 'lib', 'clinica', 'descargar-respaldo.ts')
+    expect(lib).toContain('/api/clinic/exportar')
+    expect(lib).not.toContain('getNotas(')
   })
 
   it('devuelve un flujo, no un JSON armado en memoria', () => {

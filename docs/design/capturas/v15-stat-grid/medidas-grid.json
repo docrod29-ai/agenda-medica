@@ -1,0 +1,92 @@
+[
+  {
+    "pantalla": "farmacia",
+    "viewport": "desktop-3col",
+    "ancho": 1440,
+    "columnas": 3
+  },
+  {
+    "pantalla": "finanzas",
+    "viewport": "desktop-3col",
+    "ancho": 1440,
+    "columnas": 3
+  },
+  {
+    "pantalla": "corte-caja",
+    "viewport": "desktop-3col",
+    "ancho": 1440,
+    "columnas": 3
+  },
+  {
+    "pantalla": "retencion",
+    "viewport": "desktop-3col",
+    "ancho": 1440,
+    "columnas": 3
+  },
+  {
+    "pantalla": "config-recetas",
+    "viewport": "desktop-3col",
+    "ancho": 1440,
+    "columnas": 3
+  },
+  {
+    "pantalla": "farmacia",
+    "viewport": "movil-2col",
+    "ancho": 500,
+    "columnas": 2
+  },
+  {
+    "pantalla": "finanzas",
+    "viewport": "movil-2col",
+    "ancho": 500,
+    "columnas": 2
+  },
+  {
+    "pantalla": "corte-caja",
+    "viewport": "movil-2col",
+    "ancho": 500,
+    "columnas": 2
+  },
+  {
+    "pantalla": "retencion",
+    "viewport": "movil-2col",
+    "ancho": 500,
+    "columnas": 2
+  },
+  {
+    "pantalla": "config-recetas",
+    "viewport": "movil-2col",
+    "ancho": 500,
+    "columnas": 2
+  },
+  {
+    "pantalla": "farmacia",
+    "viewport": "movil-1col",
+    "ancho": 360,
+    "columnas": 1
+  },
+  {
+    "pantalla": "finanzas",
+    "viewport": "movil-1col",
+    "ancho": 360,
+    "columnas": 1
+  },
+  {
+    "pantalla": "corte-caja",
+    "viewport": "movil-1col",
+    "ancho": 360,
+    "columnas": 1
+  },
+  {
+    "pantalla": "retencion",
+    "viewport": "movil-1col",
+    "ancho": 360,
+    "columnas": 1
+  },
+  {
+    "pantalla": "config-recetas",
+    "viewport": "movil-1col",
+    "ancho": 360,
+    "columnas": 1
+  }
+]

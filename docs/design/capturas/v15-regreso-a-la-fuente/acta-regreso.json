@@ -1,0 +1,128 @@
+{
+  "fecha": "2026-08-15T05:35:56.093Z",
+  "base": "http://localhost:3000",
+  "casos": [
+    {
+      "nombre": "[escritorio] hay sitio que perder antes de salir",
+      "pasa": true,
+      "detalle": "scrollTop=500"
+    },
+    {
+      "nombre": "[escritorio] el disparador tiene id estable",
+      "pasa": true,
+      "detalle": "porque-tarea-receta-luzmaria"
+    },
+    {
+      "nombre": "[escritorio] la URL lleva un testigo",
+      "pasa": true,
+      "detalle": "12a4e47f-33e…"
+    },
+    {
+      "nombre": "[escritorio] el testigo NO lleva PHI ni el sitio de la lista",
+      "pasa": true,
+      "detalle": "12a4e47f-33ec-492e-839b-"
+    },
+    {
+      "nombre": "[escritorio] se aterriza en la consulta del MISMO paciente",
+      "pasa": true,
+      "detalle": "Luz María Cervantes Ochoa"
+    },
+    {
+      "nombre": "[escritorio] la fuente OFRECE volver, con el nombre del origen",
+      "pasa": true,
+      "detalle": "Volver a Pendientes"
+    },
+    {
+      "nombre": "[escritorio] con OTRO paciente NO se ofrece volver",
+      "pasa": true,
+      "detalle": "controles=0"
+    },
+    {
+      "nombre": "[escritorio] y lo DICE en vez de callarse",
+      "pasa": true,
+      "detalle": "Ese hilo de vuelta es de otro paciente y no se usa."
+    },
+    {
+      "nombre": "[escritorio] vuelve a la MISMA ruta",
+      "pasa": true,
+      "detalle": "/pendientes → /pendientes"
+    },
+    {
+      "nombre": "[escritorio] vuelve al MISMO sitio de la lista",
+      "pasa": true,
+      "detalle": "982 → 982"
+    },
+    {
+      "nombre": "[escritorio] el foco vuelve al disparador EXACTO",
+      "pasa": true,
+      "detalle": "porque-tarea-receta-luzmaria → porque-tarea-receta-luzmaria"
+    },
+    {
+      "nombre": "[escritorio] el contrato es de un solo uso (no repone dos veces)",
+      "pasa": true,
+      "detalle": "scrollTop=0"
+    },
+    {
+      "nombre": "[movil] hay sitio que perder antes de salir",
+      "pasa": true,
+      "detalle": "scrollTop=500"
+    },
+    {
+      "nombre": "[movil] el disparador tiene id estable",
+      "pasa": true,
+      "detalle": "porque-tarea-receta-luzmaria"
+    },
+    {
+      "nombre": "[movil] la URL lleva un testigo",
+      "pasa": true,
+      "detalle": "50a0645a-918…"
+    },
+    {
+      "nombre": "[movil] el testigo NO lleva PHI ni el sitio de la lista",
+      "pasa": true,
+      "detalle": "50a0645a-9181-42cb-81a1-"
+    },
+    {
+      "nombre": "[movil] se aterriza en la consulta del MISMO paciente",
+      "pasa": true,
+      "detalle": "Luz María Cervantes Ochoa"
+    },
+    {
+      "nombre": "[movil] la fuente OFRECE volver, con el nombre del origen",
+      "pasa": true,
+      "detalle": "Volver a Pendientes"
+    },
+    {
+      "nombre": "[movil] con OTRO paciente NO se ofrece volver",
+      "pasa": true,
+      "detalle": "controles=0"
+    },
+    {
+      "nombre": "[movil] y lo DICE en vez de callarse",
+      "pasa": true,
+      "detalle": "Ese hilo de vuelta es de otro paciente y no se usa."
+    },
+    {
+      "nombre": "[movil] vuelve a la MISMA ruta",
+      "pasa": true,
+      "detalle": "/pendientes → /pendientes"
+    },
+    {
+      "nombre": "[movil] vuelve al MISMO sitio de la lista",
+      "pasa": true,
+      "detalle": "1682 → 1682"
+    },
+    {
+      "nombre": "[movil] el foco vuelve al disparador EXACTO",
+      "pasa": true,
+      "detalle": "porque-tarea-receta-luzmaria → porque-tarea-receta-luzmaria"
+    },
+    {
+      "nombre": "[movil] el contrato es de un solo uso (no repone dos veces)",
+      "pasa": true,
+      "detalle": "scrollTop=0"
+    }
+  ],
+  "erroresDeConsola": [],
+  "resumen": "24/24 PASS · 0 errores de consola"
+}

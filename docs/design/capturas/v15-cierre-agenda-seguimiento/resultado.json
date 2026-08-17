@@ -1,0 +1,109 @@
+{
+  "pasos": [
+    {
+      "nombre": "login"
+    },
+    {
+      "nombre": "cédula profesional configurada"
+    },
+    {
+      "nombre": "nota preparada: medicamentos + estudios + fecha de próxima consulta",
+      "fecha": "2026-09-08"
+    },
+    {
+      "nombre": "hoja del paciente — bloque «Su próxima cita»",
+      "visible": true,
+      "texto": "martes, 8 de septiembre de 2026",
+      "enPalabrasNoISO": true
+    },
+    {
+      "nombre": "firmada",
+      "urlTrasFirmar": "http://localhost:3000/consulta/pac-aurelio-dominguez?nota=Phbmpf5mTvzgUeSXHiho",
+      "llevaNota": true
+    },
+    {
+      "nombre": "checklist de cierre — «Agendar el seguimiento» presente",
+      "seguimientoEnChecklist": true
+    },
+    {
+      "nombre": "navegó a la agenda del día del control — el otro lado del enlace",
+      "urlCitas": "http://localhost:3000/citas?d=2026-09-08",
+      "llevaD": true,
+      "diaEnAgenda": "2026-09-08",
+      "agendaAterrizoEnElDia": true
+    },
+    {
+      "nombre": "tras volver — el paso «Agendar el seguimiento» marcado hecho",
+      "marcado": {
+        "opacidad": "0.55",
+        "texto": "Agendar el seguimiento"
+      },
+      "opacidadReducida": true
+    },
+    {
+      "nombre": "[móvil] nota preparada: medicamentos + estudios + fecha de próxima consulta",
+      "fecha": "2026-09-08"
+    },
+    {
+      "nombre": "[móvil] hoja del paciente — bloque «Su próxima cita»",
+      "visible": true,
+      "texto": "martes, 8 de septiembre de 2026",
+      "enPalabrasNoISO": true
+    },
+    {
+      "nombre": "móvil 390 — «Agendar el seguimiento» en el cierre",
+      "seguimientoMovilVisible": true
+    },
+    {
+      "nombre": "móvil 390 — aterriza en la agenda del día del control",
+      "urlCitasMovil": "http://localhost:3000/citas?d=2026-09-08",
+      "diaMovil": "2026-09-08",
+      "aterrizo": true
+    }
+  ],
+  "axe": {
+    "consulta": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": 1
+      },
+      {
+        "id": "heading-order",
+        "impact": "moderate",
+        "nodes": 1
+      },
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 4
+      }
+    ]
+  },
+  "consola": [
+    "[2026-08-11T23:53:21.653Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado nota_firmada 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado paciente_modificado 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[móvil] [2026-08-11T23:53:57.415Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "[móvil] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[móvil] [auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "[móvil] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[móvil] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[móvil] [auditoria] asiento RECHAZADO y descartado nota_firmada 401",
+    "[móvil] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[móvil] [auditoria] asiento RECHAZADO y descartado paciente_modificado 401"
+  ]
+}

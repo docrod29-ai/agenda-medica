@@ -1,0 +1,47 @@
+{
+  "axe": {
+    "desktop": [
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 2
+      }
+    ],
+    "mobile": [
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 3
+      }
+    ]
+  },
+  "consola": {
+    "desktop": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+    ],
+    "mobile": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+    ]
+  },
+  "antesDeVerCerrados": {
+    "botonDice": "Ver cerrados recientemente",
+    "radiografiaEnDOM": false
+  },
+  "despuesDeVerCerrados": {
+    "radiografiaEnDOM": true,
+    "textoCerrada": true,
+    "tarjetaTieneYaNoAplica": false,
+    "botonDiceOcultar": true
+  },
+  "despuesDeColapsar": {
+    "radiografiaEnDOM": false,
+    "botonDiceVer": true
+  }
+}

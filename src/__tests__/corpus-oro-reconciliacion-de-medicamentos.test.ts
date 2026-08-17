@@ -132,9 +132,22 @@ describe('corpus oro · reconciliación de medicamentos', () => {
     })
 
     it('la pantalla de pendientes sabe etiquetar el tipo nuevo', () => {
-      // Sin etiqueta, la tarea aparece como «Pendiente» y nadie sabe qué es.
-      expect(leer('src/app/(dashboard)/pendientes/page.tsx'))
+      /**
+       * Sin etiqueta, la tarea aparece como «Pendiente» y nadie sabe qué es.
+       *
+       * La condición SIGUE al dato: hasta RTC-15 la tabla de etiquetas estaba
+       * copiada dentro de esta pantalla (y dentro de `ContinuidadPanel`, y a
+       * punto de copiarse en `/pacientes`), así que bastaba buscar el literal
+       * aquí. Ahora vive UNA vez en el modelo. Se comprueban las dos mitades
+       * —que la etiqueta exista y que esta pantalla la reciba—, que es más de
+       * lo que comprobaba antes: un literal suelto en el archivo no
+       * demostraba que llegara a pintarse.
+       */
+      expect(leer('src/lib/tareas-clinicas/modelo.ts'))
         .toContain('reconciliacion_medicamento')
+      const page = leer('src/app/(dashboard)/pendientes/page.tsx')
+      expect(page).toMatch(/import \{[^}]*ETIQUETA_TIPO[^}]*\} from '@\/lib\/tareas-clinicas\/modelo'/)
+      expect(page).toContain('ETIQUETA_TIPO[t.tipo]')
     })
   })
 

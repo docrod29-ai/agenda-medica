@@ -50,7 +50,7 @@ export default function ErroresInbox() {
           <button key={k} onClick={() => setSoloNuevos(k === 'nuevos')}
             style={{ fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
               border: '1px solid ' + ((soloNuevos ? 'nuevos' : 'todos') === k ? 'var(--teal)' : 'var(--border)'),
-              background: (soloNuevos ? 'nuevos' : 'todos') === k ? 'rgba(20,184,166,0.1)' : 'var(--s2)', color: (soloNuevos ? 'nuevos' : 'todos') === k ? 'var(--teal)' : 'var(--text2)' }}>{l}</button>
+              background: (soloNuevos ? 'nuevos' : 'todos') === k ? 'color-mix(in srgb, var(--nexus) 10%, transparent)' : 'var(--s2)', color: (soloNuevos ? 'nuevos' : 'todos') === k ? 'var(--teal)' : 'var(--text2)' }}>{l}</button>
         ))}
         <button onClick={cargar} style={{ marginLeft: 'auto', fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)' }}>Refrescar</button>
       </div>

@@ -137,7 +137,10 @@ describe('REG-296 · dictar cuenta como actividad, y avisa antes de recargar', (
     // El nombre del evento vive UNA vez, en `lib/seguridad/estoy-grabando`
     // (REG-287): una cadena repetida en dos archivos es una compuerta que se
     // abre sola el día que alguien corrige una errata en uno de los dos.
-    expect(HOOK).toContain("import { EVENTO_GRABANDO, LATIDO_MS } from '@/lib/seguridad/estoy-grabando'")
+    /* Se comprueba de DÓNDE viene el nombre, no la lista exacta de importaciones:
+   fijar la línea entera se pone en rojo al añadir un símbolo al mismo módulo,
+   que es justo lo que pasó al nacer el marco de escucha. */
+    expect(HOOK).toMatch(/import \{[^}]*EVENTO_GRABANDO[^}]*LATIDO_MS[^}]*\} from '@\/lib\/seguridad\/estoy-grabando'/)
     expect(HOOK).toMatch(/new CustomEvent\(EVENTO_GRABANDO\)\), LATIDO_MS\)/)
   })
 
@@ -202,8 +205,15 @@ describe('REG-296 · dictar cuenta como actividad, y avisa antes de recargar', (
      *  pantalla vacía, y eso enseña a decir que sí sin leer. */
     // `pausado` también cuenta: una grabación en pausa sigue siendo audio sin
     // transcribir que se perdería sin aviso (REG-287 lo amplió).
-    const efecto = /if \(estado !== 'grabando' && estado !== 'pausado'\) return[\s\S]*?\n  \}, \[estado\]\)/.exec(HOOK)?.[0] ?? ''
+    /* Se recorta el efecto por su GUARDA, no por la forma exacta de escribirla:
+       la condición pasó a una variable `abierto` al nacer el marco de escucha,
+       y la conducta protegida —el aviso sólo vive con el micrófono abierto— no
+       cambió. Es la cuarta vez en el día que un guardián fija la línea en vez
+       de la conducta. */
+    const efecto = /const abierto = estado === 'grabando'[\s\S]*?\n  \}, \[estado\]\)/.exec(HOOK)?.[0] ?? ''
+    expect(efecto, 'no se encontró el efecto del aviso').not.toBe('')
     expect(efecto).toContain('beforeunload')
+    expect(efecto, 'el aviso viviría también con el micrófono cerrado').toContain('if (!abierto)')
   })
 })
 

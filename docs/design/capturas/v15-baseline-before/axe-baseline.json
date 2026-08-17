@@ -1,0 +1,78 @@
+{
+  "capturadoEl": "2026-08-11T07:31:12.576Z",
+  "base": "http://localhost:3000",
+  "resultados": [
+    {
+      "pantalla": "dashboard",
+      "ruta": "/dashboard",
+      "violaciones": []
+    },
+    {
+      "pantalla": "citas",
+      "ruta": "/citas",
+      "violaciones": []
+    },
+    {
+      "pantalla": "calendario",
+      "ruta": "/calendario",
+      "violaciones": [
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "help": "Buttons must have discernible text",
+          "nodos": 2,
+          "ejemplo": ".btn-ghost.btn-icon.btn:nth-child(4)"
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 2,
+          "ejemplo": "div[aria-label=\"Agendar a las 13:00\"][role=\"button\"]:nth-child(3) > div[role=\"button\"]"
+        },
+        {
+          "id": "nested-interactive",
+          "impact": "serious",
+          "help": "Interactive controls must not be nested",
+          "nodos": 6,
+          "ejemplo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(3)"
+        },
+        {
+          "id": "target-size",
+          "impact": "serious",
+          "help": "All touch targets must be 24px large, or leave sufficient space",
+          "nodos": 1,
+          "ejemplo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(3)"
+        }
+      ]
+    },
+    {
+      "pantalla": "pacientes",
+      "ruta": "/pacientes",
+      "violaciones": [
+        {
+          "id": "nested-interactive",
+          "impact": "serious",
+          "help": "Interactive controls must not be nested",
+          "nodos": 5,
+          "ejemplo": "div[role=\"button\"]:nth-child(2)"
+        }
+      ]
+    },
+    {
+      "pantalla": "expediente",
+      "ruta": "/expediente/pac-aurelio-dominguez",
+      "violaciones": []
+    },
+    {
+      "pantalla": "consulta",
+      "ruta": "/consulta/pac-aurelio-dominguez",
+      "violaciones": []
+    },
+    {
+      "pantalla": "pendientes",
+      "ruta": "/pendientes",
+      "violaciones": []
+    }
+  ]
+}

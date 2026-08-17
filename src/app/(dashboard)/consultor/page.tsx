@@ -6,6 +6,7 @@ import { getPatients } from '@/lib/firestore'
 import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound, AlertTriangle } from 'lucide-react'
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
+import { comportamientoScroll } from '@/lib/ui/movimiento'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string; doi?: string }
 interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean; sinCitas?: boolean }
@@ -48,7 +49,7 @@ export default function ConsultorPage() {
   const [pacienteNombre, setPacienteNombre] = useState('')
   const [pacienteCtx, setPacienteCtx] = useState('')
   const finRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [estado])
+  useEffect(() => { finRef.current?.scrollIntoView({ behavior: comportamientoScroll() }) }, [estado])
 
   // Al entrar, si la URL trae ?paciente=ID, carga sus datos como contexto.
   useEffect(() => {
@@ -121,7 +122,7 @@ export default function ConsultorPage() {
   return (
     <div style={{ maxWidth: 820, margin: '0 auto', padding: '20px 16px 120px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(20,184,166,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'color-mix(in srgb, var(--nexus) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <FlaskConical size={20} style={{ color: 'var(--teal)' }} />
         </div>
         <div>
@@ -163,7 +164,7 @@ export default function ConsultorPage() {
               <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text)', paddingTop: 3 }}>{t.pregunta}</div>
             </div>
             <div style={{ display: 'flex', gap: 9 }}>
-              <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: 'rgba(20,184,166,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: 'color-mix(in srgb, var(--nexus) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Sparkles size={14} style={{ color: 'var(--teal)' }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -235,7 +236,7 @@ export default function ConsultorPage() {
                           return (
                           <div key={a.pmid} style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 5, lineHeight: 1.45 }}>
                             <div>
-                              [{k + 1}] {a.tipo && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,0.12)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
+                              [{k + 1}] {a.tipo && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'color-mix(in srgb, var(--nexus) 12%, transparent)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
                               {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'color-mix(in srgb, var(--green) 12%, transparent)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
                             </div>
                             <div style={{ fontSize: 10.5, color: 'var(--text3)', opacity: 0.85, marginTop: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>

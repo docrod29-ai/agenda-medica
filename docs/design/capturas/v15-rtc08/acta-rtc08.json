@@ -1,0 +1,69 @@
+{
+  "rebanada": "V15-ORIGINALITY-REDTEAM-001 — RTC-08",
+  "base": "http://localhost:3000",
+  "condiciones": [
+    {
+      "nombre": "sin encuentro: el destino sigue siendo /pacientes (así se empieza uno)",
+      "estado": "PASS",
+      "detalle": "/pacientes"
+    },
+    {
+      "nombre": "sin encuentro: el nombre accesible DICE que no hay ninguno",
+      "estado": "PASS",
+      "detalle": "Encuentro — ninguno abierto; elige un paciente para empezar"
+    },
+    {
+      "nombre": "sin encuentro: no se pinta señal de estado",
+      "estado": "PASS",
+      "detalle": "0 puntos"
+    },
+    {
+      "nombre": "dentro del encuentro: el ítem está activo (aria-current)",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "dentro del encuentro: NO se pinta la señal (el activo ya lo dice)",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "escribir en la consulta crea el respaldo local (la marca del encuentro)",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "con encuentro abierto: el destino RETOMA esa consulta",
+      "estado": "PASS",
+      "detalle": "/consulta/pac-refugio-alcantara"
+    },
+    {
+      "nombre": "con encuentro abierto: el nombre accesible dice «retomar»",
+      "estado": "PASS",
+      "detalle": "Encuentro — retomar la consulta abierta"
+    },
+    {
+      "nombre": "con encuentro abierto: se pinta la señal de estado",
+      "estado": "PASS",
+      "detalle": "1 puntos"
+    },
+    {
+      "nombre": "al pulsar «Encuentro» se llega a la consulta (no a la lista)",
+      "estado": "PASS",
+      "detalle": "http://localhost:3000/consulta/pac-refugio-alcantara"
+    },
+    {
+      "nombre": "al llegar, el ítem iluminado es Encuentro — no Paciente",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "al llegar, «Paciente» NO está iluminado (era el defecto de RTC-08)",
+      "estado": "PASS",
+      "detalle": "null"
+    },
+    {
+      "nombre": "0 errores de consola",
+      "estado": "PASS",
+      "detalle": ""
+    }
+  ],
+  "erroresDeConsola": [],
+  "resultado": "PASS"
+}

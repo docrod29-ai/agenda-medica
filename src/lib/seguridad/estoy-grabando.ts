@@ -48,3 +48,40 @@ export const LATIDO_MS = 60_000
 export const POR_QUE_NO_BASTABA_GUARDAR_LA_NOTA =
   'Guardar la nota antes de cerrar salva el texto, pero la sesión se cerraba ' +
   'igual a mitad de un dictado de media hora. Era el consuelo, no el arreglo.'
+
+/**
+ * ── EL MISMO LATIDO, AHORA CON ESTADO ───────────────────────────────────────
+ *
+ * El latido servía para una cosa: «no me cierres la sesión». Para **pintar** que
+ * el micrófono está abierto hace falta saber además cuándo se abre y cuándo se
+ * cierra, y eso un pulso cada minuto no lo dice.
+ *
+ * Se añade `detail` al MISMO evento en vez de crear un segundo. Dos eventos para
+ * un solo hecho —«el micrófono está abierto»— es una fuente de verdad partida en
+ * dos, y este repositorio ya sabe cómo acaba eso: las dos se desincronizan y la
+ * pantalla dice una cosa mientras el grabador hace otra.
+ *
+ * `AutoLogout` no se entera del cambio: sólo le importa que el evento SUENE.
+ * Y suena también al detenerse, que es correcto — detener es actividad.
+ */
+export interface DetalleDeEscucha {
+  /** ¿El micrófono está abierto ahora mismo? Pausado cuenta como abierto. */
+  activo: boolean
+}
+
+/**
+ * Lo llama quien graba, en cada transición y en cada latido.
+ *
+ * Vive aquí y no en el grabador para que la próxima superficie que grabe —la
+ * UCI, una nota de hospital— no tenga que **acordarse** de la forma del evento.
+ */
+export function avisarEscucha(activo: boolean) {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent<DetalleDeEscucha>(EVENTO_GRABANDO, { detail: { activo } }))
+}
+
+export const POR_QUE_UN_SOLO_EVENTO =
+  'Dos eventos para un solo hecho («el micrófono está abierto») es una fuente ' +
+  'de verdad partida en dos: se desincronizan y la pantalla acaba diciendo lo ' +
+  'contrario de lo que hace el grabador.'

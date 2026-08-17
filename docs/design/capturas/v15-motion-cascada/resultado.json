@@ -1,0 +1,64 @@
+{
+  "fecha": "2026-08-13T02:39:20.728Z",
+  "base": "http://localhost:3000",
+  "tokens": {
+    "presion": "80ms",
+    "rapido": ".12s",
+    "normal": ".2s",
+    "lento": ".32s",
+    "nada": "0s",
+    "curva": "cubic-bezier(.16, 1, .3, 1)"
+  },
+  "verificados": {
+    "btn": {
+      "duracion": "0.12s, 0.12s, 0.12s, 0.12s",
+      "curva": "cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1)",
+      "papel": "rapido ×4 (fondo, color, borde, opacity — voz base recuperada)",
+      "okDur": true,
+      "okCurva": true
+    },
+    "navItem": {
+      "duracion": "0.12s, 0.12s",
+      "curva": "cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1)",
+      "papel": "rapido ×2 (fondo, color — voz base recuperada)",
+      "okDur": true,
+      "okCurva": true
+    },
+    "themeToggle": {
+      "duracion": "0.12s, 0.12s, 0.2s, 0.12s",
+      "curva": "cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1)",
+      "papel": "rapido/rapido/normal/rapido — shorthand completo, ya sin sombra",
+      "okDur": true,
+      "okCurva": true
+    },
+    "themeToggleSvg": {
+      "duracion": "0.32s",
+      "curva": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "papel": "lento",
+      "okDur": true,
+      "okCurva": true
+    },
+    "citaFila": {
+      "duracion": "0.12s",
+      "curva": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "papel": "rapido",
+      "okDur": true,
+      "okCurva": true
+    },
+    "input": {
+      "duracion": "0.12s, 0.12s, 0.12s",
+      "curva": "cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1)",
+      "medidoEn": "/login",
+      "papel": "rapido ×3 (borde, box-shadow, fondo — halo de foco recuperado)",
+      "okDur": true,
+      "okCurva": true
+    }
+  },
+  "bajoReduce": {
+    "btnTransitionDuration": "1e-05s",
+    "apagadorGana": true
+  },
+  "consolaErrores": [],
+  "veredicto": "PASA",
+  "fallos": []
+}

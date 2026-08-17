@@ -1,0 +1,158 @@
+{
+  "arnes": "verificar-rtc30-v15",
+  "cuando": "2026-08-15T01:43:36.650Z",
+  "resultado": "FAIL",
+  "condiciones": [
+    {
+      "ok": false,
+      "texto": "[escritorio] /farmacia dice cuántos ítems hay fuera",
+      "detalle": "Sin resultados con esos filtros"
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] el bloque es de LÍNEA, sin ilustración de página entera",
+      "detalle": "253px"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] NO se ofrece «Agregar» sobre lo que el filtro esconde",
+      "detalle": "sin controles"
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] el bloque trae control",
+      "detalle": ""
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] «Limpiar la búsqueda» devuelve el inventario",
+      "detalle": "0 ítems"
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] /reactivacion dice cuántos pacientes hay sin volver",
+      "detalle": "Nadie pendiente de reactivarNo hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!"
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] se dice la causa que NO se puede soltar (sin teléfono)",
+      "detalle": "Nadie pendiente de reactivarNo hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!"
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] se dice la baja de WhatsApp",
+      "detalle": "Nadie pendiente de reactivarNo hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!"
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] ya NO felicita con gente escondida dentro",
+      "detalle": null
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] el bloque es de LÍNEA",
+      "detalle": "300px"
+    },
+    {
+      "ok": false,
+      "texto": "[escritorio] «Ver +3 meses» devuelve pacientes de verdad",
+      "detalle": "0 filas"
+    },
+    {
+      "ok": false,
+      "texto": "[movil] /farmacia dice cuántos ítems hay fuera",
+      "detalle": "Sin resultados con esos filtros"
+    },
+    {
+      "ok": false,
+      "texto": "[movil] el bloque es de LÍNEA, sin ilustración de página entera",
+      "detalle": "253px"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] NO se ofrece «Agregar» sobre lo que el filtro esconde",
+      "detalle": "sin controles"
+    },
+    {
+      "ok": false,
+      "texto": "[movil] el bloque trae control",
+      "detalle": ""
+    },
+    {
+      "ok": false,
+      "texto": "[movil] «Limpiar la búsqueda» devuelve el inventario",
+      "detalle": "0 ítems"
+    },
+    {
+      "ok": false,
+      "texto": "[movil] /reactivacion dice cuántos pacientes hay sin volver",
+      "detalle": "Nadie pendiente de reactivarNo hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!"
+    },
+    {
+      "ok": false,
+      "texto": "[movil] se dice la causa que NO se puede soltar (sin teléfono)",
+      "detalle": "Nadie pendiente de reactivarNo hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!"
+    },
+    {
+      "ok": false,
+      "texto": "[movil] se dice la baja de WhatsApp",
+      "detalle": "Nadie pendiente de reactivarNo hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!"
+    },
+    {
+      "ok": false,
+      "texto": "[movil] ya NO felicita con gente escondida dentro",
+      "detalle": null
+    },
+    {
+      "ok": false,
+      "texto": "[movil] el bloque es de LÍNEA",
+      "detalle": "300px"
+    },
+    {
+      "ok": false,
+      "texto": "[movil] «Ver +3 meses» devuelve pacientes de verdad",
+      "detalle": "0 filas"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] los controles del vacío llegan a 44px",
+      "detalle": "todos ≥44"
+    },
+    {
+      "ok": true,
+      "texto": "cero errores de consola",
+      "detalle": "ninguno"
+    }
+  ],
+  "medidas": {
+    "farmacia_filtrado_escritorio": {
+      "linea": false,
+      "texto": "Sin resultados con esos filtros",
+      "alto": 253,
+      "ilustracion": true,
+      "controles": []
+    },
+    "reactivacion_umbral_alto_escritorio": {
+      "linea": false,
+      "texto": "Nadie pendiente de reactivarNo hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!",
+      "alto": 300,
+      "ilustracion": true,
+      "controles": []
+    },
+    "farmacia_filtrado_movil": {
+      "linea": false,
+      "texto": "Sin resultados con esos filtros",
+      "alto": 253,
+      "ilustracion": true,
+      "controles": []
+    },
+    "reactivacion_umbral_alto_movil": {
+      "linea": false,
+      "texto": "Nadie pendiente de reactivarNo hay pacientes con más de 365 días sin volver. ¡Buen seguimiento!",
+      "alto": 300,
+      "ilustracion": true,
+      "controles": []
+    }
+  },
+  "errores": []
+}

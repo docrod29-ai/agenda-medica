@@ -102,7 +102,7 @@ export default function CRMPage() {
   }
 
   return (
-    <div className="page-pad" style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <PageHeader
         title="CRM & Revenue"
         subtitle="Pipeline, conversión, retención y oportunidades."

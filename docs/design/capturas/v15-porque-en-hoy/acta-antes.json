@@ -1,0 +1,170 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "antes",
+  "viewports": {
+    "escritorio-1440": {
+      "alcance": {
+        "hoy": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 2,
+          "altoDeLaPagina": 859
+        },
+        "pacientes": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 1,
+          "altoDeLaPagina": 859
+        },
+        "expediente": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 1536
+        },
+        "pendientes": {
+          "reveladores": [
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?"
+          ],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 1841
+        },
+        "operaciones": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 1744
+        },
+        "consulta": {
+          "reveladores": [
+            "Procedencia de la nota4 del dictado · 4 de",
+            "¿De dónde salió esto?cada frase, junto a l"
+          ],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 2141
+        }
+      },
+      "hoy": {
+        "zonaExiste": true,
+        "filas": 5,
+        "filasConRevelador": 0,
+        "reveladoresEnLaZona": 0,
+        "filaEsEnlaceEntero": 5,
+        "tactiles": []
+      },
+      "costeIda": {
+        "desde": {
+          "url": "/dashboard",
+          "scrollTop": 0
+        },
+        "alLlegar": {
+          "url": "/pendientes",
+          "scrollTop": 0
+        },
+        "alVolver": {
+          "url": "/dashboard",
+          "scrollTop": 0
+        }
+      },
+      "comportamiento": [],
+      "traza": {
+        "href": null,
+        "cargó": null,
+        "url": null,
+        "errores": 0
+      }
+    },
+    "movil-390": {
+      "alcance": {
+        "hoy": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 2,
+          "altoDeLaPagina": 887
+        },
+        "pacientes": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 1,
+          "altoDeLaPagina": 1156
+        },
+        "expediente": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 2042
+        },
+        "pendientes": {
+          "reveladores": [
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?",
+            "¿Por qué está aquí?"
+          ],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 2584
+        },
+        "operaciones": {
+          "reveladores": [],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 1935
+        },
+        "consulta": {
+          "reveladores": [
+            "Procedencia de la nota4 del dictado · 4 de",
+            "¿De dónde salió esto?cada frase, junto a l"
+          ],
+          "huecoDeLente": true,
+          "anidados": 0,
+          "altoDeLaPagina": 2681
+        }
+      },
+      "hoy": {
+        "zonaExiste": true,
+        "filas": 5,
+        "filasConRevelador": 0,
+        "reveladoresEnLaZona": 0,
+        "filaEsEnlaceEntero": 5,
+        "tactiles": []
+      },
+      "costeIda": {
+        "desde": {
+          "url": "/dashboard",
+          "scrollTop": 171
+        },
+        "alLlegar": {
+          "url": "/pendientes",
+          "scrollTop": 0
+        },
+        "alVolver": {
+          "url": "/dashboard",
+          "scrollTop": 0
+        }
+      },
+      "comportamiento": [],
+      "traza": {
+        "href": null,
+        "cargó": null,
+        "url": null,
+        "errores": 0
+      }
+    }
+  },
+  "errores": [],
+  "resumen": {
+    "errores": 0
+  }
+}

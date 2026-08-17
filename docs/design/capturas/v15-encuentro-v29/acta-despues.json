@@ -1,0 +1,2289 @@
+{
+  "fase": "despues",
+  "base": "http://localhost:3000",
+  "fecha": "2026-08-15T15:46:47.290Z",
+  "viewports": {
+    "escritorio": {
+      "hoy": {
+        "esqueleto": [
+          {
+            "tag": "header",
+            "clase": "hoy-head nx-reveal",
+            "y": 4,
+            "alto": 40,
+            "encabezado": "sábado, 15 de agosto de 2026",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "prox-hero nx-reveal",
+            "y": 66,
+            "alto": 94,
+            "encabezado": "Próxima cita · en 1h 13min",
+            "controles": 1,
+            "primerControl": "Iniciar consulta"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 182,
+            "alto": 189,
+            "encabezado": "Siguiente acción",
+            "controles": 2,
+            "primerControl": "Confirmar cita de Ernesto Quiroga "
+          },
+          {
+            "tag": "section",
+            "clase": "hoy-bloque",
+            "y": 411,
+            "alto": 462,
+            "encabezado": "Agenda de hoy",
+            "controles": 14,
+            "primerControl": "Nueva cita"
+          },
+          {
+            "tag": "section",
+            "clase": "hoy-bloque",
+            "y": 895,
+            "alto": 455,
+            "encabezado": "Sigue abierto de antes",
+            "controles": 11,
+            "primerControl": "Ver todo"
+          }
+        ],
+        "instrumento": null,
+        "campos": 0,
+        "encabezados": [
+          "Buenas tardes, Elena",
+          "Siguiente acción",
+          "Agenda de hoy",
+          "Sigue abierto de antes"
+        ],
+        "altoTotal": 1374
+      },
+      "pacientes": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "page-header",
+            "y": 24,
+            "alto": 47,
+            "encabezado": "Pacientes",
+            "controles": 2,
+            "primerControl": "Agendar"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 91,
+            "alto": 40,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Buscar un paciente por nombre, tel"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 143,
+            "alto": 34,
+            "encabezado": null,
+            "controles": 3,
+            "primerControl": "Recientes (8)"
+          },
+          {
+            "tag": "div",
+            "clase": "t-overline",
+            "y": 189,
+            "alto": 38,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 227,
+            "alto": 94,
+            "encabezado": null,
+            "controles": 3,
+            "primerControl": "Luz María Cervantes Ochoa"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 321,
+            "alto": 64,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Joaquín Esparza Villarreal"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 385,
+            "alto": 94,
+            "encabezado": null,
+            "controles": 3,
+            "primerControl": "Catalina Ibarra Fuentes"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 478,
+            "alto": 94,
+            "encabezado": null,
+            "controles": 3,
+            "primerControl": "Aurelio Domínguez Peña"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 572,
+            "alto": 64,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "María del Refugio Alcántara Solís"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 636,
+            "alto": 64,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Leonor Bustamante Ríos"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 700,
+            "alto": 64,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Ernesto Villalpando Cruz"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 764,
+            "alto": 64,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Rosalinda Cázares Montiel"
+          }
+        ],
+        "instrumento": null,
+        "campos": 1,
+        "encabezados": [
+          "Pacientes"
+        ],
+        "altoTotal": 859
+      },
+      "consulta-sin-firmar": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 58,
+            "alto": 51,
+            "encabezado": "Aurelio Domínguez Peña",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 129,
+            "alto": 41,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 182,
+            "alto": 60,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 254,
+            "alto": 60,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 329,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Nota de Primera Vez·General"
+          },
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 387,
+            "alto": 228,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 635,
+            "alto": 83,
+            "encabezado": null,
+            "controles": 7,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 734,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Motivo de consulta"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 853,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Padecimiento actual"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 973,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Antecedentes relevantes"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1092,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Exploración física"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1212,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Plan de abordaje diagnóstico"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1331,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Plan de tratamiento"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1451,
+            "alto": 91,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Agregar diagnóstico"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1557,
+            "alto": 62,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Agregar medicamento"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1636,
+            "alto": 281,
+            "encabezado": null,
+            "controles": 5,
+            "primerControl": "Todo a la nota"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1931,
+            "alto": 240,
+            "encabezado": null,
+            "controles": 6,
+            "primerControl": "Buscar"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2189,
+            "alto": 123,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2327,
+            "alto": 193,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2537,
+            "alto": 125,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Cédula profesional"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2677,
+            "alto": 45,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2738,
+            "alto": 40,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2794,
+            "alto": 121,
+            "encabezado": null,
+            "controles": 4,
+            "primerControl": "Firmar y cerrar nota"
+          }
+        ],
+        "instrumento": {
+          "texto": "Grabar la consultaCapta a los dos y sepa",
+          "y": 387,
+          "ancho": 1052,
+          "alto": 228,
+          "total": 1
+        },
+        "campos": 17,
+        "encabezados": [
+          "Aurelio Domínguez Peña"
+        ],
+        "altoTotal": 2939
+      },
+      "consulta-borrador": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 58,
+            "alto": 51,
+            "encabezado": "Luz María Cervantes Ochoa",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 129,
+            "alto": 41,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 182,
+            "alto": 60,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 254,
+            "alto": 41,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 311,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Nota de Seguimiento·General"
+          },
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 369,
+            "alto": 228,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 616,
+            "alto": 30,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Extraer entidades clínicas"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 660,
+            "alto": 42,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Procedencia de la nota2 a mano"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 702,
+            "alto": 35,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Historial de versiones"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 751,
+            "alto": 83,
+            "encabezado": null,
+            "controles": 7,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 849,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Acude por el resultado del urocult"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 969,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Objetivo"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1088,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Análisis"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1208,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Plan"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1327,
+            "alto": 91,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Agregar diagnóstico"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1434,
+            "alto": 62,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Agregar medicamento"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1512,
+            "alto": 280,
+            "encabezado": null,
+            "controles": 7,
+            "primerControl": "Buscar"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1810,
+            "alto": 123,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1949,
+            "alto": 45,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2009,
+            "alto": 125,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Cédula profesional"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2150,
+            "alto": 45,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2211,
+            "alto": 40,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2267,
+            "alto": 121,
+            "encabezado": null,
+            "controles": 4,
+            "primerControl": "Firmar y cerrar nota"
+          }
+        ],
+        "instrumento": {
+          "texto": "Grabar la consultaCapta a los dos y sepa",
+          "y": 369,
+          "ancho": 1052,
+          "alto": 228,
+          "total": 1
+        },
+        "campos": 15,
+        "encabezados": [
+          "Luz María Cervantes Ochoa"
+        ],
+        "altoTotal": 2412
+      },
+      "consulta-firmada": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 58,
+            "alto": 51,
+            "encabezado": "Aurelio Domínguez Peña",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 129,
+            "alto": 41,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 182,
+            "alto": 60,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 254,
+            "alto": 60,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 329,
+            "alto": 46,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 393,
+            "alto": 38,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 393,
+            "alto": 38,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 450,
+            "alto": 42,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Procedencia de la nota4 del dictad"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 508,
+            "alto": 113,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Volver al expediente"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 637,
+            "alto": 47,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "¿De dónde salió esto?cada frase, j"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 684,
+            "alto": 83,
+            "encabezado": null,
+            "controles": 7,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 782,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Refiere apego irregular al tratami"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 902,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Consciente, orientado, hidratado. "
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1021,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Control metabólico subóptimo, prob"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1141,
+            "alto": 104,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Refuerzo de apego, perfil lipídico"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1260,
+            "alto": 111,
+            "encabezado": null,
+            "controles": 4,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1422,
+            "alto": 334,
+            "encabezado": null,
+            "controles": 6,
+            "primerControl": "Todo a la nota"
+          },
+          {
+            "tag": "details",
+            "clase": "",
+            "y": 1770,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 12,
+            "primerControl": "1Extrae datos clínicosIAconf. Medi"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1814,
+            "alto": 240,
+            "encabezado": null,
+            "controles": 6,
+            "primerControl": "Buscar"
+          }
+        ],
+        "instrumento": {
+          "texto": "Procedencia de la nota4 del dictado · 4 ",
+          "y": 451,
+          "ancho": 1050,
+          "alto": 40,
+          "total": 1
+        },
+        "campos": 16,
+        "encabezados": [
+          "Aurelio Domínguez Peña"
+        ],
+        "altoTotal": 2092
+      },
+      "expediente": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "nx-patient-anchor",
+            "y": 60,
+            "alto": 115,
+            "encabezado": "Aurelio Domínguez Peña",
+            "controles": 1,
+            "primerControl": "Nueva consulta"
+          },
+          {
+            "tag": "nav",
+            "clase": "nx-clinical-spine",
+            "y": 191,
+            "alto": 45,
+            "encabezado": null,
+            "controles": 4,
+            "primerControl": "Diagnósticos y medicamentos2 dx · "
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 252,
+            "alto": 86,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 354,
+            "alto": 86,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 456,
+            "alto": 224,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Resolverlos en Pendientes"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 732,
+            "alto": 34,
+            "encabezado": null,
+            "controles": 3,
+            "primerControl": "Todas"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 785,
+            "alto": 256,
+            "encabezado": "2 consultas· desde 1 jul 2026",
+            "controles": 2,
+            "primerControl": "Nota de SeguimientoFirmadaMejor ap"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1041,
+            "alto": 47,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Datos del pacientever / editar"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1104,
+            "alto": 200,
+            "encabezado": null,
+            "controles": 5,
+            "primerControl": "Buscar"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1337,
+            "alto": 175,
+            "encabezado": "Documentos y exportación",
+            "controles": 3,
+            "primerControl": "Carta de referencia"
+          }
+        ],
+        "instrumento": null,
+        "campos": 0,
+        "encabezados": [
+          "Aurelio Domínguez Peña",
+          "Documentos y exportación"
+        ],
+        "altoTotal": 1536
+      },
+      "operaciones": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "page-header",
+            "y": 24,
+            "alto": 66,
+            "encabezado": "Operaciones",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 110,
+            "alto": 260,
+            "encabezado": "Pide atención (2)",
+            "controles": 2,
+            "primerControl": "Citas"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 396,
+            "alto": 273,
+            "encabezado": "Agenda",
+            "controles": 4,
+            "primerControl": "Agendar rápidoDar cita en un par d"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 694,
+            "alto": 394,
+            "encabezado": "Negocio",
+            "controles": 6,
+            "primerControl": "CRMDe dónde llegan los pacientes y"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1115,
+            "alto": 212,
+            "encabezado": "Cumplimiento y documentos",
+            "controles": 3,
+            "primerControl": "CumplimientoNOM-004, avisos de pri"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1353,
+            "alto": 91,
+            "encabezado": "Comunicación",
+            "controles": 1,
+            "primerControl": "ChatMensajes con pacientes y con e"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1469,
+            "alto": 151,
+            "encabezado": "Sistema",
+            "controles": 2,
+            "primerControl": "Guía de usoCómo se hace cada cosa "
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1646,
+            "alto": 91,
+            "encabezado": "Respaldo",
+            "controles": 1,
+            "primerControl": "Descargar todo el consultorioPacie"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1763,
+            "alto": 91,
+            "encabezado": "Apariencia",
+            "controles": 1,
+            "primerControl": "Tema: oscuroClaro, oscuro o el del"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1879,
+            "alto": 91,
+            "encabezado": "Sesión",
+            "controles": 1,
+            "primerControl": "Cerrar sesiónCierra y limpia este "
+          }
+        ],
+        "instrumento": null,
+        "campos": 0,
+        "encabezados": [
+          "Operaciones",
+          "Pide atención (2)",
+          "Agenda",
+          "Negocio",
+          "Cumplimiento y documentos",
+          "Comunicación",
+          "Sistema",
+          "Respaldo",
+          "Apariencia",
+          "Sesión"
+        ],
+        "altoTotal": 2030
+      },
+      "pendientes": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "page-header",
+            "y": 24,
+            "alto": 47,
+            "encabezado": "Pendientes",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 91,
+            "alto": 30,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Ver sólo los míos"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 137,
+            "alto": 459,
+            "encabezado": "Requiere atención (2)",
+            "controles": 8,
+            "primerControl": "Aurelio Domínguez Peña"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 615,
+            "alto": 228,
+            "encabezado": "Necesita revisión (1)",
+            "controles": 4,
+            "primerControl": "Aurelio Domínguez Peña"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 863,
+            "alto": 228,
+            "encabezado": "Esperando resultado (1)",
+            "controles": 4,
+            "primerControl": "Catalina Ibarra Fuentes"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1111,
+            "alto": 197,
+            "encabezado": "Necesita agendar (1)",
+            "controles": 4,
+            "primerControl": "Catalina Ibarra Fuentes"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1328,
+            "alto": 197,
+            "encabezado": "Esperando al paciente (1)",
+            "controles": 4,
+            "primerControl": "Luz María Cervantes Ochoa"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1545,
+            "alto": 197,
+            "encabezado": "Otros pendientes (1)",
+            "controles": 4,
+            "primerControl": "Catalina Ibarra Fuentes"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1770,
+            "alto": 47,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Ver cerrados recientemente"
+          }
+        ],
+        "instrumento": null,
+        "campos": 0,
+        "encabezados": [
+          "Pendientes",
+          "Requiere atención (2)",
+          "Necesita revisión (1)",
+          "Esperando resultado (1)",
+          "Necesita agendar (1)",
+          "Esperando al paciente (1)",
+          "Otros pendientes (1)"
+        ],
+        "altoTotal": 1841
+      }
+    },
+    "movil": {
+      "hoy": {
+        "esqueleto": [
+          {
+            "tag": "header",
+            "clase": "hoy-head nx-reveal",
+            "y": 36,
+            "alto": 40,
+            "encabezado": "sábado, 15 de agosto de 2026",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "prox-hero nx-reveal",
+            "y": 94,
+            "alto": 154,
+            "encabezado": "Próxima cita · en 1h 13min",
+            "controles": 1,
+            "primerControl": "Iniciar consulta"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 266,
+            "alto": 189,
+            "encabezado": "Siguiente acción",
+            "controles": 2,
+            "primerControl": "Confirmar cita de Ernesto Quiroga "
+          },
+          {
+            "tag": "section",
+            "clase": "hoy-bloque",
+            "y": 491,
+            "alto": 1017,
+            "encabezado": "Agenda de hoy",
+            "controles": 14,
+            "primerControl": "Nueva cita"
+          },
+          {
+            "tag": "section",
+            "clase": "hoy-bloque",
+            "y": 1526,
+            "alto": 755,
+            "encabezado": "Sigue abierto de antes",
+            "controles": 11,
+            "primerControl": "Ver todo"
+          }
+        ],
+        "instrumento": null,
+        "campos": 0,
+        "encabezados": [
+          "Buenas tardes, Elena",
+          "Siguiente acción",
+          "Agenda de hoy",
+          "Sigue abierto de antes"
+        ],
+        "altoTotal": 2389
+      },
+      "pacientes": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "page-header",
+            "y": 32,
+            "alto": 126,
+            "encabezado": "Pacientes",
+            "controles": 2,
+            "primerControl": "Agendar"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 178,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Buscar un paciente por nombre, tel"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 234,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 3,
+            "primerControl": "Recientes (8)"
+          },
+          {
+            "tag": "div",
+            "clase": "t-overline",
+            "y": 291,
+            "alto": 38,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 329,
+            "alto": 212,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Luz María Cervantes Ochoa"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 541,
+            "alto": 119,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Joaquín Esparza Villarreal"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 659,
+            "alto": 212,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Catalina Ibarra Fuentes"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 871,
+            "alto": 212,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Aurelio Domínguez Peña"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 1083,
+            "alto": 119,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "María del Refugio Alcántara Solís"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 1202,
+            "alto": 119,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Leonor Bustamante Ríos"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 1320,
+            "alto": 119,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Ernesto Villalpando Cruz"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-fila-paciente",
+            "y": 1439,
+            "alto": 88,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Rosalinda Cázares Montiel"
+          }
+        ],
+        "instrumento": null,
+        "campos": 1,
+        "encabezados": [
+          "Pacientes"
+        ],
+        "altoTotal": 1630
+      },
+      "consulta-sin-firmar": {
+        "esqueleto": [
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 32,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 90,
+            "alto": 45,
+            "encabezado": "Aurelio Domínguez Peña",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 155,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 211,
+            "alto": 99,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 322,
+            "alto": 97,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 435,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Nota de Primera Vez·General"
+          },
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 493,
+            "alto": 228,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 740,
+            "alto": 226,
+            "encabezado": null,
+            "controles": 7,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 982,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Motivo de consulta"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1105,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Padecimiento actual"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1228,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Antecedentes relevantes"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1350,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Exploración física"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1473,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Plan de abordaje diagnóstico"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1596,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Plan de tratamiento"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1718,
+            "alto": 117,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Agregar diagnóstico"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1851,
+            "alto": 72,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Agregar medicamento"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1938,
+            "alto": 316,
+            "encabezado": null,
+            "controles": 5,
+            "primerControl": "Todo a la nota"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2268,
+            "alto": 289,
+            "encabezado": null,
+            "controles": 6,
+            "primerControl": "Buscar"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2575,
+            "alto": 161,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2752,
+            "alto": 193,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2962,
+            "alto": 146,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Cédula profesional"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 3124,
+            "alto": 45,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 3185,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 3245,
+            "alto": 175,
+            "encabezado": null,
+            "controles": 4,
+            "primerControl": "Firmar y cerrar nota"
+          }
+        ],
+        "instrumento": {
+          "texto": "Grabar la consultaCapta a los dos y sepa",
+          "y": 493,
+          "ancho": 358,
+          "alto": 228,
+          "total": 1
+        },
+        "campos": 17,
+        "encabezados": [
+          "Aurelio Domínguez Peña"
+        ],
+        "altoTotal": 3523
+      },
+      "consulta-borrador": {
+        "esqueleto": [
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 32,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 90,
+            "alto": 45,
+            "encabezado": "Luz María Cervantes Ochoa",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 155,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 211,
+            "alto": 78,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 301,
+            "alto": 60,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 376,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Nota de Seguimiento·General"
+          },
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 434,
+            "alto": 228,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 682,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Extraer entidades clínicas"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 740,
+            "alto": 46,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Procedencia de la nota2 a mano"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 786,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Historial de versiones"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 844,
+            "alto": 226,
+            "encabezado": null,
+            "controles": 7,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1086,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Acude por el resultado del urocult"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1209,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Objetivo"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1331,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Análisis"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1454,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Plan"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1577,
+            "alto": 117,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Agregar diagnóstico"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1709,
+            "alto": 72,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Agregar medicamento"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1797,
+            "alto": 334,
+            "encabezado": null,
+            "controles": 7,
+            "primerControl": "Buscar"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2149,
+            "alto": 161,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2326,
+            "alto": 45,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2386,
+            "alto": 146,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Cédula profesional"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2549,
+            "alto": 45,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2609,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2669,
+            "alto": 157,
+            "encabezado": null,
+            "controles": 4,
+            "primerControl": "Firmar y cerrar nota"
+          },
+          {
+            "tag": "div",
+            "clase": "nx-cierre-al-pulgar",
+            "y": 561,
+            "alto": 65,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Aún no se puede firmarNo se puede "
+          }
+        ],
+        "instrumento": {
+          "texto": "Grabar la consultaCapta a los dos y sepa",
+          "y": 434,
+          "ancho": 358,
+          "alto": 228,
+          "total": 1
+        },
+        "campos": 15,
+        "encabezados": [
+          "Luz María Cervantes Ochoa"
+        ],
+        "altoTotal": 3012
+      },
+      "consulta-firmada": {
+        "esqueleto": [
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 32,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 90,
+            "alto": 45,
+            "encabezado": "Aurelio Domínguez Peña",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 155,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 211,
+            "alto": 99,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 322,
+            "alto": 97,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 435,
+            "alto": 65,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 518,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 574,
+            "alto": 57,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 651,
+            "alto": 61,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Procedencia de la nota4 del dictad"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 728,
+            "alto": 113,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Volver al expediente"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 857,
+            "alto": 68,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "¿De dónde salió esto?cada frase, j"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 925,
+            "alto": 226,
+            "encabezado": null,
+            "controles": 7,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1167,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Refiere apego irregular al tratami"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1289,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Consciente, orientado, hidratado. "
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1412,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Control metabólico subóptimo, prob"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1535,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Refuerzo de apego, perfil lipídico"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1657,
+            "alto": 120,
+            "encabezado": null,
+            "controles": 4,
+            "primerControl": "INPUT"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1828,
+            "alto": 369,
+            "encabezado": null,
+            "controles": 6,
+            "primerControl": "Todo a la nota"
+          },
+          {
+            "tag": "details",
+            "clase": "",
+            "y": 2211,
+            "alto": 63,
+            "encabezado": null,
+            "controles": 12,
+            "primerControl": "1Extrae datos clínicosIAconf. Medi"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2274,
+            "alto": 289,
+            "encabezado": null,
+            "controles": 6,
+            "primerControl": "Buscar"
+          }
+        ],
+        "instrumento": {
+          "texto": "Procedencia de la nota4 del dictado · 4 ",
+          "y": 652,
+          "ancho": 356,
+          "alto": 59,
+          "total": 1
+        },
+        "campos": 16,
+        "encabezados": [
+          "Aurelio Domínguez Peña"
+        ],
+        "altoTotal": 2681
+      },
+      "expediente": {
+        "esqueleto": [
+          {
+            "tag": "button",
+            "clase": "",
+            "y": 32,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "nx-patient-anchor",
+            "y": 92,
+            "alto": 204,
+            "encabezado": "Aurelio Domínguez Peña",
+            "controles": 1,
+            "primerControl": "Nueva consulta"
+          },
+          {
+            "tag": "nav",
+            "clase": "nx-clinical-spine",
+            "y": 312,
+            "alto": 45,
+            "encabezado": null,
+            "controles": 4,
+            "primerControl": "Diagnósticos y medicamentos2 dx · "
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 373,
+            "alto": 129,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 518,
+            "alto": 107,
+            "encabezado": null,
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 641,
+            "alto": 249,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Resolverlos en Pendientes"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 941,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 3,
+            "primerControl": "Todas"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1005,
+            "alto": 294,
+            "encabezado": "2 consultas· desde 1 jul 2026",
+            "controles": 2,
+            "primerControl": "Nota de SeguimientoFirmadaMejor ap"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1299,
+            "alto": 47,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Datos del pacientever / editar"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 1362,
+            "alto": 244,
+            "encabezado": null,
+            "controles": 5,
+            "primerControl": "Buscar"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1638,
+            "alto": 299,
+            "encabezado": "Documentos y exportación",
+            "controles": 3,
+            "primerControl": "Carta de referencia"
+          }
+        ],
+        "instrumento": null,
+        "campos": 0,
+        "encabezados": [
+          "Aurelio Domínguez Peña",
+          "Documentos y exportación"
+        ],
+        "altoTotal": 2042
+      },
+      "operaciones": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "page-header",
+            "y": 32,
+            "alto": 105,
+            "encabezado": "Operaciones",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 157,
+            "alto": 296,
+            "encabezado": "Pide atención (2)",
+            "controles": 2,
+            "primerControl": "Citas"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 478,
+            "alto": 273,
+            "encabezado": "Agenda",
+            "controles": 4,
+            "primerControl": "Agendar rápidoDar cita en un par d"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 777,
+            "alto": 413,
+            "encabezado": "Negocio",
+            "controles": 6,
+            "primerControl": "CRMDe dónde llegan los pacientes y"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1216,
+            "alto": 212,
+            "encabezado": "Cumplimiento y documentos",
+            "controles": 3,
+            "primerControl": "CumplimientoNOM-004, avisos de pri"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1454,
+            "alto": 91,
+            "encabezado": "Comunicación",
+            "controles": 1,
+            "primerControl": "ChatMensajes con pacientes y con e"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1571,
+            "alto": 151,
+            "encabezado": "Sistema",
+            "controles": 2,
+            "primerControl": "Guía de usoCómo se hace cada cosa "
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1748,
+            "alto": 109,
+            "encabezado": "Respaldo",
+            "controles": 1,
+            "primerControl": "Descargar todo el consultorioPacie"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1883,
+            "alto": 91,
+            "encabezado": "Apariencia",
+            "controles": 1,
+            "primerControl": "Tema: oscuroClaro, oscuro o el del"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 2000,
+            "alto": 109,
+            "encabezado": "Sesión",
+            "controles": 1,
+            "primerControl": "Cerrar sesiónCierra y limpia este "
+          }
+        ],
+        "instrumento": null,
+        "campos": 0,
+        "encabezados": [
+          "Operaciones",
+          "Pide atención (2)",
+          "Agenda",
+          "Negocio",
+          "Cumplimiento y documentos",
+          "Comunicación",
+          "Sistema",
+          "Respaldo",
+          "Apariencia",
+          "Sesión"
+        ],
+        "altoTotal": 2257
+      },
+      "pendientes": {
+        "esqueleto": [
+          {
+            "tag": "div",
+            "clase": "page-header",
+            "y": 32,
+            "alto": 66,
+            "encabezado": "Pendientes",
+            "controles": 0,
+            "primerControl": null
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 118,
+            "alto": 44,
+            "encabezado": null,
+            "controles": 2,
+            "primerControl": "Ver sólo los míos"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 178,
+            "alto": 630,
+            "encabezado": "Requiere atención (2)",
+            "controles": 8,
+            "primerControl": "Aurelio Domínguez Peña"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 828,
+            "alto": 322,
+            "encabezado": "Necesita revisión (1)",
+            "controles": 4,
+            "primerControl": "Aurelio Domínguez Peña"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1169,
+            "alto": 314,
+            "encabezado": "Esperando resultado (1)",
+            "controles": 4,
+            "primerControl": "Catalina Ibarra Fuentes"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1503,
+            "alto": 263,
+            "encabezado": "Necesita agendar (1)",
+            "controles": 4,
+            "primerControl": "Catalina Ibarra Fuentes"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 1786,
+            "alto": 282,
+            "encabezado": "Esperando al paciente (1)",
+            "controles": 4,
+            "primerControl": "Luz María Cervantes Ochoa"
+          },
+          {
+            "tag": "section",
+            "clase": "",
+            "y": 2088,
+            "alto": 303,
+            "encabezado": "Otros pendientes (1)",
+            "controles": 4,
+            "primerControl": "Catalina Ibarra Fuentes"
+          },
+          {
+            "tag": "div",
+            "clase": "",
+            "y": 2419,
+            "alto": 61,
+            "encabezado": null,
+            "controles": 1,
+            "primerControl": "Ver cerrados recientemente"
+          }
+        ],
+        "instrumento": null,
+        "campos": 0,
+        "encabezados": [
+          "Pendientes",
+          "Requiere atención (2)",
+          "Necesita revisión (1)",
+          "Esperando resultado (1)",
+          "Necesita agendar (1)",
+          "Esperando al paciente (1)",
+          "Otros pendientes (1)"
+        ],
+        "altoTotal": 2584
+      }
+    }
+  },
+  "errores": []
+}

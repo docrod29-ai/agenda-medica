@@ -1,0 +1,103 @@
+{
+  "base": "http://localhost:3000",
+  "pasan": 19,
+  "total": 19,
+  "condiciones": [
+    {
+      "ok": true,
+      "texto": "[escritorio] el índice pinta destinos",
+      "detalle": "16"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] todos los destinos visibles dicen para qué sirven",
+      "detalle": "16/16 · p.ej. «Agendar rápido — Dar cita en un par de frases, sin abrir el calendario»"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] todos los grupos dicen su cadencia",
+      "detalle": "Agenda: Todos los días · Negocio: Cada semana o cada mes · Cumplimiento y documentos: De vez en cuando · Comunicación: Todos los días · Sistema: Se configura una vez · Respaldo: Cuando quieras llevártelo · Apariencia: Se elige una vez · Sesión: Al terminar el día"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] anatomía de lista: un contenedor con borde por grupo",
+      "detalle": "8 contenedores para 8 grupos"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] ningún destino se cayó del índice",
+      "detalle": "declarados 18 · visibles 16"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] objetivos táctiles ≥44px (§24)",
+      "detalle": "todos ≥44"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] el respaldo vive en /operaciones",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] y descarga de verdad, con el nombre de siempre",
+      "detalle": "respaldo_ausculta_2026-08-14.ndjson"
+    },
+    {
+      "ok": true,
+      "texto": "[escritorio] «Respaldo» salió de la cabecera de /pacientes",
+      "detalle": "0 botones"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] el índice pinta destinos",
+      "detalle": "16"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] todos los destinos visibles dicen para qué sirven",
+      "detalle": "16/16 · p.ej. «Agendar rápido — Dar cita en un par de frases, sin abrir el calendario»"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] todos los grupos dicen su cadencia",
+      "detalle": "Agenda: Todos los días · Negocio: Cada semana o cada mes · Cumplimiento y documentos: De vez en cuando · Comunicación: Todos los días · Sistema: Se configura una vez · Respaldo: Cuando quieras llevártelo · Apariencia: Se elige una vez · Sesión: Al terminar el día"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] anatomía de lista: un contenedor con borde por grupo",
+      "detalle": "8 contenedores para 8 grupos"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] ningún destino se cayó del índice",
+      "detalle": "declarados 18 · visibles 16"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] objetivos táctiles ≥44px (§24)",
+      "detalle": "todos ≥44"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] el respaldo vive en /operaciones",
+      "detalle": null
+    },
+    {
+      "ok": true,
+      "texto": "[movil] y descarga de verdad, con el nombre de siempre",
+      "detalle": "respaldo_ausculta_2026-08-14.ndjson"
+    },
+    {
+      "ok": true,
+      "texto": "[movil] «Respaldo» salió de la cabecera de /pacientes",
+      "detalle": "0 botones"
+    },
+    {
+      "ok": true,
+      "texto": "cero errores de consola",
+      "detalle": "ninguno"
+    }
+  ],
+  "errores": []
+}

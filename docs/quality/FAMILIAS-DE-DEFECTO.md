@@ -2,8 +2,12 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 9-ago-2026.
-**Fuente**: los 129 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 15-ago-2026.
+**Fuente**: los 166 REG de `docs/audit/regression-ledger.md`.
+
+> La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
+> acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
+> es lo que el guardián compara.
 
 ---
 
@@ -21,14 +25,14 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **32** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **Escrito, probado y sin conectar** | **39** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
 | El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
-| Estorba al médico | 6 | Correcto por dentro, insoportable por fuera |
+| Estorba al médico | 7 | Correcto por dentro, insoportable por fuera |
 | Pérdida de datos | 11 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
@@ -39,8 +43,31 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 156, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 39 de 170, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
+flujos haciendo el trabajo del médico en el teléfono: el respaldo local de la
+nota se escribía, se conservaba en disco y **no se ofrecía nunca** al reabrir
+una nota por `?nota=`, porque la única condición capaz de enseñarlo probaba que
+el formulario estuviera vacío — y al reabrir una nota nunca lo está. Escrito,
+probado, en disco, y sin llegar a nadie.
+
+Antes que él, **REG-316** (15-ago-2026) y lo trae desde un sitio
+donde nadie la había buscado: **una hoja de estilos**. Cuatro líneas de prosa
+fuera de un comentario dejaron muerta una regla de `globals.css` —la que aparta
+los botones flotantes mientras el médico escribe— sin que el fuente lo
+enseñara, sin que ninguna prueba se pusiera roja y con el aviso del propio
+`npm run build` diciéndolo en una salida que nadie lee. Escrito, probado por
+inspección visual, y **sin llegar al navegador**.
+
+Antes que él, **REG-315** enseña la variante más
+cara de la familia: no es que el módulo no corra en ningún sitio, es que **corre
+en el sitio equivocado del tiempo**. `buscarPosiblesDuplicados` se consultaba
+dentro del formulario de alta —cuando el médico ya decidió crear— y no en la
+búsqueda, que es el momento anterior en que se hace exactamente la misma
+pregunta. El módulo estaba conectado, probado y en producción; el minuto en que
+habría evitado un expediente partido pasaba sin llamarlo.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el
@@ -86,7 +113,26 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 28 de 156.**
+**«El sistema se contradice a sí mismo» — 32 de 162.**
+
+Sumó REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
+avisos que se contradecían sobre el mismo archivo** —«los borradores van
+marcados como preliminares» y «los borradores NO van»—, y el falso era el
+último en pintarse, o sea el que se leía. El médico creía que el archivo que
+mandaba a otra institución no llevaba nada sin firmar; sí lo llevaba. El
+guardián nuevo ata los dos lados: llama al exportador y exige que la pantalla
+no prometa una exclusión que no ocurre.
+
+Y antes REG-312: la ventana de clic ciego de la coreografía de continuidad —
+lo que se PINTA (instantánea vieja) y lo que RECIBE el clic (DOM nuevo)
+afirmaban cosas incompatibles durante el callback de la view transition, y
+ninguna pieza estaba mal por su cuenta. Riesgo de paciente equivocado desde
+una worklist; candado + tope 400ms + guardián probado al revés ×2.
+
+Sumó REG-311: la séptima copia local de la negación de alergias — el ancla
+nueva de V15 y la píldora de consulta afirmaban cosas incompatibles sobre el
+mismo campo, contra la regla sellada de REG-279. El fallo vivía en el HUECO
+entre la copia y el módulo que ya sabía la respuesta.
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el

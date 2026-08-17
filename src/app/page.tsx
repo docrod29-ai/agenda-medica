@@ -275,7 +275,7 @@ function Features() {
           <div key={f.title} style={{
             background: 'var(--s1)', border: '1px solid var(--border)',
             borderRadius: 16, padding: '28px 24px',
-            transition: 'border-color 0.2s',
+            transition: 'border-color var(--mov-rapido) var(--mov-curva)',
           }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(61,90,254,0.4)')}
             onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
@@ -555,7 +555,7 @@ function FAQ() {
               <ChevronDown
                 size={18}
                 color="var(--text3)"
-                style={{ flexShrink: 0, transition: 'transform 0.2s', transform: open === i ? 'rotate(180deg)' : 'none' }}
+                style={{ flexShrink: 0, transition: 'transform var(--mov-rapido) var(--mov-curva)', transform: open === i ? 'rotate(180deg)' : 'none' }}
               />
             </button>
             {open === i && (

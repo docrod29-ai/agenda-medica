@@ -1,0 +1,116 @@
+{
+  "pasos": [
+    {
+      "nombre": "login"
+    },
+    {
+      "nombre": "cédula profesional configurada"
+    },
+    {
+      "nombre": "consulta abierta (nota nueva, sin ?nota=)",
+      "url": "http://localhost:3000/consulta/pac-aurelio-dominguez"
+    },
+    {
+      "nombre": "nota preparada: medicamentos + estudios a la vez"
+    },
+    {
+      "nombre": "firmada — LA URL DEBE LLEVAR ?nota= INMEDIATAMENTE, sin navegar",
+      "urlTrasFirmar": "http://localhost:3000/consulta/pac-aurelio-dominguez?nota=Gdp8OdahhFtynBkRgZw1",
+      "notaIdEnUrl": "Gdp8OdahhFtynBkRgZw1"
+    },
+    {
+      "nombre": "navegó a /orden",
+      "urlOrden": "http://localhost:3000/orden/pac-aurelio-dominguez/Gdp8OdahhFtynBkRgZw1"
+    },
+    {
+      "nombre": "volvió con ATRÁS NATIVO del navegador (page.goBack, no el botón de la app)",
+      "urlTrasVolver": "http://localhost:3000/consulta/pac-aurelio-dominguez?nota=Gdp8OdahhFtynBkRgZw1",
+      "conservaNotaId": true,
+      "panelTrasVolver": true,
+      "firmadaBadgeTrasVolver": true
+    },
+    {
+      "nombre": "botón \"Atrás\" DE LA APP en /orden (useSmartBack) — hallazgo separado, no arreglado aquí",
+      "hayBotonAtras": true,
+      "urlTrasBotonApp": "http://localhost:3000/expediente/pac-aurelio-dominguez",
+      "fueAlFallbackFijoEnVezDeConsulta": true
+    },
+    {
+      "nombre": "checklist tras volver — «orden» debe estar marcado (opacidad reducida)",
+      "chequesTrasVolver": [
+        {
+          "texto": "Imprimir la recetaEl paciente se va sin sus medicamentos por",
+          "opacidad": "1"
+        },
+        {
+          "texto": "Imprimir la orden de estudios",
+          "opacidad": "0.55"
+        },
+        {
+          "texto": "Darle sus instruccionesSe lleva la receta, pero no cómo toma",
+          "opacidad": "1"
+        },
+        {
+          "texto": "Volver al expediente",
+          "opacidad": "1"
+        }
+      ]
+    },
+    {
+      "nombre": "estudiosOrden restaurado tras remontar la pantalla",
+      "estudiosBadgeAntes": null,
+      "estudiosBadgeTrasVolver": null,
+      "seRestauro": true
+    },
+    {
+      "nombre": "recarga dura (F5) sobre la URL con ?nota= — estudiosOrden debe sobrevivir",
+      "urlTrasRecargar": "http://localhost:3000/consulta/pac-aurelio-dominguez?nota=Gdp8OdahhFtynBkRgZw1",
+      "panelTrasRecargar": true,
+      "estudiosBadgeTrasRecargar": null
+    }
+  ],
+  "axe": {
+    "trasVolver": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": 1
+      },
+      {
+        "id": "heading-order",
+        "impact": "moderate",
+        "nodes": 1
+      },
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 4
+      }
+    ]
+  },
+  "consola": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado nota_firmada 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+}

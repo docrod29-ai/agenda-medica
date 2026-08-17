@@ -1,0 +1,115 @@
+{
+  "rebanada": "V15-ORIGINALITY-REDTEAM-001 — RTC-09 + RTC-11",
+  "base": "http://localhost:3000",
+  "viewports": [
+    "390x844",
+    "1440x900"
+  ],
+  "condiciones": [
+    {
+      "nombre": "RTC-11 · móvil: «Editar» NO está pintado en la fila",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-11 · móvil: el chevron decorativo NO está pintado",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-11 · móvil: la identidad ocupa ≤2 renglones",
+      "estado": "PASS",
+      "detalle": "1 renglones"
+    },
+    {
+      "nombre": "RTC-11 · móvil: la columna de la identidad mide ≥190px",
+      "estado": "PASS",
+      "detalle": "228px"
+    },
+    {
+      "nombre": "RTC-09 · movil: «Consultor de evidencia» está en el expediente",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-09 · movil: «Antibiograma» está en el expediente",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-09 · movil: el antibiograma se abre SIN navegar",
+      "estado": "PASS",
+      "detalle": "misma URL"
+    },
+    {
+      "nombre": "RTC-09 · movil: el formulario del antibiograma se pintó",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-11 · «Editar datos» navega a /pacientes?editar=<id>",
+      "estado": "PASS",
+      "detalle": "http://localhost:3000/pacientes?editar=pac-refugio-alcantara"
+    },
+    {
+      "nombre": "RTC-11 · la lista ABRE el editor de ese paciente (el viaje llega)",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-09 · movil: ningún grupo se titula «Clínico»",
+      "estado": "PASS",
+      "detalle": "AGENDA · NEGOCIO · CUMPLIMIENTO Y DOCUMENTOS · COMUNICACIÓN · SISTEMA · APARIENCIA · SESIÓN"
+    },
+    {
+      "nombre": "RTC-09 · movil: el índice admin no enlaza /consultor ni /antibiograma",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-09 · movil: el grupo Hospital/UCI aparece si y sólo si su módulo está permitido",
+      "estado": "PASS",
+      "detalle": "módulo opt-in no contratado: grupo ausente (correcto)"
+    },
+    {
+      "nombre": "RTC-11 · escritorio: «Editar» SIGUE pintado (no es amputación)",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-11 · escritorio: la identidad cabe en 1 renglón",
+      "estado": "PASS",
+      "detalle": "1 renglones"
+    },
+    {
+      "nombre": "RTC-09 · escritorio: «Consultor de evidencia» está en el expediente",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-09 · escritorio: «Antibiograma» está en el expediente",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-09 · escritorio: el antibiograma se abre SIN navegar",
+      "estado": "PASS",
+      "detalle": "misma URL"
+    },
+    {
+      "nombre": "RTC-09 · escritorio: el formulario del antibiograma se pintó",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-09 · escritorio: ningún grupo se titula «Clínico»",
+      "estado": "PASS",
+      "detalle": "AGENDA · NEGOCIO · CUMPLIMIENTO Y DOCUMENTOS · COMUNICACIÓN · SISTEMA · APARIENCIA · SESIÓN"
+    },
+    {
+      "nombre": "RTC-09 · escritorio: el índice admin no enlaza /consultor ni /antibiograma",
+      "estado": "PASS"
+    },
+    {
+      "nombre": "RTC-09 · escritorio: el grupo Hospital/UCI aparece si y sólo si su módulo está permitido",
+      "estado": "PASS",
+      "detalle": "módulo opt-in no contratado: grupo ausente (correcto)"
+    },
+    {
+      "nombre": "0 errores de consola en las tres pantallas",
+      "estado": "PASS",
+      "detalle": ""
+    }
+  ],
+  "erroresDeConsola": [],
+  "resultado": "PASS"
+}

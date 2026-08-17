@@ -100,7 +100,13 @@ describe('lo que NO hace, y es deliberado', () => {
      * Una lista vacía afirmaría que el paciente nunca estuvo ingresado. `null`
      * es «no se pudo leer», y entonces no se enseña nada.
      */
-    expect(comp).toMatch(/\.catch\(\(\) => \{ if \(vivo\) setLista\(null\) \}\)/)
+    /**
+     * V15-PATIENT-WORKSPACE-001 (Clinical Spine): el `.catch` ahora también
+     * reporta `null` hacia arriba por `onCargadoRef` (para que el riel sepa
+     * que la lectura falló, sin abrir una segunda consulta) — mismo
+     * comportamiento de "null ≠ vacío", forma de código distinta.
+     */
+    expect(comp).toMatch(/\.catch\(\(\) => \{ if \(vivo\) \{ setLista\(null\); onCargadoRef\.current\?\.\(null\) \} \}\)/)
     expect(comp).toMatch(/if \(!lista \|\| lista\.length === 0\) return null/)
     expect(POR_QUE_NULL_NO_ES_VACIO).toMatch(/nunca estuvo ingresado/)
   })

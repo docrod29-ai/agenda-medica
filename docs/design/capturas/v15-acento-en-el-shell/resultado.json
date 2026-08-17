@@ -1,0 +1,66 @@
+{
+  "oscuro": {
+    "temaActual": "dark",
+    "barraActiva": "rgb(42, 165, 181)",
+    "textoActivo": "Paciente",
+    "iconoActivo": "rgb(42, 165, 181)",
+    "chipSpine": {
+      "texto": "Pendientes2",
+      "fondo": "rgb(23, 120, 134)",
+      "color": "rgb(255, 255, 255)"
+    },
+    "indicadorGrabando": {
+      "texto": "0:00",
+      "color": "rgb(42, 165, 181)"
+    }
+  },
+  "axeOscuro": [],
+  "claro": {
+    "temaActual": "light",
+    "barraActiva": "rgb(18, 98, 110)",
+    "textoActivo": "Paciente",
+    "iconoActivo": "rgb(18, 98, 110)",
+    "chipSpine": {
+      "texto": "Pendientes2",
+      "fondo": "rgb(18, 98, 110)",
+      "color": "rgb(255, 255, 255)"
+    },
+    "indicadorGrabando": {
+      "texto": "0:01",
+      "color": "rgb(18, 98, 110)"
+    }
+  },
+  "axeClaro": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodos": 1,
+      "targets": [
+        ".nx-app-shell > div:nth-child(2) > div:nth-child(3) > span"
+      ]
+    }
+  ],
+  "alApagar": {
+    "temaActual": "dark",
+    "barraActiva": "rgb(42, 165, 181)",
+    "textoActivo": "Paciente",
+    "iconoActivo": "rgb(42, 165, 181)",
+    "chipSpine": {
+      "texto": "Pendientes2",
+      "fondo": "rgb(23, 120, 134)",
+      "color": "rgb(255, 255, 255)"
+    },
+    "indicadorGrabando": null
+  },
+  "movil": {
+    "bottomNavActivo": {
+      "texto": "Paciente",
+      "color": "rgb(42, 165, 181)"
+    },
+    "indicadorTopbar": {
+      "texto": "0:00",
+      "color": "rgb(42, 165, 181)"
+    }
+  }
+}

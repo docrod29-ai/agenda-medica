@@ -1,0 +1,149 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/pendientes": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 900
+    },
+    "escritorio/pacientes": {
+      "pildorasEnElPliegue": 3,
+      "filasDePildoras": 1,
+      "conDato": 2,
+      "soloEtiqueta": 1,
+      "rellenas": 1,
+      "alturaTotal": 102,
+      "textos": [
+        "Recientes (5)",
+        "Todos A-Z (6)",
+        "Con alerta"
+      ],
+      "viewport": 900
+    },
+    "escritorio/expediente": {
+      "pildorasEnElPliegue": 8,
+      "filasDePildoras": 3,
+      "conDato": 3,
+      "soloEtiqueta": 5,
+      "rellenas": 1,
+      "alturaTotal": 270,
+      "textos": [
+        "Consulta sin cerrar — contin",
+        "Diagnósticos y medicamentos1",
+        "Pendientes2",
+        "Encuentros2",
+        "Laboratorios y fotografía",
+        "Todas",
+        "Consulta",
+        "Hospital"
+      ],
+      "viewport": 900
+    },
+    "escritorio/consulta": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 900
+    },
+    "escritorio/hoy": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 900
+    },
+    "escritorio/operaciones": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 900
+    },
+    "movil/pendientes": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 844
+    },
+    "movil/pacientes": {
+      "pildorasEnElPliegue": 3,
+      "filasDePildoras": 1,
+      "conDato": 2,
+      "soloEtiqueta": 1,
+      "rellenas": 1,
+      "alturaTotal": 132,
+      "textos": [
+        "Recientes (5)",
+        "Todos A-Z (6)",
+        "Con alerta"
+      ],
+      "viewport": 844
+    },
+    "movil/expediente": {
+      "pildorasEnElPliegue": 5,
+      "filasDePildoras": 2,
+      "conDato": 3,
+      "soloEtiqueta": 2,
+      "rellenas": 0,
+      "alturaTotal": 220,
+      "textos": [
+        "Consulta sin cerrar — contin",
+        "Diagnósticos y medicamentos1",
+        "Pendientes2",
+        "Encuentros2",
+        "Laboratorios y fotografía"
+      ],
+      "viewport": 844
+    },
+    "movil/consulta": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 844
+    },
+    "movil/hoy": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 844
+    },
+    "movil/operaciones": {
+      "pildorasEnElPliegue": 0,
+      "filasDePildoras": 0,
+      "conDato": 0,
+      "soloEtiqueta": 0,
+      "rellenas": 0,
+      "alturaTotal": 0,
+      "textos": [],
+      "viewport": 844
+    }
+  },
+  "errores": []
+}

@@ -161,7 +161,13 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
           })}
         </div>
 
-        <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text3)', display: 'flex', gap: 14 }}>
+        {/* Pistas de teclado: en un teléfono no existen ⌘K ni flechas — el pie
+            entero es un desktop-ism (§25, hallazgo de la captura móvil de
+            V15-MOBILE-001) y se oculta por CSS bajo 768px. El display vive en
+            la HOJA, no inline: un display inline vencería al media query en
+            silencio (misma trampa que documenta nx-stat-grid-cableada — el
+            primer intento de esta rebanada cayó en ella y el arnés lo cazó). */}
+        <div className="nx-pista-teclado" style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text3)' }}>
           <span>↑↓ moverse</span><span>↵ abrir</span><span>⌘K abrir/cerrar</span>
         </div>
       </div>

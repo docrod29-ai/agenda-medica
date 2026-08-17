@@ -1,0 +1,18 @@
+{
+  "base": "http://localhost:3000",
+  "reposo": {
+    "existe": true,
+    "botonTransform": "none",
+    "color": "rgb(168, 172, 174)",
+    "svgTransform": "none",
+    "svgGirado": false
+  },
+  "hover": {
+    "existe": true,
+    "botonTransform": "matrix(1.05, 0, 0, 1.05, 0, 0)",
+    "color": "rgb(242, 239, 233)",
+    "svgTransform": "none",
+    "svgGirado": false
+  },
+  "errores": []
+}

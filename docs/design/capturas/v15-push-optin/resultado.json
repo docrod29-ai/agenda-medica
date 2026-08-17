@@ -1,0 +1,233 @@
+{
+  "avisoAbierto": {
+    "avisoEnDOM": true,
+    "avisoRect": {
+      "top": 623,
+      "bottom": 783,
+      "left": 8,
+      "right": 382,
+      "w": 374,
+      "h": 160
+    },
+    "navRect": {
+      "top": 791,
+      "bottom": 844,
+      "left": 0,
+      "right": 390,
+      "w": 390,
+      "h": 53
+    },
+    "navVisible": true,
+    "seIntersecan": false,
+    "zAviso": 44,
+    "zNav": 45,
+    "botones": [
+      {
+        "texto": "Activar",
+        "top": 724,
+        "bottom": 768,
+        "left": 71,
+        "right": 135,
+        "w": 64,
+        "h": 44
+      },
+      {
+        "texto": "Después",
+        "top": 724,
+        "bottom": 768,
+        "left": 141,
+        "right": 207,
+        "w": 66,
+        "h": 44
+      },
+      {
+        "texto": "Cerrar aviso de notificaciones",
+        "top": 628,
+        "bottom": 672,
+        "left": 333,
+        "right": 377,
+        "w": 44,
+        "h": 44
+      }
+    ],
+    "fabOpacity": "0",
+    "fabPointerEvents": "none",
+    "url": "/dashboard"
+  },
+  "axeMovil": [],
+  "tapNavConAvisoAbierto": {
+    "avisoEnDOM": false,
+    "avisoRect": null,
+    "navRect": {
+      "top": 791,
+      "bottom": 844,
+      "left": 0,
+      "right": 390,
+      "w": 390,
+      "h": 53
+    },
+    "navVisible": true,
+    "seIntersecan": false,
+    "zAviso": null,
+    "zNav": 45,
+    "botones": [],
+    "fabOpacity": "0",
+    "fabPointerEvents": "auto",
+    "url": "/pendientes"
+  },
+  "fueraDeHoy": {
+    "url": "http://localhost:3000/pendientes",
+    "avisoEnDOM": false
+  },
+  "deVueltaEnHoy": {
+    "avisoEnDOM": true,
+    "avisoRect": {
+      "top": 623,
+      "bottom": 783,
+      "left": 8,
+      "right": 382,
+      "w": 374,
+      "h": 160
+    },
+    "navRect": {
+      "top": 791,
+      "bottom": 844,
+      "left": 0,
+      "right": 390,
+      "w": 390,
+      "h": 53
+    },
+    "navVisible": true,
+    "seIntersecan": false,
+    "zAviso": 44,
+    "zNav": 45,
+    "botones": [
+      {
+        "texto": "Activar",
+        "top": 724,
+        "bottom": 768,
+        "left": 71,
+        "right": 135,
+        "w": 64,
+        "h": 44
+      },
+      {
+        "texto": "Después",
+        "top": 724,
+        "bottom": 768,
+        "left": 141,
+        "right": 207,
+        "w": 66,
+        "h": 44
+      },
+      {
+        "texto": "Cerrar aviso de notificaciones",
+        "top": 628,
+        "bottom": 672,
+        "left": 333,
+        "right": 377,
+        "w": 44,
+        "h": 44
+      }
+    ],
+    "fabOpacity": "1",
+    "fabPointerEvents": "none",
+    "url": "/dashboard"
+  },
+  "trasDescartar": {
+    "avisoEnDOM": false,
+    "avisoRect": null,
+    "navRect": {
+      "top": 791,
+      "bottom": 844,
+      "left": 0,
+      "right": 390,
+      "w": 390,
+      "h": 53
+    },
+    "navVisible": true,
+    "seIntersecan": false,
+    "zAviso": null,
+    "zNav": 45,
+    "botones": [],
+    "fabOpacity": "1",
+    "fabPointerEvents": "auto",
+    "url": "/dashboard"
+  },
+  "trasRecargar": {
+    "avisoEnDOM": false,
+    "avisoRect": null,
+    "navRect": {
+      "top": 791,
+      "bottom": 844,
+      "left": 0,
+      "right": 390,
+      "w": 390,
+      "h": 53
+    },
+    "navVisible": true,
+    "seIntersecan": false,
+    "zAviso": null,
+    "zNav": 45,
+    "botones": [],
+    "fabOpacity": "1",
+    "fabPointerEvents": "auto",
+    "url": "/dashboard"
+  },
+  "escritorio": {
+    "avisoEnDOM": true,
+    "avisoRect": {
+      "top": 738,
+      "bottom": 884,
+      "left": 1064,
+      "right": 1424,
+      "w": 360,
+      "h": 146
+    },
+    "navRect": {
+      "top": 0,
+      "bottom": 0,
+      "left": 0,
+      "right": 0,
+      "w": 0,
+      "h": 0
+    },
+    "navVisible": true,
+    "seIntersecan": false,
+    "zAviso": 44,
+    "zNav": 45,
+    "botones": [
+      {
+        "texto": "Activar",
+        "top": 839,
+        "bottom": 869,
+        "left": 1127,
+        "right": 1191,
+        "w": 64,
+        "h": 30
+      },
+      {
+        "texto": "Después",
+        "top": 839,
+        "bottom": 869,
+        "left": 1197,
+        "right": 1263,
+        "w": 66,
+        "h": 30
+      },
+      {
+        "texto": "Cerrar aviso de notificaciones",
+        "top": 753,
+        "bottom": 771,
+        "left": 1391,
+        "right": 1409,
+        "w": 18,
+        "h": 18
+      }
+    ],
+    "fabOpacity": "0",
+    "fabPointerEvents": "none",
+    "url": "/dashboard"
+  },
+  "erroresConsola": []
+}

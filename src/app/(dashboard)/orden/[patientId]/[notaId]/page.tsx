@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
+import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
 
 /** Sugerencias de estudios agrupadas por categoría (catálogo amplio por especialidad) */
 const SUGERENCIAS: Record<string, string[]> = {
@@ -536,7 +537,7 @@ export default function GeneradorOrdenPage() {
   if (!nota) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
-        <AlertCircle size={28} color="#f59e0b" style={{ marginBottom: 12 }} />
+        <AlertCircle size={28} style={{ color: 'var(--amber)', marginBottom: 12 }} />
         <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Nota no encontrada</h2>
         <button onClick={() => router.push('/pacientes')} className="btn btn-primary" style={{ marginTop: 16 }}>
           Volver a expedientes
@@ -550,13 +551,16 @@ export default function GeneradorOrdenPage() {
   const ordenVacia = estudios.filter(e => e.trim()).length === 0
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <AvisoConfigNoCargada error={configError} />
 
+      {/* Avisos del impreso: tokens de badge POR TEMA — los rgba crudos de antes
+          no cambiaban con el tema y este archivo es PAPEL para el trinquete de
+          color, así que ningún guardián los veía (el de esta rebanada sí). */}
       {sinCedula && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+          background: 'var(--badge-red-b)', border: '1px solid var(--badge-red-t)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
@@ -570,7 +574,7 @@ export default function GeneradorOrdenPage() {
       {sinFirmaResoluble && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+          background: 'var(--badge-amber-b)', border: '1px solid var(--badge-amber-t)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
@@ -582,14 +586,24 @@ export default function GeneradorOrdenPage() {
           </div>
         </div>
       )}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
+      {/* Barra superior — habla el sistema de botones (§16): UNA primaria
+          (Descargar PDF, el trabajo dominante), secundarias del sistema y
+          Atrás fantasma. Mismo idioma y mismo orden que /nota y /receta. */}
+      <div className="no-print orden-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+        <button onClick={volver} className="btn btn-ghost btn-sm">
           <ArrowLeft size={15} /> Atrás
         </button>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Orden Médica</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary">
-            <Settings size={14} /> Template
+        {/* V15-FINAL-COHERENCE-001 — misma reparación y mismo porqué que en
+            /receta: el `<h1>` nombra al paciente y «Orden médica» baja a
+            rótulo subordinado. El impreso no cambia (barra `no-print`). */}
+        <TituloDeDocumentoClinico nombreDelPaciente={patient?.nombre} clase="orden" />
+        <div className="actions-row" style={{ display: 'flex', gap: 8 }}>
+          {/* La primaria va PRIMERO, como en /nota y /receta: la familia
+              documental habla el mismo orden. onClick/disabled intactos. */}
+          <button onClick={() => { if (configError || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'pdf' } }).catch(() => {}); crearPendientesDeLaOrden(); descargarPDF() }} disabled={descargando || !!configError || ordenVacia} className="btn btn-primary">
+            {descargando
+              ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
+              : <><Download size={14} /> Descargar PDF</>}
           </button>
           <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); crearPendientesDeLaOrden(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
@@ -597,19 +611,21 @@ export default function GeneradorOrdenPage() {
           <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); crearPendientesDeLaOrden(); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={() => { if (configError || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'pdf' } }).catch(() => {}); crearPendientesDeLaOrden(); descargarPDF() }} disabled={descargando || !!configError || ordenVacia} className="btn btn-primary">
-            {descargando
-              ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
-              : <><Download size={14} /> Descargar PDF</>}
+          <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
+            <Settings size={14} /> Template
           </button>
         </div>
       </div>
 
       <div className="orden-gen-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 420px', gap: 24, alignItems: 'start' }}>
         <div className="no-print" style={{ display: 'grid', gap: 16 }}>
+          {/* Diagnóstico. Las etiquetas del editor se ASOCIAN (htmlFor/id): un
+              campo sin etiqueta asociada es falla de compuerta de la regla de
+              diseño — y éste es el editor de un documento medicolegal. */}
           <div>
-            <label style={labelStyle}>Diagnóstico de sospecha</label>
+            <label htmlFor="om-diagnostico" style={labelStyle}>Diagnóstico de sospecha</label>
             <input
+              id="om-diagnostico"
               value={diagnostico}
               onChange={(e) => setDiagnostico(e.target.value)}
               placeholder="Ej: Síndrome doloroso abdominal a estudiar"
@@ -619,7 +635,8 @@ export default function GeneradorOrdenPage() {
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label style={{ ...labelStyle, margin: 0 }}>Estudios solicitados ({estudios.length})</label>
+              {/* span, no <label>: no etiqueta un control — encabeza el grupo. */}
+              <span style={{ ...labelStyle, margin: 0 }}>Estudios solicitados ({estudios.length})</span>
               <button onClick={() => setMostrarCustom(v => !v)} className="btn btn-secondary btn-sm">
                 <Plus size={12} /> Personalizado
               </button>
@@ -634,25 +651,34 @@ export default function GeneradorOrdenPage() {
                   onChange={(e) => setCustomEstudio(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarCustom() } else if (e.key === 'Escape') { setCustomEstudio(''); setMostrarCustom(false) } }}
                   placeholder="Nombre del estudio personalizado…"
+                  aria-label="Nombre del estudio personalizado"
                   style={{ ...inputStyle, flex: 1 }}
                 />
-                <button onClick={agregarCustom} disabled={!customEstudio.trim()} className="btn btn-primary btn-sm" style={{ opacity: customEstudio.trim() ? 1 : 0.5 }}>
+                {/* Secundaria, no primaria: la única voz primaria de la pantalla
+                    es Descargar PDF (§16 — una primaria por capa). */}
+                <button onClick={agregarCustom} disabled={!customEstudio.trim()} className="btn btn-secondary btn-sm" style={{ opacity: customEstudio.trim() ? 1 : 0.5 }}>
                   Agregar
                 </button>
               </div>
             )}
 
-            {/* Estudios seleccionados (chips) */}
+            {/* Estudios seleccionados (chips). El teal COMO TEXTO falla
+                contraste sobre su propio tinte (lección del TrialBanner y del
+                chip del directorio): el texto va en var(--text) y el estado lo
+                lleva el tinte/borde del chip (no-textual, 3:1). */}
             {estudios.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {estudios.map((e, i) => (
                   <span key={i} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    background: 'rgba(20,184,166,0.15)', color: 'var(--teal)',
+                    background: 'color-mix(in srgb, var(--teal) 14%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--teal) 40%, transparent)',
+                    color: 'var(--text)',
                     padding: '6px 10px', borderRadius: 'var(--r-pill)', fontSize: 12.5, fontWeight: 600,
                   }}>
                     {e}
-                    <button onClick={() => setEstudios(estudios.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', padding: 0 }}>
+                    {/* aria-label: icono solo no basta — y la fila se repite N veces. */}
+                    <button onClick={() => setEstudios(estudios.filter((_, idx) => idx !== i))} aria-label={`Quitar ${e}`} style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 0, display: 'inline-flex' }}>
                       <Trash2 size={11} />
                     </button>
                   </span>
@@ -667,10 +693,11 @@ export default function GeneradorOrdenPage() {
                 <div key={cat} style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 6 }}>
                   <button
                     onClick={() => setCategoriaAbierta(abierta ? null : cat)}
+                    aria-expanded={abierta}
                     style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                   >
                     {cat}
-                    <ChevronDown size={14} style={{ transform: abierta ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .15s' }} />
+                    <ChevronDown size={14} style={{ transform: abierta ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform var(--mov-rapido) var(--mov-curva)' }} />
                   </button>
                   {abierta && (
                     <div style={{ padding: '0 14px 12px', display: 'grid', gap: 4 }}>
@@ -680,22 +707,31 @@ export default function GeneradorOrdenPage() {
                           <button
                             key={item}
                             onClick={() => toggleEstudio(item)}
+                            aria-pressed={seleccionado}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 8,
                               padding: '6px 8px', borderRadius: 6,
-                              background: seleccionado ? 'rgba(20,184,166,0.1)' : 'transparent',
-                              border: seleccionado ? '1px solid rgba(20,184,166,0.4)' : '1px solid transparent',
-                              color: seleccionado ? 'var(--teal)' : 'var(--text2)',
+                              background: seleccionado ? 'color-mix(in srgb, var(--teal) 10%, transparent)' : 'transparent',
+                              border: seleccionado ? '1px solid color-mix(in srgb, var(--teal) 40%, transparent)' : '1px solid transparent',
+                              // El teal COMO TEXTO falla contraste en claro: lo
+                              // seleccionado habla var(--text) + peso, y el estado
+                              // lo lleva la casilla (no-textual).
+                              color: seleccionado ? 'var(--text)' : 'var(--text2)',
+                              fontWeight: seleccionado ? 600 : 400,
                               fontSize: 12.5, cursor: 'pointer', textAlign: 'left',
                             }}
                           >
+                            {/* Casilla marcada: --nexus-solido + blanco, el par ya
+                                medido (5.16:1) — el #000 sobre var(--teal) daba
+                                2.99:1 en claro (mismo defecto que el chip del
+                                directorio de /pacientes). */}
                             <span style={{
                               width: 14, height: 14, borderRadius: 3,
-                              border: `1.5px solid ${seleccionado ? 'var(--teal)' : 'var(--border)'}`,
+                              border: `1.5px solid ${seleccionado ? 'var(--nexus-solido)' : 'var(--border)'}`,
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              background: seleccionado ? 'var(--teal)' : 'transparent', flexShrink: 0,
+                              background: seleccionado ? 'var(--nexus-solido)' : 'transparent', flexShrink: 0,
                             }}>
-                              {seleccionado && <Check size={11} color="#000" strokeWidth={3} />}
+                              {seleccionado && <Check size={11} color="#fff" strokeWidth={3} />}
                             </span>
                             {item}
                           </button>
@@ -709,8 +745,9 @@ export default function GeneradorOrdenPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Indicaciones para el estudio</label>
+            <label htmlFor="om-indicaciones" style={labelStyle}>Indicaciones para el estudio</label>
             <textarea
+              id="om-indicaciones"
               value={indicaciones}
               onChange={(e) => setIndicaciones(e.target.value)}
               placeholder="Ej: Ayuno de 8 hrs para glucosa. Sin medio de contraste por antecedente de alergia."
@@ -735,7 +772,7 @@ export default function GeneradorOrdenPage() {
             const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)   // misma config que el documento
             return (
               <>
-                <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
+                <div className="nx-meta" style={{ textAlign: 'center', marginBottom: 8 }}>
                   Vista previa · {PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
                   {numPages > 1 && <strong> · {numPages} hojas</strong>}
                   {estudios.length > 6 && ' · checklist 2 columnas'}
@@ -776,6 +813,16 @@ export default function GeneradorOrdenPage() {
           .orden-gen-grid {
             grid-template-columns: 1fr !important;
           }
+        }
+        @media (max-width: 480px) {
+          .orden-toolbar { flex-wrap: wrap; gap: 10px; }
+          .orden-toolbar > button { min-height: 44px; }
+          .orden-toolbar .actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+          .orden-toolbar .actions-row > button { width: 100%; min-height: 44px; justify-content: center; }
+          /* El primario (Descargar PDF) ocupa la fila completa; si la última acción
+             queda impar, también — sin celdas huérfanas. Mismas reglas que /nota. */
+          .orden-toolbar .actions-row > button:first-child { grid-column: 1 / -1; }
+          .orden-toolbar .actions-row > button:last-child:nth-child(even) { grid-column: 1 / -1; }
         }
       `}</style>
     </div>

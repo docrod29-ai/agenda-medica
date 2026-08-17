@@ -1,0 +1,29 @@
+{
+  "fecha": "2026-08-15T15:45:20.410Z",
+  "base": "http://localhost:3000",
+  "viewports": {
+    "escritorio": {
+      "hoy": [],
+      "pacientes": [
+        {
+          "regla": "target-size",
+          "impacto": "serious",
+          "nodos": 3,
+          "ayuda": "All touch targets must be 24px large, or leave sufficient space"
+        }
+      ],
+      "expediente": [],
+      "consulta-sin-firmar": [],
+      "operaciones": [],
+      "pendientes": []
+    },
+    "movil": {
+      "hoy": [],
+      "pacientes": [],
+      "expediente": [],
+      "consulta-sin-firmar": [],
+      "operaciones": [],
+      "pendientes": []
+    }
+  }
+}

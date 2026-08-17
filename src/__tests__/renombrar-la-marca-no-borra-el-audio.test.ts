@@ -104,7 +104,9 @@ describe('y NO cambió donde la máquina la busca', () => {
   })
 
   it('la preferencia de tema no se pierde', () => {
-    expect(leer('src/components/ThemeToggle.tsx')).toContain("'nexusmed.theme'")
+    // La llave vive en el hook compartido desde RTC-05 (antes en ThemeToggle);
+    // lo vigilado es el NOMBRE de la llave, no su casa.
+    expect(leer('src/hooks/useTema.ts')).toContain("'nexusmed.theme'")
     expect(leer('src/app/layout.tsx')).toContain("'nexusmed.theme'")
   })
 

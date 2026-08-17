@@ -1,0 +1,18 @@
+{
+  "fecha": "2026-08-13",
+  "nota": "ANTES de la 3ª rebanada de V15-PERF-001 — INMUTABLE. Reconstruido de la consola de la primera corrida de atribuir-js-consulta-v15.mjs (la corrida DESPUÉS sobrescribió atribucion-consulta.json, que es el archivo vivo). Los seis paneles condicionales aún viajaban estáticos en los chunks de la ruta.",
+  "expedienteKB": 1690,
+  "consultaKB": 2332,
+  "excedenteKB": 746,
+  "chunksSoloConsulta": [
+    { "url": "2m7-2fsg_lc8p.js", "kb": 324 },
+    { "url": "1r4yx01q1v5mu.js", "kb": 173 },
+    { "url": "0_ga5u0a3xgou.js", "kb": 139 },
+    { "url": "2_t1qwo6ei059.js", "kb": 56 },
+    { "url": "12coehgejfx7e.js", "kb": 32 },
+    { "url": "0biiyk0czbnrb.js", "kb": 19 },
+    { "url": "0vpvqtwji2jji.js", "kb": 3 }
+  ],
+  "transferSizeConsultaKB": 734,
+  "transferSizeHermanasKB": "484-527"
+}

@@ -1,58 +1,45 @@
 'use client'
 /**
- * HOY — la pantalla de inicio del médico.  V10 · HOME-001.
+ * HOY — la pantalla de inicio del médico.  V10 · HOME-001 → V15 · TODAY-001.
  *
- * ── LO QUE ERA, Y POR QUÉ NO PODÍA QUEDARSE ─────────────────────────────────
+ * ── LO QUE ERA EN V10, PARA NO REPETIRLO ────────────────────────────────────
  *
- * Era un tablero de KPIs: cuatro tarjetas en fila, cada una con su circulito de
- * icono y su color propio (verde, naranja, rojo, azul), sobre una rejilla
- * `1fr 300px` sin una sola consulta de medios.
+ * Un tablero de KPIs (cuatro tarjetas con circulito de icono sobre una rejilla
+ * `1fr 300px` fija) que no se apilaba en teléfono, repetía «Citas hoy» dos
+ * veces y duplicaba la barra lateral con «Accesos rápidos». El detalle de esa
+ * medición vive en `src/__tests__/la-pantalla-de-hoy-no-es-un-tablero.test.ts`,
+ * que sigue vigente: esta pantalla NO vuelve a ser eso.
  *
- * Tres cosas medidas, no opinadas:
+ * ── EL MODELO DE ZONAS DE V15 (§6 del master loop) ──────────────────────────
  *
- * 1. **En un teléfono no se apilaba.** `1fr 300px` es fijo: a 390 px de ancho
- *    la columna derecha se salía de la pantalla y quedaba cortada, y el título
- *    «Agenda de hoy» se partía en tres renglones con «Ver todas» metido dentro.
- *    Eso es escritorio encogido, que es exactamente lo que la constitución V10
- *    prohíbe en su regla 39.
+ * `docs/ai/NEXUSMED_MASTER_LOOP_V15_STRUCTURAL_UIUX_REARCHITECTURE.md` pide
+ * que Hoy sea un lienzo operativo, no un dashboard, con cinco zonas. Por orden
+ * de urgencia real —lo que hace falta a las nueve de la mañana antes que lo
+ * que puede esperar a media tarde—, quedan así en esta pantalla:
  *
- * 2. **El mismo número salía dos veces**: «Citas hoy» en el encabezado y otra
- *    vez en la primera tarjeta. Encabezado duplicado, del detector §9.
+ *   1. **NOW** (`ProxHero`) — quién sigue: la próxima/actual cita, con su
+ *      botón de iniciar consulta.
+ *   2. **NEEDS ATTENTION** (`PanelPendientes`) — cobros, membresías y citas
+ *      por confirmar de HOY. Fuente: `src/lib/workflow.ts`.
+ *   3. **TODAY** (sección «Agenda de hoy») — el horario del día, de arriba
+ *      abajo, con el recuento en una línea de texto.
+ *   4. **CONTINUITY** (`ContinuidadPanel`) — lo que cruzó de una consulta
+ *      anterior y sigue sin cerrarse: resultado por revisar, seguimiento,
+ *      reconciliación de medicamento. Fuente: `tareasVivas()` de
+ *      `src/lib/tareas-clinicas/firestore.ts` — la MISMA que usa `/pendientes`,
+ *      no una copia. Nuevo en V15-TODAY-001.
  *
- * 3. **«Accesos rápidos» repetía la barra lateral**: calendario, lista de
- *    espera, pacientes y configuración ya están, los cuatro, a un clic en el
- *    menú de la izquierda. Navegación duplicada, del detector §9.
- *
- * ── LO QUE ES AHORA ─────────────────────────────────────────────────────────
- *
- * §14 del charter dice, con estas palabras, que **no se construya un tablero de
- * KPIs genérico para médicos**, y que la pantalla de inicio conteste:
- *
- *     ¿qué pasa hoy? · ¿quién sigue? · ¿qué necesita atención? ·
- *     ¿qué puedo continuar? · ¿qué preparó Ausculta?
- *
- * El orden de la pantalla es ahora ese, por urgencia:
- *
- *   1. **Quién sigue** — la próxima cita, arriba del todo, con su botón de
- *      iniciar consulta.  Es lo único que el médico necesita a las 9:00.
- *   2. **Qué necesita atención** — la cola de pendientes que ya existía.
- *   3. **Qué pasa hoy** — la agenda, a todo el ancho, y el recuento del día
- *      convertido en **una línea de texto** dentro de su encabezado.
- *
- * Las cuatro tarjetas se van.  El recuento sigue estando —no se pierde dato—
- * pero ocupa un renglón en vez de una banda de 130 px, y sólo lleva color lo
- * que **pide una acción hoy**: las citas por confirmar.  Los que no asistieron
- * son un hecho del pasado, y van en gris.
- *
- * ── LO QUE ESTA PANTALLA TODAVÍA NO CONTESTA ────────────────────────────────
- *
- * De las cinco preguntas de §14 quedan dos sin fuente de datos: «qué puedo
- * continuar» (notas en borrador sin firmar) y «qué preparó Ausculta».  No hay
- * hook que las lea.  Quedan declaradas en `agent-state/V10_BACKLOG.json` en vez
- * de rellenarse con algo que parezca la respuesta sin serlo.
+ * **PREPARED BY NEXUS queda deliberadamente sin construir esta corrida.** No
+ * existe todavía un hook que lea «contexto preparado para el próximo
+ * paciente» — ni en `src/lib` ni en `src/hooks`. Inventar uno para llenar la
+ * quinta zona sería fabricar una fuente de verdad nueva fuera de la fase que
+ * le corresponde (V15-PATIENT-WORKSPACE-001, Fase 4, es dueña de qué significa
+ * «paciente actual»). Se declara aquí, no se rellena con un placeholder — el
+ * mismo criterio que ya usó `InstrumentStrip` para «paciente actual».
  */
 import { useMemo, useEffect } from 'react'
 import { PanelPendientes } from '@/components/PanelPendientes'
+import { ContinuidadPanel } from '@/components/ContinuidadPanel'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
@@ -61,7 +48,7 @@ import { useMode } from '@/context/ModeContext'
 import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
-import { Button, EmptyState, Spinner } from '@/components/ui'
+import { Button, ButtonLink, EmptyState, Spinner } from '@/components/ui'
 import { avatarColor } from '@/lib/avatar-color'
 import { Appointment, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { Plus, ChevronRight, CalendarDays, Mic } from 'lucide-react'
@@ -70,6 +57,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { resumenDelDia, type ConteoDelDia } from '@/lib/hoy/resumen-del-dia'
 import { nombreSaludo } from '@/lib/hoy/saludo'
+import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 
 function todayStr() {
   return hoyISO()  // zona MX, no UTC
@@ -139,21 +127,30 @@ export default function DashboardPage() {
   const saludo = nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)
 
   return (
-    <div className="hoy">
-      {/* Encabezado — fecha, saludo y la ÚNICA acción primaria de la pantalla.
-          El recuento de citas ya no vive aquí: vivía aquí y otra vez en la
+    <div className="nx-canvas hoy">
+      {/* Encabezado — fecha y saludo como KICKER, y SIN ninguna acción.
+
+          RTC-06 ya había bajado «Nueva cita» de primaria a secundaria. No
+          bastaba, y la medición de anatomía §29 dijo por qué: seguía siendo
+          **la primera acción consecuente de la pantalla, a 8px**. O sea que lo
+          primero que Hoy ofrecía hacer era crear una cita — administración —
+          por delante de todo el trabajo clínico vivo. Bajarla de peso no
+          cambia el orden; sólo cambiarla de sitio lo cambia.
+
+          Ahora vive en el bloque de la AGENDA, que es de lo que habla: sigue a
+          un gesto, y ya no compite con el paciente que sigue. La primera
+          acción consecuente de Hoy es clínica.
+
+          El recuento de citas tampoco vive aquí: vivía aquí y otra vez en la
           primera tarjeta, y el mismo número dos veces no es jerarquía. */}
       <header className="hoy-head nx-reveal">
         <div>
           <p className="t-overline" style={{ color: 'var(--text3)', textTransform: 'uppercase' }}>{fechaLabel}</p>
-          <h1 className="nx-display hoy-saludo">
+          <h1 className="hoy-saludo">
             {greet()}
             {saludo && <>, <span style={{ fontStyle: 'italic' }}>{saludo}</span></>}
           </h1>
         </div>
-        <Link href="/asistente" className="hoy-accion">
-          <Button icon={<Plus size={16} />}>Nueva cita</Button>
-        </Link>
       </header>
 
       {/* 1 · ¿QUIÉN SIGUE? — lo primero que hace falta a las nueve de la mañana. */}
@@ -164,7 +161,7 @@ export default function DashboardPage() {
 
       {/* 3 · ¿QUÉ PASA HOY? — la agenda, a todo el ancho.
           Una sola columna: no hay nada que se pueda salir de la pantalla. */}
-      <section className="card" style={{ padding: 0 }}>
+      <section className="hoy-bloque">
         <div className="hoy-bloque-head">
           <div style={{ minWidth: 0 }}>
             <h2 className="hoy-bloque-titulo">Agenda de hoy</h2>
@@ -172,9 +169,16 @@ export default function DashboardPage() {
               <ResumenDelDia {...stats} />
             )}
           </div>
-          <Link href="/citas" className="hoy-vertodas">
-            Ver todas <ChevronRight size={14} />
-          </Link>
+          <div className="hoy-bloque-acciones">
+            {/* Agendar es trabajo de la AGENDA, y por eso vive en su bloque y
+                no en la cabecera clínica de la pantalla. Sigue a un gesto. */}
+            <ButtonLink href="/asistente" variant="ghost" size="sm" icon={<Plus size={14} />}>
+              Nueva cita
+            </ButtonLink>
+            <Link href="/citas" className="hoy-vertodas">
+              Ver todas <ChevronRight size={14} />
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -182,6 +186,10 @@ export default function DashboardPage() {
         ) : errorCitas ? (
           /* «Tu agenda de hoy está libre» con la red caída es la frase más
              peligrosa de esta pantalla: el médico la lee y se va. */
+          /* El error SÍ conserva su peso: «tu agenda está libre» con la red
+             caída es la frase más peligrosa de esta pantalla, y distinguir
+             «no hay» de «no se pudo leer» es la regla 4 de seguridad clínica.
+             Lo que se aligera es el vacío de verdad, no el fallo. */
           <EmptyState
             icon={<CalendarDays size={22} />}
             title="No se pudo cargar la agenda"
@@ -190,12 +198,10 @@ export default function DashboardPage() {
           />
         ) : todayAppts.length === 0 ? (
           <EmptyState
-            icon={<CalendarDays size={22} />}
-            title="Sin citas hoy"
-            description={stats.manana > 0
-              ? `Tu agenda de hoy está libre. Mañana tienes ${stats.manana}.`
-              : 'Tu agenda de hoy está libre.'}
-            action={<Link href="/asistente"><Button variant="secondary" size="sm" icon={<Plus size={14} />}>Agendar cita</Button></Link>}
+            variante="linea"
+            title="Hoy no hay citas."
+            description={stats.manana > 0 ? `Mañana tienes ${stats.manana}.` : 'La agenda está libre.'}
+            action={<ButtonLink href="/asistente" variant="ghost" size="sm" icon={<Plus size={14} />}>Agendar cita</ButtonLink>}
           />
         ) : (
           <div>
@@ -205,6 +211,11 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* 4 · CONTINUIDAD — lo que cruzó de una consulta anterior. Se pinta
+          sola y desaparece sola cuando no hay nada abierto: no es un bloque
+          fijo con un estado vacío que ocupe espacio a diario. */}
+      <ContinuidadPanel />
     </div>
   )
 }
@@ -248,8 +259,12 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
       {/* Área principal: abre la cita */}
       <Link href={`/citas?id=${appt.id}`} className="cita-principal">
         <div style={{ width: 44, textAlign: 'center', flexShrink: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{hora}</div>
-          <div style={{ fontSize: 10, color: 'var(--text3)' }}>{appt.duracion}min</div>
+          {/* VISUAL_DNA §2: la hora habla el rol del riel (.riel-hora, 14/600
+              tabular) — el 700 inline de antes pesaba MÁS que el nombre del
+              paciente de al lado (14/500), invirtiendo R3: la identidad es el
+              elemento dominante de su entrada, no la hora. */}
+          <span className="riel-hora">{hora}</span>
+          <span className="riel-dur">{appt.duracion}min</span>
         </div>
         <div style={{
           width: 36, height: 36, borderRadius: '50%',
@@ -260,10 +275,14 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
           {appt.pacienteNombre.charAt(0).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {/* R3 (VISUAL_DNA §2): la identidad encabeza la entrada como
+              .nx-ident y ENVUELVE — el ellipsis de antes truncaba justo el
+              nombre del paciente (§24), la misma familia que ya murió en las
+              filas de /pacientes y en el Patient Anchor. */}
+          <span className="nx-ident" style={{ display: 'block' }}>
             {appt.pacienteNombre}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+          </span>
+          <div className="nx-meta" style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
             <TipoCitaIcon tipo={appt.tipo} size={12} /> {typeCfg?.label}
             {appt.motivo ? ` · ${appt.motivo}` : ''}
           </div>
@@ -277,8 +296,18 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
         {puedeIniciar && (
           <button
             title="Iniciar consulta con este paciente"
-            onClick={() => router.push(`/consulta/${appt.pacienteId}`)}
-            className="btn btn-primary btn-sm"
+            onClick={(e) => {
+              /* §20: el nombre del paciente de ESTA fila es el objeto que la
+                 view transition lleva hasta el encabezado de la consulta —
+                 el mismo objeto ganando detalle, no dos pantallas sueltas. */
+              const origen = e.currentTarget.closest('.cita-fila')?.querySelector<HTMLElement>('.nx-ident') ?? null
+              navegarConContinuidad(() => router.push(`/consulta/${appt.pacienteId}`), origen)
+            }}
+            /* RTC-06: secundario a propósito — la acción existe en CADA fila
+               (misma conducta), pero el único relleno primario de la pantalla
+               es el CTA del héroe: la cita INMINENTE. Siete rellenos idénticos
+               era la jerarquía diciendo que nada importa más que nada. */
+            className="btn btn-secondary btn-sm"
             style={{ flexShrink: 0, gap: 6 }}
           >
             <Mic size={14} /> Consulta
@@ -290,6 +319,7 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
 }
 
 function ProxHero({ appt }: { appt: Appointment }) {
+  const router = useRouter()
   const hora = appt.fechaHora.slice(11, 16)
   const typeCfg = APPOINTMENT_TYPE_CONFIG[appt.tipo]
   const [h, m] = hora.split(':').map(Number)
@@ -302,18 +332,40 @@ function ProxHero({ appt }: { appt: Appointment }) {
       <div className="prox-hero-avatar">{appt.pacienteNombre.charAt(0).toUpperCase()}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="t-overline" style={{ color: 'var(--nexus)' }}>Próxima cita · {cuando}</div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {/* R3 (VISUAL_DNA §2): la identidad del héroe NOW es .nx-ident y
+            ENVUELVE — el ellipsis truncaba el nombre del paciente (§24). La
+            dominancia del héroe la dan su posición, el avatar y el CTA (§16:
+            posición antes que contenedor), no un tamaño inventado. */}
+        <span className="nx-ident" style={{ display: 'block', marginTop: 3 }}>
           {appt.pacienteNombre}
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span className="t-num" style={{ fontWeight: 600, color: 'var(--text)' }}>{hora}</span>
-          <span style={{ color: 'var(--text3)' }}>·</span>
+        </span>
+        <div className="nx-meta" style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span className="riel-hora" style={{ display: 'inline' }}>{hora}</span>
+          <span>·</span>
           <TipoCitaIcon tipo={appt.tipo} size={13} /> {typeCfg?.label}
-          {appt.lugar ? <span style={{ color: 'var(--text3)' }}>· {appt.lugar}</span> : null}
+          {appt.lugar ? <span>· {appt.lugar}</span> : null}
         </div>
       </div>
-      <Link href={`/consulta/${appt.pacienteId}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
-        <button className="prox-hero-cta"><Mic size={16} /> Iniciar consulta</button>
+      {/* La acción PRIMARIA de Hoy. Era un <button> dentro de este <a>: dos
+          paradas de teclado para un destino (medido en 1440 y en 390) y HTML
+          inválido — `<a>` prohíbe contenido interactivo dentro. Ahora el
+          enlace ES el control, y parece un botón porque lo dice la hoja
+          (`.prox-hero-cta`, que se llevó también el `text-decoration` y el
+          `flex-shrink` que vivían aquí en línea). §24. */}
+      <Link
+        href={`/consulta/${appt.pacienteId}`}
+        className="prox-hero-cta"
+        onClick={(e) => {
+          /* §20: sólo el click simple se coreografía; Ctrl/Cmd/central siguen
+             abriendo pestaña como cualquier enlace. El objeto compartido es el
+             nombre del héroe (.nx-ident), que viaja al <h1> de la consulta. */
+          if (!esClickDeNavegacionSimple(e)) return
+          e.preventDefault()
+          const origen = e.currentTarget.closest('.prox-hero')?.querySelector<HTMLElement>('.nx-ident') ?? null
+          navegarConContinuidad(() => router.push(`/consulta/${appt.pacienteId}`), origen)
+        }}
+      >
+        <Mic size={16} /> Iniciar consulta
       </Link>
     </div>
   )

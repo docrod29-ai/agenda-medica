@@ -279,7 +279,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <FlaskConical size={22} color="var(--teal)" />
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Antibiograma inteligente — PROA</h1>
-        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,.12)', border: '1px solid rgba(20,184,166,.3)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{version.replace('ausculta-', '')}</span>}
+        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'color-mix(in srgb, var(--nexus) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{version.replace('ausculta-', '')}</span>}
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
         Captura organismo, sitio y panel S/I/R (con CMI si la tienes). El motor infiere fenotipos,
@@ -445,7 +445,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
         ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, padding: '10px 14px', borderRadius: 10, background: 'rgba(20,184,166,.08)', border: '1px solid rgba(20,184,166,.25)', color: 'var(--teal)', fontSize: 12.5, fontWeight: 600 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--nexus) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 25%, transparent)', color: 'var(--teal)', fontSize: 12.5, fontWeight: 600 }}>
         <FlaskConical size={15} />
         {organismo.trim()
           ? 'Interpretación en vivo — se actualiza sola al cambiar organismo, S/I/R, CMI o pruebas.'
@@ -454,12 +454,14 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
 
       {res && <Resultado res={res} />}
 
-      {/* Razonamiento con IA sobre el motor (infectólogo IA — Claude + GPT) */}
+      {/* Razonamiento del modelo SOBRE el motor determinista; la atribución
+          de qué modelo razonó vive en el panel de resultados, no en el botón
+          (§25: la acción es un verbo, la procedencia va con el contenido). */}
       {res && (res.fenotipos.length > 0 || res.categoriasCMI.length > 0 || organismo.trim()) && (
         <div style={{ marginTop: 18 }}>
           <button type="button" onClick={razonarIA} disabled={razonando}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
-            {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
+            {razonando ? <><Loader2 size={16} className="spin" /> Interpretando el cultivo…</> : <><Brain size={16} /> Interpretar el cultivo</>}
           </button>
           {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>{errorRaz}</div>}
           {razonamiento && (

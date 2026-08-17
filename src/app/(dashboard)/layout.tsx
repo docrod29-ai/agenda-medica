@@ -10,6 +10,8 @@ import { limpiarZonaConsultorio, fijarZonaConsultorio } from '@/lib/timezone'
 import { getConfig } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
+import { FlowRail } from '@/components/FlowRail'
+import { InstrumentStrip } from '@/components/InstrumentStrip'
 import { ToastProvider } from '@/context/ToastContext'
 import { AvisoModuloBloqueado, EVENTO_MODULO_BLOQUEADO } from '@/components/AvisoModuloBloqueado'
 import { AvisoCorreoSinVerificar } from '@/components/AvisoCorreoSinVerificar'
@@ -17,7 +19,7 @@ import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
 import { BorradorProvider } from '@/context/BorradorContext'
 import { TareasProvider } from '@/context/TareasContext'
-import { Menu, Loader2, AlertTriangle, Headset } from 'lucide-react'
+import { Menu, Search, Loader2, AlertTriangle, Headset } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { AvisoIncidenteIA } from '@/components/AvisoIncidenteIA'
@@ -26,7 +28,7 @@ import FirmadorDisenos from '@/components/FirmadorDisenos'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileBackButton } from '@/components/MobileBackButton'
-import { BotonAyuda } from '@/components/BotonAyuda'
+import { BotonAyuda, DisparadorAyuda } from '@/components/BotonAyuda'
 import { RastreoErrores } from '@/components/RastreoErrores'
 import { OnboardingTour } from '@/components/OnboardingTour'
 import { AutoLogout } from '@/components/AutoLogout'
@@ -36,12 +38,17 @@ import { rutaPermitida, moduloDeRuta } from '@/lib/modulos'
 import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { CORREO_SOPORTE } from '@/lib/contacto'
+import { MarcoEscuchando } from '@/components/MarcoEscuchando'
+import { RestauradorDeRegreso } from '@/components/lente/VolverALaFuente'
+import { useGrabando } from '@/hooks/useGrabando'
 
 function ModeBanner() {
   const { mode } = useMode()
   if (mode !== 'secretaria') return null
   return (
-    <div style={{
+    /* `role="status"` — sin él este listón vivía fuera de todo landmark y axe lo
+       marcaba `region` en el shell de la asistente (V15-A11Y-001, 1ª rebanada). */
+    <div role="status" style={{
       background: 'rgba(59,130,246,0.1)', borderBottom: '1px solid rgba(59,130,246,0.25)',
       color: 'var(--blue)', fontSize: 12, fontWeight: 600, textAlign: 'center',
       padding: '5px 12px',
@@ -131,7 +138,11 @@ function TrialBanner() {
   )
   if (paywall.vencida) {
     return (
-      <div style={{
+      /* `role="status"` — el mismo landmark vivo que ya hablan AvisoCobroPendiente
+         y AvisoCorreoSinVerificar. Sin él, axe marcaba `region` (contenido fuera
+         de todo landmark) en TODAS las superficies del dashboard: el hallazgo
+         más repetido de la rama V15 (V15-A11Y-001, 1ª rebanada). */
+      <div role="status" style={{
         background: 'color-mix(in srgb, var(--amber) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--amber) 25%, transparent)',
         padding: '11px 20px',
       }}>
@@ -146,8 +157,10 @@ function TrialBanner() {
               documentos. Lo que se detuvo es escribir cosas nuevas y usar la IA. Se reactiva en
               cuanto actives tu plan: <strong>no se pierde nada</strong>.
             </div>
-            <Link href="/configuracion?tab=suscripcion" style={{
-              display: 'inline-block', marginTop: 8, background: '#f59e0b', color: '#000',
+            {/* .nx-cta-aviso: en puntero grueso el área de golpe crece a 44px
+                sin engordar la píldora visible (§24, V15-A11Y-001 6ª rebanada). */}
+            <Link href="/configuracion?tab=suscripcion" className="nx-cta-aviso" style={{
+              display: 'inline-block', marginTop: 8, background: 'var(--amber)', color: 'var(--sobre-aviso)',
               fontSize: 12, fontWeight: 700, padding: '6px 13px', borderRadius: 7, textDecoration: 'none',
             }}>
               Activar mi plan
@@ -158,27 +171,81 @@ function TrialBanner() {
     )
   }
   return (
-    <div style={{
+    <div role="status" style={{
       background: daysLeft <= 3 ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'color-mix(in srgb, var(--amber) 8%, transparent)',
       borderBottom: `1px solid ${daysLeft <= 3 ? 'color-mix(in srgb, var(--red) 25%, transparent)' : 'color-mix(in srgb, var(--amber) 20%, transparent)'}`,
       padding: '8px 20px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap',
     }}>
-      <AlertTriangle size={14} color={daysLeft <= 3 ? '#f87171' : '#f59e0b'} />
-      <span style={{ fontSize: 13, color: daysLeft <= 3 ? '#f87171' : '#f59e0b' }}>
+      <AlertTriangle size={14} color={daysLeft <= 3 ? 'var(--red)' : 'var(--amber)'} />
+      {/* El mensaje va en --text, no en ámbar: sobre el tinte del banner, el
+          ámbar del tema claro mide ~4.3:1 — debajo de AA. La urgencia ya la
+          dicen el icono, el tinte y el CTA (nunca sólo color, §24), igual que
+          hace la variante de prueba VENCIDA de arriba desde que existe. */}
+      <span style={{ fontSize: 13, color: 'var(--text)' }}>
         {daysLeft > 0
           ? `Tu prueba gratuita termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}.`
           : 'Tu prueba gratuita ha terminado.'
         }
       </span>
-      <Link href="/configuracion?tab=suscripcion" style={{
-        fontSize: 12, fontWeight: 700, color: '#000',
-        background: daysLeft <= 3 ? '#f87171' : '#f59e0b',
+      {/* El táctil chico anotado por la radiografía de Fase 9 (100×24):
+          .nx-cta-aviso estira el golpe a 44px en puntero grueso, la píldora
+          visible y el alto del banner quedan idénticos (§24). */}
+      <Link href="/configuracion?tab=suscripcion" className="nx-cta-aviso" style={{
+        fontSize: 12, fontWeight: 700, color: 'var(--sobre-aviso)',
+        background: daysLeft <= 3 ? 'var(--red)' : 'var(--amber)',
         padding: '3px 10px', borderRadius: 6, textDecoration: 'none',
       }}>
         Activar plan →
       </Link>
     </div>
+  )
+}
+
+/**
+ * PILA DE AVISOS ADMINISTRATIVOS — se aquieta mientras se graba (RTC-04, §8.5).
+ *
+ * El equipo rojo de §41 encontró el banner de la prueba a peso ÍNTEGRO dentro
+ * del modo encuentro, coronando la franja de alergia, mientras el FlowRail de
+ * al lado sí se aquietaba: ningún aviso del layout escuchaba
+ * `EVENTO_GRABANDO`. La decisión v972 pide que la prueba sea VISIBLE — no que
+ * tenga presencia permanente sobre la superficie clínica durante el dictado.
+ *
+ * Mientras el micrófono está abierto la pila entera desaparece (§8.5
+ * «nonessential admin disappears») y VUELVE al detenerse — nada se pierde,
+ * sólo espera. Quedan FUERA a propósito los avisos de degradación
+ * (`OfflineBanner`, `AvisoIncidenteIA`): sin conexión o con la IA caída es
+ * exactamente cuando quien está grabando necesita saberlo («lightweight
+ * safety state» de la capa 1, §5 — no admin).
+ */
+function PilaDeAvisosAdmin() {
+  const grabando = useGrabando()
+  if (grabando) return null
+  return (<>
+    <ModeBanner />
+    <AvisoCorreoSinVerificar />
+    <AvisoCobroPendiente />
+    <TrialBanner />
+    <NotificacionesPushOptIn />
+  </>)
+}
+
+/**
+ * AYUDA EN LA TOPBAR MÓVIL — RTC-05. En móvil el FAB de ayuda murió (ocluía
+ * trabajo clínico en 4 de 6 superficies): el trigger es este botón ESTÁTICO
+ * —cero oclusión, fuera del arco del pulgar— que abre el mismo panel de
+ * `BotonAyuda` por su evento. RTC-32 lo mató también en escritorio, donde el
+ * disparador vive en el pie del riel; los dos comparten `DisparadorAyuda`,
+ * que trae el nombre del evento y la compuerta de grabación dentro (§8.5): un
+ * botón que no puede abrir nada no se pinta, y eso no puede depender de que
+ * cada sitio se acuerde.
+ */
+function AyudaTopbarTrigger({ navPrimaria }: { navPrimaria: boolean }) {
+  return (
+    <DisparadorAyuda
+      className="mobile-topbar-btn"
+      style={navPrimaria ? undefined : { marginLeft: 'auto' }}
+    />
   )
 }
 
@@ -614,14 +681,38 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     return <AccesoGate estado={acceso} clinicId={clinicId} esMedico={esMedicoReal} email={user?.email ?? ''} />
   }
 
+  /**
+   * FlowRail (≤5 contextos, V15-SHELL-GREYBOX-001) reemplaza el Sidebar de
+   * 23 destinos SÓLO en modo médico — la navegación de la asistente es otra
+   * superficie y no es sujeto de esta fase (ver
+   * `docs/design/v15/IA-001-sitemap.md`, plan de compatibilidad).
+   */
+  const navPrimaria = esMedicoReal && mode === 'medico'
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex" style={{ flexShrink: 0 }}>
-        <Sidebar />
+    // `nx-app-shell` (globals.css): alto EXACTO del viewport + overflow
+    // oculto — el scroll vive en <main>, no en el documento. Es lo que hace
+    // funcionar de verdad cada `position: sticky` del área de trabajo
+    // (ancla del paciente, encabezados de tabla/calendario, CierreAlPulgar)
+    // y mantiene el BottomNav a la vista en páginas largas (§22/§23).
+    <div className="nx-app-shell" style={{ display: 'flex', background: 'var(--bg)' }}>
+      {/* Desktop sidebar. `nx-lado-escritorio` (globals.css), no una utilidad
+          Tailwind de breakpoint: su corte enciende en min-width 768 y el shell
+          móvil vive bajo max-width 768 — en 768 exacto (iPad vertical)
+          convivían los dos shells. La clase enciende en ≥769: un solo shell
+          por ancho. */}
+      <div className="nx-lado-escritorio" style={{ flexShrink: 0 }}>
+        {navPrimaria ? <FlowRail /> : <Sidebar />}
       </div>
 
-      {/* Mobile sidebar — siempre en DOM, se desliza con transform (más confiable que conditional render) */}
+      {/* Mobile sidebar — SÓLO asistente (V15-MOBILE-001, §22): para el médico el
+          cajón era el árbol de navegación de escritorio clonado dentro de un
+          dialog — «shrunk desktop», lo que §22 prohíbe — y además duplicaba el
+          <aside> del FlowRail fijo (origen del landmark-unique que axe marcó en
+          todas las corridas de esta fase). El médico ya navega los 5 contextos
+          con el pulgar (BottomNav) y busca desde la topbar; Cerrar sesión vive
+          en /operaciones. La asistente conserva su cajón sin cambio. */}
+      {!navPrimaria && (<>
       <div
         onClick={() => setSidebarOpen(false)}
         aria-hidden={!sidebarOpen}
@@ -630,7 +721,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           zIndex: 49, backdropFilter: 'blur(2px)',
           opacity: sidebarOpen ? 1 : 0,
           pointerEvents: sidebarOpen ? 'auto' : 'none',
-          transition: 'opacity 0.2s ease',
+          transition: 'opacity var(--mov-normal) var(--mov-curva)',
         }}
       />
       <div
@@ -643,7 +734,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           borderRight: '1px solid var(--border)',
           zIndex: 50,
           transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.25s ease',
+          transition: 'transform var(--mov-lento) var(--mov-curva)',
           overflowY: 'auto',
           boxShadow: sidebarOpen ? '4px 0 20px rgba(0,0,0,0.4)' : 'none',
           display: 'flex',
@@ -656,22 +747,51 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           <Sidebar onClose={() => setSidebarOpen(false)} />
         </div>
       </div>
+      </>)}
 
       {/* Main area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Mobile topbar */}
+        {/* Mobile topbar. Médico: sin hamburguesa (no hay cajón que abrir), con
+            Buscar al alcance del pulgar en el borde derecho — SEARCH/COMMAND
+            (§22) no tenía NINGUNA entrada en móvil: ⌘K no existe en un teléfono
+            y el único botón visible vivía en el cajón que la rebanada anterior
+            retiró — y con la franja de instrumentos COMO CENTRO en vez de un
+            wordmark estático: la medición de baseline de la tercera rebanada
+            encontró «Ausculta» dos veces apiladas (topbar + franja) y 30px de
+            shell extra en cada pantalla (§23: por breakpoint se decide qué
+            persiste, no se apila todo). */}
         <div className="mobile-topbar">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="mobile-topbar-btn"
-            aria-label="Abrir menú"
-          >
-            <Menu size={22} />
-          </button>
+          {!navPrimaria && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="mobile-topbar-btn"
+              aria-label="Abrir menú"
+            >
+              <Menu size={22} />
+            </button>
+          )}
           <MobileBackButton />
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Agenda Médica</span>
+          {navPrimaria
+            ? <InstrumentStrip enTopbar />
+            : <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Ausculta</span>}
+          {navPrimaria && (
+            <button
+              onClick={() => window.dispatchEvent(new Event('nexus:open-palette'))}
+              className="mobile-topbar-btn"
+              aria-label="Buscar paciente o acción"
+              style={{ marginLeft: 'auto' }}
+            >
+              <Search size={22} />
+            </button>
+          )}
+          <AyudaTopbarTrigger navPrimaria={navPrimaria} />
         </div>
 
+        {/* La franja de fila propia queda SÓLO en escritorio: en móvil su
+            contenido ya vive dentro de la topbar (arriba). Sin este gate se
+            pintaría dos veces — y con el gate en Tailwind `md:` se pintaba
+            dos veces JUSTO en 768px (ver nx-franja-escritorio en globals). */}
+        {navPrimaria && <div className="nx-franja-escritorio"><InstrumentStrip /></div>}
         <OfflineBanner />
         {/*
           LA IA CAÍDA SE AVISA DONDE EL DUEÑO ESTÉ, no sólo en su tablero.
@@ -681,18 +801,38 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           plataforma y decírselo nada más le roba tiempo con un paciente enfrente.
         */}
         <AvisoIncidenteIA esDueno={esSuperadminCliente(user?.email)} />
-        <ModeBanner />
-        <AvisoCorreoSinVerificar />
-        <AvisoCobroPendiente />
-        <TrialBanner />
-        <NotificacionesPushOptIn />
+        <PilaDeAvisosAdmin />
         <FirmadorDisenos />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
-        {/* Barra inferior — solo móvil (gestionada por CSS) */}
+        {/*
+          EL RESTAURADOR DEL REGRESO (§21) vive en el shell, no en cada pantalla
+          de origen: la pantalla a la que se vuelve cambia según de dónde se
+          saliera, y montarlo caso por caso sería `depende_de_recordar` — la
+          próxima superficie que inspeccione nacería sin él y nadie se enteraría.
+          No pinta nada; repone desplazamiento y foco una sola vez al aterrizar.
+        */}
+        <RestauradorDeRegreso />
+        {/*
+          CAPA 4 DE §5 — LA LENTE CONTEXTUAL. El shell tenía tres capas desde
+          V15-SHELL-GREYBOX-001 (franja · riel · lienzo) y ésta faltaba; RTC-12(a)
+          reservó su sitio físico al unificar el lienzo y lo dejó declarado
+          vacío. Aquí sólo vive el HUECO: quien enseña la fuente de un hecho
+          renderiza su `<Lente>` en su propio árbol y aterriza aquí por portal,
+          para que el contenido siga vivo (ver LenteContextual.tsx).
+
+          Va entre <main> y la barra del pulgar A PROPÓSITO: por debajo de
+          1200px la lente es una hoja inferior EN FLUJO, así que <main> le cede
+          el alto y el BottomNav no se mueve ni hace falta calcularle un
+          `bottom`. Vacío no ocupa nada (`.nx-lente-hueco:empty`).
+        */}
+        <div id="nx-lente-hueco" className="nx-lente-hueco" />
+        {/* Barra inferior — solo móvil (gestionada por CSS). V15-MOBILE-001:
+            recibe el MISMO criterio que elige FlowRail vs Sidebar, para que el
+            médico tenga la misma IA en el pulgar que en el escritorio. */}
         <div className="bottom-nav-wrap">
-          <BottomNav />
+          <BottomNav navPrimaria={navPrimaria} />
         </div>
       </div>
 
@@ -716,6 +856,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <BorradorProvider>
             <TareasProvider>
               <DashboardInner>{children}</DashboardInner>
+              {/*
+                El marco de escucha: grabar es un MODO y se ve desde el otro
+                lado del consultorio. Se monta AQUÍ, una sola vez, para que
+                cualquier superficie que grabe —consulta, pase de UCI, nota de
+                hospital— quede cubierta sin acordarse de montar nada.
+                Va DENTRO del árbol y por encima, no envolviéndolo: no toca el
+                layout ni se traga los clics.
+              */}
+              <MarcoEscuchando />
             </TareasProvider>
           </BorradorProvider>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

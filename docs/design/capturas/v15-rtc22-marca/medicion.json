@@ -1,0 +1,44 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/sin paciente": {
+      "nombreDelConsultorio": "Ausculta",
+      "vecesEnElDom": 2,
+      "vecesVisible": 1,
+      "donde": [
+        "riel"
+      ],
+      "franjaDicePaciente": false,
+      "rielEnPantalla": true
+    },
+    "escritorio/con paciente": {
+      "nombreDelConsultorio": "Ausculta",
+      "vecesEnElDom": 1,
+      "vecesVisible": 1,
+      "donde": [
+        "riel"
+      ],
+      "franjaDicePaciente": true,
+      "rielEnPantalla": true
+    },
+    "movil/sin paciente": {
+      "nombreDelConsultorio": "Ausculta",
+      "vecesEnElDom": 2,
+      "vecesVisible": 1,
+      "donde": [
+        "otro"
+      ],
+      "franjaDicePaciente": false,
+      "rielEnPantalla": false
+    },
+    "movil/con paciente": {
+      "nombreDelConsultorio": "Ausculta",
+      "vecesEnElDom": 1,
+      "vecesVisible": 0,
+      "donde": [],
+      "franjaDicePaciente": true,
+      "rielEnPantalla": false
+    }
+  },
+  "errores": []
+}

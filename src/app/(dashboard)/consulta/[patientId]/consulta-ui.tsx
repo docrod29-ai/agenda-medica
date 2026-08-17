@@ -128,6 +128,27 @@ export const S = {
   alergia: { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 } as React.CSSProperties,
   firmadaBadge: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--nexus-soft)', color: 'var(--teal)', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 'var(--r-pill)' } as React.CSSProperties,
   grabCard: { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 20 } as React.CSSProperties,
+  /**
+   * RTC-31 — UN CONTENEDOR QUE NO CONTIENE MÁS QUE UNA COSA NO CONTIENE NADA.
+   *
+   * `grabCard` existe para agrupar los controles de la grabación en curso: el
+   * medidor de nivel, el tamaño del archivo, los avisos de micrófono, el botón
+   * de descarga de emergencia. Con varios elementos sueltos, la caja hace su
+   * trabajo.
+   *
+   * Antes de pulsar no hay nada de eso: sólo `EmpezarAGrabar`, que YA es una
+   * superficie con su borde y su radio de 16. La caja de fuera dibujaba un
+   * segundo marco alrededor del primero —tarjeta dentro de tarjeta— que es
+   * literalmente lo que la re-puntuación §29 penaliza en `/consulta`, y encima
+   * con dos radios distintos (12 y 16) a 18px de distancia.
+   *
+   * No se borra el contenedor: se le quita la piel mientras no tenga nada que
+   * agrupar. Misma separación, mismo sitio, mismo DOM.
+   */
+  /* Sin `borderRadius`: una caja transparente y sin borde no tiene esquina
+     que redondear, y un `0` explícito entra en el trinquete como radio fuera
+     de escala — el guardián lo cazó en la misma corrida. */
+  grabCardSola: { background: 'transparent', border: 0, padding: 0, marginBottom: 20 } as React.CSSProperties,
   transcripcion: { width: '100%', marginTop: 14, minHeight: 100, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, resize: 'vertical', outline: 'none' } as React.CSSProperties,
   resumen: { display: 'flex', gap: 8, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 8, padding: '12px 14px', marginBottom: 18 } as React.CSSProperties,
   textarea: { width: '100%', minHeight: 70, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, fontSize: 13, color: 'var(--text)', lineHeight: 1.6, resize: 'vertical', outline: 'none' } as React.CSSProperties,
@@ -140,7 +161,19 @@ export const S = {
   chip: (a: boolean): React.CSSProperties => ({ background: a ? 'var(--nexus-solido)' : 'var(--s2)', color: a ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }),
   iaBtn: (d: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 7, background: d ? 'var(--s3)' : 'var(--nexus-solido)', color: d ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, cursor: d ? 'default' : 'pointer', letterSpacing: '-0.005em' }),
   valBox: (t: 'error' | 'warn'): React.CSSProperties => ({ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, background: t === 'error' ? 'color-mix(in srgb, var(--red) 8%, transparent)' : 'color-mix(in srgb, var(--amber) 8%, transparent)', border: `1px solid ${t === 'error' ? 'color-mix(in srgb, var(--red) 25%, transparent)' : 'color-mix(in srgb, var(--amber) 25%, transparent)'}`, color: t === 'error' ? '#f87171' : '#f59e0b', borderRadius: 8, padding: '12px 14px', fontSize: 12.5 }),
-  firmar: (d: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 8, background: d ? 'var(--s3)' : 'var(--nexus-solido)', color: d ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 10, padding: '13px 22px', fontSize: 15, fontWeight: 700, cursor: d ? 'default' : 'pointer' }),
-  guardar: { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '13px 18px', fontSize: 14, cursor: 'pointer' } as React.CSSProperties,
-  descartar: { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', color: 'var(--red)', borderRadius: 10, padding: '13px 16px', fontSize: 14, cursor: 'pointer' } as React.CSSProperties,
+  /*
+    UNA ACCIÓN DOMINA AL CERRAR (V15-ENCOUNTER-MODE-001, §8.6).
+    ────────────────────────────────────────────────────────────────────
+    Hasta esta corrida "Firmar y cerrar nota" era del mismo alto (13px de
+    relleno) que "Guardar borrador"/"Leer resumen"/"Descartar" — sólo el
+    color las distinguía. La regla de jerarquía del sistema de diseño pide
+    posición → tipografía → espacio → agrupación → énfasis ANTES que cajas
+    con borde: aquí eso significa que Firmar crece (relleno, tamaño y una
+    sombra que ninguna otra acción lleva) y las tres secundarias PIERDEN su
+    caja (sin borde, sin fondo, texto más chico) — quedan como acciones de
+    apoyo, no como cuatro botones del mismo peso en fila.
+  */
+  firmar: (d: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 8, background: d ? 'var(--s3)' : 'var(--nexus-solido)', color: d ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 10, padding: '15px 28px', fontSize: 16, fontWeight: 700, cursor: d ? 'default' : 'pointer', boxShadow: d ? 'none' : '0 4px 14px color-mix(in srgb, var(--nexus-solido) 35%, transparent)' }),
+  guardar: { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', borderRadius: 6, padding: '6px 8px', fontSize: 12, fontWeight: 500, cursor: 'pointer' } as React.CSSProperties,
+  descartar: { display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red)', borderRadius: 6, padding: '6px 8px', fontSize: 12, fontWeight: 500, cursor: 'pointer' } as React.CSSProperties,
 }

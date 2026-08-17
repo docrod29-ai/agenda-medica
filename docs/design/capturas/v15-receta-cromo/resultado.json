@@ -1,0 +1,144 @@
+{
+  "toolbarOscuro": {
+    "encontrada": true,
+    "total": 4,
+    "primariaEsLaPrimera": true,
+    "primarias": [
+      {
+        "texto": "Descargar PDF",
+        "bg": "rgb(23, 120, 134)",
+        "color": "rgb(255, 255, 255)",
+        "peso": "600",
+        "fs": "14px"
+      }
+    ],
+    "secundariasN": 3,
+    "botonesAManoQueQuedan": [],
+    "atrasEsDelSistema": true
+  },
+  "alertaDosisOscuro": {
+    "pintada": true,
+    "colorTitulo": "rgb(248, 113, 113)",
+    "fondoCaja": "rgba(239, 68, 68, 0.16)",
+    "bordeCaja": "rgb(248, 113, 113)",
+    "colorAvisoDeApoyo": "rgb(168, 172, 174)"
+  },
+  "camposConNombre": {
+    "total": 17,
+    "sinNombre": []
+  },
+  "nxMeta": {
+    "fs": "12.5px",
+    "texto": "Vista previa · Media · impresa en carta"
+  },
+  "papel": {
+    "encontrado": true,
+    "hojas": 1
+  },
+  "axeOscuro": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "nodos": 1,
+      "targets": [
+        ".receta-sheet > div:nth-child(2) > div:nth-child(1)"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Element has insufficient color contrast of 2.48 (foreground color: #14b8a6, background color: #ffffff, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+      ]
+    },
+    {
+      "id": "region",
+      "impact": "moderate",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(3) > span",
+        "a[href=\"/configuracion?tab=suscripcion\"]"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Some page content is not contained by landmarks",
+        "Fix any of the following:\n  Some page content is not contained by landmarks"
+      ]
+    }
+  ],
+  "toolbarClaro": {
+    "encontrada": true,
+    "total": 4,
+    "primariaEsLaPrimera": true,
+    "primarias": [
+      {
+        "texto": "Descargar PDF",
+        "bg": "rgb(18, 98, 110)",
+        "color": "rgb(255, 255, 255)",
+        "peso": "600",
+        "fs": "14px"
+      }
+    ],
+    "secundariasN": 3,
+    "botonesAManoQueQuedan": [],
+    "atrasEsDelSistema": true
+  },
+  "alertaDosisClaro": {
+    "pintada": true,
+    "colorTitulo": "rgb(153, 27, 27)",
+    "fondoCaja": "rgb(251, 230, 230)",
+    "bordeCaja": "rgb(153, 27, 27)",
+    "colorAvisoDeApoyo": "rgb(86, 90, 96)"
+  },
+  "axeClaro": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "nodos": 1,
+      "targets": [
+        ".receta-sheet > div:nth-child(2) > div:nth-child(1)"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Element has insufficient color contrast of 2.48 (foreground color: #14b8a6, background color: #ffffff, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+      ]
+    },
+    {
+      "id": "region",
+      "impact": "moderate",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(3) > span",
+        "a[href=\"/configuracion?tab=suscripcion\"]"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Some page content is not contained by landmarks",
+        "Fix any of the following:\n  Some page content is not contained by landmarks"
+      ]
+    }
+  ],
+  "alertaCambiaDeTema": true,
+  "templateNavega": {
+    "llega": true,
+    "url": "http://localhost:3000/configuracion?tab=recetas"
+  },
+  "movil": {
+    "anchoDocumento": 390,
+    "desborda": false,
+    "primariaFilaCompleta": true,
+    "tactilesChicosEnToolbar": []
+  },
+  "axeMovil": [
+    {
+      "id": "region",
+      "impact": "moderate",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(3) > span",
+        "a[href=\"/configuracion?tab=suscripcion\"]"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Some page content is not contained by landmarks",
+        "Fix any of the following:\n  Some page content is not contained by landmarks"
+      ]
+    }
+  ],
+  "erroresConsola": [
+    "[2026-08-12T16:48:29.331Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "[móvil] [2026-08-12T16:48:34.264Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+  ]
+}

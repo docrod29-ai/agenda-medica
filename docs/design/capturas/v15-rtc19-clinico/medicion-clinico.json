@@ -1,0 +1,24 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "/antibiograma": {
+      "elementos": 201,
+      "conTealCrudo": 0,
+      "sinFondo": 0,
+      "acento": "rgb(42, 165, 181)"
+    },
+    "/expediente/pac-refugio-alcantara": {
+      "elementos": 195,
+      "conTealCrudo": 0,
+      "sinFondo": 0,
+      "acento": "rgb(42, 165, 181)"
+    },
+    "/consulta/pac-refugio-alcantara": {
+      "elementos": 321,
+      "conTealCrudo": 0,
+      "sinFondo": 0,
+      "acento": "rgb(42, 165, 181)"
+    }
+  },
+  "errores": []
+}

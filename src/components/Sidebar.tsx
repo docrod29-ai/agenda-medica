@@ -7,7 +7,7 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText, Search,
-  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, HeartHandshake, Bug, CreditCard, Activity, ClipboardList,
+  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, HeartHandshake, Bug, CreditCard, Activity, ClipboardList, HelpCircle,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,6 +16,7 @@ import { rutaPermitida } from '@/lib/modulos'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
+import { DisparadorAyuda } from '@/components/BotonAyuda'
 
 // Cada item declara en qué modos aparece:
 //   medico       → solo cuando el usuario está en modo Médico
@@ -198,7 +199,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 background: mode === 'medico' ? 'var(--s3)' : 'transparent',
                 color: mode === 'medico' ? 'var(--teal)' : 'var(--text3)',
-                transition: 'all 0.15s',
+                transition: 'all var(--mov-rapido) var(--mov-curva)',
               }}
             >
               <Stethoscope size={13} /> Médico
@@ -210,7 +211,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 background: mode === 'secretaria' ? 'var(--s3)' : 'transparent',
                 color: mode === 'secretaria' ? 'var(--blue)' : 'var(--text3)',
-                transition: 'all 0.15s',
+                transition: 'all var(--mov-rapido) var(--mov-curva)',
               }}
             >
               <Shield size={13} /> Secretaria
@@ -226,6 +227,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           </div>
         )}
 
+        {/* RTC-32 — el FAB de ayuda murió también en escritorio; su casa es el
+            pie subordinado del riel, y esta barra (rol asistente) necesita la
+            misma capacidad. Mover no puede significar perder para un rol. */}
+        <DisparadorAyuda className="nav-item" style={{ color: 'var(--text3)' }}>
+          <HelpCircle size={16} />
+          Ayuda
+        </DisparadorAyuda>
         <button onClick={handleLogout} className="nav-item" style={{ color: 'var(--text3)' }}>
           <LogOut size={16} />
           Cerrar sesión

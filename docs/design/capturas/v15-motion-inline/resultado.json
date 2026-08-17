@@ -1,0 +1,115 @@
+{
+  "fecha": "2026-08-13T03:28:39.168Z",
+  "base": "http://localhost:3000",
+  "resumen": {
+    "desktop /pacientes": {
+      "medidos": 13,
+      "ok": 13,
+      "detalle": [
+        {
+          "etiqueta": "div",
+          "token": "rapido",
+          "declarado": "transition: background var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "div",
+          "token": "rapido",
+          "declarado": "transition: background var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "div",
+          "token": "rapido",
+          "declarado": "transition: background var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "div",
+          "token": "rapido",
+          "declarado": "transition: background var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "div",
+          "token": "rapido",
+          "declarado": "transition: background var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "a",
+          "token": "rapido",
+          "declarado": "transition: color var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        }
+      ]
+    },
+    "desktop /calendario": {
+      "medidos": 11,
+      "ok": 11,
+      "detalle": [
+        {
+          "etiqueta": "button",
+          "token": "rapido",
+          "declarado": "transition: all var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "button",
+          "token": "rapido",
+          "declarado": "transition: all var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "button",
+          "token": "rapido",
+          "declarado": "transition: all var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "a",
+          "token": "rapido",
+          "declarado": "transition: color var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "svg",
+          "token": "normal",
+          "declarado": "transition: opacity var(--mov-normal) var(--mov-curva)",
+          "duracion": "0.2s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        },
+        {
+          "etiqueta": "a",
+          "token": "rapido",
+          "declarado": "transition: color var(--mov-rapido) var(--mov-curva)",
+          "duracion": "0.12s",
+          "curva": "cubic-bezier(0.16, 1, 0.3, 1)"
+        }
+      ]
+    },
+    "movil /dashboard BottomNav": {
+      "enlaces": 4,
+      "iconos": 4
+    }
+  },
+  "bajoReduce": {
+    "inlineTransitionDuration": "1e-05s",
+    "apagadorGana": true
+  },
+  "consolaErrores": [
+    "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+  ],
+  "veredicto": "PASA",
+  "fallos": []
+}

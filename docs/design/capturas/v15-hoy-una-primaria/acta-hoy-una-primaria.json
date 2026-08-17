@@ -1,0 +1,31 @@
+{
+  "desktop": {
+    "btnPrimaryEnPantalla": 0,
+    "heroExiste": true,
+    "heroRelleno": true,
+    "heroTexto": "Iniciar consulta",
+    "nuevaCitaRellena": false,
+    "nuevaCitaClases": "btn btn-secondary",
+    "filasRellenas": 0,
+    "filasTotal": 6,
+    "saludoFontSize": "15px",
+    "saludoTexto": "Buenos días, Elena",
+    "erroresConsola": []
+  },
+  "mobile": {
+    "btnPrimaryEnPantalla": 0,
+    "heroExiste": true,
+    "heroRelleno": true,
+    "heroTexto": "Iniciar consulta",
+    "nuevaCitaRellena": false,
+    "nuevaCitaClases": "btn btn-secondary",
+    "filasRellenas": 0,
+    "filasTotal": 6,
+    "saludoFontSize": "15px",
+    "saludoTexto": "Buenos días, Elena",
+    "erroresConsola": []
+  },
+  "veredicto": {
+    "PASS": true
+  }
+}

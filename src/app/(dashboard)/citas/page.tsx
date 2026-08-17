@@ -35,6 +35,7 @@ import { necesitaReparacion, accionDeReparacion, avisoDesincronizada } from '@/l
 import { logAudit } from '@/lib/expediente/audit-log'
 import { Button, EmptyState, Spinner } from '@/components/ui'
 import { AgendaVacia } from '@/components/brand/EmptyArt'
+import { describirAgendaVacia } from '@/lib/agenda/vacio-de-la-agenda'
 import { useMode } from '@/context/ModeContext'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
@@ -51,6 +52,7 @@ const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = 
 function todayStr() {
   return hoyISO()  // zona MX, no UTC
 }
+
 
 /**
  * La fecha de la URL se VALIDA antes de creerla. `?d=borrame` dejaría la agenda
@@ -217,6 +219,36 @@ export default function CitasPage() {
     }).sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
   }, [appointments, selectedDate, statusFilter, search, medicoFiltro])
 
+  /*
+    RTC-23 — LA CASCADA ES UNA ENTRADA, NO UNA RESPUESTA AL CLIC.
+
+    `.nx-reveal` retrasa cada fila `min(i,12) × 28ms` sobre una animación con
+    `fill: both`, así que **durante el retraso la fila existe y no se ve**.
+    Medido en navegador (`medir-rtc23-cascada-citas-v15.mjs`):
+
+      filtro de estado («2 por confirmar»)   0ms sin ver nada
+      cambio de día («mañana: 1 cita»)       ~320ms con una fila en opacidad 0
+
+    Los filtros de estado no re-animan porque las filas que sobreviven
+    conservan su nodo; cambiar de día trae citas distintas, se remontan, y la
+    cascada vuelve a correr. O sea: el médico pulsa, y espera un tercio de
+    segundo para leer el resultado de su propio clic.
+
+    Entrar a la pantalla SÍ merece la cascada —ordena la jerarquía de la lista,
+    igual que la de 2 elementos del dashboard que el equipo rojo declaró buena.
+    Volver a correrla al filtrar no ordena nada: sólo se anuncia.
+
+    Así que se marca la ENTRADA y se apaga después. `prefers-reduced-motion`
+    sigue mandando por encima de todo esto en la hoja.
+  */
+  const [yaEntro, setYaEntro] = useState(false)
+  useEffect(() => {
+    if (!yaEntro && filtered.length > 0) {
+      const t = setTimeout(() => setYaEntro(true), 700)   // 520ms de animación + margen
+      return () => clearTimeout(t)
+    }
+  }, [yaEntro, filtered.length])
+
   // Resumen del día (real) — ignora filtros de estado/búsqueda; respeta el de médico
   const daySummary = useMemo(() => {
     const day = appointments.filter(a => a.fechaHora.slice(0, 10) === selectedDate && (!medicoFiltro || a.medicoId === medicoFiltro))
@@ -296,6 +328,61 @@ export default function CitasPage() {
     const m = nextDay(selectedDate)
     return appointments.filter(a => a.fechaHora.slice(0, 10) === m && !['cancelada', 'reagendada'].includes(a.estado)).length
   }, [appointments, selectedDate])
+
+  /*
+    EL DÍA VACÍO ERA EL ÚNICO QUE NO DECÍA NADA.
+
+    La lista vacía decía siempre lo mismo —«No hay citas para este filtro ·
+    cambia de fecha o de médico»— en tres situaciones que no son la misma:
+
+      1. el día está libre de verdad,
+      2. el día tiene citas y un filtro las esconde,
+      3. hay filtro puesto y además el día está libre.
+
+    El caso 2 no es teórico en este producto: `useFiltroMedico` lleva escrito
+    el suyo —un filtro guardado en el navegador apuntando a un médico dado de
+    baja dejaba la agenda vacía TODOS LOS DÍAS, sin control en pantalla para
+    quitarlo—. Aquello se reparó en el origen; el MENSAJE seguía sin poder
+    distinguir «no hay» de «no se ven», que es la regla 4 de seguridad clínica
+    dicha en la pantalla: ausencia de filas no es ausencia de citas.
+
+    Y el cierre del riel —«el riel no muere en el vacío: apunta al día
+    siguiente»— vive dentro de la rama con filas, así que **desaparecía justo
+    el día vacío**, que es el único día en que «el que viene tiene 6» es la
+    información que el médico necesita. El comentario decía una cosa y la
+    condición hacía la contraria.
+  */
+  const citasDelDia = useMemo(
+    () => appointments.filter(a => a.fechaHora.slice(0, 10) === selectedDate).length,
+    [appointments, selectedDate],
+  )
+
+  /** Los filtros PUESTOS, con nombre — para poder decir cuál esconde. */
+  const filtrosActivos = useMemo(() => {
+    const f: string[] = []
+    if (statusFilter === 'pendientes') f.push('estado «por confirmar»')
+    else if (statusFilter === 'por-cobrar') f.push('estado «por cobrar»')
+    else if (statusFilter !== 'todas') {
+      f.push(`estado «${STATUS_FILTERS.find(s => s.value === statusFilter)?.label ?? statusFilter}»`)
+    }
+    if (search.trim()) f.push(`la búsqueda «${search.trim()}»`)
+    if (medicoFiltro) f.push('un médico')
+    return f
+  }, [statusFilter, search, medicoFiltro])
+
+  const limpiarFiltros = useCallback(() => {
+    setStatusFilter('todas')
+    setSearch('')
+    setMedicoFiltro(null)
+  }, [setMedicoFiltro])
+
+  /** La decisión vive en `@/lib/agenda/vacio-de-la-agenda` para poder probarse. */
+  const vacio = useMemo(() => describirAgendaVacia({
+    citasDelDia,
+    filtrosActivos,
+    citasDelDiaSiguiente: citasManana,
+    etiquetaDelDia: dateLabel,
+  }), [citasDelDia, filtrosActivos, citasManana, dateLabel])
 
   const handleStatusChange = async (appt: Appointment, newStatus: AppointmentStatus) => {
     try {
@@ -432,7 +519,7 @@ export default function CitasPage() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       {/*
         CABECERA — el DÍA es el título, no el nombre del módulo (Visual DNA
         §6 defecto 20). «Citas» ya lo dice la navegación; lo que el médico
@@ -552,13 +639,46 @@ export default function CitasPage() {
             action={<Button variant="secondary" size="sm" onClick={() => window.location.reload()}>Reintentar</Button>}
           />
         ) : filtered.length === 0 ? (
-          <EmptyState
-            illustration={<AgendaVacia />}
-            icon={<CalendarDays size={22} />}
-            title="No hay citas para este filtro"
-            description="Cambia de fecha o de médico, o agenda una nueva cita."
-            action={<Button icon={<Plus size={16} />} onClick={() => router.push('/asistente')}>Nueva cita</Button>}
-          />
+          vacio.clase === 'ocultas-por-filtro' ? (
+            /*
+              HAY CITAS Y NO SE VEN. No es un día libre: es un filtro puesto.
+              Va en LÍNEA y no de héroe —ni con la ilustración de agenda
+              vacía— porque el día no está vacío: dibujar el vacío aquí sería
+              ilustrar algo falso.
+            */
+            <EmptyState
+              variante="linea"
+              title={vacio.titulo}
+              description={vacio.descripcion}
+              action={vacio.gesto.quitarFiltro && (
+                <Button variant="secondary" size="sm" onClick={limpiarFiltros}>Quitar los filtros</Button>
+              )}
+            />
+          ) : (
+            /*
+              EL DÍA ESTÁ LIBRE DE VERDAD — y entonces la ilustración no es
+              relleno: es cierta. Lo que se le añade es lo que el riel decía
+              sólo cuando había filas: qué trae el día siguiente, y cómo ir.
+            */
+            <EmptyState
+              illustration={<AgendaVacia />}
+              icon={<CalendarDays size={22} />}
+              title={vacio.titulo}
+              description={vacio.descripcion}
+              action={
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {vacio.gesto.nuevaCita && (
+                    <Button icon={<Plus size={16} />} onClick={() => router.push('/asistente')}>Nueva cita</Button>
+                  )}
+                  {vacio.gesto.diaSiguiente && (
+                    <Button variant="secondary" onClick={() => setSelectedDate(nextDay(selectedDate))}>
+                      Ver el día siguiente
+                    </Button>
+                  )}
+                </div>
+              }
+            />
+          )
         ) : (
           <div className="riel">
             {filtered.map((appt, i) => (
@@ -572,7 +692,10 @@ export default function CitasPage() {
                     <span className="riel-ahora-linea" />
                   </div>
                 )}
-                <div className="nx-reveal" style={{ animationDelay: `${Math.min(i, 12) * 28}ms` }}>
+                {/* RTC-23: la cascada sólo en la ENTRADA (ver el porqué arriba).
+                    Después, filtrar o cambiar de día pinta las filas de
+                    inmediato — el resultado del clic no se hace esperar. */}
+                <div className={yaEntro ? undefined : 'nx-reveal'} style={yaEntro ? undefined : { animationDelay: `${Math.min(i, 12) * 28}ms` }}>
                 <RielEntrada
                   onConsulta={pid => router.push(`/consulta/${pid}`)}
                   appt={appt}

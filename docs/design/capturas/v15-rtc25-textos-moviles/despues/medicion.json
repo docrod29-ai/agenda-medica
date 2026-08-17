@@ -1,0 +1,132 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "/dashboard": {
+      "anchoDocumento": 390,
+      "desbordaLaPagina": false,
+      "desbordes": [],
+      "truncados": [],
+      "buscadores": [],
+      "urgentes": [],
+      "titulos": [
+        {
+          "etiqueta": "Buenas tardes, Elena",
+          "fontSize": "15px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Siguiente acción",
+          "fontSize": "15px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Agenda de hoy",
+          "fontSize": "15px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Sigue abierto de antes",
+          "fontSize": "15px",
+          "renglones": 1
+        }
+      ]
+    },
+    "/pacientes": {
+      "anchoDocumento": 390,
+      "desbordaLaPagina": false,
+      "desbordes": [],
+      "truncados": [],
+      "buscadores": [
+        {
+          "placeholder": "Nombre, teléfono, correo o CURP…",
+          "anchoTexto": 248,
+          "anchoUtil": 296,
+          "cabe": true
+        }
+      ],
+      "urgentes": [],
+      "titulos": [
+        {
+          "etiqueta": "Pacientes",
+          "fontSize": "19px",
+          "renglones": 1
+        }
+      ]
+    },
+    "/pendientes": {
+      "anchoDocumento": 390,
+      "desbordaLaPagina": false,
+      "desbordes": [],
+      "truncados": [],
+      "buscadores": [],
+      "urgentes": [],
+      "titulos": [
+        {
+          "etiqueta": "Pendientes",
+          "fontSize": "19px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Requiere atención (2)",
+          "fontSize": "14px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Necesita revisión (1)",
+          "fontSize": "14px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Esperando resultado (1)",
+          "fontSize": "14px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Necesita agendar (1)",
+          "fontSize": "14px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Esperando al paciente (1)",
+          "fontSize": "14px",
+          "renglones": 1
+        },
+        {
+          "etiqueta": "Otros pendientes (1)",
+          "fontSize": "14px",
+          "renglones": 1
+        }
+      ]
+    },
+    "/citas": {
+      "anchoDocumento": 390,
+      "desbordaLaPagina": false,
+      "desbordes": [
+        {
+          "etiqueta": "",
+          "clase": "riel-fecha-input",
+          "cabe": 1,
+          "necesita": 4
+        }
+      ],
+      "truncados": [],
+      "buscadores": [
+        {
+          "placeholder": "Buscar paciente…",
+          "anchoTexto": 128,
+          "anchoUtil": 296,
+          "cabe": true
+        }
+      ],
+      "urgentes": [],
+      "titulos": [
+        {
+          "etiqueta": "Hoy",
+          "fontSize": "19px",
+          "renglones": 1
+        }
+      ]
+    }
+  },
+  "errores": []
+}

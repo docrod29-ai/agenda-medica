@@ -1,0 +1,156 @@
+{
+  "toolbarOscuro": {
+    "encontrada": true,
+    "total": 7,
+    "primarias": [
+      {
+        "texto": "Descargar PDF",
+        "bg": "rgb(23, 120, 134)",
+        "color": "rgb(255, 255, 255)",
+        "peso": "600",
+        "fs": "14px"
+      }
+    ],
+    "secundariasN": 5,
+    "secundariaEjemplo": {
+      "texto": "Imprimir",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(242, 239, 233)",
+      "peso": "500",
+      "fs": "14px"
+    },
+    "botonesAManoQueQuedan": []
+  },
+  "papel": {
+    "encontrado": true,
+    "fuente": "\"Times New Roman\", Georgia, serif"
+  },
+  "nxMeta": {
+    "fs": "12.5px",
+    "texto": "compara con la nota"
+  },
+  "modal": {
+    "focoDentroAlAbrir": true,
+    "focoSiempreDentro": true,
+    "aria": {
+      "ariaModal": "true",
+      "etiquetado": true
+    },
+    "cerradoConEscape": true,
+    "focoDevuelto": true
+  },
+  "axeOscuro": [
+    {
+      "id": "page-has-heading-one",
+      "impact": "moderate",
+      "nodos": 1,
+      "targets": [
+        "html"
+      ],
+      "resumen": [
+        "Fix all of the following:\n  Page must have a level-one heading"
+      ]
+    },
+    {
+      "id": "region",
+      "impact": "moderate",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(3) > span",
+        "a[href=\"/configuracion?tab=suscripcion\"]"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Some page content is not contained by landmarks",
+        "Fix any of the following:\n  Some page content is not contained by landmarks"
+      ]
+    }
+  ],
+  "toolbarClaro": {
+    "encontrada": true,
+    "total": 7,
+    "primarias": [
+      {
+        "texto": "Descargar PDF",
+        "bg": "rgb(18, 98, 110)",
+        "color": "rgb(255, 255, 255)",
+        "peso": "600",
+        "fs": "14px"
+      }
+    ],
+    "secundariasN": 5,
+    "secundariaEjemplo": {
+      "texto": "Imprimir",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(11, 12, 14)",
+      "peso": "500",
+      "fs": "14px"
+    },
+    "botonesAManoQueQuedan": []
+  },
+  "axeClaro": [
+    {
+      "id": "page-has-heading-one",
+      "impact": "moderate",
+      "nodos": 1,
+      "targets": [
+        "html"
+      ],
+      "resumen": [
+        "Fix all of the following:\n  Page must have a level-one heading"
+      ]
+    },
+    {
+      "id": "region",
+      "impact": "moderate",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(3) > span",
+        "a[href=\"/configuracion?tab=suscripcion\"]"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Some page content is not contained by landmarks",
+        "Fix any of the following:\n  Some page content is not contained by landmarks"
+      ]
+    }
+  ],
+  "recetaNavega": {
+    "llega": true,
+    "url": "http://localhost:3000/receta/pac-aurelio-dominguez/nota-cromo-v15-firmada"
+  },
+  "movil": {
+    "anchoDocumento": 390,
+    "desborda": false,
+    "primariaFilaCompleta": true,
+    "tactilesChicosEnToolbar": []
+  },
+  "axeMovil": [
+    {
+      "id": "page-has-heading-one",
+      "impact": "moderate",
+      "nodos": 1,
+      "targets": [
+        "html"
+      ],
+      "resumen": [
+        "Fix all of the following:\n  Page must have a level-one heading"
+      ]
+    },
+    {
+      "id": "region",
+      "impact": "moderate",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(3) > span",
+        "a[href=\"/configuracion?tab=suscripcion\"]"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Some page content is not contained by landmarks",
+        "Fix any of the following:\n  Some page content is not contained by landmarks"
+      ]
+    }
+  ],
+  "erroresConsola": [
+    "[2026-08-12T15:48:43.285Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "[móvil] [2026-08-12T15:48:49.062Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/consulta/pac-luzmaria-cervantes": {
+      "apariciones": 1,
+      "aparicionesEnElPrimerPliegue": 1,
+      "donde": [
+        {
+          "y": 186,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 20,
+      "identidadA": 105,
+      "lecturaDelSistema": null,
+      "grabarA": 416,
+      "viewport": 900
+    },
+    "escritorio/expediente/pac-luzmaria-cervantes": {
+      "apariciones": 1,
+      "aparicionesEnElPrimerPliegue": 1,
+      "donde": [
+        {
+          "y": 179,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 20,
+      "identidadA": 117,
+      "lecturaDelSistema": null,
+      "grabarA": null,
+      "viewport": 900
+    },
+    "escritorio/consulta/pac-catalina-ibarra": {
+      "apariciones": 1,
+      "aparicionesEnElPrimerPliegue": 1,
+      "donde": [
+        {
+          "y": 186,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 20,
+      "identidadA": 105,
+      "lecturaDelSistema": "se lee: sulfas",
+      "grabarA": 287,
+      "viewport": 900
+    },
+    "movil/consulta/pac-luzmaria-cervantes": {
+      "apariciones": 1,
+      "aparicionesEnElPrimerPliegue": 1,
+      "donde": [
+        {
+          "y": 260,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 20,
+      "identidadA": 183,
+      "lecturaDelSistema": null,
+      "grabarA": 527,
+      "viewport": 844
+    },
+    "movil/expediente/pac-luzmaria-cervantes": {
+      "apariciones": 1,
+      "aparicionesEnElPrimerPliegue": 1,
+      "donde": [
+        {
+          "y": 314,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 20,
+      "identidadA": 195,
+      "lecturaDelSistema": null,
+      "grabarA": null,
+      "viewport": 844
+    },
+    "movil/consulta/pac-catalina-ibarra": {
+      "apariciones": 1,
+      "aparicionesEnElPrimerPliegue": 1,
+      "donde": [
+        {
+          "y": 260,
+          "h": 20,
+          "w": 54,
+          "texto": "Alergias:"
+        }
+      ],
+      "pixelesDeAlergiaEnElPliegue": 20,
+      "identidadA": 183,
+      "lecturaDelSistema": "se lee: sulfas",
+      "grabarA": 362,
+      "viewport": 844
+    }
+  },
+  "errores": []
+}

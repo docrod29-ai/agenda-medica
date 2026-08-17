@@ -1,0 +1,118 @@
+{
+  "base": "http://localhost:3000",
+  "terminos": {
+    "TERMINO_CON_PARECIDO": "Villareal Esparsa, Joaquin",
+    "TERMINO_SIN_PARECIDO": "Zenaida Quiroz Bermúdez"
+  },
+  "viewports": {
+    "escritorio-1440": {
+      "conFilas": {
+        "filas": 5,
+        "hay": false
+      },
+      "porChip": {
+        "filas": 0,
+        "hay": true,
+        "linea": true,
+        "alto": 62,
+        "titulo": "Ninguno tiene inasistencias ni cancelaciones.",
+        "desc": "Se miraron los 6 expedientes.",
+        "ilustracion": false,
+        "botones": [
+          "Ver todos A-Z"
+        ]
+      },
+      "filasTrasVerTodos": 6,
+      "conParecido": {
+        "filas": 1,
+        "hay": true,
+        "linea": true,
+        "alto": 120,
+        "titulo": "Ninguno de los 6 expedientes coincide con «Villareal Esparsa, Joaquin».",
+        "desc": "Hay uno con un nombre parecido. Si es la misma persona, abre el suyo: un segundo expediente parte su historial.",
+        "ilustracion": false,
+        "botones": [
+          "Limpiar la búsqueda"
+        ]
+      },
+      "rescate": {
+        "cabecera": "Se parecen al nombre que buscaste",
+        "nombres": [
+          "Joaquín Esparza Villarreal"
+        ]
+      },
+      "sinParecido": {
+        "filas": 0,
+        "hay": true,
+        "linea": true,
+        "alto": 96,
+        "titulo": "Ninguno de los 6 expedientes coincide con «Zenaida Quiroz Bermúdez».",
+        "desc": "Puede estar capturado con otro nombre: búscalo también por teléfono, correo o CURP.",
+        "ilustracion": false,
+        "botones": [
+          "Limpiar la búsqueda"
+        ]
+      },
+      "sinRescate": {
+        "cabecera": null,
+        "nombres": []
+      },
+      "filasTrasLimpiar": 6
+    },
+    "movil-390": {
+      "conFilas": {
+        "filas": 5,
+        "hay": false
+      },
+      "porChip": {
+        "filas": 0,
+        "hay": true,
+        "linea": true,
+        "alto": 134,
+        "titulo": "Ninguno tiene inasistencias ni cancelaciones.",
+        "desc": "Se miraron los 6 expedientes.",
+        "ilustracion": false,
+        "botones": [
+          "Ver todos A-Z"
+        ]
+      },
+      "filasTrasVerTodos": 6,
+      "conParecido": {
+        "filas": 1,
+        "hay": true,
+        "linea": true,
+        "alto": 182,
+        "titulo": "Ninguno de los 6 expedientes coincide con «Villareal Esparsa, Joaquin».",
+        "desc": "Hay uno con un nombre parecido. Si es la misma persona, abre el suyo: un segundo expediente parte su historial.",
+        "ilustracion": false,
+        "botones": [
+          "Limpiar la búsqueda"
+        ]
+      },
+      "rescate": {
+        "cabecera": "Se parecen al nombre que buscaste",
+        "nombres": [
+          "Joaquín Esparza Villarreal"
+        ]
+      },
+      "sinParecido": {
+        "filas": 0,
+        "hay": true,
+        "linea": true,
+        "alto": 158,
+        "titulo": "Ninguno de los 6 expedientes coincide con «Zenaida Quiroz Bermúdez».",
+        "desc": "Puede estar capturado con otro nombre: búscalo también por teléfono, correo o CURP.",
+        "ilustracion": false,
+        "botones": [
+          "Limpiar la búsqueda"
+        ]
+      },
+      "sinRescate": {
+        "cabecera": null,
+        "nombres": []
+      },
+      "filasTrasLimpiar": 6
+    }
+  },
+  "errores": []
+}

@@ -1,0 +1,122 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/pac-refugio-alcantara": {
+      "bloqueExiste": true,
+      "empiezaEn": 820,
+      "altoDelDocumento": 900,
+      "viewport": 900,
+      "despuesDeLaHistoria": true,
+      "controlesVisibles": 3,
+      "controles": [
+        {
+          "nombre": "Carta de referencia",
+          "w": 178,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Expediente completo",
+          "w": 191,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Enviar a otro sistema — archivo FHIR R4",
+          "w": 191,
+          "h": 51,
+          "tactilOk": true
+        }
+      ],
+      "nombresQueSonSiglas": []
+    },
+    "escritorio/pac-luzmaria-cervantes": {
+      "bloqueExiste": true,
+      "empiezaEn": 1384,
+      "altoDelDocumento": 900,
+      "viewport": 900,
+      "despuesDeLaHistoria": true,
+      "controlesVisibles": 3,
+      "controles": [
+        {
+          "nombre": "Carta de referencia",
+          "w": 178,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Expediente completo",
+          "w": 191,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Enviar a otro sistema — archivo FHIR R4",
+          "w": 191,
+          "h": 51,
+          "tactilOk": true
+        }
+      ],
+      "nombresQueSonSiglas": []
+    },
+    "movil/pac-refugio-alcantara": {
+      "bloqueExiste": true,
+      "empiezaEn": 1105,
+      "altoDelDocumento": 844,
+      "viewport": 844,
+      "despuesDeLaHistoria": true,
+      "controlesVisibles": 3,
+      "controles": [
+        {
+          "nombre": "Carta de referencia",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Expediente completo",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Enviar a otro sistema — archivo FHIR R4",
+          "w": 358,
+          "h": 51,
+          "tactilOk": true
+        }
+      ],
+      "nombresQueSonSiglas": []
+    },
+    "movil/pac-luzmaria-cervantes": {
+      "bloqueExiste": true,
+      "empiezaEn": 1747,
+      "altoDelDocumento": 844,
+      "viewport": 844,
+      "despuesDeLaHistoria": true,
+      "controlesVisibles": 3,
+      "controles": [
+        {
+          "nombre": "Carta de referencia",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Expediente completo",
+          "w": 358,
+          "h": 45,
+          "tactilOk": true
+        },
+        {
+          "nombre": "Enviar a otro sistema — archivo FHIR R4",
+          "w": 358,
+          "h": 51,
+          "tactilOk": true
+        }
+      ],
+      "nombresQueSonSiglas": []
+    }
+  },
+  "errores": []
+}

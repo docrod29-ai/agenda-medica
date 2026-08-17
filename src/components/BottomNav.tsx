@@ -1,20 +1,53 @@
 'use client'
 /**
  * Bottom Navigation para móvil (≤768px).
- * 4 destinos + 1 ACCIÓN CENTRAL contextual (botón elevado) que cambia según
- * dónde estás: en un expediente/consulta ofrece "Consulta" de ese paciente;
- * en el resto, "Nueva cita". Así la acción más probable siempre está a un toque,
- * en la zona del pulgar.
  *
- * En modo Secretaria se reemplaza CRM por Chat (CRM es solo-médico).
- * Solo se muestra en móvil (.bottom-nav-wrap: display none en escritorio).
+ * ── V15-MOBILE-001 (Fase 9, §22): la misma IA que el FlowRail ─────────────────
+ *
+ * Hasta esta fase el móvil del médico seguía con la IA VIEJA (Inicio · Agenda ·
+ * Pacientes · CRM) mientras el escritorio ya navegaba por los cinco contextos
+ * de V15 — el mismo médico tenía dos mapas mentales según el tamaño de su
+ * pantalla. Ahora, cuando la navegación primaria V15 aplica (`navPrimaria`,
+ * decidido por el layout con el MISMO criterio que elige FlowRail vs Sidebar),
+ * los destinos del pulgar son los mismos cuatro contextos-ruta del FlowRail:
+ *
+ *   Hoy · Paciente · [acción central] · Seguimiento · Operaciones
+ *
+ * ENCUENTRO no es una quinta pestaña: es la ACCIÓN CENTRAL contextual que este
+ * componente ya tenía (en un expediente/consulta ofrece la consulta de ESE
+ * paciente; en el resto, «Nueva cita») — §22 pide exactamente eso: «start
+ * encounter» como trabajo primario del móvil, no como un destino más.
+ *
+ * Agenda y CRM no desaparecen: viven en /operaciones (§11), igual que en
+ * escritorio. La agenda de HOY ya se ve en /dashboard (zona TODAY de §6).
+ *
+ * En modo Secretaria (o rol no-médico) se conserva la barra anterior sin
+ * cambio — mismo alcance que decidió FlowRail: la IA de la asistente no es el
+ * sujeto de esta fase.
+ *
+ * ── §8.1 también en móvil: la navegación se aquieta al grabar ────────────────
+ *
+ * Se suscribe al MISMO `EVENTO_GRABANDO` que ya escuchan `MarcoEscuchando`,
+ * `InstrumentStrip` y `FlowRail` — desde RTC-04 vía la compuerta compartida
+ * `@/hooks/useGrabando` (el evento es la única fuente de verdad; la copia
+ * privada del hook que vivía aquí murió con esa deuda).
+ * Sólo se atenúan los ÍCONOS de los destinos no activos (WCAG 1.4.11,
+ * contraste no-textual 3:1 — hay margen); las ETIQUETAS de texto no se tocan
+ * (la lección de contraste de FlowRail: `--text3` sobre `--s1` no tiene margen
+ * AA para atenuarse). La acción central CORONADA (la consulta de un paciente,
+ * §8.6) tampoco se atenúa: es la entrada al encuentro. Sin corona la acción
+ * central es admin («Nueva cita») y se aquieta como los demás (RTC-07).
  */
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Calendar, Users, MessageCircle, TrendingUp, Stethoscope, CalendarPlus } from 'lucide-react'
+import {
+  LayoutDashboard, Calendar, Users, MessageCircle, TrendingUp, Stethoscope,
+  CalendarPlus, CalendarClock, UserSquare2, ListChecks, Settings2,
+} from 'lucide-react'
 import { useMode } from '@/context/ModeContext'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
+import { useGrabando } from '@/hooks/useGrabando'
 
 type Item = {
   href: string; label: string; icon: typeof LayoutDashboard
@@ -28,6 +61,21 @@ const COMMON: Item[] = [
 ]
 
 /**
+ * Los cuatro contextos-ruta de V15, los MISMOS hrefs que pinta FlowRail
+ * (guardián: v15-bottom-nav-cinco-contextos.test.ts compara los dos archivos).
+ * Sin filtro de `rutaPermitida`: FlowRail decidió que los contextos núcleo no
+ * se recortan por paquete, y el móvil no debe divergir del escritorio.
+ */
+const CONTEXTOS_V15: Item[] = [
+  { href: '/dashboard', label: 'Hoy', icon: CalendarClock, active: p => p === '/dashboard' },
+  { href: '/pacientes', label: 'Paciente', icon: UserSquare2,
+    active: p => p.startsWith('/pacientes') || p.startsWith('/expedientes') || p.startsWith('/expediente/') },
+  { href: '/pendientes', label: 'Seguimiento', icon: ListChecks, active: p => p.startsWith('/pendientes') },
+  { href: '/operaciones', label: 'Operaciones', icon: Settings2,
+    active: p => p.startsWith('/operaciones') || p.startsWith('/configuracion') || p.startsWith('/guia') },
+]
+
+/**
  * Acción central según contexto. Solo rutas que existen con seguridad:
  * en /expediente/[id] o /consulta/[id] → ir a la consulta de ESE paciente;
  * en cualquier otro lado → agendar (asistente). Puro y testeable.
@@ -38,19 +86,56 @@ export function accionContextual(pathname: string): { label: string; href: strin
   return { label: 'Nueva cita', href: '/asistente', kind: 'cita' }
 }
 
-export function BottomNav() {
+/**
+ * ¿La acción central lleva la CORONA (círculo relleno elevado)? — RTC-07.
+ *
+ * La corona es el énfasis que §8.6 reserva para la entrada al encuentro. El
+ * equipo rojo (ORT-04) midió que en Hoy/Pendientes/Operaciones la llevaba
+ * «Nueva cita» — una acción ADMIN con la emisión máxima de la barra, 2× en el
+ * primer viewport de Hoy (FAB + CTA del header). La regla: la corona sólo se
+ * pinta cuando la acción central ES clínica (la consulta de un paciente
+ * concreto). Fuera de ese contexto, «Nueva cita» conserva posición, href y
+ * táctil — cambia el peso, no la conducta. Puro y testeable.
+ */
+export function centralCoronada(kind: 'consulta' | 'cita'): boolean {
+  return kind === 'consulta'
+}
+
+/**
+ * ¿Este ícono se atenúa mientras se graba? Sólo los de destinos NO activos, y
+ * sólo mientras la grabación está viva. Puro y testeable — el guardián lo
+ * prueba al revés (grabando+activo, sin grabar, etc.).
+ */
+export function iconoAtenuado(grabando: boolean, activo: boolean): boolean {
+  return grabando && !activo
+}
+
+export function BottomNav({ navPrimaria = false }: { navPrimaria?: boolean }) {
   const pathname = usePathname()
   const { mode } = useMode()
   const { clinic } = useClinic()
+  const grabando = useGrabando()
 
   const lastItem: Item = mode === 'medico'
     ? { href: '/crm', label: 'CRM', icon: TrendingUp, active: p => p.startsWith('/crm') }
     : { href: '/chat', label: 'Chat', icon: MessageCircle, active: p => p.startsWith('/chat') }
 
-  // Oculta accesos a módulos que la clínica no contrató (su paquete).
-  const destinos: Item[] = [...COMMON, lastItem].filter(it => rutaPermitida(clinic, it.href))
+  // V15: los contextos núcleo no se filtran por paquete (paridad con FlowRail).
+  // Barra anterior: oculta módulos que la clínica no contrató, como siempre.
+  const destinos: Item[] = navPrimaria
+    ? CONTEXTOS_V15
+    : [...COMMON, lastItem].filter(it => rutaPermitida(clinic, it.href))
   const accion = accionContextual(pathname)
   const AccionIcon = accion.kind === 'consulta' ? Stethoscope : CalendarPlus
+  // RTC-07 aplica al shell V15 del MÉDICO: para él la corona codifica «entrada
+  // al encuentro» y una acción admin no la lleva. En la barra heredada de
+  // Secretaria «Nueva cita» ES su trabajo primario, no un intruso admin — su
+  // barra conserva la conducta anterior completa (mismo alcance que `quieto`).
+  const coronada = navPrimaria ? centralCoronada(accion.kind) : true
+
+  // El aquietado sólo aplica a la navegación V15 del médico: la barra
+  // heredada de Secretaria queda byte-idéntica a su conducta anterior.
+  const quieto = navPrimaria && grabando
 
   // La acción central va en medio de los destinos (zona del pulgar).
   const medio = Math.ceil(destinos.length / 2)
@@ -70,50 +155,90 @@ export function BottomNav() {
       }}
       className="bottom-nav"
     >
-      {izq.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} />)}
+      {izq.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} quieto={quieto} />)}
 
-      {/* Acción central contextual — elevada, en la zona del pulgar */}
-      <Link
-        href={accion.href}
-        aria-label={accion.label}
-        style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'flex-start', textDecoration: 'none', minHeight: 52, paddingTop: 4,
-        }}
-      >
-        <span style={{
-          width: 46, height: 46, borderRadius: '50%', marginTop: -18,
-          background: 'var(--nexus-solido)', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(20,184,166,0.45)', border: '3px solid var(--s1)',
-        }}>
-          <AccionIcon size={22} strokeWidth={2.2} />
-        </span>
-        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--teal)', lineHeight: 1, marginTop: 3 }}>
-          {accion.label}
-        </span>
-      </Link>
+      {/* Acción central contextual, en la zona del pulgar. RTC-07: la CORONA
+          (círculo relleno elevado, §8.6) sólo cuando la acción es CLÍNICA —
+          la consulta de ESE paciente, que además nunca se atenúa al grabar.
+          Fuera de contexto clínico, «Nueva cita» (admin) conserva posición,
+          href y táctil, pero pesa como un destino normal y se aquieta al
+          grabar como los demás: el énfasis codifica el significado. */}
+      {coronada ? (
+        <Link
+          href={accion.href}
+          aria-label={accion.label}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'flex-start', textDecoration: 'none', minHeight: 52, paddingTop: 4,
+          }}
+        >
+          <span style={{
+            width: 46, height: 46, borderRadius: '50%', marginTop: -18,
+            background: 'var(--nexus-solido)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            /* RTC-19 — EL HALO DEJA DE SER TEAL CRUDO.
+               `rgba(20,184,166,0.45)` es teal-500 escrito a mano: no cambia con
+               el tema, no lo ve ningún token, y era uno de los DOS que quedaban
+               en cromo persistente (el otro, el tinte de BotonAyuda). RTC-05 ya
+               mató el halo teal del FAB de ayuda por la misma razón; éste se
+               quedó porque vive en otro archivo.
+               La elevación la da la sombra del sistema, que está medida en los
+               dos temas; el color de la acción ya lo pone el fondo del círculo
+               (`--nexus-solido`), que no necesita repetirse en el halo. */
+            boxShadow: 'var(--elev-2)', border: '3px solid var(--s1)',
+          }}>
+            <AccionIcon size={22} strokeWidth={2.2} />
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--teal)', lineHeight: 1, marginTop: 3 }}>
+            {accion.label}
+          </span>
+        </Link>
+      ) : (
+        <Link
+          href={accion.href}
+          aria-label={accion.label}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '7px 4px 9px', color: 'var(--text3)',
+            textDecoration: 'none', gap: 3, minHeight: 52,
+          }}
+        >
+          <AccionIcon
+            size={20}
+            strokeWidth={1.8}
+            style={{ opacity: iconoAtenuado(quieto, coronada) ? 0.4 : 1, transition: 'opacity var(--mov-normal) var(--mov-curva)' }}
+          />
+          <span style={{ fontSize: 10.5, fontWeight: 500, lineHeight: 1 }}>{accion.label}</span>
+        </Link>
+      )}
 
-      {der.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} />)}
+      {der.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} quieto={quieto} />)}
     </nav>
   )
 }
 
-function NavItem({ it, active }: { it: Item; active: boolean }) {
+function NavItem({ it, active, quieto }: { it: Item; active: boolean; quieto: boolean }) {
   const Icon = it.icon
   return (
     <Link
       href={it.href}
+      aria-current={active ? 'page' : undefined}
       style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: '7px 4px 9px',
         color: active ? 'var(--teal)' : 'var(--text3)',
         textDecoration: 'none', gap: 3, minHeight: 52,
-        transition: 'color 0.15s',
+        transition: 'color var(--mov-rapido) var(--mov-curva)',
       }}
     >
-      <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+      {/* Sólo el ícono se atenúa (no-textual, WCAG 1.4.11); la etiqueta nunca. */}
+      <Icon
+        size={20}
+        strokeWidth={active ? 2.2 : 1.8}
+        style={{ opacity: iconoAtenuado(quieto, active) ? 0.4 : 1, transition: 'opacity var(--mov-normal) var(--mov-curva)' }}
+      />
       <span style={{ fontSize: 10.5, fontWeight: active ? 700 : 500, lineHeight: 1 }}>{it.label}</span>
     </Link>
   )

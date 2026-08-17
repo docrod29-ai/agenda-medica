@@ -6,7 +6,7 @@ import { auth } from '@/lib/firebase'
 import { obtenerResolverMfa, resolverLoginTotp, type MultiFactorResolver } from '@/lib/mfa'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
-import { Stethoscope, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { MarcaAuth } from '@/components/brand/MarcaAuth'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
 
@@ -141,7 +141,9 @@ function LoginInner() {
   }
 
   return (
-    <div style={{
+    /* <main>: la página entera es el landmark — axe (landmark-one-main/region)
+       lo pedía desde siempre; primera medición de la puerta en V15 lo pagó. */
+    <main style={{
       minHeight: '100vh',
       background: 'var(--bg)',
       display: 'flex',
@@ -228,12 +230,16 @@ function LoginInner() {
                   {error}
                 </div>
               )}
+              {/* minHeight 48: CTA primaria táctil, no baja del objetivo de 44
+                  (§24) — .btn trae height 36 fijo y min-height gana. */}
               <button type="submit" className="btn btn-primary" disabled={submitting || mfaCode.length < 6}
-                style={{ width: '100%', justifyContent: 'center', padding: '11px 16px' }}>
+                style={{ width: '100%', justifyContent: 'center', minHeight: 48 }}>
                 {submitting ? (<><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Verificando…</>) : 'Verificar y entrar'}
               </button>
+              {/* Objetivo táctil 44px (§24): el alto lo pone minHeight, no un padding
+                  que desplace el texto — el enlace se ve igual, se toca mejor. */}
               <button type="button" onClick={() => { setMfaResolver(null); setMfaCode(''); setError('') }}
-                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12.5, color: 'var(--text3)' }}>
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12.5, color: 'var(--text3)', minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 ← Volver
               </button>
             </form>
@@ -253,7 +259,7 @@ function LoginInner() {
             disabled={submitting}
             className="btn"
             style={{
-              width: '100%', justifyContent: 'center', gap: 10, padding: '11px 16px',
+              width: '100%', justifyContent: 'center', gap: 10, minHeight: 48,
               background: '#fff', color: '#1a1a1a', border: '1px solid var(--border2)', fontWeight: 600,
             }}
           >
@@ -317,12 +323,16 @@ function LoginInner() {
                   {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {/* Objetivo táctil 44px (§24) sin mover el texto: minHeight + flex,
+                  margen negativo compensa lo que el alto añade bajo el campo. */}
               <button
                 type="button"
                 onClick={handleReset}
                 style={{
-                  marginTop: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
                   fontSize: 12.5, color: 'var(--teal)', textAlign: 'left',
+                  minHeight: 44, display: 'inline-flex', alignItems: 'center',
+                  alignSelf: 'flex-start', marginBottom: -10,
                 }}
               >
                 ¿Olvidaste tu contraseña?
@@ -338,9 +348,14 @@ function LoginInner() {
               </div>
             )}
             {info && (
+              /* El aviso habla el token POR TEMA (lección TrialBanner): el teal
+                 crudo rgba(20,184,166,…) era el trazo del tema oscuro fijado a
+                 mano — en claro ni el tinte ni el texto cambiaban. El texto va
+                 en var(--text): el aviso es información, el tinte ya lo marca. */
               <div style={{
-                background: 'rgba(20,184,166,0.1)', border: '1px solid rgba(20,184,166,0.3)',
-                borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--teal)',
+                background: 'color-mix(in srgb, var(--teal) 10%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--teal) 30%, transparent)',
+                borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--text)',
               }}>
                 {info}
               </div>
@@ -350,7 +365,7 @@ function LoginInner() {
               type="submit"
               className="btn btn-primary"
               disabled={submitting}
-              style={{ width: '100%', justifyContent: 'center', marginTop: 4, padding: '11px 16px' }}
+              style={{ width: '100%', justifyContent: 'center', marginTop: 4, minHeight: 48 }}
             >
               {submitting ? (
                 <>
@@ -371,17 +386,19 @@ function LoginInner() {
           fontSize: 14, color: 'var(--text2)',
         }}>
           ¿No tienes cuenta?{' '}
-          <Link href={invite ? `/registro?invite=${invite}` : '/registro'} style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'none' }}>
+          {/* Subrayado: enlace DENTRO de una frase — sólo color no lo distingue
+              (WCAG 1.4.1, la misma razón de a.nx-ident). */}
+          <Link href={invite ? `/registro?invite=${invite}` : '/registro'} style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>
             Crea una gratis →
           </Link>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text3)', marginTop: 20 }}>
+        <p className="nx-meta" style={{ textAlign: 'center', marginTop: 20 }}>
           Ausculta © {new Date().getFullYear()}
         </p>
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+    </main>
   )
 }

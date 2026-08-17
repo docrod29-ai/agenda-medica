@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
-import { Stethoscope, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
 /**
  * EL PRECIO SALE DEL CATÁLOGO, NO DE UN NÚMERO ESCRITO A MANO.
  *
@@ -46,7 +46,6 @@ function RegistroInner() {
   const destinoTrasRegistro = invite ? `/unirse/${invite}` : '/setup'
 
   const { user, loading } = useAuth()
-  const [step, setStep] = useState<'form' | 'verifying'>('form')
   const [nombre, setNombre] = useState('')
   const [email, setEmail]   = useState('')
   const [password, setPassword] = useState('')
@@ -134,7 +133,9 @@ function RegistroInner() {
   const valid = nombre.trim().length > 2 && email.includes('@') && password.length >= 6
 
   return (
-    <div style={{
+    /* <main>: la página entera es el landmark — axe (landmark-one-main/region)
+       lo pedía desde siempre; primera medición de la puerta en V15 lo pagó. */
+    <main style={{
       minHeight: '100vh', background: 'var(--bg)',
       display: 'grid', gridTemplateColumns: '1fr 1fr',
     }} className="registro-layout">
@@ -194,9 +195,12 @@ function RegistroInner() {
             ))}
           </div>
 
+          {/* El borde hablaba rgba(61,90,254,…) — el ÍNDIGO VIEJO fijado a mano,
+              un acento que ya ni existe como token. color-mix sobre var(--nexus)
+              sigue al acento vigente en los dos temas. */}
           <div style={{
             marginTop: 40, padding: '18px 22px',
-            background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.22)',
+            background: 'var(--nexus-soft)', border: '1px solid color-mix(in srgb, var(--nexus) 22%, transparent)',
             borderRadius: 10,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--text)', fontWeight: 600, marginBottom: 6, letterSpacing: '-0.005em' }}>
@@ -222,7 +226,9 @@ function RegistroInner() {
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 32 }}>
             ¿Ya tienes cuenta?{' '}
-            <Link href="/login" style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+            {/* Subrayado: enlace DENTRO de una frase — sólo color no lo distingue
+                (WCAG 1.4.1, la misma razón de a.nx-ident). */}
+            <Link href="/login" style={{ color: 'var(--teal)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
               Inicia sesión
             </Link>
           </p>
@@ -234,7 +240,7 @@ function RegistroInner() {
             disabled={submitting}
             className="btn"
             style={{
-              width: '100%', justifyContent: 'center', gap: 10, padding: '11px 16px',
+              width: '100%', justifyContent: 'center', gap: 10, minHeight: 48,
               background: '#fff', color: '#1a1a1a', border: '1px solid var(--border2)', fontWeight: 600,
             }}
           >
@@ -253,68 +259,58 @@ function RegistroInner() {
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
           </div>
 
+          {/* Los campos hablan el sistema (.form-group/.label/.input) en vez del
+              dialecto inline que traían: el hack onFocus/onBlur que mutaba
+              borderColor a mano NO daba anillo de foco visible con teclado —
+              .input:focus sí (borde + box-shadow del token), y el placeholder
+              gana el tono AA por tema que la clase ya tiene medido. /login ya
+              hablaba estas clases: la puerta de entrada era la única pantalla
+              con dos idiomas de formulario a la vez. */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Nombre */}
-            <div>
-              <label htmlFor="reg-tu-nombre-completo" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+            <div className="form-group">
+              <label className="label" htmlFor="reg-tu-nombre-completo">
                 Tu nombre completo
               </label>
               <input
                 id="reg-tu-nombre-completo"
+                className="input"
                 value={nombre}
                 onChange={e => setNombre(e.target.value)}
                 placeholder="Dr. Juan García"
                 autoFocus
-                style={{
-                  width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)',
-                  outline: 'none', transition: 'border-color 0.15s',
-                }}
-                onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
-                onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
               />
             </div>
 
             {/* Email */}
-            <div>
-              <label htmlFor="reg-correo-electronico" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+            <div className="form-group">
+              <label className="label" htmlFor="reg-correo-electronico">
                 Correo electrónico
               </label>
               <input
                 id="reg-correo-electronico"
+                className="input"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="doctor@email.com"
-                style={{
-                  width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)',
-                  outline: 'none', transition: 'border-color 0.15s',
-                }}
-                onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
-                onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
               />
             </div>
 
             {/* Password */}
-            <div>
-              <label htmlFor="reg-contrasena" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+            <div className="form-group">
+              <label className="label" htmlFor="reg-contrasena">
                 Contraseña
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   id="reg-contrasena"
+                  className="input"
                   type={showPwd ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
-                  style={{
-                    width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                    borderRadius: 10, padding: '12px 44px 12px 16px', fontSize: 14, color: 'var(--text)',
-                    outline: 'none', transition: 'border-color 0.15s',
-                  }}
-                  onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
-                  onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                  style={{ paddingRight: 44 }}
                 />
                 <button
                   type="button"
@@ -343,18 +339,19 @@ function RegistroInner() {
               </div>
             )}
 
+            {/* La CTA de la puerta de entrada pintaba #000 sobre var(--teal) —
+                2.99:1 en claro, EXACTAMENTE el defecto ya medido y pagado en el
+                chip del directorio de /pacientes y en la casilla de /orden. La
+                primaria del sistema (btn-primary) es el par medido:
+                --nexus-solido + blanco (5.16:1 oscuro / 7:1 claro). El estado
+                deshabilitado lo pone .btn:disabled (opacity), no un gris a mano.
+                minHeight 48: la CTA primaria de una pantalla táctil no baja del
+                objetivo de 44 (§24) — .btn trae height 36 fijo y min-height gana. */}
             <button
               type="submit"
+              className="btn btn-primary"
               disabled={!valid || submitting}
-              style={{
-                width: '100%', padding: '14px 24px', borderRadius: 10,
-                background: valid ? 'var(--teal)' : 'var(--s3)',
-                color: valid ? '#000' : 'var(--text3)',
-                fontSize: 15, fontWeight: 700, border: 'none',
-                cursor: valid && !submitting ? 'pointer' : 'default',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                transition: 'all 0.2s',
-              }}
+              style={{ width: '100%', justifyContent: 'center', minHeight: 48, fontSize: 15 }}
             >
               {submitting
                 ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Creando cuenta…</>
@@ -362,11 +359,13 @@ function RegistroInner() {
               }
             </button>
 
-            <p style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center', lineHeight: 1.6 }}>
+            {/* Metadato (.nx-meta) y enlaces subrayados: dentro de una frase, sólo
+                color no distingue un enlace (WCAG 1.4.1). */}
+            <p className="nx-meta" style={{ textAlign: 'center' }}>
               Al registrarte aceptas los{' '}
-              <a href="/terminos" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>términos de servicio</a>
+              <a href="/terminos" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'underline', textUnderlineOffset: 3 }}>términos de servicio</a>
               {' '}y la{' '}
-              <a href="/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>política de privacidad</a>.
+              <a href="/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'underline', textUnderlineOffset: 3 }}>política de privacidad</a>.
             </p>
           </form>
         </div>
@@ -379,6 +378,6 @@ function RegistroInner() {
           .registro-layout > div:first-child { display: none !important; }
         }
       `}</style>
-    </div>
+    </main>
   )
 }

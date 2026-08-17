@@ -427,7 +427,7 @@ function AsistenteInner() {
                           color: activo ? color : 'var(--text2)',
                           border: activo ? `1.5px solid ${color}` : '1px solid var(--border)',
                           fontWeight: activo ? 700 : 500, fontSize: 13,
-                          transition: 'all .12s',
+                          transition: 'all var(--mov-rapido) var(--mov-curva)',
                         }}
                       >
                         <span style={{
@@ -459,7 +459,7 @@ function AsistenteInner() {
                       border: tipo === t.value ? '1px solid var(--teal)' : '1px solid var(--border)',
                       background: tipo === t.value ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
                       color: tipo === t.value ? 'var(--teal)' : 'var(--text2)',
-                      cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
+                      cursor: 'pointer', transition: 'all var(--mov-rapido) var(--mov-curva)', textAlign: 'left',
                     }}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><TipoCitaIcon tipo={t.value} size={13} /> {t.label}</span>
@@ -546,7 +546,7 @@ function AsistenteInner() {
                       // Un día sin cupo va apagado, pero LEGIBLE: con 0.4 sobre un
                       // texto ya atenuado (--text3) quedaba casi invisible en claro.
                       opacity: daySlots.length === 0 ? 0.6 : 1,
-                      transition: 'all 0.15s',
+                      transition: 'all var(--mov-rapido) var(--mov-curva)',
                     }}
                   >
                     <span style={{ textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -577,7 +577,7 @@ function AsistenteInner() {
                       border: horaSeleccionada === h ? '1px solid var(--teal)' : '1px solid var(--border)',
                       background: horaSeleccionada === h ? 'rgba(61,90,254,0.15)' : 'var(--s2)',
                       color: horaSeleccionada === h ? 'var(--teal)' : 'var(--text)',
-                      cursor: 'pointer', transition: 'all 0.15s',
+                      cursor: 'pointer', transition: 'all var(--mov-rapido) var(--mov-curva)',
                     }}
                   >
                     {h}
@@ -625,7 +625,7 @@ function AsistenteInner() {
               color: '#fff', fontSize: 14, fontWeight: 600, border: 'none',
               cursor: saving || success ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 8,
-              transition: 'all 0.2s', flexShrink: 0,
+              transition: 'all var(--mov-rapido) var(--mov-curva)', flexShrink: 0,
             }}
           >
             {saving ? (

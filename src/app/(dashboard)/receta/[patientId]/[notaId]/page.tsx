@@ -51,6 +51,7 @@ import {
 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
+import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
 
 const VIAS: Medicamento['via'][] = ['oral', 'iv', 'im', 'sc', 'topica', 'inhalatoria', 'sublingual', 'rectal', 'otra']
 
@@ -508,7 +509,7 @@ export default function GeneradorRecetaPage() {
   if (!nota) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
-        <AlertCircle size={28} color="#f59e0b" style={{ marginBottom: 12 }} />
+        <AlertCircle size={28} style={{ color: 'var(--amber)', marginBottom: 12 }} />
         <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Nota no encontrada</h2>
         <button onClick={() => router.push('/pacientes')} className="btn btn-primary" style={{ marginTop: 16 }}>
           Volver a expedientes
@@ -523,13 +524,16 @@ export default function GeneradorRecetaPage() {
   const recetaVacia = !medicamentos.some(m => m.nombre?.trim()) && !indicaciones.trim()
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <AvisoConfigNoCargada error={configError} />
 
+      {/* Avisos del impreso: tokens de badge POR TEMA — los rgba crudos de antes
+          no cambiaban con el tema y este archivo es PAPEL para el trinquete de
+          color, así que ningún guardián los veía (el de esta rebanada sí). */}
       {sinCedula && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+          background: 'var(--badge-red-b)', border: '1px solid var(--badge-red-t)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
@@ -552,7 +556,7 @@ export default function GeneradorRecetaPage() {
       {sinDireccion && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+          background: 'var(--badge-amber-b)', border: '1px solid var(--badge-amber-t)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
@@ -566,7 +570,7 @@ export default function GeneradorRecetaPage() {
       {sinFirmaResoluble && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+          background: 'var(--badge-amber-b)', border: '1px solid var(--badge-amber-t)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
@@ -578,15 +582,27 @@ export default function GeneradorRecetaPage() {
           </div>
         </div>
       )}
-      {/* Barra superior */}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
+      {/* Barra superior — habla el sistema de botones (§16): UNA primaria
+          (Descargar PDF, el trabajo dominante), secundarias del sistema y
+          Atrás fantasma. Mismo idioma que la toolbar de /nota. */}
+      <div className="no-print receta-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+        <button onClick={volver} className="btn btn-ghost btn-sm">
           <ArrowLeft size={15} /> Atrás
         </button>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Generador de Receta</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
-            <Settings size={14} /> Template
+        {/* V15-FINAL-COHERENCE-001: el encabezado dominante nombra AL PACIENTE,
+            no a la herramienta. Medido: era «Generador de Receta» a 20/700
+            mientras el nombre de quien se receta vivía a 14px en la franja del
+            shell — la superficie que imprime una dosis con cédula profesional
+            era la única de su familia cuya voz más fuerte no era el paciente.
+            El documento impreso NO cambia: esto vive en la barra `no-print`. */}
+        <TituloDeDocumentoClinico nombreDelPaciente={patient?.nombre} clase="receta" />
+        <div className="actions-row" style={{ display: 'flex', gap: 8 }}>
+          {/* La primaria va PRIMERO, como en /nota: las dos pantallas de la
+              familia documental hablan el mismo orden. onClick/disabled intactos. */}
+          <button onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); descargarPDF() }} disabled={descargando || !!configError || recetaVacia} className="btn btn-primary">
+            {descargando
+              ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
+              : <><Download size={14} /> Descargar PDF</>}
           </button>
           <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
@@ -594,10 +610,8 @@ export default function GeneradorRecetaPage() {
           <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); descargarPDF() }} disabled={descargando || !!configError || recetaVacia} className="btn btn-primary">
-            {descargando
-              ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
-              : <><Download size={14} /> Descargar PDF</>}
+          <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
+            <Settings size={14} /> Template
           </button>
         </div>
       </div>
@@ -605,10 +619,13 @@ export default function GeneradorRecetaPage() {
       <div className="receta-gen-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 420px', gap: 24, alignItems: 'start' }}>
         {/* Editor (no se imprime) */}
         <div className="no-print" style={{ display: 'grid', gap: 16 }}>
-          {/* Diagnóstico */}
+          {/* Diagnóstico. Las etiquetas del editor se ASOCIAN (htmlFor/id): un
+              campo sin etiqueta asociada es falla de compuerta de la regla de
+              diseño — y éste es el editor de un documento medicolegal. */}
           <div>
-            <label style={labelStyle}>Diagnóstico (opcional)</label>
+            <label htmlFor="rx-diagnostico" style={labelStyle}>Diagnóstico (opcional)</label>
             <input
+              id="rx-diagnostico"
               value={diagnostico}
               onChange={(e) => setDiagnostico(e.target.value)}
               placeholder="Ej: Faringitis aguda (J02.9)"
@@ -630,7 +647,9 @@ export default function GeneradorRecetaPage() {
               {alertasAlergia.map((a, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.4 }}>• {a.mensaje}</div>
               ))}
-              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4 }}>
+              {/* var(--text2), no el text3 del rol: sobre el tinte rojo del badge
+                  el text3 computa 4.22:1 en claro (axe lo midió) — text2 da 5.8. */}
+              <div className="nx-meta" style={{ marginTop: 4, color: 'var(--text2)' }}>
                 Paciente alérgico a: <strong>{patient?.alergias}</strong>. Si decides continuar, es bajo tu criterio clínico.
               </div>
             </div>
@@ -640,9 +659,12 @@ export default function GeneradorRecetaPage() {
           {alertasDosis.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(220,38,38,0.10)', border: '2px solid #b91c1c',
+              // La MISMA lección del bloque de alergia de arriba: el #b91c1c fijo
+              // era ilegible sobre el canvas oscuro — y ésta es la alerta de
+              // seguridad más importante de la pantalla.
+              background: 'var(--badge-red-b, rgba(220,38,38,0.10))', border: '2px solid var(--badge-red-t)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-red-t)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} className="ds-icon" /> Revisa la dosis antes de imprimir
               </div>
               {alertasDosis.map((d, i) => (
@@ -652,7 +674,7 @@ export default function GeneradorRecetaPage() {
                   ))}
                 </div>
               ))}
-              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4 }}>
+              <div className="nx-meta" style={{ marginTop: 4, color: 'var(--text2)' }}>
                 Verificación automática de apoyo. <strong>No sustituye tu criterio</strong>; la ausencia de alerta no garantiza que la dosis sea correcta.
               </div>
             </div>
@@ -662,9 +684,11 @@ export default function GeneradorRecetaPage() {
           {interacciones.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(217,119,6,0.10)', border: '1.5px solid var(--amber)',
+              // Título en el token de TEXTO del badge, no en var(--amber): el ámbar
+              // COMO TEXTO falla contraste en tema claro (lección del TrialBanner).
+              background: 'var(--badge-amber-b)', border: '1.5px solid var(--amber)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-amber-t)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} className="ds-icon" /> Posibles interacciones farmacológicas
               </div>
               {interacciones.map((it, i) => (
@@ -672,7 +696,7 @@ export default function GeneradorRecetaPage() {
                   <strong>{it.titulo}</strong>{it.severidad === 'mayor' ? ' (mayor)' : ''} — {it.detalle}
                 </div>
               ))}
-              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>Apoyo decisional; no sustituye tu criterio.</div>
+              <div className="nx-meta" style={{ marginTop: 2, color: 'var(--text2)' }}>Apoyo decisional; no sustituye tu criterio.</div>
             </div>
           )}
 
@@ -680,9 +704,9 @@ export default function GeneradorRecetaPage() {
           {controlados.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(61,90,254,0.08)', border: '1.5px solid var(--nexus)',
+              background: 'var(--badge-blue-b)', border: '1.5px solid var(--nexus)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-blue-t)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Lock size={15} className="ds-icon" /> Medicamento(s) controlado(s) — requisitos COFEPRIS
               </div>
               {controlados.map((c, i) => (
@@ -700,13 +724,13 @@ export default function GeneradorRecetaPage() {
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div>
-                <label style={{ ...labelStyle, fontSize: 10.5 }}>Creatinina (mg/dL)</label>
-                <input value={creatinina} onChange={e => setCreatinina(e.target.value)} placeholder="1.0"
+                <label htmlFor="rx-creatinina" style={{ ...labelStyle, fontSize: 10.5 }}>Creatinina (mg/dL)</label>
+                <input id="rx-creatinina" value={creatinina} onChange={e => setCreatinina(e.target.value)} placeholder="1.0"
                   inputMode="decimal" style={{ ...inputStyle, width: 90 }} />
               </div>
               <div>
-                <label style={{ ...labelStyle, fontSize: 10.5 }}>Peso (kg, opc.)</label>
-                <input value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="70"
+                <label htmlFor="rx-peso" style={{ ...labelStyle, fontSize: 10.5 }}>Peso (kg, opc.)</label>
+                <input id="rx-peso" value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="70"
                   inputMode="decimal" style={{ ...inputStyle, width: 90 }} />
               </div>
               {renal && (
@@ -735,8 +759,8 @@ export default function GeneradorRecetaPage() {
                 {alertasRenales.map((a, i) => (
                   <div key={i} style={{
                     fontSize: 12, lineHeight: 1.45, padding: '6px 10px', borderRadius: 6,
-                    background: a.severidad === 'evitar' ? 'rgba(220,38,38,0.10)' : 'rgba(217,119,6,0.10)',
-                    borderLeft: `3px solid ${a.severidad === 'evitar' ? '#b91c1c' : 'var(--amber)'}`,
+                    background: a.severidad === 'evitar' ? 'var(--badge-red-b)' : 'var(--badge-amber-b)',
+                    borderLeft: `3px solid ${a.severidad === 'evitar' ? 'var(--badge-red-t)' : 'var(--amber)'}`,
                     color: 'var(--text)',
                     display: 'flex', alignItems: 'center', gap: 6,
                   }}>
@@ -750,7 +774,8 @@ export default function GeneradorRecetaPage() {
           {/* Medicamentos */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label style={{ ...labelStyle, margin: 0 }}>Medicamentos {medicamentos.length >= MAX_MEDS && <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text3)' }}>· máx. {MAX_MEDS}</span>}</label>
+              {/* span, no <label>: no etiqueta un control — encabeza el grupo. */}
+              <span style={{ ...labelStyle, margin: 0 }}>Medicamentos {medicamentos.length >= MAX_MEDS && <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text3)' }}>· máx. {MAX_MEDS}</span>}</span>
               <button onClick={agregarMed} className="btn btn-secondary btn-sm" disabled={medicamentos.length >= MAX_MEDS}
                 title={medicamentos.length >= MAX_MEDS ? `Máximo ${MAX_MEDS} medicamentos por receta` : undefined}>
                 <Plus size={12} /> Agregar
@@ -762,7 +787,7 @@ export default function GeneradorRecetaPage() {
                 historial y todavía cabe otro fármaco. Todo editable después. */}
             {frecuentes.length > 0 && medicamentos.length < MAX_MEDS && (
               <div style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', marginBottom: 6 }}>
+                <div className="nx-meta" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <Lightbulb size={12} style={{ color: 'var(--nexus)' }} /> Tus más recetados
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -799,8 +824,9 @@ export default function GeneradorRecetaPage() {
 
           {/* Indicaciones */}
           <div>
-            <label style={labelStyle}>Indicaciones generales</label>
+            <label htmlFor="rx-indicaciones" style={labelStyle}>Indicaciones generales</label>
             <textarea
+              id="rx-indicaciones"
               value={indicaciones}
               onChange={(e) => setIndicaciones(e.target.value)}
               placeholder="Ej: Reposo relativo, abundantes líquidos, dieta blanda…"
@@ -811,8 +837,9 @@ export default function GeneradorRecetaPage() {
 
           {/* Nota destacada al paciente */}
           <div>
-            <label style={labelStyle}>Nota al paciente (caja destacada)</label>
+            <label htmlFor="rx-nota-paciente" style={labelStyle}>Nota al paciente (caja destacada)</label>
             <textarea
+              id="rx-nota-paciente"
               value={notaParaPaciente}
               onChange={(e) => setNotaParaPaciente(e.target.value)}
               placeholder="Ej: Si presenta fiebre mayor a 39°C, acudir a urgencias."
@@ -821,7 +848,7 @@ export default function GeneradorRecetaPage() {
             />
           </div>
 
-          <div style={{ fontSize: 11.5, color: 'var(--text3)', padding: 10, background: 'rgba(20,184,166,0.06)', borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+          <div className="nx-meta" style={{ padding: 10, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 7 }}>
             <Lightbulb size={14} className="ds-icon" style={{ marginTop: 1, flexShrink: 0 }} />
             <span>¿Quieres cambiar el tamaño del papel, subir tu papel membretado o cambiar el estilo?
             Ve a <strong>Configuración → Recetas y órdenes</strong>.</span>
@@ -853,7 +880,7 @@ export default function GeneradorRecetaPage() {
             const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)
             return (
               <>
-                <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
+                <div className="nx-meta" style={{ textAlign: 'center', marginBottom: 8 }}>
                   Vista previa · {recetaConfig.disenoCompletoDataUrl && recetaConfig.disenoWidthMm && recetaConfig.disenoHeightMm
                     ? `tu formato (${Math.round(host.widthMm)}×${Math.round(host.heightMm)} mm)`
                     : PAPER_SIZES[recetaConfig.paperSize ?? 'media-carta'].label.split(' ')[0]}
@@ -898,6 +925,16 @@ export default function GeneradorRecetaPage() {
             grid-template-columns: 1fr !important;
           }
         }
+        @media (max-width: 480px) {
+          .receta-toolbar { flex-wrap: wrap; gap: 10px; }
+          .receta-toolbar > button { min-height: 44px; }
+          .receta-toolbar .actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+          .receta-toolbar .actions-row > button { width: 100%; min-height: 44px; justify-content: center; }
+          /* El primario (Descargar PDF) ocupa la fila completa; si la última acción
+             queda impar, también — sin celdas huérfanas. Mismas reglas que /nota. */
+          .receta-toolbar .actions-row > button:first-child { grid-column: 1 / -1; }
+          .receta-toolbar .actions-row > button:last-child:nth-child(even) { grid-column: 1 / -1; }
+        }
       `}</style>
     </div>
   )
@@ -913,20 +950,25 @@ function MedRow({
   return (
     <div style={{ padding: 12, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 8 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
+        {/* aria-label en cada campo de la fila: el placeholder desaparece al
+            escribir y la fila se repite N veces — sin nombre accesible, el
+            lector de pantalla anuncia seis campos mudos en un editor de recetas. */}
         <input
           value={med.nombre}
           onChange={(e) => onChange('nombre', e.target.value)}
           placeholder="Medicamento (DCI)"
+          aria-label="Medicamento (DCI)"
           style={inputStyle}
         />
         <input
           value={med.dosis}
           onChange={(e) => onChange('dosis', e.target.value)}
           placeholder="500 mg"
+          aria-label="Dosis"
           style={inputStyle}
         />
-        <button onClick={onEliminar} title="Quitar" style={{
-          background: 'transparent', border: '1px solid rgba(239,68,68,0.3)',
+        <button onClick={onEliminar} title="Quitar" aria-label="Quitar medicamento" style={{
+          background: 'transparent', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
           color: 'var(--red)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
         }}>
           <Trash2 size={12} />
@@ -936,6 +978,7 @@ function MedRow({
         <select
           value={med.via}
           onChange={(e) => onChange('via', e.target.value)}
+          aria-label="Vía de administración"
           style={inputStyle}
         >
           {VIAS.map(v => <option key={v} value={v}>{etiquetaVia(v)}</option>)}
@@ -944,6 +987,7 @@ function MedRow({
           value={med.frecuencia}
           onChange={(e) => onChange('frecuencia', e.target.value)}
           placeholder="Cada 8 hrs"
+          aria-label="Frecuencia"
           style={inputStyle}
         />
       </div>
@@ -953,12 +997,14 @@ function MedRow({
           value={med.duracion ?? ''}
           onChange={(e) => onChange('duracion', e.target.value)}
           placeholder="Por 7 días"
+          aria-label="Duración"
           style={inputStyle}
         />
         <input
           value={med.indicacion ?? ''}
           onChange={(e) => onChange('indicacion', e.target.value)}
           placeholder="Indicación (ej. con alimentos)"
+          aria-label="Indicación"
           style={inputStyle}
         />
       </div>

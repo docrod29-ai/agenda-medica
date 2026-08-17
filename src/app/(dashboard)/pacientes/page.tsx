@@ -1,41 +1,57 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { activable } from '@/lib/ui/activable'
 import { Patient, type ClinicConfig } from '@/types'
 import { getPatients, createPatient, updatePatient, getConfig } from '@/lib/firestore'
-import { fetchAutenticado } from '@/lib/auth-client'
 import { edadEnAnios } from '@/lib/expediente/pediatria'
 import { getCenso } from '@/lib/hospital/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Users, Phone, AlertCircle, FileText, Calendar, Pencil, Cake, Download, Loader2, BedDouble } from 'lucide-react'
+import { Plus, Search, X, Users, Phone, AlertCircle, Calendar, Pencil, Cake, BedDouble, ChevronRight, FileClock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
+import { PageHeader, Button, ButtonLink, EmptyState, Spinner, Modal } from '@/components/ui'
 import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
+import { describirListaVacia } from '@/lib/pacientes/vacio-de-la-lista'
+import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
+import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
+import { estadoClinicoDeFila, pendienteQueManda, ultimaVezVisto, type LecturaDelWorklist, type EstadoClinicoDeFila } from '@/lib/pacientes/estado-clinico'
+import type { TareaClinica } from '@/lib/tareas-clinicas/modelo'
+import { DisparadorPorQue, LentePorQue, usePorQue } from '@/components/tareas/PorQueEstaAqui'
+import { auth } from '@/lib/firebase'
 
 export default function PacientesPage() {
   const { toast } = useToast()
   const { user } = useAuth()
-  const { clinicId, role } = useClinic()
+  const { clinicId } = useClinic()
   const { mode } = useMode()
   const router = useRouter()
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
-  const [exportando, setExportando] = useState(false)
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState<'recientes' | 'todos' | 'alerta'>('recientes')
   const [modalOpen, setModalOpen] = useState(false)
   const [editPatient, setEditPatient] = useState<Patient | null>(null)
   // Pacientes ACTUALMENTE internados → se marcan (viven en Hospitalización).
   const [internados, setInternados] = useState<Set<string>>(new Set())
+
+  /**
+   * §20: la fila de /pacientes es un salto Paciente-lista → Expediente de la
+   * cadena de continuidad — el .nx-ident de ESA fila viaja al <h1> del
+   * Patient Anchor (la 4ª rebanada lo dejó declarado fuera; ésta lo cablea).
+   * Sin origen no hay objeto compartido que preservar y se navega a secas
+   * (§20: no animar por decorar). En modo no-médico no hay navegación: abre
+   * el editor, como siempre.
+   */
+  const abrirExpediente = (p: Patient, origen?: HTMLElement | null) => {
+    if (origen) navegarConContinuidad(() => router.push(`/expediente/${p.id}`), origen)
+    else router.push(`/expediente/${p.id}`)
+  }
 
   const load = async () => {
     if (!clinicId) return
@@ -56,47 +72,52 @@ export default function PacientesPage() {
   useEffect(() => { load() }, [clinicId])
 
   /**
-   * RESPALDO COMPLETO — del servidor, en streaming, y de verdad completo.
+   * RTC-15 — LA LISTA TIENE QUE DECIR ALGO CLÍNICO DE CADA PACIENTE.
    *
-   * ── LO QUE HABÍA AQUÍ ──────────────────────────────────────────────────────
+   * La re-puntuación §29 dejó a esta pantalla en 5.0/10 (peor superficie del
+   * producto) por una sola razón: nombre, teléfono, edad, «Editar». Un CRM.
    *
-   * Un `for` sobre los pacientes con `await getNotas(...)` DENTRO: una lectura
-   * por paciente, en serie, en el navegador, con el médico esperando y sin forma
-   * de reanudar. Y bajaba pacientes + notas, nada más — ni adendas, ni
-   * laboratorios, ni fotografía clínica, ni antecedentes, ni citas, ni cobros,
-   * ni la configuración (membrete, formato de receta, firma), ni los bloqueos de
-   * agenda, ni la farmacia, ni los internamientos, ni la bitácora.
+   * La lectura es la MISMA que ya hacen `/pendientes` y el `ContinuidadPanel`
+   * de Hoy — una consulta por consultorio, no una por paciente. Va DESPUÉS de
+   * `load()` y sin bloquearlo: los pacientes se pintan cuando llegan, y el
+   * estado clínico aterriza encima. Que tarde el worklist no puede retrasar la
+   * pantalla a la que se entra veinte veces al día.
    *
-   * Un archivo llamado «respaldo» que no respalda es peor que no tenerlo: se
-   * guarda, se duerme tranquilo, y el día que hace falta no está lo que se creía.
+   * Si falla, la lectura queda en `sin-leer` y las filas NO dicen «sin
+   * pendientes»: dicen nada. Ausencia de dato no es dato de ausencia, y aquí la
+   * diferencia es que un cabo suelto invisible se lee como que no existe.
    */
-  const exportarTodo = async () => {
-    if (!clinicId || exportando) return
-    setExportando(true)
-    try {
-      // Se abre en el navegador y se descarga en streaming: el archivo empieza a
-      // escribirse mientras el servidor sigue leyendo, sin cargar el consultorio
-      // entero en memoria de nadie.
-      const res = await fetchAutenticado(`/api/clinic/exportar?clinicId=${encodeURIComponent(clinicId)}`)
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        toast(d.error || 'No se pudo generar el respaldo', 'error')
-        return
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `respaldo_ausculta_${new Date().toISOString().slice(0, 10)}.ndjson`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast('Respaldo descargado. La última línea del archivo dice si quedó completo y qué faltó.', 'success')
-    } catch {
-      toast('No se pudo generar el respaldo', 'error')
-    } finally {
-      setExportando(false)
-    }
-  }
+  const [worklist, setWorklist] = useState<LecturaDelWorklist>({ estado: 'sin-leer' })
+  const [ahora, setAhora] = useState(0)
+  /**
+   * LA LENTE, UNA POR PÁGINA. Misma pieza que `/pendientes` y Hoy: una sola
+   * plantilla para las cuatro respuestas de §10 sobre la misma entidad. El
+   * estado vive aquí arriba y el id baja; ninguna fila guarda si está abierta.
+   */
+  const { porQueId, disparador: disparadorPorQue, scrollAlAbrir, alternar: alternarPorQue, cerrar: cerrarPorQue } = usePorQue()
+  const uid = auth.currentUser?.uid ?? ''
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    tareasVivas(clinicId)
+      .then(t => { if (vivo) { setWorklist({ estado: 'lista', tareas: t }); setAhora(Date.now()) } })
+      .catch(e => { console.error('[pacientes] no se pudo leer el worklist', e) })
+    return () => { vivo = false }
+  }, [clinicId])
+
+  /**
+   * RTC-15/RTC-29 — EL RESPALDO SE MUDÓ A `/operaciones`.
+   *
+   * Bajar un archivo del consultorio entero no es trabajo clínico: es una
+   * operación (§11), y estaba en la cabecera primaria de esta pantalla, junto
+   * a «Nuevo paciente». Parte de lo que hacía que `/pacientes` puntuara 5.0 en
+   * §29 era ese racimo de tres botones con anatomía de CRM.
+   *
+   * La conducta no se reescribió en el destino: se extrajo entera a
+   * `@/lib/clinica/descargar-respaldo` —misma ruta de servidor, mismo
+   * streaming, mismo aviso de que la última línea del archivo declara si quedó
+   * completo—. Mover no puede significar perder.
+   */
 
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
@@ -109,6 +130,35 @@ export default function PacientesPage() {
       .filter(p => norm(p.nombre).includes(q) || (qDig !== '' && (p.telefono ?? '').replace(/\D/g, '').includes(qDig)) || norm(p.email ?? '').includes(q) || norm(p.curp ?? '').includes(q))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
   }, [patients, search])
+
+  /**
+   * A QUIÉN SE PARECE LO QUE NO ENCONTRÓ.
+   *
+   * `buscarPosiblesDuplicados` vivía sólo en el formulario de alta: avisaba
+   * cuando el médico YA había decidido crear y llevaba medio formulario
+   * tecleado. Pero la pregunta «¿este paciente ya está?» se hace antes, y se
+   * hace aquí — y aquí la pantalla contestaba «Sin resultados» y se callaba.
+   *
+   * No se inventa criterio: entra el término como nombre y decide el módulo
+   * con su umbral declarado (`UMBRAL_NOMBRE`), que es lo que caza justo lo que
+   * la búsqueda por subcadena NO puede cazar — el orden de los apellidos
+   * («López García, María» / «María López García»), el dedazo («Gonzáles») y
+   * el apellido de en medio que falta. Los acentos y las mayúsculas ya los
+   * resuelve la búsqueda normal, así que lo que sobrevive hasta aquí es
+   * exactamente el caso que parte expedientes.
+   *
+   * Sólo con búsqueda VACÍA de resultados: mientras haya filas que enseñar, la
+   * respuesta a la búsqueda son las filas.
+   */
+  const parecidos = useMemo(() => {
+    const q = search.trim()
+    if (!q || (resultadosBusqueda?.length ?? 0) > 0) return []
+    // Un término de sólo dígitos es un teléfono: comparar nombres contra él no
+    // significa nada, y el módulo tiene escrito que el teléfono por sí solo
+    // NUNCA identifica (lo comparte la familia).
+    if (!/[a-zA-ZÀ-ÿñÑ]/.test(q)) return []
+    return buscarPosiblesDuplicados({ nombre: q }, patients)
+  }, [search, resultadosBusqueda, patients])
 
   // Recientes: por última cita (desc), top 15. "No se ve toda la lista".
   const recientes = useMemo(() =>
@@ -170,32 +220,106 @@ export default function PacientesPage() {
   const openEdit = (p: Patient) => { setEditPatient(p); setModalOpen(true) }
   const openNew = () => { setEditPatient(null); setModalOpen(true) }
 
+  /**
+   * EL VACÍO DE LA LISTA, DICHO UNA VEZ.
+   *
+   * Eran cuatro sitios: un héroe ilustrado y tres párrafos grises centrados a
+   * 40px, cada uno con su frase escrita a mano y ninguno con un control —el de
+   * «Recientes» llegaba a mandar al médico a buscar un chip en NEGRITA en vez
+   * de ofrecérselo, que además es un control que no es un `<button>` (§24).
+   *
+   * La decisión vive fuera de la pantalla (`describirListaVacia`); esto sólo
+   * la pinta. El gesto que se ofrece sale de la CAUSA, no del sitio.
+   */
+  const bloqueVacio = (chip: 'recientes' | 'todos' | 'alerta') => {
+    const v = describirListaVacia({
+      totalExpedientes: patients.length,
+      busqueda: search,
+      chip,
+      parecidos: parecidos.length,
+    })
+    return (
+      <>
+        <EmptyState
+          variante={v.variante}
+          illustration={v.variante === 'hero' ? <ExpedienteVacio /> : undefined}
+          title={v.titulo}
+          description={v.descripcion}
+          action={
+            v.gesto.limpiarBusqueda ? (
+              <Button variant="ghost" size="sm" icon={<X size={14} />} onClick={() => setSearch('')}>Limpiar la búsqueda</Button>
+            ) : v.gesto.verTodos ? (
+              <Button variant="ghost" size="sm" icon={<Users size={14} />} onClick={() => setFiltro('todos')}>Ver todos A-Z</Button>
+            ) : v.gesto.nuevoPaciente ? (
+              mode === 'medico'
+                ? <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
+                : <ButtonLink href="/asistente" icon={<Calendar size={16} />}>Agendar</ButtonLink>
+            ) : undefined
+          }
+        />
+        {v.enseñarParecidos && (
+          <>
+            {/* El encabezado agrupa hablando (RTC-31) y dice de dónde salen
+                estas filas: no son resultados de la búsqueda —la búsqueda no
+                encontró ninguno—, son expedientes que se parecen al nombre. */}
+            <ListaEncabezado texto="Se parecen al nombre que buscaste" />
+            {parecidos.map(c => (
+              <PacienteRow key={c.paciente.id} p={c.paciente} mode={mode} internado={internados.has(c.paciente.id)} clinico={estadoClinicoDeFila(c.paciente.id, worklist, ahora)} manda={pendienteQueManda(c.paciente.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(c.paciente.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(c.paciente, origen) : openEdit(c.paciente)} onEditar={() => openEdit(c.paciente)} />
+            ))}
+          </>
+        )}
+      </>
+    )
+  }
+
+  /**
+   * RTC-11 — `?editar=<id>` abre el editor de ESE paciente.
+   *
+   * El botón «Editar datos» del expediente hacía `push('/pacientes')` y te
+   * soltaba en la lista con el editor cerrado: un viaje que no llegaba. Con
+   * «Editar» fuera de la fila en móvil (la identidad no cabía compartiendo
+   * ancho con un botón administrativo), ése pasó a ser el único camino — así
+   * que tenía que llegar de verdad.
+   *
+   * Se espera a que los pacientes estén cargados: antes de eso no hay a quién
+   * abrir. Corre una sola vez por id (la bandera) para que cerrar el modal no
+   * lo vuelva a abrir mientras el parámetro siga en la URL.
+   */
+  const editarAtendido = useRef<string | null>(null)
+  useEffect(() => {
+    if (patients.length === 0) return
+    const id = new URLSearchParams(window.location.search).get('editar')
+    if (!id || editarAtendido.current === id) return
+    const p = patients.find(x => x.id === id)
+    if (!p) return
+    editarAtendido.current = id
+    // El `setState` va DENTRO del temporizador, no en el cuerpo del efecto:
+    // lo segundo encadena renders y el linter lo marca con razón (mismo patrón
+    // que el barrido de duplicados de más abajo).
+    const t = setTimeout(() => openEdit(p), 0)
+    return () => clearTimeout(t)
+  }, [patients])
+
   const onSaved = () => {
     setModalOpen(false); setEditPatient(null)
     load()
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       {/* Header. Modo Secretaria: solo Agendar (unifica flujo). Modo Médico: Agendar + Nuevo paciente. */}
       <PageHeader
         title="Pacientes"
+        /* RTC-31: la pantalla dice qué es y de dónde sale lo que hay dentro.
+           «Pacientes» a secas no informaba a nadie —el riel ya anuncia dónde
+           estás— y era la ÚNICA de las nueve pantallas con cabecera que no lo
+           decía, justo la más visitada. */
+        subtitle="Todo el que tiene expediente aquí. Cada uno dice lo que quedó abierto y cuándo se le vio."
         actions={mode === 'secretaria' ? (
-          <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar (registra paciente)</Button></Link>
+          <ButtonLink href="/asistente" icon={<Calendar size={16} />}>Agendar (registra paciente)</ButtonLink>
         ) : (
           <>
-            <Link href="/asistente"><Button variant="secondary" icon={<Calendar size={16} />}>Agendar</Button></Link>
-            {(role === 'medico' || role === 'admin') && patients.length > 0 && (
-              <Button
-                variant="secondary"
-                icon={exportando ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
-                onClick={exportarTodo}
-                disabled={exportando}
-                title="Descargar todo el expediente (todos los pacientes y sus notas) como respaldo"
-              >
-                {exportando ? 'Generando…' : 'Respaldo'}
-              </Button>
-            )}
+            <ButtonLink href="/asistente" variant="secondary" icon={<Calendar size={16} />}>Agendar</ButtonLink>
             <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
           </>
         )}
@@ -244,15 +368,18 @@ export default function PacientesPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {duplicados.map(par => (
               <div key={`${par.a.id}|${par.b.id}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
+                <div className="nx-meta" style={{ marginBottom: 8 }}>
                   {par.motivo}
                   {par.certeza === 'seguro' && <strong style={{ color: 'var(--amber)' }}> · muy probable</strong>}
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {[par.a, par.b].map(p => (
                     <div key={p.id} style={{ flex: '1 1 220px', minWidth: 200, padding: '8px 10px', borderRadius: 8, background: 'var(--s1)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{p.nombre}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text3)', margin: '2px 0 7px' }}>
+                      {/* nx-ident (8ª rebanada): identidad estructurada de §2
+                          también en la tarjeta de duplicados — no un 13/600
+                          en dialecto propio. Envuelve, no se trunca (§24). */}
+                      <span className="nx-ident" style={{ display: 'block' }}>{p.nombre}</span>
+                      <div className="nx-meta" style={{ margin: '2px 0 7px' }}>
                         {p.edad ? `${p.edad} años` : 'sin edad'}
                         {p.telefono ? ` · ${p.telefono}` : ''}
                         {p.ultimaCita ? ` · última cita ${p.ultimaCita.slice(0, 10)}` : ' · sin citas'}
@@ -271,10 +398,23 @@ export default function PacientesPage() {
         </Modal>
       )}
 
-      {/* Search */}
+      {/*
+        Search — RTC-25: EL PLACEHOLDER NO CABÍA EN UN TELÉFONO.
+
+        Decía «Buscar por nombre, teléfono, correo o CURP…»: medido a 390px,
+        327px de texto en un campo de 296px útiles. El médico veía la frase
+        cortada, y el propio equipo rojo la transcribió mal («…correo o CUI»)
+        — leyendo, justamente, lo que le cabía en la pantalla.
+
+        Se quita «Buscar por», que es lo único que el campo NO necesita decir:
+        la lupa a la izquierda ya dice que se busca. Los cuatro campos por los
+        que se puede buscar se conservan enteros, que es la información que
+        sólo puede dar el placeholder. Y el `aria-label` sigue diciendo la
+        frase completa para quien lo oye.
+      */}
       <div style={{ position: 'relative', marginBottom: 12, maxWidth: 420 }}>
         <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
-        <input className="input" style={{ paddingLeft: 32 }} placeholder="Buscar por nombre, teléfono, correo o CURP…" aria-label="Buscar un paciente por nombre, teléfono, correo o CURP" value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="input" style={{ paddingLeft: 32 }} placeholder="Nombre, teléfono, correo o CURP…" aria-label="Buscar un paciente por nombre, teléfono, correo o CURP" value={search} onChange={e => setSearch(e.target.value)} />
         {search && (
           <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}>
             <X size={14} />
@@ -291,20 +431,30 @@ export default function PacientesPage() {
             ['alerta', `Con alerta${conAlerta.length ? ` (${conAlerta.length})` : ''}`],
           ] as const).map(([k, label]) => {
             const activo = filtro === k
+            // Relleno, no trazo: va --nexus-solido con blanco encima (5.16:1
+            // oscuro, 7.0:1 claro — ver globals.css). --teal + negro medía
+            // 2.99:1 en claro: el trazo no está pensado para ser fondo.
             return (
               <button key={k} onClick={() => setFiltro(k)} style={{
                 padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                background: activo ? 'var(--teal)' : 'var(--s2)',
-                color: activo ? '#000' : 'var(--text2)',
-                border: `1px solid ${activo ? 'var(--teal)' : 'var(--border)'}`,
+                background: activo ? 'var(--nexus-solido)' : 'var(--s2)',
+                color: activo ? '#fff' : 'var(--text2)',
+                border: `1px solid ${activo ? 'var(--nexus-solido)' : 'var(--border)'}`,
               }}>{label}</button>
             )
           })}
         </div>
       )}
 
-      {/* Lista */}
-      <div className="card" style={{ padding: 0 }}>
+      {/* RTC-31 — UNA LISTA DE TRABAJO NO NECESITA UNA TARJETA ALREDEDOR.
+          La tarjeta contenedora (`.card`) dibujaba un marco alrededor de la
+          lista entera: una frontera que no separa nada de nada, porque dentro
+          hay una sola cosa. `/pendientes` —la superficie que puntúa 1.0 en
+          §29— no la tiene: sus filas van a la página y quien agrupa es el
+          encabezado del grupo, que además DICE algo («Vistos recientemente»,
+          «3 con inasistencias»). El marco era lo genérico; el encabezado es lo
+          que informa. */}
+      <div style={{ borderTop: '1px solid var(--border)' }}>
         {loading ? (
           <Spinner center label="Cargando pacientes…" />
         ) : errorCarga ? (
@@ -314,51 +464,38 @@ export default function PacientesPage() {
             action={<Button onClick={() => window.location.reload()}>Reintentar</Button>}
           />
         ) : patients.length === 0 ? (
-          <EmptyState
-            illustration={<ExpedienteVacio />}
-            title="No hay pacientes registrados"
-            description="Registra tu primer paciente o agéndalo directamente desde el asistente."
-            action={mode === 'medico'
-              ? <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
-              : <Link href="/asistente"><Button icon={<Calendar size={16} />}>Agendar</Button></Link>}
-          />
+          bloqueVacio(filtro)
         ) : resultadosBusqueda ? (
           // Búsqueda activa → resultados aplanados
           resultadosBusqueda.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-              Sin resultados para “{search}”.
-            </div>
+            bloqueVacio(filtro)
           ) : (
             <>
               <ListaEncabezado texto={`${resultadosBusqueda.length} resultado${resultadosBusqueda.length !== 1 ? 's' : ''}`} />
               {resultadosBusqueda.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} manda={pendienteQueManda(p.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
         ) : filtro === 'recientes' ? (
           recientes.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-              Aún no hay pacientes con citas recientes. Usa <strong>Todos A-Z</strong> o busca por nombre.
-            </div>
+            bloqueVacio('recientes')
           ) : (
             <>
               <ListaEncabezado texto="Vistos recientemente" />
               {recientes.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} manda={pendienteQueManda(p.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
         ) : filtro === 'alerta' ? (
           conAlerta.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-              Ningún paciente con inasistencias o cancelaciones.
-            </div>
+            bloqueVacio('alerta')
           ) : (
             <>
               <ListaEncabezado texto={`${conAlerta.length} con inasistencias / cancelaciones`} />
               {conAlerta.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} manda={pendienteQueManda(p.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -366,13 +503,21 @@ export default function PacientesPage() {
           // Todos A-Z agrupados por inicial
           grupos.map(([letra, lista]) => (
             <div key={letra}>
-              <div style={{
-                position: 'sticky', top: 0, zIndex: 1,
-                background: 'var(--s2)', padding: '5px 16px', fontSize: 12, fontWeight: 700,
-                color: 'var(--text3)', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)',
-              }}>{letra}</div>
+              {/* RTC-31: la inicial agrupa hablando, no pintando una banda.
+                  Al quitar la tarjeta contenedora, la barra de --s2 a todo lo
+                  ancho pasó de ser un separador dentro de una caja a ser el
+                  elemento más pesado de la pantalla — más que los nombres de
+                  los pacientes. Sigue siendo pegajosa (que es lo que sirve al
+                  recorrer 300 filas) y sigue hablando el rol del sistema. */}
+              <div
+                className="t-overline"
+                style={{
+                  position: 'sticky', top: 0, zIndex: 1,
+                  background: 'var(--bg)', padding: '14px 2px 6px',
+                }}
+              >{letra}</div>
               {lista.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} clinico={estadoClinicoDeFila(p.id, worklist, ahora)} manda={pendienteQueManda(p.id, worklist, ahora)} porQueId={porQueId} onAbrirPorQue={alternarPorQue} visto={ultimaVezVisto(p.ultimaCita, ahora)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </div>
           ))
@@ -398,6 +543,22 @@ export default function PacientesPage() {
           }}
         />
       )}
+
+      {/*
+        LA LENTE — se busca la tarea por id en cada render en vez de guardarla:
+        lo que se lee es el pendiente de AHORA, no una copia. Si desapareció de
+        la lectura (se cerró en otra pestaña), la lente se queda sin sujeto y no
+        se abre, que es mejor que enseñar la ficha de algo que ya no está.
+      */}
+      <LentePorQue
+        tarea={porQueId && worklist.estado === 'lista'
+          ? (worklist.tareas.find(t => t.id === porQueId) ?? null)
+          : null}
+        uid={uid}
+        invocador={disparadorPorQue}
+        scrollAlAbrir={scrollAlAbrir}
+        alCerrar={cerrarPorQue}
+      />
     </div>
   )
 }
@@ -405,26 +566,60 @@ export default function PacientesPage() {
 /** Encabezado gris de una sección de la lista. */
 function ListaEncabezado({ texto }: { texto: string }) {
   return (
-    <div style={{ padding: '8px 16px', fontSize: 11.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)', background: 'var(--s1)' }}>
+    /* Sin fondo ni caja: el encabezado agrupa hablando, no dibujando. Es el
+       rol `.t-overline` del sistema, el mismo que usan los grupos de
+       /operaciones desde RTC-29. */
+    <div className="t-overline" style={{ padding: '14px 2px 8px' }}>
       {texto}
     </div>
   )
 }
 
 /** Fila de paciente reutilizable (búsqueda, recientes, alerta, A-Z). */
-function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
+function PacienteRow({ p, mode, internado, clinico, manda, porQueId, onAbrirPorQue, visto, onAbrir, onEditar }: {
   p: Patient
   mode: string
   internado?: boolean
-  onAbrir: () => void
+  /** RTC-15: lo que la fila dice CLÍNICAMENTE. Se calcula en `@/lib/pacientes/estado-clinico`. */
+  clinico: EstadoClinicoDeFila
+  /**
+   * EL PENDIENTE QUE LA LÍNEA CLÍNICA RESUME — el mismo, no otra lectura.
+   *
+   * Es lo que convierte la fila de «texto que informa» en «hecho que se puede
+   * inspeccionar»: sin él, para saber por qué un resultado venció había que
+   * irse a `/pendientes` y buscar al paciente, o sea abandonar la lista.
+   */
+  manda: TareaClinica | null
+  porQueId: string | null
+  onAbrirPorQue: (t: TareaClinica, control: HTMLElement) => void
+  /** «visto hace 3 días» — el dato ya estaba leído y no se pintaba en ningún sitio. */
+  visto: string | null
+  /** Recibe el .nx-ident de la fila: el objeto compartido de la coreografía (§20). */
+  onAbrir: (origen?: HTMLElement | null) => void
   onEditar: () => void
 }) {
   return (
     <div
-      {...activable(onAbrir, { etiqueta: `Abrir el expediente de ${p.nombre}` })}
+      /**
+       * RTC-11 — la fila tiene variante MÓVIL, y la decide la hoja.
+       *
+       * Medido a 390px: avatar 38 + «Editar» ~78 + chevron 14 + 3 huecos de 14
+       * + padding 32 dejaban ~96px de columna para el nombre, y `.nx-ident` no
+       * trunca a propósito (§24) — así que la identidad caía en TRES renglones
+       * y el teléfono se partía. Era el defecto #13 de la DNA reaparecido: el
+       * dato más importante de la fila comprimido por cromo administrativo.
+       *
+       * En móvil «Editar» (datos de CONTACTO: administrativo) sale de la fila
+       * y el chevron decorativo también. La capacidad no se pierde — vive en
+       * el expediente, cuyo «Editar datos» ahora sí abre el editor de ESE
+       * paciente (`?editar=`). Es la misma regla de §8.5 que ya se aplicó al
+       * pulgar y a los FAB: en el ancho del teléfono, lo clínico gana.
+       */
+      className="nx-fila-paciente"
       style={{
+        position: 'relative',
         display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
-        borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s',
+        borderBottom: '1px solid var(--border)', transition: 'background var(--mov-rapido) var(--mov-curva)',
       }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -437,8 +632,99 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
         {p.nombre.charAt(0).toUpperCase()}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* La identidad es el <button> que abre el expediente y su área de
+            golpe se estira sobre la fila entera (.nx-fila-abrir::after). La
+            fila contenedora NO es control: hacerla role="button" con el botón
+            Editar dentro era nested-interactive (axe, 5 nodos) — un control
+            dentro de otro control. Ahora son dos botones HERMANOS: Editar
+            vive por encima del velo con su propio z-index. El gesto del ratón
+            no cambia: clic en cualquier punto de la fila sigue abriendo.
+            Y sin ellipsis: la identidad del paciente no se trunca (§24) —
+            .nx-ident envuelve. */}
+        <button
+          type="button"
+          className="nx-fila-abrir"
+          onClick={e => onAbrir(e.currentTarget.querySelector<HTMLElement>('.nx-ident'))}
+          aria-label={`Abrir el expediente de ${p.nombre}`}
+        >
+          <span className="nx-ident" style={{ display: 'block' }}>{p.nombre}</span>
+        </button>
+        {/**
+          * RTC-15 — LO CLÍNICO VA PRIMERO, Y EN PROSA.
+          *
+          * Esta línea es la que convierte una libreta de contactos en una lista
+          * de trabajo. Va ANTES del teléfono y de la edad porque el orden de la
+          * fila dice qué importa: si de este paciente quedó algo abierto, eso
+          * pesa más que su número.
+          *
+          * Habla como `/pendientes` —la superficie que mejor puntuó en §29—:
+          * dice la CONSECUENCIA, no el estado. «Resultado — venció y nadie la
+          * tomó» no necesita que nadie sepa qué significa un chip rojo. El
+          * color acompaña, no informa solo (§29, RTC-17).
+          *
+          * Y no se pinta nada cuando la lectura no llegó: una fila muda es
+          * honesta, una que dice «sin pendientes» por un error de red no.
+          */}
+        {clinico.clase === 'con-pendientes' && (
+          <div
+            className="nx-meta nx-fila-clinico"
+            style={{
+              display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap',
+              color: clinico.urgente ? 'var(--red)' : 'var(--text2)',
+              fontWeight: clinico.urgente ? 600 : 500,
+            }}
+          >
+            {clinico.urgente
+              ? <AlertCircle size={11} style={{ flexShrink: 0 }} />
+              : <FileClock size={11} className="ds-icon" style={{ flexShrink: 0 }} />}
+            <span>{clinico.etiqueta}</span>
+            {clinico.porQue && <span>— {clinico.porQue}</span>}
+            {clinico.vivas > 1 && (
+              <span style={{ color: 'var(--text3)', fontWeight: 400 }}>
+                · {clinico.vivas} pendientes en total
+              </span>
+            )}
+            {/*
+              INSPECCIONAR EN EL SITIO — y NUNCA mutar en el sitio.
+
+              La fila decía «Resultado — venció y nadie la tomó» y su único
+              verbo era «Editar»: estado clínico presentado como información,
+              con un gesto de CRM al lado. Para atenderlo había que abandonar
+              la pantalla, que es el modelo de interacción que la re-auditoría
+              llamó genérico.
+
+              Lo que NO se hace, y es deliberado: traer aquí los botones de
+              avance de estado de `/pendientes`. Esa pantalla separa a
+              propósito «Ya se hizo» de «Lo revisé — cerrar»
+              (`POR_QUE_COMPLETADA_NO_ES_CERRADA`) porque entre las dos vive el
+              daño que el worklist existe para evitar. Un toque para cerrar en
+              una lista donde el detalle NO está en pantalla permitiría cerrar
+              un resultado sin haberlo leído. Inspeccionar contesta la pregunta
+              sin conceder esa autoridad.
+
+              Es la MISMA pieza que usan `/pendientes` y Hoy: una sola
+              plantilla para las cuatro respuestas de §10 sobre la misma
+              entidad. Y es hermano del botón que abre el expediente, nunca su
+              hijo — un control dentro de otro es `nested-interactive`, que
+              esta fila ya pagó una vez.
+            */}
+            {manda && (
+              <span className="nx-fila-porque">
+                <DisparadorPorQue
+                  tarea={manda}
+                  abierta={porQueId === manda.id}
+                  onAbrir={onAbrirPorQue}
+                />
+              </span>
+            )}
+          </div>
+        )}
+        <div className="nx-meta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* «visto hace 3 días» sale de `ultimaCita`, que ya se leía para
+              ordenar la pestaña Recientes y no se pintaba en ningún sitio: el
+              dato estaba en la mano y el médico tenía que abrir el expediente
+              para enterarse de algo que la lista ya sabía. */}
+          {visto && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={11} className="ds-icon" /> {visto}</span>}
           {p.telefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {p.telefono}</span>}
           {p.edad && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad} años</span>}
           {internado && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--nexus)', fontWeight: 600 }}><BedDouble size={11} /> Internado — ver Hospitalización</span>}
@@ -456,18 +742,39 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
       )}
       {mode === 'medico' && (
         <button
+          className="nx-fila-editar"
           onClick={e => { e.stopPropagation(); onEditar() }}
           title="Editar datos de contacto"
           style={{
             display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
             background: 'var(--s2)', border: '1px solid var(--border)',
             color: 'var(--text2)', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            /* Por encima del velo de .nx-fila-abrir::after: hermano, no hijo,
+               del control que abre — el clic en Editar cae aquí y no navega. */
+            position: 'relative', zIndex: 1,
           }}
         >
           <Pencil size={12} /> Editar
         </button>
       )}
-      {mode === 'medico' && <FileText size={14} color="var(--text3)" style={{ flexShrink: 0 }} />}
+      {/**
+        * RTC-15 (parte de affordance) — un CHEVRON, no un documento.
+        *
+        * El hallazgo decía «la única affordance por fila es Editar»: lo único
+        * que PARECÍA pulsable era el botón administrativo, mientras que abrir
+        * el expediente —el trabajo de la pantalla— no se anunciaba. El icono
+        * de la derecha era un `FileText`, que dibuja un documento: describe el
+        * destino, no el gesto.
+        *
+        * Se cambia por el chevron, que es lo que dice «esta fila lleva a otro
+        * sitio» sin añadir un control. Un botón «Abrir» con texto se descartó a
+        * propósito: sería un SEGUNDO control que hace lo mismo que la fila
+        * entera, en la pantalla que §29 penaliza justamente por exceso de
+        * cromo. La fila ya es pulsable en toda su superficie
+        * (`.nx-fila-abrir::after`) y su nombre accesible ya dice el gesto
+        * («Abrir el expediente de …»).
+        */}
+      {mode === 'medico' && <ChevronRight className="nx-fila-chevron" size={16} color="var(--text3)" style={{ flexShrink: 0 }} aria-hidden="true" />}
     </div>
   )
 }
@@ -721,8 +1028,11 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
                     padding: '8px 10px', borderRadius: 8, background: 'var(--s1)', border: '1px solid var(--border)',
                   }}>
                     <div style={{ flex: 1, minWidth: 180 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.paciente.nombre}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                      {/* nx-ident (8ª rebanada): el candidato a duplicado del
+                          formulario habla el mismo rol de identidad que la
+                          fila del directorio y que la tarjeta del modal. */}
+                      <span className="nx-ident" style={{ display: 'block' }}>{c.paciente.nombre}</span>
+                      <div className="nx-meta">
                         {c.motivo}
                         {c.paciente.edad ? ` · ${c.paciente.edad} años` : ''}
                         {c.paciente.ultimaCita ? ` · última cita ${c.paciente.ultimaCita.slice(0, 10)}` : ''}

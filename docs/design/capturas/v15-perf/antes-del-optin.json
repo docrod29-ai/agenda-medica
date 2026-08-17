@@ -1,0 +1,342 @@
+{
+  "fecha": "2026-08-13T06:34:10.405Z",
+  "base": "http://localhost:3000",
+  "corridas": [
+    {
+      "corrida": "escritorio",
+      "pantalla": "hoy",
+      "ruta": "/dashboard",
+      "ttfb": 5,
+      "fcp": 60,
+      "lcp": 3272,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 52,
+        "shell": 231,
+        "spinnerFuera": 482,
+        "texto400": 501,
+        "texto1500": 501
+      },
+      "firestore": {
+        "primeraMs": 159,
+        "ultimaMs": 496,
+        "n": 5
+      },
+      "auth": {
+        "primeraMs": 149,
+        "n": 1
+      },
+      "longTasksMs": 0,
+      "longTasksN": 0,
+      "jsKB": 527,
+      "jsPeticiones": 30,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 537
+    },
+    {
+      "corrida": "escritorio",
+      "pantalla": "pacientes",
+      "ruta": "/pacientes",
+      "ttfb": 5,
+      "fcp": 56,
+      "lcp": 3264,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 44,
+        "shell": 220,
+        "spinnerFuera": 293,
+        "texto400": 315
+      },
+      "firestore": {
+        "primeraMs": 157,
+        "ultimaMs": 349,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 147,
+        "n": 1
+      },
+      "longTasksMs": 0,
+      "longTasksN": 0,
+      "jsKB": 492,
+      "jsPeticiones": 28,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 425
+    },
+    {
+      "corrida": "escritorio",
+      "pantalla": "expediente",
+      "ruta": "/expediente/pac-refugio-alcantara",
+      "ttfb": 154,
+      "fcp": 200,
+      "lcp": 3512,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 187,
+        "shell": 439,
+        "texto400": 489,
+        "spinnerFuera": 622
+      },
+      "firestore": {
+        "primeraMs": 353,
+        "ultimaMs": 710,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 341,
+        "n": 1
+      },
+      "longTasksMs": 60,
+      "longTasksN": 1,
+      "jsKB": 517,
+      "jsPeticiones": 30,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 379
+    },
+    {
+      "corrida": "escritorio",
+      "pantalla": "consulta",
+      "ruta": "/consulta/pac-refugio-alcantara",
+      "ttfb": 37,
+      "fcp": 80,
+      "lcp": 3448,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 72,
+        "spinnerFuera": 378,
+        "shell": 378,
+        "texto400": 425,
+        "texto1500": 425
+      },
+      "firestore": {
+        "primeraMs": 207,
+        "ultimaMs": 695,
+        "n": 7
+      },
+      "auth": {
+        "primeraMs": 187,
+        "n": 1
+      },
+      "longTasksMs": 158,
+      "longTasksN": 1,
+      "jsKB": 734,
+      "jsPeticiones": 34,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 539
+    },
+    {
+      "corrida": "escritorio",
+      "pantalla": "pendientes",
+      "ruta": "/pendientes",
+      "ttfb": 7,
+      "fcp": 60,
+      "lcp": 3268,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 50,
+        "shell": 231,
+        "spinnerFuera": 399,
+        "texto400": 431,
+        "texto1500": 431
+      },
+      "firestore": {
+        "primeraMs": 168,
+        "ultimaMs": 445,
+        "n": 4
+      },
+      "auth": {
+        "primeraMs": 157,
+        "n": 1
+      },
+      "longTasksMs": 0,
+      "longTasksN": 0,
+      "jsKB": 484,
+      "jsPeticiones": 27,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 453
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "hoy",
+      "ruta": "/dashboard",
+      "ttfb": 6,
+      "fcp": 136,
+      "lcp": 3668,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 117,
+        "shell": 525,
+        "spinnerFuera": 845,
+        "texto400": 927,
+        "texto1500": 928
+      },
+      "firestore": {
+        "primeraMs": 381,
+        "ultimaMs": 994,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 346,
+        "n": 1
+      },
+      "longTasksMs": 328,
+      "longTasksN": 3,
+      "jsKB": 527,
+      "jsPeticiones": 30,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 537
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "pacientes",
+      "ruta": "/pacientes",
+      "ttfb": 11,
+      "fcp": 128,
+      "lcp": 3572,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 106,
+        "shell": 427,
+        "spinnerFuera": 654,
+        "texto400": 687
+      },
+      "firestore": {
+        "primeraMs": 307,
+        "ultimaMs": 749,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 277,
+        "n": 1
+      },
+      "longTasksMs": 118,
+      "longTasksN": 1,
+      "jsKB": 492,
+      "jsPeticiones": 28,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 425
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "expediente",
+      "ruta": "/expediente/pac-refugio-alcantara",
+      "ttfb": 13,
+      "fcp": 128,
+      "lcp": 3668,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 102,
+        "shell": 472,
+        "texto400": 604,
+        "spinnerFuera": 807
+      },
+      "firestore": {
+        "primeraMs": 359,
+        "ultimaMs": 877,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 331,
+        "n": 1
+      },
+      "longTasksMs": 181,
+      "longTasksN": 1,
+      "jsKB": 517,
+      "jsPeticiones": 30,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 379
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "consulta",
+      "ruta": "/consulta/pac-refugio-alcantara",
+      "ttfb": 12,
+      "fcp": 164,
+      "lcp": 4096,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 132,
+        "spinnerFuera": 853,
+        "shell": 853,
+        "texto400": 1026,
+        "texto1500": 1027
+      },
+      "firestore": {
+        "primeraMs": 347,
+        "ultimaMs": 1458,
+        "n": 7
+      },
+      "auth": {
+        "primeraMs": 322,
+        "n": 1
+      },
+      "longTasksMs": 597,
+      "longTasksN": 1,
+      "jsKB": 734,
+      "jsPeticiones": 34,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 539
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "pendientes",
+      "ruta": "/pendientes",
+      "ttfb": 6,
+      "fcp": 128,
+      "lcp": 3536,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 99,
+        "shell": 427,
+        "spinnerFuera": 683,
+        "texto400": 766,
+        "texto1500": 766
+      },
+      "firestore": {
+        "primeraMs": 309,
+        "ultimaMs": 628,
+        "n": 5
+      },
+      "auth": {
+        "primeraMs": 282,
+        "n": 1
+      },
+      "longTasksMs": 202,
+      "longTasksN": 2,
+      "jsKB": 492,
+      "jsPeticiones": 28,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 454
+    }
+  ]
+}

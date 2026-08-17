@@ -136,7 +136,7 @@ export function DoctorFilter({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                   padding: '8px 10px', borderRadius: 6,
-                  background: !medicoId ? 'rgba(20,184,166,0.12)' : 'transparent',
+                  background: !medicoId ? 'color-mix(in srgb, var(--nexus) 12%, transparent)' : 'transparent',
                   border: 'none', color: !medicoId ? 'var(--teal)' : 'var(--text)',
                   cursor: 'pointer', fontSize: 13, textAlign: 'left',
                 }}
@@ -156,7 +156,7 @@ export function DoctorFilter({
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                     padding: '8px 10px', borderRadius: 6,
-                    background: activo ? 'rgba(20,184,166,0.12)' : 'transparent',
+                    background: activo ? 'color-mix(in srgb, var(--nexus) 12%, transparent)' : 'transparent',
                     border: 'none', color: activo ? 'var(--teal)' : 'var(--text)',
                     cursor: 'pointer', fontSize: 13, textAlign: 'left',
                   }}

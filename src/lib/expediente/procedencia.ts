@@ -1,9 +1,9 @@
 /**
  * SELLO DE PROCEDENCIA — trazabilidad medicolegal por campo de la nota.
  *
- * Para cada dato ESTRUCTURADO que quedó en la nota (diagnósticos, medicamentos,
- * alergias, signos vitales) deriva DE DÓNDE salió, cruzando la lista final contra
- * el bloque de extracción auditada de la IA:
+ * Para cada campo que quedó en la nota —diagnósticos, medicamentos, alergias,
+ * signos vitales **y el texto redactado** (secciones y resumen)— deriva DE DÓNDE
+ * salió, cruzando la nota final contra el bloque de extracción auditada de la IA:
  *
  *   - 'dictado' : la IA lo sacó del dictado Y conserva la cita textual (source_quote).
  *                 Es lo máximo en trazabilidad: se puede leer la frase exacta.
@@ -202,7 +202,7 @@ interface ExtractionBlock {
   resumenEjecutivo?: ItemExtraido
 }
 
-interface FinalNota {
+export interface FinalNota {
   diagnosticos?: { descripcion?: string }[]
   medicamentos?: { nombre?: string; dosis?: string }[]
   alergias?: (string | { alergeno?: string })[]
@@ -213,6 +213,69 @@ interface FinalNota {
 }
 
 /**
+ * QUÉ ENTRA AL SELLO — una sola definición, porque había DOS y no contaban lo
+ * mismo.
+ *
+ * ── EL DEFECTO QUE ESTO CIERRA ──────────────────────────────────────────────
+ *
+ * `construirManifiesto` audita la prosa desde hace versiones. Al FIRMAR,
+ * `/consulta` le pasaba la prosa, así que el sello que queda en el registro
+ * medicolegal la cuenta. Las dos superficies donde el médico LEE ese sello —la
+ * tira de `/consulta` y la del expediente— construían su propio objeto a mano
+ * y omitían `secciones` y `resumen`.
+ *
+ * Resultado, medido sobre la misma nota:
+ *
+ * ```text
+ *   lo que se SELLA   →  «3 del dictado · 4 a mano»   (7 campos)
+ *   lo que se VE      →  «4 a mano»                   (4 campos)
+ * ```
+ *
+ * Y los tres campos que faltaban en pantalla no eran tres cualesquiera: eran la
+ * prosa, que es donde vivieron los tres fallos que el Dr. encontró en
+ * producción. El peor de ellos —«¿diabetes o presión alta?» «no, nada de eso»
+ * redactado como «Paciente con DM2 e HTA»— se sella como **del dictado**, con
+ * la cita «no, nada de eso» al lado. Esa fila es exactamente la que deja ver
+ * que el respaldo dice lo contrario de lo que la nota afirma, y era la que la
+ * pantalla no enseñaba. El sello legible contaba con precisión la parte que
+ * nunca falló.
+ *
+ * Dos sellos que cuentan distinto sobre la misma nota no son un detalle de
+ * presentación: uno de los dos miente ante quien lo lea, y el que miente es el
+ * único que un humano llega a ver.
+ *
+ * ── POR QUÉ UNA FUNCIÓN Y NO UN OBJETO EN CADA SITIO ────────────────────────
+ *
+ * Porque el defecto no fue teclear mal: fue que había tres listas de «qué es
+ * una nota para el sello» y sólo una estaba completa. Mientras cada superficie
+ * enumere los campos por su cuenta, la siguiente familia que se audite
+ * (procedimientos, órdenes) volverá a llegar a una y no a las otras.
+ *
+ * No calcula nada clínico ni cambia ningún valor: normaliza forma. §1 del
+ * Master Loop V15 lo permite por su nombre («presentation-layer adapters,
+ * view models, selectors»).
+ */
+export function notaParaElSello(n: FinalNota): FinalNota {
+  return {
+    diagnosticos: n.diagnosticos,
+    medicamentos: n.medicamentos,
+    alergias: n.alergias,
+    signosVitales: n.signosVitales,
+    /* Se normaliza a las tres claves que el manifiesto lee y nada más: un
+       `NotaSeccion` completo arrastra estado de interfaz (sugerencias, foco)
+       que no tiene por qué viajar hasta aquí. */
+    secciones: n.secciones?.map(s => ({ key: s?.key, label: s?.label, value: s?.value })),
+    resumen: n.resumen,
+  }
+}
+
+export const POR_QUE_UNA_SOLA_LISTA_DE_CAMPOS =
+  'El sello que se archiva contaba la prosa y el que se enseña no, sobre la ' +
+  'misma nota: 7 campos contra 4. Mientras cada superficie enumere por su ' +
+  'cuenta qué es una nota, la siguiente familia auditada volverá a llegar a ' +
+  'una sola de ellas.'
+
+/**
  * Cuánto texto de una sección se guarda como «valor» del campo.
  *
  * El manifiesto es una tabla de procedencia, no una copia de la nota: el
@@ -220,6 +283,21 @@ interface FinalNota {
  * identifica de qué párrafo se habla.
  */
 export const MUESTRA_PROSA = 160
+
+/**
+ * El prefijo con el que se identifica un campo de PROSA dentro del manifiesto.
+ *
+ * Se declara aquí y no se teclea en ninguna pantalla: quien pinta el sello
+ * necesita separar el texto redactado de los datos estructurados —son dos
+ * familias con peso visual muy distinto, §16—, y hacerlo comparando cadenas a
+ * mano en cada superficie es la misma trampa que este módulo acaba de cerrar.
+ */
+export const PREFIJO_PROSA = 'prosa:'
+
+/** ¿Este campo del manifiesto es texto redactado, y no un dato estructurado? */
+export function esProsa(campo: { id: string }): boolean {
+  return campo.id.startsWith(PREFIJO_PROSA)
+}
 
 /**
  * Qué secciones se juzgan con la regla V3 —«¿lo afirmó el paciente o lo nombró
@@ -526,7 +604,7 @@ export function construirManifiesto(
    */
   const prosa: { id: string; etiqueta: string; texto: string; ex: ItemExtraido | undefined; antecedente: boolean }[] = []
   if (final.resumen?.trim()) {
-    prosa.push({ id: 'prosa:resumen', etiqueta: 'Resumen', texto: final.resumen.trim(), ex: extraction?.resumenEjecutivo, antecedente: false })
+    prosa.push({ id: `${PREFIJO_PROSA}resumen`, etiqueta: 'Resumen', texto: final.resumen.trim(), ex: extraction?.resumenEjecutivo, antecedente: false })
   }
   final.secciones?.forEach((sec, i) => {
     const texto = String(sec?.value ?? '').trim()
@@ -534,7 +612,7 @@ export function construirManifiesto(
     const clave = String(sec?.key ?? '')
     const etiqueta = String(sec?.label ?? clave ?? `Sección ${i + 1}`)
     prosa.push({
-      id: `prosa:${clave || i}`,
+      id: `${PREFIJO_PROSA}${clave || i}`,
       etiqueta,
       texto,
       ex: clave ? extraction?.secciones?.[clave] : undefined,

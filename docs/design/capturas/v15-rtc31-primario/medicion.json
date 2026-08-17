@@ -1,0 +1,198 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "escritorio/pac-refugio-alcantara": {
+      "primario": {
+        "x": 1112,
+        "y": 292,
+        "w": 160,
+        "h": 43
+      },
+      "filaDelPrimario": {
+        "x": 392,
+        "y": 292,
+        "w": 880,
+        "h": 43
+      },
+      "margenInferior": 24,
+      "anchoSinUsarALaIzquierda": 720,
+      "filaDelAncla": {
+        "x": 392,
+        "y": 117,
+        "w": 880,
+        "h": 45
+      },
+      "nombreDelPaciente": {
+        "x": 448,
+        "y": 117,
+        "w": 824,
+        "h": 24
+      },
+      "huecoALaDerechaDelNombre": 0,
+      "hayEncuentroSinCerrar": false,
+      "inicioDeLaHistoria": 491,
+      "viewport": 900
+    },
+    "escritorio/pac-luzmaria-cervantes": {
+      "primario": {
+        "x": 1112,
+        "y": 294,
+        "w": 160,
+        "h": 43
+      },
+      "filaDelPrimario": {
+        "x": 392,
+        "y": 294,
+        "w": 880,
+        "h": 43
+      },
+      "margenInferior": 24,
+      "anchoSinUsarALaIzquierda": 720,
+      "filaDelAncla": {
+        "x": 392,
+        "y": 117,
+        "w": 880,
+        "h": 45
+      },
+      "nombreDelPaciente": {
+        "x": 448,
+        "y": 117,
+        "w": 824,
+        "h": 24
+      },
+      "huecoALaDerechaDelNombre": 0,
+      "hayEncuentroSinCerrar": false,
+      "inicioDeLaHistoria": 736,
+      "viewport": 900
+    },
+    "escritorio/pac-aurelio-dominguez": {
+      "primario": {
+        "x": 1112,
+        "y": 294,
+        "w": 160,
+        "h": 43
+      },
+      "filaDelPrimario": {
+        "x": 392,
+        "y": 294,
+        "w": 880,
+        "h": 43
+      },
+      "margenInferior": 24,
+      "anchoSinUsarALaIzquierda": 720,
+      "filaDelAncla": {
+        "x": 392,
+        "y": 117,
+        "w": 880,
+        "h": 45
+      },
+      "nombreDelPaciente": {
+        "x": 448,
+        "y": 117,
+        "w": 824,
+        "h": 24
+      },
+      "huecoALaDerechaDelNombre": 0,
+      "hayEncuentroSinCerrar": false,
+      "inicioDeLaHistoria": 736,
+      "viewport": 900
+    },
+    "movil/pac-refugio-alcantara": {
+      "primario": {
+        "x": 16,
+        "y": 381,
+        "w": 358,
+        "h": 44
+      },
+      "filaDelPrimario": {
+        "x": 16,
+        "y": 381,
+        "w": 358,
+        "h": 44
+      },
+      "margenInferior": 24,
+      "anchoSinUsarALaIzquierda": 0,
+      "filaDelAncla": {
+        "x": 16,
+        "y": 195,
+        "w": 358,
+        "h": 45
+      },
+      "nombreDelPaciente": {
+        "x": 72,
+        "y": 195,
+        "w": 302,
+        "h": 24
+      },
+      "huecoALaDerechaDelNombre": 0,
+      "hayEncuentroSinCerrar": false,
+      "inicioDeLaHistoria": 599,
+      "viewport": 844
+    },
+    "movil/pac-luzmaria-cervantes": {
+      "primario": {
+        "x": 16,
+        "y": 382,
+        "w": 358,
+        "h": 44
+      },
+      "filaDelPrimario": {
+        "x": 16,
+        "y": 382,
+        "w": 358,
+        "h": 44
+      },
+      "margenInferior": 24,
+      "anchoSinUsarALaIzquierda": 0,
+      "filaDelAncla": {
+        "x": 16,
+        "y": 195,
+        "w": 358,
+        "h": 45
+      },
+      "nombreDelPaciente": {
+        "x": 72,
+        "y": 195,
+        "w": 302,
+        "h": 24
+      },
+      "huecoALaDerechaDelNombre": 0,
+      "hayEncuentroSinCerrar": false,
+      "inicioDeLaHistoria": 869,
+      "viewport": 844
+    },
+    "movil/pac-aurelio-dominguez": {
+      "primario": {
+        "x": 16,
+        "y": 382,
+        "w": 358,
+        "h": 44
+      },
+      "filaDelPrimario": {
+        "x": 16,
+        "y": 382,
+        "w": 358,
+        "h": 44
+      },
+      "margenInferior": 24,
+      "anchoSinUsarALaIzquierda": 0,
+      "filaDelAncla": {
+        "x": 16,
+        "y": 195,
+        "w": 358,
+        "h": 45
+      },
+      "nombreDelPaciente": {
+        "x": 72,
+        "y": 195,
+        "w": 302,
+        "h": 24
+      },
+      "huecoALaDerechaDelNombre": 0,
+      "hayEncuentroSinCerrar": false,
+      "inicioDeLaHistoria": 869,
+      "viewport": 844
+    }
+  },
+  "errores": []
+}

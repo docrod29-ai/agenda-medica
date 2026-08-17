@@ -1,0 +1,130 @@
+{
+  "oscuro": {
+    "temaActual": "dark",
+    "filas": 5,
+    "enlacesAnidados": 0,
+    "identEsEnlace": false,
+    "ident": {
+      "texto": "Luz María Cervantes Ochoa",
+      "fontSize": "15.5px",
+      "fontWeight": "600",
+      "color": "rgb(242, 239, 233)",
+      "textDecorationLine": "none",
+      "textOverflow": "clip",
+      "whiteSpace": "normal"
+    },
+    "meta": {
+      "texto": "+52 55 5555 0106 51 años",
+      "fontSize": "12.5px",
+      "fontWeight": "400",
+      "color": "rgb(138, 143, 148)",
+      "textDecorationLine": "none",
+      "textOverflow": "clip",
+      "whiteSpace": "normal"
+    },
+    "nombreLargo": {
+      "texto": "María del Refugio Alcántara Solís",
+      "recortado": false,
+      "lineas": 1
+    }
+  },
+  "axeOscuro": [
+    {
+      "id": "nested-interactive",
+      "impact": "serious",
+      "help": "Interactive controls must not be nested",
+      "nodos": 5,
+      "targets": [
+        "div[role=\"button\"]:nth-child(2)",
+        "div[role=\"button\"]:nth-child(3)",
+        "div[role=\"button\"]:nth-child(4)",
+        "div[role=\"button\"]:nth-child(5)",
+        "div[role=\"button\"]:nth-child(6)"
+      ]
+    }
+  ],
+  "navegacion": {
+    "nombreDeLaFila": "Luz María Cervantes Ochoa",
+    "urlAterrizada": "/expediente/pac-luzmaria-cervantes",
+    "llega": true
+  },
+  "claro": {
+    "temaActual": "light",
+    "filas": 5,
+    "enlacesAnidados": 0,
+    "identEsEnlace": false,
+    "ident": {
+      "texto": "Luz María Cervantes Ochoa",
+      "fontSize": "15.5px",
+      "fontWeight": "600",
+      "color": "rgb(11, 12, 14)",
+      "textDecorationLine": "none",
+      "textOverflow": "clip",
+      "whiteSpace": "normal"
+    },
+    "meta": {
+      "texto": "+52 55 5555 0106 51 años",
+      "fontSize": "12.5px",
+      "fontWeight": "400",
+      "color": "rgb(107, 111, 117)",
+      "textDecorationLine": "none",
+      "textOverflow": "clip",
+      "whiteSpace": "normal"
+    },
+    "nombreLargo": {
+      "texto": "María del Refugio Alcántara Solís",
+      "recortado": false,
+      "lineas": 1
+    }
+  },
+  "axeClaro": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(3) > span",
+        "div:nth-child(3) > button:nth-child(1)"
+      ]
+    },
+    {
+      "id": "nested-interactive",
+      "impact": "serious",
+      "help": "Interactive controls must not be nested",
+      "nodos": 5,
+      "targets": [
+        "div[role=\"button\"]:nth-child(2)",
+        "div[role=\"button\"]:nth-child(3)",
+        "div[role=\"button\"]:nth-child(4)",
+        "div[role=\"button\"]:nth-child(5)",
+        "div[role=\"button\"]:nth-child(6)"
+      ]
+    }
+  ],
+  "movil": {
+    "desbordeHorizontal": false,
+    "anchoDocumento": 390,
+    "filas": 5,
+    "nombreLargo": {
+      "texto": "María del Refugio Alcántara Solís",
+      "recortado": false,
+      "lineas": 3
+    }
+  },
+  "axeMovil": [
+    {
+      "id": "nested-interactive",
+      "impact": "serious",
+      "help": "Interactive controls must not be nested",
+      "nodos": 5,
+      "targets": [
+        "div[role=\"button\"]:nth-child(2)",
+        "div[role=\"button\"]:nth-child(3)",
+        "div[role=\"button\"]:nth-child(4)",
+        "div[role=\"button\"]:nth-child(5)",
+        "div[role=\"button\"]:nth-child(6)"
+      ]
+    }
+  ]
+}

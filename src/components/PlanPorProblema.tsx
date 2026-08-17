@@ -54,9 +54,13 @@ export function PlanPorProblema(p: PlanPorProblemaProps) {
         borderBottom: '1px solid var(--border)',
       }}>
         <Layers size={15} style={{ color: 'var(--text3)' }} />
-        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
+        {/* h2, no span: sección mayor del lienzo — su título entra al esquema
+            de encabezados (h1 paciente → h2 sección → h3 problema). Sin él,
+            los problemas de abajo eran h4 huérfanos tras el h1 (`heading-order`
+            de axe, misma familia que la hoja del paciente). */}
+        <h2 style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
           Qué es de qué
-        </span>
+        </h2>
         <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>
           atado sólo donde usted lo dijo
         </span>
@@ -65,12 +69,12 @@ export function PlanPorProblema(p: PlanPorProblemaProps) {
       <div style={{ padding: '4px 14px 14px' }}>
         {grupos.map((g, i) => (
           <div key={g.diagnostico ?? '__sin__'} style={{ marginTop: i === 0 ? 12 : 16 }}>
-            <h4 style={{
+            <h3 style={{
               margin: 0, fontSize: 13.5, fontWeight: 700,
               color: g.diagnostico ? 'var(--text)' : 'var(--amber)',
             }}>
               {g.diagnostico ?? 'Sin asignar a un problema'}
-            </h4>
+            </h3>
 
             {!g.diagnostico && (
               /* Se explica el hueco: que no conste no lo vuelve un error. */

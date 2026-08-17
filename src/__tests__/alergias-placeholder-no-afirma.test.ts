@@ -31,6 +31,13 @@
  * (signos vitales, antecedentes) ni valida el parser de negaciones — ese tiene
  * su propia suite. Tampoco impide que el MÉDICO escriba «sin alergias
  * conocidas» como dato: eso es legítimo y auditado (paciente_modificado).
+ *
+ * ACTUALIZACIÓN (V15-PATIENT-WORKSPACE-001, 11-ago-2026): el banner de
+ * alergias del expediente se mudó a `PatientAnchor.tsx` — el ancla del
+ * paciente, siempre visible, que reemplazó los dos bloques sueltos que había
+ * al inicio de la página (§7 del master loop V15). El caso 3 ahora lee ESE
+ * archivo; el texto y la regla de seguridad clínica que prueba no cambiaron,
+ * sólo dónde vive el JSX.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -39,7 +46,7 @@ import { join } from 'node:path'
 const consulta = readFileSync(
   join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
 const expediente = readFileSync(
-  join(process.cwd(), 'src/app/(dashboard)/expediente/[patientId]/page.tsx'), 'utf8')
+  join(process.cwd(), 'src/components/expediente/PatientAnchor.tsx'), 'utf8')
 
 /** Placeholders de los campos/banners de alergias, extraídos del JSX. */
 function placeholdersDeAlergias(fuente: string): string[] {

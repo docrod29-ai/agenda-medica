@@ -166,8 +166,28 @@ describe('LO QUE NO CAMBIA', () => {
 })
 
 describe('Y LA NOTA SE LA PASA', () => {
-  it('la consulta manda secciones y resumen al manifiesto', () => {
+  /**
+   * La vara se ajustó, y NO a la baja: antes exigía la forma literal del objeto
+   * que `/consulta` escribía a mano al firmar. Esa forma se retiró porque era
+   * justamente el problema — había tres listas de «qué es una nota para el
+   * sello» y sólo ésta llevaba la prosa, así que el registro contaba 7 campos
+   * y las dos pantallas 4. Ahora la prosa entra por `notaParaElSello()`.
+   *
+   * Se comprueban las DOS mitades: que la página se la pase, y que lo haga por
+   * la definición compartida. Sin la segunda, esto volvería a pasar con una
+   * pantalla que se escribiera su propia copia otra vez.
+   */
+  it('la consulta manda secciones y resumen al manifiesto, por la definición compartida', () => {
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
-    expect(page).toContain('secciones: secciones.map(sec => ({ key: sec.key, label: sec.label, value: sec.value }))')
+    expect(page).toContain('notaParaElSello({')
+    expect(page).toMatch(/secciones,\s*resumen,/)
+  })
+
+  it('y `notaParaElSello` es lo que llega al manifiesto en las dos lecturas', () => {
+    const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+    // el sello que se ARCHIVA
+    expect(page).toContain('construirManifiesto(\n          notaDelSello,')
+    // el sello que se VE
+    expect(page).toContain('final={notaDelSello}')
   })
 })

@@ -12,7 +12,10 @@ export const metadata = {
 function Check() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden>
-      <path d="M20 6L9 17l-5-5" stroke="#14b8a6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* El token va en `style`, NO en el atributo: un atributo de
+          presentación de SVG no acepta `var()` —se queda sin trazo y la
+          palomita desaparece—. En `style` sí resuelve, porque ahí es CSS. */}
+      <path d="M20 6L9 17l-5-5" style={{ stroke: 'var(--nexus)' }} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -167,7 +170,7 @@ export default async function PreciosPage() {
         <TablaNivelesIA />
       </div>
 
-      <div style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 12, padding: '12px 16px' }}>
+      <div style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2)', background: 'color-mix(in srgb, var(--nexus) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 12, padding: '12px 16px' }}>
         <strong>Precio fundador</strong> — los primeros 50 médicos congelan su tarifa de por vida. Aplica tu código <strong>FUNDADOR</strong> al pagar.
       </div>
 

@@ -36,6 +36,24 @@
  * estado que se quede pegado si algo falla. Y donde `:has()` no exista, la regla
  * simplemente no aplica: se queda el comportamiento de hoy, que es el peor caso
  * — no el único.
+ *
+ * ── RTC-32: LA MITAD DEL DEFECTO DEJÓ DE EXISTIR (y la otra sigue) ──────────
+ *
+ * Este guardián nació de un botón de ayuda encima del campo «Peso». RTC-32
+ * retiró ese botón: en el shell del dashboard ya no flota NADA —la ayuda vive
+ * en el pie del riel y en la topbar, el tema en Operaciones—, así que dentro
+ * del producto clínico no hay nada que apartar. El defecto no se sortea: no
+ * ocurre.
+ *
+ * Lo que NO desapareció, y por eso este guardián sigue vivo en vez de borrarse:
+ * fuera del shell —login, registro, marketing— el toggle de tema sigue siendo
+ * un botón fijo abajo-derecha sobre formularios de verdad, en el mismo ancho
+ * de teléfono. Ahí la regla es la única defensa, y borrar el guardián porque
+ * su mitad más famosa murió dejaría la mitad viva sin nadie mirándola.
+ *
+ * Los casos cambian de sujeto (del par de botones al que queda) y NO de
+ * exigencia. Se deja escrito qué cubrían antes para que nadie lo lea como una
+ * relajación.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -45,17 +63,28 @@ const css = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
 
 describe('los botones flotantes se apartan mientras se escribe', () => {
   it('la regla existe y cubre los tres tipos de campo', () => {
+    // Era ≥2 apariciones porque el selector se repetía una vez por botón. Con
+    // un solo botón que apartar, lo que se exige es que el selector siga
+    // nombrando los TRES tipos de campo — que es lo que el caso siempre quiso
+    // decir; el «2» era un artefacto de cuántos botones había.
     const bloque = /html:has\(input:focus, textarea:focus, select:focus\)/g
-    expect(css.match(bloque)?.length ?? 0).toBeGreaterThanOrEqual(2)
+    expect(css.match(bloque)?.length ?? 0).toBeGreaterThanOrEqual(1)
   })
 
-  it('cubre los DOS botones: el de ayuda y el de tema', () => {
+  it('cubre TODO lo que siga flotando: hoy sólo el toggle fuera del shell', () => {
     /**
-     * Los dos son `position: fixed` a la derecha. Arreglar uno y dejar el otro
-     * sería mover el problema tres centímetros.
+     * Antes exigía los DOS botones («arreglar uno y dejar el otro sería mover
+     * el problema tres centímetros»). RTC-32 mató el de ayuda, así que ahora
+     * el caso exige las dos mitades de la verdad de hoy:
+     *
+     *   1. el que queda flotando está cubierto;
+     *   2. el que se retiró NO ha vuelto — porque si vuelve, vuelve el defecto
+     *      original (un botón encima de «Peso») y esta regla ya no lo nombra.
+     *
+     * Así el caso sigue siendo el mismo trato: nada fijo sobre un campo.
      */
     expect(css).toMatch(/html:has\([^)]*\) \.theme-toggle/)
-    expect(css).toMatch(/html:has\([^)]*\) \.boton-ayuda-fab/)
+    expect(css).not.toContain('boton-ayuda-fab')
   })
 
   it('además de invisibles, dejan de estorbar al dedo', () => {
@@ -75,7 +104,16 @@ describe('los botones flotantes se apartan mientras se escribe', () => {
   })
 
   it('la transición existe, para que no sea un parpadeo', () => {
-    expect(css).toMatch(/\.theme-toggle, \.boton-ayuda-fab \{ transition: opacity 140ms ease; \}/)
+    // V15-MOTION-001 (1ª rebanada): la duración dejó de escribirse a mano
+    // (140ms ease) y habla los tokens de movimiento. Lo que este caso protege
+    // no es la cifra: es que el fade EXISTA — el guardián sigue al mecanismo,
+    // como el del alto táctil de la franja y el del aviso push antes que él.
+    // 2ª rebanada (una voz por elemento): el toggle lleva opacity dentro de SU
+    // shorthand — antes una regla compartida con el FAB lo sombreaba entero.
+    // RTC-32: el FAB y su regla propia murieron; queda el shorthand, que es
+    // justo la forma que aquella rebanada dejó como correcta.
+    const shorthandToggle = /\.theme-toggle \{[^}]*transition:[^;}]*opacity var\(--mov-rapido\) var\(--mov-curva\)[^}]*\}/
+    expect(css).toMatch(shorthandToggle)
   })
 
   it('queda escrito POR QUÉ ningún barrido lo cazó', () => {

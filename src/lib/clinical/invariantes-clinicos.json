@@ -1,8 +1,8 @@
 {
-  "sellado": "2026-08-09",
+  "sellado": "2026-08-15",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4543,
+  "totalCasos": 4663,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -489,6 +489,10 @@
       "minCasos": 37
     },
     {
+      "archivo": "src/__tests__/grabacion-unmount-cierra-escucha.test.ts",
+      "minCasos": 1
+    },
+    {
       "archivo": "src/__tests__/grabar-es-actividad.test.ts",
       "minCasos": 13
     },
@@ -631,6 +635,10 @@
     {
       "archivo": "src/__tests__/la-grabacion-larga-no-muere.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/la-hoja-de-estilos-llega-entera.test.ts",
+      "minCasos": 3
     },
     {
       "archivo": "src/__tests__/la-maqueta-se-construyo-entera.test.ts",
@@ -961,6 +969,10 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts",
+      "minCasos": 9
+    },
+    {
       "archivo": "src/__tests__/respaldo-consultorio.test.ts",
       "minCasos": 21
     },
@@ -971,6 +983,10 @@
     {
       "archivo": "src/__tests__/roles-de-hablante.test.ts",
       "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/rt-08-ventana-de-clic-ciego.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/segunda-opinion-por-tramos.test.ts",
@@ -1235,6 +1251,46 @@
     {
       "archivo": "src/__tests__/una-version-desplegada-no-miente.test.ts",
       "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/v15-cada-destino-declara-su-encabezado.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/v15-cierre-agenda-el-seguimiento.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/v15-el-dia-vacio-dice-cual-de-los-tres.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/v15-el-documento-clinico-nombra-al-paciente.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/v15-el-respaldo-local-llega-al-medico.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/v15-el-sello-que-se-ve-cuenta-lo-mismo-que-el-sellado.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/v15-la-hoja-inferior-no-la-tapa-la-barra.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/v15-la-lista-vacia-dice-cuantos-hay-fuera.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/v15-rtc21-exportar-dice-el-trabajo.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/v15-rtc30-el-vacio-dice-cuantos-hay-fuera.test.ts",
+      "minCasos": 13
     },
     {
       "archivo": "src/__tests__/via-no-dictada-avisa.test.ts",

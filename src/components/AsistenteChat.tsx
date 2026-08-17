@@ -6,6 +6,7 @@
  */
 import { useState, useRef, useEffect } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { comportamientoScroll } from '@/lib/ui/movimiento'
 import { Send, Loader2 } from 'lucide-react'
 
 export type Turno = { rol: 'user' | 'bot'; texto: string }
@@ -23,7 +24,7 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
   const [cargando, setCargando] = useState(false)
   const finRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [turnos, cargando])
+  useEffect(() => { finRef.current?.scrollIntoView({ behavior: comportamientoScroll() }) }, [turnos, cargando])
 
   const preguntar = async (texto: string) => {
     const t = texto.trim()
@@ -54,7 +55,7 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
               {SUGERENCIAS.map(s => (
                 <button key={s} onClick={() => preguntar(s)}
-                  style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--s1)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 'var(--r-pill)', padding: '5px 11px', cursor: 'pointer' }}>{s}</button>
+                  style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--s1)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 'var(--r-pill)', padding: '5px 11px', cursor: 'pointer' }}>{s}</button>
               ))}
             </div>
           </div>

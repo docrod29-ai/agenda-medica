@@ -9,7 +9,8 @@ import { getPatients, getAppointments } from '@/lib/firestore'
 import { where, getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Patient, Appointment } from '@/types'
-import { pacientesParaReactivar, msgReactivacion, msgReferido, msgSeguimiento, diasEntre, type CandidatoReactivacion } from '@/lib/reactivacion'
+import { pacientesParaReactivar, desgloseDeReactivacion, msgReactivacion, msgReferido, msgSeguimiento, diasEntre, type CandidatoReactivacion } from '@/lib/reactivacion'
+import { describirVacioDeUnaLista, type RestriccionDeLista } from '@/lib/ui/vacio-de-una-lista'
 import { openWhatsApp, copyToClipboard } from '@/lib/whatsapp'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { puedeContactar, type LecturasPrevias } from '@/lib/whatsapp/puede-contactar'
@@ -87,13 +88,95 @@ export default function ReactivacionPage() {
     }).finally(() => setLoading(false))
   }, [clinicId])
 
-  const candidatos = useMemo(
-    () => pacientesParaReactivar(pacientes, hoyISO(), umbral, (p) => {
+  /*
+    UN SOLO «hoy» PARA TODA LA PANTALLA. Estaba declarado más abajo, junto al
+    seguimiento posconsulta; subirlo evita que el desglose, la lista y las filas
+    puedan calcularse contra dos días distintos si el render cruza la
+    medianoche — y evita repetir la llamada, que es lo que cuenta el escáner de
+    zona horaria (`timezone-sitios`).
+  */
+  const hoy = hoyISO()
+
+  /**
+   * RTC-30 — LA LISTA VACÍA TIENE CINCO CAUSAS Y ANTES SÓLO DECÍA UNA.
+   *
+   * `desgloseDeReactivacion` devuelve los candidatos que se enseñan Y el
+   * recuento de todo lo que queda fuera. La razón de exclusión se parte en dos
+   * —baja y cita futura— porque no se dicen igual: una es un límite y la otra
+   * es una buena noticia. El booleano que consume el núcleo sigue siendo el
+   * mismo de siempre (`!!razón`), así que a quién se contacta no cambia.
+   */
+  const desglose = useMemo(
+    () => desgloseDeReactivacion(pacientes, hoy, umbral, UMBRALES[0].dias, (p) => {
+      const tel = normalizarTelefonoWa(p.whatsapp || p.telefono || '')
+      if (tel && optOut.has(tel)) return 'baja'
+      if (conCitaFutura.has(p.id)) return 'cita-futura'
+      return null
+    }),
+    [pacientes, umbral, optOut, conCitaFutura, hoy],
+  )
+  const candidatos = desglose.candidatos
+
+  /**
+   * El gesto sale de la CAUSA: bajar la píldora al umbral más bajo que de
+   * verdad enseña a alguien. Ofrecer «+3 meses» cuando tampoco hay nadie a 3
+   * meses sería mandar al médico a otra pantalla vacía.
+   */
+  const umbralQueEnseña = useMemo(() => {
+    if (desglose.bajoElUmbral === 0) return null
+    const razon = (p: Patient) => {
       const tel = normalizarTelefonoWa(p.whatsapp || p.telefono || '')
       return (!!tel && optOut.has(tel)) || conCitaFutura.has(p.id)
-    }),
-    [pacientes, umbral, optOut, conCitaFutura],
-  )
+    }
+    return UMBRALES.find(u => u.dias < umbral && pacientesParaReactivar(pacientes, hoy, u.dias, razon).length > 0) ?? null
+  }, [desglose.bajoElUmbral, pacientes, umbral, optOut, conCitaFutura, hoy])
+
+  /**
+   * El estado vacío, decidido fuera de la pantalla (`describirVacioDeUnaLista`,
+   * la regla RTC-30 escrita una sola vez). Aquí sólo se le dan las frases que
+   * un módulo general no puede saber y se pinta lo que devuelve.
+   */
+  const vacio = useMemo(() => {
+    const r: RestriccionDeLista[] = []
+    if (desglose.bajoElUmbral > 0) r.push({
+      id: 'umbral',
+      frase: `${desglose.bajoElUmbral} ${desglose.bajoElUmbral === 1 ? 'lleva' : 'llevan'} menos de ${UMBRALES.find(u => u.dias === umbral)?.label ?? `${umbral} días`}`,
+      gesto: umbralQueEnseña ? `Ver +${umbralQueEnseña.label}` : null,
+    })
+    if (desglose.conCitaFutura > 0) r.push({
+      id: 'cita-futura', gesto: null,
+      frase: `${desglose.conCitaFutura} ya ${desglose.conCitaFutura === 1 ? 'tiene' : 'tienen'} cita agendada`,
+    })
+    if (desglose.conBaja > 0) r.push({
+      id: 'baja', gesto: null,
+      frase: `${desglose.conBaja} ${desglose.conBaja === 1 ? 'pidió' : 'pidieron'} no recibir mensajes`,
+    })
+    if (desglose.bloqueoArco > 0) r.push({
+      id: 'arco', gesto: null,
+      frase: `${desglose.bloqueoArco} ${desglose.bloqueoArco === 1 ? 'ejerció' : 'ejercieron'} su derecho ARCO`,
+    })
+    /*
+      SIN TELÉFONO NO ES «BIEN SEGUIDO». Es el caso que más se parecía a un
+      éxito y menos lo era: un paciente que lleva dos años sin volver y no
+      tiene un número al que escribir era invisible aquí, y su ausencia se leía
+      como buen seguimiento. Ahora se dice, y se dice dónde se arregla.
+    */
+    if (desglose.sinTelefono > 0) r.push({
+      id: 'sin-telefono', gesto: null,
+      frase: `${desglose.sinTelefono} no ${desglose.sinTelefono === 1 ? 'tiene teléfono' : 'tienen teléfono'} registrado`,
+    })
+    return describirVacioDeUnaLista({
+      total: desglose.total,
+      sustantivo: ['paciente', 'pacientes'],
+      restricciones: r,
+      registroVacio: {
+        titulo: 'Nadie pendiente de reactivar',
+        // La felicitación se queda, pero SÓLO aquí: es el único caso en que es
+        // verdad que nadie lleva más de tres meses sin volver.
+        descripcion: `Ningún paciente lleva más de ${UMBRALES[0].label} sin volver. ¡Buen seguimiento!`,
+      },
+    })
+  }, [desglose, umbral, umbralQueEnseña])
 
   const nombreMedico = config?.nombreMedico || undefined
   const urlReserva = typeof window !== 'undefined' && clinicId
@@ -113,7 +196,6 @@ export default function ReactivacionPage() {
     catch { toast('No se pudo copiar', 'error') }
   }
 
-  const hoy = hoyISO()
   const seguir = (c: Appointment) => {
     if (!veredicto.sePuede) { toast(veredicto.motivo, 'error'); return }
     const p = pacientes.find(x => x.id === c.pacienteId)
@@ -213,9 +295,13 @@ export default function ReactivacionPage() {
           <Spinner center label="Cargando pacientes…" />
         ) : candidatos.length === 0 ? (
           <EmptyState
-            illustration={<AgendaVacia />}
-            title="Nadie pendiente de reactivar"
-            description={`No hay pacientes con más de ${umbral} días sin volver. ¡Buen seguimiento!`}
+            variante={vacio.variante}
+            illustration={vacio.variante === 'hero' ? <AgendaVacia /> : undefined}
+            title={vacio.titulo}
+            description={vacio.descripcion}
+            action={vacio.gestos[0]
+              ? <Button variant="ghost" size="sm" icon={<Clock size={14} />} onClick={() => { if (umbralQueEnseña) setUmbral(umbralQueEnseña.dias) }}>{vacio.gestos[0].etiqueta}</Button>
+              : undefined}
           />
         ) : (
           candidatos.map((c, i) => (

@@ -1,0 +1,282 @@
+'use client'
+/**
+ * INSTRUMENT STRIP — V15-SHELL-GREYBOX-001, Capa 1.
+ *
+ * V15 §5 la define como «estado periférico persistente»: paciente actual,
+ * estado de encuentro, grabación activa, sync/autoguardado, consultorio.
+ * Advierte explícitamente: «no debe volverse una segunda barra de navegación».
+ *
+ * ── LAS SEÑALES QUE PINTA ─────────────────────────────────────────────────────
+ *
+ *   - consultorio activo (mismo dato que ya pinta `Sidebar`/`FlowRail`);
+ *   - grabación activa, releyendo el MISMO evento `EVENTO_GRABANDO` que ya
+ *     escucha `MarcoEscuchando` — no es una segunda fuente de verdad, es la
+ *     misma señal PINTADA distinto (el marco perimetral es la advertencia
+ *     ambiental; esta franja es la confirmación textual con hora transcurrida);
+ *   - paciente actual (V15-PATIENT-WORKSPACE-001, continuación) — ver abajo.
+ *
+ * ── PACIENTE ACTUAL, Y POR QUÉ SE LEE DE LA URL ──────────────────────────────
+ *
+ * Quedó pendiente desde V15-SHELL-GREYBOX-001: pintarlo exigía o inventar un
+ * selector nuevo, o leer PHI fuera del componente que ya lo hacía con permisos
+ * verificados. `patientIdDeLaRuta()` resuelve lo primero sin tocar Firestore
+ * (es la URL, no una consulta); `getPatient()` resuelve lo segundo siendo LA
+ * MISMA función, con el mismo alcance de clínica, que ya usan
+ * expediente/consulta/receta/orden/nota/referencia — no una lectura nueva con
+ * su propio criterio de permisos.
+ *
+ * Así el médico no pierde de vista EN QUIÉN ESTÁ al pasar del expediente a
+ * generar una receta o una orden, aunque esas pantallas (Fase 8 del master
+ * loop) no se toquen todavía — es la franja persistente la que carga, no cada
+ * pantalla la que tiene que avisar.
+ */
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { Circle } from 'lucide-react'
+import { useConfig } from '@/hooks/useConfig'
+import { useClinic } from '@/context/ClinicContext'
+import { getPatient } from '@/lib/firestore'
+import { patientIdDeLaRuta } from '@/lib/nav/paciente-de-la-ruta'
+import { EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-grabando'
+import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
+
+/**
+ * Nombre del paciente cuya ruta se está viendo ahora mismo, o `null` si esta
+ * pantalla no es de un paciente concreto o el nombre aún no cargó.
+ *
+ * NUNCA enseña el nombre del paciente ANTERIOR mientras carga el siguiente: el
+ * estado guarda el último `{id, nombre}` resuelto, y el hook sólo lo devuelve
+ * si ese `id` coincide con el `patientId` de la URL actual — si cambió de
+ * paciente (o salió a una pantalla sin paciente), el id ya no coincide y el
+ * valor queda oculto de inmediato, sin esperar a que resuelva la nueva lectura
+ * ni llamar `setState` a ciegas dentro del efecto.
+ */
+function usePacienteActual(): { id: string; nombre: string } | null {
+  const pathname = usePathname()
+  const { clinicId } = useClinic()
+  const patientId = patientIdDeLaRuta(pathname)
+  const [cargado, setCargado] = useState<{ id: string; nombre: string } | null>(null)
+
+  useEffect(() => {
+    if (!clinicId || !patientId) return
+    let vivo = true
+    getPatient(clinicId, patientId)
+      .then(p => { if (vivo && p) setCargado({ id: patientId, nombre: p.nombre }) })
+      .catch(() => { /* silencioso: la franja es conveniencia, no la fuente de la identidad — el ancla del expediente ya avisa si falla la lectura */ })
+    return () => { vivo = false }
+  }, [clinicId, patientId])
+
+  return cargado && cargado.id === patientId ? cargado : null
+}
+
+function useSegundosGrabando(): number | null {
+  const [segundos, setSegundos] = useState<number | null>(null)
+  useEffect(() => {
+    let inicio: number | null = null
+    let intervalo: ReturnType<typeof setInterval> | null = null
+    const detener = () => { if (intervalo != null) { clearInterval(intervalo); intervalo = null } }
+    const alSonar = (ev: Event) => {
+      const d = (ev as CustomEvent<DetalleDeEscucha>).detail
+      if (!d || typeof d.activo !== 'boolean') return
+      if (!d.activo) { inicio = null; detener(); setSegundos(null); return }
+      if (inicio != null) return   // ya estaba contando; el latido de EVENTO_GRABANDO no reinicia
+      inicio = performance.now()
+      setSegundos(0)
+      intervalo = setInterval(() => {
+        setSegundos(Math.max(0, Math.round((performance.now() - (inicio as number)) / 1000)))
+      }, 1000)
+    }
+    window.addEventListener(EVENTO_GRABANDO, alSonar)
+    return () => { window.removeEventListener(EVENTO_GRABANDO, alSonar); detener() }
+  }, [])
+  return segundos
+}
+
+function formatearDuracion(s: number): string {
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  return `${m}:${String(r).padStart(2, '0')}`
+}
+
+/**
+ * `enTopbar` (V15-MOBILE-001, tercera rebanada, §22/§23): en móvil la franja
+ * NO es una segunda fila bajo la topbar — es el CENTRO de la topbar. La
+ * medición de baseline (`medir-trabajos-moviles-v15.mjs`) encontró «Ausculta»
+ * dos veces apiladas en el shell de todas las pantallas, 30px extra de shell
+ * fijo, y el enlace del paciente con un objetivo táctil de 141×18 (menos de
+ * la mitad del mínimo de 44px de §24).
+ *
+ * En la variante compacta el paciente GANA a la clínica: con 390px no caben
+ * los dos, y a media consulta lo periférico que importa es EN QUIÉN estás y
+ * si estás grabando — el nombre del consultorio es admin no esencial (§8.5).
+ * Sin paciente en la ruta, la fila enseña la identidad de siempre (una vez).
+ */
+export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
+  const { config } = useConfig()
+  const segundos = useSegundosGrabando()
+  const paciente = usePacienteActual()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  /**
+   * §20: el enlace de paciente de la franja es un salto → Expediente de la
+   * cadena de continuidad (la 4ª rebanada lo dejó declarado fuera). Dos
+   * decisiones que no son estilo:
+   *
+   *  · Si la pantalla actual YA tiene el ancla (`.nx-vt-paciente`: expediente
+   *    o consulta), ELLA es el origen automático — nombrar también a la
+   *    franja pondría dos elementos con el mismo nombre en la captura vieja
+   *    y el navegador saltaría la transición entera. Sólo cuando no hay
+   *    ancla (receta/orden/nota/referencia) la franja es el origen: la
+   *    identidad periférica crece hasta el ancla del expediente.
+   *
+   *  · Ya EN el expediente de este paciente no se intercepta nada: la URL no
+   *    cambia, el template no se remonta, y coreografiar eso congelaría la
+   *    pantalla hasta el tope de espera. El Link hace su no-op de siempre.
+   */
+  const irAlExpediente = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!paciente) return
+    if (pathname?.startsWith('/expediente/')) return
+    if (!esClickDeNavegacionSimple(e)) return
+    e.preventDefault()
+    const anclaVisible = document.querySelector('.nx-vt-paciente')
+    const origen = anclaVisible ? null : e.currentTarget
+    navegarConContinuidad(() => router.push(`/expediente/${paciente.id}`), origen)
+  }
+
+  if (enTopbar) {
+    return (
+      <div
+        role="status"
+        aria-label="Estado clínico y de sistema"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0,
+          fontSize: 12, color: 'var(--text3)', overflow: 'hidden',
+        }}
+        className="nx-instrument-strip-topbar"
+      >
+        {paciente ? (
+          /* V15-VISUAL-SYSTEM-001 (8ª rebanada): la identidad de la franja es
+             `.nx-ident-franja` — 14/600/var(--text), la voz más fuerte DE LA
+             FRANJA (antes: 12/--text2 con ellipsis, más chica que el respaldo
+             del consultorio). El enlace centra un objetivo táctil de 44px y el
+             span interior envuelve hasta 2 líneas (--clamp, excepción
+             declarada a §24 en globals.css) — ellipsis de una línea era la
+             truncación de identidad que las rebanadas 4-7 retiraron del resto
+             del shell. */
+          <Link
+            href={`/expediente/${paciente.id}`}
+            className="nx-ident-franja"
+            onClick={irAlExpediente}
+            style={{
+              display: 'flex', alignItems: 'center', minHeight: 44,
+              paddingRight: 8, minWidth: 0,
+            }}
+          >
+            <span className="nx-ident-franja--clamp">{paciente.nombre}</span>
+          </Link>
+        ) : (
+          /* SIN PACIENTE: EL CONSULTORIO, PERO SÓLO DONDE NO ESTÁ YA (RTC-22).
+             La franja porta la MISMA voz de identidad que el paciente — antes
+             pintaba 16px mientras el paciente pintaba 12: hablaba más fuerte
+             enseñando lo menos importante (§5: «current patient» es el primer
+             estado periférico).
+
+             Lo que RTC-22 añade es DÓNDE. En escritorio el riel ya lleva el
+             nombre del consultorio en su cabecera, así que esta copia lo
+             repetía: dos elementos con el mismo texto en la misma pantalla, y
+             ninguno de los dos es estado clínico. A ≤768px el riel no existe
+             —la barra del pulgar es la navegación— y entonces ésta es la
+             ÚNICA identidad que queda: ahí se conserva.
+
+             Se resuelve con ancho, no con JavaScript: quién pinta el nombre
+             depende de qué cromo hay en pantalla, y eso lo sabe el CSS. */
+          <span className="nx-ident-franja nx-marca-de-respaldo" style={{
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {config.nombreClinica || 'Ausculta'}
+          </span>
+        )}
+        {segundos != null && (
+          /* V15-VISUAL-SYSTEM-001 (Fase 10): el indicador de grabación habla
+             el MISMO idioma que el marco perimetral (`MarcoEscuchando`):
+             cobalto, nunca rojo — rojo aquí significa riesgo clínico, y el
+             cobalto es el territorio libre de significado clínico (ver el
+             comentario «POR QUÉ NO ES ROJO» en MarcoEscuchando.tsx). */
+          <span className="nx-num" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600, flexShrink: 0 }}>
+            <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
+            {formatearDuracion(segundos)}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  /*
+    RTC-22 — SIN ESTADO CLÍNICO, NO HAY FRANJA.
+
+    Quitada la marca (ver abajo), esta variante se quedaría pintando una banda
+    de 30px con una línea de separación y nada dentro, en todas las pantallas
+    sin paciente. Una banda vacía no es estado periférico: es un renglón que
+    hay que saltarse.
+
+    Se devuelve `null`, que es lo que §5 pide cuando no hay nada que informar.
+    Vuelve sola en cuanto hay paciente o el micrófono se abre.
+  */
+  if (!paciente && segundos == null) return null
+
+  return (
+    <div
+      role="status"
+      aria-label="Estado clínico y de sistema"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10, minHeight: 30,
+        padding: '5px 16px', borderBottom: '1px solid var(--border)',
+        background: 'var(--s1)', fontSize: 12, color: 'var(--text3)',
+      }}
+      className="nx-instrument-strip"
+    >
+      {/*
+        RTC-22 — AQUÍ VIVÍA LA SEGUNDA MARCA, Y ERA LA PEOR DE LAS DOS.
+
+        Esta franja pintaba el nombre del consultorio SIEMPRE, incluso con un
+        paciente delante: «Ausculta · Refugio Alcántara». O sea, el elemento
+        cuyo trabajo es el estado clínico (§5) empezaba diciendo la marca, y
+        el riel —que está en pantalla a dos centímetros a la izquierda, porque
+        esta variante sólo existe a partir de 769px— ya lo había dicho.
+
+        Medido en navegador antes y después: 2 apariciones visibles en
+        escritorio → 1 (la del riel). En el teléfono no cambia nada: esta
+        variante no se pinta ahí, y la de la topbar conserva su respaldo
+        porque allí el riel no existe.
+
+        Sin paciente, esta franja no dice nada — y está bien: no hay estado
+        clínico que decir. Lo que no puede es rellenarse con la marca para
+        justificar su banda.
+      */}
+      {paciente && (
+        <>
+          {/* 8ª rebanada: el paciente es la voz de identidad de la franja
+              (.nx-ident-franja, 14/600/var(--text)) — antes era cromo 12/
+              --text2, indistinguible del nombre del consultorio de al lado.
+              En escritorio hay sitio: envuelve libre (minHeight 30 crece),
+              sin clamp. */}
+          <Link href={`/expediente/${paciente.id}`} className="nx-ident-franja" onClick={irAlExpediente}>
+            {paciente.nombre}
+          </Link>
+        </>
+      )}
+      {segundos != null && (
+        /* Fase 10: cobalto = grabando, igual que la variante de topbar y que
+           el marco perimetral — un solo idioma para «el micrófono está
+           abierto» en todo el shell. 8ª rebanada: nx-num — los dígitos del
+           timer son tabulares, el ancho no tiembla a cada segundo. */
+        <span className="nx-num" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600 }}>
+          <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
+          Grabando · {formatearDuracion(segundos)}
+        </span>
+      )}
+    </div>
+  )
+}

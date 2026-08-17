@@ -1,0 +1,175 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "antes",
+  "viewports": {
+    "escritorio-1440": {
+      "expediente": {
+        "hay": true,
+        "antes": {
+          "hay": true,
+          "frase": "2 del dictado · 2 de IA · 6 a mano · 1 aceptados por el médico",
+          "expandido": "false",
+          "alto": 2098,
+          "scrollTop": 1050,
+          "rect": 466
+        },
+        "dentro": {
+          "abrio": true,
+          "lentesAbiertas": 1,
+          "expandido": "true",
+          "alto": 2114,
+          "rect": 466,
+          "grupos": [],
+          "filas": [
+            {
+              "etiqueta": "Diagnóstico",
+              "origen": "inferencia de IA",
+              "cita": null
+            },
+            {
+              "etiqueta": "Diagnóstico",
+              "origen": "inferencia de IA",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital TA",
+              "origen": "del dictado (con cita)",
+              "cita": "Tensión arterial ciento treinta y ocho sobre ochenta y seis"
+            },
+            {
+              "etiqueta": "Signo vital FC",
+              "origen": "del dictado (con cita)",
+              "cita": "frecuencia cardiaca setenta y ocho"
+            },
+            {
+              "etiqueta": "Signo vital FR",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital TEMPERATURA",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital SPO2",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital PESO",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital TALLA",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital IMC",
+              "origen": "capturado a mano",
+              "cita": null
+            }
+          ],
+          "textoDelPanel": "Procedencia de la nota2 del dictado · 2 de IA · 6 a mano · 1 aceptados por el médicoCada dato estructurado de la nota, con su origen. Lo del dictado conserva la frase exacta; lo de IA es inferencia sin cita literal; lo a mano lo capturaste tú.Diagnóstico: Diabetes mellitus tipo 2inferencia de IA lo aceptasteDiagnóstico: Hipertensión arterial sistémicainferencia de IASigno vital TA: 138/86del dictado (con cita)“Tensión arterial ciento treinta y ocho sobre ochenta y seis”Signo vital FC: 78del dictado (con cita)“frecuencia cardiaca setenta y ocho”Signo vital FR: 16capturado a manoSigno vital TEMPERATURA: 36.4capturado a manoSigno vital SPO2: 96capturado a manoSigno vital PESO: 84capturado a manoSigno vital TALLA: 1.72capturado a manoSigno vital IMC: 28.4capturado a mano"
+        },
+        "trasEscape": {
+          "lentesAbiertas": 0,
+          "expandido": "false",
+          "focoEnElDisparador": true,
+          "scrollTop": 1050,
+          "alto": 2098
+        }
+      },
+      "consulta": {
+        "hay": false
+      }
+    },
+    "movil-390": {
+      "expediente": {
+        "hay": true,
+        "antes": {
+          "hay": true,
+          "frase": "2 del dictado · 2 de IA · 6 a mano · 1 aceptados por el médico",
+          "expandido": "false",
+          "alto": 2898,
+          "scrollTop": 1597,
+          "rect": 405
+        },
+        "dentro": {
+          "abrio": true,
+          "lentesAbiertas": 1,
+          "expandido": "true",
+          "alto": 2898,
+          "rect": 194,
+          "grupos": [],
+          "filas": [
+            {
+              "etiqueta": "Diagnóstico",
+              "origen": "inferencia de IA",
+              "cita": null
+            },
+            {
+              "etiqueta": "Diagnóstico",
+              "origen": "inferencia de IA",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital TA",
+              "origen": "del dictado (con cita)",
+              "cita": "Tensión arterial ciento treinta y ocho sobre ochenta y seis"
+            },
+            {
+              "etiqueta": "Signo vital FC",
+              "origen": "del dictado (con cita)",
+              "cita": "frecuencia cardiaca setenta y ocho"
+            },
+            {
+              "etiqueta": "Signo vital FR",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital TEMPERATURA",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital SPO2",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital PESO",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital TALLA",
+              "origen": "capturado a mano",
+              "cita": null
+            },
+            {
+              "etiqueta": "Signo vital IMC",
+              "origen": "capturado a mano",
+              "cita": null
+            }
+          ],
+          "textoDelPanel": "Procedencia de la nota2 del dictado · 2 de IA · 6 a mano · 1 aceptados por el médicoCada dato estructurado de la nota, con su origen. Lo del dictado conserva la frase exacta; lo de IA es inferencia sin cita literal; lo a mano lo capturaste tú.Diagnóstico: Diabetes mellitus tipo 2inferencia de IA lo aceptasteDiagnóstico: Hipertensión arterial sistémicainferencia de IASigno vital TA: 138/86del dictado (con cita)“Tensión arterial ciento treinta y ocho sobre ochenta y seis”Signo vital FC: 78del dictado (con cita)“frecuencia cardiaca setenta y ocho”Signo vital FR: 16capturado a manoSigno vital TEMPERATURA: 36.4capturado a manoSigno vital SPO2: 96capturado a manoSigno vital PESO: 84capturado a manoSigno vital TALLA: 1.72capturado a manoSigno vital IMC: 28.4capturado a mano"
+        },
+        "trasEscape": {
+          "lentesAbiertas": 0,
+          "expandido": "false",
+          "focoEnElDisparador": true,
+          "scrollTop": 1597,
+          "alto": 2898
+        }
+      },
+      "consulta": {
+        "hay": false
+      }
+    }
+  },
+  "errores": []
+}

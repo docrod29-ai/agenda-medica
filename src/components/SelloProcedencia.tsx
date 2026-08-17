@@ -6,19 +6,31 @@
  * dictado (con cita textual), cuántos de inferencia de IA, cuántos capturados a
  * mano. Se puede desplegar para ver campo por campo, con la frase exacta del
  * dictado cuando existe. Es solo lectura: no cambia ningún valor clínico.
+ *
+ * ── DÓNDE SE ABRE (V15 §5 CAPA 4 / §21) ─────────────────────────────────────
+ *
+ * El detalle campo por campo se abre en la LENTE CONTEXTUAL, no en línea. La
+ * medición de la corrida del 15-ago: desplegarlo aquí hacía crecer la nota de
+ * 2141 a 2656px en escritorio y de 2666 a 3271px en el teléfono, y **Escape no
+ * lo cerraba**. La tira se queda donde estaba, con el mismo resumen de un
+ * vistazo; lo que se muda es el detalle.
+ *
+ * Y de paso una deuda que la medición encontró sin buscarla: este disparador
+ * NO declaraba `aria-expanded` (el acta «antes» lo leyó `null`), así que un
+ * lector de pantalla anunciaba un botón que no dice que abra nada.
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Fingerprint, Mic, Sparkles, PenLine, ChevronDown, Quote, CheckCircle2, Calculator, Activity } from 'lucide-react'
-import { construirManifiesto, resumenProcedencia, etiquetaOrigen, type OrigenCampo } from '@/lib/expediente/procedencia'
-
-interface FinalNota {
-  diagnosticos?: { descripcion?: string }[]
-  medicamentos?: { nombre?: string; dosis?: string }[]
-  alergias?: (string | { alergeno?: string })[]
-  signosVitales?: Record<string, unknown>
-}
+import { construirManifiesto, resumenProcedencia, etiquetaOrigen, esProsa, type OrigenCampo, type FinalNota, type CampoProcedencia } from '@/lib/expediente/procedencia'
+import { Lente } from '@/components/LenteContextual'
 
 interface Props {
+  /**
+   * Lo que entra al sello. **El tipo se importa**, no se vuelve a declarar: la
+   * copia local que vivía aquí omitía `secciones` y `resumen`, así que ningún
+   * consumidor PODÍA pasar la prosa aunque quisiera —el compilador se lo
+   * habría rechazado— mientras el sello archivado sí la contaba.
+   */
   final: FinalNota
   extraction?: unknown
   /**
@@ -47,6 +59,7 @@ const ESTILO: Record<OrigenCampo, { color: string; Icon: typeof Mic }> = {
 
 export function SelloProcedencia({ final, extraction, aprobados, transcripcion }: Props) {
   const [abierto, setAbierto] = useState(false)
+  const disparador = useRef<HTMLButtonElement | null>(null)
   const manifiesto = useMemo(
     // La transcripción permite verificar que la cita textual EXISTE. Si no se
     // pasa, el sello se comporta como antes en vez de degradar lo que quizá
@@ -56,70 +69,107 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
   )
   if (manifiesto.resumen.total === 0) return null
   const { resumen, campos } = manifiesto
+  /* Se calcula UNA vez, fuera del map: dentro se evaluaba por grupo y por
+     render, y es la misma respuesta para los dos. */
+  const hayDosFamilias = campos.some(esProsa) && campos.some(c => !esProsa(c))
+
+  function renderCampo(c: CampoProcedencia) {
+    const { color, Icon } = ESTILO[c.origen]
+    return (
+      <div key={c.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', background: 'var(--bg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Icon size={13} style={{ color, flexShrink: 0 }} />
+          <span style={{ fontSize: 12.5, color: 'var(--text)', flex: 1, minWidth: 120 }}>
+            <span style={{ color: 'var(--text3)' }}>{c.etiqueta}:</span> {c.valor}
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 700, color, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 'var(--r-pill)' }}>
+            {etiquetaOrigen(c.origen)}
+          </span>
+          {/*
+            El distintivo del médico va APARTE del de origen, no en su
+            lugar: de dónde salió un dato y si un humano lo hizo suyo son
+            dos cosas distintas, y en una revisión la segunda pesa más.
+          */}
+          {c.confirmado === true && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', display: 'inline-flex', alignItems: 'center', gap: 3, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 'var(--r-pill)' }}>
+              <CheckCircle2 size={10} /> lo aceptaste
+            </span>
+          )}
+        </div>
+        {c.cita && (
+          <div style={{ marginTop: 5, display: 'flex', gap: 5, fontSize: 11.5, color: 'var(--text2)', fontStyle: 'italic' }}>
+            <Quote size={11} style={{ flexShrink: 0, marginTop: 2, opacity: 0.6 }} />
+            <span>
+              “{c.cita}”
+              {/*
+                QUIÉN LO DIJO, cuando no fue el paciente. La regla V3
+                aceptaba a cualquiera que no fuera el médico, así que un
+                antecedente que sostiene la hija —«sí, es diabética»— se
+                sellaba igual que si lo hubiera dicho la paciente. No se
+                degrada: se dice quién, que es un hecho.
+              */}
+              {c.dichoPor && (
+                <span style={{ fontStyle: 'normal', color: 'var(--text3)' }}> — lo dijo: {c.dichoPor}</span>
+              )}
+            </span>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))', marginTop: 8 }}>
       <button
+        ref={disparador}
         onClick={() => setAbierto(a => !a)}
+        aria-expanded={abierto}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left' }}
       >
         <Fingerprint size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
         <span style={{ fontSize: 13, fontWeight: 700 }}>Procedencia de la nota</span>
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>{resumenProcedencia(resumen)}</span>
-        <ChevronDown size={15} style={{ marginLeft: 'auto', color: 'var(--text3)', transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+        <ChevronDown size={15} style={{ marginLeft: 'auto', color: 'var(--text3)', transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform var(--mov-rapido) var(--mov-curva)' }} />
       </button>
 
-      {abierto && (
-        <div style={{ padding: '0 13px 13px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <Lente
+        abierta={abierto}
+        titulo="Procedencia de la nota"
+        subtitulo={resumenProcedencia(resumen)}
+        invocador={disparador}
+        alCerrar={() => setAbierto(false)}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, marginBottom: 4 }}>
-            Cada dato estructurado de la nota, con su origen. Lo <strong style={{ color: 'var(--teal)' }}>del dictado</strong> conserva la frase exacta; lo <strong style={{ color: 'var(--nexus)' }}>de IA</strong> es inferencia sin cita literal; lo <strong>a mano</strong> lo capturaste tú.
+            Cada dato de la nota con su origen, <strong>el texto redactado incluido</strong>. Lo <strong style={{ color: 'var(--teal)' }}>del dictado</strong> conserva la frase exacta; lo <strong style={{ color: 'var(--nexus)' }}>de IA</strong> es inferencia sin cita literal; lo <strong>a mano</strong> lo capturaste tú.
           </div>
-          {campos.map(c => {
-            const { color, Icon } = ESTILO[c.origen]
-            return (
-              <div key={c.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', background: 'var(--bg)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <Icon size={13} style={{ color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 12.5, color: 'var(--text)', flex: 1, minWidth: 120 }}>
-                    <span style={{ color: 'var(--text3)' }}>{c.etiqueta}:</span> {c.valor}
-                  </span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 'var(--r-pill)' }}>
-                    {etiquetaOrigen(c.origen)}
-                  </span>
-                  {/*
-                    El distintivo del médico va APARTE del de origen, no en su
-                    lugar: de dónde salió un dato y si un humano lo hizo suyo son
-                    dos cosas distintas, y en una revisión la segunda pesa más.
-                  */}
-                  {c.confirmado === true && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', display: 'inline-flex', alignItems: 'center', gap: 3, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 'var(--r-pill)' }}>
-                      <CheckCircle2 size={10} /> lo aceptaste
-                    </span>
-                  )}
-                </div>
-                {c.cita && (
-                  <div style={{ marginTop: 5, display: 'flex', gap: 5, fontSize: 11.5, color: 'var(--text2)', fontStyle: 'italic' }}>
-                    <Quote size={11} style={{ flexShrink: 0, marginTop: 2, opacity: 0.6 }} />
-                    <span>
-                      “{c.cita}”
-                      {/*
-                        QUIÉN LO DIJO, cuando no fue el paciente. La regla V3
-                        aceptaba a cualquiera que no fuera el médico, así que un
-                        antecedente que sostiene la hija —«sí, es diabética»— se
-                        sellaba igual que si lo hubiera dicho la paciente. No se
-                        degrada: se dice quién, que es un hecho.
-                      */}
-                      {c.dichoPor && (
-                        <span style={{ fontStyle: 'normal', color: 'var(--text3)' }}> — lo dijo: {c.dichoPor}</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+          {/*
+            EL TEXTO REDACTADO VA PRIMERO, Y NO ES PREFERENCIA (§16).
+
+            Es donde vivieron los tres fallos que el Dr. encontró en producción
+            —«la de la docencia» convertido en «vesícula»; un «no, nada de eso»
+            redactado como «Paciente con DM2 e HTA»—, y es la familia cuya cita
+            hay que LEER para juzgarla: un diagnóstico se comprueba de un
+            vistazo, un párrafo no. Poner los cuatro datos cortos arriba dejaba
+            lo caro de revisar debajo del pliegue.
+
+            Se separa en dos grupos porque tienen peso visual distinto: una fila
+            de prosa ocupa tres líneas y una de signo vital media. Mezcladas en
+            una sola lista, las largas mandan sin que nadie lo haya decidido.
+          */}
+          {[
+            { clave: 'prosa', rotulo: 'Texto redactado', filas: campos.filter(esProsa) },
+            { clave: 'datos', rotulo: 'Datos estructurados', filas: campos.filter(c => !esProsa(c)) },
+          ].filter(g => g.filas.length > 0).map(grupo => (
+            <div key={grupo.clave} className="nx-sello-grupo">
+              {/* El rótulo sólo aparece cuando HAY dos grupos: con uno solo
+                  sería una etiqueta que no distingue nada de nada. */}
+              {hayDosFamilias && <h3 className="nx-sello-grupo-rotulo">{grupo.rotulo}</h3>}
+              {grupo.filas.map(c => renderCampo(c))}
+            </div>
+          ))}
         </div>
-      )}
+      </Lente>
     </div>
   )
 }

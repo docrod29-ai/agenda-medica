@@ -34,7 +34,7 @@ const PASOS: { t: string; d: string }[] = [
   },
   {
     t: '¿Tu papel ya trae las líneas de Nombre, Edad y Fecha?',
-    d: 'Activa “Mi diseño ya tiene campos del paciente impresos” para que la app no las dibuje encima. Luego arrastra cada etiqueta sobre su línea — o pulsa “Detectar campos con IA” y solo acomódalas.',
+    d: 'Activa “Mi diseño ya tiene campos del paciente impresos” para que la app no las dibuje encima. Luego arrastra cada etiqueta sobre su línea — o pulsa “Detectar los campos” y solo acomódalas.',
   },
   {
     t: 'Sube tu firma',
@@ -51,8 +51,8 @@ export function GuiaConfigurarReceta({ yaConfigurado }: GuiaConfigurarRecetaProp
 
   return (
     <div style={{
-      border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12,
-      background: 'rgba(20,184,166,0.06)', overflow: 'hidden',
+      border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 12,
+      background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', overflow: 'hidden',
     }}>
       <button
         onClick={() => setAbierta(v => !v)}
@@ -77,7 +77,7 @@ export function GuiaConfigurarReceta({ yaConfigurado }: GuiaConfigurarRecetaProp
         )}
         <ChevronDown
           size={18}
-          style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform .2s', transform: abierta ? 'rotate(180deg)' : 'none' }}
+          style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform var(--mov-rapido) var(--mov-curva)', transform: abierta ? 'rotate(180deg)' : 'none' }}
         />
       </button>
 

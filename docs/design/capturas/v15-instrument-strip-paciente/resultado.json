@@ -1,0 +1,32 @@
+{
+  "franja": {
+    "enExpediente": "Ausculta · Aurelio Domínguez Peña",
+    "fueraDelExpediente_referencia": "Ausculta · Aurelio Domínguez Peña",
+    "sinPaciente_dashboard": "Ausculta"
+  },
+  "axe": {
+    "desktop": [
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 2
+      }
+    ],
+    "mobile": [
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 3
+      }
+    ]
+  },
+  "consola": {
+    "desktop": [],
+    "mobile": []
+  }
+}

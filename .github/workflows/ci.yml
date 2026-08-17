@@ -142,12 +142,32 @@ jobs:
   # mano. Una prueba que nadie corre no protege nada — es documentación con
   # sintaxis de código.
   #
-  # Corre contra PRODUCCIÓN a propósito: son comprobaciones de solo lectura del
-  # camino público (landing, cabeceras de seguridad, portal sin sesión) y ahí es
-  # donde importa que estén bien. No toca datos y no necesita credenciales.
+  # ── 14-ago-2026: MIDE EL BUILD DEL PR, NO PRODUCCIÓN ──────────────────────
   #
-  # `continue-on-error: false` — si esto se pone en amarillo deja de proteger,
-  # que es como murió el gate de ADRs antes de que se le pusiera trinquete.
+  # Nació corriendo contra PRODUCCIÓN, y la razón era buena: son comprobaciones
+  # de solo lectura y ahí es donde importa que las cabeceras estén bien.
+  #
+  # Lo que se descubrió: el grupo A3 recorre `RUTAS_PRIVADAS`, que es una lista
+  # del ÁRBOL DE ESTE CHECKOUT. Cuando una rama añade una pantalla al dashboard
+  # —V15 añadió `/operaciones`— el caso pregunta por una ruta que existe en el
+  # código del PR y todavía no en el despliegue. El rojo que sale no dice nada
+  # de la rama: dice que producción va por detrás, y desplegar es decisión del
+  # dueño. Un gate que sólo se puede poner en verde desplegando no protege al PR;
+  # enseña a ignorar el rojo, que es exactamente como murió el gate de ADRs.
+  #
+  # Así que el job mide **el artefacto que se está revisando**: build del PR y
+  # `next start` en localhost (`PLAYWRIGHT_LOCAL=1`, camino que ya existía en
+  # `playwright.config.ts` y en `npm run e2e:seguridad`). Medido antes de
+  # cambiarlo: la matriz entera —67 casos, incluidos B1 (violaciones de CSP en
+  # navegador real), B2 y C1— pasa contra el build local SIN credenciales.
+  #
+  # LO QUE SE PIERDE, DECLARADO: nadie vigila ya desde aquí que producción
+  # conserve sus cabeceras. Esa comprobación NO desaparece — es `npm run
+  # e2e:seguridad:prod` y vive donde puede actuar: en el ciclo de despliegue
+  # (`.claude/rules/deployment-and-flags.md`), después de publicar. Antes de
+  # desplegar, ese mismo rojo no es accionable desde un PR.
+  #
+  # `continue-on-error: false` — si esto se pone en amarillo deja de proteger.
   e2e-publico:
     runs-on: ubuntu-latest
     steps:
@@ -167,5 +187,24 @@ jobs:
       # aquí: `--project=chromium` y `install chromium` van juntos o el job muere.
       - name: Instalar Chromium
         run: npx playwright install --with-deps chromium
-      - name: Smoke público + cabeceras de seguridad
+      # El artefacto que se va a medir. Los rellenos de Firebase son los mismos
+      # que el job `verificar` y por la misma razón (ahí está el porqué entero):
+      # el build necesita valores con FORMA válida, y un proyecto que no existe
+      # garantiza además que este job no pueda tocar datos reales.
+      - name: Build del PR (el artefacto que se mide)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-build.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
+      # `PLAYWRIGHT_LOCAL=1` levanta `npm run start` desde el propio config y
+      # espera a que responda. Sin esa variable, `baseURL` vuelve a producción.
+      - name: Smoke público + cabeceras de seguridad (contra el build del PR)
         run: npx playwright test --project=chromium e2e/smoke-publico.spec.ts e2e/seguridad.spec.ts
+        env:
+          PLAYWRIGHT_LOCAL: '1'
+          PLAYWRIGHT_BASE_URL: http://localhost:3000

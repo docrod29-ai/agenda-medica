@@ -1,64 +1,33 @@
 'use client'
 
 /**
- * ThemeToggle — botón flotante para alternar dark/light mode.
+ * ThemeToggle — botón flotante para alternar dark/light mode (escritorio).
  *
- * Diseño:
- *  - Por defecto sigue al SO (prefers-color-scheme)
- *  - El usuario puede forzar dark o light, queda persistido en localStorage
- *  - Tercer click vuelve a "auto" (sigue al SO)
+ * La LÓGICA del tema (llave, ciclo, pintado sobre <html>) vive en
+ * `@/hooks/useTema` — RTC-05: este botón es una VISTA; la fila de
+ * Operaciones es la otra (y la única en móvil, donde este botón no flota:
+ * ver `.theme-toggle` en globals.css).
  *
  * Estados visuales:
  *  - 🌙 Luna   → dark forzado
  *  - ☀️ Sol     → light forzado
  *  - 🖥️ Auto    → sigue al SO (sin atributo data-theme)
  *
- * No depende de React Context — pinta directo sobre <html> para
- * evitar flicker en SSR y no obligar a wrappers globales.
+ * §8.5 (RTC-05): mientras el micrófono está abierto el botón desaparece —
+ * cromo de sistema flotando sobre el modo encuentro — y vuelve al detener,
+ * por la misma compuerta compartida que el resto del shell.
  */
 
-import { useEffect, useState } from 'react'
-
-type Modo = 'dark' | 'light' | 'auto'
-
-const KEY = 'nexusmed.theme'
-
-function aplicar(modo: Modo) {
-  const html = document.documentElement
-  if (modo === 'auto') {
-    html.removeAttribute('data-theme')
-  } else {
-    html.setAttribute('data-theme', modo)
-  }
-}
+import { useTema } from '@/hooks/useTema'
+import { useGrabando } from '@/hooks/useGrabando'
 
 export function ThemeToggle() {
-  const [modo, setModo] = useState<Modo>('auto')
-  const [montado, setMontado] = useState(false)
-
-  useEffect(() => {
-    // Default = OSCURO (marca Ausculta). 'auto' solo si el usuario lo eligió antes.
-    const guardado = (localStorage.getItem(KEY) as Modo | null) ?? 'dark'
-    setModo(guardado)
-    aplicar(guardado)
-    setMontado(true)
-  }, [])
-
-  function ciclar() {
-    const siguiente: Modo = modo === 'auto' ? 'dark' : modo === 'dark' ? 'light' : 'auto'
-    setModo(siguiente)
-    aplicar(siguiente)
-    if (siguiente === 'auto') localStorage.removeItem(KEY)
-    else localStorage.setItem(KEY, siguiente)
-  }
+  const { modo, ciclar, montado, titulo } = useTema()
+  const grabando = useGrabando()
 
   // Evita flicker SSR: hasta montar, no renderizamos el botón.
   if (!montado) return null
-
-  const titulo =
-    modo === 'auto' ? 'Tema: automático (clic: oscuro)'
-    : modo === 'dark' ? 'Tema: oscuro (clic: claro)'
-    : 'Tema: claro (clic: automático)'
+  if (grabando) return null
 
   return (
     <button

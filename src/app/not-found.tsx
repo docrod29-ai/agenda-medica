@@ -80,14 +80,19 @@ export default function NotFound() {
           >
             {intentando ? 'Limpiando…' : 'Reintentar'}
           </button>
-          <Link href="/dashboard">
-            <button style={{
-              background: 'transparent', color: '#F2EFE9', border: '1px solid rgba(242,239,233,0.14)',
-              padding: '12px 22px', borderRadius: 10, fontWeight: 500, fontSize: 14,
-              cursor: 'pointer', minWidth: 140, letterSpacing: '-0.005em',
-            }}>
-              Ir al dashboard
-            </button>
+          {/* El enlace ES el control: un <button> dentro de un <a> es HTML
+              inválido y deja dos paradas de teclado para un destino. Aquí no
+              hay `ButtonLink` porque esta página vive FUERA del shell y no
+              hereda sus tokens — el aspecto es el de siempre, mudado tal cual
+              del botón que había dentro. */}
+          <Link href="/dashboard" style={{
+            background: 'transparent', color: '#F2EFE9', border: '1px solid rgba(242,239,233,0.14)',
+            padding: '12px 22px', borderRadius: 10, fontWeight: 500, fontSize: 14,
+            cursor: 'pointer', minWidth: 140, letterSpacing: '-0.005em',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            textDecoration: 'none',
+          }}>
+            Ir al dashboard
           </Link>
         </div>
 

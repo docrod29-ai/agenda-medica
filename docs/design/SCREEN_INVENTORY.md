@@ -10,12 +10,12 @@
 > `Resp: —` y eso **no** significa que no sea adaptable. Sirve para ordenar el
 > barrido; aprobar una pantalla exige abrirla en un navegador.
 
-**Total: 79 pantallas.**
+**Total: 80 pantallas.**
 
 | Superficie | Pantallas |
 |---|---|
 | paciente | 9 |
-| medico | 33 |
+| medico | 34 |
 | alpha | 10 |
 | publica | 18 |
 | interna | 9 |
@@ -43,38 +43,39 @@
 | `/reservar/[clinicId]` | paciente | ✅ | 371 | 0 | — | ✅ | — |
 | `/teleconsulta/[citaId]` | paciente | ✅ | 103 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 97 | 0 | — | ✅ | — |
-| `/antibiograma` | medico | ✅ | 899 | 0 | — | ✅ | — |
+| `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 646 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 436 | 1 | — | ✅ | — |
-| `/chat` | medico | ✅ | 330 | 0 | — | ✅ | — |
-| `/citas` | medico | ✅ | 1017 | 6 | — | ✅ | — |
-| `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 5882 | 5 | — | ✅ | ✅ |
-| `/consultor` | medico | ✅ | 282 | 0 | — | ✅ | — |
+| `/chat` | medico | ✅ | 363 | 0 | — | ✅ | — |
+| `/citas` | medico | ✅ | 1140 | 6 | — | ✅ | — |
+| `/configuracion` | medico | ✅ | 2621 | 1 | — | ✅ | — |
+| `/consulta/[patientId]` | medico | ✅ | 6283 | 7 | — | ✅ | ✅ |
+| `/consultor` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
-| `/cumplimiento` | medico | ✅ | 945 | 0 | — | ✅ | — |
+| `/cumplimiento` | medico | ✅ | 977 | 0 | — | ✅ | — |
 | `/cumplimiento/motores` | medico | ✅ | 188 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 177 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 291 | 1 | — | ✅ | — |
-| `/dashboard` | medico | ✅ | 321 | 6 | — | ✅ | — |
-| `/expediente/[patientId]` | medico | ✅ | 686 | 12 | — | ✅ | — |
+| `/dashboard` | medico | ✅ | 373 | 5 | — | ✅ | — |
+| `/expediente/[patientId]` | medico | ✅ | 964 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
-| `/farmacia` | medico | ✅ | 683 | 0 | — | ✅ | — |
+| `/farmacia` | medico | ✅ | 735 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 675 | 0 | — | ✅ | — |
 | `/guia` | medico | ✅ | 131 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 285 | 0 | — | ✅ | — |
 | `/membresias` | medico | ✅ | 281 | 0 | — | ✅ | — |
 | `/migracion` | medico | ✅ | 371 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
-| `/nota/[patientId]` | medico | ✅ | 74 | 2 | — | ✅ | — |
-| `/nota/[patientId]/[notaId]` | medico | ✅ | 932 | 2 | — | ✅ | — |
-| `/orden/[patientId]/[notaId]` | medico | ✅ | 793 | 2 | — | ✅ | — |
-| `/pacientes` | medico | ✅ | 836 | 9 | — | ✅ | — |
-| `/pendientes` | medico | ✅ | 259 | 1 | — | ✅ | — |
-| `/reactivacion` | medico | ✅ | 250 | 0 | — | ✅ | — |
-| `/receta/[patientId]/[notaId]` | medico | ✅ | 977 | 2 | — | ✅ | — |
-| `/referencia/[patientId]` | medico | ✅ | 276 | 0 | — | ✅ | — |
+| `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
+| `/nota/[patientId]/[notaId]` | medico | ✅ | 943 | 2 | — | ✅ | — |
+| `/operaciones` | medico | ✅ | 401 | 1 | — | ✅ | — |
+| `/orden/[patientId]/[notaId]` | medico | ✅ | 840 | 2 | — | ✅ | — |
+| `/pacientes` | medico | ✅ | 1146 | 4 | — | ✅ | — |
+| `/pendientes` | medico | ✅ | 520 | 3 | — | ✅ | — |
+| `/reactivacion` | medico | ✅ | 336 | 0 | — | ✅ | — |
+| `/receta/[patientId]/[notaId]` | medico | ✅ | 1023 | 2 | — | ✅ | — |
+| `/referencia/[patientId]` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 425 | 5 | — | ✅ | — |
 | `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1725 | 4 | — | ✅ | ✅ |
@@ -94,12 +95,12 @@
 | `/demo/razonamiento` | publica | ✅ | 146 | 3 | — | ✅ | — |
 | `/evidencia` | publica | — | 81 | 1 | — | ✅ | — |
 | `/legal` | publica | ✅ | 113 | 1 | — | ✅ | — |
-| `/login` | publica | ✅ | 388 | 4 | — | ✅ | — |
+| `/login` | publica | ✅ | 405 | 4 | — | ✅ | — |
 | `/operacion` | publica | — | 98 | 2 | — | ✅ | — |
 | `/paquetes` | publica | — | 94 | 3 | — | ✅ | — |
-| `/precios` | publica | — | 182 | 1 | — | ✅ | — |
+| `/precios` | publica | — | 185 | 1 | — | ✅ | — |
 | `/privacidad` | publica | — | 135 | 0 | — | — | — |
-| `/registro` | publica | ✅ | 385 | 3 | — | ✅ | — |
+| `/registro` | publica | ✅ | 384 | 3 | — | ✅ | — |
 | `/seguridad` | publica | — | 146 | 2 | — | ✅ | — |
 | `/setup` | publica | ✅ | 273 | 2 | — | ✅ | — |
 | `/terminos` | publica | — | 141 | 0 | — | ✅ | — |

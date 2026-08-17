@@ -141,7 +141,7 @@ export default function PreciosSuperadmin() {
       )}
 
       {guardado && rechazos.length === 0 && (
-        <div style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--teal)', background: 'rgba(20,184,166,0.08)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+        <div style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--teal)', background: 'color-mix(in srgb, var(--nexus) 8%, transparent)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
           <CheckCircle2 size={15} style={{ color: 'var(--teal)' }} /> Guardado. Los precios nuevos ya salen en toda la aplicación.
         </div>
       )}

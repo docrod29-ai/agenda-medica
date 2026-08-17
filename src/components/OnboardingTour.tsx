@@ -149,7 +149,7 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
               <span key={i} style={{
                 width: i === paso ? 20 : 7, height: 7, borderRadius: 'var(--r-pill)',
                 background: i === paso ? 'var(--nexus)' : 'var(--border2)',
-                transition: 'width 0.25s ease, background 0.25s ease',
+                transition: 'width var(--mov-normal) var(--mov-curva), background var(--mov-normal) var(--mov-curva)',
               }} />
             ))}
           </div>

@@ -206,7 +206,7 @@ export default function FinanzasPage() {
   })
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
+    <div className="nx-canvas">
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -256,7 +256,7 @@ export default function FinanzasPage() {
                 border: '1px solid ' + (activo ? 'var(--nexus)' : 'var(--border)'),
                 background: activo ? 'var(--nexus-soft)' : 'var(--s)',
                 color: activo ? 'var(--nexus)' : 'var(--text2)',
-                transition: 'all 120ms',
+                transition: 'all var(--mov-rapido) var(--mov-curva)',
               }}
             >
               {PERIODO_LABEL[p]}
@@ -355,7 +355,7 @@ export default function FinanzasPage() {
           )}
 
           {/* KPIs secundarios */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
+          <div className="nx-stat-grid" style={{ marginBottom: 18 }}>
             <Kpi titulo="Cobros" valor={String(resumen.totalCobros)} icon={<Receipt size={14} />} />
             <Kpi titulo="Ticket promedio" valor={fmtMXN(resumen.ticketPromedio)} icon={<Activity size={14} />} />
             <Kpi titulo="Pacientes únicos" valor={String(resumen.pacientesUnicos)} icon={<Users size={14} />} />

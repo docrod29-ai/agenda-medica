@@ -1,0 +1,100 @@
+{
+  "base": "http://localhost:3000",
+  "viewports": {
+    "escritorio-1440": {
+      "filas": {
+        "/citas": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "24px",
+          "bordeTexto": 306
+        },
+        "/configuracion": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "24px",
+          "bordeTexto": 306
+        },
+        "/farmacia": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "24px",
+          "bordeTexto": 306
+        },
+        "/finanzas": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "24px",
+          "bordeTexto": 306
+        },
+        "/crm": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "24px",
+          "bordeTexto": 306
+        },
+        "/cumplimiento": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "24px",
+          "bordeTexto": 306
+        },
+        "/cumplimiento/retencion": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "24px",
+          "bordeTexto": 306
+        }
+      },
+      "salto": 0
+    },
+    "movil-390": {
+      "filas": {
+        "/citas": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "16px",
+          "bordeTexto": 16
+        },
+        "/configuracion": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "16px",
+          "bordeTexto": 16
+        },
+        "/farmacia": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "16px",
+          "bordeTexto": 16
+        },
+        "/finanzas": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "16px",
+          "bordeTexto": 16
+        },
+        "/crm": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "16px",
+          "bordeTexto": 16
+        },
+        "/cumplimiento": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "16px",
+          "bordeTexto": 16
+        },
+        "/cumplimiento/retencion": {
+          "hay": true,
+          "maxWidth": "1100px",
+          "padding": "16px",
+          "bordeTexto": 16
+        }
+      },
+      "salto": 0
+    }
+  },
+  "errores": []
+}

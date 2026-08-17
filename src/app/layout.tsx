@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
-import { IBM_Plex_Sans, IBM_Plex_Mono, Fraunces } from "next/font/google"
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google"
+import localFont from "next/font/local"
 import "./globals.css"
 import { MARCA, LEMA } from "@/lib/marca"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
@@ -55,11 +56,40 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 })
 
-// Fraunces — serif editorial, uso restringido a hero/citas/momentos editoriales
-const fraunces = Fraunces({
+/**
+ * FRAUNCES SE SIRVE DESDE EL REPOSITORIO, NO DESDE GOOGLE.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * `next/font/google` descarga los ficheros **durante el build**. La CI del
+ * repositorio se cayó TRES veces (13 y 14-ago-2026) con el mismo error:
+ * `module-not-found` sobre `fraunces_*.module.css`, o sea el runner sin poder
+ * hablar con `fonts.gstatic.com`. Cada caída obliga a re-lanzar el job a mano;
+ * el arreglo era de un clic y por eso se toleró dos veces. A la tercera, no.
+ *
+ * ── POR QUÉ ESTA FUENTE Y NO LAS OTRAS DOS ──────────────────────────────────
+ *
+ * Las tres vienen de Google, pero **sólo Fraunces ha fallado**, y es la que
+ * más caro sale perder: VISUAL_DNA §1 R3 le reserva la serif al **nombre del
+ * paciente en su espacio clínico**. Si el build se cae, no se despliega; si la
+ * fuente no cargara en el navegador, el nombre del paciente saldría en la sans
+ * y la jerarquía que distingue a este producto se apagaría.
+ *
+ * ── QUÉ SE VENDÓ, EXACTAMENTE ───────────────────────────────────────────────
+ *
+ * El MISMO fichero que servía Google: el subconjunto **latin** de Fraunces
+ * v38, variable de 400 a 600 — que es justo el rango que pedía la declaración
+ * anterior (`weight: ["400","500","600"]`). Ni una variante más: `subsets`
+ * decía «latin», así que traerse vietnamita o latin-ext sería peso muerto.
+ * La licencia (SIL Open Font License 1.1) viaja al lado, en `OFL.txt`, que es
+ * lo que la propia licencia exige para redistribuir.
+ *
+ * Verificado en navegador tras el cambio: el nombre del paciente sigue
+ * pintando Fraunces con la misma métrica.
+ */
+const fraunces = localFont({
+  src: [{ path: "./fonts/fraunces-latin.woff2", weight: "400 600", style: "normal" }],
   variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
 })
 

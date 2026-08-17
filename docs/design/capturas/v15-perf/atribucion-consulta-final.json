@@ -1,0 +1,309 @@
+{
+  "fecha": "2026-08-13T09:29:16.323Z",
+  "expedienteKB": 1691,
+  "consultaKB": 2176,
+  "excedenteKB": 590,
+  "chunksSoloConsulta": [
+    {
+      "url": "3zf2k31t27zi9.js",
+      "kb": 219
+    },
+    {
+      "url": "163oa450q-1l5.js",
+      "kb": 140
+    },
+    {
+      "url": "1qh6r4ud5oa2d.js",
+      "kb": 103
+    },
+    {
+      "url": "2_t1qwo6ei059.js",
+      "kb": 56
+    },
+    {
+      "url": "12coehgejfx7e.js",
+      "kb": 32
+    },
+    {
+      "url": "0biiyk0czbnrb.js",
+      "kb": 19
+    },
+    {
+      "url": "1c6xgy6tzry1x.js",
+      "kb": 19
+    },
+    {
+      "url": "0vpvqtwji2jji.js",
+      "kb": 3
+    }
+  ],
+  "acusados": [],
+  "runtimePorChunk": [
+    {
+      "url": "3zf2k31t27zi9.js",
+      "kb": 219,
+      "modulos": [
+        {
+          "modulo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
+          "golpes": 12,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/expediente/proa.ts",
+          "golpes": 4,
+          "de": 4
+        },
+        {
+          "modulo": "src/lib/expediente/nom004.ts",
+          "golpes": 7,
+          "de": 7
+        },
+        {
+          "modulo": "src/lib/expediente/sugerencias-ia.ts",
+          "golpes": 1,
+          "de": 1
+        },
+        {
+          "modulo": "src/lib/herramientas-por-especialidad.ts",
+          "golpes": 5,
+          "de": 5
+        },
+        {
+          "modulo": "src/components/CorreccionesPanel.tsx",
+          "golpes": 1,
+          "de": 1
+        },
+        {
+          "modulo": "src/components/CierreAlPulgar.tsx",
+          "golpes": 5,
+          "de": 5
+        },
+        {
+          "modulo": "src/components/HistorialVersiones.tsx",
+          "golpes": 5,
+          "de": 7
+        },
+        {
+          "modulo": "src/hooks/useComandoVoz.ts",
+          "golpes": 2,
+          "de": 3
+        },
+        {
+          "modulo": "src/hooks/usePorcupineComando.ts",
+          "golpes": 2,
+          "de": 4
+        },
+        {
+          "modulo": "src/lib/expediente/templates.ts",
+          "golpes": 6,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/expediente/labs-desde-texto.ts",
+          "golpes": 1,
+          "de": 2
+        },
+        {
+          "modulo": "src/lib/mobile/local-drafts.ts",
+          "golpes": 1,
+          "de": 2
+        },
+        {
+          "modulo": "src/lib/expediente/duracion-cumplida.ts",
+          "golpes": 5,
+          "de": 12
+        },
+        {
+          "modulo": "src/components/AntesDeFirmar.tsx",
+          "golpes": 4,
+          "de": 11
+        },
+        {
+          "modulo": "src/lib/expediente/experienciador.ts",
+          "golpes": 4,
+          "de": 11
+        },
+        {
+          "modulo": "src/components/EmpezarAGrabar.tsx",
+          "golpes": 3,
+          "de": 10
+        },
+        {
+          "modulo": "src/lib/tareas-clinicas/reconciliacion.ts",
+          "golpes": 3,
+          "de": 10
+        },
+        {
+          "modulo": "src/components/DeDondeSalioEsto.tsx",
+          "golpes": 3,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/expediente/certeza.ts",
+          "golpes": 2,
+          "de": 8
+        },
+        {
+          "modulo": "src/lib/expediente/cuando-avisar.ts",
+          "golpes": 2,
+          "de": 10
+        },
+        {
+          "modulo": "src/components/MientrasHablas.tsx",
+          "golpes": 2,
+          "de": 11
+        },
+        {
+          "modulo": "src/lib/expediente/que-falta-para-cerrar.ts",
+          "golpes": 2,
+          "de": 12
+        }
+      ]
+    },
+    {
+      "url": "163oa450q-1l5.js",
+      "kb": 140,
+      "modulos": [
+        {
+          "modulo": "src/components/AlertasDictado.tsx",
+          "golpes": 1,
+          "de": 1
+        },
+        {
+          "modulo": "src/lib/expediente/pediatria.ts",
+          "golpes": 12,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/expediente/calculadoras.ts",
+          "golpes": 12,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/expediente/integrity.ts",
+          "golpes": 12,
+          "de": 12
+        },
+        {
+          "modulo": "src/components/CambiosCifrasPanel.tsx",
+          "golpes": 4,
+          "de": 4
+        },
+        {
+          "modulo": "src/components/Cie10Autocomplete.tsx",
+          "golpes": 3,
+          "de": 4
+        },
+        {
+          "modulo": "src/lib/asr/politica-critica.ts",
+          "golpes": 7,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/asr/especialidad-del-medico.ts",
+          "golpes": 6,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/tareas-clinicas/firestore.ts",
+          "golpes": 2,
+          "de": 4
+        },
+        {
+          "modulo": "src/lib/tareas-clinicas/derivar.ts",
+          "golpes": 3,
+          "de": 7
+        }
+      ]
+    },
+    {
+      "url": "1qh6r4ud5oa2d.js",
+      "kb": 103,
+      "modulos": [
+        {
+          "modulo": "src/lib/expediente/medical-dictionary.ts",
+          "golpes": 10,
+          "de": 12
+        }
+      ]
+    },
+    {
+      "url": "2_t1qwo6ei059.js",
+      "kb": 56,
+      "modulos": [
+        {
+          "modulo": "src/lib/expediente/razonamiento.ts",
+          "golpes": 12,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/expediente/copiloto.ts",
+          "golpes": 12,
+          "de": 12
+        },
+        {
+          "modulo": "src/components/Copiloto.tsx",
+          "golpes": 3,
+          "de": 5
+        },
+        {
+          "modulo": "src/lib/expediente/labs-desde-texto.ts",
+          "golpes": 1,
+          "de": 2
+        },
+        {
+          "modulo": "src/components/PanelRazonamiento.tsx",
+          "golpes": 3,
+          "de": 7
+        }
+      ]
+    },
+    {
+      "url": "12coehgejfx7e.js",
+      "kb": 32,
+      "modulos": []
+    },
+    {
+      "url": "0biiyk0czbnrb.js",
+      "kb": 19,
+      "modulos": [
+        {
+          "modulo": "src/lib/expediente/farmacovigilancia.ts",
+          "golpes": 12,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/seguridad/alergias.ts",
+          "golpes": 2,
+          "de": 6
+        },
+        {
+          "modulo": "src/lib/expediente/medical-dictionary.ts",
+          "golpes": 2,
+          "de": 12
+        }
+      ]
+    },
+    {
+      "url": "1c6xgy6tzry1x.js",
+      "kb": 19,
+      "modulos": [
+        {
+          "modulo": "src/hooks/useGrabacionAudio.ts",
+          "golpes": 10,
+          "de": 12
+        },
+        {
+          "modulo": "src/lib/mobile/local-drafts.ts",
+          "golpes": 1,
+          "de": 2
+        }
+      ]
+    },
+    {
+      "url": "0vpvqtwji2jji.js",
+      "kb": 3,
+      "modulos": []
+    }
+  ]
+}

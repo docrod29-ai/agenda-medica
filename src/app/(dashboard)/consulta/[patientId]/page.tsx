@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type ComponentProps } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
+import { formatDateMX } from '@/lib/availability'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { DOSIS_DESCONOCIDA, esDosisDeclaradaDesconocida } from '@/lib/seguridad/dosis-desconocida'
@@ -13,6 +14,7 @@ import { sugerenciasPendientes, resolverSugerencias, lineasSugeridas } from '@/l
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
+import { VolverALaFuente } from '@/components/lente/VolverALaFuente'
 import { useBorrador } from '@/context/BorradorContext'
 import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
@@ -30,7 +32,7 @@ import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
 import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
-import { borradoresBloqueados } from '@/lib/mobile/local-drafts'
+import { borradoresBloqueados, queHacerConElRespaldoLocal } from '@/lib/mobile/local-drafts'
 import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
@@ -42,22 +44,22 @@ import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperator
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
 import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
-import { PreopAssessment } from '@/components/PreopAssessment'
-import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
-import { RevisionPanel } from '@/components/RevisionPanel'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
 import { frasesInciertas } from '@/lib/expediente/certeza'
 import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
+import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
+import { CierreAlPulgar, cierreAlPulgarVisible } from '@/components/CierreAlPulgar'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
+import { leerHechosDeCierre, marcarHechoDeCierre, guardarSeguimientoDeCierre, leerSeguimientoDeCierre } from '@/lib/expediente/cierre-hechos'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
-import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
+import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/expediente/procedencia'
 
 /**
  * Alergias del paciente (texto libre) → lista para el sello de procedencia.
@@ -67,46 +69,15 @@ import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/proced
  * era una alergia para el sello y dos para la alerta. El mismo campo no puede
  * significar dos cosas según quién lo lea.
  */
-/**
- * TODO LO QUE LA NOTA AFIRMA, EN TEXTO — y de verdad.
+/*
+ * `textoDeLaNota` VIVÍA AQUÍ y se mudó a `lib/expediente/texto-de-la-nota.ts`.
  *
- * ── EL HUECO ─────────────────────────────────────────────────────────────────
- *
- * Las defensas de negación y temporalidad se contrastan contra «lo que la nota
- * dice», y el comentario que las acompaña lo prometía: «resumen, diagnósticos y
- * las secciones, no sólo el resumen».
- *
- * El código armaba ese texto uniendo el resumen con un `join` sobre el arreglo
- * de diagnósticos y un `Object.values` sobre el de secciones.
- *
- * `diagnosticos` es `Diagnostico[]` y `secciones` es `NotaSeccion[]`: **objetos**.
- * `join` y `Object.values` sobre objetos producen `[object Object]`. Así que la
- * comprobación sólo veía **el resumen** — todo el cuerpo de la nota y la lista de
- * diagnósticos eran invisibles para ella.
- *
- * Se vio en producción, en la propia alerta, que citaba la nota como
- * «…Diabetes mellitus tipo 2. [object Object] [object Object]…».
- *
- * ── POR QUÉ ES GRAVE Y NO COSMÉTICO ──────────────────────────────────────────
- *
- * Un antecedente que el paciente NEGÓ y que la nota guarda **sólo como
- * diagnóstico estructurado** —sin repetirlo en la prosa— no disparaba nada. Y el
- * diagnóstico estructurado es justo el que se arrastra a la receta, al resumen
- * de la próxima consulta y al expediente.
- *
- * La defensa existía, estaba probada, y miraba a un sitio equivocado.
+ * No por limpieza: `/expediente` necesita el MISMO texto para contrastar una
+ * nota archivada contra su dictado (§21). Dos copias serían dos definiciones de
+ * qué es «la nota» para el mismo motor de trazabilidad, y la que se quedara
+ * atrás mentiría en silencio. El porqué del formato —y el defecto de
+ * `[object Object]` que lo originó— está escrito en su casa nueva.
  */
-function textoDeLaNota(
-  resumen: string,
-  diagnosticos: readonly Diagnostico[],
-  secciones: readonly NotaSeccion[],
-): string {
-  return [
-    resumen,
-    ...(diagnosticos ?? []).map(d => [d?.descripcion, d?.codigoCIE10].filter(Boolean).join(' ')),
-    ...(secciones ?? []).map(s => s?.value),
-  ].filter(Boolean).join('\n')
-}
 
 /**
  * ── EL SELLO DE PROCEDENCIA CONTABA CERO ALERGIAS — REG-278 ──────────────────
@@ -128,7 +99,7 @@ function textoDeLaNota(
 function alergiasArray(p?: { alergias?: string; alergiasEstructuradas?: AlergiaEstructurada[] }): string[] {
   return alergiasDe(p ?? {}).map(a => a.alergeno)
 }
-import { NerPanel, type NegacionCorregida, type AvisoTemporal } from '@/components/NerPanel'
+import type { NegacionCorregida, AvisoTemporal } from '@/components/NerPanel'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
@@ -148,7 +119,6 @@ import { cargarPreferencias, registrarAceptacion, type Preferencias } from '@/li
 import { Herramientas } from '@/components/Herramientas'
 import { QueNotaEs } from '@/components/QueNotaEs'
 import { MientrasHablas } from '@/components/MientrasHablas'
-import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
@@ -163,7 +133,6 @@ import { tiposVisibles } from '@/lib/expediente/tipos-visibles'
 import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, SignosVitales } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
-import { CobrarModal } from '@/components/CobrarModal'
 import { precioSugerido } from '@/lib/finanzas/precio-consulta'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/derivar'
@@ -196,6 +165,7 @@ import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib/expediente/temporalidad'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
+import { comportamientoScroll } from '@/lib/ui/movimiento'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
@@ -229,6 +199,29 @@ const PanelPreventivo = dynamic(() => import('@/components/PanelPreventivo').the
 const AntibiogramaTool = dynamic(() => import('@/app/(dashboard)/antibiograma/page').then(m => m.AntibiogramaTool), { ssr: false })
 const CalculadorasClinicas = dynamic(() => import('@/components/CalculadorasClinicas').then(m => m.CalculadorasClinicas), { ssr: false })
 const FotosClinicas = dynamic(() => import('@/components/FotosClinicas').then(m => m.FotosClinicas), { ssr: false })
+/**
+ * ── V15-PERF-001, 3ª rebanada: el resto de los paneles CONDICIONALES ─────────
+ *
+ * El baseline midió /consulta en 734 KB de JS transferido contra ~490 KB de sus
+ * hermanas de la cadena clínica, con las long tasks móviles más altas (591–766
+ * ms). La atribución en navegador (atribuir-js-consulta-v15.mjs — el bundle
+ * analyzer de webpack no corre bajo Turbopack) mostró que el excedente son los
+ * chunks exclusivos de la ruta: código compilado de paneles que en una consulta
+ * típica NUNCA se montan.
+ *
+ * Sólo se difieren los que tienen una condición real de montaje — un tipo de
+ * nota concreto, un modal abierto, una herramienta desplegada o un resultado de
+ * IA que aún no existe al cargar. Los paneles que se montan en toda consulta
+ * (Copiloto, AntesDeFirmar, HojaParaElPaciente, HistorialVersiones) se quedan
+ * estáticos a propósito: diferirlos no ahorra transferencia — la mueve unos
+ * milisegundos después y añade una petición en cascada.
+ */
+const PreopAssessment = dynamic(() => import('@/components/PreopAssessment').then(m => m.PreopAssessment), { ssr: false })
+const ValoracionInmuno = dynamic(() => import('@/components/pacientes/ValoracionInmuno'), { ssr: false })
+const CobrarModal = dynamic(() => import('@/components/CobrarModal').then(m => m.CobrarModal), { ssr: false })
+const PanelLaboratorios = dynamic(() => import('@/components/laboratorio/PanelLaboratorios').then(m => m.PanelLaboratorios), { ssr: false })
+const RevisionPanel = dynamic(() => import('@/components/RevisionPanel').then(m => m.RevisionPanel), { ssr: false })
+const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPanel), { ssr: false })
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
@@ -807,6 +800,24 @@ export default function ConsultaActivaPage() {
     ),
   }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, extraction])
   const [resumen, setResumen] = useState('')
+  /**
+   * QUÉ ES ESTA NOTA PARA EL SELLO — una vez, para las dos lecturas.
+   *
+   * Había dos listas: la del guardado (que incluía la prosa y por eso el sello
+   * ARCHIVADO la contaba) y la de la tira en pantalla (que no). Sobre la misma
+   * nota, el registro decía «3 del dictado · 4 a mano» y la pantalla «4 a
+   * mano»: los tres campos que faltaban eran justo la prosa, donde vivieron los
+   * fallos reales. Con un solo objeto no pueden volver a divergir.
+   */
+  const notaDelSello = useMemo(
+    () => notaParaElSello({
+      diagnosticos, medicamentos,
+      alergias: alergiasArray(patient ?? {}),
+      signosVitales: signosNum as unknown as Record<string, unknown>,
+      secciones, resumen,
+    }),
+    [diagnosticos, medicamentos, patient, signosNum, secciones, resumen],
+  )
   const [procesando, setProcesando] = useState(false)
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
   // Lo llena Claude al terminar la diarización; editable en el diálogo.
@@ -852,6 +863,14 @@ export default function ConsultaActivaPage() {
   const [verFuente, setVerFuente] = useState(false)
   // Red de seguridad local: respaldo de la nota en el navegador (anti-pérdida)
   const [respaldoDisponible, setRespaldoDisponible] = useState(false)
+  /**
+   * DE QUÉ NOTA ES EL RESPALDO, Y DE CUÁNDO. Sin esto el aviso no puede
+   * decidir si el respaldo es de ESTE encuentro (WF-10 del banco de flujos:
+   * el respaldo se escribía, se conservaba y no se ofrecía nunca al reabrir
+   * una nota por `?nota=`). Lo decide `queHacerConElRespaldoLocal`, que es
+   * pura y vive con la clave a la que pertenece.
+   */
+  const [respaldoMeta, setRespaldoMeta] = useState<{ notaId: string | null; ts: number | null } | null>(null)
   // NOTA EN TIEMPO REAL: la nota se va armando mientras hablas (cada ~30s).
   const [notaEnVivo] = useState(true)  // SIEMPRE activa (la nota se arma sola al hablar)
   const [estructurandoVivo, setEstructurandoVivo] = useState(false)
@@ -1113,6 +1132,25 @@ export default function ConsultaActivaPage() {
    */
   const vistoEnRef = useRef<string | undefined>(undefined)
   useEffect(() => { notaIdRef.current = notaId }, [notaId])
+  /**
+   * V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, §33 / §20) — lo que ya se hizo del
+   * checklist de cierre (`ComoCerrarLaConsulta`), para la nota con la que
+   * arrancó esta pantalla (`notaIdParam`, de `?nota=` en la URL). Es
+   * exactamente el caso que importa: volver de `/receta` o `/orden` con
+   * `useSmartBack` trae de vuelta esa misma URL, y esta lectura perezosa la
+   * recupera aunque Next remonte la pantalla.
+   *
+   * NO se resincroniza en un `useEffect` cuando `notaId` cambia DESPUÉS del
+   * montaje (p. ej. al firmar una nota nueva, que pasa de `null` a un id
+   * recién creado): ese id nunca tuvo entrada en `sessionStorage`, así que
+   * `leerHechosDeCierre` daría `[]` de todos modos — igual al estado inicial.
+   * Añadir ese efecto sólo repetiría, en el otro sentido, el mismo defecto
+   * que ya tiene `uuidRespaldoRef` un poco más arriba (`react-hooks/refs`):
+   * estado derivado que se puede leer una vez, no sincronizar en cada render.
+   * Ver `cierre-hechos.ts` para el porqué de `sessionStorage` en vez de
+   * Firestore.
+   */
+  const [hechosCierre, setHechosCierre] = useState<string[]>(() => leerHechosDeCierre(notaIdParam))
   const fallosGuardadoRef = useRef(0)
   const cadenaGuardadoRef = useRef<Promise<unknown>>(Promise.resolve())
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
@@ -1189,7 +1227,14 @@ export default function ConsultaActivaPage() {
    * Alimenta dos cosas que YA existían esperando este dato: la tarea «agendar
    * el seguimiento» del worklist y el contador de seguimientos vencidos del CRM.
    */
-  const [proximoSeguimiento, setProximoSeguimiento] = useState('')
+  /**
+   * Inicialización perezosa desde `sessionStorage` (quinta rebanada, Fase 8):
+   * la nota no guarda este campo, así que al remontar con `?nota=` (volver
+   * de /citas, F5) el valor que el médico puso se recupera de donde lo dejó
+   * `firmar()` — mismo patrón que `hechosCierre` arriba. Sin entrada guardada
+   * devuelve `''`, idéntico al estado inicial de siempre.
+   */
+  const [proximoSeguimiento, setProximoSeguimiento] = useState(() => leerSeguimientoDeCierre(notaIdParam))
   // Fase B: bloque auditable de la IA + aprobaciones por campo
   const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
   const [aprobados, setAprobados] = useState<Set<string>>(new Set())
@@ -1524,6 +1569,19 @@ export default function ConsultaActivaPage() {
       setMedicamentos(medicamentosSanos(n.medicamentos))
       setResumen(n.resumenEjecutivo ?? '')
       setFirmada(n.estado === 'firmada')
+      /**
+       * V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, segunda rebanada) — ESTUDIOS
+       * TAMBIÉN SE RESTAURAN.
+       *
+       * A diferencia de `secciones`/`diagnosticos`/`medicamentos`, este campo
+       * nunca se leía de vuelta desde Firestore. Con la URL ahora llevando
+       * `?nota=<id>` tras firmar (ver `router.replace` en `firmar()`), volver
+       * de `/orden` o reabrir una nota firmada remonta esta pantalla y corre
+       * este efecto — y sin esta línea el paso "Imprimir la orden de
+       * estudios" desaparecía de `ComoCerrarLaConsulta` (no se pintaba
+       * apagado: no existía), porque `estudiosOrden` volvía a `[]`.
+       */
+      if (Array.isArray(n.estudiosOrden)) setEstudiosOrden(n.estudiosOrden)
       if (n.preop) setPreop(n.preop)
       if (n.iaAuditoria) {
         if (n.iaAuditoria.extraction) setExtraction(n.iaAuditoria.extraction)
@@ -2390,22 +2448,19 @@ export default function ConsultaActivaPage() {
         aprobadosPorMedico: Array.from(aprobados),
         // Sello de procedencia: cuántos datos vinieron del dictado / IA / a mano.
         // Aditivo y derivado (no inventa); queda en el registro medicolegal.
+        /**
+         * LA PROSA ENTRA AL SELLO, y entra por el MISMO objeto que la tira
+         * de pantalla (`notaDelSello`). Antes esta lista se escribía aquí
+         * a mano y la de la pantalla aparte: el registro contaba la prosa y lo
+         * que el médico leía no, sobre la misma nota.
+         *
+         * Los tres fallos que el Dr. encontró en producción vivieron en la
+         * prosa —«la de la docencia» convertido en «vesícula»; un «no» a la
+         * pregunta por diabetes redactado como «paciente con DM2 e HTA»—, así
+         * que el sello legible contaba con precisión la parte que no falló.
+         */
         procedencia: construirManifiesto(
-          {
-            diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}),
-            signosVitales: signosNum as unknown as Record<string, unknown>,
-            /**
-             * Y LA PROSA, que era justo lo que faltaba.
-             *
-             * El manifiesto cubría datos estructurados, y los tres fallos que
-             * el Dr. encontró en producción vivieron en la prosa: «la de la
-             * docencia» convertido en «vesícula», y un «no» a la pregunta por
-             * diabetes redactado como «paciente con DM2 e HTA». El sello
-             * contaba con precisión la parte que no había fallado.
-             */
-            secciones: secciones.map(sec => ({ key: sec.key, label: sec.label, value: sec.value })),
-            resumen,
-          },
+          notaDelSello,
           extraction as never,
           // Los vistos buenos del panel de revisión. Ya se guardaban como un
           // número suelto (`camposAprobados`), que dice cuántos aceptó el médico
@@ -2490,7 +2545,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances, notaDelSello])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -2801,12 +2856,35 @@ export default function ConsultaActivaPage() {
     const mem = borradorMem.leer(respaldoKey) as Record<string, unknown> | null
     let b = mem
     if (!b) {
-      try { const raw = localStorage.getItem(respaldoKey); if (raw) { b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw); setRespaldoDisponible(true) } } catch { /* */ }
+      try {
+        const raw = localStorage.getItem(respaldoKey)
+        if (raw) {
+          b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
+          setRespaldoDisponible(true)
+          setRespaldoMeta({
+            notaId: typeof b?.notaId === 'string' ? b.notaId : null,
+            ts: typeof b?.ts === 'number' ? b.ts : null,
+          })
+        }
+      } catch { /* */ }
     }
     if (!b) return
     const vacio = !resumen.trim() && !secciones.some(s => s.value?.trim()) &&
       diagnosticos.length === 0 && medicamentos.length === 0 && !voz.transcripcion.trim()
-    if (notaIdParam || !vacio) return   // abriendo otra nota o ya hay contenido → no pisar
+    /**
+     * APLICAR SOLO y OFRECER son dos decisiones, no una. Antes las gobernaba la
+     * misma prueba (`vacio`) y por eso al reabrir una nota concreta el respaldo
+     * no se aplicaba —correcto— pero tampoco se ofrecía —el defecto—. Aquí sólo
+     * se resuelve la primera; la segunda la resuelve el aviso, con la misma
+     * función, para que las dos ramas no puedan divergir.
+     */
+    if (queHacerConElRespaldoLocal({
+      hayRespaldo: true,
+      respaldoNotaId: typeof b.notaId === 'string' ? b.notaId : null,
+      notaAbierta: notaIdParam ?? null,
+      notaFirmada: firmada,
+      formularioVacio: vacio,
+    }) !== 'APLICAR_SOLO') return
     autoRestRef.current = true
     /**
      * Recuperar la nota a la que pertenecía el respaldo: sin esto se creaba una
@@ -2852,9 +2930,11 @@ export default function ConsultaActivaPage() {
     if (b.preop) setPreop(b.preop as typeof preop)
     if (typeof b.proximoSeguimiento === 'string') setProximoSeguimiento(b.proximoSeguimiento)
     if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
-    setRespaldoDisponible(false)
+    setRespaldoDisponible(false); setRespaldoMeta(null)
     if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
-  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast, borradorMem])
+    // `firmada` entra en las deps porque la decisión la mira: sobre una nota
+    // firmada no se repone nada (es inmutable, NOM-024).
+  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast, borradorMem, firmada])
 
   // GUARDADO INMEDIATO al salir (anti-pérdida). El respaldo con debounce se
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
@@ -2926,18 +3006,36 @@ export default function ConsultaActivaPage() {
    */
   const scrollKey = `nx.consulta.scroll.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
   useEffect(() => {
+    /**
+     * El scroll del dashboard vive en <main> desde que el shell tiene tope
+     * (`nx-app-shell`, V15-MOBILE-001 §23); antes vivía en el documento
+     * porque `min-height` dejaba crecer la columna. Se lee y escribe en LOS
+     * DOS lados: mover el contenedor que no desplaza es un no-op inofensivo,
+     * y así esta restauración no depende de cuál de los dos esté activo (la
+     * clase podría no aplicar en un embed o en una prueba sin el layout).
+     */
+    const scroller = () => document.querySelector('main')
     // Restaurar: dos frames para que el contenido restaurado ya esté pintado.
     let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         const y = Number(sessionStorage.getItem(scrollKey) || 0)
-        if (y > 0) window.scrollTo(0, y)
+        if (y > 0) {
+          const m = scroller()
+          if (m) m.scrollTop = y
+          window.scrollTo(0, y)
+        }
       })
     })
-    const guardarScroll = () => { try { sessionStorage.setItem(scrollKey, String(window.scrollY)) } catch { /* */ } }
+    const guardarScroll = () => {
+      try { sessionStorage.setItem(scrollKey, String(scroller()?.scrollTop || window.scrollY)) } catch { /* */ }
+    }
+    const m = scroller()
+    m?.addEventListener('scroll', guardarScroll, { passive: true })
     window.addEventListener('scroll', guardarScroll, { passive: true })
     return () => {
       cancelAnimationFrame(raf1); cancelAnimationFrame(raf2)
+      m?.removeEventListener('scroll', guardarScroll)
       window.removeEventListener('scroll', guardarScroll)
       guardarScroll()  // al desmontar (irte): recuerda dónde ibas
     }
@@ -3022,7 +3120,7 @@ export default function ConsultaActivaPage() {
   const restaurarRespaldo = async () => {
     try {
       const raw = localStorage.getItem(respaldoKey)
-      if (!raw) { setRespaldoDisponible(false); return }
+      if (!raw) { setRespaldoDisponible(false); setRespaldoMeta(null); return }
       const b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
       if (b.tipo) setTipo(b.tipo)
       // Mismo saneo que arriba: tres sitios con la misma regla, no tres reglas.
@@ -3057,7 +3155,7 @@ export default function ConsultaActivaPage() {
           setNotaId(idPrevio)
         }
       }
-      setRespaldoDisponible(false)
+      setRespaldoDisponible(false); setRespaldoMeta(null)
       toast('Respaldo local restaurado', 'success')
     } catch { toast('No se pudo restaurar el respaldo', 'error') }
   }
@@ -3450,6 +3548,36 @@ export default function ConsultaActivaPage() {
         await updateNota(clinicId, patientId, nuevo, notaFirmada)
       }
       setFirmada(true)
+      /**
+       * V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, segunda rebanada) — LA URL TIENE
+       * QUE LLEVAR EL notaId DESDE AQUÍ.
+       *
+       * `firmar()` nunca escribía `?nota=<id>` en la barra de direcciones: el
+       * id vivía sólo en `notaIdRef`/`notaId` (estado de React). Cuando abajo
+       * se hace `router.push(destino)` hacia `/receta` u `/orden`, la entrada
+       * de historial que queda ATRÁS es la URL que estaba en pantalla en ese
+       * instante — `/consulta/[patientId]` SIN `?nota=`. `useSmartBack` (que
+       * usan `/receta` y `/orden` para volver) hace `router.back()` sobre esa
+       * misma entrada: el médico "regresaba" a una consulta que, al remontar,
+       * no sabía qué nota traía — `firmada` volvía a `false` y el checklist de
+       * cierre (`ComoCerrarLaConsulta`) desaparecía entero, con o sin lo que
+       * ya se marcó en `sessionStorage` (ver `cierre-hechos.ts`).
+       *
+       * `router.replace` (nunca `push`): esto no es una navegación nueva, es
+       * la MISMA pantalla diciendo la verdad sobre qué nota tiene abierta. Un
+       * `push` aquí ensuciaría el historial con una entrada extra y `atrás`
+       * tendría que pulsarse dos veces para salir de la consulta.
+       */
+      router.replace(`/consulta/${patientId}?nota=${id}`)
+      /**
+       * La fecha de control sobrevive al remonte (quinta rebanada, Fase 8):
+       * la nota NO guarda `proximoSeguimiento` (esquema congelado — va al
+       * paciente y a la tarea del worklist), así que volver de `/citas` a
+       * esta URL dejaba el paso «Agendar el seguimiento» INEXISTENTE en el
+       * checklist, ni marcado ni pendiente. Lo encontró el arnés de la
+       * propia rebanada. Mismo criterio de `sessionStorage` que las marcas.
+       */
+      guardarSeguimientoDeCierre(id, proximoSeguimiento)
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }  // ya firmada: respaldo local ya no hace falta
       toast('Nota firmada y sellada (NOM-024)', 'success')
       /**
@@ -3647,7 +3775,18 @@ export default function ConsultaActivaPage() {
     } finally {
       setGuardando(false)
     }
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente])
+    /**
+     * `proximoSeguimiento` en las dependencias — REG-310. Faltaba, y como
+     * TAMPOCO está en las de `construirNota`, teclear la fecha como ÚLTIMO
+     * gesto antes de firmar (el orden natural: se decide el control al
+     * cerrar) dejaba este callback memorizado con la fecha VIEJA — `''`.
+     * Resultado, medido contra el emulador con el arnés de la Fase 8: cuatro
+     * notas firmadas con fecha y CERO tareas «Agendar el seguimiento»
+     * derivadas, y `patient.proximoSeguimiento` sin actualizar. El tercer
+     * arreglo del mismo dato (REG-193, REG-300, éste): cada uno cubrió un
+     * camino distinto por el que se perdía.
+     */
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //
@@ -3806,6 +3945,18 @@ export default function ConsultaActivaPage() {
     dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
   })
 
+  /**
+   * ¿Hay ya algo de nota que cerrar? (V15-MOBILE-001, §22 — `CierreAlPulgar`.)
+   * Cualquier señal real de contenido cuenta: una sección escrita, un
+   * diagnóstico o medicamento capturado, o un dictado en curso
+   * (`!esElPrincipio`). Sin ninguna, la acción primaria del encuentro sigue
+   * siendo EmpezarAGrabar y la barra de cierre no tiene derecho a existir.
+   */
+  const hayContenidoDeNota = !esElPrincipio
+    || secciones.some(s => s.value.trim() !== '')
+    || diagnosticos.length > 0
+    || medicamentos.length > 0
+
 
   /**
    * ¿El bloqueo de la firma es SÓLO la cédula que falta?
@@ -3841,18 +3992,89 @@ export default function ConsultaActivaPage() {
   const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
 
   return (
-    <div className="page-pad" style={{ maxWidth: 980, margin: '0 auto' }}>
+    <div className="nx-canvas">
       <button onClick={volverAtras} style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
 
+      {/*
+        EL HILO DE VUELTA (§21) — sólo cuando el médico llegó aquí desde una
+        inspección, y sólo si el contrato cuadra con ESTA consulta.
+
+        `destino` se arma con lo que esta pantalla sabe de sí misma: el
+        consultorio de la sesión, el paciente de su propia ruta y la nota que
+        el parámetro pidió abrir. Se compara contra el contrato, y si no
+        coinciden los tres NO se ofrece volver — un testigo de otro paciente o
+        de otra nota se declina en voz alta en vez de devolver al médico a una
+        lista afirmando que venía de un encuentro en el que nunca estuvo.
+
+        `notaIdParam` y no el `notaId` de estado: el estado cambia si esta
+        pantalla crea una nota nueva, y entonces la comparación dejaría de
+        hablar del encuentro por el que se entró.
+      */}
+      <VolverALaFuente destino={{
+        clinicId: clinicId ?? '',
+        patientId: String(patientId ?? ''),
+        notaId: notaIdParam ?? '',
+      }} />
+
+      {/* RTC-31/§5 — LA IDENTIDAD ENCABEZA, TAMBIÉN AQUÍ.
+          Medido el 14-ago con un paciente CON historia: el nombre caía a 287px
+          en escritorio y 404px en móvil, porque las cajas de contexto —
+          alergias, problemas, visitas anteriores— iban por delante. Con el
+          expediente vacío estaba a ~172px: el defecto sólo existía cuando el
+          paciente tiene historia, que es siempre menos el primer día. De quién
+          es la consulta no puede leerse a media pantalla.
+          El orden es el que el expediente ya había elegido en su ancla:
+          identidad → alergias → el resto del contexto. */}
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div>
+          {/* `.nx-vt-paciente` (§20, continuidad.ts): en una navegación
+              coreografiada, el nombre del paciente que venía en la fila de Hoy
+              o en el ancla del expediente ATERRIZA aquí — el mismo objeto
+              ganando detalle, no una pantalla que reemplaza a otra. */}
+          <h1 className="nx-vt-paciente" style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{patient?.nombre ?? 'Consulta'}</h1>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
+            {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''} · {TIPO_NOTA_LABEL[tipo]}
+          </div>
+          {/*
+            ALERGIAS SIEMPRE A LA VISTA durante la consulta.
+            Antes solo aparecían al desplegar los datos del paciente, pero es
+            justo mientras se dicta y se prescribe cuando hay que tenerlas
+            enfrente. Rojo si el paciente tiene alergias; discreto si no.
+          */}
+          {/**
+            * RTC-14 — AQUÍ HABÍA UNA SEGUNDA PÍLDORA DE ALERGIAS.
+            *
+            * Medido el 14-ago en navegador, con un paciente que POR FIN tenía
+            * alergia registrada: la alergia se pintaba **dos veces en el primer
+            * pliegue** de la consulta (49px entre las dos) — la franja
+            * editable de arriba y esta píldora de sólo lectura, a 200px de
+            * distancia. Dos avisos del mismo dato compiten entre sí: el
+            * segundo se aprende a ignorar, y el día que digan cosas distintas
+            * —ya pasó, REG-311— el médico no sabe cuál creer.
+            *
+            * Lo que esta píldora aportaba de más era la LECTURA semántica
+            * (`alergenosDe`), y eso no se pierde: subió a la franja, junto al
+            * texto del que sale. Una presentación, los dos hechos.
+            */}
+        </div>
+        {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
+      </div>
+
       {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde
           ponerlas). Se guarda en el expediente del paciente y alimenta las alertas
-          de fármaco. Rojo cuando hay alergias; neutro cuando no. */}
+          de fármaco. Rojo cuando hay alergias; neutro cuando no.
+          El rojo lo decide `alergenosDe` (semántica sellada de REG-279), no la
+          mera presencia de texto: «Niega alergias» pintaba esta franja ROJA y
+          la píldora de más abajo NEUTRA — dos alarmas contradictorias para el
+          mismo dato en el mismo viewport (REG-311). */}
+      {(() => { const alergenosDelPaciente = alergenosDe(patient ?? {}); const hayAlergias = alergenosDelPaciente.length > 0; return (
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
-        background: patient?.alergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
-        border: `1px solid ${patient?.alergias ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'}`,
+        background: hayAlergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
+        border: `1px solid ${hayAlergias ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'}`,
         borderRadius: 10, padding: '9px 13px',
       }}>
         {/*
@@ -3863,8 +4085,8 @@ export default function ConsultaActivaPage() {
           de resumen de 56 líneas más abajo, que usaba otro: mismo concepto
           clínico, misma pantalla, dos rojos que el médico no puede aprender.
         */}
-        <AlertTriangle size={16} color={patient?.alergias ? 'var(--red)' : 'var(--text3)'} style={{ flexShrink: 0 }} />
-        <strong style={{ flexShrink: 0, fontSize: 13, color: patient?.alergias ? 'var(--red)' : 'var(--text2)' }}>Alergias:</strong>
+        <AlertTriangle size={16} color={hayAlergias ? 'var(--red)' : 'var(--text3)'} style={{ flexShrink: 0 }} />
+        <strong style={{ flexShrink: 0, fontSize: 13, color: hayAlergias ? 'var(--red)' : 'var(--text2)' }}>Alergias:</strong>
         <input
           value={patient?.alergias ?? ''}
           onChange={e => setPatient(prev => prev ? { ...prev, alergias: e.target.value } : prev)}
@@ -3896,7 +4118,32 @@ export default function ConsultaActivaPage() {
           disabled={firmada}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
         />
+        {/**
+          * RTC-14 — LA LECTURA DEL SISTEMA, AQUÍ Y NO EN OTRA CAJA.
+          *
+          * Esto es lo ÚNICO que aportaba la píldora de bajo el nombre que esta
+          * rebanada retira: el campo de arriba enseña lo que hay ESCRITO, y
+          * esto enseña lo que el sistema ENTIENDE que son alérgenos. Los dos
+          * hechos son distintos y los dos hacen falta — «Niega penicilina.
+          * Alérgico a sulfas» se lee entero en el campo, y aquí se ve que de
+          * ahí sale «sulfas» (REG-279/REG-311: una copia local del criterio
+          * llegó a pintar eso como neutro).
+          *
+          * Sólo aparece cuando la lectura AÑADE algo: si el texto escrito es
+          * exactamente el alérgeno, repetirlo al lado sería el mismo defecto
+          * que esta rebanada viene a quitar.
+          */}
+        {hayAlergias && alergenosDelPaciente.join(' · ') !== (patient?.alergias ?? '').trim() && (
+          <span
+            className="nx-critico"
+            style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700 }}
+            title="Lo que el sistema entiende como alérgeno a partir de lo escrito"
+          >
+            se lee: {alergenosDelPaciente.join(' · ')}
+          </span>
+        )}
       </div>
+      ) })()}
 
       {/*
         LOS PROBLEMAS DEL PACIENTE Y CUÁNDO VINO LA ÚLTIMA VEZ.
@@ -4023,41 +4270,27 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{patient?.nombre ?? 'Consulta'}</h1>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-            {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''} · {TIPO_NOTA_LABEL[tipo]}
-          </div>
-          {/*
-            ALERGIAS SIEMPRE A LA VISTA durante la consulta.
-            Antes solo aparecían al desplegar los datos del paciente, pero es
-            justo mientras se dicta y se prescribe cuando hay que tenerlas
-            enfrente. Rojo si el paciente tiene alergias; discreto si no.
-          */}
-          {(() => {
-            const a = (patient?.alergias ?? '').trim()
-            const sin = /^(ninguna|niega|no|sin|nkda)\b/i.test(a)
-            if (!a) return null
-            return (
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
-                background: sin ? 'var(--s2)' : 'color-mix(in srgb, var(--red) 10%, transparent)',
-                border: `1px solid ${sin ? 'var(--border)' : 'color-mix(in srgb, var(--red) 40%, transparent)'}`,
-                borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 12.5,
-                color: sin ? 'var(--text2)' : 'var(--red)', fontWeight: 600,
-              }}>
-                <AlertTriangle size={13} /> Alergias: <span style={{ fontWeight: 700 }}>{a}</span>
-              </div>
-            )
-          })()}
-        </div>
-        {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
-      </div>
 
-      {/* Red de seguridad: ofrecer restaurar respaldo local si el formulario está vacío */}
-      {respaldoDisponible && !firmada && !resumen.trim() && !secciones.some(s => s.value?.trim()) && (
+      {/*
+        Red de seguridad: OFRECER el respaldo local.
+
+        La condición era «el formulario está vacío», que es la prueba de
+        APLICARLO SOLO, no la de ofrecerlo. Al reabrir una nota por `?nota=` el
+        formulario nunca está vacío —trae la nota—, así que el aviso no aparecía
+        jamás en el único caso para el que existe: la interrupción a mitad del
+        encuentro, antes del autoguardado de 30 s. El respaldo se escribía, se
+        conservaba y no llegaba a nadie (WF-10, `V15-WORKFLOW-BENCHMARK-001`).
+
+        La decisión vive en `queHacerConElRespaldoLocal` y la comparten las dos
+        ramas para que no puedan divergir.
+      */}
+      {respaldoDisponible && queHacerConElRespaldoLocal({
+        hayRespaldo: true,
+        respaldoNotaId: respaldoMeta?.notaId ?? null,
+        notaAbierta: notaIdParam ?? null,
+        notaFirmada: firmada,
+        formularioVacio: !resumen.trim() && !secciones.some(s => s.value?.trim()),
+      }) === 'OFRECER' && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16,
           padding: '10px 14px', borderRadius: 10,
@@ -4065,11 +4298,15 @@ export default function ConsultaActivaPage() {
         }}>
           <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
-            Hay un <strong>respaldo local</strong> de una nota sin terminar en este dispositivo.
+            Hay un <strong>respaldo local</strong> de una nota sin terminar en este dispositivo
+            {respaldoMeta?.ts
+              ? <> — guardado a las {new Date(respaldoMeta.ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</>
+              : null}.
+            {' '}Restaurarlo reemplaza lo que ves con lo que había sin guardar.
           </span>
           <button onClick={restaurarRespaldo} className="btn btn-sm btn-primary">Restaurar</button>
           <button
-            onClick={() => { try { localStorage.removeItem(respaldoKey) } catch { /* */ } setRespaldoDisponible(false) }}
+            onClick={() => { try { localStorage.removeItem(respaldoKey) } catch { /* */ } setRespaldoDisponible(false); setRespaldoMeta(null) }}
             className="btn btn-sm btn-ghost"
           >
             Descartar
@@ -4128,7 +4365,11 @@ export default function ConsultaActivaPage() {
 
       {/* ── Grabación ── */}
       {!firmada && (
-        <div style={S.grabCard}>
+        /* RTC-31: la caja sólo se pinta cuando tiene VARIOS controles que
+           agrupar. Antes de pulsar sólo está `EmpezarAGrabar`, que ya es una
+           superficie con su borde — y una tarjeta dentro de otra tarjeta es lo
+           que §29 penaliza aquí. Ver `grabCardSola` en consulta-ui. */
+        <div style={esElPrincipio ? S.grabCardSola : S.grabCard}>
           {/*
             EL BOTÓN, Y NADA MÁS, HASTA QUE HAY ALGO GRABADO.
             El rótulo de modo que vivía aquí —«Conversación completa (médico +
@@ -4177,7 +4418,7 @@ export default function ConsultaActivaPage() {
               </div>
               {/* Respaldo manual: normalmente NO hace falta (se procesa solo al detener). */}
               {procesando
-                ? <span style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</span>
+                ? <span style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</span>
                 : (!voz.grabando && voz.transcripcion.trim()
                     ? <button onClick={() => procesarIA()} style={S.iaBtn(false)}><Sparkles size={16} /> Procesar de nuevo</button>
                     : null)}
@@ -4465,6 +4706,11 @@ export default function ConsultaActivaPage() {
                         background: audio.nivelAudio < 0.05 ? '#9CA3AF'
                           : audio.nivelAudio < 0.4 ? '#22C55E'
                           : audio.nivelAudio < 0.75 ? '#EAB308' : '#EF4444',
+                        // INSTRUMENTO, no interfaz (V15-MOTION-001): el medidor
+                        // sigue el nivel del micrófono en vivo. `linear` a 60ms está
+                        // afinado al ritmo de la señal (y el color de banda a 200ms);
+                        // un easing o un token más lento lo haría MENTIR sobre lo que
+                        // capta. No migrar a var(--mov-*).
                         transition: 'width 60ms linear, background 200ms',
                       }} />
                     </div>
@@ -4513,14 +4759,22 @@ export default function ConsultaActivaPage() {
                 )}
               </div>
               <button onClick={() => procesarIA()} disabled={procesando || tareaProc?.ejecutando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || tareaProc?.ejecutando || !voz.transcripcion.trim())}>
-                {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
+                {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
             )
           )}
 
-          {/* ── MENÚ DE IA: motor por nota + medidor de créditos ── */}
-          {voz.transcripcion.trim() && !voz.grabando && (
+          {/* ── MENÚ DE IA: motor por nota + medidor de créditos ──
+              §8.5 «nonessential admin disappears»: `!voz.grabando` sólo
+              cubría la ruta de Web Speech. Con el grabador de audio
+              (diarización/Whisper), `voz.transcripcion` se llena en vivo
+              desde `audio.transcripcionParcial` (línea ~531) mientras
+              `voz.grabando` sigue en false, así que este menú SÍ aparecía
+              con el mismo peso durante la grabación real. `grabandoAhora()`
+              (ya definido más arriba, mismo criterio que usa el resto de la
+              página para "activo" — incluye pausado) cubre las dos rutas. */}
+          {voz.transcripcion.trim() && !grabandoAhora() && (
             <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Motor de IA para esta nota</span>
@@ -4659,8 +4913,11 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* ── Créditos AGOTADOS (tope duro): la IA se pausó este mes ── */}
-      {sinCreditos && (
+      {/* ── Créditos AGOTADOS (tope duro): la IA se pausó este mes ──
+          §8.5: admin no clínico — se calla mientras graba/pausa (mismo
+          criterio `grabandoAhora()` que el menú de motor de IA), reaparece
+          en cuanto se detiene. */}
+      {sinCreditos && !grabandoAhora() && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
           border: '1px solid var(--red)', background: 'color-mix(in srgb, var(--red) 7%, transparent)',
@@ -4683,7 +4940,7 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {modoEco && !sinCreditos && (
+      {modoEco && !sinCreditos && !grabandoAhora() && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
           border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
@@ -4707,8 +4964,9 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* ── Candado de gasto (soft): aviso de límite de consultas del plan ── */}
-      {usoIA && usoIA.alerta !== 'ok' && (
+      {/* ── Candado de gasto (soft): aviso de límite de consultas del plan ──
+          §8.5: mismo apagado que los dos anteriores. */}
+      {usoIA && usoIA.alerta !== 'ok' && !grabandoAhora() && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '9px 13px', borderRadius: 10, fontSize: 12.5,
           border: '1px solid ' + (usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--border)'),
@@ -4798,131 +5056,11 @@ export default function ConsultaActivaPage() {
         </button>
       )}
 
-      {/* ── Copiloto: lo que aplica a ESTE paciente, calculado con lo ya capturado.
-             Si no hay nada que decir, no se pinta. ── */}
-      <Copiloto
-        entrada={entradaCopiloto}
-        onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
-        prefs={prefsIA}
-        onAceptar={(cat) => {
-          const uid = auth.currentUser?.uid
-          if (clinicId && uid) registrarAceptacion(clinicId, uid, cat)
-          // eco optimista: reordena en caliente sin re-leer Firestore
-          setPrefsIA(p => ({ ...p, [cat]: (p[cat] ?? 0) + 1 }))
-        }}
-      />
-
-      {/* Clinical Reasoning Engine VISIBLE: cómo llegó el copiloto a sus sugerencias
-          — los 12 pasos, cada uno con su ORIGEN (regla/IA/PubMed) y su CONFIANZA.
-          Es el diferenciador: el razonamiento deja de ser una caja negra. */}
-      {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen || Object.keys(signosNum).length > 0) && (
-        <details style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))' }}>
-          <summary style={{ cursor: 'pointer', padding: '11px 14px', fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, listStyle: 'none' }}>
-            <Brain size={15} style={{ color: 'var(--nexus)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
-          </summary>
-          <div style={{ padding: '0 14px 14px' }}>
-            <PanelRazonamiento entrada={entradaCopiloto} embebido />
-          </div>
-        </details>
-      )}
-
-      {/* ── Herramientas clínicas: un solo bloque plegado. Antes eran cinco cajas
-             siempre abiertas apiladas aquí; la mayoría de las consultas no usa
-             ninguna, así que ahora se abren solo cuando se necesitan. ── */}
-      <Herramientas {...(() => {
-        const TODAS = [
-        ...(esCasoQuirurgico ? [{
-          id: 'cirugia', nombre: 'Cirugía', color: 'var(--blue)', icono: <Scissors size={14} />,
-          para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
-          contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
-        }] : []),
-        ...(esGineco ? [{
-          id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
-          para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
-          contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
-            onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
-        }] : []),
-        ...(esPediatrico ? [{
-          id: 'pediatria', nombre: 'Pediatría', color: 'var(--purple)', icono: <Baby size={14} />,
-          para: 'Dosis por peso con tope de adulto · vacunación',
-          aviso: vacunasAtrasadas > 0
-            ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
-            : undefined,
-          abrirPorDefecto: vacunasAtrasadas > 0,
-          contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
-            fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
-            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
-        }] : []),
-        ...(calcSugeridas.length > 0 ? [{
-          id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
-          para: 'Escalas sugeridas por el diagnóstico',
-          aviso: { texto: `${calcSugeridas.length} sugerida${calcSugeridas.length > 1 ? 's' : ''}` },
-          contenido: <CalculadorasClinicas embebido contexto={contextoCalc}
-            onAgregarANota={agregarASeccion('escalas_clinicas', 'Escalas y calculadoras clínicas')} />,
-        }] : []),
-        {
-          id: 'cardiometabolico', nombre: 'Cardiometabólico', color: 'var(--green)', icono: <HeartPulse size={14} />,
-          para: 'Lípidos · obesidad · hígado graso · hoja para el paciente',
-          contenido: <PanelCardiometabolico embebido nombre={patient?.nombre} edad={patient?.edad} sexo={patient?.sexo}
-            onAgregarANota={agregarASeccion('cardiometabolico', 'Valoración cardiometabólica')} />,
-        },
-        {
-          id: 'preventivo', nombre: 'Preventivo y tendencias', color: '#38bdf8', icono: <ShieldCheck size={14} />,
-          para: 'Tamizajes por edad y sexo · tendencia de laboratorios',
-          contenido: <PanelPreventivo embebido edad={patient?.edad} sexo={patient?.sexo}
-            onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
-        },
-        {
-          id: 'antibiograma', nombre: 'Antibiograma', color: 'var(--amber)', icono: <FlaskConical size={14} />,
-          para: 'Interpretar un cultivo: fenotipo, mecanismo de resistencia y terapia dirigida',
-          contenido: <AntibiogramaTool embebido onAgregarANota={agregarASeccion('antibiograma', 'Antibiograma e interpretación')} />,
-        },
-        {
-          id: 'fotos', nombre: 'Fotografía clínica', color: 'var(--teal)', icono: <Camera size={14} />,
-          para: 'Tomar foto de esta consulta (la serie está en el expediente)',
-          contenido: clinicId
-            ? <FotosClinicas embebido modo="captura" clinicId={clinicId} patientId={patientId} notaId={notaId ?? undefined} />
-            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
-        },
-        {
-          id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
-          para: 'Adjunta un PDF o foto → la IA lo interpreta → gráficas de tendencia',
-          contenido: clinicId
-            ? <PanelLaboratorios clinicId={clinicId} patientId={patientId}
-                onAgregarANota={agregarASeccion('laboratorios', 'Laboratorios')} />
-            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
-        },
-        ]
-
-        /**
-         * FILTRADO POR ESPECIALIDAD.
-         *
-         * Un internista no atiende partos ni calcula dosis por peso pediátrico,
-         * pero tenía esas herramientas ocupando espacio en cada consulta: hay que
-         * leerlas para descartarlas, en cada paciente. Ahora se muestran las de su
-         * especialidad y el resto queda en el buscador — no desaparece ninguna.
-         *
-         * Solo `esCasoQuirurgico` se fuerza, y a propósito: es una señal CLÍNICA
-         * —el diagnóstico dictado es una hernia, o el tipo de nota es
-         * preoperatoria— así que el panel de cirugía aparece aunque el médico sea
-         * internista. El contexto del paciente pesa más que la configuración.
-         *
-         * `esGineco` NO se fuerza: solo comprueba que la paciente sea mujer, que
-         * es un filtro de pertinencia, no una señal de que haga falta la
-         * herramienta. Si se forzara, un internista volvería a ver el panel de
-         * gineco en cada paciente mujer — justo lo que se quiere evitar. Sigue
-         * disponible en el buscador.
-         */
-        const forzadas = esCasoQuirurgico ? ['cirugia'] : []
-        const visibles = filtrarHerramientas(TODAS, especialidadEfectiva, forzadas)
-        const idsVisibles = new Set(visibles.map(h => h.id))
-        return { items: visibles, ocultas: TODAS.filter(h => !idsVisibles.has(h.id)) }
-      })()} />
 
       {/* ── Análisis basado en evidencia (PubMed) ── */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && !evidencia && (
         <button onClick={analizarEvidencia} disabled={analizandoEv}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(20,184,166,0.10)', color: 'var(--teal)', border: '1px solid rgba(20,184,166,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: analizandoEv ? 'default' : 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'color-mix(in srgb, var(--nexus) 10%, transparent)', color: 'var(--teal)', border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: analizandoEv ? 'default' : 'pointer' }}>
           {analizandoEv
             ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Cruzando con la literatura médica…</>
             : <><FlaskConical size={14} /> Análisis basado en evidencia (NEJM · JAMA · Cochrane · PubMed)</>}
@@ -4946,7 +5084,7 @@ export default function ConsultaActivaPage() {
           </div>
         )
         return (
-          <div style={{ marginBottom: 12, border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,0.05)' }}>
+          <div style={{ marginBottom: 12, border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 12, padding: 14, background: 'color-mix(in srgb, var(--nexus) 5%, transparent)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
               <FlaskConical size={15} /> Análisis basado en evidencia
               <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--nexus-solido)', color: generandoAnalisis ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
@@ -5073,7 +5211,7 @@ export default function ConsultaActivaPage() {
             soloLectura={firmada}
             onIr={() => {
               /* El ancla es el NOMBRE, nunca el índice: la lista se reordena. */
-              document.getElementById('seccion-medicamentos')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              document.getElementById('seccion-medicamentos')?.scrollIntoView({ behavior: comportamientoScroll(), block: 'center' })
             }}
             onRevisado={id => {
               const [tipo, ...resto] = id.split(':')
@@ -5085,8 +5223,8 @@ export default function ConsultaActivaPage() {
             {(extraction || safety) && !firmada && (
               <RevisionPanel
                 sinMarco
-                extraction={extraction as Parameters<typeof RevisionPanel>[0]['extraction']}
-                safety={safety as Parameters<typeof RevisionPanel>[0]['safety']}
+                extraction={extraction as ComponentProps<typeof RevisionPanel>['extraction']}
+                safety={safety as ComponentProps<typeof RevisionPanel>['safety']}
                 aprobados={aprobados}
                 onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
                 /**
@@ -5144,9 +5282,18 @@ export default function ConsultaActivaPage() {
       {/* Sello de procedencia: de dónde salió CADA dato de la nota (dictado con
           cita / inferencia de IA / a mano). Medicolegal, solo lectura. Se muestra
           también en la nota firmada — es parte del registro. */}
-      {(diagnosticos.length > 0 || medicamentos.length > 0) && (
+      {/*
+        LA CONDICIÓN MIRA LO QUE EL SELLO VA A CONTAR, no dos familias de seis.
+
+        Estaba atada a diagnósticos y medicamentos, así que una nota que sólo
+        trae texto redactado —la de evolución que no cambia el plan— no
+        enseñaba sello ninguno, aunque el que se archiva al firmar sí contara
+        sus párrafos. El propio componente ya se calla cuando no hay nada que
+        contar (`resumen.total === 0`); aquí basta con no adelantarse a él.
+      */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0 || secciones.some(s => s.value?.trim()) || resumen.trim()) && (
         <SelloProcedencia
-          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}), signosVitales: signosNum as unknown as Record<string, unknown> }}
+          final={notaDelSello}
           extraction={extraction}
           aprobados={aprobados}
           transcripcion={voz.transcripcion}
@@ -5156,6 +5303,16 @@ export default function ConsultaActivaPage() {
       {/*
         CÓMO CERRAR LA CONSULTA (REG-244) — sólo si quedó más de una cosa por
         hacer. Con un solo destino se navegó directo y esto no aparece.
+
+        V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, §33 / §20): `alIr` ya no hace
+        SIEMPRE `router.push`. Un paso con `ruta` que empieza con `#` vive
+        en esta misma pantalla (hoy, sólo «hoja_del_paciente») y se resuelve
+        desplazándose hasta él — sin eso el botón navegaba a una URL con un
+        `#` pegado, que Next.js no sabe interpretar como ancla dentro de la
+        misma ruta cliente. Los pasos que SÍ navegan (receta/orden) se
+        marcan `hecho` ANTES de salir: al volver — con `router.back()` de
+        `useSmartBack`, que reusa la entrada de historial — el checklist ya
+        no repite lo que el médico acaba de hacer.
       */}
       {firmada && (
         <ComoCerrarLaConsulta
@@ -5172,8 +5329,26 @@ export default function ConsultaActivaPage() {
             hayEstudios: estudiosOrden.length > 0,
             pideCobro: config?.pedirCobroAlCerrar === true,
             internamientoActivo,
+            /**
+             * NOTE → FOLLOW-UP (V15, Fase 8): la fecha que el médico puso en
+             * «Próxima consulta». Sólo vive en estado de React — la nota no
+             * guarda este campo (va al paciente y a la tarea del worklist),
+             * así que al REABRIR una nota firmada el paso no reaparece; ahí
+             * quien lo recuerda es la tarea derivada al firmar.
+             */
+            proximoSeguimiento,
           })}
-          alIr={r => router.push(r)}
+          hechos={hechosCierre}
+          alIr={r => {
+            if (r.startsWith('#')) {
+              document.getElementById(r.slice(1))?.scrollIntoView({ behavior: comportamientoScroll(), block: 'start' })
+              return
+            }
+            if (r.startsWith('/receta')) setHechosCierre(marcarHechoDeCierre(notaId, 'receta'))
+            else if (r.startsWith('/orden')) setHechosCierre(marcarHechoDeCierre(notaId, 'orden'))
+            else if (r.startsWith('/citas')) setHechosCierre(marcarHechoDeCierre(notaId, 'seguimiento'))
+            router.push(r)
+          }}
         />
       )}
 
@@ -5205,7 +5380,16 @@ export default function ConsultaActivaPage() {
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          /**
+           * El motor (`comoSeLoExplico`) tiene el bloque «Su próxima cita»
+           * desde REG-242 y esta pantalla siempre le pasó `undefined` — el
+           * dato existía dos pantallas más arriba, en «Próxima consulta»
+           * (`proximoSeguimiento`), y nunca llegaba («escrito y sin
+           * conectar»). En la hoja va en palabras, no en ISO: el paciente lee
+           * «lunes, 8 de septiembre», no «2026-09-08».
+           */
+          proximaCita={proximoSeguimiento.trim() ? formatDateMX(proximoSeguimiento) : undefined}
+          onInteraccion={() => setHechosCierre(marcarHechoDeCierre(notaId, 'hoja_del_paciente'))}
         />
       )}
 
@@ -5457,7 +5641,13 @@ export default function ConsultaActivaPage() {
               onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase() } : x))}
               style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
             />
-            {!firmada && <button onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))} style={S.del}><Trash2 size={14} /></button>}
+            {!firmada && (
+              <button
+                onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))}
+                style={S.del}
+                aria-label={`Quitar diagnóstico${d.descripcion ? `: ${d.descripcion}` : ''}`}
+              ><Trash2 size={14} /></button>
+            )}
           </div>
         ))}
         {!firmada && (
@@ -5506,7 +5696,7 @@ export default function ConsultaActivaPage() {
               "fármaco · dosis · VÍA · intervalo · duración": el sistema sabía que
               importa, pero no dejaba capturarla.
             */}
-            <select value={m.via ?? 'oral'} disabled={firmada}
+            <select value={m.via ?? 'oral'} disabled={firmada} aria-label={`Vía de administración${m.nombre ? ` de ${m.nombre}` : ''}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, via: e.target.value as Medicamento['via'] } : x))}
               style={{ ...S.input, flex: 1, minWidth: 92 }}>
               <option value="oral">Oral</option>
@@ -5525,7 +5715,13 @@ export default function ConsultaActivaPage() {
             <input value={m.duracion} disabled={firmada} placeholder="Duración"
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, duracion: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 80 }} />
-            {!firmada && <button onClick={() => setMedicamentos(prev => prev.filter((_, j) => j !== i))} style={S.del}><Trash2 size={14} /></button>}
+            {!firmada && (
+              <button
+                onClick={() => setMedicamentos(prev => prev.filter((_, j) => j !== i))}
+                style={S.del}
+                aria-label={`Quitar medicamento${m.nombre ? `: ${m.nombre}` : ''}`}
+              ><Trash2 size={14} /></button>
+            )}
           </div>
         ))}
         {!firmada && (
@@ -5534,6 +5730,160 @@ export default function ConsultaActivaPage() {
           </button>
         )}
       </Section>
+
+      {/*
+        ── COPILOTO, JUNTO A LO QUE YA SE CAPTURÓ (§8.8, 11-ago-2026) ─────────
+        Vivía arriba, antes de Secciones narrativas/Diagnósticos/Medicamentos:
+        el médico leía «para este paciente…» y las alertas de dosis/alergia/
+        renal ANTES de que los diagnósticos y medicamentos que las disparan
+        existieran siquiera en la pantalla — la inteligencia contextual del
+        §8.8 quedaba desconectada de los hechos que interpretaba, no "al lado".
+        `entradaCopiloto` (el useMemo de arriba) no cambió: sigue leyendo el
+        MISMO diagnosticos/medicamentos/signos que ya lee Diagnósticos/
+        Medicamentos abajo — sólo se movió DÓNDE se pinta, no lo que calcula.
+        Aquí, justo después de que el médico terminó de capturar Secciones
+        narrativas + Diagnósticos + Medicamentos y justo antes de firmar, el
+        Copiloto reacciona a lo que quedó fijado — no a un adelanto de lo que
+        todavía no se ha escrito.
+      */}
+      <Copiloto
+        entrada={entradaCopiloto}
+        onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
+        prefs={prefsIA}
+        onAceptar={(cat) => {
+          const uid = auth.currentUser?.uid
+          if (clinicId && uid) registrarAceptacion(clinicId, uid, cat)
+          // eco optimista: reordena en caliente sin re-leer Firestore
+          setPrefsIA(p => ({ ...p, [cat]: (p[cat] ?? 0) + 1 }))
+        }}
+      />
+
+      {/* Clinical Reasoning Engine VISIBLE: cómo llegó el copiloto a sus sugerencias
+          — los 12 pasos, cada uno con su ORIGEN (regla/IA/PubMed) y su CONFIANZA.
+          Es el diferenciador: el razonamiento deja de ser una caja negra. */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen || Object.keys(signosNum).length > 0) && (
+        <details style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))' }}>
+          <summary style={{ cursor: 'pointer', padding: '11px 14px', fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, listStyle: 'none' }}>
+            <Brain size={15} style={{ color: 'var(--nexus)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
+          </summary>
+          <div style={{ padding: '0 14px 14px' }}>
+            <PanelRazonamiento entrada={entradaCopiloto} embebido />
+          </div>
+        </details>
+      )}
+
+      {/*
+        ── HERRAMIENTAS CLÍNICAS, DESPUÉS DE LA NOTA (V15-ITERATION16, 15-ago) ──
+
+        Vivían aquí arriba, en el hueco que hay entre el grabador y la nota. La
+        medición corregida de §29 —la que entra por el encuentro SIN FIRMAR, que
+        es donde el grabador existe— las encontró en `y=635` de escritorio y
+        `y=740` de móvil: el SEGUNDO bloque del encuentro, por delante de los
+        signos, de las secciones narrativas, de los diagnósticos y de los
+        medicamentos. Un catálogo de cinco módulos con su propio buscador,
+        ocupando el sitio inmediatamente posterior al instrumento principal.
+
+        Eso es exactamente lo que §29 llama inventario de módulos: la pantalla
+        ofrecía OTRAS capacidades antes de ofrecer ESTE encuentro.
+
+        No se quita ninguna herramienta ni se esconde detrás de un botón mágico:
+        se mueve DÓNDE se pinta, igual que el Copiloto en §8.8 y por el mismo
+        motivo. Aquí abajo el médico ya capturó, ya vio lo que el copiloto
+        razonó sobre lo capturado, y sólo entonces se le ofrece abrir un
+        instrumento — que es cuando sabe si le hace falta.
+
+        El buscador de `Herramientas` sigue siendo el que alcanza a las ocultas
+        por especialidad: no se toca su contrato.
+      */}
+      <Herramientas {...(() => {
+        const TODAS = [
+        ...(esCasoQuirurgico ? [{
+          id: 'cirugia', nombre: 'Cirugía', color: 'var(--blue)', icono: <Scissors size={14} />,
+          para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
+          contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
+        }] : []),
+        ...(esGineco ? [{
+          id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
+          para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
+          contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
+            onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
+        }] : []),
+        ...(esPediatrico ? [{
+          id: 'pediatria', nombre: 'Pediatría', color: 'var(--purple)', icono: <Baby size={14} />,
+          para: 'Dosis por peso con tope de adulto · vacunación',
+          aviso: vacunasAtrasadas > 0
+            ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
+            : undefined,
+          abrirPorDefecto: vacunasAtrasadas > 0,
+          contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
+            fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
+            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
+        }] : []),
+        ...(calcSugeridas.length > 0 ? [{
+          id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
+          para: 'Escalas sugeridas por el diagnóstico',
+          aviso: { texto: `${calcSugeridas.length} sugerida${calcSugeridas.length > 1 ? 's' : ''}` },
+          contenido: <CalculadorasClinicas embebido contexto={contextoCalc}
+            onAgregarANota={agregarASeccion('escalas_clinicas', 'Escalas y calculadoras clínicas')} />,
+        }] : []),
+        {
+          id: 'cardiometabolico', nombre: 'Cardiometabólico', color: 'var(--green)', icono: <HeartPulse size={14} />,
+          para: 'Lípidos · obesidad · hígado graso · hoja para el paciente',
+          contenido: <PanelCardiometabolico embebido nombre={patient?.nombre} edad={patient?.edad} sexo={patient?.sexo}
+            onAgregarANota={agregarASeccion('cardiometabolico', 'Valoración cardiometabólica')} />,
+        },
+        {
+          id: 'preventivo', nombre: 'Preventivo y tendencias', color: '#38bdf8', icono: <ShieldCheck size={14} />,
+          para: 'Tamizajes por edad y sexo · tendencia de laboratorios',
+          contenido: <PanelPreventivo embebido edad={patient?.edad} sexo={patient?.sexo}
+            onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
+        },
+        {
+          id: 'antibiograma', nombre: 'Antibiograma', color: 'var(--amber)', icono: <FlaskConical size={14} />,
+          para: 'Interpretar un cultivo: fenotipo, mecanismo de resistencia y terapia dirigida',
+          contenido: <AntibiogramaTool embebido onAgregarANota={agregarASeccion('antibiograma', 'Antibiograma e interpretación')} />,
+        },
+        {
+          id: 'fotos', nombre: 'Fotografía clínica', color: 'var(--teal)', icono: <Camera size={14} />,
+          para: 'Tomar foto de esta consulta (la serie está en el expediente)',
+          contenido: clinicId
+            ? <FotosClinicas embebido modo="captura" clinicId={clinicId} patientId={patientId} notaId={notaId ?? undefined} />
+            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
+        },
+        {
+          id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+          para: 'Adjunta un PDF o foto → la IA lo interpreta → gráficas de tendencia',
+          contenido: clinicId
+            ? <PanelLaboratorios clinicId={clinicId} patientId={patientId}
+                onAgregarANota={agregarASeccion('laboratorios', 'Laboratorios')} />
+            : <p style={{ fontSize: 12, color: 'var(--text3)' }}>Cargando…</p>,
+        },
+        ]
+
+        /**
+         * FILTRADO POR ESPECIALIDAD.
+         *
+         * Un internista no atiende partos ni calcula dosis por peso pediátrico,
+         * pero tenía esas herramientas ocupando espacio en cada consulta: hay que
+         * leerlas para descartarlas, en cada paciente. Ahora se muestran las de su
+         * especialidad y el resto queda en el buscador — no desaparece ninguna.
+         *
+         * Solo `esCasoQuirurgico` se fuerza, y a propósito: es una señal CLÍNICA
+         * —el diagnóstico dictado es una hernia, o el tipo de nota es
+         * preoperatoria— así que el panel de cirugía aparece aunque el médico sea
+         * internista. El contexto del paciente pesa más que la configuración.
+         *
+         * `esGineco` NO se fuerza: solo comprueba que la paciente sea mujer, que
+         * es un filtro de pertinencia, no una señal de que haga falta la
+         * herramienta. Si se forzara, un internista volvería a ver el panel de
+         * gineco en cada paciente mujer — justo lo que se quiere evitar. Sigue
+         * disponible en el buscador.
+         */
+        const forzadas = esCasoQuirurgico ? ['cirugia'] : []
+        const visibles = filtrarHerramientas(TODAS, especialidadEfectiva, forzadas)
+        const idsVisibles = new Set(visibles.map(h => h.id))
+        return { items: visibles, ocultas: TODAS.filter(h => !idsVisibles.has(h.id)) }
+      })()} />
 
       {/* ── Validación + Acciones ── */}
       {!firmada && (
@@ -5657,50 +6007,101 @@ export default function ConsultaActivaPage() {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/*
-              ── EL BOTÓN DICE POR QUÉ ESTÁ APAGADO (6-ago-2026, REG-189) ──────
-              Se apagaba sólo con NOM-004, así que con una dosis incompleta se
-              veía ENCENDIDO: el médico lo pulsaba, salía un toast y no pasaba
-              nada. Ahora la fuente es una sola —la misma que cuenta la barra— y
-              el motivo viaja en el `title` y en el renglón de al lado.
-              NO cambia la política: lo que impedía firmar ayer impide hoy.
-            */}
-            <button
-              onClick={firmar}
-              disabled={bloqueosDeFirma.length > 0 || guardando}
-              title={motivoNoFirma || 'Firmar y cerrar la nota'}
-              style={S.firmar(bloqueosDeFirma.length > 0 || guardando)}
-            >
-              <FileSignature size={17} /> Firmar y cerrar nota
-            </button>
-            <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
-              {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
-            </button>
-            {/*
-              El motivo, DONDE ESTÁ EL DEDO. El mensaje ya existía y era
-              inalcanzable: el del toast sólo salía al pulsar, y el de NOM-004
-              vive en un recuadro que queda fuera de pantalla cuando el médico
-              está abajo, junto a los botones.
-            */}
-            {bloqueosDeFirma.length > 0 && !guardando && (
-              <span role="status" style={{ fontSize: 12, color: 'var(--red)', lineHeight: 1.45, flexBasis: '100%' }}>
-                {motivoNoFirma}
-                {bloqueosDeFirma.length > 1 && (
-                  <span style={{ opacity: 0.85 }}> · y {bloqueosDeFirma.length - 1} más arriba</span>
-                )}
-              </span>
-            )}
-            <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
-              <Volume2 size={14} /> Leer resumen
-            </button>
-            <button onClick={descartar} disabled={guardando} style={S.descartar}>
-              <Trash2 size={14} /> Descartar
-            </button>
-            <span style={{ fontSize: 12, color: 'var(--text3)' }}>Completitud: {validacion.puntajeCompletitud}%</span>
+          {/*
+            UNA ACCIÓN DOMINA AL CERRAR (V15-ENCOUNTER-MODE-001, §8.6).
+            ────────────────────────────────────────────────────────────────
+            Antes las cuatro acciones vivían en una sola fila del mismo alto;
+            sólo el color las distinguía. Ahora Firmar tiene su propia fila,
+            más grande y con sombra — y Guardar/Leer resumen/Descartar bajan a
+            una segunda fila de acciones de apoyo, sin caja ni borde (regla de
+            jerarquía: posición → tipografía → espacio → agrupación → énfasis,
+            antes que cajas). Ningún onClick, disabled ni motivo cambió: es
+            reordenar el peso visual de lo que ya existía, no lógica nueva.
+          */}
+          <div
+            /**
+             * `id` + `tabIndex={-1}`: el ancla a la que viaja `CierreAlPulgar`
+             * (V15-MOBILE-001, §22). El tabIndex negativo permite mover el
+             * FOCO aquí al aterrizar — teclado y lector de pantalla llegan a
+             * donde llegó la vista — sin meter el contenedor al orden de
+             * tabulación normal.
+             */
+            id="cierre-de-la-consulta"
+            tabIndex={-1}
+            style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, outline: 'none' }}
+          >
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/*
+                ── EL BOTÓN DICE POR QUÉ ESTÁ APAGADO (6-ago-2026, REG-189) ──
+                Se apagaba sólo con NOM-004, así que con una dosis incompleta
+                se veía ENCENDIDO: el médico lo pulsaba, salía un toast y no
+                pasaba nada. Ahora la fuente es una sola —la misma que cuenta
+                la barra— y el motivo viaja en el `title` y en el renglón de
+                al lado. NO cambia la política: lo que impedía firmar ayer
+                impide hoy.
+              */}
+              <button
+                onClick={firmar}
+                disabled={bloqueosDeFirma.length > 0 || guardando}
+                title={motivoNoFirma || 'Firmar y cerrar la nota'}
+                style={S.firmar(bloqueosDeFirma.length > 0 || guardando)}
+              >
+                <FileSignature size={17} /> Firmar y cerrar nota
+              </button>
+              {/*
+                El motivo, DONDE ESTÁ EL DEDO. El mensaje ya existía y era
+                inalcanzable: el del toast sólo salía al pulsar, y el de
+                NOM-004 vive en un recuadro que queda fuera de pantalla cuando
+                el médico está abajo, junto a los botones.
+              */}
+              {bloqueosDeFirma.length > 0 && !guardando && (
+                <span role="status" style={{ fontSize: 12, color: 'var(--red)', lineHeight: 1.45, flexBasis: '100%' }}>
+                  {motivoNoFirma}
+                  {bloqueosDeFirma.length > 1 && (
+                    <span style={{ opacity: 0.85 }}> · y {bloqueosDeFirma.length - 1} más arriba</span>
+                  )}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
+                {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
+              </button>
+              <span aria-hidden="true" style={{ color: 'var(--border)', fontSize: 12 }}>·</span>
+              <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
+                <Volume2 size={14} /> Leer resumen
+              </button>
+              <span aria-hidden="true" style={{ color: 'var(--border)', fontSize: 12 }}>·</span>
+              <button onClick={descartar} disabled={guardando} style={S.descartar}>
+                <Trash2 size={14} /> Descartar
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto' }}>Completitud: {validacion.puntajeCompletitud}%</span>
+            </div>
           </div>
         </>
       )}
+
+      {/*
+        V15-MOBILE-001 (Fase 9, §22): el cierre, al alcance del pulgar. La
+        radiografía móvil midió «Firmar» a ~2,900px de scroll a 390×844 — el
+        trabajo «sign/close» existía pero el pulgar no llegaba. Esta barra NO
+        firma (§19, acto consecuente con revisión explícita): sólo enseña el
+        estado del cierre con las MISMAS fuentes que el botón real
+        (`bloqueosDeFirma`/`motivoNoFirma`) y acerca el viaje. Va como última
+        pieza en flujo a propósito: `position: sticky; bottom: 0` la pega al
+        borde inferior de <main> durante todo el scroll del cuerpo de la nota.
+      */}
+      <CierreAlPulgar
+        visible={cierreAlPulgarVisible({
+          firmada,
+          grabando: audio.estado === 'grabando' || audio.estado === 'pausado' || audio.estado === 'subiendo',
+          hayContenido: hayContenidoDeNota,
+        })}
+        bloqueos={bloqueosDeFirma.length}
+        motivo={motivoNoFirma}
+        completitud={validacion.puntajeCompletitud}
+        idDestino="cierre-de-la-consulta"
+      />
 
       {/*
         DEJAR DE TOMAR ALGO TAMBIÉN SE ESCRIBE.

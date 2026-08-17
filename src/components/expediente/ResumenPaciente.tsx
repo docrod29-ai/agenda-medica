@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import type { Patient } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
-import { Activity, CalendarClock, Stethoscope } from 'lucide-react'
+import { Activity } from 'lucide-react'
 
 /**
  * RESUMEN DEL PACIENTE — "todo en un solo lugar".
@@ -57,50 +57,95 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
     if (signos.glucometria) vitales.push({ label: 'Gluc', valor: `${signos.glucometria}` })
   }
 
+  /**
+   * RTC-10 — UNA TARJETA VACÍA NO ES INFORMACIÓN: ES INVENTARIO.
+   *
+   * Medido en navegador el 14-ago sobre los TRES expedientes sembrados —el que
+   * tiene notas incluido—: dos de las tres tarjetas decían «Sin signos
+   * registrados aún» / «Sin diagnósticos activos», con su caja, su borde y su
+   * encabezado a peso completo. Dos cajas del primer viewport de un expediente
+   * clínico ocupadas por la ausencia de dato, empujando la historia clínica a
+   * 743px. Es el §7 al revés: el primer viewport tenía que ser el paciente.
+   *
+   * Lo que NO se hace: desaparecer el hecho. «Ausencia de dato no es dato de
+   * ausencia» (regla 4 de seguridad clínica) va en las dos direcciones — que no
+   * haya signos registrados es información sobre el EXPEDIENTE y el médico
+   * tiene derecho a leerla. Así que lo vacío no se borra: se degrada a una
+   * línea callada, y por eso el texto habla del registro («sin registro»), no
+   * del paciente. «Sin diagnósticos activos» sonaba a afirmación clínica sobre
+   * la persona; era el mismo defecto en palabras.
+   */
+  const conSignos = vitales.length > 0
+  const conDx = dxActivos.length > 0
+  const ausentes = [
+    ...(conSignos ? [] : ['signos']),
+    ...(conDx ? [] : ['diagnósticos']),
+  ]
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12, marginBottom: 16 }}>
-      <div style={tarjeta}>
-        <div style={encabezado}><Activity size={13} /> Últimos signos</div>
-        {vitales.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: 8 }}>
-            {vitales.map(v => (
-              <div key={v.label}>
-                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{v.label}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{v.valor}</div>
-              </div>
+    /**
+     * RTC-31 / 4ª pasada de §29 — LA FILA DE TARJETAS-ESTADÍSTICA SE VA.
+     *
+     * Su CONTENIDO siempre fue clínico y específico; su FORMA era la fila de
+     * KPIs de cualquier tablero, y era el residuo que la 4ª pasada nombró en
+     * `/expediente` junto a las píldoras. Tres cajas con borde, encabezado en
+     * versalitas y una cifra grande dentro: el gesto de «dashboard», no el de
+     * un expediente.
+     *
+     * Lo que se pinta ahora es lo que un médico escribe: los signos en una
+     * línea («TA 118/74 · FC 82 · T° 36.8»), los diagnósticos en la suya, y la
+     * actividad al final en voz baja. Es EXACTAMENTE la anatomía del bloque de
+     * «Problemas / Toma» que va justo debajo (`#spine-problemas`) — dos
+     * bloques vecinos que dicen cosas del mismo orden ya no hablan idiomas
+     * distintos.
+     *
+     * No se pierde ni un dato: los mismos signos, los mismos diagnósticos, el
+     * mismo conteo, la misma línea honesta cuando algo falta.
+     */
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
+      background: 'var(--s2)', border: '1px solid var(--border)',
+      borderRadius: 11, padding: '10px 13px',
+    }}>
+      <Activity size={16} style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2 }} />
+      <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, minWidth: 0 }}>
+        {conSignos && (
+          <div>
+            <strong style={{ color: 'var(--text)' }}>Últimos signos:</strong>{' '}
+            {vitales.map((v, i) => (
+              <span key={v.label}>
+                {i > 0 && ' · '}
+                <span style={{ color: 'var(--text3)' }}>{v.label}</span>{' '}
+                <span className="nx-num" style={{ color: 'var(--text)' }}>{v.valor}</span>
+              </span>
             ))}
           </div>
-        ) : <div style={vacio}>Sin signos registrados aún</div>}
-      </div>
+        )}
 
-      <div style={tarjeta}>
-        <div style={encabezado}><Stethoscope size={13} /> Diagnósticos activos</div>
-        {dxActivos.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-            {dxActivos.map((d, i) => (
-              <span key={i} style={{ fontSize: 12, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '3px 10px', color: 'var(--text2)' }}>{d}</span>
-            ))}
+        {conDx && (
+          <div>
+            <strong style={{ color: 'var(--text)' }}>Diagnósticos activos:</strong>{' '}
+            {dxActivos.join(' · ')}
           </div>
-        ) : <div style={vacio}>Sin diagnósticos activos</div>}
-      </div>
+        )}
 
-      <div style={tarjeta}>
-        <div style={encabezado}><CalendarClock size={13} /> Actividad</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: 8 }}>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>Consultas</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{notas.length}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>Última visita</div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{fmt(ultimaFecha) ?? '—'}</div>
-          </div>
+        <div>
+          <strong style={{ color: 'var(--text)' }}>Actividad:</strong>{' '}
+          <span className="nx-num">{notas.length}</span>
+          {notas.length === 1 ? ' consulta' : ' consultas'}
+          {fmt(ultimaFecha) ? <> · última visita <span className="nx-num">{fmt(ultimaFecha)}</span></> : ''}
         </div>
+
+        {ausentes.length > 0 && (
+          /* Lo que falta se DICE, y habla del registro. No desaparece porque
+             que el expediente no traiga signos es algo que el médico necesita
+             saber antes de prescribir. */
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+            Este expediente todavía no tiene {ausentes.join(' ni ')} registrados.
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-const tarjeta: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }
-const encabezado: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 0.4 }
-const vacio: React.CSSProperties = { fontSize: 12.5, color: 'var(--text3)', marginTop: 8 }
