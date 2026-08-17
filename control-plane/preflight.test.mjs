@@ -1183,3 +1183,298 @@ test('P1-1: the CLI keeps the full fail-closed contract on a deeply nested crede
   for (const value of Object.values(parsed.github_outputs)) assert.equal(typeof value, 'string')
   assert.equal(output.includes(secret), false, 'the CLI must not print the credential it is refusing')
 })
+
+// ---------------------------------------------------------------------------
+// 19. P1-2 — Codex run 31963800078: "the permission parser can judge another
+//     job's permissions"
+//
+// `writerPermissionsFromWorkflow` found the job header and then took the first
+// `permissions:` line ANYWHERE after it. The judge deleted the writer job's
+// block from the committed workflow, the parser walked on into `attest`, came
+// back with its `{contents: "read"}`, and `runPreflight` returned ok=true and
+// authorized ACP-002 on permissions the writer job did not hold.
+//
+// What makes that the expensive shape of the bug: the bled answer is MODEST.
+// A neighbour granting `deployments: write` would have been refused by
+// condition 9 and the whole thing would have looked like a working guard. A
+// neighbour granting `contents: read` sails through every downstream check
+// while the writer job itself, having declared nothing, inherits whatever the
+// workflow default grants. The refusal has to happen at the parse.
+//
+// These tests hold five separate lines: the exact repro refuses, no sibling
+// job can be reached in either direction, an indentation the parser does not
+// understand fails closed, a name that merely resembles the job is a different
+// job, and every unparseable shape throws rather than returning something that
+// reads as harmless.
+//
+// What this section does NOT cover: it is a line-oriented parser, not YAML. It
+// understands the two-space job / four-space key / six-space entry shape that
+// GitHub Actions workflows in this repository use, and REFUSES everything else
+// — including legal YAML such as flow mappings, anchors, and quoted keys. That
+// is deliberate (an unread shape must not become an authorization), but it
+// means "this parser refuses it" is not the same claim as "GitHub would reject
+// it". A workflow written in a shape the parser cannot read cannot start a
+// writer at all.
+// ---------------------------------------------------------------------------
+
+/**
+ * The judge's repro, built out of the real committed file rather than a
+ * hand-typed imitation: delete the WRITER job's permissions block and leave the
+ * `attest` job's block untouched. The old parser bled into it; the repaired one
+ * must have nothing to return.
+ */
+function withoutWriterPermissions(source = WRITER_WORKFLOW) {
+  const lines = source.split('\n')
+  const start = lines.indexOf('    permissions:')
+  assert.notEqual(start, -1, 'the writer permissions block must exist for this repro to mean anything')
+  let end = start + 1
+  while (end < lines.length && /^ {6}[a-z-]+: [a-z]+$/.test(lines[end])) end += 1
+  assert.ok(end > start + 1, 'the block being removed must actually have entries')
+  const stripped = [...lines.slice(0, start), ...lines.slice(end)].join('\n')
+  // Line-exact, not a substring: the attest job's own script text quotes
+  // `      contents: write` inside a JS string literal, and a substring check
+  // would read that as the block still being present.
+  assert.equal(stripped.split('\n').includes('      contents: write'), false, 'the writer block must really be gone')
+  assert.equal(stripped.split('\n').includes('    permissions:'), true, "the attest job's block must survive untouched")
+  return stripped
+}
+
+/** Exactly what the workflow step does: no permissions parsed, no request. */
+function permissionsOrNull(source, job = 'writer') {
+  try {
+    return writerPermissionsFromWorkflow(source, job)
+  } catch {
+    return null
+  }
+}
+
+test("P1-2: the judge's exact repro — the writer block is gone, and attest's is not borrowed", () => {
+  const stripped = withoutWriterPermissions()
+  assert.deepEqual(
+    writerPermissionsFromWorkflow(stripped, 'attest'),
+    { contents: 'read' },
+    'the block the old parser bled from must still be present and still valid, or this repro proves nothing',
+  )
+  assert.throws(() => writerPermissionsFromWorkflow(stripped, 'writer'), /job `writer` declares no permissions block/)
+  assert.equal(permissionsOrNull(stripped), null, 'the runner cannot obtain writer permissions at all')
+})
+
+test('P1-2: with the writer permissions absent, authorization refuses — nothing is authorized', () => {
+  const result = preflight({ request: validRequest({ permissions: permissionsOrNull(withoutWriterPermissions()) }) })
+  assert.equal(conditionById(result, 9).stop_condition, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD)
+  assert.equal(result.ok, false, 'the request that returned ok=true for the judge must now be refused')
+  assert.equal(result.authorized, null)
+  assert.equal(result.next_board_status, 'BLOCKED')
+  assert.equal(result.github_outputs.authorized_item, '')
+  // And the bled value itself, had it been reachable, WOULD have been waved
+  // through — which is why the parse is the only place this can be stopped.
+  assert.equal(conditionById(preflight({ request: validRequest({ permissions: { contents: 'read' } }) }), 9).ok, true)
+})
+
+test("reverse proof: an unbounded search reads attest's block and authorizes ACP-002 without writer permissions", async () => {
+  // The mutation is the deleted defect itself: stop bounding the search at the
+  // end of the job and the parser walks into whatever job comes next.
+  const mutant = await mutatePreflight([['  const jobEnd = jobBlockEnd(lines, jobLine)', '  const jobEnd = lines.length']])
+  const stripped = withoutWriterPermissions()
+  assert.throws(() => writerPermissionsFromWorkflow(stripped, 'writer'), /declares no permissions block/)
+  const bled = mutant.writerPermissionsFromWorkflow(stripped, 'writer')
+  assert.deepEqual(bled, { contents: 'read' }, "the mutant must reproduce the judge's exact bleed")
+  const over = assertMutantAuthorizes(mutant, { request: validRequest({ permissions: bled }) })
+  assert.equal(over.authorized.item_id, 'ACP-002', "the judge's finding, exactly: ACP-002 authorized on another job's permissions")
+})
+
+test("P1-2: a job that declares nothing never inherits its neighbour's block", () => {
+  const source = [
+    'jobs:',
+    '  writer:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - run: echo hi',
+    '  attest:',
+    '    permissions:',
+    '      contents: read',
+    '',
+  ].join('\n')
+  assert.throws(() => writerPermissionsFromWorkflow(source, 'writer'), /declares no permissions block/)
+  assert.deepEqual(writerPermissionsFromWorkflow(source, 'attest'), { contents: 'read' }, 'the neighbour itself still parses')
+})
+
+test('P1-2: three jobs, three blocks, no bleed in either direction', () => {
+  const source = [
+    'jobs:',
+    '  writer:',
+    '    permissions:',
+    '      contents: write',
+    '      deployments: none',
+    '',
+    '  # a comment between jobs must not end a block early',
+    '  attest:',
+    '    permissions:',
+    '      contents: read',
+    '  third:',
+    '    permissions:',
+    '      issues: read',
+    '',
+  ].join('\n')
+  assert.deepEqual(writerPermissionsFromWorkflow(source, 'writer'), { contents: 'write', deployments: 'none' })
+  assert.deepEqual(writerPermissionsFromWorkflow(source, 'attest'), { contents: 'read' })
+  assert.deepEqual(writerPermissionsFromWorkflow(source, 'third'), { issues: 'read' })
+})
+
+test("P1-2: the writer's parsed permissions do not depend on what follows its job", () => {
+  const writerOnly = WRITER_WORKFLOW.slice(0, WRITER_WORKFLOW.indexOf('\n  attest:') + 1)
+  assert.deepEqual(
+    writerPermissionsFromWorkflow(writerOnly, 'writer'),
+    writerPermissionsFromWorkflow(WRITER_WORKFLOW, 'writer'),
+    'removing every later job must change nothing about the writer parse',
+  )
+  assert.throws(() => writerPermissionsFromWorkflow(writerOnly, 'attest'), /job `attest` not found/)
+})
+
+test('P1-2: an indentation the parser does not understand fails closed', () => {
+  const cases = [
+    ['permissions nested one level too deep', '  writer:\n      permissions:\n        contents: write\n', /declares no permissions block/],
+    ['permissions dedented out of the job', '  writer:\n   permissions:\n      contents: write\n', /declares no permissions block/],
+    ['entries at five spaces', '  writer:\n    permissions:\n     contents: write\n', /empty permissions block/],
+    ['entries at seven spaces', '  writer:\n    permissions:\n       contents: write\n', /empty permissions block/],
+    ['entries indented with a tab', '  writer:\n    permissions:\n\tcontents: write\n', /empty permissions block/],
+    ['job header at four spaces', 'jobs:\n    writer:\n      permissions:\n        contents: write\n', /job `writer` not found/],
+    ['job header with a trailing space', 'jobs:\n  writer: \n    permissions:\n      contents: write\n', /job `writer` not found/],
+    ['job header at column zero', 'writer:\n    permissions:\n      contents: write\n', /job `writer` not found/],
+  ]
+  for (const [label, source, expected] of cases) {
+    assert.throws(() => writerPermissionsFromWorkflow(source, 'writer'), expected, label)
+  }
+})
+
+test('P1-2: a job name that merely resembles the writer is a different job', () => {
+  const source = [
+    'jobs:',
+    '  writer-2:',
+    '    permissions:',
+    '      contents: write',
+    '  Writer:',
+    '    permissions:',
+    '      contents: write',
+    '  writerx:',
+    '    permissions:',
+    '      contents: write',
+    '  prewriter:',
+    '    permissions:',
+    '      contents: write',
+    '',
+  ].join('\n')
+  assert.throws(() => writerPermissionsFromWorkflow(source, 'writer'), /job `writer` not found/)
+  // Each near-miss is readable on its own terms — the parser is exact, not fuzzy.
+  for (const job of ['writer-2', 'Writer', 'writerx', 'prewriter']) {
+    assert.deepEqual(writerPermissionsFromWorkflow(source, job), { contents: 'write' }, job)
+  }
+})
+
+test('P1-2: a job declared twice is ambiguous, and ambiguity is refused', () => {
+  // Taking the first would report `contents: read` while the block that
+  // actually grants the token is the second one.
+  const source = [
+    'jobs:',
+    '  writer:',
+    '    permissions:',
+    '      contents: read',
+    '  writer:',
+    '    permissions:',
+    '      contents: write',
+    '      deployments: write',
+    '',
+  ].join('\n')
+  assert.throws(() => writerPermissionsFromWorkflow(source, 'writer'), /is declared 2 times/)
+})
+
+test('P1-2: two permissions blocks in one job is not a preference for the first', () => {
+  const source = '  writer:\n    permissions:\n      contents: read\n    steps:\n      - run: echo\n    permissions:\n      contents: write\n'
+  assert.throws(() => writerPermissionsFromWorkflow(source, 'writer'), /declares 2 permissions blocks/)
+})
+
+test('P1-2: a scope declared twice is refused rather than resolved last-one-wins', () => {
+  assert.throws(
+    () => writerPermissionsFromWorkflow('  writer:\n    permissions:\n      contents: read\n      contents: write\n', 'writer'),
+    /declares contents more than once/,
+  )
+})
+
+test('P1-2: an empty permissions block is refused in every shape it can take', () => {
+  const cases = [
+    ['followed by a sibling key', '  writer:\n    permissions:\n    steps:\n'],
+    ['at the end of the file', '  writer:\n    permissions:\n'],
+    ['followed by a blank line', '  writer:\n    permissions:\n\n      contents: write\n'],
+    ['followed by a comment', '  writer:\n    permissions:\n      # contents: write\n'],
+    ['written as an empty flow mapping on its own line', '  writer:\n    permissions:\n      {}\n'],
+    ['followed only by the next job', '  writer:\n    permissions:\n  attest:\n    permissions:\n      contents: read\n'],
+  ]
+  for (const [label, source] of cases) {
+    assert.throws(() => writerPermissionsFromWorkflow(source, 'writer'), /empty permissions block/, label)
+  }
+})
+
+test('P1-2: a permissions value that cannot be verified scope by scope is refused', () => {
+  // `write-all` is the one that matters: it grants everything, and the old
+  // parser did not even see it — the line did not equal `    permissions:`, so
+  // the search simply carried on into the next job and reported that job's
+  // modest block for a writer holding every scope there is.
+  for (const inline of ['    permissions: read-all', '    permissions: write-all', '    permissions: {}', '    permissions: {contents: write}']) {
+    assert.throws(
+      () => writerPermissionsFromWorkflow(`  writer:\n${inline}\n      contents: write\n`, 'writer'),
+      /only an explicit scope-by-scope block can be verified/,
+      inline,
+    )
+  }
+  // And the same line inside a job that ALSO has a real block downstream is
+  // still refused, rather than quietly preferring the readable one.
+  assert.throws(
+    () => writerPermissionsFromWorkflow('  writer:\n    permissions: write-all\n    steps:\n      - run: echo\n  attest:\n    permissions:\n      contents: read\n', 'writer'),
+    /only an explicit scope-by-scope block can be verified/,
+  )
+})
+
+test('P1-2: a job that is not there is not a job with no permissions', () => {
+  assert.throws(() => writerPermissionsFromWorkflow(WRITER_WORKFLOW, 'ghost'), /job `ghost` not found/)
+  assert.throws(() => writerPermissionsFromWorkflow('', 'writer'), /job `writer` not found/)
+  assert.throws(() => writerPermissionsFromWorkflow('jobs:\n', 'writer'), /job `writer` not found/)
+  // The job name is a name, not a pattern: nothing the caller passes can be
+  // made to match more than the one literal header line it spells out.
+  for (const jobName of ['', '  writer', 'writer:', 'writer job', '.*', 'writer|attest', null, 42, {}]) {
+    assert.throws(
+      () => writerPermissionsFromWorkflow(WRITER_WORKFLOW, jobName),
+      /is not a job name this parser will look for/,
+      JSON.stringify(jobName ?? String(jobName)),
+    )
+  }
+})
+
+test('P1-2: condition 11 fails closed when the judge job has no block of its own', () => {
+  const source = ['jobs:', '  codex-judge:', '    runs-on: ubuntu-latest', '  helper:', '    permissions:', '      contents: read', ''].join('\n')
+  const result = preflight({ request: validRequest({ judge_workflows: judgeWorkflows(source) }) })
+  const condition = conditionById(result, 11)
+  assert.equal(condition.ok, false, "a judge job declaring nothing must not borrow the helper job's read-only block")
+  assert.equal(condition.stop_condition, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY)
+  assert.match(condition.detail, /declares no permissions block/)
+  assert.equal(result.ok, false)
+  assert.equal(result.authorized, null)
+})
+
+test('P1-2: a write-granting judge cannot be excused by a read-only sibling job', () => {
+  const source = ['jobs:', '  codex-judge:', '    permissions:', '      contents: write', '  helper:', '    permissions:', '      contents: read', ''].join('\n')
+  const condition = conditionById(preflight({ request: validRequest({ judge_workflows: judgeWorkflows(source) }) }), 11)
+  assert.equal(condition.stop_condition, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY)
+  assert.match(condition.detail, /contents:write/)
+})
+
+test('P1-2: the committed workflows are unaffected — the repair bounded the parse, it did not narrow it', () => {
+  const writer = writerPermissionsFromWorkflow(WRITER_WORKFLOW, 'writer')
+  assert.equal(writer.contents, 'write')
+  assert.equal(writer.deployments, 'none')
+  assert.deepEqual(writerPermissionsFromWorkflow(WRITER_WORKFLOW, 'attest'), { contents: 'read' })
+  const judge = readFileSync(join(HERE, '..', '.github', 'workflows', 'control-plane-acp002-judge.yml'), 'utf8')
+  assert.deepEqual(writerPermissionsFromWorkflow(judge, 'codex-judge'), { contents: 'read', actions: 'read', 'pull-requests': 'read' })
+  // The whole request the runner actually builds still authorizes, so this
+  // repair cannot be mistaken for a preflight that refuses everything.
+  assert.equal(preflight({ request: validRequest({ permissions: writer }) }).ok, true)
+})

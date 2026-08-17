@@ -142,6 +142,45 @@ export function writerLockFromBoard(board) {
 }
 
 /**
+ * The exact shapes this parser will read. A workflow job key sits at two spaces,
+ * its own keys at four, and a permission entry at six. Nothing else is
+ * interpreted: an unexpected indentation is a shape the parser does not
+ * understand, and the only safe answer to that is to refuse.
+ */
+const JOB_NAME_PATTERN = /^[A-Za-z0-9_-]+$/
+const JOB_KEY_INDENT = 4
+const PERMISSIONS_KEY_PATTERN = /^ {4}permissions:/
+const PERMISSION_ENTRY_PATTERN = /^ {6}([a-z-]+): ([a-z]+)$/
+
+/** Blank lines and comments belong to no job: they neither open nor close one. */
+function isStructurallyIgnorable(line) {
+  const trimmed = line.trim()
+  return trimmed === '' || trimmed.startsWith('#')
+}
+
+function indentOf(line) {
+  return line.length - line.trimStart().length
+}
+
+/**
+ * The index one past the last line of `  <job>:` — i.e. the first line that
+ * belongs to something else.
+ *
+ * A job's own keys live at four spaces or deeper, so the first structural line
+ * shallower than that (the next job at two spaces, or a top-level key at zero)
+ * ends the block. Comments and blank lines are skipped rather than treated as
+ * boundaries: a comment between two jobs would otherwise end the block early,
+ * and the next job header ends it correctly anyway.
+ */
+function jobBlockEnd(lines, jobLine) {
+  for (let index = jobLine + 1; index < lines.length; index += 1) {
+    if (isStructurallyIgnorable(lines[index])) continue
+    if (indentOf(lines[index]) < JOB_KEY_INDENT) return index
+  }
+  return lines.length
+}
+
+/**
  * Reads a workflow job's `permissions:` block out of the workflow source.
  *
  * The runner could simply be told what permissions it holds, but then the list
@@ -156,17 +195,74 @@ export function writerLockFromBoard(board) {
  * than be interpreted generously. Throws instead of returning something empty,
  * because an empty permission list reads as "harmless" and is the one answer
  * that must never be produced by accident.
+ *
+ * REPAIR/ACP-002/P1-2. The previous version found the job header and then took
+ * the FIRST `    permissions:` line anywhere after it, with no upper bound. The
+ * judge deleted the writer job's block from the committed workflow and the
+ * parser walked on into the `attest` job, returned its `{contents: "read"}`,
+ * and the preflight authorized ACP-002 on permissions the writer job did not
+ * hold. A permission list read from the wrong job is worse than no list at all:
+ * it is a *modest-looking* answer, so nothing downstream has any reason to
+ * doubt it, and the writer runs under whatever the workflow default happens to
+ * grant.
+ *
+ * So the parse is now bounded on every side, and every boundary fails closed:
+ *
+ *   - the job name must be a name this parser will look for, matched EXACTLY
+ *     at two spaces, so `writer-2:`, `Writer:` and `  writer: ` are different
+ *     jobs rather than near-misses;
+ *   - the job must be declared exactly once — two blocks that could each grant
+ *     the token is an ambiguity, not a preference for the first;
+ *   - the search for `permissions:` never leaves the job's own lines, so a
+ *     sibling job's block is unreachable by construction rather than by luck;
+ *   - the block must be an explicit scope-by-scope mapping (`permissions:
+ *     read-all` declares something this parser cannot verify scope by scope);
+ *   - a scope declared twice, and a block that yields no entries at all, both
+ *     throw.
+ *
+ * Every one of those is a throw, never a value. The caller that cannot obtain
+ * permissions cannot build a request, and condition 9 refuses a request whose
+ * permissions are missing — the writer does not start.
  */
 export function writerPermissionsFromWorkflow(source, jobName = 'writer') {
+  if (typeof jobName !== 'string' || !JOB_NAME_PATTERN.test(jobName)) {
+    throw new Error(`MALFORMED_WRITER_WORKFLOW: ${JSON.stringify(jobName)} is not a job name this parser will look for`)
+  }
   const lines = String(source).split('\n')
-  const jobLine = lines.findIndex((line) => line === `  ${jobName}:`)
-  if (jobLine === -1) throw new Error(`MALFORMED_WRITER_WORKFLOW: job \`${jobName}\` not found`)
-  const permissionsLine = lines.findIndex((line, index) => index > jobLine && line === '    permissions:')
-  if (permissionsLine === -1) throw new Error(`MALFORMED_WRITER_WORKFLOW: job \`${jobName}\` declares no permissions block`)
+  const header = `  ${jobName}:`
+  const headers = []
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index] === header) headers.push(index)
+  }
+  if (headers.length === 0) throw new Error(`MALFORMED_WRITER_WORKFLOW: job \`${jobName}\` not found`)
+  if (headers.length > 1) {
+    throw new Error(`MALFORMED_WRITER_WORKFLOW: job \`${jobName}\` is declared ${headers.length} times; which block grants the token is ambiguous`)
+  }
+  const jobLine = headers[0]
+  const jobEnd = jobBlockEnd(lines, jobLine)
+
+  const permissionsLines = []
+  for (let index = jobLine + 1; index < jobEnd; index += 1) {
+    if (PERMISSIONS_KEY_PATTERN.test(lines[index])) permissionsLines.push(index)
+  }
+  if (permissionsLines.length === 0) throw new Error(`MALFORMED_WRITER_WORKFLOW: job \`${jobName}\` declares no permissions block`)
+  if (permissionsLines.length > 1) {
+    throw new Error(`MALFORMED_WRITER_WORKFLOW: job \`${jobName}\` declares ${permissionsLines.length} permissions blocks; none of them can be trusted to be the granted one`)
+  }
+  const permissionsLine = permissionsLines[0]
+  if (lines[permissionsLine] !== '    permissions:') {
+    throw new Error(
+      `MALFORMED_WRITER_WORKFLOW: job \`${jobName}\` declares permissions as ${JSON.stringify(lines[permissionsLine].trim())}; only an explicit scope-by-scope block can be verified`,
+    )
+  }
+
   const permissions = {}
-  for (let index = permissionsLine + 1; index < lines.length; index += 1) {
-    const match = /^ {6}([a-z-]+): ([a-z]+)$/.exec(lines[index])
+  for (let index = permissionsLine + 1; index < jobEnd; index += 1) {
+    const match = PERMISSION_ENTRY_PATTERN.exec(lines[index])
     if (!match) break
+    if (Object.hasOwn(permissions, match[1])) {
+      throw new Error(`MALFORMED_WRITER_WORKFLOW: job \`${jobName}\` declares ${match[1]} more than once`)
+    }
     permissions[match[1]] = match[2]
   }
   if (Object.keys(permissions).length === 0) throw new Error('MALFORMED_WRITER_WORKFLOW: empty permissions block')
