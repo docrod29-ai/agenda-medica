@@ -1,0 +1,135 @@
+name: ACP-002 P1-6 Split Resume
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/acp002-p16-split-resume.yml'
+
+concurrency:
+  group: ausculta-acp002-p16-split-resume
+  cancel-in-progress: false
+
+jobs:
+  repair-p16:
+    if: github.event.pull_request.head.ref == 'claude/acp-001-codex-verdict-zwzvjk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    env:
+      REPAIR_BRANCH: claude/acp-001-codex-verdict-zwzvjk
+      VERDICT_PATH: control-plane/verdicts/acp002-codex-verdict-31963800078.json
+      EXPECTED_AUDITED_SHA: 821a44b0da15959041e4af22990b2bcd499a59a7
+      PROGRESS_PATH: control-plane/acp002-repair-progress.json
+    steps:
+      - name: Checkout exact PR head without persisted credentials
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify canonical resume preconditions
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e --arg sha "$EXPECTED_AUDITED_SHA" '.verdict == "FAIL" and .audited_sha == $sha and .independent == true and .read_only == true and ([.findings[] | select(.severity == "P1" and .blocking == true)] | length) == 7' "$VERDICT_PATH" >/dev/null
+          jq -e '.completed | index("P1-1") != null and index("P1-2") != null and index("P1-6") == null' "$PROGRESS_PATH" >/dev/null
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs'
+          const b=JSON.parse(readFileSync('control-plane/MASTER_BOARD.json','utf8'))
+          const a=b.items.find(x=>x.id==='ACP-002'), n=b.items.find(x=>x.id==='ACP-003')
+          if(a?.status!=='RUNNING_WRITER') throw new Error(`ACP-002 must be RUNNING_WRITER, got ${a?.status}`)
+          if(n?.status!=='QUEUED') throw new Error(`ACP-003 must remain QUEUED, got ${n?.status}`)
+          NODE
+          node control-plane/kernel.mjs check
+
+      - name: Install Claude Code
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: P1-6A — condition 5 genuine removal/inversion proof
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PUSH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/p16a /tmp/t16a
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/p16a
+          cd /tmp/p16a; git checkout --quiet "origin/${REPAIR_BRANCH}"
+          if jq -e '.completed | index("P1-6A") != null' "$PROGRESS_PATH" >/dev/null; then echo 'P1-6A already checkpointed'; exit 0; fi
+          cat > /tmp/p16a.prompt <<'PROMPT'
+          AUSCULTA ACP-002 — P1-6A ONLY. You are the single CLAUDE_OPUS writer; Codex remains independent judge.
+          Read the immutable verdict 31963800078 and current control-plane/preflight.test.mjs. Repair ONLY the P1-6 defect concerning condition 5: add a genuine removal/inversion proof that demonstrates the overall safety property, not merely a local boolean flip. If one removed layer is still protected by defense-in-depth, explicitly prove that fact and add the minimal multi-layer mutation needed to demonstrate unsafe authorization. Preserve all production guards and existing P1-1/P1-2 tests.
+          EDIT ONLY control-plane/preflight.test.mjs. No preflight production code unless absolutely impossible; no workflow/board/kernel/schema/product/clinical edits. No Bash/Web/git. End CHECKPOINT_P1_6A_READY=YES only when complete.
+          PROMPT
+          claude -p "$(cat /tmp/p16a.prompt)" --model opus --max-turns 12 --output-format json --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" 2>&1 | tee /tmp/p16a.log
+          grep -q 'CHECKPOINT_P1_6A_READY=YES' /tmp/p16a.log
+          while IFS= read -r line; do p="${line:3}"; p="${p##* -> }"; case "$p" in control-plane/preflight.test.mjs|'') ;; *) echo "::error::P1_6A_FORBIDDEN:$p"; exit 82;; esac; done <<< "$(git status --porcelain)"
+          node --test control-plane/preflight.test.mjs
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/t16a
+          cd /tmp/t16a; git checkout --quiet "origin/${REPAIR_BRANCH}"
+          cp /tmp/p16a/control-plane/preflight.test.mjs control-plane/preflight.test.mjs
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs'; const p=process.env.PROGRESS_PATH; const x=JSON.parse(readFileSync(p,'utf8')); if(!x.completed.includes('P1-6A')) x.completed.push('P1-6A'); writeFileSync(p,JSON.stringify(x,null,2)+'\n')
+          NODE
+          git config user.name 'Ausculta Control Plane'; git config user.email 'control-plane@users.noreply.github.com'
+          git add control-plane/preflight.test.mjs "$PROGRESS_PATH"; git diff --cached --check; git commit -m 'control-plane: checkpoint ACP-002 P1-6A condition-5 proof'
+          BASIC="$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)"; git -c credential.helper= -c core.askPass= -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${BASIC}" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${REPAIR_BRANCH}"
+
+      - name: P1-6B — condition 2 overall authorization proof
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PUSH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/p16b /tmp/t16b
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/p16b
+          cd /tmp/p16b; git checkout --quiet "origin/${REPAIR_BRANCH}"
+          if jq -e '.completed | index("P1-6B") != null' "$PROGRESS_PATH" >/dev/null; then echo 'P1-6B already checkpointed'; exit 0; fi
+          jq -e '.completed | index("P1-6A") != null' "$PROGRESS_PATH" >/dev/null
+          cat > /tmp/p16b.prompt <<'PROMPT'
+          AUSCULTA ACP-002 — P1-6B ONLY. You are the single CLAUDE_OPUS writer; Codex remains independent judge.
+          Read immutable verdict 31963800078 and current control-plane/preflight.test.mjs after P1-6A. Repair ONLY the P1-6 condition-2 proof defect. The relevant mutant must demonstrate OVERALL unsafe authorization: result.ok === true AND result.authorized is non-null, with unrelated gates made valid. If defense-in-depth prevents a single mutation from authorizing, explicitly prove that and add the minimal multi-layer mutation that actually authorizes. Do not alter production safety behavior or weaken assertions.
+          EDIT ONLY control-plane/preflight.test.mjs. No workflow/board/kernel/schema/product/clinical edits. No Bash/Web/git. End CHECKPOINT_P1_6B_READY=YES only when complete.
+          PROMPT
+          claude -p "$(cat /tmp/p16b.prompt)" --model opus --max-turns 12 --output-format json --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" 2>&1 | tee /tmp/p16b.log
+          grep -q 'CHECKPOINT_P1_6B_READY=YES' /tmp/p16b.log
+          while IFS= read -r line; do p="${line:3}"; p="${p##* -> }"; case "$p" in control-plane/preflight.test.mjs|'') ;; *) echo "::error::P1_6B_FORBIDDEN:$p"; exit 83;; esac; done <<< "$(git status --porcelain)"
+          node --test control-plane/preflight.test.mjs
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/t16b
+          cd /tmp/t16b; git checkout --quiet "origin/${REPAIR_BRANCH}"
+          cp /tmp/p16b/control-plane/preflight.test.mjs control-plane/preflight.test.mjs
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs'; const p=process.env.PROGRESS_PATH; const x=JSON.parse(readFileSync(p,'utf8')); for(const k of ['P1-6B','P1-6']) if(!x.completed.includes(k)) x.completed.push(k); writeFileSync(p,JSON.stringify(x,null,2)+'\n')
+          NODE
+          git config user.name 'Ausculta Control Plane'; git config user.email 'control-plane@users.noreply.github.com'
+          git add control-plane/preflight.test.mjs "$PROGRESS_PATH"; git diff --cached --check; git commit -m 'control-plane: checkpoint ACP-002 P1-6 reverse proofs complete'
+          BASIC="$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)"; git -c credential.helper= -c core.askPass= -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${BASIC}" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${REPAIR_BRANCH}"
+
+      - name: Verify P1-6 persisted
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/p16-final
+          git clone --quiet --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/p16-final
+          cd /tmp/p16-final; git checkout --quiet "origin/${REPAIR_BRANCH}"
+          jq -e '.completed | index("P1-1") != null and index("P1-2") != null and index("P1-6A") != null and index("P1-6B") != null and index("P1-6") != null' "$PROGRESS_PATH" >/dev/null
+          node --test control-plane/preflight.test.mjs
+          node --test control-plane/*.test.mjs
+          node control-plane/kernel.mjs check
+          echo 'ACP002_P1_6_PERSISTED=YES'
