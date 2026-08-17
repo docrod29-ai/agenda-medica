@@ -109,5 +109,38 @@ Every unresolved product assertion must be classified rather than guessed:
 - UNKNOWN — insufficient evidence/context; do not invent.
 - OWNER_APPROVAL_REQUIRED — cannot proceed safely under standing authority.
 
-## 12. Definition of done for this slice
+## 12. Voice and realtime intelligence quality floor
+Voice is not an optional convenience. It is a core clinical interface.
+
+Minimum acceptable behavior:
+- overall physician experience must be at least competitive with leading ambient-clinical products such as Suki, Abridge, and Nabla;
+- speech capture and understanding must feel conversational and near-immediate, with low enough latency that the physician does not have to slow down or adapt normal speech;
+- robust understanding of Spanish, English, Spanglish, accents, abbreviations, drug names, doses, labs, procedures, specialty terminology, ICU/ventilator terminology, names, and common real-world dictation errors;
+- tolerate incomplete phrases, self-corrections, reordered thoughts, interruptions, background noise, and disorganized clinical speech;
+- use AI context rapidly to recover likely intended medical terms when acoustic recognition is uncertain, but never silently promote an uncertain reconstruction to fact;
+- when ambiguity remains clinically meaningful, preserve uncertainty/conflict and ask for confirmation only when necessary for safety rather than forcing routine repetition;
+- support realtime or streaming partial results with rapid correction as more context arrives;
+- transcription quality alone is insufficient: the system must understand clinical meaning, structure it correctly, preserve provenance, and feed the same Clinical Truth model;
+- physician-perceived speed, precision, and understanding are release criteria, not cosmetic metrics.
+
+Target reference experience: the physician should be able to speak naturally, quickly, and imperfectly and still feel that the system understood the intended clinical content on the first pass. A product that routinely mishears medical words, requires repetition, or produces slow corrections does not meet the Ausculta quality floor.
+
+## 13. Evaluation implications for Voice Engine
+The Voice Engine slice must define and test at minimum:
+- medical word error rate and concept error rate,
+- medication/drug-name accuracy,
+- dose/unit accuracy,
+- numeric/lab accuracy,
+- specialty terminology accuracy,
+- code-switching Spanish/English/Spanglish accuracy,
+- latency to useful partial transcript and latency to stable transcript,
+- correction/recovery quality from context,
+- rate of unnecessary physician repetitions,
+- clinically significant omission/substitution rate,
+- hallucinated-content rate after AI repair,
+- physician edit time and physician satisfaction.
+
+Competitive claims remain unproven until Evaluation Kernel benchmarking, but the release floor is explicit: Ausculta must not be knowingly shipped below the best-in-class clinical voice/documentation experience targeted by the owner.
+
+## 14. Definition of done for this slice
 CONTEXT-CANONICALIZATION is complete only when the canonical context, product board, decision register, deterministic verifier, and focused tests agree on the same work order and non-negotiable product rules, with exactly one active slice and no contradictory canonical assertions.
