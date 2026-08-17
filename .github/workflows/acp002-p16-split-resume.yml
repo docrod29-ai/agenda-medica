@@ -72,7 +72,7 @@ jobs:
           Read the immutable verdict 31963800078 and current control-plane/preflight.test.mjs. Repair ONLY the P1-6 defect concerning condition 5: add a genuine removal/inversion proof that demonstrates the overall safety property, not merely a local boolean flip. If one removed layer is still protected by defense-in-depth, explicitly prove that fact and add the minimal multi-layer mutation needed to demonstrate unsafe authorization. Preserve all production guards and existing P1-1/P1-2 tests.
           EDIT ONLY control-plane/preflight.test.mjs. No preflight production code unless absolutely impossible; no workflow/board/kernel/schema/product/clinical edits. No Bash/Web/git. End CHECKPOINT_P1_6A_READY=YES only when complete.
           PROMPT
-          claude -p "$(cat /tmp/p16a.prompt)" --model opus --max-turns 12 --output-format json --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" 2>&1 | tee /tmp/p16a.log
+          claude -p "$(cat /tmp/p16a.prompt)" --model opus --max-turns 18 --output-format json --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" 2>&1 | tee /tmp/p16a.log
           grep -q 'CHECKPOINT_P1_6A_READY=YES' /tmp/p16a.log
           while IFS= read -r line; do p="${line:3}"; p="${p##* -> }"; case "$p" in control-plane/preflight.test.mjs|'') ;; *) echo "::error::P1_6A_FORBIDDEN:$p"; exit 82;; esac; done <<< "$(git status --porcelain)"
           node --test control-plane/preflight.test.mjs
@@ -105,7 +105,7 @@ jobs:
           Read immutable verdict 31963800078 and current control-plane/preflight.test.mjs after P1-6A. Repair ONLY the P1-6 condition-2 proof defect. The relevant mutant must demonstrate OVERALL unsafe authorization: result.ok === true AND result.authorized is non-null, with unrelated gates made valid. If defense-in-depth prevents a single mutation from authorizing, explicitly prove that and add the minimal multi-layer mutation that actually authorizes. Do not alter production safety behavior or weaken assertions.
           EDIT ONLY control-plane/preflight.test.mjs. No workflow/board/kernel/schema/product/clinical edits. No Bash/Web/git. End CHECKPOINT_P1_6B_READY=YES only when complete.
           PROMPT
-          claude -p "$(cat /tmp/p16b.prompt)" --model opus --max-turns 12 --output-format json --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" 2>&1 | tee /tmp/p16b.log
+          claude -p "$(cat /tmp/p16b.prompt)" --model opus --max-turns 18 --output-format json --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" 2>&1 | tee /tmp/p16b.log
           grep -q 'CHECKPOINT_P1_6B_READY=YES' /tmp/p16b.log
           while IFS= read -r line; do p="${line:3}"; p="${p##* -> }"; case "$p" in control-plane/preflight.test.mjs|'') ;; *) echo "::error::P1_6B_FORBIDDEN:$p"; exit 83;; esac; done <<< "$(git status --porcelain)"
           node --test control-plane/preflight.test.mjs
