@@ -1478,3 +1478,155 @@ test('P1-2: the committed workflows are unaffected — the repair bounded the pa
   // repair cannot be mistaken for a preflight that refuses everything.
   assert.equal(preflight({ request: validRequest({ permissions: writer }) }).ok, true)
 })
+
+// ---------------------------------------------------------------------------
+// 20. P1-6 — Codex run 31963800078: "reverse-proof coverage remains incomplete"
+//     — the half of it that concerns CONDITION 5.
+//
+// The finding, verbatim: "Condition 5 has no removal/inversion proof." That was
+// true. Condition 5 had two direct tests — an unclean tree is refused, and
+// "probably clean" is not clean — and nothing showing that the refusal came from
+// condition 5 rather than from some other gate that happened to be unhappy about
+// the same request. Every other condition in this file carries that second
+// layer; this one was asserted only from the inside, as a boolean.
+//
+// Why it matters more here than the small body suggests. Condition 5 is one
+// strict comparison, and it guards the one property that cannot be recovered
+// afterwards. The runner computes the field once with `git status --porcelain`
+// before the writer starts (control-plane-writer.yml:139-141, 171), and the
+// authorized SHA is then handed downstream as the description of what the writer
+// worked from. If the tree was dirty at that moment, the frozen SHA describes a
+// state that never existed: the writer edits files whose committed content is
+// not what is on disk, its delta is measured against a baseline nobody reviewed,
+// and the judge audits a SHA that is not the writer's starting point. No later
+// check can notice — a dirty tree leaves no trace in the SHA it corrupts. So the
+// only place this can be stopped is before the writer is invoked.
+//
+// DEFENCE IN DEPTH, ASKED AND ANSWERED RATHER THAN ASSUMED. Conditions 1, 3, 6
+// and 12 are each genuinely covered twice, and their proofs in this file say so
+// and remove both layers. `worktree_clean` is read in exactly ONE place in the
+// preflight, so condition 5 is a single layer. That is proved below rather than
+// asserted in a comment — an unclean request must fail exactly one condition —
+// and it is why the minimal mutation here is one anchor and not two. Claiming a
+// second layer that does not exist would be the more comfortable answer and the
+// false one; ausencia de dato no es dato de ausencia applies to guards too.
+//
+// The proof therefore comes in four parts: the property has one layer (so the
+// minimal mutation is known, not guessed); REMOVING that layer authorizes a
+// writer end to end — `ok === true`, a non-null `authorized`, and the machine
+// output a workflow step would act on; INVERTING it from `=== true` to mere
+// truthiness authorizes on a dirty tree while still looking like a working
+// guard; and the mutant is narrowly weakened, so "the mutant authorized" is not
+// the trivial consequence of a mutant that authorizes anything.
+//
+// What this section does NOT cover: it proves what the preflight DECIDES about
+// the field it is handed. It says nothing about whether the runner's shell
+// computed that field correctly — a `git status --porcelain` that lies, or a
+// worktree dirtied after the check and before the writer, are outside this
+// module and outside any unit test of it. It also does not cover the workflow's
+// own post-write scope enforcement, which is a different finding.
+// ---------------------------------------------------------------------------
+
+/**
+ * Condition 5, deleted. Not "the comparison tweaked": the whole condition
+ * returns a pass before it looks at anything, which is what a reviewer who
+ * decided the check was redundant would actually write.
+ */
+const REMOVE_CONDITION_5 = [
+  [
+    'function conditionWorktreeClean(context) {',
+    "function conditionWorktreeClean(context) {\n  if (true) return check(5, 'worktree is clean', true, null, 'mutant: condition 5 removed')",
+  ],
+]
+
+test('condition 5: the unclean-checkout property has exactly ONE layer — so one mutation is the minimal proof', () => {
+  const result = preflight({ request: validRequest({ worktree_clean: false }) })
+  assert.equal(result.ok, false)
+  assert.equal(result.authorized, null)
+  assert.deepEqual(
+    result.failed_conditions,
+    [5],
+    'no other condition covers an unclean checkout; if this ever grows a second entry, the reverse proof below must remove that layer too',
+  )
+  assert.equal(result.stop_condition, STOP_CONDITIONS.UNCLEAN_WORKTREE_AT_FREEZE)
+  // Said the other way round, so the claim cannot be satisfied by a preflight
+  // that fails everything: the same request with a clean tree authorizes.
+  assert.equal(preflight({ request: validRequest({ worktree_clean: true }) }).ok, true)
+})
+
+test('reverse proof: with condition 5 REMOVED, a dirty checkout authorizes a writer and freezes a SHA that describes nothing', async () => {
+  const mutant = await mutatePreflight(REMOVE_CONDITION_5)
+  const request = validRequest({ worktree_clean: false })
+  assertRealPreflightRefuses({ request }, STOP_CONDITIONS.UNCLEAN_WORKTREE_AT_FREEZE)
+  const over = assertMutantAuthorizes(mutant, { request })
+  assert.equal(over.checks[4].ok, true, 'the mutation must actually disable condition 5')
+  // The overall safety property, not a local boolean: nothing refuses, and the
+  // authorization handed out points a writer at a SHA that does not describe the
+  // tree it would edit.
+  assert.deepEqual(over.failed_conditions, [])
+  assert.equal(over.stop_condition, null)
+  assert.equal(over.next_board_status, null)
+  assert.deepEqual(over.authorized, { item_id: 'ACP-002', branch: CANONICAL_BOARD.source_branch, sha: SHA })
+  // And the machine contract a workflow step reads says "go".
+  assert.equal(over.github_outputs.ok, 'true')
+  assert.equal(over.github_outputs.authorized_item, 'ACP-002')
+  assert.equal(over.github_outputs.stop_condition, '')
+  assert.equal(over.github_outputs.failed_condition_count, '0')
+})
+
+test('reverse proof: INVERTING condition 5 from `=== true` to truthiness authorizes a writer on a dirty tree', async () => {
+  const mutant = await mutatePreflight([
+    ['const ok = context.request.worktree_clean === true', 'const ok = Boolean(context.request.worktree_clean)'],
+  ])
+  // The inputs a truthiness test gets wrong are the ones a caller reporting git
+  // status as TEXT would send. `'false'` is the vivid one: a runner that forgot
+  // one `=== 'true'` comparison hands over the string "false", and a truthy
+  // guard reads it as a clean tree.
+  for (const worktree_clean of ['false', 'dirty', ' M control-plane/preflight.mjs', 1]) {
+    const request = validRequest({ worktree_clean })
+    assertRealPreflightRefuses({ request }, STOP_CONDITIONS.UNCLEAN_WORKTREE_AT_FREEZE)
+    const over = assertMutantAuthorizes(mutant, { request })
+    assert.equal(over.checks[4].ok, true, JSON.stringify(worktree_clean))
+    assert.deepEqual(over.authorized, { item_id: 'ACP-002', branch: CANONICAL_BOARD.source_branch, sha: SHA }, JSON.stringify(worktree_clean))
+    assert.equal(over.github_outputs.authorized_item, 'ACP-002', JSON.stringify(worktree_clean))
+  }
+  // The same weakened comparison still refuses an honest `false`. That is why
+  // the inversion is proved separately from the removal: a partial weakening
+  // passes every test aimed at the obvious input and fails only on the shape
+  // nobody sent on purpose.
+  for (const worktree_clean of [false, null, undefined, 0, '']) {
+    const over = mutant.runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request: validRequest({ worktree_clean }) })
+    assert.equal(over.ok, false, String(worktree_clean))
+    assert.equal(over.authorized, null, String(worktree_clean))
+    assert.deepEqual(over.failed_conditions, [5], String(worktree_clean))
+  }
+})
+
+test('reverse proof: the condition-5 mutant is narrowly weakened — it still refuses every other defect', async () => {
+  // Without this, "the mutant authorized" would be worth nothing: a mutant that
+  // authorizes everything proves only that it authorizes everything.
+  const mutant = await mutatePreflight(REMOVE_CONDITION_5)
+  const cases = [
+    ['targets a protected branch', { branch: 'main' }, STOP_CONDITIONS.FORBIDDEN_TARGET_BRANCH],
+    ['checkout drifted from the authorized SHA', { head_sha: 'b'.repeat(40) }, STOP_CONDITIONS.BRANCH_OR_SHA_NOT_EXPLICIT],
+    ['credential absent', { secret_present: false }, STOP_CONDITIONS.MISSING_REQUIRED_SECRET_OR_EXTERNAL_CREDENTIAL],
+    ['request carries a credential value', { secret_value: 'sk-ant-do-not-print-me' }, STOP_CONDITIONS.SECRET_VALUE_LEAKED],
+    ['unbounded budget', { budget: null }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED],
+    ['a re-run past the retry ceiling', { run_attempt: 7 }, STOP_CONDITIONS.BUDGET_NOT_BOUNDED],
+    ['an item the board did not select', { item_id: 'ACP-003' }, STOP_CONDITIONS.ITEM_NOT_AUTHORIZED],
+    ['a production-reaching scope', { permissions: { contents: 'write', deployments: 'write' } }, STOP_CONDITIONS.WRITER_PERMISSIONS_TOO_BROAD],
+    ['a write-granting judge', { judge_workflows: judgeWorkflows(READ_ONLY_JUDGE_WORKFLOW.replace('      contents: read', '      contents: write')) }, STOP_CONDITIONS.JUDGE_NOT_READ_ONLY],
+  ]
+  for (const [label, overrides, expected] of cases) {
+    const request = validRequest({ worktree_clean: false, ...overrides })
+    const over = mutant.runPreflight({ board: writerReadyBoard(), schema: SCHEMA, request })
+    assert.equal(over.ok, false, label)
+    assert.equal(over.authorized, null, label)
+    assert.equal(over.next_board_status, 'BLOCKED', label)
+    const stops = over.checks.filter((entry) => !entry.ok).map((entry) => entry.stop_condition)
+    assert.ok(stops.includes(expected), `${label}: expected ${expected}, got ${JSON.stringify(stops)}`)
+    // Condition 5 is the ONLY thing the mutation switched off, so the dirty tree
+    // itself never appears among the reasons.
+    assert.equal(stops.includes(STOP_CONDITIONS.UNCLEAN_WORKTREE_AT_FREEZE), false, label)
+  }
+})
