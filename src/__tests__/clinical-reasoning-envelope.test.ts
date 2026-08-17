@@ -14,9 +14,9 @@ const encounter: EncounterTruth = {
 }
 
 describe('clinical reasoning envelope', () => {
-  it('preserves uncertainty and conflicts from Clinical Truth', () => {
+  it('preserves inference and conflicts from Clinical Truth without relabeling truth state', () => {
     const envelope = createReasoningEnvelope({ id: 'r1', encounter, question: 'assessment', sourceFactIds: ['f1','f2','f3'] })
-    expect(envelope.unresolved.map((u) => u.state)).toEqual(expect.arrayContaining(['INCIERTO','CONFLICTIVO']))
+    expect(envelope.unresolved.map((u) => u.state)).toEqual(expect.arrayContaining(['INFERIDO','CONFLICTIVO']))
     expect(encounter.facts[0].truthState).toBe('INFERIDO')
   })
 
