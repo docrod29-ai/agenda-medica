@@ -21,14 +21,16 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
   { paso: '7 · Firmar, o saber por qué no', hace: 'El botón apagado dice su motivo; la firma sella lo firmado.', modulos: ['src/lib/expediente/por-que-no-se-firma.ts','src/lib/expediente/nom004.ts','src/lib/expediente/integrity.ts'] },
 ]
 
-// Baseline V15 = 29. Clinical Truth is intentionally built/tested before its UI/renderer
-// integration, so its core is the one declared temporary island in this active slice.
-const FUERA_DEL_CAMINO_HOY = 30
+// Baseline V15 = 29. Clinical Truth and the provider-neutral Voice Engine core are
+// intentionally built/tested before their UI/provider integration. They are explicit,
+// temporary islands for the active product slices rather than silently raising the guard.
+const FUERA_DEL_CAMINO_HOY = 31
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',
   'src/lib/compliance/country-profiles.ts': 'lo importa compliance/policy.ts, que ya está declarado huérfano',
   'src/lib/uci/benchmark-metricas.ts': 'lo importa uci/benchmark.ts, que ya está declarado huérfano',
-  'src/lib/clinical-truth/index.ts': 'DOCUMENTATION ENGINE activo: núcleo Clinical Truth probado antes de conectarlo al renderer/flujo; debe salir de esta lista al integrar el slice.',
+  'src/lib/clinical-truth/index.ts': 'DOCUMENTATION ENGINE: núcleo Clinical Truth probado antes de conectarlo al renderer/flujo; debe salir de esta lista al integrar el slice.',
+  'src/lib/voice-engine/index.ts': 'VOICE ENGINE activo: contrato provider-neutral probado antes de conectar captura/proveedor/UI; debe salir de esta lista al integrar el slice.',
 }
 
 describe('el camino del médico llega entero', () => {
@@ -40,7 +42,7 @@ describe('el camino del médico llega entero', () => {
   it.each(EL_CAMINO)('$paso — sus módulos existen', ({ modulos }) => { expect(modulos.filter(m => !existsSync(join(RAIZ,m)))).toEqual([]) })
   it.each(EL_CAMINO)('$paso — se llega desde la app', ({ paso, modulos }) => { const desconectados=modulos.filter(m=>!alcanzables.has(m)); expect(desconectados,`${paso}: fuera del camino → ${desconectados.join(', ')}`).toEqual([]) })
   it('el documento nombra los siete pasos', () => { const t=readFileSync(DOC,'utf8'); for(const p of EL_CAMINO) expect(t).toContain(p.paso) })
-  it('los módulos fuera del camino no aumentan', () => { const libs:string[]=[]; const anda=(d:string)=>{ for(const e of readdirSync(join(RAIZ,d))){ if(e==='__tests__') continue; const rel=`${d}/${e}`; if(statSync(join(RAIZ,rel)).isDirectory()) anda(rel); else if(/\.tsx?$/.test(e)) libs.push(rel) } }; anda('src/lib'); anda('src/components'); const fuera=libs.filter(f=>!alcanzables.has(f)); expect(fuera.length,`subió a ${fuera.length}. Los nuevos:\n  ${fuera.filter(f=>!ISLAS_DE_DOS[f]).slice(0,12).join('\n  ')}`).toBeLessThanOrEqual(FUERA_DEL_CAMINO_HOY) })
+  it('los módulos fuera del camino no aumentan', () => { const libs:string[]=[]; const anda=(d:string)=>{ for(const e of readdirSync(join(RAIZ,d))){ if(e==='__tests__') continue; const rel=`${d}/${e}`; if(statSync(join(RAIZ,rel)).isDirectory()) anda(rel); else if(/\.tsx?$/.test(e)) libs.push(rel) } }; anda('src/lib'); anda('src/components'); const fuera=libs.filter(f=>!alcanzables.has(f)); expect(fuera.length,`subió a ${fuera.length}. Los nuevos:\n  ${fuera.filter(f=>!ISLAS_DE_DOS[f]).slice(0,12).join('\n  ')}`).toBeLessThanOrEqual(FUERA_DEL_CAMINO_HOY); expect(fuera.filter(f=>!ISLAS_DE_DOS[f]).length, 'toda isla nueva debe declararse con motivo').toBeLessThanOrEqual(FUERA_DEL_CAMINO_HOY - Object.keys(ISLAS_DE_DOS).length) })
   it('las islas declaradas siguen existiendo', () => { for(const f of Object.keys(ISLAS_DE_DOS)) expect(existsSync(join(RAIZ,f)),`${f} ya no existe: quítalo de la lista`).toBe(true) })
   it('el documento dice qué NO prueba esto', () => { const t=readFileSync(DOC,'utf8'); expect(t).toContain('que el cable existe'); expect(t).toContain('llegaban tarde') })
 })
