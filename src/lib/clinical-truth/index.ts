@@ -4,7 +4,7 @@ export type TruthState = (typeof TRUTH_STATES)[number]
 export const PROVENANCE_SOURCES = ['dictation','typed_text','mixed_voice_text','imported_result','device_system','clinician_correction','other'] as const
 export type ProvenanceSource = (typeof PROVENANCE_SOURCES)[number]
 
-export interface Provenance { source: ProvenanceSource; capturedAt: string; sourceId?: string; actorId?: string; encounterId?: string; correctsFactId?: string }
+export interface Provenance { source: ProvenanceSource; capturedAt: string; encounterId: string; sourceId?: string; actorId?: string; correctsFactId?: string }
 export interface ClinicalFact<T = unknown> { id: string; concept: string; value?: T; truthState: TruthState; provenance: Provenance; confidence?: number; uncertaintyReason?: string; conflictsWith?: string[] }
 export interface EncounterTruth { encounterId: string; patientId: string; facts: ClinicalFact[]; updatedAt: string }
 export type DocumentStatus = 'draft' | 'signed' | 'amended'
@@ -20,6 +20,8 @@ export type InputModality = (typeof INPUT_MODALITIES)[number]
 export interface ClinicalInput { modality: InputModality; raw: string; language?: 'es'|'en'|'spanglish'; capturedAt: string; actorId?: string; encounterId: string }
 export interface NormalizedClinicalInput extends ClinicalInput { normalizedText: string; requiresClinicalInterpretation: true }
 
+const ABSENCE_STATES: readonly TruthState[] = ['NO_INTERROGADO','NO_DOCUMENTADO','DESCONOCIDO']
+
 function assertIsoDate(value: string, field: string): void { if (!value || Number.isNaN(Date.parse(value))) throw new Error(`${field} must be a valid timestamp`) }
 export function validateClinicalFact(fact: ClinicalFact): ClinicalFact {
   if (!fact.id.trim()) throw new Error('ClinicalFact.id is required')
@@ -27,7 +29,9 @@ export function validateClinicalFact(fact: ClinicalFact): ClinicalFact {
   if (!TRUTH_STATES.includes(fact.truthState)) throw new Error('ClinicalFact.truthState is invalid')
   if (!fact.provenance?.source || !PROVENANCE_SOURCES.includes(fact.provenance.source)) throw new Error('ClinicalFact.provenance.source is required')
   assertIsoDate(fact.provenance.capturedAt, 'ClinicalFact.provenance.capturedAt')
+  if (!fact.provenance.encounterId?.trim()) throw new Error('ClinicalFact.provenance.encounterId is required')
   if (fact.confidence !== undefined && (fact.confidence < 0 || fact.confidence > 1)) throw new Error('ClinicalFact.confidence must be between 0 and 1')
+  if (ABSENCE_STATES.includes(fact.truthState) && fact.value !== undefined) throw new Error(`${fact.truthState} facts cannot assert a value`)
   if ((fact.truthState === 'INFERIDO' || fact.truthState === 'INCIERTO') && !fact.uncertaintyReason?.trim()) throw new Error(`${fact.truthState} facts require uncertaintyReason`)
   if (fact.truthState === 'CONFLICTIVO' && !fact.conflictsWith?.length) throw new Error('CONFLICTIVO facts require conflictsWith')
   if (fact.provenance.source === 'clinician_correction' && !fact.provenance.correctsFactId) throw new Error('Clinician corrections require correctsFactId provenance')
@@ -36,9 +40,9 @@ export function validateClinicalFact(fact: ClinicalFact): ClinicalFact {
 
 export function appendClinicalFact(encounter: EncounterTruth, incoming: ClinicalFact): EncounterTruth {
   validateClinicalFact(incoming)
-  if (incoming.provenance.encounterId && incoming.provenance.encounterId !== encounter.encounterId) throw new Error('Fact provenance encounterId does not match EncounterTruth')
+  if (incoming.provenance.encounterId !== encounter.encounterId) throw new Error('Fact provenance encounterId does not match EncounterTruth')
   if (encounter.facts.some((fact) => fact.id === incoming.id)) throw new Error(`ClinicalFact.id already exists: ${incoming.id}`)
-  const candidates = encounter.facts.filter((fact) => fact.concept === incoming.concept && !['NO_INTERROGADO','NO_DOCUMENTADO','DESCONOCIDO'].includes(fact.truthState))
+  const candidates = encounter.facts.filter((fact) => fact.concept === incoming.concept && !ABSENCE_STATES.includes(fact.truthState))
   const conflicting = candidates.filter((fact) => JSON.stringify(fact.value) !== JSON.stringify(incoming.value))
   let nextIncoming = incoming; let nextFacts = encounter.facts
   if (conflicting.length) {
