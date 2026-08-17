@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterTruth } from '@/lib/clinical-truth'
-import { createReasoningEnvelope, recordClinicianDisposition, snapshotReasoningInputs } from '@/lib/clinical-reasoning'
+import {
+  createReasoningEnvelope,
+  deterministicClaimFromRegisteredEngine,
+  evidenceReferenceFromSource,
+  recordClinicianDisposition,
+  safetyFindingFromRegisteredEngine,
+  snapshotReasoningInputs,
+} from '@/lib/clinical-reasoning'
+import { fechaPublicacionDesde, fuente } from '@/types/evidence'
 
 const encounter: EncounterTruth = {
   encounterId: 'enc-1',
@@ -50,6 +58,51 @@ describe('clinical reasoning envelope', () => {
     })
     expect(envelope.safetyFindings[0].requiresClinicianReview).toBe(true)
     expect(envelope.limitedMode).toBe('model_unavailable')
+  })
+
+  it('reuses the existing deterministic registry instead of accepting a shadow engine', () => {
+    const claim = deterministicClaimFromRegisteredEngine({
+      id: 'c-news2', engineId: 'news2-set', text: 'deterministic engine output', sourceFactIds: ['f1'],
+    })
+    expect(claim.kind).toBe('deterministic')
+    expect(claim.engineId).toBe('news2-set')
+    expect(() => deterministicClaimFromRegisteredEngine({
+      id: 'c-shadow', engineId: 'shadow-engine', text: 'invented engine', sourceFactIds: ['f1'],
+    })).toThrow(/Unknown deterministic clinical engine/)
+    expect(() => createReasoningEnvelope({
+      id: 'r-shadow', encounter, question: 'assessment', sourceFactIds: ['f1'],
+      claims: [{ id: 'c-model', kind: 'model_hypothesis', engineId: 'news2-set', text: 'model output', sourceFactIds: ['f1'], evidenceSupport: 'not_requested' }],
+    })).toThrow(/cannot claim deterministic engine provenance/)
+  })
+
+  it('maps existing registered safety rules without choosing new clinical policy', () => {
+    const finding = safetyFindingFromRegisteredEngine({
+      id: 's-news2', engineId: 'news2-set', severity: 'P1', trigger: 'pre-existing engine trigger', sourceFactIds: ['f1'], requiresClinicianReview: true,
+    })
+    const envelope = createReasoningEnvelope({ id: 'r-safety', encounter, question: 'safety', sourceFactIds: ['f1'], safetyFindings: [finding] })
+    expect(envelope.safetyFindings[0].engineId).toBe('news2-set')
+    expect(() => safetyFindingFromRegisteredEngine({
+      id: 's-unknown', engineId: 'shadow-engine', severity: 'P2', trigger: 'x', sourceFactIds: ['f1'], requiresClinicianReview: false,
+    })).toThrow(/Unknown deterministic clinical engine/)
+  })
+
+  it('maps the existing evidence Source model while preserving retrieval and publication precision', () => {
+    const made = fuente({
+      proveedor: 'pubmed', idExterno: '12345', titulo: 'Synthetic non-PHI evidence fixture',
+      publicado: fechaPublicacionDesde('2026'), recuperadoEn: '2026-08-17T21:00:00Z', textoRecuperado: 'Synthetic abstract text.',
+    })
+    expect(made.ok).toBe(true)
+    if (!made.ok) return
+    const ref = evidenceReferenceFromSource({ id: 'e-pubmed', source: made.valor, supportsClaimId: 'c1' })
+    expect(ref.sourceId).toBe('pubmed:12345')
+    expect(ref.retrievedAt).toBe('2026-08-17T21:00:00Z')
+    expect(ref.versionDate).toBe('2026')
+    const envelope = createReasoningEnvelope({
+      id: 'r-evidence', encounter, question: 'assessment', sourceFactIds: ['f1'],
+      claims: [{ id: 'c1', kind: 'model_hypothesis', text: 'possible infection', sourceFactIds: ['f1'], evidenceSupport: 'supported', evidenceReferenceIds: ['e-pubmed'] }],
+      evidenceReferences: [ref],
+    })
+    expect(envelope.evidenceReferences[0].source).toBe('pubmed')
   })
 
   it('retains clinician rejection/correction as lineage', () => {
