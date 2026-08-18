@@ -2,7 +2,7 @@
 
 Parent board: GitHub issue #296.
 Base checkpoint: Voice Engine completion SHA `06fee478f3070d77486df683d0ab4e485ed7f78f`.
-Status: COMPLETE.
+Status: REVALIDATED_PENDING_INDEPENDENT_JUDGE.
 
 ## Product objective
 
@@ -85,8 +85,8 @@ Prove at minimum that:
 - Repository CI green on a frozen head.
 - Board then advances to CONSULTORIO / AGENDA / RECETA / PAGOS / SECRETARÍA under NO-GOLD-PLATING.
 
-## Completion evidence
+## Revalidation evidence
 
 - Frozen implementation candidate `50d5d5e4563fa4416d29ac97cf76e0ddd7be4ce8` passed CI #1105.
 - The slice added a provider-neutral reasoning envelope, registered-engine adapters, evidence-source adapters, structured safety findings, explicit limited modes, clinician disposition lineage, and focused positive/negative tests.
-- Independent Codex judge was triggered on the frozen candidate after the bounded read-only workflow landed on `main`; no Codex verdict is claimed here until its immutable artifact is inspected.
+- Independent Codex judge was triggered on the frozen candidate after the bounded read-only workflow landed on `main`; no PASS/FAIL is claimed until its immutable artifact is inspected.
