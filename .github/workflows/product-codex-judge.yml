@@ -20,6 +20,7 @@ jobs:
       contents: read
       actions: read
       pull-requests: read
+      issues: write
     steps:
       - name: Resolve and verify exact product PR head
         id: target
@@ -94,3 +95,15 @@ jobs:
           path: product-codex-verdict.json
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish validated verdict to product PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          verdict="$(jq -c . product-codex-verdict.json)"
+          printf -v body 'AUSCULTA_CODEX_VERDICT exact_sha=%s run_id=%s\n```json\n%s\n```' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$verdict"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
