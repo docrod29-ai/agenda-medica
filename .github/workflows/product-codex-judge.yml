@@ -6,7 +6,7 @@ on:
 
 concurrency:
   group: ausculta-product-codex-judge-${{ github.event.issue.number }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   judge:
