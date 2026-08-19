@@ -20,7 +20,7 @@ jobs:
       contents: write
       pull-requests: read
     env:
-      WRITER_MAX_TURNS: '40'
+      WRITER_MAX_TURNS: '50'
     steps:
       - name: Resolve and verify exact product PR head
         id: target
@@ -89,6 +89,8 @@ jobs:
 
           READ FIRST: AGENTS.md, CLAUDE.md, docs/product/CONTEXT_CANONICAL.md, docs/product/PRODUCT_BOARD.md, docs/product/DECISION_REGISTER.md, the PR title/body copied below, the relevant slice contract under docs/product/slices/, and existing implementation/tests in the repository.
 
+          FAST PATH FOR ACTIVE REPAIR DIRECTIVES: if the PR body contains `ACTIVE P1 REPAIR DIRECTIVE`, treat those enumerated blockers as the complete mandatory scope. Read only the minimum relevant implementation/tests/contracts needed to close them, implement focused tests, verify your edits, and stop. Do not spend turns re-auditing unrelated modules or proposing optional refactors.
+
           NON-NEGOTIABLES:
           - Implement only the slice declared by this PR and the current Product Board; do not start later functional slices.
           - Preserve Clinical Truth, NO INVENTAR, provenance, explicit uncertainty/conflict, signed-note integrity, clinician authority, tenant isolation, and existing safety/security gates.
@@ -143,6 +145,14 @@ jobs:
 
       - name: Verify product checkpoint
         shell: bash
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-build.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
         run: |
           set -euo pipefail
           npx tsc --noEmit
