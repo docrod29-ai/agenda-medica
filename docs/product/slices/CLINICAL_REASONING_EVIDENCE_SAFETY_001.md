@@ -85,6 +85,15 @@ Prove at minimum that:
 - Repository CI green on a frozen head.
 - Board then advances to CONSULTORIO / AGENDA / RECETA / PAGOS / SECRETARÍA under NO-GOLD-PLATING.
 
+## P1 repair — independent audit of `dc3cf6565d755ac6aa180903b82b10c69dfa66ee`
+
+Independent Codex run `32200861214` returned FAIL for four blocking P1 findings. Each is closed in `src/lib/clinical-reasoning/index.ts` with focused negative coverage in `src/__tests__/clinical-reasoning-envelope.test.ts`. No clinical policy was changed and the slice was not broadened.
+
+1. **Foreign-document fail-closed.** The envelope now takes an explicit `clinicId` and `ScopedClinicalDocument[]`. A document from another clinic or another encounter, or one citing a fact outside the encounter, is rejected before any identifier is sealed: it contributes no facts, no `openConflictIds` and no `documentIds`. `snapshotReasoningInputs` applies the same gate so it cannot become a side door.
+2. **Unique sealed identifiers.** Duplicate source fact IDs, evidence reference IDs and reasoning claim IDs are rejected instead of collapsing into a lookup map whose winner would disagree with the retained list.
+3. **Recommendations require material support.** `treatment_recommendation` and `investigation_recommendation` must name an already-trusted origin — a registered deterministic engine, or the existing supported-evidence contract. Zero support, `not_requested` and `lookup_failed` are not passing states for an actionable claim.
+4. **Evidence token bound to its evidence set.** `issueEvidenceValidationToken` carries a deterministic, order-independent digest of the evidence identities (reusing the repository's existing `huellaContenido` fingerprint), re-checked at sealing. A token cannot be reused with a substituted, enlarged or edited evidence set. The digest detects substitution; it is not an adversarial MAC.
+
 ## Revalidation evidence
 
 - Frozen implementation candidate `50d5d5e4563fa4416d29ac97cf76e0ddd7be4ce8` passed CI #1105.
