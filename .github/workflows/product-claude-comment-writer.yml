@@ -137,7 +137,6 @@ jobs:
             case "$path" in
               .github/*|control-plane/*|package.json|package-lock.json|firestore.rules|storage.rules|firebase.json|vercel.json|next.config.*|.env*)
                 echo "::error::FORBIDDEN_SENSITIVE_CHANGE=$path"; exit 96 ;;
-                ;;
             esac
           done < /tmp/changed.txt
           git diff --check
