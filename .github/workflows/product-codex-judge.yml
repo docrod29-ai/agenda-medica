@@ -96,14 +96,56 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish validated verdict to product PR
+      - name: Classify slice gate without stopping unrelated work
+        id: gate
         env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.issue.number }}
           EXPECTED_SHA: ${{ steps.target.outputs.sha }}
         shell: bash
         run: |
           set -euo pipefail
+          verdict="$(jq -r '.verdict' product-codex-verdict.json)"
+          blocking_count="$(jq '[.findings[] | select(.blocking == true and (.severity == "P0" or .severity == "P1"))] | length' product-codex-verdict.json)"
+          if [[ "$verdict" == "PASS" && "$blocking_count" == "0" ]]; then
+            gate="PASS"
+          else
+            gate="BLOCKED_SLICE_ONLY"
+          fi
+          echo "gate=$gate" >> "$GITHUB_OUTPUT"
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+          {
+            echo '### Ausculta Product Codex Judge'
+            echo "- exact SHA: \`$EXPECTED_SHA\`"
+            echo "- verdict: **$verdict**"
+            echo "- gate: **$gate**"
+            echo "- blocking P0/P1 findings: **$blocking_count**"
+            echo '- policy: P0/P1 blocks only this product slice; P2/P3 never stop unrelated reversible work.'
+            echo '- immutable JSON verdict is retained as a workflow artifact even if PR-comment delivery fails.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish validated verdict to product PR (best effort transport)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          SLICE_GATE: ${{ steps.gate.outputs.gate }}
+        shell: bash
+        run: |
+          set -euo pipefail
           verdict="$(jq -c . product-codex-verdict.json)"
-          printf -v body 'AUSCULTA_CODEX_VERDICT exact_sha=%s run_id=%s\n```json\n%s\n```' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$verdict"
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
+          printf -v body 'AUSCULTA_CODEX_VERDICT exact_sha=%s run_id=%s gate=%s\n```json\n%s\n```' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$SLICE_GATE" "$verdict"
+
+          published=0
+          for attempt in 1 2 3; do
+            if gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null 2>&1; then
+              published=1
+              break
+            fi
+            sleep $((attempt * 2))
+          done
+
+          if [[ "$published" == "1" ]]; then
+            echo '- PR comment transport: delivered.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '::warning::VERDICT_COMMENT_PUBLISH_FAILED: audit remains valid; use immutable artifact/workflow summary.'
+            echo '- PR comment transport: failed after 3 attempts; **audit remains valid and workflow is not failed by transport**.' >> "$GITHUB_STEP_SUMMARY"
+          fi
