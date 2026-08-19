@@ -34,6 +34,27 @@ Prove that:
 ## Benchmark strategy
 Do not pick a paid production ASR provider in this slice. First establish the provider-neutral contract and synthetic benchmark harness. Later provider bake-off should compare at least clinical term error, medication/dose error, negation error, speaker attribution where applicable, time-to-first-partial, time-to-final, correction burden, and forced-repeat rate on a consented/non-PHI or explicitly approved evaluation corpus.
 
+## P1 repair record — exact-SHA audit `4b5f66d9565cb15aa06350f7b544d39226c8434d`
+Independent Codex run `32200858183` returned FAIL for two blocking P1 findings. Both are closed in
+`src/lib/voice-engine/index.ts` with focused negative tests in
+`src/__tests__/voice-engine-estado-obsoleto-y-revision-incompleta.test.ts`.
+
+The audit names the transition gates `advanceVoiceSession` / `applyVoiceRevision`; in this repository those
+transitions are `appendTranscriptSegment` / `finalizeTranscriptSegment` and `reviseTranscriptSegment`.
+
+1. **Stale state transitions rejected.** Every transition is now validated against the target segment's own
+   lineage head — the newest of `receivedAt`, all recorded `revisedAt`, and `finalizedAt`. A transition dated
+   before that head is refused, so an older artifact cannot be promoted, finalized, or replayed over a newer
+   transcript, and the deterministic latency metrics can no longer be masked by clamping.
+   Finalization order *between* segments is deliberately not constrained: a streaming provider may legitimately
+   finalize a later segment first.
+2. **Revised final text revalidated.** Being final before a revision no longer makes the revised text safe to
+   keep final. Text bound for `final` must pass the structural gate `isFinalizableTranscriptText`: a revision
+   that leaves a final segment structurally incomplete is rejected and the previous final text stays intact; the
+   same text on a partial segment forces `needsReview` and cannot be promoted to final, so it never enters
+   `ClinicalInput` as finalized truth. The gate is structural only — it never judges clinical completeness,
+   which stays with the clinician and with `needsReview`.
+
 ## Scope exclusions
 Paid provider commitment, production secrets, live PHI, full ambient UI, EHR writeback, clinical reasoning, and final competitive superiority claims are out of scope here.
 

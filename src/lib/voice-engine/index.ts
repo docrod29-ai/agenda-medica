@@ -48,6 +48,34 @@ function freezeSegment(segment: TranscriptSegment): TranscriptSegment { return O
 function freezeSession(session: VoiceSession): VoiceSession { return Object.freeze({...session, segments:Object.freeze(session.segments.map(freezeSegment))}) }
 function sortSegments(segments: readonly TranscriptSegment[]): TranscriptSegment[] { return [...segments].sort((a,b)=>a.sequence-b.sequence) }
 
+/** Newest point already recorded on a segment's lineage: arrival, last revision, finalization. */
+function lineageHeadMs(segment: TranscriptSegment): number {
+  let head=assertTimestamp(segment.receivedAt,'receivedAt')
+  for(const revision of segment.revisions) head=Math.max(head,assertTimestamp(revision.revisedAt,'revisedAt'))
+  if(segment.finalizedAt) head=Math.max(head,assertTimestamp(segment.finalizedAt,'finalizedAt'))
+  return head
+}
+/** A transition dated before the target's own lineage head is a stale artifact being replayed over a newer transcript. */
+function assertNotStale(segment: TranscriptSegment, atMs: number, field: string): void {
+  if(atMs<lineageHeadMs(segment)) throw new Error(`Stale voice transition rejected: ${field} precedes the newest recorded state of transcript segment ${segment.id}`)
+}
+
+const DANGLING_TRANSCRIPT_TAIL=/(?:\.{3}|…|[,;:+&(-])$/u
+/**
+ * Structural completeness gate for text that may become final ClinicalInput truth.
+ *
+ * Structural only: it rejects text that carries no content (blank, punctuation/symbol only) or that
+ * ends on a dangling connector — the shape of a dictation stream cut mid-utterance. It does NOT and
+ * must not judge clinical completeness: whether a complete-looking utterance says enough clinically
+ * stays with the clinician and with `needsReview`.
+ */
+export function isFinalizableTranscriptText(text: string): boolean {
+  const trimmed=text.trim()
+  if(!trimmed) return false
+  if(!/[\p{L}\p{N}]/u.test(trimmed)) return false
+  return !DANGLING_TRANSCRIPT_TAIL.test(trimmed)
+}
+
 export function createVoiceSession(input: Omit<VoiceSession,'segments'|'firstPartialReceivedAt'>): VoiceSession {
   assertTimestamp(input.startedAt,'startedAt'); if(!input.id.trim()||!input.encounterId.trim()||!input.provider.trim()) throw new Error('Voice session identity, encounter, and provider are required')
   return freezeSession({...input,segments:[]})
@@ -58,19 +86,30 @@ export function appendTranscriptSegment(session: VoiceSession, segment: Omit<Tra
   if(!segment.id.trim()||!segment.text.trim()) throw new Error('Transcript segment id and text are required'); if(segment.sequence<0||!Number.isInteger(segment.sequence)) throw new Error('Transcript sequence must be a non-negative integer')
   if(session.segments.some(e=>e.id===segment.id)) throw new Error(`Transcript segment already exists: ${segment.id}`); if(session.segments.some(e=>e.sequence===segment.sequence)) throw new Error(`Transcript sequence already exists: ${segment.sequence}`)
   if(segment.status==='final'&&!segment.finalizedAt) throw new Error('Final transcript segment requires finalizedAt')
+  if(segment.status==='final'){
+    if(assertTimestamp(segment.finalizedAt as string,'finalizedAt')<assertTimestamp(segment.receivedAt,'receivedAt')) throw new Error('Stale voice transition rejected: finalizedAt precedes receivedAt')
+    if(!isFinalizableTranscriptText(segment.text)) throw new Error('Structurally incomplete transcript text cannot be appended as final')
+  }
   const firstPartialReceivedAt=session.firstPartialReceivedAt ?? (segment.status==='partial'?segment.receivedAt:undefined)
   return freezeSession({...session,firstPartialReceivedAt,segments:sortSegments([...session.segments,{...segment,revisions:[]}])})
 }
 
 export function reviseTranscriptSegment(input:{session:VoiceSession;segmentId:string;revisedText:string;revisedAt:string;reason:TranscriptRevision['reason'];needsReview?:boolean;confidence?:number;alternatives?:readonly TranscriptAlternative[]}):VoiceSession{
-  assertTimestamp(input.revisedAt,'revisedAt');assertConfidence(input.confidence);input.alternatives?.forEach(a=>assertConfidence(a.confidence));if(!input.revisedText.trim())throw new Error('Revised transcript text is required')
+  const revisedAtMs=assertTimestamp(input.revisedAt,'revisedAt');assertConfidence(input.confidence);input.alternatives?.forEach(a=>assertConfidence(a.confidence));if(!input.revisedText.trim())throw new Error('Revised transcript text is required')
   const target=input.session.segments.find(s=>s.id===input.segmentId);if(!target)throw new Error(`Unknown transcript segment: ${input.segmentId}`);if(target.status==='final'&&input.reason!=='clinician_correction')throw new Error('Final transcript cannot be silently replaced; use clinician correction lineage')
+  assertNotStale(target,revisedAtMs,'revisedAt')
+  // Being final before the revision does not make the revised text safe to keep final: revalidate the text itself.
+  const finalizable=isFinalizableTranscriptText(input.revisedText)
+  if(target.status==='final'&&!finalizable)throw new Error('Structurally incomplete revised text cannot remain final; supply complete text or revise the segment while it is still partial')
+  const needsReview=finalizable?(input.needsReview??target.needsReview):true
   const revision:TranscriptRevision={previousText:target.text,revisedText:input.revisedText,revisedAt:input.revisedAt,reason:input.reason}
-  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.revisedText,confidence:input.confidence??s.confidence,alternatives:input.alternatives??s.alternatives,needsReview:input.needsReview??s.needsReview,revisions:[...s.revisions,revision]}:s)})
+  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.revisedText,confidence:input.confidence??s.confidence,alternatives:input.alternatives??s.alternatives,needsReview,revisions:[...s.revisions,revision]}:s)})
 }
 
 export function finalizeTranscriptSegment(input:{session:VoiceSession;segmentId:string;finalizedAt:string;needsReview?:boolean}):VoiceSession{
-  assertTimestamp(input.finalizedAt,'finalizedAt');const target=input.session.segments.find(s=>s.id===input.segmentId);if(!target)throw new Error(`Unknown transcript segment: ${input.segmentId}`);if(target.status==='final')throw new Error('Transcript segment is already final')
+  const finalizedAtMs=assertTimestamp(input.finalizedAt,'finalizedAt');const target=input.session.segments.find(s=>s.id===input.segmentId);if(!target)throw new Error(`Unknown transcript segment: ${input.segmentId}`);if(target.status==='final')throw new Error('Transcript segment is already final')
+  assertNotStale(target,finalizedAtMs,'finalizedAt')
+  if(!isFinalizableTranscriptText(target.text))throw new Error(`Structurally incomplete transcript segment cannot be promoted to final: ${target.id}`)
   return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,status:'final' as const,finalizedAt:input.finalizedAt,needsReview:input.needsReview??s.needsReview}:s)})
 }
 
