@@ -1,0 +1,127 @@
+name: Ausculta Product Codex Verdict Recovery
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ausculta-product-codex-recover-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: >-
+      github.event.issue.number == 296 &&
+      github.event.comment.user.login == github.repository_owner &&
+      startsWith(github.event.comment.body, '/ausculta-codex-recover ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: Parse and verify requested exact product head
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr_number="$(printf '%s' "$COMMENT" | awk '{print $2}')"
+          expected_sha="$(printf '%s' "$COMMENT" | awk '{print $3}')"
+          [[ "$pr_number" =~ ^[0-9]+$ ]] || { echo '::error::INVALID_PR_NUMBER'; exit 90; }
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::INVALID_EXPECTED_SHA'; exit 91; }
+
+          pr="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${pr_number}")"
+          head_sha="$(jq -r '.head.sha' <<<"$pr")"
+          head_ref="$(jq -r '.head.ref' <<<"$pr")"
+          head_repo="$(jq -r '.head.repo.full_name' <<<"$pr")"
+          [[ "$head_ref" == product/* ]] || { echo "::error::NOT_PRODUCT_BRANCH=$head_ref"; exit 92; }
+          [[ "$head_repo" == "$GITHUB_REPOSITORY" ]] || { echo '::error::FORK_NOT_ALLOWED'; exit 93; }
+          [[ "$head_sha" == "$expected_sha" ]] || { echo "::error::SHA_CHANGED expected=$expected_sha actual=$head_sha"; exit 94; }
+
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "sha=$expected_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Recover matching immutable verdict artifact without rerunning judge
+        id: recover
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ausculta-verdict-recovery
+          found=0
+          found_run=''
+
+          runs="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?event=issue_comment&per_page=100" --jq '.workflow_runs[] | select(.status == "completed") | .id' | head -n 300)"
+
+          while IFS= read -r run_id; do
+            [[ -n "$run_id" ]] || continue
+            artifacts="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100" 2>/dev/null || true)"
+            [[ -n "$artifacts" ]] || continue
+
+            while IFS= read -r artifact_id; do
+              [[ -n "$artifact_id" ]] || continue
+              zip="/tmp/ausculta-verdict-recovery/${run_id}-${artifact_id}.zip"
+              json="/tmp/ausculta-verdict-recovery/${run_id}-${artifact_id}.json"
+              if ! curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" -o "$zip"; then
+                continue
+              fi
+              if ! unzip -p "$zip" product-codex-verdict.json > "$json" 2>/dev/null; then
+                continue
+              fi
+              if jq -e --arg sha "$EXPECTED_SHA" \
+                '.audited_sha == $sha and .independent == true and .read_only == true and (.verdict == "PASS" or .verdict == "FAIL" or .verdict == "UNVERIFIABLE") and (.findings | type == "array")' \
+                "$json" >/dev/null; then
+                cp "$json" recovered-product-codex-verdict.json
+                found=1
+                found_run="$run_id"
+                break 2
+              fi
+            done < <(jq -r '.artifacts[] | select(.expired == false and (.name | startswith("product-codex-verdict-"))) | .id' <<<"$artifacts")
+          done <<<"$runs"
+
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          echo "run_id=$found_run" >> "$GITHUB_OUTPUT"
+
+          if [[ "$found" == "1" ]]; then
+            verdict="$(jq -r '.verdict' recovered-product-codex-verdict.json)"
+            blocking_count="$(jq '[.findings[] | select(.blocking == true and (.severity == "P0" or .severity == "P1"))] | length' recovered-product-codex-verdict.json)"
+            if [[ "$verdict" == "PASS" && "$blocking_count" == "0" ]]; then gate='PASS'; else gate='BLOCKED_SLICE_ONLY'; fi
+            echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+            echo "blocking_count=$blocking_count" >> "$GITHUB_OUTPUT"
+            echo "gate=$gate" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Repersist recovered verdict on target PR
+        if: steps.recover.outputs.found == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          SOURCE_RUN_ID: ${{ steps.recover.outputs.run_id }}
+          GATE: ${{ steps.recover.outputs.gate }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          verdict="$(jq -c . recovered-product-codex-verdict.json)"
+          printf -v body 'AUSCULTA_CODEX_VERDICT_RECOVERED exact_sha=%s source_run_id=%s gate=%s\n```json\n%s\n```' "$EXPECTED_SHA" "$SOURCE_RUN_ID" "$GATE" "$verdict"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
+
+      - name: Report no recoverable immutable verdict
+        if: steps.recover.outputs.found != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf -v body 'AUSCULTA_CODEX_VERDICT_RECOVERY_NONE exact_sha=%s — no validated, non-expired immutable verdict artifact was found in completed Product Codex Judge runs. Slice gate remains unresolved; no judge was rerun and no gate was weakened.' "$EXPECTED_SHA"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
