@@ -90,6 +90,40 @@ Not covered: whether a clinician's resolution was clinically correct (only that 
 and chosen among what was heard), acceptance thresholds for latency/WER/repeat rate (Evaluation Kernel), and
 ASR provider selection.
 
+## P1 repair record — exact-SHA audit `ce11fae427ae2ed957d9b1deb063c8de3d744547`
+Canonical CI #1135 was SUCCESS on this exact SHA. Independent read-only Codex run `32382463886` returned FAIL
+for three blocking P1 findings and one nonblocking P2. This directive supersedes the four-P1 directive above.
+All three P1s are closed in `src/lib/voice-engine/index.ts` with focused negative tests in
+`src/__tests__/voice-engine-confianza-heredada-y-dimensiones-no-medidas.test.ts`.
+
+1. **Replacement text does not inherit another hypothesis's confidence.** Confidence belongs to the text that
+   was scored, not to the segment slot that holds it. `reviseTranscriptSegment` no longer falls back to the
+   previous segment confidence when the text changes: unless the caller supplies confidence for the new text,
+   it stays absent/unknown. `resolveTranscriptReview` takes the confidence recorded for the *selected*
+   alternative — never the discarded hypothesis's score — and leaves it undefined when that alternative was
+   never scored. Confirming the current text keeps its own confidence. Lineage is preserved either way: the
+   replaced score stays on `TranscriptRevision.previousConfidence` /
+   `TranscriptReviewResolution.previousConfidence`.
+2. **A partial segment cannot produce final-latency metrics.** `finalizedAt` may only exist after a valid
+   transition to `final`. `appendTranscriptSegment` refuses a `partial` segment carrying `finalizedAt`, and
+   `measureVoiceSession` fails closed on that state instead of measuring it; `timeToFinalMs` is now derived
+   from `status === 'final'` segments only, so a still-revisable hypothesis can never report time-to-final.
+3. **Unmeasured benchmark dimensions stay undefined, never perfect.** `criticalTermErrorRate`,
+   `medicationErrorRate`, `doseErrorRate` and `negationErrorRate` are `undefined` when their denominator is
+   absent or empty — the former `Math.max(1, …)` / `?? 0` turned "this corpus never tested medications" into
+   "this engine never missed a medication". `summarizeVoiceBenchmark` excludes absent dimensions rather than
+   averaging in a zero nobody measured, so an empty/unmeasured corpus cannot appear clinically perfect.
+
+Nonblocking P2, recorded and not repaired in this directive: `timeToFirstPartialMs` follows append order rather
+than the earliest supplied timestamp when partials arrive out of order. P2/P3 do not block this slice.
+
+All prior repair invariants are preserved: unresolved ambiguity cannot silently clear, revision lineage retains
+prior metadata, impossible chronology fails closed, and contextual-recovery / forced-repeat rates remain
+explicit and deterministic.
+
+Not covered: whether a provider-supplied confidence is itself correct (only which text it belongs to),
+acceptance thresholds for latency/WER/clinical error rate (Evaluation Kernel), and ASR provider selection.
+
 ## Scope exclusions
 Paid provider commitment, production secrets, live PHI, full ambient UI, EHR writeback, clinical reasoning, and final competitive superiority claims are out of scope here.
 

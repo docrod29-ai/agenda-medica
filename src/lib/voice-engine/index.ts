@@ -38,7 +38,12 @@ export interface VoiceBenchmarkCase {
   readonly physicianEditTimeMs?: number; readonly physicianSatisfactionScore?: number
 }
 export interface VoiceBenchmarkResult {
-  readonly caseId: string; readonly wordErrorRate: number; readonly criticalTermErrorRate: number; readonly medicationErrorRate: number; readonly doseErrorRate: number; readonly negationErrorRate: number
+  readonly caseId: string; readonly wordErrorRate: number
+  /**
+   * Clinical error rates exist only where the corpus actually measured that dimension. A case with no
+   * medication term did not achieve a perfect medication rate — it has none. Absence stays `undefined`.
+   */
+  readonly criticalTermErrorRate?: number; readonly medicationErrorRate?: number; readonly doseErrorRate?: number; readonly negationErrorRate?: number
   readonly numericLabErrorRate?: number; readonly specialtyTerminologyErrorRate?: number; readonly codeSwitchingErrorRate?: number
   readonly clinicallySignificantOmissionSubstitutionRate?: number; readonly hallucinatedContentRate?: number
   readonly timeToFirstPartialMs?: number; readonly timeToFinalMs?: number; readonly correctionBurden: number; readonly unresolvedReviewCount: number; readonly forcedRepeatCount: number
@@ -88,6 +93,11 @@ function hasCompetingAlternatives(text: string, alternatives: readonly Transcrip
   distinct.add(text.trim().toLocaleLowerCase('es-MX'))
   return distinct.size>1
 }
+/**
+ * Confidence survives a transition only while the text it scored survives it. A different hypothesis is a
+ * different measurement: it is unknown until the provider or the clinician scores THAT text.
+ */
+function confidenceCarriesOver(previousText: string, nextText: string): boolean { return previousText.trim()===nextText.trim() }
 /** An unresolved review may only be cleared through `resolveTranscriptReview`, never as a side effect of a transition. */
 function assertReviewNotSilentlyCleared(segment: TranscriptSegment, requested: boolean|undefined, transition: string): void {
   if(segment.needsReview&&requested===false) throw new Error(`Unresolved transcript review cannot be cleared by ${transition}: resolve segment ${segment.id} through resolveTranscriptReview with an auditable clinician resolution`)
@@ -121,6 +131,9 @@ export function appendTranscriptSegment(session: VoiceSession, segment: Omit<Tra
   // Audio cannot arrive before its own session opened: impossible chronology fails closed instead of being clamped later.
   if(receivedAtMs<assertTimestamp(session.startedAt,'startedAt')) throw new Error(`Impossible voice chronology rejected: receivedAt precedes session startedAt for transcript segment ${segment.id}`)
   if(segment.status==='final'&&!segment.finalizedAt) throw new Error('Final transcript segment requires finalizedAt')
+  // A final timestamp may only exist after a valid transition to `final`. A partial segment carrying one is a
+  // provider contradiction, not a fast segment: it would let a still-revisable hypothesis report time-to-final.
+  if(segment.status==='partial'&&segment.finalizedAt) throw new Error(`Partial transcript segment cannot carry finalizedAt: promote transcript segment ${segment.id} through finalizeTranscriptSegment`)
   if(segment.status==='final'){
     if(assertTimestamp(segment.finalizedAt as string,'finalizedAt')<receivedAtMs) throw new Error('Stale voice transition rejected: finalizedAt precedes receivedAt')
     if(!isFinalizableTranscriptText(segment.text)) throw new Error('Structurally incomplete transcript text cannot be appended as final')
@@ -140,9 +153,13 @@ export function reviseTranscriptSegment(input:{session:VoiceSession;segmentId:st
   if(target.status==='final'&&!finalizable)throw new Error('Structurally incomplete revised text cannot remain final; supply complete text or revise the segment while it is still partial')
   const alternatives=input.alternatives??target.alternatives
   const needsReview=target.needsReview||!finalizable||hasCompetingAlternatives(input.revisedText,alternatives)||(input.needsReview??false)
+  // Confidence belongs to a hypothesis, not to a segment slot: replacement text may not inherit the score the
+  // previous text earned. Unless the caller supplies confidence for the NEW text, it stays unknown; the prior
+  // score is not lost, it moves onto the revision lineage as `previousConfidence`.
+  const confidence=input.confidence??(confidenceCarriesOver(target.text,input.revisedText)?target.confidence:undefined)
   // What the revision replaces stays recoverable: prior text, the confidence it carried, and the hypotheses it competed with.
   const revision:TranscriptRevision={previousText:target.text,revisedText:input.revisedText,revisedAt:input.revisedAt,reason:input.reason,previousConfidence:target.confidence,previousAlternatives:target.alternatives}
-  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.revisedText,confidence:input.confidence??s.confidence,alternatives,needsReview,revisions:[...s.revisions,revision]}:s)})
+  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.revisedText,confidence,alternatives,needsReview,revisions:[...s.revisions,revision]}:s)})
 }
 
 export function finalizeTranscriptSegment(input:{session:VoiceSession;segmentId:string;finalizedAt:string;needsReview?:boolean}):VoiceSession{
@@ -174,8 +191,13 @@ export function resolveTranscriptReview(input:{session:VoiceSession;segmentId:st
   if(!heard.includes(input.resolvedText.trim()))throw new Error(`Transcript review resolution must select recorded transcript text, not new text: ${target.id}`)
   if(target.status==='final'&&input.resolvedText.trim()!==target.text.trim())throw new Error('Final transcript cannot be silently replaced by a review resolution; use clinician correction lineage')
   if(!isFinalizableTranscriptText(input.resolvedText))throw new Error(`Structurally incomplete text cannot resolve a transcript review: ${target.id}`)
+  // Selecting a rival hypothesis does not transfer the discarded hypothesis's confidence to it. The chosen
+  // alternative keeps only the confidence that was recorded for THAT text; if none was, confidence stays
+  // unknown. The discarded score survives on the resolution record, not on the segment.
+  const selected=(target.alternatives??[]).find(a=>a.text.trim()===input.resolvedText.trim())
+  const confidence=confidenceCarriesOver(target.text,input.resolvedText)?target.confidence:selected?.confidence
   const resolution:TranscriptReviewResolution={resolvedAt:input.resolvedAt,resolvedBy:input.resolvedBy,previousText:target.text,resolvedText:input.resolvedText,rationale:input.rationale,previousConfidence:target.confidence,previousAlternatives:target.alternatives}
-  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.resolvedText,alternatives:undefined,needsReview:false,reviewResolutions:[...(s.reviewResolutions??[]),resolution]}:s)})
+  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.resolvedText,confidence,alternatives:undefined,needsReview:false,reviewResolutions:[...(s.reviewResolutions??[]),resolution]}:s)})
 }
 
 export function voiceSessionToClinicalInput(session:VoiceSession,capturedAt:string):VoiceClinicalInput{
@@ -196,8 +218,13 @@ function assertMeasurableLatency(value:number,field:string):number{
 }
 export function measureVoiceSession(session:VoiceSession):VoiceMetrics{
   const started=assertTimestamp(session.startedAt,'startedAt')
-  for(const segment of session.segments) assertMeasurableLatency(assertTimestamp(segment.receivedAt,'receivedAt')-started,`receivedAt of transcript segment ${segment.id}`)
-  const finalTimes=session.segments.filter(s=>s.finalizedAt).map(s=>assertTimestamp(s.finalizedAt as string,'finalizedAt'))
+  for(const segment of session.segments){
+    assertMeasurableLatency(assertTimestamp(segment.receivedAt,'receivedAt')-started,`receivedAt of transcript segment ${segment.id}`)
+    // Fail closed rather than measure: a partial hypothesis that carries a final timestamp has no final latency
+    // to report, and silently ignoring it would hide the contradiction behind a plausible number.
+    if(segment.status!=='final'&&segment.finalizedAt) throw new Error(`Impossible voice state rejected: partial transcript segment ${segment.id} carries finalizedAt; time-to-final cannot be measured from a segment that is not final`)
+  }
+  const finalTimes=session.segments.filter(s=>s.status==='final').map(s=>assertTimestamp(s.finalizedAt as string,'finalizedAt'))
   return {timeToFirstPartialMs:session.firstPartialReceivedAt?assertMeasurableLatency(assertTimestamp(session.firstPartialReceivedAt,'firstPartialReceivedAt')-started,'firstPartialReceivedAt'):undefined,timeToFinalMs:finalTimes.length?assertMeasurableLatency(Math.max(...finalTimes)-started,'finalizedAt'):undefined,revisionCount:session.segments.reduce((n,s)=>n+s.revisions.length,0),unresolvedReviewCount:session.segments.filter(s=>s.needsReview).length}
 }
 
@@ -216,9 +243,13 @@ export function evaluateVoiceBenchmarkCase(input:VoiceBenchmarkCase):VoiceBenchm
   if(input.contextualRecoveredCount!==undefined&&!input.contextualRecoveryOpportunityCount)throw new Error('contextual recovery count requires a positive contextual recovery opportunity count')
   if(input.contextualRecoveredCount!==undefined&&input.contextualRecoveredCount>(input.contextualRecoveryOpportunityCount as number))throw new Error('contextual recovery count cannot exceed its opportunity count')
   if(input.physicianUtteranceCount!==undefined&&input.forcedRepeatCount>input.physicianUtteranceCount)throw new Error('forced repeat count cannot exceed the physician utterance count')
-  const r=benchmarkTokens(input.reference),h=benchmarkTokens(input.hypothesis);const criticalErrors=input.criticalTerms.filter(t=>!containsPhrase(h,t.value)).length
-  const med=rateForKind(input.criticalTerms,h,'medication')??0,dose=rateForKind(input.criticalTerms,h,'dose')??0,neg=rateForKind(input.criticalTerms,h,'negation')??0
-  return {caseId:input.id,wordErrorRate:levenshtein(r,h)/Math.max(1,r.length),criticalTermErrorRate:criticalErrors/Math.max(1,input.criticalTerms.length),medicationErrorRate:med,doseErrorRate:dose,negationErrorRate:neg,numericLabErrorRate:rateForKind(input.criticalTerms,h,'numeric_lab'),specialtyTerminologyErrorRate:rateForKind(input.criticalTerms,h,'specialty_term'),codeSwitchingErrorRate:rateForKind(input.criticalTerms,h,'code_switching'),clinicallySignificantOmissionSubstitutionRate:input.clinicallySignificantOmissionSubstitutionCount===undefined?undefined:input.clinicallySignificantOmissionSubstitutionCount/(input.clinicallySignificantReferenceCount as number),hallucinatedContentRate:input.hallucinatedContentCount===undefined?undefined:input.hallucinatedContentCount/Math.max(1,h.length),timeToFirstPartialMs:input.timeToFirstPartialMs,timeToFinalMs:input.timeToFinalMs,correctionBurden:input.revisionCount,unresolvedReviewCount:input.unresolvedReviewCount,forcedRepeatCount:input.forcedRepeatCount,forcedRepeatRate:input.physicianUtteranceCount?input.forcedRepeatCount/input.physicianUtteranceCount:undefined,contextualRecoveryRate:input.contextualRecoveryOpportunityCount&&input.contextualRecoveredCount!==undefined?input.contextualRecoveredCount/input.contextualRecoveryOpportunityCount:undefined,physicianEditTimeMs:input.physicianEditTimeMs,physicianSatisfactionScore:input.physicianSatisfactionScore}
+  const r=benchmarkTokens(input.reference),h=benchmarkTokens(input.hypothesis)
+  // An unmeasured dimension has no denominator, so it has no rate. The former `?? 0` / `Math.max(1, …)` turned
+  // "this corpus never tested medications" into "this engine never missed a medication" — an empty corpus read
+  // as clinically perfect. Absence is reported as absence and excluded from every summary.
+  const critical=input.criticalTerms.length?input.criticalTerms.filter(t=>!containsPhrase(h,t.value)).length/input.criticalTerms.length:undefined
+  const med=rateForKind(input.criticalTerms,h,'medication'),dose=rateForKind(input.criticalTerms,h,'dose'),neg=rateForKind(input.criticalTerms,h,'negation')
+  return {caseId:input.id,wordErrorRate:levenshtein(r,h)/Math.max(1,r.length),criticalTermErrorRate:critical,medicationErrorRate:med,doseErrorRate:dose,negationErrorRate:neg,numericLabErrorRate:rateForKind(input.criticalTerms,h,'numeric_lab'),specialtyTerminologyErrorRate:rateForKind(input.criticalTerms,h,'specialty_term'),codeSwitchingErrorRate:rateForKind(input.criticalTerms,h,'code_switching'),clinicallySignificantOmissionSubstitutionRate:input.clinicallySignificantOmissionSubstitutionCount===undefined?undefined:input.clinicallySignificantOmissionSubstitutionCount/(input.clinicallySignificantReferenceCount as number),hallucinatedContentRate:input.hallucinatedContentCount===undefined?undefined:input.hallucinatedContentCount/Math.max(1,h.length),timeToFirstPartialMs:input.timeToFirstPartialMs,timeToFinalMs:input.timeToFinalMs,correctionBurden:input.revisionCount,unresolvedReviewCount:input.unresolvedReviewCount,forcedRepeatCount:input.forcedRepeatCount,forcedRepeatRate:input.physicianUtteranceCount?input.forcedRepeatCount/input.physicianUtteranceCount:undefined,contextualRecoveryRate:input.contextualRecoveryOpportunityCount&&input.contextualRecoveredCount!==undefined?input.contextualRecoveredCount/input.contextualRecoveryOpportunityCount:undefined,physicianEditTimeMs:input.physicianEditTimeMs,physicianSatisfactionScore:input.physicianSatisfactionScore}
 }
 
-export function summarizeVoiceBenchmark(results:readonly VoiceBenchmarkResult[]){if(!results.length)throw new Error('at least one benchmark result is required');const mean=(v:number[])=>v.reduce((a,b)=>a+b,0)/v.length;const present=(v:Array<number|undefined>)=>v.filter((x):x is number=>x!==undefined);const opt=(v:Array<number|undefined>)=>{const p=present(v);return p.length?mean(p):undefined};return {cases:results.length,meanWordErrorRate:mean(results.map(r=>r.wordErrorRate)),meanCriticalTermErrorRate:mean(results.map(r=>r.criticalTermErrorRate)),meanMedicationErrorRate:mean(results.map(r=>r.medicationErrorRate)),meanDoseErrorRate:mean(results.map(r=>r.doseErrorRate)),meanNegationErrorRate:mean(results.map(r=>r.negationErrorRate)),meanNumericLabErrorRate:opt(results.map(r=>r.numericLabErrorRate)),meanSpecialtyTerminologyErrorRate:opt(results.map(r=>r.specialtyTerminologyErrorRate)),meanCodeSwitchingErrorRate:opt(results.map(r=>r.codeSwitchingErrorRate)),meanClinicallySignificantOmissionSubstitutionRate:opt(results.map(r=>r.clinicallySignificantOmissionSubstitutionRate)),meanHallucinatedContentRate:opt(results.map(r=>r.hallucinatedContentRate)),meanTimeToFirstPartialMs:opt(results.map(r=>r.timeToFirstPartialMs)),meanTimeToFinalMs:opt(results.map(r=>r.timeToFinalMs)),meanCorrectionBurden:mean(results.map(r=>r.correctionBurden)),meanUnresolvedReviewCount:mean(results.map(r=>r.unresolvedReviewCount)),meanForcedRepeatCount:mean(results.map(r=>r.forcedRepeatCount)),meanForcedRepeatRate:opt(results.map(r=>r.forcedRepeatRate)),meanContextualRecoveryRate:opt(results.map(r=>r.contextualRecoveryRate)),meanPhysicianEditTimeMs:opt(results.map(r=>r.physicianEditTimeMs)),meanPhysicianSatisfactionScore:opt(results.map(r=>r.physicianSatisfactionScore))}}
+export function summarizeVoiceBenchmark(results:readonly VoiceBenchmarkResult[]){if(!results.length)throw new Error('at least one benchmark result is required');const mean=(v:number[])=>v.reduce((a,b)=>a+b,0)/v.length;const present=(v:Array<number|undefined>)=>v.filter((x):x is number=>x!==undefined);const opt=(v:Array<number|undefined>)=>{const p=present(v);return p.length?mean(p):undefined};return {cases:results.length,meanWordErrorRate:mean(results.map(r=>r.wordErrorRate)),meanCriticalTermErrorRate:opt(results.map(r=>r.criticalTermErrorRate)),meanMedicationErrorRate:opt(results.map(r=>r.medicationErrorRate)),meanDoseErrorRate:opt(results.map(r=>r.doseErrorRate)),meanNegationErrorRate:opt(results.map(r=>r.negationErrorRate)),meanNumericLabErrorRate:opt(results.map(r=>r.numericLabErrorRate)),meanSpecialtyTerminologyErrorRate:opt(results.map(r=>r.specialtyTerminologyErrorRate)),meanCodeSwitchingErrorRate:opt(results.map(r=>r.codeSwitchingErrorRate)),meanClinicallySignificantOmissionSubstitutionRate:opt(results.map(r=>r.clinicallySignificantOmissionSubstitutionRate)),meanHallucinatedContentRate:opt(results.map(r=>r.hallucinatedContentRate)),meanTimeToFirstPartialMs:opt(results.map(r=>r.timeToFirstPartialMs)),meanTimeToFinalMs:opt(results.map(r=>r.timeToFinalMs)),meanCorrectionBurden:mean(results.map(r=>r.correctionBurden)),meanUnresolvedReviewCount:mean(results.map(r=>r.unresolvedReviewCount)),meanForcedRepeatCount:mean(results.map(r=>r.forcedRepeatCount)),meanForcedRepeatRate:opt(results.map(r=>r.forcedRepeatRate)),meanContextualRecoveryRate:opt(results.map(r=>r.contextualRecoveryRate)),meanPhysicianEditTimeMs:opt(results.map(r=>r.physicianEditTimeMs)),meanPhysicianSatisfactionScore:opt(results.map(r=>r.physicianSatisfactionScore))}}
