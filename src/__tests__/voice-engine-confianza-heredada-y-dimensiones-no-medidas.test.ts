@@ -180,7 +180,9 @@ describe('Voice Engine — un segmento parcial no produce métrica de latencia f
     expect(measureVoiceSession(finalized).timeToFinalMs).toBe(620)
   })
 
-  it('un parcial pendiente no adelanta la latencia final de los segmentos que sí se finalizaron', () => {
+  // Reforzado por la directiva P1 de 4367b7c2: mientras quede UN parcial en la sesión no hay latencia estable
+  // en absoluto. Ver `voice-engine-latencia-util-y-captura-imposible.test.ts`.
+  it('un parcial pendiente deja la latencia final indefinida, no la del subconjunto ya finalizado', () => {
     let current = appendTranscriptSegment(session(), {
       id: 'seg-1', sequence: 0, text: 'primera frase', status: 'partial', receivedAt: '2026-08-17T18:00:00.100Z', needsReview: false,
     })
@@ -188,7 +190,10 @@ describe('Voice Engine — un segmento parcial no produce métrica de latencia f
     current = appendTranscriptSegment(current, {
       id: 'seg-2', sequence: 1, text: 'segunda frase todavía en curso', status: 'partial', receivedAt: '2026-08-17T18:00:00.500Z', needsReview: false,
     })
-    expect(measureVoiceSession(current).timeToFinalMs).toBe(400)
+    expect(measureVoiceSession(current).timeToFinalMs).toBeUndefined()
+
+    const stable = finalizeTranscriptSegment({ session: current, segmentId: 'seg-2', finalizedAt: '2026-08-17T18:00:00.900Z' })
+    expect(measureVoiceSession(stable).timeToFinalMs).toBe(900)
   })
 })
 

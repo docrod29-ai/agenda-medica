@@ -124,6 +124,49 @@ explicit and deterministic.
 Not covered: whether a provider-supplied confidence is itself correct (only which text it belongs to),
 acceptance thresholds for latency/WER/clinical error rate (Evaluation Kernel), and ASR provider selection.
 
+## P1 repair record — exact-SHA audit `4367b7c22618c608efd409d8005cf068f87129f1`
+Canonical exact-head CI was green on this SHA. Independent read-only Codex run `32411275150` returned FAIL for
+two blocking P1 findings. This directive supersedes the three-P1 directive above. Both are closed in
+`src/lib/voice-engine/index.ts` with focused negative tests in
+`src/__tests__/voice-engine-latencia-util-y-captura-imposible.test.ts`.
+
+1. **Latency measures a useful partial and a stable transcript, not the arrival of an artifact.**
+   - The minimum structural usefulness rule is not new policy: it is the first half of the existing
+     `isFinalizableTranscriptText` gate, extracted as `isUsefulTranscriptText` so instrumentation and
+     finalization share one rule. Text is useful when it carries content — non-blank and containing at least
+     one letter or digit. It is deliberately *only* that: a partial legitimately ends mid-utterance, so the
+     dangling-connector half of the finalization gate does not apply to a partial, and clinical usefulness
+     stays with the clinician and with `needsReview`.
+   - `timeToFirstPartialMs` can now only start from a structurally useful partial. A punctuation/noise partial
+     (`"…"`, `","`, `"..."`) — streaming filler emitted before the engine has understood anything — no longer
+     sets `firstPartialReceivedAt`. If the useful text first appears in a revision of a noise partial, the
+     clock starts at that revision. Latency to displaying nothing is the easiest number in the corpus to win.
+   - `timeToFinalMs` is latency to a **stable** transcript and belongs to the session, not to whichever segment
+     finalized first. While any segment is still `partial`/revisable it is explicitly `undefined`; it was
+     previously computed over the finalized subset, so a transcript that could still change published a
+     final-latency number, and that number improved the longer the slow segments stayed unfinalized. The
+     pre-existing test that asserted the finalized-subset behaviour is corrected in
+     `src/__tests__/voice-engine-confianza-heredada-y-dimensiones-no-medidas.test.ts`.
+
+2. **ClinicalInput capture provenance must be chronologically possible.** `voiceSessionToClinicalInput` now
+   rejects a `capturedAt` earlier than `session.startedAt`, matching the fail-closed rule
+   `appendTranscriptSegment` already applies to `receivedAt`. A pre-session capture timestamp would have
+   entered Clinical Truth as provenance for an encounter that had not started. Arrival exactly at `startedAt`
+   remains valid, and all prior impossible-chronology fail-closed behaviour (segment `receivedAt`, stale
+   transitions, `measureVoiceSession`) is unchanged.
+
+Nonblocking P2/P3 remain nonblocking and unrepaired, including: `timeToFirstPartialMs` follows append order
+rather than the earliest supplied timestamp when partials arrive out of order.
+
+All prior repair invariants are preserved: unresolved ambiguity cannot silently clear; replacement text does
+not inherit another hypothesis's confidence; revision lineage retains prior metadata; partial segments cannot
+carry final timestamps; impossible segment chronology fails closed; unmeasured benchmark dimensions stay
+undefined; contextual-recovery and forced-repeat metrics remain explicit and deterministic.
+
+Not covered: acceptance thresholds for useful-partial or stable-transcript latency (Evaluation Kernel),
+whether a partial with content is clinically useful, validation of `capturedAt` against the end of dictation
+or against wall-clock time, and ASR provider selection.
+
 ## Scope exclusions
 Paid provider commitment, production secrets, live PHI, full ambient UI, EHR writeback, clinical reasoning, and final competitive superiority claims are out of scope here.
 

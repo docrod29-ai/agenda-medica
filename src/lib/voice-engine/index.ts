@@ -23,6 +23,11 @@ export interface VoiceSession {
   readonly id: string; readonly encounterId: string; readonly provider: string; readonly language: VoiceLanguage; readonly startedAt: string
   readonly firstPartialReceivedAt?: string; readonly segments: readonly TranscriptSegment[]
 }
+/**
+ * `timeToFirstPartialMs` is latency to the first *useful* partial — the first partial that actually showed the
+ * physician transcript content. `timeToFinalMs` is latency to a *stable* transcript: it exists only once no
+ * segment of the session is still partial/revisable.
+ */
 export interface VoiceMetrics { readonly timeToFirstPartialMs?: number; readonly timeToFinalMs?: number; readonly revisionCount: number; readonly unresolvedReviewCount: number }
 
 export type VoiceBenchmarkTermKind = 'clinical_term'|'medication'|'dose'|'negation'|'numeric_lab'|'specialty_term'|'code_switching'
@@ -105,18 +110,31 @@ function assertReviewNotSilentlyCleared(segment: TranscriptSegment, requested: b
 
 const DANGLING_TRANSCRIPT_TAIL=/(?:\.{3}|…|[,;:+&(-])$/u
 /**
+ * Minimum structural usefulness of transcript text: it carries content at all.
+ *
+ * This is the *first half* of the finalization gate below, extracted so latency instrumentation and the
+ * finalization gate share one rule instead of two parallel notions of "empty". Blank text and
+ * punctuation/symbol-only noise (`"…"`, `","`, `"..."`) show the physician nothing, so they are not a useful
+ * partial and cannot start the transcript. Structural only: it never judges clinical usefulness.
+ */
+export function isUsefulTranscriptText(text: string): boolean {
+  const trimmed=text.trim()
+  if(!trimmed) return false
+  return /[\p{L}\p{N}]/u.test(trimmed)
+}
+/**
  * Structural completeness gate for text that may become final ClinicalInput truth.
  *
  * Structural only: it rejects text that carries no content (blank, punctuation/symbol only) or that
  * ends on a dangling connector — the shape of a dictation stream cut mid-utterance. It does NOT and
  * must not judge clinical completeness: whether a complete-looking utterance says enough clinically
  * stays with the clinician and with `needsReview`.
+ *
+ * A partial legitimately ends mid-utterance, so only the usefulness half applies to a partial.
  */
 export function isFinalizableTranscriptText(text: string): boolean {
-  const trimmed=text.trim()
-  if(!trimmed) return false
-  if(!/[\p{L}\p{N}]/u.test(trimmed)) return false
-  return !DANGLING_TRANSCRIPT_TAIL.test(trimmed)
+  if(!isUsefulTranscriptText(text)) return false
+  return !DANGLING_TRANSCRIPT_TAIL.test(text.trim())
 }
 
 export function createVoiceSession(input: Omit<VoiceSession,'segments'|'firstPartialReceivedAt'>): VoiceSession {
@@ -139,7 +157,10 @@ export function appendTranscriptSegment(session: VoiceSession, segment: Omit<Tra
     if(!isFinalizableTranscriptText(segment.text)) throw new Error('Structurally incomplete transcript text cannot be appended as final')
   }
   const needsReview=segment.needsReview||hasCompetingAlternatives(segment.text,segment.alternatives)
-  const firstPartialReceivedAt=session.firstPartialReceivedAt ?? (segment.status==='partial'?segment.receivedAt:undefined)
+  // Time-to-first-partial is a *useful*-partial latency. A punctuation/noise partial ("…", ",") displayed no
+  // transcript to the physician; letting it start the clock would report the arrival of nothing as the moment
+  // the engine became useful — the easiest latency number in the corpus to win by saying nothing.
+  const firstPartialReceivedAt=session.firstPartialReceivedAt ?? (segment.status==='partial'&&isUsefulTranscriptText(segment.text)?segment.receivedAt:undefined)
   return freezeSession({...session,firstPartialReceivedAt,segments:sortSegments([...session.segments,{...segment,needsReview,revisions:[]}])})
 }
 
@@ -159,7 +180,10 @@ export function reviseTranscriptSegment(input:{session:VoiceSession;segmentId:st
   const confidence=input.confidence??(confidenceCarriesOver(target.text,input.revisedText)?target.confidence:undefined)
   // What the revision replaces stays recoverable: prior text, the confidence it carried, and the hypotheses it competed with.
   const revision:TranscriptRevision={previousText:target.text,revisedText:input.revisedText,revisedAt:input.revisedAt,reason:input.reason,previousConfidence:target.confidence,previousAlternatives:target.alternatives}
-  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.revisedText,confidence,alternatives,needsReview,revisions:[...s.revisions,revision]}:s)})
+  // If every partial so far carried only noise, the first useful partial is the one this revision produces:
+  // the clock starts when useful text first existed, not when the noise arrived.
+  const firstPartialReceivedAt=input.session.firstPartialReceivedAt ?? (target.status==='partial'&&isUsefulTranscriptText(input.revisedText)?input.revisedAt:undefined)
+  return freezeSession({...input.session,firstPartialReceivedAt,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.revisedText,confidence,alternatives,needsReview,revisions:[...s.revisions,revision]}:s)})
 }
 
 export function finalizeTranscriptSegment(input:{session:VoiceSession;segmentId:string;finalizedAt:string;needsReview?:boolean}):VoiceSession{
@@ -200,8 +224,15 @@ export function resolveTranscriptReview(input:{session:VoiceSession;segmentId:st
   return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.resolvedText,confidence,alternatives:undefined,needsReview:false,reviewResolutions:[...(s.reviewResolutions??[]),resolution]}:s)})
 }
 
+/**
+ * The bridge into Clinical Truth. `capturedAt` is the provenance timestamp the clinical record will carry, so
+ * it must be chronologically possible: capture cannot precede the session that produced the audio. A
+ * pre-session `capturedAt` would enter Clinical Truth as provenance for an encounter that had not started —
+ * a fabricated capture time, fail-closed here exactly as impossible segment chronology already is.
+ */
 export function voiceSessionToClinicalInput(session:VoiceSession,capturedAt:string):VoiceClinicalInput{
-  assertTimestamp(capturedAt,'capturedAt');const finalSegments=sortSegments(session.segments.filter(s=>s.status==='final'));if(!finalSegments.length)throw new Error('Voice session has no final transcript segments')
+  if(assertTimestamp(capturedAt,'capturedAt')<assertTimestamp(session.startedAt,'startedAt')) throw new Error(`Impossible voice chronology rejected: capturedAt precedes session startedAt for voice session ${session.id}`)
+  const finalSegments=sortSegments(session.segments.filter(s=>s.status==='final'));if(!finalSegments.length)throw new Error('Voice session has no final transcript segments')
   const segments=Object.freeze(finalSegments.map(s=>Object.freeze({id:s.id,sequence:s.sequence,receivedAt:s.receivedAt,finalizedAt:s.finalizedAt,speaker:s.speaker,confidence:s.confidence,alternatives:freezeAlternatives(s.alternatives),needsReview:s.needsReview,revisions:freezeRevisions(s.revisions),reviewResolutions:freezeResolutions(s.reviewResolutions)})))
   return Object.freeze({modality:'dictation',raw:finalSegments.map(s=>s.text).join('\n'),language:session.language,capturedAt,encounterId:session.encounterId,voiceProvenance:Object.freeze({sessionId:session.id,provider:session.provider,needsReview:finalSegments.some(s=>s.needsReview),segments})})
 }
@@ -224,8 +255,13 @@ export function measureVoiceSession(session:VoiceSession):VoiceMetrics{
     // to report, and silently ignoring it would hide the contradiction behind a plausible number.
     if(segment.status!=='final'&&segment.finalizedAt) throw new Error(`Impossible voice state rejected: partial transcript segment ${segment.id} carries finalizedAt; time-to-final cannot be measured from a segment that is not final`)
   }
-  const finalTimes=session.segments.filter(s=>s.status==='final').map(s=>assertTimestamp(s.finalizedAt as string,'finalizedAt'))
-  return {timeToFirstPartialMs:session.firstPartialReceivedAt?assertMeasurableLatency(assertTimestamp(session.firstPartialReceivedAt,'firstPartialReceivedAt')-started,'firstPartialReceivedAt'):undefined,timeToFinalMs:finalTimes.length?assertMeasurableLatency(Math.max(...finalTimes)-started,'finalizedAt'):undefined,revisionCount:session.segments.reduce((n,s)=>n+s.revisions.length,0),unresolvedReviewCount:session.segments.filter(s=>s.needsReview).length}
+  // Time-to-final is latency to a STABLE transcript, so it belongs to the session, not to whichever segment
+  // happened to finalize first. While any segment is still partial the transcript can still change, and
+  // reporting the finalized subset would publish a fast number for a session that has not stopped moving —
+  // and it would keep improving as slow segments were dropped from it.
+  const stable=session.segments.length>0&&session.segments.every(s=>s.status==='final')
+  const finalTimes=stable?session.segments.map(s=>assertTimestamp(s.finalizedAt as string,'finalizedAt')):[]
+  return {timeToFirstPartialMs:session.firstPartialReceivedAt?assertMeasurableLatency(assertTimestamp(session.firstPartialReceivedAt,'firstPartialReceivedAt')-started,'firstPartialReceivedAt'):undefined,timeToFinalMs:stable?assertMeasurableLatency(Math.max(...finalTimes)-started,'finalizedAt'):undefined,revisionCount:session.segments.reduce((n,s)=>n+s.revisions.length,0),unresolvedReviewCount:session.segments.filter(s=>s.needsReview).length}
 }
 
 function benchmarkTokens(value:string):string[]{return value.normalize('NFKC').toLocaleLowerCase('es-MX').replace(/[^\p{L}\p{N}%./+-]+/gu,' ').trim().split(/\s+/).filter(Boolean)}
