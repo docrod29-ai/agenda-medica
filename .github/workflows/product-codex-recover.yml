@@ -1,0 +1,123 @@
+name: Ausculta Product Codex Verdict Recovery
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ausculta-product-codex-recover-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == github.repository_owner &&
+      startsWith(github.event.comment.body, '/ausculta-codex-recover ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: Resolve and verify exact product PR head
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT: ${{ github.event.comment.body }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(printf '%s' "$COMMENT" | awk '{print $2}')"
+          [[ "$expected" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::INVALID_EXPECTED_SHA'; exit 90; }
+          pr="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          head_sha="$(jq -r '.head.sha' <<<"$pr")"
+          head_ref="$(jq -r '.head.ref' <<<"$pr")"
+          head_repo="$(jq -r '.head.repo.full_name' <<<"$pr")"
+          [[ "$head_ref" == product/* ]] || { echo "::error::NOT_PRODUCT_BRANCH=$head_ref"; exit 91; }
+          [[ "$head_repo" == "$GITHUB_REPOSITORY" ]] || { echo '::error::FORK_NOT_ALLOWED'; exit 92; }
+          [[ "$head_sha" == "$expected" ]] || { echo "::error::SHA_CHANGED expected=$expected actual=$head_sha"; exit 93; }
+          echo "sha=$expected" >> "$GITHUB_OUTPUT"
+
+      - name: Recover immutable verdict artifact without re-auditing
+        id: recover
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p recovery
+          mapfile -t runs < <(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?event=issue_comment&per_page=100" --jq '.workflow_runs[] | [.id,.conclusion] | @tsv')
+          checked=0
+          candidates=()
+          for row in "${runs[@]}"; do
+            run_id="${row%%$'\t'*}"
+            conclusion="${row#*$'\t'}"
+            [[ "$run_id" =~ ^[0-9]+$ ]] || continue
+            checked=$((checked + 1))
+            rm -rf recovery/artifact recovery/log.txt
+            mkdir -p recovery/artifact
+            artifact_name="product-codex-verdict-${run_id}"
+            if gh run download "$run_id" --repo "$GITHUB_REPOSITORY" -n "$artifact_name" -D recovery/artifact >/dev/null 2>&1; then
+              verdict_file="$(find recovery/artifact -name product-codex-verdict.json -type f | head -n 1 || true)"
+              if [[ -n "$verdict_file" ]] && jq -e --arg sha "$EXPECTED_SHA" '.audited_sha == $sha and .independent == true and .read_only == true and (.verdict=="PASS" or .verdict=="FAIL" or .verdict=="UNVERIFIABLE")' "$verdict_file" >/dev/null 2>&1; then
+                cp "$verdict_file" recovery/recovered-verdict.json
+                echo "source_run_id=$run_id" >> "$GITHUB_OUTPUT"
+                echo "found=true" >> "$GITHUB_OUTPUT"
+                break
+              fi
+            fi
+            if gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --log > recovery/log.txt 2>/dev/null && grep -Fq "$EXPECTED_SHA" recovery/log.txt; then
+              candidates+=("${run_id}:${conclusion}")
+            fi
+            [[ "$checked" -ge 40 ]] && break
+          done
+          if [[ ! -f recovery/recovered-verdict.json ]]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            printf '%s\n' "${candidates[@]:-}" > recovery/candidates.txt
+          fi
+
+      - name: Republish validated recovered verdict
+        if: steps.recover.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          SOURCE_RUN_ID: ${{ steps.recover.outputs.source_run_id }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          verdict="$(jq -c . recovery/recovered-verdict.json)"
+          verdict_name="$(jq -r '.verdict' recovery/recovered-verdict.json)"
+          blocking_count="$(jq '[.findings[] | select(.blocking == true and (.severity == "P0" or .severity == "P1"))] | length' recovery/recovered-verdict.json)"
+          if [[ "$verdict_name" == "PASS" && "$blocking_count" == "0" ]]; then gate="PASS"; else gate="BLOCKED_SLICE_ONLY"; fi
+          printf -v body 'AUSCULTA_CODEX_VERDICT_RECOVERED exact_sha=%s source_run_id=%s recovery_run_id=%s gate=%s\n```json\n%s\n```' "$EXPECTED_SHA" "$SOURCE_RUN_ID" "$GITHUB_RUN_ID" "$gate" "$verdict"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
+          {
+            echo '### Recovered immutable Codex verdict'
+            echo "- exact SHA: \`$EXPECTED_SHA\`"
+            echo "- source judge run: \`$SOURCE_RUN_ID\`"
+            echo "- verdict: **$verdict_name**"
+            echo "- gate: **$gate**"
+            echo '- No Codex audit was rerun; this workflow only validated and republished an existing immutable artifact.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Persist recovery miss classification
+        if: steps.recover.outputs.found != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidates="$(paste -sd, recovery/candidates.txt 2>/dev/null || true)"
+          [[ -n "$candidates" ]] || candidates='none-visible-in-last-40-runs'
+          printf -v body 'AUSCULTA_CODEX_RECOVERY_MISS exact_sha=%s recovery_run_id=%s candidate_runs=%s\nNo valid immutable exact-SHA verdict artifact was found. No new Codex audit was launched. Slice gate remains unresolved; unrelated reversible work may continue.' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$candidates"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
+          echo '::warning::NO_VALID_IMMUTABLE_VERDICT_FOUND'
