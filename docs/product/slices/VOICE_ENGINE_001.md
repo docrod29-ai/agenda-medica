@@ -55,6 +55,41 @@ transitions are `appendTranscriptSegment` / `finalizeTranscriptSegment` and `rev
    `ClinicalInput` as finalized truth. The gate is structural only — it never judges clinical completeness,
    which stays with the clinician and with `needsReview`.
 
+## P1 repair record — exact-SHA audit `4aba2a9cb2dfdd05bcd87205d22a8bab7fec8b41`
+Independent read-only Codex run `32335436023` returned FAIL for four blocking P1 findings. This directive
+supersedes the two-P1 directive above. All four are closed in `src/lib/voice-engine/index.ts` with focused
+negative tests in `src/__tests__/voice-engine-ambiguedad-linaje-y-cronologia.test.ts`.
+
+1. **Unresolved ambiguity cannot be silently cleared.** Competing alternatives — more than one distinct
+   hypothesis recorded for the same audio — now force `needsReview`, and `needsReview` is monotonic across
+   every transition: `appendTranscriptSegment`, `reviseTranscriptSegment` and `finalizeTranscriptSegment` may
+   raise it and can never lower it. Passing `needsReview: false` over an existing `true` is refused with a
+   message naming the resolution path, so an ambiguous dictation cannot become review-free by being finalized.
+   The single auditable exit is `resolveTranscriptReview`, which requires an identified resolver, a rationale,
+   and a `resolvedText` that was **actually heard** (the current text or a recorded alternative) — resolving
+   ambiguity selects among hypotheses and never authors a new one. On an already-final segment a resolution
+   may only confirm the current text; switching a final transcript to a rival hypothesis stays with
+   clinician-correction lineage.
+2. **Revision lineage retains supplied confidence and alternatives.** `TranscriptRevision` and
+   `TranscriptReviewResolution` both carry `previousText`, `previousConfidence` and `previousAlternatives`, so
+   what a revision replaced stays recoverable through the Clinical Truth bridge across any number of
+   revisions. Absent confidence stays absent — nothing is back-filled.
+3. **Impossible session chronology fails closed.** `receivedAt` earlier than `session.startedAt` is rejected
+   at append, and `measureVoiceSession` throws instead of clamping. The former `Math.max(0, …)` reported a
+   segment predating its own session as a flawless 0 ms — the best latency in the corpus produced by a broken
+   clock. Arrival exactly at `startedAt` remains a legitimate 0 ms.
+4. **Benchmark dimensions completed.** `contextualRecoveryRate`
+   (`contextualRecoveredCount / contextualRecoveryOpportunityCount`) measures contextual-correction/recovery
+   quality, and `forcedRepeatRate` (`forcedRepeatCount / physicianUtteranceCount`) gives forced repeats a
+   valid denominator; both are aggregated by `summarizeVoiceBenchmark`. Existing counts, latency and clinical
+   error metrics are unchanged. Without a denominator the rate stays explicitly `undefined`, never 0, and
+   impossible denominators (recovered above opportunities, repeats above utterances) are refused rather than
+   rescaled.
+
+Not covered: whether a clinician's resolution was clinically correct (only that it is auditable, attributed
+and chosen among what was heard), acceptance thresholds for latency/WER/repeat rate (Evaluation Kernel), and
+ASR provider selection.
+
 ## Scope exclusions
 Paid provider commitment, production secrets, live PHI, full ambient UI, EHR writeback, clinical reasoning, and final competitive superiority claims are out of scope here.
 
