@@ -167,6 +167,52 @@ Not covered: acceptance thresholds for useful-partial or stable-transcript laten
 whether a partial with content is clinically useful, validation of `capturedAt` against the end of dictation
 or against wall-clock time, and ASR provider selection.
 
+## P1 repair record — exact-SHA audit `75d86a20df4955a82d7157e8f2f8b1cc053292d1`
+Canonical CI #1142 was SUCCESS on this exact SHA. Independent read-only Codex run `32421053031` returned FAIL for
+two blocking P1 findings. This directive supersedes the two-P1 directive above. Both are closed in
+`src/lib/voice-engine/index.ts` with focused negative tests in
+`src/__tests__/voice-engine-sesion-sellada-y-revision-tardia.test.ts`.
+
+1. **No stable/final latency until the capture session is explicitly sealed.** `measureVoiceSession` treated
+   "every segment I currently know about is final" as a stable transcript while the session was still open and
+   `appendTranscriptSegment` would happily accept the next utterance. From inside the session a streaming pause
+   between two phrases of the same dictation is indistinguishable from the end of dictation, so the published
+   number was measured over a silence. The session now carries an explicit terminal/sealed state, `endedAt`, set
+   by `endVoiceSession`. Sealing is a positive act: it requires that no segment is still revisable and that
+   `endedAt` is chronologically possible against `session.startedAt` and against every segment's lineage head.
+   After sealing, `appendTranscriptSegment`, `reviseTranscriptSegment` and `finalizeTranscriptSegment` are
+   refused; `resolveTranscriptReview` deliberately stays available, because clearing an unresolved review is a
+   clinician act on already-captured transcript and on a final segment it may only confirm the current text.
+   `timeToFinalMs` now requires **both** the sealed session and no remaining partial segment; otherwise it is
+   explicitly `undefined`. A sealed session whose transcript finalized after the seal fails closed.
+
+2. **A late provider revision cannot silently overwrite a clinician-resolved state.** After
+   `resolveTranscriptReview` the segment was `needsReview: false` with its alternatives cleared, so a later
+   `provider_revision` / `contextual_correction` could change the text and compute review from that `false`:
+   with no alternatives left on the segment, `hasCompetingAlternatives` saw nothing in competition and the flag
+   stayed down. The hypothesis the clinician had *discarded* could re-enter, be finalized, and cross into
+   Clinical Truth as review-free truth — with a dose (`start vanco fifteen` → `start vanco fifty`) that is a
+   more-than-threefold vancomycin change, signed. A provider/contextual revision that changes text a clinician
+   already dispositioned now reopens review (`TranscriptRevision.reopenedResolvedReview`), and because
+   `needsReview` is monotonic, finalization cannot lower it again. The clinician resolution provenance is never
+   discarded: `reviewResolutions` keeps the resolver, the timestamp, the rationale and the hypotheses that were
+   discarded, all the way through the Clinical Truth bridge. A `clinician_correction` is the clinician acting
+   again and does not reopen.
+
+All prior repair invariants are preserved: unresolved ambiguity cannot silently clear; replacement text does not
+inherit another hypothesis's confidence; revision lineage retains prior metadata; partial segments cannot carry
+final timestamps; impossible segment/session chronology fails closed; punctuation/noise cannot win
+first-useful-partial latency; unmeasured benchmark dimensions stay undefined; contextual-recovery and
+forced-repeat metrics remain explicit and deterministic.
+
+Nonblocking P2/P3 remain nonblocking and unrepaired, including: `timeToFirstPartialMs` follows append order
+rather than the earliest supplied timestamp when partials arrive out of order.
+
+Not covered: whether the clinician's resolution or the late provider hypothesis was clinically correct (only that
+the substitution cannot happen silently), acceptance thresholds for stable-transcript latency and any policy for
+*when* a session should be sealed (Evaluation Kernel and the capture layer this slice does not build), validation
+of `endedAt` against wall-clock time or against the end of audio, and ASR provider selection.
+
 ## Scope exclusions
 Paid provider commitment, production secrets, live PHI, full ambient UI, EHR writeback, clinical reasoning, and final competitive superiority claims are out of scope here.
 

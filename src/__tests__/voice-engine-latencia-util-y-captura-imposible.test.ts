@@ -55,6 +55,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appendTranscriptSegment,
   createVoiceSession,
+  endVoiceSession,
   finalizeTranscriptSegment,
   isFinalizableTranscriptText,
   isUsefulTranscriptText,
@@ -123,7 +124,7 @@ describe('Voice Engine — no hay latencia estable mientras el transcript siga c
     expect(measureVoiceSession(current).timeToFinalMs).toBeUndefined()
   })
 
-  it('la latencia estable aparece sólo cuando ya no queda ningún segmento revisable, y es la del último', () => {
+  it('la latencia estable aparece sólo cuando ya no queda ningún segmento revisable Y la sesión está sellada, y es la del último', () => {
     let current = appendTranscriptSegment(session(), {
       id: 'seg-1', sequence: 0, text: 'primera frase', status: 'final', receivedAt: '2026-08-17T18:00:00.100Z', finalizedAt: '2026-08-17T18:00:00.300Z', needsReview: false,
     })
@@ -131,11 +132,15 @@ describe('Voice Engine — no hay latencia estable mientras el transcript siga c
       id: 'seg-2', sequence: 1, text: 'segunda frase todavía en curso', status: 'partial', receivedAt: '2026-08-17T18:00:00.350Z', needsReview: false,
     })
     current = finalizeTranscriptSegment({ session: current, segmentId: 'seg-2', finalizedAt: '2026-08-17T18:00:00.980Z' })
+    // Reforzado por la directiva P1 de 75d86a20: finalizar todo lo conocido no sella la sesión.
+    expect(measureVoiceSession(current).timeToFinalMs).toBeUndefined()
+    current = endVoiceSession(current, '2026-08-17T18:00:01.100Z')
     expect(measureVoiceSession(current).timeToFinalMs).toBe(980)
   })
 
   it('una sesión sin segmentos no tiene latencia estable: ausencia explícita, no 0 ms', () => {
     expect(measureVoiceSession(session()).timeToFinalMs).toBeUndefined()
+    expect(measureVoiceSession(endVoiceSession(session(), '2026-08-17T18:00:01.000Z')).timeToFinalMs).toBeUndefined()
   })
 })
 

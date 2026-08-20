@@ -52,6 +52,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appendTranscriptSegment,
   createVoiceSession,
+  endVoiceSession,
   evaluateVoiceBenchmarkCase,
   finalizeTranscriptSegment,
   measureVoiceSession,
@@ -177,7 +178,10 @@ describe('Voice Engine — un segmento parcial no produce métrica de latencia f
     expect(measureVoiceSession(partial).timeToFinalMs).toBeUndefined()
 
     const finalized = finalizeTranscriptSegment({ session: partial, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.620Z' })
-    expect(measureVoiceSession(finalized).timeToFinalMs).toBe(620)
+    // Reforzado por la directiva P1 de 75d86a20: la transición válida es condición necesaria pero ya no
+    // suficiente — la latencia estable exige además que la sesión esté sellada.
+    expect(measureVoiceSession(finalized).timeToFinalMs).toBeUndefined()
+    expect(measureVoiceSession(endVoiceSession(finalized, '2026-08-17T18:00:00.700Z')).timeToFinalMs).toBe(620)
   })
 
   // Reforzado por la directiva P1 de 4367b7c2: mientras quede UN parcial en la sesión no hay latencia estable
@@ -192,7 +196,10 @@ describe('Voice Engine — un segmento parcial no produce métrica de latencia f
     })
     expect(measureVoiceSession(current).timeToFinalMs).toBeUndefined()
 
-    const stable = finalizeTranscriptSegment({ session: current, segmentId: 'seg-2', finalizedAt: '2026-08-17T18:00:00.900Z' })
+    const stable = endVoiceSession(
+      finalizeTranscriptSegment({ session: current, segmentId: 'seg-2', finalizedAt: '2026-08-17T18:00:00.900Z' }),
+      '2026-08-17T18:00:01.000Z',
+    )
     expect(measureVoiceSession(stable).timeToFinalMs).toBe(900)
   })
 })

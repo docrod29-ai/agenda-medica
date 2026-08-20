@@ -44,6 +44,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appendTranscriptSegment,
   createVoiceSession,
+  endVoiceSession,
   finalizeTranscriptSegment,
   isFinalizableTranscriptText,
   measureVoiceSession,
@@ -118,7 +119,11 @@ describe('Voice Engine — un artefacto obsoleto no se promueve sobre un transcr
   })
 
   it('sigue admitiendo la transición no obsoleta, incluso en el borde exacto del linaje', () => {
-    const current = finalizeTranscriptSegment({ session: revisedPartial(), segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.350Z' })
+    // Sellar la sesión es lo que convierte «todo finalizado» en transcript estable (directiva P1 de 75d86a20).
+    const current = endVoiceSession(
+      finalizeTranscriptSegment({ session: revisedPartial(), segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.350Z' }),
+      '2026-08-17T18:00:00.400Z',
+    )
     expect(current.segments[0].status).toBe('final')
     expect(measureVoiceSession(current)).toEqual({ timeToFirstPartialMs: 200, timeToFinalMs: 350, revisionCount: 1, unresolvedReviewCount: 0 })
     expect(voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.700Z').raw).toBe('ceftriaxona 2 gramos IV')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { appendTranscriptSegment, createVoiceSession, finalizeTranscriptSegment, measureVoiceSession, reviseTranscriptSegment, voiceSessionToClinicalInput } from '@/lib/voice-engine'
+import { appendTranscriptSegment, createVoiceSession, endVoiceSession, finalizeTranscriptSegment, measureVoiceSession, reviseTranscriptSegment, voiceSessionToClinicalInput } from '@/lib/voice-engine'
 
 const startedAt = '2026-08-17T18:00:00.000Z'
 
@@ -85,6 +85,8 @@ describe('Voice Engine core', () => {
       id: 'seg-1', sequence: 0, text: 'ceftriaxona 2 gramos IV', status: 'partial', receivedAt: '2026-08-17T18:00:00.120Z', needsReview: false,
     })
     current = finalizeTranscriptSegment({ session: current, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.620Z' })
+    // Stable latency requires the sealed session, not just a finalized segment (directiva P1 de 75d86a20).
+    current = endVoiceSession(current, '2026-08-17T18:00:00.700Z')
     expect(measureVoiceSession(current)).toEqual({ timeToFirstPartialMs: 120, timeToFinalMs: 620, revisionCount: 0, unresolvedReviewCount: 0 })
   })
 
@@ -94,6 +96,7 @@ describe('Voice Engine core', () => {
     })
     current = reviseTranscriptSegment({ session: current, segmentId: 'seg-1', revisedText: 'ceftriaxona 2 gramos IV', revisedAt: '2026-08-17T18:00:00.240Z', reason: 'provider_revision' })
     current = finalizeTranscriptSegment({ session: current, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.620Z' })
+    current = endVoiceSession(current, '2026-08-17T18:00:00.700Z')
     expect(measureVoiceSession(current)).toEqual({ timeToFirstPartialMs: 120, timeToFinalMs: 620, revisionCount: 1, unresolvedReviewCount: 0 })
   })
 
