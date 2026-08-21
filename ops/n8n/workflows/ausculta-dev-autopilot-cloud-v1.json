@@ -1,0 +1,106 @@
+{
+  "name": "Ausculta Dev Autopilot Cloud v1",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "owner": {
+          "__rl": true,
+          "value": "docrod29-ai",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "agenda-medica",
+          "mode": "name"
+        },
+        "events": [
+          "*"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.githubTrigger",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        0
+      ],
+      "id": "b8069c42-2826-4a72-82c5-b2f880272751",
+      "name": "GitHub Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const event = $json.headers?.['x-github-event'];\nconst payload = $json.body || {};\nconst repo = payload.repository?.full_name;\n\nif (repo !== 'docrod29-ai/agenda-medica') return [];\n\nconst state = $getWorkflowStaticData('global');\nstate.seen = state.seen || {};\n\nconst now = Date.now();\nfor (const [key, value] of Object.entries(state.seen)) {\n  if (typeof value !== 'number' || now - value > 7 * 24 * 60 * 60 * 1000) delete state.seen[key];\n}\n\nfunction once(key) {\n  if (state.seen[key]) return false;\n  state.seen[key] = now;\n  return true;\n}\n\nfunction output(prNumber, sha, command, reason) {\n  if (!Number.isInteger(prNumber) || !/^[0-9a-f]{40}$/.test(sha || '') || !command) return [];\n  const key = `${command.split(' ')[0]}:${prNumber}:${sha}`;\n  if (!once(key)) return [];\n  return [{ json: { prNumber, sha, command, reason } }];\n}\n\nif (event === 'workflow_run' && payload.action === 'completed') {\n  const run = payload.workflow_run || {};\n  const prNumber = Array.isArray(run.pull_requests) ? run.pull_requests[0]?.number : undefined;\n  if (\n    run.name === 'CI' &&\n    run.conclusion === 'success' &&\n    typeof run.head_branch === 'string' &&\n    run.head_branch.startsWith('product/') &&\n    prNumber &&\n    /^[0-9a-f]{40}$/.test(run.head_sha || '')\n  ) {\n    return output(\n      prNumber,\n      run.head_sha,\n      `/ausculta-codex-judge ${run.head_sha}`,\n      'canonical_ci_green'\n    );\n  }\n  return [];\n}\n\nif (event === 'issue_comment' && payload.action === 'created' && payload.issue?.pull_request) {\n  const comment = payload.comment || {};\n  if (comment.user?.login !== 'github-actions[bot]') return [];\n\n  const body = String(comment.body || '');\n  const fenced = body.match(/```(?:json)?\\s*(\\{[\\s\\S]*?\"verdict\"[\\s\\S]*?\\})\\s*```/i);\n  const loose = body.match(/(\\{[\\s\\S]*\"verdict\"\\s*:\\s*\"(?:PASS|FAIL)\"[\\s\\S]*\\})/i);\n  const raw = fenced?.[1] || loose?.[1];\n  if (!raw) return [];\n\n  let verdict;\n  try { verdict = JSON.parse(raw); } catch { return []; }\n\n  const sha = verdict.audited_sha;\n  if (\n    !/^[0-9a-f]{40}$/.test(sha || '') ||\n    verdict.independent !== true ||\n    verdict.read_only !== true\n  ) return [];\n\n  const blockers = Array.isArray(verdict.findings)\n    ? verdict.findings.filter((f) => f?.blocking === true && ['P0', 'P1'].includes(f?.severity))\n    : [];\n\n  if (verdict.verdict === 'FAIL' && blockers.length > 0) {\n    return output(\n      payload.issue.number,\n      sha,\n      `/ausculta-claude-writer ${sha}`,\n      `blocking_findings_${blockers.length}`\n    );\n  }\n}\n\nreturn [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        0
+      ],
+      "id": "a3f3076d-3c9f-4f93-9510-4fb0bcb7e21c",
+      "name": "Classify + Dedupe"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "issue",
+        "operation": "createComment",
+        "owner": {
+          "__rl": true,
+          "value": "docrod29-ai",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "agenda-medica",
+          "mode": "name"
+        },
+        "issueNumber": "={{ $json.prNumber }}",
+        "body": "={{ $json.command }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        180,
+        0
+      ],
+      "id": "69c5c01a-b871-4ba0-9ca9-cd5678573f65",
+      "name": "Post Exact-SHA Command"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "GitHub Trigger": {
+      "main": [
+        [
+          {
+            "node": "Classify + Dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify + Dedupe": {
+      "main": [
+        [
+          {
+            "node": "Post Exact-SHA Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6d10e86c-4753-445d-bbe4-238757c969e1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
