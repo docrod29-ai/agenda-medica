@@ -117,9 +117,23 @@ jobs:
         run: |
           set -euo pipefail
           marker="AUSCULTA_CODEX_FALLBACK_DISPATCHED exact_sha=${EXPECTED_SHA}"
+          retry_marker="AUSCULTA_CODEX_FALLBACK_RETRY_DISPATCHED exact_sha=${EXPECTED_SHA}"
           existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" --paginate --jq '.[] | select(.body | startswith("'"$marker"'")) | .id' | head -n 1 || true)"
+          retry_existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" --paginate --jq '.[] | select(.body | startswith("'"$retry_marker"'")) | .id' | head -n 1 || true)"
           if [[ -n "$existing" ]]; then
-            echo "Fallback dispatch already recorded for exact SHA; not duplicating. comment_id=$existing"
+            if [[ -n "$retry_existing" ]]; then
+              echo "Fallback retry already recorded for exact SHA; not duplicating. comment_id=$retry_existing"
+              exit 0
+            fi
+            failed_candidate="$(grep -E '^[0-9]+:(failure|cancelled)$' recovery/candidates.txt 2>/dev/null | head -n 1 || true)"
+            if [[ -z "$failed_candidate" ]]; then
+              echo "Fallback dispatch already recorded and no failed/cancelled exact-SHA candidate proves a retry is warranted. comment_id=$existing"
+              exit 0
+            fi
+            failed_run_id="${failed_candidate%%:*}"
+            gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$EXPECTED_SHA"
+            printf -v body '%s recovery_run_id=%s source_failed_run_id=%s\nExactly one bounded retry was launched only after recovery proved no immutable verdict exists and found a failed/cancelled exact-SHA fallback candidate. Further retries on this SHA are blocked by this marker.' "$retry_marker" "$GITHUB_RUN_ID" "$failed_run_id"
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
             exit 0
           fi
           gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$EXPECTED_SHA"
@@ -137,6 +151,6 @@ jobs:
           set -euo pipefail
           candidates="$(paste -sd, recovery/candidates.txt 2>/dev/null || true)"
           [[ -n "$candidates" ]] || candidates='none-visible-in-last-40-runs'
-          printf -v body 'AUSCULTA_CODEX_RECOVERY_MISS exact_sha=%s recovery_run_id=%s candidate_runs=%s\nNo valid immutable exact-SHA verdict artifact was found. One bounded explicit exact-SHA judge fallback is permitted by this recovery workflow; duplicate fallback dispatches are prevented by an exact-SHA marker.' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$candidates"
+          printf -v body 'AUSCULTA_CODEX_RECOVERY_MISS exact_sha=%s recovery_run_id=%s candidate_runs=%s\nNo valid immutable exact-SHA verdict artifact was found. Initial fallback dispatch and at most one bounded retry after a proven failed/cancelled exact-SHA candidate are protected by separate exact-SHA markers.' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$candidates"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
           echo '::warning::NO_VALID_IMMUTABLE_VERDICT_FOUND'
