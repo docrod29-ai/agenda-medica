@@ -3,6 +3,16 @@ name: Ausculta Product Claude Writer
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Product PR number
+        required: true
+        type: string
+      expected_sha:
+        description: Exact 40-character product PR head SHA
+        required: true
+        type: string
 
 concurrency:
   group: ausculta-product-writer
@@ -11,9 +21,10 @@ concurrency:
 jobs:
   writer:
     if: >-
-      github.event.issue.pull_request &&
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request &&
       github.event.comment.user.login == github.repository_owner &&
-      startsWith(github.event.comment.body, '/ausculta-claude-writer ')
+      startsWith(github.event.comment.body, '/ausculta-claude-writer '))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -26,14 +37,24 @@ jobs:
         id: target
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
           COMMENT: ${{ github.event.comment.body }}
-          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_PR_NUMBER: ${{ github.event.issue.number }}
+          DISPATCH_PR_NUMBER: ${{ inputs.pr_number }}
+          DISPATCH_EXPECTED_SHA: ${{ inputs.expected_sha }}
         shell: bash
         run: |
           set -euo pipefail
-          expected="$(printf '%s' "$COMMENT" | awk '{print $2}')"
+          if [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
+            expected="$DISPATCH_EXPECTED_SHA"
+            pr_number="$DISPATCH_PR_NUMBER"
+          else
+            expected="$(printf '%s' "$COMMENT" | awk '{print $2}')"
+            pr_number="$COMMENT_PR_NUMBER"
+          fi
           [[ "$expected" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::INVALID_EXPECTED_SHA'; exit 90; }
-          pr="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          [[ "$pr_number" =~ ^[0-9]+$ ]] || { echo '::error::INVALID_PR_NUMBER'; exit 89; }
+          pr="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}")"
           head_sha="$(jq -r '.head.sha' <<<"$pr")"
           head_ref="$(jq -r '.head.ref' <<<"$pr")"
           head_repo="$(jq -r '.head.repo.full_name' <<<"$pr")"
@@ -76,6 +97,8 @@ jobs:
           claude --version
 
       - name: Run one bounded Claude Opus product writer
+        id: claude_writer
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TARGET_BRANCH: ${{ steps.target.outputs.branch }}
@@ -108,7 +131,7 @@ jobs:
           - scripts/product/**
           Everything else is forbidden.
 
-          Do not commit or push. The workflow verifies scope/tests and performs the single checkpoint push.
+          Do not commit or push. The workflow verifies scope and performs the single checkpoint push.
           Final response must include READY_FOR_REVIEW=YES or READY_FOR_REVIEW=NO and a concise list of tests expected to pass.
           PROMPT
           {
@@ -143,7 +166,34 @@ jobs:
           done < /tmp/changed.txt
           git diff --check
 
-      - name: Verify product checkpoint
+      - name: Prove branch tip still has not moved
+        env:
+          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET_BRANCH"
+          tip="$(git rev-parse "origin/$TARGET_BRANCH")"
+          [[ "$tip" == "$EXPECTED_SHA" ]] || { echo "::error::SHA_CHANGED_DURING_WRITER expected=$EXPECTED_SHA actual=$tip"; exit 97; }
+
+      - name: Persist mandatory product checkpoint
+        id: checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ausculta-claude-writer[bot]"
+          git config user.email "ausculta-claude-writer[bot]@users.noreply.github.com"
+          git add src tests e2e docs/product scripts/product
+          git commit -m "product: checkpoint bounded active slice"
+          checkpoint_sha="$(git rev-parse HEAD)"
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:$TARGET_BRANCH"
+          echo "sha=$checkpoint_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Verify persisted product checkpoint
         shell: bash
         env:
           NEXT_TELEMETRY_DISABLED: '1'
@@ -159,26 +209,11 @@ jobs:
           npx vitest run
           npm run build
 
-      - name: Prove branch tip still has not moved
+      - name: Report Claude failure after checkpoint
+        if: steps.claude_writer.outcome == 'failure'
         env:
-          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
-          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          CHECKPOINT_SHA: ${{ steps.checkpoint.outputs.sha }}
         shell: bash
         run: |
-          set -euo pipefail
-          git fetch origin "$TARGET_BRANCH"
-          tip="$(git rev-parse "origin/$TARGET_BRANCH")"
-          [[ "$tip" == "$EXPECTED_SHA" ]] || { echo "::error::SHA_CHANGED_DURING_WRITER expected=$EXPECTED_SHA actual=$tip"; exit 97; }
-
-      - name: Commit and push one product checkpoint
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "ausculta-claude-writer[bot]"
-          git config user.email "ausculta-claude-writer[bot]@users.noreply.github.com"
-          git add src tests e2e docs/product scripts/product
-          git commit -m "product: advance bounded active slice"
-          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:$TARGET_BRANCH"
+          echo "::error::CLAUDE_EXITED_NONZERO_AFTER_PERSISTED_CHECKPOINT=$CHECKPOINT_SHA"
+          exit 98
