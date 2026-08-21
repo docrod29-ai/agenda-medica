@@ -1,0 +1,60 @@
+{
+  "name": "Ausculta Dev Autopilot v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ausculta-dev-autopilot-v1",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -520,
+        0
+      ],
+      "id": "a8d1b5de-2f3d-4acb-b31e-1a6e4c8c0111",
+      "name": "GitHub Webhook",
+      "webhookId": "79b2c322-9983-456e-9d6d-8c04c1c3e811"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst EXPECTED_REPO = 'docrod29-ai/agenda-medica';\nconst webhookSecret = $env.AUSCULTA_GITHUB_WEBHOOK_SECRET;\nconst githubToken = $env.AUSCULTA_GITHUB_TOKEN;\n\nif (!webhookSecret || !githubToken) {\n  throw new Error('Missing AUSCULTA_GITHUB_WEBHOOK_SECRET or AUSCULTA_GITHUB_TOKEN');\n}\n\nconst input = $input.first();\nconst headers = input.json.headers || {};\nconst event = headers['x-github-event'];\nconst delivery = headers['x-github-delivery'];\nconst signature = headers['x-hub-signature-256'];\n\nif (!event || !delivery || !signature) throw new Error('Missing required GitHub webhook headers');\n\nconst encoded = input.binary?.data?.data;\nif (!encoded) throw new Error('Raw webhook body is required');\n\nconst rawBody = Buffer.from(encoded, 'base64');\nconst expectedSignature = 'sha256=' + crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');\nconst supplied = Buffer.from(signature);\nconst expected = Buffer.from(expectedSignature);\nif (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {\n  throw new Error('Invalid GitHub webhook signature');\n}\n\nconst payload = JSON.parse(rawBody.toString('utf8'));\nif (payload.repository?.full_name !== EXPECTED_REPO) {\n  return [{ json: { ignored: true, reason: 'foreign_repository', event, delivery } }];\n}\n\nconst api = 'https://api.github.com';\nconst commonHeaders = {\n  Authorization: `Bearer ${githubToken}`,\n  Accept: 'application/vnd.github+json',\n  'X-GitHub-Api-Version': '2022-11-28',\n  'User-Agent': 'ausculta-n8n-dev-autopilot-v1',\n};\n\nasync function gh(path, options = {}) {\n  const response = await fetch(`${api}${path}`, {\n    ...options,\n    headers: { ...commonHeaders, ...(options.headers || {}) },\n  });\n  if (!response.ok) {\n    const body = await response.text();\n    throw new Error(`GitHub ${response.status} ${path}: ${body.slice(0, 1000)}`);\n  }\n  if (response.status === 204) return null;\n  const text = await response.text();\n  return text ? JSON.parse(text) : null;\n}\n\nasync function getPr(prNumber) {\n  return gh(`/repos/${EXPECTED_REPO}/pulls/${prNumber}`);\n}\nasync function getRecentComments(prNumber) {\n  return gh(`/repos/${EXPECTED_REPO}/issues/${prNumber}/comments?per_page=100&sort=created&direction=desc`);\n}\nasync function addComment(prNumber, body) {\n  return gh(`/repos/${EXPECTED_REPO}/issues/${prNumber}/comments`, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ body }),\n  });\n}\nasync function exactCommandExists(prNumber, command) {\n  const comments = await getRecentComments(prNumber);\n  return comments.some((c) => (c.body || '').trim() === command);\n}\nfunction validProductPr(pr, expectedSha) {\n  return Boolean(\n    pr &&\n    pr.state === 'open' &&\n    pr.head?.repo?.full_name === EXPECTED_REPO &&\n    typeof pr.head?.ref === 'string' &&\n    pr.head.ref.startsWith('product/') &&\n    pr.head.sha === expectedSha\n  );\n}\n\nif (event === 'workflow_run' && payload.action === 'completed') {\n  const run = payload.workflow_run || {};\n  const prs = Array.isArray(run.pull_requests) ? run.pull_requests : [];\n  const prNumber = prs[0]?.number;\n\n  if (run.name === 'CI' && prNumber && run.head_sha) {\n    const pr = await getPr(prNumber);\n    if (!validProductPr(pr, run.head_sha)) {\n      return [{ json: { ignored: true, reason: 'stale_or_nonproduct_ci', event, delivery, prNumber, sha: run.head_sha } }];\n    }\n\n    if (run.conclusion === 'success') {\n      const command = `/ausculta-codex-judge ${run.head_sha}`;\n      if (!(await exactCommandExists(prNumber, command))) {\n        await addComment(prNumber, command);\n        return [{ json: { action: 'codex_triggered', prNumber, sha: run.head_sha, delivery } }];\n      }\n      return [{ json: { ignored: true, reason: 'codex_already_triggered', prNumber, sha: run.head_sha, delivery } }];\n    }\n\n    if (['failure', 'cancelled', 'timed_out'].includes(run.conclusion) && (run.run_attempt || 1) < 2) {\n      await gh(`/repos/${EXPECTED_REPO}/actions/runs/${run.id}/rerun-failed-jobs`, { method: 'POST' });\n      return [{ json: { action: 'ci_rerun_once', prNumber, sha: run.head_sha, runId: run.id, delivery } }];\n    }\n\n    return [{ json: { action: 'external_recovery_required', prNumber, sha: run.head_sha, conclusion: run.conclusion, runId: run.id, delivery } }];\n  }\n\n  if (run.name === 'Ausculta Product Claude Comment Writer' && run.conclusion !== 'success') {\n    return [{ json: { action: 'writer_failed', sha: run.head_sha, conclusion: run.conclusion, runId: run.id, htmlUrl: run.html_url, delivery } }];\n  }\n\n  return [{ json: { ignored: true, reason: 'workflow_not_in_v1_scope', workflow: run.name, conclusion: run.conclusion, delivery } }];\n}\n\nif (event === 'issue_comment' && payload.action === 'created' && payload.issue?.pull_request) {\n  const comment = payload.comment || {};\n  const prNumber = payload.issue.number;\n  const body = String(comment.body || '');\n\n  if (comment.user?.login !== 'github-actions[bot]') {\n    return [{ json: { ignored: true, reason: 'untrusted_comment_actor', prNumber, delivery } }];\n  }\n\n  const verdictMatch = body.match(/\\{[\\s\\S]*\"verdict\"\\s*:\\s*\"(PASS|FAIL)\"[\\s\\S]*\\}/);\n  if (!verdictMatch) {\n    return [{ json: { ignored: true, reason: 'not_a_verdict_comment', prNumber, delivery } }];\n  }\n\n  let verdict;\n  try { verdict = JSON.parse(verdictMatch[0]); }\n  catch { return [{ json: { ignored: true, reason: 'verdict_json_parse_failed', prNumber, delivery } }]; }\n\n  const auditedSha = verdict.audited_sha;\n  if (!/^[0-9a-f]{40}$/.test(auditedSha || '') || verdict.independent !== true || verdict.read_only !== true) {\n    return [{ json: { ignored: true, reason: 'invalid_verdict_contract', prNumber, delivery } }];\n  }\n\n  const pr = await getPr(prNumber);\n  if (!validProductPr(pr, auditedSha)) {\n    return [{ json: { ignored: true, reason: 'stale_verdict', prNumber, auditedSha, currentSha: pr.head?.sha, delivery } }];\n  }\n\n  const blockers = Array.isArray(verdict.findings)\n    ? verdict.findings.filter((f) => f?.blocking === true && ['P0', 'P1'].includes(f?.severity))\n    : [];\n\n  if (verdict.verdict === 'PASS' || blockers.length === 0) {\n    return [{ json: { action: 'gate_passed', prNumber, sha: auditedSha, verdict: verdict.verdict, blockers: blockers.length, delivery } }];\n  }\n\n  const command = `/ausculta-claude-writer ${auditedSha}`;\n  if (!(await exactCommandExists(prNumber, command))) {\n    await addComment(prNumber, command);\n    return [{ json: { action: 'claude_repair_triggered', prNumber, sha: auditedSha, blockers: blockers.length, delivery } }];\n  }\n\n  return [{ json: { ignored: true, reason: 'claude_already_triggered_for_sha', prNumber, sha: auditedSha, blockers: blockers.length, delivery } }];\n}\n\nreturn [{ json: { ignored: true, reason: 'event_not_in_v1_scope', event, delivery } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        0
+      ],
+      "id": "0b9e3c43-518e-46ca-8f1e-267706eb9421",
+      "name": "Verify + Orchestrate"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify + Orchestrate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f1d1c72e-42b4-49ef-a8a8-0a92d1490790",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
