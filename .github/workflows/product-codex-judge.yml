@@ -3,17 +3,28 @@ name: Ausculta Product Codex Judge
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Product PR number
+        required: true
+        type: string
+      expected_sha:
+        description: Exact immutable product PR head SHA
+        required: true
+        type: string
 
 concurrency:
-  group: ausculta-product-codex-judge-${{ github.event.issue.number }}
+  group: ausculta-product-codex-judge-${{ github.event.issue.number || inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
   judge:
     if: >-
-      github.event.issue.pull_request &&
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request &&
       github.event.comment.user.login == github.repository_owner &&
-      startsWith(github.event.comment.body, '/ausculta-codex-judge ')
+      startsWith(github.event.comment.body, '/ausculta-codex-judge '))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -26,12 +37,17 @@ jobs:
         id: target
         env:
           GH_TOKEN: ${{ github.token }}
-          COMMENT: ${{ github.event.comment.body }}
-          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT: ${{ github.event.comment.body || '' }}
+          INPUT_SHA: ${{ inputs.expected_sha || '' }}
+          PR_NUMBER: ${{ github.event.issue.number || inputs.pr_number }}
         shell: bash
         run: |
           set -euo pipefail
-          expected="$(printf '%s' "$COMMENT" | awk '{print $2}')"
+          expected="$INPUT_SHA"
+          if [[ -z "$expected" ]]; then
+            expected="$(printf '%s' "$COMMENT" | awk '{print $2}')"
+          fi
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo '::error::INVALID_PR_NUMBER'; exit 89; }
           [[ "$expected" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::INVALID_EXPECTED_SHA'; exit 90; }
           pr="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
           head_sha="$(jq -r '.head.sha' <<<"$pr")"
@@ -41,6 +57,7 @@ jobs:
           [[ "$head_repo" == "$GITHUB_REPOSITORY" ]] || { echo '::error::FORK_NOT_ALLOWED'; exit 92; }
           [[ "$head_sha" == "$expected" ]] || { echo "::error::SHA_CHANGED expected=$expected actual=$head_sha"; exit 93; }
           echo "sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Fail closed if OpenAI credential is absent
         env:
@@ -143,7 +160,7 @@ jobs:
       - name: Publish validated verdict to product PR (best effort transport)
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.issue.number }}
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
           EXPECTED_SHA: ${{ steps.target.outputs.sha }}
           SLICE_GATE: ${{ steps.gate.outputs.gate }}
         shell: bash
