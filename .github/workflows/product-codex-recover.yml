@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      actions: read
+      actions: write
       pull-requests: write
       issues: write
     steps:
@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p recovery
-          mapfile -t runs < <(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?event=issue_comment&per_page=100" --jq '.workflow_runs[] | [.id,.conclusion] | @tsv')
+          mapfile -t runs < <(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?per_page=100" --jq '.workflow_runs[] | [.id,.conclusion] | @tsv')
           checked=0
           candidates=()
           for row in "${runs[@]}"; do
@@ -107,6 +107,25 @@ jobs:
             echo '- No Codex audit was rerun; this workflow only validated and republished an existing immutable artifact.'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Dispatch one exact-SHA judge after proven miss
+        if: steps.recover.outputs.found != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker="AUSCULTA_CODEX_FALLBACK_DISPATCHED exact_sha=${EXPECTED_SHA}"
+          existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" --paginate --jq '.[] | select(.body | startswith("'"$marker"'")) | .id' | head -n 1 || true)"
+          if [[ -n "$existing" ]]; then
+            echo "Fallback dispatch already recorded for exact SHA; not duplicating. comment_id=$existing"
+            exit 0
+          fi
+          gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$EXPECTED_SHA"
+          printf -v body '%s recovery_run_id=%s\nRecovery proved no valid immutable verdict existed, so exactly one explicit workflow_dispatch judge was launched.' "$marker" "$GITHUB_RUN_ID"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
+
       - name: Persist recovery miss classification
         if: steps.recover.outputs.found != 'true'
         env:
@@ -118,6 +137,6 @@ jobs:
           set -euo pipefail
           candidates="$(paste -sd, recovery/candidates.txt 2>/dev/null || true)"
           [[ -n "$candidates" ]] || candidates='none-visible-in-last-40-runs'
-          printf -v body 'AUSCULTA_CODEX_RECOVERY_MISS exact_sha=%s recovery_run_id=%s candidate_runs=%s\nNo valid immutable exact-SHA verdict artifact was found. No new Codex audit was launched. Slice gate remains unresolved; unrelated reversible work may continue.' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$candidates"
+          printf -v body 'AUSCULTA_CODEX_RECOVERY_MISS exact_sha=%s recovery_run_id=%s candidate_runs=%s\nNo valid immutable exact-SHA verdict artifact was found. One bounded explicit exact-SHA judge fallback is permitted by this recovery workflow; duplicate fallback dispatches are prevented by an exact-SHA marker.' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$candidates"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
           echo '::warning::NO_VALID_IMMUTABLE_VERDICT_FOUND'
