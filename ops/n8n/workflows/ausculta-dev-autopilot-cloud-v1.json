@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "authentication": "oAuth2",
+        "authentication": "accessToken",
         "owner": {
           "__rl": true,
           "value": "docrod29-ai",
@@ -30,7 +30,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const event = $json.headers?.['x-github-event'];\nconst payload = $json.body || {};\nconst repo = payload.repository?.full_name;\n\nif (repo !== 'docrod29-ai/agenda-medica') return [];\n\nconst state = $getWorkflowStaticData('global');\nstate.seen = state.seen || {};\n\nconst now = Date.now();\nfor (const [key, value] of Object.entries(state.seen)) {\n  if (typeof value !== 'number' || now - value > 7 * 24 * 60 * 60 * 1000) delete state.seen[key];\n}\n\nfunction once(key) {\n  if (state.seen[key]) return false;\n  state.seen[key] = now;\n  return true;\n}\n\nfunction output(prNumber, sha, command, reason) {\n  if (!Number.isInteger(prNumber) || !/^[0-9a-f]{40}$/.test(sha || '') || !command) return [];\n  const key = `${command.split(' ')[0]}:${prNumber}:${sha}`;\n  if (!once(key)) return [];\n  return [{ json: { prNumber, sha, command, reason } }];\n}\n\nif (event === 'workflow_run' && payload.action === 'completed') {\n  const run = payload.workflow_run || {};\n  const prNumber = Array.isArray(run.pull_requests) ? run.pull_requests[0]?.number : undefined;\n  if (\n    run.name === 'CI' &&\n    run.conclusion === 'success' &&\n    typeof run.head_branch === 'string' &&\n    run.head_branch.startsWith('product/') &&\n    prNumber &&\n    /^[0-9a-f]{40}$/.test(run.head_sha || '')\n  ) {\n    return output(\n      prNumber,\n      run.head_sha,\n      `/ausculta-codex-judge ${run.head_sha}`,\n      'canonical_ci_green'\n    );\n  }\n  return [];\n}\n\nif (event === 'issue_comment' && payload.action === 'created' && payload.issue?.pull_request) {\n  const comment = payload.comment || {};\n  if (comment.user?.login !== 'github-actions[bot]') return [];\n\n  const body = String(comment.body || '');\n  const fenced = body.match(/```(?:json)?\\s*(\\{[\\s\\S]*?\"verdict\"[\\s\\S]*?\\})\\s*```/i);\n  const loose = body.match(/(\\{[\\s\\S]*\"verdict\"\\s*:\\s*\"(?:PASS|FAIL)\"[\\s\\S]*\\})/i);\n  const raw = fenced?.[1] || loose?.[1];\n  if (!raw) return [];\n\n  let verdict;\n  try { verdict = JSON.parse(raw); } catch { return []; }\n\n  const sha = verdict.audited_sha;\n  if (\n    !/^[0-9a-f]{40}$/.test(sha || '') ||\n    verdict.independent !== true ||\n    verdict.read_only !== true\n  ) return [];\n\n  const blockers = Array.isArray(verdict.findings)\n    ? verdict.findings.filter((f) => f?.blocking === true && ['P0', 'P1'].includes(f?.severity))\n    : [];\n\n  if (verdict.verdict === 'FAIL' && blockers.length > 0) {\n    return output(\n      payload.issue.number,\n      sha,\n      `/ausculta-claude-writer ${sha}`,\n      `blocking_findings_${blockers.length}`\n    );\n  }\n}\n\nreturn [];"
+        "jsCode": "const event = $json.headers?.['x-github-event'];\nconst payload = $json.body || {};\nconst repo = payload.repository?.full_name;\nif (repo !== 'docrod29-ai/agenda-medica') return [];\nconst state = $getWorkflowStaticData('global');\nstate.seen = state.seen || {};\nconst now = Date.now();\nfor (const [key, value] of Object.entries(state.seen)) { if (typeof value !== 'number' || now - value > 7 * 24 * 60 * 60 * 1000) delete state.seen[key]; }\nfunction once(key) { if (state.seen[key]) return false; state.seen[key] = now; return true; }\nfunction output(prNumber, sha, command, reason) { if (!Number.isInteger(prNumber) || !/^[0-9a-f]{40}$/.test(sha || '') || !command) return []; const key = `${command.split(' ')[0]}:${prNumber}:${sha}`; if (!once(key)) return []; return [{ json: { prNumber, sha, command, reason } }]; }\nif (event === 'workflow_run' && payload.action === 'completed') { const run = payload.workflow_run || {}; const prNumber = Array.isArray(run.pull_requests) ? run.pull_requests[0]?.number : undefined; if (run.name === 'CI' && run.conclusion === 'success' && typeof run.head_branch === 'string' && run.head_branch.startsWith('product/') && prNumber && /^[0-9a-f]{40}$/.test(run.head_sha || '')) return output(prNumber, run.head_sha, `/ausculta-codex-judge ${run.head_sha}`, 'canonical_ci_green'); return []; }\nif (event === 'issue_comment' && payload.action === 'created' && payload.issue?.pull_request) { const comment = payload.comment || {}; if (comment.user?.login !== 'github-actions[bot]') return []; const body = String(comment.body || ''); const fenced = body.match(/```(?:json)?\\s*(\\{[\\s\\S]*?\\\"verdict\\\"[\\s\\S]*?\\})\\s*```/i); const loose = body.match(/(\\{[\\s\\S]*\\\"verdict\\\"\\s*:\\s*\\\"(?:PASS|FAIL)\\\"[\\s\\S]*\\})/i); const raw = fenced?.[1] || loose?.[1]; if (!raw) return []; let verdict; try { verdict = JSON.parse(raw); } catch { return []; } const sha = verdict.audited_sha; if (!/^[0-9a-f]{40}$/.test(sha || '') || verdict.independent !== true || verdict.read_only !== true) return []; const blockers = Array.isArray(verdict.findings) ? verdict.findings.filter((f) => f?.blocking === true && ['P0', 'P1'].includes(f?.severity)) : []; if (verdict.verdict === 'FAIL' && blockers.length > 0) return output(payload.issue.number, sha, `/ausculta-claude-writer ${sha}`, `blocking_findings_${blockers.length}`); }\nreturn [];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -43,7 +43,7 @@
     },
     {
       "parameters": {
-        "authentication": "oAuth2",
+        "authentication": "accessToken",
         "resource": "issue",
         "operation": "createComment",
         "owner": {
@@ -98,7 +98,6 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "6d10e86c-4753-445d-bbe4-238757c969e1",
   "meta": {
     "templateCredsSetupCompleted": false
   },
