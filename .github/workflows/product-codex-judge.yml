@@ -99,6 +99,7 @@ jobs:
           permission-profile: ':read-only'
           safety-strategy: drop-sudo
           effort: high
+          allow-bot-users: 'github-actions[bot]'
           output-schema: |
             {"type":"object","additionalProperties":false,"required":["verdict","audited_sha","independent","read_only","findings","summary"],"properties":{"verdict":{"type":"string","enum":["PASS","FAIL","UNVERIFIABLE"]},"audited_sha":{"type":"string"},"independent":{"type":"boolean","const":true},"read_only":{"type":"boolean","const":true},"findings":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["severity","blocking","title","evidence"],"properties":{"severity":{"type":"string","enum":["P0","P1","P2","P3"]},"blocking":{"type":"boolean"},"title":{"type":"string"},"evidence":{"type":"string"}}}},"summary":{"type":"string"}}}
           prompt: |
