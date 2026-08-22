@@ -26,7 +26,7 @@ jobs:
       github.event.comment.user.login == github.repository_owner &&
       startsWith(github.event.comment.body, '/ausculta-claude-writer '))
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     permissions:
       contents: write
       pull-requests: read
