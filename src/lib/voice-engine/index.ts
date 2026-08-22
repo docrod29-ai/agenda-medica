@@ -181,8 +181,9 @@ export function createVoiceSession(input: Omit<VoiceSession,'segments'|'firstPar
  * refused.
  *
  * `resolveTranscriptReview` deliberately stays available on a sealed session: clearing an unresolved review is a
- * clinician act on an already-captured transcript, not a capture transition, and on a final segment a resolution
- * may only confirm the text that is already there.
+ * clinician act on an already-captured transcript, not a capture transition. Because sealing is the point at
+ * which provider capture stops, it is also the point at which a stranded ambiguity would become permanent, so
+ * the resolution may select any hypothesis the provider already recorded — never author new text.
  */
 export function endVoiceSession(session: VoiceSession, endedAt: string): VoiceSession {
   const endedAtMs=assertTimestamp(endedAt,'endedAt')
@@ -261,9 +262,17 @@ export function finalizeTranscriptSegment(input:{session:VoiceSession;segmentId:
  * `resolvedText` must be text that was actually heard — the segment's current text or one of its recorded
  * alternatives — so resolving ambiguity selects among hypotheses and never authors a new one. The replaced
  * hypotheses and confidence stay on the resolution record; the segment stops carrying competing alternatives.
- * On a segment that is already final, resolution may only confirm the current text: switching a final
- * transcript to a different hypothesis stays with `reviseTranscriptSegment`'s clinician-correction lineage.
  * It does not finalize and does not judge clinical completeness.
+ *
+ * A `final` segment may be resolved to a rival hypothesis too. Being final says the provider stopped revising
+ * this text, not that the clinician already chose between the hypotheses recorded for it — and after
+ * `endVoiceSession` the clinician-correction lineage in `reviseTranscriptSegment` is refused along with every
+ * other capture transition. Requiring a resolution on a sealed final segment to merely confirm the current text
+ * therefore stranded clinically material ambiguity permanently: a sealed `start vanco fifteen` / `start vanco
+ * fifty` could only ever be dispositioned in favour of whichever hypothesis the provider happened to leave on
+ * top. This path is not a capture transition and does not relax one: it cannot append, cannot finalize, cannot
+ * change `finalizedAt`, and cannot introduce text the provider never recorded. It records the same attributed,
+ * timestamped, reversible-by-lineage resolution as on a partial segment.
  */
 export function resolveTranscriptReview(input:{session:VoiceSession;segmentId:string;resolvedText:string;resolvedAt:string;resolvedBy:string;rationale:string}):VoiceSession{
   const resolvedAtMs=assertTimestamp(input.resolvedAt,'resolvedAt');const target=input.session.segments.find(s=>s.id===input.segmentId);if(!target)throw new Error(`Unknown transcript segment: ${input.segmentId}`)
@@ -272,7 +281,6 @@ export function resolveTranscriptReview(input:{session:VoiceSession;segmentId:st
   assertNotStale(target,resolvedAtMs,'resolvedAt')
   const heard=[target.text,...(target.alternatives??[]).map(a=>a.text)].map(t=>t.trim())
   if(!heard.includes(input.resolvedText.trim()))throw new Error(`Transcript review resolution must select recorded transcript text, not new text: ${target.id}`)
-  if(target.status==='final'&&input.resolvedText.trim()!==target.text.trim())throw new Error('Final transcript cannot be silently replaced by a review resolution; use clinician correction lineage')
   if(!isFinalizableTranscriptText(input.resolvedText))throw new Error(`Structurally incomplete text cannot resolve a transcript review: ${target.id}`)
   // Selecting a rival hypothesis does not transfer the discarded hypothesis's confidence to it. The chosen
   // alternative keeps only the confidence that was recorded for THAT text; if none was, confidence stays

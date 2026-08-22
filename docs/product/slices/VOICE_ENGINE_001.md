@@ -69,7 +69,8 @@ negative tests in `src/__tests__/voice-engine-ambiguedad-linaje-y-cronologia.tes
    and a `resolvedText` that was **actually heard** (the current text or a recorded alternative) — resolving
    ambiguity selects among hypotheses and never authors a new one. On an already-final segment a resolution
    may only confirm the current text; switching a final transcript to a rival hypothesis stays with
-   clinician-correction lineage.
+   clinician-correction lineage. *(This last sentence is SUPERSEDED by the `f38907a0` repair record below: it
+   stranded the ambiguity once the session was sealed. Everything else in this finding stands.)*
 2. **Revision lineage retains supplied confidence and alternatives.** `TranscriptRevision` and
    `TranscriptReviewResolution` both carry `previousText`, `previousConfidence` and `previousAlternatives`, so
    what a revision replaced stays recoverable through the Clinical Truth bridge across any number of
@@ -183,6 +184,8 @@ two blocking P1 findings. This directive supersedes the two-P1 directive above. 
    After sealing, `appendTranscriptSegment`, `reviseTranscriptSegment` and `finalizeTranscriptSegment` are
    refused; `resolveTranscriptReview` deliberately stays available, because clearing an unresolved review is a
    clinician act on already-captured transcript and on a final segment it may only confirm the current text.
+   *(That last clause is SUPERSEDED by the `f38907a0` repair record below: on a sealed final segment a
+   resolution may also select a hypothesis the provider already recorded.)*
    `timeToFinalMs` now requires **both** the sealed session and no remaining partial segment; otherwise it is
    explicitly `undefined`. A sealed session whose transcript finalized after the seal fails closed.
 
@@ -212,6 +215,54 @@ Not covered: whether the clinician's resolution or the late provider hypothesis 
 the substitution cannot happen silently), acceptance thresholds for stable-transcript latency and any policy for
 *when* a session should be sealed (Evaluation Kernel and the capture layer this slice does not build), validation
 of `endedAt` against wall-clock time or against the end of audio, and ASR provider selection.
+
+## P1 repair record — exact-SHA audit `f38907a07e9bd6b84b3086b234f1366c419b7c3b`
+An independent read-only exact-SHA Codex audit returned FAIL for two blocking P1 findings. P1 #2 (canonical
+active-slice contradiction plus the verifier gap that let it through) was already closed on this branch with
+focused verifier coverage in `tests/product/context-verifier-active-slice.test.mjs`. The remaining P1 is closed
+in `src/lib/voice-engine/index.ts` with focused tests in
+`src/__tests__/voice-engine-ambiguedad-varada-tras-sellar.test.ts`.
+
+1. **Sealing cannot strand clinically material ambiguity.** A `final` segment carrying `needsReview: true` and
+   two recorded dose hypotheses (`start vanco fifteen` / `start vanco fifty`) had no route to the rival
+   hypothesis once the session was sealed. `resolveTranscriptReview` — deliberately still available after
+   `endVoiceSession` — refused any `resolvedText` other than the current text on a final segment and pointed at
+   `reviseTranscriptSegment`'s clinician-correction lineage; that lineage is refused after sealing by
+   `assertNotTerminal`. Both doors pointed at each other and both were shut, so the only hypothesis that could
+   ever survive was whichever one the provider happened to leave on top, with the review flag stuck up forever
+   as the only record. The root cause is conflating `final` ("the provider stopped revising this text") with
+   "the clinician already chose between the recorded hypotheses".
+
+   The guard is removed. `resolveTranscriptReview` may now select any hypothesis that was **actually recorded**
+   on the segment — its current text or one of its `alternatives` — whether the segment is partial or final and
+   whether the session is open or sealed. Nothing else is relaxed:
+   - `resolvedText` outside the recorded hypotheses is still refused, so the clinician selects and never authors;
+   - an identified resolver, a rationale, the structural text gate and the stale-transition check all still apply;
+   - it is not a capture transition and relaxes none: after sealing, `appendTranscriptSegment`,
+     `reviseTranscriptSegment` and `finalizeTranscriptSegment` remain refused, and a resolution never changes
+     `status`, `finalizedAt`, `endedAt` or the stable-latency metric;
+   - `TranscriptReviewResolution` keeps `previousText`, `previousConfidence`, `previousAlternatives`,
+     `resolvedBy`, `resolvedAt` and `rationale`, and reaches `ClinicalInput` intact;
+   - the selected alternative receives only the confidence recorded for **that** text and stays `undefined` when
+     that alternative was never scored — it never inherits the discarded hypothesis's score.
+
+   The pre-existing test that asserted the stranding behaviour is corrected in
+   `src/__tests__/voice-engine-ambiguedad-linaje-y-cronologia.test.ts`; the "no new text" half of that case is
+   kept and strengthened.
+
+All prior repair invariants are preserved: unresolved ambiguity still cannot clear except through an attributed
+resolution; a late provider/contextual revision over a clinician disposition still reopens review; replacement
+text does not inherit another hypothesis's confidence; revision lineage retains prior metadata; partial segments
+cannot carry final timestamps; impossible segment/session chronology fails closed; punctuation/noise cannot win
+first-useful-partial latency; unmeasured benchmark dimensions stay undefined.
+
+Nonblocking P2/P3 remain nonblocking and unrepaired, including: `timeToFirstPartialMs` follows append order
+rather than the earliest supplied timestamp when partials arrive out of order.
+
+Not covered: whether the hypothesis the clinician selected was the clinically correct one (only that selecting it
+is possible, attributed and reconstructible); any route back to a hypothesis that no longer appears in
+`alternatives` (for example one left only in `reviewResolutions` after a reopening) — resolution selects among
+what the segment records; policy for when a session should be sealed; and ASR provider selection.
 
 ## Scope exclusions
 Paid provider commitment, production secrets, live PHI, full ambient UI, EHR writeback, clinical reasoning, and final competitive superiority claims are out of scope here.

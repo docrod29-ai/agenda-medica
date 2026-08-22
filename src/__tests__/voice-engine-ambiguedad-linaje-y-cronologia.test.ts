@@ -157,13 +157,30 @@ describe('Voice Engine — la ambigüedad no resuelta no se limpia en silencio',
     expect(current.segments[0].needsReview).toBe(true)
   })
 
-  it('resolver no es una puerta trasera para reemplazar un transcript ya final', () => {
+  // CORREGIDA por el P1 de f38907a0: exigir que una resolución sobre un segmento final sólo confirmara el texto
+  // actual dejaba la ambigüedad varada —sobre todo tras sellar, donde el linaje de corrección clínica de
+  // `reviseTranscriptSegment` también está cerrado—. Lo que sigue prohibido es lo mismo de siempre: redactar
+  // texto que nadie oyó. Ser final no es haber elegido entre las hipótesis registradas.
+  it('resolver sobre un transcript final elige entre lo oído, y sigue sin ser puerta trasera para texto nuevo', () => {
     const finalized = finalizeTranscriptSegment({ session: ambiguousSegment(), segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.600Z' })
     expect(() => resolveTranscriptReview({
+      session: finalized, segmentId: 'seg-1', resolvedText: 'start vancomycin 50 mg per kilo', resolvedAt: '2026-08-17T18:00:00.900Z',
+      resolvedBy: 'clinician-synthetic-1', rationale: 'era cincuenta',
+    })).toThrow(/must select recorded transcript text, not new text/)
+    expect(finalized.segments[0].text).toBe('start vanco fifteen')
+
+    const resolved = resolveTranscriptReview({
       session: finalized, segmentId: 'seg-1', resolvedText: 'start vanco fifty', resolvedAt: '2026-08-17T18:00:00.900Z',
       resolvedBy: 'clinician-synthetic-1', rationale: 'era cincuenta',
-    })).toThrow(/Final transcript cannot be silently replaced by a review resolution/)
-    expect(finalized.segments[0].text).toBe('start vanco fifteen')
+    })
+    expect(resolved.segments[0].text).toBe('start vanco fifty')
+    expect(resolved.segments[0].status).toBe('final')
+    expect(resolved.segments[0].finalizedAt).toBe('2026-08-17T18:00:00.600Z')
+    expect(resolved.segments[0].needsReview).toBe(false)
+    expect(resolved.segments[0].confidence).toBe(0.41)
+    expect(resolved.segments[0].reviewResolutions?.[0]).toMatchObject({
+      previousText: 'start vanco fifteen', resolvedText: 'start vanco fifty', previousConfidence: 0.44, resolvedBy: 'clinician-synthetic-1',
+    })
   })
 })
 

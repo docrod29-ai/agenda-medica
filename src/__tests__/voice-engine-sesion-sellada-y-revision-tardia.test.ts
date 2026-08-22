@@ -36,8 +36,11 @@
  *  - `timeToFinalMs` exige AMBAS cosas: sesión sellada y ningún segmento parcial. Mientras falte una, es
  *    `undefined` — ausencia explícita, nunca un número optimista.
  *  - `resolveTranscriptReview` sigue disponible sobre una sesión sellada: limpiar una revisión es un acto del
- *    médico sobre transcript ya capturado, no una transición de captura, y sobre un segmento final una
- *    resolución sólo puede confirmar el texto que ya está.
+ *    médico sobre transcript ya capturado, no una transición de captura. (La restricción original —sobre un
+ *    segmento final una resolución sólo podía confirmar el texto ya presente— dejaba varada la ambigüedad al
+ *    sellar y quedó SUPERADA por el P1 de `f38907a0`; ver
+ *    `voice-engine-ambiguedad-varada-tras-sellar.test.ts`. Lo que no cambió: sólo se puede elegir entre las
+ *    hipótesis realmente registradas, nunca redactar texto nuevo.)
  *  - Una revisión de proveedor o contextual que cambia el texto que un médico ya dispuso REABRE la revisión
  *    (`reopenedResolvedReview` en el linaje). La resolución no se borra: sigue en `reviewResolutions` con su
  *    actor, su justificación y las hipótesis que descartó. Como `needsReview` es monótona, finalizar no la puede
