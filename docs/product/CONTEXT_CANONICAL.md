@@ -2,7 +2,7 @@
 
 Status: ACCEPTED product source of truth for Product Board #296.
 Baseline: accepted V15 `317c6c5695b69e1a543d99d65e897f638db563a8`.
-Active slice: CONTEXT-CANONICALIZATION.
+Active slice: VOICE ENGINE.
 
 ## 1. Product mission
 Ausculta is a clinical AI operating system spanning ambulatory practice through hospital/ICU workflows. The product must reduce physician clerical burden while preserving clinical truth, provenance, safety, and physician control.
