@@ -31,15 +31,18 @@ const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/uci/benchmark-metricas.ts': 'lo importa uci/benchmark.ts, que ya está declarado huérfano',
   'src/lib/clinical-truth/index.ts': 'DOCUMENTATION ENGINE: núcleo Clinical Truth probado antes de conectarlo al renderer/flujo; debe salir de esta lista al integrar el slice.',
   'src/lib/voice-engine/index.ts': 'VOICE ENGINE: contrato provider-neutral probado antes de conectar captura/proveedor/UI; debe salir de esta lista al integrar el slice.',
-  'src/lib/clinical-reasoning/index.ts': 'CLINICAL REASONING + EVIDENCE + SAFETY: envelope canónico probado antes de conectarlo a la UI/Copilot; debe salir de esta lista al integrar el slice.',
 }
 
 describe('el camino del médico llega entero', () => {
   const alcanzables = alcanzableDesdeLaApp()
   it('el lector funciona (si no, todo lo de abajo pasaría por vacío)', () => { expect(alcanzables.size).toBeGreaterThan(300); expect(alcanzables.has('src/lib/expediente/firestore.ts')).toBe(true) })
   it('el pipeline de voz diferido sigue EN el camino (p ??= import)', () => { expect(alcanzables.has('src/lib/asr/pipeline.ts')).toBe(true) })
+  it('Clinical Reasoning ya no es una isla: la ruta real de consulta alcanza el bridge y el envelope', () => {
+    expect(alcanzables.has('src/lib/expediente/reasoning-workflow.ts')).toBe(true)
+    expect(alcanzables.has('src/lib/clinical-reasoning/index.ts')).toBe(true)
+  })
   it('el documento del camino existe', () => { expect(existsSync(DOC)).toBe(true) })
-  it('son siete pasos y ninguno está vacío', () => { expect(EL_CAMINO).toHaveLength(7); for (const p of EL_CAMINO) { expect(p.modulos.length).toBeGreaterThan(0); expect(p.hace.length).toBeGreaterThan(30) } })
+  it('son siete pasos y ninguno está vacío', () => { expect(EL_CAMINO).toHaveLength(7); for(const p of EL_CAMINO){ expect(p.modulos.length).toBeGreaterThan(0); expect(p.hace.length).toBeGreaterThan(30) } })
   it.each(EL_CAMINO)('$paso — sus módulos existen', ({ modulos }) => { expect(modulos.filter(m => !existsSync(join(RAIZ,m)))).toEqual([]) })
   it.each(EL_CAMINO)('$paso — se llega desde la app', ({ paso, modulos }) => { const desconectados=modulos.filter(m=>!alcanzables.has(m)); expect(desconectados,`${paso}: fuera del camino → ${desconectados.join(', ')}`).toEqual([]) })
   it('el documento nombra los siete pasos', () => { const t=readFileSync(DOC,'utf8'); for(const p of EL_CAMINO) expect(t).toContain(p.paso) })
