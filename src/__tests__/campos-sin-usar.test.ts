@@ -68,7 +68,6 @@ const CAMPOS_ACEPTADOS: Record<string, string> = {
   // Son contratos: se escribieron enteros y sus pruebas los ejercitan campo por
   // campo. Eso NO los convierte en usados —una prueba no es un consumidor—,
   // pero tampoco son un descuido. Van aquí para que se vea la diferencia.
-  'Claim.apoyos': 'Modelo de evidencia (E2): los pasajes que sostienen una afirmación. El Consultor todavía no arma sus respuestas con esta estructura.',
   'Efecto.citaLiteral': 'Del mismo modelo: la cifra TAL CUAL aparece en el texto, que es lo que permite rechazar una cifra no literal.',
   'Efecto.ic95': 'Del mismo modelo: el intervalo de confianza del efecto.',
   'ICUObservation.normalizedValue': 'Del bloque icu-002: el valor normalizado, lo único que un motor puede usar para calcular.',
