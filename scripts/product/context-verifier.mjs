@@ -39,6 +39,10 @@ export function verifyContext({ root = process.cwd(), files } = {}) {
     if (!canonical.toLowerCase().includes(phrase.toLowerCase())) errors.push(`MISSING_CANONICAL_REQUIREMENT:${phrase}`)
   }
 
+  const canonicalActiveMatch = canonical.match(/^Active slice:\s*(.+)$/mi)
+  const canonicalActive = canonicalActiveMatch?.[1]?.trim().replace(/\.$/, '')
+  if (!canonicalActive) errors.push('MISSING_CANONICAL_ACTIVE_SLICE')
+
   const rows = [...board.matchAll(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/g)]
     .map(m => ({ order: Number(m[1]), slice: m[2].trim(), status: m[3].trim() }))
     .filter(row => Number.isFinite(row.order))
@@ -52,6 +56,9 @@ export function verifyContext({ root = process.cwd(), files } = {}) {
 
   const active = rows.filter(row => row.status === 'ACTIVE')
   if (active.length !== 1) errors.push(`ACTIVE_SLICE_COUNT:${active.length}`)
+  if (active.length === 1 && canonicalActive && canonicalActive !== active[0].slice) {
+    errors.push(`CANONICAL_ACTIVE_SLICE_MISMATCH:${canonicalActive}:${active[0].slice}`)
+  }
 
   const firstIncomplete = rows.find(row => row.status !== 'COMPLETE')
   if (active.length === 1 && firstIncomplete && active[0].slice !== firstIncomplete.slice) {
