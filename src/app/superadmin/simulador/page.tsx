@@ -19,6 +19,8 @@ interface PorPerfil { perfil: string; etiqueta: string; unitario: Simulacion }
 interface FilaPlan { clave: string; nombre: string; precioMXN: number; porPerfil: PorPerfil[] }
 interface Datos {
   medido: { rapida: number | null; estandar: number | null; maxima: number | null; muestras: Record<string, number> }
+  /** Qué proveedor/modelo hay debajo de cada nivel. Interno: sólo superadmin. */
+  procedencia?: Record<string, string>
   otros: Record<string, number | null>
   usdMxn: number | null
   matriz: FilaPlan[]
@@ -92,7 +94,12 @@ export default function SimuladorSuperadmin() {
         <>
           {/* Lo medido, con su muestra: sin cuántas llamadas lo sostienen, un promedio no se puede creer. */}
           <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '13px 15px', marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Costo real por nota (medido)</div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>Costo real por nota (medido)</div>
+            {/* El médico elige intención clínica y no ve esto (#345). Quien juzga
+                el margen sí necesita saber qué está pagando en cada nivel. */}
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, lineHeight: 1.45 }}>
+              El médico no elige modelo: pide un nivel y el router resuelve el mínimo suficiente. Abajo, qué corre debajo de cada uno.
+            </div>
             <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
               {(['rapida', 'estandar', 'maxima'] as const).map(m => (
                 <div key={m}>
@@ -101,6 +108,9 @@ export default function SimuladorSuperadmin() {
                     {d.medido[m] == null ? '—' : `$${d.medido[m]!.toFixed(3)} USD`}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>{d.medido.muestras?.[m] ?? 0} llamadas</div>
+                  {d.procedencia?.[m] && (
+                    <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{d.procedencia[m]}</div>
+                  )}
                 </div>
               ))}
             </div>
