@@ -50,30 +50,67 @@ export function pacientesACsv(pacientes: Patient[]): string {
   return '﻿' + [head, ...filas].join('\r\n')
 }
 
-/** Parser CSV mínimo pero correcto (respeta comillas y saltos de línea internos). */
-export function parseCsv(texto: string): string[][] {
-  const filas: string[][] = []
+/**
+ * Las filas del CSV, UNA A UNA, sin materializar la tabla entera.
+ *
+ * ── POR QUÉ ES UN GENERADOR Y NO UN ARREGLO ──────────────────────────────────
+ *
+ * `parseCsv` devuelve la tabla completa, y para una hoja de 200 pacientes eso
+ * está bien. Para una migración de 50 000 filas no: la tabla entera en memoria
+ * es lo que impedía que el ensayo cupiera en una función sin servidor
+ * (`docs/migration/RISK-REGISTER.md`, P1-2).
+ *
+ * **Hay UN solo analizador de CSV en el repositorio y es éste.** `parseCsv` se
+ * construye encima. Escribir un segundo lector «para el caso grande» habría
+ * dejado dos formas distintas de interpretar una comilla mal cerrada, y sólo se
+ * habría descubierto el día en que las dos discreparan sobre el archivo de
+ * alguien.
+ *
+ * Ojo: devuelve TODAS las filas, incluidas las totalmente vacías. Filtrarlas es
+ * decisión de quien consume —`parseCsv` las descarta; la migración las cuenta—
+ * y la decisión es por fila, así que no obliga a tener la tabla delante.
+ */
+export function* filasDeCsv(texto: string): Generator<string[]> {
   let campo = ''
   let fila: string[] = []
   let enComillas = false
-  const t = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  for (let i = 0; i < t.length; i++) {
-    const c = t[i]
+  for (let i = 0; i < texto.length; i++) {
+    let c = texto[i]
+    /**
+     * `\r\n` y `\r` suelto se leen como `\n`, dentro y fuera de comillas.
+     *
+     * Es exactamente lo que hacía el `.replace()` global que había antes aquí,
+     * hecho carácter a carácter: normalizar de golpe obligaba a duplicar el
+     * archivo en memoria ANTES de empezar a leerlo, que es justo lo que este
+     * generador existe para no hacer.
+     */
+    if (c === '\r') { if (texto[i + 1] === '\n') i++; c = '\n' }
     if (enComillas) {
       if (c === '"') {
-        if (t[i + 1] === '"') { campo += '"'; i++ } else enComillas = false
+        if (texto[i + 1] === '"') { campo += '"'; i++ } else enComillas = false
       } else campo += c
     } else if (c === '"') {
       enComillas = true
     } else if (c === ',') {
       fila.push(campo); campo = ''
     } else if (c === '\n') {
-      fila.push(campo); filas.push(fila); campo = ''; fila = []
+      fila.push(campo); yield fila; campo = ''; fila = []
     } else campo += c
   }
-  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila) }
+  if (campo !== '' || fila.length) { fila.push(campo); yield fila }
+}
+
+/** ¿Esta fila trae algo? Una fila de puros vacíos no es una fila de datos. */
+export function filaConContenido(fila: readonly string[]): boolean {
+  return fila.some(x => x.trim() !== '')
+}
+
+/** Parser CSV mínimo pero correcto (respeta comillas y saltos de línea internos). */
+export function parseCsv(texto: string): string[][] {
+  const filas: string[][] = []
   // descarta filas totalmente vacías
-  return filas.filter(f => f.some(x => x.trim() !== ''))
+  for (const f of filasDeCsv(texto)) if (filaConContenido(f)) filas.push(f)
+  return filas
 }
 
 /** Sinónimos de encabezado → campo del paciente, para auto-mapear la importación. */

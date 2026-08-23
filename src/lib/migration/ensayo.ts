@@ -40,12 +40,12 @@ import {
   normalizarCurp, normalizarSexo, type FormatoFecha, type Normalizado,
 } from './normalizacion'
 import { faltaIdentidad, huellaDeMapeo, mapear, type CampoMigrable, type Mapeo } from './mapeo'
-import { huellaDeFila, primeraAparicion, colisionesDeIdOrigen } from './huella'
+import { huellaDeFila, RegistroDeHuellas } from './huella'
 import {
   emparejar, puedeCrearse, requiereRevision, IndicePacientes,
   type Emparejamiento,
 } from './emparejamiento'
-import { contar, reconciliar, type Reconciliacion } from './reconciliacion'
+import { ContadorDeVeredictos, reconciliar, type Reconciliacion } from './reconciliacion'
 import type { AdaptadorOrigen, FilaOrigen, Lectura } from './adaptadores'
 import { procedenciaDeCampo, type ProcedenciaCampo } from './procedencia'
 import type { PacienteComparable } from '@/lib/pacientes/duplicados'
@@ -114,6 +114,70 @@ const MINIMO_NOMBRE = 3
  */
 export const DETALLE_MAXIMO = 1_000
 
+/**
+ * Cuántas filas del archivo se sostienen a la vez, por omisión.
+ *
+ * El mismo número que `FILAS_POR_LOTE`, y no por casualidad: la ventana del
+ * ensayo y el lote de escritura son el mismo trozo de trabajo visto dos veces.
+ * Que coincidan hace que «el ensayo aguantó» y «la escritura aguanta» hablen del
+ * mismo tamaño de bocado; dos números distintos harían que el ensayo prometiera
+ * sobre una forma de trabajar que la importación no usa.
+ */
+export const VENTANA_POR_OMISION = FILAS_POR_LOTE
+
+/* ═══════════════════════ LO QUE SE SOSTIENE A LA VEZ ═══════════════════════ */
+
+/**
+ * La memoria del ensayo, DECLARADA en el resultado.
+ *
+ * ── POR QUÉ SALE EN EL INFORME Y NO SE QUEDA EN UN COMENTARIO ────────────────
+ *
+ * «El ensayo es de memoria acotada» es una afirmación que hay que poder
+ * comprobar, no una intención. Con estos números una prueba puede exigir que
+ * procesar 50 000 filas no sostenga 50 000 de nada — y fallar el día que alguien
+ * vuelva a juntarlo todo en un `Promise.all` sobre el archivo entero, que es
+ * exactamente cómo llegó a pedir 629 MB (`RISK-REGISTER.md`, P1-2).
+ *
+ * ── LO QUE ESTOS NÚMEROS NO SON ──────────────────────────────────────────────
+ *
+ * No son megas. Son **conteos de objetos vivos a la vez**, que es lo que se
+ * puede medir de forma determinista y sin `--expose-gc`. Un montón medido en
+ * megas depende del recolector, del tamaño de los campos y de la máquina; un
+ * conteo de filas residentes no. La medición en megas vive en el arnés
+ * (`scripts/migration/arnes.mjs`), fuera de la suite y etiquetada como
+ * `local observado`.
+ */
+export interface EstadoAcotado {
+  /** Filas que se piden al adaptador de una vez. */
+  readonly filasPorVentana: number
+  /** Pasadas sobre el archivo. Dos: huellas primero, veredictos después. */
+  readonly pasadas: 2
+  /** Máximo de filas de ORIGEN vivas a la vez. Nunca más que la ventana. */
+  readonly maximoFilasDeOrigenResidentes: number
+  /** Máximo de filas TRANSFORMADAS vivas a la vez. Nunca más que la ventana. */
+  readonly maximoFilasTransformadasResidentes: number
+  /**
+   * Huellas retenidas de una pasada a la otra: 32 caracteres por fila DISTINTA.
+   *
+   * Esto sí crece con el archivo, y se declara en vez de esconderse. Es el
+   * precio irreducible de detectar duplicados: para saber que la fila 5 repite a
+   * la 40 000 hay que recordar algo de las 40 000. Lo que se recuerda es un
+   * hash, no la fila.
+   */
+  readonly huellasRetenidas: number
+  /** Filas con detalle completo que se devuelven. Acotado por `detalleMaximo`. */
+  readonly detalleRetenido: number
+  /**
+   * Expedientes en el índice de emparejamiento: el padrón más lo aceptado.
+   *
+   * También crece, y por la misma clase de razón: la fila 900 se compara contra
+   * las 899 que ya entraron, y sin eso el mismo paciente repetido dentro del
+   * archivo se crea dos veces. Se declara para que nadie lea «memoria acotada»
+   * como «nada crece».
+   */
+  readonly expedientesEnElIndice: number
+}
+
 /* ═══════════════════════ EL ENSAYO ═══════════════════════ */
 
 export interface OpcionesEnsayo {
@@ -151,6 +215,15 @@ export interface OpcionesEnsayo {
    * importación, que es su única razón de existir.
    */
   readonly detalleMaximo?: number
+  /**
+   * Cuántas filas del archivo se sostienen a la vez. Por omisión, un lote.
+   *
+   * Se expone para poder PROBARLO: con una ventana de 7 y un archivo de 500, el
+   * resultado tiene que ser idéntico al de una ventana de 100 000. Si cambiar el
+   * tamaño de la ventana cambiara una sola cuenta, el troceado estaría
+   * decidiendo algo que no le toca.
+   */
+  readonly filasPorVentana?: number
 }
 
 export interface ResultadoEnsayo {
@@ -201,6 +274,8 @@ export interface ResultadoEnsayo {
    * cada fila saldría mal por la misma razón.
    */
   readonly bloqueos: readonly string[]
+  /** Qué se sostuvo a la vez. Ver `EstadoAcotado`. */
+  readonly memoria: EstadoAcotado
 }
 
 /**
@@ -220,28 +295,26 @@ export async function ensayar(
     throw new Error(`migración: el adaptador "${adaptador.id}" no está disponible — ${adaptador.porQueNo ?? ''}`)
   }
 
-  const lectura = adaptador.leer(contenido)
-  const mapeo = mapear(lectura.encabezados, o.forzado)
-  const huellaMapeo = huellaDeMapeo(mapeo)
-
-  const bloqueos: string[] = []
-  if (lectura.sourceRecords === 0) bloqueos.push('El archivo no trae ninguna fila de datos.')
-  if (faltaIdentidad(mapeo)) {
-    bloqueos.push('No se encontró una columna de Nombre. Sin nombre no se puede abrir un expediente.')
-  }
-  if (mapeo.hayConflictos) {
-    const c = mapeo.columnas.filter(x => x.clase === 'conflicto').map(x => ('encabezado' in x ? x.encabezado : ''))
-    bloqueos.push(`Hay columnas peleándose por el mismo campo (${c.join(', ')}). Dinos cuál es cuál.`)
-  }
-
   /**
-   * PRIMERA PASADA — normalizar y sacar la huella de cada fila.
+   * ── POR QUÉ DOS PASADAS EN FLUJO Y NO UNA SOLA CON TODO DELANTE ────────────
    *
-   * Se separa de la segunda porque los duplicados internos y las colisiones de
-   * id de origen sólo se ven con TODAS las huellas delante. Decidir fila a fila
-   * en una sola pasada haría que la primera aparición de un duplicado se juzgara
-   * sin saber que era la primera.
+   * La versión anterior leía el archivo entero a un arreglo y construía una
+   * entrada por fila; el arnés midió **629 MB de montón para 20 MB de archivo**
+   * con 50 000 filas (`RISK-REGISTER.md`, P1-2). No es que fuera lento: es que
+   * no cabe en una función sin servidor, y la importación grande es justo la que
+   * este carril existe para atender.
+   *
+   * Se lee por trozos y se sueltan. Y son DOS pasadas porque hay una pregunta
+   * que no se puede contestar en una: la fila 5 puede colisionar en id de origen
+   * con la 40 000, así que su veredicto no se puede dictar hasta haber visto el
+   * final del archivo. Lo que sobrevive entre las dos pasadas es una huella de
+   * 32 caracteres por fila distinta — no la fila.
+   *
+   * El precio es CPU: se normaliza dos veces. Es el intercambio deliberado —
+   * tiempo por memoria— y el tiempo se puede repartir en varias invocaciones,
+   * mientras que quedarse sin memoria mata la importación entera.
    */
+  const ventana = Math.max(1, Math.floor(o.filasPorVentana ?? VENTANA_POR_OMISION))
   /**
    * El detalle pesado sólo se construye para las filas que se van a DEVOLVER.
    *
@@ -254,15 +327,42 @@ export async function ensayar(
    * razones — de ahí salen las cuentas, y las cuentas no se recortan nunca.
    */
   const topeDetalle = o.detalleMaximo ?? DETALLE_MAXIMO
-  const preparadas = await Promise.all(
-    lectura.filas.map((f, i) => prepararFila(f, mapeo, o, i < topeDetalle)),
-  )
 
-  const huellas = preparadas.map(p => p.huella)
-  const primera = primeraAparicion(huellas)
-  const colisiones = colisionesDeIdOrigen(
-    preparadas.map(p => ({ sourceRecordId: p.sourceRecordId, huella: p.huella })),
-  )
+  const primeraLectura = adaptador.leerPorTrozos(contenido, ventana)
+  const encabezados = primeraLectura.encabezados
+  const mapeo = mapear(encabezados, o.forzado)
+  const huellaMapeo = huellaDeMapeo(mapeo)
+
+  let maximoOrigen = 0
+  let maximoTransformadas = 0
+
+  /**
+   * PRIMERA PASADA — sólo huellas e ids de origen.
+   *
+   * Se llama al MISMO `prepararFila` que la segunda pasada, con el detalle
+   * apagado. Dos caminos distintos para calcular la huella de una fila es cómo
+   * se llega a que la pasada que detecta duplicados y la que dicta veredictos
+   * discrepen sobre qué fila es cuál.
+   */
+  const registro = new RegistroDeHuellas()
+  let sourceRecords = 0
+  for (const trozo of primeraLectura.trozos) {
+    maximoOrigen = Math.max(maximoOrigen, trozo.filas.length + trozo.rotas.length)
+    const preparadas = await Promise.all(trozo.filas.map(f => prepararFila(f, mapeo, o, false)))
+    maximoTransformadas = Math.max(maximoTransformadas, preparadas.length)
+    for (const p of preparadas) registro.ver(p.huella, p.sourceRow, p.sourceRecordId)
+    sourceRecords += trozo.filas.length + trozo.rotas.length
+  }
+
+  const bloqueos: string[] = []
+  if (sourceRecords === 0) bloqueos.push('El archivo no trae ninguna fila de datos.')
+  if (faltaIdentidad(mapeo)) {
+    bloqueos.push('No se encontró una columna de Nombre. Sin nombre no se puede abrir un expediente.')
+  }
+  if (mapeo.hayConflictos) {
+    const c = mapeo.columnas.filter(x => x.clase === 'conflicto').map(x => ('encabezado' in x ? x.encabezado : ''))
+    bloqueos.push(`Hay columnas peleándose por el mismo campo (${c.join(', ')}). Dinos cuál es cuál.`)
+  }
 
   /**
    * SEGUNDA PASADA — emparejar y dictar veredicto.
@@ -273,10 +373,12 @@ export async function ensayar(
    * exports de otros sistemas la traen repetida con frecuencia.
    */
   const indice = new IndicePacientes<PacienteComparable>(existentes)
-  const tope = topeDetalle
+  const contador = new ContadorDeVeredictos()
   const filas: FilaResuelta[] = []
-  const veredictosDeFila: Veredicto[] = []
   let filasOmitidas = 0
+  /** Filas de datos ya vistas en esta pasada. Decide a quién le toca detalle. */
+  let vistas = 0
+  let aceptadasAlIndice = 0
 
   /**
    * Guarda el veredicto SIEMPRE y el detalle sólo mientras quepa.
@@ -287,94 +389,100 @@ export async function ensayar(
    * que este carril existe para impedir.
    */
   const registrar = (f: FilaResuelta) => {
-    veredictosDeFila.push(f.veredicto)
-    if (filas.length < tope) filas.push(f)
+    contador.sumar(f.veredicto)
+    if (filas.length < topeDetalle) filas.push(f)
     else filasOmitidas++
   }
 
-  for (let i = 0; i < preparadas.length; i++) {
-    const p = preparadas[i]
-    const razones: Razon[] = [...p.razones]
+  for (const trozo of adaptador.leerPorTrozos(contenido, ventana).trozos) {
+    maximoOrigen = Math.max(maximoOrigen, trozo.filas.length + trozo.rotas.length)
+    const preparadas = await Promise.all(
+      trozo.filas.map((f, k) => prepararFila(f, mapeo, o, vistas + k < topeDetalle)),
+    )
+    maximoTransformadas = Math.max(maximoTransformadas, preparadas.length)
+    vistas += preparadas.length
 
-    // 1. Lo que tumba la fila antes de mirar a nadie más.
-    if (razones.length > 0) {
-      registrar({ ...p, veredicto: rechazada('rejected', razones) })
-      continue
-    }
-    // 2. Repetida dentro del propio archivo.
-    if (primera.get(p.huella) !== i) {
-      registrar({
-        ...p,
-        veredicto: rechazada('duplicate', ['DUPLICATE_IN_SOURCE'], { primeraFila: lectura.filas[primera.get(p.huella)!].sourceRow }),
-      })
-      continue
-    }
-    // 3. Ya importada en un trabajo anterior. No es un error: es idempotencia.
-    if (o.huellasPrevias?.has(p.huella)) {
-      registrar({ ...p, veredicto: rechazada('duplicate', ['ALREADY_IMPORTED']) })
-      continue
-    }
-    // 4. El archivo se contradice a sí mismo sobre quién es quién.
-    if (p.sourceRecordId && colisiones.has(p.sourceRecordId)) {
-      registrar({ ...p, veredicto: rechazada('quarantined', ['SOURCE_ID_COLLISION']) })
-      continue
-    }
-    // 5. Hay dudas que no tumban la fila pero que nadie debe resolver adivinando.
-    if (p.inciertos.length > 0) {
-      registrar({
-        ...p,
-        veredicto: rechazada('quarantined', p.razonesInciertas, { camposInciertos: p.inciertos.join(',') }),
-      })
-      continue
+    for (const p of preparadas) {
+      const razones: Razon[] = [...p.razones]
+
+      // 1. Lo que tumba la fila antes de mirar a nadie más.
+      if (razones.length > 0) {
+        registrar({ ...p, veredicto: rechazada('rejected', razones) })
+        continue
+      }
+      // 2. Repetida dentro del propio archivo.
+      if (!registro.esPrimera(p.huella, p.sourceRow)) {
+        registrar({
+          ...p,
+          veredicto: rechazada('duplicate', ['DUPLICATE_IN_SOURCE'], { primeraFila: registro.primeraDe(p.huella)! }),
+        })
+        continue
+      }
+      // 3. Ya importada en un trabajo anterior. No es un error: es idempotencia.
+      if (o.huellasPrevias?.has(p.huella)) {
+        registrar({ ...p, veredicto: rechazada('duplicate', ['ALREADY_IMPORTED']) })
+        continue
+      }
+      // 4. El archivo se contradice a sí mismo sobre quién es quién.
+      if (registro.colisionDeIdOrigen(p.sourceRecordId)) {
+        registrar({ ...p, veredicto: rechazada('quarantined', ['SOURCE_ID_COLLISION']) })
+        continue
+      }
+      // 5. Hay dudas que no tumban la fila pero que nadie debe resolver adivinando.
+      if (p.inciertos.length > 0) {
+        registrar({
+          ...p,
+          veredicto: rechazada('quarantined', p.razonesInciertas, { camposInciertos: p.inciertos.join(',') }),
+        })
+        continue
+      }
+
+      // 6. ¿Es alguien que ya está?
+      const comparable: PacienteComparable = {
+        nombre: p.campos.nombre,
+        telefono: p.campos.telefono,
+        whatsapp: p.campos.whatsapp,
+        curp: p.campos.curp,
+        fechaNacimiento: p.campos.fechaNacimiento,
+      }
+      const em = emparejar(comparable, indice)
+
+      if (puedeCrearse(em.clase)) {
+        // Sólo lo ACEPTADO entra al índice. Una fila en cuarentena no puede servir
+        // de espejo para juzgar a las siguientes: todavía no se sabe si existe.
+        indice.agregar(comparable)
+        aceptadasAlIndice++
+        registrar({ ...p, emparejamiento: em, veredicto: aceptada() })
+      } else if (em.clase === 'EXACT_MATCH') {
+        registrar({ ...p, emparejamiento: em, veredicto: rechazada('duplicate', ['DUPLICATE_EXACT']) })
+      } else if (requiereRevision(em.clase)) {
+        registrar({
+          ...p,
+          emparejamiento: em,
+          veredicto: rechazada('ambiguous', ['DUPLICATE_AMBIGUOUS'], { candidatos: em.candidatos.length }),
+        })
+      }
     }
 
-    // 6. ¿Es alguien que ya está?
-    const comparable: PacienteComparable = {
-      nombre: p.campos.nombre,
-      telefono: p.campos.telefono,
-      whatsapp: p.campos.whatsapp,
-      curp: p.campos.curp,
-      fechaNacimiento: p.campos.fechaNacimiento,
-    }
-    const em = emparejar(comparable, indice)
-
-    if (puedeCrearse(em.clase)) {
-      // Sólo lo ACEPTADO entra al índice. Una fila en cuarentena no puede servir
-      // de espejo para juzgar a las siguientes: todavía no se sabe si existe.
-      indice.agregar(comparable)
-      registrar({ ...p, emparejamiento: em, veredicto: aceptada() })
-    } else if (em.clase === 'EXACT_MATCH') {
-      registrar({ ...p, emparejamiento: em, veredicto: rechazada('duplicate', ['DUPLICATE_EXACT']) })
-    } else if (requiereRevision(em.clase)) {
-      registrar({
-        ...p,
-        emparejamiento: em,
-        veredicto: rechazada('ambiguous', ['DUPLICATE_AMBIGUOUS'], { candidatos: em.candidatos.length }),
-      })
-    }
+    /**
+     * LAS FILAS ROTAS CUENTAN.
+     *
+     * Entran en la contabilidad como rechazadas, en su trozo y no en una lista
+     * al final. Éste es el renglón que hace que `sourceRecords` cuadre: sin él,
+     * una fila que el parser no pudo separar desaparecería del total y las
+     * cuentas darían bien sobre un archivo del que se perdió una parte.
+     */
+    for (const r of trozo.rotas) contador.sumar(rechazada('rejected', [r.razon], r.detalle))
   }
 
-  /**
-   * LAS FILAS ROTAS CUENTAN.
-   *
-   * Se añaden como veredictos rechazados para que entren en la contabilidad.
-   * Éste es el renglón que hace que `sourceRecords` cuadre: sin él, una fila que
-   * el parser no pudo separar desaparecería del total y las cuentas darían bien
-   * sobre un archivo del que se perdió una parte.
-   */
-  const veredictos = [
-    ...veredictosDeFila,
-    ...lectura.rotas.map(r => rechazada('rejected', [r.razon], r.detalle)),
-  ]
-
-  const cuentas = contar(lectura.sourceRecords, veredictos)
+  const cuentas = contador.cerrar(sourceRecords)
   const aceptadas = cuentas.porDestino.accepted
 
   return {
     clinicId: o.clinicId,
     mapeo,
     huellaMapeo,
-    lectura: { encabezados: lectura.encabezados, sourceRecords: lectura.sourceRecords },
+    lectura: { encabezados, sourceRecords },
     filas,
     filasOmitidas,
     reconciliacion: reconciliar(cuentas),
@@ -382,6 +490,15 @@ export async function ensayar(
     columnasDesconocidas: mapeo.desconocidas,
     senalesSaturadas: indice.bloquesSaturados(),
     bloqueos,
+    memoria: {
+      filasPorVentana: ventana,
+      pasadas: 2,
+      maximoFilasDeOrigenResidentes: maximoOrigen,
+      maximoFilasTransformadasResidentes: maximoTransformadas,
+      huellasRetenidas: registro.huellasDistintas,
+      detalleRetenido: filas.length,
+      expedientesEnElIndice: existentes.length + aceptadasAlIndice,
+    },
   }
 }
 

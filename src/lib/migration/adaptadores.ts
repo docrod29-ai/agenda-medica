@@ -24,7 +24,7 @@
  *
  * Módulo PURO.
  */
-import { parseCsv } from '@/lib/csv-pacientes'
+import { filaConContenido, filasDeCsv } from '@/lib/csv-pacientes'
 import type { Razon } from './contrato'
 
 /* ═══════════════════════ LO QUE TODO ORIGEN PRODUCE ═══════════════════════ */
@@ -62,6 +62,33 @@ export interface Lectura {
   readonly sourceRecords: number
 }
 
+/* ═══════════════════════ LEER SIN SOSTENER EL ARCHIVO ═══════════════════════ */
+
+/**
+ * Un trozo de lectura: unas cuantas filas y las que se rompieron entre ellas.
+ *
+ * Las rotas viajan CON su trozo y no en una lista aparte al final. Si se
+ * juntaran al final, la única forma de saber cuántas hubo sería haber leído el
+ * archivo entero — y entonces el troceado no habría servido de nada.
+ */
+export interface Trozo {
+  readonly filas: readonly FilaOrigen[]
+  readonly rotas: readonly FilaRota[]
+}
+
+/**
+ * El archivo leído POR TROZOS. Lo mismo que `Lectura`, sin tenerlo todo delante.
+ *
+ * `trozos` es **re-iterable**: cada recorrido vuelve a empezar por el principio.
+ * De eso depende el ensayo, que da dos pasadas sobre el mismo archivo —una para
+ * las huellas y otra para los veredictos— sin conservar entre las dos ni una
+ * sola fila de origen.
+ */
+export interface LecturaPorTrozos {
+  readonly encabezados: readonly string[]
+  readonly trozos: Iterable<Trozo>
+}
+
 export interface AdaptadorOrigen {
   readonly id: string
   readonly nombre: string
@@ -72,6 +99,33 @@ export interface AdaptadorOrigen {
   /** Por qué no está disponible. Se enseña al médico tal cual. */
   readonly porQueNo?: string
   leer(contenido: string): Lectura
+  /**
+   * Lo mismo que `leer`, pero entregando como mucho `porTrozo` filas a la vez.
+   *
+   * Es OBLIGATORIO en el contrato, no un extra opcional. Con un método opcional
+   * y un respaldo a `leer`, un adaptador nuevo que se olvidara de implementarlo
+   * volvería en silencio a sostener el archivo entero — y el defecto sólo se
+   * vería el día de la importación grande, que es la que no se puede repetir.
+   */
+  leerPorTrozos(contenido: string, porTrozo: number): LecturaPorTrozos
+}
+
+/**
+ * Junta todos los trozos en una `Lectura`. Deliberadamente NO acotado.
+ *
+ * Existe para quien de verdad quiere la tabla entera —una hoja pequeña, una
+ * prueba— y para que `leer()` no sea una segunda implementación del análisis
+ * del archivo: hay un solo camino de lectura y esto es su final.
+ */
+export function materializar(l: LecturaPorTrozos): Lectura {
+  const filas: FilaOrigen[] = []
+  const rotas: FilaRota[] = []
+  for (const t of l.trozos) {
+    // Sin `push(...spread)`: con cincuenta mil filas eso desborda la pila.
+    for (const f of t.filas) filas.push(f)
+    for (const r of t.rotas) rotas.push(r)
+  }
+  return { encabezados: l.encabezados, filas, rotas, sourceRecords: filas.length + rotas.length }
 }
 
 /* ═══════════════════════ CSV ═══════════════════════ */
@@ -85,47 +139,56 @@ export interface AdaptadorOrigen {
  * totalmente vacías y no dice cuántas descartó, que para una hoja de cálculo
  * está bien y para una migración no.
  */
-export const ADAPTADOR_CSV: AdaptadorOrigen = {
-  id: 'csv',
-  nombre: 'CSV',
-  extensiones: ['.csv', '.txt'],
-  disponible: true,
-  leer(contenido: string): Lectura {
-    const tabla = parseCsv(contenido)
-    if (tabla.length === 0) {
-      return { encabezados: [], filas: [], rotas: [], sourceRecords: 0 }
-    }
-
+/**
+ * Los encabezados, sin leer el resto del archivo.
+ *
+ * El generador es perezoso: esto consume sólo hasta la primera fila con algo
+ * dentro y suelta el resto. Poder saber las columnas antes de procesar nada es
+ * lo que permite decidir el mapeo —y bloquear el trabajo si falta el nombre—
+ * sin haber pagado una pasada completa.
+ */
+function encabezadosDeCsv(contenido: string): readonly string[] | null {
+  for (const f of filasDeCsv(contenido)) {
+    if (!filaConContenido(f)) continue
     // El BOM viaja pegado al primer encabezado y lo deja sin emparejar.
-    const encabezados = tabla[0].map((h, i) =>
-      (i === 0 && h.charCodeAt(0) === 0xfeff ? h.slice(1) : h).trim(),
-    )
-    const cuerpo = tabla.slice(1)
+    return f.map((h, i) => (i === 0 && h.charCodeAt(0) === 0xfeff ? h.slice(1) : h).trim())
+  }
+  return null
+}
 
-    const filas: FilaOrigen[] = []
-    const rotas: FilaRota[] = []
+function* trozosDeCsv(
+  contenido: string,
+  encabezados: readonly string[],
+  porTrozo: number,
+): Generator<Trozo> {
+  let filas: FilaOrigen[] = []
+  let rotas: FilaRota[] = []
+  let sourceRow = 0
+  let esEncabezado = true
 
-    cuerpo.forEach((cols, i) => {
-      const sourceRow = i + 1
-      /**
-       * MÁS COLUMNAS QUE EL ENCABEZADO = FILA ROTA.
-       *
-       * Casi siempre es una coma sin escapar dentro de un nombre («Pérez, Juan»
-       * sin comillas). Si se ignoran las columnas de más, ese paciente entra con
-       * el apellido en el campo del teléfono y el teléfono en el del correo:
-       * un expediente que parece bueno y no lo es.
-       *
-       * Menos columnas sí se tolera: un CSV con la última columna vacía las
-       * omite, y eso es normal y no cambia el significado de las que sí vinieron.
-       */
-      if (cols.length > encabezados.length) {
-        rotas.push({
-          sourceRow,
-          razon: 'ROW_ARITY_MISMATCH',
-          detalle: { columnas: cols.length, esperadas: encabezados.length },
-        })
-        return
-      }
+  for (const cols of filasDeCsv(contenido)) {
+    if (!filaConContenido(cols)) continue
+    if (esEncabezado) { esEncabezado = false; continue }
+    sourceRow++
+
+    /**
+     * MÁS COLUMNAS QUE EL ENCABEZADO = FILA ROTA.
+     *
+     * Casi siempre es una coma sin escapar dentro de un nombre («Pérez, Juan»
+     * sin comillas). Si se ignoran las columnas de más, ese paciente entra con
+     * el apellido en el campo del teléfono y el teléfono en el del correo:
+     * un expediente que parece bueno y no lo es.
+     *
+     * Menos columnas sí se tolera: un CSV con la última columna vacía las
+     * omite, y eso es normal y no cambia el significado de las que sí vinieron.
+     */
+    if (cols.length > encabezados.length) {
+      rotas.push({
+        sourceRow,
+        razon: 'ROW_ARITY_MISMATCH',
+        detalle: { columnas: cols.length, esperadas: encabezados.length },
+      })
+    } else {
       const campos: Record<string, string> = {}
       encabezados.forEach((h, j) => {
         // La columna sin encabezado se conserva bajo un nombre posicional. Perderla
@@ -134,9 +197,43 @@ export const ADAPTADOR_CSV: AdaptadorOrigen = {
         campos[clave] = cols[j] ?? ''
       })
       filas.push({ sourceRow, campos })
-    })
+    }
 
-    return { encabezados, filas, rotas, sourceRecords: filas.length + rotas.length }
+    if (filas.length + rotas.length >= porTrozo) {
+      yield { filas, rotas }
+      // Arreglos NUEVOS, no `length = 0`: quien recibió el trozo puede seguir
+      // mirándolo mientras se prepara el siguiente, y vaciarlo se lo borraría
+      // debajo. Soltar la referencia es lo que deja que el recolector se lo
+      // lleve; reutilizar el arreglo es lo que impediría que se lo llevara.
+      filas = []
+      rotas = []
+    }
+  }
+  if (filas.length > 0 || rotas.length > 0) yield { filas, rotas }
+}
+
+function leerCsvPorTrozos(contenido: string, porTrozo: number): LecturaPorTrozos {
+  const encabezados = encabezadosDeCsv(contenido)
+  if (encabezados === null) return { encabezados: [], trozos: [] }
+  const tope = Math.max(1, Math.floor(porTrozo))
+  return {
+    encabezados,
+    // Re-iterable a propósito: el ensayo recorre esto dos veces.
+    trozos: { [Symbol.iterator]: () => trozosDeCsv(contenido, encabezados, tope) },
+  }
+}
+
+export const ADAPTADOR_CSV: AdaptadorOrigen = {
+  id: 'csv',
+  nombre: 'CSV',
+  extensiones: ['.csv', '.txt'],
+  disponible: true,
+  leerPorTrozos: leerCsvPorTrozos,
+  leer(contenido: string): Lectura {
+    // Un solo trozo con todo dentro. `leer` es, por definición, la lectura NO
+    // acotada; lo que no puede ser es un segundo analizador con sus propias
+    // reglas para las comillas y las filas rotas.
+    return materializar(leerCsvPorTrozos(contenido, Number.MAX_SAFE_INTEGER))
   },
 }
 
@@ -179,6 +276,9 @@ export const ADAPTADOR_XLSX: AdaptadorOrigen = {
   leer(): Lectura {
     throw new Error('migración: el adaptador de XLSX no está implementado — ver docs/migration/HANDOFF.md')
   },
+  leerPorTrozos(): LecturaPorTrozos {
+    throw new Error('migración: el adaptador de XLSX no está implementado — ver docs/migration/HANDOFF.md')
+  },
 }
 
 /**
@@ -197,6 +297,9 @@ export const ADAPTADOR_ESTRUCTURADO: AdaptadorOrigen = {
   porQueNo:
     'Todavía no leemos exports de otros sistemas directamente. Mándanos un archivo de muestra y lo añadimos.',
   leer(): Lectura {
+    throw new Error('migración: no hay adaptador para exports estructurados — hace falta una muestra real')
+  },
+  leerPorTrozos(): LecturaPorTrozos {
     throw new Error('migración: no hay adaptador para exports estructurados — hace falta una muestra real')
   },
 }

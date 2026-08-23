@@ -138,6 +138,84 @@ export function idDeLote(importJobId: string, numero: number): string {
 }
 
 /**
+ * LO QUE HAY QUE RECORDAR DE UN ARCHIVO ENTERO, Y NADA MÁS.
+ *
+ * ── POR QUÉ ES UN ACUMULADOR Y NO DOS FUNCIONES SOBRE ARREGLOS ───────────────
+ *
+ * Dos preguntas del ensayo no se pueden contestar mirando una fila sola:
+ *
+ *  · «¿esta fila repite otra?» — hay que saber si su huella salió antes;
+ *  · «¿este id de origen se contradice?» — la fila 5 puede colisionar con la
+ *    40 000, así que su veredicto no se puede dictar hasta haber visto el final.
+ *
+ * Lo que hace falta guardar para contestarlas es **una huella de 32 caracteres
+ * por fila distinta**, no la fila. Con este acumulador el ensayo puede leer el
+ * archivo por trozos y soltarlos: lo que sobrevive al trozo es esto, que es
+ * pequeño y acotado por el número de filas DISTINTAS, no por su contenido.
+ *
+ * Las dos funciones de abajo se construyen encima para no tener dos definiciones
+ * de «primera aparición» — una para el caso pequeño y otra para el grande.
+ */
+export class RegistroDeHuellas {
+  private readonly primeras = new Map<string, number>()
+  private readonly huellaPorId = new Map<string, string>()
+  private readonly enColision = new Set<string>()
+
+  /**
+   * Anota una fila ya resumida.
+   *
+   * `posicion` es la dirección estable de la fila —el ensayo usa `sourceRow`—
+   * porque el informe tiene que poder decir «la fila 4 812 repite la 37». «Es un
+   * duplicado» a secas obliga al médico a buscar a mano en cincuenta mil filas.
+   */
+  ver(huella: string, posicion: number, sourceRecordId?: string): void {
+    if (!this.primeras.has(huella)) this.primeras.set(huella, posicion)
+    if (!sourceRecordId) return
+    const previa = this.huellaPorId.get(sourceRecordId)
+    if (previa === undefined) this.huellaPorId.set(sourceRecordId, huella)
+    else if (previa !== huella) this.enColision.add(sourceRecordId)
+  }
+
+  /** Dónde salió por primera vez esta huella. `undefined` = no se ha visto. */
+  primeraDe(huella: string): number | undefined {
+    return this.primeras.get(huella)
+  }
+
+  /** ¿ESTA es la aparición buena? Sólo la primera puede aceptarse. */
+  esPrimera(huella: string, posicion: number): boolean {
+    return this.primeras.get(huella) === posicion
+  }
+
+  /**
+   * ¿Este id de origen aparece con contenidos distintos?
+   *
+   * Si el archivo trae su propia columna de identificador —lo normal en un
+   * export de otro sistema— dos filas con el MISMO id y CONTENIDO DISTINTO son
+   * un problema del archivo: alguien editó el export a mano, o el sistema de
+   * origen reutiliza ids. Fundirlas escogería una de las dos al azar, así que
+   * van a cuarentena con `SOURCE_ID_COLLISION`.
+   */
+  colisionDeIdOrigen(sourceRecordId?: string): boolean {
+    return sourceRecordId !== undefined && this.enColision.has(sourceRecordId)
+  }
+
+  /** Cuántas huellas distintas se están reteniendo. Es la memoria del ensayo. */
+  get huellasDistintas(): number {
+    return this.primeras.size
+  }
+
+  /** Copia del mapa huella → primera posición. */
+  primerasApariciones(): Map<string, number> {
+    return new Map(this.primeras)
+  }
+
+  /** Copia del conjunto de ids en conflicto. */
+  idsEnColision(): Set<string> {
+    return new Set(this.enColision)
+  }
+}
+
+/**
  * Filas repetidas DENTRO del archivo.
  *
  * No se resuelve aquí (eso lo decide `emparejamiento.ts`): sólo se cuenta cuál
@@ -149,18 +227,13 @@ export function idDeLote(importJobId: string, numero: number): string {
  * a secas obliga al médico a buscar a mano en cincuenta mil filas.
  */
 export function primeraAparicion(huellas: readonly string[]): Map<string, number> {
-  const visto = new Map<string, number>()
-  huellas.forEach((h, i) => { if (!visto.has(h)) visto.set(h, i) })
-  return visto
+  const r = new RegistroDeHuellas()
+  huellas.forEach((h, i) => r.ver(h, i))
+  return r.primerasApariciones()
 }
 
 /**
  * IDs de origen que colisionan.
- *
- * Si el archivo trae su propia columna de identificador —lo normal en un export
- * de otro sistema— dos filas con el MISMO id y CONTENIDO DISTINTO son un
- * problema del archivo, no nuestro: alguien editó el export a mano, o el sistema
- * de origen reutiliza ids. Fundirlas escogería una de las dos al azar.
  *
  * Se devuelven los ids en conflicto para que las filas afectadas vayan a
  * cuarentena con `SOURCE_ID_COLLISION`.
@@ -168,14 +241,7 @@ export function primeraAparicion(huellas: readonly string[]): Map<string, number
 export function colisionesDeIdOrigen(
   filas: readonly { readonly sourceRecordId?: string; readonly huella: string }[],
 ): Set<string> {
-  const porId = new Map<string, Set<string>>()
-  for (const f of filas) {
-    if (!f.sourceRecordId) continue
-    const s = porId.get(f.sourceRecordId)
-    if (s) s.add(f.huella)
-    else porId.set(f.sourceRecordId, new Set([f.huella]))
-  }
-  const malos = new Set<string>()
-  for (const [id, huellas] of porId) if (huellas.size > 1) malos.add(id)
-  return malos
+  const r = new RegistroDeHuellas()
+  filas.forEach((f, i) => r.ver(f.huella, i, f.sourceRecordId))
+  return r.idsEnColision()
 }

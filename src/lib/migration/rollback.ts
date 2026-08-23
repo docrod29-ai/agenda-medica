@@ -72,6 +72,15 @@ export type MotivoNoRevertible =
   | 'TIENE_TRABAJO_CLINICO_ENCIMA'
   | 'SIN_SELLO_DE_IMPORTACION'
   | 'FECHAS_INCOHERENTES'
+  /**
+   * Los dos de abajo son de material clínico (`media-clinica.ts`).
+   *
+   * Viven aquí y no en un vocabulario aparte porque la pregunta es la misma —
+   * «¿deshacer esto pierde algo que nadie puede rehacer?»— y dos listas de
+   * motivos para lo mismo es cómo se llega a que nadie sepa cuál mirar.
+   */
+  | 'ORIGEN_LEGADO_AUSENTE'
+  | 'DESTINO_YA_REFERENCIADO'
 
 export const MOTIVO_TEXTO: Readonly<Record<MotivoNoRevertible, string>> = {
   MODIFICADO_DESPUES_DE_IMPORTAR:
@@ -82,6 +91,10 @@ export const MOTIVO_TEXTO: Readonly<Record<MotivoNoRevertible, string>> = {
     'Este expediente no lleva sello de importación: no se puede demostrar que lo creara este trabajo.',
   FECHAS_INCOHERENTES:
     'Las fechas del expediente no permiten decidir si se tocó después de importarlo.',
+  ORIGEN_LEGADO_AUSENTE:
+    'El archivo original ya no está: la copia es la única que queda y borrarla perdería la imagen para siempre.',
+  DESTINO_YA_REFERENCIADO:
+    'El expediente ya apunta a la copia nueva. Borrarla dejaría una imagen rota en la historia del paciente.',
 }
 
 /**

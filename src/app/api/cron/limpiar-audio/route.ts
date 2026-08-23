@@ -29,11 +29,26 @@
  *  · No toca ningún otro prefijo del bucket: la firma y el membrete del médico
  *    viven en `receta-diseno/` y no caducan.
  *  · No lee ni un byte del audio. Sólo el nombre y la fecha.
+ *
+ * ── LA SEGUNDA COMPUERTA, Y POR QUÉ NO SOBRA (R-05) ──────────────────────────
+ *
+ * «No toca ningún otro prefijo» era, hasta hoy, una promesa del `prefix:` del
+ * listado y de este comentario. Y un comentario que el código de al lado no
+ * comprueba es el patrón más caro del repositorio — este mismo módulo nació de
+ * uno («lifecycle rule lo limpia»).
+ *
+ * Se hizo comprobable: cada objeto pasa además por `puedeLimpiar(nombre,
+ * 'audio-efimero')`, que sólo dice que sí a la clase que este barrido reclama y
+ * dice que no a todo lo que sea material clínico o de clase desconocida. Cuesta
+ * una llamada pura por objeto y cierra la puerta a que un `prefix` mal escrito
+ * —o un objeto clínico que hoy comparte prefijo con la papelería— acabe borrado
+ * por un barrido que no era el suyo.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import admin from '@/lib/firebase-admin'
 import { PREFIJO_AUDIO, HORAS_DE_VIDA, veredicto } from '@/lib/expediente/audio-caduco'
+import { puedeLimpiar } from '@/lib/migration/media-clinica'
 import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -76,8 +91,22 @@ export async function GET(req: NextRequest) {
     let borrados = 0
     let conservados = 0
     let fallos = 0
+    /** Objetos que la compuerta de clase rechazó. Cero es lo esperado. */
+    let ajenosAEsteBarrido = 0
 
     for (const o of objetos) {
+      /**
+       * PRIMERO la clase, después la edad.
+       *
+       * Un objeto que no es de este barrido no se borra por viejo que sea, y no
+       * hace falta ni fecharlo. Al revés —fechar primero— dejaría la decisión de
+       * borrar dependiendo de un `prefix` que puede estar mal escrito.
+       */
+      if (!puedeLimpiar(o.name, 'audio-efimero')) {
+        ajenosAEsteBarrido++
+        conservados++
+        continue
+      }
       const v = veredicto(
         { nombre: o.name, creadoEn: (o.metadata?.timeCreated as string | undefined) ?? null },
         ahora,
@@ -107,10 +136,13 @@ export async function GET(req: NextRequest) {
     // deja de correr, se acumula PHI sin que nadie se entere.
     await registrarLatido('limpiar-audio', {
       ok: true, duracionMs: Date.now() - arranqueCron,
-      detalle: { revisados: objetos.length, borrados, fallos, hayMas },
+      detalle: { revisados: objetos.length, borrados, fallos, hayMas, ajenosAEsteBarrido },
     })
     return NextResponse.json({
       ok: true, revisados: objetos.length, borrados, conservados, fallos, hayMas,
+      // Se DECLARA aunque sea cero: si algún día deja de serlo, el listado está
+      // trayendo objetos que no son de este barrido y hay que saberlo.
+      ajenosAEsteBarrido,
       horasDeVida: HORAS_DE_VIDA,
     })
   } catch (e) {

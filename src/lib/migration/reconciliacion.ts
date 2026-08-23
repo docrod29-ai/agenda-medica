@@ -49,21 +49,48 @@ const CERO: ConteoPorDestino = {
 }
 
 /**
- * Suma los veredictos.
+ * LA CONTABILIDAD, VEREDICTO A VEREDICTO.
  *
- * `sourceRecords` se pasa APARTE y no se deduce de `veredictos.length`. Es la
- * clave de todo el módulo: si se dedujera, la cuenta cuadraría siempre por
- * construcción y no comprobaría nada. Tiene que venir de quien contó las filas
- * del archivo, para que las dos fuentes puedan discrepar y se note.
+ * ── POR QUÉ UN ACUMULADOR Y NO UN ARREGLO DE VEREDICTOS ──────────────────────
+ *
+ * Un `Veredicto` por fila son cincuenta mil objetos vivos a la vez sólo para
+ * sumarlos al final. El ensayo lee el archivo por trozos justamente para no
+ * sostener nada de tamaño N; guardar la lista de veredictos para contarla
+ * después volvería a hacerlo, y encima en el módulo que existe para vigilar que
+ * no se pierda nada.
+ *
+ * Aquí sólo viven cinco contadores y un contador por razón: estado ACOTADO, del
+ * tamaño del vocabulario del contrato y no del tamaño del archivo.
+ *
+ * `contar()` se construye encima para que haya una sola definición de la suma.
  */
-export function contar(sourceRecords: number, veredictos: readonly Veredicto[]): Cuentas {
-  const porDestino: Record<Destino, number> = { ...CERO }
-  const porRazon: Record<string, number> = {}
-  for (const v of veredictos) {
-    porDestino[v.destino]++
-    for (const r of v.razones) porRazon[r] = (porRazon[r] ?? 0) + 1
+export class ContadorDeVeredictos {
+  private readonly porDestino: Record<Destino, number> = { ...CERO }
+  private readonly porRazon: Record<string, number> = {}
+
+  sumar(v: Veredicto): void {
+    this.porDestino[v.destino]++
+    for (const r of v.razones) this.porRazon[r] = (this.porRazon[r] ?? 0) + 1
   }
-  return { sourceRecords, porDestino, porRazon }
+
+  /**
+   * Cierra la cuenta contra el total de filas del archivo.
+   *
+   * `sourceRecords` entra AQUÍ y no se deduce de cuántos veredictos se sumaron:
+   * si se dedujera, la cuenta cuadraría siempre por construcción y no
+   * comprobaría nada. Tiene que venir de quien contó las filas del archivo, para
+   * que las dos fuentes puedan discrepar y se note.
+   */
+  cerrar(sourceRecords: number): Cuentas {
+    return { sourceRecords, porDestino: { ...this.porDestino }, porRazon: { ...this.porRazon } }
+  }
+}
+
+/** Suma los veredictos de golpe. Para quien ya los tiene todos delante. */
+export function contar(sourceRecords: number, veredictos: readonly Veredicto[]): Cuentas {
+  const c = new ContadorDeVeredictos()
+  for (const v of veredictos) c.sumar(v)
+  return c.cerrar(sourceRecords)
 }
 
 /** Suma de los cinco cubos. */

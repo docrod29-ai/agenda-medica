@@ -150,6 +150,10 @@ export const RAZONES = [
   'TENANT_MISMATCH',
   'SOURCE_ID_COLLISION',
   'ALREADY_IMPORTED',
+  // Material clínico (fotos, estudios escaneados) — ver `media-clinica.ts`
+  'MEDIA_OWNER_UNKNOWN',
+  'MEDIA_OWNER_AMBIGUOUS',
+  'MEDIA_IDENTITY_MISSING',
 ] as const
 
 export type Razon = (typeof RAZONES)[number]
@@ -183,6 +187,12 @@ export const RAZON_TEXTO: Readonly<Record<Razon, string>> = {
   TENANT_MISMATCH: 'Esta fila declara un consultorio distinto al del trabajo de importación.',
   SOURCE_ID_COLLISION: 'Dos filas del archivo declaran el mismo identificador de origen con contenido distinto.',
   ALREADY_IMPORTED: 'Esta misma fila ya se importó en un trabajo anterior.',
+  MEDIA_OWNER_UNKNOWN:
+    'No se sabe de qué paciente es esta imagen clínica: ninguna referencia del expediente apunta a ella. Alguien tiene que mirarla.',
+  MEDIA_OWNER_AMBIGUOUS:
+    'Esta imagen clínica está referida desde más de un paciente o consultorio. No se elige uno: lo decide una persona.',
+  MEDIA_IDENTITY_MISSING:
+    'La imagen clínica no trae checksum, así que no se puede demostrar que sea la misma ni que llegara entera.',
 }
 
 /** Toda razón tiene texto. El guardián lo comprueba; no es una suposición. */
