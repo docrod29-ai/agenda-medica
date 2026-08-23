@@ -47,6 +47,12 @@
  * · No prueba las ~14 pantallas que consumen `getPatients`: prueba que la
  *   superficie de compatibilidad ya no es ilimitada y que declara el recorte.
  * · No mide latencia ni coste real; mide CONTEO de documentos leídos.
+ * · No recupera los documentos de paciente SIN campo `nombre`. Firestore omite
+ *   de una consulta ordenada lo que no tiene el campo del `orderBy`, así que
+ *   esos documentos quedan fuera del listado paginado. Es un límite conocido y
+ *   está PROBADO abajo —con su vía de rescate por otro campo— en vez de
+ *   quedarse como supuesto. No se cierra desde este módulo: exigiría recorrer
+ *   sin orden (el defecto ilimitado que esto reparó) o rellenar datos.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
@@ -393,6 +399,38 @@ describe('#342 · LA SUPERFICIE DE COMPATIBILIDAD YA NO BAJA EL CONSULTORIO ENTE
     const pacientes = await getPatients(CLINICA)
     expect(Array.isArray(pacientes)).toBe(true)
     expect(pacientes[0].nombre).toBe('Paciente 00000')
+  })
+
+  it('un documento SIN nombre no se ve en el listado — y eso se declara, no se supone', async () => {
+    /**
+     * Firestore omite de una consulta ordenada los documentos que no tienen el
+     * campo del `orderBy`. Ordenar por `nombre` —lo que #342 introdujo para
+     * poder paginar— deja fuera al documento de paciente que no lo tenga.
+     *
+     * No es un caso de laboratorio: `/api/clinic/importar` restaura el respaldo
+     * literal, un `set(…, {merge:true})` de contadores puede materializar un
+     * documento que sólo tiene contadores, y las reglas no exigen `nombre`.
+     *
+     * Esta prueba fija las DOS mitades de la verdad: el listado no lo trae, y
+     * la búsqueda por un campo que sí tiene SÍ lo encuentra. Si alguien
+     * «arregla» el listado recorriendo la colección sin orden, vuelve el
+     * defecto ilimitado; si alguien borra la vía de rescate, el paciente se
+     * vuelve inalcanzable y nadie se entera.
+     */
+    sembrarPacientes(CLINICA, 5)
+    h.docs.set(`clinics/${CLINICA}/patients/fantasma`, {
+      telefono: '5599999999', noShowCount: 2,   // sin `nombre`
+    })
+
+    const lista = await listarPacientesCompat(CLINICA)
+    expect(lista.pacientes).toHaveLength(5)
+    expect(lista.pacientes.map(p => p.id)).not.toContain('fantasma')
+    // Y no se disfraza de recorte: el techo no tuvo nada que ver.
+    expect(lista.truncada).toBe(false)
+
+    // La vía de rescate: por un campo que el documento SÍ tiene.
+    const r = await buscarPacientes(CLINICA, '5599999999')
+    expect(r.pacientes.map(p => p.id)).toEqual(['fantasma'])
   })
 
   it('la caché sigue viva, y sigue invalidándose', async () => {

@@ -177,6 +177,26 @@ function acotar(n: number | undefined, porOmision: number, techo: number): numbe
  * desempate y la página siguiente repetiría o se saltaría a uno de los dos.
  * `documentId()` es el desempate total, y Firestore lo indexa solo (no exige
  * índice compuesto).
+ *
+ * LO QUE ESTE ORDEN NO ALCANZA (regla 5 de seguridad clínica: se declara en el
+ * módulo). Firestore **omite** de una consulta ordenada los documentos que no
+ * tienen el campo del `orderBy`. Un documento de paciente SIN campo `nombre`
+ * queda por tanto fuera de `listarPacientesPagina` y, con ella, de
+ * `listarPacientesCompat` y `getPatients`.
+ *
+ * Eso no es hipotético: hay caminos de escritura que crean documentos bajo
+ * `patients` sin pasar por `createPatient` y sin nombre —el respaldo se
+ * restaura literal (`/api/clinic/importar`), y un `set(…, {merge:true})` de
+ * contadores puede materializar un documento que sólo tiene contadores— y las
+ * reglas de Firestore no exigen `nombre`. El listado no los inventa ni los
+ * adivina: no los ve.
+ *
+ * No se arregla desde aquí. Firestore no sabe consultar «documentos a los que
+ * les falta este campo», así que recuperarlos exigiría o un recorrido sin
+ * orden —justo el defecto ilimitado que #342 reparó— o un relleno de datos,
+ * que está fuera de esta rebanada. Se sostiene como límite CONOCIDO y probado
+ * (ver el golden de #342), no como supuesto: quien busque a uno de esos
+ * pacientes lo encuentra por un campo que sí tenga, vía `buscarPacientes`.
  */
 function ordenCanonicoPacientes(): QueryConstraint[] {
   return [orderBy('nombre', 'asc'), orderBy(documentId(), 'asc')]

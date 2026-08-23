@@ -45,6 +45,19 @@ No PHI, production deploy, main merge, destructive data migration, clinical-poli
 Consultorio #306 consumes `listarPacientesPagina` / `buscarPacientes`. It must not
 re-implement pagination, cursors or search.
 
+**Declared limit of the ordered listing (not a defect of the page bound).**
+Firestore omits from an ordered query any document lacking the `orderBy` field, so
+a `patients` document with no `nombre` is invisible to `listarPacientesPagina` and
+therefore to `listarPacientesCompat` / `getPatients`. Such documents are reachable
+today: `/api/clinic/importar` restores backup bodies verbatim, a counter
+`set(…, {merge:true})` can materialise a counters-only document, and
+`firestore.rules` does not require `nombre`. This is not closable from this lane —
+recovering them needs either an unordered full-collection scan (the exact unbounded
+defect #342 repaired) or a data backfill, both out of scope. It is pinned as a
+known limit by a test that also proves the rescue path: `buscarPacientes` still
+finds the document by any indexed field it does have. Hardening the write paths and
+the rule belongs to whoever owns those routes, not to this slice.
+
 ### Note lookup — `src/lib/expediente/firestore.ts`
 
 `buscarNotaEnClinica(clinicId, notaId)` returns
