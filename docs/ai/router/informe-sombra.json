@@ -1,0 +1,99 @@
+{
+  "generado": "2026-08-23T12:00:00.000Z",
+  "advertencia": "Casos y evidencia 100 % SINTÉTICOS. Las cifras de costo son estimaciones del catálogo sobre tarifas con fuente y fecha; no son facturación. La evidencia de calidad de la configuración «propuesta» NO es una medición.",
+  "consultasSimuladas": 25,
+  "comparacion": {
+    "actual": {
+      "configuracion": "actual (producción: catálogo real, CERO evidencia cargada)",
+      "casos": 100,
+      "distribucionModelos": [],
+      "violacionesDelPiso": 0,
+      "costoEstimadoUsd": 0,
+      "sinTarifa": 0,
+      "costoPorCasoUsd": null,
+      "distribucionLatencia": {
+        "interactiva": 0,
+        "normal": 0,
+        "diferida": 0
+      },
+      "conRespaldo": 0,
+      "tasaSegundaRevision": 0,
+      "segundaRevisionPedidaSinCandidato": 0,
+      "tasaSinCandidato": 1,
+      "fallos": [
+        {
+          "codigo": "QUALITY_NOT_PROVEN",
+          "veces": 100
+        }
+      ]
+    },
+    "propuesta": {
+      "configuracion": "propuesta (mismo catálogo + evidencia SINTÉTICA de ejemplo)",
+      "casos": 100,
+      "distribucionModelos": [
+        {
+          "modelo": "openai/gpt-5",
+          "veces": 50
+        },
+        {
+          "modelo": "anthropic/claude-haiku-4-5",
+          "veces": 25
+        },
+        {
+          "modelo": "anthropic/claude-sonnet-5",
+          "veces": 25
+        }
+      ],
+      "violacionesDelPiso": 0,
+      "costoEstimadoUsd": 3.85,
+      "sinTarifa": 0,
+      "costoPorCasoUsd": 0.0385,
+      "distribucionLatencia": {
+        "interactiva": 25,
+        "normal": 75,
+        "diferida": 0
+      },
+      "conRespaldo": 0,
+      "tasaSegundaRevision": 0,
+      "segundaRevisionPedidaSinCandidato": 5,
+      "tasaSinCandidato": 0,
+      "fallos": []
+    },
+    "divergencias": [
+      {
+        "actual": "SIN_CANDIDATO:QUALITY_NOT_PROVEN",
+        "propuesta": "openai/gpt-5",
+        "casos": 50,
+        "ejemplos": [
+          "c001-extraccion",
+          "c001-revision",
+          "c002-extraccion"
+        ]
+      },
+      {
+        "actual": "SIN_CANDIDATO:QUALITY_NOT_PROVEN",
+        "propuesta": "anthropic/claude-haiku-4-5",
+        "casos": 25,
+        "ejemplos": [
+          "c001-limpieza",
+          "c002-limpieza",
+          "c003-limpieza"
+        ]
+      },
+      {
+        "actual": "SIN_CANDIDATO:QUALITY_NOT_PROVEN",
+        "propuesta": "anthropic/claude-sonnet-5",
+        "casos": 25,
+        "ejemplos": [
+          "c001-nota",
+          "c002-nota",
+          "c003-nota"
+        ]
+      }
+    ],
+    "casosDivergentes": 100,
+    "deltaCostoUsd": 3.85,
+    "aceptable": true,
+    "motivos": []
+  }
+}
