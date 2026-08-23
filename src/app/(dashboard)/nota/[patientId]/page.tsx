@@ -11,7 +11,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
-import { findNotaByIdInClinic } from '@/lib/expediente/firestore'
+import { buscarNotaEnClinica } from '@/lib/expediente/firestore'
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
 
 export default function NotaRescuePage() {
@@ -19,20 +19,34 @@ export default function NotaRescuePage() {
   const { patientId: posibleNotaId } = useParams<{ patientId: string }>()
   const router = useRouter()
   const { clinicId } = useClinic()
-  const [estado, setEstado] = useState<'buscando' | 'no-encontrada' | 'error'>('buscando')
+  const [estado, setEstado] = useState<'buscando' | 'no-encontrada' | 'no-resoluble' | 'error'>('buscando')
 
   useEffect(() => {
     if (!clinicId || !posibleNotaId) return
     let cancelado = false
 
-    findNotaByIdInClinic(clinicId, posibleNotaId)
+    buscarNotaEnClinica(clinicId, posibleNotaId)
       .then((resultado) => {
         if (cancelado) return
-        if (resultado) {
-          // Encontrada → redirige a la URL completa
-          router.replace(`/nota/${resultado.patientId}/${posibleNotaId}`)
-        } else {
+        if (resultado.estado === 'encontrada') {
+          // Encontrada → redirige a la URL completa. Se usa el id RESUELTO y no
+          // el del enlace: en notas antiguas el identificador sellado y el del
+          // documento pueden no coincidir, y redirigir al del enlace volvería a
+          // caer en una URL que no abre.
+          router.replace(`/nota/${resultado.patientId}/${resultado.notaId}`)
+        } else if (resultado.estado === 'no-encontrada') {
           setEstado('no-encontrada')
+        } else {
+          /**
+           * `ambigua` y `no-resoluble` NO son «no existe».
+           *
+           * La búsqueda por enlace roto está acotada a propósito (#342): recorrer
+           * el consultorio entero era el defecto que se reparó. Cuando el
+           * consultorio excede esa ventana, o cuando hay dos candidatas, lo
+           * honesto es decir que no se pudo determinar — no afirmar una ausencia
+           * que nadie comprobó.
+           */
+          setEstado('no-resoluble')
         }
       })
       .catch(() => { if (!cancelado) setEstado('error') })
@@ -54,12 +68,14 @@ export default function NotaRescuePage() {
     <div style={{ padding: 40, maxWidth: 480, margin: '40px auto', textAlign: 'center' }}>
       <AlertCircle size={32} color="#f59e0b" style={{ marginBottom: 12 }} />
       <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
-        Nota no encontrada
+        {estado === 'no-encontrada' ? 'Nota no encontrada' : 'No se pudo determinar la nota'}
       </h2>
       <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>
         {estado === 'no-encontrada'
           ? 'No localizamos esa nota en tu clínica. Es posible que el enlace esté roto.'
-          : 'Hubo un error al buscar la nota. Intenta de nuevo desde el expediente.'}
+          : estado === 'no-resoluble'
+            ? 'El enlace viene incompleto (le falta el paciente) y no pudimos resolverlo sin recorrer todo el expediente. No quiere decir que la nota no exista: ábrela desde el expediente del paciente.'
+            : 'Hubo un error al buscar la nota. Intenta de nuevo desde el expediente.'}
       </p>
       {/* V15-FINAL-COHERENCE-001 — el rótulo decía «Ir a Consulta» y el destino
           era `/pacientes`. Es exactamente la familia de RTC-08, que este
