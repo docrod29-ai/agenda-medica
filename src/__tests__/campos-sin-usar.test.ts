@@ -44,7 +44,6 @@ const CAMPOS_ACEPTADOS: Record<string, string> = {
   // El modelo se escribió entero en su iteración; las fases que lo consumen
   // (icu-003 en adelante) no han llegado. Es trabajo por fases DECLARADO, no
   // olvidado: la bitácora del loop de UCI lo dice y el Dr. lo pidió así.
-  'ICUObservation.encounterId': 'Modelo de observación de UCI (icu-002). La fase que lo consume, icu-003 VOICE_CAPTURE, no ha llegado.',
   'ICUObservation.conceptCode': 'Del mismo bloque icu-002: el código estándar de la observación.',
   'ICUObservation.normalizedUnit': 'Del mismo bloque icu-002: la unidad normalizada de la observación.',
   'ICUObservation.effectiveAt': 'Del mismo bloque icu-002: cuándo fue cierta la observación, que no es cuándo se dictó.',
