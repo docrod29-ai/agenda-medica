@@ -30,10 +30,32 @@
  * el tablero ilegible justo cuando más falta hace. El id del documento es
  * `proveedor_clase_YYYY-MM-DDTHH`, así que la hora entera colapsa en un
  * documento con su contador.
+ *
+ * ── QUÉ AÑADIÓ #315, Y QUÉ NO TOCÓ ───────────────────────────────────────────
+ *
+ * El carril de detección y auto-reparación (#315) generalizó la IDENTIDAD de un
+ * incidente a un núcleo neutro de proveedor: `src/lib/incidents/`. Este archivo
+ * sigue siendo el dueño de `platform_incidentes` y **la clave del documento no
+ * cambia**: dos claves distintas para el mismo documento serían dos incidentes
+ * donde hay uno.
+ *
+ * Lo que se añade son CAMPOS al mismo documento —`firma`, `familia`,
+ * `categoria`, `severidad`, `runbookId`— para que la consola de soporte y el
+ * agrupador del núcleo puedan leer estos incidentes sin que nadie tenga que
+ * copiarlos a otra colección. Es un puente, no un sistema paralelo.
+ *
+ * Si el cálculo de la firma fallara, el documento se escribe igual sin ella: la
+ * telemetría falla ABIERTA, y perder la firma de un incidente no puede costar
+ * perder el incidente.
  */
 import admin, { adminDb } from '@/lib/firebase-admin'
 import type { ClaseFallo, QuienPaga } from './fallo-proveedor'
 import { avisoAlDueno } from './fallo-proveedor'
+import { eventoDesdeFalloDeIA, runbookDeFalloDeIA } from '@/lib/incidents/puente-ia'
+import { firmaDe, familiaDe } from '@/lib/incidents/firma'
+import { versionDeApp } from '@/lib/incidents/version-de-app'
+import { dimensionesDe } from '@/lib/incidents/taxonomia'
+import { contarExitoDeTelemetria, contarFalloDeTelemetria } from '@/lib/incidents/telemetria'
 
 export interface ReporteFallo {
   clase: ClaseFallo
@@ -63,7 +85,35 @@ export function reportarFalloIA(r: ReporteFallo): void {
 
   const ahora = new Date()
   const id = claveIncidente(r, ahora)
+
+  /**
+   * La identidad del núcleo, calculada aquí y guardada AL LADO de la de siempre.
+   *
+   * Envuelto en `try` porque `firmaDe()` lanza cuando algún componente no tiene
+   * forma de etiqueta —una función con espacios, por ejemplo—, y ese fallo no
+   * puede llevarse por delante la anotación del incidente que sí importa.
+   */
+  let nucleo: Record<string, string> = {}
+  try {
+    const fallo = {
+      clase: r.clase, quien: r.quien, proveedor: r.proveedor, feature: r.feature,
+      status: r.status, appVersion: versionDeApp(), ocurridoEn: ahora.toISOString(),
+    }
+    const evento = eventoDesdeFalloDeIA(fallo)
+    nucleo = {
+      firma: firmaDe(evento),
+      familia: familiaDe(evento),
+      categoria: evento.categoria,
+      severidad: dimensionesDe(evento).severidad,
+      runbookId: runbookDeFalloDeIA(fallo).id,
+      appVersion: fallo.appVersion,
+    }
+  } catch (e) {
+    console.error('[incidentes] no se pudo firmar el incidente; se anota sin firma:', (e as Error)?.message)
+  }
+
   adminDb.collection('platform_incidentes').doc(id).set({
+    ...nucleo,
     proveedor: r.proveedor,
     clase: r.clase,
     urgente: aviso.urgente,
@@ -77,10 +127,23 @@ export function reportarFalloIA(r: ReporteFallo): void {
     primeraVez: admin.firestore.FieldValue.serverTimestamp(),
     ultimaVez: admin.firestore.FieldValue.serverTimestamp(),
     hora: ahora.toISOString().slice(0, 13),
-  }, { merge: true }).catch(e => {
+  }, { merge: true }).then(() => {
+    contarExitoDeTelemetria()
+  }).catch(e => {
     // Si ni siquiera se puede anotar la incidencia, que quede en el registro del
     // despliegue. Es el último recurso, no el primero.
     console.error('[incidentes] no se pudo anotar el fallo de IA:', (e as Error)?.message)
+    /**
+     * Y ADEMÁS SE CUENTA.
+     *
+     * Un `console.error` no es una señal: nadie mira los registros de un
+     * despliegue a las tres de la tarde — ésa es literalmente la lección del
+     * 31-jul que dio origen a este archivo. El contador de
+     * `incidents/telemetria.ts` convierte «no se pudo anotar» en algo que se
+     * puede PREGUNTAR: cuando lleva cinco fallos seguidos, el vigilante está
+     * ciego, y ése es el único incidente que él mismo no puede reportar.
+     */
+    contarFalloDeTelemetria((e as Error)?.message ?? 'desconocido', ahora.toISOString())
   })
 }
 
