@@ -19,17 +19,26 @@ export async function sha256Hex(input: string): Promise<string> {
 
 /**
  * Serialización ESTABLE: ordena las llaves de todo objeto de forma determinista
- * y omite `undefined`. Es indispensable porque Firestore NO conserva el orden de
- * las llaves de los mapas al recargar la nota; sin esto, el JSON —y por tanto el
- * hash— cambiaría al releer una nota intacta y daría un falso "alterada".
+ * y omite `undefined`.
+ *
+ * EXPORTADA (v-durabilidad, #312) sin tocar una coma de su cuerpo: el arnés de
+ * recuperación necesita la MISMA canonicalización para poder comparar un
+ * documento del respaldo con el documento vivo. Reimplementarla allí sería
+ * fabricar una segunda verdad sobre qué significa «el mismo documento» — y dos
+ * canonicalizaciones que discrepan producen «alterada» sobre notas intactas,
+ * que es el modo de falla grave del sello (REG-060).
+ *
+ * Es indispensable porque Firestore NO conserva el orden de las llaves de los
+ * mapas al recargar la nota; sin esto, el JSON —y por tanto el hash— cambiaría
+ * al releer una nota intacta y daría un falso "alterada".
  */
-function estable(x: unknown): unknown {
-  if (Array.isArray(x)) return x.map(estable)
+export function ordenEstable(x: unknown): unknown {
+  if (Array.isArray(x)) return x.map(ordenEstable)
   if (x && typeof x === 'object') {
     const src = x as Record<string, unknown>
     const out: Record<string, unknown> = {}
     for (const k of Object.keys(src).sort()) {
-      if (src[k] !== undefined) out[k] = estable(src[k])
+      if (src[k] !== undefined) out[k] = ordenEstable(src[k])
     }
     return out
   }
@@ -49,7 +58,7 @@ function estable(x: unknown): unknown {
  * razón de ser de v3; ver COBERTURA_SELLO.
  */
 function canonicoV2(nota: NotaMedica): string {
-  return JSON.stringify(estable({
+  return JSON.stringify(ordenEstable({
     id: nota.metadata.id,
     tipo: nota.tipo,
     pacienteId: nota.pacienteId,
@@ -80,7 +89,7 @@ function canonicoV2(nota: NotaMedica): string {
  * firmable no vuelve a quedar fuera del sello por descuido.
  */
 function canonicoV3(nota: NotaMedica): string {
-  return JSON.stringify(estable({
+  return JSON.stringify(ordenEstable({
     // Versión LITERAL, no `nota.metadata.hashVersion`: sellar la versión declarada
     // sería auto-referencia. Con el literal, bajarle la versión a un sello v3 para
     // que se re-verifique con el juego de campos v2 no cuela → sale "alterada".
