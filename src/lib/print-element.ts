@@ -205,12 +205,11 @@ export function imprimirElemento(
     }
   }
 
-  // NEXUS-QUALITY-010 fase 2 — URLs FIRMADAS, A PRUEBA DE FALLOS: antes de esperar
-  // la carga, se intenta cambiar las <img> del membrete/firma a su versión firmada
-  // con caducidad (helper compartido con el camino de PDF). Si algo falla o tarda,
-  // se imprime con las URLs originales exactamente como antes — la firma nunca
-  // puede romper una receta. (El candado RECETA_DISENO_FIRMA=obligatoria solo se
-  // activa en Vercel cuando la papelería esté probada.)
+  // R-06 / #350 — CAPACIDAD LIGADA, A PRUEBA DE FALLOS: antes de esperar la
+  // carga, se cambian las <img> del membrete/firma a su versión con capacidad
+  // acuñada (helper compartido con el camino de PDF), incluidas las que traen una
+  // capacidad por vencer. Si algo falla o tarda, se imprime con las URLs que
+  // hubiera: el acuñado nunca puede romper el resto de la receta.
   void import('@/lib/receta-diseno-client')
     .then(m => m.firmarImagenesDiseno(Array.from(win.document.images), { esperarRecargaMs: 0 }))
     .catch(() => 0)

@@ -1,20 +1,49 @@
 'use client'
 /**
- * Firma A PRUEBA DE FALLOS de las imágenes del diseño de receta (membrete /
- * firma / sello) — NEXUS-QUALITY-010 fase 2, lado cliente.
+ * Acuñado A PRUEBA DE FALLOS de las capacidades de las imágenes del diseño de
+ * receta (membrete / firma / sello) — R-06 / #350, lado cliente.
  *
- * Cambia las <img> servidas por /api/receta/diseno?path=… (sin firma) a su
- * versión FIRMADA con caducidad (POST /api/receta/diseno-url). Contrato duro:
- * NUNCA rompe el documento — si el endpoint falla, tarda más de `timeoutMs` o no
- * hay sesión, las imágenes se quedan con su URL original (que sigue siendo
- * válida mientras RECETA_DISENO_FIRMA no esté en 'obligatoria').
+ * Cambia las <img> servidas por /api/receta/diseno?path=… a su versión con
+ * CAPACIDAD LIGADA Y CADUCA (POST /api/receta/diseno-url). Contrato duro: NUNCA
+ * rompe el documento — si el endpoint falla, tarda más de `timeoutMs` o no hay
+ * sesión, las imágenes se quedan con su URL original (que el proxy ya rechaza:
+ * se verá rota, pero el resto del documento sale).
  *
- * La usan los DOS caminos de papelería: la impresión (print-element) y el
- * "Descargar PDF" (pdf-download, html2canvas rasteriza el DOM tal cual).
+ * La usan los TRES caminos: la vista previa (FirmadorDisenos), la impresión
+ * (print-element) y el "Descargar PDF" (pdf-download, html2canvas rasteriza el
+ * DOM tal cual).
  */
 
-const ES_PROXY_SIN_FIRMA = (src: string): boolean =>
-  (src.includes('/api/receta/diseno?path=') || src.includes('/api/receta/diseno?u=')) && !src.includes('&sig=')
+/**
+ * Margen con el que una capacidad se considera «por vencer» y se vuelve a
+ * acuñar. Se declara aquí y no se importa del módulo del servidor a propósito:
+ * ése usa `crypto` y arrastrarlo al bundle del navegador sería peor que repetir
+ * un número (holgado frente al TTL de minutos del servidor).
+ */
+const MARGEN_REACUNADO_MS = 120_000
+
+const ES_PROXY = (src: string): boolean =>
+  src.includes('/api/receta/diseno?path=') || src.includes('/api/receta/diseno?u=')
+
+/**
+ * ¿Esta <img> necesita capacidad? Sí cuando no la trae, y TAMBIÉN cuando la que
+ * trae está por vencer.
+ *
+ * Lo segundo importa desde que la capacidad dura minutos y no un día: una
+ * pantalla abierta un rato conserva `<img>` con capacidad caduca, y sin este
+ * chequeo la impresión saldría sin membrete porque el detector antiguo —«¿tiene
+ * sig?»— las daba por buenas para siempre.
+ */
+const NECESITA_CAPACIDAD = (src: string): boolean => {
+  if (!ES_PROXY(src)) return false
+  try {
+    const sp = new URL(src, window.location.origin).searchParams
+    if (!sp.get('sig')) return true
+    const exp = Number(sp.get('exp'))
+    if (!Number.isFinite(exp)) return true
+    return exp * 1000 - Date.now() < MARGEN_REACUNADO_MS
+  } catch { return true }
+}
 
 /**
  * Path del bucket detrás de una URL del proxy. Cubre las DOS formas:
@@ -51,13 +80,13 @@ const esperarCarga = (img: HTMLImageElement, ms: number): Promise<void> =>
   })
 
 /**
- * Firma las imágenes dadas y espera su recarga. Devuelve cuántas se firmaron.
- * Jamás lanza.
+ * Acuña la capacidad de las imágenes dadas y espera su recarga. Devuelve
+ * cuántas se cambiaron. Jamás lanza.
  */
 export async function firmarImagenesDiseno(imgs: HTMLImageElement[], opts?: { timeoutMs?: number; esperarRecargaMs?: number }): Promise<number> {
   const timeoutMs = opts?.timeoutMs ?? 1500
   try {
-    const porFirmar = imgs.filter(img => ES_PROXY_SIN_FIRMA(img.src))
+    const porFirmar = imgs.filter(img => NECESITA_CAPACIDAD(img.src))
     if (porFirmar.length === 0) return 0
     const paths = [...new Set(porFirmar.map(img => pathDe(img.src)).filter(Boolean))]
     if (paths.length === 0) return 0
