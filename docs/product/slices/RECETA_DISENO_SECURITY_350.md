@@ -91,6 +91,32 @@ good forever, which a 15-minute TTL would have turned into a blank letterhead at
 print time. Preview (`FirmadorDisenos`), print (`print-element`) and PDF
 (`pdf-download`) all go through this one helper.
 
+### Client re-mint is now under test — `src/__tests__/receta-diseno-client.test.ts`
+
+The server side was covered from both ends (`receta-diseno-token.test.ts`,
+`receta-diseno-ruta.test.ts`), but the client helper that keeps the prescription
+rendering once unsigned access is closed had no test. That helper is the point
+where the mandatory criterion *"valid prescription design rendering remains
+compatible through the mint flow"* actually lands on the printed page, so it is
+now covered:
+
+- an image with **no** capability is re-minted, and the path sent to the minter
+  is the bucket path (not the screen URL);
+- an image whose capability is **within the re-mint margin** is re-minted — the
+  regression the old `sig=`-presence predicate would let through, and the one a
+  15-minute TTL turns into a blank letterhead at print time;
+- an expired capability is re-minted; a **fresh** one is not (no extra request);
+- the legacy `?u=` form is translated to the mintable bucket path;
+- fail-safe on every failure mode — network error, `401`, a server that
+  **refuses** to mint (cross-clinic), or a returned URL without `sig=`: the
+  `<img>` keeps its original `src` and the rest of the document still prints;
+  the client never fabricates a capability;
+- duplicate paths are requested once; non-proxy images are untouched.
+
+No jsdom in this suite, so `HTMLImageElement` is doubled and `window` stubbed;
+the capability URLs are built with the **real** minter so client and server
+cannot drift apart in URL shape without this test noticing.
+
 ### Known consequence, accepted and out of this slice's scope
 
 `src/lib/receta-word.ts` writes an **absolute unsigned** proxy URL for the small
