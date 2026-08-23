@@ -61,5 +61,6 @@ export function sealedVoiceSessionToClinicalInput(
     throw new Error(`Impossible voice chronology rejected: capturedAt precedes endedAt for voice session ${session.id}`)
   }
 
-  return voiceSessionToClinicalInput(session, capturedAt, actorId)
+  const input = voiceSessionToClinicalInput(session, capturedAt)
+  return actorId ? Object.freeze({ ...input, actorId }) : input
 }
