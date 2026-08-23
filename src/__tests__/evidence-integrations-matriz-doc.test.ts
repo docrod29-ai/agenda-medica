@@ -31,7 +31,9 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'node:fs'
-// @ts-expect-error — script de build en JavaScript suelto, sin tipos
+// El generador es JavaScript suelto (`.mjs`): TypeScript lo resuelve con
+// `allowJs` e infiere sus tipos, así que NO hace falta silenciar nada — y poner
+// un `@ts-expect-error` de más rompería el build con TS2578.
 import { generarMatriz, DESTINO } from '../../scripts/evidence/matriz-proveedores.mjs'
 import {
   CATALOGO_DE_EVIDENCIA, CAMPOS_DE_LA_MATRIZ, REVISADO_EN, UNVERIFIABLE,

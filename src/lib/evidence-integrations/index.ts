@@ -100,7 +100,7 @@ export {
 export type { IntencionClinica, ProveedorOrdenado, PlanDeConsulta } from './seleccion'
 
 // ── Benchmark ───────────────────────────────────────────────────────────────
-export { correrCaso, correrBenchmark, percentil, informeLegible } from './benchmark'
+export { correrCaso, correrBenchmarkDeEvidencia, percentilDeLatencias, informeLegible } from './benchmark'
 export type { CasoDeBenchmark, MedidasDeCaso, InformeDeBenchmark } from './benchmark'
 
 // ── Adaptadores ─────────────────────────────────────────────────────────────

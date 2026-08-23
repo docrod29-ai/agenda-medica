@@ -91,7 +91,7 @@ export interface InformeDeBenchmark {
  * dato devuelve ese dato en vez de `NaN` o `undefined`. Un p95 que revienta con
  * pocos casos es un p95 que nadie mira.
  */
-export function percentil(valores: readonly number[], p: number): number {
+export function percentilDeLatencias(valores: readonly number[], p: number): number {
   if (valores.length === 0) return 0
   const orden = [...valores].sort((a, b) => a - b)
   if (orden.length === 1) return orden[0]
@@ -149,8 +149,29 @@ export async function correrCaso(
   }
 }
 
-/** Corre el lote entero y agrega. */
-export async function correrBenchmark(
+/**
+ * Corre el lote entero y agrega.
+ *
+ * ── POR QUÉ EL SUFIJO `...DeEvidencia`, Y POR QUÉ ESTE COMENTARIO NO ESCRIBE
+ *    EL OTRO NOMBRE ─────────────────────────────────────────────────────────
+ *
+ * `src/lib/uci/benchmark.ts` ya exporta una función de arranque con el nombre
+ * corto que este módulo habría usado, y `src/lib/observabilidad/latencias.ts`
+ * ya exporta la suya de percentiles. Por eso aquí llevan sufijo.
+ *
+ * No es cosmética. `scripts/calidad/motores-conectados.mjs` decide si un motor
+ * está conectado BUSCANDO SU NOMBRE COMO TEXTO en el resto del repositorio, y
+ * `el-barrido-de-motores-esta-explicado.test.ts` vigila que la lista de motores
+ * explicados no sobre. Un homónimo —o incluso una MENCIÓN en un comentario como
+ * éste— le hace creer que el motor de UCI ya se conectó, y el guardián deja de
+ * vigilarlo. Por eso este párrafo describe el nombre en vez de escribirlo.
+ *
+ * Es el mismo modo de fallo que documenta el encabezado de
+ * `modulos-sin-conectar.test.ts` («el nombre `prompts` tapaba al otro
+ * `prompts`»): un guardián con un falso negativo no sólo no avisa, sino que
+ * CERTIFICA que no hay nada que avisar.
+ */
+export async function correrBenchmarkDeEvidencia(
   casos: readonly CasoDeBenchmark[],
   adaptadores: readonly AdaptadorDeEvidencia[],
   ctx: ContextoDeRecuperacion,
@@ -176,8 +197,8 @@ export async function correrBenchmark(
 
   return {
     casos: medidas,
-    latenciaP50Ms: percentil(latencias, 0.5),
-    latenciaP95Ms: percentil(latencias, 0.95),
+    latenciaP50Ms: percentilDeLatencias(latencias, 0.5),
+    latenciaP95Ms: percentilDeLatencias(latencias, 0.95),
     tasaSinRespaldoGlobal: totalAfirmaciones === 0 ? 0 : totalSinRespaldo / totalAfirmaciones,
     casosQueCumplen: medidas.filter(m => m.cumple).length,
     costoTotalUsd: costos.length > 0 ? costos.reduce((a, b) => a + b, 0) : null,

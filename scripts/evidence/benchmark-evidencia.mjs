@@ -26,7 +26,7 @@ import { execFileSync } from 'node:child_process'
 const CAIDA = process.argv.includes('--caida')
 
 const guion = `
-  import { correrBenchmark, informeLegible } from './src/lib/evidence-integrations/benchmark.ts'
+  import { correrBenchmarkDeEvidencia, informeLegible } from './src/lib/evidence-integrations/benchmark.ts'
   import { adaptadorSintetico } from './src/lib/evidence-integrations/adaptadores/sintetico.ts'
   import { uptodate, cochrane, openevidence, perplexity } from './src/lib/evidence-integrations/adaptadores/no-configurado.ts'
 
@@ -61,7 +61,7 @@ const guion = `
   // Envuelto en una función async: tsx --eval compila a CJS, y ahí el await
   // de nivel superior no existe.
   void (async () => {
-    const informe = await correrBenchmark(
+    const informe = await correrBenchmarkDeEvidencia(
       CASOS,
       [principal, uptodate(), cochrane(), openevidence(), perplexity()],
       { ahora: '2026-08-22T10:00:00.000Z', correlacion: 'corr-bench-cli' },

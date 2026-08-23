@@ -31,7 +31,7 @@
  * la declaración siga ahí.
  */
 import { describe, it, expect } from 'vitest'
-import { correrBenchmark, correrCaso, percentil, informeLegible, type CasoDeBenchmark } from '@/lib/evidence-integrations/benchmark'
+import { correrBenchmarkDeEvidencia, correrCaso, percentilDeLatencias, informeLegible, type CasoDeBenchmark } from '@/lib/evidence-integrations/benchmark'
 import { adaptadorSintetico } from '@/lib/evidence-integrations/adaptadores/sintetico'
 import { uptodate } from '@/lib/evidence-integrations/adaptadores/no-configurado'
 
@@ -66,7 +66,7 @@ const CASOS: readonly CasoDeBenchmark[] = [
 
 describe('el arnés mide y sus casos declaran lo que esperan', () => {
   it('todos los casos cumplen su declaración', async () => {
-    const informe = await correrBenchmark(CASOS, [adaptadorSintetico()], CTX)
+    const informe = await correrBenchmarkDeEvidencia(CASOS, [adaptadorSintetico()], CTX)
     const fallidos = informe.casos.filter(c => !c.cumple)
     expect(fallidos.map(c => `${c.id}: ${c.desviacion}`)).toEqual([])
     expect(informe.casosQueCumplen).toBe(CASOS.length)
@@ -91,14 +91,14 @@ describe('el arnés mide y sus casos declaran lo que esperan', () => {
   })
 
   it('la tasa global de afirmaciones sin respaldo se agrega bien', async () => {
-    const informe = await correrBenchmark(CASOS, [adaptadorSintetico()], CTX)
+    const informe = await correrBenchmarkDeEvidencia(CASOS, [adaptadorSintetico()], CTX)
     // 1 respaldada de 3 afirmaciones ⇒ 2/3 sin respaldo.
     expect(informe.tasaSinRespaldoGlobal).toBeCloseTo(2 / 3)
   })
 
   it('es determinista: dos corridas dan lo mismo', async () => {
-    const a = await correrBenchmark(CASOS, [adaptadorSintetico()], CTX)
-    const b = await correrBenchmark(CASOS, [adaptadorSintetico()], CTX)
+    const a = await correrBenchmarkDeEvidencia(CASOS, [adaptadorSintetico()], CTX)
+    const b = await correrBenchmarkDeEvidencia(CASOS, [adaptadorSintetico()], CTX)
     expect(a.casos.map(c => [c.id, c.respaldadas, c.sinRespaldo, c.fuentesRecuperadas]))
       .toEqual(b.casos.map(c => [c.id, c.respaldadas, c.sinRespaldo, c.fuentesRecuperadas]))
   })
@@ -107,7 +107,7 @@ describe('el arnés mide y sus casos declaran lo que esperan', () => {
 describe('la caída de un proveedor se MIDE, no se ignora', () => {
   it('cuenta los fallos por clase', async () => {
     const caido = adaptadorSintetico({ fallo: { estado: 'unavailable', motivo: 'caída simulada del proveedor', clase: 'timeout', latenciaMs: 30_000 } })
-    const informe = await correrBenchmark([CASOS[0]], [caido], CTX)
+    const informe = await correrBenchmarkDeEvidencia([CASOS[0]], [caido], CTX)
     expect(informe.fallosPorClase.timeout).toBe(1)
     // Y con el proveedor caído no hay nada que anclar: la afirmación del caso
     // feliz queda SIN respaldo, que es la respuesta correcta.
@@ -131,7 +131,7 @@ describe('la caída de un proveedor se MIDE, no se ignora', () => {
 describe('el informe no inventa números', () => {
   it('costo AUSENTE se informa null, nunca cero', async () => {
     // Un cero inventado aquí acabaría en una diapositiva diciendo «gratis».
-    const informe = await correrBenchmark(CASOS, [adaptadorSintetico()], CTX)
+    const informe = await correrBenchmarkDeEvidencia(CASOS, [adaptadorSintetico()], CTX)
     expect(informe.costoTotalUsd).toBeNull()
     expect(informeLegible(informe)).toMatch(/NO DECLARADO por ningún adaptador \(no es cero\)/)
   })
@@ -141,9 +141,9 @@ describe('el informe no inventa números', () => {
     expect(informeLegible(vacio)).toMatch(/NO MIDE: calidad clínica/)
   })
 
-  it('el percentil no revienta con pocos datos', () => {
-    expect(percentil([], 0.95)).toBe(0)
-    expect(percentil([42], 0.95)).toBe(42)
-    expect(percentil([10, 20], 0.5)).toBe(15)
+  it('el percentilDeLatencias no revienta con pocos datos', () => {
+    expect(percentilDeLatencias([], 0.95)).toBe(0)
+    expect(percentilDeLatencias([42], 0.95)).toBe(42)
+    expect(percentilDeLatencias([10, 20], 0.5)).toBe(15)
   })
 })
