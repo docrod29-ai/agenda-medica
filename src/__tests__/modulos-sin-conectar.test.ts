@@ -102,6 +102,32 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/branches.ts': 'Multi-sucursal: el modelo existe, la interfaz y el motor de agenda no. Desde v847 la API TAMPOCO acepta `branchId`: aceptar un campo que se ignora es prometer una función que no existe.',
   'src/lib/curp.ts': 'Validación de CURP: el campo salió del formulario corto y quedó sin consumidor.',
   'src/lib/whatsapp/adapter.ts': 'Adaptador de proveedor de WhatsApp: hoy se usa 360dialog directo.',
+
+  /**
+   * ── CONTRATOS DE FIABILIDAD Y OBSERVABILIDAD (#310) ───────────────────────
+   *
+   * Escritos como CONTRATO ejecutable y probado, y deliberadamente NO cableados:
+   * cablearlos toca `src/app/api/appointments/route.ts`, el gateway de IA y la
+   * pantalla de consulta, que hoy pertenecen a los carriles de Consultorio
+   * (#306), Voz (#302) y Razonamiento (#303). Meterlos a medias desde otro
+   * carril sería exactamente el «segundo sistema» que #320 prohíbe.
+   *
+   * El handoff con los puntos de inserción exactos está en
+   * `docs/reliability/HANDOFF-306.md`. Salir de esta lista es el trabajo que
+   * cierra ese handoff — no un pretexto para conectar cualquier cosa y vaciarla.
+   */
+  'src/lib/reliability/idempotencia.ts':
+    'Identidad de una acción consecuencial, para que un reintento no cree una segunda cita ni una segunda receta. El consumidor natural es POST /api/appointments, que pertenece a #306.',
+  'src/lib/reliability/cola.ts':
+    'Contrato de cola con fondo, carta muerta visible y guardia de resultado caduco. No introduce proveedor de colas: es el contrato que uno real tendría que cumplir. Su cableado depende de #303 (razonamiento/evidencia) y #302 (transcripción).',
+  'src/lib/reliability/cortacircuitos.ts':
+    'Cortacircuitos por proveedor+clase. Su sitio es `src/lib/ia/gateway.ts`, que hoy es del carril de Voz/Razonamiento.',
+  'src/lib/reliability/degradacion.ts':
+    'Tabla de modos limitados: qué se conserva, qué se reintenta, qué se degrada y qué se bloquea por cada subsistema caído. La consume su golden; la interfaz que muestre estos mensajes es trabajo de #306.',
+  'src/lib/observability/evento.ts':
+    'Conjunto CERRADO de campos de telemetría, con guardia estructural anti-PHI. Cablearlo significa tocar rutas de API de tres carriles a la vez; hasta entonces vive probado y declarado.',
+  'src/lib/observability/correlacion.ts':
+    'correlationId de punta a punta. Igual que el anterior: el cableado cruza carriles y el contrato se declara antes para que todos cableen el mismo.',
 }
 
 const raiz = 'src'

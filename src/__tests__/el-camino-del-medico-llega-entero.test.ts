@@ -116,8 +116,24 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
  * Islas de dos. Ninguno es alarmante; los tres son lo que quedaba por ver.
  *
  * El número puede BAJAR. No puede subir sin que alguien lo escriba aquí.
+ *
+ * ── 29 → 37 (SCALE/RESILIENCE-310, 23-ago-2026) ──────────────────────────────
+ *
+ * Ocho módulos nuevos, todos del carril #310, todos **deliberadamente** fuera
+ * del camino: `src/lib/reliability/{clases-de-trabajo, reintentos,
+ * cortacircuitos, idempotencia, cola, degradacion}.ts` y
+ * `src/lib/observability/{evento, correlacion}.ts`.
+ *
+ * Son CONTRATOS ejecutables con su golden. Cablearlos toca
+ * `src/app/api/appointments/route.ts` (#306), `src/lib/ia/gateway.ts` (#302/#303)
+ * y la pantalla de consulta (#306) — tres carriles con escritor activo. Meterlos
+ * a medias desde un cuarto carril sería el «segundo sistema» que #320 prohíbe.
+ *
+ * Los puntos de inserción exactos están en `docs/reliability/HANDOFF-306.md`.
+ * Cerrar ese handoff BAJA este número en ocho; ésa es la única forma legítima de
+ * moverlo, y por eso queda escrito aquí y no en una lista aparte.
  */
-const FUERA_DEL_CAMINO_HOY = 29
+const FUERA_DEL_CAMINO_HOY = 37
 
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',
