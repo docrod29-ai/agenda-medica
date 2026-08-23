@@ -30,7 +30,7 @@ import { simularRestauracion, type ResultadoSimulacro } from '@/lib/clinica/simu
 import { leerLinea, reenraizar, admitir } from '@/lib/clinica/restaurar'
 import { COLECCIONES, rutasDelArbol } from '@/lib/clinica/respaldo'
 import { evaluarCompletitud, type VeredictoCompletitud, type ObservadoAlReleer } from '@/lib/durability/manifiesto'
-import { huellaDeDocumento, huellaDelConjunto } from '@/lib/durability/huellas'
+import { huellaDeDocumento, huellaDeEntrada, huellaDelConjunto } from '@/lib/durability/huellas'
 import { referenciasForasteras, evaluarAislamiento, type HallazgoDeAislamiento } from '@/lib/durability/aislamiento'
 import {
   comprobarReferencias, indexar, hayBloqueantes,
@@ -145,9 +145,7 @@ export async function correrEnsayo(
     if (l.clase === 'pie') { pie = l.datos; continue }
     if (l.clase === 'rechazada') continue
     conteosObservados[l.coleccion] = (conteosObservados[l.coleccion] ?? 0) + 1
-    huellasObservadas.push(await huellaDeDocumento({
-      _ruta: l.ruta, _coleccion: l.coleccion, ...l.datos,
-    }))
+    huellasObservadas.push(await huellaDeEntrada(l.ruta, l.datos))
     documentos.push({ ruta: l.ruta, coleccion: l.coleccion, datos: l.datos })
   }
 

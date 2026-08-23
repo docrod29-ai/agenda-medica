@@ -35,7 +35,7 @@
 import type { NotaMedica } from '@/types/expediente'
 import { generarHashIntegridad, HASH_VERSION } from '@/lib/expediente/integrity'
 import { cabeceraV2, pieV2 } from '@/lib/durability/manifiesto'
-import { huellaDeDocumento, huellaDelConjunto } from '@/lib/durability/huellas'
+import { huellaDeEntrada, huellaDelConjunto } from '@/lib/durability/huellas'
 
 /** El separador de líneas del NDJSON. Una constante para no repetirlo. */
 const SALTO = String.fromCharCode(10)
@@ -247,7 +247,13 @@ export async function generarConsultorio(op: OpcionesDeFixture): Promise<LineaSi
     })
     out.push({
       _ruta: `${raiz}/audit_log/aud-${pid}-1`, _coleccion: 'audit_log',
-      clinicId: op.clinicId, evento: 'ver_expediente', medicoUid: medicoId,
+      /**
+       * El evento sale del tipo `AuditEvento`, no se inventa: el trinquete de
+       * `bitacora-etiquetas` exige que todo lo que se escribe esté declarado, y
+       * un fixture que invente un nombre lo rompe — con razón, porque ese
+       * nombre acabaría en la pantalla de cumplimiento tal cual.
+       */
+      clinicId: op.clinicId, evento: 'expediente_lectura', medicoUid: medicoId,
       timestamp: fecha(base, 1, 5),
     })
   }
@@ -274,7 +280,7 @@ export async function aRespaldoNdjson(
   const huellas: string[] = []
   for (const d of docs) {
     conteos[d._coleccion] = (conteos[d._coleccion] ?? 0) + 1
-    huellas.push(await huellaDeDocumento(d as Record<string, unknown>))
+    huellas.push(await huellaDeEntrada(d._ruta, d as Record<string, unknown>))
   }
   const lineas = [JSON.stringify(cabeceraV2(clinicId, generadoEn, SCHEMA_VERSION))]
   for (const d of docs) lineas.push(JSON.stringify(d))

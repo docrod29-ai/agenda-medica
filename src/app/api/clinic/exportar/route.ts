@@ -32,12 +32,24 @@ import { NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
-import { COLECCIONES, rama, type RamaRespaldo, EXCLUIDAS, indiceRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
+import { COLECCIONES, rama, type RamaRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
+import { cabeceraV2, pieV2, FORMATO_V2 } from '@/lib/durability/manifiesto'
+import { huellaDeEntrada, acumuladorDeConjunto } from '@/lib/durability/huellas'
 
 export const maxDuration = 300
 
 /** Cuántos documentos se leen por página. Ni uno por vuelta, ni todos de golpe. */
 const PAGINA = 300
+
+/**
+ * Versión del ÁRBOL de colecciones con el que se generó el archivo.
+ *
+ * Sube cuando cambia la forma del árbol (una rama nueva, una que se va). Sirve
+ * para que quien restaure sepa si el archivo trae ramas que este build no
+ * conoce, o al revés — hoy eso se descubre por «colección desconocida», una
+ * línea rechazada a la vez.
+ */
+const ESQUEMA = 1
 
 export async function GET(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId')
@@ -58,6 +70,21 @@ export async function GET(req: NextRequest) {
       const linea = (o: unknown) => controlador.enqueue(codificador.encode(JSON.stringify(o) + '\n'))
       let documentos = 0
       const problemas: string[] = []
+      /**
+       * ── EL PIE TIENE QUE PODER DESMENTIRSE (#312) ─────────────────────────
+       *
+       * Antes el pie decía `documentos` y `completo`, y `completo` se calculaba
+       * de UNA sola cosa: que ninguna colección hubiera lanzado una excepción.
+       * Eso deja pasar el fallo caro, que no lanza nada — una rama que nadie
+       * declaró se exporta de menos, no falla nada, y el archivo se certifica
+       * completo. Es literalmente lo que pasó con `notas/{n}/adendas`.
+       *
+       * Con el recuento POR COLECCIÓN y la huella del conjunto, quien restaura
+       * puede comparar lo que llegó con lo que debía llegar en vez de creerse
+       * un booleano.
+       */
+      const conteos: Record<string, number> = {}
+      const conjunto = acumuladorDeConjunto()
 
       /**
        * La cabecera va PRIMERA y dice qué esperar, incluido lo que NO viene.
@@ -65,14 +92,7 @@ export async function GET(req: NextRequest) {
        * Un respaldo del que no se sabe qué falta no sirve para decidir si
        * alcanza — y ésa es la única pregunta que importa el día que hace falta.
        */
-      linea({
-        _tipo: 'cabecera',
-        formato: 'nexusmed-respaldo-1',
-        clinicId,
-        generadoEn: new Date().toISOString(),
-        indice: indiceRespaldo(),
-        excluidas: EXCLUIDAS,
-      })
+      linea(cabeceraV2(clinicId, new Date().toISOString(), ESQUEMA))
 
       /** Recorre una colección por páginas y escribe una línea por documento. */
       const volcar = async (
@@ -89,8 +109,16 @@ export async function GET(req: NextRequest) {
           if (snap.empty) break
           for (const d of snap.docs) {
             ids.push(d.id)
-            linea(lineaDeDocumento(rutaBase, coleccion, d.id, d.data()))
+            const l = lineaDeDocumento(rutaBase, coleccion, d.id, d.data())
+            linea(l)
             documentos++
+            conteos[coleccion] = (conteos[coleccion] ?? 0) + 1
+            /**
+             * La huella se acumula SUMANDO, no guardando la lista: el respaldo
+             * existe para no cargar el consultorio entero en memoria, y una
+             * huella que exigiera tener las cien mil a la vez lo contradiría.
+             */
+            conjunto.añadir(await huellaDeEntrada(l._ruta, l as Record<string, unknown>))
           }
           cursor = snap.docs[snap.docs.length - 1]
           if (snap.size < PAGINA) break
@@ -146,12 +174,12 @@ export async function GET(req: NextRequest) {
       }
 
       // El pie cierra el archivo: si no está, la descarga se cortó a la mitad.
-      linea({ _tipo: 'pie', documentos, problemas, completo: problemas.length === 0 })
+      linea(pieV2(documentos, conteos, conjunto.valor(), problemas))
 
       void clinicRef.collection('audit_log').add({
         evento: 'export_datos', clinicId,
         medicoUid: acc.uid, medicoEmail: acc.email ?? '',
-        meta: { formato: 'nexusmed-respaldo-1', documentos, problemas: problemas.length },
+        meta: { formato: FORMATO_V2, documentos, problemas: problemas.length },
         timestamp: new Date().toISOString(),
       }).catch(() => { /* la bitácora no puede impedir que el dueño se lleve lo suyo */ })
 

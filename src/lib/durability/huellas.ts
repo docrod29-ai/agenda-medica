@@ -65,7 +65,38 @@ export async function huellaDeDocumento(doc: Record<string, unknown>): Promise<s
 }
 
 /**
- * Huella de un CONJUNTO de documentos, independiente del orden en que llegan.
+ * La huella de una ENTRADA del respaldo: su ruta y su contenido, juntos.
+ *
+ * La ruta va dentro porque el conjunto se acumula sin guardar la lista (ver
+ * `acumuladorDeConjunto`) y sin ella dos documentos de contenido idéntico en
+ * rutas distintas serían el mismo elemento.
+ */
+export async function huellaDeEntrada(ruta: string, doc: Record<string, unknown>): Promise<string> {
+  return sha256Hex(`${ruta}|${canonico(doc)}`)
+}
+
+/** Suma de 32 bytes con acarreo, en sitio. Módulo 2^256. */
+function sumar(acumulado: Uint8Array, sumando: Uint8Array): void {
+  let acarreo = 0
+  for (let i = 31; i >= 0; i--) {
+    const s = acumulado[i] + sumando[i] + acarreo
+    acumulado[i] = s & 0xff
+    acarreo = s >> 8
+  }
+}
+
+function deHex(hex: string): Uint8Array {
+  const out = new Uint8Array(32)
+  for (let i = 0; i < 32; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16) || 0
+  return out
+}
+
+function aHex(b: Uint8Array): string {
+  return Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Acumulador de la huella de un CONJUNTO, sin guardar el conjunto.
  *
  * ── POR QUÉ NO SE ENCADENAN LAS HUELLAS EN ORDEN DE LECTURA ──────────────────
  *
@@ -74,11 +105,32 @@ export async function huellaDeDocumento(doc: Record<string, unknown>): Promise<s
  * como distinto un consultorio idéntico leído en otro orden: falsa alarma
  * garantizada, y una alarma que suena sin motivo se desconecta.
  *
- * Se ordenan las huellas individuales y se sella la lista. Así el resultado
- * depende del CONJUNTO y no del camino.
+ * ── POR QUÉ NO SE ORDENA UNA LISTA, Y POR QUÉ NO ES UN XOR ──────────────────
+ *
+ * Ordenar exige tener las huellas de todo el consultorio en memoria a la vez, y
+ * el respaldo existe precisamente para no cargar el consultorio entero: con
+ * cien mil documentos son varios megabytes que la ruta de exportación no tiene
+ * por qué gastar.
+ *
+ * La suma módulo 2^256 es conmutativa —así que no depende del orden— y ocupa
+ * 32 bytes pase lo que pase. Un XOR también sería conmutativo, pero **dos
+ * elementos iguales se cancelan**: un documento duplicado desaparecería de la
+ * huella, que es justo una de las averías que hay que detectar. Sumando, un
+ * duplicado se nota.
  */
+export function acumuladorDeConjunto(): { añadir: (hex: string) => void; valor: () => string } {
+  const acumulado = new Uint8Array(32)
+  return {
+    añadir: (hex: string) => sumar(acumulado, deHex(hex)),
+    valor: () => aHex(acumulado),
+  }
+}
+
+/** Comodidad para cuando ya se tienen todas las huellas a mano. */
 export async function huellaDelConjunto(huellas: readonly string[]): Promise<string> {
-  return sha256Hex([...huellas].sort().join('|'))
+  const a = acumuladorDeConjunto()
+  for (const h of huellas) a.añadir(h)
+  return a.valor()
 }
 
 /**

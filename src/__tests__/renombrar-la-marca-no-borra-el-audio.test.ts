@@ -45,6 +45,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { MARCA, NO_SE_RENOMBRAN } from '@/lib/marca'
+import { FORMATO_V1, FORMATO_V2, FORMATOS_LEGIBLES } from '@/lib/durability/manifiesto'
 
 const RAIZ = process.cwd()
 const leer = (p: string) => readFileSync(join(RAIZ, p), 'utf8')
@@ -100,7 +101,20 @@ describe('y NO cambió donde la máquina la busca', () => {
 
   it('los formatos de archivo ya emitidos siguen llamándose igual', () => {
     expect(leer('src/lib/expediente/exportacion.ts')).toContain('nexusmed-expediente-1')
-    expect(leer('src/app/api/clinic/exportar/route.ts')).toContain('nexusmed-respaldo-1')
+    /**
+     * ── EL FORMATO SUBIÓ A v2 Y EL PREFIJO NO SE TOCA (#312) ──────────────
+     *
+     * La ruta ya no lleva el literal: la cabecera y el pie los arma
+     * `durability/manifiesto.ts`, porque el pie pasó a llevar el recuento por
+     * colección y la huella del conjunto. Lo que este guardián congela sigue
+     * siendo lo mismo: que el nombre del formato NO se renombre con la marca.
+     * Y v1 tiene que seguir siendo LEGIBLE — los archivos que los médicos ya
+     * descargaron no se invalidan porque cambiemos de nombre comercial.
+     */
+    expect(FORMATO_V1).toBe('nexusmed-respaldo-1')
+    expect(FORMATO_V2).toBe('nexusmed-respaldo-2')
+    expect(FORMATOS_LEGIBLES).toContain(FORMATO_V1)
+    expect(leer('src/app/api/clinic/exportar/route.ts')).toContain('cabeceraV2(')
   })
 
   it('la preferencia de tema no se pierde', () => {

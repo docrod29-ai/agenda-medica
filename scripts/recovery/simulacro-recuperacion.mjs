@@ -50,6 +50,10 @@ const { reconciliar } = await import('../../src/lib/durability/reconciliacion.ts
 const { planearTodo } = await import('../../src/lib/durability/rollback.ts')
 const { clasificar, permisoDeBorrado, retencionLegalPuedeCaducar } =
   await import('../../src/lib/durability/archivado.ts')
+const { INVENTARIO, rutasSinClasificar, clasesConRutaFantasma, declaracionesFantasma } =
+  await import('../../src/lib/durability/inventario.ts')
+const { proyectar, tamanoDelRespaldo, coste } =
+  await import('../../src/lib/durability/crecimiento.ts')
 
 const SALTO = String.fromCharCode(10)
 const arg = (n, pordefecto) => {
@@ -443,6 +447,66 @@ await escenario('punto-seguro-de-la-consulta', async () => {
 })
 
 const msTotal = performance.now() - t0
+
+// ── 22. El inventario cubre lo que el respaldo se lleva ────────────────────
+await escenario('inventario-sin-huecos', async () => {
+  const sinClasificar = rutasSinClasificar()
+  const fantasmaClase = clasesConRutaFantasma()
+  const fantasmaDecl = declaracionesFantasma()
+  const detectada = sinClasificar.length === 0 && fantasmaClase.length === 0 && fantasmaDecl.length === 0
+  return {
+    detectada,
+    comoSeDetecto: detectada
+      ? `${INVENTARIO.length} clases de dato clasificadas; ninguna ruta del respaldo sin régimen de restauración`
+      : `sinClasificar=[${sinClasificar.join(', ')}] fantasmaClase=[${fantasmaClase.join(', ')}] fantasmaDecl=[${fantasmaDecl.join(', ')}]`,
+    clases: INVENTARIO.length,
+    sinRespaldar: INVENTARIO.filter(c => !c.backupIncluded).map(c => c.dataClass),
+    nuncaSeRestauran: INVENTARIO.filter(c => c.restoreAllowed === 'nunca').map(c => c.dataClass),
+  }
+})
+
+// ── 23. Crecimiento: lo medido es OBSERVADO, lo proyectado es ESCENARIO ────
+const bytesPorConsulta = Math.round(
+  docsA.filter(d => d._coleccion === 'patients.notas').reduce((a, d) => a + JSON.stringify(d).length, 0) /
+  Math.max(1, docsA.filter(d => d._coleccion === 'patients.notas').length),
+)
+const bytesPorFoto = 240_000   // el tamaño que el fixture declara para su objeto sintético
+await escenario('crecimiento-etiquetado', async () => {
+  const proyeccion = proyectar({
+    consultasPorDiaHabil: 20, diasHabilesPorMes: 21,
+    bytesPorConsulta, fotosPorCienConsultas: 15, bytesPorFoto, meses: 60,
+    procedenciaDeLosSupuestos: {
+      consultasPorDiaHabil: 'SUPUESTO sin medir: consulta privada de medicina interna a jornada completa. No sale de ningún dato del producto.',
+      diasHabilesPorMes: 'SUPUESTO sin medir: cinco días por semana.',
+      bytesPorConsulta: `OBSERVADO sobre el fixture ${VERSION_FIXTURE}: media de bytes de una nota serializada en NDJSON, incluidas transcripciones sintéticas.`,
+      fotosPorCienConsultas: 'SUPUESTO sin medir: no hay telemetría de cuántas consultas llevan fotografía clínica.',
+      bytesPorFoto: 'SUPUESTO del fixture. El tope real de subida es ~3.5 MB (`subir-imagen.ts`), así que esto es conservador por un factor desconocido.',
+      meses: 'Cinco años: el orden de magnitud que interesa para hablar de conservación de expedientes.',
+    },
+  })
+  const tamano = tamanoDelRespaldo(proyeccion.firestoreBytes, 20 * 21 * 60, 1.6)
+  const sinPrecio = coste(proyeccion.bytesAlFinal, null)
+  const detectada = proyeccion.procedencia === 'ESCENARIO'
+    && tamano.procedencia === 'ESCENARIO'
+    && sinPrecio.usd === null
+  return {
+    detectada,
+    comoSeDetecto: detectada
+      ? `proyección a 60 meses = ${(proyeccion.bytesAlFinal / 1e9).toFixed(2)} GB, etiquetada ESCENARIO; sin precio citado NO se calcula coste`
+      : `procedencias mal etiquetadas: ${proyeccion.procedencia} / ${tamano.procedencia} / usd=${sinPrecio.usd}`,
+    bytesPorConsultaObservados: bytesPorConsulta,
+    proyeccion: {
+      procedencia: proyeccion.procedencia,
+      bytesAlFinal: proyeccion.bytesAlFinal,
+      firestoreBytes: proyeccion.firestoreBytes,
+      storageBytes: proyeccion.storageBytes,
+      noCubre: proyeccion.noCubre,
+      supuestos: proyeccion.supuestos.procedenciaDeLosSupuestos,
+    },
+    tamanoDelRespaldo: tamano,
+    coste: sinPrecio,
+  }
+})
 
 // ── El acta ─────────────────────────────────────────────────────────────────
 const sinDetector = averiasSinDetector()
