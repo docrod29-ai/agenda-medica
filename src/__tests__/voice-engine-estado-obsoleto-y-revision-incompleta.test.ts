@@ -91,7 +91,8 @@ describe('Voice Engine — un artefacto obsoleto no se promueve sobre un transcr
       session: current, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.250Z',
     })).toThrow(/Stale voice transition rejected: finalizedAt/)
     expect(current.segments[0].status).toBe('partial')
-    expect(() => voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.700Z')).toThrow(/no final transcript segments/)
+    // CORREGIDA por el P1 de 58a6d3da: el puente ya no filtra por estado, exige captura sellada.
+    expect(() => voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.700Z')).toThrow(/is not sealed; end capture through endVoiceSession/)
   })
 
   it('rechaza finalizar un segmento obsoleto cuando ya existe transcript final más nuevo en la sesión', () => {
@@ -101,7 +102,11 @@ describe('Voice Engine — un artefacto obsoleto no se promueve sobre un transcr
     expect(() => finalizeTranscriptSegment({
       session: withNewer, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.300Z',
     })).toThrow(/Stale voice transition rejected: finalizedAt/)
-    expect(voiceSessionToClinicalInput(withNewer, '2026-08-17T18:00:00.700Z').raw).toBe('sin datos de choque')
+    // CORREGIDA por el P1 de 58a6d3da: esta aserción exigía justamente la omisión silenciosa. seg-1 sigue
+    // revisable, así que la sesión no puede sellarse ni cruzar a Clinical Truth dejando fuera su hipótesis.
+    expect(() => endVoiceSession(withNewer, '2026-08-17T18:00:00.700Z'))
+      .toThrow(/cannot be sealed while transcript segments are still revisable: seg-1/)
+    expect(() => voiceSessionToClinicalInput(withNewer, '2026-08-17T18:00:00.700Z')).toThrow(/is not sealed; end capture through endVoiceSession/)
   })
 
   it('rechaza una corrección del médico fechada antes de la finalización que pretende corregir', () => {
@@ -137,7 +142,8 @@ describe('Voice Engine — el texto revisado se revalida antes de seguir siendo 
       session: current, segmentId: 'seg-1', revisedText: '…', revisedAt: '2026-08-17T18:00:00.400Z', reason: 'clinician_correction',
     })).toThrow(/Structurally incomplete revised text cannot remain final/)
     expect(current.segments[0].text).toBe('metotrexate 2 gramos IV')
-    expect(voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.500Z').raw).toBe('metotrexate 2 gramos IV')
+    const sealed = endVoiceSession(current, '2026-08-17T18:00:00.450Z')
+    expect(voiceSessionToClinicalInput(sealed, '2026-08-17T18:00:00.500Z').raw).toBe('metotrexate 2 gramos IV')
   })
 
   it('rechaza una corrección final cortada a mitad de enunciado', () => {
@@ -163,7 +169,7 @@ describe('Voice Engine — el texto revisado se revalida antes de seguir siendo 
     expect(() => finalizeTranscriptSegment({
       session: incomplete, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.600Z',
     })).toThrow(/Structurally incomplete transcript segment cannot be promoted to final: seg-1/)
-    expect(() => voiceSessionToClinicalInput(incomplete, '2026-08-17T18:00:00.700Z')).toThrow(/no final transcript segments/)
+    expect(() => voiceSessionToClinicalInput(incomplete, '2026-08-17T18:00:00.700Z')).toThrow(/is not sealed; end capture through endVoiceSession/)
   })
 
   it('rechaza anexar como final un texto sin contenido', () => {
@@ -179,7 +185,7 @@ describe('Voice Engine — el texto revisado se revalida antes de seguir siendo 
     expect(corrected.segments[0].status).toBe('final')
     expect(corrected.segments[0].needsReview).toBe(false)
     expect(corrected.segments[0].revisions[0]).toMatchObject({ previousText: 'metotrexate 2 gramos IV', revisedText: 'metotrexate 15 mg semanal', reason: 'clinician_correction' })
-    expect(voiceSessionToClinicalInput(corrected, '2026-08-17T18:00:00.500Z').raw).toBe('metotrexate 15 mg semanal')
+    expect(voiceSessionToClinicalInput(endVoiceSession(corrected, '2026-08-17T18:00:00.450Z'), '2026-08-17T18:00:00.500Z').raw).toBe('metotrexate 15 mg semanal')
   })
 
   it('declara la frontera estructural de isFinalizableTranscriptText', () => {

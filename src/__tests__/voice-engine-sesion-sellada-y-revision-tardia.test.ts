@@ -210,7 +210,8 @@ describe('Voice Engine — una revisión tardía no pisa en silencio lo que el m
 
       const finalized = finalizeTranscriptSegment({ session: late, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:01.000Z' })
       expect(finalized.segments[0].needsReview).toBe(true)
-      const provenance = voiceSessionToClinicalInput(finalized, '2026-08-17T18:00:01.200Z').voiceProvenance
+      const sealed = endVoiceSession(finalized, '2026-08-17T18:00:01.100Z')
+      const provenance = voiceSessionToClinicalInput(sealed, '2026-08-17T18:00:01.200Z').voiceProvenance
       expect(provenance.needsReview).toBe(true)
       expect(provenance.segments[0].revisions[0].reopenedResolvedReview).toBe(true)
       expect(provenance.segments[0].reviewResolutions?.[0].resolvedBy).toBe('clinician-synthetic-1')

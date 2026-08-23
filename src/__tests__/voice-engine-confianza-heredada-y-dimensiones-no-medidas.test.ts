@@ -100,6 +100,7 @@ describe('Voice Engine — el texto de reemplazo no hereda la confianza de otra 
       session: scoredPartial(), segmentId: 'seg-1', revisedText: 'cefepime 2 gramos IV', revisedAt: '2026-08-17T18:00:00.350Z', reason: 'clinician_correction',
     })
     current = finalizeTranscriptSegment({ session: current, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.600Z' })
+    current = endVoiceSession(current, '2026-08-17T18:00:00.650Z')
     const provenance = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.700Z').voiceProvenance
     expect(provenance.segments[0].confidence).toBeUndefined()
     expect(provenance.segments[0].revisions[0].previousConfidence).toBe(0.82)

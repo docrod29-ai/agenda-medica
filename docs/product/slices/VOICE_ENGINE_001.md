@@ -264,6 +264,55 @@ is possible, attributed and reconstructible); any route back to a hypothesis tha
 `alternatives` (for example one left only in `reviewResolutions` after a reopening) — resolution selects among
 what the segment records; policy for when a session should be sealed; and ASR provider selection.
 
+## P1 repair record — exact-SHA audit `58a6d3da6a4dde30427f7bc9321e644e977b782c`
+Canonical CI #1179 was SUCCESS on this exact SHA. A corrected independent read-only Codex run `32614444497`
+returned a FAIL verdict with exactly one blocking P1. It is closed in `src/lib/voice-engine/index.ts` with
+focused tests in `src/__tests__/voice-engine-puente-exige-captura-sellada.test.ts`.
+
+1. **The Clinical Truth bridge cannot emit an incomplete or unsealed transcript.** `voiceSessionToClinicalInput`
+   *filtered* the session to its `final` segments and emitted `ClinicalInput` from whatever was left, even while
+   the Voice session was still open. A session holding one final phrase plus a clinically material
+   partial/ambiguous segment therefore produced a `ClinicalInput` that silently omitted the partial — and because
+   the omitted segment was the only one carrying `needsReview`, the provenance published `needsReview: false`. A
+   truncated transcript leaves no trace in the record: the note simply never mentions what was dropped, and
+   nothing downstream can tell an incomplete transcript from a short dictation. The root cause is that the bridge
+   treated "the final segments in front of me" as "the transcript", and treated "everything I know is final" as
+   the end of dictation — the same mistake `measureVoiceSession` had already been taught to refuse through the
+   seal.
+
+   The bridge now requires two conditions, and infers neither from how the segments look:
+   - the session is explicitly sealed (`endedAt`, set by `endVoiceSession`);
+   - no segment is still non-final/revisable. `endVoiceSession` already enforces this before sealing, but the
+     bridge revalidates it against the object it was actually handed, so a malformed or forged session carrying
+     `endedAt` without having passed the seal transition fails closed here too — **naming** the segments it
+     refuses to drop instead of filtering them away. An `endedAt` that is unparseable or precedes
+     `session.startedAt` is likewise refused rather than trusted.
+
+   `endVoiceSession` remains the one canonical seal transition and keeps its rule that every segment must be
+   final before sealing. Sealed late clinician review resolution is unchanged: `resolveTranscriptReview` stays
+   available after the seal, while provider append/revise/finalize stay refused.
+
+Old core tests that bridged unsealed sessions now seal through `endVoiceSession` first. One pre-existing case in
+`src/__tests__/voice-engine-estado-obsoleto-y-revision-incompleta.test.ts` asserted the silent-omission
+behaviour itself (a stale partial dropped while a newer final segment crossed the bridge); it is corrected to
+assert that the session can neither be sealed nor bridged while that partial survives.
+
+All prior repair invariants are preserved: unresolved ambiguity cannot clear except through an attributed
+resolution; sealing cannot strand a recorded hypothesis; a late provider/contextual revision over a clinician
+disposition reopens review; replacement text does not inherit another hypothesis's confidence; revision lineage
+retains prior metadata; partial segments cannot carry final timestamps; impossible segment/session chronology
+fails closed; punctuation/noise cannot win first-useful-partial latency; unmeasured benchmark dimensions stay
+undefined.
+
+Nonblocking P2/P3 remain nonblocking and unrepaired, including: `timeToFirstPartialMs` follows append order
+rather than the earliest supplied timestamp when partials arrive out of order.
+
+Not covered: **when** a session should be sealed — that policy belongs to the capture layer this slice does not
+build; the bridge only refuses to invent the end. Also not covered: validation of `endedAt` against wall-clock
+time or the end of audio, `capturedAt` against `endedAt`, whether a sealed transcript is clinically sufficient
+(that stays with the clinician and with `needsReview`), acceptance thresholds (Evaluation Kernel), and ASR
+provider selection.
+
 ## Scope exclusions
 Paid provider commitment, production secrets, live PHI, full ambient UI, EHR writeback, clinical reasoning, and final competitive superiority claims are out of scope here.
 

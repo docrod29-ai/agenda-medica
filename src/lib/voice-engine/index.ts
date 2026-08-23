@@ -296,12 +296,34 @@ export function resolveTranscriptReview(input:{session:VoiceSession;segmentId:st
  * it must be chronologically possible: capture cannot precede the session that produced the audio. A
  * pre-session `capturedAt` would enter Clinical Truth as provenance for an encounter that had not started —
  * a fabricated capture time, fail-closed here exactly as impossible segment chronology already is.
+ *
+ * Completeness is the other half of the boundary, and it is not optional. The bridge used to *filter* to the
+ * final segments of whatever session it was handed, so an open session holding one final phrase plus a still
+ * partial —possibly ambiguous, possibly the one carrying the dose— produced a ClinicalInput that silently
+ * omitted the partial and reported `needsReview: false`. A dropped utterance leaves no trace in the record: the
+ * note simply never mentions it, and nothing downstream can tell an incomplete transcript from a short one.
+ *
+ * So two conditions, and neither is inferred from how the segments look:
+ *   1. the session is explicitly sealed (`endedAt`, set by `endVoiceSession`) — inside an open session a
+ *      streaming pause is indistinguishable from the end of dictation, and the next utterance may still arrive;
+ *   2. no segment is still non-final/revisable. `endVoiceSession` already enforces this before sealing, but the
+ *      bridge revalidates it against the object it was actually handed: a malformed or forged session carrying
+ *      `endedAt` without having passed through the seal transition must fail closed here too, naming the
+ *      segments it refuses to drop rather than filtering them away.
  */
 export function voiceSessionToClinicalInput(session:VoiceSession,capturedAt:string):VoiceClinicalInput{
   if(assertTimestamp(capturedAt,'capturedAt')<assertTimestamp(session.startedAt,'startedAt')) throw new Error(`Impossible voice chronology rejected: capturedAt precedes session startedAt for voice session ${session.id}`)
-  const finalSegments=sortSegments(session.segments.filter(s=>s.status==='final'));if(!finalSegments.length)throw new Error('Voice session has no final transcript segments')
-  const segments=Object.freeze(finalSegments.map(s=>Object.freeze({id:s.id,sequence:s.sequence,receivedAt:s.receivedAt,finalizedAt:s.finalizedAt,speaker:s.speaker,confidence:s.confidence,alternatives:freezeAlternatives(s.alternatives),needsReview:s.needsReview,revisions:freezeRevisions(s.revisions),reviewResolutions:freezeResolutions(s.reviewResolutions)})))
-  return Object.freeze({modality:'dictation',raw:finalSegments.map(s=>s.text).join('\n'),language:session.language,capturedAt,encounterId:session.encounterId,voiceProvenance:Object.freeze({sessionId:session.id,provider:session.provider,needsReview:finalSegments.some(s=>s.needsReview),segments})})
+  const endedAt=session.endedAt
+  if(!endedAt) throw new Error(`Voice session ${session.id} is not sealed; end capture through endVoiceSession before producing ClinicalInput`)
+  // Checked before `endedAt` is even parsed: a still-revisable segment is refused whatever the seal claims, so a
+  // forged `endedAt` can never turn "one final phrase plus a partial" into a silently truncated transcript.
+  const stillOpen=session.segments.filter(s=>s.status!=='final')
+  if(stillOpen.length) throw new Error(`Voice session ${session.id} cannot produce ClinicalInput while transcript segments are still revisable: ${stillOpen.map(s=>s.id).join(', ')}`)
+  if(assertTimestamp(endedAt,'endedAt')<assertTimestamp(session.startedAt,'startedAt')) throw new Error(`Impossible voice chronology rejected: endedAt precedes session startedAt for voice session ${session.id}`)
+  // Every segment of the sealed session, not a filtered subset: the guard above already proved they are all final.
+  const sealedSegments=sortSegments(session.segments);if(!sealedSegments.length)throw new Error('Voice session has no final transcript segments')
+  const segments=Object.freeze(sealedSegments.map(s=>Object.freeze({id:s.id,sequence:s.sequence,receivedAt:s.receivedAt,finalizedAt:s.finalizedAt,speaker:s.speaker,confidence:s.confidence,alternatives:freezeAlternatives(s.alternatives),needsReview:s.needsReview,revisions:freezeRevisions(s.revisions),reviewResolutions:freezeResolutions(s.reviewResolutions)})))
+  return Object.freeze({modality:'dictation',raw:sealedSegments.map(s=>s.text).join('\n'),language:session.language,capturedAt,encounterId:session.encounterId,voiceProvenance:Object.freeze({sessionId:session.id,provider:session.provider,needsReview:sealedSegments.some(s=>s.needsReview),segments})})
 }
 
 /**

@@ -52,6 +52,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appendTranscriptSegment,
   createVoiceSession,
+  endVoiceSession,
   evaluateVoiceBenchmarkCase,
   finalizeTranscriptSegment,
   measureVoiceSession,
@@ -91,7 +92,8 @@ describe('Voice Engine — la ambigüedad no resuelta no se limpia en silencio',
 
     const finalized = finalizeTranscriptSegment({ session: current, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.600Z' })
     expect(finalized.segments[0].needsReview).toBe(true)
-    expect(voiceSessionToClinicalInput(finalized, '2026-08-17T18:00:00.700Z').voiceProvenance.needsReview).toBe(true)
+    const sealed = endVoiceSession(finalized, '2026-08-17T18:00:00.650Z')
+    expect(voiceSessionToClinicalInput(sealed, '2026-08-17T18:00:00.700Z').voiceProvenance.needsReview).toBe(true)
   })
 
   it('una revisión tampoco puede bajar la marca de revisión, ni conservando las hipótesis rivales', () => {
@@ -130,7 +132,7 @@ describe('Voice Engine — la ambigüedad no resuelta no se limpia en silencio',
     })
     expect(resolved.segments[0].reviewResolutions?.[0].previousAlternatives).toHaveLength(2)
 
-    const provenance = voiceSessionToClinicalInput(resolved, '2026-08-17T18:00:01.000Z').voiceProvenance
+    const provenance = voiceSessionToClinicalInput(endVoiceSession(resolved, '2026-08-17T18:00:00.950Z'), '2026-08-17T18:00:01.000Z').voiceProvenance
     expect(provenance.needsReview).toBe(false)
     expect(provenance.segments[0].reviewResolutions?.[0].previousAlternatives?.map((a) => a.text)).toEqual(['start vanco fifty', 'start vanco fifteen'])
   })
@@ -211,6 +213,7 @@ describe('Voice Engine — el linaje de revisión conserva confianza y alternati
       reason: 'clinician_correction', confidence: 0.99,
     })
     current = finalizeTranscriptSegment({ session: current, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.700Z' })
+    current = endVoiceSession(current, '2026-08-17T18:00:00.750Z')
 
     const revisions = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.800Z').voiceProvenance.segments[0].revisions
     expect(revisions).toHaveLength(2)

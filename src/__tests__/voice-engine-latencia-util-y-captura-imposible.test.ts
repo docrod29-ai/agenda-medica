@@ -145,10 +145,11 @@ describe('Voice Engine — no hay latencia estable mientras el transcript siga c
 })
 
 describe('Voice Engine — la captura hacia Clinical Truth tiene que ser cronológicamente posible', () => {
+  /** Sellada: desde el P1 de 58a6d3da el puente sólo emite ClinicalInput sobre captura terminada. */
   function finalized() {
-    return appendTranscriptSegment(session(), {
+    return endVoiceSession(appendTranscriptSegment(session(), {
       id: 'seg-1', sequence: 0, text: 'ceftriaxona 2 gramos IV', status: 'final', receivedAt: '2026-08-17T18:00:00.100Z', finalizedAt: '2026-08-17T18:00:00.400Z', needsReview: false,
-    })
+    }), '2026-08-17T18:00:00.450Z')
   }
 
   it('rechaza un capturedAt anterior al inicio de la sesión en vez de dejarlo entrar como procedencia', () => {

@@ -14,6 +14,8 @@ describe('Voice Engine core', () => {
     })
     current = reviseTranscriptSegment({ session: current, segmentId: 'seg-1', revisedText: 'Paciente niega fiebre y escalofríos', revisedAt: '2026-08-17T18:00:00.350Z', reason: 'provider_revision' })
     current = finalizeTranscriptSegment({ session: current, segmentId: 'seg-1', finalizedAt: '2026-08-17T18:00:00.600Z' })
+    // El puente exige captura sellada (directiva P1 de 58a6d3da): finalizar no es haber terminado de dictar.
+    current = endVoiceSession(current, '2026-08-17T18:00:00.650Z')
 
     expect(current.segments[0].revisions).toHaveLength(1)
     const input = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.700Z')
@@ -38,10 +40,10 @@ describe('Voice Engine core', () => {
   })
 
   it('keeps unresolved ambiguity and transcript provenance through the Clinical Truth bridge', () => {
-    const current = appendTranscriptSegment(session('spanglish'), {
+    const current = endVoiceSession(appendTranscriptSegment(session('spanglish'), {
       id: 'seg-1', sequence: 0, text: 'start vanco fifteen', status: 'final', receivedAt: '2026-08-17T18:00:00.120Z', finalizedAt: '2026-08-17T18:00:00.500Z', speaker: 'clinician',
       alternatives: [{ text: 'start vanco fifty', confidence: 0.41 }, { text: 'start vanco fifteen', confidence: 0.44 }], confidence: 0.44, needsReview: true,
-    })
+    }), '2026-08-17T18:00:00.550Z')
     const input = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.600Z')
     expect(current.segments[0].needsReview).toBe(true)
     expect(measureVoiceSession(current).unresolvedReviewCount).toBe(1)
@@ -54,26 +56,26 @@ describe('Voice Engine core', () => {
   })
 
   it('never invents missing confidence', () => {
-    const current = appendTranscriptSegment(session('spanglish'), {
+    const current = endVoiceSession(appendTranscriptSegment(session('spanglish'), {
       id: 'seg-1', sequence: 0, text: 'start vanco fifteen', status: 'final', receivedAt: '2026-08-17T18:00:00.120Z', finalizedAt: '2026-08-17T18:00:00.500Z',
       alternatives: [{ text: 'start vanco fifty' }, { text: 'start vanco fifteen' }], needsReview: true,
-    })
+    }), '2026-08-17T18:00:00.550Z')
     const input = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.600Z')
     expect(current.segments[0].confidence).toBeUndefined()
     expect(input.voiceProvenance.segments[0].confidence).toBeUndefined()
   })
 
   it.each(['es', 'en', 'spanglish'] as const)('preserves %s language through the Clinical Truth bridge', (language) => {
-    const current = appendTranscriptSegment(session(language), {
+    const current = endVoiceSession(appendTranscriptSegment(session(language), {
       id: 'seg-1', sequence: 0, text: 'SpO2 96%, denies dyspnea', status: 'final', receivedAt: '2026-08-17T18:00:00.100Z', finalizedAt: '2026-08-17T18:00:00.300Z', needsReview: false,
-    })
+    }), '2026-08-17T18:00:00.350Z')
     expect(voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.400Z').language).toBe(language)
   })
 
   it('passes transcript text to Clinical Truth without semantic invention', () => {
-    const current = appendTranscriptSegment(session(), {
+    const current = endVoiceSession(appendTranscriptSegment(session(), {
       id: 'seg-1', sequence: 0, text: 'posible neumonía, confirmar', status: 'final', receivedAt: '2026-08-17T18:00:00.100Z', finalizedAt: '2026-08-17T18:00:00.300Z', needsReview: true,
-    })
+    }), '2026-08-17T18:00:00.350Z')
     const input = voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.400Z')
     expect(input.raw).toBe('posible neumonía, confirmar')
     expect('facts' in input).toBe(false)
@@ -107,6 +109,7 @@ describe('Voice Engine core', () => {
     current = appendTranscriptSegment(current, {
       id: 'seg-1', sequence: 0, text: 'primera frase', status: 'final', receivedAt: '2026-08-17T18:00:00.250Z', finalizedAt: '2026-08-17T18:00:00.450Z', needsReview: false,
     })
+    current = endVoiceSession(current, '2026-08-17T18:00:00.460Z')
     expect(current.segments.map((segment) => segment.id)).toEqual(['seg-1', 'seg-2'])
     expect(voiceSessionToClinicalInput(current, '2026-08-17T18:00:00.500Z').raw).toBe('primera frase\nsegunda frase')
   })
