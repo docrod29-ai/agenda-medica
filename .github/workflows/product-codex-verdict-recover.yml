@@ -5,7 +5,11 @@ on:
     types: [created]
 
 concurrency:
-  group: ausculta-product-codex-recover-${{ github.event.issue.number }}
+  # Every recovery is read-only until its final best-effort PR comment. Using the
+  # board issue number here serialized unrelated Voice/Reasoning recoveries because
+  # both commands live on #296. Isolate by command/comment so independent targets
+  # can recover in parallel without cancelling one another.
+  group: ausculta-product-codex-recover-${{ github.event.comment.id }}
   cancel-in-progress: false
 
 jobs:
