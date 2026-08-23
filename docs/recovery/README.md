@@ -67,8 +67,11 @@ deja de aparecer:
    Google. Nunca se ha cronometrado. Es, con diferencia, el tramo más largo.
 2. **La escritura real contra un proyecto.** El arnés no importa el SDK: no
    puede escribir en ninguna parte.
-3. **La detección.** No hay nada que vigile la pérdida de datos clínicos. El RTO
-   empieza a contar cuando el médico llama.
+3. **La detección operativa end-to-end en cloud.** El verificador canónico ya
+   detecta pérdida/corrupción clínica sobre snapshots pre/post y vuelve no limpio
+   el veredicto ante clases P0/P1, duplicados, sobrescritura obsoleta o referencias
+   cruzadas; lo que aún no se ha probado es ese detector sobre una restauración
+   real ejecutada contra un proyecto no productivo, ni el tiempo hasta la alerta.
 4. **La conmutación** de la aplicación a una base restaurada.
 5. **Los bytes de los objetos.** Se cruzan nombres, tamaños y huellas; no se
    descarga ni un archivo.
