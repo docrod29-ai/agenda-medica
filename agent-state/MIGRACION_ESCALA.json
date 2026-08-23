@@ -1,0 +1,48 @@
+{
+  "generadoEn": "2026-08-23T04:12:58.116Z",
+  "aviso": "local observado en el pipeline puro. NO es una medición de producción ni de Firestore.",
+  "node": "v22.22.2",
+  "padron": 5000,
+  "corridas": [
+    {
+      "filas": 10000,
+      "bytesArchivo": 4331001,
+      "msGenerar": 39,
+      "msEnsayo": 1028,
+      "usPorFila": 103,
+      "heapAntesMb": 26,
+      "heapDespuesMb": 187.9,
+      "deltaHeapMb": 161.8,
+      "lotes": 12,
+      "estado": "COMPLETED",
+      "cuentasCuadran": true,
+      "porDestino": {
+        "accepted": 4775,
+        "rejected": 111,
+        "duplicate": 4668,
+        "ambiguous": 2,
+        "quarantined": 444
+      }
+    },
+    {
+      "filas": 50000,
+      "bytesArchivo": 21741390,
+      "msGenerar": 154,
+      "msEnsayo": 5143,
+      "usPorFila": 103,
+      "heapAntesMb": 246.7,
+      "heapDespuesMb": 875.4,
+      "deltaHeapMb": 628.6,
+      "lotes": 106,
+      "estado": "COMPLETED",
+      "cuentasCuadran": true,
+      "porDestino": {
+        "accepted": 42054,
+        "rejected": 555,
+        "duplicate": 5166,
+        "ambiguous": 2,
+        "quarantined": 2223
+      }
+    }
+  ]
+}
