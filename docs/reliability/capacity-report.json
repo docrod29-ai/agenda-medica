@@ -1,0 +1,341 @@
+{
+  "schema": "ausculta.consultorio.capacity-report.v1",
+  "candidateSha": "680d983915429d9e511539e3a280241ebbfa6b12",
+  "seed": "20260823",
+  "syntheticNonPhi": true,
+  "capacityProven": false,
+  "capacityStatement": "No existe evidencia de que Ausculta Consultorio soporte 2 000 ni 10 000 médicos. Lo que existe es un arnés determinista, un contrato de invariantes y un inventario del camino caliente con tres lecturas de colección sin acotar todavía abiertas.",
+  "classes": {
+    "LOCAL": "proven-locally",
+    "CI": "proven-in-ci",
+    "PREP": "prepared-only",
+    "STAGING": "requires-staging-environment",
+    "DUENO": "requires-owner-approval"
+  },
+  "cohorts": [
+    {
+      "cohort": "baseline-single-tenant",
+      "registeredPhysicians": 1,
+      "executedWithSimulatedDriver": true,
+      "status": "proven-in-ci",
+      "note": "Ejecutada con el controlador simulado. Ejercita el MODELO y sus invariantes, NO el producto."
+    },
+    {
+      "cohort": "multi-tenant-2k",
+      "registeredPhysicians": 2000,
+      "executedWithSimulatedDriver": true,
+      "status": "proven-in-ci",
+      "note": "Ejecutada con el controlador simulado. Ejercita el MODELO y sus invariantes, NO el producto."
+    },
+    {
+      "cohort": "multi-tenant-10k",
+      "registeredPhysicians": 10000,
+      "executedWithSimulatedDriver": false,
+      "status": "requires-staging-environment",
+      "note": "Correrla simulada no demostraría nada nuevo; medirla exige entorno dimensionado."
+    },
+    {
+      "cohort": "growth-tier",
+      "registeredPhysicians": 25000,
+      "executedWithSimulatedDriver": false,
+      "status": "requires-staging-environment",
+      "note": "Correrla simulada no demostraría nada nuevo; medirla exige entorno dimensionado."
+    },
+    {
+      "cohort": "large-practice-30k-patients",
+      "registeredPhysicians": 1,
+      "executedWithSimulatedDriver": false,
+      "status": "requires-staging-environment",
+      "note": "Correrla simulada no demostraría nada nuevo; medirla exige entorno dimensionado."
+    }
+  ],
+  "harnessRuns": [
+    {
+      "scenario": "baseline-single-tenant::ninguno",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::ia-caida",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::ia-timeout",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::evidencia-caida",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::transcripcion-caida",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::red-intermitente",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::entrega-duplicada",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::saturacion-proveedor",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::almacenamiento-transitorio",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "baseline-single-tenant::resultado-caduco",
+      "registeredPhysicians": 1,
+      "concurrentConsultations": 1,
+      "modeledHotPathOpsPerSecond": 0.0378,
+      "requestCount": 2,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::ninguno",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::ia-caida",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::ia-timeout",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::evidencia-caida",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::transcripcion-caida",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::red-intermitente",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1534,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::entrega-duplicada",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::saturacion-proveedor",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::almacenamiento-transitorio",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    },
+    {
+      "scenario": "multi-tenant-2k::resultado-caduco",
+      "registeredPhysicians": 2000,
+      "concurrentConsultations": 240,
+      "modeledHotPathOpsPerSecond": 11.0222,
+      "requestCount": 1451,
+      "unconditionalBlockers": 0,
+      "evidenceClass": "harness-only",
+      "capacityClaim": "none"
+    }
+  ],
+  "openBlockers": [
+    {
+      "id": "P0-1",
+      "que": "getPatients() descarga la colección entera en 13 pantallas",
+      "donde": "src/lib/firestore.ts:114",
+      "carril": "#306"
+    },
+    {
+      "id": "P0-2",
+      "que": "findNotaByIdInClinic hace una lectura por paciente",
+      "donde": "src/lib/expediente/firestore.ts:57",
+      "carril": "#306"
+    },
+    {
+      "id": "P1-1",
+      "que": "time_blocks se lee entera en cinco caminos de reserva",
+      "donde": "src/app/api/appointments/route.ts:164 (+4)",
+      "carril": "#306"
+    }
+  ],
+  "pending": [
+    {
+      "id": "entorno-dimensionado",
+      "clase": "requires-staging-environment",
+      "que": "Un entorno de pruebas con Firestore y despliegue propios donde apuntar el controlador `http` del arnés.",
+      "porQue": "Sin él, ninguna cifra de latencia, saturación o coste sale del producto: sale del modelo. No puede ser producción.",
+      "cuesta": "Proyecto de Firebase + despliegue de Vercel de no-producción. Hay coste.",
+      "bloquea": [
+        "toda la columna OBSERVED del contrato SLO",
+        "cualquier afirmación de 2k/10k"
+      ]
+    },
+    {
+      "id": "generador-de-carga-distribuido",
+      "clase": "requires-owner-approval",
+      "que": "Capacidad de generar concurrencia real (k6, Artillery o equivalente) desde varias máquinas.",
+      "porQue": "Un solo proceso de Node no produce el pico de 1 200 consultas concurrentes que modela la cohorte de 10k.",
+      "cuesta": "Servicio de carga de pago o máquinas propias. Hay coste.",
+      "bloquea": [
+        "cohorte multi-tenant-10k medida",
+        "cohorte growth-tier medida"
+      ]
+    },
+    {
+      "id": "entorno-dom-para-pruebas-de-componente",
+      "clase": "prepared-only",
+      "que": "jsdom o un proyecto de vitest aparte para montar pantallas y comprobar que un hijo que lanza no tumba el resto.",
+      "porQue": "La suite corre en `environment: node`. Sin DOM no hay prueba determinista de pantalla blanca.",
+      "cuesta": "Sin coste monetario. Cambia configuración compartida por todos los carriles.",
+      "bloquea": [
+        "F12 de la matriz de fallos",
+        "plan de pruebas de NO-WHITE-SCREEN §3"
+      ]
+    },
+    {
+      "id": "e2e-de-recarga-y-reconexion",
+      "clase": "prepared-only",
+      "que": "Escenarios de Playwright con corte de red, recarga y segundo plano contra un objetivo local.",
+      "porQue": "F13 y F14 sólo se pueden demostrar en un navegador de verdad.",
+      "cuesta": "Sin coste monetario; Playwright ya está en el repositorio.",
+      "bloquea": [
+        "F13",
+        "F14",
+        "la mitad de la matriz adversarial de #322"
+      ]
+    },
+    {
+      "id": "simulacro-de-restauracion-medido",
+      "clase": "requires-owner-approval",
+      "que": "RPO/RTO medidos en un simulacro real de respaldo → pérdida controlada → restauración → verificación.",
+      "porQue": "#320 Gate 5 no acepta valores documentados como probados hasta que se hace el simulacro. `npm run simulacro:respaldo` existe; falta un destino seguro donde correrlo.",
+      "cuesta": "Necesita un destino de datos que no sea producción.",
+      "bloquea": [
+        "Gate 5 de #320"
+      ]
+    },
+    {
+      "id": "cableado-de-los-contratos",
+      "clase": "prepared-only",
+      "que": "Conectar idempotencia, cortacircuitos, colas y telemetría a las rutas reales.",
+      "porQue": "Hoy son contratos probados y no cableados. Cablearlos toca #302, #303 y #306.",
+      "cuesta": "Sin coste monetario. Necesita que el carril correspondiente lo tome.",
+      "bloquea": [
+        "que las invariantes protejan al producto y no sólo al modelo"
+      ]
+    }
+  ]
+}
