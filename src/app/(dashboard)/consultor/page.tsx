@@ -203,7 +203,7 @@ export default function ConsultorPage() {
                       sobre de recuperación (#314) y cada caso dice lo suyo.
                     */}
                     {t.recuperacion?.estado === 'no_consultado' && !t.cargando && (
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 8, padding: '8px 10px', color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 'var(--r-md)', padding: '8px 10px', color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)' }}>
                         <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                         <span>
                           NO se pudo consultar PubMed. <strong>No se sabe si hay literatura sobre esto</strong> —
