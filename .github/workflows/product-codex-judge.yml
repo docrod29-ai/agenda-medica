@@ -34,7 +34,10 @@ jobs:
       github.event.comment.user.login == github.repository_owner &&
       startsWith(github.event.comment.body, '/ausculta-codex-judge '))
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # High-effort independent audits can legitimately exceed 45 minutes. Keep a
+    # bounded ceiling, but leave enough wall-clock for Codex to finish and for
+    # the immutable verdict artifact to be validated/uploaded afterward.
+    timeout-minutes: 90
     permissions:
       contents: read
       actions: read
