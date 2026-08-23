@@ -5,6 +5,7 @@ import {
   appendTranscriptSegment,
   createVoiceSession,
   endVoiceSession,
+  resolveTranscriptReview,
   type VoiceSession,
 } from '@/lib/voice-engine'
 import { sealedVoiceSessionToClinicalInput } from '@/lib/voice-engine/clinical-truth-bridge'
@@ -30,6 +31,28 @@ function finalSession() {
   )
 }
 
+function ambiguousFinalSession() {
+  return appendTranscriptSegment(
+    createVoiceSession({
+      id: 'voice-review-after-seal',
+      encounterId: 'enc-review-after-seal',
+      provider: 'synthetic-test-provider',
+      language: 'es',
+      startedAt: '2026-08-23T18:00:00.000Z',
+    }),
+    {
+      id: 'seg-review',
+      sequence: 0,
+      text: 'vancomicina quince',
+      status: 'final',
+      receivedAt: '2026-08-23T18:00:00.100Z',
+      finalizedAt: '2026-08-23T18:00:02.000Z',
+      needsReview: true,
+      alternatives: [{ text: 'vancomicina cincuenta' }],
+    },
+  )
+}
+
 function sourceFiles(root: string): string[] {
   const out: string[] = []
   for (const entry of readdirSync(root)) {
@@ -49,7 +72,7 @@ describe('Voice → Clinical Truth production bridge', () => {
     }
 
     expect(() => sealedVoiceSessionToClinicalInput(forged, '2026-08-23T18:00:03.000Z'))
-      .toThrow(/endedAt precedes the newest recorded state of transcript segment seg-1/)
+      .toThrow(/endedAt precedes the newest provider capture state of transcript segment seg-1/)
   })
 
   it('rejects ClinicalInput capture time before the voice capture was actually sealed', () => {
@@ -57,6 +80,26 @@ describe('Voice → Clinical Truth production bridge', () => {
 
     expect(() => sealedVoiceSessionToClinicalInput(sealed, '2026-08-23T18:00:02.400Z'))
       .toThrow(/capturedAt precedes endedAt/)
+  })
+
+  it('allows auditable clinician review after the capture seal and dates ClinicalInput after that review', () => {
+    const sealed = endVoiceSession(ambiguousFinalSession(), '2026-08-23T18:00:02.500Z')
+    const reviewed = resolveTranscriptReview({
+      session: sealed,
+      segmentId: 'seg-review',
+      resolvedText: 'vancomicina cincuenta',
+      resolvedAt: '2026-08-23T18:00:03.000Z',
+      resolvedBy: 'clinician-test',
+      rationale: 'confirmado por el médico en fixture sintético',
+    })
+
+    expect(() => sealedVoiceSessionToClinicalInput(reviewed, '2026-08-23T18:00:02.900Z'))
+      .toThrow(/capturedAt precedes the newest clinical state/)
+
+    const input = sealedVoiceSessionToClinicalInput(reviewed, '2026-08-23T18:00:03.100Z', 'clinician-test')
+    expect(input.raw).toBe('vancomicina cincuenta')
+    expect(input.voiceProvenance.needsReview).toBe(false)
+    expect(input.voiceProvenance.segments[0]?.reviewResolutions).toHaveLength(1)
   })
 
   it('passes a chronologically valid sealed session without changing its transcript', () => {
