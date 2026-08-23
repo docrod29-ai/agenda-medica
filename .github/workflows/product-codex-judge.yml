@@ -16,7 +16,9 @@ on:
 
 concurrency:
   group: ausculta-product-codex-judge-${{ github.event.issue.number || inputs.pr_number }}
-  cancel-in-progress: true
+  # Only a real judge request may supersede another judge for the same PR.
+  # Recovery/status/bot comments must never cancel an in-flight paid audit.
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.comment.body, '/ausculta-codex-judge ') }}
 
 jobs:
   judge:
