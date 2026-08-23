@@ -67,7 +67,7 @@
 | `/membresias` | medico | ✅ | 281 | 0 | — | ✅ | — |
 | `/migracion` | medico | ✅ | 371 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
-| `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
+| `/nota/[patientId]` | medico | ✅ | 98 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 943 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 401 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 840 | 2 | — | ✅ | — |
