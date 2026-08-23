@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { validateClinicalFact, type ClinicalFact, type EncounterTruth } from '@/lib/clinical-truth'
 import {
-  safetyFindingFromRegisteredEngine,
   type EvidenceReference,
   type ReasoningClaim,
-  type SafetyFinding,
-  type SafetySeverity,
 } from '@/lib/clinical-reasoning'
+import { assertReasoningHttpBoundary } from '@/lib/expediente/reasoning-http-boundary'
 import { buildConsultationReasoningEnvelope } from '@/lib/expediente/reasoning-workflow'
 
 export const runtime = 'nodejs'
@@ -95,24 +93,10 @@ function parseEvidenceReferences(value: unknown): EvidenceReference[] {
   })
 }
 
-function parseSafetyFindings(value: unknown): SafetyFinding[] {
-  if (value === undefined) return []
-  if (!Array.isArray(value)) throw new Error('safetyFindings must be an array')
-  return value.map((raw) => {
-    if (!object(raw)) throw new Error('safetyFindings must contain objects')
-    const engineId = nonEmptyString(raw.engineId, 'safetyFinding.engineId')
-    return safetyFindingFromRegisteredEngine({
-      id: nonEmptyString(raw.id, 'safetyFinding.id'),
-      engineId,
-      severity: raw.severity as SafetySeverity,
-      trigger: nonEmptyString(raw.trigger, 'safetyFinding.trigger'),
-      sourceFactIds: stringArray(raw.sourceFactIds, 'safetyFinding.sourceFactIds'),
-      requiresClinicianReview: raw.requiresClinicianReview === true,
-    })
-  })
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest,
+  context: { params: Promise<{ patientId: string }> },
+) {
   const access = await verificarModuloIA(req, 'expediente')
   if (!access.ok) return access.response
 
@@ -123,6 +107,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const { patientId: pathPatientId } = await context.params
     const body: unknown = await req.json()
     if (!object(body)) throw new Error('JSON body must be an object')
     const clinicId = nonEmptyString(body.clinicId, 'clinicId')
@@ -131,6 +116,8 @@ export async function POST(req: NextRequest) {
     }
 
     const encounter = parseEncounter(body.encounter)
+    assertReasoningHttpBoundary({ pathPatientId, encounter, body })
+
     const envelope = buildConsultationReasoningEnvelope({
       id: nonEmptyString(body.id, 'id'),
       clinicId,
@@ -139,7 +126,6 @@ export async function POST(req: NextRequest) {
       sourceFactIds: stringArray(body.sourceFactIds, 'sourceFactIds'),
       claims: parseClaims(body.claims),
       evidenceReferences: parseEvidenceReferences(body.evidenceReferences),
-      safetyFindings: parseSafetyFindings(body.safetyFindings),
       limitedMode: body.limitedMode as Parameters<typeof buildConsultationReasoningEnvelope>[0]['limitedMode'],
     })
 
