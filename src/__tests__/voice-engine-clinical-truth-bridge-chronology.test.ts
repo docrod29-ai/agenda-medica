@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { procesarTranscript } from '@/lib/asr/pipeline'
 import {
   appendTranscriptSegment,
   createVoiceSession,
@@ -110,6 +111,23 @@ describe('Voice → Clinical Truth production bridge', () => {
     expect(input.encounterId).toBe('enc-safe-bridge')
     expect(input.actorId).toBe('clinician-test')
     expect(input.voiceProvenance.segments.map((segment) => segment.id)).toEqual(['seg-1'])
+  })
+
+  it('connects the hardened bridge to the real ASR pipeline and refuses mismatched provenance', () => {
+    const sealed = endVoiceSession(finalSession(), '2026-08-23T18:00:02.500Z')
+    const result = procesarTranscript('paciente niega fiebre', {
+      session: sealed,
+      capturedAt: '2026-08-23T18:00:03.000Z',
+      actorId: 'clinician-test',
+    })
+    expect(result.clinicalInput?.raw).toBe('paciente niega fiebre')
+    expect(result.clinicalInput?.actorId).toBe('clinician-test')
+
+    expect(() => procesarTranscript('otro transcript', {
+      session: sealed,
+      capturedAt: '2026-08-23T18:00:03.000Z',
+      actorId: 'clinician-test',
+    })).toThrow(/provenance does not match the raw transcript/)
   })
 
   it('prevents production code from bypassing the hardened bridge by importing the raw serializer', () => {
