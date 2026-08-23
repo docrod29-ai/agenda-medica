@@ -20,9 +20,12 @@ archivos/slice solapados».
 | `src/__tests__/tipos/evidence-integrations.tipos.ts` | Archivo nuevo. | **Ninguno.** |
 | `scripts/evidence/**`, `docs/evidence/**` | Directorios nuevos. | **Ninguno.** |
 | `src/__tests__/modulos-sin-conectar.test.ts` | Trinquete: al usar `desde-pubmed.ts` deja de ser huérfano y la lista **obliga** a quitarlo. | **Ninguno.** Ningún slice activo toca este archivo. |
-| `src/__tests__/campos-sin-usar.test.ts` | Trinquete: al leer `Claim.apoyos` y `Passage.sourceId` la lista **obliga** a quitarlos. | **Mínima — ver abajo.** |
+| `src/__tests__/campos-sin-usar.test.ts` | Trinquete: al leer `Claim.apoyos` y `Passage.sourceId` la lista **obliga** a quitarlos. | **Mínima — punto de fricción 1.** |
 
-### El único punto de fricción: `campos-sin-usar.test.ts`
+Y uno que **NO se tocó a propósito**, dejando una prueba en rojo:
+`src/__tests__/el-camino-del-medico-llega-entero.test.ts` — **punto de fricción 2**.
+
+### Punto de fricción 1: `campos-sin-usar.test.ts`
 
 Los tres slices activos **ya están quitando líneas de la misma lista**:
 
@@ -40,6 +43,61 @@ una preferencia de estilo: el trinquete impone la respuesta.
 
 Verificado con `git merge-file` contra las tres ramas: #303 mergea limpio; #302
 y #306 producen ese único conflicto de una línea.
+
+### Punto de fricción 2: `el-camino-del-medico-llega-entero.test.ts` — **NO TOCADO, y por eso queda UNA prueba en rojo**
+
+**Este carril deja deliberadamente esta prueba fallando.** Es el precio de
+respetar la regla de un solo escritor, y se declara aquí en vez de esconderse.
+
+**Qué pasa.** El trinquete cuenta los módulos de `src/lib/` y `src/components/`
+que **no se alcanzan desde `src/app/`**. Los 12 archivos de
+`src/lib/evidence-integrations/` no se alcanzan —nada los cablea todavía, que es
+justo lo que significa PREPARED\_ONLY— así que la cuenta sube de **29 a 41**.
+
+El trinquete está midiendo la realidad correctamente. No es un falso positivo.
+
+**Por qué no se arregló.** Los tres slices activos **reescriben este archivo de
+arriba abajo** (213 líneas borradas) y cada uno sube el techo para sus propios
+módulos: #302 lo pone en **31**, #303 en **32**. Cualquier número que este carril
+escribiera quedaría **mal después de que sus reescrituras aterricen** — no
+conflictivo-pero-resoluble, sino activamente equivocado. Es exactamente el caso
+que la regla de un solo escritor existe para evitar.
+
+**Cambio exacto para el escritor que lo integre** (la convención ya la fijaron
+#302 y #303 en este mismo archivo, con islas nombradas y su condición de salida):
+
+```ts
+const FUERA_DEL_CAMINO_HOY = <techo vigente> + 12   // 12 archivos, ver abajo
+
+const ISLAS_DE_DOS = {
+  // …lo que ya haya…
+  'src/lib/evidence-integrations/index.ts':
+    'EVIDENCE INTEGRATIONS (#314): contrato provider-neutral probado antes de ' +
+    'cablearlo a las rutas de evidencia; debe salir de esta lista al integrar el slice.',
+}
+```
+
+Los 12 archivos: `contrato.ts`, `catalogo.ts`, `soporte.ts`, `compuertas.ts`,
+`frescura.ts`, `seleccion.ts`, `benchmark.ts`, `index.ts` y los cuatro de
+`adaptadores/` (`pubmed.ts`, `no-configurado.ts`, `conocimiento-personal.ts`,
+`sintetico.ts`).
+
+**Y baja a cero en cuanto se haga el cableado de §2.1/§2.2**: en el momento en
+que una ruta de `src/app/` importe `@/lib/evidence-integrations`, los 12 pasan a
+ser alcanzables y el techo puede volver a su valor anterior. La forma correcta
+de cerrar esto no es subir el número: es conectar el módulo.
+
+### Nota: dos guardianes que este carril SÍ tuvo que satisfacer, y cómo
+
+Ninguno exigió tocar un archivo colisionado:
+
+- **`el-barrido-de-motores-esta-explicado.test.ts`** — `motores-conectados.mjs`
+  resuelve símbolos buscando su NOMBRE COMO TEXTO. Exportar un `correrBenchmark`
+  cegaba al guardián del homónimo de UCI. Se arregló **en el nombre nuevo**
+  (`correrBenchmarkDeEvidencia`, `percentilDeLatencias`), no en el guardián.
+- **`modulos-sin-conectar.test.ts`** — al usar `desde-pubmed.ts` deja de ser
+  huérfano y la lista obliga a quitarlo. Archivo no tocado por ningún slice
+  activo.
 
 ---
 
@@ -165,6 +223,18 @@ ausencia se declara sin romper nada (`hayRespaldoOperativo()`).
 | P2 | **WHO** — la cláusula NC de CC BY-NC-SA dentro de un producto de pago | licencia | pregunta legal abierta |
 | P3 | **Conocimiento personal** — confirmar que se muestra siempre atribuido y separado | política clínica | el carril lo asume así y lo impone por contrato |
 
-**No hay ningún P0.** Nada de lo anterior impide terminar una consulta ni
-degrada la seguridad: lo que falta se declara, y lo declarado es legible por el
-médico.
+**No hay ningún P0 de producto.** Nada de lo anterior impide terminar una
+consulta ni degrada la seguridad: lo que falta se declara, y lo declarado es
+legible por el médico.
+
+### P1 de integración (no de producto)
+
+`el-camino-del-medico-llega-entero.test.ts` **queda en rojo en esta rama** (41
+módulos fuera del camino, techo 29). Es la consecuencia declarada de no tocar un
+archivo que reescriben los tres slices activos — **punto de fricción 2**, con el
+cambio exacto ya escrito. Se resuelve al integrar, y desaparece del todo al
+cablear §2.1/§2.2.
+
+**No es un fallo de comportamiento.** Ninguna prueba de conducta de este carril
+falla: los 88 casos de `evidence-integrations-*` pasan, el gate de tipos pasa y
+el trinquete de lint no sube.
