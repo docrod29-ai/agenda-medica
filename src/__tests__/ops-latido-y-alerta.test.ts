@@ -137,10 +137,12 @@ describe('el vigilante', () => {
     expect(ruta).toContain('Object.keys(PERIODO_MIN).map(job => diagnosticar(job, porJob.get(job), arranque))')
   })
 
-  it('devuelve SI la alerta salió o no', () => {
-    // Un vigilante que responde «ok» cuando no pudo avisar a nadie es el mismo
-    // fallo que viene a reparar.
-    expect(ruta).toContain('alerta }')
+  it('devuelve SI cada canal de alerta salió o no', () => {
+    // El vigilante devuelve por separado latidos, saldo e incidentes de plataforma;
+    // ninguno puede quedar oculto detrás de un `ok: true` genérico.
+    expect(ruta).toContain('alerta,')
+    expect(ruta).toContain('alertaSaldo,')
+    expect(ruta).toContain('alertaIncidentes,')
   })
 
   it('él también late', () => {
