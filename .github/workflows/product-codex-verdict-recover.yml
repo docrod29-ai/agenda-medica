@@ -58,7 +58,11 @@ jobs:
           found=0
           found_run=''
 
-          runs="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?event=issue_comment&per_page=100" --jq '.workflow_runs[] | select(.status == "completed") | .id' | head -n 300)"
+          # Judge requests can arrive through owner issue comments or through the
+          # bounded workflow_dispatch fallback. Recovery must inspect BOTH. The
+          # immutable artifact itself is the authority: audited_sha, independence,
+          # read_only and verdict shape are revalidated below before acceptance.
+          runs="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?per_page=100" --jq '.workflow_runs[] | select(.status == "completed") | .id' | head -n 300)"
 
           while IFS= read -r run_id; do
             [[ -n "$run_id" ]] || continue
