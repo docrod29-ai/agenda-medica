@@ -3,18 +3,10 @@
  *
  * EL QUE MIRA SI LOS DEMÁS SIGUEN VIVOS.
  *
- * ── POR QUÉ ES UN CRON APARTE ────────────────────────────────────────────────
- *
- * El vigilante no puede vivir dentro del trabajo que vigila: si el cron de
- * recordatorios deja de dispararse, un aviso escrito **dentro** de él tampoco se
- * dispara. Por eso mira los latidos de los otros desde fuera.
- *
- * ── LO QUE DEVUELVE Y POR QUÉ IMPORTA ────────────────────────────────────────
- *
- * El diagnóstico completo, **incluido si la alerta salió o no**. Un vigilante
- * que responde `200 ok` cuando no pudo avisar a nadie es el mismo fallo que
- * viene a reparar: una respuesta tranquilizadora sobre un sistema que no lo
- * está.
+ * El vigilante vive fuera de los trabajos que vigila. Además de latidos y saldo
+ * de proveedores, consume los incidentes de plataforma ya agrupados por #315:
+ * registrar un fallo sin que el canal que despierta al dueño lo lea seguía
+ * dejando el mismo punto ciego operativo.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { saldosDeProveedores } from '@/lib/finanzas/saldo-servidor'
@@ -25,6 +17,8 @@ import {
   type Latido,
 } from '@/lib/ops/latido'
 import { enviarAlertaOps } from '@/lib/ops/alerta'
+import { incidentesRecientes } from '@/lib/ia/incidentes-servidor'
+import { incidentesNuevosParaAlerta, resumenIncidentesParaOps } from '@/lib/incidents/vigilancia'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -55,30 +49,51 @@ export async function GET(req: NextRequest) {
     const duelen = loQueDueleGritar(ds)
 
     /**
-     * ── EL SALDO DE LOS PROVEEDORES, EN EL MISMO VIGILANTE ────────────────────
+     * ── EL SALDO DE LOS PROVEEDORES, EN EL MISMO VIGILANTE ──────────────────
      *
-     * Petición del Dr.: «estar al pendiente cuánto saldo tengo, para estarle
-     * abonando y los clientes no se queden sin IA».
-     *
-     * Va aquí y no en un cron aparte porque es el mismo trabajo: mirar cada
-     * quince minutos si algo está a punto de romperse y avisar a un humano. Un
-     * cron nuevo sería otro trabajo que vigilar.
-     *
-     * Si el saldo de AssemblyAI llega a cero, TODAS las consultas pierden la
-     * separación de voces a la vez — enterarse entonces es enterarse tarde.
+     * Si el saldo de un proveedor crítico llega a cero, muchas consultas pueden
+     * perder capacidad a la vez. Se lee aquí para avisar antes de que el médico
+     * sea quien descubra la caída.
      */
     const saldos = await saldosDeProveedores(arranque).catch(() => [] as SaldoProveedor[])
     const saldosQueDuelen = saldos.filter(x => x.nivel !== 'ok')
 
+    /**
+     * ── INCIDENTES DE PLATAFORMA — EL PUNTO CIEGO QUE FALTABA ───────────────
+     *
+     * `reportarFalloIA` ya guardaba `platform_incidentes`, pero el vigilante no
+     * los leía. Eso dejaba una incidencia correctamente registrada sin ninguna
+     * ruta hacia el dueño. Se leen sólo ids técnicos agrupados y el latido
+     * recuerda cuáles ya avisó; no viaja pregunta, nota, paciente ni respuesta
+     * del proveedor.
+     */
+    const marcaAnterior = porJob.get('vigilante')?.detalle?.incidentesAlertados
+    const incidentes = await incidentesRecientes(100)
+    const vigilanciaIncidentes = incidentesNuevosParaAlerta(incidentes, marcaAnterior, arranque)
+
     let alerta: unknown = { enviada: false, porQue: 'No había nada que avisar.' }
+    let alertaSaldo: unknown = { enviada: false, porQue: 'No había saldo bajo que avisar.' }
+    let alertaIncidentes: unknown = { enviada: false, porQue: 'No había incidentes nuevos de plataforma que avisar.' }
+
     if (saldosQueDuelen.length) {
-      await enviarAlertaOps({
+      alertaSaldo = await enviarAlertaOps({
         titulo: `Saldo bajo con ${saldosQueDuelen.length} proveedor(es) de IA`,
         detalle: saldosQueDuelen.map(avisoDeSaldo).filter(Boolean).join('\n'),
         gravedad: saldosQueDuelen.some(x => x.nivel === 'agotado' || x.nivel === 'critico') ? 'grave' : 'aviso',
         origen: 'cron/vigilante',
       })
     }
+
+    if (vigilanciaIncidentes.nuevos.length) {
+      alertaIncidentes = await enviarAlertaOps({
+        titulo: `${vigilanciaIncidentes.nuevos.length} incidente(s) nuevo(s) de plataforma`,
+        detalle: resumenIncidentesParaOps(vigilanciaIncidentes.nuevos),
+        gravedad: vigilanciaIncidentes.nuevos.some(i => i.urgente) ? 'grave' : 'aviso',
+        origen: 'cron/vigilante',
+      })
+      safeLog.warn(`[cron/vigilante] ${vigilanciaIncidentes.nuevos.length} incidente(s) de plataforma nuevo(s)`)
+    }
+
     if (duelen.length) {
       alerta = await enviarAlertaOps({
         titulo: `${duelen.length} trabajo(s) automático(s) sin latido correcto`,
@@ -89,14 +104,33 @@ export async function GET(req: NextRequest) {
       safeLog.warn(`[cron/vigilante] ${duelen.map(d => `${d.job}=${d.estado}`).join(', ')}`)
     }
 
-    // El vigilante también late: si se cae ÉL, el propio diagnóstico lo enseña
-    // la próxima vez que alguien mire.
+    // El vigilante también late. Su detalle guarda sólo contadores y los ids
+    // técnicos de grupos ya avisados, nunca contenido clínico.
     await registrarLatido('vigilante', {
-      ok: true, duracionMs: Date.now() - arranque,
-      detalle: { vigilados: ds.length, conProblema: duelen.length, saldosBajos: saldosQueDuelen.length },
+      ok: true,
+      duracionMs: Date.now() - arranque,
+      detalle: {
+        vigilados: ds.length,
+        conProblema: duelen.length,
+        saldosBajos: saldosQueDuelen.length,
+        incidentesActivos: vigilanciaIncidentes.activos,
+        incidentesNuevos: vigilanciaIncidentes.nuevos.length,
+        incidentesAlertados: vigilanciaIncidentes.marca,
+      },
     })
 
-    return NextResponse.json({ ok: true, diagnostico: ds, saldos, alerta })
+    return NextResponse.json({
+      ok: true,
+      diagnostico: ds,
+      saldos,
+      incidentes: {
+        activos: vigilanciaIncidentes.activos,
+        nuevos: vigilanciaIncidentes.nuevos.length,
+      },
+      alerta,
+      alertaSaldo,
+      alertaIncidentes,
+    })
   } catch (e) {
     safeLog.error('[cron/vigilante]', e)
     await registrarLatido('vigilante', {
