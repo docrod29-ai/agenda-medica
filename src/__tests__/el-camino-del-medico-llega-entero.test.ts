@@ -116,8 +116,34 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
  * Islas de dos. Ninguno es alarmante; los tres son lo que quedaba por ver.
  *
  * El número puede BAJAR. No puede subir sin que alguien lo escriba aquí.
+ *
+ * ── 23-ago-2026: 29 → 46. LOS 17 SON EL CONTRATO DE MIGRACIÓN (#311) ─────────
+ *
+ * `src/lib/migration/**` — los 17 módulos del carril de migración y
+ * portabilidad de expediente. Están FUERA DEL CAMINO A PROPÓSITO y por una
+ * razón que se puede nombrar:
+ *
+ *  · El carril entrega **contrato, arnés y preparación segura de servidor**. La
+ *    pantalla de Migración y la ruta que escribe son de #306 (Consultorio), y
+ *    #320 manda que haya **un solo escritor solapado**. Cablearlos desde aquí
+ *    sería abrir el segundo.
+ *  · Los 17 son PUROS: ninguno importa Firestore, red ni reloj. Hay una prueba
+ *    que lo vigila mirando sus imports
+ *    (`migracion-cuentas-aislamiento-y-reversion.test.ts`). Esa pureza es lo
+ *    que permite garantizar que el ensayo no escribe, y es incompatible con
+ *    colgarlos de una pantalla sin la capa de servidor de por medio.
+ *  · No son huérfanos: `modulos-sin-conectar.test.ts` sigue en verde porque las
+ *    cuatro suites de migración y `scripts/migration/arnes.mjs` los ejercitan.
+ *    Lo que este instrumento ve —y el otro no— es que todavía no los alcanza
+ *    NADIE desde `src/app/`.
+ *
+ * **Este número tiene que volver a bajar**, y bajar de golpe: el día que la
+ * pantalla de Migración consuma `@/lib/migration`, los 17 entran al camino de
+ * una vez y esto vuelve a 29. Mientras siga en 46, hay trabajo escrito que no le
+ * llega al médico — que es exactamente lo que este instrumento existe para no
+ * dejar olvidar. El traspaso está en `docs/migration/HANDOFF.md`.
  */
-const FUERA_DEL_CAMINO_HOY = 29
+const FUERA_DEL_CAMINO_HOY = 46
 
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',
