@@ -15,7 +15,9 @@ on:
         type: string
 
 concurrency:
-  group: ausculta-product-writer
+  # Serialize writers only inside the same product PR. Independent PRs may run
+  # concurrently; Product Board ownership remains the fail-closed overlap guard.
+  group: ausculta-product-writer-${{ github.event.issue.number || inputs.pr_number }}
   cancel-in-progress: false
 
 jobs:
@@ -109,7 +111,7 @@ jobs:
           set -euo pipefail
           cat > /tmp/product-prompt.txt <<'PROMPT'
           AUSCULTA PRODUCT BOARD #296 — BOUNDED PRODUCT WRITER.
-          You are CLAUDE/OPUS, the ONE WRITER for this exact product PR checkpoint. Do not work on overlapping files if another writer is active; this workflow concurrency is the lock.
+          You are CLAUDE/OPUS, the ONE WRITER for this exact product PR checkpoint. This PR has its own writer lock, so independent PRs may run concurrently. Never modify files owned by another active/overlapping slice; if safe ownership cannot be established from the Product Board and PR body, stop with BLOCKED_BY_GATE instead of guessing.
 
           READ FIRST: AGENTS.md, CLAUDE.md, docs/product/CONTEXT_CANONICAL.md, docs/product/PRODUCT_BOARD.md, docs/product/DECISION_REGISTER.md, the PR title/body copied below, the relevant slice contract under docs/product/slices/, and existing implementation/tests in the repository.
 
