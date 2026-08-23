@@ -225,12 +225,28 @@ const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPa
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
-// Menú de IA: motores que el médico elige por nota (⚡ barato → 💎 máximo).
-const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] = [
-  { clave: 'rapida',   emoji: '⚡', nombre: 'Rápida',   creditos: MOTORES.rapida.creditos,   desc: 'Haiku · seguimiento simple' },
-  { clave: 'estandar', emoji: '⭐', nombre: 'Estándar', creditos: MOTORES.estandar.creditos, desc: 'Sonnet + voces · el día a día' },
-  { clave: 'maxima',   emoji: '💎', nombre: 'Máxima',   creditos: MOTORES.maxima.creditos,   desc: 'Opus + GPT-5 · caso complejo' },
-]
+/**
+ * NIVEL DE IA DE LA NOTA — lo que el médico elige es el CASO, no el modelo.
+ *
+ * Esta lista estaba escrita a mano con la marca del proveedor en `desc`
+ * ('Haiku · seguimiento simple', 'Opus + GPT-5 · caso complejo'). Eran dos
+ * defectos en el mismo renglón: pedía al médico decidir cómputo por marca —lo
+ * que el Board #296 prohíbe— y era un SEGUNDO catálogo al lado de `MOTORES`,
+ * libre de discrepar de los créditos que la ruta cobra de verdad.
+ *
+ * Ahora se DERIVA de `MOTORES`: la intención clínica sale de `usoRecomendado` y
+ * los créditos de la misma fuente que cobra `/api/expediente/procesar`. El
+ * proveedor real queda donde toca —procedencia y auditoría— y el contrato con el
+ * médico es «qué caso tengo enfrente».
+ */
+const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] =
+  (['rapida', 'estandar', 'maxima'] as const).map(k => ({
+    clave: k,
+    emoji: MOTORES[k].emoji,
+    nombre: MOTORES[k].nombre,
+    creditos: MOTORES[k].creditos,
+    desc: MOTORES[k].usoRecomendado,
+  }))
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
@@ -4777,7 +4793,7 @@ export default function ConsultaActivaPage() {
           {voz.transcripcion.trim() && !grabandoAhora() && (
             <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Motor de IA para esta nota</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Nivel de IA para esta nota</span>
                 {usoIA && (
                   <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
                     {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
@@ -4950,8 +4966,9 @@ export default function ConsultaActivaPage() {
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
             Se agotaron tus consultas con IA máxima del mes. Esta nota corrió con IA económica
-            (Sonnet 5 — muy buena) y sin separación de voces. <b>Nunca te quedas sin IA.</b> Para
-            recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más créditos.
+            —redacta y estructura igual, pero sin separación de voces ni segunda revisión.
+            <b>Nunca te quedas sin IA.</b> Para recuperar la IA máxima (máximo razonamiento,
+            segunda revisión y separación médico-paciente) compra más créditos.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
             <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
