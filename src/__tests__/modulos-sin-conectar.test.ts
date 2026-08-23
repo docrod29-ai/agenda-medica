@@ -53,8 +53,16 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
    */
   'src/lib/arquitectura/grafo-de-dependencias.ts':
     'Lee los imports del repo y mide la dirección de las dependencias y los ciclos. Herramienta de CI, no función de producto: su sitio es el PR que rompe la regla, no una pantalla.',
-  'src/lib/calidad/familias-de-defecto.ts':
-    'Taxonomía de causas raíz derivada del regression-ledger. Su consumidor es el guardián que compara la clasificación contra el ledger y falla si un REG se queda sin familia: vive en el CI por definición. Una pantalla que la muestre no protegería nada — lo que protege es que NO SE PUEDA cerrar un REG sin clasificarlo.',
+  /**
+   * `src/lib/calidad/familias-de-defecto.ts` SALIÓ de esta lista (#315).
+   *
+   * Ya no es huérfano: `src/lib/incidents/regresion.ts` lo importa para validar
+   * que un incidente resuelto se clasifique con una familia que EXISTE, en vez
+   * de inventar una segunda taxonomía de causa raíz. Se declara aquí porque
+   * quitar un nombre de esta lista es una decisión, no un trámite — y porque su
+   * consumidor de hoy es un contrato preparado, no una pantalla: si `regresion.ts`
+   * desapareciera, este archivo volvería a la lista.
+   */
 
   /**
    * ── LOS CUATRO QUE TAPABA UN `import type` (v1019) ────────────────────────
@@ -102,6 +110,26 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/branches.ts': 'Multi-sucursal: el modelo existe, la interfaz y el motor de agenda no. Desde v847 la API TAMPOCO acepta `branchId`: aceptar un campo que se ignora es prometer una función que no existe.',
   'src/lib/curp.ts': 'Validación de CURP: el campo salió del formulario corto y quedó sin consumidor.',
   'src/lib/whatsapp/adapter.ts': 'Adaptador de proveedor de WhatsApp: hoy se usa 360dialog directo.',
+
+  // ── #315 · Núcleo de incidentes: contratos preparados, sin pantalla ──────
+  //
+  // Los tres son CONTRATOS, no funciones a medias: deciden y proyectan, y quien
+  // los consume todavía no existe. Se declaran con la fecha en que dejarán de
+  // estar aquí, que es lo que separa una deuda de un olvido.
+  /**
+   * `src/lib/incidents/consola-soporte.ts` NO está en esta lista, y merece una
+   * línea porque estuvo a punto de estarlo.
+   *
+   * Lo consume `scripts/incidents/generar-contratos.mjs`, que proyecta un
+   * incidente real de 812 fallos, lo AUDITA sin PHI y falla si no está limpio.
+   * Ese script es su consumidor de verdad: la consola de soporte todavía no
+   * existe —construirla toca UI del panel, que es de #306— pero el fixture que
+   * ese script escribe es lo que impide que la consola nazca mal.
+   */
+  'src/lib/incidents/regresion.ts':
+    'Puente de incidente resuelto a candidato de prueba de regresión. NO genera la prueba a propósito: se niega a emitir un candidato sin reproducción mínima ni invariante, que es justo lo que evita la prueba inútil que se borra a los seis meses. Lo consume el operador humano que cierra un incidente; su código lo ejerce su golden. Sale de esta lista cuando exista la ruta o el script que cierre incidentes.',
+  'src/lib/incidents/correlacion-contrato.ts':
+    'DECLARA la forma de correlación que el núcleo consume y NO la implementa: la primitiva real vive en src/lib/observability/correlacion.ts, en el carril de escala/resiliencia (#310, borrador de PR #342). Escribir aquí un segundo generador daría hilos que no se cruzan, y entonces el registro del navegador y el de la ruta hablarían de la misma consulta sin poder demostrarlo. Sale de esta lista cuando #342 se integre.',
 }
 
 const raiz = 'src'

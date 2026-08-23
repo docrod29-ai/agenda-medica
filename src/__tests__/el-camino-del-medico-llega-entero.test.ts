@@ -116,8 +116,39 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
  * Islas de dos. Ninguno es alarmante; los tres son lo que quedaba por ver.
  *
  * El número puede BAJAR. No puede subir sin que alguien lo escriba aquí.
+ *
+ * ── SUBIDA DECLARADA: 29 → 39 (#315, 23-ago-2026) ───────────────────────────
+ *
+ * El núcleo de detección de incidentes (`src/lib/incidents/`) añade once
+ * módulos. **Uno llega al médico** —`telemetria.ts`, que cuenta si el vigilante
+ * se quedó ciego, lo llama `ia/incidentes-servidor.ts` desde el camino de error
+ * de las rutas de IA— y con él llegan también `taxonomia`, `firma`, `puente-ia`,
+ * `runbooks`, `remediacion` y `version-de-app`, porque ese mismo camino los usa
+ * para firmar el incidente.
+ *
+ * Los otros diez NO llegan, y es la verdad de este carril: hoy el núcleo DECIDE
+ * y nadie EJECUTA. Se declaran uno a uno:
+ *
+ *   agrupacion · umbrales · maquina · mttd-mttr · contrato-medico
+ *       El motor de detección y remediación. Le falta el recolector que le meta
+ *       eventos desde las rutas: eso es cableado de producto y va como handoff
+ *       en `docs/support/HANDOFF-306-INCIDENTES.md`, no como una conexión a
+ *       medias hecha desde aquí.
+ *
+ *   consola-soporte · regresion · correlacion-contrato
+ *       Contratos preparados. Ya declarados con su motivo y su condición de
+ *       salida en `modulos-sin-conectar.test.ts`.
+ *
+ *   simulacro · escenarios
+ *       El arnés de simulacros y sus trece casos. Su sitio ES el CI y el script
+ *       `scripts/incidents/simulacro-de-incidentes.mjs`, igual que los demás
+ *       arneses de este repositorio. Un arnés con pantalla es un arnés que
+ *       alguien ajusta para que pase.
+ *
+ * Subir un trinquete es una decisión y por eso queda escrita con nombre y
+ * fecha. Baja cuando #306 monte el recolector y la consola.
  */
-const FUERA_DEL_CAMINO_HOY = 29
+const FUERA_DEL_CAMINO_HOY = 39
 
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',
