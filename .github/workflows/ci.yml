@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Los writers de producto empujan con GITHUB_TOKEN. GitHub pone los
+  # pull_request:synchronize originados por ese token en approval-required para
+  # evitar recursión. workflow_dispatch es la salida oficial para disparar CI
+  # explícitamente sin esa aprobación manual.
+  workflow_dispatch:
 
 jobs:
   # Gate de seguridad clínica (unidad Nexus OS E0-11). Job SEPARADO y con nombre
