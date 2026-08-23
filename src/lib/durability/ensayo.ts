@@ -39,6 +39,11 @@ import {
 import { compararNotaFirmada, estaFirmada, type ComparacionFirmada } from '@/lib/durability/verdad-firmada'
 import { decidirEscritura, loteDe, type Decision, type DecisionDeEscritura } from '@/lib/durability/idempotencia'
 import { reconciliar, type FotoDeDocumento, type Reconciliacion } from '@/lib/durability/reconciliacion'
+import {
+  derivarSupresiones, evaluarSupresion, SIN_SUPRESIONES,
+  type AsientoDeBitacora, type SupresionesVigentes,
+} from '@/lib/durability/supresion-arco'
+import { verificarRecuperacion, type VerificacionDeRecuperacion } from '@/lib/durability/verificacion-recuperacion'
 import { dictaminar, CONTEOS_EN_CERO, type Dictamen, type ConteosDeRestauracion } from '@/lib/durability/veredicto'
 import { generarHashIntegridad } from '@/lib/expediente/integrity'
 import type { NotaMedica } from '@/types/expediente'
@@ -91,6 +96,15 @@ export interface DocumentoEvaluado {
   lote: number
 }
 
+/** Un documento detenido por la compuerta de supresión ARCO. */
+export interface DetenidoPorSupresion {
+  ruta: string
+  coleccion: string
+  motivo: string
+  patientId: string | null
+  porQue: string
+}
+
 export interface ResultadoDelEnsayo {
   /** El resultado del simulacro que ya existía, íntegro. */
   simulacroBase: ResultadoSimulacro
@@ -99,12 +113,22 @@ export interface ResultadoDelEnsayo {
   aislamiento: HallazgoDeAislamiento[]
   /** Notas firmadas que no se pudieron escribir, con su razón. */
   verdadFirmada: { ruta: string; comparacion: ComparacionFirmada }[]
+  /** Documentos detenidos por una supresión ARCO vigente en el destino. */
+  supresionArco: DetenidoPorSupresion[]
+  /** El conjunto de supresiones que se aplicó, y qué asientos se descartaron. */
+  supresionesVigentes: SupresionesVigentes
   decisiones: DocumentoEvaluado[]
   conteos: ConteosDeRestauracion
   dictamen: Dictamen
   /** La fotografía resultante, para poder conciliar contra la base. */
   fotoResultante: FotoDeDocumento[]
   reconciliacion: Reconciliacion | null
+  /**
+   * El veredicto de pérdida clínica sobre la conciliación. `null` cuando no se
+   * dio una base contra la que conciliar: sin las dos fotografías no hay nada
+   * que verificar, y decirlo es más honesto que devolver «limpia».
+   */
+  verificacion: VerificacionDeRecuperacion | null
 }
 
 export interface OpcionesDelEnsayo {
@@ -112,6 +136,14 @@ export interface OpcionesDelEnsayo {
   destino?: FotoDelDestino
   /** La fotografía de la base ANTES del incidente, para conciliar. */
   base?: FotoDeDocumento[]
+  /**
+   * Los asientos de `audit_log` del consultorio DESTINO, tal cual salen de la
+   * base. De aquí se derivan las supresiones ARCO vigentes, con la misma
+   * función que usa la restauración de verdad.
+   */
+  bitacoraDelDestino?: readonly AsientoDeBitacora[]
+  /** Identidad del trabajo, para el aviso de incidente. Opaca. */
+  trabajoId?: string
 }
 
 /**
@@ -161,6 +193,7 @@ export async function correrEnsayo(
   const decisiones: DocumentoEvaluado[] = []
   const aislamiento: HallazgoDeAislamiento[] = []
   const verdadFirmada: { ruta: string; comparacion: ComparacionFirmada }[] = []
+  const supresionArco: DetenidoPorSupresion[] = []
   const rutasForasteras = new Set<string>()
   const reenraizados: DocumentoDelRespaldo[] = []
   const fotoResultante: FotoDeDocumento[] = []
@@ -179,6 +212,18 @@ export async function correrEnsayo(
    * archivo con dos historias deja de poder pasar por una.
    */
   const origenDeclarado = typeof cabecera?.clinicId === 'string' ? cabecera.clinicId : null
+
+  /**
+   * ── LAS SUPRESIONES SE DERIVAN UNA VEZ, ANTES DE ADMITIR NADA ─────────────
+   *
+   * Con la MISMA función que la ruta de importación. El ensayo tiene que poder
+   * prometer «este paciente no vuelve» y que la restauración de verdad cumpla
+   * exactamente esa promesa; dos derivaciones distintas del mismo conjunto son
+   * dos promesas que pueden separarse sin que nadie lo note.
+   */
+  const supresiones = op.bitacoraDelDestino
+    ? derivarSupresiones(op.bitacoraDelDestino)
+    : SIN_SUPRESIONES
 
   for (const d of documentos) {
     /**
@@ -215,6 +260,28 @@ export async function correrEnsayo(
     const ruta = reenraizar(d.ruta, op.clinicIdDestino)
     conteos.esperados++
     const lote = loteDe(indice++)
+
+    /**
+     * ── COMPUERTA DE SUPRESIÓN ARCO — VA ANTES QUE TODO LO DEMÁS ────────────
+     *
+     * Antes del aislamiento, antes de la verdad firmada y antes de la
+     * frescura. No es orden estético: las otras tres compuertas deciden entre
+     * versiones de un documento que SÍ puede volver. Ésta decide si el
+     * documento puede volver siquiera, y preguntarlo después sería haber
+     * comparado el contenido de un expediente que el titular pidió cancelar.
+     */
+    const arco = evaluarSupresion(ruta, d.coleccion, d.datos, supresiones)
+    if (!arco.admite) {
+      conteos.supresionesArcoVigentes++
+      conteos.enRevisionHumana++
+      supresionArco.push({
+        ruta, coleccion: d.coleccion, motivo: arco.motivo,
+        patientId: arco.patientId, porQue: arco.porQue,
+      })
+      decisiones.push({ ruta, coleccion: d.coleccion, decision: 'revision-humana', porQue: arco.porQue, lote })
+      continue
+    }
+
     const inmutable = esColeccionInmutable(d.coleccion, d.datos)
     reenraizados.push({ ruta, coleccion: d.coleccion, datos: d.datos })
 
@@ -315,10 +382,21 @@ export async function correrEnsayo(
     ? reconciliar(op.base, fotoResultante, [...rutasForasteras])
     : null
 
+  /**
+   * 6. Y sobre esa conciliación —la única que hay— el veredicto de pérdida
+   *    clínica, que es lo que responde «¿se puede abrir el consultorio?».
+   */
+  const verificacion = reconciliacion
+    ? verificarRecuperacion(reconciliacion, fotoResultante, {
+      clinicId: op.clinicIdDestino, trabajoId: op.trabajoId ?? '(ensayo)',
+    })
+    : null
+
   const dictamen = dictaminar(conteos, simulacroBase.pie, completitud.estado)
   return {
     simulacroBase, completitud, referenciales, aislamiento, verdadFirmada,
-    decisiones, conteos, dictamen, fotoResultante, reconciliacion,
+    supresionArco, supresionesVigentes: supresiones,
+    decisiones, conteos, dictamen, fotoResultante, reconciliacion, verificacion,
   }
 }
 
@@ -350,7 +428,15 @@ export function ensayoImpecable(r: ResultadoDelEnsayo): boolean {
     && !hayBloqueantes(r.referenciales)
     && r.aislamiento.filter(h => h.clase !== 'referencia-no-verificable').length === 0
     && r.verdadFirmada.length === 0
+    && r.supresionArco.length === 0
     && (r.reconciliacion === null || r.reconciliacion.limpia)
+    /**
+     * La verificación de pérdida clínica ve un caso que la conciliación por sí
+     * sola no marca: dos documentos con identidades legítimas distintas y el
+     * mismo contenido. Sin esta línea, una cita duplicada por un reintento
+     * pasaba por «impecable».
+     */
+    && (r.verificacion === null || r.verificacion.limpia)
 }
 
 export const POR_QUE_ESTE_ENSAYO_SIGUE_SIN_SER_EL_RTO =

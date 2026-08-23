@@ -47,6 +47,11 @@ export interface ConteosDeRestauracion {
   contaminacionEntreConsultorios: number
   /** Notas firmadas que difieren del destino o cuyo sello no cuadra. */
   verdadFirmadaEnConflicto: number
+  /**
+   * Documentos detenidos por una supresión ARCO vigente en el destino, o por no
+   * poder atribuirse con seguridad a un paciente habiéndola.
+   */
+  supresionesArcoVigentes: number
 }
 
 export interface Dictamen {
@@ -61,6 +66,7 @@ export const CONTEOS_EN_CERO: ConteosDeRestauracion = {
   esperados: 0, escritos: 0, yaEstaban: 0, excluidosPorPolitica: 0,
   rechazadas: 0, enRevisionHumana: 0, bloqueantesReferenciales: 0,
   contaminacionEntreConsultorios: 0, verdadFirmadaEnConflicto: 0,
+  supresionesArcoVigentes: 0,
 }
 
 /**
@@ -92,6 +98,18 @@ export function dictaminar(
    * entero. No se promedia con los que salieron bien: el que salió mal es un
    * documento clínico concreto de una persona concreta.
    */
+  /**
+   * ── LA SUPRESIÓN ARCO VA LA PRIMERA ──────────────────────────────────────
+   *
+   * Porque es la única de esta lista donde el perjudicado no está en la sala:
+   * un paciente ejerció su cancelación, se ejecutó, y una restauración
+   * rutinaria estaba a punto de deshacerla. Las demás son datos del
+   * consultorio mal recuperados; ésta es un derecho de un tercero.
+   */
+  if (c.supresionesArcoVigentes > 0) {
+    porQue.push(`${c.supresionesArcoVigentes} documento(s) pertenecen o se refieren a un expediente con supresión ARCO ejecutada en este consultorio, o no se pudieron atribuir a un paciente habiéndola. NO se escribieron.`)
+    antesDeUsarlo.push('Revisar los documentos detenidos por supresión ARCO. Reactivar un expediente cancelado es una decisión legal del responsable del tratamiento de los datos, con el titular delante — no una consecuencia de restaurar un respaldo.')
+  }
   if (c.verdadFirmadaEnConflicto > 0) {
     porQue.push(`${c.verdadFirmadaEnConflicto} nota(s) firmada(s) difieren de lo que ya hay en el consultorio, o su sello no cuadra con su contenido. NO se escribieron.`)
     antesDeUsarlo.push('Revisar una por una las notas firmadas en conflicto: decidir cuál es la buena es un acto medicolegal, no una opción de la restauración.')
@@ -106,7 +124,7 @@ export function dictaminar(
   }
 
   const grave = c.verdadFirmadaEnConflicto + c.contaminacionEntreConsultorios
-    + c.bloqueantesReferenciales + c.enRevisionHumana
+    + c.bloqueantesReferenciales + c.enRevisionHumana + c.supresionesArcoVigentes
 
   if (!archivoCompleto) {
     porQue.push('el archivo no traía la línea de cierre: está cortado, y lo que falta no se puede saber cuál era.')

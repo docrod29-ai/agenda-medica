@@ -23,7 +23,7 @@
  *  · **Una línea rota no aborta la restauración**: se rechaza con su razón y
  *    aparece en el informe.
  *
- * ── LOS CUATRO CANDADOS QUE FALTABAN (#312) ──────────────────────────────────
+ * ── LOS CANDADOS QUE FALTABAN (#312) ─────────────────────────────────────────
  *
  * Este módulo escribe con el **SDK admin**, que **ignora las reglas de
  * Firestore**. La regla que hace inmutable una nota firmada (NOM-024) no se
@@ -33,6 +33,10 @@
  * peor que una sobrescritura limpia porque deja una MEZCLA de dos versiones
  * que nunca existió.
  *
+ *  0. **Supresión ARCO vigente.** Un respaldo anterior a una cancelación
+ *     ejercida por un paciente resucita su expediente entero. Se cruza contra
+ *     los asientos `paciente_borrado` + `meta.accion: 'supresion_arco'` del
+ *     destino, en la ADMISIÓN, y `sobrescribir=1` no lo salta.
  *  1. **Procedencia.** La cabecera dice de qué consultorio es el archivo. Una
  *     línea cuya ruta venga de otro se re-enraizaría igual y aterrizaría aquí
  *     como si fuera nuestra. Se detiene.
@@ -57,6 +61,7 @@ import { evaluarCompletitud, type ObservadoAlReleer } from '@/lib/durability/man
 import { huellaDeEntrada, huellaDeDocumento, acumuladorDeConjunto, huellaDelArchivo, huellaDeTrabajo } from '@/lib/durability/huellas'
 import { referenciasForasteras, evaluarAislamiento } from '@/lib/durability/aislamiento'
 import { compararNotaFirmada, estaFirmada } from '@/lib/durability/verdad-firmada'
+import { derivarSupresiones, evaluarSupresion } from '@/lib/durability/supresion-arco'
 import { decidirEscritura } from '@/lib/durability/idempotencia'
 import { esColeccionInmutable, fechaDelDocumento } from '@/lib/durability/ensayo'
 import { dictaminar, CONTEOS_EN_CERO, type ConteosDeRestauracion } from '@/lib/durability/veredicto'
@@ -94,6 +99,24 @@ export async function POST(req: NextRequest) {
   const clinicRef = adminDb.collection('clinics').doc(clinicId)
 
   try {
+    /**
+     * ── CANDADO 0 — LAS SUPRESIONES ARCO DEL DESTINO (#312 · R-09) ──────────
+     *
+     * Se leen ANTES que nada: antes de mirar si el consultorio está vacío,
+     * antes de leer el archivo y antes de admitir una sola línea. Y se leen
+     * igual en modo ensayo, porque un ensayo que no aplique esta compuerta
+     * prometería que un expediente cancelado vuelve — y quien lea esa promesa
+     * pulsará el botón.
+     *
+     * `sobrescribir=1` NO aparece en esta consulta ni en la compuerta que la
+     * consume: es permiso para pisar datos propios del consultorio, no para
+     * deshacer el derecho de un tercero. Ver
+     * `POR_QUE_SOBRESCRIBIR_NO_LO_SALTA`.
+     */
+    const asientosDeBorrado = await clinicRef.collection('audit_log')
+      .where('evento', '==', 'paciente_borrado').get()
+    const supresiones = derivarSupresiones(asientosDeBorrado.docs.map(d => d.data() as Record<string, unknown>))
+
     /**
      * ¿ESTÁ VACÍO?
      *
@@ -244,11 +267,29 @@ export async function POST(req: NextRequest) {
         continue
       }
 
+      conteos.esperados++
+
+      /**
+       * CANDADO 0 (continuación) — LA SUPRESIÓN ARCO DECIDE LA ADMISIÓN.
+       *
+       * Aquí, en la primera pasada, y no junto a los otros candados: los tres
+       * de abajo eligen entre versiones de un documento que SÍ puede volver.
+       * Éste decide si el documento entra siquiera en la lista de admitidos —
+       * así no llega a compararse con el destino, no se cuenta como escrito y
+       * no puede colarse por ninguna rama posterior, tampoco por la de
+       * restaurar encima de un consultorio con datos.
+       */
+      const arco = evaluarSupresion(l.ruta, l.coleccion, l.datos, supresiones)
+      if (!arco.admite) {
+        conteos.supresionesArcoVigentes++
+        detener(l.ruta, arco.motivo, arco.porQue)
+        continue
+      }
+
       admitidos.push({
         ruta: reenraizar(l.ruta, clinicId), rutaOriginal: l.ruta,
         coleccion: l.coleccion, datos: l.datos,
       })
-      conteos.esperados++
     }
 
     const observado: ObservadoAlReleer = {
@@ -391,6 +432,7 @@ export async function POST(req: NextRequest) {
           trabajoId, veredicto: dictamen.veredicto,
           escritos: informe.escritos, yaEstaban: conteos.yaEstaban,
           detenidos: detenidosTotal, rechazadas: rechazadasTotal,
+          supresionesArco: conteos.supresionesArcoVigentes,
           archivoCompleto: informe.archivoCompleto,
           completitud: completitud.estado,
         },
@@ -418,6 +460,19 @@ export async function POST(req: NextRequest) {
       detenidos,
       detenidosTotal,
       rechazadasTotal,
+      /**
+       * Lo que la compuerta ARCO vio, sin nombres: cuántos expedientes tienen
+       * supresión vigente, cuántos documentos se detuvieron por ello, y qué
+       * asientos de borrado se descartaron por NO ser una supresión ARCO. Lo
+       * último importa tanto como lo primero: un borrado ordinario no puede
+       * producir una disposición sobre el expediente de nadie, y la única forma
+       * de comprobar que no la produjo es poder leer por qué se descartó.
+       */
+      supresionArco: {
+        expedientesSuprimidos: supresiones.pacientes.size,
+        documentosDetenidos: conteos.supresionesArcoVigentes,
+        asientosDescartados: supresiones.descartados,
+      },
       /**
        * Los objetos de Cloud Storage NO viajan en el respaldo: se dice aquí,
        * en el mismo sitio donde alguien lee cuántos documentos volvieron, y no

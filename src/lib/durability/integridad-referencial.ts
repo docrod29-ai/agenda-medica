@@ -86,7 +86,16 @@ function pacienteDeLaRuta(partes: Partes): string | null {
 /** Los campos donde un documento nombra a un paciente, en orden de preferencia. */
 const CAMPOS_DE_PACIENTE = ['patientId', 'pacienteId', 'paciente_id'] as const
 
-function pacienteDeclarado(datos: Record<string, unknown>): string | null {
+/**
+ * El paciente que un documento DECLARA en su contenido.
+ *
+ * Se exporta porque la compuerta de supresión ARCO (`supresion-arco.ts`) tiene
+ * que atribuir exactamente los mismos documentos a exactamente los mismos
+ * pacientes que esta comprobación. Dos lecturas distintas de «¿de quién es este
+ * documento?» son dos respuestas que pueden divergir, y la que divergiera sería
+ * la que deja pasar un expediente suprimido.
+ */
+export function pacienteDeclarado(datos: Record<string, unknown>): string | null {
   for (const c of CAMPOS_DE_PACIENTE) {
     const v = datos[c]
     if (typeof v === 'string' && v) return v

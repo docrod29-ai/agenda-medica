@@ -81,7 +81,7 @@ export interface Reconciliacion {
  * compensar con otra cosa. Una cita perdida se vuelve a agendar; una adenda
  * perdida es una corrección legal que ya no existe.
  */
-function severidadDe(coleccion: string, esInmutable: boolean): 'P0' | 'P1' | 'P2' {
+export function severidadDe(coleccion: string, esInmutable: boolean): 'P0' | 'P1' | 'P2' {
   if (coleccion === 'patients.notas.adendas') return 'P0'
   if (coleccion === 'patients.notas' && esInmutable) return 'P0'
   if (coleccion === 'patients.notas.versions') return 'P1'
