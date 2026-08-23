@@ -1,0 +1,149 @@
+name: Ausculta Product Codex One-Shot Auto Retry
+
+on:
+  workflow_run:
+    workflows: ["Ausculta Product Codex Judge"]
+    types: [completed]
+
+concurrency:
+  group: ausculta-product-codex-auto-retry
+  cancel-in-progress: false
+
+jobs:
+  retry-on-infra-failure:
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' ||
+      github.event.workflow_run.conclusion == 'cancelled' ||
+      github.event.workflow_run.conclusion == 'timed_out' ||
+      github.event.workflow_run.conclusion == 'startup_failure' ||
+      github.event.workflow_run.conclusion == 'action_required' ||
+      github.event.workflow_run.conclusion == 'stale'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Resolve exact PR and SHA from failed judge
+        id: target
+        env:
+          TITLE: ${{ github.event.workflow_run.display_title }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr=''
+          sha=''
+          if [[ "$TITLE" =~ ^Ausculta-Codex-PR-([0-9]+)-SHA-([0-9a-f]{40})$ ]]; then
+            pr="${BASH_REMATCH[1]}"
+            sha="${BASH_REMATCH[2]}"
+          elif [[ "$TITLE" =~ ^Ausculta-Codex-PR-([0-9]+)-/ausculta-codex-judge[[:space:]]+([0-9a-f]{40})$ ]]; then
+            pr="${BASH_REMATCH[1]}"
+            sha="${BASH_REMATCH[2]}"
+          else
+            echo "Not a correlatable real judge request; no retry. title=$TITLE"
+            exit 0
+          fi
+
+          current="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${pr}")"
+          current_sha="$(jq -r '.head.sha' <<<"$current")"
+          current_ref="$(jq -r '.head.ref' <<<"$current")"
+          [[ "$current_ref" == product/* ]] || { echo "Not a product branch; no retry."; exit 0; }
+          [[ "$current_sha" == "$sha" ]] || { echo "Product head moved; stale judge is not retried. expected=$sha current=$current_sha"; exit 0; }
+
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+          echo "source_run_id=$SOURCE_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "source_conclusion=$SOURCE_CONCLUSION" >> "$GITHUB_OUTPUT"
+
+      - name: Stop if failed run already produced a valid immutable verdict
+        id: artifact
+        if: steps.target.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ steps.target.outputs.source_run_id }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p recovered
+          artifact_name="product-codex-verdict-${SOURCE_RUN_ID}"
+          if gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" -n "$artifact_name" -D recovered >/dev/null 2>&1; then
+            verdict_file="$(find recovered -name product-codex-verdict.json -type f | head -n 1 || true)"
+            if [[ -n "$verdict_file" ]] && jq -e --arg sha "$EXPECTED_SHA" '.audited_sha == $sha and .independent == true and .read_only == true and (.verdict=="PASS" or .verdict=="FAIL" or .verdict=="UNVERIFIABLE")' "$verdict_file" >/dev/null 2>&1; then
+              echo "valid=true" >> "$GITHUB_OUTPUT"
+              echo "Valid immutable verdict exists; no paid retry."
+              exit 0
+            fi
+          fi
+          echo "valid=false" >> "$GITHUB_OUTPUT"
+
+      - name: Enforce exactly one automatic retry and no duplicates
+        id: guard
+        if: steps.target.outputs.eligible == 'true' && steps.artifact.outputs.valid != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.target.outputs.pr }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker="AUSCULTA_CODEX_AUTO_RETRY_DISPATCHED exact_sha=${EXPECTED_SHA}"
+          existing_marker="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" --paginate --jq '.[] | select(.body | startswith("'"$marker"'")) | .id' | head -n 1 || true)"
+          if [[ -n "$existing_marker" ]]; then
+            echo "Automatic retry already consumed for this exact code; no duplicate. comment_id=$existing_marker"
+            echo "dispatch=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          issue_title="Ausculta-Codex-PR-${PR_NUMBER}-/ausculta-codex-judge ${EXPECTED_SHA}"
+          dispatch_title="Ausculta-Codex-PR-${PR_NUMBER}-SHA-${EXPECTED_SHA}"
+          in_flight="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?per_page=100" --jq '.workflow_runs[] | select((.status=="queued" or .status=="in_progress") and (.display_title == "'"$issue_title"'" or .display_title == "'"$dispatch_title"'")) | .id' | head -n 1 || true)"
+          if [[ -n "$in_flight" ]]; then
+            echo "An exact-code judge is already running; no duplicate. run_id=$in_flight"
+            echo "dispatch=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          printf -v body '%s source_run_id=%s\nStanding owner authorization permits exactly one automatic paid retry only after a proven infrastructure failure, on the same immutable product code. No further automatic retries are allowed for this SHA.' "$marker" "${{ steps.target.outputs.source_run_id }}"
+          marker_id="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" --jq '.id')"
+          echo "marker_id=$marker_id" >> "$GITHUB_OUTPUT"
+          echo "dispatch=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch exactly one same-SHA retry
+        if: steps.guard.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.target.outputs.pr }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          SOURCE_RUN_ID: ${{ steps.target.outputs.source_run_id }}
+          MARKER_ID: ${{ steps.guard.outputs.marker_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          started="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$EXPECTED_SHA"
+
+          retry_run_id='pending-correlation'
+          for attempt in 1 2 3 4 5 6; do
+            sleep 2
+            found="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?event=workflow_dispatch&per_page=30" --jq '.workflow_runs[] | select(.display_title == "Ausculta-Codex-PR-'"$PR_NUMBER"'-SHA-'"$EXPECTED_SHA"'" and .created_at >= "'"$started"'") | .id' | head -n 1 || true)"
+            if [[ -n "$found" ]]; then retry_run_id="$found"; break; fi
+          done
+
+          printf -v body 'AUSCULTA_CODEX_AUTO_RETRY_DISPATCHED exact_sha=%s source_run_id=%s retry_run_id=%s\nExactly one same-code automatic retry was dispatched after a proven infrastructure failure. This standing authorization is now consumed for this SHA; another automatic retry is forbidden.' "$EXPECTED_SHA" "$SOURCE_RUN_ID" "$retry_run_id"
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${MARKER_ID}" -f body="$body" >/dev/null
+
+          {
+            echo '### One-shot Codex infrastructure retry'
+            echo "- PR: #$PR_NUMBER"
+            echo "- exact code: \`$EXPECTED_SHA\`"
+            echo "- failed infrastructure run: \`$SOURCE_RUN_ID\`"
+            echo "- single retry run: \`$retry_run_id\`"
+            echo '- No product code changed. No second automatic retry is permitted for this SHA.'
+          } >> "$GITHUB_STEP_SUMMARY"
