@@ -1,7 +1,7 @@
 {
-  "drillId": "simulacro-recuperacion-2026-01-05-700p",
+  "drillId": "simulacro-recuperacion-2026-01-05-750p",
   "environment": "local",
-  "commitSha": "d0ab6a7c81d7fe1736d0a219ce64cd094c758d9e",
+  "commitSha": "cb04f5dc299336fb9ae7437e8efe4eda7b921319",
   "backupVersion": "nexusmed-respaldo-2",
   "fixtureVersion": "durabilidad-1",
   "lossInjectedAt": null,
@@ -11,7 +11,7 @@
   "verifiedAt": "2026-01-05T09:00:00.000Z",
   "observedRpoMs": null,
   "observedRtoMs": null,
-  "sumaDeTramosMedidosMs": 1845,
+  "sumaDeTramosMedidosMs": 1989,
   "tramosMedidos": [
     "parseoYReenraizado",
     "verificacion"
@@ -29,39 +29,39 @@
     "descarga de objetos de Cloud Storage — se comprueban nombres y tamaños, nunca contenido"
   ],
   "medidoEnMs": {
-    "generarFixture": 220,
-    "serializarRespaldo": 536,
-    "totalDelArnes": 35088
+    "generarFixture": 233,
+    "serializarRespaldo": 567,
+    "totalDelArnes": 35404
   },
   "fixture": {
     "consultorioA": {
       "clinicId": "clinica-sintetica-a",
-      "pacientes": 700,
+      "pacientes": 750,
       "notasPorPaciente": 3,
       "citasPorPaciente": 2,
       "semilla": 20260823,
-      "documentos": 9802
+      "documentos": 10502
     },
     "consultorioB": {
       "clinicId": "clinica-sintetica-b",
-      "pacientes": 70,
+      "pacientes": 75,
       "notasPorPaciente": 2,
       "citasPorPaciente": 1,
       "semilla": 20260824,
-      "documentos": 772
+      "documentos": 827
     },
-    "bytesDelRespaldo": 6948885
+    "bytesDelRespaldo": 7447944
   },
   "escenarios": [
     {
       "nombre": "ida-y-vuelta-limpia",
-      "ms": 1935.87,
+      "ms": 1813.16,
       "detectada": true,
-      "comoSeDetecto": "veredicto COMPLETA, 9802 escritos, reconciliación limpia",
+      "comoSeDetecto": "veredicto COMPLETA, 10502 escritos, reconciliación limpia",
       "veredicto": "COMPLETA",
       "conteos": {
-        "esperados": 9802,
-        "escritos": 9802,
+        "esperados": 10502,
+        "escritos": 10502,
         "yaEstaban": 0,
         "excluidosPorPolitica": 0,
         "rechazadas": 0,
@@ -80,7 +80,7 @@
     },
     {
       "nombre": "respaldo-truncado-sin-pie",
-      "ms": 1882.14,
+      "ms": 1850,
       "detectada": true,
       "comoSeDetecto": "veredicto PARCIAL · manifiesto.evaluarCompletitud → sin pie ⇒ incompleto; veredicto.dictaminar ⇒ PARCIAL.",
       "queSeToco": "se cortó el archivo antes del pie y de las últimas líneas",
@@ -96,7 +96,7 @@
     },
     {
       "nombre": "linea-json-corrupta",
-      "ms": 1869.85,
+      "ms": 2084.5,
       "detectada": true,
       "comoSeDetecto": "veredicto REVISION_HUMANA · restaurar.leerLinea ⇒ rechazada; el resto del archivo sigue restaurándose.",
       "queSeToco": "se truncó la línea 3 a la mitad",
@@ -112,7 +112,7 @@
     },
     {
       "nombre": "documento-ausente",
-      "ms": 2034.24,
+      "ms": 2039.47,
       "detectada": true,
       "comoSeDetecto": "veredicto PARCIAL · reconciliacion.reconciliar ⇒ FALTA.",
       "queSeToco": "se quitó un laboratorio del archivo",
@@ -128,7 +128,7 @@
     },
     {
       "nombre": "documento-duplicado",
-      "ms": 2080.61,
+      "ms": 2048.3,
       "detectada": true,
       "comoSeDetecto": "veredicto PARCIAL · reconciliacion.duplicadosPorContenido y ⇒ SOBRA.",
       "queSeToco": "se duplicó una cita con otra identidad y el mismo contenido",
@@ -144,7 +144,7 @@
     },
     {
       "nombre": "version-rancia",
-      "ms": 2108.43,
+      "ms": 2086.97,
       "detectada": true,
       "comoSeDetecto": "veredicto PARCIAL · idempotencia.decidirEscritura ⇒ no-pisar-lo-mas-nuevo; reconciliar ⇒ RANCIO.",
       "queSeToco": "se retrasó la fecha de un borrador a 2020 para que sea más viejo que el destino",
@@ -153,19 +153,19 @@
       "reconciliacion": {
         "FALTA": 0,
         "SOBRA": 0,
-        "DIFIERE": 2100,
+        "DIFIERE": 2250,
         "RANCIO": 0,
         "FORASTERO": 0
       }
     },
     {
       "nombre": "ruta-de-otro-consultorio",
-      "ms": 2048.44,
+      "ms": 1919.5,
       "detectada": true,
       "comoSeDetecto": "veredicto REVISION_HUMANA · restaurar.reenraizar la reescribe; integridad-referencial la ve si llega sin re-enraizar.",
       "queSeToco": "una línea apunta a `clinics/consultorio-ajeno/…`",
       "veredicto": "REVISION_HUMANA",
-      "completitud": "completo",
+      "completitud": "incompleto",
       "reconciliacion": {
         "FALTA": 1,
         "SOBRA": 0,
@@ -176,7 +176,7 @@
     },
     {
       "nombre": "referencia-interna-forastera",
-      "ms": 1949.69,
+      "ms": 2002.74,
       "detectada": true,
       "comoSeDetecto": "veredicto REVISION_HUMANA · aislamiento.referenciasForasteras ⇒ campo-de-inquilino-forastero.",
       "queSeToco": "una cita declara `clinicId: consultorio-ajeno` y referencia una ruta suya",
@@ -192,7 +192,7 @@
     },
     {
       "nombre": "nota-firmada-alterada",
-      "ms": 1945.64,
+      "ms": 1734.66,
       "detectada": true,
       "comoSeDetecto": "veredicto REVISION_HUMANA · verdad-firmada.compararNotaFirmada ⇒ archivo-alterado (fail closed).",
       "queSeToco": "se cambió el plan de una nota FIRMADA sin recalcular su sello",
@@ -208,7 +208,7 @@
     },
     {
       "nombre": "adenda-sin-nota",
-      "ms": 1778.9,
+      "ms": 1872.45,
       "detectada": true,
       "comoSeDetecto": "veredicto REVISION_HUMANA · integridad-referencial ⇒ adenda-sin-nota (P0).",
       "queSeToco": "se quitó la nota clinics/clinica-sintetica-a/patients/pac-clinica-sintetica-a-00000/notas/nota-pac-clinica-sintetica-a-00000-0, dejando su adenda huérfana",
@@ -224,7 +224,7 @@
     },
     {
       "nombre": "adjunto-sin-metadato",
-      "ms": 17.85,
+      "ms": 17.67,
       "detectada": true,
       "comoSeDetecto": "2 objeto(s) que ningún documento referencia",
       "queSeToco": "se quitó el metadato de una foto; su objeto sigue en el bucket",
@@ -235,7 +235,7 @@
     },
     {
       "nombre": "metadato-sin-adjunto",
-      "ms": 7.28,
+      "ms": 7.39,
       "detectada": true,
       "comoSeDetecto": "1 metadato(s) sin objeto en el bucket destino",
       "queSeToco": "no se toca el archivo: el arnés omite el objeto del listado del bucket destino",
@@ -245,7 +245,7 @@
     },
     {
       "nombre": "huella-corrompida",
-      "ms": 1830.35,
+      "ms": 1959.01,
       "detectada": true,
       "comoSeDetecto": "veredicto PARCIAL · manifiesto.evaluarCompletitud ⇒ huella no coincide.",
       "queSeToco": "se sustituyó la huella del pie por ceros",
@@ -261,37 +261,37 @@
     },
     {
       "nombre": "archivo-con-dos-consultorios",
-      "ms": 2482.49,
+      "ms": 2705.09,
       "detectada": true,
-      "comoSeDetecto": "772 documento(s) del consultorio B detectados, veredicto REVISION_HUMANA",
+      "comoSeDetecto": "827 documento(s) del consultorio B detectados, veredicto REVISION_HUMANA",
       "veredicto": "REVISION_HUMANA"
     },
     {
       "nombre": "re-enraizado-a-otro-consultorio",
-      "ms": 1049.28,
+      "ms": 791.31,
       "detectada": true,
-      "comoSeDetecto": "9800 documento(s) declaran pertenecer a «clinica-sintetica-a»; veredicto REVISION_HUMANA (correcto: no se escribe)",
+      "comoSeDetecto": "10500 documento(s) declaran pertenecer a «clinica-sintetica-a»; veredicto REVISION_HUMANA (correcto: no se escribe)",
       "veredicto": "REVISION_HUMANA",
       "conteos": {
-        "esperados": 9802,
+        "esperados": 10502,
         "escritos": 2,
         "yaEstaban": 0,
         "excluidosPorPolitica": 0,
         "rechazadas": 0,
-        "enRevisionHumana": 3500,
+        "enRevisionHumana": 3750,
         "bloqueantesReferenciales": 0,
-        "contaminacionEntreConsultorios": 9800,
+        "contaminacionEntreConsultorios": 10500,
         "verdadFirmadaEnConflicto": 0
       }
     },
     {
       "nombre": "peticion-repetida",
-      "ms": 4778.24,
+      "ms": 4801.15,
       "detectada": true,
-      "comoSeDetecto": "la segunda pasada escribe 0 y reconoce 9802 idénticos; el estado final no cambia",
+      "comoSeDetecto": "la segunda pasada escribe 0 y reconoce 10502 idénticos; el estado final no cambia",
       "primera": {
-        "esperados": 9802,
-        "escritos": 9802,
+        "esperados": 10502,
+        "escritos": 10502,
         "yaEstaban": 0,
         "excluidosPorPolitica": 0,
         "rechazadas": 0,
@@ -301,9 +301,9 @@
         "verdadFirmadaEnConflicto": 0
       },
       "segunda": {
-        "esperados": 9802,
+        "esperados": 10502,
         "escritos": 0,
-        "yaEstaban": 9802,
+        "yaEstaban": 10502,
         "excluidosPorPolitica": 0,
         "rechazadas": 0,
         "enRevisionHumana": 0,
@@ -314,13 +314,13 @@
     },
     {
       "nombre": "timeout-despues-de-escribir",
-      "ms": 2164.46,
+      "ms": 2343.95,
       "detectada": true,
-      "comoSeDetecto": "4901 reconocidos como ya escritos, 4901 completados; sin duplicados",
+      "comoSeDetecto": "5251 reconocidos como ya escritos, 5251 completados; sin duplicados",
       "conteos": {
-        "esperados": 9802,
-        "escritos": 4901,
-        "yaEstaban": 4901,
+        "esperados": 10502,
+        "escritos": 5251,
+        "yaEstaban": 5251,
         "excluidosPorPolitica": 0,
         "rechazadas": 0,
         "enRevisionHumana": 0,
@@ -331,20 +331,20 @@
     },
     {
       "nombre": "reinicio-del-proceso",
-      "ms": 28.21,
+      "ms": 30.43,
       "detectada": true,
-      "comoSeDetecto": "se reanuda tras el lote 1: 4902 saltados, 4900 rehechos; un archivo distinto NO reanuda encima",
+      "comoSeDetecto": "se reanuda tras el lote 1: 5252 saltados, 5250 rehechos; un archivo distinto NO reanuda encima",
       "ultimoLoteConfirmado": 1
     },
     {
       "nombre": "restauracion-interrumpida",
-      "ms": 0.08,
+      "ms": 0.09,
       "detectada": true,
       "comoSeDetecto": "el lote que murió a mitad no consta; el reintento lo rehace entero"
     },
     {
       "nombre": "rollback-no-borra-lo-posterior",
-      "ms": 0.31,
+      "ms": 0.34,
       "detectada": true,
       "comoSeDetecto": "3 documento(s) modificados después quedan para revisión; la reversión NO se aplica sola",
       "resumen": {
@@ -366,7 +366,7 @@
     },
     {
       "nombre": "punto-seguro-de-la-consulta",
-      "ms": 0.27,
+      "ms": 0.23,
       "detectada": true,
       "comoSeDetecto": "al-dia / en-riesgo / conflicto se distinguen; 2 hueco(s) de continuidad declarados para #306",
       "huecos": [
@@ -377,6 +377,63 @@
         "bien": "A salvo en el servidor hace 20 s.",
         "caido": "Sin conexión con el servidor. Lo último a salvo allí es de hace 4 min; lo de después sólo está en este navegador.",
         "conflicto": "Otra pestaña o dispositivo cambió esta nota. Lo último a salvo aquí es de hace 1 min; lo que escribas ahora no se está guardando."
+      }
+    },
+    {
+      "nombre": "inventario-sin-huecos",
+      "ms": 0.28,
+      "detectada": true,
+      "comoSeDetecto": "30 clases de dato clasificadas; ninguna ruta del respaldo sin régimen de restauración",
+      "clases": 30,
+      "sinRespaldar": [
+        "clinical-photo-object",
+        "consultation-audio-object",
+        "clinic-secrets",
+        "operational-telemetry"
+      ],
+      "nuncaSeRestauran": [
+        "clinical-photo-object",
+        "consultation-audio-object",
+        "clinic-secrets",
+        "operational-telemetry"
+      ]
+    },
+    {
+      "nombre": "crecimiento-etiquetado",
+      "ms": 0.31,
+      "detectada": true,
+      "comoSeDetecto": "proyección a 60 meses = 0.96 GB, etiquetada ESCENARIO; sin precio citado NO se calcula coste",
+      "bytesPorConsultaObservados": 2096,
+      "proyeccion": {
+        "procedencia": "ESCENARIO",
+        "bytesAlFinal": 960019200,
+        "firestoreBytes": 52819200,
+        "storageBytes": 907200000,
+        "noCubre": [
+          "el índice de Firestore, que ocupa aparte y depende de las consultas que se hagan",
+          "el audio de consulta, que es efímero por diseño y no acumula",
+          "la bitácora de auditoría, que crece con los ACCESOS y no con las consultas",
+          "los respaldos guardados por el médico fuera de la plataforma",
+          "cualquier coste en dinero: este módulo cuenta bytes, no facturas"
+        ],
+        "supuestos": {
+          "consultasPorDiaHabil": "SUPUESTO sin medir: consulta privada de medicina interna a jornada completa. No sale de ningún dato del producto.",
+          "diasHabilesPorMes": "SUPUESTO sin medir: cinco días por semana.",
+          "bytesPorConsulta": "OBSERVADO sobre el fixture durabilidad-1: media de bytes de una nota serializada en NDJSON, incluidas transcripciones sintéticas.",
+          "fotosPorCienConsultas": "SUPUESTO sin medir: no hay telemetría de cuántas consultas llevan fotografía clínica.",
+          "bytesPorFoto": "SUPUESTO del fixture. El tope real de subida es ~3.5 MB (`subir-imagen.ts`), así que esto es conservador por un factor desconocido.",
+          "meses": "Cinco años: el orden de magnitud que interesa para hablar de conservación de expedientes."
+        }
+      },
+      "tamanoDelRespaldo": {
+        "bytes": 86526720,
+        "procedencia": "ESCENARIO",
+        "supuesto": "factor de sobrecarga del NDJSON: 1.6 (repetir el nombre de cada campo en cada línea), más ~80 bytes de ruta y separadores por documento. Ninguno de los dos se ha medido contra un consultorio real."
+      },
+      "coste": {
+        "usd": null,
+        "procedencia": "ESCENARIO",
+        "porQue": "NEEDS_CLINICAL_REVIEW no aplica aquí, pero la regla es la misma: no se inventa una cifra. Falta el precio por GB-mes con su fuente citada y su fecha. Quién puede decidirlo: el dueño, con la factura de GCP delante."
       }
     }
   ],
@@ -397,8 +454,8 @@
       },
       "parseoYReenraizado": {
         "procedencia": "OBSERVED_LOCAL",
-        "ms": 1834,
-        "alcance": "leer las 9802 líneas del NDJSON, re-enraizar cada ruta al destino y decidir documento a documento (aislamiento, verdad firmada, frescura, idempotencia) sobre el fixture durabilidad-1",
+        "ms": 1975,
+        "alcance": "leer las 10502 líneas del NDJSON, re-enraizar cada ruta al destino y decidir documento a documento (aislamiento, verdad firmada, frescura, idempotencia) sobre el fixture durabilidad-1",
         "noCubre": "ni una escritura en Firestore: este arnés no importa el SDK. Tampoco el restore de Google."
       },
       "escritura": {
@@ -409,8 +466,8 @@
       },
       "verificacion": {
         "procedencia": "OBSERVED_LOCAL",
-        "ms": 11,
-        "alcance": "conciliar 9802 documentos contra la línea base: faltantes, sobrantes, distintos, rancios y forasteros",
+        "ms": 14,
+        "alcance": "conciliar 10502 documentos contra la línea base: faltantes, sobrantes, distintos, rancios y forasteros",
         "noCubre": "la comprobación referencial y de aislamiento, que van dentro del tramo anterior; y cualquier verificación contra un consultorio real."
       },
       "conmutacion": {
@@ -427,7 +484,7 @@
       "escritura",
       "conmutacion"
     ],
-    "sumaDeTramosMedidosMs": 1845,
+    "sumaDeTramosMedidosMs": 1989,
     "descargo": "Medido: parseoYReenraizado, verificacion. SIN MEDIR: deteccion, restoreDeFirestore, escritura, conmutacion. Esta cifra NO es el RTO: es la suma de los tramos medidos."
   },
   "verdict": "PASS",

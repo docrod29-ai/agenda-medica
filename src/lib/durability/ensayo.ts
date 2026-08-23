@@ -181,9 +181,16 @@ export async function correrEnsayo(
   const origenDeclarado = typeof cabecera?.clinicId === 'string' ? cabecera.clinicId : null
 
   for (const d of documentos) {
-    if (!conocidas.has(d.coleccion)) { conteos.rechazadas++; continue }
+    /**
+     * `admitir` va PRIMERO, y no es cosmético: `secretos` no está entre las
+     * conocidas (está en `EXCLUIDAS`), así que preguntando antes por las
+     * conocidas se rechazaba con «colección desconocida» — cierto, fail-closed,
+     * y una razón equivocada. Quien lea el informe tiene que ver que las llaves
+     * de API se dejaron fuera A PROPÓSITO, no que el archivo traía basura.
+     */
     const v = admitir(d.coleccion)
     if (!v.escribir) { conteos.excluidosPorPolitica++; continue }
+    if (!conocidas.has(d.coleccion)) { conteos.rechazadas++; continue }
 
     const raizOriginal = d.ruta.split('/')[1]
     if (origenDeclarado && raizOriginal && raizOriginal !== origenDeclarado) {

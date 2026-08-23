@@ -218,9 +218,16 @@ export async function POST(req: NextRequest) {
       conteosObservados[l.coleccion] = (conteosObservados[l.coleccion] ?? 0) + 1
       conjunto.añadir(await huellaDeEntrada(l.ruta, l.datos))
 
-      if (!conocidas.has(l.coleccion)) { rechazar(`colección desconocida: ${l.coleccion}`, l.ruta); continue }
+      /**
+       * `admitir` va PRIMERO. `secretos` no está entre las conocidas —está en
+       * `EXCLUIDAS`— así que preguntando antes por las conocidas se rechazaba
+       * con «colección desconocida»: fail-closed, sí, y con la razón
+       * equivocada. Quien lea el informe tiene que ver que las llaves de API
+       * quedaron fuera A PROPÓSITO, no que el archivo traía basura.
+       */
       const v = admitir(l.coleccion)
       if (!v.escribir) { rechazar(v.porQue, l.ruta); conteos.excluidosPorPolitica++; continue }
+      if (!conocidas.has(l.coleccion)) { rechazar(`colección desconocida: ${l.coleccion}`, l.ruta); continue }
 
       /**
        * CANDADO 1 — PROCEDENCIA. La cabecera dice de qué consultorio es este

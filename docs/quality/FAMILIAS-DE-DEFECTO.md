@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 15-ago-2026.
-**Fuente**: los 166 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 23-ago-2026.
+**Fuente**: los 174 REG de `docs/audit/regression-ledger.md`.
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 39 de 170, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 39 de 174, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
@@ -113,7 +113,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 32 de 162.**
+**«El sistema se contradice a sí mismo» — 35 de 174.**
 
 Sumó REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
 avisos que se contradecían sobre el mismo archivo** —«los borradores van
@@ -172,7 +172,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 23 de 156**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 24 de 174**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
@@ -206,3 +206,31 @@ vez de en una entrada más.
 También comprueba que ningún REG esté en dos familias (un defecto tiene una causa
 raíz), que ninguna familia cite un REG inexistente, y que la advertencia de
 arriba siga escrita.
+
+---
+
+## La ronda del 23-ago-2026 — respaldo y restauración (#312)
+
+Cuatro defectos de una vez, y los cuatro repartidos en familias distintas. No es
+casualidad: salieron de mirar **la misma frontera** desde los dos lados.
+
+- **REG-323** → *El sistema se contradice a sí mismo*. `restaurar.ts` documenta
+  en su propia cabecera que el SDK admin ignora las reglas de Firestore —y
+  deriva la colección de la ruta precisamente por eso— mientras la ruta que lo
+  consume escribía con `merge: true` sin comparar nada. El módulo avisaba del
+  peligro y la ruta lo cruzaba igual.
+- **REG-324** → *Nadie lo estaba midiendo*. El pie del respaldo decía «completo»
+  y no existía el instrumento capaz de desmentirlo. Al encenderlo —recuentos por
+  colección y huella— destapó los otros tres, que es exactamente lo que esta
+  familia hace siempre.
+- **REG-325** → *Fuga entre consultorios y dinero*. Re-enraizar la ruta ponía el
+  documento en el consultorio correcto y lo dejaba declarando pertenecer al de
+  origen.
+- **REG-326** → *El hueco tratado como dato*. «No hay pacientes» se guardaba
+  como «el consultorio está vacío», y el caso en que esa señal falla —una
+  supresión ARCO se los llevó— es justo el caso en que el error es más grave.
+
+Lo que esto sugiere para mañana: **la frontera que hay que mirar es la que
+cruza un dato al salir y al volver.** Es la misma lección de «el dato tiene que
+LLEGAR», aplicada al viaje de vuelta: no basta con que el archivo se escriba
+bien; hay que mirar del otro lado, con el archivo en la mano, qué queda escrito.

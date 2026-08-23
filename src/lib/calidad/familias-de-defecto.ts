@@ -58,7 +58,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * de pacientes. El fallo vivía en el hueco entre las dos, que es
      * exactamente el patrón de esta familia.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322],
+    /**
+     * 323 entra aquí y no en `perdida`: la nota firmada todavía no se había
+     * perdido en ninguna parte. Lo que había eran dos partes del producto
+     * afirmando cosas incompatibles — `restaurar.ts` documenta en su cabecera
+     * que el SDK admin ignora las reglas de Firestore y deriva la colección de
+     * la ruta precisamente por eso, mientras la ruta que lo consume escribía
+     * con `merge: true` sin comparar nada. El fallo vivía en el hueco entre las
+     * dos, y ninguna estaba mal por su cuenta.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 323],
   },
   {
     clave: 'habla_real',
@@ -75,7 +84,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308],
+    /**
+     * 324 es el caso puro de esta familia: el pie del respaldo decía «completo»
+     * y NO EXISTÍA el instrumento que lo habría desmentido — ni recuento por
+     * colección, ni huella. Al encenderlo destapó los otros tres de la ronda.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 324],
   },
   {
     clave: 'hueco_como_dato',
@@ -84,7 +98,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Lo que nadie dijo se guarda como si alguien lo hubiera dicho. Es el más ' +
       'peligroso de todos porque el resultado se LEE bien: una vía, una dosis, ' +
       'una negativa, indistinguibles de un dato real.',
-    regs: [165, 172, 176, 177, 228],
+    /**
+     * 326: «no hay pacientes» se guardaba como «el consultorio está vacío», y
+     * el caso en que la señal falla —una supresión ARCO se los llevó— es
+     * exactamente el caso en que el error es más grave. Un consultorio vacío y
+     * un consultorio suprimido se LEÍAN igual.
+     */
+    regs: [165, 172, 176, 177, 228, 326],
   },
   {
     clave: 'aislamiento',
@@ -92,7 +112,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Un dato o un cobro que cruza la frontera de su dueño. Poco frecuente y ' +
       'de consecuencia alta: aquí un solo caso es un incidente, no una molestia.',
-    regs: [153, 161, 162, 163, 224],
+    /**
+     * 325: re-enraizar la ruta ponía el documento en el consultorio correcto y
+     * lo dejaba declarando pertenecer al de origen. Un solo caso es un
+     * incidente, y por eso el veredicto se detiene en vez de avisar.
+     */
+    regs: [153, 161, 162, 163, 224, 325],
   },
   {
     clave: 'charter_vacio',

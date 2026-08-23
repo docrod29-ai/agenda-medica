@@ -7987,3 +7987,184 @@ cubre las dos superficies que la matriz señaló, no «todas las pantallas tiene
 h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
+
+---
+
+## REG-323 — la restauración era la única puerta por la que se podía reescribir una nota firmada
+
+**Área.** Respaldo y restauración del consultorio (#312). Encontrado leyendo
+`src/lib/clinica/restaurar.ts` —que **documenta el peligro en su propia
+cabecera**— y comparándolo con la ruta que lo consume.
+
+**Qué fallaba.** `/api/clinic/importar` escribía cada documento con:
+
+```ts
+lote.set(adminDb.doc(destino), l.datos, { merge: true })
+```
+
+sin mirar qué había en el destino. Y escribe con el **SDK admin**, que **ignora
+las reglas de Firestore**: la regla que hace inmutable una nota firmada
+
+```
+allow update: if isMedico(clinicId) && resource.data.estado != 'firmada'
+```
+
+no se evalúa por ese camino ni una vez. La restauración era, por construcción,
+la única puerta de toda la aplicación por la que se podía reescribir un
+documento medicolegal.
+
+Y `merge: true` lo empeora: deja los campos que el archivo no trae y pisa los que
+sí, produciendo una **mezcla de dos versiones que nunca existió**, con un
+`metadata.hashIntegridad` —que también viene del archivo— capaz de no
+corresponder a ninguna de las dos.
+
+**Causa raíz.** Familia «la defensa vive en un sitio y el peligro cruza por
+otro». El módulo puro se escribió con la advertencia correcta —de hecho deriva
+la colección de la ruta precisamente porque el admin ignora las reglas— y la
+ruta que lo llama nunca implementó la mitad que le tocaba: comparar antes de
+escribir. La misma forma que REG-160 (validar un campo y escribir en otro), un
+nivel más arriba.
+
+**Control permanente.** Antes de escribir sobre una nota que ya existe y está
+firmada: si el contenido es idéntico no se escribe y cuenta como restaurada
+—eso es lo que hace inocuo el reintento—; si difiere en cualquier campo,
+**no se escribe** y el veredicto entero pasa a `REVISION_HUMANA`; y si el sello
+que trae el archivo no cuadra con el contenido que trae el archivo, tampoco se
+escribe, porque la nota venía alterada de antes.
+`src/__tests__/durabilidad-respaldo-y-restauracion.test.ts` (74 casos, probado
+al revés: la misma nota sin alterar sí se escribe y el veredicto es `COMPLETA`).
+
+**Qué NO cubre, declarado.** No hay emulador: se prueban los motores puros y se
+comprueba por lectura del archivo que la ruta los llama. Tampoco cubre
+`transcripcionMotor`, que **no está en el sello v3** por REG-060 — una nota
+firmada cuyo único cambio esté ahí pasa la comprobación de sello; la detiene la
+comparación de contenido completo, que es una defensa distinta y se dice cuál
+actúa. Y no cubre notas selladas con v2: el fixture sella con la versión actual.
+
+---
+
+## REG-324 — el pie del respaldo certificaba «completo» sin nada con qué desmentirse
+
+**Área.** Formato del respaldo del consultorio (#312).
+
+**Qué fallaba.** El pie del NDJSON decía `documentos`, `problemas` y `completo`,
+y `completo` se calculaba de UNA sola cosa: que ninguna colección hubiera
+lanzado una excepción al leerse.
+
+Eso deja pasar el fallo caro, que **no lanza nada**: una rama del árbol que
+nadie declaró se exporta de menos, no falla nada, y el archivo se certifica
+completo. Es literalmente lo que ya había pasado con
+`patients/{p}/notas/{n}/adendas` —el único mecanismo de corrección sobre una
+nota firmada— mientras el pie decía `completo: true`.
+
+Y sin recuento por colección, quien restaura **no puede comparar** lo que llegó
+con lo que debía llegar: «restauramos 10 000 documentos» no dice si faltaban
+trescientos.
+
+**Causa raíz.** Un indicador derivado de una sola señal, presentado como
+veredicto global. El guardián `respaldo-consultorio` caza la colección que falta
+**en el código** (compara el manifiesto contra `firestore.rules`); nada cazaba la
+exportación que sale corta **en tiempo de ejecución**.
+
+**Control permanente.** Formato `nexusmed-respaldo-2`: el pie lleva recuento por
+colección y huella del conjunto, acumulada **sumando módulo 2^256** —conmutativa,
+así que no depende del orden de lectura, y de 32 bytes constantes, así que no
+exige tener el consultorio entero en memoria—. No es un XOR a propósito: con XOR
+dos elementos iguales se cancelan y un documento duplicado desaparecería de la
+huella, que es una de las averías que hay que ver. `nexusmed-respaldo-1` se
+sigue leyendo pero **no puede alcanzar el veredicto «completo»**, y se dice por
+qué. `src/__tests__/durabilidad-respaldo-y-restauracion.test.ts`.
+
+**Qué NO cubre, declarado.** La huella prueba que el CONJUNTO de documentos es
+el mismo. No prueba que ninguno esté mal: los dos lados pueden estar mal igual.
+Y no cubre los objetos de Cloud Storage, que no viajan en el archivo — eso se
+declara en la cabecera (`fueraDelArchivo`) en vez de silenciarse.
+
+---
+
+## REG-325 — re-enraizar la ruta dejaba el documento declarando pertenecer a otro consultorio
+
+**Área.** Aislamiento entre consultorios durante la restauración (#312).
+
+**Qué fallaba.** `reenraizar()` reescribe `clinics/A/patients/P` →
+`clinics/B/patients/P`, que es lo correcto y lo que hace posible restaurar en
+otro sitio. Pero **no toca el contenido**, y el contenido lleva la clínica de
+origen por dentro:
+
+```json
+{ "clinicId": "A", "metadata": { "clinicId": "A" }, … }
+```
+
+El resultado es un documento **guardado en B que declara pertenecer a A**. No
+falla nada, no avisa nadie, y la siguiente consulta que filtre por ese campo verá
+lo que no debe o dejará de ver lo que sí.
+
+Además, `reenraizar` reescribe la raíz de CUALQUIER ruta: una línea de un tercer
+consultorio metida a mano en el archivo también se re-enraíza y aterriza en el
+destino como si fuera suya.
+
+**Causa raíz.** Un invariante —el aislamiento entre consultorios— que vive en
+dos sitios a la vez (la ruta y el contenido) y sólo se comprobaba en uno. El que
+no se comprueba es el que falla.
+
+**Control permanente.** Dos candados. **Procedencia**: cada raíz original se
+compara contra el `clinicId` que declara la cabecera; una línea de otro origen se
+detiene. **Aislamiento por dentro**: se recorre el documento entero buscando
+campos de inquilino y rutas incrustadas de otro consultorio.
+
+Y una consecuencia que se declara en vez de resolverse a la ligera: `clinicId`
+está **dentro del sello v3**, así que restaurar una nota FIRMADA en otro
+consultorio no tiene salida limpia —dejar el campo contamina, reescribirlo altera
+un documento inmutable—. No se elige: es `REVISION_HUMANA`, y es una decisión
+medicolegal sobre titularidad del expediente.
+`src/__tests__/durabilidad-respaldo-y-restauracion.test.ts`.
+
+**Qué NO cubre, declarado.** Detecta referencias que **se pueden leer** del
+documento. Los objetos de Cloud Storage se enraízan por `uid` de médico
+(`receta-diseno/{uid}/…`), así que desde el documento es **imposible** saber a
+qué consultorio pertenece el objeto: eso sale como `referencia-no-verificable`,
+que es una declaración de límite, no un aprobado. Ver R-05 en
+`docs/recovery/REGISTRO-DE-RIESGOS.md`.
+
+---
+
+## REG-326 — «consultorio vacío» miraba dos colecciones, y una supresión ARCO se podía deshacer sin querer
+
+**Área.** Candado de la restauración (#312).
+
+**Qué fallaba.** La comprobación de consultorio vacío era:
+
+```ts
+const [pac, cit] = await Promise.all([
+  clinicRef.collection('patients').limit(1).get(),
+  clinicRef.collection('appointments').limit(1).get(),
+])
+```
+
+Un consultorio con cobros, con bitácora de accesos o con internamientos —pero
+**sin pacientes, porque una supresión ARCO se los llevó**— pasaba por vacío. Y
+encima de ese consultorio se restauraba un respaldo anterior a la supresión.
+
+Un derecho ejercido por un paciente (LFPDPPP Art. 25-26) se deshacía sin que
+nadie lo pidiera y sin que nadie se enterara.
+
+**Causa raíz.** Una señal elegida por conveniencia —«si hay pacientes, hay
+datos»— tratada como definición. El caso en que la señal falla es precisamente
+el caso en que el error es más grave.
+
+**Control permanente.** Cinco señales: `patients`, `appointments`, `cobros`,
+`audit_log`, `internamientos`. Escritas **una a una** y no recorriendo un
+arreglo, porque el detector de rutas que leen identidad de paciente
+(`authz-rutas-declaradas`) busca `collection('patients')` en el texto: con un
+bucle, la ruta que reescribe el consultorio entero dejaba de contar como lectora
+de PHI y el guardián pasaba en verde sin ella. Es la cuarta vez que un guardián
+textual se apaga solo en este repositorio.
+`src/__tests__/durabilidad-respaldo-y-restauracion.test.ts` y
+`src/__tests__/respaldo-ida-y-vuelta.test.ts`.
+
+**Qué NO cubre, declarado.** Con `sobrescribir=1` sigue siendo posible restaurar
+encima. El invariante que falta —«un paciente cuya supresión consta en el destino
+no vuelve»— exige cruzar `arco_requests` del destino contra los pacientes del
+archivo, y decidir el criterio de coincidencia es una decisión de identidad de
+paciente que toca #306. Queda como R-09 en
+`docs/recovery/REGISTRO-DE-RIESGOS.md`.
