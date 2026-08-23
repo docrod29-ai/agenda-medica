@@ -11,11 +11,18 @@ function timestamp(value: string, field: string): number {
   return parsed
 }
 
-function newestRecordedState(segment: TranscriptSegment): number {
+/** Newest provider/capture transition. Clinician review may legitimately happen after the capture seal. */
+function newestCaptureState(segment: TranscriptSegment): number {
   let newest = timestamp(segment.receivedAt, 'receivedAt')
   for (const revision of segment.revisions) newest = Math.max(newest, timestamp(revision.revisedAt, 'revisedAt'))
-  for (const resolution of segment.reviewResolutions ?? []) newest = Math.max(newest, timestamp(resolution.resolvedAt, 'resolvedAt'))
   if (segment.finalizedAt) newest = Math.max(newest, timestamp(segment.finalizedAt, 'finalizedAt'))
+  return newest
+}
+
+/** Newest state that the resulting ClinicalInput actually claims, including post-seal clinician review. */
+function newestClinicalState(segment: TranscriptSegment): number {
+  let newest = newestCaptureState(segment)
+  for (const resolution of segment.reviewResolutions ?? []) newest = Math.max(newest, timestamp(resolution.resolvedAt, 'resolvedAt'))
   return newest
 }
 
@@ -23,12 +30,16 @@ function newestRecordedState(segment: TranscriptSegment): number {
  * Production boundary from sealed voice capture into Clinical Truth.
  *
  * `voiceSessionToClinicalInput` remains the provider-neutral serializer. This
- * boundary adds the chronology checks that a forged/deserialized VoiceSession
- * must satisfy before clinical data can cross into Clinical Truth:
- * - the seal must exist and be a valid timestamp;
+ * boundary adds chronology checks that a forged/deserialized VoiceSession must
+ * satisfy before clinical data can cross into Clinical Truth:
+ * - the capture seal must exist and follow every provider/capture transition;
  * - every segment must be final;
- * - the seal must be at/after every recorded segment transition;
- * - capturedAt cannot claim the ClinicalInput existed before capture ended.
+ * - capturedAt must follow the seal and any later clinician review resolution.
+ *
+ * Review resolution is intentionally allowed after `endedAt`: the physician may
+ * resolve an ambiguity after dictation stops. The seal therefore constrains the
+ * provider capture lineage, while `capturedAt` constrains the complete clinical
+ * lineage that is actually emitted.
  */
 export function sealedVoiceSessionToClinicalInput(
   session: VoiceSession,
@@ -51,14 +62,19 @@ export function sealedVoiceSessionToClinicalInput(
   }
 
   for (const segment of session.segments) {
-    if (endedAt < newestRecordedState(segment)) {
-      throw new Error(`Impossible voice chronology rejected: endedAt precedes the newest recorded state of transcript segment ${segment.id}`)
+    if (endedAt < newestCaptureState(segment)) {
+      throw new Error(`Impossible voice chronology rejected: endedAt precedes the newest provider capture state of transcript segment ${segment.id}`)
     }
   }
 
   const capturedAtMs = timestamp(capturedAt, 'capturedAt')
   if (capturedAtMs < endedAt) {
     throw new Error(`Impossible voice chronology rejected: capturedAt precedes endedAt for voice session ${session.id}`)
+  }
+  for (const segment of session.segments) {
+    if (capturedAtMs < newestClinicalState(segment)) {
+      throw new Error(`Impossible voice chronology rejected: capturedAt precedes the newest clinical state of transcript segment ${segment.id}`)
+    }
   }
 
   const input = voiceSessionToClinicalInput(session, capturedAt)
