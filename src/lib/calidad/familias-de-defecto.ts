@@ -92,7 +92,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Un dato o un cobro que cruza la frontera de su dueño. Poco frecuente y ' +
       'de consecuencia alta: aquí un solo caso es un incidente, no una molestia.',
-    regs: [153, 161, 162, 163, 224],
+    regs: [153, 161, 162, 163, 224, 323],
   },
   {
     clave: 'charter_vacio',

@@ -7987,3 +7987,52 @@ cubre las dos superficies que la matriz señaló, no «todas las pantallas tiene
 h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
+
+---
+
+## REG-323 — el enlace del paciente viajaba entero al registro de errores
+
+**Área.** Privacidad y aislamiento. Encontrado por `SCALE/RESILIENCE-310`
+inventariando el camino de pantalla blanca: `src/app/mi/` no tiene `error.tsx`,
+así que un fallo de componente sube hasta `src/app/global-error.tsx` — que sí
+reporta, y con `sinSesion: true`. Al seguir qué se reportaba exactamente
+apareció `window.location.pathname`.
+
+**Qué fallaba.** `/api/errores` redacta la ruta con `redactarRuta` para no
+llevarse el identificador del paciente. Esa redacción tenía dos huecos, y los
+dos apuntaban al mismo sitio:
+
+1. el segmento `mi` no estaba en la lista de segmentos con identificador;
+2. la heurística de identificador exigía `^[A-Za-z0-9_-]+$`, y el token del
+   portal es `base64url(payload).base64url(firma)` — **el punto la esquivaba**.
+
+Así que el token completo acababa escrito en `errores`, una colección **raíz**,
+legible desde `/superadmin/errores`. Y `/mi/<token>` no es una ruta con un
+identificador dentro: el token **ES la sesión del paciente**. Quien tenga esa
+cadena abre el expediente.
+
+Las mismas dos familias dejaban abiertas `/resena/[token]`, `/verificar/[token]`
+y `/unirse/[code]`.
+
+**Causa raíz.** La lista se escribió pensando en identificadores de documento —
+que es lo que llevaban las rutas del médico— y las rutas de cara al paciente
+llegaron después llevando **credenciales**, que es otra cosa. Es la forma de
+REG-160 y de la regla «el dato tiene que LLEGAR» vista al revés: el guardián
+existía, funcionaba, y su criterio ya no describía el material que le pasaba
+por delante.
+
+**Control permanente.** Dos capas, porque una sola vuelve a fallar en cuanto
+aparezca una ruta nueva: los segmentos de cara al paciente se declaran
+(`mi`, `resena`, `verificar`, `unirse`, `reservar`, `teleconsulta`), y
+**cualquier** segmento con forma de token firmado se borra esté donde esté y lo
+haya declarado alguien o no.
+`src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts`
+(7 casos, probado al revés: la heurística vieja no cazaba el token).
+
+**Qué NO cubre, declarado.** No saca el token de la URL: sigue viajando en la
+barra del navegador, en el historial y en cualquier `Referer` que salga del
+dominio. Eso es un cambio de arquitectura del portal y queda como hallazgo P1
+en `docs/reliability/HOT-PATH-INVENTORY.md`. Esto tapa el canal que además lo
+**persistía** fuera del consultorio. Tampoco cubre rutas de cara al paciente
+que se creen mañana con otro nombre: para ésas queda la segunda capa, la de la
+forma del token.
