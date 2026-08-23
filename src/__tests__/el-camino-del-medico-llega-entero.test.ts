@@ -116,8 +116,29 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
  * Islas de dos. Ninguno es alarmante; los tres son lo que quedaba por ver.
  *
  * El número puede BAJAR. No puede subir sin que alguien lo escriba aquí.
+ *
+ * ── 29 → 38 el 23-ago-2026: el riel de ruteo de IA (#313) ───────────────────
+ *
+ * Suben **nueve**, todos de `src/lib/ia/router/`: el control plane que elige el
+ * modelo mínimo suficiente para cada tarea. Se declaran aquí, que es lo que
+ * este trinquete pide cuando la ausencia es legítima.
+ *
+ * **Por qué no llegan al médico todavía, y por qué no se conectan a medias.**
+ * El consumidor natural del router es el flujo de consulta, y ese flujo es la
+ * superficie de #306, que está PREPARED_ONLY hasta que cierren las compuertas
+ * de Voz #302 y Razonamiento #303. Enchufarlo desde aquí sería un segundo
+ * escritor sobre un slice ajeno.
+ *
+ * **Y hay una razón más fuerte, propia del riel**: hoy no existe evidencia de
+ * calidad cargada, así que el router falla cerrado en el 100 % de las tareas
+ * (`QUALITY_NOT_PROVEN`, medido en `docs/ai/router/informe-sombra.md`).
+ * Conectarlo hoy no daría mejores decisiones: apagaría la IA. Primero se mide,
+ * después se enchufa — que es exactamente el orden que el riel defiende.
+ *
+ * Lo que SÍ corre hoy: sus pruebas y `scripts/ai/router-sombra.ts`, que produce
+ * el informe sin gastar una llamada.
  */
-const FUERA_DEL_CAMINO_HOY = 29
+const FUERA_DEL_CAMINO_HOY = 38
 
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',

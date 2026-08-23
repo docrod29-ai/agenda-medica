@@ -102,6 +102,27 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/branches.ts': 'Multi-sucursal: el modelo existe, la interfaz y el motor de agenda no. Desde v847 la API TAMPOCO acepta `branchId`: aceptar un campo que se ignora es prometer una función que no existe.',
   'src/lib/curp.ts': 'Validación de CURP: el campo salió del formulario corto y quedó sin consumidor.',
   'src/lib/whatsapp/adapter.ts': 'Adaptador de proveedor de WhatsApp: hoy se usa 360dialog directo.',
+
+  /**
+   * ── EL RIEL DE RUTEO DE IA (#313) — 23-ago-2026 ──────────────────────────
+   *
+   * Sólo estos dos del paquete `src/lib/ia/router/` quedan sin importador: los
+   * otros siete se alcanzan entre ellos y desde `scripts/ai/router-sombra.ts`.
+   *
+   * No se conectan a medias por dos razones, y la segunda es la que manda:
+   *
+   *  1. Su consumidor natural es el flujo de consulta, que es superficie de
+   *     #306 y está PREPARED_ONLY. Enchufarlo desde aquí sería un segundo
+   *     escritor sobre un slice ajeno.
+   *  2. **Hoy no hay evidencia de calidad cargada**, así que el router falla
+   *     cerrado en el 100 % de las tareas simuladas. Conectarlo hoy no daría
+   *     mejores decisiones: apagaría la IA. Primero se mide, después se
+   *     enchufa — que es el orden que el riel entero defiende.
+   */
+  'src/lib/ia/router/telemetria.ts':
+    'Evento de ruteo sin PHI, con lista blanca de campos. Lo consume su golden; su emisor de producción es la ruta que enchufe el router, y todavía no hay ninguna.',
+  'src/lib/ia/router/economia.ts':
+    'Economía unitaria de la IA sobre el libro de costos ya existente. Su consumidor será el tablero del dueño (superadmin), que es superficie de otro slice: se deja declarado en vez de abrir una pantalla a medias.',
 }
 
 const raiz = 'src'
