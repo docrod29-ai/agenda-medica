@@ -52,12 +52,21 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p recovery
-          mapfile -t runs < <(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?per_page=100" --jq '.workflow_runs[] | [.id,.conclusion] | @tsv')
+          marker="AUSCULTA_CODEX_FALLBACK_DISPATCHED exact_sha=${EXPECTED_SHA}"
+          marker_row="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" --paginate --jq '.[] | select(.body | startswith("'"$marker"'")) | [.id,.created_at] | @tsv' | head -n 1 || true)"
+          marker_created_at=''
+          marker_epoch=''
+          if [[ -n "$marker_row" ]]; then
+            marker_created_at="${marker_row#*$'\t'}"
+            marker_epoch="$(date -u -d "$marker_created_at" +%s 2>/dev/null || true)"
+          fi
+
+          exact_dispatch_title="Ausculta-Codex-PR-${PR_NUMBER}-SHA-${EXPECTED_SHA}"
+          mapfile -t runs < <(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?per_page=100" --jq '.workflow_runs[] | [.id,.status,(.conclusion // ""),.event,.display_title,.created_at] | @tsv')
           checked=0
           candidates=()
           for row in "${runs[@]}"; do
-            run_id="${row%%$'\t'*}"
-            conclusion="${row#*$'\t'}"
+            IFS=$'\t' read -r run_id status conclusion event display_title created_at <<<"$row"
             [[ "$run_id" =~ ^[0-9]+$ ]] || continue
             checked=$((checked + 1))
             rm -rf recovery/artifact recovery/log.txt
@@ -72,10 +81,34 @@ jobs:
                 break
               fi
             fi
-            if gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --log > recovery/log.txt 2>/dev/null && grep -Fq "$EXPECTED_SHA" recovery/log.txt; then
-              candidates+=("${run_id}:${conclusion}")
+
+            exact_candidate=0
+            if [[ "$event" == 'workflow_dispatch' && "$display_title" == "$exact_dispatch_title" ]]; then
+              exact_candidate=1
+            elif [[ "$event" == 'issue_comment' && "$display_title" == *"/ausculta-codex-judge ${EXPECTED_SHA}"* ]]; then
+              exact_candidate=1
+            elif [[ "$event" == 'workflow_dispatch' && -n "$marker_epoch" ]]; then
+              # Legacy fallback runs created before run-name correlation existed are
+              # correlated to the marker posted immediately after dispatch.
+              run_epoch="$(date -u -d "$created_at" +%s 2>/dev/null || true)"
+              if [[ "$run_epoch" =~ ^[0-9]+$ ]] && (( run_epoch >= marker_epoch - 60 && run_epoch <= marker_epoch + 15 )); then
+                exact_candidate=1
+              fi
             fi
-            [[ "$checked" -ge 40 ]] && break
+
+            if [[ "$exact_candidate" == '0' ]]; then
+              # Last-resort correlation for legacy issue-comment runs whose default
+              # display title carried no SHA. Never require logs for new dispatches.
+              if gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --log > recovery/log.txt 2>/dev/null && grep -Fq "$EXPECTED_SHA" recovery/log.txt; then
+                exact_candidate=1
+              fi
+            fi
+
+            if [[ "$exact_candidate" == '1' ]]; then
+              [[ -n "$conclusion" ]] || conclusion='none'
+              candidates+=("${run_id}:${status}:${conclusion}")
+            fi
+            [[ "$checked" -ge 60 ]] && break
           done
           if [[ ! -f recovery/recovered-verdict.json ]]; then
             echo "found=false" >> "$GITHUB_OUTPUT"
@@ -120,24 +153,53 @@ jobs:
           retry_marker="AUSCULTA_CODEX_FALLBACK_RETRY_DISPATCHED exact_sha=${EXPECTED_SHA}"
           existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" --paginate --jq '.[] | select(.body | startswith("'"$marker"'")) | .id' | head -n 1 || true)"
           retry_existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" --paginate --jq '.[] | select(.body | startswith("'"$retry_marker"'")) | .id' | head -n 1 || true)"
+
+          dispatch_judge() {
+            local started run_id
+            started="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$EXPECTED_SHA"
+            run_id=''
+            for attempt in 1 2 3 4 5 6; do
+              sleep 2
+              run_id="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?event=workflow_dispatch&per_page=30" --jq '.workflow_runs[] | select(.display_title == "Ausculta-Codex-PR-'"$PR_NUMBER"'-SHA-'"$EXPECTED_SHA"'" and .created_at >= "'"$started"'") | .id' | head -n 1 || true)"
+              [[ -n "$run_id" ]] && break
+            done
+            [[ -n "$run_id" ]] || run_id='pending-correlation'
+            printf '%s' "$run_id"
+          }
+
           if [[ -n "$existing" ]]; then
             if [[ -n "$retry_existing" ]]; then
               echo "Fallback retry already recorded for exact SHA; not duplicating. comment_id=$retry_existing"
               exit 0
             fi
-            failed_candidate="$(grep -E '^[0-9]+:(failure|cancelled)$' recovery/candidates.txt 2>/dev/null | head -n 1 || true)"
+
+            in_flight="$(grep -E '^[0-9]+:(queued|in_progress):' recovery/candidates.txt 2>/dev/null | head -n 1 || true)"
+            if [[ -n "$in_flight" ]]; then
+              echo "Exact-SHA judge is still queued/in_progress; no duplicate. candidate=$in_flight"
+              exit 0
+            fi
+
+            failed_candidate="$(grep -E '^[0-9]+:completed:(failure|cancelled)$' recovery/candidates.txt 2>/dev/null | head -n 1 || true)"
             if [[ -z "$failed_candidate" ]]; then
+              successful_without_artifact="$(grep -E '^[0-9]+:completed:success$' recovery/candidates.txt 2>/dev/null | head -n 1 || true)"
+              if [[ -n "$successful_without_artifact" ]]; then
+                echo "::error::JUDGE_SUCCESS_WITHOUT_VALID_VERDICT_ARTIFACT candidate=$successful_without_artifact"
+                exit 97
+              fi
               echo "Fallback dispatch already recorded and no failed/cancelled exact-SHA candidate proves a retry is warranted. comment_id=$existing"
               exit 0
             fi
+
             failed_run_id="${failed_candidate%%:*}"
-            gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$EXPECTED_SHA"
-            printf -v body '%s recovery_run_id=%s source_failed_run_id=%s\nExactly one bounded retry was launched only after recovery proved no immutable verdict exists and found a failed/cancelled exact-SHA fallback candidate. Further retries on this SHA are blocked by this marker.' "$retry_marker" "$GITHUB_RUN_ID" "$failed_run_id"
+            retry_run_id="$(dispatch_judge)"
+            printf -v body '%s recovery_run_id=%s source_failed_run_id=%s judge_run_id=%s\nExactly one bounded retry was launched only after recovery proved no immutable verdict exists and found a failed/cancelled exact-SHA fallback candidate. Further retries on this SHA are blocked by this marker.' "$retry_marker" "$GITHUB_RUN_ID" "$failed_run_id" "$retry_run_id"
             gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
             exit 0
           fi
-          gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$EXPECTED_SHA"
-          printf -v body '%s recovery_run_id=%s\nRecovery proved no valid immutable verdict existed, so exactly one explicit workflow_dispatch judge was launched.' "$marker" "$GITHUB_RUN_ID"
+
+          judge_run_id="$(dispatch_judge)"
+          printf -v body '%s recovery_run_id=%s judge_run_id=%s\nRecovery proved no valid immutable verdict existed, so exactly one explicit workflow_dispatch judge was launched.' "$marker" "$GITHUB_RUN_ID" "$judge_run_id"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
 
       - name: Persist recovery miss classification
@@ -150,7 +212,7 @@ jobs:
         run: |
           set -euo pipefail
           candidates="$(paste -sd, recovery/candidates.txt 2>/dev/null || true)"
-          [[ -n "$candidates" ]] || candidates='none-visible-in-last-40-runs'
-          printf -v body 'AUSCULTA_CODEX_RECOVERY_MISS exact_sha=%s recovery_run_id=%s candidate_runs=%s\nNo valid immutable exact-SHA verdict artifact was found. Initial fallback dispatch and at most one bounded retry after a proven failed/cancelled exact-SHA candidate are protected by separate exact-SHA markers.' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$candidates"
+          [[ -n "$candidates" ]] || candidates='none-visible-in-last-60-runs'
+          printf -v body 'AUSCULTA_CODEX_RECOVERY_MISS exact_sha=%s recovery_run_id=%s candidate_runs=%s\nNo valid immutable exact-SHA verdict artifact was found. Exact-SHA run correlation now uses workflow metadata first and legacy marker/log correlation second; in-flight runs are never duplicated.' "$EXPECTED_SHA" "$GITHUB_RUN_ID" "$candidates"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
           echo '::warning::NO_VALID_IMMUTABLE_VERDICT_FOUND'
