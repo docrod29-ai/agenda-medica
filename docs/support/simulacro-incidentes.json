@@ -1,0 +1,645 @@
+{
+  "generadoCon": "reloj inyectado, sin red, sin proveedores, sin producción",
+  "appVersion": "simulacro",
+  "t0": "2026-08-23T09:00:00.000Z",
+  "escenarios": [
+    {
+      "id": "IA-SALDO",
+      "titulo": "La cuenta del proveedor de IA se quedó sin saldo",
+      "eventosGenerados": 60,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "ai_provider|sin_saldo|nota|/consulta/[id]|anthropic|http_400|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.2 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": false,
+      "porQueLaRemediacion": "«reintento_idempotente» no puede ejecutarse sola: no_se_arregla_reintentando.",
+      "intentos": 0,
+      "faseFinal": "requiere_humano",
+      "desenlace": "requiere_humano",
+      "avisoRequerido": true,
+      "runbookId": "RB-IA-SALDO",
+      "mensajeAlMedico": {
+        "title": "El servicio de IA no está disponible.",
+        "whatFailed": "El servicio de IA no está disponible.",
+        "dataSafety": "Tu dictado está guardado.",
+        "canContinue": "Puedes seguir escribiendo la nota a mano.",
+        "retryAvailable": false,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": true,
+        "visibilidad": "discreto",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": 12203,
+      "mttrMs": null,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:12.203Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "IA-SOBRECARGA",
+      "titulo": "El proveedor de IA está saturado",
+      "eventosGenerados": 40,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "ai_provider|sobrecarga|nota|/consulta/[id]|anthropic|http_529|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.2 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": true,
+      "porQueLaRemediacion": "«reintento_idempotente» es reversible e idempotente, no toca verdad clínica ni permisos ni dinero, y el incidente admite reintento.",
+      "intentos": 2,
+      "faseFinal": "recuperado",
+      "desenlace": "recuperado",
+      "avisoRequerido": false,
+      "runbookId": "RB-IA-SOBRECARGA",
+      "mensajeAlMedico": {
+        "title": "El servicio de IA no está disponible.",
+        "whatFailed": "El servicio de IA no está disponible.",
+        "dataSafety": "Tu dictado está guardado.",
+        "canContinue": "Puedes seguir escribiendo la nota a mano. Hay un modo limitado disponible.",
+        "retryAvailable": true,
+        "fallbackAvailable": true,
+        "supportAlreadyNotified": false,
+        "visibilidad": "discreto",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": 12308,
+      "mttrMs": 4600,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:12.308Z",
+        "recuperadoEn": "2026-08-23T09:00:16.908Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "IA-TIMEOUT",
+      "titulo": "El proveedor de IA deja de responder a tiempo",
+      "eventosGenerados": 30,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "ai_provider|timeout|transcribir|/consulta/[id]|assemblyai|http_504|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.3 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": true,
+      "porQueLaRemediacion": "«respaldo_de_proveedor_autorizado» es reversible e idempotente, no toca verdad clínica ni permisos ni dinero, y el incidente admite reintento.",
+      "intentos": 1,
+      "faseFinal": "recuperado",
+      "desenlace": "recuperado",
+      "avisoRequerido": false,
+      "runbookId": "RB-IA-SOBRECARGA",
+      "mensajeAlMedico": {
+        "title": "El servicio de IA no está disponible.",
+        "whatFailed": "El servicio de IA no está disponible.",
+        "dataSafety": "Tu dictado está guardado.",
+        "canContinue": "Puedes seguir escribiendo la nota a mano. Hay un modo limitado disponible.",
+        "retryAvailable": true,
+        "fallbackAvailable": true,
+        "supportAlreadyNotified": false,
+        "visibilidad": "discreto",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": 20690,
+      "mttrMs": 2500,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:20.690Z",
+        "recuperadoEn": "2026-08-23T09:00:23.190Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "PERSISTENCIA-TRANSITORIA",
+      "titulo": "Escritura a la base que falla de forma transitoria, CON clave de idempotencia",
+      "eventosGenerados": 25,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "persistence|escritura_rechazada|nota|/consulta/[id]|-|unavailable|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.3 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": true,
+      "porQueLaRemediacion": "«reintento_idempotente» es reversible e idempotente, no toca verdad clínica ni permisos ni dinero, y el incidente admite reintento.",
+      "intentos": 1,
+      "faseFinal": "recuperado",
+      "desenlace": "recuperado",
+      "avisoRequerido": false,
+      "runbookId": "RB-PERSISTENCIA",
+      "mensajeAlMedico": {
+        "title": "No pude confirmar el guardado en el servidor.",
+        "whatFailed": "No pude confirmar el guardado en el servidor.",
+        "dataSafety": "ATENCIÓN: no se pudo confirmar el guardado. Tu texto sigue en pantalla — no cierres sin comprobar que aparece guardado.",
+        "canContinue": "Copia tu texto antes de cerrar y vuelve a intentar guardar.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": false,
+        "visibilidad": "franja",
+        "interrumpeConsulta": true
+      },
+      "mttdMs": 20000,
+      "mttrMs": 1400,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:20.000Z",
+        "recuperadoEn": "2026-08-23T09:00:21.400Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "PERSISTENCIA-SIN-CLAVE",
+      "titulo": "La MISMA escritura, SIN clave de idempotencia",
+      "eventosGenerados": 25,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "persistence|escritura_rechazada|cobro|/api/[id]|-|unavailable|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.3 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": false,
+      "porQueLaRemediacion": "«reintento_idempotente» no puede ejecutarse sola: incidente_irreversible, sin_garantia_de_idempotencia.",
+      "intentos": 0,
+      "faseFinal": "requiere_humano",
+      "desenlace": "requiere_humano",
+      "avisoRequerido": true,
+      "runbookId": "RB-PERSISTENCIA",
+      "mensajeAlMedico": {
+        "title": "No pude confirmar el guardado en el servidor.",
+        "whatFailed": "No pude confirmar el guardado en el servidor.",
+        "dataSafety": "ATENCIÓN: no se pudo confirmar el guardado. Tu texto sigue en pantalla — no cierres sin comprobar que aparece guardado.",
+        "canContinue": "Copia tu texto antes de cerrar y vuelve a intentar guardar.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": true,
+        "visibilidad": "franja",
+        "interrumpeConsulta": true
+      },
+      "mttdMs": 20000,
+      "mttrMs": null,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:20.000Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "AUTOGUARDADO",
+      "titulo": "El autoguardado de la consulta deja de guardar",
+      "eventosGenerados": 22,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "autosave|guardado_fallido|nota|/consulta/[id]|-|unavailable|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.8 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": true,
+      "porQueLaRemediacion": "«reintento_idempotente» es reversible e idempotente, no toca verdad clínica ni permisos ni dinero, y el incidente admite reintento.",
+      "intentos": 1,
+      "faseFinal": "recuperado",
+      "desenlace": "recuperado",
+      "avisoRequerido": false,
+      "runbookId": "RB-AUTOSAVE",
+      "mensajeAlMedico": {
+        "title": "El guardado automático no está funcionando.",
+        "whatFailed": "El guardado automático no está funcionando.",
+        "dataSafety": "ATENCIÓN: el guardado automático dejó de funcionar. Tu texto sigue en pantalla y en este dispositivo, pero NO está en el servidor.",
+        "canContinue": "Guarda a mano ahora y no cierres la pestaña hasta verlo guardado.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": false,
+        "visibilidad": "bloqueante",
+        "interrumpeConsulta": true
+      },
+      "mttdMs": 45714,
+      "mttrMs": 1500,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:45.714Z",
+        "recuperadoEn": "2026-08-23T09:00:47.214Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "ENTREGA-DUPLICADA",
+      "titulo": "Un trabajo asíncrono se entrega dos veces",
+      "eventosGenerados": 30,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "notification|entrega_duplicada|recordatorio|-|-|duplicado|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.5 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": false,
+      "porQueLaRemediacion": "«reintento_idempotente» no puede ejecutarse sola: sin_garantia_de_idempotencia.",
+      "intentos": 0,
+      "faseFinal": "requiere_humano",
+      "desenlace": "requiere_humano",
+      "avisoRequerido": true,
+      "runbookId": "RB-NOTIF-WHATSAPP",
+      "mensajeAlMedico": {
+        "title": "No se pudo enviar el mensaje al paciente.",
+        "whatFailed": "No se pudo enviar el mensaje al paciente.",
+        "dataSafety": "La cita sigue guardada; sólo falló el mensaje al paciente.",
+        "canContinue": "Confirma la cita por teléfono si te urge.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": true,
+        "visibilidad": "discreto",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": 27586,
+      "mttrMs": null,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:27.586Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "RESPUESTA-CADUCA",
+      "titulo": "El paciente reserva sobre un hueco que ya no existe",
+      "eventosGenerados": 26,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "scheduling|hueco_caduco|reservar|/reservar/[id]|-|http_409|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.5 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": true,
+      "porQueLaRemediacion": "«invalidar_cache_caduca» es reversible e idempotente, no toca verdad clínica ni permisos ni dinero, y el incidente admite reintento.",
+      "intentos": 1,
+      "faseFinal": "recuperado",
+      "desenlace": "recuperado",
+      "avisoRequerido": false,
+      "runbookId": "RB-AGENDA",
+      "mensajeAlMedico": {
+        "title": "No pude completar el cambio en la agenda.",
+        "whatFailed": "No pude completar el cambio en la agenda.",
+        "dataSafety": "La agenda no cambió. Ninguna cita se creó ni se movió a medias.",
+        "canContinue": "Vuelve a intentarlo; si el hueco se ocupó, elige otro.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": false,
+        "visibilidad": "franja",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": 28800,
+      "mttrMs": 1200,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:28.800Z",
+        "recuperadoEn": "2026-08-23T09:00:30.000Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "UI-COMPONENTE",
+      "titulo": "Un componente secundario de la pantalla lanza",
+      "eventosGenerados": 24,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "ui|componente_lanza|panel-evidencia|/consulta/[id]|-|render_error|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.7 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": true,
+      "porQueLaRemediacion": "«reiniciar_estado_de_cliente» es reversible e idempotente, no toca verdad clínica ni permisos ni dinero, y el incidente admite reintento.",
+      "intentos": 1,
+      "faseFinal": "recuperado",
+      "desenlace": "recuperado",
+      "avisoRequerido": false,
+      "runbookId": "RB-UI",
+      "mensajeAlMedico": {
+        "title": "Una parte de la pantalla no se pudo mostrar.",
+        "whatFailed": "Una parte de la pantalla no se pudo mostrar.",
+        "dataSafety": "Tu nota y tu dictado siguen guardados en este dispositivo.",
+        "canContinue": "Puedes seguir con el resto de la consulta.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": false,
+        "visibilidad": "discreto",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": 41739,
+      "mttrMs": 1100,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:41.739Z",
+        "recuperadoEn": "2026-08-23T09:00:42.839Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "WHATSAPP-TRAS-RESERVA",
+      "titulo": "La cita se guardó y el mensaje al paciente no salió",
+      "eventosGenerados": 21,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "notification|envio_fallido|confirmacion-portal|/api/public/booking|whatsapp|http_502|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.8 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": true,
+      "porQueLaRemediacion": "«reintentar_notificacion» es reversible e idempotente, no toca verdad clínica ni permisos ni dinero, y el incidente admite reintento.",
+      "intentos": 1,
+      "faseFinal": "recuperado",
+      "desenlace": "recuperado",
+      "avisoRequerido": false,
+      "runbookId": "RB-NOTIF-WHATSAPP",
+      "mensajeAlMedico": {
+        "title": "No se pudo enviar el mensaje al paciente.",
+        "whatFailed": "No se pudo enviar el mensaje al paciente.",
+        "dataSafety": "La cita sigue guardada; sólo falló el mensaje al paciente.",
+        "canContinue": "Confirma la cita por teléfono si te urge.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": false,
+        "visibilidad": "discreto",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": 48000,
+      "mttrMs": 1900,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:48.000Z",
+        "recuperadoEn": "2026-08-23T09:00:49.900Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "AISLAMIENTO",
+      "titulo": "Una lectura intentó cruzar de un consultorio a otro",
+      "eventosGenerados": 1,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "tenant_isolation|lectura_cruzada|expediente|/api/[id]|-|permission_denied|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "invariante_de_seguridad",
+          "severidad_alta"
+        ],
+        "porQue": "1 evento(s) en 0.0 min sobre 1 operación(es); cruzó: invariante_de_seguridad, severidad_alta",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": false,
+      "porQueLaRemediacion": "«reintento_idempotente» no puede ejecutarse sola: categoria_de_seguridad, incidente_irreversible, no_se_arregla_reintentando.",
+      "intentos": 0,
+      "faseFinal": "requiere_humano",
+      "desenlace": "requiere_humano",
+      "avisoRequerido": true,
+      "runbookId": "RB-AISLAMIENTO",
+      "mensajeAlMedico": {
+        "title": "Se detuvo una operación por una comprobación de seguridad.",
+        "whatFailed": "Se detuvo una operación por una comprobación de seguridad.",
+        "dataSafety": "La operación se detuvo. No se escribió nada y el caso ya está en revisión.",
+        "canContinue": "No repitas la acción. Ya está avisado quien tiene que revisarlo.",
+        "retryAvailable": false,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": true,
+        "visibilidad": "franja",
+        "interrumpeConsulta": true
+      },
+      "mttdMs": 0,
+      "mttrMs": null,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:00.000Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "API-500-REPETIDO",
+      "titulo": "Un 500 que se repite y que nadie ha clasificado todavía",
+      "eventosGenerados": 40,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "unknown|error_no_clasificado|expediente|/api/[id]|-|http_500|simulacro",
+      "veredicto": {
+        "esIncidente": true,
+        "razones": [
+          "operaciones_afectadas"
+        ],
+        "porQue": "5 evento(s) en 0.4 min sobre 5 operación(es); cruzó: operaciones_afectadas",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": true,
+      "remediacionPermitida": false,
+      "porQueLaRemediacion": "el escenario no propone ninguna acción automática",
+      "intentos": 0,
+      "faseFinal": "requiere_humano",
+      "desenlace": "requiere_humano",
+      "avisoRequerido": true,
+      "runbookId": "RB-DESCONOCIDO",
+      "mensajeAlMedico": {
+        "title": "Algo falló y todavía no sé qué.",
+        "whatFailed": "Algo falló y todavía no sé qué.",
+        "dataSafety": "No se pudo confirmar qué pasó con esta acción. Tu texto sigue en pantalla: compruébalo antes de cerrar.",
+        "canContinue": "Comprueba el estado antes de repetir la acción.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": true,
+        "visibilidad": "franja",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": 24615,
+      "mttrMs": null,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z",
+        "detectadoEn": "2026-08-23T09:00:24.615Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    },
+    {
+      "id": "RED-PUNTUAL",
+      "titulo": "Un fallo de red suelto e inofensivo",
+      "eventosGenerados": 1,
+      "eventosRechazados": 0,
+      "grupos": 1,
+      "firma": "network|conexion_perdida|nota|/consulta/[id]|-|network_error|simulacro",
+      "veredicto": {
+        "esIncidente": false,
+        "razones": [],
+        "porQue": "1 evento(s) en 0.0 min: por debajo de toda raya (20 eventos / 5 min, 5 operaciones)",
+        "noEvaluado": [
+          "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+          "pico: no hay línea base de esta firma"
+        ]
+      },
+      "esIncidente": false,
+      "remediacionPermitida": true,
+      "porQueLaRemediacion": "«reintento_idempotente» es reversible e idempotente, no toca verdad clínica ni permisos ni dinero, y el incidente admite reintento.",
+      "intentos": 0,
+      "faseFinal": "detectado",
+      "desenlace": "sin_incidente",
+      "avisoRequerido": false,
+      "runbookId": "RB-RED",
+      "mensajeAlMedico": {
+        "title": "Se perdió la conexión.",
+        "whatFailed": "Se perdió la conexión.",
+        "dataSafety": "Tu trabajo sigue en este dispositivo. Se enviará cuando vuelva la conexión.",
+        "canContinue": "Sigue trabajando; se enviará solo cuando vuelva la conexión.",
+        "retryAvailable": true,
+        "fallbackAvailable": false,
+        "supportAlreadyNotified": false,
+        "visibilidad": "discreto",
+        "interrumpeConsulta": false
+      },
+      "mttdMs": null,
+      "mttrMs": null,
+      "linea": {
+        "primerFalloEn": "2026-08-23T09:00:00.000Z"
+      },
+      "conforme": true,
+      "discrepancias": []
+    }
+  ],
+  "conformes": 13,
+  "total": 13,
+  "tiempos": {
+    "mttd": {
+      "origen": "simulacro",
+      "valorMs": 22653,
+      "n": 12
+    },
+    "mttr": {
+      "origen": "simulacro",
+      "valorMs": 1500,
+      "n": 7
+    },
+    "peorMttdMs": 48000,
+    "peorMttrMs": 4600
+  },
+  "loQueNoDemuestra": [
+    "No demuestra ningún MTTD/MTTR de producción: no hay red, ni proveedor, ni base de datos.",
+    "La duración de cada acción de reparación es un parámetro del escenario, no una medición.",
+    "No prueba que las rutas reales del producto emitan estos eventos: eso es cableado, y va en los handoffs.",
+    "No cubre Hospital ni UCI."
+  ]
+}

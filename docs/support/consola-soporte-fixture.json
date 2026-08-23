@@ -1,0 +1,49 @@
+{
+  "queEsEsto": "Un incidente real proyectado para la consola de soporte. 812 fallos de IA en 7 consultorios. Se puede reparar con esto y no se puede leer el expediente de nadie: no hay identificador de paciente, ni de médico, ni de consultorio — sólo la operación, que es opaca.",
+  "auditoriaSinPHI": {
+    "limpia": true,
+    "motivos": []
+  },
+  "vista": {
+    "incidentId": "INC-ai_provider.sin_saldo.nota./consulta/[id].anthropic.http_400.nexusmed-v1171",
+    "signature": "ai_provider|sin_saldo|nota|/consulta/[id]|anthropic|http_400|nexusmed-v1171",
+    "family": "ai_provider|sin_saldo|nota|/consulta/[id]|anthropic|http_400",
+    "status": "requiere_humano",
+    "severity": "sev2",
+    "category": "ai_provider",
+    "subtype": "sin_saldo",
+    "features": [
+      "nota"
+    ],
+    "routes": [
+      "/consulta/[id]"
+    ],
+    "provider": "anthropic",
+    "firstSeen": "2026-08-23T09:00:00.000Z",
+    "lastSeen": "2026-08-23T09:05:24.400Z",
+    "count": 812,
+    "affectedOperations": 200,
+    "affectedOperationsTruncated": true,
+    "affectedTenants": 7,
+    "appVersion": "nexusmed-v1171",
+    "buildSha": "d0ab6a7",
+    "correlationIds": [
+      "c0d2e3f4g5h6",
+      "c1d2e3f4g5h6",
+      "c2d2e3f4g5h6",
+      "c3d2e3f4g5h6",
+      "c4d2e3f4g5h6"
+    ],
+    "remediationAttempts": [],
+    "retriesLeft": 3,
+    "currentWorkaround": "El servicio de IA está fuera por un problema nuestro. Tu dictado está guardado.",
+    "owner": "proveedor",
+    "runbookId": "RB-IA-SALDO",
+    "whyIncident": "812 evento(s) en 5.4 min sobre 200 operación(es); cruzó: operaciones_afectadas",
+    "notEvaluated": [
+      "tasa de error: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+      "latencia: el umbral es un SLO y lo fija el dueño (PREPARED_ONLY)",
+      "pico: no hay línea base de esta firma"
+    ]
+  }
+}
