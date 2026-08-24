@@ -3,286 +3,383 @@ import type { ClinicalInput } from '@/lib/clinical-truth'
 export type VoiceLanguage = 'es' | 'en' | 'spanglish'
 export type TranscriptStatus = 'partial' | 'final'
 
-export interface TranscriptAlternative {
-  text: string
-  confidence?: number
-}
-
+export interface TranscriptAlternative { readonly text: string; readonly confidence?: number }
+/** Revision lineage keeps what it replaced: text, the confidence that was supplied with it, and the competing hypotheses. */
 export interface TranscriptRevision {
-  previousText: string
-  revisedText: string
-  revisedAt: string
-  reason: 'provider_revision' | 'contextual_correction' | 'clinician_correction'
+  readonly previousText: string; readonly revisedText: string; readonly revisedAt: string; readonly reason: 'provider_revision' | 'contextual_correction' | 'clinician_correction'
+  readonly previousConfidence?: number; readonly previousAlternatives?: readonly TranscriptAlternative[]
+  /** True when this revision landed on text a clinician had already dispositioned, so it reopened review instead of inheriting that disposition. */
+  readonly reopenedResolvedReview?: boolean
 }
-
+/** The only auditable path out of an unresolved review: a named actor selecting among hypotheses that were actually heard. */
+export interface TranscriptReviewResolution {
+  readonly resolvedAt: string; readonly resolvedBy: string; readonly previousText: string; readonly resolvedText: string; readonly rationale: string
+  readonly previousConfidence?: number; readonly previousAlternatives?: readonly TranscriptAlternative[]
+}
 export interface TranscriptSegment {
-  id: string
-  sequence: number
-  text: string
-  status: TranscriptStatus
-  receivedAt: string
-  finalizedAt?: string
-  speaker?: string
-  confidence?: number
-  alternatives?: TranscriptAlternative[]
-  needsReview: boolean
-  revisions: TranscriptRevision[]
+  readonly id: string; readonly sequence: number; readonly text: string; readonly status: TranscriptStatus; readonly receivedAt: string; readonly finalizedAt?: string
+  readonly speaker?: string; readonly confidence?: number; readonly alternatives?: readonly TranscriptAlternative[]; readonly needsReview: boolean; readonly revisions: readonly TranscriptRevision[]
+  readonly reviewResolutions?: readonly TranscriptReviewResolution[]
 }
-
+/**
+ * `endedAt` is the session's terminal/sealed state: capture has explicitly ended and no further segment may be
+ * appended, revised or finalized. It is the only evidence a provider-neutral engine has that the transcript is
+ * *finished* rather than merely quiet — a streaming pause looks exactly like the end of dictation from inside
+ * the session.
+ */
 export interface VoiceSession {
-  id: string
-  encounterId: string
-  provider: string
-  language: VoiceLanguage
-  startedAt: string
-  segments: TranscriptSegment[]
+  readonly id: string; readonly encounterId: string; readonly provider: string; readonly language: VoiceLanguage; readonly startedAt: string
+  readonly firstPartialReceivedAt?: string; readonly endedAt?: string; readonly segments: readonly TranscriptSegment[]
 }
+/**
+ * `timeToFirstPartialMs` is latency to the first *useful* partial — the first partial that actually showed the
+ * physician transcript content. `timeToFinalMs` is latency to a *stable* transcript: it exists only once the
+ * session is terminal/sealed and no segment of it is still partial/revisable.
+ */
+export interface VoiceMetrics { readonly timeToFirstPartialMs?: number; readonly timeToFinalMs?: number; readonly revisionCount: number; readonly unresolvedReviewCount: number }
 
-export interface VoiceMetrics {
-  timeToFirstPartialMs?: number
-  timeToFinalMs?: number
-  revisionCount: number
-  unresolvedReviewCount: number
-}
-
-export interface VoiceBenchmarkCriticalTerm {
-  value: string
-  kind: 'clinical_term' | 'medication' | 'dose' | 'negation'
-}
-
+export type VoiceBenchmarkTermKind = 'clinical_term'|'medication'|'dose'|'negation'|'numeric_lab'|'specialty_term'|'code_switching'
+export interface VoiceBenchmarkCriticalTerm { readonly value: string; readonly kind: VoiceBenchmarkTermKind }
 export interface VoiceBenchmarkCase {
-  id: string
-  reference: string
-  hypothesis: string
-  criticalTerms: readonly VoiceBenchmarkCriticalTerm[]
-  timeToFirstPartialMs?: number
-  timeToFinalMs?: number
-  revisionCount: number
-  unresolvedReviewCount: number
-  forcedRepeatCount: number
+  readonly id: string; readonly reference: string; readonly hypothesis: string; readonly criticalTerms: readonly VoiceBenchmarkCriticalTerm[]
+  readonly timeToFirstPartialMs?: number; readonly timeToFinalMs?: number; readonly revisionCount: number; readonly unresolvedReviewCount: number; readonly forcedRepeatCount: number
+  readonly clinicallySignificantReferenceCount?: number; readonly clinicallySignificantOmissionSubstitutionCount?: number; readonly hallucinatedContentCount?: number
+  /** Denominator for forced repeats: physician utterances captured in this case. Without it the rate stays undefined. */
+  readonly physicianUtteranceCount?: number
+  /** Contextual correction / recovery quality: utterances the engine had a chance to repair from context, and how many it repaired correctly. */
+  readonly contextualRecoveryOpportunityCount?: number; readonly contextualRecoveredCount?: number
+  readonly physicianEditTimeMs?: number; readonly physicianSatisfactionScore?: number
 }
-
 export interface VoiceBenchmarkResult {
-  caseId: string
-  wordErrorRate: number
-  criticalTermErrorRate: number
-  medicationErrorRate: number
-  doseErrorRate: number
-  negationErrorRate: number
-  timeToFirstPartialMs?: number
-  timeToFinalMs?: number
-  correctionBurden: number
-  unresolvedReviewCount: number
-  forcedRepeatCount: number
+  readonly caseId: string; readonly wordErrorRate: number
+  /**
+   * Clinical error rates exist only where the corpus actually measured that dimension. A case with no
+   * medication term did not achieve a perfect medication rate — it has none. Absence stays `undefined`.
+   */
+  readonly criticalTermErrorRate?: number; readonly medicationErrorRate?: number; readonly doseErrorRate?: number; readonly negationErrorRate?: number
+  readonly numericLabErrorRate?: number; readonly specialtyTerminologyErrorRate?: number; readonly codeSwitchingErrorRate?: number
+  readonly clinicallySignificantOmissionSubstitutionRate?: number; readonly hallucinatedContentRate?: number
+  readonly timeToFirstPartialMs?: number; readonly timeToFinalMs?: number; readonly correctionBurden: number; readonly unresolvedReviewCount: number; readonly forcedRepeatCount: number
+  readonly forcedRepeatRate?: number; readonly contextualRecoveryRate?: number
+  readonly physicianEditTimeMs?: number; readonly physicianSatisfactionScore?: number
 }
 
-function assertTimestamp(value: string, field: string): number {
-  const parsed = Date.parse(value)
-  if (!value || Number.isNaN(parsed)) throw new Error(`${field} must be a valid timestamp`)
-  return parsed
+export interface VoiceClinicalSegmentProvenance {
+  readonly id: string; readonly sequence: number; readonly receivedAt: string; readonly finalizedAt?: string; readonly speaker?: string; readonly confidence?: number
+  readonly alternatives?: readonly TranscriptAlternative[]; readonly needsReview: boolean; readonly revisions: readonly TranscriptRevision[]
+  readonly reviewResolutions?: readonly TranscriptReviewResolution[]
+}
+export interface VoiceClinicalInput extends ClinicalInput {
+  readonly voiceProvenance: { readonly sessionId: string; readonly provider: string; readonly needsReview: boolean; readonly segments: readonly VoiceClinicalSegmentProvenance[] }
 }
 
-function assertConfidence(value: number | undefined): void {
-  if (value !== undefined && (value < 0 || value > 1)) throw new Error('confidence must be between 0 and 1')
+function assertTimestamp(value: string, field: string): number { const parsed=Date.parse(value); if(!value||Number.isNaN(parsed)) throw new Error(`${field} must be a valid timestamp`); return parsed }
+function assertConfidence(value: number|undefined): void { if(value!==undefined&&(value<0||value>1)) throw new Error('confidence must be between 0 and 1') }
+function assertNonNegative(value: number|undefined, field: string): void { if(value!==undefined&&(!Number.isFinite(value)||value<0)) throw new Error(`${field} must be non-negative`) }
+function freezeAlternatives(values: readonly TranscriptAlternative[]|undefined): readonly TranscriptAlternative[]|undefined { return values ? Object.freeze(values.map(v=>Object.freeze({...v}))) : undefined }
+function freezeRevisions(values: readonly TranscriptRevision[]): readonly TranscriptRevision[] { return Object.freeze(values.map(v=>Object.freeze({...v, previousAlternatives:freezeAlternatives(v.previousAlternatives)}))) }
+function freezeResolutions(values: readonly TranscriptReviewResolution[]|undefined): readonly TranscriptReviewResolution[]|undefined { return values ? Object.freeze(values.map(v=>Object.freeze({...v, previousAlternatives:freezeAlternatives(v.previousAlternatives)}))) : undefined }
+function freezeSegment(segment: TranscriptSegment): TranscriptSegment { return Object.freeze({...segment, alternatives:freezeAlternatives(segment.alternatives), revisions:freezeRevisions(segment.revisions), reviewResolutions:freezeResolutions(segment.reviewResolutions)}) }
+function freezeSession(session: VoiceSession): VoiceSession { return Object.freeze({...session, segments:Object.freeze(session.segments.map(freezeSegment))}) }
+function sortSegments(segments: readonly TranscriptSegment[]): TranscriptSegment[] { return [...segments].sort((a,b)=>a.sequence-b.sequence) }
+
+/** Newest point already recorded on a segment's lineage: arrival, last revision, review resolution, finalization. */
+function lineageHeadMs(segment: TranscriptSegment): number {
+  let head=assertTimestamp(segment.receivedAt,'receivedAt')
+  for(const revision of segment.revisions) head=Math.max(head,assertTimestamp(revision.revisedAt,'revisedAt'))
+  for(const resolution of segment.reviewResolutions??[]) head=Math.max(head,assertTimestamp(resolution.resolvedAt,'resolvedAt'))
+  if(segment.finalizedAt) head=Math.max(head,assertTimestamp(segment.finalizedAt,'finalizedAt'))
+  return head
+}
+/** A transition dated before the target's own lineage head is a stale artifact being replayed over a newer transcript. */
+function assertNotStale(segment: TranscriptSegment, atMs: number, field: string): void {
+  if(atMs<lineageHeadMs(segment)) throw new Error(`Stale voice transition rejected: ${field} precedes the newest recorded state of transcript segment ${segment.id}`)
+}
+/**
+ * A segment carries unresolved ambiguity while more than one distinct hypothesis is on the table for the same
+ * audio. Competing hypotheses are a fact about what was heard, so they FORCE review; only an explicit
+ * resolution may take them off the table.
+ */
+function hasCompetingAlternatives(text: string, alternatives: readonly TranscriptAlternative[]|undefined): boolean {
+  if(!alternatives?.length) return false
+  const distinct=new Set(alternatives.map(a=>a.text.trim().toLocaleLowerCase('es-MX')).filter(Boolean))
+  distinct.add(text.trim().toLocaleLowerCase('es-MX'))
+  return distinct.size>1
+}
+/**
+ * Confidence survives a transition only while the text it scored survives it. A different hypothesis is a
+ * different measurement: it is unknown until the provider or the clinician scores THAT text.
+ */
+function confidenceCarriesOver(previousText: string, nextText: string): boolean { return previousText.trim()===nextText.trim() }
+/**
+ * Capture transitions are refused once the session is sealed. A sealed session is the *only* statement that no
+ * further segment is coming; without it, "everything I have is final" is indistinguishable from a pause between
+ * two utterances of the same dictation.
+ */
+function assertNotTerminal(session: VoiceSession, transition: string): void {
+  if(session.endedAt) throw new Error(`Voice session ${session.id} is already ended; ${transition} cannot modify a sealed capture session`)
+}
+/**
+ * A clinician's review resolution is a disposition over what this segment says. A later provider or contextual
+ * revision that changes that text — or puts a rival hypothesis back on the table — does not inherit that
+ * disposition: it reopens review. The resolution record itself is never discarded, so who decided what, when
+ * and why stays recoverable through the Clinical Truth bridge.
+ *
+ * A `clinician_correction` is the clinician acting again, so it carries its own authority and does not reopen.
+ */
+function reopensResolvedReview(segment: TranscriptSegment, revisedText: string, reason: TranscriptRevision['reason']): boolean {
+  if(reason==='clinician_correction') return false
+  if(!segment.reviewResolutions?.length) return false
+  return segment.text.trim()!==revisedText.trim()
+}
+/** An unresolved review may only be cleared through `resolveTranscriptReview`, never as a side effect of a transition. */
+function assertReviewNotSilentlyCleared(segment: TranscriptSegment, requested: boolean|undefined, transition: string): void {
+  if(segment.needsReview&&requested===false) throw new Error(`Unresolved transcript review cannot be cleared by ${transition}: resolve segment ${segment.id} through resolveTranscriptReview with an auditable clinician resolution`)
 }
 
-function sortSegments(segments: TranscriptSegment[]): TranscriptSegment[] {
-  return [...segments].sort((a, b) => a.sequence - b.sequence)
+const DANGLING_TRANSCRIPT_TAIL=/(?:\.{3}|…|[,;:+&(-])$/u
+/**
+ * Minimum structural usefulness of transcript text: it carries content at all.
+ *
+ * This is the *first half* of the finalization gate below, extracted so latency instrumentation and the
+ * finalization gate share one rule instead of two parallel notions of "empty". Blank text and
+ * punctuation/symbol-only noise (`"…"`, `","`, `"..."`) show the physician nothing, so they are not a useful
+ * partial and cannot start the transcript. Structural only: it never judges clinical usefulness.
+ */
+export function isUsefulTranscriptText(text: string): boolean {
+  const trimmed=text.trim()
+  if(!trimmed) return false
+  return /[\p{L}\p{N}]/u.test(trimmed)
+}
+/**
+ * Structural completeness gate for text that may become final ClinicalInput truth.
+ *
+ * Structural only: it rejects text that carries no content (blank, punctuation/symbol only) or that
+ * ends on a dangling connector — the shape of a dictation stream cut mid-utterance. It does NOT and
+ * must not judge clinical completeness: whether a complete-looking utterance says enough clinically
+ * stays with the clinician and with `needsReview`.
+ *
+ * A partial legitimately ends mid-utterance, so only the usefulness half applies to a partial.
+ */
+export function isFinalizableTranscriptText(text: string): boolean {
+  if(!isUsefulTranscriptText(text)) return false
+  return !DANGLING_TRANSCRIPT_TAIL.test(text.trim())
 }
 
-export function createVoiceSession(input: Omit<VoiceSession, 'segments'>): VoiceSession {
-  assertTimestamp(input.startedAt, 'startedAt')
-  if (!input.id.trim() || !input.encounterId.trim() || !input.provider.trim()) throw new Error('Voice session identity, encounter, and provider are required')
-  return { ...input, segments: [] }
+export function createVoiceSession(input: Omit<VoiceSession,'segments'|'firstPartialReceivedAt'|'endedAt'>): VoiceSession {
+  assertTimestamp(input.startedAt,'startedAt'); if(!input.id.trim()||!input.encounterId.trim()||!input.provider.trim()) throw new Error('Voice session identity, encounter, and provider are required')
+  return freezeSession({...input,segments:[]})
 }
 
-export function appendTranscriptSegment(session: VoiceSession, segment: Omit<TranscriptSegment, 'revisions'>): VoiceSession {
-  assertTimestamp(segment.receivedAt, 'receivedAt')
-  if (segment.finalizedAt) assertTimestamp(segment.finalizedAt, 'finalizedAt')
-  assertConfidence(segment.confidence)
-  segment.alternatives?.forEach((alternative) => assertConfidence(alternative.confidence))
-  if (!segment.id.trim() || !segment.text.trim()) throw new Error('Transcript segment id and text are required')
-  if (segment.sequence < 0 || !Number.isInteger(segment.sequence)) throw new Error('Transcript sequence must be a non-negative integer')
-  if (session.segments.some((existing) => existing.id === segment.id)) throw new Error(`Transcript segment already exists: ${segment.id}`)
-  if (session.segments.some((existing) => existing.sequence === segment.sequence)) throw new Error(`Transcript sequence already exists: ${segment.sequence}`)
-  if (segment.status === 'final' && !segment.finalizedAt) throw new Error('Final transcript segment requires finalizedAt')
-  return { ...session, segments: sortSegments([...session.segments, { ...segment, revisions: [] }]) }
+/**
+ * Ends the capture session: the explicit terminal/sealed state.
+ *
+ * Sealing is a positive act, never inferred from the segments looking quiet. It requires that every segment has
+ * already reached `final` — a session cannot be declared finished while a hypothesis is still revisable — and
+ * that `endedAt` is chronologically possible against the session start and against every segment's own lineage
+ * head. After this, `appendTranscriptSegment`, `reviseTranscriptSegment` and `finalizeTranscriptSegment` are
+ * refused.
+ *
+ * `resolveTranscriptReview` deliberately stays available on a sealed session: clearing an unresolved review is a
+ * clinician act on an already-captured transcript, not a capture transition. Because sealing is the point at
+ * which provider capture stops, it is also the point at which a stranded ambiguity would become permanent, so
+ * the resolution may select any hypothesis the provider already recorded — never author new text.
+ */
+export function endVoiceSession(session: VoiceSession, endedAt: string): VoiceSession {
+  const endedAtMs=assertTimestamp(endedAt,'endedAt')
+  if(session.endedAt) throw new Error(`Voice session ${session.id} is already ended`)
+  if(endedAtMs<assertTimestamp(session.startedAt,'startedAt')) throw new Error(`Impossible voice chronology rejected: endedAt precedes session startedAt for voice session ${session.id}`)
+  const stillOpen=session.segments.filter(s=>s.status!=='final')
+  if(stillOpen.length) throw new Error(`Voice session cannot be sealed while transcript segments are still revisable: ${stillOpen.map(s=>s.id).join(', ')}`)
+  for(const segment of session.segments) if(endedAtMs<lineageHeadMs(segment)) throw new Error(`Impossible voice chronology rejected: endedAt precedes the newest recorded state of transcript segment ${segment.id}`)
+  return freezeSession({...session,endedAt})
 }
 
-export function reviseTranscriptSegment(input: {
-  session: VoiceSession
-  segmentId: string
-  revisedText: string
-  revisedAt: string
-  reason: TranscriptRevision['reason']
-  needsReview?: boolean
-  confidence?: number
-  alternatives?: TranscriptAlternative[]
-}): VoiceSession {
-  assertTimestamp(input.revisedAt, 'revisedAt')
-  assertConfidence(input.confidence)
-  input.alternatives?.forEach((alternative) => assertConfidence(alternative.confidence))
-  if (!input.revisedText.trim()) throw new Error('Revised transcript text is required')
-  const target = input.session.segments.find((segment) => segment.id === input.segmentId)
-  if (!target) throw new Error(`Unknown transcript segment: ${input.segmentId}`)
-  if (target.status === 'final' && input.reason !== 'clinician_correction') throw new Error('Final transcript cannot be silently replaced; use clinician correction lineage')
-
-  const revision: TranscriptRevision = {
-    previousText: target.text,
-    revisedText: input.revisedText,
-    revisedAt: input.revisedAt,
-    reason: input.reason,
+export function appendTranscriptSegment(session: VoiceSession, segment: Omit<TranscriptSegment,'revisions'|'reviewResolutions'>): VoiceSession {
+  assertNotTerminal(session,'appending a transcript segment')
+  const receivedAtMs=assertTimestamp(segment.receivedAt,'receivedAt'); if(segment.finalizedAt) assertTimestamp(segment.finalizedAt,'finalizedAt'); assertConfidence(segment.confidence); segment.alternatives?.forEach(a=>assertConfidence(a.confidence))
+  if(!segment.id.trim()||!segment.text.trim()) throw new Error('Transcript segment id and text are required'); if(segment.sequence<0||!Number.isInteger(segment.sequence)) throw new Error('Transcript sequence must be a non-negative integer')
+  if(session.segments.some(e=>e.id===segment.id)) throw new Error(`Transcript segment already exists: ${segment.id}`); if(session.segments.some(e=>e.sequence===segment.sequence)) throw new Error(`Transcript sequence already exists: ${segment.sequence}`)
+  // Audio cannot arrive before its own session opened: impossible chronology fails closed instead of being clamped later.
+  if(receivedAtMs<assertTimestamp(session.startedAt,'startedAt')) throw new Error(`Impossible voice chronology rejected: receivedAt precedes session startedAt for transcript segment ${segment.id}`)
+  if(segment.status==='final'&&!segment.finalizedAt) throw new Error('Final transcript segment requires finalizedAt')
+  // A final timestamp may only exist after a valid transition to `final`. A partial segment carrying one is a
+  // provider contradiction, not a fast segment: it would let a still-revisable hypothesis report time-to-final.
+  if(segment.status==='partial'&&segment.finalizedAt) throw new Error(`Partial transcript segment cannot carry finalizedAt: promote transcript segment ${segment.id} through finalizeTranscriptSegment`)
+  if(segment.status==='final'){
+    if(assertTimestamp(segment.finalizedAt as string,'finalizedAt')<receivedAtMs) throw new Error('Stale voice transition rejected: finalizedAt precedes receivedAt')
+    if(!isFinalizableTranscriptText(segment.text)) throw new Error('Structurally incomplete transcript text cannot be appended as final')
   }
-
-  return {
-    ...input.session,
-    segments: input.session.segments.map((segment) => segment.id === input.segmentId ? {
-      ...segment,
-      text: input.revisedText,
-      confidence: input.confidence ?? segment.confidence,
-      alternatives: input.alternatives ?? segment.alternatives,
-      needsReview: input.needsReview ?? segment.needsReview,
-      revisions: [...segment.revisions, revision],
-    } : segment),
-  }
+  const needsReview=segment.needsReview||hasCompetingAlternatives(segment.text,segment.alternatives)
+  // Time-to-first-partial is a *useful*-partial latency. A punctuation/noise partial ("…", ",") displayed no
+  // transcript to the physician; letting it start the clock would report the arrival of nothing as the moment
+  // the engine became useful — the easiest latency number in the corpus to win by saying nothing.
+  const firstPartialReceivedAt=session.firstPartialReceivedAt ?? (segment.status==='partial'&&isUsefulTranscriptText(segment.text)?segment.receivedAt:undefined)
+  return freezeSession({...session,firstPartialReceivedAt,segments:sortSegments([...session.segments,{...segment,needsReview,revisions:[]}])})
 }
 
-export function finalizeTranscriptSegment(input: { session: VoiceSession; segmentId: string; finalizedAt: string; needsReview?: boolean }): VoiceSession {
-  assertTimestamp(input.finalizedAt, 'finalizedAt')
-  const target = input.session.segments.find((segment) => segment.id === input.segmentId)
-  if (!target) throw new Error(`Unknown transcript segment: ${input.segmentId}`)
-  if (target.status === 'final') throw new Error('Transcript segment is already final')
-  return {
-    ...input.session,
-    segments: input.session.segments.map((segment) => segment.id === input.segmentId ? {
-      ...segment,
-      status: 'final',
-      finalizedAt: input.finalizedAt,
-      needsReview: input.needsReview ?? segment.needsReview,
-    } : segment),
-  }
+export function reviseTranscriptSegment(input:{session:VoiceSession;segmentId:string;revisedText:string;revisedAt:string;reason:TranscriptRevision['reason'];needsReview?:boolean;confidence?:number;alternatives?:readonly TranscriptAlternative[]}):VoiceSession{
+  assertNotTerminal(input.session,'a revision')
+  const revisedAtMs=assertTimestamp(input.revisedAt,'revisedAt');assertConfidence(input.confidence);input.alternatives?.forEach(a=>assertConfidence(a.confidence));if(!input.revisedText.trim())throw new Error('Revised transcript text is required')
+  const target=input.session.segments.find(s=>s.id===input.segmentId);if(!target)throw new Error(`Unknown transcript segment: ${input.segmentId}`);if(target.status==='final'&&input.reason!=='clinician_correction')throw new Error('Final transcript cannot be silently replaced; use clinician correction lineage')
+  assertNotStale(target,revisedAtMs,'revisedAt')
+  assertReviewNotSilentlyCleared(target,input.needsReview,'a revision')
+  // Being final before the revision does not make the revised text safe to keep final: revalidate the text itself.
+  const finalizable=isFinalizableTranscriptText(input.revisedText)
+  if(target.status==='final'&&!finalizable)throw new Error('Structurally incomplete revised text cannot remain final; supply complete text or revise the segment while it is still partial')
+  const alternatives=input.alternatives??target.alternatives
+  // A late provider/contextual revision does not get to overwrite a clinician's resolution and keep its
+  // review-free status: changing the dispositioned text — or reintroducing a rival hypothesis — reopens review
+  // and the segment cannot cross into Clinical Truth as review-free truth until a clinician disposes of it again.
+  const reopened=reopensResolvedReview(target,input.revisedText,input.reason)
+  const needsReview=target.needsReview||!finalizable||hasCompetingAlternatives(input.revisedText,alternatives)||reopened||(input.needsReview??false)
+  // Confidence belongs to a hypothesis, not to a segment slot: replacement text may not inherit the score the
+  // previous text earned. Unless the caller supplies confidence for the NEW text, it stays unknown; the prior
+  // score is not lost, it moves onto the revision lineage as `previousConfidence`.
+  const confidence=input.confidence??(confidenceCarriesOver(target.text,input.revisedText)?target.confidence:undefined)
+  // What the revision replaces stays recoverable: prior text, the confidence it carried, and the hypotheses it competed with.
+  const revision:TranscriptRevision={previousText:target.text,revisedText:input.revisedText,revisedAt:input.revisedAt,reason:input.reason,previousConfidence:target.confidence,previousAlternatives:target.alternatives,reopenedResolvedReview:reopened||undefined}
+  // If every partial so far carried only noise, the first useful partial is the one this revision produces:
+  // the clock starts when useful text first existed, not when the noise arrived.
+  const firstPartialReceivedAt=input.session.firstPartialReceivedAt ?? (target.status==='partial'&&isUsefulTranscriptText(input.revisedText)?input.revisedAt:undefined)
+  return freezeSession({...input.session,firstPartialReceivedAt,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.revisedText,confidence,alternatives,needsReview,revisions:[...s.revisions,revision]}:s)})
 }
 
-export function voiceSessionToClinicalInput(session: VoiceSession, capturedAt: string): ClinicalInput {
-  assertTimestamp(capturedAt, 'capturedAt')
-  const finalSegments = sortSegments(session.segments.filter((segment) => segment.status === 'final'))
-  if (!finalSegments.length) throw new Error('Voice session has no final transcript segments')
-  const raw = finalSegments.map((segment) => segment.text).join('\n')
-  return {
-    modality: 'dictation',
-    raw,
-    language: session.language,
-    capturedAt,
-    encounterId: session.encounterId,
-  }
+export function finalizeTranscriptSegment(input:{session:VoiceSession;segmentId:string;finalizedAt:string;needsReview?:boolean}):VoiceSession{
+  assertNotTerminal(input.session,'finalization')
+  const finalizedAtMs=assertTimestamp(input.finalizedAt,'finalizedAt');const target=input.session.segments.find(s=>s.id===input.segmentId);if(!target)throw new Error(`Unknown transcript segment: ${input.segmentId}`);if(target.status==='final')throw new Error('Transcript segment is already final')
+  assertNotStale(target,finalizedAtMs,'finalizedAt')
+  assertReviewNotSilentlyCleared(target,input.needsReview,'finalization')
+  if(!isFinalizableTranscriptText(target.text))throw new Error(`Structurally incomplete transcript segment cannot be promoted to final: ${target.id}`)
+  // Finalizing is a transcript-state transition, not a resolution of clinical ambiguity: review can only be raised here.
+  const needsReview=target.needsReview||hasCompetingAlternatives(target.text,target.alternatives)||(input.needsReview??false)
+  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,status:'final' as const,finalizedAt:input.finalizedAt,needsReview}:s)})
 }
 
-export function measureVoiceSession(session: VoiceSession): VoiceMetrics {
-  const started = assertTimestamp(session.startedAt, 'startedAt')
-  const orderedByArrival = [...session.segments].sort((a, b) => Date.parse(a.receivedAt) - Date.parse(b.receivedAt))
-  const firstPartial = orderedByArrival.find((segment) => segment.status === 'partial' || segment.revisions.length > 0)
-  const finalTimes = session.segments.filter((segment) => segment.finalizedAt).map((segment) => assertTimestamp(segment.finalizedAt as string, 'finalizedAt'))
-  return {
-    timeToFirstPartialMs: firstPartial ? Math.max(0, assertTimestamp(firstPartial.receivedAt, 'receivedAt') - started) : undefined,
-    timeToFinalMs: finalTimes.length ? Math.max(0, Math.max(...finalTimes) - started) : undefined,
-    revisionCount: session.segments.reduce((sum, segment) => sum + segment.revisions.length, 0),
-    unresolvedReviewCount: session.segments.filter((segment) => segment.needsReview).length,
-  }
+/**
+ * The one auditable way an unresolved review is cleared.
+ *
+ * `resolvedText` must be text that was actually heard — the segment's current text or one of its recorded
+ * alternatives — so resolving ambiguity selects among hypotheses and never authors a new one. The replaced
+ * hypotheses and confidence stay on the resolution record; the segment stops carrying competing alternatives.
+ * It does not finalize and does not judge clinical completeness.
+ *
+ * A `final` segment may be resolved to a rival hypothesis too. Being final says the provider stopped revising
+ * this text, not that the clinician already chose between the hypotheses recorded for it — and after
+ * `endVoiceSession` the clinician-correction lineage in `reviseTranscriptSegment` is refused along with every
+ * other capture transition. Requiring a resolution on a sealed final segment to merely confirm the current text
+ * therefore stranded clinically material ambiguity permanently: a sealed `start vanco fifteen` / `start vanco
+ * fifty` could only ever be dispositioned in favour of whichever hypothesis the provider happened to leave on
+ * top. This path is not a capture transition and does not relax one: it cannot append, cannot finalize, cannot
+ * change `finalizedAt`, and cannot introduce text the provider never recorded. It records the same attributed,
+ * timestamped, reversible-by-lineage resolution as on a partial segment.
+ */
+export function resolveTranscriptReview(input:{session:VoiceSession;segmentId:string;resolvedText:string;resolvedAt:string;resolvedBy:string;rationale:string}):VoiceSession{
+  const resolvedAtMs=assertTimestamp(input.resolvedAt,'resolvedAt');const target=input.session.segments.find(s=>s.id===input.segmentId);if(!target)throw new Error(`Unknown transcript segment: ${input.segmentId}`)
+  if(!input.resolvedBy.trim()||!input.rationale.trim())throw new Error('Transcript review resolution requires an identified resolver and a rationale')
+  if(!target.needsReview)throw new Error(`Transcript segment has no unresolved review to resolve: ${target.id}`)
+  assertNotStale(target,resolvedAtMs,'resolvedAt')
+  const heard=[target.text,...(target.alternatives??[]).map(a=>a.text)].map(t=>t.trim())
+  if(!heard.includes(input.resolvedText.trim()))throw new Error(`Transcript review resolution must select recorded transcript text, not new text: ${target.id}`)
+  if(!isFinalizableTranscriptText(input.resolvedText))throw new Error(`Structurally incomplete text cannot resolve a transcript review: ${target.id}`)
+  // Selecting a rival hypothesis does not transfer the discarded hypothesis's confidence to it. The chosen
+  // alternative keeps only the confidence that was recorded for THAT text; if none was, confidence stays
+  // unknown. The discarded score survives on the resolution record, not on the segment.
+  const selected=(target.alternatives??[]).find(a=>a.text.trim()===input.resolvedText.trim())
+  const confidence=confidenceCarriesOver(target.text,input.resolvedText)?target.confidence:selected?.confidence
+  const resolution:TranscriptReviewResolution={resolvedAt:input.resolvedAt,resolvedBy:input.resolvedBy,previousText:target.text,resolvedText:input.resolvedText,rationale:input.rationale,previousConfidence:target.confidence,previousAlternatives:target.alternatives}
+  return freezeSession({...input.session,segments:input.session.segments.map(s=>s.id===input.segmentId?{...s,text:input.resolvedText,confidence,alternatives:undefined,needsReview:false,reviewResolutions:[...(s.reviewResolutions??[]),resolution]}:s)})
 }
 
-function benchmarkTokens(value: string): string[] {
+/**
+ * The bridge into Clinical Truth. `capturedAt` is the provenance timestamp the clinical record will carry, so
+ * it must be chronologically possible: capture cannot precede the session that produced the audio. A
+ * pre-session `capturedAt` would enter Clinical Truth as provenance for an encounter that had not started —
+ * a fabricated capture time, fail-closed here exactly as impossible segment chronology already is.
+ *
+ * Completeness is the other half of the boundary, and it is not optional. The bridge used to *filter* to the
+ * final segments of whatever session it was handed, so an open session holding one final phrase plus a still
+ * partial —possibly ambiguous, possibly the one carrying the dose— produced a ClinicalInput that silently
+ * omitted the partial and reported `needsReview: false`. A dropped utterance leaves no trace in the record: the
+ * note simply never mentions it, and nothing downstream can tell an incomplete transcript from a short one.
+ *
+ * So two conditions, and neither is inferred from how the segments look:
+ *   1. the session is explicitly sealed (`endedAt`, set by `endVoiceSession`) — inside an open session a
+ *      streaming pause is indistinguishable from the end of dictation, and the next utterance may still arrive;
+ *   2. no segment is still non-final/revisable. `endVoiceSession` already enforces this before sealing, but the
+ *      bridge revalidates it against the object it was actually handed: a malformed or forged session carrying
+ *      `endedAt` without having passed through the seal transition must fail closed here too, naming the
+ *      segments it refuses to drop rather than filtering them away.
+ */
+export function voiceSessionToClinicalInput(session:VoiceSession,capturedAt:string):VoiceClinicalInput{
+  if(assertTimestamp(capturedAt,'capturedAt')<assertTimestamp(session.startedAt,'startedAt')) throw new Error(`Impossible voice chronology rejected: capturedAt precedes session startedAt for voice session ${session.id}`)
+  const endedAt=session.endedAt
+  if(!endedAt) throw new Error(`Voice session ${session.id} is not sealed; end capture through endVoiceSession before producing ClinicalInput`)
+  // Checked before `endedAt` is even parsed: a still-revisable segment is refused whatever the seal claims, so a
+  // forged `endedAt` can never turn "one final phrase plus a partial" into a silently truncated transcript.
+  const stillOpen=session.segments.filter(s=>s.status!=='final')
+  if(stillOpen.length) throw new Error(`Voice session ${session.id} cannot produce ClinicalInput while transcript segments are still revisable: ${stillOpen.map(s=>s.id).join(', ')}`)
+  if(assertTimestamp(endedAt,'endedAt')<assertTimestamp(session.startedAt,'startedAt')) throw new Error(`Impossible voice chronology rejected: endedAt precedes session startedAt for voice session ${session.id}`)
+  // Every segment of the sealed session, not a filtered subset: the guard above already proved they are all final.
+  const sealedSegments=sortSegments(session.segments);if(!sealedSegments.length)throw new Error('Voice session has no final transcript segments')
+  const segments=Object.freeze(sealedSegments.map(s=>Object.freeze({id:s.id,sequence:s.sequence,receivedAt:s.receivedAt,finalizedAt:s.finalizedAt,speaker:s.speaker,confidence:s.confidence,alternatives:freezeAlternatives(s.alternatives),needsReview:s.needsReview,revisions:freezeRevisions(s.revisions),reviewResolutions:freezeResolutions(s.reviewResolutions)})))
+  return Object.freeze({modality:'dictation',raw:sealedSegments.map(s=>s.text).join('\n'),language:session.language,capturedAt,encounterId:session.encounterId,voiceProvenance:Object.freeze({sessionId:session.id,provider:session.provider,needsReview:sealedSegments.some(s=>s.needsReview),segments})})
+}
+
+/**
+ * Deterministic latency from supplied timestamps only.
+ *
+ * Impossible chronology is refused, never clamped: a `Math.max(0, …)` would report a segment that precedes its
+ * own session as a flawless 0 ms, turning a broken provider clock into the best latency number in the corpus.
+ */
+function assertMeasurableLatency(value:number,field:string):number{
+  if(value<0)throw new Error(`Impossible voice chronology rejected: ${field} precedes session startedAt`)
   return value
-    .normalize('NFKC')
-    .toLocaleLowerCase('es-MX')
-    .replace(/[^\p{L}\p{N}%./+-]+/gu, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
+}
+export function measureVoiceSession(session:VoiceSession):VoiceMetrics{
+  const started=assertTimestamp(session.startedAt,'startedAt')
+  for(const segment of session.segments){
+    assertMeasurableLatency(assertTimestamp(segment.receivedAt,'receivedAt')-started,`receivedAt of transcript segment ${segment.id}`)
+    // Fail closed rather than measure: a partial hypothesis that carries a final timestamp has no final latency
+    // to report, and silently ignoring it would hide the contradiction behind a plausible number.
+    if(segment.status!=='final'&&segment.finalizedAt) throw new Error(`Impossible voice state rejected: partial transcript segment ${segment.id} carries finalizedAt; time-to-final cannot be measured from a segment that is not final`)
+  }
+  // Time-to-final is latency to a STABLE transcript, so it belongs to the session, not to whichever segment
+  // happened to finalize first. Two conditions, and both are required:
+  //   1. the session is TERMINAL/sealed — otherwise "every segment I know about is final" is just a streaming
+  //      pause, and the next utterance of the same dictation appends a new segment that moves the number;
+  //   2. no segment is still partial/revisable — reporting the finalized subset would publish a fast number for
+  //      a transcript that can still change, and it would keep improving as slow segments stayed unfinalized.
+  const endedAtMs=session.endedAt?assertMeasurableLatency(assertTimestamp(session.endedAt,'endedAt')-started,'endedAt')+started:undefined
+  const stable=endedAtMs!==undefined&&session.segments.length>0&&session.segments.every(s=>s.status==='final')
+  const finalTimes=stable?session.segments.map(s=>assertTimestamp(s.finalizedAt as string,'finalizedAt')):[]
+  // A sealed session whose transcript finalized after the seal is an impossible capture, not a slow one.
+  if(stable&&Math.max(...finalTimes)>(endedAtMs as number)) throw new Error(`Impossible voice chronology rejected: transcript finalized after voice session ${session.id} was ended`)
+  return {timeToFirstPartialMs:session.firstPartialReceivedAt?assertMeasurableLatency(assertTimestamp(session.firstPartialReceivedAt,'firstPartialReceivedAt')-started,'firstPartialReceivedAt'):undefined,timeToFinalMs:stable?assertMeasurableLatency(Math.max(...finalTimes)-started,'finalizedAt'):undefined,revisionCount:session.segments.reduce((n,s)=>n+s.revisions.length,0),unresolvedReviewCount:session.segments.filter(s=>s.needsReview).length}
 }
 
-function levenshtein(a: readonly string[], b: readonly string[]): number {
-  const previous = Array.from({ length: b.length + 1 }, (_, i) => i)
-  for (let i = 1; i <= a.length; i += 1) {
-    const current = [i]
-    for (let j = 1; j <= b.length; j += 1) {
-      current[j] = Math.min(
-        current[j - 1] + 1,
-        previous[j] + 1,
-        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
-      )
-    }
-    previous.splice(0, previous.length, ...current)
-  }
-  return previous[b.length]
+function benchmarkTokens(value:string):string[]{return value.normalize('NFKC').toLocaleLowerCase('es-MX').replace(/[^\p{L}\p{N}%./+-]+/gu,' ').trim().split(/\s+/).filter(Boolean)}
+function levenshtein(a:readonly string[],b:readonly string[]):number{const p=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const c=[i];for(let j=1;j<=b.length;j++)c[j]=Math.min(c[j-1]+1,p[j]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p.splice(0,p.length,...c)}return p[b.length]}
+function containsPhrase(tokens:readonly string[],phrase:string):boolean{const e=benchmarkTokens(phrase);if(!e.length)return false;for(let i=0;i<=tokens.length-e.length;i++)if(e.every((t,o)=>tokens[i+o]===t))return true;return false}
+function rateForKind(terms:readonly VoiceBenchmarkCriticalTerm[],tokens:readonly string[],kind:VoiceBenchmarkTermKind):number|undefined{const k=terms.filter(t=>t.kind===kind);return k.length?k.filter(t=>!containsPhrase(tokens,t.value)).length/k.length:undefined}
+
+export function evaluateVoiceBenchmarkCase(input:VoiceBenchmarkCase):VoiceBenchmarkResult{
+  if(!input.id.trim()||!input.reference.trim()||!input.hypothesis.trim())throw new Error('benchmark id, reference and hypothesis are required')
+  for(const v of [input.revisionCount,input.unresolvedReviewCount,input.forcedRepeatCount,input.clinicallySignificantReferenceCount,input.clinicallySignificantOmissionSubstitutionCount,input.hallucinatedContentCount,input.physicianUtteranceCount,input.contextualRecoveryOpportunityCount,input.contextualRecoveredCount]) if(v!==undefined&&(!Number.isInteger(v)||v<0))throw new Error('benchmark counts must be non-negative integers')
+  for(const [v,f] of [[input.timeToFirstPartialMs,'timeToFirstPartialMs'],[input.timeToFinalMs,'timeToFinalMs'],[input.physicianEditTimeMs,'physicianEditTimeMs']] as const) assertNonNegative(v,f)
+  if(input.physicianSatisfactionScore!==undefined&&(input.physicianSatisfactionScore<1||input.physicianSatisfactionScore>5))throw new Error('physicianSatisfactionScore must be between 1 and 5')
+  if(input.clinicallySignificantOmissionSubstitutionCount!==undefined&&!input.clinicallySignificantReferenceCount)throw new Error('clinically significant error count requires a positive reference count')
+  // A rate needs a real denominator. Absent denominators leave the rate undefined; impossible ones are refused, not rescaled.
+  if(input.contextualRecoveredCount!==undefined&&!input.contextualRecoveryOpportunityCount)throw new Error('contextual recovery count requires a positive contextual recovery opportunity count')
+  if(input.contextualRecoveredCount!==undefined&&input.contextualRecoveredCount>(input.contextualRecoveryOpportunityCount as number))throw new Error('contextual recovery count cannot exceed its opportunity count')
+  if(input.physicianUtteranceCount!==undefined&&input.forcedRepeatCount>input.physicianUtteranceCount)throw new Error('forced repeat count cannot exceed the physician utterance count')
+  const r=benchmarkTokens(input.reference),h=benchmarkTokens(input.hypothesis)
+  // An unmeasured dimension has no denominator, so it has no rate. The former `?? 0` / `Math.max(1, …)` turned
+  // "this corpus never tested medications" into "this engine never missed a medication" — an empty corpus read
+  // as clinically perfect. Absence is reported as absence and excluded from every summary.
+  const critical=input.criticalTerms.length?input.criticalTerms.filter(t=>!containsPhrase(h,t.value)).length/input.criticalTerms.length:undefined
+  const med=rateForKind(input.criticalTerms,h,'medication'),dose=rateForKind(input.criticalTerms,h,'dose'),neg=rateForKind(input.criticalTerms,h,'negation')
+  return {caseId:input.id,wordErrorRate:levenshtein(r,h)/Math.max(1,r.length),criticalTermErrorRate:critical,medicationErrorRate:med,doseErrorRate:dose,negationErrorRate:neg,numericLabErrorRate:rateForKind(input.criticalTerms,h,'numeric_lab'),specialtyTerminologyErrorRate:rateForKind(input.criticalTerms,h,'specialty_term'),codeSwitchingErrorRate:rateForKind(input.criticalTerms,h,'code_switching'),clinicallySignificantOmissionSubstitutionRate:input.clinicallySignificantOmissionSubstitutionCount===undefined?undefined:input.clinicallySignificantOmissionSubstitutionCount/(input.clinicallySignificantReferenceCount as number),hallucinatedContentRate:input.hallucinatedContentCount===undefined?undefined:input.hallucinatedContentCount/Math.max(1,h.length),timeToFirstPartialMs:input.timeToFirstPartialMs,timeToFinalMs:input.timeToFinalMs,correctionBurden:input.revisionCount,unresolvedReviewCount:input.unresolvedReviewCount,forcedRepeatCount:input.forcedRepeatCount,forcedRepeatRate:input.physicianUtteranceCount?input.forcedRepeatCount/input.physicianUtteranceCount:undefined,contextualRecoveryRate:input.contextualRecoveryOpportunityCount&&input.contextualRecoveredCount!==undefined?input.contextualRecoveredCount/input.contextualRecoveryOpportunityCount:undefined,physicianEditTimeMs:input.physicianEditTimeMs,physicianSatisfactionScore:input.physicianSatisfactionScore}
 }
 
-function containsPhrase(hypothesisTokens: readonly string[], phrase: string): boolean {
-  const expected = benchmarkTokens(phrase)
-  if (!expected.length) return false
-  for (let i = 0; i <= hypothesisTokens.length - expected.length; i += 1) {
-    if (expected.every((token, offset) => hypothesisTokens[i + offset] === token)) return true
-  }
-  return false
-}
-
-function errorRateForKind(
-  criticalTerms: readonly VoiceBenchmarkCriticalTerm[],
-  hypothesisTokens: readonly string[],
-  kind: VoiceBenchmarkCriticalTerm['kind'],
-): number {
-  const terms = criticalTerms.filter((term) => term.kind === kind)
-  if (!terms.length) return 0
-  const errors = terms.filter((term) => !containsPhrase(hypothesisTokens, term.value)).length
-  return errors / terms.length
-}
-
-export function evaluateVoiceBenchmarkCase(input: VoiceBenchmarkCase): VoiceBenchmarkResult {
-  if (!input.id.trim()) throw new Error('benchmark case id is required')
-  if (!input.reference.trim()) throw new Error('benchmark reference is required')
-  if (!input.hypothesis.trim()) throw new Error('benchmark hypothesis is required')
-  for (const value of [input.revisionCount, input.unresolvedReviewCount, input.forcedRepeatCount]) {
-    if (!Number.isInteger(value) || value < 0) throw new Error('benchmark counts must be non-negative integers')
-  }
-  for (const value of [input.timeToFirstPartialMs, input.timeToFinalMs]) {
-    if (value !== undefined && (!Number.isFinite(value) || value < 0)) throw new Error('benchmark latencies must be non-negative')
-  }
-
-  const referenceTokens = benchmarkTokens(input.reference)
-  const hypothesisTokens = benchmarkTokens(input.hypothesis)
-  const criticalErrors = input.criticalTerms.filter((term) => !containsPhrase(hypothesisTokens, term.value)).length
-
-  return {
-    caseId: input.id,
-    wordErrorRate: levenshtein(referenceTokens, hypothesisTokens) / Math.max(1, referenceTokens.length),
-    criticalTermErrorRate: criticalErrors / Math.max(1, input.criticalTerms.length),
-    medicationErrorRate: errorRateForKind(input.criticalTerms, hypothesisTokens, 'medication'),
-    doseErrorRate: errorRateForKind(input.criticalTerms, hypothesisTokens, 'dose'),
-    negationErrorRate: errorRateForKind(input.criticalTerms, hypothesisTokens, 'negation'),
-    timeToFirstPartialMs: input.timeToFirstPartialMs,
-    timeToFinalMs: input.timeToFinalMs,
-    correctionBurden: input.revisionCount,
-    unresolvedReviewCount: input.unresolvedReviewCount,
-    forcedRepeatCount: input.forcedRepeatCount,
-  }
-}
-
-export function summarizeVoiceBenchmark(results: readonly VoiceBenchmarkResult[]) {
-  if (!results.length) throw new Error('at least one benchmark result is required')
-  const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length
-  const present = (values: Array<number | undefined>) => values.filter((value): value is number => value !== undefined)
-  const firstPartial = present(results.map((result) => result.timeToFirstPartialMs))
-  const final = present(results.map((result) => result.timeToFinalMs))
-  return {
-    cases: results.length,
-    meanWordErrorRate: mean(results.map((result) => result.wordErrorRate)),
-    meanCriticalTermErrorRate: mean(results.map((result) => result.criticalTermErrorRate)),
-    meanMedicationErrorRate: mean(results.map((result) => result.medicationErrorRate)),
-    meanDoseErrorRate: mean(results.map((result) => result.doseErrorRate)),
-    meanNegationErrorRate: mean(results.map((result) => result.negationErrorRate)),
-    meanTimeToFirstPartialMs: firstPartial.length ? mean(firstPartial) : undefined,
-    meanTimeToFinalMs: final.length ? mean(final) : undefined,
-    meanCorrectionBurden: mean(results.map((result) => result.correctionBurden)),
-    meanUnresolvedReviewCount: mean(results.map((result) => result.unresolvedReviewCount)),
-    meanForcedRepeatCount: mean(results.map((result) => result.forcedRepeatCount)),
-  }
-}
+export function summarizeVoiceBenchmark(results:readonly VoiceBenchmarkResult[]){if(!results.length)throw new Error('at least one benchmark result is required');const mean=(v:number[])=>v.reduce((a,b)=>a+b,0)/v.length;const present=(v:Array<number|undefined>)=>v.filter((x):x is number=>x!==undefined);const opt=(v:Array<number|undefined>)=>{const p=present(v);return p.length?mean(p):undefined};return {cases:results.length,meanWordErrorRate:mean(results.map(r=>r.wordErrorRate)),meanCriticalTermErrorRate:opt(results.map(r=>r.criticalTermErrorRate)),meanMedicationErrorRate:opt(results.map(r=>r.medicationErrorRate)),meanDoseErrorRate:opt(results.map(r=>r.doseErrorRate)),meanNegationErrorRate:opt(results.map(r=>r.negationErrorRate)),meanNumericLabErrorRate:opt(results.map(r=>r.numericLabErrorRate)),meanSpecialtyTerminologyErrorRate:opt(results.map(r=>r.specialtyTerminologyErrorRate)),meanCodeSwitchingErrorRate:opt(results.map(r=>r.codeSwitchingErrorRate)),meanClinicallySignificantOmissionSubstitutionRate:opt(results.map(r=>r.clinicallySignificantOmissionSubstitutionRate)),meanHallucinatedContentRate:opt(results.map(r=>r.hallucinatedContentRate)),meanTimeToFirstPartialMs:opt(results.map(r=>r.timeToFirstPartialMs)),meanTimeToFinalMs:opt(results.map(r=>r.timeToFinalMs)),meanCorrectionBurden:mean(results.map(r=>r.correctionBurden)),meanUnresolvedReviewCount:mean(results.map(r=>r.unresolvedReviewCount)),meanForcedRepeatCount:mean(results.map(r=>r.forcedRepeatCount)),meanForcedRepeatRate:opt(results.map(r=>r.forcedRepeatRate)),meanContextualRecoveryRate:opt(results.map(r=>r.contextualRecoveryRate)),meanPhysicianEditTimeMs:opt(results.map(r=>r.physicianEditTimeMs)),meanPhysicianSatisfactionScore:opt(results.map(r=>r.physicianSatisfactionScore))}}
