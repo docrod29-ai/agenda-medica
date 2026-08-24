@@ -16,7 +16,7 @@ const root = process.cwd()
 const firestore = readFileSync(join(root, 'src/lib/firestore.ts'), 'utf8')
 const citas = readFileSync(join(root, 'src/app/(dashboard)/citas/page.tsx'), 'utf8')
 const consulta = readFileSync(join(root, 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
-const anticipo = readFileSync(join(root, 'src/app/api/stripe/anticipo/route.ts'), 'utf8')
+const anticipo = readFileSync(join(root, 'src/app/api/stripe/webhook/route.ts'), 'utf8')
 
 describe('GP9 — transiciones idempotentes', () => {
   it('check-in repetido no incrementa contadores ni fabrica otra cita', () => {
