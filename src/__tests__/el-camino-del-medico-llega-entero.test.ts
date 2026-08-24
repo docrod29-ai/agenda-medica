@@ -24,13 +24,19 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
 // Baseline V15 = 29. Clinical Truth and the provider-neutral Voice Engine core are
 // intentionally built/tested before their UI/provider integration. They are explicit,
 // temporary islands for the active product slices rather than silently raising the guard.
-const FUERA_DEL_CAMINO_HOY = 31
+//
+// The Voice → Clinical Truth chronology bridge is a sixth DECLARED island waiting for
+// #306 Consultorio wiring. Raising total 31→32 does NOT expand undeclared debt: with six
+// declared islands the second assertion still allows exactly 26 undeclared modules
+// (32 - 6), the same budget as before (31 - 5).
+const FUERA_DEL_CAMINO_HOY = 32
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',
   'src/lib/compliance/country-profiles.ts': 'lo importa compliance/policy.ts, que ya está declarado huérfano',
   'src/lib/uci/benchmark-metricas.ts': 'lo importa uci/benchmark.ts, que ya está declarado huérfano',
   'src/lib/clinical-truth/index.ts': 'DOCUMENTATION ENGINE: núcleo Clinical Truth probado antes de conectarlo al renderer/flujo; debe salir de esta lista al integrar el slice.',
   'src/lib/voice-engine/index.ts': 'VOICE ENGINE activo: contrato provider-neutral probado antes de conectar captura/proveedor/UI; debe salir de esta lista al integrar el slice.',
+  'src/lib/voice-engine/clinical-truth-bridge.ts': 'VOICE → CLINICAL TRUTH: frontera cronológica endurecida, probada y deliberadamente pendiente del cableado real de #306 Consultorio; debe salir de esta lista cuando #306 la consuma.',
 }
 
 describe('el camino del médico llega entero', () => {
