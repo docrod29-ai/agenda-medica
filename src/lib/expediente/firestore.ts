@@ -375,7 +375,7 @@ export async function agregarAdenda(
     clinicId,
     patientId,
     notaId,
-    metadata: { adendaId: ref.id },
+    meta: { adendaId: ref.id },
   })
 
   return { ...completo, id: ref.id }
