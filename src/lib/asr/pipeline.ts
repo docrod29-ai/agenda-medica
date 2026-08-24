@@ -40,22 +40,11 @@ import { verificar, type Violacion } from '@/lib/asr/guardian-sustituciones'
 import { normalizar, type CambioNormalizacion } from '@/lib/asr/normalizacion'
 import { normalizarSiglas, type CambioSigla } from '@/lib/asr/siglas'
 import type { MotivoConfirmacion } from '@/lib/asr/politica-critica'
-import { sealedVoiceSessionToClinicalInput } from '@/lib/voice-engine/clinical-truth-bridge'
-import type { VoiceClinicalInput, VoiceSession } from '@/lib/voice-engine'
 
 export interface EtapaTexto {
   /** Nombre de la etapa, para poder auditar dónde cambió qué. */
   etapa: 'crudo' | 'corregido' | 'cifras-y-unidades' | 'siglas'
   texto: string
-}
-
-export interface ContextoClinicalTruthVoz {
-  /** Sesión provider-neutral completa y ya finalizada por el Voice Engine. */
-  session: VoiceSession
-  /** Momento en que este pipeline emite la entrada clínica. */
-  capturedAt: string
-  /** Identidad del médico autenticado, cuando la capa superior ya la conoce. */
-  actorId?: string
 }
 
 export interface ResultadoPipeline {
@@ -82,28 +71,18 @@ export interface ResultadoPipeline {
   /** Gate de ambigüedad: por qué hay que preguntarle. Vacío = no hay que preguntar. */
   motivos: MotivoConfirmacion[]
   requiereConfirmacion: boolean
-  /**
-   * Sólo existe cuando el llamador entrega una sesión Voice Engine sellada.
-   * Nunca se fabrica a partir de un string suelto: cruza la barrera cronológica
-   * endurecida y conserva provenance de todos los segmentos/revisiones.
-   */
-  clinicalInput?: VoiceClinicalInput
 }
 
 /**
  * Pasa un transcript por todas las etapas posteriores al reconocedor.
  *
- * Cuando el flujo ya dispone de una `VoiceSession`, este mismo orquestador es la
- * única salida hacia Clinical Truth: comprueba que la sesión realmente representa
- * el `crudo` procesado y luego exige el sellado endurecido. Así una ruta/UI no puede
- * normalizar una cadena y adjuntarle provenance de otra captura.
+ * La conversión del Voice Engine a Clinical Truth NO ocurre aquí: pertenece a la
+ * frontera de integración de Consultorio. Mantenerla separada evita que un pipeline
+ * de texto puro fabrique o transporte autoridad clínica que no posee.
  *
  * @param crudo lo que devolvió el ASR, sin tocar.
  */
-export function procesarTranscript(
-  crudo: string,
-  contextoClinicalTruth?: ContextoClinicalTruthVoz,
-): ResultadoPipeline {
+export function procesarTranscript(crudo: string): ResultadoPipeline {
   const trazas: EtapaTexto[] = [{ etapa: 'crudo', texto: crudo }]
 
   // ── 1. Corrección léxica, con el guardián delante ───────────────────────
@@ -151,18 +130,6 @@ export function procesarTranscript(
     })),
   ]
 
-  let clinicalInput: VoiceClinicalInput | undefined
-  if (contextoClinicalTruth) {
-    clinicalInput = sealedVoiceSessionToClinicalInput(
-      contextoClinicalTruth.session,
-      contextoClinicalTruth.capturedAt,
-      contextoClinicalTruth.actorId,
-    )
-    if (clinicalInput.raw !== crudo) {
-      throw new Error('Voice session provenance does not match the raw transcript processed by the clinical ASR pipeline')
-    }
-  }
-
   return {
     texto,
     crudo,
@@ -176,7 +143,6 @@ export function procesarTranscript(
     alertas,
     motivos: [...motivos],
     requiereConfirmacion: motivos.size > 0,
-    clinicalInput,
   }
 }
 
