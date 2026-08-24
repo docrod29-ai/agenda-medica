@@ -184,6 +184,7 @@ export async function POST(req: NextRequest) {
   }
 
   const CONFLICTO = Symbol('conflicto')
+  const NO_ESTA = Symbol('no-esta')
   let id = ''
   let reintentoIdempotente = false
   /** Cómo estaba la cita ANTES de moverla, para poder decir qué cambió. */
@@ -261,8 +262,20 @@ export async function POST(req: NextRequest) {
         // transacción: fuera de ella podría estar leyendo una versión que otro
         // acaba de pisar, y la bitácora diría que cambió algo que no cambió.
         const previa = await tx.get(ref)
-        antes = previa.exists ? (previa.data() as Record<string, unknown>) : null
-        if (antes && mismaSolicitud(antes)) {
+        /**
+         * REAGENDAR NO CREA. El id lo pone el CLIENTE, y `tx.set(..., {merge:true})`
+         * sobre un documento que no existe lo CREA: reagendar una cita ya borrada
+         * —o un id inventado— fabricaba una cita nueva con la identidad que
+         * eligiera quien llamara. Dos reintentos de esa misma edición sobre un
+         * documento que fue borrado en medio dejaban dos citas.
+         *
+         * El id sigue sin poder salir de este consultorio (`apptsCol` cuelga de
+         * `clinics/{clinicId}`), pero dentro de él tampoco debe poder nombrar una
+         * entidad nueva: mover algo que no está es un 404, no un alta.
+         */
+        if (!previa.exists) throw NO_ESTA
+        antes = previa.data() as Record<string, unknown>
+        if (mismaSolicitud(antes)) {
           id = reagendarId
           reintentoIdempotente = true
           return
@@ -278,6 +291,9 @@ export async function POST(req: NextRequest) {
       }
     })
   } catch (e) {
+    if (e === NO_ESTA) {
+      return NextResponse.json({ error: 'Esa cita ya no existe: recarga la agenda antes de moverla.' }, { status: 404 })
+    }
     if (e === CONFLICTO) {
       // `sobreagendable` le dice a la pantalla que existe una salida autorizada,
       // en vez de dejar al usuario contra un muro.

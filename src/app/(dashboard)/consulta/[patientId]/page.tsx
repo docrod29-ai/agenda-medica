@@ -28,6 +28,7 @@ import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
 import { auth, db } from '@/lib/firebase'
 import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
 import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
+import { claveDeIntento } from '@/lib/idempotencia'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
@@ -696,6 +697,35 @@ export default function ConsultaActivaPage() {
       .filter((c: Appointment) => c.fechaHora.slice(0, 10) === hoy && !['cancelada', 'reagendada'].includes(c.estado))
       .sort((a: Appointment, b: Appointment) => a.fechaHora.localeCompare(b.fechaHora))[0] ?? null
   }, [citasDelPaciente])
+
+  /**
+   * ═══ GOLDEN PATH 9 — EL NOMBRE DE ESTE ENCUENTRO ═══
+   *
+   * La nota de la consulta se creaba con `addDoc`, que inventa un id nuevo en
+   * cada llamada: la identidad nacía de la ESCRITURA, no del encuentro. Bastaba
+   * con que el primer autoguardado commitease y perdiera su respuesta —red
+   * mala, pestaña dormida— para que el reintento, con `notaIdRef` todavía en
+   * null, abriera un SEGUNDO expediente de la misma visita.
+   *
+   * La clave se congela la primera vez que se pide y no cambia mientras esta
+   * pantalla viva. Se prefiere la cita de hoy porque es la identidad canónica
+   * del encuentro —dos pestañas abiertas sobre la misma cita convergen—, y sin
+   * cita se cae a una clave de sesión, que sigue cubriendo los dos casos que
+   * importan aquí: el doble toque y el reintento tras un timeout aparente.
+   *
+   * Va en `ref` y no en estado porque se lee SÍNCRONAMENTE dentro del guardado:
+   * un segundo intento antes del re-render leería el valor viejo, que es justo
+   * el caso que esto cubre.
+   */
+  const citaDeHoyIdRef = useRef<string | null>(null)
+  useEffect(() => { citaDeHoyIdRef.current = citaDeHoy?.id ?? null }, [citaDeHoy])
+  const claveEncuentroRef = useRef<string | null>(null)
+  const claveEncuentro = useCallback(() => {
+    claveEncuentroRef.current ??= citaDeHoyIdRef.current
+      ? `cita:${citaDeHoyIdRef.current}`
+      : `sesion:${claveDeIntento()}`
+    return claveEncuentroRef.current
+  }, [])
 
   /**
    * La regla salió de aquí a `lib/finanzas/precio-consulta`. Vivía dentro de esta
@@ -2616,7 +2646,12 @@ export default function ConsultaActivaPage() {
           }
           vistoEnRef.current = nota.metadata?.fechaModificacion ?? vistoEnRef.current
         } else {
-          const id = await createNota(clinicId, patientId, nota)
+          // GP9: la PRIMERA nota del encuentro se nombra desde el encuentro, no
+          // desde la escritura. Un reintento tras un timeout aparente —cuando el
+          // primer intento sí commiteó pero perdió su respuesta— vuelve aquí con
+          // `notaIdRef` todavía en null; con la clave converge al mismo borrador
+          // en vez de abrir un segundo expediente de la misma consulta.
+          const id = await createNota(clinicId, patientId, nota, { claveEncuentro: claveEncuentro() })
           notaIdRef.current = id   // marca síncrona ANTES de re-render
           setNotaId(id)
           vistoEnRef.current = nota.metadata?.fechaModificacion
@@ -2671,7 +2706,7 @@ export default function ConsultaActivaPage() {
     })
     cadenaGuardadoRef.current = tarea.catch(() => {})
     return tarea
-  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast])
+  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast, claveEncuentro])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -3528,7 +3563,10 @@ export default function ConsultaActivaPage() {
        */
       let id = notaIdRef.current
       if (!id) {
-        id = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' })
+        // Misma clave que el autoguardado: firmar sin haber autoguardado y
+        // autoguardar son DOS caminos hacia la primera nota del MISMO encuentro,
+        // así que tienen que converger al mismo documento.
+        id = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' }, { claveEncuentro: claveEncuentro() })
         notaIdRef.current = id
         setNotaId(id)
       }
@@ -3786,7 +3824,7 @@ export default function ConsultaActivaPage() {
      * arreglo del mismo dato (REG-193, REG-300, éste): cada uno cubrió un
      * camino distinto por el que se perdía.
      */
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento])
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento, claveEncuentro])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //
