@@ -43,11 +43,30 @@ describe('GP9 — alta/reagenda de cita idempotente', () => {
   })
 
   it('un reintento de edición que ya quedó aplicado no vuelve a escribir', () => {
-    expect(ruta).toContain('if (antes && mismaSolicitud(antes))')
-    const rama = ruta.slice(ruta.indexOf('if (antes && mismaSolicitud(antes))'))
+    expect(ruta).toContain('if (mismaSolicitud(antes))')
+    const rama = ruta.slice(ruta.indexOf('if (mismaSolicitud(antes))'))
     const hastaWrite = rama.slice(0, rama.indexOf('tx.set(diaRef'))
     expect(hastaWrite).toContain('reintentoIdempotente = true')
     expect(hastaWrite).toContain('return')
+  })
+
+  /**
+   * GP9 — LO QUE FALTABA AQUÍ: reagendar no puede CREAR.
+   *
+   * `antes` era `previa.exists ? … : null`, y con `antes` en null la rama seguía
+   * hasta `tx.set(ref, …, { merge: true })`. En Firestore eso CREA el documento:
+   * mover una cita ya borrada —o un id inventado— fabricaba una cita nueva con
+   * la identidad que eligiera el cliente. El comportamiento se cuenta en
+   * `gp9-alta-de-cita-no-duplica.test.ts`; aquí se fija que la guarda esté ANTES
+   * de cualquier escritura, que es lo que un refactor mueve sin darse cuenta.
+   */
+  it('reagendar comprueba que la cita EXISTE antes de escribir nada', () => {
+    const guarda = ruta.indexOf('if (!previa.exists) throw NO_ESTA')
+    const escritura = ruta.indexOf('tx.set(diaRef')
+    expect(guarda).toBeGreaterThan(0)
+    expect(escritura).toBeGreaterThan(guarda)
+    expect(ruta).toContain("const NO_ESTA = Symbol('no-esta')")
+    expect(ruta).toContain('if (e === NO_ESTA) {')
   })
 
   it('un reintento no duplica la entrada de audit_log', () => {

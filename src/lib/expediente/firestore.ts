@@ -1,6 +1,6 @@
 import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
-  query, orderBy, where, writeBatch,
+  query, orderBy, where, writeBatch, runTransaction,
   type DocumentReference,
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
@@ -9,6 +9,7 @@ import type { NotaMedica, Adenda } from '@/types/expediente'
 // a Firestore en los tests del sello de integridad. Ver serializacion.ts.
 import { stripUndefined } from './serializacion'
 import { logAudit } from './audit-log'
+import { idIdempotente } from '@/lib/idempotencia'
 
 /**
  * Notas clínicas viven en:
@@ -66,10 +67,24 @@ export async function findNotaByIdInClinic(clinicId: string, notaId: string): Pr
   return null
 }
 
+export interface OpcionesCrearNota {
+  /**
+   * El nombre del ENCUENTRO que se está abriendo (`claveDeIntento()` o el id de
+   * la cita de hoy). Ver `lib/idempotencia.ts`.
+   *
+   * Con clave, la primera nota del encuentro tiene un id DETERMINISTA: dos
+   * intentos de «Iniciar consulta» —dos toques, dos pestañas, o un reintento
+   * tras un timeout aparente— convergen al mismo borrador en vez de abrir dos
+   * expedientes de la misma visita.
+   */
+  claveEncuentro?: string
+}
+
 export async function createNota(
   clinicId: string,
   patientId: string,
   data: Omit<NotaMedica, 'id'>,
+  opciones: OpcionesCrearNota = {},
 ): Promise<string> {
   // Strip 'id' por si llega como '' desde el caller — si se guarda en data,
   // sobreescribe el doc.id al leer con spread y rompe la navegación.
@@ -87,6 +102,48 @@ export async function createNota(
       { code: 'nota-demasiado-grande' },
     )
   }
+  /**
+   * ═══ GOLDEN PATH 9 — UN ENCUENTRO, UNA NOTA ═══
+   *
+   * `addDoc` inventa un id nuevo en CADA llamada, así que la identidad de la
+   * nota nacía de la escritura y no del encuentro. El caso que rompía no es
+   * exótico: el autoguardado crea el borrador, la respuesta se pierde por red,
+   * el reintento encuentra `notaIdRef` todavía en null y crea OTRA nota. Dos
+   * documentos de la misma consulta, los dos a medias, y el médico sin saber
+   * cuál es el bueno.
+   *
+   * Con `claveEncuentro` el id se deriva del encuentro y del consultorio, así
+   * que el reintento apunta al mismo documento.
+   *
+   * PERO SÓLO CONVERGE SOBRE UN BORRADOR VIVO. Si en ese id ya hay una nota
+   * FIRMADA, se cae a un id nuevo: cuando la clave es la cita de hoy y el
+   * paciente vuelve el mismo día por otra cosa, converger devolvería la nota
+   * firmada de la mañana — y la pantalla intentaría escribir sobre un documento
+   * inmutable (REG-017), dejando al médico sin poder abrir la segunda consulta.
+   * La idempotencia no puede forzar un estado inválido para salirse con la suya.
+   */
+  if (opciones.claveEncuentro) {
+    const id = idIdempotente(clinicId, 'nota', opciones.claveEncuentro)
+    const ref = notaDoc(clinicId, patientId, id)
+    /**
+     * El candado es la TRANSACCIÓN, no un `getDoc` previo: entre leer y escribir
+     * cabe la otra pestaña. Aquí, dos aperturas simultáneas del mismo encuentro
+     * compiten y sólo una escribe; la otra reintenta, ve el documento y devuelve
+     * su id sin pisar una línea.
+     */
+    const yaFirmada = await runTransaction(db, async (tx) => {
+      const dentro = await tx.get(ref)
+      if (!dentro.exists()) {
+        tx.set(ref, payload)
+        return false
+      }
+      return dentro.data()?.estado === 'firmada'
+    })
+    if (!yaFirmada) return id
+    // Firmada: ese encuentro ya se cerró y es inmutable. La consulta nueva es un
+    // documento nuevo — se cae al `addDoc` de abajo.
+  }
+
   const ref = await addDoc(notasCol(clinicId, patientId), payload)
   return ref.id
 }
