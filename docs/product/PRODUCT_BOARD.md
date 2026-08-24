@@ -54,4 +54,8 @@ Under NO-GOLD-PLATING, provider/model integration, sophisticated prose generatio
 ## Current milestone — VOICE ENGINE
 Minimum accepted experience is comparable to Suki/Abridge/Nabla and must aim for the physician experience of fast, low-friction clinical dictation/ambient capture: clinically accurate terminology, Spanish/English/Spanglish, contextual correction, minimal repetition, explicit uncertainty rather than invented facts, and measurable latency/clinical transcription-error performance.
 
-Next action: persist the Voice Engine slice contract and implement the smallest provider-agnostic streaming/audio-to-clinical-input boundary with deterministic safety/latency instrumentation before choosing or binding a paid production ASR provider.
+The slice contract is persisted at `docs/product/slices/VOICE_ENGINE_001.md`, and the provider-agnostic session/transcript/revision contracts, the hardened bridge into Clinical Truth, and the deterministic latency/revision instrumentation are implemented with focused positive and negative tests. No paid production ASR provider is chosen or bound.
+
+Gate state: `REPAIRED_CI_GREEN_JUDGE_IN_FLIGHT`. The one owner-authorized paid independent Codex exact-SHA re-audit is already issued; its verdict is UNKNOWN until the immutable artifact is recovered, and no duplicate paid judge may be launched.
+
+Next action: recover the immutable verdict. PASS — or only nonblocking P2/P3 — closes the Voice gate and advances the board to CLINICAL REASONING + EVIDENCE + SAFETY. A blocking P0/P1 reopens a bounded repair for that finding only; any further paid re-audit needs new explicit spending authorization.

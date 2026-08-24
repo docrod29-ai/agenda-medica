@@ -313,6 +313,47 @@ time or the end of audio, `capturedAt` against `endedAt`, whether a sealed trans
 (that stays with the clinician and with `needsReview`), acceptance thresholds (Evaluation Kernel), and ASR
 provider selection.
 
+## Hardened production boundary — `src/lib/voice-engine/clinical-truth-bridge.ts`
+
+`voiceSessionToClinicalInput` stays the provider-neutral serializer. The boundary that production code must
+call is `sealedVoiceSessionToClinicalInput`, which revalidates the chronology of the object it is handed
+before anything crosses into Clinical Truth:
+
+- the capture seal must exist and must follow every provider/capture transition on every segment;
+- every segment must be final — refused by name, never filtered away;
+- `capturedAt` must follow the seal **and** any later clinician review resolution.
+
+Review resolution is deliberately still allowed after `endedAt`: the clinician may dispose of an ambiguity
+after dictation stops. The seal therefore constrains the *provider capture* lineage, while `capturedAt`
+constrains the *complete clinical* lineage that is actually emitted. Focused coverage lives in
+`src/__tests__/voice-engine-clinical-truth-bridge-chronology.test.ts`, including a guard that fails if any
+production module outside `src/lib/voice-engine/` imports the raw serializer and bypasses this boundary.
+
+### Declared island, not fake wiring
+
+The bridge is **not** wired into a real encounter, and it is declared as such rather than presented as
+connected. It is listed with its reason in both connectivity guards —
+`src/__tests__/modulos-sin-conectar.test.ts` and `src/__tests__/el-camino-del-medico-llega-entero.test.ts`.
+This slice delivers the provider-neutral engine; consuming it in production belongs to the CONSULTORIO
+slice. Both declarations state that the entry must be removed once that wiring lands, so the debt cannot
+quietly become permanent.
+
+## Gate state
+
+`REPAIRED_CI_GREEN_JUDGE_IN_FLIGHT`.
+
+The owner authorized exactly one paid independent Codex exact-SHA re-audit for the repaired head, and it is
+already issued. No duplicate paid judge may be launched. The verdict is UNKNOWN until the immutable artifact
+is recovered; if transport for the verdict comment fails, recover the artifact rather than rerunning the paid
+judge.
+
+- PASS, or only nonblocking P2/P3 → close the Voice gate and advance the board.
+- Blocking P0/P1 → repair only that finding; a further paid re-audit needs new explicit spending
+  authorization.
+
+Nonblocking P2/P3 remain unrepaired and do not block, including: `timeToFirstPartialMs` follows append order
+rather than the earliest supplied timestamp when partials arrive out of order.
+
 ## Scope exclusions
 Paid provider commitment, production secrets, live PHI, full ambient UI, EHR writeback, clinical reasoning, and final competitive superiority claims are out of scope here.
 
