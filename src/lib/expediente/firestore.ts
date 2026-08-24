@@ -336,20 +336,48 @@ export async function agregarAdenda(
   data: Omit<Adenda, 'id' | 'createdAt'>,
 ): Promise<Adenda> {
   /**
-   * EL AUTOR LO PONE LA SESIÓN, NO EL FORMULARIO.
-   *
-   * La adenda llevaba `autorNombre` y `autorEmail` sacados de la configuración
-   * de la CLÍNICA, sin ningún identificador de quien realmente la escribió. Las
-   * reglas ahora exigen `autorUid == request.auth.uid`, así que se estampa aquí
-   * y no se puede declarar el de otro.
+   * GP10 — una adenda sólo existe SOBRE una verdad ya firmada. La pantalla puede
+   * equivocarse de estado o un caller nuevo puede saltársela; esta frontera
+   * vuelve a leer el padre y falla cerrada antes de crear nada.
    */
+  const notaRef = notaDoc(clinicId, patientId, notaId)
+  const notaSnap = await getDoc(notaRef)
+  if (!notaSnap.exists()) throw new Error('No existe la nota que se quiere enmendar.')
+  if (notaSnap.data().estado !== 'firmada') {
+    throw new Error('Una adenda sólo puede agregarse a una nota firmada.')
+  }
+
+  /** El autor lo pone la sesión, nunca el formulario. */
   const autorUid = auth.currentUser?.uid ?? ''
+  if (!autorUid) throw new Error('Debes iniciar sesión para agregar una adenda.')
+
+  /**
+   * El motivo ya es obligatorio en las reglas. Se valida también aquí para que
+   * el médico reciba el error antes de una escritura rechazada por Firestore.
+   */
+  const texto = data.texto?.trim() ?? ''
+  const motivo = data.motivo?.trim() ?? ''
+  if (!texto) throw new Error('La adenda necesita texto.')
+  if (motivo.length < 5 || motivo.length > 500) {
+    throw new Error('El motivo de la adenda debe tener entre 5 y 500 caracteres.')
+  }
+
   const createdAt = new Date().toISOString()
-  const completo = { ...data, autorUid, createdAt }
+  const completo = { ...data, texto, motivo, autorUid, createdAt }
   const ref = await addDoc(
-    collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'adendas'),
+    collection(notaRef, 'adendas'),
     stripUndefined(completo),
   )
+
+  // La bitácora registra QUE hubo una enmienda y cuál fue, no repite texto clínico.
+  void logAudit({
+    evento: 'nota_adenda',
+    clinicId,
+    patientId,
+    notaId,
+    metadata: { adendaId: ref.id },
+  })
+
   return { ...completo, id: ref.id }
 }
 
