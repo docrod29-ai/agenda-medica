@@ -1,55 +1,76 @@
 /**
  * LOS MOTIVOS DE CONFIRMACIÓN, EN CASTELLANO Y CON QUÉ HACER.
  *
- * `politica-critica.ts` declara seis motivos con nombre de máquina. El pipeline
- * los calcula en cada dictado desde hace versiones y **ninguna pantalla los
- * leía**: el gate que decide cuándo hay que PREGUNTAR en vez de adivinar vivía
- * apagado.
+ * El pipeline conserva toda la incertidumbre del ASR para procedencia/auditoría,
+ * pero el flujo del médico NO debe convertirse en un panel de depuración. Esta
+ * capa decide únicamente qué motivos tienen capacidad de cambiar una decisión
+ * clínica y, por tanto, merecen llegar a la interfaz.
  *
- * ── POR QUÉ SE ENSEÑAN Y NO BLOQUEAN ─────────────────────────────────────────
+ * Regla de producto (Consultorio Golden Path #4):
+ * - ruido de confianza genérico/filler → permanece debajo, no interrumpe;
+ * - medicamento, dosis/unidad, negación, lateralidad, dispositivo crítico o una
+ *   intención de prescribir/solicitar todavía ambigua → se muestra en contexto;
+ * - un motivo desconocido falla cerrado hacia NO MOSTRARLO: no se enseña un
+ *   nombre de máquina ni se convierte ruido técnico en una tarea del médico.
  *
- * Convertirlos en una pregunta obligatoria antes de firmar es una decisión sobre
- * el flujo de trabajo del médico, no sobre el código — y la regla antifatiga que
- * la gobernaría ya está escrita en `uci/confirmacion.ts`, con su propia doctrina
- * («nunca preguntar por cinco valores seguidos»).
- *
- * Así que aquí se **muestran**, junto a las alertas del dictado, en las tres
- * pantallas. Eso ya cambia el resultado —el médico ve dónde mirar— sin meterle
- * una pregunta obligatoria que él no ha pedido. **Bloquear queda declarado como
- * decisión del Dr., no tomada por mí.**
- *
- * ── CADA TEXTO DICE DÓNDE MIRAR ──────────────────────────────────────────────
- *
- * «Hay una ambigüedad» no le sirve a nadie. Lo accionable es el campo concreto:
- * la dosis, la lateralidad, la negación.
+ * Esto NO borra incertidumbre ni cambia Clinical Truth. Sólo gobierna la
+ * superficie visible para el médico. Los datos de confianza, alternativas,
+ * timestamps y revisiones siguen viajando por Voice/provenance.
  */
-export const TEXTO_MOTIVO: Record<string, string> = {
-  confianza_baja_con_termino_critico:
-    'El audio dudó de una palabra que está pegada a una cifra o a una unidad. Revisa la posología antes de firmar.',
-  dos_o_mas_farmacos_plausibles:
-    'Dos fármacos encajaban con lo que se oyó. No se eligió ninguno: confirma cuál es.',
-  dosis_o_unidad_ambigua:
-    'Una dosis o una unidad quedó ambigua. Compruébala contra lo que dictaste.',
-  negacion_incierta:
-    'No quedó claro si una frase afirmaba o negaba. Revísala: cambia el sentido entero.',
-  lateralidad_incierta:
-    'Quedó dudoso si era derecho o izquierdo. Compruébalo en la exploración y en el plan.',
-  sigla_de_modo_o_dispositivo_incierta:
-    'Una sigla de modo o dispositivo quedó dudosa (PEEP/PIP, VV/VA, CVVH/CVVHD…).',
-  farmaco_solo_propuesto:
-    'Un fármaco se mencionó como algo a valorar («si no mejora…», «podríamos…»), no como indicación. Confirma si va en la receta o sólo en el plan.',
-  estudio_solo_propuesto:
-    'Un estudio se mencionó como algo a valorar, no como solicitud. Confirma antes de firmar: la orden impresa es la que el paciente lleva al laboratorio.',
+
+/** Motivos que sí pueden cambiar el significado o la conducta clínica. */
+export const MOTIVOS_CLINICAMENTE_MATERIALES = new Set([
+  'confianza_baja_con_termino_critico',
+  'dos_o_mas_farmacos_plausibles',
+  'dosis_o_unidad_ambigua',
+  'negacion_incierta',
+  'lateralidad_incierta',
+  'sigla_de_modo_o_dispositivo_incierta',
+  'farmaco_solo_propuesto',
+  'estudio_solo_propuesto',
+] as const)
+
+export function esMotivoClinicamenteMaterial(motivo: string): boolean {
+  return MOTIVOS_CLINICAMENTE_MATERIALES.has(motivo as never)
 }
 
-/** El texto de cada motivo, sin repetir y sin inventar los que no conoce. */
+/**
+ * Filtra sin deduplicar semántica: conserva el orden del pipeline para que el
+ * contexto que llegue primero siga apareciendo primero. La deduplicación de
+ * texto ocurre después, en `textosDeMotivos`.
+ */
+export function motivosClinicamenteMateriales(motivos: readonly string[]): string[] {
+  return motivos.filter(esMotivoClinicamenteMaterial)
+}
+
+export const TEXTO_MOTIVO: Record<string, string> = {
+  confianza_baja_con_termino_critico:
+    'Hay una palabra dudosa junto a una cifra o unidad. Revisa esa posología antes de firmar.',
+  dos_o_mas_farmacos_plausibles:
+    'El nombre del medicamento no quedó inequívoco. Confirma cuál es antes de prescribir.',
+  dosis_o_unidad_ambigua:
+    'La dosis o la unidad no quedó inequívoca. Confirma cantidad y unidad antes de prescribir.',
+  negacion_incierta:
+    'No quedó inequívoco si el paciente afirmó o negó este dato. Confírmalo antes de incorporarlo a la nota.',
+  lateralidad_incierta:
+    'No quedó inequívoco si era derecho o izquierdo. Confirma la lateralidad antes de incorporarla al plan.',
+  sigla_de_modo_o_dispositivo_incierta:
+    'Una sigla clínica crítica quedó ambigua. Confirma el modo o dispositivo antes de incorporarlo a la nota.',
+  farmaco_solo_propuesto:
+    'Este fármaco se mencionó como posibilidad, no como indicación inequívoca. Confirma si realmente va en la receta.',
+  estudio_solo_propuesto:
+    'Este estudio se mencionó como posibilidad, no como solicitud inequívoca. Confirma si realmente va en la orden.',
+}
+
+/**
+ * Textos visibles para el médico: sólo material clínico, sin nombres de máquina,
+ * sin porcentajes de confianza y sin motivos repetidos.
+ */
 export function textosDeMotivos(motivos: readonly string[]): string[] {
   const vistos = new Set<string>()
   const out: string[] = []
-  for (const m of motivos) {
+  for (const m of motivosClinicamenteMateriales(motivos)) {
     const t = TEXTO_MOTIVO[m]
-    // Un motivo sin texto se ignora en vez de enseñar su nombre de máquina: al
-    // médico no le sirve leer `sigla_de_modo_o_dispositivo_incierta`.
     if (!t || vistos.has(t)) continue
     vistos.add(t)
     out.push(t)
@@ -57,8 +78,19 @@ export function textosDeMotivos(motivos: readonly string[]): string[] {
   return out
 }
 
+/**
+ * Motivos de ASR que pueden existir en telemetría/provenance pero jamás deben
+ * transformarse por sí solos en una interrupción del médico.
+ */
+export const MOTIVOS_TECNICOS_NO_VISIBLES = new Set([
+  'confianza_baja_generica',
+  'palabra_relleno_baja_confianza',
+  'diarizacion_no_disponible',
+  'proveedor_asr_alterno',
+  'normalizacion_segura',
+])
+
 export const POR_QUE_NO_BLOQUEA =
-  'Convertirlos en una pregunta obligatoria antes de firmar es una decisión ' +
-  'sobre el flujo de trabajo del médico, no sobre el código, y la regla ' +
-  'antifatiga que la gobernaría ya está escrita en uci/confirmacion.ts. ' +
-  'Mostrarlos ya cambia el resultado sin imponerle una pregunta que no pidió.'
+  'La incertidumbre clínicamente material se muestra para revisión contextual. ' +
+  'El ruido técnico o de confianza genérica se conserva en procedencia/auditoría ' +
+  'pero no interrumpe el flujo del médico.'
