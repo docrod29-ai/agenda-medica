@@ -93,4 +93,4 @@ export const MOTIVOS_TECNICOS_NO_VISIBLES = new Set([
 export const POR_QUE_NO_BLOQUEA =
   'La incertidumbre clínicamente material se muestra para revisión contextual. ' +
   'El ruido técnico o de confianza genérica se conserva en procedencia/auditoría ' +
-  'pero no interrumpe el flujo del médico.'
+  'pero no interrumpe el flujo de trabajo del médico; esta separación es una medida antifatiga.'
