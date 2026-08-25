@@ -1,0 +1,41 @@
+name: Fix GP6 repair typed fixtures
+
+on:
+  push:
+    branches: [product/consultorio-core-001]
+    paths:
+      - .github/workflows/gp-repair-fixture-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: product/consultorio-core-001
+      - name: Patch fixture types in bounded repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/gp6-gp9-gp12-repair.yml')
+          s=p.read_text()
+          old="nuevos: [{ descripcion: 'Neumonía adquirida en comunidad', tipo: 'definitivo', codigoCIE10: 'J18.9' }],"
+          new="nuevos: [{ descripcion: 'Neumonía adquirida en comunidad', tipo: 'definitivo', estado: 'activo', codigoCIE10: 'J18.9' }],"
+          assert old in s, 'diagnosis fixture marker missing'
+          s=s.replace(old,new,1)
+          old="nuevos: [{ nombre: 'Amoxicilina', dosis: '500 mg' }],"
+          new="nuevos: [{ nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'cada 8 horas', duracion: '7 días' }],"
+          assert old in s, 'medication fixture marker missing'
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          git config user.name "ausculta-repair-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .github/workflows/gp6-gp9-gp12-repair.yml
+          git commit -m 'fix(test): complete GP6 typed fixtures'
+          git push origin HEAD:product/consultorio-core-001
