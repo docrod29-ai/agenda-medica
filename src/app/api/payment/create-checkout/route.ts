@@ -18,6 +18,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -37,6 +38,16 @@ export async function POST(req: NextRequest) {
     const { clinicId, patientId } = sesion
 
     if (!citaId) return NextResponse.json({ ok: false, error: 'Falta la cita' }, { status: 400 })
+
+    /**
+     * LÍMITE DE TASA — PATIENT-PORTAL-001. Cada llamada crea una sesión de
+     * Checkout en Stripe (una llamada de API de terceros, con su propio
+     * costo de superficie de abuso): sin freno, un token filtrado permitía
+     * generar sesiones sin límite. Fail-open si Firestore falla.
+     */
+    const limite = await limitarOResponder(`pago:${clinicId}:${patientId}`, 8, 600,
+      'Demasiados intentos de pago en poco tiempo. Espera un momento e inténtalo de nuevo.')
+    if (limite) return limite
 
     const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId)
     const citaSnap = await citaRef.get()
