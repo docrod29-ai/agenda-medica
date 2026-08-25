@@ -43,7 +43,7 @@ import {
 import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
-import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
+import type { ClaveMotor } from '@/lib/planes-ia'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
@@ -65,7 +65,8 @@ import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/
  * Alergias del paciente (texto libre) → lista para el sello de procedencia.
  *
  * Usa el MISMO partidor que el cruce de seguridad. Había dos: éste cortaba por
- * `[,;\n]` y `parsearAlergiasTexto` por `[,;/]`, así que «Penicilina / Sulfas»
+ * `[,;\
+]` y `parsearAlergiasTexto` por `[,;/]`, así que «Penicilina / Sulfas»
  * era una alergia para el sello y dos para la alerta. El mismo campo no puede
  * significar dos cosas según quién lo lea.
  */
@@ -224,13 +225,6 @@ const RevisionPanel = dynamic(() => import('@/components/RevisionPanel').then(m 
 const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPanel), { ssr: false })
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
-
-// Menú de IA: motores que el médico elige por nota (⚡ barato → 💎 máximo).
-const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] = [
-  { clave: 'rapida',   emoji: '⚡', nombre: 'Rápida',   creditos: MOTORES.rapida.creditos,   desc: 'Haiku · seguimiento simple' },
-  { clave: 'estandar', emoji: '⭐', nombre: 'Estándar', creditos: MOTORES.estandar.creditos, desc: 'Sonnet + voces · el día a día' },
-  { clave: 'maxima',   emoji: '💎', nombre: 'Máxima',   creditos: MOTORES.maxima.creditos,   desc: 'Opus + GPT-5 · caso complejo' },
-]
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
@@ -497,7 +491,8 @@ export default function ConsultaActivaPage() {
   const conBase = useCallback((nuevo: string) => {
     const base = baseTranscripcionRef.current
     if (!base || nuevo.startsWith(base)) return nuevo
-    return `${base}\n${nuevo}`
+    return `${base}\
+${nuevo}`
   }, [])
 
   useEffect(() => {
@@ -649,7 +644,8 @@ export default function ConsultaActivaPage() {
       // vez. Antes cada clic concatenaba, así que reaplicar una escala o recalcular
       // dejaba líneas idénticas repetidas en la nota (ruido medicolegal).
       if (i >= 0 && prev[i].value.includes(t)) { duplicado = true; return prev }
-      const valor = i >= 0 ? `${prev[i].value}\n${t}` : t
+      const valor = i >= 0 ? `${prev[i].value}\
+${t}` : t
       return [...prev.filter(s => s.key !== key), { key, label, value: valor }]
     })
     toast(duplicado ? 'Eso ya estaba en la nota' : 'Agregado a la nota ✓', duplicado ? 'info' : 'success')
@@ -834,17 +830,16 @@ export default function ConsultaActivaPage() {
   const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[]; huella: string } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
-  // Menú de IA: motor elegido por el médico para esta nota. null = default del plan
-  // (Pro → 💎 Máxima, Clínica → ⭐ Estándar). El motor que usó la última nota.
-  const [motorSel, setMotorSel] = useState<ClaveMotor | null>(null)
+  // El routing de IA es interno: el médico elige la tarea clínica, no proveedor/modelo.
+  // Se conserva qué motor corrió realmente para auditoría y trazabilidad.
   const [motorUsado, setMotorUsado] = useState<ClaveMotor | null>(null)
   // Provenance de IA para trazabilidad medicolegal (se persiste en la nota).
   const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string } | null>(null)
-  const motorEfectivo: ClaveMotor = motorSel ?? (planActual === 'premium' ? 'maxima' : 'estandar')
+  const motorEfectivo: ClaveMotor = planActual === 'premium' ? 'maxima' : 'estandar'
   // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
   const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
   // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
-  // IA económica (Sonnet 5, sin separación de voces ni 2ª opinión). No bloquea.
+  // una capacidad más económica. No bloquea; el routing sigue siendo interno.
   const [modoEco, setModoEco] = useState(false)
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
@@ -896,7 +891,8 @@ export default function ConsultaActivaPage() {
     const dudosas = palabrasDudosas(audio.utterances)
     const dialogo = audio.utterances
       .map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${marcarTurno(u)}`)
-      .join('\n')
+      .join('\
+')
     /**
      * UN MONÓLOGO NO SE ARMA COMO DIÁLOGO.
      *
@@ -915,7 +911,9 @@ export default function ConsultaActivaPage() {
      * de duda no se pierden — se anexan abajo, como en multi-tramo.
      */
     if (audio.utterances.length > 0 && !multiTramo && !esMonologo(audio.utterances)) {
-      return dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\n\n${dialogo}` : dialogo
+      return dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\
+\
+${dialogo}` : dialogo
     }
     /**
      * TEXTO PLANO — PERO LA DUDA NO SE TIRA.
@@ -929,7 +927,9 @@ export default function ConsultaActivaPage() {
      * hay nada que anexar, y decirlo es lo único honesto.
      */
     const anexo = anexoDeDudas(audio.utterances)
-    return anexo ? `${voz.transcripcion}\n\n${anexo}` : voz.transcripcion
+    return anexo ? `${voz.transcripcion}\
+\
+${anexo}` : voz.transcripcion
   }, [audio.utterances, rolesHablante, voz.transcripcion])
 
   /**
@@ -1043,7 +1043,7 @@ export default function ConsultaActivaPage() {
    * LA VÍA QUE NADIE DICTÓ.
    *
    * Decisión del médico dueño (4-ago-2026): «déjalo oral pero que avise si no se
-   * dictó la vía». El prompt de extracción trae `"via": "oral"` en su plantilla,
+   * dictó la vía». El prompt de extracción trae `\"via\": \"oral\"` en su plantilla,
    * así que el modelo la rellena SIEMPRE — y la receta acaba afirmando una vía de
    * administración que nadie dijo, con la misma tinta que las que sí se dictaron.
    *
@@ -1605,7 +1605,7 @@ export default function ConsultaActivaPage() {
   // El dictado es la FUENTE DE VERDAD: se puede re-proyectar a cualquier
   // modalidad de nota pasando tipoOverride (lo usa cambiarTipo).
   // Segunda opinión (verificación cruzada): manda la nota ya generada a un 2º
-  // modelo top (GPT-5) que la revisa por seguridad clínica. No bloquea; si falla,
+  // modelo top que la revisa por seguridad clínica. No bloquea; si falla,
   // no pasa nada. Los hallazgos se muestran en un panel para que el médico decida.
   const verificarNota = useCallback(async (
     nota: { resumen?: string; secciones?: { titulo: string; contenido: string }[]; diagnosticos?: unknown[]; medicamentos?: unknown[]; signos?: unknown },
@@ -1693,7 +1693,7 @@ export default function ConsultaActivaPage() {
           diagnosticos: dxDelCuadro,
           medicamentos: medsDelCuadro,
           motivo: motivo.slice(0, 400),
-          motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
+          motor: motorEfectivo,
           resumen: resumenTexto.slice(0, 2000),
           contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
         }),
@@ -1736,8 +1736,12 @@ export default function ConsultaActivaPage() {
       let texto = limpiarMarkdown(d.texto)
       const articulos = (d.meta?.articulos ?? []) as { titulo: string; revista: string; anio: string; pmid: string }[]
       if (articulos.length > 0) {
-        texto += '\n\nReferencias:\n' + articulos.map((a, i) =>
-          `[${i + 1}] ${a.titulo}. ${a.revista} ${a.anio}. PMID ${a.pmid}`).join('\n')
+        texto += '\
+\
+Referencias:\
+' + articulos.map((a, i) =>
+          `[${i + 1}] ${a.titulo}. ${a.revista} ${a.anio}. PMID ${a.pmid}`).join('\
+')
       }
       setSecciones(prev => {
         const sin = prev.filter(s => s.key !== 'analisis_evidencia')
@@ -1797,12 +1801,10 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({
           transcripcion: transcripcionParaIA,
           tipo: tipoActivo,
-          // La preliminar TAMBIÉN va en modelo rápido (Haiku): es un borrador que
-          // se re-proyecta en cuanto llega la diarización. Antes corría el motor
-          // completo (Opus + razonamiento, ~40s) y el médico igual esperaba
-          // mirando la pantalla — el propósito de la nota "instantánea" se perdía.
+          // La preliminar TAMBIÉN va por la vía rápida: es un borrador que se
+          // re-proyecta en cuanto llega la diarización.
           rapido: enVivo || preliminar,
-          motor: (enVivo || preliminar) ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
+          motor: (enVivo || preliminar) ? undefined : motorEfectivo,
           contexto: {
             // Sin nombre: no aporta nada a estructurar la nota e identifica al
             // titular ante un tercero en el extranjero. Ver buildUserPrompt.
@@ -1823,9 +1825,7 @@ export default function ConsultaActivaPage() {
             setSinCreditos({ usadas: data.usadas ?? 0, limite: data.limite ?? 0 })
             toast('Se acabaron tus consultas con IA del mes', 'error')
           } else {
-            toast(data.error === 'ANTHROPIC_API_KEY no configurada en el servidor'
-              ? 'Falta configurar la API key de Claude en Vercel'
-              : `Error de IA: ${data.error}`, 'error')
+            toast('El servicio de IA no está disponible. Tu nota no se modificó; puedes seguir a mano o reintentar.', 'error')
           }
           setTareaProc({ ejecutando: false })
         }
@@ -2041,8 +2041,8 @@ export default function ConsultaActivaPage() {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
         setPlanActual(data._plan === 'premium' ? 'premium' : 'pro')
         if (data._uso) setUsoIA(data._uso)
-        // Segunda opinión (GPT-5): AUTOMÁTICA en plan Premium; en plan Pro es un
-        // botón a demanda (controla el costo). En ambos revisa seguridad clínica.
+        // Segunda opinión: automática en plan Premium; en plan Pro es un botón
+        // a demanda. El modelo concreto queda como detalle interno de routing.
         if (data._plan === 'premium' && !preliminar) {
           const seccionesArr = data.secciones && typeof data.secciones === 'object'
             ? Object.entries(data.secciones).map(([k, v]) => ({ titulo: k, contenido: String(v ?? '') }))
@@ -2174,8 +2174,8 @@ export default function ConsultaActivaPage() {
     }
   }, [voz.transcripcion, procesando, firmada, procesarIA])
 
-  // Auto-atribución de roles: al terminar la diarización, Claude decide quién es
-  // Médico/Paciente/Acompañante desde el contexto clínico → el diálogo sale
+  // Auto-atribución de roles: al terminar la diarización, el sistema decide quién
+  // es Médico/Paciente/Acompañante desde el contexto clínico → el diálogo sale
   // etiquetado solo (editable). Si falla, queda el etiquetado manual.
   const rolesPedidosRef = useRef('')
   useEffect(() => {
@@ -2305,7 +2305,9 @@ export default function ConsultaActivaPage() {
     const textoFuente = [
       voz.transcripcion,
       ...secciones.map(s => s.value).filter(Boolean),
-    ].join('\n\n').trim()
+    ].join('\
+\
+').trim()
     if (!textoFuente) { toast('No hay texto que analizar todavía', 'info'); return }
     setNerCargando(true); setNerError(''); setEntidades(null); setNegacionesCorregidas([])
     try {
@@ -3274,7 +3276,9 @@ export default function ConsultaActivaPage() {
      */
     if (avisosParaFirmar.length > 0) {
       const seguir = await confirm(
-        `${comoSeDicenAlFirmar(avisosParaFirmar)}\n\n` +
+        `${comoSeDicenAlFirmar(avisosParaFirmar)}\
+\
+` +
         'Ninguno impide firmar por sí solo; son para que los mires una vez.',
         { confirmar: 'Los revisé, firmar', cancelar: 'Volver a la nota' },
       )
@@ -3311,7 +3315,9 @@ export default function ConsultaActivaPage() {
     })
     if (revision === 'caducada') {
       const seguir = await confirm(
-        `${COMO_SE_DICE.caducada}\n\n` +
+        `${COMO_SE_DICE.caducada}\
+\
+` +
         'Los hallazgos que ves son de antes de tus cambios. Puedes volver a pedirla, ' +
         'o firmar sabiéndolo.',
         { confirmar: 'Firmar así', cancelar: 'Volver y pedirla de nuevo' },
@@ -3332,10 +3338,16 @@ export default function ConsultaActivaPage() {
       },
     ))
     if (sinEvidencia.length > 0) {
-      const lista = sinEvidencia.slice(0, 6).map(c => `· ${c.etiqueta}: ${c.valor}`).join('\n')
-      const mas = sinEvidencia.length > 6 ? `\n…y ${sinEvidencia.length - 6} más.` : ''
+      const lista = sinEvidencia.slice(0, 6).map(c => `· ${c.etiqueta}: ${c.valor}`).join('\
+')
+      const mas = sinEvidencia.length > 6 ? `\
+…y ${sinEvidencia.length - 6} más.` : ''
       const seguir = await confirm(
-        `${sinEvidencia.length} ${sinEvidencia.length === 1 ? 'dato no se pudo comprobar' : 'datos no se pudieron comprobar'} contra el dictado:\n\n${lista}${mas}\n\n` +
+        `${sinEvidencia.length} ${sinEvidencia.length === 1 ? 'dato no se pudo comprobar' : 'datos no se pudieron comprobar'} contra el dictado:\
+\
+${lista}${mas}\
+\
+` +
         'Puede ser que el corrector reescribiera la frase, o que la grabación no separara las voces — no significa que estén mal. ' +
         'Si firmas, quedan con tu cédula como datos verificados por ti.',
         { confirmar: 'Los reviso y los asumo', cancelar: 'Volver a la nota' },
@@ -3363,10 +3375,16 @@ export default function ConsultaActivaPage() {
        * Las tres juntas son cómo se pierde una nota entera sin un solo error en
        * pantalla.
        */
-      const muestra = lineasSugeridas(secciones).slice(0, 5).map((l: string) => `· ${l}`).join('\n')
-      const mas = pendientes > 5 ? `\n…y ${pendientes - 5} más.` : ''
+      const muestra = lineasSugeridas(secciones).slice(0, 5).map((l: string) => `· ${l}`).join('\
+')
+      const mas = pendientes > 5 ? `\
+…y ${pendientes - 5} más.` : ''
       const quitar = await confirm(
-        `La IA añadió ${pendientes} ${pendientes === 1 ? 'línea que no dictaste' : 'líneas que no dictaste'}:\n\n${muestra}${mas}\n\n` +
+        `La IA añadió ${pendientes} ${pendientes === 1 ? 'línea que no dictaste' : 'líneas que no dictaste'}:\
+\
+${muestra}${mas}\
+\
+` +
         'Si firmas, saldrían con tu cédula como indicación tuya. ' +
         'Si las quitas, PUEDES DESHACERLO con el botón «Deshacer» de arriba.',
         { peligro: true, confirmar: 'Quitarlas', cancelar: 'Volver a la nota' },
@@ -4765,48 +4783,8 @@ export default function ConsultaActivaPage() {
             )
           )}
 
-          {/* ── MENÚ DE IA: motor por nota + medidor de créditos ──
-              §8.5 «nonessential admin disappears»: `!voz.grabando` sólo
-              cubría la ruta de Web Speech. Con el grabador de audio
-              (diarización/Whisper), `voz.transcripcion` se llena en vivo
-              desde `audio.transcripcionParcial` (línea ~531) mientras
-              `voz.grabando` sigue en false, así que este menú SÍ aparecía
-              con el mismo peso durante la grabación real. `grabandoAhora()`
-              (ya definido más arriba, mismo criterio que usa el resto de la
-              página para "activo" — incluye pausado) cubre las dos rutas. */}
-          {voz.transcripcion.trim() && !grabandoAhora() && (
-            <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Motor de IA para esta nota</span>
-                {usoIA && (
-                  <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
-                    {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
-                  </span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {MOTORES_UI.map(m => {
-                  const on = motorEfectivo === m.clave
-                  return (
-                    <button key={m.clave} onClick={() => setMotorSel(m.clave)}
-                      style={{
-                        flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', borderRadius: 10, padding: '9px 11px',
-                        border: '1px solid ' + (on ? 'var(--teal)' : 'var(--border)'),
-                        background: on ? 'rgba(13,148,136,0.08)' : 'var(--s1)', color: 'var(--text)',
-                      }}>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>{m.emoji} {m.nombre} <span style={{ fontWeight: 600, color: 'var(--text3)', fontSize: 11 }}>· {m.creditos} cr</span></div>
-                      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 1 }}>{m.desc}</div>
-                    </button>
-                  )
-                })}
-              </div>
-              {motorUsado && (
-                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-                  Última nota generada con {MOTORES_UI.find(m => m.clave === motorUsado)?.emoji} <b>{MOTORES_UI.find(m => m.clave === motorUsado)?.nombre}</b>
-                </div>
-              )}
-            </div>
-          )}
+          {/* El routing del proveedor/modelo es deliberadamente interno. El médico
+              sólo elige acciones clínicas (grabar, procesar, revisar, firmar). */}
 
           {/* Material de origen (dictado) — FUENTE, no forma parte de la nota.
               Mientras graba se ve en vivo; ya estructurada queda colapsada. */}
@@ -4949,9 +4927,8 @@ export default function ConsultaActivaPage() {
             <Sparkles size={16} /> Nota generada en modo económico
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
-            Se agotaron tus consultas con IA máxima del mes. Esta nota corrió con IA económica
-            (Sonnet 5 — muy buena) y sin separación de voces. <b>Nunca te quedas sin IA.</b> Para
-            recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más créditos.
+            Se agotaron las consultas de mayor capacidad incluidas este mes. Puedes seguir trabajando normalmente
+            con la capacidad disponible. Para recuperar el nivel de mayor capacidad, compra más créditos.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
             <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
@@ -4992,14 +4969,14 @@ export default function ConsultaActivaPage() {
       {planActual === 'pro' && !verificacion && !verificando && (resumen || diagnosticos.length > 0 || medicamentos.length > 0) && (
         <button onClick={pedirSegundaOpinion}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(59,90,254,0.10)', color: 'var(--nexus)', border: '1px solid rgba(59,90,254,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          <Sparkles size={14} /> Pedir segunda opinión (otra IA revisa la nota)
+          <Sparkles size={14} /> Pedir segunda opinión
         </button>
       )}
 
-      {/* ── Segunda opinión (verificación cruzada por un 2º modelo top) ── */}
+      {/* ── Segunda opinión ── */}
       {verificando && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 12.5, color: 'var(--text3)' }}>
-          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Segunda opinión en curso — otro modelo de IA revisa la nota…
+          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Segunda opinión en curso…
         </div>
       )}
       {/*
@@ -5022,11 +4999,11 @@ export default function ConsultaActivaPage() {
       {verificacion && !verificando && (
         verificacion.hallazgos.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontSize: 12.5, color: revisionCaducada ? 'var(--text3)' : 'var(--teal)' }}>
-            <CheckCircle2 size={14} /> Segunda opinión ({verificacion.modelo}): sin observaciones de seguridad
+            <CheckCircle2 size={14} /> Segunda opinión: sin observaciones de seguridad
             {revisionCaducada ? ' — sobre la versión anterior.' : '.'}
           </div>
         ) : (
-          <Alert tone="warning" icon={<AlertTriangle size={18} />} title={`Segunda opinión (${verificacion.modelo}) — ${verificacion.hallazgos.length} observación(es) a revisar`}>
+          <Alert tone="warning" icon={<AlertTriangle size={18} />} title={`Segunda opinión — ${verificacion.hallazgos.length} observación(es) a revisar`}>
             {verificacion.hallazgos.map((h, i) => {
               const col = h.severidad === 'alta' ? 'var(--red)' : h.severidad === 'media' ? 'var(--amber)' : 'var(--text3)'
               return (
@@ -5037,7 +5014,7 @@ export default function ConsultaActivaPage() {
               )
             })}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, fontStyle: 'italic' }}>
-              Son sugerencias de una IA revisora — tú decides. No modifican la nota automáticamente.
+              Son sugerencias de una revisión asistida — tú decides. No modifican la nota automáticamente.
             </div>
           </Alert>
         )
@@ -6279,4 +6256,3 @@ export default function ConsultaActivaPage() {
     </div>
   )
 }
-
