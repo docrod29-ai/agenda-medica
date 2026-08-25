@@ -1985,8 +1985,8 @@ export default function ConsultaActivaPage() {
 
       const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
       if (tipoOverride) {
-        // RE-PROYECCIÓN a otra modalidad de nota: se parte de plantilla limpia a propósito.
-        setDiagnosticos(nuevosDx)
+        // GP6: re-proyección cruza la frontera canónica; sugerir no confirma ni codifica.
+        setDiagnosticos(fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] }))
         dxDeLaIaRef.current = nuevosDx
       } else if (nuevosDx.length > 0) {
         /**
@@ -2009,7 +2009,8 @@ export default function ConsultaActivaPage() {
 
       const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
       if (tipoOverride) {
-        setMedicamentos(nuevosMed)
+        // GP6/GP5: re-proyectar no convierte extracción automática en prescripción.
+        setMedicamentos(fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] }))
         medDeLaIaRef.current = nuevosMed
       } else if (nuevosMed.length > 0) {
         /**
@@ -2181,8 +2182,10 @@ export default function ConsultaActivaPage() {
       })
     })
     const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
-    if (tipoOverride) setDiagnosticos(nuevosDx)   // re-proyección: plantilla limpia
-    else if (nuevosDx.length > 0) {
+    if (tipoOverride) {
+      setDiagnosticos(fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] }))
+      dxDeLaIaRef.current = nuevosDx
+    } else if (nuevosDx.length > 0) {
       // El mismo motor que arriba: dos sitios con la misma regla, no dos reglas.
       setDiagnosticos(prev => fusionarDiagnosticos({
         previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
@@ -2190,8 +2193,10 @@ export default function ConsultaActivaPage() {
       dxDeLaIaRef.current = nuevosDx
     }
     const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
-    if (tipoOverride) { setMedicamentos(nuevosMed); medDeLaIaRef.current = nuevosMed }
-    else if (nuevosMed.length > 0) {
+    if (tipoOverride) {
+      setMedicamentos(fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] }))
+      medDeLaIaRef.current = nuevosMed
+    } else if (nuevosMed.length > 0) {
       // Mismo criterio que el camino de primer plano: se sustituye lo de la IA,
       // se conserva lo del médico. Ver `fusionarMedicamentos`.
       setMedicamentos(prev => fusionarMedicamentos({
