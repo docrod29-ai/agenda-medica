@@ -21,14 +21,12 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M src/__tests__/authz-rutas-declaradas.test.ts",
-    " M src/app/api/cron/reminders/route.ts",
+    " M src/__tests__/_harness/firestore-admin-en-memoria.ts",
     " M src/app/api/whatsapp/webhook/route.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/telesalud/donde-es.ts",
-    " M src/lib/whatsapp.ts",
-    " M src/lib/whatsapp/templates.ts",
-    "?? src/__tests__/el-enlace-de-la-teleconsulta-llega-al-paciente.test.ts"
+    "?? src/__tests__/la-urgencia-gana-en-whatsapp.test.ts",
+    "?? src/lib/paciente/urgencia.ts"
   ],
   "actualizado": "2026-08-26",
   "resumenDesdeElUltimoEstado": {
@@ -64,10 +62,10 @@
   ],
   "ramaActual": "product/patient-experience-whatsapp-2026-08-26",
   "derivado": {
-    "regsEnElLedger": 171,
-    "ultimaREG": "REG-323",
-    "archivosDePrueba": 739,
-    "casosDePrueba": 8908,
+    "regsEnElLedger": 172,
+    "ultimaREG": "REG-324",
+    "archivosDePrueba": 740,
+    "casosDePrueba": 8923,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

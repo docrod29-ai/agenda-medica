@@ -186,7 +186,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
-    regs: [242, 243, 250, 304],
+    /**
+     * 324: la escalación de urgencia por el canal del paciente. Cualquier
+     * producto que le hable a un paciente la da por supuesta, y aquí no existía
+     * en WhatsApp — el canal por el que entra la mayoría. Ninguna prueba interna
+     * podía delatarla: no había nada roto que medir, el bot contestaba rápido y
+     * con información correcta. La correcta para otra pregunta.
+     */
+    regs: [242, 243, 250, 304, 324],
   },
   {
     clave: 'falta_un_eje',

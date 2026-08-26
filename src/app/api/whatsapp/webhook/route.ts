@@ -44,6 +44,7 @@ import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
 import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, selloExpediente, VERSION_AVISO } from '@/lib/whatsapp/aviso-bot'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { candidatosDeTelefono } from '@/lib/whatsapp/telefono-candidatos'
+import { urgenciaDelMensaje, mensajeDeUrgencia, avisoDeUrgenciaAlConsultorio } from '@/lib/paciente/urgencia'
 
 /**
  * Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot — y lo que
@@ -521,6 +522,46 @@ export async function handleMessage(from: string, body: string, clinicId: string
       ? MENSAJE_ALTA_OK
       : 'No pudimos reactivar sus mensajes ahora. Responda *ALTA* de nuevo en un minuto.')
     // sigue el flujo normal tras reactivar
+  }
+
+  /**
+   * ── LA URGENCIA, ANTES QUE NADA ──────────────────────────────────────────
+   *
+   * Va aquí y no más abajo, y el sitio ES la reparación.
+   *
+   * La primera decisión del bot sobre lo que escribe el paciente era el
+   * detector de preguntas frecuentes, que trabaja por SUBCADENA: «me duele el
+   * pecho desde hace una **hora**» contiene `hora`, así que al paciente con
+   * dolor torácico se le contestaba el HORARIO DE ATENCIÓN. Y «no puedo
+   * respirar» no casaba con nada y caía al menú de bienvenida.
+   *
+   * Poniéndolo por encima de `getSession` gana también a la máquina de estados:
+   * a mitad de un agendado, esperando el aviso de privacidad o contestando un
+   * recordatorio. §6 de `.claude/rules/patient-facing-ai.md`: «la urgencia gana
+   * a todo lo demás».
+   *
+   * Sólo la baja (BAJA/STOP) queda por encima, y a propósito: es una obligación
+   * legal y ninguna de sus palabras puede ser una urgencia.
+   *
+   * El bot NO triaja, NO aconseja y NO atiende: escala. Ver `lib/paciente/urgencia.ts`.
+   */
+  const urgencia = urgenciaDelMensaje(text)
+  if (urgencia) {
+    const telConsultorio = adminPhone || ''
+    await send(from, mensajeDeUrgencia(telConsultorio))
+    // El consultorio se entera aunque no esté mirando la pantalla. Nunca puede
+    // tumbar el aviso al paciente: ése ya salió.
+    if (telConsultorio && telConsultorio !== from) {
+      await send(telConsultorio, avisoDeUrgenciaAlConsultorio(from, urgencia.motivo, text))
+    }
+    /**
+     * Se cierra la conversación en curso. Dejar viva una sesión `agendar_hora`
+     * significa que el siguiente mensaje del paciente —o de quien tenga su
+     * teléfono— se interpreta como la elección de un horario. Después de una
+     * urgencia se empieza de cero.
+     */
+    await clearSession(clinicId, from)
+    return
   }
 
   const session = await getSession(clinicId, from)

@@ -8039,3 +8039,59 @@ creación de la sala en el proveedor, la ventana horaria de apertura
 (`ventana-sala.ts`), ni la revocación por versión: `/api/telesalud/sala` autoriza
 hoy sin mirar `tokenVigente`, y eso es otra unidad de trabajo — registrada, no
 arreglada aquí.
+
+## REG-324 — al paciente con dolor en el pecho, el bot le contestaba el horario de atención
+
+**Qué fallaba.** El bot de WhatsApp **no tenía ninguna detección de urgencia**.
+Su primera decisión sobre lo que escribe el paciente es un detector de preguntas
+frecuentes que trabaja por **subcadena**:
+
+```
+if (/horario|hora|atiende|atencion|abren|cierran|cuando/.test(t)) return 'horario'
+```
+
+«Me duele el pecho desde hace una **hora**» contiene `hora`. El paciente con
+dolor torácico recibía, literalmente, el horario de atención del consultorio. Y
+«no puedo respirar» no casaba con ninguna pregunta frecuente ni con ningún verbo
+de agenda, así que caía al menú de bienvenida. Está reproducido contra el handler
+real: la prueba enseña las dos respuestas que salían.
+
+**Cómo se descubrió.** Auditando el Bloque 7 contra `patient-facing-ai.md` §6
+(«la urgencia gana a todo lo demás»). `grep` de `urgencia|emergencia|911` sobre
+`api/whatsapp/` y `lib/whatsapp/`: ni una línea.
+
+**Causa raíz.** **Precedencia**, no detección. La primera pregunta que se hacía
+el bot era «¿de qué tema habla?» en vez de «¿esto es una urgencia?». Un detector
+de temas por subcadena, preguntado primero, decide antes de que nadie mire si el
+paciente se está muriendo. El mismo orden invertido que ya había costado
+`lib/whatsapp/intencion.ts` («quiero agendar una consulta» contestaba el precio):
+aquella vez el precio de equivocarse era una cita perdida.
+
+**Control permanente.** `src/lib/paciente/urgencia.ts` (PURO) con las cinco
+categorías del §6 —dolor torácico, dificultad respiratoria, síntomas
+neurológicos agudos, ingesta accidental y sobredosis— y las cinco clases de
+respuesta del §2, cerradas. Se consulta en `handleMessage` **antes** de
+`getSession`, así que gana a la pregunta frecuente, a la intención de agenda y a
+la máquina de estados entera, incluso a mitad de un agendado. Sólo la baja
+(BAJA/STOP) queda por encima, por obligación legal. El bot no triaja, no
+aconseja y no atiende: contesta con la vía real (911 / urgencias / teléfono del
+consultorio) en la PRIMERA línea, avisa al consultorio y cierra la sesión.
+
+No se inventó política clínica: la lista es la del §6 y la vía de contacto es la
+que el portal del paciente (`app/mi/[token]`) ya le dice a quien entra por ahí.
+
+`src/__tests__/la-urgencia-gana-en-whatsapp.test.ts` (15 declaraciones que el
+corredor expande a 23 casos; sin el arreglo caen 10, contra el handler real). Incluye cinco casos de FALSO POSITIVO —«no
+puedo hablar ahora, agéndame para mañana», «no puedo ver los horarios»— que
+encontraron y corrigieron dos reglas propias demasiado anchas antes de commitear:
+contestar el 911 a una frase administrativa común le enseña al paciente a ignorar
+el aviso el día que sea de verdad.
+
+**Qué NO cubre, declarado.** El vocabulario es vocabulario, no criterio
+(`clinical-safety.md` §5): lo que no esté **no se vigila**, no es benigno. Fuera
+quedan hemorragia, trauma, dolor abdominal agudo, fiebre del lactante,
+anafilaxia, ideación suicida, complicaciones del embarazo y cualquier lengua que
+no sea el español. No hay detección de negación, y es deliberado: la frase más
+importante de la lista —«no puedo respirar»— empieza por «no», y una regla de
+negación ingenua callaría justo ésa. No cubre voz, ni el portal web, ni el camino
+de plantilla HSM.
