@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 363 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1169 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2621 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 6342 | 7 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 6343 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
@@ -98,7 +98,7 @@
 | `/login` | publica | ✅ | 405 | 4 | — | ✅ | — |
 | `/operacion` | publica | — | 98 | 2 | — | ✅ | — |
 | `/paquetes` | publica | — | 94 | 3 | — | ✅ | — |
-| `/precios` | publica | — | 185 | 1 | — | ✅ | — |
+| `/precios` | publica | — | 189 | 1 | — | ✅ | — |
 | `/privacidad` | publica | — | 135 | 0 | — | — | — |
 | `/registro` | publica | ✅ | 384 | 3 | — | ✅ | — |
 | `/seguridad` | publica | — | 146 | 2 | — | ✅ | — |
@@ -112,5 +112,5 @@
 | `/superadmin/errores` | interna | ✅ | 85 | 1 | — | ✅ | — |
 | `/superadmin/onboarding` | interna | ✅ | 163 | 1 | — | ✅ | — |
 | `/superadmin/planes` | interna | ✅ | 228 | 1 | — | ✅ | — |
-| `/superadmin/simulador` | interna | ✅ | 193 | 1 | — | ✅ | — |
+| `/superadmin/simulador` | interna | ✅ | 203 | 1 | — | ✅ | — |
 | `/superadmin/soporte` | interna | ✅ | 96 | 1 | — | ✅ | — |
