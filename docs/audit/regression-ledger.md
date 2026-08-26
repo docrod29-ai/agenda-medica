@@ -7987,3 +7987,69 @@ cubre las dos superficies que la matriz señaló, no «todas las pantallas tiene
 h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
+
+---
+
+## REG-323 — el laboratorio se archivaba en el paciente que estuviera abierto
+
+**Área.** Importación de resultados de laboratorio por visión (camino cotidiano
+de Practice). Encontrado por la auditoría **H-17** (26-ago-2026) recorriendo
+las fronteras de escritura clínica y preguntando por cada una «¿qué prueba que
+esta evidencia es de este paciente?».
+
+**Qué fallaba.** El flujo completo era:
+
+```
+archivo → visión → validarPanel(fecha + valores) → modal «revisa lo que leyó
+la IA» → guardarPanelLab(clinicId, patientId, panel)
+```
+
+Ni una sola pieza miraba **de quién** era la hoja. El `patientId` salía de la
+pantalla abierta y `guardarPanelLab` lo obedecía sin preguntar. Subir el PDF del
+paciente anterior con la ficha del siguiente abierta archivaba sus resultados
+bajo el paciente equivocado, con mensaje verde y sin un solo aviso — y de ahí
+salen las gráficas de tendencia y el texto que el médico pega en la nota. El
+modal pedía revisar los **números**; nunca el **sujeto**.
+
+Y el mismo `addDoc` acuñaba la identidad del documento en la **escritura**: un
+doble clic o una respuesta perdida en la red dejaba el estudio duplicado y la
+serie temporal con dos puntos donde había una extracción.
+
+**Causa raíz.** Una regla de privacidad aplicada un paso demasiado lejos. «No se
+persisten identificadores del paciente» se había implementado en el prompt de
+visión como «no se **extraen**» —«NO transcribas el nombre del paciente»— y eso
+**destruyó la única evidencia** con la que se podía verificar el sujeto. Sin
+nombre que comparar, la identidad del documento sólo podía nacer del contexto de
+pantalla. Es la forma exacta de **REG-252** (el mismo defecto en el camino FHIR
+de hospital, ya reparado con `verificaSujeto`) y de **REG-160**: se validaba una
+cosa y se escribía sobre otra. La lección estaba aprendida en un módulo y nunca
+llegó al hermano que se usa todos los días.
+
+**Control permanente.** El nombre se lee, se **compara** y se **tira**:
+`dictaminarSujeto` reúsa `verificaSujeto` (frontera canónica) y desempata con
+`similitudNombre` (el comparador de identidad de personas que ya decide si dos
+expedientes son el mismo paciente), porque un OCR de hoja impresa cambia el
+orden de los apellidos y pierde acentos, y un bloqueo que salta en el caso normal
+se aprende a esquivar. Sólo `coincide` guarda solo; `sin-identificar` exige
+confirmación explícita del médico viendo el nombre del destino; `ambiguo` y
+`no-coincide` **no persisten**. Quien lo hace cumplir es `autorizaGuardar`
+dentro de `guardarPanelLab` —esconder un botón no cierra una escritura—, que
+además re-comprueba el destino contra el vínculo: si el médico cambió de paciente
+durante la revisión, el vínculo **caduca, no se re-apunta**. El panel queda
+escrito con el paciente y el consultorio **dentro** del documento, y
+`firestore.rules` exige que eso sea la ruta. La identidad del documento pasa a
+`idIdempotente(clinicId, 'laboratorio', …)`: el reintento aterriza en el mismo
+doc. Lo único que se persiste del sujeto es el veredicto — nunca un nombre.
+`src/__tests__/laboratorio-sujeto-vinculado.test.ts` (27 casos) y
+`src/__tests__/laboratorio-guardado-no-cruza-paciente.test.ts` (13 casos,
+cuentan documentos), probados al revés: sin el módulo, la suite no compila
+siquiera, que es el estado en que vivía el producto.
+
+**Qué NO cubre, declarado.** No prueba que la IA lea bien el nombre —eso es del
+proveedor de visión—: prueba qué hace el sistema con lo que lea, incluido no leer
+nada. No cubre `firestore.rules` en ejecución (va contra el emulador): la regla
+es una segunda capa, la medida es la del escritor. No cubre concurrencia real de
+dos pestañas sobre el mismo id. Y **no toca los otros caminos de evidencia** —
+fotografía clínica, importación de Evidence, antibiograma por foto— que tienen la
+misma forma de riesgo y siguen sin frontera de sujeto: eso es hallazgo abierto,
+no reparado aquí.

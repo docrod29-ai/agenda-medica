@@ -25,7 +25,7 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **39** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **Escrito, probado y sin conectar** | **40** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
@@ -43,10 +43,18 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 39 de 170, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 40 de 171, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
+El miembro más reciente es **REG-323** (26-ago-2026): `verificaSujeto` —la
+frontera que impide archivar un laboratorio en el paciente equivocado— existía,
+estaba probada y llevaba desde REG-252 defendiendo el camino FHIR de hospital.
+El camino cotidiano de Practice, el que se recorre en cada consulta, no la
+llamaba nunca: el panel se archivaba bajo el paciente que estuviera abierto en
+la pantalla. La lección estaba aprendida en un módulo y no había llegado al
+hermano que se usa todos los días.
+
+Antes que él, **REG-320** (15-ago-2026), y lo encontró un banco de
 flujos haciendo el trabajo del médico en el teléfono: el respaldo local de la
 nota se escribía, se conservaba en disco y **no se ofrecía nunca** al reabrir
 una nota por `?nota=`, porque la única condición capaz de enseñarlo probaba que
