@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   let body: { token?: string; rating?: number; texto?: string }
@@ -20,6 +21,16 @@ export async function POST(req: NextRequest) {
   const texto = String(body.texto ?? '').trim().slice(0, 1000)
   if (!token) return NextResponse.json({ ok: false, motivo: 'Enlace inválido' }, { status: 400 })
   if (!(rating >= 1 && rating <= 5)) return NextResponse.json({ ok: false, motivo: 'Calificación inválida' }, { status: 400 })
+
+  /**
+   * LÍMITE DE TASA — PATIENT-PORTAL-001. Endpoint público sin sesión: sin
+   * freno, un script podía probar tokens al azar (`clinic_review_requests`
+   * los usa como id de documento) hasta acertar uno vigente. Por IP, igual
+   * que `public/booking`; fail-open si Firestore falla.
+   */
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+  const limite = await limitarOResponder(`resena:ip:${ip}`, 10, 3600, 'Demasiados intentos. Intenta más tarde.')
+  if (limite) return limite
 
   const reqRef = adminDb.collection('clinic_review_requests').doc(token)
 

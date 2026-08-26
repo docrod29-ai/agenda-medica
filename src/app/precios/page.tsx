@@ -130,13 +130,16 @@ export default async function PreciosPage() {
         <Card plan={planes.premium} />
       </div>
 
-      {/* ── Menú de IA: los 3 motores ── */}
+      {/* ── Los 3 niveles de IA, por INTENCIÓN CLÍNICA (no por modelo) ──
+          El médico dice qué caso tiene enfrente; el router elige por dentro el
+          cómputo mínimo suficiente. Aquí se pintaba `m.modelos` con la marca del
+          proveedor: ése era el defecto P1 de #345, no el texto de alrededor. */}
       <div style={{ maxWidth: 780, margin: '40px auto 0' }}>
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
-          Elige el motor de IA en cada nota
+          Elige el nivel de IA según el caso
         </div>
         <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text3)', margin: '0 auto 16px', maxWidth: 560, lineHeight: 1.5 }}>
-          Cada nota gasta créditos según el motor que uses — paga poco por lo rutinario, mucho solo cuando lo necesitas.
+          Dices qué caso tienes enfrente y la IA ajusta sola cuánto razona — pagas poco por lo rutinario, más solo cuando el caso lo pide.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
           {(['rapida', 'estandar', 'maxima'] as const).map(k => {
@@ -144,7 +147,8 @@ export default async function PreciosPage() {
             return (
               <div key={k} style={{ flex: '1 1 210px', maxWidth: 250, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{m.emoji} {m.nombre}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{m.modelos}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{m.usoRecomendado}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{m.capacidad}</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--nexus)', marginTop: 10 }}>
                   {m.creditos} <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>{m.creditos === 1 ? 'crédito/nota' : 'créditos/nota'}</span>
                 </div>

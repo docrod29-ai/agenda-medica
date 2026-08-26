@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useCerrarConEscape } from '@/lib/ui/activable'
-import { actualizarContadoresPaciente } from '@/lib/agenda/contadores-paciente'
+import { cambiarEstadoCita } from '@/lib/agenda/transicion-cita'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -18,7 +18,7 @@ import { quitarExencion } from '@/lib/cobros'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
-import { updateAppointment, deleteAppointment } from '@/lib/firestore'
+import { deleteAppointment } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
 import { openWhatsApp, msgConfirmacion, msgRecordatorio24h } from '@/lib/whatsapp'
 import {
@@ -386,10 +386,28 @@ export default function CitasPage() {
 
   const handleStatusChange = async (appt: Appointment, newStatus: AppointmentStatus) => {
     try {
-      await updateAppointment(clinicId!, appt.id, { estado: newStatus })
-      // Contadores del paciente: sin esto, marcar "no asistió" no dejaba rastro y
-      // el motor de riesgo de no-show operaba con su señal principal en cero.
-      actualizarContadoresPaciente(clinicId!, appt.pacienteId, appt.estado, newStatus, appt.fechaHora)
+      /**
+       * GOLDEN PATH 9 — LA TRANSICIÓN LA DECIDE EL SERVIDOR.
+       *
+       * Antes esto escribía a ciegas (`updateAppointment`) y después llamaba a
+       * los contadores con `appt.estado`, que es la FOTO que tiene esta
+       * pantalla. Doble toque, reintento tras timeout aparente o la asistente y
+       * el médico a la vez: las dos llamadas veían la misma foto vieja y
+       * `noShowCount` subía DOS veces por una sola falta.
+       *
+       * `cambiarEstadoCita` lee el estado previo dentro de la transacción y
+       * escribe el contador en ella. Si la cita YA estaba en ese estado devuelve
+       * `aplicado: false`: nada de contador, nada de bitácora y nada de volver a
+       * avisar a la lista de espera.
+       */
+      const r = await cambiarEstadoCita(clinicId!, appt.id, newStatus)
+      if (!r.aplicado) {
+        // Converger no es fallar: la cita ya está donde se pidió. Se dice sin
+        // fabricar una segunda transición.
+        toast(`Ya estaba en «${newStatus}»`, 'info')
+        setMenuId(null)
+        return
+      }
       /**
        * BITÁCORA. Cancelar una cita desde este menú no dejaba ninguna entrada,
        * mientras que agendar desde el portal público sí la deja. Con dos
@@ -398,7 +416,10 @@ export default function CitasPage() {
        */
       logAudit({
         evento: 'cita_estado_cambiado', clinicId: clinicId!, patientId: appt.pacienteId,
-        meta: { citaId: appt.id, de: appt.estado, a: newStatus, fechaHora: appt.fechaHora },
+        // `de` sale del SERVIDOR, no de la foto de esta pantalla: si otra sesión
+        // ya había movido la cita, la bitácora tiene que decir de dónde vino de
+        // verdad, no de dónde creía este navegador que venía.
+        meta: { citaId: appt.id, de: r.estadoPrevio, a: newStatus, fechaHora: appt.fechaHora },
       })
       toast(`Estado actualizado: ${newStatus}`, 'success')
       setMenuId(null)
@@ -406,7 +427,7 @@ export default function CitasPage() {
       // Antes solo el modal notificaba; las cancelaciones rápidas del dropdown
       // dejaban el hueco sin ofrecer.
       const liberado = ['cancelada', 'reagendada', 'no-asistio'].includes(newStatus) &&
-        !['cancelada', 'reagendada', 'no-asistio'].includes(appt.estado)
+        !['cancelada', 'reagendada', 'no-asistio'].includes(r.estadoPrevio)
 
       /**
        * CANCELAR TAMBIÉN BORRA EL EVENTO DE GOOGLE CALENDAR.
@@ -447,8 +468,16 @@ export default function CitasPage() {
           toast('La cita se actualizó, pero NO se pudo avisar a la lista de espera del hueco libre.', 'error')
         })
       }
-    } catch {
-      toast('Error al actualizar', 'error')
+    } catch (e) {
+      // La cita pudo haberse borrado desde otra sesión mientras este menú estaba
+      // abierto. «Error al actualizar» mandaría a mirar el wifi; el motivo real
+      // se dice, porque lo que hay que hacer (recargar) es distinto.
+      toast(
+        (e as { code?: string })?.code === 'cita-inexistente'
+          ? 'Esa cita ya no existe: recarga la agenda.'
+          : 'Error al actualizar',
+        'error',
+      )
     }
   }
 

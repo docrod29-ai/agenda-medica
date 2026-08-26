@@ -14,9 +14,17 @@ on:
         required: true
         type: string
 
+# Make every real judge run correlatable without needing job logs. Recovery uses
+# this metadata to distinguish queued/in-progress/failed exact-SHA runs safely.
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Ausculta-Codex-PR-{0}-SHA-{1}', inputs.pr_number, inputs.expected_sha) || format('Ausculta-Codex-PR-{0}-{1}', github.event.issue.number, github.event.comment.body) }}
+
 concurrency:
   group: ausculta-product-codex-judge-${{ github.event.issue.number || inputs.pr_number }}
-  cancel-in-progress: true
+  # Never destroy an in-flight paid audit to start another request for the same
+  # product PR. Recovery/exact-SHA markers prevent bounded fallback duplicates;
+  # any later legitimate request queues rather than cancelling immutable work
+  # before its verdict artifact can be persisted.
+  cancel-in-progress: false
 
 jobs:
   judge:
@@ -26,7 +34,10 @@ jobs:
       github.event.comment.user.login == github.repository_owner &&
       startsWith(github.event.comment.body, '/ausculta-codex-judge '))
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # High-effort independent audits can legitimately exceed 45 minutes. Keep a
+    # bounded ceiling, but leave enough wall-clock for Codex to finish and for
+    # the immutable verdict artifact to be validated/uploaded afterward.
+    timeout-minutes: 90
     permissions:
       contents: read
       actions: read

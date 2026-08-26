@@ -121,6 +121,16 @@ export function VolverALaFuente({ destino }: { destino: DestinoReal }) {
  * de sí, con un tope: si el contenido nunca crece —la tarea se cerró y la lista
  * es más corta— se repone lo que se pueda y se deja de intentar. Un tope es lo
  * que separa «esperar» de «colgarse».
+ *
+ * ── EL MÉDICO MANDA SOBRE EL RESTAURADOR ────────────────────────────────────
+ *
+ * Mientras se esperaba ese contenido, el médico podía empezar a bajar con la
+ * rueda o con el dedo. El restaurador seguía vivo hasta ~1 s y, cuando por fin
+ * alcanzaba el alto esperado, lo devolvía a la posición antigua. En escritorio
+ * se veía como un salto; en móvil, como un rebote hacia arriba. Una restauración
+ * diferida deja de ser válida en cuanto existe intención manual de desplazarse.
+ * Por eso rueda, gesto táctil o tecla de navegación cancelan el contrato antes
+ * de que vuelva a escribir `scrollTop` o a mover el foco.
  */
 export function RestauradorDeRegreso() {
   const pathname = usePathname()
@@ -139,12 +149,33 @@ export function RestauradorDeRegreso() {
 
     yaHecho.current = testigo
     let vivo = true
+    let canceladoPorUsuario = false
     let intentos = 0
     const TOPE = 60   // ~1 s a 60 fps: suficiente para una lectura de Firestore
+    const main = document.querySelector('main')
+
+    const cancelarPorUsuario = () => {
+      if (!vivo) return
+      canceladoPorUsuario = true
+      vivo = false
+      // El médico ya tomó control de la pantalla. No dejar el contrato pendiente
+      // para que otro render o regreso posterior intente moverlo de nuevo.
+      olvidarContrato(contrato.id)
+    }
+    const teclaDesplaza = (event: KeyboardEvent) => {
+      if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) {
+        cancelarPorUsuario()
+      }
+    }
+
+    // Sólo señales inequívocas de intención de desplazamiento. Un click normal
+    // dentro de la nota NO cancela nada; rueda, touch y teclas de navegación sí.
+    main?.addEventListener('wheel', cancelarPorUsuario, { passive: true })
+    main?.addEventListener('touchstart', cancelarPorUsuario, { passive: true })
+    window.addEventListener('keydown', teclaDesplaza)
 
     const reponer = () => {
-      if (!vivo) return
-      const main = document.querySelector('main')
+      if (!vivo || canceladoPorUsuario) return
       const objetivo = contrato.origen.scrollTop
       const alcanzable = main ? main.scrollHeight - main.clientHeight : 0
 
@@ -163,7 +194,12 @@ export function RestauradorDeRegreso() {
       requestAnimationFrame(reponer)
     }
     requestAnimationFrame(reponer)
-    return () => { vivo = false }
+    return () => {
+      vivo = false
+      main?.removeEventListener('wheel', cancelarPorUsuario)
+      main?.removeEventListener('touchstart', cancelarPorUsuario)
+      window.removeEventListener('keydown', teclaDesplaza)
+    }
   }, [pathname])
 
   return null

@@ -28,6 +28,7 @@ import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
 import { auth, db } from '@/lib/firebase'
 import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
 import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
+import { claveDeIntento } from '@/lib/idempotencia'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
@@ -225,12 +226,28 @@ const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPa
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
-// Menú de IA: motores que el médico elige por nota (⚡ barato → 💎 máximo).
-const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] = [
-  { clave: 'rapida',   emoji: '⚡', nombre: 'Rápida',   creditos: MOTORES.rapida.creditos,   desc: 'Haiku · seguimiento simple' },
-  { clave: 'estandar', emoji: '⭐', nombre: 'Estándar', creditos: MOTORES.estandar.creditos, desc: 'Sonnet + voces · el día a día' },
-  { clave: 'maxima',   emoji: '💎', nombre: 'Máxima',   creditos: MOTORES.maxima.creditos,   desc: 'Opus + GPT-5 · caso complejo' },
-]
+/**
+ * NIVEL DE IA DE LA NOTA — lo que el médico elige es el CASO, no el modelo.
+ *
+ * Esta lista estaba escrita a mano con la marca del proveedor en `desc`
+ * ('Haiku · seguimiento simple', 'Opus + GPT-5 · caso complejo'). Eran dos
+ * defectos en el mismo renglón: pedía al médico decidir cómputo por marca —lo
+ * que el Board #296 prohíbe— y era un SEGUNDO catálogo al lado de `MOTORES`,
+ * libre de discrepar de los créditos que la ruta cobra de verdad.
+ *
+ * Ahora se DERIVA de `MOTORES`: la intención clínica sale de `usoRecomendado` y
+ * los créditos de la misma fuente que cobra `/api/expediente/procesar`. El
+ * proveedor real queda donde toca —procedencia y auditoría— y el contrato con el
+ * médico es «qué caso tengo enfrente».
+ */
+const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] =
+  (['rapida', 'estandar', 'maxima'] as const).map(k => ({
+    clave: k,
+    emoji: MOTORES[k].emoji,
+    nombre: MOTORES[k].nombre,
+    creditos: MOTORES[k].creditos,
+    desc: MOTORES[k].usoRecomendado,
+  }))
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
@@ -696,6 +713,35 @@ export default function ConsultaActivaPage() {
       .filter((c: Appointment) => c.fechaHora.slice(0, 10) === hoy && !['cancelada', 'reagendada'].includes(c.estado))
       .sort((a: Appointment, b: Appointment) => a.fechaHora.localeCompare(b.fechaHora))[0] ?? null
   }, [citasDelPaciente])
+
+  /**
+   * ═══ GOLDEN PATH 9 — EL NOMBRE DE ESTE ENCUENTRO ═══
+   *
+   * La nota de la consulta se creaba con `addDoc`, que inventa un id nuevo en
+   * cada llamada: la identidad nacía de la ESCRITURA, no del encuentro. Bastaba
+   * con que el primer autoguardado commitease y perdiera su respuesta —red
+   * mala, pestaña dormida— para que el reintento, con `notaIdRef` todavía en
+   * null, abriera un SEGUNDO expediente de la misma visita.
+   *
+   * La clave se congela la primera vez que se pide y no cambia mientras esta
+   * pantalla viva. Se prefiere la cita de hoy porque es la identidad canónica
+   * del encuentro —dos pestañas abiertas sobre la misma cita convergen—, y sin
+   * cita se cae a una clave de sesión, que sigue cubriendo los dos casos que
+   * importan aquí: el doble toque y el reintento tras un timeout aparente.
+   *
+   * Va en `ref` y no en estado porque se lee SÍNCRONAMENTE dentro del guardado:
+   * un segundo intento antes del re-render leería el valor viejo, que es justo
+   * el caso que esto cubre.
+   */
+  const citaDeHoyIdRef = useRef<string | null>(null)
+  useEffect(() => { citaDeHoyIdRef.current = citaDeHoy?.id ?? null }, [citaDeHoy])
+  const claveEncuentroRef = useRef<string | null>(null)
+  const claveEncuentro = useCallback(() => {
+    claveEncuentroRef.current ??= citaDeHoyIdRef.current
+      ? `cita:${citaDeHoyIdRef.current}`
+      : `sesion:${claveDeIntento()}`
+    return claveEncuentroRef.current
+  }, [])
 
   /**
    * La regla salió de aquí a `lib/finanzas/precio-consulta`. Vivía dentro de esta
@@ -1939,8 +1985,8 @@ export default function ConsultaActivaPage() {
 
       const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
       if (tipoOverride) {
-        // RE-PROYECCIÓN a otra modalidad de nota: se parte de plantilla limpia a propósito.
-        setDiagnosticos(nuevosDx)
+        // GP6: re-proyección cruza la frontera canónica; sugerir no confirma ni codifica.
+        setDiagnosticos(fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] }))
         dxDeLaIaRef.current = nuevosDx
       } else if (nuevosDx.length > 0) {
         /**
@@ -1963,7 +2009,8 @@ export default function ConsultaActivaPage() {
 
       const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
       if (tipoOverride) {
-        setMedicamentos(nuevosMed)
+        // GP6/GP5: re-proyectar no convierte extracción automática en prescripción.
+        setMedicamentos(fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] }))
         medDeLaIaRef.current = nuevosMed
       } else if (nuevosMed.length > 0) {
         /**
@@ -2135,8 +2182,10 @@ export default function ConsultaActivaPage() {
       })
     })
     const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
-    if (tipoOverride) setDiagnosticos(nuevosDx)   // re-proyección: plantilla limpia
-    else if (nuevosDx.length > 0) {
+    if (tipoOverride) {
+      setDiagnosticos(fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] }))
+      dxDeLaIaRef.current = nuevosDx
+    } else if (nuevosDx.length > 0) {
       // El mismo motor que arriba: dos sitios con la misma regla, no dos reglas.
       setDiagnosticos(prev => fusionarDiagnosticos({
         previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
@@ -2144,8 +2193,10 @@ export default function ConsultaActivaPage() {
       dxDeLaIaRef.current = nuevosDx
     }
     const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
-    if (tipoOverride) { setMedicamentos(nuevosMed); medDeLaIaRef.current = nuevosMed }
-    else if (nuevosMed.length > 0) {
+    if (tipoOverride) {
+      setMedicamentos(fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] }))
+      medDeLaIaRef.current = nuevosMed
+    } else if (nuevosMed.length > 0) {
       // Mismo criterio que el camino de primer plano: se sustituye lo de la IA,
       // se conserva lo del médico. Ver `fusionarMedicamentos`.
       setMedicamentos(prev => fusionarMedicamentos({
@@ -2616,7 +2667,12 @@ export default function ConsultaActivaPage() {
           }
           vistoEnRef.current = nota.metadata?.fechaModificacion ?? vistoEnRef.current
         } else {
-          const id = await createNota(clinicId, patientId, nota)
+          // GP9: la PRIMERA nota del encuentro se nombra desde el encuentro, no
+          // desde la escritura. Un reintento tras un timeout aparente —cuando el
+          // primer intento sí commiteó pero perdió su respuesta— vuelve aquí con
+          // `notaIdRef` todavía en null; con la clave converge al mismo borrador
+          // en vez de abrir un segundo expediente de la misma consulta.
+          const id = await createNota(clinicId, patientId, nota, { claveEncuentro: claveEncuentro() })
           notaIdRef.current = id   // marca síncrona ANTES de re-render
           setNotaId(id)
           vistoEnRef.current = nota.metadata?.fechaModificacion
@@ -2671,7 +2727,7 @@ export default function ConsultaActivaPage() {
     })
     cadenaGuardadoRef.current = tarea.catch(() => {})
     return tarea
-  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast])
+  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast, claveEncuentro])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -3528,7 +3584,10 @@ export default function ConsultaActivaPage() {
        */
       let id = notaIdRef.current
       if (!id) {
-        id = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' })
+        // Misma clave que el autoguardado: firmar sin haber autoguardado y
+        // autoguardar son DOS caminos hacia la primera nota del MISMO encuentro,
+        // así que tienen que converger al mismo documento.
+        id = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' }, { claveEncuentro: claveEncuentro() })
         notaIdRef.current = id
         setNotaId(id)
       }
@@ -3786,7 +3845,7 @@ export default function ConsultaActivaPage() {
      * arreglo del mismo dato (REG-193, REG-300, éste): cada uno cubrió un
      * camino distinto por el que se perdía.
      */
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento])
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento, claveEncuentro])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //
@@ -4739,7 +4798,7 @@ export default function ConsultaActivaPage() {
                 )}
                 {audio.estado !== 'grabando' && (
                   <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
-                    Capta a los dos · separación de voces con AssemblyAI · vocabulario médico ampliado
+                    Capta a los dos · separación de voces · vocabulario médico ampliado
                   </div>
                 )}
                 {audio.error && (
@@ -4777,7 +4836,7 @@ export default function ConsultaActivaPage() {
           {voz.transcripcion.trim() && !grabandoAhora() && (
             <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Motor de IA para esta nota</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Nivel de IA para esta nota</span>
                 {usoIA && (
                   <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
                     {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
@@ -4950,8 +5009,9 @@ export default function ConsultaActivaPage() {
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
             Se agotaron tus consultas con IA máxima del mes. Esta nota corrió con IA económica
-            (Sonnet 5 — muy buena) y sin separación de voces. <b>Nunca te quedas sin IA.</b> Para
-            recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más créditos.
+            —redacta y estructura igual, pero sin separación de voces ni segunda revisión.
+            <b>Nunca te quedas sin IA.</b> Para recuperar la IA máxima (máximo razonamiento,
+            segunda revisión y separación médico-paciente) compra más créditos.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
             <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>

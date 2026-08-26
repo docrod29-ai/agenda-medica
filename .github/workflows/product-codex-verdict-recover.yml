@@ -5,7 +5,11 @@ on:
     types: [created]
 
 concurrency:
-  group: ausculta-product-codex-recover-${{ github.event.issue.number }}
+  # Every recovery is read-only until its final best-effort PR comment. Using the
+  # board issue number here serialized unrelated Voice/Reasoning recoveries because
+  # both commands live on #296. Isolate by command/comment so independent targets
+  # can recover in parallel without cancelling one another.
+  group: ausculta-product-codex-recover-${{ github.event.comment.id }}
   cancel-in-progress: false
 
 jobs:
@@ -46,7 +50,7 @@ jobs:
           echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
           echo "sha=$expected_sha" >> "$GITHUB_OUTPUT"
 
-      - name: Recover matching immutable verdict artifact without rerunning judge
+      - name: Correlate judge runs and recover immutable verdict without rerunning judge
         id: recover
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,8 +61,32 @@ jobs:
           mkdir -p /tmp/ausculta-verdict-recovery
           found=0
           found_run=''
+          in_flight=0
+          matching_ids='none'
+          matching_states='none'
 
-          runs="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?event=issue_comment&per_page=100" --jq '.workflow_runs[] | select(.status == "completed") | .id' | head -n 300)"
+          # Current judge runs have an exact-SHA run-name. Correlate first so a
+          # recovery for one product slice does not walk hundreds of unrelated
+          # artifacts and so queued/in-progress is distinguishable from "missing".
+          all_pages="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/product-codex-judge.yml/runs?per_page=100")"
+          matching="$(jq -s --arg sha "$EXPECTED_SHA" '
+            [.[].workflow_runs[]
+             | select(((.display_title // "") | contains($sha))) ]
+            | sort_by(.created_at) | reverse
+          ' <<<"$all_pages")"
+          matching_count="$(jq 'length' <<<"$matching")"
+
+          if [[ "$matching_count" -gt 0 ]]; then
+            matching_ids="$(jq -r '[.[].id] | map(tostring) | join(",")' <<<"$matching")"
+            matching_states="$(jq -r '[.[] | ((.id|tostring) + ":" + (.status // "unknown") + ":" + (.conclusion // "none"))] | join(",")' <<<"$matching")"
+            active_count="$(jq '[.[] | select(.status != "completed")] | length' <<<"$matching")"
+            [[ "$active_count" -eq 0 ]] || in_flight=1
+            runs="$(jq -r '.[] | select(.status == "completed") | .id' <<<"$matching")"
+          else
+            # Compatibility only for verdicts created before exact-SHA run-name
+            # correlation existed. Never rerun a judge here.
+            runs="$(jq -s -r '[.[].workflow_runs[] | select(.status == "completed")][0:300][] | .id' <<<"$all_pages")"
+          fi
 
           while IFS= read -r run_id; do
             [[ -n "$run_id" ]] || continue
@@ -89,6 +117,9 @@ jobs:
 
           echo "found=$found" >> "$GITHUB_OUTPUT"
           echo "run_id=$found_run" >> "$GITHUB_OUTPUT"
+          echo "in_flight=$in_flight" >> "$GITHUB_OUTPUT"
+          echo "matching_ids=$matching_ids" >> "$GITHUB_OUTPUT"
+          echo "matching_states=$matching_states" >> "$GITHUB_OUTPUT"
 
           if [[ "$found" == "1" ]]; then
             verdict="$(jq -r '.verdict' recovered-product-codex-verdict.json)"
@@ -114,14 +145,30 @@ jobs:
           printf -v body 'AUSCULTA_CODEX_VERDICT_RECOVERED exact_sha=%s source_run_id=%s gate=%s\n```json\n%s\n```' "$EXPECTED_SHA" "$SOURCE_RUN_ID" "$GATE" "$verdict"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
 
-      - name: Report no recoverable immutable verdict
-        if: steps.recover.outputs.found != '1'
+      - name: Report exact-SHA judge still running
+        if: steps.recover.outputs.found != '1' && steps.recover.outputs.in_flight == '1'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.target.outputs.pr_number }}
           EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          MATCHING_IDS: ${{ steps.recover.outputs.matching_ids }}
+          MATCHING_STATES: ${{ steps.recover.outputs.matching_states }}
         shell: bash
         run: |
           set -euo pipefail
-          printf -v body 'AUSCULTA_CODEX_VERDICT_RECOVERY_NONE exact_sha=%s — no validated, non-expired immutable verdict artifact was found in completed Product Codex Judge runs. Slice gate remains unresolved; no judge was rerun and no gate was weakened.' "$EXPECTED_SHA"
+          printf -v body 'AUSCULTA_CODEX_VERDICT_RECOVERY_IN_FLIGHT exact_sha=%s matching_run_ids=%s states=%s — exact-SHA judge execution is still queued/in progress. No judge was rerun, no audit budget was spent, and the gate remains unchanged.' "$EXPECTED_SHA" "$MATCHING_IDS" "$MATCHING_STATES"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
+
+      - name: Report no recoverable immutable verdict
+        if: steps.recover.outputs.found != '1' && steps.recover.outputs.in_flight != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          MATCHING_IDS: ${{ steps.recover.outputs.matching_ids }}
+          MATCHING_STATES: ${{ steps.recover.outputs.matching_states }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf -v body 'AUSCULTA_CODEX_VERDICT_RECOVERY_NONE exact_sha=%s matching_run_ids=%s states=%s — no validated, non-expired immutable verdict artifact was found. Slice gate remains unresolved; no judge was rerun and no gate was weakened.' "$EXPECTED_SHA" "$MATCHING_IDS" "$MATCHING_STATES"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
