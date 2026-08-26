@@ -119,7 +119,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302],
+    /**
+     * 323 entra aquí, y no en `no_conectado`, aunque cuatro de sus cinco
+     * hallazgos tengan un helper que existía y no se consultaba. La razón es la
+     * consecuencia: los cinco terminan en trabajo del médico que desaparece —el
+     * audio que no se ofrece, el que la purga se lleva, la corrección que pisa
+     * el ASR, la nota que no se guarda nunca, el tramo perdido con el audio ya
+     * borrado—. Esta familia se define por lo que le pasa al médico, no por
+     * dónde estaba el defecto.
+     */
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323],
   },
   {
     clave: 'tarde',

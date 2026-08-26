@@ -7987,3 +7987,81 @@ cubre las dos superficies que la matriz señaló, no «todas las pantallas tiene
 h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
+
+---
+
+## REG-323 — lo recuperable se ofrece, y no se destruye (H-03…H-07)
+
+**Área.** Camino del AUDIO de la consulta: dónde se guarda, quién lo enseña,
+quién lo borra. Encontrado por el auditor de Consultorio recorriendo ese camino
+de punta a punta y preguntando, en cada punto, «¿y si aquí hay material y nadie
+lo sabe?».
+
+**Qué fallaba.** Cinco defectos, y los cinco de la misma familia.
+
+1. **H-03 (P0) · el cartel invisible.** «Hay audio guardado de una sesión
+   anterior. ¿Recuperar y transcribir?» vivía DENTRO de `!esElPrincipio && (…)`.
+   `esElPrincipio` significa «grabador quieto y sin transcripción», que tras
+   recargar la pantalla es cierto **aunque haya una consulta entera esperando en
+   IndexedDB**. El único camino de vuelta al audio no se pintaba justo cuando era
+   el único camino.
+2. **H-04 (P1) · la purga se llevaba lo que nadie había declarado.** Al cerrar
+   sesión, `/consulta` declaraba audio sin transcribir sólo en
+   `grabando | pausado | subiendo`. Faltaban `error` —el estado en el que el
+   propio hook le promete al médico que «el audio quedó GUARDADO en este
+   dispositivo»— y el huérfano de una sesión anterior, que es exactamente el
+   material que H-03 tampoco enseñaba. `salirSeguro` borraba
+   `nexusmed-recovery` entera. Y el sondeo de IndexedDB llevaba
+   `catch(() => {})`: un fallo de lectura se concluía como «no hay nada».
+3. **H-05 (P1) · el ASR tardío pisaba al médico.** Al llegar la transcripción
+   con las voces separadas se hacía `setTranscripcion(…)` a secas, ANTES de
+   consultar la salvaguarda. La salvaguarda existía —`edicionManualRef`— pero
+   sólo decidía si se re-estructuraba la NOTA; el editor de dictado se pisaba
+   igual. Y ese editor es donde el médico corrige una dosis mal oída. Además,
+   la bandera sólo la levantaban las secciones narrativas: el propio editor de
+   dictado no la tocaba, así que en el caso real nunca se activaba.
+4. **H-06 (P1) · error de red leído como ausencia.** `getNota(…).catch(() => null)`
+   daba el MISMO `null` para «no existe» y para «no pude leer». En la ruta que
+   adopta el `notaId` de un respaldo, un fallo de red hacía adoptar el id de una
+   nota que podía estar **firmada**: la pantalla queda escribiendo en un
+   documento inmutable que el servidor rechaza en cada autoguardado, para
+   siempre, mientras el médico dicta una consulta entera creyendo que se guarda.
+5. **H-07 (P1) · fallo parcial fingiendo éxito.** La rama
+   `modoDeHabla === 'dictado'` de `detener()` se quedaba con `.texto` y tiraba
+   `lotesFallidos`. Una transcripción con tramos perdidos pasaba el
+   `texto.trim()`, se daba por buena, y borraba los trozos de IndexedDB.
+
+**Causa raíz.** Una sola, dicha de cinco maneras: **se decidió sobre el material
+grabado mirando cómo se ve la pantalla, en vez de mirando si el material
+existe.** El cartel colgaba del aspecto del editor; la purga, de la grabación en
+curso y no del disco; el reemplazo, del efecto caro (re-procesar con IA) y no
+del dato; la adopción del id, de un `null` que significaba dos cosas.
+
+H-07 es además la forma de **REG-300**: una decisión escrita dos veces y
+arreglada en una sola copia. El camino largo de `detener()` ya sabía que un
+texto hecho de advertencias no es un texto y que un tramo perdido prohíbe
+borrar el audio; la rama de dictado, que sale por arriba, nunca lo aprendió.
+
+**Control permanente.** Las decisiones se escriben UNA vez, puras y probables
+sin navegador, y las consumen las rutas productivas:
+`src/lib/expediente/recuperacion-consulta.ts` (`debeOfrecerRecuperacion`,
+`hayAudioQueNoSePuedePurgar`, `puedeReemplazarTranscripcion`, `leerNotaPrevia` +
+`decidirAdopcionDeNotaPrevia` con sus cuatro estados distintos) y, en el hook,
+`soloSonAdvertencias` / `sePuedeBorrarElAudio`, que ahora usan **las dos** ramas
+de `detener()`. El sesgo de todas va hacia conservar: conservar de más deja en
+el disco un archivo que el médico descarta de un clic; conservar de menos borra
+la única copia de lo que dijo el paciente.
+`src/__tests__/lo-recuperable-se-ofrece-y-no-se-destruye.test.ts` (44 casos,
+probado al revés ×9 — los cinco defectos reinsertados en la función pura y
+cuatro en el cableado de la pantalla, para que un helper correcto que nadie
+consume no pueda pasar).
+
+**Qué NO cubre, declarado.** No ejecuta IndexedDB, ni `MediaRecorder`, ni React
+—no existen en Node—, así que lo que se prueba con entradas y salidas son las
+funciones puras, y que la pantalla las consuma se comprueba sobre el texto
+fuente. La comprobación en navegador sigue pendiente (`NAV-NAVEGADOR-001`). No
+prueba que el audio conservado se transcriba bien: prueba que sobreviva para
+poder intentarlo. No cubre el texto que entra en vivo mientras se graba —ahí el
+reemplazo es el comportamiento pedido—, ni el caso en que el médico pulsa
+«Dejar mi versión»: su transcripción se respeta, y el material diarizado sigue
+disponible en `audio.utterances`, pero el cartel no se vuelve a ofrecer.
