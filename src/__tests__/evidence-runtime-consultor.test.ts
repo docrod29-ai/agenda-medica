@@ -354,9 +354,48 @@ describe('el runtime del médico LLEGA a la evidencia — sin subir el techo', (
   })
 
   it('el techo de módulos fuera del camino NO se subió para conseguirlo', () => {
-    // Subirlo sería «arreglar» el instrumento en vez del cable. Si alguien lo
-    // toca, este caso se pone rojo antes de que nadie lo dé por bueno.
-    expect(readFileSync(CAMINO, 'utf8')).toMatch(/const FUERA_DEL_CAMINO_HOY = 29\b/)
+    /**
+     * ── POR QUÉ ESTE CASO CAMBIÓ EN LA RECONCILIACIÓN DEL BLOQUE 4 ──────────
+     *
+     * Nació con el literal 29 —la línea base V15— y decía lo correcto: «si
+     * Evidence necesita subir el techo para PARECER cableado, ponte rojo».
+     *
+     * Al reconciliar Evidence sobre el main de Consultorio el techo ya valía
+     * 32. Consultorio lo subió tres veces, cada una con su isla declarada y su
+     * motivo —Clinical Truth, Voice Engine, Clinical Reasoning—, y ninguna es
+     * de Evidence. El literal 29 quedó obsoleto por trabajo AJENO: este caso
+     * ya salía rojo en la propia rama base, sin defecto de Evidence de por
+     * medio. Se comprobó corriéndolo contra 8e399da8 antes de tocar nada.
+     *
+     * Un literal que envejece con el trabajo de otros no vigila: obliga a
+     * tocarlo en cada slice y, a la tercera, nadie mira ya qué acepta. Así que
+     * aquí se prueba lo que de verdad se quiere —**Evidence no compró su
+     * alcance**— de dos formas que no envejecen solas:
+     *
+     *   1. el techo sigue clavado al valor heredado de la base (32): si
+     *      alguien lo mueve, esto se pone rojo y hay que justificarlo;
+     *   2. y NINGÚN módulo de Evidence aparece entre las islas declaradas.
+     *      Ésta es la que importa: subir el techo no es la única manera de
+     *      hacer trampa — declararse isla es la otra, y es más barata.
+     *
+     * QUÉ NO CUBRE: que el módulo se USE de verdad. Eso lo prueban los casos
+     * de arriba, que llaman a la ruta y al envoltorio y miran lo que devuelven.
+     */
+    const camino = readFileSync(CAMINO, 'utf8')
+
+    expect(camino).toMatch(/const FUERA_DEL_CAMINO_HOY = 32\b/)
+
+    const islas = camino.slice(camino.indexOf('ISLAS_DE_DOS'), camino.indexOf('describe('))
+    const compradas = [...islas.matchAll(/'([^']+\.tsx?)'\s*:/g)]
+      .map(m => m[1])
+      .filter(f =>
+        f.startsWith('src/lib/evidence-integrations/') ||
+        f === ENVOLTORIO ||
+        f === 'src/lib/evidencia/desde-pubmed.ts')
+    expect(
+      compradas,
+      `Evidence no puede comprar su alcance declarándose isla: ${compradas.join(', ')}`,
+    ).toEqual([])
   })
 
   it('no son imports de adorno: la ruta LLAMA, y el envoltorio USA la semántica', () => {
