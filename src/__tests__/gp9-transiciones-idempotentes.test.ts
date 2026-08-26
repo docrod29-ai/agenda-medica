@@ -37,10 +37,13 @@ describe('GP9 — transiciones idempotentes', () => {
     expect(citas).toContain('onConsulta={pid => router.push(`/consulta/${pid}`)}')
   })
 
-  it('el primer borrador de consulta se serializa y publica su id antes de otro guardado', () => {
+  it('el primer borrador de consulta se serializa, conserva la clave del encuentro y publica su id antes de otro guardado', () => {
     expect(consulta).toContain('const tarea = cadenaGuardadoRef.current.then(async () => {')
     expect(consulta).toContain('const idActual = notaIdRef.current')
-    expect(consulta).toContain('const id = await createNota(clinicId, patientId, nota)')
+    expect(consulta).toContain('const claveEncuentroRef = useRef<string | null>(null)')
+    expect(consulta).toContain('cita:${citaDeHoyIdRef.current}')
+    expect(consulta).toContain('sesion:${claveDeIntento()}')
+    expect(consulta).toContain('const id = await createNota(clinicId, patientId, nota, { claveEncuentro: claveEncuentro() })')
     expect(consulta).toContain('notaIdRef.current = id   // marca síncrona ANTES de re-render')
     expect(consulta).toContain('cadenaGuardadoRef.current = tarea.catch(() => {})')
   })
