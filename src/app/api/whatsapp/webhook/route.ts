@@ -45,6 +45,7 @@ import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, sell
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { candidatosDeTelefono } from '@/lib/whatsapp/telefono-candidatos'
 import { urgenciaDelMensaje, mensajeDeUrgencia, avisoDeUrgenciaAlConsultorio } from '@/lib/paciente/urgencia'
+import { citaYaAgendada, type IntentoDeCitaDelBot, type CitaEscrita } from '@/lib/whatsapp/cita-ya-agendada'
 
 /**
  * Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot — y lo que
@@ -1020,18 +1021,48 @@ export async function handleMessage(from: string, body: string, clinicId: string
        * público ya revalidaban; el bot no, así que era el único camino por el
        * que una cita podía entrar en la hora de comida.
        */
+      /**
+       * LA IDENTIDAD DE LA INTENCIÓN, ANTES QUE LA REVALIDACIÓN.
+       *
+       * Un mismo «SÍ» llega dos veces sin que nadie haga nada raro (Meta
+       * reentrega, `clearSession` se traga su error, el proveedor se cae y el
+       * paciente reescribe). Y la revalidación de abajo veía LA CITA QUE ACABA DE
+       * CREAR ESTE MISMO PACIENTE, la contaba como ocupación y le contestaba «ese
+       * horario ya no está disponible, agende de nuevo». El paciente agendaba, y
+       * el consultorio se quedaba con dos citas suyas.
+       *
+       * Es la regla de GP9 —misma solicitud activa, mismo recurso— aplicada a la
+       * otra vía que crea citas. Ver `lib/whatsapp/cita-ya-agendada.ts`.
+       */
+      const intento: IntentoDeCitaDelBot = {
+        pacienteTelefono: from,
+        fechaHora,
+        tipo: String(datos.tipo ?? ''),
+        duracion,
+        medicoId: doctorId || '',
+      }
+      let nuevoFolio = ''
+      let esReintento = false
+
       {
         const apptSnapRV = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
           .where('fechaHora', '>=', datos.fecha + ' 00:00')
           .where('fechaHora', '<=', datos.fecha + ' 23:59')
           .get()
         const apptsRV = apptSnapRV.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
-        const bloquesRV = await cargarBloques(clinicId, datos.fecha, doctor?.id, config!)
-        const vigentes = getAvailableSlotsForDate(datos.fecha, duracion, config!, apptsRV, bloquesRV, doctor?.id)
-        if (!vigentes.includes(datos.hora)) {
-          await send(from, `Ese horario ya no está disponible. Por favor elija otro escribiendo *agendar* de nuevo. 🙏`)
-          await saveSession(clinicId, from, { estado: 'menu', datos: {} })
-          return
+        const yaEsta = citaYaAgendada(intento, apptsRV as unknown as CitaEscrita[])
+        if (yaEsta) {
+          // Ya está agendada: se le vuelve a confirmar LA MISMA, con su folio.
+          nuevoFolio = yaEsta
+          esReintento = true
+        } else {
+          const bloquesRV = await cargarBloques(clinicId, datos.fecha, doctor?.id, config!)
+          const vigentes = getAvailableSlotsForDate(datos.fecha, duracion, config!, apptsRV, bloquesRV, doctor?.id)
+          if (!vigentes.includes(datos.hora)) {
+            await send(from, `Ese horario ya no está disponible. Por favor elija otro escribiendo *agendar* de nuevo. 🙏`)
+            await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+            return
+          }
         }
       }
 
@@ -1041,23 +1072,38 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const [bh, bm] = datos.hora.split(':').map(Number)
       const bStart = bh * 60 + bm, bEnd = bStart + duracion
       let huboConflicto = false
-      let nuevoFolio = ''
       // Centinela por médico+día (igual que agenda interna y portal): serializa
       // reservas simultáneas del mismo día para cerrar la carrera de inserción fantasma.
       const diaRef = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(datos.fecha)  // un centinela por DÍA
-      try {
+      if (!esReintento) try {
         await adminDb.runTransaction(async (tx) => {
           await tx.get(diaRef)  // read: fija la versión del día
           const snap = await tx.get(apptsCol.where('fechaHora', '>=', `${datos.fecha} 00:00`).where('fechaHora', '<=', `${datos.fecha} 23:59`))
           let conflicto = false
+          /**
+           * La misma regla que arriba, ahora DENTRO de la transacción: cierra la
+           * carrera de dos entregas simultáneas del mismo «SÍ». Sin esto el
+           * perdedor de la carrera reejecuta, ve la cita del ganador —que es la
+           * SUYA— y le contesta al paciente «acaba de ocuparse» mientras el otro
+           * mensaje le dice que quedó registrada. Dos respuestas que se
+           * desmienten, por la misma cita.
+           */
+          let reintentoEnTx = ''
           snap.forEach(d => {
             const a = d.data()
             if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+            if (citaYaAgendada(intento, [{ id: d.id, ...a } as CitaEscrita])) { reintentoEnTx = d.id; return }
             if (doctorId && a.medicoId && a.medicoId !== doctorId) return
             const [ah, am] = (a.fechaHora?.slice(11, 16) || '00:00').split(':').map(Number)
             const aS = ah * 60 + am, aE = aS + (a.duracion ?? 30)
             if (bStart < aE && bEnd > aS) conflicto = true
           })
+          if (reintentoEnTx) {
+            // Su propia cita. No se escribe nada y se responde con el mismo folio.
+            nuevoFolio = reintentoEnTx
+            esReintento = true
+            return
+          }
           if (conflicto) throw new Error('CONFLICTO')
           tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
           const nref = apptsCol.doc()
@@ -1145,8 +1191,10 @@ export async function handleMessage(from: string, body: string, clinicId: string
         `¡Hasta pronto! 😊`,
       ].filter(l => l !== '').join('\n'))
 
-      // Notify admin/secretary
-      if (adminPhone && adminPhone !== from) {
+      // Notify admin/secretary. En un REINTENTO no: la cita ya se avisó la
+      // primera vez, y un segundo «🔔 Nueva cita» hace que el consultorio crea
+      // que tiene dos. Retry no duplica citas NI avisos.
+      if (!esReintento && adminPhone && adminPhone !== from) {
         await send(adminPhone, [
           `🔔 *Nueva cita por WhatsApp*`,
           ``,

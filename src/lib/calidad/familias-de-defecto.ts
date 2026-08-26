@@ -136,7 +136,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Falla algo y el sistema culpa a otra cosa. Cuesta doble: la avería y las ' +
       'horas persiguiendo la avería equivocada.',
-    regs: [155, 156, 251, 317],
+    /**
+     * 325: nada había fallado —la cita estaba creada— y el bot le decía al
+     * paciente que su horario ya no estaba disponible. Aquí el mensaje no sólo
+     * costó horas: costó una segunda cita, porque el paciente le hizo caso.
+     */
+    regs: [155, 156, 251, 317, 325],
   },
   {
     clave: 'decision_del_dueno',

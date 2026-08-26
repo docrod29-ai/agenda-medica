@@ -22,11 +22,12 @@
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M src/__tests__/_harness/firestore-admin-en-memoria.ts",
+    " M src/__tests__/la-urgencia-gana-en-whatsapp.test.ts",
     " M src/app/api/whatsapp/webhook/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-urgencia-gana-en-whatsapp.test.ts",
-    "?? src/lib/paciente/urgencia.ts"
+    "?? src/__tests__/el-reintento-del-bot-no-pierde-la-cita.test.ts",
+    "?? src/lib/whatsapp/cita-ya-agendada.ts"
   ],
   "actualizado": "2026-08-26",
   "resumenDesdeElUltimoEstado": {
@@ -62,10 +63,10 @@
   ],
   "ramaActual": "product/patient-experience-whatsapp-2026-08-26",
   "derivado": {
-    "regsEnElLedger": 172,
-    "ultimaREG": "REG-324",
-    "archivosDePrueba": 740,
-    "casosDePrueba": 8923,
+    "regsEnElLedger": 173,
+    "ultimaREG": "REG-325",
+    "archivosDePrueba": 741,
+    "casosDePrueba": 8933,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

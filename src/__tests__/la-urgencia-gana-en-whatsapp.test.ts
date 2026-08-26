@@ -71,7 +71,7 @@ vi.mock('@/lib/whatsapp-send', () => ({
 
 /** El calendario del médico no es el sujeto de esta prueba. */
 vi.mock('@/lib/calendario/ocupado-servidor', () => ({
-  ocupadoEnGoogle: async () => [],
+  ocupadoEnGoogle: async () => ({ bloqueos: [], consultado: false, fallo: false }),
 }))
 
 const HORARIO_COMPLETO = {

@@ -118,6 +118,15 @@ function pasa(datos: Datos, f: Filtro): boolean {
   if (f.op === '==') return v === f.valor
   if (f.op === '>=') return String(v) >= String(f.valor)
   if (f.op === '<=') return String(v) <= String(f.valor)
+  /**
+   * `in` con la MISMA semantica que Firestore: pertenencia por igualdad
+   * estricta, no coercion. Hace falta porque la busqueda de expediente por
+   * telefono manda varios formatos a la vez (10 digitos, con lada, con el 1 de
+   * movil), y sin este operador esa consulta lanzaba, el llamador se lo tragaba
+   * en su try/catch y la cita salia SIN paciente — o sea, la prueba pasaba por
+   * el camino de error y no por el que corre en produccion.
+   */
+  if (f.op === 'in') return Array.isArray(f.valor) && f.valor.some(x => x === v)
   throw new Error(`Operador no soportado por la tienda en memoria: ${f.op}`)
 }
 

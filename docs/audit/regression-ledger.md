@@ -8095,3 +8095,63 @@ no sea el español. No hay detección de negación, y es deliberado: la frase m�
 importante de la lista —«no puedo respirar»— empieza por «no», y una regla de
 negación ingenua callaría justo ésa. No cubre voz, ni el portal web, ni el camino
 de plantilla HSM.
+
+## REG-325 — al paciente que YA tenía cita el bot le decía que su horario ya no existe, y él agendaba otra
+
+**Qué fallaba.** El bot confirma la cita y, si el mismo «SÍ» vuelve a llegar,
+revalida el hueco antes de escribir. Esa revalidación veía **la cita que acababa
+de crear el propio paciente**, la contaba como ocupación y le contestaba:
+
+> «Ese horario ya no está disponible. Por favor elija otro escribiendo *agendar*
+> de nuevo. 🙏»
+
+Y el reintento que llegaba hasta la transacción recibía lo mismo con otras
+palabras: «Lo sentimos, ese horario acaba de ocuparse».
+
+El paciente **tiene** cita y el bot le dice que no. Y hace caso: se agenda a otra
+hora. El consultorio se queda con **dos** citas suyas y él se presenta a una. El
+duplicado no lo fabrica el reintento: lo fabrica el mensaje equivocado. Con dos
+entregas simultáneas del mismo «SÍ» el resultado era peor todavía: dos respuestas
+al mismo paciente que se desmienten entre sí, una diciendo que quedó registrada y
+la otra que el horario se ocupó.
+
+**Cómo se descubrió.** Recorriendo las fronteras de escritura del Bloque 7 con la
+pregunta de GP9: «¿qué pasa si esto llega dos veces?». Reproducido conduciendo el
+camino real del bot (agendar → aviso → nombre → tipo → día → hora → sí) contra una
+tienda con la semántica transaccional de Firestore, y **contando** los documentos.
+
+**Por qué se repite un «SÍ».** Ninguno es un error del usuario:
+Meta reentrega el webhook cuando la respuesta tarda y el dedup es fail-open a
+propósito; `clearSession` termina en `.catch(() => {})`; y la confirmación se
+manda con un `send` que devuelve `false` sin lanzar cuando el proveedor está
+caído, así que el paciente no ve nada y vuelve a escribir.
+
+**Causa raíz.** La identidad de la cita nacía de la ESCRITURA (`apptsCol.doc()`),
+no de la INTENCIÓN. `POST /api/appointments` ya lo había aprendido en GP9 —misma
+solicitud activa, mismo recurso— y el bot es la OTRA vía que crea citas: la
+lección nunca llegó hasta aquí.
+
+**Control permanente.** `src/lib/whatsapp/cita-ya-agendada.ts` (PURO): la misma
+regla de GP9 medida sobre los cinco campos que definen la cita del bot —quién,
+cuándo, tipo, duración y médico— más `origen`/`creadoPor`. Se consulta en los DOS
+sitios: antes de la revalidación (reintento secuencial) y dentro de la
+transacción (dos entregas a la vez). Cuando reconoce el intento no escribe nada:
+devuelve el mismo folio y le vuelve a confirmar la MISMA cita. El aviso al
+consultorio no se repite —un segundo «🔔 Nueva cita» le haría creer que tiene
+dos—.
+
+La regla es estricta a propósito: reconocer un reintento de más sería tragarse en
+silencio una cita que el paciente sí quería. Una cita liberada (cancelada,
+reagendada, no-asistió) nunca es un reintento.
+
+`src/__tests__/el-reintento-del-bot-no-pierde-la-cita.test.ts` (10 casos; sin el
+arreglo caen 3, incluido el que cuenta dos citas). Incluye los negativos: un hueco
+realmente ocupado por otro paciente sigue dando conflicto, una cita cancelada no
+se resucita, y el consultorio vecino con una cita idéntica no se confunde con
+este reintento.
+
+**Qué NO cubre, declarado.** No cubre la vía de LISTA DE ESPERA, que tiene su
+propia transacción y el mismo patrón sin reparar: queda como trabajo con nombre,
+no dado por bueno. No cubre las reglas de Firestore (van contra el emulador) ni
+el dedup por `wamid`, que tiene su propia suite — aquí se prueba justamente el
+caso en que el dedup NO salvó, que es para el que existe la idempotencia.
