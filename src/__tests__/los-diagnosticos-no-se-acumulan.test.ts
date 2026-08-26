@@ -142,10 +142,16 @@ describe('los diagnósticos no se acumulan', () => {
     const page = readFileSync(
       join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
 
-    it('los DOS sitios de fusión usan el motor', () => {
-      // Eran dos copias de la misma lógica: dos sitios con la misma regla, no
-      // dos reglas. Si uno se queda atrás, el defecto vuelve por esa puerta.
-      expect(page.split('fusionarDiagnosticos({').length - 1).toBe(2)
+    it('las CUATRO fronteras de proyección usan el motor canónico', () => {
+      /**
+       * Originalmente eran dos: los dos caminos de actualización incremental.
+       * GP6 cerró además los dos caminos `tipoOverride` de re-proyección que
+       * todavía sustituían la lista cruda. El trinquete debe congelar la realidad
+       * segura actual: cuatro entradas, todas pasando por `fusionarDiagnosticos`.
+       * Volver a 2 significaría reabrir exactamente ese bypass.
+       */
+      expect(page.split('fusionarDiagnosticos({').length - 1).toBe(4)
+      expect((page.match(/fusionarDiagnosticos\(\{ previos: \[\], nuevos: nuevosDx, deLaIaAnterior: \[\] \}\)/g) ?? []).length).toBe(2)
     })
 
     it('la concatenación anterior ya no existe en ninguno', () => {
