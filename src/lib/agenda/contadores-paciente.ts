@@ -1,5 +1,3 @@
-import { doc, updateDoc, increment } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import type { AppointmentStatus } from '@/types'
 
 /**
@@ -56,24 +54,29 @@ export function cambiosPorTransicion(
   return cambios
 }
 
-/** Aplica los contadores al paciente. Nunca lanza. */
-export async function actualizarContadoresPaciente(
-  clinicId: string,
-  pacienteId: string,
-  estadoPrevio: AppointmentStatus,
-  estadoNuevo: AppointmentStatus,
-  fechaHora: string,
-): Promise<void> {
-  if (!clinicId || !pacienteId) return   // cita sin expediente ligado
-  const cambios = cambiosPorTransicion(estadoPrevio, estadoNuevo, fechaHora)
-  if (!cambios.contador && !cambios.ultimaCita) return
-  try {
-    await updateDoc(doc(db, 'clinics', clinicId, 'patients', pacienteId), {
-      ...(cambios.contador ? { [cambios.contador]: increment(1) } : {}),
-      ...(cambios.ultimaCita ? { ultimaCita: cambios.ultimaCita } : {}),
-      updatedAt: new Date().toISOString(),
-    })
-  } catch (e) {
-    console.error('[contadores] no se pudo actualizar el paciente:', e)
-  }
-}
+/**
+ * AQUI YA NO SE ESCRIBE. Y ES EL ARREGLO, NO UNA MUDANZA.
+ *
+ * Vivia aqui `actualizarContadoresPaciente(clinicId, pacienteId, estadoPrevio,
+ * estadoNuevo, fechaHora)`: recibia el estado previo COMO PARAMETRO -o sea, de
+ * quien llamaba- y hacia su propio `updateDoc`, en una escritura aparte de la
+ * del estado de la cita.
+ *
+ * Las dos mitades de esa firma eran el defecto:
+ *
+ *   1. El unico candado contra contar dos veces era `estadoPrevio ===
+ *      estadoNuevo`, y los dos valores venian del mismo cliente. Un doble toque
+ *      -o un reintento tras un timeout aparente- pasaba la MISMA foto vieja dos
+ *      veces, asi que las dos llamadas concluian que habia transicion y
+ *      `noShowCount` subia dos veces por una sola falta.
+ *   2. Al ser una escritura separada de la del estado, ni siquiera dos
+ *      peticiones que si vieran estados distintos quedaban serializadas.
+ *
+ * Por eso el incremento se movio DENTRO de la transaccion que cambia el estado
+ * (`lib/agenda/transicion-cita.ts`), que lee el estado previo del documento en
+ * el servidor. Lo que queda aqui es la DECISION -pura, probada, sin Firestore-,
+ * que es lo que siempre debio ser este modulo.
+ *
+ * No se conserva la funcion vieja "por si acaso": un segundo camino para mover
+ * el mismo contador es garantizar que alguien lo vuelva a mover mal.
+ */

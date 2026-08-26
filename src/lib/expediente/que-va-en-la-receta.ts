@@ -43,14 +43,20 @@
  * cambia es que la lista **se sustituye** en vez de acumularse, y que al papel
  * sólo baja lo de hoy.
  *
- * ── LA REGLA DE LA DUDA, Y HACIA DÓNDE SE INCLINA ───────────────────────────
+ * ── LA REGLA DE LA DUDA, SEGÚN QUIÉN CREÓ EL RENGLÓN ────────────────────────
  *
- * Cuando el modelo no etiqueta, el fármaco **se queda en la receta**.
+ * Un renglón que el médico agregó directamente en la lista sigue siendo una
+ * acción explícita del médico, incluso en notas antiguas que todavía no traen
+ * `procedenciaClinica`. No se puede borrar del papel retroactivamente.
  *
- * No es descuido: es la dirección del error caro. Dejar de más un renglón que
- * el médico borra de un toque es una molestia; quitar de la receta un
- * antibiótico que sí se prescribió es un paciente que no se lo toma. Ante la
- * duda, se imprime y se marca — nunca se calla.
+ * En cambio, un renglón que llega de la IA SIN declarar si es antecedente o
+ * prescripción **no puede adquirir intención terapéutica por omisión**. En la
+ * frontera `fusionarMedicamentos` se conserva para revisión y para los motores
+ * de seguridad, pero se marca `estado:'borrador'`: el tipo ya define ese estado
+ * precisamente como «se está capturando; todavía no es una prescripción».
+ *
+ * Así se falla cerrado donde sí sabemos que el origen es automático, sin
+ * inventar que «ya lo toma» ni romper las prescripciones manuales históricas.
  *
  * Módulo PURO, sin dependencias de red ni de framework.
  */
@@ -72,11 +78,26 @@ export function deDondeSale(m: Pick<Medicamento, 'procedenciaClinica'>): DeDonde
   return p === 'ya_lo_toma' || p === 'se_prescribe_hoy' ? p : 'no_se_sabe'
 }
 
-/** Lo que baja al papel: lo de hoy, y lo que no se sabe. Nunca lo previo. */
-export function loQueSeReceta<T extends Pick<Medicamento, 'procedenciaClinica'>>(
+/**
+ * Lo que baja al papel.
+ *
+ * - `ya_lo_toma` nunca es una indicación de hoy.
+ * - `estado:'borrador'` tampoco: el propio modelo de orden lo define como una
+ *   captura todavía no convertida en prescripción.
+ * - estados terminales no se vuelven a prescribir por aparecer en la nota.
+ * - un renglón manual legado sin etiqueta ni estado se conserva por
+ *   compatibilidad: fue creado por una acción directa del médico, no por la IA.
+ */
+export function loQueSeReceta<T extends Pick<Medicamento, 'procedenciaClinica' | 'estado'>>(
   meds: readonly T[],
 ): T[] {
-  return (meds ?? []).filter(m => deDondeSale(m) !== 'ya_lo_toma')
+  return (meds ?? []).filter(m =>
+    deDondeSale(m) !== 'ya_lo_toma' &&
+    m.estado !== 'borrador' &&
+    m.estado !== 'suspendida' &&
+    m.estado !== 'terminada' &&
+    m.estado !== 'cancelada'
+  )
 }
 
 /** Lo que el paciente ya tomaba. Va en la nota; no va en la receta. */
@@ -116,11 +137,27 @@ export interface FusionDeMedicamentos {
 }
 
 /**
+ * Un medicamento creado por IA sin intención explícita queda visible y
+ * revisable, pero NO se convierte en orden por omisión.
+ *
+ * `borrador` ya es el estado canónico para «se está capturando y todavía no es
+ * prescripción». No inventamos `ya_lo_toma`, porque la IA tampoco demostró eso.
+ * Si el modelo sí declaró `se_prescribe_hoy` o `ya_lo_toma`, se respeta.
+ */
+function sinIntencionAutomaticaNoEsReceta(m: Medicamento): Medicamento {
+  if (m.procedenciaClinica) return m
+  if (m.estado === 'suspendida' || m.estado === 'terminada' || m.estado === 'cancelada') return m
+  return m.estado === 'borrador' ? m : { ...m, estado: 'borrador' }
+}
+
+/**
  * Sustituye lo que puso la IA, conserva lo del médico, y no repite.
  *
  * Si no se sabe qué puso la IA antes (`deLaIaAnterior` ausente), **no se quita
  * nada**: el error caro es borrarle al médico un fármaco que él escribió, no
- * dejarle uno de más.
+ * dejarle uno de más en la NOTA. La diferencia importante es que un renglón
+ * automático sin intención explícita queda `borrador`, así que no cruza al
+ * PAPEL hasta que exista intención terapéutica.
  *
  * Cuando el mismo fármaco viene por los dos lados, **gana el del médico** —
  * salvo en los datos que él dejó vacíos, donde se completa con lo de la IA. Si
@@ -129,7 +166,9 @@ export interface FusionDeMedicamentos {
  */
 export function fusionarMedicamentos(p: FusionDeMedicamentos): Medicamento[] {
   const previos = p.previos ?? []
-  const nuevos = (p.nuevos ?? []).filter(m => m?.nombre?.trim())
+  const nuevos = (p.nuevos ?? [])
+    .filter(m => m?.nombre?.trim())
+    .map(sinIntencionAutomaticaNoEsReceta)
   const anteriores = p.deLaIaAnterior ?? []
 
   // 1 · Lo del médico: todo lo previo que la IA no había puesto.
@@ -159,13 +198,17 @@ function completar(sePuedeQuedar: Medicamento, otro: Medicamento): Medicamento {
     indicacion:  vacio(sePuedeQuedar.indicacion)  ? otro.indicacion  : sePuedeQuedar.indicacion,
     // La procedencia la sabe el modelo, no el médico: si él no la puso, vale la suya.
     procedenciaClinica: sePuedeQuedar.procedenciaClinica ?? otro.procedenciaClinica,
+    // Si lo que se conserva es un renglón manual legado, no le heredamos el
+    // `borrador` automático de la IA sólo por completar un hueco. Si el primer
+    // renglón ya traía estado, ése sí manda.
+    estado: sePuedeQuedar.estado ?? (sePuedeQuedar.procedenciaClinica ? otro.estado : undefined),
   }
 }
 
 export const POR_QUE_LA_DUDA_SE_IMPRIME =
-  'Dejar de más un renglón que el médico borra de un toque es una molestia; ' +
-  'quitar de la receta un antibiótico que sí se prescribió es un paciente que ' +
-  'no se lo toma. Sin etiqueta, se imprime.'
+  'Un renglón creado directamente por el médico sigue siendo una indicación ' +
+  'aunque sea legado y no tenga procedencia. La duda de origen automático no ' +
+  'se imprime: queda como borrador hasta que exista intención clínica explícita.'
 
 export const POR_QUE_SE_SIGUE_EXTRAYENDO_EN_VIVO =
   'De la lista cuelgan el cruce alergia ↔ fármaco, el de interacciones y el ' +

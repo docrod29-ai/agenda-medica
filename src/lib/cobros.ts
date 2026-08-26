@@ -16,6 +16,7 @@ import { db, auth } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
 import { instanteMX, sumarDiasISO, fechaISOLocal, TZ_DEFAULT, zonaActiva } from '@/lib/timezone'
 import { elegirMedicoCanonico, type MedicoDelCobro } from '@/lib/finanzas/medico-del-cobro'
+import { idIdempotente } from '@/lib/idempotencia'
 
 /**
  * Límites de un día LOCAL del consultorio, en instantes UTC.
@@ -161,9 +162,22 @@ function generarFolio(): string {
   return `CB-${Date.now().toString(36).toUpperCase().slice(-7)}`
 }
 
+export interface OpcionesCobro {
+  /**
+   * El nombre de ESTE intento de cobro (`claveDeIntento()`). Quien cobra la
+   * acuña al enviar y la conserva hasta que el cobro quede registrado: los
+   * reintentos la repiten, y por eso convergen al mismo documento.
+   *
+   * Ver `lib/idempotencia.ts` para por qué el id que sale de ella lleva el
+   * consultorio dentro.
+   */
+  claveIdempotencia?: string
+}
+
 export async function registrarCobro(
   clinicId: string,
   data: Omit<Cobro, 'id' | 'fecha' | 'dia' | 'mes' | 'createdAt' | 'folio'>,
+  opciones: OpcionesCobro = {},
 ): Promise<string> {
   const fecha = new Date()
   const isoFecha = fecha.toISOString()
@@ -270,14 +284,52 @@ export async function registrarCobro(
    *
    * Con cita, la creación del cobro y la reserva del `cobroId` en la cita ocurren
    * en UNA transacción: si la cita ya tiene cobro, se aborta y se devuelve el id
-   * existente (no se crea otro). Sin cita (cobro suelto) se mantiene el addDoc.
+   * existente (no se crea otro). Sin cita y sin clave de intento (cobro suelto de
+   * un llamador automático) se mantiene el addDoc — ver el bloque de abajo.
    */
+  /**
+   * ═══ GOLDEN PATH 9 — EL AGUJERO QUE DEJABA ABIERTO EL CANDADO DE ARRIBA ═══
+   *
+   * El candado por cita cubre EL COBRO QUE SALDA, y sólo ése. Quedaban fuera
+   * las dos vías por las que también entra dinero:
+   *
+   *   · el ABONO (pago parcial) — a propósito NO reserva `cita.cobroId`, para
+   *     que la cita siga «por cobrar» por el saldo. Sin más defensa, un doble
+   *     toque o un reintento tras un timeout aparente registraba DOS abonos de
+   *     $500 por un solo billete de $500 en el cajón;
+   *   · el COBRO SUELTO (sin cita) — iba por `addDoc` directo, que fabrica un
+   *     id nuevo en cada llamada. Dos por definición.
+   *
+   * Y el candado por cita tampoco cubre el reintento del cobro que salda cuando
+   * la cita YA NO EXISTE (se borró entre abrir el modal y cobrar): esa rama
+   * registra el cobro sin poder marcar nada, así que el segundo intento
+   * registraba otro.
+   *
+   * Lo que faltaba era un nombre para la INTENCIÓN. Con `claveIdempotencia` el
+   * id del cobro se deriva de esa clave y del consultorio, así que el reintento
+   * apunta al MISMO documento: se lee dentro de la transacción y, si ya está, se
+   * devuelve su id sin reescribirlo — un cobro es un registro contable y no se
+   * pisa jamás, ni con los mismos datos.
+   *
+   * Sin clave, el comportamiento es exactamente el de antes (llamadores
+   * automáticos como membresías, que ya tienen su propia idempotencia).
+   */
+  const idDeterminista = opciones.claveIdempotencia
+    ? idIdempotente(clinicId, 'cobro', opciones.claveIdempotencia)
+    : null
+
   if (data.citaId) {
     const citaRef = doc(db, 'clinics', clinicId, 'appointments', data.citaId)
-    const cobroRef = doc(COL(clinicId))  // id pre-generado para usarlo en la tx
+    const cobroRef = idDeterminista
+      ? doc(COL(clinicId), idDeterminista)
+      : doc(COL(clinicId))  // id pre-generado para usarlo en la tx
     const esAbono = data.concepto === 'abono'
     const idFinal = await runTransaction(db, async (tx) => {
       const citaSnap = await tx.get(citaRef)
+      // Se lee ANTES de cualquier escritura (Firestore lo exige) y antes de
+      // decidir nada: si este intento ya quedó registrado, no hay cobro nuevo
+      // que hacer ni cita que volver a marcar.
+      if (idDeterminista && (await tx.get(cobroRef)).exists()) return cobroRef.id
       const cita = citaSnap.exists() ? (citaSnap.data() as { cobroId?: string; cobroExento?: boolean }) : undefined
       // No se cobra una cita marcada como CORTESÍA: primero hay que quitar la cortesía.
       if (cita?.cobroExento) throw new Error('Esta cita está marcada como cortesía. Quita la cortesía antes de cobrar.')
@@ -293,6 +345,15 @@ export async function registrarCobro(
       return cobroRef.id
     })
     return idFinal
+  }
+
+  if (idDeterminista) {
+    const cobroRef = doc(COL(clinicId), idDeterminista)
+    return await runTransaction(db, async (tx) => {
+      if ((await tx.get(cobroRef)).exists()) return cobroRef.id
+      tx.set(cobroRef, payload)
+      return cobroRef.id
+    })
   }
 
   const ref = await addDoc(COL(clinicId), payload)

@@ -1,17 +1,24 @@
 /**
  * PLANES por CRÉDITOS (modelo tipo Asclepius) — fuente ÚNICA de verdad.
  *
- * Idea: cada plan da N CRÉDITOS de IA "máxima" al mes (nota Opus/GPT-5 +
- * separación de voces). Cuando se acaban, la IA NO se detiene: baja sola a un
- * modo ECONÓMICO (nota Sonnet 5 — excelente y baratísima, sin diarización ni 2ª
- * opinión GPT) que casi no cuesta al dueño. El médico nunca se queda sin IA, y si
- * quiere recuperar la máxima COMPRA más créditos o sube de plan. Así el gasto del
- * dueño se controla sin bloquear al médico con el paciente enfrente.
+ * Idea: cada plan da N CRÉDITOS de IA de máximo nivel al mes. Cuando se acaban,
+ * la IA NO se detiene: baja sola a un modo ECONÓMICO (nivel ⚡ Rápida, sin
+ * separación de voces ni segunda revisión) que casi no cuesta al dueño. El médico
+ * nunca se queda sin IA, y si quiere recuperar la máxima COMPRA más créditos o
+ * sube de plan. Así el gasto del dueño se controla sin bloquear al médico con el
+ * paciente enfrente.
  *
- * 1 crédito ≈ 1 consulta con IA "Pro" (voz + nota Sonnet). Cambia los números
- * aquí y se reflejan en toda la app (tope, gates, página de precios).
+ * 1 crédito ≈ 1 consulta con IA de nivel ⭐ Estándar (voz + nota). Cambia los
+ * números aquí y se reflejan en toda la app (tope, gates, página de precios).
  *
- * Costos aprox del dueño (USD) por acción — para calcular márgenes:
+ * ── QUÉ ES PHYSICIAN-FACING EN ESTE ARCHIVO Y QUÉ NO ─────────────────────────
+ *
+ * Lo EXPORTADO como tipo o cadena de pantalla (`Motor`, `MOTORES`, `PLANES`) es
+ * el contrato con el médico y NO nombra proveedores ni modelos. Los comentarios
+ * de costo del dueño sí los nombran a propósito: son contabilidad interna, no
+ * llegan a ninguna pantalla, y borrarlos volvería inauditable el margen.
+ *
+ * Costos aprox del dueño (USD) por acción — INTERNO, para calcular márgenes:
  *   voz(OpenAI)~$0.06 · diarización(AssemblyAI)~$0.15 · nota Sonnet~$0.08 ·
  *   nota Opus+thinking~$0.60 · verificación GPT-5~$0.04 · evidencia~$0.03
  */
@@ -25,7 +32,7 @@ export interface PlanCreditos {
   precioMXN: number
   /** Créditos de IA incluidos al mes (0 = plan sin IA). */
   creditos: number
-  /** Nivel de IA para la nota: 'pro' (Sonnet) o 'premium' (Opus+GPT-5). */
+  /** Nivel de IA para la nota: 'pro' o 'premium'. Lo traduce el router. */
   nivelIA: NivelIA
   /** Módulos/funciones incluidas (para la página de precios y los gates). */
   incluye: string[]
@@ -35,27 +42,73 @@ export interface PlanCreditos {
 }
 
 /**
- * MENÚ DE IA (modelo OpenAI/Anthropic): cada nota se genera con uno de 3 MOTORES,
- * y cada motor QUEMA créditos distintos según su costo real. La clave del margen:
- * los créditos son proporcionales al costo, así que 1 crédito te cuesta ~lo mismo
- * (~$1.5 MXN) sin importar el motor → vendiéndolos a ~$5/crédito ganas ~70% en
- * CADA nota, elija lo que elija el médico. Imposible perder.
+ * NIVEL DE IA POR NOTA — el médico expresa INTENCIÓN CLÍNICA, nunca una marca.
  *
- *   ⚡ Rápida   (Haiku 4.5)                    → 1 crédito  · te cuesta ~$1.4 MXN
- *   ⭐ Estándar (Sonnet 5 + separación voces)  → 3 créditos · ~$5.2 MXN
- *   💎 Máxima   (Opus 4.8 + GPT-5 + 2ª opinión)→ 10 créditos· ~$15.3 MXN
+ * ── LA REGLA DE PRODUCTO (Board #296) ────────────────────────────────────────
+ *
+ * «El médico no elige modelos ni niveles. Router automático usa el modelo mínimo
+ * suficiente para cada tarea y escala sólo cuando complejidad/riesgo lo exige.»
+ *
+ * Lo que el médico declara es QUÉ CASO TIENE ENFRENTE —rutinario, complejo,
+ * difícil— y cuánto puede esperar. Quién lo atiende por dentro (proveedor,
+ * modelo, cuántos verificadores) lo decide el router leyendo `perfil`, y eso NO
+ * es contrato de esta interfaz: vive en `src/lib/ia/procedencia-motor.ts`, para
+ * procedencia, auditoría, costos y depuración administrativa.
+ *
+ * ── POR QUÉ EL CAMPO `modelos` ERA EL DEFECTO, Y NO EL COPY ──────────────────
+ *
+ * Este bloque exportaba `modelos: 'Opus 4.8 + GPT-5 + 2ª opinión'` como campo del
+ * TIPO. Mientras exista ese campo, toda pantalla que pinte un nivel pinta una
+ * marca —lo hacían /precios y la tabla de niveles— y limpiar el texto de una
+ * pantalla no arregla nada: la siguiente que lea `Motor` lo vuelve a traer. Por
+ * eso el arreglo quita el campo, no la cadena.
+ *
+ * Y hay una razón clínica, no sólo de marca: una marca en pantalla convierte una
+ * decisión clínica en una decisión de compra de cómputo. El médico no tiene por
+ * qué saber qué modelo razona mejor un caso difícil, ni reaprenderlo cada vez que
+ * el router mejore. El día que cambie el modelo detrás de 💎 Máxima, el contrato
+ * con el médico no cambia: sigue siendo «caso clínico difícil».
+ *
+ * Cada nivel QUEMA créditos según su costo real, así que 1 crédito le cuesta al
+ * dueño ~lo mismo (~$1.5 MXN) sea cual sea el nivel que elija el médico.
+ *
+ *   ⚡ Rápida   → 1 crédito   · nota rutinaria / seguimiento simple
+ *   ⭐ Estándar → 3 créditos  · consulta compleja
+ *   💎 Máxima   → 10 créditos · caso clínico difícil
  */
 export type ClaveMotor = 'rapida' | 'estandar' | 'maxima'
+
+/**
+ * PERFIL DE RUTEO — la metadata canónica que YA consume el router.
+ *
+ * `/api/expediente/procesar` traduce `perfil` a su cascada de modelos reales
+ * (`CANDIDATOS`). Es el único puente intención→cómputo que existe y no se
+ * duplica aquí: este archivo declara la intención, el router resuelve el modelo.
+ */
+export type PerfilRuteo = 'live' | 'pro' | 'premium'
+
 export interface Motor {
   clave: ClaveMotor
   nombre: string
   emoji: string
-  modelos: string
-  /** Créditos que quema una nota con este motor. */
+  /**
+   * QUÉ CAPACIDAD entrega el nivel, en términos clínicos y SIN marca.
+   *
+   * Ocupa el sitio donde vivía `modelos`. Dice qué gana el médico —cuántos pasos
+   * de razonamiento, si hay separación de voces, si hay segunda revisión—, que es
+   * lo que cambia su decisión; no dice quién lo ejecuta, que no la cambia.
+   */
+  capacidad: string
+  /** Créditos que quema una nota con este nivel. */
   creditos: number
-  /** Perfil de modelo en procesar (live=Haiku, pro=Sonnet, premium=Opus). */
-  perfil: 'live' | 'pro' | 'premium'
-  /** Uso clínico recomendado (transparencia: qué caso conviene con cada nivel). */
+  /**
+   * Perfil de ruteo que consume `procesar`. INTERNO: no se pinta al médico.
+   *
+   * Se queda en este tipo a propósito —es el puente al router existente— pero no
+   * nombra proveedor ni modelo, así que no reintroduce el defecto.
+   */
+  perfil: PerfilRuteo
+  /** La INTENCIÓN CLÍNICA que el médico sí expresa: qué caso tiene enfrente. */
   usoRecomendado: string
   /**
    * QUÉ CAMBIA CLÍNICAMENTE en cada nivel (no solo el precio). El usuario merece
@@ -67,17 +120,17 @@ export interface Motor {
   latencia: string
 }
 export const MOTORES: Record<ClaveMotor, Motor> = {
-  rapida:   { clave: 'rapida',   nombre: 'Rápida',   emoji: '⚡', modelos: 'Haiku 4.5',                   creditos: 1,  perfil: 'live',
+  rapida:   { clave: 'rapida',   nombre: 'Rápida',   emoji: '⚡', capacidad: 'Un paso de IA, la menor latencia', creditos: 1,  perfil: 'live',
     usoRecomendado: 'Nota rutinaria / seguimiento simple',
-    incluye: ['Estructuración de la nota', 'Resumen del caso', 'Modelo veloz (baja latencia)'],
+    incluye: ['Estructuración de la nota', 'Resumen del caso', 'La menor latencia disponible'],
     latencia: 'Mínima' },
-  estandar: { clave: 'estandar', nombre: 'Estándar', emoji: '⭐', modelos: 'Sonnet 5 + separación de voces', creditos: 3,  perfil: 'pro',
+  estandar: { clave: 'estandar', nombre: 'Estándar', emoji: '⭐', capacidad: 'Razonamiento clínico + separación de voces', creditos: 3,  perfil: 'pro',
     usoRecomendado: 'Consulta compleja',
     incluye: ['Todo lo de Rápida', 'Separación de voces (médico/paciente)', 'Detección de omisiones', 'Revisión básica de seguridad', 'Escalas clínicas con código'],
     latencia: 'Media' },
-  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', modelos: 'Opus 4.8 + GPT-5 + 2ª opinión', creditos: 10, perfil: 'premium',
+  maxima:   { clave: 'maxima',   nombre: 'Máxima',   emoji: '💎', capacidad: 'Máximo razonamiento + segunda revisión independiente', creditos: 10, perfil: 'premium',
     usoRecomendado: 'Caso clínico difícil',
-    incluye: ['Todo lo de Estándar', 'Modelo de máximo razonamiento', 'Segundo verificador (2ª opinión)', 'Evidencia PubMed con PMID verificado', 'Revisión farmacológica (dosis · interacciones · función renal)', 'Mayor contexto clínico'],
+    incluye: ['Todo lo de Estándar', 'Máximo razonamiento clínico disponible', 'Segundo verificador independiente (2ª opinión)', 'Evidencia PubMed con PMID verificado', 'Revisión farmacológica (dosis · interacciones · función renal)', 'Mayor contexto clínico'],
     latencia: 'Mayor (razonamiento profundo)' },
 }
 export const motorPorClave = (c?: string): Motor => MOTORES[(c as ClaveMotor)] ?? MOTORES.estandar
@@ -182,8 +235,8 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Nota clínica con IA (voz → nota, orientada a los requisitos de la NOM-004)',
       'Separación médico-paciente automática',
       'Recetas y órdenes',
-      'Consultor de evidencia (PubMed) con doble IA (Claude + GPT)',
-      'Menú de IA: elige ⚡ Rápida · ⭐ Estándar · 💎 Máxima por nota',
+      'Consultor de evidencia (PubMed) con doble verificación de IA',
+      'Elige el nivel de IA por nota según el caso: ⚡ rutinario · ⭐ complejo · 💎 difícil',
       '200 créditos/mes (~63 notas Estándar)',
       'Al agotarlos sigue en ⚡ Rápida sin costo hasta 120 notas más/mes; luego se pausa y recargas o subes de plan',
       'Incluye 1 médico · +$499/mes por médico adicional',
@@ -194,8 +247,8 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     pacientesMax: null,
     incluye: [
       'Todo lo de Clínica',
-      'IA de máximo razonamiento clínico (Opus 4.8 + GPT-5) por defecto 💎',
-      '2ª opinión automática (verificador GPT-5) en cada nota',
+      'IA de máximo razonamiento clínico por defecto 💎',
+      '2ª opinión automática (segundo verificador independiente) en cada nota',
       'Revisión farmacológica automática: dosis · interacciones · función renal',
       'Interpretación de laboratorios por IA con tendencias por analito',
       'Valoración del inmunocomprometido con IA de máximo nivel',
@@ -220,8 +273,8 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
       'Interconsultas y laboratorio',
       'Panel UCI: motores deterministas de ventilación, gasometría/ácido-base, SOFA/APACHE, POCUS/VExUS/PLR, neurocrítico (PPC/PIC), CKRT/PRISMA y ECMO',
       'Nota de evolución UCI por los 7 sistemas, dictada manos libres',
-      'Copilot IA de UCI (Claude + GPT) que razona sobre los cálculos y aprende',
-      'Menú de IA completo · 500 créditos/mes',
+      'Copilot IA de UCI con doble razonamiento sobre los cálculos, y que aprende',
+      'Todos los niveles de IA · 500 créditos/mes',
       'Al agotarlos sigue en ⚡ Rápida sin costo; luego se pausa y recargas o subes de plan',
     ],
   },

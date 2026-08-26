@@ -3,15 +3,15 @@
 /**
  * CorreccionesPanel — transparencia de las correcciones léxicas automáticas.
  *
- * Por qué existe: el corrector médico cambia palabras de la transcripción
- * (fármacos mal oídos por Whisper). En un documento clínico-legal NADA debe
- * cambiar en silencio — el médico tiene que poder VER qué se corrigió y
- * REVERTIR cualquier cambio que considere equivocado, con un clic.
- *
- * Colapsado por defecto (no estorba); el médico lo abre si quiere auditar.
+ * La lista de correcciones sigue existiendo para provenance/auditoría y para
+ * superficies especializadas que sí la necesiten. En el Golden Path de
+ * Consultorio, sin embargo, una corrección léxica rutinaria no debe convertirse
+ * en una tarea de depuración para el médico. Las excepciones que pueden cambiar
+ * significado clínico siguen escalando por AlertasDictado / motivos materiales.
  */
 
-import { useState, useEffect} from 'react'
+import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { ChevronDown, ChevronRight, RotateCcw, Wand2 } from 'lucide-react'
 import type { CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 
@@ -24,21 +24,26 @@ const MOTIVO_LABEL: Record<CambioTranscripcion['motivo'], string> = {
 
 interface CorreccionesPanelProps {
   correcciones: CambioTranscripcion[]
-  /** Revierte una corrección concreta en el texto del editor. */
+  /** Deshace una corrección concreta en el texto del editor. */
   onRevertir: (c: CambioTranscripcion) => void
 }
 
 export function CorreccionesPanel({ correcciones, onRevertir }: CorreccionesPanelProps) {
+  const pathname = usePathname()
   const [abierto, setAbierto] = useState(false)
   const [revertidas, setRevertidas] = useState<Set<number>>(new Set())
 
   // `revertidas` guarda ÍNDICES, así que tras un segundo dictado la posición 2
   // ya es otra corrección: quedaba marcada como revertida, en gris y sin botón
-  // de deshacer. Si Whisper había cambiado mal el nombre de un fármaco, esa
+  // de deshacer. Si el ASR había cambiado mal el nombre de un fármaco, esa
   // corrección se volvía imposible de revertir con un clic. Se reinicia cuando
   // cambia la lista.
   useEffect(() => { setRevertidas(new Set()) }, [correcciones])
 
+  // GP12/GP4: el médico de Consultorio no audita el ledger de correcciones
+  // rutinarias. No se borra ninguna corrección: sólo se elimina esta superficie
+  // del flujo primario. Lo clínicamente material conserva su canal de revisión.
+  if (pathname.startsWith('/consulta/')) return null
   if (correcciones.length === 0) return null
   const activas = correcciones.length - revertidas.size
 
