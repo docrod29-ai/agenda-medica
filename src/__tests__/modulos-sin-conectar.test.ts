@@ -95,7 +95,6 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/clinical-fact/schema.ts': 'Nexus OS E1-01: validación de ClinicalFact. La fase que lo consume no ha llegado.',
   'src/lib/clinical-fact/vocabulario.ts': 'Vocabulario de ClinicalFact, del mismo bloque pendiente.',
   'src/lib/evidencia/buscar-con-pico.ts': 'Puente PICO → PubMed (E2-02): el extractor existe, falta engancharlo al Consultor.',
-  'src/lib/evidencia/desde-pubmed.ts': 'Del mismo bloque de evidencia estructurada.',
   'src/lib/compliance/policy.ts': 'Capa de política por país: escrita para LATAM, sin país distinto de México activo.',
   'src/lib/i18n.ts': 'Internacionalización ligera: base para LATAM, sin segundo idioma en uso.',
   'src/lib/permissions.ts': 'Permisos por rol en aplicación. La autorización REAL está en Firestore rules.',
