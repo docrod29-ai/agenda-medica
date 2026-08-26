@@ -7987,3 +7987,55 @@ cubre las dos superficies que la matriz señaló, no «todas las pantallas tiene
 h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
+
+## REG-323 — el enlace de la teleconsulta se prometía en cada mensaje y no se mandaba en ninguno
+
+**Qué fallaba.** El paciente que agendaba una **videoconsulta** por WhatsApp
+recibía, en la confirmación: «Recibirás el enlace de la videollamada por este
+medio antes de tu cita». Lo volvía a recibir en el recordatorio de 24 h. Lo
+volvía a recibir el mismo día. El enlace **no llegaba nunca**, porque el único
+mensaje que decía «antes de tu cita» era justamente el que repetía la promesa.
+A la hora de su consulta el paciente no tenía forma de entrar a la sala.
+
+**Cómo se descubrió.** Recorriendo el flujo canónico del Bloque 7 (WhatsApp →
+cita → confirmación → recordatorio → retorno a consulta) con la pregunta de
+`.claude/rules/el-dato-tiene-que-llegar.md`: «¿dónde acaba este dato?». El
+enlace acababa en la función que lo compone. `grep dondeEsLaCita` devolvía
+cuatro llamadas; `grep tokenPaciente` ninguna fuera del módulo.
+
+**Causa raíz.** `lib/telesalud/donde-es.ts` sólo emite el enlace si recibe un
+`tokenPaciente`, y hace bien: `/api/telesalud/sala` exige prueba de titularidad y
+responde 404 «Cita no encontrada» a un enlace sin token, así que un enlace sin
+credencial es peor que ninguno. Lo que fallaba está una capa arriba: el campo era
+**opcional**, y los cuatro llamadores lo omitían. Compilaba.
+
+Es exactamente el defecto contra el que avisa la cabecera de
+`enlaceSalaPaciente()`, que hizo el token obligatorio en SU firma precisamente
+para que «no vuelva en silencio en el siguiente sitio que llame sin él». Volvió
+un nivel más arriba, donde alguien lo dejó opcional otra vez. Misma familia que
+REG-167, REG-170 y REG-320: escrito, conectado, y el dato sin llegar.
+
+**Control permanente.** `tokenPaciente` pasa a ser **obligatorio** en
+`DatosDeLugar`: quien no tenga token tiene que escribir `''`, que es una decisión
+y no un olvido — y el compilador se lo pide a cada llamador futuro.
+`api/cron/reminders` —el único que corre ANTES de la cita— firma el token real
+del paciente de esa cita, con alcance `agenda` (no `clinico`: el enlace viaja por
+WhatsApp y se reenvía) y con la versión del expediente, para que una revocación
+lo tumbe. Los otros tres llamadores declaran `''` con su razón escrita: el bot
+agenda con semanas de antelación y su token estaría muerto el día de la consulta;
+`lib/whatsapp.ts` se ejecuta en el navegador y firmar exigiría el secreto.
+`src/__tests__/el-enlace-de-la-teleconsulta-llega-al-paciente.test.ts`
+(14 casos; probado al revés: sin el arreglo caen 7).
+
+**Qué NO cubre, declarado.** No cubre el camino de **plantilla HSM**, que es por
+donde sale el recordatorio cuando la ventana de servicio de 24 h está cerrada
+—el caso normal—. Las plantillas aprobadas llevan parámetros de texto y ninguna
+URL; meterla dentro de un parámetro o mandar texto libre fuera de la ventana es
+lo que Meta rechaza. Añadir una plantilla con botón de URL dinámica es un paso
+externo del dueño: queda declarado en
+`ENLACE_TELECONSULTA_NO_CABE_EN_PLANTILLA` (`lib/whatsapp/templates.ts`) y
+sellado por dos casos, con estado **OWNER_APPROVAL_REQUIRED**. Tampoco cubre la
+creación de la sala en el proveedor, la ventana horaria de apertura
+(`ventana-sala.ts`), ni la revocación por versión: `/api/telesalud/sala` autoriza
+hoy sin mirar `tokenVigente`, y eso es otra unidad de trabajo — registrada, no
+arreglada aquí.

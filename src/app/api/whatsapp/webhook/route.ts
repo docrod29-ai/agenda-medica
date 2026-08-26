@@ -1079,11 +1079,24 @@ export async function handleMessage(from: string, body: string, clinicId: string
         `🎉 *¡Su cita ha sido registrada!*`,
         ``,
         `📅 ${formatDate(datos.fecha)} a las ${datos.hora} hrs`,
-        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala.
+        /**
+         * SIN ENLACE AQUÍ, Y ES UNA DECISIÓN.
+         *
+         * El bot agenda con semanas de antelación. Un token de sala vive los días
+         * que dice `patient-token.ts`, así que un enlace metido en la confirmación
+         * estaría muerto el día de la consulta y respondería 404 «tu cita no
+         * existe» — que es peor que no mandarlo (ver `donde-es.ts`).
+         *
+         * El enlace lo manda el recordatorio, que corre sobre la ventana de hoy y
+         * mañana: ahí el token nace vivo y llega a tiempo. Por eso este mensaje
+         * dice la verdad («recibirás el enlace antes de tu cita») en vez de dar un
+         * enlace roto, y la promesa la cumple `api/cron/reminders`.
+         */
         ...dondeEsLaCita({
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: '',
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1273,10 +1286,13 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       {
+        // Sin enlace, por la misma razón que el alta normal: lo manda el
+        // recordatorio, con un token que sigue vivo el día de la consulta.
         const donde = dondeEsLaCita({
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: '',
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,

@@ -19,25 +19,18 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/V15_CURRENT_ITERATION.md",
-    " M docs/audit/regression-ledger.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M src/app/(dashboard)/chat/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/page.tsx",
-    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    " M src/__tests__/authz-rutas-declaradas.test.ts",
+    " M src/app/api/cron/reminders/route.ts",
+    " M src/app/api/whatsapp/webhook/route.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/capturas/v15-coherencia/",
-    "?? docs/design/v15/V15-COHERENCIA-DE-PRODUCTO.md",
-    "?? scripts/design/arnes-coherencia-v15.sh",
-    "?? scripts/design/medir-coherencia-de-producto-v15.mjs",
-    "?? src/__tests__/v15-cada-destino-declara-su-encabezado.test.ts",
-    "?? src/__tests__/v15-el-documento-clinico-nombra-al-paciente.test.ts",
-    "?? src/components/TituloDeDocumentoClinico.tsx"
+    " M src/lib/telesalud/donde-es.ts",
+    " M src/lib/whatsapp.ts",
+    " M src/lib/whatsapp/templates.ts",
+    "?? src/__tests__/el-enlace-de-la-teleconsulta-llega-al-paciente.test.ts"
   ],
-  "actualizado": "2026-08-15",
+  "actualizado": "2026-08-26",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -69,12 +62,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-v15-final-coherence-vhiuj8",
+  "ramaActual": "product/patient-experience-whatsapp-2026-08-26",
   "derivado": {
-    "regsEnElLedger": 170,
-    "ultimaREG": "REG-322",
-    "archivosDePrueba": 705,
-    "casosDePrueba": 8635,
+    "regsEnElLedger": 171,
+    "ultimaREG": "REG-323",
+    "archivosDePrueba": 739,
+    "casosDePrueba": 8908,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

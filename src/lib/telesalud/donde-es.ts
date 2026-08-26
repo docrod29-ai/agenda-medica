@@ -40,7 +40,7 @@ export interface DatosDeLugar {
   /** Origen público de la aplicación (`NEXT_PUBLIC_APP_URL`). */
   baseUrl?: string
   /**
-   * Token HMAC del paciente, si quien compone el mensaje puede emitirlo.
+   * Token HMAC del paciente. **OBLIGATORIO**, aunque el valor sea `''`.
    *
    * SIN ÉL NO SE EMITE ENLACE. `/api/telesalud/sala` exige prueba de
    * titularidad y responde **404 «Cita no encontrada»** a quien no la trae:
@@ -52,8 +52,25 @@ export interface DatosDeLugar {
    * Emitirlo exige el secreto de firma, que sólo vive en el servidor. Por eso
    * es un dato de entrada y no se calcula aquí: `lib/whatsapp.ts` se importa
    * también desde el navegador.
+   *
+   * ── POR QUÉ NO ES OPCIONAL ─────────────────────────────────────────────────
+   *
+   * Lo fue, y el defecto que ese diseño invita ocurrió: los CUATRO llamadores
+   * —confirmación del bot, confirmación de lista de espera, los dos
+   * recordatorios del cron y los mensajes manuales del panel— omitían el campo,
+   * así que TODOS caían a `SIN_ENLACE`. El paciente de videoconsulta recibía
+   * «recibirás el enlace por este medio antes de tu cita» en la confirmación, y
+   * otra vez en el recordatorio, y otra vez el mismo día — y el enlace no
+   * llegaba nunca, porque el mensaje que decía «antes de tu cita» era justamente
+   * el que repetía la promesa.
+   *
+   * `enlaceSalaPaciente()` ya lo había aprendido y lo hizo obligatorio en su
+   * firma; su cabecera avisaba de que el defecto volvería «en el siguiente sitio
+   * que llame a esta función sin él, en silencio». Volvió aquí, un nivel más
+   * arriba. Siendo obligatorio, quien no tenga token tiene que escribir `''`, y
+   * eso es una decisión, no un olvido.
    */
-  tokenPaciente?: string
+  tokenPaciente: string
 }
 
 export interface Lugar {
@@ -66,12 +83,24 @@ export interface Lugar {
 
 export const ES_TELECONSULTA = 'teleconsulta'
 
+/**
+ * ¿Es una videoconsulta? Un solo criterio para todos.
+ *
+ * Estaba escrito aquí dentro de `dondeEsLaCita` y NO estaba disponible fuera, así
+ * que el llamador que necesitaba saberlo antes —para decidir si le hace falta
+ * firmar un token de sala— tendría que volver a escribir la comparación. Dos
+ * copias del mismo criterio es el sitio donde se olvida el próximo tipo de cita.
+ */
+export function esTeleconsulta(tipo?: string): boolean {
+  return String(tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA
+}
+
 export const SIN_ENLACE =
   'Recibirás el enlace de la videollamada por este medio antes de tu cita.'
 
 /** Qué decirle al paciente sobre dónde es su cita. */
 export function dondeEsLaCita(d: DatosDeLugar): Lugar {
-  const esVideo = String(d.tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA
+  const esVideo = esTeleconsulta(d.tipo)
 
   if (!esVideo) {
     const lineas: string[] = []
