@@ -57,7 +57,7 @@ describe('EL SERVIDOR TIENE RAZÓN AL RECHAZAR', () => {
 })
 
 /**
- * ── NOTA DE MIGRACIÓN · H-06 (26-ago-2026, REG-323) ─────────────────────────
+ * ── NOTA DE MIGRACIÓN · H-06 (26-ago-2026, REG-330) ─────────────────────────
  *
  * El mecanismo que sellaba este bloque —`getNota(...).catch(() => null)` y un
  * `previa?.estado === 'firmada'` escrito a mano en cada ruta— resultó tener el
