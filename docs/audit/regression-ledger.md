@@ -8970,3 +8970,130 @@ nueve la prueba cae.
 2. **REG-326 sigue perdido** en `release/consultorio-reconciled-2026-08-27` y en
    `release/evidence-integrated-2026-08-26`. Recuperarlo es una reparación
    clínica aparte, con sus dos pruebas, no un efecto colateral de esta compuerta.
+
+## REG-335 — la nota se firmaba, el paquete no existía, y el paciente no recibía nada
+
+**Área.** Post-visita del consultorio: `src/lib/paciente/paquete-de-visita.ts`,
+`src/app/api/expediente/paquete-de-visita/route.ts` (nueva),
+`src/components/EntregarAlPaciente.tsx` (nueva), `src/app/api/portal/link/route.ts`,
+`src/app/mi/[token]/page.tsx`, `src/app/(dashboard)/consulta/[patientId]/page.tsx`.
+V9 · `POSTVISIT-001`. Cierra `POSTVISIT-GATE-001` y `POSTVISIT-ENTREGA-001`.
+
+**Estado:** CLOSED, con golden y sello.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo el camino entero —consulta → nota firmada →
+receta y órdenes → paquete → liberación → portal → entrega— en vez de leer
+módulos sueltos. Es el método de «el dato tiene que LLEGAR»: mirar del otro lado
+antes de dar nada por entregado. Se cortaba en tres sitios, y los tres tenían la
+suite en verde.
+
+**QUÉ FALLABA.**
+
+**1 · La hoja del paciente se componía del borrador EN CURSO.** `HojaParaElPaciente`
+se montaba con el estado vivo de `medicamentos` y `estudiosOrden`, a medio
+dictar, y su única guarda era `{!esNotaHospital}`. Justo encima,
+`ComoCerrarLaConsulta` sí exigía `firmada`. La cabecera del módulo AFIRMABA que
+el contenido salía de lo «ya revisado y firmado»: era intención de diseño, no
+precondición. Nada impedía copiar y entregar una hoja compuesta de una hipótesis
+a medio formular.
+
+**2 · Esa hoja no llegaba nunca al paciente.** Dos botones —copiar al portapapeles
+e imprimir— y punto. No estaba en `/mi/[token]`, ni en `/api/portal`, ni en
+ninguna plantilla de mensajería. Y aunque hubiera estado: el ÚNICO emisor de un
+enlace de portal con alcance `clinico` era el de la teleconsulta, así que el
+médico no tenía forma de darle a su paciente la llave que abre su propio
+expediente. La puerta existía y no había llave.
+
+**3 · La colección que nadie escribía.** `PATIENT-COMPANION-001` dejó el modelo
+`PaqueteDeVisita`, la máquina de estados `DRAFT`/`RELEASED`, la compuerta
+`visibleParaElPaciente`, la acción `paquetes` de `/api/portal`, las reglas de
+Firestore, la matriz de acceso, el manifiesto del respaldo y la exportación ARCO.
+Todo correcto. Y `componerPaquete` se escribió y se BORRÓ el mismo día porque el
+guardián de conexión la cazó sin llamador. Resultado: una superficie completa
+sirviendo una colección que **ningún camino del producto escribía jamás**.
+
+**CAUSA RAÍZ.** No era «faltaba una pantalla». Era que **el modelo y la compuerta
+existían y el ACTO no**. Nada podía pasar de `DRAFT` a `RELEASED` porque no había
+ninguna superficie con autoridad para hacerlo, y el invariante que separa firmar
+de liberar —el que hace que esto no sea un `if` más— no tenía dónde vivir.
+Familia «escrito, probado y sin conectar», en su forma más cara: la pieza mejor
+pensada del lado del paciente, terminada y sin entregar.
+
+**EL INVARIANTE.**
+
+```
+FIRMAR UNA NOTA ≠ LIBERARLE INFORMACIÓN AL PACIENTE
+```
+
+Firmar es autoridad medicolegal sobre el expediente. Liberar es autoridad sobre
+lo que el paciente leerá como definitivo. Se hacen con dos clics seguidos y se
+registran aparte, porque un día el médico querrá firmar sin liberar todavía — y
+porque el lector, esta vez, **no puede detectar el error**.
+
+**ARREGLO.** Mínimo y sobre lo que ya existía; no hay un módulo paralelo.
+
+- **`componerPaquete` vuelve a `paquete-de-visita.ts`**, ahora con llamador. Es
+  pura, corre en el SERVIDOR, y se compone de material con autoridad: la nota
+  **firmada**, `medicamentosDeLaReceta` (la puerta de prescripción de H-01),
+  `alergiasParaImpreso` (la primitiva del impreso del médico), `comoTomarlo`
+  (determinista, se niega a expandir «cada 5 horas»). **Ningún modelo de lenguaje
+  toca este camino**, y hay una prueba que lo exige.
+- Se niega a componer de un borrador y a componer sin firma con cédula, y **dice
+  cuál de las dos**. Ésa es la compuerta de `POSTVISIT-GATE-001`.
+- **`/api/expediente/paquete-de-visita`**, bajo la capacidad `firmar`
+  (= {medico, admin}) y contra la membresía real de ESE consultorio. El
+  navegador manda identificadores y una fecha; el contenido lo lee la ruta.
+- **Idempotente por construcción**: el id del documento ES el `notaId`, así que
+  el doble clic y el reintento escriben en el mismo sitio; y dentro de la
+  transacción, si lo liberado dice exactamente lo mismo, no se escribe, no sube
+  la versión y no se duplica la bitácora.
+- **Concurrencia**: quien libera manda la `versionEsperada` que está viendo. Una
+  pestaña vieja que llega tarde recibe **409** y no pisa la versión nueva.
+- **Reversible sólo con acto explícito**: `retirar` vuelve a `DRAFT`, **sube** la
+  versión y deja su entrada. No borra: lo entregado sigue constando.
+- **`entrega-del-paquete.ts`** es el único sitio que compone un camino hacia el
+  paquete, y vuelve a exigir `visibleParaElPaciente`. El mensaje **no lleva
+  secreto médico** —ni fármaco, ni diagnóstico, ni alergia—: sólo el aviso y el
+  enlace, porque un enlace de paciente se reenvía por WhatsApp.
+- **`/api/portal/link` ya puede emitir alcance `clinico`**, a petición explícita
+  y cobrando `firmar`. E0-06 cerró que se emitiera **por omisión**, no que
+  existiera; sin esto, `POSTVISIT-ENTREGA-001` no se puede cerrar.
+- **`/mi/[token]`** pinta lo liberado en «Cuidado», con el prescriptor y su
+  cédula del sello de firma, y **distingue el fallo de red de la ausencia**: un
+  error dice que es un error, y no una lista vacía que se lee como «mi médico no
+  me dejó nada».
+- **Bitácora**: `paquete_liberado` y `paquete_retirado`, con identidad y hora del
+  SERVIDOR, y con **conteos en vez de nombres de fármaco**.
+
+**LO QUE SIGUE SIN COMPONERSE, DECLARADO.** `warningSigns` y
+`educationalMaterial` van vacíos: los signos de alarma son indicación médica y el
+material educativo es evidencia curada. No hay de dónde sacarlos sin inventarlos,
+y la pantalla del médico **enseña el hueco** para que se llene, en vez de
+rellenarlo con «lo habitual».
+
+**Test / control permanente:**
+`src/__tests__/el-paquete-de-la-visita-se-libera-y-llega.test.ts` (51 casos).
+Probado al revés con cinco defectos inyectados uno a uno — quitar la compuerta de
+firma, quitar `.filter(visibleParaElPaciente)` de `/api/portal`, generar un id de
+documento aleatorio en vez de derivarlo del `notaId`, quitar la comprobación de
+versión, y quitar la compuerta de `mensajeDeEntrega` — y en los cinco cae.
+`src/__tests__/api-authz-guard.test.ts` re-expresa la propiedad de E0-06 (que
+nunca fue «la cadena no aparece» sino «quien no puede responder por el expediente
+no emite una llave que lo abre»), también probado al revés.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No se ha visto en un navegador.** El cableado se comprueba leyendo la fuente,
+  que es el precedente de esta casa; la regla de diseño exige además recorrer el
+  flujo de verdad, y eso queda pendiente.
+- **No corre contra Firestore real.** El doble del Admin SDK direcciona por ruta
+  completa y serializa transacciones; las reglas reales las prueba la suite del
+  emulador.
+- **No manda un solo WhatsApp.** Se compone el mensaje y se comprueba cuándo se
+  niega a componerlo.
+- **No cubre `DOCUMENTS-001` ni `PATIENT-AI-001`**: `documents` y
+  `unansweredQuestions` siguen vacíos y declarados.
+- **`medicationChanges` compara contra la visita firmada ANTERIOR**, por nombre
+  normalizado y sin mirar dosis. Un ajuste de 500 mg a 1 g no se anuncia como
+  cambio; la instrucción completa va arriba. Y si la lectura falla es `null`, no
+  «sin cambios».

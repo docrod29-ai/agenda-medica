@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 15-ago-2026.
-**Fuente**: los 178 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 27-ago-2026.
+**Fuente**: los REG de `docs/audit/regression-ledger.md` (183 clasificados hoy).
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -43,10 +43,25 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 41 de 182, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 42 de 183, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
+El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
+describiendo su propia forma. `PaqueteDeVisita` llegó con su modelo, su máquina
+de estados `DRAFT`/`RELEASED`, su compuerta en el servidor, la acción del portal
+que la usa, las reglas de Firestore, la matriz de acceso, el manifiesto del
+respaldo y la exportación ARCO. Todo escrito. Todo probado. Y **ningún camino
+del producto escribía jamás un documento en esa colección**, porque la función
+que lo componía se había borrado el mismo día por no tener llamador.
+
+No faltaba una pantalla: faltaba el **acto**. Nada podía pasar de `DRAFT` a
+`RELEASED` porque no existía ninguna superficie con autoridad para hacerlo, y
+mientras tanto la hoja que sí se componía salía del borrador EN CURSO y no
+llegaba al paciente por ningún camino. Es el coste entero de esta familia en un
+solo defecto: la pieza mejor pensada del lado del paciente, terminada y sin
+entregar.
+
+Antes que él, **REG-320** (15-ago-2026), y lo encontró un banco de
 flujos haciendo el trabajo del médico en el teléfono: el respaldo local de la
 nota se escribía, se conservaba en disco y **no se ofrecía nunca** al reabrir
 una nota por `?nota=`, porque la única condición capaz de enseñarlo probaba que

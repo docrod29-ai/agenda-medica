@@ -51,12 +51,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "release/consultorio-final-candidate-2026-08-27",
+  "ramaActual": "claude/post-visit-consultorio-closure-sxoaws",
   "derivado": {
-    "regsEnElLedger": 182,
-    "ultimaREG": "REG-334",
-    "archivosDePrueba": 760,
-    "casosDePrueba": 9277,
+    "regsEnElLedger": 183,
+    "ultimaREG": "REG-335",
+    "archivosDePrueba": 761,
+    "casosDePrueba": 9330,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

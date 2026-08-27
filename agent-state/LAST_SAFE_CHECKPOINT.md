@@ -6,7 +6,45 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 27-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-335 |
+| **Cierra además** | `POSTVISIT-GATE-001` · `POSTVISIT-ENTREGA-001` |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El post-visita del consultorio está cerrado de punta a punta: consulta → nota
+firmada → receta y órdenes → paquete → **liberación explícita** → portal del
+paciente → entrega. Y el invariante que lo gobierna tiene por fin dónde vivir:
+
+```
+FIRMAR UNA NOTA ≠ LIBERARLE INFORMACIÓN AL PACIENTE
+```
+
+- **`componerPaquete` volvió a `paquete-de-visita.ts`**, con su llamador. Se
+  niega a componer de un borrador y de una nota sin firma con cédula, y dice
+  cuál de las dos.
+- **`/api/expediente/paquete-de-visita`** es la única puerta que escribe: bajo
+  `firmar`, contra la membresía real del consultorio, idempotente por el id
+  derivado del `notaId`, con `versionEsperada` para que la pestaña vieja no pise
+  la nueva, y con `retirar` como única marcha atrás — que sube versión, no borra.
+- **`/api/portal/link` ya emite alcance `clinico`** a petición explícita
+  cobrando `firmar`. Sin eso no había llave y la entrega no podía existir.
+- **`/mi/[token]`** pinta lo liberado, con prescriptor y cédula del sello de
+  firma, y distingue el fallo de red de la ausencia.
+
+**Lo que sigue vacío y declarado**: `warningSigns` y `educationalMaterial`. Son
+indicación médica y evidencia curada; la pantalla del médico **enseña el hueco**
+en vez de rellenarlo. `documents` y `unansweredQuestions` esperan a
+`DOCUMENTS-001` y `PATIENT-AI-001`.
+
+**Lo que este checkpoint NO afirma**: nada se ha visto en un navegador. La regla
+de diseño exige recorrer el flujo de verdad, y eso queda pendiente.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

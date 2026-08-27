@@ -35,7 +35,7 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 808 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 968 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 363 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1169 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2621 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 6563 | 7 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 6596 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 312 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |

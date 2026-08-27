@@ -3,9 +3,29 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 27-ago-2026 · REG-335.
+**Siguiente**: `PATIENT-AI-001`.
+
+---
+
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El acto que faltaba.** `PATIENT-COMPANION-001` dejó el modelo, la máquina de
+estados y la compuerta; lo que no había era ninguna superficie con autoridad
+para pasar un paquete de `DRAFT` a `RELEASED`. Ahora la hay, y el camino entero
+está recorrido: consulta → nota firmada → paquete → liberación → portal →
+entrega.
+
+- `componerPaquete` y `cambiosDeMedicacion` volvieron con su llamador, que era
+  la condición con la que se fueron.
+- La compuerta de firma vive en el SERVIDOR, no en la pantalla: `POSTVISIT-GATE-001`.
+- El paciente lo recibe: `POSTVISIT-ENTREGA-001`. Y el médico tiene por fin la
+  llave —`/api/portal/link` con alcance `clinico`, cobrando `firmar`.
+- Idempotente (id derivado del `notaId` + transacción), versionado
+  (`versionEsperada` → 409), reversible sólo con `retirar`, que sube versión.
+- Bitácora con `paquete_liberado` / `paquete_retirado`, con conteos y sin PHI.
+
+**Lo que este estado NO afirma**: nada se ha visto en un navegador.
 
 ---
 
@@ -131,8 +151,8 @@ por el paciente.
 
 - `PATIENT-PORTAL-001` — `/api/portal` sin límite de tasa; revocación que falla
   **abierta**.
-- `POSTVISIT-GATE-001` — sin compuerta de firma.
-- `POSTVISIT-ENTREGA-001` — la hoja no llega al paciente.
+- ~~`POSTVISIT-GATE-001`~~ — **cerrado** el 27-ago-2026 (REG-335).
+- ~~`POSTVISIT-ENTREGA-001`~~ — **cerrado** el 27-ago-2026 (REG-335).
 
 ## Lo que este estado NO afirma
 

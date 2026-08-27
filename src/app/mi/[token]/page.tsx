@@ -53,6 +53,31 @@ const RECETA_CONFIG_DEFAULT = {
   avisoLegal: 'Esta receta es personal e intransferible.',
 }
 
+/**
+ * EL PAQUETE DE LA VISITA, TAL COMO LLEGA DEL SERVIDOR.
+ *
+ * Sólo llegan los `RELEASED`: `/api/portal` los filtra con
+ * `visibleParaElPaciente` antes de responder, así que esta pantalla no puede
+ * pintar un borrador ni equivocándose. La compuerta vive en el servidor porque
+ * esconder una pestaña no cierra una ruta HTTP.
+ */
+interface PaqueteVisible {
+  id: string
+  fechaConsulta: string
+  encounterSummary: string
+  medicationInstructions: { nombre: string; instruccion: string }[]
+  /** `null` = no se pudo saber qué había antes. NO es «no hubo cambios». */
+  medicationChanges: { nombre: string; tipo: 'nuevo' | 'suspendido' | 'sin-cambio' }[] | null
+  orders: string[]
+  followUp: string
+  warningSigns: string[]
+  /** `null` = el expediente no se pudo leer. Entonces no se dice NADA de alergias. */
+  alergias: string | null
+  prescriptor: { nombre: string; cedulaProfesional: string; especialidad: string }
+  clinicianContactRules: string
+  version: number
+}
+
 interface Cita {
   id: string
   fechaHora: string
@@ -150,6 +175,15 @@ export default function MiPortalPage() {
    */
   const [alergias, setAlergias] = useState('')
   const [alergiasLeidas, setAlergiasLeidas] = useState(false)
+  /**
+   * LO QUE TU MÉDICO LIBERÓ. `null` mientras no se sabe; `[]` cuando se leyó y
+   * no hay ninguno. Y `paquetesError` aparte, por lo mismo que `docsError`: una
+   * lista vacía por un fallo de red se lee como «mi médico no me dejó nada», y
+   * de ahí sale alguien que no empieza el antibiótico que sí le recetaron.
+   */
+  const [paquetes, setPaquetes] = useState<PaqueteVisible[] | null>(null)
+  const [paquetesError, setPaquetesError] = useState(false)
+  const [paquetesBloqueados, setPaquetesBloqueados] = useState(false)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -181,6 +215,18 @@ export default function MiPortalPage() {
           setAlergiasLeidas(d.alergiasLeidas === true)
         })
         .catch(() => setDocsError(true))
+      /*
+        EL PAQUETE DE LA VISITA (POSTVISIT-001). En paralelo y sin bloquear:
+        el paciente que entra a confirmar una cita no espera a esto.
+      */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(async res => {
+          if (res.status === 403) { setPaquetesBloqueados(true); setPaquetes([]); return }
+          if (!res.ok) { setPaquetesError(true); return }
+          const d = await res.json()
+          setPaquetes((d.paquetes || []) as PaqueteVisible[])
+        })
+        .catch(() => setPaquetesError(true))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -497,13 +543,127 @@ export default function MiPortalPage() {
             el estado vacío dice la verdad en vez de fingir que no hay nada.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+
+          {/*
+            NO SE PUDO LEER — y se dice. Es la hermana exacta del aviso de las
+            recetas (H-01): una lista vacía por un fallo de red se lee como «mi
+            médico no me dejó nada», y esa es una afirmación clínica que nadie
+            comprobó.
+          */}
+          {paquetesError && (
+            <div role="alert" style={{ padding: 16, border: '1px solid var(--amber)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+              <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+                No pudimos cargar el resumen de tus consultas. Esto <strong>no</strong> significa
+                que no tengas ninguno: vuelve a intentarlo o llama a tu consultorio.
+              </p>
+            </div>
+          )}
+
+          {paquetesBloqueados && (
+            <div style={{ padding: 16, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16, fontSize: 14, color: 'var(--text3)' }}>
+              Este enlace sirve para tus citas. Pide a tu médico el acceso a la
+              información de tus consultas.
+            </div>
+          )}
+
+          {!paquetesError && !paquetesBloqueados && paquetes?.length === 0 && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          )}
+
+          {(paquetes ?? []).map(pk => {
+            const f = fmtFecha(pk.fechaConsulta, tzClinica)
+            return (
+              <article key={pk.id} style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+                <h3 className="t-h3" style={{ margin: '0 0 4px' }}>Consulta del {f.fecha}</h3>
+                {pk.encounterSummary && (
+                  <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>{pk.encounterSummary}</p>
+                )}
+
+                {pk.medicationInstructions.length > 0 && (
+                  <>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Tus medicamentos</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {pk.medicationInstructions.map(m => <li key={m.nombre}>{m.instruccion}</li>)}
+                    </ul>
+                  </>
+                )}
+
+                {/*
+                  QUÉ CAMBIÓ. Es donde el paciente más se equivoca —sigue
+                  tomando lo que ya no toca—, y por eso se enseña aparte de la
+                  lista. Cuando el servidor no pudo saber qué había antes manda
+                  `null`, y entonces AQUÍ NO SE DICE NADA: «no sé qué había
+                  antes» no es «no hubo cambios».
+                */}
+                {pk.medicationChanges && pk.medicationChanges.some(c => c.tipo !== 'sin-cambio') && (
+                  <>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Qué cambió desde tu visita anterior</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {pk.medicationChanges.filter(c => c.tipo !== 'sin-cambio').map(c => (
+                        <li key={`${c.tipo}-${c.nombre}`}>
+                          {c.tipo === 'nuevo' ? 'Empiezas' : 'Ya no tomas'}: {c.nombre}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+
+                {pk.orders.length > 0 && (
+                  <>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Estudios que te pidió</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {pk.orders.map(o => <li key={o}>{o}</li>)}
+                    </ul>
+                  </>
+                )}
+
+                {pk.warningSigns.length > 0 && (
+                  <>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Cuándo volver antes</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {pk.warningSigns.map(w => <li key={w}>{w}</li>)}
+                    </ul>
+                  </>
+                )}
+
+                {pk.followUp && (
+                  <p style={{ fontSize: 14, color: 'var(--text2)', margin: '12px 0 0' }}>
+                    <strong>Tu próxima cita:</strong> {pk.followUp}
+                  </p>
+                )}
+
+                {/*
+                  ALERGIAS: sólo si el expediente SE PUDO LEER (`alergias !== null`).
+                  Con `null` no se escribe ni «sin registro»: afirmar una ausencia
+                  que nadie comprobó, delante de alguien que no puede detectar el
+                  error, es exactamente lo que la regla 4 prohíbe.
+                */}
+                {pk.alergias !== null && pk.alergias !== '' && (
+                  <p style={{ fontSize: 14, color: 'var(--text2)', margin: '12px 0 0' }}>
+                    <strong>Alergias registradas:</strong> {pk.alergias}
+                  </p>
+                )}
+
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
+                  {/* QUIÉN RESPONDE POR ESTE PAPEL: del sello de firma de la nota. */}
+                  {pk.prescriptor.nombre}
+                  {pk.prescriptor.cedulaProfesional ? ` · Céd. Prof. ${pk.prescriptor.cedulaProfesional}` : ''}
+                  {pk.prescriptor.especialidad ? ` · ${pk.prescriptor.especialidad}` : ''}
+                </p>
+                {pk.clinicianContactRules && (
+                  <p style={{ fontSize: 12, color: 'var(--text3)', margin: '6px 0 0', lineHeight: 1.6 }}>
+                    {pk.clinicianContactRules}
+                  </p>
+                )}
+              </article>
+            )
+          })}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>

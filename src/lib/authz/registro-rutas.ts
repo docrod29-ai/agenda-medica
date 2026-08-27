@@ -144,9 +144,14 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'portal/link': {
     tipo: 'capacidad', capacidad: 'agenda.gestionar',
     activacionPendiente:
-      'Emite el magic-link del paciente con alcance `agenda` (nunca `clinico`, ' +
-      'cerrado en E0-06) y lo usa la asistente del mostrador. `agenda.gestionar` ' +
-      'la incluye, pero estrecha a enfermería/farmacia/laboratorio. ' + PENDIENTE_AGENDA,
+      'Emite el magic-link del paciente. La rama de fábrica —alcance `agenda`— la ' +
+      'usa la asistente del mostrador y sigue con `verificarMiembro`; ' +
+      '`agenda.gestionar` la incluye, pero estrecha a enfermería/farmacia/' +
+      'laboratorio. ' + PENDIENTE_AGENDA + ' ' +
+      'La rama `alcance: "clinico"` NO espera a nadie y ya cobra `firmar` ' +
+      '(POSTVISIT-001): un enlace que abre el expediente es una credencial con ' +
+      'secreto médico dentro, y quien la emite tiene que poder responder por ese ' +
+      'contenido. E0-06 cerró que se emitiera POR OMISIÓN, no que existiera.',
   },
   'public/availability/[clinicId]': { tipo: 'publica', motivo: 'Huecos libres para el booking público del paciente. Por diseño sin sesión.' },
   'public/booking': { tipo: 'publica', motivo: 'Agendado público del paciente. Rate-limit + validación de campos en la propia ruta.' },
@@ -167,6 +172,13 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // ── expediente e IA clínica (entitlement de plan + rol) ───────────────────
   'consultor-evidencia': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/exportar/[patientId]': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
+  /**
+   * `firmar` y NO `clinico.escribir`: liberar el paquete de la visita es un acto de
+   * autoridad clínica sobre lo que el paciente leerá como definitivo, del mismo peso
+   * que sellar la nota. Quien puede escribir en el expediente no puede, por eso,
+   * decidir qué se le enseña al paciente como aprobado por su médico (POSTVISIT-001).
+   */
+  'expediente/paquete-de-visita': { tipo: 'capacidad', capacidad: 'firmar' },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/atribuir-roles': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },

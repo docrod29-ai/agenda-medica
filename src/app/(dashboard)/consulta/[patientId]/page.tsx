@@ -58,6 +58,7 @@ import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { EntregarAlPaciente } from '@/components/EntregarAlPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { CierreAlPulgar, cierreAlPulgarVisible } from '@/components/CierreAlPulgar'
@@ -5656,6 +5657,38 @@ export default function ConsultaActivaPage() {
            */
           proximaCita={proximoSeguimiento.trim() ? formatDateMX(proximoSeguimiento) : undefined}
           onInteraccion={() => setHechosCierre(marcarHechoDeCierre(notaId, 'hoja_del_paciente'))}
+        />
+      )}
+
+      {/*
+        ENTREGARLO DE VERDAD (POSTVISIT-001 · REG-335) — el paso que faltaba.
+
+        Justo arriba, `HojaParaElPaciente` compone la hoja y ofrece copiarla o
+        imprimirla. Eso llevaba dos años siendo TODO el camino: el contenido
+        mejor pensado del lado del paciente y ninguna forma de que le llegara si
+        no había impresora enfrente (`POSTVISIT-ENTREGA-001`).
+
+        Esto es la otra mitad, y no es la misma: aquí el contenido lo compone el
+        SERVIDOR de la nota firmada, queda liberado con quién y cuándo, y el
+        paciente lo lee en su portal las veces que quiera — dentro de un mes,
+        cuando ya perdió el papel.
+
+        `firmada` es la compuerta de `POSTVISIT-GATE-001`: la hoja de arriba se
+        compone del estado vivo de la consulta, y ésta no puede.
+
+        Y no en un paciente INTERNADO, por lo mismo que la hoja: no se lleva
+        nada a casa hoy.
+      */}
+      {!esNotaHospital && notaId && clinicId && (
+        <EntregarAlPaciente
+          clinicId={clinicId}
+          patientId={patientId}
+          notaId={notaId}
+          firmada={firmada}
+          telefono={patient?.telefono}
+          nombreDelConsultorio={config?.nombreClinica || config?.nombreMedico || ''}
+          proximaCita={proximoSeguimiento.trim() || undefined}
+          onAviso={toast}
         />
       )}
 
