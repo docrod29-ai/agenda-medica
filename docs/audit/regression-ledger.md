@@ -7988,234 +7988,116 @@ h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ru
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
 
-## REG-323 — el enlace de la teleconsulta se prometía en cada mensaje y no se mandaba en ninguno
+---
 
-**Qué fallaba.** El paciente que agendaba una **videoconsulta** por WhatsApp
-recibía, en la confirmación: «Recibirás el enlace de la videollamada por este
-medio antes de tu cita». Lo volvía a recibir en el recordatorio de 24 h. Lo
-volvía a recibir el mismo día. El enlace **no llegaba nunca**, porque el único
-mensaje que decía «antes de tu cita» era justamente el que repetía la promesa.
-A la hora de su consulta el paciente no tenía forma de entrar a la sala.
+## REG-323 — corregir un teléfono borraba las alergias del paciente
 
-**Cómo se descubrió.** Recorriendo el flujo canónico del Bloque 7 (WhatsApp →
-cita → confirmación → recordatorio → retorno a consulta) con la pregunta de
-`.claude/rules/el-dato-tiene-que-llegar.md`: «¿dónde acaba este dato?». El
-enlace acababa en la función que lo compone. `grep dondeEsLaCita` devolvía
-cuatro llamadas; `grep tokenPaciente` ninguna fuera del módulo.
+**Área.** Identidad del paciente y escritura del expediente. Encontrado por la
+auditoría H-18 leyendo el payload de `handleSave` de `/pacientes` contra la
+lista de inputs que el modal monta de verdad.
 
-**Causa raíz.** `lib/telesalud/donde-es.ts` sólo emite el enlace si recibe un
-`tokenPaciente`, y hace bien: `/api/telesalud/sala` exige prueba de titularidad y
-responde 404 «Cita no encontrada» a un enlace sin token, así que un enlace sin
-credencial es peor que ninguno. Lo que fallaba está una capa arriba: el campo era
-**opcional**, y los cuatro llamadores lo omitían. Compilaba.
+**Qué fallaba.** Editar el teléfono de un paciente desde `/pacientes`
+sobrescribía sus **alergias** con una cadena vacía. Silencioso, permanente, y
+disparado por una acción administrativa rutinaria que puede ejecutar un rol que
+ni siquiera ve el campo:
 
-Es exactamente el defecto contra el que avisa la cabecera de
-`enlaceSalaPaciente()`, que hizo el token obligatorio en SU firma precisamente
-para que «no vuelva en silencio en el siguiente sitio que llame sin él». Volvió
-un nivel más arriba, donde alguien lo dejó opcional otra vez. Misma familia que
-REG-167, REG-170 y REG-320: escrito, conectado, y el dato sin llegar.
+1. Un paciente sin alergias registradas; la asistente abre `/pacientes` y la
+   lista queda en memoria del componente.
+2. El médico, en `/consulta/{id}`, anota «Penicilina». Se guarda, e invalida
+   **su** caché de módulo.
+3. La asistente, **sin recargar**, abre el editor de ese paciente, corrige el
+   teléfono y guarda.
+4. El documento queda con `alergias: ''`. En `audit_log` sólo constaba
+   `campos: ['nombre','telefono',…,'alergias','notas']` — los nombres, sin los
+   valores. **El dato perdido no se podía reconstruir.**
 
-**Control permanente.** `tokenPaciente` pasa a ser **obligatorio** en
-`DatosDeLugar`: quien no tenga token tiene que escribir `''`, que es una decisión
-y no un olvido — y el compilador se lo pide a cada llamador futuro.
-`api/cron/reminders` —el único que corre ANTES de la cita— firma el token real
-del paciente de esa cita, con alcance `agenda` (no `clinico`: el enlace viaja por
-WhatsApp y se reenvía) y con la versión del expediente, para que una revocación
-lo tumbe. Los otros tres llamadores declaran `''` con su razón escrita: el bot
-agenda con semanas de antelación y su token estaría muerto el día de la consulta;
-`lib/whatsapp.ts` se ejecuta en el navegador y firmar exigiría el secreto.
-`src/__tests__/el-enlace-de-la-teleconsulta-llega-al-paciente.test.ts`
-(14 casos; probado al revés: sin el arreglo caen 7).
+`notas` sufría lo mismo y era peor de justificar: no tiene input en ninguna
+parte del producto, así que era un campo que sólo existía para escribirse.
 
-**Qué NO cubre, declarado.** No cubre el camino de **plantilla HSM**, que es por
-donde sale el recordatorio cuando la ventana de servicio de 24 h está cerrada
-—el caso normal—. Las plantillas aprobadas llevan parámetros de texto y ninguna
-URL; meterla dentro de un parámetro o mandar texto libre fuera de la ventana es
-lo que Meta rechaza. Añadir una plantilla con botón de URL dinámica es un paso
-externo del dueño: queda declarado en
-`ENLACE_TELECONSULTA_NO_CABE_EN_PLANTILLA` (`lib/whatsapp/templates.ts`) y
-sellado por dos casos, con estado **OWNER_APPROVAL_REQUIRED**. Tampoco cubre la
-creación de la sala en el proveedor, la ventana horaria de apertura
-(`ventana-sala.ts`), ni la revocación por versión: `/api/telesalud/sala` autoriza
-hoy sin mirar `tokenVigente`, y eso es otra unidad de trabajo — registrada, no
-arreglada aquí.
+**Por qué era P0.** De `alergias` cuelgan a la vez el cruce alergia↔fármaco, la
+compuerta que impide firmar, el sesgo del reconocedor hacia los alérgenos y el
+recuadro rojo de la receta. Se apagaban los cuatro sin ninguna señal, y el campo
+vacío se lee después como «no se ha preguntado», no como «alguien lo borró».
 
-## REG-324 — al paciente con dolor en el pecho, el bot le contestaba el horario de atención
+**Causa raíz — tres piezas, y sólo juntas borran.**
 
-**Qué fallaba.** El bot de WhatsApp **no tenía ninguna detección de urgencia**.
-Su primera decisión sobre lo que escribe el paciente es un detector de preguntas
-frecuentes que trabaja por **subcadena**:
+1. **El formulario mandaba más campos de los que enseña.** El `payload` de
+   `handleSave` incluía siempre `alergias` y `notas` y se pasaba entero a
+   `updatePatient` → `updateDoc`, que sobrescribe campo por campo. Pero el input
+   de alergias vive tras `{mode === 'medico' && …}` y el de `notas` no existe.
+   (`mode` viene de `ModeContext`: es un conmutador de UI que cualquier médico
+   real puede poner en `secretaria`, y que se fuerza a `secretaria` para quien no
+   lo es. No es sólo el rol.)
+2. **La semilla podía estar vieja.** `openEdit(p)` toma `p` del array en memoria,
+   cargado una sola vez por montaje sobre el memo de 30 s de `getPatients`.
+   Nunca se relee el documento, e `invalidarCachePacientes` sólo corre en la
+   pestaña que escribió — es un `Map` de módulo, no un canal entre pestañas.
+3. **`sinUndefined` no filtra la cadena vacía.** Descarta `undefined` y deja
+   pasar `''`, así que el valor vacío llega a Firestore y borra.
 
-```
-if (/horario|hora|atiende|atencion|abren|cierran|cuando/.test(t)) return 'horario'
-```
+Y la defensa que existía no cubría este camino: la bitácora `paciente_modificado`
+con `antes`/`despues`/`vaciado` —escrita precisamente para que un vaciado de
+alergias no fuera silencioso— vive **sólo** en el input de `/consulta`.
 
-«Me duele el pecho desde hace una **hora**» contiene `hora`. El paciente con
-dolor torácico recibía, literalmente, el horario de atención del consultorio. Y
-«no puedo respirar» no casaba con ninguna pregunta frecuente ni con ningún verbo
-de agenda, así que caía al menú de bienvenida. Está reproducido contra el handler
-real: la prueba enseña las dos respuestas que salían.
+**El caso de 2026-07 acertó el objetivo y erró el mecanismo.** Cuando se acortó
+el formulario se escribió un guardián para que esconder un campo no lo borrara, y
+lo que congeló fue «`notas` sigue viajando en el payload». Viajar sólo conserva
+el dato mientras la semilla esté fresca; con una semilla vieja, viajar es
+exactamente lo que borra. La prueba estaba en verde con el defecto vivo.
 
-**Cómo se descubrió.** Auditando el Bloque 7 contra `patient-facing-ai.md` §6
-(«la urgencia gana a todo lo demás»). `grep` de `urgencia|emergencia|911` sobre
-`api/whatsapp/` y `lib/whatsapp/`: ni una línea.
+**Control permanente.** `src/lib/pacientes/campos-que-se-guardan.ts` construye el
+payload fuera de la pantalla, con una sola regla: **no se escribe lo que no se
+pudo leer.** `notas` no viaja nunca; `alergias` sólo cuando `mode === 'medico'`,
+que es cuando el input estuvo delante. La clave ausente deja intacto el valor
+guardado, en vez de pisarlo con el eco de una copia vieja. Es la regla 4 de
+seguridad clínica —«ausencia de dato no es dato de ausencia»— dicha en lenguaje
+de escritura, y la misma que este repositorio ya aplica en `guardarBorrador`.
+No impide borrar: con el input delante, vaciar el campo es una decisión del
+médico y sigue llegando.
+**Y una red secundaria, para lo que la primera no puede cubrir.** La primera
+impide que un campo NO editado pise nada; no dice nada de dos personas editando
+a la vez los MISMOS campos visibles, donde sin comparar nada gana el último en
+pulsar Guardar y el que perdió no se entera. `updatePatient` admite ahora el
+`updatedAt` que vio el llamador y rechaza la escritura si el documento cambió
+desde entonces —mismo `code` `conflicto-de-version` que `updateNota`, para que
+las pantallas no tengan que aprender dos nombres para el mismo suceso—, y el
+editor de `/pacientes` lo traduce a un aviso que no manda a mirar el wifi.
+Opcional a propósito: quien no pase la marca se comporta como antes.
 
-**Causa raíz.** **Precedencia**, no detección. La primera pregunta que se hacía
-el bot era «¿de qué tema habla?» en vez de «¿esto es una urgencia?». Un detector
-de temas por subcadena, preguntado primero, decide antes de que nadie mire si el
-paciente se está muriendo. El mismo orden invertido que ya había costado
-`lib/whatsapp/intencion.ts` («quiero agendar una consulta» contestaba el precio):
-aquella vez el precio de equivocarse era una cita perdida.
+La bitácora `paciente_modificado` gana además `antes`/`despues`/`vaciado`
+**para `alergias` y sólo para `alergias`**: sin el `antes`, un vaciado queda
+registrado como «se tocó el campo alergias», indistinguible de haberlas escrito
+— que es exactamente lo que hizo irreconstruible el dato aquí. Es la excepción
+que ya existía en el input de `/consulta`, con ese mismo campo y ese mismo
+propósito, y no se amplía a ningún otro: cada valor en la bitácora es PHI que
+sale del expediente.
 
-**Control permanente.** `src/lib/paciente/urgencia.ts` (PURO) con las cinco
-categorías del §6 —dolor torácico, dificultad respiratoria, síntomas
-neurológicos agudos, ingesta accidental y sobredosis— y las cinco clases de
-respuesta del §2, cerradas. Se consulta en `handleMessage` **antes** de
-`getSession`, así que gana a la pregunta frecuente, a la intención de agenda y a
-la máquina de estados entera, incluso a mitad de un agendado. Sólo la baja
-(BAJA/STOP) queda por encima, por obligación legal. El bot no triaja, no
-aconseja y no atiende: contesta con la vía real (911 / urgencias / teléfono del
-consultorio) en la PRIMERA línea, avisa al consultorio y cierra la sesión.
+`src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts`
+(22 casos, probado al revés ×7: alergias incondicional, `notas` de vuelta al
+payload, la pantalla volviendo a construirlo a mano, la guardia de versión
+retirada, la pantalla dejando de pasar su marca, la bitácora volviendo a decir
+sólo los nombres de los campos, y el detalle ampliado a un campo que no lo
+necesita — cada reversión pone en rojo exactamente el caso que le toca).
 
-No se inventó política clínica: la lista es la del §6 y la vía de contacto es la
-que el portal del paciente (`app/mi/[token]`) ya le dice a quien entra por ahí.
+**Qué NO cubre, declarado.**
 
-`src/__tests__/la-urgencia-gana-en-whatsapp.test.ts` (15 declaraciones que el
-corredor expande a 23 casos; sin el arreglo caen 10, contra el handler real). Incluye cinco casos de FALSO POSITIVO —«no
-puedo hablar ahora, agéndame para mañana», «no puedo ver los horarios»— que
-encontraron y corrigieron dos reglas propias demasiado anchas antes de commitear:
-contestar el 911 a una frase administrativa común le enseña al paciente a ignorar
-el aviso el día que sea de verdad.
-
-**Qué NO cubre, declarado.** El vocabulario es vocabulario, no criterio
-(`clinical-safety.md` §5): lo que no esté **no se vigila**, no es benigno. Fuera
-quedan hemorragia, trauma, dolor abdominal agudo, fiebre del lactante,
-anafilaxia, ideación suicida, complicaciones del embarazo y cualquier lengua que
-no sea el español. No hay detección de negación, y es deliberado: la frase más
-importante de la lista —«no puedo respirar»— empieza por «no», y una regla de
-negación ingenua callaría justo ésa. No cubre voz, ni el portal web, ni el camino
-de plantilla HSM.
-
-## REG-325 — al paciente que YA tenía cita el bot le decía que su horario ya no existe, y él agendaba otra
-
-**Qué fallaba.** El bot confirma la cita y, si el mismo «SÍ» vuelve a llegar,
-revalida el hueco antes de escribir. Esa revalidación veía **la cita que acababa
-de crear el propio paciente**, la contaba como ocupación y le contestaba:
-
-> «Ese horario ya no está disponible. Por favor elija otro escribiendo *agendar*
-> de nuevo. 🙏»
-
-Y el reintento que llegaba hasta la transacción recibía lo mismo con otras
-palabras: «Lo sentimos, ese horario acaba de ocuparse».
-
-El paciente **tiene** cita y el bot le dice que no. Y hace caso: se agenda a otra
-hora. El consultorio se queda con **dos** citas suyas y él se presenta a una. El
-duplicado no lo fabrica el reintento: lo fabrica el mensaje equivocado. Con dos
-entregas simultáneas del mismo «SÍ» el resultado era peor todavía: dos respuestas
-al mismo paciente que se desmienten entre sí, una diciendo que quedó registrada y
-la otra que el horario se ocupó.
-
-**Cómo se descubrió.** Recorriendo las fronteras de escritura del Bloque 7 con la
-pregunta de GP9: «¿qué pasa si esto llega dos veces?». Reproducido conduciendo el
-camino real del bot (agendar → aviso → nombre → tipo → día → hora → sí) contra una
-tienda con la semántica transaccional de Firestore, y **contando** los documentos.
-
-**Por qué se repite un «SÍ».** Ninguno es un error del usuario:
-Meta reentrega el webhook cuando la respuesta tarda y el dedup es fail-open a
-propósito; `clearSession` termina en `.catch(() => {})`; y la confirmación se
-manda con un `send` que devuelve `false` sin lanzar cuando el proveedor está
-caído, así que el paciente no ve nada y vuelve a escribir.
-
-**Causa raíz.** La identidad de la cita nacía de la ESCRITURA (`apptsCol.doc()`),
-no de la INTENCIÓN. `POST /api/appointments` ya lo había aprendido en GP9 —misma
-solicitud activa, mismo recurso— y el bot es la OTRA vía que crea citas: la
-lección nunca llegó hasta aquí.
-
-**Control permanente.** `src/lib/whatsapp/cita-ya-agendada.ts` (PURO): la misma
-regla de GP9 medida sobre los cinco campos que definen la cita del bot —quién,
-cuándo, tipo, duración y médico— más `origen`/`creadoPor`. Se consulta en los DOS
-sitios: antes de la revalidación (reintento secuencial) y dentro de la
-transacción (dos entregas a la vez). Cuando reconoce el intento no escribe nada:
-devuelve el mismo folio y le vuelve a confirmar la MISMA cita. El aviso al
-consultorio no se repite —un segundo «🔔 Nueva cita» le haría creer que tiene
-dos—.
-
-La regla es estricta a propósito: reconocer un reintento de más sería tragarse en
-silencio una cita que el paciente sí quería. Una cita liberada (cancelada,
-reagendada, no-asistió) nunca es un reintento.
-
-`src/__tests__/el-reintento-del-bot-no-pierde-la-cita.test.ts` (10 casos; sin el
-arreglo caen 3, incluido el que cuenta dos citas). Incluye los negativos: un hueco
-realmente ocupado por otro paciente sigue dando conflicto, una cita cancelada no
-se resucita, y el consultorio vecino con una cita idéntica no se confunde con
-este reintento.
-
-**Qué NO cubre, declarado.** No cubre la vía de LISTA DE ESPERA, que tiene su
-propia transacción y el mismo patrón sin reparar: queda como trabajo con nombre,
-no dado por bueno. No cubre las reglas de Firestore (van contra el emulador) ni
-el dedup por `wamid`, que tiene su propia suite — aquí se prueba justamente el
-caso en que el dedup NO salvó, que es para el que existe la idempotencia.
-
-## REG-326 — la lista de espera: entrar dos veces, y que al aceptar el hueco le dijeran que otro se le adelantó
-
-Dos defectos de la misma familia —la identidad del recurso nacía de la ESCRITURA
-y no de la INTENCIÓN— en las dos fronteras de escritura de la lista de espera.
-
-**A · Entrar dos veces.** `createWaitlistEntry` escribía con `addDoc`:
-identificador aleatorio, uno nuevo en cada llamada. Dos envíos del mismo
-formulario —doble clic, reintento tras una red lenta, pestaña duplicada— eran por
-construcción DOS entradas del mismo paciente.
-
-Y duele donde no se ve: al liberarse un hueco sólo se avisa a TRES personas
-(`LIMITE_NOTIFICAR`), así que el paciente repetido ocupa dos de esos tres sitios.
-**El tercero de la fila no se entera del hueco** y el repetido recibe dos veces el
-mismo mensaje. La lista sigue pareciendo que funciona.
-
-**B · «Otra persona respondió primero» cuando no era verdad.** Si el «SÍ» del
-paciente volvía a llegar, la transacción veía **la cita que acababa de crear él
-mismo**, la contaba como ocupación y le contestaba:
-
-> «Lo sentimos, ese horario acaba de ocuparse — otra persona de la lista
-> respondió primero.»
-
-Falso, y además culpando a un tercero que no existe: le devolvía a la lista de
-espera creyendo que perdió el hueco que en realidad había ganado. Es la misma
-raíz de REG-325 en la otra rama del bot, y aquí es peor, porque el mensaje nombra
-a alguien.
-
-**Cómo se descubrió.** Recorriendo el camino real del Bloque 7 —se libera un
-hueco → se ofrece a varios → uno contesta «SÍ» → se le agenda → los demás se
-enteran— con `ofrecerHuecoLiberado` y `handleMessage` reales contra una tienda con
-la semántica transaccional de Firestore, y contando documentos.
-
-**Control permanente.**
-- A: el id de una entrada sale de la intención (teléfono + tipo + fecha deseada +
-  franja) con `idIdempotente`, que mete el consultorio en la preimagen — la misma
-  petición en dos consultorios da dos ids distintos. La escritura va en
-  transacción y **conserva `createdAt`**: ese campo decide la antigüedad en la
-  cola, y reescribirlo mandaría al paciente al final de su propia fila sin que
-  nadie lo viera. La clave vive en `lib/whatsapp/lista-espera.ts` (`claveDeEspera`),
-  junto a la política de la lista y no en un módulo nuevo.
-- B: `citaYaAgendada` —el mismo módulo de REG-325— dentro de la transacción de la
-  rama `esperando_lista`. La rama de conflicto REAL (otro paciente contestó antes)
-  no se toca: ésa sí es verdad, y hay un caso que la exige.
-
-`src/__tests__/entrar-a-lista-de-espera-una-sola-vez.test.ts` (10 casos; probado al
-revés: reintroduciendo `addDoc` caen 3) y
-`src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts` (16 casos; sin
-el arreglo de B caen 2).
-
-**Un falso hallazgo, y por qué se cuenta.** El primer rojo decía que responder
-«NO» a una oferta dejaba la entrada en `contactado` en vez de `baja` — o sea, que
-la baja prometida no ocurría. **Era del doble, no del producto**: la tienda en
-memoria devolvía documentos de consulta sin `ref`, así que el `d.ref.update(...)`
-lanzaba y el `try/catch` del llamador se lo tragaba. Con `ref` en el harness, el
-camino real pasa. Queda escrito porque un harness incompleto no da falsos verdes:
-da falsos ROJOS, y un falso rojo perseguido durante horas cuesta lo mismo que un
-defecto.
-
-**Qué NO cubre, declarado.** No cubre las reglas de Firestore (van contra el
-emulador) ni la atomicidad real de la transacción del SDK de cliente, que aquí se
-simula. No cubre la pantalla del formulario: se prueba la frontera de escritura.
-No cubre la plantilla HSM fuera de la ventana de 24 h — sigue siendo
-OWNER_APPROVAL_REQUIRED (REG-323).
+- **No cubre el camino de `/consulta`**, que tiene su propio input de alergias,
+  su propio guardado y su propia bitácora con `antes`/`despues`/`vaciado`.
+  Borrar el campo desde ahí sigue siendo posible, y debe serlo.
+- **No prueba la concurrencia CORRIENDO Firestore.** La guardia de `updatedAt`
+  se comprueba leyendo el fuente: esta suite corre en `node`, sin emulador ni
+  jsdom. Que dispare de verdad contra la base sólo lo puede decir el emulador.
+- **La guardia no cubre las escrituras de un solo campo desde `/consulta`**, que
+  no pasan `vistoEn` a propósito: escriben un campo, no el formulario entero, y
+  no pagan la lectura extra. Dos sesiones editando ESE campo a la vez siguen
+  ganando por orden de llegada — pero ahí el vaciado sí queda en la bitácora con
+  su `antes`.
+- **No cubre la caché de 30 s de `getPatients`.** La semilla vieja sigue siendo
+  vieja: lo que se corrige es que ya no pueda vaciar un campo clínico.
+- **No cubre `email`**, que tiene la MISMA forma —sin input en esta pantalla y
+  viajando como `f.email.trim()`— y por tanto el mismo riesgo con una semilla
+  vieja. Queda declarado como **deuda P2 no pagada**, fuera del alcance de H-18
+  a propósito: no es un campo clínico y ampliarlo aquí habría sido rediseñar el
+  formulario. `curp` no corre ese riesgo porque su vacío sale como `undefined` y
+  `sinUndefined` lo descarta.
+- **No cubre `alergiasEstructuradas`**, que esta pantalla nunca ha tocado.
