@@ -8,8 +8,7 @@ import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
-import { dondeEsLaCita, esTeleconsulta } from '@/lib/telesalud/donde-es'
-import { crearTokenPaciente } from '@/lib/patient-token'
+import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
 import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -210,60 +209,6 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-          /**
-           * EL ENLACE DE LA SALA — éste es el mensaje que lo prometía.
-           *
-           * `dondeEsLaCita` sólo emite el enlace si le llega el token del
-           * paciente, y ningún llamador se lo daba: la confirmación decía
-           * «recibirás el enlace por este medio antes de tu cita», el
-           * recordatorio decía lo mismo, y el enlace no llegaba nunca. Este cron
-           * es el único que corre ANTES de la cita (ventana de hoy y mañana), así
-           * que es aquí donde la promesa se cumple o no se cumple.
-           *
-           * Alcance `agenda`, no `clinico`: este enlace viaja por WhatsApp y se
-           * reenvía. Deja entrar a la sala y a la agenda del paciente; los
-           * documentos clínicos firmados siguen exigiendo un enlace emitido por
-           * un médico (`/api/telesalud/token`). Mismo criterio que
-           * `/api/portal/link`.
-           *
-           * Nace con la VERSIÓN vigente del expediente: cuando alguien revoca los
-           * enlaces de ese paciente, el contador sube y éste cae con los demás.
-           *
-           * Sólo se firma para una videoconsulta: a una cita presencial no le
-           * hace falta y emitir credenciales que nadie usa es ampliar la
-           * superficie por nada. Sin `pacienteId` no hay a quién atarlo, y un
-           * enlace sin titular es justo el que la sala rechaza con 404.
-           */
-          let tokenSala = ''
-          if (esTeleconsulta(appt.tipo) && appt.pacienteId) {
-            /**
-             * TODO EL BLOQUE VA EN try/catch, y no es por costumbre.
-             *
-             * `crearTokenPaciente` LANZA si falta `PORTAL_PACIENTE_SECRET`. El
-             * `try` de este bucle está a nivel de CONSULTORIO, así que una
-             * variable de entorno mal puesta no dejaría a un paciente sin enlace:
-             * dejaría a ese consultorio entero sin recordatorios, presenciales
-             * incluidos, y con un 200 en la respuesta del cron.
-             *
-             * Un recordatorio sin enlace sigue avisando de la cita. Ningún
-             * recordatorio no avisa de nada. Se degrada por lo primero.
-             */
-            try {
-              let versionPortal = 0
-              try {
-                const pacSnap = await adminDb.collection('clinics').doc(clinicId)
-                  .collection('patients').doc(appt.pacienteId).get()
-                versionPortal = Number((pacSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
-              } catch { /* sin versión conocida se emite la 0: una revocación posterior lo corta igual */ }
-              tokenSala = crearTokenPaciente(clinicId, appt.pacienteId, undefined, 'agenda', versionPortal)
-            } catch (e) {
-              // Sin token no se inventa un enlace: `dondeEsLaCita` dirá que llega
-              // aparte, que es la verdad. Y queda dicho POR QUÉ, sin PHI.
-              safeLog.warn('[reminders] no se pudo firmar el enlace de teleconsulta:', String(e))
-              tokenSala = ''
-            }
-          }
-
           const lugar = dondeEsLaCita({
             tipo: appt.tipo,
             citaId: appt.id,
@@ -271,7 +216,6 @@ export async function GET(req: NextRequest) {
             direccion: config.direccion,
             googleMapsUrl: config.googleMapsUrl,
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
-            tokenPaciente: tokenSala,
           })
           const msgData = {
             paciente: appt.pacienteNombre,

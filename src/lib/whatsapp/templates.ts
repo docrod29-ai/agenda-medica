@@ -30,35 +30,6 @@ export interface PlantillaWa {
 
 export type ClavePlantilla = 'recordatorio24h' | 'recordatorioMismoDia' | 'listaEspera'
 
-/**
- * LO QUE ESTAS PLANTILLAS **NO** PUEDEN LLEVAR HOY: el enlace de la teleconsulta.
- *
- * El recordatorio es el mensaje que le hace llegar al paciente el enlace de su
- * sala de videoconsulta (`api/cron/reminders` firma el token y lo mete en el
- * texto). Pero eso sólo vale por el camino de TEXTO LIBRE, es decir cuando la
- * ventana de servicio de 24 h está abierta — y el caso normal de un recordatorio
- * es justo el contrario: el paciente no ha escrito, la ventana está cerrada, y
- * sale una PLANTILLA HSM.
- *
- * Los parámetros de abajo son los que Meta aprobó: paciente, médico, fecha, hora
- * y consultorio. Ninguno es una URL. Añadir uno no se hace aquí: exige someter y
- * que aprueben una plantilla NUEVA con botón de URL dinámica, y eso es un paso
- * externo del dueño en Meta/360dialog. No se simula, no se mete la URL dentro de
- * un parámetro de texto (Meta lo rechaza) y no se manda texto libre fuera de la
- * ventana (también lo rechaza).
- *
- * ESTADO: OWNER_APPROVAL_REQUIRED. Mientras no exista esa plantilla, el paciente
- * de videoconsulta cuya ventana está cerrada recibe el recordatorio SIN enlace.
- * Se declara aquí en vez de dejarlo pasar en silencio: la ausencia de este dato
- * es una limitación conocida, no una función que ya funciona.
- */
-export const ENLACE_TELECONSULTA_NO_CABE_EN_PLANTILLA =
-  'Las plantillas HSM aprobadas llevan parámetros de TEXTO (paciente, médico, ' +
-  'fecha, hora, consultorio). El enlace de la sala exige una plantilla nueva con ' +
-  'botón de URL dinámica, aprobada por Meta: es un paso externo del dueño. ' +
-  'Hasta entonces el enlace sólo llega por el camino de texto libre, es decir ' +
-  'con la ventana de 24 h abierta.'
-
 /** Plantillas RECOMENDADAS (nombres por defecto). El texto exacto va en la doc. */
 export const PLANTILLAS_DEFAULT: Record<ClavePlantilla, PlantillaWa> = {
   recordatorio24h: {

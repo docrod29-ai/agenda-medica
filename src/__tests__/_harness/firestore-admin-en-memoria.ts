@@ -75,13 +75,6 @@ export class TiendaEnMemoria {
     return this.docs.get(ruta)?.datos
   }
 
-  /** Borrado directo, fuera de transaccion. Idempotente: borrar lo que no esta no falla. */
-  borrar(ruta: string): void {
-    this.reloj += 1
-    this.docs.delete(ruta)
-    this.colecciones.set(this.rutaColeccion(ruta), this.reloj)
-  }
-
   /** Todos los documentos de una coleccion, en orden de insercion. */
   listar(ruta: string): Array<{ id: string; datos: Datos }> {
     return [...this.docs.entries()]
@@ -118,15 +111,6 @@ function pasa(datos: Datos, f: Filtro): boolean {
   if (f.op === '==') return v === f.valor
   if (f.op === '>=') return String(v) >= String(f.valor)
   if (f.op === '<=') return String(v) <= String(f.valor)
-  /**
-   * `in` con la MISMA semantica que Firestore: pertenencia por igualdad
-   * estricta, no coercion. Hace falta porque la busqueda de expediente por
-   * telefono manda varios formatos a la vez (10 digitos, con lada, con el 1 de
-   * movil), y sin este operador esa consulta lanzaba, el llamador se lo tragaba
-   * en su try/catch y la cita salia SIN paciente — o sea, la prueba pasaba por
-   * el camino de error y no por el que corre en produccion.
-   */
-  if (f.op === 'in') return Array.isArray(f.valor) && f.valor.some(x => x === v)
   throw new Error(`Operador no soportado por la tienda en memoria: ${f.op}`)
 }
 
@@ -135,44 +119,10 @@ class Consulta {
     readonly tienda: TiendaEnMemoria,
     readonly ruta: string,
     readonly filtros: Filtro[] = [],
-    readonly tope: number | null = null,
   ) {}
 
   where(campo: string, op: string, valor: unknown): Consulta {
-    return new Consulta(this.tienda, this.ruta, [...this.filtros, { campo, op, valor }], this.tope)
-  }
-
-  /**
-   * `limit(n)`. NO es adorno: se recorta DESPUES de filtrar, en orden de
-   * insercion, que es lo unico que esta tienda puede prometer. Una ruta que
-   * dependa del orden real de un indice de Firestore no se puede probar aqui, y
-   * eso hay que saberlo antes de escribir la asercion.
-   */
-  limit(n: number): Consulta {
-    return new Consulta(this.tienda, this.ruta, this.filtros, n)
-  }
-
-  /**
-   * `get()` vive en Consulta y NO en RefColeccion a proposito: `where()` y
-   * `limit()` devuelven una Consulta, asi que si `get()` estuviera solo en la
-   * coleccion, `col.where(...).limit(1).get()` -que es lo que escribe media
-   * aplicacion- reventaria con «no es una funcion». Aqui lo heredan las dos.
-   */
-  async get(): Promise<{ docs: Array<{ id: string; data: () => Datos; ref: RefDoc }>; size: number; empty: boolean }> {
-    const todos = this.tienda.listar(this.ruta).map(d => ({
-      id: d.id,
-      datos: d.datos,
-      data: () => d.datos,
-      /**
-       * `ref` NO es decoracion: media aplicacion escribe con `d.ref.update(...)`
-       * sobre el resultado de una consulta. Sin el, esa escritura lanzaba, el
-       * llamador se lo tragaba en su try/catch y la prueba veia el documento sin
-       * cambiar — o sea, denunciaba un defecto del producto que era del doble.
-       */
-      ref: new RefDoc(this.tienda, `${this.ruta}/${d.id}`),
-    })).filter(d => this.filtros.every(f => pasa(d.datos, f)))
-    const docs = this.tope === null ? todos : todos.slice(0, this.tope)
-    return { docs, size: docs.length, empty: docs.length === 0 }
+    return new Consulta(this.tienda, this.ruta, [...this.filtros, { campo, op, valor }])
   }
 }
 
@@ -191,43 +141,6 @@ class RefDoc {
     const d = this.tienda.obtener(this.ruta)
     return { exists: d !== undefined, id: this.id, data: () => d }
   }
-
-  /**
-   * Escritura DIRECTA (fuera de transaccion), como la del Admin SDK.
-   *
-   * Sin `merge` reemplaza el documento entero; con `merge: true` funde. La
-   * diferencia importa: media aplicacion escribe con merge para no pisar campos
-   * que no conoce, y una tienda que siempre fundiera dejaria pasar el defecto de
-   * quien olvido el merge.
-   */
-  async set(datos: Datos, opciones?: { merge?: boolean }): Promise<void> {
-    if (opciones?.merge !== true) this.tienda.borrar(this.ruta)
-    this.tienda.poner(this.ruta, datos)
-  }
-
-  /** `update` del Admin SDK: funde, y FALLA si el documento no existe. */
-  async update(datos: Datos): Promise<void> {
-    if (this.tienda.obtener(this.ruta) === undefined) {
-      const e = new Error(`NOT_FOUND: no such document ${this.ruta}`) as Error & { code: number }
-      e.code = 5
-      throw e
-    }
-    this.tienda.poner(this.ruta, datos)
-  }
-
-  /** `create` del Admin SDK: FALLA con ALREADY_EXISTS si ya existe (dedup). */
-  async create(datos: Datos): Promise<void> {
-    if (this.tienda.obtener(this.ruta) !== undefined) {
-      const e = new Error(`ALREADY_EXISTS: ${this.ruta}`) as Error & { code: number }
-      e.code = 6
-      throw e
-    }
-    this.tienda.poner(this.ruta, datos)
-  }
-
-  async delete(): Promise<void> {
-    this.tienda.borrar(this.ruta)
-  }
 }
 
 class RefColeccion extends Consulta {
@@ -241,6 +154,12 @@ class RefColeccion extends Consulta {
     return ref
   }
 
+  async get(): Promise<{ docs: Array<{ id: string; data: () => Datos }>; size: number }> {
+    const docs = this.tienda.listar(this.ruta)
+      .filter(d => this.filtros.every(f => pasa(d.datos, f)))
+      .map(d => ({ id: d.id, data: () => d.datos }))
+    return { docs, size: docs.length }
+  }
 }
 
 /** Conflicto interno: obliga a reejecutar la transaccion. */
@@ -262,10 +181,9 @@ class Transaccion {
     }
     const q = refOConsulta
     this.leidasCol.set(q.ruta, this.tienda.versionColeccion(q.ruta))
-    const todosTx = this.tienda.listar(q.ruta)
+    const docs = this.tienda.listar(q.ruta)
       .filter(d => q.filtros.every(f => pasa(d.datos, f)))
       .map(d => ({ id: d.id, data: () => d.datos }))
-    const docs = q.tope === null ? todosTx : todosTx.slice(0, q.tope)
     return {
       docs,
       size: docs.length,

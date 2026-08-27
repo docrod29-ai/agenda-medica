@@ -61,6 +61,7 @@
  * Módulo PURO, sin dependencias de red ni de framework.
  */
 import type { Medicamento } from '@/types/expediente'
+import { estaVigente } from './ordenes-medicamento'
 
 /** De dónde sale este renglón, una vez resuelto. */
 export type DeDondeSale = 'ya_lo_toma' | 'se_prescribe_hoy' | 'no_se_sabe'
@@ -98,6 +99,46 @@ export function loQueSeReceta<T extends Pick<Medicamento, 'procedenciaClinica' |
     m.estado !== 'terminada' &&
     m.estado !== 'cancelada'
   )
+}
+
+/**
+ * LO QUE DE VERDAD BAJA A UNA RECETA — la única puerta, para todas las pantallas.
+ *
+ * ── POR QUÉ ESTA FUNCIÓN EXISTE (H-01) ──────────────────────────────────────
+ *
+ * `loQueSeReceta` contesta «¿el médico quiso indicar esto hoy?». `estaVigente`
+ * contesta «¿la orden sigue en pie?». Hacen falta las DOS, y hasta hoy nadie las
+ * juntaba en un sitio: la pantalla del médico las componía a mano, dentro de un
+ * `useEffect`, y esa composición era todo lo que separaba el antecedente de la
+ * prescripción.
+ *
+ * Una regla clínica que sólo existe dentro de un componente protege exactamente
+ * a la pantalla que la escribió. La segunda superficie que arma una receta —el
+ * portal del paciente, donde NO hay un médico mirando— nunca pasó por ahí, y
+ * bajaba `nota.medicamentos` en crudo a un documento titulado «RECETA MÉDICA».
+ *
+ * Lo que `loQueSeReceta` sola dejaría pasar y esto no: `probablemente_terminada`
+ * —la duración escrita venció y NADIE lo confirmó—. Reimprimirla como receta
+ * activa sería afirmar una indicación vigente que el médico no ha revisado.
+ *
+ * ── LA FRONTERA, DICHA ENTERA ───────────────────────────────────────────────
+ *
+ *   historia ≠ medicación actual ≠ plan ≠ prescripción ≠ receta firmada
+ *
+ * Sólo una intención explícita, confirmada y atribuible al médico cruza esta
+ * función. Lo que el paciente refirió, lo que la IA sugirió, lo que se suspendió
+ * y lo que se está capturando se quedan de este lado — visibles en la nota, que
+ * es donde tienen que estar, y fuera del papel.
+ *
+ * COROLARIO: una nota con medicamentos NO es, por eso, una receta. Puede llevar
+ * sólo los antecedentes que el paciente refirió en el minuto dos. «Es una
+ * receta» se contesta con `medicamentosDeLaReceta(...).length > 0`, nunca con
+ * `medicamentos.length > 0`.
+ */
+export function medicamentosDeLaReceta<
+  T extends Pick<Medicamento, 'procedenciaClinica' | 'estado'>,
+>(meds: readonly T[]): T[] {
+  return loQueSeReceta(meds).filter(m => estaVigente(m))
 }
 
 /** Lo que el paciente ya tomaba. Va en la nota; no va en la receta. */
@@ -220,3 +261,11 @@ export const POR_QUE_NO_SE_ADIVINA_POR_EL_HISTORIAL =
   'Renovar hoy lo que el paciente ya tomaba es una receta normal. Marcarlo ' +
   '«previo» porque aparece en una nota anterior borraría del papel un ' +
   'tratamiento que el médico acaba de indicar.'
+
+export const LA_AUTORIDAD_DE_PRESCRIPCION_ES_UNA_SOLA =
+  'Historia, medicación actual, plan, prescripción y receta liberada son cinco ' +
+  'cosas distintas. Sólo una intención explícita, confirmada y atribuible al ' +
+  'médico cruza `medicamentosDeLaReceta`. Toda superficie que arme una receta ' +
+  '—la del médico y la del paciente— pasa por esa misma puerta, en el servidor ' +
+  'cuando el destinatario es el paciente: esconder un renglón en la pantalla no ' +
+  'cierra la ruta HTTP que lo devuelve.'

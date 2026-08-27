@@ -637,18 +637,6 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'clinic/exportar-excel',
       'clinic/importar',
       /**
-       * +1 el 2026-08-26: el recordatorio firma el enlace de la teleconsulta con
-       * la VERSIÓN del expediente, para que una revocación posterior lo tumbe.
-       * Lee `portalTokenVersion` y nada más — ni nombre, ni teléfono, ni un solo
-       * dato clínico; exactamente la misma lectura que `portal/link`.
-       *
-       * No baja el listón: este cron ya trae en la mano `pacienteNombre` y
-       * `pacienteTelefono` de cada cita, que es más identidad que el entero que
-       * ahora lee. Y no lleva sesión de usuario a propósito: lo dispara el
-       * planificador con `CRON_SECRET`, no una persona.
-       */
-      'cron/reminders',
-      /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
        * `clinico.escribir` —no con el permiso de mostrador— porque baja
