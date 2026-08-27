@@ -169,7 +169,7 @@ describe('V15 /receta — freeze funcional del editor', () => {
 
   it('lo suspendido y lo habitual siguen sin bajar al papel (cadena de filtrado intacta)', () => {
     /**
-     * LA CADENA SIGUE INTACTA; LO QUE CAMBIÓ ES DÓNDE VIVE (H-01, REG-327).
+     * LA CADENA SIGUE INTACTA; LO QUE CAMBIÓ ES DÓNDE VIVE (H-01, REG-329).
      *
      * Esto congelaba las dos mitades escritas A MANO en esta pantalla:
      * `loQueSeReceta(...)` y `.filter(m => estaVigente(m))`. Ambas siguen
