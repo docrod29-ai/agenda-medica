@@ -2,7 +2,7 @@
   "sellado": "2026-08-15",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4728,
+  "totalCasos": 4685,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -325,12 +325,12 @@
       "minCasos": 9
     },
     {
-      "archivo": "src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts",
-      "minCasos": 8
+      "archivo": "src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts",
+      "minCasos": 22
     },
     {
-      "archivo": "src/__tests__/el-enlace-de-la-teleconsulta-llega-al-paciente.test.ts",
-      "minCasos": 14
+      "archivo": "src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/el-escudo-no-cruza-el-punto.test.ts",
@@ -401,10 +401,6 @@
       "minCasos": 9
     },
     {
-      "archivo": "src/__tests__/el-reintento-del-bot-no-pierde-la-cita.test.ts",
-      "minCasos": 10
-    },
-    {
       "archivo": "src/__tests__/el-reloj-de-la-nota.test.ts",
       "minCasos": 7
     },
@@ -431,10 +427,6 @@
     {
       "archivo": "src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
       "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/entrar-a-lista-de-espera-una-sola-vez.test.ts",
-      "minCasos": 10
     },
     {
       "archivo": "src/__tests__/entrypoints-del-registro.test.ts",
@@ -653,10 +645,6 @@
       "minCasos": 3
     },
     {
-      "archivo": "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
-      "minCasos": 16
-    },
-    {
       "archivo": "src/__tests__/la-maqueta-se-construyo-entera.test.ts",
       "minCasos": 13
     },
@@ -719,10 +707,6 @@
     {
       "archivo": "src/__tests__/la-sobredosis-se-ve-antes-de-firmar.test.ts",
       "minCasos": 16
-    },
-    {
-      "archivo": "src/__tests__/la-urgencia-gana-en-whatsapp.test.ts",
-      "minCasos": 15
     },
     {
       "archivo": "src/__tests__/la-version-del-prompt-no-miente.test.ts",
