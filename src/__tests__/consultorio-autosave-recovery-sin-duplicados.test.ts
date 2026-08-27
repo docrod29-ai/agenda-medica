@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { queHacerConElRespaldoLocal } from '@/lib/mobile/local-drafts'
+import { decidirAdopcionDeNotaPrevia } from '@/lib/expediente/recuperacion-consulta'
 
 const RAIZ = process.cwd()
 const consulta = readFileSync(join(RAIZ, 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
@@ -69,8 +70,20 @@ describe('Consultorio Golden Path 2 — autosave y recovery sin duplicados', () 
   })
 
   it('si la nota del respaldo ya fue firmada, conserva el contenido pero no reutiliza el id inmutable', () => {
-    expect(consulta).toContain("if (previa?.estado === 'firmada')")
-    expect(consulta).toContain('Lo recuperado se guardará como una nota NUEVA')
+    /**
+     * MIGRADO EN H-06 (REG-323): la comprobación escrita a mano tenía dentro un
+     * `catch(() => null)` que confundía «no pude leer» con «no existe», así que
+     * un fallo de red volvía a adoptar el id de una posible firmada. Ahora la
+     * decisión es explícita y con los cuatro estados separados; el
+     * comportamiento sellado aquí no cambia.
+     */
+    expect(decidirAdopcionDeNotaPrevia({ estado: 'firmada' }).adoptar).toBe(false)
+    expect(consulta).toContain('const decision = decidirAdopcionDeNotaPrevia(')
+    // El aviso se mudó al módulo junto con la decisión: decir «se guardará como
+    // una nota NUEVA» y decidir si se adopta el id son la misma frase.
+    expect(decidirAdopcionDeNotaPrevia({ estado: 'firmada' }).aviso)
+      .toContain('Lo recuperado se guardará como una nota NUEVA')
+    expect(consulta).toContain("toast(decision.aviso, 'info')")
     // La adopción del id sólo ocurre en la rama no firmada.
     expect(consulta).toContain('notaIdRef.current = id')
     expect(consulta).toContain('setNotaId(id)')
