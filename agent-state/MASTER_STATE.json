@@ -18,9 +18,7 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
-  "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-27",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
