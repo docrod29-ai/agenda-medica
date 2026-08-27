@@ -19,25 +19,21 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/V15_CURRENT_ITERATION.md",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M src/app/(dashboard)/chat/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/page.tsx",
-    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    "M docs/audit/regression-ledger.md",
+    " M src/__tests__/authz-rutas-declaradas.test.ts",
+    " M src/__tests__/nucleo/rate-limit.test.ts",
+    " M src/__tests__/portal-alcance.test.ts",
+    " M src/__tests__/portal-limite-de-tasa.test.ts",
+    " M src/app/api/payment/create-checkout/route.ts",
+    " M src/app/api/portal/route.ts",
+    " M src/app/api/public/resena/route.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/capturas/v15-coherencia/",
-    "?? docs/design/v15/V15-COHERENCIA-DE-PRODUCTO.md",
-    "?? scripts/design/arnes-coherencia-v15.sh",
-    "?? scripts/design/medir-coherencia-de-producto-v15.mjs",
-    "?? src/__tests__/v15-cada-destino-declara-su-encabezado.test.ts",
-    "?? src/__tests__/v15-el-documento-clinico-nombra-al-paciente.test.ts",
-    "?? src/components/TituloDeDocumentoClinico.tsx"
+    " M src/lib/rate-limit.ts",
+    "?? src/__tests__/portal-revocacion-falla-cerrado.test.ts",
+    "?? src/lib/portal/vigencia-del-enlace.ts"
   ],
-  "actualizado": "2026-08-15",
+  "actualizado": "2026-08-27",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -69,12 +65,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-v15-final-coherence-vhiuj8",
+  "ramaActual": "product/patient-portal-security-p1-2026-08-27",
   "derivado": {
-    "regsEnElLedger": 171,
-    "ultimaREG": "REG-323",
-    "archivosDePrueba": 705,
-    "casosDePrueba": 8635,
+    "regsEnElLedger": 179,
+    "ultimaREG": "REG-331",
+    "archivosDePrueba": 740,
+    "casosDePrueba": 8973,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

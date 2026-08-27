@@ -8591,3 +8591,96 @@ poder intentarlo. No cubre el texto que entra en vivo mientras se graba —ahí 
 reemplazo es el comportamiento pedido—, ni el caso en que el médico pulsa
 «Dejar mi versión»: su transcripción se respeta, y el material diarizado sigue
 disponible en `audio.utterances`, pero el cartel no se vuelve a ofrecer.
+
+## REG-331 — un error al comprobar la revocación NO es una autorización
+
+**Área.** Portal del Paciente: `/api/portal`, `/api/payment/create-checkout` y
+`/api/public/resena`. Unidad `PATIENT-PORTAL-001`, prioridad P1.
+
+**Qué fallaba.** Cuatro cosas, y las cuatro son la misma frase dicha de cuatro
+maneras: **lo que no se pudo comprobar se daba por bueno.**
+
+1. **La revocación fallaba ABIERTA.** `/api/portal` leía
+   `patients/{id}.portalTokenVersion` —el contador que el consultorio sube para
+   tumbar de golpe todos los enlaces emitidos— dentro de un `try` con el `catch`
+   vacío. Si Firestore no respondía, se dejaba pasar. El teléfono perdido, el
+   número reciclado y el mensaje reenviado a un grupo volvían a valer justo
+   durante la incidencia, que es cuando nadie mira.
+2. **`/api/payment/create-checkout` no comprobaba la revocación en absoluto.**
+   Acepta el MISMO magic-link y sólo miraba firma y caducidad: el enlace
+   revocado dejaba de ver la agenda y seguía abriendo sesiones de cobro a nombre
+   del paciente hasta que caducara por su cuenta.
+3. **Una ráfaga de tokens INVÁLIDOS no la contaba nadie.** Los límites de tasa
+   añadidos en P0 se cobran por `{clinicId, patientId}`, y esa clave sale del
+   token: con un token que no verifica, no se pedía cupo a nadie. Era la única
+   forma de pegarle a la ruta sin freno de ningún tipo.
+4. **`/api/public/resena` devolvía `e.message` al navegador.** Un error del
+   Admin SDK trae la RUTA del documento —y el propio token de la reseña es el id
+   de `clinic_review_requests`—, así que un endpoint público y sin sesión
+   contestaba con identificadores del consultorio y con el secreto que acababan
+   de mandarle, a quien estuviera probando tokens.
+
+**Cómo se descubrió.** El primero lo decía el propio `catch` en voz alta, y
+`agent-state/BACKLOG.json` lo dejó abierto como decisión pendiente de política:
+«Para la revocación, decidir si falla cerrado — es un cambio de política, no
+sólo de código». El dueño la decidió el 27-ago-2026, con el invariante escrito:
+**ERROR DE VALIDACIÓN/REVOCACIÓN ≠ AUTORIZACIÓN.** Los otros tres salieron de
+recorrer el resto de la superficie del portal con esa misma pregunta.
+
+**Causa raíz.** Dos estados donde hacen falta TRES. «Vale» y «no vale» no tienen
+sitio para «no lo sé», así que el «no lo sé» se repartía al montón equivocado —
+y siempre al mismo, el permisivo.
+
+El argumento escrito para repartirlo hacia «vale» era la disponibilidad del
+paciente («dejar al paciente fuera de su propia agenda por un mal minuto de
+Firestore es peor que el riesgo que esto acota») y es **medible que no se
+sostiene**: si Firestore no responde, todas las acciones del portal fallan igual
+unas líneas más abajo, porque todas leen o escriben. El fail-open no le devolvía
+la agenda a ningún paciente legítimo. Sólo se la devolvía a los enlaces
+revocados, que son los únicos a los que el `catch` le cambiaba el resultado.
+Coste de disponibilidad ≈ 0, beneficio para quien encontró el teléfono = todo.
+
+**Control permanente.** La decisión se escribe UNA vez, pura y probable sin red,
+en `src/lib/portal/vigencia-del-enlace.ts` (`decidirVigencia`), con tres estados:
+
+- `vigente` → sigue el flujo.
+- `revocado` → **401**, definitivo. También cuando el expediente NO EXISTE: un
+  paciente dado de baja por ARCO, o un token que nombra un consultorio que no es
+  el suyo. Antes eso pasaba el control y se apoyaba en que las consultas de más
+  abajo devolvieran vacío — aislamiento por accidente.
+- `indeterminado` → **503 con `Retry-After`**, y ahí está la mitad del arreglo:
+  el enlace **no se quema**. En cuanto Firestore vuelve, el mismo token del
+  mismo paciente funciona sin que nadie tenga que reemitirlo. Un fail-closed que
+  además invalidara el enlace convertiría una incidencia de cinco minutos en una
+  tarde de llamadas al consultorio.
+
+Las dos rutas que aceptan el magic-link consumen ese mismo módulo, así que la
+política vive en un sitio y no en dos.
+
+En el eje del límite de tasa, el mismo invariante: `limitarEstricto` en
+`src/lib/rate-limit.ts` — **mismo contador, misma colección, misma ventana**, no
+otro sistema; lo único que cambia es que un freno que no pudo contar responde
+503 en vez de dejar pasar. Se aplica a lo que un token filtrado puede MOVER
+(mutaciones de agenda, formulario previo, documentos clínicos, cobro, intentos
+de adivinar un token de reseña) y NO a mirar la propia agenda, que no gana
+ningún privilegio. Y `portal:ip:{ip}` (120/10 min) se cobra **antes de verificar
+el token**, que es lo que le faltaba al hallazgo 3.
+
+Pruebas: `src/__tests__/portal-revocacion-falla-cerrado.test.ts` (21 casos,
+probado al revés ×3 — el fail-open reinsertado, el expediente ausente dado por
+bueno, y el guardián escrito pero NO cableado en la ruta, para que un helper
+correcto que nadie consume no pueda pasar) ·
+`src/__tests__/portal-limite-de-tasa.test.ts` (19 casos) ·
+`src/__tests__/nucleo/rate-limit.test.ts` (16 casos).
+
+**Qué NO cubre, declarado.** No corre Firestore ni las `firestore.rules`: el
+aislamiento que se prueba aquí es el de la capa de ruta —de dónde salen
+`clinicId` y `patientId`—, no el de las reglas, que vive en el job del emulador.
+No mide el comportamiento del limitador bajo concurrencia real. No prueba el
+flujo del navegador (`/mi/[token]`): la pantalla no se tocó, y un paciente que
+reciba el 503 verá el mensaje de error genérico que ya tenía — pintarlo como
+«vuelve a intentarlo» es trabajo de interfaz, aparte. No cubre `/api/portal/link`
+—emitir enlaces— porque va detrás de `verificarMiembro` y ya falla cerrado por
+otro camino: si no puede leer la versión emite la 0, que una revocación posterior
+invalida sola. Y no cambia nada de Stripe: ni monto, ni moneda, ni política de
+cobro; sólo cuándo se llega a llamarlo.

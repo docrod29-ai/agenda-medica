@@ -2,7 +2,7 @@
 
 <!-- CIFRAS-DERIVADAS:INICIO -->
 
-**Medido el 2026-08-08** por `node scripts/seguridad/auditar.mjs`. Estas cifras
+**Medido el 2026-08-27** por `node scripts/seguridad/auditar.mjs`. Estas cifras
 NO se escriben a mano: se derivan del comando. Si alguien las edita, la prueba
 `la-cifra-de-seguridad-no-se-pudre` falla.
 

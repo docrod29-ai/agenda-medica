@@ -84,7 +84,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Lo que nadie dijo se guarda como si alguien lo hubiera dicho. Es el más ' +
       'peligroso de todos porque el resultado se LEE bien: una vía, una dosis, ' +
       'una negativa, indistinguibles de un dato real.',
-    regs: [165, 172, 176, 177, 228],
+    /**
+     * 331 es esta familia en su versión de seguridad, no de clínica: «no pude
+     * comprobar si este enlace sigue vigente» se guardaba como «sigue vigente».
+     * El hueco —la lectura que no respondió— se leía igual que un permiso real,
+     * que es exactamente el patrón; sólo que aquí lo que sale bien formado no
+     * es una dosis, es una autorización.
+     */
+    regs: [165, 172, 176, 177, 228, 331],
   },
   {
     clave: 'aislamiento',
