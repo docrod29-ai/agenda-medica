@@ -98,7 +98,7 @@ describe('el enlace del paciente lleva su token', () => {
 })
 
 describe('el mensaje al paciente no manda un enlace que contesta 404', () => {
-  // `tokenPaciente: ''` explícito: el campo es obligatorio desde REG-323.
+  // `tokenPaciente: ''` explícito: el campo es obligatorio desde REG-325.
   const base = { tipo: ES_TELECONSULTA, citaId: 'cita_1', clinicId: 'clin_1', baseUrl: 'https://app.example', tokenPaciente: '' }
 
   it('SIN token: no emite enlace, y lo dice', () => {
