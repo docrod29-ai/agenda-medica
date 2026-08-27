@@ -71,7 +71,7 @@ describe('Consultorio Golden Path 2 — autosave y recovery sin duplicados', () 
 
   it('si la nota del respaldo ya fue firmada, conserva el contenido pero no reutiliza el id inmutable', () => {
     /**
-     * MIGRADO EN H-06 (REG-323): la comprobación escrita a mano tenía dentro un
+     * MIGRADO EN H-06 (REG-330): la comprobación escrita a mano tenía dentro un
      * `catch(() => null)` que confundía «no pude leer» con «no existe», así que
      * un fallo de red volvía a adoptar el id de una posible firmada. Ahora la
      * decisión es explícita y con los cuatro estados separados; el
