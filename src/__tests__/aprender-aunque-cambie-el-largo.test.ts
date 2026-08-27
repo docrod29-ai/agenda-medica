@@ -32,7 +32,14 @@
  */
 import { describe, it, expect } from 'vitest'
 import { sustituciones, comunes } from '@/lib/asr/alineacion'
-import { paresDeUnaNota } from '@/lib/asr/aprendizaje'
+import { paresDeUnaNota, identidadDe } from '@/lib/asr/aprendizaje'
+
+/**
+ * Desde H-19 el filtro exige saber a quién protege: sin identidad conocida no
+ * se aprende nada, y estas pruebas comprueban lo contrario —que lo prohibido
+ * sigue prohibido AUNQUE la identidad se conozca—. Paciente sintético.
+ */
+const YO = identidadDe('Ernestina Quintanilla Robledo')
 
 describe('SE APRENDE AUNQUE EL LARGO CAMBIE', () => {
   it('una palabra corregida con otra añadida al final', () => {
@@ -101,12 +108,12 @@ describe('LA ALINEACIÓN ES CORRECTA, NO UNA HEURÍSTICA', () => {
 describe('SIGUE SIN APRENDER LO QUE NO DEBE', () => {
   it('las cifras no se aprenden, aunque ahora se alineen', () => {
     // La dosis no se aprende sola: es la regla más importante de este módulo.
-    const r = paresDeUnaNota('dar 500 mg hoy', 'dar 850 mg hoy y revisar')
+    const r = paresDeUnaNota('dar 500 mg hoy', 'dar 850 mg hoy y revisar', YO)
     expect(r).toEqual([])
   })
 
   it('ni los pares prohibidos por la política crítica', () => {
-    const r = paresDeUnaNota('poner mcg por kilo', 'poner mg por kilo ahora')
+    const r = paresDeUnaNota('poner mcg por kilo', 'poner mg por kilo ahora', YO)
     expect(r).toEqual([])
   })
 })

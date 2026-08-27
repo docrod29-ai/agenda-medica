@@ -7,7 +7,7 @@ import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { DOSIS_DESCONOCIDA, esDosisDeclaradaDesconocida } from '@/lib/seguridad/dosis-desconocida'
 import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
-import { paresDeUnaNota, loAprendido, partesDelNombre, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
+import { paresDeUnaNota, loAprendido, identidadDe, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
 import { leerAprendido, acumular } from '@/lib/asr/aprendizaje-firestore'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
 import { sugerenciasPendientes, resolverSugerencias, lineasSugeridas } from '@/lib/expediente/sugerencias-ia'
@@ -1287,22 +1287,69 @@ export default function ConsultaActivaPage() {
   // Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica)
   const [estudiosOrden, setEstudiosOrden] = useState<string[]>([])
   /**
-   * Las palabras que este médico ya corrigió a mano, más de una vez.
+   * Las palabras que ESTE CONSULTORIO ya corrigió a mano, más de una vez.
    *
-   * Salen de sus propias notas firmadas y sólo sirven para **sesgar al
-   * reconocedor** en la siguiente grabación. No reescriben nada: el corrector y
-   * su guardián siguen decidiendo con las reglas de siempre.
+   * Salen de las notas firmadas de todos sus pacientes y sólo sirven para
+   * **sesgar al reconocedor** en la siguiente grabación. No reescriben nada: el
+   * corrector y su guardián siguen decidiendo con las reglas de siempre. Y no
+   * llevan identidad de nadie: ése es el invariante de H-19.
    */
-  const [aprendido, setAprendido] = useState<Aprendido[]>([])
+  const [delConsultorio, setDelConsultorio] = useState<Aprendido[]>([])
+  /**
+   * Los dictados de las notas FIRMADAS, tal cual salieron de Firestore.
+   *
+   * Se guardan crudos y SIN filtrar porque el filtro necesita algo que en ese
+   * momento todavía no existe: la identidad del paciente (H-19).
+   */
+  const [dictadosFirmados, setDictadosFirmados] = useState<{ motor: string; crudo: string }[]>([])
+  /**
+   * ── QUIÉN ES EL PACIENTE, O QUE NO SE SABE (H-19) ──────────────────────────
+   *
+   * Esto se derivaba dentro del `.then` de `getNotas`, en el efecto de carga con
+   * deps `[clinicId, patientId]`, leyendo `patient?.nombre` del closure de ese
+   * render — donde `patient` todavía es `null`, porque `getPatient` es una
+   * promesa HERMANA y `setPatient` no vuelve a disparar ese efecto. El closure
+   * NUNCA veía el nombre: el filtro de identidad corría ciego en cada consulta y
+   * el apellido del paciente acababa, al firmar, en el vocabulario del
+   * CONSULTORIO — que se usa con todos los pacientes y no se puede deshacer.
+   *
+   * Derivado, no guardado: un `useMemo` se recalcula cuando el paciente termina
+   * de cargar, que es exactamente lo que el efecto no hacía.
+   */
+  const identidad = useMemo(() => identidadDe(patient?.nombre), [patient?.nombre])
   /**
    * Lo derivado de las notas de ESTE paciente, antes de fusionar.
    *
-   * Se guarda aparte porque es lo único que se puede acumular al consultorio: lo
+   * Se lleva aparte porque es lo único que se puede acumular al consultorio: lo
    * que ya venía del consultorio ya está contado, y volver a sumarlo inflaría el
    * contador con cada consulta hasta que cualquier palabra pareciera una
    * costumbre.
+   *
+   * Sin identidad conocida no se deriva NADA. `loAprendido` ya falla cerrado por
+   * su cuenta; aquí se corta antes para que ni siquiera se recorran las notas.
    */
-  const [deEstePaciente, setDeEstePaciente] = useState<Aprendido[]>([])
+  const deEstePaciente = useMemo(
+    () => identidad.conocida
+      ? loAprendido(
+          dictadosFirmados.flatMap(d => paresDeUnaNota(d.motor, d.crudo, identidad)),
+          undefined,
+          identidad,
+        )
+      : [],
+    [identidad, dictadosFirmados],
+  )
+  /**
+   * Las dos listas se fusionan por palabra: el vocabulario del reconocedor no
+   * distingue de dónde salió cada término, sólo cuántos caben.
+   *
+   * Lo del consultorio se fusiona SIEMPRE, también sin identidad conocida: por
+   * el invariante de H-19 ese vocabulario no contiene identidad de nadie, así
+   * que no leerlo no protegería a nadie — sólo empeoraría el dictado.
+   */
+  const aprendido = useMemo(
+    () => fusionar(deEstePaciente, delConsultorio),
+    [deEstePaciente, delConsultorio],
+  )
 
   /**
    * EL SÉPTIMO MOTIVO: LO QUE SE CONSIDERÓ NO ES LO QUE SE INDICÓ.
@@ -1640,26 +1687,40 @@ export default function ConsultaActivaPage() {
          * Se leen sólo notas FIRMADAS: un borrador a medio escribir tiene el
          * texto en cualquier estado, y aprender de él sería aprender de un
          * trabajo sin terminar.
-         */
-        const nombre = partesDelNombre(patient?.nombre)
-        const pares = ns
-          .filter(n => n.estado === 'firmada')
-          .flatMap(n => paresDeUnaNota(n.transcripcionMotor ?? '', n.transcripcionCruda ?? '', nombre))
-        const deEstePaciente = loAprendido(pares, undefined, nombre)
-        setDeEstePaciente(deEstePaciente)
-        /**
-         * Y LO DEL CONSULTORIO — que es donde de verdad sirve.
          *
-         * Lo aprendido con don Luis tiene que servir con la siguiente paciente.
-         * Las dos listas se fusionan por palabra: el vocabulario del reconocedor
-         * no distingue de dónde salió cada término, sólo cuántos caben.
+         * ── AQUÍ SÓLO SE GUARDAN. SE DERIVA ARRIBA, EN UN MEMO (H-19) ───────
+         *
+         * La derivación vivía dentro de este `.then` y leía `patient?.nombre`
+         * del closure del render en que corrió el efecto — donde `patient`
+         * todavía es `null`, porque `getPatient` es una promesa HERMANA y
+         * `setPatient` no vuelve a disparar un efecto con deps
+         * `[clinicId, patientId]`. Resultado: el filtro de identidad corría
+         * ciego en cada carga y el apellido del paciente acababa en el
+         * vocabulario del CONSULTORIO al firmar.
          */
-        leerAprendido(clinicId)
-          .then(delConsultorio => setAprendido(fusionar(deEstePaciente, delConsultorio)))
-          .catch(() => setAprendido(deEstePaciente))
+        setDictadosFirmados(
+          ns.filter(n => n.estado === 'firmada')
+            .map(n => ({ motor: n.transcripcionMotor ?? '', crudo: n.transcripcionCruda ?? '' })),
+        )
       })
       .catch(e => console.error('medicación vigente:', e))   // degrada sin romper la nota
   }, [clinicId, patientId])
+
+  /**
+   * LO APRENDIDO POR EL CONSULTORIO — que es donde de verdad sirve.
+   *
+   * Lo aprendido con don Luis tiene que servir con la siguiente paciente. Se lee
+   * una vez por consultorio; la fusión con lo de este paciente es derivada
+   * (arriba), no un segundo estado que pueda quedarse atrás.
+   */
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    leerAprendido(clinicId)
+      .then(v => { if (vivo) setDelConsultorio(v) })
+      .catch(() => { /* el aprendizaje es un extra: nunca rompe la consulta */ })
+    return () => { vivo = false }
+  }, [clinicId])
 
   // ── Cargar nota existente (borrador) si viene ?nota= ───────────
   useEffect(() => {

@@ -29,6 +29,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   esAprendible, paresDeUnaNota, partesDelNombre, fusionar, POR_QUE_NUNCA_EL_NOMBRE,
+  identidadDe, IDENTIDAD_DESCONOCIDA, POR_QUE_SIN_IDENTIDAD_NO_SE_APRENDE,
 } from '@/lib/asr/aprendizaje'
 import { idDePalabra, POR_QUE_SE_ACUMULA_CON_INCREMENT, POR_QUE_FALLA_EN_SILENCIO } from '@/lib/asr/aprendizaje-firestore'
 import { MATRIZ_ACCESO } from '@/lib/authz/matriz-acceso'
@@ -38,14 +39,14 @@ const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 
 describe('NUNCA EL NOMBRE DEL PACIENTE', () => {
   it('un apellido corregido NO se aprende', () => {
-    const excluir = partesDelNombre('Luis Ramírez Soto')
-    expect(paresDeUnaNota('el paciente ramires refiere tos', 'el paciente Ramírez refiere tos', excluir)).toEqual([])
+    const yo = identidadDe('Luis Ramírez Soto')
+    expect(paresDeUnaNota('el paciente ramires refiere tos', 'el paciente Ramírez refiere tos', yo)).toEqual([])
   })
 
   it('pero un fármaco en la misma nota SÍ', () => {
     // El filtro es quirúrgico: excluye el nombre, no la consulta entera.
-    const excluir = partesDelNombre('Luis Ramírez Soto')
-    const r = paresDeUnaNota('le doy sefriaxona hoy', 'le doy ceftriaxona hoy', excluir)
+    const yo = identidadDe('Luis Ramírez Soto')
+    const r = paresDeUnaNota('le doy sefriaxona hoy', 'le doy ceftriaxona hoy', yo)
     expect(r).toEqual([{ oido: 'sefriaxona', corregido: 'ceftriaxona' }])
   })
 
@@ -55,9 +56,25 @@ describe('NUNCA EL NOMBRE DEL PACIENTE', () => {
     expect(partesDelNombre('María de la Luz')).toEqual(['María', 'Luz'])
   })
 
-  it('sin nombre no se excluye nada', () => {
+  it('sin nombre NO SE APRENDE NADA (H-19 — antes se aprendía todo)', () => {
+    /**
+     * ── ESTA ASERCIÓN ESTABA AL REVÉS, Y ERA EL DEFECTO ──────────────────────
+     *
+     * Decía «sin nombre no se excluye nada» y comprobaba que con la lista vacía
+     * SÍ se aprendía. Codificaba fail-OPEN en la única compuerta que separa el
+     * expediente de un vocabulario compartido por consultorio.
+     *
+     * Una lista vacía no significa que el paciente no tenga identidad: significa
+     * que no se sabe cuál es. Y así llegaba en la práctica — la pantalla derivaba
+     * el aprendizaje desde un closure donde `patient` todavía era `null`, así que
+     * el filtro corría ciego en CADA consulta.
+     *
+     * Ausencia de dato no es dato de ausencia, también para la identidad.
+     */
     expect(partesDelNombre(undefined)).toEqual([])
-    expect(esAprendible({ oido: 'sefriaxona', corregido: 'ceftriaxona' }, [])).toBe(true)
+    expect(identidadDe(undefined)).toEqual(IDENTIDAD_DESCONOCIDA)
+    expect(esAprendible({ oido: 'sefriaxona', corregido: 'ceftriaxona' }, IDENTIDAD_DESCONOCIDA)).toBe(false)
+    expect(POR_QUE_SIN_IDENTIDAD_NO_SE_APRENDE).toMatch(/no se sabe cuál es/i)
   })
 
   it('está escrito por qué', () => {

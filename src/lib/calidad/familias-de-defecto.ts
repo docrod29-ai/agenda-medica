@@ -84,7 +84,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Lo que nadie dijo se guarda como si alguien lo hubiera dicho. Es el más ' +
       'peligroso de todos porque el resultado se LEE bien: una vía, una dosis, ' +
       'una negativa, indistinguibles de un dato real.',
-    regs: [165, 172, 176, 177, 228],
+    /**
+     * 331 entra aquí y no en `aislamiento`. La fuga —un apellido en el
+     * vocabulario del consultorio— es la CONSECUENCIA; la causa es que una
+     * lista de nombres vacía se leyó como «este paciente no tiene identidad»
+     * en vez de «no sé quién es». El hueco tratado como dato.
+     */
+    regs: [165, 172, 176, 177, 228, 331],
   },
   {
     clave: 'aislamiento',

@@ -8591,3 +8591,93 @@ poder intentarlo. No cubre el texto que entra en vivo mientras se graba —ahí 
 reemplazo es el comportamiento pedido—, ni el caso en que el médico pulsa
 «Dejar mi versión»: su transcripción se respeta, y el material diarizado sigue
 disponible en `audio.utterances`, pero el cartel no se vuelve a ofrecer.
+
+## REG-331 — la identidad del paciente se volvía vocabulario compartido del consultorio (H-19)
+
+**Área.** Aprendizaje de las correcciones del dictado: `src/lib/asr/aprendizaje.ts`
+y su cableado en `src/app/(dashboard)/consulta/[patientId]/page.tsx`. Encontrado
+recorriendo la ruta real —dictado → corrección manual → filtro PHI → aprendizaje
+→ reutilización— en vez de leer la firma de la función.
+
+**Qué fallaba.** `esAprendible(par, excluir)` recibía las partes del nombre del
+paciente para excluirlas, y el parámetro tenía **valor por omisión `[]`**. Una
+lista vacía se trataba como «no hay nada que proteger», pero significa dos cosas
+que el código no podía distinguir: que el paciente no tiene partes de nombre
+utilizables, o que **no se sabe quién es** — no cargó, o falló la lectura. En el
+segundo caso el filtro trabajaba sin contexto de identidad y dejaba pasar
+apellidos enteros hacia `clinics/{clinicId}/asr_aprendizaje`, un vocabulario que
+se usa con **todos** los pacientes de ese consultorio y que además sesga al
+reconocedor en la consulta de otra persona.
+
+Y no era el caso raro: era el normal. En `consulta/[patientId]/page.tsx` el
+paciente y las notas se pedían en el MISMO efecto como dos promesas hermanas
+(deps `[clinicId, patientId]`). La derivación del aprendizaje vivía dentro del
+`.then` de `getNotas` y leía `patient?.nombre` **del closure del render en que
+corrió el efecto**, donde `patient` todavía es `null`. `setPatient` no vuelve a
+disparar ese efecto, así que ese closure nunca veía el nombre:
+`partesDelNombre(undefined)` → `[]` **en cada carga**. Al firmar, `acumular()`
+escribía lo derivado en el vocabulario del consultorio.
+
+Tres huecos más del propio filtro, visibles incluso con la lista poblada:
+
+1. **Sólo igualdad exacta.** Un FRAGMENTO identificable («betanc» de
+   «Betancourt») no coincide y pasaba. Un fragmento de apellido en un
+   vocabulario compartido sigue siendo el apellido.
+2. **El apellido MAL OÍDO pasaba** — y es justo el par que el aprendizaje quiere
+   capturar: el motor oye «betancurt», el médico corrige, y ninguno de los dos
+   lados coincide letra a letra con el expediente.
+3. **Ningún filtro de identificadores con forma propia.** CURP, folio y teléfono
+   los tapaba de rebote el filtro de cifras, pero un correo sin dígitos
+   («ana.perez@ejemplo.mx») entraba entero.
+
+**Causa raíz.** No era «faltaba un filtro»: el filtro estaba, y era correcto
+cuando le daban el contexto. La causa raíz es que **la ausencia de contexto de
+identidad era irrepresentable**, y por omisión se leía como ausencia de
+identidad. Un tipo sin estado «no sé» obliga a que alguien invente uno, y el
+valor por omisión lo inventó del lado inseguro.
+
+**Arreglo.** Mínimo, y reutilizando lo que ya existía — no hay Learning V2.
+
+- `IdentidadDelPaciente` hace representable el «no sé»: `{conocida:false}` o
+  `{conocida:true, partes}`. `identidadDe(nombre)` la construye, y un nombre
+  ausente, vacío o hecho sólo de partículas cortas devuelve DESCONOCIDA. El
+  parámetro deja de tener valor por omisión en `esAprendible` y
+  `paresDeUnaNota`, así que el compilador obliga a cada llamador a decidir; en
+  `loAprendido` —donde no puede ir después de un opcional— el valor por omisión
+  es DESCONOCIDA, que falla CERRADO.
+- Sin identidad conocida no se aprende nada. Es la regla 4 de seguridad clínica
+  —ausencia de dato no es dato de ausencia— aplicada a la identidad.
+- `identifica()` bloquea por igualdad, por contención (parte de ≥5 letras) y por
+  parecido (Levenshtein acotado, tope 1 hasta 6 letras y 2 desde 7). Se reutiliza
+  `distancia()` de `alineacion.ts`, que ya decidía si dos palabras se parecen:
+  se exporta en vez de escribir un segundo Levenshtein.
+- Los identificadores con forma propia los rechaza `redactarIdentificadores()`
+  de `minimizar-phi.ts`, que ya conoce CURP, RFC, correo, teléfono y folios. Se
+  rechaza en vez de redactar, igual que `seguroParaMemoria`.
+- La pantalla deriva el aprendizaje en **su propio efecto**, con
+  `patient?.nombre` en las dependencias a propósito, sobre los dictados firmados
+  que el efecto de carga deja en estado. Si el paciente no cargó, no deriva nada.
+
+**Prueba.** `src/__tests__/h19-identidad-nunca-se-aprende.test.ts` (13 casos:
+los nueve del encargo —nombre completo, apellido, fragmento, nombre mal escrito,
+término médico legítimo, otro paciente, otro tenant, nada identificable en lo que
+se escribe, y lista vacía como FAIL SAFE— más identificadores con forma propia y
+la reachability de la ruta real). Probado al revés ×3: reinsertado el fail-open
+de la lista vacía, cae el caso 9; quitadas la contención y el parecido, caen los
+casos 3 y 4; quitado `redactarIdentificadores`, cae el de identificadores.
+
+Los tres goldens que ya existían se actualizaron: uno de ellos —
+`aprendizaje-por-consultorio.test.ts`— **codificaba el defecto**, con un caso
+llamado «sin nombre no se excluye nada» que comprobaba que con la lista vacía SÍ
+se aprendía. La aserción se invirtió y el comentario explica por qué estaba al
+revés.
+
+**Qué NO cubre, declarado.** No detecta nombres propios por sí solo: sin la
+lista del paciente que está enfrente, «González» y «gluconato» son dos cadenas y
+ninguna regla determinista las separa (ver `LO_QUE_NO_DETECTA` en
+`minimizar-phi`). La defensa es la lista más el fail-closed, no un detector. No
+cubre el nombre de un TERCERO dictado en la nota —un familiar, otro médico—:
+eso no está en la lista del paciente y el filtro no lo ve. No audita el
+vocabulario ya acumulado en Firestore antes de este arreglo. Y no ejecuta React:
+que la pantalla derive con la identidad ya cargada se comprueba sobre el texto
+fuente, como el resto de las comprobaciones de cableado de este repositorio.
