@@ -2,7 +2,7 @@
   "sellado": "2026-08-15",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4685,
+  "totalCasos": 4866,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -325,12 +325,16 @@
       "minCasos": 9
     },
     {
+      "archivo": "src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts",
       "minCasos": 22
     },
     {
-      "archivo": "src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts",
-      "minCasos": 8
+      "archivo": "src/__tests__/el-enlace-de-la-teleconsulta-llega-al-paciente.test.ts",
+      "minCasos": 14
     },
     {
       "archivo": "src/__tests__/el-escudo-no-cruza-el-punto.test.ts",
@@ -401,6 +405,10 @@
       "minCasos": 9
     },
     {
+      "archivo": "src/__tests__/el-reintento-del-bot-no-pierde-la-cita.test.ts",
+      "minCasos": 10
+    },
+    {
       "archivo": "src/__tests__/el-reloj-de-la-nota.test.ts",
       "minCasos": 7
     },
@@ -427,6 +435,10 @@
     {
       "archivo": "src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
       "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/entrar-a-lista-de-espera-una-sola-vez.test.ts",
+      "minCasos": 10
     },
     {
       "archivo": "src/__tests__/entrypoints-del-registro.test.ts",
@@ -645,6 +657,10 @@
       "minCasos": 3
     },
     {
+      "archivo": "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
+      "minCasos": 16
+    },
+    {
       "archivo": "src/__tests__/la-maqueta-se-construyo-entera.test.ts",
       "minCasos": 13
     },
@@ -693,6 +709,10 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/la-receta-del-paciente-solo-lleva-lo-que-el-medico-preescribio.test.ts",
+      "minCasos": 31
+    },
+    {
       "archivo": "src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
       "minCasos": 20
     },
@@ -709,6 +729,10 @@
       "minCasos": 16
     },
     {
+      "archivo": "src/__tests__/la-urgencia-gana-en-whatsapp.test.ts",
+      "minCasos": 15
+    },
+    {
       "archivo": "src/__tests__/la-version-del-prompt-no-miente.test.ts",
       "minCasos": 6
     },
@@ -719,6 +743,14 @@
     {
       "archivo": "src/__tests__/laboratorio-extraccion.test.ts",
       "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/laboratorio-guardado-no-cruza-paciente.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/laboratorio-sujeto-vinculado.test.ts",
+      "minCasos": 28
     },
     {
       "archivo": "src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts",
@@ -767,6 +799,10 @@
     {
       "archivo": "src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/lo-recuperable-se-ofrece-y-no-se-destruye.test.ts",
+      "minCasos": 44
     },
     {
       "archivo": "src/__tests__/lo-revisado-es-lo-que-se-firma.test.ts",
