@@ -71,8 +71,8 @@
   ],
   "ramaActual": "claude/ausculta-v15-final-coherence-vhiuj8",
   "derivado": {
-    "regsEnElLedger": 170,
-    "ultimaREG": "REG-322",
+    "regsEnElLedger": 171,
+    "ultimaREG": "REG-327",
     "archivosDePrueba": 705,
     "casosDePrueba": 8635,
     "lint": "ver scripts/lint-trinquete.mjs"

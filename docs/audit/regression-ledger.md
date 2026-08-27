@@ -7987,3 +7987,123 @@ cubre las dos superficies que la matriz señaló, no «todas las pantallas tiene
 h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
+
+---
+
+## REG-327 — el portal enseñaba como «receta» medicamentos que el médico nunca prescribió
+
+**Área.** Autoridad de prescripción y documentos de cara al paciente. Encontrado
+por la auditoría H-01, contando llamadores de la frontera: `loQueSeReceta` tenía
+**un solo llamador en todo el repositorio** —la pantalla del médico— mientras que
+«receta» se arma en **dos** superficies.
+
+**Qué fallaba.** La acción `documentos` de `/api/portal` construía las recetas
+del paciente así:
+
+```ts
+.filter(n => Array.isArray(n.medicamentos) && n.medicamentos.length > 0)
+.map(n => ({ …, medicamentos: n.medicamentos ?? [] }))
+```
+
+`n.medicamentos` es la lista de la NOTA, y en ella conviven mezcladas cinco cosas
+que no son la misma:
+
+| en la lista de la nota | qué es | ¿es una prescripción? |
+|---|---|---|
+| `procedenciaClinica:'ya_lo_toma'` | lo que el paciente **refirió** que toma | no |
+| `estado:'borrador'` | lo que la IA extrajo y nadie confirmó | no |
+| `estado:'suspendida'` / `'cancelada'` | lo que el médico **retiró** | no |
+| `estado:'probablemente_terminada'` | venció el calendario, nadie lo revisó | no |
+| `se_prescribe_hoy` + `activa` | lo que el médico indicó | **sí** |
+
+La pantalla `/mi/[token]` bajaba esa lista cruda a `descargarRecetaWord` con
+`tipo:'receta'`, que imprime **«RECETA MÉDICA»** y numera los renglones. O sea:
+la historia farmacológica del paciente salía impresa como prescripción, en un
+documento que se lleva a la farmacia, sin que ningún médico lo hubiera indicado.
+
+Y sin poder atribuirla: el segundo argumento de `descargarRecetaWord` era `null`,
+así que el documento salía **sin médico** y con `[FALTA CÉDULA PROFESIONAL]`
+impreso en rojo donde va la cédula — aunque la ruta ya tenía el nombre a mano y
+la nota firmada guarda además la cédula y la especialidad.
+
+**Por qué era P0.** El lector es el paciente, y **el paciente no puede detectar
+el error**: no sabe que ese fármaco se lo suspendieron, ni que ese otro lo dijo
+él y no su médico. Un antibiótico retirado por reacción adversa reaparecía como
+indicación vigente, con formato de receta, junto a los que sí lo eran. Es la
+regla 3 de la IA de cara al paciente —«el código no debe *poder* prescribir»—
+incumplida no por el prompt sino por la ruta.
+
+**Causa raíz — la frontera existía, pero como composición dentro de un
+componente.** La pantalla del médico escribía a mano, dentro de un `useEffect`:
+
+```ts
+loQueSeReceta(n.medicamentos ?? []).filter(m => estaVigente(m))
+```
+
+Las dos mitades son necesarias y ninguna sobra: `loQueSeReceta` contesta «¿el
+médico quiso indicar esto hoy?» y `estaVigente` contesta «¿la orden sigue en
+pie?» —sólo la segunda descarta `probablemente_terminada`—. Pero al vivir la
+composición **dentro de una pantalla**, protegía exactamente a esa pantalla.
+Cualquier segunda superficie nace sin la regla y nada lo señala.
+
+Es la familia «escrito y sin conectar» vista desde el otro lado: aquí sí estaba
+conectado — a un consumidor de dos. Y el que quedó fuera es precisamente aquel en
+el que **no hay un médico mirando el resultado**.
+
+**Control permanente.** `medicamentosDeLaReceta` en
+`src/lib/expediente/que-va-en-la-receta.ts` es ahora la **única puerta**, y las
+dos superficies la cruzan. La del paciente la cruza **en el servidor**: esconder
+un renglón en la pantalla no cierra la ruta HTTP que lo devuelve, y la ruta
+devolvía los nombres aunque no se pintaran. Una nota deja además de ser «una
+receta» por tener medicamentos: lo es cuando queda algo que el médico indicó de
+verdad, así que una consulta que sólo recogió antecedentes ya no aparece en la
+lista del paciente.
+
+Tres cosas más, del mismo acto y del mismo tamaño:
+
+- **Prescriptor.** Nombre, cédula y especialidad salen de `nota.firma` —el
+  snapshot inmutable del momento de firmar (NOM-024)— y no de la configuración
+  viva del consultorio, que cambiaría retroactivamente el autor de una receta
+  vieja al actualizar el perfil.
+- **Alergias.** La copia del paciente era la única receta del producto sin el
+  recuadro de alergias (`mostrarAlergias: false` fijo): la misma alergia que el
+  impreso del médico destaca en rojo desaparecía del documento que el paciente
+  lleva a la farmacia. Ahora viaja la verdad del expediente por
+  `alergiasParaImpreso` —la misma primitiva del impreso del médico, que prefiere
+  `alergiasEstructuradas` sobre el texto libre— **y viaja aparte si se pudo
+  leer**: con el expediente ilegible la receta no afirma nada, ni «sin registro»
+  ni «negadas».
+- **Error ≠ ausencia.** Un fallo de red acababa en `setDocs([])`, y como la lista
+  sólo se pinta cuando trae algo, el paciente veía la misma imagen exacta que «tu
+  médico no te ha recetado nada». Ahora se dice, con esas palabras: *esto no
+  quiere decir que no tengas*.
+
+`src/__tests__/la-receta-del-paciente-solo-lleva-lo-que-el-medico-preescribio.test.ts`
+(31 casos, probado al revés ×6: la ruta devolviendo la nota en crudo, la puerta
+sin `estaVigente`, la pantalla del médico saliéndose de la puerta, el fallo de red
+volviendo a pintarse como ausencia, la receta sin prescriptor, y la ruta
+afirmando haber leído un expediente que no leyó — cada reversión pone en rojo
+exactamente el caso que le toca).
+
+**Qué NO cubre, declarado.**
+
+- **No prueba el aislamiento con las REGLAS de Firestore.** Lo que se congela es
+  que la ruta construya su consulta con el `{clinicId, patientId}` del token
+  FIRMADO y con ningún dato del cuerpo —hay un caso que inyecta otro `patientId`
+  en el cuerpo y comprueba que se ignora—. Que `firestore.rules` lo sostenga sólo
+  lo puede decir el emulador.
+- **No renderiza la pantalla del paciente.** La suite corre en `node`, sin jsdom:
+  el cableado de `/mi/[token]` se comprueba leyendo su fuente. Que el `.doc`
+  descargado se vea bien es trabajo del golden de `receta-word`.
+- **No cubre el `PaqueteDeVisita`**, que tiene su propia compuerta
+  `DRAFT`/`RELEASED` (REG-304) y su propia prueba. Aquí sólo se juzga
+  `documentos`.
+- **No cubre la orden médica** (`tipo:'orden'`), que baja estudios y no
+  medicamentos, ni las demás rutas que exportan el expediente (FHIR, respaldo,
+  ARCO): ésas no titulan «RECETA MÉDICA» y no afirman autoridad de prescripción.
+  Queda declarado como revisión pendiente, fuera del alcance de H-01.
+- **No decide qué es clínicamente correcto prescribir.** Sólo quién tuvo la
+  autoridad para hacerlo.
+- **No cubre `estado:'probablemente_terminada'` en la NOTA**, donde debe seguir
+  viéndose y pidiendo reconciliación: lo único que se cierra es que se reimprima
+  como receta vigente.
