@@ -264,7 +264,13 @@ export async function POST(req: NextRequest) {
 
 const MOTIVOS: Record<string, string> = {
   'nota-sin-firmar': 'Esta nota todavía no está firmada. Fírmala antes de liberar nada al paciente.',
-  'nota-sin-firma': 'Esta nota no tiene firma con cédula profesional: no hay a quién atribuir el papel.',
+  /**
+   * NOMBRE **Y** CÉDULA — REG-336. Decía sólo «cédula profesional», y el
+   * Golden Path se topó con este mensaje en una nota que SÍ tenía cédula: lo
+   * que le faltaba era el nombre. Mandar al médico a revisar lo único que no
+   * está roto le gasta el rato que tiene al paciente delante.
+   */
+  'nota-sin-firma': 'Esta nota no trae el nombre y la cédula de quien la firmó: no hay a quién atribuir el papel.',
 }
 
 type Acceso = { uid: string; email?: string | null; role?: string | null }

@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 42 de 183, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 42 de 184, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
@@ -128,9 +128,19 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 34 de 182.**
+**«El sistema se contradice a sí mismo» — 35 de 184.**
 
-Sumó REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
+Sumó REG-336 (27-ago-2026), y es la forma más cara que ha tomado esta familia:
+la compuerta que deja **firmar** pedía `medicoId` y cédula; la que deja
+**entregar al paciente** pedía nombre y cédula. Ninguna de las dos estaba mal
+por su cuenta. En el hueco cabía una nota firmable e **inentregable**, y como
+`nota.firma` es inmutable, irreparable: el paciente no recibía su hoja nunca y
+el mensaje mandaba al médico a revisar la cédula, que sí estaba. Lo encontró el
+Golden Path GP-FINAL recorriendo el consultorio en un navegador, con los 10 480
+casos de la suite en verde — ninguna prueba de unidad podía verlo, porque el
+defecto no estaba en ninguna de las dos piezas sino entre ellas.
+
+Y antes REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
 avisos que se contradecían sobre el mismo archivo** —«los borradores van
 marcados como preliminares» y «los borradores NO van»—, y el falso era el
 último en pintarse, o sea el que se leía. El médico creía que el archivo que
@@ -187,7 +197,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 24 de 182**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 24 de 184**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

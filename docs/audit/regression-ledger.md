@@ -8971,6 +8971,84 @@ nueve la prueba cae.
    `release/evidence-integrated-2026-08-26`. Recuperarlo es una reparación
    clínica aparte, con sus dos pruebas, no un efecto colateral de esta compuerta.
 
+## REG-336 — se podía firmar sin nombre, y entonces el paciente no recibía nada nunca
+
+**Área.** Compuerta de la firma: `src/lib/expediente/por-que-no-se-firma.ts`,
+`src/app/(dashboard)/consulta/[patientId]/page.tsx`,
+`src/app/api/expediente/paquete-de-visita/route.ts`. GP-FINAL.
+
+**Estado:** CLOSED, con golden y sello.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo el consultorio en un navegador de verdad
+(Golden Path GP-FINAL, `scripts/golden-path/`), como médico y de punta a punta:
+agenda → consulta → dictado → firma → receta → entrega al paciente. Los 10 480
+casos de la suite estaban en verde y el paso 22 no se podía dar.
+
+La nota se firmó. La receta salió. Y «Liberar al paciente» estaba APAGADO, con
+este mensaje debajo:
+
+> «Esta nota no tiene firma con cédula profesional: no hay a quién atribuir el
+> papel.»
+
+Con la cédula puesta. El documento la tenía:
+
+```
+firma: { nombreMedico: '', cedulaProfesional: '12345678', … }
+```
+
+Lo que faltaba era el NOMBRE, y el mensaje mandaba a arreglar lo único que no
+estaba roto.
+
+**CAUSA RAÍZ.** Dos compuertas que no piden lo mismo, con un snapshot inmutable
+en medio:
+
+| Compuerta | Exige |
+|---|---|
+| `validarNOM004` (deja firmar) | `medicoId` · `cedulaProfesional` |
+| `componerPaquete` (deja entregar) | `firma.nombreMedico` · `firma.cedulaProfesional` |
+
+Entre las dos cabe una nota **firmable e inentregable**. Y `nota.firma` es
+inmutable por diseño (NOM-024): cuando el hueco se nota, ya no se puede tapar.
+El médico se queda con una nota válida en el expediente y un paciente que no
+recibirá su hoja nunca, sin más recurso que repetir la consulta.
+
+**CÓMO SE LLEGA AHÍ SIN HACER NADA RARO.** Un consultorio cuya configuración
+todavía no tiene `nombreMedico` firma con `identidadFirma.nombre === ''`. El
+camino más corto para acabar así es el propio atajo de «Falta cédula
+profesional» de la pantalla de consulta, que escribe con `saveConfigPartial`
+**sólo** la cédula: resuelve el bloqueo que se ve y deja en pie el que no se ve.
+
+**LA FAMILIA.** La de REG-189 y la del aviso de dosis: *el aviso llegaba después
+de firmar, cuando la nota ya es inmutable*. Aquí ni siquiera llegaba: llegaba el
+mensaje equivocado, y después.
+
+**EL ARREGLO.** Mínimo, y en la fuente única que ya existía para esto:
+
+- `motivosParaNoFirmar` acepta `sinQuienFirma` y añade un motivo con origen
+  `atribucion`. No se toca ninguna de las condiciones que ya había.
+- La consulta lo calcula desde `identidadFirma.nombre`, que es **el mismo
+  objeto** que se estampa en `nota.firma`. Vigilar cualquier otro valor dejaría
+  la compuerta mirando algo distinto de lo que se guarda.
+- El mensaje de `nota-sin-firma` pasa a nombrar **nombre y cédula**, para que
+  las notas que ya se firmaron así no manden a nadie a buscar una cédula que sí
+  está.
+
+**LA REGLA QUE LO HACE SEGURO.** Lo que un snapshot inmutable va a necesitar se
+exige ANTES de estamparlo. Firmar sin a quién atribuir no se avisa: se impide, y
+se dice por qué.
+
+**GOLDEN.** `src/__tests__/nadie-firma-sin-nombre.test.ts` — 10 casos.
+**Probado al revés:** sin el motivo nuevo caen 7 de los 10, entre ellos el que
+comprueba que la consulta conecta la compuerta (`sinQuienFirma` en la página) y
+el que exige que el mensaje no culpe sólo a la cédula.
+
+**QUÉ NO CUBRE.** No repara las notas ya firmadas sin nombre —son inmutables por
+diseño—; lo único que se hace por ellas es que el mensaje diga la verdad. Y no
+prueba la pantalla: el recorrido en navegador vive en `scripts/golden-path/` y
+no corre en CI, porque necesita emuladores y un build.
+
+---
+
 ## REG-335 — la nota se firmaba, el paquete no existía, y el paciente no recibía nada
 
 **Área.** Post-visita del consultorio: `src/lib/paciente/paquete-de-visita.ts`,

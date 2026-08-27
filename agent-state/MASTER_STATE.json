@@ -19,7 +19,7 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [],
-  "actualizado": "2026-08-27",
+  "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -51,12 +51,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/post-visit-consultorio-closure-sxoaws",
+  "ramaActual": "release/consultorio-final-candidate-2026-08-27",
   "derivado": {
-    "regsEnElLedger": 183,
-    "ultimaREG": "REG-335",
-    "archivosDePrueba": 761,
-    "casosDePrueba": 9330,
+    "regsEnElLedger": 184,
+    "ultimaREG": "REG-336",
+    "archivosDePrueba": 762,
+    "casosDePrueba": 9341,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

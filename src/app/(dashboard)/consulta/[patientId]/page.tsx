@@ -4180,14 +4180,19 @@ export default function ConsultaActivaPage() {
    *
    * NO cambia la política: lo que impedía firmar ayer impide firmar hoy.
    */
-  const bloqueosDeFirma = motivosParaNoFirmar({
+  /**
+   * `sinQuienFirma` — REG-336. Sale de `identidadFirma`, que es el MISMO objeto
+   * que se estampa en `nota.firma` unas líneas más abajo. Sin esto, una nota
+   * podía firmarse sin nombre (NOM-004 no lo pide), quedar inmutable, y no
+   * poder entregarse jamás al paciente porque `componerPaquete` sí lo exige.
+   */
+  const entradaDeBloqueo = {
     erroresNOM004: validacion?.errores,
     dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
-  })
-  const motivoNoFirma = porQueNoSePuedeFirmar({
-    erroresNOM004: validacion?.errores,
-    dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
-  })
+    sinQuienFirma: !identidadFirma.nombre.trim(),
+  }
+  const bloqueosDeFirma = motivosParaNoFirmar(entradaDeBloqueo)
+  const motivoNoFirma = porQueNoSePuedeFirmar(entradaDeBloqueo)
 
   /**
    * ¿Hay ya algo de nota que cerrar? (V15-MOBILE-001, §22 — `CierreAlPulgar`.)

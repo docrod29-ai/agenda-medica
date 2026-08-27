@@ -65,7 +65,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * de pacientes. El fallo vivía en el hueco entre las dos, que es
      * exactamente el patrón de esta familia.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322],
+    /**
+     * 336 es esta familia en su forma más cara: la compuerta que deja FIRMAR
+     * pide `medicoId` y cédula; la que deja ENTREGAR pide nombre y cédula.
+     * Ninguna de las dos está mal por su cuenta. En el hueco cabía una nota
+     * firmable e inentregable — y con `nota.firma` inmutable, irreparable.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336],
   },
   {
     clave: 'habla_real',
