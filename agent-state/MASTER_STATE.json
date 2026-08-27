@@ -37,7 +37,7 @@
     "?? src/__tests__/v15-el-documento-clinico-nombra-al-paciente.test.ts",
     "?? src/components/TituloDeDocumentoClinico.tsx"
   ],
-  "actualizado": "2026-08-26",
+  "actualizado": "2026-08-15",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -73,8 +73,8 @@
   "derivado": {
     "regsEnElLedger": 171,
     "ultimaREG": "REG-323",
-    "archivosDePrueba": 739,
-    "casosDePrueba": 8938,
+    "archivosDePrueba": 705,
+    "casosDePrueba": 8635,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
