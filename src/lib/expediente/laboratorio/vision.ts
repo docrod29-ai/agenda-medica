@@ -5,7 +5,7 @@
  * interpreta si un valor es normal o crítico (de eso se encarga el motor
  * determinista `evaluarCriticoLab` después), no calcula, no adivina lo ilegible.
  *
- * ── POR QUÉ AHORA SÍ SE PIDE EL NOMBRE (REG-323) ─────────────────────────────
+ * ── POR QUÉ AHORA SÍ SE PIDE EL NOMBRE (REG-324) ─────────────────────────────
  *
  * Este prompt ordenaba lo contrario: «NO transcribas el nombre del paciente».
  * La intención era buena —no persistir identificadores— pero se aplicó un paso
