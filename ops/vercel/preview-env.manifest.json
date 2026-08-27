@@ -1,0 +1,70 @@
+{
+  "_lee_esto_primero": [
+    "MANIFIESTO DE NOMBRES. Aquí NO van valores, ni ejemplos de valores, ni",
+    "fragmentos. Sólo los NOMBRES de las variables que el BUILD necesita.",
+    "Cambiar valores en Vercel es del dueño; este archivo no los conoce.",
+    "",
+    "Existe porque `next build` en esta máquina hereda el entorno del que lo",
+    "lanza (un `.env.local` gitignoreado, por ejemplo) y el Preview de Vercel no.",
+    "Ese desnivel es el que deja pasar un 'build verde local' sobre un árbol que",
+    "el Preview va a rechazar. `scripts/preview-equivalente.mjs` friega el",
+    "entorno y deja EXACTAMENTE estos nombres, para que el verde de aquí valga",
+    "lo mismo que el verde de allá."
+  ],
+
+  "publicas_que_el_build_exige": {
+    "_por_que": [
+      "`src/lib/firebase.ts` llama a `initializeApp`/`getAuth` AL IMPORTARSE, y",
+      "las páginas públicas (`/dr/[clinicId]`, `/api/public/booking`) usan el SDK",
+      "del navegador de forma legítima. Sin estos nombres el build muere con",
+      "`auth/invalid-api-key`. Está documentado en REG-059",
+      "(`src/__tests__/servidor-sin-sdk-cliente.test.ts`): en Vercel el build",
+      "funcionaba «por accidente», porque allí sí existen.",
+      "",
+      "NO son secretas por diseño: la configuración NEXT_PUBLIC_FIREBASE_* viaja",
+      "dentro del bundle a todos los navegadores. Lo que protege los datos son",
+      "las Firestore Rules y App Check. Por eso la compuerta puede inventarles un",
+      "relleno CON FORMA VÁLIDA sin filtrar nada: al build sólo le hace falta la",
+      "forma, nunca contacta a Firebase."
+    ],
+    "nombres": [
+      "NEXT_PUBLIC_FIREBASE_API_KEY",
+      "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
+      "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+      "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
+      "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
+      "NEXT_PUBLIC_FIREBASE_APP_ID"
+    ]
+  },
+
+  "publicas_opcionales": {
+    "_por_que": [
+      "El código las lee pero tolera su ausencia. Se listan para que nadie las",
+      "confunda con las de arriba, y para que si mañana una se vuelve obligatoria",
+      "la compuerta lo diga en vez de descubrirlo el Preview."
+    ],
+    "nombres": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_CORREO_PRIVACIDAD",
+      "NEXT_PUBLIC_CORREO_SOPORTE",
+      "NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY",
+      "NEXT_PUBLIC_FIREBASE_EMULATORS",
+      "NEXT_PUBLIC_META_APP_ID",
+      "NEXT_PUBLIC_META_CONFIG_ID",
+      "NEXT_PUBLIC_META_PIXEL_ID",
+      "NEXT_PUBLIC_SUPERADMIN_EMAILS",
+      "NEXT_PUBLIC_UMBRAL_CONFIANZA_AUDIO"
+    ]
+  },
+
+  "secretos_que_el_build_NO_puede_necesitar": {
+    "_por_que": [
+      "INVARIANTE, no lista de deseos: un build que necesita un secreto es un",
+      "build que ejecuta código de servidor cuando debería estar compilando.",
+      "La compuerta NO inyecta ninguno. Si el build falla pidiendo uno, eso es un",
+      "defecto del árbol y la compuerta lo dice POR SU NOMBRE — nunca por su",
+      "valor, que ni lee ni imprime."
+    ],
+    "regla": "ningún nombre inyectado por la compuerta fuera de las dos listas públicas"
+  }
+}
