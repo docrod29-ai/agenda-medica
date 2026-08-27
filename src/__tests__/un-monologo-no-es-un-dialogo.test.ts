@@ -145,7 +145,7 @@ describe('está conectado de verdad', () => {
      * salió bien — y los avisos que sobran se aprenden a ignorar.
      */
     const hook = leer('src/hooks/useGrabacionAudio.ts')
-    // El tope de 900 caracteres se quedó corto cuando H-07 (REG-323) metió en
+    // El tope de 900 caracteres se quedó corto cuando H-07 (REG-330) metió en
     // esta rama la guarda de `lotesFallidos` y su explicación. Se sube el tope;
     // lo que se comprueba —que aquí NO se anuncie un fallo— no cambia.
     const bloque = /if \(modoDeHablaRef\.current === 'dictado'\)[\s\S]{0,2600}?\n    \}/.exec(hook)?.[0] ?? ''
