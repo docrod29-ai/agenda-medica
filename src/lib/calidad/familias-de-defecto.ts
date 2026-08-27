@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 323],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320],
   },
   {
     clave: 'se_contradice',
@@ -119,7 +119,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323],
   },
   {
     clave: 'tarde',
@@ -136,18 +136,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Falla algo y el sistema culpa a otra cosa. Cuesta doble: la avería y las ' +
       'horas persiguiendo la avería equivocada.',
-    /**
-     * 325: nada había fallado —la cita estaba creada— y el bot le decía al
-     * paciente que su horario ya no estaba disponible. Aquí el mensaje no sólo
-     * costó horas: costó una segunda cita, porque el paciente le hizo caso.
-     */
-    /**
-     * 326: «otra persona de la lista respondió primero» cuando la cita era del
-     * propio paciente que preguntaba. El mensaje no sólo mentía sobre la causa:
-     * inventaba un tercero, y devolvía a la paciente a la lista de espera
-     * creyendo que perdió el hueco que había ganado.
-     */
-    regs: [155, 156, 251, 317, 325, 326],
+    regs: [155, 156, 251, 317],
   },
   {
     clave: 'decision_del_dueno',
@@ -197,14 +186,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
-    /**
-     * 324: la escalación de urgencia por el canal del paciente. Cualquier
-     * producto que le hable a un paciente la da por supuesta, y aquí no existía
-     * en WhatsApp — el canal por el que entra la mayoría. Ninguna prueba interna
-     * podía delatarla: no había nada roto que medir, el bot contestaba rápido y
-     * con información correcta. La correcta para otra pregunta.
-     */
-    regs: [242, 243, 250, 304, 324],
+    regs: [242, 243, 250, 304],
   },
   {
     clave: 'falta_un_eje',
