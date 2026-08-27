@@ -12,7 +12,7 @@ import { sujetosLeidos, type SujetoLeido } from './sujeto'
  *
  * PRIVACIDAD: esta función NO conserva identificadores del paciente. El nombre
  * que aparezca en la hoja es la excepción y viaja aparte, en `sujetos`: sirve
- * para verificar de QUIÉN es la evidencia antes de escribirla (REG-323) y
+ * para verificar de QUIÉN es la evidencia antes de escribirla (REG-324) y
  * muere ahí — no entra en `resultados` ni se persiste. El folio, la CURP, la
  * dirección y el resto siguen descartados a propósito.
  *
@@ -65,7 +65,7 @@ export interface PanelValidado {
   /**
    * A quién dice pertenecer la hoja. TRANSITORIO: se compara contra el paciente
    * de destino y se descarta. Sin esto, el panel se archivaba bajo el paciente
-   * que estuviera abierto en la pantalla (REG-323).
+   * que estuviera abierto en la pantalla (REG-324).
    */
   sujetos: SujetoLeido[]
 }
