@@ -16,6 +16,7 @@ import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
 import { describirListaVacia } from '@/lib/pacientes/vacio-de-la-lista'
+import { construirGuardadoDePaciente } from '@/lib/pacientes/campos-que-se-guardan'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
@@ -887,30 +888,24 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
     if (!f.edad.trim()) { toast('La edad es requerida', 'error'); return }
     setSaving(true)
     try {
-      const tel = f.telefono.replace(/\D/g, '')
-      const payload = {
-        nombre: f.nombre.trim(),
-        telefono: tel,
-        // UN SOLO teléfono en la pantalla (29-jul-2026), dos campos por debajo.
-        // El formulario ya no pregunta el WhatsApp por separado —en la práctica es
-        // el mismo número—, pero el export FHIR y otras rutas leen `whatsapp`
-        // aparte: si se quedara vacío, un paciente nuevo perdería su contacto móvil
-        // ahí. Se respeta el que ya estuviera guardado y sólo se rellena si falta.
-        whatsapp: (f.whatsapp.replace(/\D/g, '') || tel),
-        email: f.email.trim(),
-        fechaNacimiento: f.fechaNacimiento,
-        edad: f.edad ? Number(f.edad) : undefined,
-        sexo: (f.sexo || undefined) as Patient['sexo'],
-        curp: f.curp.trim().toUpperCase() || undefined,
-        seguroMedico: f.seguroMedico.trim(),
-        alergias: f.alergias.trim(),
-        notas: f.notas.trim(),
-        noShowCount: patient?.noShowCount ?? 0,
-        cancelacionCount: patient?.cancelacionCount ?? 0,
-        creadoPor: patient?.creadoPor ?? userEmail,
-        updatedAt: new Date().toISOString(),
-        createdAt: patient?.createdAt ?? new Date().toISOString(),
-      }
+      /**
+       * QUÉ VIAJA Y QUÉ NO — REG-323.
+       *
+       * El payload se construye fuera, en `@/lib/pacientes/campos-que-se-guardan`,
+       * porque decidir qué se escribe encima de un expediente es una regla
+       * clínica y no un detalle de este formulario: mandar SIEMPRE el estado
+       * completo hacía que corregir un teléfono en modo secretaria borrara las
+       * alergias del paciente. `updateDoc` sobrescribe campo por campo, y un
+       * campo que la pantalla no enseñó no lleva lo que alguien escribió: lleva
+       * el eco de la copia con la que se abrió el modal, que puede tener 30 s de
+       * retraso respecto a lo que el médico acaba de anotar en `/consulta`.
+       */
+      const payload = construirGuardadoDePaciente(f, {
+        modo: mode,
+        previo: patient,
+        autor: userEmail,
+        ahora: new Date().toISOString(),
+      })
       if (patient) {
         await updatePatient(clinicId!, patient.id, payload)
         toast('Paciente actualizado', 'success')
