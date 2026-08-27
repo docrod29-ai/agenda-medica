@@ -114,7 +114,7 @@ rotación de credenciales.
 | Registro de peligros (§18) | `docs/clinical-safety/REGISTRO-DE-PELIGROS.md` — **10 peligros**, ninguno hipotético |
 | Registro de regresiones | `docs/audit/regression-ledger.md` — **182 REG** con causa raíz |
 | Invariantes sellados | **344 archivos, 4967 casos** que no pueden encoger |
-| Suite completa | **7483 pruebas** en verde, en CI |
+| Suite completa | **10 431 pruebas** en verde, en CI |
 
 ⬜ **Lo que NO hay**: estudio de validación clínica con pacientes reales,
 comité de ética, ni aprobación regulatoria. **Ninguna de las diez casillas de
@@ -175,7 +175,7 @@ que sólo significa que nadie los estaba buscando.
 
 ## Resumen honesto para una diligencia debida
 
-**Fuerte**: seguridad documentada, aislamiento probado en CI, 7483 pruebas,
+**Fuerte**: seguridad documentada, aislamiento probado en CI, 10 431 pruebas,
 métricas de IA reales y reproducibles, historial de defectos con causa raíz,
 licencias limpias.
 

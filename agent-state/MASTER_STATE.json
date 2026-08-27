@@ -19,14 +19,7 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/BACKLOG.json",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json"
+    "M agent-state/MASTER_STATE.json"
   ],
   "actualizado": "2026-08-27",
   "resumenDesdeElUltimoEstado": {
