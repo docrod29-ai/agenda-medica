@@ -1307,19 +1307,52 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const diaRefLE = adminDb.collection('clinics').doc(clinicId).collection('slot_locks').doc(slotFecha)
       let citaIdListaEspera = ''
       let ocupadoLE = false
+      /**
+       * LA MISMA IDENTIDAD DE INTENCIÓN QUE EL ALTA NORMAL.
+       *
+       * Aquí el defecto duele más. Si el «SÍ» llega dos veces —Meta reentrega,
+       * el borrado de sesión no cuajó, o el proveedor se cayó y el paciente
+       * reescribió—, la transacción veía LA CITA QUE ACABA DE CREAR ESE MISMO
+       * PACIENTE y le contestaba:
+       *
+       *     «Lo sentimos, ese horario acaba de ocuparse — otra persona de la
+       *      lista respondió primero.»
+       *
+       * Falso, y además culpando a un tercero que no existe: le devuelve a la
+       * lista de espera creyendo que perdió el hueco que en realidad ganó.
+       *
+       * Ver `lib/whatsapp/cita-ya-agendada.ts`. La rama de conflicto REAL —otro
+       * paciente de la lista contestó antes— no se toca: ésa sí es verdad.
+       */
+      const intentoLE: IntentoDeCitaDelBot = {
+        pacienteTelefono: from,
+        fechaHora: `${slotFecha} ${slotHora}`,
+        tipo: String(datos.tipo || 'seguimiento'),
+        duracion,
+        medicoId: medicoIdBot,
+      }
+      let esReintentoLE = false
       try {
         await adminDb.runTransaction(async (tx) => {
           await tx.get(diaRefLE)
           const snap = await tx.get(apptsColLE.where('fechaHora', '>=', `${slotFecha} 00:00`).where('fechaHora', '<=', `${slotFecha} 23:59`))
           let conflicto = false
+          let reintentoEnTxLE = ''
           snap.forEach(d => {
             const a = d.data()
             if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+            if (citaYaAgendada(intentoLE, [{ id: d.id, ...a } as CitaEscrita])) { reintentoEnTxLE = d.id; return }
             if (medicoIdBot && a.medicoId && a.medicoId !== medicoIdBot) return
             const [ah, am] = (a.fechaHora?.slice(11, 16) || '00:00').split(':').map(Number)
             const aS = ah * 60 + am, aE = aS + (a.duracion ?? 30)
             if (sStart < aE && sEnd > aS) conflicto = true
           })
+          if (reintentoEnTxLE) {
+            // Su propia cita: no se escribe nada y se confirma con el mismo folio.
+            citaIdListaEspera = reintentoEnTxLE
+            esReintentoLE = true
+            return
+          }
           if (conflicto) throw new Error('CONFLICTO')
           tx.set(diaRefLE, { ultimaReserva: now }, { merge: true })
           // El id se toma ANTES de escribir: es lo que permite darle al paciente
@@ -1393,7 +1426,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
         ].filter(l => l !== undefined).join('\n'))
       }
 
-      if (adminPhone) {
+      // En un REINTENTO no se vuelve a avisar: la cita ya se avisó, y un segundo
+      // «confirmó cita» hace que el consultorio crea que tiene dos.
+      if (!esReintentoLE && adminPhone) {
         await send(adminPhone, `🔔 Paciente de lista de espera confirmó cita:\n${datos.nombre} – ${slotFecha} ${slotHora}`)
       }
 

@@ -1,8 +1,10 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
   getDocs, getDoc, query, orderBy, where, serverTimestamp,
-  Timestamp, QueryConstraint,
+  runTransaction, Timestamp, QueryConstraint,
 } from 'firebase/firestore'
+import { idIdempotente } from '@/lib/idempotencia'
+import { claveDeEspera } from '@/lib/whatsapp/lista-espera'
 import { db } from './firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
 import {
@@ -160,11 +162,50 @@ export async function getWaitlist(clinicId: string): Promise<WaitlistEntry[]> {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as WaitlistEntry))
 }
 
+/**
+ * Alta en la lista de espera, IDEMPOTENTE.
+ *
+ * ── QUÉ FALLABA ────────────────────────────────────────────────────────────
+ *
+ * Era un `addDoc`: identificador aleatorio, uno nuevo en cada llamada. Dos
+ * envíos del mismo formulario —el doble clic, el reintento tras una red lenta,
+ * la pestaña duplicada— eran por construcción DOS entradas del mismo paciente.
+ *
+ * Y duele donde no se ve: al ofrecer un hueco sólo se avisa a tres personas, así
+ * que el paciente repetido ocupa dos de esos tres sitios. El tercero de la fila
+ * no se entera del hueco y el repetido recibe dos veces el mismo mensaje.
+ *
+ * ── LA REGLA ───────────────────────────────────────────────────────────────
+ *
+ * El id sale de la INTENCIÓN, no de la escritura: teléfono + tipo + fecha
+ * deseada + franja horaria, derivados con `idIdempotente` (que mete el
+ * consultorio en la preimagen, así que la misma petición en dos consultorios da
+ * dos ids distintos). Misma petición → mismo documento.
+ *
+ * ── POR QUÉ EN TRANSACCIÓN Y POR QUÉ SE CONSERVA `createdAt` ────────────────
+ *
+ * `createdAt` decide la ANTIGÜEDAD en la cola: a igual prioridad, atiende antes
+ * quien lleva más esperando. Reescribirlo en un segundo envío mandaría al
+ * paciente al final de su propia fila sin que nadie lo viera. Se conserva el de
+ * la primera vez, y la transacción es lo que hace que leerlo y decidir no sea
+ * una carrera — el mismo error de leer-y-luego-escribir que ya costó dos
+ * consultorios duplicados en `/setup`.
+ *
+ * Volver a dar de alta a quien estaba de baja SÍ lo reactiva: es lo que el
+ * consultorio está pidiendo al escribirlo otra vez.
+ */
 export async function createWaitlistEntry(clinicId: string, data: Omit<WaitlistEntry, 'id'>): Promise<string> {
-  const ref = await addDoc(col(clinicId, COLLECTIONS.waitlist), {
-    ...data, createdAt: new Date().toISOString(),
+  const id = idIdempotente(clinicId, 'lista-espera', claveDeEspera(data))
+  const ref = d(clinicId, COLLECTIONS.waitlist, id)
+  const ahora = new Date().toISOString()
+  await runTransaction(db, async (tx) => {
+    const previo = await tx.get(ref)
+    const createdAt = previo.exists()
+      ? ((previo.data() as { createdAt?: string } | undefined)?.createdAt ?? ahora)
+      : ahora
+    tx.set(ref, { ...data, createdAt }, { merge: true })
   })
-  return ref.id
+  return id
 }
 
 export async function updateWaitlistEntry(clinicId: string, id: string, data: Partial<WaitlistEntry>): Promise<void> {

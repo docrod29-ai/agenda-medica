@@ -158,10 +158,19 @@ class Consulta {
    * coleccion, `col.where(...).limit(1).get()` -que es lo que escribe media
    * aplicacion- reventaria con «no es una funcion». Aqui lo heredan las dos.
    */
-  async get(): Promise<{ docs: Array<{ id: string; data: () => Datos }>; size: number; empty: boolean }> {
-    const todos = this.tienda.listar(this.ruta)
-      .filter(d => this.filtros.every(f => pasa(d.datos, f)))
-      .map(d => ({ id: d.id, data: () => d.datos }))
+  async get(): Promise<{ docs: Array<{ id: string; data: () => Datos; ref: RefDoc }>; size: number; empty: boolean }> {
+    const todos = this.tienda.listar(this.ruta).map(d => ({
+      id: d.id,
+      datos: d.datos,
+      data: () => d.datos,
+      /**
+       * `ref` NO es decoracion: media aplicacion escribe con `d.ref.update(...)`
+       * sobre el resultado de una consulta. Sin el, esa escritura lanzaba, el
+       * llamador se lo tragaba en su try/catch y la prueba veia el documento sin
+       * cambiar — o sea, denunciaba un defecto del producto que era del doble.
+       */
+      ref: new RefDoc(this.tienda, `${this.ruta}/${d.id}`),
+    })).filter(d => this.filtros.every(f => pasa(d.datos, f)))
     const docs = this.tope === null ? todos : todos.slice(0, this.tope)
     return { docs, size: docs.length, empty: docs.length === 0 }
   }

@@ -8155,3 +8155,67 @@ propia transacción y el mismo patrón sin reparar: queda como trabajo con nombr
 no dado por bueno. No cubre las reglas de Firestore (van contra el emulador) ni
 el dedup por `wamid`, que tiene su propia suite — aquí se prueba justamente el
 caso en que el dedup NO salvó, que es para el que existe la idempotencia.
+
+## REG-326 — la lista de espera: entrar dos veces, y que al aceptar el hueco le dijeran que otro se le adelantó
+
+Dos defectos de la misma familia —la identidad del recurso nacía de la ESCRITURA
+y no de la INTENCIÓN— en las dos fronteras de escritura de la lista de espera.
+
+**A · Entrar dos veces.** `createWaitlistEntry` escribía con `addDoc`:
+identificador aleatorio, uno nuevo en cada llamada. Dos envíos del mismo
+formulario —doble clic, reintento tras una red lenta, pestaña duplicada— eran por
+construcción DOS entradas del mismo paciente.
+
+Y duele donde no se ve: al liberarse un hueco sólo se avisa a TRES personas
+(`LIMITE_NOTIFICAR`), así que el paciente repetido ocupa dos de esos tres sitios.
+**El tercero de la fila no se entera del hueco** y el repetido recibe dos veces el
+mismo mensaje. La lista sigue pareciendo que funciona.
+
+**B · «Otra persona respondió primero» cuando no era verdad.** Si el «SÍ» del
+paciente volvía a llegar, la transacción veía **la cita que acababa de crear él
+mismo**, la contaba como ocupación y le contestaba:
+
+> «Lo sentimos, ese horario acaba de ocuparse — otra persona de la lista
+> respondió primero.»
+
+Falso, y además culpando a un tercero que no existe: le devolvía a la lista de
+espera creyendo que perdió el hueco que en realidad había ganado. Es la misma
+raíz de REG-325 en la otra rama del bot, y aquí es peor, porque el mensaje nombra
+a alguien.
+
+**Cómo se descubrió.** Recorriendo el camino real del Bloque 7 —se libera un
+hueco → se ofrece a varios → uno contesta «SÍ» → se le agenda → los demás se
+enteran— con `ofrecerHuecoLiberado` y `handleMessage` reales contra una tienda con
+la semántica transaccional de Firestore, y contando documentos.
+
+**Control permanente.**
+- A: el id de una entrada sale de la intención (teléfono + tipo + fecha deseada +
+  franja) con `idIdempotente`, que mete el consultorio en la preimagen — la misma
+  petición en dos consultorios da dos ids distintos. La escritura va en
+  transacción y **conserva `createdAt`**: ese campo decide la antigüedad en la
+  cola, y reescribirlo mandaría al paciente al final de su propia fila sin que
+  nadie lo viera. La clave vive en `lib/whatsapp/lista-espera.ts` (`claveDeEspera`),
+  junto a la política de la lista y no en un módulo nuevo.
+- B: `citaYaAgendada` —el mismo módulo de REG-325— dentro de la transacción de la
+  rama `esperando_lista`. La rama de conflicto REAL (otro paciente contestó antes)
+  no se toca: ésa sí es verdad, y hay un caso que la exige.
+
+`src/__tests__/entrar-a-lista-de-espera-una-sola-vez.test.ts` (10 casos; probado al
+revés: reintroduciendo `addDoc` caen 3) y
+`src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts` (16 casos; sin
+el arreglo de B caen 2).
+
+**Un falso hallazgo, y por qué se cuenta.** El primer rojo decía que responder
+«NO» a una oferta dejaba la entrada en `contactado` en vez de `baja` — o sea, que
+la baja prometida no ocurría. **Era del doble, no del producto**: la tienda en
+memoria devolvía documentos de consulta sin `ref`, así que el `d.ref.update(...)`
+lanzaba y el `try/catch` del llamador se lo tragaba. Con `ref` en el harness, el
+camino real pasa. Queda escrito porque un harness incompleto no da falsos verdes:
+da falsos ROJOS, y un falso rojo perseguido durante horas cuesta lo mismo que un
+defecto.
+
+**Qué NO cubre, declarado.** No cubre las reglas de Firestore (van contra el
+emulador) ni la atomicidad real de la transacción del SDK de cliente, que aquí se
+simula. No cubre la pantalla del formulario: se prueba la frontera de escritura.
+No cubre la plantilla HSM fuera de la ventana de 24 h — sigue siendo
+OWNER_APPROVAL_REQUIRED (REG-323).

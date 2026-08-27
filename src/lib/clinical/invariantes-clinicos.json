@@ -2,7 +2,7 @@
   "sellado": "2026-08-15",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4702,
+  "totalCasos": 4728,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -433,6 +433,10 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/entrar-a-lista-de-espera-una-sola-vez.test.ts",
+      "minCasos": 10
+    },
+    {
       "archivo": "src/__tests__/entrypoints-del-registro.test.ts",
       "minCasos": 7
     },
@@ -647,6 +651,10 @@
     {
       "archivo": "src/__tests__/la-hoja-de-estilos-llega-entera.test.ts",
       "minCasos": 3
+    },
+    {
+      "archivo": "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
+      "minCasos": 16
     },
     {
       "archivo": "src/__tests__/la-maqueta-se-construyo-entera.test.ts",

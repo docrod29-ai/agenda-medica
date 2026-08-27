@@ -141,7 +141,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * paciente que su horario ya no estaba disponible. Aquí el mensaje no sólo
      * costó horas: costó una segunda cita, porque el paciente le hizo caso.
      */
-    regs: [155, 156, 251, 317, 325],
+    /**
+     * 326: «otra persona de la lista respondió primero» cuando la cita era del
+     * propio paciente que preguntaba. El mensaje no sólo mentía sobre la causa:
+     * inventaba un tercero, y devolvía a la paciente a la lista de espera
+     * creyendo que perdió el hueco que había ganado.
+     */
+    regs: [155, 156, 251, 317, 325, 326],
   },
   {
     clave: 'decision_del_dueno',

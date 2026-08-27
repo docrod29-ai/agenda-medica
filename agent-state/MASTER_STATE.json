@@ -22,12 +22,16 @@
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M src/__tests__/_harness/firestore-admin-en-memoria.ts",
-    " M src/__tests__/la-urgencia-gana-en-whatsapp.test.ts",
+    " M src/__tests__/donde-es-la-cita.test.ts",
+    " M src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
     " M src/app/api/whatsapp/webhook/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-reintento-del-bot-no-pierde-la-cita.test.ts",
-    "?? src/lib/whatsapp/cita-ya-agendada.ts"
+    " M src/lib/firestore.ts",
+    " M src/lib/idempotencia.ts",
+    " M src/lib/whatsapp/lista-espera.ts",
+    "?? src/__tests__/entrar-a-lista-de-espera-una-sola-vez.test.ts",
+    "?? src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts"
   ],
   "actualizado": "2026-08-26",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +67,10 @@
   ],
   "ramaActual": "product/patient-experience-whatsapp-2026-08-26",
   "derivado": {
-    "regsEnElLedger": 173,
-    "ultimaREG": "REG-325",
-    "archivosDePrueba": 741,
-    "casosDePrueba": 8933,
+    "regsEnElLedger": 174,
+    "ultimaREG": "REG-326",
+    "archivosDePrueba": 743,
+    "casosDePrueba": 8959,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
