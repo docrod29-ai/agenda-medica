@@ -40,10 +40,24 @@ export default function ResenaPage() {
   }
 
   if (loading) {
-    return <Full><Loader2 size={26} color="var(--teal)" style={{ animation: 'spin 1s linear infinite' }} /></Full>
+    return (
+      <Full>
+        <div role="status" style={{ display: 'grid', placeItems: 'center', gap: 10 }}>
+          <Loader2 size={26} color="var(--teal)" style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" />
+          <span style={{ fontSize: 14, color: 'var(--text2)' }}>Cargando tu reseña…</span>
+        </div>
+      </Full>
+    )
   }
   if (error) {
-    return <Full><div style={card}><AlertTriangle size={36} color="var(--amber)" /><h1 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginTop: 10 }}>{error}</h1></div></Full>
+    return (
+      <Full>
+        <div style={card} role="alert">
+          <AlertTriangle size={36} color="var(--amber)" aria-hidden="true" />
+          <h1 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginTop: 10 }}>{error}</h1>
+        </div>
+      </Full>
+    )
   }
   if (enviado) {
     return <Full><div style={card}>
@@ -62,28 +76,53 @@ export default function ResenaPage() {
         </h1>
         <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 18px' }}>Tu opinión es anónima en la página pública.</p>
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, margin: '16px 0' }}>
+        {/*
+          LAS CINCO ESTRELLAS (A11Y-GATE-001). Eran cinco botones sin una sola
+          palabra dentro: el lector de pantalla los anunciaba «botón», «botón»,
+          «botón», «botón», «botón», sin forma de saber cuál era cuál ni cuál
+          estaba elegida. Ahora cada uno dice su valor y el grupo dice de qué va.
+          `aria-pressed` es lo que convierte «botón 4 estrellas» en «botón
+          4 estrellas, seleccionado»: sin él, quien no ve la estrella amarilla
+          no tiene forma de comprobar lo que acaba de elegir.
+        */}
+        <div role="group" aria-label="Calificación de 1 a 5 estrellas" style={{ display: 'flex', justifyContent: 'center', gap: 6, margin: '16px 0' }}>
           {[1,2,3,4,5].map(n => (
             <button key={n} type="button"
+              aria-label={n === 1 ? '1 estrella' : `${n} estrellas`}
+              aria-pressed={rating === n}
               onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
               onClick={() => setRating(n)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-              <Star size={36} fill={(hover || rating) >= n ? '#fbbf24' : 'none'} color={(hover || rating) >= n ? '#fbbf24' : 'var(--text3)'} />
+              <Star size={36} aria-hidden="true" fill={(hover || rating) >= n ? '#fbbf24' : 'none'} color={(hover || rating) >= n ? '#fbbf24' : 'var(--text3)'} />
             </button>
           ))}
         </div>
 
+        <label htmlFor="resena-texto" style={{ display: 'block', fontSize: 12, color: 'var(--text2)', textAlign: 'left', marginBottom: 6 }}>
+          Tu comentario (opcional)
+        </label>
         <textarea
+          id="resena-texto"
           value={texto} onChange={e => setTexto(e.target.value.slice(0, 1000))}
           placeholder="¿Qué te gustaría compartir? (opcional)"
           rows={4}
+          aria-describedby="resena-texto-cuenta"
           style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 14, color: 'var(--text)', resize: 'vertical' }}
         />
-        <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right', marginTop: 4 }}>{texto.length}/1000</div>
+        {/*
+          El contador se ligaba a nada: quien no ve el «/1000» no sabía que el
+          campo estaba topado hasta que dejaba de escribir. `aria-describedby`
+          lo une al campo; `aria-live="polite"` deja que se anuncie al acercarse
+          al tope sin interrumpir lo que se está escribiendo.
+        */}
+        <div id="resena-texto-cuenta" aria-live="polite" style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right', marginTop: 4 }}>
+          {texto.length} de 1000 caracteres
+        </div>
 
         <button
           onClick={enviar}
           disabled={!rating || enviando}
+          aria-busy={enviando}
           style={{ marginTop: 14, width: '100%', background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 12, padding: '12px 18px', fontSize: 15, fontWeight: 700, cursor: rating && !enviando ? 'pointer' : 'default', opacity: rating && !enviando ? 1 : 0.5 }}
         >
           {enviando ? 'Enviando…' : 'Enviar reseña'}

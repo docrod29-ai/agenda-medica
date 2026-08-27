@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useId, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
@@ -213,11 +213,18 @@ export default function MiPortalPage() {
     }
   }
 
+  /*
+    A11Y-GATE-001. Las dos puertas de esta pantalla —«cargando» y «tu enlace ya
+    no vale»— eran mudas. La segunda es la que importa: si el enlace del portal
+    venció, ESTE cartel es lo único que le dice al paciente que tiene que pedir
+    otro al consultorio. Aparecía sin que ningún lector de pantalla lo leyera,
+    y lo que quedaba era una pantalla en blanco sin explicación.
+  */
   if (cargando) {
-    return <Centro><Loader2 size={26} style={{ animation: 'spin 1s linear infinite', color: 'var(--nexus)' }} /><p style={{ color: 'var(--text3)', marginTop: 12 }}>Cargando tu información…</p></Centro>
+    return <Centro><div role="status"><Loader2 size={26} aria-hidden="true" style={{ animation: 'spin 1s linear infinite', color: 'var(--nexus)' }} /><p style={{ color: 'var(--text3)', marginTop: 12 }}>Cargando tu información…</p></div></Centro>
   }
   if (error || !sesion) {
-    return <Centro><AlertTriangle size={28} color="var(--amber)" /><p style={{ color: 'var(--text2)', marginTop: 12, maxWidth: 320 }}>{error || 'No encontramos tu información.'}</p></Centro>
+    return <Centro><div role="alert"><AlertTriangle size={28} color="var(--amber)" aria-hidden="true" /><p style={{ color: 'var(--text2)', marginTop: 12, maxWidth: 320 }}>{error || 'No encontramos tu información.'}</p></div></Centro>
   }
 
   /**
@@ -370,15 +377,15 @@ export default function MiPortalPage() {
                 <>
                   <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
                     {!c.confirmadoPaciente && (
-                      <button onClick={() => accionCita('confirmar', c.id)} disabled={!!accion} className="btn btn-primary btn-sm">
-                        {accion === c.id + 'confirmar' ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} />} Confirmar
+                      <button onClick={() => accionCita('confirmar', c.id)} disabled={!!accion} aria-busy={accion === c.id + 'confirmar'} className="btn btn-primary btn-sm">
+                        {accion === c.id + 'confirmar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} aria-hidden="true" />} Confirmar
                       </button>
                     )}
                     <button onClick={() => setReagendando(reagendando === c.id ? '' : c.id)} disabled={!!accion} className="btn btn-secondary btn-sm">
                       <CalendarClock size={14} /> Reagendar
                     </button>
-                    <button onClick={() => { if (confirm('¿Cancelar esta cita?')) accionCita('cancelar', c.id) }} disabled={!!accion} className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }}>
-                      {accion === c.id + 'cancelar' ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} />} Cancelar
+                    <button onClick={() => { if (confirm('¿Cancelar esta cita?')) accionCita('cancelar', c.id) }} disabled={!!accion} aria-busy={accion === c.id + 'cancelar'} className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }}>
+                      {accion === c.id + 'cancelar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} aria-hidden="true" />} Cancelar
                     </button>
                     <a href={gcalLink(c, tzClinica)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
                       <CalendarPlus size={14} /> Agendar
@@ -415,6 +422,7 @@ export default function MiPortalPage() {
             <button
               type="button"
               disabled={!!pagando}
+              aria-busy={!!pagando}
               onClick={() => pagarAnticipo(proximas[0])}
               style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: pagando ? 'default' : 'pointer' }}
             >
@@ -436,7 +444,7 @@ export default function MiPortalPage() {
               </div>
             </button>
             {errorPago && (
-              <div style={{ fontSize: 12.5, color: 'var(--amber)', marginTop: 8, lineHeight: 1.5 }}>
+              <div role="alert" style={{ fontSize: 12.5, color: 'var(--amber)', marginTop: 8, lineHeight: 1.5 }}>
                 {errorPago}
                 {sesion.anticipo.link && (
                   <> <a href={sesion.anticipo.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--nexus)' }}>Pagar por el enlace del consultorio</a> — avísales para que lo registren.</>
@@ -650,6 +658,7 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
   const [fecha, setFecha] = useState(hoy)
   const [slots, setSlots] = useState<string[] | null>(null)
   const [cargandoSlots, setCargandoSlots] = useState(false)
+  const idFecha = useId()
 
   const buscar = useCallback(async (f: string) => {
     setCargandoSlots(true); setSlots(null)
@@ -666,12 +675,23 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
 
   return (
     <div style={{ marginTop: 14, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" /> Elige un nuevo horario</div>
-      <input type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
+      {/*
+        A11Y-GATE-001: este bloque era un <div> de título y un <input type="date">
+        sin etiqueta. El <div> se ve como un rótulo y no lo es — el campo se
+        anunciaba «fecha, cuadro de edición», sin decir para qué. Ahora el rótulo
+        ES el <label> del campo, así que rotularlo y etiquetarlo son el mismo
+        acto y no se pueden separar por descuido.
+      */}
+      <label htmlFor={idFecha} style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" aria-hidden="true" /> Elige un nuevo horario</label>
+      <input id={idFecha} type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
+      {/*
+        Los horarios se rellenan solos al cambiar el día: sin región viva, el
+        cambio ocurre en silencio.
+      */}
       {cargandoSlots ? (
-        <div style={{ color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Buscando horarios…</div>
+        <div role="status" style={{ color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}><Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> Buscando horarios…</div>
       ) : slots && slots.length === 0 ? (
-        <div style={{ color: 'var(--text3)', fontSize: 13 }}>No hay horarios libres ese día. Prueba otra fecha.</div>
+        <div role="status" style={{ color: 'var(--text3)', fontSize: 13 }}>No hay horarios libres ese día. Prueba otra fecha.</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(72px, 100%), 1fr))', gap: 8 }}>
           {slots?.map(s => (
@@ -769,15 +789,16 @@ function FormularioPrevio({ token }: { token: string }) {
               />
             </div>
           ))}
-          {error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+          {error && <div role="alert" style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
           <button
             type="button"
             onClick={enviar}
             disabled={enviando || !Object.values(valores).some(v => v.trim())}
+            aria-busy={enviando}
             className="btn btn-primary btn-sm"
             style={{ alignSelf: 'flex-start' }}
           >
-            {enviando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} />} Enviar a mi médico
+            {enviando ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} aria-hidden="true" />} Enviar a mi médico
           </button>
         </div>
       )}
