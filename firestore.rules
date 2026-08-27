@@ -306,7 +306,7 @@ service cloud.firestore {
         match /laboratorios/{labId} {
           allow read: if isMedico(clinicId);
           /**
-           * REG-323 — SEGUNDA CAPA DEL VÍNCULO DE SUJETO.
+           * REG-324 — SEGUNDA CAPA DEL VÍNCULO DE SUJETO.
            *
            * El panel declara DENTRO a qué paciente y consultorio pertenece, y
            * aquí se exige que eso sea la ruta donde se está escribiendo. La
@@ -315,7 +315,7 @@ service cloud.firestore {
            * otro paciente aterrice aquí aunque alguien salte la pantalla.
            *
            * Los campos se exigen sólo SI VIENEN: los paneles anteriores a
-           * REG-323 no los llevan, y una restauración de respaldo los reescribe
+           * REG-324 no los llevan, y una restauración de respaldo los reescribe
            * tal como se guardaron. Bloquearlos convertiría un candado nuevo en
            * un respaldo que no se puede restaurar.
            */
