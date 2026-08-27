@@ -4,7 +4,7 @@ import { similitudNombre, UMBRAL_NOMBRE } from '@/lib/pacientes/duplicados'
 /**
  * ¿DE QUIÉN ES ESTA HOJA DE LABORATORIO?
  *
- * ── EL AGUJERO QUE CIERRA (REG-323) ──────────────────────────────────────────
+ * ── EL AGUJERO QUE CIERRA (REG-324) ──────────────────────────────────────────
  *
  * El camino cotidiano de Practice —adjuntar un PDF o una foto de resultados—
  * archivaba el panel bajo el `patientId` de la pantalla que estaba abierta. Nada
