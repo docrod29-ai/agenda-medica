@@ -7990,120 +7990,114 @@ a poner encabezados donde no hay pantalla que encabezar.
 
 ---
 
-## REG-327 — el portal enseñaba como «receta» medicamentos que el médico nunca prescribió
+## REG-323 — corregir un teléfono borraba las alergias del paciente
 
-**Área.** Autoridad de prescripción y documentos de cara al paciente. Encontrado
-por la auditoría H-01, contando llamadores de la frontera: `loQueSeReceta` tenía
-**un solo llamador en todo el repositorio** —la pantalla del médico— mientras que
-«receta» se arma en **dos** superficies.
+**Área.** Identidad del paciente y escritura del expediente. Encontrado por la
+auditoría H-18 leyendo el payload de `handleSave` de `/pacientes` contra la
+lista de inputs que el modal monta de verdad.
 
-**Qué fallaba.** La acción `documentos` de `/api/portal` construía las recetas
-del paciente así:
+**Qué fallaba.** Editar el teléfono de un paciente desde `/pacientes`
+sobrescribía sus **alergias** con una cadena vacía. Silencioso, permanente, y
+disparado por una acción administrativa rutinaria que puede ejecutar un rol que
+ni siquiera ve el campo:
 
-```ts
-.filter(n => Array.isArray(n.medicamentos) && n.medicamentos.length > 0)
-.map(n => ({ …, medicamentos: n.medicamentos ?? [] }))
-```
+1. Un paciente sin alergias registradas; la asistente abre `/pacientes` y la
+   lista queda en memoria del componente.
+2. El médico, en `/consulta/{id}`, anota «Penicilina». Se guarda, e invalida
+   **su** caché de módulo.
+3. La asistente, **sin recargar**, abre el editor de ese paciente, corrige el
+   teléfono y guarda.
+4. El documento queda con `alergias: ''`. En `audit_log` sólo constaba
+   `campos: ['nombre','telefono',…,'alergias','notas']` — los nombres, sin los
+   valores. **El dato perdido no se podía reconstruir.**
 
-`n.medicamentos` es la lista de la NOTA, y en ella conviven mezcladas cinco cosas
-que no son la misma:
+`notas` sufría lo mismo y era peor de justificar: no tiene input en ninguna
+parte del producto, así que era un campo que sólo existía para escribirse.
 
-| en la lista de la nota | qué es | ¿es una prescripción? |
-|---|---|---|
-| `procedenciaClinica:'ya_lo_toma'` | lo que el paciente **refirió** que toma | no |
-| `estado:'borrador'` | lo que la IA extrajo y nadie confirmó | no |
-| `estado:'suspendida'` / `'cancelada'` | lo que el médico **retiró** | no |
-| `estado:'probablemente_terminada'` | venció el calendario, nadie lo revisó | no |
-| `se_prescribe_hoy` + `activa` | lo que el médico indicó | **sí** |
+**Por qué era P0.** De `alergias` cuelgan a la vez el cruce alergia↔fármaco, la
+compuerta que impide firmar, el sesgo del reconocedor hacia los alérgenos y el
+recuadro rojo de la receta. Se apagaban los cuatro sin ninguna señal, y el campo
+vacío se lee después como «no se ha preguntado», no como «alguien lo borró».
 
-La pantalla `/mi/[token]` bajaba esa lista cruda a `descargarRecetaWord` con
-`tipo:'receta'`, que imprime **«RECETA MÉDICA»** y numera los renglones. O sea:
-la historia farmacológica del paciente salía impresa como prescripción, en un
-documento que se lleva a la farmacia, sin que ningún médico lo hubiera indicado.
+**Causa raíz — tres piezas, y sólo juntas borran.**
 
-Y sin poder atribuirla: el segundo argumento de `descargarRecetaWord` era `null`,
-así que el documento salía **sin médico** y con `[FALTA CÉDULA PROFESIONAL]`
-impreso en rojo donde va la cédula — aunque la ruta ya tenía el nombre a mano y
-la nota firmada guarda además la cédula y la especialidad.
+1. **El formulario mandaba más campos de los que enseña.** El `payload` de
+   `handleSave` incluía siempre `alergias` y `notas` y se pasaba entero a
+   `updatePatient` → `updateDoc`, que sobrescribe campo por campo. Pero el input
+   de alergias vive tras `{mode === 'medico' && …}` y el de `notas` no existe.
+   (`mode` viene de `ModeContext`: es un conmutador de UI que cualquier médico
+   real puede poner en `secretaria`, y que se fuerza a `secretaria` para quien no
+   lo es. No es sólo el rol.)
+2. **La semilla podía estar vieja.** `openEdit(p)` toma `p` del array en memoria,
+   cargado una sola vez por montaje sobre el memo de 30 s de `getPatients`.
+   Nunca se relee el documento, e `invalidarCachePacientes` sólo corre en la
+   pestaña que escribió — es un `Map` de módulo, no un canal entre pestañas.
+3. **`sinUndefined` no filtra la cadena vacía.** Descarta `undefined` y deja
+   pasar `''`, así que el valor vacío llega a Firestore y borra.
 
-**Por qué era P0.** El lector es el paciente, y **el paciente no puede detectar
-el error**: no sabe que ese fármaco se lo suspendieron, ni que ese otro lo dijo
-él y no su médico. Un antibiótico retirado por reacción adversa reaparecía como
-indicación vigente, con formato de receta, junto a los que sí lo eran. Es la
-regla 3 de la IA de cara al paciente —«el código no debe *poder* prescribir»—
-incumplida no por el prompt sino por la ruta.
+Y la defensa que existía no cubría este camino: la bitácora `paciente_modificado`
+con `antes`/`despues`/`vaciado` —escrita precisamente para que un vaciado de
+alergias no fuera silencioso— vive **sólo** en el input de `/consulta`.
 
-**Causa raíz — la frontera existía, pero como composición dentro de un
-componente.** La pantalla del médico escribía a mano, dentro de un `useEffect`:
+**El caso de 2026-07 acertó el objetivo y erró el mecanismo.** Cuando se acortó
+el formulario se escribió un guardián para que esconder un campo no lo borrara, y
+lo que congeló fue «`notas` sigue viajando en el payload». Viajar sólo conserva
+el dato mientras la semilla esté fresca; con una semilla vieja, viajar es
+exactamente lo que borra. La prueba estaba en verde con el defecto vivo.
 
-```ts
-loQueSeReceta(n.medicamentos ?? []).filter(m => estaVigente(m))
-```
+**Control permanente.** `src/lib/pacientes/campos-que-se-guardan.ts` construye el
+payload fuera de la pantalla, con una sola regla: **no se escribe lo que no se
+pudo leer.** `notas` no viaja nunca; `alergias` sólo cuando `mode === 'medico'`,
+que es cuando el input estuvo delante. La clave ausente deja intacto el valor
+guardado, en vez de pisarlo con el eco de una copia vieja. Es la regla 4 de
+seguridad clínica —«ausencia de dato no es dato de ausencia»— dicha en lenguaje
+de escritura, y la misma que este repositorio ya aplica en `guardarBorrador`.
+No impide borrar: con el input delante, vaciar el campo es una decisión del
+médico y sigue llegando.
+**Y una red secundaria, para lo que la primera no puede cubrir.** La primera
+impide que un campo NO editado pise nada; no dice nada de dos personas editando
+a la vez los MISMOS campos visibles, donde sin comparar nada gana el último en
+pulsar Guardar y el que perdió no se entera. `updatePatient` admite ahora el
+`updatedAt` que vio el llamador y rechaza la escritura si el documento cambió
+desde entonces —mismo `code` `conflicto-de-version` que `updateNota`, para que
+las pantallas no tengan que aprender dos nombres para el mismo suceso—, y el
+editor de `/pacientes` lo traduce a un aviso que no manda a mirar el wifi.
+Opcional a propósito: quien no pase la marca se comporta como antes.
 
-Las dos mitades son necesarias y ninguna sobra: `loQueSeReceta` contesta «¿el
-médico quiso indicar esto hoy?» y `estaVigente` contesta «¿la orden sigue en
-pie?» —sólo la segunda descarta `probablemente_terminada`—. Pero al vivir la
-composición **dentro de una pantalla**, protegía exactamente a esa pantalla.
-Cualquier segunda superficie nace sin la regla y nada lo señala.
+La bitácora `paciente_modificado` gana además `antes`/`despues`/`vaciado`
+**para `alergias` y sólo para `alergias`**: sin el `antes`, un vaciado queda
+registrado como «se tocó el campo alergias», indistinguible de haberlas escrito
+— que es exactamente lo que hizo irreconstruible el dato aquí. Es la excepción
+que ya existía en el input de `/consulta`, con ese mismo campo y ese mismo
+propósito, y no se amplía a ningún otro: cada valor en la bitácora es PHI que
+sale del expediente.
 
-Es la familia «escrito y sin conectar» vista desde el otro lado: aquí sí estaba
-conectado — a un consumidor de dos. Y el que quedó fuera es precisamente aquel en
-el que **no hay un médico mirando el resultado**.
-
-**Control permanente.** `medicamentosDeLaReceta` en
-`src/lib/expediente/que-va-en-la-receta.ts` es ahora la **única puerta**, y las
-dos superficies la cruzan. La del paciente la cruza **en el servidor**: esconder
-un renglón en la pantalla no cierra la ruta HTTP que lo devuelve, y la ruta
-devolvía los nombres aunque no se pintaran. Una nota deja además de ser «una
-receta» por tener medicamentos: lo es cuando queda algo que el médico indicó de
-verdad, así que una consulta que sólo recogió antecedentes ya no aparece en la
-lista del paciente.
-
-Tres cosas más, del mismo acto y del mismo tamaño:
-
-- **Prescriptor.** Nombre, cédula y especialidad salen de `nota.firma` —el
-  snapshot inmutable del momento de firmar (NOM-024)— y no de la configuración
-  viva del consultorio, que cambiaría retroactivamente el autor de una receta
-  vieja al actualizar el perfil.
-- **Alergias.** La copia del paciente era la única receta del producto sin el
-  recuadro de alergias (`mostrarAlergias: false` fijo): la misma alergia que el
-  impreso del médico destaca en rojo desaparecía del documento que el paciente
-  lleva a la farmacia. Ahora viaja la verdad del expediente por
-  `alergiasParaImpreso` —la misma primitiva del impreso del médico, que prefiere
-  `alergiasEstructuradas` sobre el texto libre— **y viaja aparte si se pudo
-  leer**: con el expediente ilegible la receta no afirma nada, ni «sin registro»
-  ni «negadas».
-- **Error ≠ ausencia.** Un fallo de red acababa en `setDocs([])`, y como la lista
-  sólo se pinta cuando trae algo, el paciente veía la misma imagen exacta que «tu
-  médico no te ha recetado nada». Ahora se dice, con esas palabras: *esto no
-  quiere decir que no tengas*.
-
-`src/__tests__/la-receta-del-paciente-solo-lleva-lo-que-el-medico-preescribio.test.ts`
-(31 casos, probado al revés ×6: la ruta devolviendo la nota en crudo, la puerta
-sin `estaVigente`, la pantalla del médico saliéndose de la puerta, el fallo de red
-volviendo a pintarse como ausencia, la receta sin prescriptor, y la ruta
-afirmando haber leído un expediente que no leyó — cada reversión pone en rojo
-exactamente el caso que le toca).
+`src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts`
+(22 casos, probado al revés ×7: alergias incondicional, `notas` de vuelta al
+payload, la pantalla volviendo a construirlo a mano, la guardia de versión
+retirada, la pantalla dejando de pasar su marca, la bitácora volviendo a decir
+sólo los nombres de los campos, y el detalle ampliado a un campo que no lo
+necesita — cada reversión pone en rojo exactamente el caso que le toca).
 
 **Qué NO cubre, declarado.**
 
-- **No prueba el aislamiento con las REGLAS de Firestore.** Lo que se congela es
-  que la ruta construya su consulta con el `{clinicId, patientId}` del token
-  FIRMADO y con ningún dato del cuerpo —hay un caso que inyecta otro `patientId`
-  en el cuerpo y comprueba que se ignora—. Que `firestore.rules` lo sostenga sólo
-  lo puede decir el emulador.
-- **No renderiza la pantalla del paciente.** La suite corre en `node`, sin jsdom:
-  el cableado de `/mi/[token]` se comprueba leyendo su fuente. Que el `.doc`
-  descargado se vea bien es trabajo del golden de `receta-word`.
-- **No cubre el `PaqueteDeVisita`**, que tiene su propia compuerta
-  `DRAFT`/`RELEASED` (REG-304) y su propia prueba. Aquí sólo se juzga
-  `documentos`.
-- **No cubre la orden médica** (`tipo:'orden'`), que baja estudios y no
-  medicamentos, ni las demás rutas que exportan el expediente (FHIR, respaldo,
-  ARCO): ésas no titulan «RECETA MÉDICA» y no afirman autoridad de prescripción.
-  Queda declarado como revisión pendiente, fuera del alcance de H-01.
-- **No decide qué es clínicamente correcto prescribir.** Sólo quién tuvo la
-  autoridad para hacerlo.
-- **No cubre `estado:'probablemente_terminada'` en la NOTA**, donde debe seguir
-  viéndose y pidiendo reconciliación: lo único que se cierra es que se reimprima
-  como receta vigente.
+- **No cubre el camino de `/consulta`**, que tiene su propio input de alergias,
+  su propio guardado y su propia bitácora con `antes`/`despues`/`vaciado`.
+  Borrar el campo desde ahí sigue siendo posible, y debe serlo.
+- **No prueba la concurrencia CORRIENDO Firestore.** La guardia de `updatedAt`
+  se comprueba leyendo el fuente: esta suite corre en `node`, sin emulador ni
+  jsdom. Que dispare de verdad contra la base sólo lo puede decir el emulador.
+- **La guardia no cubre las escrituras de un solo campo desde `/consulta`**, que
+  no pasan `vistoEn` a propósito: escriben un campo, no el formulario entero, y
+  no pagan la lectura extra. Dos sesiones editando ESE campo a la vez siguen
+  ganando por orden de llegada — pero ahí el vaciado sí queda en la bitácora con
+  su `antes`.
+- **No cubre la caché de 30 s de `getPatients`.** La semilla vieja sigue siendo
+  vieja: lo que se corrige es que ya no pueda vaciar un campo clínico.
+- **No cubre `email`**, que tiene la MISMA forma —sin input en esta pantalla y
+  viajando como `f.email.trim()`— y por tanto el mismo riesgo con una semilla
+  vieja. Queda declarado como **deuda P2 no pagada**, fuera del alcance de H-18
+  a propósito: no es un campo clínico y ampliarlo aquí habría sido rediseñar el
+  formulario. `curp` no corre ese riesgo porque su vacío sale como `undefined` y
+  `sinUndefined` lo descarta.
+- **No cubre `alergiasEstructuradas`**, que esta pantalla nunca ha tocado.
