@@ -25,7 +25,7 @@ const GRUPO_LABEL: Record<string, string> = {
  * sin su visto bueno) → se guarda como un panel fechado → las gráficas se
  * recalculan sobre todo el historial.
  *
- * El paso de verificación no es decorativo (REG-323): «revisa lo que leyó la IA»
+ * El paso de verificación no es decorativo (REG-324): «revisa lo que leyó la IA»
  * pedía repasar los NÚMEROS, nunca el SUJETO, y el panel se archivaba bajo el
  * paciente que estuviera abierto. Aquí se pinta el veredicto; quien lo hace
  * cumplir es `guardarPanelLab`, que sin vínculo no escribe — esconder el botón
@@ -267,7 +267,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
             {/*
               DE QUIÉN ES LA HOJA. Va ARRIBA de los valores a propósito: el
               sujeto se decide antes que las cifras, y un aviso que aparece
-              debajo de una tabla no llegó (REG-323).
+              debajo de una tabla no llegó (REG-324).
             */}
             {revision.dictamen.veredicto === 'sin-identificar' ? (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 10, padding: '11px 14px', marginBottom: 12 }}>
