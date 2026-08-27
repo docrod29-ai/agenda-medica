@@ -40,6 +40,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
+import { decidirAdopcionDeNotaPrevia } from '@/lib/expediente/recuperacion-consulta'
 
 const page = readFileSync(join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
 const barraDoc = readFileSync(join(process.cwd(), 'src', 'components', 'AntesDeFirmar.tsx'), 'utf8')
@@ -55,23 +56,59 @@ describe('EL SERVIDOR TIENE RAZÓN AL RECHAZAR', () => {
   })
 })
 
+/**
+ * ── NOTA DE MIGRACIÓN · H-06 (26-ago-2026, REG-323) ─────────────────────────
+ *
+ * El mecanismo que sellaba este bloque —`getNota(...).catch(() => null)` y un
+ * `previa?.estado === 'firmada'` escrito a mano en cada ruta— resultó tener el
+ * mismo defecto por debajo: ese `catch` daba el MISMO `null` para «no existe»
+ * y para «no pude leer», así que **un fallo de red volvía a adoptar el id de
+ * una nota que podía estar firmada**. El fallo del 4-ago entrando otra vez por
+ * la puerta de atrás.
+ *
+ * La decisión se mudó a `decidirAdopcionDeNotaPrevia`, donde los cuatro
+ * estados —borrador, firmada, inexistente, error— van por separado. Lo que se
+ * comprueba aquí sigue siendo el **comportamiento**: no se adopta el id de una
+ * firmada, el contenido no se pierde, y las dos rutas hacen lo mismo. Lo que
+ * cambió es dónde está escrito. El caso nuevo —que un error tampoco adopte—
+ * vive en `lo-recuperable-se-ofrece-y-no-se-destruye.test.ts`.
+ */
 describe('NUNCA SE ADOPTA EL ID DE UNA NOTA FIRMADA', () => {
   it('en la restauración automática', () => {
-    expect(page).toContain("const previa = await getNota(clinicId, patientId, id).catch(() => null)")
-    expect(page).toMatch(/if \(previa\?\.estado === 'firmada'\)/)
+    expect(page).toContain('await leerNotaPrevia(() => getNota(clinicId, patientId, id)),')
+    expect(page).toContain('const decision = decidirAdopcionDeNotaPrevia(')
+    // Y la adopción queda DETRÁS de la decisión, no delante.
+    expect(page).toMatch(/if \(!decision\.adoptar\) return\n\s*notaIdRef\.current = id/)
   })
 
   it('y en el botón del banner — arreglar una y dejar la otra ya se hizo una vez aquí', () => {
-    expect(page).toContain('const previa = await getNota(clinicId, patientId, idPrevio).catch(() => null)')
+    expect(page).toContain('await leerNotaPrevia(() => getNota(clinicId, patientId, idPrevio)),')
+    expect(page).toMatch(/if \(decision\.adoptar\) \{\n\s*notaIdRef\.current = idPrevio/)
   })
 
   it('el contenido recuperado NO se pierde: pasa a ser una nota nueva', () => {
-    expect(page).toMatch(/Lo recuperado se guardará como una nota NUEVA/)
+    /**
+     * El aviso se mudó al módulo junto con la decisión — decir «se guardará
+     * como una nota NUEVA» y decidir si se adopta el id son la misma frase
+     * dicha al médico y al código. Se comprueba donde vive.
+     */
+    expect(decidirAdopcionDeNotaPrevia({ estado: 'firmada' }).aviso)
+      .toMatch(/Lo recuperado se guardará como una nota NUEVA/)
+    expect(decidirAdopcionDeNotaPrevia({ estado: 'firmada' }).adoptar).toBe(false)
+    // Y la pantalla lo enseña, en las dos rutas.
+    expect(page.split("toast(decision.aviso, 'info')").length - 1).toBe(2)
   })
 
-  it('las dos rutas dicen lo mismo, con las mismas palabras', () => {
-    const veces = page.split('La nota anterior ya está firmada y no se puede modificar').length - 1
-    expect(veces).toBe(2)
+  it('las dos rutas dicen lo mismo — ahora porque es LA MISMA decisión, no dos copias', () => {
+    /**
+     * Antes se comprobaba que la frase estuviera escrita dos veces, palabra por
+     * palabra. Eso protegía de que divergieran… pero no de que las dos copias
+     * estuvieran mal a la vez, que es lo que pasó con el `catch`. Ahora hay una
+     * sola decisión y dos consumidores, que es más fuerte.
+     */
+    expect(page.split('decidirAdopcionDeNotaPrevia(').length - 1).toBe(2)
+    expect(page.split('leerNotaPrevia(() => getNota(').length - 1).toBe(2)
+    expect(page).not.toContain('.catch(() => null)\n        if (previa?.estado')
   })
 })
 

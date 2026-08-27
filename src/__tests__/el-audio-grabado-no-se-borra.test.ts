@@ -38,6 +38,7 @@
  *   worker al desplegar—, pero no un `router.push`. Sigue abierto.
  */
 import { describe, it, expect } from 'vitest'
+import { hayAudioQueNoSePuedePurgar } from '@/lib/expediente/recuperacion-consulta'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -275,13 +276,33 @@ describe('REG-297 · al cerrar sesión, el audio sin transcribir se conserva', (
      */
     expect(CONSULTA).toContain('audioEstadoRef.current = audio.estado')
     const oyente = /const alGuardarTodo = \(ev: Event\) => \{[\s\S]*?\n    \}/.exec(CONSULTA)?.[0] ?? ''
-    expect(oyente).toContain('const enVuelo = audioEstadoRef.current')
+    expect(oyente).toContain('estadoGrabador: audioEstadoRef.current,')
   })
 
+  /**
+   * ── NOTA DE MIGRACIÓN · H-04 (26-ago-2026, REG-323) ───────────────────────
+   *
+   * La lista de estados estaba escrita a mano dentro del oyente y **se quedaba
+   * corta**: faltaban `error` —donde el hook le promete al médico que el audio
+   * queda guardado— y el huérfano de una sesión anterior, con el grabador
+   * quieto y trozos intactos en IndexedDB.
+   *
+   * La decisión se mudó a `hayAudioQueNoSePuedePurgar`, así que los tres
+   * estados de REG-297 ya no se comprueban leyendo el texto del oyente sino
+   * **ejecutando la decisión**, que es más fuerte. Los casos nuevos viven en
+   * `lo-recuperable-se-ofrece-y-no-se-destruye.test.ts`.
+   */
   it('cubre los tres estados con audio en vuelo, no sólo «grabando»', () => {
     /** `pausado` tiene audio guardado y sin transcribir; `subiendo` está a
      *  mitad de la petición y puede fallar. Los dos perderían igual. */
+    for (const estadoGrabador of ['grabando', 'pausado', 'subiendo'] as const) {
+      expect(hayAudioQueNoSePuedePurgar({
+        estadoGrabador, hayAudioGuardado: false, descartadoPorElMedico: false,
+      })).toBe(true)
+    }
+    // Y la pantalla consume ESA decisión, no una lista propia.
     const oyente = /const alGuardarTodo = \(ev: Event\) => \{[\s\S]*?\n    \}/.exec(CONSULTA)?.[0] ?? ''
-    for (const e of ['grabando', 'pausado', 'subiendo']) expect(oyente).toContain(`'${e}'`)
+    expect(oyente).toContain('hayAudioQueNoSePuedePurgar({')
+    expect(oyente).toContain('marcarAudioSinTranscribir?.()')
   })
 })
