@@ -9,7 +9,7 @@ import { validarPanel } from '@/lib/expediente/laboratorio/extraccion'
 import { LAB_VISION_SYSTEM } from '@/lib/expediente/laboratorio/vision'
 
 /**
- * REG-323 — EL LABORATORIO SE ARCHIVABA EN EL PACIENTE QUE ESTABA ABIERTO.
+ * REG-324 — EL LABORATORIO SE ARCHIVABA EN EL PACIENTE QUE ESTABA ABIERTO.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -66,7 +66,7 @@ const PACIENTE_B = { clinicId: CLINICA, patientId: 'pac-B', nombre: 'Jorge Alber
 
 const ahora = '2026-08-26T10:00:00.000Z'
 
-describe('REG-323 · el prompt de visión SÍ pide el sujeto (sin él no hay nada que verificar)', () => {
+describe('REG-324 · el prompt de visión SÍ pide el sujeto (sin él no hay nada que verificar)', () => {
   it('pide los nombres de paciente y declara que no se guardan', () => {
     expect(LAB_VISION_SYSTEM).toMatch(/pacientes/i)
     // Al revés del defecto: el prompt ya NO puede ordenar ignorar el nombre.
@@ -74,7 +74,7 @@ describe('REG-323 · el prompt de visión SÍ pide el sujeto (sin él no hay nad
   })
 })
 
-describe('REG-323 · dictamen del sujeto', () => {
+describe('REG-324 · dictamen del sujeto', () => {
   it('paciente correcto y verificable → coincide y se puede guardar', () => {
     const d = dictaminarSujeto([{ nombre: 'María Fernanda López García' }], PACIENTE_A)
     expect(d.veredicto).toBe('coincide')
@@ -123,7 +123,7 @@ describe('REG-323 · dictamen del sujeto', () => {
   })
 })
 
-describe('REG-323 · el vínculo sólo nace cuando puede nacer', () => {
+describe('REG-324 · el vínculo sólo nace cuando puede nacer', () => {
   it('no-coincide y ambiguo NO producen vínculo ni con confirmación del médico', () => {
     expect(vinculoDeSujeto(dictaminarSujeto([{ nombre: 'Jorge Alberto Ramírez Soto' }], PACIENTE_A), PACIENTE_A, true, ahora)).toBeNull()
     expect(vinculoDeSujeto(dictaminarSujeto([{ nombre: 'José Antonio López García' }], PACIENTE_A), PACIENTE_A, true, ahora)).toBeNull()
@@ -144,7 +144,7 @@ describe('REG-323 · el vínculo sólo nace cuando puede nacer', () => {
   })
 })
 
-describe('REG-323 · autorizaGuardar es la frontera antes de persistir', () => {
+describe('REG-324 · autorizaGuardar es la frontera antes de persistir', () => {
   const vinculoA = vinculoDeSujeto(dictaminarSujeto([{ nombre: 'María Fernanda López García' }], PACIENTE_A), PACIENTE_A, false, ahora)!
 
   it('deja pasar el guardado del paciente verificado', () => {
@@ -184,7 +184,7 @@ describe('REG-323 · autorizaGuardar es la frontera antes de persistir', () => {
   })
 })
 
-describe('REG-323 · el sujeto viaja desde la visión hasta el dictamen', () => {
+describe('REG-324 · el sujeto viaja desde la visión hasta el dictamen', () => {
   it('validarPanel conserva los nombres leídos para poder verificarlos', () => {
     const panel = validarPanel({
       fecha: '2026-08-20',
@@ -216,7 +216,7 @@ describe('REG-323 · el sujeto viaja desde la visión hasta el dictamen', () => 
  * FUENTE del camino cotidiano (visión → ruta → revisión → escritura) y fijan que
  * cada eslabón siga enganchado. Es lo que un refactor rompe sin darse cuenta.
  */
-describe('REG-323 · el arreglo está CONECTADO al camino real', () => {
+describe('REG-324 · el arreglo está CONECTADO al camino real', () => {
   const leer = (rel: string) => readFileSync(resolve(process.cwd(), rel), 'utf8')
   const PANEL_UI = leer('src/components/laboratorio/PanelLaboratorios.tsx')
   const RUTA = leer('src/app/api/expediente/laboratorio-vision/route.ts')
