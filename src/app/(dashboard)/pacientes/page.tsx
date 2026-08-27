@@ -907,7 +907,13 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
         ahora: new Date().toISOString(),
       })
       if (patient) {
-        await updatePatient(clinicId!, patient.id, payload)
+        /**
+         * `patient.updatedAt` es la marca que ESTA pantalla vio al abrir el
+         * editor. Si el documento cambió desde entonces —el médico anotando una
+         * alergia en su pestaña mientras aquí se corregía el teléfono—, la
+         * escritura se rechaza en vez de pisarla.
+         */
+        await updatePatient(clinicId!, patient.id, payload, patient.updatedAt)
         toast('Paciente actualizado', 'success')
       } else {
         /**
@@ -977,8 +983,19 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
         toast(consentimiento ? 'Paciente registrado' : 'Paciente registrado — sin aviso de privacidad', consentimiento ? 'success' : 'info')
       }
       onSaved()
-    } catch {
-      toast('Error al guardar', 'error')
+    } catch (e) {
+      /**
+       * UN CONFLICTO NO ES UN FALLO DE RED, Y NO SE DICE IGUAL.
+       *
+       * «Error al guardar» manda a mirar el wifi mientras lo que pasa es que
+       * alguien más está trabajando sobre el mismo paciente. Se dice con esas
+       * palabras y se pide recargar, que es lo único que trae la copia buena.
+       */
+      if ((e as { code?: string })?.code === 'conflicto-de-version') {
+        toast('Otra sesión modificó a este paciente mientras tenías el editor abierto. NO se guardó, para no pisar su trabajo. Cierra y vuelve a abrirlo.', 'error')
+      } else {
+        toast('Error al guardar', 'error')
+      }
     } finally {
       setSaving(false)
     }

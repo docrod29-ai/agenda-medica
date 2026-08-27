@@ -47,10 +47,13 @@
  *    input, su propio guardado y su propia bitácora `paciente_modificado` con
  *    `antes`/`despues`/`vaciado`. Borrar el campo desde ahí sigue siendo posible
  *    —y debe serlo: es un acto deliberado con el campo delante.
- *  - **No cubre la falta de control de concurrencia en `updatePatient`.** Dos
- *    editores simultáneos sobre los MISMOS campos siguen ganando por orden de
- *    llegada; esta reparación sólo impide que un campo NO editado participe en
- *    esa carrera. La comprobación de `updatedAt` va aparte.
+ *  - **No prueba la concurrencia CORRIENDO Firestore.** La red secundaria
+ *    —comparar `updatedAt` antes de escribir— se comprueba leyendo el fuente,
+ *    igual que el resto de este archivo: aquí no hay emulador ni jsdom. Que la
+ *    guardia dispare de verdad contra la base sólo lo puede decir el emulador.
+ *  - **No cubre dos escrituras sobre el MISMO campo visible desde `/consulta`**,
+ *    que no pasa `vistoEn` a propósito: son escrituras de un solo campo, no del
+ *    formulario entero, y no pagan la lectura extra.
  *  - **No cubre la caché de 30 s de `getPatients`.** La semilla vieja sigue
  *    siendo vieja: lo que se corrige es que una semilla vieja ya no pueda vaciar
  *    un campo clínico.
@@ -220,5 +223,73 @@ describe('LA PANTALLA USA DE VERDAD LA FUNCIÓN EXTRAÍDA', () => {
   it('y ya NO construye el payload a mano con los campos que no enseña', () => {
     expect(pagina).not.toMatch(/alergias:\s*f\.alergias/)
     expect(pagina).not.toMatch(/notas:\s*f\.notas/)
+  })
+})
+
+/**
+ * LA RED SECUNDARIA — lo que la primera no puede cubrir.
+ *
+ * La primera red impide que un campo NO editado pise nada. No dice nada de dos
+ * personas editando A LA VEZ los MISMOS campos visibles: ahí, sin comparar nada,
+ * gana el último en pulsar Guardar y el que perdió no se entera.
+ *
+ * Se comprueba sobre el fuente porque `updatePatient` habla con Firestore y esta
+ * suite corre en `node` sin emulador. Lo que se protege es que la guardia siga
+ * cableada y que la bitácora siga pudiendo explicar un vaciado.
+ */
+describe('LA RED SECUNDARIA SIGUE CABLEADA', () => {
+  const firestore = readFileSync(join(process.cwd(), 'src', 'lib', 'firestore.ts'), 'utf8')
+  const pagina = readFileSync(join(process.cwd(), 'src', 'app', '(dashboard)', 'pacientes', 'page.tsx'), 'utf8')
+
+  it('`updatePatient` admite la marca que vio el llamador', () => {
+    expect(firestore).toMatch(/export async function updatePatient\([\s\S]*?vistoEn\?: string,/)
+  })
+
+  it('y rechaza la escritura cuando el documento cambió desde entonces', () => {
+    expect(firestore).toContain('if (actual && actual !== vistoEn) throw new ConflictoDeVersionDePaciente(actual)')
+  })
+
+  it('con el MISMO código que la nota, que las pantallas ya saben distinguir', () => {
+    // Dos nombres para el mismo suceso producen un aviso que dice «revisa tu
+    // conexión» cuando la conexión está bien.
+    expect(firestore).toMatch(/class ConflictoDeVersionDePaciente[\s\S]*?readonly code = 'conflicto-de-version'/)
+  })
+
+  it('el editor de pacientes SÍ pasa su marca — si no, la guardia no existe', () => {
+    expect(pagina).toContain('await updatePatient(clinicId!, patient.id, payload, patient.updatedAt)')
+  })
+
+  it('y traduce el conflicto a un aviso que no manda a mirar el wifi', () => {
+    expect(pagina).toContain("=== 'conflicto-de-version'")
+    expect(pagina).toMatch(/Otra sesión modificó a este paciente/)
+  })
+
+  it('la bitácora puede explicar un vaciado de alergias: antes, despues y vaciado', () => {
+    /**
+     * Sin el `antes`, un vaciado queda registrado como «se tocó el campo
+     * alergias» — indistinguible de haberlas escrito. Eso es lo que hizo
+     * irreconstruible el dato en REG-323.
+     */
+    expect(firestore).toContain("meta.campo = 'alergias'")
+    expect(firestore).toContain('meta.antes = antes')
+    expect(firestore).toContain('meta.despues = despues')
+    expect(firestore).toContain('meta.vaciado = !despues.trim() && !!antes.trim()')
+  })
+
+  it('y NO extiende ese detalle a ningún otro campo — cada valor ahí es PHI', () => {
+    // La excepción se paga sólo donde compra trazabilidad de un borrado que de
+    // otro modo no se ve. `data.alergias` es la única puerta a `meta.antes`.
+    const bloque = firestore.match(/const meta: Record<string, unknown>[\s\S]*?\n  logAudit/)
+    expect(bloque, 'no se encontró el bloque de meta de updatePatient').not.toBeNull()
+    expect([...bloque![0].matchAll(/meta\.antes/g)]).toHaveLength(1)
+    expect(bloque![0]).toContain('data.alergias !== undefined')
+  })
+
+  it('una lectura fallida NO bloquea el guardado — un hipo de red no vale una nota perdida', () => {
+    expect(firestore).toMatch(/try \{\s*\n\s*const snap = await getDoc\(ref\)[\s\S]*?\} catch \{ \/\* nunca romper la operación clínica \*\/ \}/)
+  })
+
+  it('sólo se paga la lectura cuando hace falta', () => {
+    expect(firestore).toContain('const necesitaLeer = !!vistoEn || data.alergias !== undefined')
   })
 })

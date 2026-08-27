@@ -8054,23 +8054,44 @@ seguridad clínica —«ausencia de dato no es dato de ausencia»— dicha en le
 de escritura, y la misma que este repositorio ya aplica en `guardarBorrador`.
 No impide borrar: con el input delante, vaciar el campo es una decisión del
 médico y sigue llegando.
+**Y una red secundaria, para lo que la primera no puede cubrir.** La primera
+impide que un campo NO editado pise nada; no dice nada de dos personas editando
+a la vez los MISMOS campos visibles, donde sin comparar nada gana el último en
+pulsar Guardar y el que perdió no se entera. `updatePatient` admite ahora el
+`updatedAt` que vio el llamador y rechaza la escritura si el documento cambió
+desde entonces —mismo `code` `conflicto-de-version` que `updateNota`, para que
+las pantallas no tengan que aprender dos nombres para el mismo suceso—, y el
+editor de `/pacientes` lo traduce a un aviso que no manda a mirar el wifi.
+Opcional a propósito: quien no pase la marca se comporta como antes.
+
+La bitácora `paciente_modificado` gana además `antes`/`despues`/`vaciado`
+**para `alergias` y sólo para `alergias`**: sin el `antes`, un vaciado queda
+registrado como «se tocó el campo alergias», indistinguible de haberlas escrito
+— que es exactamente lo que hizo irreconstruible el dato aquí. Es la excepción
+que ya existía en el input de `/consulta`, con ese mismo campo y ese mismo
+propósito, y no se amplía a ningún otro: cada valor en la bitácora es PHI que
+sale del expediente.
+
 `src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts`
-(13 casos, probado al revés ×3: alergias incondicional, `notas` de vuelta al
-payload, y la pantalla volviendo a construirlo a mano — cada reversión pone en
-rojo exactamente el caso que le toca).
+(22 casos, probado al revés ×7: alergias incondicional, `notas` de vuelta al
+payload, la pantalla volviendo a construirlo a mano, la guardia de versión
+retirada, la pantalla dejando de pasar su marca, la bitácora volviendo a decir
+sólo los nombres de los campos, y el detalle ampliado a un campo que no lo
+necesita — cada reversión pone en rojo exactamente el caso que le toca).
 
 **Qué NO cubre, declarado.**
 
 - **No cubre el camino de `/consulta`**, que tiene su propio input de alergias,
   su propio guardado y su propia bitácora con `antes`/`despues`/`vaciado`.
   Borrar el campo desde ahí sigue siendo posible, y debe serlo.
-- **No cubre la falta de control de concurrencia en `updatePatient`.** Dos
-  editores simultáneos sobre los MISMOS campos siguen ganando por orden de
-  llegada; esto sólo impide que un campo NO editado participe en esa carrera. La
-  comprobación de `updatedAt` —con el criterio de `conflicto-de-version` de
-  `updateNota`— y la bitácora con `antes`/`despues` en `updatePatient` quedan
-  como **deuda P1 no pagada**: tocan `src/lib/firestore.ts`, superficie
-  compartida.
+- **No prueba la concurrencia CORRIENDO Firestore.** La guardia de `updatedAt`
+  se comprueba leyendo el fuente: esta suite corre en `node`, sin emulador ni
+  jsdom. Que dispare de verdad contra la base sólo lo puede decir el emulador.
+- **La guardia no cubre las escrituras de un solo campo desde `/consulta`**, que
+  no pasan `vistoEn` a propósito: escriben un campo, no el formulario entero, y
+  no pagan la lectura extra. Dos sesiones editando ESE campo a la vez siguen
+  ganando por orden de llegada — pero ahí el vaciado sí queda en la bitácora con
+  su `antes`.
 - **No cubre la caché de 30 s de `getPatients`.** La semilla vieja sigue siendo
   vieja: lo que se corrige es que ya no pueda vaciar un campo clínico.
 - **No cubre `email`**, que tiene la MISMA forma —sin input en esta pantalla y
