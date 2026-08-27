@@ -280,7 +280,7 @@ describe('REG-297 · al cerrar sesión, el audio sin transcribir se conserva', (
   })
 
   /**
-   * ── NOTA DE MIGRACIÓN · H-04 (26-ago-2026, REG-323) ───────────────────────
+   * ── NOTA DE MIGRACIÓN · H-04 (26-ago-2026, REG-330) ───────────────────────
    *
    * La lista de estados estaba escrita a mano dentro del oyente y **se quedaba
    * corta**: faltaban `error` —donde el hook le promete al médico que el audio
