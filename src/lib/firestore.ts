@@ -1,8 +1,10 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
   getDocs, getDoc, query, orderBy, where, serverTimestamp,
-  Timestamp, QueryConstraint,
+  runTransaction, Timestamp, QueryConstraint,
 } from 'firebase/firestore'
+import { idIdempotente } from '@/lib/idempotencia'
+import { claveDeEspera } from '@/lib/whatsapp/lista-espera'
 import { db } from './firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
 import {
@@ -243,10 +245,17 @@ export async function getWaitlist(clinicId: string): Promise<WaitlistEntry[]> {
 }
 
 export async function createWaitlistEntry(clinicId: string, data: Omit<WaitlistEntry, 'id'>): Promise<string> {
-  const ref = await addDoc(col(clinicId, COLLECTIONS.waitlist), {
-    ...data, createdAt: new Date().toISOString(),
+  const id = idIdempotente(clinicId, 'lista-espera', claveDeEspera(data))
+  const ref = d(clinicId, COLLECTIONS.waitlist, id)
+  const ahora = new Date().toISOString()
+  await runTransaction(db, async (tx) => {
+    const previo = await tx.get(ref)
+    const createdAt = previo.exists()
+      ? ((previo.data() as { createdAt?: string } | undefined)?.createdAt ?? ahora)
+      : ahora
+    tx.set(ref, { ...data, createdAt }, { merge: true })
   })
-  return ref.id
+  return id
 }
 
 export async function updateWaitlistEntry(clinicId: string, id: string, data: Partial<WaitlistEntry>): Promise<void> {

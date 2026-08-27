@@ -17,6 +17,19 @@ function lugarDe(cita: Appointment, config: ClinicConfig) {
     direccion: config.direccion,
     googleMapsUrl: config.googleMapsUrl,
     baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+    /**
+     * SIN ENLACE, Y NO PUEDE SER DE OTRA MANERA.
+     *
+     * Estos mensajes los compone el NAVEGADOR (el panel de citas y la vista
+     * previa de configuración los importan), y firmar el token exige
+     * `PORTAL_PACIENTE_SECRET`, que sólo vive en el servidor. Mandar el secreto
+     * al cliente para poder poner un enlace sería regalar la llave de todos los
+     * enlaces de todos los pacientes.
+     *
+     * Así que estos mensajes dicen que el enlace llega aparte, y quien lo manda
+     * de verdad es el recordatorio del servidor (`api/cron/reminders`).
+     */
+    tokenPaciente: '',
   })
 }
 

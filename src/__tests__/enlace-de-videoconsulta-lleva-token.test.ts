@@ -98,7 +98,8 @@ describe('el enlace del paciente lleva su token', () => {
 })
 
 describe('el mensaje al paciente no manda un enlace que contesta 404', () => {
-  const base = { tipo: ES_TELECONSULTA, citaId: 'cita_1', clinicId: 'clin_1', baseUrl: 'https://app.example' }
+  // `tokenPaciente: ''` explícito: el campo es obligatorio desde REG-323.
+  const base = { tipo: ES_TELECONSULTA, citaId: 'cita_1', clinicId: 'clin_1', baseUrl: 'https://app.example', tokenPaciente: '' }
 
   it('SIN token: no emite enlace, y lo dice', () => {
     /**
@@ -120,7 +121,7 @@ describe('el mensaje al paciente no manda un enlace que contesta 404', () => {
   })
 
   it('una cita presencial sigue dando dirección y no habla de enlaces', () => {
-    const lugar = dondeEsLaCita({ tipo: 'consulta', direccion: 'Av. Siempre Viva 1' })
+    const lugar = dondeEsLaCita({ tipo: 'consulta', direccion: 'Av. Siempre Viva 1', tokenPaciente: '' })
     expect(lugar.esVideo).toBe(false)
     expect(lugar.lineas.join('\n')).toContain('Av. Siempre Viva 1')
   })
