@@ -14,7 +14,7 @@ import { join } from 'node:path'
 
 const BASE = 'https://agenda-medica-one.vercel.app'
 /**
- * `tokenPaciente: ''` va EXPLÍCITO desde que el campo es obligatorio (REG-323).
+ * `tokenPaciente: ''` va EXPLÍCITO desde que el campo es obligatorio (REG-325).
  * Ésa es toda la gracia del cambio: quien no tiene token tiene que escribirlo, y
  * eso es una decisión, no un olvido. Los casos que sí lo llevan lo añaden encima.
  */
