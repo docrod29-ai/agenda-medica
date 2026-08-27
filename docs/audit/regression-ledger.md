@@ -8591,3 +8591,104 @@ poder intentarlo. No cubre el texto que entra en vivo mientras se graba —ahí 
 reemplazo es el comportamiento pedido—, ni el caso en que el médico pulsa
 «Dejar mi versión»: su transcripción se respeta, y el material diarizado sigue
 disponible en `audio.utterances`, pero el cartel no se vuelve a ofrecer.
+
+---
+
+## REG-331 — el Preview rojo no fue el import perdido: fue publicar sin construir (Proceso)
+
+**Área:** Proceso / integración (P1) · **Estado:** CLOSED como compuerta
+
+**QUÉ FALLABA.** El 27-ago-2026 se integraron cuatro lotes con merges remotos
+consecutivos, con cuatro minutos entre el primero y el último. Cada push disparó
+un Preview de Vercel sobre un estado intermedio que nadie había construido:
+
+| hora | commit | Preview |
+|---|---|---|
+| 06:38 | `1d9a55f3` integrate: Patient Experience, WhatsApp y lista de espera | **ROJO** |
+| 06:39 | `ffc21823` integrate: H-01 autoridad de prescripción | verde |
+| 06:41 | `fa346c4b` integrate: H-03–H-07 recuperación de consulta | verde |
+| 06:43 | `47e2a01d` reconcile: REG-323–REG-330 renumerados | verde |
+
+`1d9a55f3` no compilaba:
+
+```
+src/lib/firestore.ts(246,14): error TS2304: Cannot find name 'idIdempotente'.
+src/lib/firestore.ts(246,54): error TS2304: Cannot find name 'claveDeEspera'.
+src/lib/firestore.ts(249,9):  error TS2304: Cannot find name 'runTransaction'.
+```
+
+**CÓMO SE DESCUBRIÓ.** Por el semáforo de GitHub («Deployment has failed»), no
+por nosotros. Y al ir a leer los logs de Vercel no había credenciales en la
+máquina: `npx vercel inspect --logs` arrancó un login que no puede completarse.
+La causa hubo que **reconstruirla** reproduciendo el build sobre el commit
+exacto. Un diagnóstico que depende de una credencial que no tenemos es un
+diagnóstico que a veces no ocurre.
+
+**CAUSA RAÍZ.** El merge conservó la **llamada** de una rama y los **imports**
+de la otra. Las líneas no se solapaban, así que `git` fusionó limpio y no dijo
+nada. Un conflicto semántico no lo caza `git`: lo caza el compilador — y nadie
+lo corrió antes del push siguiente.
+
+**LO QUE DE VERDAD DUELE.** Lo que devolvió el verde a las 06:39 **no fue
+arreglar los tres imports**: fue que el merge siguiente **revirtió la rama
+entera**. Se fueron con ella `createWaitlistEntry` idempotente,
+`src/lib/whatsapp/lista-espera.ts`, `src/lib/paciente/urgencia.ts` y cinco
+archivos de prueba — entre ellos los dos que sellaban **REG-326** («entrar a la
+lista de espera una sola vez»). El verde se compró **tirando el trabajo**, y el
+semáforo no lo dijo porque sólo mira el último commit.
+
+Es `.claude/rules/el-dato-tiene-que-llegar.md` aplicado a una integración: que un
+commit sea **ancestro** no significa que su **contenido** siga vivo.
+
+**LA COMPUERTA.** `node scripts/compuerta-integracion.mjs` — A rama local · B
+todo lo previsto aplicado, por ancestría **y por símbolos vivos** · C sin
+marcadores ni rutas sin fusionar · D derivados regenerados · E
+`tsc --noEmit` + `vitest` + trinquete + `git diff --check` · F build equivalente
+al Preview · G imprime el **único** push. Nunca empuja.
+
+Hay **un solo build** y es el equivalente al Preview
+(`scripts/preview-equivalente.mjs`, con el entorno fregado desde
+`ops/vercel/preview-env.manifest.json`). Tener además un `npm run build` a secas
+invitaría a creer que su verde vale lo mismo, y ese desnivel es el que se paga en
+el Preview: medido hoy, `47e2a01d` construido sin las seis
+`NEXT_PUBLIC_FIREBASE_*` muere con `auth/invalid-api-key` recolectando
+`/dr/[clinicId]` — el mismo accidente que ya documentaba **REG-059**, donde el
+build «funcionaba por accidente» porque en Vercel esas variables sí existen.
+
+**NO se silencia Vercel:** no se desactivan Previews, no se escribe
+`ignoreCommand`, no se apaga la integración de GitHub, no se baja ningún techo.
+Un Preview que no se construye no sale rojo, y tampoco protege de nada.
+
+**Test / control permanente:**
+`src/__tests__/la-compuerta-de-integracion-no-se-ablanda.test.ts` (7 casos).
+Probado al revés con **nueve** defectos inyectados uno a uno —
+`ignoreBuildErrors`, `ignoreCommand`, `github.enabled:false`,
+`continue-on-error` en el job `verificar`, degradar el paso F a `npm run build`,
+quitar el fregado del entorno, inyectar un nombre sin declarar, meter una pareja
+`NOMBRE=valor` en el manifiesto, y perder una de las seis exigidas — y en los
+nueve la prueba cae.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- No lee Vercel: no hay credenciales en la máquina y no debe haberlas. No
+  comprueba el Preview real.
+- No cubre cabeceras, rewrites del edge ni runtime. Cubre compilación, tipos y
+  el desnivel de entorno — lo que rompió el 27-ago. Las cabeceras de
+  **producción** se siguen comprobando después de publicar
+  (`.claude/rules/deployment-and-flags.md`).
+- No lee las Preview Environment Variables de Vercel. El manifiesto declara
+  **nombres**; que existan allí con el valor correcto es del dueño.
+- Un mecanismo nuevo de Vercel para saltarse el build no lo conoce hasta que se
+  añada a la prueba.
+
+**RESIDUAL ABIERTO, y no es de este commit.**
+
+1. `release/consultorio-reconciled-clean-2026-08-27` (punta `43214218`) **sigue
+   roja hoy** con los mismos cuatro errores (`idIdempotente`, `claveDeEspera`,
+   `runTransaction`, y el `tx` implícito que arrastran). El arreglo verificado
+   son **tres líneas de import** en `src/lib/firestore.ts`; con ellas
+   `tsc --noEmit` pasa de 4 errores a 0. No se empuja aquí: esa rama no está
+   autorizada en esta tarea.
+2. **REG-326 sigue perdido** en `release/consultorio-reconciled-2026-08-27` y en
+   `release/evidence-integrated-2026-08-26`. Recuperarlo es una reparación
+   clínica aparte, con sus dos pruebas, no un efecto colateral de esta compuerta.
