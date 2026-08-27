@@ -7987,3 +7987,117 @@ cubre las dos superficies que la matriz señaló, no «todas las pantallas tiene
 h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
+
+---
+
+## REG-323 — corregir un teléfono borraba las alergias del paciente
+
+**Área.** Identidad del paciente y escritura del expediente. Encontrado por la
+auditoría H-18 leyendo el payload de `handleSave` de `/pacientes` contra la
+lista de inputs que el modal monta de verdad.
+
+**Qué fallaba.** Editar el teléfono de un paciente desde `/pacientes`
+sobrescribía sus **alergias** con una cadena vacía. Silencioso, permanente, y
+disparado por una acción administrativa rutinaria que puede ejecutar un rol que
+ni siquiera ve el campo:
+
+1. Un paciente sin alergias registradas; la asistente abre `/pacientes` y la
+   lista queda en memoria del componente.
+2. El médico, en `/consulta/{id}`, anota «Penicilina». Se guarda, e invalida
+   **su** caché de módulo.
+3. La asistente, **sin recargar**, abre el editor de ese paciente, corrige el
+   teléfono y guarda.
+4. El documento queda con `alergias: ''`. En `audit_log` sólo constaba
+   `campos: ['nombre','telefono',…,'alergias','notas']` — los nombres, sin los
+   valores. **El dato perdido no se podía reconstruir.**
+
+`notas` sufría lo mismo y era peor de justificar: no tiene input en ninguna
+parte del producto, así que era un campo que sólo existía para escribirse.
+
+**Por qué era P0.** De `alergias` cuelgan a la vez el cruce alergia↔fármaco, la
+compuerta que impide firmar, el sesgo del reconocedor hacia los alérgenos y el
+recuadro rojo de la receta. Se apagaban los cuatro sin ninguna señal, y el campo
+vacío se lee después como «no se ha preguntado», no como «alguien lo borró».
+
+**Causa raíz — tres piezas, y sólo juntas borran.**
+
+1. **El formulario mandaba más campos de los que enseña.** El `payload` de
+   `handleSave` incluía siempre `alergias` y `notas` y se pasaba entero a
+   `updatePatient` → `updateDoc`, que sobrescribe campo por campo. Pero el input
+   de alergias vive tras `{mode === 'medico' && …}` y el de `notas` no existe.
+   (`mode` viene de `ModeContext`: es un conmutador de UI que cualquier médico
+   real puede poner en `secretaria`, y que se fuerza a `secretaria` para quien no
+   lo es. No es sólo el rol.)
+2. **La semilla podía estar vieja.** `openEdit(p)` toma `p` del array en memoria,
+   cargado una sola vez por montaje sobre el memo de 30 s de `getPatients`.
+   Nunca se relee el documento, e `invalidarCachePacientes` sólo corre en la
+   pestaña que escribió — es un `Map` de módulo, no un canal entre pestañas.
+3. **`sinUndefined` no filtra la cadena vacía.** Descarta `undefined` y deja
+   pasar `''`, así que el valor vacío llega a Firestore y borra.
+
+Y la defensa que existía no cubría este camino: la bitácora `paciente_modificado`
+con `antes`/`despues`/`vaciado` —escrita precisamente para que un vaciado de
+alergias no fuera silencioso— vive **sólo** en el input de `/consulta`.
+
+**El caso de 2026-07 acertó el objetivo y erró el mecanismo.** Cuando se acortó
+el formulario se escribió un guardián para que esconder un campo no lo borrara, y
+lo que congeló fue «`notas` sigue viajando en el payload». Viajar sólo conserva
+el dato mientras la semilla esté fresca; con una semilla vieja, viajar es
+exactamente lo que borra. La prueba estaba en verde con el defecto vivo.
+
+**Control permanente.** `src/lib/pacientes/campos-que-se-guardan.ts` construye el
+payload fuera de la pantalla, con una sola regla: **no se escribe lo que no se
+pudo leer.** `notas` no viaja nunca; `alergias` sólo cuando `mode === 'medico'`,
+que es cuando el input estuvo delante. La clave ausente deja intacto el valor
+guardado, en vez de pisarlo con el eco de una copia vieja. Es la regla 4 de
+seguridad clínica —«ausencia de dato no es dato de ausencia»— dicha en lenguaje
+de escritura, y la misma que este repositorio ya aplica en `guardarBorrador`.
+No impide borrar: con el input delante, vaciar el campo es una decisión del
+médico y sigue llegando.
+**Y una red secundaria, para lo que la primera no puede cubrir.** La primera
+impide que un campo NO editado pise nada; no dice nada de dos personas editando
+a la vez los MISMOS campos visibles, donde sin comparar nada gana el último en
+pulsar Guardar y el que perdió no se entera. `updatePatient` admite ahora el
+`updatedAt` que vio el llamador y rechaza la escritura si el documento cambió
+desde entonces —mismo `code` `conflicto-de-version` que `updateNota`, para que
+las pantallas no tengan que aprender dos nombres para el mismo suceso—, y el
+editor de `/pacientes` lo traduce a un aviso que no manda a mirar el wifi.
+Opcional a propósito: quien no pase la marca se comporta como antes.
+
+La bitácora `paciente_modificado` gana además `antes`/`despues`/`vaciado`
+**para `alergias` y sólo para `alergias`**: sin el `antes`, un vaciado queda
+registrado como «se tocó el campo alergias», indistinguible de haberlas escrito
+— que es exactamente lo que hizo irreconstruible el dato aquí. Es la excepción
+que ya existía en el input de `/consulta`, con ese mismo campo y ese mismo
+propósito, y no se amplía a ningún otro: cada valor en la bitácora es PHI que
+sale del expediente.
+
+`src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts`
+(22 casos, probado al revés ×7: alergias incondicional, `notas` de vuelta al
+payload, la pantalla volviendo a construirlo a mano, la guardia de versión
+retirada, la pantalla dejando de pasar su marca, la bitácora volviendo a decir
+sólo los nombres de los campos, y el detalle ampliado a un campo que no lo
+necesita — cada reversión pone en rojo exactamente el caso que le toca).
+
+**Qué NO cubre, declarado.**
+
+- **No cubre el camino de `/consulta`**, que tiene su propio input de alergias,
+  su propio guardado y su propia bitácora con `antes`/`despues`/`vaciado`.
+  Borrar el campo desde ahí sigue siendo posible, y debe serlo.
+- **No prueba la concurrencia CORRIENDO Firestore.** La guardia de `updatedAt`
+  se comprueba leyendo el fuente: esta suite corre en `node`, sin emulador ni
+  jsdom. Que dispare de verdad contra la base sólo lo puede decir el emulador.
+- **La guardia no cubre las escrituras de un solo campo desde `/consulta`**, que
+  no pasan `vistoEn` a propósito: escriben un campo, no el formulario entero, y
+  no pagan la lectura extra. Dos sesiones editando ESE campo a la vez siguen
+  ganando por orden de llegada — pero ahí el vaciado sí queda en la bitácora con
+  su `antes`.
+- **No cubre la caché de 30 s de `getPatients`.** La semilla vieja sigue siendo
+  vieja: lo que se corrige es que ya no pueda vaciar un campo clínico.
+- **No cubre `email`**, que tiene la MISMA forma —sin input en esta pantalla y
+  viajando como `f.email.trim()`— y por tanto el mismo riesgo con una semilla
+  vieja. Queda declarado como **deuda P2 no pagada**, fuera del alcance de H-18
+  a propósito: no es un campo clínico y ampliarlo aquí habría sido rediseñar el
+  formulario. `curp` no corre ese riesgo porque su vacío sale como `undefined` y
+  `sinUndefined` lo descarta.
+- **No cubre `alergiasEstructuradas`**, que esta pantalla nunca ha tocado.
