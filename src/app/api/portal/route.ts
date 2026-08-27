@@ -6,8 +6,13 @@ import { sincronizarCitaDelPortal, estadoDeSync } from '@/lib/calendario/sincron
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
-import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
-import { limitarOResponder } from '@/lib/rate-limit'
+import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarOResponder, limitarEstricto } from '@/lib/rate-limit'
+import {
+  decidirVigencia,
+  respuestaDeVigencia,
+  type LecturaDelExpediente,
+} from '@/lib/portal/vigencia-del-enlace'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -28,6 +33,19 @@ import type { Patient } from '@/types'
  */
 
 const MIN_HORAS_DEFECTO = 24
+
+/**
+ * LAS ACCIONES QUE MUEVEN ALGO DEL CONSULTORIO.
+ *
+ * `formulario` está aquí y antes no: escribe en el expediente del paciente
+ * (`patients/{id}/formularios_previos/actual`) y dispara un WhatsApp al
+ * consultorio en cada envío. Contarlo como lectura dejaba un camino de
+ * escritura y de mensajería con el cupo ancho de mirar la agenda.
+ */
+const ACCIONES_QUE_MUEVEN = new Set(['confirmar', 'cancelar', 'reagendar', 'formulario'])
+
+/** Las que devuelven secreto médico. Exigen alcance `clinico` Y su propio cupo. */
+const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes'])
 
 /**
  * EL OFFSET DEL CONSULTORIO, NO UN -06:00 QUEMADO.
@@ -161,6 +179,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Petición inválida' }, { status: 400 })
   }
 
+  /**
+   * FRENO ANTES DE LA PUERTA — PATIENT-PORTAL-001 (P1).
+   *
+   * Los límites por paciente sólo se pueden cobrar DESPUÉS de verificar el
+   * token, porque la clave sale de él. Así que una ráfaga de tokens INVÁLIDOS
+   * —adivinar, o simplemente inundar— no la contaba nadie: era la única forma
+   * de pegarle a esta ruta sin cupo ninguno.
+   *
+   * Por IP y antes de todo, igual que `public/booking` y `public/resena`. La
+   * ventana es ancha (120/10 min) a propósito: detrás de una IP de operador
+   * móvil hay muchos pacientes reales, y lo que esto tiene que cortar es la
+   * ráfaga automatizada, no la familia que comparte NAT.
+   *
+   * Estricto: si el freno no puede contar, esta ruta no atiende. Es el mismo
+   * criterio que la revocación de aquí abajo —no poder comprobar no es permiso—
+   * y el coste es un reintento a los treinta segundos.
+   */
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+  const limiteIp = await limitarEstricto(`portal:ip:${ip}`, 120, 600,
+    'Demasiadas solicitudes desde esta conexión. Espera un momento e inténtalo de nuevo.')
+  if (limiteIp) return limiteIp
+
   const sesion = verificarTokenPaciente(body.token)
   if (!sesion) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
@@ -168,61 +208,104 @@ export async function POST(req: NextRequest) {
   const { clinicId, patientId, alcance } = sesion
 
   /**
-   * ¿SIGUE VIGENTE ESTE ENLACE?
+   * ¿SIGUE VIGENTE ESTE ENLACE? Y SI NO SE PUEDE SABER, NO SE PASA.
    *
-   * La firma y la caducidad no bastaban: no había forma de invalidar un enlace
-   * ya emitido —teléfono perdido, número reciclado, mensaje reenviado— y la
-   * única salida era esperar a que caducara. El expediente lleva ahora un
-   * contador; subirlo tumba de golpe todos los enlaces anteriores.
+   * La firma y la caducidad no bastan: sin esto no había forma de invalidar un
+   * enlace ya emitido —teléfono perdido, número reciclado, mensaje reenviado— y
+   * la única salida era esperar a que caducara. El expediente lleva un contador;
+   * subirlo tumba de golpe todos los enlaces anteriores.
    *
-   * Si la lectura falla se deja pasar: dejar al paciente fuera de su propia
-   * agenda por un mal minuto de Firestore es peor que el riesgo que esto acota,
-   * y la firma y la caducidad siguen protegiendo.
+   * ANTES, si la lectura fallaba SE DEJABA PASAR. El invariante de esta unidad
+   * dice lo contrario, y el porqué entero —incluida la razón por la que el
+   * fail-open no le devolvía la agenda a ningún paciente legítimo— está en
+   * `lib/portal/vigencia-del-enlace.ts`. Aquí sólo se consume la decisión.
    */
   /**
-   * SE CONSERVA LO LEÍDO, Y SE CONSERVA SI SE PUDO LEER — H-01.
+   * UNA SOLA LECTURA, DOS INVARIANTES — unión de H-01 y PATIENT-PORTAL-001.
    *
-   * Esta lectura ya se pagaba; lo que faltaba era quedarse con ella. De aquí
-   * salen las alergias que la receta del paciente debe poder enseñar, y el
-   * `pacienteLeido` que impide que un fallo de Firestore se imprima como
-   * «Sin registro»: error ≠ ausencia (regla 4 de seguridad clínica).
+   * Las dos reparaciones necesitaban el MISMO documento y llegaron por caminos
+   * distintos: H-01 lo leía para quedarse con las alergias que la receta del
+   * paciente debe poder enseñar; PATIENT-PORTAL-001 lo leía para comprobar que
+   * el enlace no está revocado. Conservar las dos como venían costaba dos
+   * lecturas de Firestore por petición y dejaba dos criterios distintos sobre
+   * el mismo dato.
+   *
+   * Se lee una vez y la lectura alimenta las dos:
+   *
+   *  · la decisión de vigencia va por `decidirVigencia`, que es pura y se
+   *    prueba con una tabla — aquí sólo se le pasa lo leído;
+   *  · `paciente` y `pacienteLeido` siguen saliendo de la misma lectura.
+   *
+   * Lo que CAMBIA respecto de H-01, y es a propósito: antes, si Firestore
+   * fallaba, el portal seguía y servía los documentos con `alergiasLeidas:
+   * false`. Ahora responde 503 y no sirve nada. No es un retroceso de H-01:
+   * es la misma regla —error ≠ ausencia— dicha más fuerte. H-01 impedía
+   * imprimir «Sin registro» sobre un fallo de lectura; esto impide además
+   * imprimir el documento entero mientras no se sepa si el enlace vale.
+   *
+   * El 503 lleva `Retry-After` y NO quema el enlace (ver el módulo).
    */
   let paciente: Patient | null = null
   let pacienteLeido = false
+  let lectura: LecturaDelExpediente
   try {
-    const pSnap = await adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId).get()
-    if (pSnap.exists) {
-      paciente = pSnap.data() as Patient
+    const pSnap = await adminDb
+      .collection('clinics').doc(clinicId)
+      .collection('patients').doc(patientId)
+      .get()
+    const datos = pSnap.data() as (Patient & { portalTokenVersion?: number }) | undefined
+    if (pSnap.exists && datos) {
+      paciente = datos as Patient
       pacienteLeido = true
     }
-    const vPaciente = (pSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion
-    if (!tokenVigente(sesion.version, vPaciente)) {
-      return NextResponse.json({ error: 'Este enlace ya no es válido. Pídele uno nuevo al consultorio.' }, { status: 401 })
-    }
-  } catch { /* ver arriba */ }
+    lectura = { ok: true, existe: Boolean(pSnap.exists), version: datos?.portalTokenVersion }
+  } catch (e) {
+    // Nunca el token ni el patientId: el identificador de un expediente es un
+    // dato de paciente y esto acaba en los logs de Vercel.
+    safeLog.error(`[portal] ${clinicId}: no se pudo comprobar la vigencia del enlace`, e)
+    lectura = { ok: false }
+  }
+  const noVigente = respuestaDeVigencia(decidirVigencia(sesion.version, lectura))
+  if (noVigente) return noVigente
 
   /**
-   * LÍMITE DE TASA — PATIENT-PORTAL-001.
+   * LÍMITE DE TASA POR PACIENTE.
    *
    * Esta ruta no tenía ningún `limitar*`, a diferencia de sus hermanas
    * (`telesalud/sala`, `public/booking`): un token filtrado —reenviado por
    * WhatsApp, capturado de una URL compartida— podía usarse para enumerar
    * citas o mover la agenda del consultorio sin ningún freno.
    *
-   * Dos ventanas, igual que en `public/booking`: una general por sesión de
-   * paciente (cubre lecturas repetidas: session, slots, documentos), y otra
-   * más estrecha sólo para las acciones que MUEVEN la agenda (confirmar,
-   * cancelar, reagendar), que es justo el riesgo que describe el hallazgo.
-   * Fail-open si Firestore falla: la firma y la caducidad del token siguen
-   * protegiendo, y el límite es una malla adicional, no la puerta principal.
+   * Tres ventanas, de la más ancha a la más estrecha, y cada una cubre un
+   * riesgo distinto:
+   *
+   *  · general (40/10 min) — lecturas repetidas de lo propio. Fail-OPEN: si el
+   *    freno no cuenta, mirar la propia agenda sigue permitido; no se gana
+   *    ningún privilegio por mirar.
+   *  · mutación (10/10 min) — lo que MUEVE la agenda del consultorio:
+   *    confirmar, cancelar, reagendar y el formulario previo. Estricto.
+   *  · clínico (15/10 min) — lo que devuelve secreto médico: `documentos` y
+   *    `paquetes`. Estricto, y aparte del general, porque 40 lecturas de la
+   *    propia agenda no son 40 descargas del recetario.
+   *
+   * Las dos ventanas estrictas son el invariante dicho en el otro eje: durante
+   * una incidencia, un token puede seguir MIRANDO lo suyo, pero no gana la
+   * capacidad de mover la agenda ni de vaciar el expediente sin freno.
    */
   const limiteGeneral = await limitarOResponder(`portal:${clinicId}:${patientId}`, 40, 600,
     'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.')
   if (limiteGeneral) return limiteGeneral
-  if (body.action === 'confirmar' || body.action === 'cancelar' || body.action === 'reagendar') {
-    const limiteMutacion = await limitarOResponder(`portal:mutacion:${clinicId}:${patientId}`, 10, 600,
+
+  if (ACCIONES_QUE_MUEVEN.has(String(body.action))) {
+    const limiteMutacion = await limitarEstricto(`portal:mutacion:${clinicId}:${patientId}`, 10, 600,
       'Demasiados cambios a tu cita en poco tiempo. Espera un momento e inténtalo de nuevo.')
     if (limiteMutacion) return limiteMutacion
+  }
+
+  if (ACCIONES_CLINICAS.has(String(body.action))) {
+    const limiteClinico = await limitarEstricto(`portal:clinico:${clinicId}:${patientId}`, 15, 600,
+      'Demasiadas consultas a tus documentos en poco tiempo. Espera un momento e inténtalo de nuevo.')
+    if (limiteClinico) return limiteClinico
   }
 
   // Helper: asegura que la cita pertenezca a este paciente

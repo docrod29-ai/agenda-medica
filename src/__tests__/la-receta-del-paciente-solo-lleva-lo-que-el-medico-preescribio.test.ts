@@ -114,11 +114,22 @@ function consulta(ruta: string, filtros: Filtro[]) {
   }
 }
 
+/**
+ * Interruptor para el caso «Firestore no contesta». Sin esto no se puede
+ * distinguir el expediente QUE NO ESTÁ del expediente QUE NO SE PUDO LEER, y
+ * son dos cosas distintas con dos respuestas distintas (ver el bloque
+ * «UN ERROR DE LECTURA NO ES UNA AUSENCIA»).
+ */
+let fallaLaLecturaDelExpediente = false
+
 function refDoc(ruta: string) {
   return {
     id: ruta.slice(ruta.lastIndexOf('/') + 1),
     collection: (n: string) => refColeccion(`${ruta}/${n}`),
     get: async () => {
+      if (fallaLaLecturaDelExpediente && /\/patients\/[^/]+$/.test(ruta)) {
+        throw new Error('Firestore sintético: la lectura del expediente falló')
+      }
       const d = base.get(ruta)
       return { exists: d !== undefined, id: ruta.slice(ruta.lastIndexOf('/') + 1), data: () => d }
     },
@@ -143,6 +154,11 @@ vi.mock('@/lib/firebase-admin', () => ({
 vi.mock('@/lib/rate-limit', () => ({
   limitar: async () => ({ permitido: true, restantes: 99 }),
   limitarOResponder: async () => null,
+  // `limitarEstricto` desde PATIENT-PORTAL-001. Aquí siempre deja pasar: este
+  // golden prueba QUÉ medicamentos bajan al paciente, no el freno. Lo que el
+  // freno hace cuando no puede contar se prueba en
+  // `portal-revocacion-falla-cerrado.test.ts`, que es su sitio.
+  limitarEstricto: async () => null,
 }))
 
 import { POST } from '@/app/api/portal/route'
@@ -155,8 +171,15 @@ const CLINICA_B = 'clinica-sintetica-b'
 const PACIENTE_1 = 'pac-sintetico-001'
 const PACIENTE_2 = 'pac-sintetico-002'
 
-function req(body: unknown) {
-  return { json: async () => body } as unknown as Parameters<typeof POST>[0]
+function req(body: unknown, ip = '203.0.113.9') {
+  // `headers` desde PATIENT-PORTAL-001: la ruta cobra un límite por IP antes de
+  // mirar el token. Sin cabeceras el doble de `NextRequest` revienta en la
+  // primera línea y el golden dejaría de probar lo suyo por un detalle de
+  // andamiaje. La IP es de TEST-NET-3 (RFC 5737), no enrutable.
+  return {
+    json: async () => body,
+    headers: new Headers({ 'x-forwarded-for': ip }),
+  } as unknown as Parameters<typeof POST>[0]
 }
 
 const med = (nombre: string, over: Partial<Medicamento> = {}): Medicamento => ({
@@ -217,6 +240,7 @@ async function documentos(token: string) {
 
 beforeEach(() => {
   base.clear()
+  fallaLaLecturaDelExpediente = false
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -440,17 +464,54 @@ describe('REINTENTAR NO DUPLICA NI INVENTA', () => {
 })
 
 describe('UN ERROR DE LECTURA NO ES UNA AUSENCIA', () => {
-  it('si el expediente del paciente no se pudo leer, la receta no afirma nada de alergias', async () => {
-    /**
-     * El paciente NO está sembrado: la lectura no encuentra documento. Eso no
-     * autoriza a imprimir «Sin registro en el expediente», que es una afirmación
-     * sobre el expediente de alguien. `alergiasLeidas:false` apaga el recuadro
-     * en vez de rellenarlo con una negación que nadie comprobó.
-     */
+  /**
+   * ── POR QUÉ ESTE BLOQUE CAMBIÓ DE FORMA (H-01 ∪ PATIENT-PORTAL-001) ────────
+   *
+   * H-01 pedía: un fallo al leer el expediente NO puede imprimirse como «Sin
+   * registro de alergias». La respuesta de entonces era seguir sirviendo el
+   * documento con `alergiasLeidas:false`, que apaga el recuadro.
+   *
+   * PATIENT-PORTAL-001 endureció la misma puerta por el otro lado: la vigencia
+   * del enlace se lee de ese MISMO documento, y no poder comprobarla no es
+   * autorización. Así que ahora la ruta ni siquiera llega a redactar el
+   * recuadro:
+   *
+   *   · expediente que NO ESTÁ            → 401 (revocado)
+   *   · expediente que NO SE PUDO LEER    → 503 (indeterminado, reintentable)
+   *
+   * El invariante de H-01 no se perdió: se dice más fuerte. Antes se prohibía
+   * AFIRMAR una ausencia que nadie comprobó; ahora se prohíbe además servir el
+   * documento mientras no se sepa. Lo que sigue prohibido es exactamente lo
+   * mismo, y estas pruebas siguen fallando si alguien devuelve el fail-open:
+   * un 200 con `alergiasLeidas:false` vuelve a poner ambos casos en rojo.
+   */
+
+  it('expediente que no está: no se sirve el documento, y no se afirma nada de alergias', async () => {
+    // El paciente NO está sembrado. Un expediente ausente es una baja ARCO o un
+    // token que nombra un consultorio que no es el suyo: en los dos casos la
+    // puerta responde, y responde sin decir de quién se trata.
     sembrarNota(CLINICA_A, PACIENTE_2, 'n-x', { medicamentos: [PRESCRITO_HOY] })
-    const { cuerpo } = await documentos(tokenClinico(CLINICA_A, PACIENTE_2))
-    expect(cuerpo.alergiasLeidas).toBe(false)
-    expect(cuerpo.alergias).toBe('')
+    const { status, cuerpo } = await documentos(tokenClinico(CLINICA_A, PACIENTE_2))
+    expect(status).toBe(401)
+    expect(cuerpo.documentos).toBeUndefined()
+    expect(cuerpo.alergias).toBeUndefined()
+    expect(cuerpo.alergiasLeidas).toBeUndefined()
+  })
+
+  it('expediente que no se pudo leer: 503 reintentable, y tampoco se afirma nada de alergias', async () => {
+    // Aquí el paciente SÍ existe y SÍ tiene alergias registradas: lo único que
+    // falla es la lectura. Que el expediente exista es lo que hace que este
+    // caso pruebe el fail-closed y no, por accidente, el caso de arriba.
+    sembrarPaciente(CLINICA_A, PACIENTE_2, { alergias: ['penicilina'] })
+    sembrarNota(CLINICA_A, PACIENTE_2, 'n-x', { medicamentos: [PRESCRITO_HOY] })
+    fallaLaLecturaDelExpediente = true
+    const { status, cuerpo } = await documentos(tokenClinico(CLINICA_A, PACIENTE_2))
+    expect(status).toBe(503)
+    expect(cuerpo.documentos).toBeUndefined()
+    expect(cuerpo.alergias).toBeUndefined()
+    expect(cuerpo.alergiasLeidas).toBeUndefined()
+    // Y no se filtra la alergia que sí estaba sembrada.
+    expect(JSON.stringify(cuerpo)).not.toContain('penicilina')
   })
 })
 

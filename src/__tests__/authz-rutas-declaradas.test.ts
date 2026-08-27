@@ -657,6 +657,18 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'expediente/exportar/[patientId]',
       'fhir/paciente/[patientId]',
       'mantenimiento/backfill-contadores',
+      /**
+       * +1 el 2026-08-27 (PATIENT-PORTAL-001 P1 · REG-331). Antes NO tocaba la
+       * identidad: aceptaba el magic-link del paciente mirando sólo la firma y
+       * la caducidad, así que un enlace REVOCADO —teléfono perdido, mensaje
+       * reenviado— seguía abriendo sesiones de cobro a su nombre hasta caducar.
+       *
+       * Ahora lee `patients/{id}.portalTokenVersion`, y sólo eso: la misma
+       * comprobación de vigencia que su ruta hermana `portal`, por el mismo
+       * módulo (`lib/portal/vigencia-del-enlace.ts`). Sigue siendo
+       * `tokenPaciente` atado a {clinicId, patientId}; no lee nada clínico.
+       */
+      'payment/create-checkout',
       'portal',
       // +1 el 2026-08-02: emite el enlace con la VERSIÓN del paciente, para que
       // una revocación posterior lo tumbe. Lee `portalTokenVersion` y nada más
