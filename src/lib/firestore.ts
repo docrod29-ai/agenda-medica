@@ -142,11 +142,93 @@ export async function createPatient(clinicId: string, data: Omit<Patient, 'id'>)
   return ref.id
 }
 
-export async function updatePatient(clinicId: string, id: string, data: Partial<Patient>): Promise<void> {
-  await updateDoc(d(clinicId, COLLECTIONS.patients, id), sinUndefined({ ...data, updatedAt: new Date().toISOString() }))
+/**
+ * Error de una escritura sobre un paciente que habría pisado el trabajo de otro.
+ * Mismo `code` que `ConflictoDeVersion` de la nota a propósito: las pantallas ya
+ * saben distinguir ese código de un fallo de red, y aprender dos nombres para el
+ * mismo suceso sólo produce un aviso que dice «revisa tu conexión» cuando la
+ * conexión está bien.
+ */
+export class ConflictoDeVersionDePaciente extends Error {
+  readonly code = 'conflicto-de-version'
+  constructor(public readonly modificadoEn: string) {
+    super('Otra sesión modificó este paciente después de que abriste el editor. No se guardó para no pisar su trabajo.')
+  }
+}
+
+export async function updatePatient(
+  clinicId: string,
+  id: string,
+  data: Partial<Patient>,
+  /**
+   * LA RED SECUNDARIA DE REG-323 — el `updatedAt` que el llamador vio.
+   *
+   * La primera red vive en `@/lib/pacientes/campos-que-se-guardan`: un campo que
+   * la pantalla no enseñó no viaja, así que no puede pisar nada. Ésta cubre lo
+   * que aquélla no puede: dos personas editando A LA VEZ los MISMOS campos
+   * visibles. Sin comparar nada, gana el último en pulsar Guardar, y el que
+   * perdió no se entera.
+   *
+   * Opcional a propósito, igual que `vistoEn` en `updateNota`: quien no la pase
+   * se comporta como antes. La pasa el editor de `/pacientes`, que es el que
+   * escribe el formulario entero; las escrituras de un solo campo desde
+   * `/consulta` no la necesitan y no pagan la lectura.
+   */
+  vistoEn?: string,
+): Promise<void> {
+  const ref = d(clinicId, COLLECTIONS.patients, id)
+
+  /**
+   * UNA SOLA LECTURA, PARA DOS COSAS: la guardia de concurrencia y el `antes` de
+   * la bitácora. Sólo se paga cuando hace falta — hay un `vistoEn` que comparar,
+   * o esta escritura puede cambiar las alergias.
+   */
+  const necesitaLeer = !!vistoEn || data.alergias !== undefined
+  let previo: Patient | null = null
+  if (necesitaLeer) {
+    // Si la lectura falla, NO se bloquea la escritura: quedarse sin guardar por
+    // un hipo de red sería peor que el riesgo que esto cubre. Mismo criterio que
+    // `updateNota`.
+    try {
+      const snap = await getDoc(ref)
+      if (snap.exists()) previo = snap.data() as Patient
+    } catch { /* nunca romper la operación clínica */ }
+  }
+
+  if (vistoEn && previo) {
+    const actual = String(previo.updatedAt ?? '')
+    if (actual && actual !== vistoEn) throw new ConflictoDeVersionDePaciente(actual)
+  }
+
+  await updateDoc(ref, sinUndefined({ ...data, updatedAt: new Date().toISOString() }))
   invalidarCachePacientes(clinicId)   // el cambio debe reflejarse de inmediato
-  // Qué campos se tocaron, NO sus valores: la bitácora no es sitio para PHI.
-  logAudit({ evento: 'paciente_modificado', clinicId, patientId: id, meta: { campos: Object.keys(data) } }).catch(() => {})
+
+  /**
+   * QUÉ CAMPOS SE TOCARON, NO SUS VALORES: la bitácora no es sitio para PHI.
+   *
+   * CON UNA EXCEPCIÓN, Y UNA SOLA: `alergias`. Es la excepción que este
+   * repositorio ya hace en el input de `/consulta`, con ese mismo campo y ese
+   * mismo propósito — sin el `antes`, un vaciado de alergias queda registrado
+   * como «se tocó el campo alergias», que es indistinguible de haberlas escrito.
+   * Eso es exactamente lo que hizo irreconstruible el dato en REG-323, y lo que
+   * deja una salida silenciosa a la compuerta que impide firmar.
+   *
+   * No se amplía a ningún otro campo: cada valor en la bitácora es PHI que sale
+   * del expediente, y sólo se paga donde compra trazabilidad de un borrado que
+   * de otro modo no se ve.
+   */
+  const meta: Record<string, unknown> = { campos: Object.keys(data) }
+  if (data.alergias !== undefined && previo) {
+    const antes = previo.alergias ?? ''
+    const despues = data.alergias ?? ''
+    if (antes !== despues) {
+      meta.campo = 'alergias'
+      meta.antes = antes
+      meta.despues = despues
+      meta.vaciado = !despues.trim() && !!antes.trim()
+    }
+  }
+  logAudit({ evento: 'paciente_modificado', clinicId, patientId: id, meta }).catch(() => {})
 }
 
 // ── Waitlist ──────────────────────────────────────────────────
@@ -161,10 +243,17 @@ export async function getWaitlist(clinicId: string): Promise<WaitlistEntry[]> {
 }
 
 export async function createWaitlistEntry(clinicId: string, data: Omit<WaitlistEntry, 'id'>): Promise<string> {
-  const ref = await addDoc(col(clinicId, COLLECTIONS.waitlist), {
-    ...data, createdAt: new Date().toISOString(),
+  const id = idIdempotente(clinicId, 'lista-espera', claveDeEspera(data))
+  const ref = d(clinicId, COLLECTIONS.waitlist, id)
+  const ahora = new Date().toISOString()
+  await runTransaction(db, async (tx) => {
+    const previo = await tx.get(ref)
+    const createdAt = previo.exists()
+      ? ((previo.data() as { createdAt?: string } | undefined)?.createdAt ?? ahora)
+      : ahora
+    tx.set(ref, { ...data, createdAt }, { merge: true })
   })
-  return ref.id
+  return id
 }
 
 export async function updateWaitlistEntry(clinicId: string, id: string, data: Partial<WaitlistEntry>): Promise<void> {
