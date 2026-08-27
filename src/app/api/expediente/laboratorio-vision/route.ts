@@ -5,13 +5,9 @@
  * listos para graficar en el tiempo. La IA solo TRANSCRIBE (foso del antibiograma);
  * el motor determinista valida, agrupa por analito y marca criticidad.
  *
- * PRIVACIDAD: el prompt prohíbe devolver identificadores del paciente SALVO su
- * nombre, y `validarPanel` descarta todo lo demás. El nombre viaja en
- * `panel.sujetos` porque sin él no hay forma de verificar de QUIÉN es la hoja, y
- * el panel acababa archivado bajo el paciente que estuviera abierto en la
- * pantalla (REG-323). Es TRANSITORIO: el cliente lo compara contra el paciente
- * de destino y no lo persiste. Esta ruta no escribe nada, ni siquiera un log:
- * `safeLog` nunca ve el nombre.
+ * PRIVACIDAD: el prompt prohíbe devolver identificadores del paciente, y
+ * `validarPanel` descarta cualquier cosa que no sea fecha + valores. El registro
+ * se guarda en el cliente bajo el patientId; esta ruta no persiste nada.
  *
  * Body:   { archivo: dataURL (image/* o application/pdf) }
  * Output: { ok, panel: PanelValidado, model } | { ok:false, error }
@@ -132,13 +128,7 @@ export async function POST(req: NextRequest) {
 
     // Validación DETERMINISTA: aquí se descarta cualquier identificador y se
     // marca criticidad con el motor, sin confiar en la IA.
-    const panel = validarPanel({
-      fecha: String(parsed.fecha ?? ''),
-      filas: (parsed.filas ?? []) as FilaCruda[],
-      // A quién dice pertenecer la hoja. Se sanea en `sujetosLeidos`; aquí se
-      // pasa crudo a propósito para no duplicar ese criterio en dos sitios.
-      pacientes: parsed.pacientes,
-    })
+    const panel = validarPanel({ fecha: String(parsed.fecha ?? ''), filas: (parsed.filas ?? []) as FilaCruda[] })
     if (panel.resultados.length === 0 && panel.noReconocidas.length === 0) {
       return NextResponse.json({ ok: false, error: 'No se reconocieron valores de laboratorio en el documento.' }, { status: 422 })
     }

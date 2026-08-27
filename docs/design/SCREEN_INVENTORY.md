@@ -50,7 +50,7 @@
 | `/citas` | medico | ✅ | 1169 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2621 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 6343 | 7 | — | ✅ | ✅ |
-| `/consultor` | medico | ✅ | 312 | 0 | — | ✅ | — |
+| `/consultor` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 977 | 0 | — | ✅ | — |
@@ -71,7 +71,7 @@
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 943 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 401 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 840 | 2 | — | ✅ | — |
-| `/pacientes` | medico | ✅ | 1158 | 4 | — | ✅ | — |
+| `/pacientes` | medico | ✅ | 1146 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 520 | 3 | — | ✅ | — |
 | `/reactivacion` | medico | ✅ | 336 | 0 | — | ✅ | — |
 | `/receta/[patientId]/[notaId]` | medico | ✅ | 1023 | 2 | — | ✅ | — |

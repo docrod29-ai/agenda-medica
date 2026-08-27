@@ -20,14 +20,6 @@ import { resolve } from 'node:path'
 
 const RUTA = resolve(process.cwd(), 'src/app/(dashboard)/pacientes/page.tsx')
 const fuente = readFileSync(RUTA, 'utf8')
-/**
- * El payload del guardado dejó de vivir en la pantalla: desde REG-323 lo
- * construye `construirGuardadoDePaciente`, porque decidir qué se escribe encima
- * de un expediente es una regla clínica y no un detalle del formulario. Las
- * afirmaciones sobre el payload se mudan aquí con él.
- */
-const PAYLOAD = resolve(process.cwd(), 'src/lib/pacientes/campos-que-se-guardan.ts')
-const payload = readFileSync(PAYLOAD, 'utf8')
 
 describe('formulario corto de paciente — la pantalla', () => {
   const inputVisible = (etiqueta: string) => fuente.includes(`className="label">${etiqueta}`)
@@ -67,39 +59,19 @@ describe('formulario corto de paciente — los DATOS no se pierden', () => {
     },
   )
 
-  it.each(['email', 'curp'])('`%s` sigue viajando en el payload de guardado', (campo) => {
-    expect(payload).toMatch(new RegExp(`^\\s*${campo}:\\s*f\\.${campo}`, 'm'))
-  })
-
-  it('`notas` ya NO viaja: no viajar es justo lo que ahora lo conserva — REG-323', () => {
-    /**
-     * ESTA AFIRMACIÓN SE DIO LA VUELTA, Y HAY QUE DECIR POR QUÉ.
-     *
-     * El razonamiento original era correcto —esconder un campo no debe borrarlo—
-     * pero se ató al MECANISMO equivocado: «que siga viajando». Viajar sólo
-     * conserva el dato mientras la semilla del formulario esté fresca, y la de
-     * esta pantalla puede tener 30 s de retraso (memo de `getPatients`, que sólo
-     * invalida la pestaña que escribió). Con una semilla vieja, viajar es
-     * exactamente lo que BORRA: `updateDoc` sobrescribe campo por campo y
-     * `sinUndefined` deja pasar la cadena vacía.
-     *
-     * `notas` no tiene input en NINGUNA pantalla del producto, así que ningún
-     * guardado desde aquí puede ser una edición suya. La forma segura de
-     * conservarlo es no mandarlo: la clave ausente deja intacto el valor
-     * guardado. Mismo objetivo que el caso de 2026-07, mecanismo corregido.
-     */
-    expect(payload).not.toMatch(/^\s*notas:\s*f\.notas/m)
+  it.each(['email', 'curp', 'notas'])('`%s` sigue viajando en el payload de guardado', (campo) => {
+    expect(fuente).toMatch(new RegExp(`^\\s*${campo}:\\s*f\\.${campo}`, 'm'))
   })
 
   it('el teléfono único alimenta también el campo whatsapp', () => {
     // El export FHIR lee `whatsapp` por separado (fhir-export.ts:120). Si el
     // formulario dejara de llenarlo, un paciente nuevo perdería su móvil ahí.
-    expect(payload).toContain("whatsapp: (f.whatsapp.replace(/\\D/g, '') || tel)")
+    expect(fuente).toContain("whatsapp: (f.whatsapp.replace(/\\D/g, '') || tel)")
   })
 
   it('respeta el whatsapp ya guardado en vez de sobreescribirlo con el teléfono', () => {
     // El `||` importa: si un paciente viejo tiene DOS números distintos, el suyo gana.
-    const m = payload.match(/whatsapp: \(f\.whatsapp[^\n]*\)/)
+    const m = fuente.match(/whatsapp: \(f\.whatsapp[^\n]*\)/)
     expect(m, 'no se encontró la línea de whatsapp').not.toBeNull()
     expect(m![0]).toContain('f.whatsapp')       // primero el guardado
     expect(m![0]).toContain('|| tel')           // el teléfono es sólo el respaldo
