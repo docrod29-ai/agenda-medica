@@ -43,20 +43,10 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 40 de 171, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 39 de 171, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-327** (26-ago-2026), y enseña la variante más
-incómoda de la familia: el módulo **sí** estaba conectado — a **uno** de sus dos
-consumidores. La frontera que separa el antecedente de la prescripción vivía
-compuesta a mano dentro de la pantalla del médico, así que protegía exactamente a
-esa pantalla; el portal del paciente armaba su propia receta con la lista cruda
-de la nota y bajaba a un `.doc` titulado «RECETA MÉDICA» lo que el paciente
-refirió, lo que la IA extrajo sin confirmar y lo que el médico había suspendido.
-La pista no fue una prueba roja: fue **contar llamadores**. Una regla clínica con
-un llamador y dos superficies deja una de las dos sin regla.
-
-Antes que él, **REG-320** (15-ago-2026), y lo encontró un banco de
+El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
 flujos haciendo el trabajo del médico en el teléfono: el respaldo local de la
 nota se escribía, se conservaba en disco y **no se ofrecía nunca** al reabrir
 una nota por `?nota=`, porque la única condición capaz de enseñarlo probaba que
