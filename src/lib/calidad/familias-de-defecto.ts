@@ -165,7 +165,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'registro oficial se le cree más que a la fuente. La reparación nunca es ' +
       'volver a copiarlo bien: es DERIVARLO, y poner una compuerta que falle ' +
       'cuando se separen.',
-    regs: [241, 253, 310],
+    regs: [241, 253, 310, 331],
   },
   {
     /**
