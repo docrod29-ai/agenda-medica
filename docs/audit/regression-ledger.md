@@ -8591,3 +8591,92 @@ poder intentarlo. No cubre el texto que entra en vivo mientras se graba —ahí 
 reemplazo es el comportamiento pedido—, ni el caso en que el médico pulsa
 «Dejar mi versión»: su transcripción se respeta, y el material diarizado sigue
 disponible en `audio.utterances`, pero el cartel no se vuelve a ofrecer.
+
+## REG-331 — la superficie del paciente no tenía quien la mirara: 23 defectos de accesibilidad con la suite entera en verde
+
+**Área.** Accesibilidad · superficie de cara al paciente (`A11Y-GATE-001`, P1 de V9).
+
+**Qué fallaba.** Las diez pantallas públicas que ve un paciente traían **23
+defectos de accesibilidad**, y ninguna herramienta del repositorio podía verlos:
+
+- **8 campos de formulario sin etiqueta.** Los cuatro de la reserva pública
+  —nombre, teléfono, correo, motivo—, los dos del portal de derechos ARCO, el de
+  la reseña y el del panel de reagenda. Todos se apoyaban en el `placeholder`,
+  que **no es etiqueta**: desaparece con la primera letra que se escribe.
+  En tres casos el `<label>` se pintaba y no estaba atado a nada.
+- **7 botones que trabajan en silencio.** Confirmar cita, cancelar cita, pagar
+  anticipo, enviar reseña, enviar solicitud ARCO, confirmar reserva, mandar el
+  formulario previo: todos se deshabilitan y pintan una ruedecita mientras
+  trabajan, sin `aria-busy`. Quien ve entiende «espera»; quien no ve oye «no
+  disponible» y vuelve a pulsar.
+- **5 pantallas con estado asíncrono y NI UNA `aria-live`.** El aviso «este
+  enlace ha expirado», el «no hay horarios ese día», el «no se pudo agendar», el
+  folio de la solicitud ARCO y el cartel de enlace vencido del portal aparecían
+  en pantalla sin que ningún lector de pantalla dijera nada.
+- **2 pantallas sin `<h1>`.** La verificación pública de documento no tenía
+  ningún encabezado —el título era un `<strong>`—; la reserva pública tenía
+  `<h2>` y ninguno por encima.
+- **Las 5 estrellas de la reseña**, cinco botones sin una palabra dentro:
+  «botón», «botón», «botón», «botón», «botón».
+
+**Cómo se descubrió.** Construyendo el medidor **antes** de tocar una sola
+pantalla y corriéndolo. Ninguno de los 23 se encontró leyendo código.
+
+**Causa raíz.** Familia **`sin_medir`** («nadie lo estaba midiendo»: no es un
+defecto del producto, es la ausencia del instrumento que lo habría delatado, y
+cada uno de éstos destapa otros al encenderse). Ninguno es un descuido de
+quien lo escribió: son omisiones que **ninguna compuerta podía detectar**. `tsc`
+no sabe de nombres accesibles; `eslint.config.mjs` son 18 líneas sin `jsx-a11y`;
+`trinquete-de-diseno.mjs` declara en su cabecera que «no vigila accesibilidad ni
+contraste». Sí existían arneses de axe con Chromium (`scripts/design/axe-*.mjs`)
+que miden de verdad, pero necesitan servidor levantado y emulador sembrado:
+corren cuando alguien se acuerda, y ninguna de sus salidas estaba sellada.
+Un guardián que sólo corre cuando alguien se acuerda **no es una red**.
+
+**Por qué importa aquí más que en el resto de la aplicación.** Es la asimetría
+que gobierna `patient-facing-ai.md`, dicha en interfaz: hasta hoy este producto
+le hablaba a un internista con cédula, que detecta el error. El paciente **no
+puede detectarlo** — y es un paciente de 70 años, en un teléfono, con el texto
+al 200 %. Que no pueda reservar no se manifiesta como un fallo: se manifiesta
+como que no reservó.
+
+**Control permanente.**
+
+- `scripts/design/lib/a11y-jsx.mjs` — 15 reglas sobre el **árbol real** del TSX,
+  con la API del compilador de TypeScript (ya era `devDependency`, Apache-2.0).
+  **Cero dependencias nuevas, cero servicios externos.**
+- `scripts/design/lib/contraste-wcag.mjs` — la aritmética de WCAG 2.2, con
+  composición de alfa (sin componer, un `rgba(…,0.08)` mide como si fuera opaco).
+- `scripts/design/medir-a11y-superficies-paciente.mjs` — las 10 superficies
+  declaradas, los 34 pares críticos de contraste en los dos temas, y el inventario
+  que **falla cuando aparece una ruta pública que nadie clasificó**.
+- `src/__tests__/a11y-la-superficie-del-paciente-no-pierde-terreno.test.ts` — la
+  compuerta. **0 y es prohibición, no techo**: son diez archivos y caben en una
+  tarde. El resto de la aplicación no se toca (poner hoy en rojo 200 pantallas es
+  cómo se borra un guardián el martes — REG-245).
+- `src/__tests__/a11y-el-detector-si-puede-fallar.test.ts` — el guardián **del
+  guardián**. La compuerta es un `toBe(0)`, que es justo la forma de prueba que
+  se queda verde para siempre el día que el detector deja de detectar. Aquí cada
+  una de las 15 reglas se prueba **al revés**: se le mete el defecto y se
+  comprueba que grita, y se le mete la corrección y se comprueba que se calla.
+  Las dos mitades — sólo la primera dejaría pasar un detector que grita siempre.
+- Falsificado además sobre código **real**, no sólo sintético: quitar el
+  `aria-label` de una estrella deja la compuerta en 1; suavizar `--text3` del
+  tema claro de `#6B6F75` a `#8A8F94` tira 3 pares de contraste; añadir una
+  `page.tsx` pública sin clasificar pone en rojo el inventario.
+- El paso de CI vive en el job del trinquete (`.github/workflows/ci.yml`), como
+  segunda mirada que imprime archivo y línea.
+
+**Qué NO cubre, declarado.** No abre un navegador: el contraste **pintado**
+(texto sobre imagen o degradado), el orden real del foco y la trampa de foco de
+un modal siguen siendo `scripts/design/axe-*.mjs` con Chromium — y mirar la
+pantalla, que la regla de diseño exige aparte. No cruza el límite del
+componente: un `<button>` dentro de `components/ui/` no lo juzga la superficie
+que lo usa. No mide el contraste de los bordes (WCAG 1.4.11, 3:1): `--border`
+está en 1,18:1 en oscuro **a propósito**, es un separador decorativo y no el
+límite que identifica un control; cambiarlo es rediseño y esta unidad no
+rediseña. La regla de la región viva cuenta **por archivo, no por estado**: una
+sola `aria-live` la apaga entera — se descubrió reparando `/mi/[token]`, donde la
+regla se puso en verde con el formulario previo arreglado mientras el cartel de
+«tu enlace ya no vale» seguía mudo, y se encontró **mirando**, no midiendo. Y no
+cubre el resto de la aplicación, que sigue sin medir.

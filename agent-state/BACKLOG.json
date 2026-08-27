@@ -434,7 +434,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "A11Y-GATE-001",
@@ -445,7 +445,8 @@
       "porQueImporta": "Objetivo declarado de V9: WCAG 2.2 AA. Hoy nada impide una regresión. Y el contraste de los 1205 hexadecimales nunca se midió — los tokens sí, y con la fórmula escrita en el CSS.",
       "archivo": "package.json · eslint.config.mjs · src/__tests__/a11y-zoom-guard.test.ts",
       "plan": "axe sobre la superficie del paciente primero (9 pantallas), que es lo que V9 gobierna. Luego trinquete.",
-      "score": 45
+      "score": 45,
+      "cierre": "A11Y-GATE-001 · 27-ago-2026 · rama product/a11y-gate-patient-surfaces-2026-08-27. Compuerta automática sobre las 10 superficies del paciente: 15 reglas de estructura sobre el árbol real del TSX (API del compilador de TypeScript, cero dependencias nuevas) + 34 pares de contraste de token en los dos temas + inventario que falla si aparece una ruta pública sin clasificar. Midió 23 defectos reales antes de tocar nada; los 23 reparados. El número es 0 y es prohibición, no techo. Cada regla probada al revés en a11y-el-detector-si-puede-fallar.test.ts. Ledger: REG-331. NO cubre: contraste pintado, orden del foco, trampa de foco, primitivos de components/ui/, ni el resto de la aplicación — eso sigue sin medir."
     },
     {
       "seguridad": 0,

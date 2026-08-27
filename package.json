@@ -14,6 +14,7 @@
     "e2e:seguridad:prod": "playwright test e2e/seguridad.spec.ts --project=chromium",
     "test:cobertura": "vitest run --coverage",
     "test:emulador": "firebase emulators:exec --only firestore --project demo-nexusmed-test \"vitest run --config vitest.emulator.config.ts\"",
+    "a11y:paciente": "node scripts/design/medir-a11y-superficies-paciente.mjs --detalle",
     "respaldos:verificar": "node scripts/respaldos-verificar.mjs",
     "simulacro:respaldo": "npx tsx scripts/simulacro-respaldo.mjs",
     "cap:add:ios": "npx cap add ios",

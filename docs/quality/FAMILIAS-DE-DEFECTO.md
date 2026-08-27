@@ -28,7 +28,7 @@ Eso cambia dónde conviene mirar mañana.
 | **Escrito, probado y sin conectar** | **39** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
-| Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
+| Nadie lo estaba midiendo | 24 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
 | El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 39 de 171, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 39 de 172, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
@@ -172,9 +172,16 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 23 de 156**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 24 de 172**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
+
+El miembro más reciente es **REG-331** (27-ago-2026), y es el ejemplo más limpio
+que tiene la familia: la accesibilidad de la superficie del paciente **no la
+medía nadie**. Los arneses de axe con navegador existían desde el 9-ago y medían
+bien, pero necesitan servidor y emulador — corrían cuando alguien se acordaba, y
+ninguna de sus salidas estaba sellada. El día que se encendió una compuerta que
+corre sola, contó 23 defectos con la suite entera en verde.
 
 **«Decisión del médico dueño» — 2**, contados aparte a propósito. Meterlos en el
 saco de «defectos» inflaría la cuenta con cosas que nadie rompió.

@@ -38,17 +38,26 @@ export default function TeleconsultaPage() {
   if (error) {
     return (
       <Centered>
-        <AlertTriangle size={32} color="var(--red)" style={{ margin: '0 auto 10px' }} />
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>No disponible</h1>
-        <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 8 }}>{error}</p>
+        {/*
+          A11Y-GATE-001: el motivo por el que la sala no abre («enlace
+          incompleto», «la cita ya pasó») aparecía en pantalla sin que el lector
+          de pantalla dijera nada. `role="alert"` lo anuncia en cuanto entra.
+        */}
+        <div role="alert">
+          <AlertTriangle size={32} color="var(--red)" style={{ margin: '0 auto 10px' }} aria-hidden="true" />
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>No disponible</h1>
+          <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 8 }}>{error}</p>
+        </div>
       </Centered>
     )
   }
   if (!url) {
     return (
       <Centered>
-        <Loader2 size={28} color="var(--teal)" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
-        <div style={{ color: 'var(--text2)', fontSize: 14 }}>Preparando la sala de video…</div>
+        <div role="status">
+          <Loader2 size={28} color="var(--teal)" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} aria-hidden="true" />
+          <h1 style={{ color: 'var(--text2)', fontSize: 14, fontWeight: 400, margin: 0 }}>Preparando la sala de video…</h1>
+        </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </Centered>
     )
@@ -60,7 +69,7 @@ export default function TeleconsultaPage() {
       <div style={{ height: 48, background: 'var(--s1)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 8 }}>
         <Video size={16} color="var(--teal)" />
         <span style={{ fontSize: 13, color: 'var(--text)' }}>Teleconsulta</span>
-        {warn && <span style={{ fontSize: 11, color: 'var(--amber)', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={12} /> {warn}</span>}
+        {warn && <span role="status" style={{ fontSize: 11, color: 'var(--amber)', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={12} aria-hidden="true" /> {warn}</span>}
       </div>
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <iframe
