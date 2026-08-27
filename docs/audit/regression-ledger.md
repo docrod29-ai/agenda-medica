@@ -8591,3 +8591,382 @@ poder intentarlo. No cubre el texto que entra en vivo mientras se graba —ahí 
 reemplazo es el comportamiento pedido—, ni el caso en que el médico pulsa
 «Dejar mi versión»: su transcripción se respeta, y el material diarizado sigue
 disponible en `audio.utterances`, pero el cartel no se vuelve a ofrecer.
+
+---
+
+## REG-331 — la superficie del paciente no tenía quien la mirara: 23 defectos de accesibilidad con la suite entera en verde
+
+**Área.** Accesibilidad · superficie de cara al paciente (`A11Y-GATE-001`, P1 de V9).
+
+**Qué fallaba.** Las diez pantallas públicas que ve un paciente traían **23
+defectos de accesibilidad**, y ninguna herramienta del repositorio podía verlos:
+
+- **8 campos de formulario sin etiqueta.** Los cuatro de la reserva pública
+  —nombre, teléfono, correo, motivo—, los dos del portal de derechos ARCO, el de
+  la reseña y el del panel de reagenda. Todos se apoyaban en el `placeholder`,
+  que **no es etiqueta**: desaparece con la primera letra que se escribe.
+  En tres casos el `<label>` se pintaba y no estaba atado a nada.
+- **7 botones que trabajan en silencio.** Confirmar cita, cancelar cita, pagar
+  anticipo, enviar reseña, enviar solicitud ARCO, confirmar reserva, mandar el
+  formulario previo: todos se deshabilitan y pintan una ruedecita mientras
+  trabajan, sin `aria-busy`. Quien ve entiende «espera»; quien no ve oye «no
+  disponible» y vuelve a pulsar.
+- **5 pantallas con estado asíncrono y NI UNA `aria-live`.** El aviso «este
+  enlace ha expirado», el «no hay horarios ese día», el «no se pudo agendar», el
+  folio de la solicitud ARCO y el cartel de enlace vencido del portal aparecían
+  en pantalla sin que ningún lector de pantalla dijera nada.
+- **2 pantallas sin `<h1>`.** La verificación pública de documento no tenía
+  ningún encabezado —el título era un `<strong>`—; la reserva pública tenía
+  `<h2>` y ninguno por encima.
+- **Las 5 estrellas de la reseña**, cinco botones sin una palabra dentro:
+  «botón», «botón», «botón», «botón», «botón».
+
+**Cómo se descubrió.** Construyendo el medidor **antes** de tocar una sola
+pantalla y corriéndolo. Ninguno de los 23 se encontró leyendo código.
+
+**Causa raíz.** Familia **`sin_medir`** («nadie lo estaba midiendo»: no es un
+defecto del producto, es la ausencia del instrumento que lo habría delatado, y
+cada uno de éstos destapa otros al encenderse). Ninguno es un descuido de
+quien lo escribió: son omisiones que **ninguna compuerta podía detectar**. `tsc`
+no sabe de nombres accesibles; `eslint.config.mjs` son 18 líneas sin `jsx-a11y`;
+`trinquete-de-diseno.mjs` declara en su cabecera que «no vigila accesibilidad ni
+contraste». Sí existían arneses de axe con Chromium (`scripts/design/axe-*.mjs`)
+que miden de verdad, pero necesitan servidor levantado y emulador sembrado:
+corren cuando alguien se acuerda, y ninguna de sus salidas estaba sellada.
+Un guardián que sólo corre cuando alguien se acuerda **no es una red**.
+
+**Por qué importa aquí más que en el resto de la aplicación.** Es la asimetría
+que gobierna `patient-facing-ai.md`, dicha en interfaz: hasta hoy este producto
+le hablaba a un internista con cédula, que detecta el error. El paciente **no
+puede detectarlo** — y es un paciente de 70 años, en un teléfono, con el texto
+al 200 %. Que no pueda reservar no se manifiesta como un fallo: se manifiesta
+como que no reservó.
+
+**Control permanente.**
+
+- `scripts/design/lib/a11y-jsx.mjs` — 15 reglas sobre el **árbol real** del TSX,
+  con la API del compilador de TypeScript (ya era `devDependency`, Apache-2.0).
+  **Cero dependencias nuevas, cero servicios externos.**
+- `scripts/design/lib/contraste-wcag.mjs` — la aritmética de WCAG 2.2, con
+  composición de alfa (sin componer, un `rgba(…,0.08)` mide como si fuera opaco).
+- `scripts/design/medir-a11y-superficies-paciente.mjs` — las 10 superficies
+  declaradas, los 34 pares críticos de contraste en los dos temas, y el inventario
+  que **falla cuando aparece una ruta pública que nadie clasificó**.
+- `src/__tests__/a11y-la-superficie-del-paciente-no-pierde-terreno.test.ts` — la
+  compuerta. **0 y es prohibición, no techo**: son diez archivos y caben en una
+  tarde. El resto de la aplicación no se toca (poner hoy en rojo 200 pantallas es
+  cómo se borra un guardián el martes — REG-245).
+- `src/__tests__/a11y-el-detector-si-puede-fallar.test.ts` — el guardián **del
+  guardián**. La compuerta es un `toBe(0)`, que es justo la forma de prueba que
+  se queda verde para siempre el día que el detector deja de detectar. Aquí cada
+  una de las 15 reglas se prueba **al revés**: se le mete el defecto y se
+  comprueba que grita, y se le mete la corrección y se comprueba que se calla.
+  Las dos mitades — sólo la primera dejaría pasar un detector que grita siempre.
+- Falsificado además sobre código **real**, no sólo sintético: quitar el
+  `aria-label` de una estrella deja la compuerta en 1; suavizar `--text3` del
+  tema claro de `#6B6F75` a `#8A8F94` tira 3 pares de contraste; añadir una
+  `page.tsx` pública sin clasificar pone en rojo el inventario.
+- El paso de CI vive en el job del trinquete (`.github/workflows/ci.yml`), como
+  segunda mirada que imprime archivo y línea.
+
+**Qué NO cubre, declarado.** No abre un navegador: el contraste **pintado**
+(texto sobre imagen o degradado), el orden real del foco y la trampa de foco de
+un modal siguen siendo `scripts/design/axe-*.mjs` con Chromium — y mirar la
+pantalla, que la regla de diseño exige aparte. No cruza el límite del
+componente: un `<button>` dentro de `components/ui/` no lo juzga la superficie
+que lo usa. No mide el contraste de los bordes (WCAG 1.4.11, 3:1): `--border`
+está en 1,18:1 en oscuro **a propósito**, es un separador decorativo y no el
+límite que identifica un control; cambiarlo es rediseño y esta unidad no
+rediseña. La regla de la región viva cuenta **por archivo, no por estado**: una
+sola `aria-live` la apaga entera — se descubrió reparando `/mi/[token]`, donde la
+regla se puso en verde con el formulario previo arreglado mientras el cartel de
+«tu enlace ya no vale» seguía mudo, y se encontró **mirando**, no midiendo. Y no
+cubre el resto de la aplicación, que sigue sin medir.
+
+---
+
+## REG-332 — un error al comprobar la revocación NO es una autorización
+
+**Área.** Portal del Paciente: `/api/portal`, `/api/payment/create-checkout` y
+`/api/public/resena`. Unidad `PATIENT-PORTAL-001`, prioridad P1.
+
+**Qué fallaba.** Cuatro cosas, y las cuatro son la misma frase dicha de cuatro
+maneras: **lo que no se pudo comprobar se daba por bueno.**
+
+1. **La revocación fallaba ABIERTA.** `/api/portal` leía
+   `patients/{id}.portalTokenVersion` —el contador que el consultorio sube para
+   tumbar de golpe todos los enlaces emitidos— dentro de un `try` con el `catch`
+   vacío. Si Firestore no respondía, se dejaba pasar. El teléfono perdido, el
+   número reciclado y el mensaje reenviado a un grupo volvían a valer justo
+   durante la incidencia, que es cuando nadie mira.
+2. **`/api/payment/create-checkout` no comprobaba la revocación en absoluto.**
+   Acepta el MISMO magic-link y sólo miraba firma y caducidad: el enlace
+   revocado dejaba de ver la agenda y seguía abriendo sesiones de cobro a nombre
+   del paciente hasta que caducara por su cuenta.
+3. **Una ráfaga de tokens INVÁLIDOS no la contaba nadie.** Los límites de tasa
+   añadidos en P0 se cobran por `{clinicId, patientId}`, y esa clave sale del
+   token: con un token que no verifica, no se pedía cupo a nadie. Era la única
+   forma de pegarle a la ruta sin freno de ningún tipo.
+4. **`/api/public/resena` devolvía `e.message` al navegador.** Un error del
+   Admin SDK trae la RUTA del documento —y el propio token de la reseña es el id
+   de `clinic_review_requests`—, así que un endpoint público y sin sesión
+   contestaba con identificadores del consultorio y con el secreto que acababan
+   de mandarle, a quien estuviera probando tokens.
+
+**Cómo se descubrió.** El primero lo decía el propio `catch` en voz alta, y
+`agent-state/BACKLOG.json` lo dejó abierto como decisión pendiente de política:
+«Para la revocación, decidir si falla cerrado — es un cambio de política, no
+sólo de código». El dueño la decidió el 27-ago-2026, con el invariante escrito:
+**ERROR DE VALIDACIÓN/REVOCACIÓN ≠ AUTORIZACIÓN.** Los otros tres salieron de
+recorrer el resto de la superficie del portal con esa misma pregunta.
+
+**Causa raíz.** Dos estados donde hacen falta TRES. «Vale» y «no vale» no tienen
+sitio para «no lo sé», así que el «no lo sé» se repartía al montón equivocado —
+y siempre al mismo, el permisivo.
+
+El argumento escrito para repartirlo hacia «vale» era la disponibilidad del
+paciente («dejar al paciente fuera de su propia agenda por un mal minuto de
+Firestore es peor que el riesgo que esto acota») y es **medible que no se
+sostiene**: si Firestore no responde, todas las acciones del portal fallan igual
+unas líneas más abajo, porque todas leen o escriben. El fail-open no le devolvía
+la agenda a ningún paciente legítimo. Sólo se la devolvía a los enlaces
+revocados, que son los únicos a los que el `catch` le cambiaba el resultado.
+Coste de disponibilidad ≈ 0, beneficio para quien encontró el teléfono = todo.
+
+**Control permanente.** La decisión se escribe UNA vez, pura y probable sin red,
+en `src/lib/portal/vigencia-del-enlace.ts` (`decidirVigencia`), con tres estados:
+
+- `vigente` → sigue el flujo.
+- `revocado` → **401**, definitivo. También cuando el expediente NO EXISTE: un
+  paciente dado de baja por ARCO, o un token que nombra un consultorio que no es
+  el suyo. Antes eso pasaba el control y se apoyaba en que las consultas de más
+  abajo devolvieran vacío — aislamiento por accidente.
+- `indeterminado` → **503 con `Retry-After`**, y ahí está la mitad del arreglo:
+  el enlace **no se quema**. En cuanto Firestore vuelve, el mismo token del
+  mismo paciente funciona sin que nadie tenga que reemitirlo. Un fail-closed que
+  además invalidara el enlace convertiría una incidencia de cinco minutos en una
+  tarde de llamadas al consultorio.
+
+Las dos rutas que aceptan el magic-link consumen ese mismo módulo, así que la
+política vive en un sitio y no en dos.
+
+En el eje del límite de tasa, el mismo invariante: `limitarEstricto` en
+`src/lib/rate-limit.ts` — **mismo contador, misma colección, misma ventana**, no
+otro sistema; lo único que cambia es que un freno que no pudo contar responde
+503 en vez de dejar pasar. Se aplica a lo que un token filtrado puede MOVER
+(mutaciones de agenda, formulario previo, documentos clínicos, cobro, intentos
+de adivinar un token de reseña) y NO a mirar la propia agenda, que no gana
+ningún privilegio. Y `portal:ip:{ip}` (120/10 min) se cobra **antes de verificar
+el token**, que es lo que le faltaba al hallazgo 3.
+
+Pruebas: `src/__tests__/portal-revocacion-falla-cerrado.test.ts` (21 casos,
+probado al revés ×3 — el fail-open reinsertado, el expediente ausente dado por
+bueno, y el guardián escrito pero NO cableado en la ruta, para que un helper
+correcto que nadie consume no pueda pasar) ·
+`src/__tests__/portal-limite-de-tasa.test.ts` (19 casos) ·
+`src/__tests__/nucleo/rate-limit.test.ts` (16 casos).
+
+**Qué NO cubre, declarado.** No corre Firestore ni las `firestore.rules`: el
+aislamiento que se prueba aquí es el de la capa de ruta —de dónde salen
+`clinicId` y `patientId`—, no el de las reglas, que vive en el job del emulador.
+No mide el comportamiento del limitador bajo concurrencia real. No prueba el
+flujo del navegador (`/mi/[token]`): la pantalla no se tocó, y un paciente que
+reciba el 503 verá el mensaje de error genérico que ya tenía — pintarlo como
+«vuelve a intentarlo» es trabajo de interfaz, aparte. No cubre `/api/portal/link`
+—emitir enlaces— porque va detrás de `verificarMiembro` y ya falla cerrado por
+otro camino: si no puede leer la versión emite la 0, que una revocación posterior
+invalida sola. Y no cambia nada de Stripe: ni monto, ni moneda, ni política de
+cobro; sólo cuándo se llega a llamarlo.
+
+---
+
+## REG-333 — la identidad del paciente se volvía vocabulario compartido del consultorio (H-19)
+
+**Área.** Aprendizaje de las correcciones del dictado: `src/lib/asr/aprendizaje.ts`
+y su cableado en `src/app/(dashboard)/consulta/[patientId]/page.tsx`. Encontrado
+recorriendo la ruta real —dictado → corrección manual → filtro PHI → aprendizaje
+→ reutilización— en vez de leer la firma de la función.
+
+**Qué fallaba.** `esAprendible(par, excluir)` recibía las partes del nombre del
+paciente para excluirlas, y el parámetro tenía **valor por omisión `[]`**. Una
+lista vacía se trataba como «no hay nada que proteger», pero significa dos cosas
+que el código no podía distinguir: que el paciente no tiene partes de nombre
+utilizables, o que **no se sabe quién es** — no cargó, o falló la lectura. En el
+segundo caso el filtro trabajaba sin contexto de identidad y dejaba pasar
+apellidos enteros hacia `clinics/{clinicId}/asr_aprendizaje`, un vocabulario que
+se usa con **todos** los pacientes de ese consultorio y que además sesga al
+reconocedor en la consulta de otra persona.
+
+Y no era el caso raro: era el normal. En `consulta/[patientId]/page.tsx` el
+paciente y las notas se pedían en el MISMO efecto como dos promesas hermanas
+(deps `[clinicId, patientId]`). La derivación del aprendizaje vivía dentro del
+`.then` de `getNotas` y leía `patient?.nombre` **del closure del render en que
+corrió el efecto**, donde `patient` todavía es `null`. `setPatient` no vuelve a
+disparar ese efecto, así que ese closure nunca veía el nombre:
+`partesDelNombre(undefined)` → `[]` **en cada carga**. Al firmar, `acumular()`
+escribía lo derivado en el vocabulario del consultorio.
+
+Tres huecos más del propio filtro, visibles incluso con la lista poblada:
+
+1. **Sólo igualdad exacta.** Un FRAGMENTO identificable («betanc» de
+   «Betancourt») no coincide y pasaba. Un fragmento de apellido en un
+   vocabulario compartido sigue siendo el apellido.
+2. **El apellido MAL OÍDO pasaba** — y es justo el par que el aprendizaje quiere
+   capturar: el motor oye «betancurt», el médico corrige, y ninguno de los dos
+   lados coincide letra a letra con el expediente.
+3. **Ningún filtro de identificadores con forma propia.** CURP, folio y teléfono
+   los tapaba de rebote el filtro de cifras, pero un correo sin dígitos
+   («ana.perez@ejemplo.mx») entraba entero.
+
+**Causa raíz.** No era «faltaba un filtro»: el filtro estaba, y era correcto
+cuando le daban el contexto. La causa raíz es que **la ausencia de contexto de
+identidad era irrepresentable**, y por omisión se leía como ausencia de
+identidad. Un tipo sin estado «no sé» obliga a que alguien invente uno, y el
+valor por omisión lo inventó del lado inseguro.
+
+**Arreglo.** Mínimo, y reutilizando lo que ya existía — no hay Learning V2.
+
+- `IdentidadDelPaciente` hace representable el «no sé»: `{conocida:false}` o
+  `{conocida:true, partes}`. `identidadDe(nombre)` la construye, y un nombre
+  ausente, vacío o hecho sólo de partículas cortas devuelve DESCONOCIDA. El
+  parámetro deja de tener valor por omisión en `esAprendible` y
+  `paresDeUnaNota`, así que el compilador obliga a cada llamador a decidir; en
+  `loAprendido` —donde no puede ir después de un opcional— el valor por omisión
+  es DESCONOCIDA, que falla CERRADO.
+- Sin identidad conocida no se aprende nada. Es la regla 4 de seguridad clínica
+  —ausencia de dato no es dato de ausencia— aplicada a la identidad.
+- `identifica()` bloquea por igualdad, por contención (parte de ≥5 letras) y por
+  parecido (Levenshtein acotado, tope 1 hasta 6 letras y 2 desde 7). Se reutiliza
+  `distancia()` de `alineacion.ts`, que ya decidía si dos palabras se parecen:
+  se exporta en vez de escribir un segundo Levenshtein.
+- Los identificadores con forma propia los rechaza `redactarIdentificadores()`
+  de `minimizar-phi.ts`, que ya conoce CURP, RFC, correo, teléfono y folios. Se
+  rechaza en vez de redactar, igual que `seguroParaMemoria`.
+- La pantalla deriva el aprendizaje en **su propio efecto**, con
+  `patient?.nombre` en las dependencias a propósito, sobre los dictados firmados
+  que el efecto de carga deja en estado. Si el paciente no cargó, no deriva nada.
+
+**Prueba.** `src/__tests__/h19-identidad-nunca-se-aprende.test.ts` (13 casos:
+los nueve del encargo —nombre completo, apellido, fragmento, nombre mal escrito,
+término médico legítimo, otro paciente, otro tenant, nada identificable en lo que
+se escribe, y lista vacía como FAIL SAFE— más identificadores con forma propia y
+la reachability de la ruta real). Probado al revés ×3: reinsertado el fail-open
+de la lista vacía, cae el caso 9; quitadas la contención y el parecido, caen los
+casos 3 y 4; quitado `redactarIdentificadores`, cae el de identificadores.
+
+Los tres goldens que ya existían se actualizaron: uno de ellos —
+`aprendizaje-por-consultorio.test.ts`— **codificaba el defecto**, con un caso
+llamado «sin nombre no se excluye nada» que comprobaba que con la lista vacía SÍ
+se aprendía. La aserción se invirtió y el comentario explica por qué estaba al
+revés.
+
+**Qué NO cubre, declarado.** No detecta nombres propios por sí solo: sin la
+lista del paciente que está enfrente, «González» y «gluconato» son dos cadenas y
+ninguna regla determinista las separa (ver `LO_QUE_NO_DETECTA` en
+`minimizar-phi`). La defensa es la lista más el fail-closed, no un detector. No
+cubre el nombre de un TERCERO dictado en la nota —un familiar, otro médico—:
+eso no está en la lista del paciente y el filtro no lo ve. No audita el
+vocabulario ya acumulado en Firestore antes de este arreglo. Y no ejecuta React:
+que la pantalla derive con la identidad ya cargada se comprueba sobre el texto
+fuente, como el resto de las comprobaciones de cableado de este repositorio.
+
+---
+
+## REG-334 — el Preview rojo no fue el import perdido: fue publicar sin construir (Proceso)
+
+**Área:** Proceso / integración (P1) · **Estado:** CLOSED como compuerta
+
+**QUÉ FALLABA.** El 27-ago-2026 se integraron cuatro lotes con merges remotos
+consecutivos, con cuatro minutos entre el primero y el último. Cada push disparó
+un Preview de Vercel sobre un estado intermedio que nadie había construido:
+
+| hora | commit | Preview |
+|---|---|---|
+| 06:38 | `1d9a55f3` integrate: Patient Experience, WhatsApp y lista de espera | **ROJO** |
+| 06:39 | `ffc21823` integrate: H-01 autoridad de prescripción | verde |
+| 06:41 | `fa346c4b` integrate: H-03–H-07 recuperación de consulta | verde |
+| 06:43 | `47e2a01d` reconcile: REG-323–REG-330 renumerados | verde |
+
+`1d9a55f3` no compilaba:
+
+```
+src/lib/firestore.ts(246,14): error TS2304: Cannot find name 'idIdempotente'.
+src/lib/firestore.ts(246,54): error TS2304: Cannot find name 'claveDeEspera'.
+src/lib/firestore.ts(249,9):  error TS2304: Cannot find name 'runTransaction'.
+```
+
+**CÓMO SE DESCUBRIÓ.** Por el semáforo de GitHub («Deployment has failed»), no
+por nosotros. Y al ir a leer los logs de Vercel no había credenciales en la
+máquina: `npx vercel inspect --logs` arrancó un login que no puede completarse.
+La causa hubo que **reconstruirla** reproduciendo el build sobre el commit
+exacto. Un diagnóstico que depende de una credencial que no tenemos es un
+diagnóstico que a veces no ocurre.
+
+**CAUSA RAÍZ.** El merge conservó la **llamada** de una rama y los **imports**
+de la otra. Las líneas no se solapaban, así que `git` fusionó limpio y no dijo
+nada. Un conflicto semántico no lo caza `git`: lo caza el compilador — y nadie
+lo corrió antes del push siguiente.
+
+**LO QUE DE VERDAD DUELE.** Lo que devolvió el verde a las 06:39 **no fue
+arreglar los tres imports**: fue que el merge siguiente **revirtió la rama
+entera**. Se fueron con ella `createWaitlistEntry` idempotente,
+`src/lib/whatsapp/lista-espera.ts`, `src/lib/paciente/urgencia.ts` y cinco
+archivos de prueba — entre ellos los dos que sellaban **REG-326** («entrar a la
+lista de espera una sola vez»). El verde se compró **tirando el trabajo**, y el
+semáforo no lo dijo porque sólo mira el último commit.
+
+Es `.claude/rules/el-dato-tiene-que-llegar.md` aplicado a una integración: que un
+commit sea **ancestro** no significa que su **contenido** siga vivo.
+
+**LA COMPUERTA.** `node scripts/compuerta-integracion.mjs` — A rama local · B
+todo lo previsto aplicado, por ancestría **y por símbolos vivos** · C sin
+marcadores ni rutas sin fusionar · D derivados regenerados · E
+`tsc --noEmit` + `vitest` + trinquete + `git diff --check` · F build equivalente
+al Preview · G imprime el **único** push. Nunca empuja.
+
+Hay **un solo build** y es el equivalente al Preview
+(`scripts/preview-equivalente.mjs`, con el entorno fregado desde
+`ops/vercel/preview-env.manifest.json`). Tener además un `npm run build` a secas
+invitaría a creer que su verde vale lo mismo, y ese desnivel es el que se paga en
+el Preview: medido hoy, `47e2a01d` construido sin las seis
+`NEXT_PUBLIC_FIREBASE_*` muere con `auth/invalid-api-key` recolectando
+`/dr/[clinicId]` — el mismo accidente que ya documentaba **REG-059**, donde el
+build «funcionaba por accidente» porque en Vercel esas variables sí existen.
+
+**NO se silencia Vercel:** no se desactivan Previews, no se escribe
+`ignoreCommand`, no se apaga la integración de GitHub, no se baja ningún techo.
+Un Preview que no se construye no sale rojo, y tampoco protege de nada.
+
+**Test / control permanente:**
+`src/__tests__/la-compuerta-de-integracion-no-se-ablanda.test.ts` (7 casos).
+Probado al revés con **nueve** defectos inyectados uno a uno —
+`ignoreBuildErrors`, `ignoreCommand`, `github.enabled:false`,
+`continue-on-error` en el job `verificar`, degradar el paso F a `npm run build`,
+quitar el fregado del entorno, inyectar un nombre sin declarar, meter una pareja
+`NOMBRE=valor` en el manifiesto, y perder una de las seis exigidas — y en los
+nueve la prueba cae.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- No lee Vercel: no hay credenciales en la máquina y no debe haberlas. No
+  comprueba el Preview real.
+- No cubre cabeceras, rewrites del edge ni runtime. Cubre compilación, tipos y
+  el desnivel de entorno — lo que rompió el 27-ago. Las cabeceras de
+  **producción** se siguen comprobando después de publicar
+  (`.claude/rules/deployment-and-flags.md`).
+- No lee las Preview Environment Variables de Vercel. El manifiesto declara
+  **nombres**; que existan allí con el valor correcto es del dueño.
+- Un mecanismo nuevo de Vercel para saltarse el build no lo conoce hasta que se
+  añada a la prueba.
+
+**RESIDUAL ABIERTO, y no es de este commit.**
+
+1. `release/consultorio-reconciled-clean-2026-08-27` (punta `43214218`) **sigue
+   roja hoy** con los mismos cuatro errores (`idIdempotente`, `claveDeEspera`,
+   `runTransaction`, y el `tx` implícito que arrastran). El arreglo verificado
+   son **tres líneas de import** en `src/lib/firestore.ts`; con ellas
+   `tsc --noEmit` pasa de 4 errores a 0. No se empuja aquí: esa rama no está
+   autorizada en esta tarea.
+2. **REG-326 sigue perdido** en `release/consultorio-reconciled-2026-08-27` y en
+   `release/evidence-integrated-2026-08-26`. Recuperarlo es una reparación
+   clínica aparte, con sus dos pruebas, no un efecto colateral de esta compuerta.

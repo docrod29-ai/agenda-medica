@@ -19,25 +19,16 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/V15_CURRENT_ITERATION.md",
+    "M agent-state/BACKLOG.json",
+    " M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/design/SCREEN_INVENTORY.md",
-    " M src/app/(dashboard)/chat/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/page.tsx",
-    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/capturas/v15-coherencia/",
-    "?? docs/design/v15/V15-COHERENCIA-DE-PRODUCTO.md",
-    "?? scripts/design/arnes-coherencia-v15.sh",
-    "?? scripts/design/medir-coherencia-de-producto-v15.mjs",
-    "?? src/__tests__/v15-cada-destino-declara-su-encabezado.test.ts",
-    "?? src/__tests__/v15-el-documento-clinico-nombra-al-paciente.test.ts",
-    "?? src/components/TituloDeDocumentoClinico.tsx"
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json"
   ],
-  "actualizado": "2026-08-15",
+  "actualizado": "2026-08-27",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -69,12 +60,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-v15-final-coherence-vhiuj8",
+  "ramaActual": "release/consultorio-final-candidate-2026-08-27",
   "derivado": {
-    "regsEnElLedger": 178,
-    "ultimaREG": "REG-330",
-    "archivosDePrueba": 705,
-    "casosDePrueba": 8635,
+    "regsEnElLedger": 182,
+    "ultimaREG": "REG-334",
+    "archivosDePrueba": 760,
+    "casosDePrueba": 9277,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

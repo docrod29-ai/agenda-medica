@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 41 de 178, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 41 de 182, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
@@ -113,7 +113,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 32 de 162.**
+**«El sistema se contradice a sí mismo» — 34 de 182.**
 
 Sumó REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
 avisos que se contradecían sobre el mismo archivo** —«los borradores van
@@ -172,9 +172,15 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 23 de 156**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 24 de 182**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
+
+El miembro más reciente es **REG-331** (27-ago-2026), y es esta familia dicha en
+voz alta: veintitrés defectos de accesibilidad en las seis pantallas que ve el
+paciente, con 10 425 casos en verde. No se rompió nada — es que ese eje no lo
+medía nadie. El instrumento (`npm run a11y:paciente`) los encontró todos el día
+que se encendió, que es exactamente lo que hace esta familia cada vez.
 
 **«Decisión del médico dueño» — 2**, contados aparte a propósito. Meterlos en el
 saco de «defectos» inflaría la cuenta con cosas que nadie rompió.

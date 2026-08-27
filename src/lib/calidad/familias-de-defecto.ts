@@ -75,7 +75,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308],
+    /**
+     * 331 es esta familia en su forma más literal: veintitrés defectos de
+     * accesibilidad en las pantallas del paciente con la suite entera en
+     * verde. No fallaba nada; es que nadie estaba mirando ese eje.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331],
   },
   {
     clave: 'hueco_como_dato',
@@ -84,7 +89,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Lo que nadie dijo se guarda como si alguien lo hubiera dicho. Es el más ' +
       'peligroso de todos porque el resultado se LEE bien: una vía, una dosis, ' +
       'una negativa, indistinguibles de un dato real.',
-    regs: [165, 172, 176, 177, 228],
+    /**
+     * 332 y 333 son la misma familia por dos caras distintas, y por eso van
+     * juntas y no repartidas por su consecuencia.
+     *
+     * 332 es su versión de seguridad: «no pude comprobar si este enlace sigue
+     * vigente» se guardaba como «sigue vigente». El hueco —la lectura que no
+     * respondió— se leía igual que un permiso real; sólo que aquí lo que sale
+     * bien formado no es una dosis, es una autorización.
+     *
+     * 333 entra aquí y NO en `aislamiento`. La fuga —un apellido en el
+     * vocabulario del consultorio— es la CONSECUENCIA; la causa es que una
+     * lista de nombres vacía se leyó como «este paciente no tiene identidad»
+     * en vez de «no sé quién es». El hueco tratado como dato, otra vez.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333],
   },
   {
     clave: 'aislamiento',
@@ -165,7 +184,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'registro oficial se le cree más que a la fuente. La reparación nunca es ' +
       'volver a copiarlo bien: es DERIVARLO, y poner una compuerta que falle ' +
       'cuando se separen.',
-    regs: [241, 253, 310],
+    /**
+     * 334: la integración se verificaba DESPUÉS de publicar porque alguien
+     * tenía que acordarse de construir entre un merge y el siguiente. Nadie se
+     * acordó, y el verde se compró revirtiendo la rama entera.
+     */
+    regs: [241, 253, 310, 334],
   },
   {
     /**

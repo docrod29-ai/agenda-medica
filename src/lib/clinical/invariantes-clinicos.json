@@ -1,9 +1,17 @@
 {
-  "sellado": "2026-08-15",
+  "sellado": "2026-08-27",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4866,
+  "totalCasos": 4967,
   "archivos": [
+    {
+      "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/a11y-la-superficie-del-paciente-no-pierde-terreno.test.ts",
+      "minCasos": 8
+    },
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
       "minCasos": 11
@@ -517,6 +525,10 @@
       "minCasos": 8
     },
     {
+      "archivo": "src/__tests__/h19-identidad-nunca-se-aprende.test.ts",
+      "minCasos": 13
+    },
+    {
       "archivo": "src/__tests__/hospital-cds.test.ts",
       "minCasos": 5
     },
@@ -627,6 +639,10 @@
     {
       "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",
       "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/la-compuerta-de-integracion-no-se-ablanda.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/la-consola-del-dueno-tiene-puerta.test.ts",
@@ -907,6 +923,14 @@
     {
       "archivo": "src/__tests__/peso-pediatrico-seguridad.test.ts",
       "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/portal-limite-de-tasa.test.ts",
+      "minCasos": 19
+    },
+    {
+      "archivo": "src/__tests__/portal-revocacion-falla-cerrado.test.ts",
+      "minCasos": 21
     },
     {
       "archivo": "src/__tests__/preop-scales.test.ts",

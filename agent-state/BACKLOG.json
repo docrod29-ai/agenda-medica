@@ -333,7 +333,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PORTAL-001",
@@ -344,7 +344,8 @@
       "porQueImporta": "Un enlace revocado —teléfono perdido, número reciclado, mensaje reenviado— vuelve a valer durante una incidencia de Firestore. Y sin límite de tasa, un token filtrado permite enumerar y mover la agenda del consultorio.",
       "archivo": "src/app/api/portal/route.ts:183 · src/app/api/public/resena/route.ts · src/app/api/payment/create-checkout/route.ts",
       "plan": "Aplicar limitar* como ya lo hacen telesalud/sala (12/600 s) y public/booking (8/h por IP). Para la revocación, decidir si falla cerrado — es un cambio de política, no sólo de código.",
-      "score": 62
+      "score": 62,
+      "cierre": "PATIENT-PORTAL-001 · 27-ago-2026 · rama release/consultorio-final-candidate-2026-08-27. La revocación falla CERRADA: tres estados (vigente / revocado 401 / indeterminado 503 con Retry-After, que no quema el enlace), decididos por la función pura decidirVigencia en src/lib/portal/vigencia-del-enlace.ts. Expediente que no existe = revocado, resuelto en la puerta. create-checkout ya comprueba revocación; antes no la comprobaba en ningún caso. Límite de tasa por IP ANTES del token (una ráfaga de tokens inválidos no la contaba nadie), estricto donde no poder contar no puede ser permiso. Mensajes públicos sin PHI. En /api/portal la lectura del expediente se unificó con la de H-01: una sola lectura alimenta la vigencia y las alergias. Ledger: REG-332. NO cubre: el resto de rutas públicas sin token de paciente."
     },
     {
       "seguridad": 3,
@@ -434,7 +435,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "A11Y-GATE-001",
@@ -445,7 +446,8 @@
       "porQueImporta": "Objetivo declarado de V9: WCAG 2.2 AA. Hoy nada impide una regresión. Y el contraste de los 1205 hexadecimales nunca se midió — los tokens sí, y con la fórmula escrita en el CSS.",
       "archivo": "package.json · eslint.config.mjs · src/__tests__/a11y-zoom-guard.test.ts",
       "plan": "axe sobre la superficie del paciente primero (9 pantallas), que es lo que V9 gobierna. Luego trinquete.",
-      "score": 45
+      "score": 45,
+      "cierre": "A11Y-GATE-001 · 27-ago-2026 · rama release/consultorio-final-candidate-2026-08-27. Compuerta automática sobre las superficies del paciente: reglas de estructura sobre el árbol real del TSX (API del compilador de TypeScript, cero dependencias nuevas) + 34 pares de contraste de token en los dos temas + inventario que falla si aparece una ruta pública sin clasificar. Midió 23 defectos reales antes de tocar nada; los 23 reparados. El número es 0 y es prohibición, no techo. Probada al revés en a11y-el-detector-si-puede-fallar.test.ts. Cableada en npm run a11y:paciente y en el job del trinquete. Ledger: REG-331. NO cubre: contraste pintado, orden del foco, trampa de foco, primitivos de components/ui/, ni el resto de la aplicación — eso sigue sin medir."
     },
     {
       "seguridad": 0,
