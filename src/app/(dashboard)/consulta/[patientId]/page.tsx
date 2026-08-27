@@ -35,6 +35,10 @@ import { useComandoVoz } from '@/hooks/useComandoVoz'
 import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
 import { borradoresBloqueados, queHacerConElRespaldoLocal } from '@/lib/mobile/local-drafts'
 import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
+import {
+  debeOfrecerRecuperacion, hayAudioQueNoSePuedePurgar, puedeReemplazarTranscripcion,
+  leerNotaPrevia, decidirAdopcionDeNotaPrevia,
+} from '@/lib/expediente/recuperacion-consulta'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
@@ -483,6 +487,14 @@ export default function ConsultaActivaPage() {
   const preliminarRef = useRef(false)
   const [ofreceReproyectar, setOfreceReproyectar] = useState(false)
   const edicionManualRef = useRef(false)
+  /**
+   * EL TEXTO BUENO QUE NO SE APLICÓ, GUARDADO — H-05.
+   *
+   * Cuando la salvaguarda dice que no se puede pisar al médico, la respuesta NO
+   * es tirar la transcripción con las voces separadas: es no aplicarla a sus
+   * espaldas. Se queda aquí hasta que él pulse «Re-estructurar».
+   */
+  const textoDiarizadoPendienteRef = useRef('')
 
   const baseTranscripcionRef = useRef('')
   /**
@@ -505,6 +517,18 @@ export default function ConsultaActivaPage() {
       // Y se rearma el adelanto de la nota: en una consulta puede grabarse más de
       // una vez, y sin esto solo la primera se estructuraría por adelantado.
       preliminarRef.current = false
+      /**
+       * La bandera de edición manual se rearma AQUÍ TAMBIÉN — H-05.
+       *
+       * A partir de este instante, lo que el médico había escrito ya no lo
+       * protege la bandera: lo protege `baseTranscripcionRef`, que acaba de
+       * congelarlo y lo antepone a todo lo que llegue (`conBase`). Dejar la
+       * bandera puesta haría que la salvaguarda preguntara por un texto que ya
+       * viene dentro de lo entrante — un cartel donde no hay nada que decidir.
+       * Si vuelve a corregir tras detener, sus teclas la levantan otra vez.
+       */
+      edicionManualRef.current = false
+      textoDiarizadoPendienteRef.current = ''
       setOfreceReproyectar(false)
     }
     grabandoPrevioRef.current = grabando
@@ -519,14 +543,46 @@ export default function ConsultaActivaPage() {
 
   useEffect(() => {
     if (audio.estado === 'listo' && audio.transcripcion) {
-      voz.setTranscripcion(conBase(audio.transcripcion))
+      /**
+       * ── H-05 · AUTORIDAD DEL MÉDICO > SALIDA AUTOMÁTICA ──────────────────
+       *
+       * Aquí había un `setTranscripcion` a secas, ANTES de mirar la
+       * salvaguarda. La salvaguarda existía y funcionaba… pero sólo decidía si
+       * se **re-estructuraba la nota**: el texto del editor se pisaba igual.
+       *
+       * Y el editor de dictado es donde el médico corrige lo que el
+       * reconocedor oyó mal — una dosis, una unidad, una lateralidad—. Un
+       * resultado tardío de ASR llegando encima de esa corrección, sin aviso y
+       * sin deshacer, es exactamente lo que la regla 3 de seguridad clínica
+       * prohíbe.
+       *
+       * Ahora se pregunta primero. Y cuando la respuesta es que no, el texto
+       * bueno **no se tira**: se guarda y se le ofrece al médico.
+       */
+      const entrante = conBase(audio.transcripcion)
+      /**
+       * El texto de AHORA se lee del cierre, no de una ref.
+       *
+       * Este efecto se recrea en cada render y sólo se ejecuta cuando cambia
+       * `audio.transcripcion`, así que el `voz.transcripcion` que ve es el del
+       * render en que llegó el texto tardío — con la corrección del médico ya
+       * dentro, porque la escribió antes. Una ref aquí no daría un valor mejor
+       * y sí haría que el compilador de React dejara de optimizar la pantalla.
+       */
+      const puedePisar = puedeReemplazarTranscripcion({
+        edicionManual: edicionManualRef.current,
+        textoActual: voz.transcripcion,
+        textoEntrante: entrante,
+      })
+      if (puedePisar) voz.setTranscripcion(entrante)
+      else textoDiarizadoPendienteRef.current = entrante
       /**
        * Llegó el texto con las voces separadas. Es MEJOR material que el del
        * streaming, así que vale re-proyectar la nota — pero solo si el médico no
        * ha escrito encima. Si ya escribió, se le ofrece y decide él: pisarle
        * texto propio sin avisar es justo lo que no se puede hacer.
        */
-      if (preliminarRef.current && edicionManualRef.current) {
+      if (!puedePisar || (preliminarRef.current && edicionManualRef.current)) {
         setOfreceReproyectar(true)
       } else {
         autoProcRef.current = true
@@ -544,10 +600,38 @@ export default function ConsultaActivaPage() {
 
   // Detección de audio huérfano de sesión previa (crash recovery)
   const [ofreceRecovery, setOfreceRecovery] = useState(false)
+  /**
+   * ¿HAY MATERIAL RECUPERABLE? — espejo vivo para la purga del cierre (H-04).
+   *
+   * `ofreceRecovery` gobierna el cartel; esto gobierna si la purga puede
+   * llevarse el audio. Son la misma pregunta con dos consumidores, y por eso
+   * **no divergen en el caso bueno**… pero sí en el malo: cuando la lectura de
+   * IndexedDB falla, el cartel no se pinta (no se puede afirmar que haya algo
+   * que ofrecer) y en cambio esto queda en `true`.
+   *
+   * Ausencia de dato no es dato de ausencia, regla 4: «no pude mirar» nunca es
+   * «no hay». El `catch(() => {})` de antes concluía que no había nada y la
+   * purga se llevaba lo que sí había.
+   */
+  const hayAudioGuardadoRef = useRef(false)
+  const audioDescartadoRef = useRef(false)
   useEffect(() => {
     if (!patientId) return
-    audio.hayRecovery(`consulta-${patientId}`).then(setOfreceRecovery).catch(() => {})
+    audio.hayRecovery(`consulta-${patientId}`)
+      .then(hay => { hayAudioGuardadoRef.current = hay; setOfreceRecovery(hay) })
+      .catch(() => { hayAudioGuardadoRef.current = true })
   }, [patientId]) // eslint-disable-line react-hooks/exhaustive-deps
+  /**
+   * Grabar ESCRIBE trozos en IndexedDB. Desde el primer instante hay material
+   * recuperable, aunque el sondeo de arriba —que corrió al montar— dijera que
+   * no. Sin esto, la primera grabación de la sesión quedaba desprotegida.
+   */
+  useEffect(() => {
+    if (audio.estado === 'grabando') {
+      hayAudioGuardadoRef.current = true
+      audioDescartadoRef.current = false
+    }
+  }, [audio.estado])
 
   const [patient, setPatient] = useState<Patient | null>(null)
   // Cobro al cerrar la consulta: se ofrece tras firmar; al registrar u omitir → expediente
@@ -2964,11 +3048,27 @@ export default function ConsultaActivaPage() {
     void (async () => {
       const id = typeof b.notaId === 'string' ? b.notaId : ''
       if (!id || !clinicId) return
-      const previa = await getNota(clinicId, patientId, id).catch(() => null)
-      if (previa?.estado === 'firmada') {
-        toast('La nota anterior ya está firmada y no se puede modificar. Lo recuperado se guardará como una nota NUEVA.', 'info')
-        return
-      }
+      /**
+       * ── H-06 · ERROR DE RED ≠ AUSENCIA DE DATO ──────────────────────────
+       *
+       * Aquí había `getNota(...).catch(() => null)`, y ese `null` significaba
+       * dos cosas incompatibles: «la nota no existe» y «no pude leerla». Sólo
+       * la primera permite adoptar el id sin riesgo.
+       *
+       * Con la segunda, un fallo de red hacía adoptar el id de una nota que
+       * podía estar FIRMADA — y una nota firmada es inmutable (NOM-024): la
+       * pantalla queda escribiendo en un documento que el servidor rechaza en
+       * cada autoguardado, para siempre, mientras el médico dicta una consulta
+       * entera creyendo que se guarda.
+       *
+       * Es literalmente el fallo del 4-ago-2026 que esta comprobación se puso
+       * a cerrar, entrando otra vez por la puerta del `catch`.
+       */
+      const decision = decidirAdopcionDeNotaPrevia(
+        await leerNotaPrevia(() => getNota(clinicId, patientId, id)),
+      )
+      if (decision.aviso) toast(decision.aviso, 'info')
+      if (!decision.adoptar) return
       notaIdRef.current = id
       setNotaId(id)
     })()
@@ -3145,8 +3245,28 @@ export default function ConsultaActivaPage() {
        * que la petición llegue. Se conserva el archivo, que es lo que sí
        * depende de nosotros, y el médico lo recupera al volver a entrar.
        */
-      const enVuelo = audioEstadoRef.current
-      if (enVuelo === 'grabando' || enVuelo === 'pausado' || enVuelo === 'subiendo') {
+      /**
+       * ── H-04 · LA LISTA DE ESTADOS SE QUEDABA CORTA ──────────────────────
+       *
+       * Se declaraban tres estados: `grabando`, `pausado`, `subiendo`. Faltaban
+       * los dos casos en los que el audio lleva MÁS tiempo esperando:
+       *
+       *  · **`error`** — la subida falló y el hook le prometió al médico «El
+       *    audio quedó GUARDADO en este dispositivo — reintenta con "Recuperar
+       *    audio"». Prometer eso y no declararlo aquí es prometer un archivo
+       *    que la purga se acaba de llevar.
+       *  · **huérfano de una sesión anterior** — con el grabador en `inactivo`
+       *    pero trozos intactos en IndexedDB. Es exactamente el material que
+       *    H-03 tampoco enseñaba: invisible en pantalla y borrado al salir.
+       *
+       * La decisión vive en `recuperacion-consulta.ts` para poder probarla, y
+       * sólo se desprotege por un acto explícito del médico («Descartar»).
+       */
+      if (hayAudioQueNoSePuedePurgar({
+        estadoGrabador: audioEstadoRef.current,
+        hayAudioGuardado: hayAudioGuardadoRef.current,
+        descartadoPorElMedico: audioDescartadoRef.current,
+      })) {
         detalleAudio?.marcarAudioSinTranscribir?.()
       }
 
@@ -3203,10 +3323,13 @@ export default function ConsultaActivaPage() {
        */
       const idPrevio = typeof b.notaId === 'string' ? b.notaId : ''
       if (idPrevio && clinicId) {
-        const previa = await getNota(clinicId, patientId, idPrevio).catch(() => null)
-        if (previa?.estado === 'firmada') {
-          toast('La nota anterior ya está firmada y no se puede modificar. Lo recuperado se guardará como una nota NUEVA.', 'info')
-        } else {
+        // La MISMA decisión que la ruta automática, no una copia. Arreglar una
+        // de las dos y dejar la otra es el error que ya se cometió aquí (H-06).
+        const decision = decidirAdopcionDeNotaPrevia(
+          await leerNotaPrevia(() => getNota(clinicId, patientId, idPrevio)),
+        )
+        if (decision.aviso) toast(decision.aviso, 'info')
+        if (decision.adoptar) {
           notaIdRef.current = idPrevio
           setNotaId(idPrevio)
         }
@@ -4495,9 +4618,17 @@ export default function ConsultaActivaPage() {
               Nada se quita: esta fila entera vuelve en cuanto hay algo grabado,
               que es cuando pausar, cancelar y procesar significan algo.
             */
-            !esElPrincipio && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              {ofreceRecovery && audio.estado === 'inactivo' && (
+            <>
+            {/*
+              ── EL CARTEL DE RECUPERACIÓN NO CUELGA DE `esElPrincipio` — H-03 ──
+              Vivía DENTRO del `!esElPrincipio` de abajo. Y `esElPrincipio` es
+              verdadero justo en el caso que más lo necesita: recargar la página
+              con el editor vacío y una consulta entera esperando en IndexedDB.
+              Ahí el único camino de vuelta al audio no se pintaba nunca.
+              La condición es la del módulo: hay material y el grabador está
+              quieto. Cómo se vea el editor no entra en la cuenta.
+            */}
+            {debeOfrecerRecuperacion({ hayAudioGuardado: ofreceRecovery, estadoGrabador: audio.estado }) && (
                 <div style={{
                   width: '100%', padding: '10px 14px', borderRadius: 10,
                   border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
@@ -4512,11 +4643,13 @@ export default function ConsultaActivaPage() {
                     onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) toast('No se encontró audio guardado.', 'info') }}>
                     Descargar audio
                   </button>
-                  <button className="btn btn-sm btn-ghost" onClick={async () => { await audio.descartarRecovery(`consulta-${patientId}`); audio.reset(); setOfreceRecovery(false); toast('Audio guardado descartado', 'info') }}>
+                  <button className="btn btn-sm btn-ghost" onClick={async () => { await audio.descartarRecovery(`consulta-${patientId}`); audio.reset(); hayAudioGuardadoRef.current = false; audioDescartadoRef.current = true; setOfreceRecovery(false); toast('Audio guardado descartado', 'info') }}>
                     Descartar
                   </button>
                 </div>
               )}
+            {!esElPrincipio && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               {/* Modo manos libres: activar/desactivar la escucha de comandos de voz */}
               {soportaComandos && (
                 <button
@@ -4811,7 +4944,7 @@ export default function ConsultaActivaPage() {
                       onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) toast('No se encontró audio guardado.', 'info') }}>
                       Descargar audio
                     </button>
-                    <button className="btn btn-sm btn-ghost" onClick={async () => { await audio.descartarRecovery(`consulta-${patientId}`); audio.reset(); setOfreceRecovery(false); toast('Audio guardado descartado', 'info') }}>
+                    <button className="btn btn-sm btn-ghost" onClick={async () => { await audio.descartarRecovery(`consulta-${patientId}`); audio.reset(); hayAudioGuardadoRef.current = false; audioDescartadoRef.current = true; setOfreceRecovery(false); toast('Audio guardado descartado', 'info') }}>
                       Descartar audio guardado
                     </button>
                   </div>
@@ -4821,7 +4954,8 @@ export default function ConsultaActivaPage() {
                 {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
-            )
+            )}
+            </>
           )}
 
           {/* ── MENÚ DE IA: motor por nota + medidor de créditos ──
@@ -4893,7 +5027,18 @@ export default function ConsultaActivaPage() {
                 ) : (
                   <textarea
                     value={voz.transcripcion + (voz.interim ? ` ${voz.interim}` : '')}
-                    onChange={e => voz.setTranscripcion(e.target.value)}
+                    onChange={e => {
+                      /**
+                       * AQUÍ TAMBIÉN SE ANOTA QUE EL MÉDICO ESCRIBIÓ — H-05.
+                       *
+                       * `edicionManualRef` sólo lo levantaban las secciones
+                       * narrativas. Pero ÉSTE es el campo donde se corrige lo
+                       * que el reconocedor oyó mal, y era el que la
+                       * re-proyección pisaba sin preguntar.
+                       */
+                      edicionManualRef.current = true
+                      voz.setTranscripcion(e.target.value)
+                    }}
                     placeholder="La transcripción aparecerá aquí…"
                     style={S.transcripcion}
                   />
@@ -5526,7 +5671,21 @@ export default function ConsultaActivaPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               className="btn btn-sm btn-primary"
-              onClick={() => { setOfreceReproyectar(false); edicionManualRef.current = false; procesarIA() }}
+              onClick={() => {
+                setOfreceReproyectar(false)
+                edicionManualRef.current = false
+                /**
+                 * El médico ACEPTA el texto con las voces separadas. Ahora sí
+                 * se aplica — y por `autoProcRef`, no llamando a `procesarIA()`
+                 * aquí: esa función lee `voz.transcripcion` de su cierre y
+                 * todavía tendría el texto viejo. El efecto de auto-proceso ya
+                 * espera al texto nuevo.
+                 */
+                const pendiente = textoDiarizadoPendienteRef.current
+                textoDiarizadoPendienteRef.current = ''
+                if (pendiente) { voz.setTranscripcion(pendiente); autoProcRef.current = true }
+                else procesarIA()
+              }}
             >
               Re-estructurar
             </button>
