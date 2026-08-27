@@ -9,7 +9,7 @@
  * nombre, y `validarPanel` descarta todo lo demás. El nombre viaja en
  * `panel.sujetos` porque sin él no hay forma de verificar de QUIÉN es la hoja, y
  * el panel acababa archivado bajo el paciente que estuviera abierto en la
- * pantalla (REG-323). Es TRANSITORIO: el cliente lo compara contra el paciente
+ * pantalla (REG-324). Es TRANSITORIO: el cliente lo compara contra el paciente
  * de destino y no lo persiste. Esta ruta no escribe nada, ni siquiera un log:
  * `safeLog` nunca ve el nombre.
  *
