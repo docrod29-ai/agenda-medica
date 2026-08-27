@@ -142,7 +142,18 @@ paso('C', 'sin conflictos ni marcadores', () => {
 
 // ── D · derivados regenerados ───────────────────────────────────────────────
 paso('D', 'derivados regenerados', () => {
-  correr('npm run version-sw')
+  // Los TRES, no sólo el service worker. Esta compuerta se lo descubrió a sí
+  // misma el 27-ago: al añadir REG-331 al ledger cayeron dos pruebas
+  // (`el-tablero-del-loop-no-miente`, `la-sala-de-datos-no-infla`) porque el
+  // estado derivado seguía diciendo REG-323. Y NO era culpa del commit nuevo:
+  // `47e2a01d` ya venía así, con `reconcile: defer shared/generated state` en
+  // su propia historia. Un derivado aplazado es una prueba roja aplazada.
+  for (const cmd of [
+    'npm run version-sw',
+    'node scripts/agent-state/actualizar.mjs',
+    'node scripts/data-room/actualizar-cifras.mjs',
+  ]) correr(cmd)
+
   const sucio = git('status', '--porcelain')
   if (sucio) {
     throw new Error(
@@ -150,7 +161,7 @@ paso('D', 'derivados regenerados', () => {
       sucio.split('\n').join('\n     · ')
     )
   }
-  return 'version.txt del service worker al día'
+  return 'service worker, estado del agente y sala de datos, al día'
 })
 
 // ── E · tipos, pruebas, lint, blancos ───────────────────────────────────────
