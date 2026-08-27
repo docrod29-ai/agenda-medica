@@ -128,7 +128,7 @@ describe('el motivo del fallo dice la verdad', () => {
 describe('un texto hecho sólo de advertencias no cuenta como texto', () => {
   it('si TODOS los lotes fallaron, no se da por bueno el resultado', () => {
     /**
-     * MIGRADO EN H-07 (REG-323): la cuenta estaba escrita a mano aquí y **sólo
+     * MIGRADO EN H-07 (REG-330): la cuenta estaba escrita a mano aquí y **sólo
      * aquí** — la rama de dictado, que sale por arriba de `detener()`, tiraba
      * `lotesFallidos` al suelo y borraba el audio con la transcripción
      * incompleta. Ahora es una función que usan las dos ramas, y se comprueba
