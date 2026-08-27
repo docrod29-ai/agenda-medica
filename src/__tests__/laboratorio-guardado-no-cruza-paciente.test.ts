@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 /**
- * REG-323 — LA ESCRITURA, CONTADA. Hermano de `laboratorio-sujeto-vinculado`.
+ * REG-324 — LA ESCRITURA, CONTADA. Hermano de `laboratorio-sujeto-vinculado`.
  *
  * ── POR QUÉ HACEN FALTA LOS DOS ──────────────────────────────────────────────
  *
@@ -83,7 +83,7 @@ const rutasDe = (clinicId: string, patientId: string) =>
 
 beforeEach(() => { almacen.docs.clear() })
 
-describe('REG-323 · sin vínculo no se escribe', () => {
+describe('REG-324 · sin vínculo no se escribe', () => {
   it('el defecto original: bastaba con pasar un patientId', async () => {
     await expect(guardarPanelLab(CLINICA, 'pac-A', PANEL, null, 'k1')).rejects.toBeInstanceOf(ErrorSujetoNoVinculado)
     expect(almacen.docs.size).toBe(0)
@@ -96,7 +96,7 @@ describe('REG-323 · sin vínculo no se escribe', () => {
   })
 })
 
-describe('REG-323 · el paciente verificado sí se guarda', () => {
+describe('REG-324 · el paciente verificado sí se guarda', () => {
   it('escribe UN panel bajo el paciente correcto, con el vínculo dentro', async () => {
     const v = vinculoDe(A, 'LOPEZ GARCIA MARIA FERNANDA')
     const id = await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'k1')
@@ -123,7 +123,7 @@ describe('REG-323 · el paciente verificado sí se guarda', () => {
   })
 })
 
-describe('REG-323 · CROSS-PATIENT: la evidencia de A no entra en B', () => {
+describe('REG-324 · CROSS-PATIENT: la evidencia de A no entra en B', () => {
   it('un vínculo de A no escribe en el expediente de B', async () => {
     const v = vinculoDe(A, 'María Fernanda López García')
     await expect(guardarPanelLab(CLINICA, 'pac-B', PANEL, v, 'k1')).rejects.toBeInstanceOf(ErrorSujetoNoVinculado)
@@ -146,7 +146,7 @@ describe('REG-323 · CROSS-PATIENT: la evidencia de A no entra en B', () => {
   })
 })
 
-describe('REG-323 · TENANT: no se cruza entre consultorios', () => {
+describe('REG-324 · TENANT: no se cruza entre consultorios', () => {
   it('un vínculo del consultorio 1 no escribe en el consultorio 2', async () => {
     const v = vinculoDe(A, 'María Fernanda López García')
     await expect(guardarPanelLab(OTRA_CLINICA, 'pac-A', PANEL, v, 'k1')).rejects.toBeInstanceOf(ErrorSujetoNoVinculado)
@@ -163,7 +163,7 @@ describe('REG-323 · TENANT: no se cruza entre consultorios', () => {
   })
 })
 
-describe('REG-323 · REINTENTO: la misma intención no duplica el estudio', () => {
+describe('REG-324 · REINTENTO: la misma intención no duplica el estudio', () => {
   it('tres envíos de la misma revisión dejan UN panel', async () => {
     const v = vinculoDe(A, 'María Fernanda López García')
     const ids = [
