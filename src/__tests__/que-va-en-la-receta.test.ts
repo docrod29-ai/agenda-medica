@@ -205,24 +205,10 @@ describe('está conectado de verdad', () => {
   })
 
   it('la pantalla de receta filtra por procedencia/estado antes de imprimir', async () => {
-    /**
-     * ESTA AFIRMACIÓN SE ACTUALIZÓ EN H-01, Y HAY QUE DECIR POR QUÉ.
-     *
-     * Comprobaba `loQueSeReceta(...)` seguido de `.filter(m => estaVigente(m))`:
-     * la composición correcta, escrita a mano DENTRO de esta pantalla. Eso es
-     * justamente lo que dejó al portal del paciente sin la regla — una frontera
-     * clínica que vive dentro de un componente sólo protege a ese componente.
-     *
-     * La composición se mudó a `medicamentosDeLaReceta`, que es ahora la única
-     * puerta y la que aplica también el servidor. Lo que se congela aquí es que
-     * la pantalla la CRUCE, no dónde está escrita.
-     */
     const { readFileSync } = await import('fs')
     const { join } = await import('path')
     const src = readFileSync(join(process.cwd(),
       'src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx'), 'utf8')
-    expect(src).toContain('medicamentosDeLaReceta(n.medicamentos ?? [])')
-    // Y no queda una segunda composición a mano que pueda divergir de la puerta.
-    expect(src).not.toContain('loQueSeReceta(')
+    expect(src).toContain('loQueSeReceta(n.medicamentos ?? [])')
   })
 })

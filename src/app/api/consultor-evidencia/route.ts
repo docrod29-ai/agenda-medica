@@ -15,7 +15,6 @@
  * Body: { pregunta, historial?: [{ rol:'user'|'ia', texto }] }
  * Resp: { ok, respuesta, articulos:[{pmid,titulo,revista,anio,url}] }
  */
-import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { planVigentePorNivel } from '@/lib/finanzas/catalogo-servidor'
 import { safeLog } from '@/lib/security/sanitize'
@@ -26,11 +25,7 @@ import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarConsul
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { costoConsultor, planPorNivel } from '@/lib/planes-ia'
-import { buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMC } from '@/lib/evidencia/pubmed'
-import {
-  recuperarEvidenciaParaConsultor,
-  type BusquedaDePubMed, type IntentoDeBusqueda, type RecuperacionParaConsultor,
-} from '@/lib/evidencia/recuperacion-consultor'
+import { buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMC, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico, farmacosDetectados } from '@/lib/evidencia/traducir-medico'
 import { dosisFDA } from '@/lib/evidencia/openfda'
 import { leerMemoriaMedico, textoMemoria, aprenderDeMedico } from '@/lib/memoria-medico'
@@ -151,39 +146,7 @@ function explicar(fallo: { status: number; cuerpo: string } | null, fuente: Fuen
   return avisoAlMedico(clase, quien, 'anthropic').texto
 }
 
-/**
- * LO QUE LA PANTALLA NECESITA PARA NO MENTIR.
- *
- * `sinCitas` decía las dos cosas a la vez: la pantalla pinta con él «Sin
- * resultados de PubMed para esta pregunta», y ese cartel salía igual cuando
- * PubMed se había caído. `recuperacion` trae el ESTADO REAL del sobre de #314
- * —consultado / consultado sin resultados / NO consultado— para que el cartel
- * pueda decir cuál de las tres pasó. `sinCitas` se conserva y ahora significa
- * lo único que siempre debió significar: se preguntó y no había nada.
- */
-interface MetaRecuperacion {
-  estado: RecuperacionParaConsultor['estado']
-  /** Fuentes canónicas que pueden anclar un pasaje (no siempre = artículos). */
-  fuentesCitables: number
-  /** Procedencia por fuente: de qué proveedor salió cada una. */
-  procedencia: readonly { readonly sourceId: string; readonly proveedor: string }[]
-  /** Una frase por proveedor, en el vocabulario único del contrato de #314. */
-  avisos: readonly string[]
-  /** Sólo si no se pudo consultar: qué pasó. */
-  motivo: string | null
-}
-interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown; fechaBusqueda?: string; recuperacion?: MetaRecuperacion }
-
-/** El sobre de #314 traducido a lo que viaja por el stream. Sin PHI. */
-function metaDeRecuperacion(r: RecuperacionParaConsultor): MetaRecuperacion {
-  return {
-    estado: r.estado,
-    fuentesCitables: r.fuentes.length,
-    procedencia: r.procedencia,
-    avisos: r.avisos,
-    motivo: r.motivo,
-  }
-}
+interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown; fechaBusqueda?: string }
 /** Devuelve una respuesta STREAM (NDJSON): 1ª línea meta (fuentes), luego deltas de texto. */
 function responderStream(opts: { key: string; model: string; system: string; user: string; maxTokens: number; fuente: FuenteLlave; meta: MetaStream; asiento: { uid: string; email?: string; clinicId: string | null; creditos: number }; onDone: (texto: string) => void }): Response {
   const enc = new TextEncoder()
@@ -321,54 +284,16 @@ export async function POST(req: NextRequest) {
     }
     const query = subQueries[0]  // representativa (para detectar fármacos)
 
-    /**
-     * 2) Buscar evidencia. LA MISMA CASCADA DE SIEMPRE, con el estado puesto.
-     *
-     * Los tres peldaños son los que ya había —(a) sub-queries del modelo en
-     * multi-consulta, (b) traducción determinista ES→EN, (c) la pregunta cruda
-     * sin ventana de años— con sus mismos parámetros y su misma función de
-     * búsqueda: la calidad de la búsqueda no cambia.
-     *
-     * LO QUE SÍ CAMBIA es el final. Antes cada peldaño acababa en
-     * `.catch(() => [])` y una caída del NCBI llegaba a la pantalla como «sin
-     * resultados de PubMed»: un fallo de red pintado como hallazgo clínico.
-     * Ahora la recuperación devuelve el SOBRE de #314 y el fallo sigue siendo
-     * un fallo hasta el último renglón de la interfaz.
-     */
-    const det = traducirBasico(pregunta)
-    const busquedaSimple: BusquedaDePubMed = (t, o) => buscarEvidencia(t[0] ?? '', o)
-    const intentos: IntentoDeBusqueda[] = [
-      {
-        terminos: subQueries, aniosRecientes: 12,
-        buscar: (t, o) => buscarEvidenciaMulti([...t], o),
-        porQue: 'sub-búsquedas del modelo en paralelo: cubre varios ángulos PICO de la misma pregunta',
-      },
-    ]
-    if (det) {
-      intentos.push({
-        terminos: [det], aniosRecientes: 12, buscar: busquedaSimple,
-        porQue: 'traducción determinista ES→EN, por si el modelo no dio términos utilizables',
-      })
+    // 2) Buscar evidencia MULTI-consulta (sub-preguntas en paralelo, prioriza
+    //    meta-análisis/ECA/guías). Redes de seguridad para NUNCA salir "0":
+    //    (a) sub-queries de la IA; (b) traducción determinista ES→EN; (c) cruda.
+    let articulos: ArticuloPubMed[] = await buscarEvidenciaMulti(subQueries, { max: 8, aniosRecientes: 12 }).catch(() => [])
+    if (articulos.length === 0) {
+      const det = traducirBasico(pregunta)
+      if (det) articulos = await buscarEvidencia(det, { max: 8, aniosRecientes: 12 }).catch(() => [])
     }
-    intentos.push({
-      terminos: [pregunta], buscar: busquedaSimple,
-      porQue: 'la pregunta cruda y sin ventana de años: la última red antes de quedarse sin literatura',
-    })
-
-    const recuperacion = await recuperarEvidenciaParaConsultor({
-      pregunta,
-      intentos,
-      maximo: 8,
-      ahora: new Date().toISOString(),
-      // Marca OPACA para poder cruzar logs con sobres. Nunca lleva PHI: ni el
-      // paciente, ni el encuentro, ni la pregunta (contrato.ts, `correlacionSegura`).
-      correlacion: randomUUID(),
-      ...(clinicId ? { clinicId } : {}),
-    })
-    const articulos = recuperacion.articulos
-    const noSePudoConsultar = recuperacion.estado === 'no_consultado'
-    if (noSePudoConsultar) {
-      safeLog.warn(`[consultor] PubMed no se pudo consultar: ${recuperacion.motivo ?? 'sin motivo'}`)
+    if (articulos.length === 0) {
+      articulos = await buscarEvidencia(pregunta, { max: 8 }).catch(() => [])
     }
     const cenetecUrl = `https://www.google.com/search?q=${encodeURIComponent(pregunta + ' guía de práctica clínica CENETEC GPC México')}`
 
@@ -399,27 +324,13 @@ export async function POST(req: NextRequest) {
     // preguntas de seguimiento como "¿y cuál es la mejor opción?"). Se marca claro
     // que se apoya en conocimiento/consenso, no en citas nuevas.
     if (articulos.length === 0) {
-      /**
-       * DOS SITUACIONES QUE SE PINTABAN IGUAL Y NO SON LA MISMA.
-       *
-       * Hasta aquí se llegaba con una sola instrucción —«no se encontró
-       * evidencia nueva en PubMed»— tanto si PubMed había contestado que no hay
-       * nada como si no había contestado. La segunda no es un hallazgo: es la
-       * ausencia de una búsqueda, y decirle al médico que no hay literatura
-       * cuando lo que hubo fue un 429 del NCBI es la peor clase de error,
-       * porque tiene forma de resultado.
-       */
-      const sysNoConsultado = 'Eres un consultor clínico experto (nivel especialista) para médicos en MÉXICO. NO SE PUDO CONSULTAR PubMed en este momento (fallo de red o límite de peticiones del NCBI): NO se sabe si hay literatura sobre esta pregunta. PROHIBIDO decir o insinuar que no existe evidencia, que la búsqueda no encontró nada o que no hay estudios: no se buscó. Responde IGUAL, con criterio clínico: apóyate en tu conocimiento, el consenso/guías y la CONVERSACIÓN PREVIA. En español, claro y accionable. Empieza con una línea honesta: "No se pudo consultar PubMed ahora mismo, así que no sé si hay literatura nueva sobre esto; respondo con conocimiento clínico y lo que ya vimos." NO inventes estudios, PMIDs ni cifras exactas; si algo es incierto, dilo. Si hay contexto de paciente, personaliza (edad, comorbilidades, alergias). Cuando aplique, menciona la GPC de CENETEC/NOM pertinente por su nombre (aclarando verificar el documento oficial). Cierra con "Nivel de evidencia: no evaluable — la búsqueda bibliográfica no pudo hacerse". Apoyas la decisión del médico, no das órdenes absolutas.'
-      const sysSC = noSePudoConsultar ? sysNoConsultado : 'Eres un consultor clínico experto (nivel especialista) para médicos en MÉXICO. No se encontró evidencia NUEVA en PubMed para esta pregunta específica — es normal en preguntas de SEGUIMIENTO o muy puntuales. Responde IGUAL, con criterio clínico: apóyate en tu conocimiento, el consenso/guías y sobre todo en la CONVERSACIÓN PREVIA (continúa el hilo, no empieces de cero). En español, claro y accionable. Empieza con una línea honesta: "Sin citas nuevas de PubMed para esto; respondo con base en conocimiento clínico y lo que ya vimos." NO inventes estudios, PMIDs ni cifras exactas; si algo es incierto, dilo. Si hay contexto de paciente, personaliza (edad, comorbilidades, alergias). Cuando aplique, menciona la GPC de CENETEC/NOM pertinente por su nombre (aclarando verificar el documento oficial). Cierra con "Nivel de evidencia: alto/moderado/bajo" según tu juicio. Apoyas la decisión del médico, no das órdenes absolutas.'
+      const sysSC = 'Eres un consultor clínico experto (nivel especialista) para médicos en MÉXICO. No se encontró evidencia NUEVA en PubMed para esta pregunta específica — es normal en preguntas de SEGUIMIENTO o muy puntuales. Responde IGUAL, con criterio clínico: apóyate en tu conocimiento, el consenso/guías y sobre todo en la CONVERSACIÓN PREVIA (continúa el hilo, no empieces de cero). En español, claro y accionable. Empieza con una línea honesta: "Sin citas nuevas de PubMed para esto; respondo con base en conocimiento clínico y lo que ya vimos." NO inventes estudios, PMIDs ni cifras exactas; si algo es incierto, dilo. Si hay contexto de paciente, personaliza (edad, comorbilidades, alergias). Cuando aplique, menciona la GPC de CENETEC/NOM pertinente por su nombre (aclarando verificar el documento oficial). Cierra con "Nivel de evidencia: alto/moderado/bajo" según tu juicio. Apoyas la decisión del médico, no das órdenes absolutas.'
       const usrSC = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}`
       return responderStream({
         key, model, system: sysSC, user: usrSC, maxTokens: 2600,
         fuente,
         asiento: { uid: acceso.uid, email: acceso.email ?? undefined, clinicId, creditos: costo },
-        // `sinCitas` SÓLO cuando de verdad se preguntó y no había nada: es lo
-        // que la pantalla usa para escribir «Sin resultados de PubMed», y esa
-        // frase es falsa si PubMed no contestó.
-        meta: { articulos: [], sinCitas: !noSePudoConsultar, cenetecUrl, recuperacion: metaDeRecuperacion(recuperacion), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
+        meta: { articulos: [], sinCitas: true, cenetecUrl, modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
         onDone: (txt) => {
           void registrarUso(clinicId, fuente)
           void registrarConsultor(clinicId, costo)
@@ -456,7 +367,7 @@ export async function POST(req: NextRequest) {
       key, model, system, user, maxTokens: 3200,
       fuente,
       asiento: { uid: acceso.uid, email: acceso.email ?? undefined, clinicId, creditos: costo },
-      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), recuperacion: metaDeRecuperacion(recuperacion), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
+      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
       onDone: (txt) => {
         void registrarUso(clinicId, fuente)
         void registrarConsultor(clinicId, costo)

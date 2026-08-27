@@ -15,9 +15,6 @@ import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
 import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
-import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
-import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
-import type { Patient } from '@/types'
 
 /**
  * API del Portal del Paciente (magic-link, sin contraseña).
@@ -179,22 +176,8 @@ export async function POST(req: NextRequest) {
    * agenda por un mal minuto de Firestore es peor que el riesgo que esto acota,
    * y la firma y la caducidad siguen protegiendo.
    */
-  /**
-   * SE CONSERVA LO LEÍDO, Y SE CONSERVA SI SE PUDO LEER — H-01.
-   *
-   * Esta lectura ya se pagaba; lo que faltaba era quedarse con ella. De aquí
-   * salen las alergias que la receta del paciente debe poder enseñar, y el
-   * `pacienteLeido` que impide que un fallo de Firestore se imprima como
-   * «Sin registro»: error ≠ ausencia (regla 4 de seguridad clínica).
-   */
-  let paciente: Patient | null = null
-  let pacienteLeido = false
   try {
     const pSnap = await adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId).get()
-    if (pSnap.exists) {
-      paciente = pSnap.data() as Patient
-      pacienteLeido = true
-    }
     const vPaciente = (pSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion
     if (!tokenVigente(sesion.version, vPaciente)) {
       return NextResponse.json({ error: 'Este enlace ya no es válido. Pídele uno nuevo al consultorio.' }, { status: 401 })
@@ -661,80 +644,25 @@ export async function POST(req: NextRequest) {
             { status: 403 },
           )
         }
-        /**
-         * ── H-01 · LA AUTORIDAD DE PRESCRIPCIÓN SE APLICA AQUÍ, EN EL SERVIDOR ──
-         *
-         * ESTO DEVOLVÍA `n.medicamentos` EN CRUDO, y la pantalla del paciente lo
-         * bajaba a un `.doc` titulado «RECETA MÉDICA». En esa lista cruda viven,
-         * mezclados y sin distinguir:
-         *
-         *   · lo que el paciente REFIRIÓ que toma      `procedenciaClinica:'ya_lo_toma'`
-         *   · lo que la IA extrajo y nadie confirmó    `estado:'borrador'`
-         *   · lo que el médico SUSPENDIÓ o canceló     `suspendida`/`cancelada`
-         *   · lo que venció sin que nadie lo revisara  `probablemente_terminada`
-         *
-         * Es decir: la historia farmacológica del paciente salía impresa como
-         * prescripción de un médico con cédula, sin que ningún médico lo hubiera
-         * indicado. Historia, medicación actual, plan, prescripción y receta son
-         * cinco cosas distintas y aquí se habían colapsado en una.
-         *
-         * La frontera existía —`medicamentosDeLaReceta`— pero vivía compuesta a
-         * mano dentro de la pantalla del médico, así que protegía sólo a esa
-         * pantalla. Ahora es una función, y esta ruta la cruza: la regla se aplica
-         * en el SERVIDOR porque el destinatario es el paciente, y esconder un
-         * renglón en la pantalla no cierra la ruta HTTP que lo devuelve.
-         *
-         * Y una nota deja de ser «una receta» por tener medicamentos: lo es
-         * cuando queda algo que el médico indicó de verdad. Una nota que sólo
-         * recogió antecedentes ya no aparece en la lista.
-         */
+        // Recetas del paciente: derivadas de sus notas FIRMADAS con medicamentos.
         const snap = await adminDb
           .collection('clinics').doc(clinicId)
           .collection('patients').doc(patientId)
           .collection('notas')
           .where('estado', '==', 'firmada')
           .get()
-
-        /**
-         * LAS ALERGIAS DE LA RECETA — verdad del expediente, o silencio.
-         *
-         * `alergiasParaImpreso` es la misma primitiva que usa la receta del
-         * médico: prefiere `alergiasEstructuradas` sobre el texto libre, así que
-         * un paciente cuya alergia sólo está estructurada no sale como «sin
-         * registro». Y `alergiasLeidas` viaja aparte a propósito: si el
-         * expediente no se pudo leer, la receta no afirma NADA sobre alergias —
-         * ni «sin registro», ni «negadas». Ausencia de dato no es dato de
-         * ausencia, y aquí el lector es alguien que no puede detectar el error.
-         */
-        const alergias = pacienteLeido ? alergiasParaImpreso(paciente) : ''
-
         const docs = snap.docs
           .map(d => ({ id: d.id, ...(d.data() as Omit<NotaMedica, 'id'>) }))
-          .map(n => ({ nota: n, recetados: medicamentosDeLaReceta(n.medicamentos ?? []) }))
-          .filter(({ recetados }) => recetados.length > 0)
-          .map(({ nota: n, recetados }) => ({
+          .filter(n => Array.isArray(n.medicamentos) && n.medicamentos.length > 0)
+          .map(n => ({
             id: n.id,
             fecha: n.fechaConsulta,
-            /**
-             * QUIÉN PRESCRIBIÓ, DE LA FIRMA Y DE NINGÚN OTRO SITIO.
-             *
-             * `firma` es el snapshot inmutable del momento de firmar (NOM-024):
-             * el médico que de verdad respondió por esta receta, con la cédula
-             * que tenía ese día. La configuración VIVA del consultorio no sirve
-             * aquí — cambiaría retroactivamente el autor de un acto medicolegal.
-             *
-             * Antes sólo viajaba el nombre, y la pantalla ni siquiera lo usaba:
-             * el paciente descargaba una «RECETA MÉDICA» sin prescriptor y con
-             * «[FALTA CÉDULA PROFESIONAL]» impreso donde va la cédula.
-             */
             medico: n.firma?.nombreMedico ?? '',
-            cedulaProfesional: n.firma?.cedulaProfesional ?? '',
-            especialidad: n.firma?.especialidad ?? '',
             diagnostico: (n.diagnosticos ?? []).map(dx => dx.descripcion).filter(Boolean).join(', '),
-            medicamentos: recetados,
+            medicamentos: n.medicamentos ?? [],
           }))
           .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
-        return NextResponse.json({ documentos: docs, alergias, alergiasLeidas: pacienteLeido })
+        return NextResponse.json({ documentos: docs })
       }
 
       default:

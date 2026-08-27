@@ -24,7 +24,8 @@ import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
-import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
+import { estaVigente } from '@/lib/expediente/ordenes-medicamento'
+import { loQueSeReceta } from '@/lib/expediente/que-va-en-la-receta'
 import { etiquetaVia } from '@/lib/receta-paginacion'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica, Medicamento } from '@/types/expediente'
@@ -262,16 +263,8 @@ export default function GeneradorRecetaPage() {
          * Sin etiqueta se imprime: quitar de la receta un antibiótico que sí se
          * prescribió es peor que dejar un renglón que se borra de un toque.
          */
-        /**
-         * UNA SOLA PUERTA, Y VIVE FUERA DE ESTA PANTALLA — H-01.
-         *
-         * Esto componía a mano `loQueSeReceta` + `estaVigente`. La composición
-         * era correcta, pero al vivir dentro de este `useEffect` sólo protegía a
-         * ESTA pantalla: el portal del paciente arma su propia receta y nunca
-         * pasó por aquí. La regla se mudó a `medicamentosDeLaReceta`, que es
-         * ahora la única puerta y la que aplica también el servidor.
-         */
-        setMedicamentos(medicamentosDeLaReceta(n.medicamentos ?? [])
+        setMedicamentos(loQueSeReceta(n.medicamentos ?? [])
+          .filter(m => estaVigente(m))
           .map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })))
         // Diagnóstico principal: primero activo de tipo definitivo, o el primero
         const dxs = n.diagnosticos ?? []

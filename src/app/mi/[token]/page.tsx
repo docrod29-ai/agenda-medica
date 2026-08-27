@@ -16,16 +16,8 @@ import type { Medicamento } from '@/types/expediente'
 interface DocReceta {
   id: string
   fecha: string
-  /** Del snapshot de firma de la nota, no de la configuración viva. Ver la ruta. */
   medico: string
-  cedulaProfesional: string
-  especialidad: string
   diagnostico: string
-  /**
-   * SÓLO lo que el médico prescribió de verdad. La ruta ya aplicó
-   * `medicamentosDeLaReceta`: aquí no llegan antecedentes, borradores de la IA,
-   * suspendidos ni órdenes vencidas sin revisar (H-01).
-   */
   medicamentos: Medicamento[]
 }
 
@@ -35,19 +27,6 @@ const RECETA_CONFIG_DEFAULT = {
   colorAccento: 'var(--nexus)',
   mostrarQR: false,
   vigenciaDias: 30,
-  /**
-   * SE DECIDE AL DESCARGAR, NO AQUÍ — H-01.
-   *
-   * Estaba fijo en `false`, así que la copia del paciente era la única receta
-   * del producto sin el recuadro de alergias: la misma alergia que el impreso
-   * del médico destaca en rojo desaparecía del documento que el paciente lleva
-   * a la farmacia. Y encenderlo sin más habría sido peor —`receta-word` imprime
-   * «Sin registro en el expediente» cuando no le mandan el campo—, que es
-   * afirmar una ausencia que nadie comprobó.
-   *
-   * Ahora manda `alergiasLeidas`: se enseña cuando el expediente se pudo leer,
-   * y se calla cuando no. Error ≠ ausencia.
-   */
   mostrarAlergias: false,
   mostrarDiagnostico: true,
   avisoLegal: 'Esta receta es personal e intransferible.',
@@ -135,21 +114,6 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
-  /**
-   * NO SE PUDO LEER ≠ NO HAY NADA — H-01.
-   *
-   * Un fallo de red o de servidor acababa en `setDocs([])`, y como la lista sólo
-   * se pinta cuando trae algo, el paciente veía una pantalla sin recetas: la
-   * misma imagen exacta que «tu médico no te ha recetado nada». De ahí sale que
-   * alguien deje de tomar un antibiótico porque «ya no aparece».
-   */
-  const [docsError, setDocsError] = useState(false)
-  /**
-   * Las alergias del expediente y si SE PUDIERON LEER. Las dos cosas, porque la
-   * receta sólo puede hablar de alergias cuando la segunda es cierta.
-   */
-  const [alergias, setAlergias] = useState('')
-  const [alergiasLeidas, setAlergiasLeidas] = useState(false)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -168,19 +132,14 @@ export default function MiPortalPage() {
       setSesion(await r.json())
       // Documentos (recetas) en paralelo — no bloquea la vista de citas
       fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'documentos', token }) })
-        .then(async res => {
+        .then(res => {
           // E0-06: 403 = el enlace no tiene alcance clínico (lo generó el mostrador,
           // no el médico). No es un error de red ni «no tienes recetas»: se dice.
-          if (res.status === 403) { setDocsBloqueados(true); setDocs([]); return }
-          // Cualquier otro fallo se DICE. Devolver [] pintaría «no tienes
-          // recetas», que es una afirmación clínica que nadie comprobó.
-          if (!res.ok) { setDocsError(true); return }
-          const d = await res.json()
-          setDocs(d.documentos || [])
-          setAlergias(String(d.alergias ?? ''))
-          setAlergiasLeidas(d.alergiasLeidas === true)
+          if (res.status === 403) { setDocsBloqueados(true); return { documentos: [] } }
+          return res.ok ? res.json() : { documentos: [] }
         })
-        .catch(() => setDocsError(true))
+        .then(d => setDocs(d.documentos || []))
+        .catch(() => setDocs([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -250,16 +209,6 @@ export default function MiPortalPage() {
      */
     const fechaDoc = fechaFlexible(doc.fecha, tzClinica)
     if (!fechaDoc) { alert('Esta receta no tiene una fecha válida. Pídesela al consultorio.'); return }
-    /**
-     * LA RECETA DEL PACIENTE DICE QUIÉN LA PRESCRIBIÓ — H-01.
-     *
-     * El segundo argumento era `null`, así que el documento salía SIN médico y
-     * con «[FALTA CÉDULA PROFESIONAL]» impreso en rojo: una «RECETA MÉDICA» que
-     * no se podía atribuir a nadie. Los datos salen de la FIRMA de la nota —el
-     * snapshot inmutable de quien respondió por este acto— y no de la
-     * configuración viva del consultorio, que cambiaría el autor de una receta
-     * vieja al actualizar el perfil.
-     */
     descargarRecetaWord(
       {
         tipo: 'receta',
@@ -267,21 +216,10 @@ export default function MiPortalPage() {
         fecha: fechaDoc,
         pacienteNombre: sesion.paciente,
         diagnostico: doc.diagnostico || undefined,
-        // `alergias` sólo viaja si el expediente se pudo leer: `receta-word`
-        // imprime «Sin registro en el expediente» cuando el campo llega vacío, y
-        // eso es una afirmación, no un silencio.
-        alergias: alergiasLeidas ? alergias : undefined,
         medicamentos: doc.medicamentos,
       },
-      {
-        nombreMedico: doc.medico,
-        cedulaProfesional: doc.cedulaProfesional,
-        especialidad: doc.especialidad,
-        nombreClinica: sesion.clinica?.nombre ?? '',
-        direccion: sesion.clinica?.direccion ?? '',
-        telefonoAdmin: sesion.clinica?.telefono ?? '',
-      } as Parameters<typeof descargarRecetaWord>[1],
-      { ...RECETA_CONFIG_DEFAULT, mostrarAlergias: alergiasLeidas },
+      null,
+      RECETA_CONFIG_DEFAULT,
     )
   }
 
@@ -526,23 +464,8 @@ export default function MiPortalPage() {
           </div>
         )}
 
-        {/*
-          NO SE PUDO LEER — y se dice, en vez de pintar una pantalla vacía.
-          Una lista vacía por un fallo de red se lee como «no tienes recetas», y
-          esa es una afirmación clínica que nadie comprobó (H-01).
-        */}
-        {docsError && (
-          // Tamaños y radio EN ESCALA (12 / 10): la tarjeta hermana de arriba es
-          // deuda de diseño heredada y no se copia su 13/12 — el trinquete sólo baja.
-          <div style={{ marginTop: 28, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, fontSize: 12, color: 'var(--text3)' }}>
-            <div style={{ fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>Mis recetas</div>
-            No pudimos cargar tus recetas en este momento. <b>Esto no quiere decir que no tengas.</b>{' '}
-            Vuelve a intentarlo en un minuto, y si sigue igual pregunta en el consultorio.
-          </div>
-        )}
-
         {/* Mis recetas */}
-        {!docsError && docs && docs.length > 0 && (
+        {docs && docs.length > 0 && (
           <div style={{ marginTop: 28 }}>
             <h2 className="t-h2" style={{ marginBottom: 12 }}>Mis recetas</h2>
             {docs.map(d => {
