@@ -12,7 +12,7 @@ import { logAudit } from '@/lib/expediente/audit-log'
  *
  * Cada doc = un panel (una hoja de resultados) con su fecha.
  *
- * ── LA FRONTERA (REG-323) ────────────────────────────────────────────────────
+ * ── LA FRONTERA (REG-324) ────────────────────────────────────────────────────
  *
  * Esta función NO escribe por el hecho de que le pasen un `patientId`. Antes sí:
  * el `patientId` salía de la pantalla abierta y aquí se obedecía sin preguntar,
@@ -114,7 +114,7 @@ export async function listarPanelesLab(clinicId: string, patientId: string): Pro
     .map(d => ({ id: d.id, ...(d.data() as Omit<PanelLaboratorio, 'id'>) }))
     /**
      * Un panel que dice pertenecer a OTRO paciente no se pinta aquí aunque esté
-     * en esta ruta. Los documentos anteriores a REG-323 no llevan `pacienteId`
+     * en esta ruta. Los documentos anteriores a REG-324 no llevan `pacienteId`
      * y siguen leyéndose: la ausencia del campo no es prueba de nada — sólo
      * significa que se escribieron antes de que existiera la frontera.
      */
