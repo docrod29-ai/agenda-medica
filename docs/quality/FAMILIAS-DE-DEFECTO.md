@@ -3,7 +3,7 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 15-ago-2026.
-**Fuente**: los 166 REG de `docs/audit/regression-ledger.md`.
+**Fuente**: los 178 REG de `docs/audit/regression-ledger.md`.
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 39 de 171, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 41 de 178, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
