@@ -73,9 +73,9 @@ function huella128(preimagen: string): string {
  * el prefijo del id en otro campo que el cliente elige, y eso es justo lo que
  * este modulo existe para impedir.
  */
-export type AmbitoIdempotente = 'cobro' | 'nota' | 'lista-espera'
+export type AmbitoIdempotente = 'cobro' | 'nota' | 'laboratorio' | 'lista-espera'
 
-const AMBITOS: readonly AmbitoIdempotente[] = ['cobro', 'nota', 'lista-espera']
+const AMBITOS: readonly AmbitoIdempotente[] = ['cobro', 'nota', 'laboratorio', 'lista-espera']
 
 /**
  * Acuna la clave de UN intento. Quien la acuna la conserva hasta que la
