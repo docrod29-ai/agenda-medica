@@ -30,7 +30,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  esAprendible, paresDeUnaNota, loAprendido, MINIMO_REPETICIONES,
+  esAprendible, paresDeUnaNota, loAprendido, MINIMO_REPETICIONES, identidadDe,
   POR_QUE_NO_SE_APRENDEN_CIFRAS, POR_QUE_HACEN_FALTA_DOS, POR_QUE_SOLO_SESGA,
   POR_QUE_NO_SE_ALINEA_SI_CAMBIA_EL_LARGO,
 } from '@/lib/asr/aprendizaje'
@@ -39,14 +39,26 @@ import { construir } from '@/lib/asr/lexicon'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 
+/**
+ * ── DESDE H-19 (27-ago-2026) EL FILTRO EXIGE SABER A QUIÉN PROTEGE ──────────
+ *
+ * Estas pruebas llamaban sin identidad y el módulo lo leía como «no hay nada
+ * que proteger». Esa omisión ERA el defecto: la pantalla también llamaba así,
+ * sin querer, y el apellido del paciente acababa en el vocabulario del
+ * consultorio. Ahora sin identidad conocida no se aprende nada, así que aquí se
+ * pasa un paciente SINTÉTICO — que además comprueba que el filtro es
+ * quirúrgico: quita la identidad, no la consulta entera.
+ */
+const YO = identidadDe('Ernestina Quintanilla Robledo')
+
 describe('EL CASO DEL DR., QUE ES EL QUE LO PIDIÓ', () => {
   it('«sefriaxona» → «ceftriaxona» se aprende tras verlo dos veces', () => {
     const notas = [
       ['le doy sefriaxona un gramo', 'le doy ceftriaxona un gramo'],
       ['iniciamos sefriaxona hoy mismo', 'iniciamos ceftriaxona hoy mismo'],
     ]
-    const pares = notas.flatMap(([a, b]) => paresDeUnaNota(a, b))
-    const r = loAprendido(pares)
+    const pares = notas.flatMap(([a, b]) => paresDeUnaNota(a, b, YO))
+    const r = loAprendido(pares, undefined, YO)
     expect(r).toHaveLength(1)
     expect(r[0].palabra).toBe('ceftriaxona')
     expect(r[0].veces).toBe(2)
@@ -55,7 +67,7 @@ describe('EL CASO DEL DR., QUE ES EL QUE LO PIDIÓ', () => {
 
   it('con una sola vez todavía no se cree nada', () => {
     // Puede ser un error de dedo o una frase reescrita por estilo.
-    expect(loAprendido(paresDeUnaNota('le doy sefriaxona', 'le doy ceftriaxona'))).toEqual([])
+    expect(loAprendido(paresDeUnaNota('le doy sefriaxona', 'le doy ceftriaxona', YO), undefined, YO)).toEqual([])
     expect(MINIMO_REPETICIONES).toBeGreaterThanOrEqual(2)
   })
 })
@@ -68,29 +80,29 @@ describe('LO QUE NUNCA SE APRENDE — la parte que protege', () => {
      * cambian una dosis por mil.
      */
     for (const p of PARES_PROHIBIDOS) {
-      expect(esAprendible({ oido: p.a, corregido: p.b }), `${p.a}→${p.b}`).toBe(false)
-      expect(esAprendible({ oido: p.b, corregido: p.a }), `${p.b}→${p.a}`).toBe(false)
+      expect(esAprendible({ oido: p.a, corregido: p.b }, YO), `${p.a}→${p.b}`).toBe(false)
+      expect(esAprendible({ oido: p.b, corregido: p.a }, YO), `${p.b}→${p.a}`).toBe(false)
     }
   })
 
   it('nada que traiga una cifra', () => {
-    expect(esAprendible({ oido: '500', corregido: '5000' })).toBe(false)
-    expect(esAprendible({ oido: 'dosis500', corregido: 'dosis5000' })).toBe(false)
+    expect(esAprendible({ oido: '500', corregido: '5000' }, YO)).toBe(false)
+    expect(esAprendible({ oido: 'dosis500', corregido: 'dosis5000' }, YO)).toBe(false)
   })
 
   it('nada de una sola palabra a un párrafo', () => {
     // Un párrafo reescrito no es vocabulario, y metería basura en el sesgo.
-    expect(esAprendible({ oido: 'tos', corregido: 'tos seca de tres días' })).toBe(false)
+    expect(esAprendible({ oido: 'tos', corregido: 'tos seca de tres días' }, YO)).toBe(false)
   })
 
   it('ni palabras demasiado cortas', () => {
     // «con»→«sin» invierte el sentido y cabe en tres letras.
-    expect(esAprendible({ oido: 'con', corregido: 'sin' })).toBe(false)
+    expect(esAprendible({ oido: 'con', corregido: 'sin' }, YO)).toBe(false)
   })
 
   it('ni un cambio que no cambia nada', () => {
-    expect(esAprendible({ oido: 'ceftriaxona', corregido: 'ceftriaxona' })).toBe(false)
-    expect(esAprendible({ oido: '', corregido: 'ceftriaxona' })).toBe(false)
+    expect(esAprendible({ oido: 'ceftriaxona', corregido: 'ceftriaxona' }, YO)).toBe(false)
+    expect(esAprendible({ oido: '', corregido: 'ceftriaxona' }, YO)).toBe(false)
   })
 
   it('y si el médico añadió o quitó texto, no se aprende NADA de esa nota', () => {
@@ -99,7 +111,7 @@ describe('LO QUE NUNCA SE APRENDE — la parte que protege', () => {
      * prefiere no aprender a aprender ruido: el sesgo es lo único que cambia lo
      * que el motor OYE.
      */
-    expect(paresDeUnaNota('le doy sefriaxona', 'le doy ceftriaxona un gramo')).toEqual([])
+    expect(paresDeUnaNota('le doy sefriaxona', 'le doy ceftriaxona un gramo', YO)).toEqual([])
   })
 
   it('están escritas las razones', () => {
@@ -136,11 +148,14 @@ describe('ESTÁ CONECTADO DE PUNTA A PUNTA', () => {
     // De un borrador a medio escribir se aprendería de un trabajo sin terminar.
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
     expect(page).toContain("filter(n => n.estado === 'firmada')")
-    expect(page).toContain("paresDeUnaNota(n.transcripcionMotor ?? '', n.transcripcionCruda ?? '', nombre)")
-    // La v1024 fusiona lo del paciente con lo del CONSULTORIO: se comprueba
-    // que sigue derivándose de las notas, no la línea exacta de antes.
-    expect(page).toContain('const deEstePaciente = loAprendido(pares, undefined, nombre)')
-    expect(page).toContain('setAprendido(fusionar(deEstePaciente, delConsultorio))')
+    // H-19 movió la derivación a su propio efecto, porque dentro del `.then` de
+    // `getNotas` el paciente todavía no había cargado y el filtro de identidad
+    // corría ciego. Aquí se ata lo que importa: se derivan las FIRMADAS, y se
+    // derivan con la identidad del paciente, no sin ella.
+    expect(page).toContain("motor: n.transcripcionMotor ?? '', crudo: n.transcripcionCruda ?? ''")
+    expect(page).toContain('paresDeUnaNota(d.motor, d.crudo, identidad)')
+    expect(page).toContain('const identidad = useMemo(() => identidadDe(patient?.nombre), [patient?.nombre])')
+    expect(page).toContain('fusionar(deEstePaciente, delConsultorio)')
   })
 
   it('y lo manda en las opciones de la grabación', () => {
