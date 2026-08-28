@@ -1,45 +1,53 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 28-ago-2026 — **los siete P0 del tablero, cerrados o acotados**
+## Checkpoint · 28-ago-2026 — **seis P1 más cerrados; E0-06 bloqueado con motivo**
 
 ```
 CURRENT_BRANCH=claude/ausculta-consultorio-completion-hoahgw
-CURRENT_HEAD=148a415
+CURRENT_HEAD=03dbefb
 CURRENT_PR=(ninguno — no se ha pedido)
-CURRENT_WORKSTREAM=P1 · WS-11 (ciclo cerrado) y WS-13 (respaldo raíz)
-LAST_COMPLETED_UNIT=P0-6 · REG-342 · rebote de scroll en iPhone (causa raíz)
+CURRENT_WORKSTREAM=P1 · WS-03 (recorte no declarado) y WS-13 (recuperación)
+LAST_COMPLETED_UNIT=P1-5 · REG-346 · ninguna llamada a proveedor cuelga la función
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=P1-2 — respaldo de las colecciones de nivel raíz, empezando por clinic_members
-FILES_IN_SCOPE=src/lib/clinica/respaldo.ts · src/app/api/clinic/exportar/route.ts
+EXACT_NEXT_ACTION=P1-11 — /pacientes con paginación y búsqueda de servidor; después P1-16 (importador de colecciones raíz)
+FILES_IN_SCOPE=src/app/(dashboard)/pacientes/page.tsx · src/app/api/clinic/importar/route.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10566
+TESTS_PASSED=10587
 TESTS_FAILED=1
-KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
+KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. Pasa de forma intermitente. NO tocar la aserción.
 P0_OPEN=(ninguno interno)
-P1_OPEN=P1-2 colecciones raíz sin respaldo · P1-3 tareas sin await · P1-4 tareasVivas sin orderBy · P1-5 7 llamadas sin abort · P1-6 alergias legibles por recepción · P1-7..P1-10 evidencia · P1-11 recorte no declarado en 11 pantallas · P1-12 getNotas sin cota · P1-13 otros escritores de scroll
-BLOCKED_EXTERNAL=iPhone/WebKit real (sólo hay Chromium; prohibido descargar navegadores) · despliegue de firestore.rules (dueño) · PITR/restore real (gcloud) · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 vistoEn · REG-337 tarea de laboratorio · REG-338 secreto TOTP local · REG-339 nota fuera de consola · REG-340 censo desde el código · REG-341 lecturas acotadas + recorte declarado · REG-342 el riel no mueve la página
+P1_OPEN=P1-9 sobre #314 en la ruta de consulta · P1-10 licencia PMC · P1-11 recorte no declarado en 11 pantallas · P1-12 getNotas sin cota · P1-13 otros escritores de scroll · P1-14 índice compuesto del worklist · P1-15 sin circuit breaker · P1-16 importador de colecciones raíz
+BLOCKED_EXTERNAL=P1-6 E0-06 alergias (backfill destructivo + política clínica + reglas) · P1-14 índice compuesto (consola de Firestore) · iPhone/WebKit real (sólo Chromium) · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
+DO_NOT_REGRESS=REG-323 · REG-337 · REG-338 · REG-339 · REG-340 · REG-341 · REG-342 · REG-343 · REG-344 · REG-345 · REG-346
 ```
 
-### Lo cerrado en esta tanda
+### Cerrado en esta tanda
 
 | REG | Qué |
 |---|---|
-| 337 | Un resultado de laboratorio de consultorio no generaba tarea de revisión |
-| 338 | El secreto TOTP viajaba a un tercero en una URL |
-| 339 | La nota clínica entera se escribía en la consola |
-| 340 | Nueve colecciones sin declarar; el censo ahora sale del código |
-| 341 | Lecturas del directorio acotadas (portado de #356 preservando REG-323) |
-| 342 | El rebote de scroll en iPhone: causa raíz, dos mecanismos |
+| 343 | `clinic_members` fuera del respaldo: se restauraba y nadie podía entrar |
+| 344 | El worklist truncaba en silencio; las tareas de la firma se perdían calladas |
+| 345 | La matriz prometía fuentes sin adaptador; los avisos no llegaban a la pantalla |
+| 346 | Trece llamadas a proveedor sin tope, dos en la ruta de 800 s |
 
-### Lo que NO se afirma
+### Dos hallazgos de auditoría que resultaron FALSOS, y quedan escritos
 
-- **Nada se ha visto en un navegador.** El §38 sigue sin satisfacerse para el
-  scroll: sólo hay Chromium instalado y no se permite descargar WebKit.
-- **No se ha medido capacidad.** REG-341 acota las lecturas; no demuestra que el
-  producto aguante 50 k pacientes.
-- **Las reglas no se despliegan aquí**, así que `members` sigue roto en producción.
-- El simulacro de restauración real sigue sin ejecutarse.
+- La llamada a Claude de `procesar` **ya** tenía señal derivada del presupuesto.
+- El `.catch(() => [])` de `expediente/evidencia` **no esconde nada**: hay un
+  `testigo` mutable que se marca antes de que el `catch` lo alcance, y la ruta
+  distingue «no se pudo preguntar» de «no hay literatura» en un aviso que la
+  pantalla pinta.
+
+Se dejan anotados para que nadie los «arregle» dos veces.
+
+### Por qué E0-06 (alergias) se para
+
+No es falta de tiempo: **la migración no existe** —hay tipo, lista de campos y
+una prueba de forma, pero ni splitter, ni script, ni un solo lector o escritor en
+producción— y el beneficio de seguridad **sólo aparece cuando los campos se
+borran de los documentos vivos**, que es destructivo sobre datos clínicos reales.
+Construir la mitad reversible no cierra nada y crea riesgo de **doble verdad en
+alergias**, el campo más crítico del producto.
 
 ---
 
