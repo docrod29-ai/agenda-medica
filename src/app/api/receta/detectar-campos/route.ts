@@ -25,7 +25,10 @@ const headers = (key: string) => ({ 'x-api-key': key, 'anthropic-version': ANTHR
 async function resolverModelo(key: string): Promise<string> {
   if (MODEL_OVERRIDE) return MODEL_OVERRIDE
   try {
-    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: headers(key) })
+    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', {
+      headers: headers(key),
+      signal: AbortSignal.timeout(20_000),   // REG-346
+    })
     if (res.ok) {
       const ids: string[] = ((await res.json()).data ?? []).map((m: { id: string }) => m.id)
       return MODELOS.find(c => ids.includes(c)) ?? ids.find(id => id.includes('sonnet')) ?? ids[0] ?? MODELOS[0]
@@ -82,6 +85,7 @@ export async function POST(req: NextRequest) {
   try {
     const model = await resolverModelo(key)
     const res = await fetch('https://api.anthropic.com/v1/messages', {
+      signal: AbortSignal.timeout(60_000),   // REG-346
       method: 'POST',
       headers: headers(key),
       body: JSON.stringify({

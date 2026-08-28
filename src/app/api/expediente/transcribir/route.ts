@@ -164,6 +164,8 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },
       body: upstream,
+      // REG-346 — cabe dentro de `maxDuration = 60` con margen para responder.
+      signal: AbortSignal.timeout(50_000),
     })
   }
 

@@ -63,7 +63,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que sólo enseña lo que SÍ encontró se lee como si hubiera mirado en todas
      * partes, que es la conclusión contraria a la que el módulo existía para dar.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345],
+    /**
+     * 346 es esta familia aplicada a una DEFENSA, que es su forma más
+     * incómoda. `fetchConTimeout` existe, está probado, tiene presupuestos por
+     * destino y limpia el temporizador en `finally` — y se usa en tres
+     * archivos. Trece llamadas a proveedor lo esquivaban sin ningún tope
+     * propio, entre ellas las de la ruta de 800 segundos. Un módulo de
+     * seguridad que no cubre el camino que más lo necesita da la confianza sin
+     * dar la protección.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346],
   },
   {
     clave: 'se_contradice',

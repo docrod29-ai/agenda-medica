@@ -9808,3 +9808,64 @@ revés aplicando el criterio viejo a ClinicalTrials: decía `true`, el nuevo dic
 - **No verifica ninguna licencia.** Toda la columna comercial sigue
   `UNVERIFIABLE`: se llenó sin acceso a portales ni credenciales, y eso no ha
   cambiado.
+
+---
+
+## REG-346 — trece llamadas a proveedor podían inmovilizar la función entera
+
+**QUÉ FALLABA.** Trece llamadas a proveedor salían **sin señal de aborto**. Un
+socket que no cierra —el proveedor acepta la conexión y nunca contesta— deja la
+función de Vercel corriendo hasta su `maxDuration` completo: facturada por
+GB-segundo, y con el médico delante esperando una nota que ya no va a llegar.
+
+Lo peor estaba en `expediente/procesar`, que corre con **`maxDuration = 800`**:
+el ensamble de OpenAI y el descubrimiento de modelos de Anthropic no llevaban
+ninguna. Y en `transcribir-diarizado`, donde el **sondeo se repite en bucle** —
+una sola vuelta colgada basta.
+
+**ESTO NO ES HIPOTÉTICO.** `docs/maintenance/sw-changelog.md` documenta un socket
+colgado que inmovilizó una lambda de `maxDuration = 300` los 300 s enteros.
+`procesar` es casi el triple de esa.
+
+**LA CAUSA RAÍZ.** El helper correcto **ya existía**: `fetchConTimeout`, con
+`AbortController`, `clearTimeout` en `finally` y presupuestos por destino. Se usa
+en **tres** archivos. Las otras veintidós llamadas lo esquivan —el propio
+`gateway.ts` declara esa dualidad como una parada intermedia deliberada— y trece
+de ellas se quedaron sin ningún tope propio: ni el helper, ni un `signal` a mano.
+
+Es «escrito y sin conectar» aplicado a una **defensa**: existe, está probada, y
+no cubre el camino que más la necesita.
+
+**LO QUE LA AUDITORÍA DIJO Y NO ERA ASÍ.** El informe señalaba también la llamada
+a Claude de `procesar` y el `.catch(() => [])` de `expediente/evidencia`. Las dos
+se comprobaron y **estaban bien**: la primera ya recibía
+`signal: AbortSignal.timeout(msDisponibles)` derivado del presupuesto de la ruta;
+y el segundo no esconde nada, porque `buscarEvidenciaMulti` marca un `testigo`
+mutable **antes** de que el `catch` lo alcance —en el `!r.ok` y en la excepción,
+tanto en `esearch` como en `efetch`— y la ruta lo convierte en un aviso que
+distingue «no se pudo preguntar» de «no hay literatura», que la pantalla pinta.
+Se deja escrito para que nadie lo «arregle» dos veces.
+
+**LA REGLA QUE LO HACE SEGURO.** Toda llamada a un proveedor externo desde una
+ruta de API lleva un tope: o `fetchConTimeout`, o un `AbortSignal` propio. Cada
+tope se dimensiona contra el `maxDuration` de SU ruta, dejando margen para
+responder — porque una función cortada en seco pierde el trabajo ya hecho, que
+es la peor forma de fallar.
+
+**LA PRUEBA.**
+`src/__tests__/ninguna-llamada-a-proveedor-cuelga-la-funcion.test.ts` (5 casos).
+Incluye un caso que comprueba que **el cedazo mira de verdad** —si dejara de
+encontrar rutas con proveedor, el guardián estaría en verde por no vigilar—.
+Probado al revés quitando el tope de `transcribir`: cae, y nombra el archivo.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Comprueba que EXISTA un tope, no que el número sea el correcto.** Que el
+  sondeo de AssemblyAI espere 20 s y no 15 es un juicio, no una verificación.
+- **No hay circuit breaker en ninguna parte**, ni presupuesto de reintentos. Un
+  proveedor caído se sigue reintentando en cada petición. Abierto en el tablero.
+- **No prueba el comportamiento real ante un socket colgado**: eso necesitaría un
+  servidor que acepte y calle, y aquí no se levanta uno. Es exactamente el mismo
+  límite de entorno que mantiene en rojo intermitente a `ops-timeout`.
+- **Sólo mira `src/app/api/`.** Una llamada a proveedor desde `src/lib/` que no
+  pase por el gateway se le escapa.

@@ -21,14 +21,17 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M scripts/evidence/matriz-proveedores.mjs",
-    " M src/app/(dashboard)/consultor/page.tsx",
+    " M src/app/api/expediente/corregir/route.ts",
+    " M src/app/api/expediente/procesar/route.ts",
+    " M src/app/api/expediente/transcribir-chunk/route.ts",
+    " M src/app/api/expediente/transcribir-diarizado/route.ts",
+    " M src/app/api/expediente/transcribir/route.ts",
+    " M src/app/api/receta/detectar-campos/route.ts",
+    " M src/app/api/telesalud/sala/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/evidencia/recuperacion-consultor.ts",
-    "?? src/__tests__/la-matriz-de-evidencia-no-promete-lo-que-no-hay.test.ts"
+    "?? src/__tests__/ninguna-llamada-a-proveedor-cuelga-la-funcion.test.ts"
   ],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
@@ -64,10 +67,10 @@
   ],
   "ramaActual": "claude/ausculta-consultorio-completion-hoahgw",
   "derivado": {
-    "regsEnElLedger": 193,
-    "ultimaREG": "REG-345",
-    "archivosDePrueba": 771,
-    "casosDePrueba": 9433,
+    "regsEnElLedger": 194,
+    "ultimaREG": "REG-346",
+    "archivosDePrueba": 772,
+    "casosDePrueba": 9438,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

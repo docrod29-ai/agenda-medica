@@ -1427,6 +1427,10 @@
     {
       "archivo": "src/__tests__/la-matriz-de-evidencia-no-promete-lo-que-no-hay.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/ninguna-llamada-a-proveedor-cuelga-la-funcion.test.ts",
+      "minCasos": 5
     }
   ]
 }
