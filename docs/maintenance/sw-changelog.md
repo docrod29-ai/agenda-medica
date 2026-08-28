@@ -3,6 +3,35 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1172 — El paquete de producción se declara ANTES de publicarlo
+
+No trae producto: trae la **cuenta**. Producción sigue en `v1149` (8-ago) y el
+siguiente `vercel --prod` no publicaría el arreglo de anoche — publicaría **hasta 229
+commits de veinte días** de una sola vez, porque un despliegue arrastra todo lo
+no desplegado.
+
+El inventario —los 229 commits uno por uno, las 63 regresiones que
+cierran, dónde caen los 2 012 archivos y qué NO afirma este paquete— vive en
+[`PAQUETE-PRODUCCION-2026-08-27.md`](PAQUETE-PRODUCCION-2026-08-27.md).
+
+Lo que este bump obliga a no olvidar:
+
+- **`firestore.rules` va aparte.** `vercel --prod` no las publica, y desde
+  `v1149` hay dos cambios sin desplegar. El que importa es REG-323
+  (`laboratorios`): sin él, la defensa que impide archivar una hoja bajo el
+  paciente equivocado se queda en una sola capa, la del cliente.
+- **La base no se sabe, y este archivo es parte de la causa.** `v1171` se subió
+  el 9-ago dentro de un commit de producto que nunca se publicó, y los 164
+  commits siguientes no volvieron a tocar `public/sw.js`. Cualquier despliegue
+  hecho entre el 9 y el 27 de agosto sirve el mismo `/version.txt`: el número
+  dejó de identificar el árbol publicado. Por eso 229 es una **cota superior**,
+  no una medición, y lo único que la resuelve es el SHA del despliegue de
+  producción en el panel de Vercel. `v1172` vuelve a atar el contador a la
+  realidad — a condición de que el siguiente bump vaya con su despliegue.
+
+Nada se publicó. Preparar el paquete y publicarlo son dos actos, y el segundo es
+del dueño.
+
 ## v1169 — el arnés de capturas encuentra sus dos primeros defectos (REG-307, REG-308)
 
 Primera pasada del golden flow AUTENTICADO en navegador real (emuladores +

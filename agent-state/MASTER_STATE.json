@@ -16,7 +16,7 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1171",
+  "ultimaVersionEnProduccion": "nexusmed-v1172",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-28",
@@ -51,7 +51,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "release/consultorio-final-candidate-2026-08-27",
+  "ramaActual": "release/prod-package-2026-08-27",
   "derivado": {
     "regsEnElLedger": 184,
     "ultimaREG": "REG-336",
