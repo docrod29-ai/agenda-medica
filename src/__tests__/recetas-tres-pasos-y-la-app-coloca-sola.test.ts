@@ -55,12 +55,17 @@
  *   el recorrido real con teclado y en móvil es trabajo de los arneses de V15.
  * · **No comprueba que el guardado escriba bien.** Eso ya lo hace la propia
  *   pantalla releyendo del servidor (`confirmarQueQuedo`).
- * · **No dice nada de la vista previa ni de la impresión real**, que tienen sus
- *   propios controles desde la auditoría de papelería de 2026-07.
+ * · **No mide la impresión real.** El bloque 8 fija la GEOMETRÍA de la vista
+ *   previa con números; que la impresora obedezca ese `@page` es cosa del
+ *   sistema operativo, y por eso el paso 3 existe.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  paperEfectivo, dimensionesImpresion, colocacionDeLaReceta,
+} from '@/components/RecetaDocumento'
+import type { RecetaConfig } from '@/types'
 
 const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 
@@ -258,5 +263,90 @@ describe('7 · la firma se lee de donde REG-014 la dejó (REG-337)', () => {
     expect(CUENTA).toContain('onEstado?.(!!firmaDataUrl)')
     expect(PAGINA).toContain('onEstado={setFirmaLista}')
     expect(PAGINA).toContain('firmaLista={firmaLista}')
+  })
+})
+
+describe('8 · la vista previa enseña la hoja que sale de la impresora', () => {
+  /**
+   * ── EL DEFECTO, EN NÚMEROS ──────────────────────────────────────────────
+   *
+   * `imprimirEn: 'carta'` es el modo POR DEFECTO —el que funciona en cualquier
+   * impresora— y hace que el documento se dibuje sobre una hoja carta de
+   * 216 × 279 mm con la receta centrada dentro. La vista previa de
+   * configuración dimensionaba su marco con `paperEfectivo`, que devuelve la
+   * RECETA (140 × 216 en media carta). Marco de 140 mm, contenido de 216: la
+   * receta salía cortada por la derecha nada más abrir la pantalla, sin tocar
+   * nada, con la configuración de fábrica.
+   *
+   * Se descubrió MIRÁNDOLA: la captura del navegador enseñaba «FOLIO: RX-DE»
+   * cortado a media palabra en el borde del marco. Ninguna prueba lo veía
+   * porque ninguna comparaba las dos medidas.
+   */
+  const MEDIA_CARTA: RecetaConfig = { paperSize: 'media-carta', imprimirEn: 'carta' } as RecetaConfig
+
+  it('la hoja que se DIBUJA no es la receta cuando se imprime en carta', () => {
+    const receta = paperEfectivo(MEDIA_CARTA)
+    const hoja = dimensionesImpresion(MEDIA_CARTA)
+    expect(hoja.esHostCarta).toBe(true)
+    // Ésta es la desigualdad que recortaba: 216 de contenido en 140 de marco.
+    expect(hoja.widthMm).toBeGreaterThan(receta.widthMm)
+    expect(hoja.heightMm).toBeGreaterThan(receta.heightMm)
+  })
+
+  it('y la pantalla dimensiona el marco con esa hoja, no con la receta', () => {
+    expect(RECETAS).toContain('const host = dimensionesImpresion(rxOri)')
+    expect(RECETAS).toContain('paperWidthMm={host.widthMm}')
+    expect(RECETAS).toContain('paperHeightMm={host.heightMm}')
+  })
+
+  it('el marco es el componente canónico, no uno propio de esta pantalla', () => {
+    // Tener su propio contenedor es lo que permitió que se desincronizara.
+    expect(RECETAS).toContain('<RecetaPreviewWrapper')
+    expect(RECETAS).not.toMatch(/const scaleByWidth/)
+    expect(RECETAS).not.toContain("background: '#1a2333'")
+  })
+
+  it('y orienta el papel con el mismo hook que /receta, sin copiarlo', () => {
+    expect(RECETAS).toContain('useRecetaPaperOrientado(rx)')
+    expect(RECETAS).not.toMatch(/const apaisado = imgAspect > 1/)
+  })
+
+  it('la receta va centrada dentro de la carta, y las cuentas cierran', () => {
+    const c = colocacionDeLaReceta(MEDIA_CARTA)
+    expect(c.esHostCarta).toBe(true)
+    expect(c.escala).toBeGreaterThan(1)                 // se agranda para llenar
+    // La receta agrandada + sus dos márgenes son EXACTAMENTE la hoja carta. Si
+    // esto no cierra, el recuadro arrastrable cae fuera de la receta.
+    expect(c.offsetXMm * 2 + c.recetaWidthMm * c.escala).toBeCloseTo(c.hostWidthMm, 6)
+    expect(c.offsetYMm * 2 + c.recetaHeightMm * c.escala).toBeCloseTo(c.hostHeightMm, 6)
+  })
+
+  it('sin host de carta la colocación es la identidad', () => {
+    // Papel exacto cargado en la impresora: la receta ES la hoja, sin offsets
+    // ni escala. Un `escala` distinto de 1 aquí movería el recuadro sin motivo.
+    const c = colocacionDeLaReceta({ paperSize: 'media-carta', imprimirEn: 'papel-real' } as RecetaConfig)
+    expect(c.esHostCarta).toBe(false)
+    expect(c.escala).toBe(1)
+    expect(c.offsetXMm).toBe(0)
+    expect(c.offsetYMm).toBe(0)
+    expect(c.recetaWidthMm).toBe(c.hostWidthMm)
+  })
+
+  it('el documento se dibuja con LA MISMA colocación que el recuadro', () => {
+    // Si `HostCarta` volviera a calcular su escala por su cuenta, el recuadro y
+    // la receta se separarían en cuanto una de las dos cambiara.
+    const doc = leer('src/components/RecetaDocumento.tsx')
+    expect(doc).toContain('const { escala } = colocacionEnCarta(paper)')
+    expect(doc).not.toMatch(/const MARGEN_MM = 14[\s\S]{0,200}function HostCarta/)
+  })
+
+  it('el arrastre encadena las DOS escalas', () => {
+    // La de la vista previa y la que agranda la receta dentro de la carta. Con
+    // una sola, cada milímetro arrastrado valdría un 16 % de más.
+    expect(RECETAS).toContain('scale={scale * colocacion.escala}')
+  })
+
+  it('lo que se manda a imprimir mide la hoja física', () => {
+    expect(RECETAS).toContain('anchoMm: host.widthMm, altoMm: host.heightMm')
   })
 })

@@ -46,7 +46,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ningún camino del producto escribía jamás un documento en esa colección.
      * No faltaba una pantalla — faltaba el ACTO que la llena.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 338],
   },
   {
     clave: 'se_contradice',

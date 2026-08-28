@@ -4,9 +4,10 @@
  * Incluye RecetasTab + su preview, calibrador visual y sub-controles.
  * Sin cambio de comportamiento respecto al monolito original.
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { areaImpracticable } from '@/lib/receta-paginacion'
-import { RecetaDocumento, dimensionesImpresion, paperEfectivo, admiteHojaCarta, type RecetaData } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, admiteHojaCarta, colocacionDeLaReceta, useRecetaPaperOrientado, type RecetaData } from '@/components/RecetaDocumento'
+import { RecetaPreviewWrapper, escalaDeVistaPrevia } from '@/components/RecetaPreviewWrapper'
 import { imprimirElemento } from '@/lib/print-element'
 import { GuiaConfigurarReceta } from '@/components/GuiaConfigurarReceta'
 import { resizeImageFile, formatBytes, reducirDataUrlSiPesa } from '@/lib/image-utils'
@@ -1180,41 +1181,38 @@ function PreviewReceta({
   registrarImprimir?: (fn: () => void) => void
 }) {
   const { toast } = useToast()
-  // BUG que el Dr cazó en vivo: RecetaDocumento ORIENTA la hoja al diseño subido
-  // (si la imagen es APAISADA, voltea el papel a horizontal: 148×210 → 210×148),
-  // pero el marco de esta vista previa usaba las medidas SIN orientar → marco
-  // vertical con hoja horizontal dentro = recortada a la derecha ("mocho"). Aquí
-  // se carga el aspecto real de la imagen y se orienta IGUAL que el documento.
-  const paperEf = paperEfectivo(rx)
   const paper = PAPER_SIZES[rx.paperSize ?? 'media-carta']
-  const [imgAspect, setImgAspect] = useState<number | null>(null)
-  useEffect(() => {
-    const url = rx.disenoCompletoDataUrl
-    if (!url) { setImgAspect(null); return }
-    const im = new window.Image()
-    im.onload = () => { if (im.naturalWidth && im.naturalHeight) setImgAspect(im.naturalWidth / im.naturalHeight) }
-    im.onerror = () => setImgAspect(null)
-    im.src = url
-  }, [rx.disenoCompletoDataUrl])
-  // Dimensiones ORIENTADAS al diseño (mismo criterio que RecetaDocumento).
-  const paperOri = (() => {
-    if (!rx.disenoCompletoDataUrl || imgAspect == null) return { widthMm: paperEf.widthMm, heightMm: paperEf.heightMm }
-    const corto = Math.min(paperEf.widthMm, paperEf.heightMm)
-    const largo = Math.max(paperEf.widthMm, paperEf.heightMm)
-    const apaisado = imgAspect > 1
-    return { widthMm: apaisado ? largo : corto, heightMm: apaisado ? corto : largo }
-  })()
-  // 96 DPI estándar web: 1mm ≈ 3.78 px
-  const paperWidthPx = (paperOri.widthMm * 96) / 25.4
-  const paperHeightPx = (paperOri.heightMm * 96) / 25.4
-  // Ancho objetivo del contenedor sticky en el lado derecho
+
+  /**
+   * LA MISMA HOJA QUE SALE DE LA IMPRESORA, Y NI UNA MEDIDA CALCULADA AQUÍ.
+   *
+   * Esta vista previa tenía su propia copia de TRES cálculos que ya existían:
+   * orientar el papel al diseño subido, escalar para que quepa en la columna, y
+   * dibujar el marco. Y la copia se desincronizó por el sitio menos visible: el
+   * documento se dibuja sobre HOJA CARTA cuando `imprimirEn` es 'carta' —el
+   * modo por defecto, el que funciona en cualquier impresora— y el marco se
+   * seguía dimensionando a la receta. Resultado: la receta salía recortada por
+   * la derecha en cuanto el médico abría la pantalla, antes de tocar nada.
+   *
+   * Ahora las tres respuestas se piden a quien ya las tenía:
+   *   · `useRecetaPaperOrientado` — el mismo hook que usa /receta.
+   *   · `dimensionesImpresion`    — la hoja FÍSICA, con host de carta incluido.
+   *   · `RecetaPreviewWrapper`    — el marco, con su escala.
+   */
+  const paperOri = useRecetaPaperOrientado(rx)
+  const rxOri = useMemo(
+    () => ({ ...rx, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }),
+    [rx, paperOri.widthMm, paperOri.heightMm],
+  )
+  const host = dimensionesImpresion(rxOri)
+  const colocacion = colocacionDeLaReceta(rxOri)
+
   const TARGET_WIDTH = 340
   const TARGET_MAX_HEIGHT = 520
-  const scaleByWidth = TARGET_WIDTH / paperWidthPx
-  const scaleByHeight = TARGET_MAX_HEIGHT / paperHeightPx
-  const scale = Math.min(scaleByWidth, scaleByHeight, 1)
-  const containerWidth = paperWidthPx * scale
-  const containerHeight = paperHeightPx * scale
+  const scale = escalaDeVistaPrevia({
+    paperWidthMm: host.widthMm, paperHeightMm: host.heightMm,
+    maxWidth: TARGET_WIDTH, maxHeight: TARGET_MAX_HEIGHT,
+  })
 
   const margenes = rx.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
   const usarGuia = !!rx.disenoCompletoDataUrl
@@ -1241,12 +1239,11 @@ function PreviewReceta({
   // un camino distinto y en otro tamaño, así que "se veía bien en la prueba" no
   // garantizaba nada del impreso real.
   const imprimirPrueba = () => {
-    // Usa las dimensiones ORIENTADAS al diseño (mismo criterio que la hoja real),
-    // para que la prueba salga del tamaño/orientación correctos, no volteada.
-    const cfgOri = { ...rx, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }
-    const h = dimensionesImpresion(cfgOri)
+    // `host` ya son las dimensiones ORIENTADAS al diseño y con el host de carta
+    // resuelto — las mismas con las que se dibuja la vista previa y las mismas
+    // que usa /receta. Lo que se prueba es lo que se imprime.
     imprimirElemento(document.getElementById('zona-print-receta-inner'), 'Prueba de receta', {
-      anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error'),
+      anchoMm: host.widthMm, altoMm: host.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error'),
     })
   }
 
@@ -1256,10 +1253,17 @@ function PreviewReceta({
 
   return (
     <div style={{ position: 'sticky', top: 20 }}>
-      <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
+      {/* Qué hoja se está viendo. Con host de carta se DICE, porque si no la
+          vista previa parece equivocada: el médico eligió media carta y ve una
+          hoja carta con su receta centrada — que es exactamente lo que va a
+          salir de la impresora, y por eso hay que nombrarlo. */}
+      <div style={{ fontSize: 10.5, color: 'var(--text3)', textAlign: 'center', marginBottom: 8, lineHeight: 1.5 }}>
         Vista previa · {rx.disenoCompletoDataUrl
-          ? `tu formato (${Math.round(paperOri.widthMm)}×${Math.round(paperOri.heightMm)} mm${imgAspect && imgAspect > 1 ? ', apaisado' : ''})`
-          : paper.label.split(' ')[0]}
+          ? `tu formato de ${Math.round(paperOri.widthMm)} × ${Math.round(paperOri.heightMm)} mm${paperOri.apaisado ? ', apaisado' : ''}`
+          : paper.label}
+        {host.esHostCarta && (
+          <><br />Sale en hoja carta, con línea de corte ✂</>
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
         <button
@@ -1288,42 +1292,52 @@ function PreviewReceta({
         </button>
       </div>
 
-      {/* Contenedor que limita el tamaño visible y reserva espacio scaled */}
-      <div style={{
-        width: containerWidth,
-        height: containerHeight,
-        margin: '0 auto',
-        overflow: 'hidden',
-        position: 'relative',
-        background: '#1a2333',
-        borderRadius: 6,
-      }}>
-        <div style={{
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          width: paperWidthPx,
-          height: paperHeightPx,
-          position: 'relative',
-        }}>
-          <RecetaDocumento
-            data={demoData}
-            config={config ?? null}
-            recetaConfig={rx}
-          />
-          {/* ZONA DE CONTENIDO INTERACTIVA: se ARRASTRA para mover y se JALA de los
-              bordes para estirar. Actualiza disenoMargenes (mm) en vivo — mucho más
-              fácil que teclear los 4 números. Solo con diseño propio subido. */}
-          {usarGuia && (
+      {/* El marco es el MISMO componente que usan /receta y /orden, dimensionado
+          a la hoja física. Ya no hay un contenedor propio de esta pantalla. */}
+      <RecetaPreviewWrapper
+        paperWidthMm={host.widthMm}
+        paperHeightMm={host.heightMm}
+        maxWidth={TARGET_WIDTH}
+        maxHeight={TARGET_MAX_HEIGHT}
+      >
+        <RecetaDocumento
+          data={demoData}
+          config={config ?? null}
+          recetaConfig={rx}
+        />
+        {/* ZONA DE CONTENIDO INTERACTIVA: se ARRASTRA para mover y se JALA de los
+            bordes para estirar. Actualiza disenoMargenes (mm) en vivo — mucho más
+            fácil que teclear los 4 números. Solo con diseño propio subido.
+
+            Va dentro de una caja colocada donde CAE LA RECETA en la hoja física:
+            con host de carta la receta está centrada y agrandada dentro de ella,
+            así que un recuadro dibujado sobre la hoja entera caería en otro
+            sitio — y los márgenes que el médico arrastrara no serían los que se
+            imprimen. La colocación la da `colocacionDeLaReceta`, la misma que
+            usa el documento para dibujarse. */}
+        {usarGuia && (
+          <div style={{
+            position: 'absolute',
+            left: `${colocacion.offsetXMm}mm`,
+            top: `${colocacion.offsetYMm}mm`,
+            width: `${colocacion.recetaWidthMm}mm`,
+            height: `${colocacion.recetaHeightMm}mm`,
+            transform: `scale(${colocacion.escala})`,
+            transformOrigin: 'top left',
+          }}>
             <ZonaContenidoEditable
               m={margenes}
-              paperWmm={paperOri.widthMm}
-              paperHmm={paperOri.heightMm}
-              scale={scale}
+              paperWmm={colocacion.recetaWidthMm}
+              paperHmm={colocacion.recetaHeightMm}
+              /* Dos escalas encadenadas: la de la vista previa y la que agranda
+                 la receta dentro de la carta. El arrastre convierte píxeles a
+                 milímetros de RECETA, que es en lo que se guardan los márgenes. */
+              scale={scale * colocacion.escala}
               onChange={onMargenes}
             />
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </RecetaPreviewWrapper>
 
       {/* Nota informativa sobre la guía */}
       {usarGuia && (
@@ -1338,7 +1352,10 @@ function PreviewReceta({
       {/* Receta a TAMAÑO FÍSICO REAL — oculta en pantalla, visible SOLO al imprimir
           (el CSS de impresión con body.print-solo-receta muestra únicamente esto). */}
       <div id="zona-print-receta" style={{ display: 'none' }}>
-        <div id="zona-print-receta-inner" style={{ width: paperWidthPx, height: paperHeightPx, position: 'relative', background: '#fff' }}>
+        {/* La caja mide la hoja FÍSICA (la misma que `imprimirPrueba` declara al
+            @page), no la receta: si no, con host de carta el nodo que se manda a
+            imprimir sería más chico que su contenido. */}
+        <div id="zona-print-receta-inner" style={{ width: (host.widthMm * 96) / 25.4, height: (host.heightMm * 96) / 25.4, position: 'relative', background: '#fff' }}>
           <RecetaDocumento data={demoData} config={config ?? null} recetaConfig={rx} />
         </div>
       </div>

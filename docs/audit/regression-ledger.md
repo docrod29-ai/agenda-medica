@@ -8971,6 +8971,81 @@ nueve la prueba cae.
    `release/evidence-integrated-2026-08-26`. Recuperarlo es una reparación
    clínica aparte, con sus dos pruebas, no un efecto colateral de esta compuerta.
 
+## REG-338 — la vista previa de la receta salía recortada con la configuración de fábrica
+
+**Área.** `src/app/(dashboard)/configuracion/secciones-recetas.tsx` (`PreviewReceta`) ·
+`src/components/RecetaPreviewWrapper.tsx` · `src/components/RecetaDocumento.tsx`.
+
+**Estado:** CLOSED, con golden y sello.
+
+**CÓMO SE DESCUBRIÓ.** MIRÁNDOLA. Tras rehacer la pantalla en tres pasos se
+recorrió en un navegador de verdad, y en la captura se leía «FOLIO: RX-DE»
+cortado a media palabra contra el borde derecho del marco. Ninguna prueba lo
+veía; ninguna comparaba las dos medidas que aquí se contradicen.
+
+**CAUSA RAÍZ.** `imprimirEn: 'carta'` es el modo POR DEFECTO —el que funciona en
+cualquier impresora sin configurar nada— y hace que `RecetaDocumento` dibuje una
+**hoja carta de 216 × 279 mm** con la receta centrada dentro. La vista previa de
+configuración dimensionaba su marco con `paperEfectivo`, que devuelve la
+**receta** (140 × 216 en media carta).
+
+Marco de 140 mm, contenido de 216 mm, `overflow: hidden` en medio. La receta
+salía cortada por la derecha **nada más abrir la pantalla**, sin tocar nada, con
+la configuración que trae de fábrica.
+
+**POR QUÉ EXISTÍA LA DISCREPANCIA.** Porque esta pantalla tenía su propia copia
+de tres cálculos que ya existían y estaban resueltos: orientar el papel al
+diseño subido (`useRecetaPaperOrientado`), escalar para que quepa en la columna
+(`RecetaPreviewWrapper`) y dibujar el marco. `/receta` y `/orden` usan el
+componente canónico y por eso nunca tuvieron el defecto.
+
+Lo delata su propia documentación: la cabecera de `RecetaPreviewWrapper` decía
+«Usado en /receta, /orden **y en el preview de Configuración → Recetas**». No lo
+usaba. El comentario describía la intención; el código, una copia que se quedó
+atrás.
+
+**LA FAMILIA.** «Escrito, probado y sin conectar», en su forma más pura: el
+componente correcto existía, funcionaba, tenía dos usuarios contentos — y la
+tercera pantalla se hizo el suyo.
+
+**EL ARREGLO.**
+
+- La vista previa usa `RecetaPreviewWrapper`, dimensionado con
+  `dimensionesImpresion` (la hoja FÍSICA, host de carta incluido), y orienta con
+  `useRecetaPaperOrientado`. Deja de calcular nada por su cuenta.
+- La escala de la vista previa se saca a `escalaDeVistaPrevia`, porque hay un
+  segundo interesado legítimo: el recuadro que el médico ARRASTRA encima del
+  documento necesita el mismo número para convertir píxeles en milímetros.
+- `colocacionDeLaReceta` dice dónde cae la receta dentro de la hoja física, y la
+  usan LOS DOS: `HostCarta` para dibujarla y el recuadro arrastrable para
+  colocarse encima. Antes ese cálculo vivía dentro del JSX de `HostCarta` y
+  quien dibujaba encima tenía que adivinarlo — y adivinaba mal en cuanto el host
+  era carta.
+- El nodo que se manda a imprimir en la prueba pasa a medir la hoja física, la
+  misma que declara su `@page`.
+- Y la vista previa ahora DICE «Sale en hoja carta, con línea de corte ✂»: sin
+  eso, ver una hoja carta después de haber elegido media carta parece un error.
+
+**LA REGLA QUE LO HACE SEGURO.** Un número que dos sitios tienen que compartir
+no se copia: se pregunta. Y una pantalla que dibuja lo que otra imprime usa su
+mismo componente, no uno parecido.
+
+**GOLDEN.** `src/__tests__/recetas-tres-pasos-y-la-app-coloca-sola.test.ts`
+(bloque 8, con la geometría en números). **Probado al revés:** devolviendo el
+marco a las medidas de la receta (`paperWidthMm={paperOri.widthMm}`) cae el caso
+que exige dimensionarlo con la hoja física.
+
+**QUÉ NO CUBRE.** No mide la impresión real: que el sistema operativo obedezca
+el `@page` es cosa suya, y por eso el paso 3 de la pantalla existe. Tampoco
+toca la paginación multi-hoja de la vista previa de configuración, que sigue
+enseñando una sola hoja (`/receta` sí cuenta las suyas con `contarPaginas`).
+
+**VERIFICADO EN NAVEGADOR.** Emulador + servidor de desarrollo, a 1440 y a 390,
+en tema claro y oscuro: marco 340 × 439 px, hoja 340 × 439 px, **cero píxeles de
+sobra por los cuatro lados** en los tres casos.
+
+---
+
 ## REG-337 — la pantalla que sube la firma leía del documento que la migración vació
 
 **Área.** `src/app/(dashboard)/configuracion/secciones-cuenta.tsx`

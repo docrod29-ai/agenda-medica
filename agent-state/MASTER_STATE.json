@@ -53,10 +53,10 @@
   ],
   "ramaActual": "claude/simplify-document-upload-screen-di2sy6",
   "derivado": {
-    "regsEnElLedger": 185,
-    "ultimaREG": "REG-337",
+    "regsEnElLedger": 186,
+    "ultimaREG": "REG-338",
     "archivosDePrueba": 763,
-    "casosDePrueba": 9363,
+    "casosDePrueba": 9372,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
