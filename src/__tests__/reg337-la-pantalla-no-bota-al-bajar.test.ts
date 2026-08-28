@@ -50,9 +50,14 @@ import { destinoDelRielHorizontal } from '@/lib/ui/traer-a-la-vista'
  *
  * ── QUÉ **NO** CUBRE ─────────────────────────────────────────────────────────
  *
- * - No se ha visto en un navegador. `vitest` corre en `node`: no hay layout, no
- *   hay scroll real. Estos casos prueban la aritmética y el cableado; recorrer
- *   el flujo en el teléfono sigue siendo obligación de la regla de diseño.
+ * - Estos casos NO ven un navegador. `vitest` corre en `node`: no hay layout ni
+ *   scroll real, así que prueban la aritmética y el cableado, no el efecto. El
+ *   bote se reprodujo y se midió aparte, en Chromium (ver REG-337 en el ledger:
+ *   6 botes antes, 0 después); esa medición **no está en CI**, así que si
+ *   alguien vuelve a meter un `scrollIntoView` aquí, lo que lo caza es el
+ *   guardián de abajo — no una prueba de navegador.
+ * - Recorrer la pantalla REAL con datos sigue pendiente: lo medido fue un arnés
+ *   que copia su estructura, no `/expediente/[patientId]`.
  * - No prueba el IntersectionObserver ni el `rootMargin`: qué sección se
  *   considera activa no cambió en este arreglo.
  * - No vigila al resto del producto. Un `scrollIntoView({ block: 'nearest' })`

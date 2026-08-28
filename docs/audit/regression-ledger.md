@@ -9247,10 +9247,31 @@ ve dentro del riel». Se re-expresa por el mecanismo que de verdad la cumple.
 
 **Qué NO cubre, declarado.**
 
-- **No se ha visto en un navegador.** La suite corre en `node`: no hay layout, no
-  hay scroll real. Los casos prueban la aritmética y el cableado. Recorrer el
-  flujo en el teléfono sigue siendo obligación de la regla de diseño, y está
-  pendiente.
+**Visto en un navegador (28-ago-2026).** La suite corre en `node` —sin layout ni
+scroll— así que la reproducción se hizo aparte, en Chromium con Playwright, sobre
+un arnés que copia la estructura real (ancla `sticky`, riel en flujo normal,
+`IntersectionObserver` con el mismo `rootMargin`) e **importa la aritmética real
+transpilada**, no una copia. Viewport 390×844, rueda hacia abajo en pasos de
+120px, midiendo `window.scrollY` tras cada paso:
+
+| | `scrollY` a lo largo de la bajada | botes hacia arriba |
+|---|---|---|
+| **antes** (2 ítems, la paciente del vídeo) | 120 → 240 → **360 → 199 → 175** → 295 → … | **2** |
+| **antes** (5 ítems) | … 775 → 895 → **570 → 175** → 295 → 415 → **226 → 175** | **6** |
+| **después** (2 ítems) | 120 → 240 → 360 → 480 → 600 → 720 → 810 | **0** |
+| **después** (5 ítems) | 120 → 240 → … → 2040 → 2160 | **0** |
+
+Con cinco ítems, la versión vieja **nunca pasaba de ~900px**: la página se
+quedaba atrapada volviendo a 175px, que es exactamente lo que se ve en el vídeo
+del dueño. Y el riel no perdió su función: con el arreglo, y con el riel
+desbordando de verdad, su `scrollLeft` va 0 → 345 → 545 siguiendo al activo
+mientras `window.scrollY` no retrocede una sola vez.
+
+**Qué NO cubre, declarado.**
+
+- **No se ha recorrido la pantalla REAL en un navegador**, sólo el arnés que
+  reproduce su estructura. Falta abrir `/expediente/[patientId]` con datos y
+  bajar con el dedo — la regla de diseño lo exige y sigue pendiente.
 - **No vigila al resto del producto.** Un `scrollIntoView({ block: 'nearest' })`
   nuevo en otra pantalla volvería a arrastrar la página. El guardián sólo mira
   este componente, que es el único que hoy lo hacía para seguir la lectura.
