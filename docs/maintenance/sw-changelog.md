@@ -3,6 +3,61 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1174 — «Recetas, órdenes y notas» son tres pasos (REG-338, REG-339)
+
+**Este bump va CON su despliegue**, igual que v1173.
+
+**Qué lleva de producto.** La pantalla donde el médico configura lo que se
+imprime, rehecha a petición del dueño: *«esto se me hace muy complejo […] que el
+usuario no batalle tanto para subir su hoja membretada y su receta, que no
+batalle para configurar el papel en su impresora y que no batalle en acomodar
+dónde va el nombre, edad, etcétera […] está muy llena y los va a confundir»*.
+
+- **Tres pasos, y el paso ES el control**: 1 tu papel · 2 tu firma · 3 imprime
+  una prueba. Antes: una guía de seis pasos arriba y once tarjetas de ajustes
+  abajo, todas abiertas y sin relación declarada entre unas y otras.
+- **Los datos se colocan solos al subir el formato.** La detección existía
+  detrás de un clic que casi nadie encontraba; ahora corre en la subida y dice
+  cuántos campos colocó. Sigue siendo visible y arrastrable.
+- **Los arreglos de impresión salen sólo cuando la prueba no cuadró**, con la
+  avería nombrada y su causa.
+- El resto —papel, estilo, color, datos legales, hoja de notas— sigue entero,
+  plegado en «Ajustes avanzados». Medido en navegador: el editor pasa de
+  3 848 px a 931 px de alto al abrir.
+- **REG-338** — la sección que sube la firma la leía de `config/main`, que
+  REG-014 vació al moverla a `config/firma`: consultorio migrado + recarga =
+  recuadro vacío con la firma guardada y saliendo impresa.
+- **REG-339** — la vista previa salía **recortada por la derecha con la
+  configuración de fábrica**: el documento se dibuja sobre hoja carta
+  (`imprimirEn: 'carta'`, el modo por defecto) y el marco se dimensionaba a la
+  receta. Medido después del arreglo: marco 340 × 439, hoja 340 × 439, cero
+  píxeles de sobra por los cuatro lados, en tres tamaños y dos temas.
+
+**El paquete, declarado.** Entre `v1173` y este bump hay **tres commits**, todos
+de esta unidad, y tocan **siete ficheros de aplicación**:
+
+- `configuracion/secciones-recetas.tsx` · `configuracion/page.tsx` ·
+  `configuracion/secciones-cuenta.tsx` — la pantalla y sus dos secciones.
+- `components/GuiaConfigurarReceta.tsx` — deja de ser la guía de seis pasos y
+  pasa a ser el diagnóstico de «no cuadró».
+- `components/RecetaDocumento.tsx` · `components/RecetaPreviewWrapper.tsx` — la
+  colocación de la receta en la hoja y la escala de la vista previa, ahora en
+  una sola fuente. **Los usan también `/receta` y `/orden`**, que son impresos
+  clínicos: su comportamiento NO cambia (el cálculo es el mismo, sólo se sacó
+  de donde estaba para que un tercero pudiera preguntarlo).
+- `lib/ayuda/conocimiento.ts` — la ayuda del asistente y de `/guia`, reescrita a
+  los tres pasos.
+
+Más su golden, las dos entradas del ledger, el sello, la clasificación de
+familia y el trinquete de lint apretado de 96 a 95.
+
+**Riesgo declarado.** El único cambio que toca código compartido con los
+impresos que ve el paciente es la extracción de `colocacionEnCarta` desde el
+JSX de `HostCarta`: misma fórmula, mismo resultado, con una prueba que fija la
+geometría en números. Lo demás vive dentro de la pantalla de configuración.
+
+---
+
 ## v1173 — La pantalla del expediente deja de botar al bajar (REG-337)
 
 **Este bump SÍ va con su despliegue**, que es la condición que `v1172` dejó
