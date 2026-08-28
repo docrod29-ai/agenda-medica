@@ -19,17 +19,8 @@
   "ultimaVersionEnProduccion": "nexusmed-v1172",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/security/matriz-acceso-phi.md",
-    " M firestore.rules",
-    " M src/lib/authz/matriz-acceso.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinica/respaldo.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? scripts/seguridad/colecciones-escritas.mjs",
-    "?? src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts"
+    "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md"
   ],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {

@@ -1,84 +1,41 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 28-ago-2026 — **REG-337, REG-338 y REG-339 cerradas**
+## Checkpoint · 28-ago-2026 — **REG-340 cerrada** (censo de colecciones)
 
-| | |
-|---|---|
-| **Unidades cerradas** | **A1** (tablero) · **P0-1** (REG-337) · **P0-7** (REG-339) · **P1-1** (REG-338) |
-| **SHA** | `7247e1f` sobre `claude/ausculta-consultorio-completion-hoahgw` |
-| **Siguiente** | **A3** — portar PR #356 preservando REG-323 |
+```
+CURRENT_BRANCH=claude/ausculta-consultorio-completion-hoahgw
+CURRENT_HEAD=9f14d14
+CURRENT_PR=(ninguno — no se ha pedido)
+CURRENT_WORKSTREAM=WS-03 (escala / consultorio grande)
+LAST_COMPLETED_UNIT=P0-2 · REG-340 · censo de colecciones derivado del código
+CURRENT_PARTIAL_UNIT=(ninguna)
+EXACT_NEXT_ACTION=A3 — portar PR #356 (product/scale-hotpaths-342) sobre esta rama PRESERVANDO REG-323
+FILES_IN_SCOPE=src/lib/firestore.ts · src/lib/expediente/firestore.ts · pacientes/page.tsx · PaletteBusqueda.tsx · cumplimiento/retencion/page.tsx
+FILES_LOCKED=(ninguno — un solo writer)
+TESTS_PASSED=10511
+TESTS_FAILED=1
+KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
+P0_OPEN=P0-3 getPatients ilimitado · P0-4 findNotaByIdInClinic N+1 en serie · P0-5 Promise.all sobre todos los pacientes · P0-6 rebote de scroll en iPhone
+P1_OPEN=P1-2 21 colecciones raíz (clinic_members sin respaldo) · P1-3..P1-10 en el tablero
+BLOCKED_EXTERNAL=despliegue de firestore.rules (dueño) · PITR/restore real (gcloud) · pentest · licencias de evidencia
+DO_NOT_REGRESS=REG-323 (vistoEn en updatePatient) · REG-337 (tarea de revisión de laboratorio) · REG-338 (secreto TOTP local) · REG-339 (nota fuera de consola) · REG-340 (censo desde el código)
+```
 
-### Compuertas medidas en este SHA
+### Lo que cerró REG-340 y lo que NO
 
-| Compuerta | Resultado |
-|---|---|
-| `npx vitest run` | **10 505 pasan · 1 falla · 1 omitido** (765 archivos) |
-| `lint-trinquete` | **96**, igual que el techo |
-| `npx tsc --noEmit` | **limpio** |
-| navegador real | **no ejecutado** |
+Nueve colecciones de consultorio se escribían y no estaban en ninguno de los tres
+sitios de declaración. La causa era de forma: los dos guardianes parsean
+`firestore.rules` y lo toman por el censo. El guardián nuevo deriva el censo del
+**código**.
 
-Baseline al empezar: 10 490. **+15 casos, cero regresiones.**
-
-La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts`, del entorno:
-exige que `10.255.255.1` trague paquetes y el proxy del contenedor rechaza al
-instante. `BLOCKED_EXTERNAL`. Aflojar la aserción está prohibido por §32.
-
-### Lo que se cerró, y lo que NO cerró con ello
-
-**REG-337** — un resultado de laboratorio de consultorio ya abre su pendiente de
-revisión. **Cierra «recibido → por revisar» y nada más**: `acted_on` y
-`patient_notified` **no existen** en el modelo, y `progreso-resultado.ts` los
-declara `sin_dato` en vez de fingirlos. La referencia y la interconsulta siguen
-fuera del bucle.
-
-**REG-338** — el secreto TOTP ya no sale del navegador, en las dos pantallas de
-enrolamiento. **No cierra MFA**: el segundo factor **no se exige en el servidor
-en ningún sitio**, y `security-controls.ts:75` aún lo declara `planned / BLOCKED`
-cuando está implementado.
-
-**REG-339** — el cuerpo de la nota ya no entra en `console.*`. El guardián es un
-**cedazo por nombre de variable**, no una demostración; sólo recorre
-`src/app/(dashboard)`.
-
-### Una nota de método que conviene no perder
-
-Un `vitest run` lanzado en segundo plano mientras se seguía editando midió un
-árbol en movimiento y reportó fallos que no existían. Se descartó y se repitió
-sobre árbol quieto. **Una suite que corre mientras cambia el código no mide nada.**
-
-### El descubrimiento que sigue gobernando A3
-
-**Existe implementación canónica y no está en esta rama.** PR **#356**
-(`product/scale-hotpaths-342`) ya trae keyset pagination, búsqueda indexada y
-golden de 701 líneas.
-
-**No se puede fusionar a ciegas**: #356 es anterior a REG-323 y su
-`updatePatient` **no tiene `vistoEn`**. Un merge directo regresaría la guardia de
-concurrencia. Hay que **portar** conservando ambas.
-
-### Los P0 que siguen abiertos
-
-- **P0-2** `internamientos/{id}/registros` (bitácora NOM-004) no está en el respaldo
-- **P0-3** `getPatients()` descarga la colección entera
-- **P0-4** `findNotaByIdInClinic()` — todos los pacientes + un `getDoc` por paciente en serie
-- **P0-5** `Promise.all` sobre todos los pacientes con un `getNotas` cada uno
-- **P0-6** rebote de scroll en iPhone — causa raíz probable, **sin reproducir en dispositivo**
-
-### Lo que este checkpoint NO afirma
-
-- **Nada se ha visto en un navegador.** §38 no está satisfecha para el scroll.
-- No se ha medido capacidad.
-- El simulacro de restauración real sigue sin ejecutarse.
-- `npm run build` no se ha corrido en esta sesión (sí `tsc --noEmit`).
-
-### Qué hacer al reanudar
-
-1. Leer `CLAUDE.md`, `AGENTS.md`, `.claude/rules/**`, el tablero y este archivo.
-2. `git log` y `git status`. **No empezar de cero.**
-3. Seguir por **A3**: portar #356 preservando REG-323, con golden probado al revés.
-4. No reactivar Hospital/UCI. No priorizar Documents Zero-Friction.
+**No cierra**: las reglas se publican aparte y eso es del dueño, así que
+`members` **sigue roto en producción** hasta que se desplieguen. Y quedan 21
+colecciones de nivel raíz con declaración incompleta —`clinic_members` sin
+respaldo es el que importa—.
 
 ---
+
+## Checkpoint anterior · REG-337–339
 
 
 ## Checkpoint anterior · 28-ago-2026 — A1: el tablero existe y está medido

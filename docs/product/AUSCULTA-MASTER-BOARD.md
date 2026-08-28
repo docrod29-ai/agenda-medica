@@ -19,7 +19,7 @@
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 505 pasan · 1 falla · 1 omitido** (765 archivos) | Baseline eran 10 490; +15 casos, cero regresiones. La falla es `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 511 pasan · 1 falla · 1 omitido** (766 archivos) | Baseline eran 10 490; +21 casos, cero regresiones. La falla es `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | navegador real | **no ejecutado** | ver WS-05 |
@@ -47,7 +47,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | ID | Defecto | Dónde | Verificado por |
 |---|---|---|---|
 | ~~P0-1~~ | ~~Un resultado de laboratorio de **consultorio** no genera tarea de revisión.~~ **CERRADO** — REG-337, `7247e1f`. Cierra «recibido → por revisar»; `acted_on` y `patient_notified` siguen sin existir en el modelo. | `src/lib/expediente/laboratorio/firestore.ts` | orquestador |
-| **P0-2** | `internamientos/{id}/registros` —la bitácora **append-only NOM-004**— no está en el manifiesto de respaldo. Se restaura y no está, y el archivo dice «completo». | escribe `src/app/api/hospital/mutar/route.ts:523` · falta en `src/lib/clinica/respaldo.ts:98` | orquestador |
+| ~~P0-2~~ | ~~La bitácora **append-only NOM-004** no está en el respaldo.~~ **CERRADO** — REG-340, `9f14d14`. Eran **9** colecciones, no una; el guardián nuevo deriva el censo del código. **Las reglas no se despliegan aquí**: `members` sigue roto en producción hasta que el dueño las publique. | `respaldo.ts` · `matriz-acceso.ts` · `firestore.rules` | orquestador |
 | **P0-3** | `getPatients()` descarga la colección **entera** de pacientes. La caché de 30 s baja la frecuencia, no el tamaño. 17 llamadores. | `src/lib/firestore.ts:119` | orquestador |
 | **P0-4** | `findNotaByIdInClinic()` lee **todos** los pacientes y luego hace un `getDoc` **por paciente, en serie**. 50 001 lecturas con 50 k pacientes. | `src/lib/expediente/firestore.ts:60` | orquestador |
 | **P0-5** | `/cumplimiento/retencion` hace `Promise.all` sobre **todos** los pacientes, con un `getNotas` cada uno. El peor abanico del repositorio. | `src/app/(dashboard)/cumplimiento/retencion/page.tsx:29` | orquestador |
@@ -59,7 +59,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | ID | Defecto | Dónde |
 |---|---|---|
 | ~~P1-1~~ | ~~El secreto compartido de 2FA viaja en una URL a `api.qrserver.com`.~~ **CERRADO** — REG-338, `7247e1f`. Sigue abierto lo demás de MFA: **no se exige en el servidor** y `security-controls.ts` aún lo declara `planned`. | `cumplimiento/seguridad/page.tsx` |
-| **P1-2** | 22 colecciones se escriben y **no están declaradas en ninguno de los tres sitios**. Los dos guardianes son estructuralmente ciegos: parsean `firestore.rules`, no `src/`. | ver WS-11 |
+| **P1-2** | Quedan **21 colecciones de nivel raíz** con declaración incompleta. Sin exposición de acceso (Admin SDK + comodín de denegación), pero **`clinic_members` sin respaldo = restaurar un consultorio deja a todos sin poder entrar**. La parte de consultorio la cerró REG-340. | `clinic_members`, `platform_*`, `rate_limits`, `errores`, `soporte`… |
 | **P1-3** | Las tareas clínicas se crean desde el navegador, sin `await` y con el error tragado, **después** de firmar. | `consulta/page.tsx:3868,3925,3935` |
 | **P1-4** | `tareasVivas()` usa `limit(200)` **sin `orderBy`**: devuelve 200 arbitrarias de N, sin avisar de truncamiento. | `tareas-clinicas/firestore.ts:95` |
 | **P1-5** | 7 llamadas a proveedor **sin señal de aborto**, dos de ellas en una ruta con `maxDuration = 800`. | `expediente/procesar/route.ts:234,94` + 5 más |
