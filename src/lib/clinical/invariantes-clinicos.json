@@ -1407,6 +1407,14 @@
     {
       "archivo": "src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/scale-342-lecturas-acotadas.test.ts",
+      "minCasos": 37
+    },
+    {
+      "archivo": "src/__tests__/una-lista-recortada-lo-dice.test.ts",
+      "minCasos": 8
     }
   ]
 }

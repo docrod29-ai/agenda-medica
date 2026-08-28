@@ -273,6 +273,35 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'pregunta que faltaba.',
     regs: [183, 227],
   },
+  {
+    /**
+     * Familia abierta el 28-ago-2026 con REG-341, y va a crecer.
+     *
+     * Se abre porque ninguna de las quince anteriores la describía. No hay nada
+     * roto: el código es correcto, las pruebas pasan y el médico no ve un fallo.
+     * Lo único que hay es un SUPUESTO —que la colección cabe— que era cierto el
+     * día que se escribió y deja de serlo sin que nada avise.
+     *
+     * Por qué ninguna prueba puede delatarla: los fixtures son pequeños. Un
+     * `getDocs` sin `limit` sobre tres pacientes sintéticos se comporta
+     * exactamente igual que sobre cincuenta mil. El instrumento no es una
+     * prueba: es la pregunta «¿y con 50 000?», hecha a propósito.
+     *
+     * Y trae una lección propia sobre la reparación. Acotar la lectura ARREGLA
+     * la escala y ABRE un defecto de la familia `hueco_como_dato`: quien pedía
+     * «la lista» recibe un recorte, y si no se declara, dice «no hay» de lo que
+     * sí está. Por eso 341 se cuenta aquí —su causa es el supuesto de tamaño—
+     * pero su arreglo no está terminado hasta que el recorte se ve.
+     */
+    clave: 'crece_mal',
+    nombre: 'Se escribió para un consultorio pequeño',
+    patron:
+      'La lectura, el bucle o el documento suponen que lo que manejan cabe. Es ' +
+      'cierto mientras el consultorio es chico y deja de serlo sin aviso: no ' +
+      'falla, se degrada. Ninguna prueba lo delata porque los fixtures son ' +
+      'pequeños. Se encuentra preguntando «¿y con cincuenta mil?».',
+    regs: [341],
+  },
 ] as const
 
 /** Todos los REG clasificados, sin repetir. */

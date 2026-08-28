@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useClinic } from '@/context/ClinicContext'
-import { getPatients } from '@/lib/firestore'
+import { getPatient } from '@/lib/firestore'
 import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound, AlertTriangle } from 'lucide-react'
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
@@ -68,8 +68,15 @@ export default function ConsultorPage() {
     if (!clinicId) return
     const id = new URLSearchParams(window.location.search).get('paciente')
     if (!id) return
-    getPatients(clinicId).then(ps => {
-      const p = ps.find(x => x.id === id)
+    /**
+     * A3 — UNA PANTALLA QUE NECESITA UN PACIENTE LEE UN PACIENTE.
+     *
+     * Antes se descargaba el directorio para hacer `.find()`. Además del coste,
+     * con la lista ya acotada un `.find()` sobre el recorte devolvería «no
+     * está» de un paciente que sí existe: el contexto clínico desaparecería en
+     * silencio justo en el consultorio grande.
+     */
+    getPatient(clinicId, id).then(p => {
       if (!p) return
       const alergias = p.alergias?.trim() || 'no referidas'
       setPacienteNombre(p.nombre)

@@ -9454,3 +9454,85 @@ fallo nombra el archivo y la línea que la escribe.
   **`clinic_members` sin respaldo significa que restaurar un consultorio deja a
   todo el mundo sin poder entrar**. Queda abierto como P1 en el tablero, no
   cerrado en silencio.
+
+---
+
+## REG-341 — acotar una lectura abre un hueco; callarlo lo vuelve una mentira
+
+**QUÉ FALLABA, EN DOS TIEMPOS.**
+
+*Primero*, la escala. `getPatients()` hacía `getDocs` sobre la colección
+**entera** de pacientes. La caché de 30 s bajaba la FRECUENCIA, no el TAMAÑO: en
+frío, cada pantalla de lista costaba el consultorio completo. Y
+`findNotaByIdInClinic()` era peor: bajaba **todos** los pacientes y luego pedía
+la nota **uno por uno, en serie**. Con 50 000 pacientes, una URL malformada
+costaba 50 001 lecturas encadenadas — la pantalla de rescate era peor que el
+enlace roto que venía a arreglar. Y `/cumplimiento/retencion` disparaba un
+`Promise.all` sobre **todos** los pacientes con un `getNotas` cada uno; su propio
+comentario lo admitía a medias: «puede ser lento si hay muchos». No era lento:
+era insostenible.
+
+*Segundo*, y es el que hace falta contar. **Acotar la lectura abre un defecto
+nuevo.** Catorce pantallas piden «la lista» y a partir de ahora reciben, sin
+enterarse, un RECORTE. En un consultorio de 600 pacientes eso significa que el
+buscador dice «sin coincidencias» de alguien que existe, que la lista de
+retención NOM-004 dice «ninguno por revisar», y que un `.find()` sobre el recorte
+devuelve «no está». Los tres fallan **hacia el silencio**, que es la peor
+dirección: un error ruidoso se arregla, uno callado se cree.
+
+**DE DÓNDE VIENE EL ARREGLO, Y POR QUÉ NO FUE UN MERGE.** La lectura acotada ya
+estaba escrita en el **PR #356** (`product/scale-hotpaths-342`) y nunca llegó a
+esta rama: keyset con `startAfter(nombre, id)` y `documentId()` de desempate,
+búsqueda por prefijos con ventana, techo de compatibilidad y bandera `truncada`.
+Se **porta**, no se reescribe — hacer una segunda implementación teniendo una
+canónica es justo lo que prohíbe la política del repositorio.
+
+Pero no se pudo fusionar a ciegas: **#356 es anterior a REG-323**, y su
+`updatePatient` no tiene `vistoEn`. Un merge directo habría devuelto la guardia
+de concurrencia al estado en que el último en pulsar Guardar pisaba al otro sin
+enterarse. Se trajo la lectura acotada y se conservaron intactas la escritura
+idempotente, la bitácora del alta y `vistoEn`.
+
+**LA REGLA QUE LO HACE SEGURO.** Las lecturas dependen del límite de página o de
+la ventana de búsqueda, **nunca del tamaño del consultorio**. Y quien lee de
+forma acotada o bien **busca en el servidor**, o bien **declara el recorte en
+pantalla**: filtrar en memoria sobre un recorte y callarlo no es una opción.
+
+- **Paleta ⌘K** — estaba montada en el layout, así que se bajaba el directorio
+  entero desde *cualquier* pantalla para pintar seis filas. Ahora: una página
+  corta en frío, búsqueda indexada al teclear, y aviso cuando la ventana se
+  llena. El resultado va **atado al texto que lo produjo**, para no enseñar un
+  instante los resultados de la búsqueda anterior como si fueran de ésta.
+- **Consultor** — necesitaba UN paciente y se bajaba el directorio para hacer
+  `.find()`. Ahora `getPatient`.
+- **Retención** — páginas con techo y notas en TANDAS; el paralelismo sigue
+  (en serie serían minutos) pero acotado. Y si llega al techo **lo dice**.
+
+**LAS PRUEBAS.** `src/__tests__/scale-342-lecturas-acotadas.test.ts` (37 casos,
+portado con su PR) y `src/__tests__/una-lista-recortada-lo-dice.test.ts`
+(8 casos, nuevo, sobre los llamadores). El primero probado al revés quitando `limitarA(limite + 1)`: caen 5
+casos, incluido el que se llama «las lecturas no dependen del tamaño del
+consultorio». El segundo lleva su propio caso al revés con la fuente anterior.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Quedan once pantallas** llamando a `getPatients` y recibiendo el recorte
+  **sin declararlo** — `/pacientes`, `/citas`, `/crm`, `/asistente`,
+  `/hospitalizacion`, `/farmacia`, `/membresias`, `/cumplimiento`,
+  `/reactivacion`, `/migracion`. Ya no tumban el navegador, pero pueden decir
+  «no hay» de un paciente que existe. Abiertas como P1 en el tablero, **no dadas
+  por buenas**.
+- **`/pacientes` sigue filtrando y ordenando en memoria** sobre el recorte. Es la
+  pantalla que más lo nota y necesita paginación real en la interfaz, no sólo en
+  la librería.
+- **La retención debería leerse de un trabajo de servidor**, no recalcularse en
+  el navegador. El cron paginado ya existe (`/api/cron/retencion`); esta pantalla
+  todavía no lo consume.
+- **`getNotas` sigue sin cota**: la historia completa de un paciente, con las dos
+  transcripciones dentro. Es la siguiente amplificación y sigue abierta.
+- **Un documento de paciente SIN campo `nombre` no aparece en el listado.**
+  Firestore omite de una consulta ordenada los documentos sin el campo del
+  `orderBy`. Es un límite CONOCIDO y probado, heredado de #356 con su golden, no
+  un supuesto: se encuentra por otro campo vía `buscarPacientes`.
+- **Nada se ha visto en un navegador**, ni medido contra Firestore real. Esto
+  acota las lecturas; **no demuestra capacidad**. La medición sigue pendiente.

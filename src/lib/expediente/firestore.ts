@@ -1,6 +1,7 @@
 import {
-  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
+  collection, collectionGroup, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, orderBy, where, writeBatch, runTransaction,
+  limit as limitarA, documentId,
   type DocumentReference,
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
@@ -50,21 +51,122 @@ export async function getNota(clinicId: string, patientId: string, notaId: strin
 }
 
 /**
- * Busca una nota por ID sin conocer el patientId.
- * Recorre todos los pacientes de la clínica buscando la nota.
- * Útil como ruta de rescate cuando el URL llega malformado (un solo segmento).
- * No expone PII fuera del tenant — usa la misma estructura clinics/{clinicId}/patients.
+ * ── EL RESCATE COSTABA N+1 LECTURAS EN SERIE (A3 · portado del PR #356) ──────
+ *
+ * Lo que había: `findNotaByIdInClinic` bajaba TODOS los pacientes del
+ * consultorio y luego pedía el documento de la nota uno por uno, en serie, hasta
+ * dar con ella. Una URL malformada —el caso que esta ruta existe para rescatar—
+ * costaba N+1 lecturas y N viajes de ida y vuelta encadenados. Con 50 000
+ * pacientes son 50 001 lecturas y la pantalla de rescate es peor que el enlace
+ * roto que venía a arreglar.
+ *
+ * Lo que hay ahora, en dos escalones y ninguno proporcional al tamaño del
+ * consultorio: una consulta indexada acotada a 2 —el 2 no sobra: permite
+ * DETECTAR ambigüedad en vez de quedarse con la primera que aparezca— y, para
+ * las notas anteriores a este contrato, un sondeo de compatibilidad con techo.
+ * Por encima del techo NO se adivina: se devuelve `no-resoluble`, que no es lo
+ * mismo que `no-encontrada`.
+ *
+ * AISLAMIENTO: la pertenencia al consultorio se prueba contra la RUTA del
+ * documento, no contra un campo que alguien pudo escribir mal.
+ */
+/** Cuántos pacientes se sondean como mucho en el camino de compatibilidad. */
+export const TECHO_SONDEO_NOTA = 50
+
+export type ResultadoNotaEnClinica =
+  | { estado: 'encontrada'; patientId: string; notaId: string; nota: NotaMedica }
+  | { estado: 'no-encontrada' }
+  | { estado: 'ambigua' }
+  | { estado: 'no-resoluble'; pacientesSondeados: number }
+
+/**
+ * Deriva el paciente de la RUTA de la nota y, de paso, prueba que la nota vive
+ * dentro de este consultorio. Devuelve null si la ruta no es exactamente
+ * `clinics/{clinicId}/patients/{patientId}/notas/{notaId}`.
+ */
+function pacienteDeLaRutaDeNota(ruta: string, clinicId: string): string | null {
+  const s = ruta.split('/')
+  if (s.length !== 6) return null
+  if (s[0] !== 'clinics' || s[1] !== clinicId || s[2] !== 'patients' || s[4] !== 'notas') return null
+  return s[3] || null
+}
+
+export async function buscarNotaEnClinica(clinicId: string, notaId: string): Promise<ResultadoNotaEnClinica> {
+  if (!clinicId || !notaId) return { estado: 'no-encontrada' }
+
+  // ── 1. Consulta indexada, acotada a 2 ────────────────────────────────────
+  try {
+    const snap = await getDocs(query(
+      collectionGroup(db, 'notas'),
+      where('clinicId', '==', clinicId),
+      where('metadata.id', '==', notaId),
+      limitarA(2),
+    ))
+    let propias = 0
+    let primera: { patientId: string; id: string; data: Record<string, unknown> } | null = null
+    for (const d0 of snap.docs) {
+      const patientId = pacienteDeLaRutaDeNota(d0.ref.path, clinicId)
+      if (!patientId) continue
+      propias++
+      if (!primera) primera = { patientId, id: d0.id, data: d0.data() as Record<string, unknown> }
+    }
+
+    if (propias > 1) return { estado: 'ambigua' }
+    if (primera) {
+      return {
+        estado: 'encontrada',
+        patientId: primera.patientId,
+        notaId: primera.id,
+        nota: normNota(primera.data, primera.id),
+      }
+    }
+    // Hubo candidatas pero NINGUNA de este consultorio: se cierra aquí. No se
+    // sondea, porque lo único que se sabe es que ese id vive en otro tenant.
+    if (snap.docs.length > 0) return { estado: 'no-encontrada' }
+  } catch {
+    /**
+     * Índice compuesto o regla de `collectionGroup` ausentes → el SDK lanza.
+     * No es motivo para tumbar el rescate ni para volver al recorrido total:
+     * se cae al sondeo acotado de abajo, que sigue siendo O(techo).
+     */
+  }
+
+  // ── 2. Sondeo de compatibilidad, acotado ─────────────────────────────────
+  const pacientesSnap = await getDocs(query(
+    collection(db, 'clinics', clinicId, 'patients'),
+    orderBy(documentId(), 'asc'),
+    limitarA(TECHO_SONDEO_NOTA + 1),
+  ))
+  const hayMasPacientes = pacientesSnap.docs.length > TECHO_SONDEO_NOTA
+  const candidatos = pacientesSnap.docs.slice(0, TECHO_SONDEO_NOTA)
+
+  // En paralelo: el bucle en serie encadenaba N viajes de ida y vuelta.
+  const sondeos = await Promise.all(candidatos.map(async p => ({
+    patientId: p.id,
+    snap: await getDoc(notaDoc(clinicId, p.id, notaId)),
+  })))
+  const aciertos = sondeos.filter(s => s.snap.exists())
+
+  if (aciertos.length > 1) return { estado: 'ambigua' }
+  if (aciertos.length === 1) {
+    const { patientId, snap } = aciertos[0]
+    return { estado: 'encontrada', patientId, notaId: snap.id, nota: normNota(snap.data() as Record<string, unknown>, snap.id) }
+  }
+  return hayMasPacientes
+    ? { estado: 'no-resoluble', pacientesSondeados: candidatos.length }
+    : { estado: 'no-encontrada' }
+}
+
+/**
+ * Compatibilidad: la forma anterior (`{ patientId, nota } | null`) para los
+ * llamadores que no distinguen los cuatro estados. `no-resoluble` devuelve null
+ * igual que `no-encontrada` — por eso quien le habla a un humano debería usar
+ * `buscarNotaEnClinica` y decir la verdad: no es lo mismo «no existe» que «no
+ * la busqué entera».
  */
 export async function findNotaByIdInClinic(clinicId: string, notaId: string): Promise<{ patientId: string; nota: NotaMedica } | null> {
-  // Listar todos los pacientes del tenant
-  const patientsSnap = await getDocs(collection(db, 'clinics', clinicId, 'patients'))
-  for (const p of patientsSnap.docs) {
-    const ns = await getDoc(notaDoc(clinicId, p.id, notaId))
-    if (ns.exists()) {
-      return { patientId: p.id, nota: { ...ns.data(), id: ns.id } as NotaMedica }
-    }
-  }
-  return null
+  const r = await buscarNotaEnClinica(clinicId, notaId)
+  return r.estado === 'encontrada' ? { patientId: r.patientId, nota: r.nota } : null
 }
 
 export interface OpcionesCrearNota {
