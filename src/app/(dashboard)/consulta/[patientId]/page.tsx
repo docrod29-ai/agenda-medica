@@ -132,6 +132,7 @@ import { detectarInteracciones, detectarControlados } from '@/lib/expediente/far
 import { SelloMotor } from '@/components/SelloMotor'
 import { construirPlanPROA } from '@/lib/expediente/proa'
 import { logAudit } from '@/lib/expediente/audit-log'
+import { safeLog } from '@/lib/security/sanitize'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma, normalizarParaSello, HASH_VERSION } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
@@ -1894,7 +1895,10 @@ export default function ConsultaActivaPage() {
       if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso })
       else {
         // Muestra el MOTIVO real (no un toast mudo) y lo deja en consola para diagnóstico.
-        console.error('[evidencia] fallo', res.status, data)
+        // REG-339 — el cuerpo del error puede devolver el contexto del paciente
+      // que se mandó (edad, sexo, alergias, diagnósticos). El estado dice qué
+      // pasó; el cuerpo no hace falta para eso.
+      console.error('[evidencia] fallo', res.status)
         toast(data?.error || `No se pudo analizar (HTTP ${res.status})`, 'error')
       }
     } catch (e) { console.error('[evidencia] excepción', e); toast(`Error de red al analizar (${String(e).slice(0, 60)})`, 'error') }
@@ -2207,7 +2211,23 @@ export default function ConsultaActivaPage() {
           !data.secciones?.resumenClinico?.trim() &&
           !data.secciones?.laboratorios?.trim()) {
         toast('La IA no pudo estructurar el dictado para preoperatoria. Revisa el material de origen y reintenta.', 'error')
-        console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipoActivo, 'Respuesta:', data)
+        /**
+         * REG-339 — AQUÍ IBA LA NOTA ENTERA A LA CONSOLA.
+         *
+         * Esta línea mandaba `data`, que es la nota clínica estructurada
+         * completa: resumen, laboratorios, cirugía propuesta. Un `safeLog` no
+         * lo arregla — sus patrones cazan CURP, RFC y correos, y aquí el PHI
+         * **es la prosa clínica misma**, que ningún patrón reconoce.
+         *
+         * Lo que este aviso necesita para diagnosticar es QUÉ tipo se mandó y
+         * CUÁLES secciones llegaron vacías. Eso es lo que se registra: la
+         * forma de la respuesta, nunca su contenido.
+         */
+        console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipoActivo, 'Vacías:', {
+          cirugiaPropuesta: !data.secciones?.cirugiaPropuesta?.trim(),
+          resumenClinico: !data.secciones?.resumenClinico?.trim(),
+          laboratorios: !data.secciones?.laboratorios?.trim(),
+        })
       }
       if (!enVivo) {
         setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
@@ -2225,7 +2245,10 @@ export default function ConsultaActivaPage() {
       // causa real (_aviso). Mostramos esa causa en vez de un falso "éxito" verde —
       // así se sabe POR QUÉ falló (HTTP 401, sobrecarga, respuesta vacía, etc.).
       if (data.fallbackLocal || data._aviso) {
-        console.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
+        // REG-339 — `_detalleDebug` viene del proveedor y no está acotado: puede
+        // arrastrar el eco del texto que se le mandó. La CAUSA basta para saber
+        // por qué se cayó a parser local; el detalle se pasa por el redactor.
+        safeLog.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
         // La nota la produjo el parser local: que la procedencia lo diga en vez
         // de arrastrar el modelo del procesamiento anterior.
         if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString() })

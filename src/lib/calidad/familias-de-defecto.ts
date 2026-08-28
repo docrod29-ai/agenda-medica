@@ -46,7 +46,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ningún camino del producto escribía jamás un documento en esa colección.
      * No faltaba una pantalla — faltaba el ACTO que la llena.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335],
+    /**
+     * 337 es la variante que SOBREVIVE a su propia reparación. REG-252 ya había
+     * cerrado esta misma fuga —`tareaDeResultado` escrita, probada y sin
+     * llamar— conectándola en el escritor hospitalario. El escritor ambulatorio
+     * es otro, y se quedó fuera. La función TENÍA llamador, así que ningún
+     * guardián de módulos huérfanos podía verla: el defecto no era que no
+     * corriera, sino que no corría en TODOS los caminos por los que entra el
+     * dato.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337],
   },
   {
     clave: 'se_contradice',
@@ -124,7 +133,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Un dato o un cobro que cruza la frontera de su dueño. Poco frecuente y ' +
       'de consecuencia alta: aquí un solo caso es un incidente, no una molestia.',
-    regs: [153, 161, 162, 163, 224],
+    /**
+     * 339: la nota clínica entera se escribía en la consola del navegador. El
+     * dato cruza la frontera de su dueño igual que en los otros cuatro, sólo que
+     * la salida no es otro consultorio: es el equipo, el soporte y la captura de
+     * pantalla. Se anota aquí una lección que los demás no traían — contra un
+     * cuerpo clínico LIBRE no existe redactor: `safeLog` caza CURP y correos, y
+     * «varón de 62 años con angina inestable» no coincide con ningún patrón. La
+     * única defensa es no mandarlo.
+     */
+    regs: [153, 161, 162, 163, 224, 339],
   },
   {
     clave: 'charter_vacio',
@@ -202,7 +220,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * tenía que acordarse de construir entre un merge y el siguiente. Nadie se
      * acordó, y el verde se compró revirtiendo la rama entera.
      */
-    regs: [241, 253, 310, 334],
+    /**
+     * 338: el QR del segundo factor se dibujaba en local en UNA de las dos
+     * pantallas de enrolamiento. Aquí lo que se repite a mano no es un dato
+     * sino una DECISIÓN de seguridad, y se desfasó igual: la pantalla que no se
+     * actualizó siguió mandándole el secreto compartido a un tercero. La
+     * reparación es la que dicta la familia — no volver a copiar el arreglo,
+     * sino una compuerta que vigile la propiedad en todo el árbol y falle
+     * cuando una pantalla nueva se separe.
+     */
+    regs: [241, 253, 310, 334, 338],
   },
   {
     /**

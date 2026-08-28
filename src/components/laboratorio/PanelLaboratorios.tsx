@@ -157,11 +157,22 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
     const vinculo = vinculoDeSujeto(revision.dictamen, revision.destino, confirmadoSujeto, new Date().toISOString())
     if (!vinculo) { toast(revision.dictamen.motivo, 'error'); return }
     try {
-      await guardarPanelLab(clinicId, patientId, {
+      const guardado = await guardarPanelLab(clinicId, patientId, {
         fecha: revision.fecha, resultados: revision.resultados,
         noReconocidas: revision.noReconocidas, fuente: revision.fuente,
       }, vinculo, revision.clave)
-      toast('Laboratorio guardado', 'success'); setRevision(null); setConfirmadoSujeto(false); cargar()
+      /**
+       * REG-337 — un pendiente que no nació NO se calla. El laboratorio está
+       * guardado (eso no se pierde), pero si la tarea de revisión no entró,
+       * nadie va a acordarse de mirarlo: hay que decirlo en el momento, no
+       * dejar que el silencio parezca éxito.
+       */
+      if (guardado.tareasCreadas < guardado.tareasEsperadas) {
+        toast('Laboratorio guardado, pero NO se pudo abrir el pendiente de revisión. Revísalo hoy.', 'error')
+      } else {
+        toast('Laboratorio guardado', 'success')
+      }
+      setRevision(null); setConfirmadoSujeto(false); cargar()
     } catch (e) {
       // Un rechazo por sujeto no vinculado NO es «reintenta»: es «esto no es de
       // este paciente». Decirlo mal enseñaría a insistir hasta que entre.

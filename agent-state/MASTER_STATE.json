@@ -18,7 +18,25 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1172",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
-  "trabajoLocalSinSubir": [],
+  "trabajoLocalSinSubir": [
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/csp-guard.test.ts",
+    " M src/__tests__/laboratorio-guardado-no-cruza-paciente.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/(dashboard)/cumplimiento/seguridad/page.tsx",
+    " M src/components/laboratorio/PanelLaboratorios.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/expediente/laboratorio/firestore.ts",
+    " M src/lib/tareas-clinicas/derivar.ts",
+    "?? src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts",
+    "?? src/__tests__/la-nota-no-se-cuenta-en-la-consola.test.ts",
+    "?? src/__tests__/laboratorio-resultado-abre-pendiente.test.ts"
+  ],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -51,12 +69,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "release/prod-package-2026-08-27",
+  "ramaActual": "claude/ausculta-consultorio-completion-hoahgw",
   "derivado": {
-    "regsEnElLedger": 184,
-    "ultimaREG": "REG-336",
-    "archivosDePrueba": 762,
-    "casosDePrueba": 9341,
+    "regsEnElLedger": 187,
+    "ultimaREG": "REG-339",
+    "archivosDePrueba": 765,
+    "casosDePrueba": 9356,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

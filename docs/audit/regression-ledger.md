@@ -9175,3 +9175,199 @@ no emite una llave que lo abre»), también probado al revés.
   normalizado y sin mirar dosis. Un ajuste de 500 mg a 1 g no se anuncia como
   cambio; la instrucción completa va arriba. Y si la lectura falla es `null`, no
   «sin cambios».
+
+---
+
+## REG-337 — en consultorio, que un resultado exista contaba como que alguien lo leyó
+
+**QUÉ FALLABA.** `guardarPanelLab` archivaba la hoja de laboratorio bajo el
+paciente y ahí terminaba el camino: no nacía ningún pendiente, nadie quedaba como
+dueño, no había fecha de vencimiento, y el panel no llevaba forma de saber si
+alguien lo había mirado. Un valor de potasio de 7.4 entraba al expediente y el
+producto no volvía a mencionarlo nunca.
+
+**CÓMO SE DESCUBRIÓ.** Auditando WS-11 del Master Completion Loop: buscando los
+llamadores de `tareaDeResultado()` aparecía uno solo, y estaba en
+`src/lib/hospital/firestore.ts`.
+
+**LA CAUSA RAÍZ, Y POR QUÉ ES INCÓMODA.** No fue un olvido. **REG-252 ya había
+encontrado exactamente esta fuga** —`tareaDeResultado()` escrita, probada y sin
+llamar— y la cerró. Su comentario razona bien y concluye mal: dice que se conecta
+en el escritor «porque éste es el cuello de botella: los dos caminos por los que
+hoy entra un resultado». Eso era cierto **del módulo de hospital**, no del
+producto. El camino ambulatorio —el que es prioridad comercial— tiene su propio
+escritor, `src/lib/expediente/laboratorio/firestore.ts`, y se quedó fuera.
+
+Arreglar un bucle en un escritor y dar por hecho que era el único es la variante
+de «escrito y sin conectar» que sobrevive a su propia reparación: la función
+**tenía** llamador, así que ningún guardián de módulos huérfanos podía verlo.
+
+**LA REGLA QUE LO HACE SEGURO.** Guardar un resultado **abre** su pendiente de
+revisión, y se conecta en el escritor: el siguiente camino de entrada —una
+importación, un webhook del laboratorio— lo hereda en vez de nacer con la fuga.
+
+Tres decisiones que quedan declaradas:
+
+- **Una tarea por HOJA, no por analito.** El hospital crea una por estudio porque
+  una orden lleva pocos; aquí un panel trae veinte, y veinte tareas por hoja
+  convertirían el worklist en el ruido contra el que avisa `POR_QUE_NO_SE_INFIERE`.
+  La prioridad sube a `critica` si cualquier analito lo es, y el detalle **nombra
+  cuáles** — que es lo que decide la urgencia.
+- **Lo crítico no se decide aquí.** Viaja tal cual lo marcó `evaluarCriticoLab`,
+  el mismo motor determinista y auditado que usa el hospital.
+- **«Revisado» vive en la tarea y en ningún otro sitio.** Añadir un `revisado` al
+  panel habría creado una segunda fuente de verdad del mismo hecho.
+
+Y, siguiendo a REG-252: si el pendiente no se puede abrir, **no se calla**. El
+laboratorio se guarda igual (perderlo sería peor), pero la función devuelve
+`{tareasCreadas, tareasEsperadas}` y la pantalla avisa. Un pendiente que no nació
+en silencio se lee como éxito.
+
+**LA PRUEBA.** `src/__tests__/laboratorio-resultado-abre-pendiente.test.ts`
+(9 casos). Probado al revés: reintroducido el defecto —no llamar a `crearTareas`—
+caen 7 de los 9. Los otros dos son los que legítimamente esperan cero (hoja sin
+resultados legibles, y reintento de la misma intención).
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba que el médico VEA la tarea.** `tareasVivas()` usa `limit(200)`
+  **sin `orderBy`**, así que por encima de 200 tareas vivas devuelve 200
+  arbitrarias y ésta puede no salir. Queda abierto como P1-4 del tablero.
+- **No cubre `acted_on` ni `patient_notified`**: esos estados **no existen** en el
+  modelo. `progreso-resultado.ts` los declara `sin_dato` en vez de fingirlos.
+  Esto cierra «recibido → por revisar», no el bucle entero.
+- **No prueba `firestore.rules`** ni corre contra Firestore real.
+- **No se ha visto en un navegador.**
+- **La referencia y la interconsulta siguen fuera del bucle**: la primera es sólo
+  un impreso; la segunda, un array embebido sin dueño ni vencimiento.
+
+---
+
+## REG-338 — el secreto del segundo factor se le pedía dibujado a un tercero
+
+**QUÉ FALLABA.** La pantalla de enrolamiento de 2FA de `/cumplimiento/seguridad`
+componía el QR así:
+
+```
+https://api.qrserver.com/v1/create-qr-code/?data=<otpauth://totp/...&secret=...>
+```
+
+El `otpauth://` **lleva dentro la semilla compartida** que genera los códigos.
+Ponerla en la cadena de consulta de una URL hacia un servidor ajeno la entrega
+entera, y la deja además en los registros de ese servidor y de cualquier
+intermediario que vea la URL. Un segundo factor cuya semilla se publicó no es un
+segundo factor: es una contraseña más, en manos de alguien más.
+
+**CÓMO SE DESCUBRIÓ.** Auditoría WS-13 del Master Completion Loop. Y no era
+desconocido: `csp-guard.test.ts` lo llevaba anotado en su lista de exenciones
+como **«HALLAZGO abierto: manda el otpauth:// a un tercero»**.
+
+**LA CAUSA RAÍZ.** Hay **dos** pantallas de enrolamiento de TOTP, y se arregló
+una. `configuracion/secciones-seguridad.tsx` ya dibujaba el QR en local, con un
+comentario que nombra exactamente esta fuga. El arreglo existía, estaba escrito,
+y estaba a tres archivos de distancia de la pantalla que seguía filtrando.
+
+No es un defecto de conocimiento: es un defecto de alcance. Nada comprobaba que
+la propiedad valiera en **todas** las pantallas que manejan el secreto — sólo en
+la que alguien recordó.
+
+**LA REGLA QUE LO HACE SEGURO.** Un archivo que acuña o maneja un secreto TOTP
+no le pide el dibujo a nadie: el QR se genera en el navegador con `qrcode`, que
+ya era dependencia.
+
+**LA PRUEBA.**
+`src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts`
+(3 casos). Vigila **la propiedad sobre todo el árbol servido al navegador**, no
+una pantalla: una tercera pantalla de enrolamiento nacería vigilada.
+
+Probado al revés de dos maneras. Reintroducido el defecto en la pantalla real,
+caen 2 de los 3 casos y el fallo **nombra el archivo y la línea**. Y el tercer
+caso comprueba que el detector **sabe no fallar**: la pantalla de reservas tiene
+una variable llamada `qrUrl` que es la dirección **pública** del consultorio, y
+un guardián que la confundiera con un secreto obligaría a apagarlo — un guardián
+apagado no vigila nada.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prohíbe `api.qrserver.com` en general.** Siguen usándose dos QR de enlaces
+  **públicos** (el `wa.me` de auto-agenda y la URL de reservas). Ahí no viaja
+  ningún secreto: viaja una dirección hecha para repartirse. Es una dependencia
+  de un tercero y no funciona sin red, pero **no es divulgación de un secreto** y
+  no se cuenta como si lo fuera.
+- **No prueba que el QR se vea ni que se escanee**: eso es navegador, y no se ha
+  ejecutado.
+- **No cubre otras formas de sacar el secreto** — copiarlo a mano, una captura de
+  pantalla, un gestor de contraseñas que sincronice.
+- **No arregla lo que sigue abierto de MFA**: el segundo factor **no se exige en
+  el servidor en ningún sitio** (P1 del tablero), y `security-controls.ts` aún lo
+  declara `planned / BLOCKED` cuando está implementado.
+
+---
+
+## REG-339 — la nota clínica entera se escribía en la consola del navegador
+
+**QUÉ FALLABA.** En la pantalla de consulta, cuando la IA no lograba estructurar
+una nota preoperatoria, el aviso de diagnóstico hacía:
+
+```js
+console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipoActivo, 'Respuesta:', data)
+```
+
+`data` es la **nota clínica estructurada completa**: resumen clínico,
+laboratorios, cirugía propuesta. No hay ambigüedad sobre qué es — dos líneas más
+arriba se lee ese mismo objeto para decidir si las secciones venían vacías.
+
+Otros dos vertidos menores en la misma pantalla: `_detalleDebug` del proveedor
+(sin acotar, puede arrastrar el eco del texto enviado) y el cuerpo del error de
+evidencia (la petición lleva edad, sexo, alergias y diagnósticos).
+
+**CÓMO SE DESCUBRIÓ.** Auditoría WS-13 del Master Completion Loop, buscando PHI
+en `console.*`.
+
+**LA CAUSA RAÍZ.** El aviso quería explicar POR QUÉ había fallado y volcó el
+objeto entero por comodidad. Lo que de verdad hacía falta para diagnosticar era
+la **forma** de la respuesta —qué tipo se mandó, qué secciones llegaron vacías—,
+no su contenido.
+
+**POR QUÉ UN REDACTOR NO LO ARREGLA, Y ESTO ES LO IMPORTANTE.** `safeLog` caza
+CURP, RFC, correos, teléfonos, tarjetas y tokens. Aquí el PHI **es la prosa
+clínica misma**: «varón de 62 años con angina inestable» no coincide con ningún
+patrón, y no lo va a hacer nunca. Contra un cuerpo clínico libre la única defensa
+es **no mandarlo**. Pasar esta línea por `safeLog` habría dado la sensación de
+haberlo arreglado sin arreglarlo.
+
+Y no vale que sea la consola del navegador y no un registro de servidor: la
+regla de este proyecto no hace esa distinción, con razón. La consola de un
+consultorio se queda en el equipo, se abre en soporte y viaja en una captura de
+pantalla.
+
+**LA REGLA QUE LO HACE SEGURO.** Un cuerpo de respuesta clínica no entra en
+`console.*`. Se registra su **forma**: banderas, longitudes, códigos de estado.
+Donde el detalle sirve y no es prosa clínica —la causa de una caída a parser
+local— se pasa por `safeLog`.
+
+**LA PRUEBA.** `src/__tests__/la-nota-no-se-cuenta-en-la-consola.test.ts`
+(3 casos). Probado al revés reintroduciendo el vertido en la pantalla real: caen
+2 de 3 y el fallo **nombra archivo y línea**. El tercero comprueba que el cedazo
+**sabe no fallar**: una bandera booleana derivada del mismo objeto
+(`!data.secciones?.x?.trim()`) **no** se señala, porque registrar la forma es
+justo lo que se quiere permitir.
+
+Y hay un caso que impide el arreglo perezoso: se comprueba que el aviso **sigue
+diciendo lo que hacía falta**. Borrar el diagnóstico también habría puesto la
+prueba en verde, y habría perdido información útil.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Es un cedazo, no una demostración.** Reconoce el vertido por el NOMBRE de la
+  variable (`data`, `json`, `body`, `respuesta`, `secciones`, `nota`,
+  `paciente`). Un vertido con otro nombre se le escapa. Se dice en vez de
+  aparentar cobertura.
+- **Sólo recorre `src/app/(dashboard)`**, que es donde vive el cuerpo de la nota.
+  No es el repositorio entero.
+- **No prueba que `safeLog` redacte bien** — eso es de `errores-sin-phi`.
+- **No cubre PHI que salga por otras vías**: la red, el almacenamiento local, o
+  una captura de pantalla.
+- **Quedan identificadores sueltos en consola** fuera del dashboard
+  (`hospital/firestore.ts` registra ids de internamiento). Son ids, no cuerpos
+  clínicos, y quedan anotados sin cerrar.
