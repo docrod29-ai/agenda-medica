@@ -55,6 +55,7 @@
  * DESPLEGADA hay que verificarlo grabando más de ocho minutos.
  */
 import { describe, it, expect } from 'vitest'
+import { soloSonAdvertencias } from '@/hooks/useGrabacionAudio'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -126,7 +127,16 @@ describe('el motivo del fallo dice la verdad', () => {
 
 describe('un texto hecho sólo de advertencias no cuenta como texto', () => {
   it('si TODOS los lotes fallaron, no se da por bueno el resultado', () => {
-    expect(hook).toMatch(/const todoFalló = porPartes\.lotesFallidos > 0/)
+    /**
+     * MIGRADO EN H-07 (REG-323): la cuenta estaba escrita a mano aquí y **sólo
+     * aquí** — la rama de dictado, que sale por arriba de `detener()`, tiraba
+     * `lotesFallidos` al suelo y borraba el audio con la transcripción
+     * incompleta. Ahora es una función que usan las dos ramas, y se comprueba
+     * ejecutándola además de leerla.
+     */
+    expect(soloSonAdvertencias({ texto: '[⚠ FALTA UN TRAMO]', lotesFallidos: 2 })).toBe(true)
+    expect(soloSonAdvertencias({ texto: 'tos y fiebre', lotesFallidos: 0 })).toBe(false)
+    expect(hook).toMatch(/const todoFalló = soloSonAdvertencias\(porPartes\)/)
     expect(hook).toMatch(/if \(texto\.trim\(\) && !todoFalló\)/)
   })
 

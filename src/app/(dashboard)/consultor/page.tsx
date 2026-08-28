@@ -9,7 +9,19 @@ import { useTarea } from '@/context/TareasContext'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string; doi?: string }
-interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean; sinCitas?: boolean }
+/**
+ * El estado REAL de la recuperación (#314), no una interpretación de la lista
+ * de artículos. `sin_resultados` («se preguntó y no hay») y `no_consultado`
+ * («no se pudo preguntar») producían la misma pantalla, y son lo contrario.
+ */
+interface Recuperacion {
+  estado: 'con_evidencia' | 'sin_resultados' | 'no_consultado'
+  fuentesCitables?: number
+  procedencia?: { sourceId: string; proveedor: string }[]
+  avisos?: string[]
+  motivo?: string | null
+}
+interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean; sinCitas?: boolean; recuperacion?: Recuperacion }
 
 /** Nivel de evidencia orientativo por DISEÑO del estudio (proxy tipo GRADE, no un grado GRADE formal). */
 function nivelEvidencia(tipo?: string): { label: string; color: string } | null {
@@ -106,9 +118,9 @@ export default function ConsultorPage() {
         const lineas = buf.split('\n'); buf = lineas.pop() ?? ''
         for (const linea of lineas) {
           const s = linea.trim(); if (!s) continue
-          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; sinCitas?: boolean }
+          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; sinCitas?: boolean; recuperacion?: Recuperacion }
           try { ev = JSON.parse(s) } catch { continue }
-          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, fechaBusqueda: ev.fechaBusqueda, sinCitas: ev.sinCitas === true, cargando: false })
+          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, fechaBusqueda: ev.fechaBusqueda, sinCitas: ev.sinCitas === true, recuperacion: ev.recuperacion, cargando: false })
           else if (ev.type === 'delta') { acc += ev.text ?? ''; patch({ respuesta: acc, cargando: false }) }
           else if (ev.type === 'error') { acc = acc || `⚠️ ${ev.error}`; patch({ respuesta: acc, cargando: false }) }
         }
@@ -183,6 +195,24 @@ export default function ConsultorPage() {
                       reformulaba, la respuesta se leía idéntica a una respaldada
                       por literatura. El dato ya existía; sólo que nadie lo usaba.
                     */}
+                    {/*
+                      Y LA OTRA MITAD: «no se pudo preguntar» NO es «no hay».
+                      El cartel de abajo afirmaba que PubMed no tenía resultados
+                      también cuando PubMed no había contestado — un fallo de red
+                      con forma de hallazgo clínico. Ahora el estado viene del
+                      sobre de recuperación (#314) y cada caso dice lo suyo.
+                    */}
+                    {t.recuperacion?.estado === 'no_consultado' && !t.cargando && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 'var(--r-md)', padding: '8px 10px', color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)' }}>
+                        <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>
+                          NO se pudo consultar PubMed. <strong>No se sabe si hay literatura sobre esto</strong> —
+                          no es que no exista. Lo de abajo es razonamiento clínico sin búsqueda bibliográfica;
+                          vuelve a intentarlo en un momento.
+                          {t.recuperacion?.motivo ? <><br /><span style={{ opacity: 0.85 }}>{t.recuperacion.motivo}</span></> : null}
+                        </span>
+                      </div>
+                    )}
                     {t.sinCitas && !t.cargando && (
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 8, padding: '8px 10px', color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
                         <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />

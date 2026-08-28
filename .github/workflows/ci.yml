@@ -140,6 +140,18 @@ jobs:
       - run: npm ci
       - run: node scripts/lint-trinquete.mjs
 
+      # ── A11Y-GATE-001: la superficie del paciente, en cero ──────────────
+      #
+      # Va en el job del trinquete y no en el de vitest a propósito: la
+      # compuerta de verdad son las pruebas (`a11y-*.test.ts`, dentro de
+      # `npx vitest run`), y esto es la SEGUNDA mirada — la que imprime en el
+      # registro qué archivo y qué línea, para que quien lea un CI rojo no
+      # tenga que reproducirlo en su máquina para saber qué tocar.
+      #
+      # No añade dependencias: el analizador usa la API del compilador de
+      # TypeScript, que ya estaba en `devDependencies`.
+      - run: node scripts/design/medir-a11y-superficies-paciente.mjs --detalle
+
   # ── P0-5: el smoke público NO corría en ningún lado ───────────────────────
   #
   # `playwright.config.ts` y dos specs existían desde hace tiempo, pero ningún

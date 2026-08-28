@@ -1,0 +1,130 @@
+{
+  "recorrido": "GP-FINAL · flujo paciente",
+  "total": 20,
+  "ok": 20,
+  "defectos": 0,
+  "p0": 0,
+  "p1": 0,
+  "casos": [
+    {
+      "id": "GP-24",
+      "titulo": "el médico puede emitir el enlace del paciente",
+      "resultado": "OK",
+      "evidencia": "enlace clínico emitido"
+    },
+    {
+      "id": "GP-25",
+      "titulo": "el token válido abre la sesión del paciente",
+      "resultado": "OK",
+      "evidencia": "HTTP 200"
+    },
+    {
+      "id": "GP-26a",
+      "titulo": "el paciente ve el paquete que su médico liberó",
+      "resultado": "OK",
+      "evidencia": "HTTP 200, 1 paquete(s)"
+    },
+    {
+      "id": "GP-26b",
+      "titulo": "todo lo que sale está RELEASED, con quién y cuándo lo aprobó",
+      "resultado": "OK",
+      "evidencia": "nota-luzmaria-1:RELEASED"
+    },
+    {
+      "id": "GP-26c",
+      "titulo": "un paquete en DRAFT NO sale del portal aunque exista en la base",
+      "resultado": "OK",
+      "evidencia": "en la base: RELEASED,RELEASED,DRAFT · devueltos por el portal: RELEASED,RELEASED"
+    },
+    {
+      "id": "GP-26d",
+      "titulo": "el enlace de mostrador (agenda) NO abre el expediente",
+      "resultado": "OK",
+      "evidencia": "HTTP 403"
+    },
+    {
+      "id": "GP-27a",
+      "titulo": "el paciente consulta sus documentos clínicos",
+      "resultado": "OK",
+      "evidencia": "HTTP 200"
+    },
+    {
+      "id": "GP-27b",
+      "titulo": "en la respuesta del paciente no aparece ningún otro paciente",
+      "resultado": "OK",
+      "evidencia": "sólo lo suyo"
+    },
+    {
+      "id": "GP-28",
+      "titulo": "el paciente recibe sus citas para poder moverlas",
+      "resultado": "OK",
+      "evidencia": "1 cita(s)"
+    },
+    {
+      "id": "GP-29",
+      "titulo": "el portal del paciente carga en un teléfono",
+      "resultado": "OK",
+      "evidencia": "CONSULTORIO DE MEDICINA INTERNA REFORMA | Hola, Luz | Aquí puedes gestionar tus citas. | Próximas citas | No tienes citas próximas. | Hoy | Preguntar "
+    },
+    {
+      "id": "GP-30a",
+      "titulo": "el paciente ve su medicación liberada",
+      "resultado": "OK",
+      "evidencia": "Amoxicilina visible"
+    },
+    {
+      "id": "GP-30b",
+      "titulo": "el portal NO enseña la medicación del paciente del borrador",
+      "resultado": "OK",
+      "evidencia": "sin fugas"
+    },
+    {
+      "id": "GP-30c",
+      "titulo": "el portal no revienta en el navegador",
+      "resultado": "OK",
+      "evidencia": "sin excepciones"
+    },
+    {
+      "id": "GP-31",
+      "titulo": "revocar corta un enlace ya emitido",
+      "resultado": "OK",
+      "evidencia": "antes HTTP 200 → después HTTP 401"
+    },
+    {
+      "id": "GP-32",
+      "titulo": "un token con la firma alterada no entra",
+      "resultado": "OK",
+      "evidencia": "HTTP 401"
+    },
+    {
+      "id": "GP-33",
+      "titulo": "el portal tiene freno ante una ráfaga",
+      "resultado": "OK",
+      "evidencia": "30/40 respondieron 429"
+    },
+    {
+      "id": "GP-34",
+      "titulo": "tras el freno, el paciente sigue pudiendo entrar (no se quema el enlace)",
+      "resultado": "OK",
+      "evidencia": "HTTP 429"
+    },
+    {
+      "id": "GP-T1",
+      "titulo": "el médico del consultorio B trabaja en el suyo",
+      "resultado": "OK",
+      "evidencia": "HTTP 200"
+    },
+    {
+      "id": "GP-T2",
+      "titulo": "el médico de B NO puede emitir un enlace de un paciente de A",
+      "resultado": "OK",
+      "evidencia": "propio HTTP 200 · ajeno HTTP 403"
+    },
+    {
+      "id": "GP-T3",
+      "titulo": "un token no se puede reapuntar a otro consultorio sin romper la firma",
+      "resultado": "OK",
+      "evidencia": "firma alterada → 401"
+    }
+  ]
+}

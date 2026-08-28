@@ -28,7 +28,7 @@ vi.mock('@/lib/firebase-admin', () => ({
   },
 }))
 
-import { limitar, limitarOResponder, respuesta429 } from '@/lib/rate-limit'
+import { limitar, limitarOResponder, limitarEstricto, respuesta429 } from '@/lib/rate-limit'
 
 beforeEach(() => {
   almacen.clear()
@@ -95,6 +95,20 @@ describe('limitar — ventana fija', () => {
     expect(r.ok).toBe(true)
     expect(r.restante).toBe(1)
   })
+
+  /**
+   * PATIENT-PORTAL-001 (P1). El fail-open de arriba NO cambia —veinte rutas
+   * dependen de él—, pero antes era INDISTINGUIBLE de «hay cupo»: `ok:true` y
+   * nada más. Ninguna ruta podía decidir distinto para lo que un token filtrado
+   * sí puede mover.
+   */
+  it('el fail-open queda DICHO: `fallo` distingue «hay cupo» de «no pude contar»', async () => {
+    expect((await limitar('ia:u6', 5, 60)).fallo).toBe(false)
+    transaccionFalla = true
+    const r = await limitar('ia:u6', 5, 60)
+    expect(r.ok).toBe(true)      // la política por defecto sigue siendo dejar pasar
+    expect(r.fallo).toBe(true)   // …pero ahora se sabe por qué
+  })
 })
 
 describe('respuesta429 y limitarOResponder', () => {
@@ -108,5 +122,52 @@ describe('respuesta429 y limitarOResponder', () => {
     expect(await limitarOResponder('bot:u9', 1, 60)).toBeNull()
     const res = await limitarOResponder('bot:u9', 1, 60)
     expect(res?.status).toBe(429)
+  })
+})
+
+
+/**
+ * PATIENT-PORTAL-001 (P1) — MISMO CONTADOR, OTRA POLÍTICA DE FALLO.
+ *
+ * `limitarEstricto` no es otro sistema de límite: llama al mismo `limitar`,
+ * escribe el mismo documento y usa la misma ventana. Lo único que cambia es qué
+ * pasa cuando el freno no pudo contar. Se usa donde un token filtrado puede
+ * MOVER algo —la agenda del consultorio, un cobro, un intento de adivinar un
+ * token de reseña—, y no donde sólo cuesta dinero.
+ *
+ * QUÉ NO CUBRE: no decide qué rutas merecen ser estrictas —eso se prueba en
+ * `portal-limite-de-tasa.test.ts`, que mira qué invoca cada ruta—, ni el
+ * comportamiento bajo concurrencia real de Firestore.
+ */
+describe('limitarEstricto — sin freno no se pasa', () => {
+  it('con cupo se comporta igual que el laxo: deja pasar', async () => {
+    expect(await limitarEstricto('portal:mutacion:x', 2, 60)).toBeNull()
+    expect(await limitarEstricto('portal:mutacion:x', 2, 60)).toBeNull()
+  })
+
+  it('agotado el cupo devuelve 429 con Retry-After, igual que el laxo', async () => {
+    await limitarEstricto('portal:mutacion:y', 1, 60)
+    const res = await limitarEstricto('portal:mutacion:y', 1, 60)
+    expect(res?.status).toBe(429)
+    expect(res?.headers.get('Retry-After')).toBeTruthy()
+  })
+
+  it('AL REVÉS — aquí está la diferencia entera: si el freno no cuenta, NO deja pasar', async () => {
+    transaccionFalla = true
+    expect(await limitarOResponder('portal:mutacion:z', 1, 60)).toBeNull()  // el laxo deja pasar
+    const res = await limitarEstricto('portal:mutacion:z', 1, 60)           // el estricto no
+    expect(res).not.toBeNull()
+    expect(res?.status).toBe(503)
+  })
+
+  it('y ese 503 es RETRYABLE: trae Retry-After y no quema nada', async () => {
+    transaccionFalla = true
+    const res = await limitarEstricto('portal:mutacion:w', 1, 60)
+    expect(res?.headers.get('Retry-After')).toBe('30')
+    expect(res?.status).not.toBe(401)   // no es «tu enlace ya no vale»
+    expect(res?.status).not.toBe(429)   // ni «te pasaste de cupo»
+
+    transaccionFalla = false
+    expect(await limitarEstricto('portal:mutacion:w', 1, 60)).toBeNull()
   })
 })

@@ -7987,3 +7987,1191 @@ cubre las dos superficies que la matriz señaló, no «todas las pantallas tiene
 h1». Hay rutas que legítimamente no lo llevan —`/expedientes` y la propia ruta
 de rescate son redirecciones, no pantallas— y convertir eso en regla obligaría
 a poner encabezados donde no hay pantalla que encabezar.
+
+---
+
+## REG-323 — corregir un teléfono borraba las alergias del paciente
+
+**Área.** Identidad del paciente y escritura del expediente. Encontrado por la
+auditoría H-18 leyendo el payload de `handleSave` de `/pacientes` contra la
+lista de inputs que el modal monta de verdad.
+
+**Qué fallaba.** Editar el teléfono de un paciente desde `/pacientes`
+sobrescribía sus **alergias** con una cadena vacía. Silencioso, permanente, y
+disparado por una acción administrativa rutinaria que puede ejecutar un rol que
+ni siquiera ve el campo:
+
+1. Un paciente sin alergias registradas; la asistente abre `/pacientes` y la
+   lista queda en memoria del componente.
+2. El médico, en `/consulta/{id}`, anota «Penicilina». Se guarda, e invalida
+   **su** caché de módulo.
+3. La asistente, **sin recargar**, abre el editor de ese paciente, corrige el
+   teléfono y guarda.
+4. El documento queda con `alergias: ''`. En `audit_log` sólo constaba
+   `campos: ['nombre','telefono',…,'alergias','notas']` — los nombres, sin los
+   valores. **El dato perdido no se podía reconstruir.**
+
+`notas` sufría lo mismo y era peor de justificar: no tiene input en ninguna
+parte del producto, así que era un campo que sólo existía para escribirse.
+
+**Por qué era P0.** De `alergias` cuelgan a la vez el cruce alergia↔fármaco, la
+compuerta que impide firmar, el sesgo del reconocedor hacia los alérgenos y el
+recuadro rojo de la receta. Se apagaban los cuatro sin ninguna señal, y el campo
+vacío se lee después como «no se ha preguntado», no como «alguien lo borró».
+
+**Causa raíz — tres piezas, y sólo juntas borran.**
+
+1. **El formulario mandaba más campos de los que enseña.** El `payload` de
+   `handleSave` incluía siempre `alergias` y `notas` y se pasaba entero a
+   `updatePatient` → `updateDoc`, que sobrescribe campo por campo. Pero el input
+   de alergias vive tras `{mode === 'medico' && …}` y el de `notas` no existe.
+   (`mode` viene de `ModeContext`: es un conmutador de UI que cualquier médico
+   real puede poner en `secretaria`, y que se fuerza a `secretaria` para quien no
+   lo es. No es sólo el rol.)
+2. **La semilla podía estar vieja.** `openEdit(p)` toma `p` del array en memoria,
+   cargado una sola vez por montaje sobre el memo de 30 s de `getPatients`.
+   Nunca se relee el documento, e `invalidarCachePacientes` sólo corre en la
+   pestaña que escribió — es un `Map` de módulo, no un canal entre pestañas.
+3. **`sinUndefined` no filtra la cadena vacía.** Descarta `undefined` y deja
+   pasar `''`, así que el valor vacío llega a Firestore y borra.
+
+Y la defensa que existía no cubría este camino: la bitácora `paciente_modificado`
+con `antes`/`despues`/`vaciado` —escrita precisamente para que un vaciado de
+alergias no fuera silencioso— vive **sólo** en el input de `/consulta`.
+
+**El caso de 2026-07 acertó el objetivo y erró el mecanismo.** Cuando se acortó
+el formulario se escribió un guardián para que esconder un campo no lo borrara, y
+lo que congeló fue «`notas` sigue viajando en el payload». Viajar sólo conserva
+el dato mientras la semilla esté fresca; con una semilla vieja, viajar es
+exactamente lo que borra. La prueba estaba en verde con el defecto vivo.
+
+**Control permanente.** `src/lib/pacientes/campos-que-se-guardan.ts` construye el
+payload fuera de la pantalla, con una sola regla: **no se escribe lo que no se
+pudo leer.** `notas` no viaja nunca; `alergias` sólo cuando `mode === 'medico'`,
+que es cuando el input estuvo delante. La clave ausente deja intacto el valor
+guardado, en vez de pisarlo con el eco de una copia vieja. Es la regla 4 de
+seguridad clínica —«ausencia de dato no es dato de ausencia»— dicha en lenguaje
+de escritura, y la misma que este repositorio ya aplica en `guardarBorrador`.
+No impide borrar: con el input delante, vaciar el campo es una decisión del
+médico y sigue llegando.
+**Y una red secundaria, para lo que la primera no puede cubrir.** La primera
+impide que un campo NO editado pise nada; no dice nada de dos personas editando
+a la vez los MISMOS campos visibles, donde sin comparar nada gana el último en
+pulsar Guardar y el que perdió no se entera. `updatePatient` admite ahora el
+`updatedAt` que vio el llamador y rechaza la escritura si el documento cambió
+desde entonces —mismo `code` `conflicto-de-version` que `updateNota`, para que
+las pantallas no tengan que aprender dos nombres para el mismo suceso—, y el
+editor de `/pacientes` lo traduce a un aviso que no manda a mirar el wifi.
+Opcional a propósito: quien no pase la marca se comporta como antes.
+
+La bitácora `paciente_modificado` gana además `antes`/`despues`/`vaciado`
+**para `alergias` y sólo para `alergias`**: sin el `antes`, un vaciado queda
+registrado como «se tocó el campo alergias», indistinguible de haberlas escrito
+— que es exactamente lo que hizo irreconstruible el dato aquí. Es la excepción
+que ya existía en el input de `/consulta`, con ese mismo campo y ese mismo
+propósito, y no se amplía a ningún otro: cada valor en la bitácora es PHI que
+sale del expediente.
+
+`src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts`
+(22 casos, probado al revés ×7: alergias incondicional, `notas` de vuelta al
+payload, la pantalla volviendo a construirlo a mano, la guardia de versión
+retirada, la pantalla dejando de pasar su marca, la bitácora volviendo a decir
+sólo los nombres de los campos, y el detalle ampliado a un campo que no lo
+necesita — cada reversión pone en rojo exactamente el caso que le toca).
+
+**Qué NO cubre, declarado.**
+
+- **No cubre el camino de `/consulta`**, que tiene su propio input de alergias,
+  su propio guardado y su propia bitácora con `antes`/`despues`/`vaciado`.
+  Borrar el campo desde ahí sigue siendo posible, y debe serlo.
+- **No prueba la concurrencia CORRIENDO Firestore.** La guardia de `updatedAt`
+  se comprueba leyendo el fuente: esta suite corre en `node`, sin emulador ni
+  jsdom. Que dispare de verdad contra la base sólo lo puede decir el emulador.
+- **La guardia no cubre las escrituras de un solo campo desde `/consulta`**, que
+  no pasan `vistoEn` a propósito: escriben un campo, no el formulario entero, y
+  no pagan la lectura extra. Dos sesiones editando ESE campo a la vez siguen
+  ganando por orden de llegada — pero ahí el vaciado sí queda en la bitácora con
+  su `antes`.
+- **No cubre la caché de 30 s de `getPatients`.** La semilla vieja sigue siendo
+  vieja: lo que se corrige es que ya no pueda vaciar un campo clínico.
+- **No cubre `email`**, que tiene la MISMA forma —sin input en esta pantalla y
+  viajando como `f.email.trim()`— y por tanto el mismo riesgo con una semilla
+  vieja. Queda declarado como **deuda P2 no pagada**, fuera del alcance de H-18
+  a propósito: no es un campo clínico y ampliarlo aquí habría sido rediseñar el
+  formulario. `curp` no corre ese riesgo porque su vacío sale como `undefined` y
+  `sinUndefined` lo descarta.
+- **No cubre `alergiasEstructuradas`**, que esta pantalla nunca ha tocado.
+
+## REG-324 — el laboratorio se archivaba en el paciente que estuviera abierto
+
+**Área.** Importación de resultados de laboratorio por visión (camino cotidiano
+de Practice). Encontrado por la auditoría **H-17** (26-ago-2026) recorriendo
+las fronteras de escritura clínica y preguntando por cada una «¿qué prueba que
+esta evidencia es de este paciente?».
+
+**Qué fallaba.** El flujo completo era:
+
+```
+archivo → visión → validarPanel(fecha + valores) → modal «revisa lo que leyó
+la IA» → guardarPanelLab(clinicId, patientId, panel)
+```
+
+Ni una sola pieza miraba **de quién** era la hoja. El `patientId` salía de la
+pantalla abierta y `guardarPanelLab` lo obedecía sin preguntar. Subir el PDF del
+paciente anterior con la ficha del siguiente abierta archivaba sus resultados
+bajo el paciente equivocado, con mensaje verde y sin un solo aviso — y de ahí
+salen las gráficas de tendencia y el texto que el médico pega en la nota. El
+modal pedía revisar los **números**; nunca el **sujeto**.
+
+Y el mismo `addDoc` acuñaba la identidad del documento en la **escritura**: un
+doble clic o una respuesta perdida en la red dejaba el estudio duplicado y la
+serie temporal con dos puntos donde había una extracción.
+
+**Causa raíz.** Una regla de privacidad aplicada un paso demasiado lejos. «No se
+persisten identificadores del paciente» se había implementado en el prompt de
+visión como «no se **extraen**» —«NO transcribas el nombre del paciente»— y eso
+**destruyó la única evidencia** con la que se podía verificar el sujeto. Sin
+nombre que comparar, la identidad del documento sólo podía nacer del contexto de
+pantalla. Es la forma exacta de **REG-252** (el mismo defecto en el camino FHIR
+de hospital, ya reparado con `verificaSujeto`) y de **REG-160**: se validaba una
+cosa y se escribía sobre otra. La lección estaba aprendida en un módulo y nunca
+llegó al hermano que se usa todos los días.
+
+**Control permanente.** El nombre se lee, se **compara** y se **tira**:
+`dictaminarSujeto` reúsa `verificaSujeto` (frontera canónica) y desempata con
+`similitudNombre` (el comparador de identidad de personas que ya decide si dos
+expedientes son el mismo paciente), porque un OCR de hoja impresa cambia el
+orden de los apellidos y pierde acentos, y un bloqueo que salta en el caso normal
+se aprende a esquivar. Sólo `coincide` guarda solo; `sin-identificar` exige
+confirmación explícita del médico viendo el nombre del destino; `ambiguo` y
+`no-coincide` **no persisten**. Quien lo hace cumplir es `autorizaGuardar`
+dentro de `guardarPanelLab` —esconder un botón no cierra una escritura—, que
+además re-comprueba el destino contra el vínculo: si el médico cambió de paciente
+durante la revisión, el vínculo **caduca, no se re-apunta**. El panel queda
+escrito con el paciente y el consultorio **dentro** del documento, y
+`firestore.rules` exige que eso sea la ruta. La identidad del documento pasa a
+`idIdempotente(clinicId, 'laboratorio', …)`: el reintento aterriza en el mismo
+doc. Lo único que se persiste del sujeto es el veredicto — nunca un nombre.
+`src/__tests__/laboratorio-sujeto-vinculado.test.ts` (27 casos) y
+`src/__tests__/laboratorio-guardado-no-cruza-paciente.test.ts` (13 casos,
+cuentan documentos), probados al revés: sin el módulo, la suite no compila
+siquiera, que es el estado en que vivía el producto.
+
+**Qué NO cubre, declarado.** No prueba que la IA lea bien el nombre —eso es del
+proveedor de visión—: prueba qué hace el sistema con lo que lea, incluido no leer
+nada. No cubre `firestore.rules` en ejecución (va contra el emulador): la regla
+es una segunda capa, la medida es la del escritor. No cubre concurrencia real de
+dos pestañas sobre el mismo id. Y **no toca los otros caminos de evidencia** —
+fotografía clínica, importación de Evidence, antibiograma por foto— que tienen la
+misma forma de riesgo y siguen sin frontera de sujeto: eso es hallazgo abierto,
+no reparado aquí.
+
+## REG-325 — el enlace de la teleconsulta se prometía en cada mensaje y no se mandaba en ninguno
+
+**Qué fallaba.** El paciente que agendaba una **videoconsulta** por WhatsApp
+recibía, en la confirmación: «Recibirás el enlace de la videollamada por este
+medio antes de tu cita». Lo volvía a recibir en el recordatorio de 24 h. Lo
+volvía a recibir el mismo día. El enlace **no llegaba nunca**, porque el único
+mensaje que decía «antes de tu cita» era justamente el que repetía la promesa.
+A la hora de su consulta el paciente no tenía forma de entrar a la sala.
+
+**Cómo se descubrió.** Recorriendo el flujo canónico del Bloque 7 (WhatsApp →
+cita → confirmación → recordatorio → retorno a consulta) con la pregunta de
+`.claude/rules/el-dato-tiene-que-llegar.md`: «¿dónde acaba este dato?». El
+enlace acababa en la función que lo compone. `grep dondeEsLaCita` devolvía
+cuatro llamadas; `grep tokenPaciente` ninguna fuera del módulo.
+
+**Causa raíz.** `lib/telesalud/donde-es.ts` sólo emite el enlace si recibe un
+`tokenPaciente`, y hace bien: `/api/telesalud/sala` exige prueba de titularidad y
+responde 404 «Cita no encontrada» a un enlace sin token, así que un enlace sin
+credencial es peor que ninguno. Lo que fallaba está una capa arriba: el campo era
+**opcional**, y los cuatro llamadores lo omitían. Compilaba.
+
+Es exactamente el defecto contra el que avisa la cabecera de
+`enlaceSalaPaciente()`, que hizo el token obligatorio en SU firma precisamente
+para que «no vuelva en silencio en el siguiente sitio que llame sin él». Volvió
+un nivel más arriba, donde alguien lo dejó opcional otra vez. Misma familia que
+REG-167, REG-170 y REG-320: escrito, conectado, y el dato sin llegar.
+
+**Control permanente.** `tokenPaciente` pasa a ser **obligatorio** en
+`DatosDeLugar`: quien no tenga token tiene que escribir `''`, que es una decisión
+y no un olvido — y el compilador se lo pide a cada llamador futuro.
+`api/cron/reminders` —el único que corre ANTES de la cita— firma el token real
+del paciente de esa cita, con alcance `agenda` (no `clinico`: el enlace viaja por
+WhatsApp y se reenvía) y con la versión del expediente, para que una revocación
+lo tumbe. Los otros tres llamadores declaran `''` con su razón escrita: el bot
+agenda con semanas de antelación y su token estaría muerto el día de la consulta;
+`lib/whatsapp.ts` se ejecuta en el navegador y firmar exigiría el secreto.
+`src/__tests__/el-enlace-de-la-teleconsulta-llega-al-paciente.test.ts`
+(14 casos; probado al revés: sin el arreglo caen 7).
+
+**Qué NO cubre, declarado.** No cubre el camino de **plantilla HSM**, que es por
+donde sale el recordatorio cuando la ventana de servicio de 24 h está cerrada
+—el caso normal—. Las plantillas aprobadas llevan parámetros de texto y ninguna
+URL; meterla dentro de un parámetro o mandar texto libre fuera de la ventana es
+lo que Meta rechaza. Añadir una plantilla con botón de URL dinámica es un paso
+externo del dueño: queda declarado en
+`ENLACE_TELECONSULTA_NO_CABE_EN_PLANTILLA` (`lib/whatsapp/templates.ts`) y
+sellado por dos casos, con estado **OWNER_APPROVAL_REQUIRED**. Tampoco cubre la
+creación de la sala en el proveedor, la ventana horaria de apertura
+(`ventana-sala.ts`), ni la revocación por versión: `/api/telesalud/sala` autoriza
+hoy sin mirar `tokenVigente`, y eso es otra unidad de trabajo — registrada, no
+arreglada aquí.
+
+## REG-326 — al paciente con dolor en el pecho, el bot le contestaba el horario de atención
+
+**Qué fallaba.** El bot de WhatsApp **no tenía ninguna detección de urgencia**.
+Su primera decisión sobre lo que escribe el paciente es un detector de preguntas
+frecuentes que trabaja por **subcadena**:
+
+```
+if (/horario|hora|atiende|atencion|abren|cierran|cuando/.test(t)) return 'horario'
+```
+
+«Me duele el pecho desde hace una **hora**» contiene `hora`. El paciente con
+dolor torácico recibía, literalmente, el horario de atención del consultorio. Y
+«no puedo respirar» no casaba con ninguna pregunta frecuente ni con ningún verbo
+de agenda, así que caía al menú de bienvenida. Está reproducido contra el handler
+real: la prueba enseña las dos respuestas que salían.
+
+**Cómo se descubrió.** Auditando el Bloque 7 contra `patient-facing-ai.md` §6
+(«la urgencia gana a todo lo demás»). `grep` de `urgencia|emergencia|911` sobre
+`api/whatsapp/` y `lib/whatsapp/`: ni una línea.
+
+**Causa raíz.** **Precedencia**, no detección. La primera pregunta que se hacía
+el bot era «¿de qué tema habla?» en vez de «¿esto es una urgencia?». Un detector
+de temas por subcadena, preguntado primero, decide antes de que nadie mire si el
+paciente se está muriendo. El mismo orden invertido que ya había costado
+`lib/whatsapp/intencion.ts` («quiero agendar una consulta» contestaba el precio):
+aquella vez el precio de equivocarse era una cita perdida.
+
+**Control permanente.** `src/lib/paciente/urgencia.ts` (PURO) con las cinco
+categorías del §6 —dolor torácico, dificultad respiratoria, síntomas
+neurológicos agudos, ingesta accidental y sobredosis— y las cinco clases de
+respuesta del §2, cerradas. Se consulta en `handleMessage` **antes** de
+`getSession`, así que gana a la pregunta frecuente, a la intención de agenda y a
+la máquina de estados entera, incluso a mitad de un agendado. Sólo la baja
+(BAJA/STOP) queda por encima, por obligación legal. El bot no triaja, no
+aconseja y no atiende: contesta con la vía real (911 / urgencias / teléfono del
+consultorio) en la PRIMERA línea, avisa al consultorio y cierra la sesión.
+
+No se inventó política clínica: la lista es la del §6 y la vía de contacto es la
+que el portal del paciente (`app/mi/[token]`) ya le dice a quien entra por ahí.
+
+`src/__tests__/la-urgencia-gana-en-whatsapp.test.ts` (15 declaraciones que el
+corredor expande a 23 casos; sin el arreglo caen 10, contra el handler real). Incluye cinco casos de FALSO POSITIVO —«no
+puedo hablar ahora, agéndame para mañana», «no puedo ver los horarios»— que
+encontraron y corrigieron dos reglas propias demasiado anchas antes de commitear:
+contestar el 911 a una frase administrativa común le enseña al paciente a ignorar
+el aviso el día que sea de verdad.
+
+**Qué NO cubre, declarado.** El vocabulario es vocabulario, no criterio
+(`clinical-safety.md` §5): lo que no esté **no se vigila**, no es benigno. Fuera
+quedan hemorragia, trauma, dolor abdominal agudo, fiebre del lactante,
+anafilaxia, ideación suicida, complicaciones del embarazo y cualquier lengua que
+no sea el español. No hay detección de negación, y es deliberado: la frase más
+importante de la lista —«no puedo respirar»— empieza por «no», y una regla de
+negación ingenua callaría justo ésa. No cubre voz, ni el portal web, ni el camino
+de plantilla HSM.
+
+## REG-327 — al paciente que YA tenía cita el bot le decía que su horario ya no existe, y él agendaba otra
+
+**Qué fallaba.** El bot confirma la cita y, si el mismo «SÍ» vuelve a llegar,
+revalida el hueco antes de escribir. Esa revalidación veía **la cita que acababa
+de crear el propio paciente**, la contaba como ocupación y le contestaba:
+
+> «Ese horario ya no está disponible. Por favor elija otro escribiendo *agendar*
+> de nuevo. 🙏»
+
+Y el reintento que llegaba hasta la transacción recibía lo mismo con otras
+palabras: «Lo sentimos, ese horario acaba de ocuparse».
+
+El paciente **tiene** cita y el bot le dice que no. Y hace caso: se agenda a otra
+hora. El consultorio se queda con **dos** citas suyas y él se presenta a una. El
+duplicado no lo fabrica el reintento: lo fabrica el mensaje equivocado. Con dos
+entregas simultáneas del mismo «SÍ» el resultado era peor todavía: dos respuestas
+al mismo paciente que se desmienten entre sí, una diciendo que quedó registrada y
+la otra que el horario se ocupó.
+
+**Cómo se descubrió.** Recorriendo las fronteras de escritura del Bloque 7 con la
+pregunta de GP9: «¿qué pasa si esto llega dos veces?». Reproducido conduciendo el
+camino real del bot (agendar → aviso → nombre → tipo → día → hora → sí) contra una
+tienda con la semántica transaccional de Firestore, y **contando** los documentos.
+
+**Por qué se repite un «SÍ».** Ninguno es un error del usuario:
+Meta reentrega el webhook cuando la respuesta tarda y el dedup es fail-open a
+propósito; `clearSession` termina en `.catch(() => {})`; y la confirmación se
+manda con un `send` que devuelve `false` sin lanzar cuando el proveedor está
+caído, así que el paciente no ve nada y vuelve a escribir.
+
+**Causa raíz.** La identidad de la cita nacía de la ESCRITURA (`apptsCol.doc()`),
+no de la INTENCIÓN. `POST /api/appointments` ya lo había aprendido en GP9 —misma
+solicitud activa, mismo recurso— y el bot es la OTRA vía que crea citas: la
+lección nunca llegó hasta aquí.
+
+**Control permanente.** `src/lib/whatsapp/cita-ya-agendada.ts` (PURO): la misma
+regla de GP9 medida sobre los cinco campos que definen la cita del bot —quién,
+cuándo, tipo, duración y médico— más `origen`/`creadoPor`. Se consulta en los DOS
+sitios: antes de la revalidación (reintento secuencial) y dentro de la
+transacción (dos entregas a la vez). Cuando reconoce el intento no escribe nada:
+devuelve el mismo folio y le vuelve a confirmar la MISMA cita. El aviso al
+consultorio no se repite —un segundo «🔔 Nueva cita» le haría creer que tiene
+dos—.
+
+La regla es estricta a propósito: reconocer un reintento de más sería tragarse en
+silencio una cita que el paciente sí quería. Una cita liberada (cancelada,
+reagendada, no-asistió) nunca es un reintento.
+
+`src/__tests__/el-reintento-del-bot-no-pierde-la-cita.test.ts` (10 casos; sin el
+arreglo caen 3, incluido el que cuenta dos citas). Incluye los negativos: un hueco
+realmente ocupado por otro paciente sigue dando conflicto, una cita cancelada no
+se resucita, y el consultorio vecino con una cita idéntica no se confunde con
+este reintento.
+
+**Qué NO cubre, declarado.** No cubre la vía de LISTA DE ESPERA, que tiene su
+propia transacción y el mismo patrón sin reparar: queda como trabajo con nombre,
+no dado por bueno. No cubre las reglas de Firestore (van contra el emulador) ni
+el dedup por `wamid`, que tiene su propia suite — aquí se prueba justamente el
+caso en que el dedup NO salvó, que es para el que existe la idempotencia.
+
+## REG-328 — la lista de espera: entrar dos veces, y que al aceptar el hueco le dijeran que otro se le adelantó
+
+Dos defectos de la misma familia —la identidad del recurso nacía de la ESCRITURA
+y no de la INTENCIÓN— en las dos fronteras de escritura de la lista de espera.
+
+**A · Entrar dos veces.** `createWaitlistEntry` escribía con `addDoc`:
+identificador aleatorio, uno nuevo en cada llamada. Dos envíos del mismo
+formulario —doble clic, reintento tras una red lenta, pestaña duplicada— eran por
+construcción DOS entradas del mismo paciente.
+
+Y duele donde no se ve: al liberarse un hueco sólo se avisa a TRES personas
+(`LIMITE_NOTIFICAR`), así que el paciente repetido ocupa dos de esos tres sitios.
+**El tercero de la fila no se entera del hueco** y el repetido recibe dos veces el
+mismo mensaje. La lista sigue pareciendo que funciona.
+
+**B · «Otra persona respondió primero» cuando no era verdad.** Si el «SÍ» del
+paciente volvía a llegar, la transacción veía **la cita que acababa de crear él
+mismo**, la contaba como ocupación y le contestaba:
+
+> «Lo sentimos, ese horario acaba de ocuparse — otra persona de la lista
+> respondió primero.»
+
+Falso, y además culpando a un tercero que no existe: le devolvía a la lista de
+espera creyendo que perdió el hueco que en realidad había ganado. Es la misma
+raíz de REG-327 en la otra rama del bot, y aquí es peor, porque el mensaje nombra
+a alguien.
+
+**Cómo se descubrió.** Recorriendo el camino real del Bloque 7 —se libera un
+hueco → se ofrece a varios → uno contesta «SÍ» → se le agenda → los demás se
+enteran— con `ofrecerHuecoLiberado` y `handleMessage` reales contra una tienda con
+la semántica transaccional de Firestore, y contando documentos.
+
+**Control permanente.**
+- A: el id de una entrada sale de la intención (teléfono + tipo + fecha deseada +
+  franja) con `idIdempotente`, que mete el consultorio en la preimagen — la misma
+  petición en dos consultorios da dos ids distintos. La escritura va en
+  transacción y **conserva `createdAt`**: ese campo decide la antigüedad en la
+  cola, y reescribirlo mandaría al paciente al final de su propia fila sin que
+  nadie lo viera. La clave vive en `lib/whatsapp/lista-espera.ts` (`claveDeEspera`),
+  junto a la política de la lista y no en un módulo nuevo.
+- B: `citaYaAgendada` —el mismo módulo de REG-327— dentro de la transacción de la
+  rama `esperando_lista`. La rama de conflicto REAL (otro paciente contestó antes)
+  no se toca: ésa sí es verdad, y hay un caso que la exige.
+
+`src/__tests__/entrar-a-lista-de-espera-una-sola-vez.test.ts` (10 casos; probado al
+revés: reintroduciendo `addDoc` caen 3) y
+`src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts` (16 casos; sin
+el arreglo de B caen 2).
+
+**Un falso hallazgo, y por qué se cuenta.** El primer rojo decía que responder
+«NO» a una oferta dejaba la entrada en `contactado` en vez de `baja` — o sea, que
+la baja prometida no ocurría. **Era del doble, no del producto**: la tienda en
+memoria devolvía documentos de consulta sin `ref`, así que el `d.ref.update(...)`
+lanzaba y el `try/catch` del llamador se lo tragaba. Con `ref` en el harness, el
+camino real pasa. Queda escrito porque un harness incompleto no da falsos verdes:
+da falsos ROJOS, y un falso rojo perseguido durante horas cuesta lo mismo que un
+defecto.
+
+**Qué NO cubre, declarado.** No cubre las reglas de Firestore (van contra el
+emulador) ni la atomicidad real de la transacción del SDK de cliente, que aquí se
+simula. No cubre la pantalla del formulario: se prueba la frontera de escritura.
+No cubre la plantilla HSM fuera de la ventana de 24 h — sigue siendo
+OWNER_APPROVAL_REQUIRED (REG-325).
+
+## REG-329 — el portal enseñaba como «receta» medicamentos que el médico nunca prescribió
+
+**Área.** Autoridad de prescripción y documentos de cara al paciente. Encontrado
+por la auditoría H-01, contando llamadores de la frontera: `loQueSeReceta` tenía
+**un solo llamador en todo el repositorio** —la pantalla del médico— mientras que
+«receta» se arma en **dos** superficies.
+
+**Qué fallaba.** La acción `documentos` de `/api/portal` construía las recetas
+del paciente así:
+
+```ts
+.filter(n => Array.isArray(n.medicamentos) && n.medicamentos.length > 0)
+.map(n => ({ …, medicamentos: n.medicamentos ?? [] }))
+```
+
+`n.medicamentos` es la lista de la NOTA, y en ella conviven mezcladas cinco cosas
+que no son la misma:
+
+| en la lista de la nota | qué es | ¿es una prescripción? |
+|---|---|---|
+| `procedenciaClinica:'ya_lo_toma'` | lo que el paciente **refirió** que toma | no |
+| `estado:'borrador'` | lo que la IA extrajo y nadie confirmó | no |
+| `estado:'suspendida'` / `'cancelada'` | lo que el médico **retiró** | no |
+| `estado:'probablemente_terminada'` | venció el calendario, nadie lo revisó | no |
+| `se_prescribe_hoy` + `activa` | lo que el médico indicó | **sí** |
+
+La pantalla `/mi/[token]` bajaba esa lista cruda a `descargarRecetaWord` con
+`tipo:'receta'`, que imprime **«RECETA MÉDICA»** y numera los renglones. O sea:
+la historia farmacológica del paciente salía impresa como prescripción, en un
+documento que se lleva a la farmacia, sin que ningún médico lo hubiera indicado.
+
+Y sin poder atribuirla: el segundo argumento de `descargarRecetaWord` era `null`,
+así que el documento salía **sin médico** y con `[FALTA CÉDULA PROFESIONAL]`
+impreso en rojo donde va la cédula — aunque la ruta ya tenía el nombre a mano y
+la nota firmada guarda además la cédula y la especialidad.
+
+**Por qué era P0.** El lector es el paciente, y **el paciente no puede detectar
+el error**: no sabe que ese fármaco se lo suspendieron, ni que ese otro lo dijo
+él y no su médico. Un antibiótico retirado por reacción adversa reaparecía como
+indicación vigente, con formato de receta, junto a los que sí lo eran. Es la
+regla 3 de la IA de cara al paciente —«el código no debe *poder* prescribir»—
+incumplida no por el prompt sino por la ruta.
+
+**Causa raíz — la frontera existía, pero como composición dentro de un
+componente.** La pantalla del médico escribía a mano, dentro de un `useEffect`:
+
+```ts
+loQueSeReceta(n.medicamentos ?? []).filter(m => estaVigente(m))
+```
+
+Las dos mitades son necesarias y ninguna sobra: `loQueSeReceta` contesta «¿el
+médico quiso indicar esto hoy?» y `estaVigente` contesta «¿la orden sigue en
+pie?» —sólo la segunda descarta `probablemente_terminada`—. Pero al vivir la
+composición **dentro de una pantalla**, protegía exactamente a esa pantalla.
+Cualquier segunda superficie nace sin la regla y nada lo señala.
+
+Es la familia «escrito y sin conectar» vista desde el otro lado: aquí sí estaba
+conectado — a un consumidor de dos. Y el que quedó fuera es precisamente aquel en
+el que **no hay un médico mirando el resultado**.
+
+**Control permanente.** `medicamentosDeLaReceta` en
+`src/lib/expediente/que-va-en-la-receta.ts` es ahora la **única puerta**, y las
+dos superficies la cruzan. La del paciente la cruza **en el servidor**: esconder
+un renglón en la pantalla no cierra la ruta HTTP que lo devuelve, y la ruta
+devolvía los nombres aunque no se pintaran. Una nota deja además de ser «una
+receta» por tener medicamentos: lo es cuando queda algo que el médico indicó de
+verdad, así que una consulta que sólo recogió antecedentes ya no aparece en la
+lista del paciente.
+
+Tres cosas más, del mismo acto y del mismo tamaño:
+
+- **Prescriptor.** Nombre, cédula y especialidad salen de `nota.firma` —el
+  snapshot inmutable del momento de firmar (NOM-024)— y no de la configuración
+  viva del consultorio, que cambiaría retroactivamente el autor de una receta
+  vieja al actualizar el perfil.
+- **Alergias.** La copia del paciente era la única receta del producto sin el
+  recuadro de alergias (`mostrarAlergias: false` fijo): la misma alergia que el
+  impreso del médico destaca en rojo desaparecía del documento que el paciente
+  lleva a la farmacia. Ahora viaja la verdad del expediente por
+  `alergiasParaImpreso` —la misma primitiva del impreso del médico, que prefiere
+  `alergiasEstructuradas` sobre el texto libre— **y viaja aparte si se pudo
+  leer**: con el expediente ilegible la receta no afirma nada, ni «sin registro»
+  ni «negadas».
+- **Error ≠ ausencia.** Un fallo de red acababa en `setDocs([])`, y como la lista
+  sólo se pinta cuando trae algo, el paciente veía la misma imagen exacta que «tu
+  médico no te ha recetado nada». Ahora se dice, con esas palabras: *esto no
+  quiere decir que no tengas*.
+
+`src/__tests__/la-receta-del-paciente-solo-lleva-lo-que-el-medico-preescribio.test.ts`
+(31 casos, probado al revés ×6: la ruta devolviendo la nota en crudo, la puerta
+sin `estaVigente`, la pantalla del médico saliéndose de la puerta, el fallo de red
+volviendo a pintarse como ausencia, la receta sin prescriptor, y la ruta
+afirmando haber leído un expediente que no leyó — cada reversión pone en rojo
+exactamente el caso que le toca).
+
+**Qué NO cubre, declarado.**
+
+- **No prueba el aislamiento con las REGLAS de Firestore.** Lo que se congela es
+  que la ruta construya su consulta con el `{clinicId, patientId}` del token
+  FIRMADO y con ningún dato del cuerpo —hay un caso que inyecta otro `patientId`
+  en el cuerpo y comprueba que se ignora—. Que `firestore.rules` lo sostenga sólo
+  lo puede decir el emulador.
+- **No renderiza la pantalla del paciente.** La suite corre en `node`, sin jsdom:
+  el cableado de `/mi/[token]` se comprueba leyendo su fuente. Que el `.doc`
+  descargado se vea bien es trabajo del golden de `receta-word`.
+- **No cubre el `PaqueteDeVisita`**, que tiene su propia compuerta
+  `DRAFT`/`RELEASED` (REG-304) y su propia prueba. Aquí sólo se juzga
+  `documentos`.
+- **No cubre la orden médica** (`tipo:'orden'`), que baja estudios y no
+  medicamentos, ni las demás rutas que exportan el expediente (FHIR, respaldo,
+  ARCO): ésas no titulan «RECETA MÉDICA» y no afirman autoridad de prescripción.
+  Queda declarado como revisión pendiente, fuera del alcance de H-01.
+- **No decide qué es clínicamente correcto prescribir.** Sólo quién tuvo la
+  autoridad para hacerlo.
+- **No cubre `estado:'probablemente_terminada'` en la NOTA**, donde debe seguir
+  viéndose y pidiendo reconciliación: lo único que se cierra es que se reimprima
+  como receta vigente.
+
+## REG-330 — lo recuperable se ofrece, y no se destruye (H-03…H-07)
+
+**Área.** Camino del AUDIO de la consulta: dónde se guarda, quién lo enseña,
+quién lo borra. Encontrado por el auditor de Consultorio recorriendo ese camino
+de punta a punta y preguntando, en cada punto, «¿y si aquí hay material y nadie
+lo sabe?».
+
+**Qué fallaba.** Cinco defectos, y los cinco de la misma familia.
+
+1. **H-03 (P0) · el cartel invisible.** «Hay audio guardado de una sesión
+   anterior. ¿Recuperar y transcribir?» vivía DENTRO de `!esElPrincipio && (…)`.
+   `esElPrincipio` significa «grabador quieto y sin transcripción», que tras
+   recargar la pantalla es cierto **aunque haya una consulta entera esperando en
+   IndexedDB**. El único camino de vuelta al audio no se pintaba justo cuando era
+   el único camino.
+2. **H-04 (P1) · la purga se llevaba lo que nadie había declarado.** Al cerrar
+   sesión, `/consulta` declaraba audio sin transcribir sólo en
+   `grabando | pausado | subiendo`. Faltaban `error` —el estado en el que el
+   propio hook le promete al médico que «el audio quedó GUARDADO en este
+   dispositivo»— y el huérfano de una sesión anterior, que es exactamente el
+   material que H-03 tampoco enseñaba. `salirSeguro` borraba
+   `nexusmed-recovery` entera. Y el sondeo de IndexedDB llevaba
+   `catch(() => {})`: un fallo de lectura se concluía como «no hay nada».
+3. **H-05 (P1) · el ASR tardío pisaba al médico.** Al llegar la transcripción
+   con las voces separadas se hacía `setTranscripcion(…)` a secas, ANTES de
+   consultar la salvaguarda. La salvaguarda existía —`edicionManualRef`— pero
+   sólo decidía si se re-estructuraba la NOTA; el editor de dictado se pisaba
+   igual. Y ese editor es donde el médico corrige una dosis mal oída. Además,
+   la bandera sólo la levantaban las secciones narrativas: el propio editor de
+   dictado no la tocaba, así que en el caso real nunca se activaba.
+4. **H-06 (P1) · error de red leído como ausencia.** `getNota(…).catch(() => null)`
+   daba el MISMO `null` para «no existe» y para «no pude leer». En la ruta que
+   adopta el `notaId` de un respaldo, un fallo de red hacía adoptar el id de una
+   nota que podía estar **firmada**: la pantalla queda escribiendo en un
+   documento inmutable que el servidor rechaza en cada autoguardado, para
+   siempre, mientras el médico dicta una consulta entera creyendo que se guarda.
+5. **H-07 (P1) · fallo parcial fingiendo éxito.** La rama
+   `modoDeHabla === 'dictado'` de `detener()` se quedaba con `.texto` y tiraba
+   `lotesFallidos`. Una transcripción con tramos perdidos pasaba el
+   `texto.trim()`, se daba por buena, y borraba los trozos de IndexedDB.
+
+**Causa raíz.** Una sola, dicha de cinco maneras: **se decidió sobre el material
+grabado mirando cómo se ve la pantalla, en vez de mirando si el material
+existe.** El cartel colgaba del aspecto del editor; la purga, de la grabación en
+curso y no del disco; el reemplazo, del efecto caro (re-procesar con IA) y no
+del dato; la adopción del id, de un `null` que significaba dos cosas.
+
+H-07 es además la forma de **REG-300**: una decisión escrita dos veces y
+arreglada en una sola copia. El camino largo de `detener()` ya sabía que un
+texto hecho de advertencias no es un texto y que un tramo perdido prohíbe
+borrar el audio; la rama de dictado, que sale por arriba, nunca lo aprendió.
+
+**Control permanente.** Las decisiones se escriben UNA vez, puras y probables
+sin navegador, y las consumen las rutas productivas:
+`src/lib/expediente/recuperacion-consulta.ts` (`debeOfrecerRecuperacion`,
+`hayAudioQueNoSePuedePurgar`, `puedeReemplazarTranscripcion`, `leerNotaPrevia` +
+`decidirAdopcionDeNotaPrevia` con sus cuatro estados distintos) y, en el hook,
+`soloSonAdvertencias` / `sePuedeBorrarElAudio`, que ahora usan **las dos** ramas
+de `detener()`. El sesgo de todas va hacia conservar: conservar de más deja en
+el disco un archivo que el médico descarta de un clic; conservar de menos borra
+la única copia de lo que dijo el paciente.
+`src/__tests__/lo-recuperable-se-ofrece-y-no-se-destruye.test.ts` (44 casos,
+probado al revés ×9 — los cinco defectos reinsertados en la función pura y
+cuatro en el cableado de la pantalla, para que un helper correcto que nadie
+consume no pueda pasar).
+
+**Qué NO cubre, declarado.** No ejecuta IndexedDB, ni `MediaRecorder`, ni React
+—no existen en Node—, así que lo que se prueba con entradas y salidas son las
+funciones puras, y que la pantalla las consuma se comprueba sobre el texto
+fuente. La comprobación en navegador sigue pendiente (`NAV-NAVEGADOR-001`). No
+prueba que el audio conservado se transcriba bien: prueba que sobreviva para
+poder intentarlo. No cubre el texto que entra en vivo mientras se graba —ahí el
+reemplazo es el comportamiento pedido—, ni el caso en que el médico pulsa
+«Dejar mi versión»: su transcripción se respeta, y el material diarizado sigue
+disponible en `audio.utterances`, pero el cartel no se vuelve a ofrecer.
+
+---
+
+## REG-331 — la superficie del paciente no tenía quien la mirara: 23 defectos de accesibilidad con la suite entera en verde
+
+**Área.** Accesibilidad · superficie de cara al paciente (`A11Y-GATE-001`, P1 de V9).
+
+**Qué fallaba.** Las diez pantallas públicas que ve un paciente traían **23
+defectos de accesibilidad**, y ninguna herramienta del repositorio podía verlos:
+
+- **8 campos de formulario sin etiqueta.** Los cuatro de la reserva pública
+  —nombre, teléfono, correo, motivo—, los dos del portal de derechos ARCO, el de
+  la reseña y el del panel de reagenda. Todos se apoyaban en el `placeholder`,
+  que **no es etiqueta**: desaparece con la primera letra que se escribe.
+  En tres casos el `<label>` se pintaba y no estaba atado a nada.
+- **7 botones que trabajan en silencio.** Confirmar cita, cancelar cita, pagar
+  anticipo, enviar reseña, enviar solicitud ARCO, confirmar reserva, mandar el
+  formulario previo: todos se deshabilitan y pintan una ruedecita mientras
+  trabajan, sin `aria-busy`. Quien ve entiende «espera»; quien no ve oye «no
+  disponible» y vuelve a pulsar.
+- **5 pantallas con estado asíncrono y NI UNA `aria-live`.** El aviso «este
+  enlace ha expirado», el «no hay horarios ese día», el «no se pudo agendar», el
+  folio de la solicitud ARCO y el cartel de enlace vencido del portal aparecían
+  en pantalla sin que ningún lector de pantalla dijera nada.
+- **2 pantallas sin `<h1>`.** La verificación pública de documento no tenía
+  ningún encabezado —el título era un `<strong>`—; la reserva pública tenía
+  `<h2>` y ninguno por encima.
+- **Las 5 estrellas de la reseña**, cinco botones sin una palabra dentro:
+  «botón», «botón», «botón», «botón», «botón».
+
+**Cómo se descubrió.** Construyendo el medidor **antes** de tocar una sola
+pantalla y corriéndolo. Ninguno de los 23 se encontró leyendo código.
+
+**Causa raíz.** Familia **`sin_medir`** («nadie lo estaba midiendo»: no es un
+defecto del producto, es la ausencia del instrumento que lo habría delatado, y
+cada uno de éstos destapa otros al encenderse). Ninguno es un descuido de
+quien lo escribió: son omisiones que **ninguna compuerta podía detectar**. `tsc`
+no sabe de nombres accesibles; `eslint.config.mjs` son 18 líneas sin `jsx-a11y`;
+`trinquete-de-diseno.mjs` declara en su cabecera que «no vigila accesibilidad ni
+contraste». Sí existían arneses de axe con Chromium (`scripts/design/axe-*.mjs`)
+que miden de verdad, pero necesitan servidor levantado y emulador sembrado:
+corren cuando alguien se acuerda, y ninguna de sus salidas estaba sellada.
+Un guardián que sólo corre cuando alguien se acuerda **no es una red**.
+
+**Por qué importa aquí más que en el resto de la aplicación.** Es la asimetría
+que gobierna `patient-facing-ai.md`, dicha en interfaz: hasta hoy este producto
+le hablaba a un internista con cédula, que detecta el error. El paciente **no
+puede detectarlo** — y es un paciente de 70 años, en un teléfono, con el texto
+al 200 %. Que no pueda reservar no se manifiesta como un fallo: se manifiesta
+como que no reservó.
+
+**Control permanente.**
+
+- `scripts/design/lib/a11y-jsx.mjs` — 15 reglas sobre el **árbol real** del TSX,
+  con la API del compilador de TypeScript (ya era `devDependency`, Apache-2.0).
+  **Cero dependencias nuevas, cero servicios externos.**
+- `scripts/design/lib/contraste-wcag.mjs` — la aritmética de WCAG 2.2, con
+  composición de alfa (sin componer, un `rgba(…,0.08)` mide como si fuera opaco).
+- `scripts/design/medir-a11y-superficies-paciente.mjs` — las 10 superficies
+  declaradas, los 34 pares críticos de contraste en los dos temas, y el inventario
+  que **falla cuando aparece una ruta pública que nadie clasificó**.
+- `src/__tests__/a11y-la-superficie-del-paciente-no-pierde-terreno.test.ts` — la
+  compuerta. **0 y es prohibición, no techo**: son diez archivos y caben en una
+  tarde. El resto de la aplicación no se toca (poner hoy en rojo 200 pantallas es
+  cómo se borra un guardián el martes — REG-245).
+- `src/__tests__/a11y-el-detector-si-puede-fallar.test.ts` — el guardián **del
+  guardián**. La compuerta es un `toBe(0)`, que es justo la forma de prueba que
+  se queda verde para siempre el día que el detector deja de detectar. Aquí cada
+  una de las 15 reglas se prueba **al revés**: se le mete el defecto y se
+  comprueba que grita, y se le mete la corrección y se comprueba que se calla.
+  Las dos mitades — sólo la primera dejaría pasar un detector que grita siempre.
+- Falsificado además sobre código **real**, no sólo sintético: quitar el
+  `aria-label` de una estrella deja la compuerta en 1; suavizar `--text3` del
+  tema claro de `#6B6F75` a `#8A8F94` tira 3 pares de contraste; añadir una
+  `page.tsx` pública sin clasificar pone en rojo el inventario.
+- El paso de CI vive en el job del trinquete (`.github/workflows/ci.yml`), como
+  segunda mirada que imprime archivo y línea.
+
+**Qué NO cubre, declarado.** No abre un navegador: el contraste **pintado**
+(texto sobre imagen o degradado), el orden real del foco y la trampa de foco de
+un modal siguen siendo `scripts/design/axe-*.mjs` con Chromium — y mirar la
+pantalla, que la regla de diseño exige aparte. No cruza el límite del
+componente: un `<button>` dentro de `components/ui/` no lo juzga la superficie
+que lo usa. No mide el contraste de los bordes (WCAG 1.4.11, 3:1): `--border`
+está en 1,18:1 en oscuro **a propósito**, es un separador decorativo y no el
+límite que identifica un control; cambiarlo es rediseño y esta unidad no
+rediseña. La regla de la región viva cuenta **por archivo, no por estado**: una
+sola `aria-live` la apaga entera — se descubrió reparando `/mi/[token]`, donde la
+regla se puso en verde con el formulario previo arreglado mientras el cartel de
+«tu enlace ya no vale» seguía mudo, y se encontró **mirando**, no midiendo. Y no
+cubre el resto de la aplicación, que sigue sin medir.
+
+---
+
+## REG-332 — un error al comprobar la revocación NO es una autorización
+
+**Área.** Portal del Paciente: `/api/portal`, `/api/payment/create-checkout` y
+`/api/public/resena`. Unidad `PATIENT-PORTAL-001`, prioridad P1.
+
+**Qué fallaba.** Cuatro cosas, y las cuatro son la misma frase dicha de cuatro
+maneras: **lo que no se pudo comprobar se daba por bueno.**
+
+1. **La revocación fallaba ABIERTA.** `/api/portal` leía
+   `patients/{id}.portalTokenVersion` —el contador que el consultorio sube para
+   tumbar de golpe todos los enlaces emitidos— dentro de un `try` con el `catch`
+   vacío. Si Firestore no respondía, se dejaba pasar. El teléfono perdido, el
+   número reciclado y el mensaje reenviado a un grupo volvían a valer justo
+   durante la incidencia, que es cuando nadie mira.
+2. **`/api/payment/create-checkout` no comprobaba la revocación en absoluto.**
+   Acepta el MISMO magic-link y sólo miraba firma y caducidad: el enlace
+   revocado dejaba de ver la agenda y seguía abriendo sesiones de cobro a nombre
+   del paciente hasta que caducara por su cuenta.
+3. **Una ráfaga de tokens INVÁLIDOS no la contaba nadie.** Los límites de tasa
+   añadidos en P0 se cobran por `{clinicId, patientId}`, y esa clave sale del
+   token: con un token que no verifica, no se pedía cupo a nadie. Era la única
+   forma de pegarle a la ruta sin freno de ningún tipo.
+4. **`/api/public/resena` devolvía `e.message` al navegador.** Un error del
+   Admin SDK trae la RUTA del documento —y el propio token de la reseña es el id
+   de `clinic_review_requests`—, así que un endpoint público y sin sesión
+   contestaba con identificadores del consultorio y con el secreto que acababan
+   de mandarle, a quien estuviera probando tokens.
+
+**Cómo se descubrió.** El primero lo decía el propio `catch` en voz alta, y
+`agent-state/BACKLOG.json` lo dejó abierto como decisión pendiente de política:
+«Para la revocación, decidir si falla cerrado — es un cambio de política, no
+sólo de código». El dueño la decidió el 27-ago-2026, con el invariante escrito:
+**ERROR DE VALIDACIÓN/REVOCACIÓN ≠ AUTORIZACIÓN.** Los otros tres salieron de
+recorrer el resto de la superficie del portal con esa misma pregunta.
+
+**Causa raíz.** Dos estados donde hacen falta TRES. «Vale» y «no vale» no tienen
+sitio para «no lo sé», así que el «no lo sé» se repartía al montón equivocado —
+y siempre al mismo, el permisivo.
+
+El argumento escrito para repartirlo hacia «vale» era la disponibilidad del
+paciente («dejar al paciente fuera de su propia agenda por un mal minuto de
+Firestore es peor que el riesgo que esto acota») y es **medible que no se
+sostiene**: si Firestore no responde, todas las acciones del portal fallan igual
+unas líneas más abajo, porque todas leen o escriben. El fail-open no le devolvía
+la agenda a ningún paciente legítimo. Sólo se la devolvía a los enlaces
+revocados, que son los únicos a los que el `catch` le cambiaba el resultado.
+Coste de disponibilidad ≈ 0, beneficio para quien encontró el teléfono = todo.
+
+**Control permanente.** La decisión se escribe UNA vez, pura y probable sin red,
+en `src/lib/portal/vigencia-del-enlace.ts` (`decidirVigencia`), con tres estados:
+
+- `vigente` → sigue el flujo.
+- `revocado` → **401**, definitivo. También cuando el expediente NO EXISTE: un
+  paciente dado de baja por ARCO, o un token que nombra un consultorio que no es
+  el suyo. Antes eso pasaba el control y se apoyaba en que las consultas de más
+  abajo devolvieran vacío — aislamiento por accidente.
+- `indeterminado` → **503 con `Retry-After`**, y ahí está la mitad del arreglo:
+  el enlace **no se quema**. En cuanto Firestore vuelve, el mismo token del
+  mismo paciente funciona sin que nadie tenga que reemitirlo. Un fail-closed que
+  además invalidara el enlace convertiría una incidencia de cinco minutos en una
+  tarde de llamadas al consultorio.
+
+Las dos rutas que aceptan el magic-link consumen ese mismo módulo, así que la
+política vive en un sitio y no en dos.
+
+En el eje del límite de tasa, el mismo invariante: `limitarEstricto` en
+`src/lib/rate-limit.ts` — **mismo contador, misma colección, misma ventana**, no
+otro sistema; lo único que cambia es que un freno que no pudo contar responde
+503 en vez de dejar pasar. Se aplica a lo que un token filtrado puede MOVER
+(mutaciones de agenda, formulario previo, documentos clínicos, cobro, intentos
+de adivinar un token de reseña) y NO a mirar la propia agenda, que no gana
+ningún privilegio. Y `portal:ip:{ip}` (120/10 min) se cobra **antes de verificar
+el token**, que es lo que le faltaba al hallazgo 3.
+
+Pruebas: `src/__tests__/portal-revocacion-falla-cerrado.test.ts` (21 casos,
+probado al revés ×3 — el fail-open reinsertado, el expediente ausente dado por
+bueno, y el guardián escrito pero NO cableado en la ruta, para que un helper
+correcto que nadie consume no pueda pasar) ·
+`src/__tests__/portal-limite-de-tasa.test.ts` (19 casos) ·
+`src/__tests__/nucleo/rate-limit.test.ts` (16 casos).
+
+**Qué NO cubre, declarado.** No corre Firestore ni las `firestore.rules`: el
+aislamiento que se prueba aquí es el de la capa de ruta —de dónde salen
+`clinicId` y `patientId`—, no el de las reglas, que vive en el job del emulador.
+No mide el comportamiento del limitador bajo concurrencia real. No prueba el
+flujo del navegador (`/mi/[token]`): la pantalla no se tocó, y un paciente que
+reciba el 503 verá el mensaje de error genérico que ya tenía — pintarlo como
+«vuelve a intentarlo» es trabajo de interfaz, aparte. No cubre `/api/portal/link`
+—emitir enlaces— porque va detrás de `verificarMiembro` y ya falla cerrado por
+otro camino: si no puede leer la versión emite la 0, que una revocación posterior
+invalida sola. Y no cambia nada de Stripe: ni monto, ni moneda, ni política de
+cobro; sólo cuándo se llega a llamarlo.
+
+---
+
+## REG-333 — la identidad del paciente se volvía vocabulario compartido del consultorio (H-19)
+
+**Área.** Aprendizaje de las correcciones del dictado: `src/lib/asr/aprendizaje.ts`
+y su cableado en `src/app/(dashboard)/consulta/[patientId]/page.tsx`. Encontrado
+recorriendo la ruta real —dictado → corrección manual → filtro PHI → aprendizaje
+→ reutilización— en vez de leer la firma de la función.
+
+**Qué fallaba.** `esAprendible(par, excluir)` recibía las partes del nombre del
+paciente para excluirlas, y el parámetro tenía **valor por omisión `[]`**. Una
+lista vacía se trataba como «no hay nada que proteger», pero significa dos cosas
+que el código no podía distinguir: que el paciente no tiene partes de nombre
+utilizables, o que **no se sabe quién es** — no cargó, o falló la lectura. En el
+segundo caso el filtro trabajaba sin contexto de identidad y dejaba pasar
+apellidos enteros hacia `clinics/{clinicId}/asr_aprendizaje`, un vocabulario que
+se usa con **todos** los pacientes de ese consultorio y que además sesga al
+reconocedor en la consulta de otra persona.
+
+Y no era el caso raro: era el normal. En `consulta/[patientId]/page.tsx` el
+paciente y las notas se pedían en el MISMO efecto como dos promesas hermanas
+(deps `[clinicId, patientId]`). La derivación del aprendizaje vivía dentro del
+`.then` de `getNotas` y leía `patient?.nombre` **del closure del render en que
+corrió el efecto**, donde `patient` todavía es `null`. `setPatient` no vuelve a
+disparar ese efecto, así que ese closure nunca veía el nombre:
+`partesDelNombre(undefined)` → `[]` **en cada carga**. Al firmar, `acumular()`
+escribía lo derivado en el vocabulario del consultorio.
+
+Tres huecos más del propio filtro, visibles incluso con la lista poblada:
+
+1. **Sólo igualdad exacta.** Un FRAGMENTO identificable («betanc» de
+   «Betancourt») no coincide y pasaba. Un fragmento de apellido en un
+   vocabulario compartido sigue siendo el apellido.
+2. **El apellido MAL OÍDO pasaba** — y es justo el par que el aprendizaje quiere
+   capturar: el motor oye «betancurt», el médico corrige, y ninguno de los dos
+   lados coincide letra a letra con el expediente.
+3. **Ningún filtro de identificadores con forma propia.** CURP, folio y teléfono
+   los tapaba de rebote el filtro de cifras, pero un correo sin dígitos
+   («ana.perez@ejemplo.mx») entraba entero.
+
+**Causa raíz.** No era «faltaba un filtro»: el filtro estaba, y era correcto
+cuando le daban el contexto. La causa raíz es que **la ausencia de contexto de
+identidad era irrepresentable**, y por omisión se leía como ausencia de
+identidad. Un tipo sin estado «no sé» obliga a que alguien invente uno, y el
+valor por omisión lo inventó del lado inseguro.
+
+**Arreglo.** Mínimo, y reutilizando lo que ya existía — no hay Learning V2.
+
+- `IdentidadDelPaciente` hace representable el «no sé»: `{conocida:false}` o
+  `{conocida:true, partes}`. `identidadDe(nombre)` la construye, y un nombre
+  ausente, vacío o hecho sólo de partículas cortas devuelve DESCONOCIDA. El
+  parámetro deja de tener valor por omisión en `esAprendible` y
+  `paresDeUnaNota`, así que el compilador obliga a cada llamador a decidir; en
+  `loAprendido` —donde no puede ir después de un opcional— el valor por omisión
+  es DESCONOCIDA, que falla CERRADO.
+- Sin identidad conocida no se aprende nada. Es la regla 4 de seguridad clínica
+  —ausencia de dato no es dato de ausencia— aplicada a la identidad.
+- `identifica()` bloquea por igualdad, por contención (parte de ≥5 letras) y por
+  parecido (Levenshtein acotado, tope 1 hasta 6 letras y 2 desde 7). Se reutiliza
+  `distancia()` de `alineacion.ts`, que ya decidía si dos palabras se parecen:
+  se exporta en vez de escribir un segundo Levenshtein.
+- Los identificadores con forma propia los rechaza `redactarIdentificadores()`
+  de `minimizar-phi.ts`, que ya conoce CURP, RFC, correo, teléfono y folios. Se
+  rechaza en vez de redactar, igual que `seguroParaMemoria`.
+- La pantalla deriva el aprendizaje en **su propio efecto**, con
+  `patient?.nombre` en las dependencias a propósito, sobre los dictados firmados
+  que el efecto de carga deja en estado. Si el paciente no cargó, no deriva nada.
+
+**Prueba.** `src/__tests__/h19-identidad-nunca-se-aprende.test.ts` (13 casos:
+los nueve del encargo —nombre completo, apellido, fragmento, nombre mal escrito,
+término médico legítimo, otro paciente, otro tenant, nada identificable en lo que
+se escribe, y lista vacía como FAIL SAFE— más identificadores con forma propia y
+la reachability de la ruta real). Probado al revés ×3: reinsertado el fail-open
+de la lista vacía, cae el caso 9; quitadas la contención y el parecido, caen los
+casos 3 y 4; quitado `redactarIdentificadores`, cae el de identificadores.
+
+Los tres goldens que ya existían se actualizaron: uno de ellos —
+`aprendizaje-por-consultorio.test.ts`— **codificaba el defecto**, con un caso
+llamado «sin nombre no se excluye nada» que comprobaba que con la lista vacía SÍ
+se aprendía. La aserción se invirtió y el comentario explica por qué estaba al
+revés.
+
+**Qué NO cubre, declarado.** No detecta nombres propios por sí solo: sin la
+lista del paciente que está enfrente, «González» y «gluconato» son dos cadenas y
+ninguna regla determinista las separa (ver `LO_QUE_NO_DETECTA` en
+`minimizar-phi`). La defensa es la lista más el fail-closed, no un detector. No
+cubre el nombre de un TERCERO dictado en la nota —un familiar, otro médico—:
+eso no está en la lista del paciente y el filtro no lo ve. No audita el
+vocabulario ya acumulado en Firestore antes de este arreglo. Y no ejecuta React:
+que la pantalla derive con la identidad ya cargada se comprueba sobre el texto
+fuente, como el resto de las comprobaciones de cableado de este repositorio.
+
+---
+
+## REG-334 — el Preview rojo no fue el import perdido: fue publicar sin construir (Proceso)
+
+**Área:** Proceso / integración (P1) · **Estado:** CLOSED como compuerta
+
+**QUÉ FALLABA.** El 27-ago-2026 se integraron cuatro lotes con merges remotos
+consecutivos, con cuatro minutos entre el primero y el último. Cada push disparó
+un Preview de Vercel sobre un estado intermedio que nadie había construido:
+
+| hora | commit | Preview |
+|---|---|---|
+| 06:38 | `1d9a55f3` integrate: Patient Experience, WhatsApp y lista de espera | **ROJO** |
+| 06:39 | `ffc21823` integrate: H-01 autoridad de prescripción | verde |
+| 06:41 | `fa346c4b` integrate: H-03–H-07 recuperación de consulta | verde |
+| 06:43 | `47e2a01d` reconcile: REG-323–REG-330 renumerados | verde |
+
+`1d9a55f3` no compilaba:
+
+```
+src/lib/firestore.ts(246,14): error TS2304: Cannot find name 'idIdempotente'.
+src/lib/firestore.ts(246,54): error TS2304: Cannot find name 'claveDeEspera'.
+src/lib/firestore.ts(249,9):  error TS2304: Cannot find name 'runTransaction'.
+```
+
+**CÓMO SE DESCUBRIÓ.** Por el semáforo de GitHub («Deployment has failed»), no
+por nosotros. Y al ir a leer los logs de Vercel no había credenciales en la
+máquina: `npx vercel inspect --logs` arrancó un login que no puede completarse.
+La causa hubo que **reconstruirla** reproduciendo el build sobre el commit
+exacto. Un diagnóstico que depende de una credencial que no tenemos es un
+diagnóstico que a veces no ocurre.
+
+**CAUSA RAÍZ.** El merge conservó la **llamada** de una rama y los **imports**
+de la otra. Las líneas no se solapaban, así que `git` fusionó limpio y no dijo
+nada. Un conflicto semántico no lo caza `git`: lo caza el compilador — y nadie
+lo corrió antes del push siguiente.
+
+**LO QUE DE VERDAD DUELE.** Lo que devolvió el verde a las 06:39 **no fue
+arreglar los tres imports**: fue que el merge siguiente **revirtió la rama
+entera**. Se fueron con ella `createWaitlistEntry` idempotente,
+`src/lib/whatsapp/lista-espera.ts`, `src/lib/paciente/urgencia.ts` y cinco
+archivos de prueba — entre ellos los dos que sellaban **REG-326** («entrar a la
+lista de espera una sola vez»). El verde se compró **tirando el trabajo**, y el
+semáforo no lo dijo porque sólo mira el último commit.
+
+Es `.claude/rules/el-dato-tiene-que-llegar.md` aplicado a una integración: que un
+commit sea **ancestro** no significa que su **contenido** siga vivo.
+
+**LA COMPUERTA.** `node scripts/compuerta-integracion.mjs` — A rama local · B
+todo lo previsto aplicado, por ancestría **y por símbolos vivos** · C sin
+marcadores ni rutas sin fusionar · D derivados regenerados · E
+`tsc --noEmit` + `vitest` + trinquete + `git diff --check` · F build equivalente
+al Preview · G imprime el **único** push. Nunca empuja.
+
+Hay **un solo build** y es el equivalente al Preview
+(`scripts/preview-equivalente.mjs`, con el entorno fregado desde
+`ops/vercel/preview-env.manifest.json`). Tener además un `npm run build` a secas
+invitaría a creer que su verde vale lo mismo, y ese desnivel es el que se paga en
+el Preview: medido hoy, `47e2a01d` construido sin las seis
+`NEXT_PUBLIC_FIREBASE_*` muere con `auth/invalid-api-key` recolectando
+`/dr/[clinicId]` — el mismo accidente que ya documentaba **REG-059**, donde el
+build «funcionaba por accidente» porque en Vercel esas variables sí existen.
+
+**NO se silencia Vercel:** no se desactivan Previews, no se escribe
+`ignoreCommand`, no se apaga la integración de GitHub, no se baja ningún techo.
+Un Preview que no se construye no sale rojo, y tampoco protege de nada.
+
+**Test / control permanente:**
+`src/__tests__/la-compuerta-de-integracion-no-se-ablanda.test.ts` (7 casos).
+Probado al revés con **nueve** defectos inyectados uno a uno —
+`ignoreBuildErrors`, `ignoreCommand`, `github.enabled:false`,
+`continue-on-error` en el job `verificar`, degradar el paso F a `npm run build`,
+quitar el fregado del entorno, inyectar un nombre sin declarar, meter una pareja
+`NOMBRE=valor` en el manifiesto, y perder una de las seis exigidas — y en los
+nueve la prueba cae.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- No lee Vercel: no hay credenciales en la máquina y no debe haberlas. No
+  comprueba el Preview real.
+- No cubre cabeceras, rewrites del edge ni runtime. Cubre compilación, tipos y
+  el desnivel de entorno — lo que rompió el 27-ago. Las cabeceras de
+  **producción** se siguen comprobando después de publicar
+  (`.claude/rules/deployment-and-flags.md`).
+- No lee las Preview Environment Variables de Vercel. El manifiesto declara
+  **nombres**; que existan allí con el valor correcto es del dueño.
+- Un mecanismo nuevo de Vercel para saltarse el build no lo conoce hasta que se
+  añada a la prueba.
+
+**RESIDUAL ABIERTO, y no es de este commit.**
+
+1. `release/consultorio-reconciled-clean-2026-08-27` (punta `43214218`) **sigue
+   roja hoy** con los mismos cuatro errores (`idIdempotente`, `claveDeEspera`,
+   `runTransaction`, y el `tx` implícito que arrastran). El arreglo verificado
+   son **tres líneas de import** en `src/lib/firestore.ts`; con ellas
+   `tsc --noEmit` pasa de 4 errores a 0. No se empuja aquí: esa rama no está
+   autorizada en esta tarea.
+2. **REG-326 sigue perdido** en `release/consultorio-reconciled-2026-08-27` y en
+   `release/evidence-integrated-2026-08-26`. Recuperarlo es una reparación
+   clínica aparte, con sus dos pruebas, no un efecto colateral de esta compuerta.
+
+## REG-336 — se podía firmar sin nombre, y entonces el paciente no recibía nada nunca
+
+**Área.** Compuerta de la firma: `src/lib/expediente/por-que-no-se-firma.ts`,
+`src/app/(dashboard)/consulta/[patientId]/page.tsx`,
+`src/app/api/expediente/paquete-de-visita/route.ts`. GP-FINAL.
+
+**Estado:** CLOSED, con golden y sello.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo el consultorio en un navegador de verdad
+(Golden Path GP-FINAL, `scripts/golden-path/`), como médico y de punta a punta:
+agenda → consulta → dictado → firma → receta → entrega al paciente. Los 10 480
+casos de la suite estaban en verde y el paso 22 no se podía dar.
+
+La nota se firmó. La receta salió. Y «Liberar al paciente» estaba APAGADO, con
+este mensaje debajo:
+
+> «Esta nota no tiene firma con cédula profesional: no hay a quién atribuir el
+> papel.»
+
+Con la cédula puesta. El documento la tenía:
+
+```
+firma: { nombreMedico: '', cedulaProfesional: '12345678', … }
+```
+
+Lo que faltaba era el NOMBRE, y el mensaje mandaba a arreglar lo único que no
+estaba roto.
+
+**CAUSA RAÍZ.** Dos compuertas que no piden lo mismo, con un snapshot inmutable
+en medio:
+
+| Compuerta | Exige |
+|---|---|
+| `validarNOM004` (deja firmar) | `medicoId` · `cedulaProfesional` |
+| `componerPaquete` (deja entregar) | `firma.nombreMedico` · `firma.cedulaProfesional` |
+
+Entre las dos cabe una nota **firmable e inentregable**. Y `nota.firma` es
+inmutable por diseño (NOM-024): cuando el hueco se nota, ya no se puede tapar.
+El médico se queda con una nota válida en el expediente y un paciente que no
+recibirá su hoja nunca, sin más recurso que repetir la consulta.
+
+**CÓMO SE LLEGA AHÍ SIN HACER NADA RARO.** Un consultorio cuya configuración
+todavía no tiene `nombreMedico` firma con `identidadFirma.nombre === ''`. El
+camino más corto para acabar así es el propio atajo de «Falta cédula
+profesional» de la pantalla de consulta, que escribe con `saveConfigPartial`
+**sólo** la cédula: resuelve el bloqueo que se ve y deja en pie el que no se ve.
+
+**LA FAMILIA.** La de REG-189 y la del aviso de dosis: *el aviso llegaba después
+de firmar, cuando la nota ya es inmutable*. Aquí ni siquiera llegaba: llegaba el
+mensaje equivocado, y después.
+
+**EL ARREGLO.** Mínimo, y en la fuente única que ya existía para esto:
+
+- `motivosParaNoFirmar` acepta `sinQuienFirma` y añade un motivo con origen
+  `atribucion`. No se toca ninguna de las condiciones que ya había.
+- La consulta lo calcula desde `identidadFirma.nombre`, que es **el mismo
+  objeto** que se estampa en `nota.firma`. Vigilar cualquier otro valor dejaría
+  la compuerta mirando algo distinto de lo que se guarda.
+- El mensaje de `nota-sin-firma` pasa a nombrar **nombre y cédula**, para que
+  las notas que ya se firmaron así no manden a nadie a buscar una cédula que sí
+  está.
+
+**LA REGLA QUE LO HACE SEGURO.** Lo que un snapshot inmutable va a necesitar se
+exige ANTES de estamparlo. Firmar sin a quién atribuir no se avisa: se impide, y
+se dice por qué.
+
+**GOLDEN.** `src/__tests__/nadie-firma-sin-nombre.test.ts` — 10 casos.
+**Probado al revés:** sin el motivo nuevo caen 7 de los 10, entre ellos el que
+comprueba que la consulta conecta la compuerta (`sinQuienFirma` en la página) y
+el que exige que el mensaje no culpe sólo a la cédula.
+
+**QUÉ NO CUBRE.** No repara las notas ya firmadas sin nombre —son inmutables por
+diseño—; lo único que se hace por ellas es que el mensaje diga la verdad. Y no
+prueba la pantalla: el recorrido en navegador vive en `scripts/golden-path/` y
+no corre en CI, porque necesita emuladores y un build.
+
+---
+
+## REG-335 — la nota se firmaba, el paquete no existía, y el paciente no recibía nada
+
+**Área.** Post-visita del consultorio: `src/lib/paciente/paquete-de-visita.ts`,
+`src/app/api/expediente/paquete-de-visita/route.ts` (nueva),
+`src/components/EntregarAlPaciente.tsx` (nueva), `src/app/api/portal/link/route.ts`,
+`src/app/mi/[token]/page.tsx`, `src/app/(dashboard)/consulta/[patientId]/page.tsx`.
+V9 · `POSTVISIT-001`. Cierra `POSTVISIT-GATE-001` y `POSTVISIT-ENTREGA-001`.
+
+**Estado:** CLOSED, con golden y sello.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo el camino entero —consulta → nota firmada →
+receta y órdenes → paquete → liberación → portal → entrega— en vez de leer
+módulos sueltos. Es el método de «el dato tiene que LLEGAR»: mirar del otro lado
+antes de dar nada por entregado. Se cortaba en tres sitios, y los tres tenían la
+suite en verde.
+
+**QUÉ FALLABA.**
+
+**1 · La hoja del paciente se componía del borrador EN CURSO.** `HojaParaElPaciente`
+se montaba con el estado vivo de `medicamentos` y `estudiosOrden`, a medio
+dictar, y su única guarda era `{!esNotaHospital}`. Justo encima,
+`ComoCerrarLaConsulta` sí exigía `firmada`. La cabecera del módulo AFIRMABA que
+el contenido salía de lo «ya revisado y firmado»: era intención de diseño, no
+precondición. Nada impedía copiar y entregar una hoja compuesta de una hipótesis
+a medio formular.
+
+**2 · Esa hoja no llegaba nunca al paciente.** Dos botones —copiar al portapapeles
+e imprimir— y punto. No estaba en `/mi/[token]`, ni en `/api/portal`, ni en
+ninguna plantilla de mensajería. Y aunque hubiera estado: el ÚNICO emisor de un
+enlace de portal con alcance `clinico` era el de la teleconsulta, así que el
+médico no tenía forma de darle a su paciente la llave que abre su propio
+expediente. La puerta existía y no había llave.
+
+**3 · La colección que nadie escribía.** `PATIENT-COMPANION-001` dejó el modelo
+`PaqueteDeVisita`, la máquina de estados `DRAFT`/`RELEASED`, la compuerta
+`visibleParaElPaciente`, la acción `paquetes` de `/api/portal`, las reglas de
+Firestore, la matriz de acceso, el manifiesto del respaldo y la exportación ARCO.
+Todo correcto. Y `componerPaquete` se escribió y se BORRÓ el mismo día porque el
+guardián de conexión la cazó sin llamador. Resultado: una superficie completa
+sirviendo una colección que **ningún camino del producto escribía jamás**.
+
+**CAUSA RAÍZ.** No era «faltaba una pantalla». Era que **el modelo y la compuerta
+existían y el ACTO no**. Nada podía pasar de `DRAFT` a `RELEASED` porque no había
+ninguna superficie con autoridad para hacerlo, y el invariante que separa firmar
+de liberar —el que hace que esto no sea un `if` más— no tenía dónde vivir.
+Familia «escrito, probado y sin conectar», en su forma más cara: la pieza mejor
+pensada del lado del paciente, terminada y sin entregar.
+
+**EL INVARIANTE.**
+
+```
+FIRMAR UNA NOTA ≠ LIBERARLE INFORMACIÓN AL PACIENTE
+```
+
+Firmar es autoridad medicolegal sobre el expediente. Liberar es autoridad sobre
+lo que el paciente leerá como definitivo. Se hacen con dos clics seguidos y se
+registran aparte, porque un día el médico querrá firmar sin liberar todavía — y
+porque el lector, esta vez, **no puede detectar el error**.
+
+**ARREGLO.** Mínimo y sobre lo que ya existía; no hay un módulo paralelo.
+
+- **`componerPaquete` vuelve a `paquete-de-visita.ts`**, ahora con llamador. Es
+  pura, corre en el SERVIDOR, y se compone de material con autoridad: la nota
+  **firmada**, `medicamentosDeLaReceta` (la puerta de prescripción de H-01),
+  `alergiasParaImpreso` (la primitiva del impreso del médico), `comoTomarlo`
+  (determinista, se niega a expandir «cada 5 horas»). **Ningún modelo de lenguaje
+  toca este camino**, y hay una prueba que lo exige.
+- Se niega a componer de un borrador y a componer sin firma con cédula, y **dice
+  cuál de las dos**. Ésa es la compuerta de `POSTVISIT-GATE-001`.
+- **`/api/expediente/paquete-de-visita`**, bajo la capacidad `firmar`
+  (= {medico, admin}) y contra la membresía real de ESE consultorio. El
+  navegador manda identificadores y una fecha; el contenido lo lee la ruta.
+- **Idempotente por construcción**: el id del documento ES el `notaId`, así que
+  el doble clic y el reintento escriben en el mismo sitio; y dentro de la
+  transacción, si lo liberado dice exactamente lo mismo, no se escribe, no sube
+  la versión y no se duplica la bitácora.
+- **Concurrencia**: quien libera manda la `versionEsperada` que está viendo. Una
+  pestaña vieja que llega tarde recibe **409** y no pisa la versión nueva.
+- **Reversible sólo con acto explícito**: `retirar` vuelve a `DRAFT`, **sube** la
+  versión y deja su entrada. No borra: lo entregado sigue constando.
+- **`entrega-del-paquete.ts`** es el único sitio que compone un camino hacia el
+  paquete, y vuelve a exigir `visibleParaElPaciente`. El mensaje **no lleva
+  secreto médico** —ni fármaco, ni diagnóstico, ni alergia—: sólo el aviso y el
+  enlace, porque un enlace de paciente se reenvía por WhatsApp.
+- **`/api/portal/link` ya puede emitir alcance `clinico`**, a petición explícita
+  y cobrando `firmar`. E0-06 cerró que se emitiera **por omisión**, no que
+  existiera; sin esto, `POSTVISIT-ENTREGA-001` no se puede cerrar.
+- **`/mi/[token]`** pinta lo liberado en «Cuidado», con el prescriptor y su
+  cédula del sello de firma, y **distingue el fallo de red de la ausencia**: un
+  error dice que es un error, y no una lista vacía que se lee como «mi médico no
+  me dejó nada».
+- **Bitácora**: `paquete_liberado` y `paquete_retirado`, con identidad y hora del
+  SERVIDOR, y con **conteos en vez de nombres de fármaco**.
+
+**LO QUE SIGUE SIN COMPONERSE, DECLARADO.** `warningSigns` y
+`educationalMaterial` van vacíos: los signos de alarma son indicación médica y el
+material educativo es evidencia curada. No hay de dónde sacarlos sin inventarlos,
+y la pantalla del médico **enseña el hueco** para que se llene, en vez de
+rellenarlo con «lo habitual».
+
+**Test / control permanente:**
+`src/__tests__/el-paquete-de-la-visita-se-libera-y-llega.test.ts` (51 casos).
+Probado al revés con cinco defectos inyectados uno a uno — quitar la compuerta de
+firma, quitar `.filter(visibleParaElPaciente)` de `/api/portal`, generar un id de
+documento aleatorio en vez de derivarlo del `notaId`, quitar la comprobación de
+versión, y quitar la compuerta de `mensajeDeEntrega` — y en los cinco cae.
+`src/__tests__/api-authz-guard.test.ts` re-expresa la propiedad de E0-06 (que
+nunca fue «la cadena no aparece» sino «quien no puede responder por el expediente
+no emite una llave que lo abre»), también probado al revés.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No se ha visto en un navegador.** El cableado se comprueba leyendo la fuente,
+  que es el precedente de esta casa; la regla de diseño exige además recorrer el
+  flujo de verdad, y eso queda pendiente.
+- **No corre contra Firestore real.** El doble del Admin SDK direcciona por ruta
+  completa y serializa transacciones; las reglas reales las prueba la suite del
+  emulador.
+- **No manda un solo WhatsApp.** Se compone el mensaje y se comprueba cuándo se
+  niega a componerlo.
+- **No cubre `DOCUMENTS-001` ni `PATIENT-AI-001`**: `documents` y
+  `unansweredQuestions` siguen vacíos y declarados.
+- **`medicationChanges` compara contra la visita firmada ANTERIOR**, por nombre
+  normalizado y sin mirar dosis. Un ajuste de 500 mg a 1 g no se anuncia como
+  cambio; la instrucción completa va arriba. Y si la lectura falla es `null`, no
+  «sin cambios».

@@ -39,7 +39,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320],
+    /**
+     * 335 es esta familia describiendo su propia forma. `PaqueteDeVisita`, su
+     * máquina de estados, su compuerta, la acción del portal, las reglas, la
+     * matriz, el respaldo y la exportación ARCO: todo escrito, todo probado, y
+     * ningún camino del producto escribía jamás un documento en esa colección.
+     * No faltaba una pantalla — faltaba el ACTO que la llena.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335],
   },
   {
     clave: 'se_contradice',
@@ -58,7 +65,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * de pacientes. El fallo vivía en el hueco entre las dos, que es
      * exactamente el patrón de esta familia.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322],
+    /**
+     * 336 es esta familia en su forma más cara: la compuerta que deja FIRMAR
+     * pide `medicoId` y cédula; la que deja ENTREGAR pide nombre y cédula.
+     * Ninguna de las dos está mal por su cuenta. En el hueco cabía una nota
+     * firmable e inentregable — y con `nota.firma` inmutable, irreparable.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336],
   },
   {
     clave: 'habla_real',
@@ -75,7 +88,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308],
+    /**
+     * 331 es esta familia en su forma más literal: veintitrés defectos de
+     * accesibilidad en las pantallas del paciente con la suite entera en
+     * verde. No fallaba nada; es que nadie estaba mirando ese eje.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331],
   },
   {
     clave: 'hueco_como_dato',
@@ -84,7 +102,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Lo que nadie dijo se guarda como si alguien lo hubiera dicho. Es el más ' +
       'peligroso de todos porque el resultado se LEE bien: una vía, una dosis, ' +
       'una negativa, indistinguibles de un dato real.',
-    regs: [165, 172, 176, 177, 228],
+    /**
+     * 332 y 333 son la misma familia por dos caras distintas, y por eso van
+     * juntas y no repartidas por su consecuencia.
+     *
+     * 332 es su versión de seguridad: «no pude comprobar si este enlace sigue
+     * vigente» se guardaba como «sigue vigente». El hueco —la lectura que no
+     * respondió— se leía igual que un permiso real; sólo que aquí lo que sale
+     * bien formado no es una dosis, es una autorización.
+     *
+     * 333 entra aquí y NO en `aislamiento`. La fuga —un apellido en el
+     * vocabulario del consultorio— es la CONSECUENCIA; la causa es que una
+     * lista de nombres vacía se leyó como «este paciente no tiene identidad»
+     * en vez de «no sé quién es». El hueco tratado como dato, otra vez.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333],
   },
   {
     clave: 'aislamiento',
@@ -119,7 +151,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330],
   },
   {
     clave: 'tarde',
@@ -136,7 +168,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Falla algo y el sistema culpa a otra cosa. Cuesta doble: la avería y las ' +
       'horas persiguiendo la avería equivocada.',
-    regs: [155, 156, 251, 317],
+    regs: [155, 156, 251, 317, 327, 328],
   },
   {
     clave: 'decision_del_dueno',
@@ -165,7 +197,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'registro oficial se le cree más que a la fuente. La reparación nunca es ' +
       'volver a copiarlo bien: es DERIVARLO, y poner una compuerta que falle ' +
       'cuando se separen.',
-    regs: [241, 253, 310],
+    /**
+     * 334: la integración se verificaba DESPUÉS de publicar porque alguien
+     * tenía que acordarse de construir entre un merge y el siguiente. Nadie se
+     * acordó, y el verde se compró revirtiendo la rama entera.
+     */
+    regs: [241, 253, 310, 334],
   },
   {
     /**
@@ -186,7 +223,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
-    regs: [242, 243, 250, 304],
+    regs: [242, 243, 250, 304, 326],
   },
   {
     clave: 'falta_un_eje',

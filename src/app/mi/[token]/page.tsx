@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useId, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
@@ -16,8 +16,16 @@ import type { Medicamento } from '@/types/expediente'
 interface DocReceta {
   id: string
   fecha: string
+  /** Del snapshot de firma de la nota, no de la configuración viva. Ver la ruta. */
   medico: string
+  cedulaProfesional: string
+  especialidad: string
   diagnostico: string
+  /**
+   * SÓLO lo que el médico prescribió de verdad. La ruta ya aplicó
+   * `medicamentosDeLaReceta`: aquí no llegan antecedentes, borradores de la IA,
+   * suspendidos ni órdenes vencidas sin revisar (H-01).
+   */
   medicamentos: Medicamento[]
 }
 
@@ -27,9 +35,47 @@ const RECETA_CONFIG_DEFAULT = {
   colorAccento: 'var(--nexus)',
   mostrarQR: false,
   vigenciaDias: 30,
+  /**
+   * SE DECIDE AL DESCARGAR, NO AQUÍ — H-01.
+   *
+   * Estaba fijo en `false`, así que la copia del paciente era la única receta
+   * del producto sin el recuadro de alergias: la misma alergia que el impreso
+   * del médico destaca en rojo desaparecía del documento que el paciente lleva
+   * a la farmacia. Y encenderlo sin más habría sido peor —`receta-word` imprime
+   * «Sin registro en el expediente» cuando no le mandan el campo—, que es
+   * afirmar una ausencia que nadie comprobó.
+   *
+   * Ahora manda `alergiasLeidas`: se enseña cuando el expediente se pudo leer,
+   * y se calla cuando no. Error ≠ ausencia.
+   */
   mostrarAlergias: false,
   mostrarDiagnostico: true,
   avisoLegal: 'Esta receta es personal e intransferible.',
+}
+
+/**
+ * EL PAQUETE DE LA VISITA, TAL COMO LLEGA DEL SERVIDOR.
+ *
+ * Sólo llegan los `RELEASED`: `/api/portal` los filtra con
+ * `visibleParaElPaciente` antes de responder, así que esta pantalla no puede
+ * pintar un borrador ni equivocándose. La compuerta vive en el servidor porque
+ * esconder una pestaña no cierra una ruta HTTP.
+ */
+interface PaqueteVisible {
+  id: string
+  fechaConsulta: string
+  encounterSummary: string
+  medicationInstructions: { nombre: string; instruccion: string }[]
+  /** `null` = no se pudo saber qué había antes. NO es «no hubo cambios». */
+  medicationChanges: { nombre: string; tipo: 'nuevo' | 'suspendido' | 'sin-cambio' }[] | null
+  orders: string[]
+  followUp: string
+  warningSigns: string[]
+  /** `null` = el expediente no se pudo leer. Entonces no se dice NADA de alergias. */
+  alergias: string | null
+  prescriptor: { nombre: string; cedulaProfesional: string; especialidad: string }
+  clinicianContactRules: string
+  version: number
 }
 
 interface Cita {
@@ -114,6 +160,30 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  /**
+   * NO SE PUDO LEER ≠ NO HAY NADA — H-01.
+   *
+   * Un fallo de red o de servidor acababa en `setDocs([])`, y como la lista sólo
+   * se pinta cuando trae algo, el paciente veía una pantalla sin recetas: la
+   * misma imagen exacta que «tu médico no te ha recetado nada». De ahí sale que
+   * alguien deje de tomar un antibiótico porque «ya no aparece».
+   */
+  const [docsError, setDocsError] = useState(false)
+  /**
+   * Las alergias del expediente y si SE PUDIERON LEER. Las dos cosas, porque la
+   * receta sólo puede hablar de alergias cuando la segunda es cierta.
+   */
+  const [alergias, setAlergias] = useState('')
+  const [alergiasLeidas, setAlergiasLeidas] = useState(false)
+  /**
+   * LO QUE TU MÉDICO LIBERÓ. `null` mientras no se sabe; `[]` cuando se leyó y
+   * no hay ninguno. Y `paquetesError` aparte, por lo mismo que `docsError`: una
+   * lista vacía por un fallo de red se lee como «mi médico no me dejó nada», y
+   * de ahí sale alguien que no empieza el antibiótico que sí le recetaron.
+   */
+  const [paquetes, setPaquetes] = useState<PaqueteVisible[] | null>(null)
+  const [paquetesError, setPaquetesError] = useState(false)
+  const [paquetesBloqueados, setPaquetesBloqueados] = useState(false)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -132,14 +202,31 @@ export default function MiPortalPage() {
       setSesion(await r.json())
       // Documentos (recetas) en paralelo — no bloquea la vista de citas
       fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'documentos', token }) })
-        .then(res => {
+        .then(async res => {
           // E0-06: 403 = el enlace no tiene alcance clínico (lo generó el mostrador,
           // no el médico). No es un error de red ni «no tienes recetas»: se dice.
-          if (res.status === 403) { setDocsBloqueados(true); return { documentos: [] } }
-          return res.ok ? res.json() : { documentos: [] }
+          if (res.status === 403) { setDocsBloqueados(true); setDocs([]); return }
+          // Cualquier otro fallo se DICE. Devolver [] pintaría «no tienes
+          // recetas», que es una afirmación clínica que nadie comprobó.
+          if (!res.ok) { setDocsError(true); return }
+          const d = await res.json()
+          setDocs(d.documentos || [])
+          setAlergias(String(d.alergias ?? ''))
+          setAlergiasLeidas(d.alergiasLeidas === true)
         })
-        .then(d => setDocs(d.documentos || []))
-        .catch(() => setDocs([]))
+        .catch(() => setDocsError(true))
+      /*
+        EL PAQUETE DE LA VISITA (POSTVISIT-001). En paralelo y sin bloquear:
+        el paciente que entra a confirmar una cita no espera a esto.
+      */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(async res => {
+          if (res.status === 403) { setPaquetesBloqueados(true); setPaquetes([]); return }
+          if (!res.ok) { setPaquetesError(true); return }
+          const d = await res.json()
+          setPaquetes((d.paquetes || []) as PaqueteVisible[])
+        })
+        .catch(() => setPaquetesError(true))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -172,11 +259,18 @@ export default function MiPortalPage() {
     }
   }
 
+  /*
+    A11Y-GATE-001. Las dos puertas de esta pantalla —«cargando» y «tu enlace ya
+    no vale»— eran mudas. La segunda es la que importa: si el enlace del portal
+    venció, ESTE cartel es lo único que le dice al paciente que tiene que pedir
+    otro al consultorio. Aparecía sin que ningún lector de pantalla lo leyera,
+    y lo que quedaba era una pantalla en blanco sin explicación.
+  */
   if (cargando) {
-    return <Centro><Loader2 size={26} style={{ animation: 'spin 1s linear infinite', color: 'var(--nexus)' }} /><p style={{ color: 'var(--text3)', marginTop: 12 }}>Cargando tu información…</p></Centro>
+    return <Centro><div role="status"><Loader2 size={26} aria-hidden="true" style={{ animation: 'spin 1s linear infinite', color: 'var(--nexus)' }} /><p style={{ color: 'var(--text3)', marginTop: 12 }}>Cargando tu información…</p></div></Centro>
   }
   if (error || !sesion) {
-    return <Centro><AlertTriangle size={28} color="var(--amber)" /><p style={{ color: 'var(--text2)', marginTop: 12, maxWidth: 320 }}>{error || 'No encontramos tu información.'}</p></Centro>
+    return <Centro><div role="alert"><AlertTriangle size={28} color="var(--amber)" aria-hidden="true" /><p style={{ color: 'var(--text2)', marginTop: 12, maxWidth: 320 }}>{error || 'No encontramos tu información.'}</p></div></Centro>
   }
 
   /**
@@ -209,6 +303,16 @@ export default function MiPortalPage() {
      */
     const fechaDoc = fechaFlexible(doc.fecha, tzClinica)
     if (!fechaDoc) { alert('Esta receta no tiene una fecha válida. Pídesela al consultorio.'); return }
+    /**
+     * LA RECETA DEL PACIENTE DICE QUIÉN LA PRESCRIBIÓ — H-01.
+     *
+     * El segundo argumento era `null`, así que el documento salía SIN médico y
+     * con «[FALTA CÉDULA PROFESIONAL]» impreso en rojo: una «RECETA MÉDICA» que
+     * no se podía atribuir a nadie. Los datos salen de la FIRMA de la nota —el
+     * snapshot inmutable de quien respondió por este acto— y no de la
+     * configuración viva del consultorio, que cambiaría el autor de una receta
+     * vieja al actualizar el perfil.
+     */
     descargarRecetaWord(
       {
         tipo: 'receta',
@@ -216,10 +320,21 @@ export default function MiPortalPage() {
         fecha: fechaDoc,
         pacienteNombre: sesion.paciente,
         diagnostico: doc.diagnostico || undefined,
+        // `alergias` sólo viaja si el expediente se pudo leer: `receta-word`
+        // imprime «Sin registro en el expediente» cuando el campo llega vacío, y
+        // eso es una afirmación, no un silencio.
+        alergias: alergiasLeidas ? alergias : undefined,
         medicamentos: doc.medicamentos,
       },
-      null,
-      RECETA_CONFIG_DEFAULT,
+      {
+        nombreMedico: doc.medico,
+        cedulaProfesional: doc.cedulaProfesional,
+        especialidad: doc.especialidad,
+        nombreClinica: sesion.clinica?.nombre ?? '',
+        direccion: sesion.clinica?.direccion ?? '',
+        telefonoAdmin: sesion.clinica?.telefono ?? '',
+      } as Parameters<typeof descargarRecetaWord>[1],
+      { ...RECETA_CONFIG_DEFAULT, mostrarAlergias: alergiasLeidas },
     )
   }
 
@@ -308,15 +423,15 @@ export default function MiPortalPage() {
                 <>
                   <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
                     {!c.confirmadoPaciente && (
-                      <button onClick={() => accionCita('confirmar', c.id)} disabled={!!accion} className="btn btn-primary btn-sm">
-                        {accion === c.id + 'confirmar' ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} />} Confirmar
+                      <button onClick={() => accionCita('confirmar', c.id)} disabled={!!accion} aria-busy={accion === c.id + 'confirmar'} className="btn btn-primary btn-sm">
+                        {accion === c.id + 'confirmar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} aria-hidden="true" />} Confirmar
                       </button>
                     )}
                     <button onClick={() => setReagendando(reagendando === c.id ? '' : c.id)} disabled={!!accion} className="btn btn-secondary btn-sm">
                       <CalendarClock size={14} /> Reagendar
                     </button>
-                    <button onClick={() => { if (confirm('¿Cancelar esta cita?')) accionCita('cancelar', c.id) }} disabled={!!accion} className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }}>
-                      {accion === c.id + 'cancelar' ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} />} Cancelar
+                    <button onClick={() => { if (confirm('¿Cancelar esta cita?')) accionCita('cancelar', c.id) }} disabled={!!accion} aria-busy={accion === c.id + 'cancelar'} className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }}>
+                      {accion === c.id + 'cancelar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} aria-hidden="true" />} Cancelar
                     </button>
                     <a href={gcalLink(c, tzClinica)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
                       <CalendarPlus size={14} /> Agendar
@@ -353,6 +468,7 @@ export default function MiPortalPage() {
             <button
               type="button"
               disabled={!!pagando}
+              aria-busy={!!pagando}
               onClick={() => pagarAnticipo(proximas[0])}
               style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: pagando ? 'default' : 'pointer' }}
             >
@@ -374,7 +490,7 @@ export default function MiPortalPage() {
               </div>
             </button>
             {errorPago && (
-              <div style={{ fontSize: 12.5, color: 'var(--amber)', marginTop: 8, lineHeight: 1.5 }}>
+              <div role="alert" style={{ fontSize: 12.5, color: 'var(--amber)', marginTop: 8, lineHeight: 1.5 }}>
                 {errorPago}
                 {sesion.anticipo.link && (
                   <> <a href={sesion.anticipo.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--nexus)' }}>Pagar por el enlace del consultorio</a> — avísales para que lo registren.</>
@@ -427,13 +543,127 @@ export default function MiPortalPage() {
             el estado vacío dice la verdad en vez de fingir que no hay nada.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+
+          {/*
+            NO SE PUDO LEER — y se dice. Es la hermana exacta del aviso de las
+            recetas (H-01): una lista vacía por un fallo de red se lee como «mi
+            médico no me dejó nada», y esa es una afirmación clínica que nadie
+            comprobó.
+          */}
+          {paquetesError && (
+            <div role="alert" style={{ padding: 16, border: '1px solid var(--amber)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+              <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+                No pudimos cargar el resumen de tus consultas. Esto <strong>no</strong> significa
+                que no tengas ninguno: vuelve a intentarlo o llama a tu consultorio.
+              </p>
+            </div>
+          )}
+
+          {paquetesBloqueados && (
+            <div style={{ padding: 16, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16, fontSize: 14, color: 'var(--text3)' }}>
+              Este enlace sirve para tus citas. Pide a tu médico el acceso a la
+              información de tus consultas.
+            </div>
+          )}
+
+          {!paquetesError && !paquetesBloqueados && paquetes?.length === 0 && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          )}
+
+          {(paquetes ?? []).map(pk => {
+            const f = fmtFecha(pk.fechaConsulta, tzClinica)
+            return (
+              <article key={pk.id} style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+                <h3 className="t-h3" style={{ margin: '0 0 4px' }}>Consulta del {f.fecha}</h3>
+                {pk.encounterSummary && (
+                  <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>{pk.encounterSummary}</p>
+                )}
+
+                {pk.medicationInstructions.length > 0 && (
+                  <>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Tus medicamentos</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {pk.medicationInstructions.map(m => <li key={m.nombre}>{m.instruccion}</li>)}
+                    </ul>
+                  </>
+                )}
+
+                {/*
+                  QUÉ CAMBIÓ. Es donde el paciente más se equivoca —sigue
+                  tomando lo que ya no toca—, y por eso se enseña aparte de la
+                  lista. Cuando el servidor no pudo saber qué había antes manda
+                  `null`, y entonces AQUÍ NO SE DICE NADA: «no sé qué había
+                  antes» no es «no hubo cambios».
+                */}
+                {pk.medicationChanges && pk.medicationChanges.some(c => c.tipo !== 'sin-cambio') && (
+                  <>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Qué cambió desde tu visita anterior</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {pk.medicationChanges.filter(c => c.tipo !== 'sin-cambio').map(c => (
+                        <li key={`${c.tipo}-${c.nombre}`}>
+                          {c.tipo === 'nuevo' ? 'Empiezas' : 'Ya no tomas'}: {c.nombre}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+
+                {pk.orders.length > 0 && (
+                  <>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Estudios que te pidió</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {pk.orders.map(o => <li key={o}>{o}</li>)}
+                    </ul>
+                  </>
+                )}
+
+                {pk.warningSigns.length > 0 && (
+                  <>
+                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Cuándo volver antes</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {pk.warningSigns.map(w => <li key={w}>{w}</li>)}
+                    </ul>
+                  </>
+                )}
+
+                {pk.followUp && (
+                  <p style={{ fontSize: 14, color: 'var(--text2)', margin: '12px 0 0' }}>
+                    <strong>Tu próxima cita:</strong> {pk.followUp}
+                  </p>
+                )}
+
+                {/*
+                  ALERGIAS: sólo si el expediente SE PUDO LEER (`alergias !== null`).
+                  Con `null` no se escribe ni «sin registro»: afirmar una ausencia
+                  que nadie comprobó, delante de alguien que no puede detectar el
+                  error, es exactamente lo que la regla 4 prohíbe.
+                */}
+                {pk.alergias !== null && pk.alergias !== '' && (
+                  <p style={{ fontSize: 14, color: 'var(--text2)', margin: '12px 0 0' }}>
+                    <strong>Alergias registradas:</strong> {pk.alergias}
+                  </p>
+                )}
+
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
+                  {/* QUIÉN RESPONDE POR ESTE PAPEL: del sello de firma de la nota. */}
+                  {pk.prescriptor.nombre}
+                  {pk.prescriptor.cedulaProfesional ? ` · Céd. Prof. ${pk.prescriptor.cedulaProfesional}` : ''}
+                  {pk.prescriptor.especialidad ? ` · ${pk.prescriptor.especialidad}` : ''}
+                </p>
+                {pk.clinicianContactRules && (
+                  <p style={{ fontSize: 12, color: 'var(--text3)', margin: '6px 0 0', lineHeight: 1.6 }}>
+                    {pk.clinicianContactRules}
+                  </p>
+                )}
+              </article>
+            )
+          })}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>
@@ -464,8 +694,23 @@ export default function MiPortalPage() {
           </div>
         )}
 
+        {/*
+          NO SE PUDO LEER — y se dice, en vez de pintar una pantalla vacía.
+          Una lista vacía por un fallo de red se lee como «no tienes recetas», y
+          esa es una afirmación clínica que nadie comprobó (H-01).
+        */}
+        {docsError && (
+          // Tamaños y radio EN ESCALA (12 / 10): la tarjeta hermana de arriba es
+          // deuda de diseño heredada y no se copia su 13/12 — el trinquete sólo baja.
+          <div style={{ marginTop: 28, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, fontSize: 12, color: 'var(--text3)' }}>
+            <div style={{ fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>Mis recetas</div>
+            No pudimos cargar tus recetas en este momento. <b>Esto no quiere decir que no tengas.</b>{' '}
+            Vuelve a intentarlo en un minuto, y si sigue igual pregunta en el consultorio.
+          </div>
+        )}
+
         {/* Mis recetas */}
-        {docs && docs.length > 0 && (
+        {!docsError && docs && docs.length > 0 && (
           <div style={{ marginTop: 28 }}>
             <h2 className="t-h2" style={{ marginBottom: 12 }}>Mis recetas</h2>
             {docs.map(d => {
@@ -573,6 +818,7 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
   const [fecha, setFecha] = useState(hoy)
   const [slots, setSlots] = useState<string[] | null>(null)
   const [cargandoSlots, setCargandoSlots] = useState(false)
+  const idFecha = useId()
 
   const buscar = useCallback(async (f: string) => {
     setCargandoSlots(true); setSlots(null)
@@ -589,12 +835,23 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
 
   return (
     <div style={{ marginTop: 14, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" /> Elige un nuevo horario</div>
-      <input type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
+      {/*
+        A11Y-GATE-001: este bloque era un <div> de título y un <input type="date">
+        sin etiqueta. El <div> se ve como un rótulo y no lo es — el campo se
+        anunciaba «fecha, cuadro de edición», sin decir para qué. Ahora el rótulo
+        ES el <label> del campo, así que rotularlo y etiquetarlo son el mismo
+        acto y no se pueden separar por descuido.
+      */}
+      <label htmlFor={idFecha} style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" aria-hidden="true" /> Elige un nuevo horario</label>
+      <input id={idFecha} type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
+      {/*
+        Los horarios se rellenan solos al cambiar el día: sin región viva, el
+        cambio ocurre en silencio.
+      */}
       {cargandoSlots ? (
-        <div style={{ color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Buscando horarios…</div>
+        <div role="status" style={{ color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}><Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> Buscando horarios…</div>
       ) : slots && slots.length === 0 ? (
-        <div style={{ color: 'var(--text3)', fontSize: 13 }}>No hay horarios libres ese día. Prueba otra fecha.</div>
+        <div role="status" style={{ color: 'var(--text3)', fontSize: 13 }}>No hay horarios libres ese día. Prueba otra fecha.</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(72px, 100%), 1fr))', gap: 8 }}>
           {slots?.map(s => (
@@ -692,15 +949,16 @@ function FormularioPrevio({ token }: { token: string }) {
               />
             </div>
           ))}
-          {error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+          {error && <div role="alert" style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
           <button
             type="button"
             onClick={enviar}
             disabled={enviando || !Object.values(valores).some(v => v.trim())}
+            aria-busy={enviando}
             className="btn btn-primary btn-sm"
             style={{ alignSelf: 'flex-start' }}
           >
-            {enviando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} />} Enviar a mi médico
+            {enviando ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} aria-hidden="true" />} Enviar a mi médico
           </button>
         </div>
       )}

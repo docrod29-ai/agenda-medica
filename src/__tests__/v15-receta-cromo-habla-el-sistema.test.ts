@@ -168,8 +168,23 @@ describe('V15 /receta — freeze funcional del editor', () => {
   })
 
   it('lo suspendido y lo habitual siguen sin bajar al papel (cadena de filtrado intacta)', () => {
-    expect(src).toContain('loQueSeReceta(n.medicamentos ?? [])')
-    expect(src).toContain('.filter(m => estaVigente(m))')
+    /**
+     * LA CADENA SIGUE INTACTA; LO QUE CAMBIÓ ES DÓNDE VIVE (H-01, REG-327).
+     *
+     * Esto congelaba las dos mitades escritas A MANO en esta pantalla:
+     * `loQueSeReceta(...)` y `.filter(m => estaVigente(m))`. Ambas siguen
+     * aplicándose —ni una menos— pero componidas dentro de
+     * `medicamentosDeLaReceta`, que es ahora la única puerta y la que cruza
+     * también el portal del paciente.
+     *
+     * Congelar la composición aquí dentro era, de hecho, parte del problema:
+     * daba por buena una regla clínica que sólo protegía a esta pantalla,
+     * mientras el portal bajaba `nota.medicamentos` en crudo a un documento
+     * titulado «RECETA MÉDICA».
+     */
+    expect(src).toContain('medicamentosDeLaReceta(n.medicamentos ?? [])')
+    // Y no vuelve a haber una segunda composición a mano que pueda divergir.
+    expect(src).not.toContain('loQueSeReceta(')
   })
 
   it('el folio sigue derivado de la nota y el QR se sigue minteando en el servidor', () => {

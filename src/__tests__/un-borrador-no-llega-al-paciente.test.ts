@@ -38,18 +38,20 @@
  * - **No prueba la ruta HTTP con una petición real.** Comprueba la función que
  *   la ruta usa, y que la ruta la use. Montar `/api/portal` con Firestore
  *   admin exige el emulador, y eso es otra suite (`vitest.emulator.config.ts`).
- * - **No hay pantalla del médico para liberar todavía.** Eso es `POSTVISIT-001`.
- *   Hoy nada crea paquetes en producción: esta unidad pone el modelo, la
- *   compuerta y los cinco destinos.
- * - **No valida el contenido clínico** del paquete, ni lo compone: `componerPaquete`
- *   se difirió a POSTVISIT-001 por no tener llamador, y llega con la pantalla que
- *   la llame. Que la composición no invente cifras lo vigila el golden de
- *   `como-se-lo-explico`.
+ * - **No cubre la pantalla del médico ni la ruta que libera.** Eso llegó en
+ *   `POSTVISIT-001` y tiene su propio golden. Esta unidad puso el modelo, la
+ *   compuerta y los cinco destinos, y eso es lo que sigue vigilando.
+ * - **No valida el contenido clínico** del paquete ni lo compone. Desde
+ *   POSTVISIT-001 (REG-335) `componerPaquete` existe y tiene llamador; lo que
+ *   compone, de qué fuentes y qué se niega a componer lo vigila
+ *   `el-paquete-de-la-visita-se-libera-y-llega.test.ts`. Aquí sigue viviendo
+ *   sólo la MÁQUINA DE ESTADOS y la compuerta.
  * - **No cubre la cartera de documentos** (`DOCUMENTS-001`) ni las preguntas
  *   (`PATIENT-AI-001`): sus campos existen y van vacíos, declarados.
- * - **No prueba el cálculo de cambios de medicación.** Se difirió con la
- *   composición, y con él su regla —sin lista previa, `null` y no «sin
- *   cambios»—, que el tipo sigue exigiendo: `medicationChanges` admite `null`.
+ * - **No prueba el cálculo de cambios de medicación.** Llegó con la
+ *   composición y se prueba con ella; lo único que este archivo sostiene es que
+ *   el tipo sigue admitiendo `null`, que es como se dice «no sé qué había
+ *   antes» y no «no hubo cambios».
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -66,6 +68,7 @@ import {
  */
 const recienCompuesto = (): PaqueteDeVisita => ({
   notaId: 'nota_1',
+  fechaConsulta: '2026-08-20T17:00:00.000Z',
   encounterSummary: 'Faringitis aguda.',
   medicationInstructions: [{ nombre: 'Amoxicilina', instruccion: 'Amoxicilina 500 mg por la boca cada 8 horas' }],
   medicationChanges: null,
@@ -76,6 +79,11 @@ const recienCompuesto = (): PaqueteDeVisita => ({
   documents: [],
   unansweredQuestions: [],
   clinicianContactRules: '',
+  /* POSTVISIT-001: del snapshot de firma. Un papel del paciente sin prescriptor
+     es la «RECETA MÉDICA» sin cédula que ya se reparó una vez (H-01). */
+  prescriptor: { nombre: 'Dra. Sintética Ejemplo', cedulaProfesional: '00000000', especialidad: 'Medicina Interna' },
+  /* `''` = se leyó el expediente y no hay nada; `null` = no se pudo leer. */
+  alergias: '',
   language: 'es-MX',
   estado: 'DRAFT',
   approvedAt: null,
