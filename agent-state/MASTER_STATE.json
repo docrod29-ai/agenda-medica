@@ -16,25 +16,9 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1173",
+  "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1173 (v1173 = REG-337, el bote del expediente; commiteada, fusionada a main en 8150115 y publicada por la integración GitHub↔Vercel). El bump fue CON su despliegue, que es la condición que v1172 dejó escrita.",
-  "trabajoLocalSinSubir": [
-    "M  .github/workflows/deploy-production.yml",
-    "UU agent-state/MASTER_STATE.json",
-    "MM docs/audit/regression-ledger.md",
-    "UU docs/data-room/INDICE.md",
-    "M  docs/maintenance/sw-changelog.md",
-    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    " M src/__tests__/recetas-tres-pasos-y-la-app-coloca-sola.test.ts",
-    "A  src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts",
-    "M  src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",
-    "M  src/components/expediente/ClinicalSpine.tsx",
-    "MM src/lib/calidad/familias-de-defecto.ts",
-    "UU src/lib/clinical/invariantes-clinicos.json",
-    "A  src/lib/ui/traer-a-la-vista.ts"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
