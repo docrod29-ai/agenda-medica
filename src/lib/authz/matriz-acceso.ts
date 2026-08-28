@@ -117,7 +117,7 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'administrativo',
     guardaLectura: 'isMember',
     guardaEscritura: 'isMember',
-    porQue: 'Directorio del paciente (nombre, teléfono, CURP, seguro): recepción lo necesita para agendar. PENDIENTE Fase B/C: hoy este documento TODAVÍA contiene los campos clínicos de CAMPOS_CLINICOS_PACIENTE, que deben mudarse a la subcolección `clinico`.',
+    porQue: 'Directorio del paciente (nombre, teléfono, CURP, seguro): recepción lo necesita para agendar. Puede llevar `requiereRevisionClinica`, el indicador NO DESCRIPTIVO que autorizó el dueño (P1-6 punto 4): avisa de que hay algo que ver sin decir qué. PENDIENTE «switch reads» y «remove legacy»: hoy este documento TODAVÍA contiene los campos clínicos de CAMPOS_CLINICOS_PACIENTE. La superficie canónica (`clinico/resumen`), el backfill verificable y el rollback ya existen; retirarlos exige equivalencia demostrada y autorización del dueño.',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/notas/{notaId}',

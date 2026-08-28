@@ -71,7 +71,6 @@ const CAMPOS_ACEPTADOS: Record<string, string> = {
   'Efecto.citaLiteral': 'Del mismo modelo: la cifra TAL CUAL aparece en el texto, que es lo que permite rechazar una cifra no literal.',
   'Efecto.ic95': 'Del mismo modelo: el intervalo de confianza del efecto.',
   'ICUObservation.normalizedValue': 'Del bloque icu-002: el valor normalizado, lo único que un motor puede usar para calcular.',
-  'ResumenClinicoPaciente.notasClinicas': 'Documento de PHI separada (E0-06). El expediente todavía guarda estos campos en `patients/{id}`, que recepción lee; la migración es la que falta, y el propio tipo lo dice.',
 }
 
 const CODIGO = ['.ts', '.tsx']

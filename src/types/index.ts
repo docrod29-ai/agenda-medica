@@ -268,6 +268,30 @@ export interface Patient {
     medicoId?: string
   }
   notas?: string
+  /**
+   * INDICADOR NO DESCRIPTIVO — lo único que la superficie ADMINISTRATIVA sabe del
+   * expediente clínico (política del dueño P1-6, punto 4).
+   *
+   * Vive en el documento administrativo A PROPÓSITO: es el documento que recepción
+   * lee, y la idea es justamente que el mostrador pueda decir «esto lo tiene que
+   * ver el médico» sin enterarse de por qué. Se pinta como
+   * `TEXTO_INDICADOR_ADMINISTRATIVO` («Requiere revisión clínica»).
+   *
+   * **No es un detector de alergias.** Lo enciende CUALQUIER contenido clínico
+   * —alergias, antecedentes o valoración—, porque un indicador que se encendiera
+   * exactamente cuando hay alergia dejaría inferir la alergia por su presencia.
+   * Que sea ambiguo es la protección.
+   *
+   * **No es Clinical Truth y nunca debe leerse como tal.** Es un DERIVADO que
+   * escribe el camino clínico (`updatePatientRepartido`) a partir del resumen; no
+   * dice qué hay, ni cuánto, ni desde cuándo. Nada clínico puede decidirse con
+   * esto: para eso está `clinico/resumen`, que la regla cierra con `isMedico`.
+   *
+   * Residual declarado: revela que EXISTE algo clínico anotado, y `patients/{id}`
+   * es `allow update: if isMember`, así que recepción podría borrarlo. Las dos
+   * cosas son aceptables porque no es una compuerta de seguridad: es un aviso.
+   */
+  requiereRevisionClinica?: boolean
   tags?: PatientTag[]
   ultimaCita?: string
   proximoSeguimiento?: string

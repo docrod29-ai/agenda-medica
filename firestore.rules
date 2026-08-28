@@ -348,11 +348,26 @@ service cloud.firestore {
          * reglas. Las reglas no son recursivas: el `read: if isMember` de arriba NO
          * alcanza a esta subcolección, igual que no alcanza a `notas`.
          *
-         * ESTADO: el bloque está en vigor, pero la MIGRACIÓN de los campos heredados
-         * (Fases B y C del diseño de E0-06) espera la decisión D1 del médico dueño:
-         * ¿la asistente puede CAPTURAR alergias en el alta aunque no pueda leerlas
-         * después? Si la respuesta es «sí», create/update pasan a `isMember` y la
-         * lectura se queda en `isMedico` (write-only). Hasta entonces, lo estricto.
+         * D1 RESUELTA POR EL DUEÑO (política P1-6, 28-ago-2026): recepción NO lee
+         * alérgeno, reacción, gravedad, fecha ni notas clínicas, y sólo accede a lo
+         * ADMINISTRATIVO necesario para agenda, identificación, contacto, cobro y
+         * operación. O sea: ni lectura NI captura. Este bloque se queda como está
+         * —`isMedico` en los dos sentidos—, que es exactamente lo que la decisión
+         * pide; la opción «write-only para la asistente» queda descartada.
+         *
+         * Para avisar al mostrador de que hay algo que ver sin decir qué, el dueño
+         * autorizó un indicador NO DESCRIPTIVO («Requiere revisión clínica»), que
+         * viaja como `requiereRevisionClinica` en el documento administrativo.
+         *
+         * ESTADO DE LA MIGRACIÓN — `add → backfill → verify → switch reads → verify
+         * → remove legacy`. Hecho el `add`: esta regla, la superficie canónica
+         * (`@/lib/expediente/paciente-clinico`), el backfill con su verificación de
+         * equivalencia y su rollback (`scripts/migrar-phi-clinico.mjs`) y las
+         * pruebas —aquí y en `emulator/alergias-superficie-clinica.emu.test.ts`—.
+         * Pendiente y SIN AUTORIZAR: el backfill de producción, el cambio de las
+         * pantallas y la retirada de los campos heredados de `patients/{docId}`.
+         * Hasta que eso ocurra, la alergia SIGUE siendo un campo de ese documento y
+         * recepción la lee: lo que esta regla protege es la casa nueva, no la vieja.
          */
         match /clinico/{clinicoId} {
           allow read: if isMedico(clinicId);

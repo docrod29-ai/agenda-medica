@@ -8,6 +8,11 @@ import { claveDeEspera } from '@/lib/whatsapp/lista-espera'
 import { db } from './firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
 import {
+  completarConLoClinico,
+  guardarParteClinicaDelPaciente,
+} from '@/lib/expediente/paciente-clinico-firestore'
+import type { EstadoClinico, PacienteFusionado } from '@/lib/expediente/paciente-clinico'
+import {
   Appointment, Patient, WaitlistEntry, ClinicConfig, Doctor,
   DEFAULT_CONFIG, Clinic, ClinicMember,
 } from '@/types'
@@ -130,6 +135,70 @@ export async function getPatients(clinicId: string, opts?: { force?: boolean }):
 export async function getPatient(clinicId: string, patientId: string): Promise<Patient | null> {
   const snap = await getDoc(d(clinicId, COLLECTIONS.patients, patientId))
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as Patient) : null
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LA PAREJA DEL CORTE DE E0-06 — leer y escribir con las alergias YA SEPARADAS.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Las alergias, los antecedentes y la valoración del inmunocomprometido son
+ * información clínica, y hoy siguen siendo campos de `patients/{id}` — el
+ * documento que recepción lee para agendar. Firestore no autoriza por campo en
+ * lectura, así que mientras estén ahí, recepción los lee y ninguna regla puede
+ * impedirlo. La fuente canónica es `patients/{id}/clinico/resumen`, ya cerrado
+ * con `isMedico`.
+ *
+ * Estas dos funciones son por donde pasará el contenido clínico cuando se
+ * autorice el paso `switch reads`. **Hoy ninguna pantalla las llama todavía**, y
+ * está dicho a propósito en vez de fingir lo contrario: la secuencia que fijó el
+ * dueño es `add → backfill → verify → switch reads → verify → remove legacy`, y
+ * cambiar las pantallas antes del backfill verificado no es el paso que toca.
+ *
+ * `getPatient` y `updatePatient` se quedan EXACTAMENTE como estaban: mientras el
+ * corte no se autorice, el producto se comporta igual que ayer.
+ */
+
+/**
+ * El paciente con su contenido clínico, más el ESTADO de esa segunda lectura.
+ *
+ * Cuesta una lectura de documento más que `getPatient`. A cambio, la pantalla
+ * puede distinguir «este paciente no tiene alergias registradas» de «no pude
+ * leerlas»: `estadoClinico` lo dice, y `sePuedeAfirmarSobreLoClinico` lo traduce
+ * a la única pregunta que importa —¿puedo afirmar algo?—. Colapsar las dos cosas
+ * es cómo se acaba imprimiendo «Negadas» en la receta de un paciente alérgico.
+ */
+export async function getPatientCompleto(
+  clinicId: string,
+  patientId: string,
+): Promise<{ paciente: Patient | null; estadoClinico: EstadoClinico }> {
+  const administrativo = await getPatient(clinicId, patientId)
+  if (!administrativo) return { paciente: null, estadoClinico: 'no_migrado' }
+  const fusionado: PacienteFusionado = await completarConLoClinico(clinicId, administrativo)
+  return { paciente: fusionado.paciente, estadoClinico: fusionado.estadoClinico }
+}
+
+/**
+ * Escribe un parche de paciente repartiéndolo entre los dos documentos: lo
+ * clínico al subdocumento protegido, lo administrativo por el camino de siempre
+ * (`updatePatient`, con su guardia de concurrencia y su bitácora, que no se
+ * duplican aquí).
+ *
+ * Lo clínico va a UN solo sitio: duplicarlo «por compatibilidad» crearía la
+ * segunda Clinical Truth que la política del dueño prohíbe, y dos verdades que
+ * pueden divergir sin criterio para decidir cuál manda.
+ */
+export async function updatePatientRepartido(
+  clinicId: string,
+  patientId: string,
+  uid: string,
+  data: Partial<Patient>,
+  vistoEn?: string,
+): Promise<void> {
+  const { administrativo } = await guardarParteClinicaDelPaciente(clinicId, patientId, uid, data)
+  if (Object.keys(administrativo).length > 0) {
+    await updatePatient(clinicId, patientId, administrativo, vistoEn)
+  }
 }
 
 export async function createPatient(clinicId: string, data: Omit<Patient, 'id'>): Promise<string> {
