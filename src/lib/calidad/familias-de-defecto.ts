@@ -142,7 +142,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Correcto por dentro, insoportable por fuera: avisos que interrumpen, se ' +
       'repiten o tapan la nota. Un aviso que estorba se aprende a ignorar, y ' +
       'entonces deja de proteger.',
-    regs: [178, 181, 184, 231, 233, 301, 319],
+    /**
+     * 337 estira la familia más allá del aviso, y a propósito. El riel del
+     * expediente hacía bien su trabajo —resaltar dónde va la lectura—; lo que
+     * era insoportable es lo que ese trabajo le hacía a la pantalla: botaba
+     * hacia arriba en cada tramo mientras el médico bajaba. Nada estaba mal por
+     * dentro, y la pantalla no se podía usar. El patrón es el mismo que el del
+     * aviso que interrumpe: correcto en su intención, intolerable en su efecto.
+     */
+    regs: [178, 181, 184, 231, 233, 301, 319, 337],
   },
   {
     clave: 'perdida',

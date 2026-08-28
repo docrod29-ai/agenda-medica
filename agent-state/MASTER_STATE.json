@@ -16,7 +16,7 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1172",
+  "ultimaVersionEnProduccion": "nexusmed-v1173",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-28",
@@ -51,12 +51,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "release/prod-package-2026-08-27",
+  "ramaActual": "claude/pantalla-bota-scroll-dd7zpl",
   "derivado": {
-    "regsEnElLedger": 184,
-    "ultimaREG": "REG-336",
-    "archivosDePrueba": 762,
-    "casosDePrueba": 9341,
+    "regsEnElLedger": 185,
+    "ultimaREG": "REG-337",
+    "archivosDePrueba": 763,
+    "casosDePrueba": 9353,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
