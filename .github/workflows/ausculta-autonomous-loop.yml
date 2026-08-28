@@ -22,7 +22,7 @@ jobs:
     env:
       TARGET_BRANCH: product/ausculta-master-completion
       PR_NUMBER: '389'
-      WRITER_MAX_TURNS: '50'
+      WRITER_MAX_TURNS: '200'
       HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
       HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
 
@@ -188,12 +188,30 @@ jobs:
         id: claude
         if: steps.start.outputs.complete != 'true' && env.HAS_ANTHROPIC == 'true'
         continue-on-error: true
+        timeout-minutes: 45
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         shell: bash
         run: |
           set -euo pipefail
           claude -p "$(cat /tmp/ausculta-autonomous-prompt.txt)"             --model opus             --max-turns "$WRITER_MAX_TURNS"             --output-format json             --allowedTools "Read" "Write" "Edit" "Glob" "Grep"             --disallowedTools "Bash" "WebSearch" "WebFetch"             > /tmp/claude-result.json
+
+      - name: Report Claude writer outcome
+        if: always() && steps.start.outputs.complete != 'true' && steps.claude.outcome != 'skipped'
+        shell: bash
+        run: |
+          set -uo pipefail
+          {
+            echo "### Claude writer outcome"
+            echo "- step outcome: ${{ steps.claude.outcome }}"
+            echo "- turn ceiling: $WRITER_MAX_TURNS"
+            if [[ -s /tmp/claude-result.json ]]; then
+              jq -r '"- subtype: \(.subtype // "n/a")", "- is_error: \(.is_error // "n/a")", "- turns used: \(.num_turns // "n/a")", "- duration_ms: \(.duration_ms // "n/a")"' /tmp/claude-result.json \
+                || echo "- result file present but not parseable as JSON"
+            else
+              echo "- no result file: the CLI never wrote /tmp/claude-result.json"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Decide whether Codex must take the writer turn
         id: handoff
@@ -236,6 +254,7 @@ jobs:
 
       - name: Codex writer fallback
         if: steps.handoff.outputs.use_codex == 'true'
+        timeout-minutes: 45
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -324,6 +343,7 @@ jobs:
 
       - name: Codex gate repair
         if: steps.delta.outputs.changed == 'true' && steps.gates1.outcome == 'failure' && env.HAS_OPENAI == 'true'
+        timeout-minutes: 45
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -469,6 +489,50 @@ jobs:
         run: |
           {
             echo "### No persisted delta this cycle"
-            echo "The scheduled loop will retry on the next cycle."
+            echo "The loop will retry on the next cycle."
             echo "No main merge or production deployment occurred."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # A cycle that leaves no trace cannot be diagnosed. Run 1 died inside the
+      # Codex step with its logs unreachable (HTTP 404), so nothing said whether
+      # the writer ran out of turns, out of time, or out of runner.
+      - name: Upload cycle diagnostics
+        if: always() && steps.start.outputs.complete != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ausculta-cycle-${{ github.run_id }}
+          path: |
+            /tmp/claude-result.json
+            /tmp/ausculta-gates.log
+            /tmp/ausculta-autonomous-prompt.txt
+            /tmp/ausculta-ci-context.txt
+            /tmp/ausculta-codex-context.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # The hourly cron is a backup, not the engine: it did not fire once in the
+      # six hours after this workflow landed on the default branch, while every
+      # other workflow in the repository kept running. A cycle that cleared the
+      # owner-boundary verification and did not find the stop marker asks for the
+      # next cycle itself, so the loop stops depending on the scheduler.
+      #
+      # The breaker is the reason this cannot run away: at most four cycles per
+      # hour, and a cycle that fails its verification step does not chain at all,
+      # because a broken configuration must stop the loop, not spin it.
+      - name: Chain the next cycle
+        if: always() && steps.start.conclusion == 'success' && steps.start.outputs.complete != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          since="$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"
+          recent="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ausculta-autonomous-loop.yml/runs?per_page=50" \
+            | jq --arg since "$since" '[.workflow_runs[] | select(.created_at > $since)] | length')"
+          if (( recent >= 4 )); then
+            echo "::warning::CHAIN_SUPPRESSED runs_in_last_hour=$recent"
+            echo "Chain suppressed: $recent runs in the last hour." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh workflow run ausculta-autonomous-loop.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo "Next cycle dispatched (runs in the last hour: $recent)." >> "$GITHUB_STEP_SUMMARY"
