@@ -1,0 +1,474 @@
+name: Ausculta Autonomous Completion Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    # One bounded cycle per hour. Concurrency below prevents overlapping writers.
+    - cron: '13 * * * *'
+
+concurrency:
+  group: ausculta-autonomous-completion
+  cancel-in-progress: false
+
+jobs:
+  continue-master-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+      actions: write
+      pull-requests: read
+      issues: read
+    env:
+      TARGET_BRANCH: product/ausculta-master-completion
+      PR_NUMBER: '389'
+      WRITER_MAX_TURNS: '50'
+      HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
+
+    steps:
+      - name: Checkout autonomous product branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify immutable starting point and owner boundaries
+        id: start
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_BRANCH" == product/* ]] || { echo "::error::FORBIDDEN_TARGET=$TARGET_BRANCH"; exit 90; }
+          [[ "$TARGET_BRANCH" != "main" ]] || { echo "::error::MAIN_IS_FORBIDDEN"; exit 91; }
+
+          pr="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          state="$(jq -r '.state' <<<"$pr")"
+          head_ref="$(jq -r '.head.ref' <<<"$pr")"
+          head_sha="$(jq -r '.head.sha' <<<"$pr")"
+          [[ "$state" == "open" ]] || { echo "::error::AUTONOMOUS_PR_NOT_OPEN"; exit 92; }
+          [[ "$head_ref" == "$TARGET_BRANCH" ]] || { echo "::error::PR_HEAD_MISMATCH expected=$TARGET_BRANCH actual=$head_ref"; exit 93; }
+
+          local_sha="$(git rev-parse HEAD)"
+          [[ "$local_sha" == "$head_sha" ]] || { echo "::error::CHECKOUT_MISMATCH local=$local_sha pr=$head_sha"; exit 94; }
+          [[ -z "$(git status --porcelain)" ]] || { echo "::error::UNCLEAN_START"; exit 95; }
+
+          echo "sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+          if [[ -f agent-state/AUSCULTA_AUTONOMOUS_COMPLETE ]]; then
+            echo "complete=true" >> "$GITHUB_OUTPUT"
+            echo "Autonomous stop marker exists; no model call will be made." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "complete=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop cleanly when the Master Loop is complete
+        if: steps.start.outputs.complete == 'true'
+        run: |
+          echo "Ausculta autonomous loop is already complete."
+          exit 0
+
+      - name: Require at least one model transport
+        if: steps.start.outputs.complete != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$HAS_ANTHROPIC" != "true" && "$HAS_OPENAI" != "true" ]]; then
+            echo "::error::MISSING_MODEL_TRANSPORT: ANTHROPIC_API_KEY and OPENAI_API_KEY are both unavailable"
+            exit 96
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.start.outputs.complete != 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install repository dependencies
+        if: steps.start.outputs.complete != 'true'
+        run: npm ci
+
+      - name: Capture exact-SHA CI and Codex context
+        if: steps.start.outputs.complete != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          START_SHA: ${{ steps.start.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > /tmp/ausculta-ci-context.txt
+          : > /tmp/ausculta-codex-context.txt
+
+          runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${START_SHA}&per_page=100")"
+          ci_id="$(jq -r --arg sha "$START_SHA" '[.workflow_runs[] | select(.name=="CI" and .head_sha==$sha)] | sort_by(.created_at) | last | .id // empty' <<<"$runs")"
+          ci_conclusion="$(jq -r --arg sha "$START_SHA" '[.workflow_runs[] | select(.name=="CI" and .head_sha==$sha)] | sort_by(.created_at) | last | .conclusion // empty' <<<"$runs")"
+          if [[ -n "$ci_id" && "$ci_conclusion" != "success" && "$ci_conclusion" != "" ]]; then
+            {
+              echo "CANONICAL CI ON CURRENT SHA: $ci_conclusion (run $ci_id)"
+              gh run view "$ci_id" --repo "$GITHUB_REPOSITORY" --log-failed 2>/dev/null || true
+            } > /tmp/ausculta-ci-context.txt
+          fi
+
+          comments="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" --paginate)"
+          jq -r --arg sha "$START_SHA" '
+            [.[] |
+              select(
+                ((.body // "") | startswith("AUSCULTA_CODEX_VERDICT exact_sha=" + $sha)) or
+                ((.body // "") | startswith("AUSCULTA_CODEX_VERDICT_RECOVERED exact_sha=" + $sha))
+              )
+            ] | last | .body // empty
+          ' <<<"$comments" > /tmp/ausculta-codex-context.txt
+
+      - name: Build bounded autonomous writer prompt
+        if: steps.start.outputs.complete != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/ausculta-autonomous-prompt.txt <<'PROMPT'
+          AUSCULTA — AUTONOMOUS MASTER COMPLETION LOOP, BOUNDED CYCLE.
+
+          You are the ONE WRITER for this cycle. Continue the existing Ausculta Consultorio program; do not restart it.
+
+          READ COMPLETELY BEFORE EDITING:
+          - CLAUDE.md
+          - AGENTS.md
+          - every file in .claude/rules/
+          - docs/product/AUSCULTA-MASTER-BOARD.md
+          - agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md
+          - relevant existing implementation/tests for the selected unit.
+
+          SELECTION RULE:
+          1. If the attached exact-SHA Codex review contains a blocking P0/P1, repair that first.
+          2. Otherwise choose the highest-priority INTERNAL P0 from the Master Board/checkpoint.
+          3. If no internal P0 exists, choose the highest-priority INTERNAL P1.
+          4. If that item is BLOCKED_EXTERNAL, document the exact blocker and move to the next executable internal item.
+          5. Do not ask the owner which reversible technical task to do next.
+
+          WORK RULE:
+          - Complete one coherent bounded unit, or a very small set of inseparable fixes, with root cause + regression.
+          - Preserve REG-323 and every newer valid regression guard.
+          - Preserve Clinical Truth, physician authority, provenance, tenant isolation, no-inventar, signed-note integrity, recovery, and all existing gates.
+          - Search before creating abstractions; never create a parallel/V2 truth store.
+          - Hospital/UCI are deferred; touch shared core only when required by Consultorio.
+          - Documents Zero-Friction remains DEFERRED_BY_OWNER_TEMPORARILY.
+          - No PHI, no real patient data, no production actions, no billing, no contracts/licenses, no secret changes, no destructive migrations.
+          - Do not merge main and do not deploy.
+          - Do not edit GitHub workflows, deployment config, secrets/env files, dependency manifests/lockfiles, firestore.rules or storage.rules.
+          - You may update the Master Board and checkpoint as part of the unit.
+          - If all non-deferred internal work is truly exhausted, generate docs/product/AUSCULTA-CONSULTORIO-FINAL-READINESS.md and create agent-state/AUSCULTA_AUTONOMOUS_COMPLETE. Create that marker ONLY when internal P0=0 and internal P1=0 and remaining work is honestly PROVEN, BLOCKED_EXTERNAL, or owner-deferred.
+
+          DO NOT COMMIT OR PUSH. The workflow will verify, test, commit and push.
+          PROMPT
+
+          if [[ -s /tmp/ausculta-ci-context.txt ]]; then
+            {
+              echo
+              echo "===== EXACT-SHA CANONICAL CI CONTEXT ====="
+              tail -n 500 /tmp/ausculta-ci-context.txt
+            } >> /tmp/ausculta-autonomous-prompt.txt
+          fi
+
+          if [[ -s /tmp/ausculta-codex-context.txt ]]; then
+            {
+              echo
+              echo "===== EXACT-SHA INDEPENDENT CODEX REVIEW ====="
+              cat /tmp/ausculta-codex-context.txt
+            } >> /tmp/ausculta-autonomous-prompt.txt
+          fi
+
+      - name: Install Claude Code
+        if: steps.start.outputs.complete != 'true' && env.HAS_ANTHROPIC == 'true'
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Claude Opus writer attempt
+        id: claude
+        if: steps.start.outputs.complete != 'true' && env.HAS_ANTHROPIC == 'true'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          claude -p "$(cat /tmp/ausculta-autonomous-prompt.txt)"             --model opus             --max-turns "$WRITER_MAX_TURNS"             --output-format json             --allowedTools "Read" "Write" "Edit" "Glob" "Grep"             --disallowedTools "Bash" "WebSearch" "WebFetch"             > /tmp/claude-result.json
+
+      - name: Decide whether Codex must take the writer turn
+        id: handoff
+        if: steps.start.outputs.complete != 'true'
+        env:
+          CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed=false
+          [[ -n "$(git status --porcelain)" ]] && changed=true
+
+          use_codex=false
+          if [[ "$HAS_ANTHROPIC" != "true" || "$CLAUDE_OUTCOME" != "success" || "$changed" != "true" ]]; then
+            if [[ "$HAS_OPENAI" == "true" ]]; then
+              use_codex=true
+            fi
+          fi
+
+          echo "changed_after_claude=$changed" >> "$GITHUB_OUTPUT"
+          echo "use_codex=$use_codex" >> "$GITHUB_OUTPUT"
+
+          if [[ "$HAS_ANTHROPIC" == "true" && "$CLAUDE_OUTCOME" != "success" ]]; then
+            echo "::warning::CLAUDE_WRITER_DID_NOT_COMPLETE; handing current workspace to Codex when available"
+          fi
+
+      - name: Build Codex handoff prompt
+        if: steps.handoff.outputs.use_codex == 'true'
+        shell: bash
+        run: |
+          cp /tmp/ausculta-autonomous-prompt.txt .ausculta-codex-prompt.txt
+          cat >> .ausculta-codex-prompt.txt <<'PROMPT'
+
+          CODEX HANDOFF:
+          Claude was unavailable, exhausted, failed, or produced no useful delta in this bounded cycle.
+          Continue from the CURRENT WORKTREE exactly as it is. If Claude left partial edits, inspect and preserve only correct work.
+          You are now the ONE WRITER. Finish one bounded highest-priority internal P0/P1 unit under the same rules.
+          Do not commit or push.
+          PROMPT
+
+      - name: Codex writer fallback
+        if: steps.handoff.outputs.use_codex == 'true'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          safety-strategy: drop-sudo
+          effort: high
+          allow-bots: true
+          prompt-file: .ausculta-codex-prompt.txt
+
+      - name: Remove transient writer prompt
+        if: always() && steps.start.outputs.complete != 'true'
+        run: rm -f .ausculta-codex-prompt.txt
+
+      - name: Classify writer delta
+        id: delta
+        if: steps.start.outputs.complete != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::NO_WRITER_DELTA_THIS_CYCLE"
+          fi
+
+      - name: Enforce autonomous mutation scope
+        if: steps.delta.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --porcelain | sed 's/^...//' | sed 's/^.* -> //' > /tmp/changed.txt
+          while IFS= read -r path; do
+            case "$path" in
+              src/*|tests/*|e2e/*|docs/*|scripts/*|agent-state/*|synthetic-data/*|fixtures/*|playwright.config.ts|firestore.indexes.json) ;;
+              *) echo "::error::FORBIDDEN_AUTONOMOUS_SCOPE=$path"; exit 100 ;;
+            esac
+            case "$path" in
+              .github/*|package.json|package-lock.json|firestore.rules|storage.rules|firebase.json|vercel.json|next.config.*|.env*|public/sw.js|public/version.txt)
+                echo "::error::FORBIDDEN_SENSITIVE_CHANGE=$path"; exit 101 ;;
+            esac
+          done < /tmp/changed.txt
+          git diff --check
+
+      - name: First full gate pass
+        id: gates1
+        if: steps.delta.outputs.changed == 'true'
+        continue-on-error: true
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-build.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "=== lint-trinquete ==="
+            node scripts/lint-trinquete.mjs
+            echo "=== typecheck ==="
+            npx tsc --noEmit
+            echo "=== vitest ==="
+            npx vitest run
+            echo "=== build ==="
+            npm run build
+          } 2>&1 | tee /tmp/ausculta-gates.log
+
+      - name: Prepare one Codex repair pass after gate failure
+        if: steps.delta.outputs.changed == 'true' && steps.gates1.outcome == 'failure' && env.HAS_OPENAI == 'true'
+        shell: bash
+        run: |
+          cat > .ausculta-gate-repair-prompt.txt <<'PROMPT'
+          AUSCULTA — GATE REPAIR PASS.
+
+          You are the ONE WRITER repairing the CURRENT uncommitted autonomous unit.
+          Read CLAUDE.md, AGENTS.md, .claude/rules/**, the current diff, Master Board and checkpoint.
+          The implementation failed one or more mandatory gates. Read .ausculta-gate-failure.txt.
+          Fix only the root cause(s) of those failures without broadening scope, weakening tests, deleting guards, changing expected behavior to match a bug, or touching forbidden infrastructure.
+          Preserve all clinical/security invariants.
+          Do not commit or push.
+          PROMPT
+          tail -n 700 /tmp/ausculta-gates.log > .ausculta-gate-failure.txt
+
+      - name: Codex gate repair
+        if: steps.delta.outputs.changed == 'true' && steps.gates1.outcome == 'failure' && env.HAS_OPENAI == 'true'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          safety-strategy: drop-sudo
+          effort: high
+          allow-bots: true
+          prompt-file: .ausculta-gate-repair-prompt.txt
+
+      - name: Remove transient gate-repair files
+        if: always() && steps.start.outputs.complete != 'true'
+        run: rm -f .ausculta-gate-repair-prompt.txt .ausculta-gate-failure.txt
+
+      - name: Re-enforce scope after repair
+        if: steps.delta.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --porcelain | sed 's/^...//' | sed 's/^.* -> //' > /tmp/changed-after-repair.txt
+          while IFS= read -r path; do
+            case "$path" in
+              src/*|tests/*|e2e/*|docs/*|scripts/*|agent-state/*|synthetic-data/*|fixtures/*|playwright.config.ts|firestore.indexes.json) ;;
+              *) echo "::error::FORBIDDEN_AUTONOMOUS_SCOPE=$path"; exit 102 ;;
+            esac
+            case "$path" in
+              .github/*|package.json|package-lock.json|firestore.rules|storage.rules|firebase.json|vercel.json|next.config.*|.env*|public/sw.js|public/version.txt)
+                echo "::error::FORBIDDEN_SENSITIVE_CHANGE=$path"; exit 103 ;;
+            esac
+          done < /tmp/changed-after-repair.txt
+          git diff --check
+
+      - name: Final mandatory gates
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-build.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/lint-trinquete.mjs
+          npx tsc --noEmit
+          npx vitest run
+          npm run build
+          git diff --check
+
+      - name: Prove branch did not move during writer cycle
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          START_SHA: ${{ steps.start.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET_BRANCH"
+          remote="$(git rev-parse "origin/$TARGET_BRANCH")"
+          [[ "$remote" == "$START_SHA" ]] || {
+            echo "::error::TARGET_MOVED_DURING_CYCLE expected=$START_SHA actual=$remote"
+            exit 104
+          }
+
+      - name: Commit and push safe checkpoint
+        id: checkpoint
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ausculta-autonomous-loop[bot]"
+          git config user.email "ausculta-autonomous-loop[bot]@users.noreply.github.com"
+          git add src tests e2e docs scripts agent-state synthetic-data fixtures playwright.config.ts firestore.indexes.json 2>/dev/null || true
+          git diff --cached --quiet && { echo "::error::NO_STAGED_DELTA"; exit 105; }
+          git commit -m "autonomous: continue Ausculta Consultorio completion loop"
+          sha="$(git rev-parse HEAD)"
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"             push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:$TARGET_BRANCH"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Autonomous checkpoint"
+            echo "- branch: `$TARGET_BRANCH`"
+            echo "- SHA: `$sha`"
+            echo "- PR: #$PR_NUMBER"
+            echo "- main merge: **not performed**"
+            echo "- production deploy: **not performed**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dispatch canonical CI for exact checkpoint
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
+
+      - name: Wait for exact-SHA canonical CI
+        id: ci
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_SHA: ${{ steps.checkpoint.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          green=false
+          run_id=""
+          conclusion=""
+
+          for _ in $(seq 1 90); do
+            runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?event=workflow_dispatch&branch=${TARGET_BRANCH}&per_page=30")"
+            run_id="$(jq -r --arg sha "$NEW_SHA" '[.workflow_runs[] | select(.head_sha==$sha)] | sort_by(.created_at) | last | .id // empty' <<<"$runs")"
+            status="$(jq -r --arg sha "$NEW_SHA" '[.workflow_runs[] | select(.head_sha==$sha)] | sort_by(.created_at) | last | .status // empty' <<<"$runs")"
+            conclusion="$(jq -r --arg sha "$NEW_SHA" '[.workflow_runs[] | select(.head_sha==$sha)] | sort_by(.created_at) | last | .conclusion // empty' <<<"$runs")"
+
+            if [[ "$status" == "completed" ]]; then
+              [[ "$conclusion" == "success" ]] && green=true
+              break
+            fi
+            sleep 15
+          done
+
+          echo "green=$green" >> "$GITHUB_OUTPUT"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
+
+          if [[ "$green" != "true" ]]; then
+            echo "::warning::CANONICAL_CI_NOT_GREEN exact_sha=$NEW_SHA run_id=$run_id conclusion=$conclusion"
+          fi
+
+      - name: Dispatch independent Codex judge after green CI
+        if: steps.delta.outputs.changed == 'true' && steps.ci.outputs.green == 'true' && env.HAS_OPENAI == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_SHA: ${{ steps.checkpoint.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run product-codex-judge.yml             --repo "$GITHUB_REPOSITORY"             --ref main             -f pr_number="$PR_NUMBER"             -f expected_sha="$NEW_SHA"
+          echo "Independent Codex judge dispatched for exact SHA $NEW_SHA." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: No-delta cycle summary
+        if: steps.delta.outputs.changed != 'true' && steps.start.outputs.complete != 'true'
+        run: |
+          {
+            echo "### No persisted delta this cycle"
+            echo "The scheduled loop will retry on the next cycle."
+            echo "No main merge or production deployment occurred."
+          } >> "$GITHUB_STEP_SUMMARY"
