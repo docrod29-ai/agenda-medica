@@ -148,6 +148,66 @@ export const COLECCIONES: ColeccionRespaldo[] = [
  * Cada exclusión es una decisión, no un olvido — y por eso el guardián exige que
  * esté escrita aquí en vez de simplemente ausente.
  */
+/**
+ * ── LO QUE VIVE FUERA DE `clinics/{clinicId}` Y AUN ASÍ ES DEL CONSULTORIO ───
+ *
+ * Tres colecciones de NIVEL RAÍZ pertenecen a un consultorio y no colgaban de
+ * él: llevan el consultorio en un campo, no en la ruta. El manifiesto de arriba
+ * sólo sabía recorrer el árbol bajo `clinics/{clinicId}`, así que ninguna de las
+ * tres se respaldaba.
+ *
+ * La que importa es `clinic_members`: es lo que ATA una cuenta a un
+ * consultorio. Un respaldo restaurado sin ella devuelve pacientes, notas,
+ * recetas y agenda… y **nadie que pueda entrar a verlos**. El archivo se veía
+ * completo porque lo que faltaba no estaba en la lista de lo que se busca.
+ *
+ * No se respalda ninguna `platform_*`: son de la PLATAFORMA, no de este
+ * consultorio, y meterlas en el archivo que el médico descarga sería darle
+ * datos de otros. Se declaran abajo con su motivo.
+ */
+export interface ColeccionRaiz {
+  /** Nombre de la colección de nivel raíz. */
+  ruta: string
+  /** Campo por el que se filtra al consultorio. */
+  campoClinica: string
+  descripcion: string
+}
+
+export const COLECCIONES_RAIZ: readonly ColeccionRaiz[] = [
+  {
+    ruta: 'clinic_members',
+    campoClinica: 'clinicId',
+    descripcion: 'Quién pertenece a este consultorio y con qué rol. Sin esto, un respaldo restaurado no deja entrar a nadie.',
+  },
+  {
+    ruta: 'clinic_invitations',
+    campoClinica: 'clinicId',
+    descripcion: 'Invitaciones para unirse al consultorio, con su rol y su caducidad.',
+  },
+  {
+    ruta: 'clinic_review_requests',
+    campoClinica: 'clinicId',
+    descripcion: 'Solicitudes de reseña enviadas a pacientes. Llevan el nombre del paciente y de su médico.',
+  },
+]
+
+/**
+ * Colecciones de nivel raíz que NO entran en el respaldo de un consultorio, con
+ * su motivo. Un respaldo del que no se sabe qué falta tampoco sirve.
+ */
+export const RAIZ_EXCLUIDAS: Record<string, string> = {
+  'platform_*': 'Estado de la PLATAFORMA (planes, pagos, recargas, incidentes, latidos, CSP), no de este consultorio. Meterlo en el archivo que el médico descarga sería entregarle datos de otros consultorios.',
+  errores: 'Informes de error ya redactados, de toda la plataforma. Sirven para operar el producto, no para reconstruir un consultorio.',
+  soporte: 'Mensajes de soporte de toda la plataforma.',
+  rate_limits: 'Ventanas de limitación de tasa. Viven minutos y se reconstruyen solas.',
+  oauthStates: 'Nonces de un solo uso para conectar Google Calendar o WhatsApp. Caducan en minutos; restaurar uno viejo sería restaurar una llave muerta.',
+  transcript_owners: 'Dueño de cada transcripción en vuelo. Efímero: existe entre que se manda el audio y vuelve el texto.',
+  whatsapp_channels: 'Enrutado de canales de WhatsApp de toda la plataforma.',
+  whatsapp_dedup: 'Marcas anti-duplicado de mensajes entrantes. Efímeras por definición.',
+  anticipos_procesados: 'Marcas de idempotencia de Stripe, de toda la plataforma.',
+  recargas_procesadas: 'Marcas de idempotencia de recargas, de toda la plataforma.',
+}
+
 export const EXCLUIDAS: Record<string, string> = {
   secretos: 'Las llaves de API del consultorio. Meterlas en un archivo que el médico descarga, manda por correo y deja en su escritorio convertiría un respaldo en una filtración de credenciales. Se vuelven a pegar en Configuración.',
   bot_sessions: 'Estado efímero de las conversaciones del bot de WhatsApp: se reconstruye solo con el siguiente mensaje y no describe nada del consultorio.',

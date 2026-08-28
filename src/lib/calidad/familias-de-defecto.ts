@@ -250,7 +250,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * censo se DERIVA de lo que el código escribe, y la compuerta falla cuando
      * el código y las declaraciones se separan.
      */
-    regs: [241, 253, 310, 334, 338, 340],
+    /**
+     * 343 sale del guardián de 340, y ésa es su lección: un guardián que se
+     * escribe bien no cierra un defecto, enseña el siguiente. Al derivar el
+     * censo del código quedaron 21 colecciones de raíz sin clasificar, y entre
+     * ellas `clinic_members` —lo que ata una cuenta a un consultorio— sin
+     * respaldo. El manifiesto confundía «del consultorio» con «bajo la ruta del
+     * consultorio»: la pertenencia también se expresa con un campo, y el
+     * recorrido de un árbol no ve nada que no cuelgue de él.
+     */
+    regs: [241, 253, 310, 334, 338, 340, 343],
   },
   {
     /**

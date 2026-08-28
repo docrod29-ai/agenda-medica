@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { coleccionesEscritas } from '../../scripts/seguridad/colecciones-escritas.mjs'
-import { COLECCIONES, EXCLUIDAS } from '@/lib/clinica/respaldo'
+import { COLECCIONES, EXCLUIDAS, COLECCIONES_RAIZ, RAIZ_EXCLUIDAS } from '@/lib/clinica/respaldo'
 import { MATRIZ_ACCESO } from '@/lib/authz/matriz-acceso'
 
 /**
@@ -58,9 +58,12 @@ import { MATRIZ_ACCESO } from '@/lib/authz/matriz-acceso'
  * · No comprueba que la REGLA sea correcta, sólo que exista. Que `registros`
  *   esté declarada `if false` es una decisión, no una verificación.
  * · No prueba las reglas contra el emulador: eso es la suite de emulador.
- * · No mira colecciones de nivel raíz. Quedan anotadas aparte en el tablero:
- *   el Admin SDK se salta las reglas y el catch-all niega al cliente, así que no
- *   hay exposición — pero `platform_recargas` y compañía siguen sin respaldo.
+ * · De las de NIVEL RAÍZ sólo comprueba que estén CLASIFICADAS: o se respaldan
+ *   con el consultorio (`COLECCIONES_RAIZ`) o se declaran fuera con su motivo
+ *   (`RAIZ_EXCLUIDAS`). No comprueba reglas ni matriz para ellas: el Admin SDK
+ *   se salta las reglas y el comodín de denegación niega al cliente, así que no
+ *   hay exposición de acceso que vigilar — lo que había que cerrar era el hueco
+ *   del RESPALDO (REG-343).
  */
 
 const RUTAS_MATRIZ = new Set(
@@ -126,6 +129,34 @@ describe('REG-340 · lo que el código escribe está declarado en los tres sitio
     // El caso concreto que abrió REG-340, clavado para que no vuelva a caerse.
     expect(nombresDelRespaldo().has('registros')).toBe(true)
     expect(escritas.find(c => c.nombre === 'registros')?.ambito).toBe('consultorio')
+  })
+
+  it('toda colección de nivel raíz está clasificada: se respalda o se declara fuera', () => {
+    const respaldadas = new Set(COLECCIONES_RAIZ.map(c => c.ruta))
+    const fuera = new Set(Object.keys(RAIZ_EXCLUIDAS))
+    /** `platform_*` cubre a toda la familia con un motivo común. */
+    const cubiertaPorFamilia = (n: string) => n.startsWith('platform_') && fuera.has('platform_*')
+
+    const sin = escritas
+      .filter(c => c.ambito === 'raiz' && c.nombre !== 'clinics')
+      .filter(c => !respaldadas.has(c.nombre) && !fuera.has(c.nombre) && !cubiertaPorFamilia(c.nombre))
+      .map(c => `${c.nombre} (${c.donde[0]})`)
+    expect(sin.join('\n')).toBe('')
+  })
+
+  it('lo que ata una cuenta a un consultorio se respalda con él', () => {
+    // REG-343: restaurar sin `clinic_members` devuelve el expediente entero y a
+    // NADIE que pueda entrar a verlo. Clavado, porque el archivo se veía
+    // completo justamente porque lo que faltaba no estaba en la lista.
+    expect(COLECCIONES_RAIZ.map(c => c.ruta)).toContain('clinic_members')
+    const miembros = COLECCIONES_RAIZ.find(c => c.ruta === 'clinic_members')!
+    expect(miembros.campoClinica).toBe('clinicId')
+  })
+
+  it('una exclusión de raíz sin motivo no es una exclusión', () => {
+    for (const [nombre, motivo] of Object.entries(RAIZ_EXCLUIDAS)) {
+      expect(motivo.length, `${nombre}: excluida sin motivo`).toBeGreaterThan(40)
+    }
   })
 
   it('el cedazo sabe fallar: una colección sin declarar se detecta', () => {

@@ -9625,3 +9625,63 @@ Probado al revés reintroduciendo los dos mecanismos: caen 3 casos.
   en el repositorio**, así que ningún contenedor anidado contiene su cadena.
 - **No se han reescrito las diez pruebas de string.** Siguen ahí, y siguen sin
   poder fallar por la razón correcta.
+
+---
+
+## REG-343 — el respaldo devolvía el expediente entero y a nadie que pudiera entrar
+
+**QUÉ FALLABA.** Tres colecciones pertenecen a un consultorio y **no cuelgan de
+él**: llevan el consultorio en un CAMPO (`clinicId`), no en la ruta. El
+manifiesto sólo sabía recorrer el árbol bajo `clinics/{clinicId}`, así que
+ninguna de las tres entraba nunca en el respaldo.
+
+La que duele es **`clinic_members`**: es lo que ata una cuenta a un consultorio.
+Un respaldo restaurado sin ella devuelve pacientes, notas, recetas y agenda…
+**y nadie que pueda entrar a verlos**. El archivo se veía completo, y se veía
+completo por una razón concreta: lo que faltaba **no estaba en la lista de lo que
+se busca**.
+
+Las otras dos, `clinic_invitations` y `clinic_review_requests`. La segunda además
+lleva nombre de paciente y de médico.
+
+**CÓMO SE DESCUBRIÓ.** Salió del propio guardián de REG-340. Al derivar el censo
+del código quedaron 21 colecciones de nivel raíz sin clasificar, y al mirarlas
+una por una apareció ésta. Un guardián que se escribe bien no cierra un defecto:
+enseña el siguiente.
+
+**LA CAUSA RAÍZ.** El manifiesto confundía **«del consultorio»** con **«bajo la
+ruta del consultorio»**. Son casi lo mismo y no lo son: la pertenencia también se
+puede expresar con un campo, y el recorrido de un árbol no ve nada que no cuelgue
+de él. REG-340 arregló que el censo saliera del código; esto arregla que el censo
+sepa mirar fuera del árbol.
+
+**LA REGLA QUE LO HACE SEGURO.** Toda colección de nivel raíz que el código
+escriba está **clasificada**: o se respalda con el consultorio
+(`COLECCIONES_RAIZ`, con el campo por el que se filtra) o se declara fuera **con
+su motivo** (`RAIZ_EXCLUIDAS`).
+
+Y se declara qué **no** se lleva y por qué: ninguna `platform_*` entra. Son de la
+plataforma, no de este consultorio, y meterlas en el archivo que el médico
+descarga sería entregarle datos de otros consultorios. Lo mismo con lo efímero
+—`rate_limits`, `oauthStates`, `whatsapp_dedup`, `transcript_owners`—: restaurar
+un candado viejo o una llave caducada no reconstruye nada.
+
+**LA PRUEBA.** Tres casos nuevos en
+`src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts` (9 en total).
+Probado al revés sacando `clinic_members` del manifiesto: caen 2, y uno de ellos
+existe sólo para clavar ese nombre.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No se ha restaurado nada.** Esto mete las tres colecciones en el archivo; que
+  una restauración real las devuelva y el consultorio vuelva a ser usable sigue
+  sin comprobarse. El simulacro de ida y vuelta mide que el NDJSON se relee, no
+  que Firestore lo acepte de vuelta.
+- **El importador no se ha tocado.** Que el respaldo las lleve no significa que
+  `/api/clinic/importar` sepa reescribirlas en su sitio: son de nivel raíz y el
+  importador está escrito para el árbol. **Queda abierto y es la mitad que falta
+  del bucle** — un respaldo que se lleva algo que no se sabe devolver sigue sin
+  cerrar la recuperación.
+- **Las `platform_*` siguen sin ningún respaldo**, ni aquí ni en otro sitio. No
+  es un hueco de este archivo —no son del consultorio— pero tampoco existe el
+  respaldo de plataforma que les tocaría. Abierto en el tablero.
