@@ -1403,6 +1403,10 @@
     {
       "archivo": "src/__tests__/la-nota-no-se-cuenta-en-la-consola.test.ts",
       "minCasos": 3
+    },
+    {
+      "archivo": "src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts",
+      "minCasos": 6
     }
   ]
 }

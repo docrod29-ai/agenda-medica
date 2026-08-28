@@ -9371,3 +9371,86 @@ prueba en verde, y habría perdido información útil.
 - **Quedan identificadores sueltos en consola** fuera del dashboard
   (`hospital/firestore.ts` registra ids de internamiento). Son ids, no cuerpos
   clínicos, y quedan anotados sin cerrar.
+
+---
+
+## REG-340 — los tres guardianes eran ciegos al mismo hueco
+
+**QUÉ FALLABA.** La regla de aislamiento exige declarar toda colección nueva en
+**tres** sitios: `firestore.rules`, `matriz-acceso.ts` y `respaldo.ts`. Había un
+guardián por cada uno. Aun así, **nueve colecciones de consultorio** se escribían
+desde el código y no estaban en ninguno de los tres.
+
+**LA CAUSA RAÍZ, Y ES DE FORMA, NO DE OLVIDO.** Los dos guardianes que cuentan
+—`respaldo-consultorio` y `matriz-acceso`— **parsean `firestore.rules`** y lo
+tratan como el censo de lo que existe. Comparan reglas↔matriz y reglas↔respaldo.
+**Ninguno mira el código.**
+
+Así que una colección que nunca entró en las reglas es invisible para los tres
+sitios **y para los dos guardianes a la vez**, y la suite se queda en verde. No
+era un olvido repetido nueve veces: era un punto ciego con forma de círculo —tres
+documentos validándose entre ellos, ninguno contra la realidad—.
+
+**CÓMO SE DESCUBRIÓ.** Auditoría WS-11 del Master Completion Loop, enumerando
+`.collection('…')` en `src/` y cruzándolo a mano contra los tres sitios.
+
+**LO QUE HABÍA DENTRO DEL HUECO.**
+
+- **`internamientos/{id}/registros`** — la bitácora **append-only** del episodio,
+  íntegra y sin truncar, que existe **para la NOM-004**. El documento del
+  internamiento guarda arrays-caché recortados (`.slice(-100)`); ésta es la copia
+  buena. **No se respaldaba**: se restauraba el episodio, su bitácora legal no
+  volvía, y el pie del archivo seguía diciendo `completo: true`. Es exactamente
+  el fallo que ya costó las adendas, un nivel más abajo.
+- **`members`** — se leía **y se escribía desde el navegador**
+  (`chat/page.tsx:57` y `:66`) sin ninguna regla, así que la negaba el comodín
+  final. El apodo del chat **no se guardaba nunca**, y nadie se enteraba porque
+  el código cae con elegancia al nombre por omisión. Un defecto escondido detrás
+  de su propio respaldo.
+- **Siete más** de sólo servidor (`memoria_medico`, `uci_copilot_feedback`,
+  `slot_locks`, y los cuatro de WhatsApp). Sin exposición de acceso —el Admin SDK
+  se salta las reglas y el comodín niega al cliente— pero sin respaldar y sin
+  clasificar.
+
+**LA REGLA QUE LO HACE SEGURO.** El censo sale del **código**, no de las reglas.
+Toda colección bajo `clinics/{clinicId}` cuyo nombre aparezca escrito en `src/`
+tiene que estar en los tres sitios, o declararse excluida **con motivo**.
+
+Las siete de sólo servidor se declaran **cerradas** (`if false`). Eso no cambia
+nada en ejecución —el comodín ya las negaba— pero las vuelve **visibles** para
+los guardianes, que es lo que faltaba. `slot_locks` se excluye del respaldo con
+su motivo: es un candado de segundos, y restaurar uno viejo sólo bloquearía una
+agenda que ya está libre.
+
+**UN DETALLE QUE MERECE QUEDAR ESCRITO.** `firestore-rules-guard` **ya tenía**
+una prueba para `registros`: decía que hoy cae en el comodín y que *si algún día
+se declara*, la escritura debe seguir siendo exclusiva del servidor. Alguien vio
+venir el bloque y escribió su condición. Lo que nadie escribió fue la pregunta
+anterior: **¿y por qué no está declarada, si el código la escribe?**
+
+**LA PRUEBA.** `src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts`
+(6 casos), sobre `scripts/seguridad/colecciones-escritas.mjs`. Parte de lo que el
+código **escribe** y pregunta si está declarado — el círculo cerrado por el otro
+lado. Probado al revés quitando `registros` del manifiesto: caen 2 casos y el
+fallo nombra el archivo y la línea que la escribe.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Es un cedazo sobre literales.** No resuelve un nombre de colección que venga
+  en una variable (`collection(db, ruta)`). Encuentra lo que está escrito a la
+  vista, que es como entraron estas nueve.
+- **No comprueba que la regla sea CORRECTA, sólo que exista.** Que `registros`
+  esté declarada `if false` es una decisión, no una verificación.
+- **No prueba las reglas contra el emulador**, ni despliega nada: las reglas se
+  publican aparte y eso requiere autorización del dueño. **Hasta que se
+  desplieguen, `members` sigue roto en producción.**
+- **No mira las colecciones de nivel raíz.** Quedan **21** con declaración
+  incompleta —`platform_recargas`, `platform_config`, `rate_limits`, `errores`,
+  `soporte`, `transcript_owners`, `whatsapp_channels`, `whatsapp_dedup`,
+  `anticipos_procesados`, `recargas_procesadas`, `platform_csp`,
+  `platform_heartbeats`, `platform_incidentes`, y las que sí tienen reglas y
+  matriz pero **no respaldo**: `clinic_members`, `clinic_invitations`,
+  `clinic_review_requests`, `platform_*`—. No hay exposición de acceso, pero
+  **`clinic_members` sin respaldo significa que restaurar un consultorio deja a
+  todo el mundo sin poder entrar**. Queda abierto como P1 en el tablero, no
+  cerrado en silencio.

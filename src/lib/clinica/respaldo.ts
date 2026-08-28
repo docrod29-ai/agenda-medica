@@ -95,7 +95,15 @@ export const COLECCIONES: ColeccionRespaldo[] = [
     ],
   },
   { ruta: 'appointments', descripcion: 'Citas: fecha, tipo, estado, médico y paciente.' },
-  { ruta: 'internamientos', descripcion: 'Episodios hospitalarios.', hijas: ['signos', 'icu_stays', 'icu_observations', 'handoff_revisiones', 'bed_assignments'] },
+  /**
+   * `registros` es la bitácora APPEND-ONLY del episodio (REG-340). El documento
+   * del internamiento guarda arrays-caché recortados (`.slice(-100)`); la copia
+   * ÍNTEGRA y sin truncar, que es la que existe para la NOM-004, vive aquí.
+   * Faltaba en este manifiesto: se restauraba el episodio y su bitácora legal no
+   * volvía — y el pie del archivo seguía diciendo `completo: true`. Es el mismo
+   * fallo que ya costó las adendas, un nivel más abajo.
+   */
+  { ruta: 'internamientos', descripcion: 'Episodios hospitalarios.', hijas: ['signos', 'icu_stays', 'icu_observations', 'handoff_revisiones', 'bed_assignments', 'registros'] },
   { ruta: 'waitlist', descripcion: 'Lista de espera.' },
   { ruta: 'config', descripcion: 'Configuración del consultorio: horario, membrete, formato de receta, firma.' },
   { ruta: 'doctors', descripcion: 'Médicos del consultorio.' },
@@ -125,6 +133,13 @@ export const COLECCIONES: ColeccionRespaldo[] = [
   { ruta: 'learning', descripcion: 'Preferencias aprendidas del médico.' },
   { ruta: 'chat', descripcion: 'Mensajes internos del equipo.' },
   { ruta: 'chat_reads', descripcion: 'Marcas de lectura del chat interno.' },
+  { ruta: 'members', descripcion: 'El nombre que cada miembro del equipo eligió para el chat interno.' },
+  { ruta: 'memoria_medico', descripcion: 'Memoria de trabajo del médico: sus últimas notas resumidas para dar continuidad. Se reconstruye, pero perderla cuesta contexto clínico.' },
+  { ruta: 'uci_copilot_feedback', descripcion: 'Lo que el médico respondió a las sugerencias del copiloto de UCI. Es la materia prima de la evaluación: sin ella no se puede medir si el copiloto ayuda.' },
+  { ruta: 'whatsapp_outbox', descripcion: 'Mensajes de WhatsApp pendientes de enviar.' },
+  { ruta: 'whatsapp_contacts', descripcion: 'Contactos de WhatsApp del consultorio y su consentimiento.' },
+  { ruta: 'whatsapp_status', descripcion: 'Estado de entrega de cada mensaje de WhatsApp.' },
+  { ruta: 'whatsapp_events', descripcion: 'Eventos del canal de WhatsApp: conexiones y desconexiones.' },
 ]
 
 /**
@@ -136,6 +151,7 @@ export const COLECCIONES: ColeccionRespaldo[] = [
 export const EXCLUIDAS: Record<string, string> = {
   secretos: 'Las llaves de API del consultorio. Meterlas en un archivo que el médico descarga, manda por correo y deja en su escritorio convertiría un respaldo en una filtración de credenciales. Se vuelven a pegar en Configuración.',
   bot_sessions: 'Estado efímero de las conversaciones del bot de WhatsApp: se reconstruye solo con el siguiente mensaje y no describe nada del consultorio.',
+  slot_locks: 'Candados de un hueco de agenda mientras se confirma una cita. Viven segundos y existen para que dos personas no reserven el mismo hueco; restaurar un candado viejo sólo bloquearía una agenda que ya está libre.',
 }
 
 export interface LineaRespaldo {

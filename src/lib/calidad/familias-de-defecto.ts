@@ -229,7 +229,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * sino una compuerta que vigile la propiedad en todo el árbol y falle
      * cuando una pantalla nueva se separe.
      */
-    regs: [241, 253, 310, 334, 338],
+    /**
+     * 340 es la forma más pura de esta familia y enseña su variante peligrosa.
+     * Declarar una colección en TRES sitios depende de que alguien se acuerde, y
+     * había un guardián por cada sitio — pero los tres se comparaban ENTRE ELLOS:
+     * dos parseaban `firestore.rules` y lo tomaban por el censo de lo que existe.
+     * Ninguno miraba el código. Un círculo de copias validándose, con nueve
+     * colecciones fuera —la bitácora NOM-004 entre ellas— y la suite en verde.
+     *
+     * La reparación es la que dicta la familia, dicha en su forma exacta: el
+     * censo se DERIVA de lo que el código escribe, y la compuerta falla cuando
+     * el código y las declaraciones se separan.
+     */
+    regs: [241, 253, 310, 334, 338, 340],
   },
   {
     /**
