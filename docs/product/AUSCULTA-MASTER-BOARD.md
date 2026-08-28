@@ -19,7 +19,7 @@
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 511 pasan · 1 falla · 1 omitido** (766 archivos) | Baseline eran 10 490; +21 casos, cero regresiones. La falla es `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 566 pasan · 1 falla · 1 omitido** (769 archivos) | Baseline eran 10 490; **+76 casos, cero regresiones**. La falla es `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | navegador real | **no ejecutado** | ver WS-05 |
@@ -48,10 +48,10 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 |---|---|---|---|
 | ~~P0-1~~ | ~~Un resultado de laboratorio de **consultorio** no genera tarea de revisión.~~ **CERRADO** — REG-337, `7247e1f`. Cierra «recibido → por revisar»; `acted_on` y `patient_notified` siguen sin existir en el modelo. | `src/lib/expediente/laboratorio/firestore.ts` | orquestador |
 | ~~P0-2~~ | ~~La bitácora **append-only NOM-004** no está en el respaldo.~~ **CERRADO** — REG-340, `9f14d14`. Eran **9** colecciones, no una; el guardián nuevo deriva el censo del código. **Las reglas no se despliegan aquí**: `members` sigue roto en producción hasta que el dueño las publique. | `respaldo.ts` · `matriz-acceso.ts` · `firestore.rules` | orquestador |
-| **P0-3** | `getPatients()` descarga la colección **entera** de pacientes. La caché de 30 s baja la frecuencia, no el tamaño. 17 llamadores. | `src/lib/firestore.ts:119` | orquestador |
-| **P0-4** | `findNotaByIdInClinic()` lee **todos** los pacientes y luego hace un `getDoc` **por paciente, en serie**. 50 001 lecturas con 50 k pacientes. | `src/lib/expediente/firestore.ts:60` | orquestador |
-| **P0-5** | `/cumplimiento/retencion` hace `Promise.all` sobre **todos** los pacientes, con un `getNotas` cada uno. El peor abanico del repositorio. | `src/app/(dashboard)/cumplimiento/retencion/page.tsx:29` | orquestador |
-| **P0-6** | Rebote de scroll en iPhone — defecto reportado por el dueño, sin reproducir en dispositivo. Causa raíz probable identificada. | `src/components/expediente/ClinicalSpine.tsx:82` | orquestador (código); **falta dispositivo** |
+| ~~P0-3~~ | ~~`getPatients()` descarga la colección entera.~~ **CERRADO** — REG-341, `4be92df`. Portado del PR #356 preservando REG-323. **Abre P1-11**: once pantallas reciben el recorte sin declararlo. | `src/lib/firestore.ts` | orquestador |
+| ~~P0-4~~ | ~~`findNotaByIdInClinic()` N+1 en serie.~~ **CERRADO** — REG-341, `4be92df`. Consulta indexada acotada a 2 + sondeo con techo; por encima del techo devuelve `no-resoluble`, que no es `no-encontrada`. | `src/lib/expediente/firestore.ts` | orquestador |
+| ~~P0-5~~ | ~~`Promise.all` sobre todos los pacientes.~~ **CERRADO** — REG-341, `4be92df`. Páginas con techo, notas en tandas, y **declara** si se quedó corta. Sigue debiendo leerse de un trabajo de servidor. | `cumplimiento/retencion/page.tsx` | orquestador |
+| ~~P0-6~~ | ~~Rebote de scroll en iPhone.~~ **CAUSA RAÍZ CERRADA** — REG-342, `148a415`. Dos mecanismos: `scrollIntoView` disparado por el observador de scroll, y la barra sticky saliendo del flujo. **La verificación en iPhone sigue `BLOCKED_EXTERNAL`**: sólo hay Chromium instalado. | `ClinicalSpine.tsx` · `CierreAlPulgar.tsx` | orquestador (aritmética); **falta dispositivo** |
 | ~~P0-7~~ | ~~La nota clínica completa se escribe en la consola del navegador.~~ **CERRADO** — REG-339, `7247e1f`. Quedan ids de internamiento en consola fuera del dashboard: son ids, no cuerpos clínicos. | `src/app/(dashboard)/consulta/[patientId]/page.tsx` | orquestador |
 
 ## P1 ABIERTOS — los que tienen dueño claro
@@ -67,6 +67,9 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | **P1-7** | `avisos`/`procedencia` de evidencia se calculan, viajan por el cable y **la pantalla los tira**. El médico no puede leer «UpToDate: no se consultó». | `consultor/page.tsx:205` |
 | **P1-8** | `MATRIZ-CALIFICACION-PROVEEDORES.md` dice que ClinicalTrials, WHO y CDC **«pueden citar hoy: sí»**. No existe adaptador y ni siquiera se instancian. Es el documento que un dueño leería para decidir un gasto. | `docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md:29-33` |
 | **P1-9** | La ruta que usa de verdad la pantalla de consulta **no pasa por el sobre** de #314: sigue con `.catch(() => [])`. | `api/expediente/evidencia/route.ts:174,177,183` |
+| **P1-11** | Once pantallas llaman a `getPatients` y reciben el **recorte sin declararlo** (`/pacientes`, `/citas`, `/crm`, `/asistente`, `/hospitalizacion`, `/farmacia`, `/membresias`, `/cumplimiento`, `/reactivacion`, `/migracion`). Ya no tumban el navegador, pero pueden decir «no hay» de un paciente que existe. |
+| **P1-12** | `getNotas` sigue **sin cota**: la historia completa de un paciente, con las dos transcripciones dentro. La siguiente amplificación. |
+| **P1-13** | Quedan otros escritores de scroll: el restaurador de `/consulta` se re-arma tras una lectura de Firestore **sin cancelación por gesto**; los banners asíncronos cambian la altura por encima de `<main>` (41 px medidos); `overscroll-behavior` no aparece en el repositorio. |
 | **P1-10** | Texto completo de PMC se reproduce **sin filtro de licencia por artículo**. El catálogo lo declara como decisión pendiente; el filtro no existe. | `evidencia/pubmed.ts:182` · `catalogo.ts:279` |
 
 ---
