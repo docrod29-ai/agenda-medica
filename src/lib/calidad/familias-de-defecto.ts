@@ -46,7 +46,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ningún camino del producto escribía jamás un documento en esa colección.
      * No faltaba una pantalla — faltaba el ACTO que la llena.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 338],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339],
   },
   {
     clave: 'se_contradice',
@@ -71,7 +71,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Ninguna de las dos está mal por su cuenta. En el hueco cabía una nota
      * firmable e inentregable — y con `nota.firma` inmutable, irreparable.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 337],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338],
   },
   {
     clave: 'habla_real',
@@ -142,7 +142,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Correcto por dentro, insoportable por fuera: avisos que interrumpen, se ' +
       'repiten o tapan la nota. Un aviso que estorba se aprende a ignorar, y ' +
       'entonces deja de proteger.',
-    regs: [178, 181, 184, 231, 233, 301, 319],
+    /**
+     * 337 estira la familia más allá del aviso, y a propósito. El riel del
+     * expediente hacía bien su trabajo —resaltar dónde va la lectura—; lo que
+     * era insoportable es lo que ese trabajo le hacía a la pantalla: botaba
+     * hacia arriba en cada tramo mientras el médico bajaba. Nada estaba mal por
+     * dentro, y la pantalla no se podía usar. El patrón es el mismo que el del
+     * aviso que interrumpe: correcto en su intención, intolerable en su efecto.
+     */
+    regs: [178, 181, 184, 231, 233, 301, 319, 337],
   },
   {
     clave: 'perdida',

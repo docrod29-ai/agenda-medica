@@ -234,7 +234,7 @@ describe('6 · la ayuda nombra los controles que existen HOY', () => {
   })
 })
 
-describe('7 · la firma se lee de donde REG-014 la dejó (REG-337)', () => {
+describe('7 · la firma se lee de donde REG-014 la dejó (REG-338)', () => {
   /**
    * Salió al ponerle una marca de «listo» al paso 2 y preguntarse de dónde se
    * saca ese booleano. La sección de firma leía `form`, que es `config/main`;
