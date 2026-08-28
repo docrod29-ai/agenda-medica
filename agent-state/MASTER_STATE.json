@@ -17,7 +17,7 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1173",
-  "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
+  "ultimaVersionEnRepo": "nexusmed-v1173 (v1173 = REG-337, el bote del expediente; commiteada, fusionada a main en 8150115 y publicada por la integración GitHub↔Vercel). El bump fue CON su despliegue, que es la condición que v1172 dejó escrita.",
   "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
@@ -58,5 +58,6 @@
     "archivosDePrueba": 763,
     "casosDePrueba": 9353,
     "lint": "ver scripts/lint-trinquete.mjs"
-  }
+  },
+  "queMideUltimaVersionEnProduccion": "OJO — `ultimaVersionEnProduccion` la deriva scripts/agent-state/actualizar.mjs de `public/version.txt`, o sea de lo que el REPOSITORIO declara, no de lo que el sitio vivo sirve. Basta con subir el número y no desplegar para que este tablero diga que producción va en una versión que nadie publicó. Quien comprueba de verdad lo que sirve producción es la Compuerta 3 de .github/workflows/deploy-production.yml, que hace curl a $URL_PROD/version.txt."
 }
