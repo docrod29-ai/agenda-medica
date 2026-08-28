@@ -9685,3 +9685,60 @@ existe sólo para clavar ese nombre.
 - **Las `platform_*` siguen sin ningún respaldo**, ni aquí ni en otro sitio. No
   es un hueco de este archivo —no son del consultorio— pero tampoco existe el
   respaldo de plataforma que les tocaría. Abierto en el tablero.
+
+---
+
+## REG-344 — el worklist podía quedarse corto, y callarlo
+
+**QUÉ FALLABA, POR DOS CAMINOS DISTINTOS.**
+
+*Uno.* `tareasVivas()` leía con `limit(200)` **sin `orderBy`**. Firestore
+devuelve entonces 200 documentos **arbitrarios** de los N que hay, y la pantalla
+no tenía forma de saber que había más. Con 200 pendientes vivos, un resultado
+crítico sin revisar podía sencillamente no aparecer — y la pantalla se veía
+igual de tranquila.
+
+*Dos.* Al firmar, las tareas de la consulta se creaban con
+`void crearTareas(...).catch(() => {})`. `crearTareas` **devuelve cuántas
+entraron** —y traga los fallos de una en una a propósito, para que un pendiente
+roto no tumbe a los demás—, y ese número se descartaba junto con el `catch`. Si
+la pestaña se cerraba o la red se caía en esa ventana, los pendientes de esa
+consulta desaparecían y el médico se iba **convencido de que estaban**.
+
+**LO QUE NO ERA EL DEFECTO, Y CONVIENE DECIRLO.** La ausencia de `orderBy` no es
+un descuido: está razonada en el módulo. `where … in …` junto a `orderBy` exige
+un índice compuesto que hay que crear a mano en la consola, y mientras no existe
+**la lectura falla entera** — así se abrió esta pantalla en producción, con un
+error y no con una lista vacía. Quitarlo fue correcto. Y crear las tareas sin
+bloquear la firma también lo es: hacer que un fallo al escribir el worklist
+reviente la firma sería cambiar un pendiente perdido por una consulta perdida.
+
+**LA CAUSA RAÍZ es el silencio, no el orden ni el bloqueo.** Dos decisiones
+correctas dejaron cada una un hueco, y ninguna de las dos lo declaraba.
+
+**LA REGLA QUE LO HACE SEGURO.** Una lista de trabajo clínico que se queda corta
+**lo dice**. «No hay nada pendiente» y «no lo he leído entero» no son lo mismo, y
+en esta pantalla confundirlos se lee como «todo está al día» — la conclusión más
+peligrosa posible. La pantalla ya distinguía un fallo de lectura de una lista
+vacía; faltaba el tercer caso.
+
+Se lee `tope + 1` para **saber** si se quedó corta; el documento extra no se
+devuelve, sólo sirve para poder decirlo. Y al firmar se compara lo creado con lo
+esperado, igual que hace el camino hospitalario desde REG-252.
+
+**LA PRUEBA.** `src/__tests__/un-pendiente-que-falta-no-se-calla.test.ts`
+(7 casos), con una tienda en memoria que respeta el `limit` de verdad. Incluye el
+**borde exacto**: con exactamente `tope` documentos **no** se declara corta —
+avisar ahí sería un aviso falso, y un aviso que miente se aprende a ignorar.
+Probado al revés volviendo a `limit(tope)`: cae el caso del defecto.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **NO arregla QUÉ 200 vienen.** Siguen siendo un subconjunto arbitrario. Para
+  elegir los más urgentes hace falta el índice compuesto, que se crea **fuera del
+  repositorio** y es decisión de infraestructura del dueño. Mientras tanto el
+  aviso es **la defensa, no la solución**. Abierto en el tablero.
+- **`tareasDePaciente` sigue con `limit(100)`** y sin declarar su recorte. Un
+  paciente con más de 100 pendientes vivos es improbable, no imposible, y aquí no
+  se da por bueno: queda anotado.
+- **No se ha visto en un navegador**: que el aviso exista no prueba que se vea.

@@ -3888,7 +3888,25 @@ export default function ConsultaActivaPage() {
        * falla, se pierde el worklist de esa consulta, no la consulta.
        */
       if (clinicId) {
-        void crearTareas(clinicId, tareasDeNota({
+        /**
+         * REG-344 — NO BLOQUEA, PERO TAMPOCO SE CALLA.
+         *
+         * Seguir sin bloquear es lo correcto: la nota ya está firmada y sellada,
+         * y hacer que un fallo al escribir el worklist reviente la firma sería
+         * cambiar un pendiente perdido por una consulta perdida.
+         *
+         * Lo que estaba mal era el SILENCIO. `crearTareas` devuelve cuántas
+         * entraron —y traga los fallos de una en una para que un pendiente roto
+         * no tumbe a los demás—, y aquí ese número se descartaba junto con el
+         * `.catch()`. Si la pestaña se cerraba o la red se caía en esa ventana,
+         * los pendientes de esa consulta desaparecían y el médico se iba
+         * convencido de que estaban.
+         *
+         * Ahora se compara con las esperadas y se dice. Es el mismo trato que
+         * REG-252 le dio al camino hospitalario, que sí devuelve
+         * `{tareasCreadas, tareasEsperadas}` y cuyo llamador sí lo lee.
+         */
+        const pendientesDeLaNota = tareasDeNota({
           id, clinicId, pacienteId: patientId,
           pacienteNombre: patient?.nombre,
           estudiosOrden,
@@ -3898,7 +3916,16 @@ export default function ConsultaActivaPage() {
           proximoSeguimiento: proximoSeguimiento || undefined,
           medicoUid: auth.currentUser?.uid,
           medicoNombre: config.nombreMedico,
-        }, Date.now())).catch(() => { /* ver arriba: no puede tumbar la firma */ })
+        }, Date.now())
+        void crearTareas(clinicId, pendientesDeLaNota)
+          .then(creadas => {
+            if (creadas < pendientesDeLaNota.length) {
+              toast(`La nota quedó firmada, pero ${pendientesDeLaNota.length - creadas} pendiente(s) de esta consulta NO se abrieron. Revísalos a mano en Pendientes.`, 'error')
+            }
+          })
+          .catch(() => {
+            toast('La nota quedó firmada, pero no se pudieron abrir sus pendientes. Revísalos a mano en Pendientes.', 'error')
+          })
 
         /**
          * §F3 — RECONCILIACIÓN DE MEDICAMENTOS.

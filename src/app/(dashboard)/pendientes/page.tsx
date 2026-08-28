@@ -255,6 +255,14 @@ export default function PendientesPage() {
   const [tareas, setTareas] = useState<TareaClinica[]>([])
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
+  /**
+   * REG-344 — 0 = la lista está completa; N = se alcanzó el tope N y HAY
+   * pendientes vivos fuera de ella. En esta pantalla eso no se puede callar:
+   * quedarse corto en silencio se lee como «todo está al día», que es la
+   * conclusión más peligrosa posible aquí — la misma razón por la que un fallo
+   * de lectura ya se distingue de una lista vacía dos líneas más abajo.
+   */
+  const [truncado, setTruncado] = useState(0)
   const [cancelando, setCancelando] = useState<TareaClinica | null>(null)
   const [motivo, setMotivo] = useState('')
   const [soloMias, setSoloMias] = useState(false)
@@ -293,7 +301,7 @@ export default function PendientesPage() {
     if (!clinicId) return
     let vivo = true
     tareasVivas(clinicId)
-      .then(t => { if (vivo) { setTareas(t); setErrorCarga(''); setAhora(Date.now()) } })
+      .then(w => { if (vivo) { setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0); setErrorCarga(''); setAhora(Date.now()) } })
       .catch(e => {
         // Un fallo de lectura NO puede verse igual que «no hay pendientes»:
         // en esta pantalla eso se lee como «todo está al día», que es la
@@ -396,6 +404,29 @@ export default function PendientesPage() {
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setRecarga(n => n + 1)}>Actualizar</Button>
       </div>
+
+      {/**
+        * REG-344 — «no hay nada pendiente» y «no lo he leído entero» no son lo
+        * mismo, y en esta pantalla confundirlos es lo más caro que puede pasar.
+        *
+        * La consulta no lleva `orderBy` a propósito (evita un índice compuesto
+        * que ya tumbó esta pantalla una vez), así que lo que viene es un
+        * subconjunto ARBITRARIO: entre lo que falta puede estar un resultado
+        * crítico sin revisar. Mientras eso siga así, el aviso es la defensa.
+        */}
+      {!cargando && truncado > 0 && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Se están mostrando <strong>{truncado}</strong> pendientes y <strong>hay más</strong>.
+            Esta lista <strong>no está completa</strong>: cierra los que puedas para volver a verla entera.
+          </span>
+        </div>
+      )}
 
       {cargando ? <Spinner /> : errorCarga ? (
         <div style={{ padding: 16, border: '1px solid var(--red)', borderRadius: 10, color: 'var(--red)' }}>

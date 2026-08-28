@@ -76,9 +76,24 @@ export async function crearTareas(clinicId: string, tareas: readonly Omit<TareaC
   return n
 }
 
+export interface WorklistVivo {
+  tareas: TareaClinica[]
+  /**
+   * true = se alcanzó el tope. HAY pendientes vivos que NO vienen en `tareas`.
+   *
+   * REG-344 — no es cosmético. Sin `orderBy` (ver abajo) los que vienen son un
+   * subconjunto ARBITRARIO: entre los que faltan puede estar un resultado
+   * crítico sin revisar. Un worklist que se queda corto en silencio enseña «no
+   * hay nada pendiente» de un consultorio que sí lo tiene, y eso es peor que no
+   * enseñar nada.
+   */
+  truncada: boolean
+  tope: number
+}
+
 /** Las tareas VIVAS del consultorio. El worklist. */
-export async function tareasVivas(clinicId: string, tope = 200): Promise<TareaClinica[]> {
-  if (!clinicId) return []
+export async function tareasVivas(clinicId: string, tope = 200): Promise<WorklistVivo> {
+  if (!clinicId) return { tareas: [], truncada: false, tope }
   /**
    * SIN `orderBy`: EL ORDEN LO PONE EL WORKLIST, NO FIRESTORE.
    *
@@ -92,13 +107,22 @@ export async function tareasVivas(clinicId: string, tope = 200): Promise<TareaCl
    * antigüedad), así que el orden que devolviera Firestore se perdía igual.
    * Quitarlo elimina la dependencia del índice sin cambiar lo que se ve.
    */
+  /**
+   * Se piden `tope + 1` para SABER si se quedó corto. El extra no se devuelve:
+   * sólo sirve para poder decirlo. Es el mismo truco que `listarPacientesPagina`,
+   * y aquí importa más — allí falta un nombre en una lista, aquí falta trabajo
+   * clínico que nadie va a recordar.
+   */
   const q = query(
     COL(clinicId),
     where('estado', 'in', ['solicitada', 'aceptada', 'en_curso', 'completada']),
-    limit(tope),
+    limit(tope + 1),
   )
   const snap = await getDocs(q)
-  return snap.docs.map(d => ({ ...(d.data() as TareaClinica), id: d.id }))
+  const truncada = snap.docs.length > tope
+  const tareas = (truncada ? snap.docs.slice(0, tope) : snap.docs)
+    .map(d => ({ ...(d.data() as TareaClinica), id: d.id }))
+  return { tareas, truncada, tope }
 }
 
 /**

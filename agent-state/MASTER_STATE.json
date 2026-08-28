@@ -22,10 +22,14 @@
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts",
-    " M src/app/api/clinic/exportar/route.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/(dashboard)/pacientes/page.tsx",
+    " M src/app/(dashboard)/pendientes/page.tsx",
+    " M src/components/ContinuidadPanel.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinica/respaldo.ts"
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/tareas-clinicas/firestore.ts",
+    "?? src/__tests__/un-pendiente-que-falta-no-se-calla.test.ts"
   ],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
@@ -61,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-consultorio-completion-hoahgw",
   "derivado": {
-    "regsEnElLedger": 191,
-    "ultimaREG": "REG-343",
-    "archivosDePrueba": 769,
-    "casosDePrueba": 9420,
+    "regsEnElLedger": 192,
+    "ultimaREG": "REG-344",
+    "archivosDePrueba": 770,
+    "casosDePrueba": 9427,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

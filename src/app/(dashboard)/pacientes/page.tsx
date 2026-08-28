@@ -101,7 +101,7 @@ export default function PacientesPage() {
     if (!clinicId) return
     let vivo = true
     tareasVivas(clinicId)
-      .then(t => { if (vivo) { setWorklist({ estado: 'lista', tareas: t }); setAhora(Date.now()) } })
+      .then(w => { if (vivo) { setWorklist({ estado: 'lista', tareas: w.tareas }); setAhora(Date.now()) } })
       .catch(e => { console.error('[pacientes] no se pudo leer el worklist', e) })
     return () => { vivo = false }
   }, [clinicId])

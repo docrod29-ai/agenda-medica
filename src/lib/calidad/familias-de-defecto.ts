@@ -134,7 +134,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * lista de nombres vacía se leyó como «este paciente no tiene identidad»
      * en vez de «no sé quién es». El hueco tratado como dato, otra vez.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333],
+    /**
+     * 344 es la versión de esta familia que nace de decisiones CORRECTAS. No
+     * poner `orderBy` era correcto —evitaba un índice compuesto que ya tumbó la
+     * pantalla en producción— y no bloquear la firma también. Cada una dejó un
+     * hueco, y ninguna lo declaraba: 200 pendientes arbitrarios de N se leían
+     * como «esto es todo», y las tareas que no llegaron a escribirse se leían
+     * como escritas. El hueco tratado como dato, sin que nadie hiciera nada mal.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344],
   },
   {
     clave: 'aislamiento',

@@ -1419,6 +1419,10 @@
     {
       "archivo": "src/__tests__/el-riel-no-arrastra-la-pagina.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/un-pendiente-que-falta-no-se-calla.test.ts",
+      "minCasos": 7
     }
   ]
 }
