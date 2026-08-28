@@ -8971,6 +8971,74 @@ nueve la prueba cae.
    `release/evidence-integrated-2026-08-26`. Recuperarlo es una reparación
    clínica aparte, con sus dos pruebas, no un efecto colateral de esta compuerta.
 
+## REG-337 — la pantalla que sube la firma leía del documento que la migración vació
+
+**Área.** `src/app/(dashboard)/configuracion/secciones-cuenta.tsx`
+(`FirmaUploadSection`) · `src/lib/firma-protegida.ts` · `src/hooks/useFirmaProtegida.ts`.
+
+**Estado:** CLOSED, con golden y sello.
+
+**CÓMO SE DESCUBRIÓ.** No buscándolo. Simplificando «Recetas, órdenes y notas»
+a tres pasos a petición del dueño, el paso 2 —la firma— necesitaba una marca de
+«listo», y la pregunta obligada fue de dónde sale ese booleano. La respuesta
+estaba en la propia sección: leía `form`, es decir `clinics/{id}/config/main`.
+
+**CAUSA RAÍZ.** REG-014 sacó la firma de `config/main` —cuyo `read` es
+`isMember`, así que recepción o farmacia podían llevársela con el SDK— y la
+movió a `config/firma`, legible sólo por médicos. La migración es idempotente,
+corre al abrir esta misma sección, COPIA al subdocumento y **borra del general**.
+
+Las cinco pantallas que imprimen (nota, receta, orden, consulta, hospital) se
+cablearon al lector nuevo, `useFirmaProtegida`, que además cae al legado
+mientras un consultorio no haya migrado. La sexta —la que SUBE la firma— se
+quedó leyendo el sitio que la migración acababa de vaciar.
+
+**LO QUE VEÍA EL MÉDICO.** Consultorio migrado, recarga de la pantalla: el
+recuadro punteado de «Sube tu firma + sello», como si no hubiera nada. Con su
+firma guardada, protegida y saliendo impresa en cada receta. La pantalla no
+daba error: daba una respuesta falsa a la pregunta «¿ya subí mi firma?».
+
+**POR QUÉ NADIE LO CAZÓ.** Porque el que tiene firma no vuelve a esta sección, y
+el que vuelve es porque no la tiene —y entonces el recuadro vacío es correcto—.
+Y porque la suite lo miraba desde el lado bueno: los tests de REG-014 comprueban
+que la firma se guarda en el sitio protegido y que las pantallas de impresión la
+leen de ahí. Ninguno preguntaba qué enseña, al día siguiente, la pantalla que la
+subió.
+
+**LA FAMILIA.** Se cuenta en «el sistema se contradice a sí mismo»: el escritor
+(`config/firma`) y este lector (`config/main`) son correctos cada uno por su
+cuenta, y el defecto vive en el hueco entre los dos.
+
+Es prima de «el dato tiene que LLEGAR» (REG-160, REG-167, REG-170) con el giro
+que la distingue: allí el dato no llegaba, y aquí llegó perfectamente a su
+destino nuevo — lo que se quedó atrás fue el LECTOR. Una migración deja dos
+lados, y el lado que sólo escribe parece terminado desde dentro.
+
+**EL ARREGLO.** `FirmaUploadSection` lee con `useFirmaProtegida(clinicId, form)`,
+el mismo lector que las cinco pantallas de impresión, y resuelve el valor
+efectivo con `??` —no `||`— para que quitar la firma (que deja `''`) siga
+ganándole al valor del servidor. Y reporta hacia arriba lo que ve
+(`onEstado`), para que el paso 2 de la pestaña no vuelva a deducirlo por su
+cuenta desde `form`: ése habría sido el mismo defecto un piso más arriba.
+
+**LA REGLA QUE LO HACE SEGURO.** Cuando un dato cambia de sitio, se mueven
+TODOS sus lectores — y el que escribe también lee, aunque parezca que sólo
+escribe. Un formulario que no encuentra lo que él mismo guardó no falla: miente.
+
+**GOLDEN.** `src/__tests__/recetas-tres-pasos-y-la-app-coloca-sola.test.ts`
+(bloque 7). **Probado al revés:** devolviendo la lectura a
+`form.firmaPorMedico?.[medicoSel]` a secas, caen los dos primeros casos del
+bloque.
+
+**QUÉ NO CUBRE.** No se ha visto contra un Firestore migrado de verdad: el
+golden comprueba el cableado en la fuente, que es el precedente de esta casa
+para este tipo de defecto. Tampoco toca el residual declarado de REG-014 —un
+médico autenticado sigue recibiendo la imagen en su navegador, porque la
+impresión es del lado del cliente—, ni añade lectura de la firma a ningún rol
+que no la tuviera.
+
+---
+
 ## REG-336 — se podía firmar sin nombre, y entonces el paciente no recibía nada nunca
 
 **Área.** Compuerta de la firma: `src/lib/expediente/por-que-no-se-firma.ts`,

@@ -102,46 +102,32 @@ export const GUIA: SeccionGuia[] = [
     ],
   },
   {
-    id: 'recetas', titulo: 'Configurar tu receta (paso a paso)', roles: ['medico'],
-    intro: 'Deja la receta idéntica a tu papel. Son 7 pasos y se hace UNA sola vez.',
+    id: 'recetas', titulo: 'Configurar tu receta (3 pasos)', roles: ['medico'],
+    intro: 'Deja la receta idéntica a tu papel. Son 3 pasos y se hace UNA sola vez.',
     pasos: [
       {
-        t: '1. Mide tu papel con una regla',
-        d: 'Antes de tocar la app, mide tu receta de borde a borde, en centímetros: primero el ANCHO, luego el ALTO. Anótalo (por ejemplo 13 × 23 cm). Todo lo demás depende de este número; si lo pones mal, la receta sale corrida.',
+        t: '1. Sube tu papel de receta',
+        d: 'Configuración → “Recetas, órdenes y notas” (grupo Documentos clínicos). En el paso 1 sube una foto o un PDF de la receta que ya usas, en blanco. La app mide tu hoja sola —no hace falta que la midas con regla— y lee tu formato para colocar Nombre, Edad, F. nacimiento, Sexo, Fecha, Folio, firma y QR sobre las líneas que ya trae impresas. La fecha de nacimiento la piden las farmacias para dispensar, y sale con su etiqueta: «Fecha de nacimiento: 15/03/1984». Si algo quedó fuera de su sitio, pulsa “Ajustar dónde caen los datos” y arrastra la etiqueta. Si no tienes papel propio, marca la casilla de abajo: se genera un encabezado con los datos de tu consultorio.',
       },
       {
-        t: '2. Entra al editor',
-        d: 'Configuración → “Recetas, órdenes y notas” (grupo Documentos clínicos). Ahí está TODO lo que se imprime: el papel de la receta, tu formato, tu firma y la hoja membretada de las notas. A la derecha verás una vista previa en vivo.',
+        t: '2. Sube tu firma y tu sello',
+        d: 'Firma en una hoja BLANCA con plumón negro, con tu sello al lado, tómale foto de frente con buena luz y súbela. Se guarda sola —no hay que darle a Guardar— y aparece sobre la línea de firma de tus recetas, órdenes y notas.',
       },
       {
-        t: '3. Elige el tamaño de papel',
-        d: 'En “Tamaño de papel” escoge el que coincida con tu medida: Receta vertical (13 × 23 cm), Receta acostada (23 × 13 cm), Media carta, Carta, A4, Oficio o A5. Si el tuyo no está, elige “Personalizado” y escribe el ancho y el alto en milímetros (13 cm = 130 mm).',
-      },
-      {
-        t: '4. Sube tu formato (si ya tienes papel impreso)',
-        d: 'En “Usa TU propia receta” sube una foto o PDF de tu papel membretado. La app lo pone de fondo y solo encima los datos del paciente, los medicamentos y la firma. Si no tienes papel propio, sáltate esto: la app genera un encabezado con los datos de tu consultorio y también en “Membrete” puedes subir solo tu logo/encabezado.',
-      },
-      {
-        t: '5. Si tu papel YA trae líneas de Nombre/Edad/Fecha',
-        d: 'Activa la casilla “Mi diseño ya tiene campos del paciente impresos”. Así la app no vuelve a dibujar esas líneas encima de las tuyas. Después, en “Coloca cada dato en tu formato”, arrastra las etiquetas (Nombre, Edad, F. nacimiento, Sexo, Fecha, Folio, QR, Firma) justo sobre las líneas de tu papel. La fecha de nacimiento la piden las farmacias para dispensar, y sale impresa con su etiqueta: «Fecha de nacimiento: 15/03/1984». El botón “Detectar campos con IA” los coloca solos y tú nada más los acomodas.',
-      },
-      {
-        t: '6. Sube tu firma',
-        d: 'Firma en una hoja BLANCA con plumón negro, tómale foto de frente con buena luz y recórtala. Súbela en la sección de firma. Aparecerá en la receta y en las notas. También puedes ajustar su tamaño con el deslizador.',
-      },
-      {
-        t: '7. Guarda y haz una prueba',
-        d: 'Pulsa “Guardar template”. Luego “Imprimir prueba”: saca una receta de ejemplo con un paciente ficticio. Compárala contra tu papel real antes de usarla con un paciente.',
+        t: '3. Imprime una prueba',
+        d: 'Pulsa “Imprimir una prueba”: sale una receta de ejemplo, a tamaño real, por el MISMO camino que la receta que recibe el paciente. Compárala contra tu papel antes de usarla con nadie. Si quedó bien, ya está. Si no, pulsa “No cuadró” y salen las tres averías más comunes con su arreglo.',
       },
     ],
     tips: [
-      'El recuadro cian de la vista previa marca dónde caerán los medicamentos. Si se encima con algo impreso de tu papel, arrastra sus bordes (o usa el ajuste fino en mm) hasta que quede en la zona libre.',
-      'Cada médico del consultorio tiene su propia receta: lo que configures aquí aplica solo a tus recetas y órdenes.',
-      'Las NOTAS (evolución, ingreso, egreso) tienen su propio ajuste, “Tamaño de papel de las notas”, y vienen en carta. Cambiar el papel de la receta no mueve el de las notas.',
+      'Todo lo demás —tamaño de papel, estilo, color, qué datos se imprimen, RFC, registro de psicotrópicos, vigencia y aviso legal— vive plegado en “Ajustes avanzados”. Casi nunca hace falta abrirlo.',
+      'Cuando cambies algo, abajo aparece una barra con “Guardar”. Mientras esa barra esté puesta, hay cambios sin guardar.',
+      'El recuadro cian de la vista previa marca dónde caerán los medicamentos. Si se encima con algo impreso de tu papel, arrastra sus bordes hasta la zona libre.',
+      'Cada médico del consultorio tiene su propia receta y su propia firma: lo que configures aquí aplica solo a las tuyas.',
+      'Las NOTAS (evolución, ingreso, egreso) tienen su propio papel y su propia hoja membretada, dentro de “Ajustes avanzados”. Cambiar el papel de la receta no mueve el de las notas.',
     ],
     ojo: [
       'MUY IMPORTANTE — el tamaño también hay que elegirlo en la impresora. La app manda el tamaño correcto, pero el diálogo de impresión de tu computadora decide el papel físico. Ahí revisa: (1) “Tamaño del papel” = el mismo que elegiste; si no aparece, créalo con “Administrar tamaños personalizados”; (2) “Escala” = 100 %, nunca “Ajustar al papel”; (3) “Orientación” = vertical u horizontal según tu hoja. Si la miniatura se ve como una hoja grande con tu receta chiquita adentro, es este paso.',
-      'Si no tienes papel cortado a la medida, elige el tamaño de tu receta y en “¿En qué papel imprime tu impresora?” deja “Hoja carta + corte”: sale en una hoja carta normal con una línea punteada para recortar. Funciona en cualquier impresora.',
+      'Si no tienes papel cortado a la medida, pulsa “No cuadró” en el paso 3 y en “¿En qué papel imprime tu impresora?” deja “Hoja carta + corte”: sale en una hoja carta normal con una línea punteada para recortar. Funciona en cualquier impresora.',
       'Al imprimir una receta real se abre una ventana limpia con SOLO la receta. Si tu navegador bloquea las ventanas emergentes, permítelas para este sitio o usa “Descargar PDF”.',
     ],
   },
