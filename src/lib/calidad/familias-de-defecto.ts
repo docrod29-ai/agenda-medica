@@ -159,7 +159,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * como «esto es todo», y las tareas que no llegaron a escribirse se leían
      * como escritas. El hueco tratado como dato, sin que nadie hiciera nada mal.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344],
+    /**
+     * 347 es la lección que deja `crece_mal` al repararse: acotar una lectura no
+     * es una operación local, **cambia el contrato de todos sus lectores**. Los
+     * que trataban «la lista» como el censo completo pasaron a tratar un RECORTE
+     * como el censo completo, sin que cambiara una línea de su código — y la
+     * pantalla de buscar empezó a decir «no está» de pacientes que sí están.
+     * El hueco tratado como dato, creado por el propio arreglo anterior.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347],
   },
   {
     clave: 'aislamiento',

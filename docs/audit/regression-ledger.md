@@ -9869,3 +9869,65 @@ Probado al revés quitando el tope de `transcribir`: cae, y nombra el archivo.
   límite de entorno que mantiene en rojo intermitente a `ops-timeout`.
 - **Sólo mira `src/app/api/`.** Una llamada a proveedor desde `src/lib/` que no
   pase por el gateway se le escapa.
+
+---
+
+## REG-347 — «no está» de un paciente que sí está
+
+**DE DÓNDE VIENE.** REG-341 acotó la lectura del directorio: `getPatients` dejó
+de bajarse el consultorio entero y pasó a tener un techo. Correcto para la
+escala, **y abrió un defecto** en la pantalla donde más duele.
+
+**QUÉ FALLABA.** `/pacientes` cargaba «la lista» y filtraba **en memoria**. Con
+techo, ese filtro busca dentro de un **recorte**: en un consultorio de 600
+pacientes, teclear el nombre del 550º devolvía «Sin resultados» — de alguien que
+está en el expediente. En la pantalla cuyo trabajo entero es encontrar a un
+paciente, ésa es la peor respuesta posible, porque **se lee como un hecho** y no
+como un límite.
+
+Y había un segundo sitio, peor: al guardar un paciente nuevo, la comprobación
+antiduplicado **releía la lista sin caché**. Con el techo, el duplicado podía
+estar entre los que no vinieron — un aviso antiduplicado que falla en silencio
+justo en los consultorios grandes, que son los que lo necesitan. El resultado
+habría sido un historial partido en dos expedientes.
+
+**LA CAUSA RAÍZ.** Acotar una lectura no es una operación local: **cambia el
+contrato de todos sus lectores**. Los que trataban «la lista» como el censo
+completo empezaron a tratar un recorte como el censo completo, sin que nada
+cambiara en su código. Es el mismo patrón que REG-341 declaró y dejó abierto;
+aquí se cierra en la pantalla que no podía esperar.
+
+**LA REGLA QUE LO HACE SEGURO.** **Buscar es preguntar al servidor.** La consulta
+indexada no depende del techo. El filtro en memoria se queda sólo por debajo de
+dos caracteres y mientras la consulta viaja — nunca como la respuesta final. El
+resultado va **atado al texto que lo produjo**: sin eso se enseñarían un instante
+los resultados de la búsqueda anterior, que en esta pantalla significa enseñar
+**otro paciente** al que se está buscando.
+
+La comprobación antiduplicado pasa a ser **dos sondeos indexados**: por teléfono
+—la señal fuerte— y por nombre. El coste deja de depender del tamaño del
+consultorio.
+
+Y quien **recorre** la lista, en vez de buscar, lee cuántos se están listando y
+que la búsqueda sí llega a todos.
+
+**LA PRUEBA.**
+`src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts` (6 casos).
+Probado al revés quitando la salida temprana hacia el resultado del servidor:
+caen 2, incluido el que comprueba que el filtro local ya no es la respuesta
+final.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **La búsqueda es por PREFIJO.** Un duplicado con el orden de los nombres
+  cambiado —«López María» frente a «María López»— y **sin teléfono en común** no
+  aparece. Antes tampoco aparecía por encima del techo, y de forma arbitraria;
+  ahora el hueco es **conocido y tiene forma**. No se da por resuelto.
+- **Un paciente sin campo `nombre` no sale en el listado.** Límite heredado de
+  REG-341, con su golden.
+- **Quedan nueve pantallas sin declarar el recorte** — `/citas`, `/crm`,
+  `/asistente`, `/hospitalizacion`, `/farmacia`, `/membresias`, `/cumplimiento`,
+  `/reactivacion`, `/migracion`. Siguen abiertas; ésta se arregla primero porque
+  es **la pantalla de buscar**.
+- **No se ha visto en un navegador.** Que el aviso exista no prueba que se vea, y
+  el rebote de la búsqueda con el servidor no se ha probado con dedos.

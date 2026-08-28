@@ -1431,6 +1431,10 @@
     {
       "archivo": "src/__tests__/ninguna-llamada-a-proveedor-cuelga-la-funcion.test.ts",
       "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts",
+      "minCasos": 6
     }
   ]
 }

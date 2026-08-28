@@ -19,8 +19,13 @@
   "ultimaVersionEnProduccion": "nexusmed-v1172",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md"
+    "M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/(dashboard)/pacientes/page.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts"
   ],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
@@ -56,10 +61,10 @@
   ],
   "ramaActual": "claude/ausculta-consultorio-completion-hoahgw",
   "derivado": {
-    "regsEnElLedger": 194,
-    "ultimaREG": "REG-346",
-    "archivosDePrueba": 772,
-    "casosDePrueba": 9438,
+    "regsEnElLedger": 195,
+    "ultimaREG": "REG-347",
+    "archivosDePrueba": 773,
+    "casosDePrueba": 9444,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
