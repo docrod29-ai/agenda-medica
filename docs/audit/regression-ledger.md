@@ -9267,6 +9267,25 @@ del dueño. Y el riel no perdió su función: con el arreglo, y con el riel
 desbordando de verdad, su `scrollLeft` va 0 → 345 → 545 siguiendo al activo
 mientras `window.scrollY` no retrocede una sola vez.
 
+**Con el dedo, que es como lo usa el médico (28-ago-2026).** Lo anterior se midió
+con la rueda; el scroll táctil tiene inercia propia y podía comportarse distinto,
+así que se midió aparte inyectando eventos táctiles reales al motor
+(`Input.dispatchTouchEvent` por CDP), 18 arrastres por caso. Dos intentos previos
+se descartaron por inválidos: **no reproducían el defecto conocido en el caso
+viejo**, y una medición que no ve el fallo que ya existe no mide nada.
+
+| teléfono | antes | después |
+|---|---|---|
+| iPhone 13 | 1027 de 2505 px · **8 botes** | 2505 de 2505 · 0 |
+| iPhone SE | 605 de 2648 px · **8 botes** | 2648 de 2648 · 0 |
+| iPhone 14 Pro Max | 500 de 2429 px · **9 botes** | 2429 de 2429 · 0 |
+| Pixel 5 | 915 de 2442 px · **8 botes** | 2442 de 2442 · 0 |
+| Galaxy S9+ | 292 de 2558 px · **6 botes** | 2558 de 2558 · 0 |
+
+Con el dedo es **peor** que con la rueda, y la traza es caótica —
+`869 → 298 → 182 → 1067 → 339 → 1140 → 194` en el iPhone 13 — que es exactamente
+lo que se ve en el vídeo del dueño.
+
 **Qué NO cubre, declarado.**
 
 - **No se ha recorrido la pantalla REAL en un navegador**, sólo el arnés que

@@ -41,6 +41,9 @@ scroll en `<main>`; rueda hacia abajo en pasos de 140px):
 | antes · escritorio 1440×900 | 875 px de 2269 | **no** | 6 |
 | después · escritorio | 2269 px de 2269 | sí | 0 |
 
+Y **con el dedo** (eventos táctiles reales, cinco teléfonos): antes 6-9 botes y
+sin llegar nunca al fondo; después, al fondo y 0 botes en los cinco.
+
 **Lo que este bump NO arregla, declarado.**
 
 - **`firestore.rules` sigue yendo aparte.** `vercel --prod` no las publica y el
