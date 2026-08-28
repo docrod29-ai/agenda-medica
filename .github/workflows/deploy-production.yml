@@ -192,6 +192,19 @@ jobs:
           npm i -g vercel@59.9.1
           vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
+      - name: 'Compuerta 5 · el proyecto Vercel es agenda-medica'
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync('.vercel/project.json', 'utf8'));
+          if (p.projectName !== 'agenda-medica') {
+            console.error(`::error::El VERCEL_PROJECT_ID apunta a '${p.projectName ?? 'desconocido'}', no a 'agenda-medica'. NO se desplegó producción.`);
+            process.exit(1);
+          }
+          console.log('Proyecto Vercel confirmado: agenda-medica');
+          NODE
+
       - name: 'Vercel · construir con los ajustes de Production'
         id: vercel_build
         env:
