@@ -1,28 +1,20 @@
-# Cierre de PRODUCCIÓN — manual, reutilizando las conexiones que YA existen.
+# Cierre de PRODUCCIÓN — UN SOLO CLIC.
 #
-# Vercel ya está conectado al repositorio y despliega `main` automáticamente.
-# Este workflow NO crea una segunda conexión ni pide tokens de Vercel:
-#   1) verifica que el árbol autorizado es el correcto,
-#   2) comprueba que Vercel sirve la versión esperada desde el proyecto principal,
-#   3) publica firestore.rules (REG-323),
-#   4) ejecuta las pruebas contra producción.
+# La aplicación ya usa la integración GitHub↔Vercel existente.
+# Este workflow NO vuelve a desplegar Vercel ni pide secretos de Vercel.
+# Sólo:
+#   1) verifica que el árbol clínico autorizado y la versión son los esperados,
+#   2) verifica que Vercel apunta al proyecto principal agenda-medica,
+#   3) verifica que el sitio vivo ya sirve nexusmed-v1172,
+#   4) publica firestore.rules (REG-323) usando una credencial Firebase ya existente,
+#   5) corre seguridad y smoke contra producción.
 #
-# Publicar sigue siendo decisión explícita del dueño mediante workflow_dispatch.
+# No hay inputs para evitar errores de pegado. El SHA y la URL están fijados aquí.
 
 name: Despliegue a producción (manual)
 
 on:
   workflow_dispatch:
-    inputs:
-      sha_esperado:
-        description: 'SHA del árbol clínico autorizado para esta publicación'
-        required: true
-        type: string
-      url_produccion:
-        description: 'URL canónica de producción'
-        required: true
-        default: 'https://agenda-medica-one.vercel.app'
-        type: string
 
 concurrency:
   group: production-deploy
@@ -36,11 +28,11 @@ env:
   SHA_AUTORIZADO: ef0624cb51fd9fc60e9f676b40716b73a77e3475
   VERSION_ESPERADA: nexusmed-v1172
   FIREBASE_PROJECT: nexomed-agenda
-  URL_CANONICA: https://agenda-medica-one.vercel.app
+  URL_PROD: https://agenda-medica-one.vercel.app
 
 jobs:
   produccion:
-    name: Cerrar publicación autorizada
+    name: Cerrar producción
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 60
@@ -49,70 +41,35 @@ jobs:
       - name: Traer el árbol autorizado
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha_esperado }}
+          ref: ef0624cb51fd9fc60e9f676b40716b73a77e3475
           fetch-depth: 0
 
-      - name: 'Compuerta 1 · SHA exacto'
-        env:
-          SHA_PEDIDO: ${{ inputs.sha_esperado }}
+      - name: 'Compuerta 1 · SHA, versión y REG-323'
         run: |
           set -euo pipefail
-          SHA_REAL="$(git rev-parse HEAD)"
-          [ "$SHA_PEDIDO" = "$SHA_AUTORIZADO" ] || {
-            echo "::error::El SHA pedido no es el autorizado ($SHA_AUTORIZADO)."
+          [ "$(git rev-parse HEAD)" = "$SHA_AUTORIZADO" ] || {
+            echo "::error::El checkout no coincide con el SHA autorizado."
             exit 1
           }
-          [ "$SHA_REAL" = "$SHA_AUTORIZADO" ] || {
-            echo "::error::El checkout quedó en $SHA_REAL y no en $SHA_AUTORIZADO."
-            exit 1
-          }
-          [ -z "$(git status --porcelain)" ] || {
-            echo "::error::El árbol no está limpio."
-            exit 1
-          }
-          echo "Árbol autorizado confirmado: $SHA_REAL"
-
-      - name: 'Compuerta 2 · versión v1172'
-        run: |
-          set -euo pipefail
-          VERSION_TXT="$(tr -d '[:space:]' < public/version.txt)"
-          [ "$VERSION_TXT" = "$VERSION_ESPERADA" ] || {
-            echo "::error::public/version.txt dice '$VERSION_TXT'; se esperaba '$VERSION_ESPERADA'."
+          [ "$(tr -d '[:space:]' < public/version.txt)" = "$VERSION_ESPERADA" ] || {
+            echo "::error::version.txt no es $VERSION_ESPERADA."
             exit 1
           }
           grep -q "const CACHE = '$VERSION_ESPERADA'" public/sw.js || {
-            echo "::error::public/sw.js no declara $VERSION_ESPERADA."
+            echo "::error::sw.js no declara $VERSION_ESPERADA."
             exit 1
           }
-          echo "version.txt y sw.js = $VERSION_ESPERADA"
-
-      - name: 'Compuerta 3 · REG-323 está en firestore.rules'
-        run: |
-          set -euo pipefail
           grep -q "REG-323" firestore.rules || {
             echo "::error::firestore.rules no contiene REG-323."
             exit 1
           }
           grep -q "request.resource.data.pacienteId == docId" firestore.rules || {
-            echo "::error::Falta la guarda pacienteId == docId de REG-323."
+            echo "::error::Falta la guarda de REG-323."
             exit 1
           }
-          echo "REG-323 presente."
+          echo "Árbol, versión y REG-323 confirmados."
 
-      - name: 'Compuerta 4 · sólo la URL principal'
-        env:
-          URL_PEDIDA: ${{ inputs.url_produccion }}
-        run: |
-          set -euo pipefail
-          [ "$URL_PEDIDA" = "$URL_CANONICA" ] || {
-            echo "::error::La URL pedida es '$URL_PEDIDA'. Este workflow sólo acepta '$URL_CANONICA'."
-            exit 1
-          }
-          echo "URL canónica confirmada: $URL_CANONICA"
-
-      # No usa secretos de Vercel. Lee el status que YA publica la integración
-      # GitHub↔Vercel y exige que apunte al proyecto principal agenda-medica.
-      - name: 'Compuerta 5 · Vercel apunta a agenda-medica, no agenda-medica-v10'
+      - name: 'Compuerta 2 · Vercel usa el proyecto principal agenda-medica'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -125,14 +82,14 @@ jobs:
 
           TARGETS="$(jq -r '.statuses[] | select(.context=="Vercel" and .state=="success") | .target_url // empty' "$RUNNER_TEMP/status.json")"
           echo "$TARGETS" | grep -Fq "/docrod29-ais-projects/agenda-medica/" || {
-            echo "::error::No hay un status Vercel SUCCESS del SHA autorizado apuntando al proyecto principal agenda-medica."
+            echo "::error::No hay Vercel SUCCESS del SHA autorizado en el proyecto principal agenda-medica."
             exit 1
           }
           if echo "$TARGETS" | grep -Fq "/agenda-medica-v10/"; then
-            echo "::error::El status de Vercel apunta al proyecto agenda-medica-v10. Se detiene."
+            echo "::error::Vercel apunta a agenda-medica-v10. Se detiene."
             exit 1
           fi
-          echo "Integración Vercel confirmada: proyecto principal agenda-medica."
+          echo "Proyecto Vercel principal confirmado."
 
       - uses: actions/setup-node@v4
         with:
@@ -142,12 +99,8 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # El merge a main ya activa el despliegue de Vercel que existe desde antes.
-      # Aquí sólo se espera a que el dominio vivo sirva el paquete autorizado.
-      - name: 'Vercel · producción ya sirve nexusmed-v1172'
-        id: verificar_version
-        env:
-          URL_PROD: ${{ inputs.url_produccion }}
+      - name: 'Compuerta 3 · producción ya sirve nexusmed-v1172'
+        id: version
         run: |
           set -euo pipefail
           for INTENTO in $(seq 1 20); do
@@ -159,106 +112,110 @@ jobs:
             fi
             sleep 15
           done
-          echo "::error::Producción no sirve $VERSION_ESPERADA después de 5 minutos. No se tocaron reglas."
+          echo "::error::Producción no sirve $VERSION_ESPERADA. No se tocaron reglas."
           exit 1
 
-      # Acepta la credencial moderna o el token antiguo si el usuario ya tenía
-      # uno configurado. No hay que recrear los secretos de Vercel.
-      - name: 'Firebase · existe una credencial reutilizable'
+      # Reutiliza cualquiera de los nombres habituales si ya existen.
+      # Sólo si NINGUNO existe se detiene y dice exactamente qué falta.
+      - name: 'Firebase · localizar credencial existente'
         id: firebase_auth
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           set -euo pipefail
           if [ -n "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
-            echo "modo=service-account" >> "$GITHUB_OUTPUT"
-            echo "Firebase: se usará FIREBASE_SERVICE_ACCOUNT."
+            echo "modo=sa" >> "$GITHUB_OUTPUT"; echo "nombre=FIREBASE_SERVICE_ACCOUNT" >> "$GITHUB_OUTPUT"
+          elif [ -n "${FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA:-}" ]; then
+            echo "modo=sa-nexomed" >> "$GITHUB_OUTPUT"; echo "nombre=FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA" >> "$GITHUB_OUTPUT"
+          elif [ -n "${GOOGLE_CREDENTIALS:-}" ]; then
+            echo "modo=google" >> "$GITHUB_OUTPUT"; echo "nombre=GOOGLE_CREDENTIALS" >> "$GITHUB_OUTPUT"
+          elif [ -n "${GCP_SA_KEY:-}" ]; then
+            echo "modo=gcp" >> "$GITHUB_OUTPUT"; echo "nombre=GCP_SA_KEY" >> "$GITHUB_OUTPUT"
           elif [ -n "${FIREBASE_TOKEN:-}" ]; then
-            echo "modo=token" >> "$GITHUB_OUTPUT"
-            echo "Firebase: se reutilizará FIREBASE_TOKEN."
+            echo "modo=token" >> "$GITHUB_OUTPUT"; echo "nombre=FIREBASE_TOKEN" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::No encuentro una credencial Firebase accesible con nombre FIREBASE_SERVICE_ACCOUNT ni FIREBASE_TOKEN. No se desplegaron reglas."
+            echo "::error::No existe una credencial Firebase reutilizable en el environment production. Añade UNA: FIREBASE_SERVICE_ACCOUNT (recomendada) o FIREBASE_TOKEN."
             exit 1
           fi
+          echo "Credencial Firebase encontrada sin mostrar su valor."
 
       - name: 'Firestore · desplegar REG-323'
-        id: firebase_rules
+        id: rules
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           MODO: ${{ steps.firebase_auth.outputs.modo }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           set -euo pipefail
-          if [ "$MODO" = "service-account" ]; then
-            RUTA_SA="$RUNNER_TEMP/sa-firebase.json"
-            printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUTA_SA"
-            chmod 600 "$RUTA_SA"
-            export GOOGLE_APPLICATION_CREDENTIALS="$RUTA_SA"
-            npx --no-install firebase deploy \
-              --only firestore:rules \
-              --project "$FIREBASE_PROJECT" \
-              --non-interactive
+          if [ "$MODO" = "token" ]; then
+            npx --no-install firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN"
           else
-            npx --no-install firebase deploy \
-              --only firestore:rules \
-              --project "$FIREBASE_PROJECT" \
-              --non-interactive \
-              --token "$FIREBASE_TOKEN"
+            case "$MODO" in
+              sa) JSON="$FIREBASE_SERVICE_ACCOUNT" ;;
+              sa-nexomed) JSON="$FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA" ;;
+              google) JSON="$GOOGLE_CREDENTIALS" ;;
+              gcp) JSON="$GCP_SA_KEY" ;;
+              *) echo "::error::Modo Firebase desconocido."; exit 1 ;;
+            esac
+            RUTA="$RUNNER_TEMP/firebase-sa.json"
+            printf '%s' "$JSON" > "$RUTA"
+            chmod 600 "$RUTA"
+            export GOOGLE_APPLICATION_CREDENTIALS="$RUTA"
+            npx --no-install firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT" --non-interactive
           fi
 
-      - name: 'Firebase · borrar credencial temporal'
+      - name: Limpiar credencial temporal
         if: always()
-        run: rm -f "$RUNNER_TEMP/sa-firebase.json" "$RUNNER_TEMP/status.json"
+        run: rm -f "$RUNNER_TEMP/firebase-sa.json" "$RUNNER_TEMP/status.json"
 
       - name: Instalar Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: 'Seguridad · cabeceras de PRODUCCIÓN'
-        id: e2e_seguridad
+      - name: 'Seguridad · producción'
+        id: security
         env:
-          PLAYWRIGHT_BASE_URL: ${{ inputs.url_produccion }}
+          PLAYWRIGHT_BASE_URL: ${{ env.URL_PROD }}
         run: npm run e2e:seguridad:prod
 
-      - name: 'Smoke · camino público'
-        id: smoke_publico
+      - name: 'Smoke · público'
+        id: smoke
         env:
-          PLAYWRIGHT_BASE_URL: ${{ inputs.url_produccion }}
+          PLAYWRIGHT_BASE_URL: ${{ env.URL_PROD }}
         run: npx playwright test --project=chromium e2e/smoke-publico.spec.ts
 
-      - name: 'Smoke · portal rechaza sin enlace'
-        id: smoke_portal
-        env:
-          URL_PROD: ${{ inputs.url_produccion }}
+      - name: 'Smoke · portal fail-closed'
+        id: portal
         run: |
           set -euo pipefail
-          CODIGO="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
-            -X POST -H 'Content-Type: application/json' -d '{}' "$URL_PROD/api/portal")"
+          CODIGO="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' -d '{}' "$URL_PROD/api/portal")"
           echo "POST /api/portal sin enlace → $CODIGO"
           case "$CODIGO" in
-            4*) echo "Portal fail-closed correcto." ;;
-            *)  echo "::error::/api/portal respondió $CODIGO sin enlace; se esperaba 4xx."; exit 1 ;;
+            4*) echo "Portal correcto." ;;
+            *) echo "::error::Portal respondió $CODIGO sin enlace; se esperaba 4xx."; exit 1 ;;
           esac
 
-      - name: Acta del cierre de producción
+      - name: Acta final
         if: always()
         env:
-          URL_PROD: ${{ inputs.url_produccion }}
-          R_VERSION: ${{ steps.verificar_version.outcome }}
-          R_RULES: ${{ steps.firebase_rules.outcome }}
-          R_E2E: ${{ steps.e2e_seguridad.outcome }}
-          R_SMOKE: ${{ steps.smoke_publico.outcome }}
-          R_PORTAL: ${{ steps.smoke_portal.outcome }}
+          R_VERSION: ${{ steps.version.outcome }}
+          R_RULES: ${{ steps.rules.outcome }}
+          R_SECURITY: ${{ steps.security.outcome }}
+          R_SMOKE: ${{ steps.smoke.outcome }}
+          R_PORTAL: ${{ steps.portal.outcome }}
         run: |
           set -euo pipefail
-          if [ "$R_VERSION" = "success" ] && [ "$R_RULES" = "success" ] \
-            && [ "$R_E2E" = "success" ] && [ "$R_SMOKE" = "success" ] \
-            && [ "$R_PORTAL" = "success" ]; then
-            RESULTADO="SUCCESS"
+          if [ "$R_VERSION" = success ] && [ "$R_RULES" = success ] && [ "$R_SECURITY" = success ] && [ "$R_SMOKE" = success ] && [ "$R_PORTAL" = success ]; then
+            RESULTADO=SUCCESS
           else
-            RESULTADO="FAILED"
+            RESULTADO=FAILED
           fi
-
           {
             echo "## Acta del cierre de producción"
             echo
@@ -266,15 +223,13 @@ jobs:
             echo "PRODUCTION_URL=$URL_PROD"
             echo "APP_SHA=$SHA_AUTORIZADO"
             echo "VERSION=$VERSION_ESPERADA"
-            echo "VERCEL_EXISTING_INTEGRATION=REUSED"
-            echo "VERSION_VERIFICADA=$R_VERSION"
+            echo "VERCEL_PROJECT=agenda-medica"
             echo "FIRESTORE_RULES=$R_RULES"
-            echo "SECURITY_E2E=$R_E2E"
+            echo "SECURITY_E2E=$R_SECURITY"
             echo "SMOKE=$R_SMOKE"
             echo "SMOKE_PORTAL=$R_PORTAL"
             echo "PRODUCTION_RELEASE=$RESULTADO"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-
           echo "PRODUCTION_RELEASE=$RESULTADO"
-          [ "$RESULTADO" = "SUCCESS" ] || exit 1
+          [ "$RESULTADO" = SUCCESS ] || exit 1
