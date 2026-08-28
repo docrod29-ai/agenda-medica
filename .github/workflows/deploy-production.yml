@@ -48,7 +48,7 @@ on:
   workflow_dispatch:
     inputs:
       sha_esperado:
-        description: 'SHA de main que se autoriza publicar (40 hex). Debe coincidir con SHA_AUTORIZADO.'
+        description: 'SHA del árbol que se autoriza publicar (40 hex). Debe coincidir con SHA_AUTORIZADO.'
         required: true
         type: string
       url_produccion:
@@ -79,13 +79,13 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      # `ref: main` y no el SHA suelto: así el paso siguiente puede comprobar que
-      # main SIGUE siendo ese árbol. Si alguien empujó a main entre la
-      # autorización y el lanzamiento, esto lo caza en vez de publicarlo.
-      - name: Traer main
+      # El workflow vive en main, pero el contenido que se publica se trae por
+      # SHA exacto. Así el propio merge que añade este workflow no cambia el
+      # árbol clínico autorizado para producción.
+      - name: Traer el árbol autorizado
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.sha_esperado }}
           fetch-depth: 0
 
       - name: 'Compuerta 1 · el árbol es EXACTAMENTE el autorizado'
@@ -97,14 +97,14 @@ jobs:
 
           echo "SHA autorizado en el workflow : $SHA_AUTORIZADO"
           echo "SHA pedido en el lanzamiento  : $SHA_PEDIDO"
-          echo "SHA de main en el checkout    : $SHA_REAL"
+          echo "SHA real del checkout         : $SHA_REAL"
 
           if [ "$SHA_PEDIDO" != "$SHA_AUTORIZADO" ]; then
             echo "::error::El SHA pedido no es el autorizado. Este workflow sólo publica $SHA_AUTORIZADO."
             exit 1
           fi
-          if [ "$SHA_REAL" != "$SHA_AUTORIZADO" ]; then
-            echo "::error::main ya NO está en $SHA_AUTORIZADO (está en $SHA_REAL). Alguien empujó después de la autorización: hay que declarar el paquete otra vez."
+          if [ "$SHA_REAL" != "$SHA_PEDIDO" ]; then
+            echo "::error::El checkout no coincide con el SHA pedido ($SHA_PEDIDO); quedó en $SHA_REAL."
             exit 1
           fi
 
@@ -114,7 +114,7 @@ jobs:
             echo "$SUCIO"
             exit 1
           fi
-          echo "Árbol limpio y en el SHA autorizado."
+          echo "Árbol limpio y exactamente en el SHA autorizado."
 
       - name: 'Compuerta 2 · la versión del service worker es la declarada'
         run: |
