@@ -9536,3 +9536,92 @@ consultorio». El segundo lleva su propio caso al revés con la fuente anterior.
   un supuesto: se encuentra por otro campo vía `buscarPacientes`.
 - **Nada se ha visto en un navegador**, ni medido contra Firestore real. Esto
   acota las lecturas; **no demuestra capacidad**. La medición sigue pendiente.
+
+---
+
+## REG-342 — el rebote de scroll en iPhone
+
+**QUÉ FALLABA.** Reportado por el dueño: en el teléfono se baja con el dedo, la
+pantalla baja, y **rebota hacia arriba**.
+
+**LA CAUSA RAÍZ.** `ClinicalSpine` tiene un `IntersectionObserver` que marca qué
+tramo del expediente se está leyendo — y ese observador se dispara **porque el
+médico está bajando**. El efecto que colgaba de él llamaba a:
+
+```js
+el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+```
+
+`scrollIntoView` no mueve un contenedor: mueve **todos los ancestros
+scrollables** hasta que el elemento se vea. El riel se pinta arriba del
+expediente y no tiene ninguna regla que lo fije, así que en cuanto el médico baja
+lo suficiente el riel queda fuera de pantalla **por arriba** — y para enseñarlo
+hay que subir `<main>`, que es quien scrollea en el shell.
+
+Dedo abajo → observador marca tramo nuevo → el riel pide que se le vea → la
+página sube. Con `behavior: 'smooth'` encima, además **cancela la inercia** del
+gesto: por eso se siente como un tirón y no como un salto.
+
+**El autor vio el riesgo.** El comentario decía «`nearest`, para no arrastrar la
+página». Pero `nearest` **minimiza** la corrección, no impide que la haya.
+
+Y había un segundo mecanismo, independiente: `CierreAlPulgar` devolvía `null`
+cuando la zona de cierre entraba en pantalla, sacando del flujo una barra
+`sticky` de 52px + 16 de margen. `main.scrollHeight` encogía ~68px **justo
+cuando el médico está abajo del todo**, o sea con `scrollTop` en su máximo o
+cerca; WebKit lo recorta y eso se ve como un salto. Podía incluso oscilar.
+
+**POR QUÉ ES SÓLO DE IPHONE.** Dos cosas de WebKit. `overflow-anchor` —que Chrome
+y Firefox implementan, y que compensa solo los cambios de altura— **no existe en
+WebKit**, y tampoco aparece en este repositorio. Y en iOS un `scrollIntoView`
+suave **cancela** la inercia del dedo en vez de sumarse. El mismo código no salta
+en Android y salta en iPhone.
+
+**POR QUÉ NINGUNA PRUEBA LO VIO.** Había **diez** pruebas de scroll. Las diez son
+`readFileSync` + `toContain`. Una compara **posiciones de caracteres dentro de un
+archivo**; otra da por aprobado el mecanismo con sólo comprobar que la cadena
+`'IntersectionObserver'` aparece — es decir, **certifica la presencia de la causa
+del defecto**. Ninguna renderiza, ninguna despacha un toque, ninguna lee una
+posición de scroll. Y `e2e/` sólo tiene el humo público **sin login**: el
+proyecto `iphone-safari` existe en la configuración y nunca carga el dashboard.
+
+El repositorio ya se había tropezado con esto: `v15-rtc12` documenta un arnés que
+hacía `window.scrollTo(0, 1500)` —que no movía nada, porque quien scrollea es
+`<main>`— y **aun así reportaba éxito**. Sus palabras: «Una condición que pasa
+porque el gesto no ocurrió es peor que una que falla».
+
+**LA REGLA QUE LO HACE SEGURO.** Un movimiento que **no pidió el usuario** sólo
+puede tocar el contenedor que lo necesita, en el eje que lo necesita. La decisión
+vive ahora en `destinoDelRiel`, una función **pura** que sólo sabe devolver un
+`scrollLeft`: no existe entrada que produzca un movimiento vertical, porque no
+hay ninguno que devolver. Y la barra del pulgar se **oculta conservando su caja**
+(`visibility: hidden`, fuera del árbol de accesibilidad y del orden de
+tabulación) en vez de salir del flujo.
+
+El `scrollIntoView` que queda es el de `irA`, que responde a un **clic**: ahí el
+desplazamiento es exactamente lo que el médico pidió.
+
+**LA PRUEBA.** `src/__tests__/el-riel-no-arrastra-la-pagina.test.ts` (10 casos).
+Rompe con el patrón de las diez anteriores: siete de los casos son **aritmética
+sobre la función pura**, incluido un barrido determinista que afirma el
+invariante —ninguna geometría produce nada que no sea un `scrollLeft` ≥ 0— y uno
+que comprueba la propiedad que el médico nota: después de mover, el activo se ve.
+Probado al revés reintroduciendo los dos mecanismos: caen 3 casos.
+
+**QUÉ NO CUBRE, Y ESTO ES LO IMPORTANTE.**
+
+- **NO se ha reproducido en un iPhone.** El §38 del programa exige WebKit a 390px
+  con diez repeticiones comprobando que `scrollTop` no baje solo. En este entorno
+  **sólo está instalado Chromium** y no se permite descargar navegadores, así que
+  esa comprobación es **`BLOCKED_EXTERNAL`**. Esto prueba la aritmética y el
+  cableado; **no prueba el dispositivo**. La causa raíz está identificada con
+  evidencia de código, no confirmada con un dedo sobre un cristal.
+- **Quedan otros escritores de scroll**, y siguen abiertos: el restaurador de
+  `/consulta` se re-arma cuando resuelve una lectura de Firestore —después de que
+  el usuario ya empezó a bajar— y **no tiene ninguna cancelación por gesto**; los
+  banners asíncronos por encima de `<main>` cambian la altura tras el primer
+  pintado (el propio repositorio midió **41px** de desplazamiento por ese
+  mecanismo en `PorQueEstaAqui`); y **`overscroll-behavior` no aparece ni una vez
+  en el repositorio**, así que ningún contenedor anidado contiene su cadena.
+- **No se han reescrito las diez pruebas de string.** Siguen ahí, y siguen sin
+  poder fallar por la razón correcta.

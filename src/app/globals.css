@@ -953,6 +953,19 @@ tbody tr:last-child { border-bottom: none; }
   z-index: 30;
   margin: 16px 0 0;
 }
+/**
+ * REG-342 — OCULTA, PERO SIN SALIR DEL FLUJO.
+ *
+ * Antes el componente devolvía `null` cuando la zona de cierre entraba en
+ * pantalla, y esta barra —52px + 16 de margen— desaparecía del flujo. La altura
+ * del documento encogía justo cuando el dedo estaba abajo del todo, o sea con
+ * `scrollTop` en su máximo, y WebKit lo recorta: eso se ve como un rebote.
+ *
+ * `visibility: hidden` la saca del árbol de accesibilidad y del orden de
+ * tabulación, pero conserva la caja. La altura no cambia y no hay nada que
+ * recortar.
+ */
+.nx-cierre-al-pulgar--oculto { visibility: hidden; }
 @media (max-width: 768px) {
   .nx-cierre-al-pulgar { display: block; }
 }

@@ -81,7 +81,33 @@ export function CierreAlPulgar({ visible, bloqueos, motivo, completitud, idDesti
     return () => obs.disconnect()
   }, [visible, idDestino])
 
-  if (!visible || cierreEnPantalla) return null
+  /**
+   * NO SE DESMONTA A MEDIO GESTO (REG-342).
+   *
+   * Antes, cuando la zona de cierre entraba en pantalla, esto devolvía `null` y
+   * la barra desaparecía del FLUJO. Es `position: sticky` con 52px de alto más
+   * 16 de margen, así que `main.scrollHeight` encogía ~68px — y encogía
+   * justamente cuando el médico está abajo del todo, o sea cuando `scrollTop`
+   * está en su máximo o cerca. WebKit recorta `scrollTop` al nuevo máximo y eso
+   * se ve como un salto hacia arriba, a media inercia del dedo.
+   *
+   * Peor: podía oscilar. El salto podía sacar el ancla de pantalla otra vez, lo
+   * que remontaba la barra, lo que volvía a cambiar la altura.
+   *
+   * Ahora se OCULTA sin salir del flujo, con la clase
+   * `.nx-cierre-al-pulgar--oculto`. `visibility: hidden` la saca del árbol de
+   * accesibilidad y del orden de tabulación —no se anuncia ni se enfoca— pero
+   * conserva su caja, así que la altura del documento no cambia y no hay nada
+   * que recortar.
+   *
+   * La visibilidad vive en la HOJA y no en un `style` en línea: es la lección de
+   * `nx-stat-grid`, y hay un guardián que la vigila.
+   *
+   * `!visible` sí devuelve `null`: ahí la barra no aplica a esta pantalla y no
+   * hay transición a media lectura que proteger.
+   */
+  if (!visible) return null
+  const oculta = cierreEnPantalla
 
   const irAlCierre = () => {
     const destino = document.getElementById(idDestino)
@@ -94,10 +120,14 @@ export function CierreAlPulgar({ visible, bloqueos, motivo, completitud, idDesti
 
   const lista = bloqueos === 0
   return (
-    <div className="nx-cierre-al-pulgar">
+    <div
+      className={`nx-cierre-al-pulgar${oculta ? ' nx-cierre-al-pulgar--oculto' : ''}`}
+      aria-hidden={oculta ? 'true' : undefined}
+    >
       <button
         type="button"
         onClick={irAlCierre}
+        tabIndex={oculta ? -1 : undefined}
         aria-label={lista
           ? 'Nota lista para firmar — ir al cierre de la consulta'
           : 'Ir al cierre de la consulta — aún no se puede firmar'}

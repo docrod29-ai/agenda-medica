@@ -102,7 +102,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * accesibilidad en las pantallas del paciente con la suite entera en
      * verde. No fallaba nada; es que nadie estaba mirando ese eje.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331],
+    /**
+     * 342 es esta familia con una vuelta de tuerca: NO faltaba el instrumento,
+     * faltaba que midiera algo. Había DIEZ pruebas de scroll y las diez eran
+     * `readFileSync` + `toContain` — una compara posiciones de caracteres dentro
+     * de un archivo, y otra da por aprobado el mecanismo comprobando que la
+     * cadena 'IntersectionObserver' aparece, o sea que certifica la presencia de
+     * la causa del defecto. Un instrumento que no puede fallar por la razón
+     * correcta cuenta como ausencia de instrumento, y encima da confianza.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342],
   },
   {
     clave: 'hueco_como_dato',

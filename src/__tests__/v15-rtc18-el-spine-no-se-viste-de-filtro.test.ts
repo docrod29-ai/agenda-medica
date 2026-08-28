@@ -101,10 +101,25 @@ describe('RTC-18 — lo que navega no se viste de filtro', () => {
     expect(SPINE).not.toMatch(/(?:linear|radial|conic)-gradient\(/)
   })
 
-  it('5 · el riel trae el activo a la vista', () => {
-    // Un indicador de posición que señala un sitio fuera de la parte visible
-    // del riel no indica nada.
-    expect(SPINE).toMatch(/block: 'nearest', inline: 'nearest'/)
+  it('5 · el riel trae el activo a la vista — moviendo SÓLO el riel (REG-342)', () => {
+    /**
+     * ESTA ASERCIÓN CERTIFICABA EL DEFECTO. Decía:
+     *
+     *     expect(SPINE).toMatch(/block: 'nearest', inline: 'nearest'/)
+     *
+     * es decir, exigía la llamada a `scrollIntoView` que causaba el rebote de
+     * scroll en iPhone (REG-342): el observador se dispara PORQUE el médico está
+     * bajando, y `scrollIntoView` mueve todos los ancestros scrollables, así que
+     * subía `<main>` para enseñar un riel que ya había salido por arriba.
+     *
+     * La INTENCIÓN de la prueba era buena y se conserva entera: un indicador de
+     * posición que señala un sitio fuera de la parte visible del riel no indica
+     * nada. Lo que cambia es el medio — se mueve el `scrollLeft` del riel, un
+     * contenedor y un eje— y con él la aserción. La aritmética se prueba aparte,
+     * con números, en `el-riel-no-arrastra-la-pagina`.
+     */
+    expect(SPINE).toMatch(/destinoDelRiel\(\{/)
+    expect(SPINE).toMatch(/riel\.scrollTo\(\{ left: destino/)
     expect(SPINE).toMatch(/data-spine-target="spine-\$\{activo\}"/)
   })
 

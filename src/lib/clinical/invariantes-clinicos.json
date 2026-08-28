@@ -1415,6 +1415,10 @@
     {
       "archivo": "src/__tests__/una-lista-recortada-lo-dice.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/el-riel-no-arrastra-la-pagina.test.ts",
+      "minCasos": 10
     }
   ]
 }

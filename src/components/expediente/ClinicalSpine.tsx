@@ -37,6 +37,47 @@ export interface ClinicalSpineItem {
   detail?: string
 }
 
+/**
+ * ¿A qué `scrollLeft` hay que llevar el riel para que el ítem activo se vea?
+ * `null` = no hay que mover nada.
+ *
+ * Se saca del componente A PROPÓSITO. El defecto que cerró REG-342 no se podía
+ * probar leyendo la fuente —las diez pruebas de scroll que había eran
+ * `readFileSync` + `toContain`, y uno de ellas llegaba a comparar POSICIONES DE
+ * CARACTERES dentro de un archivo—. Una decisión de desplazamiento que vive en
+ * una función pura se prueba con números, y con números se puede afirmar lo
+ * único que importa aquí: que de esta cuenta **sólo sale un eje horizontal y
+ * sólo para el riel**. Ningún valor de entrada produce un movimiento vertical,
+ * porque no hay ninguno que devolver.
+ *
+ * Todas las coordenadas son INTERNAS al riel (`offsetLeft`, `scrollLeft`,
+ * `clientWidth`). No entra la posición de la página en la cuenta, así que no
+ * puede salir.
+ */
+export function destinoDelRiel(m: {
+  itemIzq: number
+  itemAncho: number
+  scrollLeft: number
+  anchoVisible: number
+}): number | null {
+  const { itemIzq, itemAncho, scrollLeft, anchoVisible } = m
+  if (!Number.isFinite(itemIzq) || !Number.isFinite(anchoVisible) || anchoVisible <= 0) return null
+
+  const itemDer = itemIzq + itemAncho
+  const visibleDer = scrollLeft + anchoVisible
+
+  // Ya se ve entero: un desplazamiento que no hacía falta es un movimiento que
+  // el médico no pidió.
+  if (itemIzq >= scrollLeft && itemDer <= visibleDer) return null
+
+  /** Un respiro de 2px para que el ítem no quede pegado al borde del riel. */
+  const AIRE = 2
+  const destino = itemIzq < scrollLeft
+    ? itemIzq - AIRE                       // asomaba por la izquierda
+    : itemDer - anchoVisible + AIRE        // asomaba por la derecha
+  return Math.max(0, destino)
+}
+
 export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
   const [activo, setActivo] = useState<string | null>(null)
   const itemsRef = useRef(items)
@@ -70,18 +111,47 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
   }, [items.map(it => it.id).join('|')])
 
   /**
-   * EL RIEL SE MUEVE CON LA LECTURA.
+   * EL RIEL SE MUEVE CON LA LECTURA — Y SÓLO EL RIEL (REG-342).
    *
-   * Si el médico baja por el expediente y la categoría activa está fuera de la
-   * parte visible del riel, el indicador de posición no indica nada: señala un
-   * sitio que no se ve. Se trae el activo a la vista dentro del propio riel —
-   * `nearest`, para no arrastrar la página.
+   * La intención sigue siendo la de antes: si el médico baja por el expediente y
+   * la categoría activa queda fuera de la parte visible del riel, el indicador
+   * de posición no indica nada. Se trae el activo a la vista.
+   *
+   * ── POR QUÉ YA NO SE USA `scrollIntoView` ───────────────────────────────────
+   *
+   * Porque `scrollIntoView` no mueve un contenedor: mueve **todos los ancestros
+   * scrollables** hasta que el elemento se vea. El comentario anterior decía
+   * «`nearest`, para no arrastrar la página», y ésa era la intención correcta —
+   * pero `nearest` MINIMIZA la corrección, no impide que la haya.
+   *
+   * Y quien dispara esto es un `IntersectionObserver` que se activa **porque el
+   * médico está bajando**. Una vez que el riel sale de pantalla por arriba,
+   * `nearest` deja de ser inocuo: para enseñarlo hay que subir `<main>`. El
+   * dedo baja, el riel pide que se le vea, la página vuelve arriba. Ése era el
+   * rebote — y al pedirlo con desplazamiento suave, además cancelaba el impulso.
+   *
+   * Y al pedirlo con desplazamiento suave, en iOS además CANCELA la inercia del
+   * dedo en vez de sumarse a ella: por eso se sentía como un tirón.
+   *
+   * Se sustituye por lo único que se quería: mover el `scrollLeft` DEL RIEL. Un
+   * contenedor, un eje, ningún ancestro. La posición vertical de la página no
+   * se puede tocar desde aquí ni por accidente.
    */
   const rielRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
-    if (!activo || !rielRef.current) return
-    const el = rielRef.current.querySelector<HTMLElement>(`[data-spine-target="spine-${activo}"]`)
-    el?.scrollIntoView({ behavior: comportamientoScroll(), block: 'nearest', inline: 'nearest' })
+    const riel = rielRef.current
+    if (!activo || !riel) return
+    const el = riel.querySelector<HTMLElement>(`[data-spine-target="spine-${activo}"]`)
+    if (!el) return
+
+    const destino = destinoDelRiel({
+      itemIzq: el.offsetLeft,
+      itemAncho: el.offsetWidth,
+      scrollLeft: riel.scrollLeft,
+      anchoVisible: riel.clientWidth,
+    })
+    if (destino === null) return
+    riel.scrollTo({ left: destino, behavior: comportamientoScroll() })
   }, [activo])
 
   if (items.length === 0) return null
