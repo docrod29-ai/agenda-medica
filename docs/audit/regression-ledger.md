@@ -9175,3 +9175,87 @@ no emite una llave que lo abre»), también probado al revés.
   normalizado y sin mirar dosis. Un ajuste de 500 mg a 1 g no se anuncia como
   cambio; la instrucción completa va arriba. Y si la lectura falla es `null`, no
   «sin cambios».
+
+---
+
+## REG-337 — la pantalla del expediente botaba al bajar: `scrollIntoView` no respeta a los ancestros
+
+**Área.** `/expediente/[patientId]` — el riel longitudinal del paciente
+(`ClinicalSpine`), en teléfono y en escritorio por igual.
+
+**Qué fallaba.** Al desplazarse hacia abajo por el expediente, la página saltaba
+sola de vuelta a la zona alta, una y otra vez, mientras el dedo (o la rueda)
+seguía bajando. La pantalla «botaba»: bajaba lo suficiente para enseñar «Datos
+del paciente» y «Herramientas clínicas», y volvía arriba sin que nadie se lo
+pidiera. No era un problema del dispositivo: pasaba igual en iOS y en escritorio.
+
+**Cómo se descubrió.** El dueño grabó la pantalla del teléfono (28-ago-2026)
+bajando por el expediente de una paciente sin notas firmadas, y dijo «mira cómo
+se bota la pantalla cuando bajo». En el vídeo se ve el ciclo completo repetido
+media docena de veces en diecisiete segundos. Ninguna prueba lo veía: la suite
+corre en `node`, sin layout y sin scroll — y el guardián que existía sobre este
+código **congelaba el defecto**, porque pedía por su nombre la opción que lo
+causaba.
+
+**Causa raíz.** El riel seguía la lectura del médico así:
+
+```ts
+el?.scrollIntoView({ behavior: comportamientoScroll(), block: 'nearest', inline: 'nearest' })
+```
+
+y su comentario afirmaba, literalmente, «`nearest`, para no arrastrar la
+página». **Es falso.** `nearest` elige la ALINEACIÓN; no elige a quién se
+desplaza. `scrollIntoView` recorre **todos** los ancestros desplazables —el
+documento incluido— y mueve cada uno lo necesario para que el elemento quede
+visible. No existe forma de pedirle «muévete sólo dentro de tu contenedor».
+
+Con `PatientAnchor` en `position: sticky; top: 0` y el riel justo debajo en flujo
+normal, a ~100px de bajada el riel ya salió del viewport. Ahí se cierra el bucle:
+
+```
+bajar → IntersectionObserver marca otra sección → setActivo
+      → el efecto pide traer a la vista un botón del riel que ya no se ve
+      → el navegador SUBE la página para enseñarlo
+      → al subir cambia otra vez la sección visible → setActivo → …
+```
+
+Y con desplazamiento suave, cada salto es además una animación peleándose con el
+dedo del médico. El defecto es de la API del DOM, no del dispositivo — por eso se
+veía idéntico en los dos sitios donde el dueño lo notó.
+
+**La regla que lo hace seguro.** Cuando lo que hay que mover es UN carril, se
+desplaza ese scrollport **por su nombre** (`riel.scrollTo`), que no puede tocar a
+un ancestro aunque quiera. `scrollIntoView` queda para los viajes que el usuario
+PIDE —el click del riel, que sí debe mover la página— y nunca para seguir la
+lectura. La aritmética de «¿hace falta moverse, y hasta dónde?» se levantó a
+`src/lib/ui/traer-a-la-vista.ts`: pura, sin DOM, y por tanto probable de verdad
+en una suite que corre en `node`. Devuelve `null` cuando el activo ya se ve, que
+es la otra mitad del arreglo: un desplazamiento de 0px sigue siendo un
+desplazamiento.
+
+**Test / control permanente:**
+`src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts` (12 casos). Probado
+al revés con tres defectos inyectados uno a uno —devolver la línea original de
+`scrollIntoView`, devolver `scrollLeft` en vez de `null` cuando el activo ya se
+ve, y alinear siempre al final ignorando el desborde por la izquierda— y en los
+tres cae.
+
+`src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts` caso 5 pedía
+`block: 'nearest', inline: 'nearest'` y con eso **congelaba el defecto**. La
+propiedad que ese caso quería asegurar nunca fue «usa nearest»: era «el activo se
+ve dentro del riel». Se re-expresa por el mecanismo que de verdad la cumple.
+
+**Qué NO cubre, declarado.**
+
+- **No se ha visto en un navegador.** La suite corre en `node`: no hay layout, no
+  hay scroll real. Los casos prueban la aritmética y el cableado. Recorrer el
+  flujo en el teléfono sigue siendo obligación de la regla de diseño, y está
+  pendiente.
+- **No vigila al resto del producto.** Un `scrollIntoView({ block: 'nearest' })`
+  nuevo en otra pantalla volvería a arrastrar la página. El guardián sólo mira
+  este componente, que es el único que hoy lo hacía para seguir la lectura.
+- **Sólo eje horizontal, y sólo `direction: ltr`.** Un carril vertical
+  necesitaría su gemela; hoy no hay ninguno en el producto.
+- **No toca al IntersectionObserver ni a su `rootMargin`.** Qué sección se
+  considera activa no cambió: si el resaltado se adelanta o se atrasa, ése es
+  otro defecto y no está arreglado aquí.

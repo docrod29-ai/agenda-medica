@@ -51,12 +51,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "release/prod-package-2026-08-27",
+  "ramaActual": "claude/pantalla-bota-scroll-dd7zpl",
   "derivado": {
-    "regsEnElLedger": 184,
-    "ultimaREG": "REG-336",
-    "archivosDePrueba": 762,
-    "casosDePrueba": 9341,
+    "regsEnElLedger": 185,
+    "ultimaREG": "REG-337",
+    "archivosDePrueba": 763,
+    "casosDePrueba": 9353,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
