@@ -9742,3 +9742,69 @@ Probado al revés volviendo a `limit(tope)`: cae el caso del defecto.
   paciente con más de 100 pendientes vivos es improbable, no imposible, y aquí no
   se da por bueno: queda anotado.
 - **No se ha visto en un navegador**: que el aviso exista no prueba que se vea.
+
+---
+
+## REG-345 — la tabla que un dueño lee para decidir un gasto decía «sí» de fuentes que nadie ha construido
+
+**QUÉ FALLABA, EN DOS SITIOS QUE SON EL MISMO DEFECTO.**
+
+*Uno.* `docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md` tenía una columna
+«¿Puede citar hoy?» que contestaba **sí** para ClinicalTrials.gov, la OMS y los
+CDC. Ninguno de los tres tiene adaptador, ninguno se instancia y ninguno se
+consulta nunca.
+
+La columna no mentía por descuido: miraba `proveedorCanonico`, que es una
+propiedad del **tipo** —«si algún día hay un `Source`, se llamará así»—, no una
+capacidad de ejecución. El pie de la tabla lo explicaba. Pero un dueño que abre
+el documento para decidir si paga una licencia lee **la tabla**, no el pie, y se
+lleva que ya tiene tres fuentes públicas funcionando.
+
+*Dos.* `seleccion.ts` construye, con una regla explícita de #314, los avisos que
+dicen qué se consultó y qué no — «un proveedor no operativo baja en el orden pero
+**no desaparece**, para que el médico pueda leer *UpToDate: no se consultó*». El
+servidor los calculaba, los mandaba por el cable en `meta.recuperacion.avisos`,
+la pantalla los **tipaba**… y no los pintaba en ningún sitio.
+
+Es decir: **la honestidad estaba escrita, probada y sin llegar**. Un consultor
+que sólo enseña lo que sí encontró se lee como si hubiera mirado en todas partes.
+
+**LA CAUSA RAÍZ.** El documento se generaba desde el **catálogo** —que es una
+declaración de intención— y nunca desde el código que crea los adaptadores, que
+es la única verdad de ejecución. Dos fuentes, y se eligió la que no manda.
+
+**LA REGLA QUE LO HACE SEGURO.** La columna cruza catálogo **y** runtime, y
+admite **tres** estados en vez de dos, porque hay tres realidades:
+
+- `sí` — hay licencia y hay adaptador instanciado.
+- `sí, pero fuera del contrato` — **PMC y openFDA se consultan de verdad**; los
+  llama a mano la ruta (`textoCompletoPMC`, `dosisFDA`). Meterlos en «sin
+  adaptador» sería mentir en la otra dirección. Pero tampoco es un «sí» limpio:
+  al no pasar por `planDeConsulta` **no producen aviso**, así que si openFDA se
+  cae el médico lee una respuesta más pobre y **no puede distinguirla** de una
+  completa.
+- `no — sin adaptador` / `no — sin licencia`.
+
+Y los avisos ya se pintan, en un desplegable «Qué se consultó para responder».
+
+**LA PRUEBA.**
+`src/__tests__/la-matriz-de-evidencia-no-promete-lo-que-no-hay.test.ts` (6
+casos). El primero compara la copia del generador contra
+`PROVEEDORES_INSTANCIADOS` —el generador es JS puro y no puede importar TS, así
+que la copia es inevitable; lo que no es inevitable es que se separe—. Probado al
+revés aplicando el criterio viejo a ClinicalTrials: decía `true`, el nuevo dice
+`false`.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No comprueba que las fuentes RESPONDAN**, sólo que estén cableadas. Que
+  PubMed conteste hoy es cosa de la red.
+- **No arregla que PMC y openFDA no avisen cuando fallan.** Se declara en la
+  tabla y queda abierto: mientras no pasen por el contrato, su caída es
+  invisible.
+- **No toca la ruta `expediente/evidencia`**, que es la que usa el botón de la
+  pantalla de consulta y **sigue con `.catch(() => [])`** sin sobre y sin
+  procedencia. Es el hueco grande que queda en evidencia y sigue abierto.
+- **No verifica ninguna licencia.** Toda la columna comercial sigue
+  `UNVERIFIABLE`: se llenó sin acceso a portales ni credenciales, y eso no ha
+  cambiado.

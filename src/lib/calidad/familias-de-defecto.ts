@@ -55,7 +55,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * corriera, sino que no corría en TODOS los caminos por los que entra el
      * dato.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337],
+    /**
+     * 345 es esta familia aplicada a la HONESTIDAD. Los avisos que dicen qué se
+     * consultó y qué no —«UpToDate: no se consultó»— se calculaban, se probaban,
+     * viajaban por el cable y la pantalla los tipaba… sin pintarlos nunca. No
+     * faltaba el dato ni la regla: faltaba el último centímetro. Un consultor
+     * que sólo enseña lo que SÍ encontró se lee como si hubiera mirado en todas
+     * partes, que es la conclusión contraria a la que el módulo existía para dar.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345],
   },
   {
     clave: 'se_contradice',

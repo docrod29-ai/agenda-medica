@@ -22,25 +22,41 @@ estado real del conocimiento, no una tarea a medias.
 
 ## Resumen
 
-| Proveedor | Rol | Licencia | ¿Puede citar hoy? | Campos sin verificar |
+| Proveedor | Rol | Licencia | ¿Se consulta hoy? | Campos sin verificar |
 |---|---|---|---|---|
 | PubMed / MEDLINE (NCBI E-utilities) | `respaldo` | `OPEN` | **sí** | 2/12 |
-| PubMed Central (Open Access) | `respaldo` | `OPEN` | **sí** | 7/12 |
-| ClinicalTrials.gov | `respaldo` | `OPEN` | **sí** | 7/12 |
-| OMS / WHO (guías y publicaciones) | `respaldo` | `OPEN` | **sí** | 8/12 |
-| CDC (guías y MMWR) | `respaldo` | `OPEN` | **sí** | 8/12 |
-| FDA / DailyMed (fichas de producto) | `respaldo` | `OPEN` | **sí** | 6/12 |
-| Cochrane Library | `respaldo` | `REQUIRES_AGREEMENT` | no | 10/12 |
-| UpToDate (Wolters Kluwer) | `respaldo` | `REQUIRES_AGREEMENT` | no | 11/12 |
-| OpenEvidence | `respaldo` | `LICENSE_UNKNOWN` | no | 12/12 |
-| Perplexity (búsqueda generativa) | `descubrimiento` | `LICENSE_UNKNOWN` | no | 9/12 |
-| Conocimiento personal del médico (Obsidian y equivalentes) | `conocimiento_personal` | `OPEN` | no | 4/12 |
+| PubMed Central (Open Access) | `respaldo` | `OPEN` | sí — **pero fuera del contrato**: no avisa si falla | 7/12 |
+| ClinicalTrials.gov | `respaldo` | `OPEN` | no — **sin adaptador** | 7/12 |
+| OMS / WHO (guías y publicaciones) | `respaldo` | `OPEN` | no — **sin adaptador** | 8/12 |
+| CDC (guías y MMWR) | `respaldo` | `OPEN` | no — **sin adaptador** | 8/12 |
+| FDA / DailyMed (fichas de producto) | `respaldo` | `OPEN` | sí — **pero fuera del contrato**: no avisa si falla | 6/12 |
+| Cochrane Library | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 10/12 |
+| UpToDate (Wolters Kluwer) | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 11/12 |
+| OpenEvidence | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| Perplexity (búsqueda generativa) | `descubrimiento` | `LICENSE_UNKNOWN` | no — sin licencia | 9/12 |
+| Conocimiento personal del médico (Obsidian y equivalentes) | `conocimiento_personal` | `OPEN` | no — sin licencia | 4/12 |
 | Fuente sintética (pruebas y benchmark) | `respaldo` | `OPEN` | **sí** | 8/12 |
 
-«¿Puede citar hoy?» = tiene `proveedorCanonico` en el catálogo. **Sin él no
-se puede construir un `Source`, y sin `Source` no hay `Passage` ni `Claim`**:
-la falta de licencia bloquea el respaldo por construcción, no por un
-guardián que alguien pueda quitar.
+«¿Se consulta hoy?» cruza DOS cosas, y hacen falta las dos:
+
+- **`proveedorCanonico` en el catálogo.** Sin él no se puede construir un
+  `Source`, y sin `Source` no hay `Passage` ni `Claim`: la falta de licencia
+  bloquea el respaldo por construcción, no por un guardián que alguien pueda
+  quitar.
+- **Un adaptador instanciado en `recuperacion-consultor.ts`.** Una fila del
+  catálogo sin adaptador no se consulta, no aparece en los avisos, y el médico
+  **no puede leer «no se consultó»** — para él esa fuente sencillamente no
+  existe.
+
+Hay un tercer caso, y se dice aparte porque mezclarlo sería mentir en la otra
+dirección: **PMC y openFDA sí se consultan**, pero los llama a mano la ruta
+(`textoCompletoPMC`, `dosisFDA`) sin pasar por el contrato. Funcionan — y al
+no pasar por `planDeConsulta` **no producen aviso**: si openFDA se cae, el
+médico no lee «no se consultó», lee una respuesta más pobre y no puede
+distinguirla de una completa.
+
+Antes esta columna sólo miraba lo primero, y por eso decía «sí» de fuentes que
+nadie ha construido (REG-345).
 
 ## Decisiones que esperan al dueño
 

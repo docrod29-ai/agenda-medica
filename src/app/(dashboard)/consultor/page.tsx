@@ -226,6 +226,30 @@ export default function ConsultorPage() {
                         <span>Sin resultados de PubMed para esta pregunta. Lo de abajo es razonamiento clínico, no literatura citada — verifica antes de aplicarlo.</span>
                       </div>
                     )}
+                    {/**
+                      * QUÉ SE CONSULTÓ Y QUÉ NO (REG-345).
+                      *
+                      * `seleccion.ts` construye estos avisos con una regla
+                      * explícita: un proveedor no operativo BAJA en el orden
+                      * pero **no desaparece** — el médico tiene que poder leer
+                      * «UpToDate: no se consultó». El servidor los calculaba, los
+                      * mandaba por el cable en `meta.recuperacion.avisos`, la
+                      * pantalla los tipaba… y no los pintaba en ningún sitio.
+                      *
+                      * O sea: la honestidad estaba escrita, probada y sin llegar.
+                      * Un consultor que sólo enseña lo que SÍ encontró se lee
+                      * como si hubiera mirado en todas partes.
+                      */}
+                    {!t.cargando && !!t.recuperacion?.avisos?.length && (
+                      <details style={{ marginBottom: 10 }}>
+                        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text3)', listStyle: 'revert' }}>
+                          Qué se consultó para responder ({t.recuperacion.avisos.length})
+                        </summary>
+                        <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
+                          {t.recuperacion.avisos.map((a, i) => <li key={i}>{a}</li>)}
+                        </ul>
+                      </details>
+                    )}
                     <MiniMarkdown texto={t.respuesta} />
                     {/*
                       LA VERIFICACIÓN CORRE SIEMPRE, TAMBIÉN SIN ARTÍCULOS.

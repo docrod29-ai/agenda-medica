@@ -166,6 +166,34 @@ export const POR_QUE_EL_CONSULTOR_USA_EL_SOBRE =
   'siempre, y no en el prompt, que se cumple cuando el modelo colabora.'
 
 /**
+ * QUÉ PROVEEDORES SE INSTANCIAN DE VERDAD (REG-345).
+ *
+ * Esta lista es la **única verdad de runtime** sobre qué se consulta. Vivía
+ * escrita a mano dentro de la función, y la matriz publicada
+ * (`docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md`) contestaba «¿puede citar
+ * hoy?» mirando OTRA cosa: si el catálogo declaraba un `proveedorCanonico`, que
+ * es una propiedad del TIPO.
+ *
+ * El resultado era una tabla que le decía al dueño que ClinicalTrials.gov, la
+ * OMS y los CDC «pueden citar hoy: **sí**» cuando ninguno de los tres tiene
+ * adaptador y ninguno se instancia aquí. Y ésa es exactamente la tabla que un
+ * dueño lee para decidir un gasto.
+ *
+ * Se exporta para que el documento se DERIVE de ella en vez de repetirla a mano.
+ */
+const FABRICAS: Record<string, () => AdaptadorDeEvidencia> = {
+  pubmed: adaptadorPubMed,
+  uptodate,
+  openevidence,
+  cochrane,
+  perplexity,
+  conocimiento_personal: adaptadorConocimientoPersonal,
+}
+
+/** Los proveedores que de verdad se instancian. Deriva de las fábricas. */
+export const PROVEEDORES_INSTANCIADOS: readonly string[] = Object.keys(FABRICAS)
+
+/**
  * Recupera evidencia para el Consultor y devuelve el ESTADO, no sólo los datos.
  *
  * No lanza por fallo del proveedor: el sobre de fallo es el producto.
@@ -181,7 +209,8 @@ export async function recuperarEvidenciaParaConsultor(
   }
   const consultaBase: ConsultaDeEvidencia = { pregunta: e.pregunta, maximo: e.maximo }
 
-  /**
+
+/**
    * QUIÉN SE CONSULTA Y QUIÉN SÓLO SE DECLARA — lo decide `seleccion.ts`, no
    * esta función. Un proveedor no operativo NO desaparece de la lista: baja al
    * final y produce su sobre `not_configured`, que es lo que hace posible que
@@ -191,11 +220,7 @@ export async function recuperarEvidenciaParaConsultor(
    * DISPONIBILIDAD; la recuperación real corre abajo, con su cascada y un
    * testigo por intento.
    */
-  const adaptadores: readonly AdaptadorDeEvidencia[] = [
-    adaptadorPubMed(),
-    uptodate(), openevidence(), cochrane(), perplexity(),
-    adaptadorConocimientoPersonal(),
-  ]
+  const adaptadores: readonly AdaptadorDeEvidencia[] = Object.values(FABRICAS).map(f => f())
   const plan = planDeConsulta(adaptadores, consultaBase)
   const porProveedor = new Map(adaptadores.map(a => [a.proveedor, a] as const))
 

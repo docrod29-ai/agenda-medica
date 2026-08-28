@@ -21,15 +21,14 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    " M docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/(dashboard)/pacientes/page.tsx",
-    " M src/app/(dashboard)/pendientes/page.tsx",
-    " M src/components/ContinuidadPanel.tsx",
+    " M scripts/evidence/matriz-proveedores.mjs",
+    " M src/app/(dashboard)/consultor/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/tareas-clinicas/firestore.ts",
-    "?? src/__tests__/un-pendiente-que-falta-no-se-calla.test.ts"
+    " M src/lib/evidencia/recuperacion-consultor.ts",
+    "?? src/__tests__/la-matriz-de-evidencia-no-promete-lo-que-no-hay.test.ts"
   ],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +64,10 @@
   ],
   "ramaActual": "claude/ausculta-consultorio-completion-hoahgw",
   "derivado": {
-    "regsEnElLedger": 192,
-    "ultimaREG": "REG-344",
-    "archivosDePrueba": 770,
-    "casosDePrueba": 9427,
+    "regsEnElLedger": 193,
+    "ultimaREG": "REG-345",
+    "archivosDePrueba": 771,
+    "casosDePrueba": 9433,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

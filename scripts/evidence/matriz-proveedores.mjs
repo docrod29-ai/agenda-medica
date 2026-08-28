@@ -19,6 +19,27 @@ import { execFileSync } from 'node:child_process'
 export const DESTINO = 'docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md'
 
 /**
+ * Los proveedores que de verdad se instancian. Se copian aquí porque este script
+ * es JS puro y no puede importar el módulo TS — pero NO se cree a nadie: hay un
+ * guardián (`evidence-integrations-matriz-doc`) que compara esta lista contra
+ * `PROVEEDORES_INSTANCIADOS` y falla si se separan.
+ */
+export const INSTANCIADOS = ['pubmed', 'uptodate', 'openevidence', 'cochrane', 'perplexity', 'conocimiento_personal']
+
+/**
+ * Fuentes que SÍ se consultan pero **fuera del contrato de adaptadores**: las
+ * llama a mano `api/consultor-evidencia/route.ts` (openFDA en `dosisFDA`, PMC en
+ * `textoCompletoPMC`).
+ *
+ * Se distinguen a propósito y no se meten en el saco de «sin adaptador», que
+ * sería mentir en la otra dirección. Pero tampoco son un «sí» limpio: al no
+ * pasar por `planDeConsulta` **no producen aviso**, así que si openFDA se cae
+ * el médico no puede leer «no se consultó». Existen para él sólo cuando
+ * funcionan, que es la definición de una fuente en la que no se puede confiar.
+ */
+export const FUERA_DEL_CONTRATO = ['pmc', 'fda_dailymed']
+
+/**
  * ── POR QUÉ `generarMatriz` SE EXPORTA ──────────────────────────────────────
  *
  * Para que la prueba de sincronía (src/__tests__/evidence-integrations-*.test.ts)
@@ -101,18 +122,52 @@ export function generarMatriz(cat) {
 
   L.push('## Resumen')
   L.push('')
-  L.push('| Proveedor | Rol | Licencia | ¿Puede citar hoy? | Campos sin verificar |')
+  L.push('| Proveedor | Rol | Licencia | ¿Se consulta hoy? | Campos sin verificar |')
   L.push('|---|---|---|---|---|')
   for (const e of cat.entradas) {
     const sinVerificar = cat.campos.filter(c => e.matriz[c] === null).length
-    const puedeCitar = e.proveedorCanonico ? '**sí**' : 'no'
+    /**
+     * REG-345 — TRES ESTADOS, NO DOS.
+     *
+     * Esta columna decía «sí» con sólo tener `proveedorCanonico`, que es una
+     * propiedad del TIPO. El resultado: la tabla afirmaba que ClinicalTrials.gov,
+     * la OMS y los CDC «pueden citar hoy: sí» cuando ninguno de los tres tiene
+     * adaptador y ninguno se instancia. Y ésta es la tabla que un dueño lee para
+     * decidir un gasto.
+     *
+     * Ahora se cruza con `PROVEEDORES_INSTANCIADOS`, que se DERIVA del código
+     * que de verdad crea los adaptadores.
+     */
+    const instanciado = INSTANCIADOS.includes(e.proveedorCanonico) || INSTANCIADOS.includes(e.id)
+    const aMano = FUERA_DEL_CONTRATO.includes(e.id)
+    const puedeCitar = !e.proveedorCanonico
+      ? 'no — sin licencia'
+      : instanciado ? '**sí**'
+      : aMano ? 'sí — **pero fuera del contrato**: no avisa si falla'
+      : 'no — **sin adaptador**'
     L.push(`| ${e.nombre} | \`${e.rol}\` | \`${e.licencia}\` | ${puedeCitar} | ${sinVerificar}/${cat.campos.length} |`)
   }
   L.push('')
-  L.push('«¿Puede citar hoy?» = tiene `proveedorCanonico` en el catálogo. **Sin él no')
-  L.push('se puede construir un `Source`, y sin `Source` no hay `Passage` ni `Claim`**:')
-  L.push('la falta de licencia bloquea el respaldo por construcción, no por un')
-  L.push('guardián que alguien pueda quitar.')
+  L.push('«¿Se consulta hoy?» cruza DOS cosas, y hacen falta las dos:')
+  L.push('')
+  L.push('- **`proveedorCanonico` en el catálogo.** Sin él no se puede construir un')
+  L.push('  `Source`, y sin `Source` no hay `Passage` ni `Claim`: la falta de licencia')
+  L.push('  bloquea el respaldo por construcción, no por un guardián que alguien pueda')
+  L.push('  quitar.')
+  L.push('- **Un adaptador instanciado en `recuperacion-consultor.ts`.** Una fila del')
+  L.push('  catálogo sin adaptador no se consulta, no aparece en los avisos, y el médico')
+  L.push('  **no puede leer «no se consultó»** — para él esa fuente sencillamente no')
+  L.push('  existe.')
+  L.push('')
+  L.push('Hay un tercer caso, y se dice aparte porque mezclarlo sería mentir en la otra')
+  L.push('dirección: **PMC y openFDA sí se consultan**, pero los llama a mano la ruta')
+  L.push('(`textoCompletoPMC`, `dosisFDA`) sin pasar por el contrato. Funcionan — y al')
+  L.push('no pasar por `planDeConsulta` **no producen aviso**: si openFDA se cae, el')
+  L.push('médico no lee «no se consultó», lee una respuesta más pobre y no puede')
+  L.push('distinguirla de una completa.')
+  L.push('')
+  L.push('Antes esta columna sólo miraba lo primero, y por eso decía «sí» de fuentes que')
+  L.push('nadie ha construido (REG-345).')
   L.push('')
 
   L.push('## Decisiones que esperan al dueño')
