@@ -1,0 +1,394 @@
+# Despliegue a PRODUCCIÓN — manual, y sólo del árbol autorizado.
+#
+# ── POR QUÉ EXISTE ───────────────────────────────────────────────────────────
+#
+# `.claude/rules/deployment-and-flags.md` dice dos cosas que esta máquina hace
+# cumplir: publicar es decisión del dueño, y **un despliegue arrastra TODO lo no
+# desplegado**. Por eso no hay disparador automático: sólo `workflow_dispatch`, y
+# el árbol que publica está clavado a un SHA que el dueño autorizó por escrito.
+#
+# El paquete que publica está declarado, commit por commit, en
+# `docs/maintenance/PAQUETE-PRODUCCION-2026-08-27.md`.
+#
+# ── DE UN SOLO USO, A PROPÓSITO ──────────────────────────────────────────────
+#
+# `SHA_AUTORIZADO` y `VERSION_ESPERADA` están fijos abajo. Para publicar un árbol
+# posterior hay que cambiarlos en un PR: la fricción ES la función. Un workflow
+# que publica «lo último de main» convierte un merge en un despliegue, que es
+# exactamente lo que la regla prohíbe.
+#
+# ── LO QUE ESTE WORKFLOW NO PUEDE COMPROBAR ──────────────────────────────────
+#
+# Que producción estuviera antes en el árbol que dice el paquete. Eso vive en el
+# panel de Vercel (§1 del paquete) y se mira ANTES de lanzar esto.
+#
+# ── SECRETOS ─────────────────────────────────────────────────────────────────
+#
+# Todos por `environment: production`. Ninguno se imprime: se leen a variables de
+# entorno y se pasan a los CLI sin `echo`, sin `set -x` y sin `cat`.
+#
+#   VERCEL_TOKEN              token de despliegue de Vercel
+#   VERCEL_ORG_ID             id del equipo/cuenta (Vercel → Settings)
+#   VERCEL_PROJECT_ID         id del proyecto (Vercel → Project → Settings)
+#   FIREBASE_SERVICE_ACCOUNT  JSON de una cuenta de servicio con permiso para
+#                             publicar reglas en `nexomed-agenda`
+#
+# ── UNA COSA QUE ESTE ARCHIVO NO PUEDE HACER SOLO ────────────────────────────
+#
+# El entorno `production` de GitHub admite **revisores obligatorios**: con eso,
+# lanzar este workflow queda esperando la aprobación de una persona antes de
+# tocar nada. Sin esa configuración, cualquiera con permiso de escritura puede
+# publicar. Se activa en Settings → Environments → production → Required
+# reviewers, y es donde la regla «publicar es decisión del dueño» pasa de estar
+# escrita a estar aplicada.
+
+name: Despliegue a producción (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha_esperado:
+        description: 'SHA de main que se autoriza publicar (40 hex). Debe coincidir con SHA_AUTORIZADO.'
+        required: true
+        type: string
+      url_produccion:
+        description: 'URL de producción contra la que se verifica'
+        required: true
+        default: 'https://agenda-medica-one.vercel.app'
+        type: string
+
+# Un despliegue a la vez. `cancel-in-progress: false` a propósito: matar un
+# despliegue a medias deja producción en un estado que nadie declaró.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SHA_AUTORIZADO: ef0624cb51fd9fc60e9f676b40716b73a77e3475
+  VERSION_ESPERADA: nexusmed-v1172
+  FIREBASE_PROJECT: nexomed-agenda
+
+jobs:
+  produccion:
+    name: Publicar el árbol autorizado
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 60
+
+    steps:
+      # `ref: main` y no el SHA suelto: así el paso siguiente puede comprobar que
+      # main SIGUE siendo ese árbol. Si alguien empujó a main entre la
+      # autorización y el lanzamiento, esto lo caza en vez de publicarlo.
+      - name: Traer main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: 'Compuerta 1 · el árbol es EXACTAMENTE el autorizado'
+        env:
+          SHA_PEDIDO: ${{ inputs.sha_esperado }}
+        run: |
+          set -euo pipefail
+          SHA_REAL="$(git rev-parse HEAD)"
+
+          echo "SHA autorizado en el workflow : $SHA_AUTORIZADO"
+          echo "SHA pedido en el lanzamiento  : $SHA_PEDIDO"
+          echo "SHA de main en el checkout    : $SHA_REAL"
+
+          if [ "$SHA_PEDIDO" != "$SHA_AUTORIZADO" ]; then
+            echo "::error::El SHA pedido no es el autorizado. Este workflow sólo publica $SHA_AUTORIZADO."
+            exit 1
+          fi
+          if [ "$SHA_REAL" != "$SHA_AUTORIZADO" ]; then
+            echo "::error::main ya NO está en $SHA_AUTORIZADO (está en $SHA_REAL). Alguien empujó después de la autorización: hay que declarar el paquete otra vez."
+            exit 1
+          fi
+
+          SUCIO="$(git status --porcelain)"
+          if [ -n "$SUCIO" ]; then
+            echo "::error::El árbol no está limpio:"
+            echo "$SUCIO"
+            exit 1
+          fi
+          echo "Árbol limpio y en el SHA autorizado."
+
+      - name: 'Compuerta 2 · la versión del service worker es la declarada'
+        run: |
+          set -euo pipefail
+          VERSION_TXT="$(tr -d '[:space:]' < public/version.txt)"
+          if [ "$VERSION_TXT" != "$VERSION_ESPERADA" ]; then
+            echo "::error::public/version.txt dice '$VERSION_TXT' y se esperaba '$VERSION_ESPERADA'."
+            exit 1
+          fi
+          if ! grep -q "const CACHE = '$VERSION_ESPERADA'" public/sw.js; then
+            echo "::error::public/sw.js no declara $VERSION_ESPERADA en su const CACHE."
+            exit 1
+          fi
+          echo "version.txt y sw.js coinciden en $VERSION_ESPERADA."
+
+      # REG-323 es la segunda capa del vínculo de sujeto en `laboratorios`. Si no
+      # está en el archivo que se va a publicar, este despliegue de reglas no
+      # sirve para lo que dice servir.
+      - name: 'Compuerta 3 · firestore.rules trae REG-323'
+        run: |
+          set -euo pipefail
+          if ! grep -q "REG-323" firestore.rules; then
+            echo "::error::firestore.rules no menciona REG-323."
+            exit 1
+          fi
+          if ! grep -q "request.resource.data.pacienteId == docId" firestore.rules; then
+            echo "::error::firestore.rules no trae la guarda de REG-323 (pacienteId == docId) en laboratorios."
+            exit 1
+          fi
+          echo "REG-323 presente en las reglas que se van a publicar."
+
+      # Se comprueban TODOS antes de tocar nada: un despliegue parcial por un
+      # secreto que faltaba a mitad de camino es peor que no haber empezado.
+      # Sólo se imprime el NOMBRE del que falta, nunca su valor.
+      - name: 'Compuerta 4 · están todos los secretos obligatorios'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          FALTAN=()
+          for NOMBRE in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID FIREBASE_SERVICE_ACCOUNT; do
+            if [ -z "${!NOMBRE:-}" ]; then FALTAN+=("$NOMBRE"); fi
+          done
+          if [ ${#FALTAN[@]} -gt 0 ]; then
+            echo "::error::Faltan secretos en el entorno 'production'. NO se desplegó nada."
+            for NOMBRE in "${FALTAN[@]}"; do echo "  falta: $NOMBRE"; done
+            exit 1
+          fi
+          echo "Los cuatro secretos obligatorios están presentes."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # ── VERCEL ────────────────────────────────────────────────────────────
+      #
+      # `vercel pull` trae la configuración REAL del proyecto (ajustes y
+      # variables de Production). No se reinventa nada aquí: si el proyecto
+      # cambia en el panel, este despliegue lo hereda.
+      - name: 'Vercel · traer la configuración real del proyecto'
+        id: vercel_pull
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          npm i -g vercel@59.9.1
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: 'Vercel · construir con los ajustes de Production'
+        id: vercel_build
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      # `--prebuilt` publica lo que se acaba de construir y verificar, no un
+      # árbol que el servidor vuelve a resolver por su cuenta.
+      # `--meta` deja el SHA autorizado grabado EN el despliegue: sin eso, «esto
+      # es lo que autoricé» sería una afirmación sin prueba.
+      - name: 'Vercel · desplegar a PRODUCCIÓN'
+        id: vercel_deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          URL="$(vercel deploy --prebuilt --prod --yes \
+            --meta shaAutorizado="$SHA_AUTORIZADO" \
+            --meta versionSw="$VERSION_ESPERADA" \
+            --meta lanzadoPor="$GITHUB_ACTOR" \
+            --meta runId="$GITHUB_RUN_ID" \
+            --token="$VERCEL_TOKEN")"
+          echo "url_despliegue=$URL" >> "$GITHUB_OUTPUT"
+          echo "Despliegue publicado: $URL"
+
+      - name: 'Verificar · el despliegue lleva grabado el SHA autorizado'
+        id: verificar_sha
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          URL_DESPLIEGUE: ${{ steps.vercel_deploy.outputs.url_despliegue }}
+        run: |
+          set -euo pipefail
+
+          # Dos caminos a propósito: el CLI no siempre imprime los `--meta` en
+          # texto, y un falso rojo AQUÍ diría "no publicaste lo autorizado"
+          # cuando sí se publicó. Si el primero no lo encuentra, se le pregunta
+          # a la API, que sí devuelve `meta` siempre.
+          vercel inspect "$URL_DESPLIEGUE" --token="$VERCEL_TOKEN" > inspect.txt 2>&1 || true
+          if grep -q "$SHA_AUTORIZADO" inspect.txt; then
+            echo "El despliegue declara el SHA autorizado (vercel inspect)."
+            exit 0
+          fi
+
+          echo "El CLI no lo imprimió; se consulta la API."
+          HOST="${URL_DESPLIEGUE#https://}"
+          CONSULTA="https://api.vercel.com/v13/deployments/$HOST"
+          case "$VERCEL_ORG_ID" in
+            team_*) CONSULTA="$CONSULTA?teamId=$VERCEL_ORG_ID" ;;
+          esac
+          curl -fsS --max-time 30 -H "Authorization: Bearer $VERCEL_TOKEN" "$CONSULTA" > despliegue.json || true
+
+          if grep -q "$SHA_AUTORIZADO" despliegue.json; then
+            echo "El despliegue declara el SHA autorizado (API)."
+            exit 0
+          fi
+
+          echo "::error::El despliegue publicado no declara $SHA_AUTORIZADO en sus metadatos. La aplicación YA está publicada: verifica a mano qué árbol quedó arriba antes de seguir."
+          exit 1
+
+      # El alias de producción tarda unos segundos en apuntar al despliegue nuevo.
+      - name: 'Verificar · producción sirve /version.txt = versión esperada'
+        id: verificar_version
+        env:
+          URL_PROD: ${{ inputs.url_produccion }}
+        run: |
+          set -euo pipefail
+          for INTENTO in $(seq 1 12); do
+            SERVIDO="$(curl -fsS --max-time 20 "$URL_PROD/version.txt" | tr -d '[:space:]' || true)"
+            echo "intento $INTENTO: '$SERVIDO'"
+            if [ "$SERVIDO" = "$VERSION_ESPERADA" ]; then
+              echo "Producción sirve $VERSION_ESPERADA."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::Tras 12 intentos, $URL_PROD/version.txt no sirve $VERSION_ESPERADA."
+          exit 1
+
+      # ── FIRESTORE RULES ───────────────────────────────────────────────────
+      #
+      # `vercel --prod` NO publica las reglas (regla de seguridad y aislamiento).
+      # Van aquí, DESPUÉS de que la aplicación esté arriba y verificada: si el
+      # paso de Vercel falla, este job ya se detuvo y las reglas no se tocan.
+      - name: 'Firestore · desplegar reglas'
+        id: firebase_rules
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          RUTA_SA="$RUNNER_TEMP/sa-firebase.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUTA_SA"
+          chmod 600 "$RUTA_SA"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUTA_SA"
+          npx --no-install firebase deploy \
+            --only firestore:rules \
+            --project "$FIREBASE_PROJECT" \
+            --non-interactive
+
+      - name: 'Firestore · borrar la credencial del runner'
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa-firebase.json"
+
+      # ── COMPUERTAS CONTRA EL SITIO VIVO ───────────────────────────────────
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Aquí y no antes: recorre RUTAS_PRIVADAS del árbol contra el sitio vivo, y
+      # eso sólo significa algo cuando el sitio ya sirve este árbol.
+      - name: 'Seguridad · cabeceras de PRODUCCIÓN'
+        id: e2e_seguridad
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ inputs.url_produccion }}
+        run: npm run e2e:seguridad:prod
+
+      - name: 'Smoke · el camino público en producción'
+        id: smoke_publico
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ inputs.url_produccion }}
+        run: npx playwright test --project=chromium e2e/smoke-publico.spec.ts
+
+      # Lo que el smoke de Playwright no cubre: que el portal del paciente no
+      # atienda a quien no trae enlace. No se prueba con un token real —
+      # un enlace de paciente es PHI y no entra en un log de CI.
+      - name: 'Smoke · el portal del paciente no atiende sin enlace'
+        id: smoke_portal
+        env:
+          URL_PROD: ${{ inputs.url_produccion }}
+        run: |
+          set -euo pipefail
+          CODIGO="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+            -X POST -H 'Content-Type: application/json' -d '{}' "$URL_PROD/api/portal")"
+          echo "POST /api/portal sin enlace → $CODIGO"
+          case "$CODIGO" in
+            4*) echo "Rechaza sin enlace, como debe." ;;
+            *)  echo "::error::/api/portal respondió $CODIGO sin enlace; se esperaba un 4xx."; exit 1 ;;
+          esac
+
+      - name: Acta del despliegue
+        if: always()
+        env:
+          URL_PROD: ${{ inputs.url_produccion }}
+          URL_DESPLIEGUE: ${{ steps.vercel_deploy.outputs.url_despliegue }}
+          R_DEPLOY: ${{ steps.vercel_deploy.outcome }}
+          R_SHA: ${{ steps.verificar_sha.outcome }}
+          R_VERSION: ${{ steps.verificar_version.outcome }}
+          R_RULES: ${{ steps.firebase_rules.outcome }}
+          R_E2E: ${{ steps.e2e_seguridad.outcome }}
+          R_SMOKE: ${{ steps.smoke_publico.outcome }}
+          R_PORTAL: ${{ steps.smoke_portal.outcome }}
+        run: |
+          set -euo pipefail
+
+          # PARCIAL es un estado real y se nombra: la aplicación quedó publicada
+          # y algo posterior falló. Ocultarlo bajo un "failed" haría creer que
+          # producción no cambió, y sí cambió.
+          if [ "$R_DEPLOY" != "success" ]; then
+            RESULTADO="FAILED"
+          elif [ "$R_SHA" = "success" ] && [ "$R_VERSION" = "success" ] \
+            && [ "$R_RULES" = "success" ] && [ "$R_E2E" = "success" ] \
+            && [ "$R_SMOKE" = "success" ] && [ "$R_PORTAL" = "success" ]; then
+            RESULTADO="SUCCESS"
+          else
+            RESULTADO="PARTIAL"
+          fi
+
+          {
+            echo "## Acta del despliegue a producción"
+            echo
+            echo '```'
+            echo "PRODUCTION_URL=$URL_PROD"
+            echo "DEPLOY_URL=${URL_DESPLIEGUE:-(sin desplegar)}"
+            echo "DEPLOY_SHA=$SHA_AUTORIZADO"
+            echo "VERSION=$VERSION_ESPERADA"
+            echo "VERCEL_PROD=$R_DEPLOY"
+            echo "SHA_VERIFICADO=$R_SHA"
+            echo "VERSION_VERIFICADA=$R_VERSION"
+            echo "FIRESTORE_RULES=$R_RULES"
+            echo "SECURITY_E2E=$R_E2E"
+            echo "SMOKE=$R_SMOKE"
+            echo "SMOKE_PORTAL=$R_PORTAL"
+            echo "PRODUCTION_RELEASE=$RESULTADO"
+            echo '```'
+            echo
+            echo "P0/P1 no se miden con un detector aparte: se derivan de las compuertas"
+            echo "de arriba. Un rojo en cabeceras, smoke o portal ES el hallazgo."
+            if [ "$RESULTADO" = "PARTIAL" ]; then
+              echo
+              echo "**PARCIAL — la aplicación quedó publicada y algo posterior falló.**"
+              echo "Producción CAMBIÓ. Revisa el paso rojo antes de dar por buena la publicación."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "PRODUCTION_RELEASE=$RESULTADO"
+          [ "$RESULTADO" = "SUCCESS" ] || exit 1
