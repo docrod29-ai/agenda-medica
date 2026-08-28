@@ -19,9 +19,9 @@
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 490 pasan · 1 falla · 1 omitido** (762 archivos) | La falla es `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 505 pasan · 1 falla · 1 omitido** (765 archivos) | Baseline eran 10 490; +15 casos, cero regresiones. La falla es `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
-| `npm run build` | no ejecutado todavía en esta sesión | pendiente antes del primer commit |
+| `npx tsc --noEmit` | **limpio** | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
@@ -46,19 +46,19 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 
 | ID | Defecto | Dónde | Verificado por |
 |---|---|---|---|
-| **P0-1** | Un resultado de laboratorio de **consultorio** no genera tarea de revisión ni lleva campo `revisado`. Existir cuenta como hecho. | `src/lib/expediente/laboratorio/firestore.ts:80` | orquestador, leyendo los imports del archivo |
+| ~~P0-1~~ | ~~Un resultado de laboratorio de **consultorio** no genera tarea de revisión.~~ **CERRADO** — REG-337, `7247e1f`. Cierra «recibido → por revisar»; `acted_on` y `patient_notified` siguen sin existir en el modelo. | `src/lib/expediente/laboratorio/firestore.ts` | orquestador |
 | **P0-2** | `internamientos/{id}/registros` —la bitácora **append-only NOM-004**— no está en el manifiesto de respaldo. Se restaura y no está, y el archivo dice «completo». | escribe `src/app/api/hospital/mutar/route.ts:523` · falta en `src/lib/clinica/respaldo.ts:98` | orquestador |
 | **P0-3** | `getPatients()` descarga la colección **entera** de pacientes. La caché de 30 s baja la frecuencia, no el tamaño. 17 llamadores. | `src/lib/firestore.ts:119` | orquestador |
 | **P0-4** | `findNotaByIdInClinic()` lee **todos** los pacientes y luego hace un `getDoc` **por paciente, en serie**. 50 001 lecturas con 50 k pacientes. | `src/lib/expediente/firestore.ts:60` | orquestador |
 | **P0-5** | `/cumplimiento/retencion` hace `Promise.all` sobre **todos** los pacientes, con un `getNotas` cada uno. El peor abanico del repositorio. | `src/app/(dashboard)/cumplimiento/retencion/page.tsx:29` | orquestador |
 | **P0-6** | Rebote de scroll en iPhone — defecto reportado por el dueño, sin reproducir en dispositivo. Causa raíz probable identificada. | `src/components/expediente/ClinicalSpine.tsx:82` | orquestador (código); **falta dispositivo** |
-| **P0-7** | La nota clínica completa se escribe en la consola del navegador. | `src/app/(dashboard)/consulta/[patientId]/page.tsx:2210` | orquestador |
+| ~~P0-7~~ | ~~La nota clínica completa se escribe en la consola del navegador.~~ **CERRADO** — REG-339, `7247e1f`. Quedan ids de internamiento en consola fuera del dashboard: son ids, no cuerpos clínicos. | `src/app/(dashboard)/consulta/[patientId]/page.tsx` | orquestador |
 
 ## P1 ABIERTOS — los que tienen dueño claro
 
 | ID | Defecto | Dónde |
 |---|---|---|
-| **P1-1** | El secreto compartido de 2FA (`otpauth://`) viaja en una URL a `api.qrserver.com`. El patrón local ya existe en el repo y no se usó aquí. | `cumplimiento/seguridad/page.tsx:176` · patrón: `RecetaDocumento.tsx:86` |
+| ~~P1-1~~ | ~~El secreto compartido de 2FA viaja en una URL a `api.qrserver.com`.~~ **CERRADO** — REG-338, `7247e1f`. Sigue abierto lo demás de MFA: **no se exige en el servidor** y `security-controls.ts` aún lo declara `planned`. | `cumplimiento/seguridad/page.tsx` |
 | **P1-2** | 22 colecciones se escriben y **no están declaradas en ninguno de los tres sitios**. Los dos guardianes son estructuralmente ciegos: parsean `firestore.rules`, no `src/`. | ver WS-11 |
 | **P1-3** | Las tareas clínicas se crean desde el navegador, sin `await` y con el error tragado, **después** de firmar. | `consulta/page.tsx:3868,3925,3935` |
 | **P1-4** | `tareasVivas()` usa `limit(200)` **sin `orderBy`**: devuelve 200 arbitrarias de N, sin avisar de truncamiento. | `tareas-clinicas/firestore.ts:95` |

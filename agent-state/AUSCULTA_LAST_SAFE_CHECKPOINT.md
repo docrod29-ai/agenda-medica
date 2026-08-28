@@ -1,68 +1,87 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 28-ago-2026 — **A1 cerrada: el tablero existe y está medido**
+## Checkpoint · 28-ago-2026 — **REG-337, REG-338 y REG-339 cerradas**
 
 | | |
 |---|---|
-| **Unidad cerrada** | **A1** — `docs/product/AUSCULTA-MASTER-BOARD.md` |
-| **SHA base** | `ba9d7a2f410157011a73ad87ea24f0edfc05560c` |
-| **Rama** | `claude/ausculta-consultorio-completion-hoahgw` |
+| **Unidades cerradas** | **A1** (tablero) · **P0-1** (REG-337) · **P0-7** (REG-339) · **P1-1** (REG-338) |
+| **SHA** | `7247e1f` sobre `claude/ausculta-consultorio-completion-hoahgw` |
 | **Siguiente** | **A3** — portar PR #356 preservando REG-323 |
-
-### Qué se hizo
-
-Cinco auditorías **read-only** en paralelo (escala, scroll móvil, evidencia,
-Patient State/ciclo cerrado, seguridad/DR) y **verificación directa del
-orquestador** sobre cada hallazgo que entró al tablero. Los agentes auditan; el
-orquestador comprueba y escribe.
 
 ### Compuertas medidas en este SHA
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | 10 490 pasan · 1 falla · 1 omitido (762 archivos) |
-| `lint-trinquete` | 96, igual que el techo |
-| `npm run build` | **no ejecutado todavía** |
+| `npx vitest run` | **10 505 pasan · 1 falla · 1 omitido** (765 archivos) |
+| `lint-trinquete` | **96**, igual que el techo |
+| `npx tsc --noEmit` | **limpio** |
 | navegador real | **no ejecutado** |
 
-La única falla es `ops-timeout-y-punto-ciego.test.ts`. **No se heredó la
-etiqueta**: se reprodujo. Necesita que `10.255.255.1` trague paquetes; el proxy
-de este contenedor rechaza al instante, así que sale un error de conexión antes
-de que venza el temporizador. `BLOCKED_EXTERNAL (entorno)`. Aflojar la aserción
-está prohibido por §32.
+Baseline al empezar: 10 490. **+15 casos, cero regresiones.**
 
-### Los siete P0 abiertos
+La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts`, del entorno:
+exige que `10.255.255.1` trague paquetes y el proxy del contenedor rechaza al
+instante. `BLOCKED_EXTERNAL`. Aflojar la aserción está prohibido por §32.
 
-1. Un resultado de laboratorio de **consultorio** no genera tarea de revisión — `expediente/laboratorio/firestore.ts:80`
-2. `internamientos/{id}/registros` (bitácora NOM-004) **no está en el respaldo** — `respaldo.ts:98`
-3. `getPatients()` descarga la colección entera — `firestore.ts:119`
-4. `findNotaByIdInClinic()` lee todos los pacientes + un `getDoc` por paciente **en serie** — `expediente/firestore.ts:60`
-5. `Promise.all` sobre todos los pacientes con un `getNotas` cada uno — `cumplimiento/retencion/page.tsx:29`
-6. Rebote de scroll en iPhone — causa raíz probable en `ClinicalSpine.tsx:82`
-7. La nota clínica completa va a la consola — `consulta/[patientId]/page.tsx:2210`
+### Lo que se cerró, y lo que NO cerró con ello
 
-### El descubrimiento que cambia el plan de A3
+**REG-337** — un resultado de laboratorio de consultorio ya abre su pendiente de
+revisión. **Cierra «recibido → por revisar» y nada más**: `acted_on` y
+`patient_notified` **no existen** en el modelo, y `progreso-resultado.ts` los
+declara `sin_dato` en vez de fingirlos. La referencia y la interconsulta siguen
+fuera del bucle.
+
+**REG-338** — el secreto TOTP ya no sale del navegador, en las dos pantallas de
+enrolamiento. **No cierra MFA**: el segundo factor **no se exige en el servidor
+en ningún sitio**, y `security-controls.ts:75` aún lo declara `planned / BLOCKED`
+cuando está implementado.
+
+**REG-339** — el cuerpo de la nota ya no entra en `console.*`. El guardián es un
+**cedazo por nombre de variable**, no una demostración; sólo recorre
+`src/app/(dashboard)`.
+
+### Una nota de método que conviene no perder
+
+Un `vitest run` lanzado en segundo plano mientras se seguía editando midió un
+árbol en movimiento y reportó fallos que no existían. Se descartó y se repitió
+sobre árbol quieto. **Una suite que corre mientras cambia el código no mide nada.**
+
+### El descubrimiento que sigue gobernando A3
 
 **Existe implementación canónica y no está en esta rama.** PR **#356**
-(`product/scale-hotpaths-342`, draft contra `main`) ya trae keyset pagination,
-búsqueda indexada y golden de 701 líneas.
+(`product/scale-hotpaths-342`) ya trae keyset pagination, búsqueda indexada y
+golden de 701 líneas.
 
 **No se puede fusionar a ciegas**: #356 es anterior a REG-323 y su
 `updatePatient` **no tiene `vistoEn`**. Un merge directo regresaría la guardia de
-concurrencia de esta rama. Hay que **portar** la API acotada sobre el archivo
-nuevo conservando las dos cosas.
+concurrencia. Hay que **portar** conservando ambas.
+
+### Los P0 que siguen abiertos
+
+- **P0-2** `internamientos/{id}/registros` (bitácora NOM-004) no está en el respaldo
+- **P0-3** `getPatients()` descarga la colección entera
+- **P0-4** `findNotaByIdInClinic()` — todos los pacientes + un `getDoc` por paciente en serie
+- **P0-5** `Promise.all` sobre todos los pacientes con un `getNotas` cada uno
+- **P0-6** rebote de scroll en iPhone — causa raíz probable, **sin reproducir en dispositivo**
 
 ### Lo que este checkpoint NO afirma
 
-- Nada se ha visto en un navegador. El rebote de iPhone tiene causa raíz
-  **probable**, no reproducida en dispositivo. §38 no está satisfecha.
-- No se ha medido capacidad. El validador de escala comprueba la **forma** del
-  JSON, no que el producto aguante.
+- **Nada se ha visto en un navegador.** §38 no está satisfecha para el scroll.
+- No se ha medido capacidad.
 - El simulacro de restauración real sigue sin ejecutarse.
+- `npm run build` no se ha corrido en esta sesión (sí `tsc --noEmit`).
 
 ### Qué hacer al reanudar
 
 1. Leer `CLAUDE.md`, `AGENTS.md`, `.claude/rules/**`, el tablero y este archivo.
-2. `git log` y `git status` sobre esta rama. **No empezar de cero.**
+2. `git log` y `git status`. **No empezar de cero.**
 3. Seguir por **A3**: portar #356 preservando REG-323, con golden probado al revés.
 4. No reactivar Hospital/UCI. No priorizar Documents Zero-Friction.
+
+---
+
+
+## Checkpoint anterior · 28-ago-2026 — A1: el tablero existe y está medido
+
+Cinco auditorías read-only en paralelo con verificación directa del orquestador.
+Detalle completo en `docs/product/AUSCULTA-MASTER-BOARD.md`.
