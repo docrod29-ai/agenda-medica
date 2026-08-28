@@ -4,11 +4,11 @@ import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
-import { getNotas } from '@/lib/expediente/firestore'
+import { getNota, listarNotasCompat } from '@/lib/expediente/firestore'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Download } from 'lucide-react'
+import { ArrowLeft, Printer, Loader2, Download, AlertTriangle } from 'lucide-react'
 import { descargarComoPDF } from '@/lib/pdf-download'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
@@ -30,6 +30,10 @@ export default function CartaReferenciaPage() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
+  /** P1-12 — se leyó una VENTANA de la historia, no toda: hay que decirlo. */
+  const [historialRecortado, setHistorialRecortado] = useState(false)
+  /** P1-12 — se pidió una nota concreta por `?nota=` y no existe en este paciente. */
+  const [notaPedidaNoEncontrada, setNotaPedidaNoEncontrada] = useState(false)
 
   // Campos de la carta
   const [tipo, setTipo] = useState<Tipo>('referencia')
@@ -62,12 +66,33 @@ export default function CartaReferenciaPage() {
 
   useEffect(() => {
     if (!clinicId || !patientId) return
-    Promise.all([getPatient(clinicId, patientId), getNotas(clinicId, patientId)]).then(([ps, notas]) => {
+    /**
+     * P1-12 — ESTA CARTA NECESITA UNA NOTA, NO VEINTE AÑOS DE DICTADOS.
+     *
+     * Se bajaba la historia completa del paciente para quedarse con UNA nota.
+     * Ahora: si viene `?nota=`, se pide ESA (una lectura, y además la encuentra
+     * aunque esté fuera de cualquier ventana); si no, se lee la historia
+     * ACOTADA y se declara si se quedó corta.
+     */
+    const notaParam = searchParams.get('nota')
+    Promise.all([
+      getPatient(clinicId, patientId),
+      notaParam
+        ? getNota(clinicId, patientId, notaParam).then(n => ({ notas: n ? [n] : [], truncada: false }))
+        : listarNotasCompat(clinicId, patientId),
+    ]).then(([ps, historial]) => {
       setPatient(ps)
+      const notas = historial.notas
+      setHistorialRecortado(historial.truncada)
+      /**
+       * Se pidió UNA nota por su id y no está. Antes esto caía en silencio a
+       * «la última firmada»: la carta se prellenaba con una nota DISTINTA de la
+       * que se pidió, y nada lo decía. Prellenar con otra nota es peor que no
+       * prellenar — se pregunta, no se adivina.
+       */
+      setNotaPedidaNoEncontrada(!!notaParam && notas.length === 0)
       // Prellenar con la última nota (preferir firmada; si viene ?nota= usar esa)
-      const notaParam = searchParams.get('nota')
       const nota: NotaMedica | undefined =
-        (notaParam && notas.find(n => n.id === notaParam)) ||
         notas.find(n => n.estado === 'firmada') ||
         notas[0]
       if (nota) {
@@ -137,6 +162,23 @@ export default function CartaReferenciaPage() {
           `select-name`) — la única deuda CRÍTICA del inventario de
           V15-A11Y-001, pagada en su 2ª rebanada. */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 20px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/**
+          * P1-12 — el prellenado sale de una VENTANA de la historia, no de
+          * toda. Cuando la ventana se llena hay notas anteriores que no se
+          * miraron, y el médico tiene que saberlo antes de firmar la carta.
+          */}
+        {notaPedidaNoEncontrada && (
+          <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: 10, background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14 }}>
+            <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+            <span>La nota que se pidió para prellenar esta carta <strong>no se encontró en este paciente</strong>. No se ha puesto otra en su lugar: el texto está vacío a propósito.</span>
+          </div>
+        )}
+        {historialRecortado && (
+          <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: 10, background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14 }}>
+            <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+            <span>Este paciente tiene más historia de la que se leyó para prellenar: <strong>hay notas anteriores que no se han mirado</strong>. Revisa el texto antes de enviarlo.</span>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 160 }}>
             <label className="label" htmlFor="ref-tipo">Tipo de carta</label>

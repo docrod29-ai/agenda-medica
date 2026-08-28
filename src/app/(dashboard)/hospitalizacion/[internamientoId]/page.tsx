@@ -28,7 +28,7 @@ import {
 import { historialCamas } from '@/lib/hospital/bed-assignment'
 import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab, type BedAssignment } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { getNotas } from '@/lib/expediente/firestore'
+import { listarNotasDeInternamiento, TECHO_NOTAS_INTERNAMIENTO } from '@/lib/expediente/firestore'
 import { getPatient, getDoctors } from '@/lib/firestore'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
@@ -106,6 +106,8 @@ export default function EpisodioPage() {
 
   const [inter, setInter] = useState<Internamiento | null>(null)
   const [notas, setNotas] = useState<NotaMedica[]>([])
+  const [notasTruncadas, setNotasTruncadas] = useState(false)
+  const [notasFallaron, setNotasFallaron] = useState(false)
   const [signos, setSignos] = useState<RegistroSignos[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('resumen')
@@ -263,14 +265,31 @@ export default function EpisodioPage() {
     if (i) {
       // getPatient (una lectura) en vez de getPatients (colección entera) solo para
       // resolver el nombre del paciente internado — mismo anti-patrón que la consulta corrigió.
-      const [todas, sgs, pac, labsE] = await Promise.all([
-        getNotas(clinicId, i.pacienteId).catch(() => [] as NotaMedica[]),
+      /**
+       * P1-12 — LAS NOTAS DE ESTE EPISODIO, NO LA VIDA ENTERA DEL PACIENTE.
+       *
+       * Aquí se llamaba a `getNotas` —la historia COMPLETA, con los dictados
+       * dentro— para quedarse en memoria con `.filter(n => n.internamientoId
+       * === internamientoId)`. Un paciente con veinte años de consultorio
+       * pagaba veinte años de transcripciones para pintar una estancia de
+       * cinco días. Ahora el filtro va en el servidor y con techo.
+       */
+      const [notasEp, sgs, pac, labsE] = await Promise.all([
+        listarNotasDeInternamiento(clinicId, i.pacienteId, internamientoId)
+          .catch(() => null),
         getSignos(clinicId, internamientoId).catch(() => [] as RegistroSignos[]),
         getPatient(clinicId, i.pacienteId).catch(() => null),
         getSolicitudesLabDeEpisodio(clinicId, internamientoId).catch(() => [] as SolicitudLab[]),
       ])
       setLabs(labsE)
-      setNotas(todas.filter(n => n.internamientoId === internamientoId))
+      /**
+       * `null` = no se pudo leer. NO es «este episodio no tiene notas»: se deja
+       * la lista como estaba y se dice que falló, en vez de pintar un episodio
+       * vacío sobre una lectura rota.
+       */
+      setNotasFallaron(notasEp === null)
+      setNotasTruncadas(notasEp?.truncada ?? false)
+      if (notasEp) setNotas(notasEp.notas)
       setSignos(sgs)
       setPatient(pac ?? null)
       setMedsCasa((i.medicamentosCasa ?? []).join('\n'))
@@ -678,8 +697,25 @@ export default function EpisodioPage() {
           </div>
         )}
 
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>Notas del internamiento ({notasEpisodio.length})</div>
-        {notasEpisodio.length === 0 ? (
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>Notas del internamiento ({notasEpisodio.length}{notasTruncadas ? '+' : ''})</div>
+        {/**
+          * P1-12 — un episodio recortado, o que no se pudo leer, lo dice. Una
+          * lista corta que se presenta como completa es la regla 4 de seguridad
+          * clínica rota en la pantalla donde se decide un alta.
+          */}
+        {notasFallaron && (
+          <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 12, background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14 }}>
+            <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+            <span>No se pudieron leer las notas de este episodio. <strong>Esto no significa que no haya ninguna</strong>: es un problema de conexión. Vuelve a intentarlo antes de decidir nada sobre lo que ves.</span>
+          </div>
+        )}
+        {notasTruncadas && (
+          <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 12, background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14 }}>
+            <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+            <span>Este episodio tiene más de <strong>{TECHO_NOTAS_INTERNAMIENTO}</strong> notas y aquí sólo caben las primeras: <strong>ésta no es la lista completa</strong>.</span>
+          </div>
+        )}
+        {notasEpisodio.length === 0 && !notasFallaron ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Aún no hay notas. Empieza con la <strong>Nota de ingreso</strong>.</div>
         ) : (
           <div style={{ display: 'grid', gap: 8 }}>

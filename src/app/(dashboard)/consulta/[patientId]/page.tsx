@@ -43,7 +43,7 @@ import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
 import {
-  createNota, updateNota, getNota, getNotas, deleteNota, getUltimasNotasResumen,
+  createNota, updateNota, getNota, listarNotasCompat, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
 import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
@@ -869,6 +869,8 @@ export default function ConsultaActivaPage() {
    * declaración. Se rellenan en el efecto que lee las notas firmadas.
    */
   const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
+  /** P1-12 — la historia leída llegó al techo: hay notas anteriores sin mirar. */
+  const [historialRecortado, setHistorialRecortado] = useState(false)
   const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
 
   /**
@@ -1663,8 +1665,22 @@ export default function ConsultaActivaPage() {
       .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota
     // La medicación vigente sale de TODAS las notas, no sólo de la última: manda
     // lo que se dijo por última vez de CADA fármaco (ver `ordenes-medicamento`).
-    getNotas(clinicId, patientId)
-      .then(ns => {
+    /**
+     * P1-12 — LA HISTORIA SE PIDE ACOTADA, Y EL RECORTE SE DECLARA.
+     *
+     * Esto era `getNotas`: la subcolección ENTERA de notas del paciente, con
+     * los dos dictados dentro de cada una, en el arranque de la pantalla donde
+     * el médico está mirando al paciente. `listarNotasCompat` trae la misma
+     * historia con un techo duro y, sobre todo, dice si se quedó corta: la
+     * medicación vigente y los problemas activos se derivan de lo que se leyó,
+     * así que si no se leyó todo, la pantalla no puede presentarlo como «lo que
+     * toma». Las notas llegan de la más reciente a la más antigua, que es
+     * justamente el orden en que manda «lo último que se dijo de cada fármaco».
+     */
+    listarNotasCompat(clinicId, patientId)
+      .then(historial => {
+        const ns = historial.notas
+        setHistorialRecortado(historial.truncada)
         const firmadas = ns.filter(n => n.estado === 'firmada')
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
@@ -4497,6 +4513,9 @@ export default function ConsultaActivaPage() {
                 ? `Última consulta ${haceCuanto(ultimaVisita, new Date().toISOString())}.`
                 : 'Primera consulta registrada.'}
               {problemas.length > 0 && ' De lo último que se dijo de cada problema en sus notas firmadas.'}
+              {/* P1-12 — si la historia se leyó recortada, esto NO es «todo lo
+                  que tiene»: es lo que se dijo en las notas que sí se leyeron. */}
+              {historialRecortado && ' Se leyeron sus notas más recientes; hay historia anterior que esta pantalla no ha mirado.'}
             </div>
           </div>
         </div>
@@ -4542,6 +4561,9 @@ export default function ConsultaActivaPage() {
             ))}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
               De lo último que se dijo de cada fármaco en sus notas firmadas. No mencionarlo en una consulta no lo suspende.
+              {/* P1-12 — antes de prescribir hay que saber si esta lista se armó
+                  sobre TODA la historia o sólo sobre la parte que se leyó. */}
+              {historialRecortado && ' Se leyeron sus notas más recientes: puede haber fármacos de notas anteriores que no aparecen aquí.'}
             </div>
           </div>
         </div>

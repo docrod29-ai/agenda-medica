@@ -205,7 +205,16 @@ describe('la pantalla lo ofrece, y ya no calla los borradores', () => {
      * lo que no está firmado— y por eso sigue aquí. Lo que cambia es que
      * ahora se comprueba contra lo que el exportador HACE.
      */
-    expect(pag).toContain('resumenNotasExportadas(notas)')
+    /**
+     * P1-12 — el argumento pasó de `notas` (lo que la línea de tiempo tuviera
+     * cargado, que ahora se lee por páginas) a `notasExportadas`, que es lo que
+     * de verdad entró en el archivo: la historia pedida EXPLÍCITAMENTE con
+     * `asegurarHistoriaCompleta()`. La intención del caso no cambia —el aviso
+     * cuenta lo que se exportó— y de paso se aprieta: antes podía contar unas
+     * notas y exportar otras.
+     */
+    expect(pag).toContain('resumenNotasExportadas(notasExportadas)')
+    expect(pag).toContain('notas: notasExportadas, config')
     expect(pag).toMatch(/marcadas como preliminares/)
     /* Y no puede volver a prometer lo contrario. Sin comentarios: el código
        CITA la frase falsa para explicar por qué se fue — si se mirara el

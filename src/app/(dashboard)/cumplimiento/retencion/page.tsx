@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { listarPacientesPagina, TECHO_COMPAT_PACIENTES, LIMITE_MAX_PAGINA_PACIENTES, type CursorPacientes } from '@/lib/firestore'
-import { getNotas } from '@/lib/expediente/firestore'
+import { listarNotasPagina, LIMITE_PAGINA_NOTAS } from '@/lib/expediente/firestore'
 import { evaluarRetencion, formatearAntiguedad, listarPacientesPorRevisar, type PacienteRetencion } from '@/lib/retencion'
 import { ArrowLeft, Loader2, FileSearch, AlertTriangle, Clock, Eye } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
@@ -66,8 +66,21 @@ export default function RetencionPage() {
           const tanda = pagina.pacientes.slice(i, i + TANDA)
           evals.push(...await Promise.all(tanda.map(async (p) => {
             try {
-              const notas = await getNotas(clinicId, p.id)
-              return evaluarRetencion(p, notas, p.ultimaCita)
+              /**
+               * P1-12 — UNA VENTANA POR PACIENTE, NO SU HISTORIA ENTERA.
+               *
+               * Aquí se llamaba a `getNotas` por cada uno de los hasta 500
+               * pacientes del recorrido: la historia completa —con los dictados
+               * dentro— multiplicada por 500, para leer UNA fecha. Lo que la
+               * retención necesita es el ACTO MÁS RECIENTE, y ése es la primera
+               * nota del orden descendente: la primera página basta.
+               *
+               * El recuento de firmadas sí se queda corto cuando hay más de una
+               * página, y por eso viaja `historialParcial` hasta la pantalla en
+               * vez de enseñarse como total.
+               */
+              const pagina = await listarNotasPagina(clinicId, p.id, { limite: LIMITE_PAGINA_NOTAS })
+              return evaluarRetencion(p, pagina.notas, p.ultimaCita, { historialParcial: pagina.hayMas })
             } catch {
               // Sin notas se evalúa igual: la cita y el alta ya dan una fecha.
               return evaluarRetencion(p, [], p.ultimaCita)
@@ -185,7 +198,7 @@ function Tarjeta({ titulo, valor, color, icon }: { titulo: string; valor: number
 }
 
 function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; onAbrir: () => void }) {
-  const { patient: p, estado, diasDesdeUltimoActo, notasFirmadas } = evaluacion
+  const { patient: p, estado, diasDesdeUltimoActo, notasFirmadas, notasFirmadasParcial } = evaluacion
   const colores = {
     vigente: { bg: 'var(--s)', border: 'var(--border)', badge: 'var(--text3)', badgeBg: 'var(--s2)' },
     cercano: { bg: 'color-mix(in srgb, var(--amber) 4%, transparent)', border: 'color-mix(in srgb, var(--amber) 25%, transparent)', badge: '#f59e0b', badgeBg: 'color-mix(in srgb, var(--amber) 12%, transparent)' },
@@ -207,8 +220,13 @@ function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; 
             background: c.badgeBg, color: c.badge,
           }}>{label}</span>
           {notasFirmadas > 0 && (
-            <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>
-              · {notasFirmadas} nota{notasFirmadas !== 1 ? 's' : ''} firmada{notasFirmadas !== 1 ? 's' : ''}
+            /* P1-12 — «al menos» cuando el recuento salió de una ventana: un
+               número recortado presentado como total sería una cifra inventada. */
+            <span
+              style={{ fontSize: 10.5, color: 'var(--text3)' }}
+              title={notasFirmadasParcial ? 'Hay más notas de las que se leyeron para esta pantalla.' : undefined}
+            >
+              · {notasFirmadasParcial ? 'al menos ' : ''}{notasFirmadas} nota{notasFirmadas !== 1 ? 's' : ''} firmada{notasFirmadas !== 1 ? 's' : ''}
             </span>
           )}
         </div>

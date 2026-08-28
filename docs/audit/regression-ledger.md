@@ -9931,3 +9931,82 @@ final.
   es **la pantalla de buscar**.
 - **No se ha visto en un navegador.** Que el aviso exista no prueba que se vea, y
   el rebote de la búsqueda con el servidor no se ha probado con dedos.
+
+## REG-348 — la historia de un paciente se bajaba entera, con los dictados dentro
+
+**DE DÓNDE VIENE.** REG-341 acotó el directorio de pacientes y dejó anotada la
+siguiente amplificación en el tablero de Ausculta (P1-12): `getNotas` seguía
+haciendo un `getDocs` sobre la subcolección **entera** de notas del paciente, sin
+`limit()`. Y una nota de este producto no es una fila: lleva dentro
+`transcripcionMotor`, `transcripcionCruda`, `dialogoDiarizado` y el bloque
+`extraction`. El propio `updateNota` documenta que **una sola nota** se acerca al
+tope de 1 MB por documento de Firestore.
+
+**QUÉ COSTABA.** Cinco pantallas pedían esa historia completa y ninguna la
+necesitaba entera:
+
+- `/hospitalizacion/[id]` se bajaba la vida del paciente para quedarse, con un
+  `.filter()` en memoria, con las notas de **un episodio**;
+- `/referencia/[id]`, para prellenar **una** carta con **una** nota;
+- `/cumplimiento/retencion`, para leer **una fecha** — multiplicado por los hasta
+  500 pacientes de su recorrido;
+- `/consulta/[id]` y `/expediente/[id]`, para derivar medicación vigente,
+  problemas activos y la línea de tiempo. La consulta lo hacía **dos veces**:
+  `getUltimasNotasResumen` también leía todas las notas firmadas para enseñar
+  tres;
+- `deletePatientExpediente`, sólo para saber si existía alguna nota **firmada**.
+
+**CAUSA RAÍZ.** El contrato de lectura de la historia clínica no declaraba
+ningún tope. Se escribió cuando un paciente cabía en una pantalla, y nada obligó
+después a revisarlo: las cinco pantallas heredaron «traer las notas» sin
+preguntar cuántas eran ni cuáles necesitaban.
+
+**UN SEGUNDO DEFECTO, ENCONTRADO AL TIRAR DEL HILO.** La salvaguarda NOM-004 del
+borrado en cascada se apoyaba en `getNotas`, que ordena por `fechaConsulta`.
+Firestore **omite de una consulta ordenada los documentos que no tienen el campo
+del `orderBy`**: una nota **firmada** sin `fechaConsulta` no llegaba a la
+salvaguarda, y el registro legal quedaba borrable. El mismo mecanismo dejaba
+notas huérfanas bajo un paciente ya borrado. Ahora el conteo de firmadas
+consulta por `estado` sin `orderBy`, y la cascada barre por `documentId()`, que
+ningún documento puede no tener.
+
+**EL ARREGLO.** El mismo contrato que el directorio de pacientes:
+`listarNotasPagina` (keyset por `startAfter(fechaConsulta, __name__)`, orden
+determinista con desempate total), `listarNotasCompat` con techo duro y bandera
+`truncada`, `listarNotasDeInternamiento` (filtro en el servidor),
+`contarNotasFirmadas` (con `alMenos`) y `listarIdsDeNotas` para la cascada.
+`getNotas` sobrevive como superficie de compatibilidad, ya acotada.
+
+Y el recorte **se declara donde el médico lo lee**: la línea de tiempo del
+expediente ofrece «cargar notas anteriores» y dice que queda historia; el riel
+clínico deja de dar un total y dice «N cargadas · hay más»; la consulta avisa de
+que la medicación vigente y los problemas salen de las notas que sí se leyeron;
+el episodio de hospitalización distingue «no hay notas» de «no se pudieron
+leer»; retención dice «al menos N firmadas»; y la exportación FHIR pide la
+historia completa **explícitamente** en vez de llevarse la página visible.
+
+**LA PRUEBA.**
+`src/__tests__/p1-12-historia-del-paciente-acotada.test.ts` (43 casos). Probado
+al revés: el criterio de «acotada» se le da a la fuente anterior y no lo cumple;
+el agujero de la nota firmada sin `fechaConsulta` se reproduce con `getNotas`
+—que no la ve— y se cierra con `contarNotasFirmadas` —que sí—.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba Firestore.** El doble implementa `where/orderBy/limit/startAfter`
+  con la semántica que este código usa, no el motor real. Sí se comprueba lo
+  único que dependería de un índice desplegado: que ninguna consulta nueva
+  combine `where` con `orderBy` sobre otro campo — este repositorio no despliega
+  ningún índice compuesto.
+- **No se ha visto en un navegador.** Que el aviso de recorte exista en la
+  fuente no prueba que se vea, ni que «cargar notas anteriores» se sienta bien
+  con el dedo.
+- **Las notas SIN `fechaConsulta` siguen fuera del listado paginado.** Es un
+  límite heredado —el `getNotas` anterior ordenaba igual— y ahora está probado,
+  con las dos vías que sí las alcanzan (conteo de firmadas y barrido por id).
+- **Un `fechaConsulta` editado mientras se pagina puede saltarse una nota.** Es
+  inherente a cualquier cursor por valores; el recorrido anterior era una foto
+  única. No se da por resuelto.
+- **`/cumplimiento/retencion` sigue evaluando en el navegador.** Lo que se cerró
+  aquí es que cada paciente costara su historia entera; que esta pantalla deba
+  leer el resultado del cron paginado sigue abierto, como ya declaraba REG-344.

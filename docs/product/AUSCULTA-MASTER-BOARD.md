@@ -72,7 +72,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | **P1-16** | El **importador** no sabe reescribir las colecciones de nivel raíz que REG-343 metió en el respaldo. Un respaldo que se lleva algo que no se sabe devolver no cierra la recuperación. |
 | **P1-11** | **PARCIAL** — REG-347 cerró `/pacientes`, que era la pantalla de buscar: ahí la búsqueda ya va al servidor y el recorte se declara. Quedan **nueve** pantallas que reciben el recorte sin declararlo (`/citas`, `/crm`, `/asistente`, `/hospitalizacion`, `/farmacia`, `/membresias`, `/cumplimiento`, `/reactivacion`, `/migracion`). Ya no tumban el navegador, pero pueden decir «no hay» de un paciente que existe. |
 | **P1-17** | La búsqueda es por **PREFIJO**: un duplicado con el orden de los nombres cambiado («López María» vs «María López») y sin teléfono en común no aparece. Hueco **conocido y con forma**, ya no arbitrario — pero abierto. |
-| **P1-12** | `getNotas` sigue **sin cota**: la historia completa de un paciente, con las dos transcripciones dentro. La siguiente amplificación. |
+| ~~P1-12~~ | ~~`getNotas` sin cota: la historia completa de un paciente, con las dos transcripciones dentro.~~ **CERRADO — `IMPLEMENTED_AND_PROVEN` en pruebas, `NOT_PROVEN_IN_PRODUCTION`** — REG-348. Contrato acotado igual que el directorio de pacientes: `listarNotasPagina` (keyset `startAfter(fechaConsulta, __name__)`), `listarNotasCompat` con techo y `truncada`, `listarNotasDeInternamiento` (filtro en el servidor), `contarNotasFirmadas` y `listarIdsDeNotas`. Migradas las **cinco** pantallas y la cascada de borrado; el recorte se declara en las cinco. De propina cierra un agujero NOM-004: una nota **firmada sin `fechaConsulta`** no llegaba a la salvaguarda del borrado —Firestore omite de una consulta ordenada lo que no tiene el campo— y el registro legal quedaba borrable. **Lo que NO cierra**: no se ha ejecutado contra Firestore real ni se ha visto en un navegador; una nota sin `fechaConsulta` sigue fuera del listado paginado; y un `fechaConsulta` editado a mitad de la paginación puede saltarse una nota (inherente a cualquier cursor por valores). Golden: `p1-12-historia-del-paciente-acotada.test.ts` (43 casos). |
 | **P1-13** | Quedan otros escritores de scroll: el restaurador de `/consulta` se re-arma tras una lectura de Firestore **sin cancelación por gesto**; los banners asíncronos cambian la altura por encima de `<main>` (41 px medidos); `overscroll-behavior` no aparece en el repositorio. |
 | **P1-10** | Texto completo de PMC se reproduce **sin filtro de licencia por artículo**. El catálogo lo declara como decisión pendiente; el filtro no existe. | `evidencia/pubmed.ts:182` · `catalogo.ts:279` |
 
@@ -116,9 +116,9 @@ Lecturas ilimitadas más caras, además de P0-3/4/5:
 
 | Dónde | Qué |
 |---|---|
-| `expediente/firestore.ts:216` | colección **entera** de citas del consultorio, en la baja de un paciente |
-| `expediente/firestore.ts:41` `getNotas` | historia **completa** de notas de un paciente (llevan las dos transcripciones) |
-| `expediente/firestore.ts:472` | todas las notas firmadas → `.sort().slice(0,3)` **en memoria** |
+| `expediente/firestore.ts:216` | colección **entera** de citas del consultorio, en la baja de un paciente — **sigue abierto**: es de CITAS, no de notas; P1-12 no lo tocó |
+| ~~`expediente/firestore.ts:41` `getNotas`~~ | ~~historia **completa** de notas de un paciente~~ **CERRADO** — REG-348 (P1-12) |
+| ~~`expediente/firestore.ts:472`~~ | ~~todas las notas firmadas → `.sort().slice(0,3)` **en memoria**~~ **CERRADO** — REG-348: `getUltimasNotasResumen` recorre las páginas del orden canónico y se para al juntar las tres |
 | `components/PaletteBusqueda.tsx:60` | Cmd-K **global** descarga 50 000 pacientes para enseñar 6 |
 | `pacientes/page.tsx:934` | segunda descarga completa **sin caché** para deduplicar al guardar |
 | `hooks/useAppointments.ts:94` | historia de citas de un paciente **en vivo**, sin cota ni límite |

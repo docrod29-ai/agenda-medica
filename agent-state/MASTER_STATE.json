@@ -20,12 +20,22 @@
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/(dashboard)/pacientes/page.tsx",
+    " M src/__tests__/exportacion-completa.test.ts",
+    " M src/__tests__/fhir-borradores.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/(dashboard)/cumplimiento/retencion/page.tsx",
+    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
+    " M src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
+    " M src/app/(dashboard)/referencia/[patientId]/page.tsx",
+    " M src/hooks/useExpediente.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts"
+    " M src/lib/expediente/firestore.ts",
+    " M src/lib/retencion.ts",
+    "?? src/__tests__/p1-12-historia-del-paciente-acotada.test.ts"
   ],
   "actualizado": "2026-08-28",
   "resumenDesdeElUltimoEstado": {
@@ -59,12 +69,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-consultorio-completion-hoahgw",
+  "ramaActual": "product/manual-p1-12-getnotas-2026-08-28",
   "derivado": {
-    "regsEnElLedger": 195,
-    "ultimaREG": "REG-347",
-    "archivosDePrueba": 773,
-    "casosDePrueba": 9444,
+    "regsEnElLedger": 196,
+    "ultimaREG": "REG-348",
+    "archivosDePrueba": 774,
+    "casosDePrueba": 9487,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

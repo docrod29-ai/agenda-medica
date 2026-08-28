@@ -117,7 +117,16 @@ describe('Y SE DICE ANTES DE DESCARGAR', () => {
 
   it('la pantalla lo enseña y lo deja en la bitácora', () => {
     const page = readFileSync(join(process.cwd(), 'src', 'app', '(dashboard)', 'expediente', '[patientId]', 'page.tsx'), 'utf8')
-    expect(page).toContain('resumenNotasExportadas(notas)')
+    /**
+     * P1-12 — el argumento pasó de `notas` (lo que la línea de tiempo tuviera
+     * cargado, que ahora se lee por páginas) a `notasExportadas`, que es lo que
+     * de verdad entró en el archivo: la historia pedida EXPLÍCITAMENTE con
+     * `asegurarHistoriaCompleta()`. La intención del caso no cambia —el aviso
+     * cuenta lo que se exportó— y de paso se aprieta: antes podía contar unas
+     * notas y exportar otras.
+     */
+    expect(page).toContain('resumenNotasExportadas(notasExportadas)')
+    expect(page).toContain('notas: notasExportadas, config')
     expect(page).toMatch(/marcadas como preliminares/)
     expect(page).toContain('borradores: rn.borradores')
   })

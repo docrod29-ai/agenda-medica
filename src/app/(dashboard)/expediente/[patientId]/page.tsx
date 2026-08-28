@@ -81,7 +81,10 @@ export default function ExpedientePage() {
   const { clinicId } = useClinic()
   const { user } = useAuth()
   const { toast, confirm } = useToast()
-  const { notas, loading, error: errorNotas, reload } = useExpediente(patientId)
+  const {
+    notas, loading, error: errorNotas, reload,
+    hayMas, cargandoMas, cargarMas, asegurarHistoriaCompleta,
+  } = useExpediente(patientId)
   const [errorPaciente, setErrorPaciente] = useState('')
   const [descargandoTodo, setDescargandoTodo] = useState(false)
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -205,7 +208,11 @@ export default function ExpedientePage() {
     ...(pendientesPaciente && pendientesPaciente.lista.length > 0
       ? [{ id: 'pendientes', label: 'Pendientes', count: pendientesPaciente.lista.length }]
       : []),
-    { id: 'encuentros', label: 'Encuentros', count: loading ? undefined : notas.length },
+    /* P1-12 — el riel NUNCA inventa un total: mientras quede historia sin
+       cargar, el número que hay es «cuántas van cargadas», y se dice así. */
+    hayMas && !loading
+      ? { id: 'encuentros', label: 'Encuentros', detail: `${notas.length} cargadas · hay más` }
+      : { id: 'encuentros', label: 'Encuentros', count: loading ? undefined : notas.length },
     ...(internamientosPaciente && internamientosPaciente.length > 0
       ? [{ id: 'internamientos', label: 'Ingresos', count: internamientosPaciente.length }]
       : []),
@@ -308,6 +315,10 @@ export default function ExpedientePage() {
             <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
               De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
+              {/* P1-12 — este resumen sale de las notas CARGADAS. Mientras quede
+                  historia sin cargar no puede presentarse como el estado actual
+                  completo: sería afirmar sobre notas que nadie ha leído. */}
+              {hayMas && <> Calculado sobre las notas <b>ya cargadas</b>; queda historia anterior sin cargar.</>}
             </div>
           </div>
         </div>
@@ -407,6 +418,26 @@ export default function ExpedientePage() {
            deja de haber un aviso que sólo servía en una dirección: en la
            pestaña Hospital, un paciente con doce notas de consultorio leía
            «Sin notas todavía» sobre un expediente lleno. */
+        <>
+        {/**
+          * P1-12 — un vacío sobre historia A MEDIO CARGAR no es un vacío.
+          *
+          * `notasFiltradas` se calcula sobre las notas ya cargadas. Si la
+          * primera página fuera toda de hospital y el filtro estuviera en
+          * Consulta, esta pantalla diría «sin notas» de un paciente con
+          * historia de consultorio más atrás. Antes de afirmar que no hay, se
+          * ofrece cargar lo que falta.
+          */}
+        {hayMas && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '0 0 16px' }}>
+            <Button variant="secondary" size="sm" onClick={() => { void cargarMas() }} disabled={cargandoMas}>
+              {cargandoMas ? 'Cargando…' : 'Cargar notas anteriores'}
+            </Button>
+            <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+              Queda historia anterior sin cargar: <strong>puede haber notas que aquí no se ven</strong>.
+            </span>
+          </div>
+        )}
         <EmptyState
           variante={vacioDeLaHistoria.variante}
           illustration={vacioDeLaHistoria.variante === 'hero' ? <ExpedienteVacio /> : undefined}
@@ -428,6 +459,7 @@ export default function ExpedientePage() {
             </div>
           ) : undefined}
         />
+        </>
         )
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -477,6 +509,26 @@ export default function ExpedientePage() {
               onBorrar={() => borrarNota(n.id)}
             />
           ))}
+          {/**
+            * P1-12 — LA HISTORIA SIGUE, Y SE DICE.
+            *
+            * El expediente se leía entero de una sentada: la vida completa del
+            * paciente, con los dictados dentro, para pintar las últimas quince
+            * líneas. Ahora se lee por páginas — y el hecho de que haya más NO
+            * se calla: una línea de tiempo recortada que se presenta como el
+            * expediente entero es la regla 4 de seguridad clínica rota en la
+            * pantalla donde se mira la historia.
+            */}
+          {hayMas && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '18px 0 4px' }}>
+              <Button variant="secondary" size="sm" onClick={() => { void cargarMas() }} disabled={cargandoMas}>
+                {cargandoMas ? 'Cargando…' : 'Cargar notas anteriores'}
+              </Button>
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                Hay historia anterior que <strong>todavía no se ha cargado</strong>.
+              </span>
+            </div>
+          )}
         </div>
       )}
       {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
@@ -618,7 +670,17 @@ export default function ExpedientePage() {
               const { getConfig } = await import('@/lib/firestore')
               return { config: await getConfig(clinicId) }
             })()
-            const bundle = exportarPacienteAFhir({ paciente: patient, notas, config })
+            /**
+             * P1-12 — LA EXPORTACIÓN PIDE LA HISTORIA COMPLETA, EXPLÍCITAMENTE.
+             *
+             * La línea de tiempo se lee por páginas; este archivo NO puede
+             * llevarse sólo lo que se hubiera pulsado «cargar más» veces
+             * suficientes. Un expediente que viaja a otra institución con la
+             * mitad de la historia, y sin decirlo, es peor que no mandarlo.
+             */
+            const historia = await asegurarHistoriaCompleta()
+            const notasExportadas = historia.notas
+            const bundle = exportarPacienteAFhir({ paciente: patient, notas: notasExportadas, config })
             const json = JSON.stringify(bundle, null, 2)
             const nombre = patient.nombre.replace(/[^\w]/g, '_').slice(0, 30)
             const blob = new Blob([json], { type: 'application/fhir+json' })
@@ -655,14 +717,22 @@ export default function ExpedientePage() {
              *
              * Se queda UN aviso, y dice lo que el exportador hace de verdad.
              */
-            const rn = resumenNotasExportadas(notas)
+            const rn = resumenNotasExportadas(notasExportadas)
+            /**
+             * Y si el techo recortó la historia, se DICE — «lo que no se pudo
+             * leer se declara». Un archivo incompleto que se entrega como
+             * completo es el mismo defecto que el aviso de arriba corrigió.
+             */
+            const recorte = historia.truncada
+              ? ' AVISO: este paciente tiene más historia de la que cabe en un archivo; lo que va aquí son las notas más recientes, no el expediente entero.'
+              : ''
             toast(
-              rn.borradores > 0
+              (rn.borradores > 0
                 ? `Archivo listo: ${rn.firmadas} nota(s) firmada(s) y ${rn.borradores} en borrador, que viajan marcadas como preliminares y sólo con su texto — sin diagnósticos ni recetas estructuradas.`
-                : `Archivo listo con ${rn.firmadas} nota(s) firmada(s).`,
-              rn.borradores > 0 ? 'info' : 'success',
+                : `Archivo listo con ${rn.firmadas} nota(s) firmada(s).`) + recorte,
+              rn.borradores > 0 || historia.truncada ? 'info' : 'success',
             )
-            logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notas.length, borradores: rn.borradores } })
+            logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notasExportadas.length, borradores: rn.borradores, truncada: historia.truncada } })
           }}
           /*
             EL NOMBRE ACCESIBLE, A MANO — y no por gusto: medido en navegador,

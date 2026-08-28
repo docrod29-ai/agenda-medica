@@ -343,6 +343,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * «la lista» recibe un recorte, y si no se declara, dice «no hay» de lo que
      * sí está. Por eso 341 se cuenta aquí —su causa es el supuesto de tamaño—
      * pero su arreglo no está terminado hasta que el recorte se ve.
+     *
+     * 348 es la MISMA familia una vuelta más adentro: 341 supuso que la
+     * colección de pacientes cabía; 348, que la historia de UN paciente cabe.
+     * El supuesto se había mudado de escala sin cambiar de forma, y volvió a
+     * ser cierto el día que se escribió. Con una agravante propia de aquí: lo
+     * que no cabe no son filas, son los DICTADOS —cada nota lleva la
+     * transcripción entera de la consulta—, así que la degradación llega mucho
+     * antes de lo que sugiere el número de documentos.
+     *
+     * Y al repararla apareció, otra vez, la lección de 347: acotar abre hueco.
+     * De ahí que 348 declare el recorte en las cinco pantallas antes de darse
+     * por cerrada.
      */
     clave: 'crece_mal',
     nombre: 'Se escribió para un consultorio pequeño',
@@ -351,7 +363,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'cierto mientras el consultorio es chico y deja de serlo sin aviso: no ' +
       'falla, se degrada. Ninguna prueba lo delata porque los fixtures son ' +
       'pequeños. Se encuentra preguntando «¿y con cincuenta mil?».',
-    regs: [341],
+    regs: [341, 348],
   },
 ] as const
 

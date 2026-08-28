@@ -1,8 +1,8 @@
 import {
   collection, collectionGroup, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
-  query, orderBy, where, writeBatch, runTransaction,
+  query, orderBy, where, writeBatch, runTransaction, startAfter,
   limit as limitarA, documentId,
-  type DocumentReference,
+  type DocumentReference, type QueryConstraint,
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import type { NotaMedica, Adenda } from '@/types/expediente'
@@ -38,9 +38,298 @@ function normNota(raw: Record<string, unknown>, id: string): NotaMedica {
   }
 }
 
+/**
+ * ── LA HISTORIA DE UN PACIENTE NO CABE EN UNA LECTURA (P1-12) ────────────────
+ *
+ * Lo que había: `getNotas` hacía `getDocs` sobre la subcolección ENTERA de notas
+ * del paciente. Y una nota de este producto no es una fila: lleva dentro
+ * `transcripcionMotor` y `transcripcionCruda` —el dictado completo de la
+ * consulta— más `dialogoDiarizado` y el bloque `extraction`. El propio
+ * `updateNota` documenta que una sola nota se acerca al tope de 1 MB por
+ * documento de Firestore.
+ *
+ * Cinco pantallas pedían esa historia completa, y ninguna la necesitaba entera:
+ * la de hospitalización se la bajaba para quedarse con las notas de UN episodio
+ * (`.filter(...)` en memoria), la de referencia para prellenar UNA carta con UNA
+ * nota, la de retención para leer UNA fecha —y multiplicado por hasta 500
+ * pacientes—, y la salvaguarda NOM-004 de borrado para saber si existe alguna
+ * firmada. Sólo el expediente y la consulta tienen un motivo real para mirar
+ * atrás, y tampoco necesitan hacerlo de una sentada.
+ *
+ * Lo que hay ahora, mismo contrato que el directorio de pacientes (#342):
+ *   · `listarNotasPagina` — página con tope duro, orden determinista y cursor
+ *     por VALORES. Es el contrato canónico.
+ *   · `listarNotasCompat` — superficie de compatibilidad: recorre páginas hasta
+ *     un TECHO DURO y **declara** si se quedó corta (`truncada`).
+ *   · `getNotas` — lo mismo, sin la declaración, para los llamadores que aún no
+ *     la miran y para las pruebas. Quien pinte algo derivado de la historia usa
+ *     `listarNotasCompat` y enseña `truncada`: la regla 4 de seguridad clínica
+ *     —ausencia de dato no es dato de ausencia— vale también para una historia
+ *     recortada.
+ *   · `listarNotasDeInternamiento` — las notas de UN episodio, filtradas en el
+ *     servidor.
+ *   · `contarNotasFirmadas` — cuántas notas firmadas hay, con techo, sin
+ *     bajarse los dictados para contarlas.
+ *
+ * El invariante que se prueba: las lecturas dependen del límite de página o del
+ * techo, NUNCA del número de notas del paciente.
+ */
+
+/** Tamaño de página por omisión. Bajo a propósito: una nota pesa. */
+export const LIMITE_PAGINA_NOTAS = 25
+/** Techo duro de una sola página, aunque el llamador pida más. */
+export const LIMITE_MAX_PAGINA_NOTAS = 100
+/** Techo duro del recorrido de compatibilidad (`getNotas`). */
+export const TECHO_COMPAT_NOTAS = 300
+/** Techo duro de las notas de un mismo episodio de hospitalización. */
+export const TECHO_NOTAS_INTERNAMIENTO = 200
+/** Techo duro del conteo de notas firmadas. Por encima se dice «al menos». */
+export const TECHO_CONTEO_FIRMADAS = 50
+
+/**
+ * Cursor de continuación. Va por VALORES (fecha + id), no por snapshot, para que
+ * cruce el límite de un componente, sobreviva a un remount y pueda viajar en la
+ * URL si hiciera falta.
+ */
+export interface CursorNotas {
+  fechaConsulta: string
+  id: string
+}
+
+export interface PaginaNotas {
+  notas: NotaMedica[]
+  /** null = no hay más páginas. */
+  cursor: CursorNotas | null
+  hayMas: boolean
+  /** Límite efectivo aplicado (ya acotado al techo). */
+  limite: number
+}
+
+export interface HistorialNotas {
+  notas: NotaMedica[]
+  /** true = se alcanzó el techo: HAY notas de este paciente que no vienen aquí. */
+  truncada: boolean
+  techo: number
+}
+
+function acotarNotas(n: number | undefined, porOmision: number, techo: number): number {
+  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return porOmision
+  return Math.min(Math.floor(n), techo)
+}
+
+/**
+ * El orden es (fechaConsulta desc, __name__ desc) y no sólo `fechaConsulta`.
+ *
+ * Dos notas del MISMO día son lo normal, no el caso raro: un ingreso y su
+ * evolución, una consulta y la nota de procedimiento. Sin desempate el cursor
+ * queda indefinido entre ellas y la página siguiente **repite o se salta** una
+ * nota — que en un expediente es perder o duplicar un acto médico. `documentId()`
+ * es el desempate total y Firestore lo indexa solo: la dirección del `__name__`
+ * acompaña a la del campo, así que esto NO exige índice compuesto (este
+ * repositorio no despliega ninguno).
+ *
+ * LO QUE ESTE ORDEN NO ALCANZA (regla 5 de seguridad clínica: se declara en el
+ * módulo). Firestore **omite** de una consulta ordenada los documentos que no
+ * tienen el campo del `orderBy`. Una nota SIN `fechaConsulta` queda fuera del
+ * listado. Esto **no lo introduce esta rebanada**: el `getNotas` anterior ya
+ * ordenaba por `fechaConsulta` y ya las omitía. Queda escrito para que nadie lo
+ * descubra otra vez, y por eso la salvaguarda NOM-004 de borrado (abajo)
+ * dejó de apoyarse en este listado: para decir «no hay ninguna firmada» hace
+ * falta una consulta que no ordene por un campo que puede faltar.
+ */
+function ordenCanonicoNotas(): QueryConstraint[] {
+  return [orderBy('fechaConsulta', 'desc'), orderBy(documentId(), 'desc')]
+}
+
+/**
+ * UNA página de notas, de la más reciente a la más antigua, con cursor de
+ * continuación. Lee como mucho `limite + 1` documentos: el extra sólo sirve para
+ * saber si hay más, y no se devuelve.
+ */
+export async function listarNotasPagina(
+  clinicId: string,
+  patientId: string,
+  opts: { limite?: number; cursor?: CursorNotas | null } = {},
+): Promise<PaginaNotas> {
+  const limite = acotarNotas(opts.limite, LIMITE_PAGINA_NOTAS, LIMITE_MAX_PAGINA_NOTAS)
+  const restricciones: QueryConstraint[] = [...ordenCanonicoNotas()]
+  if (opts.cursor) restricciones.push(startAfter(opts.cursor.fechaConsulta, opts.cursor.id))
+  restricciones.push(limitarA(limite + 1))
+
+  const snap = await getDocs(query(notasCol(clinicId, patientId), ...restricciones))
+  const hayMas = snap.docs.length > limite
+  const pagina = (hayMas ? snap.docs.slice(0, limite) : snap.docs)
+    .map(d => normNota(d.data(), d.id))
+  const ultima = pagina[pagina.length - 1]
+
+  return {
+    notas: pagina,
+    cursor: hayMas && ultima ? { fechaConsulta: String(ultima.fechaConsulta ?? ''), id: ultima.id } : null,
+    hayMas,
+    limite,
+  }
+}
+
+/**
+ * La historia hasta un TECHO DURO, con la verdad de si se quedó corta.
+ *
+ * Es la superficie que deben usar las pantallas que derivan algo de la historia
+ * (medicación vigente, problemas activos, exportación): reciben el recorte y
+ * pueden decirlo. `getNotas` es esta misma llamada tirando `truncada` a la
+ * basura, y por eso no debería crecer en llamadores nuevos.
+ */
+export async function listarNotasCompat(
+  clinicId: string,
+  patientId: string,
+  opts?: { techo?: number },
+): Promise<HistorialNotas> {
+  const techo = acotarNotas(opts?.techo, TECHO_COMPAT_NOTAS, TECHO_COMPAT_NOTAS)
+  const notas: NotaMedica[] = []
+  let cursor: CursorNotas | null = null
+  let truncada = false
+
+  const vueltasMax = Math.ceil(techo / LIMITE_MAX_PAGINA_NOTAS)
+  for (let vuelta = 0; vuelta < vueltasMax; vuelta++) {
+    const restante = techo - notas.length
+    if (restante <= 0) { truncada = true; break }
+    const pagina = await listarNotasPagina(clinicId, patientId, {
+      limite: Math.min(restante, LIMITE_MAX_PAGINA_NOTAS),
+      cursor,
+    })
+    notas.push(...pagina.notas)
+    cursor = pagina.cursor
+    if (!pagina.hayMas) break
+    if (notas.length >= techo) { truncada = true; break }
+  }
+
+  return { notas, truncada, techo }
+}
+
+/**
+ * SUPERFICIE DE COMPATIBILIDAD. Devuelve como mucho `TECHO_COMPAT_NOTAS` notas
+ * y **no dice** si se quedó corta. Quien necesite saberlo —cualquiera que pinte
+ * algo derivado de la historia— llama a `listarNotasCompat` y mira `truncada`.
+ *
+ * NO se usa para decidir si un paciente tiene notas firmadas: eso es
+ * `contarNotasFirmadas`, que no depende de un `orderBy` que puede omitir
+ * documentos.
+ */
 export async function getNotas(clinicId: string, patientId: string): Promise<NotaMedica[]> {
-  const snap = await getDocs(query(notasCol(clinicId, patientId), orderBy('fechaConsulta', 'desc')))
-  return snap.docs.map(d => normNota(d.data(), d.id))
+  return (await listarNotasCompat(clinicId, patientId)).notas
+}
+
+/**
+ * Las notas de UN episodio de hospitalización, filtradas en el SERVIDOR.
+ *
+ * La pantalla del internamiento se bajaba la historia completa del paciente para
+ * quedarse, en memoria, con las de este episodio. Un paciente con veinte años de
+ * consultorio pagaba veinte años de dictados para pintar una estancia de cinco
+ * días.
+ *
+ * Sin `orderBy` en la consulta: combinarlo con el `where` exigiría un índice
+ * compuesto, y este repositorio no despliega ninguno (misma razón que
+ * `getUltimasNotasResumen`). Se ordena en memoria sobre una lista ya acotada.
+ * Consecuencia declarada: si un episodio superara el techo, las que se quedan
+ * fuera las elige Firestore por id de documento, no por fecha — por eso
+ * `truncada` viaja hasta la pantalla en vez de quedarse aquí.
+ */
+export async function listarNotasDeInternamiento(
+  clinicId: string,
+  patientId: string,
+  internamientoId: string,
+  opts?: { techo?: number },
+): Promise<HistorialNotas> {
+  const techo = acotarNotas(opts?.techo, TECHO_NOTAS_INTERNAMIENTO, TECHO_NOTAS_INTERNAMIENTO)
+  if (!clinicId || !patientId || !internamientoId) return { notas: [], truncada: false, techo }
+
+  const snap = await getDocs(query(
+    notasCol(clinicId, patientId),
+    where('internamientoId', '==', internamientoId),
+    limitarA(techo + 1),
+  ))
+  const truncada = snap.docs.length > techo
+  const notas = (truncada ? snap.docs.slice(0, techo) : snap.docs)
+    .map(d => normNota(d.data(), d.id))
+    .sort((a, b) => {
+      const fa = a.fechaConsulta ?? ''
+      const fb = b.fechaConsulta ?? ''
+      if (fa !== fb) return fb.localeCompare(fa)
+      return b.id.localeCompare(a.id)
+    })
+
+  return { notas, truncada, techo }
+}
+
+/**
+ * CUÁNTAS NOTAS FIRMADAS TIENE ESTE PACIENTE — con techo y sin bajarse la
+ * historia entera para contarlas.
+ *
+ * Se consulta por `estado` y **sin `orderBy`** a propósito. La salvaguarda
+ * NOM-004 del borrado se apoyaba en `getNotas`, que ordena por `fechaConsulta`:
+ * una nota firmada a la que le faltara ese campo quedaba fuera del listado y la
+ * salvaguarda no la veía — el registro legal se podía borrar. Aquí no hay
+ * `orderBy`, así que ninguna nota firmada se escapa por falta de un campo.
+ *
+ * `alMenos` = se llegó al techo: hay ese número **o más**. Nunca se devuelve un
+ * conteo redondeado hacia abajo haciéndolo pasar por exacto.
+ */
+export async function contarNotasFirmadas(
+  clinicId: string,
+  patientId: string,
+  opts?: { techo?: number },
+): Promise<{ conteo: number; alMenos: boolean; techo: number }> {
+  const techo = acotarNotas(opts?.techo, TECHO_CONTEO_FIRMADAS, TECHO_CONTEO_FIRMADAS)
+  const snap = await getDocs(query(
+    notasCol(clinicId, patientId),
+    where('estado', '==', 'firmada'),
+    limitarA(techo + 1),
+  ))
+  const alMenos = snap.docs.length > techo
+  return { conteo: alMenos ? techo : snap.docs.length, alMenos, techo }
+}
+
+/** Techo duro del barrido de ids para la cascada de borrado. */
+export const TECHO_CASCADA_NOTAS = 2000
+
+/**
+ * TODOS los ids de notas del paciente, para la cascada de borrado.
+ *
+ * Ordena por `documentId()` y no por `fechaConsulta` a propósito: el borrado en
+ * cascada tiene que alcanzar **todas** las notas, y una consulta ordenada por un
+ * campo omite los documentos que no lo tienen. Con `fechaConsulta` una nota sin
+ * fecha sobrevivía al borrado del paciente y quedaba huérfana bajo una ruta cuyo
+ * documento padre ya no existe. Todo documento tiene id.
+ *
+ * `truncada` = se llegó al techo. El llamador NO debe borrar a medias: media
+ * cascada deja un expediente inconsistente y sin nadie que lo sepa.
+ */
+export async function listarIdsDeNotas(
+  clinicId: string,
+  patientId: string,
+  opts?: { techo?: number },
+): Promise<{ ids: string[]; truncada: boolean; techo: number }> {
+  const techo = acotarNotas(opts?.techo, TECHO_CASCADA_NOTAS, TECHO_CASCADA_NOTAS)
+  const ids: string[] = []
+  let ultimo: string | null = null
+
+  const vueltasMax = Math.ceil(techo / LIMITE_MAX_PAGINA_NOTAS) + 1
+  for (let vuelta = 0; vuelta < vueltasMax; vuelta++) {
+    const restante = techo - ids.length
+    if (restante <= 0) return { ids, truncada: true, techo }
+    const tam = Math.min(restante, LIMITE_MAX_PAGINA_NOTAS)
+    const restricciones: QueryConstraint[] = [orderBy(documentId(), 'asc')]
+    if (ultimo !== null) restricciones.push(startAfter(ultimo))
+    restricciones.push(limitarA(tam + 1))
+
+    const snap = await getDocs(query(notasCol(clinicId, patientId), ...restricciones))
+    const hayMas = snap.docs.length > tam
+    const lote = hayMas ? snap.docs.slice(0, tam) : snap.docs
+    for (const d of lote) ids.push(d.id)
+    if (!hayMas) return { ids, truncada: false, techo }
+    ultimo = lote[lote.length - 1]?.id ?? null
+    if (ultimo === null) return { ids, truncada: false, techo }
+  }
+  return { ids, truncada: true, techo }
 }
 
 export async function getNota(clinicId: string, patientId: string, notaId: string): Promise<NotaMedica | null> {
@@ -285,13 +574,38 @@ export async function deletePatientExpediente(
   /** Datos del paciente para borrar también citas que coinciden por nombre/teléfono */
   matchInfo?: { nombre?: string; telefono?: string },
 ): Promise<{ ok: boolean; motivo?: string; borradas?: { notas: number; citas: number } }> {
-  // 1. Verificar notas firmadas (NOM-004 — bloqueo legal)
-  const notas = await getNotas(clinicId, patientId)
-  const firmadas = notas.filter(n => n.estado === 'firmada')
-  if (firmadas.length > 0) {
+  /**
+   * 1. Verificar notas firmadas (NOM-004 — bloqueo legal).
+   *
+   * P1-12: esto se apoyaba en `getNotas`, que bajaba la historia COMPLETA —con
+   * los dictados dentro— sólo para contar cuántas estaban firmadas. Y peor: al
+   * ordenar por `fechaConsulta`, Firestore omite las notas que no tienen ese
+   * campo, así que una nota FIRMADA sin fecha no llegaba hasta aquí y el
+   * expediente legal quedaba borrable. `contarNotasFirmadas` consulta por
+   * `estado`, sin `orderBy`, y con techo.
+   *
+   * Si la lectura falla, la excepción sube y NO se borra nada: no poder
+   * comprobarlo no es haber comprobado que no hay ninguna.
+   */
+  const firmadas = await contarNotasFirmadas(clinicId, patientId)
+  if (firmadas.conteo > 0) {
+    const cuantas = firmadas.alMenos ? `al menos ${firmadas.conteo}` : `${firmadas.conteo}`
     return {
       ok: false,
-      motivo: `Tiene ${firmadas.length} nota(s) firmada(s). Los registros clínicos firmados no pueden eliminarse (NOM-004).`,
+      motivo: `Tiene ${cuantas} nota(s) firmada(s). Los registros clínicos firmados no pueden eliminarse (NOM-004).`,
+    }
+  }
+
+  /**
+   * Los ids de las notas que se van a borrar. A estas alturas ya se sabe que
+   * NINGUNA está firmada; lo que queda son borradores. Se piden por id y no por
+   * fecha para que ninguna se quede huérfana bajo un paciente ya borrado.
+   */
+  const idsNotas = await listarIdsDeNotas(clinicId, patientId)
+  if (idsNotas.truncada) {
+    return {
+      ok: false,
+      motivo: `Este paciente tiene más de ${idsNotas.techo} notas en borrador y el borrado se haría a medias. No se eliminó nada.`,
     }
   }
 
@@ -328,7 +642,7 @@ export async function deletePatientExpediente(
 
   // Commit atómico en lotes de 450 (tope de Firestore = 500 ops por batch).
   const todo = [
-    ...notas.map(n => notaDoc(clinicId, patientId, n.id)),
+    ...idsNotas.ids.map(id => notaDoc(clinicId, patientId, id)),
     ...refsCitas,
     doc(db, 'clinics', clinicId, 'patients', patientId),  // el paciente al final
   ]
@@ -342,7 +656,7 @@ export async function deletePatientExpediente(
     return { ok: false, motivo: `No se pudo completar el borrado: ${e instanceof Error ? e.message : 'error'}. No se eliminó nada parcial.` }
   }
 
-  return { ok: true, borradas: { notas: notas.length, citas: refsCitas.length } }
+  return { ok: true, borradas: { notas: idsNotas.ids.length, citas: refsCitas.length } }
 }
 
 /** Solo se permite actualizar borradores (NOM-024: las firmadas son inmutables) */
@@ -568,17 +882,33 @@ export async function getUltimasNotasResumen(
   patientId: string,
   limit = 3,
 ): Promise<string> {
-  // SIN orderBy en la query: combinarlo con where() exigiría un índice compuesto
-  // que no existe → la consulta fallaba en silencio (card vacío y la IA sin
-  // contexto de visitas previas). Se ordena en memoria (pocas notas por paciente).
-  const snap = await getDocs(query(
-    notasCol(clinicId, patientId),
-    where('estado', '==', 'firmada'),
-  ))
-  const notas = snap.docs
-    .map(d => d.data() as NotaMedica)
-    .sort((a, b) => (b.fechaConsulta || '').localeCompare(a.fechaConsulta || ''))
-    .slice(0, limit)
+  /**
+   * P1-12 — «POCAS NOTAS POR PACIENTE» ERA UN SUPUESTO, NO UN LÍMITE.
+   *
+   * Esto pedía TODAS las notas firmadas del paciente —con los dictados dentro—
+   * para ordenarlas en memoria y quedarse con tres. Y corre en el arranque de la
+   * consulta, junto al resto de la carga: era la segunda lectura ilimitada de la
+   * pantalla donde el médico está mirando al paciente.
+   *
+   * Sigue sin combinar `where` con `orderBy` —eso exigiría un índice compuesto
+   * que este repositorio no despliega—: ahora recorre las páginas del orden
+   * canónico (ya descendente por fecha) y se para en cuanto junta las que le
+   * piden. Con la primera página basta salvo que las más recientes sean todas
+   * borradores, y aun entonces hay un techo de vueltas.
+   */
+  const notas: NotaMedica[] = []
+  let cursor: CursorNotas | null = null
+  for (let vuelta = 0; vuelta < 4 && notas.length < limit; vuelta++) {
+    const pagina: PaginaNotas = await listarNotasPagina(clinicId, patientId, {
+      limite: LIMITE_PAGINA_NOTAS,
+      cursor,
+    })
+    for (const n of pagina.notas) {
+      if (n.estado === 'firmada' && notas.length < limit) notas.push(n)
+    }
+    cursor = pagina.cursor
+    if (!pagina.hayMas) break
+  }
   if (notas.length === 0) return ''
   return notas
     .map(n => `[${(n.fechaConsulta || '').slice(0, 10)}] ${n.resumenEjecutivo || (n.diagnosticos ?? []).map(d => d.descripcion).join(', ')}`)

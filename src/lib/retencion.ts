@@ -22,6 +22,13 @@ export interface PacienteRetencion {
   estado: 'vigente' | 'cercano' | 'vencido'
   /** Total de notas firmadas que conserva */
   notasFirmadas: number
+  /**
+   * P1-12 — `notasFirmadas` se contó sobre una VENTANA de la historia, no sobre
+   * toda: hay ese número **o más**. La pantalla lo dice; un recuento recortado
+   * que se presenta como total es la regla 4 de seguridad clínica rota en la
+   * pantalla de la NOM-004.
+   */
+  notasFirmadasParcial?: boolean
 }
 
 const DIAS_5_ANIOS = 5 * 365
@@ -35,6 +42,11 @@ export function evaluarRetencion(
   patient: Patient,
   notas: NotaMedica[],
   ultimaCitaFecha?: string,
+  /**
+   * `historialParcial` = `notas` es una ventana de la historia, no toda. No
+   * cambia ningún cálculo: cambia lo que se puede AFIRMAR del resultado.
+   */
+  opciones?: { historialParcial?: boolean },
 ): PacienteRetencion {
   // Buscar la fecha más reciente de cualquier "acto médico"
   const fechasNotas = notas.map(n => n.fechaConsulta).filter(Boolean)
@@ -52,6 +64,7 @@ export function evaluarRetencion(
       diasDesdeUltimoActo: 0,
       estado: 'vigente',
       notasFirmadas: notas.filter(n => n.estado === 'firmada').length,
+      notasFirmadasParcial: opciones?.historialParcial === true,
     }
   }
 
@@ -68,6 +81,7 @@ export function evaluarRetencion(
     diasDesdeUltimoActo: dias,
     estado,
     notasFirmadas: notas.filter(n => n.estado === 'firmada').length,
+    notasFirmadasParcial: opciones?.historialParcial === true,
   }
 }
 
