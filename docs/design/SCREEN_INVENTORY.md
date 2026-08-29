@@ -40,7 +40,7 @@
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
 | `/resena/[token]` | paciente | ✅ | 139 | 0 | — | ✅ | — |
-| `/reservar/[clinicId]` | paciente | ✅ | 405 | 0 | — | ✅ | — |
+| `/reservar/[clinicId]` | paciente | ✅ | 440 | 0 | — | ✅ | — |
 | `/teleconsulta/[citaId]` | paciente | ✅ | 112 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |

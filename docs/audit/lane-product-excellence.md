@@ -39,6 +39,7 @@ Cada defecto apareció al comprobar el anterior.
 | 5 | «Automático» no sobrevivía a una recarga | el hueco tratado como dato |
 | 6 | Lo mismo que el 2, en las pantallas del día del médico | el sistema se contradice a sí mismo |
 | 7 | La agenda no sabía qué días existen ni hasta cuándo llega | el sistema se contradice a sí mismo |
+| 8 | Reservar dos veces eran dos citas, y el aviso culpaba a un extraño | el mensaje mentía sobre la causa |
 
 Y el orden importa: **el 5 es el que hace alcanzables al 1 y al 2.** Mientras
 «automático» no sobreviviera a una recarga, el bloque
@@ -406,3 +407,101 @@ interfaz con tope: **0 de 4 → 4 de 4**.
 **NEXT.** Recorrido de reserva del paciente de punta a punta contra emuladores
 (prioridad 2), que además desbloquea el navegador para las pantallas
 autenticadas.
+
+---
+
+## 8 · Reservar dos veces eran dos citas, y el aviso culpaba a un extraño
+
+**FOUND — tres cosas, recorriendo el alta del paciente en un navegador real.**
+
+**a) El reenvío se trataba como conflicto ajeno.** Enviando tres veces la misma
+reserva contra el emulador: `200`, luego `409 «Ese horario acaba de ocuparse.
+Elige otro.»` dos veces. Se le dice al paciente que **otra persona** le quitó el
+hueco cuando quien lo tomó fue él. Lo razonable entonces es elegir otra hora — y
+acabar con dos citas, y el consultorio con dos avisos de «🔔 Nueva cita».
+
+El doble clic es el caso amable. El que duele es el **resultado desconocido**:
+el servidor crea la cita y la respuesta se pierde por el camino. El paciente no
+tiene forma de saber que ya la tiene.
+
+**b) «Lun 31 De Ago».** `text-transform: capitalize` pone mayúscula en cada
+palabra — la regla del inglés. En español las preposiciones no la llevan. Las
+doce fichas de la pantalla donde el paciente elige el día de su cita estaban mal
+escritas.
+
+**c) El calendario del paciente llegaba a 14 días; el servidor, a un año.** La
+ventana de reserva en línea (`DIAS_VENTANA_RESERVA_PUBLICA = 365`) existía en el
+servidor y **ninguna superficie llegaba a ella**: quien necesitaba cita a seis
+semanas no tenía forma de pedirla. Familia «escrito y sin conectar».
+
+**ROOT_CAUSE.** (a) el chequeo de solape no distinguía «alguien ocupa este
+hueco» de «TÚ ocupas este hueco» — una reserva repetida solapa consigo misma por
+definición. (b) una regla tipográfica de otro idioma. (c) una constante local de
+14 que nadie volvió a mirar cuando el servidor abrió el año.
+
+**FILES_OWNED.** `src/lib/agenda/reserva-repetida.ts` (nuevo) ·
+`src/lib/texto-es.ts` (nuevo) · `api/public/booking/route.ts` ·
+`reservar/[clinicId]/page.tsx` · `scripts/carril-excelencia/*`.
+
+**CROSS_LANE_CHECK.** Ninguno de estos archivos está en el diff del otro carril.
+`git merge-tree`: **cero conflictos añadidos**.
+
+**CHANGE.** La reserva se vuelve **idempotente**: reenviar exactamente la misma
+—mismo teléfono normalizado a diez dígitos, mismo `fechaHora`, mismo tipo, cita
+viva— devuelve la que ya existe con `yaExistia: true` y **el mismo `citaId`**, y
+sale antes de los avisos para no anunciar dos veces la misma cita. Ante la duda
+NO se fusiona: sin teléfono, dos reservas no son la misma, porque juntar las
+citas de dos personas es mucho peor que crear una de más. La decisión vive en un
+módulo puro para poder probarla en CI. La mayúscula pasa del CSS al texto. Y el
+calendario crece de cuatro en cuatro semanas hasta la ventana real, sin
+pregenerar el año.
+
+**REGRESSION.** `reservar-dos-veces-no-son-dos-citas.test.ts`, 12 casos.
+Probado al revés **dos veces**: quitando la rama del reenvío cae «el reenvío gana
+al conflicto»; quitando la salida temprana cae «devuelve la cita que ya existía».
+Un caso vigila que los avisos de WhatsApp queden **después** de esa salida.
+
+**BROWSER_PROOF.** Chromium real contra emuladores, 390 / 768 / 1440 — los ocho
+pasos del recorrido hasta «¡Cita solicitada! ✅», sin errores de consola ni
+desbordamiento horizontal. Acta y capturas en
+`docs/audit/carril-excelencia/acta-recorrido-reserva.md`.
+
+Y **el dato llegó**: se leyó Firestore después, sin fiarse de la pantalla de
+éxito. Tres corridas, tres citas en tres huecos distintos (09:00 · 09:45 ·
+10:30) porque cada una tomó el primero realmente libre.
+
+Tras el arreglo: tres envíos → **una** cita, el mismo `citaId`, `yaExistia`.
+Otro paciente sobre ese hueco sigue recibiendo `409`. Domingo, festivo, hora de
+comida, fuera de ventana, sobre el techo y fecha imposible: todos rechazados con
+su motivo propio. Nueve envíos desde una IP: `429`.
+
+«Ver más días» medido en navegador: 24 → 48 fichas, hasta «Sáb 24 de oct», y el
+botón mide **44 px** de alto — el mínimo táctil que pide la regla de diseño.
+
+**GATES.** `vitest` entero · lint 95 · diseño sin deuda nueva · build compila.
+El trinquete de diseño **cazó** el `fontSize: 13` del botón nuevo; se arregló el
+cambio (`var(--t-body)`), no el techo.
+
+**SCORE_BEFORE → SCORE_AFTER.** Envíos duplicados que crean cita de más:
+**2 de 3 → 0 de 3**. Fichas de día mal escritas: **12 de 12 → 0**. Días
+alcanzables por el paciente: **14 → 365**, en pasos de 28.
+
+**RESIDUAL_RISK.**
+
+- La idempotencia **no tiene ventana de tiempo**: un reenvío tres días después
+  también devuelve la cita existente. Es correcto —sigue siendo la misma cita—
+  pero significa que esto es idempotencia, no un anti-doble-clic.
+- **No cubre el alta desde el panel** (`/api/appointments`). Ahí hay sesión y
+  una asistente que ve la agenda, así que el reenvío ciego no es el mismo
+  problema; queda declarado, no resuelto.
+- Dos personas que comparten teléfono y piden el mismo hueco del mismo tipo se
+  tratan como la misma reserva. El hueco es uno, así que no se pierde ninguna
+  cita posible, pero está dicho.
+- El portal público muestra el **slug crudo** de un tipo de cita que no esté en
+  su tabla de etiquetas (`TIPO_LABEL[t.tipo] ?? t.tipo`). Se vio al sembrar una
+  clave no canónica: el paciente leía «urgencia» en minúscula entre tres
+  etiquetas capitalizadas. No se tocó — es config inválida, no un defecto del
+  camino— pero queda anotado.
+
+**NEXT.** Agenda de la asistente/recepción de punta a punta (prioridad 3), con
+el mismo arnés y ya con sesión sintética disponible en el emulador.

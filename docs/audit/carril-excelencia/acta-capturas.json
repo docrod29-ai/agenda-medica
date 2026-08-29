@@ -1,50 +1,23 @@
 [
   {
-    "ruta": "/",
+    "ruta": "/reservar/consultorio-demo-v10",
     "ancho": 390,
     "estado": "200",
     "desbordeHorizontal": false,
     "consola": []
   },
   {
-    "ruta": "/",
+    "ruta": "/reservar/consultorio-demo-v10",
     "ancho": 768,
     "estado": "200",
     "desbordeHorizontal": false,
     "consola": []
   },
   {
-    "ruta": "/",
+    "ruta": "/reservar/consultorio-demo-v10",
     "ancho": 1440,
     "estado": "200",
     "desbordeHorizontal": false,
     "consola": []
-  },
-  {
-    "ruta": "/reservar/demo",
-    "ancho": 390,
-    "estado": "200",
-    "desbordeHorizontal": false,
-    "consola": [
-      "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
-    ]
-  },
-  {
-    "ruta": "/reservar/demo",
-    "ancho": 768,
-    "estado": "200",
-    "desbordeHorizontal": false,
-    "consola": [
-      "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
-    ]
-  },
-  {
-    "ruta": "/reservar/demo",
-    "ancho": 1440,
-    "estado": "200",
-    "desbordeHorizontal": false,
-    "consola": [
-      "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
-    ]
   }
 ]

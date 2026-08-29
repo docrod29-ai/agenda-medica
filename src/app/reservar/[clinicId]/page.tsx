@@ -6,6 +6,8 @@
  * Funciona 24/7, sin requerir cuenta.
  */
 import { useEffect, useMemo, useState } from 'react'
+import { conMayusculaInicial } from '@/lib/texto-es'
+import { DIAS_VENTANA_RESERVA_PUBLICA } from '@/lib/agenda/horizonte'
 import { useParams } from 'next/navigation'
 import {
   Stethoscope, Calendar, Clock, User, CheckCircle2, Loader2, ArrowLeft, MapPin, Phone,
@@ -52,6 +54,9 @@ const TIPO_LABEL: Record<string, string> = {
  * empezaba la lista el día 3 y el 2 de agosto entero desaparecía, sin mensaje.
  * El generador de huecos ya usaba `cfg.zonaHoraria`; la lista de días no.
  */
+/** Cuántos días añade cada «Ver más días». Cuatro semanas: un mes de vista. */
+const PASO_HORIZONTE_DIAS = 28
+
 function nextDays(n: number, tz?: string): string[] {
   const out: string[] = []
   const hoy = hoyISO(tz || 'America/Mexico_City')
@@ -66,6 +71,20 @@ export default function ReservarPage() {
   const [step, setStep] = useState<Step>('tipo')
   const [tipo, setTipo] = useState('')
   const [medicoId, setMedicoId] = useState('')
+  /**
+   * HASTA DÓNDE MIRA EL CALENDARIO DEL PACIENTE — y por qué puede crecer.
+   *
+   * Eran 14 días fijos. El servidor abre la reserva en línea con **un año** de
+   * anticipación (`DIAS_VENTANA_RESERVA_PUBLICA`), así que el paciente que
+   * necesitaba una cita a seis semanas no tenía forma de pedirla: la ventana
+   * existía y ninguna superficie llegaba a ella.
+   *
+   * Empieza en dos semanas porque es donde cae casi toda reserva, y crece de
+   * cuatro en cuatro cuando el paciente lo pide. No se pregenera el año: los
+   * días se calculan al pedirlos, y nunca hay más lista que la que se está
+   * enseñando.
+   */
+  const [horizonteDias, setHorizonteDias] = useState(PASO_HORIZONTE_DIAS)
   const [fecha, setFecha] = useState('')
   const [hora, setHora] = useState('')
   const [slots, setSlots] = useState<string[]>([])
@@ -123,11 +142,11 @@ export default function ReservarPage() {
   const dias = useMemo(() => {
     if (!info) return []
     const DAY_KEYS = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado']
-    return nextDays(14, info.zonaHoraria).filter(d => {
+    return nextDays(horizonteDias, info.zonaHoraria).filter(d => {
       const dk = DAY_KEYS[new Date(d + 'T12:00:00').getDay()]
       return info.horarios[dk]?.activo
     })
-  }, [info])
+  }, [info, horizonteDias])
 
   const tiposCita = info?.tiposCita.filter(t => Number(t.duracion) > 0) ?? []
 
@@ -207,14 +226,30 @@ export default function ReservarPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(110px, 100%), 1fr))', gap: 8 }}>
               {dias.map(d => {
                 const dt = new Date(d + 'T12:00:00')
-                const label = dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
+                const label = conMayusculaInicial(dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }))
                 return (
                   <button key={d} onClick={() => { setFecha(d); setStep('hora') }} style={{ ...btnList, textAlign: 'center', padding: '10px 6px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{label}</div>
+                    {/* Sin `textTransform: 'capitalize'`: ponía «Lun 31 De Ago».
+                        La mayúscula la pone `conMayusculaInicial`, que es la
+                        regla del español — sólo la primera letra. */}
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{label}</div>
                   </button>
                 )
               })}
             </div>
+            {horizonteDias < DIAS_VENTANA_RESERVA_PUBLICA && (
+              <button
+                type="button"
+                onClick={() => setHorizonteDias(d => Math.min(d + PASO_HORIZONTE_DIAS, DIAS_VENTANA_RESERVA_PUBLICA))}
+                style={{
+                  marginTop: 12, width: '100%', minHeight: 44, background: 'transparent',
+                  border: '1px dashed var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--text2)',
+                  fontSize: 'var(--t-body)', fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                Ver más días
+              </button>
+            )}
           </Card>
         )}
 
