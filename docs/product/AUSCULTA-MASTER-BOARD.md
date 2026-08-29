@@ -349,6 +349,21 @@ seguir sirviendo para dosificar. No se filtra por antigüedad porque ése es un
 umbral clínico y no se inventa; se dice la fecha. Hay un caso que falla si
 aparece una constante de días en el módulo.
 
+**REG-369 — y la trayectoria ya se ve donde se prescribe.** `seriesDesdeHistorial`
+existía y su único lector era la pestaña de Laboratorios: para ver que la
+creatinina va 0.9 → 1.3 → 1.7 había que salir de la consulta. Ahora la frase
+—«subió desde 1.3 el 2026-01-10»— viaja pegada al valor dentro del aviso que
+cambia la conducta, y hay una línea en la consulta con las de los analitos que
+los motores usan.
+
+Dice **aritmética, no clínica**: dos números, dos fechas y `sube`/`baja`/`igual`.
+Un guardián quita comentarios y cadenas del módulo y **falla si queda cualquier
+literal numérico** que no sea el tope de puntos; otro falla si la frase contiene
+«empeoró», «deterioro», «alarma», «grave» o «significativo».
+
+**`NEEDS_CLINICAL_REVIEW` del dueño**: cuánto tiene que moverse un analito para
+que el cambio importe.
+
 **REG-363 — las alergias ya son longitudinales, y la regla NO es la de sus dos
 hermanas.** Cada nota firmada sella una **copia** de la lista de alergias, y
 nadie la volvía a leer: los veintitantos llamadores del cruce alergia↔fármaco,

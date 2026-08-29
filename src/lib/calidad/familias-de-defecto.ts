@@ -168,7 +168,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * número y ve que no hay aviso, y lo razonable es concluir que no hace
      * falta. Sólo se encuentra preguntando quién LEE el dato, no quién lo pinta.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368],
+    /**
+     * 369 es el par de 368, y la misma pregunta un paso más allá: el cálculo de
+     * la TRAYECTORIA existía (`seriesDesdeHistorial`) y su único lector estaba
+     * a una pestaña de distancia del momento en que sirve. Creatinina 0.9 → 1.3
+     * → 1.7 no dispara nada por punto y es un deterioro renal.
+     *
+     * Su lección: «conectado» tampoco es «está en la misma pantalla». Un dato
+     * que obliga a salir de donde se decide, con el paciente enfrente, no está
+     * llegando.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369],
   },
   {
     clave: 'se_contradice',

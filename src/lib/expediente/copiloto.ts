@@ -87,6 +87,18 @@ export interface EntradaCopiloto {
    * hoy» al lado de lo que el médico acaba de dictar es ruido.
    */
   labsMedidosEn?: Record<string, string>
+  /**
+   * DE DÓNDE VIENE CADA NÚMERO — la medición anterior, dicha (REG-369).
+   *
+   * Ya redactada por `comoSeDiceLaTrayectoria` («subió desde 1.6 el 2026-01-10»).
+   * Aquí llega como texto y no como puntos a propósito: este motor no debe
+   * decidir cómo se lee una trayectoria, sólo citarla. Y lo que cita es
+   * aritmética —subió, bajó, igual— nunca un juicio.
+   *
+   * Ausente = no hay medición anterior. Un «sin datos previos» colgando de cada
+   * aviso es ruido.
+   */
+  labsTrayectoria?: Record<string, string>
 }
 
 // ── utilidades ──────────────────────────────────────────────────────────────
@@ -305,7 +317,11 @@ function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
  */
 function citaDelLab(e: EntradaCopiloto, clave: string, texto: string): string {
   const cuando = e.labsMedidosEn?.[clave]
-  return cuando ? `${texto}, medida el ${cuando}` : texto
+  const trayecto = e.labsTrayectoria?.[clave]
+  /* Fecha primero, trayectoria después: «creatinina 2.4 mg/dL, medida el
+     2026-07-14, subió desde 1.6 el 2026-01-10». Las dos son procedencia; la
+     segunda sólo aparece si hay una medición anterior de verdad. */
+  return `${texto}${cuando ? `, medida el ${cuando}` : ''}${trayecto ? `, ${trayecto}` : ''}`
 }
 
 function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {

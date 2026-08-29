@@ -11568,3 +11568,77 @@ valor exacto que nadie midió — REG-204 y `el-valor-censurado-no-se-da-por-nor
 (15 casos), con el **motor real** (`copiloto`) y no con dobles. Probada al revés:
 con sólo lo de hoy, el motor no dice nada de la metformina ni de la TFG; con el
 panel del mes pasado, el aviso sale y trae la fecha.
+
+---
+
+## REG-369 — la trayectoria de laboratorio sólo se veía saliendo de la consulta
+
+**QUÉ FALLABA.** REG-368 hizo que los laboratorios del expediente lleguen a los
+motores. Lo que llega es **el último valor de cada analito**, y el último valor no
+dice lo único que a veces importa:
+
+```
+creatinina   0.9 (mar-2025)  →  1.3 (ene-2026)  →  1.7 (jul-2026)
+```
+
+Ninguno de los tres dispara nada por sí solo y los tres juntos son un deterioro
+renal. `seriesDesdeHistorial` construye esa trayectoria desde hace tiempo y **su
+único llamador es el panel de la pestaña de Laboratorios**: para verla hay que
+salir de donde se está prescribiendo, con el paciente enfrente.
+
+**CÓMO SE DESCUBRIÓ.** Estaba escrito en el checkpoint como lo siguiente de WS-10
+después de REG-368.
+
+**CAUSA RAÍZ.** Familia «escrito y sin conectar»: el cálculo existía y su único
+lector estaba a una pestaña de distancia del momento en que sirve.
+
+**EL ARREGLO.** `laboratorio/la-trayectoria.ts` (puro) devuelve, para un analito,
+el valor de ahora, el anterior, sus fechas y la palabra que describe la diferencia.
+Llega a dos sitios:
+
+1. **Al aviso que cambia la conducta**, por `citaDelLab`: «creatinina 2.4 mg/dL,
+   medida el 2026-07-14, **subió desde 1.3 el 2026-01-10**».
+2. **A la consulta**, en una línea bajo la medicación, sólo de los analitos que
+   los motores están usando y sólo cuando hay una medición anterior.
+
+Lo dictado hoy manda y el panel más reciente pasa a ser «el previo» — misma regla
+que `labsDelCuadro`.
+
+**LA LÍNEA QUE SEPARA CITAR DE JUZGAR.** Este módulo hace **aritmética y
+procedencia**: dos números, dos fechas, y `sube`/`baja`/`igual`. No dice si el
+cambio es significativo. «Un ascenso del 30 % de creatinina es una lesión renal
+aguda» es un **umbral clínico** y aquí no se inventa (regla 1): no hay
+porcentajes, ni «deterioro», ni banderas. Un módulo que dijera «función renal
+deteriorándose» estaría emitiendo un juicio que nadie respaldó; uno que dice
+«creatinina 1.7 el 14-jul, antes 1.3 el 10-ene» está citando el expediente.
+
+`NEEDS_CLINICAL_REVIEW` para el dueño: cuánto tiene que moverse un analito para
+que el cambio importe.
+
+**LA PRUEBA.** `src/__tests__/la-trayectoria-del-laboratorio-llega-a-la-consulta.test.ts`
+(18 casos). Dos guardianes que valen por el resto:
+
+- Uno **quita comentarios y cadenas** del módulo y exige que **no quede ningún
+  literal numérico** salvo el tope de puntos, el `0` y el `1` de los índices. Se
+  probó al revés metiendo `const SUBIDA_SIGNIFICATIVA = 0.3`: falla nombrando la
+  cifra. Comprueba el código y no la prosa, justamente porque la prosa explica
+  por qué no hay umbral y la palabra «umbral» aparece ahí.
+- Otro recorre la frase generada y falla si contiene *empeoró*, *deterioro*,
+  *alarma*, *grave* o *significativo*.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No dibuja una gráfica.** La gráfica sigue siendo del panel; esto es la frase
+  que cabe donde se decide.
+- **No trae censurados** («>400»): un límite no es un número y haría subir o bajar
+  una línea por un valor que nadie midió.
+- **Sólo de los analitos que entran a los motores**, y con tope de 4 en pantalla y
+  5 puntos previos: un paciente con quince años de laboratorios convertiría esta
+  línea en el inventario que la regla de diseño prohíbe.
+- **No cubre UCI ni hospitalización**, que tienen su propio camino.
+
+**UN GUARDIÁN AJENO ACTUALIZADO.** El de REG-368 fijaba la forma literal
+`labsDelCuadro(\n labsDesdeEstudios(`. Esta unidad separó el cálculo en dos
+sentencias para reutilizar lo de hoy en la trayectoria; la aserción pasó a
+comprobar lo que de verdad protege —que lo **dictado** siga entrando al puente—
+en vez de la disposición del texto.

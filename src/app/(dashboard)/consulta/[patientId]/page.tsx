@@ -69,6 +69,7 @@ import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/
 import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
 import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
+import { trayectoriaDe, comoSeDiceLaTrayectoria } from '@/lib/expediente/laboratorio/la-trayectoria'
 import { listarPanelesLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
 
 /**
@@ -235,6 +236,15 @@ const FotosClinicas = dynamic(() => import('@/components/FotosClinicas').then(m 
 const PreopAssessment = dynamic(() => import('@/components/PreopAssessment').then(m => m.PreopAssessment), { ssr: false })
 const ValoracionInmuno = dynamic(() => import('@/components/pacientes/ValoracionInmuno'), { ssr: false })
 const CobrarModal = dynamic(() => import('@/components/CobrarModal').then(m => m.CobrarModal), { ssr: false })
+/**
+ * Cuántas trayectorias caben en la línea de la consulta (REG-369).
+ *
+ * Un paciente con panel completo tiene decenas de analitos; enseñarlos todos
+ * convertiría esta línea en el inventario que la regla de diseño prohíbe. Los
+ * que entran son los que el motor está usando, y de ésos los primeros.
+ */
+const TOPE_TRAYECTORIAS_EN_PANTALLA = 4
+
 const PanelLaboratorios = dynamic(() => import('@/components/laboratorio/PanelLaboratorios').then(m => m.PanelLaboratorios), { ssr: false })
 const RevisionPanel = dynamic(() => import('@/components/RevisionPanel').then(m => m.RevisionPanel), { ssr: false })
 const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPanel), { ssr: false })
@@ -943,11 +953,22 @@ export default function ConsultaActivaPage() {
    * dentro de una memoización manual no la preserva el React Compiler y el
    * trinquete de lint lo caza — la misma razón que `medsDelCuadro`.
    */
-  const labsDeLaConsulta = labsDelCuadro(
-    labsDesdeEstudios(
-      (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
-    ),
-    panelesLab,
+  const labsDeHoy = labsDesdeEstudios(
+    (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
+  )
+  const labsDeLaConsulta = labsDelCuadro(labsDeHoy, panelesLab)
+  /**
+   * LA TRAYECTORIA DE LO QUE EL MOTOR ESTÁ USANDO (REG-369).
+   *
+   * Sólo de los analitos que de verdad entran al motor: una trayectoria de algo
+   * que nadie va a usar es inventario. Y sólo cuando hay medición anterior —
+   * `comoSeDiceLaTrayectoria` devuelve cadena vacía si no la hay, y aquí se
+   * descarta, para que el aviso no arrastre un «sin datos previos».
+   */
+  const trayectoriasDeLaConsulta = Object.fromEntries(
+    Object.keys(labsDeLaConsulta.labs)
+      .map(clave => [clave, comoSeDiceLaTrayectoria(trayectoriaDe(panelesLab, clave, labsDeHoy[clave]))] as const)
+      .filter(([, frase]) => frase),
   )
 
   const entradaCopiloto = useMemo(() => ({
@@ -1007,7 +1028,8 @@ export default function ConsultaActivaPage() {
      */
     labs: labsDeLaConsulta.labs,
     labsMedidosEn: labsDeLaConsulta.medidoEn,
-  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, labsDeLaConsulta])
+    labsTrayectoria: trayectoriasDeLaConsulta,
+  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, labsDeLaConsulta, trayectoriasDeLaConsulta])
   const [resumen, setResumen] = useState('')
   /**
    * QUÉ ES ESTA NOTA PARA EL SELLO — una vez, para las dos lecturas.
@@ -4834,6 +4856,41 @@ export default function ConsultaActivaPage() {
                 fármaco crónico que no se haya vuelto a mencionar.
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/*
+        ── HACIA DÓNDE VAN LOS NÚMEROS (REG-369) ────────────────────────────
+
+        La trayectoria de laboratorio existía desde hace tiempo
+        (`seriesDesdeHistorial`) y **sólo la dibujaba la pestaña de
+        Laboratorios**: para verla había que salir de donde se prescribe. Y el
+        último valor no dice lo único que a veces importa — creatinina 0.9 →
+        1.3 → 1.7 no dispara nada por punto y es un deterioro renal.
+
+        Sólo de los analitos que de verdad entran a los motores, y sólo cuando
+        hay una medición anterior: una trayectoria de algo que nadie usa es
+        inventario, y un «sin datos previos» en cada renglón es ruido.
+
+        Dice aritmética, no clínica. «Subió» es un hecho; «empeoró» sería un
+        diagnóstico que nadie firmó.
+      */}
+      {Object.keys(trayectoriasDeLaConsulta).length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
+          background: 'var(--s2)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '9px 13px',
+        }}>
+          <FlaskConical size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
+            <strong style={{ color: 'var(--text)' }}>Laboratorios:</strong>{' '}
+            {Object.entries(trayectoriasDeLaConsulta).slice(0, TOPE_TRAYECTORIAS_EN_PANTALLA)
+              .map(([clave, frase]) => `${clave} ${labsDeLaConsulta.labs[clave]} — ${frase}`)
+              .join(' · ')}
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>
+              De sus paneles de laboratorio. Dice cómo cambió el número, no si el cambio es importante.
+            </div>
           </div>
         </div>
       )}

@@ -190,7 +190,11 @@ describe('el dato tiene que LLEGAR a la consulta', () => {
   })
 
   it('sigue pasando lo dictado hoy: el puente añade, no sustituye', () => {
-    expect(src).toMatch(/labsDelCuadro\(\s*\n\s*labsDesdeEstudios\(/)
+    /* REG-369 separó el cálculo en dos sentencias para poder reutilizar lo de
+       hoy en la trayectoria. Lo que este caso protege no es la forma sino que
+       lo DICTADO siga entrando al puente. */
+    expect(src).toMatch(/const labsDeHoy = labsDesdeEstudios\(/)
+    expect(src).toContain('labsDelCuadro(labsDeHoy, panelesLab)')
   })
 
   it('si la lectura falla, los motores ven lo de hoy — no se rompe la consulta', () => {
