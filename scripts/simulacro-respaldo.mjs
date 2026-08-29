@@ -63,6 +63,16 @@ function consultorioSintetico(n) {
   // Una línea excluida a propósito: el respaldo no debería traerla, y si un
   // archivo editado a mano la trae, el ensayo tiene que verla rechazada.
   lineas.push(JSON.stringify({ _ruta: 'clinics/origen/secretos/ia', _coleccion: 'secretos', apiKey: 'NO-DEBE-ENTRAR' }))
+  /**
+   * Y una de NIVEL RAÍZ (REG-348): pertenece al consultorio por un CAMPO, no
+   * por la ruta. Es lo que ata una cuenta al consultorio, así que sin ella el
+   * ensayo mediría un respaldo que devuelve el expediente y a nadie que pueda
+   * entrar a verlo — y hasta REG-348 el simulacro la daba por rechazada.
+   */
+  lineas.push(JSON.stringify({
+    _ruta: 'clinic_members/uid-sintetico-0', _coleccion: 'clinic_members',
+    clinicId: 'origen', role: 'medico', email: 'sintetico@ejemplo.invalid',
+  }))
   lineas.push(JSON.stringify({ _tipo: 'pie', documentos: n, completo: true }))
   return lineas.join('\n')
 }

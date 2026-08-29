@@ -22,18 +22,31 @@
  *  · **Las llaves de API no entran nunca**, aunque el archivo las traiga.
  *  · **Una línea rota no aborta la restauración**: se rechaza con su razón y
  *    aparece en el informe.
+ *  · **Restaurar no le quita nada a otro consultorio** (REG-348): las
+ *    colecciones de nivel raíz comparten espacio de identificadores, así que se
+ *    mira quién es el dueño ANTES de escribir.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { COLECCIONES, rutasDelArbol } from '@/lib/clinica/respaldo'
-import { leerLinea, reenraizar, admitir, type InformeRestauracion } from '@/lib/clinica/restaurar'
+import {
+  leerLinea, reenraizar, reenraizarPorCampo, admitir, admitirRaizExistente,
+  type InformeRestauracion,
+} from '@/lib/clinica/restaurar'
 
 export const maxDuration = 300
 
 /** Documentos por lote. Firestore admite 500; se deja margen. */
 const LOTE = 400
+/**
+ * Documentos de nivel raíz que se comprueban de una vez contra el destino.
+ * Se leen en bloque (`getAll`) en vez de uno a uno: una lectura por documento
+ * en un consultorio con miles de solicitudes de reseña gasta el presupuesto de
+ * la función entera antes de escribir nada.
+ */
+const LOTE_RAIZ = 200
 /** Tope de líneas rechazadas que se detallan. El resto sólo se cuenta. */
 const TOPE_RECHAZADAS = 50
 
@@ -80,6 +93,7 @@ export async function POST(req: NextRequest) {
     const informe: InformeRestauracion = {
       escritos: 0, porColeccion: {}, rechazadas: [],
       archivoCompleto: false, origen: null, reenraizado: false,
+      raizReapuntada: 0, raizDeOtroConsultorio: 0,
     }
     let rechazadasTotal = 0
     /**
@@ -118,6 +132,54 @@ export async function POST(req: NextRequest) {
       if (informe.rechazadas.length < TOPE_RECHAZADAS) informe.rechazadas.push({ porQue, crudo })
     }
 
+    const anotar = (coleccion: string) => {
+      informe.escritos++
+      informe.porColeccion[coleccion] = (informe.porColeccion[coleccion] ?? 0) + 1
+    }
+
+    /**
+     * ── LAS DE NIVEL RAÍZ (REG-348) ────────────────────────────────────────
+     *
+     * `clinic_members/{uid}` es la MISMA ruta en todos los consultorios: no hay
+     * re-enraizado de ruta que los separe. Escribir a ciegas con `merge`
+     * arrastraría al consultorio que se restaura a alguien que hoy trabaja en
+     * otro, y esa persona perdería el acceso al suyo sin que nadie hiciera nada
+     * mal. Por eso se lee el destino ANTES de escribir.
+     *
+     * Se acumulan y se comprueban en bloque para no gastar una ida y vuelta por
+     * documento. La comprobación se hace TAMBIÉN en modo ensayo: un ensayo que
+     * no ve la colisión no ensaya el paso que puede fallar.
+     */
+    const pendientesRaiz: {
+      ruta: string; coleccion: string; campoClinica: string; datos: Record<string, unknown>
+    }[] = []
+
+    const vaciarRaiz = async () => {
+      if (pendientesRaiz.length === 0) return
+      const grupo = pendientesRaiz.splice(0, pendientesRaiz.length)
+      const actuales = await adminDb.getAll(...grupo.map(g => adminDb.doc(g.ruta)))
+      for (let i = 0; i < grupo.length; i++) {
+        const g = grupo[i]
+        const snap = actuales[i]
+        const v = admitirRaizExistente(
+          snap?.exists ? (snap.data() as Record<string, unknown>) : undefined,
+          g.campoClinica, clinicId,
+        )
+        if (!v.escribir) {
+          informe.raizDeOtroConsultorio++
+          rechazar(v.porQue, g.ruta)
+          continue
+        }
+        if (g.datos[g.campoClinica] !== clinicId) informe.raizReapuntada++
+        if (!simular) {
+          lote.set(adminDb.doc(g.ruta), reenraizarPorCampo(g.datos, g.campoClinica, clinicId), { merge: true })
+        }
+        anotar(g.coleccion)
+        enLote++
+        if (enLote >= LOTE) await vaciar()
+      }
+    }
+
     for (const crudo of texto.split('\n')) {
       const l = leerLinea(crudo)
       if (!l) continue
@@ -128,6 +190,14 @@ export async function POST(req: NextRequest) {
         continue
       }
       if (l.clase === 'pie') { informe.archivoCompleto = true; continue }
+
+      if (l.nivel === 'raiz') {
+        pendientesRaiz.push({
+          ruta: l.ruta, coleccion: l.coleccion, campoClinica: l.campoClinica, datos: l.datos,
+        })
+        if (pendientesRaiz.length >= LOTE_RAIZ) await vaciarRaiz()
+        continue
+      }
 
       if (!conocidas.has(l.coleccion)) {
         rechazar(`colección desconocida: ${l.coleccion}`, l.ruta)
@@ -140,11 +210,12 @@ export async function POST(req: NextRequest) {
       // es el del parámetro y no el que venga escrito en el archivo.
       const destino = reenraizar(l.ruta, clinicId)
       if (!simular) lote.set(adminDb.doc(destino), l.datos, { merge: true })
-      informe.escritos++
-      informe.porColeccion[l.coleccion] = (informe.porColeccion[l.coleccion] ?? 0) + 1
+      anotar(l.coleccion)
       enLote++
       if (enLote >= LOTE) await vaciar()
     }
+    // Las de nivel raíz que quedaran en el buffer, ANTES del último commit.
+    await vaciarRaiz()
     await vaciar()
 
     /**
@@ -162,15 +233,32 @@ export async function POST(req: NextRequest) {
           accion: 'restauracion', origen: informe.origen ?? '',
           escritos: informe.escritos, rechazadas: rechazadasTotal,
           archivoCompleto: informe.archivoCompleto,
+          raizReapuntada: informe.raizReapuntada,
+          raizDeOtroConsultorio: informe.raizDeOtroConsultorio,
         },
         timestamp: new Date().toISOString(),
       }).catch(() => { /* la bitácora no puede tumbar una restauración ya aplicada */ })
     }
 
+    /**
+     * LO QUE FALTA SE DICE, Y SE DICE ENTERO.
+     *
+     * Un aviso sustituyendo a otro deja al médico creyendo que ya vio todo lo
+     * que hay que ver. Se acumulan.
+     */
+    const avisos: string[] = []
+    if (!informe.archivoCompleto) {
+      avisos.push('El archivo no traía la línea de cierre: puede estar cortado. Lo escrito sirve, pero NO lo des por completo.')
+    }
+    if (informe.raizDeOtroConsultorio > 0) {
+      avisos.push(
+        `${informe.raizDeOtroConsultorio} documento(s) de nivel raíz NO se restauraron porque su identificador ya pertenece a otro consultorio: restaurarlos se lo habrían quitado. Si alguno era una membresía, esa persona NO podrá entrar hasta que se le dé de alta a mano.`,
+      )
+    }
+
     return NextResponse.json({
       ok: true, simulado: simular, ...informe, rechazadasTotal,
-      aviso: informe.archivoCompleto ? null
-        : 'El archivo no traía la línea de cierre: puede estar cortado. Lo escrito sirve, pero NO lo des por completo.',
+      aviso: avisos.length > 0 ? avisos.join(' · ') : null,
     })
   } catch (e) {
     safeLog.error('[clinic/importar]', e)

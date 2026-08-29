@@ -22,15 +22,37 @@
  *    archivo editado a mano podría traerlas — y escribir credenciales desde un
  *    archivo subido es exactamente la puerta que no se deja abierta.
  *
+ * ── LA CUARTA REGLA, QUE LLEGÓ DESPUÉS (REG-348) ─────────────────────────────
+ *
+ * 4. **Lo que pertenece al consultorio por un CAMPO también vuelve.** Tres
+ *    colecciones son del consultorio sin colgar de él (`clinic_members`,
+ *    `clinic_invitations`, `clinic_review_requests`): llevan el `clinicId` en un
+ *    campo, no en la ruta. El respaldo aprendió a llevárselas (REG-343) y el
+ *    camino de vuelta seguía escrito sólo para el árbol, así que las rechazaba
+ *    todas por «ruta con forma inesperada».
+ *
+ *    Y el re-enraizado de éstas **no es de ruta, es de campo**: se fuerza el
+ *    campo al consultorio destino, por el mismo motivo por el que se reescribe
+ *    la raíz — el destino lo decide quien restaura, no el archivo.
+ *
  * Módulo PURO: quien escriba en Firestore es la ruta.
  */
-import { EXCLUIDAS } from '@/lib/clinica/respaldo'
+import { COLECCIONES_RAIZ, EXCLUIDAS, RAIZ_EXCLUIDAS, type ColeccionRaiz } from '@/lib/clinica/respaldo'
 
 /** Una línea del NDJSON, ya interpretada. */
 export type LineaLeida =
   | { clase: 'cabecera'; datos: Record<string, unknown> }
   | { clase: 'pie'; datos: Record<string, unknown> }
-  | { clase: 'documento'; ruta: string; coleccion: string; datos: Record<string, unknown> }
+  | {
+      clase: 'documento'; nivel: 'clinica'
+      ruta: string; coleccion: string; datos: Record<string, unknown>
+    }
+  | {
+      clase: 'documento'; nivel: 'raiz'
+      ruta: string; coleccion: string; datos: Record<string, unknown>
+      /** Campo por el que este documento declara a qué consultorio pertenece. */
+      campoClinica: string
+    }
   | { clase: 'rechazada'; porQue: string; crudo: string }
 
 /**
@@ -53,6 +75,39 @@ export function coleccionDeLaRuta(ruta: string): string | null {
     nombres.push(partes[i])
   }
   return nombres.join('.')
+}
+
+/**
+ * LA COLECCIÓN DE NIVEL RAÍZ QUE UNA RUTA REPRESENTA — si es una de las que se
+ * respaldan con el consultorio.
+ *
+ *     `clinic_members/UID`   → la entrada de `COLECCIONES_RAIZ`
+ *     `patients/P`           → null (no es de nivel raíz: cuelga del árbol)
+ *     `platform_planes/X`    → null (declarada FUERA del respaldo)
+ *
+ * La lista blanca es el MISMO manifiesto que usa el exportador. Aquí no hay
+ * ruta que reescribir —el identificador es global— así que lo único que impide
+ * que un archivo editado a mano escriba en cualquier colección de la base con
+ * el SDK admin, que se salta las reglas de Firestore, es esta comprobación.
+ */
+export function coleccionRaizDeLaRuta(ruta: string): ColeccionRaiz | null {
+  const partes = String(ruta ?? '').split('/')
+  if (partes.length !== 2 || !partes[0] || !partes[1]) return null
+  return COLECCIONES_RAIZ.find(c => c.ruta === partes[0]) ?? null
+}
+
+/**
+ * Por qué NO entra una ruta de dos segmentos que no está en el manifiesto.
+ *
+ * Cuando la colección está declarada fuera del respaldo con su motivo, se
+ * devuelve ese motivo: quien lea el informe tiene que poder distinguir «esto no
+ * se restaura a propósito» de «esto no se entendió».
+ */
+function porQueNoEsRaizRestaurable(nombre: string): string {
+  const familia = nombre.startsWith('platform_') ? 'platform_*' : nombre
+  const motivo = RAIZ_EXCLUIDAS[familia]
+  if (motivo) return `«${nombre}» no se respalda y tampoco se restaura: ${motivo}`
+  return `colección de nivel raíz no declarada en el respaldo: ${nombre}`
 }
 
 /**
@@ -84,6 +139,30 @@ export function leerLinea(crudo: string): LineaLeida | null {
    * documento en una colección es inventarle un identificador.
    */
   const partes = ruta.split('/')
+  /**
+   * ── NIVEL RAÍZ (REG-348) ─────────────────────────────────────────────────
+   *
+   * Dos segmentos y no cuelga de `clinics/{id}`: es una de las colecciones que
+   * pertenecen al consultorio por un CAMPO. El exportador las escribe así desde
+   * REG-343 (`clinic_members/UID`), y aquí se rechazaban todas —«ruta con forma
+   * inesperada»—, así que el respaldo se llevaba lo que ata una cuenta a un
+   * consultorio y la restauración no sabía devolverlo.
+   *
+   * Sólo las tres del manifiesto. Cualquier otra cae por la lista blanca, con
+   * su motivo cuando está declarada fuera.
+   */
+  if (partes.length === 2) {
+    const raiz = coleccionRaizDeLaRuta(ruta)
+    if (!raiz) {
+      return { clase: 'rechazada', porQue: porQueNoEsRaizRestaurable(partes[0]), crudo: t.slice(0, 120) }
+    }
+    const { _ruta: _r2, _coleccion: _c2, ...datosRaiz } = o
+    void _r2; void _c2
+    return {
+      clase: 'documento', nivel: 'raiz', ruta,
+      coleccion: raiz.ruta, campoClinica: raiz.campoClinica, datos: datosRaiz,
+    }
+  }
   if (partes[0] !== 'clinics' || partes.length < 4 || partes.length % 2 !== 0) {
     return { clase: 'rechazada', porQue: `ruta con forma inesperada: ${ruta}`, crudo: t.slice(0, 120) }
   }
@@ -110,7 +189,7 @@ export function leerLinea(crudo: string): LineaLeida | null {
   }
   const { _ruta, _coleccion, ...datos } = o
   void _ruta; void _coleccion
-  return { clase: 'documento', ruta, coleccion: derivada, datos }
+  return { clase: 'documento', nivel: 'clinica', ruta, coleccion: derivada, datos }
 }
 
 /**
@@ -126,9 +205,62 @@ export function reenraizar(ruta: string, clinicIdDestino: string): string {
   return partes.join('/')
 }
 
+/**
+ * EL RE-ENRAIZADO DE LAS DE NIVEL RAÍZ: por CAMPO, no por ruta.
+ *
+ * Su identificador es global (`clinic_members/{uid}`), así que la ruta no dice a
+ * qué consultorio pertenece el documento: lo dice un campo. Se fuerza al
+ * destino por el mismo motivo por el que la ruta se reescribe siempre — quien
+ * decide el destino es quien restaura, no el archivo.
+ *
+ * Dejar pasar el valor del archivo tendría una consecuencia concreta y muda:
+ * una membresía restaurada seguiría apuntando al consultorio de ORIGEN, así que
+ * el consultorio reconstruido tendría su expediente entero y **ni un solo
+ * miembro** — que es exactamente el defecto que REG-343 quiso cerrar.
+ */
+export function reenraizarPorCampo(
+  datos: Record<string, unknown>, campoClinica: string, clinicIdDestino: string,
+): Record<string, unknown> {
+  return { ...datos, [campoClinica]: clinicIdDestino }
+}
+
 export interface Veredicto {
   escribir: boolean
   porQue: string
+}
+
+/**
+ * ¿SE PUEDE ESCRIBIR ESTE DOCUMENTO DE NIVEL RAÍZ, VISTO LO QUE YA HAY?
+ *
+ * Aquí no hay re-enraizado de ruta que separe consultorios: `clinic_members/U`
+ * es la MISMA ruta en todos. Un `merge` sobre una membresía viva —de una
+ * persona que hoy trabaja en otro consultorio— la arrastraría al consultorio
+ * que se está restaurando, y esa persona perdería el acceso al suyo sin que
+ * nadie hiciera nada mal. Restaurar no puede quitarle a nadie lo que tiene.
+ *
+ * Por eso el destino se lee ANTES de escribir, también en modo ensayo: un
+ * ensayo que no ve la colisión no ensaya el paso que puede fallar.
+ *
+ * Un documento existente **sin** el campo de consultorio se trata como ajeno:
+ * no se sabe de quién es, y pisar lo que no se sabe de quién es no es
+ * restaurar.
+ *
+ * @param existente `undefined` cuando no hay documento en esa ruta.
+ */
+export function admitirRaizExistente(
+  existente: Record<string, unknown> | undefined,
+  campoClinica: string,
+  clinicIdDestino: string,
+): Veredicto {
+  if (!existente) return { escribir: true, porQue: '' }
+  const deQuienEs = existente[campoClinica]
+  if (deQuienEs === clinicIdDestino) return { escribir: true, porQue: '' }
+  const deQuien = typeof deQuienEs === 'string' && deQuienEs
+    ? `otro consultorio (${deQuienEs})` : 'nadie declarado'
+  return {
+    escribir: false,
+    porQue: `ese identificador ya existe y pertenece a ${deQuien}: restaurarlo se lo quitaría`,
+  }
 }
 
 /**
@@ -162,7 +294,25 @@ export interface InformeRestauracion {
   origen: string | null
   /** `true` si se reescribió la raíz porque origen ≠ destino. */
   reenraizado: boolean
+  /**
+   * Documentos de nivel raíz cuyo campo de consultorio traía OTRO valor y se
+   * reapuntó al destino. Sin esto una membresía volvería apuntando al origen.
+   */
+  raizReapuntada: number
+  /**
+   * Documentos de nivel raíz que NO se escribieron porque su identificador ya
+   * pertenece a otro consultorio. Se cuentan aparte porque son la única pérdida
+   * que una restauración puede tener sin que el archivo esté mal.
+   */
+  raizDeOtroConsultorio: number
 }
+
+export const POR_QUE_LA_RAIZ_SE_REAPUNTA_AL_DESTINO =
+  'Las colecciones que pertenecen al consultorio por un CAMPO no se re-enraízan ' +
+  'reescribiendo la ruta —su identificador es global—, sino forzando el campo al ' +
+  'consultorio destino. Si se dejara pasar el valor del archivo, el consultorio ' +
+  'reconstruido tendría el expediente entero y ni un solo miembro: justo el ' +
+  'defecto que el respaldo de estas colecciones existe para evitar.'
 
 export const POR_QUE_SOLO_A_CLINICA_VACIA =
   'Restaurar sobre un consultorio que ya tiene datos mezcla dos historias ' +
