@@ -198,7 +198,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * tenga lector no basta; hay que preguntar si lo lee alguien MÁS que quien
      * lo escribió.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371],
+    /**
+     * 375 y 376 son los dos `NEEDS_CLINICAL_REVIEW` que 368 y 369 dejaron
+     * abiertos, resueltos por el dueño y CONECTADOS. Pertenecen a esta familia
+     * porque hasta que se conectaron, los umbrales que sí existían —el rango de
+     * referencia de cada analito, los valores de pánico de `lab-criticos`— no
+     * los leía nadie desde la trayectoria; y la vigencia de la creatinina no la
+     * miraba nada antes de emitir una recomendación de dosificación renal.
+     *
+     * Su lección: un `NEEDS_CLINICAL_REVIEW` bien escrito no sólo pide una
+     * decisión — deja el enchufe puesto. Cuando la decisión llegó, lo único que
+     * hubo que hacer fue conectarla, y las dos unidades cupieron en un módulo
+     * puro cada una porque el hueco estaba declarado en su sitio exacto.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376],
   },
   {
     clave: 'se_contradice',

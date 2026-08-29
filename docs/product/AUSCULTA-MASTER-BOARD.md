@@ -344,10 +344,19 @@ Hoy manda, el expediente completa, y **lo del expediente viaja con su fecha** �
 aviso dice «creatinina 2.4 mg/dL, medida el 2026-07-14»—. Los valores censurados
 («>400») no entran: un límite no es un número.
 
-**`NEEDS_CLINICAL_REVIEW` del dueño**: cuánto puede tener una creatinina para
-seguir sirviendo para dosificar. No se filtra por antigüedad porque ése es un
-umbral clínico y no se inventa; se dice la fecha. Hay un caso que falla si
-aparece una constante de días en el módulo.
+**RESUELTO por el dueño el 29-ago-2026 → REG-375.** Cuánto puede tener una
+creatinina para seguir sirviendo para dosificar: **≤24 h** con AKI, hospitalizado
+o función renal inestable; **≤30 días** en ambulatorio clínicamente estable;
+**≤7 días** cuando no se puede demostrar estabilidad o el contexto es ambiguo.
+Fuera de ventana se marca `STALE_RENAL_FUNCTION` y se pide función renal
+actualizada — **sin bloquear ni retirar la recomendación**, que es lo que la
+política ordena. Sólo dentro de `ajusteRenal`, que es donde se dosifica por riñón.
+
+**Lo que NO se infiere, declarado**: la estabilidad clínica no se deduce de cuánto
+se movió la creatinina —eso exigiría un umbral de variación que nadie ha
+validado—, así que sólo cuenta si alguien la declara. **Hoy nada la declara**, y
+por eso en ambulatorio rige la ventana conservadora de 7 días; la de 30 queda
+implementada y probada esperando a quien pueda declararla.
 
 **REG-369 — y la trayectoria ya se ve donde se prescribe.** `seriesDesdeHistorial`
 existía y su único lector era la pestaña de Laboratorios: para ver que la
@@ -361,8 +370,21 @@ Un guardián quita comentarios y cadenas del módulo y **falla si queda cualquie
 literal numérico** que no sea el tope de puntos; otro falla si la frase contiene
 «empeoró», «deterioro», «alarma», «grave» o «significativo».
 
-**`NEEDS_CLINICAL_REVIEW` del dueño**: cuánto tiene que moverse un analito para
-que el cambio importe.
+**RESUELTO por el dueño el 29-ago-2026 → REG-376.** **No existe un porcentaje
+universal seguro para todos los analitos**, así que no se implementa ningún umbral
+global. Se usan primero los umbrales **ya definidos** —el rango de referencia de
+`ANALITOS` y los valores de pánico de `lab-criticos`, cada uno con su
+procedencia—; **cruzar un límite de decisión importa aunque el porcentaje sea
+pequeño**; y sin regla validada se muestran delta absoluto y relativo **sin
+etiquetarlos** como clínicamente significativos.
+
+Los dos casos que resumen la política, los dos en el golden: creatinina 0.6 → 0.9
+es **+50 %** y no cruza nada → no se marca; creatinina 1.25 → 1.35 es **+8 %** y
+cruza 1.3 → sí, y se dice qué línea cruzó.
+
+**RCV / variación biológica**: la política la permite «si existe validada», y en
+este repositorio **no existe ninguna**. `RELEVANCIA_POR_RCV` queda vacía y
+congelada, con su sitio marcado — rellenarla de memoria sería inventar una cifra.
 
 **REG-370 — el procedimiento que se dictó ya no se pierde en silencio.**
 `entidades.procedures` se reconocía con fecha y lateralidad, se pintaba en el

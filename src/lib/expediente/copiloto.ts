@@ -99,6 +99,21 @@ export interface EntradaCopiloto {
    * aviso es ruido.
    */
   labsTrayectoria?: Record<string, string>
+  /**
+   * ¿La creatinina sigue sirviendo para dosificar? — política del dueño (REG-375).
+   *
+   * Se recibe ya resuelta: qué ventana aplica es una decisión clínica y vive en
+   * `laboratorio/vigencia-de-la-funcion-renal.ts`, no en este motor. Aquí sólo se
+   * dice lo que esa decisión dictó.
+   *
+   * Ausente = no se evaluó, y entonces este motor se comporta como antes. No se
+   * da por vigente lo que nadie comprobó, simplemente no se afirma nada.
+   */
+  funcionRenalVigente?: {
+    vigente: boolean
+    /** El aviso ya redactado, con la marca `STALE_RENAL_FUNCTION`. */
+    aviso: string
+  }
 }
 
 // ── utilidades ──────────────────────────────────────────────────────────────
@@ -363,6 +378,27 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
   if (!Number.isFinite(tfg) || tfg >= 60) return []
 
   const out: Sugerencia[] = []
+  /**
+   * ── LA CREATININA QUE SE PASÓ DE SU VENTANA (REG-375) ─────────────────────
+   *
+   * Va PRIMERO y no sustituye a nada: la política del dueño dice que no se
+   * bloquee en silencio ni se invente función renal. Así que las
+   * recomendaciones de abajo se siguen dando —con su fecha, desde REG-368— y
+   * encima se dice que el dato está caduco y qué hace falta.
+   *
+   * Sólo aquí, que es donde se emite una recomendación de dosificación
+   * dependiente del riñón. Un aviso de caducidad en una consulta que no
+   * prescribe nada renal sería ruido.
+   */
+  if (e.funcionRenalVigente && !e.funcionRenalVigente.vigente) {
+    out.push({
+      id: 'renal:stale',
+      nivel: 'accion',
+      titulo: 'Función renal no vigente para dosificar',
+      detalle: e.funcionRenalVigente.aviso,
+      textoNota: '',
+    })
+  }
   for (const m of meds) {
     const nm = norm(m.nombre ?? '')
     /**

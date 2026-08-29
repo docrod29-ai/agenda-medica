@@ -153,7 +153,13 @@ describe('no se inventa el umbral, y se declara', () => {
      * qué no hay ninguno—. El único permitido es el tope de puntos, que es una
      * cota de memoria y de ancho de pantalla, no una cifra clínica.
      */
-    expect(POR_QUE_NO_DICE_SI_ES_SIGNIFICATIVO).toContain('NEEDS_CLINICAL_REVIEW')
+    /*
+     * El `NEEDS_CLINICAL_REVIEW` que abrió esta unidad lo **resolvió el dueño el
+     * 29-ago-2026** y vive en `que-cambio-de-verdad.ts` (REG-376). Lo que este
+     * caso protege no ha cambiado: ESTE módulo sigue haciendo sólo aritmética y
+     * procedencia, sin una sola cifra propia.
+     */
+    expect(POR_QUE_NO_DICE_SI_ES_SIGNIFICATIVO).toMatch(/que-cambio-de-verdad/)
     const src = readFileSync('src/lib/expediente/laboratorio/la-trayectoria.ts', 'utf8')
     const codigo = src
       .replace(/\/\*[\s\S]*?\*\//g, ' ')     // comentarios de bloque

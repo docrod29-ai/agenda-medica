@@ -167,12 +167,25 @@ describe('qué panel manda y qué no entra', () => {
 })
 
 describe('lo que este módulo NO decide, dicho', () => {
-  it('el umbral de antigüedad queda como NEEDS_CLINICAL_REVIEW', () => {
-    /* Rellenar «180 días» porque suena razonable es el fallo más caro de este
-       repositorio: no rompe nada, no falla ninguna prueba, y sale impreso. */
-    expect(POR_QUE_NO_HAY_UMBRAL_DE_ANTIGUEDAD).toContain('NEEDS_CLINICAL_REVIEW')
+  it('este módulo sigue sin filtrar por antigüedad — la política vive en otro sitio', () => {
+    /*
+     * El `NEEDS_CLINICAL_REVIEW` que abrió esta unidad lo **resolvió el dueño el
+     * 29-ago-2026** y vive en `vigencia-de-la-funcion-renal.ts` (REG-375). Lo
+     * que este caso protege no ha cambiado: aquí se une lo de hoy con lo del
+     * expediente y **no se filtra nada**. Filtrar en silencio escondería el
+     * dato, y la política dice justamente lo contrario — decir que está caduco
+     * sin retirar la recomendación.
+     */
+    expect(POR_QUE_NO_HAY_UMBRAL_DE_ANTIGUEDAD).toMatch(/vigencia-de-la-funcion-renal/)
     const src = readFileSync('src/lib/expediente/laboratorio/lo-que-ya-esta-medido.ts', 'utf8')
     expect(src).not.toMatch(/DIAS_[A-Z_]*\s*=\s*\d+/)
+    /* Y sigue sin descartar valores por su fecha. Se mira el CÓDIGO: la prosa
+       nombra la antigüedad justamente para explicar que aquí no se filtra. */
+    const codigo = src
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/\/\/[^\n]*/g, ' ')
+      .replace(/export const [A-Z_]+ =[\s\S]*?(?=\n\nexport |\n*$)/g, ' ')  // los porqués
+    expect(codigo).not.toMatch(/antiguedad|caduc|vigen/i)
   })
 
   it('la regla de que hoy manda está escrita, y es la misma que la medicación', () => {

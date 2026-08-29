@@ -159,7 +159,9 @@ export function comoSeDiceLaTrayectoria(t: Trayectoria | null): string {
 }
 
 export const POR_QUE_NO_DICE_SI_ES_SIGNIFICATIVO =
-  'NEEDS_CLINICAL_REVIEW — cuánto tiene que subir una creatinina para que el ' +
-  'cambio importe es un umbral clínico y aquí no se inventa. Este módulo hace ' +
-  'aritmética y procedencia: dos números, dos fechas y la palabra que describe ' +
-  'la diferencia. «Subió» es aritmética; «empeoró» sería un diagnóstico.'
+  'Este módulo hace aritmética y procedencia: dos números, dos fechas y la ' +
+  'palabra que describe la diferencia. «Subió» es aritmética; «empeoró» sería un ' +
+  'diagnóstico. Qué cambio importa lo resolvió el dueño el 29-ago-2026 y vive en ' +
+  '`que-cambio-de-verdad.ts` (REG-376): no hay porcentaje universal, así que se ' +
+  'usan los umbrales que YA están definidos y, sin regla validada, se muestran ' +
+  'los deltas sin etiquetarlos.'

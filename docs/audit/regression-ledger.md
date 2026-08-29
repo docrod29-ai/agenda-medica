@@ -12004,3 +12004,141 @@ dice la propia frase. Lleva su caso.
 «pasado gramatical NO es fármaco terminado». Uno comprueba que el módulo **ya no
 importa ni llama** a `esFrasePasada` —mirando el import y la llamada, no la prosa,
 porque el comentario lo nombra para explicar por qué dejó de usarse—.
+
+---
+
+## REG-375 — la creatinina con la que se dosifica puede haber caducado, y no se decía
+
+**QUÉ FALLABA.** REG-368 llevó los laboratorios del expediente a los motores.
+Nada se filtraba por antigüedad, y REG-368 lo dejó abierto a propósito, como
+`NEEDS_CLINICAL_REVIEW`: cuánto puede tener una creatinina para seguir sirviendo
+para dosificar es un umbral clínico y no se inventa.
+
+Consecuencia hasta hoy: una creatinina **de hace dos años** estimaba una TFG y con
+ella se emitía «metformina contraindicada con TFG de 28», con la fecha a la vista
+(REG-368/369) y **sin decir que el dato ya no valía para dosificar**.
+
+**LA POLÍTICA, DEL DUEÑO, 29-AGO-2026.** No una cifra única de creatinina, y sin
+confundir el valor con la antigüedad del laboratorio:
+
+| Contexto | Ventana |
+|---|---|
+| AKI, paciente hospitalizado o función renal inestable | **≤24 h** |
+| Ambulatorio clínicamente estable | **≤30 días** |
+| No se puede demostrar estabilidad, o el contexto es ambiguo | **≤7 días** (conservador) |
+
+Fuera de la ventana: **no bloquear en silencio ni inventar función renal**. Marcar
+`STALE_RENAL_FUNCTION` y advertir que hace falta función renal actualizada **antes
+de una recomendación de dosificación dependiente del riñón**. **La autoridad final
+es del médico.**
+
+**EL ARREGLO.** `laboratorio/vigencia-de-la-funcion-renal.ts` (puro) implementa las
+tres ventanas y emite la marca. El aviso sale **sólo dentro de `ajusteRenal`**, que
+es donde se produce una recomendación de dosificación dependiente del riñón: una
+caducidad en una consulta que no prescribe nada renal sería ruido.
+
+**Y la recomendación NO se retira.** La política dice que no se bloquee en
+silencio: la sugerencia de ajuste se sigue dando, con su fecha, y **encima** se
+dice que el dato está caduco y qué hace falta. Hay un caso que lo fija.
+
+**LO QUE NO SE INFIERE, Y POR QUÉ IMPORTA.** **La estabilidad clínica no se deduce
+de los números.** Decidir que una función renal es estable mirando cuánto se movió
+la creatinina exigiría un umbral de variación que nadie ha validado — exactamente
+lo que la otra política del dueño prohíbe. Sólo cuenta si alguien la **declara**.
+
+Consecuencia declarada sin adornos: **hoy nada en el producto la declara**, así que
+en la consulta ambulatoria rige la ventana conservadora de 7 días. La de 30 queda
+implementada y probada, esperando a quien pueda declararla.
+
+**LA ANTIGÜEDAD SE MIDE AL ALZA.** Los paneles guardan `YYYY-MM-DD` sin hora, así
+que un panel se ancla a las **00:00 de su día** y la antigüedad calculada es un
+límite superior. Con la ventana de 24 h eso significa que un panel de ayer no la
+cumple aunque se tomara anoche: preferimos pedir una creatinina de más que
+dosificar con una que no se puede demostrar reciente. Una fecha ilegible **no se da
+por reciente**.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **«IRA» no se reconoce como renal aguda.** En México se dicta muchísimo más como
+  *infección respiratoria aguda*, y meterla convertiría cada catarro en una ventana
+  de 24 h. Se reconocen las formas escritas completas y «AKI». Lo que no está en la
+  lista **no se vigila** — declarado, no dado por bueno (regla 5).
+- **La ERC no es inestable.** Un paciente con enfermedad renal crónica estable es
+  justamente el caso de la ventana larga; meterlo en 24 h haría de todo nefrópata
+  una urgencia.
+- **No bloquea la firma, no retira la recomendación y no pide el laboratorio por su
+  cuenta.**
+
+**LA PRUEBA.** `src/__tests__/la-funcion-renal-caduca-se-dice.test.ts` (27 casos),
+una por regla de la política y comparadas contra la política, no contra la
+implementación. Un caso recorre el módulo y comprueba que **lo único numérico son
+las tres ventanas**.
+
+---
+
+## REG-376 — cuándo el cambio de un analito importa, y cuándo sólo es un número distinto
+
+**QUÉ FALTABA.** REG-369 llevó la trayectoria del laboratorio a donde se prescribe
+y dejó abierto, como `NEEDS_CLINICAL_REVIEW`, cuánto tiene que moverse un analito
+para que el cambio importe. Hasta hoy la frase decía «subió desde 1.3 el
+2026-01-10» y nada más: correcto, y sin usar los umbrales que **este repositorio ya
+tenía definidos**.
+
+**LA POLÍTICA, DEL DUEÑO, 29-AGO-2026.** Lo primero que dijo es lo que este módulo
+protege: **no existe un porcentaje universal seguro para todos los analitos; no se
+implementa un umbral global del 10 %, del 20 % ni de ninguno.** Y después, en orden:
+
+1. Usar primero los **umbrales clínicos ya definidos** para ese analito.
+2. Si existe **RCV / variación biológica validada**, puede usarse.
+3. **Cruzar un límite de decisión importa aunque el cambio porcentual sea pequeño.**
+4. Sin regla específica validada: **mostrar delta absoluto y relativo, pero NO
+   etiquetarlo como «clínicamente significativo»**.
+5. **No inventar umbrales.**
+
+**EL ARREGLO.** `laboratorio/que-cambio-de-verdad.ts` (puro) calcula **siempre** los
+dos deltas, y marca relevancia **sólo** cuando el valor cruzó una línea que este
+repositorio ya tenía escrita, de dos tablas con su propia procedencia:
+
+- `ANALITOS[].refMin/refMax` — el rango de referencia por analito.
+- `CRITICOS` de `hospital/lab-criticos.ts` — los valores de pánico, que además
+  saben de unidades y distinguen **«no evaluable» de «normal»**.
+
+El módulo **no define ni una sola cifra**, y hay un caso que recorre su código y
+falla si aparece cualquier número que no sea el `0` de comparar y el `100` de pasar
+a porcentaje.
+
+**LOS DOS CASOS QUE RESUMEN LA POLÍTICA**, los dos en el golden:
+
+```
+creatinina 0.6 → 0.9   = +50 %, no cruza nada  → NO se marca relevante
+creatinina 1.25 → 1.35 =  +8 %, cruza 1.3      → SÍ, y se dice qué línea cruzó
+```
+
+**LO QUE NO SE CALIFICA.** «Volvió dentro del rango» puede ser mejoría o puede ser
+una transfusión: se **nombra**, no se juzga. Un caso recorre la frase y falla si
+contiene *mejor*, *empeoró*, *significativo* o *alarma*.
+
+**EL RCV NO SE INVENTA: SE DECLARA QUE NO LO HAY.** El punto 2 de la política lo
+permite «si existe validada», y en este repositorio **no existe ninguna**.
+`RELEVANCIA_POR_RCV` queda **vacía y congelada**, con su sitio marcado: el día que
+entre una tabla con su fuente citada, los casos que hoy salen «sin regla validada»
+pasarán a tenerla sin tocar nada más. Rellenarla de memoria sería inventar una
+cifra clínica.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Un analito fuera del catálogo no se juzga**: sin rango definido no hay línea que
+  cruzar, y salen los deltas a secas.
+- **Un analito sin rango crítico definido queda `criticoEvaluable: false`**, que no
+  es lo mismo que «no cruzó»: un resultado no se da por bueno porque el motor no
+  supo leerlo.
+- **No decide conducta.** Ningún motor cambia de comportamiento por esto: es lo que
+  el médico lee al lado del número.
+
+**LA PRUEBA.** `src/__tests__/no-hay-un-porcentaje-universal.test.ts` (20 casos).
+
+**UN TRINQUETE AJENO ACTUALIZADO.** `el-paciente-completo-llega-al-motor` contaba
+**dos** consumidores del cuadro de problemas —el copiloto y la evidencia— y ahora
+son **tres**: REG-375 lo usa para saber si hay daño renal agudo, y de eso depende
+qué ventana se le exige a la creatinina. Lo que el guardián protege sigue siendo lo
+mismo: que ningún consumidor reciba la lista pelada de hoy.

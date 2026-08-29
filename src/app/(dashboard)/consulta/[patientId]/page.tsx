@@ -76,6 +76,10 @@ import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
 import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
 import { trayectoriaDe, comoSeDiceLaTrayectoria } from '@/lib/expediente/laboratorio/la-trayectoria'
+import {
+  vigenciaDeLaFuncionRenal, avisoDeFuncionRenalCaduca,
+} from '@/lib/expediente/laboratorio/vigencia-de-la-funcion-renal'
+import { queCambio, comoSeDiceElCambio } from '@/lib/expediente/laboratorio/que-cambio-de-verdad'
 import { dispositivosQueTrae, comoSeDicenLosDispositivos } from '@/lib/expediente/los-dispositivos-que-trae'
 import { listarPanelesLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
 
@@ -982,9 +986,42 @@ export default function ConsultaActivaPage() {
    * `comoSeDiceLaTrayectoria` devuelve cadena vacía si no la hay, y aquí se
    * descarta, para que el aviso no arrastre un «sin datos previos».
    */
+  /**
+   * ¿LA CREATININA SIGUE SIRVIENDO PARA DOSIFICAR? (REG-375)
+   *
+   * La política del dueño: ≤24 h con AKI, hospitalizado o función renal
+   * inestable; ≤30 días en ambulatorio clínicamente estable; ≤7 días cuando no
+   * se puede demostrar estabilidad. Aquí sólo se reúnen las señales del contexto
+   * —el internamiento activo y los problemas del paciente—; la decisión de qué
+   * ventana aplica vive en su módulo.
+   *
+   * `estabilidadDeclarada` no se pasa: **nada en el producto la declara**, y
+   * deducirla de cuánto se movió la creatinina exigiría un umbral que nadie ha
+   * validado. Por eso en ambulatorio rige la ventana conservadora.
+   */
+  const vigenciaRenal = vigenciaDeLaFuncionRenal(
+    labsDeLaConsulta.medidoEn.creatinina,
+    new Date().toISOString(),
+    { hospitalizado: !!internamientoActivo, diagnosticos: dxDelCuadro },
+  )
+
   const trayectoriasDeLaConsulta = Object.fromEntries(
     Object.keys(labsDeLaConsulta.labs)
-      .map(clave => [clave, comoSeDiceLaTrayectoria(trayectoriaDe(panelesLab, clave, labsDeHoy[clave]))] as const)
+      .map(clave => {
+        const t = trayectoriaDe(panelesLab, clave, labsDeHoy[clave])
+        const frase = comoSeDiceLaTrayectoria(t)
+        if (!frase || !t?.previo) return [clave, frase] as const
+        /**
+         * ── QUÉ CAMBIÓ DE VERDAD (REG-376) ────────────────────────────────
+         *
+         * Los deltas salen siempre; la línea cruzada, sólo cuando el valor
+         * pasó de un lado a otro de un umbral que este repositorio YA tenía
+         * definido. Nunca por porcentaje: no existe uno seguro para todos los
+         * analitos, y ésa es la política del dueño.
+         */
+        const cambio = queCambio(clave, t.previo.valor, t.actual.valor)
+        return [clave, `${frase} · ${comoSeDiceElCambio(cambio)}`] as const
+      })
       .filter(([, frase]) => frase),
   )
 
@@ -1046,7 +1083,12 @@ export default function ConsultaActivaPage() {
     labs: labsDeLaConsulta.labs,
     labsMedidosEn: labsDeLaConsulta.medidoEn,
     labsTrayectoria: trayectoriasDeLaConsulta,
-  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, labsDeLaConsulta, trayectoriasDeLaConsulta])
+    /* Sólo cuando hay creatinina que juzgar: si no la hay, `ajusteRenal` no
+       corre y un aviso de caducidad sobre nada sería ruido. */
+    ...(labsDeLaConsulta.labs.creatinina !== undefined
+      ? { funcionRenalVigente: { vigente: vigenciaRenal.vigente, aviso: avisoDeFuncionRenalCaduca(vigenciaRenal) } }
+      : {}),
+  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, labsDeLaConsulta, trayectoriasDeLaConsulta, vigenciaRenal])
   const [resumen, setResumen] = useState('')
   /**
    * QUÉ ES ESTA NOTA PARA EL SELLO — una vez, para las dos lecturas.

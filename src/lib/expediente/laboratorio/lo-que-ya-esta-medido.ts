@@ -121,10 +121,12 @@ export function labsDelCuadro(
 }
 
 export const POR_QUE_NO_HAY_UMBRAL_DE_ANTIGUEDAD =
-  'NEEDS_CLINICAL_REVIEW — cuánto puede tener una creatinina para seguir ' +
-  'sirviendo para dosificar es un umbral clínico, y aquí no se inventa. No se ' +
-  'filtra por antigüedad: se dice la fecha y la juzga el médico. El día que el ' +
-  'dueño lo fije, se aplica en este módulo y en ningún otro.'
+  'Cuánto puede tener una creatinina para seguir sirviendo para dosificar es un ' +
+  'umbral clínico y este módulo no lo inventa: aquí se une lo de hoy con lo del ' +
+  'expediente y se dice la fecha de cada valor. El dueño resolvió la política el ' +
+  '29-ago-2026 y vive en `vigencia-de-la-funcion-renal.ts` (REG-375), que es ' +
+  'quien decide si un valor sigue sirviendo. Aquí no se filtra nada: filtrar en ' +
+  'silencio escondería el dato, y la política dice justamente lo contrario.'
 
 export const POR_QUE_HOY_MANDA =
   'Porque si el médico acaba de dictar una creatinina es que está mirando un ' +

@@ -2,7 +2,7 @@
   "sellado": "2026-08-29",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 5557,
+  "totalCasos": 5604,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -729,6 +729,10 @@
       "minCasos": 8
     },
     {
+      "archivo": "src/__tests__/la-funcion-renal-caduca-se-dice.test.ts",
+      "minCasos": 27
+    },
+    {
       "archivo": "src/__tests__/la-glucosa-de-la-orina-no-es-la-de-la-sangre.test.ts",
       "minCasos": 8
     },
@@ -1015,6 +1019,10 @@
     {
       "archivo": "src/__tests__/ninguna-pantalla-recibe-una-lista-muda.test.ts",
       "minCasos": 22
+    },
+    {
+      "archivo": "src/__tests__/no-hay-un-porcentaje-universal.test.ts",
+      "minCasos": 20
     },
     {
       "archivo": "src/__tests__/nota-firmada-no-se-edita.test.ts",
