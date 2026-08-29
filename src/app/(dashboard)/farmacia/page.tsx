@@ -144,8 +144,8 @@ export default function FarmaciaPage() {
       {/* Tarjetas de resumen */}
       <div className="nx-stat-grid" style={{ marginBottom: 16 }}>
         <ResumenTarjeta titulo="Total ítems" valor={items.length} color="var(--text)" icon={<Package size={14} />} />
-        <ResumenTarjeta titulo="Bajo stock" valor={bajoStock} color={bajoStock > 0 ? '#f59e0b' : 'var(--text3)'} icon={<AlertTriangle size={14} />} />
-        <ResumenTarjeta titulo="Caducados" valor={caducados} color={caducados > 0 ? '#ef4444' : 'var(--text3)'} icon={<Clock size={14} />} />
+        <ResumenTarjeta titulo="Bajo stock" valor={bajoStock} color={bajoStock > 0 ? 'var(--amber)' : 'var(--text3)'} icon={<AlertTriangle size={14} />} />
+        <ResumenTarjeta titulo="Caducados" valor={caducados} color={caducados > 0 ? 'var(--red)' : 'var(--text3)'} icon={<Clock size={14} />} />
       </div>
 
       {/* Buscador + filtros */}
@@ -348,7 +348,7 @@ function ItemRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{item.nombre}</span>
           {item.controlado && (
-            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--r-pill)', background: 'rgba(167,139,250,0.15)', color: 'var(--purple)', border: '1px solid rgba(167,139,250,0.3)' }}>
+            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--purple) 15%, transparent)', color: 'var(--purple)', border: '1px solid color-mix(in srgb, var(--purple) 30%, transparent)' }}>
               CONTROLADO
             </span>
           )}
@@ -378,17 +378,17 @@ function ItemRow({
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{
           fontSize: 18, fontWeight: 700,
-          color: item.cantidad === 0 ? '#ef4444' : bajo ? '#f59e0b' : 'var(--text)',
+          color: item.cantidad === 0 ? 'var(--red)' : bajo ? 'var(--amber)' : 'var(--text)',
         }}>
           {item.cantidad}
         </div>
         <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{item.unidadMedida ?? 'unidades'}</div>
       </div>
       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-        <button onClick={onEntrada} title="Entrada" style={btnIcon('#10b981')}>
+        <button onClick={onEntrada} title="Entrada" style={btnIcon('var(--green)')}>
           <ArrowUpCircle size={14} />
         </button>
-        <button onClick={onSalida} title="Salida" style={btnIcon('#f59e0b')}>
+        <button onClick={onSalida} title="Salida" style={btnIcon('var(--amber)')}>
           <ArrowDownCircle size={14} />
         </button>
         {/* El libro de movimientos existía y no había forma de abrirlo: era una
@@ -399,7 +399,7 @@ function ItemRow({
         <button onClick={onEditar} title="Editar" style={btnIcon('var(--text3)')}>
           <Edit2 size={13} />
         </button>
-        <button onClick={onBorrar} title="Eliminar" style={btnIcon('#ef4444')}>
+        <button onClick={onBorrar} title="Eliminar" style={btnIcon('var(--red)')}>
           <Trash2 size={13} />
         </button>
       </div>

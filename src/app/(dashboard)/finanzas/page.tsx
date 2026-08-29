@@ -301,7 +301,7 @@ export default function FinanzasPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
             <div style={{
               padding: 18, borderRadius: 14, border: '1px solid var(--border)',
-              background: 'linear-gradient(135deg, rgba(61,90,254,0.14), rgba(61,90,254,0.04))',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--nexus) 14%, transparent), color-mix(in srgb, var(--nexus) 4%, transparent))',
             }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
                 <DollarSign size={13} /> Ingresos del periodo
@@ -312,7 +312,7 @@ export default function FinanzasPage() {
               <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>
                 {resumen.totalCobros} cobro{resumen.totalCobros !== 1 ? 's' : ''}
                 {resumenAnterior && resumenAnterior.totalIngresos > 0 && (
-                  <span style={{ marginLeft: 8, fontWeight: 700, color: cambio > 0 ? '#10b981' : cambio < 0 ? '#ef4444' : 'var(--text3)' }}>
+                  <span style={{ marginLeft: 8, fontWeight: 700, color: cambio > 0 ? 'var(--green)' : cambio < 0 ? 'var(--red)' : 'var(--text3)' }}>
                     {cambio > 0 ? '↑' : cambio < 0 ? '↓' : ''} {Math.abs(cambio).toFixed(0)}% vs anterior
                   </span>
                 )}
@@ -324,8 +324,8 @@ export default function FinanzasPage() {
               monto={efectivo.monto}
               n={efectivo.n}
               total={resumen.totalIngresos}
-              tint="#10b981"
-              tintBg="rgba(16,185,129,0.10)"
+              tint="var(--green)"
+              tintBg="color-mix(in srgb, var(--green) 10%, transparent)"
             />
             <MetodoCard
               titulo="Transferencia"
@@ -334,7 +334,7 @@ export default function FinanzasPage() {
               n={transferencia.n}
               total={resumen.totalIngresos}
               tint="var(--nexus)"
-              tintBg="rgba(61,90,254,0.10)"
+              tintBg="color-mix(in srgb, var(--nexus) 10%, transparent)"
             />
           </div>
 
@@ -480,7 +480,7 @@ export default function FinanzasPage() {
                         {c.medicoNombre && <> · {c.medicoNombre}</>}
                       </div>
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: c.monto >= 0 ? '#10b981' : '#ef4444', textAlign: 'right' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: c.monto >= 0 ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>
                       {fmtMXN(c.monto)}
                     </div>
                     <button
@@ -578,7 +578,7 @@ export default function FinanzasPage() {
                     toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
                   } finally { setAnulaGuardando(false) }
                 }}
-                style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
+                style={{ background: 'var(--red)', color: 'var(--sobre-aviso)', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
               >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
             </div>
           </div>
@@ -625,7 +625,7 @@ function Kpi({ titulo, valor, icon, cambio, color }: { titulo: string; valor: st
       {cambio !== null && cambio !== undefined && (
         <div style={{
           fontSize: 11, fontWeight: 600, marginTop: 4,
-          color: cambio > 0 ? '#10b981' : cambio < 0 ? '#ef4444' : 'var(--text3)',
+          color: cambio > 0 ? 'var(--green)' : cambio < 0 ? 'var(--red)' : 'var(--text3)',
         }}>
           {cambio > 0 ? '↑' : cambio < 0 ? '↓' : ''} {Math.abs(cambio).toFixed(1)}% vs periodo anterior
         </div>

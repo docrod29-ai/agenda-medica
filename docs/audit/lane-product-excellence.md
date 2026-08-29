@@ -37,6 +37,7 @@ Cada defecto apareció al comprobar el anterior.
 | 3 | La purga de versión desfasada no corría desde el cambio de marca | escrito, probado y sin conectar |
 | 4 | El 404 decía una versión que no existía, y salía oscuro en una app clara | depende de que alguien se acuerde |
 | 5 | «Automático» no sobrevivía a una recarga | el hueco tratado como dato |
+| 6 | Lo mismo que el 2, en las pantallas del día del médico | el sistema se contradice a sí mismo |
 
 Y el orden importa: **el 5 es el que hace alcanzables al 1 y al 2.** Mientras
 «automático» no sobreviviera a una recarga, el bloque
@@ -234,3 +235,41 @@ coincide con la tabla del hook. Probado al revés.
 código eso era «nunca eligió», y seguirá en oscuro hasta que lo vuelva a
 elegir. Se declara a propósito — inventarle una preferencia sería el mismo error
 al revés.
+
+---
+
+## 6 · Lo mismo que el 2, en las pantallas del día del médico
+
+**Qué fallaba.** El mismo literal en vez de token, ahora fuera de los paneles
+clínicos: la **prioridad** de la lista de espera, el **stock bajo** y el
+**caducado** de farmacia, el dinero que **sube o baja** en finanzas, el aviso
+**urgente** de la caja de herramientas y el color con el que se distingue a un
+médico de otro.
+
+Se separa del 2 a propósito: aquel se arregló mirando los paneles clínicos, y
+esto es lo que quedaba al mirar el resto del camino del día. Misma causa, misma
+medida, mismo guardián — que ahora cubre las dos listas.
+
+**Lo que se encontró de paso.** `DoctorFilter` tenía **dos implementaciones
+idénticas** de la misma función `id → color`: la privada `colorFor` y la
+exportada `colorMedico`. El sentido de ese color es que sea EL MISMO para un
+médico en toda la aplicación; dos copias de la tabla son la forma de que un día
+deje de serlo. Ahora hay una.
+
+Los cinco tonos del avatar eran pasteles de tema oscuro y **tres de los cinco**
+quedaban bajo 4,5:1 en claro. Pasan a `--nexus`, `--purple`, `--amber`,
+`--blue` y `--rosa`: siguen siendo cinco tonos distinguibles, y los cinco están
+medidos en los dos temas. La inicial que va encima usa `--sobre-aviso`.
+
+**Guardián.** El mismo de la entrada 2, con la lista ampliada. Se le añade el
+descomentado de fuentes: los comentarios de este repositorio citan el literal
+que arreglaron —ahí está la evidencia del defecto— y un guardián ingenuo se
+dispara con su propia explicación. Probado al revés.
+
+**Trinquete de diseño.** `hexEnLinea` 385 → 357. Acumulado del carril:
+**485 → 357**, y `halosDeColor` 7 → 6.
+
+**Qué NO cubre.** Sigue siendo un barrido de fuente sobre una lista declarada.
+Quedan literales en pantallas que este carril no tocó —el módulo de hospital y
+UCI (ALPHA), `superadmin`, las páginas legales y los documentos impresos— y el
+trinquete de diseño los cuenta.

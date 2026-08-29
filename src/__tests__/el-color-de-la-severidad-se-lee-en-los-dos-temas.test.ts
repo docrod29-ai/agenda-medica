@@ -63,6 +63,17 @@ import { join } from 'node:path'
  * declarar (regla 5 de seguridad clínica — señalar de menos, no de más).
  */
 const PANELES = [
+  // ── Pantallas del día del médico ────────────────────────────────────────
+  // Mismo defecto, misma causa: prioridad de la lista de espera, stock bajo y
+  // caducado de farmacia, dinero que sube o baja, aviso urgente de la caja de
+  // herramientas y el color con el que se distingue a un médico de otro.
+  'src/app/(dashboard)/lista-espera/page.tsx',
+  'src/app/(dashboard)/farmacia/page.tsx',
+  'src/app/(dashboard)/finanzas/page.tsx',
+  'src/components/CobrarModal.tsx',
+  'src/components/Herramientas.tsx',
+  'src/components/DoctorFilter.tsx',
+  // ── Paneles clínicos ────────────────────────────────────────────────────
   'src/components/PanelCardiometabolico.tsx',
   'src/components/PanelCirugia.tsx',
   'src/components/PanelGineco.tsx',
@@ -93,6 +104,17 @@ const EXCEPCIONES: Record<string, { hex: string[]; porque: string }> = {
 }
 
 const leer = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8')
+
+/**
+ * El archivo SIN comentarios.
+ *
+ * Los comentarios de este repositorio CITAN el literal que arreglaron —es su
+ * trabajo, ahí está la evidencia del defecto— así que un guardián que busque
+ * el literal en el texto completo se dispara con la explicación de por qué ya
+ * no está. Se mira lo que se EJECUTA; lo que se explica se deja explicar.
+ */
+const sinComentarios = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ')
 
 // ── Contraste WCAG 2.1, para que la prueba MIDA en vez de opinar ────────────
 const canal = (c: number) => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4) }
@@ -127,7 +149,7 @@ describe('la prueba puede fallar: la fórmula de contraste da lo que ya está me
 describe('ningún panel clínico codifica gravedad con un color de un solo tema', () => {
   for (const rel of PANELES) {
     it(rel.replace('src/components/', ''), () => {
-      const src = leer(rel)
+      const src = sinComentarios(leer(rel))
       const permitidos = new Set((EXCEPCIONES[rel]?.hex ?? []).map(h => h.toLowerCase()))
       const encontrados = src.split('\n')
         // Ver abajo: `--nexus-solido` es el relleno cuyo contrato ES el blanco.
@@ -165,7 +187,7 @@ describe('el texto que va ENCIMA de un relleno semántico usa --sobre-aviso', ()
    */
   for (const rel of PANELES) {
     it(rel.replace('src/components/', ''), () => {
-      const src = leer(rel)
+      const src = sinComentarios(leer(rel))
       const blancosONegros = src.split('\n')
         /**
          * `--nexus-solido` es el ÚNICO relleno cuyo contrato es «blanco
