@@ -148,7 +148,7 @@ import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expedien
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
-import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import { problemasActivos, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
   type NotaConAlergias,
@@ -4663,7 +4663,13 @@ export default function ConsultaActivaPage() {
             {problemas.length > 0 && (
               <>
                 <strong style={{ color: 'var(--text)' }}>Problemas:</strong>{' '}
-                {problemas.map(p => p.diagnostico.descripcion + (p.diagnostico.estado === 'cronico' ? ' (crónico)' : '')).join(' · ')}
+                {/* `nombreConCerteza` y no la descripción a secas: un
+                    diagnóstico PRESUNTIVO se leía aquí igual que uno
+                    confirmado, y se arrastra a todas las consultas siguientes
+                    (REG-364). Es el mismo criterio que el resumen del
+                    expediente, el cuadro de los motores y el prompt de
+                    evidencia — uno solo, no cuatro. */}
+                {problemas.map(p => nombreConCerteza(p.diagnostico) + (p.diagnostico.estado === 'cronico' ? ' (crónico)' : '')).join(' · ')}
               </>
             )}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>

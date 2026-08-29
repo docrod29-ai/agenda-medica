@@ -361,11 +361,24 @@ recepción bajo `allow read: if isMember`. Eso es P1-6, `BLOCKED_EXTERNAL`.
 paciente terminó» — y `procedenciaClinica: 'ya_lo_toma' | 'se_prescribe_hoy'`
 (REG-183), que es exactamente `HISTORIA ≠ PLAN`.
 
+**REG-364 — lo que el médico DESCARTÓ ya no llega a los motores como diagnóstico
+suyo.** `problemasDelCuadro` recibía la lista de HOY sin filtrar y aplanada a la
+descripción, así que un «embarazo descartado» —como se documenta una prueba
+negativa— entraba al cuadro que ven el copiloto y el prompt de evidencia. Medido:
+el copiloto escribía «La paciente cursa embarazo» y ofrecía insertarlo en la nota
+firmada. El criterio correcto (`estaVigente`) estaba exportado y probado desde
+que existe la proyección, y **tres lectores lo aplicaban y el cuarto no**. Ahora
+`tipo` viaja, y `nombreConCerteza` es **una** definición para los cuatro: un
+`presuntivo` entra —lo es— pero entra diciendo que lo es. Ningún aviso se calla:
+el gestacional de un embarazo presuntivo se sigue dando, en condicional.
+
 **El hueco de fondo**: negación, temporalidad, experienciador y certeza corren
 **en el momento de la consulta y producen avisos**, y después **se descartan**.
 `Diagnostico` no tiene campo `certeza`; `Medicamento` no tiene `temporalidad`.
 Un diagnóstico capturado como «creo que me dijeron que tenía anemia» se guarda
-igual que uno confirmado.
+igual que uno confirmado. **REG-364 cerró la mitad que sí se guardaba** —`tipo`,
+que es lo que decidió el MÉDICO—; sigue abierta la del PACIENTE, que se calcula
+en la consulta y se descarta al firmar.
 
 **Tres vocabularios de verdad clínica en paralelo** — `TruthState`
 (`clinical-truth/index.ts:1`), `ClinicalTruthStatus` (`types/uci.ts:19`) y

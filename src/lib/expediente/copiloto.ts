@@ -41,7 +41,15 @@ export interface Sugerencia {
 }
 
 export interface MedicamentoConsulta { nombre: string; dosis?: string }
-export interface DiagnosticoConsulta { descripcion: string }
+export interface DiagnosticoConsulta {
+  descripcion: string
+  /**
+   * Con cuánta seguridad lo dio el médico. Opcional porque hay llamadores
+   * antiguos que sólo mandan la descripción; ausente se trata como el caso
+   * seguro para cada motor, nunca como «confirmado» por defecto.
+   */
+  tipo?: 'definitivo' | 'presuntivo' | 'descartado' | 'diferencial'
+}
 
 export interface SignosConsulta {
   ta?: string
@@ -359,8 +367,27 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
   // los teratógenos categoría 'evitar' dispararan un aviso "La paciente cursa
   // embarazo" a una puérpera — incoherente. La lactancia es otra cosa (transferencia
   // a leche, no teratogenicidad) y tiene su propia lista, no este flag.
-  const embarazoConfirmado = (e.diagnosticos ?? []).some(d =>
+  /**
+   * ── «CURSA EMBARAZO» ES UNA AFIRMACIÓN, Y SE GANA (REG-364) ───────────────
+   *
+   * Esto miraba sólo la descripción. Un `tipo:'descartado'` —«embarazo
+   * descartado», que es como se documenta una prueba negativa— encendía el
+   * aviso de categoría `evitar`, cuyo detalle dice literalmente **«La paciente
+   * cursa embarazo»** y cuyo `textoNota` se puede insertar en la nota firmada.
+   * Un descarte convertido en afirmación, dentro de un documento medicolegal.
+   *
+   * `problemasDelCuadro` ya no deja pasar los descartados, pero este motor no
+   * puede depender de que su llamador filtre: quien afirma es él.
+   *
+   * Un `presuntivo` o un `diferencial` **sí** cuentan para AVISAR —el riesgo de
+   * un embarazo no detectado pesa más—, pero no para afirmar: el texto lo dice
+   * en condicional más abajo. Sin `tipo` se comporta como antes.
+   */
+  const dxGestacional = (e.diagnosticos ?? []).filter(d =>
     /embaraz|gestaci|gr[aá]vid|obst[eé]tric|prenatal/i.test(d.descripcion ?? ''))
+  const embarazoConfirmado = dxGestacional.some(d => d.tipo !== 'descartado' && d.tipo !== 'diferencial')
+  /** ¿Alguien lo dio por CIERTO, o sólo por probable? Decide cómo se redacta. */
+  const embarazoAfirmado = dxGestacional.some(d => d.tipo === undefined || d.tipo === 'definitivo')
   const coincide = (x: { farmaco: string; sinonimos?: string[] }, nm: string) =>
     (x.sinonimos ?? []).some(s => nm.includes(norm(s))) ||
     nm.includes(norm(x.farmaco)) ||
@@ -391,8 +418,10 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
         id: `gesta:evitar:${m.nombre}`,
         nivel: 'accion',
         titulo: `${m.nombre}: evítalo en el embarazo`,
-        detalle: `La paciente cursa embarazo. ${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''}`,
-        textoNota: `${m.nombre} debe evitarse en el embarazo; se comentó y se valoró una alternativa. ${g.motivo}`,
+        detalle: `${embarazoAfirmado ? 'La paciente cursa embarazo.' : 'El embarazo está planteado y no confirmado.'} ${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''}`,
+        /* El texto que puede acabar DENTRO de una nota firmada no afirma un
+           embarazo que nadie confirmó. */
+        textoNota: `${m.nombre} debe evitarse ${embarazoAfirmado ? 'en el embarazo' : 'si se confirma el embarazo'}; se comentó y se valoró una alternativa. ${g.motivo}`,
       })
     }
   }

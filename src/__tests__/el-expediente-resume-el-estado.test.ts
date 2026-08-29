@@ -118,7 +118,10 @@ describe('por qué NO se conectaron donde pedía su comentario', () => {
      * pedía un sitio que resultó no ser el suyo, y eso se deja escrito para
      * que nadie lo «arregle» moviéndolo allí.
      */
-    expect(consulta).toMatch(/problemas\.map\(p => p\.diagnostico\.descripcion/)
+    /* REG-364 cambió CÓMO se nombra cada problema —`nombreConCerteza`, para que
+       un presuntivo no se lea como confirmado— pero no QUÉ enseña la consulta,
+       que es lo que este guardián protege: la lista ENTERA, no un resumen. */
+    expect(consulta).toMatch(/problemas\.map\(p => nombreConCerteza\(p\.diagnostico\)/)
     expect(exp).toMatch(/No van en la consulta: ahí las dos listas ya se enseñan ENTERAS/)
   })
 })

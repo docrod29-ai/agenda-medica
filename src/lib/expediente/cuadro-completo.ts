@@ -37,6 +37,7 @@
  * Módulo PURO.
  */
 import type { Medicamento, Diagnostico } from '@/types/expediente'
+import { estaVigente, nombreConCerteza } from './problemas-activos'
 
 /** Lo mínimo que necesitamos de una orden vigente, para no atarnos a su forma. */
 export interface ConMedicamento { medicamento: Medicamento }
@@ -90,6 +91,14 @@ export interface DiagnosticoDelCuadro {
   descripcion: string
   codigoCIE10?: string
   deHoy: boolean
+  /**
+   * SUGERIDO ≠ CONFIRMADO, también cuando el dato sale de esta puerta.
+   *
+   * Se llevaba sólo la descripción, así que un diagnóstico **presuntivo**
+   * llegaba a los motores y al modelo indistinguible de uno confirmado. Quien
+   * lea esto tiene que poder decir si el médico lo dio por cierto.
+   */
+  tipo: Diagnostico['tipo']
 }
 
 /**
@@ -105,19 +114,41 @@ export function problemasDelCuadro(
 ): DiagnosticoDelCuadro[] {
   const out: DiagnosticoDelCuadro[] = []
   const vistos = new Set<string>()
-  const meter = (d: Pick<Diagnostico, 'descripcion' | 'codigoCIE10'>, deHoy: boolean) => {
+  const meter = (d: Diagnostico, deHoy: boolean) => {
     const t = d.descripcion?.trim()
     if (!t) return
+    /**
+     * ── LO QUE EL MÉDICO DESCARTÓ NO ES UN DIAGNÓSTICO SUYO (REG-364) ───────
+     *
+     * Esta función recibía la lista de HOY sin filtrar, así que un
+     * `tipo:'descartado'` o un `tipo:'diferencial'` —los dos los produce el
+     * extractor, y están en el esquema— entraban al cuadro como diagnósticos
+     * del paciente. Y de aquí salen el copiloto clínico y el prompt de la ruta
+     * de evidencia.
+     *
+     * El criterio no se inventa aquí: `estaVigente` es el mismo que ya usan la
+     * proyección longitudinal y el resumen del expediente. Tres lectores lo
+     * aplicaban y éste —el que alimenta a los motores— no.
+     */
+    if (!estaVigente(d)) return
     // El código manda sobre el texto: «DM2» y «Diabetes mellitus tipo 2» son uno.
     const k = d.codigoCIE10?.trim() ? `c:${clave(d.codigoCIE10)}` : `t:${clave(t)}`
     if (vistos.has(k)) return
     vistos.add(k)
-    out.push({ descripcion: t, codigoCIE10: d.codigoCIE10, deHoy })
+    out.push({ descripcion: t, codigoCIE10: d.codigoCIE10, deHoy, tipo: d.tipo })
   }
   for (const d of deHoy) meter(d, true)
   for (const a of activos) meter(a.diagnostico, false)
   return out
 }
+
+/**
+ * Cómo se le nombra a un diagnóstico del cuadro cuando lo va a leer otro.
+ * El criterio NO se define aquí: es el de `problemas-activos`, que es el módulo
+ * que sabe qué es un problema del paciente. Un cuarto criterio para lo mismo es
+ * cómo se cuela una tercera verdad.
+ */
+export const comoSeNombra = nombreConCerteza
 
 /** Cuántos de cada procedencia. Para poder decirlo en pantalla sin recontar. */
 export function resumenDelCuadro(meds: readonly MedicamentoDelCuadro[]) {

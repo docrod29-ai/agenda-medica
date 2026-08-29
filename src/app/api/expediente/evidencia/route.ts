@@ -25,6 +25,8 @@ import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubme
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 import { declararFuentesNoConsultadas } from '@/lib/evidencia/lo-que-no-se-consulto'
 import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
+import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
+import type { Diagnostico } from '@/types/expediente'
 
 export const runtime = 'nodejs'
 /**
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (revisa Configuración → Llaves de IA).' }, { status: 503 })
 
   let body: {
-    diagnosticos?: { descripcion?: string }[]
+    diagnosticos?: { descripcion?: string; tipo?: string }[]
     medicamentos?: { nombre?: string }[]
     motivo?: string
     resumen?: string
@@ -106,7 +108,24 @@ export async function POST(req: NextRequest) {
   }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
-  const dx = (body.diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[]
+  /**
+   * ── EL PROMPT NO PUEDE LLAMAR DIAGNÓSTICO A UNA SOSPECHA (REG-364) ────────
+   *
+   * `dx` se aplanaba a la descripción, así que un `presuntivo` viajaba en la
+   * línea «DIAGNÓSTICOS: …» exactamente igual que un confirmado, y el modelo
+   * razonaba —y buscaba en PubMed— sobre una enfermedad que el médico sólo
+   * había planteado. `SUGERIDO ≠ CONFIRMADO` también cuando el lector es un
+   * modelo.
+   *
+   * Las CONSULTAS de PubMed se construyen con el término a secas: «(presuntivo)»
+   * dentro de una búsqueda MeSH no la afina, la rompe.
+   */
+  const dxDet = (body.diagnosticos ?? [])
+    .map(d => ({ texto: String(d?.descripcion ?? '').trim(), tipo: d?.tipo as Diagnostico['tipo'] | undefined }))
+    .filter(d => d.texto)
+  const dx = dxDet.map(d => d.texto)
+  /** Los mismos, dichos con su grado de certeza, para el mensaje al modelo. */
+  const dxParaElModelo = dxDet.map(d => nombreConCerteza({ descripcion: d.texto, tipo: d.tipo }))
   const meds = (body.medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[]
   const motivo = (body.motivo ?? '').trim()   // MOTIVO DE CONSULTA = problema activo que se atiende HOY
   const resumen = (body.resumen ?? '').trim()
@@ -246,7 +265,7 @@ export async function POST(req: NextRequest) {
     'Responde SOLO JSON válido: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n],"pasajes":["cita textual del resumen n"]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n],"pasajes":["..."]}],"diferencial":[{"dx":"...","razon":"...","citas":[n],"pasajes":["..."]}]}. Da al menos 2-3 puntos de evaluación y, cuando aplique, alternativas y diferenciales.',
     '(5) "citas" y "pasajes" van EMPAREJADOS y del mismo largo: por cada [n] que cites, copia en "pasajes" —LITERAL, palabra por palabra, del texto que se te dio— la frase de ESE artículo que respalda lo que afirmas. No parafrasees el pasaje ni lo traduzcas: se comprueba carácter a carácter contra el original. Si una afirmación tuya no tiene una frase literal que la respalde, deja "citas" y "pasajes" VACÍOS en vez de citar de más — decirlo sin cita es honesto; citar algo que no lo dice, no.',
   ].join('\n')
-  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dx.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
+  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dxParaElModelo.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
 
   const conThinking = false   // NUNCA razonamiento extendido aquí (causaba timeouts de 40s)
   type Parsed = Record<string, unknown>

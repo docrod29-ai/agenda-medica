@@ -11154,3 +11154,110 @@ tiene el cableado: falla las tres aserciones.
   despliegue de reglas.
 - **No mira lo que un historial recortado dejó fuera.** Lo declara y la pantalla
   lo dice; no lo compensa.
+
+---
+
+## REG-364 — lo que el médico DESCARTÓ llegaba a los motores y al modelo como diagnóstico del paciente
+
+**QUÉ FALLABA.** `problemasDelCuadro` (`cuadro-completo.ts`) une los diagnósticos
+de HOY con los del expediente y produce **el cuadro completo** que ven el
+copiloto clínico y la ruta de evidencia. La lista del expediente venía filtrada
+por `problemasActivos`; **la de hoy entraba sin filtrar y aplanada a la
+descripción**:
+
+```ts
+out.push({ descripcion: t, codigoCIE10: d.codigoCIE10, deHoy })
+//                                                     ↑ y `tipo` se tiraba
+```
+
+El esquema de extracción produce los cuatro tipos (`extraction-schema.ts:40`:
+`presuntivo | definitivo | diferencial | descartado`), así que **«embarazo
+descartado»** —que es como se documenta una prueba negativa— y **«lupus,
+descartado»** entraban al cuadro como diagnósticos del paciente.
+
+**MEDIDO CON LOS MOTORES REALES, el 29-ago-2026:**
+
+```
+dx: [{ descripcion: 'Embarazo', tipo: 'descartado' }] · receta: Ibuprofeno
+
+copiloto → detalle:    «La paciente cursa embarazo. Desde la semana 20 se
+                        asocian a oligohidramnios…»
+         → textoNota:  «Ibuprofeno debe evitarse en el embarazo; se comentó y
+                        se valoró una alternativa.»
+```
+
+Ese `textoNota` es el texto que el médico puede **insertar en la nota firmada**:
+un descarte convertido en afirmación dentro de un documento medicolegal.
+
+Y por el otro camino, la ruta de evidencia construye con la misma lista sus
+consultas de PubMed (`consultasDet.push([dx[0], …])`) y la línea que el modelo
+lee como los diagnósticos del paciente (`DIAGNÓSTICOS: ${dx.join('; ')}`): la
+búsqueda y el razonamiento salían **sobre una enfermedad que el médico había
+descartado**. Con un `presuntivo`, peor de otra manera: el modelo no podía
+distinguir «anemia» de «probable anemia».
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo WS-10 justo después de REG-363. El tablero
+decía que a `Diagnostico` le falta `certeza`; buscando dónde dolía eso apareció
+algo peor: **el campo `tipo` ya existe**, y tres lectores lo respetan —
+`problemasActivos.estaVigente` (excluye descartado y diferencial),
+`ResumenPaciente:37` (`if (d.estado === 'resuelto' || d.tipo === 'descartado') continue`)
+y la exportación FHIR (`fhir-export.ts:230`, que mapea a `provisional`). El
+cuarto lector —el único que alimenta a los motores y al modelo— lo tiraba.
+
+**CAUSA RAÍZ.** Dos criterios para la misma pregunta. `estaVigente` estaba
+escrito, exportado y probado, y esta puerta no lo llamaba. Familia «el sistema se
+contradice a sí mismo»: el mismo repositorio filtra el descartado en tres sitios
+y no en el que más consecuencias tiene.
+
+**EL ARREGLO, en tres piezas y ninguna nueva:**
+
+1. `problemasDelCuadro` llama a `estaVigente` **también sobre la lista de hoy**.
+   El criterio no se reescribe: se usa el que ya existía.
+2. `DiagnosticoDelCuadro` conserva `tipo`, y `nombreConCerteza`
+   (`problemas-activos.ts`) es **una sola definición** de cómo se nombra un
+   diagnóstico para otro lector — la usan la lista de `/consulta`, el resumen de
+   `/expediente`, el cuadro de los motores y el prompt de evidencia. Un
+   `definitivo` va limpio: etiquetarlo todo convertiría la marca en ruido.
+3. El copiloto **no depende de que su llamador filtre**: quien afirma es él.
+   `embarazoConfirmado` deja fuera `descartado` y `diferencial`, y el texto se
+   redacta en condicional cuando el embarazo es presuntivo.
+
+**LO QUE EL ARREGLO NO HACE.** No calla ningún aviso. Un embarazo **presuntivo**
+sigue disparando el aviso gestacional de categoría `evitar` —el riesgo de un
+embarazo no detectado pesa más que una frase de más— sólo que dice «El embarazo
+está planteado y no confirmado» en vez de afirmarlo. Callarlo habría sido el
+error contrario, y el caro. Un llamador antiguo que no manda `tipo` se comporta
+exactamente como antes: ausencia de dato no es dato de ausencia, y «no se sabe»
+no puede apagar un aviso de teratogenicidad.
+
+Las **consultas de PubMed** siguen usando el término a secas: «(presuntivo)»
+dentro de una búsqueda MeSH no la afina, la rompe. La etiqueta es para el
+razonamiento, no para el buscador; hay un caso que lo fija.
+
+**LA PRUEBA.** `src/__tests__/lo-que-el-medico-descarto-no-es-un-diagnostico.test.ts`
+(16 casos). Probada al revés: el caso *«AL REVÉS — sin el filtro, los tres
+entran»* reproduce la regla equivocada y comprueba que el filtro es lo que separa
+un caso del otro. Hay además un caso que **compara el cuadro contra `estaVigente`
+dx a dx**, para que los dos criterios no puedan volver a separarse, y tres que
+comprueban sobre el árbol que la pantalla y el prompt no vuelven a escribir
+`.descripcion` a secas.
+
+**UN GUARDIÁN AJENO QUE SE ACTUALIZÓ, Y POR QUÉ NO ES DEBILITARLO.**
+`el-expediente-resume-el-estado.test.ts` fijaba la expresión literal
+`problemas.map(p => p.diagnostico.descripcion`. Lo que protege es **qué** enseña
+la consulta —la lista entera, no un resumen—, y eso no ha cambiado; lo que cambió
+es **cómo** se nombra cada problema. La aserción se movió al nuevo texto
+conservando su intención, y queda dicho en su comentario.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No añade `certeza` a `Diagnostico`.** El eje «con cuánta seguridad lo dijo el
+  PACIENTE» (`certeza.ts`, «creo que me dijeron que tenía anemia») se sigue
+  calculando en la consulta, se enseña como aviso y **se descarta al firmar**.
+  Esto usa `tipo`, que es lo que decidió el MÉDICO y que sí se guarda. El otro
+  eje sigue abierto en WS-10.
+- **No cambia ninguna compuerta ni ningún umbral.** Cambia qué entra y cómo se
+  nombra.
+- **No toca la reactividad cruzada** ni los motores de dosis, renal o pediátrico.
+- **No revisa las notas ya firmadas.** Un cuadro mal formado que ya se razonó y
+  se selló sigue sellado: una nota firmada es inmutable.

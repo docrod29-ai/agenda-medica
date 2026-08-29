@@ -7,19 +7,19 @@ CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-10 (Patient State longitudinal) — cerradas las alergias; faltan procedimientos, dispositivos, laboratorios, tendencias y compromisos
-LAST_COMPLETED_UNIT=WS-10 · REG-363 · la alergia sellada en las notas firmadas ya se lee de vuelta
+LAST_COMPLETED_UNIT=WS-10 · REG-364 · lo que el médico descartó ya no llega a los motores como diagnóstico suyo
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=WS-10 sigue. Cerradas las ALERGIAS (REG-363: tercera proyección longitudinal, regla asimétrica, cableada en /consulta y /expediente sin lecturas nuevas). Quedan procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento; y ninguna de las tres proyecciones se PERSISTE — persistir arrastra los tres sitios de declaración de una colección y es decisión de arquitectura, no un refactor. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
+EXACT_NEXT_ACTION=WS-10 sigue. Cerradas las ALERGIAS (REG-363) y la CERTEZA DEL MÉDICO (REG-364). Lo siguiente de este workstream: el eje de certeza del PACIENTE —`certeza.ts` corre en la consulta, avisa y se descarta al firmar— y después procedimientos, dispositivos, laboratorios y tendencias. Detalle de REG-363: tercera proyección longitudinal, regla asimétrica, cableada en /consulta y /expediente sin lecturas nuevas). Quedan procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento; y ninguna de las tres proyecciones se PERSISTE — persistir arrastra los tres sitios de declaración de una colección y es decisión de arquitectura, no un refactor. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
 FILES_IN_SCOPE=src/lib/expediente/alergias-longitudinales.ts · src/lib/expediente/problemas-activos.ts · src/lib/expediente/ordenes-medicamento.ts · src/types/expediente.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10869
+TESTS_PASSED=10885
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
-P1_OPEN=(ninguno interno)
+P1_OPEN=(ninguno interno — P1-20 abierto y cerrado con REG-364)
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-363
+DO_NOT_REGRESS=REG-323 · REG-337…REG-364
 ```
 
 ### Cerrado en esta tanda
@@ -42,6 +42,7 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-363
 | 361 | Esos campos existían y **ninguna pantalla los llenaba**. Se conectó en la unidad siguiente, antes de que el hueco se volviera el defecto de siempre |
 | 362 | `evals/patient-ai/` no existía: la única regla del repositorio que no se podía correr. La primera vez que se pudo, **encontró un defecto vivo** — la ingesta accidental sólo se detectaba en tercera persona |
 | 363 | La alergia estaba **sellada en cada nota firmada** y nadie la volvía a leer. Vaciado el campo mutable de `Patient`, el producto se comportaba como si dos notas inmutables que dicen «anafilaxia por penicilina» no existieran. Primera unidad de WS-10 sin P1 detrás |
+| 364 | Lo que el médico **descartó** entraba al cuadro que ven el copiloto y el prompt de evidencia. Medido: «embarazo descartado» → «La paciente cursa embarazo», en un texto que se inserta en la nota firmada. **P1-20, abierto y cerrado en esta unidad** |
 
 ### El saldo, escrito
 
@@ -49,11 +50,18 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-363
 `cerrado −1 (P1-12)` · `cerrado −1 (P1-11)` · `cerrado −1 (P1-15)` ·
 `cerrado −1 (P1-2)` · `cerrado −1 (P1-13)` · `cerrado −1 (P1-9)` ·
 `cerrado −1 (P1-10)` · `cerrado −1 (P1-17)` · **`nuevo +1 (P1-19)`** ·
-`cerrado −1 (P1-19)` → **9 → 0 P1 internos abiertos**.
+`cerrado −1 (P1-19)` · **`nuevo +1 (P1-20)`** · `cerrado −1 (P1-20)`
+→ **9 → 0 P1 internos abiertos**.
 
-**Cerrados 11, nuevos 2** (P1-18 y P1-19, los dos abiertos y cerrados dentro de
-esta tanda). Ninguno de los dos se escondió: los dos salieron de revisar lo que
+**Cerrados 12, nuevos 3** (P1-18, P1-19 y P1-20, los tres abiertos y cerrados
+dentro de esta tanda). Ninguno se escondió: los tres salieron de revisar lo que
 se acababa de cerrar, que es de donde salen los defectos que importan.
+
+**P1-20** salió de recorrer WS-10 después de REG-363: lo que el médico descartó
+llegaba a los motores clínicos y al modelo como diagnóstico del paciente, y el
+copiloto llegaba a escribir «La paciente cursa embarazo» sobre un embarazo
+descartado, en un texto que se inserta en la nota firmada. Se abrió y se cerró en
+la misma unidad (REG-364), con la reproducción medida antes del arreglo.
 
 El nuevo sale de cerrar P1-9: la otra mitad de ese requisito —que la ruta
 produzca `Source` con procedencia estructurada (#314), y que la verificación de

@@ -90,10 +90,30 @@ export function problemasActivos(notas: readonly NotaConDiagnosticos[]): Problem
     .sort((a, b) => peso(a) - peso(b) || String(b.dichoEn).localeCompare(String(a.dichoEn)))
 }
 
+/**
+ * CÓMO SE NOMBRA UN DIAGNÓSTICO CUANDO LO VA A LEER OTRO — REG-364.
+ *
+ * Una sola definición, y vive aquí porque éste es el módulo que sabe qué es un
+ * problema del paciente. La usan la lista de la consulta, el resumen del
+ * expediente, el cuadro que ven los motores y el prompt de la ruta de
+ * evidencia: cuatro lectores que **antes se llevaban sólo la descripción**, así
+ * que un `presuntivo` se leía igual que un confirmado. `SUGERIDO ≠ CONFIRMADO`.
+ *
+ * Un `definitivo` va tal cual. Etiquetar también lo confirmado convertiría la
+ * marca en ruido y dejaría de verse justo donde importa.
+ */
+export function nombreConCerteza(
+  d: { descripcion?: string; tipo?: Diagnostico['tipo'] },
+): string {
+  const t = String(d.descripcion ?? '').trim()
+  if (!t) return ''
+  return !d.tipo || d.tipo === 'definitivo' ? t : `${t} (${d.tipo})`
+}
+
 /** Frase corta para el encabezado de la consulta. */
 export function resumenProblemas(activos: readonly ProblemaVigente[]): string {
   if (!activos.length) return 'Sin problemas registrados'
-  const nombres = activos.map(p => p.diagnostico.descripcion.trim()).filter(Boolean)
+  const nombres = activos.map(p => nombreConCerteza(p.diagnostico)).filter(Boolean)
   if (nombres.length <= 3) return nombres.join(' · ')
   return `${nombres.slice(0, 3).join(' · ')} y ${nombres.length - 3} más`
 }

@@ -159,7 +159,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Ninguna de las dos está mal por su cuenta. En el hueco cabía una nota
      * firmable e inentregable — y con `nota.firma` inmutable, irreparable.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336],
+    /**
+     * 364 es esta familia con TRES lectores en lo cierto y uno en falso, y el
+     * falso es el que más consecuencias tiene. `estaVigente` excluye lo
+     * descartado; `ResumenPaciente` lo excluye; la exportación FHIR lo mapea a
+     * `provisional`. El cuadro que alimenta al copiloto y al prompt de
+     * evidencia lo dejaba pasar y encima tiraba el `tipo`, así que un «embarazo
+     * descartado» hacía que el motor escribiera «La paciente cursa embarazo» en
+     * un texto que se inserta en la nota firmada.
+     *
+     * La lección: un criterio exportado y probado no protege a quien no lo
+     * llama. El defecto no estaba en la regla — estaba en el lector que se
+     * escribió su propia versión implícita («todo lo que tenga descripción»).
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364],
   },
   {
     clave: 'habla_real',
