@@ -149,6 +149,10 @@ import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import {
+  estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
+  type NotaConAlergias,
+} from '@/lib/expediente/alergias-longitudinales'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
@@ -873,6 +877,17 @@ export default function ConsultaActivaPage() {
   /** true = el historial del que salen `vigentes` y `problemas` vino recortado. */
   const [historialTruncado, setHistorialTruncado] = useState(false)
   const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
+  /**
+   * LO QUE LAS NOTAS FIRMADAS SELLARON EN ALERGIAS.
+   *
+   * Sale del MISMO recorrido de notas que la medicación y los problemas: cero
+   * lecturas nuevas a Firestore. Se guarda crudo y se proyecta abajo en un
+   * `useMemo`, porque la proyección depende también de `patient.alergias`, que
+   * el médico edita en línea en esta misma pantalla — si se calculara aquí, el
+   * aviso seguiría diciendo «no está en la lista» después de que la añadiera.
+   */
+  const [alergiasSelladas, setAlergiasSelladas] =
+    useState<{ notas: NotaConAlergias[]; asOf: string }>({ notas: [], asOf: '' })
 
   /**
    * ── EL CUADRO COMPLETO, FUERA DEL useMemo (REG-188) ─────────────────────────
@@ -884,6 +899,23 @@ export default function ConsultaActivaPage() {
    */
   const medsDelCuadro = medicacionDelCuadro(medicamentos, vigentes)
   const dxDelCuadro = problemasDelCuadro(diagnosticos, problemas)
+
+  /**
+   * LO QUE LA COMPUERTA DE ALERGIAS NO ESTÁ MIRANDO (WS-10).
+   *
+   * En el cuerpo y no en un `useMemo`, por la misma razón que las dos líneas de
+   * arriba: una función importada dentro de una memoización manual no la
+   * preserva el React Compiler y el trinquete de lint lo caza.
+   *
+   * Depende de `patient?.alergias`, que se edita en línea aquí mismo: en cuanto
+   * el médico devuelve la alergia a la lista, el aviso desaparece solo. Un aviso
+   * que sigue gritando después de que le hicieras caso deja de leerse.
+   */
+  const estadoAlergias = estadoDeAlergias(
+    alergiasSelladas.notas, patient, alergiasSelladas.asOf,
+    { historialIncompleto: historialTruncado },
+  )
+  const avisoAlergias = avisoDeAlergiasQueNoSeVen(estadoAlergias)
 
   const entradaCopiloto = useMemo(() => ({
     edad: patient?.edad,
@@ -1686,6 +1718,27 @@ export default function ConsultaActivaPage() {
             medicamentos: n.medicamentos,
             diagnosticos: n.diagnosticos,
           }))
+        /**
+         * LAS ALERGIAS QUE LAS NOTAS FIRMADAS SELLARON (WS-10).
+         *
+         * Cada nota firmada guarda una COPIA de la lista de alergias tal como
+         * estaba ese día, y hasta ahora nadie la volvía a leer: el cruce
+         * alergia↔fármaco, la receta impresa y el FHIR leen sólo el campo
+         * mutable de `Patient`, que la última escritura pisa entera. Un vaciado
+         * —un import, una migración, un dedo en el móvil— apagaba la alerta
+         * aunque el expediente siguiera diciendo «anafilaxia por penicilina» en
+         * dos notas inmutables. Mismo recorrido, ninguna lectura nueva.
+         */
+        setAlergiasSelladas({
+          notas: ns.map(n => ({
+            fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+            alergias: n.alergias,
+            estado: n.estado,
+          })),
+          /* El `asOf` es el momento en que se leyó el expediente, no el del
+             render: la proyección corresponde a ESAS notas. */
+          asOf: new Date().toISOString(),
+        })
         setVigentes(medicamentosVigentes(firmadas))
         // La lista de problemas sigue la MISMA regla que la medicación: manda lo
         // último que se dijo de CADA problema. Una consulta por gripa que no
@@ -4474,6 +4527,96 @@ export default function ConsultaActivaPage() {
         )}
       </div>
       ) })()}
+
+      {/*
+        ── LO QUE EL EXPEDIENTE DICE Y LA LISTA DE HOY NO (WS-10) ─────────────
+
+        El campo de arriba es UN texto mutable que la última escritura pisa
+        entera. Cada nota firmada, en cambio, selló una COPIA de esa lista el
+        día que se firmó — y nadie la volvía a leer. Un vaciado (import,
+        migración, un dedo en el móvil, o el médico que quiere que le deje
+        firmar) apagaba el cruce alergia↔fármaco aunque dos notas inmutables
+        siguieran diciendo «anafilaxia por penicilina».
+
+        Va DEBAJO del campo y no dentro: son dos hechos distintos —lo que hoy
+        gobierna la alerta, y lo que el expediente registra— y mezclarlos haría
+        creer que la alerta ya lo está mirando. No lo está: por eso se enseña.
+
+        Esto NO devuelve la alergia a la lista por su cuenta. Una nota de 2024
+        no puede pisar una corrección que el médico hizo hoy a conciencia
+        (regla 6: se pregunta, no se adivina). Ofrece hacerlo; decide él.
+      */}
+      {avisoAlergias && (
+        <div
+          role="status"
+          style={{
+            marginBottom: 12, padding: '10px 13px', borderRadius: 10,
+            background: 'color-mix(in srgb, var(--red) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}
+        >
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <AlertTriangle size={16} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>
+              <strong className="nx-critico">{avisoAlergias}</strong>
+            </div>
+          </div>
+          {/* Cada una con su procedencia: de qué nota sale y qué decía esa nota.
+              Sin la fecha, esto sería una afirmación del sistema; con ella es
+              una cita del expediente que el médico puede ir a leer. */}
+          <ul style={{ margin: 0, paddingLeft: 24, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {[...estadoAlergias.ausentesDeLaListaDeHoy, ...estadoAlergias.enConflicto].map(a => {
+              const peor = peorSeveridadRegistrada(a)
+              const reac = reaccionRegistrada(a)
+              return (
+                <li key={a.alergeno} style={{ fontSize: 12, color: 'var(--text2)' }}>
+                  <strong style={{ color: 'var(--text)' }}>{a.alergeno}</strong>
+                  {peor && <> · {peor.severidad}</>}
+                  {reac && <> · {reac.reaccion}</>}
+                  {a.selladaEn && <> · nota firmada del {a.selladaEn.slice(0, 10)}</>}
+                  {a.negadaHoy && <> · <span className="nx-critico">hoy el campo la niega</span></>}
+                  {!firmada && (
+                    <>
+                      {' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!clinicId || !patient) return
+                          const antes = patient.alergias ?? ''
+                          const despues = antes.trim() ? `${antes.trim()}, ${a.alergeno}` : a.alergeno
+                          setPatient(prev => prev ? { ...prev, alergias: despues } : prev)
+                          updatePatient(clinicId, patientId, { alergias: despues })
+                            .catch(() => toast('No se guardó la alergia. Revisa tu conexión.', 'error'))
+                          /* Queda constancia de que volvió, y de dónde salió: el
+                             mismo registro que ya guarda el vaciado. */
+                          void logAudit({
+                            evento: 'paciente_modificado', clinicId, patientId,
+                            meta: {
+                              campo: 'alergias', antes, despues,
+                              restauradaDeNotaFirmada: a.selladaEn,
+                            },
+                          })
+                          alergiasAlAbrir.current = despues
+                        }}
+                        className="btn btn-secondary"
+                        style={{ fontSize: 12, padding: '4px 10px', minHeight: 32 }}
+                      >
+                        Añadir a la lista
+                      </button>
+                    </>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+          {estadoAlergias.historialIncompleto && (
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+              El historial vino recortado: puede haber más alergias en notas que no se cargaron.
+            </div>
+          )}
+        </div>
+      )}
 
       {/*
         LOS PROBLEMAS DEL PACIENTE Y CUÁNDO VINO LA ÚLTIMA VEZ.

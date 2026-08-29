@@ -11028,3 +11028,129 @@ v9-08.
 - **No prueba las rutas del portal.** El alcance del token y el aislamiento tienen
   sus propias suites.
 - **Cero PHI.** Todos los textos son sintéticos, como exige `data-privacy.md`.
+
+---
+
+## REG-363 — la alergia estaba sellada en las notas firmadas y nadie la volvía a leer
+
+**QUÉ FALLABA.** Todas las alergias del producto salen de **un campo de texto
+libre de `Patient`**, editable en línea en `/consulta` y en `/pacientes`, que la
+última escritura **pisa entera**. De ese campo cuelgan las cuatro cosas que
+importan: el cruce alergia↔fármaco que apaga *Firmar*, el recuadro rojo de la
+receta impresa, el recurso FHIR y el sesgo del reconocedor.
+
+Y **cada nota firmada sella una copia de esa lista** —`alergias: alergiasDe(patient)`,
+`consulta/page.tsx`— así que el expediente sí guarda la alergia, dentro de
+documentos inmutables, tantas veces como consultas hubo.
+
+**Nadie la volvía a leer.** Medido sobre el árbol el 29-ago-2026: los veintitantos
+llamadores de `alergiasDe` / `alergenosDe` / `alergiasParaImpreso` leen `patient`,
+**ninguno mira el historial**; y `nota.alergias` sólo lo consumen `nom004.ts` (la
+compuerta de *esa* nota), `integrity.ts` (su hash) y `procedencia.ts` (su
+manifiesto) — **ninguno cruza notas**.
+
+La secuencia completa, con datos del propio repositorio:
+
+```
+2024-03  nota firmada · alergias: [{ alergeno: 'Penicilina',
+                                     severidad: 'anafilaxia',
+                                     reaccion: 'edema de glotis' }]
+2024-11  nota firmada · la misma alergia, sellada otra vez
+2026-08  alguien vacía el campo — un import de CSV, una migración, un dedo en
+         el móvil, o el médico que quiere que le deje firmar
+2026-08  la pantalla dice «No registradas» · la receta imprime «Negadas / no
+         referidas» · el cruce alergia↔fármaco NO salta con amoxicilina
+```
+
+Dos notas firmadas, inmutables, siguen diciendo «anafilaxia por penicilina», y el
+producto entero se comporta como si nunca se hubieran escrito.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo WS-10 (Patient State longitudinal). Existen
+proyecciones longitudinales de **problemas activos** (`problemas-activos.ts`) y de
+**medicación vigente** (`ordenes-medicamento.ts`), las dos recorriendo el
+expediente entero con la regla dura correcta —el silencio no resuelve nada—. La
+alergia, que es el dato más letal de la aplicación, **no tenía ninguna**.
+
+El repositorio ya conocía este modo de fallo **por el otro extremo**: `logAudit`
+registra `vaciado: true` al borrarse el campo (`firestore.ts:656`), y su
+comentario dice *«sin el antes, un vaciado queda registrado como “se tocó el campo
+alergias”, indistinguible de haberlas escrito… es exactamente lo que hizo
+irreconstruible el dato en REG-323»*. Se había construido **la constancia** del
+borrado y no **la recuperación**: nadie lee una bitácora de auditoría con el
+paciente enfrente, y una alergia que hay que ir a buscar ahí es una alergia que no
+llega.
+
+**CAUSA RAÍZ.** El estado de alergias del paciente se leía de **un solo documento
+mutable**, no del expediente. Familia `no_conectado`: el dato estaba escrito,
+sellado y probado, y ningún camino del producto lo leía de vuelta.
+
+**EL ARREGLO.** `src/lib/expediente/alergias-longitudinales.ts` —tercera
+proyección longitudinal, módulo puro— con una regla **asimétrica a propósito**,
+que NO es la de sus dos hermanas:
+
+- **afirmar SUMA** — una alergia sellada en una nota firmada entra en el estado y
+  no sale sola;
+- **el silencio NO RESTA** — no estar en la lista de hoy no la retracta;
+- **una negación de hoy tampoco borra: pone en CONFLICTO**, que es una pregunta
+  para el médico, no una respuesta del sistema (regla 6 de seguridad clínica).
+
+La asimetría es el corazón del arreglo. Los problemas y la medicación siguen
+«manda la última palabra sobre cada entidad»; aquí eso sería un defecto, porque
+**el sello no es una palabra: es una copia**. La nota no dice «ya no es alérgico»;
+dice «el campo decía esto cuando firmé». Tratar una copia vacía como retractación
+convertiría cualquier borrado accidental en una **decisión clínica retroactiva**.
+
+Cableado en las dos pantallas que **ya** tienen las notas cargadas —`/consulta` y
+`/expediente`—, así que cuesta **cero lecturas nuevas** a Firestore. En
+`/consulta`, cada discrepancia se enseña con su procedencia (severidad, reacción y
+**la fecha de la nota firmada que lo dice**) y con un botón que la devuelve a la
+lista: acto del médico, visible, reversible y asentado en la bitácora con
+`restauradaDeNotaFirmada`.
+
+La proyección lleva `asOf` y `version` —el tablero anotaba que las dos que existían
+no llevaban ninguno de los dos— y `historialIncompleto`, que viaja desde el
+recorte de REG-350: sobre un historial recortado, «no encontré más» **no** es «no
+hay más».
+
+**LO QUE EL ARREGLO NO HACE, Y NO DEBE HACER.** No alimenta la compuerta que
+bloquea la firma. Ésa sigue leyendo `alergiasDe(patient)` y sólo eso, y hay un
+guardián que lo comprueba: si esta proyección la alimentara, una nota de 2024
+pisaría una corrección que el médico hizo hoy a conciencia, y el producto tendría
+**dos lecturas del mismo campo** — ADR-001, REG-034/035/171. Lo que hace es
+**enseñar lo que la compuerta no está mirando**.
+
+**UN DEFECTO QUE ENCONTRÓ LA PRUEBA, EN EL PROPIO ARREGLO.** La primera versión
+del módulo guardaba **sólo el sello más reciente**. La nota de noviembre decía
+«anafilaxia» a secas y la de marzo decía «anafilaxia, edema de glotis»: **«edema de
+glotis» se perdía en silencio** — justo lo que distingue una anafilaxia de un
+exantema. La salida fácil habría sido componer un registro con campos de dos notas
+distintas, o sea **fabricar un registro que nadie escribió**, que es la otra mitad
+del mismo error. Se guardan **todos** los sellos, enteros y por separado, y
+`peorSeveridadRegistrada` / `reaccionRegistrada` eligen cuál enseñar devolviendo
+**la fecha de la nota que lo dice**.
+
+**LA PRUEBA.**
+`src/__tests__/la-alergia-sellada-en-una-nota-firmada-no-desaparece.test.ts`
+(25 casos). Probada al revés: el caso *«AL REVÉS — si el sello vacío retractara»*
+reproduce la regla equivocada (la de problemas y medicación) sobre el mismo
+historial y comprueba que produce el desenlace que este módulo existe para
+impedir. El guardián de cableado se probó contra `pacientes/page.tsx`, que no
+tiene el cableado: falla las tres aserciones.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No persiste la proyección.** Se recalcula sobre las notas que la pantalla ya
+  cargó. No hay documento, ni colección, ni respaldo, ni regla que declarar —
+  y por eso tampoco hay `asOf` guardado en ninguna parte: el que devuelve es el
+  del momento de la lectura. Persistirla es una decisión de arquitectura que
+  arrastra los tres sitios de declaración de una colección; queda en WS-10.
+- **No decide que la alergia sea real**, ni infiere severidad, ni agrupa familias
+  de fármacos. La reactividad cruzada sigue en `nom004.ts`.
+- **No resuelve el conflicto.** Una alergia sellada y negada hoy se queda
+  visible y sin resolver hasta que el médico decida.
+- **No arregla E0-06.** Las alergias siguen viviendo en `Patient`, legibles por
+  recepción bajo `allow read: if isMember`. Eso es P1-6, `BLOCKED_EXTERNAL`:
+  necesita backfill sobre datos clínicos vivos, decisión de política del dueño y
+  despliegue de reglas.
+- **No mira lo que un historial recortado dejó fuera.** Lo declara y la pantalla
+  lo dice; no lo compensa.

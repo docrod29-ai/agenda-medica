@@ -39,6 +39,9 @@ import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
 import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'
 import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
+import {
+  estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
+} from '@/lib/expediente/alergias-longitudinales'
 
 /**
  * ¿ESTA NOTA ES HOSPITALARIA? UNA regla, no dos.
@@ -180,6 +183,30 @@ export default function ExpedientePage() {
     }))
     return { problemas: problemasActivos(firmadas), vigentes: medicamentosVigentes(firmadas) }
   }, [notas])
+
+  /**
+   * LAS ALERGIAS SEGÚN EL EXPEDIENTE ENTERO, NO SEGÚN UN CAMPO (WS-10).
+   *
+   * En el cuerpo y no en un `useMemo`: una función importada dentro de una
+   * memoización manual no la preserva el React Compiler (misma razón que en
+   * `/consulta`). Sale de `notas`, que ya están cargadas: cero lecturas nuevas.
+   *
+   * `historialIncompleto` viaja porque sobre un recorte «no encontré más» NO es
+   * «no hay más», y esa diferencia es la regla 4 de seguridad clínica.
+   */
+  /* El instante en que llegaron ESTAS notas — no el del render, que cambia
+     solas y haría que la proyección no fuera comparable consigo misma. */
+  const asOfNotas = useMemo(() => (notas.length ? new Date().toISOString() : ''), [notas])
+  const estadoAlergias = estadoDeAlergias(
+    notas.map(n => ({
+      fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+      alergias: n.alergias,
+      estado: n.estado,
+    })),
+    patient, asOfNotas,
+    { historialIncompleto: historialTruncado },
+  )
+  const avisoAlergias = avisoDeAlergiasQueNoSeVen(estadoAlergias)
 
   /*
     CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — sólo enseña las
@@ -324,6 +351,52 @@ export default function ExpedientePage() {
         fármacos"; si cada uno lo recalculara aparte, un mismo paciente
         podría mostrar números distintos según dónde se mire.
       */}
+      {/*
+        ── LO QUE EL EXPEDIENTE REGISTRA EN ALERGIAS Y LA LISTA DE HOY NO (WS-10) ──
+
+        Las alergias del producto salen de UN campo mutable de `Patient` que la
+        última escritura pisa entera; cada nota firmada, en cambio, selló una
+        copia de esa lista el día que se firmó, y nadie la volvía a leer. Aquí
+        —donde se revisa el expediente, no donde se prescribe— se enseña la
+        discrepancia con su procedencia: qué nota lo dice y de qué fecha.
+
+        No corrige nada. Corregir es un acto del médico, y su sitio es
+        `/consulta`, donde el campo se edita con el paciente delante.
+      */}
+      {avisoAlergias && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
+          background: 'color-mix(in srgb, var(--red) 8%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
+          borderRadius: 10, padding: '10px 13px',
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 2 }} />
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
+            <strong className="nx-critico">{avisoAlergias}</strong>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {[...estadoAlergias.ausentesDeLaListaDeHoy, ...estadoAlergias.enConflicto].map(a => {
+                const peor = peorSeveridadRegistrada(a)
+                const reac = reaccionRegistrada(a)
+                return (
+                  <li key={a.alergeno}>
+                    <strong style={{ color: 'var(--text)' }}>{a.alergeno}</strong>
+                    {peor && <> · {peor.severidad}</>}
+                    {reac && <> · {reac.reaccion}</>}
+                    {a.selladaEn && <> · nota firmada del {a.selladaEn.slice(0, 10)}</>}
+                    {a.negadaHoy && <> · <span className="nx-critico">hoy el campo la niega</span></>}
+                  </li>
+                )
+              })}
+            </ul>
+            {estadoAlergias.historialIncompleto && (
+              <div style={{ color: 'var(--text3)', marginTop: 4 }}>
+                El historial vino recortado: puede haber más en notas que no se cargaron.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {(problemas.length > 0 || vigentes.length > 0) && (
         <div id="spine-problemas" style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,

@@ -6,20 +6,20 @@
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
-CURRENT_WORKSTREAM=WS-03 (consultorio grande) — queda el inventario de lecturas de CITAS
-LAST_COMPLETED_UNIT=WS-12 · REG-362 · `evals/patient-ai/` existe, corre, y encontró un defecto la primera vez
+CURRENT_WORKSTREAM=WS-10 (Patient State longitudinal) — cerradas las alergias; faltan procedimientos, dispositivos, laboratorios, tendencias y compromisos
+LAST_COMPLETED_UNIT=WS-10 · REG-363 · la alergia sellada en las notas firmadas ya se lee de vuelta
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=WS-10 · Patient State. Hoy sólo hay proyección de problemas activos y medicación; faltan alergias, procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo y compromisos de seguimiento — y todo se recalcula en el navegador en cada montaje, SIN `asOf` ni versión. Empezar por ALERGIAS, que es el campo más crítico y el que hoy se lee de `Patient` sin procedencia ni temporalidad. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
-FILES_IN_SCOPE=src/lib/expediente/problemas-activos.ts · src/lib/expediente/ordenes-medicamento.ts · src/types/expediente.ts
+EXACT_NEXT_ACTION=WS-10 sigue. Cerradas las ALERGIAS (REG-363: tercera proyección longitudinal, regla asimétrica, cableada en /consulta y /expediente sin lecturas nuevas). Quedan procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento; y ninguna de las tres proyecciones se PERSISTE — persistir arrastra los tres sitios de declaración de una colección y es decisión de arquitectura, no un refactor. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
+FILES_IN_SCOPE=src/lib/expediente/alergias-longitudinales.ts · src/lib/expediente/problemas-activos.ts · src/lib/expediente/ordenes-medicamento.ts · src/types/expediente.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10844
+TESTS_PASSED=10869
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno)
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-362
+DO_NOT_REGRESS=REG-323 · REG-337…REG-363
 ```
 
 ### Cerrado en esta tanda
@@ -41,6 +41,7 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-362
 | 360 | «Cerrar» abarcaba de golpe decisión, acción y aviso al paciente: un resultado crítico cerrado sin que nadie llamara se veía igual que uno donde sí se llamó. **Primera unidad de WS-11 sin P1 detrás** |
 | 361 | Esos campos existían y **ninguna pantalla los llenaba**. Se conectó en la unidad siguiente, antes de que el hueco se volviera el defecto de siempre |
 | 362 | `evals/patient-ai/` no existía: la única regla del repositorio que no se podía correr. La primera vez que se pudo, **encontró un defecto vivo** — la ingesta accidental sólo se detectaba en tercera persona |
+| 363 | La alergia estaba **sellada en cada nota firmada** y nadie la volvía a leer. Vaciado el campo mutable de `Patient`, el producto se comportaba como si dos notas inmutables que dicen «anafilaxia por penicilina» no existieran. Primera unidad de WS-10 sin P1 detrás |
 
 ### El saldo, escrito
 
@@ -70,7 +71,7 @@ decir que la cola prioritaria del tablero está vacía y que el trabajo pasa a s
 |---|---|
 | WS-02 escala | El **arnés que produzca** el JSON de carga. Hay validador de forma; no hay medición. 2k…100k son `NOT_STARTED` |
 | WS-09 aplicabilidad | `NOT_STARTED`: no hay motor que diga si una evidencia aplica a ESTE paciente |
-| WS-10 Patient State | Faltan alergias, procedimientos, dispositivos, laboratorios, tendencias; sin `asOf`, sin versión, sin persistir |
+| WS-10 Patient State | **REG-363 cerró las alergias** — tercera proyección longitudinal, con `asOf` y versión. Faltan procedimientos, dispositivos, laboratorios, tendencias, banderas de riesgo y compromisos; y **ninguna de las tres se persiste** |
 | WS-11 ciclo cerrado | **REG-360/361 cerraron el cierre**: las tres etapas tienen campo, hay registro de transiciones y `/pendientes` las llena por formulario. Falta `scheduled` como estado, el cierre desde otras pantallas, y las **interconsultas, referencias e imagen**, que siguen fuera del ciclo |
 | WS-12 evaluación | **REG-362 creó la puerta que la regla exigía** y encontró un defecto vivo al correrla. Falta lo demás: evaluar lo que el modelo REDACTA (corpus, jueces), y las otras cuatro clases de respuesta, que están en el tipo y no tienen clasificador |
 | WS-13 observabilidad | Sin correlation ID de punta a punta; un solo llamador de alertas |

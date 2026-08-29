@@ -2,7 +2,7 @@
   "sellado": "2026-08-29",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 5369,
+  "totalCasos": 5393,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -671,6 +671,10 @@
     {
       "archivo": "src/__tests__/la-alergia-negada-no-es-una-alergia.test.ts",
       "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/la-alergia-sellada-en-una-nota-firmada-no-desaparece.test.ts",
+      "minCasos": 24
     },
     {
       "archivo": "src/__tests__/la-alerta-tiene-quien-la-lea.test.ts",

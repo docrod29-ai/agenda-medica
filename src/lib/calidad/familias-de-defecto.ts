@@ -120,7 +120,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * el timeout entero. Una protección pensada por llamada no protege de un
      * problema que es por temporada.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361],
+    /**
+     * 363 es esta familia con el dato ya ESCRITO, SELLADO y probado, y ningún
+     * lector. Cada nota firmada guarda una copia de las alergias del paciente;
+     * los veintitantos llamadores del cruce alergia↔fármaco, la receta impresa,
+     * el FHIR y el sesgo de voz leen todos el MISMO campo mutable de `Patient`,
+     * que la última escritura pisa entera. Vaciado ese campo, el producto se
+     * comportaba como si dos notas inmutables que dicen «anafilaxia por
+     * penicilina» no existieran.
+     *
+     * Su lección propia: el repositorio ya había construido la CONSTANCIA del
+     * borrado (`logAudit({ vaciado: true })`, REG-323) y no la RECUPERACIÓN.
+     * Dejar el dato en una bitácora de auditoría no es conectarlo: nadie lee
+     * una bitácora con el paciente enfrente.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363],
   },
   {
     clave: 'se_contradice',

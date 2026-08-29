@@ -330,8 +330,30 @@ comprobación de rango a secas.
 | | |
 |---|---|
 | **Estado** | `PARTIAL` |
-| **Lo que sí existe y está cableado** | `problemas-activos.ts:70` y `ordenes-medicamento.ts:76` — proyección longitudinal real de **problemas activos** y **medicación activa**, con la regla dura correcta: el silencio no resuelve nada |
-| **Lo que falta** | Alergias, procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento. **Sin versión, sin `asOf`, sin persistir**: se recalcula en el navegador en cada montaje, sobre `getNotas` sin cota |
+| **Lo que sí existe y está cableado** | `problemas-activos.ts:70`, `ordenes-medicamento.ts:76` y —desde REG-363— `alergias-longitudinales.ts`: proyección longitudinal real de **problemas activos**, **medicación activa** y **alergias**, con la regla dura correcta: el silencio no resuelve nada |
+| **Lo que falta** | Procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento. Las tres proyecciones se recalculan en el navegador; **ninguna se persiste**, y sólo la de alergias lleva `asOf` y `version` |
+
+**REG-363 — las alergias ya son longitudinales, y la regla NO es la de sus dos
+hermanas.** Cada nota firmada sella una **copia** de la lista de alergias, y
+nadie la volvía a leer: los veintitantos llamadores del cruce alergia↔fármaco,
+la receta impresa, el FHIR y el sesgo de voz leen todos el mismo campo mutable de
+`Patient`. Vaciado ese campo —un import, una migración, un dedo en el móvil— el
+producto se comportaba como si dos notas inmutables que dicen «anafilaxia por
+penicilina» no existieran.
+
+La regla es **asimétrica a propósito**: afirmar suma, el silencio no resta, y una
+negación de hoy **no borra: pone en conflicto**. Porque el sello no es una palabra
+(«ya no es alérgico») sino una copia («el campo decía esto cuando firmé»), y
+tratar una copia vacía como retractación convertiría cualquier borrado accidental
+en una decisión clínica retroactiva.
+
+**No alimenta la compuerta que bloquea la firma**, y hay un guardián que lo
+comprueba: si lo hiciera, una nota de 2024 pisaría una corrección que el médico
+hizo hoy a conciencia. Enseña lo que la compuerta no está mirando, con la fecha de
+la nota que lo dice, y ofrece devolverlo a la lista — acto del médico.
+
+**No cierra E0-06.** Las alergias siguen viviendo en `Patient`, legibles por
+recepción bajo `allow read: if isMember`. Eso es P1-6, `BLOCKED_EXTERNAL`.
 
 **El activo mejor construido de esta área** es el ciclo de vida del medicamento
 (`EstadoOrdenMedicamento`, `types/expediente.ts:72`), con
