@@ -70,13 +70,16 @@ jobs:
           echo "Ausculta autonomous loop is already complete."
           exit 0
 
-      - name: Require at least one model transport
+      # There is one writer, so there is one required transport. OPENAI_API_KEY is
+      # no longer a substitute for it: Codex only judges, after CI, and its absence
+      # must never stop a cycle from writing.
+      - name: Require the writer transport
         if: steps.start.outputs.complete != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "$HAS_ANTHROPIC" != "true" && "$HAS_OPENAI" != "true" ]]; then
-            echo "::error::MISSING_MODEL_TRANSPORT: ANTHROPIC_API_KEY and OPENAI_API_KEY are both unavailable"
+          if [[ "$HAS_ANTHROPIC" != "true" ]]; then
+            echo "::error::MISSING_WRITER_TRANSPORT: ANTHROPIC_API_KEY is unavailable and there is no fallback writer"
             exit 96
           fi
 
@@ -213,69 +216,24 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Decide whether Codex must take the writer turn
-        id: handoff
+      # The delta decides the cycle, not the writer's exit code. A run that edits
+      # real files and then dies on its last turn left work worth gating; a run
+      # that exits clean having touched nothing left nothing to gate. There is no
+      # second writer: Codex is out of the writing path entirely, so no auxiliary
+      # tool can take the pen or stall the product.
+      - name: Classify writer delta
+        id: delta
         if: steps.start.outputs.complete != 'true'
         env:
           CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
         shell: bash
         run: |
           set -euo pipefail
-          changed=false
-          [[ -n "$(git status --porcelain)" ]] && changed=true
-
-          use_codex=false
-          if [[ "$HAS_ANTHROPIC" != "true" || "$CLAUDE_OUTCOME" != "success" || "$changed" != "true" ]]; then
-            if [[ "$HAS_OPENAI" == "true" ]]; then
-              use_codex=true
-            fi
-          fi
-
-          echo "changed_after_claude=$changed" >> "$GITHUB_OUTPUT"
-          echo "use_codex=$use_codex" >> "$GITHUB_OUTPUT"
-
-          if [[ "$HAS_ANTHROPIC" == "true" && "$CLAUDE_OUTCOME" != "success" ]]; then
-            echo "::warning::CLAUDE_WRITER_DID_NOT_COMPLETE; handing current workspace to Codex when available"
-          fi
-
-      - name: Build Codex handoff prompt
-        if: steps.handoff.outputs.use_codex == 'true'
-        shell: bash
-        run: |
-          cp /tmp/ausculta-autonomous-prompt.txt .ausculta-codex-prompt.txt
-          cat >> .ausculta-codex-prompt.txt <<'PROMPT'
-
-          CODEX HANDOFF:
-          Claude was unavailable, exhausted, failed, or produced no useful delta in this bounded cycle.
-          Continue from the CURRENT WORKTREE exactly as it is. If Claude left partial edits, inspect and preserve only correct work.
-          You are now the ONE WRITER. Finish one bounded highest-priority internal P0/P1 unit under the same rules.
-          Do not commit or push.
-          PROMPT
-
-      - name: Codex writer fallback
-        if: steps.handoff.outputs.use_codex == 'true'
-        timeout-minutes: 45
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          safety-strategy: drop-sudo
-          effort: high
-          allow-bots: true
-          prompt-file: .ausculta-codex-prompt.txt
-
-      - name: Remove transient writer prompt
-        if: always() && steps.start.outputs.complete != 'true'
-        run: rm -f .ausculta-codex-prompt.txt
-
-      - name: Classify writer delta
-        id: delta
-        if: steps.start.outputs.complete != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
           if [[ -n "$(git status --porcelain)" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            if [[ "$CLAUDE_OUTCOME" != "success" ]]; then
+              echo "::warning::WRITER_DID_NOT_COMPLETE_BUT_LEFT_DELTA; the gates decide whether it survives"
+            fi
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "::warning::NO_WRITER_DELTA_THIS_CYCLE"
@@ -299,10 +257,15 @@ jobs:
           done < /tmp/changed.txt
           git diff --check
 
-      - name: First full gate pass
-        id: gates1
+      # One mandatory pass, and it is final. There used to be a permissive first
+      # pass whose only purpose was to hand a red gate to Codex for repair; with
+      # no repair pass there is nothing for a permissive run to feed, and running
+      # the whole suite twice bought only a second chance to push something the
+      # gates had already rejected. A red gate now ends the cycle: no push, the
+      # log lands in the diagnostics artifact, and the next cycle starts clean
+      # from the same checkpoint.
+      - name: Mandatory gates
         if: steps.delta.outputs.changed == 'true'
-        continue-on-error: true
         env:
           NEXT_TELEMETRY_DISABLED: '1'
           NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
@@ -323,76 +286,9 @@ jobs:
             npx vitest run
             echo "=== build ==="
             npm run build
+            echo "=== whitespace ==="
+            git diff --check
           } 2>&1 | tee /tmp/ausculta-gates.log
-
-      - name: Prepare one Codex repair pass after gate failure
-        if: steps.delta.outputs.changed == 'true' && steps.gates1.outcome == 'failure' && env.HAS_OPENAI == 'true'
-        shell: bash
-        run: |
-          cat > .ausculta-gate-repair-prompt.txt <<'PROMPT'
-          AUSCULTA — GATE REPAIR PASS.
-
-          You are the ONE WRITER repairing the CURRENT uncommitted autonomous unit.
-          Read CLAUDE.md, AGENTS.md, .claude/rules/**, the current diff, Master Board and checkpoint.
-          The implementation failed one or more mandatory gates. Read .ausculta-gate-failure.txt.
-          Fix only the root cause(s) of those failures without broadening scope, weakening tests, deleting guards, changing expected behavior to match a bug, or touching forbidden infrastructure.
-          Preserve all clinical/security invariants.
-          Do not commit or push.
-          PROMPT
-          tail -n 700 /tmp/ausculta-gates.log > .ausculta-gate-failure.txt
-
-      - name: Codex gate repair
-        if: steps.delta.outputs.changed == 'true' && steps.gates1.outcome == 'failure' && env.HAS_OPENAI == 'true'
-        timeout-minutes: 45
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          safety-strategy: drop-sudo
-          effort: high
-          allow-bots: true
-          prompt-file: .ausculta-gate-repair-prompt.txt
-
-      - name: Remove transient gate-repair files
-        if: always() && steps.start.outputs.complete != 'true'
-        run: rm -f .ausculta-gate-repair-prompt.txt .ausculta-gate-failure.txt
-
-      - name: Re-enforce scope after repair
-        if: steps.delta.outputs.changed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git status --porcelain | sed 's/^...//' | sed 's/^.* -> //' > /tmp/changed-after-repair.txt
-          while IFS= read -r path; do
-            case "$path" in
-              src/*|tests/*|e2e/*|docs/*|scripts/*|agent-state/*|synthetic-data/*|fixtures/*|playwright.config.ts|firestore.indexes.json) ;;
-              *) echo "::error::FORBIDDEN_AUTONOMOUS_SCOPE=$path"; exit 102 ;;
-            esac
-            case "$path" in
-              .github/*|package.json|package-lock.json|firestore.rules|storage.rules|firebase.json|vercel.json|next.config.*|.env*|public/sw.js|public/version.txt)
-                echo "::error::FORBIDDEN_SENSITIVE_CHANGE=$path"; exit 103 ;;
-            esac
-          done < /tmp/changed-after-repair.txt
-          git diff --check
-
-      - name: Final mandatory gates
-        if: steps.delta.outputs.changed == 'true'
-        env:
-          NEXT_TELEMETRY_DISABLED: '1'
-          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-build.firebaseapp.com
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
-          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/lint-trinquete.mjs
-          npx tsc --noEmit
-          npx vitest run
-          npm run build
-          git diff --check
 
       - name: Prove branch did not move during writer cycle
         if: steps.delta.outputs.changed == 'true'
@@ -473,7 +369,11 @@ jobs:
             echo "::warning::CANONICAL_CI_NOT_GREEN exact_sha=$NEW_SHA run_id=$run_id conclusion=$conclusion"
           fi
 
+      # Review only, and never a gate: the checkpoint is already committed, pushed
+      # and green before this runs, and a judge that cannot be dispatched must not
+      # colour the cycle red. Its verdict reaches the next cycle as prompt context.
       - name: Dispatch independent Codex judge after green CI
+        continue-on-error: true
         if: steps.delta.outputs.changed == 'true' && steps.ci.outputs.green == 'true' && env.HAS_OPENAI == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -493,9 +393,10 @@ jobs:
             echo "No main merge or production deployment occurred."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # A cycle that leaves no trace cannot be diagnosed. Run 1 died inside the
-      # Codex step with its logs unreachable (HTTP 404), so nothing said whether
-      # the writer ran out of turns, out of time, or out of runner.
+      # A cycle that leaves no trace cannot be diagnosed. Run 1 died inside a step
+      # whose logs were unreachable afterwards (HTTP 404), so nothing said whether
+      # the writer ran out of turns, out of time, or out of runner. This artifact
+      # is also where a red gate leaves its log, now that no repair pass reads it.
       - name: Upload cycle diagnostics
         if: always() && steps.start.outputs.complete != 'true'
         uses: actions/upload-artifact@v4
