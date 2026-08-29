@@ -72,6 +72,13 @@ export type OrigenAviso =
    */
   | 'procedimiento_sin_escribir'
   /**
+   * Un fármaco figura como vigente y el dictado sólo lo nombra en pasado
+   * (REG-373). «Le dieron warfarina cuando la operaron» entrando a la lista de
+   * lo que toma, porque el esquema de extracción no tiene campo `estado` y la
+   * ausencia se lee como `activa`.
+   */
+  | 'farmaco_solo_en_pasado'
+  /**
    * La frecuencia o la duración no tienen forma de lo que dicen ser.
    *
    * Nació de una nota YA FIRMADA del médico dueño: «cada 24 horas por 14
@@ -141,6 +148,11 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
    * mismo criterio que `pauta_deformada`.
    */
   procedimiento_sin_escribir: 'revisa',
+  /**
+   * `revisa`, no `bloquea`: «ya no la toma» y «se la suspendimos y la vamos a
+   * reanudar» se dictan igual de pasado, y la diferencia la sabe el médico.
+   */
+  farmaco_solo_en_pasado: 'revisa',
 }
 
 /**
@@ -245,6 +257,11 @@ export interface EntradaAvisos {
    * no este constructor.
    */
   procedimientosSinEscribir?: readonly { texto: string; mensaje: string }[]
+  /**
+   * Fármacos que figuran como vigentes y que el dictado sólo nombra en pasado
+   * (REG-373). El texto viene redactado por `avisoDeFarmacoEnPasado`.
+   */
+  farmacosEnPasado?: readonly { nombre: string; mensaje: string }[]
   /** Lo ya descartado con «Ya lo revisé», con la misma clave `${tipo}:${clave}`. */
   revisados?: ReadonlySet<string>
 }
@@ -511,6 +528,22 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       nivel: nivelDe('procedimiento_sin_escribir'),
       texto: p.mensaje,
       ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * ── LO QUE TOMÓ NO ES LO QUE TOMA (REG-373) ──────────────────────────────
+   *
+   * Ancla en los medicamentos: lo accionable es el botón «ya no» que está al
+   * lado de cada renglón vigente.
+   */
+  for (const f of e.farmacosEnPasado ?? []) {
+    out.push({
+      id: `pasado:${f.nombre.slice(0, 40)}`,
+      origen: 'farmaco_solo_en_pasado',
+      nivel: nivelDe('farmaco_solo_en_pasado'),
+      texto: f.mensaje,
+      ancla: { seccion: 'medicamentos' },
     })
   }
 

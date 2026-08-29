@@ -249,7 +249,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * exportación que afirma lo contrario son el mismo defecto, y la segunda es
      * la que viaja a un sistema que ya no controlamos.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372],
+    /**
+     * 373 es esta familia con una regla CORRECTA aplicada a una fuente para la
+     * que no se escribió. «Ausencia de `estado` = activa» protege el histórico y
+     * está bien razonada; el extractor nunca pone `estado`, así que «le dieron
+     * warfarina cuando la operaron» entraba a la medicación vigente y disparaba
+     * la regla de sangrado sobre un fármaco dejado hace años.
+     *
+     * Su lección: una regla se contradice a sí misma en cuanto aparece una
+     * fuente nueva que no existía cuando se escribió. Al añadir un productor de
+     * datos hay que releer los supuestos de quien los consume, no sólo el
+     * formato.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372, 373],
   },
   {
     clave: 'habla_real',

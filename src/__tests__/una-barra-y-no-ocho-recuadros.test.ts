@@ -51,6 +51,12 @@ const ORIGENES: OrigenAviso[] = [
    * positivo enseña a esquivar la compuerta.
    */
   'procedimiento_sin_escribir',
+  /**
+   * REG-373 — el fármaco que figura como vigente y que el dictado sólo nombra
+   * en pasado. AVISA, no bloquea: «ya no la toma» y «se la suspendimos y la
+   * vamos a reanudar» se dictan igual, y la diferencia la sabe el médico.
+   */
+  'farmaco_solo_en_pasado',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
@@ -132,6 +138,8 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       pautas: [{ nombre: 'Moxifloxacino', frecuencia: '24 tras', duracion: '14 editas' }],
       /** REG-370 — se oyó y la nota no lo recoge. */
       procedimientosSinEscribir: [{ texto: 'Colecistectomía', mensaje: 'Se mencionó «Colecistectomía» y la nota no lo recoge.' }],
+      /** REG-373 — vigente en la lista, pasado en el dictado. */
+      farmacosEnPasado: [{ nombre: 'Warfarina', mensaje: 'Le dieron warfarina cuando la operaron — y Warfarina figura como vigente.' }],
     })
     const origenes = new Set(avisos.map(a => a.origen))
     for (const o of ORIGENES) expect(origenes, `${o} se perdió`).toContain(o)

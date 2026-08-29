@@ -7,19 +7,19 @@ CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-10 (Patient State longitudinal) — cerradas alergias, certeza del médico, conservación y relectura de los avisos, y los laboratorios en los motores; faltan procedimientos, dispositivos, la tendencia en la consulta y la persistencia
-LAST_COMPLETED_UNIT=WS-10 · REG-372 · la certeza del diagnóstico no la firma un modelo
+LAST_COMPLETED_UNIT=WS-10 · REG-373 · lo que tomó no es lo que toma
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=WS-10 sigue. Cerradas en esta tanda: ALERGIAS longitudinales (REG-363), CERTEZA DEL MÉDICO (REG-364 + REG-365, que corrigió la mitad mala del anterior), CONSERVACIÓN DE LOS AVISOS al firmar (REG-366), su LECTURA EN LA CONSULTA SIGUIENTE (REG-367) los LABORATORIOS EN LOS MOTORES (REG-368), su TRAYECTORIA en la consulta (REG-369) los PROCEDIMIENTOS que se dictan (REG-370) y los DISPOSITIVOS que el paciente lleva (REG-371) y la CERTEZA del diagnóstico que sale al mundo (REG-372). Lo que queda de WS-10, por orden: (1) la TEMPORALIDAD del medicamento —que una mención histórica no se vuelva medicación activa—, que es el hueco de modelo que queda; (2) SELLO v4 — es lo que bloquea el registro ESTRUCTURADO de procedimientos y dispositivos: `canonicoV3` es una lista explícita de campos, así que un campo clínico nuevo exige v4 con su canónico, su vector golden y su partición de cobertura, para que las notas v3 sigan verificando como hoy verifican las v2; es el camino que el sello tiene diseñado (`VERSIONES_VERIFICABLES`), no una decisión del dueño;  (4) PERSISTIR las proyecciones, que arrastra los tres sitios de declaración de una colección y es decisión de arquitectura. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
+EXACT_NEXT_ACTION=WS-10 sigue. Cerradas en esta tanda: ALERGIAS longitudinales (REG-363), CERTEZA DEL MÉDICO (REG-364 + REG-365, que corrigió la mitad mala del anterior), CONSERVACIÓN DE LOS AVISOS al firmar (REG-366), su LECTURA EN LA CONSULTA SIGUIENTE (REG-367) los LABORATORIOS EN LOS MOTORES (REG-368), su TRAYECTORIA en la consulta (REG-369) los PROCEDIMIENTOS que se dictan (REG-370) y los DISPOSITIVOS que el paciente lleva (REG-371) la CERTEZA del diagnóstico que sale al mundo (REG-372) y la TEMPORALIDAD del fármaco (REG-373). Los dos huecos de modelo del área quedan cubiertos sin inventar juicio clínico. Lo que queda de WS-10, por orden: (1) la PANTALLA donde el médico elija `tipo` de un diagnóstico — hoy no existe, así que `tipoOrigen: 'medico'` sólo lo lleva el que añade a mano (producto); (2) SELLO v4 — es lo que bloquea el registro ESTRUCTURADO de procedimientos y dispositivos: `canonicoV3` es una lista explícita de campos, así que un campo clínico nuevo exige v4 con su canónico, su vector golden y su partición de cobertura, para que las notas v3 sigan verificando como hoy verifican las v2; es el camino que el sello tiene diseñado (`VERSIONES_VERIFICABLES`), no una decisión del dueño;  (4) PERSISTIR las proyecciones, que arrastra los tres sitios de declaración de una colección y es decisión de arquitectura. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
 FILES_IN_SCOPE=src/lib/expediente/alergias-longitudinales.ts · src/lib/expediente/lo-que-se-aviso-al-firmar.ts · src/lib/expediente/la-duda-de-la-otra-vez.ts · src/lib/expediente/laboratorio/lo-que-ya-esta-medido.ts · src/lib/expediente/problemas-activos.ts · src/lib/expediente/cuadro-completo.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=11004
+TESTS_PASSED=11024
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno — P1-20 abierto y cerrado con REG-364)
 BLOCKED_EXTERNAL=umbral de antigüedad de un laboratorio para dosificar y cuánto tiene que moverse un analito para importar (NEEDS_CLINICAL_REVIEW, REG-368/369) · P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-372
+DO_NOT_REGRESS=REG-323 · REG-337…REG-373
 ```
 
 ### Cerrado en esta tanda
@@ -51,6 +51,7 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-372
 | 370 | `entidades.procedures` se reconocía con fecha y LATERALIDAD, se pintaba en el panel y **no tenía un solo consumidor más**. Ahora lo que la nota no recoge se señala antes de firmar — sellado y con relectura. El registro estructurado exige **sello v4**, declarado |
 | 371 | Los DISPOSITIVOS invasivos (prótesis valvular, marcapaso/DAI, CVC) se capturaban y **su único lector era el texto de su propia valoración**. Ya salen en la línea clínica de la consulta, con fecha y sin afirmar el vacío. No alimentan ningún motor: no hay reglas de dispositivos y escribirlas sería inventar criterio |
 | 372 | El expediente **interoperable** afirmaba una confirmación que nadie hizo (`definitivo` del MODELO → `confirmed`), daba por **resuelta** una enfermedad crónica, y convertía un **descarte** en sospecha. `tipoOrigen` registra quién puso `tipo`, dentro del objeto que el sello v3 ya cubre |
+| 373 | Una MENCIÓN HISTÓRICA se volvía medicación vigente: el extractor nunca pone `estado` y la ausencia se lee como `activa`, así que «le dieron warfarina cuando la operaron» disparaba la regla de sangrado. Se señala mientras receta; **no se reclasifica** |
 
 ### El saldo, escrito
 

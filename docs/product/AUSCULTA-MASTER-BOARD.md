@@ -489,6 +489,26 @@ el diagnóstico sea falso: dice que nadie firmó su verificación.
 pantalla donde el médico elija `tipo`, así que hoy `tipoOrigen: 'medico'` sólo lo
 lleva el diagnóstico añadido a mano.
 
+**REG-373 — y una mención histórica ya no se vuelve medicación vigente.**
+`estadoDeOrden()` lee la ausencia de `estado` como `activa` —correcto, para no
+vaciar el histórico— y **el esquema de extracción no tiene campo `estado`**: «le
+dieron warfarina cuando la operaron» entraba a la medicación vigente, salía en
+«Toma:», entraba al cuadro de los motores y disparaba la regla de sangrado sobre
+un fármaco dejado hace años. El eje temporal existente sólo vigila padecimientos;
+los fármacos **no tenían ninguna defensa temporal**.
+
+Ahora se señala mientras se receta —anclado donde está el botón «ya no»— y **no se
+reclasifica**: «ya no la toma» y «se la suspendimos y la vamos a reanudar» se
+dictan igual de pasado, y la diferencia la sabe el médico. Y sólo se mira lo que el
+dictado **nombra**: un crónico del expediente que hoy no se mencionó no se toca,
+porque el silencio no suspende nada.
+
+**Con esto los dos huecos de modelo del área quedan cubiertos sin inventar juicio
+clínico**: la autoridad sobre `tipo` (REG-372) y la temporalidad del fármaco
+(REG-373). Lo que sigue abierto es de producto y de sello: la pantalla donde el
+médico elija `tipo`, y el **sello v4** para el registro estructurado de
+procedimientos y dispositivos.
+
 **Tres vocabularios de verdad clínica en paralelo** — `TruthState`
 (`clinical-truth/index.ts:1`), `ClinicalTruthStatus` (`types/uci.ts:19`) y
 `ClinicalFact` de `types/clinical-fact.ts:185`. El **mejor diseñado** (bitemporal,

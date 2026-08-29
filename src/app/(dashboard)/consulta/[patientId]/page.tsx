@@ -57,6 +57,9 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import {
   procedimientosQueNoQuedaronEscritos, avisoDeProcedimientoSinEscribir,
 } from '@/lib/expediente/el-procedimiento-que-no-quedo-escrito'
+import {
+  farmacosSoloMencionadosEnPasado, avisoDeFarmacoEnPasado,
+} from '@/lib/expediente/el-farmaco-que-ya-no-toma'
 import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
@@ -1275,6 +1278,25 @@ export default function ConsultaActivaPage() {
    * actual. Se arrastra igual —queda en el expediente y se copia a la nota
    * siguiente— y se resuelve igual: se enseñan las dos frases y decide el médico.
    */
+
+  /**
+   * ── LO QUE TOMÓ NO ES LO QUE TOMA (REG-373) ──────────────────────────────
+   *
+   * El esquema de extracción no tiene campo `estado`, y `estadoDeOrden()` lee la
+   * ausencia como `activa`. Así que «le dieron warfarina cuando la operaron»
+   * entraba a la medicación VIGENTE — y de ahí cuelgan la regla de sangrado, el
+   * ajuste renal y lo que el médico lee antes de prescribir.
+   *
+   * Se mira lo que el dictado NOMBRA: un fármaco crónico del expediente que hoy
+   * no se mencionó no se toca, porque el silencio no suspende nada.
+   */
+  const farmacosEnPasado = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    return farmacosSoloMencionadosEnPasado(
+      [...medicamentos, ...vigentes.map(v => v.medicamento)], dictado,
+    ).filter(f => !avisosRevisados.includes(`pasado:${f.nombre.slice(0, 40)}`))
+  }, [voz.transcripcion, medicamentos, vigentes, avisosRevisados])
 
   const desajustesNota = useMemo(() => {
     const dictado = voz.transcripcion
@@ -5945,6 +5967,8 @@ export default function ConsultaActivaPage() {
            * mientras receta.
            */
           pautas: medicamentos,
+          /** REG-373 — figura como vigente y el dictado sólo lo nombra en pasado. */
+          farmacosEnPasado: farmacosEnPasado.map(f => ({ nombre: f.nombre, mensaje: avisoDeFarmacoEnPasado(f) })),
           antecedentesDeFamiliar,
           datosInciertos,
           sinRespaldo,

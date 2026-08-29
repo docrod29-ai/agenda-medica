@@ -11872,3 +11872,75 @@ esquema para comprobar que `presuntivo` seguía siendo el default. Al sustituir 
 `.default()` por el `transform`, pasó a **ejecutar el esquema** y medir el
 comportamiento: sin `tipo`, el efectivo sigue siendo `presuntivo` y el origen es
 `por_defecto`. Protege lo mismo, y ya no depende de cómo esté escrito.
+
+---
+
+## REG-373 — una mención histórica se convertía en medicación vigente
+
+**QUÉ FALLABA.** `estadoDeOrden()` trata la **ausencia** de `estado` como
+`activa`, y con razón: todo lo prescrito antes de que el campo existiera no lo
+lleva, y suponer otra cosa vaciaría de golpe la medicación de todos los
+expedientes históricos.
+
+Pero el esquema de extracción **no tiene campo `estado`**. Así que un fármaco que
+el modelo saca del dictado entra con `estado` ausente y, por esa misma regla, se
+vuelve medicación activa:
+
+```
+«le dieron warfarina cuando la operaron, ya no la toma»
+  → medicamento: Warfarina, sin estado
+  → estadoDeOrden() → 'activa'  →  medicamentosVigentes() la incluye
+  → sale en «Toma:», entra al cuadro de los motores (REG-188), y dispara la
+    regla de sangrado sobre un fármaco que el paciente dejó hace años
+```
+
+Y el eje temporal que este repositorio ya tiene sólo vigila **padecimientos**: el
+vocabulario de `temporalidad.ts` son `CRONICAS` y `AGUDAS_FRECUENTES`, no
+fármacos. **Los medicamentos no tenían ninguna defensa temporal.**
+
+**CÓMO SE DESCUBRIÓ.** Cerrando el segundo hueco de modelo que el tablero tenía
+escrito: «una mención histórica no puede volverse medicación activa».
+
+**CAUSA RAÍZ.** Una regla correcta —`ausencia = activa`, para no vaciar el
+histórico— aplicada a una fuente para la que no se escribió: el extractor, que
+nunca pone `estado`. Familia «el sistema se contradice a sí mismo».
+
+**EL ARREGLO.** `el-farmaco-que-ya-no-toma.ts` (puro) reutiliza `esFrasePasada`
+—ya probada, con sus regexes de PRESENTE y PASADO— sobre las frases del dictado
+que **nombran** el fármaco, y señala los que figuran como vigentes cuando **todas**
+sus menciones están en pasado. Sale por `avisos-consulta.ts`, anclado en
+`medicamentos`.
+
+**NO RECLASIFICA, Y ESO ES LA MITAD DEL ARREGLO.** No pone `suspendida`, no saca
+nada de la lista y no decide que el paciente dejó el fármaco. Porque **«ya no la
+toma» y «se la suspendimos y la vamos a reanudar» se dictan igual de pasado**, y
+la diferencia la sabe el médico — que ya tiene el botón «ya no» al lado de cada
+renglón vigente, y ahí es donde el aviso ancla.
+
+**SÓLO MIRA LO QUE EL DICTADO NOMBRA.** Un fármaco crónico que viene del
+expediente y hoy no se mencionó **no se toca**: el silencio no suspende nada
+(`ordenes-medicamento.ts`), y confundir «hoy no se habló de él» con «lo dejó» es
+el defecto contrario — el caro, porque borra medicación crónica de la lista que el
+médico lee antes de prescribir. Hay un caso que lo fija.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No añade `estado` al esquema de extracción** ni un valor «histórico» a
+  `procedenciaClinica`. Que el modelo declare el estado de una orden es una
+  decisión de modelo con consecuencias directas en la receta; esto defiende sin
+  pedírselo.
+- **No se sella con la nota.** Ancla en `medicamentos`, así que es de los que se
+  ven **mientras se receta** y no al firmar (`esDePrescripcion`), y REG-366 sella
+  los del momento de firmar. Es deliberado: un aviso que cambia la receta llegando
+  después de firmar es el registro de que no hubo protección (REG-173/190).
+- **No opina de un fármaco de nombre corto** (menos de 5 letras útiles): no hay
+  con qué buscarlo sin casar con cualquier cosa. Señalar de menos, y declararlo.
+- **No entiende «suspendida hasta el martes»**: para el módulo eso es pasado y
+  avisa. Avisar de más aquí cuesta una frase; callar cuesta una interacción.
+
+**LA PRUEBA.** `src/__tests__/lo-que-tomo-no-es-lo-que-toma.test.ts` (20 casos).
+Probada al revés: reproduce `estadoDeOrden` sobre el fármaco extraído sin estado y
+comprueba que se lee como `activa` y que `medicamentosVigentes` lo incluye — que es
+por qué hacía falta una defensa aparte. Y otro caso comprueba que el eje temporal
+existente **no** mira fármacos, para que el día que lo haga alguien revise si este
+módulo sobra.
