@@ -44,7 +44,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { MARCA, NO_SE_RENOMBRAN } from '@/lib/marca'
+import { MARCA, NO_SE_RENOMBRAN, PREFIJO_VERSION } from '@/lib/marca'
 
 const RAIZ = process.cwd()
 const leer = (p: string) => readFileSync(join(RAIZ, p), 'utf8')
@@ -113,6 +113,39 @@ describe('y NO cambió donde la máquina la busca', () => {
   it('el sello de versión desplegada conserva su prefijo', () => {
     expect(leer('public/version.txt')).toMatch(/^nexusmed-v\d+/)
     expect(leer('public/sw.js')).toMatch(/const CACHE = 'nexusmed-v\d+'/)
+  })
+
+  /**
+   * EL LADO QUE FALTABA — «el dato tiene que LLEGAR».
+   *
+   * Los tres casos de arriba comprueban que quien ESCRIBE el sello conserva el
+   * prefijo. Ninguno miraba a quien lo LEE. Y el renombrado de marca cruzó la
+   * frontera justo por ahí: `ServiceWorkerRegister` pasó a buscar
+   * `/ausculta-v(\d+)/` sobre un texto que dice `nexusmed-v1174`.
+   *
+   * `match()` devolvía `null` en los dos lados de la comparación, la guarda
+   * `if (!servidor || !local ...)` devolvía, y la purga de caché desfasada
+   * —la que existe para el «no me abre nada y va lentísimo» tras un
+   * despliegue— no corría nunca. Sin error, sin aviso y con la suite entera en
+   * verde: los guardianes miraban el emisor.
+   */
+  it('y quien LEE el sello busca ese mismo prefijo', () => {
+    const lector = leer('src/components/ServiceWorkerRegister.tsx')
+    expect(
+      lector,
+      'el lector del sello se desfasó del escritor: la purga de versión vieja no corre',
+    ).not.toMatch(/ausculta-v/i)
+    // Y no lo repite a mano: lo toma de la única fuente.
+    expect(lector).toContain('PREFIJO_VERSION')
+    expect(PREFIJO_VERSION).toBe('nexusmed-v')
+  })
+
+  it('el prefijo que se lee CASA con el que hay escrito hoy', () => {
+    // Probado al revés: no basta con que las dos cadenas sean iguales, tiene
+    // que casar contra el archivo real que sirve el sitio.
+    const sello = new RegExp(`${PREFIJO_VERSION}(\\d+)`)
+    expect(leer('public/version.txt').match(sello)?.[1]).toMatch(/^\d+$/)
+    expect(leer('public/sw.js').match(sello)?.[1]).toMatch(/^\d+$/)
   })
 
   it('la frontera está declarada en el código, no sólo en un comentario', () => {

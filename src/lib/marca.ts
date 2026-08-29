@@ -70,10 +70,25 @@ export const LEMA = 'El consultorio que escucha.'
  * qué. Una frontera que sólo vive en un comentario es una frontera que se
  * cruza.
  */
+/**
+ * EL PREFIJO DEL SELLO DE VERSIÓN, EN UN SOLO SITIO.
+ *
+ * Lo escriben `public/sw.js` (`CACHE`) y `scripts/version-sw.mjs`
+ * (`public/version.txt`); lo LEE `ServiceWorkerRegister` para decidir si el
+ * navegador se quedó con una versión vieja y hay que purgar.
+ *
+ * Existe como constante porque el renombrado de marca cruzó la frontera justo
+ * por el lado que nadie miraba: el escritor conservó `nexusmed-v` —como manda
+ * la regla— y el LECTOR pasó a buscar `ausculta-v`. Los dos lados «correctos»
+ * por separado, y la comparación devolviendo `null` contra `null` en silencio:
+ * la purga llevaba muerta desde entonces.
+ */
+export const PREFIJO_VERSION = 'nexusmed-v'
+
 export const NO_SE_RENOMBRAN = [
   'nexusmed-recovery',      // IndexedDB · audio de consulta en curso
   'nexusmed.theme',         // localStorage · preferencia de tema
   'nexusmed-expediente-1',  // formato de exportación ya emitido
   'nexusmed-respaldo-1',    // formato de respaldo ya emitido
-  'nexusmed-v',             // caché del service worker y version.txt
+  PREFIJO_VERSION,          // caché del service worker y version.txt
 ] as const
