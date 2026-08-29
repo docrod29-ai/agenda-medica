@@ -1,25 +1,25 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 29-ago-2026 — **nueve P1 cerrados; quedan 2 internos**
+## Checkpoint · 29-ago-2026 — **diez P1 cerrados; queda 1 interno**
 
 ```
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-03 (consultorio grande) — queda el inventario de lecturas de CITAS
-LAST_COMPLETED_UNIT=P1-10 · REG-357 · el texto completo de PMC sólo se reproduce si la licencia lo permite
+LAST_COMPLETED_UNIT=P1-17 · REG-358 · el orden de los nombres ya no decide si alguien existe
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=P1-17 — la búsqueda es por PREFIJO: un duplicado con el orden de los nombres cambiado («López María» vs «María López») y sin teléfono en común no aparece. Después P1-19 (procedencia estructurada de #314 + la verificación de citas, que hoy tiene CERO llamadores fuera de pruebas).
-FILES_IN_SCOPE=src/lib/firestore.ts (buscarPacientes) · src/lib/pacientes/duplicados.ts
+EXACT_NEXT_ACTION=P1-19 — el ÚLTIMO P1 interno. La ruta de evidencia de la consulta devuelve artículos sueltos, no `Source` con procedencia estructurada (#314); y `mapaDeSoporte` / `esRespuestaRespaldada` / `tasaSinRespaldo` tienen CERO llamadores fuera de pruebas, así que un `[2]` que apunte a un artículo que dice lo contrario pasa. Después: los workstreams sin P1 (WS-02 arnés de carga, WS-09 aplicabilidad, WS-10 Patient State, WS-11 ciclo cerrado, WS-12 evals) y las fases de prueba final.
+FILES_IN_SCOPE=src/lib/evidencia/soporte.ts · src/app/api/expediente/evidencia/route.ts · src/types/evidence.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10762
+TESTS_PASSED=10776
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
-P1_OPEN=P1-17 · P1-19 (nuevo)   → 2 internos
+P1_OPEN=P1-19 (nuevo, abierto por REG-356)   → 1 interno
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-357
+DO_NOT_REGRESS=REG-323 · REG-337…REG-358
 ```
 
 ### Cerrado en esta tanda
@@ -36,13 +36,15 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-357
 | 355 | Quedaban escritores de scroll que no preguntaban. La regla correcta existía **dentro de un componente**; ahora es del sistema. Y `overscroll-behavior` no aparecía en todo el repositorio |
 | 356 | La evidencia de la consulta no decía dónde NO había mirado. La maquinaria estaba escrita y probada desde REG-345, y esta ruta no la tenía cableada |
 | 357 | Se reproducía texto completo de PMC sin leer la licencia del artículo. «Acceso abierto» dice que se puede LEER, no que se pueda COPIAR en un producto de pago. Ahora falla cerrado |
+| 358 | Un duplicado con los nombres al revés no aparecía: el buscador decía «no está» y el antiduplicado no saltaba, así que la historia quedaba partida en dos expedientes |
 
 ### El saldo, escrito
 
 `cerrado −1 (P1-16)` · `nuevo +1 (P1-18)` · `cerrado −1 (P1-18)` ·
 `cerrado −1 (P1-12)` · `cerrado −1 (P1-11)` · `cerrado −1 (P1-15)` ·
 `cerrado −1 (P1-2)` · `cerrado −1 (P1-13)` · `cerrado −1 (P1-9)` ·
-`cerrado −1 (P1-10)` · **`nuevo +1 (P1-19)`** → **9 → 2 P1 internos abiertos**.
+`cerrado −1 (P1-10)` · `cerrado −1 (P1-17)` · **`nuevo +1 (P1-19)`** →
+**9 → 1 P1 interno abierto**.
 
 El nuevo sale de cerrar P1-9: la otra mitad de ese requisito —que la ruta
 produzca `Source` con procedencia estructurada (#314), y que la verificación de

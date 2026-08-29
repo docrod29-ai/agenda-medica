@@ -202,7 +202,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * pantalla de buscar empezó a decir «no está» de pacientes que sí están.
      * El hueco tratado como dato, creado por el propio arreglo anterior.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347],
+    /**
+     * 358 es el hueco que 347 dejó DECLARADO al cerrarse, y enseña para qué
+     * sirve declararlo: «un duplicado con el orden de los nombres cambiado y sin
+     * teléfono en común no aparece» no era una nota de humildad, era el
+     * siguiente defecto con su reproducción escrita. El sistema trataba un
+     * NOMBRE como una cadena, y un nombre es un conjunto de palabras cuyo orden
+     * de captura no garantiza nadie.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358],
   },
   {
     clave: 'aislamiento',

@@ -10705,3 +10705,70 @@ prefijo, y dar por bueno `license-type="open-access"`—: caen 5 casos.
   dentro de una nota antes de esto, este cambio **no lo retira**: no hay registro
   de qué se reprodujo ni de qué artículo salió. Queda dicho, porque es lo que un
   reclamo preguntaría primero.
+
+## REG-358 — un duplicado con los nombres al revés no aparecía
+
+**DE DÓNDE VIENE.** REG-347 llevó la búsqueda de pacientes al servidor y dejó
+escrito su límite: la búsqueda es por **PREFIJO**, así que «un duplicado con el
+orden de los nombres cambiado —*López María* frente a *María López*— y **sin
+teléfono en común** no aparece». Es P1-17 del tablero.
+
+**QUÉ FALLABA.** Firestore no tiene «contiene». Con el texto completo como una
+sola cadena, teclear «María López» sólo encuentra a quien está guardado
+**empezando** por «María López». En México el mismo expediente se captura tan a
+menudo como «López María» que ese hueco no es un caso raro: es la mitad de los
+casos.
+
+**LAS DOS CONSECUENCIAS, Y LA SEGUNDA ES LA CARA.**
+
+- El buscador dice «no está» de alguien que sí está.
+- El aviso **antiduplicado no salta**, así que se abre un segundo expediente y la
+  historia del paciente queda partida en dos: la mitad de sus alergias,
+  diagnósticos y medicación bajo un registro y la otra mitad bajo otro. Nadie ve
+  el error — se ve como un paciente nuevo.
+
+**LA CAUSA RAÍZ.** Se buscaba por el **texto completo** como una sola cadena. Un
+nombre no es una cadena: es un conjunto de palabras cuyo orden de captura no está
+garantizado por nada.
+
+**LA REGLA QUE LO HACE SEGURO.** Se sondea además por cada **palabra** del
+nombre. No convierte el prefijo en «contiene», pero cierra el caso que de verdad
+ocurre — y lo hace con consultas indexadas del **mismo campo y la misma forma**,
+así que **no necesita ningún índice compuesto**. Eso importa: los índices se
+crean fuera de este repositorio (REG-352) y una consulta que necesitara uno
+fallaría entera en producción.
+
+Dos números que el golden decidió, no la intuición:
+
+- **Tres palabras, no dos.** Con dos se perdía el caso más común —un nombre
+  mexicano típico es «Nombre Apellido1 Apellido2», y el apellido con el que otro
+  capturista empezó el expediente puede ser cualquiera de los tres—. La prueba
+  del antiduplicado lo cazó.
+- **Ventana corta (25) para estos sondeos.** Son una red de seguridad, no el
+  camino principal: un apellido común como «López» llenaría la ventana grande con
+  gente que no tiene nada que ver, y multiplicado por tres palabras convertiría
+  cada tecleo en una lectura cara.
+
+**UN CASO QUE PASABA POR EL MOTIVO EQUIVOCADO.** La primera versión del caso de
+antiduplicado le daba a los dos expedientes **el mismo teléfono**, así que lo
+encontraba el sondeo telefónico y la prueba habría pasado con el defecto vivo —
+justo el hueco que P1-17 describe («y **sin teléfono en común** no aparece»). Se
+corrigió a teléfonos distintos antes de dar nada por bueno.
+
+**LA PRUEBA.**
+`src/__tests__/el-orden-de-los-nombres-no-decide-si-existes.test.ts` (13 casos),
+contra el arnés que **cuenta documentos leídos**. Probado al revés quitando los
+sondeos por palabra: caen 3.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sigue sin ser «contiene».** Un expediente que empieza por una palabra más
+  allá de las tres sondeadas no se encuentra, y hay un caso que lo prueba en vez
+  de suponerlo. Cerrarlo de verdad exige un **índice invertido de tokens**: un
+  campo derivado que hay que escribir en cada alta y en cada edición, con
+  retroactivo sobre lo existente. Es un cambio de modelo de datos, no un ajuste
+  de consulta.
+- **No normaliza acentos.** «Lopez» no encuentra a «López». Mismo campo derivado,
+  misma decisión pendiente. Probado, no supuesto.
+- **No prueba Firestore.** El doble implementa la semántica de prefijo que este
+  código usa; no dice nada de índices desplegados ni de reglas.

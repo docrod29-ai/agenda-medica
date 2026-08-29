@@ -170,7 +170,35 @@ export interface ListaPacientesCompat {
   techo: number
 }
 
-export type EstrategiaBusquedaPacientes = 'prefijo-nombre' | 'prefijo-telefono' | 'prefijo-email' | 'prefijo-curp'
+export type EstrategiaBusquedaPacientes =
+  | 'prefijo-nombre'
+  /**
+   * Prefijo por cada PALABRA del nombre, no sólo por el principio (REG-358).
+   * Cierra el caso «López María» frente a «María López».
+   */
+  | 'prefijo-nombre-palabra'
+  | 'prefijo-telefono' | 'prefijo-email' | 'prefijo-curp'
+
+/**
+ * Cuántas palabras del nombre se sondean, además del texto completo.
+ *
+ * Tres, porque un nombre mexicano típico es «Nombre Apellido1 Apellido2» y el
+ * apellido con el que otro capturista empezó el expediente puede ser cualquiera
+ * de las tres. Con dos se perdía justo el caso de tres palabras, que es el más
+ * común — lo cazó el golden.
+ *
+ * Cada una es una consulta indexada con su ventana, así que el número está
+ * acotado a propósito: un nombre compuesto muy largo no multiplica las lecturas
+ * sin límite.
+ */
+export const PALABRAS_SONDEADAS = 3
+/**
+ * Longitud mínima de una palabra para sondearla. Por debajo, la ventana se
+ * llena de gente que no tiene nada que ver: «de», «la», «y».
+ */
+export const MINIMO_PALABRA = 3
+/** Ventana de un sondeo por palabra. Es red de seguridad, no búsqueda principal. */
+export const VENTANA_PALABRA = 25
 
 export interface ResultadoBusquedaPacientes {
   pacientes: Patient[]
@@ -295,10 +323,49 @@ export async function buscarPacientes(
   if (!q) return { pacientes: [], truncada: false, ventana, estrategias: [] }
 
   const digitos = q.replace(/\D/g, '')
-  const planes: { estrategia: EstrategiaBusquedaPacientes; campo: string; valores: string[] }[] = []
+  const planes: {
+    estrategia: EstrategiaBusquedaPacientes; campo: string; valores: string[]
+    /** Ventana propia. Los sondeos por palabra usan una más corta: ver abajo. */
+    ventana?: number
+  }[] = []
 
   if (/[a-záéíóúüñ]/i.test(q)) {
     planes.push({ estrategia: 'prefijo-nombre', campo: 'nombre', valores: [...new Set([q, tituloCase(q)])] })
+    /**
+     * ── EL ORDEN DE LOS NOMBRES NO PUEDE DECIDIR SI ALGUIEN EXISTE (REG-358) ─
+     *
+     * Firestore no tiene «contiene», así que la búsqueda es por PREFIJO. Con el
+     * texto completo, «María López» sólo encuentra a quien está guardado
+     * empezando por «María López» — y en México el mismo expediente se captura
+     * tan a menudo como «López María» que ese hueco no es raro: es la mitad de
+     * los casos.
+     *
+     * Consecuencias medidas en las dos pantallas donde duele: el buscador dice
+     * «no está» de alguien que sí está, y el aviso antiduplicado no salta, así
+     * que se abre un segundo expediente y la historia queda partida en dos.
+     *
+     * Se sondea también por cada PALABRA. No convierte el prefijo en «contiene»
+     * —«López» sigue sin encontrar a «María de los Ángeles López»— pero cierra
+     * el caso que de verdad ocurre, y lo hace con consultas indexadas que **no
+     * necesitan ningún índice compuesto**: mismo campo, misma forma.
+     */
+    const palabras = [...new Set(
+      q.split(/\s+/).map(p => p.trim()).filter(p => p.length >= MINIMO_PALABRA),
+    )].filter(p => p.toLowerCase() !== q.toLowerCase())
+    for (const palabra of palabras.slice(0, PALABRAS_SONDEADAS)) {
+      planes.push({
+        estrategia: 'prefijo-nombre-palabra',
+        campo: 'nombre',
+        valores: [...new Set([palabra, tituloCase(palabra)])],
+        /**
+         * Ventana CORTA. Estos sondeos son una red de seguridad, no el camino
+         * principal: un apellido común como «López» llenaría la ventana grande
+         * con gente que no tiene nada que ver, y multiplicado por tres palabras
+         * convertiría cada tecleo en una lectura cara.
+         */
+        ventana: VENTANA_PALABRA,
+      })
+    }
   }
   if (digitos.length >= 3) {
     planes.push({ estrategia: 'prefijo-telefono', campo: 'telefono', valores: [...new Set([q, digitos])] })
@@ -315,11 +382,12 @@ export async function buscarPacientes(
 
   for (const plan of planes) {
     for (const valor of plan.valores) {
+      const suya = plan.ventana ?? ventana
       const snap = await getDocs(query(
         col(clinicId, COLLECTIONS.patients),
-        ...restriccionesPrefijo(plan.campo, valor, ventana),
+        ...restriccionesPrefijo(plan.campo, valor, suya),
       ))
-      if (snap.docs.length >= ventana) truncada = true
+      if (snap.docs.length >= suya) truncada = true
       for (const doc0 of snap.docs) {
         if (!encontrados.has(doc0.id)) encontrados.set(doc0.id, { id: doc0.id, ...doc0.data() } as Patient)
       }
