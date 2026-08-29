@@ -984,7 +984,7 @@ export default function ConsultaActivaPage() {
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
-  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string; noConsultadas?: string[] } | null>(null)
+  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string; noConsultadas?: string[]; sinRespaldo?: string[] } | null>(null)
   const [analizandoEv, setAnalizandoEv] = useState(false)
   // Candado de gasto (soft): uso de consultas del mes vs el límite del plan.
   const [usoIA, setUsoIA] = useState<{ usadas: number; limite: number; restantes: number; porcentaje: number; alerta: 'ok' | 'cerca' | 'excedido' } | null>(null)
@@ -1907,7 +1907,7 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso, noConsultadas: data._fuentesNoConsultadas ?? [] })
+      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso, noConsultadas: data._fuentesNoConsultadas ?? [], sinRespaldo: (data._verificacion?.sinRespaldo ?? []).map((x: { texto: string }) => x.texto) })
       else {
         // Muestra el MOTIVO real (no un toast mudo) y lo deja en consola para diagnóstico.
         // REG-339 — el cuerpo del error puede devolver el contexto del paciente
@@ -5433,14 +5433,32 @@ export default function ConsultaActivaPage() {
             title={`${arts[n - 1].titulo} — ${arts[n - 1].revista} ${arts[n - 1].anio}`}
             style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', verticalAlign: 'super', marginLeft: 2 }}>[{n}]</a>
         ))
+        /**
+         * LO QUE CITA UN ARTÍCULO QUE NO LO DICE, SE MARCA (REG-359).
+         *
+         * No se borra: puede seguir siendo buen razonamiento clínico —consenso,
+         * fisiopatología, experiencia— y borrarlo le quitaría al médico algo que
+         * quizá necesita. Lo que no puede es seguir PARECIENDO respaldado, que es
+         * justo lo que hacía: una afirmación con su [n] al lado se lee como
+         * evidencia citada.
+         */
+        const sinRespaldo = new Set(evidencia.sinRespaldo ?? [])
         const bloque = (titulo: string, items: PuntoEv[], campoTitulo: keyof PuntoEv, campoTexto: keyof PuntoEv) => items.length > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{titulo}</div>
-            {items.map((it, i) => (
-              <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: 4 }}>
-                • <strong>{String(it[campoTitulo] ?? '')}</strong>{it[campoTexto] ? ` — ${String(it[campoTexto])}` : ''} {citas(it.citas)}
-              </div>
-            ))}
+            {items.map((it, i) => {
+              const noAnclada = sinRespaldo.has(String(it[campoTitulo] ?? ''))
+              return (
+                <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: 4 }}>
+                  • <strong>{String(it[campoTitulo] ?? '')}</strong>{it[campoTexto] ? ` — ${String(it[campoTexto])}` : ''} {noAnclada ? null : citas(it.citas)}
+                  {noAnclada && (
+                    <span style={{ color: 'var(--amber)', fontWeight: 600 }}>
+                      {' '}· sin respaldo comprobado en el artículo citado
+                    </span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )
         return (

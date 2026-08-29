@@ -10772,3 +10772,74 @@ sondeos por palabra: caen 3.
   misma decisión pendiente. Probado, no supuesto.
 - **No prueba Firestore.** El doble implementa la semántica de prefijo que este
   código usa; no dice nada de índices desplegados ni de reglas.
+
+## REG-359 — se comprobaba que la cita estuviera en rango, no que dijera eso
+
+**QUÉ FALLABA.** La ruta de evidencia de la consulta pedía al modelo afirmaciones
+con `citas: [n]` y comprobaba **una sola cosa**: que `n` estuviera dentro del
+rango de artículos.
+
+Es decir: **un `[2]` que apunte a un artículo que dice lo contrario pasaba**. Y
+pasaba con la peor apariencia posible — una afirmación clínica con su número de
+cita al lado, que es exactamente el formato que un médico lee como «esto está
+respaldado por la literatura».
+
+**CÓMO SE DESCUBRIÓ.** El tablero lo tenía escrito desde la auditoría de
+WS-06/07: «la verificación de citas está construida, probada y **nunca se
+llama**; `mapaDeSoporte`, `esRespuestaRespaldada` y `tasaSinRespaldo` tienen cero
+llamadores fuera de pruebas». Se abrió como P1-19 al cerrar P1-9.
+
+**LA CAUSA RAÍZ — dos cosas, y la segunda explica por qué nadie lo enchufó.**
+
+1. **El verificador no tenía llamador.** Familia «escrito, probado y sin
+   conectar». Su propio encabezado decía que se había escrito reutilizando la
+   forma de esta ruta «para que enchufarlo no exija cambiarle el prompt».
+2. **Y aun así había que cambiar el prompt.** `claimDesde` exige el **pasaje
+   literal**: el trozo de texto del artículo que respalda la frase. El modelo
+   devolvía sólo el número. Sin el pasaje no hay nada que verificar — sólo un
+   número que está en rango. Quien escribió el verificador creyó que enchufarlo
+   era gratis, y esa creencia es la razón de que llevara meses sin enchufar.
+
+**LA REGLA QUE LO HACE SEGURO.** Se le pide al modelo la **frase literal** que
+respalda cada afirmación, y se ancla **carácter a carácter** contra el texto que
+se le enseñó.
+
+Pedirlo no es sólo para poder comprobar: **obligarle a copiar la frase que lo
+respalda es la forma más barata que existe de que no invente el respaldo**. Y el
+prompt le da la salida honesta explícitamente — si no tiene una frase literal,
+que deje la cita vacía: *decirlo sin cita es honesto; citar algo que no lo dice,
+no*.
+
+Se ancla contra el **resumen** (más el texto completo de PMC cuando la licencia
+lo permitió, REG-357), que es lo que el modelo vio. Anclar contra un texto que no
+vio sería pedirle que cite lo que no leyó.
+
+**QUÉ SE HACE CON LO NO RESPALDADO, Y POR QUÉ NO SE BORRA.** No se borra. Puede
+seguir siendo buen razonamiento clínico —consenso, fisiopatología, experiencia— y
+borrarlo le quitaría al médico algo que quizá necesita. Lo que no puede es seguir
+**pareciendo** respaldado: se le **quita el `[n]`** y se marca «sin respaldo
+comprobado en el artículo citado». Dejar el número al lado sería seguir
+enseñándola como evidencia citada, que es el defecto entero.
+
+El médico decide. La IA sugiere, el médico confirma.
+
+**LA PRUEBA.** `src/__tests__/una-cita-que-no-dice-eso-ya-no-pasa.test.ts` (14
+casos), con artículos y afirmaciones sintéticas. Probado al revés devolviendo la
+comprobación de rango: **caen 5 casos**, incluido el que le da nombre.
+
+**QUÉ NO CUBRE, DECLARADO — y el primero es importante.**
+
+- **Anclar no es entender.** Que la frase esté literalmente en el resumen no
+  prueba que respalde la afirmación: un pasaje puede citarse fuera de contexto, o
+  decir lo contrario en la frase siguiente. Esto cierra **la invención del
+  respaldo**, no la interpretación — y por eso el aviso dice «no se pudo
+  comprobar», no «es falso». Convertirlo en un juicio sobre la verdad de la
+  afirmación exigiría entailment, que es otro requisito (WS-12).
+- **«No se pudo verificar» no es «no está respaldada».** Sin artículos anclables
+  no se emite juicio sobre el análisis, y hay casos que lo prueban.
+- **No prueba la red ni el modelo.** Que el modelo obedezca y copie pasajes
+  literales no está medido contra un modelo real: se prueba qué hace el sistema
+  con lo que devuelva, incluido el caso de que no los mande.
+- **No renderiza.** Que la marca exista en el árbol no prueba que se vea.
+- **No cubre las otras rutas de IA.** El consultor tiene su propio camino; esta
+  verificación es de la ruta de la consulta.

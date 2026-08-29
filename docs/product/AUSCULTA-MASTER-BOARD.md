@@ -24,7 +24,7 @@
 | | |
 |---|---|
 | **P0 internos abiertos** | **0** |
-| **P1 internos abiertos** | **1** — sólo el nuevo P1-19 (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
+| **P1 internos abiertos** | **0** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
 
 **Movimientos del 29-ago-2026:**
 
@@ -42,20 +42,21 @@
 | nuevo +1 | **P1-19** — la ruta de evidencia de la consulta sigue sin producir `Source` con procedencia estructurada (#314) |
 | cerrado −1 | **P1-10** — el texto completo de PMC ya no se reproduce sin leer la licencia del artículo (REG-357) |
 | cerrado −1 | **P1-17** — un duplicado con los nombres al revés ya aparece (REG-358) |
-| **saldo** | **−7 P1 internos netos**: **cerrados 10** (P1-16, P1-18, P1-12, P1-11, P1-15, P1-2, P1-13, P1-9, P1-10, P1-17), **nuevos 2** (P1-18, cerrado el mismo día; P1-19, abierto) → **1 interno abierto** |
+| cerrado −1 | **P1-19** — la verificación de citas tenía cero llamadores; ahora corre y marca lo no respaldado (REG-359) |
+| **saldo** | **cerrados 11** · **nuevos 2** (P1-18 y P1-19, los dos abiertos y cerrados dentro de esta tanda) → **0 P1 internos abiertos** |
 
 ## Compuertas medidas en este SHA — no citadas de memoria
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 776 pasan · 1 falla** (784 archivos) | Baseline del 28-ago eran 10 566; **+210 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 790 pasan · 1 falla** (785 archivos) | Baseline del 28-ago eran 10 566; **+224 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-358.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-359.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -100,7 +101,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | ~~P1-7~~ | ~~Los avisos de evidencia se calculaban y la pantalla los tiraba.~~ **CERRADO** — REG-345, `44b52c9`. |
 | ~~P1-8~~ | ~~La matriz prometía fuentes inexistentes.~~ **CERRADO** — REG-345, `44b52c9`. La columna cruza catálogo y runtime, con tres estados. |
 | ~~P1-9~~ | ~~La ruta de evidencia de la consulta no declara proveedores no consultados.~~ **CERRADO** — REG-356. Declara con la **misma lista** que el consultor (no una copia), incluye lo **operativo que no se usó**, lo dice en **los dos caminos de salida** y **la pantalla lo pinta arriba**, junto al análisis. Queda escrito que la acusación anterior sobre `.catch(() => [])` era **falsa**: hay un `testigo` que la desmiente. |
-| **P1-19** | **NUEVO, abierto por REG-356.** La otra mitad de P1-9: esta ruta sigue devolviendo **artículos sueltos**, no `Source` con procedencia estructurada (#314). Y `mapaDeSoporte` / `esRespuestaRespaldada` / `tasaSinRespaldo` siguen **sin llamadores fuera de pruebas**: un `[2]` que apunte a un artículo que dice lo contrario sigue pasando. |
+| ~~P1-19~~ | ~~La verificación de citas existe, está probada y no se llama.~~ **CERRADO** — REG-359. Los artículos se convierten en `Source` con procedencia, el prompt pide el **pasaje literal** y cada afirmación se ancla **carácter a carácter**. Lo no respaldado **no se borra** —puede ser buen razonamiento clínico— pero **pierde el `[n]`** y se marca. **Declarado**: anclar no es entender; esto cierra la invención del respaldo, no la interpretación (por eso el aviso dice «no se pudo comprobar», no «es falso»). El entailment sigue siendo requisito de WS-12. |
 | **P1-14** | `tareasVivas` sigue devolviendo **200 arbitrarias** de N. Sigue `BLOCKED_EXTERNAL` —el índice se crea fuera del repositorio— pero desde REG-352 **con el artefacto listo**: `firestore.indexes.json` lo declara y `docs/ops/INDICES-DE-FIRESTORE.md` reúne los cuatro módulos que hoy están peor por no tenerlos (worklist, lista de espera, citas del paciente, resumen de notas). Antes vivían en comentarios sueltos y nadie podía saber cuántos faltaban. **Falta la acción del dueño**: `npx firebase deploy --only firestore:indexes`. |
 | ~~P1-15~~ | ~~No hay circuit breaker ni presupuesto de reintentos.~~ **CERRADO** — REG-353 para el gateway de IA, que es por donde pasan las 16 rutas. Interruptor con enfriamiento creciente y una sola prueba, más presupuesto de la operación entera (no sólo por intento). **Lo que hay que saber para no sobreestimarlo**: (1) el estado es **por instancia**, no global — cada instancia caliente paga su primer timeout; hacerlo global costaría una lectura compartida en el camino de una nota; (2) **WhatsApp y Evidence siguen sin interruptor**: tienen timeout y el outbox tiene backoff, pero no pasan por esta puerta. Lo segundo queda abierto en WS-04. |
 | ~~P1-16~~ | ~~El **importador** no sabe reescribir las colecciones de nivel raíz.~~ **CERRADO** — REG-348, `f2aa2fa`. Vuelven las tres que pertenecen al consultorio por un campo, re-enraizadas **por campo** y contra la lista blanca del mismo manifiesto que usa el exportador. **Abrió P1-18**, cerrado el mismo día. **Sigue sin haberse restaurado nunca contra Firestore de verdad** (WS-13). |
@@ -303,11 +304,17 @@ selector.
 ancla de pasaje. `provenance.pmids` existe en el tipo de la nota y **sólo lo
 escribe una prueba**.
 
-**La verificación de citas está construida, probada y nunca se llama.**
-`mapaDeSoporte`, `esRespuestaRespaldada`, `tasaSinRespaldo` tienen **cero
-llamadores fuera de pruebas**. La única comprobación en producción es de rango
-numérico (`consultor/page.tsx:230`): un `[2]` que apunte a un artículo que dice
-lo contrario pasa.
+**La verificación de citas ya corre** en la ruta de la consulta (REG-359): el
+prompt pide el pasaje literal, cada afirmación se ancla carácter a carácter
+contra el resumen que el modelo vio, y lo que no queda anclado **pierde su `[n]`
+y se marca**. `mapaDeSoporte`, `esRespuestaRespaldada` y `tasaSinRespaldo` tienen
+por fin llamador en producción.
+
+**Lo que sigue abierto, dicho con precisión**: anclar no es entender. Un pasaje
+puede citarse fuera de contexto o decir lo contrario en la frase siguiente; esto
+cierra **la invención del respaldo**, no la interpretación. El *entailment* es
+requisito de WS-12. Y `consultor/page.tsx:230` —la otra pantalla— sigue con la
+comprobación de rango a secas.
 
 ## WS-09 — Aplicabilidad de la evidencia a ESTE paciente
 

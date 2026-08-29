@@ -24,6 +24,7 @@ import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 import { declararFuentesNoConsultadas } from '@/lib/evidencia/lo-que-no-se-consulto'
+import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
 
 export const runtime = 'nodejs'
 /**
@@ -231,7 +232,19 @@ export async function POST(req: NextRequest) {
     '(2) Apóyate en evidencia INTERNACIONAL de alto nivel (Cochrane, meta-análisis, RCT, guías IDSA/ESCMID/AUA/EAU/ADA según el tema). NO cites GPC de CENETEC ni NOM mexicanas. Si no hay artículos, razona con tu conocimiento del consenso internacional, siendo honesto sobre el nivel de certeza.',
     '(3) Piensa como subespecialista: evalúa la idoneidad del tratamiento (fármaco/dosis/vía/duración), interacciones y contraindicaciones (alergias/edad/función orgánica), alternativas mejores, y el diagnóstico diferencial — todo centrado en el MOTIVO principal.',
     '(4) Concreto y clínico, sin relleno.',
-    'Responde SOLO JSON válido: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n]}],"diferencial":[{"dx":"...","razon":"...","citas":[n]}]}. "citas" es un arreglo (posiblemente vacío) de números [n] de la lista. Da al menos 2-3 puntos de evaluación y, cuando aplique, alternativas y diferenciales.',
+    /**
+     * REG-359 — SE PIDE EL PASAJE LITERAL, NO SÓLO EL NÚMERO.
+     *
+     * Antes bastaba `citas:[n]` y lo único que se comprobaba era que `n`
+     * estuviera en rango: un `[2]` que apuntara a un artículo que dice lo
+     * contrario pasaba, con la apariencia de estar respaldado. Sin el trozo de
+     * texto que respalda la frase no hay NADA que verificar.
+     *
+     * Y pedirlo cambia lo que el modelo hace: obligarle a copiar la frase que lo
+     * respalda es la forma más barata que existe de que no invente el respaldo.
+     */
+    'Responde SOLO JSON válido: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n],"pasajes":["cita textual del resumen n"]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n],"pasajes":["..."]}],"diferencial":[{"dx":"...","razon":"...","citas":[n],"pasajes":["..."]}]}. Da al menos 2-3 puntos de evaluación y, cuando aplique, alternativas y diferenciales.',
+    '(5) "citas" y "pasajes" van EMPAREJADOS y del mismo largo: por cada [n] que cites, copia en "pasajes" —LITERAL, palabra por palabra, del texto que se te dio— la frase de ESE artículo que respalda lo que afirmas. No parafrasees el pasaje ni lo traduzcas: se comprueba carácter a carácter contra el original. Si una afirmación tuya no tiene una frase literal que la respalde, deja "citas" y "pasajes" VACÍOS en vez de citar de más — decirlo sin cita es honesto; citar algo que no lo dice, no.',
   ].join('\n')
   const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dx.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
 
@@ -346,6 +359,30 @@ export async function POST(req: NextRequest) {
      */
     const declaradas = await declararFuentesNoConsultadas(consultaParaDeclarar, ['pubmed'])
     avisos.push(...declaradas.avisos)
+
+    /**
+     * ── ¿LO QUE DICE ESTÁ DE VERDAD EN EL ARTÍCULO QUE CITA? (REG-359) ─────
+     *
+     * Hasta aquí lo único que se comprobaba de una cita era que su número
+     * estuviera en rango. Ahora cada afirmación se ancla contra el TEXTO del
+     * artículo que dice respaldarla.
+     *
+     * Lo no respaldado **no se borra**: puede seguir siendo buen razonamiento
+     * clínico, y borrarlo le quitaría al médico algo que quizá necesita. Lo que
+     * no puede es seguir pareciendo respaldado.
+     */
+    const afirmaciones = [
+      ...final.evaluacion.map((x: Record<string, unknown>) => ({ texto: x.punto, citas: x.citas, pasajes: x.pasajes })),
+      ...final.alternativas.map((x: Record<string, unknown>) => ({ texto: x.opcion, citas: x.citas, pasajes: x.pasajes })),
+      ...final.diferencial.map((x: Record<string, unknown>) => ({ texto: x.dx, citas: x.citas, pasajes: x.pasajes })),
+    ].filter(a => Array.isArray(a.citas) && (a.citas as unknown[]).length > 0)
+
+    const verificacion = verificarAfirmaciones(afirmaciones, articulos, new Date().toISOString())
+    if (verificacion.sePudoVerificar && verificacion.sinRespaldo.length > 0) {
+      avisos.push(
+        `${verificacion.sinRespaldo.length} afirmación(es) citan un artículo pero NO se pudo comprobar que ese artículo lo diga. Están marcadas: trátalas como razonamiento, no como evidencia citada.`,
+      )
+    }
     if (!hayEvidencia) {
       // El aviso que ve el médico tiene que distinguir las dos cosas: que no haya
       // literatura es un dato clínico; que no hayamos podido preguntar, no.
@@ -358,6 +395,7 @@ export async function POST(req: NextRequest) {
       ok: true, articulos, ...final, nivel, _modelos: modelosUsados,
       _aviso: avisos.join(' '), _busquedaFallida: testigo.fallo,
       _fuentesNoConsultadas: declaradas.noConsultados,
+      _verificacion: verificacion,
     })
   } catch (e) {
     return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })

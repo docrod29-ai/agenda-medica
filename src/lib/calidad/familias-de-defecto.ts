@@ -85,6 +85,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * defecto de REG-343, una casilla más adelante— y el informe se veía sano.
      */
     /**
+     * 359 enseña la variante más cara de esta familia: el módulo estaba escrito
+     * y su encabezado AFIRMABA que enchufarlo sería gratis («no exige cambiarle
+     * el prompt»). Era falso —el verificador necesita el pasaje literal y el
+     * prompt no lo pedía— y esa creencia equivocada es exactamente la razón de
+     * que llevara meses sin enchufar: nadie descubría el trabajo real hasta
+     * intentarlo.
+     *
+     * Lección: «listo para conectar» es una afirmación que hay que PROBAR
+     * conectándolo, no una nota en un comentario.
+     */
+    /**
      * 356 es 345 otra vez, en la ruta de al lado. Los avisos de «qué se consultó
      * y qué no» se arreglaron en `/api/consultor-evidencia` y la ruta de
      * evidencia de la CONSULTA —la que se usa con el paciente enfrente— se quedó
@@ -99,7 +110,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * el timeout entero. Una protección pensada por llamada no protege de un
      * problema que es por temporada.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359],
   },
   {
     clave: 'se_contradice',
