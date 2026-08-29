@@ -10438,3 +10438,64 @@ protege a los demás consultorios.
 - **No hay cola ni contrapresión ni dead-letter** para las llamadas de IA. El
   interruptor evita la avalancha; no encola lo que no se pudo hacer. Sigue
   abierto en WS-04.
+
+## REG-354 — el repositorio no sabía si sus reglas rigen en producción
+
+**DE DÓNDE VIENE.** Reconciliando P1-2 del tablero de Ausculta. La declaración
+en los tres sitios la cerró REG-340 y el respaldo REG-343 — y las dos anotaron lo
+mismo al margen: «las reglas no se despliegan aquí; `members` sigue roto en
+producción hasta que el dueño las publique». Esa nota llevaba meses viajando de
+un documento a otro sin que nada la vigilara.
+`docs/roadmap/nexus-os/estado.json` la tenía anotada desde E0-06.
+
+**QUÉ FALLABA.** `firestore.rules` vive en el repositorio, se revisa en cada PR y
+se prueba contra el emulador. Y **`vercel --prod` no lo publica**: el despliegue
+es otro comando y otra autorización. Entre las dos cosas hay un hueco donde caben
+meses, y **nada lo detectaba**.
+
+El repositorio queda diciendo una verdad —«esta colección está protegida así»—
+que en producción no rige. La suite pasa, el emulador pasa, el PR se ve bien, y la
+protección no existe. Es la peor forma de un fallo de seguridad: **no es que
+falte la regla, es que la regla está escrita y no se aplica**, así que todo el
+mundo la da por buena leyéndola.
+
+**LA CAUSA RAÍZ.** El estado del despliegue **se recordaba en prosa** en vez de
+derivarse. Es el patrón `depende_de_recordar` aplicado a la infraestructura: el
+dato existe —el contenido del archivo— y no había ningún registro que lo comparara
+con lo que rige.
+
+**LA REGLA QUE LO HACE SEGURO.** `firestore.rules.estado.json` guarda el sha256
+de las reglas **confirmadas desplegadas**. Si no coincide con las de hoy,
+`docs/ops/REGLAS-DE-FIRESTORE.md` tiene que decir **qué no rige y qué se rompe
+mientras tanto** — y si no lo dice, el guardián falla.
+
+Lo único que se pide a mano es lo que ninguna máquina puede saber (la
+consecuencia), que es justo lo que hay que escribir. Un «falta desplegar X» no le
+sirve a nadie: lo que decide si esto es urgente es qué está roto entre tanto.
+
+Y el archivo dice, con todas las letras, que **el hash no se actualiza para poner
+una prueba en verde**. Un registro de despliegue que se edita para pasar el CI
+deja de ser un registro; que lo diga el archivo es lo que hace pensar dos veces.
+
+**LO QUE HOY ESTÁ PENDIENTE, POR FIN EN UN SITIO.** `members` (el apodo del chat
+no se guarda nunca y el código cae con elegancia al nombre por omisión: un defecto
+escondido detrás de su propio respaldo), el bloque `clinico` de E0-06 —inocuo hoy
+porque no hay datos ahí, y por eso mismo hay que desplegarlo **antes** de que los
+haya— y los `match` nuevos de REG-340.
+
+**LA PRUEBA.** `src/__tests__/las-reglas-escritas-no-son-las-que-rigen.test.ts`
+(7 casos). Probado al revés borrando la tabla de pendientes del documento: cae el
+caso que importa. Un caso extra vigila el cedazo mismo, porque así es exactamente
+como desaparecen estas listas.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No comprueba producción.** No hay forma de preguntarle a Firebase desde aquí
+  qué reglas rigen: el hash dice lo que **alguien confirmó** haber desplegado. Si
+  se actualiza sin desplegar, miente.
+- **No valida las reglas.** Que existan y estén desplegadas no dice que sean
+  correctas: eso es la suite del emulador.
+- **No cubre los índices**, que son otro despliegue y otra autorización
+  (`docs/ops/INDICES-DE-FIRESTORE.md`, REG-352). Conviene pedir las dos juntas.
+- **No puede impedir el hueco**, sólo hacerlo visible. Desplegar sigue siendo una
+  acción del dueño: `BLOCKED_EXTERNAL`, ahora con lista.

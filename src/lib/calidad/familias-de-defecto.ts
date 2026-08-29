@@ -324,7 +324,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * consultorio»: la pertenencia también se expresa con un campo, y el
      * recorrido de un árbol no ve nada que no cuelgue de él.
      */
-    regs: [241, 253, 310, 334, 338, 340, 343],
+    /**
+     * 354 es esta familia en su forma más cara: lo que se repetía a mano no era
+     * un dato sino el ESTADO DE UN DESPLIEGUE. `firestore.rules` se revisa en
+     * cada PR y `vercel --prod` no lo publica, así que el repositorio decía una
+     * verdad —«esta colección está protegida así»— que en producción no regía.
+     * La nota viajó de documento en documento durante meses.
+     *
+     * La reparación es la que dicta la familia: se DERIVA (sha256 de las reglas
+     * contra las confirmadas desplegadas) y una compuerta falla cuando se
+     * separan, exigiendo que se declare qué se rompe mientras tanto.
+     */
+    regs: [241, 253, 310, 334, 338, 340, 343, 354],
   },
   {
     /**

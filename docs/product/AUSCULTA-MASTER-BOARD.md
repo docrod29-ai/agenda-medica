@@ -24,7 +24,7 @@
 | | |
 |---|---|
 | **P0 internos abiertos** | **0** |
-| **P1 internos abiertos** | **5** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
+| **P1 internos abiertos** | **4** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
 
 **Movimientos del 29-ago-2026:**
 
@@ -36,20 +36,21 @@
 | cerrado −1 | **P1-12** — `getNotas` sin cota: el historial entero en cada pantalla (REG-350) |
 | cerrado −1 | **P1-11** — las nueve pantallas que recibían el recorte sin declararlo (REG-351) |
 | cerrado −1 | **P1-15** — no había circuit breaker ni presupuesto de reintentos (REG-353) |
-| **saldo** | **−4 P1 internos** (9 → 5) |
+| cerrado −1 | **P1-2** — ya estaba cerrado por REG-340/343 y el tablero no lo decía; su residuo real (reglas sin desplegar) lo cierra REG-354 haciéndolo visible |
+| **saldo** | **−5 P1 internos** (9 → 4) |
 
 ## Compuertas medidas en este SHA — no citadas de memoria
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 714 pasan · 1 falla** (779 archivos) | Baseline del 28-ago eran 10 566; **+148 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 721 pasan · 1 falla** (780 archivos) | Baseline del 28-ago eran 10 566; **+155 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-353.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-354.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -86,7 +87,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | ID | Defecto | Dónde |
 |---|---|---|
 | ~~P1-1~~ | ~~El secreto compartido de 2FA viaja en una URL a `api.qrserver.com`.~~ **CERRADO** — REG-338, `7247e1f`. Sigue abierto lo demás de MFA: **no se exige en el servidor** y `security-controls.ts` aún lo declara `planned`. | `cumplimiento/seguridad/page.tsx` |
-| **P1-2** | Quedan **21 colecciones de nivel raíz** con declaración incompleta. Sin exposición de acceso (Admin SDK + comodín de denegación), pero **`clinic_members` sin respaldo = restaurar un consultorio deja a todos sin poder entrar**. La parte de consultorio la cerró REG-340. | `clinic_members`, `platform_*`, `rate_limits`, `errores`, `soporte`… |
+| ~~P1-2~~ | ~~Colecciones de nivel raíz con declaración incompleta.~~ **CERRADO — y el tablero estaba atrasado.** REG-340 puso el guardián que **deriva el censo del código** (`scripts/seguridad/colecciones-escritas.mjs`), justo lo que este tablero afirmaba que no existía; REG-343 metió en el respaldo lo que ata una cuenta a un consultorio; REG-348/349 enseñaron a devolverlo. Verificado el 29-ago: las siete de consultorio que se citaban (`memoria_medico`, `whatsapp_*`, `slot_locks`, `uci_copilot_feedback`) están **en los tres sitios**. Su residuo real —las reglas escritas y **no desplegadas**— lo cierra REG-354: deja de vivir en prosa y pasa a derivarse, con una compuerta que exige declarar qué se rompe mientras tanto. Desplegarlas sigue siendo `BLOCKED_EXTERNAL`, ahora **con lista**. | — |
 | ~~P1-3~~ | ~~Tareas creadas sin `await` y con el error tragado.~~ **CERRADO** — REG-344, `4f1babd`. Sigue sin bloquear la firma (bloquearla cambiaría un pendiente perdido por una consulta perdida); lo que se arregló fue el silencio. |
 | ~~P1-4~~ | ~~`tareasVivas()` truncaba en silencio.~~ **CERRADO** — REG-344, `4f1babd`. **No arregla QUÉ 200 vienen**: siguen siendo arbitrarias, y elegirlas exige un índice compuesto que se crea fuera del repositorio → **P1-14**. |
 | ~~P1-5~~ | ~~Llamadas a proveedor sin señal de aborto.~~ **CERRADO** — REG-346, eran **13**, no 7. Sigue sin haber **circuit breaker ni presupuesto de reintentos** en ninguna parte → **P1-15**. |
@@ -377,7 +378,9 @@ HMAC y `timingSafeEqual`, y rutas públicas con rate-limit.
 |---|---|
 | Correlation ID de navegador → API → job → proveedor | **NO EXISTE**. `requestId` se fabrica en cada ruta, no llega del cliente, no viaja al proveedor, y el gateway lo **muta**: es clave del libro de costos, no traza |
 | Alertas | Un canal real (`ops/alerta.ts`), **un solo llamador**. Dispara por cron caído y saldo bajo. **Nada más**: ni 5xx, ni latencia, ni fallo de guardado, ni anomalía de autorización |
-| Respaldo | Manifiesto en árbol, con guardián — **pero ver P0-2** |
+| Respaldo | Manifiesto en árbol, con guardián que **deriva el censo del código** (REG-340) y con el camino de vuelta completo (REG-348/349) |
+| Reglas desplegadas | **NO.** Lo escrito no es lo que rige, y desde REG-354 el repositorio lo **deriva** en vez de recordarlo: `firestore.rules.estado.json` + `docs/ops/REGLAS-DE-FIRESTORE.md` con la lista de qué no rige y qué se rompe. `BLOCKED_EXTERNAL` con lista |
+| Índices desplegados | **NO.** Declarados en `firestore.indexes.json` desde REG-352, con los cuatro módulos que hoy están peor por no tenerlos. `BLOCKED_EXTERNAL` con lista |
 | PITR | `UNKNOWN` — no es configurable desde el repositorio. Hay verificador (`respaldos-verificar.mjs`) y **ninguna salida capturada** |
 | Simulacro de restauración | **NUNCA EJECUTADO contra Firestore.** El ida-y-vuelta del 2026-08-04 (200 001 docs, 161 ms) mide **su mitad**: que el NDJSON se relee. Desde REG-348/349 el camino de vuelta **existe entero** —incluidas las colecciones de nivel raíz— y REG-349 ejecuta la ruta real contra una tienda con concurrencia optimista, así que ya no es sólo lectura de fuente. Sigue faltando lo que ninguna tienda en memoria puede dar: **reglas, índices, latencia y el tope de 500 escrituras por transacción** |
 | App Check | Implementado; que esté activo es `BLOCKED_EXTERNAL` |
