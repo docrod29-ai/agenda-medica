@@ -24,7 +24,8 @@
  *    aparece en el informe.
  *  · **Restaurar no le quita nada a otro consultorio** (REG-348): las
  *    colecciones de nivel raíz comparten espacio de identificadores, así que se
- *    mira quién es el dueño ANTES de escribir.
+ *    mira quién es el dueño ANTES de escribir — y desde REG-349 mirar y escribir
+ *    son **un solo acto**, dentro de una transacción.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
@@ -33,7 +34,7 @@ import { verificarCapacidad } from '@/lib/authz/verificar'
 import { COLECCIONES, rutasDelArbol } from '@/lib/clinica/respaldo'
 import {
   leerLinea, reenraizar, reenraizarPorCampo, admitir, admitirRaizExistente,
-  type InformeRestauracion,
+  type InformeRestauracion, type Veredicto,
 } from '@/lib/clinica/restaurar'
 
 export const maxDuration = 300
@@ -41,10 +42,17 @@ export const maxDuration = 300
 /** Documentos por lote. Firestore admite 500; se deja margen. */
 const LOTE = 400
 /**
- * Documentos de nivel raíz que se comprueban de una vez contra el destino.
- * Se leen en bloque (`getAll`) en vez de uno a uno: una lectura por documento
- * en un consultorio con miles de solicitudes de reseña gasta el presupuesto de
+ * Documentos de nivel raíz que se comprueban y se escriben **en una sola
+ * transacción**.
+ *
+ * Se leen en bloque en vez de uno a uno porque una ida y vuelta por documento,
+ * en un consultorio con miles de solicitudes de reseña, gasta el presupuesto de
  * la función entera antes de escribir nada.
+ *
+ * El tope es 200 y no 500 —el máximo de escrituras de una transacción de
+ * Firestore— por dos razones: deja margen para que el grupo entero quepa con
+ * holgura, y acota lo que se pierde cuando una reejecución por contención
+ * obliga a repetir el grupo.
  */
 const LOTE_RAIZ = 200
 /** Tope de líneas rechazadas que se detallan. El resto sólo se cuenta. */
@@ -138,45 +146,92 @@ export async function POST(req: NextRequest) {
     }
 
     /**
-     * ── LAS DE NIVEL RAÍZ (REG-348) ────────────────────────────────────────
+     * ── LAS DE NIVEL RAÍZ (REG-348 · REG-349) ──────────────────────────────
      *
      * `clinic_members/{uid}` es la MISMA ruta en todos los consultorios: no hay
      * re-enraizado de ruta que los separe. Escribir a ciegas con `merge`
      * arrastraría al consultorio que se restaura a alguien que hoy trabaja en
      * otro, y esa persona perdería el acceso al suyo sin que nadie hiciera nada
-     * mal. Por eso se lee el destino ANTES de escribir.
+     * mal. Por eso se mira de quién es el documento antes de escribirlo.
      *
-     * Se acumulan y se comprueban en bloque para no gastar una ida y vuelta por
-     * documento. La comprobación se hace TAMBIÉN en modo ensayo: un ensayo que
-     * no ve la colisión no ensaya el paso que puede fallar.
+     * **REG-349 — mirar y escribir tienen que ser UN acto.** REG-348 lo miraba
+     * con un `getAll` suelto y escribía después, en un lote que se commiteaba
+     * más tarde. Entre las dos cosas no había nada, así que un alta normal en
+     * el consultorio vecino, ocurrida en ese hueco, se perdía: la restauración
+     * escribía sobre una foto vieja y le quitaba la cuenta a esa persona **sin
+     * que nadie hubiera hecho nada mal**, y el informe lo contaba como escrito.
+     *
+     * Ahora el grupo entero va dentro de una **transacción**: la lectura fija la
+     * versión de cada documento y, si alguna cambió antes del commit, Firestore
+     * reejecuta y la segunda vuelta sí ve al vecino y se aparta.
+     *
+     * El árbol del consultorio (`clinics/{id}/…`) NO necesita esto y sigue por
+     * lote: ahí la ruta ya separa los consultorios y no hay identificador que
+     * disputar. Pagar una transacción por cada nota sería caro sin comprar nada.
      */
     const pendientesRaiz: {
       ruta: string; coleccion: string; campoClinica: string; datos: Record<string, unknown>
     }[] = []
 
+    type DecisionRaiz = { indice: number; veredicto: Veredicto; reapuntado: boolean }
+
+    /**
+     * Qué hacer con cada documento del grupo, visto lo que hay hoy en el
+     * destino. **Puro**: no toca el informe.
+     *
+     * Que sea puro no es estilo. El cuerpo de una transacción se REEJECUTA ante
+     * contención, así que cualquier contador que se tocara aquí dentro contaría
+     * dos veces la misma línea — y el informe de una restauración es lo único
+     * que le queda a quien la corrió para saber qué pasó.
+     */
+    const decidirRaiz = (
+      grupo: typeof pendientesRaiz,
+      actuales: Array<{ exists: boolean; data: () => Record<string, unknown> | undefined }>,
+    ): DecisionRaiz[] => grupo.map((g, indice) => {
+      const snap = actuales[indice]
+      return {
+        indice,
+        veredicto: admitirRaizExistente(
+          snap?.exists ? snap.data() : undefined, g.campoClinica, clinicId,
+        ),
+        reapuntado: g.datos[g.campoClinica] !== clinicId,
+      }
+    })
+
     const vaciarRaiz = async () => {
       if (pendientesRaiz.length === 0) return
       const grupo = pendientesRaiz.splice(0, pendientesRaiz.length)
-      const actuales = await adminDb.getAll(...grupo.map(g => adminDb.doc(g.ruta)))
-      for (let i = 0; i < grupo.length; i++) {
-        const g = grupo[i]
-        const snap = actuales[i]
-        const v = admitirRaizExistente(
-          snap?.exists ? (snap.data() as Record<string, unknown>) : undefined,
-          g.campoClinica, clinicId,
-        )
-        if (!v.escribir) {
+      const refs = grupo.map(g => adminDb.doc(g.ruta))
+
+      /**
+       * EL ENSAYO LEE, PERO NO NECESITA TRANSACCIÓN: no escribe nada, así que no
+       * hay nada que proteger de una carrera. Lo que sí hace —y hace falta que
+       * haga— es la MISMA comprobación: un ensayo que no ve la colisión no
+       * ensaya el paso que puede fallar.
+       */
+      const decisiones = simular
+        ? decidirRaiz(grupo, await adminDb.getAll(...refs))
+        : await adminDb.runTransaction(async tx => {
+            const actuales = await tx.getAll(...refs)
+            const d = decidirRaiz(grupo, actuales)
+            for (const { indice, veredicto } of d) {
+              if (!veredicto.escribir) continue
+              const g = grupo[indice]
+              tx.set(refs[indice], reenraizarPorCampo(g.datos, g.campoClinica, clinicId), { merge: true })
+            }
+            return d
+          })
+
+      // Ya commiteado (o ya sabido, en el ensayo): AHORA se cuenta.
+      for (const { indice, veredicto, reapuntado } of decisiones) {
+        const g = grupo[indice]
+        if (!veredicto.escribir) {
           informe.raizDeOtroConsultorio++
-          rechazar(v.porQue, g.ruta)
+          rechazar(veredicto.porQue, g.ruta)
           continue
         }
-        if (g.datos[g.campoClinica] !== clinicId) informe.raizReapuntada++
-        if (!simular) {
-          lote.set(adminDb.doc(g.ruta), reenraizarPorCampo(g.datos, g.campoClinica, clinicId), { merge: true })
-        }
+        if (reapuntado) informe.raizReapuntada++
         anotar(g.coleccion)
-        enLote++
-        if (enLote >= LOTE) await vaciar()
       }
     }
 
@@ -214,7 +269,8 @@ export async function POST(req: NextRequest) {
       enLote++
       if (enLote >= LOTE) await vaciar()
     }
-    // Las de nivel raíz que quedaran en el buffer, ANTES del último commit.
+    // Las de nivel raíz que quedaran en el buffer. Van por su cuenta: desde
+    // REG-349 no comparten lote con el árbol.
     await vaciarRaiz()
     await vaciar()
 

@@ -9931,3 +9931,141 @@ final.
   es **la pantalla de buscar**.
 - **No se ha visto en un navegador.** Que el aviso exista no prueba que se vea, y
   el rebote de la búsqueda con el servidor no se ha probado con dedos.
+
+## REG-348 — el respaldo se llevaba lo que ata una cuenta a un consultorio, y la restauración no sabía devolverlo
+
+**DE DÓNDE VIENE.** REG-343 descubrió que `clinic_members` estaba fuera del
+respaldo: un consultorio restaurado quedaba con el expediente entero y **sin
+nadie que pudiera entrar**. Se metió en el manifiesto, junto a las otras dos
+colecciones que pertenecen al consultorio **por un campo** y no por la ruta
+(`clinic_invitations`, `clinic_review_requests`).
+
+**QUÉ FALLABA.** El camino de vuelta estaba escrito **sólo para el árbol**.
+`leerLinea` exigía que la ruta empezara por `clinics/` y tuviera al menos cuatro
+segmentos, así que `clinic_members/{uid}` —dos segmentos— caía en «ruta con forma
+inesperada» y se rechazaba. Las tres colecciones nuevas salían en el respaldo y
+**ninguna volvía**.
+
+El defecto de REG-343 seguía vivo, sólo que una casilla más adelante: antes el
+archivo no las llevaba; ahora las llevaba y el importador las tiraba. En los dos
+casos el consultorio restaurado se quedaba sin miembros, y en los dos casos el
+informe se veía sano.
+
+**LA CAUSA RAÍZ.** **Un respaldo tiene dos mitades y sólo se movió una.** El
+exportador y el importador leen el mismo manifiesto, pero el manifiesto sólo
+decía *qué* llevarse; la *forma* de la ruta estaba codificada aparte, en cada
+mitad, y se cambió en una sola. Es la regla «el dato tiene que LLEGAR» en su
+forma más literal: el dato salía, y del otro lado no lo aceptaban.
+
+**LA REGLA QUE LO HACE SEGURO.** **Lo que pertenece al consultorio por un CAMPO
+también vuelve, y vuelve por el campo.** Estas tres no se re-enraízan reescribiendo
+la ruta —su identificador es global—, sino **forzando el campo al consultorio
+destino**, por el mismo motivo por el que la ruta se reescribe siempre: el destino
+lo decide quien restaura, no el archivo. Dejar pasar el valor del archivo dejaría
+las membresías apuntando al consultorio de ORIGEN, que es el defecto de REG-343
+otra vez.
+
+La lista blanca es el **mismo manifiesto** que usa el exportador: aquí no hay ruta
+que reescribir, así que lo único que impide que un archivo editado a mano escriba
+en cualquier colección de la base con el SDK admin —que se salta las reglas de
+Firestore— es esa comprobación. Una colección declarada **fuera** del respaldo se
+rechaza **con su motivo**, para que quien lea el informe distinga «esto no se
+restaura a propósito» de «esto no se entendió».
+
+**LA PRUEBA.** `src/__tests__/el-respaldo-sabe-volver-entero.test.ts` (25 casos).
+Probado al revés devolviendo `leerLinea` a la guarda anterior: caen los casos de
+nivel raíz, incluido el que cruza el manifiesto del exportador con lo que el
+importador acepta.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No se ha restaurado nunca contra Firestore de verdad.** El ida y vuelta que
+  hay mide que el NDJSON se relee, no que la base acabe como se espera. El
+  simulacro sigue diciéndolo con todas las letras.
+- **Las reglas de Firestore no se evalúan por este camino**: usa el SDK admin,
+  que se las salta por diseño.
+- **La restauración no puede devolver la cuenta de Firebase Auth.** Devuelve la
+  membresía; si el usuario ya no existe en Auth, sigue sin poder entrar.
+- **El conflicto de identificador compartido lo abrió esta misma unidad** y lo
+  cierra REG-349: comprobar de quién es el documento no bastaba mientras
+  comprobar y escribir fueran dos actos.
+
+## REG-349 — restaurar un respaldo podía quitarle la cuenta a otro consultorio
+
+**CÓMO SE DESCUBRIÓ.** Revisión independiente de REG-348 (hallazgo de Codex),
+reproducido antes de tocar una línea. La defensa que REG-348 añadió existía y
+era la correcta; lo que no era correcto era **cuándo** miraba.
+
+**QUÉ FALLABA.** `clinic_members/{uid}` es literalmente la misma ruta para todos
+los consultorios del mundo. REG-348 puso la defensa obvia: leer el documento y no
+pisarlo si es de otro consultorio. Pero leía con un `adminDb.getAll(...)` **suelto**
+y escribía después, con `merge`, dentro de un `WriteBatch` que se commiteaba más
+tarde —hasta 400 documentos después, en una función que puede correr 300 s—.
+
+Entre las dos cosas no había nada:
+
+```
+restauración lee clinic_members/U   → LIBRE
+consultorio VECINO da de alta a U   (registro, invitación aceptada…)
+restauración commitea el merge      → U pasa a ser del que restaura
+```
+
+Esa persona **pierde el acceso a su consultorio sin que nadie haya hecho nada
+mal**, y sin rastro: el informe lo cuenta como escrito, porque cuando miró estaba
+libre. Es exactamente el daño que la comprobación existía para evitar, cometido
+por la propia comprobación. No hace falta un atacante: basta con que una
+restauración larga coincida con un alta normal.
+
+**LA CAUSA RAÍZ.** **Comprobar y escribir eran dos operaciones, no una.** Un
+`getAll` no fija nada: es una foto. Un `WriteBatch` es atómico *entre sus
+escrituras*, pero no vuelve a mirar si el mundo cambió desde que alguien lo
+llenó. Toda la defensa descansaba sobre un dato que podía estar caducado, y el
+tamaño de la ventana crecía con el tamaño del respaldo.
+
+**LA REGLA QUE LO HACE SEGURO.** **Donde el identificador es compartido, mirar y
+escribir es UN solo acto.** El grupo de nivel raíz va dentro de una
+`runTransaction`: la lectura fija la versión de cada documento y, si alguna cambió
+antes del commit, Firestore reejecuta — y la segunda vuelta sí ve al vecino y se
+aparta.
+
+Dos corolarios que quedan escritos en el código:
+
+- **El árbol del consultorio sigue por lote.** Ahí la ruta ya separa los
+  consultorios y no hay identificador que disputar; pagar una transacción por
+  cada nota sería caro sin comprar nada. La transacción se paga donde compra.
+- **La decisión se calcula en una función pura y los contadores se tocan DESPUÉS
+  del commit.** El cuerpo de una transacción se reejecuta ante contención: un
+  contador incrementado dentro contaría dos veces la misma línea, y el informe de
+  una restauración es lo único que le queda a quien la corrió para saber qué pasó.
+
+**LA PRUEBA.**
+`src/__tests__/restaurar-no-le-quita-la-cuenta-a-otro-consultorio.test.ts`
+(8 casos). **Ejecuta la ruta real** contra `TiendaEnMemoria`, que tiene
+concurrencia optimista de verdad, e inyecta el alta del vecino en el hueco exacto
+entre la lectura y la escritura. Con el código de REG-348 caen 3 casos y la
+membresía **se la queda el consultorio que restaura**; con el arreglo, los 8 pasan.
+
+Un caso vigila la prueba a sí misma: `vecesReejecutada > 0`. Sin él, una
+transacción que nunca reejecutó pasaría por no haber habido carrera, y una
+condición que pasa porque el gesto no ocurrió es peor que una que falla.
+
+**El gancho de la tienda cuelga de la LECTURA, no de la escritura**, a propósito:
+uno colgado del mecanismo de escritura dejaría de dispararse en cuanto ese
+mecanismo cambiara —que es justo lo que hace el arreglo— y la misma prueba no
+podría fallar antes y pasar después.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No se prueba el tope de 500 escrituras por transacción de Firestore.** La
+  tienda en memoria no lo impone; lo que ata el tamaño del grupo es `LOTE_RAIZ`
+  (200), y eso se lee, no se ejecuta.
+- **No se mide el coste.** Una transacción reejecutada cuesta más que un lote;
+  que eso siga cabiendo en los 300 s de la función no se ha medido.
+- **Las reglas de Firestore siguen sin evaluarse** por este camino: SDK admin.
+- **El ensayo (`simular=1`) no es transaccional**, y no puede serlo: no escribe,
+  así que no hay nada que proteger. Predice la colisión con la misma función
+  pura, pero **su predicción puede quedarse vieja** entre el ensayo y la
+  restauración de verdad. Eso es inherente a un ensayo, y por eso la comprobación
+  se repite —esta vez atada a la escritura— en la restauración real.
+- **No cubre el resto del importador.** Lo del árbol firmado es REG-160/REG-334;
+  lo de las colecciones de nivel raíz que vuelven es REG-348.

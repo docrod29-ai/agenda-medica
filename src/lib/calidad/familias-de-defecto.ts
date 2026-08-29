@@ -72,7 +72,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * seguridad que no cubre el camino que más lo necesita da la confianza sin
      * dar la protección.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346],
+    /**
+     * 348 es esta familia en su forma más literal: «el dato tiene que LLEGAR».
+     * REG-343 metió tres colecciones en el respaldo y el exportador se las
+     * llevaba de verdad — salían en el archivo, con su prueba. El importador
+     * las rechazaba TODAS por «ruta con forma inesperada», porque su guarda
+     * estaba escrita para el árbol y una ruta de dos segmentos no lo es.
+     *
+     * Un respaldo tiene dos mitades y sólo se movió una: el manifiesto decía
+     * QUÉ llevarse, pero la FORMA de la ruta estaba codificada aparte en cada
+     * mitad. El consultorio restaurado seguía quedándose sin miembros —el
+     * defecto de REG-343, una casilla más adelante— y el informe se veía sano.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348],
   },
   {
     clave: 'se_contradice',
@@ -184,7 +196,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * «varón de 62 años con angina inestable» no coincide con ningún patrón. La
      * única defensa es no mandarlo.
      */
-    regs: [153, 161, 162, 163, 224, 339],
+    /**
+     * 349 es la variante que abre una DEFENSA al ponerse. La comprobación de
+     * REG-348 —no pisar un `clinic_members/{uid}` que sea de otro consultorio—
+     * era la correcta, pero leía con un `getAll` suelto y escribía después, en
+     * un lote que se commiteaba mucho más tarde. En ese hueco cabe un alta
+     * normal del consultorio vecino, y la restauración se llevaba esa cuenta.
+     *
+     * Lo que esta familia aprende aquí: **una comprobación de aislamiento que
+     * no es atómica con la escritura no es una comprobación, es una foto**. Y
+     * no hace falta un atacante — basta con que dos operaciones legítimas
+     * coincidan en el tiempo, que es la clase de fuga que ninguna revisión de
+     * permisos encuentra porque los permisos estaban bien.
+     */
+    regs: [153, 161, 162, 163, 224, 339, 349],
   },
   {
     clave: 'charter_vacio',

@@ -9,20 +9,42 @@
 
 | | |
 |---|---|
-| **Rama** | `claude/ausculta-consultorio-completion-hoahgw` |
+| **Rama** | `claude/ausculta-master-completion-4clx9v` (PR #389) |
 | **SHA base** | `ba9d7a2f410157011a73ad87ea24f0edfc05560c` |
-| **Fecha** | 2026-08-28 |
-| **Base canónica** | `main` (rama 126 commits por delante, 0 por detrás) |
-| **Tableros visibles** | #296 (padre) · #310 (escala) · #314 (evidencia) |
+| **Fecha** | 2026-08-29 |
+| **Base canónica** | `main` (rama 128 commits por delante, 0 por detrás) |
+| **Tableros visibles** | #296 (padre) · #310 (escala) · #314 (evidencia) · #389 (este programa) |
+
+## Conteo de la cola prioritaria — con el saldo a la vista
+
+> **Regla de honestidad del conteo.** Un P1 nuevo no borra un P1 cerrado. Se
+> escriben los dos movimientos y se enseña el saldo, para que el progreso no se
+> pueda maquillar ni por arriba ni por abajo.
+
+| | |
+|---|---|
+| **P0 internos abiertos** | **0** |
+| **P1 internos abiertos** | **8** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
+
+**Movimientos del 29-ago-2026:**
+
+| | |
+|---|---|
+| cerrado −1 | **P1-16** — el importador ya sabe devolver las colecciones de nivel raíz (REG-348, `f2aa2fa`) |
+| nuevo +1 | **P1-18** — carrera entre consultorios en el importador, hallada revisando REG-348 |
+| cerrado −1 | **P1-18** — reproducida ejecutando la ruta y cerrada con transacción (REG-349) |
+| **saldo** | **−1 P1 interno** (9 → 8) |
 
 ## Compuertas medidas en este SHA — no citadas de memoria
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 566 pasan · 1 falla · 1 omitido** (769 archivos) | Baseline eran 10 490; **+76 casos, cero regresiones**. La falla es `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 625 pasan · 1 falla · 1 omitido** (775 archivos) | Baseline del 28-ago eran 10 566; **+59 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | navegador real | **no ejecutado** | ver WS-05 |
+
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348 y REG-349.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -69,7 +91,8 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | **P1-9** | **CORREGIDO TRAS VERIFICAR.** La auditoría decía que `.catch(() => [])` escondía el fallo. **No lo esconde**: `buscarEvidenciaMulti` marca un `testigo` mutable antes de que el `catch` lo alcance, y la ruta lo convierte en un aviso que distingue «no se pudo preguntar» de «no hay literatura», y la pantalla lo pinta. **Lo que sí falta**: esta ruta no produce sobre #314 —sin `Source`, sin procedencia estructurada— y **no declara proveedores no consultados**, así que en esta pantalla el médico no puede leer «UpToDate: no se consultó». |
 | **P1-14** | `tareasVivas` sigue devolviendo **200 arbitrarias** de N. Elegir las más urgentes exige un índice compuesto de Firestore, que se crea **fuera del repositorio**: `BLOCKED_EXTERNAL` (infraestructura del dueño). Mientras tanto el aviso es la defensa, no la solución. |
 | **P1-15** | **No hay circuit breaker ni presupuesto de reintentos** en ninguna parte. Un proveedor caído se sigue reintentando en cada petición. |
-| **P1-16** | El **importador** no sabe reescribir las colecciones de nivel raíz que REG-343 metió en el respaldo. Un respaldo que se lleva algo que no se sabe devolver no cierra la recuperación. |
+| ~~P1-16~~ | ~~El **importador** no sabe reescribir las colecciones de nivel raíz.~~ **CERRADO** — REG-348, `f2aa2fa`. Vuelven las tres que pertenecen al consultorio por un campo, re-enraizadas **por campo** y contra la lista blanca del mismo manifiesto que usa el exportador. **Abrió P1-18**, cerrado el mismo día. **Sigue sin haberse restaurado nunca contra Firestore de verdad** (WS-13). |
+| ~~P1-18~~ | ~~Restaurar podía **quitarle la cuenta a otro consultorio**.~~ **CERRADO** — REG-349. Hallazgo de revisión independiente sobre REG-348, **reproducido ejecutando la ruta** contra una tienda con concurrencia optimista antes de tocar nada: la comprobación de propiedad existía, pero leía con un `getAll` suelto y escribía en un lote posterior, así que un alta normal del consultorio vecino ocurrida en el hueco se perdía. Ahora el grupo de nivel raíz va dentro de una transacción. |
 | **P1-11** | **PARCIAL** — REG-347 cerró `/pacientes`, que era la pantalla de buscar: ahí la búsqueda ya va al servidor y el recorte se declara. Quedan **nueve** pantallas que reciben el recorte sin declararlo (`/citas`, `/crm`, `/asistente`, `/hospitalizacion`, `/farmacia`, `/membresias`, `/cumplimiento`, `/reactivacion`, `/migracion`). Ya no tumban el navegador, pero pueden decir «no hay» de un paciente que existe. |
 | **P1-17** | La búsqueda es por **PREFIJO**: un duplicado con el orden de los nombres cambiado («López María» vs «María López») y sin teléfono en común no aparece. Hueco **conocido y con forma**, ya no arbitrario — pero abierto. |
 | **P1-12** | `getNotas` sigue **sin cota**: la historia completa de un paciente, con las dos transcripciones dentro. La siguiente amplificación. |
@@ -82,10 +105,18 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 
 | | |
 |---|---|
-| **Estado** | `PARTIAL` — este archivo nace hoy |
-| **Evidencia** | Reconciliado contra #296/#310/#314, 5 auditorías read-only y verificación directa del orquestador |
+| **Estado** | `PARTIAL` — el tablero existe, se mantiene y ya lleva saldo explícito |
+| **Evidencia** | Reconciliado contra #296/#310/#314, 5 auditorías read-only y verificación directa del orquestador. **29-ago**: reconciliado contra el código tras REG-348 (P1-16 figuraba abierto y estaba cerrado) y contra el hallazgo externo que abrió y cerró P1-18 |
 | **Qué falta** | Reconciliar con los 150 comentarios de #296 y con `agent-state/BACKLOG.json` (V9/V10/V15 arrastran requisitos propios) |
-| **Siguiente** | Mantenerlo tras cada unidad cerrada |
+| **Siguiente** | Mantenerlo tras cada unidad cerrada, con el saldo a la vista |
+
+**Herramienta nueva que este tablero puede usar desde el 29-ago.** El arnés
+`src/__tests__/_harness/firestore-admin-en-memoria.ts` ya cubre `doc()`,
+`getAll()`, `batch()` y `tx.getAll()`, más un gancho de interceptación **en la
+lectura**. Consecuencia para el programa: una ruta de `/api` que escribe con el
+SDK admin **ya no tiene que probarse leyendo su fuente como texto**. Varias
+afirmaciones `PARTIAL` de este tablero descansan hoy sobre pruebas de substring
+—WS-05 lo dice de las de scroll— y ésta es la vía para convertirlas en medición.
 
 ## WS-02 — Escala / 100 k usuarios
 
@@ -343,7 +374,7 @@ HMAC y `timingSafeEqual`, y rutas públicas con rate-limit.
 | Alertas | Un canal real (`ops/alerta.ts`), **un solo llamador**. Dispara por cron caído y saldo bajo. **Nada más**: ni 5xx, ni latencia, ni fallo de guardado, ni anomalía de autorización |
 | Respaldo | Manifiesto en árbol, con guardián — **pero ver P0-2** |
 | PITR | `UNKNOWN` — no es configurable desde el repositorio. Hay verificador (`respaldos-verificar.mjs`) y **ninguna salida capturada** |
-| Simulacro de restauración | **NUNCA EJECUTADO**. El ida-y-vuelta del 2026-08-04 (200 001 docs, 161 ms) mide **su mitad**: que el NDJSON se relee. El repositorio lo dice con todas las letras y no sobreafirma |
+| Simulacro de restauración | **NUNCA EJECUTADO contra Firestore.** El ida-y-vuelta del 2026-08-04 (200 001 docs, 161 ms) mide **su mitad**: que el NDJSON se relee. Desde REG-348/349 el camino de vuelta **existe entero** —incluidas las colecciones de nivel raíz— y REG-349 ejecuta la ruta real contra una tienda con concurrencia optimista, así que ya no es sólo lectura de fuente. Sigue faltando lo que ninguna tienda en memoria puede dar: **reglas, índices, latencia y el tope de 500 escrituras por transacción** |
 | App Check | Implementado; que esté activo es `BLOCKED_EXTERNAL` |
 | MFA | **TOTP implementado y funcionando**, pero `security-controls.ts:75` sigue diciendo `planned / BLOCKED`, y **no se exige en el servidor en ningún sitio**: una sesión sin segundo factor tiene privilegios idénticos |
 | Pentest | `BLOCKED_EXTERNAL` — no se marca PASS sin pentest externo real |

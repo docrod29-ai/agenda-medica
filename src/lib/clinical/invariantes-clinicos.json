@@ -1,8 +1,8 @@
 {
-  "sellado": "2026-08-27",
+  "sellado": "2026-08-29",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 5039,
+  "totalCasos": 5175,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -429,6 +429,18 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/el-respaldo-sabe-volver-entero.test.ts",
+      "minCasos": 25
+    },
+    {
+      "archivo": "src/__tests__/el-riel-no-arrastra-la-pagina.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts",
+      "minCasos": 3
+    },
+    {
       "archivo": "src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts",
       "minCasos": 7
     },
@@ -447,6 +459,10 @@
     {
       "archivo": "src/__tests__/el-valor-censurado-no-se-da-por-normal.test.ts",
       "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
@@ -689,6 +705,10 @@
       "minCasos": 13
     },
     {
+      "archivo": "src/__tests__/la-matriz-de-evidencia-no-promete-lo-que-no-hay.test.ts",
+      "minCasos": 6
+    },
+    {
       "archivo": "src/__tests__/la-navegacion-devuelve-el-contexto.test.ts",
       "minCasos": 14
     },
@@ -707,6 +727,10 @@
     {
       "archivo": "src/__tests__/la-nota-no-sale-hueca.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/la-nota-no-se-cuenta-en-la-consola.test.ts",
+      "minCasos": 3
     },
     {
       "archivo": "src/__tests__/la-orden-no-se-queda-en-el-tintero.test.ts",
@@ -773,6 +797,10 @@
       "minCasos": 13
     },
     {
+      "archivo": "src/__tests__/laboratorio-resultado-abre-pendiente.test.ts",
+      "minCasos": 9
+    },
+    {
       "archivo": "src/__tests__/laboratorio-sujeto-vinculado.test.ts",
       "minCasos": 28
     },
@@ -787,6 +815,10 @@
     {
       "archivo": "src/__tests__/lo-que-cita-la-auditoria-existe.test.ts",
       "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/lo-que-el-navegador-vio.test.ts",
@@ -899,6 +931,10 @@
     {
       "archivo": "src/__tests__/ngramas-antonimos.test.ts",
       "minCasos": 1
+    },
+    {
+      "archivo": "src/__tests__/ninguna-llamada-a-proveedor-cuelga-la-funcion.test.ts",
+      "minCasos": 5
     },
     {
       "archivo": "src/__tests__/nota-firmada-no-se-edita.test.ts",
@@ -1053,6 +1089,10 @@
       "minCasos": 21
     },
     {
+      "archivo": "src/__tests__/restaurar-no-le-quita-la-cuenta-a-otro-consultorio.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/restaurar-no-tumba-la-pantalla.test.ts",
       "minCasos": 12
     },
@@ -1063,6 +1103,10 @@
     {
       "archivo": "src/__tests__/rt-08-ventana-de-clic-ciego.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/scale-342-lecturas-acotadas.test.ts",
+      "minCasos": 37
     },
     {
       "archivo": "src/__tests__/segunda-opinion-por-tramos.test.ts",
@@ -1305,6 +1349,10 @@
       "minCasos": 10
     },
     {
+      "archivo": "src/__tests__/un-pendiente-que-falta-no-se-calla.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/un-resultado-genera-tarea.test.ts",
       "minCasos": 13
     },
@@ -1319,6 +1367,10 @@
     {
       "archivo": "src/__tests__/una-frecuencia-tiene-forma-de-frecuencia.test.ts",
       "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/una-lista-recortada-lo-dice.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/una-sola-implementacion-fhir.test.ts",
@@ -1391,50 +1443,6 @@
     {
       "archivo": "src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts",
       "minCasos": 15
-    },
-    {
-      "archivo": "src/__tests__/laboratorio-resultado-abre-pendiente.test.ts",
-      "minCasos": 9
-    },
-    {
-      "archivo": "src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts",
-      "minCasos": 3
-    },
-    {
-      "archivo": "src/__tests__/la-nota-no-se-cuenta-en-la-consola.test.ts",
-      "minCasos": 3
-    },
-    {
-      "archivo": "src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts",
-      "minCasos": 6
-    },
-    {
-      "archivo": "src/__tests__/scale-342-lecturas-acotadas.test.ts",
-      "minCasos": 37
-    },
-    {
-      "archivo": "src/__tests__/una-lista-recortada-lo-dice.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/el-riel-no-arrastra-la-pagina.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/un-pendiente-que-falta-no-se-calla.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/la-matriz-de-evidencia-no-promete-lo-que-no-hay.test.ts",
-      "minCasos": 6
-    },
-    {
-      "archivo": "src/__tests__/ninguna-llamada-a-proveedor-cuelga-la-funcion.test.ts",
-      "minCasos": 5
-    },
-    {
-      "archivo": "src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts",
-      "minCasos": 6
     }
   ]
 }

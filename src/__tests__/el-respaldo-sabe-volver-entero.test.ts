@@ -215,23 +215,51 @@ describe('LA RUTA DE IMPORTACIÓN ESTÁ CABLEADA A TODO ESTO', () => {
   it('lee el destino ANTES de escribir, y en bloque', () => {
     // Una lectura por documento en un consultorio con miles de solicitudes de
     // reseña gasta el presupuesto de la función antes de escribir nada.
-    expect(rutaImportar).toContain('adminDb.getAll(')
     expect(rutaImportar).toContain('admitirRaizExistente(')
     expect(rutaImportar).toContain('const LOTE_RAIZ = 200')
   })
 
-  it('la comprobación se hace TAMBIÉN en modo ensayo', () => {
+  it('y mirar y escribir son UN acto: van dentro de una transacción (REG-349)', () => {
     /**
-     * Un ensayo que se salta el paso que puede fallar no ensaya nada. Sólo la
-     * ESCRITURA cuelga de `!simular`; la lectura del destino, no.
+     * ── POR QUÉ ESTA ASERCIÓN CAMBIÓ ────────────────────────────────────────
+     *
+     * Aquí decía `adminDb.getAll(` a secas y que la escritura colgaba de
+     * `!simular`. Las dos cosas se cumplían **y aun así se le podía quitar la
+     * cuenta a otro consultorio**: la lectura suelta era una foto, y el `merge`
+     * salía en un lote que se commiteaba más tarde. REG-349 lo reproduce
+     * ejecutando la ruta contra una tienda con concurrencia optimista, en
+     * `restaurar-no-le-quita-la-cuenta-a-otro-consultorio.test.ts`.
+     *
+     * Ésta se queda como comprobación **estructural** —que el camino que
+     * escribe es el transaccional— y no como la prueba del comportamiento, que
+     * es la de allá.
      */
     const bloque = rutaImportar.slice(
       rutaImportar.indexOf('const vaciarRaiz'),
       rutaImportar.indexOf('for (const crudo of texto.split'),
     )
-    expect(bloque).toContain('adminDb.getAll(')
-    expect(bloque).toContain('if (!simular) {')
-    expect(bloque.indexOf('adminDb.getAll(')).toBeLessThan(bloque.indexOf('if (!simular) {'))
+    expect(bloque).toContain('adminDb.runTransaction(')
+    expect(bloque).toContain('tx.getAll(')
+    // La lectura transaccional va ANTES de la escritura transaccional: Firestore
+    // no admite leer después de escribir dentro de una transacción.
+    expect(bloque.indexOf('tx.getAll(')).toBeLessThan(bloque.indexOf('tx.set('))
+  })
+
+  it('la comprobación se hace TAMBIÉN en modo ensayo', () => {
+    /**
+     * Un ensayo que se salta el paso que puede fallar no ensaya nada. El ensayo
+     * no necesita transacción —no escribe, no hay nada que proteger— pero sí
+     * tiene que hacer la MISMA comprobación, y la hace con la misma función
+     * pura que el camino real.
+     */
+    const bloque = rutaImportar.slice(
+      rutaImportar.indexOf('const vaciarRaiz'),
+      rutaImportar.indexOf('for (const crudo of texto.split'),
+    )
+    expect(bloque).toContain('simular\n        ? decidirRaiz(grupo, await adminDb.getAll(...refs))')
+    // La MISMA función decide en los dos caminos: si se bifurcara el criterio,
+    // el ensayo dejaría de predecir lo que hace la restauración de verdad.
+    expect(bloque.match(/decidirRaiz\(grupo,/g)?.length).toBe(2)
   })
 
   it('vacía lo que quede pendiente antes del último commit', () => {

@@ -241,6 +241,18 @@ export interface Veredicto {
  * Por eso el destino se lee ANTES de escribir, también en modo ensayo: un
  * ensayo que no ve la colisión no ensaya el paso que puede fallar.
  *
+ * ── LO QUE ESTA FUNCIÓN NO PUEDE GARANTIZAR SOLA (REG-349) ──────────────────
+ *
+ * Esto decide sobre lo que le pasan. **Que lo que le pasaron siga siendo verdad
+ * cuando se escriba es responsabilidad de quien la llama**, y no es un detalle:
+ * con la lectura suelta y la escritura en un lote posterior, un alta normal en
+ * el consultorio vecino ocurrida en medio se perdía, y el informe lo contaba
+ * como escrito. Por eso la ruta la llama **dentro de una transacción**, donde
+ * la lectura fija la versión y una escritura ajena obliga a reejecutar.
+ *
+ * Corolario para quien la reutilice: llamarla fuera de una transacción sobre una
+ * colección de identificador compartido reintroduce el mismo defecto.
+ *
  * Un documento existente **sin** el campo de consultorio se trata como ajeno:
  * no se sabe de quién es, y pisar lo que no se sabe de quién es no es
  * restaurar.
