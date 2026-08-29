@@ -5,7 +5,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { getPatients, createPatient } from '@/lib/firestore'
+import { recorrerPacientes, createPatient } from '@/lib/firestore'
 import { edadEnAnios } from '@/lib/expediente/pediatria'
 import type { Patient } from '@/types'
 import {
@@ -20,7 +20,7 @@ type Clasificada = { fila: FilaImport; estado: EstadoFila }
 export default function MigracionPage() {
   const { clinicId } = useClinic()
   const { user } = useAuth()
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
 
   const [exportando, setExportando] = useState(false)
   const [dominioEnCurso, setDominioEnCurso] = useState<string | null>(null)
@@ -35,8 +35,28 @@ export default function MigracionPage() {
     if (!clinicId) return
     setExportando(true)
     try {
-      const pacientes = await getPatients(clinicId)
+      /**
+       * REG-351 — UN EXPORT INCOMPLETO QUE SE LLAMA «MIS PACIENTES» ES UNA
+       * MENTIRA SOBRE LA PORTABILIDAD.
+       *
+       * Esto usaba `getPatients`, que desde REG-341 devuelve como mucho 500. En
+       * un consultorio grande el CSV salía recortado y el toast decía
+       * «Exportados 500 pacientes» con toda naturalidad — el número parece un
+       * recuento y es un techo. El argumento de esta pantalla es «tu
+       * información es tuya»; media información no lo cumple.
+       *
+       * Se recorre entero, página a página. Si aun así se toca el techo, se
+       * DICE: un archivo incompleto que se cree completo es peor que no tenerlo.
+       */
+      const { pacientes, incompleto, techo } = await recorrerPacientes(clinicId)
       if (!pacientes.length) { toast('No hay pacientes para exportar', 'info'); return }
+      if (incompleto) {
+        const seguir = await confirm(
+          `Tu directorio supera los ${techo.toLocaleString('es-MX')} pacientes y la descarga se quedaría corta. Si continúas, el archivo NO contendrá a todos. ¿Descargarlo de todas formas?`,
+          { peligro: true, confirmar: 'Descargar incompleto' },
+        )
+        if (!seguir) return
+      }
       const csv = pacientesACsv(pacientes)
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
@@ -45,7 +65,12 @@ export default function MigracionPage() {
       a.href = url; a.download = `pacientes_${hoy}.csv`
       document.body.appendChild(a); a.click(); a.remove()
       URL.revokeObjectURL(url)
-      toast(`Exportados ${pacientes.length} pacientes`, 'success')
+      toast(
+        incompleto
+          ? `Descargados ${pacientes.length} pacientes. El archivo está INCOMPLETO: no es tu directorio entero.`
+          : `Exportados ${pacientes.length} pacientes`,
+        incompleto ? 'error' : 'success',
+      )
     } catch {
       toast('No se pudo exportar', 'error')
     } finally {
@@ -139,7 +164,28 @@ export default function MigracionPage() {
         toast('No se encontró una columna de "Nombre". Revisa el encabezado.', 'error'); return
       }
       const filas = construirFilas(csv, mapeo)
-      const existentes = await getPatients(clinicId)
+      /**
+       * REG-351 — CONTRA QUÉ SE DECIDE SI UNA FILA ES «NUEVA».
+       *
+       * Esto comparaba contra `getPatients`, que desde REG-341 devuelve como
+       * mucho 500. En un consultorio grande **todo el que quedara fuera del
+       * recorte se clasificaba como `nuevo`**, y el botón de importar duplicaba
+       * el consultorio de un clic — cada duplicado con su mitad de la historia,
+       * sus alergias y su medicación repartidas entre dos expedientes.
+       *
+       * Es el peor sitio del producto para mirar sólo una parte, así que aquí se
+       * recorre entero. Y si el recorrido no llega hasta el final, **no se
+       * clasifica**: decir «nuevo» sin haber podido mirar a todos es
+       * exactamente el error caro.
+       */
+      const { pacientes: existentes, incompleto } = await recorrerPacientes(clinicId)
+      if (incompleto) {
+        toast(
+          'No se pudo revisar el directorio completo, así que no se puede decir con seguridad quién es nuevo. Importar ahora duplicaría expedientes.',
+          'error',
+        )
+        return
+      }
       setClasificadas(clasificarFilas(filas, existentes))
     } catch {
       toast('No se pudo leer el CSV', 'error')

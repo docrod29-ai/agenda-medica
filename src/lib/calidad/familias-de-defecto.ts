@@ -389,7 +389,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * con las notas firmadas por debajo del techo. Acotar una lectura no es una
      * operación local ni siquiera cuando uno mismo la acota.
      */
-    regs: [341, 350],
+    /**
+     * 351 es la factura completa de esta familia al repararse a medias. Acotar
+     * `getPatients` (341) arregló la escala y conservó la FIRMA, así que el
+     * recorte siguió circulando sin etiqueta por nueve pantallas: un typeahead
+     * que decía «no está» de quien sí está, un importador que clasificaba como
+     * «nuevo» al consultorio entero, un panel NOM-004 que afirmaba «al día»
+     * habiendo mirado 500 de N, un libro de controlados sin el nombre de a
+     * quién se le dio.
+     *
+     * La lección: **un arreglo de escala que conserva el tipo de retorno no ha
+     * terminado**. Un `T[]` no puede decir que viene recortado, y el silencio
+     * se lee como un hecho.
+     */
+    regs: [341, 350, 351],
   },
 ] as const
 

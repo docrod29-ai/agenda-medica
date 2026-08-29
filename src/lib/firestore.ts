@@ -390,10 +390,98 @@ export async function listarPacientesCompat(
 }
 
 /**
- * Compatibilidad histórica: devuelve la lista tal cual la esperan las pantallas
- * existentes. Ya NO es una lectura del tenant completo — está acotada por
- * `TECHO_COMPAT_PACIENTES`. Quien necesite saber si se recortó llama a
- * `listarPacientesCompat` y mira `truncada`.
+ * Techo del RECORRIDO COMPLETO. No es el de compatibilidad: éste existe para las
+ * dos operaciones donde la lista incompleta no es un inconveniente sino una
+ * mentira —exportar «mis pacientes» y decidir si un CSV trae gente nueva— y por
+ * eso es mucho más alto y **se paga a propósito**, con el usuario esperando.
+ *
+ * Sigue siendo un techo: por encima, el recorrido lo DICE y quien lo pidió
+ * decide. Lo que no se admite es pasar de largo en silencio.
+ */
+export const TECHO_RECORRIDO_PACIENTES = 50_000
+
+export interface RecorridoPacientes {
+  pacientes: Patient[]
+  /** true = se alcanzó el techo y quedaron pacientes SIN recorrer. */
+  incompleto: boolean
+  techo: number
+}
+
+/**
+ * TODOS LOS PACIENTES DEL CONSULTORIO, PÁGINA A PÁGINA.
+ *
+ * ── CUÁNDO SE USA ESTO, Y CUÁNDO NO ─────────────────────────────────────────
+ *
+ * Casi nunca. Las pantallas de lista usan `listarPacientesPagina`, y quien busca
+ * usa `buscarPacientes`; bajar el consultorio entero para pintar veinte filas es
+ * el defecto que REG-341 reparó y esto **no es la puerta de atrás para
+ * deshacerlo**.
+ *
+ * Existe para las dos operaciones donde la COMPLETITUD es el producto:
+ *
+ *  · **exportar** el directorio — un CSV al que le faltan pacientes y que se
+ *    llama «mis pacientes» es una mentira sobre la portabilidad de los datos, y
+ *    el argumento entero de esa pantalla es «tu información es tuya»;
+ *  · **decidir si un CSV importado trae gente nueva** — clasificar contra un
+ *    recorte marca como «nuevo» a quien ya está, y un solo clic duplica el
+ *    consultorio entero. Ahí el coste de leerlo todo es incomparablemente menor
+ *    que el de equivocarse.
+ *
+ * Las dos las lanza una persona a propósito y esperan a que termine.
+ *
+ * ── SIGUE ESTANDO ACOTADO ────────────────────────────────────────────────────
+ *
+ * No es `getDocs` sobre la colección: son páginas con cursor, así que la memoria
+ * y el tiempo crecen de forma controlada y el recorrido se puede parar. Si se
+ * llega al techo, `incompleto` lo dice — y quien lo llama **no puede tratar eso
+ * como una lista completa**.
+ */
+export async function recorrerPacientes(
+  clinicId: string,
+  opts?: { techo?: number },
+): Promise<RecorridoPacientes> {
+  const techo = acotar(opts?.techo, TECHO_RECORRIDO_PACIENTES, TECHO_RECORRIDO_PACIENTES)
+  const pacientes: Patient[] = []
+  let cursor: CursorPacientes | null = null
+  for (;;) {
+    const restante = techo - pacientes.length
+    if (restante <= 0) return { pacientes, incompleto: true, techo }
+    // La página se recorta al presupuesto restante: un techo que se rebasa
+    // «porque la última página venía llena» no es un techo.
+    const pagina: PaginaPacientes = await listarPacientesPagina(clinicId, {
+      limite: Math.min(restante, LIMITE_MAX_PAGINA_PACIENTES), cursor,
+    })
+    pacientes.push(...pagina.pacientes)
+    if (!pagina.hayMas || !pagina.cursor) return { pacientes, incompleto: false, techo }
+    cursor = pagina.cursor
+  }
+}
+
+/**
+ * Compatibilidad histórica: devuelve la lista tal cual la esperaban las
+ * pantallas existentes. Ya NO es una lectura del tenant completo — está acotada
+ * por `TECHO_COMPAT_PACIENTES`.
+ *
+ * ── NINGUNA PANTALLA DEBE LLAMAR A ESTO (REG-351) ───────────────────────────
+ *
+ * Un `Patient[]` pelado **no puede decir que viene recortado**, y quien lo
+ * recibe no tiene forma de saberlo. Ése fue el defecto de REG-347 y el de las
+ * nueve pantallas que lo heredaron: un typeahead que decía «no está» de quien sí
+ * está, un importador que clasificaba como «nuevo» al consultorio entero, un
+ * panel NOM-004 que afirmaba «al día» habiendo mirado 500 de N.
+ *
+ * Se conserva porque los goldens de REG-341 miden AQUÍ el invariante de escala
+ * de la superficie de compatibilidad. Para el producto hay cuatro puertas, y
+ * cada una dice lo que ésta calla:
+ *
+ *   · `listarPacientesPagina` — una página, con cursor;
+ *   · `listarPacientesCompat` — hasta el techo, **declarando `truncada`**;
+ *   · `buscarPacientes` / `candidatosDePaciente` — preguntar por alguien;
+ *   · `recorrerPacientes` — el directorio entero, para exportar o importar.
+ *
+ * Que ninguna pantalla vuelva a llamarla lo vigila un guardián
+ * (`ninguna-pantalla-recibe-una-lista-muda.test.ts`): un comentario no impide
+ * nada, y esto ya se reintrodujo una vez.
  */
 export async function getPatients(clinicId: string, opts?: { force?: boolean }): Promise<Patient[]> {
   return (await listarPacientesCompat(clinicId, opts)).pacientes

@@ -72,9 +72,19 @@ describe('REG-347 · buscar es preguntar al servidor', () => {
 
   it('ya no se baja el directorio para comprobar duplicados', () => {
     expect(PAC).not.toMatch(/getPatients\(clinicId!, \{ force: true \}\)/)
-    // Se sondea por teléfono Y por nombre: el teléfono es la señal fuerte.
-    expect(PAC).toMatch(/payload\.telefono \? buscarPacientes\(/)
-    expect(PAC).toMatch(/payload\.nombre \? buscarPacientes\(/)
+    /**
+     * ── POR QUÉ ESTA ASERCIÓN CAMBIÓ (REG-351) ─────────────────────────────
+     *
+     * Los dos sondeos —por teléfono, que es la señal fuerte, y por nombre— se
+     * escribieron aquí dentro. Otras nueve pantallas seguían filtrando el
+     * recorte en memoria, y copiar los sondeos nueve veces habría garantizado
+     * que divergieran. Viven en `pacientes/candidatos.ts`, con su propio golden
+     * que comprueba las DOS señales y ejecuta la búsqueda de verdad.
+     *
+     * Lo que esta línea sigue vigilando es lo que le toca a ESTA pantalla: que
+     * al guardar se pregunte al servidor y no se filtre una lista.
+     */
+    expect(PAC).toMatch(/duplicadosProbablesDe\(clinicId!, payload, descartados\)/)
   })
 
   it('quien recorre la lista lee cuántos faltan y qué hacer', () => {

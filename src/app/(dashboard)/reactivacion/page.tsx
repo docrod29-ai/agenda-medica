@@ -5,7 +5,7 @@ import { AgendaVacia } from '@/components/brand/EmptyArt'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
-import { getPatients, getAppointments } from '@/lib/firestore'
+import { listarPacientesCompat, getAppointments, TECHO_COMPAT_PACIENTES } from '@/lib/firestore'
 import { where, getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Patient, Appointment } from '@/types'
@@ -32,6 +32,7 @@ export default function ReactivacionPage() {
   const { config } = useConfig()
   const { toast } = useToast()
   const [pacientes, setPacientes] = useState<Patient[]>([])
+  const [listaTruncada, setListaTruncada] = useState(false)
   const [seguimiento, setSeguimiento] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [umbral, setUmbral] = useState(90)
@@ -48,7 +49,7 @@ export default function ReactivacionPage() {
     const hoyStr = hoyISO()
     let falloFuturas = false
     Promise.all([
-      getPatients(clinicId),
+      listarPacientesCompat(clinicId),
       getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]),
       // Bajas de WhatsApp: NO reactivar a quien pidió BAJA (cumplimiento).
       getDocs(collection(db, 'clinics', clinicId, 'whatsapp_optout')).catch(() => null),   // null = NO SE PUDO LEER (≠ nadie de baja)
@@ -56,7 +57,15 @@ export default function ReactivacionPage() {
       getAppointments(clinicId, [where('fechaHora', '>=', hoyStr + ' 00:00')])
         .catch(() => { falloFuturas = true; return [] as Appointment[] }),
     ]).then(([ps, cits, optSnap, futuras]) => {
-      setPacientes(ps)
+      setPacientes(ps.pacientes)
+      /**
+       * REG-351 — a quién se reactiva sale de una lista con techo (REG-341).
+       * Un desglose que dice «12 pacientes por reactivar» de un consultorio con
+       * más, y una lista que se lee como «éstos son todos», dejan fuera a gente
+       * de forma invisible: la campaña se da por hecha con parte del trabajo sin
+       * hacer, y nadie vuelve a mirar.
+       */
+      setListaTruncada(ps.truncada)
       /**
        * UN FALLO DE LECTURA NO ES «NADIE SE DIO DE BAJA».
        *
@@ -218,6 +227,21 @@ export default function ReactivacionPage() {
         title="Reactivación y referidos"
         subtitle="Tu base de pacientes es tu mejor activo. Recupera a quien no ha vuelto y facilita que te recomienden."
       />
+
+      {/**
+        * REG-351 — la campaña sale de una lista con techo. Una lista de
+        * reactivación que se lee como «éstos son todos» deja gente fuera de
+        * forma invisible: se da la campaña por hecha con parte sin hacer.
+        */}
+      {listaTruncada && (
+        <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--amber) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 14, padding: '13px 15px', marginBottom: 16 }}>
+          <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
+            Se revisaron los primeros <strong>{TECHO_COMPAT_PACIENTES}</strong> pacientes.
+            Hay más en tu consultorio que <strong>esta pantalla no ha mirado</strong>: la lista de abajo no está completa.
+          </div>
+        </div>
+      )}
 
       {veredicto.motivo && (
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--amber) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 12, padding: '13px 15px', marginBottom: 16 }}>

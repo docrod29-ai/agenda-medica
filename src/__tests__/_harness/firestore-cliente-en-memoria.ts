@@ -39,7 +39,15 @@ export type Datos = Record<string, unknown>
 export interface EstadoDoble {
   docs: Map<string, Datos>
   contador: { lecturas: number; getDocs: number; getDoc: number }
-  fallos: { collectionGroup: boolean }
+  fallos: {
+    collectionGroup: boolean
+    /**
+     * Cuando es `true`, toda lectura LANZA. Sirve para probar que quien lee
+     * distingue «no hay» de «no se pudo preguntar» — una diferencia que en un
+     * directorio de pacientes decide si se crea un expediente duplicado.
+     */
+    lectura?: boolean
+  }
 }
 
 /** Estado nuevo, listo para `vi.hoisted`. */
@@ -47,7 +55,7 @@ export function estadoDoble(): EstadoDoble {
   return {
     docs: new Map<string, Datos>(),
     contador: { lecturas: 0, getDocs: 0, getDoc: 0 },
-    fallos: { collectionGroup: false },
+    fallos: { collectionGroup: false, lectura: false },
   }
 }
 
@@ -106,6 +114,7 @@ export function firestoreClienteSobre(h: EstadoDoble) {
 
   /** Filtra y ordena, sin contar ni aplicar `limit`. Lo comparten `getDocs` y el conteo. */
   const resolver = (q: { tipo: string; ref?: unknown; cs?: Restriccion[] }): Fila[] => {
+    if (h.fallos.lectura) throw new Error('UNAVAILABLE: lectura caída (doble)')
     const ref = (q.tipo === 'query' ? q.ref : q) as { tipo: string; ruta?: string; id?: string }
     const cs = (q.tipo === 'query' ? q.cs : []) as Restriccion[]
     if (ref.tipo === 'grupo' && h.fallos.collectionGroup) {
@@ -171,6 +180,7 @@ export function firestoreClienteSobre(h: EstadoDoble) {
     deleteDoc: async () => {},
 
     getDoc: async (ref: { ruta: string; id: string }) => {
+      if (h.fallos.lectura) throw new Error('UNAVAILABLE: lectura caída (doble)')
       h.contador.getDoc++
       h.contador.lecturas++
       const data = h.docs.get(ref.ruta)

@@ -10171,3 +10171,111 @@ en la dirección del orden.
   razonada (≈40 años de consulta trimestral), no una medición.
 - **Las nueve pantallas de P1-11 siguen abiertas**: reciben el recorte de
   `getPatients` sin declararlo. Es otro requisito y no se da por cerrado aquí.
+
+## REG-351 — nueve pantallas trataban un recorte como el censo completo
+
+**DE DÓNDE VIENE.** REG-341 le puso techo a `getPatients` y REG-347 encontró la
+factura en la pantalla de buscar — y la dejó escrita al cerrarse: «quedan nueve
+pantallas sin declarar el recorte». Es P1-11 del tablero de Ausculta. Ninguna
+prueba fallaba: todas son correctas con fixtures pequeños.
+
+**QUÉ FALLABA, pantalla por pantalla.** La lista no es decorativa: cada una falla
+distinto y ninguna hace ruido.
+
+- **`/asistente`** — el typeahead filtraba el recorte en memoria. Al no ver al
+  paciente, quien agenda lo daba de alta otra vez. Peor: `elegirExpedienteParaCita`
+  decide **a qué expediente se cuelga la cita**, y lo decidía comparando contra
+  ese mismo recorte. La nota, el diagnóstico y la receta van detrás de la cita.
+- **`/migracion`** — clasificaba las filas de un CSV contra 500 de N, así que
+  **todo el que quedara fuera salía como «nuevo»** y un clic duplicaba el
+  consultorio entero. Y el botón de exportar descargaba 500 pacientes bajo el
+  título «tu información es tuya», con un toast que decía «Exportados 500
+  pacientes»: un número que parece un recuento y es un techo.
+- **`/farmacia`** — un `<select>` con el directorio para elegir a quién se
+  dispensa. En un controlado ese campo es **obligatorio** (NOM-220): el paciente
+  no aparecía entre las opciones y la salida se registraba a nombre de otro o sin
+  nombre. Y el libro de movimientos resolvía los nombres contra el mismo recorte,
+  así que las dispensaciones más antiguas se pintaban «paciente a1b2c3».
+- **`/cumplimiento`** — el filtro de la bitácora era otro `<select>` del
+  directorio: el auditor —o el propio paciente ejerciendo ARCO— **no podía
+  nombrar** a quien quería rastrear, en la pantalla que existe para contestar
+  «quién vio este expediente y cuándo». Y el panel de retención afirmaba «al día»
+  habiendo mirado 500 de N.
+- **`/hospitalizacion`** — el buscador del ingreso y el antiduplicado del alta.
+- **`/citas`** — el índice `id → Patient` de las filas: las citas cuyo paciente
+  quedó fuera se pintaban sin nombre y sin su señal de riesgo de inasistencia,
+  igual que si el paciente no existiera.
+- **`/membresias`** — el buscador del modal de asignación.
+- **`/crm` y `/reactivacion`** — cifras de retención y campañas calculadas sobre
+  el recorte y presentadas como hechos del consultorio.
+
+**LA CAUSA RAÍZ.** **Un `Patient[]` pelado no puede decir que viene recortado.**
+Acotar `getPatients` y conservar su firma dejó una puerta por la que el recorte
+pasa sin etiqueta, y quien lo recibe no tiene forma de enterarse. Todos los fallos
+van hacia el silencio —«no está», «es nuevo», «al día», «sin coincidencias»— que
+es la dirección que nadie vuelve a comprobar.
+
+**LA REGLA QUE LO HACE SEGURO.** Ninguna pantalla llama a `getPatients`. Hay
+cuatro puertas y cada una dice lo que aquélla callaba:
+
+| Para | Se usa |
+|---|---|
+| una página con cursor | `listarPacientesPagina` |
+| hasta el techo, **declarando `truncada`** | `listarPacientesCompat` |
+| preguntar por alguien | `buscarPacientes` · `candidatosDePaciente` |
+| el directorio **entero** (exportar/importar) | `recorrerPacientes` |
+
+Y los sondeos viven **en un solo sitio** (`src/lib/pacientes/candidatos.ts`).
+Copiar los dos de REG-347 nueve veces habría garantizado que divergieran: es el
+patrón `depende_de_recordar` de este repositorio, cometido a propósito.
+
+Tres decisiones que el arreglo obliga a tomar y que quedan escritas:
+
+1. **«No se pudo preguntar» no es «no hay».** `candidatosDePaciente` devuelve
+   `sePudoPreguntar`, y cuenta **sólo las sondas que se lanzaron de verdad**: una
+   que no se hizo —porque no había teléfono— no es prueba de que la lectura
+   funcione. Contarla como tal decía «se preguntó y no hay» después de un fallo, y
+   de ahí sale un expediente duplicado. `/asistente` ya no crea expediente cuando
+   la consulta falló; `/hospitalizacion`, `/membresias`, `/farmacia` y
+   `/cumplimiento` lo pintan distinto de «sin coincidencias».
+2. **`QuienSeBusca` acepta más campos de los que busca.** Nombre y teléfono son
+   lo que se busca; CURP, fecha de nacimiento y edad **afinan la comparación**.
+   No es un adorno: el motor sólo dice `seguro` con alguno de ésos, y un tipo
+   recortado a nombre y teléfono habría **debilitado en silencio** el
+   antiduplicado de quien ya lo tenía bien. Lo cazó el golden.
+3. **Cuando la completitud es el producto, se recorre entero — o no se hace.**
+   `recorrerPacientes` pagina el directorio completo, y si toca su techo lo
+   **declara**: la importación se detiene («no se puede decir quién es nuevo») y
+   la exportación pide confirmación explícita y marca el archivo como incompleto.
+
+**LA PRUEBA.** `src/__tests__/ninguna-pantalla-recibe-una-lista-muda.test.ts`
+(22 casos). Ejecuta las búsquedas de verdad contra el arnés que **cuenta
+documentos leídos**, y trae un **guardián de árbol**: recorre `src/app`,
+`src/components` y `src/hooks` y falla si alguno vuelve a llamar a `getPatients`.
+El guardián se vigila a sí mismo (un caso comprueba que el árbol recorrido no está
+vacío, porque un guardián que no mira nada pasa siempre).
+
+Probado al revés devolviendo los candidatos al filtro sobre la lista recortada y
+quitando la declaración del techo del recorrido: **caen 7 casos**.
+
+**EL GUARDIÁN BUSCA LA LLAMADA, NO LA PALABRA.** Varios archivos nombran
+`getPatients` en un comentario para explicar por qué ya no la usan. Un regex sobre
+la palabra habría obligado a borrar esa explicación para pasar — y esa explicación
+es justo lo que evita la recaída.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No renderiza.** Los casos de pantalla leen la FUENTE: comprueban que el aviso
+  y el camino existan, no que se vean. Eso es navegador y sigue sin ejecutarse.
+- **La búsqueda sigue siendo por PREFIJO.** Un duplicado con el orden de los
+  nombres cambiado y sin teléfono en común no aparece (P1-17, abierto). No se
+  cierra aquí; tampoco se agranda.
+- **`recorrerPacientes` no está medido contra un directorio real.** Su techo de
+  50 000 es una cota razonada. Lo que sí está probado es que al tocarlo la
+  operación **se detiene o avisa**, en vez de pasar de largo.
+- **`getPatients` no se borró.** Los goldens de REG-341 miden ahí el invariante
+  de escala de la superficie de compatibilidad. Lo que se cerró es que una
+  pantalla vuelva a llamarla, y eso lo vigila el guardián — no un comentario.
+- **El `<select>` de `/farmacia` se cambió por un buscador y no se ha probado con
+  un lector de pantalla.** Tiene etiqueta y objetivos de 44 px; eso no es lo
+  mismo que haberlo recorrido con teclado.

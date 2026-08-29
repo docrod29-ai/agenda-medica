@@ -15,6 +15,7 @@ import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
+import { duplicadosProbablesDe } from '@/lib/pacientes/candidatos'
 import { describirListaVacia } from '@/lib/pacientes/vacio-de-la-lista'
 import { construirGuardadoDePaciente } from '@/lib/pacientes/campos-que-se-guardan'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
@@ -1011,18 +1012,14 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
          * Antes tampoco aparecía por encima del techo, y de forma arbitraria;
          * ahora al menos el hueco es conocido y tiene forma.
          */
-        const sondas = await Promise.all([
-          payload.telefono ? buscarPacientes(clinicId!, payload.telefono) : Promise.resolve(null),
-          payload.nombre ? buscarPacientes(clinicId!, payload.nombre) : Promise.resolve(null),
-        ])
-        const candidatos = new Map<string, Patient>()
-        for (const s of sondas) for (const p of s?.pacientes ?? []) candidatos.set(p.id, p)
-        const seguros = buscarPosiblesDuplicados(
-          payload,
-          // Se respeta el «es otra persona» de la tarjeta: quien ya lo descartó
-          // arriba no merece que se lo vuelvan a preguntar al guardar.
-          [...candidatos.values()].filter(p => !descartados.has(p.id)),
-        ).filter(c => c.certeza === 'seguro')
+        /**
+         * REG-351 — los dos sondeos viven ahora en `pacientes/candidatos.ts`.
+         * Se escribieron aquí y otras nueve pantallas seguían filtrando el
+         * recorte en memoria; copiarlos nueve veces habría garantizado que
+         * divergieran. Se respeta el «es otra persona» de la tarjeta: quien ya
+         * lo descartó arriba no merece que se lo vuelvan a preguntar al guardar.
+         */
+        const { seguros } = await duplicadosProbablesDe(clinicId!, payload, descartados)
         if (seguros.length) {
           const d = seguros[0]
           const seguir = await confirm(
