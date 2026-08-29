@@ -268,4 +268,17 @@ describe('las cifras son del dueño, y se dice', () => {
     expect(src).toContain('hospitalizado: !!internamientoActivo')
     expect(src).toContain('diagnosticos: dxDelCuadro')
   })
+
+  it('el instante se ancla a la carga, no al render', () => {
+    /*
+     * Con `new Date()` en el cuerpo, la vigencia nacía distinta en cada render y
+     * con ella la entrada del copiloto, cuya memoización dejaba de servir: el
+     * motor entero se recalculaba en cada tecla del dictado. La ventana más
+     * corta de la política es de 24 h y una consulta no dura eso, así que
+     * anclar no cambia ningún veredicto.
+     */
+    const src = readFileSync('src/app/(dashboard)/consulta/[patientId]/page.tsx', 'utf8')
+    expect(src).toMatch(/const ahoraParaVigencia = useMemo\(\(\) => new Date\(\)\.toISOString\(\), \[panelesLab\]\)/)
+    expect(src).toMatch(/vigenciaDeLaFuncionRenal\(\s*\n\s*labsDeLaConsulta\.medidoEn\.creatinina,\s*\n\s*ahoraParaVigencia,/)
+  })
 })

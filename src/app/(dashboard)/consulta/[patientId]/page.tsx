@@ -999,9 +999,20 @@ export default function ConsultaActivaPage() {
    * deducirla de cuánto se movió la creatinina exigiría un umbral que nadie ha
    * validado. Por eso en ambulatorio rige la ventana conservadora.
    */
+  /**
+   * El instante contra el que se mide la vigencia, ANCLADO a cuándo llegaron los
+   * paneles y no al render.
+   *
+   * Con `new Date()` en el cuerpo, `vigenciaRenal` nacía distinto en cada render
+   * y con él `entradaCopiloto`, cuya memoización dejaba de servir: el copiloto
+   * entero se recalculaba en cada tecla del dictado. La ventana más corta de la
+   * política es de 24 h y una consulta no dura eso, así que anclar a la carga no
+   * cambia ningún veredicto y devuelve la estabilidad que el memo necesita.
+   */
+  const ahoraParaVigencia = useMemo(() => new Date().toISOString(), [panelesLab])
   const vigenciaRenal = vigenciaDeLaFuncionRenal(
     labsDeLaConsulta.medidoEn.creatinina,
-    new Date().toISOString(),
+    ahoraParaVigencia,
     { hospitalizado: !!internamientoActivo, diagnosticos: dxDelCuadro },
   )
 
