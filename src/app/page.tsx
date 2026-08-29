@@ -375,7 +375,19 @@ function HowItWorks() {
             </div>
 
             {/* Messages */}
-            <div style={{
+            {/**
+              * `tabIndex={0}` + nombre: axe lo marcaba como
+              * `scrollable-region-focusable` (grave) en los tres anchos. Es una
+              * caja con scroll propio y ningún control dentro, así que el
+              * teclado no podía llegar a ella: con el ratón se lee la
+              * conversación entera y con el teclado sólo el primer trozo —
+              * WCAG 2.1.1. Con foco propio se recorre con las flechas.
+              */}
+            <div
+              tabIndex={0}
+              role="region"
+              aria-label="Conversación de ejemplo por WhatsApp con el consultorio"
+              style={{
               padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 10,
               maxHeight: 360, overflowY: 'auto',
               background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'%3E%3C/svg%3E") #0d1117',

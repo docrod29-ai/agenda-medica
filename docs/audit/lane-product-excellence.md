@@ -46,6 +46,7 @@ Cada defecto apareció al comprobar el anterior.
 | 12 | El portal del asistente se paraba en 12 meses | el sistema se contradice a sí mismo |
 | 13 | Un fallo de red se contaba como una contraseña equivocada | el mensaje mentía sobre la causa |
 | 14 | La portada no se movía, y el sistema de movimiento estaba sin usar | el charter existía sin encarnar |
+| 15 | Una caja con scroll dejaba fuera al teclado | nadie lo estaba midiendo |
 
 Y el orden importa: **el 5 es el que hace alcanzables al 1 y al 2.** Mientras
 «automático» no sobreviviera a una recarga, el bloque
@@ -801,3 +802,64 @@ conserva por construcción, no por suerte.
 
 **NEXT.** Pase de pulido de interacción en el resto de la aplicación
 (prioridad 7) y recorridos móviles/accesibilidad (prioridad 8).
+
+---
+
+## 15 · Una caja con scroll dejaba fuera al teclado
+
+**FOUND.** Pasando axe-core (WCAG 2.0/2.1/2.2 A+AA) sobre los recorridos de este
+carril a 390 / 768 / 1440, salió **una** violación, seria, en los tres anchos:
+`scrollable-region-focusable` sobre la conversación de ejemplo de WhatsApp de la
+portada. Es una caja con `overflow-y: auto` y **ningún control dentro**, así que
+nada podía recibir el foco: con ratón se lee la conversación entera, con teclado
+sólo el primer trozo. WCAG 2.1.1.
+
+**ROOT_CAUSE.** Familia «nadie lo estaba midiendo»: no es un defecto nuevo, es
+que estas superficies no se habían pasado por axe a los tres anchos.
+
+**CHANGE.** `tabIndex={0}` + `role="region"` + nombre. El arreglo **no** fue
+quitarle el scroll —eso cortaría la conversación— y hay un caso que lo vigila.
+
+**REGRESSION.** `la-caja-con-scroll-tambien-se-alcanza-con-el-teclado.test.ts`.
+Probado al revés — y en el primer intento **la prueba pasó con el arreglo
+borrado**: el comentario que explica el arreglo contiene la cadena
+`tabIndex={0}` y `toContain` no distingue código de prosa. Es el mismo tropiezo
+que ya cazó el guardián de las mayúsculas. Se descomenta antes de mirar, y ahora
+sí falla.
+
+**BROWSER_PROOF.**
+
+*axe, después:* **0 violaciones** en las siete superficies × tres anchos —
+portada, reserva, login, registro, y con sesión `/citas`, `/asistente` y
+`/pacientes` (esta última sólo medida, es del otro carril).
+
+*Recorrido de reserva SÓLO CON TECLADO*, Tab y Enter, sin ratón: los seis pasos
+hasta «¡Cita solicitada! ✅» a 390 y 1440, con **anillo de foco visible en
+todos**. Y el dato llegó: dos citas en Firestore creadas sin tocar el ratón.
+
+*Sin desbordamiento horizontal* en las nueve combinaciones medidas.
+
+**UN FALSO HALLAZGO, DECLARADO.** La primera corrida por teclado dio «no se
+alcanza con Tab» en «Continuar». No era del producto: el campo de nombre llega
+ya enfocado, la prueba pulsaba Tab antes de escribir, el nombre quedaba vacío y
+el botón se quedaba **deshabilitado** — y un botón deshabilitado no recibe foco.
+Se arregló la prueba, no el producto. Queda escrito porque el siguiente que mida
+esto va a tropezar igual.
+
+**GATES.** `vitest` entero · lint 95 · diseño sin deuda nueva · build.
+
+**SCORE_BEFORE → SCORE_AFTER.** Violaciones axe en las superficies del carril:
+**3 nodos serios → 0**. Recorrido de reserva completable sólo con teclado: **no
+medido → sí, a 390 y 1440, con dato verificado**.
+
+**RESIDUAL_RISK.**
+
+- axe no ve el **orden** de tabulación, el atrapado de foco en un modal, ni si
+  un mensaje se anuncia al aparecer.
+- El recorrido por teclado se hizo en el portal del **paciente**; el de la
+  asistente se recorrió con ratón. Su versión de teclado queda **pendiente**.
+- No hay lector de pantalla real en este entorno: se comprueba el árbol
+  accesible y el foco, no lo que se oye.
+
+**NEXT.** Pase de pulido de interacción en el resto de la aplicación
+(prioridad 7) y certificación final (prioridad 9).

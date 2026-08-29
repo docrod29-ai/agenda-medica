@@ -1,0 +1,47 @@
+[
+  {
+    "ruta": "/citas",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/citas",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/citas",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/asistente",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/asistente",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/asistente",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/pacientes",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/pacientes",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/pacientes",
+    "ancho": 1440,
+    "violaciones": []
+  }
+]
