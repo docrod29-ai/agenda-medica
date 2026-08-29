@@ -40,6 +40,9 @@ Cada defecto apareció al comprobar el anterior.
 | 6 | Lo mismo que el 2, en las pantallas del día del médico | el sistema se contradice a sí mismo |
 | 7 | La agenda no sabía qué días existen ni hasta cuándo llega | el sistema se contradice a sí mismo |
 | 8 | Reservar dos veces eran dos citas, y el aviso culpaba a un extraño | el mensaje mentía sobre la causa |
+| 9 | El arnés visual nunca conectó a los emuladores | depende de que alguien se acuerde |
+| 10 | La aplicación llamaba «Dr.» a toda médica | el sistema se contradice a sí mismo |
+| 11 | «31 De Agosto» en siete pantallas, arreglado en una | depende de que alguien se acuerde |
 
 Y el orden importa: **el 5 es el que hace alcanzables al 1 y al 2.** Mientras
 «automático» no sobreviviera a una recarga, el bloque
@@ -505,3 +508,149 @@ alcanzables por el paciente: **14 → 365**, en pasos de 28.
 
 **NEXT.** Agenda de la asistente/recepción de punta a punta (prioridad 3), con
 el mismo arnés y ya con sesión sintética disponible en el emulador.
+
+---
+
+## 9 · El arnés visual nunca conectó a los emuladores
+
+**FOUND.** `npm run arnes:dev` —el comando que existe para poder mirar las
+pantallas con sesión y datos sintéticos, sin tocar pacientes reales— exportaba
+`NEXT_PUBLIC_FIREBASE_EMULATOR=1` (**singular**). El candado de
+`src/lib/firebase.ts` lee `NEXT_PUBLIC_FIREBASE_EMULATORS` (**plural**).
+
+Nunca coincidieron. El navegador salía a `identitytoolkit.googleapis.com` **de
+verdad** y el inicio de sesión sintético se quedaba en «Entrando…» hasta que la
+red lo cortaba. O sea: el arnés que existe para mirar pantallas no podía abrir
+ninguna pantalla con sesión.
+
+**ROOT_CAUSE.** El comentario de cabecera de `firebase.ts` decía el singular y el
+código leía el plural. El guion se copió del comentario. Familia «depende de que
+alguien se acuerde», agravada: estaba **escrito** en
+`agent-state/V15_CURRENT_ITERATION.md` —«el arnés se escribió con el singular y
+el candado lee el plural»— y aun así el guion siguió roto. Saberlo y arreglarlo
+no son lo mismo.
+
+**FILES_OWNED.** `package.json` · `src/lib/firebase.ts` (comentario) ·
+`src/__tests__/emulador-solo-demo.test.ts`.
+
+**CROSS_LANE_CHECK.** Ninguno en el diff del otro carril. Cero conflictos.
+
+**CHANGE.** El guion enciende la variable que el código lee; el comentario deja
+de contradecirlo y explica por qué el plural importa.
+
+**REGRESSION.** Cuatro casos nuevos en el guardián que ya existía: que el módulo
+lea una sola variable, que **ningún** guion de `package.json` use el nombre
+singular, que `arnes:dev` encienda exactamente la que el módulo lee (y con
+proyecto `demo-*`), y que el comentario no vuelva a contradecir al código.
+Probado al revés: devolviendo el singular al guion, caen dos.
+
+**BROWSER_PROOF.** Antes: `1-login → /login`, botón clavado en «Entrando…»,
+traza de red con `POST identitytoolkit.googleapis.com … ERR_CONNECTION_RESET`.
+Después: `1-login → /dashboard`, con la agenda real del consultorio sintético
+pintada a 390 / 768 / 1440.
+
+**SCORE_BEFORE → SCORE_AFTER.** Pantallas con sesión revisables en navegador:
+**0 → todas**. Esto es lo que desbloquea las unidades 10 y 11, y las que vienen.
+
+**RESIDUAL_RISK.** El guardián compara textos; que la conexión funcione se ve en
+el navegador, y eso no corre en CI. `arnes:emuladores` sigue asumiendo `brew`
+(macOS): aquí se levantó con `npx firebase emulators:start` a mano. No se tocó —
+es del entorno del dueño, no del producto.
+
+---
+
+## 10 · La aplicación llamaba «Dr.» a toda médica
+
+**FOUND.** Con la sesión sintética abierta, la barra lateral y el riel de flujo
+decían **«Dr. Ximena Alcántara Robledo»**. El portal del paciente, que lee el
+nombre de otro documento donde sí venía escrito, decía «Dra.».
+
+El mismo médico con dos títulos según la pantalla, y uno de los dos inventado:
+
+```
+const yaTienePrefijo = /^Dr\.?\s+|^Dra\.?\s+/i.test(config.nombreMedico)
+return yaTienePrefijo ? config.nombreMedico : `Dr. ${config.nombreMedico}`
+```
+
+**ROOT_CAUSE.** Un valor de fábrica que parece cortesía y es una suposición. En
+un país donde la mitad de los médicos son médicas, acierta la mitad de las
+veces. Y estaba **dos veces**, con la misma expresión regular copiada.
+
+**FILES_OWNED.** `src/lib/nombre-medico.ts` (nuevo) · `Sidebar.tsx` ·
+`FlowRail.tsx`.
+
+**CROSS_LANE_CHECK.** Ninguno en el diff del otro carril. Cero conflictos.
+
+**CHANGE.** El software no adivina el género de nadie. Si el médico escribió un
+título, se enseña; si no, se enseña su nombre. La regla vive en un módulo, no en
+dos copias.
+
+**LA DECISIÓN, DICHA PARA QUE SE PUEDA REVERTIR.** El coste es que quien escribió
+sólo su nombre deja de ver un título. Se prefiere un nombre sin título a un
+título equivocado. Si el dueño quiere un valor de fábrica, se pone en
+`@/lib/nombre-medico`, en un sitio.
+
+**REGRESSION.** `el-software-no-adivina-el-genero-del-medico.test.ts`, 6 casos,
+probado al revés. Un caso vigila que ninguna de las dos pantallas reimplemente
+la regla.
+
+**BROWSER_PROOF.** Antes y después a 390 / 768 / 1440: «Dr. Ximena Alcántara
+Robledo» → «Ximena Alcántara Robledo». Verificado sobre el texto de las tres
+corridas.
+
+**RESIDUAL_RISK.** El nombre del médico vive en **dos documentos** (el de la
+clínica y `config/main`) y pueden decir cosas distintas — en el consultorio
+sembrado, de hecho, las dicen. Es un defecto aparte, declarado y **no resuelto**
+aquí. Tampoco se tocan la receta ni los documentos impresos: ahí el nombre sale
+del sello de la firma.
+
+---
+
+## 11 · «31 De Agosto» en siete pantallas, arreglado en una
+
+**FOUND.** `text-transform: capitalize` pone mayúscula en cada palabra — la regla
+del inglés. En español, dentro de una frase, las preposiciones van en minúscula.
+Siete pantallas pintaban fechas así:
+
+| Pantalla | Se leía |
+|---|---|
+| portal de reserva (paciente) | `Lun 31 De Ago` — las doce fichas del día |
+| portal del asistente | `Agosto De 2026` · `Domingo, 30 De Agosto` |
+| calendario | la etiqueta del rango |
+| finanzas | la etiqueta del periodo |
+| chat | el separador de fecha |
+| portal del paciente | el día de su cita, y `Primera Vez · Solicitada` |
+
+**ROOT_CAUSE — y lo que hace especial a este defecto.** Ya estaba fichado y ya
+estaba arreglado… en **una** pantalla. El comentario de `citas/page.tsx` lo dice
+con todas las letras: «Mayúscula SÓLO la primera letra — `capitalize` produce
+"Domingo 9 De Agosto De 2026", el mismo defecto ya fichado en calendario ("De
+Agosto", Visual DNA §6 nº18)». Alguien lo vio, lo entendió, lo arregló donde
+estaba mirando, **escribió dónde más pasaba**, y ahí se quedó.
+
+**FILES_OWNED.** `src/lib/texto-es.ts` (nuevo) · `reservar/[clinicId]` ·
+`asistente` · `calendario` · `citas` · `finanzas` · `chat` · `mi/[token]`.
+
+**CROSS_LANE_CHECK.** Ninguno en el diff del otro carril. Cero conflictos.
+
+**CHANGE.** La mayúscula la pone el idioma, no el CSS —no existe un
+`text-transform` que haga esto—, desde un helper único. Se conservan los dos
+`capitalize` legítimos: sobre una palabra suelta (el día corto de finanzas, el
+conmutador día/semana/mes) es correcto.
+
+**REGRESSION.** `las-fechas-en-espanol-no-llevan-mayuscula-en-de.test.ts`, 11
+casos. Uno reproduce el comportamiento de `capitalize` para demostrar que la
+prueba puede fallar. Probado al revés. Y un caso impide que vuelva la copia
+local: al escribirlo cazó **dos** reimplementaciones que quedaban sueltas.
+
+**BROWSER_PROOF.** 390 / 768 / 1440, antes y después. Después: «Agosto de 2026»,
+«Domingo, 30 de agosto», «Lunes, 31 de agosto», «Lun 31 de ago». Barrido
+automático sobre el texto de las tres corridas: cero «De» capitalizados.
+
+**GATES (9–11).** `vitest` entero · lint 95 · diseño sin deuda nueva · build.
+
+**SCORE_BEFORE → SCORE_AFTER.** Pantallas de fecha con la regla del inglés:
+**7 → 0**. Copias locales de la mayúscula: **3 → 0**.
+
+**NEXT.** Terminar el alta de cita de la asistente de punta a punta (queda
+llegar hasta guardar) y seguir con el rediseño con movimiento de la portada.

@@ -1,4 +1,5 @@
 'use client'
+import { conMayusculaInicial } from '@/lib/texto-es'
 import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useCerrarConEscape } from '@/lib/ui/activable'
@@ -283,7 +284,9 @@ export default function CitasPage() {
   // («De Agosto», Visual DNA §6 nº18).
   const fechaLarga = useMemo(() => {
     const f = format(new Date(selectedDate + 'T12:00'), "EEEE d 'de' MMMM 'de' yyyy", { locale: es })
-    return f.charAt(0).toUpperCase() + f.slice(1)
+    // El helper compartido: esta línea era la ÚNICA pantalla arreglada, y su
+    // propio comentario ya fichaba el defecto «en calendario». Ver `@/lib/texto-es`.
+    return conMayusculaInicial(f)
   }, [selectedDate])
 
   // ¿Trabaja aquí más de un médico? Si no, el nombre del médico en cada
@@ -561,7 +564,7 @@ export default function CitasPage() {
             <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día anterior" onClick={() => setSelectedDate(prevDay(selectedDate))}>
               <ChevronLeft size={16} />
             </button>
-            <h1 className="nx-display" style={{ margin: 0 }}>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</h1>
+            <h1 className="nx-display" style={{ margin: 0 }}>{conMayusculaInicial(dateLabel)}</h1>
             <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día siguiente" onClick={() => setSelectedDate(nextDay(selectedDate))}>
               <ChevronRight size={16} />
             </button>

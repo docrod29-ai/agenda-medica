@@ -1,4 +1,5 @@
 'use client'
+import { conMayusculaInicial } from '@/lib/texto-es'
 import { useState, useMemo } from 'react'
 import { activable } from '@/lib/ui/activable'
 import { useRouter } from 'next/navigation'
@@ -130,9 +131,9 @@ export default function CalendarioPage() {
         <button
           className="btn btn-secondary btn-sm"
           onClick={() => setBaseDate(new Date())}
-          style={{ minWidth: 180, textAlign: 'center', textTransform: 'capitalize' }}
+          style={{ minWidth: 180, textAlign: 'center' }}
         >
-          {rangeLabel}
+          {conMayusculaInicial(rangeLabel)}
         </button>
         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(1)}><ChevronRight size={16} /></button>
 

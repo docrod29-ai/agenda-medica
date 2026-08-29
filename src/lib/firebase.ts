@@ -20,7 +20,13 @@ import { getStorage, connectStorageEmulator } from 'firebase/storage'
  * sintéticos sembrados por `scripts/design/sembrar-emulador.mjs`.
  *
  * Tres cerrojos para que esto no pueda tocar producción jamás:
- *   1. sólo si `NEXT_PUBLIC_FIREBASE_EMULATOR === '1'` — ausente por defecto;
+ *   1. sólo si `NEXT_PUBLIC_FIREBASE_EMULATORS === '1'` — en PLURAL, y
+ *      ausente por defecto. El plural no es un capricho: este comentario
+ *      decía el singular, `npm run arnes:dev` lo copió de aquí, y el arnés
+ *      visual entero llevaba desde entonces SIN conectar a los emuladores
+ *      — el navegador salía a `identitytoolkit.googleapis.com` de verdad y
+ *      la sesión sintética no podía iniciarse. Hay un guardián que compara
+ *      este archivo con los guiones de `package.json`;
  *   2. sólo si `NODE_ENV !== 'production'` — un build de producción lo ignora
  *      aunque la variable se cuele en el entorno de Vercel;
  *   3. `demo-*` como projectId en `.env.emulador`, que ni siquiera existe en

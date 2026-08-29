@@ -5,6 +5,7 @@
  * Vista simplificada: nombre, teléfono, doctor, tipo, fecha, hora disponible.
  * Un solo clic → cita creada.
  */
+import { conMayusculaInicial } from '@/lib/texto-es'
 import { useState, useMemo, useEffect } from 'react'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -506,8 +507,8 @@ function AsistenteInner() {
               >
                 <ChevronLeft size={18} />
               </button>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize', textAlign: 'center', flex: 1 }}>
-                {mesLabel}
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', textAlign: 'center', flex: 1 }}>
+                {conMayusculaInicial(mesLabel)}
               </span>
               <button
                 type="button"
@@ -549,8 +550,8 @@ function AsistenteInner() {
                       transition: 'all var(--mov-rapido) var(--mov-curva)',
                     }}
                   >
-                    <span style={{ textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      {isToday ? <><CalendarDays size={13} className="ds-icon" /> Hoy</> : formatDateLong(d)}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      {isToday ? <><CalendarDays size={13} className="ds-icon" /> Hoy</> : conMayusculaInicial(formatDateLong(d))}
                     </span>
                     <span style={{ fontSize: 11, color: isSelected ? 'var(--teal)' : 'var(--text3)' }}>
                       {daySlots.length > 0 ? `${daySlots.length} lugares` : 'Sin lugar'}

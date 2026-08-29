@@ -1,4 +1,5 @@
 'use client'
+import { nombreMedicoParaMostrar } from '@/lib/nombre-medico'
 /**
  * FLOW RAIL — V15-SHELL-GREYBOX-001.
  *
@@ -179,9 +180,8 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
             {config.nombreClinica || 'Ausculta'}
           </div>
           <div className="nx-flow-rail-quiet-hide" style={{ fontSize: 12, color: 'var(--text3)' }}>
-            {config.nombreMedico
-              ? (/^Dr\.?\s+|^Dra\.?\s+/i.test(config.nombreMedico) ? config.nombreMedico : `Dr. ${config.nombreMedico}`)
-              : 'Consultorio'}
+            {/* Sin inventar título — ver `@/lib/nombre-medico`. */}
+            {nombreMedicoParaMostrar(config.nombreMedico) ?? 'Consultorio'}
           </div>
         </div>
       </div>

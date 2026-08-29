@@ -41,7 +41,7 @@ for (const { w, h, nombre } of ANCHOS) {
   }
 
   await paso('1-abrir', async () => {
-    await pag.goto(`${base}/reservar/${clinicId}`, { waitUntil: 'networkidle', timeout: 45000 })
+    await pag.goto(`${base}/reservar/${clinicId}`, { waitUntil: 'domcontentloaded', timeout: 45000 })
     return await pag.locator('body').innerText().then(t => t.split('\n')[0])
   })
   await paso('2-tipo', async () => {

@@ -44,7 +44,7 @@ for (const ruta of rutas) {
     const slug = (ruta === '/' ? 'landing' : ruta.replace(/^\//, '').replace(/[^\w-]/g, '_')) + '-' + nombre
     let estado = 'ok'
     try {
-      const resp = await pag.goto(base + ruta, { waitUntil: 'networkidle', timeout: 45000 })
+      const resp = await pag.goto(base + ruta, { waitUntil: 'domcontentloaded', timeout: 45000 })
       estado = String(resp?.status() ?? '?')
     } catch (e) { estado = 'ERROR: ' + String(e).slice(0, 120) }
     await pag.screenshot({ path: `${SALIDA}/${slug}.png`, fullPage: false })

@@ -14,6 +14,7 @@
  *
  * Solo capa de presentación/agregación: el modelo de datos (cobros.ts) no cambia.
  */
+import { conMayusculaInicial } from '@/lib/texto-es'
 import { useEffect, useState, useMemo } from 'react'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -273,8 +274,8 @@ export default function FinanzasPage() {
         <button onClick={() => setAncla(moverAncla(periodo, ancla, -1))} style={navBtn} aria-label="Periodo anterior">
           <ChevronLeft size={16} />
         </button>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize', minWidth: 220, textAlign: 'center' }}>
-          {etiquetaPeriodo(periodo, ancla)}
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', minWidth: 220, textAlign: 'center' }}>
+          {conMayusculaInicial(etiquetaPeriodo(periodo, ancla))}
         </div>
         <button
           onClick={() => setAncla(moverAncla(periodo, ancla, 1))}
