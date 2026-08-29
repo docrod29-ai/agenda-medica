@@ -46,7 +46,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ningún camino del producto escribía jamás un documento en esa colección.
      * No faltaba una pantalla — faltaba el ACTO que la llena.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339],
   },
   {
     clave: 'se_contradice',
@@ -71,7 +71,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Ninguna de las dos está mal por su cuenta. En el hueco cabía una nota
      * firmable e inentregable — y con `nota.firma` inmutable, irreparable.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338],
   },
   {
     clave: 'habla_real',
