@@ -134,7 +134,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Dejar el dato en una bitácora de auditoría no es conectarlo: nadie lee
      * una bitácora con el paciente enfrente.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363],
+    /**
+     * 366 es la variante TEMPORAL de esta familia, y no la había: el módulo
+     * corre, corre en el camino del médico, y su resultado **no sobrevive al
+     * acto que lo hace importante**. Los motores de negación, temporalidad,
+     * experienciador y certeza producían avisos que el médico confirmaba haber
+     * revisado, y la firma los tiraba. «Creo que me dijeron que tenía anemia»
+     * quedaba en el expediente como «Anemia», y la duda duraba lo que duraba la
+     * sesión del navegador.
+     *
+     * Su lección: «conectado» no es sólo «se ejecuta». Un dato que se calcula,
+     * se enseña y no se guarda está tan desconectado como uno que nunca corrió,
+     * sólo que además parece que funciona.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366],
   },
   {
     clave: 'se_contradice',

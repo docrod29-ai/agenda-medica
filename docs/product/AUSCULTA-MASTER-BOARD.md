@@ -386,8 +386,17 @@ tipo de un diagnóstico en ninguna pantalla**. Mientras siga así, el sistema no
 distingue un presuntivo elegido de uno de fábrica, y por eso no puede enseñarlo.
 Darle ese control obliga a separar «elegido» de «por defecto» en el modelo.
 
+**REG-366 — lo que se avisó al firmar ya no se tira.** Los avisos que el médico
+confirma haber revisado («Los revisé, firmar») se quedan sellados en
+`iaAuditoria.avisosAlFirmar`, con su origen y **la frase tal como la leyó**, y la
+pantalla de la nota firmada los enseña (`no-print`: es cómo se revisó la nota, no
+parte del documento que se entrega). El orden es la mitad del arreglo:
+`iaAuditoria` está dentro del conjunto sellado, así que el campo entra **antes**
+del hash — añadirlo después reabriría la nota marcada como «alterada» (REG-060).
+
 **El hueco de fondo**: negación, temporalidad, experienciador y certeza corren
-**en el momento de la consulta y producen avisos**, y después **se descartan**.
+**en el momento de la consulta y producen avisos**. Desde REG-366 esos avisos
+**se conservan**; lo que sigue sin estructurarse es el eje dentro de la entidad.
 `Diagnostico` no tiene campo `certeza`; `Medicamento` no tiene `temporalidad`.
 Un diagnóstico capturado como «creo que me dijeron que tenía anemia» se guarda
 igual que uno confirmado. **REG-364 cerró la mitad que sí se guardaba** —`tipo`,

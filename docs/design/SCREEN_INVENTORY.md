@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 363 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1170 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2621 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 6871 | 7 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 6882 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 343 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 256 | 1 | — | ✅ | — |
@@ -68,7 +68,7 @@
 | `/migracion` | medico | ✅ | 417 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
-| `/nota/[patientId]/[notaId]` | medico | ✅ | 943 | 2 | — | ✅ | — |
+| `/nota/[patientId]/[notaId]` | medico | ✅ | 988 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 401 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 840 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1240 | 4 | — | ✅ | — |

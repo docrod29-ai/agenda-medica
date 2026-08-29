@@ -66,6 +66,7 @@ import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-
 import { leerHechosDeCierre, marcarHechoDeCierre, guardarSeguimientoDeCierre, leerSeguimientoDeCierre } from '@/lib/expediente/cierre-hechos'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/expediente/procedencia'
+import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 
 /**
  * Alergias del paciente (texto libre) → lista para el sello de procedencia.
@@ -3731,7 +3732,17 @@ export default function ConsultaActivaPage() {
       return   // se re-renderiza sin ellas; el médico confirma la nota final
     }
 
-    const notaParaValidar = construirNota('firmada')
+    /**
+     * LO QUE SE AVISÓ QUEDA EN LA NOTA — REG-366.
+     *
+     * `avisosParaFirmar` es exactamente lo que enumeró el diálogo de arriba y a
+     * lo que se refiere «Los revisé, firmar». Se mete AQUÍ, antes de calcular
+     * el hash: `iaAuditoria` está dentro de `OPCIONALES_SELLADOS_V3`, así que
+     * añadirlo después de `normalizarParaSello` haría que el sello se calculara
+     * sobre un objeto distinto del que se escribe, y la nota se reabriría
+     * marcada como «alterada» (REG-060).
+     */
+    const notaParaValidar = conAvisosSellados(construirNota('firmada'), avisosParaFirmar)
     const val = validarNOM004(notaParaValidar)
     if (!val.valida) {
       toast(`No se puede firmar: ${val.errores[0]}`, 'error')

@@ -11332,3 +11332,80 @@ que saltar algo en vez de quedarse callado.
   función. Queda anotado en WS-10.
 - No toca el otro eje de certeza, el del PACIENTE (`certeza.ts`), que sigue
   calculándose en la consulta y descartándose al firmar.
+
+---
+
+## REG-366 — los avisos que el médico confirmó haber revisado se descartaban al firmar
+
+**QUÉ FALLABA.** Antes de firmar, `/consulta` enseña una lista de avisos y pide
+confirmar con **«Los revisé, firmar»**. Los produce `construirAvisos` a partir de
+motores que existen y están probados: la contradicción con una negación, el
+antecedente que era del familiar, el desajuste temporal, la afirmación sin
+respaldo en el dictado, y el dato que el paciente ofreció como **duda**
+(`certeza.ts`).
+
+Al firmar **se descartaban todos**. La nota firmada guarda con qué modelo se
+generó, qué versión del prompt, cuántos campos vinieron del dictado y cuáles
+aprobó el médico (`iaAuditoria`) — y **nada de lo que el sistema le señaló**.
+
+**LAS DOS CONSECUENCIAS.**
+
+*Clínica.* La tiene escrita el propio módulo, en `POR_QUE_IMPORTA`: «lo que el
+paciente ofreció como duda queda en el expediente como diagnóstico; a partir de
+la segunda consulta ya nadie sabe que era una duda: se lee igual que un dato
+confirmado y se arrastra a todas las notas siguientes». El motor que detecta
+«creo que me dijeron que tenía anemia» **funciona** — y su hallazgo duraba lo que
+duraba la sesión del navegador.
+
+*Medicolegal.* Un aviso que se mostró y se aceptó es parte de cómo se tomó la
+decisión. Sin registro no se puede decir ni que se avisó ni que no: **los dos
+casos se ven exactamente igual seis meses después**.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo WS-10. El tablero lo tenía escrito como «el
+hueco de fondo»: negación, temporalidad, experienciador y certeza corren en el
+momento de la consulta, producen avisos, **y después se descartan**.
+
+**CAUSA RAÍZ.** El resultado de los motores vivía sólo en estado de React.
+Familia «escrito y sin conectar» en su variante temporal: sí corría en el camino
+del médico, pero el dato no sobrevivía al acto que lo hacía importante.
+
+**EL ARREGLO.** `src/lib/expediente/lo-que-se-aviso-al-firmar.ts` (puro) sella en
+`iaAuditoria.avisosAlFirmar` **los avisos que estaban en pantalla al firmar** —los
+mismos que enumeró el diálogo y a los que se refiere «Los revisé»—, con su
+origen, su nivel y **la frase tal como el médico la leyó**, sin reescribirla. Y la
+pantalla de la nota firmada los enseña.
+
+**EL ORDEN ES LA MITAD DEL ARREGLO.** `conAvisosSellados` se llama **antes** de
+`normalizarParaSello`, porque `iaAuditoria` está dentro de
+`OPCIONALES_SELLADOS_V3`: añadir el campo después del hash haría que el sello se
+calculara sobre un objeto distinto del que se escribe, y **la nota se reabriría
+marcada como «alterada»**. Es literalmente el modo de fallo de REG-060 —la alarma
+roja que el sello existe para no dar nunca— y por eso el arreglo es una función
+que recibe la nota, y no un objeto suelto en la pantalla. Hay dos casos que lo
+vigilan: uno comprueba que `iaAuditoria` sigue dentro del conjunto sellado, y otro
+compara las **posiciones** de las dos llamadas en el archivo de la consulta.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No sella los avisos que el médico cerró antes de llegar a firmar.** Eso sería
+  un historial de la sesión, que es otra cosa y no es lo que él confirmó.
+- **No sella los de PRESCRIPCIÓN.** `alFirmar` los deja fuera porque se ven
+  mientras receta, no al firmar (REG-173/190).
+- **No resuelve la duda.** Un dato incierto sellado sigue siendo incierto; ahora
+  se puede volver a leer, que es lo que no se podía.
+- **No añade `certeza` a `Diagnostico`.** El eje sigue sin estructurarse en la
+  entidad: lo que se conserva es la FRASE que lo delató, con su aviso. Estructurarlo
+  es una decisión de modelo, y sigue abierta en WS-10.
+- **No se imprime.** Es cómo se revisó la nota, no parte del documento que se
+  entrega al paciente ni del que va a la farmacia. El bloque lleva `no-print` y
+  hay un caso que lo comprueba.
+- **No lo lee ninguna consulta POSTERIOR todavía.** Se lee en la pantalla de la
+  nota. Que la duda de hace dos años salga sola al abrir una consulta nueva es
+  trabajo de WS-10 y no se da por hecho aquí.
+
+**LA PRUEBA.** `src/__tests__/lo-que-se-aviso-al-firmar-no-se-pierde.test.ts`
+(16 casos), construyendo los avisos con **la cadena real** (`construirAvisos` +
+`alFirmar`) y no con objetos a mano — con una aserción que falla si esa cadena
+deja de producir avisos, para que el fixture no pueda volverse vacuo. Probada al
+revés: sobre la nota sin sellar, `avisosSelladosDe` devuelve `null` y la nota no
+contiene la palabra que el aviso traía.

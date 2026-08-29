@@ -297,6 +297,22 @@ export interface NotaMedica {
      */
     procedencia?: { dictado: number; ia: number; manual: number; total: number }
     /**
+     * LO QUE EL SISTEMA AVISÓ Y EL MÉDICO DIJO HABER MIRADO — REG-366.
+     *
+     * Los avisos que estaban en pantalla al firmar, tal como los leyó. Antes se
+     * descartaban todos: la duda que el paciente expresó («creo que me dijeron
+     * que tenía anemia») duraba lo que duraba la sesión del navegador, y de un
+     * aviso mostrado y aceptado no quedaba rastro ninguno.
+     *
+     * Ausente en las notas anteriores a esto, y ausente también cuando no hubo
+     * ningún aviso: un objeto vacío en todas partes haría indistinguibles los
+     * dos casos. Ver `lo-que-se-aviso-al-firmar.ts`.
+     */
+    avisosAlFirmar?: {
+      avisos: { id: string; origen: string; nivel: string; texto: string }[]
+      total: number
+    }
+    /**
      * Provenance INMUTABLE de la IA (trazabilidad medicolegal / SaMD): con qué
      * modelo, versión de prompt y motor se generó la nota, y su revisión humana.
      * Requisito de auditoría regulatoria y de IA clínica defendible.
