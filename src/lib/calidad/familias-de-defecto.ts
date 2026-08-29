@@ -85,6 +85,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * defecto de REG-343, una casilla más adelante— y el informe se veía sano.
      */
     /**
+     * 361 es la única entrada de esta familia que se cerró ANTES de que el
+     * defecto ocurriera. REG-360 creó los campos del cierre y declaró en su
+     * propio «qué no cubre» que ninguna pantalla los llenaba; la unidad
+     * siguiente los conectó, en vez de dejarlo para cuando alguien descubriera
+     * que el dato nunca llegó.
+     *
+     * Vale la pena anotarlo: esta familia se puede cerrar por adelantado si
+     * quien abre el hueco lo declara y quien sigue lo lee.
+     */
+    /**
      * 359 enseña la variante más cara de esta familia: el módulo estaba escrito
      * y su encabezado AFIRMABA que enchufarlo sería gratis («no exige cambiarle
      * el prompt»). Era falso —el verificador necesita el pasaje literal y el
@@ -110,7 +120,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * el timeout entero. Una protección pensada por llamada no protege de un
      * problema que es por temporada.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361],
   },
   {
     clave: 'se_contradice',

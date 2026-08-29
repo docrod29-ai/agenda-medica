@@ -51,7 +51,10 @@ import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
 import { tareasVivas, tareasCerradasRecientes, cambiarEstado } from '@/lib/tareas-clinicas/firestore'
-import { ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO, type TareaClinica, type EstadoTarea } from '@/lib/tareas-clinicas/modelo'
+import {
+  ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO,
+  type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente,
+} from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type EstadoDeAccion } from '@/lib/tareas-clinicas/estado-de-accion'
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
@@ -95,12 +98,14 @@ function fechaCorta(iso?: string): string {
   rota por una declaración mal colocada. Ninguna prueba de fuente lo habría
   visto.
 */
-function Tarjeta({ t, ahora, porQueId, onAbrirPorQue, onMover, onCancelar, onIrAlExpediente }: {
+function Tarjeta({ t, ahora, porQueId, onAbrirPorQue, onMover, onCerrar, onCancelar, onIrAlExpediente }: {
   t: TareaClinica
   ahora: number
   porQueId: string | null
   onAbrirPorQue: (t: TareaClinica, disparador: HTMLElement) => void
   onMover: (t: TareaClinica, nuevo: EstadoTarea) => void
+  /** Cerrar pasa por un formulario: no es lo mismo que avanzar de estado (REG-361). */
+  onCerrar: (t: TareaClinica) => void
   onCancelar: (t: TareaClinica) => void
   onIrAlExpediente: (e: React.MouseEvent<HTMLAnchorElement>, patientId: string) => void
 }) {
@@ -179,7 +184,10 @@ function Tarjeta({ t, ahora, porQueId, onAbrirPorQue, onMover, onCancelar, onIrA
         */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {paso && (
-            <Button size="sm" onClick={() => onMover(t, paso.estado)}>
+            <Button
+              size="sm"
+              onClick={() => (paso.estado === 'cerrada' ? onCerrar(t) : onMover(t, paso.estado))}
+            >
               {paso.estado === 'cerrada' ? <CheckCircle2 size={14} /> : null} {paso.texto}
             </Button>
           )}
@@ -264,6 +272,18 @@ export default function PendientesPage() {
    */
   const [truncado, setTruncado] = useState(0)
   const [cancelando, setCancelando] = useState<TareaClinica | null>(null)
+  /**
+   * ── EL FORMULARIO DE CIERRE (REG-361) ───────────────────────────────────
+   *
+   * REG-360 le dio campo a las tres etapas del §9 —decisión, acción, aviso al
+   * paciente— y **nadie las llenaba**, así que en producción seguían saliendo
+   * `sin_dato`. Un campo que ninguna pantalla llena es exactamente la familia
+   * «escrito y sin conectar» a un paso de ocurrir.
+   */
+  const [cerrando, setCerrando] = useState<TareaClinica | null>(null)
+  const [decision, setDecision] = useState('')
+  const [accion, setAccion] = useState('')
+  const [aviso, setAviso] = useState<AvisoAlPaciente | ''>('')
   const [motivo, setMotivo] = useState('')
   const [soloMias, setSoloMias] = useState(false)
   const [recarga, setRecarga] = useState(0)
@@ -345,9 +365,12 @@ export default function PendientesPage() {
     return acc
   }, [resto, ahora])
 
-  const mover = useCallback(async (t: TareaClinica, nuevo: EstadoTarea, motivoCancelacion?: string) => {
+  const mover = useCallback(async (
+    t: TareaClinica, nuevo: EstadoTarea,
+    extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea> } = {},
+  ) => {
     if (!clinicId) return
-    const r = await cambiarEstado(clinicId, t, nuevo, { motivoCancelacion })
+    const r = await cambiarEstado(clinicId, t, nuevo, extra)
     if (!r.ok) { toast(r.motivo, 'error'); return }
     toast(nuevo === 'cerrada' ? 'Cerrada' : 'Actualizada', 'success')
     setRecarga(n => n + 1)
@@ -386,6 +409,11 @@ export default function PendientesPage() {
 
   /** Abrir el diálogo de cancelación. Vivía en línea dentro de `Tarjeta`, que
       ahora es un componente de módulo y no ve el estado de la página. */
+  const abrirCierre = useCallback((t: TareaClinica) => {
+    setDecision(''); setAccion(''); setAviso('')
+    setCerrando(t)
+  }, [])
+
   const abrirCancelar = useCallback((t: TareaClinica) => {
     setCancelando(t)
     setMotivo('')
@@ -445,7 +473,7 @@ export default function PendientesPage() {
               <h2 style={{ fontSize: 14, margin: 0, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} /> Requiere atención ({urgentes.length})
               </h2>
-              {urgentes.map(t => <Tarjeta key={t.id} t={t} ahora={ahora} porQueId={porQueId} onAbrirPorQue={alternarPorQue} onMover={mover} onCancelar={abrirCancelar} onIrAlExpediente={irAlExpediente} />)}
+              {urgentes.map(t => <Tarjeta key={t.id} t={t} ahora={ahora} porQueId={porQueId} onAbrirPorQue={alternarPorQue} onMover={mover} onCerrar={abrirCierre} onCancelar={abrirCancelar} onIrAlExpediente={irAlExpediente} />)}
             </section>
           )}
           {ORDEN_ESTADO_DE_ACCION.filter(cat => cat !== 'vencida').map(cat => {
@@ -456,7 +484,7 @@ export default function PendientesPage() {
                 <h2 style={{ fontSize: 14, margin: 0, color: 'var(--text3)' }}>
                   {ETIQUETA_ESTADO_DE_ACCION[cat]} ({items.length})
                 </h2>
-                {items.map(t => <Tarjeta key={t.id} t={t} ahora={ahora} porQueId={porQueId} onAbrirPorQue={alternarPorQue} onMover={mover} onCancelar={abrirCancelar} onIrAlExpediente={irAlExpediente} />)}
+                {items.map(t => <Tarjeta key={t.id} t={t} ahora={ahora} porQueId={porQueId} onAbrirPorQue={alternarPorQue} onMover={mover} onCerrar={abrirCierre} onCancelar={abrirCancelar} onIrAlExpediente={irAlExpediente} />)}
               </section>
             )
           })}
@@ -516,6 +544,88 @@ export default function PendientesPage() {
       />
 
       {/*
+        ── CERRAR: QUÉ SE DECIDIÓ, QUÉ SE HIZO, SI SE AVISÓ (REG-361) ─────────
+
+        Un resultado crítico revisado y cerrado sin que nadie llamara al paciente
+        se veía igual que uno donde sí se llamó. REG-360 le dio campo a las tres
+        etapas; esto es lo que las llena.
+
+        La DECISIÓN es obligatoria: cerrar sin decirla es cerrar sin cerrar. La
+        acción y el aviso NO lo son —un worklist que cuesta se abandona en una
+        semana, y entonces deja de verse el resultado que sí importaba—, pero
+        tampoco se inventan: lo que no se marque queda como «no consta», que es
+        distinto de «no se hizo».
+      */}
+      <Modal open={!!cerrando} onClose={() => setCerrando(null)} title="Cerrar: ¿qué se decidió?">
+        <div style={{ display: 'grid', gap: 12 }}>
+          <p className="nx-meta" style={{ margin: 0 }}>
+            Cerrar deja constancia de que alguien lo revisó y decidió. Lo que no marques
+            queda como <strong>no consta</strong> — no como «no se hizo».
+          </p>
+          <label style={{ display: 'grid', gap: 4, fontSize: 12, color: 'var(--text2)' }}>
+            Qué se decidió <span style={{ color: 'var(--red)' }}>· obligatorio</span>
+            <Textarea
+              value={decision}
+              onChange={e => setDecision(e.target.value)}
+              placeholder="Se repite en 3 meses / se ajusta la dosis / se deriva a nefrología / normal, sin cambios…"
+              rows={2}
+            />
+          </label>
+          <label style={{ display: 'grid', gap: 4, fontSize: 12, color: 'var(--text2)' }}>
+            Qué se hizo <span style={{ color: 'var(--text3)' }}>(opcional)</span>
+            <Textarea
+              value={accion}
+              onChange={e => setAccion(e.target.value)}
+              placeholder="Se pidió el control / se cambió la receta / se agendó la cita…"
+              rows={2}
+            />
+          </label>
+          <fieldset style={{ border: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+            <legend style={{ fontSize: 12, color: 'var(--text2)', padding: 0 }}>¿Se le avisó al paciente?</legend>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {([
+                ['avisado', 'Sí, se le avisó'],
+                ['no_avisado', 'Todavía no'],
+                ['no_aplica', 'No hacía falta'],
+              ] as const).map(([valor, etiqueta]) => (
+                <Button
+                  key={valor}
+                  size="sm"
+                  variant={aviso === valor ? undefined : 'secondary'}
+                  onClick={() => setAviso(aviso === valor ? '' : valor)}
+                >{etiqueta}</Button>
+              ))}
+            </div>
+            <span className="nx-meta">
+              Si no marcas ninguna, queda <strong>sin registrar</strong>: el expediente
+              dirá que no consta, no que no se avisó.
+            </span>
+          </fieldset>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Button variant="ghost" onClick={() => setCerrando(null)}>Volver</Button>
+            <Button
+              disabled={!decision.trim()}
+              onClick={() => {
+                const t = cerrando
+                setCerrando(null)
+                if (t) {
+                  mover(t, 'cerrada', {
+                    cierre: {
+                      decision: decision.trim(),
+                      ...(accion.trim() ? { accion: accion.trim() } : {}),
+                      ...(aviso ? { avisoAlPaciente: aviso } : {}),
+                    },
+                  })
+                }
+              }}
+            >
+              <CheckCircle2 size={14} /> Cerrar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/*
         Cancelar EXIGE motivo. Sin él, «ya no aplica» y «lo quité de la lista»
         son el mismo gesto, y el segundo es justo lo que hay que poder auditar.
       */}
@@ -537,7 +647,7 @@ export default function PendientesPage() {
               onClick={() => {
                 const t = cancelando
                 setCancelando(null)
-                if (t) mover(t, 'cancelada', motivo.trim())
+                if (t) mover(t, 'cancelada', { motivoCancelacion: motivo.trim() })
               }}
             >
               Cancelar el pendiente

@@ -49,14 +49,14 @@
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 805 pasan · 1 falla** (786 archivos) | Baseline del 28-ago eran 10 566; **+239 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 816 pasan · 1 falla** (787 archivos) | Baseline del 28-ago eran 10 566; **+250 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-360.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-361.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -360,7 +360,8 @@ queda como `NEEDS_CLINICAL_REVIEW`.
 | **Base canónica** | `src/lib/tareas-clinicas/` — máquina de estados real (`modelo.ts:124`), dueño, vencimiento, escalación |
 | **Lo que ya distingue bien** | `completada` ≠ `cerrada`. El código lo dice: *«el laboratorio hecho, el resultado en el sistema, y nadie que lo lea»* |
 | **Lo que ya existe desde REG-360** | **DECISION, ACTION y PATIENT COMMUNICATION tienen campo** (`TareaClinica.cierre`) y hay **registro de transiciones** acotado. Cerrar **exige decir qué se decidió**; el aviso al paciente no se exige —un worklist que cuesta se abandona— pero **tampoco se inventa**: sin registrar sale `sin_dato`, nunca «se avisó» |
-| **Lo que sigue sin existir** | `scheduled` como estado propio. **Ninguna pantalla llena todavía el cierre**: el formulario que pida decisión, acción y aviso es la siguiente unidad, así que en producción las tres siguen saliendo `sin_dato` — que es la verdad |
+| **Y ya se llena** | REG-361: `/pendientes` cierra por **formulario**, no avanzando de estado. La decisión es obligatoria; la acción y el aviso no, pero lo que no se marca **no se manda** — «no consta» ≠ «no se hizo» |
+| **Lo que sigue sin existir** | `scheduled` como estado propio; **interconsultas, referencias e imagen fuera del ciclo**; y el cierre sólo se puede hacer desde `/pendientes` |
 
 **P0-1 en detalle.** REG-252 descubrió que `tareaDeResultado()` no tenía
 llamadores y lo arregló **sólo para el camino hospitalario**
