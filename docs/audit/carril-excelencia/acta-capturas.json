@@ -1,20 +1,20 @@
 [
   {
-    "ruta": "/reservar/consultorio-demo-v10",
+    "ruta": "/registro",
     "ancho": 390,
     "estado": "200",
     "desbordeHorizontal": false,
     "consola": []
   },
   {
-    "ruta": "/reservar/consultorio-demo-v10",
+    "ruta": "/registro",
     "ancho": 768,
     "estado": "200",
     "desbordeHorizontal": false,
     "consola": []
   },
   {
-    "ruta": "/reservar/consultorio-demo-v10",
+    "ruta": "/registro",
     "ancho": 1440,
     "estado": "200",
     "desbordeHorizontal": false,

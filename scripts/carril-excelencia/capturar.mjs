@@ -47,10 +47,15 @@ for (const ruta of rutas) {
       const resp = await pag.goto(base + ruta, { waitUntil: 'domcontentloaded', timeout: 45000 })
       estado = String(resp?.status() ?? '?')
     } catch (e) { estado = 'ERROR: ' + String(e).slice(0, 120) }
-    await pag.screenshot({ path: `${SALIDA}/${slug}.png`, fullPage: false })
+    // Una pantalla con sesión puede redirigir sola (login → dashboard). Se
+    // deja asentar antes de medir, y se tolera que el contexto se destruya.
+    await pag.waitForTimeout(1500)
+    await pag.screenshot({ path: `${SALIDA}/${slug}.png`, fullPage: false }).catch(() => {})
     // ¿La página se desborda a lo ancho? Un body que hace scroll horizontal es
     // el defecto responsive más común y el más fácil de no ver.
-    const desborde = await pag.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1)
+    const desborde = await pag
+      .evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1)
+      .catch(() => null)
     acta.push({ ruta, ancho: w, estado, desbordeHorizontal: desborde, consola })
     await ctx.close()
   }

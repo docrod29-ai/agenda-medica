@@ -1,4 +1,5 @@
 'use client'
+import { esFalloDeRed, MENSAJE_SIN_RED } from '@/lib/auth/fallo-de-red'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth'
@@ -100,6 +101,8 @@ function RegistroInner() {
       trackConversion('CompleteRegistration')  // conversión Meta: registro completado
       router.replace(destinoTrasRegistro)
     } catch (err: unknown) {
+      // La red primero: sin ella no hubo alta que fallara.
+      if (esFalloDeRed(err)) { setError(MENSAJE_SIN_RED); return }
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/email-already-in-use') {
         setError('Este correo ya tiene una cuenta. ¿Quieres iniciar sesión?')
@@ -121,6 +124,7 @@ function RegistroInner() {
       await signInWithRedirect(auth, new GoogleAuthProvider())
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
+      if (esFalloDeRed(err)) { setError(MENSAJE_SIN_RED); return }
       if (code === 'auth/unauthorized-domain') {
         setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
       } else {
@@ -331,7 +335,7 @@ function RegistroInner() {
             </div>
 
             {error && (
-              <div style={{
+              <div role="alert" style={{
                 background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
                 borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--red)',
               }}>
