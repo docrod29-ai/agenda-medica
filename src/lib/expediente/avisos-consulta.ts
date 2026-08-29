@@ -64,6 +64,14 @@ export type OrigenAviso =
   | 'dato_incierto'
   | 'sin_respaldo_en_el_dictado'
   /**
+   * Se oyó un procedimiento y la nota no lo recoge (REG-370).
+   *
+   * El extractor los reconoce con fecha y lateralidad desde hace tiempo, y no
+   * los leía nadie: «le hicieron una colecistectomía en 2019» se pintaba en un
+   * panel y desaparecía al cerrar la consulta.
+   */
+  | 'procedimiento_sin_escribir'
+  /**
    * La frecuencia o la duración no tienen forma de lo que dicen ser.
    *
    * Nació de una nota YA FIRMADA del médico dueño: «cada 24 horas por 14
@@ -127,6 +135,12 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
    * médico sobre algo que el motor no puede saber.
    */
   sin_respaldo_en_el_dictado: 'revisa',
+  /**
+   * `revisa`, no `bloquea`: puede ser una palabra mal oída, y apagar el botón de
+   * Firmar por un posible falso positivo enseña a esquivar la compuerta. Es el
+   * mismo criterio que `pauta_deformada`.
+   */
+  procedimiento_sin_escribir: 'revisa',
 }
 
 /**
@@ -223,6 +237,14 @@ export interface EntradaAvisos {
    * puede contestar reescuchando la consulta entera.
    */
   sinRespaldo?: readonly { afirmacion: string; huerfanas?: readonly string[] }[]
+  /**
+   * Procedimientos que el extractor oyó y la nota no recoge (REG-370).
+   *
+   * El texto ya viene redactado por `avisoDeProcedimientoSinEscribir`: quien
+   * decide cómo se dice es el módulo que sabe qué es un procedimiento perdido,
+   * no este constructor.
+   */
+  procedimientosSinEscribir?: readonly { texto: string; mensaje: string }[]
   /** Lo ya descartado con «Ya lo revisé», con la misma clave `${tipo}:${clave}`. */
   revisados?: ReadonlySet<string>
 }
@@ -472,6 +494,22 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       origen: 'sin_respaldo_en_el_dictado',
       nivel: nivelDe('sin_respaldo_en_el_dictado'),
       texto: `Esto no salió del dictado: «${r.afirmacion.trim()}».${que} Si viene del expediente o de la exploración, déjalo; si no, quítalo.`,
+      ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * ── LO QUE SE DIJO QUE LE HICIERON Y NO QUEDÓ ESCRITO (REG-370) ───────────
+   *
+   * Ancla en la nota, como el resto de los del texto: lo accionable es
+   * escribirlo, y se escribe ahí.
+   */
+  for (const p of e.procedimientosSinEscribir ?? []) {
+    out.push({
+      id: `procedimiento:${p.texto.slice(0, 40)}`,
+      origen: 'procedimiento_sin_escribir',
+      nivel: nivelDe('procedimiento_sin_escribir'),
+      texto: p.mensaje,
       ancla: { seccion: 'nota' },
     })
   }

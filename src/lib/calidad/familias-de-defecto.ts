@@ -178,7 +178,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que obliga a salir de donde se decide, con el paciente enfrente, no está
      * llegando.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369],
+    /**
+     * 370 es esta familia con el productor y el pintor conectados y **ningún
+     * destino**: el extractor reconoce procedimientos con fecha y lateralidad,
+     * el panel los enseña, y no hay campo en la nota, ni sello, ni proyección.
+     * «Le hicieron una colecistectomía en 2019» se veía una vez y desaparecía.
+     *
+     * Su lección: que un dato se PINTE no prueba que se guarde. Las dos mitades
+     * —quién lo enseña y dónde queda— se comprueban por separado, porque una
+     * pantalla que lo muestra hace creer que el sistema lo sabe.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370],
   },
   {
     clave: 'se_contradice',

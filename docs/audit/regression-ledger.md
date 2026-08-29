@@ -11642,3 +11642,83 @@ que el cambio importe.
 sentencias para reutilizar lo de hoy en la trayectoria; la aserción pasó a
 comprobar lo que de verdad protege —que lo **dictado** siga entrando al puente—
 en vez de la disposición del texto.
+
+---
+
+## REG-370 — el procedimiento que se dictó no lo leía nadie
+
+**QUÉ FALLABA.** `medical-ner.ts:62` reconoce **procedimientos** desde hace
+tiempo, con su fecha, su lateralidad y la cita del dictado que los sostiene. El
+panel de entidades los pinta.
+
+Y ahí se acaban. Medido sobre el árbol el 29-ago-2026: fuera del panel y de las
+pruebas, **`entidades.procedures` no tenía un solo consumidor**. No hay campo en
+`NotaMedica`, no entra a la nota, no se sella, no se proyecta.
+
+Así que «le hicieron una colecistectomía en 2019» o «tiene un stent en la
+descendente anterior desde 2022» se reconocen, se pintan, y **desaparecen al
+cerrar la consulta** salvo que el médico los teclee a mano en la prosa. En la
+consulta siguiente nadie sabe que se dijeron.
+
+**POR QUÉ PESA MÁS QUE OTRAS PÉRDIDAS.** Un antecedente quirúrgico cambia
+conducta: cambia lo que se puede prescribir, pedir, operar y anticoagular. Y la
+**lateralidad** es uno de los pares prohibidos de este repositorio
+(derecha ↔ izquierda), justo el dato que se pierde primero cuando algo se
+reescribe de memoria en la consulta siguiente.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo WS-10 (procedimientos) con la pregunta de
+siempre: ¿quién lee esto? La respuesta fue: el panel, y nadie más.
+
+**CAUSA RAÍZ.** Familia «escrito y sin conectar»: el extractor produce, la
+pantalla pinta, y ningún camino lleva el dato al documento donde tendría que
+quedar.
+
+**EL ARREGLO.** `el-procedimiento-que-no-quedo-escrito.ts` (puro) compara lo que
+el extractor oyó con lo que la nota **dice** —usando el mismo constructor de
+texto que las otras cuatro defensas, `textoDeLaNota`— y señala antes de firmar lo
+que no aparece, con su fecha y su lateralidad.
+
+**No documenta solo, y eso es la mitad del arreglo.** Un módulo que escribiera un
+antecedente quirúrgico en la nota sin que nadie lo revisara estaría redactando
+historia clínica, y de esa nota cuelga una firma con cédula profesional.
+
+Sale por el camino que ya existe (`avisos-consulta.ts`), así que **desde REG-366
+queda sellado en la nota** y **desde REG-367 vuelve a salir en la consulta
+siguiente** si habla de un problema vigente. No se añadió ningún recuadro.
+
+`no_aplica` **no se enseña** como lateralidad: es el valor por defecto del
+esquema, no un dato que alguien haya determinado. Misma regla que REG-365 con
+`presuntivo`.
+
+**LO QUE NO SE HIZO, Y POR QUÉ — la parte importante de esta entrada.**
+
+**No se creó `NotaMedica.procedimientos`.** Un campo nuevo de contenido clínico
+tiene que ir **dentro del sello de integridad**, y el sello v3 es una **lista
+explícita de campos** (`canonicoV3`): añadir uno exige un **sello v4** —con su
+canónico, su vector golden y su partición de cobertura (`CAMPOS_SELLADOS_V3` /
+`CAMPOS_NO_SELLADOS_V3`)— para que las notas ya firmadas con v3 **sigan
+verificando**, igual que hoy siguen verificando las v2.
+
+Meterlo sin eso dejaría **contenido clínico firmado fuera del sello**: alterable
+sin dejar rastro en un documento inmutable, que es exactamente lo que E0-12 vino
+a cerrar. Queda declarado como unidad aparte, y hay un caso que **falla si
+aparece el campo en el tipo sin aparecer en el sello**.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No avisa de un procedimiento cuyo nombre no tenga palabras de seis letras**
+  («TAC», «PET»): no hay con qué buscarlo en la nota, así que se deja pasar en
+  vez de gritar sobre algo que quizá sí está escrito. Regla 5.
+- **No decide si el procedimiento es cierto** ni corrige su lateralidad.
+- **No bloquea la firma.** Puede ser una palabra mal oída, y apagar el botón por
+  un posible falso positivo enseña a esquivar la compuerta.
+
+**LA PRUEBA.** `src/__tests__/el-procedimiento-que-se-dijo-no-se-pierde.test.ts`
+(18 casos). Probada al revés: con la nota que sí lo recoge, no se señala nada.
+
+**DOS TRINQUETES AJENOS QUE SE PUSIERON ROJOS, Y ESO ES LO CORRECTO.**
+`una-barra-y-no-ocho-recuadros` exige que todo origen nuevo se declare a mano con
+su nivel **y que llegue de verdad a la barra** —hizo falta añadirlo a su fixture,
+que es el guardián funcionando—; y `la-nota-entera-se-contrasta` cuenta cuántas
+defensas leen la nota por el mismo constructor: pasó de cuatro a cinco, con la
+razón escrita. Ninguno se debilitó.

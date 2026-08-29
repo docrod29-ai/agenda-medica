@@ -54,6 +54,9 @@ import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
 import { frasesInciertas } from '@/lib/expediente/certeza'
 import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
+import {
+  procedimientosQueNoQuedaronEscritos, avisoDeProcedimientoSinEscribir,
+} from '@/lib/expediente/el-procedimiento-que-no-quedo-escrito'
 import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
@@ -1261,6 +1264,7 @@ export default function ConsultaActivaPage() {
    * actual. Se arrastra igual —queda en el expediente y se copia a la nota
    * siguiente— y se resuelve igual: se enseñan las dos frases y decide el médico.
    */
+
   const desajustesNota = useMemo(() => {
     const dictado = voz.transcripcion
     if (!dictado.trim()) return []
@@ -1331,6 +1335,24 @@ export default function ConsultaActivaPage() {
   const transcripcionRef = useRef('')
   // ─── Medical NER (extracción de entidades) ─────────────────────
   const [entidades, setEntidades] = useState<EntidadesExtraidas | null>(null)
+
+  /**
+   * ── LO QUE SE DIJO QUE LE HICIERON Y NO QUEDÓ ESCRITO (REG-370) ───────────
+   *
+   * El extractor reconoce procedimientos con su fecha y su lateralidad, y hasta
+   * ahora **no los leía nadie**: se pintaban en el panel de entidades y
+   * desaparecían al cerrar la consulta. Un antecedente quirúrgico que no queda
+   * escrito no existe en la consulta siguiente — y la lateralidad es uno de los
+   * pares prohibidos de este repositorio.
+   *
+   * No se escribe solo: se señala antes de firmar y decide el médico.
+   */
+  const procedimientosPerdidos = useMemo(() => {
+    const oidos = (entidades as { procedures?: { texto: string; fecha?: string; lateralidad?: string }[] } | null)?.procedures
+    if (!oidos?.length) return []
+    return procedimientosQueNoQuedaronEscritos(oidos, textoDeLaNota(resumen, diagnosticos, secciones))
+      .filter(p => !avisosRevisados.includes(`procedimiento:${p.texto.slice(0, 40)}`))
+  }, [entidades, resumen, diagnosticos, secciones, avisosRevisados])
   /** Condiciones que el extractor dio por confirmadas y el paciente había negado. */
   const [negacionesCorregidas, setNegacionesCorregidas] = useState<NegacionCorregida[]>([])
   /** Condiciones activas que el dictado situó en pasado. No se tocan: se enseñan. */
@@ -3658,10 +3680,11 @@ export default function ConsultaActivaPage() {
     antecedentesDeFamiliar,
     datosInciertos,
     sinRespaldo,
+    procedimientosSinEscribir: procedimientosPerdidos.map(p => ({ texto: p.texto, mensaje: avisoDeProcedimientoSinEscribir(p) })),
     conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
     faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
     yaLoBloqueaNOM004: validacion?.errores ?? [],
-  })), [dosisIncompletas, contradiccionesNota, desajustesNota, antecedentesDeFamiliar, datosInciertos, sinRespaldo, safety, validacion])
+  })), [dosisIncompletas, contradiccionesNota, desajustesNota, antecedentesDeFamiliar, datosInciertos, sinRespaldo, procedimientosPerdidos, safety, validacion])
 
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
@@ -5881,6 +5904,7 @@ export default function ConsultaActivaPage() {
           antecedentesDeFamiliar,
           datosInciertos,
           sinRespaldo,
+          procedimientosSinEscribir: procedimientosPerdidos.map(p => ({ texto: p.texto, mensaje: avisoDeProcedimientoSinEscribir(p) })),
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
           /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */

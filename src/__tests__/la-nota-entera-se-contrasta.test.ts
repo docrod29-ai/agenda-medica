@@ -104,8 +104,14 @@ describe('ESTÁ CABLEADO EN LA PANTALLA', () => {
      * Desde REG-239 son CUATRO: el panel «¿de dónde salió esto?» enseña esa
      * misma traza al médico. Trazar un texto distinto del que se firma sería
      * comprobar algo que nadie va a leer.
+     *
+     * Y desde REG-370 son CINCO: los procedimientos que el extractor oyó se
+     * comparan contra lo que la nota dice para saber cuál no quedó escrito. Si
+     * esa comparación leyera una nota distinta de la que se firma, avisaría de
+     * un procedimiento que sí está documentado —o callaría uno que no—, que es
+     * el modo de fallo que este guardián existe para impedir.
      */
-    const DEFENSAS_QUE_LEEN_LA_NOTA = 4
+    const DEFENSAS_QUE_LEEN_LA_NOTA = 5
     expect(page.split('textoDeLaNota(resumen, diagnosticos, secciones)').length - 1)
       .toBe(DEFENSAS_QUE_LEEN_LA_NOTA)
   })
