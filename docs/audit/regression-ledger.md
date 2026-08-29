@@ -11409,3 +11409,79 @@ compara las **posiciones** de las dos llamadas en el archivo de la consulta.
 deja de producir avisos, para que el fixture no pueda volverse vacuo. Probada al
 revés: sobre la nota sin sellar, `avisosSelladosDe` devuelve `null` y la nota no
 contiene la palabra que el aviso traía.
+
+---
+
+## REG-367 — la duda de una consulta no llegaba a la siguiente
+
+**QUÉ FALLABA.** REG-366 hizo que los avisos que el médico revisa al firmar
+queden sellados en la nota, y que la pantalla de **esa** nota los enseñe. Y
+declaró, sin disimularlo, lo que no cerraba: **ninguna consulta posterior los
+lee**.
+
+Sellar algo que sólo se ve abriendo el documento donde se selló es media
+reparación: hay que ir a buscarlo, y nadie va a buscar lo que no sabe que está.
+
+**LA FRASE QUE ESTO CONTRADICE**, escrita por el propio repositorio en
+`certeza.ts` y comprobada por el golden:
+
+> «Lo que el paciente ofreció como duda queda en el expediente como diagnóstico.
+> A partir de la **segunda consulta** ya nadie sabe que era una duda: se lee
+> igual que un dato confirmado y se arrastra a todas las notas siguientes.»
+
+La segunda consulta es exactamente donde faltaba el lector. La lista de problemas
+dice «Anemia»; en una nota firmada de hace dos años hay un aviso sellado que dice
+«creo que me dijeron que tenía anemia». Las dos cosas están en el expediente, y
+una de ellas no se veía — **la que dice que hay algo por comprobar**.
+
+**CÓMO SE DESCUBRIÓ.** Lo declaró REG-366 como lo que dejaba abierto, en su
+golden y en el ledger. Cerrarlo en la unidad siguiente es lo que evita que un
+«qué no cubre» se convierta en el defecto de dentro de seis meses.
+
+**CAUSA RAÍZ.** El dato existía en un documento y ningún camino del producto lo
+leía desde el sitio donde hace falta. Familia «escrito y sin conectar»: el sello
+estaba, el lector no.
+
+**EL ARREGLO.** `src/lib/expediente/la-duda-de-la-otra-vez.ts` (puro) recorre las
+notas **firmadas** que la consulta ya tiene cargadas —cero lecturas nuevas—, saca
+los avisos sellados cuyo origen **viaja entre consultas** (el dato incierto, el
+antecedente del familiar, la contradicción con una negación, el desajuste
+temporal, la afirmación sin respaldo) y se queda con los que hablan de un
+problema que el paciente **sigue teniendo hoy**. Se pintan bajo la lista de
+problemas, con la fecha de la nota firmada que lo dice: sin la fecha sería una
+afirmación del sistema; con ella es una cita del expediente.
+
+Se excluyen los avisos que eran de **aquella** consulta y se resolvieron allí
+—dosis incompleta, requisito NOM-004—: traerlos ahora sería ruido. Y se excluye
+la nota que se está escribiendo, cuyos avisos ya están en pantalla.
+
+**UN DEFECTO QUE CAZÓ SU PROPIO GOLDEN, OTRA VEZ.** La primera versión comparaba
+`« palabra »` con espacios a los lados y listaba a mano los separadores que se me
+ocurrieron (espacio, coma, punto). El texto de un aviso **envuelve la frase del
+médico en comillas angulares** —«…que tenía anemia». Confírmalo…»—, así que la
+palabra que importa casi nunca lleva un espacio detrás: **el caso principal no
+casaba**. Se sustituyó por una frontera de palabra de verdad, y hay un caso que
+fija exactamente esa forma.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **El emparejamiento es una heurística, y señala de MENOS.** Casa por palabras
+  de seis letras o más del diagnóstico dentro de la frase — el mismo criterio que
+  `copiloto.ts` usa para casar un fármaco con lo dictado. Un problema cuyas
+  palabras sean todas cortas —«gota», «asma», «TEP»— **no se empareja nunca**, y
+  es deliberado: emparejar de más llenaría la consulta de dudas que no son de ese
+  problema, y un aviso que salta de más se aprende a cerrar. Regla 5: señalar de
+  menos, y **declararlo**.
+- **No cubre notas anteriores a REG-366**, que no llevan avisos sellados. Para
+  ellas no hay nada que leer y no se inventa nada.
+- **No dice si la duda se resolvió.** Nadie registra eso todavía. Enseña que la
+  hubo; decidir es del médico.
+- **No modifica la lista de problemas** ni recalifica ningún diagnóstico ni
+  bloquea nada.
+
+**LA PRUEBA.** `src/__tests__/la-duda-de-la-otra-vez-vuelve-a-salir.test.ts`
+(19 casos), construyendo el sello con **la cadena real** (`construirAvisos` →
+`alFirmar` → `conAvisosSellados`). Probada al revés: sobre la misma nota sin
+sellar —el estado anterior a REG-366— no sale nada. Y un caso comprueba que la
+frase de `certeza.ts` que este módulo existe para contradecir sigue escrita donde
+estaba, porque si alguien la reescribe este módulo se queda sin su razón.

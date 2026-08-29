@@ -76,7 +76,7 @@ const NOTA_BASE = {
 function avisosDeUnaConsultaConDudas(): AvisoConsulta[] {
   return alFirmar(construirAvisos({
     datosInciertos: [{ frase: 'creo que me dijeron que tenía anemia', matiz: 'duda', marca: 'creo que' }],
-    antecedentesDeFamiliar: [{ frase: 'mi mamá tuvo cáncer de mama', marca: 'mi mamá' }],
+    antecedentesDeFamiliar: [{ frase: 'mi mamá tuvo cáncer de mama', parentesco: 'mamá' }],
   }))
 }
 

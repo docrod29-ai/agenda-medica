@@ -67,6 +67,7 @@ import { leerHechosDeCierre, marcarHechoDeCierre, guardarSeguimientoDeCierre, le
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/expediente/procedencia'
 import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
+import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
 
 /**
  * Alergias del paciente (texto libre) → lista para el sello de procedencia.
@@ -889,6 +890,14 @@ export default function ConsultaActivaPage() {
    */
   const [alergiasSelladas, setAlergiasSelladas] =
     useState<{ notas: NotaConAlergias[]; asOf: string }>({ notas: [], asOf: '' })
+  /**
+   * LAS DUDAS QUE SIGUEN EN PIE (REG-367).
+   *
+   * Sale del MISMO recorrido de notas que la medicación, los problemas y las
+   * alergias: cero lecturas nuevas. Se guarda ya resuelto y no las notas
+   * enteras, que son documentos grandes y aquí sólo hacen falta dos campos.
+   */
+  const [dudasDeAntes, setDudasDeAntes] = useState<DudaDeAntes[]>([])
 
   /**
    * ── EL CUADRO COMPLETO, FUERA DEL useMemo (REG-188) ─────────────────────────
@@ -1744,7 +1753,19 @@ export default function ConsultaActivaPage() {
         // La lista de problemas sigue la MISMA regla que la medicación: manda lo
         // último que se dijo de CADA problema. Una consulta por gripa que no
         // habla de la diabetes no resuelve la diabetes.
-        setProblemas(problemasActivos(firmadas))
+        const problemasVigentes = problemasActivos(firmadas)
+        setProblemas(problemasVigentes)
+        /**
+         * LO QUE SE AVISÓ EN LAS CONSULTAS ANTERIORES, SOBRE UN PROBLEMA QUE EL
+         * PACIENTE SIGUE TENIENDO (REG-367).
+         *
+         * `certeza.ts` lo tiene escrito: «a partir de la segunda consulta ya
+         * nadie sabe que era una duda». Ésta es la segunda consulta. La nota de
+         * hoy se excluye: sus avisos ya están en pantalla.
+         */
+        setDudasDeAntes(dudasQueSiguenEnPie(
+          ns, problemasVigentes.map(p => p.diagnostico.descripcion), notaIdRef.current ?? undefined,
+        ))
         const ultima = firmadas.map(n => n.fecha).filter(Boolean).sort().pop()
         setUltimaVisita(ultima)
         /**
@@ -4689,6 +4710,33 @@ export default function ConsultaActivaPage() {
                 : 'Primera consulta registrada.'}
               {problemas.length > 0 && ' De lo último que se dijo de cada problema en sus notas firmadas.'}
             </div>
+            {/*
+              ── LA DUDA DE LA OTRA VEZ (REG-367) ───────────────────────────
+
+              `certeza.ts` lo tiene escrito de sí mismo: «lo que el paciente
+              ofreció como duda queda en el expediente como diagnóstico; a
+              partir de la SEGUNDA CONSULTA ya nadie sabe que era una duda».
+              Ésta es la segunda consulta.
+
+              Va DENTRO del bloque de problemas y no en un recuadro aparte: no
+              es una alerta nueva, es una nota al pie de la lista que ya está
+              leyendo. Con la fecha de la nota que lo dice — sin ella sería una
+              afirmación del sistema en vez de una cita del expediente.
+            */}
+            {dudasDeAntes.length > 0 && (
+              <ul style={{
+                margin: '6px 0 0', paddingLeft: 18,
+                fontSize: 12, color: 'var(--text3)', lineHeight: 1.6,
+              }}>
+                {dudasDeAntes.map(d => (
+                  <li key={`${d.problema}|${d.texto}`}>
+                    <strong style={{ color: 'var(--text2)' }}>{d.problema}</strong>
+                    {' — '}{d.texto}
+                    {d.dichoEn && <> · nota del {d.dichoEn.slice(0, 10)}</>}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       )}

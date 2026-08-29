@@ -147,7 +147,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * se enseña y no se guarda está tan desconectado como uno que nunca corrió,
      * sólo que además parece que funciona.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366],
+    /**
+     * 367 es el par de 366, y sale de haberlo declarado. 366 guardó el aviso y
+     * escribió en su «qué no cubre» que ninguna consulta posterior lo leía;
+     * 367 es ese lector. Guardar un dato que sólo se ve abriendo el documento
+     * donde se guardó es media reparación.
+     *
+     * Su lección: un «qué no cubre» honesto es una lista de trabajo, no una
+     * excusa. Cerrarlo en la unidad siguiente es lo que impide que se convierta
+     * en el defecto de dentro de seis meses.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367],
   },
   {
     clave: 'se_contradice',

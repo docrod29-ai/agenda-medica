@@ -394,9 +394,20 @@ parte del documento que se entrega). El orden es la mitad del arreglo:
 `iaAuditoria` está dentro del conjunto sellado, así que el campo entra **antes**
 del hash — añadirlo después reabriría la nota marcada como «alterada» (REG-060).
 
+**REG-367 — y esa duda ya sale sola en la consulta siguiente.** `certeza.ts` lo
+tenía escrito: «a partir de la segunda consulta ya nadie sabe que era una duda».
+Ésa era exactamente la pantalla que faltaba. Los avisos sellados que **viajan**
+—dato incierto, antecedente del familiar, contradicción, desajuste temporal, sin
+respaldo— se emparejan con los problemas vigentes de hoy y se pintan bajo la
+lista, con la fecha de la nota que lo dice. Heurística que **señala de menos** y
+lo declara: casa por palabras de seis letras o más, así que un problema de
+palabras cortas no se empareja nunca.
+
 **El hueco de fondo**: negación, temporalidad, experienciador y certeza corren
 **en el momento de la consulta y producen avisos**. Desde REG-366 esos avisos
-**se conservan**; lo que sigue sin estructurarse es el eje dentro de la entidad.
+**se conservan** y desde REG-367 **vuelven a salir**; lo que sigue sin
+estructurarse es el eje dentro de la entidad (`Diagnostico` no tiene `certeza`,
+`Medicamento` no tiene `temporalidad`), que es decisión de modelo.
 `Diagnostico` no tiene campo `certeza`; `Medicamento` no tiene `temporalidad`.
 Un diagnóstico capturado como «creo que me dijeron que tenía anemia» se guarda
 igual que uno confirmado. **REG-364 cerró la mitad que sí se guardaba** —`tipo`,
