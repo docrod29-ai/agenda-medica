@@ -124,6 +124,24 @@
   --green:     #1BA34D;
   --purple:    #A375F2;
 
+  /* ─── ROSA: EL ACENTO DE GINECOLOGÍA, QUE NO TENÍA CARA CLARA ────────────
+
+     No es un color nuevo: es el que ya pintaban a mano `PanelGineco` y la
+     tarjeta de CHA₂DS₂-VASc de `PreopAssessment` (#f472b6 / #ec4899). Vivía
+     como literal, así que NO cambiaba con el tema — y en claro daba 2,65:1
+     sobre la superficie de panel. El acento de la especialidad quedaba
+     ilegible justo con la luz del consultorio, que es la que enciende el
+     tema claro.
+
+     Se le da token en vez de mapearlo a --purple porque el rosa es la
+     decisión de identidad de ese panel; lo que estaba roto era el tema
+     claro, no el tono.
+
+     Medido con la fórmula de luminancia relativa WCAG 2.1, sobre --s3 (la
+     peor superficie de cada tema):
+       oscuro #F472B6 → 5.50 : 1 ✓ AA   ·   claro #BE185D → 5.02 : 1 ✓ AA */
+  --rosa:      #F472B6;
+
   /* ─── ESTADO CLÍNICO: CADA COLOR CON SUS TRES CARAS ──────────────────────
 
      EL DEFECTO MEDIDO (9-ago-2026, sobre los 208 archivos .tsx):
@@ -2081,6 +2099,7 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   --red:       #B91C1C;
   --green:     #14532D;
   --purple:    #6D28D9;
+  --rosa:      #BE185D;
   /* Sobre el ámbar/rojo profundos del claro gana el blanco (ver :root). */
   --sobre-aviso: #FFFFFF;
 
@@ -2138,7 +2157,21 @@ html[data-vt-continuidad] .page-transition { animation: none; }
     --red:       #B91C1C;
     --green:     #14532D;
     --purple:    #6D28D9;
+    --rosa:      #BE185D;
     --sobre-aviso: #FFFFFF;   /* ver :root — blanco sobre los rellenos claros */
+    /* ELEVACIÓN CLARA. Sin estas tres, el auto-claro heredaba las sombras
+       NEGRAS de :root sobre el crema — que es justo lo que el bloque de
+       arriba dice que «se lee como suciedad». Ver el guardián
+       `el-tema-claro-es-uno-solo.test.ts`. */
+    --elev-1: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+    --elev-2: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+    --elev-3: 0 16px 40px -12px color-mix(in srgb, var(--text) 14%, transparent);
+    /* Aviso claro — mismo motivo: sin esto el recuadro de aviso se pintaba
+       con el ámbar translúcido del tema OSCURO. */
+    --warn-bg:     #FFF8E6;
+    --warn-border: #F0C36D;
+    --warn-text:   #8A6100;
+    --success:     var(--green);
     --badge-green-t:  #0F5C2E; --badge-green-b:  #E1F0E7;
     --badge-blue-t:   #1B3FA8; --badge-blue-b:   #E4EAFB;
     --badge-amber-t:  #92400E; --badge-amber-b:  #FBEEDD;
