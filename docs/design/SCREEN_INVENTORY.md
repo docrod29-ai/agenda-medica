@@ -35,7 +35,7 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 968 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 969 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
@@ -47,7 +47,7 @@
 | `/asistente` | medico | ✅ | 646 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 436 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 363 | 0 | — | ✅ | — |
-| `/citas` | medico | ✅ | 1169 | 6 | — | ✅ | — |
+| `/citas` | medico | ✅ | 1170 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2633 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 6601 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 312 | 0 | — | ✅ | — |
@@ -63,7 +63,7 @@
 | `/farmacia` | medico | ✅ | 735 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 675 | 0 | — | ✅ | — |
 | `/guia` | medico | ✅ | 131 | 0 | — | ✅ | — |
-| `/lista-espera` | medico | ✅ | 285 | 0 | — | ✅ | — |
+| `/lista-espera` | medico | ✅ | 286 | 0 | — | ✅ | — |
 | `/membresias` | medico | ✅ | 281 | 0 | — | ✅ | — |
 | `/migracion` | medico | ✅ | 371 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |

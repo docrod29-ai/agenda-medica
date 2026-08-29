@@ -1,4 +1,5 @@
 'use client'
+import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useState, useEffect, useMemo } from 'react'
 import { Appointment, AppointmentType, AppointmentStatus, AppointmentOrigin, APPOINTMENT_TYPE_CONFIG, DEFAULT_CONFIG } from '@/types'
 import { useConfig } from '@/hooks/useConfig'
@@ -505,7 +506,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
             {/* Fecha */}
             <div className="form-group">
               <label className="label">Fecha *</label>
-              <input className="input" type="date" value={fecha} onChange={e => setFecha(e.target.value)} min={today} />
+              <input className="input" type="date" value={fecha} onChange={e => setFecha(e.target.value)} min={today} max={FECHA_MAXIMA_AGENDA} />
             </div>
 
             {/* Hora */}

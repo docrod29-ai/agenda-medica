@@ -1,4 +1,5 @@
 'use client'
+import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useCerrarConEscape } from '@/lib/ui/activable'
 import { cambiarEstadoCita } from '@/lib/agenda/transicion-cita'
@@ -581,7 +582,7 @@ export default function CitasPage() {
             <input
               ref={fechaInputRef}
               className="riel-fecha-input"
-              type="date" value={selectedDate}
+              type="date" value={selectedDate} max={FECHA_MAXIMA_AGENDA}
               aria-label="Ir a una fecha"
               onChange={e => setSelectedDate(paramFecha(e.target.value))}
             />

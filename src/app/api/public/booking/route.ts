@@ -8,8 +8,9 @@
  * - Estado inicial: 'solicitada' (no confirmada hasta que el médico/asistente lo haga).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { validarFechaDeAgenda, dentroDeLaVentanaPublica } from '@/lib/agenda/horizonte'
 import { safeLog } from '@/lib/security/sanitize'
-import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { instanteMX, hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { adminDb } from '@/lib/firebase-admin'
@@ -69,7 +70,15 @@ export async function POST(req: NextRequest) {
     if (limTel) return limTel
 
     // Validaciones de forma (defensa contra abuso de endpoint público)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NextResponse.json({ ok: false, error: 'Fecha inválida' }, { status: 400 })
+    /**
+     * La forma sola no basta: `/^\d{4}-\d{2}-\d{2}$/` deja pasar el 30 de
+     * febrero, que `new Date` desborda al 2 de marzo — el hueco se validaba
+     * contra un día y la cita se guardaba en otro. Y no había techo: este
+     * endpoint es PÚBLICO, así que aceptaba una reserva para el año 9999.
+     * Ver `@/lib/agenda/horizonte`.
+     */
+    const fechaAgenda = validarFechaDeAgenda(fecha)
+    if (!fechaAgenda.ok) return NextResponse.json({ ok: false, error: fechaAgenda.mensaje }, { status: 400 })
     if (!/^\d{2}:\d{2}$/.test(hora)) return NextResponse.json({ ok: false, error: 'Hora inválida' }, { status: 400 })
     if (paciente.nombre.length > 120 || paciente.nombre.length < 3) return NextResponse.json({ ok: false, error: 'Nombre fuera de rango' }, { status: 400 })
     if (paciente.telefono.replace(/\D/g, '').length < 7) return NextResponse.json({ ok: false, error: 'Teléfono inválido' }, { status: 400 })
@@ -135,6 +144,20 @@ export async function POST(req: NextRequest) {
     const fechaHoraDt = instanteMX(fecha, hora, tzClinica)
     if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
       return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
+    }
+
+    /**
+     * LA MISMA VENTANA QUE OFRECE EL GET — y aquí faltaba.
+     *
+     * `GET /api/public/availability` se negaba a ofrecer un hueco más allá de un
+     * año, y este POST lo aceptaba igual con una petición directa. Es la lección
+     * que este mismo archivo ya tiene escrita dos veces, para los descansos y
+     * para los bloqueos: «no ofrecer» y «no aceptar» son dos cosas distintas, y
+     * éste es un endpoint público.
+     */
+    const ventana = dentroDeLaVentanaPublica(fecha, hoyISO(tzClinica))
+    if (!ventana.ok) {
+      return NextResponse.json({ ok: false, error: ventana.mensaje }, { status: 400 })
     }
 
     const fechaHora = `${fecha} ${hora}`

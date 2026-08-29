@@ -3,6 +3,7 @@ import { configParaMedico } from '@/lib/horario-medico'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import type { Appointment } from '@/types'
+import { validarFechaHoraDeAgenda } from '@/lib/agenda/horizonte'
 
 /**
  * Alta de cita ATÓMICA (dashboard/asistente). Reemplaza el addDoc del cliente:
@@ -24,6 +25,21 @@ export async function POST(req: NextRequest) {
   const { clinicId, appointment, reagendarId } = body
   if (!clinicId || !appointment?.fechaHora) {
     return NextResponse.json({ error: 'Faltan datos de la cita' }, { status: 400 })
+  }
+
+  /**
+   * LA FECHA EXISTE Y CABE EN EL HORIZONTE — antes de tocar nada.
+   *
+   * Aquí no se comprobaba NADA: se rebanaba `fechaHora.slice(0, 10)` y adelante.
+   * Un `'2027-02-30 09:00'` pasaba entero, y `getDaySchedule` le leía el horario
+   * del 2 de marzo porque `new Date` desborda en silencio — la cita se validaba
+   * contra un día y se archivaba en otro, sin chocar con las citas reales de
+   * ninguno de los dos. Y sin techo, `'2205-03-14 09:00'` creaba una cita a
+   * ciento ochenta años que ninguna vista de día alcanza a enseñar.
+   */
+  const fechaValida = validarFechaHoraDeAgenda(appointment.fechaHora)
+  if (!fechaValida.ok) {
+    return NextResponse.json({ error: fechaValida.mensaje }, { status: 400 })
   }
 
   const acc = await verificarMiembro(req, clinicId)

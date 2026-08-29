@@ -1,4 +1,5 @@
 'use client'
+import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useEffect, useId, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
@@ -843,7 +844,7 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
         acto y no se pueden separar por descuido.
       */}
       <label htmlFor={idFecha} style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" aria-hidden="true" /> Elige un nuevo horario</label>
-      <input id={idFecha} type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
+      <input id={idFecha} type="date" value={fecha} min={hoy} max={FECHA_MAXIMA_AGENDA} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
       {/*
         Los horarios se rellenan solos al cambiar el día: sin región viva, el
         cambio ocurre en silencio.

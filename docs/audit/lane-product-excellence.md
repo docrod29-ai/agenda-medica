@@ -38,6 +38,7 @@ Cada defecto apareció al comprobar el anterior.
 | 4 | El 404 decía una versión que no existía, y salía oscuro en una app clara | depende de que alguien se acuerde |
 | 5 | «Automático» no sobrevivía a una recarga | el hueco tratado como dato |
 | 6 | Lo mismo que el 2, en las pantallas del día del médico | el sistema se contradice a sí mismo |
+| 7 | La agenda no sabía qué días existen ni hasta cuándo llega | el sistema se contradice a sí mismo |
 
 Y el orden importa: **el 5 es el que hace alcanzables al 1 y al 2.** Mientras
 «automático» no sobreviviera a una recarga, el bloque
@@ -273,3 +274,135 @@ dispara con su propia explicación. Probado al revés.
 Quedan literales en pantallas que este carril no tocó —el módulo de hospital y
 UCI (ALPHA), `superadmin`, las páginas legales y los documentos impresos— y el
 trinquete de diseño los cuenta.
+
+---
+
+## 7 · La agenda no sabía qué días existen, ni hasta cuándo llega
+
+**FOUND — dos defectos, y el segundo tapaba al primero.**
+
+**a) Fechas que no existen, atendidas como si existieran.** Las tres rutas que
+validaban algo usaban `/^\d{4}-\d{2}-\d{2}$/`: forma, no calendario.
+`2027-02-30` la pasa, y `new Date('2027-02-30T12:00:00')` no falla — DESBORDA al
+2 de marzo. Medido con un horario de 09:00–14:00 cada 30 min, antes del arreglo:
+
+    2027-02-30 → JS 2027-03-02 → horario=sí → 10 huecos
+    2027-02-31 → JS 2027-03-03 → horario=sí → 10 huecos
+    2026-04-31 → JS 2026-05-01 → horario=sí → 10 huecos
+    0000-01-01 → JS 0000-01-01 → horario=sí → 10 huecos
+
+La cita se validaba contra el horario, la bandera de activo y los festivos de
+**otro día**, y se guardaba con la fecha imposible. Y como el chequeo de solapes
+consulta `fechaHora >= '2027-02-30 00:00'`, **no chocaba** con las citas reales
+del 2 de marzo: doble reserva sobre el mismo hueco del médico, en una cita que
+no aparece en la vista de ningún día.
+
+**b) No había techo, y las cinco entradas no se ponían de acuerdo.**
+`9999-12-31` generaba sus diez huecos. `/api/appointments` —la vía del médico y
+de la asistente— no miraba la fecha en absoluto: `fechaHora.slice(0, 10)` y
+adelante. El POST de reserva pública y el portal sólo miraban la forma. Y
+`GET /api/public/availability` sí tenía un tope de un año… que el POST de
+reserva **no aplicaba**: la disponibilidad se negaba a OFRECER un hueco a tres
+años y el endpoint de reserva lo ACEPTABA con una petición directa. Es la
+lección que ese mismo archivo ya tiene escrita dos veces, para los descansos y
+para los bloqueos. Ese tope además contestaba `200 { ok: true, slots: [] }`:
+para el navegador, indistinguible de un día lleno o cerrado. Y se medía contra
+`new Date()` del servidor, que en Vercel es UTC — a partir de las 18:00 en
+México la ventana se corría un día.
+
+**ROOT_CAUSE.** Familia «el sistema se contradice a sí mismo»: cinco entradas de
+fecha, cinco criterios distintos y ninguno completo. Una comprobación de FORMA
+se lee como una comprobación de VALIDEZ, y nadie vuelve a mirarla.
+
+**FILES_OWNED.** `src/lib/agenda/horizonte.ts` (nuevo) ·
+`api/appointments` · `api/public/booking` · `api/public/availability/[clinicId]` ·
+`api/portal` · `citas/page.tsx` · `AppointmentModal.tsx` · `mi/[token]/page.tsx` ·
+`lista-espera/page.tsx`.
+
+**CROSS_LANE_CHECK.** El otro carril no toca **nada** de agenda, reservas,
+disponibilidad, portal ni WhatsApp (comprobado contra su diff). Único roce:
+`docs/design/SCREEN_INVENTORY.md`, que lleva el conteo de líneas por pantalla y
+hubo que regenerar. Sus filas son `/consulta/[patientId]`, `/consultor`,
+`/cumplimiento/*`, `/pacientes` y `/pendientes`; las mías son `/mi/[token]`,
+`/citas` y `/lista-espera`. Filas distintas, sin solape — verificado con
+`git merge-tree`: **cero conflictos añadidos**.
+
+**CHANGE.** Una puerta única, `src/lib/agenda/horizonte.ts`. Una fecha sirve si
+tiene la forma, **existe en el calendario** y cae en
+`[2000-01-01, 2050-12-31]`. La existencia se comprueba con un viaje de ida y
+vuelta en UTC —construir y verificar que las tres partes vuelvan iguales—, que
+cubre los bisiestos sin tabla propia. La ventana del portal público (un año)
+sube al mismo módulo y ahora la aplican **el GET y el POST**, medida contra el
+día de la clínica con `hoyISO(tz)`, y devuelve un motivo en vez de una lista
+vacía. Los cuatro campos de fecha de la interfaz llevan `max`.
+
+**No se pregeneran fechas.** El horizonte llega a 2050 y enumerarlo serían
+~9 000 cadenas vivas para contestar una comparación de texto: `YYYY-MM-DD`
+ordena igual como texto que como fecha. Hay un guardián que comprueba que el
+módulo no cría una lista de días.
+
+**REGRESSION.** `la-agenda-tiene-un-horizonte-y-un-calendario.test.ts`, 32
+casos. Probado al revés **dos veces**: quitando la comprobación de calendario y
+el techo caen 14 casos; quitando la validación de `/api/appointments` cae el
+caso de conexión. La segunda vuelta encontró un defecto **en el propio
+guardián**: `toContain('validarFechaHoraDeAgenda')` se satisfacía con la línea
+del `import`, así que la ruta podía importar la puerta y no llamarla —«escrito y
+sin conectar» colándose dentro del guardián que existe para cazarlo. Ahora se
+miran las llamadas, no los `import`.
+
+Y una fragilidad ajena corregida de paso: `portal-reagenda-google.test.ts`
+recortaba el cuerpo de un `case` a 900 y 2 600 caracteres «a ojo». Cualquier
+línea nueva dentro del `case` lo ponía en rojo sin que el invariante se hubiera
+roto. Ahora recorta hasta el `case` siguiente.
+
+**BROWSER_PROOF.**
+
+*Servidor vivo* — `npm run build && npm start`, matriz completa en
+`docs/audit/carril-excelencia/acta-horizonte-agenda.md`. El 500 por falta de
+credenciales de Firebase es la prueba de que la fecha **pasó** la puerta; lo
+rechazado no llega a tocar la base:
+
+| Fecha | HTTP | Lectura |
+|---|---|---|
+| 2027-03-15 · 2030-06-20 · 2040-02-29 · 2050-01-01 · **2050-12-31** | 500 | aceptadas |
+| **2051-01-01** · 2099-12-31 · 9999-12-31 | 400 | «La agenda llega hasta el 2050-12-31.» |
+| 2027-02-30 · 2026-04-31 · 2027-13-01 · **2039-02-29** | 400 | «Esa fecha no existe en el calendario.» |
+| 0000-01-01 | 400 | «La agenda no admite fechas anteriores al 2000-01-01.» |
+
+2040 bisiesto se acepta y 2039-02-29 se rechaza, sin tabla de bisiestos.
+
+*Chromium real, 390 / 768 / 1440* — el `max` que se añadió a los campos: con
+`2050-12-31` el campo es válido; con `2051-01-01` y `2099-12-31`,
+`validity.rangeOverflow = true` y `checkValidity() = false`; el `min` sigue
+funcionando (`rangeUnderflow`). Idéntico en los tres anchos.
+
+*Capturas* — `/` y `/reservar/demo` a los tres anchos, sin desbordamiento
+horizontal, en `docs/audit/carril-excelencia/capturas/`. Harness reutilizable:
+`scripts/carril-excelencia/capturar.mjs`.
+
+**GATES.** `vitest` entero · trinquete de lint 95 (sin deuda nueva) · trinquete
+de diseño sin deuda nueva · `npm run build` compila.
+
+**SCORE_BEFORE → SCORE_AFTER.** Entradas de fecha con validación completa
+(calendario + techo): **0 de 5 → 5 de 5**. Superficies que aplican la ventana
+pública: **1 de 2 (y en silencio) → 2 de 2 (con motivo)**. Campos de fecha de la
+interfaz con tope: **0 de 4 → 4 de 4**.
+
+**RESIDUAL_RISK.**
+
+- El recorrido HTTP **completo** de reserva —crear una cita real y volver a
+  leerla— necesita credenciales de Firebase o emuladores; aquí sólo se probó que
+  la puerta de fecha acepta y rechaza lo que debe. Lo que llega a Firestore
+  queda sin recorrer en navegador.
+- La ventana pública no se pudo probar por HTTP: se comprueba **después** de
+  leer la configuración de la clínica, y sin credenciales no hay clínica. Está
+  cubierta por casos unitarios y por el barrido que confirma que las dos rutas
+  la llaman con `hoyISO`.
+- El techo de 2050 y el suelo de 2000 son decisiones de plataforma que este
+  carril declara, no política del dueño. Si quiere otro, se cambia en un sitio.
+- **No se tocó WhatsApp.** `api/whatsapp/webhook` maneja fechas para el flujo
+  conversacional y merece su propia unidad; queda anotado en NEXT.
+
+**NEXT.** Recorrido de reserva del paciente de punta a punta contra emuladores
+(prioridad 2), que además desbloquea el navegador para las pantallas
+autenticadas.
