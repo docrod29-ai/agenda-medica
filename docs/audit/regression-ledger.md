@@ -10069,3 +10069,105 @@ podría fallar antes y pasar después.
   se repite —esta vez atada a la escritura— en la restauración real.
 - **No cubre el resto del importador.** Lo del árbol firmado es REG-160/REG-334;
   lo de las colecciones de nivel raíz que vuelven es REG-348.
+
+## REG-350 — el historial completo de un paciente se bajaba en cada pantalla
+
+**QUÉ FALLABA.** `getNotas(clinicId, patientId)` hacía `getDocs` sobre la
+colección de notas **sin `limit`**. No es una lista de nombres: cada nota lleva
+dentro `transcripcionCruda`, `transcripcionMotor` y `dialogoDiarizado` —el
+dictado completo de la consulta, con separación de voces— más el bloque
+`extraction` con una cita textual por campo. El propio `updateNota` de ese
+archivo rechaza una nota de más de 950 KB porque Firestore admite 1 MB por
+documento: **una sola nota puede pesar casi un mega**.
+
+Seis sitios pedían el historial entero. Los dos peores no lo necesitaban:
+
+- **`hospitalizacion/[internamientoId]`** bajaba TODAS las notas del paciente
+  para quedarse en memoria con las cuatro de un ingreso.
+- **`cumplimiento/retencion`** llamaba a `getNotas` por **cada uno de hasta 500
+  pacientes** —hasta 500 historiales completos— para calcular **una fecha y un
+  conteo**. Es la lectura más cara del producto, y la hace una pantalla de
+  cumplimiento que nadie abre a diario.
+
+Y `getUltimasNotasResumen` se bajaba todas las notas firmadas para producir
+**tres cadenas de texto**. Su comentario explicaba por qué no llevaba `orderBy`
+—haría falta un índice compuesto— sin ver que la consecuencia de quitarlo era
+quedarse **sin `limit`**.
+
+**LA CAUSA RAÍZ.** Ningún contrato de lectura del expediente declaraba un tope.
+`getNotas` se escribió cuando un paciente tenía tres notas, y quien la llamó
+después heredó «traer el historial» como si fuera gratis. Es el mismo patrón que
+REG-341 cerró en el directorio de pacientes, en el otro eje: allí crecía con el
+**consultorio**, aquí con el **paciente**.
+
+**LA REGLA QUE LO HACE SEGURO.** Las lecturas dependen del límite de página o de
+la ventana, **nunca del tamaño del historial**. `listarNotasPagina` (cursor por
+valores, con `documentId()` de desempate para dos notas del mismo día) y
+`listarNotasCompat`, que recorre hasta un techo y **declara** `truncada`.
+
+Y dos consecuencias que no son opcionales:
+
+1. **Una salvaguarda no puede depender de un techo.** El bloqueo NOM-004 de
+   `deletePatientExpediente` filtraba `getNotas` en memoria. En el momento en que
+   esa lectura tuvo techo, un paciente con historial largo y las firmadas por
+   debajo del techo se habría vuelto **borrable**. Pasa a ser
+   `tieneNotaFirmada`: consulta indexada con `limit(1)`, que no depende de nada y
+   además es más barata que lo que había. Es la lección de REG-347 —acotar una
+   lectura cambia el contrato de todos sus lectores— **aplicada antes de que
+   cobrara la pieza**.
+2. **El recorte llega a la pantalla.** De estas notas salen la medicación
+   vigente y los problemas activos, que aplican la regla de la última palabra
+   sobre cada fármaco. Sobre un recorte, un fármaco crónico que no se haya vuelto
+   a mencionar **desaparece**, y la lista se lee como «no toma nada más» — con el
+   paciente enfrente y antes de prescribir. El expediente lo avisa **arriba del
+   todo**, antes de las conclusiones derivadas; la consulta, dentro del bloque de
+   medicación vigente, que es lo que puede faltar.
+
+**LA PUERTA QUE SE BORRÓ, Y POR QUÉ.** `getNotas` no se conservó como superficie
+de compatibilidad. El directorio de pacientes sí conservó la suya (`getPatients`)
+porque catorce pantallas la llamaban — **y ese atajo tuvo factura**: REG-347 y las
+nueve pantallas que hoy siguen recibiendo el recorte sin declararlo son ese atajo
+cobrando. Aquí los llamadores eran seis, así que se borró la puerta que devuelve
+un array pelado: **un array no puede decir que viene recortado**, y quien lo
+recibe no tiene forma de saberlo. Ahora se llama a `listarNotasCompat` y
+`truncada` está en la mano — se puede ignorar, pero ya no se puede no ver.
+
+**LA PRUEBA.** `src/__tests__/el-historial-completo-no-cabe-en-una-pantalla.test.ts`
+(27 casos), que **cuenta documentos leídos** contra historiales de 40 y de 4 000
+notas. Probado al revés dos veces:
+
+- reintroduciendo los tres defectos en el módulo (salvaguarda sobre el recorte,
+  `truncada` que se calla, resumen sin ventana): caen 4 casos;
+- degradando el arnés a su versión anterior, que comparaba `startAfter` **sin
+  mirar la dirección del orden**: caen otros 4. Ese segundo pase importa —un
+  doble que ignora la dirección da por buena una paginación descendente que en
+  Firestore devolvería la primera página en bucle.
+
+**EL DOBLE, AHORA COMPARTIDO.** El doble del SDK de cliente vivía dentro del
+golden de REG-341. Se extrae a `src/__tests__/_harness/firestore-cliente-en-memoria.ts`
+en vez de copiarse: dos dobles divergen, y el día que uno se corrige el otro se
+queda con el defecto — que es el patrón `depende_de_recordar` de este mismo
+repositorio. Se le añadió `getCountFromServer` y la comparación de `startAfter`
+en la dirección del orden.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba Firestore.** El doble no dice nada sobre índices desplegados,
+  reglas ni latencia.
+- **No renderiza.** Que el aviso de recorte exista en el árbol no prueba que se
+  vea. Eso es navegador, y sigue sin ejecutarse (WS-05).
+- **Una nota SIN `fechaConsulta` no aparece en el historial paginado.** Firestore
+  omite de una consulta ordenada lo que no tiene el campo del `orderBy`. La
+  limitación **ya existía** —`getNotas` ordenaba por ese campo desde siempre— y
+  aquí queda probada en vez de supuesta, junto con la vía que sí la encuentra
+  (`tieneNotaFirmada`, que no ordena).
+- **`getUltimasNotasResumen` pierde un caso.** Si las últimas 40 notas fueran
+  todas borradores, el resumen sale vacío aunque haya firmadas más atrás. Se
+  acepta **sólo** porque ese texto es contexto de IA y una tarjeta de cortesía:
+  su ausencia no afirma nada del paciente, y la cadena vacía ya era una salida
+  posible. El mismo razonamiento **no vale** para nada que sostenga una
+  conclusión clínica.
+- **El techo de 200 no está medido contra un historial real.** Es una cota
+  razonada (≈40 años de consulta trimestral), no una medición.
+- **Las nueve pantallas de P1-11 siguen abiertas**: reciben el recorte de
+  `getPatients` sin declararlo. Es otro requisito y no se da por cerrado aquí.

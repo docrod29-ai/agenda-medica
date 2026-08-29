@@ -43,7 +43,7 @@ import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
 import {
-  createNota, updateNota, getNota, getNotas, deleteNota, getUltimasNotasResumen,
+  createNota, updateNota, getNota, listarNotasCompat, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
 import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
@@ -869,6 +869,8 @@ export default function ConsultaActivaPage() {
    * declaración. Se rellenan en el efecto que lee las notas firmadas.
    */
   const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
+  /** true = el historial del que salen `vigentes` y `problemas` vino recortado. */
+  const [historialTruncado, setHistorialTruncado] = useState(false)
   const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
 
   /**
@@ -1663,8 +1665,20 @@ export default function ConsultaActivaPage() {
       .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota
     // La medicación vigente sale de TODAS las notas, no sólo de la última: manda
     // lo que se dijo por última vez de CADA fármaco (ver `ordenes-medicamento`).
-    getNotas(clinicId, patientId)
-      .then(ns => {
+    listarNotasCompat(clinicId, patientId)
+      .then(({ notas: ns, truncada }) => {
+        /**
+         * SI EL HISTORIAL VINO RECORTADO, LA MEDICACIÓN VIGENTE PUEDE ESTAR
+         * INCOMPLETA — Y SE DICE (REG-350).
+         *
+         * `medicamentosVigentes` aplica la regla de la última palabra sobre CADA
+         * fármaco. Con el historial completo eso es correcto. Sobre un recorte
+         * de las N notas más recientes, un fármaco crónico que no se haya vuelto
+         * a mencionar en esas N **desaparece de la lista**, y la lista se lee
+         * como «no está tomando nada más». Ausencia de dato no es dato de
+         * ausencia, y aquí se lee con el paciente enfrente y antes de prescribir.
+         */
+        setHistorialTruncado(truncada)
         const firmadas = ns.filter(n => n.estado === 'firmada')
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
@@ -4543,6 +4557,13 @@ export default function ConsultaActivaPage() {
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
               De lo último que se dijo de cada fármaco en sus notas firmadas. No mencionarlo en una consulta no lo suspende.
             </div>
+            {historialTruncado && (
+              <div role="status" style={{ fontSize: 12, color: 'var(--amber)', marginTop: 4, fontWeight: 600 }}>
+                Este expediente es más largo de lo que cabe leer aquí: esta lista sale
+                sólo de las notas más recientes y <strong>puede faltar</strong> un
+                fármaco crónico que no se haya vuelto a mencionar.
+              </div>
+            )}
           </div>
         </div>
       )}

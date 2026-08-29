@@ -57,6 +57,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // ── Doble de Firestore: cuenta documentos leídos ─────────────────────────────
+/**
+ * El estado del doble se crea con un literal DENTRO de `vi.hoisted`: la fábrica
+ * se iza por encima de los imports, así que no puede llamar a nada importado.
+ * Su forma es la de `EstadoDoble` del arnés.
+ */
 const h = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   contador: { lecturas: 0, getDocs: 0, getDoc: 0 },
@@ -70,125 +75,14 @@ vi.mock('@/lib/firebase', () => ({
 }))
 vi.mock('@/lib/expediente/audit-log', () => ({ logAudit: async () => {} }))
 
-vi.mock('firebase/firestore', () => {
-  type Fila = { ruta: string; id: string; data: Record<string, unknown> }
-  type Restriccion =
-    | { t: 'orderBy'; campo: string; dir: 'asc' | 'desc' }
-    | { t: 'where'; campo: string; op: string; valor: unknown }
-    | { t: 'limit'; n: number }
-    | { t: 'startAfter'; valores: unknown[] }
-
-  const valorDe = (f: Fila, campo: string): unknown => {
-    if (campo === '__name__') return f.id
-    return campo.split('.').reduce<unknown>(
-      (o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined),
-      f.data,
-    )
-  }
-
-  const filasDe = (ref: { tipo: string; ruta?: string; id?: string }): Fila[] => {
-    const out: Fila[] = []
-    for (const [ruta, data] of h.docs) {
-      const p = ruta.split('/')
-      const fila = { ruta, id: p[p.length - 1], data }
-      if (ref.tipo === 'col' && p.slice(0, -1).join('/') === ref.ruta) out.push(fila)
-      if (ref.tipo === 'grupo' && p[p.length - 2] === ref.id) out.push(fila)
-    }
-    return out
-  }
-
-  const cumple = (v: unknown, op: string, c: unknown): boolean => {
-    if (v === undefined) return false
-    switch (op) {
-      case '==': return v === c
-      case '>=': return (v as string) >= (c as string)
-      case '>': return (v as string) > (c as string)
-      case '<=': return (v as string) <= (c as string)
-      case '<': return (v as string) < (c as string)
-      default: throw new Error(`operador no soportado en el doble: ${op}`)
-    }
-  }
-
-  const envolver = (f: Fila) => ({
-    id: f.id,
-    ref: { path: f.ruta },
-    exists: () => true,
-    data: () => f.data,
-  })
-
-  return {
-    collection: (_db: unknown, ...segs: string[]) => ({ tipo: 'col', ruta: segs.join('/') }),
-    collectionGroup: (_db: unknown, id: string) => ({ tipo: 'grupo', id }),
-    doc: (_db: unknown, ...segs: string[]) => ({
-      tipo: 'doc', ruta: segs.join('/'), id: segs[segs.length - 1],
-    }),
-    query: (ref: unknown, ...cs: Restriccion[]) => ({ tipo: 'query', ref, cs }),
-    orderBy: (campo: string, dir: 'asc' | 'desc' = 'asc') => ({ t: 'orderBy', campo, dir }),
-    where: (campo: string, op: string, valor: unknown) => ({ t: 'where', campo, op, valor }),
-    limit: (n: number) => ({ t: 'limit', n }),
-    startAfter: (...valores: unknown[]) => ({ t: 'startAfter', valores }),
-    documentId: () => '__name__',
-    serverTimestamp: () => 'ts',
-    Timestamp: class {},
-    writeBatch: () => ({ set() {}, update() {}, delete() {}, commit: async () => {} }),
-    addDoc: async () => ({ id: 'nuevo' }),
-    setDoc: async () => {},
-    updateDoc: async () => {},
-    deleteDoc: async () => {},
-
-    getDoc: async (ref: { ruta: string; id: string }) => {
-      h.contador.getDoc++
-      h.contador.lecturas++
-      const data = h.docs.get(ref.ruta)
-      return {
-        id: ref.id,
-        ref: { path: ref.ruta },
-        exists: () => data !== undefined,
-        data: () => data,
-      }
-    },
-
-    getDocs: async (q: { tipo: string; ref?: unknown; cs?: Restriccion[] }) => {
-      const ref = (q.tipo === 'query' ? q.ref : q) as { tipo: string; ruta?: string; id?: string }
-      const cs = (q.tipo === 'query' ? q.cs : []) as Restriccion[]
-      if (ref.tipo === 'grupo' && h.fallos.collectionGroup) {
-        throw new Error('FAILED_PRECONDITION: the query requires an index')
-      }
-      const ordenes = cs.filter(c => c.t === 'orderBy') as Extract<Restriccion, { t: 'orderBy' }>[]
-      let filas = filasDe(ref)
-      for (const c of cs) {
-        if (c.t === 'where') filas = filas.filter(f => cumple(valorDe(f, c.campo), c.op, c.valor))
-      }
-      // Firestore excluye los documentos que NO tienen el campo del orderBy.
-      for (const o of ordenes) filas = filas.filter(f => valorDe(f, o.campo) !== undefined)
-      filas.sort((a, b) => {
-        for (const o of ordenes) {
-          const va = valorDe(a, o.campo) as string
-          const vb = valorDe(b, o.campo) as string
-          if (va < vb) return o.dir === 'desc' ? 1 : -1
-          if (va > vb) return o.dir === 'desc' ? -1 : 1
-        }
-        return 0
-      })
-      const sa = cs.find(c => c.t === 'startAfter') as Extract<Restriccion, { t: 'startAfter' }> | undefined
-      if (sa) {
-        filas = filas.filter(f => {
-          for (let i = 0; i < ordenes.length; i++) {
-            const v = valorDe(f, ordenes[i].campo) as string
-            const c = sa.valores[i] as string
-            if (v > c) return true
-            if (v < c) return false
-          }
-          return false
-        })
-      }
-      const lim = cs.find(c => c.t === 'limit') as Extract<Restriccion, { t: 'limit' }> | undefined
-      if (lim) filas = filas.slice(0, lim.n)
-      h.contador.getDocs++
-      h.contador.lecturas += filas.length
-      return { docs: filas.map(envolver), size: filas.length, empty: filas.length === 0 }
-    },
-  }
+/**
+ * El doble del SDK de cliente vive en `_harness/firestore-cliente-en-memoria.ts`
+ * desde REG-350: lo comparte con el golden del historial de notas. Dos copias
+ * divergen, y el día que una se corrige la otra se queda con el defecto.
+ */
+vi.mock('firebase/firestore', async () => {
+  const { firestoreClienteSobre } = await import('./_harness/firestore-cliente-en-memoria')
+  return firestoreClienteSobre(h)
 })
 
 import {

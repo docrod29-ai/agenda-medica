@@ -376,7 +376,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'cierto mientras el consultorio es chico y deja de serlo sin aviso: no ' +
       'falla, se degrada. Ninguna prueba lo delata porque los fixtures son ' +
       'pequeños. Se encuentra preguntando «¿y con cincuenta mil?».',
-    regs: [341],
+    /**
+     * 350 es la misma familia en el OTRO eje. 341 acotó lo que crecía con el
+     * CONSULTORIO; el historial de un paciente crece con el PACIENTE, y ahí
+     * cada documento lleva dentro el dictado completo de una consulta. La
+     * pantalla de retención lo multiplicaba: hasta 500 historiales enteros para
+     * calcular una fecha y un conteo.
+     *
+     * Su lección propia, que 341 no traía: **una salvaguarda no puede depender
+     * de un techo**. Al acotar la lectura, el bloqueo NOM-004 de borrado —que
+     * filtraba el historial en memoria— habría vuelto borrable a un paciente
+     * con las notas firmadas por debajo del techo. Acotar una lectura no es una
+     * operación local ni siquiera cuando uno mismo la acota.
+     */
+    regs: [341, 350],
   },
 ] as const
 

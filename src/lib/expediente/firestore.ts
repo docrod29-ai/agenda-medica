@@ -1,7 +1,7 @@
 import {
   collection, collectionGroup, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, orderBy, where, writeBatch, runTransaction,
-  limit as limitarA, documentId,
+  limit as limitarA, documentId, startAfter, getCountFromServer,
   type DocumentReference,
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
@@ -38,9 +38,256 @@ function normNota(raw: Record<string, unknown>, id: string): NotaMedica {
   }
 }
 
-export async function getNotas(clinicId: string, patientId: string): Promise<NotaMedica[]> {
-  const snap = await getDocs(query(notasCol(clinicId, patientId), orderBy('fechaConsulta', 'desc')))
-  return snap.docs.map(d => normNota(d.data(), d.id))
+/**
+ * ── EL HISTORIAL COMPLETO DE UN PACIENTE, SIN COTA (P1-12 · REG-350) ─────────
+ *
+ * `getNotas` se bajaba TODAS las notas de un paciente, ordenadas y sin límite.
+ * No es una lista de nombres: cada nota lleva dentro `transcripcionCruda`,
+ * `transcripcionMotor` y `dialogoDiarizado` —el dictado entero de la consulta,
+ * con separación de voces— y el bloque `extraction` con una cita textual por
+ * campo. El propio `updateNota` de este archivo declara que una sola nota se
+ * acerca al tope de 1 MB de Firestore.
+ *
+ * Un paciente crónico de años son cientos de esas. La pantalla del expediente
+ * las pide TODAS para pintar una línea de tiempo donde caben veinte.
+ *
+ * ── EL MISMO CONTRATO QUE EL DIRECTORIO DE PACIENTES (REG-341) ──────────────
+ *
+ *   · `listarNotasPagina` — página con tope duro y cursor por VALORES.
+ *   · `listarNotasCompat` — recorre páginas hasta un TECHO y **declara** si se
+ *     quedó corta.
+ *   · `getNotas` — superficie de compatibilidad; devuelve sólo las notas.
+ *
+ * No se inventa un contrato nuevo: es el de `lib/firestore.ts` aplicado aquí,
+ * porque el defecto es el mismo y la lección de REG-347 también — **acotar una
+ * lectura cambia el contrato de todos sus lectores**, así que el recorte tiene
+ * que poder decirse.
+ *
+ * ── LO QUE ESTE ORDEN NO ALCANZA (regla 5: se declara en el módulo) ──────────
+ *
+ * Firestore **omite** de una consulta ordenada los documentos que no tienen el
+ * campo del `orderBy`. Una nota sin `fechaConsulta` queda fuera. Esa limitación
+ * **ya existía** —`getNotas` ordenaba por ese campo desde siempre— y no la
+ * introduce esta unidad; se escribe aquí porque hasta hoy no estaba escrita en
+ * ninguna parte.
+ */
+
+/** Tamaño de página por omisión del historial. */
+export const LIMITE_PAGINA_NOTAS = 25
+/** Techo duro de una sola página, aunque el llamador pida más. */
+export const LIMITE_MAX_PAGINA_NOTAS = 100
+/**
+ * Techo duro del recorrido de compatibilidad (`getNotas`).
+ *
+ * 200 notas de un mismo paciente son ~40 años de consulta trimestral. Por
+ * encima de eso el recorte se DECLARA; no se calla.
+ */
+export const TECHO_COMPAT_NOTAS = 200
+
+/**
+ * Cursor por VALORES (fecha + id), no por snapshot: sobrevive a un remount y
+ * puede cruzar el límite de un componente. Mismo motivo que en `CursorPacientes`.
+ */
+export interface CursorNotas {
+  fechaConsulta: string
+  id: string
+}
+
+export interface PaginaNotas {
+  notas: NotaMedica[]
+  /** null = no hay más páginas. */
+  cursor: CursorNotas | null
+  hayMas: boolean
+  /** Límite efectivo aplicado (ya acotado al techo). */
+  limite: number
+}
+
+export interface ListaNotasCompat {
+  notas: NotaMedica[]
+  /** true = se alcanzó el techo: HAY notas de este paciente que no vienen aquí. */
+  truncada: boolean
+  techo: number
+}
+
+function acotarNotas(n: number | undefined, porOmision: number, techo: number): number {
+  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return porOmision
+  return Math.min(Math.floor(n), techo)
+}
+
+/**
+ * Una página del historial, de la más reciente a la más antigua.
+ *
+ * El orden es `(fechaConsulta, __name__)` y no sólo la fecha: dos notas del
+ * MISMO día —una consulta y su nota de laboratorio, o dos visitas— dejarían el
+ * cursor sin desempate y la página siguiente repetiría o se saltaría una de las
+ * dos. `documentId()` es el desempate total y Firestore lo indexa solo, sin
+ * exigir índice compuesto.
+ */
+export async function listarNotasPagina(
+  clinicId: string,
+  patientId: string,
+  opts?: { limite?: number; cursor?: CursorNotas | null },
+): Promise<PaginaNotas> {
+  const limite = acotarNotas(opts?.limite, LIMITE_PAGINA_NOTAS, LIMITE_MAX_PAGINA_NOTAS)
+  const partes = [
+    orderBy('fechaConsulta', 'desc'),
+    orderBy(documentId(), 'desc'),
+    ...(opts?.cursor ? [startAfter(opts.cursor.fechaConsulta, opts.cursor.id)] : []),
+    // Se pide UNA de más para saber si hay página siguiente sin una segunda
+    // consulta. La de más no se devuelve.
+    limitarA(limite + 1),
+  ]
+  const snap = await getDocs(query(notasCol(clinicId, patientId), ...partes))
+  const hayMas = snap.docs.length > limite
+  const docs = hayMas ? snap.docs.slice(0, limite) : snap.docs
+  const notas = docs.map(d => normNota(d.data(), d.id))
+  const ultimo = docs[docs.length - 1]
+  return {
+    notas,
+    cursor: hayMas && ultimo
+      ? { fechaConsulta: String((ultimo.data() as { fechaConsulta?: unknown }).fechaConsulta ?? ''), id: ultimo.id }
+      : null,
+    hayMas,
+    limite,
+  }
+}
+
+/**
+ * El historial hasta un techo, **diciendo si se quedó corto**.
+ *
+ * `truncada` no es cosmético y aquí pesa más que en una lista de pacientes: de
+ * estas notas se derivan los problemas activos, la medicación vigente y el
+ * resumen del paciente. Un historial recortado en silencio no produce una lista
+ * incompleta — produce una CONCLUSIÓN clínica equivocada, y del lado seguro
+ * («no tiene ese antecedente»), que es la dirección en la que un médico no la
+ * cuestiona. Regla 4: ausencia de dato no es dato de ausencia.
+ */
+export async function listarNotasCompat(
+  clinicId: string,
+  patientId: string,
+  opts?: { techo?: number },
+): Promise<ListaNotasCompat> {
+  const techo = acotarNotas(opts?.techo, TECHO_COMPAT_NOTAS, TECHO_COMPAT_NOTAS)
+  const notas: NotaMedica[] = []
+  let cursor: CursorNotas | null = null
+  let truncada = false
+  for (;;) {
+    const restante = techo - notas.length
+    if (restante <= 0) { truncada = true; break }
+    const pagina: PaginaNotas = await listarNotasPagina(clinicId, patientId, {
+      limite: Math.min(restante, LIMITE_MAX_PAGINA_NOTAS), cursor,
+    })
+    notas.push(...pagina.notas)
+    if (!pagina.hayMas || !pagina.cursor) break
+    cursor = pagina.cursor
+    if (notas.length >= techo) { truncada = true; break }
+  }
+  return { notas, truncada, techo }
+}
+
+/**
+ * ── POR QUÉ AQUÍ NO HAY UN `getNotas` ───────────────────────────────────────
+ *
+ * El directorio de pacientes conservó su superficie de compatibilidad
+ * (`getPatients`) porque catorce pantallas la llamaban y cambiarlas todas de
+ * golpe habría sido un cambio más grande que el arreglo. **Y ese atajo tuvo
+ * factura**: REG-347 y las nueve pantallas que hoy siguen recibiendo el recorte
+ * sin declararlo son exactamente ese atajo cobrando.
+ *
+ * Aquí los llamadores eran seis, así que se hizo lo otro: **borrar la puerta que
+ * devuelve un array pelado**. Un array no puede decir que viene recortado; quien
+ * lo recibe no tiene forma de saberlo ni de contarlo, y con un historial clínico
+ * el silencio se lee como «no tiene». Quien quiera el historial llama a
+ * `listarNotasCompat` y **tiene `truncada` en la mano**: puede ignorarlo, pero
+ * ya no puede no verlo.
+ *
+ * Quien sólo necesita una parte tiene una lectura hecha para eso —
+ * `listarNotasPagina`, `getNotasDeInternamiento`, `resumenRetencionDeNotas`,
+ * `tieneNotaFirmada`— y ninguna de ellas depende del tamaño del historial.
+ */
+
+/**
+ * ¿ESTE PACIENTE TIENE ALGUNA NOTA FIRMADA?
+ *
+ * Existe por una razón concreta y no por elegancia: el bloqueo NOM-004 de
+ * `deletePatientExpediente` lo resolvía leyendo `getNotas` y filtrando en
+ * memoria. En el momento en que `getNotas` pasó a tener techo, esa comprobación
+ * habría empezado a mirar sólo una VENTANA — y un paciente con el historial
+ * largo y las notas firmadas por debajo del techo se habría vuelto **borrable**.
+ *
+ * Es exactamente la lección de REG-347 (acotar una lectura cambia el contrato de
+ * todos sus lectores), aplicada antes de que cobre la pieza: una salvaguarda
+ * legal no puede depender de un techo. Una consulta indexada con `limit(1)` no
+ * depende de nada y además es más barata que lo que había.
+ */
+/**
+ * LAS NOTAS DE UN INTERNAMIENTO — por consulta indexada, no filtrando el
+ * historial entero en memoria (REG-350).
+ *
+ * La pantalla del episodio pedía TODAS las notas del paciente y se quedaba con
+ * las que llevaban este `internamientoId`. Dos defectos en uno:
+ *
+ *  · **Coste**: un crónico con años de consultorio ambulatorio se bajaba entero
+ *    —con transcripciones dentro— para enseñar las cuatro notas de un ingreso.
+ *  · **Corrección, en cuanto la lectura tuvo techo**: las notas de un ingreso
+ *    ANTIGUO quedan por debajo del techo, así que el episodio se habría pintado
+ *    **vacío**. Un episodio de hospital sin notas no se lee como «no cargaron»:
+ *    se lee como «no se escribió nada», que es una afirmación medicolegal.
+ *
+ * `where('internamientoId','==',id)` sin `orderBy` no necesita índice compuesto.
+ * El orden se hace en memoria sobre las notas de UN ingreso, que son pocas por
+ * definición: un ingreso no dura mil notas.
+ */
+export async function getNotasDeInternamiento(
+  clinicId: string,
+  patientId: string,
+  internamientoId: string,
+): Promise<NotaMedica[]> {
+  const snap = await getDocs(query(
+    notasCol(clinicId, patientId),
+    where('internamientoId', '==', internamientoId),
+  ))
+  return snap.docs
+    .map(d => normNota(d.data(), d.id))
+    .sort((a, b) => (b.fechaConsulta || '').localeCompare(a.fechaConsulta || ''))
+}
+
+/**
+ * LA NOTA MÁS RECIENTE Y CUÁNTAS FIRMADAS HAY — sin bajarse el historial.
+ *
+ * Existe para la pantalla de retención NOM-004, que evaluaba a **500 pacientes
+ * llamando a `getNotas` en cada uno**: hasta 500 historiales completos, con
+ * transcripción y diálogo diarizado dentro, para calcular una fecha y un
+ * conteo. Es la lectura más cara del producto y la hacía una pantalla de
+ * cumplimiento que nadie mira a diario.
+ *
+ * `getCountFromServer` cuenta **en el servidor**: cobra una lectura por cada mil
+ * documentos y no transporta ninguno. Y el conteo así no depende de ningún
+ * techo, que importa porque este número se enseña junto a un veredicto legal.
+ */
+export async function resumenRetencionDeNotas(
+  clinicId: string,
+  patientId: string,
+): Promise<{ ultimaFecha: string | null; notasFirmadas: number }> {
+  const [ultima, conteo] = await Promise.all([
+    getDocs(query(notasCol(clinicId, patientId), orderBy('fechaConsulta', 'desc'), limitarA(1))),
+    getCountFromServer(query(notasCol(clinicId, patientId), where('estado', '==', 'firmada'))),
+  ])
+  const doc0 = ultima.docs[0]
+  const fecha = doc0 ? (doc0.data() as { fechaConsulta?: unknown }).fechaConsulta : undefined
+  return {
+    ultimaFecha: typeof fecha === 'string' && fecha ? fecha : null,
+    notasFirmadas: conteo.data().count,
+  }
+}
+
+export async function tieneNotaFirmada(clinicId: string, patientId: string): Promise<boolean> {
+  const snap = await getDocs(query(
+    notasCol(clinicId, patientId),
+    where('estado', '==', 'firmada'),
+    limitarA(1),
+  ))
+  return !snap.empty
 }
 
 export async function getNota(clinicId: string, patientId: string, notaId: string): Promise<NotaMedica | null> {
@@ -285,15 +532,39 @@ export async function deletePatientExpediente(
   /** Datos del paciente para borrar también citas que coinciden por nombre/teléfono */
   matchInfo?: { nombre?: string; telefono?: string },
 ): Promise<{ ok: boolean; motivo?: string; borradas?: { notas: number; citas: number } }> {
-  // 1. Verificar notas firmadas (NOM-004 — bloqueo legal)
-  const notas = await getNotas(clinicId, patientId)
-  const firmadas = notas.filter(n => n.estado === 'firmada')
-  if (firmadas.length > 0) {
+  /**
+   * 1. Verificar notas firmadas (NOM-004 — bloqueo legal).
+   *
+   * Consulta indexada con `limit(1)`, **no** un filtro en memoria sobre
+   * `getNotas`. Desde REG-350 `getNotas` viene acotada, y una salvaguarda legal
+   * que dependa de un techo deja de ser una salvaguarda: un paciente con el
+   * historial largo y las firmadas por debajo del techo se volvería borrable.
+   *
+   * Se pierde el CONTEO exacto en el mensaje. Es un cambio a mejor: el número
+   * no aporta nada a la decisión —una firmada ya bloquea— y obtenerlo costaba
+   * el historial entero.
+   */
+  if (await tieneNotaFirmada(clinicId, patientId)) {
     return {
       ok: false,
-      motivo: `Tiene ${firmadas.length} nota(s) firmada(s). Los registros clínicos firmados no pueden eliminarse (NOM-004).`,
+      motivo: 'Tiene al menos una nota firmada. Los registros clínicos firmados no pueden eliminarse (NOM-004).',
     }
   }
+
+  /**
+   * A partir de aquí sólo hay BORRADORES, y borrarlos sí exige tenerlos todos.
+   * Se piden con techo alto y explícito: un expediente con más de mil borradores
+   * y ninguna firmada no existe, y si existiera, borrarlo a medias sería peor
+   * que no borrarlo. Por eso se comprueba y se dice.
+   */
+  const listaBorradores = await listarNotasCompat(clinicId, patientId, { techo: TECHO_COMPAT_NOTAS })
+  if (listaBorradores.truncada) {
+    return {
+      ok: false,
+      motivo: `Este expediente tiene más de ${listaBorradores.techo} notas en borrador. Borrarlo dejaría notas huérfanas, así que no se hace desde aquí.`,
+    }
+  }
+  const notas = listaBorradores.notas
 
   // Se ARMA todo primero (solo lecturas) y se borra en UN batch atómico al final:
   // si algo falla, Firestore no aplica NADA → nunca queda un expediente a medias
@@ -562,22 +833,58 @@ export async function getVersionesNota(clinicId: string, patientId: string, nota
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as NotaMedica & { versionadoEn: string }))
 }
 
-/** Última nota firmada para construir contexto de IA */
+/**
+ * VENTANA de notas recientes que se mira para armar el resumen de las últimas
+ * firmadas. Ver `getUltimasNotasResumen`.
+ */
+export const VENTANA_RESUMEN_NOTAS = 40
+
+/**
+ * Última nota firmada para construir contexto de IA.
+ *
+ * ── LO QUE COSTABA (REG-350) ────────────────────────────────────────────────
+ *
+ * Se bajaban **todas** las notas firmadas del paciente —con transcripción,
+ * diálogo diarizado y extracción dentro— para quedarse con **tres cadenas de
+ * resumen**. En un paciente crónico eso son megabytes por cada apertura de la
+ * consulta, y corre en el navegador del médico con el paciente enfrente.
+ *
+ * ── POR QUÉ LA VENTANA ES POR FECHA Y EL FILTRO EN MEMORIA ──────────────────
+ *
+ * Combinar `where('estado','==','firmada')` con `orderBy('fechaConsulta')`
+ * exigiría un **índice compuesto**, que se crea fuera de este repositorio (la
+ * misma pared que P1-14). El comentario anterior ya lo decía, y su respuesta fue
+ * quitar el `orderBy` — es decir, quitar el LÍMITE.
+ *
+ * Se hace al revés: se ordena por fecha con `limit`, que **no necesita índice
+ * compuesto**, y el estado se filtra en memoria sobre esa ventana. El coste pasa
+ * a depender de la ventana y no del historial.
+ *
+ * ── QUÉ SE PIERDE, Y POR QUÉ ES ACEPTABLE AQUÍ ──────────────────────────────
+ *
+ * Si las últimas `VENTANA_RESUMEN_NOTAS` notas fueran TODAS borradores, este
+ * resumen saldría vacío aunque el paciente tenga firmadas más atrás. Antes no
+ * pasaba. Es aceptable **sólo porque este texto es contexto de IA y una tarjeta
+ * de cortesía**: su ausencia no afirma nada sobre el paciente, y la cadena vacía
+ * ya era una salida posible.
+ *
+ * **No vale el mismo razonamiento** para nada que sostenga una conclusión
+ * clínica —problemas activos, medicación vigente, el bloqueo NOM-004—: eso lee
+ * `listarNotasCompat` y mira `truncada`, o una consulta indexada propia.
+ */
 export async function getUltimasNotasResumen(
   clinicId: string,
   patientId: string,
   limit = 3,
 ): Promise<string> {
-  // SIN orderBy en la query: combinarlo con where() exigiría un índice compuesto
-  // que no existe → la consulta fallaba en silencio (card vacío y la IA sin
-  // contexto de visitas previas). Se ordena en memoria (pocas notas por paciente).
   const snap = await getDocs(query(
     notasCol(clinicId, patientId),
-    where('estado', '==', 'firmada'),
+    orderBy('fechaConsulta', 'desc'),
+    limitarA(VENTANA_RESUMEN_NOTAS),
   ))
   const notas = snap.docs
     .map(d => d.data() as NotaMedica)
-    .sort((a, b) => (b.fechaConsulta || '').localeCompare(a.fechaConsulta || ''))
+    .filter(n => n.estado === 'firmada')
     .slice(0, limit)
   if (notas.length === 0) return ''
   return notas

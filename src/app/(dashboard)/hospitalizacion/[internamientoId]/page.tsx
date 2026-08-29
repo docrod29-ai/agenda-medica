@@ -28,7 +28,7 @@ import {
 import { historialCamas } from '@/lib/hospital/bed-assignment'
 import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type ResultadoLab, type BedAssignment } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { getNotas } from '@/lib/expediente/firestore'
+import { getNotasDeInternamiento } from '@/lib/expediente/firestore'
 import { getPatient, getDoctors } from '@/lib/firestore'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
@@ -264,13 +264,20 @@ export default function EpisodioPage() {
       // getPatient (una lectura) en vez de getPatients (colección entera) solo para
       // resolver el nombre del paciente internado — mismo anti-patrón que la consulta corrigió.
       const [todas, sgs, pac, labsE] = await Promise.all([
-        getNotas(clinicId, i.pacienteId).catch(() => [] as NotaMedica[]),
+        /**
+         * Consulta indexada por episodio (REG-350). Antes se bajaba el historial
+         * ENTERO del paciente para quedarse en memoria con las notas de este
+         * ingreso: caro siempre, e incorrecto en cuanto la lectura tuvo techo —
+         * un ingreso antiguo se habría pintado vacío, y un episodio de hospital
+         * sin notas se lee como «no se escribió nada».
+         */
+        getNotasDeInternamiento(clinicId, i.pacienteId, internamientoId).catch(() => [] as NotaMedica[]),
         getSignos(clinicId, internamientoId).catch(() => [] as RegistroSignos[]),
         getPatient(clinicId, i.pacienteId).catch(() => null),
         getSolicitudesLabDeEpisodio(clinicId, internamientoId).catch(() => [] as SolicitudLab[]),
       ])
       setLabs(labsE)
-      setNotas(todas.filter(n => n.internamientoId === internamientoId))
+      setNotas(todas)
       setSignos(sgs)
       setPatient(pac ?? null)
       setMedsCasa((i.medicamentosCasa ?? []).join('\n'))

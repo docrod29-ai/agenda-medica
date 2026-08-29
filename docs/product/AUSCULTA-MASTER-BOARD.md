@@ -24,7 +24,7 @@
 | | |
 |---|---|
 | **P0 internos abiertos** | **0** |
-| **P1 internos abiertos** | **8** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
+| **P1 internos abiertos** | **7** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
 
 **Movimientos del 29-ago-2026:**
 
@@ -33,18 +33,21 @@
 | cerrado −1 | **P1-16** — el importador ya sabe devolver las colecciones de nivel raíz (REG-348, `f2aa2fa`) |
 | nuevo +1 | **P1-18** — carrera entre consultorios en el importador, hallada revisando REG-348 |
 | cerrado −1 | **P1-18** — reproducida ejecutando la ruta y cerrada con transacción (REG-349) |
-| **saldo** | **−1 P1 interno** (9 → 8) |
+| cerrado −1 | **P1-12** — `getNotas` sin cota: el historial entero en cada pantalla (REG-350) |
+| **saldo** | **−2 P1 internos** (9 → 7) |
 
 ## Compuertas medidas en este SHA — no citadas de memoria
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 625 pasan · 1 falla · 1 omitido** (775 archivos) | Baseline del 28-ago eran 10 566; **+59 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 653 pasan · 1 falla · 1 omitido** (776 archivos) | Baseline del 28-ago eran 10 566; **+87 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
+| `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
+| trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348 y REG-349.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348, REG-349 y REG-350.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -95,7 +98,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | ~~P1-18~~ | ~~Restaurar podía **quitarle la cuenta a otro consultorio**.~~ **CERRADO** — REG-349. Hallazgo de revisión independiente sobre REG-348, **reproducido ejecutando la ruta** contra una tienda con concurrencia optimista antes de tocar nada: la comprobación de propiedad existía, pero leía con un `getAll` suelto y escribía en un lote posterior, así que un alta normal del consultorio vecino ocurrida en el hueco se perdía. Ahora el grupo de nivel raíz va dentro de una transacción. |
 | **P1-11** | **PARCIAL** — REG-347 cerró `/pacientes`, que era la pantalla de buscar: ahí la búsqueda ya va al servidor y el recorte se declara. Quedan **nueve** pantallas que reciben el recorte sin declararlo (`/citas`, `/crm`, `/asistente`, `/hospitalizacion`, `/farmacia`, `/membresias`, `/cumplimiento`, `/reactivacion`, `/migracion`). Ya no tumban el navegador, pero pueden decir «no hay» de un paciente que existe. |
 | **P1-17** | La búsqueda es por **PREFIJO**: un duplicado con el orden de los nombres cambiado («López María» vs «María López») y sin teléfono en común no aparece. Hueco **conocido y con forma**, ya no arbitrario — pero abierto. |
-| **P1-12** | `getNotas` sigue **sin cota**: la historia completa de un paciente, con las dos transcripciones dentro. La siguiente amplificación. |
+| ~~P1-12~~ | ~~`getNotas` sin cota: la historia completa de un paciente, con las dos transcripciones dentro.~~ **CERRADO** — REG-350. Contrato paginado con techo que **declara** `truncada`, y la puerta que devolvía un array pelado **se borró**: un array no puede decir que viene recortado. Con ella cayeron dos amplificaciones peores —la pantalla de un ingreso se bajaba el historial completo del paciente, y la de retención NOM-004 hacía eso **por cada uno de hasta 500 pacientes**— y una salvaguarda que habría quedado colgando del techo (el bloqueo NOM-004 de borrado). El recorte llega a la pantalla en el expediente y en la consulta. |
 | **P1-13** | Quedan otros escritores de scroll: el restaurador de `/consulta` se re-arma tras una lectura de Firestore **sin cancelación por gesto**; los banners asíncronos cambian la altura por encima de `<main>` (41 px medidos); `overscroll-behavior` no aparece en el repositorio. |
 | **P1-10** | Texto completo de PMC se reproduce **sin filtro de licencia por artículo**. El catálogo lo declara como decisión pendiente; el filtro no existe. | `evidencia/pubmed.ts:182` · `catalogo.ts:279` |
 
@@ -148,11 +151,11 @@ Lecturas ilimitadas más caras, además de P0-3/4/5:
 | Dónde | Qué |
 |---|---|
 | `expediente/firestore.ts:216` | colección **entera** de citas del consultorio, en la baja de un paciente |
-| `expediente/firestore.ts:41` `getNotas` | historia **completa** de notas de un paciente (llevan las dos transcripciones) |
-| `expediente/firestore.ts:472` | todas las notas firmadas → `.sort().slice(0,3)` **en memoria** |
+| ~~`expediente/firestore.ts:41` `getNotas`~~ | ~~historia **completa** de notas de un paciente~~ **CERRADO** — REG-350 |
+| ~~`expediente/firestore.ts:472`~~ | ~~todas las notas firmadas → `.sort().slice(0,3)` **en memoria**~~ **CERRADO** — REG-350: ventana ordenada de 40, filtro de estado en memoria sobre ella |
 | `components/PaletteBusqueda.tsx:60` | Cmd-K **global** descarga 50 000 pacientes para enseñar 6 |
 | `pacientes/page.tsx:934` | segunda descarga completa **sin caché** para deduplicar al guardar |
-| `hooks/useAppointments.ts:94` | historia de citas de un paciente **en vivo**, sin cota ni límite |
+| `hooks/useAppointments.ts:94` | historia de citas de un paciente **en vivo**, sin cota ni límite — **el siguiente de esta lista** |
 
 **Documentos que crecen sin techo**: `internamientos/{id}` guarda seis arrays en
 un solo documento; `indicaciones[].administraciones` no tiene tope (≈1 800

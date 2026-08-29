@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { listarPacientesPagina, TECHO_COMPAT_PACIENTES, LIMITE_MAX_PAGINA_PACIENTES, type CursorPacientes } from '@/lib/firestore'
-import { getNotas } from '@/lib/expediente/firestore'
+import { resumenRetencionDeNotas } from '@/lib/expediente/firestore'
 import { evaluarRetencion, formatearAntiguedad, listarPacientesPorRevisar, type PacienteRetencion } from '@/lib/retencion'
 import { ArrowLeft, Loader2, FileSearch, AlertTriangle, Clock, Eye } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
@@ -66,8 +66,18 @@ export default function RetencionPage() {
           const tanda = pagina.pacientes.slice(i, i + TANDA)
           evals.push(...await Promise.all(tanda.map(async (p) => {
             try {
-              const notas = await getNotas(clinicId, p.id)
-              return evaluarRetencion(p, notas, p.ultimaCita)
+              /**
+               * REG-350 — esto llamaba a `getNotas` por CADA uno de hasta 500
+               * pacientes: hasta 500 historiales completos, con transcripción y
+               * diálogo diarizado dentro, para calcular una fecha y un conteo.
+               *
+               * Ahora son dos consultas baratas por paciente: la nota más
+               * reciente (`limit(1)`) y el conteo de firmadas hecho **en el
+               * servidor**. El conteo así tampoco depende de ningún techo, que
+               * importa porque se enseña al lado de un veredicto NOM-004.
+               */
+              const { ultimaFecha, notasFirmadas } = await resumenRetencionDeNotas(clinicId, p.id)
+              return { ...evaluarRetencion(p, [], ultimaFecha ?? p.ultimaCita), notasFirmadas }
             } catch {
               // Sin notas se evalúa igual: la cita y el alta ya dan una fecha.
               return evaluarRetencion(p, [], p.ultimaCita)

@@ -19,7 +19,7 @@ import {
   ArrowLeft, Mic, FileText, Loader2, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
-  Camera, FlaskConical, Link2Off, Sparkles, Bug, ExternalLink,
+  Camera, FlaskConical, Link2Off, Sparkles, Bug, ExternalLink, AlertTriangle,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
@@ -81,7 +81,7 @@ export default function ExpedientePage() {
   const { clinicId } = useClinic()
   const { user } = useAuth()
   const { toast, confirm } = useToast()
-  const { notas, loading, error: errorNotas, reload } = useExpediente(patientId)
+  const { notas, loading, error: errorNotas, reload, truncada: historialTruncado, techo: techoHistorial } = useExpediente(patientId)
   const [errorPaciente, setErrorPaciente] = useState('')
   const [descargandoTodo, setDescargandoTodo] = useState(false)
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -218,6 +218,34 @@ export default function ExpedientePage() {
       <button onClick={volver} style={backBtn}>
         <ArrowLeft size={15} /> Atrás
       </button>
+
+      {/**
+        * EL HISTORIAL PUEDE VENIR RECORTADO, Y ESO SE DICE ARRIBA (REG-350).
+        *
+        * Va antes del ancla del paciente a propósito: de estas notas cuelgan los
+        * problemas activos, la medicación vigente y el resumen que se lee más
+        * abajo. Si falta historia, el médico tiene que saberlo ANTES de leer
+        * conclusiones derivadas de ella, no después.
+        *
+        * Un expediente recortado en silencio no enseña una lista incompleta:
+        * enseña «no tiene ese antecedente», que es la afirmación contraria y la
+        * que nadie vuelve a comprobar. Regla 4 de seguridad clínica.
+        */}
+      {historialTruncado && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Se cargaron las <strong>{techoHistorial}</strong> notas más recientes.
+            Este paciente tiene <strong>más historia de la que se ve aquí</strong>:
+            los diagnósticos, los medicamentos y el resumen de abajo salen sólo de
+            estas notas, así que <strong>no des por ausente</strong> lo que no aparezca.
+          </span>
+        </div>
+      )}
 
       {/* PATIENT ANCHOR (§7, V15-PATIENT-WORKSPACE-001) — identidad, alergia
           y encuentro en curso, SIEMPRE visible mientras se recorre el

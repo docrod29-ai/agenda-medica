@@ -80,7 +80,7 @@ vi.mock('@/lib/firebase', async () => {
 const { abrirEntorno, sembrar } = await import('./entorno')
 const { cambiarEstadoCita } = await import('@/lib/agenda/transicion-cita')
 const { registrarCobro, cobrosDeCita } = await import('@/lib/cobros')
-const { createNota, getNotas } = await import('@/lib/expediente/firestore')
+const { createNota, listarNotasCompat } = await import('@/lib/expediente/firestore')
 const { idIdempotente, claveDeIntento } = await import('@/lib/idempotencia')
 
 const PACIENTE = 'pac-gp9'
@@ -350,8 +350,12 @@ describe('GP9 - inicio de consulta', () => {
     expect(segunda).not.toBe(primera)
     expect(await contar(`clinics/${H.TENANT_A}/patients/${PACIENTE}/notas`)).toBe(2)
     // Y la firmada sigue firmada: no se piso ni una linea.
-    const notas = await getNotas(H.TENANT_A, PACIENTE)
-    expect(notas.find(n => n.id === primera)?.estado).toBe('firmada')
+    // REG-350: la lectura del historial declara si vino recortada. Aquí son dos
+    // notas, así que `truncada` tiene que ser false — y comprobarlo evita que
+    // esta aserción pase un día sobre una ventana que no contiene la nota.
+    const historial = await listarNotasCompat(H.TENANT_A, PACIENTE)
+    expect(historial.truncada).toBe(false)
+    expect(historial.notas.find(n => n.id === primera)?.estado).toBe('firmada')
   })
 
   it('sin clave se conserva el comportamiento de siempre (un documento por llamada)', async () => {
