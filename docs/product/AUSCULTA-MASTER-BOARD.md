@@ -503,6 +503,14 @@ dictan igual de pasado, y la diferencia la sabe el médico. Y sólo se mira lo q
 dictado **nombra**: un crónico del expediente que hoy no se mencionó no se toca,
 porque el silencio no suspende nada.
 
+**REG-374 corrigió el mismo día el falso positivo de REG-373**: usaba
+`esFrasePasada` —el criterio de los PADECIMIENTOS— y «le receté amoxicilina hace
+tres días» es pasado gramatical con el paciente tomándola, así que avisaba sobre
+todos los antibióticos recién iniciados. Ahora exige **cesación dicha** («ya no la
+toma», «se lo suspendimos») o **pasado remoto** («hace tres años», «cuando la
+operaron»), y **sin umbral de días**: cuántos días deja de estar tomándolo es una
+pregunta clínica que depende del fármaco.
+
 **Con esto los dos huecos de modelo del área quedan cubiertos sin inventar juicio
 clínico**: la autoridad sobre `tipo` (REG-372) y la temporalidad del fármaco
 (REG-373). Lo que sigue abierto es de producto y de sello: la pantalla donde el

@@ -48,7 +48,6 @@
  * Módulo PURO.
  */
 import { frases, comoPalabra } from '@/lib/expediente/negaciones'
-import { esFrasePasada } from '@/lib/expediente/temporalidad'
 
 /**
  * Longitud mínima del nombre para buscarlo en el dictado.
@@ -59,15 +58,75 @@ import { esFrasePasada } from '@/lib/expediente/temporalidad'
  */
 export const MINIMO_NOMBRE = 5
 
+const sinAcentos = (s: string) =>
+  String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+/**
+ * ── PASADO GRAMATICAL ≠ FÁRMACO TERMINADO (REG-374) ──────────────────────────
+ *
+ * La primera versión de este módulo usaba `esFrasePasada`, que es la defensa
+ * temporal de los PADECIMIENTOS. Ahí funciona: «tuvo neumonía hace tres días»
+ * sigue siendo un antecedente. Con un fármaco es falso:
+ *
+ *     «le receté amoxicilina hace tres días por la faringitis»
+ *
+ * está en pasado gramatical y el paciente **la está tomando ahora mismo** — va a
+ * mitad de un ciclo de siete días. Con la regla anterior, este módulo avisaba
+ * sobre todos los antibióticos recién iniciados, que es el caso más frecuente de
+ * la consulta. Un aviso que salta de más se aprende a cerrar, y entonces deja de
+ * proteger del caso que sí importa.
+ *
+ * Lo que separa «lo tomó» de «lo toma» no es el tiempo verbal: es que alguien
+ * diga que **acabó**, o que lo sitúe en un pasado que ya no puede ser hoy.
+ *
+ * Por eso NO hay ningún umbral de días aquí. «Hace cuántos días deja de estar
+ * tomándolo» es una pregunta clínica y depende del fármaco; elegir un número
+ * sería inventar una cifra (regla 1). Se exige una de dos cosas dichas:
+ */
+
+/** Alguien dijo que se acabó. Es la evidencia directa. */
+const CESACION = new RegExp([
+  '\\bya\\s+no\\s+(?:la|lo|las|los)?\\s*(?:toma|tomo|usa|uso|recibe|recibia)\\b',
+  '\\bdej[oó]\\s+de\\s+(?:tomar|usar|recibir)\\b',
+  '\\b(?:se\\s+(?:le|lo|la)\\s+)?suspend(?:i[oó]|imos|ieron|ida|ido)\\b',
+  '\\b(?:se\\s+(?:le|lo|la)\\s+)?retir(?:[oó]|amos|aron|ado|ada)\\b',
+  '\\b(?:ya\\s+)?(?:termin[oó]|acab[oó]|complet[oó])\\s+(?:el|la|con)?\\s*(?:ciclo|tratamiento|esquema)?\\b',
+  '\\bno\\s+(?:la|lo|las|los)\\s+(?:toma|est[aá]\\s+tomando)\\b',
+].join('|'), 'i')
+
+/**
+ * Lo sitúa en un pasado que ya no puede ser el tratamiento de hoy.
+ *
+ * Años y un año concreto, no días ni semanas: un fármaco de «hace tres días»
+ * puede estar corriendo, y uno de «hace tres años» o «cuando la operaron» no es
+ * el de esta consulta. La línea está en la UNIDAD de tiempo que se dijo, no en
+ * un número que haya que elegir.
+ */
+const REMOTO = new RegExp([
+  '(?<!desde\\s)\\bhace\\s+(?:\\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|varios|muchos|algunos)\\s*a[nñ]os?\\b',
+  '\\ben\\s+(?:19|20)\\d{2}\\b',
+  '\\b(?:le\\s+)?(?:operaron|oper[oó]|intervinieron)\\b',
+  '\\b(?:de|en\\s+la)\\s+(?:ni[nñ]o|ni[nñ]a|infancia|juventud)\\b',
+  '\\bcuando\\s+(?:lo|la|le)\\s+(?:internaron|hospitalizaron|operaron)\\b',
+].join('|'), 'i')
+
+/**
+ * ¿Esta frase dice que el fármaco YA NO se está tomando?
+ *
+ * No basta el pasado gramatical: hace falta que alguien diga que acabó, o que lo
+ * sitúe en un pasado que no puede ser el tratamiento de hoy.
+ */
+export function diceQueYaNoLoToma(frase: string): boolean {
+  const t = sinAcentos(frase)
+  return CESACION.test(t) || REMOTO.test(t)
+}
+
 export interface FarmacoSoloEnPasado {
   /** Tal como está en la lista vigente. */
   nombre: string
   /** La frase del dictado que lo sitúa en el pasado, para juzgar sin abrir el audio. */
   cita: string
 }
-
-const sinAcentos = (s: string) =>
-  String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 /** La primera palabra larga del nombre — «Warfarina 5 mg» busca «warfarina». */
 function palabraBuscable(nombre: string): string {
@@ -111,10 +170,10 @@ export function farmacosSoloMencionadosEnPasado(
      */
     if (!donde.length) continue
 
-    /* Basta UNA mención en presente para que no haya nada que decir: el fármaco
-       se habló como algo de ahora. Sólo cuando TODAS están en pasado hay
-       contradicción con que figure como vigente. */
-    if (donde.some(f => !esFrasePasada(f))) continue
+    /* Basta UNA mención que NO diga que acabó para que no haya nada que decir.
+       Sólo cuando TODAS las menciones dicen que ya no lo toma hay contradicción
+       con que figure como vigente. */
+    if (donde.some(f => !diceQueYaNoLoToma(f))) continue
 
     fuera.push({ nombre, cita: donde[0].trim().slice(0, 200) })
   }
@@ -132,6 +191,14 @@ export const POR_QUE_NO_LO_SUSPENDE_SOLO =
   'igual de pasado, y la diferencia la sabe el médico. Escribir el estado de una ' +
   'orden —de donde cuelgan la receta, las interacciones y el ajuste renal— sin ' +
   'que nadie lo confirme es decidir por él.'
+
+export const POR_QUE_EL_PASADO_NO_BASTA =
+  'Porque «le receté amoxicilina hace tres días» está en pasado gramatical y el ' +
+  'paciente la está tomando ahora mismo, a mitad de un ciclo de siete días. Lo ' +
+  'que separa «lo tomó» de «lo toma» no es el tiempo verbal: es que alguien diga ' +
+  'que acabó, o que lo sitúe en un pasado que ya no puede ser hoy. Y no hay ' +
+  'umbral de días: cuántos días deja de estar tomándolo es una pregunta clínica ' +
+  'que depende del fármaco, y elegir un número sería inventar una cifra.'
 
 export const POR_QUE_EL_SILENCIO_NO_CUENTA =
   'Porque un fármaco crónico que viene del expediente y hoy no se mencionó no ' +

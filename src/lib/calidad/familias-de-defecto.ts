@@ -261,7 +261,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * datos hay que releer los supuestos de quien los consume, no sólo el
      * formato.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372, 373],
+    /**
+     * 374 es el mismo error UN NIVEL MÁS ARRIBA, y lo cometió el arreglo de 373
+     * el mismo día: reutilizar un criterio probado FUERA del dominio para el que
+     * se escribió. `esFrasePasada` responde «¿esta frase encuadra lo dicho en el
+     * pasado?» y sirve para padecimientos; la pregunta del fármaco es «¿dice que
+     * ya no lo toma?». Se parecen y no son la misma, y la diferencia es que
+     * avisaba sobre todos los antibióticos recién iniciados.
+     *
+     * Su lección: un criterio que se reutiliza hay que volver a preguntarle por
+     * su caso MÁS FRECUENTE en el dominio nuevo, no por el que motivó el
+     * arreglo. El caso que motiva siempre pasa; el frecuente es el que enseña a
+     * cerrar el aviso.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372, 373, 374],
   },
   {
     clave: 'habla_real',

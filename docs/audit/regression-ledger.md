@@ -11944,3 +11944,63 @@ comprueba que se lee como `activa` y que `medicamentosVigentes` lo incluye — q
 por qué hacía falta una defensa aparte. Y otro caso comprueba que el eje temporal
 existente **no** mira fármacos, para que el día que lo haga alguien revise si este
 módulo sobra.
+
+---
+
+## REG-374 — pasado gramatical no es fármaco terminado
+
+**QUÉ FALLABA, Y DE DÓNDE SALIÓ.** Lo introdujo **REG-373, el mismo día**, y se
+cazó preguntándole al arreglo por su caso más frecuente en vez de por el que lo
+motivó.
+
+REG-373 usaba `esFrasePasada` —la defensa temporal de los **padecimientos**— para
+decidir si un fármaco «ya no se toma». Con un padecimiento funciona: «tuvo
+neumonía hace tres días» sigue siendo un antecedente. Con un fármaco es **falso**:
+
+```
+«le receté amoxicilina hace tres días por la faringitis»
+```
+
+está en pasado gramatical y el paciente **la está tomando ahora mismo**, a mitad
+de un ciclo de siete días. Con la regla anterior, el módulo avisaba sobre **todos
+los antibióticos recién iniciados** —el caso más frecuente de la consulta—, y un
+aviso que salta de más se aprende a cerrar: entonces deja de proteger del caso que
+sí importa, que es la warfarina de hace tres años.
+
+**CAUSA RAÍZ.** Se reutilizó un criterio probado **fuera del dominio para el que
+se escribió**. `esFrasePasada` responde «¿esta frase encuadra lo dicho en el
+pasado?», y la pregunta del fármaco es otra: «¿dice que ya no lo toma?». Se
+parecen y no son la misma.
+
+**EL ARREGLO.** Lo que separa «lo tomó» de «lo toma» no es el tiempo verbal: es
+que alguien diga que **acabó**, o que lo sitúe en un pasado que ya no puede ser
+hoy. Se exige una de las dos:
+
+- **cesación dicha** — «ya no la toma», «dejó de tomar», «se lo suspendimos», «se
+  le retiró», «terminó el ciclo», «no la está tomando»;
+- **pasado remoto** — «hace N **años**», «en 2019», «cuando la operaron», «de
+  niño».
+
+**Y no hay ningún umbral de días.** «Cuántos días deja de estar tomándolo» es una
+pregunta clínica que depende del fármaco, y elegir un número sería inventar una
+cifra (regla 1). La línea está en la **unidad de tiempo que se dijo** —años sí,
+días y semanas no—, no en un número que haya que escoger. Un caso del golden
+recorre las constantes numéricas del módulo y falla si aparece cualquiera que no
+sea la longitud mínima del nombre.
+
+`desde hace cinco años` **no** cuenta como remoto: «desde hace» es presente y lo
+dice la propia frase. Lleva su caso.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- «Le di warfarina hace tres meses» **no avisa**. Meses queda del lado de lo que
+  puede seguir corriendo, y para no inventar un umbral se prefiere callar. Regla
+  5: señalar de menos, y declararlo.
+- Sigue sin entender «suspendida hasta el martes»: eso dice cesación y avisa.
+  Avisar ahí cuesta una frase.
+
+**LA PRUEBA.** Los mismos casos de
+`src/__tests__/lo-que-tomo-no-es-lo-que-toma.test.ts` (28 ahora), con el bloque
+«pasado gramatical NO es fármaco terminado». Uno comprueba que el módulo **ya no
+importa ni llama** a `esFrasePasada` —mirando el import y la llamada, no la prosa,
+porque el comentario lo nombra para explicar por qué dejó de usarse—.

@@ -65,7 +65,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
   farmacosSoloMencionadosEnPasado, avisoDeFarmacoEnPasado, MINIMO_NOMBRE,
-  POR_QUE_NO_LO_SUSPENDE_SOLO, POR_QUE_EL_SILENCIO_NO_CUENTA,
+  diceQueYaNoLoToma,
+  POR_QUE_NO_LO_SUSPENDE_SOLO, POR_QUE_EL_SILENCIO_NO_CUENTA, POR_QUE_EL_PASADO_NO_BASTA,
 } from '@/lib/expediente/el-farmaco-que-ya-no-toma'
 import { estadoDeOrden, medicamentosVigentes } from '@/lib/expediente/ordenes-medicamento'
 import { construirAvisos, NIVEL } from '@/lib/expediente/avisos-consulta'
@@ -105,9 +106,21 @@ describe('el arreglo: se señala lo que sólo se dijo en pasado', () => {
     expect(farmacosSoloMencionadosEnPasado([{ nombre: 'Metformina 850 mg' }], DICTADO)).toEqual([])
   })
 
-  it('basta UNA mención en presente para que no haya nada que decir', () => {
+  it('basta UNA mención que no diga que acabó para que no haya nada que decir', () => {
     const d = 'Le dieron warfarina hace tres años. Sigue con warfarina 5 mg.'
     expect(farmacosSoloMencionadosEnPasado([{ nombre: 'Warfarina' }], d)).toEqual([])
+  })
+
+  it('«ya no la toma» basta, sin marcador de tiempo', () => {
+    expect(farmacosSoloMencionadosEnPasado(
+      [{ nombre: 'Warfarina' }], 'La warfarina ya no la toma.',
+    )).toHaveLength(1)
+  })
+
+  it('«se la suspendimos» también', () => {
+    expect(farmacosSoloMencionadosEnPasado(
+      [{ nombre: 'Enalapril' }], 'El enalapril se lo suspendimos por la tos.',
+    )).toHaveLength(1)
   })
 
   it('el nombre se busca por PALABRA, no por subcadena', () => {
@@ -125,6 +138,68 @@ describe('el arreglo: se señala lo que sólo se dijo en pasado', () => {
       [{ nombre: 'Warfarina 5 mg' }, { nombre: 'warfarina' }], DICTADO,
     )
     expect(fuera).toHaveLength(1)
+  })
+})
+
+describe('pasado gramatical NO es fármaco terminado — REG-374', () => {
+  /*
+   * Esta parte de REG-373 estaba MAL y la corrige REG-374, el mismo día.
+   *
+   * La primera versión usaba `esFrasePasada`, la defensa temporal de los
+   * PADECIMIENTOS. Ahí funciona: «tuvo neumonía hace tres días» sigue siendo un
+   * antecedente. Con un fármaco es falso — «le receté amoxicilina hace tres
+   * días» está en pasado gramatical y el paciente la está tomando ahora, a mitad
+   * de un ciclo de siete días. Avisaba sobre TODOS los antibióticos recién
+   * iniciados, que es el caso más frecuente de la consulta, y un aviso que salta
+   * de más se aprende a cerrar.
+   */
+  it('un antibiótico recetado hace tres días NO avisa', () => {
+    expect(farmacosSoloMencionadosEnPasado(
+      [{ nombre: 'Amoxicilina' }], 'Le receté amoxicilina hace tres días por la faringitis.',
+    )).toEqual([])
+  })
+
+  it('ni hace dos semanas, ni el mes pasado', () => {
+    for (const d of [
+      'Se le dio azitromicina hace dos semanas.',
+      'Le indiqué prednisona hace un mes.',
+    ]) {
+      expect(farmacosSoloMencionadosEnPasado([{ nombre: 'Azitromicina' }, { nombre: 'Prednisona' }], d)).toEqual([])
+    }
+  })
+
+  it('pero «hace tres años» y «cuando la operaron» sí', () => {
+    expect(diceQueYaNoLoToma('le dieron warfarina hace tres años')).toBe(true)
+    expect(diceQueYaNoLoToma('le dieron warfarina cuando la operaron')).toBe(true)
+    expect(diceQueYaNoLoToma('tomó clopidogrel en 2019')).toBe(true)
+  })
+
+  it('y «hace tres días» no lo es, aunque sea pasado', () => {
+    expect(diceQueYaNoLoToma('le receté amoxicilina hace tres días')).toBe(false)
+  })
+
+  it('NO hay ningún umbral de días en el módulo', () => {
+    /* «Cuántos días deja de estar tomándolo» es una pregunta clínica que depende
+       del fármaco: elegir un número sería inventar una cifra (regla 1). La línea
+       está en la UNIDAD de tiempo que se dijo, no en un número que haya que
+       escoger. */
+    expect(POR_QUE_EL_PASADO_NO_BASTA).toMatch(/inventar una cifra/)
+    const src = readFileSync('src/lib/expediente/el-farmaco-que-ya-no-toma.ts', 'utf8')
+    /* Se buscan CONSTANTES numéricas —`const DIAS_LIMITE = 30`—, que es la forma
+       que tendría un umbral. Los dígitos sueltos de este archivo viven dentro de
+       clases de caracteres (`[^a-z0-9]`) y de años (`(?:19|20)\d{2}`), que no
+       son cifras clínicas. */
+    const constantes = [...src.matchAll(/const\s+([A-Z_][A-Z0-9_]*)\s*=\s*(\d+(?:\.\d+)?)/g)]
+      .map(m => `${m[1]}=${m[2]}`)
+    expect(constantes).toEqual([`MINIMO_NOMBRE=${MINIMO_NOMBRE}`])
+  })
+
+  it('ya no IMPORTA el eje temporal de los padecimientos', () => {
+    /* Se mira el import, no la prosa: el comentario del módulo nombra
+       `esFrasePasada` justamente para explicar por qué dejó de usarse. */
+    const src = readFileSync('src/lib/expediente/el-farmaco-que-ya-no-toma.ts', 'utf8')
+    expect(src).not.toMatch(/^import .*esFrasePasada/m)
+    expect(src).not.toMatch(/esFrasePasada\(/)
   })
 })
 
