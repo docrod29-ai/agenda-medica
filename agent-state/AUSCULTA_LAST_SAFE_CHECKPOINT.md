@@ -1,25 +1,25 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 29-ago-2026 — **cuatro P1 cerrados y el inventario de lecturas de WS-03, cerrado**
+## Checkpoint · 29-ago-2026 — **cinco P1 cerrados; WS-03 lecturas y WS-04 interruptor**
 
 ```
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-03 (consultorio grande) — queda el inventario de lecturas de CITAS
-LAST_COMPLETED_UNIT=WS-03 · REG-352 · la baja de un paciente ya no lee la agenda entera ni se traga el fallo
+LAST_COMPLETED_UNIT=P1-15 · REG-353 · un proveedor caído deja de reintentarse en cada petición
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=P1-15 — no hay circuit breaker ni presupuesto de reintentos en ninguna parte (WS-04). Después P1-2 (22 colecciones sin declarar en los tres sitios) y P1-13 (los otros escritores de scroll).
-FILES_IN_SCOPE=src/lib/ia/gateway.ts · src/lib/net/fetch-con-timeout.ts (o donde viva el helper de red)
+EXACT_NEXT_ACTION=P1-2 — 22 colecciones de nivel raíz sin declarar en los tres sitios (reglas · matriz de acceso · respaldo). Después P1-13 (los otros escritores de scroll), P1-9 (procedencia de evidencia sobre #314), P1-10 (licencia PMC por artículo) y P1-17 (búsqueda por prefijo).
+FILES_IN_SCOPE=firestore.rules · src/lib/authz/matriz-acceso.ts · src/lib/clinica/respaldo.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10692
+TESTS_PASSED=10714
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
-P1_OPEN=P1-2 · P1-9 · P1-10 · P1-13 · P1-15 · P1-17   → 6 internos
+P1_OPEN=P1-2 · P1-9 · P1-10 · P1-13 · P1-17   → 5 internos
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-352
+DO_NOT_REGRESS=REG-323 · REG-337…REG-353
 ```
 
 ### Cerrado en esta tanda
@@ -31,11 +31,13 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-352
 | 350 | El historial completo de un paciente se bajaba en cada pantalla — y con él caían dos amplificaciones peores y una salvaguarda que habría quedado colgando del techo |
 | 351 | Nueve pantallas trataban el recorte del directorio como el censo completo: typeahead que decía «no está», importador que duplicaba el consultorio, panel NOM-004 que afirmaba «al día», libro de controlados sin el nombre de a quién se le dio |
 | 352 | La baja de un paciente leía la agenda ENTERA y se tragaba el fallo: por ese camino pasa la cancelación ARCO, y podía borrar el expediente dejando citas con su nombre y su teléfono |
+| 353 | Un proveedor caído se seguía reintentando en cada petición, pagando el timeout entero. Interruptor por proveedor **y por llave**: una llave revocada de un consultorio no puede apagar a los demás |
 
 ### El saldo, escrito
 
 `cerrado −1 (P1-16)` · `nuevo +1 (P1-18)` · `cerrado −1 (P1-18)` ·
-`cerrado −1 (P1-12)` · `cerrado −1 (P1-11)` → **9 → 6 P1 internos**.
+`cerrado −1 (P1-12)` · `cerrado −1 (P1-11)` · `cerrado −1 (P1-15)` →
+**9 → 5 P1 internos**.
 Un P1 nuevo no borra uno cerrado; se enseñan los dos movimientos.
 
 ### Lo que el tablero decía y el código desmentía

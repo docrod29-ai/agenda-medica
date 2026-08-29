@@ -39,6 +39,9 @@ import {
   cuerpoAnthropic, cuerpoOpenAI, falloHttp, leerAnthropic, leerOpenAI,
   siguienteModelo, type Peticion, type Proveedor, type Resultado,
 } from '@/lib/ia/protocolo'
+import {
+  claveCircuito, permiteLlamar, anotarResultado, type ClaseFalloIA,
+} from '@/lib/ia/interruptor'
 
 const ANTHROPIC_VERSION = '2023-06-01'
 
@@ -118,11 +121,59 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
     return { ok: false, clase: 'limite', motivo: reserva.motivo ?? 'Sin créditos de IA este mes.' }
   }
 
+  /**
+   * ── EL INTERRUPTOR (P1-15) ────────────────────────────────────────────────
+   *
+   * Se pregunta ANTES de apartar tiempo del médico. Con el proveedor caído, la
+   * llamada 60 no tiene por qué volver a esperar sesenta segundos para llegar a
+   * la misma conclusión que las 59 anteriores.
+   *
+   * Va DESPUÉS de reservar créditos y por eso los devuelve: la reserva ya
+   * ocurrió, y un médico al que se le cobra una nota que ni siquiera se intentó
+   * pierde dos veces.
+   */
+  const circuito = claveCircuito(o.proveedor, ctx.fuente, ctx.clinicId)
+  const puerta = permiteLlamar(circuito)
+  if (!puerta.pasa) {
+    void devolverCreditos(reserva)
+    const nombre = o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'
+    /**
+     * Clase `proveedor`, no `red`: es exactamente lo que pasa —el proveedor no
+     * está— y así el mensaje que ve el médico sale por el mismo camino que
+     * cualquier otra caída, incluida la regla de que con llave de la plataforma
+     * jamás se le echa la culpa a él (`fallo-proveedor.ts`).
+     */
+    return {
+      ok: false, clase: 'proveedor',
+      motivo: `${nombre}: no está respondiendo. No se volvió a intentar para no hacerte esperar; se reintenta solo en unos segundos.`,
+    }
+  }
+
   const lista = o.modelos.length > 0 ? o.modelos : ['']
   const t0 = Date.now()
   let ultimo: Resultado = { ok: false, clase: 'modelo', motivo: 'No se intentó ningún modelo.' }
+  /**
+   * PRESUPUESTO DE LA LLAMADA ENTERA, no de cada intento.
+   *
+   * `fetchConTimeout` acota UN `fetch`. Con una cascada de tres modelos y un
+   * proveedor lento, tres timeouts seguidos son tres minutos — dentro de una
+   * ruta que puede durar 300 s, así que nada la corta. El médico espera todo eso
+   * con el paciente enfrente.
+   *
+   * El presupuesto es el timeout de un intento más un margen para un segundo:
+   * pasar a otro modelo tiene sentido una vez, no tres.
+   */
+  const presupuestoMs = Math.round(TIMEOUT.ia * 1.6)
 
   for (const modelo of lista) {
+    if (Date.now() - t0 > presupuestoMs) {
+      anotarResultado(circuito, 'red')
+      void devolverCreditos(reserva)
+      return {
+        ok: false, clase: 'red',
+        motivo: `${o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'}: se agotó el tiempo de esta operación probando modelos. Tu trabajo está guardado.`,
+      }
+    }
     const p: Peticion = { ...o, modelo }
     let res: Response
     try {
@@ -154,6 +205,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
         ? { ok: false, clase: 'red', motivo: `${proveedor}: tardó más de ${Math.round(TIMEOUT.ia / 1000)} s y se cortó la espera.` }
         : { ok: false, clase: 'red', motivo: `${proveedor}: no se pudo conectar.` }
       // Un fallo de red no dice nada del modelo: no tiene sentido recorrer la lista.
+      anotarResultado(circuito, 'red')
       break
     }
 
@@ -161,6 +213,9 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
       const cuerpo = await res.text().catch(() => '')
       safeLog.error(`[gateway] ${o.proveedor} ${ctx.feature}`, { status: res.status, cuerpo: cuerpo.slice(0, 300) })
       ultimo = falloHttp(o.proveedor, res.status)
+      // Sólo un 5xx del proveedor cuenta para abrir el circuito. Una llave mala
+      // o un 429 son de QUIEN llama, y apagarían a los demás: ver `interruptor.ts`.
+      anotarResultado(circuito, ultimo.clase as ClaseFalloIA)
       // Una llamada rechazada puede haber consumido tokens; queda anotada.
       anotar(ctx, o.proveedor, modelo, null, Date.now() - t0, true)
       if (siguienteModelo(res.status)) continue
@@ -169,6 +224,12 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
 
     const data = await res.json().catch(() => null)
     const r = o.proveedor === 'anthropic' ? leerAnthropic(data, modelo) : leerOpenAI(data, modelo)
+    /**
+     * Llegó una respuesta HTTP buena: el proveedor ESTÁ. Que su salida no se
+     * pueda leer es otro problema —y no uno que se arregle dejando de llamar—,
+     * así que el circuito se cierra igual.
+     */
+    anotarResultado(circuito, null)
     anotar(ctx, o.proveedor, r.ok ? r.modelo : modelo, data, Date.now() - t0, !r.ok)
     // Se cobra lo apartado si contestó; si su salida no se pudo leer, no.
     if (r.ok) void confirmarCreditos(reserva, ctx.creditos)

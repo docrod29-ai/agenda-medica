@@ -84,7 +84,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * mitad. El consultorio restaurado seguía quedándose sin miembros —el
      * defecto de REG-343, una casilla más adelante— y el informe se veía sano.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348],
+    /**
+     * 353 es la variante temporal de esta familia: la defensa EXISTÍA y cubría
+     * el caso equivocado. `fetchConTimeout` acota UNA llamada; el fallo de un
+     * proveedor dura una temporada, así que las mil siguientes volvían a pagar
+     * el timeout entero. Una protección pensada por llamada no protege de un
+     * problema que es por temporada.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353],
   },
   {
     clave: 'se_contradice',

@@ -10360,3 +10360,81 @@ comprueba que el expediente sobrevive cuando la agenda no se pudo leer.
   hueco que P1-2 (colecciones sin declarar) mantiene abierto.
 - **`firestore.indexes.json` no está desplegado**, y desplegarlo requiere
   autorización del dueño. El archivo declara; no crea nada.
+
+## REG-353 — un proveedor caído se seguía reintentando en cada petición
+
+**QUÉ FALLABA.** REG-346 puso tiempo máximo a las llamadas de proveedor, así que
+**una** ya no podía inmovilizar la función. Lo que no había era nada que
+impidiera que las **mil siguientes** volvieran a pagar el timeout entero contra
+un proveedor que llevaba minutos caído. El propio tablero lo decía: «no hay
+circuit breaker ni presupuesto de reintentos en ninguna parte» (P1-15).
+
+Con Anthropic devolviendo 529, cada consulta que empieza espera 60 segundos para
+acabar diciendo «no se pudo». Diez médicos a la vez son diez funciones ocupadas
+un minuto cada una —facturadas por GB-segundo— y diez médicos con el paciente
+enfrente mirando una barra que ya se sabe cómo termina. Y la avalancha de
+reintentos es justo lo que impide que un proveedor sobrecargado se recupere.
+
+Además la cascada de modelos no tenía **presupuesto total**: tres modelos con un
+proveedor lento son tres timeouts seguidos —tres minutos— dentro de una ruta que
+puede durar 300 s, así que nada los cortaba.
+
+**LA CAUSA RAÍZ.** El acotado se pensó **por llamada** y el fallo de un proveedor
+es **por temporada**. Un timeout protege a quien llama de una petición; no
+protege al sistema de un proveedor que ya no está, ni al proveedor de nosotros.
+
+**LA REGLA QUE LO HACE SEGURO.** Tras tres fallos seguidos **del proveedor** se
+deja de llamar y se falla rápido. Pasado el enfriamiento se deja pasar **una
+sola** llamada de prueba: si contesta se cierra el circuito; si no, se reabre con
+el doble de espera, hasta un tope de cinco minutos — porque un proveedor caído
+tampoco se abandona para siempre.
+
+Y la cascada lleva **presupuesto de la operación entera**, no sólo por intento:
+pasar a otro modelo tiene sentido una vez, no tres.
+
+**LA PARTE QUE HAY QUE VIGILAR, Y NO ES LA OBVIA.** Sólo abren el circuito los
+fallos que dicen «el proveedor no está» (5xx y tiempo agotado). **Una llave
+revocada NO lo abre**, y eso no es afinación: si lo abriera, **un consultorio con
+su llave mal escrita dejaría sin IA a todos los demás**.
+
+Un interruptor mal condicionado no mueve datos de un consultorio a otro: **mueve
+la caída**. Es una fuga de aislamiento que ninguna revisión de permisos
+encuentra, porque los permisos están bien. Por el mismo motivo la llave forma
+parte de la **clave** del circuito: el de la plataforma es uno, y el de cada
+consultorio es suyo.
+
+Tampoco abren el circuito el saldo (402), el límite de tasa (429) —que además
+contesta rápido, así que no habría nada que ahorrar— ni un modelo inexistente
+(400/404), que dice que el proveedor está perfectamente.
+
+Un detalle que se decidió a propósito: **una prueba que se topa con un 401 no
+cierra el circuito**. No se ha aprendido nada sobre si el proveedor volvió, y
+cerrar ahí soltaría la avalancha por un error que no desmiente la caída.
+
+**LA PRUEBA.** `src/__tests__/un-proveedor-caido-no-se-reintenta-mil-veces.test.ts`
+(22 casos). El núcleo es puro —`decidir` y `siguienteEstado` no tocan reloj ni
+red— así que el ciclo completo (cae → abre → enfría → prueba → vuelve) se
+ejercita sin esperar de verdad. Probado al revés haciendo que `esFalloDelProveedor`
+devuelva `true` para todo: caen 2 casos, y el primero es exactamente el que
+protege a los demás consultorios.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No es un interruptor global.** El estado vive en memoria del proceso, así que
+  en un despliegue sin servidor **cada instancia caliente tiene el suyo**: la
+  primera llamada de cada instancia paga su timeout. Sirve —cada instancia deja
+  de castigar al proveedor y de hacer esperar a su médico— pero no garantiza que
+  ninguna lo intente. Hacerlo global exigiría una lectura compartida por llamada,
+  un coste fijo en el camino de una nota clínica para arreglar un caso raro. Se
+  escribe en el módulo porque **un interruptor del que se cree que es global, y
+  no lo es, hace tomar decisiones equivocadas sobre las alertas**.
+- **No prueba la red.** No hay `fetch` real: se ejercita la máquina de estados y
+  la clave del circuito, que es donde vive la decisión.
+- **No cubre WhatsApp ni Evidence.** Sus llamadas tienen timeout (REG-346) y el
+  outbox tiene backoff (`whatsapp/reintentos.ts`), pero **no pasan por esta
+  puerta** y siguen sin interruptor. Queda abierto y con nombre.
+- **No mide el ahorro.** Que se llama menos está probado; cuánto se ahorra en
+  GB-segundo, no.
+- **No hay cola ni contrapresión ni dead-letter** para las llamadas de IA. El
+  interruptor evita la avalancha; no encola lo que no se pudo hacer. Sigue
+  abierto en WS-04.
