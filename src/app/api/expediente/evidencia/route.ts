@@ -111,11 +111,14 @@ export async function POST(req: NextRequest) {
   /**
    * ── EL PROMPT NO PUEDE LLAMAR DIAGNÓSTICO A UNA SOSPECHA (REG-364) ────────
    *
-   * `dx` se aplanaba a la descripción, así que un `presuntivo` viajaba en la
-   * línea «DIAGNÓSTICOS: …» exactamente igual que un confirmado, y el modelo
-   * razonaba —y buscaba en PubMed— sobre una enfermedad que el médico sólo
-   * había planteado. `SUGERIDO ≠ CONFIRMADO` también cuando el lector es un
-   * modelo.
+   * `dx` se aplanaba a la descripción, así que lo que el médico había
+   * DESCARTADO viajaba en la línea «DIAGNÓSTICOS: …» exactamente igual que un
+   * confirmado, y el modelo razonaba sobre una enfermedad que el paciente no
+   * tiene. `SUGERIDO ≠ CONFIRMADO` también cuando el lector es un modelo.
+   *
+   * `presuntivo` NO se etiqueta, y el porqué está en `nombreConCerteza`: es el
+   * valor de fábrica del esquema, así que etiquetarlo le diría al modelo que
+   * hay una duda que nadie expresó — en casi todos los renglones (REG-365).
    *
    * Las CONSULTAS de PubMed se construyen con el término a secas: «(presuntivo)»
    * dentro de una búsqueda MeSH no la afina, la rompe.

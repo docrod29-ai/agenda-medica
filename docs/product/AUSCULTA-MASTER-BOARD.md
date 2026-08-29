@@ -368,9 +368,23 @@ negativa— entraba al cuadro que ven el copiloto y el prompt de evidencia. Medi
 el copiloto escribía «La paciente cursa embarazo» y ofrecía insertarlo en la nota
 firmada. El criterio correcto (`estaVigente`) estaba exportado y probado desde
 que existe la proyección, y **tres lectores lo aplicaban y el cuarto no**. Ahora
-`tipo` viaja, y `nombreConCerteza` es **una** definición para los cuatro: un
-`presuntivo` entra —lo es— pero entra diciendo que lo es. Ningún aviso se calla:
-el gestacional de un embarazo presuntivo se sigue dando, en condicional.
+`tipo` viaja, y `nombreConCerteza` es **una** definición para los cuatro. Ningún
+aviso se calla: el gestacional de un embarazo presuntivo se sigue dando.
+
+**REG-365 — y la mitad de REG-364 que estaba mal, corregida el mismo día.**
+REG-364 etiquetaba «(presuntivo)» en los cuatro lectores. `presuntivo` es el
+**valor de fábrica** del esquema (`extraction-schema.ts:40`), lo que el prompt
+manda poner por defecto, y lo que escribe el botón de añadir diagnóstico — y
+**ninguna pantalla deja al médico elegir el tipo**. Así que la etiqueta afirmaba
+una duda que nadie expresó, sobre casi todos los renglones: una diabetes crónica
+confirmada se leía «Diabetes mellitus tipo 2 (presuntivo)». Hoy sólo se etiqueta
+lo que **no se alcanza por omisión** (`descartado`, `diferencial`), y el copiloto
+cita el expediente en vez de afirmar cuando no consta.
+
+**Lo que esto deja abierto, y es de producto**: el médico **no puede elegir el
+tipo de un diagnóstico en ninguna pantalla**. Mientras siga así, el sistema no
+distingue un presuntivo elegido de uno de fábrica, y por eso no puede enseñarlo.
+Darle ese control obliga a separar «elegido» de «por defecto» en el modelo.
 
 **El hueco de fondo**: negación, temporalidad, experienciador y certeza corren
 **en el momento de la consulta y producen avisos**, y después **se descartan**.

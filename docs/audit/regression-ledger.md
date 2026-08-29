@@ -11261,3 +11261,74 @@ conservando su intención, y queda dicho en su comentario.
 - **No toca la reactividad cruzada** ni los motores de dosis, renal o pediátrico.
 - **No revisa las notas ya firmadas.** Un cuadro mal formado que ya se razonó y
   se selló sigue sellado: una nota firmada es inmutable.
+
+---
+
+## REG-365 — una etiqueta que sale siempre afirmaba una duda que nadie expresó
+
+**QUÉ FALLABA, Y DE DÓNDE SALIÓ.** Lo introdujo **REG-364, unas horas antes**, y
+se cazó revisando el arreglo con una sola pregunta: *«¿y qué valor trae de fábrica
+este campo?»*.
+
+REG-364 hizo que los cuatro lectores del diagnóstico —la lista de `/consulta`, el
+resumen de `/expediente`, el cuadro de los motores y el prompt de evidencia—
+escribieran «(presuntivo)» al lado de un diagnóstico presuntivo, en nombre de
+`SUGERIDO ≠ CONFIRMADO`. Suena bien. Es falso, por esto:
+
+```
+extraction-schema.ts:40   tipo: z.enum([...]).optional().default('presuntivo')
+prompts.ts:85             «Por defecto tipo="presuntivo".»
+consulta/page.tsx         el botón de añadir crea  { tipo: 'presuntivo' }
+— y NINGUNA pantalla del producto deja al médico elegir el tipo —
+```
+
+`presuntivo` **es el valor de fábrica**. No quiere decir «el médico lo dio por
+probable»: quiere decir **«nadie dijo nada»**. Etiquetarlo tenía dos
+consecuencias, las dos malas:
+
+1. **Afirmaba una duda inexistente.** Una diabetes crónica confirmada, capturada
+   como todas con el tipo de fábrica, se leía en pantalla y en el prompt del
+   modelo como **«Diabetes mellitus tipo 2 (presuntivo)»** — el médico nunca dijo
+   eso. Es la regla 4 de seguridad clínica por el otro lado: ausencia de dato no
+   es dato de ausencia, y tampoco es dato de duda.
+2. **Convertía la marca en ruido.** Al salir en casi todos los renglones, dejaría
+   de leerse justo el día que significara algo.
+
+Y en el copiloto, la primera redacción hacía lo mismo en el otro sentido: decía
+«El embarazo está planteado y **no confirmado**» ante un `presuntivo`, o sea
+afirmaba una NO-confirmación que tampoco consta.
+
+**CAUSA RAÍZ.** Se le dio significado a un valor sin comprobar de dónde sale. Un
+campo con `default` no distingue *«se eligió esto»* de *«no se eligió nada»*, y
+todo lo que se construya encima hereda esa ambigüedad.
+
+**EL ARREGLO.**
+
+- `nombreConCerteza` etiqueta **sólo `descartado` y `diferencial`** — los dos a
+  los que **no se llega por omisión**: los escribe el extractor cuando el médico
+  dictó un descarte o un diferencial. `definitivo` y `presuntivo` van limpios.
+- El copiloto **afirma sólo si alguien afirmó**, y si no, **cita el expediente**:
+  «Hay un embarazo registrado en la nota». Ni da por cierto lo que nadie confirmó
+  ni por falso lo que nadie descartó. El aviso de teratogenicidad **no se pierde
+  en ningún caso**.
+- Lo que REG-364 arregló de verdad **se queda entero**: `descartado` y
+  `diferencial` no entran al cuadro que ven los motores, `tipo` viaja en
+  `DiagnosticoDelCuadro`, y el copiloto no depende de que su llamador filtre.
+
+**LA PRUEBA.** Los mismos 18 casos de
+`src/__tests__/lo-que-el-medico-descarto-no-es-un-diagnostico.test.ts`, con el
+bloque «un valor de fábrica no es un juicio del médico». Uno de ellos **lee el
+esquema y el prompt** y falla si `presuntivo` deja de ser el valor por defecto:
+la regla de arriba sólo es correcta mientras lo sea, y el día que cambie tiene
+que saltar algo en vez de quedarse callado.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No arregla que el médico no pueda elegir el tipo.** Hoy `tipo` lo pone el
+  extractor o el default, nunca una pantalla. Mientras siga así, el producto **no
+  puede distinguir un presuntivo elegido de uno de fábrica**, y por eso no lo
+  enseña. Darle un control al médico es una decisión de producto y de modelo
+  —haría falta separar «elegido» de «por defecto»—, no un cambio de esta
+  función. Queda anotado en WS-10.
+- No toca el otro eje de certeza, el del PACIENTE (`certeza.ts`), que sigue
+  calculándose en la consulta y descartándose al firmar.

@@ -222,7 +222,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * sistema, era de un archivo; y lo que no está medido en un sitio común se
      * cumple sólo donde alguien se acordó.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362],
+    /**
+     * 365 es esta familia aplicada a un VALOR POR DEFECTO. `presuntivo` es lo
+     * que el esquema pone cuando nadie eligió, así que enseñarlo afirmaba una
+     * duda que el médico no expresó — y en casi todos los renglones, con lo que
+     * la etiqueta se volvía ruido. Lo introdujo REG-364 unas horas antes y lo
+     * cazó una sola pregunta al revisar el arreglo: «¿y qué valor trae de
+     * fábrica este campo?».
+     *
+     * La lección: un campo con `default` no distingue «se eligió esto» de «no
+     * se eligió nada», y todo lo que se construya encima hereda la ambigüedad.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365],
   },
   {
     clave: 'hueco_como_dato',

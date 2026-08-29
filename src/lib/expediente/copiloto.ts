@@ -386,7 +386,13 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
   const dxGestacional = (e.diagnosticos ?? []).filter(d =>
     /embaraz|gestaci|gr[aá]vid|obst[eé]tric|prenatal/i.test(d.descripcion ?? ''))
   const embarazoConfirmado = dxGestacional.some(d => d.tipo !== 'descartado' && d.tipo !== 'diferencial')
-  /** ¿Alguien lo dio por CIERTO, o sólo por probable? Decide cómo se redacta. */
+  /**
+   * ¿Alguien lo dio por CIERTO? Decide si el aviso AFIRMA o sólo CITA la nota.
+   *
+   * `presuntivo` no cuenta como afirmación —es el valor de fábrica del esquema,
+   * no un juicio (REG-365)— pero tampoco se lee como negación: cuando no consta,
+   * el aviso dice lo que el expediente dice y no más.
+   */
   const embarazoAfirmado = dxGestacional.some(d => d.tipo === undefined || d.tipo === 'definitivo')
   const coincide = (x: { farmaco: string; sinonimos?: string[] }, nm: string) =>
     (x.sinonimos ?? []).some(s => nm.includes(norm(s))) ||
@@ -418,10 +424,11 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
         id: `gesta:evitar:${m.nombre}`,
         nivel: 'accion',
         titulo: `${m.nombre}: evítalo en el embarazo`,
-        detalle: `${embarazoAfirmado ? 'La paciente cursa embarazo.' : 'El embarazo está planteado y no confirmado.'} ${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''}`,
-        /* El texto que puede acabar DENTRO de una nota firmada no afirma un
-           embarazo que nadie confirmó. */
-        textoNota: `${m.nombre} debe evitarse ${embarazoAfirmado ? 'en el embarazo' : 'si se confirma el embarazo'}; se comentó y se valoró una alternativa. ${g.motivo}`,
+        /* Afirma sólo si alguien lo afirmó; si no, CITA el expediente. Lo que
+           no puede hacer es dar por cierto un embarazo que nadie confirmó ni
+           por falso uno que nadie descartó. */
+        detalle: `${embarazoAfirmado ? 'La paciente cursa embarazo.' : 'Hay un embarazo registrado en la nota.'} ${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''}`,
+        textoNota: `${m.nombre} debe evitarse en el embarazo; se comentó y se valoró una alternativa. ${g.motivo}`,
       })
     }
   }

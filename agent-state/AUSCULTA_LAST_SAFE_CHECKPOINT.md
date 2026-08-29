@@ -7,19 +7,19 @@ CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-10 (Patient State longitudinal) — cerradas las alergias; faltan procedimientos, dispositivos, laboratorios, tendencias y compromisos
-LAST_COMPLETED_UNIT=WS-10 · REG-364 · lo que el médico descartó ya no llega a los motores como diagnóstico suyo
+LAST_COMPLETED_UNIT=WS-10 · REG-365 · un valor de fábrica no es un juicio del médico (corrige la mitad mala de REG-364)
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=WS-10 sigue. Cerradas las ALERGIAS (REG-363) y la CERTEZA DEL MÉDICO (REG-364). Lo siguiente de este workstream: el eje de certeza del PACIENTE —`certeza.ts` corre en la consulta, avisa y se descarta al firmar— y después procedimientos, dispositivos, laboratorios y tendencias. Detalle de REG-363: tercera proyección longitudinal, regla asimétrica, cableada en /consulta y /expediente sin lecturas nuevas). Quedan procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento; y ninguna de las tres proyecciones se PERSISTE — persistir arrastra los tres sitios de declaración de una colección y es decisión de arquitectura, no un refactor. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
+EXACT_NEXT_ACTION=WS-10 sigue. Cerradas las ALERGIAS (REG-363) y la CERTEZA DEL MÉDICO (REG-364 + REG-365, que corrigió la mitad mala del anterior). Lo siguiente de este workstream: el eje de certeza del PACIENTE —`certeza.ts` corre en la consulta, avisa y se descarta al firmar— y después procedimientos, dispositivos, laboratorios y tendencias. Detalle de REG-363: tercera proyección longitudinal, regla asimétrica, cableada en /consulta y /expediente sin lecturas nuevas). Quedan procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento; y ninguna de las tres proyecciones se PERSISTE — persistir arrastra los tres sitios de declaración de una colección y es decisión de arquitectura, no un refactor. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
 FILES_IN_SCOPE=src/lib/expediente/alergias-longitudinales.ts · src/lib/expediente/problemas-activos.ts · src/lib/expediente/ordenes-medicamento.ts · src/types/expediente.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10885
+TESTS_PASSED=10887
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno — P1-20 abierto y cerrado con REG-364)
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-364
+DO_NOT_REGRESS=REG-323 · REG-337…REG-365
 ```
 
 ### Cerrado en esta tanda
@@ -43,6 +43,7 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-364
 | 362 | `evals/patient-ai/` no existía: la única regla del repositorio que no se podía correr. La primera vez que se pudo, **encontró un defecto vivo** — la ingesta accidental sólo se detectaba en tercera persona |
 | 363 | La alergia estaba **sellada en cada nota firmada** y nadie la volvía a leer. Vaciado el campo mutable de `Patient`, el producto se comportaba como si dos notas inmutables que dicen «anafilaxia por penicilina» no existieran. Primera unidad de WS-10 sin P1 detrás |
 | 364 | Lo que el médico **descartó** entraba al cuadro que ven el copiloto y el prompt de evidencia. Medido: «embarazo descartado» → «La paciente cursa embarazo», en un texto que se inserta en la nota firmada. **P1-20, abierto y cerrado en esta unidad** |
+| 365 | La otra mitad de REG-364 **estaba mal**: etiquetar «(presuntivo)» afirmaba una duda que nadie expresó, porque `presuntivo` es el valor de FÁBRICA del esquema y ninguna pantalla deja elegir el tipo. Corregido el mismo día, con un caso que vigila que siga siendo el default |
 
 ### El saldo, escrito
 

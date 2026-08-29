@@ -135,14 +135,17 @@ describe('el copiloto no afirma un embarazo que se descartó', () => {
     expect(texto).toMatch(/cursa embarazo/i)
   })
 
-  it('con un embarazo PRESUNTIVO el aviso NO se pierde: se dice en condicional', () => {
+  it('con un embarazo PRESUNTIVO el aviso NO se pierde: cita la nota en vez de afirmar', () => {
     /* Callarlo sería el error contrario, y el caro: el riesgo de un embarazo no
-       detectado pesa más que una frase de más. */
+       detectado pesa más que una frase de más. Pero `presuntivo` es el valor de
+       fábrica (REG-365): ni afirma el embarazo ni lo niega, así que el aviso
+       dice lo que el expediente dice y nada más. */
     const texto = JSON.stringify(conDx(dx('Probable embarazo', 'presuntivo')))
     expect(texto).toMatch(/Ibuprofeno/)
-    expect(texto).toMatch(/no confirmado/i)
+    expect(texto).toMatch(/embarazo registrado en la nota/i)
     expect(texto).not.toMatch(/cursa embarazo/i)
-    expect(texto).toMatch(/si se confirma el embarazo/i)
+    /* Y tampoco afirma lo contrario: nadie lo descartó. */
+    expect(texto).not.toMatch(/no confirmado|descartad/i)
   })
 
   it('el motor no depende de que su llamador filtre: quien afirma es él', () => {
@@ -168,26 +171,51 @@ describe('el copiloto no afirma un embarazo que se descartó', () => {
   })
 })
 
-describe('un presuntivo entra, pero entra diciendo que lo es', () => {
-  it('el nombre lleva el grado de certeza, y el definitivo va limpio', () => {
-    expect(nombreConCerteza(dx('Anemia', 'presuntivo'))).toBe('Anemia (presuntivo)')
+describe('un valor de fábrica no es un juicio del médico — REG-365', () => {
+  /*
+   * Esta parte de REG-364 estaba MAL y la corrige REG-365, el mismo día.
+   *
+   * `presuntivo` es el default de `extraction-schema.ts:40`, lo que el prompt
+   * manda poner «por defecto», y lo que el botón de añadir diagnóstico escribe;
+   * y NINGUNA pantalla deja al médico elegir el tipo. Así que etiquetarlo
+   * afirmaba una duda que nadie expresó, en casi todos los renglones — y de
+   * paso convertía la etiqueta en ruido para el día que sí signifique algo.
+   */
+  it('un `presuntivo` va LIMPIO: es el valor de fábrica, no un juicio', () => {
+    expect(nombreConCerteza(dx('Anemia', 'presuntivo'))).toBe('Anemia')
     expect(nombreConCerteza(dx('Faringitis', 'definitivo'))).toBe('Faringitis')
-    /* Sin `tipo` va limpio: no se inventa una duda que nadie expresó. */
     expect(nombreConCerteza({ descripcion: 'Faringitis' })).toBe('Faringitis')
     expect(nombreConCerteza({ descripcion: '   ' })).toBe('')
   })
 
-  it('el cuadro conserva `tipo` para quien tenga que redactarlo', () => {
-    const cuadro = problemasDelCuadro([dx('Anemia', 'presuntivo')], [])
-    expect(cuadro[0].tipo).toBe('presuntivo')
-    expect(comoSeNombra(cuadro[0])).toBe('Anemia (presuntivo)')
+  it('el default del esquema SIGUE siendo `presuntivo` — si cambia, esto se revisa', () => {
+    /* La regla de arriba sólo es correcta mientras `presuntivo` sea el valor de
+       fábrica. El día que alguien lo cambie, este caso lo cuenta. */
+    const esquema = readFileSync('src/lib/expediente/extraction-schema.ts', 'utf8')
+    expect(esquema).toMatch(/tipo:\s+z\.enum\(\[[^\]]*\]\)\.optional\(\)\.default\('presuntivo'\)/)
+    const prompts = readFileSync('src/lib/expediente/prompts.ts', 'utf8')
+    expect(prompts).toContain('Por defecto tipo="presuntivo"')
   })
 
-  it('el resumen del expediente ya no lo lee como confirmado', () => {
+  it('lo que NO se llega por omisión sí se etiqueta', () => {
+    /* A `descartado` y `diferencial` los escribe el extractor porque el médico
+       los dictó. Ahí la etiqueta informa. */
+    expect(nombreConCerteza(dx('Lupus', 'descartado'))).toBe('Lupus (descartado)')
+    expect(nombreConCerteza(dx('TEP', 'diferencial'))).toBe('TEP (diferencial)')
+  })
+
+  it('el cuadro conserva `tipo` para quien tenga que decidir con él', () => {
+    /* El copiloto lo necesita: es lo que separa «cursa embarazo» de un descarte. */
+    const cuadro = problemasDelCuadro([dx('Anemia', 'presuntivo')], [])
+    expect(cuadro[0].tipo).toBe('presuntivo')
+    expect(comoSeNombra(cuadro[0])).toBe('Anemia')
+  })
+
+  it('el resumen del expediente no tacha de dudosa una crónica confirmada', () => {
     const problemas = problemasActivos([
-      { fecha: '2026-01-01', estado: 'firmada', diagnosticos: [dx('Anemia', 'presuntivo')] },
+      { fecha: '2026-01-01', estado: 'firmada', diagnosticos: [dx('Diabetes mellitus tipo 2', 'presuntivo', 'cronico')] },
     ])
-    expect(resumenProblemas(problemas)).toBe('Anemia (presuntivo)')
+    expect(resumenProblemas(problemas)).toBe('Diabetes mellitus tipo 2')
   })
 
   it('UNA definición para los cuatro lectores, no cuatro', () => {

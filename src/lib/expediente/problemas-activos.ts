@@ -91,23 +91,49 @@ export function problemasActivos(notas: readonly NotaConDiagnosticos[]): Problem
 }
 
 /**
- * CÓMO SE NOMBRA UN DIAGNÓSTICO CUANDO LO VA A LEER OTRO — REG-364.
+ * CÓMO SE NOMBRA UN DIAGNÓSTICO CUANDO LO VA A LEER OTRO — REG-364 / REG-365.
  *
  * Una sola definición, y vive aquí porque éste es el módulo que sabe qué es un
  * problema del paciente. La usan la lista de la consulta, el resumen del
  * expediente, el cuadro que ven los motores y el prompt de la ruta de
- * evidencia: cuatro lectores que **antes se llevaban sólo la descripción**, así
- * que un `presuntivo` se leía igual que un confirmado. `SUGERIDO ≠ CONFIRMADO`.
+ * evidencia. Antes se llevaban los cuatro sólo la descripción.
  *
- * Un `definitivo` va tal cual. Etiquetar también lo confirmado convertiría la
- * marca en ruido y dejaría de verse justo donde importa.
+ * ── POR QUÉ `presuntivo` NO SE ETIQUETA (REG-365) ───────────────────────────
+ *
+ * Porque **es el valor de fábrica**, y un valor de fábrica no es un juicio.
+ *
+ *     extraction-schema.ts:40   .optional().default('presuntivo')
+ *     prompts.ts:85             «Por defecto tipo="presuntivo".»
+ *     consulta/page.tsx         el botón de añadir crea `tipo: 'presuntivo'`
+ *     — y NINGUNA pantalla deja al médico elegir el tipo —
+ *
+ * Así que `presuntivo` no quiere decir «el médico lo dio por probable»: quiere
+ * decir **«nadie dijo nada»**. Escribir «(presuntivo)» al lado de una diabetes
+ * crónica confirmada afirma una duda que su médico nunca expresó, y encima lo
+ * hace en casi todos los renglones: una etiqueta que sale siempre deja de
+ * leerse justo el día que sí significa algo.
+ *
+ * Es la regla 4 de seguridad clínica por el otro lado: ausencia de dato no es
+ * dato de ausencia, y tampoco es dato de duda.
+ *
+ * ── QUÉ SÍ SE ETIQUETA ──────────────────────────────────────────────────────
+ *
+ * `descartado` y `diferencial`: a esos **no se llega por omisión**, los escribe
+ * el extractor cuando el médico dictó un descarte o un diferencial. Que no
+ * lleguen aquí —`estaVigente` los filtra— no quita que esta función tenga que
+ * saber nombrarlos: hay otros lectores, y el motor que afirma es el que
+ * responde de lo que afirma (REG-364).
+ *
+ * El día que exista una pantalla donde el médico ELIJA el tipo, `presuntivo`
+ * volverá a ser informativo — y hará falta distinguir el elegido del de
+ * fábrica. Eso es un cambio de modelo, no de esta función.
  */
 export function nombreConCerteza(
   d: { descripcion?: string; tipo?: Diagnostico['tipo'] },
 ): string {
   const t = String(d.descripcion ?? '').trim()
   if (!t) return ''
-  return !d.tipo || d.tipo === 'definitivo' ? t : `${t} (${d.tipo})`
+  return d.tipo === 'descartado' || d.tipo === 'diferencial' ? `${t} (${d.tipo})` : t
 }
 
 /** Frase corta para el encabezado de la consulta. */
