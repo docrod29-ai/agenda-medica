@@ -331,7 +331,7 @@ comprobación de rango a secas.
 |---|---|
 | **Estado** | `PARTIAL` |
 | **Lo que sí existe y está cableado** | `problemas-activos.ts:70`, `ordenes-medicamento.ts:76` y —desde REG-363— `alergias-longitudinales.ts`: proyección longitudinal real de **problemas activos**, **medicación activa** y **alergias**, con la regla dura correcta: el silencio no resuelve nada |
-| **Lo que falta** | Dispositivos (no existen como entidad ambulatoria), banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento. **Procedimientos**: lo dictado ya no se pierde en silencio (REG-370); el registro ESTRUCTURADO exige un **sello v4**, declarado abajo. Los **laboratorios** ya llegan a los motores (REG-368) y su tendencia ya se dibuja en el panel; falta llevarla a la consulta. Las proyecciones se recalculan en el navegador; **ninguna se persiste**, y sólo la de alergias lleva `asOf` y `version` |
+| **Lo que falta** | Banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento. **Procedimientos** y **dispositivos**: lo capturado ya llega a donde se decide (REG-370/371); el registro ESTRUCTURADO de ambos exige el **sello v4**, declarado abajo. **Procedimientos**: lo dictado ya no se pierde en silencio (REG-370); el registro ESTRUCTURADO exige un **sello v4**, declarado abajo. Los **laboratorios** ya llegan a los motores (REG-368) y su tendencia ya se dibuja en el panel; falta llevarla a la consulta. Las proyecciones se recalculan en el navegador; **ninguna se persiste**, y sólo la de alergias lleva `asOf` y `version` |
 
 **REG-368 — los laboratorios que el paciente ya tiene llegan a los motores.** Es
 REG-188 en el eje que aquella reparación no tocó: `entradaCopiloto.labs` era sólo
@@ -370,6 +370,19 @@ panel, y **no tenía un solo consumidor más**. Ahora se compara con lo que la n
 dice y lo que falta se señala antes de firmar — así queda sellado (REG-366) y
 vuelve a salir en la consulta siguiente (REG-367). No se documenta solo: escribir
 un antecedente quirúrgico sin que nadie lo revise es redactar historia clínica.
+
+**REG-371 — y los dispositivos invasivos ya se ven fuera de su pestaña.** La
+valoración del inmunocomprometido captura prótesis valvular, marcapaso/DAI,
+catéter central y ocho más, y **su único lector era el texto de esa misma
+valoración**: fuera de su pestaña nadie sabía que el paciente lleva una prótesis
+valvular — el antecedente que más cambia conducta sin aparecer en ningún
+diagnóstico. Ahora está en la línea clínica de la consulta, con la fecha de la
+valoración.
+
+**Sólo se afirma lo marcado**: con la lista vacía no se pinta nada, porque un
+dispositivo no marcado no es un dispositivo negado. Y **no alimenta ningún
+motor**: no hay reglas de dispositivos en el producto y escribirlas sería inventar
+criterio clínico; hay un caso que comprueba que no se le pasa a ninguno.
 
 **LO QUE ESTO DEJA ABIERTO, Y ES INGENIERÍA, NO DECISIÓN DEL DUEÑO — el sello v4.**
 Un registro **estructurado** de procedimientos (y de dispositivos) exige un campo

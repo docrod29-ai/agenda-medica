@@ -188,7 +188,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * —quién lo enseña y dónde queda— se comprueban por separado, porque una
      * pantalla que lo muestra hace creer que el sistema lo sabe.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370],
+    /**
+     * 371 es el espejo de 370 y de 368: aquí el dato SÍ se guarda —los
+     * dispositivos invasivos viven en el expediente— y su único lector es el
+     * texto de la propia valoración que los capturó. Nadie sabía, fuera de esa
+     * pestaña, que el paciente lleva una prótesis valvular.
+     *
+     * Su lección: un módulo que se lee a sí mismo parece conectado. Que un dato
+     * tenga lector no basta; hay que preguntar si lo lee alguien MÁS que quien
+     * lo escribió.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371],
   },
   {
     clave: 'se_contradice',

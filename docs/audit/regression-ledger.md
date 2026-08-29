@@ -11722,3 +11722,68 @@ su nivel **y que llegue de verdad a la barra** —hizo falta añadirlo a su fixt
 que es el guardián funcionando—; y `la-nota-entera-se-contrasta` cuenta cuántas
 defensas leen la nota por el mismo constructor: pasó de cuatro a cinco, con la
 razón escrita. Ninguno se debilitó.
+
+---
+
+## REG-371 — los dispositivos invasivos sólo se veían dentro de su propia pestaña
+
+**QUÉ FALLABA.** La valoración del inmunocomprometido captura **dispositivos
+invasivos** —CVC, PICC, port-a-cath, sonda urinaria, ostomía, prótesis articular,
+**prótesis valvular**, **marcapaso/DAI**, derivación ventricular, tubo, drenaje— y
+los guarda en el expediente (`patient.txValoracion`, clave `hc_cb_disp_<x>`).
+
+Medido sobre el árbol el 29-ago-2026: el **único** lector de ese grupo era
+`inmuno/compose.ts`, que arma el texto de esa misma valoración. **Fuera de su
+pestaña, nadie sabía que el paciente lleva una prótesis valvular.**
+
+**POR QUÉ IMPORTA.** Son los antecedentes que más cambian conducta sin aparecer
+en ningún diagnóstico: una prótesis valvular o articular cambia la profilaxis y la
+sospecha ante una bacteriemia; un marcapaso/DAI cambia qué estudio de imagen se
+puede pedir; un catéter central cambia dónde se busca el foco. El médico los
+capturó una vez, están escritos, y en la consulta siguiente tenía que acordarse de
+abrir una pestaña para verlos.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo WS-10 (dispositivos) con la pregunta de
+siempre: ¿quién lee esto?
+
+**CAUSA RAÍZ.** Familia «escrito y sin conectar», en la misma variante que
+REG-368: el dato está **en la misma pantalla**, en otra pestaña, así que mirando
+la interfaz el hueco es invisible.
+
+**EL ARREGLO.** `los-dispositivos-que-trae.ts` (puro) devuelve los dispositivos
+**marcados**, con el nombre del catálogo y la fecha de la valoración, y la
+consulta los pinta en una línea junto a las alergias, los problemas, la
+medicación y los laboratorios. Sale de `patient`, que ya está cargado: **cero
+lecturas nuevas**.
+
+Se recorre el **catálogo** y no las llaves guardadas: así una llave suelta o
+renombrada en la base no acaba delante del médico con nombre de clave técnica, y
+el orden es estable.
+
+**LA REGLA: SÓLO SE AFIRMA LO MARCADO.** Un dispositivo no marcado **no es un
+dispositivo negado**: puede que nadie abriera la valoración. Con la lista vacía no
+se dice «sin dispositivos invasivos» — **no se pinta nada**. Regla 4 de seguridad
+clínica, y hay tres casos que lo fijan.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No alimenta ningún motor.** En este producto no hay reglas clínicas sobre
+  dispositivos —ni de profilaxis, ni de imagen, ni de foco infeccioso— y
+  escribirlas aquí sería **inventar criterio clínico** (regla 1). Se pone el dato
+  delante; decide el médico. Hay un caso que comprueba que **no** se le pasa a
+  ningún motor.
+- **No crea una entidad de dispositivo** con fecha de colocación y de retiro. Eso
+  es un campo nuevo en la nota, y un campo clínico nuevo exige el **sello v4** que
+  REG-370 dejó declarado.
+- **No dice si el dispositivo sigue puesto.** Lleva la fecha de la valoración para
+  que se pueda juzgar; un catéter de hace dos años pudo retirarse.
+- **No mueve `txValoracion` de sitio.** Es uno de los campos que E0-06 tiene
+  pendientes de mudar fuera de `Patient`. Leerlo no adelanta ni cambia esa
+  migración, que sigue `BLOCKED_EXTERNAL` por su acción externa.
+- **No cubre UCI ni hospitalización**, que tienen su propio camino
+  (`uci/handoff.ts`) y están diferidos por el dueño.
+
+**LA PRUEBA.** `src/__tests__/lo-que-el-paciente-lleva-puesto-se-ve.test.ts`
+(14 casos), incluido el que comprueba que el dato **sí estaba guardado** antes del
+arreglo —que es lo que hacía la pérdida invisible— y el que impide que se cuele
+otro grupo de la valoración.

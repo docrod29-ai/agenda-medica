@@ -73,6 +73,7 @@ import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
 import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
 import { trayectoriaDe, comoSeDiceLaTrayectoria } from '@/lib/expediente/laboratorio/la-trayectoria'
+import { dispositivosQueTrae, comoSeDicenLosDispositivos } from '@/lib/expediente/los-dispositivos-que-trae'
 import { listarPanelesLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
 
 /**
@@ -956,6 +957,16 @@ export default function ConsultaActivaPage() {
    * dentro de una memoización manual no la preserva el React Compiler y el
    * trinquete de lint lo caza — la misma razón que `medsDelCuadro`.
    */
+  /**
+   * LO QUE EL PACIENTE LLEVA PUESTO (REG-371).
+   *
+   * Sale de `patient`, que ya está cargado: cero lecturas nuevas. En el cuerpo y
+   * no en un `useMemo`, por la misma razón que las otras derivaciones — el React
+   * Compiler no preserva una función importada dentro de una memoización manual.
+   */
+  const loQueLleva = dispositivosQueTrae(patient)
+  const dispositivosEnLinea = comoSeDicenLosDispositivos(loQueLleva)
+
   const labsDeHoy = labsDesdeEstudios(
     (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
   )
@@ -4879,6 +4890,39 @@ export default function ConsultaActivaPage() {
                 fármaco crónico que no se haya vuelto a mencionar.
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/*
+        ── LO QUE EL PACIENTE LLEVA PUESTO (REG-371) ────────────────────────
+
+        Los dispositivos invasivos se capturan en la valoración del
+        inmunocomprometido y se guardan en el expediente, y su ÚNICO lector era
+        el texto de esa misma valoración: fuera de su pestaña, nadie sabía que
+        el paciente lleva una prótesis valvular.
+
+        Son los antecedentes que más cambian conducta sin aparecer en ningún
+        diagnóstico: la profilaxis, la sospecha ante una bacteriemia, qué imagen
+        se puede pedir, dónde se busca el foco.
+
+        Con la lista vacía NO se pinta nada. «Sin dispositivos invasivos» sería
+        convertir la ausencia de dato en dato de ausencia: puede que nadie
+        abriera la valoración.
+      */}
+      {dispositivosEnLinea && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
+          background: 'var(--s2)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '9px 13px',
+        }}>
+          <BedDouble size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
+            <strong style={{ color: 'var(--text)' }}>Lleva puesto:</strong>{' '}{dispositivosEnLinea}
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>
+              De su valoración{loQueLleva.registradoEn ? ` del ${loQueLleva.registradoEn.slice(0, 10)}` : ''}.
+              Sólo lo que se marcó; que algo no aparezca no significa que no lo lleve.
+            </div>
           </div>
         </div>
       )}
