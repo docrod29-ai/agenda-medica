@@ -49,14 +49,14 @@
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 816 pasan · 1 falla** (787 archivos) | Baseline del 28-ago eran 10 566; **+250 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 844 pasan · 1 falla** (788 archivos) | Baseline del 28-ago eran 10 566; **+278 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-361.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-362.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -392,7 +392,7 @@ guardianes a la vez**. Ninguna prueba recorre `src/` buscando `.collection('…'
 | **Estado** | `PARTIAL` |
 | **Router** | Existe y respeta la regla del dueño: `planes-ia.ts` documenta que el médico expresa **intención clínica**, nunca una marca. Hay PR **#357** abierto sobre esto (`product/router-physician-ux-345`) |
 | **Medición** | `cost-ledger.ts:174` calcula **p50 y p95** de las llamadas de IA. **No hay p99 en ningún sitio del repositorio**, ni latencia/error por ruta HTTP |
-| **Hueco de regla** | `evals/patient-ai/` **no existe**, y `.claude/rules/patient-facing-ai.md` §7 lo exige como fixture permanente y compuerta de todo cambio de IA de cara al paciente. Hoy **esa compuerta no puede correr** |
+| **Hueco de regla** | ~~`evals/patient-ai/` no existe~~ **CERRADO** — REG-362. El fixture permanente existe (18 casos: las doce de V9 + seis del equipo rojo) y su compuerta corre. **Encontró un defecto la primera vez**: la ingesta accidental sólo se detectaba en tercera persona, así que «me tomé por accidente la medicina de otra persona» —una de las doce— no escalaba. **Lo que sigue abierto**: la puerta prueba el SERVIDOR, no lo que el modelo redacta, y sólo una de las cinco clases de respuesta tiene clasificador — el golden lo comprueba y lo declara en vez de fingir cobertura |
 
 ## WS-13 — Seguridad · observabilidad · DR
 

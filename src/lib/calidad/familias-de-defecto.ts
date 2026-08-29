@@ -177,6 +177,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * correcta cuenta como ausencia de instrumento, y encima da confianza.
      */
     /**
+     * 362 es esta familia en su forma más pura: la regla EXIGÍA la compuerta,
+     * la compuerta no existía, y por tanto nunca falló. La primera vez que se
+     * pudo correr encontró un defecto que llevaba meses vivo con la suite en
+     * verde: la ingesta accidental sólo se detectaba en tercera persona, así
+     * que «me tomé por accidente la medicina de otra persona» —una de las doce
+     * preguntas del §0— no escalaba.
+     *
+     * Lección: una regla escrita que nadie puede ejecutar no protege nada, y
+     * además da la sensación contraria — se pasan «todas las compuertas».
+     */
+    /**
      * 355 es la continuación de 342 y enseña su lección más incómoda: la regla
      * correcta EXISTÍA —`VolverALaFuente` se apartaba en cuanto el médico
      * tocaba la pantalla— y vivía dentro de un componente. Los otros escritores
@@ -184,7 +195,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * sistema, era de un archivo; y lo que no está medido en un sitio común se
      * cumple sólo donde alguien se acordó.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362],
   },
   {
     clave: 'hueco_como_dato',

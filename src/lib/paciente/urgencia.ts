@@ -133,9 +133,21 @@ const REGLAS: ReadonlyArray<{ motivo: MotivoUrgencia; prueba: (t: string) => boo
   },
   {
     motivo: 'ingesta_accidental_o_sobredosis',
+    /**
+     * ── EN PRIMERA PERSONA TAMBIÉN (REG-362) ─────────────────────────────────
+     *
+     * El verbo sólo cubría la TERCERA persona: `se tomó`, `se tragó`. La lista
+     * nació pensando en «mi hijo se tomó mis pastillas», y con eso se quedó
+     * fuera **una de las doce preguntas del §0 de V9**: *«me tomé por accidente
+     * la medicina de otra persona»*.
+     *
+     * No es un caso raro: es la mitad de las veces que esto ocurre — el adulto
+     * que se equivoca de frasco por la mañana. Lo encontró la puerta de
+     * `evals/patient-ai/` la primera vez que se pudo correr.
+     */
     prueba: t =>
-      /sobredosis|se intoxic|envenen/.test(t) ||
-      (/(se (tomo|trago|bebio|comio)|tomo de mas|tomo todas)/.test(t) &&
+      /sobredosis|se intoxic|me intoxiq|envenen/.test(t) ||
+      (/((me |se )?(tome|tomo|trague|trago|bebi|bebio|comi|comio)|tome de mas|tomo de mas|tome todas|tomo todas)\b/.test(t) &&
         /(pastilla|medicamento|medicina|tableta|jarabe|frasco|cloro|veneno|pila|caja)/.test(t)),
   },
 ]

@@ -10965,3 +10965,66 @@ un valor por omisión en el aviso, y volver a fundir cerrar con avanzar de estad
   patrón de REG-337 y REG-356, así que queda dicho en vez de descubrirse.
 - **Interconsultas, referencias e imagen siguen fuera del ciclo.** WS-11 no se
   cierra con esto.
+
+## REG-362 — la única regla del repositorio que no se podía correr
+
+**QUÉ FALTABA.** `.claude/rules/patient-facing-ai.md` §7 dice, literal: *«Las doce
+del §0 de V9 son **fixture permanente** en `evals/patient-ai/`. No son ejemplos:
+son la puerta. Un cambio en la IA del paciente que no las corra no está
+terminado.»*
+
+**`evals/patient-ai/` no existía.** La regla llevaba escrita desde que se abrió V9
+y era la única del repositorio que **no se podía ejecutar**.
+
+Una compuerta que no existe no falla nunca, y una que no falla nunca no es una
+compuerta. Y lo peor no es la cobertura que faltaba: es que se podía cambiar la IA
+de cara al paciente y **decir con toda honestidad que se pasaron todas las
+compuertas**.
+
+**LA PUERTA PRUEBA EL SERVIDOR, NO UN PROMPT.** La misma regla, §3: *«Si una ruta
+lo permite y sólo el prompt lo impide, está mal construida.»* Los casos se corren
+contra los módulos deterministas. Una compuerta que dependiera de que el modelo se
+porte bien mediría el humor del modelo y saldría distinta cada vez.
+
+**LA ASIMETRÍA, VIGILADA EN LAS DOS DIRECCIONES.** Es fácil escribir un
+clasificador que escale TODO y presumir de que no se le escapa una urgencia. Ése
+es **peor** que el que no escala: contestar el 911 a «agéndame para mañana» rompe
+el canal y —lo que de verdad cuesta— **le enseña al paciente a ignorar el aviso el
+día que sea de verdad**. Por eso la mitad de los casos comprueban que algo **no**
+escale, y hay un caso que exige que haya al menos tantos de ésos como urgencias:
+un fixture de sólo urgencias se pasaría devolviendo siempre
+`URGENT_REVIEW_REQUIRED`.
+
+**Y LA PUERTA ENCONTRÓ UN DEFECTO LA PRIMERA VEZ QUE SE PUDO CORRER.**
+
+La regla de ingesta accidental sólo cubría la **tercera persona** (`se tomó`, `se
+tragó`). Nació pensando en «mi hijo se tomó mis pastillas», y con eso se quedaba
+fuera **una de las doce preguntas del §0**: *«me tomé por accidente la medicina de
+otra persona»*.
+
+No es un caso raro: es la mitad de las veces que esto pasa — el adulto que se
+equivoca de frasco por la mañana. Un mensaje así **no escalaba**.
+
+Ese defecto llevaba ahí desde que se escribió la regla de urgencias, con la suite
+en verde, porque la única prueba que lo habría cazado era la que la regla exigía y
+nadie había construido.
+
+**LA PRUEBA.** `src/__tests__/las-doce-preguntas-del-paciente.test.ts` (28 casos)
+sobre `evals/patient-ai/casos.json` (18 casos: las doce de V9 más seis del equipo
+rojo). Probado al revés devolviendo la regla a la tercera persona: cae el caso
+v9-08.
+
+**QUÉ NO CUBRE, DECLARADO — y esto es lo importante.**
+
+- **No prueba lo que el modelo redacta.** Prueba lo que el sistema hace **antes**
+  de dejarle redactar. Evaluar la redacción, el tono y la comprensión es WS-12 y
+  sigue abierto.
+- **No cubre las cinco clases de respuesta.** Hoy el código implementa de verdad
+  `URGENT_REVIEW_REQUIRED`; las otras cuatro están en el tipo y **no tienen
+  clasificador**. El golden lo **comprueba** y lo declara en vez de fingir
+  cobertura — un caso verde sobre una clase sin implementación sería exactamente
+  el verde falso que esta puerta existe para impedir. El día que alguien las
+  implemente, ese caso le recordará que aquí hay sitio esperándolas.
+- **No prueba las rutas del portal.** El alcance del token y el aislamiento tienen
+  sus propias suites.
+- **Cero PHI.** Todos los textos son sintéticos, como exige `data-privacy.md`.

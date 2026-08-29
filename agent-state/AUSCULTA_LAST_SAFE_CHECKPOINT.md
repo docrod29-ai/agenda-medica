@@ -7,19 +7,19 @@ CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-03 (consultorio grande) — queda el inventario de lecturas de CITAS
-LAST_COMPLETED_UNIT=WS-11 · REG-361 · el cierre se llena desde la pantalla, no se adivina
+LAST_COMPLETED_UNIT=WS-12 · REG-362 · `evals/patient-ai/` existe, corre, y encontró un defecto la primera vez
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=WS-12 · `evals/patient-ai/` NO EXISTE, y `.claude/rules/patient-facing-ai.md` §7 lo exige como FIXTURE PERMANENTE y compuerta de todo cambio en la IA de cara al paciente. Es la única regla del repositorio que hoy no se puede correr, así que va antes que el resto. Después: WS-10 (Patient State: alergias, procedimientos, dispositivos, tendencias; sin `asOf` ni versión), WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
-FILES_IN_SCOPE=evals/patient-ai/ (a crear) · .claude/rules/patient-facing-ai.md · docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md §0
+EXACT_NEXT_ACTION=WS-10 · Patient State. Hoy sólo hay proyección de problemas activos y medicación; faltan alergias, procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo y compromisos de seguimiento — y todo se recalcula en el navegador en cada montaje, SIN `asOf` ni versión. Empezar por ALERGIAS, que es el campo más crítico y el que hoy se lee de `Patient` sin procedencia ni temporalidad. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
+FILES_IN_SCOPE=src/lib/expediente/problemas-activos.ts · src/lib/expediente/ordenes-medicamento.ts · src/types/expediente.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10816
+TESTS_PASSED=10844
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno)
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-361
+DO_NOT_REGRESS=REG-323 · REG-337…REG-362
 ```
 
 ### Cerrado en esta tanda
@@ -40,6 +40,7 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-361
 | 359 | Se comprobaba que la cita estuviera en RANGO, no que el artículo dijera eso. Un `[2]` que apuntara a un artículo que dice lo contrario pasaba, con la apariencia de estar respaldado |
 | 360 | «Cerrar» abarcaba de golpe decisión, acción y aviso al paciente: un resultado crítico cerrado sin que nadie llamara se veía igual que uno donde sí se llamó. **Primera unidad de WS-11 sin P1 detrás** |
 | 361 | Esos campos existían y **ninguna pantalla los llenaba**. Se conectó en la unidad siguiente, antes de que el hueco se volviera el defecto de siempre |
+| 362 | `evals/patient-ai/` no existía: la única regla del repositorio que no se podía correr. La primera vez que se pudo, **encontró un defecto vivo** — la ingesta accidental sólo se detectaba en tercera persona |
 
 ### El saldo, escrito
 
@@ -71,7 +72,7 @@ decir que la cola prioritaria del tablero está vacía y que el trabajo pasa a s
 | WS-09 aplicabilidad | `NOT_STARTED`: no hay motor que diga si una evidencia aplica a ESTE paciente |
 | WS-10 Patient State | Faltan alergias, procedimientos, dispositivos, laboratorios, tendencias; sin `asOf`, sin versión, sin persistir |
 | WS-11 ciclo cerrado | **REG-360/361 cerraron el cierre**: las tres etapas tienen campo, hay registro de transiciones y `/pendientes` las llena por formulario. Falta `scheduled` como estado, el cierre desde otras pantallas, y las **interconsultas, referencias e imagen**, que siguen fuera del ciclo |
-| WS-12 evaluación | `evals/patient-ai/` **no existe**, y `.claude/rules/patient-facing-ai.md` §7 lo exige como compuerta |
+| WS-12 evaluación | **REG-362 creó la puerta que la regla exigía** y encontró un defecto vivo al correrla. Falta lo demás: evaluar lo que el modelo REDACTA (corpus, jueces), y las otras cuatro clases de respuesta, que están en el tipo y no tienen clasificador |
 | WS-13 observabilidad | Sin correlation ID de punta a punta; un solo llamador de alertas |
 
 Y las fases de prueba final (carga, inyección de fallos, restauración,
