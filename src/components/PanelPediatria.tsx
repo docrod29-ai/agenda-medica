@@ -86,7 +86,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
   if (edadAnios != null && edadAnios >= 18) return null
 
   return (
-    <div style={embebido ? {} : { border: '1px solid rgba(139,92,246,.3)', borderRadius: 12, background: 'rgba(139,92,246,.05)', padding: 14, marginBottom: 12 }}>
+    <div style={embebido ? {} : { border: '1px solid color-mix(in srgb, var(--purple) 30%, transparent)', borderRadius: 12, background: 'color-mix(in srgb, var(--purple) 5%, transparent)', padding: 14, marginBottom: 12 }}>
       {!embebido && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
           <Baby size={15} color="var(--purple)" />
@@ -227,7 +227,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{r.indicador}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: r.nivel === 'normal' ? '#22c55e' : r.nivel === 'bajo' ? '#f87171' : '#f59e0b' }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: r.nivel === 'normal' ? 'var(--green)' : r.nivel === 'bajo' ? 'var(--red)' : 'var(--amber)' }}>
                       z {r.z > 0 ? '+' : ''}{r.z} · percentil {r.percentil}
                     </span>
                     <span style={{ fontSize: 11, color: 'var(--text3)' }}>
@@ -314,8 +314,8 @@ function Tab({ activo, onClick, icono, texto }: { activo: boolean; onClick: () =
     <button type="button" onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7,
       fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-      border: '1px solid ' + (activo ? '#8b5cf6' : 'var(--border)'),
-      background: activo ? '#8b5cf6' : 'var(--s2)', color: activo ? '#fff' : 'var(--text3)',
+      border: '1px solid ' + (activo ? 'var(--purple)' : 'var(--border)'),
+      background: activo ? 'var(--purple)' : 'var(--s2)', color: activo ? 'var(--sobre-aviso)' : 'var(--text3)',
     }}>{icono}{texto}</button>
   )
 }
@@ -325,7 +325,7 @@ const campoBase: React.CSSProperties = {
   padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none',
 }
 const btnMini: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(139,92,246,.15)',
-  color: 'var(--purple)', border: '1px solid rgba(139,92,246,.35)', borderRadius: 6,
+  display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--purple) 15%, transparent)',
+  color: 'var(--purple)', border: '1px solid color-mix(in srgb, var(--purple) 35%, transparent)', borderRadius: 6,
   padding: '3px 9px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
 }

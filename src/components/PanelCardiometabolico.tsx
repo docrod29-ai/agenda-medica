@@ -190,7 +190,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <Campo l="Eventos ASCVD mayores" v={eventos} s={setEventos} w={130} />
                 <Campo l="Condiciones de alto riesgo" v={condiciones} s={setCondiciones} w={150} />
-                <span style={{ ...pill(muyAlto ? '#f87171' : 'var(--text3)', muyAlto ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'var(--s2)'), marginBottom: 6 }}>
+                <span style={{ ...pill(muyAlto ? 'var(--red)' : 'var(--text3)', muyAlto ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'var(--s2)'), marginBottom: 6 }}>
                   {muyAlto ? 'MUY ALTO RIESGO' : 'No de muy alto riesgo'}
                 </span>
               </div>
@@ -210,7 +210,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
           </Res>
 
           {planTG && Number(tg) >= 150 && (
-            <Res color={planTG.riesgoPancreatitis ? '#f87171' : '#f59e0b'} titulo={planTG.categoria}>
+            <Res color={planTG.riesgoPancreatitis ? 'var(--red)' : 'var(--amber)'} titulo={planTG.categoria}>
               {planTG.riesgoPancreatitis && <p style={{ ...txt, fontWeight: 700, color: 'var(--red)' }}>Riesgo de pancreatitis.</p>}
               <ul style={lista}>
                 <li>Azúcares añadidos: {planTG.azucares}</li>
@@ -236,7 +236,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             </div>
 
             {panelAvanzado.lecturas.map((l, i) => (
-              <Res key={i} color={l.nivel === 'optimo' ? '#22c55e' : l.nivel === 'limitrofe' ? '#f59e0b' : '#f87171'} titulo={l.nombre}>
+              <Res key={i} color={l.nivel === 'optimo' ? 'var(--green)' : l.nivel === 'limitrofe' ? 'var(--amber)' : 'var(--red)'} titulo={l.nombre}>
                 <p style={{ ...txt, fontWeight: 600 }}>{l.interpretacion}</p>
                 <p style={{ ...txt, color: 'var(--text3)' }}>{l.fundamento}</p>
                 <ul style={lista}>{l.recomendaciones.map((r, k) => <li key={k}>{r}</li>)}</ul>
@@ -272,7 +272,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               </select>
             </div>
             {resLpa && <>
-              <p style={{ ...txt, marginTop: 8, color: resLpa.nivel === 'normal' ? 'var(--text2)' : '#f59e0b' }}>{resLpa.texto}</p>
+              <p style={{ ...txt, marginTop: 8, color: resLpa.nivel === 'normal' ? 'var(--text2)' : 'var(--amber)' }}>{resLpa.texto}</p>
               <Nota onAgregarANota={onAgregarANota} texto={resLpa.texto} />
             </>}
           </Bloque>
@@ -318,9 +318,9 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               {[...COMPLICACIONES_OBESIDAD, ...ENFERMEDADES_RELACIONADAS].map(c => (
                 <button key={c} type="button" onClick={() => alternar(comps, setComps, c)} style={{
                   padding: '3px 8px', borderRadius: 6, fontSize: 10.5, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
-                  border: '1px solid ' + (comps.has(c) ? '#22c55e' : 'var(--border)'),
+                  border: '1px solid ' + (comps.has(c) ? 'var(--green)' : 'var(--border)'),
                   background: comps.has(c) ? 'color-mix(in srgb, var(--green) 15%, transparent)' : 'var(--s2)',
-                  color: comps.has(c) ? '#22c55e' : 'var(--text3)',
+                  color: comps.has(c) ? 'var(--green)' : 'var(--text3)',
                 }}>{c}</button>
               ))}
             </div>
@@ -354,7 +354,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             <Campo l="Peso perdido (%)" v={perdido} s={setPerdido} w={120} />
             {respuesta && (
               <div style={{ marginTop: 8 }}>
-                <p style={{ ...txt, fontWeight: 700, color: respuesta.categoria === 'incompleta' ? '#f87171' : respuesta.categoria === 'buena' ? '#f59e0b' : '#22c55e' }}>{respuesta.etiqueta}</p>
+                <p style={{ ...txt, fontWeight: 700, color: respuesta.categoria === 'incompleta' ? 'var(--red)' : respuesta.categoria === 'buena' ? 'var(--amber)' : 'var(--green)' }}>{respuesta.etiqueta}</p>
                 <p style={txt}>{respuesta.conducta}</p>
                 <Nota onAgregarANota={onAgregarANota} texto={`${respuesta.etiqueta}. ${respuesta.conducta}`} />
               </div>
@@ -395,7 +395,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
           </Bloque>
 
           {resFib4 && (
-            <Res color={resFib4.zona === 'alto' ? '#f87171' : resFib4.zona === 'indeterminado' ? '#f59e0b' : '#22c55e'} titulo={`FIB-4 ${resFib4.valor}`}>
+            <Res color={resFib4.zona === 'alto' ? 'var(--red)' : resFib4.zona === 'indeterminado' ? 'var(--amber)' : 'var(--green)'} titulo={`FIB-4 ${resFib4.valor}`}>
               <p style={txt}>{resFib4.interpretacion}</p>
               <p style={{ ...txt, fontWeight: 700 }}>{resFib4.conducta}</p>
               <p style={{ ...txt, color: 'var(--text3)' }}>{resFib4.seguimiento}</p>
@@ -410,7 +410,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             <Campo l="Rigidez hepática (kPa)" v={kpa} s={setKpa} w={140} />
             {resElasto && (
               <div style={{ marginTop: 8 }}>
-                <p style={{ ...txt, fontWeight: 700, color: resElasto.referir ? '#f87171' : '#22c55e' }}>{resElasto.interpretacion}</p>
+                <p style={{ ...txt, fontWeight: 700, color: resElasto.referir ? 'var(--red)' : 'var(--green)' }}>{resElasto.interpretacion}</p>
                 <p style={txt}>{resElasto.conducta}</p>
                 <Nota onAgregarANota={onAgregarANota} texto={`${resElasto.interpretacion} ${resElasto.conducta}`} />
               </div>
@@ -448,7 +448,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             Se arma sola con los datos que capturaste en las otras pestañas. Entre más llenes, más específica queda.
           </p>
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            <button type="button" onClick={imprimir} style={{ ...btn, background: '#22c55e', color: '#000', border: 'none' }}>
+            <button type="button" onClick={imprimir} style={{ ...btn, background: 'var(--green)', color: 'var(--sobre-aviso)', border: 'none' }}>
               <Printer size={13} /> Imprimir para el paciente
             </button>
             {onAgregarANota && (
@@ -520,8 +520,8 @@ function Chk({ on, set, t }: { on: boolean; set: (b: boolean) => void; t: string
   return (
     <button type="button" onClick={() => set(!on)} style={{
       padding: '4px 10px', borderRadius: 7, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
-      border: '1px solid ' + (on ? '#f87171' : 'var(--border)'),
-      background: on ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'var(--s2)', color: on ? '#f87171' : 'var(--text3)',
+      border: '1px solid ' + (on ? 'var(--red)' : 'var(--border)'),
+      background: on ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'var(--s2)', color: on ? 'var(--red)' : 'var(--text3)',
     }}>{t}</button>
   )
 }
@@ -530,8 +530,8 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
     <button type="button" onClick={on} style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7,
       fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-      border: '1px solid ' + (a ? '#22c55e' : 'var(--border)'),
-      background: a ? '#22c55e' : 'var(--s2)', color: a ? '#000' : 'var(--text3)',
+      border: '1px solid ' + (a ? 'var(--green)' : 'var(--border)'),
+      background: a ? 'var(--green)' : 'var(--s2)', color: a ? 'var(--sobre-aviso)' : 'var(--text3)',
     }}>{i}{t}</button>
   )
 }
