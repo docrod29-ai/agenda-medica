@@ -147,7 +147,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la causa del defecto. Un instrumento que no puede fallar por la razón
      * correcta cuenta como ausencia de instrumento, y encima da confianza.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342],
+    /**
+     * 355 es la continuación de 342 y enseña su lección más incómoda: la regla
+     * correcta EXISTÍA —`VolverALaFuente` se apartaba en cuanto el médico
+     * tocaba la pantalla— y vivía dentro de un componente. Los otros escritores
+     * de scroll no la tenían y nada los obligaba. La disciplina no era del
+     * sistema, era de un archivo; y lo que no está medido en un sitio común se
+     * cumple sólo donde alguien se acordó.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355],
   },
   {
     clave: 'hueco_como_dato',

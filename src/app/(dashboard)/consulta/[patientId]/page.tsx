@@ -173,6 +173,7 @@ import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib
 import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib/expediente/temporalidad'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
+import { vigilarGestoDelUsuario } from '@/lib/ui/el-dedo-manda'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
@@ -3270,10 +3271,25 @@ export default function ConsultaActivaPage() {
      * clase podría no aplicar en un embed o en una prueba sin el layout).
      */
     const scroller = () => document.querySelector('main')
+    /**
+     * ── EL DEDO MANDA (REG-355) ─────────────────────────────────────────────
+     *
+     * Esto escribía `scrollTop` sin preguntar. Y no es una restauración que
+     * ocurra sólo al montar: `scrollKey` depende de `internamientoActivo`, que
+     * llega de un `.then()` de Firestore, así que el efecto **se re-arma** y
+     * puede escribir la posición **segundos después**, con el médico ya
+     * leyendo. En WebKit —que no implementa `overflow-anchor`— eso se siente
+     * como el tirón que el iPhone reporta.
+     *
+     * Se pregunta JUSTO ANTES de escribir, no sólo al armarse: entre una cosa y
+     * otra hay dos `requestAnimationFrame` y una lectura de red.
+     */
+    const vigilancia = vigilarGestoDelUsuario(scroller())
     // Restaurar: dos frames para que el contenido restaurado ya esté pintado.
     let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
+        if (vigilancia.tomoElControl()) return
         const y = Number(sessionStorage.getItem(scrollKey) || 0)
         if (y > 0) {
           const m = scroller()
@@ -3290,6 +3306,7 @@ export default function ConsultaActivaPage() {
     window.addEventListener('scroll', guardarScroll, { passive: true })
     return () => {
       cancelAnimationFrame(raf1); cancelAnimationFrame(raf2)
+      vigilancia.soltar()
       m?.removeEventListener('scroll', guardarScroll)
       window.removeEventListener('scroll', guardarScroll)
       guardarScroll()  // al desmontar (irte): recuerda dónde ibas

@@ -24,7 +24,7 @@
 | | |
 |---|---|
 | **P0 internos abiertos** | **0** |
-| **P1 internos abiertos** | **4** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
+| **P1 internos abiertos** | **3** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
 
 **Movimientos del 29-ago-2026:**
 
@@ -37,20 +37,21 @@
 | cerrado −1 | **P1-11** — las nueve pantallas que recibían el recorte sin declararlo (REG-351) |
 | cerrado −1 | **P1-15** — no había circuit breaker ni presupuesto de reintentos (REG-353) |
 | cerrado −1 | **P1-2** — ya estaba cerrado por REG-340/343 y el tablero no lo decía; su residuo real (reglas sin desplegar) lo cierra REG-354 haciéndolo visible |
-| **saldo** | **−5 P1 internos** (9 → 4) |
+| cerrado −1 | **P1-13** — los otros escritores de scroll, y `overscroll-behavior` (REG-355) |
+| **saldo** | **−6 P1 internos** (9 → 3) |
 
 ## Compuertas medidas en este SHA — no citadas de memoria
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 721 pasan · 1 falla** (780 archivos) | Baseline del 28-ago eran 10 566; **+155 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 736 pasan · 1 falla** (781 archivos) | Baseline del 28-ago eran 10 566; **+170 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-354.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-355.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -102,7 +103,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | ~~P1-11~~ | ~~Nueve pantallas reciben el recorte sin declararlo.~~ **CERRADO** — REG-351. Ninguna pantalla llama ya a `getPatients`, y lo vigila un **guardián de árbol** sobre `src/app`, `src/components` y `src/hooks`, no un comentario. Los selectores preguntan al servidor por un módulo compartido (`pacientes/candidatos.ts`, `useBusquedaDePacientes`, `usePacientesPorId`); los tableros declaran el recorte; y donde la completitud es el producto —exportar e importar— se recorre entero o **la operación se detiene**. Tres cosas quedaron mejor de lo que pedía el requisito: «no se pudo preguntar» ya no se pinta como «no hay»; el `<select>` de controlados y el de la bitácora ARCO ya pueden nombrar a cualquier paciente; y el antiduplicado conserva su precisión (el golden cazó que un tipo recortado lo habría debilitado). |
 | **P1-17** | La búsqueda es por **PREFIJO**: un duplicado con el orden de los nombres cambiado («López María» vs «María López») y sin teléfono en común no aparece. Hueco **conocido y con forma**, ya no arbitrario — pero abierto. |
 | ~~P1-12~~ | ~~`getNotas` sin cota: la historia completa de un paciente, con las dos transcripciones dentro.~~ **CERRADO** — REG-350. Contrato paginado con techo que **declara** `truncada`, y la puerta que devolvía un array pelado **se borró**: un array no puede decir que viene recortado. Con ella cayeron dos amplificaciones peores —la pantalla de un ingreso se bajaba el historial completo del paciente, y la de retención NOM-004 hacía eso **por cada uno de hasta 500 pacientes**— y una salvaguarda que habría quedado colgando del techo (el bloqueo NOM-004 de borrado). El recorte llega a la pantalla en el expediente y en la consulta. |
-| **P1-13** | Quedan otros escritores de scroll: el restaurador de `/consulta` se re-arma tras una lectura de Firestore **sin cancelación por gesto**; los banners asíncronos cambian la altura por encima de `<main>` (41 px medidos); `overscroll-behavior` no aparece en el repositorio. |
+| ~~P1-13~~ | ~~Otros escritores de scroll sin cancelación por gesto; `overscroll-behavior` ausente.~~ **CERRADO** — REG-355. La regla «después del primer gesto manual, el usuario manda» sale de `VolverALaFuente` —donde estaba bien y era la única— a `lib/ui/el-dedo-manda.ts`, y el restaurador de `/consulta` la pregunta **justo antes de escribir** (se re-arma cuando `notaInternamientoId` llega de Firestore). `overscroll-behavior` entra en `<main>`, el riel y el shell. **Queda abierto el tercer mecanismo**: los banners asíncronos que cambian la altura por encima de `<main>` (41 px medidos) — sacarlos del flujo es un cambio de layout del panel que no se hace a ciegas sin navegador. Y **WS-05 NO pasa a `PROVEN`**: sigue sin verse en un iPhone. |
 | **P1-10** | Texto completo de PMC se reproduce **sin filtro de licencia por artículo**. El catálogo lo declara como decisión pendiente; el filtro no existe. | `evidencia/pubmed.ts:182` · `catalogo.ts:279` |
 
 ---
@@ -182,8 +183,23 @@ tope, compartido por consultorio).
 
 | | |
 |---|---|
-| **Estado** | `PARTIAL` — causa raíz **probable** identificada y verificada en código; **sin reproducir en dispositivo** |
+| **Estado** | `PARTIAL` — **tres de los cuatro mecanismos candidatos, cerrados en código**; **sin reproducir en dispositivo** |
 | **Prioridad** | **P0** (defecto reportado por el dueño) |
+
+**Estado de los cuatro candidatos, al 29-ago-2026:**
+
+| Candidato | Estado |
+|---|---|
+| 1 · `ClinicalSpine` llamaba a `scrollIntoView` | **CERRADO** — REG-342 |
+| 2 · `CierreAlPulgar` sticky que se desmonta | **CERRADO** — REG-342 |
+| 3 · Banners asíncronos por encima de `<main>` (41 px medidos) | **ABIERTO** — sacarlos del flujo es un cambio de layout del panel, y no se hace a ciegas |
+| 4 · El restaurador de `/consulta` sin cancelación por gesto | **CERRADO** — REG-355, con la regla en un módulo compartido |
+| + · `overscroll-behavior` ausente en todo el repositorio | **CERRADO** — REG-355 (`<main>`, riel y shell) |
+
+**Y aun así no es `PROVEN`.** Falta lo que §38 exige y ninguna de estas
+reparaciones sustituye: WebKit, 390 px, diez repeticiones, `scrollTop` que nunca
+baje solo. Sólo hay Chromium instalado. El propio CSS lleva escrito dentro que no
+está verificado, con una prueba que falla si alguien borra esa advertencia.
 
 **La precondición estructural.** El documento no hace scroll en el dashboard:
 `.nx-app-shell` es `100dvh; overflow:hidden` (`globals.css:1049`) y quien scrollea

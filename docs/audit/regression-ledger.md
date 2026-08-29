@@ -10499,3 +10499,78 @@ como desaparecen estas listas.
   (`docs/ops/INDICES-DE-FIRESTORE.md`, REG-352). Conviene pedir las dos juntas.
 - **No puede impedir el hueco**, sólo hacerlo visible. Desplegar sigue siendo una
   acción del dueño: `BLOCKED_EXTERNAL`, ahora con lista.
+
+## REG-355 — quedaban escritores de scroll que no preguntaban
+
+**DE DÓNDE VIENE.** REG-342 cerró dos mecanismos del rebote de iPhone —el riel
+que llamaba a `scrollIntoView` y la barra sticky que salía del flujo— y dejó
+escrito lo que faltaba. Es P1-13 del tablero.
+
+**QUÉ FALLABA.**
+
+1. **El restaurador de `/consulta` escribía `scrollTop` sin preguntar.** Y no es
+   una restauración que ocurra sólo al montar: su clave depende de
+   `internamientoActivo`, que llega de un `.then()` de Firestore, así que el
+   efecto **se re-arma** y puede escribir la posición **segundos después**, con
+   el médico ya leyendo.
+2. **`overscroll-behavior` no aparecía en ninguna parte del repositorio.**
+
+**POR QUÉ ES DE IPHONE Y NO DE ANDROID.** Dos cosas de WebKit, y hacen falta las
+dos:
+
+- **`overflow-anchor`**, que Chrome y Firefox implementan, compensa solo el
+  contenido insertado por encima del punto de lectura. WebKit **no lo
+  implementa**, así que ahí cualquier escritura tardía de scroll se siente. No se
+  arregla desde el CSS: se compensa **no escribiendo**.
+- **El encadenamiento de scroll.** Cuando un contenedor llega a su tope, el gesto
+  se encadena al ancestro; en WebKit eso es el rebote elástico del documento y,
+  con el shell a `100dvh; overflow:hidden`, se siente como un tirón. Basta con
+  seguir arrastrando dentro de la nota después del final.
+
+**LA CAUSA RAÍZ.** La regla correcta **existía y vivía dentro de un
+componente**. `VolverALaFuente` escuchaba `wheel`, `touchstart` y las teclas de
+navegación y se apartaba en cuanto llegaba una. Los demás escritores no lo
+hacían, y nada los obligaba: **la disciplina no era del sistema, era de un
+archivo**.
+
+**LA REGLA QUE LO HACE SEGURO.** *Después del primer gesto manual, el usuario
+manda* — sacada a `src/lib/ui/el-dedo-manda.ts` para que los escritores obedezcan
+la misma regla y no cuatro parecidas. Y se pregunta **justo antes de escribir**,
+no sólo al armarse: entre una cosa y otra hay dos `requestAnimationFrame` y una
+lectura de red.
+
+Un clic **no** es un gesto de desplazamiento, y eso está probado a propósito: el
+médico pulsa cosas todo el rato sin querer mover la pantalla, y cancelar con eso
+rompería las restauraciones legítimas —«volver donde ibas»— para arreglar un
+tirón que ese clic no iba a causar.
+
+En CSS, `overscroll-behavior-y: contain` en `<main>` y en el riel corta la
+cadena sin quitarle al usuario el rebote **dentro** de su contenedor (que es la
+señal táctil de «aquí se acabó»); `none` en el shell, que no scrollea, quita el
+rebote del documento entero.
+
+**LA PRUEBA.** `src/__tests__/el-dedo-manda-sobre-el-scroll.test.ts` (15 casos).
+Despacha eventos de verdad contra un elemento doble, así que prueba el
+**comportamiento** —qué cuenta como gesto y qué no— y no una cadena de texto.
+Probado al revés quitando la pregunta del restaurador y añadiendo `click` a la
+lista de gestos: caen 2 casos, uno por cada defecto.
+
+`consultorio-scroll-focus-estable.test.ts` comprobaba por substring las quince
+líneas en línea que se mudaron al módulo. Sus aserciones se reapuntan a lo que le
+toca a ese componente —que use el módulo, que al cancelar consuma el contrato— y
+el comportamiento pasa a probarse donde se puede ejecutar. Es un cambio a más
+fuerte, no a más laxo.
+
+**QUÉ NO CUBRE, DECLARADO — Y ES LO IMPORTANTE.**
+
+- **NO SE HA VISTO EN UN IPHONE.** En este entorno sólo hay Chromium. Esto es la
+  corrección razonada de dos mecanismos conocidos, **no una observación**. La
+  verificación —WebKit, 390 px, diez repeticiones, `scrollTop` que nunca baje
+  solo— sigue `BLOCKED_EXTERNAL`, y por eso WS-05 **no pasa a `PROVEN`**. El CSS
+  lleva escrito dentro que no está verificado, y hay un caso que lo comprueba:
+  si alguien borra esa advertencia, la prueba falla.
+- **No renderiza ni mide píxeles.**
+- **No cubre el tercer mecanismo**: los banners asíncronos que cambian la altura
+  por encima de `<main>` (41 px medidos por `PorQueEstaAqui`). Arreglarlo bien es
+  sacarlos del flujo, un cambio de layout del panel que no se hace a ciegas sin
+  navegador. Queda abierto y con nombre.
