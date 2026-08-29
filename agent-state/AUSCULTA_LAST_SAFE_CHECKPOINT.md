@@ -6,20 +6,20 @@
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
-CURRENT_WORKSTREAM=WS-10 (Patient State longitudinal) — cerradas las alergias; faltan procedimientos, dispositivos, laboratorios, tendencias y compromisos
-LAST_COMPLETED_UNIT=WS-10 · REG-367 · la duda de la otra vez vuelve a salir en la consulta siguiente
+CURRENT_WORKSTREAM=WS-10 (Patient State longitudinal) — cerradas alergias, certeza del médico, conservación y relectura de los avisos, y los laboratorios en los motores; faltan procedimientos, dispositivos, la tendencia en la consulta y la persistencia
+LAST_COMPLETED_UNIT=WS-10 · REG-368 · los laboratorios que el paciente ya tiene llegan a los motores
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=WS-10 sigue. Cerradas las ALERGIAS (REG-363), la CERTEZA DEL MÉDICO (REG-364 + REG-365), la CONSERVACIÓN DE LOS AVISOS (REG-366) y su LECTURA EN LA CONSULTA SIGUIENTE (REG-367). Lo que queda, por orden: estructurar el eje de certeza dentro de `Diagnostico` y la temporalidad dentro de `Medicamento` —decisión de modelo, NEEDS_CLINICAL_REVIEW—; procedimientos, dispositivos, laboratorios clave y tendencias; y persistir las proyecciones, que arrastra los tres sitios de declaración de una colección. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda y WS-02 (arnés de carga). Lo siguiente de este workstream: el eje de certeza del PACIENTE —`certeza.ts` corre en la consulta, avisa y se descarta al firmar— y después procedimientos, dispositivos, laboratorios y tendencias. Detalle de REG-363: tercera proyección longitudinal, regla asimétrica, cableada en /consulta y /expediente sin lecturas nuevas). Quedan procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento; y ninguna de las tres proyecciones se PERSISTE — persistir arrastra los tres sitios de declaración de una colección y es decisión de arquitectura, no un refactor. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
-FILES_IN_SCOPE=src/lib/expediente/alergias-longitudinales.ts · src/lib/expediente/problemas-activos.ts · src/lib/expediente/ordenes-medicamento.ts · src/types/expediente.ts
+EXACT_NEXT_ACTION=WS-10 sigue. Cerradas en esta tanda: ALERGIAS longitudinales (REG-363), CERTEZA DEL MÉDICO (REG-364 + REG-365, que corrigió la mitad mala del anterior), CONSERVACIÓN DE LOS AVISOS al firmar (REG-366), su LECTURA EN LA CONSULTA SIGUIENTE (REG-367) y los LABORATORIOS EN LOS MOTORES (REG-368). Lo que queda de WS-10, por orden: (1) estructurar el eje de certeza dentro de `Diagnostico` y la temporalidad dentro de `Medicamento` — decisión de modelo, NEEDS_CLINICAL_REVIEW del dueño; (2) llevar la TENDENCIA de laboratorios a la consulta, que hoy sólo se dibuja en su pestaña; (3) procedimientos y dispositivos, que no existen como entidad; (4) PERSISTIR las proyecciones, que arrastra los tres sitios de declaración de una colección y es decisión de arquitectura. Después: WS-09 (aplicabilidad, NOT_STARTED), WS-11 lo que queda (interconsultas, referencias, imagen) y WS-02 (arnés de carga).
+FILES_IN_SCOPE=src/lib/expediente/alergias-longitudinales.ts · src/lib/expediente/lo-que-se-aviso-al-firmar.ts · src/lib/expediente/la-duda-de-la-otra-vez.ts · src/lib/expediente/laboratorio/lo-que-ya-esta-medido.ts · src/lib/expediente/problemas-activos.ts · src/lib/expediente/cuadro-completo.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10922
+TESTS_PASSED=10937
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno — P1-20 abierto y cerrado con REG-364)
-BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-367
+BLOCKED_EXTERNAL=umbral de antigüedad de un laboratorio para dosificar (NEEDS_CLINICAL_REVIEW, REG-368) · P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
+DO_NOT_REGRESS=REG-323 · REG-337…REG-368
 ```
 
 ### Cerrado en esta tanda
@@ -46,6 +46,7 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-367
 | 365 | La otra mitad de REG-364 **estaba mal**: etiquetar «(presuntivo)» afirmaba una duda que nadie expresó, porque `presuntivo` es el valor de FÁBRICA del esquema y ninguna pantalla deja elegir el tipo. Corregido el mismo día, con un caso que vigila que siga siendo el default |
 | 366 | Los avisos que el médico confirma haber revisado —la duda del paciente, la contradicción, el antecedente del familiar— **se descartaban al firmar**. «Creo que me dijeron que tenía anemia» quedaba como «Anemia» y la duda duraba lo que la sesión del navegador. Se sellan ANTES del hash, o la nota se reabre «alterada» |
 | 367 | Y esa duda **no llegaba a la consulta siguiente**, que es donde `certeza.ts` decía que se perdía. El par de REG-366, cerrado en la unidad siguiente para que su «qué no cubre» no fuera el defecto de dentro de seis meses |
+| 368 | **REG-188 en el eje que faltaba**: los paneles de laboratorio del paciente los leía un solo componente —el de la pestaña de la MISMA pantalla— y no los motores. Creatinina 2.4 del mes pasado + metformina hoy = ningún aviso. Con su fecha, y sin inventar un umbral de antigüedad |
 
 ### El saldo, escrito
 

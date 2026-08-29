@@ -11485,3 +11485,86 @@ fija exactamente esa forma.
 sellar —el estado anterior a REG-366— no sale nada. Y un caso comprueba que la
 frase de `certeza.ts` que este módulo existe para contradecir sigue escrita donde
 estaba, porque si alguien la reescribe este módulo se queda sin su razón.
+
+---
+
+## REG-368 — los laboratorios que el paciente ya tiene no llegaban a los motores
+
+**QUÉ FALLABA.** Es **REG-188 otra vez**, en el eje que aquella reparación dejó
+fuera.
+
+REG-188 encontró que los motores clínicos recibían **sólo la receta de hoy**
+—warfarina de marzo más ketorolaco de hoy no disparaba la regla de sangrado— y lo
+arregló para la medicación y para los problemas (`cuadro-completo.ts`). Los
+**laboratorios** siguieron igual:
+
+```ts
+entradaCopiloto.labs = labsDesdeEstudios(extraction.tests)
+//                     ↑ sólo lo dictado o extraído HOY
+```
+
+Los paneles del paciente —creatinina, AST/ALT, plaquetas, LDL, potasio— viven en
+`laboratorio/firestore.ts` y los leía **un solo componente**: `PanelLaboratorios`,
+que se pinta en la pestaña de Laboratorios **de esta misma pantalla**. El número
+estaba a la vista del médico y el motor que produce el aviso no lo veía.
+
+**LO QUE SE REPRODUJO, CON EL MOTOR REAL:**
+
+```
+creatinina 2.4 mg/dL en un panel del mes pasado
++ hoy se prescribe metformina, sin volver a dictar la creatinina
+→ `ajusteRenal` sale por su primera línea: no hay `labs.creatinina`
+→ ni TFG estimada, ni aviso de metformina por debajo de 30
+```
+
+`AJUSTE_RENAL` existe, está probada y dice qué hacer. No llegaba el número.
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo WS-10 (laboratorios clave y tendencias) con la
+pregunta de siempre: **¿quién lee esto?**. `listarPanelesLab` y
+`seriesDesdeHistorial` tenían un único llamador, y no era el motor.
+
+**CAUSA RAÍZ.** Familia «escrito y sin conectar», sobre el dato que alimenta las
+fórmulas que producen conducta — y en su variante más difícil de ver: **el dato
+estaba en la misma pantalla**, en otra pestaña, así que mirando la interfaz el
+hueco es invisible.
+
+**EL ARREGLO.** `laboratorio/lo-que-ya-esta-medido.ts` (puro) une lo de hoy con
+los paneles del expediente, con la **misma regla que `medicacionDelCuadro`**: hoy
+manda —si el médico acaba de dictar una creatinina está mirando un resultado
+nuevo—, el expediente completa, y el panel más reciente manda sobre cada analito.
+
+Y lo que viene del expediente **viaja con su fecha**. `EntradaCopiloto` gana
+`labsMedidosEn`, y `citaDelLab` —una sola definición para los cuatro sitios que
+nombran un valor— hace que el aviso diga «creatinina 2.4 mg/dL, **medida el
+2026-07-14**». El aviso de contraindicación renal, que es el más grave que
+produce este motor, lo dice también en su detalle. Sin eso, el motor afirmaría una
+vigencia que nadie comprobó.
+
+**LO QUE NO SE DECIDIÓ, Y ESTÁ MARCADO `NEEDS_CLINICAL_REVIEW`.**
+
+**Cuánto puede tener una creatinina para seguir sirviendo para dosificar es un
+umbral clínico**, y aquí no se inventa (regla 1). No hay filtro por antigüedad: lo
+que hay es la fecha, dicha, para que la juzgue quien puede. Poner «180 días»
+porque suena razonable es exactamente el fallo que esa regla describe — no rompe
+nada, no falla ninguna prueba, y sale impreso con cédula profesional. Hay un caso
+del golden que **falla si aparece una constante de días** en el módulo.
+
+**LO QUE SÍ SE EXCLUYE.** Los valores **censurados** («>400», «<50»): el
+laboratorio dio un límite, no un número, y meterlo en una fórmula afirmaría un
+valor exacto que nadie midió — REG-204 y `el-valor-censurado-no-se-da-por-normal`.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No cambia ningún umbral, ninguna fórmula ni ninguna compuerta.** Cambia qué
+  entra. Habrá más avisos —es el objetivo— y ninguno bloquea la firma.
+- **No dibuja tendencias en la consulta.** `seriesDesdeHistorial` sigue siendo del
+  panel; esto es el puente al motor, no una pantalla nueva.
+- **No cubre UCI ni hospitalización**, que tienen su propio camino.
+- **Cuesta una lectura más por consulta** — la misma que ya hace el panel de la
+  pestaña cuando se abre. Si falla, los motores ven lo de hoy: exactamente como
+  se comportaban antes.
+
+**LA PRUEBA.** `src/__tests__/lo-que-ya-esta-medido-llega-al-motor.test.ts`
+(15 casos), con el **motor real** (`copiloto`) y no con dobles. Probada al revés:
+con sólo lo de hoy, el motor no dice nada de la metformina ni de la TFG; con el
+panel del mes pasado, el aviso sale y trae la fecha.

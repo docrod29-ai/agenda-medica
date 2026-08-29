@@ -331,7 +331,23 @@ comprobación de rango a secas.
 |---|---|
 | **Estado** | `PARTIAL` |
 | **Lo que sí existe y está cableado** | `problemas-activos.ts:70`, `ordenes-medicamento.ts:76` y —desde REG-363— `alergias-longitudinales.ts`: proyección longitudinal real de **problemas activos**, **medicación activa** y **alergias**, con la regla dura correcta: el silencio no resuelve nada |
-| **Lo que falta** | Procedimientos, dispositivos, laboratorios clave, tendencias, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento. Las tres proyecciones se recalculan en el navegador; **ninguna se persiste**, y sólo la de alergias lleva `asOf` y `version` |
+| **Lo que falta** | Procedimientos, dispositivos, banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento. Los **laboratorios** ya llegan a los motores (REG-368) y su tendencia ya se dibuja en el panel; falta llevarla a la consulta. Las proyecciones se recalculan en el navegador; **ninguna se persiste**, y sólo la de alergias lleva `asOf` y `version` |
+
+**REG-368 — los laboratorios que el paciente ya tiene llegan a los motores.** Es
+REG-188 en el eje que aquella reparación no tocó: `entradaCopiloto.labs` era sólo
+lo dictado hoy, y los paneles del paciente los leía **un solo componente** — el
+de la pestaña de Laboratorios **de la misma pantalla**. Una creatinina de 2.4 del
+mes pasado no ajustaba nada al recetar metformina hoy. Mirando la interfaz el
+hueco es invisible: el número está a la vista y el aviso no sale.
+
+Hoy manda, el expediente completa, y **lo del expediente viaja con su fecha** —el
+aviso dice «creatinina 2.4 mg/dL, medida el 2026-07-14»—. Los valores censurados
+(«>400») no entran: un límite no es un número.
+
+**`NEEDS_CLINICAL_REVIEW` del dueño**: cuánto puede tener una creatinina para
+seguir sirviendo para dosificar. No se filtra por antigüedad porque ése es un
+umbral clínico y no se inventa; se dice la fecha. Hay un caso que falla si
+aparece una constante de días en el módulo.
 
 **REG-363 — las alergias ya son longitudinales, y la regla NO es la de sus dos
 hermanas.** Cada nota firmada sella una **copia** de la lista de alergias, y

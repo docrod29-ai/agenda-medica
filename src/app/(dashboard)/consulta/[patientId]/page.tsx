@@ -68,6 +68,8 @@ import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la
 import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/expediente/procedencia'
 import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
+import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
+import { listarPanelesLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
 
 /**
  * Alergias del paciente (texto libre) → lista para el sello de procedencia.
@@ -898,6 +900,15 @@ export default function ConsultaActivaPage() {
    * enteras, que son documentos grandes y aquí sólo hacen falta dos campos.
    */
   const [dudasDeAntes, setDudasDeAntes] = useState<DudaDeAntes[]>([])
+  /**
+   * LOS PANELES DE LABORATORIO DEL PACIENTE (REG-368).
+   *
+   * Ya estaban en esta pantalla —la pestaña de Laboratorios los pinta— pero los
+   * leía sólo ese componente, así que el número no llegaba a los motores. Una
+   * creatinina del mes pasado no disparaba el ajuste renal de lo que se receta
+   * hoy. Es REG-188 en el eje que faltaba.
+   */
+  const [panelesLab, setPanelesLab] = useState<PanelLaboratorio[]>([])
 
   /**
    * ── EL CUADRO COMPLETO, FUERA DEL useMemo (REG-188) ─────────────────────────
@@ -926,6 +937,18 @@ export default function ConsultaActivaPage() {
     { historialIncompleto: historialTruncado },
   )
   const avisoAlergias = avisoDeAlergiasQueNoSeVen(estadoAlergias)
+
+  /**
+   * En el cuerpo y no dentro del `useMemo` de abajo: una función importada
+   * dentro de una memoización manual no la preserva el React Compiler y el
+   * trinquete de lint lo caza — la misma razón que `medsDelCuadro`.
+   */
+  const labsDeLaConsulta = labsDelCuadro(
+    labsDesdeEstudios(
+      (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
+    ),
+    panelesLab,
+  )
 
   const entradaCopiloto = useMemo(() => ({
     edad: patient?.edad,
@@ -972,10 +995,19 @@ export default function ConsultaActivaPage() {
      * valor y unidad. El mapeo es conservador a propósito: ante la duda no mapea,
      * porque estos números alimentan fórmulas que producen conducta.
      */
-    labs: labsDesdeEstudios(
-      (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
-    ),
-  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, extraction])
+    /**
+     * ── LO DE HOY **MÁS** LO QUE YA ESTÁ MEDIDO (REG-368) ─────────────────
+     *
+     * Esto era sólo lo extraído del dictado de hoy. Los paneles del paciente
+     * viven en la misma pantalla, en su pestaña, y el motor que produce el
+     * aviso no los veía: una creatinina de 2.4 del mes pasado no ajustaba nada
+     * al recetar metformina hoy.
+     *
+     * Hoy manda; lo del expediente completa y viaja con su fecha.
+     */
+    labs: labsDeLaConsulta.labs,
+    labsMedidosEn: labsDeLaConsulta.medidoEn,
+  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, labsDeLaConsulta])
   const [resumen, setResumen] = useState('')
   /**
    * QUÉ ES ESTA NOTA PARA EL SELLO — una vez, para las dos lecturas.
@@ -1703,6 +1735,19 @@ export default function ConsultaActivaPage() {
     getPatient(clinicId, patientId)
       .then(p => { setPatient(p); setPacienteError(!p); alergiasAlAbrir.current = p?.alergias ?? '' })
       .catch((e: unknown) => { console.error('cargar paciente:', e); setPacienteError(true) })
+    /**
+     * Los paneles de laboratorio, para que los motores los vean (REG-368). Es
+     * UNA lectura más por consulta, la misma que ya hace el panel de la pestaña
+     * de Laboratorios cuando se abre — y aquí compra que el ajuste renal, el
+     * riesgo hepático y el cardiovascular dejen de depender de que el médico
+     * vuelva a dictar un número que el expediente ya tiene.
+     *
+     * Degrada sin romper: si falla, los motores ven lo de hoy, que es
+     * exactamente como se comportaban antes.
+     */
+    listarPanelesLab(clinicId, patientId)
+      .then(setPanelesLab)
+      .catch(e => console.error('paneles de laboratorio:', e))
     getUltimasNotasResumen(clinicId, patientId)
       .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
       .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota

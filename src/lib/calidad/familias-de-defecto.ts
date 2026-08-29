@@ -157,7 +157,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * excusa. Cerrarlo en la unidad siguiente es lo que impide que se convierta
      * en el defecto de dentro de seis meses.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367],
+    /**
+     * 368 es esta familia en su forma MÁS DIFÍCIL DE VER: el dato estaba en la
+     * misma pantalla. Los paneles de laboratorio del paciente se pintan en la
+     * pestaña de Laboratorios de la consulta, con la creatinina a la vista, y el
+     * motor que produce el ajuste renal no los recibía — recibía sólo lo dictado
+     * hoy. Es REG-188 (la medicación) en el eje que aquella reparación no tocó.
+     *
+     * Su lección: mirando la interfaz este hueco es INVISIBLE. El médico ve el
+     * número y ve que no hay aviso, y lo razonable es concluir que no hace
+     * falta. Sólo se encuentra preguntando quién LEE el dato, no quién lo pinta.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368],
   },
   {
     clave: 'se_contradice',

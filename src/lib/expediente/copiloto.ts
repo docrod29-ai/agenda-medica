@@ -75,6 +75,18 @@ export interface EntradaCopiloto {
   signos?: SignosConsulta
   /** Laboratorios sueltos si la nota los trae: creatinina, ast, alt, plaquetas, ldl… */
   labs?: Record<string, number>
+  /**
+   * CUÁNDO SE MIDIÓ CADA UNO — sólo para los que vienen del EXPEDIENTE (REG-368).
+   *
+   * Desde que los paneles del paciente llegan a este motor (`labsDelCuadro`), un
+   * número puede ser de hoy o de hace ocho meses. Decir «TFG estimada 28
+   * (creatinina 2.4)» sin decir de cuándo es esa creatinina afirma una vigencia
+   * que nadie comprobó.
+   *
+   * Ausente = de esta consulta. No se rellena con la fecha de hoy: un «medido
+   * hoy» al lado de lo que el médico acaba de dictar es ruido.
+   */
+  labsMedidosEn?: Record<string, string>
 }
 
 // ── utilidades ──────────────────────────────────────────────────────────────
@@ -284,6 +296,18 @@ function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
 
 // ── 3. SEGURIDAD: ajuste renal de lo recetado ───────────────────────────────
 
+/**
+ * Cómo se cita un laboratorio que puede no ser de hoy — REG-368.
+ *
+ * Una sola definición para los cuatro sitios que nombran un valor: si el número
+ * vino del expediente, la frase lleva **cuándo se midió**; si lo dictó el médico
+ * en esta consulta, va limpia.
+ */
+function citaDelLab(e: EntradaCopiloto, clave: string, texto: string): string {
+  const cuando = e.labsMedidosEn?.[clave]
+  return cuando ? `${texto}, medida el ${cuando}` : texto
+}
+
 function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
   const cr = e.labs?.creatinina
   const edad = e.edad
@@ -311,7 +335,7 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
     return [{
       id: 'renal:unidad',
       nivel: 'info',
-      titulo: `Creatinina ${cr}: revisa la unidad (mg/dL)`,
+      titulo: `${citaDelLab(e, 'creatinina', `Creatinina ${cr}`)}: revisa la unidad (mg/dL)`,
       detalle: `Un valor fuera de 0.1–25 mg/dL suele venir en µmol/L (dividir entre 88.4) o ser un error de captura. No se estima TFG ni se ajustan dosis hasta corregir la unidad.`,
       textoNota: `Creatinina ${cr} fuera de rango en mg/dL — verificar unidad antes de ajustar por función renal.`,
     }]
@@ -345,8 +369,13 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
       titulo: a.contraindicado
         ? `${f.nombre} está contraindicado con TFG de ${Math.round(tfg)}`
         : `${f.nombre} requiere ajuste con TFG de ${Math.round(tfg)}`,
-      detalle: a.conducta + (a.nota ? ` ${a.nota}` : ''),
-      textoNota: `Con TFG estimada de ${Math.round(tfg)} mL/min/1.73 m² (CKD-EPI 2021): ${f.nombre} — ${a.conducta}`,
+      /* La TFG sale de una creatinina que puede no ser de hoy (REG-368). El
+         aviso que cambia la conducta tiene que decir de cuándo es el número: sin
+         eso afirma una vigencia que nadie comprobó, y es el aviso más grave que
+         produce este motor. */
+      detalle: `${a.conducta}${a.nota ? ` ${a.nota}` : ''}${
+        e.labsMedidosEn?.creatinina ? ` TFG calculada con la creatinina del ${e.labsMedidosEn.creatinina}.` : ''}`,
+      textoNota: `Con TFG estimada de ${Math.round(tfg)} mL/min/1.73 m² (CKD-EPI 2021, ${citaDelLab(e, 'creatinina', `creatinina ${cr} mg/dL`)}): ${f.nombre} — ${a.conducta}`,
     })
   }
   return out
@@ -579,7 +608,7 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
         detalle: tfg < 60
           ? 'Por debajo de 60: revisa que todo lo que se elimina por riñón esté ajustado.'
           : 'Por CKD-EPI 2021, sin coeficiente de raza.',
-        textoNota: `TFG estimada por CKD-EPI 2021: ${Math.round(tfg)} mL/min/1.73 m² (creatinina ${e.labs.creatinina} mg/dL).`,
+        textoNota: `TFG estimada por CKD-EPI 2021: ${Math.round(tfg)} mL/min/1.73 m² (${citaDelLab(e, 'creatinina', `creatinina ${e.labs.creatinina} mg/dL`)}).`,
       })
     }
   }

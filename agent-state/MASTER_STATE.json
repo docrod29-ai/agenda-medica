@@ -61,9 +61,9 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 215,
-    "ultimaREG": "REG-367",
-    "archivosDePrueba": 792,
+    "regsEnElLedger": 216,
+    "ultimaREG": "REG-368",
+    "archivosDePrueba": 793,
     "casosDePrueba": 9675,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
