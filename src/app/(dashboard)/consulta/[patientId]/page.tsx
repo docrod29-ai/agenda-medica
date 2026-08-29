@@ -6468,7 +6468,7 @@ export default function ConsultaActivaPage() {
           </div>
         ))}
         {!firmada && (
-          <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo' }])} style={S.addBtn}>
+          <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo', tipoOrigen: 'medico' }])} style={S.addBtn}>
             <Plus size={13} /> Agregar diagnóstico
           </button>
         )}

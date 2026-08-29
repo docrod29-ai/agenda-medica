@@ -11787,3 +11787,88 @@ clínica, y hay tres casos que lo fijan.
 (14 casos), incluido el que comprueba que el dato **sí estaba guardado** antes del
 arreglo —que es lo que hacía la pérdida invisible— y el que impide que se cuele
 otro grupo de la valoración.
+
+---
+
+## REG-372 — el expediente interoperable afirmaba una confirmación que nadie hizo, daba por resuelta una enfermedad crónica y convertía un descarte en sospecha
+
+**QUÉ FALLABA.** La exportación FHIR resolvía el estado de una `Condition` con
+dos ternarios:
+
+```ts
+verificationStatus: dx.tipo === 'definitivo' ? 'confirmed' : 'provisional'
+clinicalStatus:     dx.estado === 'activo'   ? 'active'    : 'resolved'
+```
+
+**1. Una confirmación firmada por nadie.** `tipo` lo pone el modelo de lenguaje
+—el prompt le pide distinguir sospecha de diagnóstico confirmado— o lo rellena el
+esquema por omisión, y **ninguna pantalla deja al médico elegirlo** (REG-365). Así
+que un `definitivo` **del modelo** salía a otro sistema como `confirmed`: una
+afirmación clínica que ninguna persona hizo, en un registro interoperable que este
+producto ya no controla una vez enviado.
+
+**2. Un descarte convertido en sospecha.** `descartado` caía en el `else` y salía
+como `provisional` — «todavía en estudio». Es REG-364 por la puerta de la
+interoperabilidad.
+
+**3. Una enfermedad crónica dada por resuelta.** `estado` tiene cuatro valores y
+el ternario reconocía uno: `cronico` y `en_seguimiento` salían como **`resolved`**.
+El expediente interoperable de un diabético decía que su diabetes está resuelta.
+
+**CÓMO SE DESCUBRIÓ.** Cerrando el hueco de modelo que el tablero tenía escrito
+—«la extracción por defecto no puede volverse un diagnóstico presuntivo o
+confirmado elegido por el médico»— y siguiendo a dónde va `tipo`: su destino final
+es un `verificationStatus` que otro sistema lee como un hecho.
+
+**CAUSA RAÍZ.** El modelo de datos no distinguía **quién** puso `tipo`, y la
+traducción a FHIR aplanaba cuatro valores en dos. Familia «el sistema se
+contradice a sí mismo»: la pantalla ya no trata un `presuntivo` por omisión como
+un juicio (REG-365) y la exportación sí lo hacía.
+
+**EL ARREGLO, en tres piezas.**
+
+1. **`Diagnostico.tipoOrigen`** — `medico` | `extraccion` | `por_defecto`. Va
+   **dentro** de `Diagnostico`, que el sello v3 ya cubre entero (`diagnosticos`
+   está en `canonicoV3`), así que **no hace falta un sello nuevo**: las notas
+   viejas conservan su objeto y siguen verificando.
+2. **El esquema conserva el origen.** `DiagnosticoAuditado` cambia
+   `.default('presuntivo')` por un `transform`, porque un default de zod **no deja
+   rastro de haberse aplicado**. El efectivo por omisión sigue siendo `presuntivo`
+   —no cambia nada de lo que ya funcionaba— y ahora se sabe si el modelo lo dijo.
+   Y **nunca marca `medico`**: una sugerencia no es una firma.
+3. **`fhir/la-certeza-que-sale-al-mundo.ts`** (puro) traduce con un caso por
+   valor: `descartado`→`refuted`, `diferencial`→`differential`,
+   `definitivo`+`medico`→`confirmed`, cualquier otro `definitivo`→`unconfirmed`,
+   `presuntivo`→`provisional`; y `cronico`/`en_seguimiento`→`active`.
+
+**LA REGLA.** **Confirmar es un acto y sólo lo puede hacer una persona.**
+`unconfirmed` no dice que el diagnóstico sea falso: dice que **nadie firmó su
+verificación**, que es exactamente lo que ocurre. Degradar una nota histórica de
+`confirmed` a `unconfirmed` **no pierde información** — deja de afirmar la que
+nunca hubo.
+
+Un estado que el código no conozca **no se da por resuelto**: sale `active`, que
+es lo que no pierde al paciente de vista. Ausencia de dato no es dato de ausencia.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No crea la pantalla donde el médico elija `tipo`.** Sigue sin existir, así que
+  hoy `tipoOrigen: 'medico'` sólo lo lleva el diagnóstico que el médico añade a
+  mano. Esto hace la carencia **visible** en vez de resolverla en falso.
+- **No cambia `tipo` ni `estado`** de ningún diagnóstico, ni reclasifica nada.
+- **No toca las notas ya firmadas.** Su objeto sigue igual y siguen verificando.
+- **No cubre `AllergyIntolerance`**, que exporta `confirmed` fijo y tiene su
+  propia historia.
+
+**LA PRUEBA.**
+`src/__tests__/la-certeza-del-diagnostico-no-la-firma-un-modelo.test.ts`
+(18 casos). Probada al revés **tres veces**: cada uno de los tres defectos
+reproduce el ternario anterior sobre el mismo dato y comprueba que daba el
+desenlace equivocado. Un caso recorre los cuatro estados y falla si alguno deja de
+tener `case` propio.
+
+**UN GUARDIÁN PROPIO ACTUALIZADO, Y MEJORADO.** El de REG-365 leía el TEXTO del
+esquema para comprobar que `presuntivo` seguía siendo el default. Al sustituir el
+`.default()` por el `transform`, pasó a **ejecutar el esquema** y medir el
+comportamiento: sin `tipo`, el efectivo sigue siendo `presuntivo` y el origen es
+`por_defecto`. Protege lo mismo, y ya no depende de cómo esté escrito.

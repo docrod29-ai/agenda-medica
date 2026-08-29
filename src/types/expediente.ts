@@ -41,12 +41,43 @@ export type FuenteGeneracion = 'manual' | 'ia_voz' | 'ia_texto' | 'plantilla'
 
 // ── Modelos comunes ───────────────────────────────────────────
 
+/**
+ * QUIÉN PUSO `tipo` — la autoridad del médico, dicha (REG-372).
+ *
+ * `tipo` decide si un diagnóstico sale al mundo como **confirmado**: la
+ * exportación FHIR lo mapea a `verificationStatus`, y de ahí lo lee otro
+ * sistema. Y `tipo` lo pone el modelo de lenguaje, o lo rellena el esquema por
+ * omisión, porque **ninguna pantalla deja al médico elegirlo** (REG-365).
+ *
+ * Sin este campo, un `definitivo` que dijo el modelo y un `definitivo` que
+ * afirmó el médico son indistinguibles — y el expediente interoperable afirma
+ * una confirmación clínica que nadie hizo.
+ *
+ * Ausente en las notas anteriores a esto: «no consta» es un estado real y no se
+ * rellena, porque rellenarlo sería inventar la autoría.
+ */
+export type OrigenDelTipoDeDiagnostico =
+  /** Lo eligió una persona. Es lo único que autoriza a decir «confirmado». */
+  | 'medico'
+  /** El modelo emitió `tipo` explícitamente. Es una sugerencia, no una firma. */
+  | 'extraccion'
+  /** Nadie lo dijo: lo puso el valor por omisión del esquema. */
+  | 'por_defecto'
+
 export interface Diagnostico {
   descripcion: string
   codigoCIE10?: string
   tipo: 'definitivo' | 'presuntivo' | 'descartado' | 'diferencial'
   estado: 'activo' | 'resuelto' | 'cronico' | 'en_seguimiento'
   fechaDiagnostico?: string
+  /**
+   * Quién puso `tipo`. Ver `OrigenDelTipoDeDiagnostico`.
+   *
+   * Va DENTRO de `Diagnostico`, que el sello v3 ya cubre entero
+   * (`diagnosticos` está en `canonicoV3`), así que no hace falta un sello nuevo:
+   * las notas viejas conservan su objeto y siguen verificando.
+   */
+  tipoOrigen?: OrigenDelTipoDeDiagnostico
 }
 
 /**

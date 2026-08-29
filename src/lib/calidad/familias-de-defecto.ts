@@ -236,7 +236,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * llama. El defecto no estaba en la regla — estaba en el lector que se
      * escribió su propia versión implícita («todo lo que tenga descripción»).
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364],
+    /**
+     * 372 es 364 y 365 llevados a su destino final: `tipo` acaba siendo un
+     * `verificationStatus` de FHIR que otro sistema lee como un hecho. La
+     * pantalla ya había dejado de tratar un `presuntivo` por omisión como un
+     * juicio, y la exportación seguía convirtiendo un `definitivo` DEL MODELO en
+     * `confirmed`. En el mismo ternario, un descarte salía como «provisional» y
+     * una enfermedad crónica como **resuelta**.
+     *
+     * Su lección: la contradicción no se acaba de arreglar hasta que se recorre
+     * el dato hasta donde SALE del producto. Una pantalla honesta y una
+     * exportación que afirma lo contrario son el mismo defecto, y la segunda es
+     * la que viaja a un sistema que ya no controlamos.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372],
   },
   {
     clave: 'habla_real',

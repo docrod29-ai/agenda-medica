@@ -471,9 +471,23 @@ estructurarse es el eje dentro de la entidad (`Diagnostico` no tiene `certeza`,
 `Medicamento` no tiene `temporalidad`), que es decisión de modelo.
 `Diagnostico` no tiene campo `certeza`; `Medicamento` no tiene `temporalidad`.
 Un diagnóstico capturado como «creo que me dijeron que tenía anemia» se guarda
-igual que uno confirmado. **REG-364 cerró la mitad que sí se guardaba** —`tipo`,
-que es lo que decidió el MÉDICO—; sigue abierta la del PACIENTE, que se calcula
-en la consulta y se descarta al firmar.
+igual que uno confirmado. **REG-364 cerró la mitad que sí se guardaba** —`tipo`—;
+la del PACIENTE se conserva desde REG-366/367 como aviso sellado y relegible.
+
+**REG-372 — y la autoridad del médico sobre `tipo` ya está registrada.** `tipo`
+acaba siendo un `verificationStatus` de FHIR que otro sistema lee como un hecho, y
+la exportación convertía un `definitivo` **del modelo** en `confirmed`: una
+afirmación clínica firmada por nadie. En el mismo ternario, un `descartado` salía
+como `provisional` y una enfermedad **crónica** salía como **`resolved`**.
+
+`Diagnostico.tipoOrigen` (`medico` | `extraccion` | `por_defecto`) registra quién
+lo puso —dentro del objeto que el sello v3 ya cubre, así que **sin sello nuevo**—
+y `confirmed` se reserva a `medico`. Lo demás sale `unconfirmed`, que no dice que
+el diagnóstico sea falso: dice que nadie firmó su verificación.
+
+**Lo que esto deja visible en vez de resolver en falso**: sigue sin existir la
+pantalla donde el médico elija `tipo`, así que hoy `tipoOrigen: 'medico'` sólo lo
+lleva el diagnóstico añadido a mano.
 
 **Tres vocabularios de verdad clínica en paralelo** — `TruthState`
 (`clinical-truth/index.ts:1`), `ClinicalTruthStatus` (`types/uci.ts:19`) y

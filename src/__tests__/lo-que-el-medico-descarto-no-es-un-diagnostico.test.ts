@@ -69,6 +69,7 @@ import { readFileSync } from 'node:fs'
 import { problemasDelCuadro, comoSeNombra } from '@/lib/expediente/cuadro-completo'
 import { nombreConCerteza, problemasActivos, resumenProblemas, estaVigente } from '@/lib/expediente/problemas-activos'
 import { copiloto } from '@/lib/expediente/copiloto'
+import { DiagnosticoAuditado } from '@/lib/expediente/extraction-schema'
 import type { Diagnostico } from '@/types/expediente'
 
 const dx = (descripcion: string, tipo: Diagnostico['tipo'], estado: Diagnostico['estado'] = 'activo'): Diagnostico =>
@@ -188,11 +189,20 @@ describe('un valor de fábrica no es un juicio del médico — REG-365', () => {
     expect(nombreConCerteza({ descripcion: '   ' })).toBe('')
   })
 
-  it('el default del esquema SIGUE siendo `presuntivo` — si cambia, esto se revisa', () => {
-    /* La regla de arriba sólo es correcta mientras `presuntivo` sea el valor de
-       fábrica. El día que alguien lo cambie, este caso lo cuenta. */
-    const esquema = readFileSync('src/lib/expediente/extraction-schema.ts', 'utf8')
-    expect(esquema).toMatch(/tipo:\s+z\.enum\(\[[^\]]*\]\)\.optional\(\)\.default\('presuntivo'\)/)
+  it('el efectivo por omisión SIGUE siendo `presuntivo` — si cambia, esto se revisa', () => {
+    /*
+     * La regla de arriba sólo es correcta mientras `presuntivo` sea lo que sale
+     * cuando nadie dice nada. El día que alguien lo cambie, este caso lo cuenta.
+     *
+     * REG-372 sustituyó el `.default('presuntivo')` de zod por un `transform`,
+     * porque un default no deja rastro de haberse aplicado y hacía falta saber
+     * si el modelo lo dijo o lo puso la omisión. Este caso pasó de leer el
+     * TEXTO del esquema a EJECUTARLO, que es lo que de verdad protege: ahora
+     * mide el comportamiento en vez de la forma de escribirlo.
+     */
+    const sinTipo = DiagnosticoAuditado.parse({ descripcion: 'Anemia' })
+    expect(sinTipo.tipo).toBe('presuntivo')
+    expect(sinTipo.tipoOrigen).toBe('por_defecto')
     const prompts = readFileSync('src/lib/expediente/prompts.ts', 'utf8')
     expect(prompts).toContain('Por defecto tipo="presuntivo"')
   })
