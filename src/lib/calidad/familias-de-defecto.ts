@@ -410,7 +410,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El dato se guardaba entero y correcto, pero sin la distinción que lo hace ' +
       'utilizable. No se arregla con una validación: se arregla añadiendo la ' +
       'pregunta que faltaba.',
-    regs: [183, 227],
+    /**
+     * 360 es esta familia en su forma declarada: al modelo de la tarea le
+     * faltaban tres ejes del §9 —qué se decidió, qué se hizo, si se avisó al
+     * paciente— y `progreso-resultado.ts` lo había ESCRITO en su encabezado en
+     * vez de rellenarlos. Un resultado crítico cerrado sin que nadie llamara al
+     * paciente se veía igual que uno donde sí se llamó.
+     *
+     * Lo que esta familia aprende aquí: un hueco bien declarado no es un hueco
+     * cerrado. Se agradece que el módulo se negara a inventar el dato; lo que
+     * hacía falta era el eje.
+     */
+    regs: [183, 227, 360],
   },
   {
     /**

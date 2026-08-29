@@ -49,14 +49,14 @@
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 790 pasan · 1 falla** (785 archivos) | Baseline del 28-ago eran 10 566; **+224 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 805 pasan · 1 falla** (786 archivos) | Baseline del 28-ago eran 10 566; **+239 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-359.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-360.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -356,10 +356,11 @@ queda como `NEEDS_CLINICAL_REVIEW`.
 
 | | |
 |---|---|
-| **Estado** | `PARTIAL` — hay base sólida sobre la que construir, y un P0 |
+| **Estado** | `PARTIAL` — la base es sólida y desde REG-360 el modelo ya distingue las tres etapas del cierre |
 | **Base canónica** | `src/lib/tareas-clinicas/` — máquina de estados real (`modelo.ts:124`), dueño, vencimiento, escalación |
 | **Lo que ya distingue bien** | `completada` ≠ `cerrada`. El código lo dice: *«el laboratorio hecho, el resultado en el sistema, y nadie que lo lea»* |
-| **Lo que no existe** | `acted_on`, `patient_notified`, `scheduled`, y el registro de transiciones. `progreso-resultado.ts:20` **lo declara honestamente** y devuelve `sin_dato` en vez de inventarlo |
+| **Lo que ya existe desde REG-360** | **DECISION, ACTION y PATIENT COMMUNICATION tienen campo** (`TareaClinica.cierre`) y hay **registro de transiciones** acotado. Cerrar **exige decir qué se decidió**; el aviso al paciente no se exige —un worklist que cuesta se abandona— pero **tampoco se inventa**: sin registrar sale `sin_dato`, nunca «se avisó» |
+| **Lo que sigue sin existir** | `scheduled` como estado propio. **Ninguna pantalla llena todavía el cierre**: el formulario que pida decisión, acción y aviso es la siguiente unidad, así que en producción las tres siguen saliendo `sin_dato` — que es la verdad |
 
 **P0-1 en detalle.** REG-252 descubrió que `tareaDeResultado()` no tenía
 llamadores y lo arregló **sólo para el camino hospitalario**
@@ -371,7 +372,8 @@ entra al expediente y **su mera existencia cuenta como hecho**.
 
 **Interconsultas y referencias no están en el ciclo**: `Interconsulta` es un
 array embebido con dos estados, sin dueño ni vencimiento; la referencia de
-consultorio es **sólo un impreso**. Imagen no tiene entidad.
+consultorio es **sólo un impreso**. Imagen no tiene entidad. **Es lo que queda
+abierto de WS-11 tras REG-360**, junto con el formulario de cierre.
 
 **P1-2 — 22 colecciones sin declarar.** Se escriben desde `src/` y no están en
 `firestore.rules`, ni en `matriz-acceso.ts`, ni en `respaldo.ts`. Siete son de

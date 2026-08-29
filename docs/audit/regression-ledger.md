@@ -10843,3 +10843,78 @@ comprobación de rango: **caen 5 casos**, incluido el que le da nombre.
 - **No renderiza.** Que la marca exista en el árbol no prueba que se vea.
 - **No cubre las otras rutas de IA.** El consultor tiene su propio camino; esta
   verificación es de la ruta de la consulta.
+
+## REG-360 — «cerrar» era un solo acto que abarcaba tres
+
+**DE DÓNDE VIENE.** WS-11 del tablero de Ausculta, §9 del master loop. No es un
+defecto reportado: es un hueco que el propio código tenía **diagnosticado y
+declarado**, y que nadie había cerrado.
+
+**QUÉ FALTABA.** El §9 pide ocho etapas para un resultado: RESULT → SIGNIFICANCE
+→ OWNER → REVIEW → **DECISION → ACTION → PATIENT COMMUNICATION** → CLOSED.
+`TareaClinica` tenía dato real para cinco. Las tres del cierre **no tenían campo
+propio**: «cerrar» era el único acto y las abarcaba las tres de golpe.
+
+Consecuencia concreta: un resultado crítico revisado y cerrado **sin que nadie
+llamara al paciente** se veía exactamente igual que uno donde sí se llamó.
+
+**LO QUE EL CÓDIGO YA HACÍA BIEN.** `progreso-resultado.ts` **se negaba a
+inventarlo**: devolvía las tres `sin_dato` siempre, cerrada o no, y lo declaraba
+en su encabezado como hallazgo estructural. Esa negativa era correcta y el
+arreglo **no podía consistir en darlas por hechas al cerrar** — hay casos del
+golden que lo vigilan, porque es la forma más fácil de «cerrar» este requisito
+mintiendo.
+
+**LA REGLA QUE LO HACE SEGURO.** Las tres etapas tienen dónde vivir
+(`TareaClinica.cierre`), y **nada se deduce del estado**: cerrada sin registrar
+el aviso sigue diciendo `sin_dato`.
+
+Es la regla 5 de seguridad clínica con una consecuencia muy concreta: **si el
+sistema afirmara que se avisó, nadie volvería a mirar; si afirmara que no,
+alguien lo arreglaría.** La única respuesta honesta a «no lo sé» es no lo sé. Por
+eso `avisoRegistrado` devuelve `null` —no `'no_avisado'`— cuando no consta, y por
+eso el cálculo de etapas pregunta por ahí en vez de leer el campo: esa distinción
+decide si alguien llama a un paciente y no puede vivir en dos sitios con la
+posibilidad de divergir.
+
+**LAS DOS ASIMETRÍAS, Y POR QUÉ NO SON CAPRICHO.**
+
+- **La decisión es obligatoria; el aviso no.** Cerrar sin decir qué se decidió es
+  cerrar sin cerrar. Pero exigir además el aviso convertiría cada cierre en un
+  formulario de tres campos, y **un worklist que cuesta se abandona en una
+  semana** — y entonces deja de verse el resultado que sí importaba, que es peor
+  que no tener el campo. Es el mismo razonamiento con el que `modelo.ts` ya se
+  negaba a crear tareas de `indicacion_paciente` en cada consulta.
+- **`no_aplica` cuenta como registrado.** Alguien miró y decidió que no había que
+  avisar: eso es un dato. Tratarlo como hueco castigaría la respuesta honesta y
+  empujaría a marcar «avisado» por comodidad.
+
+**Y EL REGISTRO DE TRANSICIONES.** Sin él, «cerrada» no dice cuándo se aceptó,
+quién la tuvo ni si se reabrió por el camino. Acotado a las últimas 50: una tarea
+reabierta muchas veces no puede hacer crecer su documento sin techo — el patrón
+que REG-350 cerró en las notas, aplicado **antes** de que duela.
+
+**UN HALLAZGO DEL PROPIO TRINQUETE, DURANTE ESTA UNIDAD.** El guardián de
+«motores escritos y sin conectar» subió de 38 a 39 y señaló a `avisoRegistrado`:
+una función exportada **sin llamador en producción**. Era verdad. Se resolvió
+conectándola —`progresoResultado` pregunta por ahí— en vez de subir el techo. El
+trinquete cazó en su propia casa el defecto que existe para cazar.
+
+**LA PRUEBA.** `src/__tests__/cerrar-no-es-avisarle-al-paciente.test.ts` (13
+casos) más los casos reescritos de `progreso-resultado.test.ts` y del guardián
+RTC-17. Probado al revés con las dos formas equivocadas de «cerrar» esto: deducir
+las etapas de `estado === 'cerrada'`, y dejar de exigir la decisión. **Caen 5.**
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Ninguna pantalla lo llena todavía.** Esto abre el modelo, el escritor y el
+  cálculo de etapas; el formulario de cierre que pida decisión, acción y aviso es
+  la siguiente unidad. Hasta entonces las tres seguirán saliendo `sin_dato` en
+  producción — que es **la verdad**, no un defecto.
+- **No cubre interconsultas, referencias ni imagen.** Siguen fuera del ciclo:
+  `Interconsulta` es un array embebido con dos estados y sin dueño; la referencia
+  de consultorio es sólo un impreso; imagen no tiene entidad. **WS-11 sigue
+  abierto** y este cambio no lo cierra.
+- **Las transiciones antiguas se pierden** al pasar de 50. Se conservan las
+  últimas porque lo reciente es lo que se audita; quien necesite el historial
+  completo tiene la bitácora NOM-004, que es append-only y sí se respalda.

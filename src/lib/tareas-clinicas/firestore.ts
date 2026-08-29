@@ -13,7 +13,10 @@
  */
 import { collection, doc, addDoc, setDoc, getDoc, updateDoc, getDocs, query, where, limit } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
-import { puedeTransicionar, type TareaClinica, type EstadoTarea } from './modelo'
+import {
+  puedeTransicionar, puedeCerrarse, conTransicion,
+  type TareaClinica, type EstadoTarea, type CierreDeTarea,
+} from './modelo'
 
 const COL = (clinicId: string) => collection(db, 'clinics', clinicId, 'tareas_clinicas')
 
@@ -168,7 +171,7 @@ export async function cambiarEstado(
   clinicId: string,
   tarea: TareaClinica,
   nuevo: EstadoTarea,
-  extra: { motivoCancelacion?: string } = {},
+  extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea> } = {},
 ): Promise<ResultadoCambio> {
   const v = puedeTransicionar(tarea.estado, nuevo)
   if (!v.permitido) return { ok: false, motivo: v.motivo }
@@ -188,11 +191,38 @@ export async function cambiarEstado(
   }
   if (nuevo === 'completada') patch.completadaEn = ahora
   if (nuevo === 'cerrada') {
+    /**
+     * ── CERRAR YA NO ES UN SOLO ACTO (REG-360) ──────────────────────────────
+     *
+     * «Cerrar» abarcaba de golpe las tres etapas del §9 —DECISION, ACTION y
+     * PATIENT COMMUNICATION— sin distinguirlas, así que un resultado crítico
+     * cerrado **sin que nadie llamara al paciente** se veía igual que uno donde
+     * sí se llamó.
+     *
+     * Ahora se exige decir QUÉ SE DECIDIÓ. El aviso al paciente **no** se
+     * exige —hacerlo convertiría cada cierre en un formulario y un worklist que
+     * cuesta se abandona— pero tampoco se inventa: sin registrar, se lee como
+     * `sin_dato`, nunca como «se avisó».
+     */
+    const cierre: Partial<CierreDeTarea> = { ...extra.cierre, quien: uid, cuando: ahora }
+    const puede = puedeCerrarse(cierre)
+    if (!puede.permitido) return { ok: false, motivo: puede.motivo }
+    patch.cierre = cierre
     // Cerrar ES la constancia de que alguien lo revisó: sin autor no significa nada.
     patch.cerradaEn = ahora
     patch.cerradaPor = uid
   }
   if (nuevo === 'cancelada') patch.motivoCancelacion = String(extra.motivoCancelacion).trim()
+
+  /**
+   * El registro de transiciones: sin él, «cerrada» no dice cuándo se aceptó,
+   * quién la tuvo, ni si se reabrió por el camino. Acotado, para que una tarea
+   * reabierta muchas veces no haga crecer su documento sin techo.
+   */
+  patch.transiciones = conTransicion(tarea.transiciones, {
+    de: tarea.estado, a: nuevo, quien: uid, cuando: ahora,
+    ...(extra.motivoCancelacion ? { motivo: String(extra.motivoCancelacion).trim() } : {}),
+  })
 
   try {
     await updateDoc(doc(COL(clinicId), String(tarea.id)), patch)

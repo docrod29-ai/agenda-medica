@@ -107,6 +107,115 @@ export interface TareaClinica {
   motivoCancelacion?: string
   /** Quién o qué la creó: 'nota', 'laboratorio', 'manual'. */
   origen: string
+  /**
+   * QUÉ SE DECIDIÓ, QUÉ SE HIZO Y SI SE LE AVISÓ AL PACIENTE (REG-360).
+   *
+   * Hasta hoy «cerrar» era **un solo acto que abarcaba tres etapas del §9**:
+   * DECISION, ACTION y PATIENT COMMUNICATION. Ni siquiera después de cerrar
+   * había campo que dijera qué se decidió, qué se hizo o si se avisó — y
+   * `progreso-resultado.ts` las devolvía `sin_dato` SIEMPRE, a propósito,
+   * porque rellenarlas al cerrar habría sido inventar un dato.
+   *
+   * Un resultado crítico revisado y cerrado **sin que nadie llamara al
+   * paciente** se veía exactamente igual que uno donde sí se llamó. Ése es el
+   * hueco.
+   */
+  cierre?: CierreDeTarea
+  /**
+   * El registro de transiciones. Append-only y acotado: sin él, «cerrada» no
+   * dice cuándo se aceptó, quién la tuvo, ni si se reabrió por el camino.
+   */
+  transiciones?: readonly Transicion[]
+}
+
+/**
+ * SI SE LE AVISÓ AL PACIENTE — y las tres respuestas no son dos.
+ *
+ * `no_aplica` existe porque hay resultados que no requieren avisar (un control
+ * normal de rutina que el paciente ya sabía que saldría normal), y obligar a
+ * decir «sí» o «no» empujaría a decir «sí» por comodidad. Lo que no puede pasar
+ * es que el silencio se lea como cualquiera de los tres.
+ */
+export type AvisoAlPaciente = 'avisado' | 'no_avisado' | 'no_aplica'
+
+export interface CierreDeTarea {
+  /** Qué se decidió. Obligatorio: cerrar sin decisión es cerrar sin cerrar. */
+  readonly decision: string
+  /**
+   * Qué se hizo. Vacío significa **que no se registró**, no que no se hiciera
+   * nada — y por eso quien lo lea tiene que poder distinguirlo.
+   */
+  readonly accion?: string
+  /** Si se le avisó al paciente. Sin valor = no se registró. */
+  readonly avisoAlPaciente?: AvisoAlPaciente
+  readonly quien: string
+  readonly cuando: string
+}
+
+export interface Transicion {
+  readonly de: EstadoTarea
+  readonly a: EstadoTarea
+  readonly quien: string
+  readonly cuando: string
+  readonly motivo?: string
+}
+
+/**
+ * Cuántas transiciones se conservan. Una tarea que se reabre muchas veces no
+ * puede hacer crecer su documento sin techo (el patrón que REG-350 cerró en las
+ * notas). Se conservan las **últimas**: lo reciente es lo que se audita.
+ */
+export const TOPE_TRANSICIONES = 50
+
+/**
+ * Registra una transición sin dejar crecer el documento.
+ *
+ * PURO: devuelve la lista nueva, no muta.
+ */
+export function conTransicion(
+  previas: readonly Transicion[] | undefined,
+  t: Transicion,
+): readonly Transicion[] {
+  const todas = [...(previas ?? []), t]
+  return todas.length > TOPE_TRANSICIONES ? todas.slice(todas.length - TOPE_TRANSICIONES) : todas
+}
+
+/**
+ * ¿Se puede cerrar con este cierre?
+ *
+ * **La decisión es obligatoria y el aviso al paciente NO.** No es una asimetría
+ * caprichosa:
+ *
+ * · Cerrar sin decir qué se decidió es cerrar sin cerrar — es exactamente el
+ *   acto vacío que este campo existe para impedir.
+ * · Exigir además el aviso convertiría cada cierre en un formulario de tres
+ *   campos, y un worklist que cuesta se abandona en una semana. Entonces deja de
+ *   verse el resultado que sí importaba, que es peor que no tener el campo.
+ *
+ * Lo que NO se admite es inventarlo: sin registrar, se queda sin registrar y
+ * quien lo lea lo verá como `sin_dato`, no como «no se avisó» ni como «se
+ * avisó».
+ */
+export function puedeCerrarse(cierre: Partial<CierreDeTarea> | undefined): Veredicto {
+  if (!cierre || typeof cierre.decision !== 'string' || !cierre.decision.trim()) {
+    return { permitido: false, motivo: 'Para cerrar hay que decir qué se decidió: cerrar sin decisión es cerrar sin cerrar.' }
+  }
+  if (typeof cierre.quien !== 'string' || !cierre.quien.trim()) {
+    return { permitido: false, motivo: 'Un cierre sin autor no se puede auditar.' }
+  }
+  return { permitido: true, motivo: '' }
+}
+
+/**
+ * ¿Se le avisó al paciente? Devuelve `null` cuando NO SE REGISTRÓ.
+ *
+ * `null` no es `'no_avisado'`. Confundirlos convierte «no lo sé» en un hecho
+ * clínico, y del lado que hace que nadie llame: si el sistema afirma que no se
+ * avisó, alguien lo arregla; si afirma que sí, nadie vuelve a mirar. Por eso
+ * ninguna de las dos se deduce del cierre.
+ */
+export function avisoRegistrado(t: Pick<TareaClinica, 'cierre'>): AvisoAlPaciente | null {
+  return t.cierre?.avisoAlPaciente ?? null
 }
 
 /**

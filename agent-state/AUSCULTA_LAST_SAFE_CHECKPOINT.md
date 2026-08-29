@@ -7,19 +7,19 @@ CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-03 (consultorio grande) — queda el inventario de lecturas de CITAS
-LAST_COMPLETED_UNIT=P1-19 · REG-359 · la verificación de citas por fin corre, y marca lo no respaldado
+LAST_COMPLETED_UNIT=WS-11 · REG-360 · «cerrar» deja de ser un solo acto que abarca tres
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=La cola prioritaria está vacía. Sigue el trabajo POR WORKSTREAM, empezando por el que hoy está más lejos de PROVEN y no depende de nadie de fuera: WS-11 (ciclo cerrado — faltan `acted_on`, `patient_notified`, `scheduled` y el registro de transiciones; las interconsultas y referencias no están en el ciclo y la imagen no tiene entidad). Después WS-10 (Patient State: alergias, procedimientos, dispositivos, laboratorios, tendencias — y sin `asOf` ni versión), WS-09 (aplicabilidad, hoy NOT_STARTED), WS-12 (evals/patient-ai NO EXISTE y la regla lo exige como compuerta) y WS-02 (arnés de carga que produzca el JSON que el validador ya sabe leer).
-FILES_IN_SCOPE=src/lib/tareas-clinicas/ · src/lib/expediente/laboratorio/ · src/types/expediente.ts
+EXACT_NEXT_ACTION=WS-11, segunda unidad: el FORMULARIO DE CIERRE. El modelo y el escritor ya distinguen decisión/acción/aviso (REG-360), pero ninguna pantalla los llena, así que en producción las tres siguen saliendo `sin_dato`. Es «escrito y sin conectar» a un paso de ocurrir, y hay que cerrarlo antes de seguir. Después: WS-10 (Patient State), WS-09 (aplicabilidad, hoy NOT_STARTED), WS-12 (evals/patient-ai NO EXISTE y la regla lo exige como compuerta) y WS-02 (arnés de carga).
+FILES_IN_SCOPE=src/app/(dashboard)/pendientes/page.tsx · src/lib/tareas-clinicas/por-que-esta-aqui.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10790
+TESTS_PASSED=10805
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno)
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-359
+DO_NOT_REGRESS=REG-323 · REG-337…REG-360
 ```
 
 ### Cerrado en esta tanda
@@ -38,6 +38,7 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-359
 | 357 | Se reproducía texto completo de PMC sin leer la licencia del artículo. «Acceso abierto» dice que se puede LEER, no que se pueda COPIAR en un producto de pago. Ahora falla cerrado |
 | 358 | Un duplicado con los nombres al revés no aparecía: el buscador decía «no está» y el antiduplicado no saltaba, así que la historia quedaba partida en dos expedientes |
 | 359 | Se comprobaba que la cita estuviera en RANGO, no que el artículo dijera eso. Un `[2]` que apuntara a un artículo que dice lo contrario pasaba, con la apariencia de estar respaldado |
+| 360 | «Cerrar» abarcaba de golpe decisión, acción y aviso al paciente: un resultado crítico cerrado sin que nadie llamara se veía igual que uno donde sí se llamó. **Primera unidad de WS-11 sin P1 detrás** |
 
 ### El saldo, escrito
 
@@ -68,7 +69,7 @@ decir que la cola prioritaria del tablero está vacía y que el trabajo pasa a s
 | WS-02 escala | El **arnés que produzca** el JSON de carga. Hay validador de forma; no hay medición. 2k…100k son `NOT_STARTED` |
 | WS-09 aplicabilidad | `NOT_STARTED`: no hay motor que diga si una evidencia aplica a ESTE paciente |
 | WS-10 Patient State | Faltan alergias, procedimientos, dispositivos, laboratorios, tendencias; sin `asOf`, sin versión, sin persistir |
-| WS-11 ciclo cerrado | Faltan `acted_on`, `patient_notified`, `scheduled` y el registro de transiciones. Interconsultas y referencias fuera del ciclo; imagen sin entidad |
+| WS-11 ciclo cerrado | **REG-360 cerró la primera mitad**: las tres etapas del cierre tienen campo y hay registro de transiciones. Falta el **formulario que las llene** (hoy nadie las llena), `scheduled` como estado, y las interconsultas/referencias/imagen, que siguen fuera del ciclo |
 | WS-12 evaluación | `evals/patient-ai/` **no existe**, y `.claude/rules/patient-facing-ai.md` §7 lo exige como compuerta |
 | WS-13 observabilidad | Sin correlation ID de punta a punta; un solo llamador de alertas |
 
