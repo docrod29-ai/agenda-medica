@@ -11,6 +11,8 @@
  * https://www.ncbi.nlm.nih.gov/account/) sube a ~10 req/s.
  */
 
+import { licenciaDePmc } from '@/lib/evidencia/licencia-pmc'
+
 const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
 const API_KEY = process.env.NCBI_API_KEY ?? ''
 
@@ -157,11 +159,24 @@ export async function buscarEvidencia(
 }
 
 /**
- * Texto completo de PMC (solo artículos de ACCESO ABIERTO — legal). Para los
- * PMIDs dados, mapea a PMCID (elink) y trae el full-text XML (efetch db=pmc);
- * extrae los párrafos CUANTITATIVOS (con IC95%/HR/RR/OR/p/NNT/%) para razonar
- * sobre cifras reales, no solo el resumen. Devuelve { pmid: extracto }. Los que
- * no están en OA (paywall) simplemente no aparecen — nunca lanza.
+ * Texto completo de PMC. Para los PMIDs dados, mapea a PMCID (elink) y trae el
+ * full-text XML (efetch db=pmc); extrae los párrafos CUANTITATIVOS (con
+ * IC95%/HR/RR/OR/p/NNT/%) para razonar sobre cifras reales, no sólo el resumen.
+ * Devuelve `{ pmid: extracto }`. Nunca lanza.
+ *
+ * ── LA LICENCIA SE LEE POR ARTÍCULO (REG-357) ───────────────────────────────
+ *
+ * Aquí decía «solo artículos de ACCESO ABIERTO — legal», y es una media verdad
+ * peligrosa: el subconjunto Open Access de PMC **mezcla licencias**. Conviven
+ * CC0 y CC-BY —que permiten reproducir— con CC-BY-NC-ND y con «OA no
+ * comercial», que no. «Acceso abierto» dice que se puede LEER; no dice que se
+ * pueda COPIAR dentro de un producto de pago, que es lo que hace esta función.
+ *
+ * El catálogo del repositorio ya lo tenía diagnosticado y sin arreglar.
+ *
+ * Ahora se lee la licencia del propio XML y se **falla cerrado**: sin permiso
+ * explícito, no se reproduce. **No se pierde nada clínico** — se cae al resumen,
+ * que es exactamente lo que ya pasaba con los artículos de pago.
  */
 export async function textoCompletoPMC(
   pmids: string[],
@@ -179,6 +194,11 @@ export async function textoCompletoPMC(
       const fx = await ncbiFetch(conKey(`${EUTILS}/efetch.fcgi?db=pmc&id=${pmcid}&rettype=xml`), opts.signal)
       if (!fx.ok) return
       const xml = await fx.text()
+      /**
+       * ANTES de extraer una sola línea. Extraer y luego decidir dejaría el
+       * texto en memoria y a un `return` de distancia de acabar en un prompt.
+       */
+      if (!licenciaDePmc(xml).puede) return
       const parrafos = [...xml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map(m => desescapar(m[1])).filter(Boolean)
       const cuant = parrafos.filter(p => /(\d{1,3}(\.\d+)?\s*%|\bCI\b|95%|\bHR\b|\bRR\b|\bOR\b|\bp\s*[=<]|\bNNT\b|hazard|confidence interval)/i.test(p))
       const texto = (cuant.length ? cuant : parrafos).join(' ').replace(/\s+/g, ' ').slice(0, 1600)

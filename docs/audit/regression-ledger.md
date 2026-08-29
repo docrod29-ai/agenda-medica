@@ -10638,3 +10638,70 @@ el mismo.
 - **No verifica citas.** `mapaDeSoporte`, `esRespuestaRespaldada` y
   `tasaSinRespaldo` siguen sin llamadores fuera de pruebas: un `[2]` que apunte a
   un artículo que dice lo contrario sigue pasando. Es otro requisito de WS-06/07.
+
+## REG-357 — se reproducía texto completo de PMC sin leer su licencia
+
+**QUÉ FALLABA.** `textoCompletoPMC` bajaba el XML de PMC y reproducía hasta
+1 600 caracteres del artículo **sin mirar bajo qué licencia está**. El comentario
+de la función decía «solo artículos de ACCESO ABIERTO — legal».
+
+Es una media verdad, y es la peligrosa. El subconjunto Open Access de PMC
+**mezcla licencias**: ahí conviven CC0 y CC-BY —que permiten reproducir— con
+CC-BY-NC-ND y con «OA no comercial» a secas, que no. **«Acceso abierto» dice que
+se puede LEER. No dice que se pueda COPIAR dentro de un producto de pago**, que
+es exactamente lo que hace este código.
+
+**CÓMO SE DESCUBRIÓ.** Estaba diagnosticado y sin arreglar **dentro del propio
+repositorio**: `catalogo.ts` decía «RIESGO REAL: el subconjunto OA mezcla
+licencias. Hay que leer la licencia POR ARTÍCULO antes de reproducir texto
+completo», con la decisión marcada como pendiente. Es P1-10 del tablero.
+
+**LA CAUSA RAÍZ.** Se confundió **disponibilidad** con **permiso**. Que el NIH te
+deje descargar el XML no dice nada de lo que puedes hacer con él — y el nombre
+del conjunto («Open Access») invita justo a esa confusión.
+
+**LA REGLA QUE LO HACE SEGURO.** **Fallar cerrado.** Se reproduce sólo cuando la
+licencia lo autoriza por escrito en el XML; ante una desconocida, ausente o
+ambigua, no se reproduce. Al revés no funciona: una lista de licencias
+PROHIBIDAS deja pasar todo lo que nadie previó, y ese error se descubre cuando
+llega la carta.
+
+La lista permisiva es de **identificadores exactos** y no de prefijos, y eso es
+la trampa concreta: `cc-by-nc-nd` empieza por `cc-by`. Un `startsWith` habría
+dado permiso justo a la licencia más restrictiva del conjunto. Hay un caso del
+golden dedicado a eso.
+
+Se mira el bloque de permisos entero —`<ali:license_ref>`, el atributo y la prosa
+del `<license-p>`— porque PMC declara la licencia de tres formas distintas según
+la editorial y la antigüedad del depósito. Y **«non-commercial» en prosa cuenta
+como que no**, aunque no haya identificador: un artículo que dice «for
+non-commercial use» está diciendo que no, y no reconocer su forma de decirlo no
+lo convierte en permiso.
+
+La puerta va **antes de extraer un solo párrafo**. Extraer y luego decidir
+dejaría el texto en memoria y a un `return` de distancia de acabar en un prompt.
+
+**NO SE PIERDE NADA CLÍNICO.** Sin texto completo se usa el resumen — que es
+exactamente lo que ya pasaba con los artículos de pago. El médico sigue viendo el
+artículo, su revista y su año.
+
+**LA DECISIÓN QUE ESTO NO TOMA.** Qué subconjunto exacto es reproducible sigue
+siendo **decisión del dueño**. Esto implementa la única postura defendible
+mientras no exista, y el catálogo lo declara así: ampliarla —admitir CC-BY-SA,
+por ejemplo— es suya, no un ajuste técnico.
+
+**LA PRUEBA.**
+`src/__tests__/el-texto-completo-solo-si-la-licencia-lo-permite.test.ts` (16
+casos) sobre XML sintético con las formas reales en que PMC declara la licencia.
+Probado al revés con las dos versiones equivocadas plausibles —comprobar por
+prefijo, y dar por bueno `license-type="open-access"`—: caen 5 casos.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba la red.** No se llama a NCBI.
+- **No cubre otras fuentes.** Sólo PMC. openFDA, ClinicalTrials y el resto tienen
+  sus propias condiciones y su propia fila en el catálogo.
+- **No audita lo ya reproducido.** Si el texto de un artículo restrictivo quedó
+  dentro de una nota antes de esto, este cambio **no lo retira**: no hay registro
+  de qué se reprodujo ni de qué artículo salió. Queda dicho, porque es lo que un
+  reclamo preguntaría primero.

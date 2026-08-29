@@ -24,7 +24,7 @@
 | | |
 |---|---|
 | **P0 internos abiertos** | **0** |
-| **P1 internos abiertos** | **3** — P1-10, P1-17 y el nuevo P1-19 (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
+| **P1 internos abiertos** | **2** — P1-17 y el nuevo P1-19 (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
 
 **Movimientos del 29-ago-2026:**
 
@@ -40,20 +40,21 @@
 | cerrado −1 | **P1-13** — los otros escritores de scroll, y `overscroll-behavior` (REG-355) |
 | cerrado −1 | **P1-9** — la evidencia de la consulta ya declara dónde NO miró (REG-356). La otra mitad —procedencia estructurada sobre #314— se abre como **P1-19** |
 | nuevo +1 | **P1-19** — la ruta de evidencia de la consulta sigue sin producir `Source` con procedencia estructurada (#314) |
-| **saldo** | **−5 P1 internos netos**: 9 cerrados −7, nuevos +2 (P1-18 ya cerrado, P1-19 abierto) → **3 internos abiertos** |
+| cerrado −1 | **P1-10** — el texto completo de PMC ya no se reproduce sin leer la licencia del artículo (REG-357) |
+| **saldo** | **−6 P1 internos netos**: cerrados −8 (P1-16, P1-18, P1-12, P1-11, P1-15, P1-2, P1-13, P1-9, P1-10 = 9), nuevos +2 (P1-18, ya cerrado; P1-19, abierto) → **2 internos abiertos** |
 
 ## Compuertas medidas en este SHA — no citadas de memoria
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 747 pasan · 1 falla** (782 archivos) | Baseline del 28-ago eran 10 566; **+181 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 762 pasan · 1 falla** (783 archivos) | Baseline del 28-ago eran 10 566; **+196 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-356.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-357.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -107,7 +108,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | **P1-17** | La búsqueda es por **PREFIJO**: un duplicado con el orden de los nombres cambiado («López María» vs «María López») y sin teléfono en común no aparece. Hueco **conocido y con forma**, ya no arbitrario — pero abierto. |
 | ~~P1-12~~ | ~~`getNotas` sin cota: la historia completa de un paciente, con las dos transcripciones dentro.~~ **CERRADO** — REG-350. Contrato paginado con techo que **declara** `truncada`, y la puerta que devolvía un array pelado **se borró**: un array no puede decir que viene recortado. Con ella cayeron dos amplificaciones peores —la pantalla de un ingreso se bajaba el historial completo del paciente, y la de retención NOM-004 hacía eso **por cada uno de hasta 500 pacientes**— y una salvaguarda que habría quedado colgando del techo (el bloqueo NOM-004 de borrado). El recorte llega a la pantalla en el expediente y en la consulta. |
 | ~~P1-13~~ | ~~Otros escritores de scroll sin cancelación por gesto; `overscroll-behavior` ausente.~~ **CERRADO** — REG-355. La regla «después del primer gesto manual, el usuario manda» sale de `VolverALaFuente` —donde estaba bien y era la única— a `lib/ui/el-dedo-manda.ts`, y el restaurador de `/consulta` la pregunta **justo antes de escribir** (se re-arma cuando `notaInternamientoId` llega de Firestore). `overscroll-behavior` entra en `<main>`, el riel y el shell. **Queda abierto el tercer mecanismo**: los banners asíncronos que cambian la altura por encima de `<main>` (41 px medidos) — sacarlos del flujo es un cambio de layout del panel que no se hace a ciegas sin navegador. Y **WS-05 NO pasa a `PROVEN`**: sigue sin verse en un iPhone. |
-| **P1-10** | Texto completo de PMC se reproduce **sin filtro de licencia por artículo**. El catálogo lo declara como decisión pendiente; el filtro no existe. | `evidencia/pubmed.ts:182` · `catalogo.ts:279` |
+| ~~P1-10~~ | ~~Texto completo de PMC sin filtro de licencia por artículo.~~ **CERRADO** — REG-357. Se lee la licencia del XML **antes de extraer un solo párrafo** y se **falla cerrado**: sólo CC0 y CC-BY. La lista es de identificadores exactos y no de prefijos, porque `cc-by-nc-nd` empieza por `cc-by` — un `startsWith` habría dado permiso a la más restrictiva. **No se pierde nada clínico**: sin texto completo se usa el resumen, como con cualquier artículo de pago. **La decisión de qué subconjunto es reproducible sigue siendo del dueño** y el catálogo lo declara así. | — |
 
 ---
 
@@ -270,7 +271,7 @@ nunca baje solo. Sin eso no se cierra (§38).
 | Fuente | Estado | Nota |
 |---|---|---|
 | PubMed / MEDLINE | `LIVE_DIRECT` | `evidencia/pubmed.ts:108,120` |
-| PMC (Open Access) | `LIVE_DIRECT` | sin filtro de licencia por artículo (P1-10) |
+| PMC (Open Access) | `LIVE_DIRECT` | **con filtro de licencia por artículo** desde REG-357: sólo CC0 y CC-BY reproducen texto completo; el resto se queda en el resumen |
 | openFDA (etiqueta) | `LIVE_DIRECT` | **cero pruebas** |
 
 | Fuente | Estado |

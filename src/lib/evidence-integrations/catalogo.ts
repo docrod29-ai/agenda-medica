@@ -275,9 +275,9 @@ const ENTRADAS = {
       admitePhi: si(false, 'Misma política que PubMed.'),
       citaProfunda: si(true, 'PMCID estable.'),
       precio: si('sin costo', 'Servicio público del NIH.'),
-      reusoGenerativo: si('depende de la licencia del artículo (CC-BY, CC0, o "OA no comercial")', 'RIESGO REAL: el subconjunto OA mezcla licencias. Hay que leer la licencia POR ARTÍCULO antes de reproducir texto completo.'),
+      reusoGenerativo: si('sólo CC0 y CC-BY; el resto NO se reproduce', 'REG-357: se lee la licencia POR ARTÍCULO en el XML y se falla cerrado. Sin permiso explícito se usa el resumen, igual que con un artículo de pago. El subconjunto OA mezcla licencias: «acceso abierto» dice que se puede LEER, no que se pueda COPIAR en un producto de pago.'),
     },
-    decisionPendiente: 'Filtrar por licencia de artículo antes de reproducir texto completo de PMC (hoy no se filtra).',
+    decisionPendiente: 'QUÉ subconjunto se considera reproducible sigue siendo decisión del dueño. Mientras no exista, REG-357 aplica la única postura defendible: sólo CC0 y CC-BY, y ante la duda no se reproduce. Ampliarla (p. ej. admitir CC-BY-SA) es una decisión suya, no un ajuste técnico.',
   },
   clinicaltrials: {
     id: 'clinicaltrials',

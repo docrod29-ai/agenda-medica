@@ -285,7 +285,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Están en el ledger porque cambiaron el comportamiento, pero no había ' +
       'nada roto: lo decidió el médico responsable. Se cuentan aparte para no ' +
       'inflar la cuenta de defectos con decisiones.',
-    regs: [174, 175, 292],
+    /**
+     * 357 es la variante de esta familia en la que el sistema NO podía esperar
+     * a la decisión. Qué subconjunto de PMC es reproducible es del dueño, y
+     * mientras no existiera se estaba reproduciendo TODO — que es la opción más
+     * arriesgada de las posibles, tomada por omisión.
+     *
+     * La lección: cuando falta una política, el código ya está aplicando una.
+     * Conviene que sea la que falla cerrado, y que la decisión siga marcada
+     * como del dueño en vez de darse por tomada.
+     */
+    regs: [174, 175, 292, 357],
   },
   {
     /**

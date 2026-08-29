@@ -62,7 +62,7 @@ nadie ha construido (REG-345).
 
 ### PubMed Central (Open Access)
 
-Filtrar por licencia de artículo antes de reproducir texto completo de PMC (hoy no se filtra).
+QUÉ subconjunto se considera reproducible sigue siendo decisión del dueño. Mientras no exista, REG-357 aplica la única postura defendible: sólo CC0 y CC-BY, y ante la duda no se reproduce. Ampliarla (p. ej. admitir CC-BY-SA) es una decisión suya, no un ajuste técnico.
 
 ### OMS / WHO (guías y publicaciones)
 
@@ -142,7 +142,7 @@ Sólo el subconjunto Open Access. src/lib/evidencia/pubmed.ts:166 ya trae texto 
 | Límites y SLA | **UNVERIFIABLE** |
 | Precio | sin costo — Servicio público del NIH. |
 | Semántica de fallo | **UNVERIFIABLE** |
-| Reuso en sistema generativo | depende de la licencia del artículo (CC-BY, CC0, o "OA no comercial") — RIESGO REAL: el subconjunto OA mezcla licencias. Hay que leer la licencia POR ARTÍCULO antes de reproducir texto completo. |
+| Reuso en sistema generativo | sólo CC0 y CC-BY; el resto NO se reproduce — REG-357: se lee la licencia POR ARTÍCULO en el XML y se falla cerrado. Sin permiso explícito se usa el resumen, igual que con un artículo de pago. El subconjunto OA mezcla licencias: «acceso abierto» dice que se puede LEER, no que se pueda COPIAR en un producto de pago. |
 
 ### ClinicalTrials.gov
 
