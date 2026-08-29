@@ -43,6 +43,9 @@ Cada defecto apareció al comprobar el anterior.
 | 9 | El arnés visual nunca conectó a los emuladores | depende de que alguien se acuerde |
 | 10 | La aplicación llamaba «Dr.» a toda médica | el sistema se contradice a sí mismo |
 | 11 | «31 De Agosto» en siete pantallas, arreglado en una | depende de que alguien se acuerde |
+| 12 | El portal del asistente se paraba en 12 meses | el sistema se contradice a sí mismo |
+| 13 | Un fallo de red se contaba como una contraseña equivocada | el mensaje mentía sobre la causa |
+| 14 | La portada no se movía, y el sistema de movimiento estaba sin usar | el charter existía sin encarnar |
 
 Y el orden importa: **el 5 es el que hace alcanzables al 1 y al 2.** Mientras
 «automático» no sobreviviera a una recarga, el bloque
@@ -654,3 +657,147 @@ automático sobre el texto de las tres corridas: cero «De» capitalizados.
 
 **NEXT.** Terminar el alta de cita de la asistente de punta a punta (queda
 llegar hasta guardar) y seguir con el rediseño con movimiento de la portada.
+
+---
+
+## 12 · El portal del asistente se paraba en 12 meses
+
+**FOUND.** Completando el alta de la asistente en navegador apareció un
+**tercer** horizonte de agenda, escrito a mano: `const MAX_MES_OFFSET = 12`.
+Con el techo de plataforma (2050-12-31) y la ventana pública (365 días), eran
+tres alcances distintos. Y la misma asistente, en `/citas`, tiene al lado un
+campo con `max="2050-12-31"`: pedir una cita a dieciocho meses era imposible en
+una pantalla y trivial en la otra.
+
+**ROOT_CAUSE.** Un número redondo donde había que preguntar por el techo.
+
+**CHANGE.** El tope se calcula desde `FECHA_MAXIMA_AGENDA`, y el generador de
+días del mes recorta también por el techo para no ofrecer lo que el servidor va
+a rechazar.
+
+**REGRESSION.** `la-asistente-alcanza-el-mismo-techo-que-el-medico.test.ts`,
+7 casos, probado al revés.
+
+**BROWSER_PROOF.** Recorrido completo de la asistente a 390 / 768 / 1440 —
+sesión, agenda, portal, datos, mes, día, hora y **Agendar**— con tres citas
+verificadas en Firestore (`confirmada`, origen `Manual`). Y la flecha ▶ medida:
+
+| | Antes | Después |
+|---|---|---|
+| Último mes alcanzable | agosto de **2027** | **Diciembre de 2050** |
+| Clics hasta agotarla | 12 | 292 |
+| Días ofrecidos ahí | — | 31 |
+
+**RESIDUAL_RISK.** 292 clics para llegar al final. El tope ya es verdadero, pero
+**saltar de año no existe**: es una carencia de interfaz declarada, no resuelta
+aquí, porque añadir un salto de año es función nueva.
+
+---
+
+## 13 · Un fallo de red se contaba como una contraseña equivocada
+
+**FOUND.** Cortando la llamada de identidad en el navegador y pulsando el botón:
+`/login` → «Error al iniciar sesión. Intenta de nuevo.»; `/registro` → **ningún
+mensaje**.
+
+El de login culpa al inicio de sesión; lo que pasó fue que no había red. Lo que
+hace el médico con ese mensaje es lo contrario de lo que le conviene: vuelve a
+teclear la contraseña, la cambia, pide recuperarla —otra llamada que tampoco va
+a salir— y acaba llamando a soporte con una cuenta que nunca estuvo mal.
+
+**ROOT_CAUSE.** El `else` final de cada `catch` recogía todo lo que no fuera un
+código conocido de credenciales, y un fallo de red cae ahí.
+
+**CHANGE.** La red se comprueba **antes** que los códigos de credenciales, desde
+un detector único usado en las cinco puertas. Y el recuadro de error pasa a
+`role="alert"`: aparecía después de pulsar, así que quien no mira la pantalla no
+se enteraba.
+
+**REGRESSION.** `un-fallo-de-red-no-es-una-contrasena-equivocada.test.ts`, 9
+casos. Un caso vigila el ORDEN, que es el arreglo. Probado al revés.
+
+**BROWSER_PROOF.** Seis combinaciones (2 pantallas × 3 anchos): alerta correcta y
+botón listo para reintentar en todas. Y la mitad que importa, comprobada aparte:
+con la red buena y la contraseña mal escrita, sigue saliendo «Correo o
+contraseña incorrectos…», no el mensaje de conexión.
+
+**RESIDUAL_RISK.** No reintenta solo, a propósito. No distingue «no hay wifi» de
+«el proveedor no contesta»: desde el navegador no se puede. Sólo cubre las cinco
+puertas de identidad; el resto de la aplicación queda declarado.
+
+---
+
+## 14 · La portada no se movía, y el sistema de movimiento estaba entero sin usar
+
+**FOUND.** Tres `transition` en 655 líneas y ni una sola entrada. Los tokens
+`--mov-*` y el apagador de `prefers-reduced-motion` (§24) existían y no se usaban
+ahí. La primera pantalla de un producto que se vende por lo bien hecho que está
+no se movía.
+
+**ROOT_CAUSE.** Familia «el charter existía sin encarnar»: el sistema estaba
+escrito y esa pantalla no lo hablaba.
+
+**CHANGE — y el riesgo que gobierna el diseño.** Animar una entrada es fácil; el
+defecto caro es esconder algo que luego no se revela. La forma habitual
+(`opacity: 0` en la hoja + una clase que lo sube) deja **la portada en blanco**
+el día que el JavaScript no corra — y no se descubre nunca, porque en la máquina
+de quien lo escribió siempre corre.
+
+Así que se invierte: **el contenido nace visible**; el estado oculto lo pone el
+propio JavaScript y sólo tras comprobar que hay `IntersectionObserver` y que el
+usuario acepta movimiento. Lo peor que puede pasar es que no haya animación.
+
+El apagador de §24 no bastaría solo: anula la *duración*, pero un elemento que
+arranca en `opacity: 0` y del que nadie tira sigue invisible dure lo que dure.
+
+Lo que se añadió:
+
+- **Coreografía de entrada del héroe** (promesa → titular → subtítulo → acción →
+  escaparate), con `animation … both`, que bajo §24 se resuelve en su estado
+  final. Sin JavaScript.
+- **Revelado al llegar** para los siete bloques siguientes, con el contrato de
+  arriba.
+- **El latido del micrófono** en el escaparate. No es adorno: la portada afirma
+  que la nota se dicta sola, y sin nada vivo es la foto de algo quieto. Es
+  **opacidad, no tamaño** — nada se mueve de sitio, así que no arrastra la vista
+  fuera del texto.
+- **Tarjetas que responden al dedo**: los dos manejadores de ratón que había
+  pasan a `.nx-lift`, que añade `:active` — o sea, en un móvil ahora contestan.
+
+**REGRESSION.** `la-portada-se-mueve-sin-esconder-nada.test.ts`, 11 casos.
+Probado al revés **dos veces**, en los dos puntos que importan: haciendo que la
+hoja esconda por su cuenta, y quitando la consulta de preferencia antes de
+esconder.
+
+**BROWSER_PROOF.** `scripts/carril-excelencia/medir-portada.mjs` recorre la
+portada entera en Chromium a 390 / 768 / 1440, **con y sin**
+`prefers-reduced-motion`:
+
+| Modo | Bloques revelados | Ocultos al final | Latido | Desborde | Consola |
+|---|---|---|---|---|---|
+| normal | **7 de 7** | **0** | 2,4 s · infinito | no | 0 |
+| reducido | 0 (**no se preparó ninguno**) | **0** | 1e-05 s · 1 vez | no | 0 |
+
+Los ceros del modo reducido son la prueba fina: no es que se revelara deprisa,
+es que **nunca se escondió nada**.
+
+**GATES.** `vitest` entero · lint 95 · diseño sin deuda nueva · build.
+
+**SCORE_BEFORE → SCORE_AFTER.** Transiciones en la portada: **3 → 3 + 6 entradas
++ 7 revelados + 1 latido + tarjetas con `:active`**. Bloques que podrían quedar
+invisibles ante un fallo de JS: **0 antes y 0 después** — la propiedad se
+conserva por construcción, no por suerte.
+
+**RESIDUAL_RISK.**
+
+- La medición es de una portada **servida en desarrollo**. En producción el CSS
+  va minificado por Lightning CSS; el build compila, pero el recorrido con
+  movimiento no se ha repetido contra `next start`.
+- **No se tocó la tipografía ni el contenido** de la portada: este carril
+  entiende «rediseñar con movimiento» como añadir intención al movimiento, no
+  como reescribir la propuesta comercial, que es decisión del dueño.
+- El latido es el único elemento en bucle de la portada. Si algún día hay más,
+  hace falta una política de cuántas cosas pueden estar vivas a la vez.
+
+**NEXT.** Pase de pulido de interacción en el resto de la aplicación
+(prioridad 7) y recorridos móviles/accesibilidad (prioridad 8).

@@ -3390,3 +3390,81 @@ span.riel-aviso { cursor: default; }
    que Hoy ofrece hacer tiene que ser clínico (medición de anatomía §29: la
    primera acción consecuente era «Nueva cita», a 8px). */
 .hoy-bloque-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ═════════════════════════════════════════════════════════════════
+   PORTADA · MOVIMIENTO CON INTENCIÓN (carril de excelencia)
+   ═════════════════════════════════════════════════════════════════
+
+   POR QUÉ EXISTE. La portada tenía TRES transiciones en 655 líneas y ni una
+   sola entrada: el sistema de movimiento (`--mov-*`, el apagador de §24)
+   estaba entero y sin usar ahí. Una portada quieta no es sobria, es plana —
+   y ésta es la primera pantalla de un producto que se vende por lo bien
+   hecho que está.
+
+   LAS TRES REGLAS QUE SE SIGUEN AQUÍ.
+
+   1 · Toda duración y toda curva salen de los tokens. Ni un número suelto:
+       es el contrato que vigila `v15-motion-inline-habla-tokens`.
+
+   2 · Nada nace invisible en la HOJA. Las entradas del héroe usan
+       `animation` con `both`, así que bajo `prefers-reduced-motion` el
+       apagador de §24 las resuelve en 0,01 ms y el contenido queda en su
+       estado final — visible y quieto. Las de scroll esconden desde
+       JavaScript y sólo tras preguntar la preferencia (ver `Revelar.tsx`).
+
+   3 · El movimiento DICE algo. La entrada escalonada ordena la lectura; el
+       pulso del micrófono del escaparate dice que el producto está
+       escuchando, que es literalmente lo que vende. Nada gira porque sí.
+   ───────────────────────────────────────────────────────────────── */
+
+@keyframes nx-entra {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Entrada del héroe: una sola voz, y el escalón lo pone `--nx-retraso`. */
+.nx-entra {
+  animation: nx-entra var(--mov-lento) var(--mov-curva) both;
+  animation-delay: var(--nx-retraso, var(--mov-nada));
+}
+
+/* Revelado al llegar. El estado «preparado» lo pone JavaScript, nunca la
+   hoja: sin `data-revelar` esto no hace absolutamente nada y el bloque se
+   ve como siempre. */
+.nx-revelar[data-revelar='preparado'] {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+}
+.nx-revelar[data-revelar='visible'] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--mov-lento) var(--mov-curva) var(--nx-revelar-retraso, var(--mov-nada)),
+    transform var(--mov-lento) var(--mov-curva) var(--nx-revelar-retraso, var(--mov-nada));
+}
+
+/* EL PULSO DEL MICRÓFONO. No es decoración: el escaparate del héroe enseña
+   una nota dictándose, y este latido es lo que la hace creíble. Es opacidad,
+   no tamaño — nada se mueve de sitio, así que no arrastra la vista fuera del
+   texto. Bajo movimiento reducido, §24 lo deja en una sola iteración y en
+   0,01 ms: se queda encendido y quieto. */
+@keyframes nx-latido {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+.nx-escucha {
+  animation: nx-latido 2.4s var(--mov-curva) infinite;
+}
+
+/* Levantar al pasar por encima — las tarjetas de la portada responden al
+   dedo y al ratón. `translateY` de 3px: se nota y no salta. */
+.nx-lift {
+  transition:
+    transform var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva),
+    box-shadow var(--mov-rapido) var(--mov-curva);
+}
+@media (hover: hover) {
+  .nx-lift:hover { transform: translate3d(0, -3px, 0); border-color: var(--border2); }
+}
+.nx-lift:active { transform: translate3d(0, -1px, 0); }
