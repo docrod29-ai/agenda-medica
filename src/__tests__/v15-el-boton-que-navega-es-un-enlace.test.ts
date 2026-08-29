@@ -188,7 +188,15 @@ describe('freeze funcional — la rebanada es de estructura accesible, no de con
 
   it('el 404 conserva su aspecto: el estilo del botón se mudó al enlace entero', () => {
     const bloque = P404.slice(P404.indexOf('<Link href="/dashboard"'))
-    expect(bloque).toMatch(/border: '1px solid rgba\(242,239,233,0\.14\)'/)
+    /**
+     * El borde era el literal `rgba(242,239,233,0.14)`, que es EXACTAMENTE el
+     * valor de `--border2` en tema oscuro. Escrito a mano no seguía al tema, y
+     * el 404 entero se pintaba oscuro dentro de una app clara
+     * (`el-404-dice-la-version-que-hay.test.ts`). Mismo aspecto en oscuro, y
+     * el correcto en claro: lo que esta prueba congela es que el enlace siga
+     * llevando la CAJA del botón, no el literal.
+     */
+    expect(bloque).toMatch(/border: '1px solid var\(--border2\)'/)
     expect(bloque).toMatch(/padding: '12px 22px'/)
     expect(bloque).toMatch(/minWidth: 140/)
     // Un <a> es inline: sin esto el relleno vertical no lo levantaría a la

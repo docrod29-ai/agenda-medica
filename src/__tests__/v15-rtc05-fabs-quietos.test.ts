@@ -99,13 +99,28 @@ describe('RTC-05 — los FAB se aquietan al grabar y salen del arco del pulgar',
     expect(OPERACIONES).toMatch(/import \{ useTema \} from '@\/hooks\/useTema'/)
   })
 
-  it('5 · el tema tiene UNA fuente de verdad: la llave vive sólo en useTema', () => {
-    const fuentes = ['src/hooks/useTema.ts', 'src/components/ThemeToggle.tsx',
-      'src/app/(dashboard)/operaciones/page.tsx']
+  it('5 · el tema tiene UNA fuente de verdad: la llave vive sólo en @/lib/tema', () => {
+    /**
+     * La llave estaba en `useTema`, y este caso comprobaba que las dos VISTAS
+     * del control no se hicieran una copia. Faltaba un tercer lector que
+     * nadie miraba: el guion en línea del `<head>` de `layout.tsx`, que corre
+     * antes de React y tenía su propia tabla. Ahí se perdía el modo
+     * «automático» en cada recarga (ver
+     * `el-tema-automatico-sobrevive-a-una-recarga.test.ts`).
+     *
+     * Desde entonces la llave y el criterio viven en `src/lib/tema.ts` y el
+     * layout es un consumidor más. La lista incluye ahora al layout, que es
+     * el que se había quedado fuera.
+     */
+    const fuentes = ['src/lib/tema.ts', 'src/hooks/useTema.ts', 'src/components/ThemeToggle.tsx',
+      'src/app/layout.tsx', 'src/app/(dashboard)/operaciones/page.tsx']
     const conLlave = fuentes.filter(f =>
       readFileSync(join(process.cwd(), f), 'utf8').includes("'nexusmed.theme'"))
-    expect(conLlave).toEqual(['src/hooks/useTema.ts'])
+    expect(conLlave).toEqual(['src/lib/tema.ts'])
     expect(TOGGLE).toMatch(/import \{ useTema \} from '@\/hooks\/useTema'/)
+    // Y el hook toma la llave de ahí en vez de teclearla.
+    expect(readFileSync(join(process.cwd(), 'src/hooks/useTema.ts'), 'utf8'))
+      .toMatch(/from '@\/lib\/tema'/)
   })
 
   it('6 · el toggle no lleva glassmorphism y el parche móvil de números mágicos murió', () => {

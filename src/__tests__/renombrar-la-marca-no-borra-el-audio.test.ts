@@ -104,10 +104,16 @@ describe('y NO cambió donde la máquina la busca', () => {
   })
 
   it('la preferencia de tema no se pierde', () => {
-    // La llave vive en el hook compartido desde RTC-05 (antes en ThemeToggle);
-    // lo vigilado es el NOMBRE de la llave, no su casa.
-    expect(leer('src/hooks/useTema.ts')).toContain("'nexusmed.theme'")
-    expect(leer('src/app/layout.tsx')).toContain("'nexusmed.theme'")
+    /**
+     * Lo vigilado es el NOMBRE de la llave, no su casa. La casa ha cambiado
+     * dos veces: de `ThemeToggle` al hook (RTC-05) y del hook a `@/lib/tema`
+     * —cuando se descubrió que el guion del `<head>` era un tercer lector con
+     * su propia tabla—. El nombre no ha cambiado nunca, y no puede.
+     */
+    expect(leer('src/lib/tema.ts')).toContain("'nexusmed.theme'")
+    // Y los dos lectores lo toman de ahí, en vez de teclearlo.
+    expect(leer('src/hooks/useTema.ts')).toContain('LLAVE_TEMA')
+    expect(leer('src/app/layout.tsx')).toContain('GUION_TEMA')
   })
 
   it('el sello de versión desplegada conserva su prefijo', () => {
