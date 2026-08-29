@@ -251,3 +251,30 @@ export function dentroDeLaVentanaPublica(fecha: string, hoyEnLaClinica: string):
   }
   return { ok: true }
 }
+
+/**
+ * CUÁNTOS MESES CABEN ENTRE UN DÍA Y EL TECHO DE LA AGENDA.
+ *
+ * ── PARA QUÉ ─────────────────────────────────────────────────────────────────
+ *
+ * El portal del asistente navega por meses con dos flechas, y su tope estaba
+ * escrito a mano: `const MAX_MES_OFFSET = 12`. Eso convertía la agenda en un
+ * **tercer** horizonte distinto, sin decirlo:
+ *
+ *   · techo de la plataforma          2050-12-31
+ *   · ventana del portal público      365 días
+ *   · portal del asistente            12 meses  ← inventado aquí
+ *
+ * Y la misma asistente, en la pantalla de `citas` de al lado, tiene un campo de
+ * fecha que llega a 2050. Dos superficies para la misma persona con dos
+ * alcances distintos y ninguna que explique el suyo.
+ *
+ * ── POR QUÉ MESES Y NO DÍAS ──────────────────────────────────────────────────
+ *
+ * Porque es lo que mueve la flecha. Se calcula, no se enumera: son dos restas.
+ */
+export function mesesHastaElTecho(hoyISO: string): number {
+  const [a, m] = hoyISO.split('-').map(Number)
+  const [at, mt] = FECHA_MAXIMA_AGENDA.split('-').map(Number)
+  return Math.max(0, (at - a) * 12 + (mt - m))
+}

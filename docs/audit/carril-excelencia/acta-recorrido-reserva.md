@@ -71,3 +71,37 @@ reintento devuelve **la misma cita**, y los avisos de WhatsApp no se repiten.
 | 2030-06-20 · 2040-02-29 · 2050-12-31 | `400` — fuera de la ventana pública, **con la fecha límite dicha** |
 | 2051-01-01 | `400` — sobre el techo |
 | 2027-02-30 | `400` — no existe |
+
+---
+
+## 4 · El recorrido de la ASISTENTE (unidad 12)
+
+Chromium real contra emuladores, sesión sintética `demo@nexusmed.test`,
+390 / 768 / 1440. Capturas `asistente-*.png`.
+
+| Paso | 390 | 768 | 1440 |
+|---|---|---|---|
+| 1 · iniciar sesión → `/dashboard` | ✓ | ✓ | ✓ |
+| 2 · agenda del día con datos reales | ✓ | ✓ | ✓ |
+| 3 · cerrar el tour de bienvenida | ✓ | ✓ | ✓ |
+| 4 · abrir el Portal del Asistente | ✓ | ✓ | ✓ |
+| 5 · nombre + teléfono | ✓ | ✓ | ✓ |
+| 6 · avanzar de mes | ✓ | ✓ | ✓ |
+| 7 · elegir día y hora | ✓ | ✓ | ✓ |
+| 8 · **Agendar cita** | ✓ | ✓ | ✓ |
+
+**Y el dato llegó.** Leído en Firestore después: tres citas
+(`2026-08-31 11:15`, `12:00`, `12:45`), estado `confirmada`, origen `Manual` —
+una por corrida, cada una en el primer hueco realmente libre.
+
+### El techo de la asistente, medido con la flecha ▶
+
+| | Antes | Después |
+|---|---|---|
+| Último mes alcanzable | agosto de **2027** | **Diciembre de 2050** |
+| Clics hasta agotar la flecha | 12 | 292 |
+| ¿La flecha se apaga al final? | sí, en 2027 | sí, en el techo real |
+| Días ofrecidos en ese mes | — | 31 |
+
+El campo de fecha de `/citas`, para la misma asistente, ya llegaba a
+`2050-12-31`: eran dos alcances distintos para la misma persona.

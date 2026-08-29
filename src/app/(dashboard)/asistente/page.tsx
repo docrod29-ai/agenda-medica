@@ -6,6 +6,7 @@
  * Un solo clic → cita creada.
  */
 import { conMayusculaInicial } from '@/lib/texto-es'
+import { mesesHastaElTecho, esFechaDeAgendaValida } from '@/lib/agenda/horizonte'
 import { useState, useMemo, useEffect } from 'react'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -160,8 +161,16 @@ function AsistenteInner() {
     return getAvailableSlots(fecha, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined)
   }, [fecha, duracion, appointments, efectiveConfig, doctorId, bloques])
 
-  // Navegación por MES: se puede avanzar hasta 12 meses (1 año) con las flechas ◀ ▶.
-  const MAX_MES_OFFSET = 12
+  /**
+   * Navegación por MES con las flechas ◀ ▶, hasta el techo REAL de la agenda.
+   *
+   * Era `12`, escrito a mano. Eso hacía de esta pantalla un tercer horizonte
+   * —ni el techo de la plataforma ni la ventana del portal público— y la misma
+   * asistente, en `citas`, tenía a su lado un campo que llega a 2050. Dos
+   * alcances para la misma persona, y ninguno que dijera el suyo.
+   * Ver `@/lib/agenda/horizonte`.
+   */
+  const MAX_MES_OFFSET = useMemo(() => mesesHastaElTecho(todayStr()), [])
   const [mesOffset, setMesOffset] = useState(0)
 
   // Fecha (día 1) del mes que se está viendo. offset 0 = mes actual.
@@ -181,7 +190,8 @@ function AsistenteInner() {
     const dias: string[] = []
     for (let dia = 1; dia <= ultimoDia; dia++) {
       const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
-      if (iso >= hoy) dias.push(iso)
+      // Ni días pasados ni días que el servidor va a rechazar por pasar el techo.
+      if (iso >= hoy && esFechaDeAgendaValida(iso)) dias.push(iso)
     }
     return dias
   }, [mesVista])

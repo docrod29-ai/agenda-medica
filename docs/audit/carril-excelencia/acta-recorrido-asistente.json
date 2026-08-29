@@ -23,14 +23,24 @@
         "detalle": "Consultorio de Medicina Interna · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos del paciente · Nombre completo * · Teléfono (WhatsApp) · Tipo de consulta · Primera vez · 45 min · Seguimi"
       },
       {
-        "paso": "5-tope-de-fecha",
+        "paso": "5-datos-paciente",
         "ok": true,
-        "detalle": "sin campo de fecha"
+        "detalle": "nombre + teléfono"
       },
       {
-        "paso": "6-guardar-cita",
+        "paso": "6-mes-adelante",
         "ok": true,
-        "detalle": "sin campo de fecha"
+        "detalle": "14 saltos · mes visible: Agosto de 2026 (antes 0 días)"
+      },
+      {
+        "paso": "7-elegir-dia-y-hora",
+        "ok": true,
+        "detalle": "día Lunes, 31 de agosto · hora 11:15"
+      },
+      {
+        "paso": "8-agendar",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos del paciente · Nombre completo * · Teléfono (WhatsApp) · Tipo de consulta · Primera vez · 45 min · Seguimiento · 30 min · Urgente · 30 min · Revisión de e"
       }
     ],
     "consola": []
@@ -59,14 +69,24 @@
         "detalle": "Consultorio de Medicina Interna · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos del paciente · Nombre completo * · Teléfono (WhatsApp) · Tipo de consulta · Primera vez · 45 min · Seguimi"
       },
       {
-        "paso": "5-tope-de-fecha",
+        "paso": "5-datos-paciente",
         "ok": true,
-        "detalle": "sin campo de fecha"
+        "detalle": "nombre + teléfono"
       },
       {
-        "paso": "6-guardar-cita",
+        "paso": "6-mes-adelante",
         "ok": true,
-        "detalle": "sin campo de fecha"
+        "detalle": "14 saltos · mes visible: Agosto de 2026 (antes 0 días)"
+      },
+      {
+        "paso": "7-elegir-dia-y-hora",
+        "ok": true,
+        "detalle": "día Lunes, 31 de agosto · hora 12:00"
+      },
+      {
+        "paso": "8-agendar",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos del paciente · Nombre completo * · Teléfono (WhatsApp) · Tipo de consulta · Primera vez · 45 min · Seguimiento · 30 min · Urgente · 30 min · Revisión de e"
       }
     ],
     "consola": []
@@ -95,14 +115,24 @@
         "detalle": "Consultorio de Medicina Interna · Ximena Alcántara Robledo · Buscar… · ⌘K · Hoy · Paciente · Encuentro · Seguimiento · OPERACIONES · Operaciones · Ayuda · Cerrar sesión · demo@nexusmed.test · Portal del Asi"
       },
       {
-        "paso": "5-tope-de-fecha",
+        "paso": "5-datos-paciente",
         "ok": true,
-        "detalle": "sin campo de fecha"
+        "detalle": "nombre + teléfono"
       },
       {
-        "paso": "6-guardar-cita",
+        "paso": "6-mes-adelante",
         "ok": true,
-        "detalle": "sin campo de fecha"
+        "detalle": "14 saltos · mes visible: Agosto de 2026 (antes 0 días)"
+      },
+      {
+        "paso": "7-elegir-dia-y-hora",
+        "ok": true,
+        "detalle": "día Lunes, 31 de agosto · hora 12:45"
+      },
+      {
+        "paso": "8-agendar",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Ximena Alcántara Robledo · Buscar… · ⌘K · Hoy · Paciente · Encuentro · Seguimiento · OPERACIONES · Operaciones · Ayuda · Cerrar sesión · demo@nexusmed.test · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos "
       }
     ],
     "consola": []

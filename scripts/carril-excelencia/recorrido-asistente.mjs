@@ -74,29 +74,47 @@ for (const { w, h, nombre } of ANCHOS) {
     await b.click({ timeout: 8000 }); await pag.waitForTimeout(2000)
     return (await pag.locator('body').innerText()).slice(0, 180).replace(/\n/g, ' · ')
   })
-  await paso('5-tope-de-fecha', async () => {
-    const f = pag.locator('input[type=date]:visible').first()
-    if (await f.count() === 0) return 'sin campo de fecha'
-    const max = await f.getAttribute('max')
-    const r = await f.evaluate(el => { el.value = '2051-01-01'; return { v: el.value, over: el.validity.rangeOverflow } })
-    return `max=${max} · 2051→rangeOverflow=${r.over}`
+  await paso('5-datos-paciente', async () => {
+    const nom = pag.locator('input[placeholder*="buscar o crear"]').first()
+    if (await nom.count() === 0) return 'sin campo de nombre'
+    await nom.fill('Asistente Sintetica Prueba')
+    await pag.waitForTimeout(1200)
+    const tel = pag.locator('input[type=tel], input[placeholder*="656"]').first()
+    if (await tel.count()) await tel.fill('5555002222')
+    return 'nombre + teléfono'
   })
-  await paso('6-guardar-cita', async () => {
-    // Una fecha válida lejana: 2050 tiene que poder agendarse desde el panel.
-    const f = pag.locator('input[type=date]:visible').first()
-    if (await f.count() === 0) return 'sin campo de fecha'
-    await f.fill('2050-12-31')
-    // Paciente: se escribe en el buscador y se toma la primera sugerencia.
-    const buscador = pag.locator('input:visible').filter({ hasNot: pag.locator('[type=date]') }).first()
-    await buscador.fill('Rosalía').catch(() => {})
-    await pag.waitForTimeout(1500)
-    const sug = pag.locator('button:visible, li:visible').filter({ hasText: /Rosal/i }).first()
-    if (await sug.count()) { await sug.click().catch(() => {}); await pag.waitForTimeout(800) }
-    const guardar = pag.locator('button:visible').filter({ hasText: /guardar|crear|agendar|confirmar/i }).last()
-    if (await guardar.count() === 0) return 'sin botón de guardar'
-    await guardar.click({ timeout: 8000 }).catch(() => {})
-    await pag.waitForTimeout(3500)
-    return (await pag.locator('body').innerText()).slice(0, 200).replace(/\n/g, ' · ')
+  await paso('6-mes-adelante', async () => {
+    // La flecha ▶ tiene que poder pasar de doce meses: el techo es 2050.
+    const antes = await pag.locator('button:visible').filter({ hasText: /^\S+ \d{1,2} de \S+$|^Hoy$/ }).count()
+    const flecha = pag.locator('button:visible').nth(0)
+    let saltos = 0
+    for (let k = 0; k < 14; k++) {
+      const sig = pag.locator('button:not([disabled])').filter({ has: pag.locator('svg') }).nth(1)
+      if (await sig.count() === 0) break
+      await sig.click({ timeout: 4000 }).catch(() => {})
+      await pag.waitForTimeout(220); saltos++
+    }
+    const mes = await pag.locator('span:visible').filter({ hasText: /de \d{4}$/ }).first().innerText().catch(() => '?')
+    return `${saltos} saltos · mes visible: ${mes} (antes ${antes} días)`
+  })
+  await paso('7-elegir-dia-y-hora', async () => {
+    const dia = pag.locator('button:not([disabled])').filter({ hasText: /\d{1,2} de \S+|^Hoy$/ }).first()
+    if (await dia.count() === 0) return 'sin día pulsable'
+    const td = (await dia.innerText()).split('\n')[0]
+    await dia.click({ timeout: 6000 }).catch(() => {})
+    await pag.waitForTimeout(1800)
+    const hora = pag.locator('button:visible').filter({ hasText: /^\d{2}:\d{2}$/ }).first()
+    if (await hora.count() === 0) return `día ${td} · sin horas`
+    const th = await hora.innerText()
+    await hora.click(); await pag.waitForTimeout(700)
+    return `día ${td} · hora ${th}`
+  })
+  await paso('8-agendar', async () => {
+    const b = pag.locator('button:not([disabled])').filter({ hasText: /agendar cita/i }).last()
+    if (await b.count() === 0) return 'botón Agendar deshabilitado'
+    await b.click({ timeout: 8000 })
+    await pag.waitForTimeout(4500)
+    return (await pag.locator('body').innerText()).slice(0, 220).replace(/\n/g, ' · ')
   })
 
   acta.push({ ancho: w, pasos, consola: consola.slice(0, 5) })
