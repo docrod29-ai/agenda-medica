@@ -402,7 +402,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * terminado**. Un `T[]` no puede decir que viene recortado, y el silencio
      * se lee como un hecho.
      */
-    regs: [341, 350, 351],
+    /**
+     * 352 es esta familia cruzándose con «pérdida de datos» y ganando la peor
+     * combinación: la lectura sin cota estaba envuelta en un `catch` que la
+     * tragaba, así que la baja de un paciente podía borrar el expediente y
+     * dejar sus citas —con su nombre y su teléfono dentro— en la base. Por ese
+     * camino pasa la cancelación ARCO.
+     */
+    regs: [341, 350, 351, 352],
   },
 ] as const
 

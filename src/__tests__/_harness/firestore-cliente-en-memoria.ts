@@ -47,6 +47,13 @@ export interface EstadoDoble {
      * directorio de pacientes decide si se crea un expediente duplicado.
      */
     lectura?: boolean
+    /**
+     * Falla sólo las lecturas cuya ruta contenga este texto. Hace falta para
+     * probar que UNA comprobación concreta falla cerrado sin que otra anterior
+     * se lleve el caso por delante — si todo se cae a la vez, la prueba mide la
+     * primera guarda y no la que se quería mirar.
+     */
+    lecturaEn?: string
   }
 }
 
@@ -55,7 +62,7 @@ export function estadoDoble(): EstadoDoble {
   return {
     docs: new Map<string, Datos>(),
     contador: { lecturas: 0, getDocs: 0, getDoc: 0 },
-    fallos: { collectionGroup: false, lectura: false },
+    fallos: { collectionGroup: false, lectura: false, lecturaEn: '' },
   }
 }
 
@@ -107,15 +114,27 @@ export function firestoreClienteSobre(h: EstadoDoble) {
 
   const envolver = (f: Fila) => ({
     id: f.id,
-    ref: { path: f.ruta },
+    /**
+     * El `ref` de un documento de consulta lleva `ruta` **y** `path`.
+     *
+     * `doc(db, …)` produce `{ ruta }` y el SDK real expone `.path`; media
+     * aplicación pasa el `d.ref` de una consulta a un `batch.delete(...)`. Con
+     * sólo `path`, el lote no sabía qué borrar y **no borraba nada en silencio**
+     * — un borrado en cascada podía no borrar ni una cita y la prueba pasaba.
+     */
+    ref: { path: f.ruta, ruta: f.ruta },
     exists: () => true,
     data: () => f.data,
   })
 
   /** Filtra y ordena, sin contar ni aplicar `limit`. Lo comparten `getDocs` y el conteo. */
   const resolver = (q: { tipo: string; ref?: unknown; cs?: Restriccion[] }): Fila[] => {
+    const ref0 = (q.tipo === 'query' ? q.ref : q) as { tipo: string; ruta?: string; id?: string }
     if (h.fallos.lectura) throw new Error('UNAVAILABLE: lectura caída (doble)')
-    const ref = (q.tipo === 'query' ? q.ref : q) as { tipo: string; ruta?: string; id?: string }
+    if (h.fallos.lecturaEn && String(ref0.ruta ?? ref0.id ?? '').includes(h.fallos.lecturaEn)) {
+      throw new Error(`UNAVAILABLE: lectura caída en ${h.fallos.lecturaEn} (doble)`)
+    }
+    const ref = ref0
     const cs = (q.tipo === 'query' ? q.cs : []) as Restriccion[]
     if (ref.tipo === 'grupo' && h.fallos.collectionGroup) {
       throw new Error('FAILED_PRECONDITION: the query requires an index')
@@ -173,11 +192,56 @@ export function firestoreClienteSobre(h: EstadoDoble) {
     documentId: () => '__name__',
     serverTimestamp: () => 'ts',
     Timestamp: class {},
-    writeBatch: () => ({ set() {}, update() {}, delete() {}, commit: async () => {} }),
-    addDoc: async () => ({ id: 'nuevo' }),
-    setDoc: async () => {},
-    updateDoc: async () => {},
-    deleteDoc: async () => {},
+    /**
+     * `writeBatch` DE VERDAD — aplica lo acumulado al commitear.
+     *
+     * Era un muñeco: `{ set(){}, update(){}, delete(){}, commit: async()=>{} }`.
+     * Con él, **cualquier prueba que afirmara sobre una escritura pasaba
+     * vacíamente**: el borrado en cascada de un expediente podía no borrar nada y
+     * el doble decía que sí. Es «el dato tiene que LLEGAR» dentro del arnés.
+     */
+    writeBatch: () => {
+      const ops: Array<{ t: 'set' | 'update' | 'delete'; ruta: string; datos?: Datos; merge?: boolean }> = []
+      /** Un ref puede venir de `doc(db,…)` (`ruta`) o de una consulta (`path`). */
+      type Ref = { ruta?: string; path?: string }
+      const rutaDe = (ref: Ref): string => {
+        const r = ref?.ruta ?? ref?.path
+        // Un lote que no sabe qué escribir no puede callarse: lo que sigue sería
+        // un borrado que no borra y una prueba en verde.
+        if (!r) throw new Error('writeBatch: referencia sin ruta (doble)')
+        return r
+      }
+      return {
+        set(ref: Ref, datos: Datos, opciones?: { merge?: boolean }) {
+          ops.push({ t: 'set', ruta: rutaDe(ref), datos, merge: opciones?.merge === true }); return this
+        },
+        update(ref: Ref, datos: Datos) {
+          ops.push({ t: 'update', ruta: rutaDe(ref), datos }); return this
+        },
+        delete(ref: Ref) { ops.push({ t: 'delete', ruta: rutaDe(ref) }); return this },
+        async commit() {
+          for (const o of ops) {
+            if (o.t === 'delete') { h.docs.delete(o.ruta); continue }
+            const previo = o.t === 'update' || o.merge ? (h.docs.get(o.ruta) ?? {}) : {}
+            h.docs.set(o.ruta, { ...previo, ...(o.datos ?? {}) })
+          }
+          ops.length = 0
+        },
+      }
+    },
+    addDoc: async (ref: { ruta: string }, datos: Datos) => {
+      const id = `auto-${h.docs.size + 1}`
+      h.docs.set(`${ref.ruta}/${id}`, { ...datos })
+      return { id }
+    },
+    setDoc: async (ref: { ruta: string }, datos: Datos, opciones?: { merge?: boolean }) => {
+      const previo = opciones?.merge ? (h.docs.get(ref.ruta) ?? {}) : {}
+      h.docs.set(ref.ruta, { ...previo, ...datos })
+    },
+    updateDoc: async (ref: { ruta: string }, datos: Datos) => {
+      h.docs.set(ref.ruta, { ...(h.docs.get(ref.ruta) ?? {}), ...datos })
+    },
+    deleteDoc: async (ref: { ruta: string }) => { h.docs.delete(ref.ruta) },
 
     getDoc: async (ref: { ruta: string; id: string }) => {
       if (h.fallos.lectura) throw new Error('UNAVAILABLE: lectura caída (doble)')

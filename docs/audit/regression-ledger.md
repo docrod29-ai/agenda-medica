@@ -10279,3 +10279,84 @@ es justo lo que evita la recaída.
 - **El `<select>` de `/farmacia` se cambió por un buscador y no se ha probado con
   un lector de pantalla.** Tiene etiqueta y objetivos de 44 px; eso no es lo
   mismo que haberlo recorrido con teclado.
+
+## REG-352 — la baja de un paciente leía la agenda entera, y se tragaba el fallo
+
+**QUÉ FALLABA.** `deletePatientExpediente` busca las citas **huérfanas** del
+paciente —las agendadas sin `pacienteId`, que sólo llevan su nombre y su
+teléfono— y para eso hacía `getDocs` sobre la colección **entera** de citas del
+consultorio. Con años de agenda son decenas de miles de documentos leídos en el
+navegador para dar de baja a una persona.
+
+Y el barrido estaba envuelto en `catch { /* ignore */ }`.
+
+**POR QUÉ ESE `catch` ERA LO GRAVE.** Una cita huérfana lleva `pacienteNombre` y
+`pacienteTelefono` **dentro**. Si el barrido falla y nadie se entera, el
+expediente se borra, la pantalla dice que se borró, y **los datos personales del
+paciente siguen en la base** en documentos que ya no cuelgan de nadie.
+
+Esta función es la que usa la **cancelación ARCO**. Es decir: el camino por el que
+un paciente ejerce su derecho a que le borren sus datos podía dejarlos puestos y
+devolver «hecho».
+
+**LA CAUSA RAÍZ.** El emparejamiento es normalizado (minúsculas, teléfono sin
+formato) y Firestore no puede filtrar por eso, así que alguien concluyó «hay que
+leerlo todo» y, al ver que eso podía fallar, lo envolvió en un `try` para que no
+tumbara el borrado. **Las dos decisiones son razonables por separado** y juntas
+producen un borrado que miente.
+
+**LA REGLA QUE LO HACE SEGURO.** El barrido se **pagina** con techo, y cuando no
+se pudo revisar entero **no se borra nada**. Un borrado incompleto que se cree
+completo es peor que uno que se niega: el que se niega se reintenta; el que miente
+se archiva.
+
+La misma regla se aplicó a la guarda que tenía al lado: `tieneNotaFirmada` ahora
+**falla cerrado**. No poder comprobar si hay una nota firmada no es lo mismo que
+saber que no la hay, y del lado equivocado se elimina un registro legal que la
+NOM-004 declara inmutable.
+
+**DOS DEFECTOS DEL ARNÉS QUE ESTE GOLDEN DESTAPÓ.** Los dos hacían pasar pruebas
+vacías, y por eso se anotan aparte:
+
+1. **`writeBatch` era un muñeco**: `{ set(){}, update(){}, delete(){}, commit(){} }`.
+   Cualquier prueba que afirmara sobre una escritura pasaba **sin que la escritura
+   ocurriera**. El borrado en cascada podía no borrar nada y el doble decía que sí.
+2. **El `ref` de un documento de consulta sólo tenía `path`**, y media aplicación
+   pasa ese `d.ref` a `batch.delete(...)`. El lote no sabía qué borrar y no
+   borraba — en silencio. Ahora lleva `ruta` y `path`, y un ref sin ninguna de las
+   dos **lanza**: un lote que no sabe qué escribir no puede callarse.
+
+**LO QUE NO SE HIZO, Y POR QUÉ.** El listener de citas de un paciente
+(`usePatientAppointments`) **sigue sin techo**, a propósito. La reparación obvia
+—`orderBy('fechaHora','desc')` + `limit`— exige un **índice compuesto**, y este
+repositorio no puede crear índices: se hacen a mano en la consola del dueño.
+Publicar esa consulta rompería la pantalla de consulta en producción con
+`FAILED_PRECONDITION` en cuanto alguien la abriera. Y acotar **sin** orden es
+peor que no acotar: Firestore devolvería 200 citas arbitrarias y el único llamador
+busca **la cita de hoy** — perderla desliga el cobro del encuentro.
+
+En vez de eso, el hueco deja de ser invisible: nace `firestore.indexes.json` con
+los índices que el código está esperando y `docs/ops/INDICES-DE-FIRESTORE.md`
+explicando qué está peor por cada uno. Hasta hoy vivían en **comentarios sueltos**,
+uno por módulo, y nadie podía saber cuántos faltaban ni pedirlos de una vez: el
+patrón `depende_de_recordar` aplicado a la infraestructura. Con esto, P1-14 pasa de
+«bloqueado» a **«bloqueado, con el artefacto listo para desplegar»**.
+
+**LA PRUEBA.** `src/__tests__/un-borrado-que-deja-citas-no-es-un-borrado.test.ts`
+(13 casos). Borra de verdad contra el arnés y **cuenta** documentos. Probado al
+revés devolviendo el `catch { /* ignore */ }`: caen 2 casos, incluido el que
+comprueba que el expediente sobrevive cuando la agenda no se pudo leer.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **El emparejamiento sigue siendo por barrido, no por índice.** Un índice sobre
+  el nombre normalizado lo haría exacto y barato; no existe y no se puede crear
+  desde aquí.
+- **El techo del barrido (20 000) no está medido** contra una agenda real. Lo que
+  sí está probado es que al tocarlo el borrado **se niega**.
+- **No cubre otras colecciones que puedan llevar PHI del paciente.** Aquí se miran
+  notas y citas, que es lo que esta función borraba. Si mañana otra colección
+  guarda el nombre del paciente, este golden no la ve — y ése es exactamente el
+  hueco que P1-2 (colecciones sin declarar) mantiene abierto.
+- **`firestore.indexes.json` no está desplegado**, y desplegarlo requiere
+  autorización del dueño. El archivo declara; no crea nada.

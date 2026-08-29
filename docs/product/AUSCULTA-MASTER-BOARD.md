@@ -41,14 +41,14 @@
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 679 pasan · 1 falla** (777 archivos) | Baseline del 28-ago eran 10 566; **+113 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 692 pasan · 1 falla** (778 archivos) | Baseline del 28-ago eran 10 566; **+126 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-351.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-352.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -93,7 +93,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | ~~P1-7~~ | ~~Los avisos de evidencia se calculaban y la pantalla los tiraba.~~ **CERRADO** — REG-345, `44b52c9`. |
 | ~~P1-8~~ | ~~La matriz prometía fuentes inexistentes.~~ **CERRADO** — REG-345, `44b52c9`. La columna cruza catálogo y runtime, con tres estados. |
 | **P1-9** | **CORREGIDO TRAS VERIFICAR.** La auditoría decía que `.catch(() => [])` escondía el fallo. **No lo esconde**: `buscarEvidenciaMulti` marca un `testigo` mutable antes de que el `catch` lo alcance, y la ruta lo convierte en un aviso que distingue «no se pudo preguntar» de «no hay literatura», y la pantalla lo pinta. **Lo que sí falta**: esta ruta no produce sobre #314 —sin `Source`, sin procedencia estructurada— y **no declara proveedores no consultados**, así que en esta pantalla el médico no puede leer «UpToDate: no se consultó». |
-| **P1-14** | `tareasVivas` sigue devolviendo **200 arbitrarias** de N. Elegir las más urgentes exige un índice compuesto de Firestore, que se crea **fuera del repositorio**: `BLOCKED_EXTERNAL` (infraestructura del dueño). Mientras tanto el aviso es la defensa, no la solución. |
+| **P1-14** | `tareasVivas` sigue devolviendo **200 arbitrarias** de N. Sigue `BLOCKED_EXTERNAL` —el índice se crea fuera del repositorio— pero desde REG-352 **con el artefacto listo**: `firestore.indexes.json` lo declara y `docs/ops/INDICES-DE-FIRESTORE.md` reúne los cuatro módulos que hoy están peor por no tenerlos (worklist, lista de espera, citas del paciente, resumen de notas). Antes vivían en comentarios sueltos y nadie podía saber cuántos faltaban. **Falta la acción del dueño**: `npx firebase deploy --only firestore:indexes`. |
 | **P1-15** | **No hay circuit breaker ni presupuesto de reintentos** en ninguna parte. Un proveedor caído se sigue reintentando en cada petición. |
 | ~~P1-16~~ | ~~El **importador** no sabe reescribir las colecciones de nivel raíz.~~ **CERRADO** — REG-348, `f2aa2fa`. Vuelven las tres que pertenecen al consultorio por un campo, re-enraizadas **por campo** y contra la lista blanca del mismo manifiesto que usa el exportador. **Abrió P1-18**, cerrado el mismo día. **Sigue sin haberse restaurado nunca contra Firestore de verdad** (WS-13). |
 | ~~P1-18~~ | ~~Restaurar podía **quitarle la cuenta a otro consultorio**.~~ **CERRADO** — REG-349. Hallazgo de revisión independiente sobre REG-348, **reproducido ejecutando la ruta** contra una tienda con concurrencia optimista antes de tocar nada: la comprobación de propiedad existía, pero leía con un `getAll` suelto y escribía en un lote posterior, así que un alta normal del consultorio vecino ocurrida en el hueco se perdía. Ahora el grupo de nivel raíz va dentro de una transacción. |
@@ -151,12 +151,12 @@ Lecturas ilimitadas más caras, además de P0-3/4/5:
 
 | Dónde | Qué |
 |---|---|
-| `expediente/firestore.ts:216` | colección **entera** de citas del consultorio, en la baja de un paciente — **el siguiente de esta lista**, junto a `useAppointments` |
+| ~~`expediente/firestore.ts:216`~~ | ~~colección **entera** de citas del consultorio, en la baja de un paciente~~ **CERRADO** — REG-352: barrido paginado con techo, y si no se puede revisar entera **el borrado se niega**. El `catch` que lo tragaba dejaba PHI en pie tras una cancelación ARCO |
 | ~~`expediente/firestore.ts:41` `getNotas`~~ | ~~historia **completa** de notas de un paciente~~ **CERRADO** — REG-350 |
 | ~~`expediente/firestore.ts:472`~~ | ~~todas las notas firmadas → `.sort().slice(0,3)` **en memoria**~~ **CERRADO** — REG-350: ventana ordenada de 40, filtro de estado en memoria sobre ella |
 | ~~`components/PaletteBusqueda.tsx:60`~~ | ~~Cmd-K descarga 50 000 pacientes para enseñar 6~~ — **el tablero estaba atrasado**: REG-341 ya lo cerró (página de 6 en frío + búsqueda indexada al teclear). Verificado leyendo el archivo el 29-ago |
 | ~~`pacientes/page.tsx:934`~~ | ~~segunda descarga completa sin caché para deduplicar al guardar~~ **CERRADO** — REG-347, y desde REG-351 por el módulo compartido |
-| `hooks/useAppointments.ts:94` | historia de citas de un paciente **en vivo**, sin cota ni límite — **el siguiente de esta lista** |
+| `hooks/useAppointments.ts:94` | historia de citas de un paciente **en vivo**, sin cota — **`BLOCKED_EXTERNAL` con nombre desde REG-352**: acotarla exige un índice compuesto que no se puede crear desde el repositorio, y acotar sin orden perdería la cita de hoy. Declarado en `firestore.indexes.json` y en `docs/ops/INDICES-DE-FIRESTORE.md` |
 
 **Documentos que crecen sin techo**: `internamientos/{id}` guarda seis arrays en
 un solo documento; `indicaciones[].administraciones` no tiene tope (≈1 800

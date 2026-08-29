@@ -84,6 +84,14 @@ export const LIMITE_MAX_PAGINA_NOTAS = 100
  */
 export const TECHO_COMPAT_NOTAS = 200
 
+/** Página del barrido de citas huérfanas en la baja de un paciente. */
+export const PAGINA_BARRIDO_CITAS = 300
+/**
+ * Techo del barrido de citas huérfanas. Por encima, el borrado **se niega** en
+ * vez de darse por completo: ver `deletePatientExpediente`.
+ */
+export const TECHO_BARRIDO_CITAS = 20_000
+
 /**
  * Cursor por VALORES (fecha + id), no por snapshot: sobrevive a un remount y
  * puede cruzar el límite de un componente. Mismo motivo que en `CursorPacientes`.
@@ -544,10 +552,22 @@ export async function deletePatientExpediente(
    * no aporta nada a la decisión —una firmada ya bloquea— y obtenerlo costaba
    * el historial entero.
    */
-  if (await tieneNotaFirmada(clinicId, patientId)) {
+  try {
+    if (await tieneNotaFirmada(clinicId, patientId)) {
+      return {
+        ok: false,
+        motivo: 'Tiene al menos una nota firmada. Los registros clínicos firmados no pueden eliminarse (NOM-004).',
+      }
+    }
+  } catch {
+    /**
+     * No se pudo comprobar. **Falla cerrado**: no saber si hay una nota firmada
+     * no es lo mismo que saber que no la hay, y del lado equivocado se borra un
+     * registro legal que no puede eliminarse.
+     */
     return {
       ok: false,
-      motivo: 'Tiene al menos una nota firmada. Los registros clínicos firmados no pueden eliminarse (NOM-004).',
+      motivo: 'No se pudo comprobar si este expediente tiene notas firmadas. No se borró nada: sin esa comprobación no se puede eliminar un registro clínico (NOM-004).',
     }
   }
 
@@ -579,22 +599,70 @@ export async function deletePatientExpediente(
     for (const d of snap.docs) { if (!vistas.has(d.id)) { vistas.add(d.id); refsCitas.push(d.ref) } }
   } catch { /* ignore */ }
 
-  // Citas por nombre/teléfono (cubre citas con pacienteId vacío). Requiere leer la
-  // colección porque el match es normalizado (mayúsculas/formato de tel) y Firestore
-  // no puede filtrar por eso en la query.
+  /**
+   * ── LAS CITAS HUÉRFANAS: ACOTADO Y DECLARADO (REG-352) ─────────────────────
+   *
+   * Aquí se hacía `getDocs(citasRef)` — la colección **entera** de citas del
+   * consultorio— porque el emparejamiento es normalizado (mayúsculas, formato de
+   * teléfono) y Firestore no filtra por eso. Con años de agenda son decenas de
+   * miles de documentos leídos en el navegador para borrar un expediente.
+   *
+   * Y el `catch` lo tragaba. En un borrado eso no es un detalle: las citas
+   * huérfanas llevan `pacienteNombre` y `pacienteTelefono` **dentro**, así que
+   * un fallo silencioso deja PHI del paciente en la base **después de que se le
+   * dijo que su expediente se eliminó**. Esta función la usa la cancelación
+   * ARCO.
+   *
+   * Ahora: barrido PAGINADO con techo. Se sigue leyendo por páginas porque el
+   * criterio es normalizado y no hay índice que lo exprese, pero el coste está
+   * acotado y —lo que importa— **cuando no se pudo revisar todo, se dice**. Un
+   * borrado que se cree completo y no lo es es peor que uno que se niega.
+   */
+  let barridoCompleto = true
   if (matchInfo?.nombre || matchInfo?.telefono) {
     const norm = (s: string) => s.toLowerCase().trim()
     const normTel = (s: string) => s.replace(/\D/g, '')
+    let leidas = 0
+    let cursor: unknown = null
     try {
-      const all = await getDocs(citasRef)
-      for (const d of all.docs) {
-        if (vistas.has(d.id)) continue
-        const data = d.data() as { pacienteNombre?: string; pacienteTelefono?: string }
-        const nombreMatch   = matchInfo.nombre   && data.pacienteNombre   && norm(data.pacienteNombre) === norm(matchInfo.nombre)
-        const telefonoMatch = matchInfo.telefono && data.pacienteTelefono && normTel(data.pacienteTelefono) === normTel(matchInfo.telefono)
-        if (nombreMatch || telefonoMatch) { vistas.add(d.id); refsCitas.push(d.ref) }
+      for (;;) {
+        if (leidas >= TECHO_BARRIDO_CITAS) { barridoCompleto = false; break }
+        const snap = await getDocs(query(
+          citasRef,
+          orderBy(documentId()),
+          ...(cursor ? [startAfter(cursor as string)] : []),
+          limitarA(PAGINA_BARRIDO_CITAS),
+        ))
+        if (snap.docs.length === 0) break
+        leidas += snap.docs.length
+        for (const d of snap.docs) {
+          if (vistas.has(d.id)) continue
+          const data = d.data() as { pacienteNombre?: string; pacienteTelefono?: string }
+          const nombreMatch   = matchInfo.nombre   && data.pacienteNombre   && norm(data.pacienteNombre) === norm(matchInfo.nombre)
+          const telefonoMatch = matchInfo.telefono && data.pacienteTelefono && normTel(data.pacienteTelefono) === normTel(matchInfo.telefono)
+          if (nombreMatch || telefonoMatch) { vistas.add(d.id); refsCitas.push(d.ref) }
+        }
+        if (snap.docs.length < PAGINA_BARRIDO_CITAS) break
+        cursor = snap.docs[snap.docs.length - 1].id
       }
-    } catch { /* ignore */ }
+    } catch {
+      // Un fallo aquí NO se traga: se declara, porque decide si el borrado se
+      // puede dar por completo.
+      barridoCompleto = false
+    }
+  }
+
+  /**
+   * Si no se pudo revisar la agenda entera, **no se borra**. Borrar el
+   * expediente dejando citas con el nombre y el teléfono del paciente es
+   * exactamente lo que un borrado no puede hacer, y quien lo pidió creería que
+   * ya está.
+   */
+  if (!barridoCompleto) {
+    return {
+      ok: false,
+      motivo: 'No se pudo revisar la agenda completa en busca de citas de este paciente. No se borró nada: hacerlo dejaría citas con su nombre y su teléfono en el sistema. Inténtalo de nuevo.',
+    }
   }
 
   // Commit atómico en lotes de 450 (tope de Firestore = 500 ops por batch).

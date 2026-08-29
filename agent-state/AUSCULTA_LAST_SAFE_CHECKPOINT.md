@@ -1,25 +1,25 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 29-ago-2026 — **cuatro P1 cerrados (P1-16, P1-18, P1-12, P1-11)**
+## Checkpoint · 29-ago-2026 — **cuatro P1 cerrados y el inventario de lecturas de WS-03, cerrado**
 
 ```
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-03 (consultorio grande) — queda el inventario de lecturas de CITAS
-LAST_COMPLETED_UNIT=P1-11 · REG-351 · ninguna pantalla recibe ya una lista muda
+LAST_COMPLETED_UNIT=WS-03 · REG-352 · la baja de un paciente ya no lee la agenda entera ni se traga el fallo
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=WS-03 · las citas: `expediente/firestore.ts:216` (colección ENTERA de citas del consultorio en la baja de un paciente) y `hooks/useAppointments.ts:94` (`usePatientAppointments`, listener en vivo sin cota). Después P1-15 (sin circuit breaker) y P1-2 (colecciones sin declarar).
-FILES_IN_SCOPE=src/lib/expediente/firestore.ts · src/hooks/useAppointments.ts
+EXACT_NEXT_ACTION=P1-15 — no hay circuit breaker ni presupuesto de reintentos en ninguna parte (WS-04). Después P1-2 (22 colecciones sin declarar en los tres sitios) y P1-13 (los otros escritores de scroll).
+FILES_IN_SCOPE=src/lib/ia/gateway.ts · src/lib/net/fetch-con-timeout.ts (o donde viva el helper de red)
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10679
+TESTS_PASSED=10692
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=P1-2 · P1-9 · P1-10 · P1-13 · P1-15 · P1-17   → 6 internos
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-351
+DO_NOT_REGRESS=REG-323 · REG-337…REG-352
 ```
 
 ### Cerrado en esta tanda
@@ -30,6 +30,7 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-351
 | 349 | Esa restauración podía **quitarle la cuenta a otro consultorio**: miraba de quién era el documento fuera de transacción |
 | 350 | El historial completo de un paciente se bajaba en cada pantalla — y con él caían dos amplificaciones peores y una salvaguarda que habría quedado colgando del techo |
 | 351 | Nueve pantallas trataban el recorte del directorio como el censo completo: typeahead que decía «no está», importador que duplicaba el consultorio, panel NOM-004 que afirmaba «al día», libro de controlados sin el nombre de a quién se le dio |
+| 352 | La baja de un paciente leía la agenda ENTERA y se tragaba el fallo: por ese camino pasa la cancelación ARCO, y podía borrar el expediente dejando citas con su nombre y su teléfono |
 
 ### El saldo, escrito
 
@@ -44,14 +45,37 @@ Un P1 nuevo no borra uno cerrado; se enseñan los dos movimientos.
 - `pacientes/page.tsx:934` (segunda descarga sin caché para deduplicar) también
   estaba cerrado desde REG-347.
 
+### Dos defectos del ARNÉS que salieron al escribir REG-352
+
+Los dos hacían **pasar pruebas vacías**, así que quedan anotados:
+
+1. **`writeBatch` del doble de cliente era un muñeco.** Cualquier prueba que
+   afirmara sobre una escritura pasaba sin que la escritura ocurriera.
+2. **El `ref` de un documento de consulta sólo tenía `path`**, y media aplicación
+   pasa ese `d.ref` a `batch.delete(...)`: el lote no sabía qué borrar y no
+   borraba, en silencio.
+
+Cualquier prueba anterior que afirmara sobre escrituras con este doble hay que
+mirarla de nuevo: pudo estar en verde por esto.
+
+### El índice que falta ya no vive en comentarios
+
+`firestore.indexes.json` + `docs/ops/INDICES-DE-FIRESTORE.md` reúnen los cuatro
+módulos que hoy están peor por no tener índice compuesto (worklist P1-14, lista de
+espera, citas del paciente, resumen de notas). Sigue `BLOCKED_EXTERNAL` —lo
+despliega el dueño con `npx firebase deploy --only firestore:indexes`— pero ahora
+es **una acción concreta y no un hueco invisible**.
+
 ### Herramientas que el resto del programa puede usar
 
 1. **`_harness/firestore-admin-en-memoria.ts`** — `doc`, `getAll`, `batch`,
    `tx.getAll` y un gancho de interceptación **en la lectura**.
 2. **`_harness/firestore-cliente-en-memoria.ts`** — cuenta documentos leídos,
    entiende `getCountFromServer`, `startAfter` **en la dirección del orden**, y
-   sabe simular una **lectura caída** (`fallos.lectura`), que es como se prueba
-   que alguien distingue «no hay» de «no se pudo preguntar».
+   sabe simular una **lectura caída** —global (`fallos.lectura`) o en una
+   colección concreta (`fallos.lecturaEn`)—, que es como se prueba que alguien
+   distingue «no hay» de «no se pudo preguntar»; y **escribe de verdad**
+   (`writeBatch`, `setDoc`, `deleteDoc`), que antes no.
 3. **`src/lib/pacientes/candidatos.ts`** + `useBusquedaDePacientes` +
    `usePacientesPorId` — la forma canónica de preguntar por un paciente.
 
