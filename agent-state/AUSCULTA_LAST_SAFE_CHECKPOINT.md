@@ -1,25 +1,25 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 29-ago-2026 — **siete P1 cerrados; quedan 3 internos**
+## Checkpoint · 29-ago-2026 — **ocho P1 cerrados; quedan 3 internos (uno nuevo)**
 
 ```
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
 CURRENT_HEAD=(este commit)
 CURRENT_PR=#389
 CURRENT_WORKSTREAM=WS-03 (consultorio grande) — queda el inventario de lecturas de CITAS
-LAST_COMPLETED_UNIT=P1-13 · REG-355 · el dedo manda sobre el scroll, y `overscroll-behavior` existe
+LAST_COMPLETED_UNIT=P1-9 · REG-356 · la evidencia de la consulta dice dónde NO miró
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=P1-9 — la ruta de evidencia de la consulta no produce sobre #314 (sin `Source`, sin procedencia estructurada) y no declara proveedores NO consultados, así que el médico no puede leer «UpToDate: no se consultó». Después P1-10 (licencia PMC por artículo) y P1-17 (búsqueda por prefijo).
-FILES_IN_SCOPE=src/lib/evidencia/ · src/lib/evidence-integrations/ · src/app/api/expediente/evidencia/
+EXACT_NEXT_ACTION=P1-10 — el texto completo de PMC se reproduce sin filtro de licencia POR ARTÍCULO (`evidencia/pubmed.ts:182`, `catalogo.ts:279`). Después P1-17 (búsqueda por prefijo: duplicado con el orden de los nombres cambiado) y P1-19 (procedencia estructurada de #314 + verificación de citas, que hoy tiene cero llamadores).
+FILES_IN_SCOPE=src/lib/evidencia/pubmed.ts · src/lib/evidence-integrations/catalogo.ts
 FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=10736
+TESTS_PASSED=10747
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante. NO tocar la aserción.
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
-P1_OPEN=P1-9 · P1-10 · P1-17   → 3 internos
+P1_OPEN=P1-10 · P1-17 · P1-19 (nuevo)   → 3 internos
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-355
+DO_NOT_REGRESS=REG-323 · REG-337…REG-356
 ```
 
 ### Cerrado en esta tanda
@@ -34,12 +34,19 @@ DO_NOT_REGRESS=REG-323 · REG-337…REG-355
 | 353 | Un proveedor caído se seguía reintentando en cada petición, pagando el timeout entero. Interruptor por proveedor **y por llave**: una llave revocada de un consultorio no puede apagar a los demás |
 | 354 | El repositorio no sabía si sus reglas rigen en producción. `vercel --prod` no las publica, y la nota viajaba en prosa desde E0-06. Ahora se deriva del sha256 y una compuerta exige declarar qué se rompe mientras tanto |
 | 355 | Quedaban escritores de scroll que no preguntaban. La regla correcta existía **dentro de un componente**; ahora es del sistema. Y `overscroll-behavior` no aparecía en todo el repositorio |
+| 356 | La evidencia de la consulta no decía dónde NO había mirado. La maquinaria estaba escrita y probada desde REG-345, y esta ruta no la tenía cableada |
 
 ### El saldo, escrito
 
 `cerrado −1 (P1-16)` · `nuevo +1 (P1-18)` · `cerrado −1 (P1-18)` ·
 `cerrado −1 (P1-12)` · `cerrado −1 (P1-11)` · `cerrado −1 (P1-15)` ·
-`cerrado −1 (P1-2)` · `cerrado −1 (P1-13)` → **9 → 3 P1 internos**.
+`cerrado −1 (P1-2)` · `cerrado −1 (P1-13)` · `cerrado −1 (P1-9)` ·
+**`nuevo +1 (P1-19)`** → **9 → 3 P1 internos abiertos**.
+
+El nuevo sale de cerrar P1-9: la otra mitad de ese requisito —que la ruta
+produzca `Source` con procedencia estructurada (#314), y que la verificación de
+citas (`mapaDeSoporte`, `esRespuestaRespaldada`, `tasaSinRespaldo`) **tenga algún
+llamador fuera de pruebas**— no se cerró y no se esconde.
 Un P1 nuevo no borra uno cerrado; se enseñan los dos movimientos.
 
 ### WS-05 sigue SIN ser `PROVEN`, y es a propósito

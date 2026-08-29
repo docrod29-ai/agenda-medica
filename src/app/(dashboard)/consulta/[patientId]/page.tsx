@@ -984,7 +984,7 @@ export default function ConsultaActivaPage() {
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
-  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string } | null>(null)
+  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string; noConsultadas?: string[] } | null>(null)
   const [analizandoEv, setAnalizandoEv] = useState(false)
   // Candado de gasto (soft): uso de consultas del mes vs el límite del plan.
   const [usoIA, setUsoIA] = useState<{ usadas: number; limite: number; restantes: number; porcentaje: number; alerta: 'ok' | 'cerca' | 'excedido' } | null>(null)
@@ -1907,7 +1907,7 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso })
+      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso, noConsultadas: data._fuentesNoConsultadas ?? [] })
       else {
         // Muestra el MOTIVO real (no un toast mudo) y lo deja en consola para diagnóstico.
         // REG-339 — el cuerpo del error puede devolver el contexto del paciente
@@ -5452,7 +5452,22 @@ export default function ConsultaActivaPage() {
               </button>
               <button onClick={analizarEvidencia} disabled={analizandoEv} style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11, cursor: 'pointer' }}>↻ actualizar</button>
             </div>
-            {evidencia.aviso && <div style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 6 }}>{evidencia.aviso}</div>}
+            {evidencia.aviso && <div style={{ fontSize: 12, color: 'var(--amber)', marginTop: 6 }}>{evidencia.aviso}</div>}
+            {/**
+              * DÓNDE **NO** SE MIRÓ (REG-356).
+              *
+              * Va junto al análisis y no enterrado abajo: un consultor que sólo
+              * enseña lo que SÍ encontró se lee como si hubiera mirado en todas
+              * partes, y con el paciente enfrente eso convierte «no lo miramos»
+              * en «no existe». Regla 4 de seguridad clínica.
+              */}
+            {evidencia.noConsultadas && evidencia.noConsultadas.length > 0 && (
+              <div role="note" style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, lineHeight: 1.55 }}>
+                <strong style={{ color: 'var(--text2)' }}>Sólo se consultó PubMed.</strong>{' '}
+                No se miraron: {evidencia.noConsultadas.join(', ')}. Lo de arriba no
+                dice que no exista evidencia en esas fuentes: dice que no se preguntó.
+              </div>
+            )}
             {bloque('Evaluación del tratamiento', evidencia.evaluacion, 'punto', 'sustento')}
             {bloque('Alternativas a considerar', evidencia.alternativas, 'opcion', 'porque')}
             {bloque('Diagnóstico diferencial', evidencia.diferencial, 'dx', 'razon')}

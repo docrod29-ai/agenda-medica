@@ -10574,3 +10574,67 @@ fuerte, no a más laxo.
   por encima de `<main>` (41 px medidos por `PorQueEstaAqui`). Arreglarlo bien es
   sacarlos del flujo, un cambio de layout del panel que no se hace a ciegas sin
   navegador. Queda abierto y con nombre.
+
+## REG-356 — la evidencia de la consulta no decía dónde NO había mirado
+
+**QUÉ FALLABA.** `/api/expediente/evidencia` —la ruta que el médico usa **con el
+paciente enfrente**— consulta **sólo PubMed**, y su respuesta nunca lo decía. El
+médico veía artículos y razonamiento sin forma de saber que UpToDate, Cochrane,
+las guías y todo lo demás **ni se miraron**.
+
+Un consultor que sólo enseña lo que SÍ encontró se lee como si hubiera mirado en
+todas partes. Con el paciente delante, eso convierte «no lo miramos» en «no
+existe» — que es la conclusión contraria a la que este módulo existe para dar.
+Regla 4 de seguridad clínica.
+
+**DE DÓNDE VIENE, Y UNA CORRECCIÓN QUE YA ESTABA ESCRITA.** Es P1-9 del tablero,
+que lo dejó con estas palabras: «en esta pantalla el médico no puede leer
+*UpToDate: no se consultó*». Una auditoría anterior había acusado a esta misma
+ruta de esconder los fallos en un `.catch(() => [])`; **eso era falso** y quedó
+anotado en su día: hay un `testigo` mutable que se marca antes de que el `catch`
+lo alcance, y la ruta sí distingue «no se pudo preguntar» de «no hay
+literatura». Lo que de verdad faltaba era esto.
+
+**LA CAUSA RAÍZ.** **La maquinaria existía, estaba probada, y esta ruta no la
+tenía cableada.** `planDeConsulta` decide quién se consulta y quién sólo se
+declara; los adaptadores no operativos producen su sobre `not_configured` **sin
+salir a la red** —`adaptadorNoConfigurado` ni siquiera conoce una URL— y
+`comoSeLeDiceAlMedico` lo convierte en una frase. `/api/consultor-evidencia` lo
+usa desde REG-345. Ésta no. Familia «escrito, probado y sin conectar»: no faltaba
+el dato ni la regla, faltaba el cable.
+
+**LA REGLA QUE LO HACE SEGURO.** Se declara con la **misma lista de proveedores**
+que usa el consultor (`FABRICAS`, ahora exportada), no con una copia: dos censos
+divergen, y el día que uno gane un adaptador el otro se queda mintiendo por
+omisión.
+
+Y se declara también **lo operativo que no se consultó**: que un adaptador
+funcione no significa que se haya usado, y callar eso sería la misma mentira por
+otro camino. Es la mitad que el arreglo obvio se habría dejado.
+
+Se declara en **los dos caminos de salida** de la ruta —el del análisis completo
+y el del razonamiento fallido—. Uno solo dejaría media ruta muda, que es
+exactamente cómo este defecto sobrevivió al arreglo de REG-345 en la otra ruta.
+
+**Y LA PANTALLA LO PINTA**, arriba y junto al análisis, no enterrado al final:
+leer la conclusión antes de saber dónde no se miró es leerla mal. Un caso del
+golden comprueba ese orden. Sin esto sería REG-345 otra vez — avisos calculados,
+probados, que viajan por el cable y nadie pinta.
+
+**LA PRUEBA.** `src/__tests__/el-consultor-dice-donde-no-miro.test.ts` (11
+casos). Ejecuta la declaración de verdad. Probado al revés dejando que sólo se
+declaren los NO operativos: caen 2 casos, incluido el que exige que el censo sea
+el mismo.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No añade ni una fuente.** Sólo arregla el silencio. Consultar UpToDate,
+  Cochrane o Scopus exige licencias que no existen (WS-08) y los adaptadores
+  están deliberadamente inertes: `READY_BUT_NOT_LICENSED`.
+- **No renderiza.** Que el bloque exista en el árbol no prueba que se vea.
+- **No arregla la procedencia estructurada de #314.** La otra mitad de P1-9 —que
+  esta ruta produzca `Source` con procedencia en vez de artículos sueltos— sigue
+  abierta y con nombre.
+- **No verifica citas.** `mapaDeSoporte`, `esRespuestaRespaldada` y
+  `tasaSinRespaldo` siguen sin llamadores fuera de pruebas: un `[2]` que apunte a
+  un artículo que dice lo contrario sigue pasando. Es otro requisito de WS-06/07.

@@ -23,6 +23,7 @@ import { esFundador } from '@/lib/authz/fundador'
 import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
+import { declararFuentesNoConsultadas } from '@/lib/evidencia/lo-que-no-se-consulto'
 
 export const runtime = 'nodejs'
 /**
@@ -108,6 +109,12 @@ export async function POST(req: NextRequest) {
   const meds = (body.medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[]
   const motivo = (body.motivo ?? '').trim()   // MOTIVO DE CONSULTA = problema activo que se atiende HOY
   const resumen = (body.resumen ?? '').trim()
+  /**
+   * El texto con el que se ORDENAN los proveedores al declarar cuáles no se
+   * consultaron (REG-356). No decide qué se consulta —eso lo decide qué está
+   * operativo—, sólo la intención clínica para ordenar la lista.
+   */
+  const consultaParaDeclarar = [motivo, ...dx].filter(Boolean).join(' ') || 'consulta clínica'
   if (dx.length === 0 && meds.length === 0 && resumen.length < 8 && motivo.length < 4) {
     return NextResponse.json({ ok: false, error: 'La nota no tiene diagnóstico, tratamiento ni resumen para analizar todavía.' }, { status: 400 })
   }
@@ -312,12 +319,33 @@ export async function POST(req: NextRequest) {
       const queHacer = esReloj
         ? 'Fue el proveedor, no tu cuenta: vuelve a pulsar «actualizar». Las fuentes de abajo son reales y sirven igual.'
         : 'Revisa tu llave/créditos en Configuración → Llaves de IA.'
-      return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se obtuvo el razonamiento — ${motivo}. ${queHacer}` })
+      const sinRazonamiento = await declararFuentesNoConsultadas(consultaParaDeclarar, ['pubmed'])
+      return NextResponse.json({
+        ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [],
+        // Aunque el razonamiento no salga, las fuentes que no se miraron siguen
+        // sin mirarse: callarlo aquí sería el mismo defecto por otro camino.
+        _fuentesNoConsultadas: sinRazonamiento.noConsultados,
+        _aviso: [`No se obtuvo el razonamiento — ${motivo}. ${queHacer}`, ...sinRazonamiento.avisos].join(' '),
+      })
     }
 
     void registrarUso(clinicId, fuente)
     void registrarCreditos(clinicId, COSTO_CREDITOS.evidencia)
     const avisos: string[] = []
+    /**
+     * ── LO QUE NO SE CONSULTÓ, DICHO (REG-356) ────────────────────────────
+     *
+     * Esta ruta consulta **sólo PubMed** y no lo decía. El médico veía artículos
+     * y razonamiento sin forma de saber que UpToDate, Cochrane y las guías ni se
+     * miraron: un consultor que sólo enseña lo que SÍ encontró se lee como si
+     * hubiera mirado en todas partes.
+     *
+     * La maquinaria ya existía y estaba probada —la usa `/api/consultor-evidencia`
+     * desde REG-345—; esta ruta no la tenía cableada. Ninguno de esos adaptadores
+     * sale a la red: sólo declaran.
+     */
+    const declaradas = await declararFuentesNoConsultadas(consultaParaDeclarar, ['pubmed'])
+    avisos.push(...declaradas.avisos)
     if (!hayEvidencia) {
       // El aviso que ve el médico tiene que distinguir las dos cosas: que no haya
       // literatura es un dato clínico; que no hayamos podido preguntar, no.
@@ -326,7 +354,11 @@ export async function POST(req: NextRequest) {
         : 'Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).')
     }
     avisos.push(modelosUsados.length > 1 ? `Análisis combinado: ${modelosUsados.join(' + ')}.` : `Análisis con ${modelosUsados[0] ?? tierClaude}.`)
-    return NextResponse.json({ ok: true, articulos, ...final, nivel, _modelos: modelosUsados, _aviso: avisos.join(' '), _busquedaFallida: testigo.fallo })
+    return NextResponse.json({
+      ok: true, articulos, ...final, nivel, _modelos: modelosUsados,
+      _aviso: avisos.join(' '), _busquedaFallida: testigo.fallo,
+      _fuentesNoConsultadas: declaradas.noConsultados,
+    })
   } catch (e) {
     return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
   }

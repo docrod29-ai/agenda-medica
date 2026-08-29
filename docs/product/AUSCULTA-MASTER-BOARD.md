@@ -24,7 +24,7 @@
 | | |
 |---|---|
 | **P0 internos abiertos** | **0** |
-| **P1 internos abiertos** | **3** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
+| **P1 internos abiertos** | **3** — P1-10, P1-17 y el nuevo P1-19 (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
 
 **Movimientos del 29-ago-2026:**
 
@@ -38,20 +38,22 @@
 | cerrado −1 | **P1-15** — no había circuit breaker ni presupuesto de reintentos (REG-353) |
 | cerrado −1 | **P1-2** — ya estaba cerrado por REG-340/343 y el tablero no lo decía; su residuo real (reglas sin desplegar) lo cierra REG-354 haciéndolo visible |
 | cerrado −1 | **P1-13** — los otros escritores de scroll, y `overscroll-behavior` (REG-355) |
-| **saldo** | **−6 P1 internos** (9 → 3) |
+| cerrado −1 | **P1-9** — la evidencia de la consulta ya declara dónde NO miró (REG-356). La otra mitad —procedencia estructurada sobre #314— se abre como **P1-19** |
+| nuevo +1 | **P1-19** — la ruta de evidencia de la consulta sigue sin producir `Source` con procedencia estructurada (#314) |
+| **saldo** | **−5 P1 internos netos**: 9 cerrados −7, nuevos +2 (P1-18 ya cerrado, P1-19 abierto) → **3 internos abiertos** |
 
 ## Compuertas medidas en este SHA — no citadas de memoria
 
 | Compuerta | Resultado | Observación |
 |---|---|---|
-| `npx vitest run` | **10 736 pasan · 1 falla** (781 archivos) | Baseline del 28-ago eran 10 566; **+170 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
+| `npx vitest run` | **10 747 pasan · 1 falla** (782 archivos) | Baseline del 28-ago eran 10 566; **+181 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
 | `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** | |
 | `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
 | trinquete de diseño | **al techo**, sin holgura | |
 | navegador real | **no ejecutado** | ver WS-05 |
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-355.
+Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-356.
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
@@ -95,7 +97,8 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | **P1-6** | **`BLOCKED_EXTERNAL` — requiere autorización del dueño.** Las alergias viven en `Patient`, que recepción lee (`allow read: if isMember`). E0-06 exige mudarlas a la subcolección `clinico`. **Verificado hoy: la migración no existe** — hay tipo, lista de campos (`CAMPOS_CLINICOS_PACIENTE`) y una prueba de forma; **no hay splitter de escritura, ni script de migración, ni un solo lector o escritor de `ResumenClinicoPaciente` en producción**. Por qué se para aquí: el beneficio de seguridad **sólo aparece cuando los campos se BORRAN de los documentos vivos** y se cierran las reglas — una acción destructiva sobre datos clínicos reales. Construir la mitad reversible no cierra nada y **crea riesgo de doble verdad en el campo más crítico del producto** (alergias): un paciente con la alergia en `clinico` y un lector sin respaldo la pierde. **Qué falta exactamente**: (1) autorización para correr el backfill contra producción, (2) decisión del dueño sobre si recepción conserva algún acceso, (3) despliegue de reglas. |
 | ~~P1-7~~ | ~~Los avisos de evidencia se calculaban y la pantalla los tiraba.~~ **CERRADO** — REG-345, `44b52c9`. |
 | ~~P1-8~~ | ~~La matriz prometía fuentes inexistentes.~~ **CERRADO** — REG-345, `44b52c9`. La columna cruza catálogo y runtime, con tres estados. |
-| **P1-9** | **CORREGIDO TRAS VERIFICAR.** La auditoría decía que `.catch(() => [])` escondía el fallo. **No lo esconde**: `buscarEvidenciaMulti` marca un `testigo` mutable antes de que el `catch` lo alcance, y la ruta lo convierte en un aviso que distingue «no se pudo preguntar» de «no hay literatura», y la pantalla lo pinta. **Lo que sí falta**: esta ruta no produce sobre #314 —sin `Source`, sin procedencia estructurada— y **no declara proveedores no consultados**, así que en esta pantalla el médico no puede leer «UpToDate: no se consultó». |
+| ~~P1-9~~ | ~~La ruta de evidencia de la consulta no declara proveedores no consultados.~~ **CERRADO** — REG-356. Declara con la **misma lista** que el consultor (no una copia), incluye lo **operativo que no se usó**, lo dice en **los dos caminos de salida** y **la pantalla lo pinta arriba**, junto al análisis. Queda escrito que la acusación anterior sobre `.catch(() => [])` era **falsa**: hay un `testigo` que la desmiente. |
+| **P1-19** | **NUEVO, abierto por REG-356.** La otra mitad de P1-9: esta ruta sigue devolviendo **artículos sueltos**, no `Source` con procedencia estructurada (#314). Y `mapaDeSoporte` / `esRespuestaRespaldada` / `tasaSinRespaldo` siguen **sin llamadores fuera de pruebas**: un `[2]` que apunte a un artículo que dice lo contrario sigue pasando. |
 | **P1-14** | `tareasVivas` sigue devolviendo **200 arbitrarias** de N. Sigue `BLOCKED_EXTERNAL` —el índice se crea fuera del repositorio— pero desde REG-352 **con el artefacto listo**: `firestore.indexes.json` lo declara y `docs/ops/INDICES-DE-FIRESTORE.md` reúne los cuatro módulos que hoy están peor por no tenerlos (worklist, lista de espera, citas del paciente, resumen de notas). Antes vivían en comentarios sueltos y nadie podía saber cuántos faltaban. **Falta la acción del dueño**: `npx firebase deploy --only firestore:indexes`. |
 | ~~P1-15~~ | ~~No hay circuit breaker ni presupuesto de reintentos.~~ **CERRADO** — REG-353 para el gateway de IA, que es por donde pasan las 16 rutas. Interruptor con enfriamiento creciente y una sola prueba, más presupuesto de la operación entera (no sólo por intento). **Lo que hay que saber para no sobreestimarlo**: (1) el estado es **por instancia**, no global — cada instancia caliente paga su primer timeout; hacerlo global costaría una lectura compartida en el camino de una nota; (2) **WhatsApp y Evidence siguen sin interruptor**: tienen timeout y el outbox tiene backoff, pero no pasan por esta puerta. Lo segundo queda abierto en WS-04. |
 | ~~P1-16~~ | ~~El **importador** no sabe reescribir las colecciones de nivel raíz.~~ **CERRADO** — REG-348, `f2aa2fa`. Vuelven las tres que pertenecen al consultorio por un campo, re-enraizadas **por campo** y contra la lista blanca del mismo manifiesto que usa el exportador. **Abrió P1-18**, cerrado el mismo día. **Sigue sin haberse restaurado nunca contra Firestore de verdad** (WS-13). |

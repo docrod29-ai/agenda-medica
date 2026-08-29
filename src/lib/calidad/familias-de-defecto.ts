@@ -85,13 +85,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * defecto de REG-343, una casilla más adelante— y el informe se veía sano.
      */
     /**
+     * 356 es 345 otra vez, en la ruta de al lado. Los avisos de «qué se consultó
+     * y qué no» se arreglaron en `/api/consultor-evidencia` y la ruta de
+     * evidencia de la CONSULTA —la que se usa con el paciente enfrente— se quedó
+     * sin cablear. La lección: un arreglo de esta familia no termina en el
+     * módulo que se tocó, termina cuando se revisan TODAS las puertas por las
+     * que entra el mismo dato. Es la misma forma de 337 sobre 252.
+     */
+    /**
      * 353 es la variante temporal de esta familia: la defensa EXISTÍA y cubría
      * el caso equivocado. `fetchConTimeout` acota UNA llamada; el fallo de un
      * proveedor dura una temporada, así que las mil siguientes volvían a pagar
      * el timeout entero. Una protección pensada por llamada no protege de un
      * problema que es por temporada.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356],
   },
   {
     clave: 'se_contradice',

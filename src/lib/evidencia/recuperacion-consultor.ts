@@ -180,8 +180,13 @@ export const POR_QUE_EL_CONSULTOR_USA_EL_SOBRE =
  * dueño lee para decidir un gasto.
  *
  * Se exporta para que el documento se DERIVE de ella en vez de repetirla a mano.
+ *
+ * Y desde REG-356 también para que la ruta de evidencia de la CONSULTA pueda
+ * declarar qué fuentes NO se consultaron con la misma lista: dos censos de
+ * proveedores divergen, y el día que uno gane un adaptador el otro se queda
+ * mintiendo por omisión.
  */
-const FABRICAS: Record<string, () => AdaptadorDeEvidencia> = {
+export const FABRICAS: Record<string, () => AdaptadorDeEvidencia> = {
   pubmed: adaptadorPubMed,
   uptodate,
   openevidence,
