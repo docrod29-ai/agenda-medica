@@ -180,6 +180,33 @@ export interface ResumenCosto {
   modelosSinTarifa: string[]
   latenciaP50: number | null
   latenciaP95: number | null
+  /**
+   * ── EL P99, Y POR QUÉ VIENE CON SU LETRA PEQUEÑA — REG-417 ───────────────
+   *
+   * El p99 es la cifra que dice cómo es el peor día de un médico, y no estaba en
+   * ningún sitio del repositorio salvo en el acta del arnés de carga.
+   *
+   * Pero con **menos de cien muestras el p99 ES EL MÁXIMO**: el percentil por
+   * rango más cercano no puede señalar otra cosa. Publicarlo pelado invita a leer
+   * un pico único como una cola, y a perseguir un fantasma. Por eso van al lado
+   * `muestrasDeLatencia` y `p99EsElMaximo`, y quien lo pinte tiene el dato para
+   * decirlo.
+   */
+  latenciaP99: number | null
+  /** Cuántas llamadas midieron latencia. Sin esto, un percentil no se puede leer. */
+  muestrasDeLatencia: number
+  /** `true` cuando hay menos de 100 muestras: el p99 no es un percentil, es el peor caso visto. */
+  p99EsElMaximo: boolean
+  /**
+   * ── LA TASA DE ERROR, QUE YA SE REGISTRABA Y NADIE SUMABA ────────────────
+   *
+   * `EventoCosto.fallo` existe desde que existe el libro —«un fallo cuesta
+   * tokens igual»— y sólo se usaba para no contar consultas fallidas. La cifra
+   * que dice si una función está rota nunca se calculaba.
+   */
+  fallos: number
+  /** Fracción de llamadas que fallaron. `null` sin llamadas: dividir entre cero no es 0. */
+  tasaDeFallo: number | null
 }
 
 const percentil = (xs: number[], p: number): number | null => {
@@ -211,7 +238,36 @@ export function resumir(eventos: readonly EventoCosto[]): ResumenCosto {
     modelosSinTarifa: [...new Set(eventos.filter(e => e.motivoSinCosto === 'sin_tarifa').map(e => e.modelo))],
     latenciaP50: percentil(lat, 50),
     latenciaP95: percentil(lat, 95),
+    latenciaP99: percentil(lat, 99),
+    muestrasDeLatencia: lat.length,
+    p99EsElMaximo: lat.length > 0 && lat.length < MUESTRAS_PARA_UN_P99,
+    fallos: eventos.filter(e => e.fallo).length,
+    tasaDeFallo: eventos.length > 0
+      ? Number((eventos.filter(e => e.fallo).length / eventos.length).toFixed(4))
+      : null,
   }
+}
+
+/**
+ * Por debajo de esto, el p99 por rango más cercano señala la muestra más alta y
+ * nada más. No es un umbral de calidad —eso lo decide el dueño— sino aritmética:
+ * con n muestras, el percentil 99 cae en el índice `ceil(0.99·n)−1`, que para
+ * n < 100 es siempre la última.
+ */
+export const MUESTRAS_PARA_UN_P99 = 100
+
+/**
+ * Latencia y error POR FUNCIÓN de IA — lo que el censo pedía como «por ruta».
+ *
+ * Es `porClave` sobre `feature`, y no una implementación nueva: dos formas de
+ * resumir el mismo libro darían dos cifras plausibles y una estaría mal. Se
+ * ordena por tasa de fallo y luego por p99, que es el orden en que se mira
+ * cuando algo va mal — no por gasto, que es el de `porClave`.
+ */
+export function porFuncion(eventos: readonly EventoCosto[]): { clave: string; resumen: ResumenCosto }[] {
+  return porClave(eventos, e => e.feature).sort((a, b) =>
+    (b.resumen.tasaDeFallo ?? 0) - (a.resumen.tasaDeFallo ?? 0)
+    || (b.resumen.latenciaP99 ?? 0) - (a.resumen.latenciaP99 ?? 0))
 }
 
 /** Sólo lo que es COGS de cliente: fuera I+D del fundador y llaves propias. */

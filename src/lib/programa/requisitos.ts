@@ -557,9 +557,14 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     queFalta: 'planes-ia.ts respeta la regla. Falta probar el fallback del router ante caída de proveedor, y que no degrade calidad clínica en silencio para ahorrar.',
   }),
   R({
-    id: 'WS-12.p99', ws: 'WS-12', titulo: 'p99 de latencia por capacidad y por ruta',
+    id: 'WS-12.p99', ws: 'WS-12', titulo: 'p99 y tasa de error medidas, no citadas',
     estado: 'PARTIAL',
-    queFalta: 'cost-ledger.ts calcula p50 y p95 de las llamadas de IA. No hay p99 en ningún sitio del repositorio salvo el acta del arnés de carga, ni latencia/error por ruta HTTP.',
+    evidencia: 'REG-417. El p99 no existía en ningún sitio salvo el acta del arnés. Y la tasa de error se REGISTRABA sin sumarse: `EventoCosto.fallo` está en el libro desde el principio —«un fallo cuesta tokens igual»— y sólo se usaba para no contar consultas fallidas. El p99 va con `muestrasDeLatencia` y `p99EsElMaximo`, porque con menos de cien muestras el p99 ES el máximo por aritmética del percentil, y publicarlo pelado hace perseguir un fantasma.',
+    comando: 'npx vitest run src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts',
+    resultado: '13 casos. `porFuncion` da latencia y error por función de IA, ordenado por lo que FALLA primero y no por lo que más gasta — que es el orden de una factura, no el de una avería.',
+    queFalta: 'Sólo cubre las rutas que llaman a un proveedor de IA: una ruta HTTP que no deja asiento en el libro de costos no tiene aquí latencia ni error. Medirlas todas exige instrumentar el borde (middleware o equivalente) y decidir dónde se guardan esas métricas, que es infraestructura. Y NINGÚN umbral está fijado: qué p99 y qué tasa de error son aceptables lo decide el dueño — MUESTRAS_PARA_UN_P99 es aritmética, no política.',
+    artefactos: ['src/lib/finanzas/cost-ledger.ts'],
+    pruebas: ['src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts'],
   }),
 
   /* ═══ WS-13 · Seguridad · observabilidad · DR ═════════════════════════════ */

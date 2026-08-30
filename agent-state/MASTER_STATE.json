@@ -21,13 +21,12 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/el-tablero-del-loop-no-miente.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/finanzas/cost-ledger.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? scripts/programa/tablero-derivado.mjs"
+    "?? src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +62,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 267,
+    "regsEnElLedger": 268,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 839,
-    "casosDePrueba": 10472,
+    "archivosDePrueba": 840,
+    "casosDePrueba": 10485,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
