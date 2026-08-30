@@ -14094,3 +14094,75 @@ dos que **fijan la corrección del censo**, para que nadie vuelva a implementar
   propio flujo.
 - **No prueba el render**, sólo que la pantalla pide la pregunta y que el botón
   de cerrar no se deshabilita por ella.
+
+---
+
+## REG-404 — agendar contaba como haber visto al paciente
+
+**QUÉ SE PEDÍA.** `WS-11.estados-del-cierre`: «Falta `scheduled` como estado
+propio».
+
+### El defecto
+
+El pendiente «Agendar el seguimiento» nace cuando el médico pone fecha de
+control. Su único camino era:
+
+```
+solicitada → en_curso → completada → cerrada
+```
+
+Es decir: **se cerraba al crear la cita**. Agendar contaba como haber visto al
+paciente.
+
+Y entonces, si el paciente no venía —no-show, la cita se movió y nadie la volvió
+a poner, el recordatorio no salió—, **nada lo reabría y nada lo echaba en
+falta**. El control que el médico pidió no ocurría, el pendiente estaba cerrado,
+y el sistema decía que el trabajo estaba hecho **porque nadie le preguntó nunca
+al calendario**.
+
+Es la misma forma de fallo que REG-337 cerró del otro lado —que el resultado
+EXISTIERA contaba como que alguien lo había leído— aplicada a la otra punta del
+ciclo: que la cita EXISTA cuenta como que el paciente vino.
+
+### El arreglo
+
+`agendada` como estado **vivo**: la cita existe, el paciente no ha venido, y el
+pendiente sigue en el worklist hasta que el encuentro pase o alguien decida que
+ya no aplica.
+
+**No se puede saltar de `agendada` a `cerrada`.** Cerrar es la constancia de que
+alguien revisó, y desde «hay una cita puesta» no hay nada que revisar todavía.
+Dejar ese atajo abierto habría hecho el estado nuevo decorativo — es el caso que
+se prueba al revés.
+
+**Sólo el seguimiento tiene el paso extra.** Un estudio pendiente o una receta
+por entregar siguen igual: meterles un paso que no significa nada para ellos
+alargaría el camino sin decir nada, y un worklist que cuesta se abandona.
+
+**Y no hizo falta una categoría nueva en el worklist.** Antes no había forma de
+distinguirlos —la tarea se cerraba al agendar, así que todo `seguimiento` vivo
+estaba por definición sin agendar—. Ahora lo que se espera de uno ya agendado no
+es una acción del consultorio sino que el paciente venga, que es
+`esperando_paciente`, la categoría que ya existía. Inventar una octava habría
+sido añadir modelo sin añadir información.
+
+**LA PRUEBA.** `src/__tests__/agendar-no-es-haber-visto-al-paciente.test.ts`
+(12 casos). Probado al revés abriendo `agendada → cerrada`: cae.
+
+**UNA FIRMA QUE SE ENSANCHÓ.** `siguientePaso` pasó de recibir sólo el estado a
+recibir también el tipo, porque el camino del seguimiento ya no es el de los
+demás. El guardián de V15 que fija «el siguiente paso legal se define UNA sola
+vez» se adaptó conservando lo que comprueba.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No comprueba el calendario.** `agendada` es lo que alguien DECLARÓ, no lo que
+  la colección de citas dice. Cruzarlo con `appointments` es la rebanada
+  siguiente y queda nombrada.
+- **No cubre el no-show.** Que una cita pasada sin encuentro reabra o escale
+  exige decidir cuánto se espera y qué hacer después, y eso es del médico. Lo que
+  sí pasa ya: una tarea `agendada` cuya fecha venció cae en `vencida`, que es lo
+  que se mira primero.
+- **No cierra solo el pendiente cuando el paciente viene.** Sigue haciendo falta
+  que alguien lo marque; lo que cambia es que ahora hay un estado donde esperar
+  en vez de una tarea cerrada de más.

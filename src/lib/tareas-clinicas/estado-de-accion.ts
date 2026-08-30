@@ -90,7 +90,16 @@ export function estadoDeAccion(
   if (estaVencida(t, ahoraMs)) return 'vencida'
   if (t.tipo === 'resultado_por_revisar' || t.estado === 'completada') return 'necesita_revision'
   if (t.tipo === 'estudio_pendiente') return 'esperando_resultado'
-  if (t.tipo === 'seguimiento') return 'necesita_agendar'
+  /**
+   * UN SEGUIMIENTO YA AGENDADO NO NECESITA AGENDARSE (REG-404).
+   *
+   * Antes no había forma de distinguirlos: la tarea se cerraba al agendar, así
+   * que todo `seguimiento` vivo estaba, por definición, sin agendar. Con
+   * `agendada` como estado vivo lo que se espera ya no es una acción del
+   * consultorio sino que el paciente venga — que es exactamente
+   * `esperando_paciente`, la categoría que ya existe. No hace falta una nueva.
+   */
+  if (t.tipo === 'seguimiento') return t.estado === 'agendada' ? 'esperando_paciente' : 'necesita_agendar'
   if (t.tipo === 'receta_por_entregar') return 'esperando_paciente'
   return 'otros'
 }

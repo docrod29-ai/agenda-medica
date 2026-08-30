@@ -118,7 +118,10 @@ export async function tareasVivas(clinicId: string, tope = 200): Promise<Worklis
    */
   const q = query(
     COL(clinicId),
-    where('estado', 'in', ['solicitada', 'aceptada', 'en_curso', 'completada']),
+    /* `agendada` es VIVA (REG-404): la cita existe y el paciente no ha venido.
+       Dejarla fuera de esta consulta la haría desaparecer del worklist, que es
+       justo lo que pasaba cuando agendar equivalía a cerrar. */
+    where('estado', 'in', ['solicitada', 'aceptada', 'en_curso', 'agendada', 'completada']),
     limit(tope + 1),
   )
   const snap = await getDocs(q)

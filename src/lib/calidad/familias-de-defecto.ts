@@ -282,7 +282,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * del consultor y la pantalla del médico. Se había decidido que el dato no
      * era de fiar y se seguía entregando a quien decide con él.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401],
+    /**
+     * 404 es esta familia en la otra punta del ciclo. REG-337 cerró que el
+     * resultado EXISTIERA contara como que alguien lo había leído; aquí, que la
+     * CITA exista contaba como que el paciente vino: «Agendar el seguimiento» se
+     * cerraba al crear la cita, así que un no-show no reabría nada y nadie lo
+     * echaba en falta. El calendario estaba conectado y nadie le preguntaba.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404],
   },
   {
     clave: 'se_contradice',

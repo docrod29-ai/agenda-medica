@@ -40,6 +40,20 @@ export type EstadoTarea =
   | 'solicitada'    // existe y nadie la ha tomado
   | 'aceptada'      // alguien la hizo suya
   | 'en_curso'      // se está haciendo
+  /**
+   * AGENDADA — la cita existe y el paciente todavía no ha venido (REG-404).
+   *
+   * Es un estado VIVO, y ahí está el punto. Antes, «Agendar el seguimiento» se
+   * cerraba al crear la cita: agendar contaba como haber visto al paciente. Si
+   * después no venía, nada lo reabría y nada lo echaba en falta — el control que
+   * el médico pidió no ocurría y el sistema decía que sí, porque nadie le
+   * preguntó nunca al calendario.
+   *
+   * Con este estado el pendiente sigue vivo hasta que el encuentro pase o
+   * alguien decida que ya no aplica. Es la diferencia entre una intención y un
+   * resultado, que es de lo que trata este workstream entero.
+   */
+  | 'agendada'
   | 'completada'    // el trabajo se hizo
   | 'cerrada'       // alguien lo revisó y decidió. AQUÍ termina, no antes.
   | 'cancelada'     // ya no aplica; exige motivo
@@ -278,9 +292,19 @@ export function avisoRegistrado(t: Pick<TareaClinica, 'cierre'>): AvisoAlPacient
  * reescribir la historia.
  */
 const TRANSICIONES: Record<EstadoTarea, EstadoTarea[]> = {
-  solicitada: ['aceptada', 'en_curso', 'cancelada'],
-  aceptada:   ['en_curso', 'completada', 'cancelada'],
-  en_curso:   ['completada', 'cancelada'],
+  solicitada: ['aceptada', 'en_curso', 'agendada', 'cancelada'],
+  aceptada:   ['en_curso', 'agendada', 'completada', 'cancelada'],
+  en_curso:   ['agendada', 'completada', 'cancelada'],
+  /**
+   * De `agendada` se sale por donde manda la realidad: el paciente vino
+   * (`completada`), la cita se movió y hay que volver a agendar (`en_curso`), o
+   * el control dejó de aplicar (`cancelada`).
+   *
+   * **No se puede saltar a `cerrada`.** Cerrar es la constancia de que alguien
+   * revisó, y desde «hay una cita puesta» no hay nada que revisar todavía: ese
+   * atajo sería exactamente el que convertía agendar en haber atendido.
+   */
+  agendada:   ['completada', 'en_curso', 'cancelada'],
   completada: ['cerrada', 'en_curso'],   // reabrir si el resultado obliga a repetir
   cerrada:    [],
   cancelada:  [],

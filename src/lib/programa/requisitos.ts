@@ -443,7 +443,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-11.estados-del-cierre', ws: 'WS-11', titulo: 'Decisión, acción y aviso al paciente son etapas distintas',
     estado: 'PARTIAL',
-    queFalta: 'REG-360/361 dieron campo y formulario. Falta `scheduled` como estado propio, y el cierre sólo se puede hacer desde /pendientes.',
+    queFalta: 'REG-360/361 dieron campo y formulario; REG-404 añadió `agendada` como estado VIVO — el pendiente de seguimiento se cerraba al crear la cita, así que agendar contaba como haber visto al paciente y un no-show no reabría nada. No se puede saltar de `agendada` a `cerrada`: desde «hay una cita puesta» no hay nada que revisar. Falta: (1) cruzarlo con la colección de citas —hoy `agendada` es lo que alguien DECLARÓ, no lo que el calendario dice—; (2) qué hacer con el no-show, que necesita al médico: cuánto se espera y si escala; (3) el cierre sigue haciéndose sólo desde /pendientes.',
+    artefactos: ['src/lib/tareas-clinicas/modelo.ts'],
+    pruebas: ['src/__tests__/agendar-no-es-haber-visto-al-paciente.test.ts'],
   }),
   R({
     id: 'WS-11.laboratorio', ws: 'WS-11', titulo: 'Un resultado de laboratorio de consultorio genera tarea de revisión',
