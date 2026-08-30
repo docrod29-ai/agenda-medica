@@ -673,3 +673,73 @@ del dueño que dice lo contrario: «la nota usa el razonamiento premium —no
 escatimar—; no bajar de modelo por velocidad sin avisar». Portarlo sin que él
 diga qué puede decidir ese router y qué no sería construir contra una política
 vigente. La pregunta exacta está en `OWNER_DECISIONS_REQUIRED.md`.
+
+<!-- CENSO:INICIO — generado por scripts/product/censo-al-tablero.mjs · no editar a mano -->
+
+## Las metas del §1, escalón por escalón
+
+> **Derivado.** Sale de `src/lib/programa/requisitos.ts`; se regenera con
+> `npx tsx scripts/product/censo-al-tablero.mjs` y `el-tablero-ensena-las-metas.test.ts`
+> falla si el tablero se queda atrás.
+>
+> **Por qué está aquí.** El §1 del pliego manda conservar estos objetivos. Los
+> conservaba el censo, que es TypeScript; este tablero —el que se lee— nombraba
+> dos de los once. Un objetivo que sólo existe en un archivo de código no está
+> custodiado: está guardado.
+
+### Usuarios registrados
+
+> Usuarios registrados **no** es concurrencia activa. Van por separado a
+> propósito: mezclarlos es cómo un «aguanta 100 k» acaba significando algo que
+> nadie midió.
+
+| Escalón | Estado | Fila del censo |
+|---|---|---|
+| 2 000 | `PARTIAL` | `WS-02.registrados-2000` |
+| 10 000 | `PARTIAL` | `WS-02.registrados-10000` |
+| 15 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-15000` |
+| 20 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-20000` |
+| 30 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-30000` |
+| 50 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-50000` |
+| 100 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-100000` |
+
+### Pacientes por médico
+
+| Escalón | Estado | Fila del censo |
+|---|---|---|
+| 10 000 | `PROVEN` | `WS-03.pacientes-10000` |
+| 20 000 | `PROVEN` | `WS-03.pacientes-20000` |
+| 30 000 | `PROVEN` | `WS-03.pacientes-30000` |
+| 50 000 | `PROVEN` | `WS-03.pacientes-50000` |
+
+### Los 21 dominios que el §1 obliga a custodiar
+
+Ninguno puede quedarse sin una sola fila del censo. Seis se habían perdido
+antes de que existiera el censo —voz, aprendizaje, autoridad de la
+automatización, WhatsApp, razonamiento y accesibilidad— y por eso se vigilan.
+
+- Clinical Truth
+- Voice
+- Reasoning
+- Evidence
+- Consultorio
+- Automation
+- Learning
+- Patient Experience
+- WhatsApp
+- Mobile UX
+- Scale
+- Reliability
+- Observability
+- Security
+- Disaster Recovery
+- Evaluation
+- Patient State
+- Closed Loop
+- Evidence Applicability
+- Specialty Packages
+- Production Readiness
+
+**Filas en el censo hoy: 78.**
+
+<!-- CENSO:FIN -->

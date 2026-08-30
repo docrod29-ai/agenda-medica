@@ -709,3 +709,118 @@ export const POR_QUE_ESTE_CENSO =
   'una sola fila —voz, aprendizaje, automatización, WhatsApp, razonamiento y ' +
   'accesibilidad—, ninguno diferido ni bloqueado: ausentes. Este archivo existe para ' +
   'que la próxima ausencia ponga el CI en rojo en vez de pasar desapercibida.'
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *
+ * EL CENSO, DICHO EN PROSA — para que el tablero deje de omitir las metas.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * El §1 del pliego del dueño (`docs/ai/AUSCULTA-MASTER-COMPLETION-LOOP.md`)
+ * ordena custodiar 21 dominios y **conservar los objetivos** de escala:
+ * 15k / 20k / 30k / 50k / 100k usuarios y 10k / 20k / 30k / 50k pacientes por
+ * médico, y dice por qué: «ningún requisito puede desaparecer simplemente
+ * porque cambió el documento».
+ *
+ * Eso está cumplido — pero **sólo dentro de TypeScript**. `requisitos.ts` tiene
+ * las filas y `el-programa-no-pierde-requisitos.test.ts` las vigila. El tablero
+ * en prosa, que es el que una persona lee y del que salen las notas de PR y el
+ * `FINAL-READINESS`, mencionaba `100 k` y `50 000` **una vez cada uno**: 15k,
+ * 20k y 30k no aparecían en ninguna línea.
+ *
+ * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
+ *
+ * El 30-ago-2026, contando menciones en el tablero después de guardar por fin
+ * los dos pliegos del dueño en `docs/ai/`. La primera lectura fue **peor que el
+ * defecto**: se concluyó que el programa había perdido los requisitos. No los
+ * había perdido; los tenía donde una persona no los ve. La corrección está
+ * escrita en `docs/audit/carriles-contra-su-pliego-2026-08-30.md`, porque una
+ * acusación falsa que se borra sin decirlo vuelve a hacerse.
+ *
+ * ── LA CAUSA RAÍZ ───────────────────────────────────────────────────────────
+ *
+ * Dos representaciones del mismo programa, una legible por máquina y otra por
+ * personas, **sin nada que las ate**. La que se lee en voz alta era la
+ * incompleta. Es el patrón `depende_de_recordar`: mantener las dos al día
+ * dependía de que alguien se acordara de copiar.
+ *
+ * ── LA REGLA QUE LO HACE SEGURO ─────────────────────────────────────────────
+ *
+ * Lo derivable se deriva (REG-241). Este módulo construye el bloque de prosa a
+ * partir del censo; `scripts/product/censo-al-tablero.mjs` lo escribe en el
+ * tablero y `el-tablero-ensena-las-metas.test.ts` falla si el tablero se queda
+ * atrás. **No hay una segunda fuente de verdad**: el censo sigue siendo la
+ * única, y esto es su sombra impresa.
+ *
+ * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
+ *
+ * · No juzga si un estado es cierto. De eso responde el guardián del censo.
+ * · No cubre la prosa escrita a mano del tablero — sólo el bloque marcado.
+ *   Si alguien borra una tabla de P0 fuera de las marcas, esto no se entera.
+ * · No representa la cobertura por dominio con su estado: el censo no guarda
+ *   qué fila cubre qué dominio (ese mapa vive en el guardián). Aquí se listan
+ *   los 21 para que se vean, y quien los ata sigue siendo el guardián.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+export const MARCA_INICIO = '<!-- CENSO:INICIO — generado por scripts/product/censo-al-tablero.mjs · no editar a mano -->'
+export const MARCA_FIN = '<!-- CENSO:FIN -->'
+
+/** Separador de millares fijo, sin depender del ICU del entorno. */
+function conMillares(n: number): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+}
+
+function filaDe(id: string): { estado: string; titulo: string } {
+  const r = REQUISITOS.find(x => x.id === id)
+  return r ? { estado: r.estado, titulo: r.titulo } : { estado: 'SIN FILA', titulo: '—' }
+}
+
+export function bloqueDelCenso(): string {
+  const l: string[] = []
+  l.push(MARCA_INICIO)
+  l.push('')
+  l.push('## Las metas del §1, escalón por escalón')
+  l.push('')
+  l.push('> **Derivado.** Sale de `src/lib/programa/requisitos.ts`; se regenera con')
+  l.push('> `npx tsx scripts/product/censo-al-tablero.mjs` y `el-tablero-ensena-las-metas.test.ts`')
+  l.push('> falla si el tablero se queda atrás.')
+  l.push('>')
+  l.push('> **Por qué está aquí.** El §1 del pliego manda conservar estos objetivos. Los')
+  l.push('> conservaba el censo, que es TypeScript; este tablero —el que se lee— nombraba')
+  l.push('> dos de los once. Un objetivo que sólo existe en un archivo de código no está')
+  l.push('> custodiado: está guardado.')
+  l.push('')
+  l.push('### Usuarios registrados')
+  l.push('')
+  l.push('> Usuarios registrados **no** es concurrencia activa. Van por separado a')
+  l.push('> propósito: mezclarlos es cómo un «aguanta 100 k» acaba significando algo que')
+  l.push('> nadie midió.')
+  l.push('')
+  l.push('| Escalón | Estado | Fila del censo |')
+  l.push('|---|---|---|')
+  for (const n of USUARIOS_REGISTRADOS) {
+    const id = `WS-02.registrados-${n}`
+    l.push(`| ${conMillares(n)} | \`${filaDe(id).estado}\` | \`${id}\` |`)
+  }
+  l.push('')
+  l.push('### Pacientes por médico')
+  l.push('')
+  l.push('| Escalón | Estado | Fila del censo |')
+  l.push('|---|---|---|')
+  for (const n of PACIENTES_POR_MEDICO) {
+    const id = `WS-03.pacientes-${n}`
+    l.push(`| ${conMillares(n)} | \`${filaDe(id).estado}\` | \`${id}\` |`)
+  }
+  l.push('')
+  l.push('### Los 21 dominios que el §1 obliga a custodiar')
+  l.push('')
+  l.push('Ninguno puede quedarse sin una sola fila del censo. Seis se habían perdido')
+  l.push('antes de que existiera el censo —voz, aprendizaje, autoridad de la')
+  l.push('automatización, WhatsApp, razonamiento y accesibilidad— y por eso se vigilan.')
+  l.push('')
+  for (const d of DOMINIOS_CANONICOS) l.push(`- ${d}`)
+  l.push('')
+  l.push(`**Filas en el censo hoy: ${REQUISITOS.length}.**`)
+  l.push('')
+  l.push(MARCA_FIN)
+  return l.join('\n')
+}
