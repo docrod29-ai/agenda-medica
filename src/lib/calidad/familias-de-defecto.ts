@@ -509,7 +509,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Correcto por dentro, insoportable por fuera: avisos que interrumpen, se ' +
       'repiten o tapan la nota. Un aviso que estorba se aprende a ignorar, y ' +
       'entonces deja de proteger.',
-    regs: [178, 181, 184, 231, 233, 301, 319],
+    regs: [178, 181, 184, 231, 233, 301, 319, 390],
   },
   {
     clave: 'perdida',

@@ -42,6 +42,7 @@ import {
 import {
   claveCircuito, permiteLlamar, anotarResultado, type ClaseFalloIA,
 } from '@/lib/ia/interruptor'
+import { claveDeContrapresion, pedirSitio, soltarSitio } from '@/lib/ia/contrapresion'
 
 const ANTHROPIC_VERSION = '2023-06-01'
 
@@ -161,6 +162,36 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
     }
   }
 
+  /**
+   * ── CONTRAPRESIÓN (WS-04) ─────────────────────────────────────────────────
+   *
+   * El interruptor de arriba resuelve un proveedor CAÍDO. Éste resuelve uno
+   * LENTO: ahí cada llamada acaba contestando, el circuito nunca se abre, y
+   * mientras tanto se acumulan peticiones en vuelo ocupando cada una su función
+   * durante lo que dure. El precedente está documentado: un socket colgado
+   * inmovilizó una lambda de 300 s, y esta ruta corre en 800.
+   *
+   * **No se encola, se rechaza.** Una nota que el médico espera, metida detrás
+   * de otras cincuenta, es una espera sin fondo con el paciente enfrente: la
+   * pantalla diría «procesando» y no habría nada procesándose. Se contesta ahora
+   * y con la verdad. Ver `POR_QUE_NO_SE_ENCOLA`.
+   *
+   * Va DESPUÉS de reservar, y por eso devuelve los créditos: la reserva ya
+   * ocurrió y cobrarle una nota que ni se intentó le hace perder dos veces —
+   * exactamente el mismo razonamiento que el interruptor.
+   */
+  const claveCp = claveDeContrapresion(o.proveedor)
+  const sitio = pedirSitio(claveCp)
+  if (!sitio.pasa) {
+    void devolverCreditos(reserva)
+    const nombre = o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'
+    return {
+      ok: false, clase: 'proveedor',
+      motivo: `${nombre}: hay ${sitio.enVuelo} peticiones en curso y no puedo atender otra ahora mismo. Vuelve a intentarlo en unos segundos.`,
+    }
+  }
+
+  try {
   const lista = o.modelos.length > 0 ? o.modelos : ['']
   const t0 = Date.now()
   let ultimo: Resultado = { ok: false, clase: 'modelo', motivo: 'No se intentó ningún modelo.' }
@@ -254,6 +285,17 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
   // confianza en el contador.
   void devolverCreditos(reserva)
   return ultimo
+  } finally {
+    /**
+     * SIEMPRE, también cuando la llamada falla o lanza.
+     *
+     * Es la trampa de todo contador de este tipo: soltarlo sólo en el camino de
+     * éxito lo deja subiendo para siempre y, al cabo de un rato, la instancia
+     * rechaza todo sin que haya nada en vuelo. La contrapresión se habría
+     * convertido en una caída total, causada por la propia defensa.
+     */
+    soltarSitio(claveCp)
+  }
 }
 
 /**

@@ -52,6 +52,11 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
    * alguien deja de mirar, que es justo cómo se perdieron los seis dominios que
    * este censo existe para no volver a perder.
    */
+  /**
+   * REG-390. Hermano del censo: declara qué operación clínica puede diferirse y
+   * cuál no. Lo lee su guardián, que es donde la política se puede hacer cumplir.
+   */
+  'src/lib/ops/lo-sincrono-y-lo-encolado.ts': 'ES la política de qué se encola y qué no: su consumidor es el guardián que la comprueba, y ése vive en el CI. Una pantalla que la pintara no la haría cumplir.',
   'src/lib/programa/requisitos.ts': 'ES el censo del programa: su consumidor es el guardián que lo sella, y ése vive en el CI por definición. Una pantalla que lo pintara sería una pantalla que alguien deja de mirar.',
   'src/lib/guardia/campos-conectados.ts': 'Guardián hermano de éste: vigila CAMPOS de contrato que nadie lee, no archivos. Vive en el CI por definición — una pantalla que lo muestre sería una pantalla que alguien apaga.',
   /**

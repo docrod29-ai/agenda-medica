@@ -29,8 +29,28 @@ const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',
   'src/lib/compliance/country-profiles.ts': 'lo importa compliance/policy.ts, que ya está declarado huérfano',
   'src/lib/uci/benchmark-metricas.ts': 'lo importa uci/benchmark.ts, que ya está declarado huérfano',
-  'src/lib/clinical-truth/index.ts': 'DOCUMENTATION ENGINE: núcleo Clinical Truth probado antes de conectarlo al renderer/flujo; debe salir de esta lista al integrar el slice.',
+  /**
+   * `clinical-truth/index.ts` SALIÓ de esta lista, y ésa era su instrucción: su
+   * propia entrada decía «debe salir al integrar el slice». Ya se integró — el
+   * grafo lo alcanza desde la app— así que dejarlo aquí declararía isla algo que
+   * ya está en el camino, y el conteo de este trinquete dejaría de significar lo
+   * que dice.
+   */
   'src/lib/voice-engine/index.ts': 'VOICE ENGINE: contrato provider-neutral probado antes de conectar captura/proveedor/UI; debe salir de esta lista al integrar el slice.',
+  /**
+   * REG-390. No es código que corra en el camino del médico: es la POLÍTICA de
+   * qué operación puede diferirse y cuál no, escrita para que su guardián la
+   * vigile. Su consumidor es ese guardián, y vive en el CI por definición —
+   * exactamente como el censo del programa (REG-382).
+   */
+  'src/lib/ops/lo-sincrono-y-lo-encolado.ts': 'POLÍTICA de desacoplamiento: la consume su guardián en el CI, no una pantalla. Pintarla no la conectaría a nada.',
+  /**
+   * REG-382. El censo del programa: su lector es el guardián que lo sella. Igual
+   * que la política de arriba, vive en el CI por definición — y por la misma
+   * razón, que es la que lo hizo existir: lo que sólo se mira en una pantalla se
+   * deja de mirar.
+   */
+  'src/lib/programa/requisitos.ts': 'CENSO del programa: lo consume el guardián que lo sella, en el CI. Una pantalla que lo pintara sería una pantalla que alguien deja de mirar.',
 }
 
 describe('el camino del médico llega entero', () => {

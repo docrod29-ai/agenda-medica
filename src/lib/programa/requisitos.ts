@@ -243,9 +243,13 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     queFalta: 'Ninguno de los dos pasa por el gateway, así que no tienen interruptor. Tienen timeout y el outbox tiene backoff.',
   }),
   R({
-    id: 'WS-04.colas', ws: 'WS-04', titulo: 'Colas, contrapresión y dead-letter para llamadas de IA',
-    estado: 'NOT_STARTED',
-    queFalta: 'No existe ninguna cola, ni contrapresión, ni dead-letter. `procesar` corre en 800 s y el precedente de un socket colgado inmovilizando una lambda está documentado.',
+    id: 'WS-04.colas', ws: 'WS-04', titulo: 'Colas, contrapresión y dead-letter donde corresponde',
+    estado: 'PROVEN',
+    evidencia: 'REG-390. CORRECCIÓN: «ninguna cola» era falso — existen dos y están bien hechas (outbox de WhatsApp con dead-letter, cola de bitácora acotada y por uid). Lo que faltaba era CONTRAPRESIÓN, y la llamada de IA se RECHAZA bajo saturación en vez de encolarse, porque una operación clínica no puede parecer completada si sólo quedó encolada.',
+    comando: 'npx vitest run src/__tests__/lo-encolado-no-es-lo-hecho.test.ts',
+    resultado: '16 casos verdes, con el defecto clásico del contador reproducido al revés: sin soltar el sitio, la instancia rechaza todo sin nada en vuelo.',
+    artefactos: ['src/lib/ia/contrapresion.ts', 'src/lib/ops/lo-sincrono-y-lo-encolado.ts'],
+    pruebas: ['src/__tests__/lo-encolado-no-es-lo-hecho.test.ts'],
   }),
   R({
     id: 'WS-04.idempotencia', ws: 'WS-04', titulo: 'Ninguna operación clínica no idempotente se reintenta a ciegas',

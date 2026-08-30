@@ -89,7 +89,7 @@
     },
     {
       "id": "WS-04.colas",
-      "estado": "NOT_STARTED"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-04.idempotencia",

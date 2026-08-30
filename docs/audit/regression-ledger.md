@@ -13051,3 +13051,81 @@ que las dos listas no se separen en silencio.
   `Source`, y eso lo impide el modelo de tipos, no este guardián.
 - **No verifica la matriz de las nuevas.** Está sin verificar a propósito.
 - **No dice si una fuente vale la pena.** Dice que el catálogo no puede callársela.
+
+---
+
+## REG-390 — faltaba contrapresión, no colas; y encolar la nota habría sido el defecto
+
+**LA PREGUNTA ANTES DE CONSTRUIR NADA.** «Colas y contrapresión» es un requisito
+del programa, y la forma barata de cumplirlo sería meter una cola en el camino
+clínico. Sería un error caro: la nota es lo que el médico está esperando con el
+paciente enfrente. Así que primero se midió qué hay y qué puede desacoplarse.
+
+**LA CORRECCIÓN: «NINGUNA COLA» ERA FALSO, EN DOS TERCIOS.** El censo decía
+«ninguna cola, contrapresión ni dead-letter». Existen **dos colas**, y están bien
+hechas:
+
+- `whatsapp/outbox.ts` — reintento con retroceso y **dead-letter**, drenado por el
+  cron de recordatorios. Nadie espera un mensaje proactivo delante de una
+  pantalla, así que diferirlo es correcto y perderlo no lo sería.
+- `expediente/audit-log.ts` — cola durable, **acotada** a 50 asientos, con tope de
+  reintentos, **por uid** (un asiento de otro no se manda con el nombre
+  equivocado), drenada antes de cerrar sesión y **contada en pantalla**.
+
+**LO QUE SÍ FALTABA: CONTRAPRESIÓN.** Es un problema distinto del interruptor. El
+interruptor (REG-353) cubre un proveedor **caído**: falla rápido en vez de que la
+llamada 60 espere lo mismo que las 59 anteriores. No cubre uno **lento** — ahí
+cada llamada acaba contestando, el circuito nunca se abre, y se acumulan
+peticiones en vuelo ocupando cada una su función. El precedente está documentado
+en este repositorio: un socket colgado inmovilizó una lambda de 300 s, y la ruta
+de la nota corre en **800**.
+
+**LA DECISIÓN: SE RECHAZA, NO SE ENCOLA.** Bajo saturación la llamada de IA se
+contesta **ahora y con la verdad** —«hay N peticiones en curso, vuelve a
+intentarlo»— y el médico decide si reintenta o escribe a mano.
+
+Encolarla habría construido exactamente lo que la regla del programa prohíbe:
+*una operación clínica nunca puede aparecer como completada si sólo quedó
+encolada*. Una nota metida detrás de otras cincuenta es una espera sin fondo con
+el paciente enfrente — la pantalla diría «procesando» y no habría nada
+procesándose.
+
+**LA POLÍTICA, ESCRITA PARA PODER VIGILARLA.**
+`src/lib/ops/lo-sincrono-y-lo-encolado.ts` clasifica cada operación con su razón:
+
+| Modo | Qué va aquí |
+|---|---|
+| `sincrona` | Guardar la nota · firmar · receta · orden · confirmación de avisos · reserva de créditos |
+| `encolada_durable` | Aviso proactivo de WhatsApp · asiento de la bitácora NOM-004 |
+| `mejor_esfuerzo_declarado` | Llamada de IA (se rechaza, no se encola) · asiento del libro de costos |
+
+La firma está entre las síncronas por una razón que no es de ingeniería: es un
+acto medicolegal **irreversible**, y encolarla dejaría al médico creyendo que
+firmó algo que todavía no existe. Una firma no se repite «por si acaso».
+
+**EL DEFECTO CLÁSICO DE UN CONTADOR ASÍ, REPRODUCIDO.** Soltar el sitio sólo en
+el camino de éxito: el contador sube para siempre y al cabo de un rato la
+instancia rechaza **todo** sin que haya nada en vuelo — **la defensa convertida en
+la caída total**. Tiene su caso al revés, y el gateway suelta en `finally`, lo que
+tiene el suyo.
+
+Otros dos que parecen detalles y no lo son: **rechazar no ocupa sitio** (un
+contador que sumara al rechazar convertiría un pico en una caída permanente), y
+**la clave es por proveedor** (si fuera global, que Anthropic vaya lento apagaría
+OpenAI).
+
+**LA PRUEBA.** `src/__tests__/lo-encolado-no-es-lo-hecho.test.ts` (16 casos).
+Comprueba además que las dos colas existentes **siguen teniendo lo que las hace
+colas** —dead-letter, retroceso, tope, límite de reintentos—: si alguien se los
+quitara, esta clasificación estaría mintiendo.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **El tope es por instancia**, como el interruptor. Con N instancias calientes el
+  tope efectivo es N×TOPE. Hacerlo global costaría una lectura compartida en el
+  camino de una nota, que es donde no se puede pagar.
+- **Que ocho en vuelo sea el número correcto** para un consultorio es una
+  hipótesis de operación, no un hallazgo. No es una cifra clínica y se declara de
+  dónde sale.
+- **No cubre WhatsApp ni Evidence con interruptor**: siguen sin pasar por esa
+  puerta (WS-04.interruptor-otros).
