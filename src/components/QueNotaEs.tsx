@@ -57,10 +57,11 @@ export function QueNotaEs(p: QueNotaEsProps) {
       onClick={() => setAbierto(v => !v)}
       aria-expanded={abierto}
       aria-label={`Tipo de nota: ${p.etiquetaDe(p.tipo)}. Especialidad: ${p.especialidad || 'General'}. Tocar para cambiar.`}
+      className="nx-acc-texto"
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
         background: 'transparent', border: 'none', cursor: 'pointer',
-        color: 'var(--text2)', fontSize: 13.5, padding: '8px 0',
+        fontSize: 13.5, padding: '8px 0',
         /* 44 px de alto real: es el mínimo para el pulgar en un teléfono. */
         minHeight: 44, textAlign: 'left',
       }}

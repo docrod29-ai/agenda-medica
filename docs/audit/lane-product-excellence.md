@@ -3632,3 +3632,115 @@ necesita una IP que no conteste nunca y aquí el proxy contesta al momento.
 - No vigila el apagado desde JavaScript (`el.style.outline = 'none'`).
 - **`/operaciones` queda en 21 de 22.** El control restante no es una fila del
   grupo; no se toca lo que no se ha mirado.
+
+---
+
+## Unidad 63 — dieciséis botones en el centro de mando clínico, ninguno acusaba el puntero
+
+**LO QUE PEDÍA EL ENCARGO.** «Consulta como clinical command center», «motion y
+microinteracciones con propósito», «feedback perceptual», y cerrar cualquier
+pantalla que siga sintiéndose estática. Con una prohibición explícita: nada de
+degradados gratuitos, sombras por todas partes, más radio, animaciones
+decorativas ni glassmorphism.
+
+**LO QUE SALIÓ AL MEDIRLO.** En `/consulta/pac-001`, **16 de 16 botones no
+respondían al puntero**. Ninguno. Ni «Grabar la consulta», que es la acción
+primera del producto, ni «Firmar y cerrar nota», que es la última. Tampoco las
+cinco herramientas clínicas, ni «Agregar diagnóstico», ni «Agregar medicamento»,
+ni las tres acciones de apoyo del cierre. Un botón que no acusa el puntero se lee
+como texto.
+
+**CAUSA RAÍZ: LA MISMA DE LA UNIDAD ANTERIOR.** El fondo de cada botón vivía en
+su `style={{ }}`, y **el estilo en línea le gana por especificidad a cualquier
+`:hover` de la hoja**. Por eso no bastaba con escribir un `:hover`: había que
+mudar el fondo. La lección ya estaba escrita en el propio repositorio, en el
+comentario de `.btn` —«la apariencia vive en la HOJA, no en el JSX»— y esta
+pantalla no la había adoptado.
+
+**Y ME MORDIÓ UNA TERCERA VEZ, DENTRO DEL PROPIO ARREGLO.** Los controles de
+texto suelto («Buscar», «limpiar», el tipo de nota) tienen 2px de relleno, así
+que su acuse honesto es el color y no un fondo. Escribí `.nx-acc-texto:hover {
+color: var(--text) }`… y siguieron mudos: el `color` **también** estaba en
+línea. Tres veces el mismo defecto en una sesión — 33 campos sin anillo de foco,
+las filas de `/operaciones`, y ahora esto.
+
+**QUÉ SE AÑADIÓ, Y QUÉ NO.** Cuatro papeles en la hoja, con **los mismos pasos
+que ya usan `.btn-*`**: una superficie hacia arriba al pasar, otra al pulsar.
+
+| Papel | Para qué | Acuse |
+|---|---|---|
+| `.nx-acc-plana` | acción de apoyo sin caja | fondo → `--s2` |
+| `.nx-acc-riesgo` | acción que destruye trabajo | fondo teñido de `--red` |
+| `.nx-acc-caja` | acción con caja propia | `--s2` → `--s3` |
+| `.nx-acc-fuerte` | la acción que manda | `--nexus-solido` → `--nexus-hover` |
+| `.nx-acc-texto` | control de texto suelto | el texto sube de tono |
+
+Sin un color nuevo, sin un degradado, sin una sombra, sin un radio nuevo. Los
+tokens son los que ya existían. El trinquete de diseño no se movió.
+
+Dos detalles que valen la pena: un `<button disabled>` **sigue sin responder**, a
+propósito —decir «aquí puedes pulsar» cuando no se puede es peor que callarse—, y
+la fila de herramienta abierta **se queda** con la superficie puesta, para que se
+vea cuál está abierta sin leer la flecha.
+
+**MEDIDO DESPUÉS: 16 de 16 acusan** (14 activos cambian de fondo o de color; 2
+están apagados y callan, que es lo correcto). **0 controles mudos** en la
+consulta.
+
+**UN GUARDIÁN DE OTRO CARRIL ME PARÓ, Y TENÍA RAZÓN A MEDIAS.**
+`v15-firmar-domina-al-cerrar` cayó por dos casos. Los dos comprobaban **la
+letra** y no **el invariante**: uno exigía la cadena literal `background: 'none'`
+dentro del objeto de estilo, y otro la etiqueta `<button>` entera palabra por
+palabra. Lo que ese guardián protege —que Firmar domine y que Guardar/Descartar
+no tengan caja, con su lógica clínica congelada— **sigue siendo cierto**: el
+fondo transparente ahora lo pone la clase. Así que se actualizó para mirar el
+invariante en los dos sitios donde puede romperse, no la cadena. No es de los
+cuatro cruces con Master Completion: comprobado antes de tocarlo.
+
+**Y AL REESCRIBIRLO, DOS VECES NO PODÍA FALLAR.** Primero comprobé los tres
+trozos por separado: `disabled={guardando}` lo llevan también «Leer resumen» y
+«Descartar», así que quitárselo a «Guardar borrador» **seguía pasando**. Luego los
+metí en una expresión regular con `[^>]*` y falló **siempre**, con defecto y sin
+él: el manejador es una función flecha y el `>` de `=>` corta cualquier clase
+negada que excluya `>`. La tercera versión recorta la etiqueta contando llaves.
+Las dos las cazó probar al revés.
+
+**LO QUE VIGILA ESTO A PARTIR DE HOY.** `npm run arnes:acuse-puntero` —
+trinquete de estaticidad. Pasa el puntero por cada control **habilitado** de cada
+ruta y cuenta los que no cambian ni de fondo ni de color. **Sólo puede bajar**, y
+avisa también cuando el producto está MEJOR que su techo, para que una mejora no
+se pierda sin que nadie se entere. Techos en
+`docs/audit/carril-excelencia/techos-de-estaticidad.json`.
+
+Con eso, «se siente estático» deja de ser una opinión y pasa a ser un número por
+pantalla. La primera medición, que es el punto de partida:
+
+| Ruta | Mudos | Ruta | Mudos |
+|---|---:|---|---:|
+| `/consulta/pac-001` | **0** | `/guia` | 23 |
+| `/lista-espera` | 0 | `/finanzas` | 19 |
+| `/pendientes` | 0 | `/dashboard` | 16 |
+| `/resenas` | 0 | `/expediente/pac-001` | 11 |
+| `/membresias` | 0 | `/calendario` | 11 |
+| `/farmacia` | 0 | `/consultor` | 4 |
+| `/corte-caja` | 0 | `/pacientes` · `/reactivacion` · `/asistente` · `/cumplimiento/retencion` | 3 |
+| `/citas` · `/operaciones` · `/configuracion` · `/cumplimiento` | 1 | `/crm` | 2 |
+
+**COMPUERTAS.** `vitest` 10 831/10 832 · lint 95 · diseño sin deuda nueva ·
+`tsc` limpio · `build` compila · **CROSS_LANE_CONFLICT sigue en 5, sin deuda
+nueva** pese a tocar cinco archivos más. El rojo es `ops-timeout-y-punto-ciego`,
+ambiental.
+
+**RESIDUAL_RISK.**
+
+- **El trinquete mide que algo cambie, no que el cambio sea el correcto.** Un
+  botón que se pusiera fucsia al pasar contaría como vivo. Para eso están el
+  trinquete de diseño y mirar la pantalla, que es lo que se hizo aquí.
+- **No mide el teléfono.** Sin puntero no hay `:hover`; en móvil el acuse es el
+  `:active`, y eso queda **NOT_PROVEN**.
+- No mide el pulsado en escritorio ni lo que vive dentro de un diálogo cerrado.
+- **Quedan 102 controles mudos** en el resto del producto, con techo escrito y
+  nombre propio. `/guia` (23), `/finanzas` (19) y `/dashboard` (16) son los
+  siguientes.
+- `S.chip` y `S.del` **no se tocaron**: no salieron en la medición de esta
+  pantalla, y no se toca lo que no se ha medido roto.

@@ -4242,7 +4242,7 @@ export default function ConsultaActivaPage() {
 
   return (
     <div className="nx-canvas">
-      <button onClick={volverAtras} style={S.back}>
+      <button onClick={volverAtras} className="nx-acc-plana" style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
 
@@ -4667,9 +4667,9 @@ export default function ConsultaActivaPage() {
               </div>
               {/* Respaldo manual: normalmente NO hace falta (se procesa solo al detener). */}
               {procesando
-                ? <span style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</span>
+                ? <span className="nx-acc-fuerte" data-inerte style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</span>
                 : (!voz.grabando && voz.transcripcion.trim()
-                    ? <button onClick={() => procesarIA()} style={S.iaBtn(false)}><Sparkles size={16} /> Procesar de nuevo</button>
+                    ? <button onClick={() => procesarIA()} className="nx-acc-fuerte" style={S.iaBtn(false)}><Sparkles size={16} /> Procesar de nuevo</button>
                     : null)}
             </div>
           )}
@@ -5040,7 +5040,7 @@ export default function ConsultaActivaPage() {
                   </div>
                 )}
               </div>
-              <button onClick={() => procesarIA()} disabled={procesando || tareaProc?.ejecutando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || tareaProc?.ejecutando || !voz.transcripcion.trim())}>
+              <button onClick={() => procesarIA()} disabled={procesando || tareaProc?.ejecutando || !voz.transcripcion.trim()} className="nx-acc-fuerte" style={S.iaBtn(procesando || tareaProc?.ejecutando || !voz.transcripcion.trim())}>
                 {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
@@ -5992,7 +5992,7 @@ export default function ConsultaActivaPage() {
           </div>
         ))}
         {!firmada && (
-          <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo' }])} style={S.addBtn}>
+          <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar diagnóstico
           </button>
         )}
@@ -6066,7 +6066,7 @@ export default function ConsultaActivaPage() {
           </div>
         ))}
         {!firmada && (
-          <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '' }])} style={S.addBtn}>
+          <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar medicamento
           </button>
         )}
@@ -6257,11 +6257,11 @@ export default function ConsultaActivaPage() {
                   style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
                 />
                 {snapshotUndo && (
-                  <button onClick={deshacerCorreccion} title="Deshacer el último cambio" style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+                  <button onClick={deshacerCorreccion} title="Deshacer el último cambio" className="nx-acc-caja" style={{ border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
                     ↩ Deshacer
                   </button>
                 )}
-                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} className="nx-acc-fuerte" style={{ color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
                 </button>
               </div>
@@ -6385,6 +6385,7 @@ export default function ConsultaActivaPage() {
                 onClick={firmar}
                 disabled={bloqueosDeFirma.length > 0 || guardando}
                 title={motivoNoFirma || 'Firmar y cerrar la nota'}
+                className="nx-acc-fuerte"
                 style={S.firmar(bloqueosDeFirma.length > 0 || guardando)}
               >
                 <FileSignature size={17} /> Firmar y cerrar nota
@@ -6405,15 +6406,15 @@ export default function ConsultaActivaPage() {
               )}
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
+              <button onClick={() => guardarBorrador()} disabled={guardando} className="nx-acc-plana" style={S.guardar}>
                 {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
               </button>
               <span aria-hidden="true" style={{ color: 'var(--border)', fontSize: 12 }}>·</span>
-              <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
+              <button onClick={leerResumen} disabled={guardando} className="nx-acc-plana" style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
                 <Volume2 size={14} /> Leer resumen
               </button>
               <span aria-hidden="true" style={{ color: 'var(--border)', fontSize: 12 }}>·</span>
-              <button onClick={descartar} disabled={guardando} style={S.descartar}>
+              <button onClick={descartar} disabled={guardando} className="nx-acc-riesgo" style={S.descartar}>
                 <Trash2 size={14} /> Descartar
               </button>
               <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto' }}>Completitud: {validacion.puntajeCompletitud}%</span>

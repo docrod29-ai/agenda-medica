@@ -65,12 +65,37 @@ describe('V15 — Firmar y cerrar nota domina visualmente sobre las acciones de 
   })
 
   it('S.guardar y S.descartar perdieron su caja: sin border, sin fondo', () => {
+    /**
+     * EL FONDO SE MUDÓ A LA HOJA, Y ESTE CASO TUVO QUE APRENDER A MIRAR ALLÍ.
+     *
+     * Hasta hoy comprobaba la cadena literal `background: 'none'` dentro del
+     * objeto de estilo. Dejó de estar ahí porque los botones del cierre no
+     * acusaban el puntero: **16 de 16 controles de la consulta estaban mudos**,
+     * y un fondo escrito en línea le gana por especificidad a cualquier
+     * `:hover` de la hoja, así que no había forma de darles acuse sin moverlo.
+     *
+     * Lo que este caso protege NO es dónde está escrito el fondo: es que
+     * Guardar y Descartar **no tengan caja** frente a Firmar. Eso sigue siendo
+     * cierto —su fondo en reposo es transparente— y ahora se comprueba en los
+     * dos sitios donde puede romperse: que el objeto no meta un relleno, y que
+     * la clase que ahora lo viste nazca transparente.
+     */
     const guardar = CONSULTA_UI.match(/guardar:\s*\{[^}]*\}/)?.[0] ?? ''
     const descartar = CONSULTA_UI.match(/descartar:\s*\{[^}]*\}/)?.[0] ?? ''
     expect(guardar).toContain("border: 'none'")
-    expect(guardar).toContain("background: 'none'")
     expect(descartar).toContain("border: 'none'")
-    expect(descartar).toContain("background: 'none'")
+    // Ni uno ni otro puede reintroducir un relleno en línea.
+    for (const [nombre, bloque] of [['guardar', guardar], ['descartar', descartar]] as const) {
+      const fondo = bloque.match(/background:\s*'([^']*)'/)?.[1]
+      expect(
+        fondo === undefined || fondo === 'none' || fondo === 'transparent',
+        `S.${nombre} volvió a tener caja: background: '${fondo}'`,
+      ).toBe(true)
+    }
+    // Y la piel que ahora los viste nace sin fondo.
+    const CSS = leer('src/app/globals.css')
+    expect(CSS).toContain('.nx-acc-plana { background: transparent; }')
+    expect(CSS).toContain('.nx-acc-riesgo { background: transparent; }')
   })
 
   it('S.guardar/S.descartar bajaron de tamaño de letra frente a S.firmar (≤12 vs ≥16)', () => {
@@ -108,9 +133,57 @@ describe('V15 — la lógica de firma/guardado queda exactamente igual (freeze f
   })
 
   it('Guardar borrador, Leer resumen y Descartar conservan su onClick/disabled/title de siempre', () => {
-    expect(PAGE).toContain('<button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>')
+    /**
+     * Se congela LA LÓGICA, no el orden de los atributos. La versión anterior
+     * comparaba la etiqueta entera palabra por palabra y por eso cayó al
+     * añadirse un `className` —un cambio que no toca ni el `onClick` ni el
+     * `disabled` ni el `style`, que es lo único que este caso certifica—.
+     * Un guardián que falla por donde se escribe un atributo enseña a
+     * ignorarlo.
+     */
+    /**
+     * Los tres trozos tienen que estar en LA MISMA etiqueta. Dos intentos
+     * fallidos antes de éste, los dos cazados por probar al revés:
+     *
+     *  1. Buscarlos por separado **no podía fallar**: `disabled={guardando}` lo
+     *     llevan también «Leer resumen» y «Descartar», así que quitárselo a
+     *     Guardar borrador seguía pasando.
+     *  2. Meterlos en una expresión regular con `[^>]*` fallaba SIEMPRE, con
+     *     defecto y sin él: el manejador lleva una función flecha, y el `>` de
+     *     `=>` corta cualquier clase negada que excluya `>`.
+     *
+     * Así que la etiqueta se recorta contando llaves: se acaba en el primer
+     * `>` que está a profundidad cero.
+     */
+    const etiquetas = (fuente: string): string[] => {
+      const out: string[] = []
+      let i = fuente.indexOf('<button')
+      while (i >= 0) {
+        let prof = 0
+        let j = i + 7
+        for (; j < fuente.length; j++) {
+          const c = fuente[j]
+          if (c === '{') prof++
+          else if (c === '}') prof--
+          else if (c === '>' && prof === 0) break
+        }
+        out.push(fuente.slice(i, j + 1))
+        i = fuente.indexOf('<button', j)
+      }
+      return out
+    }
+    const TAGS = etiquetas(PAGE)
+    expect(TAGS.length, 'no se encontró ningún <button>: ¿sigue mirando la pantalla?').toBeGreaterThan(20)
+    const hayBotonCon = (trozos: string[]) => TAGS.some(t => trozos.every(x => t.includes(x)))
+    expect(
+      hayBotonCon(['onClick={() => guardarBorrador()}', 'disabled={guardando}', 'style={S.guardar}']),
+      'Guardar borrador cambió su onClick/disabled/style',
+    ).toBe(true)
     expect(PAGE).toContain('title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar"')
-    expect(PAGE).toContain('<button onClick={descartar} disabled={guardando} style={S.descartar}>')
+    expect(
+      hayBotonCon(['onClick={descartar}', 'disabled={guardando}', 'style={S.descartar}']),
+      'Descartar cambió su onClick/disabled/style',
+    ).toBe(true)
   })
 
   it('Completitud sigue leyendo el mismo puntaje, no un cálculo nuevo', () => {

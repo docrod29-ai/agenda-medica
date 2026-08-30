@@ -89,13 +89,15 @@ export function Herramientas({ items, ocultas = [] }: {
             />
           ) : (
             <button type="button" onClick={() => setBuscando(true)} title="Buscar entre todas las herramientas"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 11.5, padding: 2 }}>
+              className="nx-acc-texto nx-acc-texto--tenue"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, padding: 2 }}>
               <Search size={13} /> Buscar
             </button>
           )}
           {q.trim() && (
             <button type="button" onClick={() => { setQ(''); setBuscando(false) }}
-              style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 11.5 }}>
+              className="nx-acc-texto nx-acc-texto--tenue"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5 }}>
               limpiar
             </button>
           )}
@@ -120,9 +122,11 @@ export function Herramientas({ items, ocultas = [] }: {
               type="button"
               onClick={() => { tocadoPorElUsuario.current = true; setAbierta(a => (a === h.id ? null : h.id)) }}
               aria-expanded={abierto}
+              className="nx-acc-plana"
+              data-abierto={abierto || undefined}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 9,
-                padding: '10px 13px', background: abierto ? 'var(--s2)' : 'none',
+                padding: '10px 13px',
                 border: 'none', cursor: 'pointer', textAlign: 'left',
               }}
             >

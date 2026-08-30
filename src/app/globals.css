@@ -3655,3 +3655,80 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-op-fila:active:not(:disabled) { background: var(--s3); }
 /* El icono acompaña: pasa de metadato a contenido mientras la fila está viva. */
 .nx-op-fila:hover:not(:disabled) .nx-op-icono { color: var(--text2); }
+
+/* ── LAS ACCIONES DE LA CONSULTA ACUSAN EL PUNTERO ─────────────────────────
+
+   MEDIDO: en `/consulta/pac-001` —el sitio donde el médico escribe la nota—
+   **16 de 16 botones no respondían al puntero**. Ninguno. Ni «Grabar la
+   consulta», que es la acción primera del producto, ni «Firmar y cerrar nota»,
+   que es la última. Un botón que no acusa el puntero se lee como texto.
+
+   POR QUÉ NO BASTABA CON PONERLES `.btn`. La geometría no coincide: `.btn` mide
+   36px de alto y tiene su relleno y su radio, y estas acciones van desde una
+   tarjeta de herramienta hasta un botón de firma de 15×28. Adoptarla movería la
+   pantalla entera.
+
+   POR QUÉ NO BASTABA CON AÑADIR UN `:hover`. El fondo estaba en el `style={{ }}`
+   de cada botón, y el estilo en línea le GANA por especificidad al selector.
+   Es el mismo defecto que dejó sin anillo de foco a 33 campos, y el mismo que
+   hizo que las filas de `/operaciones` tuvieran transición y no cambiaran de
+   color. Por eso el fondo se muda AQUÍ: es la lección que ya está escrita en
+   `.btn` —«la apariencia vive en la HOJA, no en el JSX»— aplicada a la pantalla
+   que faltaba.
+
+   Los pasos son los MISMOS que los de `.btn-*`: una superficie hacia arriba al
+   pasar, otra al pulsar. Sin degradado, sin sombra, sin radio nuevo. */
+.nx-acc-plana,
+.nx-acc-riesgo,
+.nx-acc-caja,
+.nx-acc-fuerte {
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+
+/* Acción de apoyo: sin caja hasta que se la señala. Como `.btn-ghost`. */
+.nx-acc-plana { background: transparent; }
+.nx-acc-plana:hover:not(:disabled) { background: var(--s2); color: var(--text); }
+.nx-acc-plana:active:not(:disabled) { background: var(--s3); }
+
+/* Acción de apoyo que destruye trabajo: el acuse va teñido, como `.btn-danger`. */
+.nx-acc-riesgo { background: transparent; }
+.nx-acc-riesgo:hover:not(:disabled) { background: color-mix(in srgb, var(--red) 10%, transparent); }
+.nx-acc-riesgo:active:not(:disabled) { background: color-mix(in srgb, var(--red) 16%, transparent); }
+
+/* Acción con caja propia: sube un peldaño de superficie. Como `.btn-secondary`. */
+.nx-acc-caja { background: var(--s2); }
+.nx-acc-caja:hover:not(:disabled) { background: var(--s3); border-color: var(--border2); }
+.nx-acc-caja:active:not(:disabled) { background: var(--s3); }
+
+/* La acción que manda. Como `.btn-primary`.
+   `[data-inerte]` es para el ÚNICO sitio donde esta piel la lleva un `<span>` y
+   no un `<button>`: el rótulo «Estructurando la nota…» mientras la IA trabaja.
+   Un `<span>` no puede estar `:disabled`, y sin esto se pintaría encendido. */
+.nx-acc-fuerte { background: var(--nexus-solido); }
+.nx-acc-fuerte:hover:not(:disabled):not([data-inerte]) { background: var(--nexus-hover); }
+.nx-acc-fuerte:active:not(:disabled):not([data-inerte]) { background: var(--nexus-hover); opacity: 0.92; }
+.nx-acc-fuerte:disabled,
+.nx-acc-fuerte[data-inerte] { background: var(--s3); }
+
+/* Fila que despliega un panel: abierta se QUEDA con la superficie puesta, para
+   que se vea cuál está abierta sin tener que leer el signo de la flecha. */
+.nx-acc-plana[data-abierto] { background: var(--s2); }
+.nx-acc-plana[data-abierto]:hover:not(:disabled) { background: var(--s3); }
+
+/* Control de texto suelto —«Buscar», «limpiar», el tipo de nota—: 2px de
+   relleno, así que un fondo al pasar saldría apretado contra las letras. Aquí
+   el acuse es el propio texto, que sube de tono. */
+/* El color base vive AQUÍ, y no es un capricho: la primera versión lo dejó en
+   el `style={{ }}` y el `:hover` no podía ganarle. Tercera vez en esta misma
+   unidad que el estilo en línea se come la regla — la primera fueron 33 campos
+   sin anillo de foco, la segunda las filas de `/operaciones`. */
+.nx-acc-texto {
+  color: var(--text2);
+  transition: color var(--mov-rapido) var(--mov-curva);
+}
+.nx-acc-texto--tenue { color: var(--text3); }
+.nx-acc-texto:hover:not(:disabled) { color: var(--text); }
+
