@@ -492,7 +492,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * comprobada. Faltaba el instrumento que distinga «la actual» de «una
      * superada», y lo único honesto que puede decir hoy es que no lo sabe.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402],
+    /**
+     * 406 es esta familia escrita ANTES de que el defecto exista: nada persiste
+     * una proyección todavía, y REG-405 acababa de quitar el único obstáculo
+     * práctico para hacerlo. El instrumento se pone mientras la propiedad se
+     * cumple, no después del primer `setDoc`.
+     *
+     * Y trae su propia lección al revés: el primer intento fue un módulo de
+     * `lib/` con la lógica del caché escrita de antemano, y TRES guardianes del
+     * repositorio lo rechazaron por «escrito y sin conectar». Tenían razón —
+     * escribir la defensa del problema que todavía no existe se parece mucho a
+     * escribir el umbral que nadie ha decidido.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406],
   },
   {
     clave: 'hueco_como_dato',

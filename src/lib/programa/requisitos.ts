@@ -386,7 +386,8 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-10.proyeccion-no-es-segunda-verdad', ws: 'WS-10', titulo: 'Patient State es proyección sobre Clinical Truth, no una segunda fuente',
     estado: 'PARTIAL',
-    queFalta: 'Las proyecciones se recalculan en el navegador y ninguna se persiste; sólo la de alergias lleva asOf y version. Persistirlas sin decidir la autoridad crearía la segunda verdad que esto evita.',
+    queFalta: 'REG-405 dio asOf/version/historialRecortado a las TRES (antes sólo alergias), y REG-406 puso el guardián que impide que empiecen a persistirse en silencio — que era el riesgo real, porque el sobre era justamente la precondición para poder guardarlas. Las tres condiciones para persistir con seguridad quedan escritas en el guardián: la proyección nunca es autoridad, trae asOf y version, y una anterior a la última nota firmada NO SE USA. Sigue PARTIAL porque las proyecciones se recalculan en el navegador y ninguna se persiste: cerrar esto es implementar el caché CUMPLIENDO las tres, no sólo prometerlo. De paso quedó anotado que escribir la lógica de ese caché por adelantado fue rechazado por tres guardianes del propio repositorio, con razón.',
+    pruebas: ['src/__tests__/la-proyeccion-no-le-gana-a-la-nota.test.ts'],
   }),
   R({
     id: 'WS-10.problemas-medicacion-alergias', ws: 'WS-10', titulo: 'Problemas activos, medicación activa y alergias, longitudinales',

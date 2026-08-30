@@ -14236,3 +14236,80 @@ los use— no cambió; cambió por qué puerta entran, y se adaptó diciéndolo.
   en la puerta.
 - **No persiste nada**, por lo de arriba.
 - **No cambia la regla de vigencia** de ninguna de las dos listas.
+
+---
+
+## REG-406 — el guardián que impide que una proyección se vuelva la verdad
+
+**QUÉ SE PEDÍA.** `WS-10.proyeccion-no-es-segunda-verdad`: «Patient State es
+proyección sobre Clinical Truth, no una segunda fuente». El censo decía: «las
+proyecciones se recalculan en el navegador y ninguna se persiste […] persistirlas
+sin decidir la autoridad crearía la segunda verdad que esto evita».
+
+### Por qué ahora
+
+Porque REG-405 acaba de dar a las tres proyecciones su sobre (`asOf`, `version`,
+`historialRecortado`), que es **la precondición para poder persistirlas**. O sea:
+acaba de quitarse el único obstáculo práctico que había.
+
+Que hoy no se persistan no es una garantía — es una casualidad que dura hasta que
+alguien quiera ahorrarse el recálculo. Un guardián sobre una propiedad que
+todavía se cumple es barato; escribirlo después del primer `setDoc` es tarde. Es
+el mismo razonamiento de REG-401 con la identidad de la revista: la unidad
+anterior puso el arma sobre la mesa.
+
+### Lo que pasaría sin él
+
+Un documento con la lista de medicamentos vigentes es, desde que existe, **una
+segunda respuesta a «qué toma este paciente»**. Las dos se separan en cuanto se
+firma una nota que el caché no vio, y las dos se leen igual de bien: la pantalla
+enseña la guardada, la comprobación de interacciones usa la guardada, y las notas
+dicen otra cosa sin que nadie lo note.
+
+### El intento que los propios guardianes del repositorio rechazaron
+
+Se escribió primero como `lib/expediente/la-proyeccion-no-manda.ts`: la política,
+el censo de proyecciones y una función `sirveParaDecidir` **escrita de antemano**
+para el día que se persistan.
+
+**Tres guardianes lo rechazaron a la vez** —`modulos-sin-conectar`,
+`los-motores-llegan-al-medico` y `el-camino-del-medico-llega-entero`— y tenían
+razón: era código de tiempo de ejecución que nadie llama, que es exactamente la
+familia «escrito y sin conectar» que este árbol persigue. Escribir la lógica del
+caché antes de que exista el caché es adivinar cómo será.
+
+Se retiró el módulo. La política **sí** es real, pero es una propiedad del
+árbol —«ningún módulo de proyección escribe»—, no una función que alguien
+ejecute: su sitio es el guardián. Las tres condiciones quedan escritas ahí, que
+es donde las va a leer quien vaya a persistirlas, **porque para hacerlo tendrá
+que tocar ese archivo**.
+
+Se anota porque la lección vale más que el archivo: *la tentación de escribir la
+defensa del problema que todavía no existe se parece mucho a la de escribir el
+umbral que nadie ha decidido.*
+
+### Las tres condiciones, que quedan escritas
+
+1. **La proyección nunca es autoridad**: ante discrepancia manda la nota firmada,
+   sin excepción y sin «salvo que la proyección sea más reciente» — se calcula de
+   las notas, así que una proyección que le gana a su origen es un error de
+   cálculo, no un dato nuevo.
+2. **Trae `asOf` y `version`**, o no se puede saber si está vieja ni quién la
+   calculó. (Comprobado: los tres sobres los tienen.)
+3. **Una proyección anterior a la última nota firmada NO SE USA**: se recalcula o
+   no se enseña. Nada de refrescar en segundo plano — un caché que se usa
+   mientras se actualiza es un caché que a veces miente, y aquí «a veces» es una
+   consulta.
+
+**LA PRUEBA.** `src/__tests__/la-proyeccion-no-le-gana-a-la-nota.test.ts` (8
+casos). Probado al revés añadiendo un `setDoc` a una proyección: cae. Comprueba
+además que ninguna lee el reloj —un `asOf` que la propia función se inventa no
+significa nada— y que los borradores siguen sin contar en la medicación vigente,
+que es la parte de «su verdad» que más fácil se pierde.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No impide persistir**: impide persistir **en silencio**.
+- **No cubre UCI/Hospital**, que están en otro carril.
+- **No vigila un caché en el navegador**: si alguna vez se memoriza una
+  proyección en `localStorage`, esto no lo ve.
