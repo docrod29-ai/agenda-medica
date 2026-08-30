@@ -1846,3 +1846,59 @@ veces.
   del SDK sin tapa, tendrá el mismo defecto. No se declaran buenos.
 - El texto nuevo de la franja **no se ha probado con nadie**: es más honesto,
   no necesariamente el mejor redactado.
+
+---
+
+## Unidad 38 — el barrido, y la asimetría que lo explica todo
+
+Tras la unidad 37 prometí recorrer los demás caminos de escritura buscando la
+misma familia. Esto es ese barrido, y encontró **menos de lo que esperaba y algo
+mejor**: la regla que hay detrás.
+
+**EL BARRIDO.** De las nueve pantallas y modales de este carril con bandera de
+«guardando», tres esperaban a una llamada del SDK sin techo: `/lista-espera`
+(cinco), `AppointmentModal` (una) y `CobrarModal` (una, y es la del dinero).
+
+**NO TOQUÉ EL CAMINO DEL DINERO SIN MIRARLO.** `CobrarModal` es código cuidadoso
+—tiene una clave de idempotencia que sobrevive al reintento, escrita
+explícitamente para el caso del timeout—, así que en vez de aplicarle el arreglo
+por analogía, sembré una cita `atendida` sin cobrar (el único estado en el que
+aparece el botón «Cobrar»; **cuarta vez en esta vuelta que la siembra era lo que
+impedía ver una pantalla**) y lo medí.
+
+**Y NO SE CUELGA.** Sin red, el botón vuelve a la normalidad a los **1,5 s**.
+
+**LA ASIMETRÍA, QUE ES EL VERDADERO HALLAZGO.**
+
+| | Sin red | Por qué |
+|---|---|---|
+| **Leer** (`getPatients`, `getDocs`) | **se queda pendiente** | necesita al servidor; no rechaza, espera |
+| **Escribir por el SDK** (`addDoc`) | **resuelve en local** | la persistencia offline lo encola |
+| **Escribir por ruta de API** (`fetchAutenticado`) | falla | no hay cola: se pierde |
+
+El alta de la asistente se colgaba porque hacía una **lectura** antes de
+escribir. El cobro no se cuelga porque sólo escribe. No era «los formularios se
+cuelgan»: era **una lectura sin techo en medio de un envío**.
+
+Eso convierte tres «hay que arreglarlo» en **uno**, y explica por qué.
+
+**Y ME OBLIGÓ A CORREGIR MI PROPIO ARREGLO DE LA UNIDAD 37.** Había cambiado la
+franja de offline a «lo que guardes ahora **puede no registrarse**». Medido,
+también es impreciso — y en la dirección que hace daño: las escrituras del SDK
+**sí** se guardan. Decirle a la asistente que su cobro puede perderse la empuja
+a repetirlo. Ese es el daño simétrico del que arreglé.
+
+Una franja global no sabe qué va a hacer quien la lee, así que ahora dice lo
+único cierto de las dos familias: «**Algunas acciones no se guardarán hasta
+recuperar la señal**». Ni promete una cola que no cubre las rutas de API, ni
+niega la que sí existe.
+
+**RESIDUAL_RISK.**
+
+- `/lista-espera` y `AppointmentModal` **siguen con lecturas sin techo**. No las
+  he medido, así que **no digo que estén rotas ni que estén bien**: digo que
+  tienen la forma del defecto y que no las he mirado. Aplicarles el arreglo a
+  ciegas sería exactamente lo que no hice con el cobro.
+- La tabla de la asimetría vale para la configuración actual de persistencia
+  offline. Si alguien la desactiva, las escrituras del SDK pasan a la tercera
+  fila y la franja vuelve a quedarse corta.

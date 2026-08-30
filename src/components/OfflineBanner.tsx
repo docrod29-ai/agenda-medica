@@ -22,8 +22,22 @@ import { WifiOff } from 'lucide-react'
  * revés: aquí se anunciaba un cambio que no iba a ocurrir. Y la regla 4:
  * ausencia de confirmación no es confirmación.
  *
- * Ahora dice lo que sí se sostiene: que se puede seguir CONSULTANDO, y que lo
- * que se guarde ahora puede no registrarse. Sin prometer una cola que no existe.
+ * ── Y POR QUÉ NO SE PASA AL EXTREMO CONTRARIO ───────────────────────────────
+ *
+ * La primera corrección decía «lo que guardes ahora puede no registrarse», a
+ * secas. Midiendo salió que eso también es impreciso, y en la dirección que
+ * hace daño: **las escrituras del SDK sí se guardan.** Comprobado en el
+ * navegador — el registro de un cobro, sin red, vuelve en 1,5 s y queda
+ * encolado, mientras el alta de una cita (que va por una ruta de API) se
+ * pierde. La asimetría no es entre acciones: es entre **leer** —que sin red se
+ * queda esperando al servidor— y **escribir por el SDK** —que resuelve en local.
+ *
+ * Decirle a la asistente que su cobro «puede no registrarse» cuando sí se
+ * registra la empuja a repetirlo. Ese es el otro daño, el simétrico.
+ *
+ * Una franja global no sabe qué va a hacer quien la lee, así que dice lo único
+ * cierto de las dos familias a la vez: que ALGUNAS acciones no se guardarán. Ni
+ * promete una cola que no cubre todo, ni niega la que sí existe.
  */
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false)
@@ -46,7 +60,7 @@ export function OfflineBanner() {
        landmark — V15-A11Y-001, 1ª rebanada), el lector de pantalla anuncia el
        cambio de conectividad sin robar el foco. */
     <div className="offline-banner" role="status">
-      <WifiOff size={14} aria-hidden="true" /> Sin conexión — puedes seguir consultando. Lo que guardes ahora puede no registrarse: espera a recuperar la señal.
+      <WifiOff size={14} aria-hidden="true" /> Sin conexión — puedes seguir consultando. Algunas acciones no se guardarán hasta recuperar la señal.
     </div>
   )
 }

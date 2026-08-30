@@ -142,11 +142,28 @@ describe('el botón no se queda en «Guardando…» para siempre', () => {
    * alta de una cita, entre otras. La asistente que lo lee cierra el portátil
    * tranquila y la cita no existe.
    */
-  it('la franja de offline no promete una sincronización que no ocurre', () => {
+  /**
+   * NI PROMETE DE MÁS NI NIEGA DE MÁS.
+   *
+   * La primera corrección decía «lo que guardes ahora puede no registrarse», y
+   * midiendo salió impreciso en la dirección que hace daño: las escrituras del
+   * SDK **sí** se guardan (el cobro, sin red, vuelve en 1,5 s y queda
+   * encolado). Decirle a la asistente que su cobro puede perderse la empuja a
+   * repetirlo.
+   *
+   * La asimetría real no es entre acciones sino entre LEER —que sin red espera
+   * al servidor— y ESCRIBIR POR EL SDK —que resuelve en local—. Una franja
+   * global no sabe qué va a hacer quien la lee: dice lo único cierto de las dos
+   * familias, «algunas acciones».
+   */
+  it('la franja de offline ni promete de más ni niega de más', () => {
     const b = readFileSync('src/components/OfflineBanner.tsx', 'utf8')
     const visible = b.replace(/\/\*[\s\S]*?\*\//g, '')
+    // No promete una cola que no cubre las rutas de API…
     expect(visible).not.toMatch(/se sincronizarán al reconectar/)
-    expect(visible).toMatch(/puede no registrarse/)
+    // …ni niega la que sí existe para las escrituras del SDK.
+    expect(visible).not.toMatch(/no se guardará nada|nada se guardará/)
+    expect(visible).toMatch(/Algunas acciones no se guardarán/)
   })
 
   it('el porqué queda escrito donde se lee, y dice lo que NO arregló', () => {

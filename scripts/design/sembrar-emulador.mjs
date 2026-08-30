@@ -186,6 +186,13 @@ const CITAS = [
    */
   { id: 'cita-008', pac: 'pac-002', hora: '16:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Revisión de control', exento: 'Familiar del personal' },
   { id: 'cita-009', pac: 'pac-003', hora: '17:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control posoperatorio', syncRoto: true },
+  /**
+   * ATENDIDA Y SIN COBRAR — el único estado en el que aparece el botón de
+   * «Cobrar». Sin ella, el camino del dinero no se puede recorrer en el arnés:
+   * el botón no existe, así que no hay nada que auditar. Cuarta vez en esta
+   * vuelta que la siembra era lo que impedía ver una pantalla.
+   */
+  { id: 'cita-010', pac: 'pac-001', hora: '08:00', dur: 30, tipo: 'Seguimiento', estado: 'atendida', conf: true, motivo: 'Control de presión' },
   { id: 'cita-005', pac: 'pac-003', hora: '13:00', dur: 30, tipo: 'Seguimiento', estado: 'cancelada', conf: false, motivo: 'Control prenatal' },
   { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
   { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
