@@ -12377,3 +12377,64 @@ mano el índice de `reviews` y comprueba que su consulta queda detectada.
   producción.
 - **No sabe si el índice está construido.** Declararlo y desplegarlo son dos
   actos, y el segundo es del dueño.
+
+---
+
+## REG-380 — WS-05 se había comprobado entero LEYENDO el árbol, y nunca abriendo el producto
+
+**QUÉ FALTABA.** REG-342 y REG-355 cerraron los dos mecanismos del rebote de
+iPhone —los escritores de scroll que no preguntaban y el encadenamiento sin
+`overscroll-behavior`— con pruebas que **leen el repositorio**. La regla de diseño
+de esta casa dice que eso no basta, y lo dice con todas las letras: «no se aprueba
+una interfaz leyendo el código… se lanza el producto, se mira, se recorre el flujo
+de verdad, se prueba en móvil, se prueba con teclado, se comprueba la consola».
+
+Ninguna de esas seis cosas se había hecho nunca sobre las páginas públicas a
+tamaño de teléfono. El `e2e` existente comprueba que cargan y qué cabeceras
+traen — no cómo se ven ni si se pueden tocar.
+
+**EL ARREGLO.** `e2e/telefono.spec.ts`, en el proyecto nuevo `telefono-chromium`,
+sobre el **mismo** Chromium que el CI ya instala (no descarga un motor más):
+
+- **desbordamiento horizontal** en las ocho rutas públicas — el defecto de móvil
+  que más se cuela, porque nadie lo ve en un escritorio ancho;
+- **objetivo táctil ≥ 44×44** en los controles visibles de la landing;
+- **consola limpia de lo SUYO**;
+- **foco visible** al primer `Tab`.
+
+Corre en el job `e2e-publico` del CI, contra el build del PR.
+
+**LO QUE ESTE ARREGLO NO PUEDE PROBAR, Y POR ESO WS-05 SIGUE SIN `PROVEN`.** El
+rebote de iPhone son dos comportamientos de **WebKit** y ninguno existe en
+Chromium: `overflow-anchor` —que Chromium sí implementa, así que compensa
+justamente la escritura tardía de scroll que en un iPhone se siente— y el rebote
+elástico del documento al encadenar el gesto. Un verde de `telefono-chromium`
+**no es un iPhone probado**, y por eso el proyecto se llama así y no `iphone`.
+
+`playwright.config.ts` ya declara un proyecto `iphone-safari` sobre WebKit, que es
+el que daría esa prueba. **No se pudo ejecutar**: el binario de WebKit no está
+instalado en este entorno y su descarga está bloqueada
+(`Failed to download WebKit 26.5`). Queda como lo que era: una acción externa.
+
+**LA CONSOLA SE JUZGA POR ORIGEN, Y NO POR EL TEXTO DEL ERROR.** La primera
+versión exigía la consola limpia a secas y salía roja por
+`net::ERR_TUNNEL_CONNECTION_FAILED`: una red que corta las salidas a internet hace
+fallar cualquier recurso de tercero, y eso no dice nada del producto. Filtrar ese
+texto habría sido el error fácil — un 404 de un recurso **propio** produce un
+mensaje parecido y sí es un defecto. Se clasifica por origen, y lo de fuera se
+**enumera** en el mensaje en vez de desaparecer.
+
+**LA PRUEBA.** `e2e/telefono.spec.ts` (11 casos), verde dos veces seguidas contra
+el build de esta rama. No se sella en `invariantes-clinicos.json` porque el sello
+cubre la suite de vitest; su compuerta es el job de CI.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sólo rutas públicas.** El camino clínico necesita sesión, y la cuenta de
+  prueba dedicada sigue siendo un paso del dueño — lo mismo que ya declaraba
+  `playwright.config.ts`.
+- **Mide la landing, no las 80 pantallas.** El objetivo táctil y el foco se miden
+  donde se puede entrar sin sesión.
+- **Ni un motor que no sea Chromium.** Firefox, WebKit, Safari móvil y Android
+  siguen declarados en el config y sin correr en ninguna parte, como ya decía el
+  comentario del CI: la matriz completa se lanza a mano.

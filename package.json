@@ -29,7 +29,8 @@
     "arnes:sembrar": "node scripts/design/sembrar-emulador.mjs",
     "arnes:dev": "NEXT_PUBLIC_FIREBASE_EMULATOR=1 NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-nexusmed-v10 NEXT_PUBLIC_FIREBASE_API_KEY=arnes-visual-v10 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=localhost NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=demo-nexusmed-v10.appspot.com NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=000000000000 NEXT_PUBLIC_FIREBASE_APP_ID=1:000000000000:web:arnesvisual FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 next dev -p 3200",
     "preview:equivalente": "node scripts/preview-equivalente.mjs",
-    "compuerta:integracion": "node scripts/compuerta-integracion.mjs"
+    "compuerta:integracion": "node scripts/compuerta-integracion.mjs",
+    "e2e:telefono": "PLAYWRIGHT_LOCAL=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 playwright test e2e/telefono.spec.ts --project=telefono-chromium"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

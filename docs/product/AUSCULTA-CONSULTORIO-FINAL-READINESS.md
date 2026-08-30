@@ -52,7 +52,7 @@ en «collect page data» con `auth/invalid-api-key`. Es del entorno, no del árb
 | **02** Escala / 100 k | `PARTIAL` | REG-378: **ya hay arnés y ya hay medición**. 100 médicos, 8 000 peticiones, 50 concurrentes contra el emulador con `firestore.rules` cargadas: p95 141 ms, 0 errores, **0 fugas entre consultorios en 200 sondas**. No es producción y no son 100 k: la evidencia lo dice y el validador la **rechaza** por incompleta, a propósito |
 | **03** Consultorio grande | `PARTIAL` | Las lecturas sin cota que sí se encontraron están acotadas y **declaran su recorte** (REG-350/351). Queda el inventario de lecturas de citas |
 | **04** Resiliencia | `PROVEN` (interruptor) | REG-353: interruptor por proveedor **y por llave** — una llave revocada de un consultorio no apaga a los demás. Colas y contrapresión: `NOT_DONE` |
-| **05** Móvil / rebote iPhone | `BLOCKED_EXTERNAL` | REG-355 cerró los escritores de scroll que no preguntaban y `overscroll-behavior`. **No se marca PROVEN: sólo se comprobó en Chromium.** Falta un iPhone real |
+| **05** Móvil / rebote iPhone | `BLOCKED_EXTERNAL` | REG-355 cerró los escritores de scroll y `overscroll-behavior`; REG-380 añade lo que sí se puede medir sin el aparato —desbordamiento horizontal en las 8 rutas públicas, objetivo táctil 44×44, consola propia y foco visible, en el CI y a tamaño de teléfono. **Sigue sin `PROVEN`**: el rebote es de WebKit y en Chromium no existe. WebKit no se puede instalar en este entorno (descarga bloqueada) |
 | **06/07/08** Evidencia | `PARTIAL`, honesto | La consulta **dice dónde NO miró** (REG-356), el texto completo de PMC sólo se reproduce si la licencia lo permite (REG-357), y una cita que no dice eso ya no pasa (REG-359). Las licencias comerciales son `BLOCKED_EXTERNAL` |
 | **09** Aplicabilidad | `NOT_DONE` | No hay motor que diga si una evidencia aplica a ESTE paciente |
 | **10** Patient State | `PARTIAL`, y es donde más se avanzó | Ver la tabla propia, abajo |
@@ -176,7 +176,11 @@ Por orden de lo que más pesa:
    responder. Lo que falta ya no es código: es un entorno que se parezca a
    producción —índices desplegados, latencia de red, contención real— y los tres
    bloqueadores de navegador y proveedor que el informe declara en `null`.
-3. **Un iPhone**, para cerrar WS-05.
+3. **Un iPhone**, para cerrar WS-05. Lo automatizable ya está hecho (REG-380) y
+   corre en CI; lo que queda es irreducible. El proyecto `iphone-safari` de
+   `playwright.config.ts` corre sobre WebKit y daría la mitad de esa prueba desde
+   una máquina que pueda descargarlo — la otra mitad, el rebote elástico sobre
+   iOS, sólo la da el aparato.
 4. ~~**El sello v4**~~ **Hecho (REG-377)**: `transcripcionMotor` entra al sello sin
    volver «alterada» ni una nota firmada. **Corrección de lo que esta línea decía
    antes**: el sello NO era lo que bloqueaba el registro estructurado de

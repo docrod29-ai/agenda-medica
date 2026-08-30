@@ -95,6 +95,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * quien abre el hueco lo declara y quien sigue lo lee.
      */
     /**
+     * 380 es esta familia aplicada a la EVIDENCIA de una reparación. REG-342 y
+     * REG-355 arreglaron el rebote de iPhone de verdad, y lo probaron entero
+     * LEYENDO el árbol: ninguna de las dos abrió nunca el producto en un
+     * navegador a tamaño de teléfono, que es lo que la regla de diseño exige con
+     * todas las letras. El arreglo estaba conectado; la comprobación no.
+     *
+     * Su lección: «probado» y «probado donde ocurre» no son lo mismo, y la
+     * distancia entre las dos es exactamente esta familia. Lo nuevo mide
+     * desbordamiento, objetivo táctil, consola y foco — y declara que el rebote
+     * sigue sin probarse, porque es de WebKit y ahí no corre.
+     */
+    /**
      * 359 enseña la variante más cara de esta familia: el módulo estaba escrito
      * y su encabezado AFIRMABA que enchufarlo sería gratis («no exige cambiarle
      * el prompt»). Era falso —el verificador necesita el pasaje literal y el
@@ -211,7 +223,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * hubo que hacer fue conectarla, y las dos unidades cupieron en un módulo
      * puro cada una porque el hueco estaba declarado en su sitio exacto.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380],
   },
   {
     clave: 'se_contradice',
