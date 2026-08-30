@@ -29,6 +29,16 @@ import {
   incidentesSinAvisar, marcarAvisadas, textoDeIncidencias,
 } from '@/lib/ia/incidentes-servidor'
 import { correlacionDeTrabajo } from '@/lib/observabilidad/correlacion'
+import { adminDb } from '@/lib/firebase-admin'
+import { averias, comoSeCuenta, firmaDelError } from '@/lib/ops/lo-que-se-repite'
+
+/**
+ * La ventana que mira el vigilante. Es su propio periodo por dos —así una
+ * ejecución perdida no deja un hueco ciego—, no un umbral de gravedad.
+ */
+const VENTANA_DE_ERRORES_MS = 2 * 60 * 60 * 1000
+/** Tope de lectura: esto corre cada hora y no puede descargar la colección. */
+const TOPE_ERRORES = 300
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -155,6 +165,60 @@ export async function GET(req: NextRequest) {
       if (r.enviada) incidenciasAvisadas = await marcarAvisadas(incidencias.map(i => String(i.id)))
     }
 
+    /**
+     * ── LO QUE REVIENTA EN EL NAVEGADOR, QUE TAMPOCO GRITABA (REG-420) ───────
+     *
+     * `/api/errores` recoge lo que falla en el cliente y lo escribe en la
+     * colección `errores`. Está bien hecho —acepta sin sesión, porque si no la
+     * caída más grave sería la única no reportable, y redacta el texto antes de
+     * guardarlo— y **ahí se queda**: para enterarse hay que abrir el panel del
+     * dueño, o sea sospechar la avería antes de saber que existe.
+     *
+     * Es la misma forma que REG-396 cerró para los incidentes de IA, en la
+     * colección de al lado.
+     *
+     * No se avisa de todo: un usuario con un error puede ser su navegador o su
+     * sesión caducada. Dos personas distintas con el mismo error ya es del
+     * producto — ver `lo-que-se-repite.ts` para por qué esa frontera y no un
+     * número. Lo que no cruza sigue en la colección; sólo no despierta a nadie.
+     *
+     * Se marcan como vistas SÓLO si el aviso salió, por lo mismo que las
+     * incidencias: marcarlas antes convierte una caída del webhook en silencio.
+     */
+    let averiasAvisadas = 0
+    try {
+      const desde = new Date(Date.now() - VENTANA_DE_ERRORES_MS).toISOString()
+      const snap = await adminDb.collection('errores')
+        .where('visto', '==', false)
+        .orderBy('fecha', 'desc')
+        .limit(TOPE_ERRORES)
+        .get()
+      const todos: Record<string, unknown>[] = snap.docs.map(d => {
+        const datos = d.data() as Record<string, unknown>
+        return { ...datos, id: d.id }
+      })
+      const recientes = todos.filter(e => String(e.fecha ?? '') >= desde)
+      const rotas = averias(recientes as never)
+      if (rotas.length) {
+        const r = await enviarAlertaOps({
+          titulo: `${rotas.length} avería(s) en el navegador, vistas por más de una persona`,
+          detalle: comoSeCuenta(rotas),
+          gravedad: 'grave',
+          origen: 'cron/vigilante',
+        })
+        if (r.enviada) {
+          const firmas = new Set(rotas.map(a => a.firma))
+          const aMarcar = recientes.filter(e => firmas.has(firmaDelError(e as never)))
+          await Promise.all(aMarcar.map(e =>
+            adminDb.collection('errores').doc(String(e.id)).set({ visto: true }, { merge: true })))
+          averiasAvisadas = aMarcar.length
+        }
+      }
+    } catch (e) {
+      /* Un aviso que falla no puede llevarse por delante el resto del vigilante. */
+      safeLog.warn('[cron/vigilante] no se pudieron leer los errores del navegador', e)
+    }
+
     // El vigilante también late: si se cae ÉL, el propio diagnóstico lo enseña
     // la próxima vez que alguien mire.
     await registrarLatido('vigilante', {
@@ -162,7 +226,7 @@ export async function GET(req: NextRequest) {
       ok: true, duracionMs: Date.now() - arranque,
       detalle: {
         vigilados: ds.length, conProblema: duelen.length, saldosBajos: saldosQueDuelen.length,
-        incidenciasIA: incidencias.length, incidenciasAvisadas,
+        incidenciasIA: incidencias.length, incidenciasAvisadas, averiasAvisadas,
         colaPausada: pausadas, colaMuerta: muertas,
       },
     })

@@ -15647,3 +15647,70 @@ vigila cuánto se ha comentado. Ahora se ancla al final de la cadena.
   dos intenciones y dos tomas, que es lo correcto.
 
 **Prueba.** `src/__tests__/ni-una-escritura-clinica-sin-nombre.test.ts` (14 casos).
+
+## REG-420 — lo que revienta en el navegador tampoco gritaba
+
+**QUÉ SE PEDÍA.** `WS-13.alertas`. Y antes de construir nada, una corrección: el
+censo decía que faltaba avisar de «la caída de WhatsApp (REG-391 hizo que el
+outbox pause en vez de morir, pero esa pausa no llega a ningún aviso)». **Ya está
+hecho desde REG-397**, y el vigilante lo lleva escrito. Es la cuarta entrada de
+esta tanda cuyo `queFalta` estaba viejo (REG-412, REG-415, REG-417 fueron las
+otras). Comprobar antes de construir evitó reescribirlo.
+
+### El defecto que sí quedaba
+
+`/api/errores` recoge lo que falla en el cliente —mensaje, traza, ruta, quién— y
+lo escribe en la colección `errores`. Está bien hecho: acepta **sin sesión**
+—porque si exigiera una, el boundary global y los fallos de login serían justo lo
+único no reportable— y redacta el texto antes de guardarlo, ya que esa colección
+es de nivel raíz.
+
+Y ahí se quedaba. Para enterarse había que **abrir el panel del dueño**: sospechar
+la avería antes de saber que existe. Es la misma forma que REG-396 cerró para los
+incidentes de IA, en la colección de al lado.
+
+### Por qué no hay umbral, y sin embargo no avisa de todo
+
+Avisar de cada error convierte el canal en ruido y se aprende a ignorarlo. Pero
+«avisar a partir de N por hora» es inventarse un número: ¿por qué cinco y no tres?
+
+Hay una frontera que **no es una cifra elegida**, y es cualitativa:
+
+- **un usuario** con un error puede ser su navegador, su red, su extensión o su
+  sesión caducada — es un reporte;
+- **dos usuarios distintos con el MISMO error** ya no es de ninguno de los dos: es
+  del producto.
+
+Lo que cae del lado del reporte **no desaparece**: sigue en la colección y en el
+panel. Lo único que no hace es despertar a nadie a las tres de la mañana.
+
+### Los anónimos, que son los que más importan
+
+Un error sin sesión no trae `uid`. Contar todos los anónimos como «un solo
+usuario» escondería la caída que impide entrar: **si el login revienta, nadie
+puede identificarse para demostrarlo**. Se cuentan aparte y su repetición basta.
+
+### La firma, sin la cual el aviso no saltaría nunca
+
+Se agrupa por mensaje normalizado y ruta. Las cifras del mensaje se sustituyen:
+«falló tras 3 intentos» y «falló tras 5 intentos» son el mismo fallo, y sin
+normalizar cada aparición parecería única — ninguna llegaría a dos personas y el
+aviso no saltaría jamás.
+
+Las rutas NO se juntan: el mismo mensaje en dos pantallas son dos averías y se
+arreglan en sitios distintos.
+
+### Qué NO cubre
+
+- **El canal sigue sin destino.** `OPS_ALERTA_WEBHOOK` es acción del dueño; sin él
+  `enviarAlertaOps` lo declara y **no se marca nada como visto**, que es lo
+  correcto: una alerta que no salió no puede darse por entregada.
+- **No cubre los 5xx del servidor ni las anomalías de autorización**, que el censo
+  también nombra: hoy no se escriben en ninguna colección, así que no hay nada que
+  leer. Eso es instrumentar antes que avisar, y es otra unidad.
+- **No agrupa por traza**, sólo por mensaje y ruta: dos fallos distintos con el
+  mismo mensaje en la misma ruta se cuentan juntos. Señala de menos.
+- **No mide gravedad**: todas salen como `grave`, porque una avería que afecta a
+  varias personas lo es.
+
+**Prueba.** `src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts` (19 casos).

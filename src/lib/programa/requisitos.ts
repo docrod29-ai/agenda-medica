@@ -587,11 +587,18 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     pruebas: ['src/__tests__/un-trabajo-de-fondo-tambien-deja-hilo.test.ts'],
   }),
   R({
-    id: 'WS-13.alertas', ws: 'WS-13', titulo: 'Alertas sobre degradación, 5xx, fallo de guardado y anomalía de autorización',
+    id: 'WS-13.alertas', ws: 'WS-13', titulo: 'Lo que se rompe llega a alguien, sin que haya que sospecharlo',
     estado: 'PARTIAL',
-    queFalta: 'REG-396 conectó la que faltaba y era la que dio origen a todo: `incidentes-servidor.ts` anotaba la caída de la IA de plataforma en Firestore y ahí se quedaba —había que abrir el tablero para verla, o sea sospechar la avería antes de enterarse—. El vigilante ahora la avisa, sin repetirse (por hora, no por ciclo) y marcando sólo cuando el aviso salió de verdad. Siguen sin señal: 5xx genéricos, fallo de guardado, anomalía de autorización, y la caída de WhatsApp (REG-391 hizo que el outbox pause en vez de morir, pero esa pausa no llega a ningún aviso). Y el canal sigue sin destino: OPS_ALERTA_WEBHOOK es acción del dueño.',
-    artefactos: ['src/lib/ops/alerta.ts', 'src/lib/ia/incidentes-servidor.ts'],
-    pruebas: ['src/__tests__/la-averia-de-la-ia-llega-a-alguien.test.ts'],
+    evidencia: 'REG-396 conectó la caída de la IA de plataforma. REG-397 conectó la cola de WhatsApp pausada y el dead-letter (este censo decía que faltaba: estaba viejo). REG-420 conecta lo que revienta en el navegador — se recogía en la colección `errores` y había que abrir el panel del dueño para verlo. No avisa de todo y NO usa umbral: un usuario con un error puede ser su navegador; dos usuarios distintos con el mismo error es del producto. Los anónimos se cuentan aparte porque si el login revienta nadie puede identificarse para demostrarlo.',
+    comando: 'npx vitest run src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts',
+    resultado: '19 casos. La firma normaliza las cifras del mensaje —sin eso cada aparición parecería única y el aviso no saltaría nunca— y no junta rutas distintas. Se marca como visto SÓLO si el aviso salió.',
+    queFalta: 'Dos señales siguen sin instrumentar, y hasta que no se escriban en algún sitio no hay nada que leer: los 5xx genéricos del servidor y las anomalías de autorización. Eso es instrumentar antes que avisar. Y el CANAL sigue sin destino: OPS_ALERTA_WEBHOOK es acción del dueño — sin él, enviarAlertaOps lo declara y no marca nada como avisado, que es lo correcto.',
+    artefactos: ['src/lib/ops/lo-que-se-repite.ts', 'src/app/api/cron/vigilante/route.ts'],
+    pruebas: [
+      'src/__tests__/ops-latido-y-alerta.test.ts',
+      'src/__tests__/la-averia-de-la-ia-llega-a-alguien.test.ts',
+      'src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts',
+    ],
   }),
   R({
     id: 'WS-13.reglas-desplegadas', ws: 'WS-13', titulo: 'Las reglas de Firestore escritas son las que rigen',
