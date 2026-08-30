@@ -13594,3 +13594,61 @@ rojo sin que la propiedad se hubiera movido. Se reescribió para comprobar que
   y quedan en el censo.
 - **La caída de WhatsApp tampoco avisa**: REG-391 hizo que el outbox pause en vez
   de morir, pero esa pausa no llega a ningún aviso todavía.
+
+---
+
+## REG-397 — una cola en pausa se veía igual que una tarde tranquila
+
+**QUÉ PASÓ.** REG-391 arregló algo y **abrió un hueco nuevo al arreglarlo**, que
+es la clase de consecuencia que conviene escribir antes de que la encuentre otro.
+
+Antes, una caída del proveedor de WhatsApp gastaba los reintentos de cada mensaje
+y a las cinco horas mataba la cola entera. Mal, pero **ruidoso**: los mensajes
+acababan en dead-letter. Después de REG-391 la caída **pausa** las entradas sin
+gastarles nada —que es lo correcto— y entonces la cola pausada se ve desde fuera
+exactamente igual que una tarde tranquila:
+
+```
+cron reminders → ok, enviados: 0, fallidos: 0
+```
+
+Nada parece roto. Y el **dead-letter, que existe desde hace mucho, no lo enseña
+ninguna pantalla**: una entrada rendida queda en Firestore con su motivo y ahí se
+acaba la historia.
+
+Para el paciente las dos son lo mismo: un aviso de lista de espera que nadie
+mandó es un hueco de agenda que nadie ocupó, y nadie se entera.
+
+### La regla
+
+**Una defensa que hace que un problema deje de verse tiene que traer consigo la
+forma de verlo.** Pausar en vez de morir sólo es mejor si alguien puede saber que
+hay una pausa.
+
+### El arreglo
+
+El cron de recordatorios cuenta `pausadas` y `muertas` y las pone en su latido;
+el vigilante las lee de ahí —no recorre los consultorios otra vez, que sería un
+segundo trabajo que vigilar— y avisa.
+
+Y **distingue las dos**, que no es afinación: una pausa se arregla sola cuando el
+proveedor vuelve; una rendida **ya no se reintenta nunca**. Darles la misma
+gravedad enseñaría a ignorar las dos. El texto dice qué pasa con cada una, porque
+«3 avisos fallidos» no dice si hay que hacer algo.
+
+La cuenta de rendidas va con tope (50 por consultorio) y por encima dice «al
+menos», no un número inventado: un `get()` sin cota sobre una cola rota sería
+justo la lectura sin cota que REG-394 acaba de poner bajo trinquete.
+
+**LA PRUEBA.** `src/__tests__/una-cola-en-pausa-no-es-una-tarde-tranquila.test.ts`
+(10 casos).
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No es la pantalla que falta.** Un aviso dice «hay N rendidas»; no deja verlas,
+  ni reintentarlas, ni saber de qué paciente eran. `TR-WHATSAPP.entrega` sigue
+  PARTIAL por eso, y ahora con una razón más precisa.
+- **No cubre el mensaje reactivo del bot**, que no pasa por el outbox: si el
+  proveedor está caído cuando el paciente escribe, esa respuesta se pierde y no
+  queda en ninguna cola. Dicho, no arreglado.
+- **No prueba el webhook**, que sigue sin destino configurado.

@@ -408,7 +408,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * La lección: un campo con `default` no distingue «se eligió esto» de «no
      * se eligió nada», y todo lo que se construya encima hereda la ambigüedad.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365],
+    /**
+     * 397 es esta familia con una vuelta de tuerca: el instrumento faltaba
+     * porque una reparación anterior lo hizo falta. REG-391 hizo que una caída
+     * del proveedor PAUSE la cola en vez de matarla —correcto— y con eso una
+     * cola pausada pasó a verse igual que una tarde tranquila: el cron termina
+     * `ok`, `enviados: 0`, y nada parece roto.
+     *
+     * La lección: una defensa que hace que un problema deje de verse tiene que
+     * traer consigo la forma de verlo.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397],
   },
   {
     clave: 'hueco_como_dato',

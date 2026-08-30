@@ -592,7 +592,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'TR-WHATSAPP.entrega', ws: 'TR-WHATSAPP', titulo: 'Un mensaje al paciente ni se pierde ni se duplica',
     estado: 'PARTIAL',
-    queFalta: 'El interruptor y la caída del proveedor ya están (REG-391): una caída ya no gasta el presupuesto de reintentos del mensaje, y hay prueba. Sigue PARTIAL por una razón distinta y honesta: NADIE LEE EL DEAD-LETTER. Las entradas muertas quedan en Firestore con su motivo y ninguna pantalla las enseña, así que un mensaje que se rindió de verdad se pierde igual, sólo que ahora con su causa escrita. Cerrar esto es enseñarlas donde alguien mire.',
+    queFalta: 'El interruptor y la caída del proveedor ya están (REG-391), y REG-397 puso el instrumento que faltaba: el cron cuenta pausadas y rendidas, y el vigilante avisa distinguiéndolas —una pausa se arregla sola cuando el proveedor vuelve; una rendida ya no se reintenta nunca—. Sigue PARTIAL y ahora por una razón precisa: un aviso dice CUÁNTAS hay, no deja verlas, ni reintentarlas, ni saber de qué paciente eran. Cerrar esto es la pantalla del dead-letter. Falta además el mensaje REACTIVO del bot, que no pasa por el outbox: si el proveedor está caído cuando el paciente escribe, esa respuesta se pierde y no queda en ninguna cola.',
+    artefactos: ['src/lib/whatsapp/outbox.ts'],
+    pruebas: ['src/__tests__/una-cola-en-pausa-no-es-una-tarde-tranquila.test.ts'],
   }),
   R({
     id: 'TR-RAZONAMIENTO.procedencia', ws: 'TR-RAZONAMIENTO', titulo: 'Lo que la IA redacta enseña de dónde salió',

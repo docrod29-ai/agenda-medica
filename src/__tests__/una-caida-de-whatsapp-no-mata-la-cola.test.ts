@@ -241,7 +241,11 @@ describe('y el dato llega hasta donde se decide', () => {
      */
     const src = readFileSync('src/app/api/cron/reminders/route.ts', 'utf8')
     expect(src).toMatch(/const \{ resultado, veredicto \}/)
-    expect(src).toMatch(/reprogramarEntrada\([\s\S]{0,200}veredicto === 'el_proveedor_no_esta'/)
+    /* REG-397 dio nombre a la condición para poder CONTARLA además de pasarla;
+       lo que este caso protege es que el veredicto llegue a `reprogramarEntrada`,
+       no la forma exacta de la expresión. */
+    expect(src).toMatch(/const delProveedor = veredicto === 'el_proveedor_no_esta'/)
+    expect(src).toMatch(/reprogramarEntrada\([\s\S]{0,200}delProveedor\)/)
   })
 
   it('la razón está escrita donde se pueda leer', () => {

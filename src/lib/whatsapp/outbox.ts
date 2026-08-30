@@ -79,6 +79,36 @@ export async function entradasVencidas(clinicId: string, ahoraMs: number, limite
   }
 }
 
+/**
+ * CUÁNTAS SE RINDIERON — el cajón que nadie abría (REG-397).
+ *
+ * El dead-letter existe desde hace mucho y **ninguna pantalla lo enseña**: una
+ * entrada muerta queda en Firestore con su motivo y ahí se acaba la historia.
+ * Un aviso de lista de espera que nadie mandó es un hueco de agenda que nadie
+ * ocupó, y nadie se entera.
+ *
+ * Esto no es la pantalla que falta: es lo mínimo para que el vigilante pueda
+ * decir «hay N mensajes rendidos en este consultorio». Se cuenta con tope y se
+ * declara: por encima del tope se dice «al menos N», no un número inventado.
+ */
+export const TOPE_CUENTA_MUERTAS = 50
+
+export async function contarMuertas(clinicId: string): Promise<{ cuantas: number; alMenos: boolean }> {
+  try {
+    const snap = await outboxCol(clinicId)
+      .where('estado', '==', 'muerto')
+      .limit(TOPE_CUENTA_MUERTAS + 1)
+      .get()
+    const alMenos = snap.size > TOPE_CUENTA_MUERTAS
+    return { cuantas: alMenos ? TOPE_CUENTA_MUERTAS : snap.size, alMenos }
+  } catch (e) {
+    /* No poder contar NO es «no hay»: se devuelve 0 porque no hay más que
+       hacer, y el latido del cron ya dice si él mismo falló. */
+    console.warn('[whatsapp/outbox] no se pudo contar las muertas:', String(e))
+    return { cuantas: 0, alMenos: false }
+  }
+}
+
 /** Éxito → quita la entrada de la cola. */
 export async function resolverEntrada(clinicId: string, id: string): Promise<void> {
   try { await outboxCol(clinicId).doc(id).delete() }

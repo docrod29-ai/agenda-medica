@@ -93,6 +93,36 @@ export async function GET(req: NextRequest) {
     }
 
     /**
+     * ── LA COLA DE WHATSAPP, QUE TAMPOCO GRITABA (REG-397) ───────────────────
+     *
+     * REG-391 hizo que una caída del proveedor **pause** las entradas en vez de
+     * gastarles el presupuesto de reintentos. Bien — pero una cola pausada se ve
+     * desde fuera exactamente igual que una tarde tranquila: el cron termina
+     * `ok`, `enviados: 0`, y nada parece roto. Y el dead-letter, que existe
+     * desde hace mucho, **no lo enseña ninguna pantalla**.
+     *
+     * Los dos son huecos de agenda que nadie ocupó. Se leen del latido del cron
+     * de recordatorios —que ya los cuenta— en vez de recorrer los consultorios
+     * otra vez desde aquí.
+     */
+    const cola = porJob.get('reminders')?.detalle as
+      { pausadas?: number; muertas?: number } | undefined
+    const pausadas = Number(cola?.pausadas ?? 0)
+    const muertas = Number(cola?.muertas ?? 0)
+    if (pausadas > 0 || muertas > 0) {
+      await enviarAlertaOps({
+        titulo: 'Avisos de WhatsApp que no salieron',
+        detalle: [
+          pausadas > 0 ? `· ${pausadas} en pausa: el proveedor no estaba respondiendo. No han gastado reintentos y se vuelven a intentar solas.` : '',
+          muertas > 0 ? `· ${muertas} rendidas (dead-letter). Éstas ya NO se reintentan: hay que mirarlas.` : '',
+        ].filter(Boolean).join('\n'),
+        /* Una pausa se arregla sola cuando el proveedor vuelve; una rendida, no. */
+        gravedad: muertas > 0 ? 'grave' : 'aviso',
+        origen: 'cron/vigilante',
+      })
+    }
+
+    /**
      * ── LA AVERÍA QUE MOTIVÓ TODO ESTO, POR FIN CONECTADA (REG-396) ──────────
      *
      * `incidentes-servidor.ts` nació porque «el 31-jul-2026 la IA de la
@@ -128,12 +158,14 @@ export async function GET(req: NextRequest) {
       detalle: {
         vigilados: ds.length, conProblema: duelen.length, saldosBajos: saldosQueDuelen.length,
         incidenciasIA: incidencias.length, incidenciasAvisadas,
+        colaPausada: pausadas, colaMuerta: muertas,
       },
     })
 
     return NextResponse.json({
       ok: true, diagnostico: ds, saldos, alerta,
       incidencias: { sinAvisar: incidencias.length, avisadas: incidenciasAvisadas },
+      cola: { pausadas, muertas },
     })
   } catch (e) {
     safeLog.error('[cron/vigilante]', e)
