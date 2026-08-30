@@ -3361,3 +3361,62 @@ rutas, axe 0, desborde 0** · **fusión contra `main`: limpia**.
 - El guion **no corre en CI** —necesita las ramas remotas— así que el número
   vuelve a depender de que alguien lo invoque. Menos frágil que escribirlo a
   mano, no infalible.
+
+---
+
+## Unidad 59 — el orden del tabulador: lo que se puede afirmar y lo que no
+
+**POR QUÉ.** WCAG 2.4.3, orden del foco. Este carril había probado que el foco
+**no se escapa** de un diálogo (unidades 48–51); nunca que el **orden** tenga
+sentido. Son criterios distintos.
+
+**LO QUE SE PUEDE AFIRMAR.** No hay **un solo `tabindex` positivo** en el árbol.
+Los diez que existen son `-1` (ocho cajas de diálogo que reciben el foco inicial)
+y `0` (dos). Ninguno **reordena** nada.
+
+Importa porque un `tabindex` positivo es el defecto clásico de 2.4.3: saca un
+control de su sitio y lo mete antes que todo, de modo que el orden del teclado
+deja de parecerse a lo que se ve. Es fácil de escribir, invisible con el ratón, y
+sólo se nota cuando ya hay diez.
+
+**LO QUE NO SE PUEDE AFIRMAR — y me costó tres intentos entenderlo.**
+
+La sonda recorrió 40 tabulaciones en cuatro pantallas comparando posiciones. En
+`/finanzas` informó un salto hacia atrás dentro de la tabla de cobros: «Anular
+(y=844) → Anular (y=683)». Parecía un orden roto.
+
+1. Primero **lo di por defecto del producto**.
+2. Luego lo achaqué al desplazamiento de la ventana y pasé a coordenadas de
+   documento. **Los números salieron idénticos**: `window.scrollY` era 0. Mi
+   segunda explicación también era falsa.
+3. La causa real: los botones viven en un `div` **con scroll propio**, que se
+   desplaza al mover el foco. Ni la ventana ni `scrollY` saben de eso.
+
+Leídos directamente, los doce botones están en **y = 1552 … 2193, estrictamente
+crecientes**. El orden era correcto desde el principio.
+
+O sea: **quinta vez en esta sesión que un instrumento mío fabrica un defecto**, y
+la primera que hacen falta tres pasadas para desmontarlo — porque mi primera
+corrección era tan falsa como la acusación.
+
+**CONCLUSIÓN HONESTA.** El **orden completo** del foco queda **NOT_PROVEN**: el
+recorrido con Tab no es fiable con contenedores que hacen scroll por dentro, y no
+encontré forma barata de hacerlo fiable. Lo que sí queda vigilado es la causa que
+**sí** se puede cazar leyendo.
+
+**REGRESSION.** `el-orden-del-tabulador-no-se-fuerza.test.ts`, 2 casos. El
+segundo existe para que el primero no se vuelva decorativo: comprueba que el
+barrido **encuentra los `tabindex` que sí hay** —si un día el patrón deja de
+casar, el caso de arriba pasaría para siempre, incluido el día que alguien
+escriba `tabIndex={3}`—. Probado al revés: cae nombrando el archivo.
+
+**COMPUERTAS.** `vitest` 10 823/10 824 · lint 95 · `tsc` limpio · `build`
+compila. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- **El orden del foco en sí no está probado.** Es la parte grande de 2.4.3 y se
+  queda sin cubrir, con el método fallido descrito para que el siguiente no
+  repita mis tres intentos.
+- `tabindex` asignado desde JavaScript (`el.tabIndex = 3`) **no se busca**.
+- Cuatro pantallas recorridas de 80, y sólo a 1440.
