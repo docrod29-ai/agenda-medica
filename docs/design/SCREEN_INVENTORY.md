@@ -45,10 +45,10 @@
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 797 | 0 | — | ✅ | — |
-| `/calendario` | medico | ✅ | 698 | 1 | — | ✅ | — |
+| `/calendario` | medico | ✅ | 717 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1212 | 6 | — | ✅ | — |
-| `/configuracion` | medico | ✅ | 2633 | 1 | — | ✅ | — |
+| `/configuracion` | medico | ✅ | 2645 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 6625 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 315 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 341 | 0 | — | ✅ | — |
@@ -64,7 +64,7 @@
 | `/finanzas` | medico | ✅ | 754 | 0 | — | ✅ | — |
 | `/guia` | medico | ✅ | 134 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 286 | 0 | — | ✅ | — |
-| `/membresias` | medico | ✅ | 281 | 0 | — | ✅ | — |
+| `/membresias` | medico | ✅ | 303 | 0 | — | ✅ | — |
 | `/migracion` | medico | ✅ | 371 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |

@@ -327,10 +327,22 @@ export default function ConfiguracionPage() {
   const TABS = TAB_GROUPS.flatMap(g => g.tabs.filter(t => !t.modoMin || mode === t.modoMin))
 
   if (loading) {
+    /*
+      LA PANTALLA NO PIERDE SU NOMBRE MIENTRAS CARGA.
+
+      Antes, `<main>` entero era un renglón en la esquina: 23 caracteres, sin
+      título y sin estructura — medido con la red lenta. El médico pulsaba
+      «Configuración» y se quedaba mirando un lienzo vacío sin saber si había
+      llegado. La cabecera es lo único que ya se sabe sin datos, así que se
+      queda; el contenido espera debajo.
+    */
     return (
-      <div role="status" style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" /> Cargando configuración…
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="nx-canvas">
+        <h1 className="t-h1" style={{ margin: '0 0 20px' }}>Configuración</h1>
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)' }}>
+          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" /> Cargando configuración…
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
       </div>
     )
   }

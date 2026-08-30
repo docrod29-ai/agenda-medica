@@ -12,7 +12,7 @@ import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus } from '@/types'
 import { getWeekDates } from '@/lib/availability'
 import { hoyISO, fechaISOLocal } from '@/lib/timezone'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAhoraMinutos } from '@/hooks/useAhoraMinutos'
@@ -193,7 +193,26 @@ export default function CalendarioPage() {
       </div>
 
       {/* Calendar body */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      {/*
+        EL HUECO NO ES UN DATO — tampoco en la agenda.
+
+        `loading` llegaba a las tres vistas y **ninguna lo usaba**: el prop
+        estaba escrito, pasado y sin conectar. El resultado, medido con la red
+        lenta: una semana entera dibujada y COMPLETAMENTE VACÍA, idéntica a
+        «no tienes ninguna cita». El médico podía mirar su semana y concluir
+        que la tenía libre mientras las citas venían de camino.
+
+        Es la regla 4 de seguridad clínica dicha en interfaz: ausencia de dato
+        no es dato de ausencia. Un aviso encima de la rejilla, mientras dura, y
+        `aria-busy` para quien no lo ve.
+      */}
+      <div className="nx-agenda-lienzo" style={{ flex: 1, overflow: 'hidden' }} aria-busy={loading || undefined}>
+        {loading && (
+          <div role="status" className="nx-agenda-cargando">
+            <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" />
+            Cargando la agenda…
+          </div>
+        )}
         {view === 'semana' && (
           <WeekView
             weekDates={weekDates}

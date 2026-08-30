@@ -20,6 +20,12 @@ import {
 import type { Patient } from '@/types'
 import { CreditCard, Plus, UserPlus, CircleDollarSign } from 'lucide-react'
 
+/* El lienzo de la página, escrito UNA vez: la rama de carga y la de contenido
+   comparten medida, así que no puede haber dos anchos distintos según cuándo se
+   mire. (Y el trinquete de diseño cuenta cada `maxWidth ≥ 400`: duplicarlo
+   subía el techo de lienzos a mano.) */
+const LIENZO: React.CSSProperties = { padding: 24, maxWidth: 1000, margin: '0 auto' }
+
 export default function MembresiasPage() {
   const { clinicId } = useClinic()
   const { user } = useAuth()
@@ -83,10 +89,26 @@ export default function MembresiasPage() {
     finally { setCobrandoId(null) }
   }
 
-  if (loading) return <div style={{ padding: 40 }}><Spinner center label="Cargando membresías…" /></div>
+  /*
+    LA PANTALLA NO PIERDE SU NOMBRE MIENTRAS CARGA.
+
+    Antes, `<main>` entero se sustituía por un renglón: sin título, sin
+    descripción, sin saber si era la pantalla que se había pedido. Medido con la
+    red lenta: 20 caracteres en toda la página. Ahora la cabecera se queda —es lo
+    único que ya se sabe— y debajo espera el contenido.
+  */
+  if (loading) return (
+    <div className="page-pad" style={LIENZO}>
+      <PageHeader
+        title="Membresías"
+        subtitle="Planes recurrentes de pacientes: consultas incluidas, descuentos, seguimiento."
+      />
+      <div style={{ padding: 40 }}><Spinner center label="Cargando membresías…" /></div>
+    </div>
+  )
 
   return (
-    <div className="page-pad" style={{ padding: 24, maxWidth: 1000, margin: '0 auto' }}>
+    <div className="page-pad" style={LIENZO}>
       <PageHeader
         title="Membresías"
         subtitle="Planes recurrentes de pacientes: consultas incluidas, descuentos, seguimiento."

@@ -3971,3 +3971,92 @@ limpio · `build` compila. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
 - El acuse por **cadena de antepasados** cuenta como bueno que se ilumine la fila
   entera. Es lo que ve el ojo, pero un control cuya única señal es la de su
   contenedor se distingue peor entre hermanos.
+
+---
+
+## Unidad 66 — una semana entera vacía que en realidad estaba cargando
+
+**LA COLUMNA QUE NADIE HABÍA MIRADO.** El encargo pide cerrar cualquier pantalla
+«sin loading/skeleton/progress terminado». Este carril había medido foco,
+estaticidad y solapes; los estados de carga, no. Y no se habían mirado por una
+razón concreta: **con la red del arnés duran milisegundos**. Así que se
+ralentizó a propósito todo lo que pide datos (1,6 s) y se fotografió el instante
+en que el armazón ya está y los datos vienen de camino.
+
+**LO QUE SALIÓ, Y LO GRAVE VA PRIMERO.**
+
+**`/calendario` dibujaba una semana entera COMPLETAMENTE VACÍA** —sus columnas,
+sus horas, su línea del ahora— **sin una palabra de que las citas venían de
+camino**. Indistinguible de «no tienes ninguna cita». El médico mira su semana de
+un vistazo, la ve libre, y planifica sobre eso.
+
+La causa, leída después de verlo: `loading` se calcula, se pasa a las tres vistas
+—`WeekView`, `DayView`, `MonthView`—, **las tres lo declaran en su firma y en su
+tipo, y ninguna lo usa en el cuerpo**. Escrito, pasado y sin conectar: la familia
+de defectos que este repositorio tiene nombrada, en su versión más cara.
+
+Y es, dicho en lenguaje de interfaz, la **regla 4 de seguridad clínica**:
+ausencia de dato no es dato de ausencia. Una rejilla vacía que significa
+«todavía no sé» y se lee «no hay nada» es el hueco tratado como dato.
+
+**`/configuracion` y `/membresias` perdían la pantalla entera.** `<main>` se
+sustituía por un renglón: **23 y 20 caracteres en toda la página**, sin título,
+sin descripción, sin estructura. Se pulsaba «Configuración» y quedaba un lienzo
+negro con una línea en la esquina. La cabecera es lo único que se sabe sin datos:
+ahora se queda, y el contenido espera debajo.
+
+**LO QUE NO ERA UN DEFECTO, Y POR QUÉ SE DICE.** Las otras 12 rutas medidas
+pintan su armazón primero y rellenan después — que es lo correcto. `/operaciones`,
+`/cumplimiento`, `/consultor`, `/guia` y `/consulta` salen «sin señal» porque a
+ese instante **ya tienen su contenido** (de 500 a 2 300 caracteres): no hay hueco
+que declarar. No se les tocó nada.
+
+**EL AVISO DE LA AGENDA, Y POR QUÉ FLOTA.** Va absoluto sobre la rejilla y no en
+el flujo: metido en el flujo empujaría la agenda hacia abajo al aparecer y la
+subiría al irse, y un salto de posición en la pantalla que más se mira todo el
+día se paga caro. Lleva `role="status"` y el lienzo lleva `aria-busy`, para quien
+no lo ve.
+
+**LO QUE VIGILA ESTO A PARTIR DE HOY.**
+
+- `src/__tests__/el-prop-que-llega-y-nadie-usa.test.ts` — la CAUSA, en CI, sin
+  navegador: la agenda pinta algo cuando `loading` es cierto, lo anuncia por
+  `aria-busy` y `role="status"`, y las tres vistas siguen recibiendo el prop
+  (si deja de llegar, el aviso se queda sin fuente). Probado al revés quitando
+  el aviso: caen dos de los tres casos. El caso mira el código **sin
+  comentarios**: un guardián que se satisface con su propia prosa no comprueba
+  nada, y en esta rama ya pasó una vez.
+- `npm run arnes:estado-de-carga` — el EFECTO, sobre el producto vivo y con la
+  red lenta: **15 rutas, todas conservan su nombre y declaran su hueco**.
+  Probado al revés quitando el arreglo de la agenda: la marca como «HUECO SIN
+  DECLARAR».
+
+**Y DE PASO, UNA PRUEBA QUE DEPENDÍA DE QUE NADIE SE ACORDARA.** Al exportar
+`PORTAL_PACIENTE_SECRET` en la terminal —para que el trinquete de interfaz
+pudiera medir el portal del paciente, que llevaba **66 combinaciones en vez de
+69** por faltarle— `portal-alcance.test.ts` se puso rojo con «expected null not
+to be null». No decía nada del producto: el archivo firma tokens a mano con el
+secreto de desarrollo y eso sólo vale mientras **nadie** haya exportado el del
+entorno, que `getSecret()` prefiere. Ahora la prueba lo fija ella con
+`vi.stubEnv`, y pasa con la variable puesta y sin ella.
+
+**COMPUERTAS.** `vitest` 10 834/10 835 · lint 95 · diseño sin deuda nueva · `tsc`
+limpio · `build` compila. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
+
+**Y EL TRINQUETE DE DISEÑO ME PARÓ UNA VEZ.** El arreglo de `/membresias`
+duplicaba el `maxWidth: 1000` de la página en la rama de carga y `lienzosAMano`
+subió de 42 a 43. Se arregló el cambio, no el techo: el lienzo se escribe una
+vez y las dos ramas lo comparten — que además impide que la pantalla mida
+distinto según cuándo se mire.
+
+**RESIDUAL_RISK.**
+
+- **No se mide el estado VACÍO de verdad** —datos llegados y ninguno—, que es
+  otro estado y pide sembrar un consultorio sin citas. **NOT_PROVEN.**
+- **No se mide el estado de ERROR** —la petición falla—. **NOT_PROVEN**, y es la
+  siguiente sonda natural.
+- El aviso se comprueba que exista, no que sea bueno: no se mide cuánto tarda en
+  aparecer ni si parpadea en cargas muy cortas.
+- Sólo la primera pantalla de cada ruta: lo que carga dentro de un panel o un
+  diálogo queda fuera.
+- El retardo es sintético. Sigue sin haber una medida de lo que tarda de verdad.

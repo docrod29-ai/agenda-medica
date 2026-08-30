@@ -3811,6 +3811,30 @@ html:has(.mi-barra-destinos) .theme-toggle {
 }
 .nx-enlace-riel:hover { color: var(--text); text-decoration: underline; }
 
+/* ── LA REJILLA VACÍA DICE QUE ESTÁ CARGANDO ───────────────────────────────
+   Va flotando sobre la rejilla y no en el flujo: metido en el flujo empujaría
+   la agenda hacia abajo al aparecer y la subiría al irse, y un salto de
+   posición en la pantalla que más se mira todo el día se paga caro. */
+.nx-agenda-lienzo { position: relative; }
+.nx-agenda-cargando {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
 /* El aviso operativo del riel es pulsable: que lo diga al apuntarlo. */
 .riel-aviso { transition: background var(--mov-rapido) var(--mov-curva); }
 button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--amber) 22%, transparent); }
