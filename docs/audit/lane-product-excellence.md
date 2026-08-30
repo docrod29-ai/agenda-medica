@@ -2829,3 +2829,90 @@ teclado hace fallar la prueba con el nombre del archivo.
 correcto. Ningún lector de pantalla real. Y `src/app/mi/**` —el portal del
 paciente— sigue **sin barrer**: es otra superficie y otra regla
 (`patient-facing-ai.md`), y no se declara buena.
+
+---
+
+## Unidad 52 — el portal del paciente, medido por primera vez
+
+**POR QUÉ.** `src/app/mi/**` estaba declarado como **sin barrer** desde la
+unidad 48. Es la superficie que ve el **paciente**, tiene su propia regla
+(`patient-facing-ai.md`) y este carril nunca la había mirado — no por decisión,
+sino porque no se podía entrar: el portal va por token HMAC, no por sesión.
+
+Se acuñó uno con el mismo secreto y el mismo cálculo que `lib/patient-token.ts`.
+**Y la primera versión del acuñado estaba mal**: puse el campo `exp` donde el
+módulo escribe `e`. Habría firmado bien y caducado mal. Se cazó leyendo el otro
+lado antes de usarlo, que es literalmente la regla «el dato tiene que LLEGAR».
+
+**FOUND — y le toca al paciente, en su teléfono.**
+
+A 390px, axe marcó el destino **«Perfil»** de la barra del portal como objetivo
+táctil insuficiente. No por pequeño —la caja mide 78×59— sino por **tapado**:
+`.theme-toggle` (fijo, `bottom: 16px; right: 16px`, z-index 199) le caía encima
+y dejaba **22px útiles**.
+
+Comprobado con `elementFromPoint` en los tres tercios del botón: en el centro
+contestaba `BUTTON.theme-toggle`. **El paciente toca su perfil y lo que pasa es
+que cambia el color de la pantalla.**
+
+**LA CAUSA RAÍZ, otra vez la misma familia.** La regla RTC-32 de `globals.css`
+retiró la convivencia entre botones flotantes razonando que sólo quedaba el
+toggle «fuera del shell —**login, registro, marketing**—», donde flota sobre
+formularios. La lista era correcta y **estaba incompleta**: el portal del
+paciente también vive fuera del shell, y allí debajo no hay un formulario sino
+su barra de destinos. Una regla retirada porque su causa desapareció en las
+superficies que alguien enumeró, con una superficie que no estaba en la lista.
+
+**CHANGE.** El toggle se aparta por encima de la barra —60px, el alto **medido**
+de la barra a 390px, más el aire de la esquina y el área segura—, con el mismo
+procedimiento que `.nx-push-optin` ya usa con el BottomNav. La barra recibe una
+clase estable para que la regla tenga a qué agarrarse.
+
+**PROOF.** Antes: axe 1 a 390px; el centro del botón contestaba el toggle.
+Después: **axe 0 en los tres anchos**, el toggle en y=724 y la barra en y=785
+(sin solape), y los tres tercios del botón contestan **el botón**.
+
+**LO QUE SE MIDIÓ Y RESULTÓ ESTAR BIEN.** Dos errores 403 en la consola, en los
+tres anchos. **No son un defecto**: el portal pide `documentos` y `paquetes` al
+cargar y, con un token de alcance `agenda`, el servidor los rechaza —
+correctamente — con un mensaje escrito para el paciente: «Pide a tu médico el
+acceso a tus recetas». Comprobado con `curl` contra las tres acciones: `session`
+200, las otras dos 403 **con su mensaje**. Es la autorización funcionando, y
+además funcionando como pide la regla del paciente. Quedan **declarados y
+congelados en 2** en el trinquete, no escondidos.
+
+(Al re-medir salieron **429** en vez de 403: eso era mi propio arnés
+machacando el endpoint y disparando su limitador. Mío, no del producto.)
+
+**REGRESSION.** `el-boton-flotante-no-tapa-la-barra-del-paciente.test.ts`,
+6 casos, con uno que existe **para que la prueba no sea una tautología**:
+comprueba que la regla **hace falta** —que el `bottom` de base del toggle sigue
+siendo menor que el alto de la barra—, de modo que si un día el toggle se mueve
+de verdad, la prueba diga que la regla sobra en vez de quedarse pidiendo algo
+inútil. Probado al revés tres veces: sin la regla, sin la clase de la barra, y
+moviendo el toggle a `bottom: 96px`.
+
+**Y EL PORTAL ENTRA EN EL TRINQUETE.** El script acuña su propio token; sin
+`PORTAL_PACIENTE_SECRET` **no lo mide y lo dice** —medirlo con un token
+inválido sería medir la pantalla de «enlace no válido» creyendo que es el
+portal—. La clave se guarda como `/mi/[token]`, sin el token, que caduca y
+cambia en cada corrida.
+
+**69 combinaciones. axe 0 en todas. Desborde 0 en todas.**
+
+**COMPUERTAS.** `vitest` **10 812/10 812, entero en verde** · trinquete de lint
+95 · trinquete de diseño sin deuda · `tsc` limpio · `npm run build` compila ·
+inventario regenerado.
+
+**RESIDUAL_RISK.**
+
+- El solape se comprobó **a mano** en el navegador (`elementFromPoint` antes y
+  después). La prueba automática es escáner de fuente: **no abre el navegador**.
+  Lo que sí queda automatizado es el axe del portal, en el trinquete.
+- El trinquete del portal **depende de una variable de entorno**. Sin ella no
+  falla: avisa y sigue. Es lo correcto —no se puede exigir un secreto en toda
+  máquina— y también significa que **se puede dejar de medir sin que nadie se
+  entere**. Declarado.
+- Se midió **una** pantalla del portal, la de inicio con alcance `agenda`. Los
+  otros cuatro destinos y un token de alcance mayor **no están medidos**.
+- El portal se midió con **un** paciente sintético y una cita.

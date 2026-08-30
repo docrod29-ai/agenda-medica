@@ -3599,3 +3599,26 @@ span.riel-aviso { cursor: default; }
    token AA. Antes era `opacity: 0.6` inline y axe medía 2.85 : 1 a 390px. */
 .cita-fila[data-pasada] .nx-ident { color: var(--text2); font-weight: 500; }
 .cita-fila[data-pasada] .riel-hora { color: var(--text2); font-weight: 500; }
+
+/* ── EL BOTÓN FLOTANTE NO SE PONE ENCIMA DE LA BARRA DEL PACIENTE ──────────
+
+   MEDIDO, no supuesto: en `/mi/[token]` a 390px, axe marcó el destino
+   «Perfil» como objetivo táctil insuficiente — 78×59 de caja, pero **22px
+   útiles**, porque `.theme-toggle` (fijo, `bottom: 16px; right: 16px`,
+   z-index 199) le cae encima. El paciente toca su perfil y lo que pasa es que
+   cambia el color de la pantalla.
+
+   POR QUÉ ESTABA AHÍ. La regla RTC-32 de más arriba retiró la convivencia de
+   los botones flotantes razonando que sólo quedaba el toggle «fuera del shell
+   —login, registro, marketing—», donde flota sobre formularios. La lista era
+   correcta y estaba incompleta: **el portal del paciente también vive fuera
+   del shell**, y allí no hay un formulario debajo sino su barra de destinos.
+   Una regla que se retira porque su causa desapareció en las superficies que
+   alguien enumeró, y una superficie no estaba en la lista.
+
+   EL NÚMERO. 60px es el alto real de la barra, medido en el navegador a 390px,
+   no un valor de catálogo. Más el aire de la esquina y el área segura del
+   teléfono. Mismo procedimiento que `.nx-push-optin` con el BottomNav. */
+html:has(.mi-barra-destinos) .theme-toggle {
+  bottom: calc(60px + 16px + env(safe-area-inset-bottom, 0px));
+}

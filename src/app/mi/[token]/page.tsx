@@ -786,7 +786,7 @@ export default function MiPortalPage() {
           cinco es el techo, no el objetivo. Van fijos abajo porque esta pantalla
           se usa con una mano, de pie, en la sala de espera.
         */}
-        <nav aria-label="Secciones" style={{
+        <nav aria-label="Secciones" className="mi-barra-destinos" style={{
           position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
           display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
           background: 'var(--s1)', borderTop: '1px solid var(--border)',

@@ -46,6 +46,7 @@
  */
 import { chromium } from 'playwright'
 import { readFileSync, writeFileSync } from 'node:fs'
+import { createHmac } from 'node:crypto'
 
 const CHROME = process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const BASE = process.env.BASE || 'http://localhost:3300'
@@ -80,6 +81,29 @@ const RUTAS = [
    */
   '/consulta/pac-001', '/expediente/pac-001',
 ]
+
+/**
+ * EL PORTAL DEL PACIENTE, que necesita entrar por su propia puerta.
+ *
+ * No lleva sesión de equipo: lleva un token HMAC. Se acuña aquí con el mismo
+ * secreto que el servidor —`PORTAL_PACIENTE_SECRET`— y el mismo cálculo que
+ * `lib/patient-token.ts`. Sin la variable no se mide y se dice; medir el portal
+ * con un token inválido sería medir su pantalla de «enlace no válido» creyendo
+ * que es el portal.
+ *
+ * Se midió por primera vez el 30-ago y salió con una violación: el botón
+ * flotante del tema tapaba el destino «Perfil» de la barra del paciente.
+ */
+function tokenDelPortal() {
+  const sec = process.env.PORTAL_PACIENTE_SECRET
+  if (!sec || sec.length < 16) return null
+  const payload = {
+    c: 'consultorio-demo-v10', p: 'pac-001',
+    e: Math.floor(Date.now() / 1000) + 30 * 86400, a: 'agenda', v: 0,
+  }
+  const b64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
+  return `${b64}.${createHmac('sha256', sec).update(b64).digest('base64url')}`
+}
 const ANCHOS = [390, 768, 1440]
 const ALTOS = { 390: 844, 768: 1024, 1440: 900 }
 
@@ -98,7 +122,13 @@ for (const w of ANCHOS) {
   await pag.locator('button[type=submit]').first().click()
   await pag.waitForTimeout(8000)
 
-  for (const ruta of RUTAS) {
+  const tokenPortal = tokenDelPortal()
+  const rutasDeEsteAncho = tokenPortal ? [...RUTAS, `/mi/${tokenPortal}`] : RUTAS
+  if (!tokenPortal && w === ANCHOS[0]) {
+    console.log('  · portal del paciente: SIN MEDIR (falta PORTAL_PACIENTE_SECRET)')
+  }
+
+  for (const ruta of rutasDeEsteAncho) {
     const errores = []
     pag.on('console', m => { if (m.type() === 'error') errores.push(m.text().slice(0, 120)) })
     await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded' })
@@ -129,7 +159,7 @@ for (const w of ANCHOS) {
         try { return h.cssRules.length > 20 } catch { return false }
       }).length,
     }))
-    if (dom.aterrizo !== ruta) {
+    if (dom.aterrizo !== ruta && !ruta.startsWith('/mi/')) {
       console.error(`\n  ${ruta}@${w}: la sonda aterrizó en ${dom.aterrizo}. No se mide lo que no se visita.\n`)
       process.exit(2)
     }
@@ -137,7 +167,10 @@ for (const w of ANCHOS) {
       console.error(`\n  ${ruta}@${w}: la página cargó SIN hoja de estilo. Para el servidor, borra .next, construye, arranca y vuelve a medir.\n`)
       process.exit(2)
     }
-    medido[`${ruta}@${w}`] = { axe, ariaCurrent: dom.ariaCurrent, desborde: dom.desborde, erroresDeConsola: errores.length }
+    // El token cambia en cada corrida (lleva caducidad): la clave se guarda
+    // sin él, o el trinquete no podría comparar dos días seguidos.
+    const clave = ruta.startsWith('/mi/') ? '/mi/[token]' : ruta
+    medido[`${clave}@${w}`] = { axe, ariaCurrent: dom.ariaCurrent, desborde: dom.desborde, erroresDeConsola: errores.length }
     pag.removeAllListeners('console')
   }
   await ctx.close()

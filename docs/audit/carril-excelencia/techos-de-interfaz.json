@@ -134,6 +134,12 @@
       "desborde": false,
       "erroresDeConsola": 0
     },
+    "/mi/[token]@390": {
+      "axe": 0,
+      "ariaCurrent": 1,
+      "desborde": false,
+      "erroresDeConsola": 2
+    },
     "/citas@768": {
       "axe": 0,
       "ariaCurrent": 2,
@@ -266,6 +272,12 @@
       "desborde": false,
       "erroresDeConsola": 0
     },
+    "/mi/[token]@768": {
+      "axe": 0,
+      "ariaCurrent": 1,
+      "desborde": false,
+      "erroresDeConsola": 2
+    },
     "/citas@1440": {
       "axe": 0,
       "ariaCurrent": 2,
@@ -397,6 +409,12 @@
       "ariaCurrent": 2,
       "desborde": false,
       "erroresDeConsola": 0
+    },
+    "/mi/[token]@1440": {
+      "axe": 0,
+      "ariaCurrent": 1,
+      "desborde": false,
+      "erroresDeConsola": 2
     }
   }
 }

@@ -76,7 +76,7 @@ describe('el trinquete de interfaz está cableado', () => {
      *
      * Así que la superficie medida es un trinquete más: SÓLO CRECE.
      */
-    expect(claves.length, 'la superficie medida no puede encoger').toBeGreaterThanOrEqual(60)
+    expect(claves.length, 'la superficie medida no puede encoger').toBeGreaterThanOrEqual(69)
   })
 
   it('los techos son números reales, no huecos', () => {
@@ -89,13 +89,33 @@ describe('el trinquete de interfaz está cableado', () => {
     }
   })
 
-  it('ninguna pantalla admite desbordamiento ni errores de consola', () => {
+  /**
+   * Errores de consola que NO son un defecto, con su razón y su número exacto.
+   *
+   * El portal del paciente pide `documentos` y `paquetes` al cargar, y con un
+   * token de alcance `agenda` el servidor los **rechaza correctamente** con un
+   * 403 y un mensaje escrito para el paciente («Pide a tu médico el acceso a
+   * tus recetas»). Comprobado con `curl` contra las tres acciones: `session`
+   * 200, las otras dos 403 con su mensaje.
+   *
+   * O sea: es la autorización funcionando, no una pantalla rota. El cliente no
+   * puede saber su alcance sin preguntar, así que pregunta y encaja la
+   * negativa.
+   *
+   * Se congela en 2: si sube, hay una llamada nueva que falla y sí habría que
+   * mirarla; si baja, alguien enseñó al cliente su alcance y hay que bajar el
+   * número aquí.
+   */
+  const CONSOLA_ESPERADA: Record<string, number> = { '/mi/[token]': 2 }
+
+  it('ninguna pantalla admite desbordamiento ni errores de consola sin explicar', () => {
     // Si mañana alguien «actualiza» los techos con una pantalla rota, esto lo
     // dice: son las dos cosas que nunca pueden estar bien.
     const { techos } = JSON.parse(readFileSync(RUTA_TECHOS, 'utf8'))
     for (const [clave, t] of Object.entries(techos as Record<string, { desborde: boolean; erroresDeConsola: number }>)) {
       expect(t.desborde, `${clave} desborda a lo ancho`).toBe(false)
-      expect(t.erroresDeConsola, `${clave} tiene errores de consola`).toBe(0)
+      const esperado = CONSOLA_ESPERADA[clave.split('@')[0]] ?? 0
+      expect(t.erroresDeConsola, `${clave} tiene errores de consola sin declarar`).toBe(esperado)
     }
   })
 
@@ -127,7 +147,13 @@ describe('el trinquete de interfaz está cableado', () => {
    * consulta— y lo que aporta aquí es **el número medido**, congelado en 1: si
    * baja a 0, el riel de escritorio también se apagó y eso sí es un defecto.
    */
-  const UN_SOLO_RIEL: Record<string, number> = { '/consulta/pac-001': 1 }
+  const UN_SOLO_RIEL: Record<string, number> = {
+    '/consulta/pac-001': 1,
+    // El portal del paciente tiene SU barra de cinco destinos y ninguno de los
+    // rieles del consultorio: marca uno, el suyo. No comparte navegación con el
+    // panel del médico, y no debe.
+    '/mi/[token]': 1,
+  }
 
   it('la navegación resuelta está congelada donde la hay', () => {
     // El arreglo de la unidad 17. Si alguien lo deshace y actualiza los techos,
