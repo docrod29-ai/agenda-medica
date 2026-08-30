@@ -41,7 +41,8 @@
     "arnes:nada-tapa": "node scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
     "arnes:estado-de-carga": "node scripts/carril-excelencia/el-hueco-dice-que-esta-cargando.mjs",
     "arnes:caida-de-datos": "node scripts/carril-excelencia/una-caida-no-borra-el-consultorio.mjs",
-    "arnes:consultorio-vacio": "node scripts/carril-excelencia/el-consultorio-recien-abierto.mjs"
+    "arnes:consultorio-vacio": "node scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
+    "arnes:texto-largo": "node scripts/carril-excelencia/el-texto-largo-cabe.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

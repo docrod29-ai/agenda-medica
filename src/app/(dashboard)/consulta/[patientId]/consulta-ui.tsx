@@ -6,7 +6,7 @@
  * - S: objeto de estilos compartido del formulario de consulta.
  * Puro/presentacional; sin estado compartido con el padre.
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { Sparkles } from 'lucide-react'
 
 // ── Subcomponentes ─────────────────────────────────────────────
@@ -120,6 +120,57 @@ export function Section({ id, title, icon, obligatorio, children }: { id?: strin
       </div>
       {children}
     </div>
+  )
+}
+
+/**
+ * EL CAMPO CRECE CON LO QUE HAY DENTRO.
+ *
+ * MEDIDO: escribiendo un padecimiento actual de tamaño normal para una primera
+ * vez, el campo se quedaba en **70 px mostrando 602 px de texto** en escritorio
+ * y **73 px de 2 887 px** a 390. El médico relee lo que escribió —o lo que le
+ * dictó a la IA— por una ventana de tres renglones, y encima justo antes de
+ * firmar, que es cuando más falta hace leerlo entero.
+ *
+ * `resize: vertical` no salva esto: en un teléfono no hay tirador que arrastrar.
+ *
+ * El alto se recalcula con el VALOR y no sólo al teclear, y eso es lo que
+ * importa: estas secciones **las rellena la IA** al estructurar la nota, sin que
+ * nadie pulse una tecla. Si sólo creciera al escribir, el caso que trajo el
+ * defecto —una nota dictada, larga, que aparece de golpe— seguiría igual.
+ *
+ * Con tope: 60 % del alto de la ventana. Sin él, una nota larga empujaría los
+ * botones de firmar fuera de la pantalla y habría que recorrer media nota para
+ * llegar a ellos. Pasado el tope, el campo hace su propio scroll, que es lo
+ * razonable.
+ */
+export function CampoNarrativo(props: {
+  etiqueta: string
+  valor: string
+  alCambiar: (v: string) => void
+  marcador?: string
+  deshabilitado?: boolean
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    // `auto` primero: sin esto el alto sólo sabría crecer, nunca encoger al
+    // borrar texto.
+    el.style.height = 'auto'
+    const tope = Math.max(160, Math.round(window.innerHeight * 0.6))
+    el.style.height = `${Math.min(el.scrollHeight, tope)}px`
+  }, [props.valor])
+  return (
+    <textarea
+      ref={ref}
+      aria-label={props.etiqueta}
+      value={props.valor}
+      onChange={e => props.alCambiar(e.target.value)}
+      placeholder={props.marcador ?? ''}
+      disabled={props.deshabilitado}
+      style={S.textarea}
+    />
   )
 }
 

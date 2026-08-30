@@ -226,8 +226,8 @@ que no midió es peor que uno que no mide.
 | **loading** | `arnes:estado-de-carga` — con la red lenta a propósito | **medido**, 15 rutas |
 | **error** | `arnes:caida-de-datos` — cortando los datos | **medido**, 5 rutas |
 | **empty** | `arnes:consultorio-vacio` — con un consultorio creado de cero | **medido**, 13 rutas |
+| **long content** | desborde: el trinquete, con el nombre más largo sembrado · texto libre: `arnes:texto-largo` | **medido a medias** ¹ |
 | **hierarchy** | — | **NOT_PROVEN** |
-| **long content** | — | **NOT_PROVEN** |
 | **benchmark quality** | — | **NOT_PROVEN** |
 
 ## Lo medido, ruta por ruta
@@ -268,19 +268,23 @@ a cambio de complicarle el merge a otro carril no es una mejora.
 ² `/dashboard` llegó a tener **dos botones «Consulta» imposibles de pulsar** bajo
 el aviso de notificaciones, sin posición de scroll que los liberara (unidad 64).
 
-## Las tres columnas sin medir, y por qué
+¹ **long content, a medias.** El desbordamiento lateral está medido en 69
+combinaciones con el nombre compuesto más largo que admite un registro civil
+mexicano, y el texto libre de la nota está medido a 1440 y 390 con catorce
+párrafos y una palabra de 96 letras sin cortes. **Lo que sigue sin probarse son
+las listas largas**: cientos de citas, de pacientes o de cobros.
+
+## Las dos columnas sin medir, y por qué
 
 - **hierarchy** — se intentó con una razón «mayor texto ÷ segundo» y **el número
   engañaba**: marcaba `/citas` como plana cuando lo que pasa es que su contenido
   —los nombres de los pacientes— pesa casi tanto como su cabecera, que es lo
   correcto en una agenda. Se descartó la métrica en vez de perseguirla. Sin
   sustituto, queda sin medir.
-- **long content** — nombres muy largos, notas de miles de palabras, listas de
-  cientos. No se ha probado.
 - **benchmark quality** — comparar contra una referencia externa es un juicio, y
   este carril sólo escribe lo que puede volver a medir.
 
-## Los siete guiones, para volver a correrlo
+## Los ocho guiones, para volver a correrlo
 
 ```bash
 npm run arnes:trinquete-interfaz   # axe + desborde, 69 combinaciones
@@ -290,6 +294,7 @@ npm run arnes:nada-tapa            # nada flotante tapa un control
 npm run arnes:estado-de-carga      # el hueco dice que está cargando
 npm run arnes:caida-de-datos       # una caída no borra el consultorio
 npm run arnes:consultorio-vacio    # el estado vacío, con un consultorio de cero
+npm run arnes:texto-largo          # el texto largo cabe y el campo lo enseña
 ```
 
 Todos exigen el servidor del arnés construido con la configuración del arnés, y

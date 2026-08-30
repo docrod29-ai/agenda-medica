@@ -145,7 +145,7 @@ import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/deri
 import { comoSeDice, discrepanciasDeMedicacion } from '@/lib/tareas-clinicas/reconciliacion'
 import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expediente/duracion-cumplida'
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
-import { DialogoDiarizado, Section, S } from './consulta-ui'
+import { DialogoDiarizado, Section, S, CampoNarrativo } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
@@ -5940,18 +5940,17 @@ export default function ConsultaActivaPage() {
         <Section key={s.key} title={s.label} obligatorio={s.obligatorio}>
           {/* El título del Section es visual, no está asociado: sin aria-label el
               lector de pantalla dice «edición de texto» a secas (axe: label, critical). */}
-          <textarea
-            aria-label={s.label}
-            value={s.value}
-            onChange={e => {
+          <CampoNarrativo
+            etiqueta={s.label}
+            valor={s.value}
+            alCambiar={v => {
               // Se anota que el médico ESCRIBIÓ. Lo usa la re-proyección con voces
               // separadas para no pisar su texto sin preguntar (ver `edicionManualRef`).
               edicionManualRef.current = true
-              setSecciones(prev => prev.map((x, j) => j === i ? { ...x, value: e.target.value } : x))
+              setSecciones(prev => prev.map((x, j) => j === i ? { ...x, value: v } : x))
             }}
-            placeholder={s.placeholder ?? ''}
-            disabled={firmada}
-            style={S.textarea}
+            marcador={s.placeholder ?? ''}
+            deshabilitado={firmada}
           />
         </Section>
       ))}

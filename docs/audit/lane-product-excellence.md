@@ -4228,3 +4228,82 @@ ambiental.
   después del primer día.
 - **Jerarquía, contenido largo y comparación externa siguen NOT_PROVEN.** La
   primera perdió su métrica por engañosa; las otras dos no se han intentado.
+
+---
+
+## Unidad 69 — 70 píxeles para 2 887 de nota
+
+**LA COLUMNA «CONTENIDO LARGO».** Y lo primero, lo que **ya estaba bien**, que es
+la mitad del trabajo de medir: el arnés siembra a propósito «el nombre compuesto
+más largo que un registro civil mexicano admite de verdad», y el trinquete de
+interfaz mide desborde con él dentro en 69 combinaciones. **Nada se sale de
+lado**, ni siquiera metiendo una palabra impronunciable de 96 letras sin un solo
+punto de corte. Eso queda dicho y no se toca.
+
+**LO QUE FALTABA POR MIRAR ERA EL TEXTO LIBRE, Y AHÍ SÍ.** Escribiendo un
+padecimiento actual de tamaño normal para una primera vez:
+
+| | campo | contenido |
+|---|---:|---:|
+| escritorio | **70 px** | 602 px |
+| 390 px | **73 px** | 2 887 px |
+
+El médico relee lo que escribió —o lo que le dictó a la IA— por una ventana de
+tres renglones. Y el momento en que más falta hace leerlo entero es **justo antes
+de firmar**.
+
+`resize: vertical` no salva esto: en un teléfono no hay tirador que arrastrar.
+
+**EL ARREGLO.** El campo crece con lo que tiene dentro, hasta el 60 % del alto de
+la ventana; pasado el tope hace su propio scroll. El tope no es decoración: sin
+él, una nota larga empujaría los botones de firmar fuera de la pantalla y habría
+que recorrer media nota para llegar a ellos.
+
+Medido después: **478 px de 478 px** en escritorio (todo), y **540 de 2 272** a
+390 (el tope). Comprobado también que **encoge**: 124 px con 780 caracteres → 70
+px al dejar 23. Y que un campo vacío sigue en 70.
+
+**EL DETALLE QUE HABÍA QUE ACERTAR.** El alto se recalcula **con el valor**, no
+al teclear. Estas secciones **las rellena la IA** al estructurar la nota, sin que
+nadie pulse una tecla — que es justamente el caso que trajo el defecto: una nota
+dictada, larga, que aparece de golpe. Colgarlo de `onChange` habría dejado ese
+caso intacto y habría parecido arreglado al probarlo a mano.
+
+**LO QUE VIGILA ESTO A PARTIR DE HOY.**
+
+- `el-campo-de-la-nota-ensena-lo-que-tiene-dentro.test.ts` — en CI: el campo
+  existe, sabe encoger (`height = auto` primero), tiene tope, y **depende del
+  valor**. Probado al revés cambiando la dependencia a `[]`: cae ese caso.
+- `npm run arnes:texto-largo` — con navegador, a 1440 y 390: nada se sale de lado
+  y el campo enseña lo que tiene. Probado al revés quitando el ajuste: marca
+  RENDIJA en los dos anchos.
+
+**Y UN GUARDIÁN DE ACCESIBILIDAD ME PARÓ, POR TERCERA VEZ EN ESTA SESIÓN, POR LA
+LETRA.** `a11y-flujo-central-etiquetas` exige que cada sección narrativa tenga
+nombre accesible —su título visible vive en el `<Section>` de al lado, sin
+asociar— y lo comprobaba buscando el `<textarea aria-label={s.label}>` escrito a
+mano. Ese textarea ya no existe: ahora es `CampoNarrativo`, que sigue poniendo el
+`aria-label`. Se actualizó para comprobar el **invariante en los dos sitios** —la
+página pasa la etiqueta, el componente la convierte en `aria-label`— y sigue
+cayendo si el nombre desaparece (probado quitándolo).
+
+Es la tercera vez: un guardián que ancla en la forma exacta del JSX caza
+refactorizaciones inocentes y deja pasar el defecto que le importa el día que
+alguien mueve una línea. Queda anotado como patrón, no como incidente.
+
+**COMPUERTAS.** `vitest` 10 847/10 848 · lint 95 · diseño sin deuda nueva ·
+`tsc` limpio · `build` compila. El rojo es `ops-timeout-y-punto-ciego`,
+ambiental.
+
+**RESIDUAL_RISK.**
+
+- **Listas largas sin probar**: cientos de citas, de pacientes o de cobros. Es la
+  otra mitad de «contenido largo» y sigue **NOT_PROVEN**.
+- El tope del 60 % **es una decisión, no una medida**. En una pantalla muy baja
+  puede quedarse corto; no se probó en alturas raras.
+- **Sólo la consulta.** Otras superficies de texto libre —adendas, comentarios,
+  el chat de corrección— no se miraron.
+- El campo crece al escribir, así que **la página se mueve mientras se teclea**.
+  Es el precio de verlo entero; no se midió si molesta en un dictado largo.
+- Nombres largos en lo que se **imprime** (receta, orden, PDF) siguen sin medir:
+  el arnés mide pantalla.
