@@ -195,7 +195,51 @@ export interface Source {
    */
   readonly textoRecuperado: string
   readonly url?: string
+  /**
+   * LA IDENTIDAD DE LA PUBLICACIÓN (WS-07, REG-398).
+   *
+   * Ausente significa **«no se sabe»**, nunca «no tiene». Un artículo sin DOI en
+   * este objeto puede tener uno perfectamente; lo que dice el hueco es que
+   * PubMed no lo dio o que nadie lo pidió. Es la regla 4 de seguridad clínica
+   * aplicada a la procedencia: ausencia de dato no es dato de ausencia.
+   *
+   * Por eso son opcionales y **no** se rellenan con cadena vacía: `''` se lee
+   * como «lo miré y no hay», que es una afirmación que nadie hizo.
+   */
+  readonly identidad?: IdentidadDePublicacion
   readonly [MARCA_SOURCE]: (s: 'source') => 'source'
+}
+
+/**
+ * Lo que hace citable y verificable a una publicación.
+ *
+ * ── POR QUÉ CADA CAMPO ──────────────────────────────────────────────────────
+ *
+ * · **`doi`** — el identificador que sobrevive a que la revista cambie de sitio.
+ *   Una URL de PubMed sirve para mirar; un DOI sirve para CITAR, y es lo que un
+ *   gestor de referencias necesita.
+ * · **`pmcid`** — dice si el texto completo está legalmente disponible. Se
+ *   resolvía en `textoCompletoPMC` y se tiraba, así que el sistema no podía
+ *   distinguir «sólo hay resumen» de «hay texto completo y no lo pedí».
+ * · **`revistaAbrev`** — la abreviatura ISO. `pubmed.ts` leía `<Title>` **o**
+ *   `<ISOAbbreviation>` y tiraba la otra; una cita se escribe con la
+ *   abreviatura y una lista se lee mejor con el nombre entero.
+ * · **`accesoAbierto`** — sólo se pone en `true` cuando la licencia de PMC lo
+ *   dice. **No se infiere de tener PMCID**: hay material en PMC que no es de
+ *   acceso abierto, y suponerlo llevaría a reproducir texto que no se puede.
+ */
+export interface IdentidadDePublicacion {
+  readonly doi?: string
+  readonly pmcid?: string
+  /** Abreviatura ISO de la revista, si la fuente la dio. */
+  readonly revistaAbrev?: string
+  /**
+   * `true` sólo si la licencia lo declara. `undefined` = no se sabe.
+   *
+   * Nunca `false` por defecto: «no consta que sea abierto» y «consta que es
+   * cerrado» son dos cosas distintas, y la segunda hay que haberla comprobado.
+   */
+  readonly accesoAbierto?: boolean
 }
 
 export interface EntradaSource {
@@ -207,6 +251,7 @@ export interface EntradaSource {
   readonly recuperadoEn: string
   readonly textoRecuperado: string
   readonly url?: string
+  readonly identidad?: IdentidadDePublicacion
 }
 
 export type MotivoRechazoSource =
@@ -223,6 +268,18 @@ export type MotivoRechazoSource =
  * las fábricas quedan puras y los ids/tests son reproducibles. Quien recupera
  * el documento es quien sabe cuándo lo recuperó.
  */
+/**
+ * ¿Esta identidad dice algo?
+ *
+ * Un `{}` o un `{ doi: '' }` no aporta nada y, peor, **parece** que se miró.
+ * Guardarlo haría que una pantalla pintara un bloque de procedencia vacío como
+ * si fuera un dato ausente comprobado.
+ */
+function identidadUtil(i: IdentidadDePublicacion | undefined): boolean {
+  if (!i) return false
+  return Boolean(i.doi?.trim() || i.pmcid?.trim() || i.revistaAbrev?.trim() || i.accesoAbierto === true)
+}
+
 export function fuente(entrada: EntradaSource): Resultado<Source, MotivoRechazoSource> {
   // El compilador ya bloquea los proveedores LICENSE_UNKNOWN, pero un objeto
   // que viene de Firestore o de un `as` no pasó por el compilador.
@@ -250,6 +307,7 @@ export function fuente(entrada: EntradaSource): Resultado<Source, MotivoRechazoS
     recuperadoEn,
     textoRecuperado,
     ...(entrada.url ? { url: entrada.url } : {}),
+    ...(identidadUtil(entrada.identidad) ? { identidad: entrada.identidad } : {}),
   }
   // Aserción inevitable y CONFINADA a la fábrica: la marca es `declare`, no
   // existe en tiempo de ejecución — sólo en el tipo.

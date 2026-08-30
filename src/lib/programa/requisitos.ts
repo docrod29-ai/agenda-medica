@@ -336,8 +336,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-07.identidad-de-revista', ws: 'WS-07', titulo: 'Identidad de revista normalizada, con alias, DOI, PMCID y acceso abierto',
-    estado: 'NOT_STARTED',
-    queFalta: 'Se lee <Title> O <ISOAbbreviation> y el otro se tira; PMCID se resuelve y se descarta; DOI llega a la UI pero desde-pubmed.ts no lo pasa a Source; no existe campo de acceso abierto ni de disponibilidad de texto completo.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-398 dejó de tirar los cuatro datos que ya se calculaban: las dos formas del nombre de la revista (antes «Title O ISOAbbreviation», y la otra se perdía), el PMCID (se resolvía con una petición y se descartaba), la licencia (se leía y se descartaba, así que no se podía distinguir «sólo hay resumen» de «hay texto completo que la licencia no deja reproducir») y el DOI, que llegaba a la pantalla y NO al Source — o sea, una afirmación respaldada nacía sin el identificador estable de su respaldo. Ausente significa «no se sabe», nunca «no tiene»: nada se rellena con cadena vacía ni con false, y tener PMCID no afirma acceso abierto. Falta: normalizar los ALIAS de revista (un catálogo de nombre entero ↔ abreviatura, que hoy no existe), validar el DOI contra Crossref, y un campo de disponibilidad de texto completo que no sea sólo PMC. Y falta pintarlo: la pantalla todavía no enseña el DOI ni dice «texto completo no reproducible por licencia».',
+    artefactos: ['src/types/evidence.ts', 'src/lib/evidencia/desde-pubmed.ts'],
+    pruebas: ['src/__tests__/la-identidad-de-la-publicacion-no-se-tira.test.ts'],
   }),
   R({
     id: 'WS-07.prestigio-no-es-calidad', ws: 'WS-07', titulo: 'La marca de la revista no sube la calidad metodológica',

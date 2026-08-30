@@ -27,6 +27,11 @@ export interface ArticuloPubMed {
   pmid: string
   titulo: string
   revista: string
+  /**
+   * Abreviatura ISO de la revista, si PubMed la dio. `undefined` = no la dio,
+   * **no** «no tiene».
+   */
+  revistaAbrev?: string
   anio: string
   resumen: string
   url: string
@@ -159,11 +164,24 @@ async function efetchArts(ids: string[], signal?: AbortSignal, testigo?: Testigo
   for (const b of bloques) {
     const pmid = extraerTag(b, 'PMID')
     const titulo = extraerTag(b, 'ArticleTitle')
+    /**
+     * LAS DOS FORMAS DEL NOMBRE, no una (REG-398).
+     *
+     * Aquí había `Title || ISOAbbreviation`: se quedaba con la que hubiera y
+     * tiraba la otra. Son datos distintos y con usos distintos — una lista se
+     * lee mejor con el nombre entero y una CITA se escribe con la abreviatura
+     * ISO— y el que se tiraba no se podía recuperar sin volver a preguntar.
+     */
     const revista = extraerTag(b, 'Title') || extraerTag(b, 'ISOAbbreviation')
+    const revistaAbrev = extraerTag(b, 'ISOAbbreviation') || undefined
     const anio = extraerTag(b, 'Year')
     const partes = [...b.matchAll(/<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/gi)].map(m => desescapar(m[1]))
     const resumen = partes.join(' ').slice(0, 1200)
-    if (pmid && titulo) arts.push({ pmid, titulo, revista, anio, resumen, tipo: tipoDeEstudio(b), doi: extraerDoi(b), url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` })
+    if (pmid && titulo) arts.push({
+      pmid, titulo, revista, revistaAbrev, anio, resumen,
+      tipo: tipoDeEstudio(b), doi: extraerDoi(b),
+      url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+    })
   }
   // Reordena por jerarquía de evidencia (meta-análisis/guías arriba), conservando
   // el orden de relevancia de PubMed dentro de cada nivel.
@@ -210,7 +228,41 @@ export async function textoCompletoPMC(
   pmids: string[],
   opts: { signal?: AbortSignal } = {},
 ): Promise<Record<string, string>> {
-  const out: Record<string, string> = {}
+  const r = await textoCompletoPMCConIdentidad(pmids, opts)
+  return r.textos
+}
+
+/**
+ * LO MISMO, PERO SIN TIRAR LO QUE YA SE AVERIGUÓ (WS-07, REG-398).
+ *
+ * `textoCompletoPMC` resolvía el **PMCID** y leía la **licencia** —los dos datos
+ * que dicen si el texto completo existe y si se puede reproducir— y devolvía
+ * sólo el texto. Los dos se perdían en la misma función que los calculó.
+ *
+ * Con eso, el sistema no podía distinguir tres cosas muy distintas:
+ *
+ *  · «este artículo sólo tiene resumen»;
+ *  · «tiene texto completo abierto y no se pidió»;
+ *  · «tiene texto completo y la licencia no deja reproducirlo».
+ *
+ * Las tres se veían igual: sin texto. Y la tercera es justamente la que hay que
+ * poder explicar.
+ *
+ * `accesoAbierto` se pone en `true` **sólo** cuando la licencia lo dice. Tener
+ * PMCID no lo implica: el subconjunto de PMC mezcla licencias, y suponerlo
+ * llevaría a reproducir lo que no se puede.
+ */
+export interface IdentidadPMC {
+  pmcid?: string
+  accesoAbierto?: boolean
+}
+
+export async function textoCompletoPMCConIdentidad(
+  pmids: string[],
+  opts: { signal?: AbortSignal } = {},
+): Promise<{ textos: Record<string, string>; identidad: Record<string, IdentidadPMC> }> {
+  const textos: Record<string, string> = {}
+  const identidad: Record<string, IdentidadPMC> = {}
   await Promise.all(pmids.slice(0, 3).map(async pmid => {
     try {
       const el = await ncbiFetch(conKey(`${EUTILS}/elink.fcgi?dbfrom=pubmed&db=pmc&retmode=json&id=${pmid}`), opts.signal)
@@ -219,6 +271,8 @@ export async function textoCompletoPMC(
       const dbs = ej?.linksets?.[0]?.linksetdbs ?? []
       const pmcid = dbs.flatMap((l: { links?: string[] }) => l.links ?? [])[0]
       if (!pmcid) return
+      /* Existe en PMC. Eso ya es un dato, aunque el texto no se pueda usar. */
+      identidad[pmid] = { pmcid: `PMC${String(pmcid).replace(/^PMC/i, '')}` }
       const fx = await ncbiFetch(conKey(`${EUTILS}/efetch.fcgi?db=pmc&id=${pmcid}&rettype=xml`), opts.signal)
       if (!fx.ok) return
       const xml = await fx.text()
@@ -226,14 +280,19 @@ export async function textoCompletoPMC(
        * ANTES de extraer una sola línea. Extraer y luego decidir dejaría el
        * texto en memoria y a un `return` de distancia de acabar en un prompt.
        */
-      if (!licenciaDePmc(xml).puede) return
+      const licencia = licenciaDePmc(xml)
+      /* Sólo se afirma el acceso abierto cuando la licencia lo permite; si no,
+         se deja SIN DECIR — no se escribe `false`, que sería afirmar lo
+         contrario sin haberlo comprobado. */
+      if (licencia.puede) identidad[pmid] = { ...identidad[pmid], accesoAbierto: true }
+      if (!licencia.puede) return
       const parrafos = [...xml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map(m => desescapar(m[1])).filter(Boolean)
       const cuant = parrafos.filter(p => /(\d{1,3}(\.\d+)?\s*%|\bCI\b|95%|\bHR\b|\bRR\b|\bOR\b|\bp\s*[=<]|\bNNT\b|hazard|confidence interval)/i.test(p))
       const texto = (cuant.length ? cuant : parrafos).join(' ').replace(/\s+/g, ' ').slice(0, 1600)
-      if (texto.trim().length > 120) out[pmid] = texto
+      if (texto.trim().length > 120) textos[pmid] = texto
     } catch { /* no OA / timeout: se queda con el resumen */ }
   }))
-  return out
+  return { textos, identidad }
 }
 
 // Filtro de evidencia de ALTA calidad (meta-análisis, revisiones sistemáticas, ECA, guías).

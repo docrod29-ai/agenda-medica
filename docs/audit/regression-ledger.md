@@ -13652,3 +13652,60 @@ justo la lectura sin cota que REG-394 acaba de poner bajo trinquete.
   proveedor está caído cuando el paciente escribe, esa respuesta se pierde y no
   queda en ninguna cola. Dicho, no arreglado.
 - **No prueba el webhook**, que sigue sin destino configurado.
+
+---
+
+## REG-398 — el DOI, el PMCID y la abreviatura se calculaban y se tiraban
+
+**QUÉ SE PEDÍA.** `WS-07.identidad-de-revista`: identidad de revista normalizada,
+con alias, DOI, PMCID y acceso abierto.
+
+**QUÉ HABÍA.** Cuatro datos que el sistema ya averiguaba y perdía, cada uno en un
+sitio distinto — los cuatro son los que hacen que una cita sea **verificable** en
+lugar de sólo legible.
+
+1. **La revista perdía una de sus dos formas.** `pubmed.ts` hacía
+   `extraerTag('Title') || extraerTag('ISOAbbreviation')`: se quedaba con la que
+   hubiera y tiraba la otra. Son datos distintos —una lista se lee con el nombre
+   entero, una CITA se escribe con la abreviatura ISO— y el que se perdía no se
+   recuperaba sin volver a preguntar.
+2. **El PMCID se resolvía y se descartaba.** `textoCompletoPMC` gastaba una
+   petición entera en averiguarlo y devolvía sólo el texto.
+3. **La licencia se leía y se descartaba igual.** Con eso el sistema no podía
+   distinguir tres cosas que se veían iguales —sin texto—: «sólo hay resumen»,
+   «hay texto completo abierto y no se pidió» y «hay texto completo y la licencia
+   no deja reproducirlo». La tercera es justo la que hay que poder explicar.
+4. **El DOI no llegaba al `Source`.** `ArticuloPubMed` lo traía desde hacía
+   tiempo y `desde-pubmed.ts` no lo pasaba. El `Source` es lo único sobre lo que
+   se anclan pasajes, así que **una afirmación respaldada nacía sin el
+   identificador estable de su respaldo**. El DOI sí llegaba a la pantalla, por
+   otro camino: el modelo y la vista sabían cosas distintas.
+
+### La regla que ordena el arreglo
+
+**Ausente significa «no se sabe», nunca «no tiene».** Los campos son opcionales y
+no se rellenan con `''` ni con `false`: una cadena vacía se lee como «lo miré y
+no hay», y `accesoAbierto: false` afirma que está cerrado. Dos cosas que nadie
+comprobó. Tampoco se guarda un `identidad: {}`, que parecería que se miró.
+
+Y en particular: **tener PMCID no implica acceso abierto.** El subconjunto de PMC
+mezcla CC0 y CC-BY con CC-BY-NC-ND; suponerlo llevaría a reproducir texto que no
+se puede, que es el defecto que `licencia-pmc.ts` ya existe para impedir. Sólo se
+afirma cuando la licencia lo dice.
+
+**LA PRUEBA.** `src/__tests__/la-identidad-de-la-publicacion-no-se-tira.test.ts`
+(10 casos). Probado al revés quitando el paso del DOI: cae. Incluye el caso que
+comprueba que la decisión de extraer sigue yendo **después** de leer la licencia
+y no antes — extraer y luego decidir dejaría el texto en memoria y a un `return`
+de acabar en un prompt.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No valida el DOI contra Crossref.** Se pasa el que PubMed dio; `pubmed.ts` ya
+  exige que empiece por `10.`, pero que resuelva es otra cosa.
+- **No hay disponibilidad de texto completo general**: hoy sólo se sabe de PMC.
+  Para una revista de paga, ausente sigue queriendo decir «no se sabe», y eso es
+  lo correcto.
+- **No pinta nada.** Que la pantalla enseñe el DOI o diga «texto completo no
+  reproducible por licencia» es otro trabajo. Aquí el dato deja de morir en la
+  función que lo calcula.

@@ -37,11 +37,32 @@ import {
  * `SIN_TEXTO_RECUPERADO`: sin texto no hay pasajes posibles, y sin pasajes no
  * hay claims — es preferible perder el artículo a fabricar respaldo.
  */
+/**
+ * LA IDENTIDAD DE LA PUBLICACIÓN, QUE ANTES SE PERDÍA AQUÍ (WS-07, REG-398).
+ *
+ * `ArticuloPubMed` traía el `doi` desde hacía tiempo y esta función **no lo
+ * pasaba**: el `Source` —lo único sobre lo que se anclan pasajes y, por tanto,
+ * lo único que respalda una afirmación— nacía sin él. El DOI llegaba a la
+ * pantalla por otro camino y no llegaba al modelo, así que una cita anclada no
+ * podía exportarse ni verificarse por su identificador estable.
+ *
+ * El `pmcid` y el acceso abierto no salen del artículo sino de haber ido a PMC,
+ * así que se reciben aparte: `textoCompletoPMCConIdentidad` los devuelve. Si
+ * nadie los pidió, quedan ausentes — que es lo que hay que decir, y no `false`.
+ */
 export function sourceDesdeArticuloPubMed(
   a: ArticuloPubMed,
   recuperadoEn: string,
+  dePmc?: { pmcid?: string; accesoAbierto?: boolean },
 ): Resultado<Source, MotivoRechazoSource> {
+  const identidad = {
+    ...(a.doi ? { doi: a.doi } : {}),
+    ...(a.revistaAbrev ? { revistaAbrev: a.revistaAbrev } : {}),
+    ...(dePmc?.pmcid ? { pmcid: dePmc.pmcid } : {}),
+    ...(dePmc?.accesoAbierto === true ? { accesoAbierto: true as const } : {}),
+  }
   return fuente({
+    ...(Object.keys(identidad).length ? { identidad } : {}),
     proveedor: 'pubmed',
     idExterno: a.pmid ?? '',
     titulo: a.titulo ?? '',

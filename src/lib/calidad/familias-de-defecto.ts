@@ -257,7 +257,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * sea, sospechar la avería antes de enterarse de ella. El canal de alerta ya
      * existía y el vigilante ya gritaba, pero por otras dos cosas.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396],
+    /**
+     * 398 es esta familia en su variante más silenciosa: el dato no es que no
+     * corra — es que se CALCULA y se tira, en la misma función que lo averiguó.
+     * `textoCompletoPMC` resolvía el PMCID y leía la licencia (dos peticiones) y
+     * devolvía sólo el texto; `pubmed.ts` leía las dos formas del nombre de la
+     * revista y se quedaba con una; y el DOI llegaba a la pantalla pero no al
+     * `Source`, así que el modelo y la vista sabían cosas distintas.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398],
   },
   {
     clave: 'se_contradice',

@@ -26,7 +26,7 @@ import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarConsul
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { costoConsultor, planPorNivel } from '@/lib/planes-ia'
-import { buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMC } from '@/lib/evidencia/pubmed'
+import { buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMCConIdentidad } from '@/lib/evidencia/pubmed'
 import {
   recuperarEvidenciaParaConsultor,
   type BusquedaDePubMed, type IntentoDeBusqueda, type RecuperacionParaConsultor,
@@ -439,7 +439,18 @@ export async function POST(req: NextRequest) {
     // Abstract completo (1200 vs 700): más contexto = mejor razonamiento (pubmed.ts ya trae 1200).
     // Texto completo de PMC (acceso abierto) de los 3 primeros: razonar sobre cifras
     // reales (NNT, IC95%, HR), no solo el resumen. Timeout corto para no demorar.
-    const fullText = await textoCompletoPMC(articulos.slice(0, 3).map(a => a.pmid), { signal: AbortSignal.timeout(8000) }).catch(() => ({} as Record<string, string>))
+    /**
+     * REG-398 · la misma llamada, sin tirar lo que ya averiguó. Resolver el
+     * PMCID y leer la licencia costaba dos peticiones y los dos datos se
+     * perdían dentro de la función que los calculó.
+     */
+    const pmc = await textoCompletoPMCConIdentidad(
+      articulos.slice(0, 3).map(a => a.pmid), { signal: AbortSignal.timeout(8000) },
+    ).catch(() => ({
+      textos: {} as Record<string, string>,
+      identidad: {} as Record<string, { pmcid?: string; accesoAbierto?: boolean }>,
+    }))
+    const fullText = pmc.textos
     const fuentes = articulos.map((a, i) => {
       const ft = fullText[a.pmid] ? `\nTEXTO COMPLETO (extracto con cifras):\n${fullText[a.pmid]}` : ''
       return `[${i + 1}] ${a.tipo ? `[${a.tipo}] ` : ''}${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 1200)}${ft}`
@@ -451,7 +462,19 @@ export async function POST(req: NextRequest) {
     // Respuesta en STREAMING (token a token). Las fuentes van en el meta (se pintan
     // de inmediato) y el texto llega en vivo. La verificación de citas es
     // DETERMINISTA en el cliente (cada [n] contra el rango de fuentes).
-    const articulosMin = articulos.map(a => ({ pmid: a.pmid, titulo: a.titulo, revista: a.revista, anio: a.anio, url: a.url, tipo: a.tipo, doi: a.doi }))
+    /**
+     * La identidad de la publicación viaja al cliente (REG-398): el DOI para
+     * poder citar de verdad, la abreviatura ISO porque es lo que lleva una cita,
+     * y `pmcid`/`accesoAbierto` para poder decir si el texto completo existía y
+     * si se pudo leer. Ausente = no se sabe, nunca «no tiene».
+     */
+    const articulosMin = articulos.map(a => ({
+      pmid: a.pmid, titulo: a.titulo, revista: a.revista, anio: a.anio,
+      url: a.url, tipo: a.tipo, doi: a.doi,
+      revistaAbrev: a.revistaAbrev,
+      pmcid: pmc.identidad[a.pmid]?.pmcid,
+      accesoAbierto: pmc.identidad[a.pmid]?.accesoAbierto,
+    }))
     return responderStream({
       key, model, system, user, maxTokens: 3200,
       fuente,
