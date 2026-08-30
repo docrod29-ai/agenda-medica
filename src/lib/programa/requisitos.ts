@@ -266,7 +266,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-04.idempotencia', ws: 'WS-04', titulo: 'Ninguna operación clínica no idempotente se reintenta a ciegas',
     estado: 'PARTIAL',
-    queFalta: 'lib/idempotencia.ts existe y cubre por intención. Falta recorrer receta, órdenes, citas y acciones de WhatsApp comprobando que ningún reintento pueda duplicar un acto clínico.',
+    queFalta: 'REG-395 recorrió la lista y encontró uno que no estaba en ella y es peor: la ADENDA nacía con addDoc, y una adenda es la corrección medicolegal de un documento inmutable que NO SE PUEDE BORRAR. El doble clic estaba cubierto por el botón bloqueado; el caso que no lo estaba es el que la red provoca sola —el commit sale, la respuesta se pierde, la pantalla PIDE reintentar—. Ya converge por intención. Del resto: receta y orden no son documentos (se imprimen desde la nota, comprobado); las citas ya son atómicas por transacción del servidor; WhatsApp tiene dedup. Falta el resto del inventario de addDoc (25 sitios): tareas clínicas, fotos clínicas, farmacia, ARCO y bloques de agenda siguen sin clave de intención.',
+    artefactos: ['src/lib/idempotencia.ts'],
+    pruebas: ['src/__tests__/una-adenda-no-se-escribe-dos-veces.test.ts'],
   }),
   R({
     id: 'WS-04.inyeccion-de-fallos', ws: 'WS-04', titulo: 'Comportamiento ante caída de proveedor, probado inyectando el fallo',

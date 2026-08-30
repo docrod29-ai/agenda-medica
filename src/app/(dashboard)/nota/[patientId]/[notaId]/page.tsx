@@ -13,6 +13,7 @@ import { encabezadoHospital } from '@/lib/hospital/bloque-nota'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota, agregarAdenda, getAdendas } from '@/lib/expediente/firestore'
+import { claveDeIntento } from '@/lib/idempotencia'
 import { avisosSelladosDe } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { HistorialVersiones } from '@/components/expediente/HistorialVersiones'
 import { getPatient } from '@/lib/firestore'
@@ -153,9 +154,23 @@ export default function NotaImprimiblePage() {
     }
   }
 
+  /**
+   * LA CLAVE DEL INTENTO DE ADENDA (REG-395).
+   *
+   * Se acuña una vez y **se conserva mientras el intento no termine bien**: eso
+   * es lo que hace que el reintento tras una respuesta perdida apunte al mismo
+   * documento en vez de crear una segunda enmienda. Al terminar bien se borra,
+   * porque escribir otra adenda después es una intención NUEVA y le toca clave
+   * nueva.
+   *
+   * Un ref y no un estado: cambiarla no tiene que repintar nada.
+   */
+  const claveAdendaRef = useRef<string | null>(null)
+
   const guardarAdenda = async () => {
     if (!clinicId || !textoAdenda.trim() || motivoAdenda.trim().length < 3) return
     setGuardandoAdenda(true)
+    claveAdendaRef.current ??= claveDeIntento()
     try {
       const nueva = await agregarAdenda(clinicId, patientId, notaId, {
         texto: textoAdenda.trim(),
@@ -182,8 +197,11 @@ export default function NotaImprimiblePage() {
         autorCedula: medicoEnSesion
           ? (medicoEnSesion.cedulaProfesional || undefined)
           : (config?.cedulaProfesional || undefined),
-      })
-      setAdendas(prev => [...prev, nueva])
+      }, claveAdendaRef.current)
+      /* Terminó bien: la intención se cerró y la siguiente adenda es otra. */
+      claveAdendaRef.current = null
+      /* Si el reintento convergió sobre la que ya estaba, no se pinta dos veces. */
+      setAdendas(prev => prev.some(a => a.id === nueva.id) ? prev : [...prev, nueva])
       setTextoAdenda(''); setMotivoAdenda(''); setModalAdenda(false)
       // NOM-004: la enmienda a una nota firmada queda en la bitácora inalterable.
       try {

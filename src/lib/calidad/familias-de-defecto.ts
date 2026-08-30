@@ -551,7 +551,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * acababan en `catch { }` con el comentario «no es crítico». Sin cuota, el
      * respaldo deja de escribirse y nadie se entera.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392],
+    /**
+     * 395 es esta familia AL REVÉS —no se pierde un dato, se duplica— y merece
+     * estar aquí porque el daño es el mismo: el expediente deja de decir la
+     * verdad. Una adenda nacía con `addDoc`, así que su identidad salía de la
+     * escritura y no de la intención. El doble clic estaba cubierto; lo que no,
+     * el caso que la red provoca sola: el commit sale, la respuesta se pierde,
+     * la pantalla PIDE que se reintente, y quedan dos enmiendas idénticas a una
+     * nota firmada. Que no se pueden borrar.
+     */
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395],
   },
   {
     clave: 'tarde',

@@ -832,6 +832,22 @@ export async function agregarAdenda(
   patientId: string,
   notaId: string,
   data: Omit<Adenda, 'id' | 'createdAt'>,
+  /**
+   * LA CLAVE DEL INTENTO (REG-395) — opcional para no romper a nadie, y la
+   * pantalla la pasa siempre.
+   *
+   * Sin ella, una adenda nacía con `addDoc`: identidad de la ESCRITURA, no de la
+   * intención. El botón se bloquea mientras la petición está en vuelo, así que
+   * el doble clic estaba cubierto — pero el caso que no lo estaba es el que la
+   * red provoca sola: **el primer intento COMMITEA y su respuesta se pierde**.
+   * El `catch` reactiva el botón, el médico vuelve a pulsar, y el expediente
+   * queda con DOS enmiendas idénticas a una nota firmada.
+   *
+   * Y una adenda no se puede borrar: es la corrección medicolegal de un
+   * documento inmutable (NOM-004). El expediente diría que el médico enmendó dos
+   * veces lo mismo, y eso ya no se quita.
+   */
+  claveDeAdenda?: string,
 ): Promise<Adenda> {
   /**
    * GP10 — una adenda sólo existe SOBRE una verdad ya firmada. La pantalla puede
@@ -862,10 +878,32 @@ export async function agregarAdenda(
 
   const createdAt = new Date().toISOString()
   const completo = { ...data, texto, motivo, autorUid, createdAt }
-  const ref = await addDoc(
-    collection(notaRef, 'adendas'),
-    stripUndefined(completo),
-  )
+  const adendas = collection(notaRef, 'adendas')
+
+  if (claveDeAdenda) {
+    const id = idIdempotente(clinicId, 'adenda', claveDeAdenda)
+    const ref = doc(adendas, id)
+    /**
+     * El candado es la TRANSACCIÓN y no un `getDoc` previo, por el mismo motivo
+     * que en la nota: entre leer y escribir cabe la otra pestaña.
+     *
+     * Y si ya existe **se devuelve lo que hay, sin pisarlo**: la adenda anterior
+     * puede llevar minutos en el expediente y reescribirla cambiaría su
+     * `createdAt`, que es justo el dato que una enmienda medicolegal no puede
+     * perder.
+     */
+    const previa = await runTransaction(db, async (tx) => {
+      const dentro = await tx.get(ref)
+      if (dentro.exists()) return dentro.data() as Adenda
+      tx.set(ref, stripUndefined(completo))
+      return null
+    })
+    if (previa) return { ...previa, id }
+    void logAudit({ evento: 'nota_adenda', clinicId, patientId, notaId, meta: { adendaId: id } })
+    return { ...completo, id }
+  }
+
+  const ref = await addDoc(adendas, stripUndefined(completo))
 
   // La bitácora registra QUE hubo una enmienda y cuál fue, no repite texto clínico.
   void logAudit({

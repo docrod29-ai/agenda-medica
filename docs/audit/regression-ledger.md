@@ -13459,3 +13459,73 @@ siempre.
 - **No dice si una lectura es CARA**, dice que puede crecer sin techo. Cuánto
   crece de verdad lo mide el emulador de WS-03 (REG-383), sobre datos.
 - **No cubre `onSnapshot`**, que es donde está el peor caso.
+
+---
+
+## REG-395 — un reintento dejaba dos enmiendas idénticas en el expediente
+
+**QUÉ SE PEDÍA.** `WS-04.idempotencia`: recorrer receta, órdenes, citas y
+acciones de WhatsApp comprobando que ningún reintento pueda duplicar un acto
+clínico. Al recorrerlo apareció uno que no estaba en esa lista y es peor que
+todos ellos.
+
+### El defecto
+
+`agregarAdenda` nacía con `addDoc`: la identidad del documento salía de la
+**escritura**, no de la **intención** — exactamente la causa raíz que
+`lib/idempotencia.ts` existe para cerrar, y que ya estaba cerrada para la nota,
+el cobro, el laboratorio y la lista de espera. La adenda se quedó fuera.
+
+El doble clic **sí** estaba cubierto: el botón se bloquea mientras la petición
+está en vuelo. El caso que no lo estaba es el que la red provoca sola:
+
+1. el médico pulsa «Guardar adenda»;
+2. Firestore **commitea**;
+3. la respuesta se pierde — pestaña dormida, túnel, wifi que salta;
+4. el `catch` pinta «No se pudo agregar la adenda. Intenta de nuevo.» y el
+   `finally` reactiva el botón;
+5. el médico hace exactamente lo que se le acaba de pedir.
+
+Dos enmiendas idénticas a una nota firmada.
+
+### Por qué es peor que un duplicado cualquiera
+
+Una adenda es la corrección medicolegal de un documento inmutable (NOM-004).
+**No se puede borrar.** El expediente diría para siempre que el médico enmendó
+dos veces lo mismo, y quien lo lea después no tiene forma de saber que fue la
+red. La pantalla, además, le pidió el segundo intento.
+
+### El arreglo
+
+El mecanismo canónico, sin inventar uno nuevo: ámbito `'adenda'` en
+`AmbitoIdempotente`, la pantalla acuña una `claveDeIntento()` y **la conserva
+mientras el intento no termine bien**, y la escritura va en transacción.
+
+Dos detalles que no son de estilo:
+
+- **`??=` y no `=`.** Con asignación directa cada reintento acuñaría una clave
+  nueva y la defensa no serviría de nada, con más código encima.
+- **Si el documento ya existe, se devuelve lo que hay SIN pisarlo.** La adenda
+  previa puede llevar minutos en el expediente, y reescribirla cambiaría su
+  `createdAt` — que en una enmienda medicolegal es la hora en que consta la
+  corrección, no un metadato.
+
+**LA PRUEBA.** `src/__tests__/una-adenda-no-se-escribe-dos-veces.test.ts` (10
+casos), con el defecto reproducido al revés: **sin clave, dos intentos dejan dos
+enmiendas**. Incluye el caso que impide pasarse de frenada —una intención NUEVA
+sí escribe una adenda nueva; la defensa no puede volver imposible enmendar dos
+veces de verdad— y los dos del aislamiento: la misma clave en otro consultorio da
+otro id, y una clave con `../` no puede convertirse en una ruta.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sólo la adenda.** El inventario de escrituras con `addDoc` tiene 25 sitios;
+  los demás —tareas clínicas, fotos clínicas, farmacia, ARCO, bloques de agenda—
+  siguen sin clave de intención. Queda en el censo, no arreglado aquí.
+- **Receta y orden no son documentos**: se imprimen desde la nota, así que no hay
+  duplicado que evitar en Firestore. Se comprobó antes de darlo por hecho.
+- **Las citas ya son atómicas** por transacción del servidor con re-chequeo de
+  conflicto; un reintento no duplica, aunque puede devolver «conflicto» por su
+  propio documento — molesto, no peligroso, y se deja dicho.
+- **No prueba Firestore.** La transacción está doblada; lo que se ejercita es que
+  el id venga de la intención y que una convergencia no reescriba.
