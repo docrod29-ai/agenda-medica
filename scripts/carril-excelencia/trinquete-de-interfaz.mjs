@@ -116,7 +116,30 @@ for (const w of ANCHOS) {
   const ctx = await nav.newContext({ viewport: { width: w, height: ALTOS[w] } })
   const pag = await ctx.newPage()
   await pag.goto(BASE + '/login', { waitUntil: 'domcontentloaded' })
-  await pag.waitForTimeout(2500)
+  /**
+   * ENTRAR ES PARTE DE MEDIR.
+   *
+   * Si el campo de correo no aparece, la causa casi siempre es la misma y no es
+   * la pantalla: un `npm run build` de las compuertas reconstruyó `.next` con
+   * OTRA configuración —sin emuladores— mientras este servidor seguía en pie.
+   * Ha pasado OCHO veces en este carril, y las dos primeras me costaron
+   * conclusiones falsas sobre el producto.
+   *
+   * La comprobación de hoja de estilo de más abajo no lo caza: el CSS está
+   * perfecto; lo que falla es que la aplicación apunta a Firebase de verdad y el
+   * formulario no llega a montarse. Un `TimeoutError` de Playwright tampoco lo
+   * dice. Esto sí.
+   */
+  try {
+    await pag.locator('input[type=email]').first().waitFor({ timeout: 20000 })
+  } catch {
+    console.error(`\n  No apareció el formulario de acceso en ${BASE}/login.`)
+    console.error('  Casi seguro: el servidor sirve un build hecho SIN la configuración del')
+    console.error('  arnés. Para el servidor, borra .next, construye con las variables del')
+    console.error('  arnés (NEXT_PUBLIC_FIREBASE_EMULATORS=1 …) y arranca otra vez.\n')
+    await nav.close()
+    process.exit(2)
+  }
   await pag.locator('input[type=email]').first().fill('demo@nexusmed.test')
   await pag.locator('input[type=password]').first().fill('demo1234')
   await pag.locator('button[type=submit]').first().click()

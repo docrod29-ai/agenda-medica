@@ -3499,3 +3499,38 @@ ambiental.
   en el trinquete de 69 combinaciones.
 - `/nota` sin `notaId` pinta «Nota no encontrada» y se midió limpia: es un estado
   vacío legítimo, **no el documento**.
+
+---
+
+## Unidad 61 — comprobar que no rompí lo que ya había certificado
+
+**POR QUÉ.** Las unidades 55–60 tocaron **componentes compartidos**: `ui/Modal`
+pasó a usar el gancho de teclado, la pantalla de consulta ganó tres regiones
+vivas, UCI otras dos, y el documento de receta cambió dos colores. Todo eso lo
+ven pantallas que este carril ya había medido y congelado.
+
+Certificar 69 combinaciones y luego cambiar el diálogo que usan todas, sin
+volver a medir, sería exactamente el hueco que este carril persigue.
+
+**RESULTADO: sin regresión.** Las **69 combinaciones** —23 rutas × 3 anchos,
+incluidos el portal del paciente, la consulta y el expediente— siguen en **axe 0,
+sin desborde**, contra los techos ya escritos.
+
+**Y EL ARNÉS ME LO PUSO DIFÍCIL UNA VEZ MÁS.** Al ir a medir, el trinquete murió
+con un `TimeoutError` seco de Playwright: la compuerta de `build` de la unidad 60
+había reconstruido `.next` con la configuración **sintética de producción**, y la
+aplicación apuntaba a Firebase de verdad. **Octava vez.**
+
+Las unidades 53 y 55 pusieron una guarda que lo dice con palabras en los dos
+guiones nuevos… y el trinquete, que es el más antiguo y el que más se usa, **no
+la tenía**. La lección estaba aprendida en dos sitios y no en el de al lado — la
+familia de siempre, otra vez mía. Ahora la tiene, con el número de veces que ha
+pasado escrito dentro.
+
+(La comprobación de hoja de estilo que añadió la unidad 46 **no** caza este caso:
+el CSS carga perfecto —200 y 93 KB— y lo que falla es que el formulario no llega
+a montarse. Dos síntomas distintos del mismo tropiezo, y hacían falta las dos
+guardas.)
+
+**COMPUERTAS.** `vitest` 10 827/10 828 · lint 95 · trinquete de interfaz **69/69
+sin regresión**. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
