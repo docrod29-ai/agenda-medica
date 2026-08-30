@@ -2081,3 +2081,56 @@ Así que la evaluación estructurada contra el referente es **BLOCKED_EXTERNAL c
 evidencia**, no una excusa. Y sigue en pie la consecuencia: **ninguna dimensión
 se declara PARITY ni ABOVE**, porque declararlo sin haber visto el referente es
 justo lo que el §26 prohíbe.
+
+---
+
+## Unidad 43 — se protegió el ENVÍO de WhatsApp y no la CONEXIÓN
+
+**CÓMO SE LLEGÓ AQUÍ.** Comprobando una afirmación del propio repositorio. La
+cabecera de `lib/fetch-con-timeout.ts` dice que nació, entre otras cosas, porque
+«los envíos de WhatsApp, igual: cinco `fetch` sin timeout dentro de un cron que
+recorre todos los consultorios **en serie**».
+
+**Verificado: `lib/whatsapp-send.ts` usa el helper en 5 de 5.** La afirmación era
+cierta y el arreglo llegó. Eso también hay que escribirlo.
+
+**FOUND.** El mismo barrido encontró **siete `fetch` crudos** a la API de Meta en
+los caminos de **conexión**: seis en `meta-connect` y uno en `manual-connect`. Se
+protegió el envío y no la conexión — el patrón «alguien arregló uno y no el de al
+lado» por cuarta vez en esta vuelta.
+
+**POR QUÉ NO ES SÓLO UNA FACTURA.** Aquel módulo argumenta con el coste: «un
+socket colgado del proveedor inmoviliza el lambda los 300 segundos completos,
+facturados por GB-segundo». Cierto, y no es lo peor.
+
+El médico que conecta su WhatsApp pulsa el botón y **lo ve girar minutos**,
+porque su petición espera a esta ruta, que espera a Meta. Es la misma familia que
+el «Guardando…» eterno de la unidad 37: ni error, ni éxito, ni nada que hacer.
+`setConnecting(false)` está escrito en `configuracion`, y bien, y no llega a
+correr hasta que el servidor conteste.
+
+**Eso es lo que lo hace de este carril y no del de endurecimiento**: el síntoma
+es un recorrido del médico, no una línea de la factura. Los dos archivos están
+libres del otro carril; verificado antes de tocarlos.
+
+**CHANGE.** Las siete llamadas pasan por `fetchConTimeout`, y **«se tardó» se
+contesta distinto de «falló»**: `TiempoAgotado` → **504** con «Meta no respondió
+a tiempo. **No se cambió nada**: vuelve a intentar la conexión.»
+
+Esa última frase es la que decide qué hace el médico: reintentar, en vez de
+ponerse a revisar unas credenciales que están bien.
+
+**REGRESSION.** `conectar-whatsapp-no-cuelga-la-funcion.test.ts`, 4 casos, uno de
+ellos vigilando que **el envío siga protegido** — si al arreglar la conexión se
+rompiera aquello, habríamos cambiado un agujero por otro. Probado al revés dos
+veces.
+
+**RESIDUAL_RISK.**
+
+- Escáner de fuente: **no llama a Meta ni simula un socket colgado**. Que el
+  helper aborte de verdad lo cubre `ops-timeout-y-punto-ciego`, que en este
+  entorno falla por red —necesita una IP que trague paquetes— e igual en `main`.
+- **No se han barrido las demás integraciones del servidor** (Google Calendar,
+  Stripe). Este carril ha mirado el camino de WhatsApp y **no declara buenos los
+  otros**.
+- No se juzga el valor del tiempo máximo: lo pone el helper por omisión.
