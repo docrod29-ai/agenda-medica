@@ -578,11 +578,13 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     pruebas: ['src/__tests__/api-authz-guard.test.ts', 'src/__tests__/el-arnes-de-carga-no-inventa-un-cero.test.ts'],
   }),
   R({
-    id: 'WS-13.correlation-id', ws: 'WS-13', titulo: 'Traza navegador → API → job → proveedor sin PHI',
-    estado: 'PARTIAL',
-    queFalta: 'REG-388: el hilo existe del navegador al asiento del libro de costos, en las 16 rutas de IA, con la forma validada para que no pueda llevar PHI. Faltan los trabajos de fondo —un cron no nace de un navegador y su traza tendría que acuñarse al arrancar— y mandarla al proveedor como cabecera.',
-    artefactos: ['src/lib/observabilidad/correlacion.ts'],
-    pruebas: ['src/__tests__/la-traza-cruza-la-frontera.test.ts'],
+    id: 'WS-13.correlation-id', ws: 'WS-13', titulo: 'Una traza que cruza del navegador al proveedor y al libro',
+    estado: 'PROVEN',
+    evidencia: 'REG-388 cosió el hilo del navegador al asiento en las 16 rutas de IA. REG-418 cerró los dos extremos: los cinco crons acuñan su traza AL ARRANCAR —no aceptan la que les manden, porque quien tenga el secreto del cron puede mandarle una cabecera y elegir la traza— y el gateway la manda al proveedor como cabecera validada, la misma que va al asiento.',
+    comando: 'npx vitest run src/__tests__/un-trabajo-de-fondo-tambien-deja-hilo.test.ts',
+    resultado: '12 casos. Los cinco crons, y en TODOS sus latidos incluido el del catch — que es el de la corrida que falló, la que alguien va a querer seguir. Sin traza no se manda cabecera vacía.',
+    artefactos: ['src/lib/observabilidad/correlacion.ts', 'src/lib/ops/latido.ts', 'src/lib/ia/gateway.ts'],
+    pruebas: ['src/__tests__/un-trabajo-de-fondo-tambien-deja-hilo.test.ts'],
   }),
   R({
     id: 'WS-13.alertas', ws: 'WS-13', titulo: 'Alertas sobre degradación, 5xx, fallo de guardado y anomalía de autorización',

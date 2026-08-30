@@ -28,12 +28,16 @@ import { enviarAlertaOps } from '@/lib/ops/alerta'
 import {
   incidentesSinAvisar, marcarAvisadas, textoDeIncidencias,
 } from '@/lib/ia/incidentes-servidor'
+import { correlacionDeTrabajo } from '@/lib/observabilidad/correlacion'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
 export const maxDuration = 30
 
 export async function GET(req: NextRequest) {
+  /* REG-418 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
+     fondo no nace de un navegador, así que no acepta la que le manden. */
+  const correlacion = correlacionDeTrabajo()
   const auth = req.headers.get('authorization')
   // Mismo candado fail-closed que los otros crons.
   if (!CRON_SECRET) {
@@ -154,6 +158,7 @@ export async function GET(req: NextRequest) {
     // El vigilante también late: si se cae ÉL, el propio diagnóstico lo enseña
     // la próxima vez que alguien mire.
     await registrarLatido('vigilante', {
+      correlacion,
       ok: true, duracionMs: Date.now() - arranque,
       detalle: {
         vigilados: ds.length, conProblema: duelen.length, saldosBajos: saldosQueDuelen.length,
@@ -170,6 +175,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     safeLog.error('[cron/vigilante]', e)
     await registrarLatido('vigilante', {
+      correlacion,
       ok: false, duracionMs: Date.now() - arranque, error: e instanceof Error ? e.message : 'error',
     })
     return NextResponse.json({ ok: false, error: 'El vigilante falló' }, { status: 500 })

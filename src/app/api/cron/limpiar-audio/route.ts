@@ -35,6 +35,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import admin from '@/lib/firebase-admin'
 import { PREFIJO_AUDIO, HORAS_DE_VIDA, veredicto } from '@/lib/expediente/audio-caduco'
 import { registrarLatido } from '@/lib/ops/latido'
+import { correlacionDeTrabajo } from '@/lib/observabilidad/correlacion'
 
 const CRON_SECRET = process.env.CRON_SECRET
 const BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? ''
@@ -43,6 +44,9 @@ const BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? ''
 const TOPE_POR_PASADA = 500
 
 export async function GET(req: NextRequest) {
+  /* REG-418 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
+     fondo no nace de un navegador, así que no acepta la que le manden. */
+  const correlacion = correlacionDeTrabajo()
   const auth = req.headers.get('authorization')
   // Mismo candado fail-closed que el cron de recordatorios: sin CRON_SECRET en
   // producción no corre, porque un endpoint que borra no puede quedar abierto.
@@ -106,6 +110,7 @@ export async function GET(req: NextRequest) {
     // El latido, para que el vigilante sepa que este barrido sigue vivo: si
     // deja de correr, se acumula PHI sin que nadie se entere.
     await registrarLatido('limpiar-audio', {
+      correlacion,
       ok: true, duracionMs: Date.now() - arranqueCron,
       detalle: { revisados: objetos.length, borrados, fallos, hayMas },
     })
@@ -116,6 +121,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     safeLog.error('[cron/limpiar-audio]', e)
     await registrarLatido('limpiar-audio', {
+      correlacion,
       ok: false, duracionMs: Date.now() - arranqueCron,
       error: e instanceof Error ? e.message : 'error',
     })

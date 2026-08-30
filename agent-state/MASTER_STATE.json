@@ -21,12 +21,21 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " D src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/api/cron/asientos/route.ts",
+    " M src/app/api/cron/limpiar-audio/route.ts",
+    " M src/app/api/cron/reminders/route.ts",
+    " M src/app/api/cron/retencion/route.ts",
+    " M src/app/api/cron/vigilante/route.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/finanzas/cost-ledger.ts",
-    " M src/lib/observabilidad/latencias.ts",
+    " M src/lib/ia/gateway.ts",
+    " M src/lib/observabilidad/correlacion.ts",
+    " M src/lib/ops/latido.ts",
+    " M src/lib/programa/censo-sellado.json",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/un-solo-percentil-en-el-arbol.test.ts"
+    "?? src/__tests__/un-trabajo-de-fondo-tambien-deja-hilo.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -62,10 +71,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 268,
+    "regsEnElLedger": 269,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 840,
-    "casosDePrueba": 10484,
+    "archivosDePrueba": 841,
+    "casosDePrueba": 10496,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

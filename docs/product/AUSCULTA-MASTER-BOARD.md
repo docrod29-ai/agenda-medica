@@ -26,14 +26,14 @@
 
 | Estado | Cuántos |
 |---|---|
-| `PARTIAL` | 35 |
-| `PROVEN` | 25 |
+| `PARTIAL` | 34 |
+| `PROVEN` | 26 |
 | `BLOCKED_EXTERNAL` | 14 |
 | `NOT_STARTED` | 2 |
 | `NEEDS_CLINICAL_REVIEW` | 1 |
 | `DEFERRED_BY_OWNER` | 1 |
 
-### Internamente accionables — 37
+### Internamente accionables — 36
 
 Lo que se puede cerrar sin pedirle nada a nadie. Si esta lista está vacía, el
 trabajo interno se acabó.
@@ -68,7 +68,6 @@ trabajo interno se acabó.
 | `WS-12.contratos-de-evaluacion` | `PARTIAL` |
 | `WS-12.router` | `PARTIAL` |
 | `WS-12.p99` | `PARTIAL` |
-| `WS-13.correlation-id` | `PARTIAL` |
 | `WS-13.alertas` | `PARTIAL` |
 | `WS-13.mfa-servidor` | `PARTIAL` |
 | `TR-VOZ.pipeline` | `PARTIAL` |
