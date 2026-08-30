@@ -43,7 +43,8 @@
     "arnes:caida-de-datos": "node scripts/carril-excelencia/una-caida-no-borra-el-consultorio.mjs",
     "arnes:consultorio-vacio": "node scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
     "arnes:texto-largo": "node scripts/carril-excelencia/el-texto-largo-cabe.mjs",
-    "arnes:listas-largas": "node scripts/carril-excelencia/las-listas-largas.mjs"
+    "arnes:listas-largas": "node scripts/carril-excelencia/las-listas-largas.mjs",
+    "arnes:tema-claro": "node scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

@@ -219,7 +219,7 @@ que no midió es peor que uno que no mide.
 |---|---|---|
 | **desktop** (1440) | `arnes:trinquete-interfaz` — axe + desborde | **medido**, 23 rutas |
 | **390 px** | el mismo, a 390 y 768 | **medido**, 23 rutas × 3 anchos = 69 |
-| **accessibility** | axe-core en las 69 combinaciones · foco visible en 45 campos | **medido** |
+| **accessibility** | axe-core en las 69 combinaciones · foco visible en 45 campos · **y el tema claro aparte** (`arnes:tema-claro`: 44 combinaciones, axe 0, foco 0/91) | **medido** |
 | **visual regression** | techos congelados en `techos-de-interfaz.json`; sólo pueden bajar | **medido** |
 | **staticness** | `arnes:acuse-puntero` — controles habilitados que no acusan el puntero | **medido**, 22 rutas |
 | **motion/feedback** | lo mismo, más `arnes:foco-visible` y `arnes:menos-movimiento` | **medido** |
@@ -286,7 +286,7 @@ intentó dos veces y ninguna de las dos versiones medía lo que decía (ver unid
 - **benchmark quality** — comparar contra una referencia externa es un juicio, y
   este carril sólo escribe lo que puede volver a medir.
 
-## Los nueve guiones, para volver a correrlo
+## Los diez guiones, para volver a correrlo
 
 ```bash
 npm run arnes:trinquete-interfaz   # axe + desborde, 69 combinaciones
@@ -298,6 +298,7 @@ npm run arnes:caida-de-datos       # una caída no borra el consultorio
 npm run arnes:consultorio-vacio    # el estado vacío, con un consultorio de cero
 npm run arnes:texto-largo          # el texto largo cabe y el campo lo enseña
 npm run arnes:listas-largas        # 250 pacientes y 90 citas, en su propio consultorio
+npm run arnes:tema-claro           # axe y foco en el OTRO tema, que nadie miraba
 ```
 
 Todos exigen el servidor del arnés construido con la configuración del arnés, y

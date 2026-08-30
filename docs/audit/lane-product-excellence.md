@@ -4373,3 +4373,88 @@ compuertas de navegador: no hay nada que hayan podido dejar de cubrir. El rojo d
   con cien notas **no se miraron**.
 - No se probó el desplazamiento con el dedo ni el consumo de memoria.
 - El guion deja su médico y su consultorio en el emulador. Es un emulador.
+
+---
+
+## Unidad 71 — la mitad de los colores del producto no la miraba nadie
+
+**LO QUE FALTABA MIRAR.** El trinquete de interfaz mide 69 combinaciones y las
+mide **todas en el mismo tema**. Este producto tiene dos, y sus tokens no son los
+mismos: `--nexus` vale `#2AA5B5` en oscuro y `#12626E` en claro, las superficies
+se invierten y `--nexus-soft` cambia de alfa.
+
+Es decir: **la mitad de las decisiones de color de este producto no las estaba
+mirando este carril**. Y no era una preocupación teórica: el historial está lleno
+de defectos que sólo salían en claro —«`--teal` de fondo daba 2.99:1 **en
+claro**», «con `--nexus` daba 2.93:1 — axe, 390px»—.
+
+**Y MI PRIMERA MEDICIÓN DIJO QUE TODO ESTABA BIEN. ERA MENTIRA.** Dos corridas,
+1440 y 390, cero violaciones. El guion ponía el tema así:
+
+```js
+await ctx.addInitScript(() => { localStorage.setItem('nexusmed.theme', process.env.TEMA) })
+```
+
+`process` **no existe dentro del navegador**. La función lanzaba, el `try/catch`
+se lo tragaba, el tema no se ponía nunca — y lo que medí, dos veces, fue el tema
+oscuro llamándolo claro. **Cuarto instrumento de esta sesión que informa un cero
+que no era.**
+
+El guion definitivo pasa el tema **como argumento** a `addInitScript` y **aborta
+si `data-theme` no quedó puesto**: medir el otro tema y llamarlo éste es
+exactamente lo que acababa de pasar.
+
+**LO QUE APARECIÓ AL MEDIRLO DE VERDAD.** Dos defectos reales, reproducibles en
+los dos anchos:
+
+| Dónde | Texto | Contraste |
+|---|---|---:|
+| `/cumplimiento` | «Todavía no ha llegado ningún reporte», «Tu cuenta NO tiene 2FA» | **4.46 : 1** |
+| `/asistente` | «60 min», bajo la opción elegida | **4.33 : 1** |
+
+Los dos son `--text3` del tema claro, `#6B6F75`, por debajo del **4.5 : 1** que
+pide AA para texto normal. Sobre `--s3` bajaba a **4.20**.
+
+**Y EL TEMA OSCURO YA HABÍA PAGADO ESTO.** Su `--text3` subió en su día de
+`#6C7075` (≈3.8:1) a `#8A8F94` (≈5:1), con la nota escrita en la hoja. El claro
+no recibió el mismo trato. La lección aprendida en un tema y no en el de al lado
+— la familia de siempre.
+
+Hay más: a diez líneas del token vive una regla que ya oscurecía **los
+placeholders** en claro porque «#6B6F75 quedaba en el filo de AA». Se sabía. Se
+arregló para los placeholders y se dejó para todo lo demás.
+
+**EL ARREGLO.** `--text3` claro pasa a `#63666B`, que despeja **todas** las
+superficies claras del producto —`--s` 5.76, `--bg` 5.51, `--s2` 5.20, `--s3`
+4.79, y los dos tintes 4.94 y 5.09— con margen y sin cambiar el tono. Se cambia
+en los **dos** sitios: el tema claro explícito y el `auto`, que sigue al sistema
+operativo. Tocar sólo uno habría dejado el defecto para quien no elige tema, que
+son la mayoría.
+
+**Medido después: 44 combinaciones, axe 0, y 0 de 91 campos sin foco.** El anillo
+de foco de la unidad 62 también funciona en claro, que no se sabía.
+
+**COMPUERTAS.** `vitest` 10 847/10 848 · lint 95 · diseño sin deuda nueva · `tsc`
+limpio · `build` compila · las nueve compuertas de navegador. El rojo es
+`ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- **El tema `auto` sí se mide** (`TEMA=auto`), y sale igual de limpio: 44
+  combinaciones, axe 0, foco 0 de 91. Pero **no se corre en cada pasada**: el
+  gasto se triplicaría. Conviene correrlo al tocar tokens de color.
+
+  Y ahí la sonda me corrigió otra vez: la primera versión **borraba** la
+  preferencia creyendo que «sin preferencia» era «automático». No lo es — sin
+  nada guardado el producto pinta OSCURO a propósito, por identidad de marca, y
+  `auto` sólo se alcanza eligiéndolo. La comprobación de tema abortó diciendo
+  «se pidió auto y `data-theme` dice dark». Para eso estaba.
+- **Sólo se repiten en claro axe y el foco.** Estaticidad, solapes y estados de
+  carga son de estructura, no de color, y correrlos dos veces gastaría el doble
+  sin cambiar el resultado — pero si un cambio de tema mueve una caja, esto no lo
+  vería.
+- El cambio de `--text3` **afecta a todo el tema claro**. Se comprobó que no
+  rompe axe en 44 combinaciones; **no se comparó capturas** antes y después, así
+  que un cambio de aspecto sutil no se habría visto.
+- axe mira el contraste **calculado**, no el percibido sobre degradados,
+  imágenes o texto encima de un `filter`.

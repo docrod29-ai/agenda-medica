@@ -2134,7 +2134,19 @@ html[data-vt-continuidad] .page-transition { animation: none; }
      este lado se quedó sin aplicar — y el claro es el que sale por defecto con
      luz de consultorio. --text3 lleva TODOS los placeholders, las pistas CIE-10 y
      el texto de ayuda. */
-  --text3:     #6B6F75;
+  /* MEDIDO con axe en tema claro, que este carril no había mirado nunca:
+     #6B6F75 daba **4.46 : 1** sobre el crema de los avisos y **4.33 : 1** sobre
+     el tinte de la opción elegida — por debajo del 4.5 que pide AA para texto
+     normal, y en `--s3` bajaba a 4.20. Salió en `/cumplimiento` («Todavía no ha
+     llegado ningún reporte», «Tu cuenta NO tiene 2FA») y en `/asistente`.
+
+     #63666B despeja **todas** las superficies claras del producto: --s 5.76,
+     --bg 5.51, --s2 5.20, --s3 4.79, y los dos tintes 4.94 y 5.09.
+
+     El tema oscuro ya había pagado esto —su `--text3` subió de #6C7075 (≈3.8:1)
+     a #8A8F94 (≈5:1), y está escrito arriba—. La lección se aprendió en un tema
+     y no en el de al lado. */
+  --text3:     #63666B;
 
   /* Semánticas — versiones light-mode (contraste AA) */
   --blue:      #2057C5;
@@ -2194,7 +2206,7 @@ html[data-vt-continuidad] .page-transition { animation: none; }
     --teal-glow:    var(--nexus-soft);
     --text:      #0B0C0E;
     --text2:     #565A60;
-    --text3:     #6B6F75;   /* AA — ver nota arriba */
+    --text3:     #63666B;   /* AA sobre TODAS las superficies claras — ver nota arriba */
     --blue:      #2057C5;
     --blue-dim:  #1A4AA8;
     --amber:     #B45309;
