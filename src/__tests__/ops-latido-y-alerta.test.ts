@@ -140,7 +140,14 @@ describe('el vigilante', () => {
   it('devuelve SI la alerta salió o no', () => {
     // Un vigilante que responde «ok» cuando no pudo avisar a nadie es el mismo
     // fallo que viene a reparar.
-    expect(ruta).toContain('alerta }')
+    //
+    // Se comprueba que `alerta` viaje en la respuesta, no el formato exacto de
+    // la línea: pinchar `'alerta }'` hacía fallar el caso cuando REG-396 añadió
+    // el recuento de incidencias al mismo objeto, sin que la propiedad se
+    // hubiera movido de sitio.
+    const i = ruta.indexOf('ok: true, diagnostico')
+    expect(i, 'no se localizó la respuesta del camino bueno').toBeGreaterThan(0)
+    expect(ruta.slice(i, i + 300)).toMatch(/\balerta\b/)
   })
 
   it('él también late', () => {

@@ -249,7 +249,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * hubo que hacer fue conectarla, y las dos unidades cupieron en un módulo
      * puro cada una porque el hueco estaba declarado en su sitio exacto.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388],
+    /**
+     * 396 es esta familia en la pieza cuyo propósito literal era que alguien se
+     * enterara. `incidentes-servidor.ts` nació de «la IA de la plataforma estuvo
+     * caída y nadie se enteró hasta que la probé a mano»; anotaba la incidencia
+     * en Firestore y ahí se quedaba. Para verla había que abrir el tablero — o
+     * sea, sospechar la avería antes de enterarse de ella. El canal de alerta ya
+     * existía y el vigilante ya gritaba, pero por otras dos cosas.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396],
   },
   {
     clave: 'se_contradice',

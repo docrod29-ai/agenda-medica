@@ -102,6 +102,74 @@ export async function incidentesRecientes(limite = 20): Promise<Record<string, u
   }
 }
 
+/**
+ * INCIDENCIAS QUE TODAVÍA NO SE HAN AVISADO — lo que el vigilante grita (REG-396).
+ *
+ * ── EL HUECO QUE CIERRA ─────────────────────────────────────────────────────
+ *
+ * Este módulo nació porque «el 31-jul-2026 la IA de la plataforma estuvo caída y
+ * nadie se enteró hasta que el dueño la probó a mano». Anotaba la incidencia en
+ * Firestore… y ahí se quedaba. `enviarAlertaOps` existe desde entonces y el
+ * vigilante avisa de crons caídos y saldo bajo, pero **de esto no**: había que
+ * abrir el tablero para ver el rastro de la avería que motivó el módulo.
+ *
+ * Escrito, probado y sin conectar. El aviso a las tres de la mañana seguía sin
+ * llegar para el caso que lo hizo nacer.
+ *
+ * ── POR QUÉ «SIN AVISAR» Y NO «RECIENTES» ───────────────────────────────────
+ *
+ * El vigilante corre cada quince minutos y las incidencias se agrupan por HORA.
+ * Avisar de las recientes mandaría el mismo aviso cuatro veces por hora, y un
+ * aviso repetido se aprende a ignorar — que es la forma en que un canal de
+ * alertas deja de proteger sin dejar de funcionar.
+ */
+export async function incidentesSinAvisar(limite = 20): Promise<Record<string, unknown>[]> {
+  try {
+    const snap = await adminDb.collection('platform_incidentes')
+      .orderBy('hora', 'desc').limit(limite).get()
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(d => (d as { alertado?: boolean }).alertado !== true)
+  } catch {
+    /* No poder leer NO es «no hay incidencias»: se declara vacío y el latido del
+       vigilante ya dice si él mismo falló. Aquí no se puede hacer más. */
+    return []
+  }
+}
+
+/**
+ * Marca las incidencias como avisadas — **sólo cuando el aviso salió de verdad**.
+ *
+ * Si se marcaran antes de saberlo, una caída del webhook convertiría el aviso en
+ * un silencio permanente: la incidencia quedaría como avisada sin que nadie la
+ * hubiera recibido. Es la misma regla del propio canal de alerta —«si no se pudo
+ * avisar, se dice»— llevada a su marca de estado.
+ */
+export async function marcarAvisadas(ids: readonly string[]): Promise<number> {
+  let marcadas = 0
+  for (const id of ids) {
+    try {
+      await adminDb.collection('platform_incidentes').doc(id)
+        .set({ alertado: true, alertadoEn: new Date().toISOString() }, { merge: true })
+      marcadas++
+    } catch (e) {
+      console.error('[incidentes] no se pudo marcar como avisada:', (e as Error)?.message)
+    }
+  }
+  return marcadas
+}
+
+/** El texto del aviso. Sin PHI, porque la incidencia no lo lleva. */
+export function textoDeIncidencias(incidencias: readonly Record<string, unknown>[]): string {
+  return incidencias.map(i => {
+    const veces = Number(i.veces ?? 0)
+    const features = Array.isArray(i.features) ? (i.features as string[]).join(', ') : ''
+    return `· ${String(i.titulo ?? i.id)} — ${veces} vez(ces)`
+      + (features ? ` en ${features}` : '')
+      + (i.queHacer ? `\n  Qué hacer: ${String(i.queHacer)}` : '')
+  }).join('\n')
+}
+
 export const POR_QUE_EL_DUENO_SE_ENTERA_Y_EL_MEDICO_NO =
   'Porque el médico no puede arreglar la llave de la plataforma: decírselo sólo ' +
   'le roba tiempo con un paciente enfrente. Y porque un console.error no es un ' +

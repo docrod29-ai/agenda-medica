@@ -13529,3 +13529,68 @@ otro id, y una clave con `../` no puede convertirse en una ruta.
   propio documento — molesto, no peligroso, y se deja dicho.
 - **No prueba Firestore.** La transacción está doblada; lo que se ejercita es que
   el id venga de la intención y que una convergencia no reescriba.
+
+---
+
+## REG-396 — la avería que motivó el módulo de incidencias no avisaba a nadie
+
+**QUÉ SE PEDÍA.** `WS-13.alertas`, cuyo censo decía: «hay un canal real
+(`ops/alerta.ts`) con **un solo llamador**: dispara por cron caído y saldo bajo.
+Nada más».
+
+### El hueco
+
+`ia/incidentes-servidor.ts` nació de una frase concreta del dueño: «el
+31-jul-2026 la IA de la plataforma estuvo caída y nadie se enteró hasta que la
+probé a mano», con la instrucción «no quiero que a mis clientes les pase eso; tú
+debes avisarme».
+
+El módulo anota la incidencia en Firestore. **Y ahí se quedaba.** Para verla
+había que abrir el tablero del dueño — o sea, había que sospechar la avería antes
+de enterarse de ella. `ops/alerta.ts` existe desde entonces y el vigilante grita
+por crons sin latido y por saldo bajo; de esto, no.
+
+Escrito, probado y sin conectar, **en la pieza cuyo propósito literal era que
+alguien se enterara**.
+
+### El arreglo, y las dos decisiones que lo hacen honesto
+
+El vigilante lee las incidencias **sin avisar** y las manda al canal.
+
+- **«Sin avisar», no «recientes».** El vigilante corre cada quince minutos y las
+  incidencias se agrupan por HORA: avisar de las recientes mandaría el mismo
+  aviso cuatro veces por hora, y un aviso repetido se aprende a ignorar — la
+  forma en que un canal de alertas deja de proteger sin dejar de funcionar.
+- **Se marca como avisada SÓLO si el aviso salió.** Marcarla antes convertiría
+  una caída del webhook en un silencio permanente: la incidencia quedaría como
+  avisada sin que nadie la hubiera recibido, que es peor que no tener canal — se
+  da por cubierto lo que sigue descubierto. Es la regla del propio `alerta.ts`
+  («si no se pudo avisar, se dice») llevada a su marca de estado. Y
+  `marcarAvisadas` devuelve **las que de verdad quedaron marcadas**, no la
+  longitud de la lista.
+
+La lectura va con su propio `catch`: un aviso no puede llevarse por delante el
+diagnóstico, que es la razón principal de que el vigilante exista.
+
+**LA PRUEBA.** `src/__tests__/la-averia-de-la-ia-llega-a-alguien.test.ts` (11
+casos). Probado al revés quitando el `if (r.enviada)`: cae el caso del silencio
+permanente.
+
+**UNA CORRECCIÓN DE PASO.** El guardián `ops-latido-y-alerta` comprobaba la
+respuesta del vigilante con `expect(ruta).toContain('alerta }')` — el formato
+exacto de la línea. Añadir el recuento de incidencias al mismo objeto lo puso en
+rojo sin que la propiedad se hubiera movido. Se reescribió para comprobar que
+`alerta` viaja en la respuesta, que es lo que ese caso quería decir.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba el webhook.** `OPS_ALERTA_WEBHOOK` sigue sin configurar en
+  producción y está en la lista de acciones del dueño. Hasta que exista, el canal
+  **declara** que no pudo avisar en vez de devolver éxito.
+- **Sólo las incidencias de la llave de la PLATAFORMA**, que son las únicas que
+  se anotan: la llave vencida de un consultorio ya se le dice en su pantalla, y
+  meterla aquí taparía lo que sí es del dueño.
+- **5xx genéricos y anomalías de autorización** siguen sin señal. WS-13 los pide
+  y quedan en el censo.
+- **La caída de WhatsApp tampoco avisa**: REG-391 hizo que el outbox pause en vez
+  de morir, pero esa pausa no llega a ningún aviso todavía.

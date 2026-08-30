@@ -501,7 +501,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-13.alertas', ws: 'WS-13', titulo: 'Alertas sobre degradación, 5xx, fallo de guardado y anomalía de autorización',
     estado: 'PARTIAL',
-    queFalta: 'Hay un canal real (ops/alerta.ts) con un solo llamador: dispara por cron caído y saldo bajo. Nada más.',
+    queFalta: 'REG-396 conectó la que faltaba y era la que dio origen a todo: `incidentes-servidor.ts` anotaba la caída de la IA de plataforma en Firestore y ahí se quedaba —había que abrir el tablero para verla, o sea sospechar la avería antes de enterarse—. El vigilante ahora la avisa, sin repetirse (por hora, no por ciclo) y marcando sólo cuando el aviso salió de verdad. Siguen sin señal: 5xx genéricos, fallo de guardado, anomalía de autorización, y la caída de WhatsApp (REG-391 hizo que el outbox pause en vez de morir, pero esa pausa no llega a ningún aviso). Y el canal sigue sin destino: OPS_ALERTA_WEBHOOK es acción del dueño.',
+    artefactos: ['src/lib/ops/alerta.ts', 'src/lib/ia/incidentes-servidor.ts'],
+    pruebas: ['src/__tests__/la-averia-de-la-ia-llega-a-alguien.test.ts'],
   }),
   R({
     id: 'WS-13.reglas-desplegadas', ws: 'WS-13', titulo: 'Las reglas de Firestore escritas son las que rigen',
