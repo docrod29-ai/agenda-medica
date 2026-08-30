@@ -12,7 +12,7 @@ import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus } from '@/types'
 import { getWeekDates } from '@/lib/availability'
 import { hoyISO, fechaISOLocal } from '@/lib/timezone'
-import { ChevronLeft, ChevronRight, Plus, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Loader2, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAhoraMinutos } from '@/hooks/useAhoraMinutos'
@@ -76,7 +76,7 @@ export default function CalendarioPage() {
     // fechaISOLocal, no toISOString: este último convierte a UTC y corre el día.
     return `${fechaISOLocal(d)} 00:00`
   }, [baseDate])
-  const { appointments: allAppointments, loading } = useAppointments(desdeVentana)
+  const { appointments: allAppointments, loading, error: falloAgenda } = useAppointments(desdeVentana)
   const { config } = useConfig()
   const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
   // Aplicar filtro de médico antes de pasar a las vistas
@@ -211,6 +211,20 @@ export default function CalendarioPage() {
           <div role="status" className="nx-agenda-cargando">
             <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" />
             Cargando la agenda…
+          </div>
+        )}
+        {/*
+          Y CUANDO NO ES QUE TARDE, SINO QUE FALLÓ. El aviso de arriba se pone y
+          se quita con `loading`; al fallar la consulta, `loading` baja, la
+          rejilla se queda vacía y hasta aquí no decía nada. Una semana vacía
+          porque no cargó se lee igual que una semana sin pacientes, y de las dos
+          sólo una significa que el médico tiene el día libre. Es el mismo
+          razonamiento del aviso de carga, en el caso de al lado.
+        */}
+        {!loading && falloAgenda && (
+          <div role="alert" className="nx-agenda-cargando" style={{ color: 'var(--amber)' }}>
+            <AlertCircle size={13} aria-hidden="true" />
+            No se pudo cargar tu agenda. Esto NO quiere decir que no tengas citas.
           </div>
         )}
         {view === 'semana' && (

@@ -1,6 +1,6 @@
 'use client'
 import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, type CSSProperties } from 'react'
 import { Appointment, AppointmentType, AppointmentStatus, AppointmentOrigin, APPOINTMENT_TYPE_CONFIG, DEFAULT_CONFIG } from '@/types'
 import { useConfig } from '@/hooks/useConfig'
 import { useAppointments } from '@/hooks/useAppointments'
@@ -44,6 +44,17 @@ const STATUSES_EDIT: AppointmentStatus[] = [
   'cancelada', 'reagendada', 'no-asistio',
 ]
 
+/**
+ * Los dos avisos de «no se pudo consultar» se ven igual porque dicen lo mismo:
+ * que estas horas se están ofreciendo sin haber podido descontar algo. Uno es
+ * por el calendario de Google y el otro por la agenda propia. Una sola forma,
+ * declarada una vez.
+ */
+const AVISO_NO_SE_PUDO_CONSULTAR: CSSProperties = {
+  display: 'flex', alignItems: 'flex-start', gap: 5,
+  fontSize: 11.5, color: 'var(--amber)', marginTop: 6, lineHeight: 1.45,
+}
+
 export function AppointmentModal({ open, onClose, appointment, defaultDate, defaultHour, onSaved }: Props) {
   const { config } = useConfig()
   const { activeDoctors } = useDoctors()
@@ -69,7 +80,14 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
    * incluido el de la cita de al lado, y el chequeo de conflicto decía que no
    * había ninguno. Se podía mover una cita encima de otra sin advertencia.
    */
-  const { appointments } = useAppointments(fecha ? `${fecha} 00:00` : undefined)
+  /**
+   * Y `error` SE RECOGE, que es la otra forma de llegar al mismo sitio. Cuando la
+   * consulta de citas falla, el hook deja `appointments` en `[]` — la misma lista
+   * vacía que produce un día de verdad libre. Diez líneas más abajo esta pantalla
+   * ya razona así para Google Calendar; le faltaba hacerlo para las citas
+   * PROPIAS, que son la fuente principal.
+   */
+  const { appointments, error: falloCitas } = useAppointments(fecha ? `${fecha} 00:00` : undefined)
   const [tipo, setTipo]           = useState<AppointmentType>('primera-vez')
   const [duracion, setDuracion]   = useState(60)
   const [motivo, setMotivo]       = useState('')
@@ -567,8 +585,23 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
                 horas están libres. Callarlo haría que la pantalla ofreciera con
                 confianza horas que el médico ya tiene tomadas.
               */}
+              {/*
+                Y LO MISMO PARA LAS CITAS PROPIAS, que es la fuente PRINCIPAL.
+                El aviso de aquí abajo existía sólo para Google —el calendario
+                secundario— y no para la agenda del consultorio. Con la consulta
+                caída, el desplegable ofrecía las horas ya tomadas y el chequeo
+                de conflicto decía «no hay». La cita no llega a escribirse
+                —el servidor la re-chequea en transacción y devuelve 409—, pero
+                para entonces ya se le dijo la hora al paciente por teléfono.
+              */}
+              {falloCitas && (
+                <div style={AVISO_NO_SE_PUDO_CONSULTAR}>
+                  <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>No se pudo cargar tu agenda de ese día: estas horas <strong>no</strong> descuentan las citas que ya tengas, y no se pudo revisar si hay empalme. Vuelve a abrir el modal cuando cargue.</span>
+                </div>
+              )}
               {falloGoogle && (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: 11.5, color: 'var(--amber)', marginTop: 6, lineHeight: 1.45 }}>
+                <div style={AVISO_NO_SE_PUDO_CONSULTAR}>
                   <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
                   <span>No se pudo consultar tu Google Calendar: estas horas <strong>no</strong> descuentan lo que ya tengas ahí.</span>
                 </div>

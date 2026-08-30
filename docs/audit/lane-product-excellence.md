@@ -4531,3 +4531,115 @@ conflictos. `tsc` y los trinquetes quedan como estaban.
   atrasada y nadie avisa.
 - **Ninguno de los otros nueve guiones de este carril compara contra `main`**, así
   que ninguno habría cazado esto. Lo cazó mirar el PR en GitHub.
+
+---
+
+## Unidad 73 — la semana entera vacía, sin decir que no cargó
+
+**DE DÓNDE SALE.** De la columna **error** de la matriz, que estaba medida en 5
+rutas de 23. Al completarla salieron dos cosas, y la segunda es la que importa.
+
+**LO PRIMERO: las 18 rutas que faltaban están bien.** Con el acceso a datos
+cortado entero, las 23 dicen «No pudimos cargar tu consultorio · Tus datos están
+a salvo en el servidor» y ninguna ofrece dar de alta un consultorio a quien ya lo
+tiene. La columna **error pasa de 5 rutas a 23**, y se cierra sin tocar código:
+lo resuelve la guarda de `ClinicContext` de la unidad 65, que resultó ser global.
+
+**LO SEGUNDO: eso mide UN escenario, y el de al lado no lo miraba nadie.** El
+propio guion lo declaraba fuera de alcance: «sólo la caída TOTAL de datos; un
+fallo parcial —una colección que responde y otra no— es otro escenario». En el
+parcial **el consultorio SÍ cargó**, así que no salta ninguna pantalla global y
+cada pantalla se queda a solas con una lista vacía. Y una agenda vacía tiene dos
+causas que se ven idénticas:
+
+- ese día no hay pacientes;
+- ese día **no se pudo preguntar**.
+
+Sólo una de las dos significa que el médico tiene la tarde libre.
+
+**MEDIDO, ANTES DEL ARREGLO.** `/calendario` pintaba la rejilla entera —«Lun 24 ·
+Mar 25 · Mié 26…»— vacía y **sin un solo aviso**. Ni siquiera saltaba la frontera
+de error genérica. El aviso «Cargando la agenda…» que puso la unidad 66 existe,
+pero cuelga de `loading`, y al fallar la consulta `loading` baja igual: **mi
+propio arreglo se quedó a un caso de distancia del de al lado**, que es la
+familia «la lección se aprende en un componente y no en el de al lado» cometida
+dentro del mismo bloque.
+
+De las **nueve** llamadas a `useAppointments`, sólo **dos** recogían `error`.
+
+**Y EL MODAL DE AGENDAR, que es donde duele.** Ahí `appointments` alimenta las
+dos funciones de seguridad: `getAvailableSlots` y `hasConflict`. Medido en frío
+sobre los motores, con el mismo día y la misma configuración:
+
+| | huecos ofrecidos | conflicto a las 10:00 |
+|---|---:|---|
+| con la cita cargada | 9 | **`true`** |
+| con la lista vacía | **10** | **`false`** |
+
+Es decir: con la consulta caída, el modal ofrece como libre la hora ya tomada y
+dice que no hay empalme. **La cita no llega a escribirse encima** —
+`/api/appointments` re-chequea en transacción y devuelve 409, que es el borde
+real y está bien puesto—, así que **el daño es de información, no de datos**;
+pero para cuando salta el 409 ya se le dijo la hora al paciente por teléfono.
+
+Lo notable es que **esta pantalla ya razonaba así, diez líneas más abajo**, para
+Google Calendar: «"No pude consultar" y "no tiene nada" producen la misma lista
+vacía de ocupación, y sólo uno de los dos significa que esas horas están libres».
+La lección estaba aprendida para el calendario **secundario** y no para la agenda
+**propia**.
+
+**EL ARREGLO.** `/calendario` y el modal recogen `error` y lo dicen. En el
+calendario, un aviso en el mismo sitio que el de carga: «No se pudo cargar tu
+agenda. Esto NO quiere decir que no tengas citas.» En el modal, el gemelo del
+aviso de Google, con la forma **declarada una sola vez** — los dos dicen lo mismo
+y ahora comparten estilo, que además devolvió `tamanosFueraDeEscala` a su techo.
+
+**CÓMO SE PROVOCA — y por qué NO con la red.** La primera versión del arnés
+cortaba peticiones con el enrutador del navegador, como el guion hermano.
+**Interceptó cero y lo iba a informar como bueno**: Firestore mantiene un canal
+largo ya abierto y, ante un fallo de red, **sirve la caché en silencio** — el
+callback de error ni se entera. Por la vía de la red este defecto **no se
+alcanza**. Lo cazó imprimir el contador de peticiones cortadas; sin él habría
+sido el sexto «cero que no era» de este carril.
+
+Las causas que sí lo encienden son de servidor. Se emula **permiso denegado**
+cambiando las reglas del emulador y devolviéndolas en un `finally`.
+
+**PROBADO AL REVÉS, en navegador.** Quitando el aviso y recompilando, con el
+permiso negado: rejilla pintada, `lo dice: false`. Con el aviso: `lo dice: true`.
+El guardián cae por los dos lados — si se tira el `error:` y si se recoge y no se
+lee, que es la forma que tenía el defecto.
+
+**LO QUE QUEDA NOT_PROVEN, Y SE DICE.** **El aviso del modal no se ha visto
+pintado.** Con el permiso negado, *todos* los caminos que abren ese modal pasan
+antes por una lista que también falla —`/citas` cambia la lista por su estado de
+error, bien hecho, y el calendario se queda sin bloques que pulsar—: no se puede
+editar una cita que no se puede ver. Se intentaron dos rodeos y ninguno medía lo
+que decía; el segundo falló porque `useAppointments` **sólo amplía la ventana
+hacia atrás**, a propósito, así que mover la fecha a un día posterior no
+re-suscribe nada y `error` se queda en `null` **correctamente** — medía el guion,
+no el producto. La causa que lo alcanzaría en producción es la que el emulador no
+sabe fabricar: un índice que falta para la ventana ancha del modal mientras la
+consulta estrecha de la pantalla sí responde.
+
+Se conserva el aviso —es correcto, cuesta cuatro líneas y no puede romper nada—
+**etiquetado como no visto**, en vez de borrarlo o de llamarlo probado.
+
+**COMPUERTAS.** `vitest` 10 852 de 10 854 · trinquete de lint 95 = techo ·
+trinquete de diseño sin deuda nueva (cazó un `11.5` duplicado y se arregló el
+cambio, no el techo) · `tsc` limpio · `npm run build` compila · el arnés nuevo en
+verde. Los dos rojos: el inventario de pantallas, regenerado; y
+`ops-timeout-y-punto-ciego`, que **falla igual con mis cambios guardados** —
+comprobado con `git stash`— y es el de siempre, que necesita una IP que trague
+paquetes.
+
+**RESIDUAL_RISK.**
+
+- **Seis de las nueve llamadas a `useAppointments` siguen sin recoger `error`**:
+  `PanelPendientes`, `/asistente`, `useNotificacionesCitas`. No se tocan porque
+  no se han medido; que no estén en el guardián significa que **no se vigilan**,
+  no que estén bien.
+- El fallo por **índice que falta** no se emula en ninguna parte.
+- No se comprueba que el aviso **se quite** al volver el permiso.
+- El escenario parcial sólo se mide en `/calendario`. Las otras 22 rutas están
+  medidas contra la caída total, no contra la parcial.

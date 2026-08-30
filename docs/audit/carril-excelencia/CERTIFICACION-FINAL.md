@@ -224,7 +224,7 @@ que no midió es peor que uno que no mide.
 | **staticness** | `arnes:acuse-puntero` — controles habilitados que no acusan el puntero | **medido**, 22 rutas |
 | **motion/feedback** | lo mismo, más `arnes:foco-visible` y `arnes:menos-movimiento` | **medido** |
 | **loading** | `arnes:estado-de-carga` — con la red lenta a propósito | **medido**, 15 rutas |
-| **error** | `arnes:caida-de-datos` — cortando los datos | **medido**, 5 rutas |
+| **error** | `arnes:caida-de-datos` — cortando los datos (caída TOTAL) · `arnes:caida-parcial` — el consultorio carga y falla una consulta suelta | **medido**, 22 rutas ³ |
 | **empty** | `arnes:consultorio-vacio` — con un consultorio creado de cero | **medido**, 13 rutas |
 | **long content** | desborde con el nombre más largo (trinquete) · texto libre (`arnes:texto-largo`) · listas de 250 filas (`arnes:listas-largas`) | **medido** ¹ |
 | **hierarchy** | — | **NOT_PROVEN** |
@@ -238,26 +238,26 @@ que no midió es peor que uno que no mide.
 | Ruta | axe (3 anchos) | desborde | mudos | foco | tapados | loading | error | empty |
 |---|---:|---|---:|---|---:|---|---|---|
 | `/citas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
-| `/calendario` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok | — |
-| `/asistente` | 0 | no | 3 ¹ | ok | 0 | — | — | — |
-| `/lista-espera` | 0 | no | 0 | ok | 0 | ok | — | ok |
+| `/calendario` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok · parcial **arreglado u73** | — |
+| `/asistente` | 0 | no | 3 ¹ | ok | 0 | — | ok | — |
+| `/lista-espera` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/finanzas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
-| `/operaciones` | 0 | no | 0 | ok | 0 | — | — | — |
+| `/operaciones` | 0 | no | 0 | ok | 0 | — | ok | — |
 | `/dashboard` | 0 | no | 0 | ok | 0 ² | ok | ok | ok |
-| `/pacientes` | 0 | no | 0 | ok | 0 | ok | — | ok |
-| `/pendientes` | 0 | no | 0 | ok | 0 | ok | — | ok |
-| `/configuracion` | 0 | no | 0 | ok | 0 | **arreglado u66** | — | — |
-| `/crm` | 0 | no | 0 | ok | 0 | ok | — | **arreglado u68** |
-| `/reactivacion` | 0 | no | 0 | ok | 0 | ok | — | ok |
-| `/resenas` | 0 | no | 0 | ok | 0 | ok | — | ok |
-| `/membresias` | 0 | no | 0 | ok | 0 | **arreglado u66** | — | ok |
-| `/farmacia` | 0 | no | 0 | ok | 0 | ok | — | ok |
-| `/corte-caja` | 0 | no | 0 | ok | 0 | ok | — | ok |
-| `/cumplimiento` | 0 | no | 0 | ok | 0 | — | — | — |
-| `/cumplimiento/retencion` | 0 | no | 3 ¹ | ok | 0 | — | — | ok |
-| `/consultor` | 0 | no | 0 | ok | 0 | — | — | — |
-| `/guia` | 0 | no | 0 | ok | 0 | — | — | — |
-| `/consulta/pac-001` | 0 | no | 0 | ok | 0 | — | — | — |
+| `/pacientes` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/pendientes` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/configuracion` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok | — |
+| `/crm` | 0 | no | 0 | ok | 0 | ok | ok | **arreglado u68** |
+| `/reactivacion` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/resenas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/membresias` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok | ok |
+| `/farmacia` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/corte-caja` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/cumplimiento` | 0 | no | 0 | ok | 0 | — | ok | — |
+| `/cumplimiento/retencion` | 0 | no | 3 ¹ | ok | 0 | — | ok | ok |
+| `/consultor` | 0 | no | 0 | ok | 0 | — | ok | — |
+| `/guia` | 0 | no | 0 | ok | 0 | — | ok | — |
+| `/consulta/pac-001` | 0 | no | 0 | ok | 0 | — | ok | — |
 | `/expediente/pac-001` | 0 | no | 2 ¹ | ok | 0 | ok | ok | — |
 | `/mi/[token]` (portal) | 0 | no | — | — | — | — | — | — |
 
@@ -275,6 +275,16 @@ con catorce párrafos y una palabra de 96 letras sin cortes; listas medidas con
 de 90 filas pintadas, sin desborde. Lo que **no** se mide es el TIEMPO: se
 intentó dos veces y ninguna de las dos versiones medía lo que decía (ver unidad
 70). El rendimiento percibido de las listas largas queda **NOT_PROVEN**.
+
+³ **error.** Las 22 rutas con sesión de médico, medidas contra la caída **total** del acceso a datos:
+todas dicen «No pudimos cargar tu consultorio · Tus datos están a salvo en el
+servidor» y ninguna ofrece dar de alta un consultorio a quien ya lo tiene. Lo
+resuelve una sola guarda global (unidad 65), y por eso las 18 que faltaban
+salieron limpias sin tocar código. El escenario **parcial** —el consultorio carga
+y falla una consulta suelta— es otro, y sólo está medido en `/calendario`
+(unidad 73); ahí el aviso del modal de agendar queda **NOT_PROVEN en navegador**,
+con su razón escrita en la cabecera del guion. `/mi/[token]` **sigue sin medir**:
+es el portal del paciente y estos guiones entran con sesión de médico.
 
 ## Las dos columnas sin medir, y por qué
 
@@ -295,6 +305,7 @@ npm run arnes:acuse-puntero        # estaticidad: controles que no acusan
 npm run arnes:nada-tapa            # nada flotante tapa un control
 npm run arnes:estado-de-carga      # el hueco dice que está cargando
 npm run arnes:caida-de-datos       # una caída no borra el consultorio
+npm run arnes:caida-parcial        # una caída parcial no es un día libre
 npm run arnes:consultorio-vacio    # el estado vacío, con un consultorio de cero
 npm run arnes:texto-largo          # el texto largo cabe y el campo lo enseña
 npm run arnes:listas-largas        # 250 pacientes y 90 citas, en su propio consultorio

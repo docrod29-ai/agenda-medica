@@ -41,6 +41,7 @@
     "arnes:nada-tapa": "node scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
     "arnes:estado-de-carga": "node scripts/carril-excelencia/el-hueco-dice-que-esta-cargando.mjs",
     "arnes:caida-de-datos": "node scripts/carril-excelencia/una-caida-no-borra-el-consultorio.mjs",
+    "arnes:caida-parcial": "node scripts/carril-excelencia/una-caida-parcial-no-es-un-dia-libre.mjs",
     "arnes:consultorio-vacio": "node scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
     "arnes:texto-largo": "node scripts/carril-excelencia/el-texto-largo-cabe.mjs",
     "arnes:listas-largas": "node scripts/carril-excelencia/las-listas-largas.mjs",
