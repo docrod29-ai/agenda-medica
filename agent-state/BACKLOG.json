@@ -86,8 +86,9 @@
       "complejidad": 2,
       "dependenciaExterna": 3,
       "score": 58,
-      "estado": "bloqueado B-01",
-      "reversible": true
+      "estado": "bloqueado B-01 — externo confirmado 30-ago-2026",
+      "reversible": true,
+      "verificadoContraElArbol": "Necesita el gold de 6000 audios. La voz es biometrica: no puede nacer de audio real sin decision del dueno y consentimiento documentado."
     },
     {
       "id": "EVAL-002",
@@ -153,8 +154,9 @@
       "complejidad": 2,
       "dependenciaExterna": 1,
       "score": 48,
-      "estado": "pendiente",
-      "reversible": true
+      "estado": "CERRADO — verificado 30-ago-2026",
+      "reversible": true,
+      "verificadoContraElArbol": "src/__tests__/trinquete-de-voz.test.ts existe y cita corpus/gold: el trinquete corre en CI."
     },
     {
       "id": "UX-002",
@@ -193,7 +195,8 @@
         "minimoAA": "4.5:1",
         "veredicto": "Ninguno falla. El más apretado es el botón deshabilitado, y pasa."
       },
-      "leccion": "El informe daba dos cifras concretas y las dos eran falsas. Cifras precisas inspiran más confianza que las vagas, y por eso hay que medirlas igual. Reparar esto habría cambiado colores que ya cumplen — tocar la app del médico sin motivo — y habría gastado el tiempo que necesita otro ítem."
+      "leccion": "El informe daba dos cifras concretas y las dos eran falsas. Cifras precisas inspiran más confianza que las vagas, y por eso hay que medirlas igual. Reparar esto habría cambiado colores que ya cumplen — tocar la app del médico sin motivo — y habría gastado el tiempo que necesita otro ítem.",
+      "verificadoContraElArbol": "Medido el 6-ago-2026 y resultado FALSO: el contraste del texto que explica por que no se puede firmar cumple en tema oscuro. Se conserva la fila en vez de borrarla porque un hallazgo refutado es informacion: evita que alguien lo vuelva a levantar."
     },
     {
       "id": "SAFE-003",
@@ -212,11 +215,12 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "pendiente — CONFIRMADO ABIERTO 30-ago-2026",
       "reversible": true,
       "necesitaMedico": true,
       "origen": "auditoría de nueve dimensiones, hallazgo G2",
-      "score": 41
+      "score": 41,
+      "verificadoContraElArbol": "src/__tests__/dosis-desconocida-declarada.test.ts no tiene ni un caso pediatrico. El hueco es real."
     },
     {
       "seguridad": 3,
@@ -308,7 +312,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO — verificado 30-ago-2026",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-TELE-002",
@@ -319,7 +323,8 @@
       "porQueImporta": "La videoconsulta se anuncia por WhatsApp. Sin enlace en el mensaje, el paciente depende de entrar al portal — que también le llega por WhatsApp, así que el camino existe, pero es un paso más justo cuando va con prisa.",
       "archivo": "src/lib/telesalud/donde-es.ts:70 · src/app/api/cron/reminders/route.ts:212 · src/app/api/whatsapp/webhook/route.ts:1083,1276",
       "plan": "Acuñar el token en el servidor con crearTokenPaciente(clinicId, patientId, 1, alcance agenda, portalTokenVersion) en los dos llamadores de servidor y pasarlo por DatosDeLugar.tokenPaciente. NO en src/lib/whatsapp.ts: ese módulo se importa desde el navegador y firmar ahí filtraría el secreto.",
-      "score": 55
+      "score": 55,
+      "verificadoContraElArbol": "src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts, 7 casos, sellado en invariantes-clinicos.json."
     },
     {
       "seguridad": 4,
@@ -493,7 +498,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 2,
-      "estado": "pendiente",
+      "estado": "pendiente — NECESITA NAVEGADOR (verificado 30-ago-2026)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "NAV-NAVEGADOR-001",
@@ -504,7 +509,8 @@
       "porQueImporta": "La directiva V9 §4 prohíbe aprobar interfaz leyendo código. Dos de estas seis cambian la prioridad de otros elementos del backlog.",
       "archivo": "docs/design/NAVIGATION_STATE_AUDIT.md §6",
       "plan": "Levantar la aplicación con credenciales de prueba y recorrer el ciclo. Requiere entorno con variables de Firebase — este contenedor no las tiene (npm run build falla con auth/invalid-api-key tras compilar bien).",
-      "score": 44
+      "score": 44,
+      "verificadoContraElArbol": "Seis comprobaciones que por definicion exigen un navegador. Aqui la descarga de WebKit esta bloqueada."
     },
     {
       "seguridad": 0,
@@ -518,7 +524,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "pendiente — NECESITA NAVEGADOR (verificado 30-ago-2026)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "DESIGN-TABLAS-001",
@@ -528,7 +534,8 @@
       "hallazgo": "La solución ya existe y casi nadie la usa: .table-wrap.rwd convierte tablas en tarjetas apiladas por debajo de 640 px (globals.css:1557-1589). Sin envoltorio ni minWidth: superadmin/page.tsx:202, PanelComisiones.tsx:129, hospitalizacion/[internamientoId]/page.tsx:821.",
       "porQueImporta": "Atenuante: 7 de las 9 son superadmin, fuera del alcance de V9. Las que pegan a Practice son TablaNivelesIA y seguridad.",
       "archivo": "src/app/globals.css:1557-1589 · src/components/TablaNivelesIA.tsx:18 · src/app/seguridad/page.tsx:105",
-      "score": 22
+      "score": 22,
+      "verificadoContraElArbol": "Los 8 archivos con minWidth 500-799 tienen al menos un envoltorio con overflow, pero la medicion es por ARCHIVO y un archivo puede tener un envoltorio y tres tablas. Confirmarlo exige 390px real."
     },
     {
       "seguridad": 0,
@@ -542,7 +549,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO — verificado 30-ago-2026",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-I18N-001",
@@ -552,7 +559,8 @@
       "hallazgo": "Locale de 7 idiomas, diccionario de 17 claves, ES_MX y PT_BR, setLocale/t. Su cabecera lo admite (:4-7) y modulos-sin-conectar.test.ts lo lleva en la lista de huérfanos aceptados, LÍNEA 99 — y ese trinquete resuelve importaciones reales. No hay next-intl, react-intl ni i18next.",
       "porQueImporta": "La superficie del paciente son ~180 cadenas con diacríticos (mi 70, reservar 24, dr 21, verificar 18, privacidad 17, HojaParaElPaciente 15, resena 9, teleconsulta 6). Eso es abordable, y es el argumento para empezar es-MX→en-US por ahí en vez de por toda la aplicación (2000-4000 cadenas).",
       "archivo": "src/lib/i18n.ts · src/__tests__/modulos-sin-conectar.test.ts:99",
-      "score": 18
+      "score": 18,
+      "verificadoContraElArbol": "src/app/mi/[token]/page.tsx importa @/lib/i18n: ya tiene consumidor."
     },
     {
       "seguridad": 0,
@@ -566,7 +574,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO — verificado 30-ago-2026",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PREVIO-001",
@@ -577,7 +585,8 @@
       "porQueImporta": "Es lo ÚNICO que el paciente escribe hoy en el producto. Si no se pinta en ninguna pantalla, es un «escrito y sin conectar» y el paciente está rellenando un formulario que nadie lee.",
       "archivo": "src/lib/portal/formulario-previo.ts:87",
       "plan": "Buscar el símbolo en app/, hooks/ y components/ — el instrumento de REG-255.",
-      "score": 24
+      "score": 24,
+      "verificadoContraElArbol": "Se pinta en src/app/mi/[token]/page.tsx:453, condicionado a proximas.length > 0, con el componente FormularioPrevio en la misma pagina."
     },
     {
       "id": "PATIENT-AUDIO-004",
@@ -625,15 +634,17 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO PARCIAL — verificado 30-ago-2026",
       "reversible": true,
       "origen": "DESIGN-SYSTEM-001 — residuo declarado",
-      "score": 30
+      "score": 30,
+      "verificadoContraElArbol": "Tres paginas usan utilidades nx- (contacto, landing, seguridad). La migracion del resto sigue abierta y es del carril Product Excellence."
     }
   ],
-  "actualizado": "2026-08-09",
+  "actualizado": "2026-08-30",
   "programaV9": {
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"
-  }
+  },
+  "reconciliadoConMaster": "30-ago-2026 (REG-426). Los 10 items abiertos se comprobaron UNO POR UNO contra el arbol, no contra este archivo. Resultado: 5 ya estaban hechos y nadie los habia marcado, 1 sigue abierto de verdad (SAFE-003), 2 necesitan navegador, 1 esta bloqueado fuera por gold de audio, y UX-002 ya estaba marcado como medido y falso. Un backlog que exagera el trabajo pendiente se abandona igual que uno que lo esconde."
 }

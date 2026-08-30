@@ -22,12 +22,12 @@
 > falla si está viejo. Lo que sigue escribiéndose a mano es el CRITERIO —qué se
 > hace a continuación y por qué—, que no sale de un `grep`.
 
-**78 requisitos.**
+**80 requisitos.**
 
 | Estado | Cuántos |
 |---|---|
 | `PARTIAL` | 34 |
-| `PROVEN` | 28 |
+| `PROVEN` | 30 |
 | `BLOCKED_EXTERNAL` | 14 |
 | `NEEDS_CLINICAL_REVIEW` | 1 |
 | `DEFERRED_BY_OWNER` | 1 |

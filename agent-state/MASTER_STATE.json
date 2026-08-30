@@ -19,19 +19,17 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md",
+    "M agent-state/AUSCULTA_MASTER_LOOP.md",
+    " M agent-state/BACKLOG.json",
+    " M docs/audit/regression-ledger.md",
     " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M scripts/evidence/matriz-proveedores.mjs",
-    " M src/__tests__/evidence-integrations-matriz-doc.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/evidencia/openfda.ts",
-    " M src/lib/evidencia/pubmed.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? scripts/evidence/hosts-del-camino-de-evidencia.mjs",
-    "?? src/__tests__/una-lectura-no-es-un-guardian.test.ts",
-    "?? src/lib/evidence-integrations/de-donde-se-baja.ts"
+    "?? agent-state/AUSCULTA_MASTER_LOOP_DIRECTIVO.md",
+    "?? docs/product/PROGRAMAS-EN-VUELO.md",
+    "?? scripts/programa/reconciliar-programas.mjs",
+    "?? src/__tests__/un-programa-de-tres-no-es-el-producto.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -67,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 276,
+    "regsEnElLedger": 277,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 848,
-    "casosDePrueba": 10607,
+    "archivosDePrueba": 849,
+    "casosDePrueba": 10621,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

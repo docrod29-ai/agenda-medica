@@ -16223,3 +16223,109 @@ sincronía lo daría por bueno — la tabla desaparecería sin que nada se pusie
   `catalogo.ts` y su matriz, y es otro eje.
 
 **Prueba.** `src/__tests__/una-lectura-no-es-un-guardian.test.ts` (17 casos).
+
+---
+
+## REG-426 — el tablero custodiaba un programa de tres, y nadie podía notarlo
+
+**QUÉ SE PEDÍA.** `WS-01.tablero`, cuya propia entrada lo decía: «falta
+reconciliar con `agent-state/BACKLOG.json`: V9/V10/V15 arrastran requisitos
+propios que hoy viven en otro archivo y no entran en este censo.»
+
+### El defecto, y por qué es el mismo de siempre un nivel más arriba
+
+El censo de Ausculta está bien vigilado: 78 requisitos, sello, y un guardián que
+impide que un dominio canónico se quede sin fila. Pero custodia **un programa de
+tres**.
+
+En `agent-state/` viven otros dos —V9 (experiencia del paciente y diseño) y V10
+(excelencia visual)— y el tablero no los mencionaba. Así que «quedan 8
+accionables» era **cierto del censo y falso del producto**, y no había forma de
+notarlo leyendo el tablero.
+
+Es el defecto que este censo existe para impedir, un piso más arriba: *ningún
+documento derivado puede notar la ausencia de algo que no está en su fuente*.
+Antes se evaporó un dominio; aquí, un programa entero.
+
+Lo encontró el dueño, no el sistema. Ésa es la medida del fallo.
+
+### El segundo defecto: el contrato no sobrevivía a la sesión
+
+`AUSCULTA_MASTER_LOOP.md` tenía **33 líneas**, apuntaba a una rama que ya no
+existe, y **no contenía el directivo**: sus 26 apartados vivían sólo en el
+mensaje del dueño.
+
+Un loop cuyo contrato se pierde al cerrar la sesión se reinterpreta en la
+siguiente — y eso es exactamente lo que pasó. Ahora el directivo íntegro vive en
+`agent-state/AUSCULTA_MASTER_LOOP_DIRECTIVO.md`, con guardián que exige los 27
+encabezados (§0–§26), las ocho condiciones del §25 y la regla del §26.
+
+### Lo que se midió de V9, uno por uno contra el árbol
+
+No contra el archivo:
+
+```
+EVAL-003           trinquete de voz en CI    → YA ESTABA HECHO
+PATIENT-TELE-002   token de videoconsulta    → YA ESTABA HECHO (7 casos sellados)
+PATIENT-I18N-001   i18n sin consumidor       → YA ESTABA HECHO (lo importa el portal)
+DESIGN-MIGRAR-001  nadie usa las nx-         → HECHO EN PARTE (3 páginas)
+PATIENT-PREVIO-001 dónde se pinta el previo  → COMPROBADO (page.tsx:453)
+SAFE-003           dosis sin referencia      → ABIERTO DE VERDAD
+DESIGN-TABLAS-001  tablas a 375 px           → necesita navegador
+NAV-NAVEGADOR-001  seis comprobaciones       → necesita navegador
+EVAL-001           gold de 6000 audios       → bloqueado: la voz es biométrica
+UX-002             contraste en oscuro       → medido y falso el 6-ago
+```
+
+**Cinco de diez ya estaban hechos y nadie los había marcado**, y el archivo
+llevaba tres semanas sin tocarse. Un backlog que exagera el trabajo pendiente se
+abandona igual que uno que lo esconde. El conteo bajó de 10 a 5 **y no por
+decreto**: cada fila lleva ahora la evidencia de qué se comprobó.
+
+`SAFE-003` sigue abierto de verdad: `dosis-desconocida-declarada.test.ts` no
+tiene **ni un caso pediátrico**.
+
+`UX-002` se conserva aunque esté refutado. Un hallazgo medido y falso es
+información: evita que alguien lo vuelva a levantar.
+
+### Se cuentan, no se fusionan
+
+**V10 es el carril de Product Excellence.** El §20 del directivo prohíbe rehacer
+su trabajo y el §18, invadir sus cambios visuales. Absorber sus 27 items al censo
+de Master sería justo esa invasión.
+
+Contar sin ejecutar es la única postura que no miente en ninguna de las dos
+direcciones: ni promete trabajo ajeno, ni finge que no existe.
+
+Estado real, ahora en `docs/product/PROGRAMAS-EN-VUELO.md` y generado:
+
+| Programa | Carril | Requisitos | Abiertos |
+|---|---|---|---|
+| Ausculta | master | 80 | 34 |
+| V9 | compartido | 25 | 5 |
+| V10 | product-excellence | 39 | 27 |
+
+### Detalles que sostienen el guardián
+
+- `generarInforme` exige el conteo del censo como parámetro **obligatorio**: si
+  fuera opcional, un llamador que lo olvidara publicaría un documento donde
+  Ausculta sale con un guion — y el único programa invisible sería el que sí
+  custodiamos.
+- «Abierto» es *todo lo que no dice CERRADO/RESUELTO/desbloqueado*, así que
+  `parcialmente-cerrado` cuenta como abierto. **Señala de más a propósito**: en un
+  conteo de custodia, equivocarse hacia arriba es lo seguro.
+- Si un backlog cambiara de nombre, `contarBacklog` devolvería `null` y el
+  documento pondría un guion; el guardián lo caza como cero falso.
+
+### Qué NO cubre
+
+- **No verifica que un item marcado CERRADO lo esté.** Compara conteos. Verificar
+  el contenido de cada item es trabajo de su propio carril.
+- **No fusiona los estados**: V9 y V10 usan cadenas libres y Master una unión
+  tipada. Normalizarlas exigiría reescribir dos programas ajenos.
+- **No cubre Nexus OS ni V15**, que tienen estado en `docs/roadmap/` y
+  `agent-state/V15_*` y siguen sin reconciliar. Queda dicho, que es lo que faltaba.
+- **La prosa de cada WS sigue a mano** y puede envejecer. Lo que ya no puede es el
+  estado ni el conteo de los tres programas.
+
+**Prueba.** `src/__tests__/un-programa-de-tres-no-es-el-producto.test.ts` (14 casos).
