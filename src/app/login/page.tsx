@@ -393,7 +393,7 @@ function LoginInner() {
           ¿No tienes cuenta?{' '}
           {/* Subrayado: enlace DENTRO de una frase — sólo color no lo distingue
               (WCAG 1.4.1, la misma razón de a.nx-ident). */}
-          <Link href={invite ? `/registro?invite=${invite}` : '/registro'} style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          <Link className="nx-enlace-tactil" href={invite ? `/registro?invite=${invite}` : '/registro'} style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>
             Crea una gratis →
           </Link>
         </div>

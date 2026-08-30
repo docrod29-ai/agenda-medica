@@ -47,6 +47,7 @@ Cada defecto apareció al comprobar el anterior.
 | 13 | Un fallo de red se contaba como una contraseña equivocada | el mensaje mentía sobre la causa |
 | 14 | La portada no se movía, y el sistema de movimiento estaba sin usar | el charter existía sin encarnar |
 | 15 | Una caja con scroll dejaba fuera al teclado | nadie lo estaba midiendo |
+| 16 | Los enlaces que son acciones no se podían tocar | nadie lo estaba midiendo |
 
 Y el orden importa: **el 5 es el que hace alcanzables al 1 y al 2.** Mientras
 «automático» no sobreviviera a una recarga, el bloque
@@ -863,3 +864,59 @@ medido → sí, a 390 y 1440, con dato verificado**.
 
 **NEXT.** Pase de pulido de interacción en el resto de la aplicación
 (prioridad 7) y certificación final (prioridad 9).
+
+---
+
+## 16 · Los enlaces que son acciones no se podían tocar
+
+**FOUND.** La regla propia del repositorio pone «objetivo táctil por debajo de
+44×44» entre los mínimos que fallan la compuerta. Medido a 390 px: **doce**
+enlaces de acción por debajo. Entre ellos, los dos que conectan las dos puertas
+del producto:
+
+  · portada → «Inicia sesión aquí →» **129×18**
+  · login → «Crea una gratis →» **113×18**
+
+Dieciocho píxeles de alto en un teléfono, para el camino de ida y vuelta entre
+registrarse y entrar.
+
+**ROOT_CAUSE.** La que `v15-a11y-tactiles-de-enlace` ya había nombrado y dejado
+declarada: el bloque `@media (pointer: coarse)` cubre `.btn`, `button`,
+`select`, `input` y `textarea` — **nunca cubrió `<a>`**. Aquel guardián cerró
+dos familias y escribió lo que no cubría: «un enlace nuevo con otra clase no
+está vigilado por esto». Esto es exactamente ese hueco.
+
+**CHANGE.** Se añade la familia al **mismo mecanismo que ya existía**: un pseudo
+invisible centrado (`max(100%, 44px)`) que estira el área de golpe sin mover un
+píxel de lo visible, y **sólo en puntero grueso**. No se usa `min-height`, que
+engordaría lo visible y movería la maqueta.
+
+**REGRESSION.** `los-enlaces-de-accion-tambien-se-tocan.test.ts`, 6 casos, con la
+guarda de alcance (la regla tiene que vivir DENTRO del bloque coarse). Probado
+al revés: caen tres.
+
+**BROWSER_PROOF.** Hit-testing a 390 px:
+
+| Superficie | Antes | Después |
+|---|---:|---:|
+| `/` | 11 | 3 (dos de 40–42 px + un artefacto de ±1) |
+| `/login` | 1 | **0** |
+| `/registro` · `/reservar` | 0 | 0 |
+
+**EL INSTRUMENTO SE EQUIVOCÓ TRES VECES, Y ESO ES PARTE DEL HALLAZGO.** El
+guardián original ya advertía que un pseudo **no aparece en
+`getBoundingClientRect`** y que hay que hit-testear. Este carril tropezó igual:
+(1) leyendo rects; (2) hit-testeando por debajo del pliegue, donde
+`elementFromPoint` no ve nada; (3) suponiendo el alcance simétrico, cuando el
+pseudo se sesga 2 px hacia el pulgar a propósito. La versión final trae el
+elemento a pantalla y **busca** el alcance real arriba y abajo.
+
+**GATES.** `vitest` entero · lint 95 · diseño sin deuda nueva · build.
+
+**SCORE_BEFORE → SCORE_AFTER.** Objetivos táctiles bajo mínimo en las cuatro
+superficies públicas: **12 → 2**.
+
+**RESIDUAL_RISK.** Los dos que quedan (`Operación` 42 px, `Soporte` 40 px) son
+enlaces legales del pie, no caminos de producto: sus pseudos se pisan en una
+fila apretada, y separarlos cambia la maqueta del pie — decisión de diseño, no
+arreglo. El conteo tiene precisión de ±1 px.

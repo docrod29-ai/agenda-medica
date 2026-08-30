@@ -219,7 +219,7 @@ function Hero() {
         </div>
         <div className="nx-entra" style={{ marginTop: 16, fontSize: 14, color: 'var(--text2)', ['--nx-retraso' as unknown as string]: '260ms' } as React.CSSProperties}>
           ¿Ya tienes cuenta?{' '}
-          <Link href="/login" style={{ color: 'var(--nexus)', fontWeight: 700, textDecoration: 'none' }}>Inicia sesión aquí →</Link>
+          <Link href="/login" className="nx-enlace-tactil" style={{ color: 'var(--nexus)', fontWeight: 700, textDecoration: 'none' }}>Inicia sesión aquí →</Link>
         </div>
 
         {/* Hero shot del producto: UI real (tokens del design system) con datos ficticios */}
@@ -257,7 +257,7 @@ function Stats() {
       <div style={{ flexBasis: '100%', textAlign: 'center', padding: '0 24px 16px', fontSize: 11.5, color: 'var(--text3)' }}>
         * De revisiones sistemáticas publicadas: reducción relativa ~34% en promedio (hasta ~39% con recordatorio telefónico). La reducción real
         varía por especialidad, población y consultorio.{' '}
-        <Link href="/evidencia" style={{ color: 'var(--nexus)', fontWeight: 600, textDecoration: 'none' }}>Ver fuentes →</Link>
+        <Link href="/evidencia" className="nx-enlace-tactil" style={{ color: 'var(--nexus)', fontWeight: 600, textDecoration: 'none' }}>Ver fuentes →</Link>
       </div>
     </section>
   )
@@ -520,14 +520,14 @@ function Trust() {
       {/* Punto de entrada a la página de seguridad: exhibe la inversión en
           confianza como argumento de venta (antes solo estaba en el footer). */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Link href="/seguridad" style={{
+        <Link href="/seguridad" className="nx-enlace-tactil" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
           fontSize: 13.5, fontWeight: 700, color: 'var(--nexus)',
           border: '1px solid var(--border2)', borderRadius: 'var(--r-pill)', padding: '8px 18px',
         }}>
           <Shield size={15} /> Cómo protegemos la información clínica <ArrowRight size={14} />
         </Link>
-        <Link href="/evidencia" style={{
+        <Link href="/evidencia" className="nx-enlace-tactil" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
           fontSize: 13.5, fontWeight: 700, color: 'var(--text2)',
           border: '1px solid var(--border2)', borderRadius: 'var(--r-pill)', padding: '8px 18px',
@@ -630,13 +630,13 @@ function Footer() {
         <span style={{ fontSize: 14, color: 'var(--text3)' }}>· Hecho en México 🇲🇽</span>
       </div>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-        <a href="/paquetes" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Paquetes por especialidad</a>
-        <a href="/demo/razonamiento" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Ver una consulta de ejemplo</a>
-        <a href="/operacion" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Operación</a>
-        <a href="/seguridad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Seguridad</a>
-        <a href="/terminos" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
-        <a href="/privacidad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>
-        <a href="/contacto" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
+        <a href="/paquetes" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Paquetes por especialidad</a>
+        <a href="/demo/razonamiento" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Ver una consulta de ejemplo</a>
+        <a href="/operacion" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Operación</a>
+        <a href="/seguridad" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Seguridad</a>
+        <a href="/terminos" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
+        <a href="/privacidad" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>
+        <a href="/contacto" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text3)' }}>
         © {new Date().getFullYear()} Ausculta. Todos los derechos reservados.

@@ -1518,8 +1518,18 @@ html[data-vt-continuidad] .page-transition { animation: none; }
      abajo) y el enlace lleva z-index 1 para que la capa de transición de
      página no se coma el borde inferior del golpe. Sin los dos, el área
      efectiva medía 40, no 44. */
-  a.nx-ident, .nx-cta-aviso { position: relative; z-index: 1; }
-  a.nx-ident::before, .nx-cta-aviso::before {
+  a.nx-ident, .nx-cta-aviso, .nx-enlace-tactil { position: relative; z-index: 1; }
+  /* ENLACES DE ACCIÓN SUELTOS — la familia que aquel guardián dejó declarada.
+     `v15-a11y-tactiles-de-enlace` cerró `a.nx-ident` y `.nx-cta-aviso`, y dijo
+     con todas las letras lo que NO cubría: «un enlace nuevo con otra clase no
+     está vigilado por esto».
+     Medidos a 390 px con hit-testing: doce enlaces de acción por debajo de
+     44 px de alto — «Inicia sesión aquí →» (129×18) en la portada y «Crea una
+     gratis →» (113×18) en el inicio de sesión, que son literalmente los dos
+     caminos entre las dos puertas del producto, más los del pie.
+     Mismo mecanismo, por la misma razón: el pseudo estira el ÁREA DE GOLPE sin
+     mover un píxel de lo visible, y sólo en puntero grueso. */
+  a.nx-ident::before, .nx-cta-aviso::before, .nx-enlace-tactil::before {
     content: '';
     position: absolute;
     top: calc(50% + 2px); left: 50%;
