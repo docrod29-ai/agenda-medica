@@ -163,10 +163,14 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     pruebas: ['src/__tests__/el-programa-no-pierde-requisitos.test.ts'],
   }),
   R({
-    id: 'WS-01.tablero', ws: 'WS-01', titulo: 'Tablero en prosa mantenido y reconciliado con el código',
+    id: 'WS-01.tablero', ws: 'WS-01', titulo: 'Master Board vivo, con todos los requisitos y su estado',
     estado: 'PARTIAL',
-    queFalta: 'El tablero se quedó en REG-362 mientras el árbol iba por REG-381. Reconciliarlo tras cada tanda, y reconciliar con agent-state/BACKLOG.json (V9/V10/V15 arrastran requisitos propios).',
-    artefactos: ['docs/product/AUSCULTA-MASTER-BOARD.md'],
+    evidencia: 'REG-416. El tablero decía «el estado sale del código leído hoy» y estaba escrito a mano: SHA y fecha quince REG atrás. Ahora el ESTADO se deriva de requisitos.ts entre marcas, con guardián que falla si está viejo; el CRITERIO se sigue escribiendo a mano, que es la línea que trazó REG-241. El SHA y la fecha no se generan: se borraron, porque MASTER_STATE.json ya los deriva y duplicarlos era crear la segunda fuente de verdad mientras se cierra una.',
+    comando: 'node scripts/programa/tablero-derivado.mjs --verificar && npx vitest run src/__tests__/el-tablero-del-loop-no-miente.test.ts',
+    resultado: '23 casos. El bloque derivado cuenta y nombra pero NO recomienda — el guardián lo comprueba, porque un generador que dijera «lo siguiente es…» inventaría criterio con aspecto de dato.',
+    queFalta: 'La prosa de cada WS sigue a mano y puede envejecer (lo que ya no puede es el estado). Y falta reconciliar con agent-state/BACKLOG.json: V9/V10/V15 arrastran requisitos propios que hoy viven en otro archivo y no entran en este censo.',
+    artefactos: ['scripts/programa/tablero-derivado.mjs', 'docs/product/AUSCULTA-MASTER-BOARD.md'],
+    pruebas: ['src/__tests__/el-tablero-del-loop-no-miente.test.ts', 'src/__tests__/el-programa-no-pierde-requisitos.test.ts'],
   }),
   R({
     id: 'WS-01.dominios', ws: 'WS-01', titulo: 'Ningún dominio canónico se queda sin representación',

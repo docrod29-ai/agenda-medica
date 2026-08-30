@@ -9,11 +9,95 @@
 
 | | |
 |---|---|
-| **Rama** | `claude/ausculta-master-completion-4clx9v` (PR #389) |
-| **SHA base** | `ba9d7a2f410157011a73ad87ea24f0edfc05560c` |
-| **Fecha** | 2026-08-29 |
-| **Base canónica** | `main` (rama 128 commits por delante, 0 por detrás) |
+| **Rama** | `claude/ausculta-master-completion-4clx9v` |
+| **SHA, versión, última REG y conteo de pruebas** | En `agent-state/MASTER_STATE.json`, que **se deriva** (`node scripts/agent-state/actualizar.mjs`) y tiene guardián. Aquí llevaban un SHA y una fecha escritos a mano que se quedaron quince REG atrás — REG-416 |
+| **Estado por requisito** | En el bloque derivado de abajo, y en `src/lib/programa/requisitos.ts` |
 | **Tableros visibles** | #296 (padre) · #310 (escala) · #314 (evidencia) · #389 (este programa) |
+
+
+<!-- CENSO-DERIVADO:INICIO -->
+
+> **Este bloque se DERIVA de `src/lib/programa/requisitos.ts`.** No se edita a
+> mano: `node scripts/programa/tablero-derivado.mjs` lo reescribe y su guardián
+> falla si está viejo. Lo que sigue escribiéndose a mano es el CRITERIO —qué se
+> hace a continuación y por qué—, que no sale de un `grep`.
+
+**78 requisitos.**
+
+| Estado | Cuántos |
+|---|---|
+| `PARTIAL` | 35 |
+| `PROVEN` | 25 |
+| `BLOCKED_EXTERNAL` | 14 |
+| `NOT_STARTED` | 2 |
+| `NEEDS_CLINICAL_REVIEW` | 1 |
+| `DEFERRED_BY_OWNER` | 1 |
+
+### Internamente accionables — 37
+
+Lo que se puede cerrar sin pedirle nada a nadie. Si esta lista está vacía, el
+trabajo interno se acabó.
+
+| Requisito | Estado |
+|---|---|
+| `WS-01.tablero` | `PARTIAL` |
+| `WS-02.registrados-2000` | `PARTIAL` |
+| `WS-02.registrados-10000` | `PARTIAL` |
+| `WS-03.lecturas-sin-cota` | `PARTIAL` |
+| `WS-03.documentos-que-crecen` | `PARTIAL` |
+| `WS-04.interruptor-ia` | `PARTIAL` |
+| `WS-04.idempotencia` | `PARTIAL` |
+| `WS-04.inyeccion-de-fallos` | `PARTIAL` |
+| `WS-05.mecanismos` | `PARTIAL` |
+| `WS-05.a11y-wcag` | `PARTIAL` |
+| `WS-06.sin-scraping` | `PARTIAL` |
+| `WS-07.identidad-de-revista` | `PARTIAL` |
+| `WS-07.guias` | `PARTIAL` |
+| `WS-09.motor` | `PARTIAL` |
+| `WS-10.proyeccion-no-es-segunda-verdad` | `PARTIAL` |
+| `WS-10.problemas-medicacion-alergias` | `PARTIAL` |
+| `WS-10.procedimientos-dispositivos` | `PARTIAL` |
+| `WS-10.banderas-y-respuesta` | `NOT_STARTED` |
+| `WS-10.pantalla-de-certeza` | `PARTIAL` |
+| `WS-11.estados-del-cierre` | `PARTIAL` |
+| `WS-11.laboratorio` | `PARTIAL` |
+| `WS-11.interconsultas-imagen` | `NOT_STARTED` |
+| `WS-11.sobrevive-a-la-navegacion` | `PARTIAL` |
+| `WS-12.doce-preguntas` | `PARTIAL` |
+| `WS-12.entailment` | `PARTIAL` |
+| `WS-12.contratos-de-evaluacion` | `PARTIAL` |
+| `WS-12.router` | `PARTIAL` |
+| `WS-12.p99` | `PARTIAL` |
+| `WS-13.correlation-id` | `PARTIAL` |
+| `WS-13.alertas` | `PARTIAL` |
+| `WS-13.mfa-servidor` | `PARTIAL` |
+| `TR-VOZ.pipeline` | `PARTIAL` |
+| `TR-WHATSAPP.entrega` | `PARTIAL` |
+| `TR-RAZONAMIENTO.procedencia` | `PARTIAL` |
+| `TR-BORRADORES.cero-perdidos` | `PARTIAL` |
+| `TR-HISTORIA.practica-longitudinal` | `PARTIAL` |
+| `TR-ESPECIALIDAD.infecto` | `PARTIAL` |
+
+### Bloqueados fuera — 14, con lo que los desbloquea
+
+| Requisito | Qué falta, y no es código |
+|---|---|
+| `WS-02.registrados-15000` | Generadores de carga repartidos en varias máquinas contra un proyecto de Firebase de ENSAYO con `firestore.rules` y los índices desplegados, sembrado al volumen del escenario. Una sola máquina no sostiene los canales gRP |
+| `WS-02.registrados-20000` | Generadores de carga repartidos en varias máquinas contra un proyecto de Firebase de ENSAYO con `firestore.rules` y los índices desplegados, sembrado al volumen del escenario. Una sola máquina no sostiene los canales gRP |
+| `WS-02.registrados-30000` | Generadores de carga repartidos en varias máquinas contra un proyecto de Firebase de ENSAYO con `firestore.rules` y los índices desplegados, sembrado al volumen del escenario. Una sola máquina no sostiene los canales gRP |
+| `WS-02.registrados-50000` | Generadores de carga repartidos en varias máquinas contra un proyecto de Firebase de ENSAYO con `firestore.rules` y los índices desplegados, sembrado al volumen del escenario. Una sola máquina no sostiene los canales gRP |
+| `WS-02.registrados-100000` | Generadores de carga repartidos en varias máquinas contra un proyecto de Firebase de ENSAYO con `firestore.rules` y los índices desplegados, sembrado al volumen del escenario. Una sola máquina no sostiene los canales gRP |
+| `WS-05.webkit-390` | Una máquina con salida a internet donde `npx playwright install webkit` funcione. Aquí la descarga está bloqueada («Failed to download WebKit 26.5»). |
+| `WS-05.iphone-real` | Un iPhone. Recorrido: consulta → receta → volver → orden → volver, 10 veces, más dictado con la vista arriba y espera en paciente hospitalizado. |
+| `WS-08.costuras-comerciales` | Contrato y credenciales de UpToDate, Cochrane, Scopus, DynaMed, OpenEvidence o Embase. Sin acuerdo se quedan en not_configured. |
+| `WS-13.reglas-desplegadas` | npx firebase deploy --only firestore:rules --project nexomed-agenda |
+| `WS-13.indices-desplegados` | npx firebase deploy --only firestore:indexes --project nexomed-agenda, y verificar en la consola que los 8 salen Enabled y no Building. |
+| `WS-13.pitr-rto` | gcloud firestore databases update --enable-pitr, y un gcloud firestore databases restore sobre una base de ENSAYO para cronometrar el RTO. |
+| `WS-13.app-check` | Confirmar NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY en el proyecto vivo. |
+| `WS-13.pentest` | Contratar un tercero. No hay mitad automatizable. |
+| `TR-VOZ.consulta-larga` | Credenciales de un proveedor de ASR y audio actuado o sintético de consulta larga. |
+
+<!-- CENSO-DERIVADO:FIN -->
 
 ## Conteo de la cola prioritaria — con el saldo a la vista
 

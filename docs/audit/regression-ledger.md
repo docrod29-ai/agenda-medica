@@ -15375,3 +15375,67 @@ con el comentario que explica lo prohibido. Se mira la firma.
   emulador, como sí se midieron lista, búsqueda e historial (REG-383).
 
 **Prueba.** `src/__tests__/la-agenda-no-se-lee-entera.test.ts` (7 casos).
+
+## REG-416 — el tablero decía que el estado sale del código, y estaba escrito a mano
+
+**QUÉ SE PEDÍA.** `WS-01.tablero`: «El tablero se quedó en REG-362 mientras el
+árbol iba por REG-381. Reconciliarlo tras cada tanda».
+
+### El defecto
+
+`docs/product/AUSCULTA-MASTER-BOARD.md` es el tablero que lee una persona, y su
+propia cabecera lo dice:
+
+> el estado sale del **código leído hoy**, no de la documentación ni de un
+> checkpoint anterior.
+
+Y el estado estaba escrito a mano. Al mirarlo, la ficha decía SHA `ba9d7a2f` y
+fecha 29-ago con el árbol **quince REG por delante**, mientras `requisitos.ts`
+—el censo, que sí es máquina— decía otra cosa.
+
+Dos respuestas a «¿en qué estado está WS-04?»: la del censo y la de la prosa. Es
+el invariante de arquitectura del producto —una fuente de verdad por entidad—
+incumplido sobre el propio programa.
+
+### La causa raíz ya estaba escrita, y con nombre
+
+`el-tablero-del-loop-no-miente` nació en REG-241 porque `MASTER_STATE.json` se
+quedó viejo **tres veces**, y su encabezado lleva el diagnóstico:
+
+> La causa no es descuido: es que actualizarlo depende de que yo me acuerde.
+> Mientras no lo derive un script, va a volver a pasar.
+
+Se derivó aquella memoria y se dejó ésta a mano, al lado. Volvió a pasar, como
+estaba escrito que pasaría. «Reconciliarlo tras cada tanda» —lo que pedía el
+censo— es el arreglo que garantiza la próxima recaída: es depender de recordar,
+otra vez, con una frase más.
+
+### La regla, que es la misma línea de REG-241
+
+Se deriva el **estado**: cuántos requisitos hay en cada uno, cuáles siguen
+internamente accionables, y qué desbloquea a los bloqueados fuera. Sale de
+`requisitos.ts`, entre marcas, y su guardián falla si está viejo.
+
+No se deriva el **criterio**: qué se hace a continuación, por qué un bloqueo es
+aceptable, qué decide el dueño. Eso se sigue escribiendo a mano porque no sale de
+un `grep` — y el guardián comprueba que el bloque derivado **no recomienda**, sólo
+cuenta y nombra. Un generador que además dijera «lo siguiente es…» estaría
+inventando criterio con aspecto de dato.
+
+### El SHA y la fecha: no se generan, se borran
+
+La otra mitad tentadora era generar también la ficha de cabecera. No se hizo:
+`agent-state/MASTER_STATE.json` **ya** lleva SHA, versión, última REG y conteo de
+pruebas, derivados y con guardián. Escribirlos otra vez en el tablero habría sido
+crear la segunda fuente de verdad justo mientras se cierra una. Ahora la ficha
+apunta a dónde vive el dato.
+
+### Qué NO cubre
+
+- **No comprueba que la prosa de cada WS sea cierta.** Las secciones narrativas
+  siguen a mano y pueden envejecer; lo que ya no puede envejecer es el estado.
+- **No reconcilia con `agent-state/BACKLOG.json`**, que la otra mitad del censo
+  pide: V9/V10/V15 arrastran requisitos propios y hoy viven en otro archivo.
+- No añade requisitos ni cambia ninguno: sólo cambia de dónde sale lo que se lee.
+
+**Prueba.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts` (23 casos, 4 nuevos).

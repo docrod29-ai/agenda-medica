@@ -859,7 +859,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * recuento marcó como deuda una lectura que sí acota, porque resolvía los
      * nombres en todo el archivo y otra función tenía una variable homónima.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502, 412],
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502, 412, 416],
   },
   {
     /**
