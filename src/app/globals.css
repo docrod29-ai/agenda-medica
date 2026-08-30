@@ -3593,3 +3593,9 @@ span.riel-aviso { cursor: default; }
   border-radius: var(--r-circulo);
   background: var(--teal);
 }
+
+/* Lo pasado en la fila de Hoy: mismo trato que `.riel-entrada[data-momento]`.
+   El nombre baja de tono y de peso; la duración y el motivo se quedan en su
+   token AA. Antes era `opacity: 0.6` inline y axe medía 2.85 : 1 a 390px. */
+.cita-fila[data-pasada] .nx-ident { color: var(--text2); font-weight: 500; }
+.cita-fila[data-pasada] .riel-hora { color: var(--text2); font-weight: 500; }

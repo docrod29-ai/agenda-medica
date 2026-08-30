@@ -156,6 +156,8 @@ export default function FarmaciaPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre, lote o proveedor…"
+            // El `placeholder` desaparece en cuanto se escribe: no es un nombre.
+            aria-label="Buscar en el inventario"
             style={{
               width: '100%', padding: '8px 12px 8px 34px', borderRadius: 8,
               border: '1px solid var(--border)', background: 'var(--s2)',
@@ -166,6 +168,7 @@ export default function FarmaciaPage() {
         <select
           value={categoriaFiltro}
           onChange={(e) => setCategoriaFiltro(e.target.value as typeof categoriaFiltro)}
+          aria-label="Filtrar el inventario por categoría"
           style={{
             padding: '8px 12px', borderRadius: 8,
             border: '1px solid var(--border)', background: 'var(--s2)',

@@ -2335,3 +2335,118 @@ mismo árbol, no supuesto. Ya estaba declarado en la unidad 43.
   restantes (`hospitalizacion/camas`, `hospitalizacion/indicadores`) son ALPHA
   detrás de bandera y quedan **anotados, no arreglados**: este carril es
   Consultorio.
+
+---
+
+## Unidad 46 — medir catorce pantallas por primera vez, y lo que salió
+
+**CÓMO SE LLEGÓ AQUÍ.** El trinquete de interfaz cubría **6 rutas de 80**, las
+seis de la familia de la agenda —las que este carril había arreglado—. Todas en
+cero. Ese cero decía «lo que miro está bien», no «el producto está bien». El
+hueco real del §3/§20/§22 no eran las seis medidas: eran las **setenta y cuatro
+sin medir**.
+
+Se añaden catorce pantallas de Consultorio (no hospital ni UCI: son ALPHA y no
+se venden; no rutas con parámetro: necesitan id sembrado). 20 rutas × 3 anchos =
+**60 combinaciones**.
+
+**FOUND — y estaba ahí desde siempre.**
+
+| Ruta | Violación | Impacto |
+|---|---|---|
+| `/crm` | `select-name` — el selector de periodo del análisis, sin nombre | **CRÍTICO** |
+| `/farmacia` | `select-name` — el filtro de categoría del inventario | **CRÍTICO** |
+| `/corte-caja` | `label` — el campo de fecha: **qué día se cuadra** | **CRÍTICO** |
+| `/consultor` | `button-name` — el botón de ENVIAR la pregunta clínica | **CRÍTICO** |
+| `/dashboard` | `color-contrast` ×2 — 2.85 : 1 | serious |
+| `/reactivacion` | `color-contrast` — 2.93 : 1 | serious |
+
+Y dos rutas con **`aria-current` 0** en los tres anchos: `/corte-caja` y
+`/consultor`. El riel no contesta «dónde estoy».
+
+**LAS CAUSAS RAÍZ, QUE NO SON «FALTABA UN `aria-label`».**
+
+1. **Los componentes ya habían aprendido la lección; nada obliga a usarla.**
+   `Field.tsx` documenta este mismo defecto («un lector de pantalla anunciaba el
+   control sin nombre») y asocia la etiqueta **cuando se le da una**. Nada exige
+   dárselas. Familia «depende de que alguien se acuerde».
+
+2. **`/dashboard`: el CSS prohibía por escrito lo que la pantalla hacía.**
+   `globals.css` dice sobre `.riel-entrada`: «lo pasado y lo cerrado se ATENÚAN
+   POR TOKEN, no por opacity: bajar la opacidad del texto ya atenuado (--text3,
+   12.5px) lo tiraba bajo 4.5:1 — **lo midió axe en la primera captura del
+   riel**». La fila de al lado, `.cita-fila`, hacía `opacity: isPast ? 0.6 : 1`.
+   La lección se aprendió en un componente y no se aplicó al de al lado —
+   **quinta vez en este carril**.
+
+3. **`/reactivacion`: se usó el token de acento como relleno.** `--nexus` es
+   color de texto e icono; el de relleno es `--nexus-solido`, y su comentario
+   trae el contraste medido: «blanco encima = 5.16 : 1 ✓ AA». La respuesta
+   correcta estaba escrita en el propio token.
+
+4. **`/corte-caja` no estaba en el mapa de navegación.** `Sidebar.tsx` explica
+   por qué: «la ruta sigue viva por si hay marcadores», con su contenido ya
+   renderizado dentro de `/finanzas`. Una ruta que sólo se alcanza por marcador
+   o por la paleta es justo donde más falta hace que el riel diga dónde estás:
+   **quien llega ahí no viene de navegar**.
+
+**CHANGE.** Los cuatro controles reciben nombre accesible que dice qué hacen;
+`/dashboard` atenúa por token (`data-pasada` + regla CSS) en vez de por opacidad;
+`/reactivacion` usa `--nexus-solido`; `/corte-caja` entra en el contexto de
+`/finanzas`. Y `ui/Skeleton.tsx` —**componente compartido**— gana `role="status"`:
+tenía `aria-label` sobre un `div` sin rol, que es atributo prohibido y deja la
+pantalla muda justo mientras carga.
+
+**Una prueba existente cayó, y tenía razón a medias.**
+`v15-roles-tipograficos-en-hoy` exigía literalmente `opacity: isPast ? 0.6 : 1`.
+Congelaba **el cómo, y el cómo estaba mal**: pedía exactamente lo que
+`globals.css` prohíbe y lo que axe midió en 2.85 : 1. Se reescribe para congelar
+la **intención** —lo pasado se distingue, por token, y la opacidad no vuelve— y
+se prueba al revés **tres veces**: devolviendo la opacidad, y borrando cada una
+de las dos reglas de CSS por separado. La primera versión de mi reescritura
+pasaba con la regla borrada (el patrón era laxo y casaba con la regla hermana);
+se apretó hasta que las tres inyecciones caen.
+
+**PROOF.** 60 combinaciones medidas en navegador: **axe 0 en todas**, sin
+desborde a lo ancho en ninguna, en 390 / 768 / 1440.
+
+**EL INSTRUMENTO SE ARREGLÓ TAMBIÉN, Y ESO ES PARTE DE LA UNIDAD.** El trinquete
+ahora aborta si la sonda **aterriza en otra ruta** (un redirect al login se medía
+como si fuera la ruta pedida, y el login saca cero en todo) o si la página cargó
+**sin hoja de estilo**.
+
+Lo segundo no es hipotético: durante esta unidad un `next start` viejo siguió
+dueño del puerto tras un `kill` que di por bueno, sirviendo el manifiesto de un
+build cuyos ficheros yo acababa de borrar. El chunk del CSS devolvía **500** y
+las páginas se pintaban desnudas. De ahí saqué, y **retiro**, dos conclusiones
+falsas: que un bloque entero de CSS estaba muerto, y que el botón de cerrar del
+aviso de push medía 18×21 saltándose su propia regla de 44×44. Las dos eran el
+servidor. Comprobado después con la hoja en 200 y 571 reglas cargadas, `tienePush:
+true`.
+
+Ya me había pasado con este mismo puerto. La diferencia es que ahora **no depende
+de que me acuerde**: lo comprueba el instrumento antes de escribir un número.
+
+**COMPUERTAS.** `vitest` 10 794/10 795 · trinquete de lint 95 · trinquete de
+diseño sin deuda · `tsc` limpio · `npm run build` compila · inventario de
+pantallas regenerado. El único rojo sigue siendo `ops-timeout-y-punto-ciego`,
+ambiental, verificado idéntico en el árbol sin mis cambios.
+
+**RESIDUAL_RISK.**
+
+- **Los techos de las 14 rutas nuevas NO están escritos todavía.** La medición
+  de las 60 combinaciones se completó; el `--actualizar` que las fija se cortó
+  por un reinicio del contenedor. Hasta que se escriban, esas rutas están
+  **medidas pero no protegidas**. Es la siguiente unidad, no una nota al pie.
+- El mapeo de `/corte-caja` está probado por su guardián de unidad, **no** en
+  navegador: se hizo después de la corrida de 60. Sin volver a medir, es
+  NOT_PROVEN.
+- `/consultor` y `/antibiograma` siguen **sin contexto a propósito** (unidad 17):
+  se alcanzan desde las Herramientas del expediente y decidir su contexto es una
+  decisión de producto. Lo nuevo es que ahora está **medido**: `aria-current` 0
+  en los tres anchos. Deja de ser una suposición.
+- axe no ve el aspecto, ni el movimiento, ni el orden de tabulación. Cero
+  violaciones **no es** «la pantalla está bien».
+- Sigue sin usarse ningún lector de pantalla real.
+- 20 rutas de 80. Las 60 restantes —hospital, UCI, rutas con parámetro— **no se
+  declaran buenas**: se declaran sin medir.

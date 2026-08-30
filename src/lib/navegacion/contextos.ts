@@ -30,6 +30,14 @@
  *
  * ── LO QUE ESTO NO CUBRE ────────────────────────────────────────────────────
  *
+ * `/corte-caja` SÍ se mapea, y no estaba en `GRUPOS`: `Sidebar.tsx` explica por
+ * qué —«la ruta sigue viva por si hay marcadores», con su contenido ya
+ * renderizado dentro de `/finanzas`—. Una ruta que sólo se alcanza por marcador
+ * o por la paleta es justo donde más falta hace que el riel conteste «dónde
+ * estoy»: quien llega ahí no viene de navegar. Medido el 30-ago: `aria-current`
+ * 0 en los tres anchos. Va al contexto de `/finanzas`, que es donde vive su
+ * contenido.
+ *
  * `/consultor` y `/antibiograma` salieron de `GRUPOS` en RTC-09 y hoy se
  * alcanzan desde las Herramientas del expediente. No se mapean aquí a
  * propósito: decidir su contexto es una decisión de producto que este carril no
@@ -81,7 +89,7 @@ const FAMILIAS: { contexto: ContextoDeNavegacion; bases: string[] }[] = [
     bases: [
       '/operaciones', '/configuracion', '/guia',
       '/hospitalizacion', '/uci',
-      '/crm', '/resenas', '/reactivacion', '/farmacia', '/finanzas', '/membresias',
+      '/crm', '/resenas', '/reactivacion', '/farmacia', '/finanzas', '/corte-caja', '/membresias',
       '/cumplimiento', '/legal', '/migracion',
       '/chat',
     ],

@@ -52,7 +52,25 @@ const BASE = process.env.BASE || 'http://localhost:3300'
 const TECHOS = 'docs/audit/carril-excelencia/techos-de-interfaz.json'
 const ACTUALIZAR = process.argv.includes('--actualizar')
 
-const RUTAS = ['/citas', '/calendario', '/asistente', '/lista-espera', '/finanzas', '/operaciones']
+/**
+ * La superficie de Consultorio que este carril mide.
+ *
+ * Empezó en seis (la familia de la agenda, que era la que estaba rota). Las
+ * catorce de la segunda tanda se añadieron el 30-ago tras medirlas por primera
+ * vez: entre ellas salieron cuatro violaciones CRÍTICAS de axe —dos `select`
+ * sin nombre, un campo de fecha sin etiqueta y el botón de enviar del
+ * consultor— y tres de contraste. Estaban ahí desde siempre; lo que faltaba
+ * era mirar.
+ *
+ * No entran las de hospital ni UCI: son ALPHA y no se venden. Tampoco las
+ * rutas con parámetro, que necesitan un id sembrado y aún no lo tienen.
+ */
+const RUTAS = [
+  '/citas', '/calendario', '/asistente', '/lista-espera', '/finanzas', '/operaciones',
+  '/dashboard', '/pacientes', '/pendientes', '/configuracion', '/crm', '/reactivacion',
+  '/resenas', '/membresias', '/farmacia', '/corte-caja', '/cumplimiento',
+  '/cumplimiento/retencion', '/consultor', '/guia',
+]
 const ANCHOS = [390, 768, 1440]
 const ALTOS = { 390: 844, 768: 1024, 1440: 900 }
 
@@ -90,7 +108,26 @@ for (const w of ANCHOS) {
     const dom = await pag.evaluate(() => ({
       ariaCurrent: document.querySelectorAll('[aria-current="page"]').length,
       desborde: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      // ¿EN QUÉ PÁGINA ESTAMOS DE VERDAD? Una ruta que redirige al login se
+      // mediría como si fuera la ruta pedida, y el login saca cero en todo.
+      aterrizo: location.pathname,
+      // ¿Y LLEGÓ LA HOJA DE ESTILO? Un `next build` bajo un `next start` en
+      // marcha deja el chunk del CSS en 500: la página se pinta sin estilo y
+      // axe da números que no son de este producto. Pasó el 30-ago y costó
+      // media hora de conclusiones falsas — entre ellas «esta regla de CSS
+      // está muerta», que era el servidor y no el producto.
+      hojas: [...document.styleSheets].filter(h => {
+        try { return h.cssRules.length > 20 } catch { return false }
+      }).length,
     }))
+    if (dom.aterrizo !== ruta) {
+      console.error(`\n  ${ruta}@${w}: la sonda aterrizó en ${dom.aterrizo}. No se mide lo que no se visita.\n`)
+      process.exit(2)
+    }
+    if (dom.hojas === 0) {
+      console.error(`\n  ${ruta}@${w}: la página cargó SIN hoja de estilo. Para el servidor, borra .next, construye, arranca y vuelve a medir.\n`)
+      process.exit(2)
+    }
     medido[`${ruta}@${w}`] = { axe, ariaCurrent: dom.ariaCurrent, desborde: dom.desborde, erroresDeConsola: errores.length }
     pag.removeAllListeners('console')
   }

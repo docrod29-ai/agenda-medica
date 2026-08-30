@@ -281,7 +281,11 @@ export default function ReactivacionPage() {
             <button key={u.dias} onClick={() => setUmbral(u.dias)}
               style={{
                 border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700,
-                background: umbral === u.dias ? 'var(--nexus)' : 'transparent',
+                // `--nexus` es el color de ACENTO (texto e iconos); el de
+                // relleno es `--nexus-solido`, y su propio comentario trae el
+                // contraste medido: «blanco encima = 5.16 : 1 ✓ AA». Con
+                // `--nexus` daba 2.93 : 1 — axe, 390px.
+                background: umbral === u.dias ? 'var(--nexus-solido)' : 'transparent',
                 color: umbral === u.dias ? '#fff' : 'var(--text3)',
               }}>
               +{u.label}

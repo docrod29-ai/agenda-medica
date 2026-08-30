@@ -107,7 +107,14 @@ export default function CRMPage() {
         title="CRM & Revenue"
         subtitle="Pipeline, conversión, retención y oportunidades."
         actions={(
-          <Select value={periodo} onChange={e => setPeriodo(e.target.value as Periodo)} style={{ width: 'auto' }}>
+          <Select
+            value={periodo}
+            onChange={e => setPeriodo(e.target.value as Periodo)}
+            style={{ width: 'auto' }}
+            // Sin nombre, un lector de pantalla anuncia «cuadro combinado» y ya:
+            // no dice que lo que cambia es el periodo de TODO lo que hay debajo.
+            aria-label="Periodo del análisis"
+          >
             <option value="hoy">Hoy</option>
             <option value="semana">Últimos 7 días</option>
             <option value="mes">Últimos 30 días</option>

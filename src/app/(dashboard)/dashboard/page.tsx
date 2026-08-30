@@ -251,10 +251,21 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
   return (
     <div
       className="cita-fila"
-      style={{
-        borderBottom: isLast ? 'none' : '1px solid var(--border)',
-        opacity: isPast ? 0.6 : 1,
-      }}
+      /**
+       * LO PASADO SE ATENÚA POR TOKEN, NO POR `opacity`.
+       *
+       * Es la regla que `globals.css` ya declara sobre `.riel-entrada` —«bajar
+       * la opacidad del texto ya atenuado (--text3, 12.5px) lo tiraba bajo
+       * 4.5:1 — lo midió axe en la primera captura del riel»— y que esta fila,
+       * la de al lado, no seguía: `opacity: 0.6` sobre `--text3` daba **2.85 :
+       * 1** en la duración y en el motivo de cada cita ya atendida. Medido con
+       * axe a 390px, en la pantalla de inicio del médico.
+       *
+       * La jerarquía la dan el peso y el tono del NOMBRE, más la insignia de
+       * estado que la fila ya lleva. La letra pequeña nunca baja de su token.
+       */
+      data-pasada={isPast ? '' : undefined}
+      style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)' }}
     >
       {/* Área principal: abre la cita */}
       <Link href={`/citas?id=${appt.id}`} className="cita-principal">
