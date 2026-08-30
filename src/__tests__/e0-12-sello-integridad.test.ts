@@ -6,6 +6,8 @@ import {
   HASH_VERSION,
   CAMPOS_SELLADOS_V3,
   CAMPOS_NO_SELLADOS_V3,
+  CAMPOS_SELLADOS_V4,
+  CAMPOS_NO_SELLADOS_V4,
   COBERTURA_SELLO,
 } from '@/lib/expediente/integrity'
 import { stripUndefined } from '@/lib/expediente/serializacion'
@@ -55,6 +57,9 @@ function notaV3Completa(): NotaMedica {
       { key: 'objetivo', label: 'Objetivo', value: 'Texto sintético O.', placeholder: 'ph' },
     ],
     signosVitales: { fc: 70, ta: '110/70' },
+    /* Las ranuras de v4 (REG-377). La fixture las puebla porque el trinquete de
+       abajo exige que cubra TODOS los campos del tipo: si no, los casos 1-4 no
+       prueban lo que dicen. */
     diagnosticos: [{ descripcion: 'Diagnóstico ficticio', tipo: 'definitivo', estado: 'activo', codigoCIE10: 'Z00' }],
     medicamentos: [{ nombre: 'Fármaco ficticio', dosis: '1 tableta', via: 'oral', frecuencia: 'cada 24 h', duracion: '5 días', indicacion: 'prueba' }],
     alergias: [{ alergeno: 'Alérgeno ficticio' }],
@@ -127,7 +132,7 @@ function notaV3Completa(): NotaMedica {
 
 /** Sella la nota como lo hace `firmar()`: hash primero, metadata del sello después. */
 async function sellar(nota: NotaMedica, version = HASH_VERSION): Promise<NotaMedica> {
-  const hashIntegridad = await generarHashIntegridad(nota, version as 2 | 3)
+  const hashIntegridad = await generarHashIntegridad(nota, version as 2 | 3 | 4)
   return { ...nota, metadata: { ...nota.metadata, hashIntegridad, hashVersion: version } }
 }
 
@@ -361,8 +366,11 @@ describe('E0-12 · migración: cada nota se verifica con SU versión de sello', 
     expect(await verificarIntegridadEstado(sinSello)).toBe('sin-sello')
   })
 
-  it('las notas NUEVAS nacen con el sello completo (HASH_VERSION = 3)', () => {
-    expect(HASH_VERSION).toBe(3)
+  it('las notas NUEVAS nacen con el sello más completo que hay (HASH_VERSION = 4)', () => {
+    /* v4 añade el MATERIAL DE ORIGEN —`transcripcionMotor`—, que
+       `CAMPOS_NO_SELLADOS_V3` tenía declarado desde REG-199 como pendiente «hasta
+       que se suba a hashVersion 4». Ésta es esa versión (REG-377). */
+    expect(HASH_VERSION).toBe(4)
   })
 })
 
@@ -393,10 +401,15 @@ const LLAVES_METADATA: Record<keyof MetadataNOM024, true> = {
   hashVersion: true, version: true, estado: true, fuenteGeneracion: true,
 }
 
-describe('E0-12 · trinquete de cobertura del sello v3', () => {
+describe('E0-12 · trinquete de cobertura del sello vigente', () => {
+  /*
+   * Se clasifica contra el sello **VIGENTE** (v4). Las listas v3 se conservan
+   * como acta histórica —son lo que cubre el sello de las notas ya firmadas con
+   * v3— y por eso no sirven para juzgar el tipo de hoy.
+   */
   const clasificados = new Set<string>([
-    ...CAMPOS_SELLADOS_V3,
-    ...CAMPOS_NO_SELLADOS_V3.map(c => c.campo),
+    ...CAMPOS_SELLADOS_V4,
+    ...CAMPOS_NO_SELLADOS_V4.map(c => c.campo),
   ])
 
   it('todo campo de NotaMedica está clasificado (sellado o excluido con razón)', () => {
@@ -486,15 +499,19 @@ describe('E0-12 · COBERTURA_SELLO dice la verdad de cada versión', () => {
   })
 
   it('detalle de una nota v3: verificada, y con sus huecos dichos', async () => {
-    const v3 = await sellar(notaV3Completa())
+    /* Sellada EXPLÍCITAMENTE como v3: desde REG-377 la versión por omisión es la
+       4, y este caso existe para comprobar que una nota v3 sigue verificando con
+       su propio algoritmo — que es lo que impide que subir de versión convierta
+       el histórico en «alterada» de golpe. */
+    const v3 = await sellar(notaV3Completa(), 3)
     const d = await verificarIntegridadDetalle(v3)
     expect(d.estado).toBe('verificada')
     expect(d.version).toBe(3)
     /**
      * `cubreTodo` ya no significa «es la última versión» sino «no queda nada
-     * fuera». Cuando v4 selle también el origen, pasará a `true` porque la
-     * lista de exclusiones quedará vacía — no porque alguien se acuerde de
-     * cambiarlo a mano.
+     * fuera». Sigue en `false` para una nota v3 aunque v4 ya selle el origen:
+     * lo que se le dice al médico es lo que cubre EL SELLO DE SU NOTA, no el
+     * último que exista.
      */
     expect(d.cubreTodo).toBe(false)
     expect(d.noCubre).toContain('transcripcionMotor')

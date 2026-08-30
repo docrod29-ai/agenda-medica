@@ -12142,3 +12142,84 @@ cifra clínica.
 son **tres**: REG-375 lo usa para saber si hay daño renal agudo, y de eso depende
 qué ventana se le exige a la creatinina. Lo que el guardián protege sigue siendo lo
 mismo: que ningún consumidor reciba la lista pelada de hoy.
+
+---
+
+## REG-377 — el material de origen de una nota firmada se podía alterar sin que el sello lo notara
+
+**QUÉ FALLABA, Y DESDE CUÁNDO SE SABÍA.** `CAMPOS_NO_SELLADOS_V3` lo tenía escrito
+desde REG-199, con su fecha de caducidad puesta:
+
+> «`transcripcionMotor` **ES material de origen y le CORRESPONDE ir sellado** — pero
+> añadirlo al canónico v3 cambiaría el hash de TODAS las notas ya firmadas y las
+> volvería «alterada» de golpe: la falsa alarma exacta de REG-060. Entra al sello
+> cuando se suba a `hashVersion` 4, que es su propia versión con su propia
+> migración.»
+
+Mientras tanto, en una nota **firmada**, lo que oyó el reconocedor —la fuente de la
+que se re-proyecta la nota, de la que cuelga el aprendizaje del dictado y de la que
+colgaría cualquier discusión medicolegal— se podía cambiar y el sello seguía
+diciendo «verificada».
+
+**POR QUÉ NO SE HABÍA HECHO ANTES.** Porque hacerlo mal es peor que no hacerlo:
+subir la versión sin conservar el canónico viejo marca «alterada» **todo** el
+histórico firmado, que es exactamente la alarma roja que el sello existe para no dar
+nunca. Se hace ahora porque el `FINAL-READINESS` lo tenía como uno de sus cinco
+pendientes, y porque la maquinaria para hacerlo bien **ya estaba diseñada**:
+`CANONICO` despacha por la versión que la nota **declara**, y por eso las notas v2
+siguen verificando hoy, tres versiones después.
+
+**EL ARREGLO.** `canonicoV4` = todo lo de v3 **más `transcripcionMotor`**, con la
+`v: 4` literal —sellar la versión declarada sería auto-referencia y permitiría
+bajarle la versión a un sello para re-verificarlo con un juego de campos más corto—.
+`HASH_VERSION = 4`, `VERSIONES_VERIFICABLES = [2, 3, 4]`, y `CANONICO[4]`.
+
+`CAMPOS_SELLADOS_V3` / `CAMPOS_NO_SELLADOS_V3` se conservan **intactos, como acta
+histórica**: son lo que cubre el sello de las notas ya firmadas y de ahí sale lo que
+la pantalla les dice. `CAMPOS_NO_SELLADOS_V4` se **deriva** de la de v3 —no se copia
+a mano— porque dos listas escritas a mano acaban diciendo cosas distintas, que es el
+defecto que REG-199 arregló.
+
+**REG-060, OTRA VEZ, EN EL MATERIAL DE ORIGEN.** `transcripcionMotor` entra además a
+`OPCIONALES_SELLADOS_V3`, la lista que `normalizarParaSello` usa para convertir
+`undefined` en `null` **antes** de hashear. Sin eso, el hash se calcularía sobre
+`null` mientras `stripUndefined` + el MERGE de `updateDoc` conservan el valor viejo
+en Firestore: el documento guardado dejaría de corresponder a su propio sello. Para
+una nota v3 es inocuo —su canónico no mira ese campo—, así que la lista es una sola.
+
+**LO QUE SOBRABA, Y QUIÉN LO CAZÓ.** La primera versión de este cambio abría además
+dos ranuras vacías en `NotaMedica` —`procedimientos`, `dispositivos`— selladas desde
+el primer día, con el argumento de que el canónico es una lista cerrada y añadirles
+un campo después obligaría a un v5.
+
+**`campos-sin-usar.test.ts` las rechazó**, y al revisar el argumento no se sostenía.
+Ese guardián dice que «un campo declarado y sin usar es una promesa del modelo», y
+esa promesa habría quedado en pie indefinidamente: documentar un procedimiento es un
+acto del médico (REG-370) y hoy nada lo captura. Lo que se compraba con esa deuda
+tampoco valía nada: subir de versión es justo lo que este módulo sabe hacer, y un v5
+cuesta una entrada en `CANONICO` y su prueba. **Se quitaron**, y el golden guarda un
+caso que se pone rojo si alguien vuelve a ampliar el canónico de v4.
+
+**LA PRUEBA.** `src/__tests__/el-sello-v4-no-rompe-lo-firmado.test.ts` (17 casos).
+Al revés: se prueba que re-verificar una nota **v3** con el algoritmo de v4 la
+marcaría «alterada» —el defecto que este cambio evita, reproducido— y que alterar
+`transcripcionMotor` **sí** se detecta en una nota v4 y **no** en una v3, que es la
+diferencia exacta que introduce la versión.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No re-sella las notas ya firmadas.** Una nota v3 sigue siendo v3, con su
+  algoritmo y con lo que su sello no cubre dicho en pantalla. Re-sellarlas sería
+  reescribir documentos inmutables.
+- **No añade procedimientos ni dispositivos al expediente.** Cuando exista quien los
+  escriba, entrarán con su propio v5 — y v4 queda como la migración ya recorrida que
+  demuestra que eso no rompe lo firmado.
+- **No cambia qué campos NO deben sellarse**: los que se escriben después del hash,
+  los derivados y las transiciones legítimas posteriores a la firma siguen fuera, con
+  su razón escrita.
+
+**UN TRINQUETE AJENO ACTUALIZADO.** `e0-12-sello-integridad` clasifica cada campo de
+`NotaMedica` contra la partición del sello **vigente**, que ahora es la de v4; el
+caso que detalla una nota v3 sella explícitamente con `sellar(nota, 3)`, porque
+existe precisamente para demostrar que una v3 sigue verificando después de que
+`HASH_VERSION` subiera.

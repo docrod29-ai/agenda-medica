@@ -287,7 +287,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * arreglo. El caso que motiva siempre pasa; el frecuente es el que enseña a
      * cerrar el aviso.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372, 373, 374],
+    /**
+     * 377 cierra lo que 199 dejó abierto, y es esta familia en su forma más
+     * documentada: el propio módulo del sello tenía escrito que
+     * `transcripcionMotor` **le correspondía ir sellado**, y el sello decía
+     * «verificada» de una nota en la que ese campo se podía alterar. Las dos
+     * partes eran correctas por su cuenta —la lista declaraba la verdad, el
+     * hash calculaba bien lo que se le daba— y el defecto vivía en el hueco.
+     *
+     * Su lección es sobre las deudas con fecha de caducidad puesta: 199 dejó
+     * escrito el qué, el porqué y hasta el CUÁNDO («cuando se suba a
+     * hashVersion 4»). Eso la hizo barata de cerrar y, a la vez, la dejó
+     * abierta casi doscientos REG, porque nada la ponía en rojo. Una deuda
+     * declarada no es una deuda vigilada.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372, 373, 374, 377],
   },
   {
     clave: 'habla_real',
