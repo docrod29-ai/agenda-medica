@@ -196,6 +196,94 @@ Por orden de lo que más pesa:
    PITR del proyecto y el `databases restore` con consola. El pentest no tiene
    mitad automatizable: o lo hace un tercero, o no está hecho.
 
-Nada de esto es un descubrimiento de última hora: los cinco estaban en el tablero
-antes de empezar este tramo, y siguen exactamente donde estaban porque ninguno
-depende de escribir más código.
+Ninguno de los cinco era un descubrimiento de última hora: estaban en el tablero
+antes de empezar. Tres se han cerrado en lo que dependía de escribir código
+(REG-377, REG-378, REG-381), y los dos restantes se han empujado hasta donde
+llegaba el trabajo interno (REG-379, REG-380).
+
+---
+
+## Las acciones que sólo puede ejecutar el dueño
+
+Lo que queda **no se puede hacer desde este repositorio**: o toca el proyecto
+vivo, o necesita un aparato, o necesita un tercero. Van en orden de lo que más
+desbloquea, con el comando exacto.
+
+### 1 · Desplegar índices y reglas de Firestore
+
+`vercel --prod` **no** publica ninguna de las dos cosas.
+
+```bash
+npx firebase deploy --only firestore:indexes --project nexomed-agenda
+npx firebase deploy --only firestore:rules   --project nexomed-agenda
+```
+
+**Qué cambió y por qué importa ahora**: `firestore.indexes.json` pasó de 4 índices
+a 8. Los cuatro nuevos (REG-379) son de consultas que el producto **ya hace hoy**
+—bandeja ARCO, lista de farmacia, rastro de un controlado y la página **pública**
+del médico— y que Firestore rechaza con `FAILED_PRECONDITION` si el índice no
+existe. Los otros cuatro siguen siendo anticipados.
+
+**Verificar del otro lado, que es la mitad que no puede vivir aquí**: en la
+consola del proyecto, que los ocho aparezcan como `Enabled` y no `Building`. Crear
+un índice sobre una colección con datos tarda, y hasta que termina la consulta
+sigue fallando.
+
+### 2 · Un iPhone de verdad, para cerrar WS-05
+
+Lo automatizable ya corre en CI (REG-380): desbordamiento horizontal, objetivo
+táctil, consola y foco, a tamaño de teléfono. Falta lo que sólo da el aparato.
+
+**Lo que hay que hacer con él en la mano**, en `/consulta` con una nota larga:
+
+1. arrastrar hasta el final de la nota y **seguir arrastrando** — no debe aparecer
+   el rebote elástico del documento entero;
+2. dictar mientras se lee una parte de arriba — la pantalla **no** debe saltar
+   cuando llega el resultado de la transcripción;
+3. abrir la consulta de un paciente hospitalizado y esperar unos segundos sin
+   tocar nada — es cuando llega `internamientoActivo` y el restaurador podría
+   escribir la posición tarde.
+
+**Media prueba se puede sacar sin iPhone**, desde una máquina con salida a
+internet: `npx playwright install webkit && npx playwright test
+--project=iphone-safari`. En este entorno la descarga está bloqueada
+(`Failed to download WebKit 26.5`).
+
+### 3 · PITR y el ensayo de restauración con consola
+
+El ida y vuelta a un Firestore de verdad ya está medido (REG-381). Lo que falta:
+
+```bash
+gcloud firestore databases update --database='(default)' \
+  --enable-pitr --project nexomed-agenda
+# y, para el ensayo, sobre una base de PRUEBA — nunca sobre la de producción:
+gcloud firestore databases restore \
+  --source-backup=<backup> --destination-database=<base-de-ensayo>
+```
+
+Con eso sale el **RTO real**, que es lo que responde a un hospital y lo que este
+repositorio no puede calcular.
+
+### 4 · Un pentest externo
+
+Es la única de la lista **sin mitad automatizable**: o lo hace un tercero, o no
+está hecho. `WS-13` queda en `PARTIAL` hasta entonces, con las 99 rutas revisadas
+y el analizador estático como lo que son — trabajo propio, no una auditoría.
+
+### 5 · Lo que ya estaba en la tabla de bloqueos y sigue igual
+
+E0-06 (alergias fuera de `Patient`), las licencias comerciales de evidencia,
+`OPS_ALERTA_WEBHOOK` y App Check. Ninguno se reabrió en este tramo.
+
+---
+
+## Una cosa del entorno, no del árbol
+
+`src/__tests__/ops-timeout-y-punto-ciego.test.ts` → «el error dice cuánto esperó y
+a quién» sale **roja en este contenedor**, y sale roja **igual sin esta rama**
+(comprobado con `git stash`). La prueba usa `10.255.255.1` como agujero negro que
+nunca contesta; el proxy de este entorno le devuelve un **403 en ~30 ms** y le gana
+la carrera al timeout de 30 ms del caso.
+
+Es del entorno y no del código. **No se tocó la prueba para acomodarla al
+sandbox**: en una máquina donde ese IP no conteste, pasa.
