@@ -2171,7 +2171,21 @@ export default function ConsultaActivaPage() {
           motivo: motivo.slice(0, 400),
           motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
           resumen: resumenTexto.slice(0, 2000),
-          contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
+          /**
+           * La creatinina viaja CON SU VIGENCIA (REG-375) porque el motor de
+           * aplicabilidad sabe evaluar criterios renales y hasta hoy nunca
+           * recibía el dato: un estudio que excluye TFG < 30 salía «faltan
+           * datos» frente a un paciente con TFG de 22 medida hoy. La TFG la
+           * calcula el servidor con la calculadora canónica; aquí sólo se
+           * manda la cifra medida, no una fórmula duplicada.
+           */
+          contexto: {
+            edad: patient?.edad,
+            sexo: patient?.sexo,
+            alergias: patient?.alergias,
+            creatinina: labsDeLaConsulta.labs.creatinina,
+            funcionRenalVigente: vigenciaRenal.vigente,
+          },
         }),
       })
       const data = await res.json().catch(() => null)
@@ -2186,7 +2200,7 @@ export default function ConsultaActivaPage() {
       }
     } catch (e) { console.error('[evidencia] excepción', e); toast(`Error de red al analizar (${String(e).slice(0, 60)})`, 'error') }
     finally { setAnalizandoEv(false) }
-  }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, toast])
+  }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, labsDeLaConsulta.labs.creatinina, vigenciaRenal.vigente, toast])
 
   // Genera un ANÁLISIS clínico basado en evidencia de ESTE paciente (razonando
   // con PubMed vía el Consultor) y lo AGREGA a la nota como una sección de texto

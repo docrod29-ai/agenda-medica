@@ -401,9 +401,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-09.motor', ws: 'WS-09', titulo: 'Motor determinista de aplicabilidad de la evidencia a ESTE paciente',
     estado: 'PARTIAL',
-    queFalta: 'REG-387 lo creó y lo conectó de punta a punta en cuatro dimensiones —edad, embarazo, función renal y alergia—, en español e inglés. Faltan las otras: organismo, susceptibilidad, sitio de infección, dispositivo, comorbilidad, interacción, severidad, entorno de atención, terapia previa y jurisdicción. Caen en `no_evaluable` y se cuentan, no se dan por buenas.',
-    artefactos: ['src/lib/evidencia/aplicabilidad.ts'],
-    pruebas: ['src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts'],
+    queFalta: 'REG-387 lo creó con cuatro dimensiones —edad, embarazo, función renal y alergia—, en español e inglés, pero SÓLO DOS recibían su dato: el llamador armaba el estado con edad y alergias. La función renal ya llega, con su vigencia (REG-375) y con la TFG por la calculadora canónica, que se niega a dar cifra en menores de 18, sin sexo o sin vigencia. Sigue sin llegar el EMBARAZO, a propósito: no hay fuente estructurada y deducirlo del texto es lo que REG-364/365 midieron fallando. Y faltan las dimensiones nuevas: organismo, susceptibilidad, sitio de infección, dispositivo, comorbilidad, interacción, severidad, entorno de atención, terapia previa y jurisdicción. Caen en `no_evaluable` y se cuentan, no se dan por buenas.',
+    artefactos: ['src/lib/evidencia/aplicabilidad.ts', 'src/lib/evidencia/estado-del-paciente.ts'],
+    pruebas: ['src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts', 'src/__tests__/la-funcion-renal-llega-al-motor-de-aplicabilidad.test.ts'],
   }),
   R({
     id: 'WS-09.datos-insuficientes', ws: 'WS-09', titulo: 'Un dato ausente produce insufficient_patient_data, no una suposición',

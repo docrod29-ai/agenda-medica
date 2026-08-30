@@ -320,9 +320,10 @@ comprobación de rango a secas.
 
 | | |
 |---|---|
-| **Estado** | `NOT_STARTED` — **ausente, no parcial** |
-| **Evidencia** | `grep aplicabilidad\|applicab\|matchedCriteria` sobre `src/`: sin motor, sin implementación parcial, sin esqueleto |
-| **Qué hay hoy** | Adaptación **sólo por prompt**: se le pide al modelo que «personalice por edad, comorbilidades y alergias». No hay compuerta determinista, ni cruce organismo/susceptibilidad, ni comprobación de población, ni forma de decir «este paciente no cumple la población del estudio» |
+| **Estado** | `PARTIAL` — **el tablero decía `NOT_STARTED` y estaba atrasado.** Corregido al leer el código, como manda la regla de este tablero |
+| **Evidencia** | `src/lib/evidencia/aplicabilidad.ts` (REG-387): motor determinista, cuatro dimensiones, en español e inglés. Su veredicto máximo es `nada_lo_excluye`, nunca «aplica» |
+| **Qué hay hoy** | El motor existe **y ya recibe la función renal**, con su vigencia (REG-375) y la TFG por la calculadora canónica. Hasta hoy el llamador armaba el estado con edad y alergias: el evaluador renal no podía dar otro veredicto que `datos_insuficientes` — «conectado, pero el dato no llega» |
+| **Qué falta** | El **embarazo** sigue sin llegar, a propósito: no hay fuente estructurada y deducirlo del texto es lo que REG-364/365 midieron fallando. Y las dimensiones nuevas: organismo, susceptibilidad, sitio, dispositivo, comorbilidad, interacción, severidad, entorno, terapia previa y jurisdicción |
 | **Dónde vive el plan** | `docs/roadmap/nexus-os/backlog.json:60` (E2-08). Las unidades E2 cerradas llegan hasta E2-02 |
 
 ## WS-10 — Patient State longitudinal

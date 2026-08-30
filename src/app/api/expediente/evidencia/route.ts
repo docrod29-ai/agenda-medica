@@ -25,6 +25,7 @@ import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubme
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 import { declararFuentesNoConsultadas } from '@/lib/evidencia/lo-que-no-se-consulto'
 import { aplicabilidadDesdeResumen, comoSeDiceLaAplicabilidad } from '@/lib/evidencia/aplicabilidad'
+import { estadoParaAplicabilidad } from '@/lib/evidencia/estado-del-paciente'
 import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
 import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
@@ -253,10 +254,15 @@ export async function POST(req: NextRequest) {
    * No filtra ni reordena los artículos. La aplicabilidad se ANOTA; quitar de la
    * vista un artículo porque un patrón no casó sería peor que no tener esto.
    */
-  const estadoDelPaciente = {
-    ...(typeof ctx.edad === 'number' ? { edadEnAnios: ctx.edad } : {}),
-    ...(Array.isArray(ctx.alergias) ? { alergenos: ctx.alergias as string[] } : {}),
-  }
+  /**
+   * EL DATO TIENE QUE LLEGAR. Aquí se armaba a mano, con edad y alergias, y la
+   * FUNCIÓN RENAL —una de las cuatro dimensiones que el motor sabe evaluar— no
+   * se pasaba nunca: su evaluador no podía dar otro veredicto que
+   * `datos_insuficientes`, hiciera lo que hiciera el paciente. Ahora lo arma
+   * `estadoParaAplicabilidad`, que además calcula la TFG con la calculadora
+   * canónica y se niega a hacerlo en menores de 18, sin sexo o sin vigencia.
+   */
+  const estadoDelPaciente = estadoParaAplicabilidad(ctx)
   const aplicabilidadPorArticulo = articulos.map(a => {
     const r = aplicabilidadDesdeResumen(a.resumen ?? '', estadoDelPaciente)
     return { pmid: a.pmid, veredicto: r.veredicto, frase: comoSeDiceLaAplicabilidad(r), porQue: r.porQue }
