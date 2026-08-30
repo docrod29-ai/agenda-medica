@@ -58,24 +58,67 @@ jobs:
         if: steps.start.outputs.complete == 'true'
         run: echo "Ausculta autonomous loop is complete."
 
-      - name: Require writer transport
+      - name: Verify this lane is still the writer of record
+        id: lane
         if: steps.start.outputs.complete != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          START_SHA: ${{ steps.start.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          behind="$(git rev-list --count HEAD..origin/main)"
+          if [[ "$behind" -gt 0 ]]; then
+            echo "::warning::LANE_STALE target=$TARGET_BRANCH behind_main=$behind"
+            echo "standdown=stale" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          others="$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" \
+            | jq -r --arg b "$TARGET_BRANCH" '.[] | select(.head.ref != $b) | .head.ref')"
+          while IFS= read -r ref; do
+            [[ -n "$ref" ]] || continue
+            git fetch --no-tags origin "$ref" >/dev/null 2>&1 || continue
+            git merge-base --is-ancestor "$START_SHA" FETCH_HEAD >/dev/null 2>&1 || continue
+            ahead="$(git rev-list --count "$START_SHA"..FETCH_HEAD)"
+            if [[ "$ahead" -gt 0 ]]; then
+              echo "::warning::LANE_SUPERSEDED by=$ref commits_ahead=$ahead"
+              echo "standdown=superseded" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done <<< "$others"
+          echo "standdown=" >> "$GITHUB_OUTPUT"
+
+      - name: Say why this cycle stands down
+        if: steps.lane.outputs.standdown != ''
+        env:
+          STANDDOWN: ${{ steps.lane.outputs.standdown }}
+        shell: bash
+        run: |
+          case "$STANDDOWN" in
+            stale) echo "La rama de este carril va por detras de main: escribir aqui crea historia divergente. Re-apuntar TARGET_BRANCH/PR_NUMBER antes de seguir." ;;
+            superseded) echo "Otro carril ya construyo sobre esta punta: este bucle dejaria de ser el unico escritor del tablero. Re-apuntar TARGET_BRANCH/PR_NUMBER al carril vivo." ;;
+          esac
+          echo "Mapa de carriles: docs/maintenance/CARRILES-Y-BUCLES.md"
+
+      - name: Require writer transport
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
         run: |
           set -euo pipefail
           [[ "$HAS_ANTHROPIC" == "true" ]] || { echo "::error::MISSING_WRITER_TRANSPORT"; exit 96; }
 
       - uses: actions/setup-node@v4
-        if: steps.start.outputs.complete != 'true'
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
         with:
           node-version: 22
           cache: npm
 
       - name: Install repository dependencies
-        if: steps.start.outputs.complete != 'true'
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
         run: npm ci
 
       - name: Build autonomous writer prompt
-        if: steps.start.outputs.complete != 'true'
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
         shell: bash
         run: |
           cat > /tmp/ausculta-autonomous-prompt.txt <<'PROMPT'
@@ -89,14 +132,14 @@ jobs:
           PROMPT
 
       - name: Install Claude Code
-        if: steps.start.outputs.complete != 'true'
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
         run: |
           npm install -g @anthropic-ai/claude-code
           claude --version
 
       - name: Claude Opus writer
         id: claude
-        if: steps.start.outputs.complete != 'true'
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
         continue-on-error: true
         timeout-minutes: 45
         env:
@@ -108,11 +151,31 @@ jobs:
 
       - name: Classify writer delta
         id: delta
-        if: steps.start.outputs.complete != 'true'
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
         shell: bash
         run: |
           set -euo pipefail
           if [[ -n "$(git status --porcelain)" ]]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; echo "::warning::NO_WRITER_DELTA_THIS_CYCLE"; fi
+
+      - name: Keep the writer's own account of the cycle
+        if: always() && steps.claude.conclusion != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: writer-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/claude-result.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: A writer that could not run is a red cycle, not a green one
+        if: steps.claude.outcome == 'failure' && steps.delta.outputs.changed != 'true'
+        shell: bash
+        run: |
+          echo "El escritor termino en error y no dejo ni un cambio: este ciclo NO progreso."
+          echo "--- primeras lineas de /tmp/claude-result.json ---"
+          head -c 4000 /tmp/claude-result.json 2>/dev/null || echo "(el escritor no dejo salida)"
+          echo
+          echo "::error::WRITER_FAILED_NO_DELTA"
+          exit 1
 
       - name: Enforce autonomous mutation scope
         if: steps.delta.outputs.changed == 'true'
@@ -193,8 +256,8 @@ jobs:
         shell: bash
         run: gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$NEW_SHA"
 
-      - name: Chain the next cycle
-        if: always() && steps.start.conclusion == 'success' && steps.start.outputs.complete != 'true'
+      - name: Chain the next cycle only after real progress
+        if: steps.checkpoint.outputs.sha != ''
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
