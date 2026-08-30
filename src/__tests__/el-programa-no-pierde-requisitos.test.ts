@@ -194,15 +194,24 @@ describe('ningún dominio ni objetivo canónico se queda sin fila', () => {
     expect(porId.has('WS-02.concurrencia-definida')).toBe(true)
   })
 
-  it('la lista de fuentes canónicas no se encoge al tamaño del catálogo', () => {
+  it('la lista de fuentes canónicas no se encoge, y el catálogo la cubre', () => {
     /**
-     * El catálogo del producto tiene doce entradas y el alcance canónico nombra
-     * muchas más. La tentación es igualar las dos listas y declarar el trabajo
-     * hecho; eso borraría de la vista todas las fuentes que faltan.
+     * ── ESTE CASO CAMBIÓ, Y EL PORQUÉ IMPORTA ────────────────────────────
+     *
+     * Nació exigiendo que la lista canónica fuera **más larga** que el catálogo:
+     * eran 29 contra 12, y la tentación era igualarlas por abajo —borrar de la
+     * vista lo que faltaba— en vez de por arriba.
+     *
+     * REG-389 las igualó **por arriba**: metió las 17 ausentes al catálogo con su
+     * estado honesto. Así que la desigualdad dejó de ser la propiedad correcta, y
+     * mantenerla habría obligado a deshacer el arreglo para que la prueba pasara
+     * — que es exactamente cómo una prueba se vuelve el jefe del producto.
+     *
+     * Lo que se exige ahora es lo que siempre se quiso decir: que la lista no
+     * encoja, y que ninguna fuente canónica se quede sin ficha. De la cobertura
+     * responde `el-catalogo-de-fuentes-no-calla-ninguna`.
      */
-    const catalogo = readFileSync('src/lib/evidence-integrations/catalogo.ts', 'utf8')
-    const enCatalogo = [...catalogo.matchAll(/^\s*id: '([a-z_]+)'/gm)].length
-    expect(FUENTES_CANONICAS.length).toBeGreaterThan(enCatalogo)
+    expect(FUENTES_CANONICAS.length).toBeGreaterThanOrEqual(29)
     for (const imprescindible of ['NEJM', 'UpToDate', 'Cochrane', 'IDSA', 'COFEPRIS', 'Crossref']) {
       expect(FUENTES_CANONICAS).toContain(imprescindible)
     }

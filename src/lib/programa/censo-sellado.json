@@ -97,7 +97,7 @@
     },
     {
       "id": "WS-04.inyeccion-de-fallos",
-      "estado": "NOT_STARTED"
+      "estado": "PARTIAL"
     },
     {
       "id": "WS-05.mecanismos",
@@ -121,7 +121,7 @@
     },
     {
       "id": "WS-06.censo-de-fuentes",
-      "estado": "PARTIAL"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-06.sin-scraping",
@@ -129,7 +129,7 @@
     },
     {
       "id": "WS-06.editorial-no-es-integracion",
-      "estado": "PARTIAL"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-07.identidad-de-revista",

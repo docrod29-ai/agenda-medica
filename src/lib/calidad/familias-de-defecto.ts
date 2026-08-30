@@ -648,7 +648,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * más autoridad que el anterior. Lo único que caza una ausencia es una lista
      * sellada que alguien tenga que romper a propósito.
      */
-    regs: [241, 253, 310, 334, 338, 340, 343, 354, 379, 382],
+    regs: [241, 253, 310, 334, 338, 340, 343, 354, 379, 382, 389],
   },
   {
     /**

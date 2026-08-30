@@ -12976,3 +12976,78 @@ dejaría cada salto con un id distinto y no habría traza en absoluto.
 - **No llega al proveedor como cabecera.** Viaja hasta la llamada y queda en el
   asiento; mandársela a Anthropic u OpenAI en un header es otra decisión y no
   aportaría a la traza propia.
+
+---
+
+## REG-389 — el catálogo de evidencia callaba diecisiete fuentes del alcance
+
+**QUÉ FALLABA.** El alcance canónico nombra **29 fuentes**. El catálogo del
+producto tenía **12**. Las otras 17 no estaban «pendientes» ni «bloqueadas»: **no
+estaban**.
+
+Y eso tiene una consecuencia concreta, no documental. El producto tiene una regla
+buena —«un proveedor no operativo baja de posición pero no desaparece de la
+lista»— que existe para que el médico pueda leer *«UpToDate: no se consultó»*. Esa
+regla **no puede dispararse para una fuente que el catálogo no conoce**: DynaMed
+no salía como no consultada porque **DynaMed no existía para el selector**.
+
+**LO QUE SÍ ESTABA, Y MI PROPIO CENSO DESCRIBÍA MAL.** El censo decía que faltaba
+«la ficha por fuente con modelo de autenticación, licencia, capacidad, caché, PHI,
+frescura y semántica de fallo». **Era falso**: el catálogo ya traía todo eso —
+`viaOficial`, `admitePhi`, `modeloDeCredencial`, `derechoDeCache`, `citaProfunda`,
+`exponeFrescura`, `limitesYSla`, `precio`, `semanticaDeFallo`, `reusoGenerativo`—
+y está mejor construido de lo que el censo daba a entender. El hueco no era la
+forma de la ficha: era que faltaban 17 fichas enteras.
+
+**LAS SIETE EDITORIALES, DICHO SIN ADORNOS.** NEJM, JAMA, Lancet, BMJ, CID, Nature
+Medicine y Annals **se descubren vía PubMed**, con su resumen y sus metadatos
+públicos. Eso **no es una integración editorial** y llamarlo así sería falso: no
+hay contrato, ni API, ni texto completo. Entran con `REQUIRES_AGREEMENT` y **sin
+`proveedorCanonico`**, lo que significa que por el modelo de tipos no pueden
+producir un `Source` — y sin `Source` no hay `Passage` ni afirmación respaldada.
+No hace falta prohibirlo: es imposible. Un caso falla si alguien le pone el campo
+«para que funcione».
+
+**POR QUÉ ENTRAN CON LA MATRIZ SIN VERIFICAR.** Porque es lo único honesto.
+Declarar una vía oficial, un modelo de credencial o una semántica de fallo que
+**nadie ha comprobado** sería inventar la ficha en vez de construirla — y una
+ficha inventada es peor que una ausente, porque parece trabajo hecho. Lo que sí se
+declara es **por qué** están así y **qué decisión** falta, que es lo que permite
+desbloquearlas.
+
+**DOS QUE DUELEN MÁS QUE LAS DEMÁS.** `COFEPRIS` no estaba catalogada **en un
+producto para México**: la ficha oficial de un fármaco en México no la da openFDA.
+Y `CENETEC` es hoy **un enlace a una búsqueda de Google presentado como botón**, y
+el catálogo no lo decía.
+
+**UNA PRUEBA QUE CAMBIÓ, Y EL PORQUÉ IMPORTA.** El guardián del censo exigía que
+la lista canónica fuera **más larga** que el catálogo — nació cuando eran 29 contra
+12 y la tentación era igualarlas **por abajo**, borrando de la vista lo que
+faltaba. Este arreglo las igualó **por arriba**, así que la desigualdad dejó de ser
+la propiedad correcta: mantenerla habría obligado a deshacer el arreglo para que la
+prueba pasara, que es exactamente cómo una prueba se vuelve el jefe del producto.
+Ahora se exige lo que siempre se quiso decir: que la lista no encoja y que ninguna
+canónica se quede sin ficha.
+
+**OTRA CORRECCIÓN DEL CENSO, EN EL MISMO ACTO.** `WS-04.inyeccion-de-fallos`
+figuraba como `NOT_STARTED` —«no hay arnés de inyección de fallos»— y **era
+falso**. El gateway de IA sí lo tiene, con comportamiento medido: 404, 429, red
+caída, llave revocada, salida ilegible, créditos devueltos y nada clínico en el
+asiento, repartido en `ia-gateway`, `ia-fallo-proveedor` y
+`un-proveedor-caido-no-se-reintenta-mil-veces`. Pasa a `PARTIAL` con lo que de
+verdad falta: WhatsApp, Evidence, y que la degradación de la consulta hoy se
+comprueba **por substring y no por comportamiento**.
+
+Un censo que exagera un hueco no es más prudente: manda a rehacer lo hecho y le
+quita credibilidad a los huecos reales.
+
+**LA PRUEBA.** `src/__tests__/el-catalogo-de-fuentes-no-calla-ninguna.test.ts`
+(9 casos), con el mapa canónico↔catálogo comprobado **en los dos sentidos** para
+que las dos listas no se separen en silencio.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Catalogar no es integrar.** Ninguna de las 17 nuevas puede producir un
+  `Source`, y eso lo impide el modelo de tipos, no este guardián.
+- **No verifica la matriz de las nuevas.** Está sin verificar a propósito.
+- **No dice si una fuente vale la pena.** Dice que el catálogo no puede callársela.

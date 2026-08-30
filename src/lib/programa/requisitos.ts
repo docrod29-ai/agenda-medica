@@ -254,8 +254,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-04.inyeccion-de-fallos', ws: 'WS-04', titulo: 'Comportamiento ante caída de proveedor, probado inyectando el fallo',
-    estado: 'NOT_STARTED',
-    queFalta: 'No hay arnés de inyección de fallos para OpenAI, Anthropic, WhatsApp ni Evidence. Sin pantalla en blanco, sin pérdida silenciosa y sin reintento inseguro son afirmaciones sin medir.',
+    estado: 'PARTIAL',
+    queFalta: 'CORRECCIÓN DE ESTE CENSO (REG-389): decía NOT_STARTED y era falso. El gateway de IA SÍ tiene inyección de fallos con comportamiento medido —404, 429, red caída, llave revocada, salida ilegible, créditos devueltos, sin PHI en el asiento— en ia-gateway, ia-fallo-proveedor y un-proveedor-caido-no-se-reintenta-mil-veces. Lo que falta: WhatsApp y Evidence, y que la degradación de la CONSULTA se comprueba hoy por substring y no por comportamiento.',
+    pruebas: ['src/__tests__/ia-gateway.test.ts', 'src/__tests__/ia-fallo-proveedor.test.ts', 'src/__tests__/un-proveedor-caido-no-se-reintenta-mil-veces.test.ts'],
   }),
 
   /* ═══ WS-05 · Móvil ═══════════════════════════════════════════════════════ */
@@ -295,9 +296,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   /* ═══ WS-06/07/08 · Evidencia ═════════════════════════════════════════════ */
   R({
     id: 'WS-06.censo-de-fuentes', ws: 'WS-06', titulo: 'Cada fuente canónica tiene estado declarado y auditable',
-    estado: 'PARTIAL',
-    queFalta: 'FUENTES_CANONICAS nombra 29; el catálogo del producto tiene 12 entradas. Falta la ficha por fuente con modelo de autenticación, licencia, capacidad de metadatos/resumen/texto completo, caché, PHI, frescura y semántica de fallo.',
-    artefactos: ['src/lib/evidence-integrations/catalogo.ts'],
+    estado: 'PROVEN',
+    evidencia: 'REG-389. Las 29 canónicas están en el catálogo, que ya traía la ficha completa —vía oficial, PHI, credencial, caché, cita profunda, frescura, límites, precio, semántica de fallo y reuso generativo— y a la que le faltaban 17 fuentes enteras.',
+    comando: 'npx vitest run src/__tests__/el-catalogo-de-fuentes-no-calla-ninguna.test.ts',
+    resultado: '9 casos verdes. Las 17 nuevas entran con la matriz SIN VERIFICAR, que es lo honesto, y con su decisión pendiente escrita.',
+    artefactos: ['src/lib/evidence-integrations/catalogo.ts', 'docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md'],
+    pruebas: ['src/__tests__/el-catalogo-de-fuentes-no-calla-ninguna.test.ts'],
   }),
   R({
     id: 'WS-06.sin-scraping', ws: 'WS-06', titulo: 'Ninguna fuente se obtiene saltándose su licencia',
@@ -306,8 +310,11 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-06.editorial-no-es-integracion', ws: 'WS-06', titulo: 'Descubrir por índice no se presenta como integración editorial',
-    estado: 'PARTIAL',
-    queFalta: 'NEJM, JAMA, Lancet, BMJ y CID son LIVE_VIA_INDEX vía PubMed. Falta un guardián que impida que un documento o una pantalla lo llame «integración».',
+    estado: 'PROVEN',
+    evidencia: 'REG-389. Las siete editoriales entran al catálogo SIN `proveedorCanonico`: por el modelo de tipos no pueden producir un `Source`, y sin `Source` no hay `Passage` ni afirmación respaldada. Su ficha dice con todas las letras que hoy sólo se descubren vía PubMed.',
+    comando: 'npx vitest run src/__tests__/el-catalogo-de-fuentes-no-calla-ninguna.test.ts',
+    resultado: 'Un caso falla si alguien le pone `proveedorCanonico` a una editorial «para que funcione».',
+    pruebas: ['src/__tests__/el-catalogo-de-fuentes-no-calla-ninguna.test.ts'],
   }),
   R({
     id: 'WS-07.identidad-de-revista', ws: 'WS-07', titulo: 'Identidad de revista normalizada, con alias, DOI, PMCID y acceso abierto',
