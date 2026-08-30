@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { useCerrarConEscape } from '@/lib/ui/activable'
+import { useState, useEffect, useMemo, useRef, useCallback, useId } from 'react'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useToast } from '@/context/ToastContext'
 import { guardarPanelLab, listarPanelesLab, borrarPanelLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
@@ -75,7 +75,21 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
   const pacienteNombre = pacienteRef && pacienteRef.clinicId === clinicId && pacienteRef.patientId === patientId
     ? pacienteRef.nombre : null
   // Un modal que sólo cierra con el ratón deja atrapado a quien navega con teclado.
-  useCerrarConEscape(!!revision, () => setRevision(null))
+  /**
+   * Escape ya lo tenía, con el gancho estrecho `useCerrarConEscape`. Lo que le
+   * faltaba era la **trampa de foco**: tabular desde la revisión se iba al
+   * panel de detrás, y esta pantalla decide de quién es una hoja de resultados
+   * — incluida la casilla de «confirmo que son de este paciente».
+   *
+   * `useDialogoDeTeclado` trae Escape y además trampa, foco inicial, scroll
+   * bloqueado y foco devuelto, así que sustituye al estrecho en vez de
+   * sumarse: dos manejadores de Escape sobre el mismo diálogo es una forma
+   * cara de que un día cierren cosas distintas.
+   */
+  const cajaRevisionRef = useRef<HTMLDivElement>(null)
+  const idTituloRevision = useId()
+  const cerrarRevision = useCallback(() => setRevision(null), [])
+  useDialogoDeTeclado(!!revision, cajaRevisionRef, cerrarRevision)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const cargar = useCallback(() => {
@@ -259,9 +273,17 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
       {/* Revisión antes de guardar */}
       {revision && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }} onClick={() => setRevision(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', borderRadius: 16, padding: 20, maxWidth: 560, width: '100%', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
+          <div
+            ref={cajaRevisionRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={idTituloRevision}
+            tabIndex={-1}
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg)', borderRadius: 16, padding: 20, maxWidth: 560, width: '100%', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border)' }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Revisa lo que leyó la IA</div>
+              <div id={idTituloRevision} style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Revisa lo que leyó la IA</div>
               <button onClick={() => setRevision(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><X size={18} /></button>
             </div>
             {/*

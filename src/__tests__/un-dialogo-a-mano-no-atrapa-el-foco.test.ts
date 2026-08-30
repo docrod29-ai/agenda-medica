@@ -63,13 +63,19 @@ const NO_SON_DIALOGOS: Record<string, string> = {
  * Diálogos a mano que siguen sin el teclado completo. Declarados, no
  * escondidos. Cerrar uno obliga a quitarlo de aquí.
  */
-const ABIERTOS: Record<string, string> = {
-  'src/components/laboratorio/PanelLaboratorios.tsx':
-    'revisión de lo que leyó la IA; le faltan las tres',
-  'src/app/(dashboard)/layout.tsx':
-    'cajón de navegación en móvil: tiene role=dialog, le faltan Escape y trampa',
-  'src/components/OnboardingTour.tsx': 'tiene Escape; le falta la trampa de foco',
-}
+/**
+ * Diálogos a mano SIN el teclado completo. Vacío desde la unidad 51.
+ *
+ * Empezó en cinco (unidad 48) con dos de sus razones **exageradas**: el barrido
+ * no conocía `useCerrarConEscape`, el gancho estrecho que ya existía, así que
+ * dio por «sin Escape» a `PanelLaboratorios` y al cajón de navegación, que lo
+ * tenían desde antes. A los dos les faltaba la trampa de foco, no las tres
+ * cosas. Corregido al aprender el idioma.
+ *
+ * Que esté vacío NO significa que no queden diálogos a mano: significa que los
+ * que hay traen el teclado. El caso de abajo impide que aparezca uno sin él.
+ */
+const ABIERTOS: Record<string, string> = {}
 
 /**
  * Diálogos que usan el gancho `useDialogoDeTeclado` en vez de `ui/Modal`, con
@@ -86,6 +92,14 @@ const CON_GANCHO: Record<string, string> = {
     'un control de seguridad sin querer',
   'src/components/PaletteBusqueda.tsx':
     'la paleta gobierna su propio teclado (flechas, Enter) y enfoca su campo',
+  'src/components/laboratorio/PanelLaboratorios.tsx':
+    'diálogo dentro de un panel con su propio estado; migrarlo a Modal movería ' +
+    'su maquetación (maxHeight + scroll propio) sin necesidad',
+  'src/app/(dashboard)/layout.tsx':
+    'el cajón entra deslizándose desde el borde y vive montado: no es la forma ' +
+    'de Modal',
+  'src/components/OnboardingTour.tsx':
+    'gobierna flecha derecha y Enter para avanzar el tour',
 }
 
 // Sin la bandera `s`: no se usa `.` en ninguna parte —`[^}]` ya cruza saltos de
@@ -103,7 +117,17 @@ const CAPA = /position: ['"]fixed['"][^}]{0,220}(inset: 0|top: 0[^}]{0,80}left: 
  * bueno lo que no lo era y por malo el canónico — la primera versión de esta
  * prueba falló contra `ui/Modal`, que es justo el que está bien.
  */
-const ESCAPE = /key === 'Escape'/
+/**
+ * Escape, en las DOS formas que este repositorio usa: a mano, o con el gancho
+ * estrecho `useCerrarConEscape` que ya existía en `lib/ui/activable`.
+ *
+ * La primera versión de este barrido sólo conocía la primera, y por eso dijo
+ * que a `PanelLaboratorios` «le faltan las tres» y al cajón de navegación «le
+ * faltan Escape y trampa». **Las dos afirmaciones exageraban el defecto**: los
+ * dos cierran con Escape desde antes. Lo que les faltaba era la trampa de foco.
+ * Corregido aquí y en la bitácora.
+ */
+const ESCAPE = /key === 'Escape'|useCerrarConEscape\(/
 const TRAMPA = /key [!=]== 'Tab'/
 const ROL = /role=["']dialog["']/
 
@@ -181,8 +205,8 @@ describe('no aparece un diálogo a mano nuevo', () => {
 
   it('la lista de abiertos no crece', () => {
     // Sólo puede bajar. Es el mismo contrato que los demás trinquetes.
-    // Empezó en 5 (unidad 48); AutoLogout y la paleta se cerraron en la 49.
-    expect(Object.keys(ABIERTOS).length).toBeLessThanOrEqual(3)
+    // 5 en la unidad 48 · 3 en la 49 · 0 en la 51. Sólo baja.
+    expect(Object.keys(ABIERTOS).length).toBeLessThanOrEqual(0)
   })
 
   it('los que usan el gancho lo usan de verdad, y se anuncian', () => {
@@ -222,6 +246,9 @@ describe('no aparece un diálogo a mano nuevo', () => {
     const archivos = execSync("find src/app src/components -name '*.tsx'", { encoding: 'utf8' })
       .trim().split('\n')
     expect(archivos.length).toBeGreaterThan(100)
-    expect(dialogosAMano().length).toBeGreaterThan(0)
+    // Y sigue habiendo capas a pantalla completa que mirar: si el patrón deja
+    // de encontrarlas, la lista vacía de arriba no significaría nada.
+    const capas = archivos.filter(f => CAPA.test(readFileSync(f, 'utf8')))
+    expect(capas.length, 'el patrón dejó de encontrar capas').toBeGreaterThan(3)
   })
 })

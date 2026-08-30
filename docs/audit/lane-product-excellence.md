@@ -2750,3 +2750,82 @@ de diseño sin deuda · `tsc` limpio · `npm run build` compila.
 - 22 rutas de 80. Hospital y UCI siguen sin medir y **no se declaran buenas**.
 - Los tres diálogos a mano de la unidad 49 (`PanelLaboratorios`, cajón de
   navegación, `OnboardingTour`) siguen abiertos, con su trinquete en 3.
+
+---
+
+## Unidad 51 — los tres que quedaban, y una corrección a lo que dije de ellos
+
+**PRIMERO LA CORRECCIÓN, PORQUE CAMBIA LO QUE ESCRIBÍ.**
+
+La unidad 48 declaró cinco diálogos a mano, y **dos de sus razones exageraban el
+defecto**. Mi barrido buscaba Escape como `key === 'Escape'` y no conocía
+`useCerrarConEscape`, **un gancho estrecho que ya existía** en
+`lib/ui/activable` y que usan cuatro sitios. Por eso dije:
+
+- de `PanelLaboratorios`: «le faltan las tres» — **falso**: cierra con Escape
+  desde antes;
+- del cajón de navegación: «le faltan Escape y trampa» — **falso** por la mitad,
+  igual.
+
+A los dos les faltaba **la trampa de foco**, y sólo eso. Corregido en la prueba,
+que ahora conoce las dos formas.
+
+Es la misma lección que la unidad 46 («`title` no es un canal de información»)
+y la 48 (mi detector daba por malo a `ui/Modal`): **un barrido que no habla el
+idioma de la casa inventa defectos**. Tres veces ya. Por eso ningún hallazgo de
+un barrido entra en la bitácora sin que alguien lea el archivo — y por eso
+ninguno de estos tres se «arregló» a ciegas.
+
+**CHANGE — los tres pasan al gancho de diálogo, y el trinquete baja a 0.**
+
+- **`PanelLaboratorios`** — la revisión de lo que leyó la IA. Sustituye el
+  gancho estrecho por el completo (no se suman: dos manejadores de Escape sobre
+  el mismo diálogo es una forma cara de que un día cierren cosas distintas) y
+  gana `role="dialog"`, `aria-modal` y `aria-labelledby`. Importa más de lo que
+  parece: es la pantalla donde se decide **de quién es una hoja de resultados**,
+  con su casilla de «confirmo que son de este paciente».
+- **Cajón de navegación (`layout.tsx`)** — igual, y además **`inert` mientras
+  está cerrado**. El cajón vive montado (entra deslizándose), así que sus
+  enlaces seguían en el orden de tabulación con el cajón invisible: tabular por
+  la pantalla pasaba por media aplicación que no se ve. Ese medio defecto no lo
+  había declarado nadie; salió al mirar el elemento.
+- **`OnboardingTour`** — gana la trampa. Flecha derecha y Enter siguen siendo
+  suyos (avanzan el tour); Escape pasa al gancho para no tener dos manejadores.
+  Es lo primero que ve un médico nuevo.
+
+**PROOF.** Tour, en navegador a 390px: **0 de 20 tabulaciones fuera** de la
+tarjeta, y Escape cierra.
+
+**RESIDUAL_RISK.** El **cajón no se pudo medir**: existe para la asistente y la
+sesión del arnés es la del médico. Queda probado en fuente y por el gancho
+compartido —que sí está medido en tres diálogos—, no en navegador. Igual que
+`AutoLogout` en la unidad 49. Dicho, no disimulado.
+
+**DOS GUARDIANES EXISTENTES CAYERON, Y LOS DOS TENÍAN QUE CAER.**
+
+- `teclado-controles` pedía `useCerrarConEscape` **por su nombre** en los cuatro
+  paneles. Vigilaba la conducta correcta —«se sale con Escape»— con una prueba
+  que impedía **mejorar**: pasar al gancho de diálogo la hacía fallar. Ahora
+  acepta los dos, porque los dos cierran con Escape, y sigue cayendo si un panel
+  se queda sin ninguno (probado al revés con `DoctorFilter`).
+- El trinquete de lint subió a 96 por un `useCallback` que puse para estabilizar
+  `cerrar`. El compilador de React de este proyecto ya memoiza: envolverla da
+  «Existing memoization could not be preserved». Se retiró — **se arregla el
+  cambio, no se sube el techo**. Vuelve a 95.
+
+**COMPUERTAS.** `vitest` 10 805/10 806 · trinquete de lint 95 · trinquete de
+diseño sin deuda · `tsc` limpio · `npm run build` compila · inventario
+regenerado. Único rojo: `ops-timeout-y-punto-ciego`, ambiental (pasó en la
+corrida de la unidad 50 y volvió a fallar en ésta: depende de la red, y por eso
+no se declara arreglado ni roto).
+
+**ESTADO DE LA FAMILIA.** Diálogos a mano sin teclado completo: **5 → 3 → 0**.
+La lista vacía **no** significa que no queden diálogos a mano: significa que los
+que hay traen el teclado. Cinco usan `ui/Modal`; cinco usan el gancho, cada uno
+con su razón escrita de por qué no puede ser un `Modal`. Un diálogo nuevo sin
+teclado hace fallar la prueba con el nombre del archivo.
+
+**LO QUE SIGUE SIN CUBRIRSE.** El **orden** de tabulación dentro de un diálogo
+correcto. Ningún lector de pantalla real. Y `src/app/mi/**` —el portal del
+paciente— sigue **sin barrer**: es otra superficie y otra regla
+(`patient-facing-ai.md`), y no se declara buena.
