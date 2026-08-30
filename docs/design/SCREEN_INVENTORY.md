@@ -52,7 +52,7 @@
 | `/consulta/[patientId]` | medico | ✅ | 6625 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 315 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 341 | 0 | — | ✅ | — |
-| `/crm` | medico | ✅ | 235 | 1 | — | ✅ | — |
+| `/crm` | medico | ✅ | 251 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 977 | 0 | — | ✅ | — |
 | `/cumplimiento/motores` | medico | ✅ | 188 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 247 | 2 | — | ✅ | — |

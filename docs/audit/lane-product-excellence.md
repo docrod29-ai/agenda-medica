@@ -4141,3 +4141,90 @@ ambiental.
 - No se cubre la caída de **auth**: la sesión se establece antes de cortar.
 - Los 8 s de la red de seguridad son largos si la conexión es mala pero viva. No
   se tocaron: cambiarlos es una decisión de producto, no de este carril.
+
+---
+
+## Unidad 68 — el consultorio recién abierto, y la única pantalla que le mentía
+
+**LA ÚLTIMA COLUMNA MEDIBLE.** Quedaban cuatro NOT_PROVEN en la matriz: vacío,
+jerarquía, contenido largo y comparación externa. Se fue a por el **vacío**,
+que es el único de los cuatro que se puede medir sin opinar.
+
+**CÓMO.** No sirve el consultorio sembrado: tiene ocho citas. Así que el guion
+**crea un médico** en el emulador de auth, lo pasa por el alta, y recorre las
+pantallas de un consultorio **sin una sola cita, ni paciente, ni cobro**. Es el
+estado que ningún dato sembrado enseña y que todo médico ve el primer día.
+
+**TRECE DE CATORCE ESTABAN BIEN, Y VARIAS MUY BIEN.**
+
+> «Hoy no hay citas. La agenda está libre. **+ Agendar cita**»
+>
+> «Nada abierto — cuando firmes una consulta con estudios o receta, sus
+> pendientes aparecen aquí con fecha y dueño.»
+
+Eso es un estado vacío terminado: dice qué falta, por qué, y qué hacer. **No se
+tocó ninguna**, y decirlo importa tanto como arreglar: este carril mide para
+saber, no para justificar cambios.
+
+**LA CATORCE ERA `/crm`, Y NO DECÍA QUE ESTABA VACÍA: DECÍA CEROS.**
+
+> Tasa de confirmación **0%** · Tasa de no-show **0%** · Tasa de atención **0%**
+
+Los cuatro indicadores se calculaban como `total > 0 ? (n/total)*100 : 0`. Ese
+`: 0` es el defecto: sin citas, la tasa se **define** como cero. A un médico que
+acaba de abrir su consultorio le lee como un boletín de notas pésimo sobre un
+trabajo que todavía no ha hecho.
+
+Es la misma regla que este repositorio ya tiene escrita para lo clínico, aplicada
+a los indicadores del consultorio: **un cálculo al que le falta el dato dice que
+no puede hacerse, no estima**. «No se puede calcular Kirby: falta PaO₂ y FiO₂».
+Ahora `null` significa «no hay con qué» y se pinta con una raya.
+
+**Y EL CERO LEGÍTIMO NO SE PERDIÓ**, que era el riesgo: con la cuenta sembrada
+las tasas siguen saliendo **63 %, 0 % y 13 %** — cero ausencias de ocho citas es
+información, y sigue diciéndose `0%`.
+
+**LA SONDA SE EQUIVOCÓ DOS VECES ANTES DE ACERTAR.** Dio por calladas a
+`/lista-espera` —que dice «La lista de espera está vacía»— y a `/pendientes`
+—que dice «Nada abierto»—: su patrón no reconocía esas dos formas. Un guion que
+acusa al producto de lo que no hace es peor que no tenerlo, así que la lista de
+frases de vacío está escrita entera y a la vista en el guion.
+
+**LO QUE VIGILA ESTO A PARTIR DE HOY.**
+
+- `una-tasa-sin-denominador-no-es-cero.test.ts` — la aritmética y su escritura,
+  en CI. Probado al revés devolviendo `0`: caen tres casos.
+- `npm run arnes:consultorio-vacio` — el efecto, con un consultorio de verdad
+  creado en la corrida. **13 pantallas, todas lo dicen.**
+
+**LO QUE VI Y NO TOQUÉ, A PROPÓSITO.** La primera pantalla del médico nuevo trae
+**tres interrupciones a la vez** —confirma tu correo, tu prueba termina en 14
+días · Activar plan, y activa las notificaciones— antes de que haya hecho nada, y
+debajo unos 600 px vacíos. El estado vacío en sí está bien resuelto; lo que
+compite con él es comercial y administrativo.
+
+**No lo cambio**: qué banners salen y cuándo depende de la decisión del dueño
+sobre la prueba de 14 días (v972), y eso es política de producto, no acabado
+visual. Queda dicho aquí, con la captura, para que lo decida quien puede.
+
+**COMPUERTAS.** `vitest` 10 843/10 844 · lint 95 · diseño sin deuda nueva ·
+`tsc` limpio · `build` compila. El rojo es `ops-timeout-y-punto-ciego`,
+ambiental.
+
+**RESIDUAL_RISK.**
+
+- **Sólo se comprueba que la pantalla diga su vacío**, no que lo diga bien ni que
+  ofrezca la acción siguiente. Que trece lo hagan bien es lectura mía, no medida.
+- **Los demás cocientes del producto: mirados por encima, no auditados.**
+  `/finanzas` tiene dos `total > 0 ? … : 0`. Uno está protegido por un «Sin
+  datos» que se pinta antes, así que su rama de cero no se alcanza. El otro
+  —`MetodoCard`, el reparto por forma de pago— **no se comprobó en su caso
+  vacío**: es un porcentaje SOBRE el total, no una tasa de desempeño, así que el
+  daño sería menor, pero está sin mirar y así queda dicho. `/corte-caja` y el
+  panel de comisiones, sin mirar.
+- `/calendario` queda fuera de esta sonda a propósito: una rejilla de semana
+  vacía **es** la representación honesta de una semana sin citas.
+- No se mide el vacío **parcial** —pacientes sí, cobros no—, que es el más común
+  después del primer día.
+- **Jerarquía, contenido largo y comparación externa siguen NOT_PROVEN.** La
+  primera perdió su métrica por engañosa; las otras dos no se han intentado.

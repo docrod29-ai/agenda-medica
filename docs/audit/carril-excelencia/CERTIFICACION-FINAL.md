@@ -225,7 +225,7 @@ que no midió es peor que uno que no mide.
 | **motion/feedback** | lo mismo, más `arnes:foco-visible` y `arnes:menos-movimiento` | **medido** |
 | **loading** | `arnes:estado-de-carga` — con la red lenta a propósito | **medido**, 15 rutas |
 | **error** | `arnes:caida-de-datos` — cortando los datos | **medido**, 5 rutas |
-| **empty** | — | **NOT_PROVEN** |
+| **empty** | `arnes:consultorio-vacio` — con un consultorio creado de cero | **medido**, 13 rutas |
 | **hierarchy** | — | **NOT_PROVEN** |
 | **long content** | — | **NOT_PROVEN** |
 | **benchmark quality** | — | **NOT_PROVEN** |
@@ -235,31 +235,31 @@ que no midió es peor que uno que no mide.
 `axe` = violaciones críticas · `mudos` = controles sin acuse al puntero ·
 `tapados` = controles bajo algo que flota, en los dos extremos del scroll.
 
-| Ruta | axe (3 anchos) | desborde | mudos | foco | tapados | loading | error |
-|---|---:|---|---:|---|---:|---|---|
-| `/citas` | 0 | no | 0 | ok | 0 | ok | ok |
-| `/calendario` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok |
-| `/asistente` | 0 | no | 3 ¹ | ok | 0 | — | — |
-| `/lista-espera` | 0 | no | 0 | ok | 0 | ok | — |
-| `/finanzas` | 0 | no | 0 | ok | 0 | ok | ok |
-| `/operaciones` | 0 | no | 0 | ok | 0 | — | — |
-| `/dashboard` | 0 | no | 0 | ok | 0 ² | ok | ok |
-| `/pacientes` | 0 | no | 0 | ok | 0 | ok | — |
-| `/pendientes` | 0 | no | 0 | ok | 0 | ok | — |
-| `/configuracion` | 0 | no | 0 | ok | 0 | **arreglado u66** | — |
-| `/crm` | 0 | no | 0 | ok | 0 | ok | — |
-| `/reactivacion` | 0 | no | 0 | ok | 0 | ok | — |
-| `/resenas` | 0 | no | 0 | ok | 0 | ok | — |
-| `/membresias` | 0 | no | 0 | ok | 0 | **arreglado u66** | — |
-| `/farmacia` | 0 | no | 0 | ok | 0 | ok | — |
-| `/corte-caja` | 0 | no | 0 | ok | 0 | ok | — |
-| `/cumplimiento` | 0 | no | 0 | ok | 0 | — | — |
-| `/cumplimiento/retencion` | 0 | no | 3 ¹ | ok | 0 | — | — |
-| `/consultor` | 0 | no | 0 | ok | 0 | — | — |
-| `/guia` | 0 | no | 0 | ok | 0 | — | — |
-| `/consulta/pac-001` | 0 | no | 0 | ok | 0 | — | — |
-| `/expediente/pac-001` | 0 | no | 2 ¹ | ok | 0 | ok | ok |
-| `/mi/[token]` (portal) | 0 | no | — | — | — | — | — |
+| Ruta | axe (3 anchos) | desborde | mudos | foco | tapados | loading | error | empty |
+|---|---:|---|---:|---|---:|---|---|---|
+| `/citas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/calendario` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok | — |
+| `/asistente` | 0 | no | 3 ¹ | ok | 0 | — | — | — |
+| `/lista-espera` | 0 | no | 0 | ok | 0 | ok | — | ok |
+| `/finanzas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/operaciones` | 0 | no | 0 | ok | 0 | — | — | — |
+| `/dashboard` | 0 | no | 0 | ok | 0 ² | ok | ok | ok |
+| `/pacientes` | 0 | no | 0 | ok | 0 | ok | — | ok |
+| `/pendientes` | 0 | no | 0 | ok | 0 | ok | — | ok |
+| `/configuracion` | 0 | no | 0 | ok | 0 | **arreglado u66** | — | — |
+| `/crm` | 0 | no | 0 | ok | 0 | ok | — | **arreglado u68** |
+| `/reactivacion` | 0 | no | 0 | ok | 0 | ok | — | ok |
+| `/resenas` | 0 | no | 0 | ok | 0 | ok | — | ok |
+| `/membresias` | 0 | no | 0 | ok | 0 | **arreglado u66** | — | ok |
+| `/farmacia` | 0 | no | 0 | ok | 0 | ok | — | ok |
+| `/corte-caja` | 0 | no | 0 | ok | 0 | ok | — | ok |
+| `/cumplimiento` | 0 | no | 0 | ok | 0 | — | — | — |
+| `/cumplimiento/retencion` | 0 | no | 3 ¹ | ok | 0 | — | — | ok |
+| `/consultor` | 0 | no | 0 | ok | 0 | — | — | — |
+| `/guia` | 0 | no | 0 | ok | 0 | — | — | — |
+| `/consulta/pac-001` | 0 | no | 0 | ok | 0 | — | — | — |
+| `/expediente/pac-001` | 0 | no | 2 ¹ | ok | 0 | ok | ok | — |
+| `/mi/[token]` (portal) | 0 | no | — | — | — | — | — | — |
 
 ¹ **Los 8 mudos que quedan están todos en archivos ya declarados en
 CROSS_LANE_CONFLICT.** Se dejan medidos, con nombre, y sin tocar: bajar un número
@@ -268,13 +268,8 @@ a cambio de complicarle el merge a otro carril no es una mejora.
 ² `/dashboard` llegó a tener **dos botones «Consulta» imposibles de pulsar** bajo
 el aviso de notificaciones, sin posición de scroll que los liberara (unidad 64).
 
-## Las cuatro columnas sin medir, y por qué
+## Las tres columnas sin medir, y por qué
 
-- **empty** — el estado vacío DE VERDAD (datos llegados y ninguno) pide sembrar
-  un consultorio sin citas, sin pacientes y sin cobros. Es un arnés distinto.
-  Lo que sí quedó cubierto es su primo peligroso: el hueco de **carga** que se
-  lee como vacío (unidad 66) y el de **error** que se lee como «no existe»
-  (unidad 67).
 - **hierarchy** — se intentó con una razón «mayor texto ÷ segundo» y **el número
   engañaba**: marcaba `/citas` como plana cuando lo que pasa es que su contenido
   —los nombres de los pacientes— pesa casi tanto como su cabecera, que es lo
@@ -285,7 +280,7 @@ el aviso de notificaciones, sin posición de scroll que los liberara (unidad 64)
 - **benchmark quality** — comparar contra una referencia externa es un juicio, y
   este carril sólo escribe lo que puede volver a medir.
 
-## Los seis guiones, para volver a correrlo
+## Los siete guiones, para volver a correrlo
 
 ```bash
 npm run arnes:trinquete-interfaz   # axe + desborde, 69 combinaciones
@@ -294,6 +289,7 @@ npm run arnes:acuse-puntero        # estaticidad: controles que no acusan
 npm run arnes:nada-tapa            # nada flotante tapa un control
 npm run arnes:estado-de-carga      # el hueco dice que está cargando
 npm run arnes:caida-de-datos       # una caída no borra el consultorio
+npm run arnes:consultorio-vacio    # el estado vacío, con un consultorio de cero
 ```
 
 Todos exigen el servidor del arnés construido con la configuración del arnés, y
