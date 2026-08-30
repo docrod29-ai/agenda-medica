@@ -63,6 +63,9 @@ export default function ConfiguracionPage() {
   const [form, setForm] = useState<ClinicConfig>({ ...DEFAULT_CONFIG })
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState('')
+  // Lo reporta `FirmaUploadSection`, que es quien lee del subdocumento
+  // protegido: el paso 2 de la pestaña de recetas lo usa para marcarse resuelto.
+  const [firmaLista, setFirmaLista] = useState(false)
   const [gcalConnected, setGcalConnected] = useState<boolean | null>(null)
   const [gcalLoading, setGcalLoading] = useState(false)
   const [gcalCalendars, setGcalCalendars] = useState<{ id: string; summary: string; primary: boolean }[]>([])
@@ -1002,25 +1005,34 @@ export default function ConfiguracionPage() {
       {/* Recetas y órdenes */}
       {/* TODO lo de impresos en UNA pestaña: receta/orden, firma y hoja de notas.
           Antes la firma y el membrete de notas vivían en "Datos del consultorio",
-          lejos de donde se configura lo que se imprime. */}
+          lejos de donde se configura lo que se imprime. Y ya no van una debajo de
+          otra: la firma es el PASO 2 y la hoja de notas es un ajuste raro. Se
+          pasan MONTADAS —esta página es la que tiene el formulario en memoria— y
+          `RecetasTab` decide dónde caen. */}
       {tab === 'recetas' && (
-        <div style={{ display: 'grid', gap: 20 }}>
-          <RecetasTab clinicId={clinicId} />
-
-          {/* 🖋️ Firma + sello POR MÉDICO — sale en notas, recetas y órdenes */}
-          <FirmaUploadSection
-            form={form}
-            clinicId={clinicId}
-            onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
-          />
-
-          {/* 📄 Hoja membretada para NOTAS — general o por médico */}
-          <MembreteNotaSection
-            form={form}
-            clinicId={clinicId}
-            onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
-          />
-        </div>
+        <RecetasTab
+          clinicId={clinicId}
+          /* Quién sabe si hay firma es la propia sección, que lee del
+             subdocumento protegido; deducirlo aquí desde `form` daría
+             «pendiente» a todo médico ya migrado (config/main no la tiene). */
+          firmaLista={firmaLista}
+          firmaSlot={
+            <FirmaUploadSection
+              compacto
+              form={form}
+              clinicId={clinicId}
+              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
+              onEstado={setFirmaLista}
+            />
+          }
+          notasSlot={
+            <MembreteNotaSection
+              form={form}
+              clinicId={clinicId}
+              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
+            />
+          }
+        />
       )}
 
       {/* Seguridad — MFA / 2FA */}

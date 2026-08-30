@@ -162,7 +162,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
         noReconocidas: revision.noReconocidas, fuente: revision.fuente,
       }, vinculo, revision.clave)
       /**
-       * REG-337 — un pendiente que no nació NO se calla. El laboratorio está
+       * REG-501 — un pendiente que no nació NO se calla. El laboratorio está
        * guardado (eso no se pierde), pero si la tarea de revisión no entró,
        * nadie va a acordarse de mirarlo: hay que decirlo en el momento, no
        * dejar que el silencio parezca éxito.

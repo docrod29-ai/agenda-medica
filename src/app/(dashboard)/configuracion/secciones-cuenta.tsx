@@ -8,6 +8,7 @@
  * Sin cambio de comportamiento respecto al monolito original.
  */
 import { guardarFirma, migrarFirmaSiHaceFalta } from '@/lib/firma-protegida'
+import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { useState, useEffect } from 'react'
 import type { ClinicConfig, Doctor as DoctorT } from '@/types'
 import { getDoctors, saveConfigPartial } from '@/lib/firestore'
@@ -201,10 +202,19 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
   )
 }
 
-export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
+export function FirmaUploadSection({ form, clinicId, onLocalChange, compacto = false, onEstado }: {
   form: ClinicConfig
   clinicId: string | null
   onLocalChange: (patch: Partial<ClinicConfig>) => void
+  /**
+   * Dentro del paso 2 de «Recetas, órdenes y notas» la tarjeta ya la pone el
+   * paso: su marco, su número, su título y su explicación. Repetirlos aquí daba
+   * una tarjeta dentro de otra y el mismo texto dos veces. `compacto` deja sólo
+   * el control.
+   */
+  compacto?: boolean
+  /** Avisa si hay firma cargada, para que el paso que la envuelve lo sepa. */
+  onEstado?: (hayFirma: boolean) => void
 }) {
   const { toast } = useToast()
   const [procesando, setProcesando] = useState(false)
@@ -223,8 +233,33 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
     }).catch(() => {})
   }, [clinicId])
 
-  // Firma EFECTIVA: la del médico seleccionado (si hay médicos) o la general.
-  const firmaDataUrl = medicoSel ? form.firmaPorMedico?.[medicoSel] : form.firmaImagenDataUrl
+  /**
+   * ── DEFECTO ENCONTRADO AL PONERLE UNA MARCA DE «LISTO» A ESTE PASO ─────────
+   *
+   * Esta sección leía la firma SÓLO de `form`, que es `config/main`. Desde
+   * REG-014 la firma no vive ahí: vive en `config/firma`, y la migración que
+   * corre unas líneas más abajo la COPIA y la BORRA del general.
+   *
+   * O sea: en cuanto un consultorio migraba, al recargar la pantalla el médico
+   * veía el recuadro vacío de «Sube tu firma + sello» — con su firma guardada,
+   * funcionando y saliendo impresa en sus recetas. La pantalla decía que no
+   * había nada. Nadie lo cazó porque quien tiene firma no vuelve a esta
+   * sección, y las cinco pantallas que SÍ la imprimen leen del sitio correcto
+   * con `useFirmaProtegida` — esta era la única que no.
+   *
+   * Ahora lee del mismo sitio que ellas. `form` sigue delante porque es lo que
+   * acaba de tocar el médico en esta sesión (`onLocalChange`), y `''` —quitar
+   * la firma— tiene que ganarle al valor del servidor: por eso `??` y no `||`.
+   */
+  const { firma: firmaProtegida } = useFirmaProtegida(clinicId, form)
+  const firmaDataUrl = medicoSel
+    ? (form.firmaPorMedico?.[medicoSel] ?? firmaProtegida.firmaPorMedico?.[medicoSel])
+    : (form.firmaImagenDataUrl ?? firmaProtegida.firmaImagenDataUrl)
+
+  // Lo que ve esta sección es lo que tiene que ver el paso que la envuelve: si
+  // cada uno lo dedujera por su cuenta, el paso diría «pendiente» con la firma
+  // puesta — que es justo el defecto de arriba, otra vez y en otro sitio.
+  useEffect(() => { onEstado?.(!!firmaDataUrl) }, [firmaDataUrl, onEstado])
 
   // Guarda la firma del médico (merge conserva las de los demás) o la general.
   /**
@@ -323,23 +358,27 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
   }
 
   return (
-    <div style={{
+    <div style={compacto ? undefined : {
       background: 'color-mix(in srgb, var(--nexus) 5%, transparent)',
       border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 4,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <PenLine size={18} style={{ color: 'var(--teal)' }} />
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Firma + sello (imagen)</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
-            Cada médico sube la SUYA. Aparece sobre la línea de firma en <strong>sus</strong> notas, recetas y órdenes.
+      {!compacto && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <PenLine size={18} style={{ color: 'var(--teal)' }} />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Firma + sello (imagen)</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
+              Cada médico sube la SUYA. Aparece sobre la línea de firma en <strong>sus</strong> notas, recetas y órdenes.
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {doctores.length > 0 && (() => {
+      {/* Con un solo médico no hay a quién elegir, y «Tu firma · Dr. Fulano»
+          encima del control es una línea que no dice nada nuevo. */}
+      {doctores.length > 1 && (() => {
         const soyDoctor = doctores.find(d => d.email && d.email === auth.currentUser?.email)
-        const medicoUnico = soyDoctor ?? (doctores.length === 1 ? doctores[0] : undefined)
+        const medicoUnico = soyDoctor ?? undefined
         return (
           <div style={{ marginBottom: 10 }}>
             {medicoUnico ? (
@@ -406,10 +445,14 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
         </label>
       )}
 
-      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, padding: '6px 10px', background: 'rgba(255,200,0,0.05)', borderLeft: '2px solid #f59e0b', borderRadius: 3, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-        <Lightbulb size={12} className="ds-icon" style={{ marginTop: 1, flexShrink: 0 }} />
-        <span>Tip: Escanea tu firma en una hoja blanca con tu sello al lado, recórtalo en blanco y súbelo como PNG con fondo transparente. Mide unos 6 × 3 cm en la vida real.</span>
-      </div>
+      {/* El consejo sólo hace falta ANTES de tener una firma: repetírselo a quien
+          ya la subió es una línea más de pantalla que no le dice nada. */}
+      {!firmaDataUrl && (
+        <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, padding: '6px 10px', background: 'var(--s2)', borderLeft: '2px solid var(--amber)', borderRadius: 6, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+          <Lightbulb size={12} className="ds-icon" style={{ marginTop: 1, flexShrink: 0 }} />
+          <span>Firma en una hoja blanca con tu sello al lado, tómale foto de frente con buena luz y súbela. Mide unos 6 × 3 cm en la vida real.</span>
+        </div>
+      )}
     </div>
   )
 }

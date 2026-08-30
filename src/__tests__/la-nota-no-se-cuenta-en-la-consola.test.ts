@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
- * REG-339 — LA NOTA CLÍNICA ENTERA SE ESCRIBÍA EN LA CONSOLA.
+ * REG-503 — LA NOTA CLÍNICA ENTERA SE ESCRIBÍA EN LA CONSOLA.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -95,7 +95,7 @@ function vertidos(): string[] {
   return malos
 }
 
-describe('REG-339 · el cuerpo de una nota clínica no entra en la consola', () => {
+describe('REG-503 · el cuerpo de una nota clínica no entra en la consola', () => {
   it('ninguna pantalla del dashboard vuelca un cuerpo de respuesta', () => {
     expect(vertidos().join('\n')).toBe('')
   })

@@ -133,7 +133,27 @@ test('B2 · el camino público no pierde recursos por el camino', async ({ page 
     if (r.status() >= 400 && ![401, 403].includes(r.status())) fallos.push(`${r.status()} ${r.url()}`)
   })
   for (const ruta of RUTAS_PUBLICAS) {
-    await page.goto(ruta, { waitUntil: 'domcontentloaded' })
+    /**
+     * `load`, y NO `domcontentloaded` — por dos razones, y la segunda es la que
+     * convierte esto en un arreglo y no en un parche.
+     *
+     * 1. ESTE CASO VIGILA RECURSOS. `domcontentloaded` vuelve cuando el HTML
+     *    está parseado, antes de que imágenes, hojas y scripts hayan
+     *    respondido. O sea: el caso podía terminar sin haber visto justo los
+     *    404 que busca. Esperar a `load` no lo relaja, lo hace capaz.
+     *
+     * 2. Y ES LO QUE HACÍA FALLAR AL PROPIO CASO. Al volver antes de tiempo,
+     *    la navegación anterior seguía en vuelo cuando empezaba la siguiente, y
+     *    Playwright aborta esa con «Navigation to X is interrupted by another
+     *    navigation to Y» — donde Y era siempre la ruta ANTERIOR del bucle. Se
+     *    veía en CI como un rojo intermitente que cambiaba de pareja de rutas
+     *    en cada intento (la firma de una carrera, no la de un defecto), y no
+     *    era un recurso perdido: era este bucle pisándose a sí mismo.
+     *
+     * Los otros dos recorridos de RUTAS_PUBLICAS no lo sufrían: B1 usa una
+     * página nueva por caso y además espera 1 500 ms.
+     */
+    await page.goto(ruta, { waitUntil: 'load' })
   }
   expect(fallos, `recursos que no cargan:\n  ${fallos.join('\n  ')}`).toEqual([])
 })
@@ -191,7 +211,9 @@ test.describe('D · con CSP_MODE=enforce', () => {
 
   test('D2 · el camino público sigue vivo con la política apretada', async ({ page }) => {
     for (const ruta of RUTAS_PUBLICAS) {
-      const resp = await page.goto(ruta, { waitUntil: 'domcontentloaded' })
+      // Mismo bucle sobre la misma página que B2, y por tanto la misma carrera
+      // esperando su turno: se cierra aquí también, no cuando explote.
+      const resp = await page.goto(ruta, { waitUntil: 'load' })
       expect(resp?.status(), `${ruta} se cayó con enforce`).toBeLessThan(400)
       await expect(page.locator('body')).toBeVisible()
     }

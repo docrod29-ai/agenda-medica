@@ -13,7 +13,8 @@ parecer trivial.
 
 ## El trinquete sólo baja
 
-`node scripts/lint-trinquete.mjs`. Techo actual **98**. Si un cambio lo sube, se
+`node scripts/lint-trinquete.mjs`. Techo actual **95** (el número vivo está en
+`docs/audit/lint-techo.json`, que es lo que compara el guardián). Si un cambio lo sube, se
 arregla el cambio — no se sube el techo.
 
 ## `npm run build` no es opcional

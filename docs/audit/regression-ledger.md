@@ -8971,6 +8971,149 @@ nueve la prueba cae.
    `release/evidence-integrated-2026-08-26`. Recuperarlo es una reparación
    clínica aparte, con sus dos pruebas, no un efecto colateral de esta compuerta.
 
+## REG-339 — la vista previa de la receta salía recortada con la configuración de fábrica
+
+**Área.** `src/app/(dashboard)/configuracion/secciones-recetas.tsx` (`PreviewReceta`) ·
+`src/components/RecetaPreviewWrapper.tsx` · `src/components/RecetaDocumento.tsx`.
+
+**Estado:** CLOSED, con golden y sello.
+
+**CÓMO SE DESCUBRIÓ.** MIRÁNDOLA. Tras rehacer la pantalla en tres pasos se
+recorrió en un navegador de verdad, y en la captura se leía «FOLIO: RX-DE»
+cortado a media palabra contra el borde derecho del marco. Ninguna prueba lo
+veía; ninguna comparaba las dos medidas que aquí se contradicen.
+
+**CAUSA RAÍZ.** `imprimirEn: 'carta'` es el modo POR DEFECTO —el que funciona en
+cualquier impresora sin configurar nada— y hace que `RecetaDocumento` dibuje una
+**hoja carta de 216 × 279 mm** con la receta centrada dentro. La vista previa de
+configuración dimensionaba su marco con `paperEfectivo`, que devuelve la
+**receta** (140 × 216 en media carta).
+
+Marco de 140 mm, contenido de 216 mm, `overflow: hidden` en medio. La receta
+salía cortada por la derecha **nada más abrir la pantalla**, sin tocar nada, con
+la configuración que trae de fábrica.
+
+**POR QUÉ EXISTÍA LA DISCREPANCIA.** Porque esta pantalla tenía su propia copia
+de tres cálculos que ya existían y estaban resueltos: orientar el papel al
+diseño subido (`useRecetaPaperOrientado`), escalar para que quepa en la columna
+(`RecetaPreviewWrapper`) y dibujar el marco. `/receta` y `/orden` usan el
+componente canónico y por eso nunca tuvieron el defecto.
+
+Lo delata su propia documentación: la cabecera de `RecetaPreviewWrapper` decía
+«Usado en /receta, /orden **y en el preview de Configuración → Recetas**». No lo
+usaba. El comentario describía la intención; el código, una copia que se quedó
+atrás.
+
+**LA FAMILIA.** «Escrito, probado y sin conectar», en su forma más pura: el
+componente correcto existía, funcionaba, tenía dos usuarios contentos — y la
+tercera pantalla se hizo el suyo.
+
+**EL ARREGLO.**
+
+- La vista previa usa `RecetaPreviewWrapper`, dimensionado con
+  `dimensionesImpresion` (la hoja FÍSICA, host de carta incluido), y orienta con
+  `useRecetaPaperOrientado`. Deja de calcular nada por su cuenta.
+- La escala de la vista previa se saca a `escalaDeVistaPrevia`, porque hay un
+  segundo interesado legítimo: el recuadro que el médico ARRASTRA encima del
+  documento necesita el mismo número para convertir píxeles en milímetros.
+- `colocacionDeLaReceta` dice dónde cae la receta dentro de la hoja física, y la
+  usan LOS DOS: `HostCarta` para dibujarla y el recuadro arrastrable para
+  colocarse encima. Antes ese cálculo vivía dentro del JSX de `HostCarta` y
+  quien dibujaba encima tenía que adivinarlo — y adivinaba mal en cuanto el host
+  era carta.
+- El nodo que se manda a imprimir en la prueba pasa a medir la hoja física, la
+  misma que declara su `@page`.
+- Y la vista previa ahora DICE «Sale en hoja carta, con línea de corte ✂»: sin
+  eso, ver una hoja carta después de haber elegido media carta parece un error.
+
+**LA REGLA QUE LO HACE SEGURO.** Un número que dos sitios tienen que compartir
+no se copia: se pregunta. Y una pantalla que dibuja lo que otra imprime usa su
+mismo componente, no uno parecido.
+
+**GOLDEN.** `src/__tests__/recetas-tres-pasos-y-la-app-coloca-sola.test.ts`
+(bloque 8, con la geometría en números). **Probado al revés:** devolviendo el
+marco a las medidas de la receta (`paperWidthMm={paperOri.widthMm}`) cae el caso
+que exige dimensionarlo con la hoja física.
+
+**QUÉ NO CUBRE.** No mide la impresión real: que el sistema operativo obedezca
+el `@page` es cosa suya, y por eso el paso 3 de la pantalla existe. Tampoco
+toca la paginación multi-hoja de la vista previa de configuración, que sigue
+enseñando una sola hoja (`/receta` sí cuenta las suyas con `contarPaginas`).
+
+**VERIFICADO EN NAVEGADOR.** Emulador + servidor de desarrollo, a 1440 y a 390,
+en tema claro y oscuro: marco 340 × 439 px, hoja 340 × 439 px, **cero píxeles de
+sobra por los cuatro lados** en los tres casos.
+
+---
+
+## REG-338 — la pantalla que sube la firma leía del documento que la migración vació
+
+**Área.** `src/app/(dashboard)/configuracion/secciones-cuenta.tsx`
+(`FirmaUploadSection`) · `src/lib/firma-protegida.ts` · `src/hooks/useFirmaProtegida.ts`.
+
+**Estado:** CLOSED, con golden y sello.
+
+**CÓMO SE DESCUBRIÓ.** No buscándolo. Simplificando «Recetas, órdenes y notas»
+a tres pasos a petición del dueño, el paso 2 —la firma— necesitaba una marca de
+«listo», y la pregunta obligada fue de dónde sale ese booleano. La respuesta
+estaba en la propia sección: leía `form`, es decir `clinics/{id}/config/main`.
+
+**CAUSA RAÍZ.** REG-014 sacó la firma de `config/main` —cuyo `read` es
+`isMember`, así que recepción o farmacia podían llevársela con el SDK— y la
+movió a `config/firma`, legible sólo por médicos. La migración es idempotente,
+corre al abrir esta misma sección, COPIA al subdocumento y **borra del general**.
+
+Las cinco pantallas que imprimen (nota, receta, orden, consulta, hospital) se
+cablearon al lector nuevo, `useFirmaProtegida`, que además cae al legado
+mientras un consultorio no haya migrado. La sexta —la que SUBE la firma— se
+quedó leyendo el sitio que la migración acababa de vaciar.
+
+**LO QUE VEÍA EL MÉDICO.** Consultorio migrado, recarga de la pantalla: el
+recuadro punteado de «Sube tu firma + sello», como si no hubiera nada. Con su
+firma guardada, protegida y saliendo impresa en cada receta. La pantalla no
+daba error: daba una respuesta falsa a la pregunta «¿ya subí mi firma?».
+
+**POR QUÉ NADIE LO CAZÓ.** Porque el que tiene firma no vuelve a esta sección, y
+el que vuelve es porque no la tiene —y entonces el recuadro vacío es correcto—.
+Y porque la suite lo miraba desde el lado bueno: los tests de REG-014 comprueban
+que la firma se guarda en el sitio protegido y que las pantallas de impresión la
+leen de ahí. Ninguno preguntaba qué enseña, al día siguiente, la pantalla que la
+subió.
+
+**LA FAMILIA.** Se cuenta en «el sistema se contradice a sí mismo»: el escritor
+(`config/firma`) y este lector (`config/main`) son correctos cada uno por su
+cuenta, y el defecto vive en el hueco entre los dos.
+
+Es prima de «el dato tiene que LLEGAR» (REG-160, REG-167, REG-170) con el giro
+que la distingue: allí el dato no llegaba, y aquí llegó perfectamente a su
+destino nuevo — lo que se quedó atrás fue el LECTOR. Una migración deja dos
+lados, y el lado que sólo escribe parece terminado desde dentro.
+
+**EL ARREGLO.** `FirmaUploadSection` lee con `useFirmaProtegida(clinicId, form)`,
+el mismo lector que las cinco pantallas de impresión, y resuelve el valor
+efectivo con `??` —no `||`— para que quitar la firma (que deja `''`) siga
+ganándole al valor del servidor. Y reporta hacia arriba lo que ve
+(`onEstado`), para que el paso 2 de la pestaña no vuelva a deducirlo por su
+cuenta desde `form`: ése habría sido el mismo defecto un piso más arriba.
+
+**LA REGLA QUE LO HACE SEGURO.** Cuando un dato cambia de sitio, se mueven
+TODOS sus lectores — y el que escribe también lee, aunque parezca que sólo
+escribe. Un formulario que no encuentra lo que él mismo guardó no falla: miente.
+
+**GOLDEN.** `src/__tests__/recetas-tres-pasos-y-la-app-coloca-sola.test.ts`
+(bloque 7). **Probado al revés:** devolviendo la lectura a
+`form.firmaPorMedico?.[medicoSel]` a secas, caen los dos primeros casos del
+bloque.
+
+**QUÉ NO CUBRE.** No se ha visto contra un Firestore migrado de verdad: el
+golden comprueba el cableado en la fuente, que es el precedente de esta casa
+para este tipo de defecto. Tampoco toca el residual declarado de REG-014 —un
+médico autenticado sigue recibiendo la imagen en su navegador, porque la
+impresión es del lado del cliente—, ni añade lectura de la firma a ningún rol
+que no la tuviera.
+
+---
+
 ## REG-336 — se podía firmar sin nombre, y entonces el paciente no recibía nada nunca
 
 **Área.** Compuerta de la firma: `src/lib/expediente/por-que-no-se-firma.ts`,
@@ -9178,7 +9321,7 @@ no emite una llave que lo abre»), también probado al revés.
 
 ---
 
-## REG-337 — en consultorio, que un resultado exista contaba como que alguien lo leyó
+## REG-501 — en consultorio, que un resultado exista contaba como que alguien lo leyó
 
 **QUÉ FALLABA.** `guardarPanelLab` archivaba la hoja de laboratorio bajo el
 paciente y ahí terminaba el camino: no nacía ningún pendiente, nadie quedaba como
@@ -9243,7 +9386,7 @@ resultados legibles, y reintento de la misma intención).
 
 ---
 
-## REG-338 — el secreto del segundo factor se le pedía dibujado a un tercero
+## REG-502 — el secreto del segundo factor se le pedía dibujado a un tercero
 
 **QUÉ FALLABA.** La pantalla de enrolamiento de 2FA de `/cumplimiento/seguridad`
 componía el QR así:
@@ -9304,7 +9447,7 @@ apagado no vigila nada.
 
 ---
 
-## REG-339 — la nota clínica entera se escribía en la consola del navegador
+## REG-503 — la nota clínica entera se escribía en la consola del navegador
 
 **QUÉ FALLABA.** En la pantalla de consulta, cuando la IA no lograba estructurar
 una nota preoperatoria, el aviso de diagnóstico hacía:
@@ -9601,12 +9744,33 @@ tabulación) en vez de salir del flujo.
 El `scrollIntoView` que queda es el de `irA`, que responde a un **clic**: ahí el
 desplazamiento es exactamente lo que el médico pidió.
 
-**LA PRUEBA.** `src/__tests__/el-riel-no-arrastra-la-pagina.test.ts` (10 casos).
-Rompe con el patrón de las diez anteriores: siete de los casos son **aritmética
+**LA PRUEBA.** Hoy es `src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts`
+(14 casos). Nació como un golden propio de 10 —«el riel no arrastra la página»,
+retirado al absorber esta rama, ver abajo—, y ya entonces rompía con el patrón de
+las diez pruebas anteriores: siete de sus casos eran **aritmética
 sobre la función pura**, incluido un barrido determinista que afirma el
 invariante —ninguna geometría produce nada que no sea un `scrollLeft` ≥ 0— y uno
 que comprueba la propiedad que el médico nota: después de mover, el activo se ve.
-Probado al revés reintroduciendo los dos mecanismos: caen 3 casos.
+Probado al revés reintroduciendo los dos mecanismos: caían 3 casos.
+
+**QUÉ PASÓ CON ELLA AL ABSORBER ESTA RAMA (30-ago-2026).** Este defecto se
+encontró y se arregló **dos veces en paralelo**, sin que una rama viera a la
+otra: aquí como REG-342, con la aritmética local en el componente, y en `main`
+como **REG-337**, con la aritmética en el módulo canónico
+`src/lib/ui/traer-a-la-vista.ts`. Misma causa, mismo archivo, y los dos
+reescribieron el mismo caso 5 del mismo test de V15.
+
+Al fusionar se conserva **una sola implementación** —la canónica, que además
+acota contra el tope real de desplazamiento— y este golden se retira, porque dos
+guardianes del mismo invariante son la duplicación que `AGENTS.md` prohíbe. **No
+se pierde cobertura**: los dos casos que este golden tenía y el de REG-337 no
+—el barrido del invariante y «el activo queda dentro de la ventana»— se portaron
+enteros a `src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts`, que pasa
+de 12 a 14 casos. El resto ya estaba cubierto allí con más alcance.
+
+La lección no es de scroll: **dos escritores sobre el mismo tablero pagan el
+mismo trabajo dos veces**. Es lo que motivó `docs/maintenance/CARRILES-Y-BUCLES.md`
+el mismo día.
 
 **QUÉ NO CUBRE, Y ESTO ES LO IMPORTANTE.**
 
@@ -10962,7 +11126,7 @@ un valor por omisión en el aviso, y volver a fundir cerrar con avanzar de estad
   palabras existan, no que se vean.
 - **No cubre el cierre desde otras pantallas.** Hoy sólo `/pendientes` cierra
   tareas; si mañana lo hace otra, este golden no la ve — que es exactamente el
-  patrón de REG-337 y REG-356, así que queda dicho en vez de descubrirse.
+  patrón de REG-501 y REG-356, así que queda dicho en vez de descubrirse.
 - **Interconsultas, referencias e imagen siguen fuera del ciclo.** WS-11 no se
   cierra con esto.
 
@@ -14120,7 +14284,7 @@ falta**. El control que el médico pidió no ocurría, el pendiente estaba cerra
 y el sistema decía que el trabajo estaba hecho **porque nadie le preguntó nunca
 al calendario**.
 
-Es la misma forma de fallo que REG-337 cerró del otro lado —que el resultado
+Es la misma forma de fallo que REG-501 cerró del otro lado —que el resultado
 EXISTIERA contaba como que alguien lo había leído— aplicada a la otra punta del
 ciclo: que la cita EXISTA cuenta como que el paciente vino.
 
@@ -14598,6 +14762,127 @@ su motivo en los tres guardianes que la vigilan.
   pero no es peligroso, lo decide el dueño.
 
 **Prueba.** `src/__tests__/un-wer-bajo-no-compensa-una-dosis.test.ts` (21 casos).
+## REG-337 — la pantalla del expediente botaba al bajar: `scrollIntoView` no respeta a los ancestros
+
+**Área.** `/expediente/[patientId]` — el riel longitudinal del paciente
+(`ClinicalSpine`), en teléfono y en escritorio por igual.
+
+**Qué fallaba.** Al desplazarse hacia abajo por el expediente, la página saltaba
+sola de vuelta a la zona alta, una y otra vez, mientras el dedo (o la rueda)
+seguía bajando. La pantalla «botaba»: bajaba lo suficiente para enseñar «Datos
+del paciente» y «Herramientas clínicas», y volvía arriba sin que nadie se lo
+pidiera. No era un problema del dispositivo: pasaba igual en iOS y en escritorio.
+
+**Cómo se descubrió.** El dueño grabó la pantalla del teléfono (28-ago-2026)
+bajando por el expediente de una paciente sin notas firmadas, y dijo «mira cómo
+se bota la pantalla cuando bajo». En el vídeo se ve el ciclo completo repetido
+media docena de veces en diecisiete segundos. Ninguna prueba lo veía: la suite
+corre en `node`, sin layout y sin scroll — y el guardián que existía sobre este
+código **congelaba el defecto**, porque pedía por su nombre la opción que lo
+causaba.
+
+**Causa raíz.** El riel seguía la lectura del médico así:
+
+```ts
+el?.scrollIntoView({ behavior: comportamientoScroll(), block: 'nearest', inline: 'nearest' })
+```
+
+y su comentario afirmaba, literalmente, «`nearest`, para no arrastrar la
+página». **Es falso.** `nearest` elige la ALINEACIÓN; no elige a quién se
+desplaza. `scrollIntoView` recorre **todos** los ancestros desplazables —el
+documento incluido— y mueve cada uno lo necesario para que el elemento quede
+visible. No existe forma de pedirle «muévete sólo dentro de tu contenedor».
+
+Con `PatientAnchor` en `position: sticky; top: 0` y el riel justo debajo en flujo
+normal, a ~100px de bajada el riel ya salió del viewport. Ahí se cierra el bucle:
+
+```
+bajar → IntersectionObserver marca otra sección → setActivo
+      → el efecto pide traer a la vista un botón del riel que ya no se ve
+      → el navegador SUBE la página para enseñarlo
+      → al subir cambia otra vez la sección visible → setActivo → …
+```
+
+Y con desplazamiento suave, cada salto es además una animación peleándose con el
+dedo del médico. El defecto es de la API del DOM, no del dispositivo — por eso se
+veía idéntico en los dos sitios donde el dueño lo notó.
+
+**La regla que lo hace seguro.** Cuando lo que hay que mover es UN carril, se
+desplaza ese scrollport **por su nombre** (`riel.scrollTo`), que no puede tocar a
+un ancestro aunque quiera. `scrollIntoView` queda para los viajes que el usuario
+PIDE —el click del riel, que sí debe mover la página— y nunca para seguir la
+lectura. La aritmética de «¿hace falta moverse, y hasta dónde?» se levantó a
+`src/lib/ui/traer-a-la-vista.ts`: pura, sin DOM, y por tanto probable de verdad
+en una suite que corre en `node`. Devuelve `null` cuando el activo ya se ve, que
+es la otra mitad del arreglo: un desplazamiento de 0px sigue siendo un
+desplazamiento.
+
+**Test / control permanente:**
+`src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts` (12 casos). Probado
+al revés con tres defectos inyectados uno a uno —devolver la línea original de
+`scrollIntoView`, devolver `scrollLeft` en vez de `null` cuando el activo ya se
+ve, y alinear siempre al final ignorando el desborde por la izquierda— y en los
+tres cae.
+
+`src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts` caso 5 pedía
+`block: 'nearest', inline: 'nearest'` y con eso **congelaba el defecto**. La
+propiedad que ese caso quería asegurar nunca fue «usa nearest»: era «el activo se
+ve dentro del riel». Se re-expresa por el mecanismo que de verdad la cumple.
+
+**Qué NO cubre, declarado.**
+
+**Visto en un navegador (28-ago-2026).** La suite corre en `node` —sin layout ni
+scroll— así que la reproducción se hizo aparte, en Chromium con Playwright, sobre
+un arnés que copia la estructura real (ancla `sticky`, riel en flujo normal,
+`IntersectionObserver` con el mismo `rootMargin`) e **importa la aritmética real
+transpilada**, no una copia. Viewport 390×844, rueda hacia abajo en pasos de
+120px, midiendo `window.scrollY` tras cada paso:
+
+| | `scrollY` a lo largo de la bajada | botes hacia arriba |
+|---|---|---|
+| **antes** (2 ítems, la paciente del vídeo) | 120 → 240 → **360 → 199 → 175** → 295 → … | **2** |
+| **antes** (5 ítems) | … 775 → 895 → **570 → 175** → 295 → 415 → **226 → 175** | **6** |
+| **después** (2 ítems) | 120 → 240 → 360 → 480 → 600 → 720 → 810 | **0** |
+| **después** (5 ítems) | 120 → 240 → … → 2040 → 2160 | **0** |
+
+Con cinco ítems, la versión vieja **nunca pasaba de ~900px**: la página se
+quedaba atrapada volviendo a 175px, que es exactamente lo que se ve en el vídeo
+del dueño. Y el riel no perdió su función: con el arreglo, y con el riel
+desbordando de verdad, su `scrollLeft` va 0 → 345 → 545 siguiendo al activo
+mientras `window.scrollY` no retrocede una sola vez.
+
+**Con el dedo, que es como lo usa el médico (28-ago-2026).** Lo anterior se midió
+con la rueda; el scroll táctil tiene inercia propia y podía comportarse distinto,
+así que se midió aparte inyectando eventos táctiles reales al motor
+(`Input.dispatchTouchEvent` por CDP), 18 arrastres por caso. Dos intentos previos
+se descartaron por inválidos: **no reproducían el defecto conocido en el caso
+viejo**, y una medición que no ve el fallo que ya existe no mide nada.
+
+| teléfono | antes | después |
+|---|---|---|
+| iPhone 13 | 1027 de 2505 px · **8 botes** | 2505 de 2505 · 0 |
+| iPhone SE | 605 de 2648 px · **8 botes** | 2648 de 2648 · 0 |
+| iPhone 14 Pro Max | 500 de 2429 px · **9 botes** | 2429 de 2429 · 0 |
+| Pixel 5 | 915 de 2442 px · **8 botes** | 2442 de 2442 · 0 |
+| Galaxy S9+ | 292 de 2558 px · **6 botes** | 2558 de 2558 · 0 |
+
+Con el dedo es **peor** que con la rueda, y la traza es caótica —
+`869 → 298 → 182 → 1067 → 339 → 1140 → 194` en el iPhone 13 — que es exactamente
+lo que se ve en el vídeo del dueño.
+
+**Qué NO cubre, declarado.**
+
+- **No se ha recorrido la pantalla REAL en un navegador**, sólo el arnés que
+  reproduce su estructura. Falta abrir `/expediente/[patientId]` con datos y
+  bajar con el dedo — la regla de diseño lo exige y sigue pendiente.
+- **No vigila al resto del producto.** Un `scrollIntoView({ block: 'nearest' })`
+  nuevo en otra pantalla volvería a arrastrar la página. El guardián sólo mira
+  este componente, que es el único que hoy lo hacía para seguir la lectura.
+- **Sólo eje horizontal, y sólo `direction: ltr`.** Un carril vertical
+  necesitaría su gemela; hoy no hay ninguno en el producto.
+- **No toca al IntersectionObserver ni a su `rootMargin`.** Qué sección se
+  considera activa no cambió: si el resaltado se adelanta o se atrasa, ése es
+  otro defecto y no está arreglado aquí.
 
 ## REG-410 — la warfarina de marzo, otra vez, y en la pantalla donde se firma
 

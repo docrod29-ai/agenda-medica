@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
- * REG-338 — EL SECRETO DEL SEGUNDO FACTOR VIAJABA A UN TERCERO.
+ * REG-502 — EL SECRETO DEL SEGUNDO FACTOR VIAJABA A UN TERCERO.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -95,7 +95,7 @@ function fugasDeSecreto(): { archivo: string; linea: number; texto: string }[] {
   return fugas
 }
 
-describe('REG-338 · el secreto del segundo factor no se le entrega a nadie', () => {
+describe('REG-502 · el secreto del segundo factor no se le entrega a nadie', () => {
   it('ninguna línea manda un otpauth:// a un host externo', () => {
     const fugas = fugasDeSecreto()
     expect(
