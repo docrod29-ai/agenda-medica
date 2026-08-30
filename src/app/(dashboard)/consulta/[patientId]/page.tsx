@@ -148,7 +148,7 @@ import { MientrasHablas } from '@/components/MientrasHablas'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
-import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { interaccionesDelCuadro, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { SelloMotor } from '@/components/SelloMotor'
 import { construirPlanPROA } from '@/lib/expediente/proa'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -6038,7 +6038,30 @@ export default function ConsultaActivaPage() {
           desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
           viasAsumidas,
           avisoDeVia: avisoDeViaAsumida(viasAsumidas),
-          interacciones: detectarInteracciones(medicamentos),
+          /**
+           * ── REG-410: LA BARRA MIRABA LA RECETA, NO AL PACIENTE ───────────
+           *
+           * REG-188 llevó el cuadro completo al copiloto, a la evidencia, a la
+           * vigencia renal y a la reconciliación — y NO aquí. Así que su propio
+           * ejemplo («warfarina de marzo + ketorolaco de hoy») seguía sin
+           * disparar justo en la superficie donde el médico mira antes de
+           * firmar.
+           */
+          interacciones: interaccionesDelCuadro(medsDelCuadro),
+          /**
+           * Y de qué tamaño era el expediente que se miró. `truncada` lo tenía
+           * la misma función que carga las notas; llegaba a las proyecciones
+           * (REG-405) y al cartel de la pantalla, y se caía antes de la barra.
+           */
+          historialRecortado: historialTruncado,
+          /**
+           * `farmacos` y no el nombre de siempre, a propósito:
+           * `el-paciente-completo-llega-al-motor` cuenta cuántos MOTORES reciben
+           * el cuadro entero buscando ese nombre pegado a `medsDelCuadro`, y un
+           * simple `.length` le sumaría un motor que no existe. El guardián
+           * cuenta bien; era el nombre el que mentía.
+           */
+          cuantoSeComprobo: { farmacos: medsDelCuadro.length, problemas: dxDelCuadro.length },
           controlados: detectarControlados(medicamentos),
           /**
            * ── LA SOBREDOSIS SE VE ANTES DE FIRMAR (REG-190) ─────────────────

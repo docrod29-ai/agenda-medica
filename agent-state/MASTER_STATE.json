@@ -19,26 +19,19 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M  .claude/rules/testing-gates.md",
-    "A  .github/workflows/ausculta-autonomous-loop.yml",
-    "M  .github/workflows/deploy-production.yml",
-    "M  CLAUDE.md",
-    "M  docs/audit/lint-techo.json",
+    "MM agent-state/MASTER_STATE.json",
     "MM docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    "A  docs/maintenance/CARRILES-Y-BUCLES.md",
-    "A  docs/maintenance/PRS-SIN-ABSORBER-2026-08-30.md",
-    "M  docs/maintenance/sw-changelog.md",
+    "MM docs/data-room/INDICE.md",
+    "MM docs/design/SCREEN_INVENTORY.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  e2e/seguridad.spec.ts",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    "D  src/__tests__/el-riel-no-arrastra-la-pagina.test.ts",
-    "A  src/__tests__/recetas-tres-pasos-y-la-app-coloca-sola.test.ts",
-    "A  src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts",
-    "M  src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",
-    "M  src/app/(dashboard)/configuracion/page.tsx"
+    "A  src/__tests__/la-barra-mira-al-paciente-no-a-la-receta.test.ts",
+    "M  src/__tests__/una-barra-y-no-ocho-recuadros.test.ts",
+    "M  src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    "M  src/lib/calidad/familias-de-defecto.ts",
+    "M  src/lib/clinical/invariantes-clinicos.json",
+    "M  src/lib/expediente/avisos-consulta.ts",
+    "M  src/lib/expediente/farmacovigilancia.ts",
+    "M  src/lib/programa/requisitos.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -74,10 +67,10 @@
   ],
   "ramaActual": "absorber-398",
   "derivado": {
-    "regsEnElLedger": 260,
+    "regsEnElLedger": 261,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 833,
-    "casosDePrueba": 10380,
+    "archivosDePrueba": 834,
+    "casosDePrueba": 10397,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -299,6 +299,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * expediente entero.
      */
     /**
+     * 410 es esta familia sobre una REPARACIÓN ANTERIOR: REG-188 llevó el cuadro
+     * completo a cuatro consumidores y no al quinto —la barra de avisos—, que
+     * era justo el que enseñaba el aviso. Su propio ejemplo, warfarina de marzo
+     * más ketorolaco de hoy, seguía sin disparar donde el médico mira antes de
+     * firmar. Y no fallaba: la barra salía en verde.
+     */
+    /**
      * 407 es esta familia sobre una DISTINCIÓN, no sobre un dato. REG-372 dejó
      * el modelo completo —`tipo` y `tipoOrigen`, con «medico» documentado como
      * «lo único que autoriza a decir confirmado»— y ninguna pantalla dejaba
@@ -307,7 +314,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * enseñaba descripción, código y borrar.
      */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 501],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501],
   },
   {
     clave: 'se_contradice',

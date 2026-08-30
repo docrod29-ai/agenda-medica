@@ -14883,3 +14883,94 @@ lo que se ve en el vídeo del dueño.
 - **No toca al IntersectionObserver ni a su `rootMargin`.** Qué sección se
   considera activa no cambió: si el resaltado se adelanta o se atrasa, ése es
   otro defecto y no está arreglado aquí.
+
+## REG-410 — la warfarina de marzo, otra vez, y en la pantalla donde se firma
+
+**QUÉ SE BUSCABA.** `WS-10` — que el estado longitudinal del paciente llegue al
+punto donde se decide. Salió siguiendo `medsDelCuadro` por la pantalla de
+consulta, para otra cosa.
+
+### El defecto
+
+REG-188 se llama «los motores veían la receta de hoy, no al paciente», y su
+encabezado lo explica con un ejemplo concreto:
+
+> Paciente con warfarina de marzo al que hoy se le receta ketorolaco. **La regla
+> de sangrado existe y está probada, y no dispara**, porque la warfarina no está
+> en la nota de hoy.
+
+Aquella reparación creó `cuadro-completo` y lo llevó al copiloto, a la API de
+evidencia, a la vigencia renal y a la reconciliación de medicación.
+
+**A la barra de avisos no.** Siguió llamando `detectarInteracciones(medicamentos)`
+con la lista de HOY. O sea que el escenario exacto que REG-188 nombra seguía sin
+disparar en la única superficie que el médico mira antes de firmar — la misma
+barra cuyo comentario dice «lo que puede matar hoy no se pliega nunca».
+
+Comprobado antes de tocar nada: `detectarInteracciones([{nombre:'Ketorolaco'}])`
+devuelve `[]`.
+
+### Cómo se descubrió, y por qué no lo cazaba nada
+
+`medsDelCuadro` aparecía en cuatro sitios de la pantalla y en el quinto —la
+llamada a `construirAvisos`— la lista era `medicamentos`. La prueba de REG-188 no
+lo veía porque **no menciona la barra ni las interacciones**: comprueba que el
+cuadro se arma y que dos motores lo reciben, no que llegue a los demás.
+
+Es «escrito y sin conectar» sobre una reparación anterior: el arreglo alcanzó a
+cuatro consumidores y no al quinto, que era el que enseñaba el aviso. Y no
+fallaba nada — la barra salía en verde, que es lo caro.
+
+### Por qué no bastaba con pasarle la lista larga
+
+Porque entonces una interacción entre dos fármacos que el paciente lleva años
+tomando saldría en CADA consulta, para siempre, mezclada con la que se acaba de
+crear. `farmacovigilancia.ts` ya tiene escrito lo que cuesta eso: *«las alertas
+falsas son caras: enseñan al médico a ignorar el panel, y entonces la verdadera
+tampoco se lee»*. Una alerta verdadera repetida hasta el cansancio hace el mismo
+daño.
+
+`interaccionesDelCuadro` separa lo que **introduce esta consulta** de lo que ya
+venía, corriendo el mismo detector sobre la medicación previa sola. Sin motor
+nuevo y sin heurística: si la interacción ya salía sin lo de hoy, no la crea hoy.
+
+**Ordenar no es filtrar**: ninguna desaparece, y `introducidaHoy: undefined`
+cuenta como de hoy — degradar por omisión convertiría a un llamador antiguo en un
+aviso silenciado.
+
+### La segunda mitad: sobre cuánto expediente se comprobó
+
+`listarNotasCompat` devuelve `truncada`, y REG-405 lo llevó hasta las
+proyecciones y hasta el cartel de la pantalla. A la barra tampoco llegaba.
+
+Y ahí el silencio no es neutro: una barra que no dice nada de interacciones se
+lee como «no hay interacciones», cuando puede querer decir «no miré el expediente
+entero». Ahora lo dice, una vez, y sólo si había algo que comprobar.
+
+Nivel `contexto` y no `revisa`, porque en un paciente con historial largo sale
+siempre y un aviso que sale siempre en nivel `revisa` enseña a saltarse el nivel
+`revisa` — que es donde viven la alergia y la interacción. Pero **no se pliega**:
+un aviso escondido que dice «esto se comprobó a medias» es un aviso que nadie lee
+justo cuando importa.
+
+Y no afirma un hallazgo que no tiene: dice sobre qué se miró, no «puede haber
+interacciones ocultas» ni «revise el expediente completo».
+
+### Un guardián que contaba bien y un nombre que mentía
+
+`el-paciente-completo-llega-al-motor` cuenta cuántos MOTORES reciben el cuadro
+entero buscando el nombre del campo pegado a `medsDelCuadro`. El campo nuevo
+llevaba un `.length` con ese mismo nombre y le sumaba un motor inexistente. Se
+renombró el campo, no el guardián: contaba bien.
+
+### Qué NO cubre
+
+- No cambia ninguna compuerta: `interaccion` sigue siendo `revisa`.
+- No toca alergias, controlados ni dosis peligrosas, que siguen mirando la receta
+  de hoy. Para alergias y dosis eso es correcto —se juzga lo que se prescribe—;
+  para controlados es discutible, y queda dicho en vez de cambiarse de paso.
+- `introducidaHoy` no mide gravedad: una interacción vieja puede matar igual. Lo
+  que cambia es cuánto tiene que gritar, no si se dice.
+- No prueba el render.
+
+**Prueba.** `src/__tests__/la-barra-mira-al-paciente-no-a-la-receta.test.ts` (17 casos).
