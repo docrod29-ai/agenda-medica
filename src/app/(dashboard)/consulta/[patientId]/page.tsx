@@ -171,6 +171,7 @@ import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordene
 import { estadoDeProblemas, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
+  listaConAlergeno,
   type NotaConAlergias,
 } from '@/lib/expediente/alergias-longitudinales'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
@@ -4828,7 +4829,10 @@ export default function ConsultaActivaPage() {
                         onClick={() => {
                           if (!clinicId || !patient) return
                           const antes = patient.alergias ?? ''
-                          const despues = antes.trim() ? `${antes.trim()}, ${a.alergeno}` : a.alergeno
+                          /* Nunca dos veces el mismo término, y nada que
+                             escribir si ya estaba: ver `listaConAlergeno`. */
+                          const despues = listaConAlergeno(antes, a.alergeno)
+                          if (despues === antes.trim()) return
                           setPatient(prev => prev ? { ...prev, alergias: despues } : prev)
                           updatePatient(clinicId, patientId, { alergias: despues })
                             .catch(() => toast('No se guardó la alergia. Revisa tu conexión.', 'error'))

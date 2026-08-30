@@ -15060,3 +15060,82 @@ propiedad.
 - No prueba el render.
 
 **Prueba.** `src/__tests__/un-pendiente-perdido-no-muere-con-el-aviso.test.ts` (23 casos).
+
+## REG-412 — «Negadas» como alérgeno, y un botón que la escribía otra vez cada vez
+
+**CÓMO SE DESCUBRIÓ.** El dueño, usando el producto (captura del 30-ago-2026).
+No lo cazó ninguna prueba: la proyección de alergias longitudinales se probó con
+alérgenos de verdad —«Penicilina»—, que es lo que uno escribe cuando escribe el
+caso feliz.
+
+### El defecto, tal como se vio en pantalla
+
+```
+Alergias: Negadas, Negadas, Negadas, Nega…
+
+⚠ El expediente registra alergia a Negadas — hoy el campo la NIEGA, y la lista
+  de hoy no la tiene. La alerta al prescribir NO la está mirando.
+  Negadas · moderada · nota firmada del 2026-05-27 · hoy el campo la niega
+  [ Añadir a la lista ]
+```
+
+Cada pulsación del botón añadía otra «Negadas» al campo de alergias del
+paciente, y el aviso volvía a ofrecerlo. Un bucle sin fondo, escribiendo basura
+en el dato más letal de la aplicación.
+
+### La causa raíz, que son dos
+
+**1. Lo que se filtra al escribir no se filtraba al leer.** `estadoDeAlergias`
+(REG-410) leía `nota.alergias` **crudo**. El sello de hoy lo escribe
+`alergiasDe(patient)`, que sí sabe que «Negadas» es una negación y no un
+alérgeno — pero el sello es histórico e **inmutable**, y las notas anteriores a
+las correcciones de negación (la de «alergias negadas», 4-ago-2026, y las de
+`SEPARADORES`) llevan dentro `{ alergeno: 'Negadas' }`.
+
+Arreglar la escritura no arregla lo ya escrito. **Una copia inmutable guarda
+también los defectos del día que se selló**, y una proyección que recorre el
+expediente entero los vuelve a sacar a la luz — con severidad, con fecha de nota
+firmada y con un botón, o sea con toda la apariencia de un hallazgo.
+
+**2. Dos criterios sobre el mismo campo, y el bucle entre ellos.** El botón
+concatenaba en el `onClick` (`` `${antes}, ${alergeno}` ``), mientras quien
+decidía si volver a ofrecerlo era `alergiasDe`. Como `alergiasDe` filtra
+«Negadas», la lista de hoy nunca llegaba a «contener» el término, `enLaListaDeHoy`
+seguía en falso y el aviso no se apagaba nunca. Es el defecto que ADR-001
+describe —dos lecturas del mismo campo— con un botón encima.
+
+### El arreglo
+
+`selloEsNegacion` en `alergias-longitudinales.ts` descarta al leer los sellos que
+son la negación entera, reutilizando `esAlergiaNegada` —la única definición de
+qué es una negación en este repositorio— en vez de inventar un criterio nuevo
+por módulo.
+
+`listaConAlergeno` saca la concatenación del `onClick` a una función pura que no
+puede repetir un término, comparando por término normalizado y no por subcadena
+(«sulfas» no está dentro de «sulfasalazina» a estos efectos). Devuelve el texto
+igual cuando no hay nada que añadir, y el llamador entonces no escribe: una
+escritura que no cambia nada ensucia la bitácora y hace creer que pasó algo.
+
+Descartar un fragmento negado **no toca la asimetría** de REG-410 —afirmar suma,
+el silencio no resta, la negación de hoy pone en conflicto—: una negación nunca
+fue una alergia afirmada. Lo que se quita es ruido que se pintaba en rojo al
+lado de las alergias de verdad, que es justo lo que hace que un aviso rojo deje
+de leerse.
+
+### Qué NO cubre
+
+- No limpia las notas ya firmadas. Son inmutables y deben serlo; lo que cambia
+  es cómo se leen.
+- No limpia el campo de un paciente que ya quedó con «Negadas, Negadas» escrito.
+  Eso es un dato del expediente y lo edita el médico: el producto no reescribe
+  el campo de alergias por su cuenta.
+- No amplía el vocabulario de negaciones. Un término negado que `esAlergiaNegada`
+  no conozca sigue sin conocerse aquí.
+- No toca la compuerta que bloquea Firmar, que sigue leyendo `patient` y debe
+  seguir.
+
+**Prueba.** `src/__tests__/una-negacion-sellada-no-es-un-alergeno.test.ts`
+(8 casos declarados, 18 con las expansiones de `it.each`), probada al revés por
+sus dos mitades: quitando el filtro caen 14
+casos, quitando el dedup caen 2.

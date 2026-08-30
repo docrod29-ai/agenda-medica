@@ -418,7 +418,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que distinguía «lo vi» de «localicé a alguien».
      */
 
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403],
+    /**
+     * 412 es esta familia con un BOTÓN dentro del hueco. La proyección
+     * longitudinal leía los sellos de las notas crudos; `alergiasDe` leía el
+     * campo de hoy filtrando negaciones. Ninguna de las dos lecturas está mal
+     * por su cuenta —la primera no debe reescribir lo que una nota firmada
+     * selló, la segunda no debe tomar «Negadas» por un alérgeno—, y en el hueco
+     * cabía un bucle: el aviso ofrecía añadir «Negadas» a la lista, el botón la
+     * concatenaba, y como la otra lectura seguía sin verla, el aviso la volvía a
+     * ofrecer. El campo de alergias de un paciente acabó diciendo «Negadas,
+     * Negadas, Negadas».
+     */
+
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412],
   },
   {
     clave: 'habla_real',
