@@ -2032,3 +2032,52 @@ espera un hueco. Es la misma disciplina que con `CobrarModal` en la unidad 38.
 navegador**. No cubre los que salen del servidor —el cron de recordatorios, el
 webhook— ni el correo, ni la impresión de una receta. Este carril no los ha
 mirado y **no los declara buenos**.
+
+---
+
+## Unidad 42 — dos cosas medidas para NO hacerlas
+
+Las dos veces la medición dijo que no había trabajo que hacer. Se anotan porque
+un carril que sólo escribe cuando cambia algo acaba pareciendo que nunca se
+equivoca al elegir qué tocar.
+
+### 1. No hay esqueletos de carga — y no hacían falta
+
+Llevo varias unidades declarando «sin esqueletos en ninguna pantalla» como si
+fuera deuda. El §12 los pide «donde convenga» y desaconseja los giradores a
+pantalla completa, así que la hipótesis razonable era: **el girador centrado
+provoca un salto de maqueta cuando llega el contenido**.
+
+**Medido con 1,5 s de latencia emulada, muestreando cada 400 ms:**
+
+| Pantalla | Posición del primer texto, cargando → cargado |
+|---|---|
+| `/citas` | 56 px → **56 px** |
+| `/finanzas` | 26 px → **26 px** |
+| `/lista-espera` | 24 px → **24 px** |
+
+**Ninguna se mueve.** El alto del documento crece (900 → 972, 900 → 2042) porque
+aparece contenido por debajo del pliegue, que es lo que tiene que pasar.
+
+Sin salto, un esqueleto sería **decoración**: cambiaría un texto honesto
+(«Cargando citas…», «Calculando…») por una animación que no resuelve nada. Es
+exactamente lo que el §27 llama pulido falso. **No se añaden.**
+
+Queda como preferencia declarada, no como defecto: el producto informa con
+texto, y eso es honesto aunque no sea lo que está de moda.
+
+### 2. El §26 estaba bloqueado de verdad, y ahora lo sé
+
+Llevo todo el carril escribiendo que «este entorno no tiene acceso al producto
+de referencia» y **nunca lo había comprobado**. Es exactamente la clase de
+afirmación cómoda que este carril persigue en el código ajeno.
+
+**Comprobado:** `curl` a hosts externos devuelve `http=000`, y el estado del
+proxy lo explica — `connect_rejected: gateway answered 403 to CONNECT (policy
+denial)`, incluido `www.google.com`. La salida a la web general está denegada
+por política del entorno.
+
+Así que la evaluación estructurada contra el referente es **BLOCKED_EXTERNAL con
+evidencia**, no una excusa. Y sigue en pie la consecuencia: **ninguna dimensión
+se declara PARITY ni ABOVE**, porque declararlo sin haber visto el referente es
+justo lo que el §26 prohíbe.
