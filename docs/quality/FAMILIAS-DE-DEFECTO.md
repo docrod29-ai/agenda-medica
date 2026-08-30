@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 79 de 278, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 79 de 279, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
@@ -128,9 +128,24 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 44 de 278.**
+**«El sistema se contradice a sí mismo» — 45 de 279.**
 
-Sumó REG-424 (30-ago-2026), y es esta familia en su forma más barata de crear y
+Sumó REG-428 (30-ago-2026), que es REG-424 otra vez cuatro unidades después: **una
+garantía escrita en la prosa y no en el código**. La cabecera del cajón de
+pendientes decía que lo guardado «se borra al cerrar sesión como el resto de PHI
+local», y la purga borra por prefijo —`nx.consulta.bkp.`, `nx.uci.`— mientras el
+cajón se llama `nexusmed.pendientes-no-abiertos`.
+
+Hasta cincuenta pendientes con nombre de paciente dentro se quedaban en el disco
+de un equipo compartido, indefinidamente, mientras el módulo aseguraba lo
+contrario.
+
+Que la misma forma aparezca dos veces en cuatro unidades dice algo sobre cómo se
+lee este árbol: **cuanto mejor explicada está una garantía, menos probable es que
+alguien vaya a comprobar si el código la cumple.** Las dos veces la encontró
+alguien que fue a verificar una afirmación del censo antes de construir encima.
+
+Antes REG-424 (30-ago-2026), y es esta familia en su forma más barata de crear y
 más cara de encontrar: **un tope declarado en prosa y no en código**.
 `registro-durable.ts` llevaba desde E0-09 diciendo que los arrays del episodio
 —`administraciones` entre ellos— «están topados por el límite de 1 MB por
@@ -248,7 +263,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 38 de 278**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 38 de 279**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

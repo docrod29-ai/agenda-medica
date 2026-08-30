@@ -20,19 +20,13 @@
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts",
-    " M src/__tests__/un-programa-de-tres-no-es-el-producto.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/api/expediente/evidencia/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/evidencia/aplicabilidad.ts",
-    " M src/lib/expediente/copiloto.ts",
-    " M src/lib/expediente/funcion-renal.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/el-motor-de-aplicabilidad-leia-mas-de-lo-que-le-llegaba.test.ts",
-    "?? src/lib/expediente/lo-que-el-expediente-dice-del-embarazo.ts"
+    " M src/lib/salir-seguro.ts",
+    " M src/lib/tareas-clinicas/abrir.ts",
+    " M src/lib/tareas-clinicas/no-se-abrieron.ts",
+    "?? src/__tests__/el-cajon-de-pendientes-no-se-borraba-al-cerrar-sesion.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -68,10 +62,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 278,
+    "regsEnElLedger": 279,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 850,
-    "casosDePrueba": 10638,
+    "archivosDePrueba": 851,
+    "casosDePrueba": 10648,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

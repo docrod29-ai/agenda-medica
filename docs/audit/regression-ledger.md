@@ -16441,3 +16441,91 @@ añadieron dos frases que de verdad no nombran ninguna dimensión.
   pantalla lo construya y que la ruta lo acepte.
 
 **Prueba.** `src/__tests__/el-motor-de-aplicabilidad-leia-mas-de-lo-que-le-llegaba.test.ts` (17 casos).
+
+---
+
+## REG-428 — la cabecera decía que se borraba al cerrar sesión, y no se borraba
+
+**QUÉ SE PEDÍA.** `WS-11.sobrevive-a-la-navegacion`, una de las cinco unidades
+que el dueño nombró a mano y la única que se había saltado. Su censo decía «el
+cierre de sesión lo limpia (lleva PHI)». Se fue a comprobar eso antes de
+construir nada.
+
+### No lo limpiaba
+
+`no-se-abrieron.ts` guarda los pendientes clínicos que no se pudieron crear
+(REG-411). Su cabecera aseguraba:
+
+> «se borra al cerrar sesión como el resto de PHI local»
+
+`limpiarBorradoresLocales` purga por prefijo:
+
+```ts
+PREFIJOS_PHI = ['nx.consulta.bkp.', 'nx.uci.']
+```
+
+y el cajón se llama `nexusmed.pendientes-no-abiertos`. **No casa con ninguno.**
+
+### Lo que eso significa
+
+Cada entrada es un `TareaClinica`: lleva `patientId`, **`patientNombre`**, el
+título —«Revisar resultado de…»— y el detalle. Hasta cincuenta, en el
+`localStorage` de un equipo de consultorio, que se comparte, **sobreviviendo al
+cierre de sesión indefinidamente**.
+
+La regla de datos de esta casa manda limpiar el disco al cerrar sesión
+precisamente porque el equipo es compartido. Aquí no se limpiaba, y el comentario
+aseguraba que sí.
+
+Es la segunda vez en esta tanda que una garantía vive en la prosa y no en el
+código; REG-424 fue la otra, con el tope del documento del episodio. Un
+comentario que describe una limpieza que no ocurre es peor que no tenerlo: da por
+revisado lo que no lo está.
+
+### Por qué se drena y no se borra
+
+Añadir la clave a la lista de purga habría cerrado la fuga **y perdido los
+pendientes en silencio**, que es exactamente lo que REG-411 existe para impedir.
+
+Se hace lo que este mismo cierre de sesión ya hace con la cola de auditoría: **se
+manda mientras el token todavía sirve**. Lo que entra desaparece del disco porque
+ya vive en el servidor; lo que no entra se queda, igual que el borrador, porque
+borrarlo «por seguridad» convertiría un problema de red en un pendiente clínico
+perdido.
+
+Y no contradice a REG-390 —«una operación no puede aparecer como completada si
+sólo quedó encolada»—: **aquí nada se marca completado**. O la tarea queda escrita
+en Firestore, o sigue en el cajón.
+
+Corre **antes del `signOut`**, por el mismo motivo que `drenarCola`: después,
+`crearTareas` no tendría con qué autenticar y el cajón no se vaciaría nunca. Y va
+en `try/catch`: la sesión se cierra igual, que eso sí es seguridad.
+
+### Un defecto de mi propia implementación, encontrado por el caso
+
+La primera versión emparejaba lo que no entró **por identidad de referencia**.
+Funciona hoy —`crearTareas` devuelve los mismos objetos que recibió— y ata este
+drenaje a un detalle interno de otro módulo: una tarea que saliera de
+`JSON.parse` y volviera por otro camino dejaría de reconocerse, y el cajón se
+vaciaría **dando por escritas tareas que no lo están**. Justo la mentira que este
+módulo existe para no repetir. Se empareja por contenido.
+
+### Aislamiento entre consultorios
+
+El drenaje agrupa por `clinicId` antes de llamar. `crearTareas` escribe bajo UN
+consultorio; mandar juntos los de dos escribiría los de uno en el otro — una fuga
+entre inquilinos por la puerta de atrás. El golden lo fija.
+
+### Qué NO cubre
+
+- **Sigue sin cruzar de dispositivo.** Un pendiente perdido en el consultorio no
+  aparece en el teléfono, y eso no se arregla aquí: exige escribir en Firestore
+  justo cuando se acaba de demostrar que no se puede escribir.
+- **Puede quedar PHI local**: la que no se pudo salvar. La diferencia es que ahora
+  está dicho, y sólo queda lo que el servidor rechazó — no lo que nadie recogió.
+- **No avisa de lo que quedó sin drenar.** El cierre de sesión no es sitio para un
+  cartel más; `/pendientes` sigue siendo quien lo ofrece.
+- **No se probó en navegador**: se comprueba el drenaje y su orden respecto al
+  `signOut`, no el ciclo real de una pestaña cerrándose.
+
+**Prueba.** `src/__tests__/el-cajon-de-pendientes-no-se-borraba-al-cerrar-sesion.test.ts` (10 casos).
