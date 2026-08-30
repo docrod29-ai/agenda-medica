@@ -540,8 +540,11 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'TR-APRENDIZAJE.no-es-politica', ws: 'TR-APRENDIZAJE', titulo: 'Lo aprendido del médico no se vuelve política clínica',
-    estado: 'PARTIAL',
-    queFalta: 'La regla está escrita —sólo sesga, una palabra por una palabra, nunca cifra ni par prohibido ni nombre del paciente— y hay pruebas. Falta el caso que demuestre que una preferencia NO puede bajar una defensa de seguridad.',
+    estado: 'PROVEN',
+    evidencia: 'REG-386. Grafo de importaciones TRANSITIVO: ningún módulo de seguridad ni clínico alcanza el vocabulario aprendido, ni dando rodeos. Y ni el corrector ni el guardián lo leen: sólo sesga.',
+    comando: 'npx vitest run src/__tests__/lo-aprendido-no-baja-una-defensa.test.ts',
+    resultado: '7 casos verdes, con el buscador de caminos probado al revés sobre un camino que sí existe.',
+    pruebas: ['src/__tests__/lo-aprendido-no-baja-una-defensa.test.ts'],
   }),
   R({
     id: 'TR-AUTOMATIZACION.autoridad', ws: 'TR-AUTOMATIZACION', titulo: 'La automatización no crea estado clínico autoritativo',

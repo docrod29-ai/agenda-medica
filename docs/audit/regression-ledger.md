@@ -12789,3 +12789,55 @@ limpiarlos todo son falsos positivos.
   texto es otro problema y vive en WS-12.
 - **No sustituye a las reglas.** Las reglas protegen al cliente; esto protege el
   camino que las reglas no ven.
+
+---
+
+## REG-386 — la frontera entre preferencia y política clínica no la sostenía nada
+
+**QUÉ VIGILA.** El producto aprende del médico: pares de una palabra por una
+palabra, vistos dos veces, que no tocan cifra, unidad ni par prohibido, y nunca
+partes del nombre del paciente.
+
+`aprendizaje-del-medico` cubre **qué se puede aprender**; `sesgo-llega-al-motor-bueno`
+cubre **que llegue al motor**. Lo que no cubría nadie es la frontera del otro lado:
+**que una preferencia no pueda bajar una defensa**.
+
+**POR QUÉ IMPORTA MÁS DE LO QUE PARECE.** La regla de voz de esta casa lo dice en
+una línea: *«sólo sesga: saber qué palabra dice el médico no es permiso para
+cambiarla»*. El día que un módulo de dosis, de alergias o de interacciones leyera
+el vocabulario aprendido, la costumbre de un médico se habría convertido en
+criterio clínico — **y sin que nadie lo decidiera**, porque un `import` no se lee
+como una decisión de política.
+
+**CÓMO SE COMPRUEBA: EL GRAFO TRANSITIVO, NO UN `grep`.** Un `grep` sólo vería el
+import de primer nivel. La forma real en que esto pasaría es a través de dos o
+tres saltos, que es justo lo que nadie ve al revisar un diff. El guardián recorre
+el grafo desde **cada** módulo de `src/lib/seguridad` y `src/lib/clinical` —la
+lista se deriva del árbol, así que un motor nuevo queda vigilado sin que nadie se
+acuerde— y comprueba que ninguno alcanza `asr/aprendizaje*`.
+
+**Y NADIE PUEDE SALTARSE EL GRAFO YENDO DIRECTO A FIRESTORE.** El grafo no vería a
+un motor que escribiera la ruta de la colección a mano. Esa ruta tiene **una sola
+definición** —el propio módulo lo dice: «dos rutas distintas serían dos
+vocabularios»— y hay un caso que la deriva y comprueba que ningún motor la nombre.
+
+**EL BUSCADOR DE CAMINOS, PROBADO AL REVÉS.** Un guardián de grafos falla en
+silencio: una ruta mal resuelta hace que `alcanza()` devuelva `null` siempre y
+todo pase por la razón equivocada. Se le pide un camino **que sabemos que existe**
+—la pantalla de consulta sí llega al aprendizaje— y tiene que encontrarlo. Y otro
+caso comprueba que los archivos destino existen donde el guardián cree.
+
+**LA OTRA MITAD, PARA QUE «NO CORRIGE» NO SEA CIERTO Y VACÍO.** Se comprueba que
+lo aprendido **sigue viajando** como vocabulario de sesgo en el camino de la
+grabación. Sin eso, «el corrector no lo lee» pasaría igual de bien si el
+aprendizaje no llegara a ninguna parte.
+
+**LA PRUEBA.** `src/__tests__/lo-aprendido-no-baja-una-defensa.test.ts` (7 casos).
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba que el sesgo funcione**: eso es `sesgo-llega-al-motor-bueno`.
+- **No cubre lo que el médico escribe a mano en la nota.** Editar el texto es su
+  acto y su autoridad; esto vigila el vocabulario que el sistema deriva solo.
+- **Es estático.** Una lectura armada en tiempo de ejecución se le escapa al
+  grafo — de ahí el caso que vigila la ruta de la colección.
