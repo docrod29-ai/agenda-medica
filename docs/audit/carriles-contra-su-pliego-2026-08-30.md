@@ -6,7 +6,9 @@
 > `AUSCULTA-PRODUCT-EXCELLENCE-LOOP.md`). Por primera vez se puede comprobar
 > si cada carril está haciendo lo que su pliego pide, en vez de suponerlo.
 >
-> Esto **no** es una auditoría del código. Es una comprobación de cobertura:
+> Esto **no** es una auditoría del código. **Corregido el 30-ago a las 17:00**:
+> la primera versión acusó al carril A de perder requisitos que no había perdido.
+> La corrección está en su sitio, sin borrar el error. Es una comprobación de cobertura:
 > qué secciones del pliego tienen trabajo y cuáles no lo tienen todavía.
 
 ---
@@ -37,23 +39,39 @@ pliego**.
 | §2 WS-02 Escala | REG-408 — «100 000 usuarios no nombraba ningún experimento» |
 | §22 Anti-repetición | los tres REG que chocaban con `main` se renumeraron a 501-503 en vez de duplicarse |
 
-**Huecos medidos contra §1 (custodia del programa).** §1 dice: *«Ningún
-requisito puede desaparecer simplemente porque cambió el documento»*. Contando
-menciones en `docs/product/AUSCULTA-MASTER-BOARD.md`:
+**Lo que dije que faltaba, y era FALSO — corregido el mismo día.**
 
-- **`Automation` — 0 menciones.** El §16 del pliego existe y el tablero no lo
-  custodia con estado.
-- **`Production Readiness` — 0 menciones en el tablero.** Existe como documento
-  aparte (`AUSCULTA-CONSULTORIO-FINAL-READINESS.md`), que no es lo mismo que
-  llevarlo en la lista de requisitos con estado inequívoco.
-- **Las metas intermedias de escala no están.** §1 exige custodiar
-  15k / 20k / 30k / 50k / 100k usuarios y 10k / 20k / 30k / 50k pacientes por
-  médico. En el tablero aparecen `100 k usuarios` y `50 000`, **una vez cada
-  una**; 15k, 20k y 30k no aparecen.
+La primera versión de este documento afirmó que el tablero había perdido
+`Automation`, `Production Readiness` y las metas intermedias de escala
+(15k / 20k / 30k). **No era cierto, y el error era de método**: conté menciones
+en el markdown y llamé «desaparecido» a lo que estaba en otro sitio.
 
-Los demás dominios del §1 sí están, en español: verdad clínica (3), voz (4),
-aprendizaje (1), observabilidad (1), respaldo/restauración (19),
-especialidad (2).
+El programa las tiene todas, en `src/lib/programa/requisitos.ts`, con estado y
+evidencia, y con `el-programa-no-pierde-requisitos.test.ts` vigilando que los
+21 dominios y los once escalones no se caigan. Ese censo se escribió
+precisamente porque seis dominios enteros SÍ se habían perdido antes —voz,
+aprendizaje, autoridad de la automatización, WhatsApp, razonamiento,
+accesibilidad—, y el carril A ya había cerrado ese agujero.
+
+Se deja escrito en vez de borrarse porque una acusación falsa que desaparece
+sin dejar rastro se vuelve a hacer.
+
+**El hueco REAL, que sí existía.** Las metas vivían **sólo en TypeScript**. El
+tablero en prosa —el que lee una persona, y del que salen las notas de PR y el
+`FINAL-READINESS`— nombraba `100 k` y `50 000` una vez cada uno; 15k, 20k y 30k
+no aparecían en ninguna línea.
+
+El §1 no pide que los objetivos existan: pide **custodiarlos**. Un objetivo que
+sólo vive en un archivo de código está guardado, no custodiado — y es
+exactamente por eso que el dueño, leyendo el tablero, no reconocía el estado que
+se le reportaba.
+
+**Cerrado el 30-ago**: el tablero deriva ahora ese bloque del censo
+(`censo-en-prosa.ts` + `scripts/product/censo-al-tablero.mjs`), con
+`el-tablero-ensena-las-metas.test.ts` como guardián, probado al revés en los dos
+sentidos —tablero sin bloque y censo sin una meta—. Los demás dominios del §1 ya
+estaban en el tablero, en español: verdad clínica (3), voz (4), aprendizaje (1),
+observabilidad (1), respaldo/restauración (19), especialidad (2).
 
 ---
 
@@ -104,3 +122,57 @@ comprobar el anterior.
 - El conteo de menciones es un indicio, no una prueba. Un dominio puede estar
   custodiado con otras palabras. Por eso los términos se buscaron en español y
   en inglés antes de declarar un cero.
+
+---
+
+## Ficha para el ledger — REG sin número todavía
+
+> **Por qué sin número.** `docs/audit/regression-ledger.md`,
+> `docs/quality/FAMILIAS-DE-DEFECTO.md` y
+> `src/lib/calidad/familias-de-defecto.ts` los está editando el carril A hoy
+> mismo, y el guardián `de-que-se-enferma-este-sistema` obliga a tocar los tres
+> a la vez. Meter aquí un número sería chocar en el número **y** en el texto.
+> Es el mismo precedente que ya estableció el carril B en
+> `docs/audit/lane-product-excellence.md`: **el número se asigna al fusionar**.
+> Lo que no puede pasar es que se pierda.
+
+**Título** — El tablero que se lee omitía nueve de las once metas del §1.
+
+**Qué fallaba.** El §1 del pliego manda conservar 15k/20k/30k/50k/100k usuarios
+registrados y 10k/20k/30k/50k pacientes por médico. El censo
+(`src/lib/programa/requisitos.ts`) los tenía los once, con estado y evidencia.
+`AUSCULTA-MASTER-BOARD.md` —el tablero que lee una persona, y del que salen las
+notas de PR y el `FINAL-READINESS`— nombraba `100 k` y `50 000` una vez cada
+uno. 15k, 20k y 30k no aparecían en ninguna línea.
+
+**Cómo se descubrió.** Contando menciones en el tablero, el 30-ago, al medir los
+carriles contra los pliegos recién guardados en `docs/ai/`. La primera lectura
+fue peor que el defecto: concluyó que el programa había perdido los requisitos.
+No los había perdido — los tenía donde una persona no los ve.
+
+**Causa raíz.** Dos representaciones del mismo programa, una legible por máquina
+y otra por personas, **sin nada que las ate**, y la incompleta era la que se lee
+en voz alta. `depende_de_recordar`, el patrón de REG-241.
+
+**Qué se hizo.** Lo derivable se deriva. `bloqueDelCenso()` vive dentro del
+propio censo —no en un módulo nuevo, para no mover el techo de islas ni las
+listas de otros dos guardianes—; `scripts/product/censo-al-tablero.mjs` lo
+escribe en el tablero; `el-tablero-ensena-las-metas.test.ts` falla si el tablero
+se queda atrás. **El censo sigue siendo la única fuente de verdad.**
+
+**Efecto lateral, y es el bueno**: `requisitos.ts` era un huérfano aceptado —su
+único consumidor era el guardián que lo sella— y ha dejado de serlo. Sale de
+`HUERFANOS_ACEPTADOS` porque se conectó, no porque se le escribiera una excusa
+mejor.
+
+**Probado al revés, dos veces.** (1) Tablero sin el bloque, como estaba a las
+16:00: 4 casos en rojo. (2) Alguien borra `30_000` del censo: 2 casos en rojo.
+Restaurado, los 5 en verde.
+
+**Qué NO cubre.** No comprueba que un estado sea verdad — de eso responde el
+guardián del censo. No vigila la prosa escrita a mano fuera de las marcas. Y no
+demuestra que alguien lo lea: demuestra que ya no se puede decir que no estaba.
+
+**Compuertas** — `npx vitest run`: 11 593 pasan, 1 falla (`ops-timeout`, del
+entorno, sin tocar). `lint-trinquete`: 95, igual que el techo.
+`npx tsc --noEmit`: limpio. `npm run build`: compila.

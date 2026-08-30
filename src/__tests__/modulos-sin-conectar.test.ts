@@ -57,7 +57,13 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
    * cuál no. Lo lee su guardián, que es donde la política se puede hacer cumplir.
    */
   'src/lib/ops/lo-sincrono-y-lo-encolado.ts': 'ES la política de qué se encola y qué no: su consumidor es el guardián que la comprueba, y ése vive en el CI. Una pantalla que la pintara no la haría cumplir.',
-  'src/lib/programa/requisitos.ts': 'ES el censo del programa: su consumidor es el guardián que lo sella, y ése vive en el CI por definición. Una pantalla que lo pintara sería una pantalla que alguien deja de mirar.',
+  // `src/lib/programa/requisitos.ts` ESTUVO aquí, y dejó de estarlo el 30-ago-2026.
+  // Era huérfano de verdad: su único consumidor era el guardián que lo sella. Eso
+  // significaba que los 21 dominios y los once escalones de escala del §1 existían
+  // donde ninguna persona los ve, y el tablero que SÍ se lee nombraba dos de once.
+  // Ahora lo consume `scripts/product/censo-al-tablero.mjs`, que imprime el censo
+  // en el tablero. Se conectó; por eso sale de la lista en vez de quedarse con una
+  // razón mejor escrita.
   'src/lib/guardia/campos-conectados.ts': 'Guardián hermano de éste: vigila CAMPOS de contrato que nadie lee, no archivos. Vive en el CI por definición — una pantalla que lo muestre sería una pantalla que alguien apaga.',
   /**
    * Este guardián cazó, en cuanto se escribió, el módulo que documenta que
