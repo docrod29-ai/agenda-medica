@@ -3727,9 +3727,18 @@ pantalla. La primera medición, que es el punto de partida:
 | `/citas` · `/operaciones` · `/configuracion` · `/cumplimiento` | 1 | `/crm` | 2 |
 
 **COMPUERTAS.** `vitest` 10 831/10 832 · lint 95 · diseño sin deuda nueva ·
-`tsc` limpio · `build` compila · **CROSS_LANE_CONFLICT sigue en 5, sin deuda
-nueva** pese a tocar cinco archivos más. El rojo es `ops-timeout-y-punto-ciego`,
+`tsc` limpio · `build` compila. El rojo es `ops-timeout-y-punto-ciego`,
 ambiental.
+
+> **CORRECCIÓN (unidad 64).** Aquí escribí «CROSS_LANE_CONFLICT sigue en 5, sin
+> deuda nueva». **Era falso, y por un error de método mío**: corrí el guion de
+> conflictos ANTES de confirmar esta unidad, y ese guion compara `HEAD` — así que
+> midió el árbol de la unidad 62, sin los cambios que iba a evaluar. Medidos ya
+> confirmados, esta unidad **añade un cruce**:
+> `consulta/[patientId]/page.tsx` contra
+> `origin/claude/ausculta-master-completion-4clx9v`. Está declarado con su
+> naturaleza en la certificación. La lección para el guion: una compuerta que lee
+> `HEAD` se corre DESPUÉS de confirmar, no antes.
 
 **RESIDUAL_RISK.**
 
@@ -3744,3 +3753,123 @@ ambiental.
   siguientes.
 - `S.chip` y `S.del` **no se tocaron**: no salieron en la medición de esta
   pantalla, y no se toca lo que no se ha medido roto.
+
+---
+
+## Unidad 64 — dos citas del día cuyo botón no se podía pulsar
+
+**CÓMO SE LLEGÓ AQUÍ.** Bajando la estaticidad de `/guia` (23 controles mudos de
+23). Al medir `/dashboard` de paso, un botón con la clase `.btn-secondary`
+—que **sí** tiene `:hover` en la hoja— salió mudo. Eso no cuadraba, y no cuadraba
+por una razón buena.
+
+**LO QUE HABÍA DEBAJO.** `DIV.nx-push-optin`, el aviso de notificaciones:
+`position: fixed`, `z-index: 44`, 360×146 en la esquina inferior derecha. Tapaba
+**dos botones «Consulta»** —la acción primera de dos de las citas del día— y
+`elementFromPoint` sobre su centro devolvía el aviso. Un clic ahí lo recibía el
+aviso, no el botón.
+
+Y no era una fila que pasa por debajo mientras uno se desplaza: **el scroll de
+`<main>` se llevó hasta el final (189 de 189) y los dos seguían tapados.** Era el
+final de la lista, sin sitio al que moverla. En la pantalla de inicio del médico.
+
+RTC-32 había retirado de ese mismo sitio la regla que apartaba unos flotantes de
+otros, porque su causa había muerto. Tenía razón en lo suyo: aquello era el aviso
+contra otro widget. Esto es el aviso contra **el contenido**, que nadie había
+mirado. Misma familia que el toggle de tema sobre la barra del paciente a 390px.
+
+**EL ARREGLO.** Se reserva el hueco que ocupa el aviso al final del scroll, con
+la medida tomada de verdad (162px a 1440/1024, 187 a 768, 221 a 390) y holgura.
+Medido después: **0 tapados, y el clic en el último «Consulta» lo recibe el
+botón.**
+
+**Y LA MITAD MÓVIL DEL ARREGLO NO LLEGABA.** A 390px el relleno seguía siendo
+72px: `main` ya lleva ahí un `padding-bottom … !important` para apartarse de la
+barra inferior, y mi regla perdía contra él sin decir nada. Se vio midiendo el
+valor calculado en el navegador, no leyendo el diff. «El dato tiene que LLEGAR»,
+también cuando el dato es una regla de estilo.
+
+**`/guia`: 23 mudos → 0.** Las filas que despliegan adoptan el idioma de fila que
+ya usan `/operaciones` y el panel de herramientas —y la abierta se queda con la
+superficie puesta—; las píldoras de rol y las sugerencias del asistente acusan el
+puntero; el botón de enviar del chat toma el papel de acción fuerte. Las píldoras
+de rol ganan además `aria-pressed`, que no tenían: un lector de pantalla no sabía
+cuál filtro estaba puesto.
+
+**EL GUARDIÁN NUEVO, Y LAS TRES VECES QUE MINTIÓ ANTES DE SERVIR.**
+`npm run arnes:nada-tapa` recorre cada ruta a 1440 y 390, lleva el scroll a los
+extremos y pregunta quién hay encima del centro de cada control.
+
+1. **Acusó a cuatro barras SUPERIORES** (`.mobile-topbar`) de tapar controles
+   mirando sólo abajo del todo. Falso: una barra de arriba se libera **subiendo**.
+   La que atrapa es la de abajo, y sólo cuando ya no se puede bajar más. Ahora
+   mira los dos extremos y acusa a la capa que corresponde a cada uno.
+2. **Acusó a la barra inferior en `/finanzas`.** Tampoco: la lista de cobros es
+   una caja de 480px con scroll propio, y `getBoundingClientRect()` devuelve
+   dónde ESTARÍA una fila recortada aunque no se dibuje ahí. Ahora el rectángulo
+   se corta contra el de cada antepasado que recorta.
+3. **Y luego no cazaba el defecto que lo trajo.** Al quitar el arreglo para
+   probarlo al revés, dijo «ok». El aviso vive a `bottom: 16px` y mi tolerancia
+   para considerar una capa «anclada abajo» era de 12px: se quedaba fuera de las
+   dos categorías y lo ignoraba. Ahora son 64px, que cubren los desplazamientos
+   de este producto más el área segura del teléfono.
+
+Las tres las cazó probar al revés o mirar lo que decía. Un guion que informa cero
+sin poder informar otra cosa no es un aprobado.
+
+**Estado hoy: 479 controles mirados en los dos extremos, a dos anchos, 0
+tapados.**
+
+**OTRO GUARDIÁN DE V15 PARÓ EL CAMBIO, Y OTRA VEZ POR LA LETRA.**
+`v15-la-hoja-inferior-no-la-tapa-la-barra` exige que el pie de la hoja inferior
+use **la misma constante** que `main`, para que las dos reservas se muevan
+juntas. Su patrón buscaba `main\s*\{`, que casa con **cualquier selector
+terminado en `main {`** — incluido el mío, condicional y para otra cosa. Empezó a
+comparar contra 236 en vez de 72. Se ancló a la regla de `main` a secas; sigue
+cazando la deriva de verdad (probado subiendo 72 a 90).
+
+**Y AQUÍ SALIÓ QUE LA UNIDAD 63 SÍ AÑADIÓ DEUDA ENTRE CARRILES.** Al correr el
+guion de conflictos —esta vez **después** de confirmar— aparecieron 6, no 5. El
+nuevo es `consulta/[patientId]/page.tsx`, de la unidad 63. En aquella unidad lo
+corrí ANTES de confirmar y el guion compara `HEAD`: midió el árbol anterior y me
+dio un cero que no era. Queda corregido allí y declarado aquí.
+
+Es **un trozo de una línea**: este carril le pone `className="nx-acc-caja"` al
+botón «Agregar diagnóstico» y el otro le añade `tipoOrigen: 'medico'` al objeto
+del `onClick`, en la misma línea. **Las dos caben a la vez.** Se intentó evitarlo
+separando el `className` a otra línea y **salió peor** —reescribir la línea que el
+otro también cambia deja las regiones solapadas igual, y el comentario que puse
+para explicarlo cayó donde el otro carril inserta otro bloque: de un conflicto
+pasaron a dos—. Se revirtió el intento. Queda declarado con su resolución escrita
+en la certificación, que es lo que el encargo pide para los cruces.
+
+**Y EL TRINQUETE LLEVABA MIDIENDO 66 COMBINACIONES, NO 69.** Al correrlo aquí
+avisó: «portal del paciente: SIN MEDIR (falta `PORTAL_PACIENTE_SECRET`)». El
+guion acuña el token del portal con el mismo secreto que el servidor, y en el
+arnés de esta sesión ese secreto nunca se puso — así que `/mi/[token]` quedaba
+fuera en sus tres anchos. El guion lo decía cada vez, en una línea, y yo miraba
+el veredicto del final. Puesto el secreto en el arranque del servidor y del
+guion: **69 de 69, portal incluido, sin regresión.** Un aviso que nadie lee es un
+hueco de cobertura con buena conciencia.
+
+**COMPUERTAS.** `vitest` 10 831/10 832 · lint 95 · diseño sin deuda nueva · `tsc`
+limpio · `build` compila · trinquete de interfaz **69/69 sin regresión** ·
+`arnes:foco-visible` 45/45 · `arnes:nada-tapa` 0 de 479 · estaticidad **102 → 77
+mudos**. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- **Sólo se mira el centro del control.** Uno tapado a medias, con el centro
+  libre, no se cuenta: se puede pulsar, aunque se lea mal.
+- **Sólo lo que flota** (`fixed`/`sticky`). Un solape del flujo normal por un
+  margen negativo no entra.
+- **Sólo la pantalla al aterrizar**: diálogos, menús y avisos que aparecen tras
+  pulsar algo quedan sin mirar.
+- Las reservas del aviso son **constantes medidas**, no calculadas. Si el texto
+  del aviso creciera, el guion lo volvería a cazar — pero hasta que alguien lo
+  corra.
+- **Quedan 77 controles mudos**: `/finanzas` (19), `/dashboard` (14),
+  `/calendario` (11), `/expediente/pac-001` (11) son los siguientes.
+- **No se tocó `/finanzas`**: sus 19 mudos son de esta misma familia pero su
+  arquitectura de scroll (una caja de 480px dentro de `main`) merece mirarse
+  aparte, no de pasada.

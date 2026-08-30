@@ -47,7 +47,7 @@ Re-medido con `git merge-tree`, contra las **dos** ramas vivas del otro carril:
 | Comparación | Preexistentes con `main` | Con esta rama | **Añadidos por esta rama** |
 |---|---:|---:|---:|
 | `origin/product/ausculta-master-completion` | 8 | 9 | **1** |
-| `origin/claude/ausculta-master-completion-4clx9v` | 10 | 14 | **4** |
+| `origin/claude/ausculta-master-completion-4clx9v` | 10 | 15 | **5** |
 
 Los que añade este carril, con su unidad y por qué:
 
@@ -56,7 +56,28 @@ Los que añade este carril, con su unidad y por qué:
 | `cumplimiento/retencion/page.tsx` | unidad 45 | **Solape real de contenido**: los dos carriles editaron la misma pantalla |
 | `asistente/page.tsx` | unidades tempranas | Solape real de contenido |
 | `lib/auth-client.ts` | unidad 37 (techo al token) | Solape real de contenido |
-| `package.json` | unidades 53, 54, 56 (tres guiones de arnés) | **Mecánico**: líneas añadidas en el mismo bloque de `scripts` |
+| `package.json` | unidades 53, 54, 56, 62, 63, 64 (guiones de arnés) | **Mecánico**: líneas añadidas en el mismo bloque de `scripts` |
+| `consulta/[patientId]/page.tsx` | unidad 63 | **Mecánico, UNA línea**: ver abajo |
+
+**El de la consulta, con nombre y apellido.** Es **un solo trozo en conflicto, de
+una línea**: el botón «Agregar diagnóstico». Este carril le añade
+`className="nx-acc-caja"` para que acuse el puntero; el otro añade
+`tipoOrigen: 'medico'` dentro del objeto del `onClick`. **Las dos caben a la vez**
+y la resolución es quedarse con las dos:
+
+```jsx
+<button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo', tipoOrigen: 'medico' }])} className="nx-acc-caja" style={S.addBtn}>
+```
+
+Se intentó evitarlo separando el `className` a su propia línea, con el `style` en
+medio, para que `git` mezclara solo. **No sirvió y empeoró la cosa**: reescribir
+la línea que el otro carril también cambia deja las dos regiones solapadas igual,
+y el comentario que añadí para explicarlo cayó justo donde el otro carril inserta
+otro bloque — un conflicto de uno pasó a dos. Se revirtió el intento y se declara
+el conflicto tal cual.
+
+Se declara y **no se resuelve aquí**: resolverlo pediría traer el trabajo del
+otro carril a esta rama, que es justo lo que el encargo prohíbe.
 
 **No se resuelven aquí, y es a propósito.** Las dos ramas están en vuelo; traer
 la del otro carril a ésta para deshacer el conflicto sería meterse en su trabajo,

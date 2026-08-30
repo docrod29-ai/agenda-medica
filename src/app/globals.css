@@ -1041,6 +1041,40 @@ tbody tr:last-child { border-bottom: none; }
     margin: -10px -10px 0 0;
   }
 }
+
+/* ── MIENTRAS EL AVISO PREGUNTA, EL FINAL DE LA LISTA SE APARTA ────────────
+
+   MEDIDO en `/dashboard` a 1440: con el aviso de notificaciones puesto, DOS
+   botones «Consulta» —la acción primera de dos de las citas del día— quedaban
+   DEBAJO de la hoja fija, y `elementFromPoint` sobre su centro devolvía el
+   aviso, no el botón. Un clic ahí lo recibía el aviso.
+
+   Y no había forma de salir: el scroll de este producto vive en `<main>`, se
+   llevó hasta el final (189 de 189) y **los dos seguían tapados**. No era una
+   fila que pasa por debajo mientras se desplaza: era el final de la lista, sin
+   sitio al que moverla.
+
+   RTC-32 retiró de aquí la regla que apartaba unos flotantes de otros porque su
+   causa había muerto. Tenía razón en lo suyo y este caso es otro: no es el
+   aviso contra otro widget, es el aviso contra el CONTENIDO. La familia es la
+   misma que la del toggle de tema sobre la barra del paciente a 390px.
+
+   Se reserva el hueco que ocupa, medido de verdad y con holgura:
+
+     1440 · 1024 → 162px      768 → 187px      390 → 221px
+
+   Si el aviso creciera, el guion del arnés vuelve a contarlo. */
+html:has(.nx-push-optin) main { padding-bottom: 176px; }
+@media (max-width: 768px) {
+  /* El `!important` no es adorno: a este ancho `main` ya lleva
+     `padding-bottom: calc(72px + safe) !important` para apartarse de la barra
+     inferior, y sin repetirlo esta regla NO LLEGABA — medido: a 390px el
+     relleno seguía siendo 72px. «El dato tiene que LLEGAR», también cuando el
+     dato es una regla de estilo. */
+  html:has(.nx-push-optin) main {
+    padding-bottom: calc(236px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
 /* RTC-32 — aquí vivía la regla que apartaba los widgets flotantes de la
    esquina mientras el aviso de push preguntaba: el FAB (z-60) tapaba su X y el
    toggle (z-199) pintaba sobre el borde de la hoja a 390px. La convivencia
@@ -3731,4 +3765,31 @@ html:has(.mi-barra-destinos) .theme-toggle {
 }
 .nx-acc-texto--tenue { color: var(--text3); }
 .nx-acc-texto:hover:not(:disabled) { color: var(--text); }
+
+/* Píldora de filtro. El fondo vive aquí por la razón de siempre: en línea le
+   ganaba al `:hover`. El estado activo se lee de `aria-pressed`, que es el
+   atributo que ya usa `.riel-filtro` para lo mismo — y que estas píldoras no
+   tenían, así que un lector de pantalla no sabía cuál estaba puesta. */
+.nx-chip {
+  background: var(--s2);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-chip:hover:not(:disabled) { background: var(--s3); }
+.nx-chip[aria-pressed='true'] { background: color-mix(in srgb, var(--nexus) 10%, transparent); }
+.nx-chip[aria-pressed='true']:hover { background: color-mix(in srgb, var(--nexus) 18%, transparent); }
+
+/* Sugerencia del asistente: nace sobre `--s1` y se tiñe al pasar, con el mismo
+   acento que ya lleva en el borde. */
+.nx-chip-sugerencia {
+  background: var(--s1);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-chip-sugerencia:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nexus) 10%, transparent);
+  border-color: color-mix(in srgb, var(--nexus) 55%, transparent);
+}
 

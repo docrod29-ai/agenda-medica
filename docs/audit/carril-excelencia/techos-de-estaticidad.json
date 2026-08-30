@@ -8,7 +8,7 @@
     "/lista-espera": 0,
     "/finanzas": 19,
     "/operaciones": 1,
-    "/dashboard": 16,
+    "/dashboard": 14,
     "/pacientes": 3,
     "/pendientes": 0,
     "/configuracion": 1,
@@ -21,7 +21,7 @@
     "/cumplimiento": 1,
     "/cumplimiento/retencion": 3,
     "/consultor": 4,
-    "/guia": 23,
+    "/guia": 0,
     "/consulta/pac-001": 0,
     "/expediente/pac-001": 11
   }

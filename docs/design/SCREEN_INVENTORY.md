@@ -62,7 +62,7 @@
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 738 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 752 | 0 | — | ✅ | — |
-| `/guia` | medico | ✅ | 131 | 0 | — | ✅ | — |
+| `/guia` | medico | ✅ | 134 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 286 | 0 | — | ✅ | — |
 | `/membresias` | medico | ✅ | 281 | 0 | — | ✅ | — |
 | `/migracion` | medico | ✅ | 371 | 0 | — | ✅ | — |
