@@ -575,9 +575,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-12.entailment', ws: 'WS-12', titulo: 'Entailment: la cita sostiene la afirmación, no sólo la contiene',
     estado: 'PARTIAL',
-    queFalta: 'REG-400 cerró la parte que se puede decidir SIN un modelo, y sólo ésa: de qué parte del artículo sale el pasaje. PubMed escribe la sección en el XML y el producto la tiraba, así que una cita de los ANTECEDENTES —lo que se creía antes del estudio, a veces justo lo que vino a refutar— se leía igual que una conclusión. Ahora se marca aparte de lo no respaldado, porque son dos defectos distintos: una cita sin anclar NO EXISTE en el artículo; una anclada en los antecedentes existe y es literal. NO es un evaluador de entailment y no se declara como tal: falta juzgar si el pasaje SIGNIFICA lo que la afirmación dice, y eso exige un modelo, su conjunto de referencia y un umbral que tiene que fijar un médico (declarado en ia/contratos-de-evaluacion.ts). Faltan también las dos comprobaciones deterministas siguientes: POLARIDAD («no redujo la mortalidad» citado como «redujo») y MATIZ («podría reducir» citado como «reduce»).',
-    artefactos: ['src/lib/evidencia/de-donde-sale-el-pasaje.ts'],
-    pruebas: ['src/__tests__/una-cita-de-los-antecedentes-no-demuestra-nada.test.ts'],
+    queFalta: 'REG-400 cerró de qué PARTE del artículo sale el pasaje: una cita de los antecedentes ya no se lee como una conclusión. REG-429 cerró las dos comprobaciones deterministas que quedaban — POLARIDAD (el pasaje niega lo que la frase afirma) y MATIZ (el pasaje lo dice con reservas que la frase quitó) —, que pasaban sin marca porque el anclaje pregunta si el texto EXISTE, no si dice lo mismo. Se exigen tres cosas a la vez para no marcar de más, y midiendo aparecieron dos defectos invisibles leyendo: «redujo» no contiene la raíz «reduc» (pretérito irregular, y el español es el idioma del producto) y «super» casaba con «supervivencia», que es un sustantivo. FALTA, y necesita al dueño: el evaluador de entailment propiamente dicho —juzgar si el pasaje SIGNIFICA lo que la afirmación dice— exige un modelo, su conjunto de referencia y un UMBRAL que fija el médico (declarado en ia/contratos-de-evaluacion.ts). Falta también la MAGNITUD: «redujo un 2 %» citado como «redujo» no es inversión ni atenuación y puede engañar igual.',
+    artefactos: ['src/lib/evidencia/lo-que-el-pasaje-no-dijo.ts', 'src/lib/evidencia/verificar-la-cita.ts'],
+    pruebas: [
+      'src/__tests__/una-cita-que-no-dice-eso-ya-no-pasa.test.ts',
+      'src/__tests__/el-pasaje-esta-y-dice-lo-contrario.test.ts',
+    ],
   }),
   R({
     id: 'WS-12.contratos-de-evaluacion', ws: 'WS-12', titulo: 'Cada capacidad de IA con dataset, métrica, umbral y política de fallo',

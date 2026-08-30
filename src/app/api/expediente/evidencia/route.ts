@@ -477,6 +477,24 @@ export async function POST(req: NextRequest) {
         `${verificacion.fueraDeLosHallazgos.length} cita(s) apuntan a una parte del artículo que no son sus hallazgos (antecedentes, objetivo o métodos): el texto está ahí, pero ese estudio no lo demuestra. Compruébalas antes de apoyarte en ellas.`,
       )
     }
+
+    /**
+     * ── EL PASAJE ESTÁ Y DICE OTRA COSA (REG-429) ────────────────────────────
+     *
+     * Tercer aviso, y distinto de los otros dos a propósito: aquí el anclaje
+     * funcionó —el texto existe y es literal— pero el pasaje NIEGA el resultado
+     * o lo dice con reservas que la frase quitó. Se dice aparte porque se
+     * comprueba distinto: no hay que buscar el respaldo, hay que releer el que
+     * ya está.
+     */
+    if (verificacion.desajustes.length > 0) {
+      const invertidas = verificacion.desajustes.filter(d => d.desajuste.clase === 'polaridad_invertida').length
+      avisos.push(
+        invertidas > 0
+          ? `${invertidas} cita(s) apuntan a un pasaje que dice LO CONTRARIO de lo afirmado, y ${verificacion.desajustes.length - invertidas} lo dicen con reservas que la frase quitó. El texto está ahí: reléelo antes de apoyarte en él.`
+          : `${verificacion.desajustes.length} cita(s) apuntan a un pasaje que lo dice con reservas («podría», «sugiere») que la frase quitó. El texto está ahí: reléelo antes de apoyarte en él.`,
+      )
+    }
     if (!hayEvidencia) {
       // El aviso que ve el médico tiene que distinguir las dos cosas: que no haya
       // literatura es un dato clínico; que no hayamos podido preguntar, no.

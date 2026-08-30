@@ -16529,3 +16529,72 @@ entre inquilinos por la puerta de atrás. El golden lo fija.
   `signOut`, no el ciclo real de una pestaña cerrándose.
 
 **Prueba.** `src/__tests__/el-cajon-de-pendientes-no-se-borraba-al-cerrar-sesion.test.ts` (10 casos).
+
+---
+
+## REG-429 — la cita estaba anclada, era literal, y decía lo contrario
+
+**QUÉ SE PEDÍA.** `WS-12.entailment` nombraba dos comprobaciones deterministas
+pendientes: **POLARIDAD** («no redujo la mortalidad» citado como «redujo») y
+**MATIZ** («podría reducir» citado como «reduce»).
+
+### El hueco
+
+El anclaje pregunta si el pasaje **existe**, no si dice lo mismo. Así que una
+cita perfectamente anclada que afirma lo contrario del artículo pasaba **sin una
+sola marca** — y es peor que una sin anclar, porque la sin anclar ya se marca.
+
+### Dos defectos que se vieron midiendo, no leyendo
+
+Se corrió el módulo contra frases reales antes de escribir la prueba:
+
+1. **«redujo» no contiene «reduc».** El pretérito español de *reducir* es
+   irregular —c→j— y lo mismo *prevenir*→*previno*. Sin las dos raíces, **la
+   frase exacta que esto existe para cazar** no se leía. La versión inglesa sí
+   funcionaba, así que el defecto era invisible en la prueba obvia — y el español
+   es el idioma del producto.
+2. **`super` casaba con «supervivencia»**, que es un sustantivo y sale en casi
+   todo resumen de mortalidad. Con esa raíz, «no aumentó la supervivencia» contra
+   «mejoró la supervivencia» daba una inversión sobre un verbo que no era un
+   verbo. Se quitó: una raíz que casa con una palabra común no añade cobertura,
+   añade ruido — y el ruido en una marca de seguridad se paga con que dejen de
+   leerse.
+
+### La regla: señalar de menos, nunca de más
+
+Un detector que dispare con cualquier «no» marcaría media literatura. Se exigen
+**tres cosas a la vez**:
+
+1. el pasaje casa con un patrón de resultado negado, de lista cerrada;
+2. la afirmación trae **el MISMO verbo** en afirmativo;
+3. la afirmación no trae negación propia.
+
+Más la ventana cortada en el punto: lo de la oración anterior no cuenta. Por eso
+*«reduced mortality in patients who did not receive statins»* no se marca, y
+*«No benefit was seen. The drug improved survival»* tampoco.
+
+### Por qué es un tercer aviso y no se mezcla con los otros dos
+
+- **Sin respaldo** = no se encontró el texto.
+- **Fuera de los hallazgos** = el texto sale de una parte que no demuestra nada.
+- **Desajuste** = el texto está, es literal, y dice otra cosa.
+
+Se comprueban distinto: los dos primeros piden **buscar** el respaldo; éste pide
+**releer** el que ya está. Meterlo en el saco de «sin respaldo» perdería la
+distinción que hace accionable cada marca.
+
+### Qué NO cubre
+
+- **No es un evaluador de entailment y no se declara como tal.** No juzga si la
+  afirmación se sigue del pasaje: detecta dos desajustes nombrados. El resto sigue
+  necesitando un modelo, su conjunto de referencia y un umbral del médico, que es
+  lo que `WS-12.entailment` deja abierto.
+- **No cubre los verbos fuera de `VERBOS_DE_RESULTADO`.** Lo que no está, no se
+  vigila, y no por eso está bien.
+- **No mira la magnitud**: «redujo un 2 %» citado como «redujo» no es inversión ni
+  atenuación, y puede ser igual de engañoso.
+- **No alcanza una negación repartida entre dos oraciones** del pasaje.
+- **No filtra ni reordena**: anota. Quitar una afirmación porque un patrón casó
+  sería peor que no tener el patrón.
+
+**Prueba.** `src/__tests__/el-pasaje-esta-y-dice-lo-contrario.test.ts` (19 casos).

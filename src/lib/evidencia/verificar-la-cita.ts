@@ -42,6 +42,7 @@
 import { fuente, fechaPublicacionDesde, type Source } from '@/types/evidence'
 import { mapaDeSoporte, esRespuestaRespaldada, tasaSinRespaldo } from '@/lib/evidence-integrations/soporte'
 import type { ProveedorDeEvidencia } from '@/lib/evidence-integrations/catalogo'
+import { desajustesEntre, type DesajusteHallado } from '@/lib/evidencia/lo-que-el-pasaje-no-dijo'
 import {
   procedenciaDelPasaje, normalizarEtiqueta, NO_SE_SABE,
   type Procedencia, type ParteDelResumen,
@@ -97,6 +98,21 @@ export interface Verificacion {
    * son un problema distinto y se arreglan distinto.
    */
   readonly fueraDeLosHallazgos: readonly CitaFueraDeLosHallazgos[]
+  /**
+   * Citas ANCLADAS cuyo pasaje dice otra cosa que la afirmación (REG-429).
+   *
+   * Tampoco están «sin respaldo»: el pasaje existe y es literal. Lo que pasa es
+   * que **lo niega** o **lo dice con reservas** que la frase quitó. Es un tercer
+   * problema distinto de los otros dos y se cuenta aparte por eso.
+   */
+  readonly desajustes: readonly CitaDesajustada[]
+}
+
+/** Una cita anclada cuyo pasaje no dice lo que la afirmación afirma. */
+export interface CitaDesajustada {
+  readonly texto: string
+  readonly pmid: string
+  readonly desajuste: DesajusteHallado
 }
 
 /**
@@ -149,7 +165,7 @@ export function verificarAfirmaciones(
   if (fuentes.length === 0 || afirmaciones.length === 0) {
     return {
       respaldada: false, tasaSinRespaldo: 0, sinRespaldo: [], respaldadas: 0,
-      fueraDeLosHallazgos: [],
+      fueraDeLosHallazgos: [], desajustes: [],
       // Sin fuentes anclables no se puede verificar. Decir «no respaldada» aquí
       // sería convertir «no lo sé» en un juicio sobre el análisis.
       sePudoVerificar: false,
@@ -164,6 +180,7 @@ export function verificarAfirmaciones(
     respaldadas: mapa.respaldadas.length,
     sePudoVerificar: true,
     fueraDeLosHallazgos: citasFueraDeLosHallazgos(afirmaciones, articulos),
+    desajustes: citasDesajustadas(afirmaciones),
   }
 }
 
@@ -226,3 +243,40 @@ export const POR_QUE_FUERA_DE_LOS_HALLAZGOS_ES_OTRO_PROBLEMA =
   'demuestra nada — es lo que se creía antes de hacer el estudio, a veces justo lo ' +
   'que vino a refutar. Son dos defectos distintos, se cuentan aparte y se ' +
   'arreglan distinto; mezclarlos escondería el segundo dentro del primero.'
+
+/**
+ * QUÉ CITAS DICEN OTRA COSA QUE SU PASAJE — REG-429.
+ *
+ * No mira los artículos: compara la afirmación con **el pasaje que el propio
+ * modelo devolvió como respaldo**. Si ese pasaje niega el resultado, o lo dice
+ * con reservas que la frase quitó, se marca.
+ *
+ * Va sobre los pasajes tal cual llegaron, igual que `citasFueraDeLosHallazgos`:
+ * si una afirmación cita dos artículos y sólo uno de los pasajes la contradice,
+ * se marca ese.
+ */
+export function citasDesajustadas(
+  afirmaciones: readonly AfirmacionCruda[],
+): CitaDesajustada[] {
+  const out: CitaDesajustada[] = []
+  for (const a of afirmaciones) {
+    const texto = String(a.texto ?? '').trim()
+    if (!texto) continue
+    const pasajes = Array.isArray(a.pasajes) ? a.pasajes : []
+    for (const p of pasajes) {
+      const cita = p as { texto?: unknown; pmid?: unknown }
+      const pasaje = String(cita.texto ?? '').trim()
+      if (!pasaje) continue
+      for (const d of desajustesEntre(texto, pasaje)) {
+        out.push({ texto, pmid: String(cita.pmid ?? ''), desajuste: d })
+      }
+    }
+  }
+  return out
+}
+
+export const POR_QUE_UN_DESAJUSTE_NO_ES_FALTA_DE_RESPALDO =
+  'Porque el pasaje SÍ existe y es literal: el anclaje hizo su trabajo. Lo que '
+  + 'falla es otra cosa —el pasaje niega el resultado, o lo dice con reservas que '
+  + 'la frase quitó— y se arregla distinto. Meterlo en el saco de «sin respaldo» '
+  + 'perdería la distincion que hace accionable cada marca.'
