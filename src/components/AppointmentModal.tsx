@@ -411,6 +411,35 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const [pidiendoResena, setPidiendoResena] = useState(false)
   const handlePedirResena = async () => {
     if (!appointment || !telefono || !clinicId) return
+    /**
+     * NO SE LE MANDA AL PACIENTE UN ENLACE QUE EL SERVIDOR NO CONOCE.
+     *
+     * `crearSolicitudResena` escribe con `setDoc`, y una escritura del SDK sin
+     * red **resuelve en local**: la promesa cumple, la función devuelve el
+     * token, y dos líneas más abajo se abre WhatsApp con un enlace que contiene
+     * ese token. El servidor no lo ha visto nunca.
+     *
+     * El paciente lo abre y lee «Enlace no válido» — comprobado en
+     * `app/resena/[token]`, que es lo que contesta cuando el documento no
+     * existe. El médico cree que pidió la reseña; el paciente recibe un enlace
+     * roto de su consultorio.
+     *
+     * Si la red vuelve antes de cerrar la pestaña, la cola de Firestore lo
+     * sincroniza y el enlace acaba funcionando. Si no vuelve, se pierde: el
+     * mensaje ya salió y el token no existirá jamás.
+     *
+     * Es «el dato tiene que LLEGAR» en su forma más literal — la regla del
+     * repositorio dice que, cuando algo cruza una frontera, hay que mirar del
+     * otro lado antes de dar nada por entregado. Aquí la frontera es un mensaje
+     * a una persona real, y no se puede deshacer.
+     *
+     * Se comprueba antes de crear nada: crear el documento y no mandarlo
+     * dejaría basura sincronizándose sin motivo.
+     */
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      toast('Sin conexión: el enlace de reseña no llegaría al paciente. Inténtalo al recuperar la señal.', 'error')
+      return
+    }
     setPidiendoResena(true)
     try {
       const req = await crearSolicitudResena(clinicId, {

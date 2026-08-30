@@ -1939,3 +1939,59 @@ tocó a mí, en la frase de un commit.
 escritura, en un camino secundario (pedir reseña tras la cita). Por la asimetría
 no debería colgarse, pero **eso es un razonamiento, no una medición**, y así
 queda declarado.
+
+---
+
+## Unidad 40 — el médico le mandaba al paciente un enlace que el servidor no conocía
+
+**CÓMO SE LLEGÓ AQUÍ.** Buscando otra cosa. `AppointmentModal` era el último
+candidato del barrido de la unidad 38 —«¿se cuelga sin red?»— y la respuesta es
+**no**: `crearSolicitudResena` escribe con `setDoc`, y las escrituras del SDK
+resuelven en local.
+
+**Justo esa respuesta destapa el defecto de verdad: resolver en local es
+precisamente el problema** cuando lo siguiente que se hace es mandarle algo a
+una persona.
+
+**FOUND.** «Pedir reseña» hace tres cosas seguidas: crea la solicitud, coge el
+token que devuelve y **abre WhatsApp con un enlace que lo lleva dentro**. Sin
+red, la promesa cumple, el token vuelve y el mensaje sale. El servidor no ha
+visto ese token nunca.
+
+El paciente lo abre y lee **«Enlace no válido»** — comprobado en
+`app/resena/[token]`, que es exactamente lo que contesta cuando el documento no
+existe. El médico cree que pidió la reseña; el paciente recibe un enlace roto de
+su consultorio.
+
+Si la red vuelve antes de cerrar la pestaña, la cola de Firestore lo sincroniza
+y el enlace acaba funcionando. Si no vuelve, **se pierde**: el mensaje ya salió y
+el token no existirá jamás.
+
+**LA REGLA.** `el-dato-tiene-que-LLEGAR.md`, en su forma más literal: cuando algo
+cruza una frontera, hay que mirar del otro lado antes de dar nada por entregado.
+Aquí la frontera es **un mensaje a una persona real, y no se puede deshacer**.
+
+Una escritura local no es una escritura entregada. Si de ella cuelga un acto
+hacia fuera —un WhatsApp, un correo, una receta—, hay que confirmar antes.
+
+**CHANGE.** Sin red, el acto hacia el paciente no ocurre y se dice por qué. La
+comprobación va **antes** de crear la solicitud: crearla y no mandarla dejaría
+basura sincronizándose sin motivo. Lo demás del modal sigue funcionando — no es
+«bloquear la pantalla sin red», es detener lo único que sale hacia fuera.
+
+**REGRESSION.** `no-se-manda-un-enlace-que-el-servidor-no-conoce.test.ts`, 5
+casos, dos de ellos vigilando que la **premisa siga viva**: que el lado del
+paciente siga contestando «Enlace no válido» a un token desconocido, y que la
+solicitud se siga creando con `setDoc`. Si algún día pasa por una ruta de API,
+esta guarda sobra — y habrá que quitarla a conciencia, no dejarla de
+superstición. Probado al revés dos veces.
+
+**RESIDUAL_RISK.**
+
+- `navigator.onLine` sabe si hay interfaz de red, **no si el servidor
+  responde**. Un wifi de hotel que engancha y no enruta pasaría el filtro.
+  Cierra el caso frecuente, no todos.
+- **No se han barrido los demás actos hacia fuera** de la aplicación
+  —recordatorios, recetas, portal del paciente—. Este carril sólo ha mirado
+  éste, y **no declara buenos los otros**. Es la unidad que más claramente pide
+  continuación.
