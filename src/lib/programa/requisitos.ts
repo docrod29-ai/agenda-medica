@@ -600,8 +600,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'TR-BORRADORES.cero-perdidos', ws: 'TR-BORRADORES', titulo: 'Cero pantallas en blanco y cero borradores perdidos',
-    estado: 'NOT_STARTED',
-    queFalta: 'No hay prueba de camino de fallo: cambio de ruta, recarga, timeout de proveedor, corte de red, guardado fallido y transición de sesión sobre las superficies de edición clínica.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-392 cerró dos caminos de fallo que no se podían ni provocar porque la decisión vivía dentro del componente: el ALMACENAMIENTO LLENO (las dos escrituras a localStorage acababan en `catch { }` con el comentario «no es crítico» — sin cuota el respaldo dejaba de escribirse y nadie se enteraba) y la TRANSICIÓN DE SESIÓN. Además unificó las cinco copias de «¿hay algo que guardar?»: REG-300 había unificado tres y su guardián contaba exactamente esas tres, así que las dos que deciden si el trabajo del médico se guarda seguían sueltas. Faltan los caminos que sólo se pueden probar en un navegador: recarga, cambio de ruta y `pagehide` — son de e2e, no de vitest.',
+    artefactos: ['src/lib/expediente/el-borrador-no-se-pierde.ts'],
+    pruebas: ['src/__tests__/el-borrador-no-se-pierde.test.ts'],
   }),
   R({
     id: 'TR-HISTORIA.practica-longitudinal', ws: 'TR-HISTORIA', titulo: 'Práctica sintética con años de historia, no cascarones',

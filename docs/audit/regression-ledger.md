@@ -13231,3 +13231,84 @@ Ambas probadas al revés desactivando la puerta: el caso correspondiente cae.
 - **El interruptor es por instancia**, como el de la IA. Con N instancias
   calientes, N primeras llamadas pagan su timeout.
 - **No cubre las otras 27 fuentes del catálogo**, porque hoy no se consultan.
+
+---
+
+## REG-392 — el borrador no depende de que alguien se acuerde, y no se calla
+
+**QUÉ SE PEDÍA.** `TR-BORRADORES.cero-perdidos`: prueba de los caminos de fallo
+sobre las superficies de edición clínica. Al buscar dónde probarlos aparecieron
+dos defectos, y el primero es una lección sobre las compuertas.
+
+### 1. Una compuerta que contaba las copias reparadas
+
+La regla «¿hay algo que valga la pena guardar?» estaba escrita **cinco veces**
+dentro de `consulta/[patientId]/page.tsx`: el autoguardado al servidor (30 s), el
+respaldo local (1,5 s), el espejo en memoria, el volcado al salir de la pantalla
+y el oyente de `nx:guardar-todo`.
+
+REG-300 ya había pagado esta familia —`proximoSeguimiento` se añadió a unas
+copias y no a otras, y **la fecha de la próxima consulta se perdía**— y unificó
+**tres**. Su guardián decía, literalmente:
+
+```
+expect((CONSULTA.match(/const hay = hayContenido\(e\)/g) ?? []).length).toBe(3)
+expect(CONSULTA).not.toMatch(/const hay = e\.resumen\?\.trim\(\)/)
+```
+
+Contaba **exactamente las tres reparadas**, y buscaba el nombre de variable de
+esas tres. Las otras dos copias se llamaban `hayContenido` y pasaban por delante
+sin tocarlas — y son justo **las dos que deciden si el trabajo del médico se
+guarda**: la que llama al servidor y la que escribe el respaldo local.
+
+**La lección:** una compuerta que mide la parte reparada certifica el arreglo, no
+la propiedad. La reparación de `depende_de_recordar` nunca es volver a copiar
+bien: es DERIVAR de una sola declaración y poner la compuerta sobre la propiedad.
+
+**Arreglo.** `expediente/el-borrador-no-se-pierde.ts`, puro: una lista,
+`CAMPOS_DEL_BORRADOR`, de la que salen **a la vez** qué se persiste
+(`cuerpoDelRespaldo`) y qué cuenta como contenido (`hayAlgoQuePerder`). La
+pantalla lo importa; no queda ninguna reconstrucción. El guardián nuevo busca la
+**forma** de la condición, no el nombre de quien la guarda, y está probado al
+revés contra el texto de las dos copias retiradas.
+
+Como efecto lateral, la regla dejó de comprobarse raspando el texto del
+componente con expresiones regulares y pasó a comprobarse sobre la función.
+
+### 2. `catch { }` sobre el único respaldo local del médico
+
+Las dos escrituras a `localStorage` acababan así:
+
+```
+} catch { /* almacenamiento lleno: no es crítico */ }
+```
+
+**No es cierto que no sea crítico.** Sin cuota, el respaldo local deja de
+escribirse: el médico sigue dictando, la pantalla no cambia, y la copia que le
+salvaría la consulta tras una recarga ya no existe. Pérdida silenciosa, que es la
+familia que menos se perdona.
+
+Ahora `guardarRespaldoLocal` devuelve **por qué** —`guardado`,
+`nada_que_guardar`, `sesion_cerrada`, `sin_espacio`, `no_se_pudo`— y la pantalla
+lo dice, una vez por sesión (repetirlo cada 1,5 s lo volvería ruido, y un aviso
+que se ignora no protege a nadie). Nada cambia en silencio, §3.
+
+`sesion_cerrada` se distingue de `no_se_pudo` a propósito: no escribir tras
+cerrar sesión es lo CORRECTO —resucitaría PHI recién purgada—, y avisar de ello
+sería un susto inventado.
+
+**LA PRUEBA.** `src/__tests__/el-borrador-no-se-pierde.test.ts` (18 casos). El
+caso que impide que la familia vuelva recorre `CAMPOS_DEL_BORRADOR` y exige que
+**cada campo que cuenta baste por sí solo**: añadir uno sin su regla cae sin que
+nadie tenga que acordarse de escribir el caso. Probado al revés quitando la
+`cuenta` de `proximoSeguimiento`: cae el caso de REG-300.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba el navegador.** Recarga, cambio de ruta y `pagehide` son de e2e.
+  Aquí se prueba la decisión y el camino de fallo del almacenamiento — que es lo
+  que nunca se pudo provocar **porque estaba dentro del componente**.
+- **No prueba que el aviso se pinte**, sólo que la pantalla lo llame.
+- **`cambiarTipo` conserva su propia condición y NO se unificó**: contesta otra
+  pregunta —«¿cambiar de modalidad destruirá algo?»— y mezclarlas haría que una
+  fecha de seguimiento bloqueara un cambio de modalidad que no la toca.

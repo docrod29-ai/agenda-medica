@@ -39,6 +39,10 @@ import {
   debeOfrecerRecuperacion, hayAudioQueNoSePuedePurgar, puedeReemplazarTranscripcion,
   leerNotaPrevia, decidirAdopcionDeNotaPrevia,
 } from '@/lib/expediente/recuperacion-consulta'
+import {
+  hayAlgoQuePerder, guardarRespaldoLocal, signosConValor,
+  AVISO_SIN_ESPACIO, type EstadoDelBorrador,
+} from '@/lib/expediente/el-borrador-no-se-pierde'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
@@ -301,9 +305,6 @@ const ESPECIALIDADES_POR_GRUPO: { grupo: string; items: string[] }[] = [
 ]
 
 /** ¿Hay algún signo vital capturado? Objeto de signos con algún valor no vacío. */
-function signosConValor(sv: SignosVitales | undefined | null): boolean {
-  return !!sv && Object.values(sv as Record<string, unknown>).some(v => v != null && String(v).trim() !== '')
-}
 
 /**
  * Qué decirle al médico según POR QUÉ no hubo separación de voces.
@@ -1464,6 +1465,14 @@ export default function ConsultaActivaPage() {
   // Ref síncrona del notaId + cadena de guardados serializada: evita que dos
   // autoguardados creen notas DUPLICADAS (setNotaId es asíncrono).
   const notaIdRef = useRef<string | null>(notaIdParam)
+  /**
+   * ¿Ya se avisó de que el respaldo local no cabe? (REG-392)
+   *
+   * Una vez por sesión. El aviso importa —sin respaldo local, una recarga puede
+   * costar lo último dictado— pero repetirlo cada 1,5 s lo convertiría en ruido,
+   * y un aviso que se ignora no protege a nadie.
+   */
+  const avisoRespaldoRef = useRef(false)
   /**
    * La marca de modificación que ESTA pestaña vio por última vez. Es el testigo
    * de la guardia de concurrencia de `updateNota`: si en Firestore hay otra, es
@@ -3218,11 +3227,12 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     autoguardarRef.current = () => {
       if (firmada) return
-      const hayContenido =
-        !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
-           diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
-           signosConValor(signos) || estudiosOrden.length || preop || proximoSeguimiento.trim())
-      if (hayContenido) guardarBorrador(true)
+      /* REG-392 · la misma regla que el respaldo local, importada y no copiada:
+         ésta y la de abajo son las dos que REG-300 dejó sueltas. */
+      if (hayAlgoQuePerder({
+        resumen, secciones, signos, diagnosticos, medicamentos,
+        estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion,
+      })) guardarBorrador(true)
     }
   })
   useEffect(() => {
@@ -3236,41 +3246,43 @@ export default function ConsultaActivaPage() {
   //  en las deps de descartar(); es por paciente Y por episodio.)
   useEffect(() => {
     if (firmada) return
-    const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
-      diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim() ||
-      signosConValor(signos) || estudiosOrden.length > 0 || !!preop || proximoSeguimiento.trim()
-    if (!hayContenido) return
+    /**
+     * REG-392 · qué se guarda y qué cuenta como contenido salen de UNA lista
+     * (`el-borrador-no-se-pierde.ts`). Antes vivían aquí, copiadas: el campo
+     * `proximoSeguimiento` se añadió a unas copias y no a otras y la fecha de la
+     * próxima consulta se perdía (REG-193/300). `notaId` también viaja — sin él,
+     * restaurar el respaldo dejaba `notaIdRef` en null y el siguiente
+     * autoguardado CREABA una segunda nota con el mismo contenido.
+     */
+    const vivo: EstadoDelBorrador = {
+      tipo, resumen, secciones, signos, diagnosticos, medicamentos,
+      estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion,
+    }
+    if (!hayAlgoQuePerder(vivo)) return
     const id = setTimeout(() => {
-      if (borradoresBloqueados()) return   // sesión cerrada: no resucitar PHI
-      try {
-        localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
-          tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop,
-          /**
-           * ── LA FECHA DE PRÓXIMA CONSULTA SE PERDÍA (6-ago-2026, REG-193) ──
-           *
-           * No estaba en el respaldo, ni en sus deps, ni en la condición que
-           * decide si hay algo que guardar. Sólo se persistía **al firmar**:
-           * teclearla y recargar la borraba, y si era lo único escrito ni
-           * siquiera disparaba el autoguardado.
-           *
-           * Alimenta la tarea «agendar el seguimiento» del worklist y el
-           * contador de seguimientos vencidos del CRM — dos cosas que existían
-           * esperando este dato.
-           */
-          proximoSeguimiento,
-          // notaId: sin él, restaurar el respaldo dejaba notaIdRef en null y el
-          // siguiente autoguardado CREABA una segunda nota con el mismo contenido.
-          notaId: notaIdRef.current,
-          transcripcion: voz.transcripcion, ts: Date.now(),
-        }), secretoLocal(auth.currentUser?.uid)))
-      } catch { /* almacenamiento lleno: no es crítico */ }
+      const r = guardarRespaldoLocal(
+        vivo,
+        { notaId: notaIdRef.current, ts: Date.now(), bloqueado: borradoresBloqueados() },
+        cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), secretoLocal(auth.currentUser?.uid))),
+      )
+      /**
+       * Y si no cupo, **se dice**. Antes esto era `catch { /* no es crítico *\/ }`
+       * y no era cierto: con el almacenamiento lleno el respaldo deja de
+       * escribirse, el médico sigue dictando y la copia que le salvaría la
+       * consulta tras una recarga ya no existe. Una vez por sesión, para avisar
+       * sin convertirse en ruido.
+       */
+      if ((r === 'sin_espacio' || r === 'no_se_pudo') && !avisoRespaldoRef.current) {
+        avisoRespaldoRef.current = true
+        toast(AVISO_SIN_ESPACIO, 'error')
+      }
     }, 1500)
     return () => clearTimeout(id)
     // `estudiosOrden` y `preop` FALTABAN en las deps: añadir ocho estudios a la
     // orden o llenar el bloque preoperatorio, sin tocar nada más, no re-armaba
     // el debounce y el respaldo local se quedaba en la versión anterior. Con un
     // cierre forzado del navegador (sin desmonte, sin `pagehide`) eso se pierde.
-  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey])
+  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey, toast])
 
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
@@ -3447,20 +3459,16 @@ export default function ConsultaActivaPage() {
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
   /**
-   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, REG-300.
+   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, y ya no vive aquí.
    *
-   * Esta regla estaba escrita TRES veces, palabra por palabra, en el espejo en
-   * memoria, en el volcado a `localStorage` y en el oyente de `nx:guardar-todo`.
-   * Tres copias de la misma decisión es la familia `depende_de_recordar`: basta
-   * que alguien añada un campo en dos de los tres para que el tercero empiece a
-   * decir que la nota está vacía cuando no lo está.
-   *
-   * Y eso es exactamente lo que pasó con `proximoSeguimiento` (REG-300).
+   * REG-300 unificó TRES de las cinco copias que había en este archivo y dejó un
+   * guardián que contaba exactamente esas tres. Las otras dos —el autoguardado
+   * al servidor y el respaldo local, o sea las dos que deciden si el trabajo del
+   * médico se guarda— siguieron sueltas hasta REG-392, que se llevó la regla a
+   * `expediente/el-borrador-no-se-pierde.ts`. Desde ahí se importa, no se copia,
+   * y se puede probar sin raspar el texto de este archivo.
    */
-  const hayContenido = (e: { resumen?: string; secciones?: { value?: string }[]; diagnosticos?: unknown[]; medicamentos?: unknown[]; transcripcion?: string; signos?: Parameters<typeof signosConValor>[0]; estudiosOrden?: unknown[]; preop?: unknown; proximoSeguimiento?: string }) =>
-    !!(e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length ||
-       e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) ||
-       (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop || e.proximoSeguimiento?.trim())
+  const hayContenido = hayAlgoQuePerder
 
   const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada })
   /**
@@ -3571,15 +3579,20 @@ export default function ConsultaActivaPage() {
     if (borradoresBloqueados()) return
     const hay = hayContenido(e)
     if (!hay) return
-    try {
-      localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
-        tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
-        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop,
-        proximoSeguimiento: e.proximoSeguimiento, notaId: notaIdRef.current,
-        transcripcion: e.transcripcion, ts: Date.now(),
-      }), secretoLocal(auth.currentUser?.uid)))
-    } catch { /* almacenamiento lleno */ }
-  }, [respaldoKey])
+    /* Mismo cuerpo y misma regla que el respaldo con retardo: los dos salen de
+       `el-borrador-no-se-pierde.ts`. Copiar el objeto aquí era cómo un campo
+       nuevo entraba en un camino y no en el otro — y éste es el que corre
+       justo cuando el médico se va de la pantalla. */
+    const r = guardarRespaldoLocal(
+      e,
+      { notaId: notaIdRef.current, ts: Date.now(), bloqueado: false },
+      cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), secretoLocal(auth.currentUser?.uid))),
+    )
+    if ((r === 'sin_espacio' || r === 'no_se_pudo') && !avisoRespaldoRef.current) {
+      avisoRespaldoRef.current = true
+      toast(AVISO_SIN_ESPACIO, 'error')
+    }
+  }, [respaldoKey, toast])
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') flushRespaldo() }
     window.addEventListener('pagehide', flushRespaldo)

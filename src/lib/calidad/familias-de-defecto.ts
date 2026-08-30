@@ -535,7 +535,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * porque se aplica por convención) es de `depende_de_recordar`; se cuenta
      * aquí porque la pérdida silenciosa es lo que la hace cara.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391],
+    /**
+     * 392 es esta familia **reincidiendo sobre su propia reparación**, y por eso
+     * vale más que las otras: la regla de «¿hay algo que guardar?» estaba escrita
+     * cinco veces, REG-300 unificó tres, y su guardián contaba exactamente esas
+     * tres y buscaba su nombre de variable. Las dos que quedaron sueltas —el
+     * autoguardado al servidor y el respaldo local, o sea las que deciden si el
+     * trabajo del médico se guarda— pasaban en verde.
+     *
+     * La lección, que vale para toda compuerta: **medir la parte reparada
+     * certifica el arreglo, no la propiedad**. El guardián nuevo busca la FORMA
+     * de la condición, no cómo se llame quien la guarda.
+     *
+     * Trae además la variante silenciosa: las dos escrituras a `localStorage`
+     * acababan en `catch { }` con el comentario «no es crítico». Sin cuota, el
+     * respaldo deja de escribirse y nadie se entera.
+     */
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392],
   },
   {
     clave: 'tarde',
