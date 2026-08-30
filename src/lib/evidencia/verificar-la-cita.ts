@@ -48,6 +48,11 @@ import {
 } from '@/lib/evidencia/de-donde-sale-el-pasaje'
 
 /** Lo mínimo de un artículo de PubMed para poder anclar un pasaje. */
+import {
+  contradiccionesEntre, comoSeDice as comoSeDiceLaContradiccion,
+  type Contradiccion,
+} from './la-cita-dice-lo-contrario'
+
 export interface ArticuloCitable {
   readonly pmid: string
   readonly titulo: string
@@ -76,6 +81,20 @@ export interface CitaFueraDeLosHallazgos {
   readonly procedencia: Procedencia
 }
 
+/**
+ * Una cita ANCLADA cuyo pasaje contradice a la afirmación que respalda.
+ *
+ * El tercero y peor de los defectos de cita: existe, es literal, sale de los
+ * hallazgos —pasa las tres compuertas anteriores— y dice lo contrario.
+ */
+export interface CitaContradicha {
+  readonly texto: string
+  readonly pmid: string
+  readonly contradicciones: readonly Contradiccion[]
+  /** Cómo se le dice al médico, sin decidir quién tiene razón. */
+  readonly frase: string
+}
+
 export interface Verificacion {
   /** true = toda afirmación citada quedó anclada a un pasaje literal. */
   readonly respaldada: boolean
@@ -97,6 +116,14 @@ export interface Verificacion {
    * son un problema distinto y se arreglan distinto.
    */
   readonly fueraDeLosHallazgos: readonly CitaFueraDeLosHallazgos[]
+  /**
+   * Citas ancladas cuyo pasaje NIEGA lo que la afirmación asevera (o al revés).
+   *
+   * Aparte de las otras dos, por la misma razón que ellas están aparte entre sí:
+   * son tres defectos distintos que se arreglan distinto. Éste es el único que
+   * se ve MÁS respaldado cuanto más se comprueba.
+   */
+  readonly contradichasPorSuPasaje: readonly CitaContradicha[]
 }
 
 /**
@@ -149,7 +176,7 @@ export function verificarAfirmaciones(
   if (fuentes.length === 0 || afirmaciones.length === 0) {
     return {
       respaldada: false, tasaSinRespaldo: 0, sinRespaldo: [], respaldadas: 0,
-      fueraDeLosHallazgos: [],
+      fueraDeLosHallazgos: [], contradichasPorSuPasaje: [],
       // Sin fuentes anclables no se puede verificar. Decir «no respaldada» aquí
       // sería convertir «no lo sé» en un juicio sobre el análisis.
       sePudoVerificar: false,
@@ -164,6 +191,7 @@ export function verificarAfirmaciones(
     respaldadas: mapa.respaldadas.length,
     sePudoVerificar: true,
     fueraDeLosHallazgos: citasFueraDeLosHallazgos(afirmaciones, articulos),
+    contradichasPorSuPasaje: citasQueDicenLoContrario(afirmaciones, articulos),
   }
 }
 
@@ -213,6 +241,54 @@ export function citasFueraDeLosHallazgos(
   }
   return out
 }
+
+/**
+ * Qué citas ancladas dicen lo CONTRARIO de la afirmación que respaldan.
+ *
+ * Mismo recorrido que `citasFueraDeLosHallazgos` —pasaje a pasaje, resolviendo
+ * el artículo por el índice que devolvió el modelo— porque es la misma unidad de
+ * análisis: si una afirmación cita dos artículos y sólo uno la contradice, se
+ * marca ese, no la afirmación entera.
+ *
+ * A diferencia de aquélla, **no necesita que el resumen venga estructurado**: la
+ * polaridad se lee del pasaje tal cual, así que también protege a los artículos
+ * sin secciones, que son justo los que la comprobación de REG-400 no puede mirar.
+ */
+export function citasQueDicenLoContrario(
+  afirmaciones: readonly AfirmacionCruda[],
+  articulos: readonly ArticuloCitable[],
+): CitaContradicha[] {
+  const out: CitaContradicha[] = []
+  for (const af of afirmaciones) {
+    const texto = typeof af.texto === 'string' ? af.texto : ''
+    if (!texto.trim()) continue
+    const pasajes = Array.isArray(af.pasajes) ? af.pasajes : []
+    const citas = Array.isArray(af.citas) ? af.citas : []
+    for (let i = 0; i < pasajes.length; i++) {
+      const pasaje = typeof pasajes[i] === 'string' ? (pasajes[i] as string) : ''
+      if (!pasaje.trim()) continue
+      const n = Number(citas[i] ?? citas[0])
+      const a = Number.isFinite(n) ? articulos[n - 1] : undefined
+      if (!a) continue
+      const choques = contradiccionesEntre(texto, pasaje)
+      if (choques.length === 0) continue
+      out.push({
+        texto,
+        pmid: a.pmid,
+        contradicciones: choques,
+        frase: choques.map(comoSeDiceLaContradiccion).join('; '),
+      })
+    }
+  }
+  return out
+}
+
+export const POR_QUE_LA_CONTRADICCION_ES_EL_TERCER_DEFECTO =
+  'Una cita sin anclar no existe en el artículo. Una anclada en los antecedentes ' +
+  'existe pero no demuestra nada. Una CONTRADICHA existe, es literal, sale de los ' +
+  'hallazgos —pasa las dos compuertas anteriores— y dice lo opuesto. Es el único ' +
+  'de los tres que se ve MÁS respaldado cuanto más se comprueba, y por eso se ' +
+  'cuenta aparte en vez de esconderse dentro de los otros dos.'
 
 export const POR_QUE_NO_SE_BORRA_LO_NO_RESPALDADO =
   'Una afirmación sin respaldo bibliográfico puede seguir siendo buen ' +

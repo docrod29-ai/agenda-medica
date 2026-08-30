@@ -454,6 +454,20 @@ export async function POST(req: NextRequest) {
         `${verificacion.fueraDeLosHallazgos.length} cita(s) apuntan a una parte del artículo que no son sus hallazgos (antecedentes, objetivo o métodos): el texto está ahí, pero ese estudio no lo demuestra. Compruébalas antes de apoyarte en ellas.`,
       )
     }
+    /**
+     * El TERCER defecto de cita, y el peor, con su aviso propio.
+     *
+     * Éstas pasaron las dos compuertas anteriores: el pasaje existe, es literal
+     * y sale de los hallazgos. Lo que pasa es que dice lo CONTRARIO — «reduce la
+     * mortalidad» anclado en «did not reduce mortality». Es el único de los tres
+     * que se ve más respaldado cuanto más se comprueba, así que va primero y con
+     * sus palabras: meterlo en cualquiera de los otros dos lo escondería.
+     */
+    if (verificacion.contradichasPorSuPasaje.length > 0) {
+      avisos.push(
+        `${verificacion.contradichasPorSuPasaje.length} afirmación(es) están ancladas en un pasaje que dice LO CONTRARIO (${verificacion.contradichasPorSuPasaje[0].frase}). La cita es literal y aun así no sostiene lo que se afirma: revísalas antes de usarlas.`,
+      )
+    }
     if (!hayEvidencia) {
       // El aviso que ve el médico tiene que distinguir las dos cosas: que no haya
       // literatura es un dato clínico; que no hayamos podido preguntar, no.
