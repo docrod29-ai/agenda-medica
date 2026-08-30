@@ -442,7 +442,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-10.pantalla-de-certeza', ws: 'WS-10', titulo: 'El médico puede elegir el tipo de un diagnóstico',
     estado: 'NOT_STARTED',
-    queFalta: 'Ninguna pantalla lo permite, así que tipoOrigen: medico sólo lo lleva el diagnóstico añadido a mano. Mientras siga así el sistema no distingue un presuntivo elegido de uno de fábrica.',
+    queFalta: 'REG-407 lo cerró en la consulta: selector de los CUATRO tipos en cada fila del diagnóstico, con etiqueta accesible, bloqueado en nota firmada, y elegirlo marca tipoOrigen: medico — la única vía por la que un diagnóstico pasa a estar firmado por una persona. La procedencia se dice una vez y no por fila. FALTA: la misma elección en las otras superficies que muestran diagnósticos (expediente, UCI/hospital), y decidir —es del médico— si firmar con diagnósticos cuyo tipo puso el dictado debe avisar más fuerte o bloquear; hoy avisa y no obliga, porque obligar sería fijar política clínica.',
+    artefactos: ['src/app/(dashboard)/consulta/[patientId]/page.tsx'],
+    pruebas: ['src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts'],
   }),
 
   /* ═══ WS-11 · Ciclo cerrado ═══════════════════════════════════════════════ */

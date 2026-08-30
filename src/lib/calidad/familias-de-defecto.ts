@@ -298,7 +298,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la medicación vigente se calculaba sobre una ventana y se enseñaba como el
      * expediente entero.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405],
+    /**
+     * 407 es esta familia sobre una DISTINCIÓN, no sobre un dato. REG-372 dejó
+     * el modelo completo —`tipo` y `tipoOrigen`, con «medico» documentado como
+     * «lo único que autoriza a decir confirmado»— y ninguna pantalla dejaba
+     * elegirlo. El sistema sabía distinguir un presuntivo elegido de uno de
+     * fábrica y no daba forma de ejercer la distinción: la fila del diagnóstico
+     * enseñaba descripción, código y borrar.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407],
   },
   {
     clave: 'se_contradice',

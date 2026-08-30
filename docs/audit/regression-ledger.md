@@ -14313,3 +14313,70 @@ que es la parte de «su verdad» que más fácil se pierde.
 - **No cubre UCI/Hospital**, que están en otro carril.
 - **No vigila un caché en el navegador**: si alguna vez se memoriza una
   proyección en `localStorage`, esto no lo ve.
+
+---
+
+## REG-407 — un presuntivo elegido no es un presuntivo de fábrica
+
+**QUÉ SE PEDÍA.** `WS-10.pantalla-de-certeza`: «El médico puede elegir el tipo de
+un diagnóstico». El censo: «Ninguna pantalla lo permite, así que `tipoOrigen:
+medico` sólo lo lleva el diagnóstico añadido a mano. Mientras siga así el sistema
+no distingue un presuntivo elegido de uno de fábrica».
+
+### El defecto
+
+El modelo estaba completo desde REG-372 — `tipo` con sus cuatro valores y
+`tipoOrigen` con este comentario:
+
+> `'medico'` — «Lo eligió una persona. **Es lo único que autoriza a decir
+> confirmado**.»
+> `'extraccion'` — «El modelo emitió `tipo` explícitamente. **Es una sugerencia,
+> no una firma**.»
+
+Y **ninguna pantalla lo dejaba elegir.** La fila de un diagnóstico enseñaba
+descripción, CIE-10 y el botón de borrar. El `tipo` no aparecía. Así que:
+
+- un diagnóstico que la IA extrajo como **definitivo** se guardaba como
+  definitivo con `tipoOrigen: 'extraccion'` — una sugerencia que el médico nunca
+  vio como elección, y que no podía cambiar;
+- uno añadido a mano nacía `presuntivo` y se quedaba presuntivo para siempre.
+
+Es **«sugerido ≠ confirmado»** y **«la autoridad final es del médico»**
+incumplidos en el mismo control. El modelo sabía distinguirlos y la pantalla no
+dejaba ejercer la distinción.
+
+### El arreglo
+
+Un selector de tipo en cada fila, con los cuatro valores, etiqueta accesible que
+lleva el diagnóstico dentro, y bloqueado en nota firmada. **Cambiarlo marca
+`tipoOrigen: 'medico'`**: es la única vía por la que un diagnóstico pasa a estar
+firmado por una persona, y ésa es la parte que se prueba al revés.
+
+Y la **procedencia se dice** —principio del sistema de diseño: lo que escribió la
+IA enseña de dónde salió— pero **una vez y no por fila**: un aviso por
+diagnóstico, en una nota con seis, es ruido que se aprende a saltar, y entonces
+deja de proteger sin dejar de ocupar sitio. Es el mismo criterio con el que
+`avisoAlPaciente` se dejó opcional (REG-403) y con el que el aviso de vigencia de
+guías sólo sale donde hay cita (REG-402).
+
+`por_defecto` cuenta igual que `extraccion`, y un diagnóstico **sin** origen —de
+notas anteriores a REG-372— también: en los tres casos nadie lo decidió, que es lo
+único que el aviso afirma.
+
+**LA PRUEBA.** `src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts`
+(11 casos). Probado al revés quitando el `tipoOrigen: 'medico'` del `onChange`:
+cae. Incluye el que exige los **cuatro** tipos del modelo —ofrecer tres dejaría un
+estado clínico inalcanzable desde la pantalla, que es como un modelo completo se
+vuelve uno incompleto— y el que comprueba que el aviso vive **fuera** del `map`.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No obliga a revisar.** El médico puede firmar con diagnósticos cuyo tipo puso
+  el dictado; lo que no puede es no enterarse. Obligar sería fijar política
+  clínica —cuándo un tipo sugerido es aceptable— y eso no lo decide un archivo de
+  software.
+- **No cambia lo ya firmado.** Los diagnósticos de notas anteriores conservan su
+  `tipoOrigen`, incluso ausente: rellenarlo sería inventar la autoría.
+- **No toca `estado`** (activo/resuelto/crónico/en seguimiento), que es otro eje.
+- **No prueba el render.** Que el selector se vea y se use con teclado depende del
+  componente; aquí se comprueba que existe, con qué etiqueta y qué escribe.

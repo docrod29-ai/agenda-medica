@@ -6576,6 +6576,37 @@ export default function ConsultaActivaPage() {
               onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase() } : x))}
               style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
             />
+            {/*
+              ── EL MÉDICO ELIGE EL TIPO DE SU DIAGNÓSTICO (WS-10, REG-407) ──
+
+              El modelo ya tenía `tipo` y `tipoOrigen`, y `tipoOrigen` dice, con
+              todas las letras, que «medico» es «lo único que autoriza a decir
+              confirmado». Pero NINGUNA pantalla lo dejaba elegir: un diagnóstico
+              que la IA extrajo como definitivo se guardaba como definitivo con
+              origen `extraccion` —una sugerencia que el médico nunca vio como
+              elección— y uno añadido a mano nacía presuntivo sin poder cambiarse.
+
+              Es «sugerido ≠ confirmado» y «la autoridad final es del médico»
+              incumplidos en el mismo control: el sistema no podía distinguir un
+              presuntivo ELEGIDO de uno de fábrica.
+
+              Cambiarlo marca `tipoOrigen: 'medico'`. Es la única vía por la que
+              un diagnóstico pasa a estar firmado por una persona.
+            */}
+            <select
+              value={d.tipo}
+              disabled={firmada}
+              aria-label={`Tipo de diagnóstico${d.descripcion ? `: ${d.descripcion}` : ''}`}
+              onChange={e => setDiagnosticos(prev => prev.map((x, j) =>
+                j === i ? { ...x, tipo: e.target.value as Diagnostico['tipo'], tipoOrigen: 'medico' } : x
+              ))}
+              style={{ ...S.input, flex: 1, minWidth: 104 }}
+            >
+              <option value="presuntivo">Presuntivo</option>
+              <option value="definitivo">Definitivo</option>
+              <option value="diferencial">Diferencial</option>
+              <option value="descartado">Descartado</option>
+            </select>
             {!firmada && (
               <button
                 onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))}
@@ -6585,6 +6616,19 @@ export default function ConsultaActivaPage() {
             )}
           </div>
         ))}
+        {/*
+          PROCEDENCIA — de dónde salió el tipo, cuando NO lo eligió una persona.
+
+          Se enseña una vez y no por fila: un aviso por diagnóstico, en una nota
+          con seis, es ruido que se aprende a saltar. `por_defecto` cuenta igual
+          que `extraccion`: en los dos casos nadie lo decidió.
+        */}
+        {!firmada && diagnosticos.some(d => d.descripcion.trim() && d.tipoOrigen !== 'medico') && (
+          <div className="nx-meta" style={{ marginTop: 6 }}>
+            El tipo de {diagnosticos.filter(d => d.descripcion.trim() && d.tipoOrigen !== 'medico').length === 1 ? 'un diagnóstico lo puso' : 'algunos diagnósticos lo puso'} el
+            dictado o la plantilla, no tú. Revísalo antes de firmar: sólo cuenta como tuyo si lo eliges.
+          </div>
+        )}
         {!firmada && (
           <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo', tipoOrigen: 'medico' }])} style={S.addBtn}>
             <Plus size={13} /> Agregar diagnóstico
