@@ -4,9 +4,10 @@
  * Incluye RecetasTab + su preview, calibrador visual y sub-controles.
  * Sin cambio de comportamiento respecto al monolito original.
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { areaImpracticable } from '@/lib/receta-paginacion'
-import { RecetaDocumento, dimensionesImpresion, paperEfectivo, admiteHojaCarta, type RecetaData } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, admiteHojaCarta, colocacionDeLaReceta, useRecetaPaperOrientado, type RecetaData } from '@/components/RecetaDocumento'
+import { RecetaPreviewWrapper, escalaDeVistaPrevia } from '@/components/RecetaPreviewWrapper'
 import { imprimirElemento } from '@/lib/print-element'
 import { GuiaConfigurarReceta } from '@/components/GuiaConfigurarReceta'
 import { resizeImageFile, formatBytes, reducirDataUrlSiPesa } from '@/lib/image-utils'
@@ -22,7 +23,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth, storage } from '@/lib/firebase'
 import { cfgInput, cfgLabel } from './estilos'
-import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText, Loader2, Ruler, Save, Sparkles, Star, UserRound, AlertTriangle, Check} from 'lucide-react'
+import { Upload, X as IconX, Pill, ClipboardList, Printer, Loader2, Ruler, Save, Sparkles, Settings2, ChevronDown, UserRound, AlertTriangle, Check } from 'lucide-react'
 
 /*
   UNA SOLA FUENTE DE VERDAD PARA LOS VALORES POR DEFECTO DE LA RECETA.
@@ -42,7 +43,25 @@ import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText, Loader2, Ru
 const RX_DEFAULTS: RecetaConfig = DEFAULT_CONFIG.recetaConfig!
 
 
-export function RecetasTab({ clinicId }: { clinicId: string | null }) {
+/**
+ * LA FIRMA Y LA HOJA DE NOTAS ENTRAN COMO RANURAS, NO COMO IMPORTACIONES.
+ *
+ * Las dos secciones viven en `secciones-cuenta.tsx` y las monta
+ * `configuracion/page.tsx`, que es quien tiene el formulario en memoria. Antes
+ * se pintaban como hermanas de esta pestaña, debajo de todo. La firma es el
+ * paso 2 de tres, así que tiene que entrar DENTRO — y la única forma de hacerlo
+ * sin duplicar su lógica (subida, migración a `config/firma`, guardado por
+ * médico) es que la página la pase ya construida.
+ */
+export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
+  clinicId: string | null
+  /** La sección de firma, ya montada por la página (paso 2). */
+  firmaSlot?: React.ReactNode
+  /** ¿Hay alguna firma cargada? Sólo para marcar el paso como resuelto. */
+  firmaLista?: boolean
+  /** La hoja membretada de las notas (va en «Ajustes avanzados»). */
+  notasSlot?: React.ReactNode
+}) {
   const { config, loading: configLoading } = useConfig()
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
@@ -84,6 +103,51 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
   const [rx, setRx] = useState<RecetaConfig>({ ...RX_DEFAULTS })
 
+  /**
+   * CAMBIOS SIN GUARDAR — porque el botón de guardar estaba al final de una
+   * pantalla larguísima.
+   *
+   * El Dr. reportó dos veces «no se guarda». Las dos veces se había guardado
+   * o no se había pulsado el botón, que vivía tras varias pantallas de scroll.
+   * Ahora la barra de guardado sólo aparece cuando hay algo que guardar, se
+   * queda pegada abajo y dice qué falta.
+   *
+   * `actualizar` es el ÚNICO camino por el que la pantalla toca `rx`: si
+   * alguien vuelve a llamar a `setRx` desde un control, la barra no aparecerá
+   * y el cambio se perderá al recargar. Por eso el nombre corto es el correcto
+   * y `setRx` queda para la carga y el guardado.
+   */
+  const [sucio, setSucio] = useState(false)
+  const actualizar = (
+    patch: Partial<RecetaConfig> | ((prev: RecetaConfig) => RecetaConfig),
+  ) => {
+    setSucio(true)
+    actualizar(prev => (typeof patch === 'function' ? patch(prev) : { ...prev, ...patch }))
+  }
+
+  // Lo que la subida del formato dejó resuelto sola, para poder decirlo.
+  const [detectandoCampos, setDetectandoCampos] = useState(false)
+  const [camposDetectados, setCamposDetectados] = useState<number | null>(null)
+
+  // Los tres pasos. `pruebaOk` no se persiste a propósito: declarar una
+  // colección nueva cuesta tres sitios (reglas, matriz, respaldo) y esto es
+  // una marca de sesión, no un dato clínico.
+  const [pruebaOk, setPruebaOk] = useState(false)
+  const [verArreglos, setVerArreglos] = useState(false)
+  const [verCalibrador, setVerCalibrador] = useState(false)
+  const [verAvanzados, setVerAvanzados] = useState(false)
+  const [sinPapelPropio, setSinPapelPropio] = useState(false)
+
+  /**
+   * El botón de imprimir vive en el paso 3, pero la impresión la sabe hacer la
+   * vista previa —es la que conoce las dimensiones ya orientadas al diseño y el
+   * nodo que se manda al papel—. En vez de duplicar ese cálculo, la vista previa
+   * deja aquí su función y el paso 3 la llama. Duplicarlo sería exactamente el
+   * defecto que la vista previa arregló en su día: dos caminos de impresión, y
+   * el que se prueba no es el que recibe el paciente.
+   */
+  const imprimirPruebaRef = useRef<() => void>(() => {})
+
   // Carga la plantilla del médico seleccionado. SOLO se recarga cuando CAMBIA el
   // médico (o en la primera carga) — NUNCA en cada update del listener en vivo, que
   // borraba lo que el médico movía sin guardar (QR, firma, márgenes…).
@@ -94,6 +158,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
     rxKeyRef.current = medicoSel
     const base = { ...RX_DEFAULTS, ...(config?.recetaConfig ?? {}) }
     setRx(medicoSel ? { ...base, ...(config?.recetasPorMedico?.[medicoSel] ?? {}) } : base)
+    setSucio(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [medicoSel, configLoading])
 
@@ -187,6 +252,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
       if (!medicoSel) {
         await saveConfig(clinicId, { ...baseConfig, recetaConfig: rxSano })
         setRx(rxSano)
+        setSucio(false)
         await confirmarQueQuedo(rxSano, '')
       } else {
         // El override del médico guarda TODO el rx editado — al cargar se
@@ -196,6 +262,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           recetasPorMedico: { ...porMedicoSano, [medicoSel]: rxSano },
         })
         setRx(rxSano)
+        setSucio(false)
         await confirmarQueQuedo(rxSano, medicoSel)
       }
     } catch (e) {
@@ -224,7 +291,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
       // Con Storage: sube y guarda la URL (no infla el documento). Sin Storage: base64 con tope.
       if (storage && auth.currentUser?.uid) {
         const url = await aStorageSiEsBase64(dataUrl, campo === 'membreteDataUrl' ? 'membrete' : 'pie')
-        setRx({ ...rx, [campo]: url })
+        actualizar({ [campo]: url })
         toast('Imagen cargada', 'success')
         return
       }
@@ -232,7 +299,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
         toast(`Imagen muy grande (${formatBytes(sizeBytes)}). Intenta con una más chica o menos detallada.`, 'error')
         return
       }
-      setRx({ ...rx, [campo]: dataUrl })
+      actualizar({ [campo]: dataUrl })
       toast(`Imagen cargada (${formatBytes(sizeBytes)})`, 'success')
     } catch (e) {
       toast(`No se pudo procesar: ${(e as Error).message}`, 'error')
@@ -262,7 +329,6 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
     setProgresoDiseno('Iniciando…')
     try {
       let dataUrl: string
-      let sizeBytes: number
       let widthMm: number | null = null
       let heightMm: number | null = null
 
@@ -311,7 +377,6 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
          */
         const reducido = await reducirDataUrlSiPesa(result.dataUrl, 2_500_000, 'image/png')
         dataUrl = reducido.dataUrl
-        sizeBytes = reducido.sizeBytes
         widthMm = result.widthMm
         heightMm = result.heightMm
       } else if (file.type.startsWith('image/')) {
@@ -322,7 +387,6 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           type: file.type === 'image/png' ? 'image/png' : 'image/jpeg',
         })
         dataUrl = result.dataUrl
-        sizeBytes = result.sizeBytes
         // Aproximamos el tamaño mm asumiendo 96 DPI (escaneados típicos)
         widthMm = (result.width * 25.4) / 96
         heightMm = (result.height * 25.4) / 96
@@ -350,19 +414,45 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
         }
       }
 
-      setRx({
-        ...rx,
+      actualizar({
         disenoCompletoDataUrl: srcFinal,
         paperSize: nuevoPaperSize,
         // Dimensiones EXACTAS del membrete → la hoja las usa para que la imagen la
         // llene sin bordes blancos y los datos calibrados caigan en su sitio.
         ...(widthMm && heightMm ? { disenoWidthMm: Math.round(widthMm), disenoHeightMm: Math.round(heightMm) } : {}),
       })
-      const nitido = ' · alta resolución'
       if (auto) {
-        toast(`Diseño cargado (${formatBytes(sizeBytes)})${nitido} · papel ajustado a ${PAPER_SIZES[nuevoPaperSize].label}`, 'success')
+        toast(`Tu formato quedó cargado · papel ajustado a ${PAPER_SIZES[nuevoPaperSize].label}`, 'success')
       } else {
-        toast(`Diseño cargado (${formatBytes(sizeBytes)})${nitido}`, 'success')
+        toast('Tu formato quedó cargado', 'success')
+      }
+
+      /*
+        Y AHORA LO QUE ANTES ERA UN CLIC QUE NADIE ENCONTRABA.
+
+        Colocar Nombre, Edad, Fecha… era el paso donde el Dr. dijo que sus
+        clientes se batallan. La pantalla ya sabía hacerlo sola —el botón
+        «Detectar los campos» existía desde hace meses— pero había que verlo,
+        entenderlo y pulsarlo, dentro de una tarjeta que sólo aparecía DESPUÉS
+        de subir. Se lanza aquí, sin pedir permiso: el resultado es visible y
+        cada etiqueta se puede arrastrar, así que no viola «nada cambia en
+        silencio» — no hay nada previo que sobrescribir.
+
+        Si falla, no se dice nada: el médico ve las etiquetas sin colocar y el
+        botón para reintentar. Un aviso de error en mitad de una subida que sí
+        funcionó sólo asusta.
+      */
+      setDetectandoCampos(true)
+      const alto = PAPER_SIZES[nuevoPaperSize]?.heightMm
+      const leido = await detectarCamposDelDiseno(srcFinal, heightMm ?? alto)
+      setDetectandoCampos(false)
+      if (leido) {
+        actualizar(prev => ({
+          ...prev,
+          disenoCampos: { ...(prev.disenoCampos ?? {}), ...leido.campos },
+          ...(leido.margenes ? { disenoMargenes: leido.margenes } : {}),
+        }))
+        setCamposDetectados(Object.keys(leido.campos).length)
       }
     } catch (e) {
       console.error('[disenoCompleto] error:', e)
@@ -380,98 +470,134 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
   const soyDoctor = doctores.find(d => d.email && d.email === auth.currentUser?.email)
   const medicoUnico = soyDoctor ?? (doctores.length === 1 ? doctores[0] : undefined)
 
+  // El paso 1 está resuelto con papel propio subido, con un membrete cargado o
+  // cuando el médico declara que no tiene papel impreso. No se marca solo por
+  // haber entrado: un paso que se da por hecho sin que nadie haga nada no es un
+  // paso, es un adorno.
+  const paso1Listo = !!rx.disenoCompletoDataUrl || !!rx.membreteDataUrl || sinPapelPropio
+  // Un guardado que el servidor aceptó pero que la verificación desmintió deja
+  // la barra puesta: si no, el médico se queda con un aviso rojo y sin botón.
+  const hayQueGuardar = sucio || (!!resultado && !resultado.ok)
+
   return (
     <div className="recetas-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 20, alignItems: 'start' }}>
-      {/* Editor */}
-      <div style={{ display: 'grid', gap: 16, minWidth: 0 }}>
+      {/* Los tres pasos. Todo lo demás vive plegado. */}
+      <div style={{ display: 'grid', gap: 14, minWidth: 0 }}>
 
-        {/* Guía en el sitio donde se configura (no en otra pantalla). Abierta
-            mientras no haya nada puesto; plegada en cuanto ya está resuelto. */}
-        <GuiaConfigurarReceta
-          yaConfigurado={!!rx.disenoCompletoDataUrl || !!rx.membreteDataUrl}
-        />
+        {/*
+          A QUIÉN LE ESTOY CONFIGURANDO LA RECETA — sólo cuando hay más de uno.
 
-        {/* Cada médico su propia receta. Si entras con TU cuenta, editas la tuya
-            (sin dropdown de otros). Solo un admin sin ficha de médico ve el selector. */}
-        {doctores.length > 0 && (
+          Esto era una tarjeta con marco propio, en la que un médico solo, en su
+          consultorio, leía «Tu receta · Dr. Fulano» y debajo «cada médico tiene
+          la suya, estos cambios aplican SOLO a este médico». Una respuesta
+          completa a una pregunta que nadie con un único médico se hace, ocupando
+          el sitio del primer paso.
+
+          Con dos o más médicos la pregunta sí existe —y con ella el riesgo real
+          de configurarle la receta a otro—, así que ahí se dice, y en el caso del
+          admin sin ficha se ofrece el selector.
+        */}
+        {doctores.length > 1 && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
             padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--border2)', borderRadius: 10,
           }}>
             {medicoUnico ? (
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Tu receta · {medicoUnico.nombre}</span>
+              <span style={{ fontSize: 12, color: 'var(--text2)' }}>
+                Estás configurando <strong>tu</strong> receta · {medicoUnico.nombre}. No afecta a la de los demás médicos.
+              </span>
             ) : (<>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Receta de:</span>
-            <select
-              value={medicoSel}
-              onChange={(e) => setMedicoSel(e.target.value)}
-              style={{ ...cfgInput, width: 'auto', minWidth: 220 }}
-            >
-              {doctores.map(d => (
-                <option key={d.id} value={d.id}>{d.nombre}{config?.recetasPorMedico?.[d.id] ? ' · personalizada' : ''}</option>
-              ))}
-            </select>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Receta de:</span>
+              <select
+                aria-label="Médico al que aplica esta receta"
+                value={medicoSel}
+                onChange={(e) => setMedicoSel(e.target.value)}
+                style={{ ...cfgInput, width: 'auto', minWidth: 220 }}
+              >
+                {doctores.map(d => (
+                  <option key={d.id} value={d.id}>{d.nombre}{config?.recetasPorMedico?.[d.id] ? ' · personalizada' : ''}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 10.5, color: 'var(--text3)', flexBasis: '100%' }}>
+                Cada médico tiene su propia receta: esto aplica SOLO a las recetas y órdenes de quien elijas.
+              </span>
             </>)}
-            <span style={{ fontSize: 11, color: 'var(--text3)', flexBasis: '100%' }}>
-              Cada médico tiene su propia receta. Estos cambios aplican SOLO a las recetas y órdenes de este médico.
-            </span>
           </div>
         )}
 
-        {/* MODO TU PROPIO DISEÑO — primera sección, destacada */}
-        <div style={{
-          background: 'var(--nexus-soft)',
-          border: '1px solid color-mix(in srgb, var(--nexus) 40%, transparent)',
-          borderRadius: 10, padding: 16,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Star size={15} className="ds-icon" /> Usa TU propia receta
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 2 }}>
-                Sube tu diseño actual (PDF o imagen). Lo usamos como fondo y solo
-                sobreponemos los datos del paciente, Rx, indicaciones y firma.
-              </div>
-            </div>
-            {rx.disenoCompletoDataUrl && (
-              <span style={{
-                fontSize: 10.5, fontWeight: 700, padding: '4px 10px',
-                background: 'var(--nexus-solido)', color: '#fff', borderRadius: 'var(--r-pill)',
-              }}>
-                ACTIVO
-              </span>
-            )}
-          </div>
-
+        {/*
+          PASO 1 — el papel. Esta tarjeta se llamaba «Usa TU propia receta» y
+          venía la TERCERA, debajo de una guía de seis pasos y de un aviso de a
+          quién aplica. Es lo primero que hay que hacer: ahora es lo primero
+          que se ve, y ya no comparte sitio con nada.
+        */}
+        <Paso
+          n={1}
+          titulo="Tu papel de receta"
+          descripcion="Sube una foto o un PDF de la receta que ya usas. Queda de fondo y nosotros encimamos los datos del paciente, el tratamiento y tu firma."
+          listo={paso1Listo}
+        >
           {rx.disenoCompletoDataUrl ? (
-            <div style={{ position: 'relative', background: '#fff', borderRadius: 8, padding: 8, border: '1px solid var(--border)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={rx.disenoCompletoDataUrl}
-                alt="Diseño de receta"
-                style={{ width: '100%', maxHeight: 240, objectFit: 'contain', display: 'block' }}
-              />
-              <button
-                onClick={() => setRx(prev => ({
-                  // '' en vez de delete: Firestore con merge:true NO elimina
-                  // campos ausentes — el diseño viejo "reaparecía". Vacío SÍ
-                  // sobreescribe. (RecetaDocumento trata '' como sin diseño.)
-                  ...prev,
-                  disenoCompletoDataUrl: '',
-                  disenoMargenes: undefined,
-                  disenoSoloRx: false,
-                  disenoCampos: undefined,
-                }))}
-                style={{
-                  position: 'absolute', top: 12, right: 12,
-                  background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#fff', border: 'none',
-                  borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 600,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                }}
-              >
-                <IconX size={11} /> Quitar diseño
-              </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: 12, alignItems: 'start' }}>
+              <div style={{ background: '#fff', borderRadius: 6, padding: 6, border: '1px solid var(--border)' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={rx.disenoCompletoDataUrl} alt="Tu formato de receta"
+                  style={{ width: '100%', maxHeight: 150, objectFit: 'contain', display: 'block' }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                {/*
+                  LO QUE LA APP RESOLVIÓ SOLA, DICHO EN VOZ ALTA.
+
+                  Colocar Nombre, Edad, Fecha… era el trabajo que el Dr. señaló
+                  como el que más se batalla. Ya no se pide: se hace al subir. Y
+                  se cuenta aquí, porque una ayuda que actúa sin decirlo deja al
+                  médico sin saber si hacía falta revisar algo.
+                */}
+                {detectandoCampos ? (
+                  <div style={{ fontSize: 12, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                    Leyendo tu formato para colocar los datos…
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+                    Papel de {Math.round(rx.disenoWidthMm ?? PAPER_SIZES[rx.paperSize ?? 'media-carta'].widthMm)} ×{' '}
+                    {Math.round(rx.disenoHeightMm ?? PAPER_SIZES[rx.paperSize ?? 'media-carta'].heightMm)} mm.{' '}
+                    {camposDetectados !== null
+                      ? `Colocamos ${camposDetectados} dato(s) sobre tu formato — compruébalo en la vista previa.`
+                      : 'Comprueba en la vista previa que los datos caigan en su sitio.'}
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setVerCalibrador(v => !v)}
+                    className="btn btn-secondary btn-sm"
+                    aria-expanded={verCalibrador}
+                  >
+                    <UserRound size={13} /> {verCalibrador ? 'Ocultar los datos' : 'Ajustar dónde caen los datos'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCamposDetectados(null)
+                      setVerCalibrador(false)
+                      actualizar(prev => ({
+                        // '' en vez de delete: Firestore con merge:true NO elimina
+                        // campos ausentes — el diseño viejo "reaparecía". Vacío SÍ
+                        // sobreescribe. (RecetaDocumento trata '' como sin diseño.)
+                        ...prev,
+                        disenoCompletoDataUrl: '',
+                        disenoMargenes: undefined,
+                        disenoSoloRx: false,
+                        disenoCampos: undefined,
+                      }))
+                    }}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    <IconX size={13} /> Quitar
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <label style={{
@@ -482,18 +608,20 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
             }}>
               {subiendoDiseno ? (
                 <>
-                  <Loader2 size={22} style={{ animation: 'spin 1s linear infinite', marginBottom: 6 }} />
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{progresoDiseno || 'Procesando…'}</div>
+                  <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', marginBottom: 6 }} />
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{progresoDiseno || 'Procesando…'}</div>
                   <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6 }}>
-                    La primera vez puede tardar 5-15 seg (descarga la librería PDF).
-                    Si pasa de 1 minuto, intenta subir tu PDF como imagen PNG.
+                    La primera vez puede tardar unos segundos.
                   </div>
                 </>
               ) : (
                 <>
-                  <Upload size={22} style={{ marginBottom: 6, color: 'var(--teal)' }} />
+                  <Upload size={20} style={{ marginBottom: 6, color: 'var(--nexus)' }} />
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Sube tu receta</div>
-                  <div style={{ fontSize: 11.5, marginTop: 4 }}>PDF o imagen PNG/JPG · Recomendado: tu receta en blanco con logo y datos</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>PDF o foto (PNG/JPG) · en blanco, con tu logo y tus datos</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6 }}>
+                    Medimos tu hoja y colocamos los datos solos.
+                  </div>
                 </>
               )}
               <input
@@ -506,97 +634,53 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
             </label>
           )}
 
-          {/* Calibrador VISUAL: arrastra cada dato a su lugar exacto en TU formato */}
-          {rx.disenoCompletoDataUrl && (
-            <div style={{ marginTop: 12, padding: 12, background: 'rgba(0,0,0,0.15)', borderRadius: 8 }}>
+          {/* Sin papel propio no hay nada que subir, y decirlo CIERRA el paso: si
+              no, la tarjeta se queda marcada como pendiente para siempre. */}
+          {!rx.disenoCompletoDataUrl && (
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, fontSize: 12, color: 'var(--text2)', cursor: 'pointer', lineHeight: 1.5 }}>
+              <input
+                type="checkbox"
+                checked={sinPapelPropio}
+                onChange={(e) => {
+                  setSinPapelPropio(e.target.checked)
+                  // Sin papel propio, lo único que queda por decidir es el
+                  // aspecto del que genera la app — así que se abre solo. Un
+                  // consejo que dice «ve a otro sitio» cuesta el mismo clic que
+                  // no dárselo, y encima hay que encontrarlo.
+                  if (e.target.checked) setVerAvanzados(true)
+                }}
+                style={{ width: 16, height: 16, marginTop: 1, accentColor: 'var(--nexus)' }}
+              />
+              <span>
+                No tengo receta impresa — usen un encabezado con los datos de mi consultorio.
+                {sinPapelPropio && ' Abajo, en «Ajustes avanzados», eliges el estilo y el color.'}
+              </span>
+            </label>
+          )}
+
+          {verCalibrador && rx.disenoCompletoDataUrl && (
+            <div style={{ marginTop: 12, padding: 12, background: 'var(--s2)', borderRadius: 10, border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <UserRound size={14} className="ds-icon" /> Coloca cada dato en tu formato
+                <UserRound size={14} className="ds-icon" /> Ajustar dónde caen los datos
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
-                Arrastra <strong>Nombre, Edad, F. nacimiento, Sexo, Fecha, Folio, Firma/sello y QR</strong> al lugar EXACTO de tu receta.
-                Si tu formato ya los trae impresos, déjalos sin colocar. (El cuerpo de Rx usa los márgenes de abajo.)
+                Ya los colocamos al subir tu formato. Si alguno no cayó donde debía, arrástralo:
+                Arrastra <strong>Nombre, Edad, F. nacimiento, Sexo, Fecha, Folio, Firma/sello y QR</strong> al lugar
+                EXACTO de tu receta, y quita con ✕ los que tu papel no lleve.
               </div>
               <CalibradorReceta
                 disenoUrl={rx.disenoCompletoDataUrl}
                 campos={rx.disenoCampos}
-                onChange={(c) => setRx({ ...rx, disenoCampos: c })}
+                onChange={(c) => actualizar({ disenoCampos: c })}
                 paperHeightMm={PAPER_SIZES[rx.paperSize ?? 'media-carta'].heightMm}
-                onDetectado={(campos, margenes) => setRx(prev => ({
+                onDetectado={(campos, margenes) => actualizar(prev => ({
                   ...prev,
                   disenoCampos: campos,
                   ...(margenes ? { disenoMargenes: margenes } : {}),
                 }))}
               />
-              {/* Tamaños de firma/sello y QR (mm) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
-                <div>
-                  <label style={cfgLabel}>Tamaño firma / sello: {rx.disenoTamanos?.firma ?? 20} mm</label>
-                  <input type="range" min={10} max={50} step={1} value={rx.disenoTamanos?.firma ?? 20}
-                    onChange={(e) => setRx({ ...rx, disenoTamanos: { ...rx.disenoTamanos, firma: Number(e.target.value) } })}
-                    style={{ width: '100%' }} />
-                </div>
-                <div>
-                  <label style={cfgLabel}>Tamaño QR: {rx.disenoTamanos?.qr ?? 14} mm</label>
-                  <input type="range" min={8} max={40} step={1} value={rx.disenoTamanos?.qr ?? 14}
-                    onChange={(e) => setRx({ ...rx, disenoTamanos: { ...rx.disenoTamanos, qr: Number(e.target.value) } })}
-                    style={{ width: '100%' }} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Calibración de márgenes — solo cuando hay diseño */}
-          {rx.disenoCompletoDataUrl && (
-            <div style={{ marginTop: 12, padding: 12, background: 'rgba(0,0,0,0.15)', borderRadius: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Ruler size={14} className="ds-icon" /> Ajuste fino del área de contenido (mm)
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
-                Lo más fácil: <strong>arrastra el recuadro</strong> de la vista previa y <strong>jala sus bordes</strong>.
-                Estos números son para afinar al milímetro si lo necesitas.
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                <MargenInput label="Arriba" value={rx.disenoMargenes?.top ?? 35} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), top: v } })} />
-                <MargenInput label="Abajo" value={rx.disenoMargenes?.bottom ?? 30} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), bottom: v } })} />
-                <MargenInput label="Izquierda" value={rx.disenoMargenes?.left ?? 12} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), left: v } })} />
-                <MargenInput label="Derecha" value={rx.disenoMargenes?.right ?? 12} onChange={(v) => setRx({ ...rx, disenoMargenes: { ...defaultMargenes(rx), right: v } })} />
-              </div>
-
-              {/*
-                Aviso ANTES de imprimir. Con márgenes que suman más que la hoja, el
-                área de contenido colapsa y —como cada hoja tiene overflow:hidden—
-                los medicamentos desaparecen del papel sin ningún error. El médico
-                se enteraba al entregarle una receta en blanco al paciente.
-              */}
-              {(() => {
-                const m = rx.disenoMargenes ?? defaultMargenes(rx)
-                const w = rx.disenoWidthMm ?? 140
-                const h = rx.disenoHeightMm ?? 190
-                if (!areaImpracticable(w, h, m)) return null
-                return (
-                  <div style={{
-                    marginTop: 10, background: 'color-mix(in srgb, var(--red) 8%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', borderRadius: 10,
-                    padding: '10px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--text)',
-                  }}>
-                    <strong>Estos márgenes no dejan espacio para los medicamentos.</strong>{' '}
-                    Suman más que la hoja ({w}×{h} mm), así que la receta saldría sin el
-                    tratamiento. Reduce Arriba o Abajo.
-                  </div>
-                )
-              })()}
-              <div style={{ marginTop: 10 }}>
-                <label style={cfgLabel}>Tamaño de letra del contenido (px)</label>
-                <input
-                  type="range" min={8} max={16} step={0.5}
-                  value={rx.disenoFontSize ?? 11}
-                  onChange={(e) => setRx({ ...rx, disenoFontSize: parseFloat(e.target.value) })}
-                  style={{ width: '100%' }}
-                />
-                <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right' }}>{rx.disenoFontSize ?? 11}px</div>
-              </div>
-
-              {/* Toggle "Solo Rx" — para diseños que ya tienen campos pre-impresos */}
+              {/* La pregunta que va JUSTO aquí: si el papel ya trae las líneas
+                  impresas, colocarlas otra vez las duplica sobre el original. */}
               <label style={{
                 display: 'flex', alignItems: 'center', gap: 10, marginTop: 12,
                 padding: 10, background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', borderRadius: 6,
@@ -605,128 +689,285 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 <input
                   type="checkbox"
                   checked={rx.disenoSoloRx === true}
-                  onChange={(e) => setRx({ ...rx, disenoSoloRx: e.target.checked })}
-                  style={{ width: 16, height: 16, accentColor: 'var(--teal)' }}
+                  onChange={(e) => actualizar({ disenoSoloRx: e.target.checked })}
+                  style={{ width: 16, height: 16, accentColor: 'var(--nexus)' }}
                 />
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
-                    Mi diseño ya tiene campos del paciente impresos
+                    Mi papel ya trae los datos del paciente
                   </div>
                   <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2, lineHeight: 1.4 }}>
-                    Si tu receta tiene líneas pre-impresas para Nombre, Edad, Fecha, etc.,
-                    activa esto. Solo se sobreponen los medicamentos / estudios en la zona libre.
+                    Si tu receta ya trae líneas impresas para Nombre, Edad, Fecha…, activa esto:
+                    sólo se encima el tratamiento en la zona libre de tu papel.
                   </div>
                 </div>
               </label>
-            </div>
-          )}
-        </div>
 
-        {/* Tamaño de papel — SOLO recetas y órdenes. Las notas van SIEMPRE en carta
-            (PAPEL_NOTA) y no leen nada de aquí: son ajustes independientes. */}
-        <Grupo n={1} t="El papel" d="En qué hoja se imprime. Empieza por aquí: el resto de los ajustes se acomodan al tamaño que elijas." />
-        <Section title="Tamaño de papel">
-          <select
-            value={rx.paperSize}
-            /**
-             * El tamaño elegido MANDA. Si hay un diseño propio subido, sus medidas
-             * se re-encajan al tamaño elegido: antes el diseño ganaba en silencio y
-             * elegir un tamaño no hacía nada visible (el Dr. elegía 25 × 15 y seguía
-             * saliendo A5, sin explicación).
-             */
-            onChange={(e) => {
-              const nuevo = e.target.value as PaperSizeT
-              // En 'personalizado' manda lo que el médico ya escribió (si es usable).
-              const p = (nuevo === 'personalizado'
-                ? papelPersonalizado(rx.paperCustomWidthMm, rx.paperCustomHeightMm)
-                : null) ?? PAPER_SIZES[nuevo]
-              setRx({
-                ...rx,
-                paperSize: nuevo,
-                ...(rx.disenoCompletoDataUrl ? { disenoWidthMm: p.widthMm, disenoHeightMm: p.heightMm } : {}),
-              })
-            }}
-            style={cfgInput}
-          >
-            {(Object.keys(PAPER_SIZES) as PaperSizeT[]).map(k => (
-              <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
-            ))}
-          </select>
-          {/* Medidas propias — para cualquier formato que no esté en la lista. */}
-          {rx.paperSize === 'personalizado' && (() => {
-            const w = rx.paperCustomWidthMm ?? 230
-            const h = rx.paperCustomHeightMm ?? 130
-            const valido = !!papelPersonalizado(w, h)
-            const set = (nw: number, nh: number) => setRx({
-              ...rx,
-              paperCustomWidthMm: nw,
-              paperCustomHeightMm: nh,
-              // Si hay diseño propio subido, se re-encaja a la medida escrita:
-              // si no, el diseño mandaría y escribir las medidas no haría nada.
-              ...(rx.disenoCompletoDataUrl && papelPersonalizado(nw, nh)
-                ? { disenoWidthMm: Math.round(nw), disenoHeightMm: Math.round(nh) }
-                : {}),
-            })
-            return (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={cfgLabel}>Ancho (mm)</div>
-                    <input type="number" min={PAPEL_MIN_MM} max={PAPEL_MAX_MM} value={w}
-                      onChange={(e) => set(Number(e.target.value), h)} style={cfgInput} />
-                  </div>
-                  <div style={{ paddingBottom: 10, color: 'var(--text3)' }}>×</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={cfgLabel}>Alto (mm)</div>
-                    <input type="number" min={PAPEL_MIN_MM} max={PAPEL_MAX_MM} value={h}
-                      onChange={(e) => set(w, Number(e.target.value))} style={cfgInput} />
-                  </div>
+              {/* Tamaños de firma/sello y QR (mm) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                <div>
+                  <label style={cfgLabel}>Tamaño firma / sello: {rx.disenoTamanos?.firma ?? 20} mm</label>
+                  <input type="range" min={10} max={50} step={1} value={rx.disenoTamanos?.firma ?? 20}
+                    onChange={(e) => actualizar({ disenoTamanos: { ...rx.disenoTamanos, firma: Number(e.target.value) } })}
+                    style={{ width: '100%' }} />
                 </div>
-                <div style={{ fontSize: 11, marginTop: 6, color: valido ? 'var(--text3)' : 'var(--red)' }}>
-                  {valido
-                    ? `Tu receta mide ${(w / 10).toFixed(1)} × ${(h / 10).toFixed(1)} cm. Mídela con regla, de borde a borde.`
-                    : `Medidas fuera de rango (${PAPEL_MIN_MM}–${PAPEL_MAX_MM} mm). Se usará 23 × 13 cm mientras tanto.`}
+                <div>
+                  <label style={cfgLabel}>Tamaño QR: {rx.disenoTamanos?.qr ?? 14} mm</label>
+                  <input type="range" min={8} max={40} step={1} value={rx.disenoTamanos?.qr ?? 14}
+                    onChange={(e) => actualizar({ disenoTamanos: { ...rx.disenoTamanos, qr: Number(e.target.value) } })}
+                    style={{ width: '100%' }} />
                 </div>
               </div>
-            )
-          })()}
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
-            Solo para <strong>recetas y órdenes médicas</strong>.
-          </div>
-        </Section>
+            </div>
+          )}
+        </Paso>
 
-        {/* Papel de las NOTAS — ajuste PROPIO e independiente del de la receta. */}
-        <Section title="Tamaño de papel de las notas">
-          <select
-            value={rx.notaPaperSize ?? 'carta'}
-            onChange={(e) => setRx({ ...rx, notaPaperSize: e.target.value as NotaPaperSizeT })}
-            style={cfgInput}
-          >
-            {NOTA_PAPER_SIZES.map(k => (
-              <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
-            ))}
-          </select>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
-            Notas de evolución, ingreso y egreso. Cambiarlo <strong>no</strong> afecta a la receta.
-          </div>
-        </Section>
+        {/*
+          PASO 2 — la firma. Vivía en una tarjeta suelta al final de la pantalla,
+          con su propio encabezado y su propio consejo, detrás de nueve tarjetas
+          de ajustes. Es el segundo de los tres pasos que hay: va aquí.
+        */}
+        <Paso
+          n={2}
+          titulo="Tu firma y tu sello"
+          descripcion="Aparece sobre la línea de firma de tus recetas, órdenes y notas. Se guarda sola al subirla."
+          listo={firmaLista}
+        >
+          {firmaSlot}
+        </Paso>
 
-        {/* Dónde se imprime físicamente — resuelve "no se imprime en formato receta".
-            Se oculta cuando la hoja NO cabe en carta (p. ej. la receta continua
-            apaisada de 25 × 15 cm, más ancha que la carta): ahí no hay elección
-            que hacer, se imprime a su tamaño real al 100 %. */}
-        {rx.paperSize !== 'carta' && rx.paperSize !== 'oficio' && admiteHojaCarta(rx) && (
-          <Section title="¿En qué papel imprime tu impresora?">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {([
-                { valor: 'carta' as const, titulo: 'Hoja carta + corte (recomendado)', desc: 'Funciona con CUALQUIER impresora. La receta sale arriba de la hoja carta con línea punteada para recortar.' },
-                { valor: 'papel-real' as const, titulo: 'Papel de receta exacto', desc: `Solo si tu impresora tiene cargado papel ${PAPER_SIZES[rx.paperSize].label.split(' (')[0].toLowerCase()}. Ojo: el diálogo de impresión debe ofrecer ese tamaño.` },
-              ]).map(op => {
-                const activo = (rx.imprimirEn ?? 'carta') === op.valor
+        {/*
+          PASO 3 — la prueba. Es el único paso que dice si los dos anteriores
+          sirvieron, y hasta hoy era un botón pequeño encima de la vista previa.
+        */}
+        <Paso
+          n={3}
+          titulo="Imprime una prueba"
+          descripcion="Sale una receta de ejemplo, a tamaño real. Compárala contra tu papel ANTES de usarla con un paciente."
+          listo={pruebaOk}
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            <button type="button" onClick={() => imprimirPruebaRef.current()} className="btn btn-primary">
+              <Printer size={14} /> Imprimir una prueba
+            </button>
+            <span style={{ fontSize: 12, color: 'var(--text3)' }}>¿Salió igual que tu papel?</span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => { setPruebaOk(true); setVerArreglos(false) }}
+            >
+              <Check size={13} /> Sí, ya quedó
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              aria-expanded={verArreglos}
+              onClick={() => { setPruebaOk(false); setVerArreglos(v => !v) }}
+            >
+              No cuadró
+            </button>
+          </div>
+
+          {/* Los arreglos sólo salen cuando algo falló. Tres averías con su
+              causa, y debajo los DOS controles que las resuelven. */}
+          {verArreglos && (
+            <div style={{ display: 'grid', gap: 14, marginTop: 14 }}>
+              <GuiaConfigurarReceta />
+
+              {/* Dónde se imprime físicamente — resuelve "no se imprime en formato receta".
+                  Se oculta cuando la hoja NO cabe en carta (p. ej. la receta continua
+                  apaisada de 25 × 15 cm, más ancha que la carta): ahí no hay elección
+                  que hacer, se imprime a su tamaño real al 100 %. */}
+              {rx.paperSize !== 'carta' && rx.paperSize !== 'oficio' && admiteHojaCarta(rx) && (
+                <Section title="¿En qué papel imprime tu impresora?">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {([
+                      { valor: 'carta' as const, titulo: 'Hoja carta + corte (recomendado)', desc: 'Funciona con CUALQUIER impresora. La receta sale arriba de la hoja carta con línea punteada para recortar.' },
+                      { valor: 'papel-real' as const, titulo: 'Papel de receta exacto', desc: `Solo si tu impresora tiene cargado papel ${PAPER_SIZES[rx.paperSize].label.split(' (')[0].toLowerCase()}. Ojo: el diálogo de impresión debe ofrecer ese tamaño.` },
+                    ]).map(op => {
+                      const activo = (rx.imprimirEn ?? 'carta') === op.valor
+                      return (
+                        <button
+                          key={op.valor}
+                          onClick={() => actualizar({ imprimirEn: op.valor })}
+                          style={{
+                            padding: 12, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                            background: activo ? 'var(--nexus-soft)' : 'var(--s2)',
+                            border: activo ? '1px solid var(--teal)' : '1px solid var(--border)',
+                            color: activo ? 'var(--teal)' : 'var(--text2)',
+                          }}
+                        >
+                          <div style={{ fontSize: 13, fontWeight: 700 }}>{op.titulo}</div>
+                          <div style={{ fontSize: 10.5, marginTop: 3, lineHeight: 1.35 }}>{op.desc}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Section>
+              )}
+
+              {rx.disenoCompletoDataUrl && (
+                <div style={{ padding: 12, background: 'var(--s2)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Ruler size={14} className="ds-icon" /> Dónde cae el texto (mm)
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
+                    Lo más fácil: <strong>arrastra el recuadro</strong> de la vista previa y <strong>jala sus bordes</strong>.
+                    Estos números son para afinar al milímetro.
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                    <MargenInput label="Arriba" value={rx.disenoMargenes?.top ?? 35} onChange={(v) => actualizar({ disenoMargenes: { ...defaultMargenes(rx), top: v } })} />
+                    <MargenInput label="Abajo" value={rx.disenoMargenes?.bottom ?? 30} onChange={(v) => actualizar({ disenoMargenes: { ...defaultMargenes(rx), bottom: v } })} />
+                    <MargenInput label="Izquierda" value={rx.disenoMargenes?.left ?? 12} onChange={(v) => actualizar({ disenoMargenes: { ...defaultMargenes(rx), left: v } })} />
+                    <MargenInput label="Derecha" value={rx.disenoMargenes?.right ?? 12} onChange={(v) => actualizar({ disenoMargenes: { ...defaultMargenes(rx), right: v } })} />
+                  </div>
+
+                  {/*
+                    Aviso ANTES de imprimir. Con márgenes que suman más que la hoja, el
+                    área de contenido colapsa y —como cada hoja tiene overflow:hidden—
+                    los medicamentos desaparecen del papel sin ningún error. El médico
+                    se enteraba al entregarle una receta en blanco al paciente.
+                  */}
+                  {(() => {
+                    const m = rx.disenoMargenes ?? defaultMargenes(rx)
+                    const w = rx.disenoWidthMm ?? 140
+                    const h = rx.disenoHeightMm ?? 190
+                    if (!areaImpracticable(w, h, m)) return null
+                    return (
+                      <div style={{
+                        marginTop: 10, background: 'color-mix(in srgb, var(--red) 8%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', borderRadius: 10,
+                        padding: '10px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--text)',
+                      }}>
+                        <strong>Estos márgenes no dejan espacio para los medicamentos.</strong>{' '}
+                        Suman más que la hoja ({w}×{h} mm), así que la receta saldría sin el
+                        tratamiento. Reduce Arriba o Abajo.
+                      </div>
+                    )
+                  })()}
+                  <div style={{ marginTop: 10 }}>
+                    <label style={cfgLabel}>Tamaño de letra del contenido (px)</label>
+                    <input
+                      type="range" min={8} max={16} step={0.5}
+                      value={rx.disenoFontSize ?? 11}
+                      onChange={(e) => actualizar({ disenoFontSize: parseFloat(e.target.value) })}
+                      style={{ width: '100%' }}
+                    />
+                    <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right' }}>{rx.disenoFontSize ?? 11}px</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Paso>
+
+        {/*
+          TODO LO DEMÁS, PLEGADO.
+
+          Son los cuatro bloques de siempre —el papel, cómo se ve, qué se imprime
+          y los datos legales—, en el mismo orden y con las mismas tarjetas. Lo
+          que cambia es que ya no están abiertos: nueve tarjetas de controles no
+          son el trabajo del médico el día que configura su receta; son la
+          excepción del día que quiere cambiar el color.
+        */}
+        <Avanzados abierto={verAvanzados} onToggle={() => setVerAvanzados(v => !v)}>
+          {/* Tamaño de papel — SOLO recetas y órdenes. Las notas van SIEMPRE en carta
+              (PAPEL_NOTA) y no leen nada de aquí: son ajustes independientes. */}
+          <Grupo n={1} t="El papel" d="En qué hoja se imprime. Empieza por aquí: el resto de los ajustes se acomodan al tamaño que elijas." />
+          <Section title="Tamaño de papel">
+            <select
+              value={rx.paperSize}
+              /**
+               * El tamaño elegido MANDA. Si hay un diseño propio subido, sus medidas
+               * se re-encajan al tamaño elegido: antes el diseño ganaba en silencio y
+               * elegir un tamaño no hacía nada visible (el Dr. elegía 25 × 15 y seguía
+               * saliendo A5, sin explicación).
+               */
+              onChange={(e) => {
+                const nuevo = e.target.value as PaperSizeT
+                // En 'personalizado' manda lo que el médico ya escribió (si es usable).
+                const p = (nuevo === 'personalizado'
+                  ? papelPersonalizado(rx.paperCustomWidthMm, rx.paperCustomHeightMm)
+                  : null) ?? PAPER_SIZES[nuevo]
+                actualizar({
+                  paperSize: nuevo,
+                  ...(rx.disenoCompletoDataUrl ? { disenoWidthMm: p.widthMm, disenoHeightMm: p.heightMm } : {}),
+                })
+              }}
+              style={cfgInput}
+            >
+              {(Object.keys(PAPER_SIZES) as PaperSizeT[]).map(k => (
+                <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
+              ))}
+            </select>
+            {/* Medidas propias — para cualquier formato que no esté en la lista. */}
+            {rx.paperSize === 'personalizado' && (() => {
+              const w = rx.paperCustomWidthMm ?? 230
+              const h = rx.paperCustomHeightMm ?? 130
+              const valido = !!papelPersonalizado(w, h)
+              const set = (nw: number, nh: number) => actualizar({
+                paperCustomWidthMm: nw,
+                paperCustomHeightMm: nh,
+                // Si hay diseño propio subido, se re-encaja a la medida escrita:
+                // si no, el diseño mandaría y escribir las medidas no haría nada.
+                ...(rx.disenoCompletoDataUrl && papelPersonalizado(nw, nh)
+                  ? { disenoWidthMm: Math.round(nw), disenoHeightMm: Math.round(nh) }
+                  : {}),
+              })
+              return (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={cfgLabel}>Ancho (mm)</div>
+                      <input type="number" min={PAPEL_MIN_MM} max={PAPEL_MAX_MM} value={w}
+                        onChange={(e) => set(Number(e.target.value), h)} style={cfgInput} />
+                    </div>
+                    <div style={{ paddingBottom: 10, color: 'var(--text3)' }}>×</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={cfgLabel}>Alto (mm)</div>
+                      <input type="number" min={PAPEL_MIN_MM} max={PAPEL_MAX_MM} value={h}
+                        onChange={(e) => set(w, Number(e.target.value))} style={cfgInput} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, marginTop: 6, color: valido ? 'var(--text3)' : 'var(--red)' }}>
+                    {valido
+                      ? `Tu receta mide ${(w / 10).toFixed(1)} × ${(h / 10).toFixed(1)} cm. Mídela con regla, de borde a borde.`
+                      : `Medidas fuera de rango (${PAPEL_MIN_MM}–${PAPEL_MAX_MM} mm). Se usará 23 × 13 cm mientras tanto.`}
+                  </div>
+                </div>
+              )
+            })()}
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+              Solo para <strong>recetas y órdenes médicas</strong>.
+            </div>
+          </Section>
+
+          {/* Papel de las NOTAS — ajuste PROPIO e independiente del de la receta. */}
+          <Section title="Tamaño de papel de las notas">
+            <select
+              value={rx.notaPaperSize ?? 'carta'}
+              onChange={(e) => actualizar({ notaPaperSize: e.target.value as NotaPaperSizeT })}
+              style={cfgInput}
+            >
+              {NOTA_PAPER_SIZES.map(k => (
+                <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
+              ))}
+            </select>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+              Notas de evolución, ingreso y egreso. Cambiarlo <strong>no</strong> afecta a la receta.
+            </div>
+          </Section>
+
+          {/* Estilo visual */}
+          <Grupo n={2} t="Cómo se ve" d="Estilo, color y tu membrete. Es la parte que el paciente reconoce como tuya." />
+          <Section title="Estilo visual">
+            <div className="nx-stat-grid" style={{ gap: 8 }}>
+              {(Object.keys(ESTILOS_RECETA) as EstiloT[]).map(k => {
+                const activo = rx.estilo === k
                 return (
                   <button
-                    key={op.valor}
-                    onClick={() => setRx({ ...rx, imprimirEn: op.valor })}
+                    key={k}
+                    onClick={() => actualizar({ estilo: k })}
                     style={{
                       padding: 12, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
                       background: activo ? 'var(--nexus-soft)' : 'var(--s2)',
@@ -734,156 +975,134 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
                       color: activo ? 'var(--teal)' : 'var(--text2)',
                     }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{op.titulo}</div>
-                    <div style={{ fontSize: 10.5, marginTop: 3, lineHeight: 1.35 }}>{op.desc}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{ESTILOS_RECETA[k].label}</div>
+                    <div style={{ fontSize: 10.5, marginTop: 3, lineHeight: 1.3 }}>{ESTILOS_RECETA[k].descripcion}</div>
                   </button>
                 )
               })}
             </div>
           </Section>
-        )}
 
-        {/* Estilo visual */}
-        <Grupo n={2} t="Cómo se ve" d="Estilo, color y tu membrete. Es la parte que el paciente reconoce como tuya." />
-        <Section title="Estilo visual">
-          <div className="nx-stat-grid" style={{ gap: 8 }}>
-            {(Object.keys(ESTILOS_RECETA) as EstiloT[]).map(k => {
-              const activo = rx.estilo === k
-              return (
+          {/* Color de acento */}
+          <Section title="Color de acento (líneas, encabezado)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="color"
+                value={rx.colorAccento ?? '#14b8a6'}
+                onChange={(e) => actualizar({ colorAccento: e.target.value })}
+                style={{ width: 50, height: 36, border: '1px solid var(--border)', borderRadius: 6, padding: 2, cursor: 'pointer', background: 'var(--s2)' }}
+              />
+              <input
+                value={rx.colorAccento ?? '#14b8a6'}
+                onChange={(e) => actualizar({ colorAccento: e.target.value })}
+                style={{ ...cfgInput, width: 110, fontFamily: 'monospace' }}
+              />
+            </div>
+          </Section>
+
+          {/* Membrete */}
+          <Section title="Membrete (encabezado custom)">
+            <p style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
+              Sube una imagen del encabezado de tu papel membretado (logo, nombre, datos del consultorio).
+              Si no subes nada, se usa un encabezado generado con los datos de tu clínica.
+            </p>
+            {rx.membreteDataUrl ? (
+              <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={rx.membreteDataUrl} alt="Membrete" style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto', background: '#fff' }} />
                 <button
-                  key={k}
-                  onClick={() => setRx({ ...rx, estilo: k })}
-                  style={{
-                    padding: 12, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                    background: activo ? 'var(--nexus-soft)' : 'var(--s2)',
-                    border: activo ? '1px solid var(--teal)' : '1px solid var(--border)',
-                    color: activo ? 'var(--teal)' : 'var(--text2)',
-                  }}
+                  onClick={() => actualizar({ membreteDataUrl: '' })}
+                  style={{ position: 'absolute', top: 6, right: 6, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{ESTILOS_RECETA[k].label}</div>
-                  <div style={{ fontSize: 10.5, marginTop: 3, lineHeight: 1.3 }}>{ESTILOS_RECETA[k].descripcion}</div>
+                  <IconX size={11} /> Quitar
                 </button>
-              )
-            })}
-          </div>
-        </Section>
+              </div>
+            ) : (
+              <label style={{
+                display: 'block', textAlign: 'center', padding: '20px 12px',
+                border: '2px dashed var(--border)', borderRadius: 8, background: 'var(--s2)',
+                cursor: 'pointer', color: 'var(--text3)',
+              }}>
+                <Upload size={20} style={{ marginBottom: 6 }} />
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Subir membrete</div>
+                <div style={{ fontSize: 11, marginTop: 2 }}>PNG o JPG · Máx 800 KB después de optimizar</div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) subirImagen('membreteDataUrl', f) }}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            )}
+          </Section>
 
-        {/* Color de acento */}
-        <Section title="Color de acento (líneas, encabezado)">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input
-              type="color"
-              value={rx.colorAccento ?? '#14b8a6'}
-              onChange={(e) => setRx({ ...rx, colorAccento: e.target.value })}
-              style={{ width: 50, height: 36, border: '1px solid var(--border)', borderRadius: 6, padding: 2, cursor: 'pointer', background: 'var(--s2)' }}
-            />
-            <input
-              value={rx.colorAccento ?? '#14b8a6'}
-              onChange={(e) => setRx({ ...rx, colorAccento: e.target.value })}
-              style={{ ...cfgInput, width: 110, fontFamily: 'monospace' }}
-            />
-          </div>
-        </Section>
+          {/* Pie de página */}
+          <Section title="Pie de página (opcional)">
+            {rx.pieDataUrl ? (
+              <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={rx.pieDataUrl} alt="Pie" style={{ maxWidth: '100%', maxHeight: 60, display: 'block', margin: '0 auto', background: '#fff' }} />
+                <button
+                  onClick={() => actualizar({ pieDataUrl: '' })}
+                  style={{ position: 'absolute', top: 6, right: 6, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
+                >
+                  <IconX size={11} /> Quitar
+                </button>
+              </div>
+            ) : (
+              <label style={{
+                display: 'block', textAlign: 'center', padding: '14px 12px',
+                border: '2px dashed var(--border)', borderRadius: 8, background: 'var(--s2)',
+                cursor: 'pointer', color: 'var(--text3)',
+              }}>
+                <Upload size={16} />
+                <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Subir pie de página</div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) subirImagen('pieDataUrl', f) }}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            )}
+          </Section>
 
-        {/* Membrete */}
-        <Section title="Membrete (encabezado custom)">
-          <p style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
-            Sube una imagen del encabezado de tu papel membretado (logo, nombre, datos del consultorio).
-            Si no subes nada, se usa un encabezado generado con los datos de tu clínica.
-          </p>
-          {rx.membreteDataUrl ? (
-            <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={rx.membreteDataUrl} alt="Membrete" style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto', background: '#fff' }} />
-              <button
-                onClick={() => setRx({ ...rx, membreteDataUrl: '' })}
-                style={{ position: 'absolute', top: 6, right: 6, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
-              >
-                <IconX size={11} /> Quitar
-              </button>
+          {/* Opciones */}
+          <Grupo n={3} t="Qué se imprime" d="Qué datos del paciente aparecen en la hoja y cuántas copias salen." />
+          <Section title="Opciones">
+            <div style={{ display: 'grid', gap: 8 }}>
+              <Toggle label="Mostrar caja de alergias" checked={rx.mostrarAlergias !== false} onChange={(v) => actualizar({ mostrarAlergias: v })} />
+              <Toggle label="Mostrar diagnóstico" checked={rx.mostrarDiagnostico !== false} onChange={(v) => actualizar({ mostrarDiagnostico: v })} />
+              <Toggle label="Mostrar signos vitales (en órdenes)" checked={rx.mostrarSignosVitales === true} onChange={(v) => actualizar({ mostrarSignosVitales: v })} />
+              <Toggle label="QR de verificación al pie" checked={rx.mostrarQR !== false} onChange={(v) => actualizar({ mostrarQR: v })} />
             </div>
-          ) : (
-            <label style={{
-              display: 'block', textAlign: 'center', padding: '20px 12px',
-              border: '2px dashed var(--border)', borderRadius: 8, background: 'var(--s2)',
-              cursor: 'pointer', color: 'var(--text3)',
-            }}>
-              <Upload size={20} style={{ marginBottom: 6 }} />
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Subir membrete</div>
-              <div style={{ fontSize: 11, marginTop: 2 }}>PNG o JPG · Máx 800 KB después de optimizar</div>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) subirImagen('membreteDataUrl', f) }}
-                style={{ display: 'none' }}
-              />
-            </label>
-          )}
-        </Section>
+          </Section>
 
-        {/* Pie de página */}
-        <Section title="Pie de página (opcional)">
-          {rx.pieDataUrl ? (
-            <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={rx.pieDataUrl} alt="Pie" style={{ maxWidth: '100%', maxHeight: 60, display: 'block', margin: '0 auto', background: '#fff' }} />
-              <button
-                onClick={() => setRx({ ...rx, pieDataUrl: '' })}
-                style={{ position: 'absolute', top: 6, right: 6, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
-              >
-                <IconX size={11} /> Quitar
-              </button>
+          <Grupo n={4} t="Datos legales" d="RFC, registro para psicotrópicos, vigencia y el aviso al pie. Opcionales: sólo se imprimen si los llenas." />
+          <Section title="Datos legales adicionales (opcional)">
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div>
+                <label style={cfgLabel}>RFC</label>
+                <input value={rx.rfc ?? ''} onChange={(e) => actualizar({ rfc: e.target.value })} style={cfgInput} placeholder="RODR890101ABC" />
+              </div>
+              <div>
+                <label style={cfgLabel}>Registro DGP/SSA (psicotrópicos)</label>
+                <input value={rx.registroDGP ?? ''} onChange={(e) => actualizar({ registroDGP: e.target.value })} style={cfgInput} placeholder="Para Rx de medicamentos controlados" />
+              </div>
+              <div>
+                <label style={cfgLabel}>Vigencia default (días)</label>
+                <input type="number" value={rx.vigenciaDias ?? 30} onChange={(e) => actualizar({ vigenciaDias: parseInt(e.target.value) || 30 })} style={cfgInput} min={1} max={365} />
+              </div>
+              <div>
+                <label style={cfgLabel}>Aviso legal al pie</label>
+                <textarea value={rx.avisoLegal ?? ''} onChange={(e) => actualizar({ avisoLegal: e.target.value.slice(0, 240) })} rows={2} style={{ ...cfgInput, resize: 'vertical' }} />
+              </div>
             </div>
-          ) : (
-            <label style={{
-              display: 'block', textAlign: 'center', padding: '14px 12px',
-              border: '2px dashed var(--border)', borderRadius: 8, background: 'var(--s2)',
-              cursor: 'pointer', color: 'var(--text3)',
-            }}>
-              <Upload size={16} />
-              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Subir pie de página</div>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) subirImagen('pieDataUrl', f) }}
-                style={{ display: 'none' }}
-              />
-            </label>
-          )}
-        </Section>
+          </Section>
 
-        {/* Opciones */}
-        <Grupo n={3} t="Qué se imprime" d="Qué datos del paciente aparecen en la hoja y cuántas copias salen." />
-        <Section title="Opciones">
-          <div style={{ display: 'grid', gap: 8 }}>
-            <Toggle label="Mostrar caja de alergias" checked={rx.mostrarAlergias !== false} onChange={(v) => setRx({ ...rx, mostrarAlergias: v })} />
-            <Toggle label="Mostrar diagnóstico" checked={rx.mostrarDiagnostico !== false} onChange={(v) => setRx({ ...rx, mostrarDiagnostico: v })} />
-            <Toggle label="Mostrar signos vitales (en órdenes)" checked={rx.mostrarSignosVitales === true} onChange={(v) => setRx({ ...rx, mostrarSignosVitales: v })} />
-            <Toggle label="QR de verificación al pie" checked={rx.mostrarQR !== false} onChange={(v) => setRx({ ...rx, mostrarQR: v })} />
-          </div>
-        </Section>
-
-        <Grupo n={4} t="Datos legales" d="RFC, registro para psicotrópicos, vigencia y el aviso al pie. Opcionales: sólo se imprimen si los llenas." />
-        <Section title="Datos legales adicionales (opcional)">
-          <div style={{ display: 'grid', gap: 8 }}>
-            <div>
-              <label style={cfgLabel}>RFC</label>
-              <input value={rx.rfc ?? ''} onChange={(e) => setRx({ ...rx, rfc: e.target.value })} style={cfgInput} placeholder="RODR890101ABC" />
-            </div>
-            <div>
-              <label style={cfgLabel}>Registro DGP/SSA (psicotrópicos)</label>
-              <input value={rx.registroDGP ?? ''} onChange={(e) => setRx({ ...rx, registroDGP: e.target.value })} style={cfgInput} placeholder="Para Rx de medicamentos controlados" />
-            </div>
-            <div>
-              <label style={cfgLabel}>Vigencia default (días)</label>
-              <input type="number" value={rx.vigenciaDias ?? 30} onChange={(e) => setRx({ ...rx, vigenciaDias: parseInt(e.target.value) || 30 })} style={cfgInput} min={1} max={365} />
-            </div>
-            <div>
-              <label style={cfgLabel}>Aviso legal al pie</label>
-              <textarea value={rx.avisoLegal ?? ''} onChange={(e) => setRx({ ...rx, avisoLegal: e.target.value.slice(0, 240) })} rows={2} style={{ ...cfgInput, resize: 'vertical' }} />
-            </div>
-          </div>
-        </Section>
+          {/* La hoja membretada de las NOTAS: otro papel, otros márgenes. */}
+          {notasSlot}
+        </Avanzados>
 
         {resultado && (
           <div className={`alert ${resultado.ok ? 'alert-green' : 'alert-red'}`} role="status"
@@ -892,15 +1111,43 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
             <div>{resultado.texto}</div>
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button onClick={guardar} disabled={saving} className="btn btn-primary">
-            {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={14} /> Guardar template</>}
-          </button>
-        </div>
+
+        {/*
+          LA BARRA DE GUARDADO SE QUEDA A LA VISTA MIENTRAS HAYA QUE GUARDAR.
+
+          El botón estaba al final de la pantalla más larga de la aplicación. El
+          Dr. reportó dos veces «no se guarda el template»: las dos veces el
+          guardado funcionaba y lo que fallaba era llegar al botón. Ahora sale
+          sólo cuando hay algo pendiente, y se queda pegado abajo hasta que se
+          resuelve — incluido el caso en el que el servidor aceptó la escritura
+          pero la verificación encontró campos que no quedaron.
+        */}
+        {hayQueGuardar && (
+          <div style={{
+            position: 'sticky', bottom: 12, zIndex: 2,
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            padding: '10px 14px', borderRadius: 10,
+            border: '1px solid var(--border2)', background: 'var(--s2)',
+          }}>
+            <span style={{ fontSize: 12, color: 'var(--text2)', flex: 1, minWidth: 120 }}>
+              Tienes cambios sin guardar.
+            </span>
+            <button onClick={guardar} disabled={saving} className="btn btn-primary">
+              {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={14} /> Guardar</>}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Preview en vivo — contenedor de ancho fijo, escala dinámica */}
-      <PreviewReceta tipoPreview={tipoPreview} setTipoPreview={setTipoPreview} rx={rx} config={config} onMargenes={(mg) => setRx({ ...rx, disenoMargenes: mg })} />
+      <PreviewReceta
+        tipoPreview={tipoPreview}
+        setTipoPreview={setTipoPreview}
+        rx={rx}
+        config={config}
+        onMargenes={(mg) => actualizar({ disenoMargenes: mg })}
+        registrarImprimir={(fn) => { imprimirPruebaRef.current = fn }}
+      />
 
       {/* CSS responsive — colapsa preview en pantallas pequeñas */}
       <style>{`
@@ -923,50 +1170,49 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
  * custom mostrando dónde caen los datos. Así el médico calibra sin adivinar.
  */
 function PreviewReceta({
-  tipoPreview, setTipoPreview, rx, config, onMargenes,
+  tipoPreview, setTipoPreview, rx, config, onMargenes, registrarImprimir,
 }: {
   tipoPreview: 'receta' | 'orden'
   setTipoPreview: (t: 'receta' | 'orden') => void
   rx: RecetaConfig
   config: ClinicConfig | null
   onMargenes: (m: { top: number; right: number; bottom: number; left: number }) => void
+  /** Entrega la impresión de prueba al paso 3, que es donde se pulsa. */
+  registrarImprimir?: (fn: () => void) => void
 }) {
   const { toast } = useToast()
-  // BUG que el Dr cazó en vivo: RecetaDocumento ORIENTA la hoja al diseño subido
-  // (si la imagen es APAISADA, voltea el papel a horizontal: 148×210 → 210×148),
-  // pero el marco de esta vista previa usaba las medidas SIN orientar → marco
-  // vertical con hoja horizontal dentro = recortada a la derecha ("mocho"). Aquí
-  // se carga el aspecto real de la imagen y se orienta IGUAL que el documento.
-  const paperEf = paperEfectivo(rx)
   const paper = PAPER_SIZES[rx.paperSize ?? 'media-carta']
-  const [imgAspect, setImgAspect] = useState<number | null>(null)
-  useEffect(() => {
-    const url = rx.disenoCompletoDataUrl
-    if (!url) { setImgAspect(null); return }
-    const im = new window.Image()
-    im.onload = () => { if (im.naturalWidth && im.naturalHeight) setImgAspect(im.naturalWidth / im.naturalHeight) }
-    im.onerror = () => setImgAspect(null)
-    im.src = url
-  }, [rx.disenoCompletoDataUrl])
-  // Dimensiones ORIENTADAS al diseño (mismo criterio que RecetaDocumento).
-  const paperOri = (() => {
-    if (!rx.disenoCompletoDataUrl || imgAspect == null) return { widthMm: paperEf.widthMm, heightMm: paperEf.heightMm }
-    const corto = Math.min(paperEf.widthMm, paperEf.heightMm)
-    const largo = Math.max(paperEf.widthMm, paperEf.heightMm)
-    const apaisado = imgAspect > 1
-    return { widthMm: apaisado ? largo : corto, heightMm: apaisado ? corto : largo }
-  })()
-  // 96 DPI estándar web: 1mm ≈ 3.78 px
-  const paperWidthPx = (paperOri.widthMm * 96) / 25.4
-  const paperHeightPx = (paperOri.heightMm * 96) / 25.4
-  // Ancho objetivo del contenedor sticky en el lado derecho
+
+  /**
+   * LA MISMA HOJA QUE SALE DE LA IMPRESORA, Y NI UNA MEDIDA CALCULADA AQUÍ.
+   *
+   * Esta vista previa tenía su propia copia de TRES cálculos que ya existían:
+   * orientar el papel al diseño subido, escalar para que quepa en la columna, y
+   * dibujar el marco. Y la copia se desincronizó por el sitio menos visible: el
+   * documento se dibuja sobre HOJA CARTA cuando `imprimirEn` es 'carta' —el
+   * modo por defecto, el que funciona en cualquier impresora— y el marco se
+   * seguía dimensionando a la receta. Resultado: la receta salía recortada por
+   * la derecha en cuanto el médico abría la pantalla, antes de tocar nada.
+   *
+   * Ahora las tres respuestas se piden a quien ya las tenía:
+   *   · `useRecetaPaperOrientado` — el mismo hook que usa /receta.
+   *   · `dimensionesImpresion`    — la hoja FÍSICA, con host de carta incluido.
+   *   · `RecetaPreviewWrapper`    — el marco, con su escala.
+   */
+  const paperOri = useRecetaPaperOrientado(rx)
+  const rxOri = useMemo(
+    () => ({ ...rx, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }),
+    [rx, paperOri.widthMm, paperOri.heightMm],
+  )
+  const host = dimensionesImpresion(rxOri)
+  const colocacion = colocacionDeLaReceta(rxOri)
+
   const TARGET_WIDTH = 340
   const TARGET_MAX_HEIGHT = 520
-  const scaleByWidth = TARGET_WIDTH / paperWidthPx
-  const scaleByHeight = TARGET_MAX_HEIGHT / paperHeightPx
-  const scale = Math.min(scaleByWidth, scaleByHeight, 1)
-  const containerWidth = paperWidthPx * scale
-  const containerHeight = paperHeightPx * scale
+  const scale = escalaDeVistaPrevia({
+    paperWidthMm: host.widthMm, paperHeightMm: host.heightMm,
+    maxWidth: TARGET_WIDTH, maxHeight: TARGET_MAX_HEIGHT,
+  })
 
   const margenes = rx.disenoMargenes ?? { top: 35, right: 12, bottom: 30, left: 12 }
   const usarGuia = !!rx.disenoCompletoDataUrl
@@ -993,27 +1239,37 @@ function PreviewReceta({
   // un camino distinto y en otro tamaño, así que "se veía bien en la prueba" no
   // garantizaba nada del impreso real.
   const imprimirPrueba = () => {
-    // Usa las dimensiones ORIENTADAS al diseño (mismo criterio que la hoja real),
-    // para que la prueba salga del tamaño/orientación correctos, no volteada.
-    const cfgOri = { ...rx, disenoWidthMm: paperOri.widthMm, disenoHeightMm: paperOri.heightMm }
-    const h = dimensionesImpresion(cfgOri)
+    // `host` ya son las dimensiones ORIENTADAS al diseño y con el host de carta
+    // resuelto — las mismas con las que se dibuja la vista previa y las mismas
+    // que usa /receta. Lo que se prueba es lo que se imprime.
     imprimirElemento(document.getElementById('zona-print-receta-inner'), 'Prueba de receta', {
-      anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error'),
+      anchoMm: host.widthMm, altoMm: host.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error'),
     })
   }
 
+  // Se re-entrega en cada render para que el paso 3 llame SIEMPRE a la versión
+  // con las medidas actuales (sin lista de dependencias: cambian con cada ajuste).
+  useEffect(() => { registrarImprimir?.(imprimirPrueba) })
+
   return (
     <div style={{ position: 'sticky', top: 20 }}>
-      <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 8 }}>
+      {/* Qué hoja se está viendo. Con host de carta se DICE, porque si no la
+          vista previa parece equivocada: el médico eligió media carta y ve una
+          hoja carta con su receta centrada — que es exactamente lo que va a
+          salir de la impresora, y por eso hay que nombrarlo. */}
+      <div style={{ fontSize: 10.5, color: 'var(--text3)', textAlign: 'center', marginBottom: 8, lineHeight: 1.5 }}>
         Vista previa · {rx.disenoCompletoDataUrl
-          ? `tu formato (${Math.round(paperOri.widthMm)}×${Math.round(paperOri.heightMm)} mm${imgAspect && imgAspect > 1 ? ', apaisado' : ''})`
-          : paper.label.split(' ')[0]}
+          ? `tu formato de ${Math.round(paperOri.widthMm)} × ${Math.round(paperOri.heightMm)} mm${paperOri.apaisado ? ', apaisado' : ''}`
+          : paper.label}
+        {host.esHostCarta && (
+          <><br />Sale en hoja carta, con línea de corte ✂</>
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
         <button
           onClick={() => setTipoPreview('receta')}
           style={{
-            padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            padding: '6px 14px', minHeight: 44, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
             background: tipoPreview === 'receta' ? 'color-mix(in srgb, var(--nexus) 15%, transparent)' : 'var(--s2)',
             border: tipoPreview === 'receta' ? '1px solid var(--teal)' : '1px solid var(--border)',
             color: tipoPreview === 'receta' ? 'var(--teal)' : 'var(--text3)',
@@ -1025,7 +1281,7 @@ function PreviewReceta({
         <button
           onClick={() => setTipoPreview('orden')}
           style={{
-            padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            padding: '6px 14px', minHeight: 44, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
             background: tipoPreview === 'orden' ? 'rgba(167,139,250,0.15)' : 'var(--s2)',
             border: tipoPreview === 'orden' ? '1px solid #a78bfa' : '1px solid var(--border)',
             color: tipoPreview === 'orden' ? '#a78bfa' : 'var(--text3)',
@@ -1036,54 +1292,52 @@ function PreviewReceta({
         </button>
       </div>
 
-      {/* Imprimir prueba — imprime SOLO la receta a tamaño real, no toda la config */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-        <button
-          onClick={imprimirPrueba}
-          className="btn btn-secondary"
-          style={{ fontSize: 12, padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          title="Imprime solo la receta de ejemplo para probar tu impresora y formato"
-        >
-          <Printer size={13} /> Imprimir prueba
-        </button>
-      </div>
+      {/* El marco es el MISMO componente que usan /receta y /orden, dimensionado
+          a la hoja física. Ya no hay un contenedor propio de esta pantalla. */}
+      <RecetaPreviewWrapper
+        paperWidthMm={host.widthMm}
+        paperHeightMm={host.heightMm}
+        maxWidth={TARGET_WIDTH}
+        maxHeight={TARGET_MAX_HEIGHT}
+      >
+        <RecetaDocumento
+          data={demoData}
+          config={config ?? null}
+          recetaConfig={rx}
+        />
+        {/* ZONA DE CONTENIDO INTERACTIVA: se ARRASTRA para mover y se JALA de los
+            bordes para estirar. Actualiza disenoMargenes (mm) en vivo — mucho más
+            fácil que teclear los 4 números. Solo con diseño propio subido.
 
-      {/* Contenedor que limita el tamaño visible y reserva espacio scaled */}
-      <div style={{
-        width: containerWidth,
-        height: containerHeight,
-        margin: '0 auto',
-        overflow: 'hidden',
-        position: 'relative',
-        background: '#1a2333',
-        borderRadius: 6,
-      }}>
-        <div style={{
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          width: paperWidthPx,
-          height: paperHeightPx,
-          position: 'relative',
-        }}>
-          <RecetaDocumento
-            data={demoData}
-            config={config ?? null}
-            recetaConfig={rx}
-          />
-          {/* ZONA DE CONTENIDO INTERACTIVA: se ARRASTRA para mover y se JALA de los
-              bordes para estirar. Actualiza disenoMargenes (mm) en vivo — mucho más
-              fácil que teclear los 4 números. Solo con diseño propio subido. */}
-          {usarGuia && (
+            Va dentro de una caja colocada donde CAE LA RECETA en la hoja física:
+            con host de carta la receta está centrada y agrandada dentro de ella,
+            así que un recuadro dibujado sobre la hoja entera caería en otro
+            sitio — y los márgenes que el médico arrastrara no serían los que se
+            imprimen. La colocación la da `colocacionDeLaReceta`, la misma que
+            usa el documento para dibujarse. */}
+        {usarGuia && (
+          <div style={{
+            position: 'absolute',
+            left: `${colocacion.offsetXMm}mm`,
+            top: `${colocacion.offsetYMm}mm`,
+            width: `${colocacion.recetaWidthMm}mm`,
+            height: `${colocacion.recetaHeightMm}mm`,
+            transform: `scale(${colocacion.escala})`,
+            transformOrigin: 'top left',
+          }}>
             <ZonaContenidoEditable
               m={margenes}
-              paperWmm={paperOri.widthMm}
-              paperHmm={paperOri.heightMm}
-              scale={scale}
+              paperWmm={colocacion.recetaWidthMm}
+              paperHmm={colocacion.recetaHeightMm}
+              /* Dos escalas encadenadas: la de la vista previa y la que agranda
+                 la receta dentro de la carta. El arrastre convierte píxeles a
+                 milímetros de RECETA, que es en lo que se guardan los márgenes. */
+              scale={scale * colocacion.escala}
               onChange={onMargenes}
             />
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </RecetaPreviewWrapper>
 
       {/* Nota informativa sobre la guía */}
       {usarGuia && (
@@ -1098,10 +1352,127 @@ function PreviewReceta({
       {/* Receta a TAMAÑO FÍSICO REAL — oculta en pantalla, visible SOLO al imprimir
           (el CSS de impresión con body.print-solo-receta muestra únicamente esto). */}
       <div id="zona-print-receta" style={{ display: 'none' }}>
-        <div id="zona-print-receta-inner" style={{ width: paperWidthPx, height: paperHeightPx, position: 'relative', background: '#fff' }}>
+        {/* La caja mide la hoja FÍSICA (la misma que `imprimirPrueba` declara al
+            @page), no la receta: si no, con host de carta el nodo que se manda a
+            imprimir sería más chico que su contenido. */}
+        <div id="zona-print-receta-inner" style={{ width: (host.widthMm * 96) / 25.4, height: (host.heightMm * 96) / 25.4, position: 'relative', background: '#fff' }}>
           <RecetaDocumento data={demoData} config={config ?? null} recetaConfig={rx} />
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * UN PASO — una tarjeta numerada, con UNA cosa que hacer dentro.
+ *
+ * ── QUÉ SUSTITUYE ───────────────────────────────────────────────────────────
+ *
+ * La pantalla tenía una guía de seis pasos ARRIBA y, debajo, once tarjetas de
+ * controles sin relación declarada con esos pasos. El médico leía «sube tu
+ * papel membretado» y luego buscaba, entre once tarjetas, en cuál se hacía eso.
+ * Los pasos y los controles estaban separados por toda la pantalla.
+ *
+ * Aquí el paso ES el control: el número, lo que se consigue, y dentro lo único
+ * que hay que tocar. Tres pasos, no seis, porque tres son los trabajos reales
+ * —el papel, la firma, la prueba— y los otros tres eran instrucciones para
+ * manejar la propia pantalla.
+ *
+ * `listo` no es decoración: sin él, un médico que ya configuró todo vuelve a
+ * ver tres tareas pendientes cada vez que entra.
+ */
+function Paso({ n, titulo, descripcion, listo, children }: {
+  n: number
+  titulo: string
+  descripcion: string
+  listo?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <section
+      aria-label={`Paso ${n}: ${titulo}`}
+      style={{
+        border: listo ? '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)' : '1px solid var(--border)',
+        borderRadius: 10, background: 'var(--s1)', padding: 14,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            flexShrink: 0, width: 24, height: 24, borderRadius: 'var(--r-circulo)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 12, fontWeight: 700,
+            background: listo ? 'var(--nexus-solido)' : 'color-mix(in srgb, var(--nexus) 14%, transparent)',
+            color: listo ? '#fff' : 'var(--nexus)',
+          }}
+        >
+          {listo ? <Check size={14} /> : n}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{titulo}</h3>
+          <p style={{ fontSize: 12, color: 'var(--text3)', margin: '3px 0 0', lineHeight: 1.5 }}>{descripcion}</p>
+        </div>
+        {listo && (
+          <span style={{
+            flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: '3px 10px',
+            borderRadius: 'var(--r-pill)', color: 'var(--nexus)',
+            background: 'color-mix(in srgb, var(--nexus) 14%, transparent)',
+          }}>
+            Listo
+          </span>
+        )}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+/**
+ * LO QUE CASI NADIE NECESITA, DETRÁS DE UN CLIC.
+ *
+ * Dentro siguen los cuatro bloques de siempre, en el mismo orden. Plegar no es
+ * esconder: es aceptar que el 95 % de las veces que se abre esta pantalla es
+ * para subir un papel o una firma, no para cambiar el aviso legal al pie.
+ *
+ * Se pliega, no se quita: cada uno de esos controles resuelve un caso real y
+ * quitarlo dejaría a alguien sin salida. El sitio de un ajuste raro es detrás
+ * de un clic, no fuera del producto.
+ */
+function Avanzados({ abierto, onToggle, children }: {
+  abierto: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', overflow: 'hidden' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={abierto}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 14px', background: 'none', border: 'none',
+          cursor: 'pointer', textAlign: 'left', color: 'var(--text)',
+        }}
+      >
+        <Settings2 size={16} style={{ color: 'var(--text3)', flexShrink: 0 }} />
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, display: 'block' }}>Ajustes avanzados</span>
+          <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+            Tamaño de papel, estilo, qué datos se imprimen y datos legales
+          </span>
+        </span>
+        <ChevronDown
+          size={18}
+          style={{
+            color: 'var(--text3)', flexShrink: 0,
+            transition: 'transform var(--mov-rapido) var(--mov-curva)',
+            transform: abierto ? 'rotate(180deg)' : 'none',
+          }}
+        />
+      </button>
+      {abierto && <div style={{ padding: '0 14px 14px', display: 'grid', gap: 14 }}>{children}</div>}
     </div>
   )
 }
@@ -1301,6 +1672,55 @@ const CAMPOS_RECETA = [
 ] as const
 type CampoRecetaK = typeof CAMPOS_RECETA[number]['k']
 type CamposReceta = Partial<Record<CampoRecetaK, { x: number; y: number }>>
+type MargenesMm = { top: number; right: number; bottom: number; left: number }
+
+/**
+ * LEE EL FORMATO DEL MÉDICO Y DICE DÓNDE CAE CADA DATO.
+ *
+ * Vivía dentro del botón «Detectar los campos» del calibrador. Se saca aquí
+ * porque ahora tiene DOS llamadores: ese botón, y la subida del diseño — que
+ * la lanza sola. Colocar ocho etiquetas a mano era el trabajo que el Dr.
+ * señaló como el que más se batalla, y era un trabajo que la pantalla ya sabía
+ * hacer detrás de un clic que nadie encontraba.
+ *
+ * Devuelve `null` cuando no se pudo leer: quien llama decide si eso es un
+ * aviso (el botón) o un silencio (la subida, que sigue su curso y deja al
+ * médico colocarlos a mano).
+ */
+async function detectarCamposDelDiseno(
+  disenoUrl: string,
+  paperHeightMm?: number,
+): Promise<{ campos: CamposReceta; margenes?: MargenesMm } | null> {
+  try {
+    const resp = await fetch(disenoUrl)            // proxy same-origin o dataUrl
+    const blob = await resp.blob()
+    const mediaType = blob.type || 'image/png'
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result).split(',')[1] ?? '')
+      fr.onerror = reject
+      fr.readAsDataURL(blob)
+    })
+    const res = await fetchAutenticado('/api/receta/detectar-campos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imagenBase64: base64, mediaType }),
+    })
+    const data = await res.json()
+    if (!data.ok || !(data.campos || data.cuerpo)) return null
+    // El área de medicamentos (cuerpo) se convierte a márgenes (mm) para que la
+    // lista NO se encime con el pie/firma del membrete.
+    const margenes: MargenesMm | undefined = (data.cuerpo && paperHeightMm)
+      ? {
+          top: Math.round((data.cuerpo.top / 100) * paperHeightMm),
+          bottom: Math.round(((100 - data.cuerpo.bottom) / 100) * paperHeightMm),
+          right: 12, left: 12,
+        }
+      : undefined
+    return { campos: (data.campos ?? {}) as CamposReceta, margenes }
+  } catch {
+    return null
+  }
+}
 
 function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeightMm }: {
   disenoUrl: string
@@ -1315,49 +1735,21 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
   const [detectando, setDetectando] = useState(false)
   const val: CamposReceta = campos ?? {}
 
-  // IA de visión: detecta sola dónde va cada campo en TU formato → pre-llena el
-  // calibrador. "La app se adapta a ti, no tú a ella." El médico ajusta si hace falta.
-  const detectarConIA = async () => {
+  // Vuelve a leer el formato y recoloca las etiquetas. La subida ya lo hizo
+  // sola; esto es para reintentarlo después de mover cosas a mano.
+  const detectarDeNuevo = async () => {
     if (detectando) return
     setDetectando(true)
-    try {
-      const resp = await fetch(disenoUrl)            // proxy same-origin o dataUrl
-      const blob = await resp.blob()
-      const mediaType = blob.type || 'image/png'
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const fr = new FileReader()
-        fr.onload = () => resolve(String(fr.result).split(',')[1] ?? '')
-        fr.onerror = reject
-        fr.readAsDataURL(blob)
-      })
-      const res = await fetchAutenticado('/api/receta/detectar-campos', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imagenBase64: base64, mediaType }),
-      })
-      const data = await res.json()
-      if (data.ok && (data.campos || data.cuerpo)) {
-        const nuevos: CamposReceta = { ...val, ...(data.campos ?? {}) }
-        // El área de medicamentos (cuerpo) se convierte a márgenes (mm) para que la
-        // lista NO se encime con el pie/firma del membrete.
-        let margenes: { top: number; right: number; bottom: number; left: number } | undefined
-        if (data.cuerpo && paperHeightMm) {
-          margenes = {
-            top: Math.round((data.cuerpo.top / 100) * paperHeightMm),
-            bottom: Math.round(((100 - data.cuerpo.bottom) / 100) * paperHeightMm),
-            right: 12, left: 12,
-          }
-        }
-        if (onDetectado) onDetectado(nuevos, margenes)
-        else onChange(nuevos)
-        toast(`IA colocó ${Object.keys(data.campos ?? {}).length} campo(s)${margenes ? ' + área de medicamentos' : ''} — ajusta si hace falta`, 'success')
-      } else {
-        toast(data.error ?? 'La IA no pudo detectar; colócalos a mano arrastrando', 'error')
-      }
-    } catch {
-      toast('No se pudieron detectar los campos; colócalos a mano arrastrando', 'error')
-    } finally {
-      setDetectando(false)
+    const r = await detectarCamposDelDiseno(disenoUrl, paperHeightMm)
+    setDetectando(false)
+    if (!r) {
+      toast('No se pudieron leer los campos; colócalos a mano arrastrando', 'error')
+      return
     }
+    const nuevos: CamposReceta = { ...val, ...r.campos }
+    if (onDetectado) onDetectado(nuevos, r.margenes)
+    else onChange(nuevos)
+    toast(`Colocamos ${Object.keys(r.campos).length} dato(s)${r.margenes ? ' y el área de medicamentos' : ''} — ajusta si hace falta`, 'success')
   }
 
   const posDe = (e: React.PointerEvent): { x: number; y: number } | null => {
@@ -1380,7 +1772,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
     <div>
       <button
         type="button"
-        onClick={detectarConIA}
+        onClick={detectarDeNuevo}
         disabled={detectando}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12,
@@ -1396,8 +1788,9 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
           ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Detectando campos…</>
           : <><Sparkles size={14} /> Detectar los campos</>}
       </button>
-      <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
-        Lee tu formato y coloca Nombre/Edad/Fecha… solos. Luego los puedes arrastrar para ajustar.
+      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginBottom: 10 }}>
+        Vuelve a leer tu formato y recoloca las etiquetas. Se hizo solo al subirlo; esto es
+        para reintentarlo si moviste cosas y prefieres empezar de nuevo.
       </div>
       {sinColocar.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, alignItems: 'center' }}>

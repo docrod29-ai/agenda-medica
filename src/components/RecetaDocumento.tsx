@@ -190,6 +190,66 @@ export function admiteHojaCarta(recetaConfig: RecetaConfig): boolean {
 }
 
 /**
+ * DÓNDE CAE LA RECETA DENTRO DE LA HOJA QUE SALE DE LA IMPRESORA.
+ *
+ * La receta va CENTRADA en la hoja carta y agrandada para llenar bien la hoja,
+ * dejando márgenes parejos. Carta es tamaño ESTÁNDAR → el navegador y cualquier
+ * impresora lo respetan (a diferencia de "media carta", que Safari redondea a A5
+ * y desacomoda). La escala ajusta la receta dentro de (carta − margen) sin
+ * deformarla.
+ *
+ * ── POR QUÉ ESTO ES UNA FUNCIÓN Y NO SEIS LÍNEAS DENTRO DE `HostCarta` ──────
+ *
+ * Porque hay un segundo interesado: el recuadro que el médico ARRASTRA en la
+ * vista previa de configuración para decir dónde cae el tratamiento. Ese
+ * recuadro se dibuja ENCIMA del documento, así que tiene que saber en qué punto
+ * de la hoja física empieza la receta y cuánto se agrandó. Mientras el cálculo
+ * vivió sólo aquí, quien dibujaba encima tenía que adivinarlo — y adivinó mal.
+ */
+export function colocacionEnCarta(paper: { widthMm: number; heightMm: number }): {
+  escala: number; offsetXMm: number; offsetYMm: number
+} {
+  const MARGEN_MM = 14
+  const escala = Math.min(
+    (CARTA.widthMm - 2 * MARGEN_MM) / paper.widthMm,
+    (CARTA.heightMm - 2 * MARGEN_MM) / paper.heightMm,
+  )
+  return {
+    escala,
+    offsetXMm: (CARTA.widthMm - paper.widthMm * escala) / 2,
+    offsetYMm: (CARTA.heightMm - paper.heightMm * escala) / 2,
+  }
+}
+
+/**
+ * Lo mismo, resuelto para una configuración completa: la hoja física, la receta
+ * dentro de ella, y la transformación que lleva de una a la otra. Sin host de
+ * carta la respuesta es la identidad — la receta ES la hoja.
+ */
+export function colocacionDeLaReceta(recetaConfig: RecetaConfig): {
+  hostWidthMm: number; hostHeightMm: number
+  recetaWidthMm: number; recetaHeightMm: number
+  offsetXMm: number; offsetYMm: number
+  escala: number; esHostCarta: boolean
+} {
+  const paper = paperEfectivo(recetaConfig)
+  const host = dimensionesImpresion(recetaConfig)
+  if (!host.esHostCarta) {
+    return {
+      hostWidthMm: host.widthMm, hostHeightMm: host.heightMm,
+      recetaWidthMm: paper.widthMm, recetaHeightMm: paper.heightMm,
+      offsetXMm: 0, offsetYMm: 0, escala: 1, esHostCarta: false,
+    }
+  }
+  const { escala, offsetXMm, offsetYMm } = colocacionEnCarta(paper)
+  return {
+    hostWidthMm: host.widthMm, hostHeightMm: host.heightMm,
+    recetaWidthMm: paper.widthMm, recetaHeightMm: paper.heightMm,
+    offsetXMm, offsetYMm, escala, esHostCarta: true,
+  }
+}
+
+/**
  * Dimensiones del papel ORIENTADAS al diseño subido, IGUAL que HojaCustom.
  *
  * BUG que el Dr cazó en vivo: la hoja se orienta al diseño (si la imagen es
@@ -408,16 +468,7 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
  * + línea punteada de corte ✂ donde termina el papel de la receta
  * ════════════════════════════════════════════════════════════════ */
 function HostCarta({ paper, children }: { paper: { widthMm: number; heightMm: number }; children: React.ReactNode }) {
-  // La receta va CENTRADA en la hoja carta y agrandada para llenar bien la hoja,
-  // dejando márgenes parejos. Carta es tamaño ESTÁNDAR → el navegador y cualquier
-  // impresora lo respetan (a diferencia de "media carta", que Safari redondea a A5
-  // y desacomoda). Escala = ajustar la receta dentro de (carta − margen), sin
-  // deformar (mantiene proporción).
-  const MARGEN_MM = 14
-  const escala = Math.min(
-    (CARTA.widthMm - 2 * MARGEN_MM) / paper.widthMm,
-    (CARTA.heightMm - 2 * MARGEN_MM) / paper.heightMm,
-  )
+  const { escala } = colocacionEnCarta(paper)
   return (
     <div
       className="receta-sheet"

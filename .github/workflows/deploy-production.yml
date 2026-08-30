@@ -5,7 +5,7 @@
 # Sólo:
 #   1) verifica que el árbol clínico autorizado y la versión son los esperados,
 #   2) verifica que Vercel apunta al proyecto principal agenda-medica,
-#   3) verifica que el sitio vivo ya sirve nexusmed-v1172,
+#   3) verifica que el sitio vivo ya sirve VERSION_ESPERADA,
 #   4) publica firestore.rules (REG-323) usando una credencial Firebase ya existente,
 #   5) corre seguridad y smoke contra producción.
 #
@@ -25,8 +25,8 @@ permissions:
   statuses: read
 
 env:
-  SHA_AUTORIZADO: ef0624cb51fd9fc60e9f676b40716b73a77e3475
-  VERSION_ESPERADA: nexusmed-v1172
+  SHA_AUTORIZADO: 815011509c39ff161c793880881bec5f9cde2282
+  VERSION_ESPERADA: nexusmed-v1173
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
@@ -41,7 +41,7 @@ jobs:
       - name: Traer el árbol autorizado
         uses: actions/checkout@v4
         with:
-          ref: ef0624cb51fd9fc60e9f676b40716b73a77e3475
+          ref: 815011509c39ff161c793880881bec5f9cde2282
           fetch-depth: 0
 
       - name: 'Compuerta 1 · SHA, versión y REG-323'
@@ -99,7 +99,7 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: 'Compuerta 3 · producción ya sirve nexusmed-v1172'
+      - name: 'Compuerta 3 · producción ya sirve la versión esperada'
         id: version
         run: |
           set -euo pipefail

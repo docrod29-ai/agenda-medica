@@ -16,24 +16,29 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1172",
+  "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M  .claude/rules/testing-gates.md",
+    "A  .github/workflows/ausculta-autonomous-loop.yml",
+    "M  .github/workflows/deploy-production.yml",
+    "M  CLAUDE.md",
+    "M  docs/audit/lint-techo.json",
+    "MM docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/quality/MOTORES-SIN-CONECTAR.md",
-    " M scripts/medir-wer-limpio.ts",
-    " M src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
-    " M src/__tests__/el-camino-del-medico-llega-entero.test.ts",
-    " M src/__tests__/evidence-runtime-consultor.test.ts",
-    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/negaciones.ts",
-    " M src/lib/programa/censo-sellado.json",
-    " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/un-wer-bajo-no-compensa-una-dosis.test.ts",
-    "?? src/lib/asr/lo-que-pesa-de-un-error.ts"
+    " M docs/design/SCREEN_INVENTORY.md",
+    "A  docs/maintenance/CARRILES-Y-BUCLES.md",
+    "A  docs/maintenance/PRS-SIN-ABSORBER-2026-08-30.md",
+    "M  docs/maintenance/sw-changelog.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  e2e/seguridad.spec.ts",
+    "M  public/sw.js",
+    "M  public/version.txt",
+    "D  src/__tests__/el-riel-no-arrastra-la-pagina.test.ts",
+    "A  src/__tests__/recetas-tres-pasos-y-la-app-coloca-sola.test.ts",
+    "A  src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts",
+    "M  src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",
+    "M  src/app/(dashboard)/configuracion/page.tsx"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -67,12 +72,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-master-completion-4clx9v",
+  "ramaActual": "absorber-398",
   "derivado": {
-    "regsEnElLedger": 257,
-    "ultimaREG": "REG-409",
-    "archivosDePrueba": 832,
-    "casosDePrueba": 10345,
+    "regsEnElLedger": 260,
+    "ultimaREG": "REG-503",
+    "archivosDePrueba": 833,
+    "casosDePrueba": 10380,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

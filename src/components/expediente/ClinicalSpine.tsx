@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
+import { destinoDelRielHorizontal } from '@/lib/ui/traer-a-la-vista'
 
 /**
  * CLINICAL SPINE — V15-PATIENT-WORKSPACE-001 (§7: "a longitudinal structural
@@ -37,47 +38,6 @@ export interface ClinicalSpineItem {
   detail?: string
 }
 
-/**
- * ¿A qué `scrollLeft` hay que llevar el riel para que el ítem activo se vea?
- * `null` = no hay que mover nada.
- *
- * Se saca del componente A PROPÓSITO. El defecto que cerró REG-342 no se podía
- * probar leyendo la fuente —las diez pruebas de scroll que había eran
- * `readFileSync` + `toContain`, y uno de ellas llegaba a comparar POSICIONES DE
- * CARACTERES dentro de un archivo—. Una decisión de desplazamiento que vive en
- * una función pura se prueba con números, y con números se puede afirmar lo
- * único que importa aquí: que de esta cuenta **sólo sale un eje horizontal y
- * sólo para el riel**. Ningún valor de entrada produce un movimiento vertical,
- * porque no hay ninguno que devolver.
- *
- * Todas las coordenadas son INTERNAS al riel (`offsetLeft`, `scrollLeft`,
- * `clientWidth`). No entra la posición de la página en la cuenta, así que no
- * puede salir.
- */
-export function destinoDelRiel(m: {
-  itemIzq: number
-  itemAncho: number
-  scrollLeft: number
-  anchoVisible: number
-}): number | null {
-  const { itemIzq, itemAncho, scrollLeft, anchoVisible } = m
-  if (!Number.isFinite(itemIzq) || !Number.isFinite(anchoVisible) || anchoVisible <= 0) return null
-
-  const itemDer = itemIzq + itemAncho
-  const visibleDer = scrollLeft + anchoVisible
-
-  // Ya se ve entero: un desplazamiento que no hacía falta es un movimiento que
-  // el médico no pidió.
-  if (itemIzq >= scrollLeft && itemDer <= visibleDer) return null
-
-  /** Un respiro de 2px para que el ítem no quede pegado al borde del riel. */
-  const AIRE = 2
-  const destino = itemIzq < scrollLeft
-    ? itemIzq - AIRE                       // asomaba por la izquierda
-    : itemDer - anchoVisible + AIRE        // asomaba por la derecha
-  return Math.max(0, destino)
-}
-
 export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
   const [activo, setActivo] = useState<string | null>(null)
   const itemsRef = useRef(items)
@@ -111,31 +71,33 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
   }, [items.map(it => it.id).join('|')])
 
   /**
-   * EL RIEL SE MUEVE CON LA LECTURA — Y SÓLO EL RIEL (REG-342).
+   * EL RIEL SE MUEVE CON LA LECTURA — Y **SÓLO** EL RIEL.
    *
-   * La intención sigue siendo la de antes: si el médico baja por el expediente y
-   * la categoría activa queda fuera de la parte visible del riel, el indicador
-   * de posición no indica nada. Se trae el activo a la vista.
+   * Si el médico baja por el expediente y la categoría activa está fuera de la
+   * parte visible del riel, el indicador de posición no indica nada: señala un
+   * sitio que no se ve. Así que el activo se trae a la vista dentro del riel.
    *
-   * ── POR QUÉ YA NO SE USA `scrollIntoView` ───────────────────────────────────
+   * ── LA PANTALLA QUE BOTABA (REG-337) ───────────────────────────────────────
    *
-   * Porque `scrollIntoView` no mueve un contenedor: mueve **todos los ancestros
-   * scrollables** hasta que el elemento se vea. El comentario anterior decía
-   * «`nearest`, para no arrastrar la página», y ésa era la intención correcta —
-   * pero `nearest` MINIMIZA la corrección, no impide que la haya.
+   * Esto se hacía con `scrollIntoView({ block: 'nearest', inline: 'nearest' })`
+   * y el comentario decía «`nearest`, para no arrastrar la página». Es falso:
+   * `nearest` elige la ALINEACIÓN, no a quién se desplaza. `scrollIntoView`
+   * recorre **todos** los ancestros desplazables —el documento incluido— y
+   * mueve cada uno.
    *
-   * Y quien dispara esto es un `IntersectionObserver` que se activa **porque el
-   * médico está bajando**. Una vez que el riel sale de pantalla por arriba,
-   * `nearest` deja de ser inocuo: para enseñarlo hay que subir `<main>`. El
-   * dedo baja, el riel pide que se le vea, la página vuelve arriba. Ése era el
-   * rebote — y al pedirlo con desplazamiento suave, además cancelaba el impulso.
+   * Con el ancla del paciente en `position: sticky` y este riel justo debajo en
+   * flujo normal, al bajar ~100px el riel sale del viewport. El observador de
+   * arriba marca otra sección activa → este efecto pide traer a la vista un
+   * botón que ya no se ve → el navegador **sube la página** para enseñarlo → al
+   * subir vuelve a cambiar la sección visible → otro salto. La pantalla botaba
+   * mientras se bajaba, en teléfono y en escritorio: el defecto estaba en la
+   * API del DOM, no en el dispositivo.
    *
-   * Y al pedirlo con desplazamiento suave, en iOS además CANCELA la inercia del
-   * dedo en vez de sumarse a ella: por eso se sentía como un tirón.
-   *
-   * Se sustituye por lo único que se quería: mover el `scrollLeft` DEL RIEL. Un
-   * contenedor, un eje, ningún ancestro. La posición vertical de la página no
-   * se puede tocar desde aquí ni por accidente.
+   * El arreglo es desplazar el scrollport por su nombre. `riel.scrollTo(...)`
+   * no puede tocar a un ancestro aunque quiera. La aritmética vive aparte
+   * (`lib/ui/traer-a-la-vista.ts`) para poder probarla de verdad, y devuelve
+   * `null` cuando el activo ya se ve — un desplazamiento de 0px, animado,
+   * se pelea con el dedo del médico igual que uno de 300px.
    */
   const rielRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
@@ -143,12 +105,18 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
     if (!activo || !riel) return
     const el = riel.querySelector<HTMLElement>(`[data-spine-target="spine-${activo}"]`)
     if (!el) return
-
-    const destino = destinoDelRiel({
-      itemIzq: el.offsetLeft,
-      itemAncho: el.offsetWidth,
+    const puerto = riel.getBoundingClientRect()
+    const caja = el.getBoundingClientRect()
+    const destino = destinoDelRielHorizontal({
       scrollLeft: riel.scrollLeft,
-      anchoVisible: riel.clientWidth,
+      puertoIzquierda: puerto.left,
+      puertoDerecha: puerto.right,
+      objetivoIzquierda: caja.left,
+      objetivoDerecha: caja.right,
+      // El mismo aire que `scrollPaddingLeft` de abajo: el corte cae entre
+      // ítems, no a media palabra (RT-15).
+      margen: 2,
+      maximo: riel.scrollWidth - riel.clientWidth,
     })
     if (destino === null) return
     riel.scrollTo({ left: destino, behavior: comportamientoScroll() })
