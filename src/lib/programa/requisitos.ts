@@ -401,9 +401,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-09.motor', ws: 'WS-09', titulo: 'Motor determinista de aplicabilidad de la evidencia a ESTE paciente',
     estado: 'PARTIAL',
-    queFalta: 'REG-387 lo creó y lo conectó de punta a punta en cuatro dimensiones —edad, embarazo, función renal y alergia—, en español e inglés. Faltan las otras: organismo, susceptibilidad, sitio de infección, dispositivo, comorbilidad, interacción, severidad, entorno de atención, terapia previa y jurisdicción. Caen en `no_evaluable` y se cuentan, no se dan por buenas.',
-    artefactos: ['src/lib/evidencia/aplicabilidad.ts'],
-    pruebas: ['src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts'],
+    queFalta: 'REG-387 lo creó con cuatro dimensiones —edad, embarazo, función renal y alergia—, en español e inglés, pero SÓLO DOS recibían su dato: el llamador armaba el estado con edad y alergias. La función renal ya llega, con su vigencia (REG-375) y con la TFG por la calculadora canónica, que se niega a dar cifra en menores de 18, sin sexo o sin vigencia. Sigue sin llegar el EMBARAZO, a propósito: no hay fuente estructurada y deducirlo del texto es lo que REG-364/365 midieron fallando. Y faltan las dimensiones nuevas: organismo, susceptibilidad, sitio de infección, dispositivo, comorbilidad, interacción, severidad, entorno de atención, terapia previa y jurisdicción. Caen en `no_evaluable` y se cuentan, no se dan por buenas.',
+    artefactos: ['src/lib/evidencia/aplicabilidad.ts', 'src/lib/evidencia/estado-del-paciente.ts'],
+    pruebas: ['src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts', 'src/__tests__/la-funcion-renal-llega-al-motor-de-aplicabilidad.test.ts'],
   }),
   R({
     id: 'WS-09.datos-insuficientes', ws: 'WS-09', titulo: 'Un dato ausente produce insufficient_patient_data, no una suposición',
@@ -463,8 +463,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-10.banderas-y-respuesta', ws: 'WS-10', titulo: 'Banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento',
-    estado: 'NOT_STARTED',
-    queFalta: 'Ninguna de las tres existe como proyección. Al inspeccionarlo (REG-410) las tres resultaron ser problemas distintos y NO se deben construir juntas: (1) BANDERAS — el catálogo de qué condición cuenta como bandera es política clínica y no está decidido; lo que sí se puede hacer sin decidirla es reunir en un eje longitudinal lo que YA está declarado en el árbol (alergia con severidad grave, diagnóstico marcado crónico, etiquetas manuales del paciente). (2) RESPUESTA AL TRATAMIENTO — el dato no existe: nada del expediente liga un fármaco con el desenlace del problema que trata. `Medicamento.indicacion` es texto libre y casarlo con un diagnóstico por parecido sería inventar el vínculo. Reusar `trayectoriaDe`/`queCambio`, que ya son aritmética sin adjetivos, y NO añadir un cuarto motor de tendencia. (3) COMPROMISOS — es la única de las tres con datos: `TareaClinica` tipo seguimiento y `Patient.proximoSeguimiento`. Falta el compromiso en sí (qué prometió revisar y cuándo); la nota no lo guarda porque su esquema está congelado por el sello (WS-10.sello-v4).',
+    estado: 'PARTIAL',
+    artefactos: ['src/lib/expediente/banderas-de-riesgo.ts'],
+    pruebas: ['src/__tests__/las-banderas-reunen-lo-declarado-y-no-deciden-nada.test.ts'],
+    queFalta: 'BANDERAS CERRADA — la primera de las tres. `banderas-de-riesgo.ts` reúne en un eje longitudinal lo que YA está declarado (alergia con severidad registrada, diagnóstico marcado crónico, etiqueta clínica del paciente), con procedencia y fecha, y el expediente lo pinta. NO decide qué cuenta como riesgo: ese catálogo sigue siendo política clínica del dueño, y no hay umbral de severidad porque ninguno está validado. La partición clínico/administrativo de las etiquetas es exhaustiva y su guardián falla si alguien añade una sin clasificar. Siguen abiertas las otras dos, por los motivos que el propio censo ya traía escritos. Al inspeccionarlo (REG-410) las tres resultaron ser problemas distintos y NO se deben construir juntas. (2) RESPUESTA AL TRATAMIENTO — el dato no existe: nada del expediente liga un fármaco con el desenlace del problema que trata. `Medicamento.indicacion` es texto libre y casarlo con un diagnóstico por parecido sería inventar el vínculo. Reusar `trayectoriaDe`/`queCambio`, que ya son aritmética sin adjetivos, y NO añadir un cuarto motor de tendencia. (3) COMPROMISOS — es la única de las tres con datos: `TareaClinica` tipo seguimiento y `Patient.proximoSeguimiento`. Falta el compromiso en sí (qué prometió revisar y cuándo); la nota no lo guarda porque su esquema está congelado por el sello (WS-10.sello-v4).',
   }),
   R({
     id: 'WS-10.vocabulario-canonico', ws: 'WS-10', titulo: 'Un solo vocabulario de verdad clínica',
@@ -520,9 +522,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-12.entailment', ws: 'WS-12', titulo: 'Entailment: la cita sostiene la afirmación, no sólo la contiene',
     estado: 'PARTIAL',
-    queFalta: 'REG-400 cerró la parte que se puede decidir SIN un modelo, y sólo ésa: de qué parte del artículo sale el pasaje. PubMed escribe la sección en el XML y el producto la tiraba, así que una cita de los ANTECEDENTES —lo que se creía antes del estudio, a veces justo lo que vino a refutar— se leía igual que una conclusión. Ahora se marca aparte de lo no respaldado, porque son dos defectos distintos: una cita sin anclar NO EXISTE en el artículo; una anclada en los antecedentes existe y es literal. NO es un evaluador de entailment y no se declara como tal: falta juzgar si el pasaje SIGNIFICA lo que la afirmación dice, y eso exige un modelo, su conjunto de referencia y un umbral que tiene que fijar un médico (declarado en ia/contratos-de-evaluacion.ts). Faltan también las dos comprobaciones deterministas siguientes: POLARIDAD («no redujo la mortalidad» citado como «redujo») y MATIZ («podría reducir» citado como «reduce»).',
-    artefactos: ['src/lib/evidencia/de-donde-sale-el-pasaje.ts'],
-    pruebas: ['src/__tests__/una-cita-de-los-antecedentes-no-demuestra-nada.test.ts'],
+    queFalta: 'REG-400 cerró la parte que se puede decidir SIN un modelo, y sólo ésa: de qué parte del artículo sale el pasaje. PubMed escribe la sección en el XML y el producto la tiraba, así que una cita de los ANTECEDENTES —lo que se creía antes del estudio, a veces justo lo que vino a refutar— se leía igual que una conclusión. Ahora se marca aparte de lo no respaldado, porque son dos defectos distintos: una cita sin anclar NO EXISTE en el artículo; una anclada en los antecedentes existe y es literal. NO es un evaluador de entailment y no se declara como tal: falta juzgar si el pasaje SIGNIFICA lo que la afirmación dice, y eso exige un modelo, su conjunto de referencia y un umbral que tiene que fijar un médico (declarado en ia/contratos-de-evaluacion.ts). POLARIDAD CERRADA: `la-cita-dice-lo-contrario.ts` compara la polaridad de la afirmación con la de su pasaje sobre ocho conceptos de efecto, en español e inglés, y la ruta avisa aparte de los otros dos defectos de cita. Sólo dispara si TODAS las apariciones del concepto en el pasaje están negadas —una sola afirmada y se calla—, y el alcance de la negación se corta en la conjunción, que es lo que evita atribuir el «did not» de *increase* a *reduce*. A diferencia de REG-400 no necesita resumen estructurado, así que cubre justo los artículos que aquélla no puede mirar. Falta el MATIZ («podría reducir» citado como «reduce») y el entailment de verdad, que exige modelo, corpus y un umbral que fija un médico.',
+    artefactos: ['src/lib/evidencia/de-donde-sale-el-pasaje.ts', 'src/lib/evidencia/la-cita-dice-lo-contrario.ts'],
+    pruebas: ['src/__tests__/una-cita-de-los-antecedentes-no-demuestra-nada.test.ts', 'src/__tests__/una-cita-que-dice-lo-contrario.test.ts'],
   }),
   R({
     id: 'WS-12.contratos-de-evaluacion', ws: 'WS-12', titulo: 'Cada capacidad de IA con dataset, métrica, umbral y política de fallo',
@@ -709,3 +711,118 @@ export const POR_QUE_ESTE_CENSO =
   'una sola fila —voz, aprendizaje, automatización, WhatsApp, razonamiento y ' +
   'accesibilidad—, ninguno diferido ni bloqueado: ausentes. Este archivo existe para ' +
   'que la próxima ausencia ponga el CI en rojo en vez de pasar desapercibida.'
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *
+ * EL CENSO, DICHO EN PROSA — para que el tablero deje de omitir las metas.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * El §1 del pliego del dueño (`docs/ai/AUSCULTA-MASTER-COMPLETION-LOOP.md`)
+ * ordena custodiar 21 dominios y **conservar los objetivos** de escala:
+ * 15k / 20k / 30k / 50k / 100k usuarios y 10k / 20k / 30k / 50k pacientes por
+ * médico, y dice por qué: «ningún requisito puede desaparecer simplemente
+ * porque cambió el documento».
+ *
+ * Eso está cumplido — pero **sólo dentro de TypeScript**. `requisitos.ts` tiene
+ * las filas y `el-programa-no-pierde-requisitos.test.ts` las vigila. El tablero
+ * en prosa, que es el que una persona lee y del que salen las notas de PR y el
+ * `FINAL-READINESS`, mencionaba `100 k` y `50 000` **una vez cada uno**: 15k,
+ * 20k y 30k no aparecían en ninguna línea.
+ *
+ * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
+ *
+ * El 30-ago-2026, contando menciones en el tablero después de guardar por fin
+ * los dos pliegos del dueño en `docs/ai/`. La primera lectura fue **peor que el
+ * defecto**: se concluyó que el programa había perdido los requisitos. No los
+ * había perdido; los tenía donde una persona no los ve. La corrección está
+ * escrita en `docs/audit/carriles-contra-su-pliego-2026-08-30.md`, porque una
+ * acusación falsa que se borra sin decirlo vuelve a hacerse.
+ *
+ * ── LA CAUSA RAÍZ ───────────────────────────────────────────────────────────
+ *
+ * Dos representaciones del mismo programa, una legible por máquina y otra por
+ * personas, **sin nada que las ate**. La que se lee en voz alta era la
+ * incompleta. Es el patrón `depende_de_recordar`: mantener las dos al día
+ * dependía de que alguien se acordara de copiar.
+ *
+ * ── LA REGLA QUE LO HACE SEGURO ─────────────────────────────────────────────
+ *
+ * Lo derivable se deriva (REG-241). Este módulo construye el bloque de prosa a
+ * partir del censo; `scripts/product/censo-al-tablero.mjs` lo escribe en el
+ * tablero y `el-tablero-ensena-las-metas.test.ts` falla si el tablero se queda
+ * atrás. **No hay una segunda fuente de verdad**: el censo sigue siendo la
+ * única, y esto es su sombra impresa.
+ *
+ * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
+ *
+ * · No juzga si un estado es cierto. De eso responde el guardián del censo.
+ * · No cubre la prosa escrita a mano del tablero — sólo el bloque marcado.
+ *   Si alguien borra una tabla de P0 fuera de las marcas, esto no se entera.
+ * · No representa la cobertura por dominio con su estado: el censo no guarda
+ *   qué fila cubre qué dominio (ese mapa vive en el guardián). Aquí se listan
+ *   los 21 para que se vean, y quien los ata sigue siendo el guardián.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+export const MARCA_INICIO = '<!-- CENSO:INICIO — generado por scripts/product/censo-al-tablero.mjs · no editar a mano -->'
+export const MARCA_FIN = '<!-- CENSO:FIN -->'
+
+/** Separador de millares fijo, sin depender del ICU del entorno. */
+function conMillares(n: number): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+}
+
+function filaDe(id: string): { estado: string; titulo: string } {
+  const r = REQUISITOS.find(x => x.id === id)
+  return r ? { estado: r.estado, titulo: r.titulo } : { estado: 'SIN FILA', titulo: '—' }
+}
+
+export function bloqueDelCenso(): string {
+  const l: string[] = []
+  l.push(MARCA_INICIO)
+  l.push('')
+  l.push('## Las metas del §1, escalón por escalón')
+  l.push('')
+  l.push('> **Derivado.** Sale de `src/lib/programa/requisitos.ts`; se regenera con')
+  l.push('> `npx tsx scripts/product/censo-al-tablero.mjs` y `el-tablero-ensena-las-metas.test.ts`')
+  l.push('> falla si el tablero se queda atrás.')
+  l.push('>')
+  l.push('> **Por qué está aquí.** El §1 del pliego manda conservar estos objetivos. Los')
+  l.push('> conservaba el censo, que es TypeScript; este tablero —el que se lee— nombraba')
+  l.push('> dos de los once. Un objetivo que sólo existe en un archivo de código no está')
+  l.push('> custodiado: está guardado.')
+  l.push('')
+  l.push('### Usuarios registrados')
+  l.push('')
+  l.push('> Usuarios registrados **no** es concurrencia activa. Van por separado a')
+  l.push('> propósito: mezclarlos es cómo un «aguanta 100 k» acaba significando algo que')
+  l.push('> nadie midió.')
+  l.push('')
+  l.push('| Escalón | Estado | Fila del censo |')
+  l.push('|---|---|---|')
+  for (const n of USUARIOS_REGISTRADOS) {
+    const id = `WS-02.registrados-${n}`
+    l.push(`| ${conMillares(n)} | \`${filaDe(id).estado}\` | \`${id}\` |`)
+  }
+  l.push('')
+  l.push('### Pacientes por médico')
+  l.push('')
+  l.push('| Escalón | Estado | Fila del censo |')
+  l.push('|---|---|---|')
+  for (const n of PACIENTES_POR_MEDICO) {
+    const id = `WS-03.pacientes-${n}`
+    l.push(`| ${conMillares(n)} | \`${filaDe(id).estado}\` | \`${id}\` |`)
+  }
+  l.push('')
+  l.push('### Los 21 dominios que el §1 obliga a custodiar')
+  l.push('')
+  l.push('Ninguno puede quedarse sin una sola fila del censo. Seis se habían perdido')
+  l.push('antes de que existiera el censo —voz, aprendizaje, autoridad de la')
+  l.push('automatización, WhatsApp, razonamiento y accesibilidad— y por eso se vigilan.')
+  l.push('')
+  for (const d of DOMINIOS_CANONICOS) l.push(`- ${d}`)
+  l.push('')
+  l.push(`**Filas en el censo hoy: ${REQUISITOS.length}.**`)
+  l.push('')
+  l.push(MARCA_FIN)
+  return l.join('\n')
+}
