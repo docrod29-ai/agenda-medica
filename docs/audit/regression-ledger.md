@@ -16025,3 +16025,100 @@ cuál urge.
 - **No se comprobó en navegador** que el bloque se vea: ésa es la otra frontera.
 
 **Prueba.** `src/__tests__/una-lista-de-banderas-vacia-no-dice-sin-riesgo.test.ts` (13 casos).
+
+---
+
+## REG-424 — el documento decía que estaba topado y no lo estaba
+
+**QUÉ SE PEDÍA.** `WS-03.documentos-que-crecen`: ningún documento crece sin
+techo. Su `queFalta` nombraba el hueco exacto — «queda `internamientos/{id}`
+(seis arrays en un documento, administraciones sin tope)» — y lo daba por fuera
+de carril por ser Hospital. Es trabajo interno accionable y su consecuencia es de
+las peores del árbol.
+
+### El tope estaba en la prosa, no en el código
+
+`registro-durable.ts` lleva escrito desde E0-09:
+
+> «Los arrays del doc de internamiento (`balanceHidrico`, `escalas`, `sbar` y
+> `indicaciones[].administraciones[]`) son solo CACHÉ DE DISPLAY: **están topados
+> por el límite de 1 MB por documento Firestore**.»
+
+Tres lo estaban de verdad: `balanceHidrico` y `escalas` a 100, `sbar` a 50.
+**`administraciones` no.** Se anexaba sin tope, dosis tras dosis.
+
+### Por qué no es una degradación, es un paro
+
+Firestore rechaza escribir un documento que pase de 1 MB, y **todas** las
+mutaciones del episodio son un solo `tx.update` sobre ese documento. Al rebasarlo
+no falla lo último que se añadió: **falla todo**. No se puede registrar una
+administración, ni suspender una orden, ni **egresar al paciente**.
+
+Una UCI de veinte días con ocho fármacos cada seis horas son ~2 500 objetos de
+administración en un documento. No es un caso raro: es una estancia larga.
+
+El «límite de 1 MB» que la cabecera citaba como techo no era un techo: era el
+punto donde el episodio deja de funcionar.
+
+### La causa raíz
+
+Un tope declarado en prosa y no en código. Familia «el sistema se contradice a sí
+mismo»: leer la cabecera daba por revisado lo que no lo estaba, y eso es lo que
+mantuvo el defecto invisible durante todo E0-09.
+
+### Sólo se puede topar uno, y ésa es la regla
+
+**Topar un array sólo es seguro si el hecho vive en otro sitio.** Aquí no todos
+viven en otro sitio, así que el módulo no reparte topes: reparte los arrays en
+los que se pueden topar y los que no, con la razón de cada uno.
+
+- `administraciones` **sí**: `administrar` está en `ACCIONES_CON_EVENTO_DURABLE` y
+  cada dosis queda entera en la subcolección append-only `registros`. El recorte
+  pierde la copia de display, no el hecho.
+- `movimientos` **no**: `registro-durable.ts` declara que `trasladar` no emite
+  evento **precisamente porque** queda ahí. Es la única copia; toparlo borraría
+  traslados.
+- `indicaciones` e `interconsultas` **no**: son la orden y la interconsulta
+  mismas, no un registro de que ocurrieron. Recortarlas haría desaparecer órdenes
+  vivas del MAR.
+- `medicamentosCasa` **no hace falta**: la conciliación reemplaza la lista entera,
+  no le anexa. Su tamaño es el de la medicación del paciente, no el de la
+  estancia.
+
+Los que no se pueden topar quedan como riesgo **nombrado**. Un riesgo declarado
+se puede vigilar; uno que vive en la forma de un documento, no.
+
+### Se recorta por el principio, y eso se prueba contra el motor
+
+Al revés perdería la última dosis dada, que es el ancla del atraso del MAR:
+convertiría a un paciente al día en uno «nunca administrado». El golden corre
+`lineaMar` con la lista entera y con la recortada y exige el mismo estado, la
+misma `ultima` y las mismas horas.
+
+### El tope no es una cifra clínica
+
+100 no dice nada de medicina: dice cuánto cabe en un documento sin acercarse al
+límite. Está muy por encima de lo que lee cualquiera — la pantalla enseña
+`slice(-6)` y el motor ancla en la última dosis.
+
+### La partición no deja huecos
+
+Como `ACCIONES_CON_EVENTO_DURABLE`/`ACCIONES_SIN_EVENTO_DURABLE`: un array nuevo
+en `Internamiento` que nadie clasifique rompe el CI a propósito, para que nadie
+añada algo que crece a un documento sin decidir si se topa.
+
+### Qué NO cubre
+
+- **No acota `movimientos`, `indicaciones` ni `interconsultas`.** Siguen creciendo
+  sin techo, ahora dicho en voz alta. Acotarlas de verdad exige sacarlas a
+  subcolección, que es otra unidad y toca las reglas de Firestore.
+- **No mide bytes.** Cuenta elementos, que es lo que se puede contar sin
+  serializar el documento en cada escritura. Un `sbar` con un texto enorme pesa
+  más que cien administraciones — por eso su tope es menor, pero es una
+  aproximación y se dice.
+- **No se probó contra Firestore.** Se prueba la partición, los topes y por qué
+  extremo se recorta; que el documento quede por debajo de 1 MB en producción es
+  la otra frontera.
+- Carril **Hospital: ALPHA, se usa y no se vende.**
+
+**Prueba.** `src/__tests__/un-episodio-largo-no-puede-dejar-de-escribirse.test.ts` (11 casos).

@@ -22,6 +22,7 @@ import type { BedAssignment, EstadoCama } from '@/types/hospital'
 import { registroDurable } from '@/lib/hospital/registro-durable'
 import { mismaCama } from '@/lib/hospital/cama'
 import { esIdDeUnSoloSegmento } from '@/lib/idempotencia'
+import { cabe } from '@/lib/hospital/lo-que-cabe-en-un-episodio'
 import { randomUUID } from 'crypto'
 import { sanearAdministracionEntrante } from '@/lib/hospital/administracion-entrante'
 
@@ -122,7 +123,14 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
         porUid: actor.uid,
         fecha: now,                 // reloj del servidor, no el de la tablet
       }
-      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, administraciones: [...((x as Any).administraciones as Any[] ?? []), adm] } : x) }
+      /* WS-03 / REG-424 — el array se TOPA. `registro-durable.ts` decía desde
+         E0-09 que estaba topado y no lo estaba: crecía hasta que el documento
+         pasaba de 1 MB y entonces fallaba TODA mutación del episodio, incluida
+         la siguiente administración y el egreso. Se recorta por el principio, y
+         la dosis entera sigue entera en el libro append-only. */
+      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId
+        ? { ...x, administraciones: cabe('indicaciones[].administraciones', [...((x as Any).administraciones as Any[] ?? []), adm]) }
+        : x) }
     }
     case 'verificar_farmacia':
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: actor.nombre, fechaVerificacion: now } : x) }
@@ -194,11 +202,11 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
     // Igual que el MAR: la enfermera que registra queda registrada como ella, no
     // como el médico. Es dato clínico-legal (quién hizo qué).
     case 'balance':
-      return { balanceHidrico: [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: actor.nombre }].slice(-100) }
+      return { balanceHidrico: cabe('balanceHidrico', [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: actor.nombre }]) }
     case 'escala':
-      return { escalas: [...arr('escalas'), { fecha: now, tipo: p.tipo, score: p.score, riesgo: p.riesgo, por: actor.nombre }].slice(-100) }
+      return { escalas: cabe('escalas', [...arr('escalas'), { fecha: now, tipo: p.tipo, score: p.score, riesgo: p.riesgo, por: actor.nombre }]) }
     case 'sbar':
-      return { sbar: [...arr('sbar'), { fecha: now, texto: p.texto, por: actor.nombre }].slice(-50) }
+      return { sbar: cabe('sbar', [...arr('sbar'), { fecha: now, texto: p.texto, por: actor.nombre }]) }
     default:
       return {}
   }

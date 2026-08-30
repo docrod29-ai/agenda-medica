@@ -2,7 +2,7 @@
   "sellado": "2026-08-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6258,
+  "totalCasos": 6269,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -1555,6 +1555,10 @@
     {
       "archivo": "src/__tests__/un-descarte-no-puede-ser-el-motivo-de-la-receta.test.ts",
       "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/un-episodio-largo-no-puede-dejar-de-escribirse.test.ts",
+      "minCasos": 11
     },
     {
       "archivo": "src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts",

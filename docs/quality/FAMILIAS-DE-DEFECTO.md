@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 77 de 274, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 77 de 275, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
@@ -128,9 +128,25 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 43 de 274.**
+**«El sistema se contradice a sí mismo» — 44 de 275.**
 
-Sumó REG-421 (30-ago-2026), que es REG-364 **dos consumidores más allá** y enseña
+Sumó REG-424 (30-ago-2026), y es esta familia en su forma más barata de crear y
+más cara de encontrar: **un tope declarado en prosa y no en código**.
+`registro-durable.ts` llevaba desde E0-09 diciendo que los arrays del episodio
+—`administraciones` entre ellos— «están topados por el límite de 1 MB por
+documento». Tres lo estaban. Ése no.
+
+Y como toda mutación del episodio es un solo update sobre el mismo documento, al
+pasar de 1 MB no falla lo último que se añadió: **falla todo** — no se puede
+registrar una dosis, ni suspender una orden, ni egresar al paciente. El «límite
+de 1 MB» que la cabecera citaba como techo era en realidad el punto donde el
+episodio deja de funcionar.
+
+Su lección es sobre cómo se lee este árbol: una cabecera bien escrita da por
+revisado lo que no lo está. Cuanto mejor explicada esté una garantía, menos
+probable es que alguien vaya a comprobar si el código la cumple.
+
+Antes REG-421 (30-ago-2026), que es REG-364 **dos consumidores más allá** y enseña
 hasta dónde hay que seguir un criterio antes de darlo por aplicado. `estaVigente`
 —«¿sigue siendo un problema del paciente?»— lleva escrito, exportado y probado
 desde REG-364. La receta y la orden de estudios resolvían la misma pregunta con
@@ -232,7 +248,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 37 de 274**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 37 de 275**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
