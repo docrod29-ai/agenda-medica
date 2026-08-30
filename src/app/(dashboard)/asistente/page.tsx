@@ -31,6 +31,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { configParaMedico } from '@/lib/horario-medico'
+import { conTiempoLimite } from '@/lib/fetch-con-timeout'
 
 function todayStr() {
   return hoyISO()  // fecha en zona MX, no UTC (bug "hoy salta a mañana")
@@ -49,6 +50,12 @@ function formatDateLong(d: string): string {
 const TIPOS: { value: AppointmentType; label: string }[] = Object.entries(APPOINTMENT_TYPE_CONFIG).map(
   ([k, v]) => ({ value: k as AppointmentType, label: v.label })
 )
+
+/**
+ * Techo para las lecturas de expediente del alta rápida. Generoso para una
+ * conexión mala, muy por debajo de lo que nadie espera mirando un botón.
+ */
+const ESPERA_EXPEDIENTE_MS = 8000
 
 export default function AsistentePage() {
   return (
@@ -259,7 +266,15 @@ function AsistenteInner() {
       let pacienteId = ''
       let avisoSinExpediente = false
       try {
-        const pacientes = await getPatients(clinicId!)
+        /**
+         * CON TECHO. `getPatients` es una lectura del SDK de Firestore y sin
+         * red **no rechaza**: se queda pendiente. El `try/catch` de abajo no
+         * podía capturar nada y el `finally` que devuelve el botón a su sitio
+         * no llegaba a correr — «Guardando…» para siempre, medido a 18 s.
+         */
+        const pacientes = await conTiempoLimite(
+          getPatients(clinicId!), ESPERA_EXPEDIENTE_MS, 'el expediente del paciente',
+        )
         /**
          * CON QUÉ EXPEDIENTE SE FUNDE ESTA CITA.
          *
@@ -289,7 +304,7 @@ function AsistenteInner() {
         if (existente) {
           pacienteId = existente.id
         } else {
-          pacienteId = await createPatient(clinicId!, {
+          pacienteId = await conTiempoLimite(createPatient(clinicId!, {
             nombre: nombreLimpio,
             telefono: tel,
             noShowCount: 0,
@@ -297,7 +312,7 @@ function AsistenteInner() {
             createdAt: '',
             updatedAt: '',
             creadoPor: user?.email || 'asistente',
-          })
+          }), ESPERA_EXPEDIENTE_MS, 'el alta del expediente')
         }
       } catch (e) {
         /**

@@ -94,3 +94,45 @@ export const POR_QUE_UN_HELPER =
   'camino de ÉXITO, queda un `setTimeout` vivo por cada llamada. Aquí se limpia ' +
   'siempre en un `finally` y nadie tiene que acordarse — que es la única forma ' +
   'de que veinte sitios lo hagan bien.'
+
+/**
+ * CUALQUIER promesa con tiempo máximo — no sólo un `fetch`.
+ *
+ * ── EL FALLO QUE LA TRAJO ───────────────────────────────────────────────────
+ *
+ * `fetchConTimeout` sólo sirve cuando la llamada es un `fetch` propio. El alta
+ * de la asistente se colgaba en `getPatients()`, que es una lectura del SDK de
+ * Firestore: sin red **no rechaza**, se queda pendiente. Y una promesa que no
+ * se resuelve ni se rechaza deja inútil al `try/catch` que la rodea —no hay
+ * nada que capturar— y al `finally` que debía devolver el botón a su sitio.
+ *
+ * Medido en el navegador: con la red cortada, «Guardando…» seguía ahí
+ * dieciocho segundos después, con el botón deshabilitado. Ni error, ni éxito,
+ * ni forma de saber si la cita se creó — que es el estado que produce el
+ * reintento a ciegas, y con él la cita duplicada.
+ *
+ * ── POR QUÉ AQUÍ ────────────────────────────────────────────────────────────
+ *
+ * Comparte el `TiempoAgotado` de arriba a propósito: quien llama distingue «se
+ * tardó» de «falló» con el mismo tipo, venga de un `fetch` o de un SDK.
+ *
+ * `Promise.race` no cancela la promesa perdedora —no se puede, con una ajena—,
+ * así que la de Firestore seguirá viva por dentro. Lo que se recupera es el
+ * control del flujo, que es lo que le devuelve el botón a la asistente.
+ */
+export async function conTiempoLimite<T>(
+  promesa: Promise<T>, ms: number, queSeEsperaba: string,
+): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      promesa,
+      new Promise<never>((_, rechazar) => {
+        t = setTimeout(() => rechazar(new TiempoAgotado(ms, queSeEsperaba)), ms)
+      }),
+    ])
+  } finally {
+    // Sin esto queda un temporizador vivo por cada llamada que sí respondió.
+    if (t) clearTimeout(t)
+  }
+}

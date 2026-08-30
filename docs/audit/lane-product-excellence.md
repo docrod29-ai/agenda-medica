@@ -1768,3 +1768,81 @@ guardián exige que el techo sea la medición de hoy, sin holgura escondida.
 **el navegador no lo implementa solo**: hoy se sigue tabulando opción a opción.
 Queda declarado. Y no se juzga si ocho tipos son demasiados — eso es
 configuración del consultorio, no diseño.
+
+---
+
+## Unidad 37 — «Guardando…» para siempre, y una promesa que no se puede cumplir
+
+**FOUND.** Con la red cortada, el alta de la asistente se quedaba en
+**«Guardando…»**, con el botón deshabilitado, **más de 18 segundos** y sin
+resolverse. Ni error, ni éxito, ni forma de saber si la cita se creó.
+
+Es el peor de los tres estados posibles. «Falló» se reintenta; «se guardó» se
+cierra; **«no lo sé» produce el reintento a ciegas**, que es exactamente como se
+fabrica una cita duplicada — el mismo daño que la unidad 8 arregló del lado del
+paciente.
+
+**CÓMO SE DESCUBRIÓ.** Rellenando el formulario en el navegador, cortando la red
+con `setOffline(true)`, pulsando «Agendar cita» y **vigilando el botón cada
+500 ms**. Sin ese muestreo el defecto no se ve: una captura al final parece
+simplemente una pantalla cargando.
+
+**LA PRIMERA CAUSA QUE ENCONTRÉ NO ERA LA CAUSA, Y LO DEJO ESCRITO.** Vi que
+`fetchAutenticado` hacía dos esperas seguidas y sólo una tenía techo:
+`usuarioCuandoSePueda()` sí (8 s, con el motivo escrito en el archivo — «es
+mejor fallar con un mensaje claro que dejar la pantalla girando para siempre») y
+`user.getIdToken()` no. Le puse tapa. **Volví a medir y el botón seguía colgado
+pasados los 12 s.** No era eso.
+
+El arreglo se queda igualmente, y no por consuelo: `getIdToken()` sin red
+tampoco falla, reintenta por dentro y deja la promesa pendiente. Es el mismo
+agujero, en la línea de al lado de la que sí tenía tapa, en un camino que usan
+**53 archivos**.
+
+**LA CAUSA DE VERDAD.** `getPatients()` — una lectura del SDK de Firestore.
+**Sin red no rechaza: se queda pendiente.** Y una promesa que ni resuelve ni
+rechaza deja inútil al `try/catch` que la rodea —no hay nada que capturar— y al
+`finally` que devuelve el botón a su sitio. `setSaving(false)` estaba escrito, y
+bien, y no llegaba a ejecutarse jamás.
+
+**CHANGE.** `conTiempoLimite`, hermano de `fetchConTimeout` para promesas que no
+son un `fetch` propio, compartiendo el mismo `TiempoAgotado` — para que quien
+llame distinga «se tardó» de «falló» venga de donde venga. Se aplica a la
+lectura y al alta del expediente, y el token pasa a usar el mismo mecanismo:
+dos mecanismos para lo mismo divergen, y este archivo ya tuvo una espera con
+tapa y otra sin ella.
+
+**Y UNA PROMESA QUE NO SE PUEDE CUMPLIR.** La franja de «sin conexión» decía
+«**Los cambios se sincronizarán al reconectar**». Es cierto de las escrituras
+del SDK de Firestore, que tiene persistencia offline. **Es falso de todo lo que
+pasa por una ruta de API** — el alta de una cita, entre otras.
+
+Se vio en el mismo experimento: la franja prometía sincronizar mientras la
+petición moría. La asistente que lee eso cierra el portátil tranquila y la cita
+no existe. Es la regla 3 de `clinical-safety` con el signo al revés: se
+anunciaba un cambio que no iba a ocurrir. Ahora dice lo que se sostiene — que se
+puede seguir consultando, y que lo que se guarde ahora puede no registrarse.
+
+**BROWSER_PROOF.** Build de producción, red cortada, muestreando cada 500 ms:
+
+| | Antes | Después |
+|---|---|---|
+| Estado del botón | «Guardando…», `disabled`, **>18 s sin resolverse** | vuelve a «Agendar cita», habilitado, a los **8,1 s** |
+| Aviso | ninguno | «✕ Error al guardar la cita» |
+| Franja de offline | promete sincronizar | dice que puede no registrarse |
+
+**REGRESSION.** `el-boton-no-se-queda-en-guardando-para-siempre.test.ts`, 8
+casos, incluido uno de **comportamiento** con temporizadores falsos: una promesa
+que nunca resuelve acaba rechazando en vez de colgar. Probado al revés cinco
+veces.
+
+**RESIDUAL_RISK.**
+
+- `Promise.race` **no cancela** la promesa perdedora: la lectura de Firestore
+  sigue viva por dentro. Lo que se recupera es el control del flujo, que es lo
+  que le devuelve el botón a la asistente — no un ahorro de trabajo.
+- Los **otros 52 archivos** que usan `fetchAutenticado` no se han recorrido uno
+  a uno: heredan el techo del token, pero si alguno espera además a una promesa
+  del SDK sin tapa, tendrá el mismo defecto. No se declaran buenos.
+- El texto nuevo de la franja **no se ha probado con nadie**: es más honesto,
+  no necesariamente el mejor redactado.
