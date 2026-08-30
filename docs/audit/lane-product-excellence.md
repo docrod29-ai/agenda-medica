@@ -1902,3 +1902,40 @@ niega la que sí existe.
 - La tabla de la asimetría vale para la configuración actual de persistencia
   offline. Si alguien la desactiva, las escrituras del SDK pasan a la tercera
   fila y la franja vuelve a quedarse corta.
+
+---
+
+## Unidad 39 — cerrar el barrido midiendo, y no encontrar nada
+
+De la unidad 38 quedaban dos candidatos sin medir. Los dejé escritos como «tienen
+la forma del defecto y no los he mirado». Esto es mirarlos.
+
+**`/lista-espera` — NO se cuelga.** Con la red cortada, el alta vuelve a la
+normalidad en **7,1 s** (10,1 s en una corrida anterior: variable, pero acotado).
+Su `handleSave` sólo **escribe** (`createWaitlistEntry`), y por la asimetría de
+la unidad 38 eso resuelve en local. Las otras cuatro esperas del archivo son
+lecturas de la carga inicial y actualizaciones de fila: la lectura deja la
+pantalla en «Cargando lista de espera…», que es honesto, no una mentira.
+
+**No hay arreglo que hacer.** Lo anoto porque un barrido que sólo se escribe
+cuando encuentra algo acaba siendo un catálogo de sustos.
+
+**LO QUE SÍ QUEDÓ ANOTADO, sin arreglar:** siete segundos para una escritura que
+en `/cobrar` tarda uno y medio. Las dos son escrituras del SDK, así que la
+diferencia es de la propia llamada, no de la familia. No lo he investigado y no
+lo declaro bueno: está medido y dicho.
+
+**Y UNA VERIFICACIÓN QUE ME DEBÍA A MÍ MISMO.** En la unidad 38 afirmé en el
+mensaje del commit que la franja «ahora dice: *Algunas acciones no se guardarán
+hasta recuperar la señal*». Al medir `/lista-espera` la franja seguía enseñando
+la redacción **intermedia** — el build era anterior al cambio. Reconstruido y
+vuelto a mirar, ya dice la definitiva.
+
+Es exactamente el defecto que este carril lleva persiguiendo desde la unidad 23:
+**afirmar desde el código lo que no se ha visto en la pantalla.** Esta vez me
+tocó a mí, en la frase de un commit.
+
+**`AppointmentModal` sigue sin medir.** Su espera es `crearSolicitudResena`, una
+escritura, en un camino secundario (pedir reseña tras la cita). Por la asimetría
+no debería colgarse, pero **eso es un razonamiento, no una medición**, y así
+queda declarado.
