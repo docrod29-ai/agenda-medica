@@ -1045,6 +1045,10 @@ function RielEntrada({
               title={appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'}
             >
               cortesía
+              {/* El MOTIVO viajaba sólo en `title`. Aquí sí llega a todos. */}
+              <span className="nx-solo-lector">
+                {appt.exentoMotivo ? `: ${appt.exentoMotivo}` : ' — no se cobra'}
+              </span>
             </span>
           )}
           {/*
@@ -1062,12 +1066,21 @@ function RielEntrada({
             >
               <AlertTriangle size={10} className="ds-icon" />
               {reparando ? 'Reparando…' : 'Calendario descuadrado'}
+              {/* Qué pasó y qué hace este botón: estaba sólo en `title`, así que
+                  el nombre accesible era «Calendario descuadrado» a secas. */}
+              <span className="nx-solo-lector">. {avisoDesincronizada(appt.estado)}</span>
             </button>
           )}
           {/* Riesgo de no-show alto: señal operativa real — conserva su aviso */}
           {riesgo && (riesgo.nivel === 'alto' || riesgo.nivel === 'muy_alto') && (
             <span className="riel-aviso" title={`Riesgo: ${riesgo.score}/100. ${riesgo.recomendacion}`}>
               <AlertTriangle size={10} className="ds-icon" /> {NIVEL_LABEL[riesgo.nivel]}
+              {/* La insignia sólo decía el NIVEL. La cifra y —sobre todo— la
+                  recomendación vivían en `title`, y son justo lo que le dice a
+                  la asistente si toca llamar al paciente. */}
+              <span className="nx-solo-lector">
+                . Riesgo {riesgo.score} de 100. {riesgo.recomendacion}
+              </span>
             </span>
           )}
         </div>

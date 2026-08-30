@@ -1566,3 +1566,74 @@ pero **sigue alta** y queda declarada: doce tarjetas es inventario, no jerarquí
 (`tamanosFueraDeEscala` 1950 → 1949; el guardián exige que el techo sea la
 medición de hoy, sin holgura escondida) · tsc limpio · build compila · trinquete
 de interfaz sin regresión, con `/finanzas` en axe 0 a los tres anchos.
+
+---
+
+## Unidad 34 — `title=` se estaba usando como si fuera un canal de información
+
+**FOUND, y esta vez por patrón, no por pantalla.** El mismo defecto había
+aparecido ya tres veces en este carril, cada una pareciendo aislada:
+
+| Unidad | Dónde | Qué vivía sólo en `title` |
+|---|---|---|
+| 18 | rejilla del calendario | el **estado** de la cita |
+| 32 | `/finanzas` | las **cifras** de «Ingresos por día» |
+| 34 | `/citas` | el motivo de una cortesía, el aviso del calendario descuadrado y **la recomendación del riesgo de no-show** |
+
+A la tercera deja de ser un defecto y pasa a ser un **hábito del código**.
+
+**POR QUÉ NO SIRVE.** `title` es un canal de PUNTERO: no aparece al tocar en una
+tableta —que es la mitad de los sitios donde se usa este producto—, los lectores
+de pantalla lo anuncian de forma inconsistente o no lo anuncian, y no se ve de
+lejos. Un dato que sólo está ahí es un dato que la mitad de la gente no tiene.
+
+De los tres de `/citas`, el que duele es el **riesgo de no-show**: la insignia
+decía el nivel («Alto») y la cifra y la **recomendación** —«Riesgo 58 de 100.
+Activar doble confirmación 24 h y 2 h antes»— sólo salían al posar el ratón. Es
+justo lo que le dice a la asistente si toca llamar al paciente.
+
+**CHANGE.** Una utilidad reutilizable, `.nx-solo-lector`, que oculta a la vista
+**sin sacar del árbol accesible** (`display:none` lo borraría). Los tres datos
+pasan por ahí; `title` se queda como comodidad del ratón, que es para lo que
+sirve.
+
+**EL GUARDIÁN ENCONTRÓ UNO MÁS QUE YO NO HABÍA VISTO.** Al barrer las tres
+pantallas marcó el bloque del calendario: su `title` decía el **médico** y el
+nombre accesible no. En un consultorio de varios médicos, «de quién es esta
+cita» era un dato de ratón — y en la rejilla el médico se distingue por COLOR,
+que es el otro canal que no llega a todos. Arreglado: la etiqueta lo dice.
+
+**Y EL GUARDIÁN TAMBIÉN SE EQUIVOCÓ UNA VEZ**, en mi contra y a mi favor: no
+conocía `activable({ etiqueta })`, que es como este repositorio pone un nombre
+accesible, y marcaba como huérfano un `title` que sí estaba cubierto. Enseñarle
+el vocabulario no es aflojarlo — y el hallazgo de debajo era real.
+
+**LA SIEMBRA, OTRA VEZ, ERA LO QUE FALTABA.** Ninguno de los tres avisos se
+podía ver: no había cita de cortesía, ni cita descuadrada con Google, ni
+paciente con historial de inasistencia. El código estaba escrito y la pantalla
+que lo enseña **no se podía auditar**. Ahora la siembra produce los tres casos.
+Es la tercera vez en esta vuelta que el arnés era el que no dejaba ver
+(estado inventado, día equivocado, cero cobros).
+
+**BROWSER_PROOF.** Build de producción, `/citas`:
+
+```
+". Riesgo 58 de 100. Activar doble confirmación 24 h y 2 h antes."   1×1 px
+": Familiar del personal"                                            1×1 px
+". Google Calendar quedó con los datos viejos de esta cita…"         1×1 px
+```
+
+Invisibles a la vista, presentes en el árbol. Y en el calendario:
+«Cita de Rosalía Mendieta Cuevas a las 09:00 · Dra. Ximena Alcántara Robledo —
+Confirmada».
+
+**REGRESSION.** `title-no-es-un-canal-de-informacion.test.ts`, 6 casos, con un
+barrido que exige que **ningún** `title` de las tres pantallas se quede solo.
+Probado al revés tres veces: quitando el texto oculto del riesgo, ocultando la
+utilidad con `display:none` (que la sacaría del árbol) y metiendo un `title`
+nuevo sin otro canal.
+
+**RESIDUAL_RISK.** El barrido cubre **sólo** las tres pantallas de este carril.
+El resto de la aplicación tiene más `title=`; no se han auditado y **no se
+declaran buenos**. Y no se comprueba el caso contrario —texto oculto que repite
+lo visible y hace la lectura pesada—, que también es un defecto.

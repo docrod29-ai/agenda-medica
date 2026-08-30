@@ -3535,6 +3535,23 @@ span.riel-aviso { cursor: default; }
 }
 .nx-agenda-bloque:active { transform: scale(0.985); }
 
+/* SÓLO PARA QUIEN NO VE LA PANTALLA.
+   Nace de un patrón que este carril encontró tres veces: información que
+   viajaba ÚNICAMENTE en `title=`. `title` es un canal de PUNTERO — no existe
+   en una tableta ni para un lector de pantalla. Cuando el dato no cabe en el
+   texto visible, va aquí y `title` se queda como comodidad del ratón, que es
+   para lo que sirve.
+   Se oculta sin sacarlo del árbol accesible: `display:none` lo borraría. */
+.nx-solo-lector {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* El número del día en la vista de MES es ahora el control que abre ese día
    (antes lo era la celda entera, y las píldoras de cita quedaban DENTRO de un
    botón). Mide 24×24, que es justo el mínimo de WCAG 2.2 §2.5.8, así que el

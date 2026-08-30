@@ -22,6 +22,8 @@ export type CitaNombrable = {
   pacienteNombre: string
   fechaHora: string
   estado: AppointmentStatus
+  /** Sólo se dice cuando lo hay: en un consultorio de un solo médico sobra. */
+  medicoNombre?: string
 }
 
 export function etiquetaDeCita(a: CitaNombrable): string {
@@ -33,5 +35,13 @@ export function etiquetaDeCita(a: CitaNombrable): string {
    * sonando igual que una confirmada, que es el defecto que trajo esto.
    */
   const dicho = APPOINTMENT_STATUS_CONFIG[a.estado]?.label ?? a.estado
-  return `Cita de ${a.pacienteNombre} a las ${hora} — ${dicho}`
+  /**
+   * CON QUÉ MÉDICO. Lo cazó el guardián de `title` de esta misma tanda: el
+   * `title` del bloque lo decía y el nombre accesible no, así que en un
+   * consultorio de varios médicos «de quién es esta cita» era un dato de ratón.
+   * En la rejilla el médico se distingue por COLOR, que es el otro canal que no
+   * llega a todo el mundo.
+   */
+  const con = a.medicoNombre ? ` · ${a.medicoNombre}` : ''
+  return `Cita de ${a.pacienteNombre} a las ${hora}${con} — ${dicho}`
 }

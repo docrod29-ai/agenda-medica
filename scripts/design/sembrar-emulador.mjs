@@ -140,6 +140,15 @@ const PACIENTES = [
     alergias: '',
     seguroMedico: '',
     notas: 'Pediátrico. Peso 18.4 kg.',
+    /**
+     * HISTORIAL DE INASISTENCIA — para que el aviso de riesgo de no-show se
+     * pueda VER. Sin esto, `calcularRiesgoNoShow` nunca pasa de «bajo» y la
+     * insignia de riesgo no se pinta nunca: el código estaba escrito y la
+     * pantalla que lo enseña no se podía auditar. Misma familia que los cobros
+     * de la unidad 31 — el arnés tiene que poder producir el caso.
+     */
+    noShowCount: 3,
+    cancelacionCount: 2,
   },
 ]
 
@@ -170,6 +179,13 @@ const CITAS = [
   { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
   { id: 'cita-003', pac: 'pac-002', hora: '11:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Resultados de laboratorio' },
   { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Fiebre de tres días' },
+  /**
+   * Dos casos que EXISTEN en el código y no se podían ver en pantalla:
+   * la cita de cortesía (con su motivo) y la descuadrada con Google Calendar.
+   * Sin sembrarlas, sus avisos no se pintan nunca y no hay forma de auditarlos.
+   */
+  { id: 'cita-008', pac: 'pac-002', hora: '16:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Revisión de control', exento: 'Familiar del personal' },
+  { id: 'cita-009', pac: 'pac-003', hora: '17:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control posoperatorio', syncRoto: true },
   { id: 'cita-005', pac: 'pac-003', hora: '13:00', dur: 30, tipo: 'Seguimiento', estado: 'cancelada', conf: false, motivo: 'Control prenatal' },
   { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
   { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
@@ -388,6 +404,8 @@ async function main() {
       alergias: p.alergias,
       seguroMedico: p.seguroMedico,
       notas: p.notas,
+      noShowCount: p.noShowCount ?? 0,
+      cancelacionCount: p.cancelacionCount ?? 0,
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })
@@ -412,6 +430,8 @@ async function main() {
       recordatorio24hEnviado: false,
       recordatorioMismoDiaEnviado: false,
       consentimientoMensajes: true,
+      ...(c.exento ? { cobroExento: true, exentoMotivo: c.exento } : {}),
+      ...(c.syncRoto ? { googleCalendarEventId: 'evt-sintetico-001', googleCalendarSyncStatus: 'error' } : {}),
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })
