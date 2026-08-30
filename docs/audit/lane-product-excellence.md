@@ -1995,3 +1995,40 @@ superstición. Probado al revés dos veces.
   —recordatorios, recetas, portal del paciente—. Este carril sólo ha mirado
   éste, y **no declara buenos los otros**. Es la unidad que más claramente pide
   continuación.
+
+---
+
+## Unidad 41 — barrer los demás actos hacia fuera, y no encontrar más
+
+La unidad 40 acabó diciendo que era «la que más claramente pide continuación».
+Esto es esa continuación: los **siete** sitios que mandan un WhatsApp desde la
+aplicación, mirando en cada uno si el envío cuelga de una escritura previa que
+sin red resolvería en local.
+
+**Resultado: uno solo, y era el ya arreglado.**
+
+| Sitio | Envío tras escritura local |
+|---|---|
+| `AppointmentModal` (pedir reseña) | **sí** — arreglado en la unidad 40 |
+| `/lista-espera` (avisar de un hueco) | **no** (ver abajo) |
+| `/citas`, `/reactivacion`, `EntregarAlPaciente`, `lib/whatsapp` | no |
+
+**EL BARRIDO SE EQUIVOCÓ UNA VEZ, Y LO COMPROBÉ EN VEZ DE ACTUAR.** Marcó
+`/lista-espera` porque encontró un `await updateWaitlistEntry(` en las 900
+letras anteriores al envío. Leyéndolo, ese `await` es de **otra función** de más
+arriba: en `enviarAviso` el WhatsApp sale **primero** y la escritura viene
+después, y es sólo contabilidad («marcar contactado»). El contenido del mensaje
+no depende de ningún token local.
+
+Si esa escritura se encola sin red, el paciente ya recibió un mensaje **válido**;
+el único riesgo es que se le vuelva a avisar más tarde. Molesto, no roto — y de
+otra familia.
+
+**Actuar sobre el hallazgo del escáner sin leerlo habría metido una guarda de
+red en un camino que no la necesita**, encareciendo el aviso a un paciente que
+espera un hueco. Es la misma disciplina que con `CobrarModal` en la unidad 38.
+
+**RESIDUAL_RISK.** El barrido cubre los envíos por **WhatsApp desde el
+navegador**. No cubre los que salen del servidor —el cron de recordatorios, el
+webhook— ni el correo, ni la impresión de una receta. Este carril no los ha
+mirado y **no los declara buenos**.
