@@ -49,7 +49,7 @@ en «collect page data» con `auth/invalid-api-key`. Es del entorno, no del árb
 | WS | Estado | Lo que sostiene ese estado |
 |---|---|---|
 | **01** Master Board | `PROVEN` | El tablero se **deriva**: `el-tablero-del-loop-no-miente` falla si la última REG, el conteo del ledger o el número de archivos de prueba dejan de coincidir con el repositorio |
-| **02** Escala / 100 k | `NOT_DONE` | Hay validador de forma del JSON de carga; **no hay arnés que lo produzca**. 2 k…100 k siguen sin medición. Lo acotado sí está probado (REG-341/350/351/352) |
+| **02** Escala / 100 k | `PARTIAL` | REG-378: **ya hay arnés y ya hay medición**. 100 médicos, 8 000 peticiones, 50 concurrentes contra el emulador con `firestore.rules` cargadas: p95 141 ms, 0 errores, **0 fugas entre consultorios en 200 sondas**. No es producción y no son 100 k: la evidencia lo dice y el validador la **rechaza** por incompleta, a propósito |
 | **03** Consultorio grande | `PARTIAL` | Las lecturas sin cota que sí se encontraron están acotadas y **declaran su recorte** (REG-350/351). Queda el inventario de lecturas de citas |
 | **04** Resiliencia | `PROVEN` (interruptor) | REG-353: interruptor por proveedor **y por llave** — una llave revocada de un consultorio no apaga a los demás. Colas y contrapresión: `NOT_DONE` |
 | **05** Móvil / rebote iPhone | `BLOCKED_EXTERNAL` | REG-355 cerró los escritores de scroll que no preguntaban y `overscroll-behavior`. **No se marca PROVEN: sólo se comprobó en Chromium.** Falta un iPhone real |
@@ -171,11 +171,21 @@ Por orden de lo que más pesa:
 
 1. **Desplegar índices y reglas.** Es una tarde de trabajo del dueño y desbloquea
    dos filas de la tabla de arriba.
-2. **Medir la escala de verdad** (WS-02): el arnés que produzca el JSON que el
-   validador ya sabe leer.
+2. ~~**Medir la escala de verdad** (WS-02): el arnés que produzca el JSON que el
+   validador ya sabe leer.~~ **Hecho (REG-378)** en lo que un emulador puede
+   responder. Lo que falta ya no es código: es un entorno que se parezca a
+   producción —índices desplegados, latencia de red, contención real— y los tres
+   bloqueadores de navegador y proveedor que el informe declara en `null`.
 3. **Un iPhone**, para cerrar WS-05.
-4. **El sello v4**, que desbloquea el registro estructurado de procedimientos y
-   dispositivos — hoy lo dictado se señala pero no se estructura.
+4. ~~**El sello v4**~~ **Hecho (REG-377)**: `transcripcionMotor` entra al sello sin
+   volver «alterada» ni una nota firmada. **Corrección de lo que esta línea decía
+   antes**: el sello NO era lo que bloqueaba el registro estructurado de
+   procedimientos y dispositivos. Lo que falta es el ACTO — un sitio donde el
+   médico confirme lo que el extractor oyó, porque documentar un procedimiento es
+   suyo (REG-370). Reservar las ranuras en el modelo «por si acaso» se intentó y
+   se descartó: un campo que nadie escribe es una promesa del modelo. Cuando
+   exista quien lo escriba entra con su propio v5, y v4 es la migración ya
+   recorrida que demuestra que eso no rompe lo firmado.
 5. **Pentest y PITR**, que son las dos que ningún trabajo interno puede sustituir.
 
 Nada de esto es un descubrimiento de última hora: los cinco estaban en el tablero

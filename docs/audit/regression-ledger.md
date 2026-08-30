@@ -12223,3 +12223,91 @@ diferencia exacta que introduce la versión.
 caso que detalla una nota v3 sella explícitamente con `sellar(nota, 3)`, porque
 existe precisamente para demostrar que una v3 sigue verificando después de que
 `HASH_VERSION` subiera.
+
+---
+
+## REG-378 — el arnés de carga no existía, y al escribirlo el formulario obligaba a mentir
+
+**QUÉ FALTABA.** WS-02 llevaba `NOT_DONE` con una asimetría rara:
+`validate-consultorio-load-result.mjs` sabía juzgar un JSON de carga desde hacía
+tiempo, y `generate-consultorio-load-fixture.mjs` sabía fabricar el corpus
+sintético. **En medio no había nada.** Un validador que nunca había validado nada
+y una escala —2 k … 100 k— que nadie había medido.
+
+**EL DEFECTO DE VERDAD, QUE SALIÓ AL ESCRIBIR EL ARNÉS.** El validador exige que
+los seis bloqueadores incondicionales —fuga entre consultorios, borrador perdido,
+pantalla en blanco, lectura sin cota, violación de idempotencia, fallo silencioso
+de proveedor— sean **enteros no negativos**. Un arnés que corre donde no puede
+observar alguno sólo tiene dos salidas: escribir `0`, o no escribir el campo.
+
+Y `0` **no significa «no lo miré»: significa «lo miré y no había ninguno»**. Un
+cero por no haber mirado es la ausencia de dato tratada como dato de ausencia
+—regla 4 de seguridad clínica, dicha en lenguaje de operación— con un coste del
+mismo orden: quien lea ese JSON creerá que se comprobó que un consultorio no ve
+los expedientes de otro.
+
+**LA CAUSA RAÍZ.** Un esquema que sólo admite números **obliga a mentir** a quien
+no midió. El hueco no estaba en el validador ni en el arnés por separado, sino en
+que nadie había tenido que rellenar ese formulario todavía.
+
+**EL ARREGLO.** `scripts/product/run-consultorio-load.mjs` escribe **`null`** en
+todo lo que no midió, con una lista `noMedido` que dice, campo por campo, qué
+entorno haría falta. El validador **rechaza** ese informe, y es la respuesta
+correcta: todavía no es evidencia. **No se ablandó el validador ni se ablandó el
+arnés.**
+
+**LO QUE SÍ MIDE, Y CONTRA QUÉ.** Contra el emulador de Firestore con
+`firestore.rules` **cargadas de verdad** y el de Auth acuñando usuarios reales.
+Eso hace que la fuga entre consultorios se pueda medir: un médico del consultorio
+A intenta **leer y escribir** el expediente del B, y quien decide es la regla
+desplegable, no una promesa.
+
+**LA EVIDENCIA GUARDADA** — `docs/audit/ws-02-carga/emulador-100-medicos.json`:
+
+```
+100 médicos · 20 consultorios · 8 000 peticiones · 50 concurrentes
+p50 59.8 ms · p95 141.1 ms · p99 187.9 ms · 0 errores
+fuga entre consultorios: 0 en 200 sondas (100 de lectura + 100 de escritura)
+idempotencia: 0 violaciones · durable: sí · recuperación: sí
+```
+
+**TRES DEFECTOS DEL PROPIO ARNÉS, LOS TRES CAZADOS CORRIÉNDOLO:**
+
+1. **Una sola sesión para todos los médicos.** `signInWithCustomToken` sustituye
+   al usuario actual, así que las N escrituras salían con la identidad del
+   **último** que entró. Lo caro no era el `PERMISSION_DENIED` en masa: es que la
+   sonda de fuga entre consultorios habría estado midiendo a un usuario que no era
+   quien decía ser. Un arnés que se equivoca de identidad no mide aislamiento:
+   mide otra cosa y la llama aislamiento.
+2. **La forma de la nota no era la que exigen las reglas.** Toda nota nace en
+   borrador (REG-017) y al firmar `metadata.medicoId` tiene que ser quien firma.
+   Escribir una forma que las reglas rechazan no mide carga: mide sintaxis.
+3. **Los documentos de la corrida anterior.** Sin identificador por corrida, la
+   segunda ejecución se encontraba sus propias notas ya firmadas y la regla
+   —correctamente— le negaba tocarlas: medía la latencia de sus propios rechazos.
+   Un arnés que no es repetible no mide, adivina.
+
+**LA PUERTA QUE NO SE PUEDE ABRIR SOLA.** `--target` sólo acepta `emulator`, y sin
+`FIRESTORE_EMULATOR_HOST` el arnés se niega a arrancar: sin ella los SDK hablarían
+con el proyecto **vivo** por omisión. Meter carga sintética junto a expedientes
+reales lo autoriza el dueño, así que la puerta vive en el código y no en la
+costumbre de quien lo corre.
+
+**LA PRUEBA, AL REVÉS.**
+`src/__tests__/el-arnes-de-carga-no-inventa-un-cero.test.ts` (10 casos). El caso
+que lo justifica todo le mete el defecto: sustituye los `null` del informe REAL
+por `0` y comprueba que el validador **lo acepta como evidencia válida y declara
+cero bloqueadores** — sin que nadie haya mirado ni uno. El `null` es lo único que
+separa un informe honesto de una evidencia fabricada que pasa la puerta.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba que el producto aguante 100 000 pacientes.** La evidencia es de 100
+  médicos contra un emulador local, y lleva su `environment` escrito.
+- **Un emulador no es producción**: no tiene latencia de red, ni los índices
+  desplegados, ni contención real. Lo que sí es real ahí son `firestore.rules`, y
+  por eso la sonda de aislamiento vale.
+- **Sigue sin medir lo que declara no medir**: pantalla en blanco, borrador
+  perdido y fallo silencioso de proveedor son de navegador y de proveedor; las
+  cuatro colas no existen sin proveedores detrás; y la lectura sin cota es una
+  propiedad estática que vigila su propio guardián.

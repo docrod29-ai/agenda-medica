@@ -409,7 +409,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * NOMBRE como una cadena, y un nombre es un conjunto de palabras cuyo orden
      * de captura no garantiza nadie.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358],
+    /**
+     * 378 es esta familia fuera de la clínica, en la evidencia de operación, y
+     * enseña que **un esquema puede obligar a mentir**. El validador de carga
+     * exige que los seis bloqueadores incondicionales sean enteros no negativos,
+     * así que un arnés que corre donde no puede observar alguno sólo tiene la
+     * salida de escribir `0` — y `0` no dice «no lo miré», dice «lo miré y no
+     * había ninguno». Un cero por no haber mirado es el hueco tratado como dato
+     * con la firma de un instrumento de medición encima.
+     *
+     * Su lección: cuando un formulario no tiene casilla para «no lo sé», la
+     * respuesta que se recibe no es la verdad, es la casilla más barata. El
+     * arreglo no fue ablandar el validador sino escribir `null` y dejar que lo
+     * rechace: un informe rechazado es información; un cero, no.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378],
   },
   {
     clave: 'aislamiento',
