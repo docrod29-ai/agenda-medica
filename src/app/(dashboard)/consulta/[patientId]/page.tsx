@@ -174,6 +174,7 @@ import {
   type NotaConAlergias,
 } from '@/lib/expediente/alergias-longitudinales'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
+import { comoSeDegrada } from '@/lib/expediente/que-sobrevive-a-un-fallo'
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
 import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
@@ -2182,9 +2183,9 @@ export default function ConsultaActivaPage() {
       // que se mandó (edad, sexo, alergias, diagnósticos). El estado dice qué
       // pasó; el cuerpo no hace falta para eso.
       console.error('[evidencia] fallo', res.status)
-        toast(data?.error || `No se pudo analizar (HTTP ${res.status})`, 'error')
+        toast(comoSeDegrada('evidencia_http', { estado: res.status, dijo: data?.error }).mensaje, 'error')
       }
-    } catch (e) { console.error('[evidencia] excepción', e); toast(`Error de red al analizar (${String(e).slice(0, 60)})`, 'error') }
+    } catch (e) { console.error('[evidencia] excepción', e); toast(comoSeDegrada('evidencia_red', { dijo: String(e).slice(0, 60) }).mensaje, 'error') }
     finally { setAnalizandoEv(false) }
   }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, toast])
 
@@ -2295,7 +2296,7 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (!data) { if (!enVivo) { toast('La IA no respondió correctamente. Tu nota NO se modificó; intenta de nuevo.', 'error'); setTareaProc({ ejecutando: false }) } return }
+      if (!data) { if (!enVivo) { toast(comoSeDegrada('ia_respuesta_ilegible').mensaje, 'error'); setTareaProc({ ejecutando: false }) } return }
       if (!data.ok) {
         if (!enVivo) {
           if (data.sinCreditos) {
@@ -2560,7 +2561,7 @@ export default function ConsultaActivaPage() {
         setTareaProc({ ejecutando: false, resultado: { data: data as Record<string, unknown>, tipoActivo, tipoOverride: !!tipoOverride, ts, notaId: notaIdRef.current } })
       }
     } catch {
-      if (!enVivo) { toast('Error al conectar con la IA', 'error'); setTareaProc({ ejecutando: false }) }
+      if (!enVivo) { toast(comoSeDegrada('ia_red').mensaje, 'error'); setTareaProc({ ejecutando: false }) }
     } finally {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)

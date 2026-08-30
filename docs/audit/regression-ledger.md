@@ -15231,3 +15231,75 @@ pantalla de 1 600 líneas que no se puede ejercitar desde este entorno.
   solicitudes, que es lo correcto.
 
 **Prueba.** `src/__tests__/un-derecho-y-una-foto-no-se-duplican.test.ts` (12 casos).
+
+## REG-414 — la degradación se comprobaba leyendo el código, no ejecutándola
+
+**QUÉ SE PEDÍA.** `WS-04.inyeccion-de-fallos`, que ya estaba corregido a PARTIAL
+por REG-389 y dejaba dicho lo que faltaba: «la degradación de la CONSULTA se
+comprueba hoy por substring y no por comportamiento».
+
+### El defecto
+
+La política se cumplía: cuando la IA o la evidencia fallan, la consulta detiene el
+trabajo secundario y **no toca el contenido clínico**. Lo que no existía era una
+forma de comprobarlo que no fuera leer el archivo de la pantalla.
+
+`consultorio-degradacion-segura` recortaba la rama de error del fuente y
+comprobaba que ese trozo no contuviera `setDiagnosticos([])`. Eso vigila la FORMA
+del código, no la propiedad:
+
+- pasa a verde si alguien mueve el borrado dos líneas más abajo del corte;
+- se pone rojo si alguien reformatea sin cambiar nada — el corte se hacía con una
+  cadena que llevaba un salto de línea y dos niveles de sangría **dentro**, así
+  que un `if` reindentado lo rompía;
+- y no dice nada de las ramas de error que se escriban mañana.
+
+Es «una prueba que no puede fallar por la razón correcta»: se pone roja por
+formato y verde por descuido.
+
+### La causa raíz
+
+La decisión vivía dentro de un componente de 7 000 líneas, mezclada con el
+`toast` que la anuncia. Una decisión que no se puede llamar sólo se puede leer.
+
+### La regla
+
+`que-sobrevive-a-un-fallo.ts` responde a una pregunta: **ante este fallo, qué se
+detiene y qué se conserva**. Con eso la propiedad se prueba ejecutándola, para las
+cuatro clases y sin excepción, en vez de mirando cómo está escrito el manejador.
+
+`conserva` es **la misma lista para todas las clases**, y eso no es pereza: la
+respuesta correcta a «¿qué contenido clínico puede borrar un fallo técnico?» es
+NINGUNO, y no depende de qué haya fallado. Si algún día una clase necesitara
+conservar menos, tendría que escribirse ahí y explicarse — que es la conversación
+que hay que tener antes, no después.
+
+La lista incluye además `signos` y `alergias`, que el guardián viejo nunca miró.
+
+### El matiz del mensaje, que ahora se puede probar
+
+«Tu nota NO se modificó» aparece **sólo** en el fallo de respuesta ilegible, y es
+deliberado: ése es el único que ocurre DESPUÉS de que la petición saliera con la
+nota dentro, así que es el único donde el médico puede temer que le hayan tocado
+el texto. Repetirlo en los otros tres sembraría una duda que nadie tenía. Antes
+eso era una cadena en un archivo; ahora es un caso.
+
+### Lo que se conserva del guardián viejo
+
+El cerco estrecho sobre las ramas que hoy existen: que no llamen a un `set…`
+clínico. No sustituye a la prueba de comportamiento — la complementa, porque el
+módulo no puede impedir que alguien escriba un borrado FUERA de él.
+
+Y una segunda comprobación fijaba el bloque `catch` letra por letra, con su
+sangría dentro de la cadena. Se cambió por lo que quería decir.
+
+### Qué NO cubre
+
+- **No prueba que la pantalla haga lo que la decisión dice.** Comprueba que la
+  llama —las cuatro ramas— y que no quedan mensajes escritos a mano. Ejecutar el
+  componente exige un navegador, y eso sigue abierto.
+- **No cubre WhatsApp ni Evidence** en la inyección de fallos, que es la otra
+  mitad que el censo nombra.
+- No añade clases de fallo nuevas: son las cuatro que la consulta ya distinguía.
+
+**Prueba.** `src/__tests__/consultorio-degradacion-segura.test.ts` (14 casos, 8 de ellos nuevos y de comportamiento).

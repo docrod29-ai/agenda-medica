@@ -313,8 +313,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-04.inyeccion-de-fallos', ws: 'WS-04', titulo: 'Comportamiento ante caída de proveedor, probado inyectando el fallo',
     estado: 'PARTIAL',
-    queFalta: 'CORRECCIÓN DE ESTE CENSO (REG-389): decía NOT_STARTED y era falso. El gateway de IA SÍ tiene inyección de fallos con comportamiento medido —404, 429, red caída, llave revocada, salida ilegible, créditos devueltos, sin PHI en el asiento— en ia-gateway, ia-fallo-proveedor y un-proveedor-caido-no-se-reintenta-mil-veces. Lo que falta: WhatsApp y Evidence, y que la degradación de la CONSULTA se comprueba hoy por substring y no por comportamiento.',
-    pruebas: ['src/__tests__/ia-gateway.test.ts', 'src/__tests__/ia-fallo-proveedor.test.ts', 'src/__tests__/un-proveedor-caido-no-se-reintenta-mil-veces.test.ts'],
+    evidencia: 'REG-389 corrigió este censo (decía NOT_STARTED y era falso). REG-414 cerró la mitad que faltaba de la CONSULTA: la degradación se comprobaba recortando la rama de error del fuente y mirando que no contuviera setDiagnosticos([]) — una prueba que se pone roja por reformatear y verde por descuido. Ahora la decisión vive en `que-sobrevive-a-un-fallo.ts` y se ejecuta para las cuatro clases de fallo.',
+    comando: 'npx vitest run src/__tests__/consultorio-degradacion-segura.test.ts',
+    resultado: '14 casos, 8 de comportamiento. Ninguna clase de fallo puede perder un campo clínico; la lista incluye signos y alergias, que el guardián viejo nunca miró.',
+    queFalta: 'La inyección de fallos de WhatsApp y de Evidence sigue sin medirse (el gateway de IA sí la tiene, con 404, 429, red caída, llave revocada, salida ilegible y créditos devueltos). Y probar que la PANTALLA hace lo que la decisión dice exige un navegador: hoy se comprueba que la llama en las cuatro ramas y que no quedan mensajes escritos a mano.',
+    artefactos: ['src/lib/expediente/que-sobrevive-a-un-fallo.ts'],
+    pruebas: ['src/__tests__/ia-gateway.test.ts', 'src/__tests__/ia-fallo-proveedor.test.ts', 'src/__tests__/un-proveedor-caido-no-se-reintenta-mil-veces.test.ts', 'src/__tests__/consultorio-degradacion-segura.test.ts'],
   }),
 
   /* ═══ WS-05 · Móvil ═══════════════════════════════════════════════════════ */
