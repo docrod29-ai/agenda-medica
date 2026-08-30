@@ -227,8 +227,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-03.documentos-que-crecen', ws: 'WS-03', titulo: 'Ningún documento crece sin techo',
-    estado: 'NOT_STARTED',
-    queFalta: 'internamientos/{id} guarda seis arrays en un documento; indicaciones[].administraciones no tiene tope. asr/aprendizaje-firestore.ts usa arrayUnion sin tope, compartido por consultorio. El patrón de corte ya existe en el mismo archivo y no se aplicó.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-393 acotó el de Consultorio (asr/aprendizaje-firestore.ts) y encontró de paso dos defectos mayores en el mismo archivo: la LECTURA no tenía cota —getDocs de la colección entera en cada apertura de consulta y de UCI, para usar como mucho las mil palabras que caben en el sesgo— y una lectura fallida se pintaba como «todavía no ha aprendido ninguna palabra». El techo del arrayUnion va sobre lo que APORTA cada escritura, no sobre el acumulado, y se declara: recortar el total exigiría leer-modificar-escribir, que es lo que arrayUnion evita. Queda internamientos/{id} (seis arrays en un documento, administraciones sin tope), que es Hospital/UCI y está fuera de este carril.',
+    artefactos: ['src/lib/asr/aprendizaje-firestore.ts'],
+    pruebas: ['src/__tests__/lo-aprendido-no-se-descarga-entero.test.ts'],
   }),
 
   /* ═══ WS-04 · Resiliencia ═════════════════════════════════════════════════ */

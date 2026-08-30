@@ -784,7 +784,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * dejar sus citas —con su nombre y su teléfono dentro— en la base. Por ese
      * camino pasa la cancelación ARCO.
      */
-    regs: [341, 350, 351, 352],
+    /**
+     * 393 es esta familia con su forma más barata de reconocer: `getDocs` de una
+     * colección entera, en el camino que el médico espera, para usar como mucho
+     * las mil palabras que caben en el sesgo del reconocedor. Crecía con los años
+     * y se compartía por consultorio, así que el precio subía solo.
+     *
+     * Trae además la variante que este repositorio persigue por todas partes: la
+     * lectura fallida devolvía `[]` y la pantalla lo pintaba como «todavía no ha
+     * aprendido ninguna palabra» — un fallo de red afirmando que el vocabulario
+     * del médico está vacío.
+     */
+    regs: [341, 350, 351, 352, 393],
   },
 ] as const
 

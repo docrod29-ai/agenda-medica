@@ -46,7 +46,9 @@ import {
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-import { leerAprendido, olvidar, type PalabraAprendida } from '@/lib/asr/aprendizaje-firestore'
+import {
+  leerVocabularioCompleto, olvidar, TOPE_PARA_ADMINISTRAR, type PalabraAprendida,
+} from '@/lib/asr/aprendizaje-firestore'
 
 type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'seguridad' | 'bot' | 'medicos' | 'equipo' | 'suscripcion' | 'entregas' | 'dictado'
 
@@ -2553,6 +2555,16 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
  */
 function DictadoAprendidoTab({ clinicId }: { clinicId: string | null }) {
   const [lista, setLista] = useState<PalabraAprendida[]>([])
+  /**
+   * ¿La lista se quedó corta? (REG-393)
+   *
+   * Ésta es la pantalla donde el médico QUITA palabras. Enseñarle una lista
+   * recortada como si fuera completa le haría creer que ya no queda nada que
+   * revisar — ausencia de dato tomada por dato de ausencia.
+   */
+  const [truncada, setTruncada] = useState(false)
+  /** ¿Se pudo leer? Una lista vacía por un fallo de red no es «no ha aprendido nada». */
+  const [leida, setLeida] = useState(true)
   const [cargando, setCargando] = useState(true)
   const { toast } = useToast()
 
@@ -2566,7 +2578,9 @@ function DictadoAprendidoTab({ clinicId }: { clinicId: string | null }) {
    */
   const cargar = useCallback(() => {
     if (!clinicId) return
-    leerAprendido(clinicId).then(setLista).finally(() => setCargando(false))
+    leerVocabularioCompleto(clinicId)
+      .then(r => { setLista(r.lista); setTruncada(r.truncada); setLeida(r.leida) })
+      .finally(() => setCargando(false))
   }, [clinicId])
   useEffect(() => { cargar() }, [cargar])
 
@@ -2583,10 +2597,20 @@ function DictadoAprendidoTab({ clinicId }: { clinicId: string | null }) {
       </div>
       {lista.length === 0 ? (
         <div style={{ fontSize: 13, color: 'var(--text3)' }}>
-          Todavía no ha aprendido ninguna palabra. Aparecen aquí cuando corriges la misma dos veces.
+          {leida
+            /* Dos frases, porque son dos hechos distintos (REG-393). La de
+               abajo se pintaba también cuando la lectura fallaba. */
+            ? 'Todavía no ha aprendido ninguna palabra. Aparecen aquí cuando corriges la misma dos veces.'
+            : 'No se pudo leer el vocabulario aprendido. No quiere decir que esté vacío: vuelve a intentarlo.'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {truncada && (
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4 }}>
+              Se muestran las {TOPE_PARA_ADMINISTRAR.toLocaleString('es-MX')} palabras más
+              corregidas. Hay más aprendidas que no caben en esta lista.
+            </div>
+          )}
           {lista.map(p => (
             <div key={p.palabra} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px',

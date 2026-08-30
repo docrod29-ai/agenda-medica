@@ -13312,3 +13312,79 @@ nadie tenga que acordarse de escribir el caso. Probado al revés quitando la
 - **`cambiarTipo` conserva su propia condición y NO se unificó**: contesta otra
   pregunta —«¿cambiar de modalidad destruirá algo?»— y mezclarlas haría que una
   fecha de seguimiento bloqueara un cambio de modalidad que no la toca.
+
+---
+
+## REG-393 — el vocabulario aprendido no se descarga entero, y no miente al faltar
+
+**QUÉ SE PEDÍA.** `WS-03.documentos-que-crecen`, que nombraba
+`asr/aprendizaje-firestore.ts` por su `arrayUnion` sin tope. Al medirlo, el
+`arrayUnion` resultó ser el menor de los tres defectos del archivo.
+
+### 1. Una lectura sin cota en el camino del médico
+
+```
+const snap = await getDocs(ruta(clinicId))     // la colección ENTERA
+```
+
+Un documento por palabra distinta, compartido por consultorio, creciendo con los
+años — y se leía en **cada apertura de consulta y cada apertura de UCI**, con el
+médico esperando la pantalla.
+
+Lo que se hace con ese vocabulario es meterlo en el sesgo del reconocedor, cuyo
+tope declarado son **mil términos** (`TOPE_TERMINOS`) y dentro de los cuales
+compiten además el léxico de especialidad y —con prioridad— el vocabulario del
+paciente que está enfrente. Se bajaba todo para usar, como mucho, mil.
+
+Ahora la consulta lleva `where('veces','>',0)`, `orderBy('veces','desc')` y
+`limit`. El corte lo hace el servidor por frecuencia; entre dos palabras con la
+misma cuenta justo en el límite, cuál entra es arbitrario, y se declara en vez de
+fingir un criterio.
+
+Es además una instancia viva de `WS-03.lecturas-sin-cota`: la única lectura de
+consultorio que quedaba descargando una colección entera en el camino del médico.
+
+### 2. Un fallo de red diciéndole al médico que su vocabulario está vacío
+
+En la pantalla de configuración —la única donde el médico **quita** una palabra—
+una lectura fallida devolvía `[]`, y `[]` se pintaba con:
+
+> «Todavía no ha aprendido ninguna palabra.»
+
+Es la regla 4 de seguridad clínica en la pantalla donde más barato habría sido
+respetarla: **ausencia de dato no es dato de ausencia**. Ahora
+`leerVocabularioCompleto` devuelve `leida`, y la pantalla tiene dos frases porque
+son dos hechos.
+
+Y devuelve `truncada`: si hay más palabras de las que caben, se dice. Una lista
+recortada que parece completa le haría creer que ya no queda nada que revisar.
+
+### 3. El `arrayUnion`, acotado a medias — y dicho así
+
+`oidoComo` crecía sin techo en un documento que nadie revisa. Firestore corta en
+1 MiB y ahí `setDoc` empieza a fallar, en silencio, porque el aprendizaje nunca
+puede romper una consulta: dejaría de aprender esa palabra sin decirlo.
+
+El techo va sobre **lo que aporta cada escritura**, no sobre el acumulado, y eso
+se dice sin adornos: recortar el total exigiría leer-modificar-escribir, que es
+justo lo que `arrayUnion` está aquí para evitar (dos consultas simultáneas se
+pisarían y el contador —lo que distingue una costumbre de un dedazo— nunca
+llegaría al mínimo). **Acota el ritmo, no el acumulado.** Llamarlo «acotado» a
+secas habría sido falso.
+
+**LA PRUEBA.** `src/__tests__/lo-aprendido-no-se-descarga-entero.test.ts` (11
+casos), con el proveedor de Firestore doblado para poder mirar **la consulta que
+se manda**, no sólo lo que vuelve. Probado al revés: sin `query`, el caso de la
+cota cae; con la lectura fallida devolviendo `[]` sin `leida`, cae el de la
+regla 4.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No mide la latencia ganada.** Que se lea menos está probado; cuántos ms se
+  ahorran al abrir la consulta, no.
+- **No acota `oidoComo` retroactivamente**: un documento que ya venga grande
+  sigue grande. Deja de crecer deprisa.
+- **No prueba el corte en el servidor**, sólo que la consulta lo pide.
+- **No cubre `internamientos/{id}`**, que guarda seis arrays en un documento y
+  cuyas `administraciones` tampoco tienen tope: es Hospital/UCI, queda fuera de
+  este carril, con nombre y sin cerrar.
