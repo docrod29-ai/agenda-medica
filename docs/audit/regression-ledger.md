@@ -14689,3 +14689,89 @@ renombró el campo, no el guardián: contaba bien.
 - No prueba el render.
 
 **Prueba.** `src/__tests__/la-barra-mira-al-paciente-no-a-la-receta.test.ts` (17 casos).
+
+## REG-411 — un aviso efímero sobre una pérdida permanente es no avisar
+
+**QUÉ SE PEDÍA.** `WS-11.sobrevive-a-la-navegacion`: «Nada pendiente desaparece
+al cambiar de pantalla». El censo decía «sin prueba que cruce la frontera de
+navegación o de sesión», y al mirarlo no faltaba sólo la prueba.
+
+### El defecto
+
+REG-344 encontró que al firmar la nota los pendientes se creaban con
+`void crearTareas(...).catch(() => {})`, y lo escribió así:
+
+> Si la pestaña se cerraba o la red se caía en esa ventana, los pendientes de esa
+> consulta desaparecían y el médico se iba convencido de que estaban.
+
+Lo arregló **en ese sitio**. Y `crearTareas` tenía **cuatro** llamadores en
+pantallas: la firma de la nota, las dos reconciliaciones de medicación y la
+emisión de la orden. Los otros tres siguieron con el `catch` vacío — y uno de
+ellos con el comentario `/* igual que arriba */`, que es exactamente lo que no
+era: arriba había un aviso y ahí no había nada.
+
+Misma forma que REG-410: una reparación que llega a un consumidor y no a los
+demás. Con el agravante de que aquí el comentario **afirmaba** la paridad.
+
+### Y donde sí había aviso, tampoco bastaba
+
+Era un `toast`. Dura unos segundos y muere al cambiar de pantalla — y ese aviso
+sale justo después de firmar, que es cuando el médico se va al siguiente
+paciente. El resultado final es el que REG-344 describe como el defecto, sólo que
+con un aviso que nadie llegó a leer.
+
+### La causa raíz
+
+Que la decisión viviera en el llamador. Con cuatro sitios decidiendo por su
+cuenta qué hacer con el resultado, la próxima pantalla que abra pendientes
+volverá a elegir mal — y nadie lo notará, porque no falla nada.
+
+Y debajo, una segunda: **`crearTareas` devolvía un número**. Con eso el llamador
+puede avisar de que faltan, pero no puede hacer nada más, porque no sabe cuáles.
+Un pendiente que nadie puede nombrar es un pendiente que nadie puede reintentar,
+así que la única defensa posible era el aviso.
+
+### La regla
+
+1. `crearTareas` dice **cuáles** no entraron, no sólo cuántas.
+2. Un solo sitio —`abrirPendientes`— decide qué pasa cuando faltan.
+3. Lo que no entró se guarda donde **sobreviva a la navegación y a la sesión**.
+4. Se vuelve a ofrecer en Pendientes, **cuando el médico lo pide**.
+
+### Lo que sigue igual, y es deliberado
+
+Abrir pendientes **sigue sin bloquear la firma**. Hacer que un fallo del worklist
+reviente la firma sería cambiar un pendiente perdido por una consulta perdida,
+que es lo que REG-344 dejó escrito y sigue siendo cierto.
+
+Y **no se reintenta solo**: volver a escribir en el expediente de un paciente por
+decisión de la máquina es lo que REG-390 reserva — una operación clínica no puede
+aparecer como completada si sólo quedó encolada. Aquí no se completa nada: se
+conserva lo perdido y se le enseña a alguien.
+
+### Dos guardianes anclados al texto
+
+`un-pendiente-que-falta-no-se-calla` comprobaba la comparación literal
+`if (creadas < pendientesDeLaNota.length)`. Esa comparación **era el problema**:
+existía en un llamador de los cuatro, y el guardián no se puso rojo ni una vez en
+toda su vida. Ahora comprueba lo que quería comprobar.
+
+`v15-cerrados-recientes-conectado` buscaba el final de un efecto por la cadena
+exacta de su lista de dependencias. Añadirle una dependencia legítima lo dejaba
+en `-1` y el caso se caía sin que nada de lo que vigila hubiera cambiado. Un
+guardián anclado al texto de una lista de dependencias vigila la lista, no la
+propiedad.
+
+### Qué NO cubre
+
+- No sobrevive a otro equipo ni a otro navegador: es almacenamiento local. Si el
+  médico firma en el consultorio y abre Pendientes en el teléfono, ahí no están.
+  Guardarlo en Firestore sería escribir en el expediente justo cuando se acaba de
+  demostrar que no se puede escribir.
+- No sobrevive a borrar los datos del sitio ni al cierre de sesión — que limpia el
+  almacenamiento local a propósito, porque esto lleva PHI.
+- No cubre los dos llamadores de servidor (`hospital`, `laboratorio`), que ya leen
+  el conteo desde REG-252 y no tienen pantalla donde ofrecer nada.
+- No prueba el render.
+
+**Prueba.** `src/__tests__/un-pendiente-perdido-no-muere-con-el-aviso.test.ts` (23 casos).

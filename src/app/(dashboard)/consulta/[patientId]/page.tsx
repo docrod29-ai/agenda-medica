@@ -165,7 +165,7 @@ import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/derivar'
 import { comoSeDice, discrepanciasDeMedicacion } from '@/lib/tareas-clinicas/reconciliacion'
 import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expediente/duracion-cumplida'
-import { crearTareas } from '@/lib/tareas-clinicas/firestore'
+import { abrirPendientes as abrirPendientesEn } from '@/lib/tareas-clinicas/abrir'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { estadoDeProblemas, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
@@ -4231,15 +4231,15 @@ export default function ConsultaActivaPage() {
           medicoUid: auth.currentUser?.uid,
           medicoNombre: config.nombreMedico,
         }, Date.now())
-        void crearTareas(clinicId, pendientesDeLaNota)
-          .then(creadas => {
-            if (creadas < pendientesDeLaNota.length) {
-              toast(`La nota quedó firmada, pero ${pendientesDeLaNota.length - creadas} pendiente(s) de esta consulta NO se abrieron. Revísalos a mano en Pendientes.`, 'error')
-            }
-          })
-          .catch(() => {
-            toast('La nota quedó firmada, pero no se pudieron abrir sus pendientes. Revísalos a mano en Pendientes.', 'error')
-          })
+        /**
+         * Sigue sin bloquear la firma: la nota ya está sellada y hacer que un
+         * fallo del worklist la reviente sería cambiar un pendiente perdido por
+         * una consulta perdida (REG-344). Lo que cambia es que ahora lo que no
+         * entra se guarda, en vez de morir con el aviso.
+         */
+        abrirPendientesEn(clinicId, pendientesDeLaNota, 'nota', {
+          avisar: m => toast(`La nota quedó firmada, pero ${m}`, 'error'),
+        })
 
         /**
          * §F3 — RECONCILIACIÓN DE MEDICAMENTOS.
@@ -4286,23 +4286,23 @@ export default function ConsultaActivaPage() {
           .filter(x => x.r.yaDebioTerminar)
           .map(x => ({ farmaco: x.v.medicamento.nombre, frase: comoSeDiceVencido({ farmaco: x.v.medicamento.nombre, v: x.r }) }))
         if (vencidos.length) {
-          void crearTareas(clinicId, tareasDeReconciliacion({
+          abrirPendientesEn(clinicId, tareasDeReconciliacion({
             clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
             discrepancias: vencidos,
             texto: d => d.frase,
             medicoUid: auth.currentUser?.uid,
             medicoNombre: config.nombreMedico,
-          }, Date.now())).catch(() => { /* igual que arriba */ })
+          }, Date.now()), 'reconciliacion', { avisar: m => toast(m, 'error') })
         }
 
         if (disc.length) {
-          void crearTareas(clinicId, tareasDeReconciliacion({
+          abrirPendientesEn(clinicId, tareasDeReconciliacion({
             clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
             discrepancias: disc,
             texto: d => comoSeDice(disc.find(x => x.farmaco === d.farmaco) ?? disc[0]),
             medicoUid: auth.currentUser?.uid,
             medicoNombre: config.nombreMedico,
-          }, Date.now())).catch(() => { /* igual que arriba */ })
+          }, Date.now()), 'reconciliacion', { avisar: m => toast(m, 'error') })
         }
       }
       /**

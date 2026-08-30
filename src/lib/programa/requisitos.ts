@@ -501,8 +501,13 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-11.sobrevive-a-la-navegacion', ws: 'WS-11', titulo: 'Nada pendiente desaparece al cambiar de pantalla',
-    estado: 'NOT_STARTED',
-    queFalta: 'Sin prueba que cruce la frontera de navegación o de sesión.',
+    estado: 'PARTIAL',
+    evidencia: 'REG-411. No faltaba sólo la prueba: `crearTareas` tenía cuatro llamadores y REG-344 sólo había arreglado uno; donde sí había aviso era un toast, que muere al cambiar de pantalla. Ahora la decisión vive en un sitio, lo que no entra se guarda fuera de la sesión y Pendientes lo vuelve a ofrecer.',
+    comando: 'npx vitest run src/__tests__/un-pendiente-perdido-no-muere-con-el-aviso.test.ts',
+    resultado: '23 casos. Lo perdido sobrevive a la navegación, se aísla por consultorio, dice cuando NO se pudo guardar, y no se reintenta solo.',
+    queFalta: 'Sigue siendo almacenamiento local: no cruza a otro equipo ni a otro navegador, y el cierre de sesión lo limpia (lleva PHI). Un pendiente perdido en el consultorio no aparece en el teléfono. Cruzar esa frontera exige escribir en Firestore justo cuando se acaba de demostrar que no se puede escribir, o una cola con reintento — que REG-390 reserva.',
+    artefactos: ['src/lib/tareas-clinicas/no-se-abrieron.ts', 'src/lib/tareas-clinicas/abrir.ts'],
+    pruebas: ['src/__tests__/un-pendiente-perdido-no-muere-con-el-aviso.test.ts'],
   }),
 
   /* ═══ WS-12 · Evaluación y router ═════════════════════════════════════════ */

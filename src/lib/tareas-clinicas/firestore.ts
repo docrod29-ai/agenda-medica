@@ -52,9 +52,30 @@ function idDerivado(t: Omit<TareaClinica, 'id'>): string | null {
  * ya movió: si la aceptó o la cerró, volver a imprimir la orden no puede
  * devolverla a «solicitada».
  */
-export async function crearTareas(clinicId: string, tareas: readonly Omit<TareaClinica, 'id'>[]): Promise<number> {
-  if (!clinicId || !tareas.length) return 0
+/**
+ * ── QUÉ DEVUELVE, Y POR QUÉ NO BASTABA UN NÚMERO (REG-411) ──────────────────
+ *
+ * Devolvía `Promise<number>`: cuántas entraron. Con eso el llamador puede
+ * AVISAR de que faltan —REG-344 lo hizo— pero no puede hacer nada más, porque no
+ * sabe **cuáles**. Y un pendiente clínico que nadie puede nombrar es un
+ * pendiente que nadie puede reintentar: la única defensa posible era un aviso
+ * en pantalla, que se lo lleva la primera navegación.
+ *
+ * Ahora devuelve también las que no entraron, que es lo que permite guardarlas y
+ * volver a ofrecerlas. El número sigue ahí para quien sólo quiera contar.
+ */
+export interface ResultadoDeCrear {
+  readonly creadas: number
+  /** Las que NO quedaron escritas. Vacío no significa «no lo intenté». */
+  readonly noEntraron: readonly Omit<TareaClinica, 'id'>[]
+}
+
+export async function crearTareas(
+  clinicId: string, tareas: readonly Omit<TareaClinica, 'id'>[],
+): Promise<ResultadoDeCrear> {
+  if (!clinicId || !tareas.length) return { creadas: 0, noEntraron: [] }
   let n = 0
+  const noEntraron: Omit<TareaClinica, 'id'>[] = []
   for (const t of tareas) {
     try {
       // `undefined` revienta en Firestore («Unsupported field value»): se limpian
@@ -73,10 +94,11 @@ export async function crearTareas(clinicId: string, tareas: readonly Omit<TareaC
       }
       n++
     } catch {
-      /* una tarea que falle no puede tumbar las demás */
+      /* una tarea que falle no puede tumbar las demás — pero sí se apunta */
+      noEntraron.push(t)
     }
   }
-  return n
+  return { creadas: n, noEntraron }
 }
 
 export interface WorklistVivo {

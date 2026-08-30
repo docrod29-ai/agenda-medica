@@ -56,6 +56,10 @@ import {
   type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente,
 } from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
+import {
+  leerPerdidos, perdidosDe, olvidar, LLAVE as LLAVE_PERDIDOS, type Perdido,
+} from '@/lib/tareas-clinicas/no-se-abrieron'
+import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type EstadoDeAccion } from '@/lib/tareas-clinicas/estado-de-accion'
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
@@ -304,6 +308,18 @@ export default function PendientesPage() {
    */
   const [ahora, setAhora] = useState(0)
   /**
+   * REG-411 — LOS PENDIENTES QUE NO SE PUDIERON ABRIR.
+   *
+   * No están en Firestore: no existen para `tareasVivas`. Viven en el
+   * almacenamiento local porque es lo único que sobrevive a la navegación y al
+   * cierre de la pestaña, que es cuando se perdían.
+   *
+   * Se ofrecen aquí y no se reintentan solos: volver a escribir en el expediente
+   * de un paciente por decisión de la máquina es lo que REG-390 reserva.
+   */
+  const [perdidos, setPerdidos] = useState<Perdido[]>([])
+  const [reabriendo, setReabriendo] = useState(false)
+  /**
    * §10 — el pendiente cuyas cuatro respuestas están abiertas. UNA a la vez y
    * en la página: ver la cabecera de este fichero para por qué no puede vivir
    * dentro de `Tarjeta`.
@@ -317,11 +333,51 @@ export default function PendientesPage() {
 
   const uid = auth.currentUser?.uid ?? ''
 
+  /**
+   * Lo perdido se lee DENTRO de la carga del worklist, no en un efecto aparte.
+   *
+   * Dos razones y las dos importan: se refresca exactamente cuando se refresca
+   * la lista —así el recuadro y la lista nunca discrepan— y un `setState`
+   * síncrono en el cuerpo de un efecto es lo que el compilador de React rechaza
+   * por cascada de renders. Aquí va en el callback, que es donde tiene que ir.
+   */
+  const leerAlmacen = useCallback(
+    () => { try { return localStorage.getItem(LLAVE_PERDIDOS) } catch { return null } },
+    [],
+  )
+
+  /** Volver a intentarlo, cuando el médico lo pide. */
+  const reabrirPerdidos = useCallback(async () => {
+    if (!clinicId || !perdidos.length) return
+    setReabriendo(true)
+    try {
+      const { noEntraron } = await crearTareas(clinicId, perdidos.map(p => p.tarea))
+      const quedan = olvidar(
+        leerPerdidos(leerAlmacen),
+        perdidos.map(p => p.tarea).filter(t => !noEntraron.includes(t)),
+      )
+      try { localStorage.setItem(LLAVE_PERDIDOS, JSON.stringify(quedan)) } catch { /* sin espacio */ }
+      setPerdidos(perdidosDe(clinicId, quedan))
+      if (noEntraron.length) toast(`${noEntraron.length} siguen sin abrirse. Se conservan.`, 'error')
+      else toast('Los pendientes que faltaban ya están abiertos', 'success')
+      setRecarga(r => r + 1)
+    } catch {
+      toast('No se pudieron reabrir. Se conservan para otro intento.', 'error')
+    } finally {
+      setReabriendo(false)
+    }
+  }, [clinicId, perdidos, toast, leerAlmacen])
+
   useEffect(() => {
     if (!clinicId) return
     let vivo = true
     tareasVivas(clinicId)
-      .then(w => { if (vivo) { setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0); setErrorCarga(''); setAhora(Date.now()) } })
+      .then(w => {
+        if (!vivo) return
+        setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0); setErrorCarga(''); setAhora(Date.now())
+        /* Los que no están en Firestore porque no se pudieron escribir (REG-411). */
+        setPerdidos(perdidosDe(clinicId, leerPerdidos(leerAlmacen)))
+      })
       .catch(e => {
         // Un fallo de lectura NO puede verse igual que «no hay pendientes»:
         // en esta pantalla eso se lee como «todo está al día», que es la
@@ -336,7 +392,7 @@ export default function PendientesPage() {
       })
       .finally(() => { if (vivo) setCargando(false) })
     return () => { vivo = false }
-  }, [clinicId, recarga])
+  }, [clinicId, leerAlmacen, recarga])
 
   const visibles = useMemo(() => {
     const base = soloMias ? tareas.filter(t => t.ownerUid === uid) : tareas
@@ -442,6 +498,30 @@ export default function PendientesPage() {
         * subconjunto ARBITRARIO: entre lo que falta puede estar un resultado
         * crítico sin revisar. Mientras eso siga así, el aviso es la defensa.
         */}
+      {perdidos.length > 0 && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,
+          background: 'color-mix(in srgb, var(--red) 8%, transparent)',
+          border: '1px solid var(--red)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: 1 }}>
+            <div>
+              <strong>{perdidos.length}</strong> pendiente(s) no se pudieron abrir cuando se
+              firmó la nota o se emitió la orden. <strong>No están en la lista de abajo.</strong>
+            </div>
+            <ul style={{ margin: '6px 0 10px', paddingLeft: 18 }}>
+              {perdidos.slice(0, 5).map((p, i) => (
+                <li key={i}>{p.tarea.titulo}{p.tarea.patientNombre ? ` — ${p.tarea.patientNombre}` : ''}</li>
+              ))}
+            </ul>
+            <Button onClick={reabrirPerdidos} disabled={reabriendo}>
+              {reabriendo ? 'Abriendo…' : 'Volver a abrirlos'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {!cargando && truncado > 0 && (
         <div role="status" style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,

@@ -120,17 +120,34 @@ describe('REG-344 · el cableado de lo que se declara', () => {
   })
 
   it('firmar sigue SIN bloquearse, pero un pendiente perdido se dice', () => {
+    /**
+     * ── POR QUÉ ESTE CASO CAMBIÓ DE FORMA (REG-411) ───────────────────────
+     *
+     * Nació comprobando la comparación LITERAL que esta reparación puso en la
+     * pantalla: `if (creadas < pendientesDeLaNota.length)`. Y esa comparación
+     * era el problema, no la solución: existía en UN llamador de los cuatro,
+     * porque cada uno decidía por su cuenta qué hacer con el resultado. Los
+     * otros tres siguieron con el `catch` vacío durante toda la vida de este
+     * guardián, sin que se pusiera rojo ni una vez.
+     *
+     * Ahora la decisión vive en `abrirPendientes`, y este caso comprueba lo que
+     * de verdad quería comprobar: que la firma no se bloquea y que ningún
+     * pendiente se pierde en silencio — en los tres sitios, no en uno.
+     */
     const src = readFileSync('src/app/(dashboard)/consulta/[patientId]/page.tsx', 'utf8')
     // Sigue sin bloquear: nada de `await crearTareas` en el camino de la firma.
     expect(src).not.toMatch(/await crearTareas\(/)
-    // Pero el número YA no se descarta.
-    expect(src).toMatch(/if \(creadas < pendientesDeLaNota\.length\)/)
-    expect(src).toMatch(/NO se abrieron/)
+    // Y el resultado ya no se descarta en NINGUNO de los tres.
+    expect(src).not.toMatch(/void crearTareas\(/)
+    expect(src.split('abrirPendientesEn(').length - 1, 'los tres llamadores de la consulta').toBe(3)
+    const abrir = readFileSync('src/lib/tareas-clinicas/abrir.ts', 'utf8')
+    expect(abrir).toMatch(/comoQuedo\(tareas\.length, creadas, deDonde\)/)
+    expect(abrir).toMatch(/guardar\(noEntraron\)/)
   })
 
   it('el guardián sabe fallar: reconoce el patrón que se retiró', () => {
     const antes = "void crearTareas(clinicId, tareasDeNota({ ... }, Date.now())).catch(() => {})"
     expect(/\.catch\(\(\) => \{ ?\/?\*? ?\}?\)/.test(antes) || /catch\(\(\) => \{\}\)/.test(antes)).toBe(true)
-    expect(/if \(creadas < /.test(antes)).toBe(false)
+    expect(/abrirPendientes/.test(antes)).toBe(false)
   })
 })

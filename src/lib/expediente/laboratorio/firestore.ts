@@ -186,7 +186,7 @@ export async function guardarPanelLab(
     })]
     : []
 
-  const tareasCreadas = aCrear.length ? await crearTareas(clinicId, aCrear) : 0
+  const tareasCreadas = aCrear.length ? (await crearTareas(clinicId, aCrear)).creadas : 0
   return { id: ref.id, tareasCreadas, tareasEsperadas: aCrear.length }
 }
 

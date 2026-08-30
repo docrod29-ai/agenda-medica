@@ -695,7 +695,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la pantalla PIDE que se reintente, y quedan dos enmiendas idénticas a una
      * nota firmada. Que no se pueden borrar.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395],
+    /**
+     * 411 es esta familia con la pérdida DOS VECES: el pendiente que no se pudo
+     * escribir, y el aviso de que no se pudo. REG-344 arregló el silencio en uno
+     * de los cuatro llamadores; los otros tres siguieron con el `catch` vacío, y
+     * uno con el comentario «igual que arriba» — que es lo que no era. Donde sí
+     * había aviso era un toast, y un toast muere al cambiar de pantalla, que es
+     * exactamente lo que se hace después de firmar.
+     */
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411],
   },
   {
     clave: 'tarde',
