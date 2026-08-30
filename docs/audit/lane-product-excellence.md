@@ -2916,3 +2916,60 @@ inventario regenerado.
 - Se midió **una** pantalla del portal, la de inicio con alcance `agenda`. Los
   otros cuatro destinos y un token de alcance mayor **no están medidos**.
 - El portal se midió con **un** paciente sintético y una cita.
+
+---
+
+## Unidad 53 — los otros cuatro destinos del paciente, y una medición que no cambió nada
+
+**POR QUÉ.** La unidad 52 dejó escrito su propio residual: «se midió **una**
+pantalla del portal, la de inicio. Los otros cuatro destinos **no están
+medidos**». El trinquete mide por URL y los cinco destinos del portal viven en
+la misma: son pestañas de cliente. Decir que faltan no los mide.
+
+**RESULTADO: los cinco limpios.** axe **0** en los cinco destinos —Hoy,
+Preguntar, Cuidado, Documentos, Perfil— a 390 y 1440. Sin desborde. Y el
+`aria-current` **sigue al destino pulsado** en los diez casos: la barra del
+paciente sí contesta «dónde estoy».
+
+**Esta unidad no cambia una línea de producto, y ésa es la conclusión.** Las
+cuatro pantallas que faltaban por mirar estaban bien. Vale la pena escribirlo:
+un carril que sólo apunta lo que rompe acaba pareciendo que el producto es sólo
+defectos.
+
+**LO QUE CASI SE ME CUELA.** La primera sonda leía 50 caracteres del cuerpo para
+saber qué pantalla estaba midiendo — y esos 50 son la **cabecera, idéntica en
+los cinco**. Cinco pantallas limpias, cinco huellas iguales, y yo a punto de
+declarar cobertura de cinco destinos habiendo medido **uno cinco veces**. Se
+arregló leyendo la huella del contenido, saltándose la cabecera: ahora se ve
+«Próximas ci…», «Preguntar S…», «Tu plan de…», «Mis recetas», «Tu perfil I…»,
+que son cinco de verdad.
+
+**LA SONDA SE QUEDA, Y CON DIENTES.** Vive en
+`scripts/carril-excelencia/destinos-del-portal.mjs`, declarada en `package.json`
+como `arnes:portal-destinos` —un script que nadie puede invocar por su nombre es
+un script que nadie invoca— y **sale con código 2** si no encuentra un destino o
+si falta el secreto del token.
+
+Eso último tiene una historia: **cuatro veces** en este carril un `npm run
+build` de las compuertas reconstruyó `.next` con otra configuración mientras el
+servidor del arnés seguía en pie, y la sonda midió una pantalla que no era. La
+cuarta fue en esta misma unidad, y esta vez no llegó a producir una conclusión
+falsa porque los cinco destinos salieron «no encontrado» de golpe. **No encontrar
+nada no puede confundirse con no encontrar nada malo**, así que ahora falla en
+vez de imprimir ceros.
+
+**COMPUERTAS.** `vitest` 10 811/10 812 · trinquete de lint 95 · trinquete de
+diseño sin deuda · `tsc` limpio · `npm run build` compila. El rojo es
+`ops-timeout-y-punto-ciego`, ambiental (pasó en la unidad 50, falló en la 51,
+pasó en la 52, falla aquí: depende de la red y no se declara ni arreglado ni
+roto).
+
+**RESIDUAL_RISK.**
+
+- Los cuatro destintos nuevos están **medidos, no atrincherados**: el trinquete
+  sigue cubriendo sólo la vista por defecto del portal. La sonda hay que
+  invocarla; que dependa de que alguien se acuerde está **declarado**.
+- Un solo alcance de token (`agenda`) y un solo paciente sintético. Con
+  `documentos` y `paquetes` liberados aparecen pantallas que **nadie ha medido**.
+- Los destinos se miden **recién pulsados**, en reposo. No se prueba escribir una
+  pregunta, abrir un documento ni editar el perfil.
