@@ -29,19 +29,21 @@ dos veces, y la segunda vez hay que tirarla.
 
 | Carril | Rama | PR | Tablero que lleva | Escritor |
 |---|---|---|---|---|
-| **A — Tablero Ausculta** | `claude/ausculta-master-completion-4clx9v` | #398 | `docs/product/AUSCULTA-MASTER-BOARD.md` (P0/P1) | sesión cloud |
+| ~~A — Tablero Ausculta~~ | ~~`claude/ausculta-master-completion-4clx9v`~~ | #398 | **cerrado**: fusionado a `main` el 30-ago | — |
 | **B — Excelencia de producto** | `product/ausculta-product-excellence` | #399 | a11y, estados de carga, pantallas | sesión cloud |
-| **C — Bucle autónomo** | `product/ausculta-master-completion` | #389 | *ninguno hoy* — **en descanso declarado** | GitHub Actions |
+| **C — Bucle autónomo** | `product/ausculta-loop-2026-08-30` | #401 | `docs/product/AUSCULTA-MASTER-BOARD.md` (P0/P1) | GitHub Actions |
 
-**Por qué C está en descanso y no trabajando**: su rama va **21 commits por
-detrás de `main`**, y el carril A **nace de su punta** (`f2aa2fa`) y le ha puesto
-68 commits encima. O sea: A ya contiene todo lo que C escribió, y A avanza el
-mismo tablero. Si C volviera a escribir, empezaría una historia divergente del
-tablero que A está cerrando.
+**Por qué C pudo reabrirse.** Estuvo en descanso declarado mientras el carril A
+avanzaba el mismo tablero: la rama del bucle iba 21 commits por detrás de `main`
+y A **nacía de su punta**, así que escribir habría abierto historia divergente
+del tablero que A estaba cerrando. Al fusionarse A, el tablero se quedó sin
+escritor y el bucle volvió a ser el suyo — sobre una rama nueva nacida de `main`.
 
-C no se para a mano: **se para solo**, con motivo, en el paso *«Verify this lane
-is still the writer of record»*. Si alguien re-apunta el bucle a una rama vieja o
-ya superada, el ciclo se planta y lo dice, en vez de escribir.
+C no se para ni se reactiva a mano: **lo decide su propia guardia** en el paso
+*«Verify this lane is still the writer of record»*. Si su rama queda por detrás
+de `main` o alguien construye sobre su punta, el ciclo se planta y lo dice, en
+vez de escribir. Se comprobó en la corrida 31 del 30-ago: se plantó en 8 segundos
+con `LANE_STALE`, sin instalar dependencias y sin encadenar.
 
 ---
 
@@ -106,10 +108,10 @@ de compuertas, la prueba de que la rama no se movió, y que desplegar y fusionar
   medido es que el ciclo estéril deja de mentir; que el escritor vuelva a
   escribir depende de la causa que el artefacto revele en la primera corrida.
 - **No dice por qué falla el escritor.** Se ha hecho visible, no diagnosticado.
-- El tablero de PRs se limpió el mismo día: de **62 abiertos quedaron 20**. Los
+- El tablero de PRs se limpió el mismo día: de **62 abiertos quedaron 19**. Los
   42 cerrados llevan su motivo medido en su propio hilo (cero commits por delante
-  de `main`, su REG ya en el ledger, o superado por un carril vivo). Los 20 que
+  de `main`, su REG ya en el ledger, o superado por un carril vivo). Los que
   siguen abiertos —y por qué— están en
   [`PRS-SIN-ABSORBER-2026-08-30.md`](./PRS-SIN-ABSORBER-2026-08-30.md).
-  **Ninguno de esos 20 debería fusionarse tal cual**: van entre 130 y 172 commits
+  **Ninguno de ellos debería fusionarse tal cual**: van entre 130 y 172 commits
   por detrás. Se rescatan al tablero o se tiran, no se mergean.

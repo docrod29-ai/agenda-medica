@@ -145,3 +145,32 @@ NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
 no hace.
 
 **Qué cuesta responder**: cuatro frases.
+
+---
+
+## D-09 · ¿Qué puede decidir un router de coste/calidad, y qué no?
+
+**Nace el 30-ago-2026**, al inventariar los PRs que no se cerraron. El PR #345
+trae un router de coste/calidad de IA con modo sombra: 16 archivos que `main` no
+tiene, entre ellos `src/lib/ia/router/calidad.ts`.
+
+**Por qué no se porta solo.** Hay una decisión tuya vigente que dice lo
+contrario: *«la nota usa el razonamiento premium —no escatimar—; no bajar de
+modelo por velocidad sin avisar»*. Un router que elige modelo por coste **es**
+esa decisión, tomada por código. Portarlo sin acotarlo sería construir contra una
+política que sigue en pie; descartarlo sin preguntarte sería tirar trabajo hecho
+por una regla que quizá sólo aplica a una parte.
+
+**La pregunta, en concreto** — tres respuestas cortas bastan:
+
+1. ¿El router puede elegir modelo en **la nota clínica**, o ahí manda siempre el
+   premium y el router sólo actúa en lo demás (resúmenes, extracción, búsquedas)?
+2. Si puede bajar de modelo en algún camino, **¿el médico se entera?** ¿Dónde
+   —en la nota, en un registro que sólo tú ves, en ninguno?
+3. ¿Vale con **modo sombra** primero —el router decide y se registra, pero no
+   manda— hasta que veas sus números?
+
+**Qué pasa mientras no respondas.** `RESCATE-345` queda `BLOCKED_BY_OWNER` en el
+Master Board. Nadie lo porta y nadie lo cierra. No bloquea nada más.
+
+**Qué cuesta responder**: tres frases.

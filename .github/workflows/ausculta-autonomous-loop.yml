@@ -19,8 +19,8 @@ jobs:
       pull-requests: read
       issues: read
     env:
-      TARGET_BRANCH: product/ausculta-master-completion
-      PR_NUMBER: '389'
+      TARGET_BRANCH: product/ausculta-loop-2026-08-30
+      PR_NUMBER: '401'
       WRITER_MAX_TURNS: '200'
       HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
       HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
