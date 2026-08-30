@@ -545,8 +545,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'TR-AUTOMATIZACION.autoridad', ws: 'TR-AUTOMATIZACION', titulo: 'La automatización no crea estado clínico autoritativo',
-    estado: 'PARTIAL',
-    queFalta: 'Las prohibiciones viven en el servidor para la IA del paciente (regla patient-facing-ai). Falta el guardián equivalente del lado del médico: que ningún camino automático confirme diagnóstico, firme receta o active una orden.',
+    estado: 'PROVEN',
+    evidencia: 'REG-385. Auditadas las 21 rutas que corren sin sesión de médico: ninguna escribe estado clínico autoritativo. Y ninguna ruta del servidor —con médico o sin él— pone una nota en firmada.',
+    comando: 'npx vitest run src/__tests__/la-automatizacion-no-firma.test.ts',
+    resultado: '10 casos verdes, con el detector probado al revés sobre fuentes sintéticas que llevan el defecto dentro.',
+    artefactos: ['src/lib/authz/analisis-estatico.ts'],
+    pruebas: ['src/__tests__/la-automatizacion-no-firma.test.ts'],
   }),
   R({
     id: 'TR-WHATSAPP.entrega', ws: 'TR-WHATSAPP', titulo: 'Un mensaje al paciente ni se pierde ni se duplica',

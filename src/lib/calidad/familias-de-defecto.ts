@@ -500,7 +500,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Una sección del charter que vivía como carpeta vacía. No rompe nada hoy; ' +
       'es la diferencia entre un sistema que dice tener un control y uno que lo ' +
       'tiene.',
-    regs: [201, 202, 203, 204, 205, 206, 207, 208],
+    regs: [201, 202, 203, 204, 205, 206, 207, 208, 385],
   },
   {
     clave: 'estorba',

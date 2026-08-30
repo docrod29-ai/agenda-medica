@@ -12728,3 +12728,64 @@ sería un oráculo gratis para quien pruebe correos.
   y actúa. Que Firebase la emita bien es de Firebase.
 - **No cubre códigos de recuperación**, que el diseño menciona y el producto
   todavía no tiene.
+
+---
+
+## REG-385 — la regla decía que la automatización no firma, y nada lo impedía
+
+**QUÉ VIGILA.** La regla del programa dice qué puede hacer la automatización
+—borradores, contexto, recordatorios, seguimiento, sugerencias, trámites— y qué
+**no puede hacer nunca por su cuenta**: diagnóstico confirmado, orden final,
+receta final, firma del médico.
+
+**EL HALLAZGO ES POSITIVO, Y ÉSA ES LA MITAD BUENA.** Auditadas las **21 rutas de
+`/api` que corren sin sesión de médico** —crons con `Bearer` fail-closed, webhooks
+con firma HMAC, rutas públicas con límite de tasa—: **ninguna escribe estado
+clínico autoritativo**. La única que toca `notas` es el portal del paciente, y lo
+hace con `.get()`.
+
+**EL DEFECTO NO ERA UNA VIOLACIÓN: ERA QUE NADA IMPEDÍA LA PRIMERA.** Un cron al
+que mañana se le añade «y de paso marca la nota como firmada» no rompería ninguna
+prueba. Es la familia «el charter existía sin encarnar»: la regla escrita, el
+comportamiento correcto, y ningún guardián entre las dos cosas.
+
+**EL INVARIANTE MÁS FUERTE, Y POR QUÉ ES ÉSE.** **Ninguna ruta del servidor pone
+una nota en `firmada`.** Ninguna, ni siquiera con sesión de médico.
+
+Firmar ocurre desde el cliente, y `firestore.rules` exige allí que el autor
+declarado sea quien firma — «nadie firma con la cédula de otro». Pero las rutas de
+`/api` usan el **SDK admin, que ignora las reglas**. Una ruta que escribiera
+`estado: 'firmada'` saltaría esa regla entera sin que nada lo notara: es
+exactamente el modo de fallo de REG-160, donde el importador escribía por un
+camino que no pasaba por la validación.
+
+Por eso el guardián no se limita a los caminos automáticos. La firma es un acto
+personal y el servidor **no la ejecuta nunca**.
+
+**EL CASO QUE IMPIDE QUE EL ANTERIOR SE VUELVA VACÍO.** «Ninguna ruta escribe
+`firmada`» pasaría igual de bien si nadie tocara las notas en absoluto. Hay un
+caso que comprueba que el producto **sigue filtrando** por nota firmada
+(`where('estado','==','firmada')`): es lo que distingue «no se escribe» de «no se
+usa».
+
+**PROBADO AL REVÉS SIN TOCAR EL ÁRBOL.** Un guardián estático se rompe en
+silencio —basta con que la expresión deje de casar—, así que se le pasan fuentes
+sintéticas con el defecto dentro: una nota firmada desde el servidor, una
+autoridad de médico falsificada, y una escritura sobre `notas` con la cadena
+partida en cuatro líneas. También se comprueba que **no** confunde una lectura con
+una escritura.
+
+**LA PRUEBA.** `src/__tests__/la-automatizacion-no-firma.test.ts` (10 casos).
+Reutiliza `limpiarComentarios` del analizador de autorización que ya existía —los
+comentarios de este repo citan a propósito los nombres de guardián, y sin
+limpiarlos todo son falsos positivos.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Es estático.** Lee el árbol, no ejecuta las rutas. Una escritura armada en
+  tiempo de ejecución a partir de cadenas se le escapa; lo que caza es la forma en
+  que este defecto se escribe de verdad.
+- **No cubre lo que el modelo REDACTA.** Que la IA no invente una firma dentro del
+  texto es otro problema y vive en WS-12.
+- **No sustituye a las reglas.** Las reglas protegen al cliente; esto protege el
+  camino que las reglas no ven.
