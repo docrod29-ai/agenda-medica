@@ -57,12 +57,39 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 const PAGINA = readFileSync('src/app/(dashboard)/consulta/[patientId]/page.tsx', 'utf8')
+const UCI = readFileSync('src/app/(dashboard)/uci/page.tsx', 'utf8')
+
+/**
+ * TODOS los avisos asíncronos del dictado, con el rol que les toca y por qué.
+ *
+ * La primera versión de esta prueba (unidad 55) cubría dos de los tres de la
+ * consulta y **ninguno de UCI**. Dejé sin anunciar justo el que llega MIENTRAS
+ * se graba —«faltan N tramos en el texto en vivo»—, que es el momento en que el
+ * médico menos mira la pantalla. Es la familia que este carril lleva toda la
+ * vuelta encontrando en otros, cometida por mí una unidad antes.
+ *
+ * `alert` sólo para el que informa de una PÉRDIDA con acciones que caducan.
+ * Los demás son advertencias sobre qué revisar: `status`. Ponerles a todos
+ * `alert` sería enseñar a ignorarlos.
+ */
+const AVISOS: { archivo: 'consulta' | 'uci'; marca: string; rol: 'alert' | 'status'; porque: string }[] = [
+  { archivo: 'consulta', marca: '{audio.error && (', rol: 'alert',
+    porque: 'se perdió la transcripción y hay acciones que caducan con la sesión' },
+  { archivo: 'consulta', marca: "{audio.sinDiarizacion && audio.estado === 'listo' && (", rol: 'status',
+    porque: 'hubo nota, con el motor alterno' },
+  { archivo: 'consulta', marca: '{audio.chunksFallidos > 0 && (', rol: 'status',
+    porque: 'el texto en vivo va incompleto; la transcripción final no' },
+  { archivo: 'uci', marca: "{audio.sinDiarizacion && audio.estado === 'listo' && (", rol: 'status',
+    porque: 'mismo caso que la consulta' },
+  { archivo: 'uci', marca: '{audio.chunksFallidos > 0 && (', rol: 'status',
+    porque: 'mismo caso que la consulta' },
+]
 
 /** El bloque que sigue a una condición, para no confundir avisos vecinos. */
-function bloqueTras(marca: string, largo = 400): string {
-  const i = PAGINA.indexOf(marca)
+function bloqueTras(marca: string, largo = 400, fuente = PAGINA): string {
+  const i = fuente.indexOf(marca)
   expect(i, `no se encontró en la pantalla: ${marca}`).toBeGreaterThan(-1)
-  return PAGINA.slice(i, i + largo)
+  return fuente.slice(i, i + largo)
 }
 
 describe('la pantalla sigue teniendo los dos avisos del dictado', () => {
@@ -83,6 +110,23 @@ describe('los avisos del dictado se anuncian', () => {
   it('«sin separación de voces» es EDUCADO: hubo nota, con el motor alterno', () => {
     const b = bloqueTras("{audio.sinDiarizacion && audio.estado === 'listo' && (")
     expect(b, 'el aviso de diarización dejó de anunciarse').toMatch(/role="status"/)
+  })
+
+  it('los CINCO avisos del dictado se anuncian, en las dos pantallas', () => {
+    for (const a of AVISOS) {
+      const fuente = a.archivo === 'consulta' ? PAGINA : UCI
+      const b = bloqueTras(a.marca, 500, fuente)
+      expect(b, `${a.archivo}: ${a.marca} dejó de anunciarse (${a.porque})`)
+        .toMatch(new RegExp(`role="${a.rol}"`))
+    }
+  })
+
+  it('sólo la PÉRDIDA es asertiva; las advertencias son educadas', () => {
+    // Si todo fuera `alert`, el médico aprendería a ignorarlos y el único que
+    // importaba de verdad se perdería entre los demás.
+    const asertivos = AVISOS.filter(a => a.rol === 'alert')
+    expect(asertivos).toHaveLength(1)
+    expect(asertivos[0].marca).toBe('{audio.error && (')
   })
 
   it('y no son el mismo rol: enseñar a ignorar un aviso es peor que no tenerlo', () => {

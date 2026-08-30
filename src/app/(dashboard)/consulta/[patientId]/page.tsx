@@ -4849,7 +4849,13 @@ export default function ConsultaActivaPage() {
                 )}
 
                 {audio.chunksFallidos > 0 && (
-                  <div style={{
+                  /*
+                    `status` y no `alert`: el texto EN VIVO está incompleto, pero
+                    la transcripción final usa la grabación entera — lo dice el
+                    propio aviso. Es una advertencia, no una pérdida.
+                    Llega mientras se graba, que es cuando el médico menos mira.
+                  */
+                  <div role="status" style={{
                     marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
                     color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
                     border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',

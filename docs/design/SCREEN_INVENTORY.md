@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1212 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2633 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 6618 | 7 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 6624 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 314 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 341 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 235 | 1 | — | ✅ | — |
@@ -82,7 +82,7 @@
 | `/hospitalizacion/camas` | alpha | ✅ | 239 | 1 | — | ✅ | — |
 | `/hospitalizacion/indicadores` | alpha | ✅ | 102 | 0 | — | ✅ | — |
 | `/hospitalizacion/unidades` | alpha | ✅ | 171 | 0 | — | ✅ | — |
-| `/uci` | alpha | ✅ | 1932 | 2 | — | ✅ | ✅ |
+| `/uci` | alpha | ✅ | 1936 | 2 | — | ✅ | ✅ |
 | `/uci/antimicrobianos` | alpha | ✅ | 683 | 0 | — | ✅ | — |
 | `/uci/benchmark` | alpha | ✅ | 265 | 0 | — | ✅ | — |
 | `/uci/dosificacion` | alpha | ✅ | 585 | 0 | — | ✅ | — |

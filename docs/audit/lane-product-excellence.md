@@ -3229,3 +3229,64 @@ diseño sin deuda · `tsc` limpio · `npm run build` compila. El rojo es
 - No se prueba que un usuario con la preferencia puesta **vea** menos
   movimiento: se cuentan transiciones y animaciones, que es lo medible desde
   aquí.
+
+---
+
+## Unidad 57 — el hermano que dejé sin arreglar, y los dos de UCI
+
+**LO PRIMERO, PORQUE ES MÍO.** La unidad 55 puso región viva a dos avisos del
+dictado de la consulta y **dejó el tercero sin tocar**: `chunksFallidos`, «faltan
+N tramo(s) en el texto en vivo». Es el que llega **mientras se está grabando** —
+o sea, en el momento exacto en que el médico menos mira la pantalla, que es
+justamente el argumento con el que arreglé los otros dos.
+
+Es la familia que este carril lleva encontrando en el código de otros desde la
+unidad 46 —«la lección se aprende en un componente y no en el de al lado»—
+cometida por mí **una unidad antes**. No se descubre sola: salió al ir a mirar
+UCI y contar cuántos avisos había en total.
+
+**Y LOS DOS DE UCI.** `uci/page.tsx` tiene los mismos dos avisos —«sin separación
+de voces en este pase» y «faltan N tramos»— y ninguno se anunciaba.
+
+La unidad 55 los declaró «ALPHA, de otro carril: anotado, no arreglado». **Se
+revisa esa decisión y se arregla**, por tres razones concretas:
+
+1. El archivo está **libre**: `main` no lo ha tocado desde el punto de partida de
+   esta rama, y su último cambio es del 9-ago. No hay carril con el que chocar.
+2. ALPHA aquí significa «**se usa**, no se vende» — el dueño lo usa. El médico
+   que dicta un pase de visita es real.
+3. El arreglo es **un atributo**, con el criterio ya probado y su guardián ya
+   escrito. Dejarlo sin hacer por una etiqueta, teniendo el arreglo en la mano,
+   sería fabricar exactamente el defecto que este carril persigue.
+
+**CHANGE.** Los tres avisos que faltaban reciben `role="status"`. Ninguno pasa a
+`alert`: el texto en vivo va incompleto pero **la transcripción final usa la
+grabación entera** —lo dice el propio aviso— y «sin separación de voces» significa
+que sí hubo nota, con el motor alterno. Son advertencias sobre qué revisar, no
+pérdidas.
+
+**EL CRITERIO, AHORA EXPLÍCITO Y VIGILADO.** El guardián pasa a llevar la tabla
+de los **cinco** avisos con su rol y su razón, y añade un caso que exige que
+**sólo uno sea asertivo**: el que informa de una pérdida con acciones que caducan.
+Si todo fuera `alert`, el médico aprendería a ignorarlos y el único que importaba
+de verdad se perdería entre los demás.
+
+**PROBADO AL REVÉS, TRES VECES.** Quitando el rol en UCI, quitándolo al tramo
+perdido de la consulta, y convirtiendo el error en una advertencia más. Los tres
+caen **nombrando el aviso concreto**.
+
+**COMPUERTAS.** `vitest` 10 821/10 822 · trinquete de lint 95 · trinquete de
+diseño sin deuda · `tsc` limpio · `npm run build` compila · inventario
+regenerado. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- Sigue sin usarse **ningún lector de pantalla real**. Que el rol esté puesto no
+  prueba que se oiga, y esto ya se dice desde la unidad 46.
+- Los avisos de UCI **no se han medido en navegador**: la pantalla necesita un
+  paciente internado y el arnés no lo siembra. Arreglados por el mismo criterio
+  y vigilados en fuente, **no vistos funcionando**. Es menos de lo que se probó
+  en la consulta, y se dice.
+- No se ha barrido el resto de UCI ni de hospitalización buscando más avisos
+  asíncronos sin anunciar. Se arreglaron **los dos del dictado**, que son los
+  hermanos directos de los de la consulta.
