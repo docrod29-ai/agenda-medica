@@ -372,7 +372,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * abierta casi doscientos REG, porque nada la ponía en rojo. Una deuda
      * declarada no es una deuda vigilada.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372, 373, 374, 377],
+    /**
+     * 403 es esta familia con las dos partes en desacuerdo siendo **el censo y
+     * la arquitectura**. El censo pedía `revisado`/`revisadoPor`/`revisadoEn` en
+     * el panel de laboratorio; el módulo de laboratorio tiene escrito, con ese
+     * título, que «revisado» vive en la tarea y en ningún otro sitio porque
+     * ponerlo en el panel crearía una segunda fuente de verdad. Construir lo que
+     * pedía el censo habría sido construir el defecto que el invariante prohíbe.
+     *
+     * Un censo que manda duplicar la fuente de verdad es tan caro como uno que
+     * olvida un hueco: los dos hacen trabajar en la dirección equivocada. El
+     * cuarto campo que pedía —`criticoNotificado`— sí faltaba, y era el único
+     * que distinguía «lo vi» de «localicé a alguien».
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 364, 372, 373, 374, 377, 403],
   },
   {
     clave: 'habla_real',

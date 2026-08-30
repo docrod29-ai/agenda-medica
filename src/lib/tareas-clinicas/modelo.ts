@@ -207,6 +207,53 @@ export function puedeCerrarse(cierre: Partial<CierreDeTarea> | undefined): Vered
 }
 
 /**
+ * LO QUE UN CIERRE DE VALOR CRÍTICO DEJA SIN DECIR (WS-11, REG-403).
+ *
+ * ── LA DIFERENCIA QUE NADIE REGISTRABA ──────────────────────────────────────
+ *
+ * `avisoAlPaciente` es opcional, y su razón está escrita arriba y es buena:
+ * exigirlo en cada cierre convertiría el worklist en un formulario de tres
+ * campos, y un worklist que cuesta se abandona en una semana.
+ *
+ * Ese razonamiento se hizo para el resultado de rutina. **Un valor crítico no es
+ * un cierre cualquiera.** Un potasio de 7,1 cerrado con «repetir y tratar» y el
+ * aviso en blanco deja el expediente sin poder distinguir las dos cosas que ahí
+ * importan:
+ *
+ *     «lo vi»   ≠   «localicé a alguien»
+ *
+ * Y esa distinción es justo el sentido de que un valor sea crítico. Cerrar la
+ * tarea dice lo primero; nada dice lo segundo.
+ *
+ * ── POR QUÉ PREGUNTA Y NO BLOQUEA ───────────────────────────────────────────
+ *
+ * Porque **si el aviso debe ser obligatorio, y en cuánto tiempo, es política
+ * clínica** — y fijarla está en la lista de prohibiciones del repositorio, igual
+ * que inventar una dosis. Aquí no se decide: se **pregunta**, que es la regla 6
+ * de seguridad clínica, y el médico contesta o deja constancia de que no lo
+ * registró.
+ *
+ * Sigue valiendo lo de siempre: sin registrar es `null`, y `null` no es
+ * `'no_avisado'`. Confundirlos convierte «no lo sé» en un hecho clínico.
+ */
+export function preguntasAlCerrar(
+  t: Pick<TareaClinica, 'prioridad'>,
+  cierre: Partial<CierreDeTarea> | undefined,
+): readonly string[] {
+  if (t.prioridad !== 'critica') return []
+  if (cierre?.avisoAlPaciente) return []
+  return ['Este resultado es crítico. ¿Se le avisó a alguien? Cerrar sin contestar deja el expediente diciendo que no consta.']
+}
+
+export const POR_QUE_EL_CRITICO_PREGUNTA_Y_NO_BLOQUEA =
+  'Si el aviso de un valor crítico debe ser obligatorio, y en cuánto tiempo, es ' +
+  'POLÍTICA CLÍNICA: la fija el médico responsable, no el código. Aquí se ' +
+  'pregunta —regla 6— y se deja constancia de lo que se contestó. Bloquear el ' +
+  'cierre sería fijar esa política de tapadillo, y no bloquear ni preguntar ' +
+  'dejaría «lo vi» y «localicé a alguien» indistinguibles, que es exactamente ' +
+  'lo que hace crítico a un valor crítico.'
+
+/**
  * ¿Se le avisó al paciente? Devuelve `null` cuando NO SE REGISTRÓ.
  *
  * `null` no es `'no_avisado'`. Confundirlos convierte «no lo sé» en un hecho

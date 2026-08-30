@@ -14016,3 +14016,81 @@ lo que hacía falta para cerrar el atajo.
 - **No hay jurisdicción todavía**: el campo existe en el modelo y ninguna cita de
   texto la declara. Ausente = no se sabe, no «en todas partes».
 - **No prueba la pantalla**, sólo que la página pide el aviso.
+
+---
+
+## REG-403 — «lo vi» y «localicé a alguien» eran el mismo gesto
+
+**QUÉ PEDÍA EL CENSO.** `WS-11.laboratorio`: «PanelLaboratorio sigue sin
+`revisado` / `revisadoPor` / `revisadoEn` / `criticoNotificado`».
+
+**TRES DE LOS CUATRO ERAN UN ERROR DEL CENSO**, y construirlos habría sido
+construir el defecto que el invariante de arquitectura existe para impedir — con
+el censo dando la orden.
+
+Existen, en el sitio correcto, con otro nombre:
+
+| lo que pedía el censo | dónde vive de verdad |
+|---|---|
+| `revisado` | `estado: 'cerrada'` de la tarea — «alguien lo revisó y decidió. AQUÍ termina, no antes» |
+| `revisadoPor` | `cerradaPor` |
+| `revisadoEn` | `cerradaEn` |
+
+Y `laboratorio/firestore.ts` lo tiene escrito bajo el título «DÓNDE VIVE
+REVISADO»: *en la tarea, y en ningún otro sitio. Añadir un `revisado` al panel
+crearía una segunda fuente de verdad del mismo hecho.*
+
+El censo queda corregido con la cita. **Un censo que pide construir lo que ya
+existe es tan caro como uno que olvida un hueco**: manda a duplicar la fuente de
+verdad de una entidad clínica.
+
+### El que sí faltaba
+
+`criticoNotificado`. En todo el árbol no había **nada** que registrara que un
+valor crítico se comunicó: la única aparición de la palabra era la propia entrada
+del censo.
+
+`CierreDeTarea` tiene `avisoAlPaciente`, y es opcional por una razón escrita y
+buena: exigirlo en cada cierre convertiría el worklist en un formulario de tres
+campos, «y un worklist que cuesta se abandona en una semana».
+
+Pero ese razonamiento se hizo para **el resultado de rutina**. Un potasio de 7,1
+cerrado con «repetir y tratar» y el aviso en blanco deja el expediente sin poder
+distinguir las dos cosas que ahí importan:
+
+```
+«lo vi»   ≠   «localicé a alguien»
+```
+
+Y esa distinción es precisamente lo que hace crítico a un valor crítico. Cerrar
+la tarea decía lo primero; nada decía lo segundo.
+
+### Por qué pregunta y no bloquea
+
+Porque **si el aviso debe ser obligatorio, y en cuánto tiempo, es política
+clínica**, y fijarla está en la lista de prohibiciones del repositorio igual que
+inventar una dosis.
+
+Se **pregunta** —regla 6— y el médico contesta. Bloquear el cierre sería fijar
+esa política de tapadillo; no preguntar dejaría las dos cosas indistinguibles.
+Preguntar es lo único que no decide por él. Y sin registrar sigue siendo `null`,
+que no es `'no_avisado'`: confundirlos convierte «no lo sé» en un hecho clínico,
+y del lado que hace que nadie llame.
+
+**LA PRUEBA.** `src/__tests__/un-critico-visto-no-es-un-critico-avisado.test.ts`
+(11 casos). Probado al revés quitando la condición de prioridad. Incluye el caso
+que impide pasarse de frenada —en un resultado no crítico no se pregunta nada— y
+dos que **fijan la corrección del censo**, para que nadie vuelva a implementar
+`revisado` en el panel.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No fija el plazo.** Cuánto puede pasar entre ver un crítico y avisar es una
+  decisión clínica y normativa que no está tomada. No se inventa un número.
+- **No registra a QUIÉN se avisó ni por qué vía.** Hoy consta que sí, que todavía
+  no, o que no hacía falta. Un campo de destinatario exige antes decidir qué
+  destinatarios cuentan, que también es del médico.
+- **No cubre el camino hospitalario**, que crea una tarea por estudio y tiene su
+  propio flujo.
+- **No prueba el render**, sólo que la pantalla pide la pregunta y que el botón
+  de cerrar no se deshabilita por ella.

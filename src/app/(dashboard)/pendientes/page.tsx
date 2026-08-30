@@ -52,7 +52,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
 import { tareasVivas, tareasCerradasRecientes, cambiarEstado } from '@/lib/tareas-clinicas/firestore'
 import {
-  ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO,
+  ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO, preguntasAlCerrar,
   type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente,
 } from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
@@ -600,6 +600,29 @@ export default function PendientesPage() {
               Si no marcas ninguna, queda <strong>sin registrar</strong>: el expediente
               dirá que no consta, no que no se avisó.
             </span>
+            {/**
+              * REG-403 · un valor crítico no es un cierre cualquiera.
+              *
+              * `avisoAlPaciente` es opcional a propósito —exigirlo en cada cierre
+              * convierte el worklist en un formulario y un worklist que cuesta se
+              * abandona—, pero ese razonamiento se hizo para el resultado de
+              * rutina. En un valor crítico, «lo vi» y «localicé a alguien» son
+              * cosas distintas, y esa distinción es justo lo que lo hace crítico.
+              *
+              * PREGUNTA, no bloquea: si el aviso debe ser obligatorio, y en cuánto
+              * tiempo, es política clínica y la fija el médico.
+              */}
+            {cerrando && preguntasAlCerrar(cerrando, { avisoAlPaciente: aviso || undefined }).map(q => (
+              <div
+                key={q}
+                style={{
+                  fontSize: 12, lineHeight: 1.5, padding: '8px 10px', borderRadius: 10,
+                  color: 'var(--amber)',
+                  background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--amber) 25%, transparent)',
+                }}
+              >{q}</div>
+            ))}
           </fieldset>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button variant="ghost" onClick={() => setCerrando(null)}>Volver</Button>

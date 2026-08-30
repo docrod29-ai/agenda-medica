@@ -448,7 +448,9 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-11.laboratorio', ws: 'WS-11', titulo: 'Un resultado de laboratorio de consultorio genera tarea de revisión',
     estado: 'PARTIAL',
-    queFalta: 'REG-337 cerró «recibido → por revisar». PanelLaboratorio sigue sin revisado/revisadoPor/revisadoEn/criticoNotificado.',
+    queFalta: 'CORRECCIÓN DEL CENSO (REG-403): tres de los cuatro campos que esta entrada pedía YA EXISTEN, en el sitio correcto y con otro nombre — `revisado` es `estado: cerrada` de la tarea, `revisadoPor` es `cerradaPor` y `revisadoEn` es `cerradaEn`. Ponerlos en el panel es lo que la arquitectura prohíbe, y `laboratorio/firestore.ts` lo tiene escrito bajo el título «DÓNDE VIVE REVISADO»: crearía una segunda fuente de verdad del mismo hecho. Construirlos habría sido construir el defecto, con el censo dando la orden. El cuarto SÍ faltaba y se cerró: nada registraba que un valor crítico se hubiera comunicado, así que «lo vi» y «localicé a alguien» eran el mismo gesto. Ahora el cierre de un crítico PREGUNTA (no bloquea: si el aviso debe ser obligatorio y en cuánto tiempo es política clínica, y fijarla está prohibido). FALTA, y necesita al médico: el plazo máximo entre ver un crítico y avisar, y qué destinatarios cuentan — hoy sólo consta sí/todavía no/no hacía falta, sin a quién ni por qué vía.',
+    artefactos: ['src/lib/tareas-clinicas/modelo.ts'],
+    pruebas: ['src/__tests__/un-critico-visto-no-es-un-critico-avisado.test.ts'],
   }),
   R({
     id: 'WS-11.interconsultas-imagen', ws: 'WS-11', titulo: 'Interconsultas, referencias e imagen dentro del ciclo',
