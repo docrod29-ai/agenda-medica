@@ -64,10 +64,67 @@ if (!otras.length) {
   process.exit(2)
 }
 
+/**
+ * ANTES DE COMPARAR: ¿ES `origin/main` EL `main` DE VERDAD?
+ *
+ * Este guion compara contra la copia LOCAL de `origin/main`. Si nadie ha hecho
+ * `fetch` desde hace rato, esa copia es de otro día y todo lo que diga el guion
+ * es de otro día — sin avisar.
+ *
+ * Pasó exactamente eso: informó «Fusión contra main: LIMPIA» varias veces
+ * seguidas mientras `main` ya había avanzado (entró el #406) y el PR estaba
+ * `dirty` en GitHub con doce trozos en conflicto. Un guion que existe para
+ * medir conflictos y no ve los que hay es peor que no tenerlo.
+ *
+ * Se pregunta al remoto por el SHA real. Si no coincide, se para: el número
+ * correcto se saca después de un `fetch`, no antes.
+ */
+{
+  const local = spawnSync('git', ['rev-parse', 'origin/main'], { encoding: 'utf8' }).stdout.trim()
+  const remoto = spawnSync('git', ['ls-remote', 'origin', 'refs/heads/main'], { encoding: 'utf8' })
+  const shaRemoto = (remoto.stdout || '').split(/\s+/)[0]
+  if (!shaRemoto) {
+    console.error('\n  No se pudo preguntar al remoto por `main`. Sin eso, cualquier número puede ser viejo.\n')
+    process.exit(2)
+  }
+  if (shaRemoto !== local) {
+    console.error(`\n  La copia local de \`origin/main\` está ATRASADA:`)
+    console.error(`    local  ${local}`)
+    console.error(`    remoto ${shaRemoto}`)
+    console.error('\n  Comparar así daría un número de otro día. Corre `git fetch origin main` y repite.\n')
+    process.exit(2)
+  }
+}
+
+/**
+ * CUANDO EL OTRO CARRIL YA ENTRÓ EN `main`, ESTA CUENTA DEJA DE SIGNIFICAR ALGO.
+ *
+ * La resta «conflictos míos con la otra rama MENOS los que ya tenía main» sólo
+ * dice algo mientras la otra rama esté FUERA de `main`. En cuanto se fusiona,
+ * `main` la contiene, sus conflictos con ella bajan a cero, y **todos** los
+ * míos pasan a contarse como «añadidos por este carril» — quince, veinticuatro,
+ * el número que sea. Ninguno lo añadí yo: lo que pasa es que esta rama todavía
+ * no se ha puesto encima del `main` nuevo.
+ *
+ * Se detecta y se dice. El número honesto en ese momento es el de abajo, el de
+ * los conflictos contra `main`.
+ */
+const yaEnMain = (rama) =>
+  spawnSync('git', ['merge-base', '--is-ancestor', rama, 'origin/main']).status === 0
+
 let anadidosTotal = 0
+let algunaYaEntro = false
 for (const otra of otras) {
-  const pre = conflictos('origin/main', otra)
   const mios = conflictos('HEAD', otra)
+  if (yaEnMain(otra)) {
+    algunaYaEntro = true
+    console.log(`\n  ${otra}`)
+    console.log(`    YA ESTÁ EN main. La cuenta de «añadidos» no aplica: main la contiene,`)
+    console.log(`    así que sus conflictos con ella son 0 y todos los de esta rama parecerían míos.`)
+    console.log(`    Conflictos de esta rama con ella: ${mios.length} — mírese contra main, abajo.`)
+    continue
+  }
+  const pre = conflictos('origin/main', otra)
   const anadidos = mios.filter(f => !pre.includes(f))
   anadidosTotal += anadidos.length
   console.log(`\n  ${otra}`)
@@ -79,4 +136,9 @@ const contraMain = conflictos('origin/main', 'HEAD')
 console.log(`\n  Fusión contra main: ${contraMain.length === 0 ? 'LIMPIA' : contraMain.length + ' conflictos'}`)
 contraMain.forEach(f => console.log(`      · ${f}`))
 
-console.log(`\n  CROSS_LANE_CONFLICT añadidos por este carril: ${anadidosTotal}\n`)
+if (algunaYaEntro) {
+  console.log(`\n  CROSS_LANE_CONFLICT: la cuenta de «añadidos» ya no aplica —el otro carril entró`)
+  console.log(`  en main—. Lo que hay que mirar son los ${contraMain.length} conflictos contra main de aquí arriba.\n`)
+} else {
+  console.log(`\n  CROSS_LANE_CONFLICT añadidos por este carril: ${anadidosTotal}\n`)
+}

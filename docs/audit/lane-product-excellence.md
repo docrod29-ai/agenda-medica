@@ -4458,3 +4458,76 @@ limpio · `build` compila · las nueve compuertas de navegador. El rojo es
   que un cambio de aspecto sutil no se habría visto.
 - axe mira el contraste **calculado**, no el percibido sobre degradados,
   imágenes o texto encima de un `filter`.
+
+---
+
+## Unidad 72 — el guion de conflictos llevaba días diciendo «LIMPIA» sobre un `main` de otro día
+
+**CÓMO SALIÓ.** Leyendo los avisos de GitHub del PR #399. Veintinueve, todos
+ruido de despliegues de Vercel y `check_suite.completed` en verde… y al
+comprobar el estado real del PR contra la fuente primaria, en vez de fiarme de
+los avisos: **`mergeable_state: "dirty"`**.
+
+Mi propio `arnes:conflictos-carriles` había dicho **«Fusión contra main: LIMPIA»**
+seis veces seguidas esa misma tarde.
+
+**POR QUÉ MENTÍA.** Compara contra la copia **local** de `origin/main`. Nadie
+había hecho `fetch` en toda la sesión, así que comparaba contra el `main` del día
+anterior. Mientras tanto `main` pasó de `bcf6063` a `85656f96`: entró el **#406**,
+con el trabajo de Master Completion.
+
+Un guion que existe para medir conflictos y no ve los que hay es peor que no
+tenerlo. **Quinto instrumento de esta sesión que informa un cero que no era**, y
+el más caro: los otros cuatro se equivocaban sobre píxeles; éste, sobre si el
+trabajo de dos semanas se puede integrar.
+
+Ahora **le pregunta al remoto por el SHA de `main`** y **se para** si la copia
+local no coincide.
+
+**Y AL PARARSE, EL NÚMERO SALTÓ A 24 — QUE TAMPOCO ERA VERDAD.** La cuenta
+«conflictos míos con el otro carril MENOS los que ya tenía `main`» sólo significa
+algo mientras el otro carril esté **fuera** de `main`. En cuanto se fusiona,
+`main` lo contiene, su baseline cae a cero, y **todos** mis conflictos pasan a
+contarse como míos. Ninguno lo añadí yo: lo que pasa es que esta rama todavía no
+se ha puesto encima del `main` nuevo. El guion lo detecta y lo dice, en vez de
+soltar el 24.
+
+**LO QUE HAY DE VERDAD: 7 archivos, 12 trozos.**
+
+| Archivo | Trozos | Naturaleza |
+|---|---:|---|
+| `SCREEN_INVENTORY.md` · `techos-de-diseno.json` | 4 | **Generados** — un comando |
+| `package.json` | 1 | **Mecánico** — líneas adyacentes en `scripts` |
+| `lib/auth-client.ts` | 2 | **Se quedan las dos** — `main` la correlación de pestaña, ésta el techo al token |
+| `consulta/[patientId]/page.tsx` | 2 | **Se quedan las dos** — `tipoOrigen: 'medico'` y `className="nx-acc-caja"` caben en la misma línea |
+| `asistente/page.tsx` | 1 | **Pide criterio** |
+| `cumplimiento/retencion/page.tsx` | 2 | **Pide criterio** |
+
+Los dos últimos son **el mismo camino endurecido por los dos carriles contra
+peligros distintos**: en `asistente`, `main` cambia a sondeos indexados con
+`sePudoPreguntar` y esta rama le puso techo de tiempo a `getPatients` porque sin
+red el SDK no rechaza; en `retencion`, `main` añade `truncada` (se llegó al techo
+de paginación) y esta rama `falloCarga` (la lectura falló) — **dos huecos
+distintos, y los dos hacen falta**, que una lista de la NOM-004 que se queda
+corta en silencio y una que falla en silencio se leen igual de mal.
+
+**NO LO RESUELVO, Y ES LA DECISIÓN.** El encargo dice «no los invadas, déjalos
+documentados para integración posterior» y «NO hagas merge». Resolver esos cuatro
+archivos **es** esa integración, y decidir por el otro carril qué versión de su
+propio endurecimiento sobrevive es exactamente lo que se me pidió no hacer.
+Queda medido, con nombre y con la resolución propuesta, en un comentario del PR
+—que además **corrige el cuerpo del PR**, que sigue diciendo
+«CROSS_LANE_CONFLICT = none» y hoy es falso—.
+
+**COMPUERTAS.** Esta unidad **no toca una línea de producto**: sólo el guion de
+conflictos. `tsc` y los trinquetes quedan como estaban.
+
+**RESIDUAL_RISK.**
+
+- **La rama sigue sin fusionar limpio contra `main`.** Es el estado real y no se
+  arregla solo; lo hará quien integre.
+- El guion pregunta al remoto por `main`, **pero no por las ramas del otro
+  carril**: si una de ellas avanza sin fusionarse, su copia local puede seguir
+  atrasada y nadie avisa.
+- **Ninguno de los otros nueve guiones de este carril compara contra `main`**, así
+  que ninguno habría cazado esto. Lo cazó mirar el PR en GitHub.
