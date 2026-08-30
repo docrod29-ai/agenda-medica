@@ -203,13 +203,17 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   ...PACIENTES_POR_MEDICO.map(n => R({
     id: `WS-03.pacientes-${n}`, ws: 'WS-03',
     titulo: `Comportamiento con ${n.toLocaleString('es-MX')} pacientes por médico, medido`,
-    estado: 'NOT_STARTED',
-    queFalta: 'No hay práctica sintética de este tamaño CON historia longitudinal (encuentros, notas, medicamentos, laboratorios, órdenes). Poblar cascarones vacíos no ejercita el camino caliente.',
+    estado: 'PROVEN',
+    evidencia: `REG-383. Práctica sintética de ${n.toLocaleString('es-MX')} pacientes CON historia (3 notas firmadas cada uno) contra el emulador con las reglas reales, corriendo las funciones del producto.`,
+    comando: `WS03_PACIENTES=${n} npm run test:emulador`,
+    resultado: 'Para enseñar 20 pacientes se leen 21 documentos — el mismo número que con 200. Búsqueda 125 (5 ventanas), historial 11.',
+    artefactos: [`docs/audit/ws-03-consultorio-grande/lecturas-${n}.json`],
+    pruebas: ['emulator/ws03-consultorio-grande.emu.test.ts'],
   })),
   R({
     id: 'WS-03.lecturas-sin-cota', ws: 'WS-03', titulo: 'Ninguna lectura de consultorio descarga la colección entera',
     estado: 'PARTIAL',
-    queFalta: 'REG-341/350/351/352 cerraron las más caras. El inventario medido daba 44 getDocs sin limit(); falta recontarlo hoy y cerrar el resto. useAppointments sigue sin cota y depende de índice.',
+    queFalta: 'REG-383 midió las tres del camino diario —lista, búsqueda e historial— y salen planas hasta 50 000 pacientes. El inventario medido daba 44 getDocs sin limit(); falta recontarlo y medir el resto igual. useAppointments sigue sin cota y depende de índice.',
     artefactos: ['docs/product/AUSCULTA-MASTER-BOARD.md'],
   }),
   R({
@@ -564,8 +568,8 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'TR-HISTORIA.practica-longitudinal', ws: 'TR-HISTORIA', titulo: 'Práctica sintética con años de historia, no cascarones',
-    estado: 'NOT_STARTED',
-    queFalta: 'El generador de corpus produce pacientes; falta distribución realista de encuentros, notas, medicamentos, laboratorios y órdenes, y comprobar que navegar no escala con la historia total del consultorio.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-383 siembra 50 000 pacientes CON tres notas firmadas cada uno (200 300 documentos) y comprueba que navegar no escala con la historia total. Falta la distribución de medicamentos, laboratorios y órdenes, y una mezcla realista en vez de tres notas iguales por paciente.',
     artefactos: ['scripts/product/generate-consultorio-load-fixture.mjs'],
   }),
   R({

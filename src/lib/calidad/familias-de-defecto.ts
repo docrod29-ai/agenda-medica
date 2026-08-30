@@ -110,6 +110,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * midió algo. «Coincidió» no es «coincidió con algo».
      */
     /**
+     * 383 es esta familia en su forma más medible: el invariante central de la
+     * escala —«para enseñar 20 pacientes no se descargan 50 000»— estaba escrito
+     * en el tablero, reparado en el código y **nunca medido**. Las pruebas
+     * comprobaban que el código DIJERA `limit()`; ninguna miró qué traía de vuelta
+     * una consulta con el consultorio lleno.
+     *
+     * Su lección es el gemelo de «el dato tiene que LLEGAR»: hay reparaciones cuyo
+     * éxito es que el dato NO llegue, y ésas se prueban contando lo que cruza el
+     * cable, no leyendo el código que lo pide.
+     */
+    /**
      * 380 es esta familia aplicada a la EVIDENCIA de una reparación. REG-342 y
      * REG-355 arreglaron el rebote de iPhone de verdad, y lo probaron entero
      * LEYENDO el árbol: ninguna de las dos abrió nunca el producto en un
@@ -238,7 +249,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * hubo que hacer fue conectarla, y las dos unidades cupieron en un módulo
      * puro cada una porque el hueco estaba declarado en su sitio exacto.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383],
   },
   {
     clave: 'se_contradice',

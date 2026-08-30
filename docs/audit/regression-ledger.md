@@ -12583,3 +12583,79 @@ reproducido.
   que tenga todas las que le tocan: significa que no está evaporado.
 - **No sustituye al tablero en prosa.** La causa raíz, la historia y la cita del
   archivo viven allí, y eso no cabe en una tabla de datos.
+
+---
+
+## REG-383 — el invariante central de WS-03 estaba escrito y nunca medido
+
+**QUÉ FALTABA.** «Para enseñar 20 pacientes no se descargan 50 000» es el
+invariante que gobierna todo WS-03, y vivía **sólo en el tablero**.
+REG-341/350/351/352 acotaron las lecturas más caras y sus pruebas comprueban que
+el código **diga** `limit()`; ninguna comprobó qué **trae de vuelta** una consulta
+cuando el consultorio es grande de verdad.
+
+Esa diferencia ya costó una vez aquí: REG-160 validaba un campo y escribía en
+otro, con todas las pruebas en verde. «El dato tiene que LLEGAR» tiene su gemelo
+en este eje — **el dato tiene que NO llegar**, y lo que se mide es el volumen que
+cruza el cable, no la forma del código que lo pide.
+
+**CÓMO SE MIDE.** Se envuelve `getDocs` del SDK modular y se **cuentan los
+documentos que cada consulta devuelve**. Después corren las funciones **reales**
+del producto —`listarPacientesPagina`, `buscarPacientes`, `listarNotasPagina`—
+contra el emulador con `firestore.rules` cargadas y un contexto autenticado de
+médico. No hay reimplementación: se sustituye el `db` del producto por el del
+emulador y lo que se ejecuta es `src/lib/firestore.ts` tal cual.
+
+La clave está en `RulesTestContext.firestore()`: entrega un handle que el **SDK
+modular** acepta, así que el código de producción corre sin tocarlo. El
+comentario del entorno decía «SDK compat» y estaba desactualizado.
+
+**DOS TAMAÑOS, NO UNO.** Un solo tamaño no demuestra nada: «21 lecturas con 1 000
+pacientes» es compatible con una implementación que lea N/50. Cada corrida
+siembra **dos veces**, con un factor de separación grande, y exige que el conteo
+no crezca.
+
+**EL RESULTADO, EN LOS CUATRO ESCALONES CANÓNICOS** — con historia, no cascarones:
+cada paciente lleva tres notas firmadas.
+
+| Pacientes | Documentos sembrados | Lista (20) | Búsqueda | Historial (10) |
+|---|---|---|---|---|
+| 200 | 800 | **21** | 125 | 11 |
+| 10 000 | 40 300 | **21** | 125 | 11 |
+| 20 000 | 80 300 | **21** | 125 | 11 |
+| 30 000 | 120 300 | **21** | 125 | 11 |
+| 50 000 | **200 300** | **21** | 125 | 11 |
+
+**Completamente plano.** El 21 es 20 más el centinela del cursor —así se sabe si
+hay página siguiente sin lanzar una segunda consulta—, y es la única lectura de
+más que se acepta. La búsqueda son 5 ventanas de 25: depende de la ventana y de
+cuántas estrategias de prefijo apliquen, **nunca del tamaño del consultorio**.
+
+**POR QUÉ LA HISTORIA IMPORTA Y NO SE SIEMBRAN CASCARONES.** Un consultorio de
+50 000 documentos vacíos no ejercita nada. La historia es lo que hace grande a una
+práctica y es donde una lectura sin cota se vuelve cara, así que la siembra
+incluye las notas: 200 300 documentos en el escalón mayor.
+
+**UN CASO QUE VIGILA AL MEDIDOR.** Un contador que se quedara en cero haría pasar
+todos los demás casos. Hay uno que exige que las cifras sean mayores que cero y
+que se hayan lanzado consultas de verdad — la lección de
+`v15-rtc12-la-identidad-no-se-desplaza`, que ya documentó un arnés que reportaba
+éxito porque el gesto nunca ocurrió.
+
+**LA PRUEBA.** `emulator/ws03-consultorio-grande.emu.test.ts` (6 casos), en la
+suite del emulador que ya corre en el job `aislamiento-tenant` del CI. Por omisión
+usa 200 y 2 000 para no alargar el job; `WS03_PACIENTES` sube el tamaño para el
+acta de escala.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No mide autorización.** Siembra con las reglas desactivadas y lee con contexto
+  de médico. El aislamiento lo miden `tenant-aislamiento` y, en ejecución, el
+  arnés de carga (REG-378).
+- **No mide latencia.** Cuenta documentos. La de un emulador local no se parece a
+  la de producción y prometerla sería inventar una cifra.
+- **No cubre todas las lecturas del producto**: cubre las tres del camino que el
+  médico recorre a diario. El inventario completo —44 `getDocs` sin `limit()`
+  medidos en su día— sigue abierto.
+- **La historia sembrada es uniforme**: tres notas iguales por paciente. Falta la
+  distribución realista de medicamentos, laboratorios y órdenes.

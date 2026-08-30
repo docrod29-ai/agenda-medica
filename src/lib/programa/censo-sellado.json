@@ -53,19 +53,19 @@
     },
     {
       "id": "WS-03.pacientes-10000",
-      "estado": "NOT_STARTED"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-03.pacientes-20000",
-      "estado": "NOT_STARTED"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-03.pacientes-30000",
-      "estado": "NOT_STARTED"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-03.pacientes-50000",
-      "estado": "NOT_STARTED"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-03.lecturas-sin-cota",
@@ -305,7 +305,7 @@
     },
     {
       "id": "TR-HISTORIA.practica-longitudinal",
-      "estado": "NOT_STARTED"
+      "estado": "PARTIAL"
     },
     {
       "id": "TR-ESPECIALIDAD.infecto",
