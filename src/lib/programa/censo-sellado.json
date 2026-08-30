@@ -85,7 +85,7 @@
     },
     {
       "id": "WS-04.interruptor-otros",
-      "estado": "NOT_STARTED"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-04.colas",

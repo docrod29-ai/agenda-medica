@@ -39,9 +39,8 @@ import {
   cuerpoAnthropic, cuerpoOpenAI, falloHttp, leerAnthropic, leerOpenAI,
   siguienteModelo, type Peticion, type Proveedor, type Resultado,
 } from '@/lib/ia/protocolo'
-import {
-  claveCircuito, permiteLlamar, anotarResultado, type ClaseFalloIA,
-} from '@/lib/ia/interruptor'
+import { claveCircuito, permiteLlamar } from '@/lib/red/interruptor'
+import { anotarResultado, type ClaseFalloIA } from '@/lib/ia/interruptor'
 import { claveDeContrapresion, pedirSitio, soltarSitio } from '@/lib/ia/contrapresion'
 
 const ANTHROPIC_VERSION = '2023-06-01'

@@ -239,8 +239,18 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-04.interruptor-otros', ws: 'WS-04', titulo: 'WhatsApp y Evidence bajo el mismo interruptor',
-    estado: 'NOT_STARTED',
-    queFalta: 'Ninguno de los dos pasa por el gateway, así que no tienen interruptor. Tienen timeout y el outbox tiene backoff.',
+    estado: 'PROVEN',
+    evidencia: 'REG-391. El motor pasó a `red/interruptor.ts` sin vocabulario de proveedor y cada uno trae su traductor. Al medir aparecieron TRES defectos, y el primero era peor que lo que se venía a arreglar: el outbox contaba con una sola cifra «el teléfono está mal» y «Meta devuelve 503», así que con el cron cada hora CINCO HORAS DE CAÍDA mataban toda la cola — y el interruptor solo lo habría empeorado, porque al fallar rápido las cinco horas se vuelven cinco minutos. Además, `openfda.ts` llamaba con `fetch` pelado, SIN TIEMPO MÁXIMO NINGUNO, desde una ruta de 300 s; y PubMed tenía `signal` y nadie se lo pasaba en el camino del médico.',
+    comando: 'npx vitest run src/__tests__/una-caida-de-whatsapp-no-mata-la-cola.test.ts src/__tests__/una-fuente-caida-no-cuelga-la-consulta.test.ts',
+    resultado: '27 casos verdes. Probados al revés desactivando la puerta: cae el caso correspondiente. La corrección separa `intentos` (del mensaje) de `pausas` (del proveedor), acota las pausas, y al morir la entrada dice de QUÉ murió.',
+    artefactos: [
+      'src/lib/red/interruptor.ts', 'src/lib/whatsapp/fallo-del-proveedor.ts',
+      'src/lib/evidencia/fallo-del-proveedor.ts', 'src/lib/whatsapp/reintentos.ts',
+    ],
+    pruebas: [
+      'src/__tests__/una-caida-de-whatsapp-no-mata-la-cola.test.ts',
+      'src/__tests__/una-fuente-caida-no-cuelga-la-consulta.test.ts',
+    ],
   }),
   R({
     id: 'WS-04.colas', ws: 'WS-04', titulo: 'Colas, contrapresión y dead-letter donde corresponde',
@@ -576,7 +586,7 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'TR-WHATSAPP.entrega', ws: 'TR-WHATSAPP', titulo: 'Un mensaje al paciente ni se pierde ni se duplica',
     estado: 'PARTIAL',
-    queFalta: 'El outbox tiene backoff y hay pruebas de fidelidad de entrega. Falta interruptor (WS-04.interruptor-otros) y prueba de caída del proveedor.',
+    queFalta: 'El interruptor y la caída del proveedor ya están (REG-391): una caída ya no gasta el presupuesto de reintentos del mensaje, y hay prueba. Sigue PARTIAL por una razón distinta y honesta: NADIE LEE EL DEAD-LETTER. Las entradas muertas quedan en Firestore con su motivo y ninguna pantalla las enseña, así que un mensaje que se rindió de verdad se pierde igual, sólo que ahora con su causa escrita. Cerrar esto es enseñarlas donde alguien mire.',
   }),
   R({
     id: 'TR-RAZONAMIENTO.procedencia', ws: 'TR-RAZONAMIENTO', titulo: 'Lo que la IA redacta enseña de dónde salió',

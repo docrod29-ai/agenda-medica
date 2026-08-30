@@ -57,20 +57,32 @@
  *   módulo en vez de dejar creer que protege más de lo que protege.
  * · **No prueba la red.** Aquí no hay `fetch` real: se ejercita la máquina de
  *   estados y la clave del circuito, que es donde vive la decisión.
- * · **No cubre WhatsApp ni Evidence.** Sus llamadas tienen timeout (REG-346) y
- *   `reintentos.ts` con backoff para el outbox, pero **no pasan por esta
- *   puerta** y siguen sin interruptor. Queda abierto y con nombre.
+ * · **No cubre WhatsApp ni Evidence.** Dejó de ser cierto en REG-391, que llevó
+ *   el motor a `red/interruptor.ts` y lo puso también en esos dos caminos. Los
+ *   prueban sus propios golden; aquí sigue probándose el de la IA.
  * · **No mide el ahorro.** Que se llame menos está probado; cuánto se ahorra en
  *   GB-segundo, no.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
-  decidir, siguienteEstado, esFalloDelProveedor, claveCircuito,
-  permiteLlamar, anotarResultado, estadoDe, olvidarCircuitos, circuitosAbiertos,
+  decidir, siguienteEstado, claveCircuito,
+  permiteLlamar, estadoDe, olvidarCircuitos, circuitosAbiertos,
   CERRADO, FALLOS_PARA_ABRIR, ENFRIAMIENTO_BASE_MS, ENFRIAMIENTO_MAX_MS,
   type EstadoCircuito,
+} from '@/lib/red/interruptor'
+import {
+  esFalloDelProveedor, anotarResultado, veredictoIA, type ClaseFalloIA,
 } from '@/lib/ia/interruptor'
+
+/**
+ * El motor dejó de hablar el vocabulario de la IA (REG-391): sabe si el
+ * proveedor está o no, y nada más. Los casos de abajo siguen escritos en clases
+ * de fallo de la IA —que es lo que prueban— y pasan por el traductor, que es
+ * exactamente el camino que recorre el gateway.
+ */
+const paso = (e: EstadoCircuito, clase: ClaseFalloIA | null, t: number) =>
+  siguienteEstado(e, veredictoIA(clase), t)
 
 const T0 = 1_800_000_000_000
 
@@ -87,7 +99,7 @@ describe('QUÉ ABRE EL CIRCUITO — y qué NO, que es lo que importa', () => {
     // todos los demás. No mueve datos de un consultorio a otro: mueve la caída.
     expect(esFalloDelProveedor('llave')).toBe(false)
     let e: EstadoCircuito = CERRADO
-    for (let i = 0; i < FALLOS_PARA_ABRIR * 3; i++) e = siguienteEstado(e, 'llave', T0)
+    for (let i = 0; i < FALLOS_PARA_ABRIR * 3; i++) e = paso(e, 'llave', T0)
     expect(e.fase, 'una llave mala repetida no puede apagar el proveedor').toBe('cerrado')
   })
 
@@ -95,7 +107,7 @@ describe('QUÉ ABRE EL CIRCUITO — y qué NO, que es lo que importa', () => {
     for (const clase of ['saldo', 'limite', 'modelo', 'respuesta'] as const) {
       expect(esFalloDelProveedor(clase)).toBe(false)
       let e: EstadoCircuito = CERRADO
-      for (let i = 0; i < FALLOS_PARA_ABRIR * 2; i++) e = siguienteEstado(e, clase, T0)
+      for (let i = 0; i < FALLOS_PARA_ABRIR * 2; i++) e = paso(e, clase, T0)
       expect(e.fase, `${clase} no debería abrir el circuito`).toBe('cerrado')
     }
   })
@@ -105,19 +117,19 @@ describe('LA MÁQUINA DE ESTADOS', () => {
   it('aguanta hasta el umbral y entonces abre', () => {
     let e: EstadoCircuito = CERRADO
     for (let i = 1; i < FALLOS_PARA_ABRIR; i++) {
-      e = siguienteEstado(e, 'proveedor', T0)
+      e = paso(e, 'proveedor', T0)
       expect(e.fase, `con ${i} fallos todavía no se cierra la puerta`).toBe('cerrado')
     }
-    e = siguienteEstado(e, 'proveedor', T0)
+    e = paso(e, 'proveedor', T0)
     expect(e.fase).toBe('abierto')
   })
 
   it('un éxito en medio BORRA la cuenta: no se suman fallos de horas distintas', () => {
     let e: EstadoCircuito = CERRADO
-    e = siguienteEstado(e, 'proveedor', T0)
-    e = siguienteEstado(e, 'proveedor', T0)
-    e = siguienteEstado(e, null, T0)          // contestó
-    e = siguienteEstado(e, 'proveedor', T0)
+    e = paso(e, 'proveedor', T0)
+    e = paso(e, 'proveedor', T0)
+    e = paso(e, null, T0)          // contestó
+    e = paso(e, 'proveedor', T0)
     expect(e.fase, 'dos fallos de ayer más uno de hoy no son una caída').toBe('cerrado')
   })
 
@@ -139,12 +151,12 @@ describe('LA MÁQUINA DE ESTADOS', () => {
 
   it('si la prueba contesta, el circuito se cierra', () => {
     const probando: EstadoCircuito = { fase: 'probando', enfriamientoMs: ENFRIAMIENTO_BASE_MS }
-    expect(siguienteEstado(probando, null, T0)).toEqual(CERRADO)
+    expect(paso(probando, null, T0)).toEqual(CERRADO)
   })
 
   it('si la prueba falla, se reabre con el DOBLE de espera', () => {
     const probando: EstadoCircuito = { fase: 'probando', enfriamientoMs: ENFRIAMIENTO_BASE_MS }
-    const e = siguienteEstado(probando, 'proveedor', T0)
+    const e = paso(probando, 'proveedor', T0)
     expect(e.fase).toBe('abierto')
     if (e.fase !== 'abierto') return
     expect(e.enfriamientoMs).toBe(ENFRIAMIENTO_BASE_MS * 2)
@@ -153,7 +165,7 @@ describe('LA MÁQUINA DE ESTADOS', () => {
 
   it('el enfriamiento tiene tope: un proveedor caído no se abandona para siempre', () => {
     let e: EstadoCircuito = { fase: 'probando', enfriamientoMs: ENFRIAMIENTO_MAX_MS }
-    e = siguienteEstado(e, 'proveedor', T0)
+    e = paso(e, 'proveedor', T0)
     expect(e.fase).toBe('abierto')
     if (e.fase !== 'abierto') return
     expect(e.enfriamientoMs).toBe(ENFRIAMIENTO_MAX_MS)
@@ -166,7 +178,7 @@ describe('LA MÁQUINA DE ESTADOS', () => {
      * la caída.
      */
     const probando: EstadoCircuito = { fase: 'probando', enfriamientoMs: ENFRIAMIENTO_BASE_MS }
-    const e = siguienteEstado(probando, 'llave', T0)
+    const e = paso(probando, 'llave', T0)
     expect(e.fase).toBe('abierto')
   })
 })

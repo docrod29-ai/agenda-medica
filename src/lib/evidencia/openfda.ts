@@ -7,6 +7,12 @@
  * mayoría con la práctica mexicana, pero SIEMPRE debe verificarse contra la GPC
  * local / el Cuadro Básico. Rate limit ~40 req/min sin llave.
  */
+import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
+import { permiteLlamar, anotarVeredicto } from '@/lib/red/interruptor'
+import {
+  claveCircuitoEvidencia, veredictoDeRespuestaEvidencia, veredictoDeExcepcionEvidencia,
+} from '@/lib/evidencia/fallo-del-proveedor'
+
 const FDA = 'https://api.fda.gov/drug/label.json'
 
 export interface DosisFDA {
@@ -15,12 +21,32 @@ export interface DosisFDA {
   url: string            // enlace a openFDA para el fármaco
 }
 
+/**
+ * REG-391 — este `fetch` no tenía tiempo máximo NINGUNO.
+ *
+ * `dosisFDA` se llama desde `consultor-evidencia` (`maxDuration = 300`) y por
+ * partida triple, en paralelo. Un socket colgado de api.fda.gov inmovilizaba la
+ * función los 300 segundos completos, facturados por GB-segundo, con el médico
+ * mirando una barra de progreso. Es exactamente el fallo para el que se escribió
+ * `fetch-con-timeout` (REG-346), y este módulo se quedó fuera.
+ *
+ * Devolver `null` sigue siendo lo correcto aquí: quien llama ya trata la
+ * ausencia de etiqueta como «no hay dosis oficial», que es cierto tanto si el
+ * fármaco no está en openFDA como si openFDA no contestó. Lo que NO puede pasar
+ * es que la app **invente** una dosis, y eso no depende de este módulo.
+ */
 async function pedir(url: string): Promise<Record<string, unknown> | null> {
+  const clave = claveCircuitoEvidencia('openfda')
+  if (!permiteLlamar(clave).pasa) return null
   try {
-    const r = await fetch(url)
+    const r = await fetchConTimeout(url, {}, TIMEOUT.evidencia)
+    anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuestaEvidencia(r.status))
     if (!r.ok) return null
     return await r.json()
-  } catch { return null }
+  } catch (e) {
+    anotarVeredicto(clave, veredictoDeExcepcionEvidencia(e))
+    return null
+  }
 }
 
 /**

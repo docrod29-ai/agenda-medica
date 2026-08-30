@@ -393,7 +393,7 @@ export async function GET(req: NextRequest) {
 
         // ── Drenar la cola de reintentos (outbox/DLQ) de esta clínica ──
         for (const e of await entradasVencidas(clinicId, now.getTime())) {
-          const { resultado } = await enviarProactivo(clinicId, e.to, {
+          const { resultado, veredicto } = await enviarProactivo(clinicId, e.to, {
             clave: e.clave, datos: e.datos, textoLibre: e.textoLibre,
             waConfig, ahoraMs: now.getTime(), minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
           })
@@ -423,7 +423,15 @@ export async function GET(req: NextRequest) {
             await resolverEntrada(clinicId, e.id) // resuelto o inalcanzable por config → sacar de la cola
             if (resultado === 'enviado') totals.sent++
           } else if (resultado === 'fallo') {
-            await reprogramarEntrada(clinicId, e, now.getTime()) // backoff o dead-letter
+            /**
+             * Un fallo del PROVEEDOR no gasta un reintento del mensaje (REG-391):
+             * con el cron cada hora, cinco horas de caída de Meta mataban toda la
+             * cola sin que nada pareciera roto.
+             */
+            await reprogramarEntrada(
+              clinicId, e, now.getTime(), undefined,
+              veredicto === 'el_proveedor_no_esta',
+            )
           }
           // 'silencio' / 'tope': dejar en la cola, se reintenta en el próximo ciclo
         }

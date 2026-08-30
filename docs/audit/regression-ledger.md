@@ -13129,3 +13129,105 @@ quitara, esta clasificación estaría mintiendo.
   dónde sale.
 - **No cubre WhatsApp ni Evidence con interruptor**: siguen sin pasar por esa
   puerta (WS-04.interruptor-otros).
+
+---
+
+## REG-391 — una caída del proveedor no puede matar la cola, ni colgar la consulta
+
+**QUÉ SE PEDÍA.** `WS-04.interruptor-otros` del censo, en una línea: «WhatsApp y
+Evidence bajo el mismo interruptor». Al mirar dónde poner esa puerta aparecieron
+**tres defectos**, y el primero era peor que lo que se venía a arreglar.
+
+### 1. El outbox mataba mensajes buenos cuando el que fallaba era el proveedor
+
+El outbox de WhatsApp cuenta **intentos del mensaje** y a los cinco lo manda al
+dead-letter. Contaba igual dos cosas que no se parecen en nada:
+
+- «este teléfono está mal escrito» — es del mensaje, y rendirse a los cinco es lo
+  correcto;
+- «Meta devuelve 503» — **no es del mensaje**. El mensaje está perfecto.
+
+Con el cron cada hora (`vercel.json`) y cinco intentos, **cinco horas de caída del
+proveedor mataban toda la cola**. En silencio: la entrada quedaba en `muerto` con
+la palabra «agotó reintentos», que manda a mirar el mensaje, que es justo donde no
+estaba el problema. Avisos de lista de espera que nadie mandó, huecos de agenda
+que nadie ocupó, y desde fuera el sistema hizo exactamente lo que dice hacer.
+
+**Y el interruptor, solo, lo habría EMPEORADO.** Al fallar rápido, las cinco horas
+se habrían convertido en cinco minutos: la cola se habría muerto antes. Esto es lo
+que se veía al medir antes de construir, y no al leer el requisito.
+
+**Causa raíz:** una sola cuenta para dos hechos distintos. Un intento que se
+estrelló contra un proveedor ausente **no es un intento del mensaje**.
+
+**Arreglo:** dos cuentas —`intentos` (del mensaje) y `pausas` (del proveedor)—, y
+`decidirReprogramacion` en `whatsapp/reintentos.ts`, pura. Las pausas también
+están acotadas (72 ≈ 3 días con el cron cada hora), porque **una cola que nunca se
+rinde es la otra forma de perder un mensaje, sólo que más lenta**. Y cuando una
+entrada muere, dice de qué murió: `proveedor_caido` y `reintentos_agotados` mandan
+a mirar sitios distintos.
+
+### 2. `openfda.ts` llamaba con `fetch` pelado, sin tiempo máximo NINGUNO
+
+`dosisFDA` se dispara desde `consultor-evidencia` (`maxDuration = 300`) y por
+partida triple, en paralelo. Un socket colgado de `api.fda.gov` inmovilizaba la
+función los 300 segundos completos, facturados por GB-segundo, con el médico
+mirando una barra de progreso.
+
+Es **exactamente** el fallo para el que se escribió `fetch-con-timeout` (REG-346),
+y este módulo se quedó fuera. Ésa es la forma habitual de que una defensa buena no
+proteja: se aplica **por convención**, hay que acordarse. Por eso el arreglo pone
+la puerta en el **cuello de botella** de cada módulo (`ncbiFetch`, `pedir`) y no en
+cada llamador — así la siguiente llamada nace protegida sin que nadie se acuerde.
+
+### 3. PubMed tenía la protección y no le llegaba
+
+`esearch` y `efetch` aceptan `signal`; `expediente/evidencia` (también
+`maxDuration = 300`) **no se lo pasa**. Escrito y sin conectar. Con el timeout en
+`ncbiFetch` deja de depender de que el llamador se acuerde.
+
+### El interruptor, que era lo que se venía a hacer
+
+El motor pasó de `ia/interruptor.ts` a **`red/interruptor.ts`** y dejó de hablar
+ningún vocabulario de proveedor: sólo pregunta *¿este fallo dice que el proveedor
+no está?* Cada proveedor trae su traductor (`ia/interruptor.ts`,
+`whatsapp/fallo-del-proveedor.ts`, `evidencia/fallo-del-proveedor.ts`). Mientras
+vivió bajo `ia/`, la única forma de reutilizarlo era que `whatsapp/` importara de
+`ia/` — una dependencia al revés que el siguiente en llegar habría copiado.
+
+**El aislamiento se repite en los tres.** Un 401/403 **no** abre el circuito: la
+credencial de WhatsApp es del consultorio, y si abriera, un consultorio con el
+token caducado dejaría **sin recordatorios a todos los demás**. No mueve datos de
+un consultorio a otro: mueve la caída. Un 429 tampoco — en NCBI dice que se pidió
+de más, y el módulo ya tiene su propio regulador de velocidad.
+
+### La regla clínica que esto protege
+
+**Ausencia de dato no es dato de ausencia.** Con el circuito abierto, PubMed
+**lanza** en vez de devolver lista vacía, para que el `catch` marque
+`TestigoPubMed.fallo` — el testigo que separa «no hay artículos» de «no se pudo
+preguntar». Devolver `[]` en silencio convertiría una búsqueda que no se hizo en
+una búsqueda sin resultados.
+
+### Las pruebas
+
+- `src/__tests__/una-caida-de-whatsapp-no-mata-la-cola.test.ts` (17 casos), con el
+  defecto reproducido al revés: cinco caídas y al dead-letter.
+- `src/__tests__/una-fuente-caida-no-cuelga-la-consulta.test.ts` (10 casos),
+  incluida la que evita la recaída: **ni pubmed ni openfda pueden llamar a `fetch`
+  directamente**.
+
+Ambas probadas al revés desactivando la puerta: el caso correspondiente cae.
+
+### Qué NO cubre, declarado
+
+- **Nadie lee el dead-letter.** Las entradas muertas quedan en Firestore con su
+  motivo y **ninguna pantalla las enseña**. Esto arregla que mueran mal, no que
+  nadie las mire.
+- **`fetch` de Node lanza `TypeError` para casi todo fallo de red**, así que la
+  traducción de excepciones se queda corta a propósito: da por «no es del
+  proveedor» cosas que sí lo son. Señala de menos. El 5xx y el tiempo agotado —la
+  mayoría de una caída real— sí se reconocen.
+- **El interruptor es por instancia**, como el de la IA. Con N instancias
+  calientes, N primeras llamadas pagan su timeout.
+- **No cubre las otras 27 fuentes del catálogo**, porque hoy no se consultan.

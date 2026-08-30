@@ -518,7 +518,24 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330],
+    /**
+     * 391 es esta familia con el mensaje **fuera** de la pantalla del médico, y
+     * por eso costó tanto verla: el outbox contaba con una sola cifra dos hechos
+     * distintos —«este teléfono está mal escrito» y «Meta devuelve 503»— y a los
+     * cinco intentos mandaba la entrada al dead-letter. Con el cron cada hora,
+     * cinco horas de caída del proveedor mataban toda la cola, y la entrada moría
+     * diciendo «agotó reintentos», que manda a mirar el mensaje.
+     *
+     * Tiene además una lección sobre el orden de las reparaciones: el interruptor
+     * que se venía a poner, **solo**, lo habría empeorado —al fallar rápido, las
+     * cinco horas se vuelven cinco minutos—. La defensa correcta en el sitio
+     * equivocado acelera la pérdida.
+     *
+     * Su otra mitad (el `fetch` sin timeout de openFDA, que REG-346 no alcanzó
+     * porque se aplica por convención) es de `depende_de_recordar`; se cuenta
+     * aquí porque la pérdida silenciosa es lo que la hace cara.
+     */
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391],
   },
   {
     clave: 'tarde',

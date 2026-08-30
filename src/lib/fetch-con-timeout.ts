@@ -87,6 +87,12 @@ export const TIMEOUT = {
   whatsapp: 10_000,
   /** Webhooks de operación: una alerta lenta no puede colgar un cron. */
   ops: 5_000,
+  /**
+   * Fuentes de evidencia (NCBI, openFDA): una consulta corta contra un índice
+   * público. Si tarda más, el médico está esperando por nada — y la ruta que
+   * las llama corre con `maxDuration = 300` (REG-391).
+   */
+  evidencia: 15_000,
 } as const
 
 export const POR_QUE_UN_HELPER =

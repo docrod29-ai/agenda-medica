@@ -11,6 +11,13 @@
  * https://www.ncbi.nlm.nih.gov/account/) sube a ~10 req/s.
  */
 
+import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
+import { permiteLlamar, anotarVeredicto } from '@/lib/red/interruptor'
+import {
+  claveCircuitoEvidencia, veredictoDeRespuestaEvidencia, veredictoDeExcepcionEvidencia,
+  FuenteNoConsultada,
+} from '@/lib/evidencia/fallo-del-proveedor'
+
 import { licenciaDePmc } from '@/lib/evidencia/licencia-pmc'
 
 const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
@@ -49,10 +56,31 @@ let _ultima = 0
 let _cola: Promise<unknown> = Promise.resolve()
 function ncbiFetch(url: string, signal?: AbortSignal): Promise<Response> {
   const p = _cola.then(async () => {
+    /**
+     * REG-391 · el interruptor, y un tiempo máximo aunque nadie pase `signal`.
+     *
+     * Dos defectos vivían aquí. Uno: `expediente/evidencia` llama sin `signal`,
+     * así que un socket colgado de NCBI inmovilizaba una función de 300 s. Dos:
+     * sin interruptor, cada búsqueda de cada médico volvía a pagar esa espera
+     * entera contra un índice que llevaba minutos sin contestar.
+     *
+     * Al abrirse el circuito se LANZA (no se devuelve vacío): el `catch` de
+     * quien llama marca el testigo, y el testigo es lo que separa «no hay
+     * artículos» de «no se pudo preguntar».
+     */
+    const clave = claveCircuitoEvidencia('ncbi')
+    if (!permiteLlamar(clave).pasa) throw new FuenteNoConsultada('PubMed')
     const espera = Math.max(0, MIN_GAP_MS - (Date.now() - _ultima))
     if (espera) await new Promise(r => setTimeout(r, espera))
     _ultima = Date.now()
-    return fetch(url, { signal })
+    try {
+      const r = await fetchConTimeout(url, { signal }, TIMEOUT.evidencia)
+      anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuestaEvidencia(r.status))
+      return r
+    } catch (e) {
+      anotarVeredicto(clave, veredictoDeExcepcionEvidencia(e))
+      throw e
+    }
   })
   _cola = p.then(() => undefined, () => undefined)   // la cola nunca se rompe por un error
   return p

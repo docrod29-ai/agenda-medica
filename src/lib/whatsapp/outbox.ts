@@ -11,7 +11,7 @@
 
 import { adminDb } from '@/lib/firebase-admin'
 import type { ClavePlantilla, DatosProactivos } from '@/lib/whatsapp/templates'
-import { proximoIntentoISO, agotado } from '@/lib/whatsapp/reintentos'
+import { proximoIntentoISO, decidirReprogramacion } from '@/lib/whatsapp/reintentos'
 
 export interface CargaProactiva {
   to: string
@@ -32,6 +32,13 @@ export interface EntradaOutbox extends CargaProactiva {
   id: string
   estado: 'pendiente' | 'muerto'
   intentos: number
+  /**
+   * Veces que se dejó de intentar porque el PROVEEDOR no estaba (REG-391).
+   *
+   * Va aparte de `intentos` a propósito: son dos cuentas distintas y mezclarlas
+   * era el defecto. Los intentos son del mensaje; las pausas, del proveedor.
+   */
+  pausas?: number
   proximoIntentoAt: string
   ultimoError?: string
 }
@@ -47,6 +54,7 @@ export async function encolarReintento(clinicId: string, carga: CargaProactiva, 
       ...carga,
       estado: 'pendiente',
       intentos: 1,
+      pausas: 0,
       proximoIntentoAt: proximoIntentoISO(1, ahoraMs),
       ultimoError: error?.slice(0, 300) ?? null,
       createdAt: new Date(ahoraMs).toISOString(),
@@ -77,18 +85,43 @@ export async function resolverEntrada(clinicId: string, id: string): Promise<voi
   catch (e) { console.warn('[whatsapp/outbox] no se pudo resolver:', String(e)) }
 }
 
-/** Fallo → reprograma con backoff, o pasa a dead-letter si se agotó. */
-export async function reprogramarEntrada(clinicId: string, entrada: EntradaOutbox, ahoraMs: number, error?: string): Promise<void> {
-  const intentos = entrada.intentos + 1
+/**
+ * Fallo → reprograma con backoff, o pasa a dead-letter si se agotó.
+ *
+ * `esDelProveedor` (REG-391) cambia la cuenta: un fallo del proveedor NO gasta
+ * un reintento del mensaje, porque el mensaje no tiene nada malo. Ver
+ * `whatsapp/fallo-del-proveedor.ts` para lo que costaba no distinguirlo.
+ */
+export async function reprogramarEntrada(
+  clinicId: string, entrada: EntradaOutbox, ahoraMs: number,
+  error?: string, esDelProveedor = false,
+): Promise<void> {
+  const d = decidirReprogramacion(
+    { intentos: entrada.intentos, pausas: entrada.pausas ?? 0 },
+    esDelProveedor, ahoraMs,
+  )
+  const ultimoError = error?.slice(0, 300) ?? null
   try {
-    if (agotado(intentos)) {
+    if (d.accion === 'dead-letter') {
       await outboxCol(clinicId).doc(entrada.id).set(
-        { estado: 'muerto', intentos, ultimoError: error?.slice(0, 300) ?? entrada.ultimoError ?? null, muertoAt: new Date(ahoraMs).toISOString() },
+        {
+          estado: 'muerto', intentos: d.intentos, pausas: d.pausas,
+          /* De qué murió. «Agotó reintentos» y «el proveedor estuvo caído tres
+             días» mandan a mirar a sitios distintos. */
+          porQueMurio: d.porQue,
+          ultimoError: ultimoError ?? entrada.ultimoError ?? null,
+          muertoAt: new Date(ahoraMs).toISOString(),
+        },
+        { merge: true },
+      )
+    } else if (d.accion === 'pausar') {
+      await outboxCol(clinicId).doc(entrada.id).set(
+        { pausas: d.pausas, proximoIntentoAt: d.proximoIntentoAt, ultimoError },
         { merge: true },
       )
     } else {
       await outboxCol(clinicId).doc(entrada.id).set(
-        { intentos, proximoIntentoAt: proximoIntentoISO(intentos, ahoraMs), ultimoError: error?.slice(0, 300) ?? null },
+        { intentos: d.intentos, proximoIntentoAt: d.proximoIntentoAt, ultimoError },
         { merge: true },
       )
     }

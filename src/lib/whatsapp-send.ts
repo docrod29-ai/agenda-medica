@@ -11,12 +11,24 @@ import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
 import type { ClinicWhatsApp } from '@/types'
 import { estaDadoDeBaja, conPieOptout, normalizarTelefonoWa } from '@/lib/whatsapp/consent'
 import { conSecretoCanal } from '@/lib/whatsapp/secreto-canal'
+import { permiteLlamar, anotarVeredicto, type Veredicto } from '@/lib/red/interruptor'
+import {
+  veredictoDeRespuestaWA, veredictoDeExcepcionWA, claveCircuitoWA,
+} from '@/lib/whatsapp/fallo-del-proveedor'
 
 interface SendResult {
   ok: boolean
   error?: string
   /** true si no se envió por baja del contacto (opt-out). No es un fallo. */
   optout?: boolean
+  /**
+   * ¿El fallo dice que el PROVEEDOR no está? (REG-391)
+   *
+   * Va como dato y no deducido del texto de `error`: quien decide con esto es el
+   * outbox, y hacerle leer «Meta 503: …» con una expresión regular sería atar la
+   * supervivencia de un recordatorio al formato de un mensaje de registro.
+   */
+  veredicto?: Veredicto
 }
 
 interface SendOpts {
@@ -59,11 +71,11 @@ async function sendVia360dialog(apiKey: string, to: string, body: string): Promi
     }, TIMEOUT.whatsapp)
     if (!res.ok) {
       const err = await res.text()
-      return { ok: false, error: `360dialog ${res.status}: ${err}` }
+      return { ok: false, error: `360dialog ${res.status}: ${err}`, veredicto: veredictoDeRespuestaWA(res.status) }
     }
-    return { ok: true }
+    return { ok: true, veredicto: 'contesto' }
   } catch (e) {
-    return { ok: false, error: String(e) }
+    return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
 }
 
@@ -86,11 +98,11 @@ async function sendViaMeta(token: string, phoneNumberId: string, to: string, bod
     }, TIMEOUT.whatsapp)
     if (!res.ok) {
       const err = await res.text()
-      return { ok: false, error: `Meta ${res.status}: ${err}` }
+      return { ok: false, error: `Meta ${res.status}: ${err}`, veredicto: veredictoDeRespuestaWA(res.status) }
     }
-    return { ok: true }
+    return { ok: true, veredicto: 'contesto' }
   } catch (e) {
-    return { ok: false, error: String(e) }
+    return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
 }
 
@@ -110,13 +122,43 @@ async function sendViaTwilio(to: string, body: string): Promise<SendResult> {
       },
       body: new URLSearchParams({ From: from, To: `whatsapp:+${to}`, Body: body }),
     }, TIMEOUT.whatsapp)
-    return res.ok ? { ok: true } : { ok: false, error: `Twilio ${res.status}` }
+    return res.ok
+      ? { ok: true, veredicto: 'contesto' }
+      : { ok: false, error: `Twilio ${res.status}`, veredicto: veredictoDeRespuestaWA(res.status) }
   } catch (e) {
-    return { ok: false, error: String(e) }
+    return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
+
+/**
+ * LA PUERTA DEL INTERRUPTOR (REG-391).
+ *
+ * Envuelve un envío: si el proveedor lleva un rato sin estar, no se llama y se
+ * falla RÁPIDO diciendo la verdad —«el proveedor no está»—, que es justo el dato
+ * que el outbox necesita para no gastarle un reintento al mensaje.
+ *
+ * Sin esto, el cron que drena hasta 25 entradas por consultorio, en serie, se
+ * comía 250 s de timeouts en el primer consultorio de la lista y los últimos se
+ * quedaban sin recordatorios.
+ */
+async function conInterruptor(clave: string, enviar: () => Promise<SendResult>): Promise<SendResult> {
+  if (!permiteLlamar(clave).pasa) {
+    return {
+      ok: false,
+      error: 'El proveedor de WhatsApp no está respondiendo; no se intentó el envío.',
+      veredicto: 'el_proveedor_no_esta',
+    }
+  }
+  const r = await enviar()
+  /**
+   * Un envío que no dejó veredicto no enseña nada del proveedor: se anota como
+   * «no dice nada» en vez de suponer una caída que nadie observó.
+   */
+  anotarVeredicto(clave, r.veredicto ?? (r.ok ? 'contesto' : 'no_dice_nada_del_proveedor'))
+  return r
+}
 
 /**
  * Send a WhatsApp message on behalf of a clinic.
@@ -157,13 +199,21 @@ export async function sendWhatsApp(
   // ── 2. Use clinic-specific credentials ─────────────────────────
   if (waConfig?.connected) {
     if (waConfig.provider === '360dialog' && waConfig.apiKey) {
-      const result = await sendVia360dialog(waConfig.apiKey, phone, outgoing)
+      const apiKey = waConfig.apiKey
+      const result = await conInterruptor(
+        claveCircuitoWA('360dialog', true, clinicId),
+        () => sendVia360dialog(apiKey, phone, outgoing),
+      )
       if (!result.ok) console.error(`[WhatsApp] 360dialog error for clinic ${clinicId}:`, result.error)
       return result
     }
 
     if (waConfig.provider === 'meta' && waConfig.apiKey && waConfig.phoneNumberId) {
-      return sendViaMeta(waConfig.apiKey, waConfig.phoneNumberId, phone, outgoing)
+      const { apiKey, phoneNumberId } = waConfig
+      return conInterruptor(
+        claveCircuitoWA('meta', true, clinicId),
+        () => sendViaMeta(apiKey, phoneNumberId, phone, outgoing),
+      )
     }
   }
 
@@ -177,11 +227,17 @@ export async function sendWhatsApp(
       console.warn(`[WhatsApp] No credentials for clinic ${clinicId} and no global env vars set.`)
       return { ok: false, error: 'WhatsApp not configured for this clinic' }
     }
-    return sendViaMeta(token, phoneNumberId, phone, outgoing)
+    return conInterruptor(
+      claveCircuitoWA('meta', false, clinicId),
+      () => sendViaMeta(token, phoneNumberId, phone, outgoing),
+    )
   }
 
   if (provider === 'twilio') {
-    return sendViaTwilio(phone, outgoing)
+    return conInterruptor(
+      claveCircuitoWA('twilio', false, clinicId),
+      () => sendViaTwilio(phone, outgoing),
+    )
   }
 
   return { ok: false, error: 'No WhatsApp provider configured' }
@@ -217,10 +273,10 @@ async function sendVia360dialogTemplate(apiKey: string, to: string, t: TemplateP
         template: { name: t.name, language: { code: t.lang }, components: componentesPlantilla(t.bodyParams) },
       }),
     }, TIMEOUT.whatsapp)
-    if (!res.ok) return { ok: false, error: `360dialog ${res.status}: ${await res.text()}` }
-    return { ok: true }
+    if (!res.ok) return { ok: false, error: `360dialog ${res.status}: ${await res.text()}`, veredicto: veredictoDeRespuestaWA(res.status) }
+    return { ok: true, veredicto: 'contesto' }
   } catch (e) {
-    return { ok: false, error: String(e) }
+    return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
 }
 
@@ -236,10 +292,10 @@ async function sendViaMetaTemplate(token: string, phoneNumberId: string, to: str
         template: { name: t.name, language: { code: t.lang }, components: componentesPlantilla(t.bodyParams) },
       }),
     }, TIMEOUT.whatsapp)
-    if (!res.ok) return { ok: false, error: `Meta ${res.status}: ${await res.text()}` }
-    return { ok: true }
+    if (!res.ok) return { ok: false, error: `Meta ${res.status}: ${await res.text()}`, veredicto: veredictoDeRespuestaWA(res.status) }
+    return { ok: true, veredicto: 'contesto' }
   } catch (e) {
-    return { ok: false, error: String(e) }
+    return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
 }
 
@@ -270,12 +326,20 @@ export async function sendWhatsAppTemplate(
 
   if (waConfig?.connected) {
     if (waConfig.provider === '360dialog' && waConfig.apiKey) {
-      const result = await sendVia360dialogTemplate(waConfig.apiKey, phone, t)
+      const apiKey = waConfig.apiKey
+      const result = await conInterruptor(
+        claveCircuitoWA('360dialog', true, clinicId),
+        () => sendVia360dialogTemplate(apiKey, phone, t),
+      )
       if (!result.ok) console.error(`[WhatsApp] 360dialog plantilla error clínica ${clinicId}:`, result.error)
       return result
     }
     if (waConfig.provider === 'meta' && waConfig.apiKey && waConfig.phoneNumberId) {
-      return sendViaMetaTemplate(waConfig.apiKey, waConfig.phoneNumberId, phone, t)
+      const { apiKey, phoneNumberId } = waConfig
+      return conInterruptor(
+        claveCircuitoWA('meta', true, clinicId),
+        () => sendViaMetaTemplate(apiKey, phoneNumberId, phone, t),
+      )
     }
   }
 
@@ -284,7 +348,10 @@ export async function sendWhatsAppTemplate(
     const token = process.env.WHATSAPP_API_TOKEN
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
     if (!token || !phoneNumberId) return { ok: false, error: 'WhatsApp not configured for this clinic' }
-    return sendViaMetaTemplate(token, phoneNumberId, phone, t)
+    return conInterruptor(
+      claveCircuitoWA('meta', false, clinicId),
+      () => sendViaMetaTemplate(token, phoneNumberId, phone, t),
+    )
   }
 
   return { ok: false, error: 'Plantillas no soportadas para el proveedor actual' }
