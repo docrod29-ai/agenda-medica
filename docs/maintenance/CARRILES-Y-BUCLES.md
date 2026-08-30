@@ -106,6 +106,10 @@ de compuertas, la prueba de que la rama no se movió, y que desplegar y fusionar
   medido es que el ciclo estéril deja de mentir; que el escritor vuelva a
   escribir depende de la causa que el artefacto revele en la primera corrida.
 - **No dice por qué falla el escritor.** Se ha hecho visible, no diagnosticado.
-- Los PRs viejos (#348–#381, borradores de agosto) siguen abiertos y sin carril
-  asignado. No estorban a nadie hoy, pero cada uno es trabajo que alguien puede
-  rehacer sin saberlo.
+- El tablero de PRs se limpió el mismo día: de **62 abiertos quedaron 20**. Los
+  42 cerrados llevan su motivo medido en su propio hilo (cero commits por delante
+  de `main`, su REG ya en el ledger, o superado por un carril vivo). Los 20 que
+  siguen abiertos —y por qué— están en
+  [`PRS-SIN-ABSORBER-2026-08-30.md`](./PRS-SIN-ABSORBER-2026-08-30.md).
+  **Ninguno de esos 20 debería fusionarse tal cual**: van entre 130 y 172 commits
+  por detrás. Se rescatan al tablero o se tiran, no se mergean.

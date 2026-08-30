@@ -1,9 +1,14 @@
 # PRs con trabajo que `main` no tiene — 30-ago-2026
 
-> **Para qué sirve**: el 30-ago se cerraron 30 de los 50 PRs abiertos porque su
-> trabajo ya estaba en `main` o lo había superado un carril vivo. Estos **no** se
-> cerraron: llevan cosas que `main` no tiene, y cerrarlos sin dejarlas escritas
-> sería tirarlas.
+> **Para qué sirve**: el 30-ago se cerraron **42 de los 62 PRs abiertos** porque
+> su trabajo ya estaba en `main` o lo había superado un carril vivo. Estos **no**
+> se cerraron: llevan cosas que `main` no tiene, y cerrarlos sin dejarlas
+> escritas sería tirarlas.
+>
+> (Eran 50 al empezar; al cerrar los primeros 30 aparecieron 12 más que la
+> primera página de la API no mostraba, de la misma familia y con el mismo
+> desenlace. El PR **#1** del repositorio estaba entre ellos: todo su port de
+> StewardMX está en `main` desde hace meses.)
 >
 > Medido rama por rama: para cada PR se listó qué archivos suyos **no existen**
 > en `main` hoy. Un archivo que falta no prueba que haga falta — prueba que la
