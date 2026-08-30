@@ -4060,3 +4060,84 @@ distinto según cuándo se mire.
 - Sólo la primera pantalla de cada ruta: lo que carga dentro de un panel o un
   diálogo queda fuera.
 - El retardo es sintético. Sigue sin haber una medida de lo que tarda de verdad.
+
+---
+
+## Unidad 67 — una caída de red convertía al médico en un usuario nuevo
+
+**LA COLUMNA QUE QUEDABA.** La unidad anterior dejó el estado de ERROR escrito
+como NOT_PROVEN. Se fue a por él: una sonda hace **fallar con 500 todo lo que
+pide datos** —el emulador incluido— y mira dónde acaba el producto.
+
+**LO QUE SALIÓ.** Las cuatro rutas probadas acababan en la misma pantalla:
+
+> **Configura tu consultorio · ¡Bienvenido! Solo tu nombre y el del consultorio.**
+
+Ante un problema de conexión, la aplicación le decía a un médico **con su
+consultorio, sus pacientes y su historia** que no tenía consultorio, y lo
+invitaba a crear uno.
+
+**CAUSA RAÍZ.** `ClinicContext` escucha `clinic_members/{uid}` y hacía
+`if (!snap.exists()) setNeedsSetup(true)`. Firestore entrega **primero lo que
+tiene en cache y después lo que dice el servidor**: un documento ausente en un
+snapshot `fromCache` no significa que no exista, significa que **todavía no se
+sabe**. Las dos situaciones acababan en el mismo estado y el layout redirigía a
+`/setup`.
+
+Regla 4 de seguridad clínica en la puerta de entrada: **ausencia de dato no es
+dato de ausencia**. El hueco tratado como dato, en el sitio donde más caro sale.
+
+**Y LO QUE MÁS DUELE: LA PANTALLA CORRECTA YA EXISTÍA.** A dos líneas del
+defecto, en el mismo layout:
+
+> **No pudimos cargar tu consultorio** · Tus datos están a salvo en el servidor.
+> Esto es un problema de conexión, no de tu información. · **Reintentar**
+
+Escrita, bien escrita, con su botón — y no se llegaba a ella **nunca**, porque el
+hueco se confundía con el dato antes de llegar. No hubo que diseñar nada: hubo
+que dejar de concluir de más.
+
+**EL ARREGLO.** Sólo se concluye que un usuario no tiene consultorio cuando el
+servidor lo ha confirmado. La decisión sale del contexto a una función pura
+—`seSabeQueNoTieneConsultorio({ existe, deCache })`— para poder probarla sin
+montar Firebase ni renderizar nada, que es como prueba este repositorio.
+
+**COMPROBADO EN LOS DOS SENTIDOS, SOBRE EL PRODUCTO VIVO.**
+
+- Con la red de datos cortada: antes «Configura tu consultorio», ahora **«No
+  pudimos cargar tu consultorio»** en las cinco rutas.
+- Y un usuario **realmente nuevo** —creado a mano en el emulador de auth, sin
+  membresía— **sigue llegando a `/setup`**. Era el riesgo del arreglo y por eso
+  se probó de verdad en vez de razonarlo: su snapshot vacío acaba confirmado por
+  el servidor y entonces sí.
+
+**LO QUE VIGILA ESTO A PARTIR DE HOY.**
+
+- `un-consultorio-que-no-se-pudo-leer-no-es-un-consultorio-que-no-existe.test.ts`
+  — la tabla entera de las cuatro combinaciones, en CI. Sólo una da verdadero.
+  Probado al revés devolviendo `!existe` a secas: caen dos casos.
+- `npm run arnes:caida-de-datos` — el EFECTO: corta los datos y exige que el
+  producto lo **diga** y que **no ofrezca dar de alta un consultorio**. Probado
+  al revés reintroduciendo el defecto: marca las rutas con «OFRECE CREAR
+  CONSULTORIO». Lleva además una guarda que aborta si la sesión de prueba ya
+  estaba sin consultorio antes de cortar — si no, lo que se mide después no dice
+  nada.
+
+**COMPUERTAS.** `vitest` 10 838/10 839 · lint 95 · diseño sin deuda nueva ·
+`tsc` limpio · `build` compila. El rojo es `ops-timeout-y-punto-ciego`,
+ambiental.
+
+**RESIDUAL_RISK.**
+
+- **El segundo listener queda igual.** En `clinics/{id}`, un snapshot de cache
+  vacío deja `clinic` en nulo y con él el nombre y los módulos del consultorio.
+  Es el mismo defecto en su versión menos grave: **no se arregló**, y se dice
+  aquí para que no se descubra dos veces. El `else` que lo pone a nulo existe por
+  una razón buena (no enseñar el consultorio anterior al cambiar de uno a otro),
+  así que arreglarlo pide distinguir tres casos y no dos — trabajo aparte.
+- **Sólo se simula la caída TOTAL de datos.** Un fallo parcial —una colección que
+  responde y otra no— no se prueba, y es el escenario más común de verdad.
+- No se comprueba que **Reintentar** reintente.
+- No se cubre la caída de **auth**: la sesión se establece antes de cortar.
+- Los 8 s de la red de seguridad son largos si la conexión es mala pero viva. No
+  se tocaron: cambiarlos es una decisión de producto, no de este carril.
