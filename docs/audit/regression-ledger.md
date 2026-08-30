@@ -13940,3 +13940,79 @@ para que no se pierda al tocar el módulo de al lado.
   organización, versión, fecha, jurisdicción y vigencia).
 - **No prueba la pantalla.** Que el médico VEA la salvedad junto al tipo depende
   del componente; aquí se comprueba que el dato le llega.
+
+---
+
+## REG-402 — una guía tiene edición, y las ediciones se sustituyen
+
+**QUÉ SE PEDÍA.** `WS-07.guias`: motor de guías con organización, versión, fecha,
+jurisdicción y estado de vigencia. El censo: «NICE, KDIGO, ACC/AHA, ESC, ADA y
+Surviving Sepsis son cadenas de cita FIJAS dentro de motores clínicos. No hay
+objeto de guía, ni versión, ni superseded, ni discrepancia entre dos guías
+válidas».
+
+### El problema, que no es de formato
+
+Una cadena **no puede decir si esa edición sigue siendo la vigente**.
+
+Las guías se sustituyen. Un motor que cita `KDIGO 2020` lo seguirá citando igual
+el día que salga la edición siguiente, y la pantalla de cumplimiento lo enseñará
+con el mismo aspecto —una referencia bajo «De dónde salen sus reglas»—. Ni el
+médico ni el sistema pueden distinguir la actual de una superada. Son 112 campos
+`referencia` y el médico los lee tal cual.
+
+### La línea que este trabajo NO cruza, y es lo más importante
+
+**Aquí no se declara qué guía está vigente.** Cuál es la edición actual de KDIGO,
+si la anterior sigue siendo aceptable, o cuál de dos guías válidas manda cuando
+discrepan, son **hechos clínicos**, y la regla 1 los protege igual que a una
+dosis. Rellenar esa tabla de memoria no rompería nada, no fallaría ninguna
+prueba, y saldría impreso al lado de una recomendación con aspecto de comprobado.
+
+Así que **toda guía nace `no_verificada`**, no hay ningún camino para que una
+cita de texto salga `vigente`, y `vigente`/`superada` exigen **fuente y fecha de
+verificación** — una vigencia declarada sin respaldo no le gana al aviso, que es
+el atajo por la puerta de atrás y tiene su caso.
+
+`GUIAS_VERIFICADAS` está **vacía**, y `DISCREPANCIAS` también. No por descuido:
+el modelo existe para el día que el dueño lo verifique guía por guía.
+
+Lo que sí aporta hoy: **el hueco se ve**. El médico lee «Cita KDIGO 2020. El
+sistema NO verifica si esa edición sigue vigente: compruébalo antes de apoyarte
+en ella» en vez de una referencia muda.
+
+### Lo que casi sale mal, y por qué está escrito
+
+El primer lector de citas construía su expresión con `new RegExp` y una plantilla
+y **se escapó de más: no reconocía ni una sola de las citas reales del árbol**.
+Habría quedado un módulo «conectado» que nunca dispara — la forma más silenciosa
+de que una compuerta no proteja, y la misma que REG-394 tuvo que evitar en su
+inventario.
+
+Se detectó al probarlo a mano contra las cadenas del registro antes de escribir
+el golden. Por eso el primer caso de la prueba ejercita el lector contra
+**cadenas copiadas de `registry.ts` y de `inmuno/`**, no contra ejemplos escritos
+para que pasen.
+
+El lector es **estricto a propósito**: exige la organización y su año a menos de
+25 caracteres. Muchos campos `referencia` son prosa larga —el fundamento entero
+de un algoritmo— y tratarlos como citas fabricaría guías que nadie citó.
+
+**LA PRUEBA.** `src/__tests__/una-guia-tiene-edicion-y-las-ediciones-caducan.test.ts`
+(18 casos). Probado al revés haciendo que `guiaDesdeCita` devuelva `vigente`.
+
+**UNA CORRECCIÓN DE PASO.** El trinquete `los-motores-llegan-al-medico` cazó que
+`vigenciaRespaldada` era un símbolo exportado que nadie llamaba. Tenía razón: en
+vez de declararle una excepción, se metió en el camino real —`avisoDeVigencia` la
+usa para decidir si una vigencia declarada puede ganarle al aviso—, que además es
+lo que hacía falta para cerrar el atajo.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No dice qué guía está vigente**, y no lo dirá hasta que un médico lo
+  verifique. Es la razón de que `WS-07.guias` siga PARTIAL, y lo que falta está
+  escrito en `LO_QUE_FALTA_PARA_CERRARLO`.
+- **No reestructura los 112 campos `referencia`.**
+- **No hay jurisdicción todavía**: el campo existe en el modelo y ninguna cita de
+  texto la declara. Ausente = no se sabe, no «en todas partes».
+- **No prueba la pantalla**, sólo que la página pide el aviso.

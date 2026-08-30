@@ -54,7 +54,7 @@
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 256 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 1041 | 0 | — | ✅ | — |
-| `/cumplimiento/motores` | medico | ✅ | 188 | 1 | — | ✅ | — |
+| `/cumplimiento/motores` | medico | ✅ | 206 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 251 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 373 | 5 | — | ✅ | — |

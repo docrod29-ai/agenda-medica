@@ -455,7 +455,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * siguen esperando a que un médico fije el número, y eso está escrito fila
      * por fila en vez de disimulado con un 0,95.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399],
+    /**
+     * 402 es esta familia sobre un dato que CADUCA. Las guías se citan como
+     * texto fijo —«KDIGO 2020»— y una cadena no puede decir si esa edición sigue
+     * siendo la vigente: el día que salga la siguiente, el motor la sigue
+     * citando igual y la pantalla la enseña con el mismo aspecto de referencia
+     * comprobada. Faltaba el instrumento que distinga «la actual» de «una
+     * superada», y lo único honesto que puede decir hoy es que no lo sabe.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402],
   },
   {
     clave: 'hueco_como_dato',

@@ -352,8 +352,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-07.guias', ws: 'WS-07', titulo: 'Motor de guías con organización, versión, fecha, jurisdicción y estado de vigencia',
-    estado: 'NOT_STARTED',
-    queFalta: 'NICE, KDIGO, ACC/AHA, ESC, ADA y Surviving Sepsis son cadenas de cita FIJAS dentro de motores clínicos. No hay objeto de guía, ni versión, ni superseded, ni discrepancia entre dos guías válidas.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-402 creó el objeto de guía (organización, versión, jurisdicción, vigencia, fuente y fecha de verificación, superadaPor) y el modelo de discrepancia, y puso el aviso donde el médico lee la referencia: «el sistema NO verifica si esa edición sigue vigente». Lo que FALTA es un hecho clínico y no se inventó: nadie ha verificado qué edición está vigente y cuál quedó superada. GUIAS_VERIFICADAS y DISCREPANCIAS están VACÍAS a propósito — rellenarlas de memoria no rompería nada, no fallaría ninguna prueba, y saldría impreso junto a una recomendación con aspecto de comprobado. NECESITA AL DUEÑO: verificar guía por guía la edición vigente, con su fuente y la fecha de esa comprobación. Falta también la jurisdicción (el campo existe; ninguna cita de texto la declara) y reestructurar los 112 campos `referencia`, muchos de los cuales son prosa y no citas.',
+    artefactos: ['src/lib/clinical/guias.ts'],
+    pruebas: ['src/__tests__/una-guia-tiene-edicion-y-las-ediciones-caducan.test.ts'],
   }),
   R({
     id: 'WS-08.costuras-comerciales', ws: 'WS-08', titulo: 'Costura oficial preparada para cada fuente comercial',
