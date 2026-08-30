@@ -15440,55 +15440,85 @@ apunta a dónde vive el dato.
 
 **Prueba.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts` (23 casos, 4 nuevos).
 
-## REG-417 — el p99 no estaba, y la tasa de error se escribía sin sumarse
+## REG-417 — dos percentiles sobre el mismo libro dan dos verdades
 
 **QUÉ SE PEDÍA.** `WS-12.p99`: «cost-ledger.ts calcula p50 y p95 de las llamadas
 de IA. No hay p99 en ningún sitio del repositorio salvo el acta del arnés de
 carga, ni latencia/error por ruta».
 
-### Los dos defectos
+### Lo primero: el censo estaba equivocado, y le hice caso
 
-**El p99 no existía.** Es la cifra que describe el peor día de un médico: el p95
-dice cómo es una consulta normal, el p99 dice cuántas veces al mes alguien se
-queda mirando una pantalla mientras el paciente espera.
+**Era falso.** `src/lib/observabilidad/latencias.ts` calcula p50, p95, **p99**,
+máximo, fallos y tasa de fallo, agrupados **por feature y por modelo**, sobre los
+asientos del mismo libro de costos. Lleva ahí desde antes, con su encabezado
+explicando por qué percentiles y no promedio.
 
-**La tasa de error tampoco, y con agravante.** `EventoCosto.fallo` **ya se
-registraba** —«un fallo cuesta tokens igual», dice su comentario desde que existe
-el libro— y sólo se usaba para no contar consultas fallidas. La cifra que dice si
-una función está rota se estaba escribiendo y nadie la sumaba. Familia «escrito y
-sin conectar», sobre un dato que ya estaba en la mesa.
+Empecé añadiendo p99 y un `porFuncion` a `cost-ledger.ts` **fiándome del censo en
+vez de buscar en el árbol** — justo lo que la política del repositorio prohíbe:
+no crear implementaciones paralelas cuando ya existe una canónica. Lo escrito se
+retiró.
 
-### Por qué el p99 no se publica pelado
+Un censo es una lista escrita a mano, con la misma caducidad que cualquier otra.
+Creerle sin comprobar es la forma más limpia de duplicar algo. (Es la tercera vez
+en esta tanda que el `queFalta` de un requisito resulta inexacto al mirarlo:
+REG-412 y REG-415 fueron las otras dos.)
 
-Con **menos de cien muestras el p99 ES EL MÁXIMO**. No es una aproximación: el
-percentil por rango más cercano cae en el índice `ceil(0.99·n)−1`, que para
-`n < 100` es siempre el último. Con veinte llamadas, el «p99» es el pico más alto
-de las veinte.
+### El defecto de verdad, que apareció al buscar
 
-Publicarlo sin decirlo invita a leer un pico único como una cola y a perseguir un
-fantasma — la versión de latencia del error que este repositorio ya persigue en
-las alertas falsas: una cifra que grita de más enseña a ignorarla.
+Hay **dos implementaciones de percentil** sobre los mismos datos:
 
-Van juntos, entonces: el p99, `muestrasDeLatencia` y `p99EsElMaximo`.
+- `cost-ledger.percentil` — por **rango más cercano**: devuelve siempre una
+  muestra que ocurrió;
+- `latencias.percentil` — por **interpolación lineal**.
 
-`MUESTRAS_PARA_UN_P99 = 100` **no es un umbral de calidad**: es aritmética del
-percentil. Qué p99 es aceptable sigue sin decidirse y no se decide aquí, igual que
-el validador del arnés de carga declara que no aprueba SLOs.
+Con veinte muestras de 100 a 290 ms: p50 190 / 195, p95 280 / 280,5, p99 290 /
+288,1.
 
-### Por función, y ordenado por lo que se mira cuando algo va mal
+Dos tableros del mismo periodo enseñan cifras distintas y **las dos parecen
+ciertas**. Es el invariante de arquitectura del producto —una fuente de verdad por
+entidad— incumplido sobre la latencia. Esto no lo pedía el censo: estaba debajo.
 
-`porFuncion` es `porClave` sobre `feature` —no una segunda forma de resumir el
-mismo libro, que daría dos cifras plausibles con una mal— con un orden distinto:
-lo que FALLA primero, y sólo después lo que tarda. `porClave` ordena por gasto,
-que es el orden de una factura.
+### Por qué NO se unificó, y por qué eso no es una excusa
+
+Se intentó. El libro pasó a usar el percentil de observabilidad y lo tumbó una
+prueba que ya existía: `finanzas-cost-ledger` fija `latenciaP95` en **9 000**, que
+es una llamada real. Al mirar la otra, `latencias.test.ts` fija
+`percentil([0, 10], 0.5) === 5`, que es un valor que **nunca ocurrió**.
+
+O sea: los dos métodos están elegidos a conciencia y probados. Aquí, porque «con
+pocas muestras interpolar sugiere una precisión que no hay» y porque un p95 que
+señala una llamada real es más fácil de defender ante el médico que la sufrió.
+Allí, porque interpola suave y se lee mejor con dos muestras.
+
+Y la cifra sale en el tablero de costos **que mira el dueño**. Elegir método
+cambia números que él ya ha visto: es una decisión de **qué se reporta**, no de
+cómo se programa. Un agente que pasaba por aquí para otra cosa no la toma.
+
+### Lo que sí se cerró
+
+Que ninguno de los dos se edite sin ver al otro. Los dos archivos se citan, con
+las cifras de la divergencia dentro —una nota que dice «difieren» sin decir cuánto
+no deja juzgar si importa— y el guardián comprueba que las dos notas siguen ahí.
+
+Sin eso, el siguiente que toque uno no sabrá que existe el otro, que es
+exactamente cómo aparecieron los dos.
+
+Y en el resumen del libro de costos, que sólo daba p50 y p95: se añaden
+`latenciaP99`, `muestrasDeLatencia` —un percentil sin `n` al lado no se puede
+leer— y `fallos`/`tasaDeFallo`. Esto último tenía su propio olvido: `EventoCosto.fallo`
+se registra desde que existe el libro —«un fallo cuesta tokens igual»— y el
+resumen no lo miraba.
 
 ### Qué NO cubre
 
-- **Sólo las rutas de IA.** El libro de costos cubre las llamadas a proveedor; una
-  ruta HTTP que no llama a un modelo no deja asiento y no tiene aquí latencia ni
-  error. Medirlas todas exige instrumentar el borde, que es trabajo de
-  infraestructura y no de este módulo.
-- No fija umbrales, por lo de arriba.
-- No agrega entre periodos: resume la tanda que se le pase.
+- **La decisión de método sigue abierta**, y es del dueño. Queda anotada en los
+  dos archivos y en el censo.
+- **Sólo cubre lo que deja asiento en el libro**: las llamadas a un proveedor de
+  IA. Una ruta HTTP que no llama a un modelo no tiene aquí latencia ni error, y
+  medirlas todas exige instrumentar el borde.
+- **No unifica el percentil del arnés de carga**, que tiene el suyo: corre en Node
+  fuera de la app, sobre otra población y sin acceso a `src/`.
+- No fija umbrales: `latencias.ts` ya declara que «no hay un número honesto que
+  separe rápido de lento para todas las funciones».
 
-**Prueba.** `src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts` (13 casos).
+**Prueba.** `src/__tests__/un-solo-percentil-en-el-arbol.test.ts` (12 casos).

@@ -21,12 +21,12 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/lib/calidad/familias-de-defecto.ts",
+    " D src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
     " M src/lib/finanzas/cost-ledger.ts",
+    " M src/lib/observabilidad/latencias.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts"
+    "?? src/__tests__/un-solo-percentil-en-el-arbol.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -65,7 +65,7 @@
     "regsEnElLedger": 268,
     "ultimaREG": "REG-503",
     "archivosDePrueba": 840,
-    "casosDePrueba": 10485,
+    "casosDePrueba": 10484,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -181,22 +181,19 @@ export interface ResumenCosto {
   latenciaP50: number | null
   latenciaP95: number | null
   /**
-   * ── EL P99, Y POR QUÉ VIENE CON SU LETRA PEQUEÑA — REG-417 ───────────────
+   * ── EL P99, QUE YA EXISTÍA AL LADO — REG-417 ─────────────────────────────
    *
-   * El p99 es la cifra que dice cómo es el peor día de un médico, y no estaba en
-   * ningún sitio del repositorio salvo en el acta del arnés de carga.
+   * El censo decía «no hay p99 en ningún sitio del repositorio», y era falso:
+   * `observabilidad/latencias.ts` lo calcula desde hace tiempo sobre los asientos
+   * de este mismo libro. Lo que faltaba aquí era exponerlo en el resumen del
+   * libro de costos, y sobre todo que las dos cifras salieran del MISMO cálculo.
    *
-   * Pero con **menos de cien muestras el p99 ES EL MÁXIMO**: el percentil por
-   * rango más cercano no puede señalar otra cosa. Publicarlo pelado invita a leer
-   * un pico único como una cola, y a perseguir un fantasma. Por eso van al lado
-   * `muestrasDeLatencia` y `p99EsElMaximo`, y quien lo pinte tiene el dato para
-   * decirlo.
+   * Para el desglose por función y por modelo manda `latencias.ts` —`porFeature`,
+   * `porModelo`—, que además da `n` y `max`. Aquí sólo se resume la tanda.
    */
   latenciaP99: number | null
   /** Cuántas llamadas midieron latencia. Sin esto, un percentil no se puede leer. */
   muestrasDeLatencia: number
-  /** `true` cuando hay menos de 100 muestras: el p99 no es un percentil, es el peor caso visto. */
-  p99EsElMaximo: boolean
   /**
    * ── LA TASA DE ERROR, QUE YA SE REGISTRABA Y NADIE SUMABA ────────────────
    *
@@ -209,11 +206,36 @@ export interface ResumenCosto {
   tasaDeFallo: number | null
 }
 
+/**
+ * ── HAY DOS PERCENTILES EN EL ÁRBOL, Y ES UNA DECISIÓN PENDIENTE — REG-417 ──
+ *
+ * Éste calcula por **rango más cercano**: devuelve siempre una muestra que
+ * ocurrió de verdad. `src/lib/observabilidad/latencias.ts` calcula por
+ * **interpolación lineal**, sobre los asientos de este mismo libro. No dan lo
+ * mismo — con veinte muestras de 100 a 290 ms:
+ *
+ *     p50: 190 aquí,  195 allí
+ *     p95: 280 aquí,  280.5 allí
+ *     p99: 290 aquí,  288.1 allí
+ *
+ * **Ninguno de los dos métodos está mal**, y los dos están razonados y probados:
+ * aquí, porque «con pocas muestras interpolar sugiere una precisión que no hay»
+ * y porque un p95 que señala una llamada REAL es más fácil de defender ante el
+ * médico que la sufrió; allí, porque interpola suave y `percentil([0, 10], 0.5)`
+ * da 5 en vez de 0, que se lee mejor.
+ *
+ * Lo que está mal es que existan los dos sin que nadie lo haya decidido: dos
+ * tableros del mismo periodo enseñan cifras distintas y las dos parecen ciertas.
+ *
+ * **NO se unifica aquí por iniciativa propia**: la cifra sale en el tablero de
+ * costos que mira el dueño, y elegir método cambia números que él ya ha visto.
+ * Es una decisión de qué se reporta, no de cómo se programa. Queda anotada en
+ * los dos archivos y en el censo (`WS-12.p99`) para que ninguno de los dos se
+ * edite sin ver al otro, y su guardián comprueba que las dos notas siguen ahí.
+ */
 const percentil = (xs: number[], p: number): number | null => {
   if (xs.length === 0) return null
   const o = [...xs].sort((a, b) => a - b)
-  // Índice por el método del más cercano: con pocas muestras interpolar sugiere
-  // una precisión que no hay.
   return o[Math.min(o.length - 1, Math.max(0, Math.ceil((p / 100) * o.length) - 1))]
 }
 
@@ -240,34 +262,11 @@ export function resumir(eventos: readonly EventoCosto[]): ResumenCosto {
     latenciaP95: percentil(lat, 95),
     latenciaP99: percentil(lat, 99),
     muestrasDeLatencia: lat.length,
-    p99EsElMaximo: lat.length > 0 && lat.length < MUESTRAS_PARA_UN_P99,
     fallos: eventos.filter(e => e.fallo).length,
     tasaDeFallo: eventos.length > 0
       ? Number((eventos.filter(e => e.fallo).length / eventos.length).toFixed(4))
       : null,
   }
-}
-
-/**
- * Por debajo de esto, el p99 por rango más cercano señala la muestra más alta y
- * nada más. No es un umbral de calidad —eso lo decide el dueño— sino aritmética:
- * con n muestras, el percentil 99 cae en el índice `ceil(0.99·n)−1`, que para
- * n < 100 es siempre la última.
- */
-export const MUESTRAS_PARA_UN_P99 = 100
-
-/**
- * Latencia y error POR FUNCIÓN de IA — lo que el censo pedía como «por ruta».
- *
- * Es `porClave` sobre `feature`, y no una implementación nueva: dos formas de
- * resumir el mismo libro darían dos cifras plausibles y una estaría mal. Se
- * ordena por tasa de fallo y luego por p99, que es el orden en que se mira
- * cuando algo va mal — no por gasto, que es el de `porClave`.
- */
-export function porFuncion(eventos: readonly EventoCosto[]): { clave: string; resumen: ResumenCosto }[] {
-  return porClave(eventos, e => e.feature).sort((a, b) =>
-    (b.resumen.tasaDeFallo ?? 0) - (a.resumen.tasaDeFallo ?? 0)
-    || (b.resumen.latenciaP99 ?? 0) - (a.resumen.latenciaP99 ?? 0))
 }
 
 /** Sólo lo que es COGS de cliente: fuera I+D del fundador y llaves propias. */

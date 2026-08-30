@@ -559,12 +559,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-12.p99', ws: 'WS-12', titulo: 'p99 y tasa de error medidas, no citadas',
     estado: 'PARTIAL',
-    evidencia: 'REG-417. El p99 no existía en ningún sitio salvo el acta del arnés. Y la tasa de error se REGISTRABA sin sumarse: `EventoCosto.fallo` está en el libro desde el principio —«un fallo cuesta tokens igual»— y sólo se usaba para no contar consultas fallidas. El p99 va con `muestrasDeLatencia` y `p99EsElMaximo`, porque con menos de cien muestras el p99 ES el máximo por aritmética del percentil, y publicarlo pelado hace perseguir un fantasma.',
+    evidencia: 'REG-417. CORRECCIÓN DE ESTE CENSO: «no hay p99 en ningún sitio» era falso — `observabilidad/latencias.ts` calcula p50/p95/p99/máximo/fallos por feature y por modelo sobre los asientos de este mismo libro, desde antes. Empecé duplicándolo por fiarme del censo en vez de buscar, y lo retiré. El defecto REAL estaba debajo: DOS implementaciones de percentil sobre los mismos datos —rango más cercano en el libro, interpolación en observabilidad— que dan cifras distintas (p50 190/195, p99 290/288,1).',
     comando: 'npx vitest run src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts',
-    resultado: '13 casos. `porFuncion` da latencia y error por función de IA, ordenado por lo que FALLA primero y no por lo que más gasta — que es el orden de una factura, no el de una avería.',
-    queFalta: 'Sólo cubre las rutas que llaman a un proveedor de IA: una ruta HTTP que no deja asiento en el libro de costos no tiene aquí latencia ni error. Medirlas todas exige instrumentar el borde (middleware o equivalente) y decidir dónde se guardan esas métricas, que es infraestructura. Y NINGÚN umbral está fijado: qué p99 y qué tasa de error son aceptables lo decide el dueño — MUESTRAS_PARA_UN_P99 es aritmética, no política.',
-    artefactos: ['src/lib/finanzas/cost-ledger.ts'],
-    pruebas: ['src/__tests__/el-p99-no-se-lee-sin-su-letra-pequena.test.ts'],
+    resultado: '12 casos. Los dos archivos se citan con las cifras de la divergencia dentro, y el guardián comprueba que las notas siguen ahí: ninguno se puede editar sin ver al otro. El resumen del libro gana latenciaP99, muestrasDeLatencia y fallos/tasaDeFallo — este último se registraba desde siempre y nadie lo sumaba.',
+    queFalta: 'DECISIÓN DEL DUEÑO, no de código: qué método de percentil se reporta. Los dos están elegidos a conciencia y probados —`finanzas-cost-ledger` fija p95=9000, que es una llamada REAL; `latencias.test.ts` fija percentil([0,10],0.5)=5, que nunca ocurrió— y la cifra sale en el tablero que él mira, así que unificar cambia números que ya ha visto. Aparte: sólo se cubre lo que deja asiento en el libro (llamadas a un proveedor de IA); medir latencia/error de TODA ruta HTTP exige instrumentar el borde y decidir dónde se guardan esas métricas, que es infraestructura. Y ningún umbral está fijado.',
+    artefactos: ['src/lib/finanzas/cost-ledger.ts', 'src/lib/observabilidad/latencias.ts'],
+    pruebas: ['src/__tests__/un-solo-percentil-en-el-arbol.test.ts'],
   }),
 
   /* ═══ WS-13 · Seguridad · observabilidad · DR ═════════════════════════════ */
