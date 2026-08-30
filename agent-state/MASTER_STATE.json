@@ -21,19 +21,15 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/quality/MOTORES-SIN-CONECTAR.md",
-    " M scripts/medir-wer-limpio.ts",
-    " M src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
-    " M src/__tests__/el-camino-del-medico-llega-entero.test.ts",
-    " M src/__tests__/evidence-runtime-consultor.test.ts",
-    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/__tests__/una-barra-y-no-ocho-recuadros.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/negaciones.ts",
-    " M src/lib/programa/censo-sellado.json",
+    " M src/lib/expediente/avisos-consulta.ts",
+    " M src/lib/expediente/farmacovigilancia.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/un-wer-bajo-no-compensa-una-dosis.test.ts",
-    "?? src/lib/asr/lo-que-pesa-de-un-error.ts"
+    "?? src/__tests__/la-barra-mira-al-paciente-no-a-la-receta.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -69,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 257,
-    "ultimaREG": "REG-409",
-    "archivosDePrueba": 832,
-    "casosDePrueba": 10345,
+    "regsEnElLedger": 258,
+    "ultimaREG": "REG-410",
+    "archivosDePrueba": 833,
+    "casosDePrueba": 10362,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

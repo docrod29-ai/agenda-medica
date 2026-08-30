@@ -57,6 +57,18 @@ const ORIGENES: OrigenAviso[] = [
    * vamos a reanudar» se dictan igual, y la diferencia la sabe el médico.
    */
   'farmaco_solo_en_pasado',
+  /**
+   * REG-410 — sobre cuánto expediente se comprobó. Declarado aquí a mano, como
+   * manda esta lista.
+   *
+   * Es el único `contexto` de la barra que NO se pliega, y las dos mitades de
+   * eso son deliberadas: `contexto` porque en un paciente con historial largo
+   * sale siempre, y un aviso que sale siempre en nivel `revisa` enseña a
+   * saltarse el nivel `revisa` —donde viven la alergia y la interacción—; y no
+   * plegable porque un aviso escondido que dice «esto se comprobó a medias» es
+   * un aviso que nadie lee justo cuando importa.
+   */
+  'historial_recortado',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
@@ -136,6 +148,9 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       sinRespaldo: [{ afirmacion: 'nefropatía diabética estadio 4', huerfanas: ['nefropatia'] }],
       /** Su caso literal, de una nota ya firmada (REG-238). */
       pautas: [{ nombre: 'Moxifloxacino', frecuencia: '24 tras', duracion: '14 editas' }],
+      /** REG-410 — y sobre cuánto expediente se comprobó todo lo anterior. */
+      historialRecortado: true,
+      cuantoSeComprobo: { farmacos: 3, problemas: 2 },
       /** REG-370 — se oyó y la nota no lo recoge. */
       procedimientosSinEscribir: [{ texto: 'Colecistectomía', mensaje: 'Se mencionó «Colecistectomía» y la nota no lo recoge.' }],
       /** REG-373 — vigente en la lista, pasado en el dictado. */

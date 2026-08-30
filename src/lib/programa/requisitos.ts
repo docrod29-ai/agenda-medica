@@ -464,7 +464,7 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-10.banderas-y-respuesta', ws: 'WS-10', titulo: 'Banderas de riesgo, respuesta al tratamiento y compromisos de seguimiento',
     estado: 'NOT_STARTED',
-    queFalta: 'Ninguna de las tres existe como proyección.',
+    queFalta: 'Ninguna de las tres existe como proyección. Al inspeccionarlo (REG-410) las tres resultaron ser problemas distintos y NO se deben construir juntas: (1) BANDERAS — el catálogo de qué condición cuenta como bandera es política clínica y no está decidido; lo que sí se puede hacer sin decidirla es reunir en un eje longitudinal lo que YA está declarado en el árbol (alergia con severidad grave, diagnóstico marcado crónico, etiquetas manuales del paciente). (2) RESPUESTA AL TRATAMIENTO — el dato no existe: nada del expediente liga un fármaco con el desenlace del problema que trata. `Medicamento.indicacion` es texto libre y casarlo con un diagnóstico por parecido sería inventar el vínculo. Reusar `trayectoriaDe`/`queCambio`, que ya son aritmética sin adjetivos, y NO añadir un cuarto motor de tendencia. (3) COMPROMISOS — es la única de las tres con datos: `TareaClinica` tipo seguimiento y `Patient.proximoSeguimiento`. Falta el compromiso en sí (qué prometió revisar y cuándo); la nota no lo guarda porque su esquema está congelado por el sello (WS-10.sello-v4).',
   }),
   R({
     id: 'WS-10.vocabulario-canonico', ws: 'WS-10', titulo: 'Un solo vocabulario de verdad clínica',

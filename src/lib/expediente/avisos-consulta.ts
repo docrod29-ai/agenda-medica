@@ -64,6 +64,21 @@ export type OrigenAviso =
   | 'dato_incierto'
   | 'sin_respaldo_en_el_dictado'
   /**
+   * LAS COMPROBACIONES CORRIERON SOBRE UNA VENTANA, NO SOBRE EL EXPEDIENTE.
+   *
+   * `listarNotasCompat` devuelve `truncada` cuando el historial no cupo, y
+   * REG-405 llevó ese dato hasta las proyecciones y hasta el cartel de la
+   * pantalla. Pero de ahí a los MOTORES se volvía a caer: `medicacionDelCuadro`
+   * y `problemasDelCuadro` reciben y devuelven listas peladas, así que la
+   * comprobación de interacciones, la de alergias y la de dosis miraban un
+   * cuadro incompleto **sin poder decirlo**.
+   *
+   * Y el silencio ahí no es neutro: una barra que no dice nada sobre
+   * interacciones se lee como «no hay interacciones». Con la warfarina de marzo
+   * fuera de la ventana, eso es exactamente lo contrario de lo que pasa.
+   */
+  | 'historial_recortado'
+  /**
    * Se oyó un procedimiento y la nota no lo recoge (REG-370).
    *
    * El extractor los reconoce con fecha y lateralidad desde hace tiempo, y no
@@ -120,6 +135,13 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
   dosis_peligrosa:        'revisa',
   dato_no_precisado:      'revisa',
   /**
+   * `contexto`, no `revisa`, y es una decisión: en un paciente con historial
+   * largo esto sale SIEMPRE. Un aviso que sale siempre en nivel `revisa`
+   * enseña a saltarse el nivel `revisa` — y ahí es donde viven la alergia y la
+   * interacción. Se dice una vez, sin gritar, y no se pliega.
+   */
+  historial_recortado:    'contexto',
+  /**
    * «Esto lo dijo de su mamá, no de él» (§B8, REG-210).
    *
    * Nivel `revisa` y no `bloquea`: el motor señala de quién es la frase, pero
@@ -166,6 +188,12 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
  *   consultas que vienen.
  */
 export const NO_SE_PLIEGAN: readonly OrigenAviso[] = [
+  /**
+   * Un aviso plegado que dice «esto se comprobó a medias» es un aviso que nadie
+   * lee justo cuando importa. Es el único `contexto` que no se pliega, y por eso
+   * mismo tiene que ser el único que se emita por consulta.
+   */
+  'historial_recortado',
   'alergia_medicamento',
   'contradiccion_negacion',
   /**
@@ -199,13 +227,27 @@ export interface AvisoConsulta {
 }
 
 export interface EntradaAvisos {
+  /**
+   * ¿El cuadro que vieron los motores salió de un historial RECORTADO?
+   *
+   * Viene de `listarNotasCompat().truncada`, el mismo dato que ya alimenta las
+   * proyecciones desde REG-405. Sin él, esta barra no puede distinguir «no hay
+   * interacciones» de «no busqué en todo el expediente».
+   */
+  historialRecortado?: boolean
+  /** Cuántos fármacos y problemas se comprobaron. Sin ninguno no hay nada que matizar. */
+  cuantoSeComprobo?: { farmacos: number; problemas: number }
   dosisIncompletas?: readonly { med: string; mensaje: string; procedencia?: 'ya_lo_toma' | 'se_prescribe_hoy' }[]
   alergiaMedicamento?: readonly { mensaje: string; severidad: string }[]
   contradicciones?: readonly { condicion: string; mensaje: string }[]
   desajustes?: readonly { condicion: string; mensaje: string }[]
   viasAsumidas?: readonly string[]
   avisoDeVia?: string | null
-  interacciones?: readonly { titulo: string; detalle: string; severidad: string }[]
+  /**
+   * `introducidaHoy` separa la que crea esta consulta de la que ya venía. Las
+   * dos se dicen; sólo una encabeza. Ver `interaccionesDelCuadro` (REG-410).
+   */
+  interacciones?: readonly { titulo: string; detalle: string; severidad: string; introducidaHoy?: boolean }[]
   controlados?: readonly { farmaco: string; requisito: string }[]
   /** Sobredosis, techos por vía/edad y error de decimal (REG-190). */
   dosisPeligrosas?: readonly { med: string; mensaje: string; critica: boolean }[]
@@ -404,11 +446,46 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     })
   }
 
-  for (const it of e.interacciones ?? []) {
+  /**
+   * ── SE DICE UNA VEZ, Y SÓLO SI HABÍA ALGO QUE COMPROBAR ──────────────────
+   *
+   * En una nota sin fármacos ni problemas no hay comprobación que matizar, y el
+   * aviso sería ruido puro. Con ellos, la frase dice lo único que se puede
+   * sostener: sobre qué se miró. No dice «puede haber interacciones ocultas»
+   * —eso sería inventar un hallazgo— ni «revise el expediente completo», que
+   * sería una orden que este archivo no puede dar.
+   */
+  const comprobado = e.cuantoSeComprobo
+  if (e.historialRecortado && comprobado && (comprobado.farmacos > 0 || comprobado.problemas > 0)) {
+    out.push({
+      id: 'historial_recortado:cuadro',
+      origen: 'historial_recortado', nivel: nivelDe('historial_recortado'),
+      texto: 'El historial no cabe entero: interacciones, alergias y dosis se comprobaron '
+        + `sobre ${comprobado.farmacos} fármacos y ${comprobado.problemas} problemas `
+        + 'de las notas más recientes, no de todo el expediente.',
+      ancla: { seccion: 'medicamentos' },
+    })
+  }
+
+  /**
+   * LA QUE SE CREA HOY VA PRIMERO, Y LA QUE YA VENÍA SE DICE IGUAL.
+   *
+   * Ordenar no es filtrar: ninguna desaparece. Pero el médico que acaba de
+   * recetar ketorolaco a un paciente con warfarina tiene que leer ESO antes que
+   * la interacción que el paciente arrastra desde hace tres años y que él ya
+   * aceptó. Sin la distinción, las dos se leen igual y la larga entierra a la
+   * nueva por antigüedad de la lista.
+   */
+  const interacciones = [...(e.interacciones ?? [])]
+    .sort((a, b) => Number(b.introducidaHoy ?? true) - Number(a.introducidaHoy ?? true))
+  for (const it of interacciones) {
+    /* `undefined` cuenta como de hoy: quien no distinga no pierde el aviso. */
+    const yaVenia = it.introducidaHoy === false
     out.push({
       id: `interaccion:${it.titulo}`,
       origen: 'interaccion', nivel: nivelDe('interaccion'),
-      texto: `${it.titulo}${it.severidad === 'mayor' ? ' (mayor)' : ''} — ${it.detalle}`,
+      texto: `${it.titulo}${it.severidad === 'mayor' ? ' (mayor)' : ''}`
+        + `${yaVenia ? ' — ya la tenía antes de esta consulta' : ''} — ${it.detalle}`,
       ancla: { seccion: 'medicamentos' }, sello: 'farmacovigilancia',
     })
   }
