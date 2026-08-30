@@ -2450,3 +2450,49 @@ ambiental, verificado idéntico en el árbol sin mis cambios.
 - Sigue sin usarse ningún lector de pantalla real.
 - 20 rutas de 80. Las 60 restantes —hospital, UCI, rutas con parámetro— **no se
   declaran buenas**: se declaran sin medir.
+
+---
+
+## Unidad 47 — lo medido queda protegido (y el riel de `/corte-caja`, probado)
+
+**POR QUÉ EXISTE.** Es el residual que la unidad 46 dejó escrito con todas sus
+letras: las catorce rutas nuevas estaban **medidas pero no protegidas**, porque
+la corrida que fija los techos se cortó por un reinicio del contenedor. Un
+número medido que no queda en un trinquete se pierde en la siguiente semana.
+
+**QUÉ SE HIZO.** Arnés reconstruido de cero —emuladores, siembra, `.next`
+borrado, build, servidor— con la comprobación de hoja de estilo en 200 antes de
+medir nada. 60 combinaciones, techos escritos, y **la misma corrida repetida
+entera** contra los techos recién puestos.
+
+**RESULTADO.**
+
+- **axe: 0 en las 60.** 20 rutas × 390 / 768 / 1440.
+- **Desborde a lo ancho: 0 en las 60.**
+- **Errores de consola: 0 en las 60.**
+- Dos corridas independientes dan lo mismo. No es un número con suerte: dado el
+  ruido de estado que esta misma unidad encontró (un aviso que aparece a los 3 s,
+  un esqueleto que sólo existe mientras carga), repetir era parte de la prueba.
+
+**`/corte-caja`: PROVEN.** Era NOT_PROVEN al cerrar la unidad 46 —el mapeo se
+hizo después de la corrida de 60 y sólo lo respaldaba su guardián—. Ahora está
+medido en navegador: **`aria-current` 2 en los tres anchos**, donde antes era 0.
+
+**`/consultor`: sigue en 0, y sigue siendo a propósito.** Es la excepción que
+declaró la unidad 17: se alcanza desde las Herramientas del expediente y decidir
+su contexto es una decisión de producto, no de este carril. La diferencia con
+antes es que ya no es una suposición: está en el trinquete, con su cero escrito,
+en los tres anchos. Si alguien decide su contexto, el número sube y el trinquete
+lo nota.
+
+**RESIDUAL_RISK.**
+
+- El trinquete **no corre en CI**: necesita emuladores sembrados y un build de
+  producción, y los emuladores no viven en el runner. Es compuerta local, como
+  `verificar-invariantes-de-datos`. Que dependa de que alguien se acuerde está
+  **declarado, no disimulado** — y ahora al menos el instrumento se niega a
+  escribir un número si aterrizó en otra ruta o si la página cargó sin CSS.
+- Sigue siendo 20 rutas de 80. Hospital, UCI y rutas con parámetro **no se
+  declaran buenas**: se declaran sin medir.
+- axe no ve el aspecto, ni el movimiento, ni el orden de tabulación. Cero
+  violaciones no es «la pantalla está bien».

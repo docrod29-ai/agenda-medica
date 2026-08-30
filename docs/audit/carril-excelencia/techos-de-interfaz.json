@@ -38,6 +38,90 @@
       "desborde": false,
       "erroresDeConsola": 0
     },
+    "/dashboard@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/pacientes@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/pendientes@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/configuracion@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/crm@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/reactivacion@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/resenas@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/membresias@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/farmacia@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/corte-caja@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/cumplimiento@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/cumplimiento/retencion@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/consultor@390": {
+      "axe": 0,
+      "ariaCurrent": 0,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/guia@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
     "/citas@768": {
       "axe": 0,
       "ariaCurrent": 2,
@@ -74,6 +158,90 @@
       "desborde": false,
       "erroresDeConsola": 0
     },
+    "/dashboard@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/pacientes@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/pendientes@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/configuracion@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/crm@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/reactivacion@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/resenas@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/membresias@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/farmacia@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/corte-caja@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/cumplimiento@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/cumplimiento/retencion@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/consultor@768": {
+      "axe": 0,
+      "ariaCurrent": 0,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/guia@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
     "/citas@1440": {
       "axe": 0,
       "ariaCurrent": 2,
@@ -105,6 +273,90 @@
       "erroresDeConsola": 0
     },
     "/operaciones@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/dashboard@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/pacientes@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/pendientes@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/configuracion@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/crm@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/reactivacion@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/resenas@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/membresias@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/farmacia@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/corte-caja@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/cumplimiento@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/cumplimiento/retencion@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/consultor@1440": {
+      "axe": 0,
+      "ariaCurrent": 0,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/guia@1440": {
       "axe": 0,
       "ariaCurrent": 2,
       "desborde": false,
