@@ -4,116 +4,65 @@
       "collectionGroup": "appointments",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "pacienteId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "fechaHora",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "pacienteId", "order": "ASCENDING" },
+        { "fieldPath": "fechaHora", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "arco_requests",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "estado",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "fechaSolicitud",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "fechaSolicitud", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "farmacia",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "activo",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "nombre",
-          "order": "ASCENDING"
-        }
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "nombre", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "farmacia_movimientos",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "itemId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "fecha",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "itemId", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "notas",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "estado",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "fechaConsulta",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "fechaConsulta", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "reviews",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "estado",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "publicadaEn",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "publicadaEn", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "tareas_clinicas",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "estado",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "creadaEn",
-          "order": "ASCENDING"
-        }
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "creadaEn", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "waitlist",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "estado",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "prioridad",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "ASCENDING"
-        }
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "prioridad", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
     }
   ],
