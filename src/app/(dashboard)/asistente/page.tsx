@@ -19,7 +19,7 @@ import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 import { normalizarNombre } from '@/lib/csv-pacientes'
 import type { Patient } from '@/types'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { getAvailableSlots } from '@/lib/availability'
+import { getAvailableSlots, esFestivo } from '@/lib/availability'
 import { listarBloques, type TimeBlock } from '@/lib/time-blocks'
 import { AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -162,6 +162,28 @@ function AsistenteInner() {
   }, [fecha, duracion, appointments, efectiveConfig, doctorId, bloques])
 
   /**
+   * POR QUÉ ESTE DÍA NO TIENE HUECOS.
+   *
+   * «No hay horarios» es cierto en tres situaciones que no significan lo
+   * mismo para quien está al teléfono: el consultorio no abre ese día de la
+   * semana, es festivo, o está lleno. Sólo la tercera se resuelve buscando
+   * otra hora; las dos primeras se resuelven buscando otro DÍA.
+   *
+   * Regla 4 de `clinical-safety` en versión de agenda: ausencia de hueco no
+   * es dato de ausencia. Si no se puede saber el motivo, se dice lo que se
+   * sabe y nada más — no se inventa una explicación plausible.
+   */
+  const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
+  const motivoSinHorarios = useMemo(() => {
+    if (!fecha || !efectiveConfig) return 'No hay horarios disponibles este día'
+    if (esFestivo(fecha, efectiveConfig.diasFestivos)) return 'Ese día es festivo: el consultorio no abre.'
+    const diaSemana = DIAS_SEMANA[new Date(fecha + 'T12:00:00').getDay()]
+    const horario = efectiveConfig.horario?.[diaSemana]
+    if (!horario?.activo) return 'El consultorio no abre ese día de la semana.'
+    return 'Ese día ya está lleno: no queda ningún hueco libre.'
+  }, [fecha, efectiveConfig])
+
+  /**
    * Navegación por MES con las flechas ◀ ▶, hasta el techo REAL de la agenda.
    *
    * Era `12`, escrito a mano. Eso hacía de esta pantalla un tercer horizonte
@@ -195,6 +217,34 @@ function AsistenteInner() {
     }
     return dias
   }, [mesVista])
+
+  /**
+   * CUÁNTOS LUGARES TIENE CADA DÍA DEL MES — una sola vez.
+   *
+   * Esto se calculaba DENTRO del `map` que pinta la lista, así que
+   * `getAvailableSlots` corría una vez por día en cada render, y la sugerencia
+   * de «ir al primer día con lugar» lo habría vuelto a correr por su cuenta.
+   * Calculado aquí, la lista y la sugerencia leen lo mismo — y no pueden
+   * discrepar sobre cuántos lugares tiene un día.
+   */
+  const lugaresPorDia = useMemo(() => {
+    if (!efectiveConfig) return []
+    return diasDelMes.map(dia => ({
+      dia,
+      lugares: getAvailableSlots(dia, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined).length,
+    }))
+  }, [diasDelMes, duracion, appointments, efectiveConfig, doctorId, bloques])
+
+  /**
+   * El primer día del mes a la vista que SÍ tiene lugar. Se OFRECE, no se
+   * salta: cambiar la fecha en silencio es lo que la asistente no puede
+   * permitirse no haber visto.
+   */
+  const primerDiaConLugar = useMemo(
+    () => lugaresPorDia.find(d => d.lugares > 0 && d.dia !== fecha) ?? null,
+    [lugaresPorDia, fecha],
+  )
+
 
   const handleSubmit = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }
@@ -538,25 +588,24 @@ function AsistenteInner() {
               </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 420, overflowY: 'auto' }}>
-              {diasDelMes.map(d => {
-                const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined)
+              {lugaresPorDia.map(({ dia: d, lugares }) => {
                 const isSelected = d === fecha
                 const isToday = d === todayStr()
                 return (
                   <button
                     key={d}
                     onClick={() => setFecha(d)}
-                    disabled={daySlots.length === 0}
+                    disabled={lugares === 0}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '10px 14px', borderRadius: 10, fontSize: 13,
                       border: isSelected ? '1px solid var(--teal)' : '1px solid var(--border)',
                       background: isSelected ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
-                      color: daySlots.length === 0 ? 'var(--text3)' : isSelected ? 'var(--teal)' : 'var(--text)',
-                      cursor: daySlots.length === 0 ? 'default' : 'pointer',
+                      color: lugares === 0 ? 'var(--text3)' : isSelected ? 'var(--teal)' : 'var(--text)',
+                      cursor: lugares === 0 ? 'default' : 'pointer',
                       // Un día sin cupo va apagado, pero LEGIBLE: con 0.4 sobre un
                       // texto ya atenuado (--text3) quedaba casi invisible en claro.
-                      opacity: daySlots.length === 0 ? 0.6 : 1,
+                      opacity: lugares === 0 ? 0.6 : 1,
                       transition: 'all var(--mov-rapido) var(--mov-curva)',
                     }}
                   >
@@ -564,7 +613,7 @@ function AsistenteInner() {
                       {isToday ? <><CalendarDays size={13} className="ds-icon" /> Hoy</> : conMayusculaInicial(formatDateLong(d))}
                     </span>
                     <span style={{ fontSize: 11, color: isSelected ? 'var(--teal)' : 'var(--text3)' }}>
-                      {daySlots.length > 0 ? `${daySlots.length} lugares` : 'Sin lugar'}
+                      {lugares > 0 ? `${lugares} ${lugares === 1 ? 'lugar' : 'lugares'}` : 'Sin lugar'}
                     </span>
                   </button>
                 )
@@ -598,9 +647,40 @@ function AsistenteInner() {
             </div>
           )}
 
+          {/**
+            * EL VACÍO DICE POR QUÉ, Y A DÓNDE IR.
+            *
+            * Aquí ponía «No hay horarios disponibles este día» y nada más. El
+            * problema no era el tono: era que el día seleccionado por omisión
+            * es HOY, y si hoy el consultorio no abre —sábado, domingo,
+            * festivo— la asistente aterriza en un callejón sin salida
+            * mientras, dos filas más arriba, hay un día con nueve lugares.
+            *
+            * Visto en el arnés: «Hoy · Sin lugar» seleccionado y en gris,
+            * «Domingo 30 · Sin lugar», «Lunes 31 · 9 lugares». El mensaje
+            * decía la verdad y aun así engañaba, porque quien lo lee entiende
+            * «no hay citas» y no «hoy no se abre».
+            *
+            * Dos arreglos, ninguno mueve nada por su cuenta:
+            *  · se dice el MOTIVO cuando se puede saber (cerrado / festivo /
+            *    lleno). Ausencia de hueco no es lo mismo que ausencia de día.
+            *  · se OFRECE el primer día con lugar, como acción de un clic. No
+            *    se salta solo: un cambio de fecha en silencio es justo lo que
+            *    la asistente no puede permitirse no haber visto.
+            */}
           {fecha && slots.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text3)', fontSize: 13 }}>
-              No hay horarios disponibles este día
+            <div style={{ textAlign: 'center', padding: '20px 8px', color: 'var(--text3)', fontSize: 13 }}>
+              <div>{motivoSinHorarios}</div>
+              {primerDiaConLugar && (
+                <button
+                  type="button"
+                  onClick={() => setFecha(primerDiaConLugar.dia)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ marginTop: 12 }}
+                >
+                  Ir al {conMayusculaInicial(formatDateLong(primerDiaConLugar.dia))} · {primerDiaConLugar.lugares} lugares
+                </button>
+              )}
             </div>
           )}
         </div>

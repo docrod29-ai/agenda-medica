@@ -1236,3 +1236,58 @@ misma siembra.
 Las tres de `/dashboard` (`.riel-dur`, `.nx-meta` y una insignia) son de una
 pantalla que este carril **no posee** y aparecieron sólo porque ahora hay citas
 que pintar. Se declaran; no se tocan.
+
+---
+
+## Unidad 26 — el vacío decía la verdad y aun así engañaba
+
+**FOUND.** El portal de la asistente selecciona **hoy** por omisión. Si hoy el
+consultorio no abre —sábado, domingo, festivo— la pantalla decía «No hay
+horarios disponibles este día» y ahí terminaba, mientras **dos filas más
+arriba** había un día con nueve lugares. El día seleccionado por omisión era,
+además, un botón **deshabilitado**.
+
+Visto en el arnés a 1440 px: «Hoy · Sin lugar» seleccionado y en gris,
+«Domingo 30 · Sin lugar», «Lunes 31 · 9 lugares».
+
+**ROOT_CAUSE.** «No hay horarios» es cierto en tres situaciones que **no
+significan lo mismo** para quien está al teléfono con el paciente:
+
+| Situación | Cómo se resuelve |
+|---|---|
+| el consultorio no abre ese día de la semana | buscando otro **día** |
+| es festivo | buscando otro **día** |
+| está lleno | buscando otra **hora**, o lista de espera |
+
+Quien lee «no hay horarios» entiende la tercera. El mensaje no era escueto: era
+**ambiguo entre tres cosas distintas**. Regla 4 de `clinical-safety` en versión
+de agenda — ausencia de hueco no es dato de ausencia.
+
+**CHANGE.** El vacío contesta a las tres preguntas del §13: qué significa (el
+motivo real, leído del horario y de los festivos), si es normal, y qué se puede
+hacer ahora (**ir al primer día con lugar**, de un clic).
+
+**LO QUE SE DECIDIÓ NO HACER.** No salta solo al primer día con hueco. Se
+**ofrece**. Un cambio de fecha en silencio es justo lo que la asistente no puede
+permitirse no haber visto — y encaja con la regla 3 de seguridad clínica: nada
+cambia sin que se vea.
+
+**DE PASO, UNA INEFICIENCIA REAL.** `getAvailableSlots` corría **una vez por día
+dentro del `map` del JSX**. Ahora se calcula una sola vez (`lugaresPorDia`) y lo
+leen la lista y la sugerencia, que así no pueden discrepar sobre cuántos lugares
+tiene un día. Y «1 lugar» ya no se dice en plural.
+
+**REGRESSION.** `un-dia-sin-huecos-dice-por-que.test.ts`, 6 casos.
+
+**OTRO CASO QUE NO PODÍA FALLAR.** El de «no salta de fecha por su cuenta»
+buscaba bloques `useEffect` con una expresión que exigía cierre en varias
+líneas. Probado al revés con un efecto de **una sola línea**, no escaneaba nada
+y pasaba por vacío. Reescrito para mirar el único sitio donde la fecha se mueve
+y exigir que cuelgue de un `onClick`. Es la segunda vez en este pase que la
+prueba al revés caza un guardián mío inútil, y las dos veces por la misma razón:
+**medir la forma del código en vez de su efecto.**
+
+**EL TRINQUETE ME CAZÓ OTRA VEZ.** El primer `primerDiaConLugar` salía de un
+bucle con `return` temprano, y el compilador de React no pudo conservar la
+memoización: lint 95 → 96. Se arregló el cambio, no el techo — y el arreglo
+resultó ser mejor que el original.
