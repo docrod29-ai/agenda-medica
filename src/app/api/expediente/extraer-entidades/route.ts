@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
       // enseña un problema interno. El mensaje sale del clasificador compartido.
       const quien = quienPaga(fuente)
       const clase = claseDeFallo(res.status, err)
-      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'entidades', status: res.status })
+      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'extraer-entidades', status: res.status })
       return NextResponse.json({ ok: false, error: avisoAlMedico(clase, quien, 'anthropic').texto }, { status: 502 })
     }
 

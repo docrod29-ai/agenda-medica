@@ -13709,3 +13709,84 @@ de acabar en un prompt.
 - **No pinta nada.** Que la pantalla enseñe el DOI o diga «texto completo no
   reproducible por licencia» es otro trabajo. Aquí el dato deja de morir en la
   función que lo calcula.
+
+---
+
+## REG-399 — cada capacidad de IA con su contrato, y ningún umbral inventado
+
+**QUÉ SE PEDÍA.** `WS-12.contratos-de-evaluacion`: cada capacidad de IA con
+dataset, métrica, umbral y política de fallo. El censo decía: «no existe el
+contrato por capacidad. **Sin umbral con significado, una métrica es
+decorativa**».
+
+`ia/evaluacion.ts` ya era un buen instrumento —exactitud por campo, campos
+faltantes, proxy de alucinación—. Faltaba lo que convierte una medición en una
+compuerta: qué conjunto, qué métrica, a partir de qué número está bien, y qué
+hace el producto cuando no lo está.
+
+### La tentación, y por qué no se cayó en ella
+
+Rellenar los umbrales. Poner 0,95 en cada fila deja el requisito con aspecto de
+cerrado, y es **el fallo más caro posible en este repositorio**: no rompe nada,
+no falla ninguna prueba, y convierte una decisión clínica no tomada en una
+compuerta que parece acordada.
+
+Cuánta pérdida de medicamentos es tolerable al extraer una nota es una cifra
+clínica, y la regla 1 prohíbe inventarlas. Aquí un umbral es **un número con
+fuente** o es `NEEDS_CLINICAL_REVIEW` **con qué hay que decidir y quién**. De las
+17 capacidades, **15 esperan al médico** y las dos que tienen número lo tienen
+por una regla escrita, no por una opinión: cero cifras de dosis sin fuente citada
+(`.claude/rules/clinical-safety.md`).
+
+### Lo que sí se decidió sin el médico, y no es poco
+
+Qué capacidades existen, qué decide cada una, **qué cuesta que se equivoque**, si
+hay conjunto de referencia o no lo hay, y qué hace el producto al fallar. La
+consecuencia del error es justamente lo que hace *discutible* el umbral: sin
+ella, un número es una preferencia; con ella se puede argumentar.
+
+El guardián lo exige: una consecuencia de menos de 60 caracteres no pasa, y un
+conjunto «No existe.» a secas tampoco — hay que decir **qué haría falta** para
+que existiera. Tres filas lo dijeron mal y el guardián las obligó a decirlo bien.
+
+### El hallazgo de paso: dos nombres para una capacidad
+
+Al censar los nombres aparecieron **tres rutas que usaban dos**, uno para el
+libro de costos y otro para el registro de incidencias, en el mismo archivo:
+
+| ruta | costos | incidencias |
+|---|---|---|
+| `extraer-entidades` | `extraer-entidades` | `entidades` |
+| `procesar` | `nota-consulta` | `nota` |
+| `transcribir` | `transcribir` | `transcripcion` |
+
+Los dos registros agrupan por ese nombre, así que **«qué está fallando» y «qué
+está costando» no se podían cruzar**, y la lista de funciones afectadas que
+enseña una incidencia nombraba cosas que no aparecen en ningún otro sitio. Se
+unificó hacia el nombre del **libro de costos**, que es el registro contable: los
+documentos ya escritos conservan el suyo, porque reescribir el histórico sería
+peor que el desajuste que corrige.
+
+### El censo de nombres se aplica también en ejecución
+
+No sólo en el CI. `reportarFalloIA` comprueba el nombre contra el censo: si llega
+una capacidad sin contrato, **la incidencia se anota igual** —descartarla
+perdería el aviso justo cuando alguien acaba de añadir una capacidad— y se
+**marca**, porque una capacidad de IA sin contrato es una avería de proceso que
+también hay que ver. Corregir el nombre a uno parecido inventaría un dato, así
+que no se hace.
+
+**LA PRUEBA.** `src/__tests__/cada-capacidad-de-ia-tiene-su-contrato.test.ts` (14
+casos). Probado al revés renombrando un `feature` en una ruta: caen tres casos.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No mide nada.** Es el contrato, no la evaluación. Los conjuntos de la mayoría
+  de las capacidades **no existen**, y el contrato lo dice fila por fila —
+  incluido el de voz, que no puede nacer de audio real porque la voz es
+  biométrica.
+- **La política de fallo se declara y sólo una está comprobada en el código**
+  (`rechaza_al_momento`, la contrapresión de REG-390). Las demás son la intención
+  escrita, no la propiedad medida, y se dice para que nadie lo lea al revés.
+- **No cubre la IA de cara al paciente**, que tiene su propia compuerta
+  permanente (las doce preguntas del §0 de V9).

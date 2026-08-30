@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
       if (res.status === 401) {
         const quien = quienPaga(fuente)
         const clase = claseDeFallo(res.status, ultimoError)
-        reportarFalloIA({ clase, quien, proveedor: 'openai', feature: 'transcripcion', status: res.status })
+        reportarFalloIA({ clase, quien, proveedor: 'openai', feature: 'transcribir', status: res.status })
         return NextResponse.json({ ok: false, error: avisoAlMedico(clase, quien, 'openai').texto }, { status: 502 })
       }
       // CUALQUIER otro error (400/404/429/500/502/503/529): NO abortar — probar el

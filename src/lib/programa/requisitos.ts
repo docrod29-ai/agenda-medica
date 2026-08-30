@@ -469,8 +469,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-12.contratos-de-evaluacion', ws: 'WS-12', titulo: 'Cada capacidad de IA con dataset, métrica, umbral y política de fallo',
-    estado: 'NOT_STARTED',
-    queFalta: 'No existe el contrato por capacidad. Sin umbral con significado, una métrica es decorativa.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-399 creó el contrato: 17 capacidades, cada una con qué decide, QUÉ CUESTA QUE SE EQUIVOQUE, su conjunto (o qué haría falta para que existiera), su métrica y su política de fallo. Un guardián compara el censo contra los `feature` del árbol y el censo se aplica también en ejecución. Falta lo que NO se puede hacer sin el dueño y no se inventó: 15 de los 17 UMBRALES los tiene que fijar un médico —cuánta pérdida de medicamentos es tolerable al extraer una nota es una cifra clínica, y la regla 1 prohíbe inventarlas—. Falta también construir los conjuntos: la mayoría no existe, y el de voz no puede nacer de audio real porque la voz es biométrica. Y la política de fallo se DECLARA; sólo una está comprobada en el código.',
+    artefactos: ['src/lib/ia/contratos-de-evaluacion.ts'],
+    pruebas: ['src/__tests__/cada-capacidad-de-ia-tiene-su-contrato.test.ts'],
   }),
   R({
     id: 'WS-12.router', ws: 'WS-12', titulo: 'El médico expresa intención clínica, no elige marca de modelo',

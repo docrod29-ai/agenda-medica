@@ -426,7 +426,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * La lección: una defensa que hace que un problema deje de verse tiene que
      * traer consigo la forma de verlo.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397],
+    /**
+     * 399 es esta familia en su capa más alta: el instrumento existía
+     * (`ia/evaluacion.ts` mide exactitud y alucinación) y lo que faltaba era el
+     * CONTRATO — qué conjunto, qué métrica, a partir de qué número está bien y
+     * qué hace el producto cuando no lo está. Sin umbral con significado, una
+     * métrica es decorativa.
+     *
+     * Y trae la tentación que define esta familia por contraste: rellenar los
+     * umbrales dejaría el requisito con aspecto de cerrado. Quince de diecisiete
+     * siguen esperando a que un médico fije el número, y eso está escrito fila
+     * por fila en vez de disimulado con un 0,95.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399],
   },
   {
     clave: 'hueco_como_dato',

@@ -496,7 +496,7 @@ export async function POST(req: NextRequest) {
        */
       const quien = quienPaga(fuente)
       const clase = claseDeFallo(res.status, err)
-      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'nota', status: res.status })
+      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'nota-consulta', status: res.status })
       return fallbackVisible(
         transcripcion, tipo,
         avisoAlMedico(clase, quien, 'anthropic').texto,

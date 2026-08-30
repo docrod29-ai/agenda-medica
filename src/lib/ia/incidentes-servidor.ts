@@ -34,6 +34,7 @@
 import admin, { adminDb } from '@/lib/firebase-admin'
 import type { ClaseFallo, QuienPaga } from './fallo-proveedor'
 import { avisoAlDueno } from './fallo-proveedor'
+import { nombresCanonicos } from './contratos-de-evaluacion'
 
 export interface ReporteFallo {
   clase: ClaseFallo
@@ -63,9 +64,25 @@ export function reportarFalloIA(r: ReporteFallo): void {
 
   const ahora = new Date()
   const id = claveIncidente(r, ahora)
+  /**
+   * ¿ES UNA CAPACIDAD DECLARADA? (REG-399)
+   *
+   * El nombre de la capacidad es la clave con la que agrupan **este registro y
+   * el libro de costos**. Tres rutas usaban dos nombres distintos —uno por
+   * registro—, así que «qué está fallando» y «qué está costando» no se podían
+   * cruzar. `contratos-de-evaluacion.ts` es ahora el censo único de nombres.
+   *
+   * Un nombre desconocido **no se descarta ni se corrige**: se anota tal cual y
+   * se MARCA. Descartarlo perdería la incidencia justo cuando alguien acaba de
+   * añadir una capacidad; corregirlo a un nombre parecido inventaría un dato.
+   * Marcarlo es lo único honesto: dice que hay una capacidad de IA sin contrato,
+   * que es una avería de proceso y también hay que verla.
+   */
+  const declarada = nombresCanonicos().includes(r.feature)
   adminDb.collection('platform_incidentes').doc(id).set({
     proveedor: r.proveedor,
     clase: r.clase,
+    ...(declarada ? {} : { capacidadSinContrato: true }),
     urgente: aviso.urgente,
     titulo: aviso.titulo,
     queHacer: aviso.queHacer,
