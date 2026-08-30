@@ -121,7 +121,7 @@ interno está hecho y hay un artefacto que dice qué se rompe mientras tanto.
 | Reglas de Firestore | `npx firebase deploy --only firestore:rules --project nexomed-agenda`. `vercel --prod` **no** las publica. Desde REG-354 el repositorio lo **deriva** del sha256 en vez de recordarlo |
 | E0-06 · alergias fuera de `Patient` | Backfill sobre datos clínicos vivos + decisión de política del dueño + despliegue de reglas. **No se reabrió** |
 | iPhone / WebKit real | Un dispositivo. REG-355 no se marca PROVEN sin él |
-| PITR y simulacro de restauración | Configuración del proyecto vivo. El ida y vuelta del NDJSON está probado; reglas, índices, latencia y el tope de 500 escrituras por transacción no los da ninguna tienda en memoria |
+| PITR y simulacro de restauración | Configuración del proyecto vivo. REG-381 llevó el ensayo a un Firestore de verdad: 2 000 documentos escritos y **releídos del otro lado**, 0 faltantes, 3 898 doc/s. **Corrección**: el tope de escrituras por lote NO se gana saliendo de la memoria — el emulador acepta 600 sin error, y el acta lo declara. Lo que queda es `gcloud firestore databases restore` + PITR, que son de la consola |
 | Pentest externo | No se marca PASS sin uno real |
 | Licencias de evidencia | UpToDate, Cochrane, Scopus, DynaMed, OpenEvidence. Sin acuerdo se quedan en `not_configured`; el código ya falla cerrado |
 | `OPS_ALERTA_WEBHOOK` y App Check | Confirmarlos en el proyecto vivo |
@@ -191,6 +191,10 @@ Por orden de lo que más pesa:
    exista quien lo escriba entra con su propio v5, y v4 es la migración ya
    recorrida que demuestra que eso no rompe lo firmado.
 5. **Pentest y PITR**, que son las dos que ningún trabajo interno puede sustituir.
+   Lo automatizable del segundo ya está hecho (REG-381): el respaldo se escribe en
+   un Firestore de verdad y se relee documento a documento. Lo irreducible es el
+   PITR del proyecto y el `databases restore` con consola. El pentest no tiene
+   mitad automatizable: o lo hace un tercero, o no está hecho.
 
 Nada de esto es un descubrimiento de última hora: los cinco estaban en el tablero
 antes de empezar este tramo, y siguen exactamente donde estaban porque ninguno

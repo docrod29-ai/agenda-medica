@@ -95,6 +95,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * quien abre el hueco lo declara y quien sigue lo lee.
      */
     /**
+     * 381 es esta familia en el INSTRUMENTO que la vigila. El ensayo de respaldo
+     * leía el NDJSON, lo reenraizaba y cronometraba — todo en memoria, sin
+     * escribir en ninguna parte. REG-160 ya había enseñado que ahí es donde este
+     * producto falla: el importador validaba la colección declarada y escribía en
+     * la ruta, con las pruebas en memoria en verde.
+     *
+     * Y el ensayo NUEVO cometió el mismo pecado en su primera versión: construía
+     * las líneas con un formato que `leerLinea` rechazaba entero, y salía en verde
+     * porque comparaba cero contra cero. Un ensayo de restauración que restaura un
+     * consultorio vacío y se declara con éxito.
+     *
+     * Su lección: un instrumento de medición necesita su propia prueba de que
+     * midió algo. «Coincidió» no es «coincidió con algo».
+     */
+    /**
      * 380 es esta familia aplicada a la EVIDENCIA de una reparación. REG-342 y
      * REG-355 arreglaron el rebote de iPhone de verdad, y lo probaron entero
      * LEYENDO el árbol: ninguna de las dos abrió nunca el producto en un
@@ -223,7 +238,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * hubo que hacer fue conectarla, y las dos unidades cupieron en un módulo
      * puro cada una porque el hueco estaba declarado en su sitio exacto.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381],
   },
   {
     clave: 'se_contradice',

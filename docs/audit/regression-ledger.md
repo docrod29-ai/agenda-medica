@@ -12438,3 +12438,66 @@ cubre la suite de vitest; su compuerta es el job de CI.
 - **Ni un motor que no sea Chromium.** Firefox, WebKit, Safari móvil y Android
   siguen declarados en el config y sin correr en ninguna parte, como ya decía el
   comentario del CI: la matriz completa se lanza a mano.
+
+---
+
+## REG-381 — el respaldo se leía bien y nadie había comprobado que llegara a Firestore
+
+**QUÉ FALTABA.** `npm run simulacro:respaldo` ensaya el ida y vuelta del NDJSON
+**en memoria**: lo lee, lo reenraiza, cuenta y cronometra. El `FINAL-READINESS`
+decía exactamente qué se quedaba fuera: «reglas, índices, latencia y el tope de
+500 escrituras por transacción no los da ninguna tienda en memoria».
+
+Y ésa es la mitad donde un respaldo falla de verdad. **REG-160 fue justo eso**: el
+importador validaba la colección declarada y **escribía en la ruta**, que era otro
+campo. Las pruebas en memoria pasaban todas.
+
+**EL ARREGLO.** `scripts/simulacro-restauracion-firestore.mjs` — la regla «el dato
+tiene que LLEGAR» aplicada al respaldo. Escribe contra un Firestore de verdad, con
+el `leerLinea` y el `reenraizar` **del producto**, y después **vuelve a leer cada
+documento del otro lado** y compara `orden` uno por uno.
+
+**EL ACTA** — `docs/audit/ws-02-carga/restauracion-emulador.json`:
+
+```
+2 000 documentos · lote de 400 · 0 líneas rechazadas · archivo completo
+escritos 2 000 · releídos 2 000 · faltantes 0
+513 ms de escritura (3 898 doc/s) · 142 ms de relectura
+```
+
+**LO QUE SE INTENTÓ MEDIR Y NO SE PUDO — Y CORRIGE AL PROPIO FINAL-READINESS.**
+El tope del lote. Se probó de verdad: en modo `--lote-roto` el ensayo escribe
+lotes de **600** y **el emulador los acepta sin error**. O sea que salir de la
+memoria **no gana esa dimensión**, y el `FINAL-READINESS` la contaba entre lo que
+sí ganaría. Queda declarado en el acta —`topeDelLoteComprobado: false`— en vez de
+dado por bueno, y la bandera se conserva porque el día que se corra contra un
+proyecto de verdad es justo la que da la respuesta.
+
+El `LOTE = 400` del importador sigue siendo lo correcto —es el número documentado
+y deja margen—, pero que aquí pase un 600 no demuestra que pasaría en producción,
+ni al revés.
+
+**UN DEFECTO DEL PROPIO ENSAYO, Y ES EL QUE ENSEÑA MÁS.** La primera versión
+construía las líneas con `ruta`/`datos` en vez de `_ruta`/`_coleccion`, que es el
+formato real del exportador. `leerLinea` las rechazó **todas**… y el ensayo salió
+**en verde**, porque la única comprobación era `releidos === aEscribir.length` y
+las dos valían cero. **Un ensayo de restauración que restaura un consultorio vacío
+y se declara con éxito** es el mismo modo de fallo que este archivo persigue, en
+el instrumento que lo persigue. Ahora sale con error si no hay nada que escribir,
+y su golden comprueba que el acta guardada no es la de un archivo vacío.
+
+**LA PRUEBA.** `src/__tests__/el-respaldo-llega-a-firestore.test.ts` (7 casos).
+Compara el `LOTE` del ensayo contra la constante **de la ruta del importador**, no
+contra una copia, para que los dos no se separen; y comprueba que el acta declara
+lo que no comprobó.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No es el RTO.** Esto restaura un NDJSON en una base ya viva. Resucitar una
+  base perdida es `gcloud firestore databases restore` + PITR, configuración de la
+  consola y del dueño.
+- **No prueba las reglas.** El importador usa el SDK admin, que las ignora por
+  diseño; quien prueba el aislamiento es el arnés de carga (REG-378), con sesiones
+  de cliente.
+- **El emulador no es producción**: sin latencia de red y sin contención real, los
+  doc/s de aquí son un techo, no una promesa.
