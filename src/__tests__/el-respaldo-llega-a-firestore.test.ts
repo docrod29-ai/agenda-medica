@@ -106,7 +106,10 @@ describe('el respaldo llega a Firestore, y se comprueba releyéndolo', () => {
        consultorio sintético al lado de expedientes reales. */
     let error = ''
     try {
-      execFileSync('npx', ['tsx', GUION], {
+      /* Con `node` pelado y no con `tsx`: la comprobación del entorno ocurre
+         ANTES de importar nada de TypeScript, así que este caso no depende de
+         que `tsx` esté instalado — no está declarado como dependencia. */
+      execFileSync('node', [GUION], {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env, FIRESTORE_EMULATOR_HOST: '' },

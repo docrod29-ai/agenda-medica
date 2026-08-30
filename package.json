@@ -31,7 +31,7 @@
     "preview:equivalente": "node scripts/preview-equivalente.mjs",
     "compuerta:integracion": "node scripts/compuerta-integracion.mjs",
     "e2e:telefono": "PLAYWRIGHT_LOCAL=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 playwright test e2e/telefono.spec.ts --project=telefono-chromium",
-    "simulacro:restauracion:firestore": "tsx scripts/simulacro-restauracion-firestore.mjs"
+    "simulacro:restauracion:firestore": "npx tsx scripts/simulacro-restauracion-firestore.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
