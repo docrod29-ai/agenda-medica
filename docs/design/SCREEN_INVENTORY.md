@@ -45,7 +45,7 @@
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 797 | 0 | — | ✅ | — |
-| `/calendario` | medico | ✅ | 731 | 1 | — | ✅ | — |
+| `/calendario` | medico | ✅ | 768 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1212 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2645 | 1 | — | ✅ | — |

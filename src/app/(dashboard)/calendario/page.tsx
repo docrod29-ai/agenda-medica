@@ -17,6 +17,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAhoraMinutos } from '@/hooks/useAhoraMinutos'
 import { etiquetaDeCita } from '@/lib/agenda/etiqueta-de-cita'
+import { horasAEnsenar, type DiaDeHorario } from '@/lib/agenda/horas-a-ensenar'
 
 /**
  * Semántica VISUAL del estado en la rejilla del calendario.
@@ -60,7 +61,11 @@ function estiloEstadoCita(estado: AppointmentStatus): { opacity: number; borderS
 
 type View = 'semana' | 'mes' | 'dia'
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am–7pm
+/**
+ * La rejilla YA NO va de 7 a 19 escrito a mano. Se calcula, y por qué está en
+ * `lib/agenda/horas-a-ensenar`: una cita a las 20:30 no encontraba celda y
+ * desaparecía de la pantalla donde el médico mira su día.
+ */
 
 /** Cómo se llama el salto de las flechas según lo que se esté mirando. */
 const ETIQUETA_PASO: Record<View, string> = { dia: 'Día', semana: 'Semana', mes: 'Mes' }
@@ -80,6 +85,15 @@ export default function CalendarioPage() {
   const { config } = useConfig()
   const [medicoFiltro, setMedicoFiltro] = useFiltroMedico()
   // Aplicar filtro de médico antes de pasar a las vistas
+  /*
+   * El horario declarado por el consultorio, como lista. Sirve para que la
+   * rejilla llegue hasta donde se atiende: una consulta que cierra a las 21:00
+   * necesita poder AGENDAR a las 20:00, no sólo ver lo ya agendado.
+   */
+  const horariosDelConsultorio = useMemo(
+    () => (config?.horario ? Object.values(config.horario) : []),
+    [config],
+  )
   const appointments = useMemo(() => {
     if (!medicoFiltro) return allAppointments
     return allAppointments.filter(a => a.medicoId === medicoFiltro)
@@ -231,6 +245,7 @@ export default function CalendarioPage() {
           <WeekView
             weekDates={weekDates}
             appointments={appointments}
+            horarios={horariosDelConsultorio}
             onCellClick={openNew}
             onApptClick={openEdit}
             loading={loading}
@@ -238,6 +253,7 @@ export default function CalendarioPage() {
         )}
         {view === 'dia' && (
           <DayView
+            horarios={horariosDelConsultorio}
             date={baseDate}
             hoy={hoy}
             appointments={appointments}
@@ -269,9 +285,10 @@ export default function CalendarioPage() {
   )
 }
 
-function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }: {
+function WeekView({ weekDates, appointments, horarios, onCellClick, onApptClick, loading }: {
   weekDates: Date[]
   appointments: Appointment[]
+  horarios: DiaDeHorario[]
   onCellClick: (fecha: string, hora: string) => void
   onApptClick: (a: Appointment) => void
   loading: boolean
@@ -279,6 +296,23 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
   const today = hoyISO()
   const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
   const ahoraMin = useAhoraMinutos()
+  /*
+   * Las horas se calculan con las citas DE ESTA SEMANA, no con toda la ventana:
+   * mirar el lunes no tiene por qué estirar la rejilla por una cita del jueves
+   * de dentro de un mes.
+   */
+  /*
+   * Los siete días en texto, UNA vez. Antes cada fila de hora los volvía a
+   * calcular —siete por fila, trece filas— y la cabecera otra vez. Además de
+   * trabajo repetido, cada llamada suelta a `fechaISOLocal` sin zona cuenta en
+   * el trinquete de `timezone-sitios`, que es la lista de sitios a revisar el
+   * día que la zona del consultorio deje de publicarse a tiempo.
+   */
+  const diasISO = useMemo(() => weekDates.map(d => fechaISOLocal(d)), [weekDates])
+  const HORAS = useMemo(() => {
+    const dias = new Set(diasISO)
+    return horasAEnsenar(appointments.filter(a => dias.has(a.fechaHora.slice(0, 10))), horarios)
+  }, [diasISO, appointments, horarios])
 
   return (
     <div style={{ height: '100%', overflow: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
@@ -286,7 +320,7 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
       <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, 1fr)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10, background: 'var(--s2)' }}>
         <div />
         {weekDates.map((d, i) => {
-          const ds = fechaISOLocal(d)
+          const ds = diasISO[i]
           const isToday = ds === today
           return (
             <div key={i} style={{ padding: '10px 6px', textAlign: 'center', borderLeft: '1px solid var(--border)' }}>
@@ -306,13 +340,13 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
       </div>
 
       {/* Hour rows */}
-      {HOURS.map(h => (
+      {HORAS.map(h => (
         <div key={h} style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, 1fr)', minHeight: 48, borderBottom: '1px solid var(--border)' }}>
           <div style={{ padding: '4px 8px', textAlign: 'right', fontSize: 11, color: 'var(--text3)', flexShrink: 0, borderRight: '1px solid var(--border)' }}>
             {String(h).padStart(2, '0')}:00
           </div>
           {weekDates.map((d, di) => {
-            const ds = fechaISOLocal(d)
+            const ds = diasISO[di]
             const hourStr = `${String(h).padStart(2, '0')}:00`
             const cellAppts = appointments.filter(a =>
               a.fechaHora.startsWith(ds) && parseInt(a.fechaHora.slice(11, 13)) === h
@@ -447,10 +481,11 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
   )
 }
 
-function DayView({ date, hoy, appointments, onCellClick, onApptClick, loading }: {
+function DayView({ date, hoy, appointments, horarios, onCellClick, onApptClick, loading }: {
   date: Date
   hoy: string
   appointments: Appointment[]
+  horarios: DiaDeHorario[]
   onCellClick: (hora: string) => void
   onApptClick: (a: Appointment) => void
   loading: boolean
@@ -466,10 +501,12 @@ function DayView({ date, hoy, appointments, onCellClick, onApptClick, loading }:
    */
   const esHoy = ds === hoy
   const dayAppts = appointments.filter(a => a.fechaHora.startsWith(ds)).sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
+  /* Las horas de ESTE día, con el horario del consultorio como suelo. */
+  const HORAS = useMemo(() => horasAEnsenar(dayAppts, horarios), [dayAppts, horarios])
 
   return (
     <div style={{ height: '100%', overflow: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
-      {HOURS.map(h => {
+      {HORAS.map(h => {
         const hourStr = `${String(h).padStart(2, '0')}:00`
         const cellAppts = dayAppts.filter(a => parseInt(a.fechaHora.slice(11, 13)) === h)
         return (

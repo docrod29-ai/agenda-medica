@@ -4643,3 +4643,83 @@ paquetes.
 - No se comprueba que el aviso **se quite** al volver el permiso.
 - El escenario parcial sólo se mide en `/calendario`. Las otras 22 rutas están
   medidas contra la caída total, no contra la parcial.
+
+---
+
+## Unidad 74 — la cita de las 20:30 no estaba en ninguna parte
+
+**DE DÓNDE SALE.** De mirar una captura. El arnés del consultorio recién abierto
+acusó a `/calendario` y a `/configuracion` de no decir que están vacías, y en vez
+de arreglarlo se abrió la imagen. **Los dos eran falsos positivos**:
+`/configuracion` es un formulario —«vacío» no es un estado que tenga— y la
+rejilla del calendario se explica sola, con «Nueva cita» donde tiene que estar.
+Eso queda dicho y no se toca.
+
+Pero en la captura, **las trece filas de hora pesaban exactamente lo mismo**. Al
+preguntar de dónde salían, resultó que de ninguna parte:
+
+```js
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am–7pm
+```
+
+Trece números fijos que **nunca habían consultado el horario del consultorio**.
+
+**LO QUE ESO ESCONDÍA.** Cada cita se pinta metiéndola en la celda de su hora.
+Una cita a las 20:30 **no encuentra celda**, así que no se pinta: ni atenuada, ni
+recogida en un «+2 más», ni con un aviso. Desaparece.
+
+Medido con dos citas confirmadas de hoy, a las 06:30 y a las 20:30:
+
+```
+/calendario (semana) -> 06:30 visible: false · 20:30 visible: false
+/calendario (día)    -> 06:30 visible: false · 20:30 visible: false
+/citas      (lista)  -> 06:30 visible: true  · 20:30 visible: true
+```
+
+La lista sí las tiene. Sólo desaparecen **en la pantalla donde el médico mira su
+día**. Un consultorio que atiende hasta las 21:00 —cosa que la propia
+configuración permite declarar— no ve sus últimas consultas, y tampoco puede
+agendar ahí: no hay fila que pulsar.
+
+**EL ARREGLO.** La rejilla se calcula: `lib/agenda/horas-a-ensenar`. Abarca (1)
+el horario declarado por el consultorio —para poder AGENDAR donde se atiende, no
+sólo ver lo agendado— y (2) **las horas donde de verdad hay citas**, que es lo
+que cierra el defecto: una cita puede caer fuera del horario por sobreagenda, por
+una importación o porque el horario cambió DESPUÉS de agendarla, y ninguna de las
+tres puede volverla invisible. El 07:00–19:00 se queda de suelo, así que un
+consultorio normal ve la misma rejilla de siempre.
+
+**PROBADO AL REVÉS, dos veces.** Volviendo a poner el `HOURS` fijo y
+recompilando: semana y día esconden las dos citas, la lista las enseña. Y
+quitando el ensanche por citas del módulo, caen tres casos del golden.
+
+**UN FALSO NEGATIVO PROPIO, y cómo se cazó.** La primera versión del arnés
+buscaba el nombre en `document.body.innerText` y dijo que la vista de semana
+seguía escondiéndolas **después** de arreglarla. No era verdad: el bloque estaba
+pintado —se vio consultando el DOM— pero su nombre no sale por `innerText`,
+porque es una caja absoluta y estrecha con el texto recortado. Se pregunta ahora
+por los bloques, que es lo que de verdad ocupa un sitio en la rejilla. Sin esa
+comprobación habría «arreglado» dos veces algo que ya estaba bien.
+
+**Y UN TRINQUETE QUE CAZÓ EL CAMBIO.** `timezone-sitios` subió a 41 sobre un
+techo de 40: mi cálculo añadía una llamada suelta a `fechaISOLocal`. Se arregló
+el cambio, no el techo — los siete días se calculan **una vez** por semana en vez
+de una vez por celda (siete por fila, trece filas, más la cabecera), así que la
+cuenta **baja** en lugar de subir.
+
+**COMPUERTAS.** `vitest` 10 858 de 10 859 —sólo `ops-timeout-y-punto-ciego`, el
+de siempre— · lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc`
+limpio · `npm run build` compila · **trinquete de interfaz: sin regresión en las
+69 combinaciones**, que aquí importa porque una rejilla más alta podía haber
+roto el ancho de 390.
+
+**RESIDUAL_RISK.**
+
+- **El horario partido no se mira.** `DaySchedule` admite huecos dentro del día
+  (la comida) y esto sólo usa `inicio` y `fin`: esas horas se enseñan como
+  normales, igual que antes. No es una regresión, pero tampoco está resuelto.
+- Un consultorio de 24 h daría 24 filas. Se acepta: es lo que hay que enseñar.
+- **No se comprueba que se pueda AGENDAR en la fila nueva**, sólo que la cita se
+  vea. El clic sobre la celda libre usa el mismo camino de siempre.
+- La vista de MES no se mira: no usa rejilla de horas.
+- El arnés sólo prueba dos horas, 06:30 y 20:30. No barre las 24.

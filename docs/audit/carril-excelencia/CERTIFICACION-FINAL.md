@@ -223,9 +223,9 @@ que no midió es peor que uno que no mide.
 | **visual regression** | techos congelados en `techos-de-interfaz.json`; sólo pueden bajar | **medido** |
 | **staticness** | `arnes:acuse-puntero` — controles habilitados que no acusan el puntero | **medido**, 22 rutas |
 | **motion/feedback** | lo mismo, más `arnes:foco-visible` y `arnes:menos-movimiento` | **medido** |
-| **loading** | `arnes:estado-de-carga` — con la red lenta a propósito | **medido**, 15 rutas |
+| **loading** | `arnes:estado-de-carga` — con la red lenta a propósito | **medido**, 22 rutas |
 | **error** | `arnes:caida-de-datos` — cortando los datos (caída TOTAL) · `arnes:caida-parcial` — el consultorio carga y falla una consulta suelta | **medido**, 22 rutas ³ |
-| **empty** | `arnes:consultorio-vacio` — con un consultorio creado de cero | **medido**, 13 rutas |
+| **empty** | `arnes:consultorio-vacio` — con un consultorio creado de cero | **medido**, 20 rutas ⁴ |
 | **long content** | desborde con el nombre más largo (trinquete) · texto libre (`arnes:texto-largo`) · listas de 250 filas (`arnes:listas-largas`) | **medido** ¹ |
 | **hierarchy** | — | **NOT_PROVEN** |
 | **benchmark quality** | — | **NOT_PROVEN** |
@@ -238,26 +238,26 @@ que no midió es peor que uno que no mide.
 | Ruta | axe (3 anchos) | desborde | mudos | foco | tapados | loading | error | empty |
 |---|---:|---|---:|---|---:|---|---|---|
 | `/citas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
-| `/calendario` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok · parcial **arreglado u73** | — |
-| `/asistente` | 0 | no | 3 ¹ | ok | 0 | — | ok | — |
+| `/calendario` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok · parcial **arreglado u73** | n/a ⁴ |
+| `/asistente` | 0 | no | 3 ¹ | ok | 0 | ok | ok | ok |
 | `/lista-espera` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/finanzas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
-| `/operaciones` | 0 | no | 0 | ok | 0 | — | ok | — |
+| `/operaciones` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/dashboard` | 0 | no | 0 | ok | 0 ² | ok | ok | ok |
 | `/pacientes` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/pendientes` | 0 | no | 0 | ok | 0 | ok | ok | ok |
-| `/configuracion` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok | — |
+| `/configuracion` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok | n/a ⁴ |
 | `/crm` | 0 | no | 0 | ok | 0 | ok | ok | **arreglado u68** |
 | `/reactivacion` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/resenas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/membresias` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok | ok |
 | `/farmacia` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/corte-caja` | 0 | no | 0 | ok | 0 | ok | ok | ok |
-| `/cumplimiento` | 0 | no | 0 | ok | 0 | — | ok | — |
-| `/cumplimiento/retencion` | 0 | no | 3 ¹ | ok | 0 | — | ok | ok |
-| `/consultor` | 0 | no | 0 | ok | 0 | — | ok | — |
-| `/guia` | 0 | no | 0 | ok | 0 | — | ok | — |
-| `/consulta/pac-001` | 0 | no | 0 | ok | 0 | — | ok | — |
+| `/cumplimiento` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/cumplimiento/retencion` | 0 | no | 3 ¹ | ok | 0 | ok | ok | ok |
+| `/consultor` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/guia` | 0 | no | 0 | ok | 0 | ok | ok | ok |
+| `/consulta/pac-001` | 0 | no | 0 | ok | 0 | ok | ok | — |
 | `/expediente/pac-001` | 0 | no | 2 ¹ | ok | 0 | ok | ok | — |
 | `/mi/[token]` (portal) | 0 | no | — | — | — | — | — | — |
 
@@ -286,6 +286,14 @@ y falla una consulta suelta— es otro, y sólo está medido en `/calendario`
 con su razón escrita en la cabecera del guion. `/mi/[token]` **sigue sin medir**:
 es el portal del paciente y estos guiones entran con sesión de médico.
 
+⁴ **empty.** Las 7 que faltaban se midieron el 30-ago (unidad 74). Cinco dicen su
+vacío. Las otras dos —`/calendario` y `/configuracion`— las acusó el clasificador
+y **son falsos positivos**, comprobado mirando la captura: `/configuracion` es un
+formulario, donde «vacío» no es un estado que exista, y la rejilla del calendario
+se explica sola con «Nueva cita» a la vista. Se dejan como están, dicho aquí para
+que nadie las «arregle» dentro de seis meses. `/consulta` y `/expediente` siguen
+sin medir: piden un paciente, y un consultorio de cero no tiene ninguno.
+
 ## Las dos columnas sin medir, y por qué
 
 - **hierarchy** — se intentó con una razón «mayor texto ÷ segundo» y **el número
@@ -306,6 +314,7 @@ npm run arnes:nada-tapa            # nada flotante tapa un control
 npm run arnes:estado-de-carga      # el hueco dice que está cargando
 npm run arnes:caida-de-datos       # una caída no borra el consultorio
 npm run arnes:caida-parcial        # una caída parcial no es un día libre
+npm run arnes:cita-fuera-de-hora   # ninguna cita se queda fuera de la rejilla
 npm run arnes:consultorio-vacio    # el estado vacío, con un consultorio de cero
 npm run arnes:texto-largo          # el texto largo cabe y el campo lo enseña
 npm run arnes:listas-largas        # 250 pacientes y 90 citas, en su propio consultorio
