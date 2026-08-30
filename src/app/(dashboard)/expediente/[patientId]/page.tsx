@@ -38,6 +38,7 @@ import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
 import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
 import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import { estadoDeBanderas, avisoDeBanderasIncompletas } from '@/lib/expediente/banderas-de-riesgo'
 import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
@@ -175,7 +176,7 @@ export default function ExpedientePage() {
     problemas" en el riel y "4" en el resumen según el momento del render.
     Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
   */
-  const { problemas, vigentes } = useMemo(() => {
+  const { problemas, vigentes, proyeccionRecortada } = useMemo(() => {
     const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
       fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
       medicamentos: n.medicamentos,
@@ -219,6 +220,22 @@ export default function ExpedientePage() {
     { historialIncompleto: historialTruncado },
   )
   const avisoAlergias = avisoDeAlergiasQueNoSeVen(estadoAlergias)
+
+  /**
+   * EL EJE DE RIESGOS (WS-10) — reúne, no decide.
+   *
+   * Sale de las dos proyecciones que esta pantalla YA tiene y de las etiquetas
+   * del paciente: cero lecturas nuevas. Qué condición cuenta como bandera es
+   * política clínica del dueño y NO se decide aquí; lo que se enseña es lo que
+   * el médico o el consultorio ya declararon, con quién lo dijo y cuándo.
+   */
+  const banderas = estadoDeBanderas(
+    estadoAlergias,
+    { problemas, historialRecortado: proyeccionRecortada },
+    patient?.tags,
+    asOfNotas,
+  )
+  const avisoBanderas = avisoDeBanderasIncompletas(banderas)
 
   /*
     CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — sólo enseña las
@@ -407,6 +424,37 @@ export default function ExpedientePage() {
             )}
           </div>
         </div>
+      )}
+
+      {/*
+        LO QUE YA ESTÁ DECLARADO COMO RIESGO, JUNTO (WS-10).
+
+        No es una alarma y por eso no se pinta como tal: el aviso de alergias de
+        arriba SÍ señala algo que la compuerta de hoy no está mirando, y esto
+        sólo reúne lo que ya consta. Dos rojos seguidos harían que ninguno se
+        leyera.
+
+        Cada línea dice de dónde salió. Ninguna se reescribe.
+      */}
+      {banderas.banderas.length > 0 && (
+        <section style={{ marginBottom: 16 }} aria-label="Banderas de riesgo declaradas">
+          <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', fontWeight: 600 }}>
+            Riesgos declarados
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
+            {banderas.banderas.map((b, i) => (
+              <li key={`${b.origen}-${b.texto}-${i}`}>
+                <strong style={{ color: 'var(--text)' }}>{b.texto}</strong>
+                {b.detalle && <> · {b.detalle}</>}
+                {b.desde && <> · desde el {b.desde.slice(0, 10)}</>}
+                <span style={{ color: 'var(--text3)' }}> · {b.declaradoPor}</span>
+              </li>
+            ))}
+          </ul>
+          {avisoBanderas && (
+            <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{avisoBanderas}</div>
+          )}
+        </section>
       )}
 
       {(problemas.length > 0 || vigentes.length > 0) && (
