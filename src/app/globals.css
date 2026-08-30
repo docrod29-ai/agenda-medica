@@ -3478,3 +3478,79 @@ span.riel-aviso { cursor: default; }
   .nx-lift:hover { transform: translate3d(0, -3px, 0); border-color: var(--border2); }
 }
 .nx-lift:active { transform: translate3d(0, -1px, 0); }
+
+/* ─────────────────────────────────────────────────────────────────
+   LA REJILLA DE LA AGENDA — carril de excelencia de producto.
+
+   Tres cosas que a la rejilla semanal le faltaban, y ninguna es adorno:
+
+   1 · AHORA. `/citas` dibuja la hora actual desde v9xx (`.riel-ahora`); el
+       calendario no la dibujaba en absoluto. Dos vistas de la MISMA agenda,
+       y sólo una sabía qué hora es. Aquí está la otra mitad, con el mismo
+       vocabulario visual para que se lean como el mismo producto.
+
+   2 · RESPUESTA AL DEDO Y AL RATÓN. Los bloques de cita y las celdas vacías
+       decían `cursor: pointer` y no declaraban ninguna transición: se podían
+       pulsar y no acusaban recibo. Un hueco que no responde parece un hueco
+       muerto, y el médico vuelve a pulsar.
+
+       (Aquí decía la duración nula con su literal, y el guardián de
+       `v15-motion-tokens-una-sola-voz` la leyó como una duración escrita a
+       mano dentro de una transición. Tenía razón en cazarla: su escáner no
+       distingue comentario de declaración, y ésa es la clase de excepción que
+       luego deja pasar la de verdad. Se reescribió el comentario, no el
+       guardián.)
+
+   3 · El hueco vacío sólo se ofrece cuando el ratón está encima. Sin esto la
+       rejilla no dice dónde se puede agendar hasta que uno lo adivina.
+
+   Nada de esto pinta estado clínico: el estado va en el nombre accesible y
+   en la insignia. El movimiento aquí dice «te oí», no «esto está confirmado».
+   ───────────────────────────────────────────────────────────────── */
+
+.nx-agenda-celda {
+  background: transparent;
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+/* Tinte de fin de semana. Vivía como estilo en línea en la página, donde
+   ganaba a `:hover` y dejaba la respuesta al ratón muerta en las 91 celdas. */
+.nx-agenda-celda[data-finde] { background: rgba(242, 239, 233, 0.022); }
+@media (hover: hover) {
+  .nx-agenda-celda:hover { background: var(--s2); }
+}
+.nx-agenda-celda:focus-visible { background: var(--s2); }
+
+.nx-agenda-bloque {
+  transition:
+    transform var(--mov-presion) var(--mov-curva),
+    filter var(--mov-rapido) var(--mov-curva),
+    box-shadow var(--mov-rapido) var(--mov-curva);
+}
+@media (hover: hover) {
+  .nx-agenda-bloque:hover {
+    filter: brightness(1.35);
+    box-shadow: var(--elev-2);
+    z-index: 3;
+  }
+}
+.nx-agenda-bloque:active { transform: scale(0.985); }
+
+/* AHORA, en la rejilla. La línea cruza la columna del día y el punto marca el
+   borde por donde empieza — igual que en `/citas`. El color es el de la marca
+   porque «ahora» es orientación, no severidad clínica. */
+.nx-agenda-ahora {
+  position: absolute;
+  left: 0; right: 0;
+  height: 0;
+  border-top: 2px solid var(--teal);
+  z-index: 4;
+  pointer-events: none;
+}
+.nx-agenda-ahora::before {
+  content: '';
+  position: absolute;
+  left: -1px; top: -4px;
+  width: 7px; height: 7px;
+  border-radius: var(--r-circulo);
+  background: var(--teal);
+}

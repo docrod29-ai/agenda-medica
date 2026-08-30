@@ -920,3 +920,319 @@ superficies públicas: **12 → 2**.
 enlaces legales del pie, no caminos de producto: sus pseudos se pisan en una
 fila apretada, y separarlos cambia la maqueta del pie — decisión de diseño, no
 arreglo. El conteo tiene precisión de ±1 px.
+
+---
+
+# Pase de excelencia visual e interacción
+
+Segunda vuelta sobre el mismo carril y el mismo PR (#399). El encargo:
+*«Ausculta no debe sentirse estática, plana, genérica ni de plantilla»*, con
+prohibición explícita de resolverlo con degradados, sombras, bordes más
+redondos o animación por todas partes.
+
+Lo que sigue son las unidades de esa vuelta. Cada una nace de una **medición en
+navegador**, no de una opinión sobre una captura.
+
+---
+
+## Unidad 17 — el riel se apagaba en toda la agenda
+
+**FOUND.** En `/citas`, `/calendario`, `/asistente` y `/lista-espera` la
+navegación se apagaba **entera**: cero ítems activos y **cero
+`[aria-current="page"]`** en toda la pantalla, en escritorio y en móvil.
+`/pacientes` y `/pendientes` sí encendían. La agenda —lo que más se usa en un
+consultorio— era la única familia que no podía contestar «¿dónde estoy?».
+
+Medido con sonda de Playwright sobre el arnés con sesión, ruta por ruta, a 390 y
+1440 px. No se dedujo leyendo JSX.
+
+**ROOT_CAUSE.** No era «faltaba una ruta». La lista de destinos de Operaciones
+estaba escrita **dos veces**: completa en `operaciones/page.tsx` (`GRUPOS`,
+veinte destinos, agrupados y descritos) y **recortada a tres** en los rieles
+(`/operaciones`, `/configuracion`, `/guia`). Las dos copias habían divergido en
+diecisiete rutas. `CLAUDE.md`: «Nunca duplicar la fuente de verdad».
+
+La pista de que el producto ya sabía la respuesta estaba en el propio
+`BottomNav`: su variante de médico agrupaba `/calendario` y `/citas` bajo
+«Agenda». Los otros tres rieles, no. **El sistema se contradecía a sí mismo.**
+
+**FILES_OWNED.** `src/lib/navegacion/contextos.ts` (nuevo) ·
+`src/components/FlowRail.tsx` · `src/components/BottomNav.tsx`.
+
+**CROSS_LANE_CHECK.** Ninguno de los tres lo toca el carril de Master
+Completion. Verificado contra `origin/product/ausculta-master-completion`.
+
+**CHANGE.** No se añaden las rutas que faltaban: **se quita la segunda copia**.
+Una tabla única de contextos, con pertenencia por **segmento** (`/citas` cubre
+`/citas` y `/citas/x`, y no `/citaciones`). Los cuatro rieles preguntan ahí.
+
+**REGRESSION.** `el-riel-sabe-donde-estas.test.ts`, 7 casos. Probado al revés
+tres veces: (1) devolviendo «Hoy» a `pathname === '/dashboard'` → caen 4;
+(2) añadiendo un destino al índice sin mapearlo → cae el guardián de cobertura,
+nombrando la ruta huérfana; (3) devolviendo a la barra inferior su lista propia
+→ cae el caso de «no reconstruyen la suya».
+
+**BROWSER_PROOF.** Nueve rutas × dos anchos, contando `[aria-current="page"]` y
+comprobando que la barra indicadora **se pinta** (`::before`, 3 px,
+`rgb(42,165,181)`), no sólo que el atributo exista:
+
+| Ruta | Antes | Después |
+|---|---:|---|
+| `/citas` `/calendario` `/asistente` `/lista-espera` | **0** | 2 · «Hoy» |
+| `/finanzas` | **0** | 2 · «Operaciones» |
+| `/dashboard` `/pacientes` `/pendientes` `/operaciones` | 2 | 2 (sin cambio) |
+
+**RESIDUAL_RISK.** Que `/finanzas` sea «Operaciones» y no un contexto propio es
+una decisión de producto, no un teorema: el guardián sólo exige que **algún**
+contexto la reclame. `/consultor` y `/antibiograma` salieron del índice en
+RTC-09 y siguen sin contexto a propósito — decidirlo es una decisión de producto
+y `/consultor` lo está editando el otro carril.
+
+---
+
+## Unidad 18 — el estado de una cita vivía sólo en el pixel
+
+**FOUND.** En la rejilla del calendario el estado de una cita llegaba por tres
+canales y **ninguno servía a todo el mundo**: `title=` (sólo con ratón; en una
+tableta no existe), `opacity` y `text-decoration`. El nombre accesible decía
+literalmente «Cita de Nadia Ferreiro Ocampo a las 13:00» de una cita
+**cancelada**. Y la vista de **mes** no pintaba el estado por ningún canal:
+cancelada y confirmada, idénticas.
+
+**UN ERROR MÍO, Y VALE LA PENA DEJARLO ESCRITO.** La primera lectura de la sonda
+decía que *confirmada* y *pendiente* se pintaban igual. Era falso: la **siembra
+del arnés** escribía `estado: 'programada'`, que no es miembro de
+`AppointmentStatus`. El producto la caía por el `else` («el resto → sólido»), o
+sea la pintaba como confirmada. El defecto era del instrumento, no de la
+pantalla. Misma familia que el `urgencia` por `urgente` de la unidad 16: **un
+dato de prueba fuera del vocabulario hace mentir a la pantalla que se audita.**
+Corregida la siembra, el producto sí distingue — y el hallazgo real quedó más
+estrecho y más cierto.
+
+**ROOT_CAUSE.** `etiqueta:` se escribió como «quién y a qué hora», que es lo que
+identifica la cita. El estado se trató como decoración del bloque. Pero el
+estado es justo lo que el médico busca en la rejilla: quién no ha confirmado.
+
+**CHANGE.** El estado entra por el **nombre accesible** en las tres vistas, con
+una sola función (`@/lib/agenda/etiqueta-de-cita`). Un estado que el catálogo no
+conozca **se dice crudo**, no se calla — regla 5 de `clinical-safety`. La vista
+de mes recibe además la misma gramática visual de estado que semana y día.
+
+**REGRESSION.** `el-estado-de-la-cita-no-vive-solo-en-el-pixel.test.ts`, 7
+casos.
+
+**LA PRIMERA VERSIÓN DEL GUARDIÁN NO PODÍA FALLAR.** Comprobaba que la función
+*mencionara* el catálogo leyendo el fuente. Probada al revés —quitándole el
+estado a la cadena devuelta— seguía en verde: **mencionar no es devolver**. Por
+eso la función se sacó de la página a un módulo propio, donde se la puede
+llamar. Ahora el mismo defecto tumba tres casos. Es la regla de
+`testing-gates.md` cazándome a mí.
+
+**RESIDUAL_RISK.** Se comprueba el árbol accesible, **no el audio**: ningún
+lector de pantalla real se ha usado en este carril. Y no se juzga si «Pendiente
+confirmar» es el término que el médico espera oír.
+
+---
+
+## Unidad 19 — dos vistas de la misma agenda, y sólo una sabía qué hora era
+
+**FOUND.** `/citas` dibuja la hora actual desde v9xx (`.riel-ahora`, con su
+`role="separator"` y su nombre accesible). El **calendario no la dibujaba en
+absoluto** — la sonda no encontró ni un elemento que la marcara. Es el primer
+punto del §15 del encargo, y el producto lo tenía a medias.
+
+**ROOT_CAUSE.** El reloj estaba escrito **a mano dentro de `/citas`**. No había
+nada que compartir, así que el calendario nació sin él y nadie lo notó: cada
+pantalla se auditó por separado.
+
+**CHANGE.** El reloj se saca a `useAhoraMinutos`, y lo usan las dos. Se elige
+sacarlo en vez de copiarlo: dos copias acabarían refrescando a ritmos distintos,
+que es como empiezan los relojes que se contradicen. Nace `null` para no
+fabricar un desajuste de hidratación (familia V10-HARNESS-OBS-001) y la hora es
+la del **consultorio**, no la del proceso.
+
+**RESIDUAL_RISK.** La marca sólo aparece dentro de la franja horaria dibujada
+(07:00–19:00). Fuera de ella no hay línea — correcto, pero no lo dice.
+
+---
+
+## Unidad 20 — se podía pulsar y no acusaba recibo
+
+**FOUND.** Los bloques de cita y las celdas vacías del calendario declaraban
+`cursor: pointer` y `transition-duration: 0s`. Medido en el navegador sobre los
+cinco bloques del día: cero movimiento en el plano de contenido.
+
+**CHANGE.** Respuesta al ratón y al dedo con los tokens que ya existen
+(`--mov-presion`, `--mov-rapido`, `--mov-curva`): la celda vacía se ofrece al
+pasar por encima, el bloque se levanta y se hunde al pulsarlo. **Nada de esto
+pinta estado clínico**: el movimiento dice «te oí», no «esto está confirmado».
+
+**LO QUE SE DECIDIÓ NO HACER, Y POR QUÉ.** Las filas de `/citas` **no** llevan
+resaltado al pasar por encima. No son pulsables: son un `<div>` con un botón de
+acción y un menú aparte. Un resaltado de fila prometería un clic que no existe.
+Añadir movimiento donde no hay acción es exactamente lo que el §27 del encargo
+llama pulido falso.
+
+---
+
+## Unidad 21 — el arnés no recompila la hoja si nadie la mira
+
+**FOUND.** Reglas nuevas de `globals.css` no aparecían en la hoja servida por el
+arnés de desarrollo: la hoja terminaba **exactamente** en la última regla
+anterior al cambio. Sobrevivió a reiniciar el servidor y a borrar `.next`.
+
+**ROOT_CAUSE, en dos capas.** La primera fue mía: un servidor de la sesión
+anterior seguía dueño del puerto 3200 (seis horas de vida), así que **mis
+reinicios nunca llegaban a escuchar** — el hash de la hoja no cambiaba nunca, y
+esa era la pista. La segunda es real y queda anotada: una edición de
+`globals.css` hecha **mientras ningún servidor la vigila** no se recoge al
+arrancar; la hoja servida se queda una edición por detrás. Sólo un cambio hecho
+con el servidor en marcha dispara la recompilación.
+
+**CÓMO SE DEMOSTRÓ.** Con una regla marcadora única añadida al final: apareció
+en la hoja servida en el mismo instante en que se escribió con el servidor
+vigilando, y al borrarla la hoja siguió mostrándola. La hoja va **una edición
+por detrás**.
+
+**CONSECUENCIA PARA ESTE CARRIL.** Toda comprobación visual que dependa de CSS
+se hace contra el **build de producción**, no contra el arnés de desarrollo. El
+arnés sirve para recorrer y para leer el DOM; no para certificar una hoja.
+
+---
+
+## Unidad 22 — el estilo en línea mataba la respuesta al ratón
+
+**FOUND.** El arreglo de la unidad 20 **no funcionaba en las celdas**, y leyendo
+el CSS parecía correcto: la clase estaba puesta, la regla `:hover` existía, la
+transición estaba declarada. Las 91 celdas de la rejilla seguían sin responder.
+
+**CÓMO SE DESCUBRIÓ.** Midiendo `backgroundColor` antes y después de posar el
+ratón, sobre el **build de producción**: `rgba(0,0,0,0)` → `rgba(0,0,0,0)`. El
+bloque de cita sí respondía (`filter: none` → `brightness(1.35)`); la celda, no.
+
+**ROOT_CAUSE.** La celda llevaba el tinte de fin de semana como **estilo en
+línea** (`style={{ background: … }}`). Un estilo en línea gana siempre a la hoja,
+así que la regla `:hover` estaba escrita y muerta. Es «escrito y sin conectar»
+dentro de una hoja de estilos: el símbolo existe, la regla existe, y no llega.
+
+**CHANGE.** El tinte se muda a la hoja por atributo (`[data-finde]`), que es
+quien sabe de cascada. La página deja de opinar sobre el fondo de la celda.
+
+**REGRESSION.** `la-agenda-acusa-recibo.test.ts`, 6 casos. Probado al revés tres
+veces: devolviendo el `background` en línea, quitando la regla `:hover`, y
+escribiendo una duración a mano en vez del token. Caen los tres.
+
+**LA LECCIÓN, QUE ES LA DE SIEMPRE.** Un `git diff` que se ve bien no es una
+pantalla que funciona. Este defecto lo introduje yo arreglando el anterior, y
+sólo apareció porque la comprobación fue **medir el navegador**, no releer el
+cambio.
+
+---
+
+## Unidad 23 — el arnés de producción servía trozos de dos compilaciones
+
+**FOUND.** Tras reconstruir con el servidor de producción **en marcha**, la
+pantalla caía en su límite de error: `ChunkLoadError`, hojas rechazadas por MIME
+`text/plain`, y un 500. La rejilla no existía — cero celdas, cero bloques.
+
+**ROOT_CAUSE.** `next build` reemplaza `.next` bajo los pies del `next start`
+que lo está sirviendo: el manifiesto pasa a apuntar a trozos que ya no existen
+con ese nombre. No es un defecto del producto; es el arnés mintiendo, y de la
+peor forma — **una pantalla rota que parece un defecto de producto**.
+
+Un rato antes había pasado la variante barata del mismo error: `curl` sobre
+`/calendario` sin sesión **redirige a `/login`**, así que la hoja que yo estaba
+inspeccionando era la de la pantalla de entrada, no la del calendario. Dos veces
+seguidas midiendo algo que no era lo que creía medir.
+
+**CHANGE.** Procedimiento fijo para toda comprobación visual de este carril:
+**parar el servidor → borrar `.next` → construir → arrancar → medir**, y las
+hojas se leen desde el navegador **con sesión**, nunca con `curl` sobre una ruta
+privada.
+
+**RESIDUAL_RISK.** Nada de esto está automatizado: es disciplina escrita, y por
+tanto de la familia «depende de que alguien se acuerde». Queda declarado.
+
+---
+
+## Unidad 24 — las flechas que mueven la agenda no tenían nombre
+
+**FOUND.** `button-name`, impacto **crítico**, dos nodos, en `/calendario` a
+390, 768 y 1440 px. Las dos flechas `‹ ›` que mueven el calendario son un
+`<button>` con un icono dentro y **ninguna palabra**. Son la única forma de
+moverse por la rejilla.
+
+**NO ES NUEVO, Y ESO ES PARTE DEL HALLAZGO.** Está en la línea base de axe de
+V10 (`docs/design/capturas/v10-truth/axe-baseline.json`) y en la de V15, con el
+mismo selector (`.btn-ghost.btn-icon.btn:nth-child(4)`). Llevaba dos programas
+de diseño registrado y sin cerrar: medido, anotado y nunca arreglado. Es la
+familia «nadie lo estaba midiendo» en su variante peor — **sí se medía**, y aun
+así seguía ahí.
+
+**CHANGE.** Nombre accesible en las dos, derivado de la vista activa: no es lo
+mismo saltar una semana que un mes, y un «anterior» a secas no dice de qué.
+
+**REGRESSION.** Caso añadido a `la-agenda-acusa-recibo.test.ts`. Probado al
+revés quitando uno de los dos `aria-label`: cae.
+
+**LO QUE NO SE TOCÓ, Y POR QUÉ.** En la misma pantalla quedan:
+
+| Violación | Nodos | Decisión |
+|---|---:|---|
+| `nested-interactive` | 4 | **Declarada.** El bloque de cita es pulsable dentro de una celda pulsable. Arreglarlo bien es dejar de hacer botón la celda cuando tiene citas, y eso cambia dónde se puede pulsar para agendar — decisión de producto, no arreglo de accesibilidad. Estaba en la línea base de V10 con 5 nodos y en la de V15 con 6. |
+| `color-contrast` | 2 | **Declarada.** Es el texto de la cita cancelada, atenuado a 0,45 a propósito para que se lea «muerta». Subir el contraste borra la señal de estado; bajar la opacidad menos la debilita. Necesita rediseñar cómo se dice «cancelada» en la rejilla. |
+| `target-size` | 1 | **Declarada.** Una celda de la rejilla por debajo del mínimo a 390 px. Agrandarla cambia la densidad de la semana entera. |
+
+Ninguna de las tres subió con este carril. Las tres estaban ya en las líneas
+base. Se dejan escritas con su motivo en vez de arregladas a medias.
+
+---
+
+## Unidad 25 — el nombre del paciente era lo menos legible del bloque
+
+**FOUND.** `color-contrast`, impacto serio, en los bloques de cita de la rejilla
+semanal, a 390, 768 y 1440 px. No sólo en la cita cancelada —que se atenúa a
+propósito— sino también en una **confirmada, a opacidad 1**: ámbar
+`rgb(217,119,6)` a 11 px sobre un fondo del mismo ámbar al 13 %.
+
+En la superficie donde el médico busca a quién tiene a las nueve, **el nombre
+del paciente era lo menos legible del bloque**.
+
+**ROOT_CAUSE.** El texto se pintaba con el color del médico (`colorMedico`), que
+existe para distinguir agendas cuando hay varios. Un color de identidad estaba
+haciendo, además, de color de lectura. Son dos trabajos distintos y sólo uno de
+ellos tiene un mínimo de contraste que cumplir.
+
+**CHANGE.** Se separan. La identidad del médico se queda donde ya estaba y donde
+no compite con la lectura —el borde izquierdo de 3 px y el tinte del fondo— y el
+texto pasa al primer plano normal.
+
+**POR QUÉ NO SE ACLARÓ EL ÁMBAR.** Porque el color sale de una **paleta por
+médico**, y una paleta no se audita un color cada vez: aclarar éste dejaría el
+fallo esperando al siguiente médico que entrara al consultorio. El arreglo tiene
+que ser independiente del color que toque.
+
+**RESIDUAL_RISK.** La cita cancelada sigue a opacidad 0,45 a propósito, y eso
+baja su contraste. Es una señal de estado deliberada y va acompañada de tachado
+y del nombre accesible; subirla borraría la señal. Queda declarado, no arreglado.
+
+---
+
+## Nota sobre los conteos de axe: la siembra buena empeora el número
+
+Al arreglar la fecha de la siembra (unidad 23 bis), las citas pasaron a caer en
+el día que la aplicación llama «hoy». Eso subió los conteos de axe en
+`/calendario` (7 → 9) y en `/dashboard` (0 → 3).
+
+**No es una regresión: es que antes se estaba midiendo un día vacío.** Las
+violaciones de la rejilla son *por cita* —cada bloque pulsable dentro de una
+celda pulsable suma un `nested-interactive`—, así que un día sin citas puntúa
+mejor sin ser mejor.
+
+Queda escrito porque es la trampa que hace que una auditoría visual mejore sola
+cuando los datos empeoran. Los conteos de este acta se leen **siempre** contra la
+misma siembra.
+
+Las tres de `/dashboard` (`.riel-dur`, `.nx-meta` y una insignia) son de una
+pantalla que este carril **no posee** y aparecieron sólo porque ahora hay citas
+que pintar. Se declaran; no se tocan.

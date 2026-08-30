@@ -68,6 +68,7 @@ import { salirSeguro } from '@/lib/salir-seguro'
 import { useGrabando } from '@/hooks/useGrabando'
 import { useEncuentroAbierto } from '@/hooks/useEncuentroAbierto'
 import { rutaDelEncuentro } from '@/lib/nav/encuentro-abierto'
+import { contextoDeRuta } from '@/lib/navegacion/contextos'
 
 /**
  * V15-ENCOUNTER-MODE-001, §8.1 «navigation visually quiets»: medido en la
@@ -116,12 +117,15 @@ import { rutaDelEncuentro } from '@/lib/nav/encuentro-abierto'
  * privadas idénticas del hook (la otra en BottomNav) que dejaron a la pila de
  * avisos del layout sin cubrir.
  */
-const ES_CONTEXTO_PACIENTE = (p: string) =>
-  p.startsWith('/pacientes') || p.startsWith('/expedientes') || p.startsWith('/expediente/')
-
-const ES_CONTEXTO_ENCUENTRO = (p: string) =>
-  p.startsWith('/consulta/') || p.startsWith('/nota/') || p.startsWith('/receta/') ||
-  p.startsWith('/orden/') || p.startsWith('/referencia/')
+/**
+ * Los contextos ya no se deciden aquí: viven en `@/lib/navegacion/contextos`,
+ * que es la única tabla, y de la que también bebe la barra inferior.
+ *
+ * Antes esta copia decía que «Operaciones» eran tres rutas cuando el índice de
+ * `/operaciones` declara veinte, así que al entrar en `/citas`, `/calendario`,
+ * `/asistente` o `/lista-espera` el riel se apagaba entero — ni ítem activo ni
+ * `aria-current`. El detalle y la medición, en ese módulo.
+ */
 
 export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname() ?? ''
@@ -146,7 +150,8 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
    *      deja en la lista de pacientes y encima ilumina «Paciente» rompe la
    *      pregunta de §15 en el primer uso.
    */
-  const enEncuentro = ES_CONTEXTO_ENCUENTRO(pathname)
+  const contexto = contextoDeRuta(pathname)
+  const enEncuentro = contexto === 'encuentro'
   const abierto = useEncuentroAbierto()
   const encounterHref = enEncuentro
     ? pathname
@@ -203,9 +208,9 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
       {/* Los cuatro contextos que SÍ son ruta */}
       <nav className="sidebar-nav" aria-label="Contextos clínicos">
         <RailLink href="/dashboard" label="Hoy" icon={CalendarClock}
-          activo={pathname === '/dashboard'} onNavigate={onNavigate} />
+          activo={contexto === 'hoy'} onNavigate={onNavigate} />
         <RailLink href="/pacientes" label="Paciente" icon={UserSquare2}
-          activo={ES_CONTEXTO_PACIENTE(pathname)} onNavigate={onNavigate} />
+          activo={contexto === 'paciente'} onNavigate={onNavigate} />
         <RailLink href={encounterHref} label="Encuentro" icon={Stethoscope}
           activo={enEncuentro} onNavigate={onNavigate}
           titulo={encounterTitulo}
@@ -214,11 +219,11 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
              ruido sobre la superficie clínica (§8.5). */
           senal={!enEncuentro && !!abierto} />
         <RailLink href="/pendientes" label="Seguimiento" icon={ListChecks}
-          activo={pathname.startsWith('/pendientes')} onNavigate={onNavigate} />
+          activo={contexto === 'seguimiento'} onNavigate={onNavigate} />
 
         <div className="nav-section-title nx-flow-rail-quiet-hide" style={{ marginTop: 14 }}>Operaciones</div>
         <RailLink href="/operaciones" label="Operaciones" icon={Settings2}
-          activo={pathname.startsWith('/operaciones') || pathname.startsWith('/configuracion') || pathname.startsWith('/guia')}
+          activo={contexto === 'operaciones'}
           onNavigate={onNavigate} subordinado />
       </nav>
 

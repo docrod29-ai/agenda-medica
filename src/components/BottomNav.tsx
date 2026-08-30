@@ -48,16 +48,22 @@ import { useMode } from '@/context/ModeContext'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { useGrabando } from '@/hooks/useGrabando'
+import { contextoDeRuta } from '@/lib/navegacion/contextos'
 
 type Item = {
   href: string; label: string; icon: typeof LayoutDashboard
   active: (path: string) => boolean
 }
 
+/**
+ * Aquí estaba la única pista de que el producto YA sabía que `/citas` y
+ * `/calendario` son la misma familia: este «Agenda» los agrupaba. Los otros
+ * tres rieles no. Ahora los cuatro preguntan a la misma tabla.
+ */
 const COMMON: Item[] = [
   { href: '/dashboard', label: 'Inicio',    icon: LayoutDashboard, active: p => p === '/dashboard' },
-  { href: '/calendario', label: 'Agenda',   icon: Calendar,        active: p => p.startsWith('/calendario') || p.startsWith('/citas') },
-  { href: '/pacientes', label: 'Pacientes', icon: Users,           active: p => p.startsWith('/pacientes') || p.startsWith('/expediente') },
+  { href: '/calendario', label: 'Agenda',   icon: Calendar,        active: p => contextoDeRuta(p) === 'hoy' && p !== '/dashboard' },
+  { href: '/pacientes', label: 'Pacientes', icon: Users,           active: p => contextoDeRuta(p) === 'paciente' },
 ]
 
 /**
@@ -67,12 +73,10 @@ const COMMON: Item[] = [
  * se recortan por paquete, y el móvil no debe divergir del escritorio.
  */
 const CONTEXTOS_V15: Item[] = [
-  { href: '/dashboard', label: 'Hoy', icon: CalendarClock, active: p => p === '/dashboard' },
-  { href: '/pacientes', label: 'Paciente', icon: UserSquare2,
-    active: p => p.startsWith('/pacientes') || p.startsWith('/expedientes') || p.startsWith('/expediente/') },
-  { href: '/pendientes', label: 'Seguimiento', icon: ListChecks, active: p => p.startsWith('/pendientes') },
-  { href: '/operaciones', label: 'Operaciones', icon: Settings2,
-    active: p => p.startsWith('/operaciones') || p.startsWith('/configuracion') || p.startsWith('/guia') },
+  { href: '/dashboard', label: 'Hoy', icon: CalendarClock, active: p => contextoDeRuta(p) === 'hoy' },
+  { href: '/pacientes', label: 'Paciente', icon: UserSquare2, active: p => contextoDeRuta(p) === 'paciente' },
+  { href: '/pendientes', label: 'Seguimiento', icon: ListChecks, active: p => contextoDeRuta(p) === 'seguimiento' },
+  { href: '/operaciones', label: 'Operaciones', icon: Settings2, active: p => contextoDeRuta(p) === 'operaciones' },
 ]
 
 /**

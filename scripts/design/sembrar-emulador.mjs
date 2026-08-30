@@ -50,13 +50,36 @@ const CLAVE = 'demo1234'
 const CLINICA = 'consultorio-demo-v10'
 
 // ── Fechas: hoy, a las horas del consultorio ────────────────────────────────
+/**
+ * «HOY» ES EL DEL CONSULTORIO, NO EL DEL CONTENEDOR.
+ *
+ * Esto usaba `new Date().getDate()`, que es la fecha LOCAL DEL PROCESO. En esta
+ * caja el proceso corre en UTC y el consultorio está en `America/Mexico_City`
+ * (UTC-6): entre las 18:00 y la medianoche de México, el contenedor ya está en
+ * el día siguiente.
+ *
+ * Consecuencia real, vista en una auditoría visual: la siembra ponía las cinco
+ * citas en el día 30 mientras la aplicación —que sí usa la zona del
+ * consultorio— decía que hoy era el 29. La agenda del día salía VACÍA y el
+ * marcador de «hoy» señalaba una columna sin nada. Nada de eso era un defecto
+ * del producto; era el arnés sembrando en el día equivocado.
+ *
+ * Es el mismo error que `lib/timezone.ts` lleva años impidiendo dentro del
+ * producto, cometido en la herramienta que lo audita.
+ */
+const TZ_CONSULTORIO = 'America/Mexico_City'
+const enZona = (d) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ_CONSULTORIO, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d)
+
 const hoy = new Date()
 const iso = (d) => d.toISOString()
-const dia = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+const dia = enZona(hoy)
 const enDias = (n) => {
   const d = new Date(hoy)
-  d.setDate(d.getDate() + n)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  d.setUTCDate(d.getUTCDate() + n)
+  return enZona(d)
 }
 
 /**
@@ -125,14 +148,31 @@ const PACIENTES = [
  * justo lo que V10 §15 pide moderar: si todas las citas están confirmadas, la
  * pantalla se ve tranquila por accidente y no por diseño.
  */
+/**
+ * LOS ESTADOS SON DEL TIPO, NO INVENTADOS.
+ *
+ * Aquí se sembraba `programada`, que NO es miembro de `AppointmentStatus`. El
+ * producto no la conoce, así que `APPOINTMENT_STATUS_CONFIG['programada']` es
+ * `undefined`: la insignia no se pintaba y la rejilla la caía por el `else`
+ * («el resto → sólido»), es decir, la pintaba como si estuviera CONFIRMADA.
+ *
+ * El daño no era del producto sino de esta siembra: hacía que una auditoría
+ * visual concluyera «confirmada y pendiente se ven igual» cuando lo que pasaba
+ * es que el arnés estaba inventando un estado. Misma familia que el `urgencia`
+ * por `urgente` de la unidad 16 — un dato de prueba fuera del vocabulario hace
+ * mentir a la pantalla que se está auditando.
+ *
+ * `pendiente-confirmar` es el estado real de una cita que aún no confirma el
+ * paciente, y es el que de verdad llena la agenda de un consultorio.
+ */
 const CITAS = [
   { id: 'cita-001', pac: 'pac-001', hora: '09:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control de glucosa y revisión de función renal' },
-  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'programada', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
+  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
   { id: 'cita-003', pac: 'pac-002', hora: '11:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Resultados de laboratorio' },
-  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'programada', conf: false, motivo: 'Fiebre de tres días' },
+  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Fiebre de tres días' },
   { id: 'cita-005', pac: 'pac-003', hora: '13:00', dur: 30, tipo: 'Seguimiento', estado: 'cancelada', conf: false, motivo: 'Control prenatal' },
-  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'programada', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
-  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'programada', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
+  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
+  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
 ]
 
 // ── Traductor a la representación tipada de Firestore ───────────────────────

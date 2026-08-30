@@ -39,6 +39,7 @@ import { Button, EmptyState, Spinner } from '@/components/ui'
 import { AgendaVacia } from '@/components/brand/EmptyArt'
 import { describirAgendaVacia } from '@/lib/agenda/vacio-de-la-agenda'
 import { useMode } from '@/context/ModeContext'
+import { useAhoraMinutos, comoHHMM } from '@/hooks/useAhoraMinutos'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
   { label: 'Todas', value: 'todas' },
@@ -298,21 +299,15 @@ export default function CitasPage() {
   )
 
   /**
-   * EL MOMENTO ACTUAL — la hora del consultorio para el marcador de AHORA.
-   * Nace tras montar (null en el primer render) para no fabricar un mismatch
-   * de hidratación por hora servidor≠cliente (la familia de
-   * V10-HARNESS-OBS-001), y se refresca cada minuto.
+   * EL MOMENTO ACTUAL — ahora del hook compartido `useAhoraMinutos`.
+   *
+   * Este reloj estaba escrito aquí a mano y el calendario no tenía ninguno, así
+   * que la rejilla semanal no dibujaba la hora actual. Al dárselo al calendario
+   * había dos caminos: copiarlo, o sacarlo. Copiado, las dos vistas de la misma
+   * agenda acabarían refrescando a ritmos distintos.
    */
-  const [ahoraHHMM, setAhoraHHMM] = useState<string | null>(null)
-  useEffect(() => {
-    const tick = () => {
-      const min = ahoraMinutosDelDia()
-      setAhoraHHMM(`${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`)
-    }
-    tick()
-    const id = setInterval(tick, 60_000)
-    return () => clearInterval(id)
-  }, [])
+  const ahoraMin = useAhoraMinutos()
+  const ahoraHHMM = comoHHMM(ahoraMin)
   const esHoy = selectedDate === todayStr()
 
   // Dónde se inserta el marcador de AHORA: antes de la primera cita cuya hora

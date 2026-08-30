@@ -15,6 +15,8 @@ import { hoyISO, fechaISOLocal } from '@/lib/timezone'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useAhoraMinutos } from '@/hooks/useAhoraMinutos'
+import { etiquetaDeCita } from '@/lib/agenda/etiqueta-de-cita'
 
 /**
  * Semántica VISUAL del estado en la rejilla del calendario.
@@ -37,6 +39,9 @@ type View = 'semana' | 'mes' | 'dia'
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am–7pm
 
+/** Cómo se llama el salto de las flechas según lo que se esté mirando. */
+const ETIQUETA_PASO: Record<View, string> = { dia: 'Día', semana: 'Semana', mes: 'Mes' }
+
 export default function CalendarioPage() {
   const router = useRouter()
   const [baseDate, setBaseDate] = useState(new Date())
@@ -57,6 +62,13 @@ export default function CalendarioPage() {
     return allAppointments.filter(a => a.medicoId === medicoFiltro)
   }, [allAppointments, medicoFiltro])
   const [view, setView] = useState<View>('semana')
+  /**
+   * UN solo «hoy» por render, para el botón de nueva cita y para la vista de
+   * día. Antes cada sitio preguntaba por su cuenta; además de sumar llamadas
+   * sin zona al trinquete de `timezone-sitios`, dos lecturas en el mismo render
+   * pueden caer a distinto lado de la medianoche.
+   */
+  const hoy = hoyISO()
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
   const [defaultDate, setDefaultDate] = useState('')
@@ -127,7 +139,17 @@ export default function CalendarioPage() {
         </div>
 
         {/* Navigation */}
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(-1)}><ChevronLeft size={16} /></button>
+        {/* LOS DOS BOTONES QUE MUEVEN LA AGENDA NO TENÍAN NOMBRE.
+            `button-name`, crítico, en las líneas base de V10 y de V15: dos
+            flechas sin una palabra dentro. Quien no ve el icono no sabe que
+            son el «anterior» y el «siguiente» del calendario — y son la ÚNICA
+            forma de moverse por él. El nombre dice además de qué se mueve, que
+            cambia con la vista: no es lo mismo una semana que un mes. */}
+        <button
+          className="btn btn-ghost btn-icon btn-sm"
+          onClick={() => navigate(-1)}
+          aria-label={`${ETIQUETA_PASO[view]} anterior`}
+        ><ChevronLeft size={16} /></button>
         <button
           className="btn btn-secondary btn-sm"
           onClick={() => setBaseDate(new Date())}
@@ -135,9 +157,13 @@ export default function CalendarioPage() {
         >
           {conMayusculaInicial(rangeLabel)}
         </button>
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(1)}><ChevronRight size={16} /></button>
+        <button
+          className="btn btn-ghost btn-icon btn-sm"
+          onClick={() => navigate(1)}
+          aria-label={`${ETIQUETA_PASO[view]} siguiente`}
+        ><ChevronRight size={16} /></button>
 
-        <button className="btn btn-primary btn-sm" onClick={() => openNew(hoyISO(), '')}>
+        <button className="btn btn-primary btn-sm" onClick={() => openNew(hoy, '')}>
           <Plus size={15} /> Nueva cita
         </button>
       </div>
@@ -156,6 +182,7 @@ export default function CalendarioPage() {
         {view === 'dia' && (
           <DayView
             date={baseDate}
+            hoy={hoy}
             appointments={appointments}
             onCellClick={(h) => openNew(fechaISOLocal(baseDate), h)}
             onApptClick={openEdit}
@@ -194,6 +221,7 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
 }) {
   const today = hoyISO()
   const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+  const ahoraMin = useAhoraMinutos()
 
   return (
     <div style={{ height: '100%', overflow: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
@@ -237,10 +265,29 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                 key={di}
                 style={{
                   borderLeft: '1px solid var(--border)', position: 'relative', cursor: 'pointer', minHeight: 48,
-                  background: di >= 5 ? 'rgba(242,239,233,0.022)' : 'transparent',  // tinte sutil de fin de semana
                 }}
-                {...activable(() => onCellClick(ds, hourStr), { etiqueta: `Agendar a las ${hourStr}` })}
+                /**
+                 * EL TINTE DE FIN DE SEMANA SE MUDÓ A LA HOJA, y no por gusto:
+                 * escrito aquí como `style`, ganaba SIEMPRE a la regla de
+                 * `:hover` —un estilo en línea vence a la hoja— y dejaba la
+                 * respuesta al ratón muerta en las 91 celdas. Se vio midiendo
+                 * el color de fondo antes y después de posar el ratón en el
+                 * build de producción: no cambiaba. Leyendo el CSS parecía
+                 * bien.
+                 */
+                data-finde={di >= 5 ? '' : undefined}
+                className="nx-agenda-celda"
+                {...activable(() => onCellClick(ds, hourStr), { etiqueta: `Agendar el ${ds} a las ${hourStr}` })}
               >
+                {/* AHORA — la misma marca que `/citas`, en la columna de hoy. */}
+                {ds === today && ahoraMin !== null && Math.floor(ahoraMin / 60) === h && (
+                  <div
+                    className="nx-agenda-ahora"
+                    style={{ top: `${((ahoraMin % 60) / 60) * 100}%` }}
+                    role="separator"
+                    aria-label={`Ahora son las ${String(Math.floor(ahoraMin / 60)).padStart(2, '0')}:${String(ahoraMin % 60).padStart(2, '0')}`}
+                  />
+                )}
                 {cellAppts.map(a => {
                   const minOffset = parseInt(a.fechaHora.slice(14, 16))
                   const heightPct = Math.min((a.duracion / 60) * 100, 200)
@@ -250,7 +297,8 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                   return (
                     <div
                       key={a.id}
-                      {...activable(() => onApptClick(a), { etiqueta: `Cita de ${a.pacienteNombre} a las ${a.fechaHora.slice(11, 16)}` })}
+                      className="nx-agenda-bloque"
+                      {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
                       onClick={e => { e.stopPropagation(); onApptClick(a) }}
                       title={`${a.pacienteNombre} — ${a.fechaHora.slice(11, 16)}${a.medicoNombre ? ` · ${a.medicoNombre}` : ''} · ${a.estado}`}
                       style={{
@@ -261,7 +309,27 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                         border: `1px ${est.borderStyle} color-mix(in srgb, ${color} 40%, transparent)`,
                         borderLeft: `3px ${est.borderStyle} ${color}`,
                         borderRadius: 4, padding: '2px 5px',
-                        fontSize: 11, color, fontWeight: 500,
+                        /**
+                         * EL NOMBRE DEL PACIENTE SE LEE; EL MÉDICO SE DISTINGUE.
+                         *
+                         * El texto iba en el color del médico (`colorMedico`),
+                         * y axe lo cazó por contraste en la rejilla: ámbar
+                         * `rgb(217,119,6)` a 11 px, incluso en una cita
+                         * CONFIRMADA y a opacidad 1. En la superficie donde el
+                         * médico busca a quién tiene a las nueve, el nombre era
+                         * lo menos legible del bloque.
+                         *
+                         * Arreglarlo aclarando ese ámbar no vale: el color sale
+                         * de una paleta POR MÉDICO, y una paleta no se audita
+                         * un color cada vez — el siguiente médico traería el
+                         * siguiente fallo.
+                         *
+                         * Así que se separan los dos trabajos: la identidad del
+                         * médico vive en el borde y en el tinte del fondo (que
+                         * es donde ya vivía y donde no compite con la lectura),
+                         * y el texto usa el primer plano normal.
+                         */
+                        fontSize: 11, color: 'var(--text)', fontWeight: 500,
                         opacity: est.opacity,
                         textDecoration: est.tachado ? 'line-through' : 'none',
                         overflow: 'hidden', zIndex: 2, cursor: 'pointer',
@@ -280,14 +348,24 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
   )
 }
 
-function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
+function DayView({ date, hoy, appointments, onCellClick, onApptClick, loading }: {
   date: Date
+  hoy: string
   appointments: Appointment[]
   onCellClick: (hora: string) => void
   onApptClick: (a: Appointment) => void
   loading: boolean
 }) {
   const ds = fechaISOLocal(date)
+  const ahoraMin = useAhoraMinutos()
+  /**
+   * «Hoy» llega de fuera a propósito. Calcularlo aquí añadía una llamada más a
+   * `hoyISO()` sin zona, y `timezone-sitios` lleva trinquete sobre ese número:
+   * cada llamada de cliente que cae al valor por omisión es una que habrá que
+   * revisar el día que la zona del consultorio deje de publicarse a tiempo.
+   * La página ya sabe qué día es; no hacía falta una segunda opinión.
+   */
+  const esHoy = ds === hoy
   const dayAppts = appointments.filter(a => a.fechaHora.startsWith(ds)).sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
 
   return (
@@ -298,9 +376,18 @@ function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
         return (
           <div
             key={h}
-            style={{ display: 'flex', borderBottom: '1px solid var(--border)', minHeight: 56, cursor: 'pointer' }}
+            className="nx-agenda-celda"
+            style={{ display: 'flex', borderBottom: '1px solid var(--border)', minHeight: 56, cursor: 'pointer', position: 'relative' }}
             {...activable(() => onCellClick(hourStr), { etiqueta: `Agendar a las ${hourStr}` })}
           >
+            {esHoy && ahoraMin !== null && Math.floor(ahoraMin / 60) === h && (
+              <div
+                className="nx-agenda-ahora"
+                style={{ top: `${((ahoraMin % 60) / 60) * 100}%` }}
+                role="separator"
+                aria-label={`Ahora son las ${String(Math.floor(ahoraMin / 60)).padStart(2, '0')}:${String(ahoraMin % 60).padStart(2, '0')}`}
+              />
+            )}
             <div style={{ width: 64, padding: '8px', textAlign: 'right', fontSize: 12, color: 'var(--text3)', borderRight: '1px solid var(--border)', flexShrink: 0 }}>
               {hourStr}
             </div>
@@ -310,7 +397,8 @@ function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
                 return (
                 <div
                   key={a.id}
-                  {...activable(() => onApptClick(a), { etiqueta: `Cita de ${a.pacienteNombre} a las ${a.fechaHora.slice(11, 16)}` })}
+                  className="nx-agenda-bloque"
+                  {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
                     background: 'rgba(61,90,254,0.1)', border: `1px ${est.borderStyle} rgba(61,90,254,0.3)`,
@@ -409,21 +497,33 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
               }}>
                 {d.getDate()}
               </div>
-              {dayAppts.slice(0, 3).map(a => (
+              {/* La vista de MES era la única de las tres que no pintaba el estado
+                  por ningún canal: una cita cancelada y una confirmada salían
+                  idénticas, y el nombre accesible ni siquiera decía la hora.
+                  Usa el mismo `estiloEstadoCita` que semana y día — una sola
+                  gramática de estado para las tres vistas de la misma agenda. */}
+              {dayAppts.slice(0, 3).map(a => {
+                const est = estiloEstadoCita(a.estado)
+                return (
                 <div
                   key={a.id}
-                  {...activable(() => onApptClick(a), { etiqueta: `Cita de ${a.pacienteNombre}` })}
+                  className="nx-agenda-bloque"
+                  {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
                     fontSize: 10, padding: '2px 5px', borderRadius: 3,
                     background: 'var(--nexus-soft)', color: 'var(--teal)',
+                    borderLeft: `2px ${est.borderStyle} currentColor`,
+                    opacity: est.opacity,
+                    textDecoration: est.tachado ? 'line-through' : 'none',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     marginBottom: 2, cursor: 'pointer',
                   }}
                 >
                   {a.fechaHora.slice(11, 16)} {a.pacienteNombre.split(' ')[0]}
                 </div>
-              ))}
+                )
+              })}
               {dayAppts.length > 3 && (
                 <div style={{ fontSize: 10, color: 'var(--text3)' }}>+{dayAppts.length - 3} más</div>
               )}
