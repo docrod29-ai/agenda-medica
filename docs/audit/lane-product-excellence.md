@@ -2602,3 +2602,85 @@ ambiental.
 - No se miran `src/app/mi/**` (portal del paciente) ni UCI/hospital.
 - No se juzga el orden de tabulación **dentro** de un diálogo correcto, sólo que
   el foco no se escape.
+
+---
+
+## Unidad 49 — el teclado del diálogo, escrito una vez
+
+**POR QUÉ EXISTE.** Residual de la unidad 48: cinco diálogos a mano sin el
+teclado completo. La forma obvia de cerrarlos —copiar la trampa de foco cinco
+veces— es exactamente lo que `CLAUDE.md` prohíbe y lo que este repositorio ya
+pagó una vez: «cinco implementaciones del cálculo de huecos, cuatro de ellas
+desactualizadas».
+
+**CHANGE — primero factorizar, luego aplicar.**
+
+`useDialogoDeTeclado` sale de `ui/Modal.tsx` **sin cambiar una línea de lógica**.
+No es una implementación nueva: es la que ya estaba bien, puesta donde puedan
+usarla los diálogos que **no pueden ser un `Modal`**. Y `Modal` pasa a usarla,
+para que no queden dos copias — que era el riesgo entero de la maniobra.
+
+Trae las cinco: Escape (opcional), trampa de foco en los dos sentidos, foco
+inicial (opcional), scroll del cuerpo bloqueado y foco devuelto a quien abrió.
+
+**LOS DOS QUE SE CIERRAN, Y POR QUÉ NO PODÍAN SER UN `Modal`.**
+
+- **`AutoLogout`** — el aviso de cierre de sesión por inactividad. `Modal` cierra
+  con Escape, y aquí eso **sería el defecto**: un Escape distraído desactiva un
+  control de seguridad (LFPDPPP). Va con `cierraConEscape: false`.
+  Lo que sí le faltaba y ahora tiene: trampa de foco, foco inicial, foco
+  devuelto, `aria-modal` y `role="alertdialog"` —no `dialog`: interrumpe y pide
+  una decisión con plazo—, más `aria-labelledby`/`describedby`.
+  **El daño concreto**: sin trampa, quien sólo usa teclado podía tabular fuera
+  del aviso y **no llegar a «Seguir conectado» antes de que se cerrara la
+  sesión** — perdiendo el trabajo que el aviso existe para no perder.
+- **`PaletteBusqueda`** — el centro de comandos. Gobierna su propio teclado
+  (flechas, Enter) y enfoca su campo, así que va con `enfocaAlAbrir: false`.
+  Tenía Escape y foco inicial —lo que se nota con ratón—; le faltaba lo que sólo
+  se nota con teclado. **Era la única superficie del producto que existe para no
+  tocar el ratón, y era la que dejaba escapar el foco.**
+
+**PROOF — navegador, 25 pulsaciones de Tab con el diálogo abierto.**
+
+| | se anuncia | Tab fuera | Escape |
+|---|---|---|---|
+| `Modal` canónico, **tras** sacarle el teclado al gancho | sí | **0 de 25** | cierra |
+| Paleta de búsqueda, antes | no había rol | (sin trampa) | cerraba |
+| Paleta de búsqueda, ahora | sí | **0 de 25** | cierra |
+
+Lo primero era el riesgo de la unidad: refactorizar un componente compartido y
+proven. Medido, no supuesto — **el canónico se comporta igual que antes del
+refactor**, con la misma sonda y el mismo build limpio.
+
+**REGRESSION.** El guardián de la unidad 48 crece a 11 casos y aprende a
+distinguir tres familias: los que usan `Modal`, los que usan el gancho (por
+nombre, con su razón) y los que siguen a mano. Probado al revés **cuatro veces**:
+quitando el gancho de `AutoLogout`, quitándole la opción de Escape, devolviéndole
+a `Modal` su teclado propio, y quitándole el rol a la paleta.
+
+**Y una trampa que sólo salió al probar al revés:** el caso de
+`cierraConEscape: false` pasaba **con la opción borrada del código**, porque el
+párrafo que la explica la nombra. Un comentario satisfacía la prueba. Ahora se
+mira el archivo **sin su prosa**. Es la segunda vez en dos unidades que probar al
+revés caza un defecto en mi propio guardián, y las dos veces el defecto era del
+tipo que no se ve leyendo.
+
+**COMPUERTAS.** `vitest` 10 805/10 806 · trinquete de lint 95 · trinquete de
+diseño sin deuda · `tsc` limpio · `npm run build` compila · inventario
+regenerado. Único rojo: `ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- **`AutoLogout` NO está probado en navegador.** Necesita 30 minutos de
+  inactividad y no hay forma de adelantarlo aquí: manipular el reloj congela el
+  SDK de Firestore (probado, unidad 32). Su teclado está probado **en fuente y
+  por el gancho compartido**, que sí está medido en dos diálogos. No es lo
+  mismo, y por eso se dice.
+- **Quedan tres a mano**, declarados en la prueba: `PanelLaboratorios` (le
+  faltan las tres), el cajón de navegación de `layout.tsx` (tiene rol, le faltan
+  Escape y trampa) y `OnboardingTour` (tiene Escape, le falta trampa). El
+  trinquete de la lista baja de 5 a 3 y no puede subir.
+- No se juzga el **orden** de tabulación dentro de un diálogo correcto, sólo que
+  el foco no se escape.
+- Sigue sin usarse ningún lector de pantalla real: `role` y `aria-*` se
+  comprueban por su presencia, no por cómo suenan.

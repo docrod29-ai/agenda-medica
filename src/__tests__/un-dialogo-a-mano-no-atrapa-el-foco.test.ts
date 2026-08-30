@@ -64,20 +64,36 @@ const NO_SON_DIALOGOS: Record<string, string> = {
  * escondidos. Cerrar uno obliga a quitarlo de aquí.
  */
 const ABIERTOS: Record<string, string> = {
-  'src/components/AutoLogout.tsx':
-    'aviso de cierre de sesión: NO debe cerrarse con Escape —sería desactivar ' +
-    'un control de seguridad sin querer— pero le faltan la trampa de foco y el rol',
   'src/components/laboratorio/PanelLaboratorios.tsx':
     'revisión de lo que leyó la IA; le faltan las tres',
   'src/app/(dashboard)/layout.tsx':
     'cajón de navegación en móvil: tiene role=dialog, le faltan Escape y trampa',
   'src/components/OnboardingTour.tsx': 'tiene Escape; le falta la trampa de foco',
+}
+
+/**
+ * Diálogos que usan el gancho `useDialogoDeTeclado` en vez de `ui/Modal`, con
+ * la razón por la que no pueden ser un `Modal`. Tienen el teclado completo; lo
+ * que cambia es una regla, y está declarada.
+ *
+ * El barrido por patrón no los distingue —no llevan `key === 'Escape'` escrito,
+ * lo trae el gancho— así que se piden por nombre: cada uno debe llamar al
+ * gancho y anunciarse con su rol.
+ */
+const CON_GANCHO: Record<string, string> = {
+  'src/components/AutoLogout.tsx':
+    'aviso de cierre de sesión: NO debe cerrarse con Escape, sería desactivar ' +
+    'un control de seguridad sin querer',
   'src/components/PaletteBusqueda.tsx':
-    'tiene Escape y enfoca su campo; le faltan la trampa y el rol',
+    'la paleta gobierna su propio teclado (flechas, Enter) y enfoca su campo',
 }
 
 // Sin la bandera `s`: no se usa `.` en ninguna parte —`[^}]` ya cruza saltos de
 // línea— y el objetivo de TypeScript de este proyecto no la admite.
+/** El código sin su prosa: un comentario no puede satisfacer una prueba. */
+const sinComentarios = (s: string) =>
+  s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+
 const CAPA = /position: ['"]fixed['"][^}]{0,220}(inset: 0|top: 0[^}]{0,80}left: 0)/
 
 /**
@@ -99,22 +115,34 @@ function dialogosAMano(): string[] {
     if (f.endsWith('ui/Modal.tsx')) continue
     const s = readFileSync(f, 'utf8')
     if (!CAPA.test(s) && !/className=["'][^"']*modal-overlay/.test(s)) continue
-    const completo = ESCAPE.test(s) && TRAMPA.test(s) && ROL.test(s)
+    // El gancho trae Escape y trampa; quien lo usa sólo pone el rol.
+    const conGancho = /useDialogoDeTeclado\(/.test(s)
+    const completo = conGancho
+      ? ROL.test(s)
+      : ESCAPE.test(s) && TRAMPA.test(s) && ROL.test(s)
     if (!completo) fuera.push(f)
   }
   return fuera.sort()
 }
 
-describe('el diálogo canónico sigue siendo canónico', () => {
+describe('el teclado del diálogo vive en un solo sitio', () => {
+  const GANCHO = readFileSync('src/hooks/useDialogoDeTeclado.ts', 'utf8')
   const MODAL = readFileSync('src/components/ui/Modal.tsx', 'utf8')
 
-  it('trae las cuatro cosas que un diálogo necesita', () => {
-    expect(MODAL, 'Escape').toMatch(ESCAPE)
-    expect(MODAL, 'trampa de foco').toMatch(TRAMPA)
+  it('el gancho trae las cinco cosas que un diálogo necesita', () => {
+    expect(GANCHO, 'Escape').toMatch(ESCAPE)
+    expect(GANCHO, 'trampa de foco').toMatch(TRAMPA)
+    // Devuelve el foco: sin esto, cerrar deja al teclado al principio de todo.
+    expect(GANCHO, 'devuelve el foco a quien lo abrió').toMatch(/disparador\?\.focus/)
+    // Y bloquea el scroll del cuerpo, que en móvil se desplazaba por debajo.
+    expect(GANCHO, 'bloquea el scroll del cuerpo').toMatch(/body\.style\.overflow = 'hidden'/)
+    // El ciclo se cierra en los DOS sentidos: sin shift también.
+    expect(GANCHO, 'trampa en los dos sentidos').toMatch(/e\.shiftKey/)
+  })
+
+  it('y el canónico se anuncia', () => {
     expect(MODAL, 'se anuncia').toMatch(ROL)
     expect(MODAL, 'aria-modal').toMatch(/aria-modal/)
-    // Y devuelve el foco: sin esto, cerrar deja al teclado al principio de todo.
-    expect(MODAL, 'devuelve el foco a quien lo abrió').toMatch(/disparador\?\.focus/)
   })
 })
 
@@ -140,7 +168,9 @@ describe('anular un cobro pasa por el diálogo canónico', () => {
 describe('no aparece un diálogo a mano nuevo', () => {
   it('todo lo que el barrido encuentra está declarado', () => {
     const encontrados = dialogosAMano()
-    const declarados = new Set([...Object.keys(ABIERTOS), ...Object.keys(NO_SON_DIALOGOS)])
+    const declarados = new Set([
+      ...Object.keys(ABIERTOS), ...Object.keys(NO_SON_DIALOGOS), ...Object.keys(CON_GANCHO),
+    ])
     const nuevos = encontrados.filter(f => !declarados.has(f))
     expect(
       nuevos,
@@ -151,7 +181,40 @@ describe('no aparece un diálogo a mano nuevo', () => {
 
   it('la lista de abiertos no crece', () => {
     // Sólo puede bajar. Es el mismo contrato que los demás trinquetes.
-    expect(Object.keys(ABIERTOS).length).toBeLessThanOrEqual(5)
+    // Empezó en 5 (unidad 48); AutoLogout y la paleta se cerraron en la 49.
+    expect(Object.keys(ABIERTOS).length).toBeLessThanOrEqual(3)
+  })
+
+  it('los que usan el gancho lo usan de verdad, y se anuncian', () => {
+    for (const [f, razon] of Object.entries(CON_GANCHO)) {
+      const s = readFileSync(f, 'utf8')
+      expect(s, `${f} dejó de usar el gancho (${razon})`).toMatch(/useDialogoDeTeclado\(/)
+      expect(s, `${f} no se anuncia como diálogo`).toMatch(/role=["'](dialog|alertdialog)["']/)
+      expect(s, `${f} sin aria-modal`).toMatch(/aria-modal/)
+    }
+  })
+
+  it('el aviso de cierre de sesión NO se descarta con Escape', () => {
+    /**
+     * La única diferencia legítima, y tiene que seguir siendo deliberada: un
+     * Escape distraído desactivaría un control de seguridad.
+     *
+     * SIN COMENTARIOS, a propósito. La primera versión de este caso miraba el
+     * archivo entero y **la prosa que explica la opción la satisfacía**:
+     * quitando la opción del código, la prueba seguía verde porque el párrafo
+     * de arriba la nombra. Probado al revés y cazado ahí.
+     */
+    const s = sinComentarios(readFileSync('src/components/AutoLogout.tsx', 'utf8'))
+    expect(s, 'la opción está en la prosa, no en el código').toMatch(/cierraConEscape: false/)
+    // Y es `alertdialog`, no `dialog`: interrumpe y pide decisión con plazo.
+    expect(s).toMatch(/role="alertdialog"/)
+  })
+
+  it('el gancho salió de Modal, y Modal lo usa — no hay dos implementaciones', () => {
+    const modal = readFileSync('src/components/ui/Modal.tsx', 'utf8')
+    expect(modal, 'Modal volvió a escribir su propio teclado').toMatch(/useDialogoDeTeclado\(/)
+    // Y ya no queda la copia a mano dentro de Modal.
+    expect(modal).not.toMatch(/key !== 'Tab'/)
   })
 
   it('el barrido mira código de verdad', () => {

@@ -5,6 +5,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { getPatients } from '@/lib/firestore'
 import { normalizarNombre } from '@/lib/csv-pacientes'
 import type { Patient } from '@/types'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 import { Search, User, CornerDownLeft, CalendarPlus, FlaskConical, Calculator, CalendarDays, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
 
 /** Acciones rápidas del centro de comandos (navegación teclado-primero). */
@@ -31,6 +32,13 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
   const [pacientes, setPacientes] = useState<Patient[]>([])
   const [activo, setActivo] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const cajaRef = useRef<HTMLDivElement>(null)
+  /**
+   * Estable, para que el efecto del teclado no se remonte en cada pintado.
+   * El Escape de la paleta ya lo trae su atajo global de arriba; éste es el
+   * mismo cierre, dicho una vez, y el que recibe el gancho del diálogo.
+   */
+  const cerrar = useCallback(() => setOpen(false), [])
 
   // Atajo global ⌘K / Ctrl+K para abrir; Escape para cerrar. También se abre por
   // un evento (`nexus:open-palette`) que dispara el botón visible del sidebar —
@@ -93,6 +101,20 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
     else if (ev.key === 'Enter' && entradas[activo]) { ev.preventDefault(); ejecutar(entradas[activo]) }
   }
 
+  /**
+   * LA PALETA ES TECLADO-PRIMERO Y ERA LA ÚNICA SIN TRAMPA DE FOCO.
+   *
+   * Tenía Escape y enfocaba su campo, que es lo que se nota al usarla con
+   * ratón. Lo que faltaba sólo se nota con el teclado: **tabular desde el campo
+   * de búsqueda se iba a la página de detrás**, con la paleta abierta encima. En
+   * el centro de comandos —lo único de este producto que existe para no tocar el
+   * ratón— eso es el defecto más caro de todos.
+   *
+   * `enfocaAlAbrir: false`: el foco inicial ya lo pone el efecto de arriba,
+   * sobre el campo de búsqueda, que es donde debe ir. Pelearse por él parpadea.
+   */
+  useDialogoDeTeclado(open, cajaRef, cerrar, { enfocaAlAbrir: false })
+
   if (!enabled || !open) return null
 
   return (
@@ -104,6 +126,10 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
       }}
     >
       <div
+        ref={cajaRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Centro de comandos"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 560, background: 'var(--s1)', border: '1px solid var(--border)',
