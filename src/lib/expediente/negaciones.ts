@@ -208,8 +208,26 @@ export function respuestaNiega(respuesta: string): boolean {
   return false
 }
 
-/** Marcas de que un término ya viene negado en la propia frase. */
-const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+/**
+ * Marcas de que un término ya viene negado en la propia frase.
+ *
+ * SE EXPORTA porque la evaluación de voz necesita saber si una negación se cayó
+ * de la transcripción, y tener dos listas de negadores sería tener dos respuestas
+ * a «¿esto niega?». Quien la use fuera tiene que clonar la bandera global: una
+ * expresión regular con `g` guarda su `lastIndex` entre llamadas.
+ */
+export const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+
+/**
+ * Cuántas negaciones EN LÍNEA lleva un texto.
+ *
+ * Cuenta apariciones, no condiciones: sirve para comparar dos versiones del
+ * mismo dictado y ver si alguna se perdió por el camino.
+ */
+export function contarNegacionesEnLinea(texto: string): number {
+  const g = new RegExp(NIEGA_EN_LINEA.source, 'gi')
+  return (String(texto ?? '').match(g) ?? []).length
+}
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()

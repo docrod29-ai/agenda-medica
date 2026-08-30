@@ -14493,3 +14493,108 @@ escribir era justo el que no se veía. Comparar valores no responde a la pregunt
 - Nadie ha medido si el 12 % es el 12 %.
 
 **Prueba.** `src/__tests__/cien-mil-usuarios-no-nombra-un-experimento.test.ts` (32 casos).
+
+## REG-409 — un WER bajo no compensa una dosis por mil
+
+**QUÉ SE PEDÍA.** `TR-VOZ.error-clinicamente-pesado`: «Un WER genérico bajo no
+compensa un error de dosis, unidad, negación o lateralidad. Falta el análisis
+ponderado sobre consulta larga.»
+
+### El defecto
+
+El WER cuenta palabras y las cuenta todas igual. En la consulta sintética de 532
+palabras del corpus del árbol, cambiar «setenta y cinco microgramos» por «setenta
+y cinco miligramos» da un WER de **0,188 %**. Publicado así, ese motor sale
+excelente. La levotiroxina va multiplicada por mil.
+
+### Por qué NO se ponderó, que era la salida obvia
+
+Dar más peso a los errores graves falla por dos sitios.
+
+El primero: qué peso vale una dosis frente a una lateralidad es una decisión
+clínica, y un número inventado aquí acaba en una diapositiva como si alguien lo
+hubiera firmado.
+
+El segundo ya estaba escrito en `politica-critica.ts` desde antes: *«No existe
+umbral de similitud que haga esa sustitución aceptable: está prohibida, **no
+penalizada**.»* Un peso es una penalización, y una penalización **se compensa con
+volumen**: bastan suficientes frases buenas para que la media vuelva a ser
+bonita. Meter un error de dosis en un promedio es autorizar que se compense.
+
+Así que no hay un número. Hay tres cuentas que no se suman —críticos, sin
+clasificar, ordinarios— y se aprueba con cero en las dos primeras.
+
+### Los cuatro defectos que salieron al CORRERLO
+
+Los cuatro aparecieron ejecutando el módulo contra frases reales **antes** de
+escribir la prueba, que es la lección que dejó REG-402. Los cuatro habrían pasado
+una revisión de código, y tres de ellos no fallaban: **aprobaban**.
+
+1. **La negación volteada salía aprobada.** El primer intento reusaba
+   `condicionesNegadas`, que contesta «¿esta FRASE contiene una negación y una
+   condición?». Con «paciente niega diabetes y niega hipertensión» → «paciente
+   TIENE diabetes y niega hipertensión», la frase transcrita todavía contiene un
+   «niega» —el de la hipertensión— así que las dos versiones daban la misma lista
+   y el volteo no se veía. **Reutilizar un motor canónico no basta: hay que
+   comprobar que contesta la pregunta que se le hace, no la que él contesta.**
+2. **«microgramos» no era «mcg».** Los pares prohibidos del Dr. conocen los
+   símbolos, y un médico dicta palabras. El clasificador estaba ciego justo donde
+   ocurre el dictado, que es todo su dominio. Se arregla clasificando sobre el
+   texto ya normalizado por el pipeline — no con una lista nueva de unidades
+   habladas.
+3. **«metformina» → «meropenem» era ordinario.** El vocabulario que se usaba,
+   `criticosGlobales()`, son **35 siglas de UCI** y ni un nombre de fármaco. Un
+   módulo que pesa errores clínicos y no reconoce los fármacos del consultorio no
+   pesa nada. Ahora sale de `medical-vocabulary`, que ya existía: **1 964
+   términos en vez de 35**.
+4. **Un error contado dos veces.** «40 mg» → «400 mg» salía como corrimiento de
+   decimal Y como cifra perdida. Inflar la cuenta importa cuando la cuenta ES el
+   resultado.
+
+### Lo que el alineador no puede ver, y por eso hay dos lecturas más
+
+`sustituciones()` alinea una palabra contra una palabra y descarta los tramos
+desiguales a propósito. Perfecto para el bucle de aprendizaje, y ciego para esto:
+cuando el reconocedor **se come** el «no» de «no tiene alergias», eso es un
+borrado, no una sustitución. El error más caro que existe es justo el que la
+alineación por sustituciones no ve.
+
+Por eso se cuentan aparte las cifras y las marcas de negación, sobre el texto
+entero. Las dos ven borrados.
+
+### La tercera cuenta es la que hace honesto al módulo
+
+`sin_clasificar` cuenta para reprobar, igual que un crítico. Si no contara, el
+módulo tendría un incentivo perverso: cuanto menos supiera reconocer, más limpio
+saldría todo. «No sé qué es esto» no es «esto está bien».
+
+Y por eso una sustitución entre dos términos críticos **no** se llama
+`sustitucion_farmaco`: afirmarlo exige un catálogo de fármacos. Se dice lo único
+que se puede sostener — que no se da por bueno.
+
+### Dónde llega el dato
+
+`scripts/medir-wer-limpio.ts`, que es quien escribe `docs/voice/WER-MEDIDO.json`.
+El documento publicado gana los errores clínicamente pesados, contados y
+desglosados por clase, **fuera de la media**.
+
+### Dos trinquetes subieron, con su nombre puesto
+
+`FUERA_DEL_CAMINO_HOY` 32 → 33 y `huerfanasMax` 38 → 39. El módulo compara una
+transcripción contra su **gold**, y en una consulta de verdad no hay gold: si lo
+hubiera, no haría falta transcribir. Es evaluación, misma categoría que
+`uci/benchmark-metricas.ts` y `correrBenchmark`, y queda declarada como isla con
+su motivo en los tres guardianes que la vigilan.
+
+### Qué NO cubre
+
+- No mide con un proveedor real: la consulta larga contra un reconocedor de
+  verdad sigue siendo `TR-VOZ.consulta-larga`, bloqueada por presupuesto.
+- No sustituye al WER, que se sigue calculando **en crudo** para poder compararlo
+  con lo publicado.
+- No distingue dos fármacos, no ve quién habló, no ve la intención de orden y no
+  ve el momento. Los cuatro están declarados en `LO_QUE_NO_SE_VIGILA`.
+- No fija ningún umbral de WER: cuánto se tolera de un motor que se entiende mal,
+  pero no es peligroso, lo decide el dueño.
+
+**Prueba.** `src/__tests__/un-wer-bajo-no-compensa-una-dosis.test.ts` (21 casos).

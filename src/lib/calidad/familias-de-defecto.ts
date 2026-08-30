@@ -512,7 +512,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * escribir la defensa del problema que todavía no existe se parece mucho a
      * escribir el umbral que nadie ha decidido.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406],
+    /**
+     * 408 es esta familia sobre una CIFRA que se venía diciendo: «100 000
+     * usuarios». El arnés medía de verdad desde REG-378, pero sus entradas eran
+     * «cuántos clientes abro», así que ninguna corrida era evidencia DE algo:
+     * era evidencia de sí misma. Faltaba la función que traduce un tamaño de
+     * producto en un experimento — y al escribirla, medir la cota local en vez
+     * de suponerla enseñó que el techo no era un número de sesiones sino una
+     * meseta de caudal.
+     */
+    /**
+     * 409 es la vuelta de tuerca de 342, en voz: el instrumento existía, medía,
+     * y medía lo que no era. Un WER de 0,188 % sobre una consulta de 532
+     * palabras con la levotiroxina multiplicada por mil dentro. Y ponderarlo
+     * habría sido peor: un peso es una penalización, y una penalización se
+     * compensa con volumen.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409],
   },
   {
     clave: 'hueco_como_dato',

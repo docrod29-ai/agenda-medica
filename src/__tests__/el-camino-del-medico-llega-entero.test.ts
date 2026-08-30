@@ -24,7 +24,7 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
 // Baseline V15 = 29. Product cores are intentionally built/tested before their
 // UI/provider integration. They are explicit, temporary islands for active slices
 // rather than silently raising the guard without a named reason.
-const FUERA_DEL_CAMINO_HOY = 32
+const FUERA_DEL_CAMINO_HOY = 33
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',
   'src/lib/compliance/country-profiles.ts': 'lo importa compliance/policy.ts, que ya está declarado huérfano',
@@ -51,6 +51,16 @@ const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
    * deja de mirar.
    */
   'src/lib/programa/requisitos.ts': 'CENSO del programa: lo consume el guardián que lo sella, en el CI. Una pantalla que lo pintara sería una pantalla que alguien deja de mirar.',
+  /**
+   * TR-VOZ. Mide una transcripción CONTRA SU GOLD, y en una consulta de verdad
+   * no hay gold: si lo hubiera, no haría falta transcribir. Es evaluación, y la
+   * evaluación no corre en el camino del médico por definición — la misma razón
+   * por la que `uci/benchmark-metricas.ts` está tres líneas más arriba.
+   *
+   * Su consumidor real es `scripts/medir-wer-limpio.ts`, que necesita el corpus
+   * de 6 000 audios y por eso no vive en el CI.
+   */
+  'src/lib/asr/lo-que-pesa-de-un-error.ts': 'EVALUACIÓN de voz: compara contra un gold, y en consulta no hay gold. Lo consume scripts/medir-wer-limpio.ts, que necesita el corpus del dueño.',
 }
 
 describe('el camino del médico llega entero', () => {

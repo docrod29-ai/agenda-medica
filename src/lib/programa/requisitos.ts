@@ -619,8 +619,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'TR-VOZ.error-clinicamente-pesado', ws: 'TR-VOZ', titulo: 'Evaluación de voz ponderada por consecuencia clínica, no sólo WER',
-    estado: 'NOT_STARTED',
-    queFalta: 'Un WER genérico bajo no compensa un error de dosis, unidad, negación o lateralidad. Falta el análisis ponderado sobre consulta larga.',
+    estado: 'PROVEN',
+    evidencia: 'REG-409. No se pondera: un peso es una penalización y se compensa con volumen. Tres cuentas que no se suman, y se aprueba con cero críticos y cero sin clasificar. Conectado a scripts/medir-wer-limpio.ts, que escribe docs/voice/WER-MEDIDO.json.',
+    comando: 'npx vitest run src/__tests__/un-wer-bajo-no-compensa-una-dosis.test.ts',
+    resultado: 'Sobre la consulta sintética de 532 palabras, «setenta y cinco microgramos» → «miligramos» da WER 0,188 % y REPRUEBA. Contra sí misma: 0 críticos, 0 sin clasificar. 1 964 términos vigilados.',
+    artefactos: ['src/lib/asr/lo-que-pesa-de-un-error.ts', 'scripts/medir-wer-limpio.ts'],
+    pruebas: ['src/__tests__/un-wer-bajo-no-compensa-una-dosis.test.ts'],
   }),
   R({
     id: 'TR-VOZ.consulta-larga', ws: 'TR-VOZ', titulo: 'Consulta larga de verdad, con proveedor real',
