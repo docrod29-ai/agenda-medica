@@ -21,35 +21,35 @@
     },
     {
       "id": "WS-02.concurrencia-definida",
-      "estado": "NOT_STARTED"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-02.registrados-2000",
-      "estado": "NOT_STARTED"
+      "estado": "PARTIAL"
     },
     {
       "id": "WS-02.registrados-10000",
-      "estado": "NOT_STARTED"
+      "estado": "PARTIAL"
     },
     {
       "id": "WS-02.registrados-15000",
-      "estado": "NOT_STARTED"
+      "estado": "BLOCKED_EXTERNAL"
     },
     {
       "id": "WS-02.registrados-20000",
-      "estado": "NOT_STARTED"
+      "estado": "BLOCKED_EXTERNAL"
     },
     {
       "id": "WS-02.registrados-30000",
-      "estado": "NOT_STARTED"
+      "estado": "BLOCKED_EXTERNAL"
     },
     {
       "id": "WS-02.registrados-50000",
-      "estado": "NOT_STARTED"
+      "estado": "BLOCKED_EXTERNAL"
     },
     {
       "id": "WS-02.registrados-100000",
-      "estado": "NOT_STARTED"
+      "estado": "BLOCKED_EXTERNAL"
     },
     {
       "id": "WS-03.pacientes-10000",

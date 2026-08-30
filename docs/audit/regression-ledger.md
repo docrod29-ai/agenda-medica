@@ -14380,3 +14380,116 @@ vuelve uno incompleto— y el que comprueba que el aviso vive **fuera** del `map
 - **No toca `estado`** (activo/resuelto/crónico/en seguimiento), que es otro eje.
 - **No prueba el render.** Que el selector se vea y se use con teclado depende del
   componente; aquí se comprueba que existe, con qué etiqueta y qué escribe.
+
+## REG-408 — «100 000 usuarios» no nombraba ningún experimento
+
+**QUÉ SE PEDÍA.** `WS-02.concurrencia-definida`, con el hueco escrito palabra por
+palabra en el censo: «No hay modelo de carga que diga cuántos de N registrados
+están en consulta a la vez, ni con qué mezcla de operaciones. Sin eso, «100 k» no
+nombra ningún experimento.»
+
+### El defecto
+
+`run-consultorio-load.mjs` estaba PROVEN desde REG-378 y medía de verdad. Pero sus
+entradas eran `--tenants`, `--physicians-per-tenant` y `--concurrent`: tres
+números que había que inventarse a mano en cada corrida. La evidencia guardada
+decía «100 médicos, 50 concurrentes» y **nadie podía decir si eso era el producto
+a 2 000 usuarios o a 100 000**, porque no existía la función que traduce lo uno en
+lo otro.
+
+Un arnés parametrizado por sus propios botones no es evidencia *de* nada: es
+evidencia de sí mismo.
+
+Y debajo había una confusión más vieja: «usuarios registrados» es un **inventario**
+sin ventana de tiempo, «sesiones concurrentes» es una **foto** que sólo significa
+algo con un instante pegado, y «peticiones concurrentes» no es ninguna de las dos
+sino un caudal por un tiempo de servicio. Mezclarlas es el modo clásico de
+anunciar un número grande habiendo provocado una carga que 300 usuarios habrían
+producido.
+
+### Cómo se descubrió que la cota supuesta estaba mal
+
+Midiéndola. Para decidir qué escenarios cabían en este entorno, la primera versión
+de `COTAS_LOCALES` puso `sesiones: 200` a ojo. Al correrlo salieron dos cosas que
+no se habrían adivinado:
+
+- **400 sesiones simultáneas aguantan**, con cero errores en 3 200 peticiones. La
+  cota supuesta se quedaba corta a la mitad — y con ella el escenario de 10 000
+  registrados se habría declarado bloqueado sin serlo.
+- Pero **el caudal no subió**: 221 pet/s con 200 sesiones y 220 con 400. Lo único
+  que creció fue la espera (p50 460 → 1 042 ms, p95 2 320 → 4 542 ms).
+
+O sea que la cota del entorno local no es un número de sesiones sino una **meseta
+de caudal**, y por encima de ella se mide cola, no carga. Un número supuesto nunca
+habría contado eso.
+
+### La regla que lo hace seguro
+
+Ocho conceptos declarados con su **ventana** y con **lo que NO cuentan** —de los
+ocho, sólo «usuarios registrados» tiene `ventana: null`, porque es lo único que es
+un inventario—. De ahí se derivan los siete escenarios con su mezcla de
+operaciones, su read/write ratio, sus llamadas de IA y evidencia, su duración y su
+factor de ráfaga.
+
+Dos cosas que el arnés ahora **se niega** a hacer:
+
+- `--registered` junto a `--concurrent` es un error. Una corrida con la etiqueta
+  de un escenario y la carga de otro es la evidencia más cara de producir y la más
+  fácil de creerse.
+- Un escenario que no cabe en la cota **aborta** diciendo qué infraestructura
+  falta, en vez de correrse a escala reducida con la etiqueta puesta.
+
+### Lo que no se inventó
+
+Las razones del modelo (qué fracción de los registrados está en consulta a la vez)
+son **supuestos declarados**, con `medidoEn: null` y con la base de la que salen:
+sirven para nombrar el experimento, no para afirmar un hecho. Los umbrales de
+aceptación —qué p95 pasa, qué tasa de error se tolera— van con
+`NEEDS_OWNER_DECISION`, igual que el validador ya declaraba que no aprueba SLOs.
+Un umbral plausible es peor que ninguno: convierte una corrida en un aprobado que
+nadie firmó.
+
+### La separación que salvó la mitad de WS-02
+
+No hacen falta N sesiones para representar N registrados: un registrado que no
+está en consulta no produce ni una petición, sólo deja **documentos residentes**.
+Cada escenario se parte en dos ejes —concurrencia (cuesta sesiones) y volumen
+(cuesta documentos)— y se juzgan aparte.
+
+Sin esa separación, «100 000 registrados» parece pedir 100 000 sesiones y los
+siete escenarios se declaran bloqueados de golpe. Con ella, **2 000 y 10 000 se
+corrieron aquí** y los cinco grandes quedaron con el desbloqueo escrito con
+nombres, no con «un entorno más grande».
+
+### Lo que la corrida enseñó
+
+Se le añadió al arnés la siembra de documentos residentes, porque hasta aquí toda
+corrida medía un emulador **vacío** y un escenario de N registrados es concurrencia
+*encima de* lo que esos N ya acumularon.
+
+Con 39 600 documentos residentes y las mismas 77 sesiones, la latencia se multiplicó
+por seis (p50 115 → 737 ms) **y las lecturas siguieron siendo exactamente 20 por
+consulta** — las mismas que sobre una base casi vacía. Es la distinción que
+importa: la latencia es del emulador, que no tiene índices desplegados; la cota de
+lectura es del producto, y se mantuvo. WS-03 ya había medido plano el número de
+documentos devueltos, y esto lo confirma bajo carga concurrente, que es como se usa.
+
+### Lo que la prueba tumbó en el primer intento
+
+El guardián contra la etiqueta falsa comparaba cada botón contra su valor
+predeterminado. Y `--concurrent=8` **es** el predeterminado: el choque más fácil de
+escribir era justo el que no se veía. Comparar valores no responde a la pregunta
+«¿lo pusiste tú?», así que ahora se anota qué banderas llegaron de verdad.
+
+### Qué NO cubre
+
+- No prueba que el producto aguante 100 000 usuarios. Prueba que el escenario está
+  definido, que dos de los siete se corrieron, y que los cinco restantes dicen con
+  precisión qué les falta.
+- La corrida es de **saturación**, no del caudal del escenario: aplicó 88 veces el
+  caudal modelado de 2 000 registrados. Los percentiles son los de la cola.
+- Toca el **44 %** de la mezcla: no provoca autoguardado, receta, transcripción,
+  redacción ni evidencia. El informe lo lleva escrito.
+- Nadie ha medido si el 12 % es el 12 %.
+
+**Prueba.** `src/__tests__/cien-mil-usuarios-no-nombra-un-experimento.test.ts` (32 casos).

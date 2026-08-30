@@ -64,15 +64,57 @@
  *     --tenants=8 --physicians-per-tenant=4 --concurrent=16 \
  *     --patients-per-physician=25 --out=carga.json
  *   node scripts/product/validate-consultorio-load-result.mjs carga.json
+ *
+ * O nombrando el escenario, que es lo que se añadió después:
+ *
+ *   node scripts/product/run-consultorio-load.mjs --registered=2000 --out=carga.json
+ *
+ * ── QUÉ ESCENARIO ES ESTO (añadido con el modelo de concurrencia) ───────────
+ *
+ * Hasta aquí el arnés pedía `--tenants`, `--physicians-per-tenant` y
+ * `--concurrent`: tres números a mano, sin nada que dijera de qué tamaño de
+ * producto eran evidencia. `--registered=N` se los pide a
+ * `scripts/escala/modelo-de-concurrencia.mjs`, que además escribe en el informe
+ * **qué fracción de la consulta provoca esta corrida** — porque provoca las
+ * lecturas y escrituras del camino clínico y no el autoguardado, ni la receta, ni
+ * la voz, ni la evidencia, y sin decirlo el throughput se lee como el de la
+ * consulta entera.
+ *
+ * Un escenario que no cabe en la cota local **no se corre a escala reducida con
+ * su etiqueta puesta**: aborta diciendo qué infraestructura falta. Correr 77
+ * sesiones y llamarlo «100 000 registrados» es la evidencia más cara de producir
+ * y la más fácil de creerse.
  */
 import { writeFile } from 'node:fs/promises'
 import { execSync } from 'node:child_process'
 import process from 'node:process'
+import {
+  escenarioDe, PETICIONES_POR_CONSULTA, VERSION_DEL_MODELO, COTAS_LOCALES,
+} from '../escala/modelo-de-concurrencia.mjs'
 
 /* ── configuración ────────────────────────────────────────────────────────── */
 
 const PREDETERMINADO = {
   target: 'emulator',
+  /**
+   * `0` = nadie nombró un escenario y se corre con los tres números a mano, como
+   * hasta REG-378. Con `--registered=N` los deriva el modelo, y entonces la
+   * corrida sabe DE QUÉ escenario es evidencia — que es lo que faltaba.
+   */
+  registered: 0,
+  /**
+   * Documentos residentes a sembrar antes de medir. `0` = ninguno.
+   *
+   * EL EJE QUE FALTABA. Hasta aquí toda corrida medía un emulador **vacío**: 77
+   * sesiones sobre una base recién nacida. Pero el escenario de N registrados no
+   * es sólo concurrencia — es concurrencia **encima de** los expedientes que esos
+   * N usuarios ya acumularon, y una lectura paginada no cuesta lo mismo sobre 780
+   * documentos que sobre 40 000.
+   *
+   * WS-03 midió la forma de la lectura a volumen, pero en reposo. Esto es lo
+   * otro: volumen Y concurrencia a la vez, que es como se usa de verdad.
+   */
+  resident: 0,
   tenants: 4,
   physiciansPerTenant: 2,
   patientsPerPhysician: 10,
@@ -84,10 +126,19 @@ const PREDETERMINADO = {
 }
 
 /** Enteros: el resto se queda como texto. */
-const NUMERICOS = ['tenants', 'physiciansPerTenant', 'patientsPerPhysician', 'concurrent']
+const NUMERICOS = ['tenants', 'physiciansPerTenant', 'patientsPerPhysician', 'concurrent', 'registered', 'resident']
 
 function leerArgumentos(argv) {
   const cfg = { ...PREDETERMINADO }
+  /**
+   * QUÉ SE PASÓ DE VERDAD, NO QUÉ VALOR TIENE.
+   *
+   * La primera versión detectaba el choque comparando contra el predeterminado, y
+   * la prueba la tumbó en el primer intento: `--concurrent=8` ES el
+   * predeterminado, así que el choque más fácil de escribir era justo el que no
+   * se veía. Comparar valores no responde a la pregunta «¿lo pusiste tú?».
+   */
+  const puestosAMano = new Set()
   for (let i = 2; i < argv.length; i += 1) {
     const bruto = argv[i]
     if (!bruto.startsWith('--')) throw new Error(`Argumento inesperado: ${bruto}`)
@@ -97,9 +148,44 @@ function leerArgumentos(argv) {
     if (valor == null) throw new Error(`Falta el valor de --${nombre}`)
     if (!(clave in cfg)) throw new Error(`Opción desconocida: --${nombre}`)
     cfg[clave] = NUMERICOS.includes(clave) ? Number(valor) : valor
+    puestosAMano.add(clave)
   }
   for (const k of NUMERICOS) {
-    if (!Number.isSafeInteger(cfg[k]) || cfg[k] < 1) throw new Error(`--${k} debe ser un entero positivo`)
+    const minimo = (k === 'registered' || k === 'resident') ? 0 : 1
+    if (!Number.isSafeInteger(cfg[k]) || cfg[k] < minimo) throw new Error(`--${k} debe ser un entero >= ${minimo}`)
+  }
+
+  /**
+   * EL ESCENARIO MANDA SOBRE LOS TRES NÚMEROS A MANO.
+   *
+   * Aceptar los dos a la vez dejaría corridas con la etiqueta de un escenario y
+   * la carga de otro — la peor evidencia posible, porque se lee igual de bien.
+   */
+  if (cfg.registered > 0) {
+    const esc = escenarioDe(cfg.registered)
+    for (const k of ['tenants', 'physiciansPerTenant', 'concurrent']) {
+      if (puestosAMano.has(k)) {
+        throw new Error(
+          `--${k} y --registered a la vez: el escenario ya los deriva. Una corrida con la ` +
+          'etiqueta de un escenario y la carga de otro es evidencia falsa.',
+        )
+      }
+    }
+    cfg.tenants = esc.argumentosDelArnes.tenants
+    cfg.physiciansPerTenant = esc.argumentosDelArnes.physiciansPerTenant
+    cfg.concurrent = esc.argumentosDelArnes.concurrent
+    cfg.scenario = esc.id
+    cfg.escenario = esc
+
+    if (!esc.ejecutable.concurrenciaAqui) {
+      throw new Error(
+        `El escenario de ${cfg.registered.toLocaleString('es-MX')} registrados pide ` +
+        `${esc.derivado.sesionesConcurrentes} sesiones concurrentes y la cota local es ` +
+        `${COTAS_LOCALES.sesiones}.\n` +
+        esc.ejecutable.faltaFuera.map(f => `  · ${f.eje}: ${f.necesita}\n    ${f.conQue}`).join('\n') +
+        '\n  Correr una fracción y etiquetarla con este escenario sería mentir sobre la carga.',
+      )
+    }
   }
   if (cfg.target !== 'emulator') {
     throw new Error(
@@ -126,6 +212,19 @@ const NO_MEDIBLE_EN_EMULADOR = [
   ['lostDraftCount', 'Es de navegador: el borrador vive en IndexedDB, que un emulador de Firestore no tiene.'],
   ['silentProviderFailureCount', 'Hace falta un proveedor de IA o de voz de verdad al otro lado.'],
   ['unboundedReadCount', 'Es una propiedad ESTÁTICA del árbol y la vigila su propio guardián, no una carrera.'],
+]
+
+/**
+ * Las salidas del modelo de concurrencia que este arnés tampoco puede rellenar.
+ *
+ * `timeoutRate` merece la explicación: el arnés NO impone un plazo, así que no
+ * hay vencidos que contar. Escribir `0` diría «se midió y no venció ninguna»,
+ * que es la mentira exacta que REG-378 existe para no repetir.
+ */
+const NO_MEDIBLE_SIN_PROVEEDOR = [
+  ['timeoutRate', 'El arnés no impone plazo, así que no hay vencidos que contar. Un 0 diría que se midió.'],
+  ['backpressureRejections', 'La contrapresión admite o rechaza frente a un proveedor lento; aquí no hay ninguno.'],
+  ['providerHealth', 'Sin proveedor no hay circuito que abrir ni salud que reportar.'],
 ]
 
 /** Las cuatro colas del validador. Ninguna existe sin proveedores detrás. */
@@ -276,11 +375,50 @@ async function main() {
     }
   }
 
+  /* ── siembra: los expedientes que ya estaban ahí ───────────────────────── */
+
+  /**
+   * Por Admin SDK y en lotes: la siembra NO es la carga y no debe contaminar los
+   * percentiles. Se escribe con la misma marca `syntheticNonPhi` que todo lo
+   * demás, y se reparte entre los consultorios para que la paginación de cada uno
+   * se encuentre de verdad con una colección grande.
+   */
+  let residentesSembrados = 0
+  if (cfg.resident > 0) {
+    const POR_LOTE = 400
+    let lote = dbAdmin.batch()
+    let enLote = 0
+    for (let i = 1; i <= cfg.resident; i += 1) {
+      const c = consultorios[i % consultorios.length]
+      lote.set(
+        dbAdmin.doc(`clinics/${c.clinicId}/patients/residente_${corrida}_${String(i).padStart(8, '0')}`),
+        { creadoPor: c.medicos[0].uid, syntheticNonPhi: true },
+      )
+      enLote += 1
+      if (enLote === POR_LOTE) {
+        await lote.commit(); residentesSembrados += enLote
+        lote = dbAdmin.batch(); enLote = 0
+      }
+    }
+    if (enLote > 0) { await lote.commit(); residentesSembrados += enLote }
+    process.stderr.write(`  sembrados ${residentesSembrados} documentos residentes antes de medir\n`)
+  }
+
   /* ── la carga: el camino clínico real, medido ──────────────────────────── */
 
   const latencias = []
   let successCount = 0
   let errorCount = 0
+  /**
+   * OPERACIONES DE FIRESTORE, CONTADAS Y NO ESTIMADAS.
+   *
+   * Una escritura es una operación; una consulta son TANTAS COMO DOCUMENTOS
+   * DEVUELVE, que es exactamente lo que se factura y lo que hace cara una lectura
+   * sin cota. Contar la consulta como una sola operación es el error que oculta
+   * el coste del `getDocs` que crece con el consultorio.
+   */
+  const firestoreOps = { lecturas: 0, escrituras: 0 }
+  const t0Corrida = performance.now()
 
   const midiendo = async (fn) => {
     const t0 = performance.now()
@@ -304,18 +442,28 @@ async function main() {
         const refPaciente = fs.doc(s.db, `clinics/${s.clinicId}/patients/${patientId}`)
         const refNota = fs.doc(s.db, `clinics/${s.clinicId}/patients/${patientId}/notas/${notaId}`)
 
-        await midiendo(() => fs.setDoc(refPaciente, { creadoPor: s.uid, syntheticNonPhi: true }))
-        await midiendo(() => fs.setDoc(refNota, notaBorrador(s.uid)))
+        await midiendo(async () => {
+          await fs.setDoc(refPaciente, { creadoPor: s.uid, syntheticNonPhi: true }); firestoreOps.escrituras += 1
+        })
+        await midiendo(async () => {
+          await fs.setDoc(refNota, notaBorrador(s.uid)); firestoreOps.escrituras += 1
+        })
         // Firmar: la regla exige que el autor declarado sea quien firma.
-        await midiendo(() => fs.updateDoc(refNota, { estado: 'firmada', secuencia: 2 }))
-        await midiendo(() => fs.getDocs(fs.query(
-          fs.collection(s.db, `clinics/${s.clinicId}/patients`), fs.limit(20),
-        )))
+        await midiendo(async () => {
+          await fs.updateDoc(refNota, { estado: 'firmada', secuencia: 2 }); firestoreOps.escrituras += 1
+        })
+        await midiendo(async () => {
+          const snap = await fs.getDocs(fs.query(
+            fs.collection(s.db, `clinics/${s.clinicId}/patients`), fs.limit(20),
+          ))
+          firestoreOps.lecturas += snap.size
+        })
         notasEscritas.push({ sesion: s, refNota, patientId, notaId })
       })
     }
   }
   await conLimite(cfg.concurrent, tareas)
+  const segundosDeCarga = (performance.now() - t0Corrida) / 1000
 
   /* ── sonda: fuga entre consultorios, contra las reglas de verdad ───────── */
 
@@ -393,6 +541,7 @@ async function main() {
   const ordenadas = [...latencias].sort((a, b) => a - b)
   const noMedido = [
     ...NO_MEDIBLE_EN_EMULADOR.map(([campo, razon]) => ({ campo, razon })),
+    ...NO_MEDIBLE_SIN_PROVEEDOR.map(([campo, razon]) => ({ campo, razon })),
     ...COLAS.map(c => ({
       campo: `queues.${c}`,
       razon: 'No hay cola sin un proveedor detrás; en un emulador no existe ninguna.',
@@ -422,16 +571,74 @@ async function main() {
     durableSavePassed,
     recoveryPassed,
 
+    /* Salidas del modelo de concurrencia que SÍ se midieron aquí. */
+    throughput: Number((latencias.length / segundosDeCarga).toFixed(3)),
+    errorRate: Number((errorCount / Math.max(1, latencias.length)).toFixed(6)),
+    firestoreOps: { ...firestoreOps, total: firestoreOps.lecturas + firestoreOps.escrituras },
+    /** Sobre cuánto expediente previo se midió. `0` aquí SÍ significa cero: se cuenta lo que se sembró. */
+    documentosResidentes: residentesSembrados,
+
     /**
      * NULL, NO CERO. Un cero aquí se lee como «se midió y no hubo ninguno», y
      * este arnés no los miró. El validador rechaza el `null`, que es la
      * respuesta correcta: todavía no es evidencia.
      */
+    timeoutRate: null,
+    backpressureRejections: null,
+    providerHealth: null,
     blankScreenCount: null,
     lostDraftCount: null,
     silentProviderFailureCount: null,
     unboundedReadCount: null,
     queues: Object.fromEntries(COLAS.map(c => [c, null])),
+
+    /**
+     * DE QUÉ ESCENARIO ES EVIDENCIA ESTO, Y QUÉ FRACCIÓN DE LA CONSULTA TOCA.
+     *
+     * `cobertura` es la parte incómoda y la que más falta hacía: el arnés provoca
+     * las lecturas y escrituras del camino clínico, pero **no** el autoguardado
+     * del borrador, ni la receta, ni la transcripción, ni la redacción, ni la
+     * consulta de evidencia. Sin este número, el throughput de arriba se lee como
+     * el de la consulta entera, y no lo es.
+     */
+    modeloDeConcurrencia: cfg.escenario
+      ? {
+          version: VERSION_DEL_MODELO,
+          escenario: cfg.escenario.id,
+          usuariosRegistrados: cfg.escenario.usuariosRegistrados,
+          derivado: cfg.escenario.derivado,
+          mezclaEsperada: cfg.escenario.mezcla,
+          faltaFuera: cfg.escenario.ejecutable.faltaFuera,
+          /**
+           * SATURACIÓN, NO EL CAUDAL DEL ESCENARIO.
+           *
+           * Este arnés empuja **todo lo que puede**: no espacia las peticiones al
+           * ritmo que el escenario modela. Así que lo que mide es cómo se
+           * comporta el sistema SATURADO, no cómo se comporta a 1 pet/s.
+           *
+           * Decirlo importa en las dos direcciones. Hacia arriba: la corrida de
+           * 2 000 registrados aplicó cientos de veces el caudal modelado y no
+           * falló, y eso es holgura de verdad. Hacia abajo: los percentiles de
+           * abajo son los de la cola, no los que vería un médico a esa escala, y
+           * presentarlos como «la latencia a 2 000 usuarios» sería pesimismo
+           * disfrazado de medida.
+           */
+          formaDeLaCarga: {
+            tipo: 'saturacion',
+            throughputDelModelo: cfg.escenario.mezcla.throughputSostenido,
+            vecesElModelo: Number((
+              (latencias.length / segundosDeCarga) / cfg.escenario.mezcla.throughputSostenido
+            ).toFixed(1)),
+            noHaceRitmo: 'El arnés no espacia las peticiones al caudal del escenario; corre a fondo.',
+          },
+          cobertura: {
+            peticionesPorConsultaEnElArnes: PETICIONES_POR_CONSULTA.enElArnes,
+            peticionesPorConsultaDelModelo: PETICIONES_POR_CONSULTA.total,
+            fraccion: Number((PETICIONES_POR_CONSULTA.enElArnes / PETICIONES_POR_CONSULTA.total).toFixed(3)),
+            queNoProvoca: 'autoguardado del borrador, receta u orden, transcripción, redacción y consulta de evidencia.',
+          },
+        }
+      : null,
 
     /* La mitad honesta: qué falta y dónde se mide. */
     complete: false,

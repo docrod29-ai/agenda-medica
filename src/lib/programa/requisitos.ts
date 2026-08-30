@@ -189,15 +189,47 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-02.concurrencia-definida', ws: 'WS-02', titulo: 'Concurrencia activa definida aparte de usuarios registrados',
-    estado: 'NOT_STARTED',
-    queFalta: 'No hay modelo de carga que diga cuántos de N registrados están en consulta a la vez, ni con qué mezcla de operaciones. Sin eso, «100 k» no nombra ningún experimento.',
+    estado: 'PROVEN',
+    evidencia: 'REG-408. Ocho conceptos con ventana y con lo que NO cuentan; los siete escenarios se derivan de ahí y el arnés los acepta por nombre. Medir la cota local subió las sesiones de 200 (supuestas) a 400 y enseñó que el techo real es una meseta de caudal, no un número de sesiones.',
+    comando: 'npx vitest run src/__tests__/cien-mil-usuarios-no-nombra-un-experimento.test.ts',
+    resultado: '32 casos. De 100 000 registrados salen 3 861 sesiones, no 100 000. Umbrales de aceptación en NEEDS_OWNER_DECISION y supuestos con medidoEn: null.',
+    artefactos: ['scripts/escala/modelo-de-concurrencia.mjs', 'scripts/product/run-consultorio-load.mjs'],
+    pruebas: ['src/__tests__/cien-mil-usuarios-no-nombra-un-experimento.test.ts'],
   }),
-  ...USUARIOS_REGISTRADOS.map(n => R({
-    id: `WS-02.registrados-${n}`, ws: 'WS-02',
-    titulo: `Escenario de ${n.toLocaleString('es-MX')} usuarios registrados, medido`,
-    estado: 'NOT_STARTED',
-    queFalta: 'El arnés existe (WS-02.arnes) pero sólo se ha corrido a 100 médicos contra un emulador local. Falta el perfil de carga de este escenario y un entorno donde ejecutarlo.',
-  })),
+  /**
+   * LOS DOS QUE CABEN AQUÍ Y LOS CINCO QUE NO.
+   *
+   * REG-408 partió cada escenario en dos ejes —concurrencia (cuesta sesiones) y
+   * volumen (cuesta documentos)— y midió la cota local en vez de suponerla. Con
+   * eso, 2 000 y 10 000 registrados resultaron ejecutables aquí; sin la
+   * separación, los siete se habrían declarado bloqueados de golpe.
+   */
+  ...USUARIOS_REGISTRADOS.map(n => (n <= 10_000
+    ? R({
+      id: `WS-02.registrados-${n}`, ws: 'WS-02',
+      titulo: `Escenario de ${n.toLocaleString('es-MX')} usuarios registrados, medido`,
+      estado: 'PARTIAL',
+      evidencia: `REG-408. docs/audit/ws-02-carga/escenario-${n}-registrados${n === 10_000 ? '-eje-concurrencia' : ''}.json`,
+      comando: `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node scripts/product/run-consultorio-load.mjs --registered=${n}`,
+      resultado: n === 2_000
+        ? '77 sesiones sobre 39 600 documentos residentes · 3 120 peticiones · 0 errores · 0 fugas en 156 sondas · 20 documentos leídos por consulta, los mismos que sobre una base vacía.'
+        : '386 sesiones · 4 632 peticiones · 0 errores · 0 fugas en 772 sondas. Sólo el eje de concurrencia: el volumen de este escenario no cabe en el emulador.',
+      queFalta: n === 2_000
+        ? 'La corrida es de SATURACIÓN (88× el caudal modelado) y toca el 44 % de la mezcla: no provoca autoguardado, receta, transcripción, redacción ni evidencia. Faltan proveedores de verdad para las colas, la contrapresión y la salud del proveedor.'
+        : 'Falta el eje de volumen (198 000 documentos residentes, cota local 50 000) y los proveedores. La corrida cubre el 44 % de la mezcla.',
+      artefactos: [`docs/audit/ws-02-carga/escenario-${n}-registrados${n === 10_000 ? '-eje-concurrencia' : ''}.json`],
+      pruebas: ['src/__tests__/cien-mil-usuarios-no-nombra-un-experimento.test.ts'],
+    })
+    : R({
+      id: `WS-02.registrados-${n}`, ws: 'WS-02',
+      titulo: `Escenario de ${n.toLocaleString('es-MX')} usuarios registrados, medido`,
+      estado: 'BLOCKED_EXTERNAL',
+      desbloqueaCon: 'Generadores de carga repartidos en varias máquinas contra un proyecto de Firebase de ENSAYO con `firestore.rules` y los índices desplegados, sembrado al volumen del escenario. Una sola máquina no sostiene los canales gRPC que pide, y el emulador guarda los documentos en memoria. Lo autoriza el dueño porque cuesta cuota y presupuesto.',
+      preparacionInterna: 'REG-408: el perfil está derivado y el arnés lo acepta por nombre (`--registered`). No hace falta escribir nada más para correrlo: hace falta dónde. El arnés ABORTA si se le pide este escenario aquí, en vez de correr una fracción con la etiqueta puesta.',
+      artefactos: ['scripts/escala/modelo-de-concurrencia.mjs'],
+      pruebas: ['src/__tests__/cien-mil-usuarios-no-nombra-un-experimento.test.ts'],
+    })
+  )),
 
   /* ═══ WS-03 · Consultorio grande ══════════════════════════════════════════ */
   ...PACIENTES_POR_MEDICO.map(n => R({
