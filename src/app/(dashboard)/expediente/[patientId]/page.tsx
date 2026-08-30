@@ -37,8 +37,8 @@ import { InternamientosDelPaciente } from '@/components/InternamientosDelPacient
 import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
 import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
-import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'
-import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
+import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
 } from '@/lib/expediente/alergias-longitudinales'
@@ -181,8 +181,20 @@ export default function ExpedientePage() {
       medicamentos: n.medicamentos,
       diagnosticos: n.diagnosticos,
     }))
-    return { problemas: problemasActivos(firmadas), vigentes: medicamentosVigentes(firmadas) }
-  }, [notas])
+    /**
+     * REG-405 · las dos listas viajan CON el recorte del historial.
+     *
+     * Esta pantalla ya tenía `historialTruncado` en la mano —lo pide
+     * `useExpediente`— y lo dejaba caer aquí. Sobre un historial recortado, «no
+     * encontré más» NO es «no hay más»: un fármaco o una comorbilidad anteriores
+     * al techo desaparecían de la lista sin que nada lo dijera. Es la misma regla
+     * que ya cumplía la proyección de alergias, que sí lo recibe.
+     */
+    const asOf = new Date().toISOString()
+    const p = estadoDeProblemas(firmadas, asOf, { historialIncompleto: historialTruncado })
+    const m = estadoDeMedicamentos(firmadas, asOf, { historialIncompleto: historialTruncado })
+    return { problemas: p.problemas, vigentes: m.vigentes, proyeccionRecortada: p.historialRecortado }
+  }, [notas, historialTruncado])
 
   /**
    * LAS ALERGIAS SEGÚN EL EXPEDIENTE ENTERO, NO SEGÚN UN CAMPO (WS-10).

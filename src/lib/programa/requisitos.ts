@@ -391,8 +391,13 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-10.problemas-medicacion-alergias', ws: 'WS-10', titulo: 'Problemas activos, medicación activa y alergias, longitudinales',
     estado: 'PARTIAL',
-    queFalta: 'Los tres existen y están cableados (REG-363). Falta persistencia y asOf/version en los tres.',
-    artefactos: ['src/lib/expediente/alergias-longitudinales.ts'],
+    queFalta: 'REG-405 dio a problemas y medicación el MISMO sobre que alergias ya tenía desde REG-363 (asOf, version, historialRecortado) y lo cableó: las dos pantallas tenían `truncada` en la mano y lo dejaban caer en la puerta, así que con un historial largo la medicación vigente se calculaba sobre una ventana y se enseñaba como el expediente entero — un fármaco anterior al techo desaparecía también de la comprobación de interacciones. FALTA la persistencia, y NO se hizo a propósito: guardar una proyección sin decidir quién manda cuando el caché y las notas discrepan crea la segunda fuente de verdad que WS-10.proyeccion-no-es-segunda-verdad prohíbe. El sobre era su precondición. Falta además que la pantalla PINTE el recorte: hoy el dato le llega y no lo enseña.',
+    artefactos: [
+      'src/lib/expediente/alergias-longitudinales.ts',
+      'src/lib/expediente/problemas-activos.ts',
+      'src/lib/expediente/ordenes-medicamento.ts',
+    ],
+    pruebas: ['src/__tests__/una-lista-no-dice-de-cuanto-historial-salio.test.ts'],
   }),
   R({
     id: 'WS-10.historico-no-es-actual', ws: 'WS-10', titulo: 'Histórico ≠ actual en diagnóstico y en medicamento',

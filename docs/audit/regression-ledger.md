@@ -14166,3 +14166,73 @@ vez» se adaptó conservando lo que comprueba.
 - **No cierra solo el pendiente cuando el paciente viene.** Sigue haciendo falta
   que alguien lo marque; lo que cambia es que ahora hay un estado donde esperar
   en vez de una tarea cerrada de más.
+
+---
+
+## REG-405 — dos proyecciones volvían a ser la puerta que devuelve un array pelado
+
+**QUÉ SE PEDÍA.** `WS-10.problemas-medicacion-alergias`: «Los tres existen y
+están cableados (REG-363). Falta persistencia y `asOf`/`version` en los tres».
+
+### El defecto, y la ironía de dónde estaba
+
+`listarNotasCompat` devuelve `{ notas, truncada, techo }`, y su encabezado
+explica por qué se **borró** la puerta que devolvía un array pelado:
+
+> «Un array no puede decir que viene recortado; quien lo recibe no tiene forma de
+> saberlo, y con un historial clínico el silencio se lee como *no tiene*».
+
+Y a un paso de ahí, `problemasActivos(notas)` y `medicamentosVigentes(notas)`
+**volvían a ser esa misma puerta**. Las dos pantallas que las llaman tenían
+`truncada` en la mano —`/consulta` lo lee dos líneas antes, `/expediente` se lo
+pide a `useExpediente`— y no tenían dónde ponerlo.
+
+Con un historial largo, las dos listas se calculaban sobre una **ventana** y se
+enseñaban como si fueran el expediente entero.
+
+### Por qué en medicación cuesta más
+
+Un fármaco recetado antes del techo desaparece de la lista vigente, y con él
+desaparece de **todo lo que la usa**: la comprobación de interacciones no lo
+mira, la reconciliación no lo echa en falta, y la nota nueva se escribe como si
+el paciente no lo tomara. La ausencia no produce ningún error — produce una lista
+más corta, que se lee igual de bien.
+
+### El arreglo: el sobre que ya existía
+
+`estadoDeAlergias` tenía este sobre desde REG-363 —`asOf`, `version`,
+`historialRecortado`—. Aquí **no se inventa uno nuevo**: se usa el mismo. Tres
+formas de decir «esto salió de una ventana» serían tres sitios donde arreglarlo.
+
+Los núcleos no cambian: `problemasActivos` y `medicamentosVigentes` siguen siendo
+las mismas funciones puras con sus pruebas. Lo que se añade es el sobre, y un
+caso comprueba que la lista del sobre es **exactamente** la de la función pura —
+si se separaran, habría dos respuestas a «qué toma el paciente».
+
+### Lo que deliberadamente NO se hizo
+
+**Persistir la proyección.** El censo lo pide en la misma línea, y
+`WS-10.proyeccion-no-es-segunda-verdad` avisa de por qué no se puede hacer sin
+más: guardar una proyección sin decidir quién manda cuando el caché y las notas
+discrepan crea la segunda fuente de verdad que el invariante de arquitectura
+prohíbe.
+
+El sobre es la **precondición**: una proyección sin `asOf`, sin `version` y sin
+saber si salió de un recorte no se puede guardar de forma segura ni invalidar.
+
+**LA PRUEBA.** `src/__tests__/una-lista-no-dice-de-cuanto-historial-salio.test.ts`
+(10 casos). Probado al revés quitando el `historialIncompleto` de una pantalla:
+cae. Incluye el que evita la recaída — ninguna de las dos pantallas puede volver
+a llamar `problemasActivos(firmadas)` ni `medicamentosVigentes(firmadas)`.
+
+**UNA ADAPTACIÓN.** El guardián de REG-363 (`el-expediente-resume-el-estado`)
+pinchaba el **nombre del import**. Lo que protege —que la pantalla los importe y
+los use— no cambió; cambió por qué puerta entran, y se adaptó diciéndolo.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No pinta el aviso.** Que la pantalla DIGA «esta lista sale de las últimas N
+  notas» es trabajo de la vista; aquí el dato llega hasta ella y deja de caerse
+  en la puerta.
+- **No persiste nada**, por lo de arriba.
+- **No cambia la regla de vigencia** de ninguna de las dos listas.

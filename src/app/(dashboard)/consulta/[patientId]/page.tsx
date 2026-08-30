@@ -167,8 +167,8 @@ import { comoSeDice, discrepanciasDeMedicacion } from '@/lib/tareas-clinicas/rec
 import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expediente/duracion-cumplida'
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
-import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
-import { problemasActivos, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
+import { estadoDeProblemas, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
   type NotaConAlergias,
@@ -1933,11 +1933,20 @@ export default function ConsultaActivaPage() {
              render: la proyección corresponde a ESAS notas. */
           asOf: new Date().toISOString(),
         })
-        setVigentes(medicamentosVigentes(firmadas))
+        /**
+         * REG-405 · las dos listas salen del historial QUE SE PUDO LEER.
+         *
+         * `truncada` ya estaba en la mano dos líneas más arriba y se caía aquí.
+         * Sobre un historial recortado, «no encontré más» NO es «no hay más»: un
+         * fármaco anterior al techo desaparece de la lista vigente, y con él
+         * desaparece de la comprobación de interacciones y de la reconciliación.
+         */
+        const asOfProyeccion = new Date().toISOString()
+        setVigentes([...estadoDeMedicamentos(firmadas, asOfProyeccion, { historialIncompleto: truncada }).vigentes])
         // La lista de problemas sigue la MISMA regla que la medicación: manda lo
         // último que se dijo de CADA problema. Una consulta por gripa que no
         // habla de la diabetes no resuelve la diabetes.
-        const problemasVigentes = problemasActivos(firmadas)
+        const problemasVigentes = [...estadoDeProblemas(firmadas, asOfProyeccion, { historialIncompleto: truncada }).problemas]
         setProblemas(problemasVigentes)
         /**
          * LO QUE SE AVISÓ EN LAS CONSULTAS ANTERIORES, SOBRE UN PROBLEMA QUE EL

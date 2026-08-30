@@ -170,3 +170,68 @@ export const POR_QUE_EL_SILENCIO_NO_RESUELVE =
   'Porque una consulta por gripa que no habla de la diabetes no resuelve la ' +
   'diabetes. Interpretar el silencio como resolución vaciaría la lista de lo ' +
   'crónico, que es justo lo que hay que tener delante al prescribir.'
+
+/* ── LA PROYECCIÓN, CON LO QUE UNA LISTA NO PUEDE DECIR (WS-10, REG-405) ──── */
+
+/**
+ * ¿POR QUÉ NO BASTA CON DEVOLVER LA LISTA?
+ *
+ * Porque una lista no puede decir **de cuánto historial salió**.
+ *
+ * `listarNotasCompat` devuelve `{ notas, truncada, techo }` justamente para eso:
+ * su encabezado explica que se borró la puerta que devolvía «un array pelado»
+ * porque «un array no puede decir que viene recortado; quien lo recibe no tiene
+ * forma de saberlo, y con un historial clínico el silencio se lee como *no
+ * tiene*».
+ *
+ * Y a un paso de ahí, `problemasActivos(notas)` volvía a ser exactamente esa
+ * puerta: las dos pantallas que la llaman **tienen `truncada` en la mano** y no
+ * tenían dónde ponerlo. Con un historial largo, la lista de problemas activos se
+ * calculaba sobre una ventana y se enseñaba como si fuera el expediente entero.
+ * Una comorbilidad anterior al techo desaparecía sin que nada lo dijera.
+ *
+ * `estadoDeAlergias` ya tenía este sobre —`asOf`, `version`,
+ * `historialRecortado`—. Aquí no se inventa uno nuevo: se usa el mismo.
+ *
+ * `problemasActivos` se conserva tal cual: es el núcleo puro y lo llaman sus
+ * pruebas. Lo que cambia es que las pantallas piden el sobre.
+ */
+export const VERSION_PROYECCION_PROBLEMAS = 1
+
+export interface EstadoDeProblemas {
+  /** ISO del instante al que corresponde esta proyección. Se pasa; no se lee el reloj. */
+  readonly asOf: string
+  readonly version: number
+  readonly problemas: readonly ProblemaVigente[]
+  /**
+   * true = el historial del que sale esto vino recortado (REG-350). Entonces
+   * «no encontré más» NO significa «no hay más», y la pantalla tiene que decirlo.
+   */
+  readonly historialRecortado: boolean
+}
+
+/**
+ * Los problemas activos **con el sobre que dice de dónde salieron**.
+ *
+ * @param asOf ISO del momento de la proyección. Se pasa para que sea pura.
+ * @param opciones `historialIncompleto` cuando las notas vinieron recortadas.
+ */
+export function estadoDeProblemas(
+  notas: readonly NotaConDiagnosticos[],
+  asOf: string,
+  opciones: { historialIncompleto?: boolean } = {},
+): EstadoDeProblemas {
+  return {
+    asOf,
+    version: VERSION_PROYECCION_PROBLEMAS,
+    problemas: problemasActivos(notas),
+    historialRecortado: opciones.historialIncompleto === true,
+  }
+}
+
+export const POR_QUE_LA_LISTA_NO_BASTA =
+  'Una lista no puede decir de cuánto historial salió. `listarNotasCompat` ' +
+  'devuelve `truncada` precisamente porque «con un historial clínico el silencio ' +
+  'se lee como no tiene», y a un paso de ahí esta proyección volvía a ser la ' +
+  'puerta que devuelve un array pelado: las pantallas tenían el recorte en la ' +
+  'mano y no tenían dónde ponerlo.'

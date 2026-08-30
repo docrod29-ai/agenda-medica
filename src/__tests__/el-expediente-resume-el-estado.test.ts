@@ -73,8 +73,14 @@ describe('los motores, medidos', () => {
 
 describe('CORREN en el expediente', () => {
   it('la pantalla los importa y los usa', () => {
-    expect(exp).toContain("import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'")
-    expect(exp).toContain("import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'")
+    /**
+     * REG-405 · la pantalla pasó a pedir la PROYECCIÓN en vez de la lista pelada:
+     * `estadoDeProblemas` es `problemasActivos` con el sobre que dice de cuánto
+     * historial salió. Lo que este caso protege —que la pantalla los importe y
+     * los use— no cambió; cambió por qué puerta entran.
+     */
+    expect(exp).toContain("import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'")
+    expect(exp).toContain("import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'")
     expect(exp).toMatch(/resumenProblemas\(problemas\)/)
     expect(exp).toMatch(/resumenVigentes\(vigentes\)/)
   })
