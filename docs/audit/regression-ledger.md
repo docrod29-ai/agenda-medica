@@ -12841,3 +12841,80 @@ aprendizaje no llegara a ninguna parte.
   acto y su autoridad; esto vigila el vocabulario que el sistema deriva solo.
 - **Es estático.** Una lectura armada en tiempo de ejecución se le escapa al
   grafo — de ahí el caso que vigila la ruta de la colección.
+
+---
+
+## REG-387 — «¿esta evidencia aplica a ESTE paciente?» no la contestaba nadie
+
+**QUÉ FALTABA.** WS-09 estaba `NOT_STARTED`, y no era «parcial»: `grep
+aplicabilidad` sobre `src/` no devolvía **nada**. La adaptación al paciente era
+**sólo por prompt** —«personaliza por edad, comorbilidades y alergias»— sin
+compuerta determinista, sin cruce, y sin forma de decir «este paciente no cumple
+la población del estudio».
+
+Un ensayo hecho en adultos de 18 a 65 años, que excluyó embarazadas y a quien
+tuviera TFG < 30, se le enseñaba **igual** al médico con un paciente de 82 y TFG
+de 22 delante.
+
+**LA DECISIÓN DE DISEÑO MÁS IMPORTANTE: NO EXISTE EL VEREDICTO «APLICA».**
+
+El máximo que este motor puede decir es **`nada_lo_excluye`**.
+
+Decir «aplica» afirmaría haber leído y comprobado **todos** los criterios, y el
+motor sólo entiende con certeza unos pocos patrones. Un motor que redondea su
+ignorancia hacia arriba es peor que no tenerlo: le da al médico una tranquilidad
+que nadie comprobó. `nada_lo_excluye` dice exactamente lo que hizo —buscó motivos
+para excluir a este paciente y no encontró ninguno **de los que sabe buscar**— y
+trae la cuenta de los que no supo leer.
+
+**LAS CIFRAS SALEN DEL CRITERIO, NUNCA DEL MÓDULO.** Cuando un criterio dice
+«mayores de 65 años» o «TFG < 30», el número sale del texto del estudio. Se prueba
+**cambiando el número del criterio** y viendo cambiar el veredicto con el mismo
+paciente — una prueba de comportamiento, no un `grep` de literales, porque un
+umbral escondido podría estar escrito con palabras.
+
+**AUSENCIA DE DATO NO ES DATO DE AUSENCIA.** El caso que justifica el módulo
+entero: estudio que **excluye embarazadas**, paciente cuyo embarazo **no consta**
+→ `datos_insuficientes`, jamás «nada lo excluye». Que nadie lo haya anotado no
+significa que no lo esté. Y la duda gana a la tranquilidad: un solo criterio
+dudoso tiñe el conjunto aunque todo lo demás salga bien.
+
+**UNA FUNCIÓN RENAL CADUCA NO DECIDE.** REG-375 puso la ventana de vigencia para
+dosificar; aquí rige igual. Una TFG fuera de ventana deja el criterio renal en
+`datos_insuficientes`: un número viejo no es un número.
+
+**LOS PATRONES VAN EN LOS DOS IDIOMAS, Y NO ES UN ADORNO.** Los criterios
+estructurados los escribiría el producto en español; los resúmenes de PubMed
+llegan en **inglés**. Un motor que sólo leyera español declararía `no_evaluable`
+el 100 % de los resúmenes reales y **parecería prudente cuando estaría ciego**.
+
+**Y EL DATO LLEGA.** La familia de defectos más repetida de este repositorio es la
+del cálculo que nadie lee — REG-345 fue exactamente eso, **en esta misma
+pantalla**: los avisos de evidencia se calculaban y la pantalla los tiraba. Así
+que el motor se calcula en la ruta, viaja en la respuesta y **se pinta pegado a la
+fuente**, que es donde el médico decide si abre el artículo. Hay cuatro casos que
+recorren esa cadena.
+
+**NO FILTRA NI REORDENA.** Quitar de la vista un artículo porque un patrón no casó
+sería peor que no tener esto: el médico dejaría de ver literatura por una
+heurística. Se **anota**. Y sólo se dice cuando hay algo que decir: «nada lo
+excluye» repetido en doce fuentes es ruido que se aprende a ignorar, y entonces el
+aviso que sí importa tampoco se lee.
+
+**LA PRUEBA.** `src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts`
+(36 casos), con inclusión, exclusión, ambigüedad, dato ausente, resumen en inglés
+y un caso que falla si alguien añade el veredicto «aplica».
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Cuatro dimensiones, no dieciocho.** Edad, embarazo, función renal y alergia.
+  Organismo, susceptibilidad, sitio de infección, dispositivo, severidad, entorno
+  de atención, terapia previa y jurisdicción **no se leen** — caen en
+  `no_evaluable` y se cuentan.
+- **No decide conducta.** Que la evidencia aplique no indica el tratamiento y que
+  no aplique no lo contraindica. El motor no habla con ninguno de dosis.
+- **Lee prosa con patrones estrictos.** Un criterio redactado de otra forma no se
+  interpreta: se declara ilegible. Señalar de menos, nunca de más.
+- **La población estructurada del estudio sigue sin producirse.**
+  `Poblacion.criteriosInclusion` existe en el modelo y nadie la llena todavía; por
+  eso el camino real es el resumen, y el resultado lo dice con `desdeResumen`.

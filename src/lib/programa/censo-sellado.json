@@ -149,11 +149,11 @@
     },
     {
       "id": "WS-09.motor",
-      "estado": "NOT_STARTED"
+      "estado": "PARTIAL"
     },
     {
       "id": "WS-09.datos-insuficientes",
-      "estado": "NOT_STARTED"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-10.proyeccion-no-es-segunda-verdad",

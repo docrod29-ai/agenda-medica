@@ -24,6 +24,7 @@ import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 import { declararFuentesNoConsultadas } from '@/lib/evidencia/lo-que-no-se-consulto'
+import { aplicabilidadDesdeResumen, comoSeDiceLaAplicabilidad } from '@/lib/evidencia/aplicabilidad'
 import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
 import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
@@ -234,6 +235,31 @@ export async function POST(req: NextRequest) {
   const ctx = body.contexto ?? {}
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
 
+  /**
+   * ── ¿ESTE ARTÍCULO APLICA A ESTE PACIENTE? (WS-09) ────────────────────────
+   *
+   * Hasta aquí la adaptación al paciente era **sólo por prompt**: se le pedía al
+   * modelo «personaliza por edad, comorbilidades y alergias» y se confiaba. Un
+   * ensayo hecho en adultos de 18 a 65 se le enseñaba igual al médico con un
+   * paciente de 82 delante.
+   *
+   * Ahora cada artículo pasa por una compuerta **determinista** que sólo lee lo
+   * que sabe leer y **cuenta lo que no**. Su veredicto máximo es «nada lo
+   * excluye», nunca «aplica»: el motor no ha leído los criterios del estudio,
+   * ha reconocido frases en un resumen, y la frase que sale lo dice.
+   *
+   * No filtra ni reordena los artículos. La aplicabilidad se ANOTA; quitar de la
+   * vista un artículo porque un patrón no casó sería peor que no tener esto.
+   */
+  const estadoDelPaciente = {
+    ...(typeof ctx.edad === 'number' ? { edadEnAnios: ctx.edad } : {}),
+    ...(Array.isArray(ctx.alergias) ? { alergenos: ctx.alergias as string[] } : {}),
+  }
+  const aplicabilidadPorArticulo = articulos.map(a => {
+    const r = aplicabilidadDesdeResumen(a.resumen ?? '', estadoDelPaciente)
+    return { pmid: a.pmid, veredicto: r.veredicto, frase: comoSeDiceLaAplicabilidad(r), porQue: r.porQue }
+  })
+
   const hayEvidencia = articulos.length > 0
   const fuentesTxt = hayEvidencia
     ? articulos.map((a, i) => `[${i + 1}] PMID ${a.pmid} · ${a.revista} ${a.anio}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
@@ -414,7 +440,7 @@ export async function POST(req: NextRequest) {
     }
     avisos.push(modelosUsados.length > 1 ? `Análisis combinado: ${modelosUsados.join(' + ')}.` : `Análisis con ${modelosUsados[0] ?? tierClaude}.`)
     return NextResponse.json({
-      ok: true, articulos, ...final, nivel, _modelos: modelosUsados,
+      ok: true, articulos, _aplicabilidad: aplicabilidadPorArticulo, ...final, nivel, _modelos: modelosUsados,
       _aviso: avisos.join(' '), _busquedaFallida: testigo.fallo,
       _fuentesNoConsultadas: declaradas.noConsultados,
       _verificacion: verificacion,

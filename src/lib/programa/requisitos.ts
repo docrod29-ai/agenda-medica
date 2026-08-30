@@ -335,13 +335,18 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   /* ═══ WS-09 · Aplicabilidad ═══════════════════════════════════════════════ */
   R({
     id: 'WS-09.motor', ws: 'WS-09', titulo: 'Motor determinista de aplicabilidad de la evidencia a ESTE paciente',
-    estado: 'NOT_STARTED',
-    queFalta: 'Ausente, no parcial: sin motor, sin esqueleto. Hoy la adaptación es sólo por prompt. Falta cruce de edad, embarazo, función renal/hepática, inmunosupresión, alergias, organismo, susceptibilidad, sitio, dispositivo, comorbilidad, interacción, severidad, entorno y jurisdicción.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-387 lo creó y lo conectó de punta a punta en cuatro dimensiones —edad, embarazo, función renal y alergia—, en español e inglés. Faltan las otras: organismo, susceptibilidad, sitio de infección, dispositivo, comorbilidad, interacción, severidad, entorno de atención, terapia previa y jurisdicción. Caen en `no_evaluable` y se cuentan, no se dan por buenas.',
+    artefactos: ['src/lib/evidencia/aplicabilidad.ts'],
+    pruebas: ['src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts'],
   }),
   R({
     id: 'WS-09.datos-insuficientes', ws: 'WS-09', titulo: 'Un dato ausente produce insufficient_patient_data, no una suposición',
-    estado: 'NOT_STARTED',
-    queFalta: 'Depende de WS-09.motor. La regla ya está escrita en la política clínica; falta el estado explícito y su prueba.',
+    estado: 'PROVEN',
+    evidencia: 'REG-387. `datos_insuficientes` es un veredicto de primera clase, y la duda gana a la tranquilidad: un solo criterio dudoso tiñe el conjunto. El caso que lo justifica es un estudio que excluye embarazadas con el embarazo sin constar.',
+    comando: 'npx vitest run src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts',
+    resultado: '36 casos verdes. No existe el veredicto «aplica»: el máximo es «nada lo excluye», con la cuenta de lo que no se supo leer.',
+    pruebas: ['src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts'],
   }),
 
   /* ═══ WS-10 · Patient State ═══════════════════════════════════════════════ */

@@ -1150,7 +1150,7 @@ export default function ConsultaActivaPage() {
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
-  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string; noConsultadas?: string[]; sinRespaldo?: string[] } | null>(null)
+  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string; noConsultadas?: string[]; sinRespaldo?: string[]; aplicabilidad?: { pmid: string; veredicto: string; frase: string; porQue: string }[] } | null>(null)
   const [analizandoEv, setAnalizandoEv] = useState(false)
   // Candado de gasto (soft): uso de consultas del mes vs el límite del plan.
   const [usoIA, setUsoIA] = useState<{ usadas: number; limite: number; restantes: number; porcentaje: number; alerta: 'ok' | 'cerca' | 'excedido' } | null>(null)
@@ -2157,7 +2157,7 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso, noConsultadas: data._fuentesNoConsultadas ?? [], sinRespaldo: (data._verificacion?.sinRespaldo ?? []).map((x: { texto: string }) => x.texto) })
+      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso, noConsultadas: data._fuentesNoConsultadas ?? [], sinRespaldo: (data._verificacion?.sinRespaldo ?? []).map((x: { texto: string }) => x.texto), aplicabilidad: data._aplicabilidad ?? [] })
       else {
         // Muestra el MOTIVO real (no un toast mudo) y lo deja en consola para diagnóstico.
         // REG-339 — el cuerpo del error puede devolver el contexto del paciente
@@ -5944,11 +5944,30 @@ export default function ConsultaActivaPage() {
             {arts.length > 0 && (
               <div style={{ marginTop: 10 }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text3)' }}>Fuentes ({arts.length})</div>
-                {arts.map((a, i) => (
-                  <div key={a.pmid} style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-                    [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revista} {a.anio}
-                  </div>
-                ))}
+                {arts.map((a, i) => {
+                  /**
+                   * ¿ESTE ARTÍCULO APLICA A ESTE PACIENTE? (WS-09)
+                   *
+                   * Se pinta PEGADO a la fuente, no en un panel aparte: el
+                   * momento en que importa es cuando el médico va a leer el
+                   * artículo. Y se dice sólo cuando hay algo que decir — «nada lo
+                   * excluye» en las doce fuentes sería ruido que se aprende a
+                   * ignorar, y entonces el aviso que sí importa tampoco se lee.
+                   */
+                  const ap = (evidencia.aplicabilidad ?? []).find(x => x.pmid === a.pmid)
+                  const fuera = ap?.veredicto === 'no_aplica'
+                  const dudoso = ap?.veredicto === 'datos_insuficientes'
+                  return (
+                    <div key={a.pmid} style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+                      [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revista} {a.anio}
+                      {(fuera || dudoso) && (
+                        <span title={ap?.porQue} style={{ color: fuera ? 'var(--amber)' : 'var(--text3)', fontWeight: fuera ? 600 : 400 }}>
+                          {' '}· {ap?.frase}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
             <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 10, fontStyle: 'italic' }}>
