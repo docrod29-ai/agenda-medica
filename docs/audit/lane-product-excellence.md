@@ -4307,3 +4307,69 @@ ambiental.
   Es el precio de verlo entero; no se midió si molesta en un dictado largo.
 - Nombres largos en lo que se **imprime** (receta, orden, PDF) siguen sin medir:
   el arnés mide pantalla.
+
+---
+
+## Unidad 70 — doscientos cincuenta pacientes, y ningún número inventado
+
+**LA OTRA MITAD DE «CONTENIDO LARGO».** La unidad anterior midió el texto libre;
+faltaban las **listas**. El arnés de siempre siembra cinco pacientes y ocho
+citas, y con eso no se puede saber qué pasa un martes cualquiera de una consulta
+con años de rodaje.
+
+Así que el guion **se hace su propio consultorio**: crea un médico, lo pasa por
+el alta y le escribe **250 pacientes y 90 citas** con nombres compuestos a la
+mexicana. No toca la cuenta sembrada, así que no mueve ningún techo de los otros
+trinquetes.
+
+**RESULTADO: las listas largas no rompen nada.**
+
+| | filas pintadas | nodos en `<main>` | desborde |
+|---|---|---:|---|
+| `/pacientes` (Todos A-Z) | **250 de 250** | 3 798 | no |
+| `/citas` | **90 de 90** | 2 188 | no |
+
+Ninguna pantalla se sale de lado y **no falta ni una fila**. Eso último importa
+más de lo que parece: una lista que enseña 50 de 250 sin decirlo es peor que una
+lenta, porque el médico busca a alguien que sí está y no lo encuentra.
+
+**Y AQUÍ NO SE PUBLICA UN NÚMERO DE TIEMPO, A PROPÓSITO.** Lo intenté dos veces
+y las dos me salió un número que no medía lo que decía medir:
+
+1. Cronometrando desde la navegación, el resultado incluía **mis propias esperas
+   fijas** —siete segundos más tres y medio— e informaba «12 000 ms hasta
+   pintar» de una lista que tardaba segundo y medio. Una falsa alarma con
+   formato de dato.
+2. Arrancando el reloj tras la última interacción, informaba **«14 ms»** — porque
+   para entonces la lista **ya estaba pintada**. La misma mentira del revés.
+
+Publicar cualquiera de los dos habría sido peor que no medir: uno haría perseguir
+un problema que no existe, el otro daría por bueno lo que nadie comprobó. Se
+quitó la métrica y **el rendimiento percibido de las listas largas queda
+NOT_PROVEN**, dicho con todas las letras.
+
+Es la tercera vez en esta sesión que la respuesta correcta ha sido **retirar una
+medida** en vez de perseguirla: la de jerarquía, la de estaticidad —que hubo que
+rehacer entera— y ahora ésta.
+
+**PROBADO AL REVÉS.** Rompiendo el contador de filas, el guion informa «0 de 20»
+y falla. Sin eso, un selector que dejara de casar habría informado «0 de 0» y
+alguien lo habría leído como aprobado.
+
+**COMPUERTAS.** `vitest` 10 847/10 848 · lint 95 · diseño sin deuda nueva ·
+`tsc` limpio. **Esta unidad no toca una sola línea de producto** —sólo el guion
+nuevo y su entrada en `package.json`—, así que no se vuelven a correr las ocho
+compuertas de navegador: no hay nada que hayan podido dejar de cubrir. El rojo de
+`vitest` es `ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- **250 no son 5 000.** A 3 798 nodos por 250 filas, un consultorio con una
+  década encima metería decenas de miles en el árbol: **no hay virtualización**.
+  No se extrapola —se midió 250— pero el número está aquí para quien decida si
+  hace falta.
+- **Sin medida de tiempo**, por lo dicho arriba.
+- Sólo `/pacientes` y `/citas`. Cobros, pendientes y el expediente de un paciente
+  con cien notas **no se miraron**.
+- No se probó el desplazamiento con el dedo ni el consumo de memoria.
+- El guion deja su médico y su consultorio en el emulador. Es un emulador.

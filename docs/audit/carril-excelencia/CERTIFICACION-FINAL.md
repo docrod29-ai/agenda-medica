@@ -226,7 +226,7 @@ que no midió es peor que uno que no mide.
 | **loading** | `arnes:estado-de-carga` — con la red lenta a propósito | **medido**, 15 rutas |
 | **error** | `arnes:caida-de-datos` — cortando los datos | **medido**, 5 rutas |
 | **empty** | `arnes:consultorio-vacio` — con un consultorio creado de cero | **medido**, 13 rutas |
-| **long content** | desborde: el trinquete, con el nombre más largo sembrado · texto libre: `arnes:texto-largo` | **medido a medias** ¹ |
+| **long content** | desborde con el nombre más largo (trinquete) · texto libre (`arnes:texto-largo`) · listas de 250 filas (`arnes:listas-largas`) | **medido** ¹ |
 | **hierarchy** | — | **NOT_PROVEN** |
 | **benchmark quality** | — | **NOT_PROVEN** |
 
@@ -268,11 +268,13 @@ a cambio de complicarle el merge a otro carril no es una mejora.
 ² `/dashboard` llegó a tener **dos botones «Consulta» imposibles de pulsar** bajo
 el aviso de notificaciones, sin posición de scroll que los liberara (unidad 64).
 
-¹ **long content, a medias.** El desbordamiento lateral está medido en 69
-combinaciones con el nombre compuesto más largo que admite un registro civil
-mexicano, y el texto libre de la nota está medido a 1440 y 390 con catorce
-párrafos y una palabra de 96 letras sin cortes. **Lo que sigue sin probarse son
-las listas largas**: cientos de citas, de pacientes o de cobros.
+¹ **long content.** Desborde medido en 69 combinaciones con el nombre compuesto
+más largo que admite un registro civil mexicano; texto libre medido a 1440 y 390
+con catorce párrafos y una palabra de 96 letras sin cortes; listas medidas con
+**250 pacientes y 90 citas** sembrados en un consultorio aparte — 250 de 250 y 90
+de 90 filas pintadas, sin desborde. Lo que **no** se mide es el TIEMPO: se
+intentó dos veces y ninguna de las dos versiones medía lo que decía (ver unidad
+70). El rendimiento percibido de las listas largas queda **NOT_PROVEN**.
 
 ## Las dos columnas sin medir, y por qué
 
@@ -284,7 +286,7 @@ las listas largas**: cientos de citas, de pacientes o de cobros.
 - **benchmark quality** — comparar contra una referencia externa es un juicio, y
   este carril sólo escribe lo que puede volver a medir.
 
-## Los ocho guiones, para volver a correrlo
+## Los nueve guiones, para volver a correrlo
 
 ```bash
 npm run arnes:trinquete-interfaz   # axe + desborde, 69 combinaciones
@@ -295,6 +297,7 @@ npm run arnes:estado-de-carga      # el hueco dice que está cargando
 npm run arnes:caida-de-datos       # una caída no borra el consultorio
 npm run arnes:consultorio-vacio    # el estado vacío, con un consultorio de cero
 npm run arnes:texto-largo          # el texto largo cabe y el campo lo enseña
+npm run arnes:listas-largas        # 250 pacientes y 90 citas, en su propio consultorio
 ```
 
 Todos exigen el servidor del arnés construido con la configuración del arnés, y

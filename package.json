@@ -42,7 +42,8 @@
     "arnes:estado-de-carga": "node scripts/carril-excelencia/el-hueco-dice-que-esta-cargando.mjs",
     "arnes:caida-de-datos": "node scripts/carril-excelencia/una-caida-no-borra-el-consultorio.mjs",
     "arnes:consultorio-vacio": "node scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
-    "arnes:texto-largo": "node scripts/carril-excelencia/el-texto-largo-cabe.mjs"
+    "arnes:texto-largo": "node scripts/carril-excelencia/el-texto-largo-cabe.mjs",
+    "arnes:listas-largas": "node scripts/carril-excelencia/las-listas-largas.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
