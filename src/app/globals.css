@@ -3535,6 +3535,18 @@ span.riel-aviso { cursor: default; }
 }
 .nx-agenda-bloque:active { transform: scale(0.985); }
 
+/* Las opciones de tipo de consulta: el borde lo lleva el grupo, no cada una.
+   El foco tiene que verse SIN borde propio, así que va por dentro. */
+.nx-opcion-tipo { background: transparent; }
+.nx-opcion-tipo[data-elegido] { background: var(--nexus-soft); }
+.nx-opcion-tipo:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
+@media (hover: hover) {
+  .nx-opcion-tipo:not([data-elegido]):hover { background: var(--s2); }
+}
+
 /* SÓLO PARA QUIEN NO VE LA PANTALLA.
    Nace de un patrón que este carril encontró tres veces: información que
    viajaba ÚNICAMENTE en `title=`. `title` es un canal de PUNTERO — no existe

@@ -510,25 +510,72 @@ function AsistenteInner() {
               <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 8 }}>
                 Tipo de consulta
               </label>
-              <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {TIPOS.map(t => (
+              {/**
+                * OCHO ALTERNATIVAS DE UNA ELECCIÓN NO SON OCHO OBJETOS.
+                *
+                * Cada tipo era un rectángulo con su propio borde: ocho cajas de
+                * 179×56 con el mismo peso visual, una al lado de otra. Contadas
+                * una a una parecen ocho tarjetas, y leídas de golpe son
+                * inventario — §6 del encargo: «las tarjetas indican agrupación
+                * con sentido, no decoran contenido».
+                *
+                * Pero además era FALSO como modelo: no son ocho cosas, son ocho
+                * formas de contestar UNA pregunta. Un control, no un catálogo.
+                *
+                * Ahora el borde lo lleva el GRUPO y las opciones viven dentro,
+                * separadas por líneas. La única que se destaca es la elegida —
+                * que es la información que de verdad hay que ver de un vistazo.
+                *
+                * De paso deja de ser un montón de `<button>` sueltos y pasa a ser
+                * un `radiogroup`: quien navega con teclado recorre el grupo con
+                * las flechas en vez de tabular ocho veces, y el lector anuncia
+                * «2 de 8» en vez de ocho botones sin relación.
+                */}
+              <div
+                role="radiogroup"
+                aria-label="Tipo de consulta"
+                style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0,
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+                  overflow: 'hidden',
+                }}
+              >
+                {TIPOS.map((t, i) => {
+                  const elegido = tipo === t.value
+                  const mins = efectiveConfig.duraciones?.[t.value] || 30
+                  return (
                   <button
                     key={t.value}
+                    role="radio"
+                    aria-checked={elegido}
                     onClick={() => setTipo(t.value)}
+                    className="nx-opcion-tipo"
+                    data-elegido={elegido ? '' : undefined}
                     style={{
-                      padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
-                      border: tipo === t.value ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: tipo === t.value ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
-                      color: tipo === t.value ? 'var(--teal)' : 'var(--text2)',
-                      cursor: 'pointer', transition: 'all var(--mov-rapido) var(--mov-curva)', textAlign: 'left',
+                      padding: '10px 12px', fontSize: 'var(--t-caption)', fontWeight: 500,
+                      border: 'none',
+                      /* Rejilla interna: línea a la izquierda salvo en la primera
+                         columna, y arriba salvo en la primera fila. */
+                      borderLeft: i % 2 === 1 ? '1px solid var(--border)' : 'none',
+                      borderTop: i >= 2 ? '1px solid var(--border)' : 'none',
+                      /* El fondo lo pinta la hoja por `data-elegido`: escrito
+                         aquí en línea ganaría a `:hover` y lo dejaría muerto —
+                         exactamente el defecto de la unidad 22, que cometí una
+                         segunda vez en este mismo archivo antes de acordarme. */
+                      color: elegido ? 'var(--teal)' : 'var(--text2)',
+                      cursor: 'pointer', textAlign: 'left',
+                      transition: 'background var(--mov-rapido) var(--mov-curva), color var(--mov-rapido) var(--mov-curva)',
                     }}
                   >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><TipoCitaIcon tipo={t.value} size={13} /> {t.label}</span>
-                    <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
-                      {duracion === efectiveConfig.duraciones?.[t.value] ? `${efectiveConfig.duraciones?.[t.value]} min` : `${efectiveConfig.duraciones?.[t.value] || 30} min`}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: elegido ? 600 : 500 }}>
+                      <TipoCitaIcon tipo={t.value} size={13} /> {t.label}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 'var(--t-overline)', color: 'var(--text3)', marginTop: 2 }}>
+                      {mins} min
                     </span>
                   </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>

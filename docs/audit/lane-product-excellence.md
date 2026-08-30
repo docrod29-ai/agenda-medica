@@ -1705,3 +1705,66 @@ prueba al revés caza un guardián mío que medía la forma en vez del efecto.
   texto («Calculando…», «Cargando lista de espera…»). Es honesto y no es
   moderno; cambiarlo es una decisión de diseño que no he tomado por mi cuenta.
 - No se han auditado los contadores del resto de la aplicación.
+
+---
+
+## Unidad 36 — ocho alternativas de una elección no son ocho objetos
+
+**CORRECCIÓN DE MI PROPIA MEDIDA, PRIMERO.** Vengo diciendo «15 tarjetas en
+`/asistente`». Al desglosarlas una a una resulta que mi heurística —rectángulo
+con borde y radio— cuenta como tarjeta **dos campos de formulario** y **tres
+filas de lista**, que no lo son. La fatiga real eran las **ocho opciones de tipo
+de consulta**. El número que repetí en el PR estaba inflado por el instrumento.
+
+**FOUND.** Los ocho tipos eran ocho rectángulos con borde propio, mismo tamaño y
+mismo peso: 179×56 a 1440 px, 292×56 a 390.
+
+**ROOT_CAUSE, y la segunda parte importa más que la primera.**
+
+1. Leídas de golpe son inventario (§6: las tarjetas indican agrupación con
+   sentido, no decoran contenido).
+2. Era **falso como modelo**. No son ocho cosas: son ocho formas de contestar
+   **una** pregunta. Un control, no un catálogo. Y como eran ocho `<button>`
+   sueltos, con teclado se tabulaba ocho veces y el lector anunciaba ocho
+   botones sin relación entre sí.
+
+El detalle que convierte un control en un catálogo es dónde está el borde: si
+cada alternativa tiene su caja, el ojo cuenta ocho objetos antes de entender que
+sólo puede elegir una.
+
+**CHANGE.** El borde pasa al grupo; las opciones se separan con líneas internas;
+sólo se destaca la elegida. Y se declara como lo que es: `radiogroup` + `radio`
++ `aria-checked`.
+
+**EL MISMO ERROR MÍO, POR SEGUNDA VEZ.** La primera versión pintaba el fondo de
+la opción elegida **en línea**, así que ganaba a `:hover` y dejaba el resaltado
+muerto — el defecto exacto de la unidad 22, cometido otra vez y en otro archivo.
+Me acordé antes de construir. Ahora va por `data-elegido` y lo pinta la hoja.
+
+**BROWSER_PROOF.** Build de producción:
+
+| | Antes | Después |
+|---|---:|---:|
+| Cajas con borde en `/asistente` @390 | 16 | **9** |
+| Cajas con borde @1440 | 15 | **8** |
+| Alto del panel izquierdo @390 | 789 px | **543 px** |
+| axe | 0 | **0** |
+
+Comprobado además en el navegador: `radiogroup` con ocho `radio`, exactamente
+uno `aria-checked`, el resaltado al pasar el ratón vivo
+(`transparent → rgb(26,29,33)`), y al elegir otra opción la marca se mueve —y
+la sugerencia de día recalcula sola (9 lugares con un tipo de 60 min, **18** con
+uno de 30).
+
+**REGRESSION.** `ocho-alternativas-no-son-ocho-objetos.test.ts`, 5 casos.
+Probado al revés tres veces: devolviendo el borde a cada opción, quitando el
+`radiogroup`, y devolviendo el fondo a la línea.
+
+**GATES.** Trinquete de diseño **bajado dos veces más**
+(`tamanosFueraDeEscala` 1949 → 1948, `radiosFueraDeEscala` 619 → 618): su
+guardián exige que el techo sea la medición de hoy, sin holgura escondida.
+
+**RESIDUAL_RISK.** `role=radio` promete recorrido con flechas dentro del grupo y
+**el navegador no lo implementa solo**: hoy se sigue tabulando opción a opción.
+Queda declarado. Y no se juzga si ocho tipos son demasiados — eso es
+configuración del consultorio, no diseño.
