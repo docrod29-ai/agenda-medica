@@ -336,7 +336,7 @@ export default function ChatPage() {
           style={{
             flex: 1, background: 'var(--s2)', border: '1px solid var(--border)',
             borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text)',
-            outline: 'none', resize: 'none', minHeight: 44, maxHeight: 120,
+            resize: 'none', minHeight: 44, maxHeight: 120,
             fontFamily: 'inherit',
           }}
         />

@@ -72,7 +72,7 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') preguntar(q) }}
           placeholder="Escribe tu pregunta…" disabled={cargando}
-          style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)', outline: 'none' }} />
+          style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }} />
         <button onClick={() => preguntar(q)} disabled={cargando || !q.trim()} aria-label="Enviar"
           style={{ flexShrink: 0, width: 42, borderRadius: 10, border: 'none', cursor: cargando || !q.trim() ? 'default' : 'pointer', background: cargando || !q.trim() ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {cargando ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />}

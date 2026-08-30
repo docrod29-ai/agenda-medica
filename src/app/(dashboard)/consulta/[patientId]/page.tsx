@@ -4365,7 +4365,7 @@ export default function ConsultaActivaPage() {
           // Guardián: alergias-placeholder-no-afirma.test.ts
           placeholder="No registradas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
           disabled={firmada}
-          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
+          style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14 }}
         />
         {/**
           * RTC-14 — LA LECTURA DEL SISTEMA, AQUÍ Y NO EN OTRA CAJA.
@@ -6254,7 +6254,7 @@ export default function ConsultaActivaPage() {
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
                   placeholder="Escribe la corrección…"
                   disabled={corrigiendo}
-                  style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)', outline: 'none' }}
+                  style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
                 />
                 {snapshotUndo && (
                   <button onClick={deshacerCorreccion} title="Deshacer el último cambio" style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>

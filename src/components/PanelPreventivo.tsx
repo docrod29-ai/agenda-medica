@@ -157,7 +157,7 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
 const txt: React.CSSProperties = { fontSize: 12, color: 'var(--text2)', margin: '5px 0 0', lineHeight: 1.55 }
 const rot: React.CSSProperties = { fontSize: 10.5, color: 'var(--text3)', fontWeight: 600 }
 const campoWrap: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 3 }
-const campo: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7, padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none' }
+const campo: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7, padding: '5px 8px', fontSize: 12, color: 'var(--text)' }
 const btn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, background: 'color-mix(in srgb, var(--blue) 15%, transparent)', color: 'var(--blue)', border: '1px solid color-mix(in srgb, var(--blue) 35%, transparent)', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }
 
 export { CalendarCheck }

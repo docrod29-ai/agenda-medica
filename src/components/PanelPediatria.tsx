@@ -322,7 +322,7 @@ function Tab({ activo, onClick, icono, texto }: { activo: boolean; onClick: () =
 
 const campoBase: React.CSSProperties = {
   background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7,
-  padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none',
+  padding: '5px 8px', fontSize: 12, color: 'var(--text)',
 }
 const btnMini: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--purple) 15%, transparent)',

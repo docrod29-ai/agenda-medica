@@ -421,7 +421,6 @@ function AsistenteInner() {
                 style={{
                   width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
                   borderRadius: 10, padding: '10px 14px', fontSize: 14, color: 'var(--text)',
-                  outline: 'none',
                 }}
               />
               {mostrarSug && sugerencias.length > 0 && (
@@ -467,7 +466,6 @@ function AsistenteInner() {
                   style={{
                     width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
                     borderRadius: 10, padding: '10px 14px 10px 34px', fontSize: 14, color: 'var(--text)',
-                    outline: 'none',
                   }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
                   onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}

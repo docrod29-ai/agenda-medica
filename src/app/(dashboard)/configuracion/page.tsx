@@ -1498,7 +1498,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
             style={{
               width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
               borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--text)',
-              outline: 'none', resize: 'vertical', lineHeight: 1.6,
+              resize: 'vertical', lineHeight: 1.6,
             }}
           />
         </div>
@@ -1596,7 +1596,7 @@ function MedicosTab() {
                   placeholder={f.placeholder}
                   style={{
                     width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                    borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none',
+                    borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--text)',
                   }}
                 />
               </div>

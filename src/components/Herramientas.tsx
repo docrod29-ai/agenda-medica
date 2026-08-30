@@ -84,7 +84,7 @@ export function Herramientas({ items, ocultas = [] }: {
               placeholder="Buscar herramienta…"
               style={{
                 background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8,
-                padding: '5px 9px', fontSize: 12, color: 'var(--text)', width: 190, outline: 'none',
+                padding: '5px 9px', fontSize: 12, color: 'var(--text)', width: 190,
               }}
             />
           ) : (

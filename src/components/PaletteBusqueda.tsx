@@ -144,7 +144,7 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
             onChange={e => { setQuery(e.target.value); setActivo(0) }}
             onKeyDown={onKeyNav}
             placeholder="Buscar paciente o acción (nueva cita, corte de caja…)"
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text)' }}
+            style={{ flex: 1, background: 'none', border: 'none', fontSize: 15, color: 'var(--text)' }}
           />
           <span style={{ fontSize: 11, color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>Esc</span>
         </div>

@@ -44,7 +44,7 @@
 | `/teleconsulta/[citaId]` | paciente | ✅ | 112 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
-| `/asistente` | medico | ✅ | 799 | 0 | — | ✅ | — |
+| `/asistente` | medico | ✅ | 797 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 697 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1212 | 6 | — | ✅ | — |
@@ -69,7 +69,7 @@
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 943 | 2 | — | ✅ | — |
-| `/operaciones` | medico | ✅ | 401 | 1 | — | ✅ | — |
+| `/operaciones` | medico | ✅ | 405 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 840 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1158 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 520 | 3 | — | ✅ | — |
@@ -102,7 +102,7 @@
 | `/privacidad` | publica | — | 135 | 0 | — | — | — |
 | `/registro` | publica | ✅ | 388 | 3 | — | ✅ | — |
 | `/seguridad` | publica | — | 146 | 2 | — | ✅ | — |
-| `/setup` | publica | ✅ | 273 | 2 | — | ✅ | — |
+| `/setup` | publica | ✅ | 271 | 2 | — | ✅ | — |
 | `/terminos` | publica | — | 141 | 0 | — | ✅ | — |
 | `/unirse/[code]` | publica | ✅ | 184 | 4 | — | ✅ | — |
 | `/superadmin` | interna | ✅ | 690 | 1 | — | ✅ | — |

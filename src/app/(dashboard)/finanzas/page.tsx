@@ -656,7 +656,7 @@ export default function FinanzasPage() {
               // El `placeholder` no es nombre: desaparece al escribir la primera letra.
               aria-label="Motivo de la anulación"
               rows={3}
-              style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--text)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+              style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--text)', resize: 'vertical', boxSizing: 'border-box' }}
             />
           </>
         )}

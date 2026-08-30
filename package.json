@@ -35,7 +35,8 @@
     "arnes:consulta-grabando": "node scripts/carril-excelencia/consulta-grabando.mjs",
     "arnes:menos-movimiento": "node scripts/carril-excelencia/respeta-menos-movimiento.mjs",
     "arnes:conflictos-carriles": "node scripts/carril-excelencia/conflictos-entre-carriles.mjs",
-    "arnes:documentos-encuentro": "node scripts/carril-excelencia/documentos-del-encuentro.mjs"
+    "arnes:documentos-encuentro": "node scripts/carril-excelencia/documentos-del-encuentro.mjs",
+    "arnes:foco-visible": "node scripts/carril-excelencia/el-foco-se-ve.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

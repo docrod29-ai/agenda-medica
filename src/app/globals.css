@@ -3622,3 +3622,36 @@ span.riel-aviso { cursor: default; }
 html:has(.mi-barra-destinos) .theme-toggle {
   bottom: calc(60px + 16px + env(safe-area-inset-bottom, 0px));
 }
+
+/* ── LAS FILAS DE OPERACIONES RESPONDEN AL PUNTERO ───────────────────────────
+
+   MEDIDO, no opinado: en `/operaciones`, **0 de 22 controles** tenían
+   transición alguna. Veintidós destinos navegables que no acusan el puntero se
+   leen como una lista de texto, no como sitios a los que se puede ir. Es el
+   síntoma que el encargo llama «estático»: no le falta adorno, le falta
+   ACUSE DE RECIBO.
+
+   No se inventa un lenguaje nuevo. Es exactamente el que ya hablan `.nav-item`
+   (el riel) y `.cal-cell` (la rejilla de la agenda): el fondo sube un peldaño
+   de superficie. Sin sombra, sin degradado, sin radio nuevo — nada de lo que
+   el propio encargo prohíbe.
+
+   El estado :active importa MÁS que el :hover, y es el que faltaba en los dos
+   idiomas anteriores: en un teléfono no hay puntero, así que el único acuse
+   posible es el del dedo. Sin él, tocar un destino y esperar a que navegue es
+   medio segundo sin saber si el toque contó. */
+.nx-op-fila {
+  /* El fondo vive AQUÍ y no en el `style={{ }}` de la fila. La primera versión
+     lo dejó en línea como `background: 'transparent'` y el `:hover` de abajo no
+     podía ganarle: la transición se aplicaba, el color no cambiaba, y en el
+     navegador la fila seguía tan muerta como antes. Es el mismo defecto de
+     especificidad que dejó sin anillo de foco a 33 campos del producto. */
+  background: transparent;
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva);
+}
+.nx-op-fila:hover:not(:disabled) { background: var(--s2); }
+.nx-op-fila:active:not(:disabled) { background: var(--s3); }
+/* El icono acompaña: pasa de metadato a contenido mientras la fila está viva. */
+.nx-op-fila:hover:not(:disabled) .nx-op-icono { color: var(--text2); }

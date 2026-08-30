@@ -3534,3 +3534,101 @@ guardas.)
 
 **COMPUERTAS.** `vitest` 10 827/10 828 · lint 95 · trinquete de interfaz **69/69
 sin regresión**. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
+
+---
+
+## Unidad 62 — el campo donde el médico escribe la nota no decía dónde estaba el cursor
+
+**LO QUE PEDÍA EL ENCARGO.** «Encuentra lo que todavía se siente muerto,
+estático o genérico», y entre los mínimos que reprueban la compuerta de diseño:
+**foco invisible**. Así que en vez de seguir leyendo código, medí.
+
+**LO QUE SALIÓ.** En `/consulta/pac-001` —la pantalla donde el médico ESCRIBE LA
+NOTA— **15 de 15 campos estaban mudos**. Ni un píxel cambiaba al llegar el
+cursor: `outline: 0px none`, misma sombra, mismo borde, mismo fondo. Con el
+teclado no había forma de saber en qué caja se escribía. Y en `/guia`, dos más.
+
+El `grep` posterior enseñó que las rutas visitadas eran la punta: **33
+declaraciones en 21 archivos** — los paneles clínicos (cardiometabólico, gineco,
+pediatría, cirugía, preventivo, preoperatorio, calculadoras, antibiograma), el
+chat y el asistente, `setup`, `finanzas`, `configuración`, `guía`, fotos
+clínicas, facturación, soporte y la paleta de búsqueda. Es decir, **casi todos
+los campos escritos a mano del producto**.
+
+**CAUSA RAÍZ — la familia de siempre: la lección aprendida en un componente y no
+en el de al lado.** El sistema de diseño hace lo correcto: `.input` apaga el
+`outline` del navegador —ruidoso en un formulario denso— y **pone otro anillo en
+su lugar** (`:focus` con borde teñido y halo de 3px). Los campos escritos a mano
+copiaron la línea que quita y no la que devuelve. Y no podían copiarla: un
+`style={{ }}` en línea **no sabe expresar `:focus`**.
+
+Peor: el estilo en línea le gana por especificidad al `:focus-visible` global que
+viste al resto de la aplicación. Cada `outline: 'none'` no es que no añadiera
+nada — **desactivaba la defensa que ya existía**.
+
+**EL ARREGLO NO AÑADE NADA: QUITA.** Se borra el apagado en los 33 sitios y el
+anillo global vuelve solo, idéntico al del resto del producto. Sin CSS nuevo, sin
+color nuevo, sin degradado, sin sombra, sin radio. La única excepción es
+`#cierre-de-la-consulta`, un `<div tabIndex={-1}>` que sólo recibe el foco por
+programa: anillar una sección entera al aterrizar es ruido, y queda en la lista
+de permitidos con nombre y razón.
+
+**POR QUÉ AXE NO LO VIO.** No existe regla automática de foco visible. Catorce
+pantallas ya auditadas con 0 violaciones llevaban esto dentro. El criterio 2.4.7
+de WCAG 2.2 (AA) sólo se comprueba ejecutando.
+
+**Y EL MISMO DEFECTO, OTRA VEZ, EN `/operaciones`.** La unidad anterior le había
+puesto `.nx-op-fila:hover { background: var(--s2) }` a las 22 filas navegables
+que no acusaban el puntero. Al ir a comprobarlo en el navegador: **la transición
+se aplicaba (0.12s) y el color no cambiaba**. La fila llevaba
+`background: 'transparent'` en línea, que le ganaba al `:hover` — el mismo
+defecto de especificidad que acababa de encontrar en los campos, escrito por mí
+tres horas antes. El fondo pasa a la clase, y de paso las tres filas que son
+`<button>` (cerrar sesión, respaldo, tema) reciben el mismo idioma que las 18 que
+son `<Link>`. Medido después: **21 de 22 controles responden al puntero**, y el
+fondo va de `transparent` a `rgb(26,29,33)`.
+
+**LO QUE VIGILA ESTO A PARTIR DE HOY.**
+
+- `src/__tests__/el-campo-que-se-queda-sin-anillo-de-foco.test.ts` — la CAUSA,
+  sin navegador, en CI. Probado al revés devolviendo el apagado a
+  `consulta-ui.tsx`: cae nombrando archivo y línea.
+- `npm run arnes:foco-visible` — el EFECTO sobre el producto vivo: enfoca cada
+  campo de cada ruta y compara cinco propiedades antes y después. **45 campos en
+  22 rutas, 0 mudos.**
+
+**DOS VECES ME ENGAÑÓ MI PROPIA SONDA, Y LAS DOS QUEDAN ESCRITAS.**
+
+1. Tras el arreglo, el barrido dijo **«0 de 0»** en las quince rutas. No era un
+   aprobado: el servidor viejo seguía en el puerto sirviendo un manifiesto que ya
+   no existía y las pantallas no montaban. Es la segunda vez que este carril cae
+   en el mismo huérfano; ahora el guion aborta si una ruta no monta `<main>`.
+2. La lista de rutas la escribí **de memoria**: `/inventario`, `/recetas`,
+   `/laboratorio`, `/tareas` y `/mensajes` **no existen**. Daban 404 y el barrido
+   los contaba como «0 de 0 · ok» — cinco aprobados sobre pantallas que no están
+   ahí. Ahora usa las 22 rutas reales del trinquete, y distingue un 404 de un
+   build viejo: decir el segundo por el primero manda a reconstruir el arnés por
+   nada.
+
+Y una tercera, del guardián: el patrón llevaba comilla simple **y** doble, y al
+pasarlo por `grep` el intérprete lo partía («Unterminated quoted string»). El
+barrido se hace desde Node, sin intérprete de por medio.
+
+**COMPUERTAS.** `vitest` 10 831/10 832 · lint 95 · diseño sin deuda nueva ·
+`tsc` limpio · `build` compila · trinquete de interfaz **69/69 sin regresión** ·
+`arnes:foco-visible` 45/45. El rojo es `ops-timeout-y-punto-ciego`, ambiental:
+necesita una IP que no conteste nunca y aquí el proxy contesta al momento.
+
+**RESIDUAL_RISK.**
+
+- **No se mide el contraste del anillo** contra el fondo del campo (1.4.11 /
+  2.4.13). Es `--nexus` sobre la escala `--s1/--s2`; queda sin medir.
+- **No se comprueba que el anillo no se recorte** por un `overflow: hidden` del
+  contenedor. Eso sólo se ve mirando, y se miró en la consulta, no en las 22.
+- El barrido sólo ve **campos visibles al aterrizar**: los que viven dentro de un
+  diálogo o un panel sin abrir quedan fuera.
+- El guardián de tabla **no mira las hojas de estilo**, donde apagar el `outline`
+  es legítimo porque ahí sí se puede reponer en `:focus`.
+- No vigila el apagado desde JavaScript (`el.style.outline = 'none'`).
+- **`/operaciones` queda en 21 de 22.** El control restante no es una fila del
+  grupo; no se toca lo que no se ha mirado.

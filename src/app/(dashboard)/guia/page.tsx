@@ -70,7 +70,7 @@ export default function GuiaPage() {
       <div style={{ position: 'relative', marginBottom: 12 }}>
         <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar en la guía (ej. receta, voz, créditos)…"
-          style={{ width: '100%', padding: '11px 12px 11px 38px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', color: 'var(--text)', fontSize: 14, outline: 'none' }} />
+          style={{ width: '100%', padding: '11px 12px 11px 38px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', color: 'var(--text)', fontSize: 14 }} />
       </div>
 
       {/* Filtro por rol */}

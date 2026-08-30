@@ -349,7 +349,7 @@ const pill = (fg: string, bg: string): React.CSSProperties => ({
 const etiqueta: React.CSSProperties = { fontSize: 10.5, color: 'var(--text3)', fontWeight: 600 }
 const campoBase: React.CSSProperties = {
   background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7,
-  padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none',
+  padding: '5px 8px', fontSize: 12, color: 'var(--text)',
 }
 const btnMini: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--rosa) 15%, transparent)',

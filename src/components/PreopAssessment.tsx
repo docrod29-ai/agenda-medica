@@ -379,7 +379,7 @@ function Num({ label, value, onChange }: { label: string; value: number; onChang
     <div>
       <label style={{ fontSize: 11, color: 'var(--text3)', display: 'block', marginBottom: 3 }}>{label}</label>
       <input type="number" value={value || ''} onChange={e => onChange(Number(e.target.value))}
-        style={{ width: 130, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontSize: 13, color: 'var(--text)', outline: 'none' }} />
+        style={{ width: 130, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontSize: 13, color: 'var(--text)' }} />
     </div>
   )
 }
@@ -388,7 +388,7 @@ function Sel({ label, value, onChange, opciones }: { label: string; value: strin
     <div>
       <label style={{ fontSize: 11, color: 'var(--text3)', display: 'block', marginBottom: 3 }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
-        style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontSize: 13, color: 'var(--text)', outline: 'none' }}>
+        style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontSize: 13, color: 'var(--text)' }}>
         {opciones.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
     </div>

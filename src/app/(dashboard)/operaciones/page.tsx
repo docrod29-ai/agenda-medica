@@ -158,7 +158,7 @@ const CAJA_DE_GRUPO: React.CSSProperties = {
 const FILA_DE_GRUPO: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
   padding: '10px 14px', minHeight: 44, boxSizing: 'border-box',
-  background: 'transparent', border: 0, color: 'var(--text)', fontFamily: 'inherit',
+  border: 0, color: 'var(--text)', fontFamily: 'inherit',
 }
 
 function CabeceraDeGrupo({ titulo, cadencia }: { titulo: string; cadencia: string }) {
@@ -274,13 +274,14 @@ export default function OperacionesPage() {
                 <Link
                   key={it.href}
                   href={it.href}
+                  className="nx-op-fila"
                   style={{
                     ...FILA_DE_GRUPO,
                     borderTop: i === 0 ? 'none' : '1px solid var(--border)',
                     textDecoration: 'none',
                   }}
                 >
-                  <it.icon size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
+                  <it.icon size={17} className="nx-op-icono" style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
                   <span style={{ minWidth: 0 }}>
                     <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>{it.label}</span>
                     <span className="nx-meta" style={{ display: 'block' }}>{it.para}</span>
@@ -315,9 +316,10 @@ export default function OperacionesPage() {
           <div style={CAJA_DE_GRUPO}>
             <button
               onClick={() => { void salirSeguro('/login') }}
+              className="nx-op-fila"
               style={{ ...FILA_DE_GRUPO, cursor: 'pointer' }}
             >
-              <LogOut size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
+              <LogOut size={17} className="nx-op-icono" style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>Cerrar sesión</span>
                 <span className="nx-meta" style={{ display: 'block' }}>
@@ -350,11 +352,12 @@ function RespaldoSection() {
             setGenerando(false)
           }}
           disabled={generando}
+          className="nx-op-fila"
           style={{ ...FILA_DE_GRUPO, cursor: generando ? 'progress' : 'pointer' }}
         >
           {generando
-            ? <Loader2 size={17} style={{ color: 'var(--text3)', flexShrink: 0, animation: 'spin 1s linear infinite' }} aria-hidden="true" />
-            : <Download size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />}
+            ? <Loader2 size={17} className="nx-op-icono" style={{ color: 'var(--text3)', flexShrink: 0, animation: 'spin 1s linear infinite' }} aria-hidden="true" />
+            : <Download size={17} className="nx-op-icono" style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />}
           <span style={{ minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>
               {generando ? 'Generando el respaldo…' : 'Descargar todo el consultorio'}
@@ -384,9 +387,10 @@ function TemaSection() {
           onClick={ciclar}
           title={titulo}
           aria-label={titulo}
+          className="nx-op-fila"
           style={{ ...FILA_DE_GRUPO, cursor: 'pointer' }}
         >
-          <Icono size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
+          <Icono size={17} className="nx-op-icono" style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
           <span style={{ minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>{etiqueta}</span>
             <span className="nx-meta" style={{ display: 'block' }}>

@@ -278,7 +278,7 @@ const pill = (fg: string, fondo: string): React.CSSProperties => ({
 const rotulo: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: 0.3 }
 const campo: React.CSSProperties = {
   background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7,
-  padding: '6px 9px', fontSize: 12, color: 'var(--text)', outline: 'none',
+  padding: '6px 9px', fontSize: 12, color: 'var(--text)',
 }
 const btnMini: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--blue) 15%, transparent)',
