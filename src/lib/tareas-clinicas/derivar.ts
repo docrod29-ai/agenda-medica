@@ -185,6 +185,65 @@ export function tareaDeResultado(p: {
 }
 
 /**
+ * UNA INTERCONSULTA PEDIDA ES UN CABO SUELTO — REG-422.
+ *
+ * ── LA FUGA ─────────────────────────────────────────────────────────────────
+ *
+ * Es la misma que REG-252 cerró para los resultados: la interconsulta vivía sólo
+ * dentro de `Internamiento.interconsultas`, un array embebido en el documento del
+ * episodio. `tareasVivas` lee `tareas_clinicas`; `cabosDelPaciente` lee
+ * `tareas_clinicas`; `estadoDeAccion` clasifica tareas. Ninguno de los tres podía
+ * verla. Una interconsulta pedida y no contestada era invisible salvo que alguien
+ * abriera esa pestaña de ese episodio y se acordara de mirar.
+ *
+ * ── POR QUÉ `alta` Y NO `critica` ───────────────────────────────────────────
+ *
+ * Porque la urgencia de una interconsulta la decide quien la pide, y aquí no hay
+ * campo donde lo haya dicho: `Interconsulta` no tiene prioridad. Marcarlas todas
+ * críticas sería el defecto de siempre —si todo es crítico, nada lo es— e
+ * inventarle una escala de urgencia al motivo sería adivinar. `alta` es lo que
+ * corresponde a un pendiente vivo cuyo plazo nadie ha fijado.
+ *
+ * ── SIN `venceEn`, Y ESO ES EL DATO ─────────────────────────────────────────
+ *
+ * El plazo tras el cual una interconsulta sin contestar está vencida depende de
+ * la especialidad, de la urgencia y del acuerdo del hospital. Es criterio
+ * clínico y no está decidido, así que no se pone: `estaVencida` no opina y la
+ * tarea no aparece en «Vencidos». Poner «48 h» porque suena razonable metería en
+ * rojo pendientes que quizá no lo están, y un grupo «Vencidos» que miente deja
+ * de leerse — que es peor que no tenerlo.
+ */
+export function tareaDeInterconsulta(p: {
+  clinicId: string
+  patientId: string
+  patientNombre?: string
+  /** El id de la interconsulta DENTRO del episodio. Da identidad estable. */
+  interconsultaId: string
+  especialidad: string
+  motivo?: string
+  ahoraMs: number
+  /** A quién se le pidió, si se eligió un médico concreto. */
+  ownerUid?: string
+  ownerNombre?: string
+}): Omit<TareaClinica, 'id'> {
+  return {
+    clinicId: p.clinicId,
+    patientId: p.patientId,
+    patientNombre: p.patientNombre,
+    tipo: 'interconsulta_pendiente',
+    titulo: `Interconsulta a ${p.especialidad}`,
+    detalle: p.motivo?.trim() || undefined,
+    prioridad: 'alta',
+    estado: 'solicitada',
+    creadaEn: iso(p.ahoraMs),
+    origen: 'hospital',
+    origenId: p.interconsultaId,
+    ownerUid: p.ownerUid,
+    ownerNombre: p.ownerNombre,
+  }
+}
+
+/**
  * §F3 — una tarea por cada discrepancia entre lo dicho y la lista.
  *
  * Prioridad `alta` y no `critica`: una lista desactualizada es peligrosa a lo

@@ -1095,17 +1095,26 @@ export default function EpisodioPage() {
               })
               toast('Interconsulta actualizada', 'success')
             } else {
-              await agregarInterconsulta(clinicId, internamientoId, {
+              /* REG-422 — el paciente va explícito: sin él la interconsulta se
+                 crea igual pero NO entra al worklist, y eso hay que poder verlo
+                 desde aquí, no descubrirlo dentro de la librería. */
+              const abierta = await agregarInterconsulta(clinicId, internamientoId, {
                 especialidad: icForm.especialidad, motivo: icForm.motivo.trim(), solicitanteNombre: config?.nombreMedico ?? '',
                 solicitanteId: auth.currentUser?.uid, medicoSolicitadoId: medSol?.id, medicoSolicitadoNombre: medSol?.nombre,
-              })
+              }, inter ? { id: inter.pacienteId, nombre: inter.pacienteNombre } : undefined)
               if (inter) await dispararAlerta(
                 { internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'interconsulta',
                   titulo: medSol ? `Interconsulta para ${medSol.nombre} (${icForm.especialidad})` : `Nueva interconsulta a ${icForm.especialidad}`,
                   detalle: `${icForm.motivo.trim()}${config?.nombreMedico ? `\nSolicita: ${config.nombreMedico}` : ''}` },
                 medSol ? { doctorId: medSol.id, destinatarioNombre: medSol.nombre } : undefined,
               )
-              toast(medSol ? `Interconsulta enviada a ${medSol.nombre}` : 'Interconsulta solicitada', 'success')
+              /* El pendiente que no se abrió NO se calla: la interconsulta está
+                 pedida, pero nadie la va a echar en falta desde el worklist. */
+              if (abierta.tareasCreadas < abierta.tareasEsperadas) {
+                toast('Interconsulta solicitada, pero no quedó en Pendientes: nadie la reclamará desde ahí.', 'error')
+              } else {
+                toast(medSol ? `Interconsulta enviada a ${medSol.nombre}` : 'Interconsulta solicitada', 'success')
+              }
             }
             setModalIC(false); setIcEditId(null); setIcForm({ especialidad: ESPECIALIDADES_IC[0], motivo: '', medicoSolicitadoId: '' }); cargar()
           }
@@ -1137,7 +1146,7 @@ export default function EpisodioPage() {
         footer={<><Button variant="secondary" onClick={() => setRespondiendo(null)}>Cancelar</Button><Button loading={busy} disabled={!respTxt.trim()} onClick={async () => {
           if (!clinicId || !respondiendo) return; setBusy(true)
           try {
-            await responderInterconsulta(clinicId, internamientoId, respondiendo, { respuesta: respTxt.trim(), respondidaPor: config?.nombreMedico ?? '' })
+            const trabajada = await responderInterconsulta(clinicId, internamientoId, respondiendo, { respuesta: respTxt.trim(), respondidaPor: config?.nombreMedico ?? '' })
             const icResp = (inter?.interconsultas ?? []).find(x => x.id === respondiendo)
             if (inter && icResp?.solicitanteId) await dispararAlerta(
               { internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'resultado',
@@ -1145,7 +1154,13 @@ export default function EpisodioPage() {
                 detalle: `${config?.nombreMedico ?? 'El especialista'}: ${respTxt.trim()}` },
               { destinatarioUid: icResp.solicitanteId, destinatarioNombre: icResp.solicitanteNombre },
             )
-            toast('Interconsulta respondida', 'success'); setRespondiendo(null); setRespTxt(''); cargar()
+            /* La respuesta ya está guardada. Si su pendiente no se movió, sigue
+               vivo en el worklist como si nadie hubiera contestado: se dice. */
+            toast(trabajada.estado === 'no_se_pudo'
+              ? 'Respondida, pero su pendiente sigue abierto en Pendientes.'
+              : 'Interconsulta respondida',
+            trabajada.estado === 'no_se_pudo' ? 'error' : 'success')
+            setRespondiendo(null); setRespTxt(''); cargar()
           }
           catch (e) {
             // El texto NO se limpia si falló: se conserva para reintentar, y así

@@ -21,6 +21,7 @@ import { POLITICA_CAMAS_SEGURA, transicionar } from '@/lib/hospital/estados-cama
 import type { BedAssignment, EstadoCama } from '@/types/hospital'
 import { registroDurable } from '@/lib/hospital/registro-durable'
 import { mismaCama } from '@/lib/hospital/cama'
+import { esIdDeUnSoloSegmento } from '@/lib/idempotencia'
 import { randomUUID } from 'crypto'
 import { sanearAdministracionEntrante } from '@/lib/hospital/administracion-entrante'
 
@@ -125,8 +126,30 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
     }
     case 'verificar_farmacia':
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: actor.nombre, fechaVerificacion: now } : x) }
-    case 'interconsulta_agregar':
-      return { interconsultas: [...arr('interconsultas'), { id: randomUUID(), especialidad: p.especialidad, motivo: p.motivo, solicitanteNombre: p.solicitanteNombre, solicitanteId: p.solicitanteId ?? null, medicoSolicitadoId: p.medicoSolicitadoId ?? null, medicoSolicitadoNombre: p.medicoSolicitadoNombre ?? null, estado: 'solicitada', fecha: now }] }
+    case 'interconsulta_agregar': {
+      /**
+       * ── EL ID LO TRAE QUIEN PIDE, Y ESO CIERRA DOS COSAS (REG-422) ────────
+       *
+       * Antes lo acuñaba aquí `randomUUID()` y no salía de la transacción, así
+       * que `agregarInterconsulta` devolvía cadena vacía: NADIE sabía qué
+       * interconsulta se acababa de crear, y por eso no se le podía colgar la
+       * tarea que la mete en el bucle del worklist.
+       *
+       * Y con el id del servidor, un reintento —doble clic, red que se corta
+       * después de escribir— acuñaba OTRO id y dejaba una interconsulta
+       * duplicada en el episodio. Con el id en la mano del que pide, esto lo
+       * reconoce y no lo repite.
+       *
+       * La forma se VALIDA: `esIdDeUnSoloSegmento` es la misma puerta que usa el
+       * resto del árbol, y lo que no encaje se descarta y se acuña aquí — nunca
+       * se escribe lo que llegó sin comprobarlo.
+       */
+      const id = typeof p.id === 'string' && esIdDeUnSoloSegmento(p.id) ? p.id : randomUUID()
+      /* Idempotente: si ya está, la petición es un reintento y no una segunda
+         interconsulta. Se devuelve el array intacto en vez de duplicarla. */
+      if (arr('interconsultas').some(x => (x as Any).id === id)) return {}
+      return { interconsultas: [...arr('interconsultas'), { id, especialidad: p.especialidad, motivo: p.motivo, solicitanteNombre: p.solicitanteNombre, solicitanteId: p.solicitanteId ?? null, medicoSolicitadoId: p.medicoSolicitadoId ?? null, medicoSolicitadoNombre: p.medicoSolicitadoNombre ?? null, estado: 'solicitada', fecha: now }] }
+    }
     case 'interconsulta_responder':
       return { interconsultas: arr('interconsultas').map(x => (x as Any).id === p.icId ? { ...x, estado: 'respondida', fechaRespuesta: now, respuesta: p.respuesta, respondidaPor: p.respondidaPor } : x) }
     case 'interconsulta_editar': {

@@ -88,6 +88,37 @@ export type TipoTarea =
    * anticoagulante es un acto médico (§C3: no elegir la verdad automáticamente).
    */
   | 'reconciliacion_medicamento'
+  /**
+   * SE PIDIÓ UNA INTERCONSULTA Y EL COLEGA NO HA CONTESTADO — REG-422.
+   *
+   * Hasta hoy una interconsulta vivía SÓLO dentro de `Internamiento.interconsultas`,
+   * así que `tareasVivas`, `cabosDelPaciente` y `estadoDeAccion` no la veían nunca:
+   * una pedida y no contestada era invisible fuera de una pestaña de un episodio.
+   * Es la misma fuga que REG-252 cerró para los resultados de laboratorio.
+   *
+   * ── SU GRUPO DEL WORKLIST ES `otros`, Y ESO ES UNA DECISIÓN ────────────────
+   *
+   * `estadoDeAccion` no la nombra, así que cae en `otros` («Otros pendientes»).
+   * No es un olvido:
+   *
+   *  · `esperando_resultado` la etiquetaría MAL — dice «Esperando resultado» y
+   *    aquí se espera a un colega, no a una máquina.
+   *  · una categoría nueva es la clase de modelo sin información que REG-404
+   *    evitó a propósito: se añade cuando haya algo que decir con ella.
+   *
+   * `otros` es honesto —hay un pendiente vivo y su cajón no está decidido— y lo
+   * que importaba se consigue igual: **se ve**. Qué grupo merece es una decisión
+   * de producto, y queda dicha en el censo.
+   *
+   * ── SIN `venceEn`, A PROPÓSITO ────────────────────────────────────────────
+   *
+   * El plazo tras el cual una interconsulta sin contestar está vencida depende
+   * de especialidad, urgencia y acuerdo del hospital: es criterio clínico y no
+   * está decidido. Sin él `estaVencida` no opina, que es lo correcto — inventar
+   * «48 h» pondría en rojo un pendiente que quizá no lo está, y en cuanto un
+   * grupo «Vencidos» miente, deja de leerse.
+   */
+  | 'interconsulta_pendiente'
   | 'otra'
 
 export type Prioridad = 'critica' | 'alta' | 'normal'
@@ -100,6 +131,23 @@ export interface TareaClinica {
   patientNombre?: string
   /** De qué consulta salió. Es la traza hacia atrás. */
   notaId?: string
+  /**
+   * EL HECHO DEL QUE NACIÓ, CUANDO NO ES UNA NOTA — REG-422.
+   *
+   * `notaId` daba identidad estable a lo que nace de una consulta, y sobre él se
+   * construye `idDerivado` para que repetir la acción de origen no duplique la
+   * tarea. Una interconsulta no nace de una nota: nace de un elemento dentro de
+   * un episodio de internamiento.
+   *
+   * Meter ese id en `notaId` habría sido lo barato y lo peor: TODO el que lee
+   * `notaId` espera una nota —la traza de la pantalla, el enlace de vuelta, los
+   * motores que la abren— y de pronto encontraría un id que no resuelve a
+   * ninguna. Un campo haciendo dos trabajos es la forma exacta de REG-418, y
+   * arreglar uno rompería al otro.
+   *
+   * Va acompañado de `origen`, que dice de QUÉ clase es este id.
+   */
+  origenId?: string
   tipo: TipoTarea
   titulo: string
   detalle?: string
@@ -401,6 +449,7 @@ export const ETIQUETA_TIPO: Record<TipoTarea | string, string> = {
   receta_por_entregar: 'Receta',
   indicacion_paciente: 'Indicación',
   reconciliacion_medicamento: 'Reconciliar',
+  interconsulta_pendiente: 'Interconsulta',
   otra: 'Pendiente',
 }
 

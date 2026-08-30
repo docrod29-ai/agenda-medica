@@ -15816,3 +15816,122 @@ nada de lo que dice vigilar. Reescrito por símbolo, y comprobado al revés.
   conserva la preferencia por `definitivo` que ya había.
 
 **Prueba.** `src/__tests__/un-descarte-no-puede-ser-el-motivo-de-la-receta.test.ts` (15 casos).
+
+---
+
+## REG-422 — una interconsulta pedida y no contestada era invisible
+
+**QUÉ SE PEDÍA.** `WS-11.interconsultas-imagen`, `NOT_STARTED`, con el
+diagnóstico ya afinado y **el trabajo revertido a propósito** en la sesión de
+REG-412.
+
+### La fuga
+
+Una interconsulta vivía sólo dentro de `Internamiento.interconsultas`, un array
+embebido en el documento del episodio. El motor del ciclo cerrado lee otra cosa:
+`tareasVivas`, `cabosDelPaciente` y `estadoDeAccion` trabajan sobre la colección
+`tareas_clinicas`.
+
+Así que pedirle una interconsulta a cardiología y que nadie contestara **no
+aparecía en ningún worklist**, ni en los cabos sueltos del paciente, ni en nada
+que la reclamara. Para enterarse había que abrir esa pestaña de ese episodio y
+acordarse de mirar — que es exactamente lo que no ocurre en una guardia.
+
+Es la misma fuga que REG-252 cerró para los resultados de laboratorio, con la
+misma forma: la entidad existe, el motor existe, y nadie los une.
+
+### Por qué estaba revertido, y qué lo desbloqueó
+
+La sesión anterior construyó el modelo —`origenId`, el tipo nuevo— y lo revirtió
+al no poder conectarlo: dejar algo escrito y sin conectar es lo que REG-406
+enseñó a no hacer, y tres guardianes de este árbol lo rechazan con razón. La
+razón que dio fue que la tarea tenía que crearse dentro de la mutación de
+servidor, «y eso no se puede verificar de punta a punta aquí».
+
+Al mirar **por qué** no se podía conectar apareció la causa real: el id lo
+acuñaba el servidor con `randomUUID()` dentro de la transacción y no salía de
+ella —`agregarInterconsulta` devolvía cadena vacía—, así que **nadie sabía a qué
+interconsulta colgarle la tarea**. No era una frontera imposible de probar: era
+un identificador que no volvía.
+
+Acuñarlo del lado del que pide lo resuelve, y no es un rodeo: es la puerta que
+este árbol ya usa para las escrituras clínicas (`claveDeIntento` +
+`idIdempotente`), con forma cerrada y validable, y con respaldo donde no haya
+WebCrypto — `crypto.randomUUID` **lanza** fuera de un contexto seguro, y esto
+corre en tabletas de hospital.
+
+### El defecto de propina, que ya estaba
+
+Con el id del servidor, un reintento —doble clic, o una red que se corta
+**después** de escribir— acuñaba un id nuevo y dejaba la interconsulta duplicada
+en el episodio. Nada lo impedía. Ahora el servidor reconoce el reintento y
+devuelve el array intacto.
+
+### Dónde se crea la tarea, y por qué no en la pantalla
+
+En `agregarInterconsulta`, que es la única puerta por la que se pide una. Si la
+creación viviera en la pantalla, la segunda pantalla que alguien escriba nacería
+con la fuga. Es literalmente la lección de REG-252 dicha otra vez.
+
+### Contestar es «completada», no «cerrada»
+
+El censo pedía «cerrarla en `interconsulta_responder`». **El modelo no lo
+permite, y tiene razón**: `completada` es que el trabajo se hizo; `cerrada` es
+que alguien LO MIRÓ y decidió. Una interconsulta es el caso de libro — el
+cardiólogo contesta, y si el que la pidió no lee la respuesta no ha pasado nada
+por mucho que el episodio diga «respondida».
+
+Contestar la deja `completada` y viva en «Necesita revisión». Cerrarla, con la
+decisión escrita, es del que la pidió. `solicitada` no salta a `completada`, así
+que se recorren los dos pasos y los dos quedan en el registro de transiciones; si
+el segundo falla, la tarea queda `aceptada` — **sigue viva y sigue viéndose**,
+que es el lado seguro por el que fallar.
+
+### El id de una tarea de origen no lleva el título, y el de una nota sí
+
+Una NOTA produce muchas tareas —tres estudios, un seguimiento, una receta— y sin
+el título todas colapsarían en un documento. Un `origenId` es el hecho mismo: una
+interconsulta, una tarea.
+
+Y no es cosmético: con el título dentro, el id sólo se puede reconstruir
+conociendo la especialidad, y **quien contesta sólo tiene el `icId`**. La tarea se
+crearía y nadie volvería a encontrarla: contestar no cerraría nada, en silencio.
+
+Lo escribí mal la primera vez y el golden lo dejó pasar — comprobaba
+`idDeTareaDeOrigen` a solas, o sea UN extremo, no que los dos coincidan. La
+aserción que vale es `idDerivado(tarea) === idDeTareaDeOrigen(origen, origenId)`.
+«El dato tiene que LLEGAR», en su forma más pequeña.
+
+### Tres desenlaces al contestar, no dos
+
+`sin_tarea` no comparte cubeta con `no_se_pudo`. Una interconsulta anterior a
+esto nunca tuvo tarea; tratarla como error haría saltar un aviso en cada
+respuesta a una interconsulta vieja, y un aviso que sale siempre deja de leerse
+justo el día que significa algo.
+
+### Qué NO cubre
+
+- **El PLAZO sigue sin decidir** — `NEEDS_CLINICAL_REVIEW`. Depende de
+  especialidad, urgencia y acuerdo del hospital. Por eso la tarea nace **sin
+  `venceEn`** y `estaVencida` no opina. Inventar «48 h» metería en rojo pendientes
+  que quizá no lo están, y un grupo «Vencidos» que miente deja de leerse.
+- **Su grupo del worklist tampoco.** Cae en `otros` («Otros pendientes»):
+  `esperando_resultado` la etiquetaría mal —se espera a un colega, no a una
+  máquina— y una categoría nueva es la clase de modelo sin información que
+  REG-404 evitó. `otros` es honesto y consigue lo que importaba: que **se vea**.
+- **REFERENCIA e IMAGEN siguen fuera.** La referencia es sólo un impreso; la
+  imagen no tiene entidad propia (modalidad, lateralidad, informe, comparación con
+  previos). El ORDEN de imagen ya entraba, porque `estudio_pendiente` cubre
+  gabinete.
+- **No se probó contra Firestore.** Se prueba la identidad, la forma de la tarea,
+  la idempotencia del servidor y el recorrido de estados; que el documento quede
+  escrito es la otra frontera y se mira en navegador.
+- Carril **Hospital: ALPHA, se usa y no se vende.**
+
+### Otro guardián roto por añadir un import
+
+`un-resultado-genera-tarea` fijaba la línea de import entera y se puso en rojo al
+importar un segundo símbolo del mismo módulo. Reescrito por símbolo y comprobado
+al revés — es el segundo de esta tanda (el otro, en REG-421).
+
+**Prueba.** `src/__tests__/una-interconsulta-pedida-no-entraba-al-bucle.test.ts` (22 casos).

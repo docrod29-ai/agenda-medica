@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 75 de 272, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 76 de 273, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
@@ -128,7 +128,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 43 de 272.**
+**«El sistema se contradice a sí mismo» — 43 de 273.**
 
 Sumó REG-421 (30-ago-2026), que es REG-364 **dos consumidores más allá** y enseña
 hasta dónde hay que seguir un criterio antes de darlo por aplicado. `estaVigente`
@@ -232,7 +232,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 37 de 272**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 37 de 273**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

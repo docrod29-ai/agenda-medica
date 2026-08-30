@@ -78,7 +78,7 @@
 | `/referencia/[patientId]` | medico | ✅ | 301 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 453 | 5 | — | ✅ | — |
-| `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1742 | 4 | — | ✅ | ✅ |
+| `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1757 | 4 | — | ✅ | ✅ |
 | `/hospitalizacion/camas` | alpha | ✅ | 239 | 1 | — | ✅ | — |
 | `/hospitalizacion/indicadores` | alpha | ✅ | 102 | 0 | — | ✅ | — |
 | `/hospitalizacion/unidades` | alpha | ✅ | 171 | 0 | — | ✅ | — |

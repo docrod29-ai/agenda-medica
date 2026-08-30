@@ -26,10 +26,10 @@
 
 | Estado | Cuántos |
 |---|---|
-| `PARTIAL` | 33 |
+| `PARTIAL` | 34 |
 | `PROVEN` | 27 |
 | `BLOCKED_EXTERNAL` | 14 |
-| `NOT_STARTED` | 2 |
+| `NOT_STARTED` | 1 |
 | `NEEDS_CLINICAL_REVIEW` | 1 |
 | `DEFERRED_BY_OWNER` | 1 |
 
@@ -60,7 +60,7 @@ trabajo interno se acabó.
 | `WS-10.pantalla-de-certeza` | `PARTIAL` |
 | `WS-11.estados-del-cierre` | `PARTIAL` |
 | `WS-11.laboratorio` | `PARTIAL` |
-| `WS-11.interconsultas-imagen` | `NOT_STARTED` |
+| `WS-11.interconsultas-imagen` | `PARTIAL` |
 | `WS-11.sobrevive-a-la-navegacion` | `PARTIAL` |
 | `WS-12.doce-preguntas` | `PARTIAL` |
 | `WS-12.entailment` | `PARTIAL` |
