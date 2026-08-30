@@ -31,7 +31,8 @@
     "arnes:trinquete-interfaz": "node scripts/carril-excelencia/trinquete-de-interfaz.mjs",
     "preview:equivalente": "node scripts/preview-equivalente.mjs",
     "compuerta:integracion": "node scripts/compuerta-integracion.mjs",
-    "arnes:portal-destinos": "node scripts/carril-excelencia/destinos-del-portal.mjs"
+    "arnes:portal-destinos": "node scripts/carril-excelencia/destinos-del-portal.mjs",
+    "arnes:consulta-grabando": "node scripts/carril-excelencia/consulta-grabando.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

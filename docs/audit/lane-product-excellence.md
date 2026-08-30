@@ -3010,3 +3010,79 @@ contra los registros de la corrida, no supuesto: se leyó el log del trabajo
 No se comenta en el PR: el fallo ya no existe en la cabeza y el propio historial
 lo explica. Queda aquí, que es donde este carril guarda sus causas raíz —
 incluidas las mías.
+
+---
+
+## Unidad 54 — la consulta GRABANDO, que es donde ocurre el trabajo
+
+**POR QUÉ.** El trinquete mide `/consulta` **en reposo**: cargada, sin dictado.
+Y ése no es el estado en el que un médico usa esta pantalla. Medir sólo el
+reposo y decir «la consulta sale limpia» es medir la sala de espera y hablar del
+quirófano. Estaba declarado como residual desde la unidad 50.
+
+**CÓMO SE ENTRA.** Micrófono falso de Chromium: un tono, sin hardware. No
+transcribe —eso necesita proveedor y aquí no hay— pero **enciende el grabador de
+verdad**.
+
+**LO QUE SE ENCONTRÓ POR EL CAMINO, Y ES BUENO.** Grabar no arranca: **pide
+consentimiento primero**. No es un obstáculo del arnés, es el control
+medicolegal, y el código lo razona por escrito («se grababa la voz del paciente,
+se enviaba a un tercero para transcribir, y ante una queja no había
+absolutamente nada que exhibir»). El diálogo:
+
+- `aria-modal="true"`, **axe 0**;
+- **0 de 15 tabulaciones** se escapan — la trampa de foco del gancho de la
+  unidad 49, funcionando en el diálogo que más importa de esta pantalla;
+- dos salidas claras: «Cancelar» y «Confirmo el consentimiento e iniciar».
+
+Y a la segunda corrida ya no aparece, porque el consentimiento **queda asentado**
+y el producto no vuelve a preguntarlo. También eso es correcto, y está dicho en
+el guion para que nadie lo lea como un fallo.
+
+**EL ESTADO DE GRABACIÓN, MEDIDO.** Con el grabador en marcha: los botones
+cambian a «Pausar la grabación», «Terminar la grabación» y «Detener y generar
+nota», y el cronómetro **avanza** (0:05 → 0:10 en cuatro segundos).
+
+**axe 0 · errores de consola 0.**
+
+**PERO NO SE DECLARA LIMPIO DEL TODO, Y ÉSTA ES LA PARTE QUE IMPORTA.** En
+**una** de las seis corridas, axe dio **1**. En las otras cinco, 0. No pude
+reproducirla ni nombrarla: cuando añadí la captura del detalle, dejó de salir.
+
+Así que lo que queda escrito es lo que sé: **el estado de grabación mide axe 0
+en cinco de seis corridas, y una vez midió 1 sin que pudiera identificarlo.**
+Redondearlo a cero sería exactamente lo que este carril lleva 54 unidades
+evitando.
+
+**Y LA SONDA ESTUVO A PUNTO DE MENTIRME DOS VECES.**
+
+1. Su primera versión daba por «grabando» cualquier `[aria-live]` de la página.
+   Declaró el estado de grabación con **axe 0** sobre la pantalla **en reposo** —
+   el botón seguía diciendo «Grabar la consulta» y no había cronómetro. Por eso
+   ahora exige **tres señales**, y que el cronómetro **haya avanzado**.
+2. Su botón de aceptar buscaba «acepto / de acuerdo / continuar». El del producto
+   dice **«Confirmo el consentimiento e iniciar»**. No casaba, no se pulsaba, y
+   la sonda seguía midiendo el reposo creyendo que grababa.
+
+Las dos las cazó preguntarle a la pantalla en vez de al selector.
+
+**LA SONDA SE QUEDA.** `scripts/carril-excelencia/consulta-grabando.mjs`,
+declarada como `arnes:consulta-grabando`, y **sale con código 2** si no encuentra
+el botón de grabar.
+
+**COMPUERTAS.** `vitest` 10 811/10 812 · trinquete de lint 95 · `tsc` limpio ·
+`npm run build` compila. El rojo sigue siendo `ops-timeout-y-punto-ciego`,
+ambiental.
+
+**RESIDUAL_RISK.**
+
+- **La violación que no supe reproducir.** Queda anotada, no cerrada.
+- **No hay transcripción.** El micrófono es un tono y no hay proveedor de ASR:
+  todo lo que la pantalla hace **con texto reconocido** —la corrección visible,
+  la procedencia, la compuerta de ambigüedad— sigue **sin medir**, y es
+  BLOCKED_EXTERNAL, no «bien».
+- Se mide el arranque de la grabación, no `pausar`, `reanudar`, `terminar` ni
+  «Detener y generar nota» —que llama al modelo—.
+- Un solo ancho (390) y un solo paciente.
+- El estado de grabación **no entra en el trinquete**: la sonda hay que
+  invocarla. Declarado.
