@@ -38,6 +38,8 @@ import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
 import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
 import { estadoDeProblemas, nombreConCerteza, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import { banderasDeclaradas, LO_QUE_NO_SE_VIGILA, resumenDeBanderas } from '@/lib/expediente/banderas-declaradas'
+import { alergiasDe } from '@/lib/seguridad/alergias'
 import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
@@ -220,6 +222,19 @@ export default function ExpedientePage() {
   )
   const avisoAlergias = avisoDeAlergiasQueNoSeVen(estadoAlergias)
 
+  /**
+   * LO QUE ALGUIEN YA DECLARÓ COMO RIESGO, JUNTO Y CON SU FECHA (WS-10).
+   *
+   * Se arma con las DOS proyecciones que esta pantalla ya calculó —no hay un
+   * tercer recorrido del expediente— y con la misma lista de alergias de hoy que
+   * recibió `estadoDeAlergias`, para que una anafilaxia apuntada en esta consulta
+   * cuente antes de que se firme la nota.
+   */
+  const banderas = useMemo(
+    () => banderasDeclaradas(estadoAlergias, problemas, alergiasDe(patient ?? {})),
+    [estadoAlergias, problemas, patient],
+  )
+
   /*
     CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — sólo enseña las
     categorías que de verdad tienen algo para ESTE paciente ("señalar de
@@ -375,6 +390,54 @@ export default function ExpedientePage() {
         No corrige nada. Corregir es un acto del médico, y su sitio es
         `/consulta`, donde el campo se edita con el paciente delante.
       */}
+      {/*
+        ── LO QUE ALGUIEN YA DECLARÓ COMO RIESGO (WS-10) ────────────────────────
+
+        No es un catálogo de banderas: ése es política clínica y no está
+        decidido. Son juicios que ya hizo una persona —una severidad escrita, un
+        problema marcado crónico— puestos juntos y con la nota de la que salen.
+
+        Se pinta SIEMPRE, también cuando no hay ninguna, y ahí está el punto: una
+        lista vacía al lado de nada se lee como «este paciente no tiene riesgos».
+        Al lado de lo que este eje NO mira se lee como lo que es. Ausencia de dato
+        no es dato de ausencia.
+
+        En gris y sin icono de alarma a propósito: lo que sí es una alerta —una
+        alergia sellada que la compuerta de hoy no está mirando— tiene su recuadro
+        rojo justo debajo, y dos rojos seguidos no dejan ver cuál urge.
+      */}
+      <details style={{
+        marginBottom: 16, borderRadius: 10, padding: '10px 13px',
+        background: 'var(--s2)', border: '1px solid var(--border)',
+      }}>
+        <summary style={{ fontSize: 12, color: 'var(--text2)', cursor: 'pointer', lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--text)' }}>Declarado como riesgo:</strong>{' '}
+          {resumenDeBanderas(banderas)}
+        </summary>
+        {banderas.banderas.length > 0 && (
+          <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
+            {banderas.banderas.map(b => (
+              <li key={`${b.clase}:${b.que}`}>
+                <strong style={{ color: 'var(--text)' }}>{b.que}</strong>
+                {b.detalle && <> · {b.detalle}</>}
+                {' · '}<span style={{ color: 'var(--text3)' }}>{b.deDonde}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {banderas.historialIncompleto && (
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
+            El historial vino recortado: puede haber más en notas que no se cargaron.
+          </div>
+        )}
+        <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.6 }}>
+          Esto no vigila:
+          <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+            {LO_QUE_NO_SE_VIGILA.map(x => <li key={x}>{x}</li>)}
+          </ul>
+        </div>
+      </details>
+
       {avisoAlergias && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,

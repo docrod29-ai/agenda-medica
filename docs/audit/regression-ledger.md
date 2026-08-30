@@ -15935,3 +15935,93 @@ importar un segundo símbolo del mismo módulo. Reescrito por símbolo y comprob
 al revés — es el segundo de esta tanda (el otro, en REG-421).
 
 **Prueba.** `src/__tests__/una-interconsulta-pedida-no-entraba-al-bucle.test.ts` (22 casos).
+
+---
+
+## REG-423 — reunir lo declarado como riesgo, sin inventar el catálogo
+
+**QUÉ SE PEDÍA.** `WS-10.banderas-y-respuesta`, `NOT_STARTED`: banderas de
+riesgo, respuesta al tratamiento y compromisos de seguimiento.
+
+### Lo que no se podía hacer, y llevaba razón
+
+El censo ya lo decía: **el catálogo de qué condición cuenta como bandera es
+política clínica y no está decidido**, y fijarlo está prohibido. Lo que sí se
+podía era reunir lo que **ya está declarado**, con su procedencia: no es un
+criterio nuevo, son juicios que ya hizo una persona.
+
+### La pata que no existe
+
+El censo nombraba tres fuentes. Una no se puede llenar:
+
+```
+PatientTag          13 valores declarados en types/index.ts
+PATIENT_TAG_CONFIG  su etiqueta y su color, para cada uno
+patient.tags        CERO escritores y CERO lectores en todo el árbol
+```
+
+Ninguna pantalla pone una etiqueta y ninguna la enseña. `patient.tags` es siempre
+`undefined`. Recogerla habría sido recoger un campo siempre vacío — y eso es
+**peor** que no recogerla: el eje diría «sin banderas» y quien lo leyera
+entendería «sin riesgo declarado», cuando la verdad es que una de sus tres
+fuentes no se puede llenar.
+
+Se declara en `LO_QUE_NO_SE_VIGILA` y no se recoge. Conectar las etiquetas es
+otra unidad: primero hace falta la pantalla que las escriba.
+
+### El defecto que apareció al escribirlo
+
+La primera versión sacaba la severidad sólo de `peorSeveridadRegistrada`, que
+mira **los sellos de las notas firmadas**. Una alergia escrita en la consulta de
+hoy no tiene sello todavía: `registros` viene vacío.
+
+O sea: **una anafilaxia apuntada hoy no era bandera hasta que se firmara la
+nota** — justo cuando más falta hace. Se descubrió al notar que la rama «la lista
+de alergias de hoy» del propio código era inalcanzable. Ahora entra también por
+la lista de hoy, que es **la misma** que recibió `estadoDeAlergias`, no otra
+lectura; y cuando hay las dos manda el sello, que es la asimetría que la
+proyección de alergias ya tiene.
+
+### La regla que lo hace seguro
+
+**Este eje nunca tranquiliza.** Sin banderas no escribe «Sin banderas»: escribe
+*«Nadie ha declarado alergias graves ni problemas crónicos en este expediente»* —
+qué se miró, no que no haya nada.
+
+Y `LO_QUE_NO_SE_VIGILA` es una exportación, no un comentario, porque tiene que
+**pintarse al lado de la lista**: una lista vacía junto a nada se lee como «este
+paciente no tiene riesgos». Regla 4 (ausencia de dato no es dato de ausencia) y
+regla 5 (el vocabulario es vocabulario, no criterio; lo que falta no se vigila, y
+se declara).
+
+Tampoco infiere: que la diabetes suela ser crónica no autoriza a decir que ÉSTA
+lo es si el médico no lo marcó. Y `desde: null` no se rellena con la fecha de hoy
+— diría «desde agosto de 2026» de algo que quizá lleva veinte años escrito.
+
+### No hay un cuarto recorrido del expediente
+
+Se arma con las dos proyecciones que la pantalla **ya calculó**
+—`estadoDeAlergias` y `problemasActivos`—, no con una lectura propia. Un
+recorrido más daría, tarde o temprano, un número distinto para el mismo paciente.
+
+### Dónde se ve
+
+En el expediente, sobre el aviso de alergias. En gris y plegable, no en rojo: lo
+que sí es una alerta —una alergia sellada que la compuerta de hoy no está
+mirando— tiene su recuadro rojo justo debajo, y dos rojos seguidos no dejan ver
+cuál urge.
+
+### Qué NO cubre
+
+- **No decide qué condición es una bandera.** Sigue siendo del médico.
+- **No conecta las etiquetas del paciente.** Falta la pantalla que las escriba.
+- **No cubre «respuesta al tratamiento»**: el dato no existe — nada del
+  expediente liga un fármaco con el desenlace del problema que trata, y
+  `Medicamento.indicacion` es texto libre; casarlo con un diagnóstico por
+  parecido sería inventar el vínculo.
+- **No cubre «compromisos»**: choca con el esquema de la nota, congelado por el
+  sello (`WS-10.sello-v4`).
+- **No puntúa riesgo ni ordena por gravedad clínica.**
+- **No se comprobó en navegador** que el bloque se vea: ésa es la otra frontera.
+
+**Prueba.** `src/__tests__/una-lista-de-banderas-vacia-no-dice-sin-riesgo.test.ts` (13 casos).

@@ -26,10 +26,9 @@
 
 | Estado | Cuántos |
 |---|---|
-| `PARTIAL` | 34 |
+| `PARTIAL` | 35 |
 | `PROVEN` | 27 |
 | `BLOCKED_EXTERNAL` | 14 |
-| `NOT_STARTED` | 1 |
 | `NEEDS_CLINICAL_REVIEW` | 1 |
 | `DEFERRED_BY_OWNER` | 1 |
 
@@ -56,7 +55,7 @@ trabajo interno se acabó.
 | `WS-10.proyeccion-no-es-segunda-verdad` | `PARTIAL` |
 | `WS-10.problemas-medicacion-alergias` | `PARTIAL` |
 | `WS-10.procedimientos-dispositivos` | `PARTIAL` |
-| `WS-10.banderas-y-respuesta` | `NOT_STARTED` |
+| `WS-10.banderas-y-respuesta` | `PARTIAL` |
 | `WS-10.pantalla-de-certeza` | `PARTIAL` |
 | `WS-11.estados-del-cierre` | `PARTIAL` |
 | `WS-11.laboratorio` | `PARTIAL` |
