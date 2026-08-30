@@ -3,6 +3,76 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1175 — REG-373 a REG-412, y las reglas de Firestore que van APARTE
+
+**Este bump se prepara SIN su despliegue.** El paquete completo, con lo que se
+declara antes de publicar, vive en
+[`PAQUETE-PRODUCCION-2026-08-30.md`](PAQUETE-PRODUCCION-2026-08-30.md).
+
+**78 commits desde v1174** (28-ago → 30-ago) · 294 archivos · +46 068 / −1 091 ·
+138 archivos de código de producto.
+
+### Lo que hay que hacer a mano, y si no se hace queda roto
+
+`vercel --prod` **no publica `firestore.rules`**. Este paquete las cambia
+(REG-340) y sin ese despliegue aparte quedan rotas dos cosas que el código nuevo
+da por buenas:
+
+- **El apodo del chat** (`clinics/{id}/members/{uid}`) se leía y se escribía
+  desde el navegador **sin regla**, así que caía en el comodín de denegación:
+  no se guardaba nunca y nadie se enteraba, porque el código cae con elegancia
+  al nombre por omisión.
+- **La bitácora append-only del episodio** (`.../registros/{id}`), que es la
+  copia íntegra para la NOM-004 y no estaba declarada en ningún sitio — así que
+  no se respaldaba.
+
+Y **70 líneas nuevas de `firestore.indexes.json`**: una consulta que las
+necesite falla en producción hasta que se publiquen.
+
+```
+npx firebase deploy --only firestore:rules,firestore:indexes --project nexomed-agenda
+```
+
+### Seguridad clínica y expediente longitudinal
+
+- **REG-412** — «Negadas» se pintaba como un alérgeno en el aviso del expediente,
+  con severidad y con botón; cada pulsación la añadía otra vez al campo del
+  paciente. Lo que se filtra al escribir se filtra ahora también al leer.
+- **REG-410** — la warfarina de marzo, otra vez, y en la pantalla donde se firma:
+  el cuadro completo llegaba a cuatro consumidores y no a la barra de avisos.
+- **REG-409** — un WER bajo no compensa una dosis por mil.
+- **REG-405** — dos proyecciones volvían a ser la puerta que devuelve un array
+  pelado: la medicación vigente se calculaba sobre una ventana y se enseñaba
+  como el expediente entero.
+- **REG-403 / REG-404** — «lo vi» y «localicé a alguien» eran el mismo gesto; y
+  agendar contaba como haber visto al paciente.
+- **REG-411** — un aviso efímero sobre una pérdida permanente es no avisar.
+- **WS-09** — la función renal llega al motor de aplicabilidad, que llevaba dos
+  dimensiones ciegas.
+- **WS-10** — el eje de riesgos reúne lo que ya está declarado, y no decide qué
+  es un riesgo.
+- **WS-12** — una cita literal que dice LO CONTRARIO de lo que respalda.
+
+### Evidencia y consultor
+
+REG-400 (el pasaje existe, es literal, y aun así el estudio no lo demuestra) ·
+REG-401 (la etiqueta del diseño decía más de lo que dijo la fuente) · REG-402
+(una guía tiene edición, y las ediciones se sustituyen) · REG-406 (el guardián
+que impide que una proyección se vuelva la verdad) · REG-407 (un presuntivo
+elegido no es un presuntivo de fábrica).
+
+### Operación del bucle
+
+El bucle deja de girar en vacío y de pintarse de verde · un tablero, un escritor
+· los dos pliegos del dueño entran al repositorio y los carriles se miden contra
+ellos · el escritor no puede regenerar un documento derivado, así que se le
+prohíbe tocarlo.
+
+### Qué NO entra
+
+Ninguna ruta de API nueva y **ninguna pantalla nueva** — así que `e2e:seguridad:prod`
+no debería teñirse de rojo por una ruta privada que producción todavía no sirve.
+
 ## v1174 — «Recetas, órdenes y notas» son tres pasos (REG-338, REG-339)
 
 **Este bump va CON su despliegue**, igual que v1173.
