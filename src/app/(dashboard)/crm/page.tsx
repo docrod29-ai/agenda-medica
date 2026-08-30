@@ -226,7 +226,7 @@ function Retencion({ label, count, color, icon }: { label: string; count: number
 }
 function Sugerencia({ text, link, linkLabel }: { text: string; link: string; linkLabel: string }) {
   return (
-    <Link href={link} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none' }}>
+    <Link href={link} className="nx-acc-caja" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none' }}>
       <span style={{ fontSize: 13, color: 'var(--text2)' }}>{text}</span>
       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{linkLabel} →</span>
     </Link>

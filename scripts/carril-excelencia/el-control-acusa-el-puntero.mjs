@@ -17,11 +17,19 @@
  * Contar controles mudos convierte «se siente muerto» en un número que sólo
  * puede bajar.
  *
- * UN CONTROL APAGADO NO CUENTA
- * ────────────────────────────
- * Un `<button disabled>` que no responde al puntero está **bien**: decir «aquí
- * puedes pulsar» cuando no se puede es peor que callarse. Sólo se cuentan los
- * habilitados.
+ * DOS CLASES DE CONTROL NO CUENTAN, Y POR LA MISMA RAZÓN
+ * ──────────────────────────────────────────────────────
+ * · Un `<button disabled>` que no responde está **bien**: decir «aquí puedes
+ *   pulsar» cuando no se puede es peor que callarse.
+ * · **El control que ya está puesto** —`aria-pressed="true"`, `.active`, o
+ *   `aria-current`— tampoco tiene que decir «puedes venir aquí»: ya estás. El
+ *   filtro activo, la pestaña abierta y el destino donde estás llevan su
+ *   superficie puesta precisamente porque son el sitio actual, y por eso
+ *   apuntarlos no cambia nada.
+ *
+ * Contarlos empujaba a añadir un `:hover` de adorno a la pestaña abierta para
+ * bajar un número. Eso es exactamente lo que el encargo llama animación
+ * decorativa, y este trinquete no está para provocarla.
  *
  * QUÉ NO MIDE
  * ───────────
@@ -79,10 +87,37 @@ await pag.locator('input[type=password]').first().fill('demo1234')
 await pag.locator('button[type=submit]').first().click()
 await pag.waitForTimeout(9000)
 
-/** Fondo y color de texto: las dos formas honestas de acusar sin adornar. */
+/**
+ * TODO LO QUE CUENTA COMO ACUSE, Y EN TODA LA FILA.
+ *
+ * La primera versión leía sólo `backgroundColor` y `color` **del propio
+ * control**, y por eso mentía de dos maneras distintas:
+ *
+ *  · **Se perdía los acuses que no son de color.** `.nx-agenda-bloque` —los
+ *    bloques de cita del calendario— se aclara con `filter: brightness(1.35)` y
+ *    levanta una sombra al pasar. Nada de eso es `backgroundColor`, así que los
+ *    contaba mudos. Ocho citas acusadas de estar muertas mientras respondían.
+ *  · **Miraba el elemento y no lo que se VE.** En `/dashboard` cada cita es un
+ *    `<a class="cita-principal">` dentro de un `.cita-fila`, y quien se ilumina
+ *    es la FILA. El enlace no cambia ni un píxel propio, pero el médico ve
+ *    encenderse el renglón entero. Ocho más.
+ *
+ * Así que se leen siete propiedades y se mira la cadena de antepasados hasta
+ * `<main>`: si algo cambia en el camino, el acuse llegó a los ojos.
+ */
+/* La lista va DENTRO de la función a propósito: esto se ejecuta en el navegador
+   y una constante de Node no cruza. Escrita fuera, `FOTO` lanzaba
+   `ReferenceError` en cada control, el `catch` se lo tragaba y **ninguno se
+   contaba como mudo**: el guion informó 0 en las 22 rutas. Un cero perfecto es
+   la forma que tiene una medición rota de parecer un aprobado. */
 const FOTO = (e) => {
-  const c = getComputedStyle(e)
-  return c.backgroundColor + '|' + c.color
+  const props = ['backgroundColor', 'color', 'filter', 'boxShadow', 'transform', 'borderColor', 'textDecorationLine']
+  const trozos = []
+  for (let n = e; n && n.tagName !== 'MAIN' && n !== document.body; n = n.parentElement) {
+    const c = getComputedStyle(n)
+    trozos.push(props.map(p => c[p]).join(','))
+  }
+  return trozos.join(' / ')
 }
 
 const medido = {}
@@ -119,12 +154,16 @@ for (const ruta of RUTAS) {
       const b = e.getBoundingClientRect()
       if (!b.width || e.offsetParent === null) return
       if (e.disabled === true || e.getAttribute('aria-disabled') === 'true') return
+      if (e.getAttribute('aria-pressed') === 'true') return
+      if (e.getAttribute('aria-current') && e.getAttribute('aria-current') !== 'false') return
+      if (e.classList.contains('active')) return
       e.dataset.acusePuntero = 'p' + (i++)
     })
     return i
   })
 
   const mudos = []
+  let rotos = 0
   for (let i = 0; i < cuantos; i++) {
     const el = pag.locator(`[data-acuse-puntero="p${i}"]`)
     try {
@@ -137,7 +176,19 @@ for (const ruta of RUTAS) {
         mudos.push(rot.replace(/\s+/g, ' '))
       }
       await pag.mouse.move(4, 4)
-    } catch { /* el control se fue del árbol al mover el puntero; no se cuenta */ }
+    } catch (e) {
+      // Un control que se va del árbol al mover el puntero no se cuenta. Pero
+      // los fallos se CUENTAN: un `catch` mudo fue exactamente lo que dejó que
+      // un `ReferenceError` en cada medición se leyera como «0 mudos» en las 22
+      // rutas. Si se rompen muchas, esto no está midiendo y hay que decirlo.
+      rotos++
+      if (rotos <= 2) console.error(`        (fallo al medir en ${ruta}: ${String(e).slice(0, 90)})`)
+    }
+  }
+  if (cuantos && rotos > cuantos / 4) {
+    console.error(`\n  ${rotos} de ${cuantos} mediciones fallaron en ${ruta}. Esto no está midiendo.\n`)
+    await nav.close()
+    process.exit(2)
   }
 
   medido[ruta] = mudos.length

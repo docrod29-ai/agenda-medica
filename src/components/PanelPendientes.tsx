@@ -50,7 +50,7 @@ export function PanelPendientes() {
       </div>
       <div style={{ display: 'grid', gap: 6 }}>
         {acciones.slice(0, 8).map((a, i) => (
-          <Link key={i} href={a.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg)', textDecoration: 'none' }}>
+          <Link key={i} href={a.href} className="nx-acc-plana" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none' }}>
             <CircleAlert size={14} style={{ color: COLOR[a.prioridad], flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{a.titulo}</div>

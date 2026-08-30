@@ -148,7 +148,8 @@ export default function ConsultorPage() {
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 10px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,0.10)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--nexus)', fontWeight: 600 }}>
           <UserRound size={13} /> Sobre: {pacienteNombre}
           <button onClick={() => { setPacienteNombre(''); setPacienteCtx('') }} title="Quitar contexto del paciente"
-            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
+            className="nx-acc-texto"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
             <X size={13} />
           </button>
         </div>
@@ -159,8 +160,8 @@ export default function ConsultorPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 10 }}>Ejemplos para empezar:</div>
           <div style={{ display: 'grid', gap: 8 }}>
             {EJEMPLOS.map((e, i) => (
-              <button key={i} onClick={() => preguntar(e)}
-                style={{ textAlign: 'left', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', fontSize: 13.5, cursor: 'pointer' }}>
+              <button key={i} onClick={() => preguntar(e)} className="nx-acc-caja"
+                style={{ textAlign: 'left', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', color: 'var(--text2)', fontSize: 13.5, cursor: 'pointer' }}>
                 {e}
               </button>
             ))}

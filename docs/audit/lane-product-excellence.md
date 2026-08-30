@@ -3873,3 +3873,101 @@ mudos**. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
 - **No se tocó `/finanzas`**: sus 19 mudos son de esta misma familia pero su
   arquitectura de scroll (una caja de 480px dentro de `main`) merece mirarse
   aparte, no de pasada.
+
+---
+
+## Unidad 65 — el trinquete de estaticidad mentía, y sólo se vio bajándolo
+
+**LO QUE IBA A SER.** Seguir bajando controles mudos: `/finanzas` 19,
+`/dashboard` 14, `/calendario` 11, `/expediente` 11.
+
+**LO QUE PASÓ EN `/dashboard`.** Un botón con la clase `.btn-secondary` —que
+**sí** tiene `:hover` en la hoja y que comprobé a mano que responde— salía mudo.
+Tirando de ahí, el trinquete tenía **dos defectos de medición y luego un
+tercero**:
+
+1. **Leía sólo `backgroundColor` y `color`.** Los bloques de cita del calendario
+   (`.nx-agenda-bloque`) se aclaran con `filter: brightness(1.35)` y levantan una
+   sombra al pasar. Nada de eso es fondo ni color, así que los contaba muertos.
+   **Ocho citas acusadas de no responder mientras respondían.**
+2. **Miraba el elemento y no lo que se VE.** Cada cita del dashboard es un
+   `<a class="cita-principal">` dentro de un `.cita-fila`, y quien se ilumina es
+   **la fila**. El enlace no cambia un píxel propio, pero el médico ve encenderse
+   el renglón entero. Ocho más.
+3. **Y al arreglar lo anterior, informó 0 en las 22 rutas.** Un pleno. La lista
+   de propiedades quedó como constante de Node y la función corre **en el
+   navegador**: `ReferenceError` en cada medición, `catch` mudo, ningún control
+   contado. **Un cero perfecto es la forma que tiene una medición rota de
+   parecer un aprobado**, y es la tercera vez en esta sesión que un instrumento
+   mío informa cero sin poder informar otra cosa.
+
+Ahora lee siete propiedades, recorre la cadena de antepasados hasta `<main>`, y
+**cuenta los fallos**: si se rompe más de una cuarta parte de las mediciones de
+una ruta, aborta diciendo que no está midiendo.
+
+**LA CUENTA HONESTA, ANTES Y DESPUÉS.** El techo de 102 que escribió la unidad 63
+estaba inflado: **43 eran reales**. Bajados hasta **8**.
+
+| | mudos |
+|---|---:|
+| Techo escrito en la unidad 63 (con falsos positivos) | 102 |
+| Medida honesta, mismo árbol | 43 |
+| Hoy | **8** |
+
+**Y UNA CUARTA LECCIÓN, DEL LADO DEL PRODUCTO.** El trinquete contaba también el
+control **que ya está puesto**: la pestaña abierta, el filtro activo, el destino
+donde estás. Ésos llevan su superficie precisamente porque son el sitio actual, y
+apuntarlos no cambia nada — correctamente. Contarlos me empujaba a añadirle un
+`:hover` de adorno a la pestaña abierta para bajar un número, que es justo lo que
+el encargo llama animación decorativa. Ahora se excluyen `aria-pressed="true"`,
+`aria-current` y `.active`, con la razón escrita dentro.
+
+**LO QUE SE ARREGLÓ DE VERDAD.**
+
+| Pantalla | Antes | Hoy | Qué era |
+|---|---:|---:|---|
+| `/finanzas` | 19 | **0** | pestañas, el conmutador de periodo, doce «Anular» y las flechas de navegación |
+| `/dashboard` | 4 | **0** | las filas de «pide atención» y «Ver todas», el único enlace de la portada sin acuse |
+| `/expediente/pac-001` | 11 | **2** | «Atrás», «Nueva consulta», los chips, y los tres botones de exportación |
+| `/consultor` | 4 | **0** | las cuatro preguntas de ejemplo |
+| `/pacientes` · `/reactivacion` | 3 · 3 | **0** · **0** | sus píldoras de filtro |
+| `/calendario` | 3 | **0** | el conmutador Día · Semana · Mes |
+| `/crm` | 2 | **0** | las dos filas de aviso |
+| `/citas` · `/operaciones` | 1 · 1 | **0** · **0** | el aviso de calendario descuadrado y el enlace que lo remata |
+
+Y con ello, **`aria-pressed` en cinco grupos de filtro que no lo tenían**: un
+lector de pantalla no sabía cuál estaba puesto.
+
+**EL CONTRASTE MEDIDO NO SE TOCA, SE MUDA.** `/pacientes` y `/reactivacion`
+rellenan su chip activo con `--nexus-solido` y blanco encima —«5.16:1 ✓ AA»—
+porque `--teal` de fondo daba 2.99:1 y lo cazó axe a 390px. Esa decisión viaja
+entera a `.nx-chip--relleno`; lo único que cambia es que ahora vive donde el
+`:hover` puede alcanzarla. Su guardián (`v15-trial-banner-tokens-por-tema`) pedía
+la cadena literal en el `style={{ }}`: se actualizó para comprobar el
+**invariante** en los dos sitios —el JSX no vuelve a `--teal`/`#000`, y la hoja
+rellena con el token medido— y sigue cayendo si alguien cambia el relleno
+(probado poniéndole `--teal`).
+
+**DONDE ME PARO, Y POR QUÉ.** Los **8 controles mudos que quedan** están todos en
+archivos que ya figuran en CROSS_LANE_CONFLICT: `/asistente` (3) y
+`/cumplimiento/retencion` (3), que este carril ya tenía declarados, y las dos
+pestañas de `ClinicalSpine.tsx` (2), que ya chocaba entre `main` y la otra rama
+antes de que yo llegara. Tocarlos bajaría un número a cambio de hacerle el merge
+más difícil a otro. **Se dejan medidos, con nombre, y sin tocar.**
+
+**COMPUERTAS.** `vitest` 10 831/10 832 · lint 95 · diseño sin deuda nueva · `tsc`
+limpio · `build` compila. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- **El trinquete sigue midiendo que algo cambie, no que el cambio sea el
+  correcto.** Un botón que se pusiera fucsia contaría como vivo.
+- **No mide el teléfono**: sin puntero no hay `:hover`. El acuse táctil es el
+  `:active` y sigue **NOT_PROVEN**.
+- Las píldoras de filtro de tres pantallas se unificaron sobre `.nx-chip`. Es
+  coherencia de sistema, pero **la escala de superficie de `/reactivacion` cambió**
+  (su base era transparente y ahora es `--s2`): se miró y se ve bien, no se midió
+  contra un antes.
+- El acuse por **cadena de antepasados** cuenta como bueno que se ilumine la fila
+  entera. Es lo que ve el ojo, pero un control cuya única señal es la de su
+  contenedor se distingue peor entre hermanos.

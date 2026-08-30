@@ -148,12 +148,13 @@ export default function CalendarioPage() {
             <button
               key={v}
               onClick={() => setView(v)}
+              className="nx-segmento"
+              aria-pressed={view === v}
               style={{
                 padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: 500,
-                background: view === v ? 'var(--s3)' : 'transparent',
                 color: view === v ? 'var(--teal)' : 'var(--text3)',
-                textTransform: 'capitalize', transition: 'all var(--mov-rapido) var(--mov-curva)',
+                textTransform: 'capitalize',
               }}
             >
               {v === 'dia' ? 'Día' : v === 'semana' ? 'Semana' : 'Mes'}

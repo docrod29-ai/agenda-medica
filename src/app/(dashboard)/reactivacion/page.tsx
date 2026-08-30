@@ -279,13 +279,14 @@ export default function ReactivacionPage() {
         <div style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: 4 }}>
           {UMBRALES.map(u => (
             <button key={u.dias} onClick={() => setUmbral(u.dias)}
+              className="nx-chip nx-chip--relleno"
+              aria-pressed={umbral === u.dias}
               style={{
                 border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700,
-                // `--nexus` es el color de ACENTO (texto e iconos); el de
-                // relleno es `--nexus-solido`, y su propio comentario trae el
-                // contraste medido: «blanco encima = 5.16 : 1 ✓ AA». Con
-                // `--nexus` daba 2.93 : 1 — axe, 390px.
-                background: umbral === u.dias ? 'var(--nexus-solido)' : 'transparent',
+                // El relleno de la activa —`--nexus-solido` con blanco encima,
+                // «5.16 : 1 ✓ AA»; con `--nexus` daba 2.93 : 1, lo cazó axe a
+                // 390px— vive ahora en `.nx-chip--relleno`, en la hoja, porque
+                // desde el estilo en línea no había forma de darle `:hover`.
                 color: umbral === u.dias ? '#fff' : 'var(--text3)',
               }}>
               +{u.label}

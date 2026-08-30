@@ -116,10 +116,29 @@ describe('V15 — TrialBanner habla tokens por tema', () => {
     // 2.99:1 en claro. Relleno --nexus-solido con blanco, como .btn-primary.
     const pacientes = readFileSync(join('src', 'app', '(dashboard)', 'pacientes', 'page.tsx'), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\/.*/g, '')
-    expect(pacientes).toContain("background: activo ? 'var(--nexus-solido)' : 'var(--s2)'")
+    /**
+     * EL RELLENO SE MUDÓ A LA HOJA Y ESTE CASO TUVO QUE APRENDER A MIRAR ALLÍ.
+     *
+     * Comprobaba la cadena literal `background: activo ? 'var(--nexus-solido)'
+     * : 'var(--s2)'` dentro del `style={{ }}`. Dejó de estar ahí porque el chip
+     * no acusaba el puntero: un fondo escrito en línea le gana por
+     * especificidad a cualquier `:hover`, así que la piel pasó a
+     * `.nx-chip--relleno`.
+     *
+     * Lo que este caso protege no es DÓNDE está escrito el relleno: es que el
+     * chip activo sea **relleno sólido con blanco encima** y nunca `--teal` con
+     * negro (2.99:1 en claro, el hallazgo de axe que esta rebanada pagó). Eso
+     * sigue siendo cierto, y ahora se comprueba en los dos sitios donde puede
+     * romperse.
+     */
+    expect(pacientes).toContain('className="nx-chip nx-chip--relleno"')
+    expect(pacientes).toContain('aria-pressed={activo}')
     expect(pacientes).toContain("color: activo ? '#fff' : 'var(--text2)'")
     expect(pacientes).not.toContain("activo ? 'var(--teal)'")
     expect(pacientes).not.toContain("activo ? '#000'")
+    // Y la piel que lo viste rellena con el token medido, no con el de trazo.
+    const css = readFileSync(join('src', 'app', 'globals.css'), 'utf8')
+    expect(css).toContain(".nx-chip--relleno[aria-pressed='true'] { background: var(--nexus-solido); }")
   })
 
   it('congelado funcional: el banner sigue diciendo y enlazando lo mismo', () => {

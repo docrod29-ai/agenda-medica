@@ -230,9 +230,9 @@ export default function FinanzasPage() {
         {([['reportes', 'Reportes'], ['corte', 'Corte de caja'], ['comisiones', 'Comisiones']] as const).map(([k, label]) => {
           const activo = tab === k
           return (
-            <button key={k} onClick={() => setTab(k)} style={{
+            <button key={k} onClick={() => setTab(k)} className="nx-acc-plana" style={{
               padding: '8px 14px', fontSize: 13.5, fontWeight: activo ? 700 : 500, cursor: 'pointer',
-              background: 'none', border: 'none', borderBottom: '2px solid ' + (activo ? 'var(--nexus)' : 'transparent'),
+              border: 'none', borderBottom: '2px solid ' + (activo ? 'var(--nexus)' : 'transparent'),
               color: activo ? 'var(--nexus)' : 'var(--text2)', marginBottom: -1,
             }}>{label}</button>
           )
@@ -269,12 +269,12 @@ export default function FinanzasPage() {
             <button
               key={p}
               onClick={() => cambiarPeriodo(p)}
+              className="nx-chip"
+              aria-pressed={activo}
               style={{
                 padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 border: '1px solid ' + (activo ? 'var(--nexus)' : 'var(--border)'),
-                background: activo ? 'var(--nexus-soft)' : 'var(--s)',
                 color: activo ? 'var(--nexus)' : 'var(--text2)',
-                transition: 'all var(--mov-rapido) var(--mov-curva)',
               }}
             >
               {PERIODO_LABEL[p]}
@@ -285,7 +285,7 @@ export default function FinanzasPage() {
         {/* Separador fino: el granulado a la izquierda, la posición a la derecha. */}
         <span aria-hidden="true" style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 6px' }} />
 
-        <button onClick={() => setAncla(moverAncla(periodo, ancla, -1))} style={navBtn} aria-label={`${PERIODO_LABEL[periodo]} anterior`}>
+        <button onClick={() => setAncla(moverAncla(periodo, ancla, -1))} className="nx-acc-caja" style={navBtn} aria-label={`${PERIODO_LABEL[periodo]} anterior`}>
           <ChevronLeft size={16} />
         </button>
         <div style={{ fontSize: 'var(--t-body)', fontWeight: 700, color: 'var(--text)', minWidth: 190, textAlign: 'center' }}>
@@ -294,13 +294,14 @@ export default function FinanzasPage() {
         <button
           onClick={() => setAncla(moverAncla(periodo, ancla, 1))}
           disabled={noFuturo}
+          className="nx-acc-caja"
           style={{ ...navBtn, opacity: noFuturo ? 0.4 : 1, cursor: noFuturo ? 'default' : 'pointer' }}
           aria-label={`${PERIODO_LABEL[periodo]} siguiente`}
         >
           <ChevronRight size={16} />
         </button>
         {!esActual && (
-          <button onClick={() => setAncla(hoyISO())} style={{ ...navBtn, padding: '4px 10px', fontSize: 'var(--t-caption)' }}>
+          <button onClick={() => setAncla(hoyISO())} className="nx-acc-caja" style={{ ...navBtn, padding: '4px 10px', fontSize: 'var(--t-caption)' }}>
             Ahora
           </button>
         )}
@@ -542,7 +543,8 @@ export default function FinanzasPage() {
                     <button
                       onClick={() => { setAnulando(c); setMotivoAnul('') }}
                       title="Anular este cobro (captura equivocada)"
-                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 11, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      className="nx-acc-riesgo"
+                      style={{ border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 11, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >Anular</button>
                   </div>
                 ))
@@ -745,7 +747,7 @@ function Breakdown({ titulo, items, total }: { titulo: string; items: { label: s
 }
 
 const navBtn: React.CSSProperties = {
-  background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)',
+  border: '1px solid var(--border)', color: 'var(--text2)',
   borderRadius: 6, padding: '5px 8px', cursor: 'pointer',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
 }

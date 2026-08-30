@@ -2909,6 +2909,9 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 .hoy-vertodas {
   font-size: 13px;
   color: var(--teal);
+  /* Era el único enlace de la portada sin acuse: mismo tono apuntado que en
+     reposo. Se subraya al pasar —es un enlace, no un botón— y así lo dice. */
+  transition: color var(--mov-rapido) var(--mov-curva);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -2918,6 +2921,8 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   min-height: 44px;      /* área táctil WCAG 2.2 AA */
   align-self: center;
 }
+
+.hoy-vertodas:hover { color: var(--text); text-decoration: underline; }
 
 /* El recuento del día: un renglón de texto donde había cuatro tarjetas. */
 .hoy-resumen {
@@ -3777,8 +3782,38 @@ html:has(.mi-barra-destinos) .theme-toggle {
     border-color var(--mov-rapido) var(--mov-curva);
 }
 .nx-chip:hover:not(:disabled) { background: var(--s3); }
-.nx-chip[aria-pressed='true'] { background: color-mix(in srgb, var(--nexus) 10%, transparent); }
-.nx-chip[aria-pressed='true']:hover { background: color-mix(in srgb, var(--nexus) 18%, transparent); }
+/* `--nexus-soft` es el token que existe justo para esto (rgba del acento al
+   14%); usarlo en vez de un `color-mix` en línea es lo que hace que dos
+   pantallas distintas se pinten igual sin ponerse de acuerdo. */
+.nx-chip[aria-pressed='true'] { background: var(--nexus-soft); }
+.nx-chip[aria-pressed='true']:hover { background: color-mix(in srgb, var(--nexus) 24%, transparent); }
+
+/* Píldora de filtro RELLENA. La activa va con `--nexus-solido` y blanco encima
+   —«5.16:1 ✓ AA», el contraste ya medido en `/pacientes` y `/reactivacion`,
+   donde `--nexus` como fondo daba 2.93:1 y lo cazó axe a 390px—. La decisión no
+   se toca: sólo se muda de sitio, para que el `:hover` pueda ganarle al estilo
+   en línea. */
+.nx-chip--relleno[aria-pressed='true'] { background: var(--nexus-solido); }
+.nx-chip--relleno[aria-pressed='true']:hover { background: var(--nexus-hover); }
+
+/* Conmutador segmentado dentro de un carril (Día · Semana · Mes): la activa
+   lleva la superficie puesta, la inactiva se insinúa al pasar. */
+.nx-segmento { background: transparent; transition: background var(--mov-rapido) var(--mov-curva); }
+.nx-segmento:hover:not([aria-pressed='true']) { background: var(--s3); }
+.nx-segmento[aria-pressed='true'] { background: var(--s3); }
+
+/* El enlace que remata un aviso del riel («Citas ›»): se subraya al pasar. Es
+   un enlace, y el subrayado es lo que dice que lo es sin añadirle una caja. */
+.nx-enlace-riel {
+  color: var(--nexus);
+  text-decoration: none;
+  transition: color var(--mov-rapido) var(--mov-curva);
+}
+.nx-enlace-riel:hover { color: var(--text); text-decoration: underline; }
+
+/* El aviso operativo del riel es pulsable: que lo diga al apuntarlo. */
+.riel-aviso { transition: background var(--mov-rapido) var(--mov-curva); }
+button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--amber) 22%, transparent); }
 
 /* Sugerencia del asistente: nace sobre `--s1` y se tiñe al pasar, con el mismo
    acento que ya lleva en el borde. */

@@ -436,9 +436,8 @@ export default function PacientesPage() {
             // oscuro, 7.0:1 claro — ver globals.css). --teal + negro medía
             // 2.99:1 en claro: el trazo no está pensado para ser fondo.
             return (
-              <button key={k} onClick={() => setFiltro(k)} style={{
+              <button key={k} onClick={() => setFiltro(k)} className="nx-chip nx-chip--relleno" aria-pressed={activo} style={{
                 padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                background: activo ? 'var(--nexus-solido)' : 'var(--s2)',
                 color: activo ? '#fff' : 'var(--text2)',
                 border: `1px solid ${activo ? 'var(--nexus-solido)' : 'var(--border)'}`,
               }}>{label}</button>
