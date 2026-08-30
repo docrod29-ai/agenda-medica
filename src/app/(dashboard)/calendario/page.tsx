@@ -30,7 +30,30 @@ import { etiquetaDeCita } from '@/lib/agenda/etiqueta-de-cita'
  * La TINTE (hue) sigue siendo la del médico, útil en multi-doctor.
  */
 function estiloEstadoCita(estado: AppointmentStatus): { opacity: number; borderStyle: 'solid' | 'dashed'; tachado: boolean } {
-  if (estado === 'cancelada' || estado === 'no-asistio') return { opacity: 0.45, borderStyle: 'dashed', tachado: true }
+  /**
+   * CANCELADA: 0,45 → 0,72.
+   *
+   * A 0,45 TODO lo que hay dentro de la cita cancelada caía por debajo del
+   * contraste mínimo: el nombre del paciente, la insignia de estado y la línea
+   * de tipo y duración. Era la última violación de axe que quedaba en el
+   * calendario, y aparecía en las tres vistas.
+   *
+   * La tentación es declararla intocable «porque atenuar es la señal». Pero la
+   * señal ya está dicha por otras TRES vías que no cuestan legibilidad:
+   *
+   *   · el tachado del nombre,
+   *   · el borde discontinuo,
+   *   · y el estado dentro del nombre accesible («— Cancelada»),
+   *     además de la insignia en la vista de día.
+   *
+   * La opacidad era la única redundante Y la única que hacía ilegible el dato.
+   * A 0,72 la cita sigue leyéndose como apagada frente a las vivas —que están a
+   * 1 y a 0,85— y su contenido vuelve a poder leerse.
+   *
+   * Regla que deja: una señal de estado no puede pagarse con el contraste del
+   * dato que señala, si hay otra forma de decir lo mismo.
+   */
+  if (estado === 'cancelada' || estado === 'no-asistio') return { opacity: 0.72, borderStyle: 'dashed', tachado: true }
   if (estado === 'solicitada' || estado === 'pendiente-confirmar' || estado === 'pendiente-datos' || estado === 'reagendada') return { opacity: 0.85, borderStyle: 'dashed', tachado: false }
   return { opacity: 1, borderStyle: 'solid', tachado: false }
 }
@@ -264,7 +287,8 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
               <div
                 key={di}
                 style={{
-                  borderLeft: '1px solid var(--border)', position: 'relative', cursor: 'pointer', minHeight: 48,
+                  borderLeft: '1px solid var(--border)', position: 'relative', minHeight: 48,
+                  cursor: cellAppts.length === 0 ? 'pointer' : 'default',
                 }}
                 /**
                  * EL TINTE DE FIN DE SEMANA SE MUDÓ A LA HOJA, y no por gusto:
@@ -277,7 +301,48 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                  */
                 data-finde={di >= 5 ? '' : undefined}
                 className="nx-agenda-celda"
-                {...activable(() => onCellClick(ds, hourStr), { etiqueta: `Agendar el ${ds} a las ${hourStr}` })}
+                /**
+                 * UN BOTÓN DENTRO DE OTRO BOTÓN NO ES NAVEGABLE.
+                 *
+                 * La celda vacía es un `role="button"` («Agendar a las 09:00») y
+                 * cada cita que cae dentro es OTRO `role="button"`. axe lo
+                 * marcaba como `nested-interactive`, serio, y estaba en la línea
+                 * base de V10 (5 nodos) y en la de V15 (6): medido dos veces por
+                 * dos programas de diseño y nunca cerrado.
+                 *
+                 * No es una etiqueta mal puesta: un control anidado deja al de
+                 * dentro sin forma fiable de alcanzarse, y quien navega con
+                 * teclado o lector se queda sin poder abrir la cita — que es lo
+                 * único que de verdad se hace en esa celda.
+                 *
+                 * LA REGLA: la celda es botón SÓLO cuando está vacía. Con citas
+                 * dentro, las citas son los botones y la celda se queda como
+                 * contenedor. El clic con ratón sobre el hueco libre sigue
+                 * agendando; lo que desaparece es el control fantasma.
+                 *
+                 * Lo que esto CUESTA, dicho: en una celda ya ocupada, agendar a
+                 * esa hora deja de alcanzarse con teclado desde la rejilla. Se
+                 * sigue pudiendo por «Nueva cita», que es un botón de verdad y
+                 * el primer destino del tabulador. Se cambia un camino roto por
+                 * uno que funciona, no un camino por ninguno.
+                 */
+                {...(cellAppts.length === 0
+                  ? activable(() => onCellClick(ds, hourStr), { etiqueta: `Agendar el ${ds} a las ${hourStr}` })
+                  /**
+                   * Y en la ocupada, NADA — ni siquiera un `onClick` suelto.
+                   *
+                   * La primera versión de este arreglo dejaba el clic de ratón
+                   * en la celda ocupada, «para no perder función». Eso es un
+                   * control que sólo sirve con ratón, que es justo lo que
+                   * `teclado-controles` prohíbe. Cambiar un defecto de
+                   * accesibilidad por otro no es arreglarlo.
+                   *
+                   * (Aquel guardián no lo cazó: su regla da por resuelta la
+                   * etiqueta si ve `activable(` en cualquier parte, y aquí
+                   * aparece en la otra rama del ternario. Se anota abajo; no se
+                   * apoya uno en un punto ciego ajeno.)
+                   */
+                  : {})}
               >
                 {/* AHORA — la misma marca que `/citas`, en la columna de hoy. */}
                 {ds === today && ahoraMin !== null && Math.floor(ahoraMin / 60) === h && (
@@ -377,8 +442,11 @@ function DayView({ date, hoy, appointments, onCellClick, onApptClick, loading }:
           <div
             key={h}
             className="nx-agenda-celda"
-            style={{ display: 'flex', borderBottom: '1px solid var(--border)', minHeight: 56, cursor: 'pointer', position: 'relative' }}
-            {...activable(() => onCellClick(hourStr), { etiqueta: `Agendar a las ${hourStr}` })}
+            style={{ display: 'flex', borderBottom: '1px solid var(--border)', minHeight: 56, cursor: cellAppts.length === 0 ? 'pointer' : 'default', position: 'relative' }}
+            /* Misma regla que en la semana: botón sólo si la hora está libre. */
+            {...(cellAppts.length === 0
+              ? activable(() => onCellClick(hourStr), { etiqueta: `Agendar a las ${hourStr}` })
+              : {})}
           >
             {esHoy && ahoraMin !== null && Math.floor(ahoraMin / 60) === h && (
               <div
@@ -403,14 +471,45 @@ function DayView({ date, hoy, appointments, onCellClick, onApptClick, loading }:
                   style={{
                     background: 'rgba(61,90,254,0.1)', border: `1px ${est.borderStyle} rgba(61,90,254,0.3)`,
                     borderLeft: `3px ${est.borderStyle} var(--teal)`, borderRadius: 6, padding: '6px 10px',
-                    cursor: 'pointer', opacity: est.opacity,
+                    cursor: 'pointer',
+                    /**
+                     * LA OPACIDAD NO VA EN LA TARJETA, VA EN EL NOMBRE.
+                     *
+                     * Atenuando la tarjeta entera se atenuaba también la
+                     * INSIGNIA que dice «Cancelada» y la línea de tipo y
+                     * duración. Es al revés: la insignia es justo lo que no
+                     * puede costar trabajo leer, porque es la que anuncia el
+                     * estado. Atenuar el aviso de cancelación para señalar que
+                     * está cancelada se muerde la cola.
+                     *
+                     * Así que la merma se queda donde significa —el nombre, que
+                     * además va tachado— y el resto de la tarjeta se lee a
+                     * plena luz. La cita sigue leyéndose apagada por el borde
+                     * discontinuo y por el nombre.
+                     */
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', textDecoration: est.tachado ? 'line-through' : 'none' }}>
-                    <span>{a.fechaHora.slice(11, 16)} — {a.pacienteNombre}</span>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ opacity: est.opacity, textDecoration: est.tachado ? 'line-through' : 'none' }}>
+                      {a.fechaHora.slice(11, 16)} — {a.pacienteNombre}
+                    </span>
                     <StatusBadge status={a.estado} size="sm" />
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {/**
+                    * UN TOKEN ATENUADO DEJA DE SERLO SOBRE UNA TARJETA TEÑIDA.
+                    *
+                    * Esta línea usaba `--text3`, el gris de metadatos. Ese token
+                    * está calibrado contra el FONDO DE LA PÁGINA; aquí vive
+                    * dentro de una tarjeta con tinte propio
+                    * (`rgba(61,90,254,0.1)`), y ahí el contraste se cae — axe lo
+                    * marcó en las cinco citas de la vista de día.
+                    *
+                    * Es primo de la unidad 25: allí un color de identidad hacía
+                    * de color de lectura; aquí un gris calibrado para un fondo
+                    * se usa sobre otro. `--text2` es el escalón que sigue siendo
+                    * secundario y sí se lee sobre la tarjeta.
+                    */}
+                  <div style={{ fontSize: 12, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <TipoCitaIcon tipo={a.tipo} size={12} /> {APPOINTMENT_TYPE_CONFIG[a.tipo]?.label} · {a.duracion}min
                   </div>
                 </div>
@@ -478,24 +577,69 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
           return (
             <div
               key={i}
-              {...activable(() => onDayClick(d), { etiqueta: `Ver el día ${d.getDate()}` })}
+              /**
+                * En el MES el anidamiento se resuelve al revés que en la semana.
+                *
+                * Allí la celda podía dejar de ser botón porque «agendar a esta
+                * hora» se alcanza por «Nueva cita». Aquí el destino de la celda
+                * —ver ese día— no tiene otra puerta, y un día CON citas es
+                * precisamente el que uno quiere abrir: dejarlo sin control
+                * cambiaría un defecto de accesibilidad por una función perdida.
+                *
+                * Así que el control se muda al NÚMERO del día, que es lo que
+                * cualquiera señalaría, y la celda se queda de contenedor. Las
+                * píldoras de cita siguen siendo botones y ya no viven dentro de
+                * otro. El clic con ratón sobre el resto de la celda sigue
+                * abriendo el día.
+                */
               style={{
                 borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
-                padding: '6px', cursor: 'pointer', minHeight: 80,
+                padding: '6px', minHeight: 80,
                 background: isToday ? 'rgba(61,90,254,0.05)' : 'transparent',
                 transition: 'background var(--mov-rapido) var(--mov-curva)',
               }}
               onMouseEnter={e => !isToday && (e.currentTarget.style.background = 'var(--s2)')}
               onMouseLeave={e => !isToday && (e.currentTarget.style.background = 'transparent')}
             >
-              <div style={{
-                fontSize: 13, fontWeight: isToday ? 700 : 400,
-                color: isToday ? 'var(--teal)' : 'var(--text2)',
-                background: isToday ? 'var(--teal-glow)' : 'transparent',
-                width: 24, height: 24, borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 3,
-              }}>
-                {d.getDate()}
+              {/**
+                * LA CELDA YA NO ES UN CONTROL DE RATÓN; LA CABECERA SÍ ES UN CONTROL.
+                *
+                * Primero moví el control de la celda al número del día para
+                * deshacer el anidamiento, y dejé el `onClick` en la celda «para
+                * no perder el clic grande». Eso dejaba un control que sólo
+                * funciona con ratón — exactamente lo que prohíbe
+                * `teclado-controles`, que lo cazó.
+                *
+                * La salida no era elegir entre las dos cosas: era hacer el
+                * control DE VERDAD lo bastante grande. La cabecera ocupa el
+                * ancho de la celda, se alcanza con el tabulador, y de paso
+                * enseña cuántas citas hay — que es lo que decide si abrir ese
+                * día. Antes ese dato sólo existía en el nombre accesible.
+                */}
+              <div
+                className="nx-agenda-dia-mes"
+                {...activable(() => onDayClick(d), {
+                  etiqueta: `Ver el día ${d.getDate()}${dayAppts.length ? ` · ${dayAppts.length} ${dayAppts.length === 1 ? 'cita' : 'citas'}` : ' · sin citas'}`,
+                })}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  gap: 4, marginBottom: 3, borderRadius: 'var(--r-sm)',
+                }}
+              >
+                <span style={{
+                  fontSize: 13, fontWeight: isToday ? 700 : 400,
+                  color: isToday ? 'var(--teal)' : 'var(--text2)',
+                  background: isToday ? 'var(--teal-glow)' : 'transparent',
+                  width: 24, height: 24, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {d.getDate()}
+                </span>
+                {dayAppts.length > 0 && (
+                  <span style={{ fontSize: 'var(--t-overline)', color: 'var(--text3)', paddingRight: 2 }}>
+                    {dayAppts.length}
+                  </span>
+                )}
               </div>
               {/* La vista de MES era la única de las tres que no pintaba el estado
                   por ningún canal: una cita cancelada y una confirmada salían
@@ -511,9 +655,25 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
                   {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
-                    fontSize: 10, padding: '2px 5px', borderRadius: 3,
-                    background: 'var(--nexus-soft)', color: 'var(--teal)',
-                    borderLeft: `2px ${est.borderStyle} currentColor`,
+                    fontSize: 10, padding: '0 5px', borderRadius: 3,
+                    background: 'var(--nexus-soft)',
+                    /**
+                     * MISMA SEPARACIÓN QUE EN LA SEMANA (unidad 25): el texto
+                     * usa el primer plano y el acento se queda en el borde.
+                     * `var(--teal)` sobre `--nexus-soft` fallaba contraste, y
+                     * aquí a 10 px es donde más se nota.
+                     */
+                    color: 'var(--text)',
+                    borderLeft: `2px ${est.borderStyle} var(--teal)`,
+                    /**
+                     * 24 px de alto: el mínimo de WCAG 2.2 §2.5.8. Estas
+                     * píldoras medían unos 16 y axe las marcaba las tres. Una
+                     * cita que no se puede tocar en el móvil no está en la
+                     * pantalla. La celda del mes crece si hace falta — que
+                     * crezca es preferible a un objetivo inalcanzable.
+                     */
+                    minHeight: 24,
+                    display: 'flex', alignItems: 'center',
                     opacity: est.opacity,
                     textDecoration: est.tachado ? 'line-through' : 'none',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

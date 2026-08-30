@@ -1346,3 +1346,144 @@ techo de `aria-current`, aceptando errores de consola, y quitando el script del
 - **No ve el movimiento ni el orden de tabulación.**
 - Los conteos se leen **siempre contra la misma siembra**: un día vacío puntúa
   mejor sin ser mejor (ver la nota de los conteos de axe).
+
+---
+
+## Unidad 28 — un botón dentro de otro botón no es navegable
+
+**FOUND.** `nested-interactive`, impacto **serio**, en `/calendario` a los tres
+anchos. La celda vacía es un `role="button"` («Agendar a las 09:00») y cada cita
+que cae dentro es **otro** `role="button"`. Cinco nodos: uno por hora ocupada.
+
+**CUÁNTO LLEVABA AHÍ.** Está en la línea base de axe de **V10** (5 nodos) y en
+la de **V15** (6). Dos programas de diseño lo midieron, lo anotaron y ninguno lo
+cerró. No es «nadie lo estaba midiendo»: es su variante peor — **sí se medía**.
+
+**POR QUÉ NO ES UNA ETIQUETA MAL PUESTA.** El árbol accesible no admite un botón
+dentro de otro, así que el de dentro se queda **sin forma fiable de
+alcanzarse**: quien navega con teclado o con lector no podía abrir la cita, que
+es lo único que de verdad se hace en esa celda. Con ratón funcionaba. Por eso
+sobrevivió a dos auditorías visuales.
+
+**CHANGE, y no es el mismo en las tres vistas.**
+
+| Vista | Regla | Por qué |
+|---|---|---|
+| Semana y día | la celda es botón **sólo si está vacía** | «agendar a esta hora» tiene otra puerta de teclado: «Nueva cita» |
+| Mes | el control se muda al **número del día** | ahí «ver el día» no tiene otra puerta, y un día con citas es justo el que se quiere abrir |
+
+Es la misma regla —un solo control por región— resuelta según lo que cada vista
+tiene que seguir permitiendo. El número del día pasa además a decir cuántas
+citas hay, que es lo que decide si vale la pena abrirlo.
+
+**LO QUE CUESTA, DICHO.** En una celda ya ocupada de la semana, agendar a esa
+hora deja de alcanzarse con teclado **desde la rejilla**. Se sigue pudiendo por
+«Nueva cita». Se cambia un camino roto por uno que funciona, no un camino por
+ninguno.
+
+---
+
+## Unidad 29 — la señal de estado se estaba pagando con el contraste del dato
+
+**FOUND.** Al cerrar el anidamiento quedaron tres familias, y al medir **las
+tres vistas** (hasta ahora sólo se medía la de semana, que es la de entrada)
+aparecieron más: mes 5, día 5.
+
+Ordenadas por lo que resultaron ser:
+
+| Qué | Dónde | Causa |
+|---|---|---|
+| `target-size` ×3 | píldoras del mes | ~16 px de alto; el mínimo de WCAG 2.2 §2.5.8 es 24 |
+| `color-contrast` ×2 | píldoras del mes | `var(--teal)` sobre `--nexus-soft`, a 10 px |
+| `color-contrast` ×5 | tarjetas del día | `--text3` **dentro de una tarjeta teñida** |
+| `color-contrast` | las tres vistas | la cita cancelada, a opacidad 0,45 |
+
+**ROOT_CAUSE, tres primos hermanos.**
+
+1. **Un token atenuado deja de serlo sobre otro fondo.** `--text3` está
+   calibrado contra el fondo de la PÁGINA; dentro de una tarjeta con tinte
+   propio se cae. Es el primo de la unidad 25 —allí un color de identidad hacía
+   de color de lectura; aquí un gris calibrado para un fondo se usa sobre otro.
+2. **Una píldora de 16 px no se puede tocar.** Una cita que no se puede tocar en
+   el móvil no está en la pantalla. La celda del mes crece si hace falta: que
+   crezca es preferible a un objetivo inalcanzable.
+3. **La señal de estado se estaba pagando con el contraste del dato.** La cita
+   cancelada al 0,45 dejaba ilegible *todo* lo que llevaba dentro.
+
+**CHANGE.** El tercero es el que enseña algo. La tentación es declararlo
+intocable «porque atenuar es la señal». Pero la cancelación **ya está dicha por
+tres vías que no cuestan legibilidad**: el tachado, el borde discontinuo y el
+estado dentro del nombre accesible —más la insignia en la vista de día. La
+opacidad era la única redundante **y** la única que hacía ilegible el dato.
+
+Dos cambios, y el segundo importa más que el primero:
+
+- 0,45 → **0,72**. Sigue leyéndose apagada frente a las vivas (1 y 0,85).
+- En la vista de día, la merma se muda de la **tarjeta** al **nombre**. Atenuar
+  la tarjeta entera atenuaba también **la insignia que dice «Cancelada»** —
+  atenuar el aviso de cancelación para señalar que está cancelada se muerde la
+  cola.
+
+**Regla que deja:** una señal de estado no puede pagarse con el contraste del
+dato que señala, si hay otra forma de decir lo mismo.
+
+**BROWSER_PROOF.** Build de producción, las **tres** vistas medidas por separado
+—que es lo que nunca se había hecho:
+
+| Vista | Antes | Después |
+|---|---:|---:|
+| Semana | 7 | **0** |
+| Mes | 5 | **0** |
+| Día | 5 | **0** |
+
+**Las 18 combinaciones ruta×ancho del trinquete de interfaz quedan en axe 0.**
+El techo se baja en consecuencia — sólo puede bajar.
+
+**REGRESSION.** `ningun-boton-vive-dentro-de-otro.test.ts`, 8 casos. Probado al
+revés cinco veces: devolviendo el `activable` incondicional a la celda de la
+semana, a la del día y a la del mes; devolviendo el 0,45; y devolviendo la
+opacidad a la tarjeta del día. Caen los cinco.
+
+**RESIDUAL_RISK.** Sigue siendo un escáner de fuente más una medición puntual:
+no prueba que el orden de tabulación resultante sea bueno, ni que un lector de
+pantalla real lo recorra bien. Y las tres vistas se midieron con **una** siembra
+— un día vacío puntúa mejor sin ser mejor.
+
+---
+
+## Unidad 30 — cambiar un defecto de accesibilidad por otro no es arreglarlo
+
+**FOUND.** El arreglo de la unidad 28 dejaba, en la celda **ocupada**, un
+`onClick` suelto «para no perder el clic de ratón». Eso es un control que sólo
+funciona con ratón, que es exactamente lo que prohíbe `teclado-controles`.
+
+**Lo cazó el guardián del repositorio**, no yo — pero sólo a medias, y esa
+mitad importa: marcó la celda del **mes** y **no** las de semana y día. Su regla
+da por resuelta una etiqueta si ve `activable(` en cualquier parte de ella, y en
+semana y día `activable(` aparecía en la **otra rama del ternario**. Un punto
+ciego que mi propio arreglo estrenó.
+
+**CHANGE.** Se quitan los tres. En semana y día, la celda ocupada no reparte
+ningún manejador —y el cursor deja de prometer un clic que ya no existe—. En el
+mes, la salida no era elegir entre accesibilidad y función: era **hacer el
+control de verdad lo bastante grande**. La cabecera del día pasa de un círculo
+de 24×24 a una franja de **154×24** que ocupa el ancho de la celda, se alcanza
+con el tabulador en 5 pasos y **enseña cuántas citas hay** — dato que antes sólo
+existía en el nombre accesible.
+
+**No se aflojó el guardián ajeno ni se apoyó uno en su hueco**: se añadió el
+caso desde este lado, en `ningun-boton-vive-dentro-de-otro.test.ts`.
+
+**BROWSER_PROOF.** Build de producción, las tres vistas: **axe 0 / 0 / 0**.
+Cabecera del día: 154×24, alcanzada con teclado en 5 tabulaciones, con nombre
+accesible «Ver el día 29 · 5 citas» y «Ver el día 30 · 1 cita» (singular
+correcto). Píldoras del mes a 24 px de alto.
+
+**EL TRINQUETE DE DISEÑO ME CAZÓ POR QUINTA VEZ EN EL CARRIL**: el contador
+llevaba `fontSize: 10`, fuera de escala. Se arregló el cambio (`--t-overline`),
+no el techo.
+
+**RESIDUAL_RISK.** El punto ciego de `teclado-controles` sigue ahí para
+cualquier otro que escriba un ternario parecido. No lo toqué: endurecerlo podría
+marcar código preexistente de otras pantallas y este carril no las posee. Queda
+**declarado** — es exactamente la familia «depende de que alguien se acuerde».

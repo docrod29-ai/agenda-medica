@@ -9,7 +9,7 @@
       "erroresDeConsola": 0
     },
     "/calendario@390": {
-      "axe": 7,
+      "axe": 0,
       "ariaCurrent": 2,
       "desborde": false,
       "erroresDeConsola": 0
@@ -45,7 +45,7 @@
       "erroresDeConsola": 0
     },
     "/calendario@768": {
-      "axe": 7,
+      "axe": 0,
       "ariaCurrent": 2,
       "desborde": false,
       "erroresDeConsola": 0
@@ -81,7 +81,7 @@
       "erroresDeConsola": 0
     },
     "/calendario@1440": {
-      "axe": 7,
+      "axe": 0,
       "ariaCurrent": 2,
       "desborde": false,
       "erroresDeConsola": 0

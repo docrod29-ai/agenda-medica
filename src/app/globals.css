@@ -3535,6 +3535,16 @@ span.riel-aviso { cursor: default; }
 }
 .nx-agenda-bloque:active { transform: scale(0.985); }
 
+/* El número del día en la vista de MES es ahora el control que abre ese día
+   (antes lo era la celda entera, y las píldoras de cita quedaban DENTRO de un
+   botón). Mide 24×24, que es justo el mínimo de WCAG 2.2 §2.5.8, así que el
+   foco tiene que verse sin ampliar la caja: se dibuja por fuera. */
+.nx-agenda-dia-mes { cursor: pointer; }
+.nx-agenda-dia-mes:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
 /* AHORA, en la rejilla. La línea cruza la columna del día y el punto marca el
    borde por donde empieza — igual que en `/citas`. El color es el de la marca
    porque «ahora» es orientación, no severidad clínica. */
