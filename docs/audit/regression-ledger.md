@@ -9178,7 +9178,7 @@ no emite una llave que lo abre»), también probado al revés.
 
 ---
 
-## REG-337 — en consultorio, que un resultado exista contaba como que alguien lo leyó
+## REG-501 — en consultorio, que un resultado exista contaba como que alguien lo leyó
 
 **QUÉ FALLABA.** `guardarPanelLab` archivaba la hoja de laboratorio bajo el
 paciente y ahí terminaba el camino: no nacía ningún pendiente, nadie quedaba como
@@ -9243,7 +9243,7 @@ resultados legibles, y reintento de la misma intención).
 
 ---
 
-## REG-338 — el secreto del segundo factor se le pedía dibujado a un tercero
+## REG-502 — el secreto del segundo factor se le pedía dibujado a un tercero
 
 **QUÉ FALLABA.** La pantalla de enrolamiento de 2FA de `/cumplimiento/seguridad`
 componía el QR así:
@@ -9304,7 +9304,7 @@ apagado no vigila nada.
 
 ---
 
-## REG-339 — la nota clínica entera se escribía en la consola del navegador
+## REG-503 — la nota clínica entera se escribía en la consola del navegador
 
 **QUÉ FALLABA.** En la pantalla de consulta, cuando la IA no lograba estructurar
 una nota preoperatoria, el aviso de diagnóstico hacía:
@@ -10962,7 +10962,7 @@ un valor por omisión en el aviso, y volver a fundir cerrar con avanzar de estad
   palabras existan, no que se vean.
 - **No cubre el cierre desde otras pantallas.** Hoy sólo `/pendientes` cierra
   tareas; si mañana lo hace otra, este golden no la ve — que es exactamente el
-  patrón de REG-337 y REG-356, así que queda dicho en vez de descubrirse.
+  patrón de REG-501 y REG-356, así que queda dicho en vez de descubrirse.
 - **Interconsultas, referencias e imagen siguen fuera del ciclo.** WS-11 no se
   cierra con esto.
 
@@ -14120,7 +14120,7 @@ falta**. El control que el médico pidió no ocurría, el pendiente estaba cerra
 y el sistema decía que el trabajo estaba hecho **porque nadie le preguntó nunca
 al calendario**.
 
-Es la misma forma de fallo que REG-337 cerró del otro lado —que el resultado
+Es la misma forma de fallo que REG-501 cerró del otro lado —que el resultado
 EXISTIERA contaba como que alguien lo había leído— aplicada a la otra punta del
 ciclo: que la cita EXISTA cuenta como que el paciente vino.
 

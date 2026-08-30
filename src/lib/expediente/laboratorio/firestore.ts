@@ -70,7 +70,7 @@ export class ErrorSujetoNoVinculado extends Error {
 }
 
 /**
- * ── EL BUCLE DE RESULTADOS TENÍA FUGA TAMBIÉN EN CONSULTORIO (REG-337) ───────
+ * ── EL BUCLE DE RESULTADOS TENÍA FUGA TAMBIÉN EN CONSULTORIO (REG-501) ───────
  *
  * REG-252 descubrió que `tareaDeResultado()` estaba escrita, probada y sin
  * llamar, y la conectó **en el camino hospitalario**. Su propio comentario dice

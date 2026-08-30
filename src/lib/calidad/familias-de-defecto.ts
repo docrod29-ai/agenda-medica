@@ -283,7 +283,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * era de fiar y se seguía entregando a quien decide con él.
      */
     /**
-     * 404 es esta familia en la otra punta del ciclo. REG-337 cerró que el
+     * 404 es esta familia en la otra punta del ciclo. REG-501 cerró que el
      * resultado EXISTIERA contara como que alguien lo había leído; aquí, que la
      * CITA exista contaba como que el paciente vino: «Agendar el seguimiento» se
      * cerraba al crear la cita, así que un no-show no reabría nada y nadie lo

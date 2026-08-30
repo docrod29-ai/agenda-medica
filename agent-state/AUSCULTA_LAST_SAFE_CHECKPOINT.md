@@ -20,7 +20,7 @@ BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos fall
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno — P1-20 abierto y cerrado con REG-364)
 BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
-DO_NOT_REGRESS=REG-323 · REG-337…REG-376
+DO_NOT_REGRESS=REG-323 · REG-501…REG-376
 ```
 
 ### Cerrado en esta tanda
@@ -177,7 +177,7 @@ substrings; ésta es la vía para convertirlas en medición.
 
 ---
 
-## Checkpoint anterior · REG-337–339
+## Checkpoint anterior · REG-501–339
 
 
 ## Checkpoint anterior · 28-ago-2026 — A1: el tablero existe y está medido

@@ -39,7 +39,7 @@ export default function SeguridadPage() {
   }, [user])
 
   /**
-   * EL QR SE DIBUJA AQUÍ, NO EN UN TERCERO (REG-338).
+   * EL QR SE DIBUJA AQUÍ, NO EN UN TERCERO (REG-502).
    *
    * Antes esta pantalla componía `https://api.qrserver.com/...?data=<otpauth://>`
    * y lo ponía de `src` en un `<img>`. El `otpauth://` **lleva dentro el secreto

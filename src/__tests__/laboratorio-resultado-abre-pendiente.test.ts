@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 /**
- * REG-337 — UN RESULTADO DE CONSULTORIO QUE NADIE REVISA.
+ * REG-501 — UN RESULTADO DE CONSULTORIO QUE NADIE REVISA.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -116,7 +116,7 @@ const tareas = () => [...almacen.docs.entries()]
 
 beforeEach(() => { almacen.docs.clear(); almacen.romperTareas.valor = false })
 
-describe('REG-337 · guardar un resultado abre su pendiente de revisión', () => {
+describe('REG-501 · guardar un resultado abre su pendiente de revisión', () => {
   it('EL DEFECTO: archivar la hoja dejaba CERO pendientes', async () => {
     const r = await guardarPanelLab(CLINICA, 'pac-A', PANEL_NORMAL, vinculo(), 'k1')
     // Sin el arreglo esto valía 0 y la prueba falla: es la aserción que lo prueba al revés.
@@ -181,7 +181,7 @@ describe('REG-337 · guardar un resultado abre su pendiente de revisión', () =>
   })
 })
 
-describe('REG-337 · un pendiente que no nació NO se calla', () => {
+describe('REG-501 · un pendiente que no nació NO se calla', () => {
   it('si la tarea no se puede escribir, el laboratorio se guarda y la cuenta lo delata', async () => {
     almacen.romperTareas.valor = true
     const r = await guardarPanelLab(CLINICA, 'pac-A', PANEL_NORMAL, vinculo(), 'k1')

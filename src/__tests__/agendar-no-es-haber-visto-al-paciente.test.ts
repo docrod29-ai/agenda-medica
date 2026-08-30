@@ -17,7 +17,7 @@
  * cerrado, y el sistema decía que el trabajo estaba hecho porque nadie le
  * preguntó nunca al calendario.
  *
- * Es la misma forma de fallo que REG-337 cerró del otro lado —que el resultado
+ * Es la misma forma de fallo que REG-501 cerró del otro lado —que el resultado
  * EXISTIERA contaba como que alguien lo había leído— aplicada a la otra punta
  * del ciclo: que la cita EXISTA cuenta como que el paciente vino.
  *

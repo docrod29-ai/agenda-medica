@@ -191,7 +191,7 @@ const POSICIONES_DE_CARGA = [
  * restringe imágenes por host), y se deja anotado con lo que hoy manda de verdad:
  * ver docs/seguridad/csp-enforce.md §Hallazgos.
  *
- * REG-338 CERRÓ LA PARTE GRAVE. El hallazgo decía «manda el otpauth:// a un
+ * REG-502 CERRÓ LA PARTE GRAVE. El hallazgo decía «manda el otpauth:// a un
  * tercero», y era cierto en las DOS pantallas de enrolamiento: el `otpauth://`
  * lleva dentro el secreto compartido del segundo factor. Ya no lo manda ninguna
  * — las dos dibujan el QR en el navegador con `qrcode`.
@@ -203,7 +203,7 @@ const POSICIONES_DE_CARGA = [
  * un secreto y no se cuenta como si lo fuera.
  */
 const EXENCIONES: Record<string, string> = {
-  'api.qrserver.com': 'img-src permite https: en general. Sólo QR de enlaces PÚBLICOS (auto-agenda, reservas). El secreto TOTP ya NO viaja: REG-338.',
+  'api.qrserver.com': 'img-src permite https: en general. Sólo QR de enlaces PÚBLICOS (auto-agenda, reservas). El secreto TOTP ya NO viaja: REG-502.',
 }
 
 /** Sólo código que se sirve al navegador: los tests no se despachan a nadie. */

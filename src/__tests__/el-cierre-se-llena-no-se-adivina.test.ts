@@ -41,7 +41,7 @@
  *   contrato; aquí se mira que la pantalla le pase el cierre.
  * · **No cubre el cierre desde otras pantallas.** Hoy sólo `/pendientes` cierra
  *   tareas; si mañana lo hace otra, este golden no la ve — y ése es exactamente
- *   el patrón de REG-337 y REG-356, así que queda dicho.
+ *   el patrón de REG-501 y REG-356, así que queda dicho.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'

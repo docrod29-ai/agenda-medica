@@ -47,7 +47,7 @@ vi.mock('firebase/firestore', () => {
       data: () => almacen.docs.get(ref.__ruta),
     }),
     setDoc: async (ref: { __ruta: string }, data: Record<string, unknown>) => { almacen.docs.set(ref.__ruta, data) },
-    // Lo usa `crearTareas` para el pendiente de revisión que abre REG-337. Sin
+    // Lo usa `crearTareas` para el pendiente de revisión que abre REG-501. Sin
     // él, la tarea fallaba en silencio y esta prueba medía un mundo sin bucle.
     addDoc: async (c: { __ruta: string }, data: Record<string, unknown>) => {
       const ref = { __ruta: `${c.__ruta}/auto-${almacen.docs.size}`, id: `auto-${almacen.docs.size}` }

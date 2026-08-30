@@ -2178,7 +2178,7 @@ export default function ConsultaActivaPage() {
       if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso, noConsultadas: data._fuentesNoConsultadas ?? [], sinRespaldo: (data._verificacion?.sinRespaldo ?? []).map((x: { texto: string }) => x.texto), aplicabilidad: data._aplicabilidad ?? [] })
       else {
         // Muestra el MOTIVO real (no un toast mudo) y lo deja en consola para diagnóstico.
-        // REG-339 — el cuerpo del error puede devolver el contexto del paciente
+        // REG-503 — el cuerpo del error puede devolver el contexto del paciente
       // que se mandó (edad, sexo, alergias, diagnósticos). El estado dice qué
       // pasó; el cuerpo no hace falta para eso.
       console.error('[evidencia] fallo', res.status)
@@ -2495,7 +2495,7 @@ export default function ConsultaActivaPage() {
           !data.secciones?.laboratorios?.trim()) {
         toast('La IA no pudo estructurar el dictado para preoperatoria. Revisa el material de origen y reintenta.', 'error')
         /**
-         * REG-339 — AQUÍ IBA LA NOTA ENTERA A LA CONSOLA.
+         * REG-503 — AQUÍ IBA LA NOTA ENTERA A LA CONSOLA.
          *
          * Esta línea mandaba `data`, que es la nota clínica estructurada
          * completa: resumen, laboratorios, cirugía propuesta. Un `safeLog` no
@@ -2528,7 +2528,7 @@ export default function ConsultaActivaPage() {
       // causa real (_aviso). Mostramos esa causa en vez de un falso "éxito" verde —
       // así se sabe POR QUÉ falló (HTTP 401, sobrecarga, respuesta vacía, etc.).
       if (data.fallbackLocal || data._aviso) {
-        // REG-339 — `_detalleDebug` viene del proveedor y no está acotado: puede
+        // REG-503 — `_detalleDebug` viene del proveedor y no está acotado: puede
         // arrastrar el eco del texto que se le mandó. La CAUSA basta para saber
         // por qué se cayó a parser local; el detalle se pasa por el redactor.
         safeLog.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
