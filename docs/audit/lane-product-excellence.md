@@ -2973,3 +2973,40 @@ roto).
   `documentos` y `paquetes` liberados aparecen pantallas que **nadie ha medido**.
 - Los destinos se miden **recién pulsados**, en reposo. No se prueba escribir una
   pregunta, abrir un documento ni editar el perfil.
+
+---
+
+## Nota de CI — un commit rojo que me hice yo, y por qué
+
+**QUÉ PASÓ.** CI marcó `verificar` en rojo sobre **`d98eb89`** (unidad 47). Las
+dos pruebas que cayeron son exactamente las dos que arreglé en la unidad 48:
+
+```
+el-trinquete-de-interfaz-esta-cableado
+  · cubre las seis pantallas …   expected 60 to be 18
+  · la navegación resuelta …     /consultor@390: expected 0 to be >= 2
+```
+
+**LA CAUSA NO ES NINGUNA DE LAS DOS PRUEBAS.** Es que partí en dos commits algo
+que era uno solo: la unidad 47 escribió los **techos nuevos** (60 combinaciones,
+con `/consultor` en 0) y la unidad 48 actualizó el **guardián que los lee**. Entre
+una y otra, el árbol quedó rojo un commit.
+
+Localmente no lo vi porque cuando corrí la suite de la 47 el guardián todavía
+no existía en su forma nueva… **y ahí está el error real**: corrí `vitest` en la
+unidad 47 y pasó, pero lo que cambió en esa unidad fue un **fichero de datos**
+que otra prueba lee. Un cambio de datos puede romper una prueba que no toqué.
+
+**LA REGLA QUE SALE DE AQUÍ.** Un fichero de trinquete y el guardián que lo lee
+**viajan en el mismo commit**. Si `--actualizar` cambia los números, la prueba
+que los interpreta se actualiza y se prueba **antes de hacer commit**, no en la
+unidad siguiente.
+
+**ESTADO.** Arreglado en `b91bcca` (unidad 48), y las corridas posteriores
+—`2987569`, `568c9bd`, `e34957b`, `3de1bc3`— no reportan fallos. Verificado
+contra los registros de la corrida, no supuesto: se leyó el log del trabajo
+99231429066.
+
+No se comenta en el PR: el fallo ya no existe en la cabeza y el propio historial
+lo explica. Queda aquí, que es donde este carril guarda sus causas raíz —
+incluidas las mías.
