@@ -6,7 +6,6 @@ import { listarCobros, fmtMXN } from '@/lib/cobros'
 import { cortesiasDelDia, quienAnulo } from '@/lib/corte-caja'
 import { useDoctors } from '@/hooks/useDoctors'
 import { getAppointments, getConfig } from '@/lib/firestore'
-import { where } from 'firebase/firestore'
 import type { Cobro } from '@/lib/cobros'
 import type { Appointment } from '@/types'
 import { corteDeCaja, embudoCobro, cuentasPorCobrar } from '@/lib/corte-caja'
@@ -77,10 +76,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
          * ignora): se listan aparte, con quién anuló y por qué.
          */
         listarCobros(clinicId, dia, dia, true, tz),
-        getAppointments(clinicId, [
-          where('fechaHora', '>=', dia + ' 00:00'),
-          where('fechaHora', '<=', dia + ' 23:59'),
-        ]),
+        getAppointments(clinicId, { desde: dia + ' 00:00', hasta: dia + ' 23:59' }),
       ])
       setCobros(cb); setCitas(ct)
     } finally {

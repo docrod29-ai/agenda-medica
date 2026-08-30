@@ -67,20 +67,56 @@ export async function addClinicMember(
 
 // ── Appointments ──────────────────────────────────────────────
 
+/**
+ * LA VENTANA ES OBLIGATORIA, Y POR ESO ES UN PARÁMETRO Y NO UN `limit` — REG-415.
+ *
+ * ── QUÉ HABÍA ───────────────────────────────────────────────────────────────
+ *
+ * `constraints: QueryConstraint[] = []`. Con ese valor por omisión,
+ * `getAppointments(clinicId)` descarga **todas las citas que el consultorio haya
+ * tenido nunca**, y el que lo escriba no tiene que hacer nada raro: le basta con
+ * no pensar en la ventana.
+ *
+ * Ninguno de los cinco llamadores de hoy lo hace —los cinco pasan un
+ * `where('fechaHora', '>=', …)`—, así que esto no es una lectura cara en
+ * producción: es la puerta abierta para que la siguiente lo sea. Cerrarla ahora
+ * cuesta cinco líneas; cerrarla cuando alguien la cruce cuesta encontrarla.
+ *
+ * ── POR QUÉ NO SE ARREGLA CON UN `limit` ────────────────────────────────────
+ *
+ * La consulta ordena por `fechaHora` **ascendente**, así que `limit(N)` se queda
+ * con las N citas MÁS ANTIGUAS del consultorio y descarta las de esta semana. En
+ * una agenda, recortar por el extremo equivocado no es una lectura barata: es
+ * perder citas en silencio, que es peor que la lectura cara.
+ *
+ * Lo que acota de verdad una agenda es el TIEMPO. Por eso la ventana no es una
+ * opción que se pueda omitir sino el segundo argumento, y el tipo la exige.
+ */
+export interface VentanaDeAgenda {
+  /** `YYYY-MM-DD HH:MM`, inclusivo. */
+  readonly desde: string
+  /** `YYYY-MM-DD HH:MM`, inclusivo. Sin él, la ventana llega hasta el final. */
+  readonly hasta?: string
+}
+
 export async function getAppointments(
   clinicId: string,
-  constraints: QueryConstraint[] = []
+  ventana: VentanaDeAgenda,
+  extra: QueryConstraint[] = [],
 ): Promise<Appointment[]> {
-  const q = query(col(clinicId, COLLECTIONS.appointments), orderBy('fechaHora', 'asc'), ...constraints)
+  const q = query(
+    col(clinicId, COLLECTIONS.appointments),
+    orderBy('fechaHora', 'asc'),
+    where('fechaHora', '>=', ventana.desde),
+    ...(ventana.hasta ? [where('fechaHora', '<=', ventana.hasta)] : []),
+    ...extra,
+  )
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
 }
 
 export async function getAppointmentsByDate(clinicId: string, fecha: string): Promise<Appointment[]> {
-  return getAppointments(clinicId, [
-    where('fechaHora', '>=', fecha + ' 00:00'),
-    where('fechaHora', '<=', fecha + ' 23:59'),
-  ])
+  return getAppointments(clinicId, { desde: fecha + ' 00:00', hasta: fecha + ' 23:59' })
 }
 
 // createAppointment se eliminó: el alta de citas ahora es ATÓMICA vía POST /api/appointments

@@ -15303,3 +15303,75 @@ sangría dentro de la cadena. Se cambió por lo que quería decir.
 - No añade clases de fallo nuevas: son las cuatro que la consulta ya distinguía.
 
 **Prueba.** `src/__tests__/consultorio-degradacion-segura.test.ts` (14 casos, 8 de ellos nuevos y de comportamiento).
+
+## REG-415 — nada impedía leer la agenda entera
+
+**QUÉ SE PEDÍA.** `WS-03.lecturas-sin-cota`, que REG-394 dejó con los dos peores
+nombrados y sin cerrar. El primero: «`getAppointments(clinicId, [])` descarga
+todas las citas que el consultorio haya tenido nunca».
+
+### La corrección al censo, que cambia el arreglo
+
+Al mirarlo, **ninguno de los cinco llamadores lo hace**: los cinco pasan un
+`where('fechaHora', '>=', …)`. No era una lectura cara en producción — era la
+puerta abierta para que la siguiente lo fuera.
+
+La distinción no es cosmética: «se lee la agenda entera» y «nada impide leerla
+entera» se arreglan distinto, y sólo el segundo existía. El primero pediría
+arreglar cinco llamadas; el segundo pide cerrar la firma, y entonces las cinco ya
+estaban bien.
+
+### Por qué no se arregla con un `limit`
+
+La consulta ordena por `fechaHora` **ascendente**, así que `limit(N)` se queda con
+las N citas MÁS ANTIGUAS del consultorio y tira las de esta semana. En una agenda,
+recortar por el extremo equivocado no es una lectura barata: es perder citas en
+silencio, y eso es peor que la lectura cara.
+
+Es lo que `lecturas-sin-cota.mjs` ya lleva escrito en su cabecera —«exigirles un
+tope sólo enseñaría a poner `limit(1000)` por costumbre, que es peor que no
+tenerlo: parece protegido y no lo está»— aplicado a la colección donde más se nota.
+
+### La regla
+
+Lo que acota una agenda es el TIEMPO. La ventana pasa de ser un valor por omisión
+vacío a ser el **segundo argumento obligatorio**, con `desde` requerido y `hasta`
+opcional — la asimetría correcta, porque una agenda se lee «desde tal día en
+adelante» muchas veces y casi nunca «hasta tal día desde el principio de los
+tiempos».
+
+Con eso, leer la agenda entera deja de ser la ruta más corta: ya no basta con no
+pensarlo.
+
+### Sigue contando en el inventario, y es correcto
+
+El instrumento sólo reconoce `limit`, y una ventana acota por fecha, no por
+número: `{ desde: '2020-01-01 00:00' }` es válida y descarga cinco años. Lo que se
+cerró es que se lea sin NINGUNA. El techo no baja.
+
+### Dos guardianes anclados a lo que no debían
+
+`las-lecturas-sin-cota-solo-bajan` localizaba esta lectura por **número de línea**
+(`linea < 80`). Documentar la función la empujó hacia abajo y el caso se cayó sin
+que nada de lo que vigila hubiera cambiado: un guardián anclado a un número de
+línea vigila el tamaño del archivo.
+
+Y su comprobación negativa —que la firma vieja ya no existe— buscaba la forma
+prohibida en TODO el archivo, y la encontraba en la cabecera que la cita para
+explicar por qué se quitó. Es la tercera vez en esta tanda que pasa lo mismo
+(REG-410, REG-413 y ésta): una comprobación negativa sobre un fichero entero choca
+con el comentario que explica lo prohibido. Se mira la firma.
+
+### Qué NO cubre
+
+- **La ventana sigue pudiendo ser enorme.** Elegirla bien es de cada pantalla; lo
+  que cambia es que ahora está a la vista en la llamada, no escondida en un valor
+  por omisión.
+- **No toca `useAppointments`**, el `onSnapshot` cuya ventana sólo crece: navegar
+  el calendario a hace un año deja el resto de la sesión recibiendo en vivo todas
+  las citas desde entonces. Eso es rediseñar la ventana de la agenda, y la regla
+  de diseño dice que una interfaz no se aprueba leyendo el código.
+- **No mide.** Cuánto cuesta la lectura con N citas sigue sin medirse en el
+  emulador, como sí se midieron lista, búsqueda e historial (REG-383).
+
+**Prueba.** `src/__tests__/la-agenda-no-se-lee-entera.test.ts` (7 casos).

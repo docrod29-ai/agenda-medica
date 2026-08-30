@@ -243,10 +243,14 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     pruebas: ['emulator/ws03-consultorio-grande.emu.test.ts'],
   })),
   R({
-    id: 'WS-03.lecturas-sin-cota', ws: 'WS-03', titulo: 'Ninguna lectura de consultorio descarga la colección entera',
+    id: 'WS-03.lecturas-sin-cota', ws: 'WS-03', titulo: 'Ninguna lectura del camino diario crece sin techo',
     estado: 'PARTIAL',
-    queFalta: 'REG-383 midió las tres del camino diario —lista, búsqueda e historial— y salen planas hasta 50 000 pacientes. REG-394 convirtió el recuento a mano en un TRINQUETE que sólo baja (Consultorio 29, Hospital 9) y dejó nombrados los dos peores, sin cerrarlos: (1) getAppointments(clinicId, []) descarga todas las citas que el consultorio haya tenido nunca, y NO se arregla con un limit suelto —sin orderBy propio recortaría por el extremo equivocado y perdería citas en silencio, que en una agenda es peor que la lectura cara—; (2) useAppointments es un onSnapshot cuya ventana SÓLO CRECE: navegar el calendario a hace un año deja el resto de la sesión recibiendo en vivo todas las citas desde entonces. Arreglarlo es rediseñar la ventana de la agenda y no se hace a ciegas (regla de diseño: una interfaz no se aprueba leyendo el código). Falta además medir el resto en el emulador como se midieron las tres del camino diario.',
-    artefactos: ['docs/product/AUSCULTA-MASTER-BOARD.md'],
+    evidencia: 'REG-383 midió las tres del camino diario —lista, búsqueda e historial— y salen planas hasta 50 000 pacientes. REG-394 convirtió el recuento a mano en un trinquete que sólo baja. REG-415 cerró el primero de los dos peores, y de paso corrigió el censo: NINGUNO de los cinco llamadores de `getAppointments` leía sin ventana — los cinco pasaban un where. No era una lectura cara en producción, era la puerta abierta para que la siguiente lo fuera, y eso se cierra con el tipo.',
+    comando: 'npx vitest run src/__tests__/la-agenda-no-se-lee-entera.test.ts src/__tests__/las-lecturas-sin-cota-solo-bajan.test.ts',
+    resultado: 'La ventana `{ desde, hasta? }` es obligatoria por tipo. No se usó `limit`: la consulta ordena ascendente, así que un tope se quedaría con las citas MÁS ANTIGUAS y tiraría las de esta semana — perder citas en silencio es peor que la lectura cara.',
+    queFalta: 'Queda el segundo de los dos peores: `useAppointments` es un onSnapshot cuya ventana SÓLO CRECE — navegar el calendario a hace un año deja el resto de la sesión recibiendo en vivo todas las citas desde entonces. Arreglarlo es rediseñar la ventana de la agenda y la regla de diseño prohíbe hacerlo a ciegas (una interfaz no se aprueba leyendo el código). Y falta medir el resto en el emulador como se midieron las tres del camino diario.',
+    artefactos: ['scripts/escala/lecturas-sin-cota.mjs', 'src/lib/firestore.ts'],
+    pruebas: ['src/__tests__/las-lecturas-sin-cota-solo-bajan.test.ts', 'src/__tests__/la-agenda-no-se-lee-entera.test.ts'],
   }),
   R({
     id: 'WS-03.indices-declarados', ws: 'WS-03', titulo: 'Toda consulta compuesta tiene su índice declarado',

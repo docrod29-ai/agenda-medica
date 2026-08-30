@@ -51,8 +51,8 @@
 | `/configuracion` | medico | ✅ | 2657 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 7286 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 343 | 0 | — | ✅ | — |
-| `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
-| `/crm` | medico | ✅ | 256 | 1 | — | ✅ | — |
+| `/corte-caja` | medico | ✅ | 329 | 0 | — | ✅ | — |
+| `/crm` | medico | ✅ | 255 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 1041 | 0 | — | ✅ | — |
 | `/cumplimiento/motores` | medico | ✅ | 206 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 251 | 2 | — | ✅ | — |
@@ -69,7 +69,7 @@
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 1006 | 2 | — | ✅ | — |
-| `/operaciones` | medico | ✅ | 401 | 1 | — | ✅ | — |
+| `/operaciones` | medico | ✅ | 400 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 845 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1240 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 764 | 3 | — | ✅ | ✅ |

@@ -41,10 +41,14 @@
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
- * · **Es análisis estático.** Una cota que llegue por un parámetro en tiempo de
- *   ejecución no la ve — `getAppointments(clinicId, constraints)` es justo eso, y
- *   por eso figura como sin cota: su techo depende de quien llame, que es
- *   exactamente la queja del censo.
+ * · **Es análisis estático, y sólo reconoce `limit`.** Una cota que llegue por un
+ *   parámetro en tiempo de ejecución no la ve. `getAppointments` es justo eso:
+ *   desde REG-415 exige una VENTANA DE TIEMPO —`{ desde, hasta? }`, obligatoria
+ *   por tipo— y sigue figurando aquí, porque el instrumento no sabe leer eso.
+ *
+ *   Y está bien que siga figurando: una ventana acota por FECHA, no por número.
+ *   `{ desde: '2020-01-01 00:00' }` es válida y descarga cinco años. Lo que se
+ *   cerró es que se lea sin ninguna; cuánto pesa la que se elija es otra cosa.
  * · **No dice si una lectura es CARA.** Dice que puede crecer sin techo. Cuánto
  *   crece de verdad lo mide el emulador de WS-03 (REG-383), sobre datos.
  * · **No cubre `onSnapshot`.** `useAppointments` mantiene una suscripción viva
@@ -55,6 +59,7 @@
  *   código»).
  */
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { inventariar, sinCota, recuento, esDeHospital } from '../../scripts/escala/lecturas-sin-cota.mjs'
 
 /**
@@ -129,19 +134,48 @@ describe('el trinquete sólo baja', () => {
 })
 
 describe('lo que el inventario deja dicho', () => {
-  it('`getAppointments` figura sin cota, que es la queja del censo', () => {
+  it('`getAppointments` sigue figurando sin cota, y ahora por la razón correcta', () => {
     /**
-     * Su techo depende de las restricciones que le pase quien llame:
-     * `getAppointments(clinicId, [])` descarga todas las citas que el
-     * consultorio haya tenido nunca. No se «arregla» poniéndole un `limit`
-     * suelto: sin `orderBy` propio, un tope recortaría por el extremo
-     * equivocado y **perdería citas en silencio**, que en una agenda es peor que
-     * la lectura cara.
+     * ── POR QUÉ ESTE CASO CAMBIÓ DE FORMA (REG-415) ────────────────────────
+     *
+     * Localizaba la lectura por NÚMERO DE LÍNEA (`linea < 80`). Documentar la
+     * función —cuarenta líneas de cabecera explicando por qué un `limit` la
+     * rompería— la empujó hacia abajo y el caso se cayó sin que nada de lo que
+     * vigila hubiera cambiado. Un guardián anclado a un número de línea vigila
+     * el tamaño del archivo.
+     *
+     * Y lo que dice también cambió. Antes: «su techo depende de quien llame», y
+     * `getAppointments(clinicId, [])` descargaba todas las citas del
+     * consultorio. Eso ya no se puede escribir: la ventana es obligatoria por
+     * tipo.
+     *
+     * Sigue contando aquí, y es correcto: el instrumento sólo reconoce `limit`,
+     * y una ventana acota por FECHA, no por número. Ponerle un `limit` suelto
+     * sería peor —la consulta ordena ascendente, así que se quedaría con las
+     * citas más ANTIGUAS y tiraría las de esta semana—, que es exactamente lo
+     * que la cabecera de este archivo dice de los topes por costumbre.
      */
+    const FIRESTORE = readFileSync('src/lib/firestore.ts', 'utf8')
+    const linea = FIRESTORE.slice(0, FIRESTORE.indexOf('export async function getAppointments(')).split('\n').length
     const citas = sinCota().filter(
-      (f: { archivo: string; linea: number }) => f.archivo === 'src/lib/firestore.ts' && f.linea < 80,
+      (f: { archivo: string; linea: number }) =>
+        f.archivo === 'src/lib/firestore.ts' && f.linea >= linea && f.linea < linea + 20,
     )
-    expect(citas.length, 'si ya está acotada, baja el techo y borra este caso').toBe(1)
+    expect(citas.length, 'si ya está acotada por número, baja el techo y borra este caso').toBe(1)
+    /**
+     * Y la ventana obligatoria sigue ahí: si alguien la vuelve opcional, esto cae.
+     *
+     * Se mira la FIRMA y no el archivo entero: la cabecera de la función cita la
+     * forma prohibida para explicar por qué se quitó, y buscarla en todo el
+     * fichero la encuentra ahí. Es la tercera vez en esta tanda que una
+     * comprobación negativa choca con el comentario que explica lo prohibido.
+     */
+    const firma = FIRESTORE.slice(
+      FIRESTORE.indexOf('export async function getAppointments('),
+      FIRESTORE.indexOf('export async function getAppointmentsByDate('),
+    )
+    expect(firma).toMatch(/ventana: VentanaDeAgenda,/)
+    expect(firma).not.toMatch(/constraints: QueryConstraint\[\] = \[\]/)
   })
 
   it('lo de Hospital se puede separar de lo de Consultorio', () => {

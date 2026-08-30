@@ -973,7 +973,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * aprendido ninguna palabra» — un fallo de red afirmando que el vocabulario
      * del médico está vacío.
      */
-    regs: [341, 350, 351, 352, 393],
+    regs: [341, 350, 351, 352, 393, 415],
   },
 ] as const
 
