@@ -13388,3 +13388,74 @@ regla 4.
 - **No cubre `internamientos/{id}`**, que guarda seis arrays en un documento y
   cuyas `administraciones` tampoco tienen tope: es Hospital/UCI, queda fuera de
   este carril, con nombre y sin cerrar.
+
+---
+
+## REG-394 — «44 getDocs sin limit» deja de ser un número escrito a mano
+
+**QUÉ SE PEDÍA.** `WS-03.lecturas-sin-cota` llevaba meses diciendo: «el
+inventario medido daba 44 `getDocs` sin `limit()`; falta recontarlo». Un número
+a mano en un documento, sin nada que lo mantuviera: la familia
+`depende_de_recordar` en su forma más pura. Nadie lo recontó, y mientras tanto no
+había manera de saber si una lectura nueva sin cota había entrado al árbol.
+
+Ahora es un **techo que sólo baja**: Consultorio 29, Hospital 9.
+
+### Por qué un inventario y no una regla de lint
+
+Porque **no toda lectura necesita `limit`**. Las unidades de un hospital, los
+consultorios de una cuenta, las versiones de UNA nota son colecciones acotadas
+por su naturaleza; exigirles tope enseñaría a escribir `limit(1000)` por
+costumbre, que es peor que no tenerlo: parece protegido y no lo está.
+
+Lo que hacía falta es que **una lectura nueva sin cota no pueda entrar callada**.
+
+### Lo que costó medirlo bien — y por qué se cuenta
+
+El primer inventario dijo **55 de 58 sin cota**, y era falso por tres motivos:
+
+- `limitarA(1)` y `fbLimit(500)` son alias de `limit` y no casaban;
+- media docena son `getDocs(q)` con la `q` armada antes, o `getDocs(ayudante(…))`
+  con el tope dentro del ayudante;
+- resolver los nombres en TODO el archivo marcaba como deuda
+  `listarPacientesPagina`, que **sí** acota: otra función del mismo archivo tiene
+  una variable homónima sin cota y la búsqueda se quedaba con la primera.
+
+Un instrumento que exagera manda a rehacer lo hecho y le quita crédito a los
+huecos reales — el mismo criterio que ya obligó a corregir tres entradas del
+censo. Los nombres se resuelven ahora dentro de la función que los usa, y el
+guardián tiene un caso dedicado a que `listarPacientesPagina` **no** vuelva a
+salir como deuda.
+
+### Lo que el inventario deja NOMBRADO y sin cerrar
+
+**`getAppointments(clinicId, constraints)`** — su techo depende de quien llame.
+`getAppointments(clinicId, [])` descarga todas las citas que el consultorio haya
+tenido nunca. **No se arregla poniéndole un `limit` suelto**: sin un `orderBy`
+propio del tope, recortaría por el extremo equivocado y **perdería citas en
+silencio**, que en una agenda es peor que la lectura cara.
+
+**`useAppointments`** — no es un `getDocs` sino un `onSnapshot`, así que este
+inventario no lo ve, y es el peor de los dos: su ventana **sólo crece y nunca se
+encoge**. Navegar el calendario a hace un año deja el resto de la sesión
+recibiendo todas las citas desde entonces, en vivo. Arreglarlo es rediseñar la
+ventana de la agenda —la pantalla principal— y eso no se hace a ciegas: la regla
+de diseño dice que una interfaz no se aprueba leyendo el código.
+
+Los dos quedan escritos aquí y en el censo, con lo que haría falta, en vez de
+«arreglados» con un tope que perdería datos.
+
+**LA PRUEBA.** `src/__tests__/las-lecturas-sin-cota-solo-bajan.test.ts` (9
+casos). Probado al revés añadiendo una lectura sin cota a
+`dosing/persistencia.ts`: caen el trinquete de Consultorio y el caso del techo
+sin holgura. Tiene además el caso que impide que el instrumento se rompa en
+silencio — si el escáner devolviera vacío, el trinquete estaría en verde para
+siempre.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Es análisis estático.** Una cota que llegue por parámetro en tiempo de
+  ejecución no la ve.
+- **No dice si una lectura es CARA**, dice que puede crecer sin techo. Cuánto
+  crece de verdad lo mide el emulador de WS-03 (REG-383), sobre datos.
+- **No cubre `onSnapshot`**, que es donde está el peor caso.

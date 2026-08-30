@@ -681,7 +681,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * más autoridad que el anterior. Lo único que caza una ausencia es una lista
      * sellada que alguien tenga que romper a propósito.
      */
-    regs: [241, 253, 310, 334, 338, 340, 343, 354, 379, 382, 389],
+    /**
+     * 394 es esta familia con el dato que se repite a mano siendo **un número**:
+     * el censo decía «44 getDocs sin limit; falta recontarlo» y nadie lo
+     * recontó. La reparación es la que dicta la familia —derivarlo y poner una
+     * compuerta— y su instrumento tuvo que aprender a no exagerar: el primer
+     * recuento marcó como deuda una lectura que sí acota, porque resolvía los
+     * nombres en todo el archivo y otra función tenía una variable homónima.
+     */
+    regs: [241, 253, 310, 334, 338, 340, 343, 354, 379, 382, 389, 394],
   },
   {
     /**

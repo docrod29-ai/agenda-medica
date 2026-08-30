@@ -213,7 +213,7 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-03.lecturas-sin-cota', ws: 'WS-03', titulo: 'Ninguna lectura de consultorio descarga la colección entera',
     estado: 'PARTIAL',
-    queFalta: 'REG-383 midió las tres del camino diario —lista, búsqueda e historial— y salen planas hasta 50 000 pacientes. El inventario medido daba 44 getDocs sin limit(); falta recontarlo y medir el resto igual. useAppointments sigue sin cota y depende de índice.',
+    queFalta: 'REG-383 midió las tres del camino diario —lista, búsqueda e historial— y salen planas hasta 50 000 pacientes. REG-394 convirtió el recuento a mano en un TRINQUETE que sólo baja (Consultorio 29, Hospital 9) y dejó nombrados los dos peores, sin cerrarlos: (1) getAppointments(clinicId, []) descarga todas las citas que el consultorio haya tenido nunca, y NO se arregla con un limit suelto —sin orderBy propio recortaría por el extremo equivocado y perdería citas en silencio, que en una agenda es peor que la lectura cara—; (2) useAppointments es un onSnapshot cuya ventana SÓLO CRECE: navegar el calendario a hace un año deja el resto de la sesión recibiendo en vivo todas las citas desde entonces. Arreglarlo es rediseñar la ventana de la agenda y no se hace a ciegas (regla de diseño: una interfaz no se aprueba leyendo el código). Falta además medir el resto en el emulador como se midieron las tres del camino diario.',
     artefactos: ['docs/product/AUSCULTA-MASTER-BOARD.md'],
   }),
   R({
