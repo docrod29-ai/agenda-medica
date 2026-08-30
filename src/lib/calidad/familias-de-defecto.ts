@@ -265,7 +265,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * revista y se quedaba con una; y el DOI llegaba a la pantalla pero no al
      * `Source`, así que el modelo y la vista sabían cosas distintas.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398],
+    /**
+     * 400 repite la forma de 398 dos unidades después, y eso es lo interesante:
+     * PubMed ESCRIBE la sección del resumen en el XML
+     * (`<AbstractText Label="BACKGROUND">`) y la expresión que lo extraía se
+     * comía el atributo. Sin ella, una cita de los antecedentes —lo que se creía
+     * ANTES de hacer el estudio, a veces justo lo que vino a refutar— se lee
+     * igual que una conclusión, con su número de cita al lado.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400],
   },
   {
     clave: 'se_contradice',

@@ -42,6 +42,10 @@
 import { fuente, fechaPublicacionDesde, type Source } from '@/types/evidence'
 import { mapaDeSoporte, esRespuestaRespaldada, tasaSinRespaldo } from '@/lib/evidence-integrations/soporte'
 import type { ProveedorDeEvidencia } from '@/lib/evidence-integrations/catalogo'
+import {
+  procedenciaDelPasaje, normalizarEtiqueta, NO_SE_SABE,
+  type Procedencia, type ParteDelResumen,
+} from '@/lib/evidencia/de-donde-sale-el-pasaje'
 
 /** Lo mínimo de un artículo de PubMed para poder anclar un pasaje. */
 export interface ArticuloCitable {
@@ -50,6 +54,12 @@ export interface ArticuloCitable {
   readonly revista?: string
   readonly anio?: string | number
   readonly resumen: string
+  /**
+   * Las partes del resumen estructurado, si las hubo (REG-400). Sirven para
+   * decir de QUÉ parte del artículo sale una cita — los antecedentes de un
+   * estudio no son sus hallazgos. Ausente = el resumen no venía estructurado.
+   */
+  readonly secciones?: readonly { etiqueta: string; texto: string }[]
 }
 
 /** Una afirmación tal como la devuelve el modelo. */
@@ -57,6 +67,13 @@ export interface AfirmacionCruda {
   readonly texto?: unknown
   readonly citas?: unknown
   readonly pasajes?: unknown
+}
+
+/** Una cita anclada cuyo pasaje NO sale de los hallazgos del estudio. */
+export interface CitaFueraDeLosHallazgos {
+  readonly texto: string
+  readonly pmid: string
+  readonly procedencia: Procedencia
 }
 
 export interface Verificacion {
@@ -70,6 +87,16 @@ export interface Verificacion {
   readonly respaldadas: number
   /** false = no se pudo verificar (sin fuentes utilizables). NO es «no respaldada». */
   readonly sePudoVerificar: boolean
+  /**
+   * Citas ANCLADAS cuyo pasaje sale de los antecedentes, el objetivo o los
+   * métodos (REG-400).
+   *
+   * No están «sin respaldo»: el pasaje existe y es literal. Lo que pasa es que
+   * viene de la parte del artículo que **no demuestra nada** — lo que se creía
+   * antes, lo que se quería averiguar o cómo se hizo—. Se marcan aparte porque
+   * son un problema distinto y se arreglan distinto.
+   */
+  readonly fueraDeLosHallazgos: readonly CitaFueraDeLosHallazgos[]
 }
 
 /**
@@ -122,6 +149,7 @@ export function verificarAfirmaciones(
   if (fuentes.length === 0 || afirmaciones.length === 0) {
     return {
       respaldada: false, tasaSinRespaldo: 0, sinRespaldo: [], respaldadas: 0,
+      fueraDeLosHallazgos: [],
       // Sin fuentes anclables no se puede verificar. Decir «no respaldada» aquí
       // sería convertir «no lo sé» en un juicio sobre el análisis.
       sePudoVerificar: false,
@@ -135,7 +163,55 @@ export function verificarAfirmaciones(
     sinRespaldo: mapa.sinRespaldo.map(s => ({ texto: s.texto, motivo: s.motivo, detalle: s.detalle })),
     respaldadas: mapa.respaldadas.length,
     sePudoVerificar: true,
+    fueraDeLosHallazgos: citasFueraDeLosHallazgos(afirmaciones, articulos),
   }
+}
+
+/** Las partes con etiqueta de un artículo, ya normalizadas. */
+function partesDe(a: ArticuloCitable): ParteDelResumen[] {
+  return (a.secciones ?? [])
+    .filter(s => s.etiqueta?.trim())
+    .map(s => ({ seccion: normalizarEtiqueta(s.etiqueta), etiqueta: s.etiqueta, texto: s.texto }))
+}
+
+/**
+ * Qué citas ancladas salen de una parte del artículo que no demuestra nada.
+ *
+ * **No decide si la afirmación es cierta.** Dice de dónde salió la frase que la
+ * respalda, que es lo único que se puede saber sin un modelo (ver
+ * `POR_QUE_NO_ES_ENTAILMENT`).
+ *
+ * Se recorren los pasajes tal cual los devolvió el modelo: si una afirmación
+ * cita dos artículos y sólo uno de los pasajes viene de los antecedentes, se
+ * marca ese, no la afirmación entera.
+ */
+export function citasFueraDeLosHallazgos(
+  afirmaciones: readonly AfirmacionCruda[],
+  articulos: readonly ArticuloCitable[],
+): CitaFueraDeLosHallazgos[] {
+  const out: CitaFueraDeLosHallazgos[] = []
+  for (const af of afirmaciones) {
+    const texto = typeof af.texto === 'string' ? af.texto : ''
+    const pasajes = Array.isArray(af.pasajes) ? af.pasajes : []
+    const citas = Array.isArray(af.citas) ? af.citas : []
+    for (let i = 0; i < pasajes.length; i++) {
+      const pasaje = typeof pasajes[i] === 'string' ? (pasajes[i] as string) : ''
+      if (!pasaje.trim()) continue
+      /**
+       * `citas[i] = n` es 1-based sobre la lista que se le enseñó al modelo.
+       * Cuando hay un solo artículo citado y varios pasajes, todos son de él.
+       */
+      const n = Number(citas[i] ?? citas[0])
+      const a = Number.isFinite(n) ? articulos[n - 1] : undefined
+      if (!a) continue
+      const partes = partesDe(a)
+      if (partes.length === 0) continue   // sin estructura: NO_SE_SABE, no se marca
+      const p = procedenciaDelPasaje(pasaje, partes)
+      if (p === NO_SE_SABE || p.sostiene) continue
+      out.push({ texto, pmid: a.pmid, procedencia: p })
+    }
+  }
+  return out
 }
 
 export const POR_QUE_NO_SE_BORRA_LO_NO_RESPALDADO =
@@ -143,3 +219,10 @@ export const POR_QUE_NO_SE_BORRA_LO_NO_RESPALDADO =
   'razonamiento clínico —consenso, fisiopatología, experiencia— y borrarla le ' +
   'quitaría al médico algo que quizá necesita. Lo que no puede es seguir ' +
   'PARECIENDO respaldada. Se marca; el médico decide.'
+
+export const POR_QUE_FUERA_DE_LOS_HALLAZGOS_ES_OTRO_PROBLEMA =
+  'Una cita sin anclar es una cita que no existe en el artículo: el modelo se la ' +
+  'inventó. Una cita anclada en los ANTECEDENTES existe, es literal, y aun así no ' +
+  'demuestra nada — es lo que se creía antes de hacer el estudio, a veces justo lo ' +
+  'que vino a refutar. Son dos defectos distintos, se cuentan aparte y se ' +
+  'arreglan distinto; mezclarlos escondería el segundo dentro del primero.'

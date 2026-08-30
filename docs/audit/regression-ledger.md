@@ -13790,3 +13790,82 @@ casos). Probado al revés renombrando un `feature` en una ruta: caen tres casos.
   escrita, no la propiedad medida, y se dice para que nadie lo lea al revés.
 - **No cubre la IA de cara al paciente**, que tiene su propia compuerta
   permanente (las doce preguntas del §0 de V9).
+
+---
+
+## REG-400 — el pasaje existe, es literal, y aun así el estudio no lo demuestra
+
+**QUÉ SE PEDÍA.** `WS-12.entailment`. El censo lo decía con precisión: «REG-359
+ancla carácter a carácter y cierra la **invención** del respaldo, no la
+**interpretación**. Un pasaje puede citarse fuera de contexto».
+
+### La forma de citar mal que sí se puede detectar sin un modelo
+
+Citar los **ANTECEDENTES** de un estudio como si fueran sus hallazgos.
+
+Un resumen estructurado empieza casi siempre por «BACKGROUND: se cree que la
+terapia corta es equivalente…». Eso **no es un resultado**: es lo que se creía
+antes de hacer el estudio, y a veces es exactamente lo que el estudio vino a
+refutar. Anclado como cita se lee igual que una conclusión, con su `[2]` al lado
+— el formato que un médico lee como «esto está respaldado».
+
+Lo mismo con el OBJETIVO («este ensayo evalúa si…») y con los MÉTODOS («se
+aleatorizaron 400 pacientes»): dicen qué se quiso y cómo, no qué se encontró.
+
+### La causa raíz
+
+**PubMed lo dice** en el XML — `<AbstractText Label="BACKGROUND">` — y el
+producto lo tiraba: la expresión que extraía el resumen se comía el atributo
+(`<AbstractText[^>]*>`) y unía todo en un texto plano. El dato se calculaba y se
+perdía en la misma función. Misma familia que REG-398, dos unidades antes.
+
+### Lo que este trabajo NO es, dicho antes que nada
+
+**No es un evaluador de entailment**, y darlo por tal sería el atajo que este
+repositorio persigue por todas partes. No juzga si el pasaje **significa** lo que
+la afirmación dice: eso exige un modelo, su conjunto de referencia y un umbral
+que tiene que fijar un médico — y `ia/contratos-de-evaluacion.ts` (REG-399) ya lo
+tiene declarado como pendiente, en la fila de `evidencia`.
+
+Es la **precondición** de la interpretación: de dónde sale la frase. Un pasaje de
+los resultados todavía puede citarse mal; uno de los antecedentes casi siempre lo
+está. Por eso `WS-12.entailment` queda **PARTIAL**, no PROVEN.
+
+### Las dos reglas que lo ordenan
+
+1. **No se borra nada, se marca.** Igual que lo no respaldado: la afirmación
+   puede ser cierta y el artículo puede ser el correcto. Lo que no puede es
+   parecer que ese estudio la demostró.
+2. **No saber no es una falta.** Un resumen sin estructura no es un resumen malo;
+   `sin_etiqueta` **sí** puede sostener. Marcar por no saber convertiría la
+   ausencia de dato en dato de ausencia y llenaría de avisos las citas correctas
+   hasta que el médico deje de leerlos.
+
+Y se cuenta **aparte** de lo no respaldado, con su propio aviso: una cita sin
+anclar **no existe** en el artículo —el modelo se la inventó—; una anclada en los
+antecedentes existe y es literal. Son dos defectos distintos y se arreglan
+distinto; mezclarlos escondería el segundo dentro del primero.
+
+**LA PRUEBA.** `src/__tests__/una-cita-de-los-antecedentes-no-demuestra-nada.test.ts`
+(21 casos). Probado al revés haciendo que toda sección sostenga: caen cinco.
+Incluye el caso que impide pasarse de frenada —una cita de los resultados **no**
+se marca— y el que comprueba que se marca **el pasaje y no la afirmación
+entera**, porque una afirmación que cita dos artículos y tiene un pasaje flojo no
+es una afirmación sin respaldo.
+
+Se reconocen además las etiquetas que usan las revistas de verdad y no sólo las
+cuatro del manual: `FINDINGS` e `INTERPRETATION` son de Lancet, `PURPOSE` de
+radiología, `PATIENTS AND METHODS` de las quirúrgicas. Quedarse en las cuatro
+canónicas dejaría media literatura sin sección, que es el estado en que este
+módulo no puede ayudar.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **La polaridad.** «no redujo la mortalidad» citado como «redujo la mortalidad»
+  sigue pasando si el pasaje sale de los resultados. Es el siguiente trozo y no
+  se finge hecho.
+- **El matiz.** «podría reducir» citado como «reduce», igual.
+- **El texto completo de PMC.** Un pasaje de ahí no está en ninguna sección del
+  resumen y se devuelve «no se sabe», que es la verdad.
+- **No mide nada.** No hay conjunto de referencia de citas fuera de contexto; el
+  contrato de evaluación lo declara como hueco.

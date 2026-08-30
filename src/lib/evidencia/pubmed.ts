@@ -32,6 +32,14 @@ export interface ArticuloPubMed {
    * **no** «no tiene».
    */
   revistaAbrev?: string
+  /**
+   * Las partes del resumen estructurado con su etiqueta original (REG-400).
+   *
+   * Ausente = el resumen no venía estructurado. Sirve para saber de qué parte
+   * del artículo sale una cita: los antecedentes de un estudio no son sus
+   * hallazgos. Ver `de-donde-sale-el-pasaje.ts`.
+   */
+  secciones?: { etiqueta: string; texto: string }[]
   anio: string
   resumen: string
   url: string
@@ -175,10 +183,32 @@ async function efetchArts(ids: string[], signal?: AbortSignal, testigo?: Testigo
     const revista = extraerTag(b, 'Title') || extraerTag(b, 'ISOAbbreviation')
     const revistaAbrev = extraerTag(b, 'ISOAbbreviation') || undefined
     const anio = extraerTag(b, 'Year')
-    const partes = [...b.matchAll(/<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/gi)].map(m => desescapar(m[1]))
+    /**
+     * LA ETIQUETA DE LA SECCIÓN, QUE SE TIRABA (REG-400).
+     *
+     * `<AbstractText[^>]*>` se comía el atributo `Label`, así que un resumen
+     * estructurado —«BACKGROUND: …», «RESULTS: …»— se unía en un texto plano y
+     * la sección se perdía. Con ella se puede saber si una cita sale de los
+     * hallazgos del estudio o de lo que se creía ANTES de hacerlo, que es la
+     * forma más común de citar fuera de contexto.
+     *
+     * `resumen` sigue siendo exactamente lo que era: es lo que se le enseña al
+     * modelo y contra lo que se ancla la cita, y cambiarlo desalinearía el
+     * anclaje de REG-359.
+     */
+    const trozos = [...b.matchAll(/<AbstractText([^>]*)>([\s\S]*?)<\/AbstractText>/gi)]
+      .map(m => ({
+        etiqueta: desescapar(/\bLabel="([^"]*)"/i.exec(m[1])?.[1] ?? '').trim(),
+        texto: desescapar(m[2]),
+      }))
+    const partes = trozos.map(t => t.texto)
     const resumen = partes.join(' ').slice(0, 1200)
+    /* Sólo las que tienen etiqueta: un resumen sin estructura no tiene secciones
+       que declarar, y fabricar una sería inventar la procedencia. */
+    const secciones = trozos.filter(t => t.etiqueta)
     if (pmid && titulo) arts.push({
       pmid, titulo, revista, revistaAbrev, anio, resumen,
+      ...(secciones.length ? { secciones } : {}),
       tipo: tipoDeEstudio(b), doi: extraerDoi(b),
       url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
     })

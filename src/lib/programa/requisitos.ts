@@ -464,8 +464,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-12.entailment', ws: 'WS-12', titulo: 'Entailment: la cita sostiene la afirmación, no sólo la contiene',
-    estado: 'NOT_STARTED',
-    queFalta: 'REG-359 ancla carácter a carácter y cierra la invención del respaldo, no la interpretación. Un pasaje puede citarse fuera de contexto. Falta el evaluador de entailment.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-400 cerró la parte que se puede decidir SIN un modelo, y sólo ésa: de qué parte del artículo sale el pasaje. PubMed escribe la sección en el XML y el producto la tiraba, así que una cita de los ANTECEDENTES —lo que se creía antes del estudio, a veces justo lo que vino a refutar— se leía igual que una conclusión. Ahora se marca aparte de lo no respaldado, porque son dos defectos distintos: una cita sin anclar NO EXISTE en el artículo; una anclada en los antecedentes existe y es literal. NO es un evaluador de entailment y no se declara como tal: falta juzgar si el pasaje SIGNIFICA lo que la afirmación dice, y eso exige un modelo, su conjunto de referencia y un umbral que tiene que fijar un médico (declarado en ia/contratos-de-evaluacion.ts). Faltan también las dos comprobaciones deterministas siguientes: POLARIDAD («no redujo la mortalidad» citado como «redujo») y MATIZ («podría reducir» citado como «reduce»).',
+    artefactos: ['src/lib/evidencia/de-donde-sale-el-pasaje.ts'],
+    pruebas: ['src/__tests__/una-cita-de-los-antecedentes-no-demuestra-nada.test.ts'],
   }),
   R({
     id: 'WS-12.contratos-de-evaluacion', ws: 'WS-12', titulo: 'Cada capacidad de IA con dataset, métrica, umbral y política de fallo',

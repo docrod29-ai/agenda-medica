@@ -434,6 +434,20 @@ export async function POST(req: NextRequest) {
         `${verificacion.sinRespaldo.length} afirmación(es) citan un artículo pero NO se pudo comprobar que ese artículo lo diga. Están marcadas: trátalas como razonamiento, no como evidencia citada.`,
       )
     }
+    /**
+     * REG-400 · un aviso DISTINTO, porque es un defecto distinto.
+     *
+     * Éstas sí están ancladas: el pasaje existe y es literal. Lo que pasa es que
+     * sale de los antecedentes, del objetivo o de los métodos — la parte del
+     * artículo que dice qué se creía antes, qué se quería averiguar o cómo se
+     * hizo—, y ninguna de las tres demuestra nada. Meterlas en el aviso anterior
+     * escondería el problema dentro de otro.
+     */
+    if (verificacion.fueraDeLosHallazgos.length > 0) {
+      avisos.push(
+        `${verificacion.fueraDeLosHallazgos.length} cita(s) apuntan a una parte del artículo que no son sus hallazgos (antecedentes, objetivo o métodos): el texto está ahí, pero ese estudio no lo demuestra. Compruébalas antes de apoyarte en ellas.`,
+      )
+    }
     if (!hayEvidencia) {
       // El aviso que ve el médico tiene que distinguir las dos cosas: que no haya
       // literatura es un dato clínico; que no hayamos podido preguntar, no.
