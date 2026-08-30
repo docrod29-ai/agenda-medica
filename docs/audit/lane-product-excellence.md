@@ -3290,3 +3290,74 @@ regenerado. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
 - No se ha barrido el resto de UCI ni de hospitalización buscando más avisos
   asíncronos sin anunciar. Se arreglaron **los dos del dictado**, que son los
   hermanos directos de los de la consulta.
+
+---
+
+## Unidad 58 — la certificación decía cero, y ya no era cero
+
+**CÓMO SALIÓ.** Buscando el «tablero maestro» que el encargo pide en su §30.
+Existe algo parecido —`CERTIFICACION-FINAL.md`— y al abrirlo estaba **clavado en
+`e531077`, con 14 commits por delante de `main`**. Hoy el carril va por 45.
+
+Que los números envejezcan se ve venir. Lo que no se ve es lo otro: su §2
+afirmaba **CROSS_LANE_CONFLICT = 0**, el encargo pide mantenerlo en `none`, y
+**había dejado de ser cierto**.
+
+**RE-MEDIDO, CONTRA LAS DOS RAMAS VIVAS DEL OTRO CARRIL.**
+
+| Comparación | Preexistentes con `main` | Con esta rama | **Añadidos aquí** |
+|---|---:|---:|---:|
+| `product/ausculta-master-completion` | 8 | 9 | **1** |
+| `claude/ausculta-master-completion-4clx9v` | 10 | 14 | **4** |
+
+Con nombre y unidad: `cumplimiento/retencion/page.tsx` (unidad 45),
+`asistente/page.tsx` (unidades tempranas), `lib/auth-client.ts` (unidad 37) y
+`package.json` (los tres guiones de arnés de las unidades 53, 54 y 56 — éste es
+**mecánico**, líneas añadidas al mismo bloque).
+
+`uci/page.tsx`, que la unidad 57 tocó y que era el candidato obvio, **no añade
+conflicto**. Comprobado, no supuesto.
+
+**NO SE RESUELVEN, Y ES A PROPÓSITO.** Las dos ramas están en vuelo. Traer la
+del otro carril a ésta para deshacer el conflicto sería meterse en su trabajo,
+que es lo que el encargo prohíbe. Lo que toca es **declararlo con nombre y
+unidad** para que quien fusione sepa qué le espera, en vez de encontrarse la
+sorpresa detrás de un documento que decía cero.
+
+**CHANGE.**
+
+- La certificación gana una cabecera que dice **que caducó y qué afirmación suya
+  dejó de ser cierta**, y un §0 con el estado re-medido. Lo viejo **no se borra**:
+  se marca como «superado». Un acta es el retrato de un momento; falsearla
+  hacia atrás sería peor que dejarla vencida.
+- `scripts/carril-excelencia/conflictos-entre-carriles.mjs`
+  (`arnes:conflictos-carriles`): el número deja de escribirse a mano. Compara
+  contra **todas** las ramas del otro carril, porque quedarse con la más
+  favorable sería elegir la respuesta, y hace **la resta** —lo que este carril
+  añade— porque contar los conflictos totales culparía a este carril de los que
+  ya existían.
+
+**Y EL GUION MINTIÓ EN SU PRIMERA VERSIÓN, JUSTO EN ESTO.** `git merge-tree
+--write-tree` **sale con código ≠ 0 cuando hay conflictos**. Con `execSync`
+dentro de un `try/catch`, cada comparación lanzaba, el `catch` devolvía lista
+vacía y el guion informaba **cero conflictos en todo**.
+
+O sea: el instrumento escrito para cazar un cero falso escrito a mano produjo un
+cero falso propio, y lo habría «confirmado». Se cazó porque los números de la
+medición manual estaban al lado. Ahora usa `spawnSync`, donde el código ≠ 0 es
+**información y no un fallo**, y sus números coinciden con los de la mano.
+
+**ESTADO RE-MEDIDO.** `vitest` 10 821/10 822 · lint 95 · diseño sin deuda ·
+`tsc` limpio · `build` compila · **trinquete de interfaz: 69 combinaciones, 23
+rutas, axe 0, desborde 0** · **fusión contra `main`: limpia**.
+
+**RESIDUAL_RISK.**
+
+- **CROSS_LANE_CONFLICT ya no es 0.** Queda declarado, no resuelto, y quien
+  fusione tiene la lista. Es una desviación del encargo y se dice con esas
+  palabras.
+- La comparación depende de qué rama del otro carril se mire: **1 contra una, 4
+  contra la otra**. Se publican las dos.
+- El guion **no corre en CI** —necesita las ramas remotas— así que el número
+  vuelve a depender de que alguien lo invoque. Menos frágil que escribirlo a
+  mano, no infalible.

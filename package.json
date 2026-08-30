@@ -33,7 +33,8 @@
     "compuerta:integracion": "node scripts/compuerta-integracion.mjs",
     "arnes:portal-destinos": "node scripts/carril-excelencia/destinos-del-portal.mjs",
     "arnes:consulta-grabando": "node scripts/carril-excelencia/consulta-grabando.mjs",
-    "arnes:menos-movimiento": "node scripts/carril-excelencia/respeta-menos-movimiento.mjs"
+    "arnes:menos-movimiento": "node scripts/carril-excelencia/respeta-menos-movimiento.mjs",
+    "arnes:conflictos-carriles": "node scripts/carril-excelencia/conflictos-entre-carriles.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

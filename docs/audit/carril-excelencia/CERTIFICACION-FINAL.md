@@ -1,9 +1,72 @@
 # Certificación final — carril de excelencia de producto
 
-**SHA exacto:** `e531077a49c59ca57f64b008cf01e8c19094fe53`
+> ## ⚠ ESTE DOCUMENTO CADUCÓ, Y UNA DE SUS AFIRMACIONES DEJÓ DE SER CIERTA
+>
+> Se escribió en `e531077`, con 14 commits por delante de `main`. El carril
+> siguió trabajando: hoy va por **45 commits** y las unidades 44–57 son
+> posteriores a todo lo que hay escrito aquí abajo.
+>
+> Lo grave no es que los números envejecieran —eso se ve— sino que el §2 dice
+> **CROSS_LANE_CONFLICT = 0** y **ya no lo es**. Un documento que se llama
+> «certificación» y afirma algo falso es peor que no tenerlo: es la familia «el
+> sistema se contradice a sí mismo», cometida por este carril sobre sí mismo.
+>
+> **Lo vigente está en el §0, medido de nuevo el 30-ago.** Lo de abajo se
+> conserva como lo que es: el acta de un momento, no del estado de hoy.
+
+---
+
+## 0 · Estado REAL a día de hoy (re-medido)
+
+**SHA:** `6e5f340cfbb3317a4fe1afaef5448eeae6ee2bf5`
 **Rama:** `product/ausculta-product-excellence`
-**Base:** `origin/main` (`bcf6063`) · 14 commits por delante
-**Fecha:** 2026-08-30
+**Base:** `origin/main` (`bcf6063`) · **45 commits** por delante
+**Fecha de esta medición:** 2026-08-30
+
+### Compuertas
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **10 821 de 10 822** · el único rojo es `ops-timeout-y-punto-ciego` |
+| `node scripts/lint-trinquete.mjs` | 95 = techo. Sin deuda nueva |
+| `node scripts/design/trinquete-de-diseno.mjs` | Sin deuda nueva (bajado dos contadores más: `lienzosAMano` 43→42, `radiosFueraDeEscala` 618→617) |
+| `npx tsc --noEmit` | Sin errores |
+| `npm run build` | Compila |
+| **Trinquete de interfaz** | **69 combinaciones · 23 rutas · axe 0 · desborde 0** |
+| Fusión contra `main` | **Limpia** (0 conflictos) |
+
+`ops-timeout-y-punto-ciego` necesita una IP que trague paquetes; en esta caja el
+proxy contesta. Ha pasado y fallado de forma alternante a lo largo del carril
+(verde en las unidades 50 y 52, rojo en la 51 y desde la 53). **No se declara ni
+arreglado ni roto**: es del entorno, y se verificó contra `main` antes de empezar.
+
+### CROSS_LANE_CONFLICT — **ya no es 0, y así se dice**
+
+Re-medido con `git merge-tree`, contra las **dos** ramas vivas del otro carril:
+
+| Comparación | Preexistentes con `main` | Con esta rama | **Añadidos por esta rama** |
+|---|---:|---:|---:|
+| `origin/product/ausculta-master-completion` | 8 | 9 | **1** |
+| `origin/claude/ausculta-master-completion-4clx9v` | 10 | 14 | **4** |
+
+Los que añade este carril, con su unidad y por qué:
+
+| Archivo | De dónde sale | Naturaleza |
+|---|---|---|
+| `cumplimiento/retencion/page.tsx` | unidad 45 | **Solape real de contenido**: los dos carriles editaron la misma pantalla |
+| `asistente/page.tsx` | unidades tempranas | Solape real de contenido |
+| `lib/auth-client.ts` | unidad 37 (techo al token) | Solape real de contenido |
+| `package.json` | unidades 53, 54, 56 (tres guiones de arnés) | **Mecánico**: líneas añadidas en el mismo bloque de `scripts` |
+
+**No se resuelven aquí, y es a propósito.** Las dos ramas están en vuelo; traer
+la del otro carril a ésta para deshacer el conflicto sería meterse en su trabajo,
+que es justo lo que el encargo prohíbe. Lo que corresponde es **declararlo con
+nombre y unidad** para que quien fusione sepa qué toca y por qué, en vez de
+encontrarse una sorpresa detrás de un documento que decía cero.
+
+`uci/page.tsx`, que la unidad 57 tocó, **no añade conflicto**: comprobado.
+
+---
 
 ---
 
@@ -32,7 +95,7 @@ entorno, no de la rama, y se verificó contra `main` antes de empezar.
 
 ---
 
-## 2 · CROSS_LANE_CONFLICT = **0**
+## 2 · CROSS_LANE_CONFLICT = 0 — **SUPERADO, ver §0**
 
 Verificado con `git merge-tree` contra `origin/product/ausculta-master-completion`:
 
