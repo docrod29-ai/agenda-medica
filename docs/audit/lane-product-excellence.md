@@ -2496,3 +2496,109 @@ lo nota.
   declaran buenas**: se declaran sin medir.
 - axe no ve el aspecto, ni el movimiento, ni el orden de tabulación. Cero
   violaciones no es «la pantalla está bien».
+
+---
+
+## Unidad 48 — el diálogo canónico existe, y anular un cobro no lo usaba
+
+**CÓMO SE LLEGÓ AQUÍ.** El trinquete de interfaz declara en su propia cabecera
+lo que **no** ve: «no ve el movimiento ni el orden de tabulación». Sesenta
+combinaciones en cero de axe no dicen nada del teclado. Así que se barrió el
+árbol buscando capas a pantalla completa y se miró cuáles traen lo que un
+diálogo necesita.
+
+**LO QUE SALIÓ.** `ui/Modal.tsx` está **bien hecho**: Escape, trampa de foco en
+los dos sentidos, `role="dialog"`, `aria-modal`, y devuelve el foco a quien lo
+abrió. Alguien hizo ese trabajo, y hay que decirlo.
+
+Y varios diálogos no lo usan. El peor: **anular un cobro**, en `/finanzas`.
+Escrito a mano con dos `div`, sin Escape, sin trampa de foco y sin anunciarse.
+Es la confirmación de un acto **destructivo sobre dinero**.
+
+Familia conocida: la lección vive en un componente y nada obliga a usarlo — la
+misma de `Field.tsx` en la unidad 46, y van seis.
+
+**MEDIDO EN NAVEGADOR, ANTES Y DESPUÉS.** Misma sonda, mismo build limpio, 25
+pulsaciones de Tab con el diálogo abierto:
+
+| | `role="dialog"` | Tabulaciones fuera | Elementos alcanzados | Escape |
+|---|---|---|---|---|
+| **Antes** | no existe | **25 de 25** | **15**, todos de la página de detrás | sin manejador |
+| **Después** | sí, con `aria-modal` | **0 de 25** | 3, los del diálogo | cierra |
+
+Quince elementos de la página de detrás. El médico que tabula desde el diálogo
+de anular un cobro estaba paseando por la pantalla que hay debajo, creyendo que
+seguía dentro.
+
+**CHANGE.** El diálogo pasa por `<Modal>`. Se conserva lo que ya hacía bien —
+mientras guarda no se cierra, ni por Escape ni por el fondo — y el motivo de la
+anulación gana nombre accesible (el `placeholder` desaparece al escribir la
+primera letra: no es un nombre).
+
+**Y el cambio ADELGAZÓ el sistema, no lo engordó.** El trinquete de diseño lo
+midió solo: `lienzosAMano` 43 → **42** y `radiosFueraDeEscala` 618 → **617**.
+El ancho y el radio del diálogo dejaron de escribirse a mano. Los techos bajan,
+que es la única dirección en la que se mueven.
+
+**REGRESSION.** `un-dialogo-a-mano-no-atrapa-el-foco.test.ts`, 7 casos.
+Probado al revés **tres veces**: creando una capa nueva sin teclado (falla
+nombrando el archivo), quitando el `<Modal>`, y quitando la guarda de «guardando
+no se cierra».
+
+**LA PRUEBA LLEVA UNA LISTA, A PROPÓSITO.** Quedan cinco diálogos a mano y
+esconderlos sería peor que declararlos. Cada uno con su razón:
+
+- `AutoLogout` — **no debe cerrarse con Escape**: es el aviso de cierre de
+  sesión y cerrarlo sin querer desactiva un control de seguridad. Migrarlo a
+  `Modal` sería meterle Escape, así que **no se migra**. Le faltan la trampa de
+  foco y el rol: real y abierto.
+- `PanelLaboratorios` — le faltan las tres.
+- `layout.tsx` — cajón de navegación móvil: tiene `role=dialog`, le faltan
+  Escape y trampa.
+- `OnboardingTour` — tiene Escape, le falta la trampa.
+- `PaletteBusqueda` — tiene Escape y enfoca su campo; le faltan trampa y rol.
+
+Un diálogo **nuevo** a mano hace fallar la prueba con el nombre del archivo.
+Cerrar uno de los cinco obliga a quitarlo de la lista.
+
+**DOS FALSOS POSITIVOS, VERIFICADOS LEYENDO.** `citas/page.tsx` y
+`DoctorFilter.tsx` salen en el patrón pero son **capturadores de clic fuera**
+para cerrar un menú, sin contenido dentro. Quedan declarados en la prueba con su
+razón, para que el próximo barrido no los vuelva a levantar. Y `AppointmentModal`
+—el diálogo más usado del producto— **ya usaba el canónico**: no todo hallazgo
+tiene que producir un arreglo.
+
+**Y una trampa en mi propio detector:** la primera versión pedía la trampa de
+foco como `=== 'Tab'` y **falló contra `ui/Modal`**, que la escribe como
+`!== 'Tab'` (sale pronto). Habría dado por malo justo el que está bien. El
+patrón ahora acepta las dos formas.
+
+**TRES GUARDIANES EXISTENTES CAYERON, Y LOS TRES TENÍAN QUE CAER.**
+
+- `el-trinquete-de-interfaz-esta-cableado` fijaba `toBe(18)` combinaciones.
+  Cazaba que alguien **quitara** una ruta, y de paso impedía **añadir** — que es
+  lo contrario de lo que hace falta. Ahora la superficie medida es un trinquete
+  más: **sólo crece** (`>= 60`), con las seis originales exigidas por nombre.
+- El mismo guardián exigía `aria-current >= 2` en **todas**. `/consultor` está
+  sin contexto a propósito (unidad 17). Ahora la excepción está **por nombre y
+  congelada en su cero**: si sube, hay que sacarla de la lista en vez de dejar
+  una excepción vencida.
+- `v15-el-lienzo-no-se-escribe-a-mano` exigía un `maxWidth: 420` en `/finanzas`.
+  Era el ancho del diálogo a mano. Sale de la lista porque el número **dejó de
+  escribirse a mano**, que es exactamente lo que ese guardián persigue.
+
+**COMPUERTAS.** `vitest` 10 801/10 802 · trinquete de lint 95 · trinquete de
+diseño **bajado** en dos contadores · `tsc` limpio · `npm run build` compila ·
+inventario regenerado. El único rojo sigue siendo `ops-timeout-y-punto-ciego`,
+ambiental.
+
+**RESIDUAL_RISK.**
+
+- Cinco diálogos a mano siguen abiertos, listados arriba. **Declarados, no
+  arreglados.**
+- La prueba es escáner de fuente: no pulsa Escape ni tabula. La prueba de
+  teclado de verdad se hizo **a mano en navegador** para este diálogo, y **no
+  está automatizada** — otro diálogo que se migre necesita su propia medición.
+- No se miran `src/app/mi/**` (portal del paciente) ni UCI/hospital.
+- No se juzga el orden de tabulación **dentro** de un diálogo correcto, sólo que
+  el foco no se escape.

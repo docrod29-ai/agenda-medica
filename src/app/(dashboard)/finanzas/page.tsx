@@ -33,6 +33,7 @@ import {
   DollarSign, Receipt, Activity, Users, Banknote, Landmark, CreditCard, AlertTriangle,
 } from 'lucide-react'
 
+import { Modal } from '@/components/ui'
 import { hoyISO } from '@/lib/timezone'
 
 type Periodo = 'dia' | 'semana' | 'mes'
@@ -599,13 +600,51 @@ export default function FinanzasPage() {
         />
       )}
 
-      {anulando && (
-        <div
-          onClick={() => !anulaGuardando && setAnulando(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
-        >
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, padding: 22, width: '100%', maxWidth: 420 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Anular cobro</div>
+      {/**
+        * DIÁLOGO CANÓNICO, NO UNO A MANO.
+        *
+        * Estaba escrito a mano —`position: fixed` y dos `div`— y le faltaba todo
+        * lo que `ui/Modal` ya resuelve: **no cerraba con Escape, no atrapaba el
+        * foco y no se anunciaba como diálogo**. Con el foco suelto, tabular
+        * desde aquí se va a la página de detrás: el médico sigue tabulando
+        * creyendo que está en el diálogo de anular un cobro.
+        *
+        * Y esto no es un panel cualquiera: es la confirmación de un acto
+        * DESTRUCTIVO sobre dinero. `Modal` trae Escape, trampa de foco,
+        * `role="dialog"`, `aria-modal` y devuelve el foco a quien lo abrió.
+        *
+        * Se conserva lo que este diálogo sí hacía bien: mientras se está
+        * guardando no se puede cerrar, ni por Escape ni por el fondo.
+        */}
+      <Modal
+        open={!!anulando}
+        onClose={() => { if (!anulaGuardando) setAnulando(null) }}
+        closeOnOverlay={!anulaGuardando}
+        title="Anular cobro"
+        footer={(
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button disabled={anulaGuardando} onClick={() => setAnulando(null)} style={{ background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+            <button
+              disabled={anulaGuardando || !motivoAnul.trim() || !clinicId || !user}
+              onClick={async () => {
+                if (!clinicId || !user || !anulando?.id) return
+                setAnulaGuardando(true)
+                try {
+                  await cancelarCobro(clinicId, anulando.id, motivoAnul.trim(), user.uid, user.displayName || user.email || '')
+                  toast('Cobro anulado', 'info')
+                  setAnulando(null)
+                  await recargar()
+                } catch (e) {
+                  toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
+                } finally { setAnulaGuardando(false) }
+              }}
+              style={{ background: 'var(--red)', color: 'var(--sobre-aviso)', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
+            >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
+          </div>
+        )}
+      >
+        {anulando && (
+          <>
             <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>
               {anulando.patientNombre ?? 'Sin paciente'} · {fmtMXN(anulando.monto)} · {anulando.folio}
               <br />No se borra: queda registrado como anulado (con motivo, quién y cuándo). Si estaba ligado a una cita, podrás volver a cobrarla.
@@ -614,31 +653,14 @@ export default function FinanzasPage() {
               value={motivoAnul}
               onChange={e => setMotivoAnul(e.target.value)}
               placeholder="Motivo de la anulación (obligatorio). Ej. monto capturado por error."
+              // El `placeholder` no es nombre: desaparece al escribir la primera letra.
+              aria-label="Motivo de la anulación"
               rows={3}
               style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--text)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
             />
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button disabled={anulaGuardando} onClick={() => setAnulando(null)} style={{ background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-              <button
-                disabled={anulaGuardando || !motivoAnul.trim() || !clinicId || !user}
-                onClick={async () => {
-                  if (!clinicId || !user || !anulando?.id) return
-                  setAnulaGuardando(true)
-                  try {
-                    await cancelarCobro(clinicId, anulando.id, motivoAnul.trim(), user.uid, user.displayName || user.email || '')
-                    toast('Cobro anulado', 'info')
-                    setAnulando(null)
-                    await recargar()
-                  } catch (e) {
-                    toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
-                  } finally { setAnulaGuardando(false) }
-                }}
-                style={{ background: 'var(--red)', color: 'var(--sobre-aviso)', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
-              >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
