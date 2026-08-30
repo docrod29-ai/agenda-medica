@@ -136,6 +136,68 @@ export function nombreConCerteza(
   return d.tipo === 'descartado' || d.tipo === 'diferencial' ? `${t} (${d.tipo})` : t
 }
 
+/**
+ * EL DIAGNÓSTICO QUE SE IMPRIME — REG-421.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * La receta y la orden de estudios eligen un diagnóstico principal para
+ * rellenar su campo impreso. Las dos lo hacían con la misma línea, copiada:
+ *
+ *     const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
+ *
+ * El respaldo `?? dxs[0]` **no mira `tipo`**. Si ninguno es `definitivo`, coge
+ * el primero de la lista tal cual venga del dictado. Medido:
+ *
+ *     dx: [{ Embarazo, descartado }, { Cefalea tensional, presuntivo }]
+ *     → receta y orden imprimen: «Embarazo»
+ *
+ * «Embarazo descartado» es como se documenta una prueba negativa, y el
+ * extractor lo escribe así (`negaciones.ts` lo reclasifica al oír la negación).
+ * Salía impreso como el motivo de la receta, con cédula profesional debajo.
+ *
+ * Y el comentario de la receta decía «primero activo de tipo definitivo»: el
+ * `estado` tampoco se miraba. El comentario describía un filtro que no existía.
+ *
+ * ── LA CAUSA RAÍZ ───────────────────────────────────────────────────────────
+ *
+ * La misma de REG-364, en dos consumidores a los que aquel arreglo no llegó.
+ * `estaVigente` está escrito, exportado y probado justo arriba, y estas dos
+ * pantallas resolvían la misma pregunta con un criterio propio y más flojo.
+ * Familia «el sistema se contradice a sí mismo».
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * **Lo que no es un problema del paciente no puede representar la visita.** Un
+ * `descartado`, un `diferencial` y un `resuelto` quedan fuera; entre los que
+ * quedan se prefiere el `definitivo`, que es lo que hacía antes.
+ *
+ * ── POR QUÉ `null` Y NO UN RESPALDO ─────────────────────────────────────────
+ *
+ * Cuando nada califica **no se rellena nada**, y ése es el arreglo entero: el
+ * respaldo era el defecto. El campo es editable en las dos pantallas, así que
+ * un campo vacío le cuesta al médico escribir una línea; el respaldo le costaba
+ * no darse cuenta. Rellenar de menos se ve; rellenar mal, no.
+ *
+ * Nótese lo que NO hace: no elige el diagnóstico «correcto» de una consulta ni
+ * ordena por importancia clínica. Descarta lo que no puede serlo y conserva la
+ * preferencia que ya había.
+ *
+ * Módulo PURO.
+ */
+export function diagnosticoQueSeImprime(
+  dxs: readonly Diagnostico[] | undefined,
+): Diagnostico | null {
+  const vigentes = (dxs ?? []).filter(estaVigente)
+  return vigentes.find(d => d.tipo === 'definitivo') ?? vigentes[0] ?? null
+}
+
+export const POR_QUE_NO_HAY_RESPALDO_AL_IMPRIMIR =
+  'Porque el respaldo era el defecto: `?? dxs[0]` cogía el primero del dictado '
+  + 'sin mirar `tipo`, y un «embarazo descartado» salía impreso como el motivo '
+  + 'de la receta. El campo es editable: no rellenarlo le cuesta al médico una '
+  + 'línea, rellenarlo mal le costaba no darse cuenta.'
+
 /** Frase corta para el encabezado de la consulta. */
 export function resumenProblemas(activos: readonly ProblemaVigente[]): string {
   if (!activos.length) return 'Sin problemas registrados'

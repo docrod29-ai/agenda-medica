@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 75 de 271, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 75 de 272, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
@@ -128,9 +128,32 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 42 de 271.**
+**«El sistema se contradice a sí mismo» — 43 de 272.**
 
-Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
+Sumó REG-421 (30-ago-2026), que es REG-364 **dos consumidores más allá** y enseña
+hasta dónde hay que seguir un criterio antes de darlo por aplicado. `estaVigente`
+—«¿sigue siendo un problema del paciente?»— lleva escrito, exportado y probado
+desde REG-364. La receta y la orden de estudios resolvían la misma pregunta con
+una línea propia, copiada de una a otra:
+
+```ts
+const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
+```
+
+Ese respaldo no mira `tipo`. Un «embarazo descartado» —que es como se documenta
+una prueba negativa, y que el propio sistema escribe al oír la negación— salía
+**impreso como el motivo de la receta**, con cédula profesional debajo.
+
+Dos cosas la vuelven representativa. La primera: el comentario decía «primero
+activo de tipo definitivo» y el código no miraba `estado` en ningún sitio —
+describía un filtro que nunca existió, y leerlo daba por revisado lo que no lo
+estaba. La segunda: al arreglarla hubo que separar dos gestos que se confundían.
+Donde se enseña la **lista entera** un descarte no se filtra —es información
+medicolegal— pero va diciendo lo que es; donde se elige **uno** para representar
+la visita, lo que no es un problema del paciente no puede representarla, y si
+nada califica no se rellena nada. El respaldo *era* el defecto.
+
+Antes REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
 caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
 `transcripcionMotor` —lo que oyó el reconocedor— **le correspondía ir sellado**,
 por qué todavía no lo estaba y hasta cuándo entraría: «cuando se suba a
@@ -209,7 +232,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 37 de 271**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 37 de 272**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

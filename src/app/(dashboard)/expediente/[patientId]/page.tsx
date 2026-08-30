@@ -37,7 +37,7 @@ import { InternamientosDelPaciente } from '@/components/InternamientosDelPacient
 import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
 import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
-import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import { estadoDeProblemas, nombreConCerteza, resumenProblemas } from '@/lib/expediente/problemas-activos'
 import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
@@ -1006,7 +1006,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase' }}>Diagnósticos</div>
                 {nota.diagnosticos.map((d, i) => (
                   <div key={i} style={{ fontSize: 13, color: 'var(--text2)', marginTop: 3 }}>
-                    • {d.descripcion} {d.codigoCIE10 && <span style={{ color: 'var(--text3)' }}>({d.codigoCIE10})</span>}
+                    • {nombreConCerteza(d)} {d.codigoCIE10 && <span style={{ color: 'var(--text3)' }}>({d.codigoCIE10})</span>}
                   </div>
                 ))}
               </div>

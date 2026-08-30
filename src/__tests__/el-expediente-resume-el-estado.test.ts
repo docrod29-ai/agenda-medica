@@ -79,8 +79,16 @@ describe('CORREN en el expediente', () => {
      * historial salió. Lo que este caso protege —que la pantalla los importe y
      * los use— no cambió; cambió por qué puerta entran.
      */
-    expect(exp).toContain("import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'")
-    expect(exp).toContain("import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'")
+    /* Por SÍMBOLO y no por la línea entera: esta aserción se rompió el día que
+       la pantalla importó un tercer símbolo del mismo módulo (REG-421), sin que
+       nada de lo que aquí importa hubiera cambiado. Un guardián que se rompe al
+       añadir un import no está vigilando lo que dice vigilar. */
+    const importaDe = (mod: string, simbolo: string) =>
+      new RegExp(`import \\{[^}]*\\b${simbolo}\\b[^}]*\\} from '@/lib/expediente/${mod}'`).test(exp)
+    expect(importaDe('problemas-activos', 'estadoDeProblemas')).toBe(true)
+    expect(importaDe('problemas-activos', 'resumenProblemas')).toBe(true)
+    expect(importaDe('ordenes-medicamento', 'estadoDeMedicamentos')).toBe(true)
+    expect(importaDe('ordenes-medicamento', 'resumenVigentes')).toBe(true)
     expect(exp).toMatch(/resumenProblemas\(problemas\)/)
     expect(exp).toMatch(/resumenVigentes\(vigentes\)/)
   })

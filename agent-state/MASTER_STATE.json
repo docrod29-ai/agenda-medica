@@ -21,13 +21,18 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/api/cron/vigilante/route.ts",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/__tests__/el-expediente-resume-el-estado.test.ts",
+    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
+    " M src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
+    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    " M src/app/(dashboard)/referencia/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/expediente/problemas-activos.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts",
-    "?? src/lib/ops/lo-que-se-repite.ts"
+    "?? src/__tests__/un-descarte-no-puede-ser-el-motivo-de-la-receta.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +68,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 271,
+    "regsEnElLedger": 272,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 843,
-    "casosDePrueba": 10529,
+    "archivosDePrueba": 844,
+    "casosDePrueba": 10544,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

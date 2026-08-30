@@ -34,6 +34,7 @@ import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
   AlertTriangle,
 } from 'lucide-react'
+import { diagnosticoQueSeImprime } from '@/lib/expediente/problemas-activos'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
@@ -410,8 +411,10 @@ export default function GeneradorOrdenPage() {
       setNota(n)
       setPatient(ps)
       if (n) {
-        const dxs = n.diagnosticos ?? []
-        const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
+        /* REG-421 — una sola puerta. El respaldo sin filtro que había aquí
+           `tipo`, así que un «embarazo descartado» salía impreso como el
+           motivo. Si nada califica no se rellena: el campo es editable. */
+        const principal = diagnosticoQueSeImprime(n.diagnosticos)
         if (principal) setDiagnostico(principal.descripcion + (principal.codigoCIE10 ? ` (${principal.codigoCIE10})` : ''))
         // Estudios pre-poblados por la nota (p. ej. valoración del inmunocomprometido)
         if (Array.isArray(n.estudiosOrden) && n.estudiosOrden.length) setEstudios(n.estudiosOrden)

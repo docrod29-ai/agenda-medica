@@ -15714,3 +15714,105 @@ arreglan en sitios distintos.
   varias personas lo es.
 
 **Prueba.** `src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts` (19 casos).
+
+---
+
+## REG-421 — lo que el médico descartó salía impreso como el motivo de la receta
+
+**QUÉ SE PEDÍA.** `WS-10.pantalla-de-certeza` seguía `PARTIAL` con este pendiente:
+llevar el selector de tipo de REG-407 «a las otras superficies que muestran
+diagnósticos (expediente, UCI/hospital)».
+
+### Lo que decía el censo no se sostenía contra el árbol
+
+Es la quinta entrada de esta tanda cuyo `queFalta` estaba equivocado (REG-412,
+REG-415, REG-417 y REG-420 fueron las otras), y aquí lo estaba dos veces:
+
+- **Hospital y UCI no tienen `Diagnostico[]`.** Tienen `diagnosticoIngreso`: una
+  **cadena libre** en `Internamiento`, sin `tipo` y sin `tipoOrigen`. No hay
+  certeza que elegir porque no hay campo donde ponerla.
+- **El expediente enseña notas ya firmadas.** Un selector ahí sería una segunda
+  puerta de escritura sobre una nota firmada — exactamente lo que la firma existe
+  para impedir, y lo que la arquitectura prohíbe.
+
+Construir lo que pedía el censo habría construido el defecto, con el censo dando
+la orden. Es la misma forma que REG-403.
+
+### El defecto que apareció al buscar quién LEE diagnósticos
+
+Cinco lectores. Dos de ellos no los leían: **los imprimían**.
+
+La receta y la orden de estudios rellenan su campo «diagnóstico» —el que sale en
+el papel— con un principal sacado de la nota, y las dos lo elegían con la misma
+línea, copiada de una a otra:
+
+```ts
+const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
+```
+
+El respaldo **no mira `tipo`**. Cuando ningún diagnóstico es `definitivo` —el caso
+corriente, porque `presuntivo` es el valor de fábrica— coge el primero de la lista
+tal como venga del dictado. Medido antes de tocar nada:
+
+```
+dx: [{ Embarazo, descartado }, { Cefalea tensional, presuntivo }]
+→ receta y orden imprimen: «Embarazo»
+```
+
+«Embarazo descartado» es como se documenta una prueba negativa, y el sistema lo
+escribe solo: `corregirCertezaPorNegacion` reclasifica a `descartado` en cuanto oye
+la negación. No hace falta que el médico se equivoque en nada — basta con que diga
+«descartamos embarazo» y que ése sea el primer diagnóstico que nombró. El resultado
+salía por la impresora, con cédula profesional debajo.
+
+El comentario de la receta lo delataba: decía «primero activo de tipo definitivo»
+y el código no miraba `estado` en ningún sitio. Describía un filtro que no existía.
+
+### La causa raíz
+
+La de REG-364, en los consumidores a los que aquel arreglo no llegó. `estaVigente`
+lleva escrito, exportado y probado desde entonces, y estas dos pantallas resolvían
+la misma pregunta con un criterio propio y más flojo. Familia «el sistema se
+contradice a sí mismo», y es la tercera vez esta tanda que una reparación llega a
+unos consumidores y no a los demás (REG-410, REG-411).
+
+### La regla: enseñar la lista y elegir uno no son el mismo gesto
+
+- Donde se enseña la **lista entera** —la nota, el expediente, la carta de
+  referencia— **no se filtra nada**: un descarte documentado es información
+  medicolegal, y al médico que recibe la carta le sirve saber qué se descartó. Pero
+  cada renglón va **diciendo lo que es**, con `nombreConCerteza`, que ya era la
+  definición única y a la que estos tres lectores no llamaban.
+- Donde se elige **uno** para que represente la visita —receta, orden— lo que no es
+  un problema del paciente no puede representarla. Decide `estaVigente`, y si nada
+  califica **no se rellena nada**.
+
+### Por qué `null` y no un respaldo
+
+Porque **el respaldo era el defecto**. El campo es editable en las dos pantallas
+—el golden lo comprueba, porque sin eso el arreglo sería peor que el fallo—, así
+que un campo vacío le cuesta al médico escribir una línea. El respaldo le costaba
+no darse cuenta: rellenar de menos se ve, rellenar mal no.
+
+### Un guardián que se rompía al añadir un import
+
+`el-expediente-resume-el-estado.test.ts` fijaba la **línea de import entera**, así
+que importar un tercer símbolo del mismo módulo lo ponía en rojo sin que cambiara
+nada de lo que dice vigilar. Reescrito por símbolo, y comprobado al revés.
+
+### Qué NO cubre
+
+- **No comprueba la impresión.** Comprueba qué diagnóstico se elige y con qué
+  nombre se pinta; que el PDF lo lleve es otra frontera —«el dato tiene que
+  LLEGAR»— y se mira en navegador.
+- **No decide si `presuntivo` debe etiquetarse** ahora que REG-407 dejó al médico
+  elegir el tipo. La cabecera de `nombreConCerteza` predijo este día y dijo que
+  distinguir el `presuntivo` elegido del de fábrica con `tipoOrigen` es un cambio
+  de modelo. Sigue callándolo a propósito.
+- **No le da certeza a hospital ni a UCI.** Su `diagnosticoIngreso` es una cadena
+  libre; que deba dejar de serlo es una decisión de modelo y queda dicha en el
+  censo.
+- **No ordena por importancia clínica.** Descarta lo que no puede ser el motivo y
+  conserva la preferencia por `definitivo` que ya había.
+
+**Prueba.** `src/__tests__/un-descarte-no-puede-ser-el-motivo-de-la-receta.test.ts` (15 casos).
