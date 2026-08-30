@@ -1,46 +1,61 @@
 [
   {
-    "ruta": "/citas",
+    "ruta": "/",
     "ancho": 390,
     "violaciones": []
   },
   {
-    "ruta": "/citas",
+    "ruta": "/",
     "ancho": 768,
     "violaciones": []
   },
   {
-    "ruta": "/citas",
+    "ruta": "/",
     "ancho": 1440,
     "violaciones": []
   },
   {
-    "ruta": "/asistente",
+    "ruta": "/reservar/consultorio-demo-v10",
     "ancho": 390,
     "violaciones": []
   },
   {
-    "ruta": "/asistente",
+    "ruta": "/reservar/consultorio-demo-v10",
     "ancho": 768,
     "violaciones": []
   },
   {
-    "ruta": "/asistente",
+    "ruta": "/reservar/consultorio-demo-v10",
     "ancho": 1440,
     "violaciones": []
   },
   {
-    "ruta": "/pacientes",
+    "ruta": "/login",
     "ancho": 390,
     "violaciones": []
   },
   {
-    "ruta": "/pacientes",
+    "ruta": "/login",
     "ancho": 768,
     "violaciones": []
   },
   {
-    "ruta": "/pacientes",
+    "ruta": "/login",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/registro",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/registro",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/registro",
     "ancho": 1440,
     "violaciones": []
   }
