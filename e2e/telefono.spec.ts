@@ -170,17 +170,44 @@ test('la landing no ensucia la consola con nada SUYO', async ({ page, baseURL })
   page.on('response', r => {
     if (r.status() >= 400 && r.url().startsWith(origen)) propios.push(`${r.url()} — HTTP ${r.status()}`)
   })
+  /**
+   * ── LA CUARTA CLASE: REPORTADA, NO BLOQUEADA ─────────────────────────────
+   *
+   * Al quitar el ruido de las canceladas apareció DEBAJO otro intermitente que
+   * aquéllas tapaban: una violación de CSP **report-only** al enmarcar el propio
+   * sitio. Chrome la escribe con nivel `error`, y su texto termina diciendo qué
+   * pasó de verdad:
+   *
+   *     «The violation has been logged, but no further action has been taken.»
+   *
+   * Una política report-only existe para OBSERVAR antes de aplicar: un informe
+   * suyo es su producto, no un fallo. Se enumera y no tumba el caso.
+   *
+   * **Una violación APLICADA sí sigue siendo un defecto** y sigue rompiendo esto:
+   * Chrome la escribe como «Refused to …», sin la palabra `report-only`, y ese
+   * texto no encaja aquí. La distinción es la del propio navegador, no una
+   * lista de frases nuestra.
+   *
+   * QUEDA UNA PREGUNTA ABIERTA, y se anota en vez de esconderse: algo está
+   * enmarcando la raíz del sitio, y `frame-src 'self'` no lo cubre porque la URL
+   * llega con el esquema elevado a https. Bajo una política APLICADA eso sería
+   * un `Refused to frame`. Averiguar quién enmarca y si hay que ampliar la
+   * directiva es trabajo de la unidad de CSP, no de esta prueba de teléfono.
+   */
+  const reportadas: string[] = []
   page.on('console', m => {
-    /* Un mensaje de consola no trae URL: sólo cuenta si no lo explica ya un
-       recurso ajeno que falló. */
-    if (m.type() === 'error' && ajenos.length === 0) propios.push(`consola: ${m.text()}`)
+    if (m.type() !== 'error' || ajenos.length > 0) return
+    const t = m.text()
+    if (/report-only Content Security Policy/i.test(t)) { reportadas.push(t); return }
+    propios.push(`consola: ${t}`)
   })
 
   await page.goto('/', { waitUntil: 'networkidle' })
   expect(
     propios,
     `errores del propio producto (terceros caídos: ${ajenos.join(' · ') || 'ninguno'}` +
-    ` · canceladas por el navegador: ${canceladas.length})`,
+    ` · canceladas por el navegador: ${canceladas.length}` +
+    ` · violaciones report-only: ${reportadas.length})`,
   ).toEqual([])
 })
 
