@@ -4806,7 +4806,12 @@ export default function ConsultaActivaPage() {
                   palabra mal oída acaba convertida en un diagnóstico.
                 */}
                 {audio.sinDiarizacion && audio.estado === 'listo' && (
-                  <div style={{
+                  /*
+                    `status` y no `alert`: la transcripción SÍ se hizo, con el
+                    motor alterno. Es una advertencia sobre lo que hay que
+                    revisar, no una pérdida — y llega igual de asíncrona.
+                  */
+                  <div role="status" style={{
                     marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
                     color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
                     border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
@@ -5001,8 +5006,20 @@ export default function ConsultaActivaPage() {
                     Capta a los dos · separación de voces · vocabulario médico ampliado
                   </div>
                 )}
+                {/*
+                  ESTE AVISO SE ANUNCIA, PORQUE LLEGA CUANDO NADIE MIRA.
+                  Aparece DESPUÉS de detener la grabación, de forma asíncrona, en
+                  la única pantalla del producto diseñada para que el médico esté
+                  mirando al paciente y no aquí. Sin `role="alert"` no se anuncia:
+                  medido el 30-ago con el proveedor caído —503 en
+                  `transcribir-diarizado`— el texto SÍ se pintaba («No se pudo
+                  transcribir…») junto a «Recuperar audio», y un lector de
+                  pantalla no decía nada.
+                  Asertivo y no `status`: se acaba de perder la transcripción de
+                  una consulta y hay una acción que caduca con la sesión.
+                */}
                 {audio.error && (
-                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div role="alert" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11.5, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                       <AlertTriangle size={12} className="ds-icon" /> {audio.error}
                     </span>

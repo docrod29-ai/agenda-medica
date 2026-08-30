@@ -3086,3 +3086,86 @@ ambiental.
 - Un solo ancho (390) y un solo paciente.
 - El estado de grabación **no entra en el trinquete**: la sonda hay que
   invocarla. Declarado.
+
+---
+
+## Unidad 55 — el fallo del dictado se anuncia, y una acusación mía que era falsa
+
+**LOS CONTROLES DE LA GRABACIÓN, MEDIDOS.** Continuación de la unidad 54, con la
+sonda extendida a pausar, reanudar y terminar. Ninguno necesita proveedor: son
+locales al `MediaRecorder`.
+
+| | resultado |
+|---|---|
+| Pausar | cronómetro **0:10 → 0:10**: congelado, correcto · axe 0 |
+| Reanudar | **0:13 → 0:17**: vuelve a correr, correcto · axe 0 |
+| Terminar | los controles desaparecen · axe 0 |
+
+**Y ANTES DE ESO, DOS VECES CASI ESCRIBO UNA MENTIRA.**
+
+1. La sonda informó «PAUSAR: no se encontró el control» de dos botones que
+   estaban ahí. Buscaba por **texto** y los controles son iconos con
+   `aria-label` — que es lo correcto. Se cambió a buscar por **nombre
+   accesible**.
+2. Con eso arreglado informó «PAUSADO: el reloj SIGUIÓ CORRIENDO», que habría
+   sido un defecto de verdad. No lo era: mi lector de reloj cogía la **primera**
+   cadena con forma `m:ss` de toda la pantalla, y en esta hay varias. Leyendo el
+   elemento concreto: congelado, correcto.
+
+**LA ACUSACIÓN GRANDE, TAMBIÉN FALSA.** Al terminar sin proveedor de ASR
+—`transcribir-diarizado` contesta 503— vigilé `[role="alert"]`, `[role="status"]`
+y clases de *toast* durante doce segundos y no vi nada. Estuve a punto de
+escribir que **al médico no se le dice nada tras perder la transcripción de una
+consulta**. Sería el hallazgo más grave del carril, y era **mentira**: leyendo el
+texto de la pantalla estaba
+
+> «No se pudo transcribir (OPENAI_API_KEY no configurada…). El audio quedó
+> **GUARDADO en este dispositivo** — reintenta con "Recuperar audio".»
+
+más «Descargar audio» y «Descartar audio guardado». El producto lo hace bien:
+avisa, dice dónde quedó el audio y ofrece tres salidas.
+
+Cuarta vez esta sesión que un instrumento mío fabrica un defecto. Las cuatro se
+cazaron igual: **preguntándole a la pantalla en vez de al selector.**
+
+**EL HALLAZGO DE VERDAD ESTABA EN MI PROPIO ERROR.** El aviso no tenía **ninguno**
+de los roles que yo buscaba. Se pinta en un `<div>` normal y aparece **de forma
+asíncrona, después de detener la grabación**, en la única pantalla del producto
+diseñada para que el médico **esté mirando al paciente y no la pantalla**. Sin
+región viva, un lector no lo anuncia: se acaba de perder la transcripción de una
+consulta y quien no mira no se entera.
+
+WCAG 2.2 AA §4.1.3, y la regla 3 de seguridad clínica dicha en voz alta.
+
+**CHANGE — dos roles distintos, a propósito.**
+
+- `role="alert"` (asertivo) al **fallo**: se perdió la transcripción y hay
+  acciones —recuperar, descargar— que caducan con la sesión.
+- `role="status"` (educado) a **«sin separación de voces»**: la transcripción
+  SÍ se hizo, con el motor alterno. Es una advertencia sobre qué revisar, no una
+  pérdida, y no debe interrumpir.
+
+Poner `alert` a los dos sería enseñar a ignorarlos, y eso lo vigila un caso.
+
+**PROOF.** La misma sonda que antes sólo veía el nombre del paciente y la lista
+de «no se puede firmar todavía», ahora recoge el aviso entero. Mismo arnés,
+misma construcción limpia: lo único que cambió es el rol. axe sigue en **0** en
+los cuatro estados (grabando, pausado, reanudado, tras terminar).
+
+**REGRESSION.** `el-fallo-del-dictado-se-anuncia.test.ts`, 4 casos, probado al
+revés quitando cada rol por separado.
+
+**COMPUERTAS.** `vitest` 10 815/10 816 · trinquete de lint 95 · trinquete de
+diseño sin deuda · `tsc` limpio · `npm run build` compila · inventario
+regenerado. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- **Ningún lector de pantalla real.** Que el rol esté puesto no prueba que se
+  oiga. Es lo mismo que este carril lleva diciendo desde la unidad 46.
+- `uci/page.tsx` tiene el **mismo aviso sin rol**. Es ALPHA y de otro carril:
+  **anotado, no arreglado**.
+- Se prueba el arranque, la pausa, la reanudación y el final. **«Detener y
+  generar nota» no se pulsa**: llama al modelo, y eso está bloqueado por fuera.
+- Sin transcripción real, nada de lo que la pantalla hace **con texto
+  reconocido** está medido. Sigue BLOCKED_EXTERNAL.

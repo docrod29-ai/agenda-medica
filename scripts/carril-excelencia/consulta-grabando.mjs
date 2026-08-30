@@ -43,6 +43,34 @@
  */
 import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
+/**
+ * ENTRAR ES PARTE DE MEDIR.
+ *
+ * Si el campo de correo no aparece, la causa casi siempre es la misma y no es
+ * la pantalla: un `npm run build` de las compuertas reconstruyó `.next` con
+ * OTRA configuración —sin emuladores— mientras este servidor seguía en pie, así
+ * que la aplicación apunta a Firebase de verdad y el formulario no llega a
+ * montarse. Ha pasado SEIS veces en este carril.
+ *
+ * Un `TimeoutError` de Playwright no dice nada de eso. Esto sí.
+ */
+async function entrar(pag, base) {
+  await pag.goto(base + '/login', { waitUntil: 'domcontentloaded' })
+  try {
+    await pag.locator('input[type=email]').first().waitFor({ timeout: 20000 })
+  } catch {
+    console.error('\n  No apareció el formulario de acceso en ' + base + '/login.')
+    console.error('  Casi seguro: el servidor sirve un build hecho SIN la configuración del')
+    console.error('  arnés. Para el servidor, borra .next, construye con las variables del')
+    console.error('  arnés (NEXT_PUBLIC_FIREBASE_EMULATORS=1 …) y arranca otra vez.\n')
+    process.exit(2)
+  }
+  await pag.locator('input[type=email]').first().fill('demo@nexusmed.test')
+  await pag.locator('input[type=password]').first().fill('demo1234')
+  await pag.locator('button[type=submit]').first().click()
+  await pag.waitForTimeout(9000)
+}
+
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const AXE = readFileSync('node_modules/axe-core/axe.min.js', 'utf8')
 const nav = await chromium.launch({
@@ -55,12 +83,10 @@ const ctx = await nav.newContext({ viewport: { width: 390, height: 844 }, permis
 const pag = await ctx.newPage()
 const errores = []
 pag.on('console', m => { if (m.type() === 'error') errores.push(m.text().slice(0, 120)) })
-await pag.goto('http://localhost:3300/login', { waitUntil: 'domcontentloaded' })
-await pag.waitForTimeout(2500)
-await pag.locator('input[type=email]').first().fill('demo@nexusmed.test')
-await pag.locator('input[type=password]').first().fill('demo1234')
-await pag.locator('button[type=submit]').first().click()
-await pag.waitForTimeout(9000)
+// QUÉ ruta falla, no sólo que algo falló: «503» a secas no distingue un trozo
+// en vivo (best-effort, el producto lo cuenta aparte) de la transcripción final.
+pag.on('response', r => { if (r.status() >= 400) errores.push(`HTTP ${r.status()} ← ${new URL(r.url()).pathname}`) })
+await entrar(pag, 'http://localhost:3300')
 await pag.goto('http://localhost:3300/consulta/pac-001', { waitUntil: 'domcontentloaded' })
 await pag.waitForTimeout(8000)
 for (const t of [/^saltar$/i, /^entendido$/i]) {
@@ -159,7 +185,121 @@ if (n) {
   })
   console.log(`AXE GRABANDO: ${r.total}`)
   r.det.forEach(d => console.log('   ', d))
+  /**
+   * LOS CONTROLES DE LA GRABACIÓN: pausar, reanudar, terminar.
+   *
+   * Ninguno necesita proveedor de transcripción —son locales al `MediaRecorder`—
+   * así que se pueden medir aquí. «Detener y generar nota» NO se pulsa: llama al
+   * modelo, y eso sí está bloqueado por fuera.
+   *
+   * De cada paso se comprueba lo mismo que del arranque: que el estado CAMBIÓ de
+   * verdad (el cronómetro se congela al pausar y vuelve a correr al reanudar) y
+   * que la pantalla no pierde accesibilidad por el camino.
+   */
+  const leerReloj = () => pag.evaluate(() => {
+    // Cada cadena con forma de reloj, CON el elemento del que sale: en esta
+    // pantalla hay varias (la hora de la cita, el reloj del sistema) y quedarse
+    // con la primera del `innerText` puede estar leyendo cualquier otra cosa.
+    const out = []
+    for (const el of document.querySelectorAll('*')) {
+      if (el.children.length) continue
+      const t = (el.textContent || '').trim()
+      if (/^\d{1,2}:\d{2}$/.test(t)) out.push(`${el.tagName}.${(typeof el.className === 'string' ? el.className.split(' ')[0] : '')}=${t}`)
+    }
+    return out.join(' | ')
+  })
+  const axeAhora = async (donde) => {
+    await pag.addScriptTag({ content: AXE })
+    const r = await pag.evaluate(async () => {
+      const r = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa'] } })
+      return { total: r.violations.reduce((s,v)=>s+v.nodes.length,0),
+               det: r.violations.flatMap(v => v.nodes.slice(0,2).map(n => `${v.id}[${v.impact}] ${n.html.slice(0,90)}`)) }
+    })
+    console.log(`AXE ${donde}: ${r.total}`)
+    r.det.forEach(d => console.log('   ', d))
+  }
+
+  /**
+   * Por NOMBRE ACCESIBLE, no por texto.
+   *
+   * Los controles de grabación son iconos con `aria-label` —«Pausar la
+   * grabación», «Terminar la grabación»—, que es lo correcto. Un
+   * `filter({ hasText })` mira el texto del elemento y no encuentra ninguno:
+   * la sonda informó «no se encontró el control» de dos botones que estaban
+   * ahí, con nombre y todo.
+   */
+  const pulsar = async (re) => {
+    const b = pag.getByRole('button', { name: re }).first()
+    if (!(await b.count().catch(() => 0))) return false
+    await b.click().catch(() => {}); await pag.waitForTimeout(3500); return true
+  }
+
+  if (await pulsar(/pausar/i)) {
+    const a = await leerReloj(); await pag.waitForTimeout(4000); const b = await leerReloj()
+    console.log(`PAUSADO: reloj ${a} → ${b} ${a === b ? '(congelado, correcto)' : '(SIGUIÓ CORRIENDO)'}`)
+    await axeAhora('pausado')
+    if (await pulsar(/reanudar|continuar/i)) {
+      const c = await leerReloj(); await pag.waitForTimeout(4000); const d = await leerReloj()
+      console.log(`REANUDADO: reloj ${c} → ${d} ${c !== d ? '(vuelve a correr, correcto)' : '(SIGUE PARADO)'}`)
+      await axeAhora('reanudado')
+    } else console.log('REANUDAR: no se encontró el control')
+  } else console.log('PAUSAR: no se encontró el control')
+
+  if (await pulsar(/terminar la grabaci/i)) {
+    await pag.waitForTimeout(3000)
+    const tras = await pag.evaluate(() => [...document.querySelectorAll('button')]
+      .map(b => (b.getAttribute('aria-label') || b.textContent || '').trim())
+      .filter(t => /grabar|deten|pausa|reanud|termin/i.test(t)))
+    console.log('TERMINADO · controles:', JSON.stringify(tras))
+    /**
+     * ¿QUÉ VE EL MÉDICO CUANDO LA TRANSCRIPCIÓN NO PUEDE HACERSE?
+     *
+     * Aquí no hay proveedor de ASR, así que la ruta contesta 503. Eso no es un
+     * defecto del producto —es el límite del arnés— pero **lo que la pantalla
+     * hace con ese 503 sí es del producto**, y es la pregunta cara: tras una
+     * grabación, un fallo silencioso deja al médico sin saber si lo que dictó
+     * existe en alguna parte.
+     */
+    // Los avisos se auto-descartan: si se mira una sola vez a los 6 s, uno que
+    // duró 3 no existió. Se vigila el DOM desde el instante de detener.
+    await pag.evaluate(() => {
+      window.__avisos = []
+      const ver = () => {
+        for (const e of document.querySelectorAll('[role="alert"], [role="status"], [class*=toast]')) {
+          const t = (e.textContent || '').trim()
+          if (t && !window.__avisos.includes(t)) window.__avisos.push(t)
+        }
+      }
+      ver()
+      new MutationObserver(ver).observe(document.body, { childList: true, subtree: true, characterData: true })
+    })
+    await pag.waitForTimeout(12000)
+    const vistos = await pag.evaluate(() => window.__avisos || [])
+    console.log('AVISOS VIGILADOS 12s:', JSON.stringify(vistos))
+    const despues = await pag.evaluate(() => ({
+      avisos: [...document.querySelectorAll('[role="alert"], [role="status"], [class*=toast]')]
+        .map(e => (e.textContent || '').trim()).filter(Boolean).slice(0, 6),
+      dice: (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 400),
+    }))
+    console.log('TRAS EL 503 · avisos:', JSON.stringify(despues.avisos))
+    // ¿Se pinta el error del grabador, o se ofrece recuperar el audio?
+    const senales = await pag.evaluate(() => {
+      const txt = (document.body.innerText || '')
+      const busca = (re) => (txt.match(re) || [])[0] || null
+      return {
+        errorGrabador: busca(/no est[áa] configurad[oa][^\n]{0,60}/i)
+          || busca(/no se pudo transcribir[^\n]{0,60}/i)
+          || busca(/transcripci[óo]n[^\n]{0,40}(fall|error|no)[^\n]{0,40}/i),
+        ofreceRecuperar: busca(/recuperar[^\n]{0,60}/i) || busca(/audio guardado[^\n]{0,60}/i),
+        vuelveAOfrecerGrabar: /Grabar la conversaci[óo]n completa/.test(txt),
+      }
+    })
+    console.log('SEÑALES AL MÉDICO:', JSON.stringify(senales))
+    console.log('TRAS EL 503 · pantalla:', despues.dice.slice(0, 300))
+    await axeAhora('tras terminar')
+  } else console.log('TERMINAR: no se encontró el control')
 }
+
 console.log('errores de consola:', errores.length)
 errores.slice(0,4).forEach(e => console.log('   ', e))
 await nav.close()
