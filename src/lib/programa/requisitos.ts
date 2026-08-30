@@ -300,13 +300,14 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     estado: 'PARTIAL',
     evidencia: 'REG-412. La lista a mano de este censo estaba mal en las dos direcciones: «tareas clínicas» YA estaba protegida (idDerivado), «bloques de agenda» no es riesgo clínico, y NO nombraba cuatro que sí lo son — signos del hospital (×2), solicitud de laboratorio y observación de UCI, y los signos alimentan NEWS2. Ahora hay instrumento y techo, como REG-394 con las lecturas sin cota.',
     comando: 'node scripts/idempotencia/escrituras-sin-intencion.mjs && npx vitest run src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts',
-    resultado: '24 escrituras con nombre aleatorio en colecciones del consultorio, 0 sin clasificar, 6 clínicas sin clave de intención (eran 8). Cerrada la peor: la dispensación de farmacia, que escribía con doc() sin id DENTRO de una transacción — la transacción protege la aritmética, no la identidad.',
-    queFalta: 'Cinco escrituras clínicas siguen con nombre aleatorio: ARCO y fotos (Practice: la función tiene que aceptar la clave Y la pantalla acuñarla) y signos ×2, laboratorio y observación de UCI (carril Hospital/UCI, ALPHA). El trinquete las nombra una a una y su techo sólo baja.',
+    resultado: 'REG-412 + REG-413. 24 escrituras con nombre aleatorio en colecciones del consultorio, 0 sin clasificar, 4 clínicas sin clave de intención (eran 8). Cerradas: dispensación de farmacia (escribía con doc() sin id DENTRO de una transacción), solicitud ARCO y foto clínica. Del lado de Practice no queda ninguna.',
+    queFalta: 'Cuatro escrituras clínicas siguen con nombre aleatorio, TODAS del carril Hospital/UCI (ALPHA, se usa y no se vende): signos vitales (alta y corrección), solicitud de laboratorio y observación de UCI. Ninguna está bloqueada por nada externo — lo que piden es que cada modal de esa pantalla acuñe su clave al abrirse, el mismo trabajo hecho ya tres veces. El trinquete las nombra una a una, comprueba por ruta que no queda ninguna de Practice, y su techo sólo baja.',
     artefactos: ['src/lib/idempotencia.ts', 'scripts/idempotencia/escrituras-sin-intencion.mjs', 'src/lib/farmacia.ts'],
     pruebas: [
       'src/__tests__/una-adenda-no-se-escribe-dos-veces.test.ts',
       'src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts',
       'src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts',
+      'src/__tests__/un-derecho-y-una-foto-no-se-duplican.test.ts',
     ],
   }),
   R({

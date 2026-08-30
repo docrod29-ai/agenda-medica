@@ -15157,3 +15157,77 @@ tiene que enterarse del recorte y no del deseo.
 
 **Pruebas.** `src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts` (10 casos)
 y `src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts` (9 casos).
+
+## REG-413 — un derecho ejercido una vez, y una foto que es la misma foto
+
+**QUÉ SE PEDÍA.** Cerrar las dos escrituras clínicas de Practice que el
+inventario de REG-412 dejó nombradas: la solicitud ARCO y la foto clínica. Las
+dos con `addDoc`, o sea con nombre aleatorio.
+
+### Los dos defectos
+
+**ARCO.** El formulario del portal es público y lo llena una persona desde su
+teléfono, con la conexión que tenga. Si el commit sale y la respuesta se pierde,
+ve un error, vuelve a pulsar «Enviar», y quedan **dos solicitudes del mismo
+derecho**: dos folios, dos plazos legales de respuesta (Art. 32 LFPDPPP) y dos
+procesos que el consultorio tiene que contestar por separado.
+
+**Fotos.** Una foto duplicada entra al expediente y sale en el informe.
+
+### La diferencia entre las dos, que es lo que costó pensar
+
+En ARCO la clave se acuña al **abrir** el formulario, como en la dispensación de
+farmacia: existe un momento anterior al envío donde la intención ya existe.
+
+En fotos **no lo hay**. El flujo entero —leer el archivo, subirlo a Storage,
+escribir el documento— ocurre dentro de un solo manejador que arranca al elegir
+el archivo. Cuando la escritura falla, el usuario vuelve a elegir **el mismo
+archivo**: para la interfaz eso es un intento nuevo, y una clave acuñada ahí sería
+nueva también. La protección habría sido decorativa.
+
+Así que ahí la identidad sale del **archivo**: nombre, tamaño, fecha de
+modificación, paciente y región. Dos subidas del mismo archivo a la misma región
+del mismo paciente son la misma foto. Dos fotos distintas de la misma herida son
+dos archivos distintos —otros bytes, otra marca de tiempo— y no colapsan.
+
+Elegir mal tiene coste en las dos direcciones: una clave por intento no protege
+de nada, y una demasiado amplia —paciente + región, sin el archivo— **borraría la
+segunda foto de una evolución**, y el expediente diría que sólo se fotografió una
+vez.
+
+### La regla común
+
+Si el documento ya existe, **no se pisa**. La solicitud anterior lleva su
+`fechaSolicitud` —el día desde el que corren los 20 días hábiles— y la foto lleva
+su `fecha`, que es dato clínico. Reescribirlas para «actualizar» perdería justo el
+dato que hay que conservar. Es el mismo criterio que REG-395 dejó para la adenda.
+
+### Lo que la prueba tumbó
+
+La comprobación de que la clave se acuña con `useState(claveDeIntento)` —forma
+perezosa, una vez— y no con `useState(claveDeIntento())` —en cada render— buscaba
+la forma equivocada en TODO el archivo, y la encontraba: en el comentario de al
+lado, que la cita para explicarla. Se mira la línea de la declaración.
+
+### Dónde queda el techo
+
+`sinIntencion` baja de 8 a **4**, y las cuatro son del carril Hospital/UCI —ALPHA,
+que se usa y no se vende—: signos vitales (alta y corrección), solicitud de
+laboratorio y observación de UCI. **Del lado de Practice no queda ninguna**, y el
+trinquete lo comprueba por ruta de archivo, no de palabra.
+
+Ninguna de las cuatro está bloqueada por nada externo: lo que piden es que cada
+modal de esa pantalla acuñe su clave al abrirse, el mismo trabajo hecho tres veces
+ya. No se hizo aquí para no meter cuatro cambios de estado a la vez en una
+pantalla de 1 600 líneas que no se puede ejercitar desde este entorno.
+
+### Qué NO cubre
+
+- **El objeto huérfano en Storage.** El segundo intento de una foto ya subió el
+  archivo antes de llegar a la escritura: converge el expediente, no el bucket.
+- Sin clave, las dos se comportan como antes: perder el ejercicio de un derecho es
+  peor que duplicarlo.
+- Dos personas rellenando el mismo formulario a la vez son dos intenciones y dos
+  solicitudes, que es lo correcto.
+
+**Prueba.** `src/__tests__/un-derecho-y-una-foto-no-se-duplican.test.ts` (12 casos).

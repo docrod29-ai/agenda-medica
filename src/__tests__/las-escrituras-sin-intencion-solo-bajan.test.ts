@@ -39,12 +39,15 @@ import {
 /**
  * TECHO ACTUAL. Sólo puede bajar.
  *
- * Las seis que quedan, y por qué siguen ahí: cinco son del carril de Hospital y
- * UCI —ALPHA, que se usa y no se vende— y la de ARCO y la de fotos necesitan que
- * su pantalla acuñe la clave, no sólo que la función la acepte. Bajarlo exige
- * cerrar una de verdad, con su golden.
+ * Las cuatro que quedan son TODAS del carril de Hospital y UCI —ALPHA, que se usa
+ * y no se vende—: los signos vitales (alta y corrección), la solicitud de
+ * laboratorio y la observación de UCI. Ninguna está bloqueada por nada externo;
+ * lo que piden es que cada modal de esa pantalla acuñe su clave al abrirse, que
+ * es el mismo trabajo que ya se hizo en farmacia, ARCO y fotos.
+ *
+ * Del lado de Practice no queda ninguna.
  */
-const TECHO = 6
+const TECHO = 4
 
 describe('el instrumento mide algo', () => {
   it('el universo NO está vacío (si lo estuviera, todo pasaría por bueno)', () => {
@@ -103,12 +106,20 @@ describe('el techo sólo baja', () => {
 
   it('y el techo no se subió para conseguirlo', () => {
     /* Si un cambio lo sube, se arregla el cambio — no se sube el techo. */
-    expect(TECHO).toBeLessThanOrEqual(6)
+    expect(TECHO).toBeLessThanOrEqual(4)
   })
 
   it('las que quedan están nombradas, no son un número suelto', () => {
     const donde = sinIntencion().map(x => x.coleccion).sort()
-    expect(donde).toEqual(['arco_requests', 'fotos', 'icu_observations', 'laboratorio', 'signos', 'signos'])
+    expect(donde).toEqual(['icu_observations', 'laboratorio', 'signos', 'signos'])
+  })
+
+  it('y ninguna es del lado de Practice: las cuatro son de Hospital/UCI', () => {
+    /* Lo que se vende está cerrado. Lo que queda es ALPHA, y queda NOMBRADO —
+       no «pendiente», que es como se pierde. */
+    for (const x of sinIntencion()) {
+      expect(x.archivo, `${x.archivo} no es del carril hospitalario`).toMatch(/\/(hospital|uci)\//)
+    }
   })
 
   it('la dispensación de farmacia YA NO está entre ellas', () => {

@@ -38,7 +38,7 @@
 | `/mi/[token]` | paciente | ✅ | 968 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
-| `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
+| `/privacidad/[clinicId]` | paciente | ✅ | 297 | 0 | — | ✅ | — |
 | `/resena/[token]` | paciente | ✅ | 139 | 0 | — | ✅ | — |
 | `/reservar/[clinicId]` | paciente | ✅ | 405 | 0 | — | ✅ | — |
 | `/teleconsulta/[citaId]` | paciente | ✅ | 112 | 0 | — | ✅ | — |
