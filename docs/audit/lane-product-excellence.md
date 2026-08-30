@@ -1291,3 +1291,58 @@ prueba al revés caza un guardián mío inútil, y las dos veces por la misma ra
 bucle con `return` temprano, y el compilador de React no pudo conservar la
 memoización: lint 95 → 96. Se arregló el cambio, no el techo — y el arreglo
 resultó ser mejor que el original.
+
+---
+
+## Unidad 27 — la protección de regresión que faltaba
+
+**FOUND.** El §24 del encargo pide **protección** de regresión visual. Lo que
+este carril tenía era un **álbum**: capturas de antes y después a tres anchos,
+que documentan y no fallan solas. Nada impedía que la siguiente sesión volviera
+a apagar el riel en `/citas` sin que nadie se enterase hasta abrirlo a mano.
+
+Es el hueco que el propio PR declaró como el más grande del pase. Éste lo cierra.
+
+**POR QUÉ NO ES COMPARACIÓN DE PÍXELES.** Porque daría rojo cada día **por
+construcción**:
+
+- la rejilla dibuja la **hora actual**, que se mueve cada minuto;
+- la siembra fecha en el día en curso, así que la semana cambia sola;
+- el mes cambia la maqueta del calendario sin que nadie toque nada.
+
+Una compuerta que se pone roja sola se desactiva en una semana, y entonces no
+protege nada — **pero sigue pareciendo que sí**, que es lo peor de los dos
+mundos. Así que se fija lo estable y lo que de verdad importa: axe, errores de
+consola, desbordamiento horizontal y `aria-current` por ruta y por ancho.
+
+**CHANGE.** `scripts/carril-excelencia/trinquete-de-interfaz.mjs` +
+`docs/audit/carril-excelencia/techos-de-interfaz.json`, con el mismo contrato
+que los otros dos trinquetes: axe, consola y desborde **sólo bajan**;
+`aria-current` **sólo sube**. Declarado en `package.json` como
+`arnes:trinquete-interfaz`. 18 combinaciones ruta×ancho.
+
+**PROBADO AL REVÉS CONTRA EL NAVEGADOR, que es como se prueba un guardián de
+navegador.** Se reintrodujo el defecto de la unidad 17 en
+`lib/navegacion/contextos.ts`, se reconstruyó y se volvió a medir: el trinquete
+salió con código 1 y nombró **las doce** combinaciones afectadas, una por una,
+con el texto «la navegación dejó de decir dónde estás». Restaurado y
+reconstruido, sale con código 0 y «Sin regresión de interfaz».
+
+**REGRESSION.** `el-trinquete-de-interfaz-esta-cableado.test.ts`, 6 casos, que
+cubren lo que aquel ejercicio no puede cubrir en CI: que el archivo de techos no
+se borre, no se afloje y no se quede sin rutas. Probado al revés aflojando un
+techo de `aria-current`, aceptando errores de consola, y quitando el script del
+`package.json`. Caen los tres.
+
+**RESIDUAL_RISK, sin adornos.**
+
+- **No corre en CI.** Necesita emuladores sembrados y un build de producción.
+  Es compuerta **local**, como `verificar-invariantes-de-datos`. Que dependa de
+  que alguien se acuerde es la familia de defecto que este repositorio ya tiene
+  fichada, y queda **declarado, no disimulado**.
+- **No ve el aspecto.** Una pantalla puede volverse fea, perder jerarquía o
+  quedarse sin espaciado con los dieciocho números intactos. Esto protege lo que
+  se puede contar; lo que se ve sigue necesitando abrirlo y mirarlo.
+- **No ve el movimiento ni el orden de tabulación.**
+- Los conteos se leen **siempre contra la misma siembra**: un día vacío puntúa
+  mejor sin ser mejor (ver la nota de los conteos de axe).

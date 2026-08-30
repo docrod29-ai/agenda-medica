@@ -1,0 +1,114 @@
+{
+  "queEsEsto": "Techos de interfaz del carril de excelencia. axe, errores de consola y desborde SÓLO PUEDEN BAJAR; ariaCurrent SÓLO PUEDE SUBIR. Si un cambio los empeora, se arregla el cambio — no se mueve el techo. Se actualiza con --actualizar y sólo cuando la mejora es real.",
+  "medidoEl": "2026-08-30",
+  "techos": {
+    "/citas@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/calendario@390": {
+      "axe": 7,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/asistente@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/lista-espera@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/finanzas@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/operaciones@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/citas@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/calendario@768": {
+      "axe": 7,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/asistente@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/lista-espera@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/finanzas@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/operaciones@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/citas@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/calendario@1440": {
+      "axe": 7,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/asistente@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/lista-espera@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/finanzas@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/operaciones@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    }
+  }
+}
