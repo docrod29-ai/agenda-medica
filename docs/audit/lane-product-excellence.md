@@ -1487,3 +1487,82 @@ no el techo.
 cualquier otro que escriba un ternario parecido. No lo toqué: endurecerlo podría
 marcar código preexistente de otras pantallas y este carril no las posee. Queda
 **declarado** — es exactamente la familia «depende de que alguien se acuerde».
+
+---
+
+## Unidad 31 — `/finanzas` no era plana: estaba vacía
+
+**CORRECCIÓN DE UN VEREDICTO MÍO.** En la matriz del PR declaré `/finanzas`
+como **STATIC/FLAT**. Era un juicio hecho sobre una pantalla **sin datos**: la
+siembra no tenía un solo cobro, así que todo salía a `$0.00`, con la gráfica en
+blanco y la tabla sin filas.
+
+Con doce cobros sembrados, la pantalla resulta tener bastante más jerarquía de
+la que le atribuí: una tarjeta principal con tratamiento propio, dos de método
+con barra de proporción, una **fila compacta** —no una tarjeta— para «otros
+métodos», tres estadísticas secundarias visiblemente más ligeras, la gráfica y
+dos desgloses.
+
+Lo dejo escrito porque el error es del tipo que este carril lleva persiguiendo
+toda la vuelta: **una pantalla vacía no se parece a la misma pantalla llena**, y
+juzgarla vacía miente en las dos direcciones — puede parecer más limpia de lo
+que es, o más pobre.
+
+**LA SIEMBRA, AHORA CON FORMA REAL.** No un relleno bonito: varios métodos de
+pago, **un reembolso** (monto negativo, que es el caso que rompe los promedios),
+un importe de cinco cifras junto a otros de tres para ver si las columnas se
+alinean, el paciente del nombre más largo, y días vacíos entre medias para que
+la gráfica tenga relieve en vez de una meseta.
+
+---
+
+## Unidad 32 — una gráfica que sólo se lee con el ratón no es información
+
+**FOUND.** «Ingresos por día» pinta una barra por día y las cifras vivían
+**únicamente en `title=`**. Sin `role`, sin `aria-label`, sin tabla alternativa.
+
+No existen en una tableta —donde no hay hover—, no existen para un lector de
+pantalla, y no existen para quien mira desde un metro. El médico veía nueve
+barras y no podía saber cuánto vale ninguna. **Nueve barras sin escala son una
+textura, no un dato** — y aquí el dato es el dinero del consultorio.
+
+**ROOT_CAUSE.** Misma familia que el estado de la cita (unidad 18): el dato
+existía y llegaba por un canal de puntero. Es la tercera vez en este carril que
+aparece el mismo patrón —estado de cita, tooltip del calendario, cifras de la
+gráfica—, lo que sugiere que `title=` se ha usado en este producto como si fuera
+un canal de información y no lo es.
+
+**CHANGE.** El **techo** de la escala se dice a la vista (`máx. $12,500.00`), así
+que cualquier barra se lee por proporción sin tocar nada; y cada barra entra en
+el árbol accesible con su día, su importe y su número de cobros —diciendo «sin
+cobros» cuando no los hay, que no es lo mismo que cero ambiguo—. De paso, la
+cabecera dice **9 de 31 días con cobro**, que es la forma del mes en una línea.
+
+**LO QUE SE DECIDIÓ NO HACER.** No se pinta el importe encima de cada barra: con
+31 días es un muro de cifras de 8 px — cambiar ilegible por ilegible.
+
+---
+
+## Unidad 33 — mil píxeles de caja para doscientos de contenido
+
+**FOUND.** El periodo se elegía en un segmentado (`Hoy · Semana · Mes`) y se
+recorría en **una tarjeta a todo lo ancho** cuyo contenido entero era una
+etiqueta y dos flechas.
+
+**ROOT_CAUSE.** No es «una tarjeta de más». Es que el **granulado** y la
+**posición dentro de ese granulado** son la misma pregunta —¿qué periodo estoy
+mirando?— y estaban partidos en dos regiones, obligando a mirar en dos sitios
+para saber una cosa.
+
+**CHANGE.** Una fila: segmentado, separador fino, flechas y etiqueta. Las
+flechas pasan además a decir de qué se mueven (`Mes anterior` / `Mes siguiente`),
+que cambia con el granulado activo.
+
+**SCORE.** Tarjetas en `/finanzas`: 13 → **12** a 1440 px, 16 → **15** a 390.
+Unos 55 px de alto recuperados por encima del pliegue. La fatiga de tarjeta baja,
+pero **sigue alta** y queda declarada: doce tarjetas es inventario, no jerarquía.
+
+**GATES.** vitest 10 745/10 746 · lint 95 = techo · trinquete de diseño **bajado**
+(`tamanosFueraDeEscala` 1950 → 1949; el guardián exige que el techo sea la
+medición de hoy, sin holgura escondida) · tsc limpio · build compila · trinquete
+de interfaz sin regresión, con `/finanzas` en axe 0 a los tres anchos.

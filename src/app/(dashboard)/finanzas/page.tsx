@@ -244,8 +244,24 @@ export default function FinanzasPage() {
         <PanelComisiones clinicId={clinicId} cobros={cobros} />
       ) : (
       <>
-      {/* Selector de periodo (Hoy · Semana · Mes) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
+      {/**
+        * QUÉ PERIODO MIRO — una sola fila, no dos bloques.
+        *
+        * Esto eran dos regiones separadas: el segmentado «Hoy · Semana · Mes» y,
+        * debajo, una TARJETA A TODO LO ANCHO cuyo contenido entero era una
+        * etiqueta y dos flechas. Mil píxeles de caja para doscientos de
+        * contenido, y encima partiendo en dos una pregunta que es una sola:
+        * ¿qué periodo estoy mirando?
+        *
+        * Ahora van juntos en una fila. No es «quitar una tarjeta para tener
+        * menos tarjetas»: es que el granulado (día/semana/mes) y la posición
+        * dentro de ese granulado son el mismo control, y separarlos obligaba a
+        * mirar en dos sitios para saber una cosa.
+        */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 6, marginBottom: 18, flexWrap: 'wrap',
+      }}>
         {(['dia', 'semana', 'mes'] as Periodo[]).map(p => {
           const activo = periodo === p
           return (
@@ -264,33 +280,31 @@ export default function FinanzasPage() {
             </button>
           )
         })}
-      </div>
 
-      {/* Navegación dentro del periodo */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 18,
-        padding: '10px 16px', background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 10,
-      }}>
-        <button onClick={() => setAncla(moverAncla(periodo, ancla, -1))} style={navBtn} aria-label="Periodo anterior">
+        {/* Separador fino: el granulado a la izquierda, la posición a la derecha. */}
+        <span aria-hidden="true" style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 6px' }} />
+
+        <button onClick={() => setAncla(moverAncla(periodo, ancla, -1))} style={navBtn} aria-label={`${PERIODO_LABEL[periodo]} anterior`}>
           <ChevronLeft size={16} />
         </button>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', minWidth: 220, textAlign: 'center' }}>
+        <div style={{ fontSize: 'var(--t-body)', fontWeight: 700, color: 'var(--text)', minWidth: 190, textAlign: 'center' }}>
           {conMayusculaInicial(etiquetaPeriodo(periodo, ancla))}
         </div>
         <button
           onClick={() => setAncla(moverAncla(periodo, ancla, 1))}
           disabled={noFuturo}
           style={{ ...navBtn, opacity: noFuturo ? 0.4 : 1, cursor: noFuturo ? 'default' : 'pointer' }}
-          aria-label="Periodo siguiente"
+          aria-label={`${PERIODO_LABEL[periodo]} siguiente`}
         >
           <ChevronRight size={16} />
         </button>
         {!esActual && (
-          <button onClick={() => setAncla(hoyISO())} style={{ ...navBtn, padding: '4px 10px', fontSize: 11.5 }}>
+          <button onClick={() => setAncla(hoyISO())} style={{ ...navBtn, padding: '4px 10px', fontSize: 'var(--t-caption)' }}>
             Ahora
           </button>
         )}
       </div>
+
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>
@@ -368,14 +382,54 @@ export default function FinanzasPage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>
                 Ingresos por día
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: periodo === 'semana' ? 8 : 2, height: 140 }}>
+              {/**
+                * UNA GRÁFICA QUE SÓLO SE LEE CON EL RATÓN NO ES INFORMACIÓN.
+                *
+                * Las cifras vivían ÚNICAMENTE en `title=`. Eso significa: no
+                * existen en una tableta —donde no hay hover—, no existen para un
+                * lector de pantalla, y no existen para quien mira la pantalla de
+                * lejos. El médico veía nueve barras y no podía saber cuánto vale
+                * ninguna. Nueve barras sin escala son una textura, no un dato.
+                *
+                * Es la misma familia que el estado de la cita (unidad 18): el
+                * dato existía y llegaba por un canal que no alcanza a todos.
+                *
+                * Dos arreglos, ninguno decorativo:
+                *  · el TECHO de la escala se dice arriba, así que cualquier
+                *    barra se puede leer por proporción sin tocar nada;
+                *  · cada barra entra en el árbol accesible con su día, su
+                *    importe y su número de cobros.
+                *
+                * Lo que NO se hace: pintar el importe encima de cada barra. Con
+                * 31 días eso es un muro de cifras de 8 px — cambiar ilegible por
+                * ilegible. La escala arriba y el detalle al posarse es lo que
+                * cabe.
+                */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                <span style={{ fontSize: 'var(--t-overline)', color: 'var(--text3)' }}>
+                  máx. {fmtMXN(maxDia)}
+                </span>
+                <span style={{ fontSize: 'var(--t-overline)', color: 'var(--text3)' }}>
+                  {serieDias.filter(d => d.monto > 0).length} de {serieDias.length} días con cobro
+                </span>
+              </div>
+              <div
+                style={{ display: 'flex', alignItems: 'flex-end', gap: periodo === 'semana' ? 8 : 2, height: 140 }}
+                role="list"
+                aria-label={`Ingresos por día. Máximo del periodo: ${fmtMXN(maxDia)}.`}
+              >
                 {serieDias.map(d => {
                   const altura = d.monto > 0 ? Math.max(2, (d.monto / maxDia) * 100) : 1
                   const etiqueta = new Date(d.dia + 'T00:00:00Z').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+                  const dicho = d.monto > 0
+                    ? `${etiqueta}: ${fmtMXN(d.monto)} · ${d.n} ${d.n === 1 ? 'cobro' : 'cobros'}`
+                    : `${etiqueta}: sin cobros`
                   return (
                     <div
                       key={d.dia}
-                      title={`${etiqueta}: ${fmtMXN(d.monto)} · ${d.n} cobro(s)`}
+                      role="listitem"
+                      aria-label={dicho}
+                      title={dicho}
                       style={{
                         flex: 1, height: `${altura}%`,
                         background: d.monto > 0 ? 'var(--nexus)' : 'var(--s2)',

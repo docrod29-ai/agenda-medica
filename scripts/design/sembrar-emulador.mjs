@@ -175,6 +175,40 @@ const CITAS = [
   { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
 ]
 
+/**
+ * COBROS — para que `/finanzas` se pueda AUDITAR.
+ *
+ * Sin esto la pantalla salía entera a `$0.00`: seis tarjetas de estadística en
+ * cero, una gráfica vacía y una tabla sin filas. Auditar eso y concluir «se ve
+ * plana» no dice nada — es la misma trampa que el día sin citas de la unidad
+ * 23: **una pantalla vacía puntúa distinto sin ser distinta**, y encima esconde
+ * justo los defectos que sólo aparecen con datos (alineación de cifras,
+ * truncado de nombres largos, la gráfica con una barra que se sale).
+ *
+ * Se siembra un mes con forma REAL, no un relleno bonito:
+ *  · varios métodos de pago, para que la partición signifique algo;
+ *  · un reembolso (monto negativo), que es el caso que rompe los promedios;
+ *  · un cobro de cuatro cifras junto a otros de dos, para ver si las columnas
+ *    numéricas se alinean;
+ *  · el paciente del nombre más largo, que es quien desborda la tabla;
+ *  · días con varios cobros y días sin ninguno, para que la gráfica tenga
+ *    relieve en vez de una meseta.
+ */
+const COBROS = [
+  { d: 0,  monto: 1200, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-001', desc: 'Consulta de seguimiento' },
+  { d: 0,  monto: 900,  metodo: 'transferencia',   concepto: 'consulta',      pac: 'pac-002', desc: 'Consulta de seguimiento' },
+  { d: -1, monto: 1800, metodo: 'tarjeta_credito', concepto: 'consulta',      pac: 'pac-004', desc: 'Primera vez' },
+  { d: -1, monto: 350,  metodo: 'efectivo',        concepto: 'estudio',       pac: 'pac-004', desc: 'Electrocardiograma' },
+  { d: -3, monto: 12500, metodo: 'transferencia',  concepto: 'procedimiento', pac: 'pac-003', desc: 'Procedimiento programado' },
+  { d: -4, monto: 900,  metodo: 'tarjeta_debito',  concepto: 'teleconsulta',  pac: 'pac-005', desc: 'Teleconsulta' },
+  { d: -6, monto: 1200, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-001', desc: 'Consulta de seguimiento' },
+  { d: -7, monto: -900, metodo: 'transferencia',   concepto: 'reembolso',     pac: 'pac-002', desc: 'Reembolso por cita cancelada' },
+  { d: -9, monto: 450,  metodo: 'efectivo',        concepto: 'medicamento',   pac: 'pac-001', desc: 'Metformina 850 mg' },
+  { d: -12, monto: 1800, metodo: 'tarjeta_credito', concepto: 'consulta',     pac: 'pac-003', desc: 'Primera vez' },
+  { d: -15, monto: 900, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-005', desc: 'Consulta de seguimiento' },
+  { d: -18, monto: 2400, metodo: 'transferencia',  concepto: 'paquete',       pac: 'pac-004', desc: 'Paquete de control anual' },
+]
+
 // ── Traductor a la representación tipada de Firestore ───────────────────────
 /**
  * El REST de Firestore no acepta JSON pelado: cada valor va etiquetado con su
@@ -383,6 +417,27 @@ async function main() {
     })
   }
 
+  // ── Cobros ────────────────────────────────────────────────────────────────
+  for (const [i, c] of COBROS.entries()) {
+    const p = PACIENTES.find(x => x.id === c.pac)
+    const diaCobro = enDias(c.d)
+    await escribir(`clinics/${CLINICA}/cobros/cobro-${String(i + 1).padStart(3, '0')}`, {
+      fecha: `${diaCobro}T12:00:00.000Z`,
+      dia: diaCobro,
+      mes: diaCobro.slice(0, 7),
+      monto: c.monto,
+      metodo: c.metodo,
+      concepto: c.concepto,
+      descripcion: c.desc,
+      patientId: c.pac,
+      patientNombre: p.nombre,
+      medicoId: uid,
+      medicoNombre: 'Dra. Ximena Alcántara Robledo',
+      createdAt: iso(hoy),
+      updatedAt: iso(hoy),
+    })
+  }
+
   /**
    * El uid se deja escrito para el script de capturas.
    *
@@ -404,7 +459,7 @@ async function main() {
     consultorio  ${CLINICA}
     médica       Dra. Ximena Alcántara Robledo (sintética)
     pacientes    ${PACIENTES.length}
-    citas        ${CITAS.length}  (${CITAS.filter(c => !c.dia).length} hoy, ${dia})
+    cobros       ${COBROS.length}\n    citas        ${CITAS.length}  (${CITAS.filter(c => !c.dia).length} hoy, ${dia})
 
     entrar con   ${CORREO} / ${CLAVE}
     la app       npm run arnes:dev   →  http://localhost:3200

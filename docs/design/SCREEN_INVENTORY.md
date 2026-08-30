@@ -61,7 +61,7 @@
 | `/expediente/[patientId]` | medico | ✅ | 964 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 735 | 0 | — | ✅ | — |
-| `/finanzas` | medico | ✅ | 676 | 0 | — | ✅ | — |
+| `/finanzas` | medico | ✅ | 730 | 0 | — | ✅ | — |
 | `/guia` | medico | ✅ | 131 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 286 | 0 | — | ✅ | — |
 | `/membresias` | medico | ✅ | 281 | 0 | — | ✅ | — |
