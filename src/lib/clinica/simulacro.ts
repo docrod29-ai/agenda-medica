@@ -22,7 +22,7 @@
  *
  * Módulo PURO: no lee disco, no mide el reloj. Quien cronometra es el script.
  */
-import { leerLinea, reenraizar, admitir } from '@/lib/clinica/restaurar'
+import { leerLinea, reenraizar, reenraizarPorCampo, admitir } from '@/lib/clinica/restaurar'
 
 export interface ResultadoSimulacro {
   /** Líneas leídas del archivo, sin contar las vacías. */
@@ -38,6 +38,16 @@ export interface ResultadoSimulacro {
   pie: boolean
   /** Colecciones vistas, con cuántos documentos de cada una. */
   porColeccion: Record<string, number>
+  /**
+   * De los restaurables, cuántos son de NIVEL RAÍZ — los que pertenecen al
+   * consultorio por un campo y no por la ruta (`clinic_members` y compañía).
+   *
+   * Se cuentan aparte porque su re-enraizado es distinto —de campo, no de
+   * ruta— y porque son lo que hace que un consultorio restaurado se pueda usar:
+   * un ensayo que los dé por buenos sin haberlos visto no ensaya la parte que
+   * decide si alguien puede entrar.
+   */
+  raiz: number
 }
 
 /**
@@ -50,7 +60,7 @@ export interface ResultadoSimulacro {
 export function simularRestauracion(ndjson: string, clinicIdDestino: string): ResultadoSimulacro {
   const r: ResultadoSimulacro = {
     lineas: 0, restaurables: 0, excluidos: 0, rechazadas: [],
-    cabecera: false, pie: false, porColeccion: {},
+    cabecera: false, pie: false, porColeccion: {}, raiz: 0,
   }
   for (const crudo of ndjson.split('\n')) {
     const l = leerLinea(crudo)
@@ -59,6 +69,27 @@ export function simularRestauracion(ndjson: string, clinicIdDestino: string): Re
     if (l.clase === 'cabecera') { r.cabecera = true; continue }
     if (l.clase === 'pie') { r.pie = true; continue }
     if (l.clase === 'rechazada') { r.rechazadas.push({ porQue: l.porQue, crudo: l.crudo }); continue }
+
+    /**
+     * ── NIVEL RAÍZ (REG-348) ────────────────────────────────────────────────
+     *
+     * Su re-enraizado es por CAMPO, no por ruta. El ensayo lo corría por el
+     * camino del árbol y las daba por «re-enraizado incorrecto», así que un
+     * respaldo sano —el que se lleva `clinic_members` desde REG-343— salía
+     * SUCIO del simulacro. Se ensaya el paso que de verdad puede fallar:
+     * que el campo acabe apuntando al consultorio destino.
+     */
+    if (l.nivel === 'raiz') {
+      const datos = reenraizarPorCampo(l.datos, l.campoClinica, clinicIdDestino)
+      if (datos[l.campoClinica] !== clinicIdDestino) {
+        r.rechazadas.push({ porQue: `re-enraizado por campo incorrecto: ${l.ruta}`, crudo: l.ruta })
+        continue
+      }
+      r.restaurables++
+      r.raiz++
+      r.porColeccion[l.coleccion] = (r.porColeccion[l.coleccion] ?? 0) + 1
+      continue
+    }
 
     const v = admitir(l.coleccion)
     if (!v.escribir) { r.excluidos++; continue }
@@ -106,11 +137,19 @@ export function actaDeSimulacro(r: ResultadoSimulacro, ms: number, fechaISO: str
     `- Cabecera y pie: ${r.cabecera ? '✅' : '❌'} / ${r.pie ? '✅' : '❌'}`,
     `- Líneas rechazadas: ${r.rechazadas.length === 0 ? '0' : `${r.rechazadas.length} → ${r.rechazadas.slice(0, 3).map(x => x.porQue).join(' · ')}`}`,
     `- Por colección: ${cols || '(ninguna)'}`,
+    // Se dice SIEMPRE, también cuando son cero: un respaldo sin ninguna de
+    // éstas devuelve el expediente y a nadie que pueda entrar a verlo, y eso
+    // hay que poder leerlo en el acta sin ir a buscarlo.
+    `- De nivel raíz (lo que ata una cuenta al consultorio): **${r.raiz}**`,
     `- Veredicto: ${ensayoLimpio(r) ? '✅ el respaldo vuelve entero' : '❌ revisar arriba'}`,
     '',
     '> **Qué NO mide esto:** el tiempo de `gcloud firestore databases restore`,',
     '> que es de Google y hay que cronometrarlo en el ensayo con consola. Éste',
     '> mide nuestra mitad: que el archivo vuelve a leerse entero y cuánto tarda.',
+    '>',
+    '> Tampoco mide, de las de nivel raíz, si su identificador ya pertenece a',
+    '> otro consultorio en la base: eso exige leer el destino y lo comprueba la',
+    '> ruta de importación, no este ensayo, que es puro.',
   ].join('\n')
 }
 

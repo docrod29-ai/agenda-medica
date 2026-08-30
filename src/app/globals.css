@@ -953,6 +953,19 @@ tbody tr:last-child { border-bottom: none; }
   z-index: 30;
   margin: 16px 0 0;
 }
+/**
+ * REG-342 — OCULTA, PERO SIN SALIR DEL FLUJO.
+ *
+ * Antes el componente devolvía `null` cuando la zona de cierre entraba en
+ * pantalla, y esta barra —52px + 16 de margen— desaparecía del flujo. La altura
+ * del documento encogía justo cuando el dedo estaba abajo del todo, o sea con
+ * `scrollTop` en su máximo, y WebKit lo recorta: eso se ve como un rebote.
+ *
+ * `visibility: hidden` la saca del árbol de accesibilidad y del orden de
+ * tabulación, pero conserva la caja. La altura no cambia y no hay nada que
+ * recortar.
+ */
+.nx-cierre-al-pulgar--oculto { visibility: hidden; }
 @media (max-width: 768px) {
   .nx-cierre-al-pulgar { display: block; }
 }
@@ -1050,10 +1063,38 @@ tbody tr:last-child { border-bottom: none; }
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  /* Ver «EL ENCADENAMIENTO DE SCROLL» abajo. */
+  overscroll-behavior: none;
 }
+
+/* ── EL ENCADENAMIENTO DE SCROLL (REG-355) ─────────────────────────────────
+   `overscroll-behavior` NO aparecía en ninguna parte de este repositorio, y es
+   una de las dos piezas que explican por qué el rebote es de iPhone y no de
+   Android.
+
+   Cuando un contenedor con scroll llega a su tope, el navegador **encadena** el
+   gesto al ancestro: en WebKit eso produce el rebote elástico del documento y,
+   con el shell a `100dvh; overflow:hidden`, un tirón que devuelve la vista sin
+   que nadie lo haya pedido. Basta con seguir arrastrando dentro de la nota
+   después del final.
+
+   `contain` corta la cadena sin quitarle al usuario el rebote DENTRO de su
+   contenedor —que es la señal táctil de «aquí se acabó»—; `none` en el shell
+   quita además el rebote del documento entero, que ahí no significa nada porque
+   el shell no scrollea.
+
+   La otra pieza es `overflow-anchor`, que WebKit no implementa y que por tanto
+   no se puede arreglar desde el CSS: ésa se compensa en JS
+   (`lib/ui/el-dedo-manda.ts`).
+
+   NO ESTÁ VERIFICADO EN UN DISPOSITIVO. Sólo hay Chromium en el entorno, así
+   que esto es la corrección razonada de un mecanismo conocido, no una
+   observación. Ver WS-05 en el tablero. */
+main { overscroll-behavior-y: contain; }
+
 /* Dentro del shell con tope, el riel/menú lateral necesita su propio scroll
    cuando el contenido exceda el viewport (antes crecía con el documento). */
-.sidebar { overflow-y: auto; }
+.sidebar { overflow-y: auto; overscroll-behavior: contain; }
 
 /* Pantalla-LIENZO (V15-MOBILE-001, 6ª rebanada, §22/§23): una pantalla
    app-like (hoy: /chat) que llena EXACTO el espacio visible y desplaza su

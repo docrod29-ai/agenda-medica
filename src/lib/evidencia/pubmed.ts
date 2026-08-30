@@ -11,6 +11,15 @@
  * https://www.ncbi.nlm.nih.gov/account/) sube a ~10 req/s.
  */
 
+import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
+import { permiteLlamar, anotarVeredicto } from '@/lib/red/interruptor'
+import {
+  claveCircuitoEvidencia, veredictoDeRespuestaEvidencia, veredictoDeExcepcionEvidencia,
+  FuenteNoConsultada,
+} from '@/lib/evidencia/fallo-del-proveedor'
+
+import { licenciaDePmc } from '@/lib/evidencia/licencia-pmc'
+
 const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
 const API_KEY = process.env.NCBI_API_KEY ?? ''
 
@@ -18,6 +27,19 @@ export interface ArticuloPubMed {
   pmid: string
   titulo: string
   revista: string
+  /**
+   * Abreviatura ISO de la revista, si PubMed la dio. `undefined` = no la dio,
+   * **no** «no tiene».
+   */
+  revistaAbrev?: string
+  /**
+   * Las partes del resumen estructurado con su etiqueta original (REG-400).
+   *
+   * Ausente = el resumen no venía estructurado. Sirve para saber de qué parte
+   * del artículo sale una cita: los antecedentes de un estudio no son sus
+   * hallazgos. Ver `de-donde-sale-el-pasaje.ts`.
+   */
+  secciones?: { etiqueta: string; texto: string }[]
   anio: string
   resumen: string
   url: string
@@ -47,25 +69,122 @@ let _ultima = 0
 let _cola: Promise<unknown> = Promise.resolve()
 function ncbiFetch(url: string, signal?: AbortSignal): Promise<Response> {
   const p = _cola.then(async () => {
+    /**
+     * REG-391 · el interruptor, y un tiempo máximo aunque nadie pase `signal`.
+     *
+     * Dos defectos vivían aquí. Uno: `expediente/evidencia` llama sin `signal`,
+     * así que un socket colgado de NCBI inmovilizaba una función de 300 s. Dos:
+     * sin interruptor, cada búsqueda de cada médico volvía a pagar esa espera
+     * entera contra un índice que llevaba minutos sin contestar.
+     *
+     * Al abrirse el circuito se LANZA (no se devuelve vacío): el `catch` de
+     * quien llama marca el testigo, y el testigo es lo que separa «no hay
+     * artículos» de «no se pudo preguntar».
+     */
+    const clave = claveCircuitoEvidencia('ncbi')
+    if (!permiteLlamar(clave).pasa) throw new FuenteNoConsultada('PubMed')
     const espera = Math.max(0, MIN_GAP_MS - (Date.now() - _ultima))
     if (espera) await new Promise(r => setTimeout(r, espera))
     _ultima = Date.now()
-    return fetch(url, { signal })
+    try {
+      const r = await fetchConTimeout(url, { signal }, TIMEOUT.evidencia)
+      anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuestaEvidencia(r.status))
+      return r
+    } catch (e) {
+      anotarVeredicto(clave, veredictoDeExcepcionEvidencia(e))
+      throw e
+    }
   })
   _cola = p.then(() => undefined, () => undefined)   // la cola nunca se rompe por un error
   return p
 }
 
-// Jerarquía de evidencia: menor rank = mayor peso (flota arriba en los resultados).
-const RANK: Record<string, number> = { 'Meta-análisis': 0, 'Guía': 1, 'ECA': 2, 'Revisión': 3, '': 4 }
+/**
+ * LA ETIQUETA DICE LO QUE DIJO PUBMED, NI UNA PALABRA MÁS (REG-401).
+ *
+ * ── QUÉ DECÍA DE MÁS ────────────────────────────────────────────────────────
+ *
+ * El clasificador **colapsaba dos pares de diseños distintos**:
+ *
+ *   · `meta-analysis` y `systematic review` salían los dos como «Meta-análisis».
+ *     Una revisión sistemática sin metaanálisis no combina resultados: los
+ *     resume. No es lo mismo.
+ *   · `randomized controlled trial` y `clinical trial` a secas salían los dos
+ *     como «ECA». El tipo `Clinical Trial` de PubMed incluye ensayos **no
+ *     aleatorizados** —fase I, de un solo brazo—, y llamarlos ECA es afirmar un
+ *     diseño que la fuente no afirmó.
+ *
+ * ── POR QUÉ IMPORTA, Y DÓNDE LLEGABA ────────────────────────────────────────
+ *
+ * El repositorio ya sabía que esta etiqueta colapsa: `desde-pubmed.ts` se niega
+ * en redondo a traducirla a `DisenoDeEstudio` —«traducir esas cubetas
+ * inventaría un dato metodológico que la fuente no dio»— y tiene su caso en
+ * `evidence-model.test.ts`.
+ *
+ * Pero esa defensa está en el borde del MODELO, y la etiqueta se consume en
+ * otros dos sitios que no pasan por ahí: el prompt del consultor la mete como
+ * `[ECA]` delante del resumen, y `articulosMin` la manda a la pantalla del
+ * médico. O sea: se decidió que el dato no era de fiar y se seguía entregando a
+ * las dos personas que deciden con él.
+ *
+ * ── LO QUE **NO** SE TOCA: EL ORDEN ─────────────────────────────────────────
+ *
+ * Los rangos de los diseños recién separados son **los mismos** que tenían
+ * cuando iban juntos. Cambiar el orden sería inventar una jerarquía
+ * metodológica nueva, que es exactamente lo que `seleccion.ts` se prohíbe a sí
+ * mismo y lo que la regla 1 llama inventar una cifra clínica.
+ *
+ * Aquí cambia **lo que se dice**, no lo que se prefiere.
+ */
+const RANK: Record<string, number> = {
+  'Meta-análisis': 0,
+  /* Mismo rango que el metaanálisis: es donde estaba antes de separarse. */
+  'Revisión sistemática': 0,
+  'Guía': 1,
+  'ECA': 2,
+  /* Mismo rango que el ECA, por lo mismo. */
+  'Ensayo clínico': 2,
+  'Revisión': 3,
+  '': 4,
+}
+
 function tipoDeEstudio(bloque: string): string {
   const tipos = [...bloque.matchAll(/<PublicationType[^>]*>([\s\S]*?)<\/PublicationType>/gi)].map(m => desescapar(m[1]).toLowerCase())
-  if (tipos.some(t => t.includes('meta-analysis') || t.includes('systematic review'))) return 'Meta-análisis'
+  /* El orden importa: un artículo puede traer varios tipos, y se responde con
+     el más específico que PubMed haya declarado. */
+  if (tipos.some(t => t.includes('meta-analysis'))) return 'Meta-análisis'
+  if (tipos.some(t => t.includes('systematic review'))) return 'Revisión sistemática'
   if (tipos.some(t => t.includes('guideline'))) return 'Guía'
-  if (tipos.some(t => t.includes('randomized controlled trial') || t.includes('clinical trial'))) return 'ECA'
+  if (tipos.some(t => t.includes('randomized controlled trial'))) return 'ECA'
+  /* `Clinical Trial` incluye NO aleatorizados. Se dice así, no «ECA». */
+  if (tipos.some(t => t.includes('clinical trial'))) return 'Ensayo clínico'
   if (tipos.some(t => t.includes('review'))) return 'Revisión'
   return ''
 }
+
+/**
+ * Qué NO se sabe de un diseño con esta etiqueta, para poder decirlo.
+ *
+ * «Ensayo clínico» a secas es el caso que importa: la etiqueta es correcta y
+ * aun así el lector puede dar por hecha una aleatorización que nadie declaró.
+ */
+export const LO_QUE_LA_ETIQUETA_NO_DICE: Readonly<Record<string, string>> = Object.freeze({
+  'Ensayo clínico': 'PubMed no lo declaró aleatorizado: puede ser de un solo brazo o de fase temprana.',
+  'Revisión sistemática': 'Revisión sistemática sin metaanálisis declarado: resume los estudios, no combina sus resultados.',
+  'Revisión': 'Revisión no sistemática: no declara método de búsqueda ni de selección.',
+})
+
+export const POR_QUE_NO_CAMBIA_EL_ORDEN =
+  'Los diseños recién separados conservan el rango que tenían cuando iban ' +
+  'juntos. Cambiarlo sería inventar una jerarquía metodológica nueva — lo mismo ' +
+  'que `seleccion.ts` se prohíbe a sí mismo, y lo que la regla 1 llama inventar ' +
+  'una cifra clínica. Aquí cambia lo que se DICE, no lo que se prefiere.'
+
+export const LA_REVISTA_NO_ORDENA =
+  'Ni el nombre de la revista, ni su abreviatura, ni su DOI entran en el orden ' +
+  'de los artículos. Un ensayo bien hecho en una revista pequeña no vale menos ' +
+  'que un reporte de caso en una grande, y desde REG-398 la identidad de la ' +
+  'revista está a mano — que es justo cuando conviene que haya un guardián.'
 
 /** Decodifica entidades XML/HTML básicas de los textos de PubMed. */
 function desescapar(s: string): string {
@@ -129,11 +248,46 @@ async function efetchArts(ids: string[], signal?: AbortSignal, testigo?: Testigo
   for (const b of bloques) {
     const pmid = extraerTag(b, 'PMID')
     const titulo = extraerTag(b, 'ArticleTitle')
+    /**
+     * LAS DOS FORMAS DEL NOMBRE, no una (REG-398).
+     *
+     * Aquí había `Title || ISOAbbreviation`: se quedaba con la que hubiera y
+     * tiraba la otra. Son datos distintos y con usos distintos — una lista se
+     * lee mejor con el nombre entero y una CITA se escribe con la abreviatura
+     * ISO— y el que se tiraba no se podía recuperar sin volver a preguntar.
+     */
     const revista = extraerTag(b, 'Title') || extraerTag(b, 'ISOAbbreviation')
+    const revistaAbrev = extraerTag(b, 'ISOAbbreviation') || undefined
     const anio = extraerTag(b, 'Year')
-    const partes = [...b.matchAll(/<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/gi)].map(m => desescapar(m[1]))
+    /**
+     * LA ETIQUETA DE LA SECCIÓN, QUE SE TIRABA (REG-400).
+     *
+     * `<AbstractText[^>]*>` se comía el atributo `Label`, así que un resumen
+     * estructurado —«BACKGROUND: …», «RESULTS: …»— se unía en un texto plano y
+     * la sección se perdía. Con ella se puede saber si una cita sale de los
+     * hallazgos del estudio o de lo que se creía ANTES de hacerlo, que es la
+     * forma más común de citar fuera de contexto.
+     *
+     * `resumen` sigue siendo exactamente lo que era: es lo que se le enseña al
+     * modelo y contra lo que se ancla la cita, y cambiarlo desalinearía el
+     * anclaje de REG-359.
+     */
+    const trozos = [...b.matchAll(/<AbstractText([^>]*)>([\s\S]*?)<\/AbstractText>/gi)]
+      .map(m => ({
+        etiqueta: desescapar(/\bLabel="([^"]*)"/i.exec(m[1])?.[1] ?? '').trim(),
+        texto: desescapar(m[2]),
+      }))
+    const partes = trozos.map(t => t.texto)
     const resumen = partes.join(' ').slice(0, 1200)
-    if (pmid && titulo) arts.push({ pmid, titulo, revista, anio, resumen, tipo: tipoDeEstudio(b), doi: extraerDoi(b), url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` })
+    /* Sólo las que tienen etiqueta: un resumen sin estructura no tiene secciones
+       que declarar, y fabricar una sería inventar la procedencia. */
+    const secciones = trozos.filter(t => t.etiqueta)
+    if (pmid && titulo) arts.push({
+      pmid, titulo, revista, revistaAbrev, anio, resumen,
+      ...(secciones.length ? { secciones } : {}),
+      tipo: tipoDeEstudio(b), doi: extraerDoi(b),
+      url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+    })
   }
   // Reordena por jerarquía de evidencia (meta-análisis/guías arriba), conservando
   // el orden de relevancia de PubMed dentro de cada nivel.
@@ -157,17 +311,64 @@ export async function buscarEvidencia(
 }
 
 /**
- * Texto completo de PMC (solo artículos de ACCESO ABIERTO — legal). Para los
- * PMIDs dados, mapea a PMCID (elink) y trae el full-text XML (efetch db=pmc);
- * extrae los párrafos CUANTITATIVOS (con IC95%/HR/RR/OR/p/NNT/%) para razonar
- * sobre cifras reales, no solo el resumen. Devuelve { pmid: extracto }. Los que
- * no están en OA (paywall) simplemente no aparecen — nunca lanza.
+ * Texto completo de PMC. Para los PMIDs dados, mapea a PMCID (elink) y trae el
+ * full-text XML (efetch db=pmc); extrae los párrafos CUANTITATIVOS (con
+ * IC95%/HR/RR/OR/p/NNT/%) para razonar sobre cifras reales, no sólo el resumen.
+ * Devuelve `{ pmid: extracto }`. Nunca lanza.
+ *
+ * ── LA LICENCIA SE LEE POR ARTÍCULO (REG-357) ───────────────────────────────
+ *
+ * Aquí decía «solo artículos de ACCESO ABIERTO — legal», y es una media verdad
+ * peligrosa: el subconjunto Open Access de PMC **mezcla licencias**. Conviven
+ * CC0 y CC-BY —que permiten reproducir— con CC-BY-NC-ND y con «OA no
+ * comercial», que no. «Acceso abierto» dice que se puede LEER; no dice que se
+ * pueda COPIAR dentro de un producto de pago, que es lo que hace esta función.
+ *
+ * El catálogo del repositorio ya lo tenía diagnosticado y sin arreglar.
+ *
+ * Ahora se lee la licencia del propio XML y se **falla cerrado**: sin permiso
+ * explícito, no se reproduce. **No se pierde nada clínico** — se cae al resumen,
+ * que es exactamente lo que ya pasaba con los artículos de pago.
  */
 export async function textoCompletoPMC(
   pmids: string[],
   opts: { signal?: AbortSignal } = {},
 ): Promise<Record<string, string>> {
-  const out: Record<string, string> = {}
+  const r = await textoCompletoPMCConIdentidad(pmids, opts)
+  return r.textos
+}
+
+/**
+ * LO MISMO, PERO SIN TIRAR LO QUE YA SE AVERIGUÓ (WS-07, REG-398).
+ *
+ * `textoCompletoPMC` resolvía el **PMCID** y leía la **licencia** —los dos datos
+ * que dicen si el texto completo existe y si se puede reproducir— y devolvía
+ * sólo el texto. Los dos se perdían en la misma función que los calculó.
+ *
+ * Con eso, el sistema no podía distinguir tres cosas muy distintas:
+ *
+ *  · «este artículo sólo tiene resumen»;
+ *  · «tiene texto completo abierto y no se pidió»;
+ *  · «tiene texto completo y la licencia no deja reproducirlo».
+ *
+ * Las tres se veían igual: sin texto. Y la tercera es justamente la que hay que
+ * poder explicar.
+ *
+ * `accesoAbierto` se pone en `true` **sólo** cuando la licencia lo dice. Tener
+ * PMCID no lo implica: el subconjunto de PMC mezcla licencias, y suponerlo
+ * llevaría a reproducir lo que no se puede.
+ */
+export interface IdentidadPMC {
+  pmcid?: string
+  accesoAbierto?: boolean
+}
+
+export async function textoCompletoPMCConIdentidad(
+  pmids: string[],
+  opts: { signal?: AbortSignal } = {},
+): Promise<{ textos: Record<string, string>; identidad: Record<string, IdentidadPMC> }> {
+  const textos: Record<string, string> = {}
+  const identidad: Record<string, IdentidadPMC> = {}
   await Promise.all(pmids.slice(0, 3).map(async pmid => {
     try {
       const el = await ncbiFetch(conKey(`${EUTILS}/elink.fcgi?dbfrom=pubmed&db=pmc&retmode=json&id=${pmid}`), opts.signal)
@@ -176,16 +377,28 @@ export async function textoCompletoPMC(
       const dbs = ej?.linksets?.[0]?.linksetdbs ?? []
       const pmcid = dbs.flatMap((l: { links?: string[] }) => l.links ?? [])[0]
       if (!pmcid) return
+      /* Existe en PMC. Eso ya es un dato, aunque el texto no se pueda usar. */
+      identidad[pmid] = { pmcid: `PMC${String(pmcid).replace(/^PMC/i, '')}` }
       const fx = await ncbiFetch(conKey(`${EUTILS}/efetch.fcgi?db=pmc&id=${pmcid}&rettype=xml`), opts.signal)
       if (!fx.ok) return
       const xml = await fx.text()
+      /**
+       * ANTES de extraer una sola línea. Extraer y luego decidir dejaría el
+       * texto en memoria y a un `return` de distancia de acabar en un prompt.
+       */
+      const licencia = licenciaDePmc(xml)
+      /* Sólo se afirma el acceso abierto cuando la licencia lo permite; si no,
+         se deja SIN DECIR — no se escribe `false`, que sería afirmar lo
+         contrario sin haberlo comprobado. */
+      if (licencia.puede) identidad[pmid] = { ...identidad[pmid], accesoAbierto: true }
+      if (!licencia.puede) return
       const parrafos = [...xml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map(m => desescapar(m[1])).filter(Boolean)
       const cuant = parrafos.filter(p => /(\d{1,3}(\.\d+)?\s*%|\bCI\b|95%|\bHR\b|\bRR\b|\bOR\b|\bp\s*[=<]|\bNNT\b|hazard|confidence interval)/i.test(p))
       const texto = (cuant.length ? cuant : parrafos).join(' ').replace(/\s+/g, ' ').slice(0, 1600)
-      if (texto.trim().length > 120) out[pmid] = texto
+      if (texto.trim().length > 120) textos[pmid] = texto
     } catch { /* no OA / timeout: se queda con el resumen */ }
   }))
-  return out
+  return { textos, identidad }
 }
 
 // Filtro de evidencia de ALTA calidad (meta-análisis, revisiones sistemáticas, ECA, guías).

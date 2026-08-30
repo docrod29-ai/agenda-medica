@@ -61,6 +61,12 @@ export type ClaseCosto =
 export interface EventoCosto {
   /** Identificador de la petición, para poder cruzar con los logs. */
   requestId: string
+  /**
+   * La traza que viene del navegador del médico (WS-13). NO es `requestId`: éste
+   * lleva el proveedor pegado porque cada intento se cobra aparte, y una traza
+   * necesita ser la MISMA de punta a punta. Opaca por forma: sin uid ni PHI.
+   */
+  correlacion?: string
   clinicId: string | null
   /** uid del médico. Nunca el nombre. */
   uid: string | null
@@ -88,6 +94,8 @@ export interface EventoCosto {
 
 export interface EntradaLedger {
   requestId: string
+  /** La traza del navegador (WS-13). Ver `EventoCosto.correlacion`. */
+  correlacion?: string
   clinicId: string | null
   uid: string | null
   feature: string
@@ -134,6 +142,9 @@ export function asiento(e: EntradaLedger): EventoCosto {
   const c = costoUsd(e.modelo, e.uso, e.ts)
   return {
     requestId: e.requestId,
+    /* Si no se copia aquí, el asiento se escribe sin traza y todo lo anterior no
+       sirve de nada: es el paso donde este dato se pierde. */
+    ...(e.correlacion ? { correlacion: e.correlacion } : {}),
     clinicId: e.clinicId,
     uid: e.uid,
     feature: e.feature,

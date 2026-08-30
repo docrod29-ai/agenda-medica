@@ -99,10 +99,32 @@ describe('RTC-17 — el color no es el único canal', () => {
     expect(cerrada).toMatch(/^Etapa \d+ de 8$/)
   })
 
-  it('6 · el cálculo de las etapas no se tocó: sigue sin inventar las tres sin dato', () => {
-    const etapas = progresoResultado({ estado: 'completada', ownerUid: 'u1' })
-    const sinDato = etapas.filter(e => e.estado === 'sin_dato')
-    expect(sinDato.map(e => e.clave)).toEqual(['decision', 'accion', 'aviso_paciente'])
-    for (const e of sinDato) expect(e.motivoSinDato, `${e.clave} sin motivo`).toBeTruthy()
+  it('6 · las tres etapas del cierre NO se deducen del estado (REG-360)', () => {
+    /**
+     * ── POR QUÉ CAMBIÓ ESTA ASERCIÓN ────────────────────────────────────────
+     *
+     * Decía «sigue sin inventar las tres sin dato», y comprobaba que DECISION,
+     * ACTION y PATIENT COMMUNICATION salieran SIEMPRE `sin_dato` — porque no
+     * tenían dónde vivir.
+     *
+     * Ya lo tienen (`TareaClinica.cierre`). Lo que esta prueba sigue vigilando,
+     * que es lo que de verdad importaba, es que **nada se deduzca de `estado ===
+     * "cerrada"`**: cerrada sin registrar sigue diciendo `sin_dato`.
+     */
+    const sinRegistrar = progresoResultado({ estado: 'cerrada', ownerUid: 'uid-1' })
+    const claves = ['decision', 'accion', 'aviso_paciente']
+    expect(
+      sinRegistrar.filter(e => claves.includes(e.clave) && e.estado === 'sin_dato').map(e => e.clave),
+      'cerrar no puede acreditar que se avisó al paciente',
+    ).toEqual(claves)
+
+    const registrado = progresoResultado({
+      estado: 'cerrada', ownerUid: 'uid-1',
+      cierre: {
+        decision: 'Se repite en 3 meses', avisoAlPaciente: 'avisado',
+        quien: 'uid-1', cuando: '2026-08-29T10:00:00.000Z',
+      },
+    })
+    expect(registrado.find(e => e.clave === 'aviso_paciente')?.estado).toBe('hecha')
   })
 })

@@ -24,13 +24,43 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
 // Baseline V15 = 29. Product cores are intentionally built/tested before their
 // UI/provider integration. They are explicit, temporary islands for active slices
 // rather than silently raising the guard without a named reason.
-const FUERA_DEL_CAMINO_HOY = 32
+const FUERA_DEL_CAMINO_HOY = 33
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',
   'src/lib/compliance/country-profiles.ts': 'lo importa compliance/policy.ts, que ya está declarado huérfano',
   'src/lib/uci/benchmark-metricas.ts': 'lo importa uci/benchmark.ts, que ya está declarado huérfano',
-  'src/lib/clinical-truth/index.ts': 'DOCUMENTATION ENGINE: núcleo Clinical Truth probado antes de conectarlo al renderer/flujo; debe salir de esta lista al integrar el slice.',
+  /**
+   * `clinical-truth/index.ts` SALIÓ de esta lista, y ésa era su instrucción: su
+   * propia entrada decía «debe salir al integrar el slice». Ya se integró — el
+   * grafo lo alcanza desde la app— así que dejarlo aquí declararía isla algo que
+   * ya está en el camino, y el conteo de este trinquete dejaría de significar lo
+   * que dice.
+   */
   'src/lib/voice-engine/index.ts': 'VOICE ENGINE: contrato provider-neutral probado antes de conectar captura/proveedor/UI; debe salir de esta lista al integrar el slice.',
+  /**
+   * REG-390. No es código que corra en el camino del médico: es la POLÍTICA de
+   * qué operación puede diferirse y cuál no, escrita para que su guardián la
+   * vigile. Su consumidor es ese guardián, y vive en el CI por definición —
+   * exactamente como el censo del programa (REG-382).
+   */
+  'src/lib/ops/lo-sincrono-y-lo-encolado.ts': 'POLÍTICA de desacoplamiento: la consume su guardián en el CI, no una pantalla. Pintarla no la conectaría a nada.',
+  /**
+   * REG-382. El censo del programa: su lector es el guardián que lo sella. Igual
+   * que la política de arriba, vive en el CI por definición — y por la misma
+   * razón, que es la que lo hizo existir: lo que sólo se mira en una pantalla se
+   * deja de mirar.
+   */
+  'src/lib/programa/requisitos.ts': 'CENSO del programa: lo consume el guardián que lo sella, en el CI. Una pantalla que lo pintara sería una pantalla que alguien deja de mirar.',
+  /**
+   * TR-VOZ. Mide una transcripción CONTRA SU GOLD, y en una consulta de verdad
+   * no hay gold: si lo hubiera, no haría falta transcribir. Es evaluación, y la
+   * evaluación no corre en el camino del médico por definición — la misma razón
+   * por la que `uci/benchmark-metricas.ts` está tres líneas más arriba.
+   *
+   * Su consumidor real es `scripts/medir-wer-limpio.ts`, que necesita el corpus
+   * de 6 000 audios y por eso no vive en el CI.
+   */
+  'src/lib/asr/lo-que-pesa-de-un-error.ts': 'EVALUACIÓN de voz: compara contra un gold, y en consulta no hay gold. Lo consume scripts/medir-wer-limpio.ts, que necesita el corpus del dueño.',
 }
 
 describe('el camino del médico llega entero', () => {

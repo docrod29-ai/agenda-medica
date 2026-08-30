@@ -1,0 +1,7 @@
+{
+  "porQue": "Las reglas NO se despliegan con `vercel --prod`. Este archivo recuerda cuáles se confirmaron desplegadas, para que el repositorio pueda DERIVAR si las de hoy ya rigen en producción en vez de depender de que alguien se acuerde. Ver docs/ops/REGLAS-DE-FIRESTORE.md.",
+  "hashDesplegado": "",
+  "confirmadoEl": "",
+  "confirmadoPor": "",
+  "comoSeActualiza": "SÓLO después de correr `npx firebase deploy --only firestore:rules --project nexomed-agenda` y ver que terminó bien: se pega el sha256 de firestore.rules, la fecha y quién lo corrió. Nunca se actualiza para poner una prueba en verde: eso convertiría el registro en una mentira sobre lo que rige en producción."
+}

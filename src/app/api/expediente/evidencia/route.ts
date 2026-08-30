@@ -23,6 +23,12 @@ import { esFundador } from '@/lib/authz/fundador'
 import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubmed'
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
+import { declararFuentesNoConsultadas } from '@/lib/evidencia/lo-que-no-se-consulto'
+import { aplicabilidadDesdeResumen, comoSeDiceLaAplicabilidad } from '@/lib/evidencia/aplicabilidad'
+import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
+import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
+import type { Diagnostico } from '@/types/expediente'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 /**
@@ -95,7 +101,7 @@ export async function POST(req: NextRequest) {
   if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (revisa Configuración → Llaves de IA).' }, { status: 503 })
 
   let body: {
-    diagnosticos?: { descripcion?: string }[]
+    diagnosticos?: { descripcion?: string; tipo?: string }[]
     medicamentos?: { nombre?: string }[]
     motivo?: string
     resumen?: string
@@ -104,10 +110,36 @@ export async function POST(req: NextRequest) {
   }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
-  const dx = (body.diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[]
+  /**
+   * ── EL PROMPT NO PUEDE LLAMAR DIAGNÓSTICO A UNA SOSPECHA (REG-364) ────────
+   *
+   * `dx` se aplanaba a la descripción, así que lo que el médico había
+   * DESCARTADO viajaba en la línea «DIAGNÓSTICOS: …» exactamente igual que un
+   * confirmado, y el modelo razonaba sobre una enfermedad que el paciente no
+   * tiene. `SUGERIDO ≠ CONFIRMADO` también cuando el lector es un modelo.
+   *
+   * `presuntivo` NO se etiqueta, y el porqué está en `nombreConCerteza`: es el
+   * valor de fábrica del esquema, así que etiquetarlo le diría al modelo que
+   * hay una duda que nadie expresó — en casi todos los renglones (REG-365).
+   *
+   * Las CONSULTAS de PubMed se construyen con el término a secas: «(presuntivo)»
+   * dentro de una búsqueda MeSH no la afina, la rompe.
+   */
+  const dxDet = (body.diagnosticos ?? [])
+    .map(d => ({ texto: String(d?.descripcion ?? '').trim(), tipo: d?.tipo as Diagnostico['tipo'] | undefined }))
+    .filter(d => d.texto)
+  const dx = dxDet.map(d => d.texto)
+  /** Los mismos, dichos con su grado de certeza, para el mensaje al modelo. */
+  const dxParaElModelo = dxDet.map(d => nombreConCerteza({ descripcion: d.texto, tipo: d.tipo }))
   const meds = (body.medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[]
   const motivo = (body.motivo ?? '').trim()   // MOTIVO DE CONSULTA = problema activo que se atiende HOY
   const resumen = (body.resumen ?? '').trim()
+  /**
+   * El texto con el que se ORDENAN los proveedores al declarar cuáles no se
+   * consultaron (REG-356). No decide qué se consulta —eso lo decide qué está
+   * operativo—, sólo la intención clínica para ordenar la lista.
+   */
+  const consultaParaDeclarar = [motivo, ...dx].filter(Boolean).join(' ') || 'consulta clínica'
   if (dx.length === 0 && meds.length === 0 && resumen.length < 8 && motivo.length < 4) {
     return NextResponse.json({ ok: false, error: 'La nota no tiene diagnóstico, tratamiento ni resumen para analizar todavía.' }, { status: 400 })
   }
@@ -147,6 +179,7 @@ export async function POST(req: NextRequest) {
         {
           feature: 'evidencia-consultas',
           requestId: req.headers.get('x-vercel-id') || `evq-${uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
           clinicId: clinicId ?? null, uid,
           creditos: 0, fuente,
           esFundador: esFundador(email, process.env.SUPERADMIN_EMAILS),
@@ -204,6 +237,31 @@ export async function POST(req: NextRequest) {
   const ctx = body.contexto ?? {}
   const alergias = Array.isArray(ctx.alergias) ? (ctx.alergias as string[]).join(', ') : (ctx.alergias ?? 'no referidas')
 
+  /**
+   * ── ¿ESTE ARTÍCULO APLICA A ESTE PACIENTE? (WS-09) ────────────────────────
+   *
+   * Hasta aquí la adaptación al paciente era **sólo por prompt**: se le pedía al
+   * modelo «personaliza por edad, comorbilidades y alergias» y se confiaba. Un
+   * ensayo hecho en adultos de 18 a 65 se le enseñaba igual al médico con un
+   * paciente de 82 delante.
+   *
+   * Ahora cada artículo pasa por una compuerta **determinista** que sólo lee lo
+   * que sabe leer y **cuenta lo que no**. Su veredicto máximo es «nada lo
+   * excluye», nunca «aplica»: el motor no ha leído los criterios del estudio,
+   * ha reconocido frases en un resumen, y la frase que sale lo dice.
+   *
+   * No filtra ni reordena los artículos. La aplicabilidad se ANOTA; quitar de la
+   * vista un artículo porque un patrón no casó sería peor que no tener esto.
+   */
+  const estadoDelPaciente = {
+    ...(typeof ctx.edad === 'number' ? { edadEnAnios: ctx.edad } : {}),
+    ...(Array.isArray(ctx.alergias) ? { alergenos: ctx.alergias as string[] } : {}),
+  }
+  const aplicabilidadPorArticulo = articulos.map(a => {
+    const r = aplicabilidadDesdeResumen(a.resumen ?? '', estadoDelPaciente)
+    return { pmid: a.pmid, veredicto: r.veredicto, frase: comoSeDiceLaAplicabilidad(r), porQue: r.porQue }
+  })
+
   const hayEvidencia = articulos.length > 0
   const fuentesTxt = hayEvidencia
     ? articulos.map((a, i) => `[${i + 1}] PMID ${a.pmid} · ${a.revista} ${a.anio}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
@@ -224,9 +282,21 @@ export async function POST(req: NextRequest) {
     '(2) Apóyate en evidencia INTERNACIONAL de alto nivel (Cochrane, meta-análisis, RCT, guías IDSA/ESCMID/AUA/EAU/ADA según el tema). NO cites GPC de CENETEC ni NOM mexicanas. Si no hay artículos, razona con tu conocimiento del consenso internacional, siendo honesto sobre el nivel de certeza.',
     '(3) Piensa como subespecialista: evalúa la idoneidad del tratamiento (fármaco/dosis/vía/duración), interacciones y contraindicaciones (alergias/edad/función orgánica), alternativas mejores, y el diagnóstico diferencial — todo centrado en el MOTIVO principal.',
     '(4) Concreto y clínico, sin relleno.',
-    'Responde SOLO JSON válido: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n]}],"diferencial":[{"dx":"...","razon":"...","citas":[n]}]}. "citas" es un arreglo (posiblemente vacío) de números [n] de la lista. Da al menos 2-3 puntos de evaluación y, cuando aplique, alternativas y diferenciales.',
+    /**
+     * REG-359 — SE PIDE EL PASAJE LITERAL, NO SÓLO EL NÚMERO.
+     *
+     * Antes bastaba `citas:[n]` y lo único que se comprobaba era que `n`
+     * estuviera en rango: un `[2]` que apuntara a un artículo que dice lo
+     * contrario pasaba, con la apariencia de estar respaldado. Sin el trozo de
+     * texto que respalda la frase no hay NADA que verificar.
+     *
+     * Y pedirlo cambia lo que el modelo hace: obligarle a copiar la frase que lo
+     * respalda es la forma más barata que existe de que no invente el respaldo.
+     */
+    'Responde SOLO JSON válido: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n],"pasajes":["cita textual del resumen n"]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n],"pasajes":["..."]}],"diferencial":[{"dx":"...","razon":"...","citas":[n],"pasajes":["..."]}]}. Da al menos 2-3 puntos de evaluación y, cuando aplique, alternativas y diferenciales.',
+    '(5) "citas" y "pasajes" van EMPAREJADOS y del mismo largo: por cada [n] que cites, copia en "pasajes" —LITERAL, palabra por palabra, del texto que se te dio— la frase de ESE artículo que respalda lo que afirmas. No parafrasees el pasaje ni lo traduzcas: se comprueba carácter a carácter contra el original. Si una afirmación tuya no tiene una frase literal que la respalde, deja "citas" y "pasajes" VACÍOS en vez de citar de más — decirlo sin cita es honesto; citar algo que no lo dice, no.',
   ].join('\n')
-  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dx.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
+  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dxParaElModelo.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
 
   const conThinking = false   // NUNCA razonamiento extendido aquí (causaba timeouts de 40s)
   type Parsed = Record<string, unknown>
@@ -276,6 +346,7 @@ export async function POST(req: NextRequest) {
         {
           feature: 'evidencia',
           requestId: req.headers.get('x-vercel-id') || `ev-${uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
           clinicId: clinicId ?? null, uid,
           creditos: COSTO_CREDITOS.evidencia, fuente,
           esFundador: esFundador(email, process.env.SUPERADMIN_EMAILS),
@@ -312,12 +383,71 @@ export async function POST(req: NextRequest) {
       const queHacer = esReloj
         ? 'Fue el proveedor, no tu cuenta: vuelve a pulsar «actualizar». Las fuentes de abajo son reales y sirven igual.'
         : 'Revisa tu llave/créditos en Configuración → Llaves de IA.'
-      return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se obtuvo el razonamiento — ${motivo}. ${queHacer}` })
+      const sinRazonamiento = await declararFuentesNoConsultadas(consultaParaDeclarar, ['pubmed'])
+      return NextResponse.json({
+        ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [],
+        // Aunque el razonamiento no salga, las fuentes que no se miraron siguen
+        // sin mirarse: callarlo aquí sería el mismo defecto por otro camino.
+        _fuentesNoConsultadas: sinRazonamiento.noConsultados,
+        _aviso: [`No se obtuvo el razonamiento — ${motivo}. ${queHacer}`, ...sinRazonamiento.avisos].join(' '),
+      })
     }
 
     void registrarUso(clinicId, fuente)
     void registrarCreditos(clinicId, COSTO_CREDITOS.evidencia)
     const avisos: string[] = []
+    /**
+     * ── LO QUE NO SE CONSULTÓ, DICHO (REG-356) ────────────────────────────
+     *
+     * Esta ruta consulta **sólo PubMed** y no lo decía. El médico veía artículos
+     * y razonamiento sin forma de saber que UpToDate, Cochrane y las guías ni se
+     * miraron: un consultor que sólo enseña lo que SÍ encontró se lee como si
+     * hubiera mirado en todas partes.
+     *
+     * La maquinaria ya existía y estaba probada —la usa `/api/consultor-evidencia`
+     * desde REG-345—; esta ruta no la tenía cableada. Ninguno de esos adaptadores
+     * sale a la red: sólo declaran.
+     */
+    const declaradas = await declararFuentesNoConsultadas(consultaParaDeclarar, ['pubmed'])
+    avisos.push(...declaradas.avisos)
+
+    /**
+     * ── ¿LO QUE DICE ESTÁ DE VERDAD EN EL ARTÍCULO QUE CITA? (REG-359) ─────
+     *
+     * Hasta aquí lo único que se comprobaba de una cita era que su número
+     * estuviera en rango. Ahora cada afirmación se ancla contra el TEXTO del
+     * artículo que dice respaldarla.
+     *
+     * Lo no respaldado **no se borra**: puede seguir siendo buen razonamiento
+     * clínico, y borrarlo le quitaría al médico algo que quizá necesita. Lo que
+     * no puede es seguir pareciendo respaldado.
+     */
+    const afirmaciones = [
+      ...final.evaluacion.map((x: Record<string, unknown>) => ({ texto: x.punto, citas: x.citas, pasajes: x.pasajes })),
+      ...final.alternativas.map((x: Record<string, unknown>) => ({ texto: x.opcion, citas: x.citas, pasajes: x.pasajes })),
+      ...final.diferencial.map((x: Record<string, unknown>) => ({ texto: x.dx, citas: x.citas, pasajes: x.pasajes })),
+    ].filter(a => Array.isArray(a.citas) && (a.citas as unknown[]).length > 0)
+
+    const verificacion = verificarAfirmaciones(afirmaciones, articulos, new Date().toISOString())
+    if (verificacion.sePudoVerificar && verificacion.sinRespaldo.length > 0) {
+      avisos.push(
+        `${verificacion.sinRespaldo.length} afirmación(es) citan un artículo pero NO se pudo comprobar que ese artículo lo diga. Están marcadas: trátalas como razonamiento, no como evidencia citada.`,
+      )
+    }
+    /**
+     * REG-400 · un aviso DISTINTO, porque es un defecto distinto.
+     *
+     * Éstas sí están ancladas: el pasaje existe y es literal. Lo que pasa es que
+     * sale de los antecedentes, del objetivo o de los métodos — la parte del
+     * artículo que dice qué se creía antes, qué se quería averiguar o cómo se
+     * hizo—, y ninguna de las tres demuestra nada. Meterlas en el aviso anterior
+     * escondería el problema dentro de otro.
+     */
+    if (verificacion.fueraDeLosHallazgos.length > 0) {
+      avisos.push(
+        `${verificacion.fueraDeLosHallazgos.length} cita(s) apuntan a una parte del artículo que no son sus hallazgos (antecedentes, objetivo o métodos): el texto está ahí, pero ese estudio no lo demuestra. Compruébalas antes de apoyarte en ellas.`,
+      )
+    }
     if (!hayEvidencia) {
       // El aviso que ve el médico tiene que distinguir las dos cosas: que no haya
       // literatura es un dato clínico; que no hayamos podido preguntar, no.
@@ -326,7 +456,12 @@ export async function POST(req: NextRequest) {
         : 'Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).')
     }
     avisos.push(modelosUsados.length > 1 ? `Análisis combinado: ${modelosUsados.join(' + ')}.` : `Análisis con ${modelosUsados[0] ?? tierClaude}.`)
-    return NextResponse.json({ ok: true, articulos, ...final, nivel, _modelos: modelosUsados, _aviso: avisos.join(' '), _busquedaFallida: testigo.fallo })
+    return NextResponse.json({
+      ok: true, articulos, _aplicabilidad: aplicabilidadPorArticulo, ...final, nivel, _modelos: modelosUsados,
+      _aviso: avisos.join(' '), _busquedaFallida: testigo.fallo,
+      _fuentesNoConsultadas: declaradas.noConsultados,
+      _verificacion: verificacion,
+    })
   } catch (e) {
     return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
   }

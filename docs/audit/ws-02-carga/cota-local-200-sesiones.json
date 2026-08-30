@@ -1,0 +1,94 @@
+{
+  "syntheticNonPhi": true,
+  "candidateSha": "62ad2724240c4bc7d776ec6a238f998f2843152b",
+  "environment": "firestore-emulator-local",
+  "scenario": "consulta-concurrente-emulador",
+  "seed": "20260830",
+  "registeredPhysicians": 200,
+  "concurrentConsultations": 200,
+  "requestCount": 1600,
+  "successCount": 1600,
+  "errorCount": 0,
+  "latencyMs": {
+    "p50": 460.19753700000047,
+    "p95": 2319.970752049999,
+    "p99": 2599.07033591
+  },
+  "crossTenantLeakageCount": 0,
+  "idempotencyViolationCount": 0,
+  "durableSavePassed": true,
+  "recoveryPassed": true,
+  "throughput": 221.268,
+  "errorRate": 0,
+  "firestoreOps": {
+    "lecturas": 4096,
+    "escrituras": 1200,
+    "total": 5296
+  },
+  "timeoutRate": null,
+  "backpressureRejections": null,
+  "providerHealth": null,
+  "blankScreenCount": null,
+  "lostDraftCount": null,
+  "silentProviderFailureCount": null,
+  "unboundedReadCount": null,
+  "queues": {
+    "transcription": null,
+    "reasoning": null,
+    "evidence": null,
+    "document": null
+  },
+  "modeloDeConcurrencia": null,
+  "complete": false,
+  "noMedido": [
+    {
+      "campo": "blankScreenCount",
+      "razon": "Es de navegador: hace falta el producto corriendo y Playwright recorriéndolo."
+    },
+    {
+      "campo": "lostDraftCount",
+      "razon": "Es de navegador: el borrador vive en IndexedDB, que un emulador de Firestore no tiene."
+    },
+    {
+      "campo": "silentProviderFailureCount",
+      "razon": "Hace falta un proveedor de IA o de voz de verdad al otro lado."
+    },
+    {
+      "campo": "unboundedReadCount",
+      "razon": "Es una propiedad ESTÁTICA del árbol y la vigila su propio guardián, no una carrera."
+    },
+    {
+      "campo": "timeoutRate",
+      "razon": "El arnés no impone plazo, así que no hay vencidos que contar. Un 0 diría que se midió."
+    },
+    {
+      "campo": "backpressureRejections",
+      "razon": "La contrapresión admite o rechaza frente a un proveedor lento; aquí no hay ninguno."
+    },
+    {
+      "campo": "providerHealth",
+      "razon": "Sin proveedor no hay circuito que abrir ni salud que reportar."
+    },
+    {
+      "campo": "queues.transcription",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.reasoning",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.evidence",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.document",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    }
+  ],
+  "sondas": {
+    "fugaEntreConsultorios": 400,
+    "idempotencia": 50,
+    "guardadoDurable": 50
+  }
+}

@@ -372,18 +372,31 @@ describe('el runtime del médico LLEGA a la evidencia — sin subir el techo', (
      * aquí se prueba lo que de verdad se quiere —**Evidence no compró su
      * alcance**— de dos formas que no envejecen solas:
      *
-     *   1. el techo sigue clavado al valor heredado de la base (32): si
-     *      alguien lo mueve, esto se pone rojo y hay que justificarlo;
+     *   1. el techo sigue clavado al valor heredado de la base: si alguien lo
+     *      mueve, esto se pone rojo y hay que justificarlo;
      *   2. y NINGÚN módulo de Evidence aparece entre las islas declaradas.
      *      Ésta es la que importa: subir el techo no es la única manera de
      *      hacer trampa — declararse isla es la otra, y es más barata.
+     *
+     * ── 32 → 33, TR-VOZ, Y LA JUSTIFICACIÓN QUE ESTE CASO PIDE ─────────────
+     *
+     * Se movió una vez más, y aquí queda dicho para que se pueda discutir:
+     * `src/lib/asr/lo-que-pesa-de-un-error.ts` mide una transcripción **contra
+     * su gold**, y en una consulta de verdad no hay gold — si lo hubiera, no
+     * haría falta transcribir. Es evaluación, y la evaluación no corre en el
+     * camino del médico por definición: la misma razón por la que
+     * `uci/benchmark-metricas.ts` lleva años en esa lista. Su consumidor real es
+     * `scripts/medir-wer-limpio.ts`.
+     *
+     * No es de Evidence, que es lo que este caso vigila, y por eso la
+     * comprobación 2 —la que de verdad importa— sigue intacta.
      *
      * QUÉ NO CUBRE: que el módulo se USE de verdad. Eso lo prueban los casos
      * de arriba, que llaman a la ruta y al envoltorio y miran lo que devuelven.
      */
     const camino = readFileSync(CAMINO, 'utf8')
 
-    expect(camino).toMatch(/const FUERA_DEL_CAMINO_HOY = 32\b/)
+    expect(camino).toMatch(/const FUERA_DEL_CAMINO_HOY = 33\b/)
 
     const islas = camino.slice(camino.indexOf('ISLAS_DE_DOS'), camino.indexOf('describe('))
     const compradas = [...islas.matchAll(/'([^']+\.tsx?)'\s*:/g)]

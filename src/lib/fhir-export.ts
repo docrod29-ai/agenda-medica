@@ -19,6 +19,7 @@
  */
 
 import type { Patient as AmPatient, ClinicConfig } from '@/types'
+import { verificationStatusDe, clinicalStatusDe } from '@/lib/fhir/la-certeza-que-sale-al-mundo'
 import { alergiasDe } from '@/lib/seguridad/alergias'
 import type { NotaMedica } from '@/types/expediente'
 import { TIPO_EGRESO_LABEL, type Internamiento, type RegistroSignos } from '@/types/hospital'
@@ -226,8 +227,15 @@ export function exportarPacienteAFhir({
       const condResource: FhirResource = {
         resourceType: 'Condition',
         id: `${nota.id}-dx-${i}`,
-        clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: dx.estado === 'activo' ? 'active' : 'resolved' }] } as FhirCodeableConcept,
-        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status', code: dx.tipo === 'definitivo' ? 'confirmed' : 'provisional' }] } as FhirCodeableConcept,
+        /**
+         * Los dos ternarios que había aquí aplanaban tres distinciones y
+         * afirmaban tres cosas falsas (REG-372): un `definitivo` del MODELO
+         * salía como `confirmed`, un `descartado` salía como `provisional`, y
+         * una enfermedad `cronico` salía como **`resolved`**. El criterio vive
+         * en un módulo puro con sus casos.
+         */
+        clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: clinicalStatusDe(dx) }] } as FhirCodeableConcept,
+        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status', code: verificationStatusDe(dx) }] } as FhirCodeableConcept,
         code: dx.codigoCIE10
           ? { coding: [{ system: SYSTEM.cie10, code: normCie10(dx.codigoCIE10), display: dx.descripcion }], text: dx.descripcion } as FhirCodeableConcept
           : { text: dx.descripcion } as FhirCodeableConcept,

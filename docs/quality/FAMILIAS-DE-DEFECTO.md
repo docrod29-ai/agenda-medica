@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 28-ago-2026.
-**Fuente**: los REG de `docs/audit/regression-ledger.md` (187 clasificados hoy).
+**Abierto**: 6-ago-2026. **Actualizado**: 30-ago-2026.
+**Fuente**: los REG de `docs/audit/regression-ledger.md` (261 clasificados hoy).
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -25,27 +25,25 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **42** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
-| **El sistema se contradice a sí mismo** | **35** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
-| El habla real no cabía en el motor | 18 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
-| Nadie lo estaba midiendo | 24 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
-| El hueco tratado como dato | 7 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
+| **Escrito, probado y sin conectar** | **39** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
+| El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
+| Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
+| El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
-| Estorba al médico | 8 | Correcto por dentro, insoportable por fuera |
-| Pérdida de datos | 16 | Trabajo del médico que desaparece o reaparece solo |
+| Estorba al médico | 7 | Correcto por dentro, insoportable por fuera |
+| Pérdida de datos | 11 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
-| El mensaje mentía sobre la causa | 6 | Falla algo y el sistema culpa a otra cosa |
-| *Decisión del médico dueño, no defecto* | 3 | Cambiaron el comportamiento, pero nada estaba roto |
+| El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
+| *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
 | Al modelo de datos le faltaba un eje | 2 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
-| Depende de que alguien se acuerde | 4 | El dato ya vive en el repositorio y un segundo sitio lo repite a mano; el segundo se desfasa **siempre** |
-| *El mercado lo tiene y aquí nunca existió* | 5 | No es un defecto: es una función que se da por supuesta y que aquí nunca se construyó. Se cuenta aparte a propósito |
 
 ---
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 43 de 187, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 74 de 262, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
@@ -130,9 +128,21 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 36 de 187.**
+**«El sistema se contradice a sí mismo» — 42 de 262.**
 
-Sumó REG-336 (27-ago-2026), y es la forma más cara que ha tomado esta familia:
+Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
+caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
+`transcripcionMotor` —lo que oyó el reconocedor— **le correspondía ir sellado**,
+por qué todavía no lo estaba y hasta cuándo entraría: «cuando se suba a
+`hashVersion` 4». Mientras tanto el sello decía «verificada» de notas firmadas en
+las que ese campo se podía alterar. Las dos partes eran correctas por su cuenta;
+el defecto vivía en el hueco.
+
+Escribirlo así la hizo barata de cerrar —el diseño ya estaba hecho— y a la vez la
+dejó abierta **casi doscientos REG**, porque nada la ponía en rojo. Una deuda
+declarada no es una deuda vigilada: lo que no tiene guardián no tiene fecha.
+
+Antes REG-336 (27-ago-2026), y es la forma más cara que ha tomado esta familia:
 la compuerta que deja **firmar** pedía `medicoId` y cédula; la que deja
 **entregar al paciente** pedía nombre y cédula. Ninguna de las dos estaba mal
 por su cuenta. En el hueco cabía una nota firmable e **inentregable**, y como
@@ -199,7 +209,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 24 de 187**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 34 de 262**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

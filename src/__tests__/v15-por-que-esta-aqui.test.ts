@@ -237,10 +237,13 @@ describe('§10 — las cuatro preguntas de la cola de cierre', () => {
   })
 
   it('10 · el siguiente paso legal se define UNA sola vez', () => {
-    expect(siguientePaso({ estado: 'solicitada' })?.estado).toBe('en_curso')
-    expect(siguientePaso({ estado: 'en_curso' })?.estado).toBe('completada')
-    expect(siguientePaso({ estado: 'completada' })?.estado).toBe('cerrada')
-    expect(siguientePaso({ estado: 'cerrada' })).toBeNull()
+    /* El tipo entra en la firma desde REG-404: el seguimiento tiene un paso más
+       —`agendada`— y agendar no es haber visto al paciente. */
+    const estudio = { tipo: 'estudio_pendiente' as const }
+    expect(siguientePaso({ ...estudio, estado: 'solicitada' })?.estado).toBe('en_curso')
+    expect(siguientePaso({ ...estudio, estado: 'en_curso' })?.estado).toBe('completada')
+    expect(siguientePaso({ ...estudio, estado: 'completada' })?.estado).toBe('cerrada')
+    expect(siguientePaso({ ...estudio, estado: 'cerrada' })).toBeNull()
     // La pantalla lo IMPORTA y no lo redeclara.
     expect(PAGINA).toMatch(/import \{[^}]*siguientePaso[^}]*\} from '@\/lib\/tareas-clinicas\/por-que-esta-aqui'/)
     expect(PAGINA, 'la pantalla volvió a declarar su propia copia')

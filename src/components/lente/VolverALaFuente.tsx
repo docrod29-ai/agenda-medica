@@ -26,6 +26,7 @@
  * encuentro en el que nunca estuvo, que es la familia «paciente equivocado».
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { vigilarGestoDelUsuario } from '@/lib/ui/el-dedo-manda'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import {
@@ -154,25 +155,22 @@ export function RestauradorDeRegreso() {
     const TOPE = 60   // ~1 s a 60 fps: suficiente para una lectura de Firestore
     const main = document.querySelector('main')
 
-    const cancelarPorUsuario = () => {
+    /**
+     * La escucha del gesto se mudó a `lib/ui/el-dedo-manda.ts` (REG-355).
+     *
+     * Aquí estaba bien resuelta y era la ÚNICA que lo estaba: el restaurador de
+     * `/consulta` escribía `scrollTop` sin preguntar. Copiar estas quince líneas
+     * al otro sitio habría garantizado que divergieran, así que se sacaron a un
+     * módulo y los dos obedecen la misma regla — no dos parecidas.
+     */
+    const vigilancia = vigilarGestoDelUsuario(main, () => {
       if (!vivo) return
       canceladoPorUsuario = true
       vivo = false
       // El médico ya tomó control de la pantalla. No dejar el contrato pendiente
       // para que otro render o regreso posterior intente moverlo de nuevo.
       olvidarContrato(contrato.id)
-    }
-    const teclaDesplaza = (event: KeyboardEvent) => {
-      if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) {
-        cancelarPorUsuario()
-      }
-    }
-
-    // Sólo señales inequívocas de intención de desplazamiento. Un click normal
-    // dentro de la nota NO cancela nada; rueda, touch y teclas de navegación sí.
-    main?.addEventListener('wheel', cancelarPorUsuario, { passive: true })
-    main?.addEventListener('touchstart', cancelarPorUsuario, { passive: true })
-    window.addEventListener('keydown', teclaDesplaza)
+    })
 
     const reponer = () => {
       if (!vivo || canceladoPorUsuario) return
@@ -196,9 +194,7 @@ export function RestauradorDeRegreso() {
     requestAnimationFrame(reponer)
     return () => {
       vivo = false
-      main?.removeEventListener('wheel', cancelarPorUsuario)
-      main?.removeEventListener('touchstart', cancelarPorUsuario)
-      window.removeEventListener('keydown', teclaDesplaza)
+      vigilancia.soltar()
     }
   }, [pathname])
 

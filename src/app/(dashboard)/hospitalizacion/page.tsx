@@ -8,9 +8,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
-import { buscarPosiblesDuplicados } from '@/lib/pacientes/duplicados'
+import { duplicadosProbablesDe } from '@/lib/pacientes/candidatos'
 import { auth } from '@/lib/firebase'
-import { getPatients, createPatient } from '@/lib/firestore'
+import { createPatient } from '@/lib/firestore'
+import { useBusquedaDePacientes } from '@/hooks/useBusquedaDePacientes'
 import { suscribirCenso, crearInternamiento, getTelefonoAlertas, setTelefonoAlertas, getCamas } from '@/lib/hospital/firestore'
 import { normalizarCama } from '@/lib/hospital/cama'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -35,7 +36,6 @@ export default function CensoPage() {
   const [guardando, setGuardando] = useState(false)
 
   // Alta / ingreso
-  const [pacientes, setPacientes] = useState<Patient[]>([])
   const [buscar, setBuscar] = useState('')
   const [pac, setPac] = useState<Patient | null>(null)
   /**
@@ -123,16 +123,20 @@ export default function CensoPage() {
     finally { setTelGuardando(false) }
   }
 
-  const abrirModal = () => {
-    setModal(true)
-    if (clinicId && pacientes.length === 0) getPatients(clinicId).then(setPacientes).catch(() => {})
-  }
+  const abrirModal = () => { setModal(true) }
 
-  const pacientesFiltrados = useMemo(() => {
-    const q = buscar.trim().toLowerCase()
-    if (!q) return pacientes.slice(0, 8)
-    return pacientes.filter(p => (p.nombre || '').toLowerCase().includes(q) || (p.telefono || '').includes(q)).slice(0, 8)
-  }, [pacientes, buscar])
+  /**
+   * REG-351 — QUIÉN SE INGRESA SE BUSCA EN EL SERVIDOR.
+   *
+   * Esto se bajaba «el directorio» y lo filtraba en memoria. Desde REG-341 ese
+   * directorio viene recortado: en un consultorio grande el paciente que se va
+   * a ingresar podía no estar en el recorte, el buscador no enseñaba nada, y se
+   * le daba de alta otra vez — con su expediente, sus alergias y su historia en
+   * el registro que se quedó atrás. Al ingresar a alguien, ésa es la peor hora
+   * para partir un expediente.
+   */
+  const busqueda = useBusquedaDePacientes(clinicId, buscar)
+  const pacientesFiltrados = busqueda.resultados.slice(0, 8)
 
   const ingresar = async () => {
     if (!clinicId || !pac) { toast('Selecciona el paciente', 'error'); return }
@@ -266,9 +270,25 @@ export default function CensoPage() {
                     {p.nombre}{p.edad ? ` · ${p.edad} a` : ''}{p.sexo ? ` · ${p.sexo}` : ''}
                   </button>
                 ))}
+                {/**
+                  * CUATRO RESPUESTAS QUE NO SON LA MISMA (REG-351). «Sin
+                  * coincidencias» para todas ellas es lo que empuja a registrar
+                  * de nuevo a alguien que ya está: aquí se separan.
+                  */}
                 {pacientesFiltrados.length === 0 && (
-                  <div style={{ fontSize: 12, color: 'var(--text3)', padding: 6 }}>
-                    Sin coincidencias.
+                  <div style={{ fontSize: 12, color: busqueda.sePudoPreguntar ? 'var(--text3)' : 'var(--amber)', padding: 6 }}>
+                    {busqueda.textoCorto
+                      ? 'Escribe al menos dos letras del nombre, o tres dígitos del teléfono.'
+                      : busqueda.buscando
+                        ? 'Buscando…'
+                        : !busqueda.sePudoPreguntar
+                          ? 'No se pudo consultar el directorio. Esto NO significa que el paciente no exista: no se pudo mirar. Antes de registrarlo de nuevo, reintenta.'
+                          : 'Sin coincidencias con ese texto. La búsqueda es por el principio del nombre o del teléfono.'}
+                  </div>
+                )}
+                {busqueda.truncada && (
+                  <div role="status" style={{ fontSize: 12, color: 'var(--amber)', padding: 6 }}>
+                    Hay más coincidencias de las que caben aquí. Escribe más letras antes de dar de alta a nadie.
                   </div>
                 )}
               </div>
@@ -324,15 +344,21 @@ export default function CensoPage() {
                    * Sólo frena ante una coincidencia SEGURA, y ni así bloquea:
                    * pregunta. Un ingreso no se puede detener por una duda.
                    */
-                  const yaExiste = buscarPosiblesDuplicados(
-                    {
-                      nombre: np.nombre,
-                      telefono: np.telefono,
-                      fechaNacimiento: np.fechaNacimiento,
-                      edad: np.edad ? Number(np.edad) : undefined,
-                    },
-                    pacientes,
-                  ).filter(c => c.certeza === 'seguro')
+                  /**
+                   * REG-351 — se compara contra CANDIDATOS DEL SERVIDOR, no
+                   * contra un directorio en memoria que venía recortado. Un
+                   * aviso antiduplicado que mira 500 de N falla justo en los
+                   * consultorios que lo necesitan.
+                   */
+                  const { seguros: yaExiste } = await duplicadosProbablesDe(clinicId, {
+                    nombre: np.nombre,
+                    telefono: np.telefono,
+                    // La fecha y la edad no se buscan: AFINAN la comparación. Sin
+                    // ellas el motor no puede decir `seguro` y el aviso deja de
+                    // frenar el alta, que es lo que este bloque existe para hacer.
+                    fechaNacimiento: np.fechaNacimiento,
+                    edad: np.edad ? Number(np.edad) : undefined,
+                  })
                   if (yaExiste.length) {
                     const d = yaExiste[0]
                     const seguir = await confirm(
@@ -358,7 +384,9 @@ export default function CensoPage() {
                     const creado = { id, nombre: np.nombre.trim(), edad: np.edad ? Number(np.edad) : undefined,
                       sexo: (np.sexo || undefined) as Patient['sexo'], telefono: tel,
                       alergias: np.alergias.trim() } as Patient
-                    setPacientes(ps => [creado, ...ps])
+                    // El recién creado se selecciona directamente. Ya no hay
+                    // «directorio» en memoria al que añadirlo: el buscador
+                    // pregunta al servidor (REG-351).
                     setPac(creado)
                     setNuevoPac(false)
                     setNp({ nombre: '', telefono: '', edad: '', fechaNacimiento: '', sexo: '', alergias: '' })

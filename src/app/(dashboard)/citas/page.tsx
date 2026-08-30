@@ -8,7 +8,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { estadoCita } from '@/components/StatusBadge'
 import { calcularRiesgoNoShow, NIVEL_LABEL } from '@/lib/no-show-risk'
-import { getPatients } from '@/lib/firestore'
+import { usePacientesPorId } from '@/hooks/usePacientesPorId'
 import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
@@ -109,12 +109,6 @@ export default function CitasPage() {
   const [cobrarAppt, setCobrarAppt] = useState<Appointment | null>(null)
   const { clinicId } = useClinic()
   const { toast, confirm } = useToast()
-  const [pacientes, setPacientes] = useState<Patient[]>([])
-
-  useEffect(() => {
-    if (!clinicId) return
-    getPatients(clinicId).then(setPacientes).catch(() => { /* ignore */ })
-  }, [clinicId])
 
   /**
    * "por-cobrar" no es un estado de la cita: es una VISTA. El cobro no lo hace el
@@ -200,9 +194,16 @@ export default function CitasPage() {
     router.replace(urlAgendaRef.current(), { scroll: false })
   }, [params, appointments, router, loading, toast])
 
-  // Índice O(1) por id: antes cada fila hacía pacientes.find() lineal → O(filas ×
-  // pacientes) en cada tecla del buscador y cada toggle de menú (jank con miles de pacientes).
-  const patientById = useMemo(() => new Map(pacientes.map(p => [p.id, p])), [pacientes])
+  /**
+   * Índice O(1) por id. Antes salía de «la lista» del consultorio, que desde
+   * REG-341 viene RECORTADA: las citas cuyo paciente quedó fuera del recorte se
+   * pintaban sin nombre y sin su señal de riesgo de inasistencia, igual que si
+   * el paciente no existiera (REG-351).
+   *
+   * Ahora se resuelven los ids que esta pantalla va a pintar. Son los de la
+   * agenda visible: pocos, y acotados por la vista y no por el consultorio.
+   */
+  const patientById = usePacientesPorId(clinicId, appointments.map(a => a.pacienteId))
 
   const filtered = useMemo(() => {
     return appointments.filter(a => {

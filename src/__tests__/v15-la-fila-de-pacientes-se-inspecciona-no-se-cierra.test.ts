@@ -153,7 +153,16 @@ describe('se inspecciona en el sitio; NO se muta en el sitio', () => {
     // Identidad, búsqueda, duplicados y alta siguen en pie: originalidad no
     // puede pagarse amputando capacidad.
     expect(CODIGO).toMatch(/buscarPosiblesDuplicados/)
-    expect(CODIGO).toMatch(/getPatients/)
+    /**
+     * REG-347 — la aserción decía `getPatients`, que era su forma de comprobar
+     * «esta pantalla lee pacientes». La INTENCIÓN se conserva entera; lo que
+     * cambia es por dónde los lee, y a más capacidad, no a menos:
+     * `listarPacientesCompat` para recorrer (con su bandera de recorte) y
+     * `buscarPacientes` para buscar en el servidor, que es lo que impide decir
+     * «no está» de un paciente que sí está.
+     */
+    expect(CODIGO).toMatch(/listarPacientesCompat/)
+    expect(CODIGO).toMatch(/buscarPacientes/)
     expect(CODIGO).toMatch(/nx-ident/)
     expect(CODIGO).toMatch(/onEditar/)
   })

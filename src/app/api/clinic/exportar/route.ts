@@ -32,7 +32,7 @@ import { NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
-import { COLECCIONES, rama, type RamaRespaldo, EXCLUIDAS, indiceRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
+import { COLECCIONES, COLECCIONES_RAIZ, RAIZ_EXCLUIDAS, rama, type RamaRespaldo, EXCLUIDAS, indiceRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
 
 export const maxDuration = 300
 
@@ -72,6 +72,8 @@ export async function GET(req: NextRequest) {
         generadoEn: new Date().toISOString(),
         indice: indiceRespaldo(),
         excluidas: EXCLUIDAS,
+        raiz: COLECCIONES_RAIZ.map(c => c.ruta),
+        raizExcluidas: RAIZ_EXCLUIDAS,
       })
 
       /** Recorre una colección por páginas y escribe una línea por documento. */
@@ -142,6 +144,40 @@ export async function GET(req: NextRequest) {
            */
           problemas.push(c.ruta)
           safeLog.warn(`[clinic/exportar] colección ${c.ruta} ilegible`, e)
+        }
+      }
+
+      /**
+       * LAS DE NIVEL RAÍZ (REG-343). Llevan el consultorio en un CAMPO, no en la
+       * ruta, así que el recorrido del árbol de arriba no las alcanzaba nunca.
+       *
+       * `clinic_members` es la que duele: es lo que ata una cuenta a un
+       * consultorio. Restaurar sin ella devuelve el expediente entero y a nadie
+       * que pueda entrar a verlo.
+       *
+       * Mismo recorrido paginado por `__name__` que el resto —el filtro por
+       * `clinicId` no cambia la forma— y el mismo trato ante un fallo: se
+       * declara en `problemas` y el respaldo sigue.
+       */
+      for (const c of COLECCIONES_RAIZ) {
+        try {
+          const base = adminDb.collection(c.ruta).where(c.campoClinica, '==', clinicId)
+          let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined
+          for (;;) {
+            let q = base.orderBy('__name__').limit(PAGINA)
+            if (cursor) q = q.startAfter(cursor)
+            const snap = await q.get()
+            if (snap.empty) break
+            for (const d of snap.docs) {
+              linea(lineaDeDocumento(c.ruta, c.ruta, d.id, d.data()))
+              documentos++
+            }
+            cursor = snap.docs[snap.docs.length - 1]
+            if (snap.size < PAGINA) break
+          }
+        } catch (e) {
+          problemas.push(c.ruta)
+          safeLog.warn(`[clinic/exportar] colección raíz ${c.ruta} ilegible`, e)
         }
       }
 

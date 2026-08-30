@@ -54,6 +54,12 @@ const EXPLICADOS: Record<string, RegExp> = {
   'src/lib/clinical/safety-gate.ts::invariantesProtegidos': /compuerta clínica/,
   'src/lib/uci/benchmark.ts::correrBenchmark': /se corre a mano/,
   'src/lib/expediente/versioning.ts::obtenerVersion': /Redundante/,
+  /**
+   * TR-VOZ. Compara una transcripción contra su GOLD, y en una consulta de
+   * verdad no hay gold: si lo hubiera, no haría falta transcribir. Evaluación,
+   * misma categoría que `correrBenchmark`.
+   */
+  'src/lib/asr/lo-que-pesa-de-un-error.ts::leerConsulta': /Evaluación, no camino del médico/,
 }
 
 describe('el residuo está explicado, uno a uno', () => {

@@ -65,41 +65,56 @@ describe('REG-300 · la fecha de seguimiento sobrevive a la navegación', () => 
     const enMemoria = /borradorMem\.escribir\(respaldoKey, \{[^}]*\}/.exec(CONSULTA)?.[0] ?? ''
     expect(enMemoria).toContain('proximoSeguimiento: e.proximoSeguimiento')
 
-    // El volcado vive dentro de `flushRespaldo`, que es el que BORRABA el campo
-    // al reescribir la clave sin él. Se acota a esa función a propósito: hay
-    // otro `localStorage.setItem(respaldoKey…)` antes —el del rebote— que ya lo
-    // llevaba, y buscarlo en todo el archivo daría un falso verde.
-    const flush = /const flushRespaldo = useCallback\(\(\) => \{[\s\S]*?\n  \}, \[respaldoKey\]\)/.exec(CONSULTA)?.[0] ?? ''
-    expect(flush, 'no se localizó flushRespaldo').not.toBe('')
-    expect(flush).toContain('proximoSeguimiento: e.proximoSeguimiento')
+    /**
+     * El volcado (`flushRespaldo`) era el que BORRABA el campo al reescribir la
+     * clave sin él. Desde REG-392 su cuerpo ya no se escribe a mano: sale de
+     * `cuerpoDelRespaldo`, y comprobarlo aquí con una expresión regular sería
+     * volver a medir el texto del archivo. Lo prueba
+     * `el-borrador-no-se-pierde.test.ts`, sobre la función, con el campo dentro.
+     */
+    expect(CONSULTA).toContain('guardarRespaldoLocal(')
   })
 
   it('el espejo vivo lo lleva, que es de donde salen los dos respaldos', () => {
     expect((CONSULTA.match(/estudiosOrden, preop, proximoSeguimiento, transcripcion: voz\.transcripcion, firmada \}/g) ?? []).length).toBe(2)
   })
 
-  it('la regla de «hay contenido» está escrita UNA vez, no tres', () => {
+  it('la regla de «hay contenido» está escrita UNA vez, y ya no en esta pantalla', () => {
     /**
      * Era la causa raíz. La misma condición estaba copiada palabra por palabra
-     * en el espejo, el volcado y el oyente de `nx:guardar-todo` — familia
-     * `depende_de_recordar`. Añadir un campo en dos de los tres deja al tercero
-     * diciendo que la nota está vacía cuando no lo está, que es justo lo que
-     * pasó.
+     * en CINCO sitios de este archivo — familia `depende_de_recordar`. Añadir un
+     * campo en unos y no en otros deja a los demás diciendo que la nota está
+     * vacía cuando no lo está, que es justo lo que pasó con
+     * `proximoSeguimiento`.
      *
-     * Se exige que las tres llamen a la misma función y que ninguna reconstruya
-     * la condición a mano.
+     * ── POR QUÉ ESTE CASO CAMBIÓ EN REG-392 ─────────────────────────────────
+     *
+     * Este guardián exigía exactamente TRES llamadas a `hayContenido(e)`, que
+     * eran las tres que REG-300 había unificado. Las otras dos —el autoguardado
+     * al servidor y el respaldo local, o sea **las dos que deciden si el trabajo
+     * del médico se guarda**— seguían escritas a mano, y este caso pasaba en
+     * verde. Una compuerta que cuenta las copias reparadas certifica el arreglo,
+     * no la propiedad.
+     *
+     * Ahora se exige lo contrario: que en esta pantalla **no quede ninguna**
+     * reconstrucción de la regla, y que las decisiones vengan del módulo.
      */
-    expect((CONSULTA.match(/const hay = hayContenido\(e\)/g) ?? []).length).toBe(3)
-    expect(CONSULTA).toContain('const hayContenido = (e:')
-    // Ni una sola copia de la condición larga sobrevive.
-    expect(CONSULTA).not.toMatch(/const hay = e\.resumen\?\.trim\(\)/)
+    expect(CONSULTA).toContain("from '@/lib/expediente/el-borrador-no-se-pierde'")
+    expect(CONSULTA).toContain('const hayContenido = hayAlgoQuePerder')
   })
 
-  it('una nota cuyo único contenido es la fecha de seguimiento SÍ se guarda', () => {
-    /** Si `hayContenido` no la mirara, el respaldo se saltaría por «vacío» y el
-     *  dato se perdería igual, con el arreglo puesto. */
-    const fn = /const hayContenido = \(e:[\s\S]*?\n\n/.exec(CONSULTA)?.[0] ?? ''
-    expect(fn).toContain('e.proximoSeguimiento?.trim()')
+  it('y en la pantalla NO queda ninguna reconstrucción de la regla', () => {
+    /**
+     * El caso que habría cazado las dos que se escaparon. El guardián anterior
+     * buscaba `const hay = e.resumen?.trim()` — el nombre exacto de variable de
+     * las tres copias reparadas—, así que las otras dos, que se llamaban
+     * `hayContenido`, pasaban por delante sin tocarlas.
+     *
+     * Éste busca la FORMA de la condición y no cómo se llame quien la guarda.
+     * Probado al revés contra el texto de las dos copias retiradas: las detecta.
+     */
+    const copias = CONSULTA.match(/resumen\??\.?\.trim\(\)[\s\S]{0,40}secciones\??\.?\.some\(s => s\.value\?\.trim\(\)\)[\s\S]{0,200}proximoSeguimiento/g) ?? []
+    expect(copias, `quedan ${copias.length} copias de la regla en la pantalla`).toEqual([])
   })
 })
 

@@ -47,6 +47,13 @@ vi.mock('firebase/firestore', () => {
       data: () => almacen.docs.get(ref.__ruta),
     }),
     setDoc: async (ref: { __ruta: string }, data: Record<string, unknown>) => { almacen.docs.set(ref.__ruta, data) },
+    // Lo usa `crearTareas` para el pendiente de revisión que abre REG-501. Sin
+    // él, la tarea fallaba en silencio y esta prueba medía un mundo sin bucle.
+    addDoc: async (c: { __ruta: string }, data: Record<string, unknown>) => {
+      const ref = { __ruta: `${c.__ruta}/auto-${almacen.docs.size}`, id: `auto-${almacen.docs.size}` }
+      almacen.docs.set(ref.__ruta, data)
+      return ref
+    },
     getDocs: async () => ({ docs: [] }),
     deleteDoc: async () => {},
     query: (c: unknown) => c,
@@ -99,7 +106,7 @@ describe('REG-323 · sin vínculo no se escribe', () => {
 describe('REG-323 · el paciente verificado sí se guarda', () => {
   it('escribe UN panel bajo el paciente correcto, con el vínculo dentro', async () => {
     const v = vinculoDe(A, 'LOPEZ GARCIA MARIA FERNANDA')
-    const id = await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'k1')
+    const { id } = await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'k1')
     const rutas = rutasDe(CLINICA, 'pac-A')
     expect(rutas).toHaveLength(1)
     expect(rutas[0].endsWith(id)).toBe(true)
@@ -167,9 +174,9 @@ describe('REG-323 · REINTENTO: la misma intención no duplica el estudio', () =
   it('tres envíos de la misma revisión dejan UN panel', async () => {
     const v = vinculoDe(A, 'María Fernanda López García')
     const ids = [
-      await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'intento-1'),
-      await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'intento-1'),
-      await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'intento-1'),
+      (await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'intento-1')).id,
+      (await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'intento-1')).id,
+      (await guardarPanelLab(CLINICA, 'pac-A', PANEL, v, 'intento-1')).id,
     ]
     expect(new Set(ids).size).toBe(1)
     expect(rutasDe(CLINICA, 'pac-A')).toHaveLength(1)

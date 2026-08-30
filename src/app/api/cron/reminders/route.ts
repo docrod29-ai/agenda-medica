@@ -5,7 +5,9 @@ import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
 import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
-import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
+import {
+  entradasVencidas, resolverEntrada, reprogramarEntrada, contarMuertas,
+} from '@/lib/whatsapp/outbox'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 import { dondeEsLaCita, esTeleconsulta } from '@/lib/telesalud/donde-es'
@@ -96,7 +98,19 @@ export async function GET(req: NextRequest) {
   const arranqueCron = Date.now()
   try {
     const now = new Date()
-    const totals = { sent: 0, failed: 0, skipped: 0, clinics: 0 }
+    /**
+     * `pausadas` y `muertas` (REG-397) son la señal de la cola, no del envío.
+     *
+     * `pausadas` = entradas que no se intentaron porque el PROVEEDOR estaba
+     * caído (REG-391). Sin contarlas, una caída de Meta se ve exactamente igual
+     * que una tarde tranquila: `sent: 0, failed: 0`, y el cron en verde.
+     *
+     * `muertas` = las que ya se rindieron. El dead-letter existe desde hace
+     * mucho y **nadie lo mira**: quedan en Firestore con su motivo y ninguna
+     * pantalla las enseña. Contarlas aquí es lo mínimo para que un aviso las
+     * saque del cajón.
+     */
+    const totals = { sent: 0, failed: 0, skipped: 0, clinics: 0, pausadas: 0, muertas: 0 }
 
     // ── Get all active clinics ────────────────────────────────
     const clinicsSnap = await adminDb.collection('clinics')
@@ -393,7 +407,7 @@ export async function GET(req: NextRequest) {
 
         // ── Drenar la cola de reintentos (outbox/DLQ) de esta clínica ──
         for (const e of await entradasVencidas(clinicId, now.getTime())) {
-          const { resultado } = await enviarProactivo(clinicId, e.to, {
+          const { resultado, veredicto } = await enviarProactivo(clinicId, e.to, {
             clave: e.clave, datos: e.datos, textoLibre: e.textoLibre,
             waConfig, ahoraMs: now.getTime(), minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
           })
@@ -423,10 +437,21 @@ export async function GET(req: NextRequest) {
             await resolverEntrada(clinicId, e.id) // resuelto o inalcanzable por config → sacar de la cola
             if (resultado === 'enviado') totals.sent++
           } else if (resultado === 'fallo') {
-            await reprogramarEntrada(clinicId, e, now.getTime()) // backoff o dead-letter
+            /**
+             * Un fallo del PROVEEDOR no gasta un reintento del mensaje (REG-391):
+             * con el cron cada hora, cinco horas de caída de Meta mataban toda la
+             * cola sin que nada pareciera roto.
+             */
+            const delProveedor = veredicto === 'el_proveedor_no_esta'
+            if (delProveedor) totals.pausadas++
+            await reprogramarEntrada(clinicId, e, now.getTime(), undefined, delProveedor)
           }
           // 'silencio' / 'tope': dejar en la cola, se reintenta en el próximo ciclo
         }
+
+        /* Las que ya se rindieron. Se cuentan aquí porque ya estamos en este
+           consultorio: un recorrido aparte sería otro trabajo que vigilar. */
+        totals.muertas += (await contarMuertas(clinicId)).cuantas
       } catch (clinicErr) {
         safeLog.error(`[Cron] Error for clinic ${clinicId}:`, clinicErr)
       }
@@ -441,7 +466,11 @@ export async function GET(req: NextRequest) {
      */
     await registrarLatido('reminders', {
       ok: true, duracionMs: Date.now() - arranqueCron,
-      detalle: { enviados: totals.sent, fallidos: totals.failed, consultorios: totals.clinics },
+      detalle: {
+        enviados: totals.sent, fallidos: totals.failed, consultorios: totals.clinics,
+        /* La cola, no el envío. Ver el comentario de `totals` (REG-397). */
+        pausadas: totals.pausadas, muertas: totals.muertas,
+      },
     })
     return NextResponse.json({ ok: true, ...totals })
   } catch (err) {

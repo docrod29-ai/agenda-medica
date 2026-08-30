@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useClinic } from '@/context/ClinicContext'
-import { getPatients } from '@/lib/firestore'
+import { getPatient } from '@/lib/firestore'
 import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound, AlertTriangle } from 'lucide-react'
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
@@ -68,8 +68,15 @@ export default function ConsultorPage() {
     if (!clinicId) return
     const id = new URLSearchParams(window.location.search).get('paciente')
     if (!id) return
-    getPatients(clinicId).then(ps => {
-      const p = ps.find(x => x.id === id)
+    /**
+     * A3 — UNA PANTALLA QUE NECESITA UN PACIENTE LEE UN PACIENTE.
+     *
+     * Antes se descargaba el directorio para hacer `.find()`. Además del coste,
+     * con la lista ya acotada un `.find()` sobre el recorte devolvería «no
+     * está» de un paciente que sí existe: el contexto clínico desaparecería en
+     * silencio justo en el consultorio grande.
+     */
+    getPatient(clinicId, id).then(p => {
       if (!p) return
       const alergias = p.alergias?.trim() || 'no referidas'
       setPacienteNombre(p.nombre)
@@ -218,6 +225,30 @@ export default function ConsultorPage() {
                         <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                         <span>Sin resultados de PubMed para esta pregunta. Lo de abajo es razonamiento clínico, no literatura citada — verifica antes de aplicarlo.</span>
                       </div>
+                    )}
+                    {/**
+                      * QUÉ SE CONSULTÓ Y QUÉ NO (REG-345).
+                      *
+                      * `seleccion.ts` construye estos avisos con una regla
+                      * explícita: un proveedor no operativo BAJA en el orden
+                      * pero **no desaparece** — el médico tiene que poder leer
+                      * «UpToDate: no se consultó». El servidor los calculaba, los
+                      * mandaba por el cable en `meta.recuperacion.avisos`, la
+                      * pantalla los tipaba… y no los pintaba en ningún sitio.
+                      *
+                      * O sea: la honestidad estaba escrita, probada y sin llegar.
+                      * Un consultor que sólo enseña lo que SÍ encontró se lee
+                      * como si hubiera mirado en todas partes.
+                      */}
+                    {!t.cargando && !!t.recuperacion?.avisos?.length && (
+                      <details style={{ marginBottom: 10 }}>
+                        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text3)', listStyle: 'revert' }}>
+                          Qué se consultó para responder ({t.recuperacion.avisos.length})
+                        </summary>
+                        <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
+                          {t.recuperacion.avisos.map((a, i) => <li key={i}>{a}</li>)}
+                        </ul>
+                      </details>
                     )}
                     <MiniMarkdown texto={t.respuesta} />
                     {/*

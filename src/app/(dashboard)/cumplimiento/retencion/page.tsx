@@ -7,8 +7,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
-import { getPatients } from '@/lib/firestore'
-import { getNotas } from '@/lib/expediente/firestore'
+import { listarPacientesPagina, TECHO_COMPAT_PACIENTES, LIMITE_MAX_PAGINA_PACIENTES, type CursorPacientes } from '@/lib/firestore'
+import { resumenRetencionDeNotas } from '@/lib/expediente/firestore'
 import { evaluarRetencion, formatearAntiguedad, listarPacientesPorRevisar, type PacienteRetencion } from '@/lib/retencion'
 import { ArrowLeft, Loader2, FileSearch, AlertTriangle, Clock, Eye } from 'lucide-react'
 import { Spinner, EmptyState } from '@/components/ui'
@@ -19,24 +19,78 @@ export default function RetencionPage() {
   const [evaluaciones, setEvaluaciones] = useState<PacienteRetencion[]>([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState<'por_revisar' | 'todos'>('por_revisar')
+  /** true = se llegó al techo: HAY pacientes que esta pantalla no evaluó. */
+  const [truncada, setTruncada] = useState(false)
 
   useEffect(() => {
     if (!clinicId) return
     setLoading(true)
     ;(async () => {
-      const pacientes = await getPatients(clinicId)
-      // Cargar notas de cada paciente en paralelo (puede ser lento si hay muchos)
-      const evals = await Promise.all(
-        pacientes.map(async (p) => {
-          try {
-            const notas = await getNotas(clinicId, p.id)
-            return evaluarRetencion(p, notas, p.ultimaCita)
-          } catch {
-            return evaluarRetencion(p, [], p.ultimaCita)
-          }
+      /**
+       * A3 — EL PEOR ABANICO DEL REPOSITORIO, ACOTADO.
+       *
+       * Antes: `getPatients` sin cota y después un `Promise.all` sobre TODOS
+       * los pacientes, cada uno con su `getNotas()`. Con 50 000 pacientes eso
+       * son 50 000 consultas de colección disparadas A LA VEZ desde una pestaña
+       * del navegador. El comentario que había lo admitía a medias —«puede ser
+       * lento si hay muchos»—: no era lento, era insostenible.
+       *
+       * Ahora: se recorren páginas hasta un TECHO, y las notas se piden en
+       * TANDAS. El paralelismo sigue existiendo (en serie serían minutos), pero
+       * acotado: como mucho una tanda en vuelo.
+       *
+       * Y cuando se llega al techo **se dice**. Una lista de retención que se
+       * queda corta en silencio es peor que no tenerla: enseña «ningún paciente
+       * por revisar» de un consultorio que sí los tiene, y esto existe para
+       * cumplir la NOM-004.
+       *
+       * LO QUE ESTO NO ES: el arreglo definitivo. Evaluar la retención de un
+       * consultorio entero es trabajo de servidor —ya hay un cron que lo hace
+       * paginado (`/api/cron/retencion`)— y esta pantalla debería leer ese
+       * resultado en vez de recalcularlo en el navegador. Queda declarado.
+       */
+      const TANDA = 10
+      const evals: PacienteRetencion[] = []
+      let cursor: CursorPacientes | null = null
+      let alcanzoElTecho = false
+
+      const vueltasMax = Math.ceil(TECHO_COMPAT_PACIENTES / LIMITE_MAX_PAGINA_PACIENTES)
+      for (let vuelta = 0; vuelta < vueltasMax; vuelta++) {
+        const restante = TECHO_COMPAT_PACIENTES - evals.length
+        if (restante <= 0) { alcanzoElTecho = true; break }
+        const pagina = await listarPacientesPagina(clinicId, {
+          limite: Math.min(restante, LIMITE_MAX_PAGINA_PACIENTES),
+          cursor,
         })
-      )
+        for (let i = 0; i < pagina.pacientes.length; i += TANDA) {
+          const tanda = pagina.pacientes.slice(i, i + TANDA)
+          evals.push(...await Promise.all(tanda.map(async (p) => {
+            try {
+              /**
+               * REG-350 — esto llamaba a `getNotas` por CADA uno de hasta 500
+               * pacientes: hasta 500 historiales completos, con transcripción y
+               * diálogo diarizado dentro, para calcular una fecha y un conteo.
+               *
+               * Ahora son dos consultas baratas por paciente: la nota más
+               * reciente (`limit(1)`) y el conteo de firmadas hecho **en el
+               * servidor**. El conteo así tampoco depende de ningún techo, que
+               * importa porque se enseña al lado de un veredicto NOM-004.
+               */
+              const { ultimaFecha, notasFirmadas } = await resumenRetencionDeNotas(clinicId, p.id)
+              return { ...evaluarRetencion(p, [], ultimaFecha ?? p.ultimaCita), notasFirmadas }
+            } catch {
+              // Sin notas se evalúa igual: la cita y el alta ya dan una fecha.
+              return evaluarRetencion(p, [], p.ultimaCita)
+            }
+          })))
+        }
+        cursor = pagina.cursor
+        if (!pagina.hayMas) break
+        if (evals.length >= TECHO_COMPAT_PACIENTES) { alcanzoElTecho = true; break }
+      }
+
       setEvaluaciones(evals)
+      setTruncada(alcanzoElTecho)
       setLoading(false)
     })()
   }, [clinicId])
@@ -55,6 +109,26 @@ export default function RetencionPage() {
       }}>
         <ArrowLeft size={14} /> Cumplimiento
       </button>
+
+      {/**
+        * A3 — una lista de cumplimiento que se queda corta EN SILENCIO enseña
+        * «ningún paciente por revisar» de un consultorio que sí los tiene. Y
+        * esta pantalla existe para la NOM-004, así que el hueco se declara.
+        */}
+      {truncada && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Se evaluaron los primeros <strong>{TECHO_COMPAT_PACIENTES}</strong> pacientes.
+            Hay más en el consultorio que <strong>esta pantalla no ha revisado</strong>:
+            lo que ves abajo no es la lista completa.
+          </span>
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <FileSearch size={22} color="var(--teal)" />

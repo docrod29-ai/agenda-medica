@@ -33,6 +33,7 @@
  *
  * Módulo PURO — ninguna consulta a Firestore, ningún cálculo clínico.
  */
+import { avisoRegistrado } from './modelo'
 import type { EstadoTarea, Prioridad, TareaClinica } from './modelo'
 
 export type EstadoEtapa = 'hecha' | 'actual' | 'pendiente' | 'sin_dato'
@@ -60,12 +61,40 @@ export function esTareaDeResultado(tipo: string): boolean {
 const MOTIVO_SIN_DATO_CIERRE =
   'No se registra aparte de "cerrar" la tarea: hoy ese único acto abarca decisión, acción y aviso al paciente sin distinguirlos.'
 
-function etapaSinDato(clave: string, etiqueta: string): EtapaResultado {
-  return { clave, etiqueta, estado: 'sin_dato', motivoSinDato: MOTIVO_SIN_DATO_CIERRE }
+/**
+ * ── LO QUE CAMBIÓ, Y LO QUE SIGUE IGUAL A PROPÓSITO (REG-360) ───────────────
+ *
+ * Las tres etapas del §9 que faltaban —DECISION, ACTION, PATIENT
+ * COMMUNICATION— ya tienen dónde vivir: `TareaClinica.cierre`. Así que cuando
+ * el dato EXISTE, se enseña.
+ *
+ * Lo que **no** cambia es la regla que hizo bien esta función desde el
+ * principio: **nada se deduce de `estado === 'cerrada'`**. Una tarea cerrada sin
+ * registrar el aviso sigue diciendo `sin_dato`, no «avisado» ni «no avisado».
+ *
+ * Es la regla 5 de seguridad clínica: que falte un dato significa que ESO no se
+ * vigila, no que se dé por bueno. Y aquí tiene una consecuencia concreta — si el
+ * sistema afirmara que se avisó, nadie volvería a mirar; si afirmara que no,
+ * alguien lo arreglaría. La única respuesta honesta a «no lo sé» es no lo sé.
+ */
+const MOTIVO_NO_REGISTRADO =
+  'La tarea se cerró sin registrar esto. No significa que no se hiciera: significa que no consta.'
+
+function etapaSinDato(clave: string, etiqueta: string, motivo = MOTIVO_SIN_DATO_CIERRE): EtapaResultado {
+  return { clave, etiqueta, estado: 'sin_dato', motivoSinDato: motivo }
+}
+
+/** Una etapa del cierre: hecha si consta, `sin_dato` si no. Nunca deducida. */
+function etapaDeCierre(clave: string, etiqueta: string, consta: boolean, cerrada: boolean): EtapaResultado {
+  if (consta) return { clave, etiqueta, estado: 'hecha' }
+  // Cerrada y sin constar: se DICE que no consta. Sin cerrar: sigue pendiente.
+  return cerrada
+    ? etapaSinDato(clave, etiqueta, MOTIVO_NO_REGISTRADO)
+    : { clave, etiqueta, estado: 'pendiente' }
 }
 
 export function progresoResultado(
-  t: Pick<TareaClinica, 'estado' | 'ownerUid'> & { prioridad?: Prioridad },
+  t: Pick<TareaClinica, 'estado' | 'ownerUid' | 'cierre'> & { prioridad?: Prioridad },
 ): EtapaResultado[] {
   const estado: EstadoTarea = t.estado
   const terminal = estado === 'cerrada' || estado === 'cancelada'
@@ -86,9 +115,19 @@ export function progresoResultado(
     { clave: 'significado', etiqueta: 'Significado', estado: 'hecha' },
     { clave: 'dueno', etiqueta: 'Dueño', estado: marcar(tieneDueno, actualEsDueno) },
     { clave: 'revision', etiqueta: 'Revisión', estado: marcar(enRevision, actualEsRevision) },
-    etapaSinDato('decision', 'Decisión'),
-    etapaSinDato('accion', 'Acción'),
-    etapaSinDato('aviso_paciente', 'Aviso al paciente'),
+    etapaDeCierre('decision', 'Decisión', !!t.cierre?.decision?.trim(), cerrada),
+    etapaDeCierre('accion', 'Acción', !!t.cierre?.accion?.trim(), cerrada),
+    /**
+     * `no_aplica` cuenta como registrado: alguien miró y decidió que no había
+     * que avisar. Es un dato, no un hueco — lo contrario sería castigar la
+     * respuesta honesta.
+     *
+     * Se pregunta con `avisoRegistrado`, que devuelve `null` cuando NO CONSTA,
+     * y no leyendo el campo aquí: la distinción entre «no lo sé» y «no se
+     * avisó» decide si alguien llama a un paciente, y no puede vivir en dos
+     * sitios con la posibilidad de divergir.
+     */
+    etapaDeCierre('aviso_paciente', 'Aviso al paciente', avisoRegistrado(t) !== null, cerrada),
     { clave: 'cerrado', etiqueta: 'Cerrado', estado: marcar(cerrada, actualEsCierre) },
   ]
 }

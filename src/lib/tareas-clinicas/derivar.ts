@@ -159,6 +159,12 @@ export function tareaDeResultado(p: {
   ahoraMs: number
   ownerUid?: string
   ownerNombre?: string
+  /**
+   * Qué decir en vez de «Valor crítico reportado». Lo usa el camino ambulatorio,
+   * donde una tarea cubre una HOJA entera y por tanto puede nombrar QUÉ analitos
+   * salieron críticos. El camino hospitalario no lo pasa y conserva su texto.
+   */
+  detalle?: string
 }): Omit<TareaClinica, 'id'> {
   return {
     clinicId: p.clinicId,
@@ -166,7 +172,7 @@ export function tareaDeResultado(p: {
     patientNombre: p.patientNombre,
     tipo: 'resultado_por_revisar',
     titulo: `Revisar resultado: ${p.estudio}`,
-    detalle: p.critico ? 'Valor crítico reportado.' : undefined,
+    detalle: p.detalle ?? (p.critico ? 'Valor crítico reportado.' : undefined),
     prioridad: p.critico ? 'critica' : 'alta',
     estado: 'solicitada',
     creadaEn: iso(p.ahoraMs),

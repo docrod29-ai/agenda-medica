@@ -41,12 +41,43 @@ export type FuenteGeneracion = 'manual' | 'ia_voz' | 'ia_texto' | 'plantilla'
 
 // ── Modelos comunes ───────────────────────────────────────────
 
+/**
+ * QUIÉN PUSO `tipo` — la autoridad del médico, dicha (REG-372).
+ *
+ * `tipo` decide si un diagnóstico sale al mundo como **confirmado**: la
+ * exportación FHIR lo mapea a `verificationStatus`, y de ahí lo lee otro
+ * sistema. Y `tipo` lo pone el modelo de lenguaje, o lo rellena el esquema por
+ * omisión, porque **ninguna pantalla deja al médico elegirlo** (REG-365).
+ *
+ * Sin este campo, un `definitivo` que dijo el modelo y un `definitivo` que
+ * afirmó el médico son indistinguibles — y el expediente interoperable afirma
+ * una confirmación clínica que nadie hizo.
+ *
+ * Ausente en las notas anteriores a esto: «no consta» es un estado real y no se
+ * rellena, porque rellenarlo sería inventar la autoría.
+ */
+export type OrigenDelTipoDeDiagnostico =
+  /** Lo eligió una persona. Es lo único que autoriza a decir «confirmado». */
+  | 'medico'
+  /** El modelo emitió `tipo` explícitamente. Es una sugerencia, no una firma. */
+  | 'extraccion'
+  /** Nadie lo dijo: lo puso el valor por omisión del esquema. */
+  | 'por_defecto'
+
 export interface Diagnostico {
   descripcion: string
   codigoCIE10?: string
   tipo: 'definitivo' | 'presuntivo' | 'descartado' | 'diferencial'
   estado: 'activo' | 'resuelto' | 'cronico' | 'en_seguimiento'
   fechaDiagnostico?: string
+  /**
+   * Quién puso `tipo`. Ver `OrigenDelTipoDeDiagnostico`.
+   *
+   * Va DENTRO de `Diagnostico`, que el sello v3 ya cubre entero
+   * (`diagnosticos` está en `canonicoV3`), así que no hace falta un sello nuevo:
+   * las notas viejas conservan su objeto y siguen verificando.
+   */
+  tipoOrigen?: OrigenDelTipoDeDiagnostico
 }
 
 /**
@@ -296,6 +327,22 @@ export interface NotaMedica {
      * este sello construyeran su propia lista más corta.
      */
     procedencia?: { dictado: number; ia: number; manual: number; total: number }
+    /**
+     * LO QUE EL SISTEMA AVISÓ Y EL MÉDICO DIJO HABER MIRADO — REG-366.
+     *
+     * Los avisos que estaban en pantalla al firmar, tal como los leyó. Antes se
+     * descartaban todos: la duda que el paciente expresó («creo que me dijeron
+     * que tenía anemia») duraba lo que duraba la sesión del navegador, y de un
+     * aviso mostrado y aceptado no quedaba rastro ninguno.
+     *
+     * Ausente en las notas anteriores a esto, y ausente también cuando no hubo
+     * ningún aviso: un objeto vacío en todas partes haría indistinguibles los
+     * dos casos. Ver `lo-que-se-aviso-al-firmar.ts`.
+     */
+    avisosAlFirmar?: {
+      avisos: { id: string; origen: string; nivel: string; texto: string }[]
+      total: number
+    }
     /**
      * Provenance INMUTABLE de la IA (trazabilidad medicolegal / SaMD): con qué
      * modelo, versión de prompt y motor se generó la nota, y su revisión humana.

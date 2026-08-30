@@ -41,6 +41,7 @@ import { join } from 'node:path'
 import { wer } from '../src/lib/uci/benchmark-voz'
 import { terminoPresente, evaluable } from '../src/lib/uci/benchmark-metricas'
 import { procesarTranscript } from '../src/lib/asr/pipeline'
+import { leerConsulta } from '../src/lib/asr/lo-que-pesa-de-un-error'
 
 const RAIZ = process.argv[2]
 if (!RAIZ || !existsSync(RAIZ)) {
@@ -100,9 +101,24 @@ interface Acumulado {
   terminos: number
   vivosCrudo: number
   vivosPipeline: number
+  /**
+   * ── LO QUE UN WER NO PUEDE DECIR ────────────────────────────────────────
+   *
+   * Un WER medio de 3 % puede llevar dentro un «mg» por «mcg». Se cuenta
+   * aparte y NO se promedia con nada: la política del Dr. dice que estos
+   * errores están prohibidos, no penalizados, y un promedio los deja
+   * compensarse con las frases buenas.
+   */
+  criticos: number
+  sinClasificar: number
+  frasesConCritico: number
+  porClase: Record<string, number>
 }
 
-const vacio = (): Acumulado => ({ filas: 0, werCrudo: 0, werPipeline: 0, terminos: 0, vivosCrudo: 0, vivosPipeline: 0 })
+const vacio = (): Acumulado => ({
+  filas: 0, werCrudo: 0, werPipeline: 0, terminos: 0, vivosCrudo: 0, vivosPipeline: 0,
+  criticos: 0, sinClasificar: 0, frasesConCritico: 0, porClase: {},
+})
 
 function acumular(a: Acumulado, fila: Record<string, string>, transcripcion: string) {
   const ref = fila.canonical_text ?? ''
@@ -110,6 +126,16 @@ function acumular(a: Acumulado, fila: Record<string, string>, transcripcion: str
   a.filas++
   a.werCrudo += wer(ref, transcripcion)
   a.werPipeline += wer(ref, tras)
+  /* La lectura se hace sobre el texto TRAS el pipeline: es el que llega a la
+     nota, y por tanto el que puede hacer daño. */
+  const lectura = leerConsulta(ref, tras)
+  a.criticos += lectura.criticos.length
+  a.sinClasificar += lectura.sinClasificar.length
+  if (lectura.criticos.length > 0) a.frasesConCritico++
+  for (const c of lectura.criticos) {
+    if (c.clase) a.porClase[c.clase] = (a.porClase[c.clase] ?? 0) + 1
+  }
+
   for (const t of (fila.key_terms ?? '').split('|').filter(Boolean)) {
     if (!evaluable(t, ref)) continue
     a.terminos++
@@ -128,6 +154,14 @@ function informar(nombre: string, a: Acumulado) {
   console.log(`  términos clínicos evaluados ..... ${a.terminos}`)
   console.log(`  · sobreviven crudos ............. ${pct(a.vivosCrudo, a.terminos)}`)
   console.log(`  · sobreviven tras el pipeline ... ${pct(a.vivosPipeline, a.terminos)}`)
+  console.log(`  ERRORES CLÍNICAMENTE PESADOS .... ${a.criticos} en ${a.frasesConCritico} frases`)
+  for (const [clase, n] of Object.entries(a.porClase).sort((x, y) => y[1] - x[1])) {
+    console.log(`    · ${clase} .................... ${n}`)
+  }
+  console.log(`  sin clasificar (cuentan igual) .. ${a.sinClasificar}`)
+  if (a.criticos > 0) {
+    console.log('  ↑ Estos NO se promedian con el WER: están prohibidos, no penalizados.')
+  }
 }
 
 function main() {
@@ -179,6 +213,10 @@ function main() {
       terminos: todo.terminos,
       recallCrudo: todo.vivosCrudo / todo.terminos,
       recallPipeline: todo.vivosPipeline / todo.terminos,
+      erroresClinicamentePesados: {
+        criticos: todo.criticos, frasesConCritico: todo.frasesConCritico,
+        sinClasificar: todo.sinClasificar, porClase: todo.porClase,
+      },
     },
     soloAudioValido: {
       frases: limpio.filas,
@@ -187,11 +225,16 @@ function main() {
       terminos: limpio.terminos,
       recallCrudo: limpio.vivosCrudo / limpio.terminos,
       recallPipeline: limpio.vivosPipeline / limpio.terminos,
+      erroresClinicamentePesados: {
+        criticos: limpio.criticos, frasesConCritico: limpio.frasesConCritico,
+        sinClasificar: limpio.sinClasificar, porClase: limpio.porClase,
+      },
     },
     limites: [
       'Una sola voz sintética (coral): no es una muestra de hablantes reales.',
       'Sin ruido de consultorio, sin solapamiento y sin distancia al micrófono.',
       'Es un PISO de laboratorio, no lo que se verá en una consulta real.',
+      'El WER es una media y los errores clínicamente pesados NO entran en ella: van aparte, contados, porque un promedio los deja compensarse con las frases buenas.',
     ],
   }, null, 2) + '\n')
   console.log(`  Escrito: ${salida}\n`)

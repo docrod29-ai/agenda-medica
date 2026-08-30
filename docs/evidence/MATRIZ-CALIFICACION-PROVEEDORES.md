@@ -22,31 +22,68 @@ estado real del conocimiento, no una tarea a medias.
 
 ## Resumen
 
-| Proveedor | Rol | Licencia | ¿Puede citar hoy? | Campos sin verificar |
+| Proveedor | Rol | Licencia | ¿Se consulta hoy? | Campos sin verificar |
 |---|---|---|---|---|
 | PubMed / MEDLINE (NCBI E-utilities) | `respaldo` | `OPEN` | **sí** | 2/12 |
-| PubMed Central (Open Access) | `respaldo` | `OPEN` | **sí** | 7/12 |
-| ClinicalTrials.gov | `respaldo` | `OPEN` | **sí** | 7/12 |
-| OMS / WHO (guías y publicaciones) | `respaldo` | `OPEN` | **sí** | 8/12 |
-| CDC (guías y MMWR) | `respaldo` | `OPEN` | **sí** | 8/12 |
-| FDA / DailyMed (fichas de producto) | `respaldo` | `OPEN` | **sí** | 6/12 |
-| Cochrane Library | `respaldo` | `REQUIRES_AGREEMENT` | no | 10/12 |
-| UpToDate (Wolters Kluwer) | `respaldo` | `REQUIRES_AGREEMENT` | no | 11/12 |
-| OpenEvidence | `respaldo` | `LICENSE_UNKNOWN` | no | 12/12 |
-| Perplexity (búsqueda generativa) | `descubrimiento` | `LICENSE_UNKNOWN` | no | 9/12 |
-| Conocimiento personal del médico (Obsidian y equivalentes) | `conocimiento_personal` | `OPEN` | no | 4/12 |
+| PubMed Central (Open Access) | `respaldo` | `OPEN` | sí — **pero fuera del contrato**: no avisa si falla | 7/12 |
+| ClinicalTrials.gov | `respaldo` | `OPEN` | no — **sin adaptador** | 7/12 |
+| OMS / WHO (guías y publicaciones) | `respaldo` | `OPEN` | no — **sin adaptador** | 8/12 |
+| CDC (guías y MMWR) | `respaldo` | `OPEN` | no — **sin adaptador** | 8/12 |
+| FDA / DailyMed (fichas de producto) | `respaldo` | `OPEN` | sí — **pero fuera del contrato**: no avisa si falla | 6/12 |
+| Cochrane Library | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 10/12 |
+| UpToDate (Wolters Kluwer) | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 11/12 |
+| OpenEvidence | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| Perplexity (búsqueda generativa) | `descubrimiento` | `LICENSE_UNKNOWN` | no — sin licencia | 9/12 |
+| Conocimiento personal del médico (Obsidian y equivalentes) | `conocimiento_personal` | `OPEN` | no — sin licencia | 4/12 |
 | Fuente sintética (pruebas y benchmark) | `respaldo` | `OPEN` | **sí** | 8/12 |
+| NEJM | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| JAMA Network | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| The Lancet | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| The BMJ | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| Clinical Infectious Diseases | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| Nature Medicine | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| Annals of Internal Medicine | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| DynaMed | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| Scopus | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| Embase | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| Crossref | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| IDSA (Infectious Diseases Society of America) | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| ESC (European Society of Cardiology) | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| AHA / ACC | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| ATS / ERS | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| EASL | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| ECIL | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| NCCN | `respaldo` | `REQUIRES_AGREEMENT` | no — sin licencia | 12/12 |
+| Surviving Sepsis Campaign | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| COFEPRIS | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
+| CENETEC (GPC de Mexico) | `respaldo` | `LICENSE_UNKNOWN` | no — sin licencia | 12/12 |
 
-«¿Puede citar hoy?» = tiene `proveedorCanonico` en el catálogo. **Sin él no
-se puede construir un `Source`, y sin `Source` no hay `Passage` ni `Claim`**:
-la falta de licencia bloquea el respaldo por construcción, no por un
-guardián que alguien pueda quitar.
+«¿Se consulta hoy?» cruza DOS cosas, y hacen falta las dos:
+
+- **`proveedorCanonico` en el catálogo.** Sin él no se puede construir un
+  `Source`, y sin `Source` no hay `Passage` ni `Claim`: la falta de licencia
+  bloquea el respaldo por construcción, no por un guardián que alguien pueda
+  quitar.
+- **Un adaptador instanciado en `recuperacion-consultor.ts`.** Una fila del
+  catálogo sin adaptador no se consulta, no aparece en los avisos, y el médico
+  **no puede leer «no se consultó»** — para él esa fuente sencillamente no
+  existe.
+
+Hay un tercer caso, y se dice aparte porque mezclarlo sería mentir en la otra
+dirección: **PMC y openFDA sí se consultan**, pero los llama a mano la ruta
+(`textoCompletoPMC`, `dosisFDA`) sin pasar por el contrato. Funcionan — y al
+no pasar por `planDeConsulta` **no producen aviso**: si openFDA se cae, el
+médico no lee «no se consultó», lee una respuesta más pobre y no puede
+distinguirla de una completa.
+
+Antes esta columna sólo miraba lo primero, y por eso decía «sí» de fuentes que
+nadie ha construido (REG-345).
 
 ## Decisiones que esperan al dueño
 
 ### PubMed Central (Open Access)
 
-Filtrar por licencia de artículo antes de reproducir texto completo de PMC (hoy no se filtra).
+QUÉ subconjunto se considera reproducible sigue siendo decisión del dueño. Mientras no exista, REG-357 aplica la única postura defendible: sólo CC0 y CC-BY, y ante la duda no se reproduce. Ampliarla (p. ej. admitir CC-BY-SA) es una decisión suya, no un ajuste técnico.
 
 ### OMS / WHO (guías y publicaciones)
 
@@ -75,6 +112,90 @@ DECISIÓN DEL DUEÑO (gasto): la API es de pago. No se contrata nada en este sli
 ### Conocimiento personal del médico (Obsidian y equivalentes)
 
 DECISIÓN DEL DUEÑO (política clínica): confirmar que el conocimiento personal se muestra SIEMPRE atribuido y separado, y que nunca alimenta al motor de razonamiento como si fuera guía. Este slice lo asume así y lo hace cumplir por contrato.
+
+### NEJM
+
+Acuerdo con la editorial o su API institucional. Sin eso se queda en descubrimiento via indice.
+
+### JAMA Network
+
+Acuerdo con la editorial o acceso por su API institucional. Sin eso se queda en descubrimiento via indice.
+
+### The Lancet
+
+Acuerdo con Elsevier o acceso por su API institucional. Sin eso se queda en descubrimiento via indice.
+
+### The BMJ
+
+Acuerdo con la editorial o acceso por su API institucional. Sin eso se queda en descubrimiento via indice.
+
+### Clinical Infectious Diseases
+
+Acuerdo con Oxford University Press o acceso institucional a Clinical Infectious Diseases.
+
+### Nature Medicine
+
+Acuerdo con Springer Nature, o su API institucional. Sin eso se queda en descubrimiento via indice.
+
+### Annals of Internal Medicine
+
+Acuerdo con el American College of Physicians o acceso institucional a Annals.
+
+### DynaMed
+
+Contrato con EBSCO y credenciales de DynaMed para el consultorio.
+
+### Scopus
+
+Contrato con Elsevier y clave de API institucional para el consultorio.
+
+### Embase
+
+Contrato con Elsevier y clave de API institucional para el consultorio.
+
+### Crossref
+
+Ninguna externa: es trabajo interno. Se declara aqui para que no vuelva a caerse del mapa.
+
+### IDSA (Infectious Diseases Society of America)
+
+Revisar los terminos de reuso de la IDSA antes de integrarla como fuente citable.
+
+### ESC (European Society of Cardiology)
+
+Revisar los terminos de reuso de la ESC antes de integrarla como fuente citable.
+
+### AHA / ACC
+
+Revisar los terminos de reuso de AHA/ACC antes de integrarlas como fuente citable.
+
+### ATS / ERS
+
+Revisar los terminos de reuso de la ATS/ERS antes de integrarla como fuente citable.
+
+### EASL
+
+Revisar los terminos de reuso de la EASL antes de integrarla como fuente citable.
+
+### ECIL
+
+Revisar los terminos de reuso de la ECIL antes de integrarla como fuente citable.
+
+### NCCN
+
+Registro institucional en la NCCN y revision de sus terminos de reuso, que son estrictos.
+
+### Surviving Sepsis Campaign
+
+Revisar los terminos de reuso de la Surviving Sepsis Campaign antes de integrarla.
+
+### COFEPRIS
+
+Revisar si COFEPRIS publica un canal consultable; hoy no consta que lo haga.
+
+### CENETEC (GPC de Mexico)
+
+Revisar si CENETEC publica un catalogo consultable de GPC.
 
 ## Ficha por proveedor
 
@@ -126,7 +247,7 @@ Sólo el subconjunto Open Access. src/lib/evidencia/pubmed.ts:166 ya trae texto 
 | Límites y SLA | **UNVERIFIABLE** |
 | Precio | sin costo — Servicio público del NIH. |
 | Semántica de fallo | **UNVERIFIABLE** |
-| Reuso en sistema generativo | depende de la licencia del artículo (CC-BY, CC0, o "OA no comercial") — RIESGO REAL: el subconjunto OA mezcla licencias. Hay que leer la licencia POR ARTÍCULO antes de reproducir texto completo. |
+| Reuso en sistema generativo | sólo CC0 y CC-BY; el resto NO se reproduce — REG-357: se lee la licencia POR ARTÍCULO en el XML y se falla cerrado. Sin permiso explícito se usa el resumen, igual que con un artículo de pago. El subconjunto OA mezcla licencias: «acceso abierto» dice que se puede LEER, no que se pueda COPIAR en un producto de pago. |
 
 ### ClinicalTrials.gov
 
@@ -376,5 +497,530 @@ Adaptador determinista con corpus sintético para que las pruebas y el benchmark
 | Límites y SLA | **UNVERIFIABLE** |
 | Precio | sin costo — Local. |
 | Semántica de fallo | inyectable por el test — Puede simular caída, rechazo y recorte a voluntad. |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### NEJM
+
+- **id**: `nejm`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Hoy sus articulos se DESCUBREN via PubMed (resumen y metadatos publicos). Eso no es una integracion editorial y llamarlo asi seria falso: no hay contrato, ni API, ni texto completo.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### JAMA Network
+
+- **id**: `jama`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Igual que NEJM: descubrimiento via PubMed, sin integracion editorial.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### The Lancet
+
+- **id**: `lancet`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Igual que NEJM: descubrimiento via PubMed, sin integracion editorial.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### The BMJ
+
+- **id**: `bmj`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Igual que NEJM: descubrimiento via PubMed, sin integracion editorial.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### Clinical Infectious Diseases
+
+- **id**: `cid`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Revista de referencia de la especialidad del duenio. Hoy, descubrimiento via PubMed y nada mas.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### Nature Medicine
+
+- **id**: `nature_medicine`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Descubrimiento via PubMed, sin integracion editorial.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### Annals of Internal Medicine
+
+- **id**: `annals`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Descubrimiento via PubMed, sin integracion editorial.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### DynaMed
+
+- **id**: `dynamed`
+- **clase**: `referencia_terciaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Ni siquiera estaba catalogada, asi que el medico no podia leer «DynaMed: no se consulto». Sin adaptador y sin contrato.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### Scopus
+
+- **id**: `scopus`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Indice de citas de Elsevier. Sin catalogar hasta hoy; sin adaptador y sin contrato.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### Embase
+
+- **id**: `embase`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Indice biomedico de Elsevier, complementario de MEDLINE. Sin catalogar hasta hoy.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### Crossref
+
+- **id**: `crossref`
+- **clase**: `literatura_primaria`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+API publica de metadatos y DOI. NO esta integrada, y su ausencia es la razon de que el DOI se pierda por el camino (WS-07).
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### IDSA (Infectious Diseases Society of America)
+
+- **id**: `idsa`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Sus guias se citan hoy como CADENAS FIJAS dentro de motores clinicos: no hay objeto de guia, ni version, ni fecha, ni forma de saber si la citada sigue vigente (WS-07).
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### ESC (European Society of Cardiology)
+
+- **id**: `esc`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Cadena de cita fija dentro de motores clinicos. Sin objeto de guia ni control de vigencia.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### AHA / ACC
+
+- **id**: `aha_acc`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Cadena de cita fija dentro de motores clinicos. Sin objeto de guia ni control de vigencia.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### ATS / ERS
+
+- **id**: `ats`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Ni siquiera estaba catalogada. Sin adaptador y sin objeto de guia.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### EASL
+
+- **id**: `easl`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Sin catalogar hasta hoy. Sin adaptador y sin objeto de guia.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### ECIL
+
+- **id**: `ecil`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Guias de infeccion en el paciente hematologico. Sin catalogar hasta hoy.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### NCCN
+
+- **id**: `nccn`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `REQUIRES_AGREEMENT`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Sus guias exigen registro y tienen terminos de reuso estrictos. Sin catalogar hasta hoy.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### Surviving Sepsis Campaign
+
+- **id**: `surviving_sepsis`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Cadena de cita fija dentro de motores clinicos. Sin objeto de guia ni control de vigencia.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### COFEPRIS
+
+- **id**: `cofepris`
+- **clase**: `ficha_de_farmaco`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+La autoridad sanitaria mexicana. Sin catalogar, pese a que el producto es para Mexico: la ficha oficial de un farmaco en Mexico no la da openFDA.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
+| Reuso en sistema generativo | **UNVERIFIABLE** |
+
+### CENETEC (GPC de Mexico)
+
+- **id**: `cenetec`
+- **clase**: `guia_de_practica`
+- **rol**: `respaldo`
+- **licencia**: `LICENSE_UNKNOWN`
+- **proveedor canónico**: _ninguno — no puede producir un `Source` citable_
+
+Hoy es UN ENLACE A UNA BUSQUEDA DE GOOGLE presentado como boton. No es una fuente integrada y el catalogo no lo decia.
+
+| Campo | Estado |
+|---|---|
+| Vía oficial de integración | **UNVERIFIABLE** |
+| Clases de dato permitidas | **UNVERIFIABLE** |
+| Admite PHI | **UNVERIFIABLE** |
+| Modelo de credencial | **UNVERIFIABLE** |
+| Derecho de caché | **UNVERIFIABLE** |
+| Derecho de mostrar | **UNVERIFIABLE** |
+| Cita profunda al original | **UNVERIFIABLE** |
+| Expone versión/frescura | **UNVERIFIABLE** |
+| Límites y SLA | **UNVERIFIABLE** |
+| Precio | **UNVERIFIABLE** |
+| Semántica de fallo | **UNVERIFIABLE** |
 | Reuso en sistema generativo | **UNVERIFIABLE** |
 

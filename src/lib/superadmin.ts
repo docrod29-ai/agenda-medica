@@ -56,6 +56,62 @@ export async function verificarSuperadmin(req: NextRequest): Promise<SuperadminA
     if (!esSuperadmin(decoded.email)) {
       return { ok: false, response: NextResponse.json({ ok: false, error: 'Acceso restringido al dueño de la plataforma' }, { status: 403 }) }
     }
+    /**
+     * SI HAY SEGUNDO FACTOR ENROLADO, ESTA SESIÓN TIENE QUE HABERLO USADO.
+     *
+     * ── El hueco que cierra (REG-384) ────────────────────────────────────────
+     *
+     * El producto tiene TOTP implementado y funcionando, y **ninguna ruta del
+     * servidor lo exigía**: una sesión sin segundo factor tenía privilegios
+     * idénticos. Firebase bloquea el inicio de sesión de un usuario enrolado, sí
+     * — pero un token emitido ANTES de enrolar sigue siendo válido hasta que
+     * caduca. Quien enrola TOTP porque sospecha que le robaron la contraseña
+     * seguía teniendo, durante esa ventana, una sesión abierta con todo.
+     *
+     * ── Por qué «si está enrolado» y no «siempre» ────────────────────────────
+     *
+     * Exigirlo a secas dejaría al dueño fuera de su propia consola el día que
+     * todavía no ha enrolado nada. La condición se ata a un hecho comprobable de
+     * su cuenta, no a una política que este código no puede decidir: quien no ha
+     * enrolado entra como siempre; quien SÍ enroló no puede saltárselo.
+     *
+     * El coste es una lectura de usuario por petición. En la consola del dueño
+     * —tráfico bajísimo— es irrelevante; por eso vive aquí y no en el camino
+     * clínico, donde habría que pagarlo en cada nota.
+     */
+    if (!decoded.firebase?.sign_in_second_factor) {
+      /**
+       * FALLA CERRADO, Y EL MENSAJE NO MIENTE SOBRE LA CAUSA.
+       *
+       * Si no se puede preguntar por los factores enrolados, no se sabe si hace
+       * falta el segundo o no. Seguir adelante convertiría un fallo de red en el
+       * modo de saltarse la comprobación; y responder «token inválido» mandaría
+       * al dueño a revisar su sesión cuando lo que pasa es que Firebase no
+       * contestó. Se responde **503 y se dice que se reintente**.
+       */
+      let enrolados: number
+      try {
+        const usuario = await admin.auth().getUser(decoded.uid)
+        enrolados = usuario.multiFactor?.enrolledFactors?.length ?? 0
+      } catch {
+        return {
+          ok: false,
+          response: NextResponse.json({
+            ok: false,
+            error: 'No se pudo comprobar tu segundo factor ahora mismo. Vuelve a intentarlo.',
+          }, { status: 503 }),
+        }
+      }
+      if (enrolados > 0) {
+        return {
+          ok: false,
+          response: NextResponse.json({
+            ok: false,
+            error: 'Esta sesión no usó tu segundo factor. Cierra sesión y vuelve a entrar con tu código.',
+          }, { status: 403 }),
+        }
+      }
+    }
     return { ok: true, uid: decoded.uid, email: decoded.email! }
   } catch {
     return { ok: false, response: NextResponse.json({ ok: false, error: 'Token inválido' }, { status: 401 }) }

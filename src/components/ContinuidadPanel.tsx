@@ -73,7 +73,7 @@ export function ContinuidadPanel() {
     if (!clinicId) return
     let vivo = true
     tareasVivas(clinicId)
-      .then(t => { if (vivo) { setTareas(t); setAhora(Date.now()) } })
+      .then(w => { if (vivo) { setTareas(w.tareas); setAhora(Date.now()) } })
       .catch(() => {})
       .finally(() => { if (vivo) setCargando(false) })
     return () => { vivo = false }

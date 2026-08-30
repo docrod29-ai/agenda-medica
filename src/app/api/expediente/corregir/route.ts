@@ -18,6 +18,7 @@ import { gateCreditos, resolverClaveIA, nivelIADe, registrarCreditos } from '@/l
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { safeLog } from '@/lib/security/sanitize'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -61,7 +62,10 @@ async function openaiVerificar(
   try {
     const sys = `Eres un SEGUNDO editor clínico de precisión que AUDITA el trabajo de otro modelo. Recibes: la NOTA ORIGINAL (JSON), una INSTRUCCIÓN de corrección del médico, y la NOTA CORREGIDA por el primer modelo. Verifica que la nota corregida aplique EXACTAMENTE la instrucción y NADA más. Si el primer modelo cambió algo que NO se pidió (revteó texto, agregó/quitó datos ajenos, "mejoró" redacción), REVIÉRTELO al original. Si NO aplicó bien el cambio pedido, corrígelo. NUNCA inventes datos nuevos. Conserva IDÉNTICA la estructura de campos. Responde EXCLUSIVAMENTE el JSON final de la nota, sin markdown ni texto extra. Primer carácter "{", último "}".`
     const usr = `NOTA ORIGINAL:\n${JSON.stringify(notaOriginal)}\n\nINSTRUCCIÓN DEL MÉDICO:\n"${instruccion}"\n\nNOTA CORREGIDA (a auditar):\n${JSON.stringify(notaCorregida)}\n\nDevuelve el JSON final verificado.`
+    // REG-346 — `maxDuration = 300`: sin tope, un socket colgado se los lleva
+    // enteros, facturados, y la corrección nunca vuelve.
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      signal: AbortSignal.timeout(60_000),
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }], response_format: { type: 'json_object' }, max_completion_tokens: 4000 }),
@@ -108,6 +112,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto: Contexto = {
     feature: 'corregir-transcripcion',
     requestId: req.headers.get('x-vercel-id') || `co-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }
@@ -127,6 +132,7 @@ export async function POST(req: NextRequest) {
     }
     if (conThinking) payload.thinking = { type: 'enabled', budget_tokens: 4000 }
     return fetch('https://api.anthropic.com/v1/messages', {
+      signal: AbortSignal.timeout(60_000),   // REG-346
       method: 'POST', headers: headers(API_KEY), body: JSON.stringify(payload),
     })
   }

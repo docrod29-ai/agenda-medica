@@ -17,9 +17,30 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1174",
-  "ultimaVersionEnRepo": "nexusmed-v1173 (v1173 = REG-337, el bote del expediente; commiteada, fusionada a main en 8150115 y publicada por la integración GitHub↔Vercel). El bump fue CON su despliegue, que es la condición que v1172 dejó escrita.",
-  "trabajoLocalSinSubir": [],
-  "actualizado": "2026-08-28",
+  "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
+  "trabajoLocalSinSubir": [
+    "M  .claude/rules/testing-gates.md",
+    "A  .github/workflows/ausculta-autonomous-loop.yml",
+    "M  .github/workflows/deploy-production.yml",
+    "M  CLAUDE.md",
+    "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    "UU agent-state/MASTER_STATE.json",
+    "M  docs/audit/lint-techo.json",
+    "M  docs/audit/regression-ledger.md",
+    "UU docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "A  docs/maintenance/CARRILES-Y-BUCLES.md",
+    "A  docs/maintenance/PRS-SIN-ABSORBER-2026-08-30.md",
+    "M  docs/maintenance/sw-changelog.md",
+    "M  docs/product/AUSCULTA-MASTER-BOARD.md",
+    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  e2e/seguridad.spec.ts",
+    "M  public/sw.js",
+    "M  public/version.txt",
+    "M  scripts/design/techos-de-diseno.json",
+    "M  src/__tests__/agendar-no-es-haber-visto-al-paciente.test.ts"
+  ],
+  "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -51,13 +72,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/simplify-document-upload-screen-di2sy6",
+  "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 187,
-    "ultimaREG": "REG-339",
-    "archivosDePrueba": 764,
-    "casosDePrueba": 9384,
+    "regsEnElLedger": 262,
+    "ultimaREG": "REG-503",
+    "archivosDePrueba": 835,
+    "casosDePrueba": 10420,
     "lint": "ver scripts/lint-trinquete.mjs"
-  },
-  "queMideUltimaVersionEnProduccion": "OJO — `ultimaVersionEnProduccion` la deriva scripts/agent-state/actualizar.mjs de `public/version.txt`, o sea de lo que el REPOSITORIO declara, no de lo que el sitio vivo sirve. Basta con subir el número y no desplegar para que este tablero diga que producción va en una versión que nadie publicó. Quien comprueba de verdad lo que sirve producción es la Compuerta 3 de .github/workflows/deploy-production.yml, que hace curl a $URL_PROD/version.txt."
+  }
 }

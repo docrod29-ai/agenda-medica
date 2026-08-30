@@ -47,6 +47,23 @@ export interface OpcionesTienda {
    * carrera que en produccion ocurre sola.
    */
   alCommitear?: (intento: number) => void | Promise<void>
+  /**
+   * Se llama justo DESPUES de resolver una lectura en bloque (`getAll`), tanto
+   * la suelta como la de dentro de una transaccion.
+   *
+   * POR QUE HACE FALTA UN GANCHO EN LA LECTURA Y NO EN LA ESCRITURA
+   *
+   * La carrera que hay que reproducir es «lei que estaba libre, y para cuando
+   * escribi ya no lo estaba». Un gancho colgado del mecanismo de ESCRITURA sirve
+   * para una implementacion y deja de dispararse en cuanto esa implementacion
+   * cambia — asi que la misma prueba no puede fallar antes del arreglo y pasar
+   * despues, que es lo unico que la hace prueba.
+   *
+   * Colgado de la LECTURA, el gancho mete al competidor en el hueco exacto que
+   * define el defecto, y sigue metiendolo se escriba luego con lote o con
+   * transaccion.
+   */
+  trasLeerEnBloque?: (rutas: string[]) => void | Promise<void>
 }
 
 export class TiendaEnMemoria {
@@ -273,6 +290,22 @@ class Transaccion {
     } as unknown as Record<string, unknown>
   }
 
+  /**
+   * `tx.getAll` — lee varios documentos FIJANDO la version de cada uno. Si
+   * cualquiera cambia antes del commit, la transaccion se reejecuta. Es la
+   * diferencia entera entre «mire antes de escribir» y «mire, y ademas eso
+   * seguia siendo verdad cuando escribi».
+   */
+  async getAll(...refs: RefDoc[]): Promise<Array<{ exists: boolean; id: string; data: () => Datos | undefined }>> {
+    const salida = refs.map(ref => {
+      this.leidosDoc.set(ref.ruta, this.tienda.versionDoc(ref.ruta))
+      const d = this.tienda.obtener(ref.ruta)
+      return { exists: d !== undefined, id: ref.id, data: () => d }
+    })
+    await this.tienda.intercepcion.trasLeerEnBloque?.(refs.map(r => r.ruta))
+    return salida
+  }
+
   set(ref: RefDoc, datos: Datos, opciones?: { merge?: boolean }): void {
     this.escrituras.push({ ruta: ref.ruta, datos, merge: opciones?.merge === true })
   }
@@ -298,8 +331,37 @@ class Transaccion {
   }
 }
 
+/**
+ * `WriteBatch` del Admin SDK: acumula escrituras y las aplica de golpe.
+ *
+ * NO es una transaccion, y esa diferencia es justo lo que una prueba de carrera
+ * tiene que poder ver: un lote **no vuelve a mirar** lo que alguien leyo antes
+ * de meterlo, asi que escribe aunque el mundo haya cambiado desde la lectura.
+ */
+class Lote {
+  private escrituras: Array<{ ruta: string; datos: Datos; merge: boolean }> = []
+
+  constructor(private tienda: TiendaEnMemoria) {}
+
+  set(ref: RefDoc, datos: Datos, opciones?: { merge?: boolean }): Lote {
+    this.escrituras.push({ ruta: ref.ruta, datos, merge: opciones?.merge === true })
+    return this
+  }
+
+  async commit(): Promise<void> {
+    for (const w of this.escrituras) {
+      if (!w.merge) this.tienda.borrar(w.ruta)
+      this.tienda.poner(w.ruta, w.datos)
+    }
+    this.escrituras = []
+  }
+}
+
 export interface AdminDbFalso {
   collection(nombre: string): RefColeccion
+  doc(ruta: string): RefDoc
+  getAll(...refs: RefDoc[]): Promise<Array<{ exists: boolean; id: string; data: () => Datos | undefined }>>
+  batch(): Lote
   runTransaction<T>(fn: (tx: Transaccion) => Promise<T>): Promise<T>
 }
 
@@ -307,6 +369,21 @@ export interface AdminDbFalso {
 export function adminDbSobre(tienda: TiendaEnMemoria): AdminDbFalso {
   return {
     collection: (nombre: string) => new RefColeccion(tienda, nombre),
+    doc: (ruta: string) => new RefDoc(tienda, ruta),
+    batch: () => new Lote(tienda),
+    /**
+     * `getAll` SUELTO: lee y devuelve, sin fijar version de nada. Quien escriba
+     * despues de esto lo hace sobre una foto que ya puede estar vieja — que es
+     * exactamente lo que ocurre en produccion.
+     */
+    async getAll(...refs: RefDoc[]) {
+      const salida = refs.map(r => {
+        const d = tienda.obtener(r.ruta)
+        return { exists: d !== undefined, id: r.id, data: () => d }
+      })
+      await tienda.intercepcion.trasLeerEnBloque?.(refs.map(r => r.ruta))
+      return salida
+    },
     async runTransaction<T>(fn: (tx: Transaccion) => Promise<T>): Promise<T> {
       for (let intento = 0; intento < 10; intento++) {
         const tx = new Transaccion(tienda)
