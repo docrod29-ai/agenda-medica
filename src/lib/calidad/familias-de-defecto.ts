@@ -273,7 +273,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ANTES de hacer el estudio, a veces justo lo que vino a refutar— se lee
      * igual que una conclusión, con su número de cita al lado.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400],
+    /**
+     * 401 es esta familia con la defensa puesta en el borde EQUIVOCADO.
+     * `desde-pubmed.ts` sabía que la etiqueta de diseño colapsa —«ECA» también
+     * capturaba `clinical trial` a secas, que puede no ser aleatorizado— y se
+     * negaba a traducirla al modelo de evidencia, con su caso y todo. Pero la
+     * etiqueta se lee en otros dos sitios que no pasan por ese borde: el prompt
+     * del consultor y la pantalla del médico. Se había decidido que el dato no
+     * era de fiar y se seguía entregando a quien decide con él.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 337, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401],
   },
   {
     clave: 'se_contradice',

@@ -13869,3 +13869,74 @@ módulo no puede ayudar.
   resumen y se devuelve «no se sabe», que es la verdad.
 - **No mide nada.** No hay conjunto de referencia de citas fuera de contexto; el
   contrato de evaluación lo declara como hueco.
+
+---
+
+## REG-401 — la etiqueta del diseño decía más de lo que dijo la fuente
+
+**QUÉ SE PEDÍA.** `WS-07.prestigio-no-es-calidad`: que la marca de la revista no
+suba la calidad metodológica. Su censo decía que sin identidad de revista
+normalizada no había dónde comprobarlo — y REG-398 acababa de ponerla.
+
+Al mirarlo salieron **dos cosas**, y la segunda no era la que se buscaba.
+
+### 1. La revista no ordena — y el guardián toca escribirlo AHORA
+
+Hoy nada puntúa por revista: `seleccion.ts` se prohíbe explícitamente puntuar
+autoridad metodológica, y el orden de artículos sale sólo del tipo de estudio.
+
+Pero REG-398 acaba de meter la identidad de la revista —nombre, abreviatura ISO,
+DOI— **dentro del `Source`**, o sea a mano. Un guardián sobre una propiedad que
+todavía se cumple es barato; escribirlo después del primer
+`if (revista === 'NEJM')` es tarde.
+
+### 2. La etiqueta del diseño decía de más — esto sí estaba roto
+
+El clasificador colapsaba **dos pares de diseños distintos**:
+
+- `meta-analysis` y `systematic review` salían los dos como «Meta-análisis». Una
+  revisión sistemática sin metaanálisis resume los estudios; no combina sus
+  resultados.
+- `randomized controlled trial` y `clinical trial` a secas salían los dos como
+  **«ECA»**. El tipo `Clinical Trial` de PubMed incluye ensayos **no
+  aleatorizados** —fase I, un solo brazo—, y llamarlos ECA es afirmar un diseño
+  que la fuente no afirmó. Es subir la calidad metodológica, sólo que por la
+  etiqueta en vez de por la revista.
+
+**Y el repositorio ya lo sabía.** `desde-pubmed.ts` se niega en redondo a
+traducir esa etiqueta a `DisenoDeEstudio` —«traducir esas cubetas inventaría un
+dato metodológico que la fuente no dio»— y tiene su caso en
+`evidence-model.test.ts`.
+
+Pero esa defensa vive en el borde del **modelo**, y la etiqueta se consume en dos
+sitios que no pasan por ahí: el **prompt** del consultor, que la mete como
+`[ECA]` delante del resumen, y `articulosMin`, que la manda a la **pantalla del
+médico**. Se había decidido que el dato no era de fiar y se seguía entregando a
+las dos personas que deciden con él.
+
+### Lo que NO se tocó, y es la mitad importante
+
+**El orden.** Los diseños recién separados conservan **exactamente** el rango que
+tenían cuando iban juntos (`Revisión sistemática` con `Meta-análisis`;
+`Ensayo clínico` con `ECA`). Cambiarlo sería inventar una jerarquía metodológica
+nueva — lo mismo que `seleccion.ts` se prohíbe, y lo que la regla 1 llama
+inventar una cifra clínica.
+
+**Cambia lo que se dice, no lo que se prefiere.**
+
+**LA PRUEBA.** `src/__tests__/la-revista-no-sube-la-calidad.test.ts` (12 casos).
+Probado al revés añadiendo un desempate por revista al orden: cae el guardián.
+Incluye el caso que comprueba que las ramas del clasificador van de más
+específica a menos —si la del ensayo fuera antes que la del ECA, un ECA saldría
+como ensayo a secas— y el que conserva la prohibición hermana de `seleccion.ts`
+para que no se pierda al tocar el módulo de al lado.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No juzga la calidad de un estudio.** Ni riesgo de sesgo, ni tamaño, ni
+  registro previo. Impide que la etiqueta y la revista digan más de lo que la
+  fuente dijo, nada más.
+- **No cubre las guías**, que tienen su propio requisito abierto (`WS-07.guias`:
+  organización, versión, fecha, jurisdicción y vigencia).
+- **No prueba la pantalla.** Que el médico VEA la salvedad junto al tipo depende
+  del componente; aquí se comprueba que el dato le llega.

@@ -26,7 +26,10 @@ import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarConsul
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { costoConsultor, planPorNivel } from '@/lib/planes-ia'
-import { buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMCConIdentidad } from '@/lib/evidencia/pubmed'
+import {
+  buscarEvidencia, buscarEvidenciaMulti, textoCompletoPMCConIdentidad,
+  LO_QUE_LA_ETIQUETA_NO_DICE,
+} from '@/lib/evidencia/pubmed'
 import {
   recuperarEvidenciaParaConsultor,
   type BusquedaDePubMed, type IntentoDeBusqueda, type RecuperacionParaConsultor,
@@ -453,7 +456,17 @@ export async function POST(req: NextRequest) {
     const fullText = pmc.textos
     const fuentes = articulos.map((a, i) => {
       const ft = fullText[a.pmid] ? `\nTEXTO COMPLETO (extracto con cifras):\n${fullText[a.pmid]}` : ''
-      return `[${i + 1}] ${a.tipo ? `[${a.tipo}] ` : ''}${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 1200)}${ft}`
+      /**
+       * REG-401 · la etiqueta va con lo que NO dice.
+       *
+       * «Ensayo clínico» a secas es correcto y aun así el lector —modelo o
+       * médico— da por hecha una aleatorización que PubMed no declaró. El
+       * repositorio ya se negaba a traducir esta etiqueta a un diseño en el
+       * modelo de evidencia; aquí es donde de verdad se lee.
+       */
+      const salvedad = a.tipo ? LO_QUE_LA_ETIQUETA_NO_DICE[a.tipo] : undefined
+      const etiqueta = a.tipo ? `[${a.tipo}${salvedad ? ` — ${salvedad}` : ''}] ` : ''
+      return `[${i + 1}] ${etiqueta}${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 1200)}${ft}`
     }).join('\n\n')
     const dosisTxt = dosisList.length ? '\n\nDOSIS OFICIAL (ficha técnica FDA):\n' + dosisList.map(d => `• ${d.farmaco}: ${d.dosis}`).join('\n') : ''
     const system = 'Eres el mejor consultor clínico basado en evidencia para médicos en MÉXICO — al nivel de OpenEvidence: razonas a fondo, resuelves casos COMPLEJOS y das respuestas COMPLETAS y accionables, no superficiales. Responde en español CITANDO con [n] los artículos que respaldan cada afirmación. Estructura útil: síntesis directa arriba, luego el porqué (mecanismo/razonamiento clínico), abordaje escalonado, y advertencias. Cuando una fuente incluya "TEXTO COMPLETO", razona sobre sus CIFRAS reales (NNT, IC95%, HR, RR, tamaño de muestra) y menciónalas citando su [n] — no te quedes solo en lo cualitativo. RAZONA como especialista: sopesa alternativas, menciona cuándo NO aplica, banderas rojas, poblaciones especiales, interacciones. Si hay contexto de PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones. Si es sobre un fármaco/tratamiento, incluye **Dosis**: usa la "DOSIS OFICIAL (FDA)" dada (ajústala a función renal/hepática y peso, y a verificar con el Cuadro Básico); si no se da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega **Guía en México**: GPC de CENETEC o NOM pertinente por su nombre (a verificar el documento oficial). SEGURIDAD DE DOSIS (crítico): NUNCA emitas una CIFRA de dosis (mg, mg/kg, intervalo) sin respaldo. Si tienes la "DOSIS OFICIAL (FDA)" para ese fármaco, úsala y cítala como tal. Si NO la tienes, di "verificar dosis en el Cuadro Básico / ficha técnica" SIN inventar el número; jamás adivines una cifra. Recuerda ajustar por función renal/hepática, peso y edad, y en pediatría/embarazo/lactancia extrema la precaución. REGLAS DE RIGOR: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo con honestidad y complementa con razonamiento clínico y consenso (aclarando qué es evidencia y qué es criterio); apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
@@ -471,6 +484,9 @@ export async function POST(req: NextRequest) {
     const articulosMin = articulos.map(a => ({
       pmid: a.pmid, titulo: a.titulo, revista: a.revista, anio: a.anio,
       url: a.url, tipo: a.tipo, doi: a.doi,
+      /* Lo que la etiqueta NO dice, para que la pantalla pueda enseñarlo junto
+         al tipo en vez de dejar que el médico lo dé por hecho (REG-401). */
+      tipoSalvedad: a.tipo ? LO_QUE_LA_ETIQUETA_NO_DICE[a.tipo] : undefined,
       revistaAbrev: a.revistaAbrev,
       pmcid: pmc.identidad[a.pmid]?.pmcid,
       accesoAbierto: pmc.identidad[a.pmid]?.accesoAbierto,

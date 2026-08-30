@@ -343,8 +343,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-07.prestigio-no-es-calidad', ws: 'WS-07', titulo: 'La marca de la revista no sube la calidad metodológica',
-    estado: 'NOT_STARTED',
-    queFalta: 'Sin identidad de revista normalizada (WS-07.identidad-de-revista) no hay dónde comprobarlo. Falta el guardián que separe jerarquía metodológica de identidad de fuente.',
+    estado: 'PROVEN',
+    evidencia: 'REG-401. Dos mitades. (1) La revista NO entra en el orden —hoy se cumplía y ahora hay guardián, que es lo barato cuando REG-398 acaba de poner nombre, abreviatura ISO y DOI dentro del Source—. (2) La que sí estaba rota: la ETIQUETA del diseño decía de más. `meta-analysis` y `systematic review` salían los dos como «Meta-análisis», y `randomized controlled trial` y `clinical trial` a secas salían los dos como «ECA» — el tipo Clinical Trial de PubMed incluye ensayos NO aleatorizados. El repositorio ya lo sabía y se negaba a traducir esa etiqueta en el modelo de evidencia, pero la etiqueta se consume en el prompt del consultor y en la pantalla del médico, que no pasan por ese borde. NO SE CAMBIÓ EL ORDEN: los diseños recién separados conservan el rango que tenían juntos, porque reordenarlos sería inventar una jerarquía metodológica.',
+    comando: 'npx vitest run src/__tests__/la-revista-no-sube-la-calidad.test.ts',
+    resultado: '12 casos verdes. Probado al revés añadiendo un desempate por revista al orden: cae el guardián.',
+    artefactos: ['src/lib/evidencia/pubmed.ts'],
+    pruebas: ['src/__tests__/la-revista-no-sube-la-calidad.test.ts'],
   }),
   R({
     id: 'WS-07.guias', ws: 'WS-07', titulo: 'Motor de guías con organización, versión, fecha, jurisdicción y estado de vigencia',

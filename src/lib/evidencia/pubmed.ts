@@ -99,16 +99,92 @@ function ncbiFetch(url: string, signal?: AbortSignal): Promise<Response> {
   return p
 }
 
-// Jerarquía de evidencia: menor rank = mayor peso (flota arriba en los resultados).
-const RANK: Record<string, number> = { 'Meta-análisis': 0, 'Guía': 1, 'ECA': 2, 'Revisión': 3, '': 4 }
+/**
+ * LA ETIQUETA DICE LO QUE DIJO PUBMED, NI UNA PALABRA MÁS (REG-401).
+ *
+ * ── QUÉ DECÍA DE MÁS ────────────────────────────────────────────────────────
+ *
+ * El clasificador **colapsaba dos pares de diseños distintos**:
+ *
+ *   · `meta-analysis` y `systematic review` salían los dos como «Meta-análisis».
+ *     Una revisión sistemática sin metaanálisis no combina resultados: los
+ *     resume. No es lo mismo.
+ *   · `randomized controlled trial` y `clinical trial` a secas salían los dos
+ *     como «ECA». El tipo `Clinical Trial` de PubMed incluye ensayos **no
+ *     aleatorizados** —fase I, de un solo brazo—, y llamarlos ECA es afirmar un
+ *     diseño que la fuente no afirmó.
+ *
+ * ── POR QUÉ IMPORTA, Y DÓNDE LLEGABA ────────────────────────────────────────
+ *
+ * El repositorio ya sabía que esta etiqueta colapsa: `desde-pubmed.ts` se niega
+ * en redondo a traducirla a `DisenoDeEstudio` —«traducir esas cubetas
+ * inventaría un dato metodológico que la fuente no dio»— y tiene su caso en
+ * `evidence-model.test.ts`.
+ *
+ * Pero esa defensa está en el borde del MODELO, y la etiqueta se consume en
+ * otros dos sitios que no pasan por ahí: el prompt del consultor la mete como
+ * `[ECA]` delante del resumen, y `articulosMin` la manda a la pantalla del
+ * médico. O sea: se decidió que el dato no era de fiar y se seguía entregando a
+ * las dos personas que deciden con él.
+ *
+ * ── LO QUE **NO** SE TOCA: EL ORDEN ─────────────────────────────────────────
+ *
+ * Los rangos de los diseños recién separados son **los mismos** que tenían
+ * cuando iban juntos. Cambiar el orden sería inventar una jerarquía
+ * metodológica nueva, que es exactamente lo que `seleccion.ts` se prohíbe a sí
+ * mismo y lo que la regla 1 llama inventar una cifra clínica.
+ *
+ * Aquí cambia **lo que se dice**, no lo que se prefiere.
+ */
+const RANK: Record<string, number> = {
+  'Meta-análisis': 0,
+  /* Mismo rango que el metaanálisis: es donde estaba antes de separarse. */
+  'Revisión sistemática': 0,
+  'Guía': 1,
+  'ECA': 2,
+  /* Mismo rango que el ECA, por lo mismo. */
+  'Ensayo clínico': 2,
+  'Revisión': 3,
+  '': 4,
+}
+
 function tipoDeEstudio(bloque: string): string {
   const tipos = [...bloque.matchAll(/<PublicationType[^>]*>([\s\S]*?)<\/PublicationType>/gi)].map(m => desescapar(m[1]).toLowerCase())
-  if (tipos.some(t => t.includes('meta-analysis') || t.includes('systematic review'))) return 'Meta-análisis'
+  /* El orden importa: un artículo puede traer varios tipos, y se responde con
+     el más específico que PubMed haya declarado. */
+  if (tipos.some(t => t.includes('meta-analysis'))) return 'Meta-análisis'
+  if (tipos.some(t => t.includes('systematic review'))) return 'Revisión sistemática'
   if (tipos.some(t => t.includes('guideline'))) return 'Guía'
-  if (tipos.some(t => t.includes('randomized controlled trial') || t.includes('clinical trial'))) return 'ECA'
+  if (tipos.some(t => t.includes('randomized controlled trial'))) return 'ECA'
+  /* `Clinical Trial` incluye NO aleatorizados. Se dice así, no «ECA». */
+  if (tipos.some(t => t.includes('clinical trial'))) return 'Ensayo clínico'
   if (tipos.some(t => t.includes('review'))) return 'Revisión'
   return ''
 }
+
+/**
+ * Qué NO se sabe de un diseño con esta etiqueta, para poder decirlo.
+ *
+ * «Ensayo clínico» a secas es el caso que importa: la etiqueta es correcta y
+ * aun así el lector puede dar por hecha una aleatorización que nadie declaró.
+ */
+export const LO_QUE_LA_ETIQUETA_NO_DICE: Readonly<Record<string, string>> = Object.freeze({
+  'Ensayo clínico': 'PubMed no lo declaró aleatorizado: puede ser de un solo brazo o de fase temprana.',
+  'Revisión sistemática': 'Revisión sistemática sin metaanálisis declarado: resume los estudios, no combina sus resultados.',
+  'Revisión': 'Revisión no sistemática: no declara método de búsqueda ni de selección.',
+})
+
+export const POR_QUE_NO_CAMBIA_EL_ORDEN =
+  'Los diseños recién separados conservan el rango que tenían cuando iban ' +
+  'juntos. Cambiarlo sería inventar una jerarquía metodológica nueva — lo mismo ' +
+  'que `seleccion.ts` se prohíbe a sí mismo, y lo que la regla 1 llama inventar ' +
+  'una cifra clínica. Aquí cambia lo que se DICE, no lo que se prefiere.'
+
+export const LA_REVISTA_NO_ORDENA =
+  'Ni el nombre de la revista, ni su abreviatura, ni su DOI entran en el orden ' +
+  'de los artículos. Un ensayo bien hecho en una revista pequeña no vale menos ' +
+  'que un reporte de caso en una grande, y desde REG-398 la identidad de la ' +
+  'revista está a mano — que es justo cuando conviene que haya un guardián.'
 
 /** Decodifica entidades XML/HTML básicas de los textos de PubMed. */
 function desescapar(s: string): string {
