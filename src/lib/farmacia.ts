@@ -14,6 +14,7 @@ import {
   query, orderBy, where, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { idIdempotente } from '@/lib/idempotencia'
 import { instanteMX } from '@/lib/timezone'
 
 export type FarmaciaCategoria =
@@ -126,15 +127,52 @@ export async function registrarMovimiento(
   clinicId: string,
   itemActual: FarmaciaItem,
   mov: Omit<MovimientoFarmacia, 'id' | 'fecha'>,
+  /**
+   * ── LA TRANSACCIÓN NO PROTEGE DE REPETIRLA (REG-412) ────────────────────
+   *
+   * `runTransaction` garantiza que la aritmética de existencias sea atómica: dos
+   * salidas concurrentes ya no parten del mismo valor viejo. Y no dice **nada**
+   * sobre ejecutar la misma salida dos veces.
+   *
+   * El movimiento se escribía con `tx.set(doc(COL_MOV(clinicId)), …)`, y `doc()`
+   * sin id fabrica un nombre aleatorio — lo que el propio `idempotencia.ts`
+   * advierte en su primera línea. Así que si el commit sale y la respuesta se
+   * pierde, el reintento **descuenta el medicamento otra vez**, con otro nombre,
+   * y los dos movimientos quedan en los libros.
+   *
+   * No es un doble clic —eso lo cubre el botón— sino el caso que provoca la red
+   * sola. Con controlados, es la diferencia entre la existencia real y la que
+   * dice el sistema.
+   *
+   * La clave la acuña quien ABRE el modal y la conserva mientras esa salida no
+   * haya terminado: una intención, un movimiento.
+   */
+  claveDeIntento?: string,
 ): Promise<number> {   // devuelve la cantidad REALMENTE aplicada (puede ser < la solicitada por clamp)
   if (!itemActual.id) throw new Error('Item sin id')
   const fecha = new Date().toISOString()
   const itemRef = doc(COL(clinicId), itemActual.id)
+  const movRef = claveDeIntento
+    ? doc(COL_MOV(clinicId), idIdempotente(clinicId, 'farmacia', claveDeIntento))
+    : doc(COL_MOV(clinicId))
 
   // TRANSACCIÓN: lee la existencia ACTUAL del doc (no la que trae el caller, que
   // puede estar vieja) y calcula desde ahí. Antes, dos salidas concurrentes
   // partían del mismo valor viejo → last-write-wins descuadraba el stock.
   return await runTransaction(db, async (tx) => {
+    /**
+     * Se lee ANTES que el item: si este movimiento ya está escrito, no hay que
+     * tocar las existencias — y hacerlo dentro de la transacción es lo que
+     * cierra la ventana entre leer y escribir que tiene la otra pestaña.
+     *
+     * Se devuelve la cantidad que se aplicó ENTONCES, no la que se pidió ahora:
+     * si aquella salida se recortó por falta de existencias, el reintento tiene
+     * que enterarse del recorte y no del deseo.
+     */
+    if (claveDeIntento) {
+      const yaEsta = await tx.get(movRef)
+      if (yaEsta.exists()) return Number((yaEsta.data() as { cantidad?: number }).cantidad ?? 0)
+    }
     const snap = await tx.get(itemRef)
     const disponible = snap.exists() ? Number((snap.data() as { cantidad?: number }).cantidad ?? 0) : itemActual.cantidad
     let nuevaCantidad = disponible
@@ -152,7 +190,7 @@ export async function registrarMovimiento(
     }
 
     // Movimiento con la cantidad REAL aplicada (libros cuadran) + stock resultante.
-    tx.set(doc(COL_MOV(clinicId)), { ...mov, cantidad: cantidadAplicada, motivo: (mov.motivo ?? '') + notaAjuste, fecha })
+    tx.set(movRef, { ...mov, cantidad: cantidadAplicada, motivo: (mov.motivo ?? '') + notaAjuste, fecha })
     tx.update(itemRef, { cantidad: nuevaCantidad, updatedAt: fecha })
     return cantidadAplicada
   })

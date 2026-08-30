@@ -298,9 +298,16 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-04.idempotencia', ws: 'WS-04', titulo: 'Ninguna operación clínica no idempotente se reintenta a ciegas',
     estado: 'PARTIAL',
-    queFalta: 'REG-395 recorrió la lista y encontró uno que no estaba en ella y es peor: la ADENDA nacía con addDoc, y una adenda es la corrección medicolegal de un documento inmutable que NO SE PUEDE BORRAR. El doble clic estaba cubierto por el botón bloqueado; el caso que no lo estaba es el que la red provoca sola —el commit sale, la respuesta se pierde, la pantalla PIDE reintentar—. Ya converge por intención. Del resto: receta y orden no son documentos (se imprimen desde la nota, comprobado); las citas ya son atómicas por transacción del servidor; WhatsApp tiene dedup. Falta el resto del inventario de addDoc (25 sitios): tareas clínicas, fotos clínicas, farmacia, ARCO y bloques de agenda siguen sin clave de intención.',
-    artefactos: ['src/lib/idempotencia.ts'],
-    pruebas: ['src/__tests__/una-adenda-no-se-escribe-dos-veces.test.ts'],
+    evidencia: 'REG-412. La lista a mano de este censo estaba mal en las dos direcciones: «tareas clínicas» YA estaba protegida (idDerivado), «bloques de agenda» no es riesgo clínico, y NO nombraba cuatro que sí lo son — signos del hospital (×2), solicitud de laboratorio y observación de UCI, y los signos alimentan NEWS2. Ahora hay instrumento y techo, como REG-394 con las lecturas sin cota.',
+    comando: 'node scripts/idempotencia/escrituras-sin-intencion.mjs && npx vitest run src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts',
+    resultado: '24 escrituras con nombre aleatorio en colecciones del consultorio, 0 sin clasificar, 6 clínicas sin clave de intención (eran 8). Cerrada la peor: la dispensación de farmacia, que escribía con doc() sin id DENTRO de una transacción — la transacción protege la aritmética, no la identidad.',
+    queFalta: 'Cinco escrituras clínicas siguen con nombre aleatorio: ARCO y fotos (Practice: la función tiene que aceptar la clave Y la pantalla acuñarla) y signos ×2, laboratorio y observación de UCI (carril Hospital/UCI, ALPHA). El trinquete las nombra una a una y su techo sólo baja.',
+    artefactos: ['src/lib/idempotencia.ts', 'scripts/idempotencia/escrituras-sin-intencion.mjs', 'src/lib/farmacia.ts'],
+    pruebas: [
+      'src/__tests__/una-adenda-no-se-escribe-dos-veces.test.ts',
+      'src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts',
+      'src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts',
+    ],
   }),
   R({
     id: 'WS-04.inyeccion-de-fallos', ws: 'WS-04', titulo: 'Comportamiento ante caída de proveedor, probado inyectando el fallo',

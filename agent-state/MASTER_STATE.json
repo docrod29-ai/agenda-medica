@@ -19,26 +19,19 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M  .claude/rules/testing-gates.md",
-    "A  .github/workflows/ausculta-autonomous-loop.yml",
-    "M  .github/workflows/deploy-production.yml",
-    "M  CLAUDE.md",
-    "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    "UU agent-state/MASTER_STATE.json",
-    "M  docs/audit/lint-techo.json",
-    "M  docs/audit/regression-ledger.md",
-    "UU docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "A  docs/maintenance/CARRILES-Y-BUCLES.md",
-    "A  docs/maintenance/PRS-SIN-ABSORBER-2026-08-30.md",
-    "M  docs/maintenance/sw-changelog.md",
-    "M  docs/product/AUSCULTA-MASTER-BOARD.md",
-    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  e2e/seguridad.spec.ts",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    "M  scripts/design/techos-de-diseno.json",
-    "M  src/__tests__/agendar-no-es-haber-visto-al-paciente.test.ts"
+    "M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/(dashboard)/farmacia/page.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/farmacia.ts",
+    " M src/lib/idempotencia.ts",
+    " M src/lib/programa/requisitos.ts",
+    "?? scripts/idempotencia/",
+    "?? src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts",
+    "?? src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -74,10 +67,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 262,
+    "regsEnElLedger": 263,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 835,
-    "casosDePrueba": 10420,
+    "archivosDePrueba": 837,
+    "casosDePrueba": 10439,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

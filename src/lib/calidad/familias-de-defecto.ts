@@ -762,6 +762,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * registro que lo copia se queda atrás porque copiarlo depende de que
      * alguien se acuerde.
      */
+    /**
+     * 412 es esta familia sobre el propio censo: la lista de escrituras sin
+     * clave de intención vivía en un campo de texto, y estaba mal en las dos
+     * direcciones — nombraba dos que no lo eran y se dejaba cuatro que sí,
+     * incluidos los signos vitales que alimentan NEWS2. Una lista de veinticinco
+     * sitios escrita a mano envejece sola.
+     */
     clave: 'depende_de_recordar',
     nombre: 'Depende de que alguien se acuerde',
     patron:
@@ -852,7 +859,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * recuento marcó como deuda una lectura que sí acota, porque resolvía los
      * nombres en todo el archivo y otra función tenía una variable homónima.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502],
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502, 412],
   },
   {
     /**

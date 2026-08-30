@@ -60,7 +60,7 @@
 | `/dashboard` | medico | ✅ | 373 | 5 | — | ✅ | — |
 | `/expediente/[patientId]` | medico | ✅ | 1077 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
-| `/farmacia` | medico | ✅ | 819 | 0 | — | ✅ | — |
+| `/farmacia` | medico | ✅ | 827 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 675 | 0 | — | ✅ | — |
 | `/guia` | medico | ✅ | 131 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 285 | 0 | — | ✅ | — |

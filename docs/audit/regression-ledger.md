@@ -15060,3 +15060,100 @@ propiedad.
 - No prueba el render.
 
 **Prueba.** `src/__tests__/un-pendiente-perdido-no-muere-con-el-aviso.test.ts` (23 casos).
+
+## REG-412 — la transacción protege la aritmética, no la identidad
+
+**QUÉ SE PEDÍA.** `WS-04.idempotencia`, con la cuenta a mano: «Falta el resto del
+inventario de addDoc (25 sitios): tareas clínicas, fotos clínicas, farmacia, ARCO
+y bloques de agenda siguen sin clave de intención».
+
+### El defecto que la lista a mano no nombraba
+
+`registrarMovimiento` ya corría dentro de `runTransaction`, y su comentario
+explicaba bien por qué: *«dos salidas concurrentes partían del mismo valor viejo
+→ last-write-wins descuadraba el stock»*. Eso estaba resuelto.
+
+Lo que la transacción **no** resuelve es ejecutar la MISMA salida dos veces. El
+movimiento se escribía con `tx.set(doc(COL_MOV(clinicId)), …)`, y `doc()` sin id
+fabrica un nombre aleatorio nuevo en cada llamada — lo que el propio
+`idempotencia.ts` advierte en su primera línea. Si el commit sale y la respuesta
+se pierde, el reintento **descuenta el medicamento otra vez**, con otro nombre, y
+los dos movimientos quedan en los libros.
+
+No es el doble clic —eso lo cubre el botón— sino el caso que provoca la red sola.
+Con controlados, es la diferencia entre la existencia real y la que dice el sistema.
+
+Y era invisible por partida doble: la transacción **hace parecer seguro** lo que
+envuelve, y el censo decía «farmacia» refiriéndose al catálogo de items, que es lo
+operativo.
+
+### La causa raíz: la lista estaba escrita a mano
+
+Una lista de veinticinco sitios en un campo de texto envejece sola. El `addDoc`
+número veintiséis no la actualiza, y nadie se entera hasta que un paciente tiene
+dos dispensaciones del mismo fármaco. Es la familia «depende de recordar», y la
+respuesta que este árbol ya usó en REG-394 para las lecturas sin cota: un
+inventario que se mide y un techo que sólo baja.
+
+Al medirlo, la lista a mano resultó equivocada en las dos direcciones:
+
+- **tareas clínicas** ya estaba protegida (`idDerivado`);
+- **bloques de agenda** no es un riesgo clínico: un bloque duplicado se ve en la
+  agenda y se borra;
+- y **no nombraba cuatro** que sí lo son — los signos vitales del hospital (dos
+  sitios), la solicitud de laboratorio y la observación de UCI. Los signos
+  alimentan NEWS2: un duplicado altera una escala de gravedad.
+
+### Cuatro defectos del propio instrumento, encontrados al medir
+
+Ninguno fallaba: todos daban un número plausible.
+
+1. **Adivinaba el nombre de la variable** (`fotosCol`, `labCol`) y dejaba ocho de
+   veintidós sin clasificar, porque este árbol las llama `COL`, `PLANES_COL` o
+   `col`. Se resuelve la RUTA de Firestore, que es la verdad y la misma que lee
+   `firestore.rules`.
+2. **Partía los argumentos por la primera coma**, así que
+   `addDoc(collection(db, 'clinics', …), …)` le llegaba cortado como
+   `collection(db` y atribuía a `notas` una escritura que va a `versions`.
+3. **Sólo miraba `addDoc`**, y por eso daba por buena la escritura más peligrosa
+   —la de farmacia, con `doc()` sin id dentro de una transacción—.
+4. Al añadir `doc(`, **aplicó la regla del SDK modular al Admin**: ahí `.doc(uid)`
+   NOMBRA el documento y sólo `.doc()` vacío es aleatorio. Marcó trece falsos
+   positivos de golpe. Un inventario que exagera manda a rehacer lo que ya estaba
+   bien y le quita crédito a los huecos reales (REG-394, otra vez).
+
+### El universo no lo elijo yo
+
+Las colecciones que entran salen del **manifiesto del respaldo**
+(`clinica/respaldo.ts`), que la regla de aislamiento ya obliga a mantener. Una
+colección nueva entra sola, y entra como `sin_clasificar` —en rojo— hasta que
+alguien escriba qué cuesta duplicarla. Lo que queda fuera es infraestructura que
+no es dato del consultorio: tokens de Google, estados de OAuth, el buzón de errores.
+
+### La regla
+
+La clave la acuña quien **abre el modal**, no quien confirma: acuñarla al
+confirmar haría que cada reintento trajera una clave nueva, o sea el defecto
+entero con más pasos y con aspecto de resuelto.
+
+Y al converger se devuelve **la cantidad que se aplicó entonces**, no la que se
+pidió ahora: si aquella salida se recortó por falta de existencias, el reintento
+tiene que enterarse del recorte y no del deseo.
+
+### Qué NO cubre
+
+- Sin clave se comporta como antes, a propósito: un llamador que todavía no la
+  pase no puede quedarse sin registrar el movimiento.
+- No deduplica entre pestañas distintas: dos personas dispensando a la vez son dos
+  intenciones y dos movimientos, que es lo correcto. Colapsarlas perdería una
+  salida real, y eso es peor — el sistema diría que hay medicamento que no está.
+- Quedan **cinco** escrituras clínicas con nombre aleatorio: ARCO, fotos, signos
+  del hospital (×2), laboratorio y observación de UCI. Cinco de ellas son del
+  carril Hospital/UCI (ALPHA) y las otras dos necesitan que su pantalla acuñe la
+  clave, no sólo que la función la acepte. Las vigila el trinquete, con su techo.
+- El inventario es ESTÁTICO: no sabe si una ruta de servidor deduplica por su
+  cuenta, y ver una clave en la función no prueba que el llamador la pase — eso lo
+  prueba el golden de cada unidad.
+
+**Pruebas.** `src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts` (10 casos)
+y `src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts` (9 casos).
