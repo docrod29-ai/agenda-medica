@@ -375,8 +375,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-06.sin-scraping', ws: 'WS-06', titulo: 'Ninguna fuente se obtiene saltándose su licencia',
-    estado: 'PARTIAL',
-    queFalta: 'Verificado por lectura: no hay puppeteer, ni credenciales compartidas, ni corpus copiado; no-configurado.ts no conoce ninguna URL. Falta un guardián que lo mantenga así.',
+    estado: 'PROVEN',
+    evidencia: 'REG-425. La verificación por lectura era cierta y no era una garantía: un `fetch` nuevo a la página de un editor no habría puesto roja ninguna prueba. Ahora los ocho hosts del camino de evidencia están CLASIFICADOS uno por uno (se_baja / solo_se_enlaza / no_resuelve) con su base legal, y un host que aparezca en el árbol sin clasificar rompe el CI. Sólo se bajan tres APIs oficiales —E-utilities de NCBI, openFDA y el proveedor del modelo—; el resto son enlaces que abre el médico en su navegador. Y no se queda en el CI: `exigeQueSeBaje` corre en las dos puertas de salida y FALLA CERRADO, así que la misma URL que es legítima como enlace lanza si se intenta pedir. Sin navegador sin cabeza en producción, sin analizador de HTML en el camino, y el adaptador de lo no configurado sigue sin conocer ninguna URL.',
+    artefactos: ['src/lib/evidence-integrations/de-donde-se-baja.ts', 'scripts/evidence/hosts-del-camino-de-evidencia.mjs'],
+    pruebas: ['src/__tests__/una-lectura-no-es-un-guardian.test.ts'],
+    comando: 'node scripts/evidence/hosts-del-camino-de-evidencia.mjs && npx vitest run src/__tests__/una-lectura-no-es-un-guardian.test.ts',
+    resultado: '8 hosts en el camino de evidencia, los 8 clasificados: 3 se_baja (eutils.ncbi.nlm.nih.gov, api.fda.gov, api.anthropic.com), 4 solo_se_enlaza, 1 no_resuelve. 17 casos verdes. Comprobado al revés con cuatro defectos: un fetch a la página de un editor, Playwright ascendido a dependencia de producción, el adaptador sin contrato aprendiendo una URL, y el escáner apuntando a un directorio vacío — los cuatro ponen el guardián en rojo.',
   }),
   R({
     id: 'WS-06.editorial-no-es-integracion', ws: 'WS-06', titulo: 'Descubrir por índice no se presenta como integración editorial',

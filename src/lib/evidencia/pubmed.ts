@@ -19,6 +19,7 @@ import {
 } from '@/lib/evidencia/fallo-del-proveedor'
 
 import { licenciaDePmc } from '@/lib/evidencia/licencia-pmc'
+import { exigeQueSeBaje } from '@/lib/evidence-integrations/de-donde-se-baja'
 
 const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
 const API_KEY = process.env.NCBI_API_KEY ?? ''
@@ -81,6 +82,9 @@ function ncbiFetch(url: string, signal?: AbortSignal): Promise<Response> {
      * quien llama marca el testigo, y el testigo es lo que separa «no hay
      * artículos» de «no se pudo preguntar».
      */
+    /* WS-06 — antes que nada: que el host esté declarado como fuente que se
+       baja. Falla cerrado, y cuesta una búsqueda en un conjunto. */
+    exigeQueSeBaje(url)
     const clave = claveCircuitoEvidencia('ncbi')
     if (!permiteLlamar(clave).pasa) throw new FuenteNoConsultada('PubMed')
     const espera = Math.max(0, MIN_GAP_MS - (Date.now() - _ultima))

@@ -1024,3 +1024,24 @@ Hoy es UN ENLACE A UNA BUSQUEDA DE GOOGLE presentado como boton. No es una fuent
 | Semántica de fallo | **UNVERIFIABLE** |
 | Reuso en sistema generativo | **UNVERIFIABLE** |
 
+## De dónde se baja evidencia, y de dónde no se baja nada
+
+> Fuente de verdad: `src/lib/evidence-integrations/de-donde-se-baja.ts`.
+> Un host que aparezca en el árbol y no esté aquí rompe el CI.
+
+**Enlazar no es recuperar, y es casi lo contrario.** Un enlace manda al médico al
+sitio del editor, bajo los términos del editor. Bajar esa misma URL desde el
+servidor y quedarse con el HTML es tomar el material sin pasar por donde el editor
+pone sus condiciones. La URL es la misma y el acto es el contrario.
+
+| Host | Qué se hace | Qué | Por qué se puede |
+|---|---|---|---|
+| `eutils.ncbi.nlm.nih.gov` | **se baja** | Resúmenes, metadatos y —cuando el XML declara CC0 o CC-BY por artículo— el texto abierto. | E-utilities es la vía OFICIAL que NCBI publica para consultar PubMed por programa, con su límite de velocidad documentado (~3 req/s sin llave, ~10 con ella) que el cliente respeta. Usar el API en vez de la página es justamente lo contrario de saltarse la licencia. |
+| `api.fda.gov` | **se baja** | La dosis de la etiqueta aprobada, para no depender de una cifra que dé el modelo. | openFDA es un API público del gobierno de EE. UU., gratis y sin llave, con su límite documentado. Los datos de etiquetado son de dominio público. |
+| `api.anthropic.com` | **se baja** | Redacción y reformulación. Nunca una cita ni un dato de paciente. | Es el proveedor del modelo bajo su contrato de uso, no una fuente de evidencia. Aparece aquí porque vive en las rutas de evidencia y un host sin clasificar rompe el guardián — clasificarlo es decir que NO origina material citable: el modelo redacta y reformula lo que ya trajeron los otros dos. |
+| `pubmed.ncbi.nlm.nih.gov` | sólo se enlaza | El registro del artículo, para abrirlo. | Es el enlace canónico al registro. Mandar al médico al sitio de NCBI es que lo lea donde su dueño lo publica y bajo sus términos. |
+| `www.accessdata.fda.gov` | sólo se enlaza | La ficha del fármaco en Drugs@FDA. | El buscador de la propia FDA. Se enlaza; no se le pide nada. |
+| `www.google.com` | sólo se enlaza | Búsqueda de la Guía de Práctica Clínica del CENETEC, que no tiene API. | Una URL de búsqueda que abre el navegador del médico. Es su sesión y su navegador, no el servidor haciendo consultas: buscar por él sería, ahí sí, un raspado. |
+| `www.ncbi.nlm.nih.gov` | sólo se enlaza | Nada: es documentación dentro del código. | Aparece en un comentario, explicando dónde se saca la llave de E-utilities. |
+| `example.invalid` | no resuelve (pruebas) | Fuentes sintéticas de prueba. | Reservado por RFC 2606 para no resolver NUNCA. Es del adaptador sintético, y ahí está el punto: un host de pruebas que apuntara a algo real sería una llamada de verdad disfrazada de fixture. |
+

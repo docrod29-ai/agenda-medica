@@ -26,13 +26,13 @@
 
 | Estado | Cuántos |
 |---|---|
-| `PARTIAL` | 35 |
-| `PROVEN` | 27 |
+| `PARTIAL` | 34 |
+| `PROVEN` | 28 |
 | `BLOCKED_EXTERNAL` | 14 |
 | `NEEDS_CLINICAL_REVIEW` | 1 |
 | `DEFERRED_BY_OWNER` | 1 |
 
-### Internamente accionables — 35
+### Internamente accionables — 34
 
 Lo que se puede cerrar sin pedirle nada a nadie. Si esta lista está vacía, el
 trabajo interno se acabó.
@@ -48,7 +48,6 @@ trabajo interno se acabó.
 | `WS-04.inyeccion-de-fallos` | `PARTIAL` |
 | `WS-05.mecanismos` | `PARTIAL` |
 | `WS-05.a11y-wcag` | `PARTIAL` |
-| `WS-06.sin-scraping` | `PARTIAL` |
 | `WS-07.identidad-de-revista` | `PARTIAL` |
 | `WS-07.guias` | `PARTIAL` |
 | `WS-09.motor` | `PARTIAL` |

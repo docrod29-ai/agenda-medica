@@ -16122,3 +16122,104 @@ añada algo que crece a un documento sin decidir si se topa.
 - Carril **Hospital: ALPHA, se usa y no se vende.**
 
 **Prueba.** `src/__tests__/un-episodio-largo-no-puede-dejar-de-escribirse.test.ts` (11 casos).
+
+---
+
+## REG-425 — «verificado por lectura» no es una garantía, es una foto
+
+**QUÉ SE PEDÍA.** `WS-06.sin-scraping`: ninguna fuente se obtiene saltándose su
+licencia. Su `queFalta` era honesto y corto: «Verificado por lectura: no hay
+puppeteer, ni credenciales compartidas, ni corpus copiado; `no-configurado.ts` no
+conoce ninguna URL. **Falta un guardián que lo mantenga así.**»
+
+### Se comprobó, y era cierto
+
+Recorrido el camino entero antes de escribir nada, los hosts externos son ocho y
+ninguno es la página de un editor:
+
+```
+se baja       eutils.ncbi.nlm.nih.gov    API oficial de NCBI
+se baja       api.fda.gov                API pública de openFDA
+se baja       api.anthropic.com          el modelo, no una fuente
+sólo enlace   pubmed.ncbi.nlm.nih.gov    el registro, para abrirlo
+sólo enlace   www.accessdata.fda.gov     el buscador de la propia FDA
+sólo enlace   www.google.com             búsqueda de la GPC del CENETEC
+sólo enlace   www.ncbi.nlm.nih.gov       en un comentario, sobre la llave
+no resuelve   example.invalid            el adaptador sintético
+```
+
+Lo que faltaba no era encontrar un defecto: era que no pudiera entrar uno.
+
+### La distinción que esto existe para sostener
+
+**Enlazar no es recuperar, y es casi lo contrario.**
+
+Un `href` manda al médico al sitio del editor, donde el editor le enseña lo que
+quiera bajo sus términos: su muro de pago, su registro, su licencia. Bajar esa
+misma URL desde el servidor y quedarse con el HTML es tomar el material **sin
+pasar por donde el editor pone sus condiciones**.
+
+La URL es la misma y el acto es el contrario, así que la clasificación no puede
+salir de la cadena de texto: la dice una persona y queda escrita.
+
+### Por qué el escáner no adivina
+
+Lo natural sería mirar si el host está dentro de un `fetch(`. Sería frágil: la URL
+se arma en una constante, se pasa por un ayudante con regulador de velocidad, se
+compone con plantillas. Un analizador que acierte el 90 % da una lista que
+**parece** completa, que es peor que no tenerla.
+
+Así que el instrumento lista **todo host que aparece** y el guardián exige que
+cada uno esté clasificado. Misma forma que
+`ACCIONES_CON_EVENTO_DURABLE`/`ACCIONES_SIN_EVENTO_DURABLE`: una partición que
+obliga a decidir, no un detector que opina.
+
+### Tres guardianes rechazaron la primera versión, y tenían razón de más
+
+La declaración nacía consumida sólo por el generador del documento y por su
+propia prueba, así que `modulos-sin-conectar`, `el-camino-del-medico-llega-entero`
+y `evidence-runtime-consultor` la marcaron como isla.
+
+El motivo va más allá del lint: **una comprobación en CI no cierra un `fetch`**.
+Es la misma regla que ya dice la política de seguridad de esta casa — esconder un
+botón no cierra una ruta HTTP.
+
+Así que `exigeQueSeBaje` corre **en el momento de pedir**, en las dos únicas
+puertas por las que este producto baja evidencia (`ncbiFetch` y el `pedir` de
+openFDA). Cuesta una búsqueda en un conjunto y **falla cerrado**: una URL cuyo
+host no esté declarado como `se_baja` lanza antes de salir a la red — y una URL
+que ni siquiera se puede leer tampoco pasa, porque si no se sabe a qué host va no
+se sabe si está permitido.
+
+El caso que lo vuelve ejecutable: **la misma URL que es legítima como enlace es
+ilegítima como petición**. `exigeQueSeBaje('https://pubmed.ncbi.nlm.nih.gov/12345/')`
+lanza, y ése es exactamente el punto.
+
+### Dónde se ve
+
+En `docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md`, que ya se genera desde el
+catálogo. Va ahí y no en otro documento porque es la otra mitad de la misma
+pregunta: la tabla de arriba dice qué permite la licencia de cada proveedor, y
+ésta por qué vía se llega a él. Una sin la otra deja al dueño decidiendo un gasto
+sin saber cómo entra el material.
+
+`generarMatriz` recibe los hosts como parámetro **obligatorio**: opcional, un
+llamador que lo olvidara generaría el documento sin la sección y el guardián de
+sincronía lo daría por bueno — la tabla desaparecería sin que nada se pusiera rojo.
+
+### Qué NO cubre
+
+- **Una puerta tercera** que alguien añada sin llamar a `exigeQueSeBaje`: el host
+  nuevo lo caza la partición, pero la petición ya habría salido una vez.
+- **Un host de sólo-enlace bajado desde una constante.** La comprobación estática
+  mira que no aparezca en la misma línea que un `fetch`; se le escapa si alguien
+  guarda la URL arriba y la baja tres líneas más abajo. Lo que sí impide es el
+  cambio inadvertido — mover un host de columna hay que hacerlo a mano, con su
+  base legal.
+- **El resto del producto.** WhatsApp, Stripe y el correo tienen sus propios hosts
+  y no son fuentes que se citen. El alcance está declarado en
+  `CAMINO_DE_EVIDENCIA` y ampliarlo es una decisión.
+- **Si la licencia permite lo que se hace con el material una vez traído.** Eso es
+  `catalogo.ts` y su matriz, y es otro eje.
+
+**Prueba.** `src/__tests__/una-lectura-no-es-un-guardian.test.ts` (17 casos).

@@ -9,6 +9,7 @@
  */
 import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
 import { permiteLlamar, anotarVeredicto } from '@/lib/red/interruptor'
+import { exigeQueSeBaje } from '@/lib/evidence-integrations/de-donde-se-baja'
 import {
   claveCircuitoEvidencia, veredictoDeRespuestaEvidencia, veredictoDeExcepcionEvidencia,
 } from '@/lib/evidencia/fallo-del-proveedor'
@@ -39,6 +40,8 @@ async function pedir(url: string): Promise<Record<string, unknown> | null> {
   const clave = claveCircuitoEvidencia('openfda')
   if (!permiteLlamar(clave).pasa) return null
   try {
+    /* WS-06 — misma puerta que PubMed: el host, declarado, antes de salir. */
+    exigeQueSeBaje(url)
     const r = await fetchConTimeout(url, {}, TIMEOUT.evidencia)
     anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuestaEvidencia(r.status))
     if (!r.ok) return null
