@@ -641,6 +641,39 @@ HMAC y `timingSafeEqual`, y rutas públicas con rate-limit.
    `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` y PITR — los tres son
    `BLOCKED_EXTERNAL` desde aquí.
 
+---
+
+## Rescates — trabajo que existe en una rama y NO está en `main`
+
+Añadido el 30-ago-2026, al limpiar el tablero de PRs (de 62 abiertos quedaron
+19). Estos ocho PRs **no se cerraron** porque llevan piezas que `main` no tiene;
+se midió archivo por archivo cuáles faltan.
+
+**Ninguno se fusiona tal cual.** Van entre 130 y 145 commits por detrás, de la
+semana del 23-ago: traerlos por merge es reaplicar un árbol viejo sobre otro que
+cambió debajo. Se **portan** —como REG-341 portó el PR #356 en vez de fusionarlo—
+o se cierran a sabiendas. El inventario completo, con qué archivo falta en cada
+uno, vive en
+[`docs/maintenance/PRS-SIN-ABSORBER-2026-08-30.md`](../maintenance/PRS-SIN-ABSORBER-2026-08-30.md).
+
+| Id | PR | Qué aporta que `main` no tenga | Estado |
+|---|---|---|---|
+| `RESCATE-355` | #355 | Los **dos guardianes** de la capacidad de diseño de receta. La ruta y el token YA están en `main`: falta sólo la prueba | `NOT_STARTED` — el más barato de la lista |
+| `RESCATE-342` | #342 | Banco de carga y evidencia de «sin pantalla en blanco» (30 archivos). Es lo que **mediría el P1-15 abierto** | `NOT_STARTED` |
+| `RESCATE-349` | #349 | Simulacro de recuperación y registro de riesgos (29). Solapa con REG-343 y el **P1-16** abierto: comprobar antes de portar | `NOT_STARTED` |
+| `RESCATE-348` | #348 | Runbooks y simulacro de incidencias (35). Solapa con REG-396, ya en `main`: portar **sólo lo que no cubra** | `NOT_STARTED` |
+| `RESCATE-MIGRACION` | #351 · #353 | Contrato de migración, aislamiento, reversión e idempotencia (27 y 29). **Son dos versiones del mismo trabajo: sobra una** | `NOT_STARTED` — decidir cuál |
+| `RESCATE-345` | #345 | Router de coste/calidad de IA y su modo sombra (16) | **`BLOCKED_BY_OWNER`** |
+| — | #357 | Sólo falta su documento de rebanada; el guardián está en `main` | cerrable |
+| — | #332 | Configura el autopiloto n8n que Codex dejó de gobernar el 29-ago | cerrable |
+
+**Por qué `RESCATE-345` está bloqueado en el dueño y no es `NOT_STARTED`.** Un
+router de coste/calidad decide **con qué modelo se redacta**, y hay una decisión
+del dueño que dice lo contrario: «la nota usa el razonamiento premium —no
+escatimar—; no bajar de modelo por velocidad sin avisar». Portarlo sin que él
+diga qué puede decidir ese router y qué no sería construir contra una política
+vigente. La pregunta exacta está en `OWNER_DECISIONS_REQUIRED.md`.
+
 <!-- CENSO:INICIO — generado por scripts/product/censo-al-tablero.mjs · no editar a mano -->
 
 ## Las metas del §1, escalón por escalón
