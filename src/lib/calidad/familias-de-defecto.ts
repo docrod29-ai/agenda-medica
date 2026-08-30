@@ -626,7 +626,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la deuda que ya estaba puesta. El día que se escribe hay que contar el
      * pasado una vez — y después derivarlo, que es lo que hace su guardián.
      */
-    regs: [241, 253, 310, 334, 338, 340, 343, 354, 379],
+    /**
+     * 382 es esta familia en el REGISTRO MISMO, y es la más grave de la serie:
+     * no un dato desfasado, sino seis dominios del alcance —voz, aprendizaje,
+     * automatización, WhatsApp, razonamiento y accesibilidad— sin una sola fila
+     * en el tablero. Ninguno diferido, ninguno bloqueado: ausentes.
+     *
+     * Su lección: ningún documento derivado puede notar la ausencia de algo. Se
+     * escriben mirando lo que hay, y cada uno hereda el hueco del anterior con
+     * más autoridad que el anterior. Lo único que caza una ausencia es una lista
+     * sellada que alguien tenga que romper a propósito.
+     */
+    regs: [241, 253, 310, 334, 338, 340, 343, 354, 379, 382],
   },
   {
     /**

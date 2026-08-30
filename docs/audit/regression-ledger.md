@@ -12501,3 +12501,85 @@ lo que no comprobó.
   de cliente.
 - **El emulador no es producción**: sin latencia de red y sin contención real, los
   doc/s de aquí son un techo, no una promesa.
+
+---
+
+## REG-382 — el tablero del programa podía perder un dominio entero sin ponerse rojo
+
+**CÓMO SE DESCUBRIÓ.** Reconciliando `docs/product/AUSCULTA-MASTER-BOARD.md`
+contra el alcance canónico completo del programa, antes de seguir implementando.
+
+**QUÉ FALTABA.** Seis dominios del alcance **no tenían una sola fila** en el
+tablero:
+
+```
+voz · aprendizaje · autoridad de la automatización ·
+WhatsApp · razonamiento · accesibilidad
+```
+
+Ninguno estaba `DEFERRED`. Ninguno estaba `BLOCKED_EXTERNAL`. **No estaban.** Y
+el producto tiene un subsistema de voz enorme, con regla propia
+(`.claude/rules/voice-asr.md`) y decenas de pruebas: el trabajo existe, lo que no
+existía era el requisito que lo gobierna.
+
+**LA CAUSA RAÍZ.** Ningún documento derivado puede notar la ausencia de algo. Un
+tablero, una nota de PR y un `FINAL-READINESS` se escriben **mirando lo que hay**;
+lo que se cayó no aparece en ninguno de los tres, y cada uno hereda el hueco del
+anterior con más autoridad que el anterior. Es `depende_de_recordar` en su forma
+más cara: no un dato desfasado, sino un dominio entero evaporado.
+
+**EL ARREGLO.** `src/lib/programa/requisitos.ts` — el censo, con **78 requisitos**
+y lo que cada estado obliga a escribir:
+
+- `PROVEN` exige **evidencia, comando reproducible y resultado observado**. Los
+  tres. Un `PROVEN` sin comando es una opinión con formato de dato.
+- `BLOCKED_EXTERNAL` exige la **acción externa exacta** y la **preparación interna
+  ya hecha**. Sin lo segundo, «bloqueado» es la palabra que se usa para no
+  terminar algo.
+- Todo lo demás exige `queFalta` accionable.
+- `NOT_PROVEN` **no es un estado**: se calcula como la unión de todo lo que no
+  está probado, bloqueado o diferido, para que no se pueda vaciar renombrándolo.
+
+`censo-sellado.json` es su trinquete: un id que desaparece pone el CI en rojo, y
+un estado que **baja** también. Subir no necesita permiso; bajar hay que
+declararlo.
+
+**LO QUE EL CENSO ENSEÑÓ AL LLENARLO.** El reparto real, contado y no estimado:
+
+```
+NOT_STARTED 31 · PARTIAL 24 · PROVEN 11 · BLOCKED_EXTERNAL 9
+IMPLEMENTED_NOT_PROVEN 1 · NEEDS_CLINICAL_REVIEW 1 · DEFERRED_BY_OWNER 1
+```
+
+**56 requisitos internamente accionables** siguen abiertos. El `FINAL-READINESS`
+hablaba de «cinco pendientes»: era cierto para lo que ese documento cubría, y
+falso como retrato del programa. Los dos números conviven ahora sin contradecirse
+porque cada uno dice de qué habla.
+
+**TRES COSAS QUE EL CENSO NO DEJA COLAPSAR.**
+
+1. **Usuarios registrados no es concurrencia activa.** Cada escalón —2 k, 10 k,
+   15 k, 20 k, 30 k, 50 k, 100 k— es una fila propia, y hay una fila aparte para
+   definir la concurrencia. Mezclarlos es cómo un «aguanta 100 k» acaba
+   significando algo que nadie midió.
+2. **Pacientes por médico** —10 k, 20 k, 30 k, 50 k— igual.
+3. **Las fuentes canónicas de evidencia son 29 y el catálogo del producto tiene
+   12.** La tentación es igualar las dos listas y declarar el trabajo hecho; eso
+   borraría de la vista todo lo que falta. Un caso comprueba que la lista canónica
+   sigue siendo **más larga** que el catálogo.
+
+**LA PRUEBA, AL REVÉS.**
+`src/__tests__/el-programa-no-pierde-requisitos.test.ts` (14 casos). Probado
+quitando `TR-VOZ.pipeline` del censo: caen **dos** casos —el trinquete de
+identidades y la cobertura de dominios—, que es exactamente el defecto original
+reproducido.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No comprueba que un `PROVEN` sea verdad.** Comprueba que declare cómo se
+  reproduce. Quien miente en `resultado` pasa este guardián; lo que no puede es
+  hacerlo sin dejar por escrito un comando que otro corre.
+- **No mide cobertura del alcance.** Que un dominio tenga una fila no significa
+  que tenga todas las que le tocan: significa que no está evaporado.
+- **No sustituye al tablero en prosa.** La causa raíz, la historia y la cita del
+  archivo viven allí, y eso no cabe en una tabla de datos.

@@ -45,6 +45,14 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/authz/analisis-estatico.ts': 'Analizador de la frontera de API que usa el guardián de rutas. Herramienta, no función.',
   'src/lib/security/rutas-privadas.ts': 'Inventario de rutas privadas que consume su propio invariante.',
   // Lo cazó ESTE guardián en cuanto se escribió, que es exactamente su trabajo.
+  /**
+   * REG-382. Es el censo del programa, y su lector es su propio guardián: lo que
+   * vigila es que no desaparezca un requisito, y eso se comprueba en el CI.
+   * Pintarlo en una pantalla no lo conectaría a nada — sería una pantalla que
+   * alguien deja de mirar, que es justo cómo se perdieron los seis dominios que
+   * este censo existe para no volver a perder.
+   */
+  'src/lib/programa/requisitos.ts': 'ES el censo del programa: su consumidor es el guardián que lo sella, y ése vive en el CI por definición. Una pantalla que lo pintara sería una pantalla que alguien deja de mirar.',
   'src/lib/guardia/campos-conectados.ts': 'Guardián hermano de éste: vigila CAMPOS de contrato que nadie lee, no archivos. Vive en el CI por definición — una pantalla que lo muestre sería una pantalla que alguien apaga.',
   /**
    * Este guardián cazó, en cuanto se escribió, el módulo que documenta que

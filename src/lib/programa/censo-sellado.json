@@ -1,0 +1,319 @@
+{
+  "sellado": "2026-08-30",
+  "porQue": "Sello del censo del programa. Un id que estaba aquí y ya no está en el censo pone el CI en rojo; un estado que baja, también. Para cerrar un requisito se le pone estado y evidencia — borrarlo no es cerrarlo.",
+  "comoSeRegenera": "node scripts/programa/sellar-censo.mjs > src/lib/programa/censo-sellado.json",
+  "requisitos": [
+    {
+      "id": "WS-01.censo",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-01.tablero",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-01.dominios",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-02.arnes",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-02.concurrencia-definida",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-02.registrados-2000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-02.registrados-10000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-02.registrados-15000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-02.registrados-20000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-02.registrados-30000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-02.registrados-50000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-02.registrados-100000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-03.pacientes-10000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-03.pacientes-20000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-03.pacientes-30000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-03.pacientes-50000",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-03.lecturas-sin-cota",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-03.indices-declarados",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-03.documentos-que-crecen",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-04.interruptor-ia",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-04.interruptor-otros",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-04.colas",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-04.idempotencia",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-04.inyeccion-de-fallos",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-05.mecanismos",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-05.webkit-390",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "WS-05.iphone-real",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "WS-05.pantalla-390",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-05.a11y-wcag",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-06.censo-de-fuentes",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-06.sin-scraping",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-06.editorial-no-es-integracion",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-07.identidad-de-revista",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-07.prestigio-no-es-calidad",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-07.guias",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-08.costuras-comerciales",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "WS-09.motor",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-09.datos-insuficientes",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-10.proyeccion-no-es-segunda-verdad",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-10.problemas-medicacion-alergias",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-10.historico-no-es-actual",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-10.sello-v4",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-10.procedimientos-dispositivos",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-10.laboratorios-y-tendencia",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-10.banderas-y-respuesta",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-10.vocabulario-canonico",
+      "estado": "NEEDS_CLINICAL_REVIEW"
+    },
+    {
+      "id": "WS-10.pantalla-de-certeza",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-11.estados-del-cierre",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-11.laboratorio",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-11.interconsultas-imagen",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-11.sobrevive-a-la-navegacion",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-12.doce-preguntas",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-12.entailment",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-12.contratos-de-evaluacion",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-12.router",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-12.p99",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-13.aislamiento",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-13.correlation-id",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "WS-13.alertas",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "WS-13.reglas-desplegadas",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "WS-13.indices-desplegados",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "WS-13.restauracion",
+      "estado": "PROVEN"
+    },
+    {
+      "id": "WS-13.pitr-rto",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "WS-13.mfa-servidor",
+      "estado": "IMPLEMENTED_NOT_PROVEN"
+    },
+    {
+      "id": "WS-13.app-check",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "WS-13.pentest",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "TR-VOZ.pipeline",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "TR-VOZ.error-clinicamente-pesado",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "TR-VOZ.consulta-larga",
+      "estado": "BLOCKED_EXTERNAL"
+    },
+    {
+      "id": "TR-APRENDIZAJE.no-es-politica",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "TR-AUTOMATIZACION.autoridad",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "TR-WHATSAPP.entrega",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "TR-RAZONAMIENTO.procedencia",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "TR-PACIENTE.experiencia",
+      "estado": "DEFERRED_BY_OWNER"
+    },
+    {
+      "id": "TR-BORRADORES.cero-perdidos",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "TR-HISTORIA.practica-longitudinal",
+      "estado": "NOT_STARTED"
+    },
+    {
+      "id": "TR-ESPECIALIDAD.infecto",
+      "estado": "PARTIAL"
+    },
+    {
+      "id": "TR-ENTORNO.timeout",
+      "estado": "PROVEN"
+    }
+  ]
+}
