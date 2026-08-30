@@ -9,7 +9,8 @@
  *
  * Nivel Premium usa Opus 4.8 + razonamiento; Pro usa Sonnet 5.
  *
- * Body: { diagnosticos:[{descripcion}], medicamentos:[{nombre}], contexto:{edad,sexo,alergias} }
+ * Body: { diagnosticos:[{descripcion}], medicamentos:[{nombre}],
+ *         contexto:{edad,sexo,alergias,embarazo,tfg:{valor,vigente},problemas,medicamentosActuales} }
  * Resp: { ok, articulos:[...], evaluacion:[...], alternativas:[...], diferencial:[...] }
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -106,7 +107,14 @@ export async function POST(req: NextRequest) {
     motivo?: string
     resumen?: string
     motor?: string   // 'rapida' | 'estandar' | 'maxima' — el motor que el médico eligió para la nota
-    contexto?: { edad?: number; sexo?: string; alergias?: unknown }
+    contexto?: {
+      edad?: number; sexo?: string; alergias?: unknown
+      /* WS-09 — lo que el motor de aplicabilidad ya sabía leer y no le llegaba. */
+      embarazo?: boolean
+      tfg?: { valor?: number; vigente?: boolean }
+      problemas?: unknown
+      medicamentosActuales?: unknown
+    }
   }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
@@ -253,9 +261,30 @@ export async function POST(req: NextRequest) {
    * No filtra ni reordena los artículos. La aplicabilidad se ANOTA; quitar de la
    * vista un artículo porque un patrón no casó sería peor que no tener esto.
    */
+  /**
+   * ── EL MOTOR LEÍA CUATRO DIMENSIONES Y AQUÍ LLEGABAN DOS (REG-427) ────────
+   *
+   * `embarazo` y `tfg` existían en el motor —el segundo con la vigencia de
+   * REG-375, «un número viejo no es un número»— y **nadie los rellenaba nunca**.
+   * No era inseguro: sin el dato, el motor responde `datos_insuficientes`, que
+   * es lo correcto. Pero significaba que un estudio que excluye embarazadas
+   * jamás llegaba a decir nada sobre una paciente embarazada del expediente,
+   * teniendo el dato a un campo de distancia. «El dato tiene que LLEGAR.»
+   *
+   * Lo que se manda es lo que el expediente DICE, no lo que se deduzca aquí: el
+   * embarazo lo lee `lo-que-el-expediente-dice-del-embarazo` y una sospecha
+   * llega como ausencia, para que el motor diga `datos_insuficientes` en vez de
+   * afirmar sobre una duda.
+   */
   const estadoDelPaciente = {
     ...(typeof ctx.edad === 'number' ? { edadEnAnios: ctx.edad } : {}),
     ...(Array.isArray(ctx.alergias) ? { alergenos: ctx.alergias as string[] } : {}),
+    ...(typeof ctx.embarazo === 'boolean' ? { embarazo: ctx.embarazo } : {}),
+    ...(ctx.tfg && typeof ctx.tfg.valor === 'number'
+      ? { tfg: { valor: ctx.tfg.valor, vigente: !!ctx.tfg.vigente } }
+      : {}),
+    ...(Array.isArray(ctx.problemas) ? { problemas: ctx.problemas as string[] } : {}),
+    ...(Array.isArray(ctx.medicamentosActuales) ? { medicamentos: ctx.medicamentosActuales as string[] } : {}),
   }
   const aplicabilidadPorArticulo = articulos.map(a => {
     const r = aplicabilidadDesdeResumen(a.resumen ?? '', estadoDelPaciente)

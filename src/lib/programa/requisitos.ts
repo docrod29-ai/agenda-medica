@@ -447,11 +447,14 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
 
   /* ═══ WS-09 · Aplicabilidad ═══════════════════════════════════════════════ */
   R({
-    id: 'WS-09.motor', ws: 'WS-09', titulo: 'Motor determinista de aplicabilidad de la evidencia a ESTE paciente',
+    id: 'WS-09.motor', ws: 'WS-09', titulo: '¿Esta evidencia aplica a ESTE paciente?',
     estado: 'PARTIAL',
-    queFalta: 'REG-387 lo creó y lo conectó de punta a punta en cuatro dimensiones —edad, embarazo, función renal y alergia—, en español e inglés. Faltan las otras: organismo, susceptibilidad, sitio de infección, dispositivo, comorbilidad, interacción, severidad, entorno de atención, terapia previa y jurisdicción. Caen en `no_evaluable` y se cuentan, no se dan por buenas.',
-    artefactos: ['src/lib/evidencia/aplicabilidad.ts'],
-    pruebas: ['src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts'],
+    queFalta: 'REG-387 lo creó con cuatro dimensiones —edad, embarazo, función renal y alergia—, en español e inglés, con `no_evaluable` que se cuenta y no se da por bueno. REG-427 encontró algo peor que las diez que faltaban: DOS de las cuatro que ya existían estaban MUERTAS. El único sitio que llama al motor sólo le pasaba edad y alergias, así que `embarazo` y `tfg` (con la vigencia de REG-375) no se rellenaban nunca y un ensayo que excluye embarazadas jamás decía nada sobre una paciente embarazada del expediente, teniendo el dato a un campo de distancia. Ahora llegan, la sospecha viaja como AUSENCIA (no como false) y la lectura del embarazo se mudó del copiloto a un módulo único — donde apareció que su comentario y su código no coinciden sobre el `diferencial`: se conservó el código y la pregunta queda para el médico. Se añadieron `comorbilidad` y `terapia_previa`, las dos ÚNICAS cuyo dato del paciente existe hoy. FALTAN OCHO —organismo, susceptibilidad, sitio de infección, dispositivo, interacción, severidad, entorno de atención, jurisdicción— y lo que falta es el DATO DEL PACIENTE, no el patrón: reservar campos vacíos es la promesa del modelo que REG-370/371 descartó. Organismo y susceptibilidad se desbloquean cuando el antibiograma llegue estructurado al cuadro; dispositivo, cuando exista WS-10.procedimientos-dispositivos; severidad, cuando haya una escala en consultorio.',
+    artefactos: ['src/lib/evidencia/aplicabilidad.ts', 'src/lib/expediente/lo-que-el-expediente-dice-del-embarazo.ts'],
+    pruebas: [
+      'src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts',
+      'src/__tests__/el-motor-de-aplicabilidad-leia-mas-de-lo-que-le-llegaba.test.ts',
+    ],
   }),
   R({
     id: 'WS-09.datos-insuficientes', ws: 'WS-09', titulo: 'Un dato ausente produce insufficient_patient_data, no una suposición',

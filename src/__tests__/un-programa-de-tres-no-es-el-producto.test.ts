@@ -142,9 +142,7 @@ describe('los tres programas se cuentan en un solo sitio', () => {
     /* Opcional, un llamador que lo olvidara publicaría un documento donde
        Ausculta sale con un guion — y el programa que sí custodiamos sería el
        único invisible. */
-    // @ts-expect-error se comprueba justamente que falte
-    expect(() => generarInforme()).toThrow()
-    // @ts-expect-error idem
+    expect(() => generarInforme(undefined)).toThrow()
     expect(() => generarInforme({})).toThrow()
   })
 
@@ -173,7 +171,7 @@ describe('lo que se midió de V9 queda con su evidencia', () => {
      * Es lo que impide que el backlog vuelva a envejecer tres semanas sin que
      * nadie lo note.
      */
-    for (const i of v9.lista) {
+    for (const i of v9.lista as { id: string; verificado: string | null }[]) {
       expect([i.id, typeof i.verificado === 'string' && i.verificado.length > 40])
         .toEqual([i.id, true])
     }
@@ -182,7 +180,7 @@ describe('lo que se midió de V9 queda con su evidencia', () => {
   it('el que sigue abierto de verdad está nombrado', () => {
     /* SAFE-003: el golden de dosis desconocida no tiene un solo caso pediátrico.
        Es trabajo interno real, y por eso no se cerró. */
-    const abierto = v9.lista.find(i => i.id === 'SAFE-003')
+    const abierto = (v9.lista as { id: string; verificado: string | null }[]).find(i => i.id === 'SAFE-003')
     expect(abierto).toBeDefined()
     expect(abierto!.verificado).toContain('pediatric')
   })

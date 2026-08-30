@@ -26,6 +26,9 @@ import { prevent, motivoSinPrevent } from './prevent'
 import { extraerMg, esDosisPorKg } from '@/lib/seguridad/dosis'
 import { alergenosDe } from '@/lib/seguridad/alergias'
 import type { AlergiaEstructurada } from '@/types'
+import {
+  loQueElExpedienteDiceDelEmbarazo, diagnosticosGestacionales, tratarComoEmbarazada,
+} from '@/lib/expediente/lo-que-el-expediente-dice-del-embarazo'
 
 export type NivelSugerencia = 'critico' | 'accion' | 'info'
 
@@ -464,9 +467,12 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
    * un embarazo no detectado pesa más—, pero no para afirmar: el texto lo dice
    * en condicional más abajo. Sin `tipo` se comporta como antes.
    */
-  const dxGestacional = (e.diagnosticos ?? []).filter(d =>
-    /embaraz|gestaci|gr[aá]vid|obst[eé]tric|prenatal/i.test(d.descripcion ?? ''))
-  const embarazoConfirmado = dxGestacional.some(d => d.tipo !== 'descartado' && d.tipo !== 'diferencial')
+  /* WS-09 — la lectura se mudó a `lo-que-el-expediente-dice-del-embarazo.ts`
+     para que el motor de aplicabilidad no escriba una segunda. La CONDUCTA no
+     cambia: `tratarComoEmbarazada` es esta misma línea, movida. */
+  const lecturaEmbarazo = loQueElExpedienteDiceDelEmbarazo(e.diagnosticos)
+  const dxGestacional = diagnosticosGestacionales(e.diagnosticos)
+  const embarazoConfirmado = tratarComoEmbarazada(lecturaEmbarazo)
   /**
    * ¿Alguien lo dio por CIERTO? Decide si el aviso AFIRMA o sólo CITA la nota.
    *

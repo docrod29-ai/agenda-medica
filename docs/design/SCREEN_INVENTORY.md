@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 363 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1170 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2657 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 7286 | 7 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 7315 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 343 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 329 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 255 | 1 | — | ✅ | — |

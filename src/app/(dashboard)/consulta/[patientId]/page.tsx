@@ -199,6 +199,10 @@ import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
 import { vigilarGestoDelUsuario } from '@/lib/ui/el-dedo-manda'
+import { tfgPorCkdEpi } from '@/lib/expediente/funcion-renal'
+import {
+  loQueElExpedienteDiceDelEmbarazo, embarazoParaAplicabilidad,
+} from '@/lib/expediente/lo-que-el-expediente-dice-del-embarazo'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
@@ -1012,6 +1016,9 @@ export default function ConsultaActivaPage() {
    * cambia ningún veredicto y devuelve la estabilidad que el memo necesita.
    */
   const ahoraParaVigencia = useMemo(() => new Date().toISOString(), [panelesLab])
+  /* WS-09 — la TFG que viaja con la evidencia. `null` cuando no hay con qué
+     calcularla: un cero sería una insuficiencia renal terminal inventada. */
+  const tfgParaEvidencia = tfgPorCkdEpi(labsDeLaConsulta.labs.creatinina, patient?.edad, patient?.sexo)
   const vigenciaRenal = vigenciaDeLaFuncionRenal(
     labsDeLaConsulta.medidoEn.creatinina,
     ahoraParaVigencia,
@@ -2172,7 +2179,29 @@ export default function ConsultaActivaPage() {
           motivo: motivo.slice(0, 400),
           motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
           resumen: resumenTexto.slice(0, 2000),
-          contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
+          /**
+           * ── LO QUE EL MOTOR SABE LEER, ENTERO (REG-427) ──────────────────
+           *
+           * Aquí iban tres campos y el motor de aplicabilidad sabía leer seis.
+           * `embarazo` y la función renal existían en el motor —el segundo con
+           * su vigencia, «un número viejo no es un número»— y no le llegaban
+           * nunca, teniendo esta pantalla los dos datos calculados.
+           *
+           * El embarazo viaja como lo que el expediente DICE: una sospecha se
+           * manda como ausencia, para que el motor conteste
+           * `datos_insuficientes` en vez de afirmar sobre una duda.
+           */
+          contexto: {
+            edad: patient?.edad,
+            sexo: patient?.sexo,
+            alergias: patient?.alergias,
+            embarazo: embarazoParaAplicabilidad(loQueElExpedienteDiceDelEmbarazo(dxDelCuadro)),
+            ...(tfgParaEvidencia !== null
+              ? { tfg: { valor: tfgParaEvidencia, vigente: vigenciaRenal.vigente } }
+              : {}),
+            problemas: dxDelCuadro.map(d => d.descripcion).filter(Boolean),
+            medicamentosActuales: medsDelCuadro.map(m => m.nombre).filter(Boolean),
+          },
         }),
       })
       const data = await res.json().catch(() => null)

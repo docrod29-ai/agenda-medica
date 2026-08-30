@@ -19,17 +19,20 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/AUSCULTA_MASTER_LOOP.md",
-    " M agent-state/BACKLOG.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
+    "M docs/audit/regression-ledger.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts",
+    " M src/__tests__/un-programa-de-tres-no-es-el-producto.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/api/expediente/evidencia/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/evidencia/aplicabilidad.ts",
+    " M src/lib/expediente/copiloto.ts",
+    " M src/lib/expediente/funcion-renal.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? agent-state/AUSCULTA_MASTER_LOOP_DIRECTIVO.md",
-    "?? docs/product/PROGRAMAS-EN-VUELO.md",
-    "?? scripts/programa/reconciliar-programas.mjs",
-    "?? src/__tests__/un-programa-de-tres-no-es-el-producto.test.ts"
+    "?? src/__tests__/el-motor-de-aplicabilidad-leia-mas-de-lo-que-le-llegaba.test.ts",
+    "?? src/lib/expediente/lo-que-el-expediente-dice-del-embarazo.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +68,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 277,
+    "regsEnElLedger": 278,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 849,
-    "casosDePrueba": 10621,
+    "archivosDePrueba": 850,
+    "casosDePrueba": 10638,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -16329,3 +16329,115 @@ Estado real, ahora en `docs/product/PROGRAMAS-EN-VUELO.md` y generado:
   estado ni el conteo de los tres programas.
 
 **Prueba.** `src/__tests__/un-programa-de-tres-no-es-el-producto.test.ts` (14 casos).
+
+---
+
+## REG-427 — el motor de aplicabilidad leía cuatro dimensiones y le llegaban dos
+
+**QUÉ SE PEDÍA.** `WS-09.motor`: el censo pedía «las otras diez dimensiones» de
+aplicabilidad. Al mirar el sitio de la llamada **antes** de añadir ninguna
+apareció algo peor.
+
+### Dos de las cuatro que ya existían estaban muertas
+
+`aplicabilidad.ts` sabe leer edad, embarazo, función renal y alergia. La renal
+incluso trae la vigencia de REG-375 —«un número viejo no es un número»— en un
+campo `tfg: { valor, vigente }` diseñado para eso.
+
+El único sitio que lo llama construía esto:
+
+```ts
+const estadoDelPaciente = {
+  ...(typeof ctx.edad === 'number' ? { edadEnAnios: ctx.edad } : {}),
+  ...(Array.isArray(ctx.alergias) ? { alergenos: ctx.alergias } : {}),
+}
+```
+
+**`embarazo` y `tfg` no se rellenaban nunca.** No era inseguro —sin el dato el
+motor responde `datos_insuficientes`, que es lo correcto— pero significaba que un
+ensayo que excluye embarazadas **jamás llegaba a decir nada** sobre una paciente
+embarazada del expediente, teniendo el dato a un campo de distancia: la pantalla
+ya calculaba la creatinina y su vigencia.
+
+Es «el dato tiene que LLEGAR» en su forma más limpia: el contrato estaba bien
+escrito por los dos lados y nadie los unió. Añadir diez dimensiones encima habría
+sido construir más motor sin combustible.
+
+### La lectura del embarazo se mudó, y ahí apareció una discrepancia
+
+Vivía dentro de `copiloto.ts` sin exportar. Escribirla otra vez habría creado dos
+formas de leer los mismos diagnósticos, así que se mudó a un módulo propio — y al
+mudarla se vio que **el comentario del copiloto y su código no coinciden**:
+
+> «Un `presuntivo` o un `diferencial` **sí** cuentan para AVISAR»
+
+```ts
+dxGestacional.some(d => d.tipo !== 'descartado' && d.tipo !== 'diferencial')
+```
+
+El `diferencial` está excluido. Lleva así desde que se escribieron.
+
+**Se conservó la conducta del código, no la del comentario**, y el golden lo fija
+con una prueba que cae si alguien lo «arregla»: cambiarlo mueve un aviso de
+seguridad de medicamentos en embarazo, y si un embarazo listado como diferencial
+debe dispararlo es una decisión del médico. Queda declarada con sus dos opciones
+en `LA_DISCREPANCIA_DEL_DIFERENCIAL`.
+
+### Una lectura, dos preguntas distintas
+
+Por eso el módulo devuelve el estado **con los tipos que lo sostienen**, no un
+booleano:
+
+- el copiloto **avisa**, y para avisar la duda cuenta;
+- la aplicabilidad **afirma**, y para afirmar la duda no basta.
+
+Una sospecha de embarazo viaja como **ausencia**, no como `false`: mandar `false`
+haría que un estudio que excluye embarazadas se declarara aplicable a una
+paciente que quizá lo está. Aplanarlo a un booleano habría obligado a elegir una
+de las dos lecturas, y la elegida habría estado mal para el otro consumidor.
+
+Y «embarazo» + «embarazo descartado» a la vez es **conflicto, no resolución**: se
+devuelve `posible`. Quedarse con la nota más reciente sería inventar una regla
+clínica que nadie escribió.
+
+### Sólo dos dimensiones nuevas, de las diez que pedía el censo
+
+**comorbilidad** y **terapia previa**: las dos únicas cuyo dato del paciente
+existe hoy en el árbol (`problemasActivos` y la lista de medicamentos). Las otras
+ocho —organismo, susceptibilidad, sitio, dispositivo, interacción, severidad,
+entorno de atención, jurisdicción— **falta el dato, no el patrón**, y un campo que
+nadie llena es una promesa del modelo: se intentó y se descartó en REG-370/371.
+
+Ninguna de las dos trae vocabulario clínico propio: el motor no sabe qué es una
+comorbilidad, sabe que el criterio dice «pacientes con X» y mira si X está en la
+lista del paciente. Un catálogo aquí sería criterio inventado, y lo que le
+faltara no se vigilaría sin que nadie lo supiera.
+
+### Un defecto que se vio al escribir el caso, no después
+
+`previously treated with rituximab were excluded` capturaba **«rituximab were
+excluded»**, que no casa con «Rituximab 375 mg/m²» por contención: el paciente sí
+lo tomaba y el motor decía que no. Se añadió el recorte en la primera palabra que
+no puede ser parte del nombre, y una segunda pasada por palabra con mínimo de
+cuatro letras — sin ese mínimo, partículas como «con» o «de» casarían con
+cualquier cosa.
+
+### Un guardián que pedía una ceguera que ya no queremos
+
+`la-evidencia-no-aplica-a-cualquiera` exigía `null` para «Pacientes con neumonía
+adquirida en la comunidad». Era cierto mientras el motor no leía comorbilidades;
+ahora ésa **es** la lectura correcta. Se cambió la aserción, no el patrón, y se
+añadieron dos frases que de verdad no nombran ninguna dimensión.
+
+### Qué NO cubre
+
+- **Las otras ocho dimensiones del §9.** Falta el dato del paciente.
+- **No distingue «tratamiento previo con X» de «en tratamiento con X»**: en un
+  resumen se escriben igual y separarlas exigiría leer el tiempo verbal.
+- **No unifica las tres copias de la cadena de CKD-EPI del copiloto.**
+  `tfgPorCkdEpi` existe y tiene un consumidor; migrar el copiloto es su unidad.
+- **Sigue sin existir el veredicto «aplica».** El máximo es `nada_lo_excluye`.
+- **No se comprobó en navegador** que el contexto viaje: se comprueba que la
+  pantalla lo construya y que la ruta lo acepte.
+
+**Prueba.** `src/__tests__/el-motor-de-aplicabilidad-leia-mas-de-lo-que-le-llegaba.test.ts` (17 casos).
