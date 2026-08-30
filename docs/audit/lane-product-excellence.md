@@ -3420,3 +3420,82 @@ compila. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
   repita mis tres intentos.
 - `tabindex` asignado desde JavaScript (`el.tabIndex = 3`) **no se busca**.
 - Cuatro pantallas recorridas de 80, y sólo a 1440.
+
+---
+
+## Unidad 60 — los documentos que el médico imprime, medidos por fin
+
+**EL HUECO.** Las rutas del **encuentro** —`/nota`, `/receta`, `/orden`— llevaban
+fuera del trinquete desde el principio. No por decisión: **necesitan un
+`notaId`** y la siembra estándar no crea notas.
+
+Y son lo que el médico **produce**: lo que sale impreso con su cédula
+profesional. La misión que abre `CLAUDE.md` es «que el médico salga de la
+consulta con la nota hecha». Medir 23 rutas y ninguna de éstas era medir el
+camino y no el destino.
+
+**BUSCAR ANTES DE CREAR.** La nota sintética **ya existía**:
+`scripts/design/capturar-nota-cromo-v15.mjs` siembra una firmada, con su
+paciente sintético y su candado anti-producción. Se reutiliza tal cual —
+reapuntada a la clínica y al paciente del arnés— en vez de inventar otra. Y **no
+se mete en la siembra estándar**: un expediente con nota no es el mismo que uno
+sin ella, y movería 69 combinaciones ya certificadas por algo que no es un
+cambio de producto.
+
+**FOUND — en el papel.** A 1440, `/receta` y `/orden` daban **axe 2** cada una:
+`color-contrast` de **2.48 : 1** sobre papel blanco, en el **título del
+documento** («Receta Médica» / «Orden Médica», 11 px) y en la **especialidad**
+del médico (10.5 px). Las dos con el color de acento.
+
+**POR QUÉ ES UN DEFECTO Y NO LA MARCA DE NADIE.** El acento **lo elige el
+médico** (`colorAccento` en configuración) y este carril no toca la identidad de
+nadie. Pero al mirar dónde se usa, es casi todo decorativo: los filetes, la barra
+de 3 px del encabezado, el borde inferior, los rellenos, el ℞ de 24 px. Los
+**únicos** dos sitios donde cargaba texto pequeño que hay que **leer** son
+exactamente los dos que axe marcó.
+
+Así que no se cambia el color del médico: **se deja de pedirle que haga de
+tinta**. Su acento sigue en todo lo demás —incluida la barra pegada a la
+especialidad— y esos dos textos pasan al gris neutro que el documento ya usaba
+(`#111` el nombre, `#666` el folio de al lado).
+
+**PROOF.** Antes: axe 2 en `/receta@1440` y 2 en `/orden@1440`. Después: **0 en
+las seis combinaciones** (tres rutas × 390 y 1440).
+
+**UN INTENTO QUE SE DESHIZO POR DISCIPLINA.** Al ver 23 literales de gris
+repetidos, consolidé una paleta de tinta con nombre. Mejoraba el archivo… y era
+**alcance que nadie pidió**, en un documento médico que se imprime, con riesgo de
+regresión visual si una sustitución era mala. Se revirtió: queda sólo el arreglo
+de contraste. (De paso: el trinquete cuenta **hex de 6 dígitos**, así que los
+grises de 3 nunca contaron — el `+1` que vi venía de mis propios comentarios, que
+citaban el color. Reescritos sin él.)
+
+**REGRESSION.** `el-color-de-marca-no-carga-texto-pequeno.test.ts`, 4 casos: dos
+exigen que el acento **siga** en lo decorativo —si alguien «arregla» el contraste
+borrándolo de todas partes, el médico pierde su identidad en el papel, y eso es
+el defecto del otro lado— y dos que no vuelva al texto pequeño.
+
+**Y EL GUARDIÁN NO PODÍA FALLAR — dos veces seguidas.** El caso de la
+especialidad ancló en la primera aparición de `{especialidad}`, que es la
+**condición** y no el elemento: pasaba con el defecto puesto. Al corregirlo usé
+`[^}]*` en una línea que lleva `}}>` en medio: entonces fallaba **siempre**, con
+defecto y sin él. La tercera versión compara dos subcadenas y por fin discrimina.
+Las dos lo cazó probar al revés, que es para lo que está.
+
+**COMPUERTAS.** `vitest` 10 827/10 828 · lint 95 · diseño sin deuda nueva ·
+`tsc` limpio · `build` compila. El rojo es `ops-timeout-y-punto-ciego`,
+ambiental.
+
+**RESIDUAL_RISK.**
+
+- **No se juzga el acento que elija cada médico.** Uno claro sobre papel blanco
+  seguirá dando mal contraste en lo decorativo, y **eso no se vigila**. Avisarle
+  al elegirlo sería una función nueva, y este carril no las añade.
+- Se midió **la pantalla**, no el PDF ni la impresión.
+- El **℞ de 24 px** sigue con el acento. axe no lo marca; no se toca lo que no se
+  ha medido roto.
+- Las tres rutas quedan **medidas pero no atrincheradas**: dependen de una nota
+  sembrada, así que viven en su propio guion (`arnes:documentos-encuentro`) y no
+  en el trinquete de 69 combinaciones.
+- `/nota` sin `notaId` pinta «Nota no encontrada» y se midió limpia: es un estado
+  vacío legítimo, **no el documento**.
