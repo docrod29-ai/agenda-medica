@@ -12659,3 +12659,72 @@ acta de escala.
   medidos en su día— sigue abierto.
 - **La historia sembrada es uniforme**: tres notas iguales por paciente. Falta la
   distribución realista de medicamentos, laboratorios y órdenes.
+
+---
+
+## REG-384 — el token decía si hubo segundo factor, y el servidor lo tiraba
+
+**QUÉ FALLABA.** El producto tiene **TOTP implementado y funcionando**:
+enrolamiento en Configuración, resolución en el login, sobre el multi-factor de
+Firebase. Y `auth-server.ts` decodificaba el ID-token y se quedaba **sólo con
+`uid` y `email`**.
+
+Firebase pone en ese mismo token `firebase.sign_in_second_factor` —cómo se inició
+la sesión— y se descartaba en la línea siguiente. Consecuencia: **ninguna ruta del
+servidor podía saber si la sesión que tenía delante había usado el segundo
+factor**. Una sesión sin él tenía privilegios idénticos.
+
+Es «el dato tiene que LLEGAR» en la frontera de autenticación: el dato llegaba y
+nadie lo leía.
+
+**Y EL PANEL DECÍA OTRA COSA.** `security-controls.ts` declaraba MFA como
+`planned`, con el detalle «requiere habilitar Identity Platform **para
+implementarlo y probarlo**». Falso: estaba implementado y cableado en dos
+pantallas. Un panel de cumplimiento que se equivoca —aunque sea declarando **de
+menos**— no sirve en ninguna dirección: si miente hacia abajo hoy, nadie sabe si
+miente hacia arriba mañana.
+
+**EL ARREGLO, EN TRES PIEZAS.**
+
+1. `verificarToken` deja de descartar la afirmación y la propaga como
+   `segundoFactor` en **las cuatro** puertas que devuelven un acceso.
+2. La consola del dueño la exige: **si hay segundo factor enrolado, la sesión
+   tiene que haberlo usado**.
+3. El panel dice lo que es: `implemented-pending-verification`, con la evidencia
+   apuntando a los archivos y al guardián.
+
+**POR QUÉ «SI ESTÁ ENROLADO» Y NO «SIEMPRE».** Exigirlo a secas dejaría al dueño
+fuera de su propia consola el día que todavía no ha enrolado nada. La condición se
+ata a un hecho comprobable de su cuenta y no a una política que este código no
+puede decidir: quien no ha enrolado entra como siempre; quien sí enroló no puede
+saltárselo.
+
+**LA VENTANA REAL QUE CIERRA.** Firebase bloquea el **inicio de sesión** de un
+usuario enrolado — pero un token emitido **antes** de enrolar sigue siendo válido
+hasta que caduca. Quien enrola TOTP porque sospecha que le robaron la contraseña
+seguía teniendo, durante esa hora, una sesión abierta con todo.
+
+**DOS PUERTAS MÁS, CAZADAS POR EL PROPIO GUARDIÁN.** La primera versión propagó
+`segundoFactor` en dos de las cuatro puertas. El caso que exige *todas* encontró
+las otras dos (`verificarModuloIA` y su hermana). Y la razón por la que ese caso
+existe es la que lo hace importante: **un campo que existe a veces es peor que uno
+que no existe nunca** — una ruta que preguntara `acceso.segundoFactor` habría
+recibido `undefined`, que es falsy, y se habría comportado como si nadie hubiera
+usado su segundo factor.
+
+**LA PRUEBA.** `src/__tests__/el-segundo-factor-llega-al-servidor.test.ts`
+(12 casos). Uno protege una **decisión** y no una línea: si alguien «endurece»
+esto quitando la comprobación de enrolamiento, el dueño se queda fuera de su
+consola en cuanto caduque su sesión, y el caso se pone rojo. Otro comprueba que la
+consulta de factores va **después** de saber que quien llama es el dueño — antes
+sería un oráculo gratis para quien pruebe correos.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sólo se exige en la consola del dueño.** El coste es una lectura de usuario
+  por petición: ahí el tráfico es bajísimo; en el camino clínico habría que pagarlo
+  en cada nota. Extenderlo es decisión de política del dueño.
+- **No prueba el TOTP contra Firebase.** Prueba que el servidor lee la afirmación
+  y actúa. Que Firebase la emita bien es de Firebase.
+- **No cubre códigos de recuperación**, que el diseño menciona y el producto
+  todavía no tiene.

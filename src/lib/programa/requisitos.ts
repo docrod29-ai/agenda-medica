@@ -502,8 +502,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-13.mfa-servidor', ws: 'WS-13', titulo: 'El segundo factor se exige en el servidor',
-    estado: 'IMPLEMENTED_NOT_PROVEN',
-    queFalta: 'TOTP implementado y funcionando, pero no se exige en el servidor en ningún sitio: una sesión sin segundo factor tiene privilegios idénticos. Y security-controls.ts todavía lo declara planned.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-384: el servidor ya LEE sign_in_second_factor —lo descartaba— y la consola del dueño lo exige a quien lo tiene enrolado. Extenderlo al resto de rutas privilegiadas cuesta una lectura de usuario por petición y es decisión de política del dueño, no de este código.',
+    artefactos: ['src/lib/auth-server.ts', 'src/lib/superadmin.ts'],
+    pruebas: ['src/__tests__/el-segundo-factor-llega-al-servidor.test.ts'],
   }),
   R({
     id: 'WS-13.app-check', ws: 'WS-13', titulo: 'App Check activo en el proyecto',

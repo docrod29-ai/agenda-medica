@@ -257,7 +257,7 @@
     },
     {
       "id": "WS-13.mfa-servidor",
-      "estado": "IMPLEMENTED_NOT_PROVEN"
+      "estado": "PARTIAL"
     },
     {
       "id": "WS-13.app-check",
