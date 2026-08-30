@@ -47,7 +47,7 @@
 | `/asistente` | medico | ✅ | 737 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 697 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
-| `/citas` | medico | ✅ | 1181 | 6 | — | ✅ | — |
+| `/citas` | medico | ✅ | 1212 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2633 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 6601 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 312 | 0 | — | ✅ | — |

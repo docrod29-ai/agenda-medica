@@ -1637,3 +1637,71 @@ nuevo sin otro canal.
 El resto de la aplicación tiene más `title=`; no se han auditado y **no se
 declaran buenos**. Y no se comprueba el caso contrario —texto oculto que repite
 lo visible y hace la lectura pesada—, que también es un defecto.
+
+---
+
+## Unidad 35 — la pantalla decía «0 citas» y «Cargando citas…» a la vez
+
+**FOUND.** Con la red lenta, `/citas` mostraba **«0 citas»** en el chip de
+resumen y, dos centímetros más abajo, **«Cargando citas…»**. El producto
+contradiciéndose a sí mismo en un solo golpe de vista.
+
+Y en el peor sentido: quien mira de reojo se queda con el número. Un médico que
+abre la agenda del día, lee «0 citas» y cierra, se va con la idea de que no
+tiene consulta.
+
+**POR QUÉ NO SE HABÍA VISTO.** Porque en este entorno **no se puede ver**: los
+emuladores son locales y todo llega en menos de medio segundo. La ventana de
+carga no dura lo suficiente para mirarla. Hubo que **emular latencia** (2 s, por
+CDP) para que existiera.
+
+**DOS INSTRUMENTOS FALLARON ANTES, Y LAS DOS VECES MEDÍ UNA PANTALLA EN BLANCO
+QUE ERA MÍA.** Interceptar `**/*` con `page.route` retrasa también el JavaScript
+de la propia página; y aun acotando el patrón al emulador, la intercepción choca
+con el **service worker** de la PWA. Las dos veces el resultado era `body` con
+cero caracteres, que leído deprisa parecía un defecto gravísimo del producto. La
+emulación por CDP va por debajo de las dos cosas.
+
+**ROOT_CAUSE.** La LISTA sí estaba resuelta: enseña «Cargando citas…» y
+distingue el fallo de carga del día vacío —hay un comentario en el propio
+archivo explicando que «un fallo de carga no puede verse como *hoy no hay
+nada*»—. **Alguien arregló la lista y no el contador que va encima**, que leía
+`daySummary.total`, igual a 0 hasta que llegan los datos.
+
+**CHANGE.** Mientras no hay datos en la mano —cargando **o** con error— el chip
+no afirma un número: enseña «—» y dice «aún cargando» por el canal de lector.
+Los chips de «por confirmar» y «por cobrar» tampoco aparecen, y el filtro queda
+inerte.
+
+**LA REGLA.** Ausencia de dato no es dato de ausencia (`clinical-safety`, regla
+4) en lenguaje de interfaz: mientras no se sabe, **se dice que no se sabe**. Y
+vale igual para el fallo que para la espera.
+
+**BROWSER_PROOF.** Build de producción con 2 s de latencia emulada:
+
+| Pantalla | Antes | Después |
+|---|---|---|
+| `/citas` | «**0 citas**» + «Cargando citas…» | «**— citas · aún cargando**» |
+| `/finanzas` | «Calculando…» | sin cambio (ya estaba bien) |
+| `/lista-espera` | «Cargando lista de espera…» | sin cambio (ya estaba bien) |
+| `/calendario` | rejilla vacía que se llena | sin cambio (la rejilla ya informa) |
+
+**REGRESSION.** `un-contador-no-dice-cero-mientras-no-sabe.test.ts`, 6 casos.
+
+**Y OTRO CASO MÍO QUE MEDÍA LA FORMA.** El primero prohibía el literal
+`{daySummary.total}` en el chip — y fallaba **con el arreglo puesto**, porque
+ese literal sí aparece dentro de la rama buena del ternario. Prohibir un texto
+que la solución usa no garantiza nada. Reescrito para exigir el **orden**: la
+bandera se pregunta antes de leer el total. Tercera vez en esta vuelta que la
+prueba al revés caza un guardián mío que medía la forma en vez del efecto.
+
+**RESIDUAL_RISK.**
+
+- El arranque en frío del panel con 2 s de latencia tarda **~6,4 s** hasta el
+  primer contenido. Es característica del arranque de Next.js con los trozos
+  throttled, no de estas pantallas, y **no se ha tocado**: queda medido y
+  declarado, no arreglado.
+- **No hay esqueletos en ninguna de las cuatro.** Las que informan lo hacen con
+  texto («Calculando…», «Cargando lista de espera…»). Es honesto y no es
+  moderno; cambiarlo es una decisión de diseño que no he tomado por mi cuenta.
+- No se han auditado los contadores del resto de la aplicación.

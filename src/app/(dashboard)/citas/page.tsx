@@ -261,6 +261,9 @@ export default function CitasPage() {
     return { total: day.length, conf, pend, porCobrar }
   }, [appointments, selectedDate, medicoFiltro])
 
+  /** ¿Se puede afirmar un número? Sólo con los datos ya en la mano. */
+  const hayConteo = !loading && !errorCitas
+
   // Si el filtro está en "por-cobrar" y ya no queda ninguno (se cobró el último), el
   // chip desaparece pero el filtro se quedaba atascado mostrando "sin citas". Se
   // regresa a "todas" para no dejar la lista vacía con citas que sí existen ese día.
@@ -608,15 +611,43 @@ export default function CitasPage() {
       */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
         <div className="riel-filtros" role="group" aria-label="Filtrar las citas del día">
-          <button className="riel-filtro" aria-pressed={statusFilter === 'todas'} onClick={() => setStatusFilter('todas')}>
-            <span className="riel-filtro-n">{daySummary.total}</span> {daySummary.total === 1 ? 'cita' : 'citas'}
+          {/**
+            * UN CONTADOR NO PUEDE DECIR «0» MIENTRAS NO SABE.
+            *
+            * La LISTA de abajo sí estaba resuelta: mientras carga enseña
+            * «Cargando citas…», y si falla lo dice —hay hasta un comentario en
+            * este archivo explicando que un fallo de carga no puede verse como
+            * «hoy no hay nada»—. Pero este contador, que va ENCIMA, seguía
+            * pintando `daySummary.total`, que es 0 hasta que llegan los datos.
+            *
+            * Resultado, medido con 2 s de latencia: la pantalla decía
+            * «0 citas» y, dos centímetros más abajo, «Cargando citas…». El
+            * producto contradiciéndose a sí mismo en un solo golpe de vista — y
+            * en el peor sentido, porque el médico que mira de reojo se queda con
+            * el número, no con el spinner.
+            *
+            * Alguien arregló la lista y no el contador. Ausencia de dato no es
+            * dato de ausencia (`clinical-safety`, regla 4): mientras no se sabe,
+            * se dice que no se sabe.
+            */}
+          <button
+            className="riel-filtro"
+            aria-pressed={statusFilter === 'todas'}
+            onClick={() => setStatusFilter('todas')}
+            disabled={!hayConteo}
+          >
+            {hayConteo ? (
+              <><span className="riel-filtro-n">{daySummary.total}</span> {daySummary.total === 1 ? 'cita' : 'citas'}</>
+            ) : (
+              <><span className="riel-filtro-n" aria-hidden="true">—</span> citas<span className="nx-solo-lector">: aún cargando</span></>
+            )}
           </button>
-          {daySummary.pend > 0 && (
+          {hayConteo && daySummary.pend > 0 && (
             <button className="riel-filtro" aria-pressed={statusFilter === 'pendientes'} onClick={() => setStatusFilter(statusFilter === 'pendientes' ? 'todas' : 'pendientes')}>
               <span className="riel-filtro-n">{daySummary.pend}</span> por confirmar
             </button>
           )}
-          {daySummary.porCobrar > 0 && (
+          {hayConteo && daySummary.porCobrar > 0 && (
             <button className="riel-filtro" aria-pressed={statusFilter === 'por-cobrar'} onClick={() => setStatusFilter(statusFilter === 'por-cobrar' ? 'todas' : 'por-cobrar')}>
               <span className="riel-filtro-n">{daySummary.porCobrar}</span> por cobrar
             </button>
