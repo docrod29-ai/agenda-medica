@@ -37,17 +37,17 @@ import {
 } from '../../scripts/idempotencia/escrituras-sin-intencion.mjs'
 
 /**
- * TECHO ACTUAL. Sólo puede bajar.
+ * TECHO ACTUAL: CERO. Sólo puede subir si alguien escribe una escritura nueva.
  *
- * Las cuatro que quedan son TODAS del carril de Hospital y UCI —ALPHA, que se usa
- * y no se vende—: los signos vitales (alta y corrección), la solicitud de
- * laboratorio y la observación de UCI. Ninguna está bloqueada por nada externo;
- * lo que piden es que cada modal de esa pantalla acuñe su clave al abrirse, que
- * es el mismo trabajo que ya se hizo en farmacia, ARCO y fotos.
+ * Las doce escrituras clínicas del árbol tienen clave de intención. Se cerraron
+ * en tres tandas: farmacia (REG-412), ARCO y fotos (REG-413), y signos ×2,
+ * laboratorio y observación de UCI (REG-419).
  *
- * Del lado de Practice no queda ninguna.
+ * Un cero aquí NO significa «esto no puede volver a pasar»: significa que la
+ * próxima vez se ve. Una escritura clínica nueva con `addDoc` o con `doc()` sin
+ * id sube el número y pone el CI en rojo el mismo día.
  */
-const TECHO = 4
+const TECHO = 0
 
 describe('el instrumento mide algo', () => {
   it('el universo NO está vacío (si lo estuviera, todo pasaría por bueno)', () => {
@@ -106,20 +106,25 @@ describe('el techo sólo baja', () => {
 
   it('y el techo no se subió para conseguirlo', () => {
     /* Si un cambio lo sube, se arregla el cambio — no se sube el techo. */
-    expect(TECHO).toBeLessThanOrEqual(4)
+    expect(TECHO).toBe(0)
   })
 
-  it('las que quedan están nombradas, no son un número suelto', () => {
-    const donde = sinIntencion().map(x => x.coleccion).sort()
-    expect(donde).toEqual(['icu_observations', 'laboratorio', 'signos', 'signos'])
+  it('no queda ninguna, ni de Practice ni de Hospital', () => {
+    const quedan = sinIntencion()
+    expect(
+      quedan.map(x => `${x.archivo}:${x.linea} [${x.coleccion}]`),
+      'una escritura clínica nueva sin clave de intención',
+    ).toEqual([])
   })
 
-  it('y ninguna es del lado de Practice: las cuatro son de Hospital/UCI', () => {
-    /* Lo que se vende está cerrado. Lo que queda es ALPHA, y queda NOMBRADO —
-       no «pendiente», que es como se pierde. */
-    for (const x of sinIntencion()) {
-      expect(x.archivo, `${x.archivo} no es del carril hospitalario`).toMatch(/\/(hospital|uci)\//)
-    }
+  it('y las DOCE clínicas siguen contándose: el cero no es una lista vacía', () => {
+    /**
+     * El caso que impide el falso cero. Si el inventario dejara de reconocer las
+     * escrituras —un `addDoc` renombrado, una colección fuera del manifiesto—
+     * `sinIntencion` daría cero por no mirar, que es indistinguible de cero por
+     * estar bien.
+     */
+    expect(recuento().clinicas).toBe(12)
   })
 
   it('la dispensación de farmacia YA NO está entre ellas', () => {

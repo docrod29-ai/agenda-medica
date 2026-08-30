@@ -51,6 +51,7 @@ import {
 import { TIPO_NOTA_LABEL, type NotaMedica } from '@/types/expediente'
 import type { Patient, Doctor } from '@/types'
 import { Modal, Button, Spinner } from '@/components/ui'
+import { claveDeIntento } from '@/lib/idempotencia'
 import {
   ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
   Send, Check, Activity, Syringe, Ban, ShieldCheck, Printer, AlertTriangle, ScanLine, ClipboardCheck, HeartPulse,
@@ -116,6 +117,12 @@ export default function EpisodioPage() {
   const [modalIC, setModalIC] = useState(false)
   const [modalInd, setModalInd] = useState(false)
   const [modalSignos, setModalSignos] = useState(false)
+  /**
+   * REG-419 — la clave de intención de la toma que se está capturando. Se acuña
+   * al ABRIR el modal, no al pulsar Guardar: acuñarla al guardar haría que cada
+   * reintento trajera una nueva, y dos tomas del mismo momento inclinan NEWS2.
+   */
+  const [claveSignos, setClaveSignos] = useState('')
   /** Importar signos del monitor por HL7 (v891/v893). Con el clínico en medio. */
   const [modalHl7, setModalHl7] = useState(false)
   const [hl7Texto, setHl7Texto] = useState('')
@@ -213,6 +220,8 @@ export default function EpisodioPage() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [labs, setLabs] = useState<SolicitudLab[]>([])
   const [modalLab, setModalLab] = useState(false)
+  /** REG-419 — íd., para la solicitud de laboratorio: un duplicado son dos punciones. */
+  const [claveLab, setClaveLab] = useState('')
   const [labSel, setLabSel] = useState<string[]>([])
   const [labPrioridad, setLabPrioridad] = useState<'rutina' | 'urgente'>('rutina')
   const [labExtra, setLabExtra] = useState('')
@@ -797,7 +806,7 @@ export default function EpisodioPage() {
                 Importar del monitor
               </Button>
             )}
-            {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false, o2Flujo: '', o2FiO2: '' }); setModalSignos(true) }}>Registrar signos</Button>}
+            {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false, o2Flujo: '', o2FiO2: '' }); setClaveSignos(claveDeIntento()); setModalSignos(true) }}>Registrar signos</Button>}
           </div>
         </div>
         {signos.length === 0 ? (
@@ -926,6 +935,7 @@ export default function EpisodioPage() {
                         setMotivoCorr('')
                         setSg({ ta: s.ta ?? '', fc: s.fc != null ? String(s.fc) : '', fr: s.fr != null ? String(s.fr) : '', temp: s.temp != null ? String(s.temp) : '', spo2: s.spo2 != null ? String(s.spo2) : '', glucosa: s.glucosa != null ? String(s.glucosa) : '', dolor: s.dolor != null ? String(s.dolor) : '', conciencia: acvpu(s.conciencia), oxigeno: !!s.oxigeno, o2Flujo: s.oxigenoFlujoLpm != null ? String(s.oxigenoFlujoLpm) : '', o2FiO2: s.oxigenoFiO2 != null ? String(s.oxigenoFiO2) : '' })
                         setConcienciaSinMapeo(concienciaExigeReSeleccion(s.conciencia))
+                        setClaveSignos(claveDeIntento())
                         setModalSignos(true)
                       }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><PencilLine size={13} /></button>}
                     </td>}
@@ -943,7 +953,7 @@ export default function EpisodioPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Solicitudes de laboratorio y resultados. Los valores críticos alertan al médico.</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {(rol === 'laboratorio' || rol === 'medico') && !egresado && <Button size="sm" variant="secondary" icon={<Send size={14} />} onClick={() => { setImportTxt(''); setModalImport(true) }}>Importar FHIR</Button>}
-            {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setLabSel([]); setLabExtra(''); setLabPrioridad('rutina'); setModalLab(true) }}>Solicitar laboratorio</Button>}
+            {esMedico && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setLabSel([]); setLabExtra(''); setLabPrioridad('rutina'); setClaveLab(claveDeIntento()); setModalLab(true) }}>Solicitar laboratorio</Button>}
           </div>
         </div>
         {labs.length === 0 ? (
@@ -1496,7 +1506,7 @@ export default function EpisodioPage() {
         footer={<><Button variant="secondary" onClick={() => setModalLab(false)}>Cancelar</Button><Button loading={busy} disabled={labSel.length === 0 && !labExtra.trim()} onClick={async () => {
           if (!clinicId || !inter) return; setBusy(true)
           const estudios = [...labSel, ...labExtra.split(/[,\n]/).map(s => s.trim()).filter(Boolean)]
-          try { await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios, prioridad: labPrioridad, solicitadaPor: config?.nombreMedico ?? '', fecha: new Date().toISOString() }); toast('Laboratorio solicitado', 'success'); setModalLab(false); cargar() }
+          try { await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios, prioridad: labPrioridad, solicitadaPor: config?.nombreMedico ?? '', fecha: new Date().toISOString() }, claveLab); toast('Laboratorio solicitado', 'success'); setModalLab(false); cargar() }
           catch (e) { toast(e instanceof Error ? e.message : 'NO se envió la solicitud de laboratorio. Reintenta.', 'error') }
           finally { setBusy(false) }
         }}>Solicitar</Button></>}>
@@ -1623,8 +1633,8 @@ export default function EpisodioPage() {
                 fechaEfectiva: medidoOriginal ?? datos.fecha,
                 fechaRegistro: datos.fecha,
                 motivoCorreccion: motivoCorr.trim() || undefined,
-              })
-            } else await agregarSignos(clinicId, internamientoId, datos)
+              }, claveSignos)
+            } else await agregarSignos(clinicId, internamientoId, datos, claveSignos)
             // Alerta por deterioro: NEWS2 alto O parámetro individual en rojo (criterio Royal College)
             const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), conciencia: sg.conciencia, oxigeno: sg.oxigeno })
             if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo})`, detalle: n2.recomendacion })

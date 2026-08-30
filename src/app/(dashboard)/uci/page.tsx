@@ -646,7 +646,23 @@ export default function UciPanelPage() {
       por: '',
       fuente: 'panel-uci',
       medidas: lecturaActual as unknown as Record<string, unknown>,
-    })
+      /**
+       * REG-419 — la clave es el INSTANTE MEDIDO, no un intento.
+       *
+       * Aquí no hay reintento automático ni un modal que abrir: el fallo guarda
+       * en local y avisa. Así que la identidad no puede salir de «cuándo empecé a
+       * escribir» —no existe ese momento— sino de la toma misma.
+       *
+       * QUÉ PROTEGE: el caso caro, que es el commit hecho con la respuesta
+       * perdida —el aviso dice «no se pudo enviar» siendo mentira— y cualquier
+       * reenvío futuro de las lecturas locales, que sería idempotente por
+       * construcción.
+       *
+       * QUÉ NO: dos pulsaciones separadas por segundos son dos instantes
+       * distintos y por tanto dos tomas. Colapsarlas exigiría comparar valores, y
+       * dos tomas iguales seguidas SON posibles en una UCI.
+       */
+    }, iso)
       .then(() => setTomasEnServidor(n => (n ?? 0) + 1))
       .catch(() => {
         // No se interrumpe al médico: la lectura YA está guardada localmente.

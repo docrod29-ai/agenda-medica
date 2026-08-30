@@ -93,7 +93,7 @@
     },
     {
       "id": "WS-04.idempotencia",
-      "estado": "PARTIAL"
+      "estado": "PROVEN"
     },
     {
       "id": "WS-04.inyeccion-de-fallos",

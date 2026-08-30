@@ -305,17 +305,17 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-04.idempotencia', ws: 'WS-04', titulo: 'Ninguna operación clínica no idempotente se reintenta a ciegas',
-    estado: 'PARTIAL',
-    evidencia: 'REG-412. La lista a mano de este censo estaba mal en las dos direcciones: «tareas clínicas» YA estaba protegida (idDerivado), «bloques de agenda» no es riesgo clínico, y NO nombraba cuatro que sí lo son — signos del hospital (×2), solicitud de laboratorio y observación de UCI, y los signos alimentan NEWS2. Ahora hay instrumento y techo, como REG-394 con las lecturas sin cota.',
-    comando: 'node scripts/idempotencia/escrituras-sin-intencion.mjs && npx vitest run src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts',
-    resultado: 'REG-412 + REG-413. 24 escrituras con nombre aleatorio en colecciones del consultorio, 0 sin clasificar, 4 clínicas sin clave de intención (eran 8). Cerradas: dispensación de farmacia (escribía con doc() sin id DENTRO de una transacción), solicitud ARCO y foto clínica. Del lado de Practice no queda ninguna.',
-    queFalta: 'Cuatro escrituras clínicas siguen con nombre aleatorio, TODAS del carril Hospital/UCI (ALPHA, se usa y no se vende): signos vitales (alta y corrección), solicitud de laboratorio y observación de UCI. Ninguna está bloqueada por nada externo — lo que piden es que cada modal de esa pantalla acuñe su clave al abrirse, el mismo trabajo hecho ya tres veces. El trinquete las nombra una a una, comprueba por ruta que no queda ninguna de Practice, y su techo sólo baja.',
-    artefactos: ['src/lib/idempotencia.ts', 'scripts/idempotencia/escrituras-sin-intencion.mjs', 'src/lib/farmacia.ts'],
+    estado: 'PROVEN',
+    evidencia: 'REG-412 (instrumento + farmacia), REG-413 (ARCO y fotos), REG-419 (signos ×2, laboratorio y observación de UCI). El trinquete de escrituras clínicas sin clave de intención está en CERO, y comprueba que sigue contando las doce: un cero por no mirar es indistinguible de un cero por estar bien. La lista a mano de este censo estaba mal en las dos direcciones y no nombraba los signos, que alimentan NEWS2.',
+    comando: 'node scripts/idempotencia/escrituras-sin-intencion.mjs && npx vitest run src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts src/__tests__/ni-una-escritura-clinica-sin-nombre.test.ts src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts src/__tests__/un-derecho-y-una-foto-no-se-duplican.test.ts',
+    resultado: '24 escrituras con nombre aleatorio en colecciones del consultorio · 12 clínicas · 0 sin clave de intención · 0 sin clasificar. Tres formas de acuñar la clave según lo que exista: modal, archivo o instante medido.',
+    artefactos: ['src/lib/idempotencia.ts', 'scripts/idempotencia/escrituras-sin-intencion.mjs'],
     pruebas: [
       'src/__tests__/una-adenda-no-se-escribe-dos-veces.test.ts',
       'src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts',
       'src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts',
       'src/__tests__/un-derecho-y-una-foto-no-se-duplican.test.ts',
+      'src/__tests__/ni-una-escritura-clinica-sin-nombre.test.ts',
     ],
   }),
   R({

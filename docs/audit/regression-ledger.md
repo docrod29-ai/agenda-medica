@@ -15579,3 +15579,71 @@ ausente, porque parece una traza y del otro lado se registra como cadena vacía.
   log se pierde con el despliegue.
 
 **Prueba.** `src/__tests__/un-trabajo-de-fondo-tambien-deja-hilo.test.ts` (12 casos).
+
+## REG-419 — las doce escrituras clínicas del árbol, con nombre propio
+
+**QUÉ SE PEDÍA.** Cerrar las cuatro que REG-412 y REG-413 dejaron nombradas, todas
+del carril de Hospital y UCI. Con esto el trinquete de escrituras sin clave de
+intención llega a **cero**.
+
+### Lo que se cierra
+
+- **Signos vitales**, alta y corrección. De estos documentos salen NEWS2 y las
+  tendencias: dos tomas idénticas a la misma hora inclinan una escala de gravedad
+  y disparan —o callan— una alerta de deterioro. No es una molestia de inventario,
+  es una cifra clínica movida por un fallo de red.
+- **Solicitud de laboratorio.** Un duplicado se le TOMA DOS VECES al paciente: dos
+  punciones, dos tubos, dos resultados que reconciliar.
+- **Observación de UCI.** Alimenta escalas y tendencias, igual que los signos.
+
+La **corrección** de signos merece mención aparte: es un llamador distinto del
+alta, y una corrección duplicada deja dos enmiendas del mismo original —un acto
+medicolegal repetido—. Arreglar sólo el alta habría sido la forma en que este
+árbol pierde reparaciones (REG-410, REG-411).
+
+### Tres sitios, tres formas de acuñar la clave
+
+No hay receta única, y forzarla habría dejado protecciones decorativas:
+
+1. **Signos y laboratorio** — hay modal, así que la clave nace al ABRIRLO.
+   Acuñarla al pulsar Guardar haría que cada reintento trajera una nueva.
+2. **Observación de UCI** — no hay modal ni reintento automático: el fallo guarda
+   en local y avisa. No existe un «momento anterior» del que colgar la intención,
+   así que la identidad sale de la TOMA: su instante medido.
+3. Y en REG-413, las fotos: la identidad sale del archivo, porque el usuario
+   vuelve a elegir el mismo y para la interfaz es un intento nuevo.
+
+### Qué protege la de UCI, y qué no
+
+Protege el caso caro —commit hecho, respuesta perdida, y el aviso diciendo «no se
+pudo enviar» siendo mentira— y cualquier reenvío futuro de las lecturas locales,
+que queda idempotente por construcción.
+
+No protege dos pulsaciones separadas por segundos: son dos instantes y por tanto
+dos tomas. Colapsarlas exigiría comparar valores, y **dos tomas iguales seguidas
+son posibles en una UCI**. Está escrito en el propio llamador, porque una
+protección cuyo alcance no consta se lee como total.
+
+### El cero, y por qué lleva su propio guardián
+
+Un cero no significa «no puede volver a pasar»: significa «la próxima vez se ve».
+Y un cero puede ser falso — si el inventario dejara de reconocer las escrituras,
+`sinIntencion` daría cero por no mirar, indistinguible de cero por estar bien. Por
+eso el trinquete comprueba además que sigue contando **doce** clínicas y **cero**
+sin clasificar.
+
+### Un guardián roto por documentar
+
+`icu-observaciones-persistencia` buscaba el `.catch(` dentro de una ventana de 900
+caracteres desde la llamada. El comentario que explica el alcance de la clave lo
+empujó fuera y el caso cayó sin que el cableado hubiera cambiado: una ventana fija
+vigila cuánto se ha comentado. Ahora se ancla al final de la cadena.
+
+### Qué NO cubre
+
+- El inventario es estático: ver una clave en la función no prueba que el llamador
+  la pase, y por eso el golden comprueba los llamadores uno a uno.
+- No deduplica entre dispositivos: dos personas registrando signos a la vez son
+  dos intenciones y dos tomas, que es lo correcto.
+
+**Prueba.** `src/__tests__/ni-una-escritura-clinica-sin-nombre.test.ts` (14 casos).

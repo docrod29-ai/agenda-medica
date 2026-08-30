@@ -78,11 +78,11 @@
 | `/referencia/[patientId]` | medico | ✅ | 297 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 453 | 5 | — | ✅ | — |
-| `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1732 | 4 | — | ✅ | ✅ |
+| `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1742 | 4 | — | ✅ | ✅ |
 | `/hospitalizacion/camas` | alpha | ✅ | 239 | 1 | — | ✅ | — |
 | `/hospitalizacion/indicadores` | alpha | ✅ | 102 | 0 | — | ✅ | — |
 | `/hospitalizacion/unidades` | alpha | ✅ | 171 | 0 | — | ✅ | — |
-| `/uci` | alpha | ✅ | 1932 | 2 | — | ✅ | ✅ |
+| `/uci` | alpha | ✅ | 1948 | 2 | — | ✅ | ✅ |
 | `/uci/antimicrobianos` | alpha | ✅ | 683 | 0 | — | ✅ | — |
 | `/uci/benchmark` | alpha | ✅ | 265 | 0 | — | ✅ | — |
 | `/uci/dosificacion` | alpha | ✅ | 585 | 0 | — | ✅ | — |

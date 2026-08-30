@@ -17,6 +17,7 @@ import type {
 } from '@/types/hospital'
 import { tareaDeResultado } from '@/lib/tareas-clinicas/derivar'
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
+import { idIdempotente } from '@/lib/idempotencia'
 
 function internamientosCol(clinicId: string) {
   return collection(db, 'clinics', clinicId, 'internamientos')
@@ -244,8 +245,29 @@ export async function cambiarTratante(clinicId: string, iid: string, t: { medico
 function signosCol(clinicId: string, iid: string) {
   return collection(db, 'clinics', clinicId, 'internamientos', iid, 'signos')
 }
-export async function agregarSignos(clinicId: string, iid: string, s: Omit<RegistroSignos, 'id'>): Promise<void> {
-  await addDoc(signosCol(clinicId, iid), limpiar(s as object))
+/**
+ * ── UN REGISTRO DE SIGNOS DUPLICADO ALTERA UNA ESCALA — REG-419 ─────────────
+ *
+ * `addDoc` fabrica un nombre nuevo en cada llamada, así que el reintento que
+ * provoca la red —commit hecho, respuesta perdida, el formulario sigue abierto y
+ * se vuelve a pulsar Guardar— escribe **dos tomas del mismo momento**.
+ *
+ * Y aquí no es una molestia de inventario: de estos documentos salen NEWS2 y las
+ * tendencias. Dos tomas idénticas a la misma hora inclinan una escala de
+ * gravedad y disparan —o callan— una alerta de deterioro.
+ *
+ * La clave la acuña quien ABRE el modal y viaja con la intención. Sin ella se
+ * comporta como antes: un llamador que todavía no la pase no puede quedarse sin
+ * registrar unos signos.
+ */
+export async function agregarSignos(
+  clinicId: string, iid: string, s: Omit<RegistroSignos, 'id'>, claveDeIntento?: string,
+): Promise<void> {
+  const datos = limpiar(s as object)
+  if (!claveDeIntento) { await addDoc(signosCol(clinicId, iid), datos); return }
+  const ref = doc(signosCol(clinicId, iid), idIdempotente(clinicId, 'signos', claveDeIntento))
+  /* No se pisa: la toma anterior lleva su hora, que es el dato que la ordena. */
+  if (!(await getDoc(ref)).exists()) await setDoc(ref, datos)
 }
 /**
  * Últimos N registros de signos. ANTES SE BAJABA LA SUBCOLECCIÓN COMPLETA.
@@ -291,9 +313,14 @@ export async function corregirSignos(
   iid: string,
   idOriginal: string,
   s: Omit<RegistroSignos, 'id' | 'corrigeA'>,
+  /** REG-419. Una corrección duplicada deja DOS enmiendas del mismo original. */
+  claveDeIntento?: string,
 ): Promise<void> {
   if (!idOriginal) throw new Error('corregirSignos requiere el id del registro que se corrige')
-  await addDoc(signosCol(clinicId, iid), limpiar({ ...s, corrigeA: idOriginal } as object))
+  const datos = limpiar({ ...s, corrigeA: idOriginal } as object)
+  if (!claveDeIntento) { await addDoc(signosCol(clinicId, iid), datos); return }
+  const ref = doc(signosCol(clinicId, iid), idIdempotente(clinicId, 'signos', claveDeIntento))
+  if (!(await getDoc(ref)).exists()) await setDoc(ref, datos)
 }
 
 // ── F3/V3 · Rol hospitalario por usuario (persistido, sigue al usuario entre dispositivos) ──
@@ -317,9 +344,22 @@ export async function setTelefonoAlertas(clinicId: string, uid: string, telefono
 // ── F4 · Laboratorio (solicitud → resultado) ──
 function labCol(clinicId: string) { return collection(db, 'clinics', clinicId, 'laboratorio') }
 
-export async function crearSolicitudLab(clinicId: string, data: Omit<SolicitudLab, 'id' | 'estado' | 'createdAt' | 'updatedAt'>): Promise<string> {
+/**
+ * REG-419 — una solicitud de laboratorio duplicada se le TOMA DOS VECES al
+ * paciente: dos punciones, dos tubos y dos resultados que después habrá que
+ * reconciliar. La clave se acuña al abrir el modal.
+ */
+export async function crearSolicitudLab(
+  clinicId: string,
+  data: Omit<SolicitudLab, 'id' | 'estado' | 'createdAt' | 'updatedAt'>,
+  claveDeIntento?: string,
+): Promise<string> {
   const now = new Date().toISOString()
-  const ref = await addDoc(labCol(clinicId), limpiar({ ...data, estado: 'solicitada', createdAt: now, updatedAt: now }))
+  const datos = limpiar({ ...data, estado: 'solicitada', createdAt: now, updatedAt: now })
+  if (!claveDeIntento) return (await addDoc(labCol(clinicId), datos)).id
+  const ref = doc(labCol(clinicId), idIdempotente(clinicId, 'laboratorio', claveDeIntento))
+  /* No se pisa: la solicitud anterior puede llevar ya un resultado colgando. */
+  if (!(await getDoc(ref)).exists()) await setDoc(ref, datos)
   return ref.id
 }
 export async function getSolicitudesLabDeEpisodio(clinicId: string, iid: string): Promise<SolicitudLab[]> {

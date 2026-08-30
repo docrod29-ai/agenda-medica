@@ -714,7 +714,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * había aviso era un toast, y un toast muere al cambiar de pantalla, que es
      * exactamente lo que se hace después de firmar.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 413],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 413, 419],
   },
   {
     clave: 'tarde',

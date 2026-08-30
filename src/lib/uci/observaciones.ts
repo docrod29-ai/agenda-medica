@@ -37,9 +37,10 @@
  */
 
 import {
-  collection, addDoc, getDocs, updateDoc, doc, query, orderBy, limit, serverTimestamp,
+  collection, addDoc, getDoc, getDocs, setDoc, updateDoc, doc, query, orderBy, limit, serverTimestamp,
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
+import { idIdempotente } from '@/lib/idempotencia'
 import {
   vigenteEn, serieVigente,
   type EstadoObservacion, type ObservacionVersionada,
@@ -96,6 +97,11 @@ export async function guardarToma(
   clinicId: string,
   internamientoId: string,
   toma: Omit<TomaUci, 'id'>,
+  /**
+   * REG-419 — una toma de UCI duplicada alimenta escalas y tendencias dos veces.
+   * La clave la acuña quien abre el formulario. Sin ella, como antes.
+   */
+  claveDeIntento?: string,
 ): Promise<string> {
   /**
    * AUTOR Y HORA DE REGISTRO, SELLADOS AQUÍ.
@@ -112,10 +118,11 @@ export async function guardarToma(
     por: u?.displayName || u?.email || toma.por || '',
     porUid: u?.uid ?? '',
   }
-  const ref = await addDoc(col(clinicId, internamientoId), {
-    ...limpiar(completa),
-    registradoEnServidor: serverTimestamp(),
-  })
+  const datos = { ...limpiar(completa), registradoEnServidor: serverTimestamp() }
+  if (!claveDeIntento) return (await addDoc(col(clinicId, internamientoId), datos)).id
+  const ref = doc(col(clinicId, internamientoId), idIdempotente(clinicId, 'observacion', claveDeIntento))
+  /* No se pisa: `registradoEnServidor` es el sello de cuándo llegó de verdad. */
+  if (!(await getDoc(ref)).exists()) await setDoc(ref, datos)
   return ref.id
 }
 
