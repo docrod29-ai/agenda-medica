@@ -3169,3 +3169,63 @@ regenerado. El rojo es `ops-timeout-y-punto-ciego`, ambiental.
   generar nota» no se pulsa**: llama al modelo, y eso está bloqueado por fuera.
 - Sin transcripción real, nada de lo que la pantalla hace **con texto
   reconocido** está medido. Sigue BLOCKED_EXTERNAL.
+
+---
+
+## Unidad 56 — «menos movimiento» sí se respeta, y ahora hay quien lo vigile
+
+**POR QUÉ.** §4 del encargo pide que el movimiento respete
+`prefers-reduced-motion`, y este carril nunca lo había **medido**. `globals.css`
+tiene el bloque global con `!important` y nueve reglas más: leerlo y darlo por
+bueno es exactamente lo que aquí no se hace, porque **un `!important` de una hoja
+no puede detener código** —ni la Web Animations API, ni `requestAnimationFrame`,
+ni `startViewTransition`— y `lib/ui/movimiento.ts` lo dice de sí mismo.
+
+**MEDIDO EN NAVEGADOR, CINCO PANTALLAS, DOS PASADAS.**
+
+| | transiciones >50 ms | animaciones CSS | WAAPI corriendo |
+|---|---|---|---|
+| **con** la preferencia | **0** en las 5 | **0** en las 5 | **0** en las 5 |
+| **sin** la preferencia | 22 – 128 | 1 – 3 | 0 |
+
+La segunda fila no es de adorno: **es lo que hace que la primera signifique
+algo**. Un producto sin movimiento daría los mismos ceros y no probaría nada.
+
+**Y EL CAMINO DE JS TAMBIÉN PREGUNTA.** `puedeCoreografiar()` consulta
+`matchMedia('(prefers-reduced-motion: reduce)')` y devuelve `false` antes de
+llamar a `startViewTransition`. El módulo lo tiene razonado por escrito: «el
+apagador de la hoja no llega al JS; cada comportamiento de movimiento decidido en
+JS pregunta por su cuenta».
+
+**Esta unidad no cambia una línea de producto.** §4 estaba bien resuelto. Lo que
+faltaba era comprobarlo y dejar quien lo vigile.
+
+**CHANGE — dos instrumentos, ninguno de producto.**
+
+- `scripts/carril-excelencia/respeta-menos-movimiento.mjs`
+  (`arnes:menos-movimiento`): la medición de arriba, repetible.
+- `el-movimiento-decidido-en-js-pregunta-por-su-cuenta.test.ts`, 4 casos: lo que
+  la medición **no puede vigilar sola**, porque hay que invocarla. El escáner
+  corre en CI y exige que **todo** archivo que llame a `startViewTransition`
+  consulte la preferencia.
+
+**PROBADO AL REVÉS, TRES VECES.** Quitando la consulta de `puedeCoreografiar`;
+**creando un archivo nuevo** que llama al API sin preguntar (cae nombrándolo); y
+retirando el `!important` del apagador global.
+
+**COMPUERTAS.** `vitest` 10 819/10 820 · trinquete de lint 95 · trinquete de
+diseño sin deuda · `tsc` limpio · `npm run build` compila. El rojo es
+`ops-timeout-y-punto-ciego`, ambiental.
+
+**RESIDUAL_RISK.**
+
+- **`requestAnimationFrame` no se vigila.** Los usos del árbol se clasificaron a
+  mano: reposicionar la lente, vaciar la maquetación con doble rAF, y el medidor
+  de nivel del audio —que es la señal de que la grabación está viva, no
+  decoración—. Ninguno es una animación decorativa. **Clasificado, no vigilado**:
+  si mañana alguien anima algo con rAF, este guardián no lo caza.
+- Cinco pantallas de 80, y en reposo. Un movimiento que sólo aparece al abrir un
+  panel no entra en la medición.
+- No se prueba que un usuario con la preferencia puesta **vea** menos
+  movimiento: se cuentan transiciones y animaciones, que es lo medible desde
+  aquí.

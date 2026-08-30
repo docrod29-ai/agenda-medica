@@ -32,7 +32,8 @@
     "preview:equivalente": "node scripts/preview-equivalente.mjs",
     "compuerta:integracion": "node scripts/compuerta-integracion.mjs",
     "arnes:portal-destinos": "node scripts/carril-excelencia/destinos-del-portal.mjs",
-    "arnes:consulta-grabando": "node scripts/carril-excelencia/consulta-grabando.mjs"
+    "arnes:consulta-grabando": "node scripts/carril-excelencia/consulta-grabando.mjs",
+    "arnes:menos-movimiento": "node scripts/carril-excelencia/respeta-menos-movimiento.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
