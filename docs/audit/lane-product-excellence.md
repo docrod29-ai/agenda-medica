@@ -2134,3 +2134,89 @@ veces.
   Stripe). Este carril ha mirado el camino de WhatsApp y **no declara buenos los
   otros**.
 - No se juzga el valor del tiempo máximo: lo pone el helper por omisión.
+
+---
+
+## Unidad 44 — un `catch` protege de un fallo; no protege de un silencio
+
+**CÓMO SE LLEGÓ AQUÍ.** Cerrando el residual que dejó escrito la unidad 43: «no
+se han barrido las demás integraciones del servidor (Google Calendar, Stripe)».
+El barrido llevaba la pregunta de la unidad 37: **¿dónde se espera a alguien de
+fuera sin techo de tiempo?**
+
+- **Stripe** — ningún `fetch` crudo. Nada que arreglar, y se dice: no todo
+  barrido tiene que producir un arreglo para haber servido.
+- **`api/receta/diseno`** — uno. Proxy del membrete de la receta contra Firebase
+  Storage. El navegador acota al cliente porque lo consume como `<img src>`; la
+  función no se acota sola.
+- **`lib/calendario/ocupado-servidor.ts`** — **ninguno, y aun así el peor**,
+  porque no usa `fetch`: usa el SDK `googleapis`, que no trae tiempo máximo. Un
+  barrido de `fetch(` no lo habría encontrado nunca.
+
+**FOUND.** Este módulo **ya degradaba bien** cuando Google falla, y lo tenía
+razonado por escrito en `POR_QUE_NO_SE_ESCONDE_EL_DIA`: «ni la agenda pública ni
+el bot se caen porque Google tenga un mal día». El `catch` devuelve el día entero
+libre y lo declara con `fallo: true`. Está bien pensado y está bien escrito.
+
+Pero **un cuelgue es Google teniendo un mal día**, y era justo el caso que no
+cubría: una promesa que no se resuelve ni se rechaza **no entra en el `catch`**.
+No hay nada que capturar. La degradación estaba escrita y no llegaba a
+ejecutarse.
+
+Es la misma forma que el «Guardando…» eterno de la unidad 37, y la misma familia
+de defecto que ya tiene nombre en este repositorio: **escrito, probado y sin
+conectar** — sólo que aquí lo que no se conecta es el camino de degradación
+consigo mismo.
+
+**A QUIÉN LE PASA.** A los tres caminos que agendan sobre esta consulta, y el
+peor es el público: **un paciente mirando la pantalla de reserva** mientras la
+petición de disponibilidad no acaba. No ve un error —vería otra cosa—, ve una
+pantalla que carga para siempre. Eso lo hace de este carril: el síntoma es un
+recorrido, no una línea de la factura.
+
+**CHANGE.**
+
+- `ocupado-servidor.ts`: `intervalosOcupados` va dentro de `conTiempoLimite` con
+  `ESPERA_GOOGLE_MS = 6000` — generoso para una llamada real a Google, muy por
+  debajo de lo que aguanta quien mira una pantalla de reserva. Al agotarse toma
+  **exactamente el mismo camino que un fallo** (`fallo: true`, sin bloqueos), que
+  es el que este archivo ya declaró correcto y justificó por escrito. No se
+  inventa una conducta nueva: se hace alcanzable la que ya había.
+- La constante se subió por encima de la función que la lee, en vez de dejarla
+  al final del archivo donde la escribí primero: leer una `const` de módulo desde
+  arriba funciona, pero pide al que lee el archivo que confíe en el orden de
+  evaluación para entenderlo.
+- `api/receta/diseno/route.ts`: el `fetch` crudo pasa a `fetchConTimeout`.
+
+**REGRESSION.**
+`un-google-que-no-contesta-no-cuelga-la-agenda-publica.test.ts`, 5 casos.
+
+Y aquí sí es **de conducta, no un escáner de fuente**: se sustituye
+`intervalosOcupados` por una promesa que **ni resuelve ni rechaza** y se
+comprueba que `ocupadoEnGoogle` **vuelve**. Los otros dos casos existen para que
+un `return VACIO` a secas no pase la prueba: una respuesta lenta que llega
+dentro del plazo tiene que seguir contando, y un fallo declarado de Google tiene
+que degradar como antes.
+
+**PROBADO AL REVÉS.** Quitando `conTiempoLimite`, «Google mudo» no falla con un
+mensaje: **se queda colgada 8 s y vitest la mata por tiempo agotado del caso** —
+que es exactamente lo que le pasaba al paciente. Restaurado el `fetch` crudo,
+cae el caso del membrete.
+
+**COMPUERTAS.** `vitest` 10 785 casos en 791 archivos, verde · trinquete de lint
+95, igual al techo · trinquete de diseño sin deuda nueva · `tsc` limpio ·
+`npm run build` compila (con configuración de Firebase **sintética**: sin ella el
+build no recoge `/dr/[clinicId]`, y eso es del entorno, no de la rama).
+
+**RESIDUAL_RISK.**
+
+- `Promise.race` **no cancela la llamada perdedora** —no se puede, con una
+  promesa ajena—, así que la petición a Google sigue viva por dentro. Lo que se
+  recupera es el control del flujo, no el socket.
+- La prueba **no llama a Google**: prueba el control de flujo de este módulo, no
+  la librería.
+- El caso del membrete **es** un escáner de fuente: dice que no queda `fetch`
+  crudo, no que Storage aborte de verdad.
+- Los 6 s son un número de producto, no una invariante: no se prueba su valor.
+- El barrido cubrió Stripe, Google Calendar y el proxy del membrete. **No declara
+  buenas** las integraciones que no aparecen aquí.
