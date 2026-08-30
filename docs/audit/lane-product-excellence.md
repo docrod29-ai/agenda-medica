@@ -2684,3 +2684,69 @@ regenerado. Único rojo: `ops-timeout-y-punto-ciego`, ambiental.
   el foco no se escape.
 - Sigue sin usarse ningún lector de pantalla real: `role` y `aria-*` se
   comprueban por su presencia, no por cómo suenan.
+
+---
+
+## Unidad 50 — medir la consulta, que era la que faltaba
+
+**POR QUÉ.** El trinquete llegó a 20 rutas en la unidad 46, y ninguna era
+`/consulta`. **La superficie donde el médico pasa la visita** —la razón de ser
+del producto— estaba sin medir, y por una razón tonta: las rutas con parámetro
+necesitan un id. El arnés ya siembra uno estable (`pac-001`), así que la excusa
+no existía.
+
+Se añaden `/consulta/pac-001` y `/expediente/pac-001`. **66 combinaciones.**
+
+**RESULTADO.** axe **0** en las 66. Desborde 0. Errores de consola 0. La
+consulta y el expediente entran limpios en los tres anchos.
+
+**LO QUE SÍ SALIÓ, Y NO SE ARREGLA MARCANDO ALGO.**
+
+`/consulta` da `aria-current` **1**, no 2: marca «Encuentro» en el riel de
+escritorio y **no marca nada en el de móvil**. Y el riel de móvil **está
+visible** — comprobado en el DOM, no supuesto: el primer diagnóstico («la barra
+no está en esta pantalla») era falso y se cayó al mirar.
+
+La causa es concreta: los cuatro destinos de abajo son `hoy`, `paciente`,
+`seguimiento` y `operaciones`. **Ninguno es el encuentro.** Y aquí es donde este
+carril se para:
+
+- Marcar otro sería **mentir**: `aria-current="page"` señala el enlace a la
+  página en la que estás, no al sitio del que vienes.
+- Añadir un quinto destino chocaría con la regla de diseño de móvil —«4–5
+  destinos primarios como máximo. Ni seis»— porque el hueco central ya lo ocupa
+  la acción contextual.
+
+O sea: **qué enseña el riel de móvil durante una consulta es una decisión de
+producto**, no un defecto que se tape con un atributo. Lo que aporta esta unidad
+es el **número medido y congelado en 1**: si baja a 0, el riel de escritorio
+también se apagó, y eso sí sería un defecto. Es el mismo trato que `/consultor`
+en la unidad 47: la excepción deja de ser una suposición y pasa a estar vigilada.
+
+**Y UN TROPIEZO DEL ARNÉS, OTRA VEZ DEL MISMO TIPO.** La primera sonda falló al
+no encontrar el campo de correo. No era la pantalla: la compuerta de `build` que
+había corrido justo antes reconstruyó `.next` con la configuración **sintética
+de producción**, así que la aplicación apuntaba a Firebase de verdad y el
+formulario no llegaba a montarse. Tercera vez que el emparejamiento
+build/servidor me engaña, y la primera en que **no** saqué una conclusión falsa
+sobre el producto: el instrumento ya se sospecha antes que la pantalla.
+
+(La comprobación de hoja de estilo de la unidad 46 no lo habría cazado —el CSS
+estaba bien—; lo que lo cazó fue que el arnés no pudo entrar. Queda dicho para
+quien añada comprobaciones: **entrar es parte de medir**.)
+
+**COMPUERTAS.** `vitest` **10 806/10 806, entero en verde** —incluido
+`ops-timeout-y-punto-ciego`, que depende de la red y esta vez sí pasó; no se ha
+arreglado nada suyo y puede volver a fallar— · trinquete de lint 95 · trinquete
+de diseño sin deuda · `tsc` limpio · `npm run build` compila.
+
+**RESIDUAL_RISK.**
+
+- Se mide `/consulta` **en reposo**: cargada, sin dictado, sin nota abierta, sin
+  modales. El estado más importante de esa pantalla —**grabando**— no se mide
+  aquí, y es donde vive el trabajo real. Declarado, no cubierto.
+- Un solo paciente sintético. Un expediente cargado de años de notas puede dar
+  otra cosa.
+- 22 rutas de 80. Hospital y UCI siguen sin medir y **no se declaran buenas**.
+- Los tres diálogos a mano de la unidad 49 (`PanelLaboratorios`, cajón de
+  navegación, `OnboardingTour`) siguen abiertos, con su trinquete en 3.

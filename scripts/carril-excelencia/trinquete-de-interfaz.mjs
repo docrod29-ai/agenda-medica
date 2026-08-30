@@ -70,6 +70,15 @@ const RUTAS = [
   '/dashboard', '/pacientes', '/pendientes', '/configuracion', '/crm', '/reactivacion',
   '/resenas', '/membresias', '/farmacia', '/corte-caja', '/cumplimiento',
   '/cumplimiento/retencion', '/consultor', '/guia',
+  /**
+   * Las dos con parámetro, con el paciente sintético que siembra
+   * `scripts/design/sembrar-emulador.mjs` (`pac-001`, estable entre siembras).
+   *
+   * `/consulta` es LA superficie del producto —donde el médico pasa la visita—
+   * y estuvo sin medir hasta el 30-ago justamente porque hacía falta un id.
+   * Que el arnés ya siembre uno fijo quita la excusa.
+   */
+  '/consulta/pac-001', '/expediente/pac-001',
 ]
 const ANCHOS = [390, 768, 1440]
 const ALTOS = { 390: 844, 768: 1024, 1440: 900 }

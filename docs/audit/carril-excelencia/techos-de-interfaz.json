@@ -122,6 +122,18 @@
       "desborde": false,
       "erroresDeConsola": 0
     },
+    "/consulta/pac-001@390": {
+      "axe": 0,
+      "ariaCurrent": 1,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/expediente/pac-001@390": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
     "/citas@768": {
       "axe": 0,
       "ariaCurrent": 2,
@@ -242,6 +254,18 @@
       "desborde": false,
       "erroresDeConsola": 0
     },
+    "/consulta/pac-001@768": {
+      "axe": 0,
+      "ariaCurrent": 1,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/expediente/pac-001@768": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
     "/citas@1440": {
       "axe": 0,
       "ariaCurrent": 2,
@@ -357,6 +381,18 @@
       "erroresDeConsola": 0
     },
     "/guia@1440": {
+      "axe": 0,
+      "ariaCurrent": 2,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/consulta/pac-001@1440": {
+      "axe": 0,
+      "ariaCurrent": 1,
+      "desborde": false,
+      "erroresDeConsola": 0
+    },
+    "/expediente/pac-001@1440": {
       "axe": 0,
       "ariaCurrent": 2,
       "desborde": false,

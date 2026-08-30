@@ -111,12 +111,35 @@ describe('el trinquete de interfaz está cableado', () => {
    */
   const SIN_CONTEXTO_A_PROPOSITO = ['/consultor']
 
+  /**
+   * Rutas con UN solo riel marcado, medido y explicado.
+   *
+   * `/consulta` marca «Encuentro» en el riel de escritorio y **no marca nada en
+   * el de móvil**, y eso es correcto: los cuatro destinos de abajo son `hoy`,
+   * `paciente`, `seguimiento` y `operaciones`; ninguno **es** el encuentro.
+   * Marcar otro sería mentir —`aria-current="page"` señala el enlace a la
+   * página en la que estás— y añadir un quinto destino chocaría con la regla de
+   * diseño para móvil («4–5 destinos primarios como máximo. Ni seis»), porque
+   * el hueco central ya lo ocupa la acción contextual.
+   *
+   * O sea: no es un defecto que este carril pueda arreglar marcando algo. Es
+   * una decisión de producto —qué enseña el riel de móvil durante una
+   * consulta— y lo que aporta aquí es **el número medido**, congelado en 1: si
+   * baja a 0, el riel de escritorio también se apagó y eso sí es un defecto.
+   */
+  const UN_SOLO_RIEL: Record<string, number> = { '/consulta/pac-001': 1 }
+
   it('la navegación resuelta está congelada donde la hay', () => {
     // El arreglo de la unidad 17. Si alguien lo deshace y actualiza los techos,
     // este caso lo caza aunque el script no se haya corrido.
     const { techos } = JSON.parse(readFileSync(RUTA_TECHOS, 'utf8'))
     for (const [clave, t] of Object.entries(techos as Record<string, { ariaCurrent: number }>)) {
       const ruta = clave.split('@')[0]
+      const esperado = UN_SOLO_RIEL[ruta]
+      if (esperado !== undefined) {
+        expect(t.ariaCurrent, `${clave} cambió de rieles marcados`).toBe(esperado)
+        continue
+      }
       if (SIN_CONTEXTO_A_PROPOSITO.includes(ruta)) {
         // Congelado en su cero: si sube, es que alguien lo decidió y hay que
         // sacarlo de la lista en vez de dejar la excepción vencida.
