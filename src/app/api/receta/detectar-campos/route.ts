@@ -5,6 +5,7 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, gateCreditos, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 /**
  * IA de visión: recibe la imagen del FORMATO de receta del médico y detecta dónde
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto = {
     feature: 'receta-detectar-campos',
     requestId: req.headers.get('x-vercel-id') || `rd-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: COSTO_CREDITOS.recetaVision, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }

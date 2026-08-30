@@ -18,6 +18,7 @@ import { gateCreditos, resolverClaveIA, nivelIADe, registrarCreditos } from '@/l
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { safeLog } from '@/lib/security/sanitize'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto: Contexto = {
     feature: 'corregir-transcripcion',
     requestId: req.headers.get('x-vercel-id') || `co-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }

@@ -12918,3 +12918,61 @@ y un caso que falla si alguien añade el veredicto «aplica».
 - **La población estructurada del estudio sigue sin producirse.**
   `Poblacion.criteriosInclusion` existe en el modelo y nadie la llena todavía; por
   eso el camino real es el resumen, y el resultado lo dice con `desdeResumen`.
+
+---
+
+## REG-388 — no se podía seguir una petición del navegador hasta el proveedor
+
+**QUÉ FALTABA.** No existía traza. El tablero lo decía con precisión y era exacto:
+`requestId` **se fabrica en cada ruta**, no llega del cliente, no viaja al
+proveedor, y el gateway lo **muta** (`${requestId}-${proveedor}`). Es la clave del
+libro de costos, no una traza.
+
+Lo que eso significa el día que pasa: un médico dice «se me quedó pensando y no
+salió la nota», y no hay forma de seguir esa petición desde su navegador hasta la
+llamada al proveedor. Se busca por hora y por consultorio, a mano.
+
+**LA CAUSA RAÍZ: UN CAMPO HACÍA DOS TRABAJOS.** `requestId` es la clave con la que
+se **cobra**, y el gateway le añade el proveedor **a propósito** para que dos
+intentos del mismo trabajo se cobren aparte. Una traza necesita justo lo
+contrario: el **mismo** identificador de punta a punta.
+
+Arreglar uno rompía el otro. Por eso son dos campos y no uno — y por eso el golden
+comprueba que `requestId` **sigue** mutando: si alguien lo «arreglara» para que no
+lo hiciera, rompería la contabilidad.
+
+**LA FORMA ES LA DEFENSA CONTRA EL PHI.** El identificador es `c` + dieciséis
+hexadecimales, y `correlacionDe` **valida**. Quien mande
+`x-correlacion: juan-perez-diabetes` no consigue meter eso en los registros: se
+descarta y se acuña otro. La PHI no se evita pidiéndolo por favor; se evita
+haciendo que el campo **no pueda** contenerla.
+
+El contraste con lo que ya había es el argumento entero: `requestId` embebe hoy el
+uid del médico (`np-${uid}-${Date.now()}`). Identifica a una persona, y por eso la
+traza no se construye encima de él.
+
+**EL HILO, PASO A PASO.** El navegador acuña una por pestaña —agrupa la sesión de
+trabajo en la que el médico dice que algo falló— y la manda en toda petición
+autenticada; las **16 rutas de IA** la leen de la petición en vez de inventársela;
+el gateway la copia **sin tocarla**; y el asiento del libro de costos la escribe.
+
+Ese último paso es el que importa: sin la copia en `asiento()`, todo lo anterior
+funcionaría y el asiento se escribiría **sin traza**. Es «el dato tiene que
+LLEGAR» en el sitio exacto donde este repositorio ya lo ha tenido tres veces, y
+tiene su propio caso.
+
+**LA PRUEBA.** `src/__tests__/la-traza-cruza-la-frontera.test.ts` (14 casos).
+Probado al revés con un nombre de paciente, un correo y cuatro identificadores
+casi válidos —uno con un dígito de menos, otro en mayúsculas—: todos se descartan
+y se sustituyen. Y con el caso complementario, porque descartarlo **siempre**
+dejaría cada salto con un id distinto y no habría traza en absoluto.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No mide nada.** Es el hilo, no el instrumento: correlaciona registros que ya
+  existen. La latencia y el error por ruta siguen siendo trabajo de WS-12.
+- **No cubre los trabajos de fondo.** Un cron no nace de un navegador; su traza
+  tendría que acuñarse al arrancar el trabajo, y eso no está hecho.
+- **No llega al proveedor como cabecera.** Viaja hasta la llamada y queda en el
+  asiento; mandársela a Anthropic u OpenAI en un header es otra decisión y no
+  aportaría a la traza propia.

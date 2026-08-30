@@ -66,6 +66,18 @@ export interface Contexto {
   /** `nota`, `copilot-uci`, `evidencia`… Dice qué se cobró sin decir de quién se habló. */
   feature: string
   requestId: string
+  /**
+   * LA TRAZA, QUE NO ES `requestId` (WS-13).
+   *
+   * `requestId` es la clave con la que se COBRA y el gateway le añade el
+   * proveedor a propósito, para que dos intentos del mismo trabajo se cobren
+   * aparte. `correlacion` es lo contrario: **el mismo identificador de punta a
+   * punta**, del navegador del médico hasta esta llamada. Por eso son dos campos
+   * y no uno — la causa raíz era justamente que uno hacía los dos trabajos.
+   *
+   * Opaco por forma: no lleva uid, ni correo, ni nada del paciente.
+   */
+  correlacion?: string
   clinicId: string | null
   uid: string | null
   /** Créditos que se le cobran al consultorio por esta operación. */
@@ -263,6 +275,9 @@ function anotar(
 ): void {
   void registrarCosto({
     requestId: fallo ? `${ctx.requestId}-${proveedor}-fallo` : `${ctx.requestId}-${proveedor}`,
+    /* Se copia SIN tocar: mutarlo la convertiría en otra clave de costos y
+       dejaría de correlacionar, que es su único trabajo. */
+    ...(ctx.correlacion ? { correlacion: ctx.correlacion } : {}),
     clinicId: ctx.clinicId,
     uid: ctx.uid,
     feature: ctx.feature,

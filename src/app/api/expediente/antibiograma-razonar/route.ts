@@ -22,6 +22,7 @@ import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { safeLog } from '@/lib/security/sanitize'
 import { interpretarAntibiograma, type EntradaAntibiograma } from '@/lib/expediente/antibiograma'
 import { resumenDeterminista, RAZONAR_SYSTEM, buildRazonarUser } from '@/lib/expediente/antibiograma/razonar'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ENV_OPENAI = process.env.OPENAI_API_KEY ?? ''
@@ -100,6 +101,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto: Contexto = {
     feature: 'antibiograma-razonar',
     requestId: req.headers.get('x-vercel-id') || `ar-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }

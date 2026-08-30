@@ -28,6 +28,7 @@ import { aplicabilidadDesdeResumen, comoSeDiceLaAplicabilidad } from '@/lib/evid
 import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
 import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 /**
@@ -178,6 +179,7 @@ export async function POST(req: NextRequest) {
         {
           feature: 'evidencia-consultas',
           requestId: req.headers.get('x-vercel-id') || `evq-${uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
           clinicId: clinicId ?? null, uid,
           creditos: 0, fuente,
           esFundador: esFundador(email, process.env.SUPERADMIN_EMAILS),
@@ -344,6 +346,7 @@ export async function POST(req: NextRequest) {
         {
           feature: 'evidencia',
           requestId: req.headers.get('x-vercel-id') || `ev-${uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
           clinicId: clinicId ?? null, uid,
           creditos: COSTO_CREDITOS.evidencia, fuente,
           esFundador: esFundador(email, process.env.SUPERADMIN_EMAILS),

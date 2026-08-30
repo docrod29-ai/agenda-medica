@@ -29,6 +29,7 @@ import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCredit
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -371,6 +372,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto = {
     feature: 'nota-consulta',
     requestId: req.headers.get('x-vercel-id') || `np-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null,
     uid: acceso.uid,
     creditos: 0,   // los créditos los cobra esta ruta por su cuenta, más abajo

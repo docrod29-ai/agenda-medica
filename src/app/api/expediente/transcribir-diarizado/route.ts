@@ -25,6 +25,7 @@ import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { adminDb } from '@/lib/firebase-admin'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -402,6 +403,7 @@ export async function POST(req: NextRequest) {
       {
         feature: 'transcribir-diarizado',
         requestId: req.headers.get('x-vercel-id') || `td-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
         clinicId: clinicId ?? null, uid: acceso.uid,
         creditos: COSTO_CREDITOS.transcribirDiarizado, fuente,
         esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),

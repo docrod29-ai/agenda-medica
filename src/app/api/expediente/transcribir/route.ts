@@ -24,6 +24,7 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos  } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -202,6 +203,7 @@ export async function POST(req: NextRequest) {
           {
             feature: 'transcribir',
             requestId: req.headers.get('x-vercel-id') || `tr-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
             clinicId: clinicId ?? null, uid: acceso.uid,
             creditos: COSTO_CREDITOS.transcribir, fuente,
             esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),

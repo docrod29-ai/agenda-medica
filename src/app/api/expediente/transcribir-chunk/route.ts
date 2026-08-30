@@ -26,6 +26,7 @@ import { gateCreditos, resolverClaveIA, registrarCreditos  } from '@/lib/ai-keys
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -238,6 +239,7 @@ export async function POST(req: NextRequest) {
           {
             feature: 'transcribir-chunk',
             requestId: req.headers.get('x-vercel-id') || `trc-${acceso.uid}-${chunkIdx}-${Date.now()}`,
+        correlacion: correlacionDe(req),
             clinicId: clinicId ?? null, uid: acceso.uid,
             creditos: COSTO_CREDITOS.transcribirChunk, fuente,
             esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),

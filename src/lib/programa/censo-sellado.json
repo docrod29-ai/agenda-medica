@@ -233,7 +233,7 @@
     },
     {
       "id": "WS-13.correlation-id",
-      "estado": "NOT_STARTED"
+      "estado": "PARTIAL"
     },
     {
       "id": "WS-13.alertas",

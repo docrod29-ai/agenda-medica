@@ -468,8 +468,10 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-13.correlation-id', ws: 'WS-13', titulo: 'Traza navegador → API → job → proveedor sin PHI',
-    estado: 'NOT_STARTED',
-    queFalta: 'No existe. requestId se fabrica en cada ruta, no llega del cliente, no viaja al proveedor, y el gateway lo muta: es clave del libro de costos, no traza.',
+    estado: 'PARTIAL',
+    queFalta: 'REG-388: el hilo existe del navegador al asiento del libro de costos, en las 16 rutas de IA, con la forma validada para que no pueda llevar PHI. Faltan los trabajos de fondo —un cron no nace de un navegador y su traza tendría que acuñarse al arrancar— y mandarla al proveedor como cabecera.',
+    artefactos: ['src/lib/observabilidad/correlacion.ts'],
+    pruebas: ['src/__tests__/la-traza-cruza-la-frontera.test.ts'],
   }),
   R({
     id: 'WS-13.alertas', ws: 'WS-13', titulo: 'Alertas sobre degradación, 5xx, fallo de guardado y anomalía de autorización',

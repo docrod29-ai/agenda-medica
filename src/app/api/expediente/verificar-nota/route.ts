@@ -23,6 +23,7 @@ import { gateCreditos, resolverClaveIA, registrarUso } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
@@ -131,6 +132,7 @@ export async function POST(req: NextRequest) {
         {
           feature: 'verificar-nota',
           requestId: req.headers.get('x-vercel-id') || `vn-${acceso.uid}-${Date.now()}-${i}`,
+        correlacion: correlacionDe(req),
           clinicId: clinicId ?? null, uid: acceso.uid,
           creditos: COSTO_CREDITOS.verificarNota, fuente,
           esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
