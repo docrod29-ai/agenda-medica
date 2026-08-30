@@ -10,8 +10,17 @@ import { useClinic } from '@/context/ClinicContext'
 import { getPatients } from '@/lib/firestore'
 import { getNotas } from '@/lib/expediente/firestore'
 import { evaluarRetencion, formatearAntiguedad, listarPacientesPorRevisar, type PacienteRetencion } from '@/lib/retencion'
-import { ArrowLeft, Loader2, FileSearch, AlertTriangle, Clock, Eye } from 'lucide-react'
-import { Spinner, EmptyState } from '@/components/ui'
+import { ArrowLeft, Loader2, FileSearch, AlertTriangle, Clock, Eye, HelpCircle } from 'lucide-react'
+import { Spinner, EmptyState, Alert } from '@/components/ui'
+import { conTiempoLimite } from '@/lib/fetch-con-timeout'
+
+/**
+ * Techos de espera. Ninguno es una política: son lo que separa «tarda» de «no
+ * va a volver», y sin ellos el `finally` que apaga el «Evaluando expedientes…»
+ * no llega a correr.
+ */
+const ESPERA_EXPEDIENTES_MS = 15000
+const ESPERA_NOTAS_MS = 12000
 
 export default function RetencionPage() {
   const router = useRouter()
@@ -19,31 +28,54 @@ export default function RetencionPage() {
   const [evaluaciones, setEvaluaciones] = useState<PacienteRetencion[]>([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState<'por_revisar' | 'todos'>('por_revisar')
+  const [falloCarga, setFalloCarga] = useState<string | null>(null)
 
   useEffect(() => {
     if (!clinicId) return
     setLoading(true)
+    setFalloCarga(null)
     ;(async () => {
-      const pacientes = await getPatients(clinicId)
-      // Cargar notas de cada paciente en paralelo (puede ser lento si hay muchos)
-      const evals = await Promise.all(
-        pacientes.map(async (p) => {
-          try {
-            const notas = await getNotas(clinicId, p.id)
-            return evaluarRetencion(p, notas, p.ultimaCita)
-          } catch {
-            return evaluarRetencion(p, [], p.ultimaCita)
-          }
-        })
-      )
-      setEvaluaciones(evals)
-      setLoading(false)
+      try {
+        // CON TECHO: una lectura de Firestore sin red no rechaza, se queda
+        // pendiente. Sin esto, `finally` no corre nunca y «Evaluando
+        // expedientes…» se queda en pantalla para siempre.
+        const pacientes = await conTiempoLimite(
+          getPatients(clinicId), ESPERA_EXPEDIENTES_MS, 'la lista de pacientes',
+        )
+        // Cargar notas de cada paciente en paralelo (puede ser lento si hay muchos)
+        const evals = await Promise.all(
+          pacientes.map(async (p) => {
+            try {
+              const notas = await conTiempoLimite(
+                getNotas(clinicId, p.id), ESPERA_NOTAS_MS, `las notas de un expediente`,
+              )
+              return evaluarRetencion(p, notas, p.ultimaCita)
+            } catch {
+              // `null`, NO `[]`. Que no se pudieran leer sus notas no significa
+              // que no tenga. Con `[]` este paciente saldría fechado en su alta
+              // y con cero notas firmadas: viejo y vacío, que son justo las dos
+              // señales que invitan a archivar un expediente vivo.
+              return evaluarRetencion(p, null, p.ultimaCita)
+            }
+          })
+        )
+        setEvaluaciones(evals)
+      } catch {
+        // Sin la lista de pacientes no hay pantalla que valga: cero expedientes
+        // y «ningún paciente requiere acción» sería exactamente la respuesta
+        // tranquilizadora que este fallo no puede dar.
+        setEvaluaciones([])
+        setFalloCarga('No se pudo leer la lista de pacientes.')
+      } finally {
+        setLoading(false)
+      }
     })()
   }, [clinicId])
 
   const porRevisar = listarPacientesPorRevisar(evaluaciones)
   const vencidos = porRevisar.filter(e => e.estado === 'vencido')
   const cercanos = porRevisar.filter(e => e.estado === 'cercano')
+  const noEvaluables = evaluaciones.filter(e => e.estado === 'no_evaluable')
   const lista = filtro === 'por_revisar' ? porRevisar : evaluaciones
 
   return (
@@ -64,6 +96,26 @@ export default function RetencionPage() {
         NOM-004-SSA3-2012 numeral 5.7: el expediente clínico debe conservarse por un
         periodo mínimo de <strong>5 años</strong> desde la última anotación.
       </p>
+
+      {falloCarga && (
+        <div style={{ marginBottom: 16 }}>
+          <Alert tone="danger" title="No se pudo evaluar la retención">
+            {falloCarga} Los totales de abajo están vacíos <strong>porque falló la
+            lectura</strong>, no porque no haya expedientes. Vuelve a cargar la
+            pantalla antes de tomar cualquier decisión sobre un expediente.
+          </Alert>
+        </div>
+      )}
+
+      {!loading && noEvaluables.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <Alert tone="warning" title={`${noEvaluables.length} expediente${noEvaluables.length !== 1 ? 's' : ''} sin evaluar`}>
+            No se pudieron leer sus notas, así que <strong>no se calculó</strong> su
+            antigüedad: aparecen al principio de la lista, sin veredicto. Los
+            totales de abajo <strong>no los incluyen</strong>.
+          </Alert>
+        </div>
+      )}
 
       {/* Resumen rápido */}
       <div className="nx-stat-grid" style={{ gap: 12, marginBottom: 18 }}>
@@ -94,7 +146,9 @@ export default function RetencionPage() {
       ) : lista.length === 0 ? (
         <EmptyState
           icon={<FileSearch size={22} />}
-          title={filtro === 'por_revisar' ? 'Ningún paciente requiere acción' : 'Sin pacientes registrados'}
+          title={falloCarga
+            ? 'No se pudo leer: esta lista no dice nada'
+            : filtro === 'por_revisar' ? 'Ningún paciente requiere acción' : 'Sin pacientes registrados'}
         />
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
@@ -122,13 +176,19 @@ function Tarjeta({ titulo, valor, color, icon }: { titulo: string; valor: number
 
 function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; onAbrir: () => void }) {
   const { patient: p, estado, diasDesdeUltimoActo, notasFirmadas } = evaluacion
-  const colores = {
+  const colores: Record<PacienteRetencion['estado'], { bg: string; border: string; badge: string; badgeBg: string }> = {
     vigente: { bg: 'var(--s)', border: 'var(--border)', badge: 'var(--text3)', badgeBg: 'var(--s2)' },
     cercano: { bg: 'color-mix(in srgb, var(--amber) 4%, transparent)', border: 'color-mix(in srgb, var(--amber) 25%, transparent)', badge: '#f59e0b', badgeBg: 'color-mix(in srgb, var(--amber) 12%, transparent)' },
     vencido: { bg: 'color-mix(in srgb, var(--red) 4%, transparent)', border: 'color-mix(in srgb, var(--red) 30%, transparent)', badge: '#ef4444', badgeBg: 'color-mix(in srgb, var(--red) 12%, transparent)' },
+    // Ni verde ni rojo: no es un grado intermedio de antigüedad, es la ausencia
+    // de veredicto. Pintarlo con el color de un estado sería inventarle uno.
+    no_evaluable: { bg: 'var(--s)', border: 'var(--border)', badge: 'var(--text2)', badgeBg: 'var(--s2)' },
   }
   const c = colores[estado]
-  const label = estado === 'vencido' ? '>5 años' : estado === 'cercano' ? '~4.5 años' : 'Vigente'
+  const label = estado === 'vencido' ? '>5 años'
+    : estado === 'cercano' ? '~4.5 años'
+    : estado === 'no_evaluable' ? 'Sin evaluar'
+    : 'Vigente'
 
   return (
     <div style={{
@@ -141,15 +201,25 @@ function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; 
           <span style={{
             fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-pill)',
             background: c.badgeBg, color: c.badge,
-          }}>{label}</span>
-          {notasFirmadas > 0 && (
+          }}>
+            {estado === 'no_evaluable' && <HelpCircle size={11} style={{ verticalAlign: '-1px', marginRight: 3 }} />}
+            {label}
+          </span>
+          {notasFirmadas !== null && notasFirmadas > 0 && (
             <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>
               · {notasFirmadas} nota{notasFirmadas !== 1 ? 's' : ''} firmada{notasFirmadas !== 1 ? 's' : ''}
             </span>
           )}
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
-          Último acto médico hace <strong>{formatearAntiguedad(diasDesdeUltimoActo)}</strong>
+          {estado === 'no_evaluable' || diasDesdeUltimoActo === null ? (
+            // Se dice lo que pasó, no un número que no se tiene. Cero notas y
+            // una fecha caída hasta el alta harían parecer archivable un
+            // expediente vivo.
+            <>No se pudieron leer sus notas: <strong>no se evaluó su antigüedad</strong></>
+          ) : (
+            <>Último acto médico hace <strong>{formatearAntiguedad(diasDesdeUltimoActo)}</strong></>
+          )}
           {p.telefono && <> · {p.telefono}</>}
         </div>
       </div>

@@ -17,11 +17,18 @@ import type { NotaMedica } from '@/types/expediente'
 
 export interface PacienteRetencion {
   patient: Patient
-  ultimoActo: string  // ISO date
-  diasDesdeUltimoActo: number
-  estado: 'vigente' | 'cercano' | 'vencido'
-  /** Total de notas firmadas que conserva */
-  notasFirmadas: number
+  /** ISO date. `null` cuando no se pudo determinar. */
+  ultimoActo: string | null
+  /** `null` cuando no se pudo determinar. */
+  diasDesdeUltimoActo: number | null
+  /**
+   * `no_evaluable` NO es un cuarto grado de antigüedad: es la ausencia de
+   * veredicto. Significa que faltó un dato para calcularlo, no que el
+   * expediente esté en algún punto intermedio.
+   */
+  estado: 'vigente' | 'cercano' | 'vencido' | 'no_evaluable'
+  /** Total de notas firmadas que conserva. `null` cuando no se pudieron leer. */
+  notasFirmadas: number | null
 }
 
 const DIAS_5_ANIOS = 5 * 365
@@ -30,12 +37,42 @@ const DIAS_ALERTA = 4 * 365 + 6 * 30  // 4 años 6 meses → cercano
 /**
  * Evalúa el estado de retención de un paciente.
  * El "último acto" es la nota más reciente (firmada o no) o la última cita atendida.
+ *
+ * ── `notas: null` NO ES `notas: []` ─────────────────────────────────────────
+ *
+ * `[]` dice «este paciente no tiene notas». `null` dice «no se pudieron leer
+ * sus notas». Son cosas distintas y este módulo las trata distinto, porque
+ * confundirlas produce el peor resultado posible aquí: un expediente que
+ * PARECE haber superado sus cinco años **porque falló una lectura**.
+ *
+ * La cuenta lo demuestra. Sin las notas, la fecha del último acto cae hasta
+ * `ultimaCita` o `createdAt`; un paciente al que se le sigue escribiendo pero
+ * cuyas citas no se registran aquí queda fechado en el día que se dio de alta,
+ * y a los cinco años de eso sale marcado en rojo como **>5 años**. Al mismo
+ * tiempo `notasFirmadas` valdría 0 y la pantalla dejaría de mostrar cuántas
+ * notas conserva. O sea: la lectura que falló hace que el expediente parezca
+ * a la vez viejo y vacío — justo las dos señales que invitan a archivarlo.
+ *
+ * Con `null` no se calcula nada: `estado: 'no_evaluable'`, y el veredicto se
+ * queda sin emitir hasta que se pueda leer de verdad.
  */
 export function evaluarRetencion(
   patient: Patient,
-  notas: NotaMedica[],
+  notas: NotaMedica[] | null,
   ultimaCitaFecha?: string,
 ): PacienteRetencion {
+  // Un motor que no puede calcular lo DICE; no estima. (Regla de seguridad
+  // clínica 2, y la 4: ausencia de dato no es dato de ausencia.)
+  if (notas === null) {
+    return {
+      patient,
+      ultimoActo: null,
+      diasDesdeUltimoActo: null,
+      estado: 'no_evaluable',
+      notasFirmadas: null,
+    }
+  }
+
   // Buscar la fecha más reciente de cualquier "acto médico"
   const fechasNotas = notas.map(n => n.fechaConsulta).filter(Boolean)
   const todasFechas = [
@@ -71,12 +108,28 @@ export function evaluarRetencion(
   }
 }
 
-/** Solo pacientes que requieren atención del médico (cercanos o vencidos al límite) */
+/**
+ * Solo pacientes que requieren atención del médico.
+ *
+ * Los `no_evaluable` van **primero**, y no por antigüedad —no la tienen— sino
+ * porque son los únicos cuyo pendiente es del sistema y no del expediente: hasta
+ * que se puedan leer, los totales de esta pantalla están incompletos y quien
+ * los mira no tiene forma de saberlo. Esconderlos los convertiría en el hueco
+ * silencioso de siempre.
+ */
 export function listarPacientesPorRevisar(evaluaciones: PacienteRetencion[]): PacienteRetencion[] {
-  return evaluaciones
-    .filter(e => e.estado !== 'vigente')
-    .sort((a, b) => b.diasDesdeUltimoActo - a.diasDesdeUltimoActo)
+  const noEvaluables = evaluaciones.filter(e => e.estado === 'no_evaluable')
+  const resto = evaluaciones
+    .filter(e => e.estado !== 'vigente' && e.estado !== 'no_evaluable')
+    .sort((a, b) => (b.diasDesdeUltimoActo ?? 0) - (a.diasDesdeUltimoActo ?? 0))
+  return [...noEvaluables, ...resto]
 }
+
+export const POR_QUE_NO_SE_ADIVINA_LA_ANTIGUEDAD =
+  'Porque la lectura que falla hace que el expediente parezca a la vez viejo y ' +
+  'vacío —fechado en su alta y con cero notas firmadas—, que son justo las dos ' +
+  'señales que invitan a archivarlo. Un veredicto que sale de un hueco es peor ' +
+  'que no tener veredicto: el segundo se ve, el primero no.'
 
 /** Formato legible de "hace X años Y meses" */
 export function formatearAntiguedad(dias: number): string {

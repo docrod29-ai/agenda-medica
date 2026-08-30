@@ -55,7 +55,7 @@
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 977 | 0 | — | ✅ | — |
 | `/cumplimiento/motores` | medico | ✅ | 188 | 1 | — | ✅ | — |
-| `/cumplimiento/retencion` | medico | ✅ | 177 | 2 | — | ✅ | — |
+| `/cumplimiento/retencion` | medico | ✅ | 247 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 291 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 373 | 5 | — | ✅ | — |
 | `/expediente/[patientId]` | medico | ✅ | 964 | 14 | — | ✅ | — |

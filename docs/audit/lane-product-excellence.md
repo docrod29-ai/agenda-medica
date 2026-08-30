@@ -2220,3 +2220,118 @@ build no recoge `/dr/[clinicId]`, y eso es del entorno, no de la rama).
 - Los 6 s son un número de producto, no una invariante: no se prueba su valor.
 - El barrido cubrió Stripe, Google Calendar y el proxy del membrete. **No declara
   buenas** las integraciones que no aparecen aquí.
+
+---
+
+## Unidad 45 — una lectura que falla no puede volver viejo y vacío un expediente
+
+**CÓMO SE LLEGÓ AQUÍ.** Con la pregunta que dejó abierta el contador de
+`/citas` (unidad 39): **¿qué pantalla apaga el «cargando» tras un fallo que
+nadie ve?** Barrido de las 80 pantallas del panel que pintan un estado vacío.
+
+Tres candidatas. Dos, **falsas**: `/resenas` y `/membresias` ya tienen el vacío
+detrás del `loading`. Se comprobaron **leyendo**, no arreglando — mi barrido sólo
+miraba dos líneas hacia atrás y no veía el `loading ?` que envuelve el bloque
+entero. Es la cuarta vez en este carril que un hallazgo del instrumento no
+sobrevive a que alguien lea el archivo, y por eso se leen todos.
+
+La tercera no era falsa.
+
+**FOUND.** `/cumplimiento/retencion` es la pantalla de la **NOM-004 5.7**: dice
+qué expedientes superaron los cinco años desde el último acto médico. Cargaba
+las notas de cada paciente y, al fallar esa lectura, hacía esto:
+
+```
+catch { return evaluarRetencion(p, [], p.ultimaCita) }
+```
+
+`[]` no es «falló la lectura»: es **«este paciente no tiene notas»**. Y el motor,
+que no podía distinguirlas, calculaba con eso. Dos consecuencias, en la misma
+fila:
+
+- Sin notas, la fecha del último acto **cae hasta `ultimaCita` o `createdAt`**.
+  Un paciente al que se le sigue escribiendo pero cuyas citas no se llevan aquí
+  queda fechado **el día en que se dio de alta** — y a los cinco años de eso sale
+  en rojo como «>5 años».
+- `notasFirmadas` valía 0, y la fila **ocultaba** la insignia (`notasFirmadas > 0
+  &&`). El expediente aparecía sin conservar nada.
+
+La lectura que falló hacía parecer el expediente **a la vez viejo y vacío** —
+justo las dos señales que invitan a archivarlo. Y la cabecera del módulo dice
+para qué sirve: conservar, archivar o **anonimizar**.
+
+Silencioso, además: el `catch` estaba **vacío**. Ni un `console.error`.
+
+Y dos defectos más en la misma carga: el `async` exterior **no tenía `catch`**,
+así que un fallo de `getPatients` dejaba «Evaluando expedientes…» fijo para
+siempre; y sin techo de tiempo, una lectura sin red —que **no rechaza**, se queda
+pendiente, como estableció la unidad 37— hacía lo mismo sin que hubiera fallo
+ninguno.
+
+**POR QUÉ ES DE ESTE CARRIL.** Porque el síntoma es lo que el médico **lee** en
+una pantalla de decisión: un veredicto legal y un recuento de notas, los dos
+inventados a partir de un hueco. Es la regla 4 de seguridad clínica —ausencia de
+dato no es dato de ausencia— dicha en lenguaje de interfaz, y la 2: un motor que
+no puede calcular **lo dice**.
+
+**CHANGE.**
+
+- `lib/retencion.ts`: `notas` admite `null` = «no se pudieron leer», distinto de
+  `[]` = «no tiene». Con `null` no se calcula nada: `estado: 'no_evaluable'`,
+  `ultimoActo` y `diasDesdeUltimoActo` en `null`, `notasFirmadas` en `null`.
+  `no_evaluable` **no es un cuarto grado de antigüedad**: es la ausencia de
+  veredicto, y por eso no se pinta ni en ámbar ni en rojo.
+- `listarPacientesPorRevisar` los pone **primero**, y no por antigüedad —no la
+  tienen— sino porque su pendiente es del sistema, no del expediente.
+- La pantalla: `null` en vez de `[]`; techo en las dos lecturas; `finally` que
+  apaga el «cargando» pase lo que pase; aviso cuando hay expedientes sin evaluar
+  («los totales de abajo **no los incluyen**»); y un fallo de carga que **no** se
+  contesta con «Ningún paciente requiere acción», que era la respuesta
+  tranquilizadora que este fallo no puede dar.
+- La fila sin veredicto dice lo que pasó: «No se pudieron leer sus notas: no se
+  evaluó su antigüedad».
+
+Los tres errores de tipo que salieron al cambiar el modelo señalaron **exactamente**
+los tres sitios donde la pantalla pintaba un veredicto sacado de un hueco.
+
+**REGRESSION.** `una-lectura-que-falla-no-vuelve-viejo-un-expediente.test.ts`,
+10 casos: 6 de **conducta** sobre el motor, 4 de cableado sobre la pantalla.
+
+**PROBADO AL REVÉS.** Devolviendo el `[]` original, caen 5 de 10 — y el primero
+enseña el defecto entero en una línea:
+
+```
+AssertionError: expected 'vencido' to be 'no_evaluable'
+```
+
+Mismo paciente, mismo día, misma base de datos. Lo único que cambió es si la
+lectura de sus notas funcionó. Los otros 5 casos siguen pasando, que es lo que
+dice que la prueba discrimina y no se limita a exigir el arreglo.
+
+(El primer intento de probarlo al revés **rompió la sintaxis** del módulo en vez
+de su conducta: eso no prueba nada y se rehízo. Un rojo no vale por ser rojo.)
+
+**COMPUERTAS.** `vitest` 10 794/10 795 · trinquete de lint 95, igual al techo ·
+trinquete de diseño sin deuda · `tsc` limpio · `npm run build` compila ·
+`SCREEN_INVENTORY.md` regenerado con su script, que es lo que pide su guardián.
+
+El único rojo es `ops-timeout-y-punto-ciego`, que necesita una IP que trague
+paquetes y **falla igual con mis cambios guardados aparte** — comprobado en este
+mismo árbol, no supuesto. Ya estaba declarado en la unidad 43.
+
+**RESIDUAL_RISK.**
+
+- La prueba de la pantalla es un **escáner de fuente**: no renderiza. Lo que
+  comprueba es el cableado (`null`, no `[]`) y que el «cargando» se apague.
+- El módulo hace **una lectura de notas por paciente** (`Promise.all` sobre
+  todos). No se toca: rediseñarlo es otra unidad, y con techo por lectura el
+  síntoma que importaba —la pantalla clavada— ya no ocurre.
+- No se juzgan los umbrales de la NOM (5 años, 4½): son política.
+- `retencion` **no está** en `lib/clinical/registry.ts`. No se añade: es un
+  cálculo legal-administrativo, no un motor clínico, y ese archivo es del otro
+  carril. Queda dicho, no resuelto.
+- El barrido cubrió las pantallas del panel que pintan un vacío y apagan un
+  «cargando». **No declara buenas** las que no aparecen aquí. Los dos hallazgos
+  restantes (`hospitalizacion/camas`, `hospitalizacion/indicadores`) son ALPHA
+  detrás de bandera y quedan **anotados, no arreglados**: este carril es
+  Consultorio.
