@@ -582,7 +582,24 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * contra las confirmadas desplegadas) y una compuerta falla cuando se
      * separan, exigiendo que se declare qué se rompe mientras tanto.
      */
-    regs: [241, 253, 310, 334, 338, 340, 343, 354],
+    /**
+     * 379 es esta familia con el registro oficial **incompleto en vez de
+     * desfasado**, y enseña una variante propia: la regla se cumplía hacia
+     * adelante y se había incumplido hacia atrás.
+     *
+     * `docs/ops/INDICES-DE-FIRESTORE.md` existe desde 352 y es explícito —«ninguna
+     * consulta nueva puede depender de un índice de este archivo hasta que esté
+     * desplegado»—, así que toda consulta NUEVA se escribía en su versión peor
+     * pero funcional, con el sacrificio declarado. Lo que nadie hizo nunca fue
+     * contar las consultas que **ya existían**: cuatro pedían un índice compuesto
+     * y el archivo declaraba cero de las cuatro, una de ellas en la página
+     * pública del médico.
+     *
+     * Su lección: un registro que se abre mirando el trabajo futuro no descubre
+     * la deuda que ya estaba puesta. El día que se escribe hay que contar el
+     * pasado una vez — y después derivarlo, que es lo que hace su guardián.
+     */
+    regs: [241, 253, 310, 334, 338, 340, 343, 354, 379],
   },
   {
     /**

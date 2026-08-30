@@ -12311,3 +12311,69 @@ separa un informe honesto de una evidencia fabricada que pasa la puerta.
   perdido y fallo silencioso de proveedor son de navegador y de proveedor; las
   cuatro colas no existen sin proveedores detrás; y la lectura sin cota es una
   propiedad estática que vigila su propio guardián.
+
+---
+
+## REG-379 — cuatro consultas que ya se hacían pedían un índice que nadie había declarado
+
+**CÓMO SE DESCUBRIÓ.** Preparando el despliegue de índices —uno de los cinco
+pendientes del `FINAL-READINESS`, y de los que sólo el dueño ejecuta— se contaron
+las consultas del árbol que Firestore **no puede servir sin un índice compuesto**:
+una igualdad (o un `in`) sobre un campo y un `orderBy` sobre **otro**.
+
+Salieron cuatro, y `firestore.indexes.json` declaraba **cero** de las cuatro.
+
+| Colección | La consulta | Qué pantalla es |
+|---|---|---|
+| `arco_requests` | `estado in [recibida, en_proceso]` → `orderBy fechaSolicitud` | La bandeja de derechos ARCO |
+| `farmacia` | `activo == true` → `orderBy nombre` | La lista de la farmacia |
+| `farmacia_movimientos` | `itemId ==` → `orderBy fecha` | El rastro de un controlado |
+| `reviews` | `estado == publicada` → `orderBy publicadaEn` | La página **pública** del médico |
+
+**POR QUÉ IMPORTA.** Firestore no degrada una consulta así: **la rechaza** con
+`FAILED_PRECONDITION`. El fallo no aparece al escribir el código ni en ninguna
+prueba —una tienda en memoria no exige índices— sino en el navegador de quien la
+usa. Una de las cuatro es la página pública del médico, que ve cualquiera.
+
+**LA CAUSA RAÍZ, Y ES LA PARTE INTERESANTE.** `docs/ops/INDICES-DE-FIRESTORE.md`
+existe desde REG-352 y su regla es explícita: «ninguna consulta nueva puede
+depender de un índice de este archivo hasta que esté desplegado». Los cuatro
+índices que ese documento declara son **anticipados** —para consultas que el
+código todavía no hace— y mientras tanto cada módulo escribe la versión peor que
+sí funciona y declara el sacrificio.
+
+O sea: **la regla se estaba cumpliendo hacia adelante y se había incumplido hacia
+atrás**. Nadie había contado las consultas que ya existían. Un registro que se
+escribe mirando sólo el trabajo futuro no descubre la deuda que ya está puesta.
+
+**LO QUE ESTE ARREGLO NO AFIRMA.** Que esas cuatro estén rotas en producción hoy.
+Firestore crea índices a mano desde la consola cuando alguien sigue el enlace del
+error, y un `deploy --only firestore:indexes` **no borra** los que no estén en el
+archivo: el proyecto vivo puede tenerlos aunque el repositorio no los declarara.
+Lo que sí estaba roto era la **declaración** — un consultorio nuevo, un proyecto
+restaurado o una recreación desde este repositorio se habría quedado sin ellos.
+Cuáles existen de verdad se mira en la consola del proyecto, del otro lado, y eso
+no puede vivir en una prueba (regla «el dato tiene que LLEGAR»).
+
+**EL ARREGLO.** Los cuatro índices declarados, y
+`src/__tests__/el-indice-que-nadie-declaro.test.ts` (4 casos) **deriva** la lista
+del árbol en vez de recordarla: recorta cada `query(...)` por sus paréntesis,
+resuelve los alias de colección (`const COL = clinicId => collection(...)`) y
+compara contra el archivo.
+
+**UN DEFECTO DEL PROPIO GUARDIÁN, CAZADO ANTES DE CONFIARLE NADA.** La primera
+versión buscaba `query\(([\s\S]*?)\)` y se paraba en el paréntesis de cierre de
+`collection(...)`, que va dentro: encontraba **cero** consultas compuestas y daba
+todo por bueno. Por eso el archivo tiene un caso que comprueba que el lector
+**lee** —un guardián que no encuentra nada siempre pasa— y otro que le quita a
+mano el índice de `reviews` y comprueba que su consulta queda detectada.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sólo ve el SDK de cliente.** Lo que corre por el SDK admin en las rutas de
+  servidor no lo lee este guardián: queda declarado, no tapado.
+- **No comprueba el ORDEN de los campos del índice**, que a Firestore le importa.
+  Un índice con los campos correctos en el orden incorrecto pasaría y fallaría en
+  producción.
+- **No sabe si el índice está construido.** Declararlo y desplegarlo son dos
+  actos, y el segundo es del dueño.

@@ -21,6 +21,32 @@ faltan** ni pedirlos de una vez, y cada módulo vuelve a descubrir la pared por 
 cuenta. Es el patrón `depende_de_recordar` de este repositorio: el dato existe y
 el registro que lo reúne, no.
 
+## Los cuatro que ya hacían falta (REG-379)
+
+La tabla de arriba son índices **anticipados**: para consultas que el código
+todavía no hace. Al contarlas para preparar el despliegue aparecieron cuatro del
+signo contrario — consultas que el producto **ya hace hoy** y cuyo índice no
+estaba declarado en ninguna parte:
+
+| Colección | La consulta | Dónde se rompe |
+|---|---|---|
+| `arco_requests` | `estado in [recibida, en_proceso]` → `orderBy fechaSolicitud` | La bandeja de derechos ARCO |
+| `farmacia` | `activo == true` → `orderBy nombre` | La lista de la farmacia |
+| `farmacia_movimientos` | `itemId ==` → `orderBy fecha` | El rastro de un controlado |
+| `reviews` | `estado == publicada` → `orderBy publicadaEn` | La página **pública** del médico |
+
+Ya están en `firestore.indexes.json`, y `el-indice-que-nadie-declaro.test.ts`
+deriva la lista del árbol para que no vuelva a faltar ninguno.
+
+**Lo que esto NO afirma**: que esas cuatro estén rotas en producción hoy. Firestore
+crea índices a mano desde la consola cuando alguien sigue el enlace del error, y
+un `deploy --only firestore:indexes` **no borra** los que no estén en el archivo,
+así que el proyecto vivo puede tenerlos aunque el repositorio no los declarara.
+Lo que sí estaba roto era la **declaración**: un consultorio nuevo, un proyecto
+restaurado o una recreación desde este repositorio se habría quedado sin ellos.
+Cuáles existen de verdad **se mira del otro lado**, en la consola del proyecto, y
+eso no puede vivir aquí.
+
 ## La regla que hace peligroso improvisar aquí
 
 **Una consulta que necesita un índice que no existe no devuelve una lista vacía:
