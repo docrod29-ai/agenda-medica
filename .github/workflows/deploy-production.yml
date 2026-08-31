@@ -6,7 +6,8 @@
 #   1) verifica que el árbol clínico autorizado y la versión son los esperados,
 #   2) verifica que Vercel apunta al proyecto principal agenda-medica,
 #   3) verifica que el sitio vivo ya sirve VERSION_ESPERADA,
-#   4) publica firestore.rules (REG-323) usando una credencial Firebase ya existente,
+#   4) publica firestore.rules Y firestore.indexes usando una credencial Firebase
+#      ya existente,
 #   5) corre seguridad y smoke contra producción.
 #
 # No hay inputs para evitar errores de pegado. El SHA y la URL están fijados aquí.
@@ -25,8 +26,8 @@ permissions:
   statuses: read
 
 env:
-  SHA_AUTORIZADO: 815011509c39ff161c793880881bec5f9cde2282
-  VERSION_ESPERADA: nexusmed-v1173
+  SHA_AUTORIZADO: ee1b363225082c88ce5ddcfbc7401a8c6dbe7206
+  VERSION_ESPERADA: nexusmed-v1175
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
@@ -143,7 +144,7 @@ jobs:
           fi
           echo "Credencial Firebase encontrada sin mostrar su valor."
 
-      - name: 'Firestore · desplegar REG-323'
+      - name: 'Firestore · desplegar reglas e índices'
         id: rules
         env:
           MODO: ${{ steps.firebase_auth.outputs.modo }}
@@ -155,7 +156,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$MODO" = "token" ]; then
-            npx --no-install firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN"
+            npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN"
           else
             case "$MODO" in
               sa) JSON="$FIREBASE_SERVICE_ACCOUNT" ;;
@@ -168,7 +169,7 @@ jobs:
             printf '%s' "$JSON" > "$RUTA"
             chmod 600 "$RUTA"
             export GOOGLE_APPLICATION_CREDENTIALS="$RUTA"
-            npx --no-install firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT" --non-interactive
+            npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive
           fi
 
       - name: Limpiar credencial temporal
