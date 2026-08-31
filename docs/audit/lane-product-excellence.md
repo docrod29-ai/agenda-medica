@@ -4643,3 +4643,147 @@ paquetes.
 - No se comprueba que el aviso **se quite** al volver el permiso.
 - El escenario parcial sólo se mide en `/calendario`. Las otras 22 rutas están
   medidas contra la caída total, no contra la parcial.
+
+---
+
+## Unidad 74 — la cita de las 20:30 no estaba en ninguna parte
+
+**DE DÓNDE SALE.** De mirar una captura. El arnés del consultorio recién abierto
+acusó a `/calendario` y a `/configuracion` de no decir que están vacías, y en vez
+de arreglarlo se abrió la imagen. **Los dos eran falsos positivos**:
+`/configuracion` es un formulario —«vacío» no es un estado que tenga— y la
+rejilla del calendario se explica sola, con «Nueva cita» donde tiene que estar.
+Eso queda dicho y no se toca.
+
+Pero en la captura, **las trece filas de hora pesaban exactamente lo mismo**. Al
+preguntar de dónde salían, resultó que de ninguna parte:
+
+```js
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am–7pm
+```
+
+Trece números fijos que **nunca habían consultado el horario del consultorio**.
+
+**LO QUE ESO ESCONDÍA.** Cada cita se pinta metiéndola en la celda de su hora.
+Una cita a las 20:30 **no encuentra celda**, así que no se pinta: ni atenuada, ni
+recogida en un «+2 más», ni con un aviso. Desaparece.
+
+Medido con dos citas confirmadas de hoy, a las 06:30 y a las 20:30:
+
+```
+/calendario (semana) -> 06:30 visible: false · 20:30 visible: false
+/calendario (día)    -> 06:30 visible: false · 20:30 visible: false
+/citas      (lista)  -> 06:30 visible: true  · 20:30 visible: true
+```
+
+La lista sí las tiene. Sólo desaparecen **en la pantalla donde el médico mira su
+día**. Un consultorio que atiende hasta las 21:00 —cosa que la propia
+configuración permite declarar— no ve sus últimas consultas, y tampoco puede
+agendar ahí: no hay fila que pulsar.
+
+**EL ARREGLO.** La rejilla se calcula: `lib/agenda/horas-a-ensenar`. Abarca (1)
+el horario declarado por el consultorio —para poder AGENDAR donde se atiende, no
+sólo ver lo agendado— y (2) **las horas donde de verdad hay citas**, que es lo
+que cierra el defecto: una cita puede caer fuera del horario por sobreagenda, por
+una importación o porque el horario cambió DESPUÉS de agendarla, y ninguna de las
+tres puede volverla invisible. El 07:00–19:00 se queda de suelo, así que un
+consultorio normal ve la misma rejilla de siempre.
+
+**PROBADO AL REVÉS, dos veces.** Volviendo a poner el `HOURS` fijo y
+recompilando: semana y día esconden las dos citas, la lista las enseña. Y
+quitando el ensanche por citas del módulo, caen tres casos del golden.
+
+**UN FALSO NEGATIVO PROPIO, y cómo se cazó.** La primera versión del arnés
+buscaba el nombre en `document.body.innerText` y dijo que la vista de semana
+seguía escondiéndolas **después** de arreglarla. No era verdad: el bloque estaba
+pintado —se vio consultando el DOM— pero su nombre no sale por `innerText`,
+porque es una caja absoluta y estrecha con el texto recortado. Se pregunta ahora
+por los bloques, que es lo que de verdad ocupa un sitio en la rejilla. Sin esa
+comprobación habría «arreglado» dos veces algo que ya estaba bien.
+
+**Y UN TRINQUETE QUE CAZÓ EL CAMBIO.** `timezone-sitios` subió a 41 sobre un
+techo de 40: mi cálculo añadía una llamada suelta a `fechaISOLocal`. Se arregló
+el cambio, no el techo — los siete días se calculan **una vez** por semana en vez
+de una vez por celda (siete por fila, trece filas, más la cabecera), así que la
+cuenta **baja** en lugar de subir.
+
+**COMPUERTAS.** `vitest` 10 858 de 10 859 —sólo `ops-timeout-y-punto-ciego`, el
+de siempre— · lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc`
+limpio · `npm run build` compila · **trinquete de interfaz: sin regresión en las
+69 combinaciones**, que aquí importa porque una rejilla más alta podía haber
+roto el ancho de 390.
+
+**RESIDUAL_RISK.**
+
+- **El horario partido no se mira.** `DaySchedule` admite huecos dentro del día
+  (la comida) y esto sólo usa `inicio` y `fin`: esas horas se enseñan como
+  normales, igual que antes. No es una regresión, pero tampoco está resuelto.
+- Un consultorio de 24 h daría 24 filas. Se acepta: es lo que hay que enseñar.
+- **No se comprueba que se pueda AGENDAR en la fila nueva**, sólo que la cita se
+  vea. El clic sobre la celda libre usa el mismo camino de siempre.
+- La vista de MES no se mira: no usa rejilla de horas.
+- El arnés sólo prueba dos horas, 06:30 y 20:30. No barre las 24.
+
+---
+
+## Unidad 75 — un panel que se quita solo está afirmando algo
+
+**DE DÓNDE SALE.** Del barrido que dejó abierta la unidad 73: de las nueve
+llamadas a `useAppointments`, sólo dos recogían `error`. Éste —`PanelPendientes`,
+«Siguiente acción», **lo primero que mira el médico al entrar**— no sólo no lo
+recogía: además tenía dos `.catch` vacíos, que es la forma más explícita que hay
+de tragarse un fallo.
+
+```js
+listarCobros(...).then(setCobros).catch(() => {})
+listarMembresias(...).then(setMembresias).catch(() => {})
+const { appointments } = useAppointments(...)      // `error` sin recoger
+...
+if (acciones.length === 0) return null
+```
+
+**LO QUE ESO HACÍA.** Las tres fuentes alimentan la misma lista. Con una caída la
+lista sale **corta**; con las tres, **vacía**. Y con la lista vacía el panel se
+quitaba del tablero entero: ni error, ni hueco, ni rastro de que hubiera
+existido.
+
+Un panel que desaparece no se está callando: está diciendo **«hoy no tienes nada
+que hacer»**. Y lo dice sin haberlo comprobado. Detrás puede haber un cobro sin
+cerrar, una membresía vencida o un paciente sin confirmar.
+
+**EL ARREGLO.** Se recogen los tres fallos y el panel sólo desaparece cuando de
+verdad no hay nada: cero acciones **y** las tres fuentes contestaron. Si alguna
+falló, se queda y **dice cuál** — no es lo mismo no haber podido ver los cobros
+que no haber podido ver la agenda: el médico sabe a qué pantalla ir a mirar a
+mano. El aviso distingue las dos formas de engañar: lista vacía («esto NO quiere
+decir que no tengas nada pendiente») y lista corta («puede faltar algo en esta
+lista»).
+
+**PROBADO AL REVÉS, y con precisión sobre QUÉ mitad.** Negando la lectura de
+`cobros` en el emulador, con el código anterior: el panel se queda —porque las
+citas seguían dando acciones— y **no dice** que le falta una fuente. Ésa es la
+mitad medida en navegador: la lista corta que parece completa. La otra mitad —la
+desaparición— pide que las tres fuentes den cero a la vez y **no se midió en
+navegador**; la vigila el golden, sobre la condición de salida temprana. Se dice
+así en vez de dar por vista una pantalla que no se vio.
+
+**Y OTRO TRINQUETE QUE CAZÓ EL CAMBIO.** El lint subió a 96 sobre 95: mi primera
+versión ponía los fallos a `false` al principio del efecto —un `setState`
+síncrono dentro de un efecto—. Se arregló el cambio, no el techo, y el arreglo
+salió mejor que el original: el fallo se guarda **atado a la petición que lo
+produjo**, así que caduca solo cuando cambia el día o el consultorio, sin que
+nadie tenga que acordarse de borrarlo.
+
+**COMPUERTAS.** `vitest` 10 861 de 10 862 —sólo `ops-timeout-y-punto-ciego`— ·
+lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run
+build` compila · `arnes:caida-parcial` en verde con su tercer bloque.
+
+**RESIDUAL_RISK.**
+
+- **Siguen sin recoger `error` dos consumidores**: `/asistente` y
+  `useNotificacionesCitas`. No se han medido, y no estar en ningún guardián
+  significa que **nadie los mira**.
+- La desaparición del panel no está medida en navegador (arriba, con su razón).
+- El aviso no se comprueba que se QUITE al volver el permiso.
+- `accionesPendientes` sigue sin saber que una fuente falló: recibe listas
+  vacías y no puede distinguirlas. El aviso vive en la pantalla, no en el motor.
