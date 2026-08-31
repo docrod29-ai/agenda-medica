@@ -166,7 +166,7 @@ import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/deri
 import { comoSeDice, discrepanciasDeMedicacion } from '@/lib/tareas-clinicas/reconciliacion'
 import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expediente/duracion-cumplida'
 import { abrirPendientes as abrirPendientesEn } from '@/lib/tareas-clinicas/abrir'
-import { DialogoDiarizado, Section, S } from './consulta-ui'
+import { DialogoDiarizado, Section, S, CampoNarrativo } from './consulta-ui'
 import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { estadoDeProblemas, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import {
@@ -4621,7 +4621,7 @@ export default function ConsultaActivaPage() {
 
   return (
     <div className="nx-canvas">
-      <button onClick={volverAtras} style={S.back}>
+      <button onClick={volverAtras} className="nx-acc-plana" style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
 
@@ -4744,7 +4744,7 @@ export default function ConsultaActivaPage() {
           // Guardián: alergias-placeholder-no-afirma.test.ts
           placeholder="No registradas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
           disabled={firmada}
-          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
+          style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14 }}
         />
         {/**
           * RTC-14 — LA LECTURA DEL SISTEMA, AQUÍ Y NO EN OTRA CAJA.
@@ -5247,9 +5247,9 @@ export default function ConsultaActivaPage() {
               </div>
               {/* Respaldo manual: normalmente NO hace falta (se procesa solo al detener). */}
               {procesando
-                ? <span style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</span>
+                ? <span className="nx-acc-fuerte" data-inerte style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</span>
                 : (!voz.grabando && voz.transcripcion.trim()
-                    ? <button onClick={() => procesarIA()} style={S.iaBtn(false)}><Sparkles size={16} /> Procesar de nuevo</button>
+                    ? <button onClick={() => procesarIA()} className="nx-acc-fuerte" style={S.iaBtn(false)}><Sparkles size={16} /> Procesar de nuevo</button>
                     : null)}
             </div>
           )}
@@ -5386,7 +5386,12 @@ export default function ConsultaActivaPage() {
                   palabra mal oída acaba convertida en un diagnóstico.
                 */}
                 {audio.sinDiarizacion && audio.estado === 'listo' && (
-                  <div style={{
+                  /*
+                    `status` y no `alert`: la transcripción SÍ se hizo, con el
+                    motor alterno. Es una advertencia sobre lo que hay que
+                    revisar, no una pérdida — y llega igual de asíncrona.
+                  */
+                  <div role="status" style={{
                     marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
                     color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
                     border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
@@ -5424,7 +5429,13 @@ export default function ConsultaActivaPage() {
                 )}
 
                 {audio.chunksFallidos > 0 && (
-                  <div style={{
+                  /*
+                    `status` y no `alert`: el texto EN VIVO está incompleto, pero
+                    la transcripción final usa la grabación entera — lo dice el
+                    propio aviso. Es una advertencia, no una pérdida.
+                    Llega mientras se graba, que es cuando el médico menos mira.
+                  */
+                  <div role="status" style={{
                     marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
                     color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
                     border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
@@ -5581,8 +5592,20 @@ export default function ConsultaActivaPage() {
                     Capta a los dos · separación de voces · vocabulario médico ampliado
                   </div>
                 )}
+                {/*
+                  ESTE AVISO SE ANUNCIA, PORQUE LLEGA CUANDO NADIE MIRA.
+                  Aparece DESPUÉS de detener la grabación, de forma asíncrona, en
+                  la única pantalla del producto diseñada para que el médico esté
+                  mirando al paciente y no aquí. Sin `role="alert"` no se anuncia:
+                  medido el 30-ago con el proveedor caído —503 en
+                  `transcribir-diarizado`— el texto SÍ se pintaba («No se pudo
+                  transcribir…») junto a «Recuperar audio», y un lector de
+                  pantalla no decía nada.
+                  Asertivo y no `status`: se acaba de perder la transcripción de
+                  una consulta y hay una acción que caduca con la sesión.
+                */}
                 {audio.error && (
-                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div role="alert" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11.5, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                       <AlertTriangle size={12} className="ds-icon" /> {audio.error}
                     </span>
@@ -5597,7 +5620,7 @@ export default function ConsultaActivaPage() {
                   </div>
                 )}
               </div>
-              <button onClick={() => procesarIA()} disabled={procesando || tareaProc?.ejecutando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || tareaProc?.ejecutando || !voz.transcripcion.trim())}>
+              <button onClick={() => procesarIA()} disabled={procesando || tareaProc?.ejecutando || !voz.transcripcion.trim()} className="nx-acc-fuerte" style={S.iaBtn(procesando || tareaProc?.ejecutando || !voz.transcripcion.trim())}>
                 {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
@@ -6575,18 +6598,17 @@ export default function ConsultaActivaPage() {
         <Section key={s.key} title={s.label} obligatorio={s.obligatorio}>
           {/* El título del Section es visual, no está asociado: sin aria-label el
               lector de pantalla dice «edición de texto» a secas (axe: label, critical). */}
-          <textarea
-            aria-label={s.label}
-            value={s.value}
-            onChange={e => {
+          <CampoNarrativo
+            etiqueta={s.label}
+            valor={s.value}
+            alCambiar={v => {
               // Se anota que el médico ESCRIBIÓ. Lo usa la re-proyección con voces
               // separadas para no pisar su texto sin preguntar (ver `edicionManualRef`).
               edicionManualRef.current = true
-              setSecciones(prev => prev.map((x, j) => j === i ? { ...x, value: e.target.value } : x))
+              setSecciones(prev => prev.map((x, j) => j === i ? { ...x, value: v } : x))
             }}
-            placeholder={s.placeholder ?? ''}
-            disabled={firmada}
-            style={S.textarea}
+            marcador={s.placeholder ?? ''}
+            deshabilitado={firmada}
           />
         </Section>
       ))}
@@ -6671,7 +6693,7 @@ export default function ConsultaActivaPage() {
           </div>
         )}
         {!firmada && (
-          <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo', tipoOrigen: 'medico' }])} style={S.addBtn}>
+          <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo', tipoOrigen: 'medico' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar diagnóstico
           </button>
         )}
@@ -6745,7 +6767,7 @@ export default function ConsultaActivaPage() {
           </div>
         ))}
         {!firmada && (
-          <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '' }])} style={S.addBtn}>
+          <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar medicamento
           </button>
         )}
@@ -6933,14 +6955,14 @@ export default function ConsultaActivaPage() {
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
                   placeholder="Escribe la corrección…"
                   disabled={corrigiendo}
-                  style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)', outline: 'none' }}
+                  style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
                 />
                 {snapshotUndo && (
-                  <button onClick={deshacerCorreccion} title="Deshacer el último cambio" style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+                  <button onClick={deshacerCorreccion} title="Deshacer el último cambio" className="nx-acc-caja" style={{ border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
                     ↩ Deshacer
                   </button>
                 )}
-                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} className="nx-acc-fuerte" style={{ color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
                 </button>
               </div>
@@ -7064,6 +7086,7 @@ export default function ConsultaActivaPage() {
                 onClick={firmar}
                 disabled={bloqueosDeFirma.length > 0 || guardando}
                 title={motivoNoFirma || 'Firmar y cerrar la nota'}
+                className="nx-acc-fuerte"
                 style={S.firmar(bloqueosDeFirma.length > 0 || guardando)}
               >
                 <FileSignature size={17} /> Firmar y cerrar nota
@@ -7084,15 +7107,15 @@ export default function ConsultaActivaPage() {
               )}
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
+              <button onClick={() => guardarBorrador()} disabled={guardando} className="nx-acc-plana" style={S.guardar}>
                 {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
               </button>
               <span aria-hidden="true" style={{ color: 'var(--border)', fontSize: 12 }}>·</span>
-              <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
+              <button onClick={leerResumen} disabled={guardando} className="nx-acc-plana" style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
                 <Volume2 size={14} /> Leer resumen
               </button>
               <span aria-hidden="true" style={{ color: 'var(--border)', fontSize: 12 }}>·</span>
-              <button onClick={descartar} disabled={guardando} style={S.descartar}>
+              <button onClick={descartar} disabled={guardando} className="nx-acc-riesgo" style={S.descartar}>
                 <Trash2 size={14} /> Descartar
               </button>
               <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto' }}>Completitud: {validacion.puntajeCompletitud}%</span>

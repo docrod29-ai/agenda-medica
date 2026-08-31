@@ -107,7 +107,7 @@ export default function FacturacionSection({ clinicId }: { clinicId: string }) {
     } catch { /* noop */ }
   }
 
-  const inp: React.CSSProperties = { width: '100%', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, color: 'var(--text)', outline: 'none' }
+  const inp: React.CSSProperties = { width: '100%', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, color: 'var(--text)' }
   const lbl: React.CSSProperties = { fontSize: 11, color: 'var(--text3)', display: 'block', marginBottom: 4 }
 
   return (

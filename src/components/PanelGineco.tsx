@@ -66,13 +66,13 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
   }
 
   return (
-    <div style={embebido ? {} : { border: '1px solid rgba(236,72,153,.3)', borderRadius: 12, background: 'rgba(236,72,153,.05)', padding: 14, marginBottom: 12 }}>
+    <div style={embebido ? {} : { border: '1px solid color-mix(in srgb, var(--rosa) 30%, transparent)', borderRadius: 12, background: 'color-mix(in srgb, var(--rosa) 5%, transparent)', padding: 14, marginBottom: 12 }}>
       {!embebido && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-          <Stethoscope size={15} color="#f472b6" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#f472b6' }}>Ginecología y obstetricia</span>
+          <Stethoscope size={15} color="var(--rosa)" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--rosa)' }}>Ginecología y obstetricia</span>
           {gest && (
-            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: 'rgba(236,72,153,.15)', color: '#f472b6' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--rosa) 15%, transparent)', color: 'var(--rosa)' }}>
               {gest.texto} semanas · {gest.trimestre}º trimestre
             </span>
           )}
@@ -111,8 +111,8 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
 
           {gest ? (
             <>
-              <div style={{ padding: '10px 12px', borderRadius: 9, border: '1px solid rgba(236,72,153,.35)', background: 'rgba(236,72,153,.1)', marginBottom: 10 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 800, color: '#f472b6' }}>
+              <div style={{ padding: '10px 12px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--rosa) 35%, transparent)', background: 'color-mix(in srgb, var(--rosa) 10%, transparent)', marginBottom: 10 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--rosa)' }}>
                   {gest.semanas} semanas {gest.dias} días · {gest.trimestre}º trimestre
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>
@@ -130,8 +130,8 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 280, overflowY: 'auto' }}>
                 {hitosSegunEG(gest.semanas).map((h, i) => (
                   <div key={i} style={{
-                    border: '1px solid ' + (h.estado === 'vigente' ? 'rgba(236,72,153,.4)' : 'var(--border)'),
-                    background: h.estado === 'vigente' ? 'rgba(236,72,153,.08)' : 'var(--s1)',
+                    border: '1px solid ' + (h.estado === 'vigente' ? 'color-mix(in srgb, var(--rosa) 40%, transparent)' : 'var(--border)'),
+                    background: h.estado === 'vigente' ? 'color-mix(in srgb, var(--rosa) 8%, transparent)' : 'var(--s1)',
                     borderRadius: 9, padding: '8px 11px',
                     opacity: h.estado === 'proximo' ? 0.5 : h.estado === 'vencido' ? 0.75 : 1,
                   }}>
@@ -140,7 +140,7 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
                       <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>
                         sem {h.hito.ventana[0]}{h.hito.ventana[1] !== h.hito.ventana[0] ? `-${h.hito.ventana[1]}` : ''}
                       </span>
-                      {h.estado === 'vigente' && <span style={pill('#f472b6', 'rgba(236,72,153,.18)')}>AHORA</span>}
+                      {h.estado === 'vigente' && <span style={pill('var(--rosa)', 'color-mix(in srgb, var(--rosa) 18%, transparent)')}>AHORA</span>}
                       {h.estado === 'vencido' && <span style={pill('var(--text3)', 'var(--s2)')}>ya pasó</span>}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>{h.hito.detalle}</div>
@@ -163,10 +163,10 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
           <Grupo titulo="Factores de riesgo MODERADO (se necesitan dos)" items={RIESGO_MODERADO_PE} sel={mods} on={v => toggle(mods, setMods, v)} color="var(--amber)" />
           <div style={{
             marginTop: 10, padding: '10px 12px', borderRadius: 9,
-            border: `1px solid ${aas.indicada ? 'rgba(236,72,153,.4)' : 'var(--border)'}`,
-            background: aas.indicada ? 'rgba(236,72,153,.1)' : 'var(--s1)',
+            border: `1px solid ${aas.indicada ? 'color-mix(in srgb, var(--rosa) 40%, transparent)' : 'var(--border)'}`,
+            background: aas.indicada ? 'color-mix(in srgb, var(--rosa) 10%, transparent)' : 'var(--s1)',
           }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: aas.indicada ? '#f472b6' : 'var(--text2)' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: aas.indicada ? 'var(--rosa)' : 'var(--text2)' }}>
               {aas.indicada ? 'Aspirina INDICADA' : 'Aspirina no indicada'} — {aas.motivo}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4, lineHeight: 1.5 }}>{aas.conducta}</div>
@@ -192,10 +192,10 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
           </div>
           <div style={{
             marginTop: 10, padding: '10px 12px', borderRadius: 9,
-            border: `1px solid ${bish.completo ? 'rgba(236,72,153,.35)' : 'var(--border)'}`,
-            background: bish.completo ? 'rgba(236,72,153,.08)' : 'var(--s1)',
+            border: `1px solid ${bish.completo ? 'color-mix(in srgb, var(--rosa) 35%, transparent)' : 'var(--border)'}`,
+            background: bish.completo ? 'color-mix(in srgb, var(--rosa) 8%, transparent)' : 'var(--s1)',
           }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: bish.completo ? '#f472b6' : 'var(--text3)' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: bish.completo ? 'var(--rosa)' : 'var(--text3)' }}>
               {bish.completo ? `Bishop ${bish.puntaje}/13 — ${bish.categoria}` : 'Bishop: exploración incompleta'}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4, lineHeight: 1.5 }}>{bish.interpretacion}</div>
@@ -238,10 +238,10 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
 
           <div style={{
             padding: '10px 12px', borderRadius: 9,
-            border: `1px solid ${cerv.urgencia === 'urgente' ? 'color-mix(in srgb, var(--red) 45%, transparent)' : cerv.urgencia === 'colposcopia' ? 'color-mix(in srgb, var(--amber) 40%, transparent)' : 'rgba(236,72,153,.35)'}`,
-            background: cerv.urgencia === 'urgente' ? 'color-mix(in srgb, var(--red) 10%, transparent)' : cerv.urgencia === 'colposcopia' ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'rgba(236,72,153,.08)',
+            border: `1px solid ${cerv.urgencia === 'urgente' ? 'color-mix(in srgb, var(--red) 45%, transparent)' : cerv.urgencia === 'colposcopia' ? 'color-mix(in srgb, var(--amber) 40%, transparent)' : 'color-mix(in srgb, var(--rosa) 35%, transparent)'}`,
+            background: cerv.urgencia === 'urgente' ? 'color-mix(in srgb, var(--red) 10%, transparent)' : cerv.urgencia === 'colposcopia' ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'color-mix(in srgb, var(--rosa) 8%, transparent)',
           }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: cerv.urgencia === 'urgente' ? '#f87171' : cerv.urgencia === 'colposcopia' ? '#f59e0b' : '#f472b6' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: cerv.urgencia === 'urgente' ? 'var(--red)' : cerv.urgencia === 'colposcopia' ? 'var(--amber)' : 'var(--rosa)' }}>
               {cito}{vph !== 'desconocido' ? ` · VPH ${vph === 'negativo' ? 'negativo' : vph === 'positivo-16-18' ? '16/18' : 'positivo'}` : ''}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4, lineHeight: 1.5 }}>{cerv.conducta}</div>
@@ -281,7 +281,7 @@ function Grupo({ titulo, items, sel, on, color }: {
             padding: '5px 10px', borderRadius: 7, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
             border: '1px solid ' + (sel.has(i) ? color : 'var(--border)'),
             background: sel.has(i) ? color : 'var(--s2)',
-            color: sel.has(i) ? '#000' : 'var(--text3)',
+            color: sel.has(i) ? 'var(--sobre-aviso)' : 'var(--text3)',
           }}>{i}</button>
         ))}
       </div>
@@ -301,9 +301,9 @@ function Sel({ label, k, bs, setBs, ops }: {
         {ops.map(([t, v]) => (
           <button key={t} type="button" onClick={() => setBs(p => ({ ...p, [k]: v }))} style={{
             padding: '4px 9px', borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-            border: '1px solid ' + (bs[k] === v ? '#f472b6' : 'var(--border)'),
-            background: bs[k] === v ? '#f472b6' : 'var(--s2)',
-            color: bs[k] === v ? '#000' : 'var(--text3)',
+            border: '1px solid ' + (bs[k] === v ? 'var(--rosa)' : 'var(--border)'),
+            background: bs[k] === v ? 'var(--rosa)' : 'var(--s2)',
+            color: bs[k] === v ? 'var(--sobre-aviso)' : 'var(--text3)',
           }}>{t}</button>
         ))}
       </div>
@@ -327,8 +327,8 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
     <button type="button" onClick={on} style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7,
       fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-      border: '1px solid ' + (a ? '#ec4899' : 'var(--border)'),
-      background: a ? '#ec4899' : 'var(--s2)', color: a ? '#fff' : 'var(--text3)',
+      border: '1px solid ' + (a ? 'var(--rosa)' : 'var(--border)'),
+      background: a ? 'var(--rosa)' : 'var(--s2)', color: a ? 'var(--sobre-aviso)' : 'var(--text3)',
     }}>{i}{t}</button>
   )
 }
@@ -337,8 +337,8 @@ function Chip({ a, on, t }: { a: boolean; on: () => void; t: string }) {
   return (
     <button type="button" onClick={on} style={{
       padding: '4px 10px', borderRadius: 'var(--r-pill)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-      border: '1px solid ' + (a ? 'rgba(236,72,153,.5)' : 'var(--border)'),
-      background: a ? 'rgba(236,72,153,.15)' : 'var(--s2)', color: a ? '#f472b6' : 'var(--text3)',
+      border: '1px solid ' + (a ? 'color-mix(in srgb, var(--rosa) 50%, transparent)' : 'var(--border)'),
+      background: a ? 'color-mix(in srgb, var(--rosa) 15%, transparent)' : 'var(--s2)', color: a ? 'var(--rosa)' : 'var(--text3)',
     }}>{t}</button>
   )
 }
@@ -349,10 +349,10 @@ const pill = (fg: string, bg: string): React.CSSProperties => ({
 const etiqueta: React.CSSProperties = { fontSize: 10.5, color: 'var(--text3)', fontWeight: 600 }
 const campoBase: React.CSSProperties = {
   background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7,
-  padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none',
+  padding: '5px 8px', fontSize: 12, color: 'var(--text)',
 }
 const btnMini: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(236,72,153,.15)',
-  color: '#f472b6', border: '1px solid rgba(236,72,153,.35)', borderRadius: 6,
+  display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--rosa) 15%, transparent)',
+  color: 'var(--rosa)', border: '1px solid color-mix(in srgb, var(--rosa) 35%, transparent)', borderRadius: 6,
   padding: '3px 9px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
 }

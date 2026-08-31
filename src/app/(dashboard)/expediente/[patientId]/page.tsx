@@ -271,7 +271,7 @@ export default function ExpedientePage() {
   return (
     <div className="nx-canvas">
       {/* Back */}
-      <button onClick={volver} style={backBtn}>
+      <button onClick={volver} className="nx-acc-texto nx-acc-texto--tenue" style={backBtn}>
         <ArrowLeft size={15} /> Atrás
       </button>
 
@@ -320,7 +320,7 @@ export default function ExpedientePage() {
            porqué medido en `PatientAnchor` — 720px sin usar a la izquierda de
            un botón que tenía su propia fila. */
         accion={
-          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} style={primaryBtn}>
+          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} className="nx-acc-fuerte" style={primaryBtn}>
             <Mic size={16} /> Nueva consulta
           </button>
         }
@@ -529,7 +529,7 @@ export default function ExpedientePage() {
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {([['todas', 'Todas'], ['consulta', 'Consulta'], ['hospital', 'Hospital']] as const).map(([k, l]) => (
-          <button key={k} onClick={() => setFiltro(k)} style={chip(filtro === k)}>{l}</button>
+          <button key={k} onClick={() => setFiltro(k)} className="nx-chip nx-chip--relleno" aria-pressed={filtro === k} style={chip(filtro === k)}>{l}</button>
         ))}
       </div>
 
@@ -733,7 +733,7 @@ export default function ExpedientePage() {
           texto — sin diagnósticos ni recetas estructuradas.
         </p>
         <div className="actions-row">
-          <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => router.push(`/referencia/${patientId}`)} className="nx-acc-caja" style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Send size={15} /> Carta de referencia
           </button>
           {/*
@@ -768,7 +768,7 @@ export default function ExpedientePage() {
             } catch {
               toast('No se pudo conectar para armar el expediente', 'error')
             } finally { setDescargandoTodo(false) }
-          }} disabled={descargandoTodo} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
+          }} disabled={descargandoTodo} className="nx-acc-caja" style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
             <Upload size={15} /> {descargandoTodo ? 'Armando…' : 'Expediente completo'}
           </button>
           <button onClick={async () => {
@@ -833,7 +833,8 @@ export default function ExpedientePage() {
             acaba una frase.
           */
           aria-label="Enviar a otro sistema — archivo FHIR R4"
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+          className="nx-acc-caja"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
             <Upload size={15} />
             {/*
               RTC-21 (§25) — EL BOTÓN DICE EL TRABAJO; LA SIGLA SE QUEDA DEBAJO.
@@ -944,9 +945,13 @@ function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | nu
   */
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', marginBottom: 16, overflow: 'hidden' }}>
-      <button onClick={() => setAbierto(a => !a)} style={{
+      <button onClick={() => setAbierto(a => !a)}
+        aria-expanded={abierto}
+        className="nx-acc-plana"
+        data-abierto={abierto || undefined}
+        style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
-        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
+        border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
       }}>
         {abierto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         <span style={{ fontSize: 14, fontWeight: 700 }}>Datos del paciente</span>
@@ -1071,9 +1076,9 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               {!firmada && (
-                <button onClick={onEditar} style={ghostBtn}>Continuar edición</button>
+                <button onClick={onEditar} className="nx-acc-caja" style={ghostBtn}>Continuar edición</button>
               )}
-              <button onClick={onImprimir} style={ghostBtn}><Printer size={13} /> Imprimir / PDF</button>
+              <button onClick={onImprimir} className="nx-acc-caja" style={ghostBtn}><Printer size={13} /> Imprimir / PDF</button>
               {/* Receta y Orden — solo cuando la nota está firmada (datos confiables) */}
               {firmada && (
                 <>
@@ -1117,8 +1122,8 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
   )
 }
 
-const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
+const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, border: 'none', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
 const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
-const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
-const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
-const chip = (active: boolean): React.CSSProperties => ({ background: active ? 'var(--nexus-solido)' : 'var(--s2)', color: active ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })
+const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
+const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
+const chip = (active: boolean): React.CSSProperties => ({ color: active ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })

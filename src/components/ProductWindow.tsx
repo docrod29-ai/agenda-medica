@@ -91,8 +91,13 @@ export function ProductWindow() {
           {/* Tarjeta de nota por voz en curso */}
           <div style={{ marginTop: 'auto', padding: 12, borderRadius: 10, background: 'var(--nexus-soft)', border: '1px solid var(--border2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              {/* EL LATIDO NO ES ADORNO. Este escaparate dice que la nota se
+                  está dictando; sin nada vivo, es una captura de algo quieto.
+                  Es opacidad y no tamaño: nada se mueve de sitio, así que no
+                  arrastra la vista fuera del texto. Bajo movimiento reducido,
+                  el apagador de §24 lo deja encendido y quieto. */}
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--nexus)' }}>
-                <Mic size={13} /> Nota por voz
+                <span className="nx-escucha" style={{ display: 'inline-flex' }}><Mic size={13} /></span> Nota por voz
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--green)', marginLeft: 'auto' }}>
                 <CheckCircle2 size={13} /> Lista para firmar

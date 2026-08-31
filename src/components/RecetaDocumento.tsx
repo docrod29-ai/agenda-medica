@@ -924,7 +924,23 @@ function HojaGenerada({
             textTransform: 'uppercase',
             letterSpacing: 0.5,
           }}>
-            <div style={{ color: accent }}>{data.tipo === 'receta' ? 'Receta Médica' : 'Orden Médica'}</div>
+            {/*
+              EL TÍTULO DEL DOCUMENTO NO LLEVA EL COLOR DE MARCA.
+
+              Medido con axe a 1440 en `/receta` y `/orden`: el acento por
+              omisión da **2.48 : 1** sobre el papel blanco, en texto de 11 px.
+
+              El acento es del médico —lo elige en configuración— y sigue en
+              TODO lo decorativo: los filetes de arriba y abajo de este bloque,
+              la barra del encabezado, el ℞ y los rellenos. Lo que deja de
+              hacer es cargar con texto pequeño que hay que LEER, en un papel
+              que se imprime y se archiva.
+
+              El gris es del mismo juego neutro que este documento ya usa
+              (#111 el nombre del médico, #666 el folio de al lado): un
+              recetario no sigue al tema de la aplicación, se imprime.
+            */}
+            <div style={{ color: '#333' }}>{data.tipo === 'receta' ? 'Receta Médica' : 'Orden Médica'}</div>
             <div style={{ fontSize: 9.5, color: '#666', fontWeight: 500 }}>
               Folio: {data.folio} · {data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
@@ -1133,7 +1149,9 @@ function EncabezadoAuto({
         <div style={{ width: 3, background: accent, borderRadius: 2, flexShrink: 0 }} />
         <div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: -0.2, lineHeight: 1.1 }}>{medico}</div>
-          {especialidad && <div style={{ fontSize: 10.5, color: accent, fontWeight: 600, marginTop: 1 }}>{especialidad}</div>}
+          {/* Misma razón que el título: 10.5 px con el acento por omisión daban
+              2.48 : 1. El acento sigue justo al lado, en la barra de 3 px. */}
+          {especialidad && <div style={{ fontSize: 10.5, color: '#444', fontWeight: 600, marginTop: 1 }}>{especialidad}</div>}
           {cedula !== '—' && <div style={{ fontSize: 9, color: '#555', marginTop: 1 }}>Cédula Prof. {cedula}</div>}
         </div>
       </div>

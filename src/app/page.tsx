@@ -6,6 +6,7 @@ import { MetaPixel } from '@/components/MetaPixel'
 import { ProductWindow } from '@/components/ProductWindow'
 import { PLANES } from '@/lib/planes-ia'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
+import { Revelar } from '@/components/landing/Revelar'
 
 /* ─── Data ─────────────────────────────────────────────── */
 const FEATURES = [
@@ -168,18 +169,23 @@ function Hero() {
       }} />
 
       <div style={{ position: 'relative' }}>
-        <div style={{
+        {/* La entrada escalonada ORDENA LA LECTURA: promesa → titular →
+            subtítulo → acción → producto. No es adorno; es el orden en que
+            queremos que se lea, hecho visible. */}
+        <div className="nx-entra" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.28)',
           borderRadius: 'var(--r-pill)', padding: '5px 14px', marginBottom: 28,
-        }}>
+          ['--nx-retraso' as unknown as string]: '0ms',
+        } as React.CSSProperties}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--nexus)' }} />
           <span style={{ fontSize: 12.5, color: 'var(--text)', fontWeight: 500, letterSpacing: '-0.005em' }}>
             14 días gratis · sin tarjeta
           </span>
         </div>
 
-        <h1 className="nx-display" style={{
+        <h1 className="nx-display nx-entra" style={{
+          ['--nx-retraso' as unknown as string]: '70ms',
           fontSize: 'clamp(40px, 6.5vw, 84px)', lineHeight: 1.02,
           color: 'var(--text)', maxWidth: 880, margin: '0 auto 28px',
           fontWeight: 500, letterSpacing: '-0.035em',
@@ -188,7 +194,8 @@ function Hero() {
           <span style={{ color: 'var(--nexus)', fontStyle: 'italic' }}>conectado.</span>
         </h1>
 
-        <p style={{
+        <p className="nx-entra" style={{
+          ['--nx-retraso' as unknown as string]: '140ms',
           // --text (no --text2): el subtítulo caía sobre la parte BRILLANTE de la
           // imagen del hero y con el gris medio se lavaba. La sombra del color de
           // fondo lo despega de la imagen sin cambiar el tono en ninguno de los
@@ -202,7 +209,7 @@ function Hero() {
           Sin saltar de app en app.
         </p>
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div className="nx-entra" style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', ['--nx-retraso' as unknown as string]: '210ms' } as React.CSSProperties}>
           <Link href="/registro" className="btn btn-primary btn-lg" style={{ textDecoration: 'none' }}>
             Comenzar prueba gratis <ArrowRight size={17} />
           </Link>
@@ -210,13 +217,13 @@ function Hero() {
             Ver demo
           </Link>
         </div>
-        <div style={{ marginTop: 16, fontSize: 14, color: 'var(--text2)' }}>
+        <div className="nx-entra" style={{ marginTop: 16, fontSize: 14, color: 'var(--text2)', ['--nx-retraso' as unknown as string]: '260ms' } as React.CSSProperties}>
           ¿Ya tienes cuenta?{' '}
-          <Link href="/login" style={{ color: 'var(--nexus)', fontWeight: 700, textDecoration: 'none' }}>Inicia sesión aquí →</Link>
+          <Link href="/login" className="nx-enlace-tactil" style={{ color: 'var(--nexus)', fontWeight: 700, textDecoration: 'none' }}>Inicia sesión aquí →</Link>
         </div>
 
         {/* Hero shot del producto: UI real (tokens del design system) con datos ficticios */}
-        <div style={{ maxWidth: 860, margin: '64px auto 0' }}>
+        <div className="nx-entra" style={{ maxWidth: 860, margin: '64px auto 0', ['--nx-retraso' as unknown as string]: '330ms' } as React.CSSProperties}>
           <ProductWindow />
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 10 }}>Interfaz de ejemplo · datos ficticios</div>
         </div>
@@ -250,7 +257,7 @@ function Stats() {
       <div style={{ flexBasis: '100%', textAlign: 'center', padding: '0 24px 16px', fontSize: 11.5, color: 'var(--text3)' }}>
         * De revisiones sistemáticas publicadas: reducción relativa ~34% en promedio (hasta ~39% con recordatorio telefónico). La reducción real
         varía por especialidad, población y consultorio.{' '}
-        <Link href="/evidencia" style={{ color: 'var(--nexus)', fontWeight: 600, textDecoration: 'none' }}>Ver fuentes →</Link>
+        <Link href="/evidencia" className="nx-enlace-tactil" style={{ color: 'var(--nexus)', fontWeight: 600, textDecoration: 'none' }}>Ver fuentes →</Link>
       </div>
     </section>
   )
@@ -271,15 +278,14 @@ function Features() {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 24,
       }}>
+        {/* `nx-lift` en vez de los dos manejadores de ratón que había: la misma
+            respuesta, más el estado :active — o sea, la tarjeta también
+            contesta al DEDO, que era la mitad que faltaba. */}
         {FEATURES.map(f => (
-          <div key={f.title} style={{
+          <div key={f.title} className="nx-lift" style={{
             background: 'var(--s1)', border: '1px solid var(--border)',
             borderRadius: 16, padding: '28px 24px',
-            transition: 'border-color var(--mov-rapido) var(--mov-curva)',
-          }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(61,90,254,0.4)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
-          >
+          }}>
             <div style={{
               width: 44, height: 44, borderRadius: 12,
               background: 'rgba(61,90,254,0.1)', border: '1px solid rgba(61,90,254,0.2)',
@@ -369,7 +375,19 @@ function HowItWorks() {
             </div>
 
             {/* Messages */}
-            <div style={{
+            {/**
+              * `tabIndex={0}` + nombre: axe lo marcaba como
+              * `scrollable-region-focusable` (grave) en los tres anchos. Es una
+              * caja con scroll propio y ningún control dentro, así que el
+              * teclado no podía llegar a ella: con el ratón se lee la
+              * conversación entera y con el teclado sólo el primer trozo —
+              * WCAG 2.1.1. Con foco propio se recorre con las flechas.
+              */}
+            <div
+              tabIndex={0}
+              role="region"
+              aria-label="Conversación de ejemplo por WhatsApp con el consultorio"
+              style={{
               padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 10,
               maxHeight: 360, overflowY: 'auto',
               background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'%3E%3C/svg%3E") #0d1117',
@@ -428,7 +446,7 @@ function Pricing() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 24 }}>
         {PLANS.map(p => (
-          <div key={p.name} style={{
+          <div key={p.name} className="nx-lift" style={{
             background: p.highlight ? 'rgba(61,90,254,0.05)' : 'var(--s1)',
             border: p.highlight ? '2px solid var(--teal)' : '1px solid var(--border)',
             borderRadius: 20, padding: '32px 28px',
@@ -502,14 +520,14 @@ function Trust() {
       {/* Punto de entrada a la página de seguridad: exhibe la inversión en
           confianza como argumento de venta (antes solo estaba en el footer). */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Link href="/seguridad" style={{
+        <Link href="/seguridad" className="nx-enlace-tactil" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
           fontSize: 13.5, fontWeight: 700, color: 'var(--nexus)',
           border: '1px solid var(--border2)', borderRadius: 'var(--r-pill)', padding: '8px 18px',
         }}>
           <Shield size={15} /> Cómo protegemos la información clínica <ArrowRight size={14} />
         </Link>
-        <Link href="/evidencia" style={{
+        <Link href="/evidencia" className="nx-enlace-tactil" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
           fontSize: 13.5, fontWeight: 700, color: 'var(--text2)',
           border: '1px solid var(--border2)', borderRadius: 'var(--r-pill)', padding: '8px 18px',
@@ -612,13 +630,13 @@ function Footer() {
         <span style={{ fontSize: 14, color: 'var(--text3)' }}>· Hecho en México 🇲🇽</span>
       </div>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-        <a href="/paquetes" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Paquetes por especialidad</a>
-        <a href="/demo/razonamiento" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Ver una consulta de ejemplo</a>
-        <a href="/operacion" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Operación</a>
-        <a href="/seguridad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Seguridad</a>
-        <a href="/terminos" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
-        <a href="/privacidad" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>
-        <a href="/contacto" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
+        <a href="/paquetes" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Paquetes por especialidad</a>
+        <a href="/demo/razonamiento" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Ver una consulta de ejemplo</a>
+        <a href="/operacion" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Operación</a>
+        <a href="/seguridad" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Seguridad</a>
+        <a href="/terminos" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Términos</a>
+        <a href="/privacidad" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Privacidad</a>
+        <a href="/contacto" className="nx-enlace-tactil" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text3)' }}>
         © {new Date().getFullYear()} Ausculta. Todos los derechos reservados.
@@ -634,13 +652,19 @@ export default function LandingPage() {
       <MetaPixel />
       <Nav />
       <Hero />
-      <Stats />
-      <Features />
-      <HowItWorks />
-      <Pricing />
-      <Trust />
-      <FAQ />
-      <FinalCTA />
+      {/* El héroe entra solo (animación, sin JavaScript). De aquí abajo se
+          revela AL LLEGAR: cada bloque se presenta cuando le toca, que es
+          como se lee una página larga. `Revelar` nace visible y sólo se
+          esconde si hay observador y el usuario acepta movimiento — ver su
+          cabecera: una portada en blanco por un fallo de JS no es una
+          opción. */}
+      <Revelar><Stats /></Revelar>
+      <Revelar><Features /></Revelar>
+      <Revelar><HowItWorks /></Revelar>
+      <Revelar><Pricing /></Revelar>
+      <Revelar><Trust /></Revelar>
+      <Revelar><FAQ /></Revelar>
+      <Revelar><FinalCTA /></Revelar>
       <Footer />
 
       <style>{`

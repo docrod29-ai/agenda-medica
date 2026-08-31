@@ -155,7 +155,8 @@ export default function ConsultorPage() {
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 10px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,0.10)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--nexus)', fontWeight: 600 }}>
           <UserRound size={13} /> Sobre: {pacienteNombre}
           <button onClick={() => { setPacienteNombre(''); setPacienteCtx('') }} title="Quitar contexto del paciente"
-            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
+            className="nx-acc-texto"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
             <X size={13} />
           </button>
         </div>
@@ -166,8 +167,8 @@ export default function ConsultorPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 10 }}>Ejemplos para empezar:</div>
           <div style={{ display: 'grid', gap: 8 }}>
             {EJEMPLOS.map((e, i) => (
-              <button key={i} onClick={() => preguntar(e)}
-                style={{ textAlign: 'left', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', fontSize: 13.5, cursor: 'pointer' }}>
+              <button key={i} onClick={() => preguntar(e)} className="nx-acc-caja"
+                style={{ textAlign: 'left', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', color: 'var(--text2)', fontSize: 13.5, cursor: 'pointer' }}>
                 {e}
               </button>
             ))}
@@ -330,6 +331,8 @@ export default function ConsultorPage() {
             style={{ flex: 1, resize: 'none', maxHeight: 120, padding: '11px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 14, lineHeight: 1.4, fontFamily: 'inherit' }}
           />
           <button onClick={() => preguntar(pregunta)} disabled={cargando || !pregunta.trim()}
+            // Es la acción primaria de la pantalla y era un icono sin nombre.
+            aria-label={cargando ? 'Consultando la evidencia…' : 'Enviar la pregunta'}
             style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 12, border: 'none', cursor: cargando || !pregunta.trim() ? 'default' : 'pointer', background: cargando || !pregunta.trim() ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {cargando ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={18} />}
           </button>

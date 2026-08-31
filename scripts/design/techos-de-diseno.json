@@ -2,14 +2,14 @@
   "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
   "techos": {
     "respaldosDeToken": 0,
-    "hexEnLinea": 485,
-    "tamanosFueraDeEscala": 1949,
-    "radiosFueraDeEscala": 619,
+    "hexEnLinea": 357,
+    "tamanosFueraDeEscala": 1947,
+    "radiosFueraDeEscala": 617,
     "sombrasEnLinea": 21,
     "gradientes": 14,
     "cristal": 14,
-    "halosDeColor": 7,
-    "lienzosAMano": 43
+    "halosDeColor": 6,
+    "lienzosAMano": 42
   },
   "peores": [
     {

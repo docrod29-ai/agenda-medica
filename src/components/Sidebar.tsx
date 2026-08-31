@@ -1,4 +1,5 @@
 'use client'
+import { nombreMedicoParaMostrar } from '@/lib/nombre-medico'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { auth } from '@/lib/firebase'
@@ -112,9 +113,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 return miNombre ? `${miNombre} · Asistente` : 'Asistente'
               }
               // Médico: muestra el nombre del consultorio
-              if (!config.nombreMedico) return 'Consultorio'
-              const yaTienePrefijo = /^Dr\.?\s+|^Dra\.?\s+/i.test(config.nombreMedico)
-              return yaTienePrefijo ? config.nombreMedico : `Dr. ${config.nombreMedico}`
+              // Sin inventar título: ver `@/lib/nombre-medico`. Anteponer «Dr.»
+              // llamaba «Dr.» a toda médica cuyo nombre no traía prefijo.
+              return nombreMedicoParaMostrar(config.nombreMedico) ?? 'Consultorio'
             })()}
           </div>
         </div>

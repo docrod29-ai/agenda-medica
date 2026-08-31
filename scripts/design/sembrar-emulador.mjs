@@ -50,13 +50,36 @@ const CLAVE = 'demo1234'
 const CLINICA = 'consultorio-demo-v10'
 
 // ── Fechas: hoy, a las horas del consultorio ────────────────────────────────
+/**
+ * «HOY» ES EL DEL CONSULTORIO, NO EL DEL CONTENEDOR.
+ *
+ * Esto usaba `new Date().getDate()`, que es la fecha LOCAL DEL PROCESO. En esta
+ * caja el proceso corre en UTC y el consultorio está en `America/Mexico_City`
+ * (UTC-6): entre las 18:00 y la medianoche de México, el contenedor ya está en
+ * el día siguiente.
+ *
+ * Consecuencia real, vista en una auditoría visual: la siembra ponía las cinco
+ * citas en el día 30 mientras la aplicación —que sí usa la zona del
+ * consultorio— decía que hoy era el 29. La agenda del día salía VACÍA y el
+ * marcador de «hoy» señalaba una columna sin nada. Nada de eso era un defecto
+ * del producto; era el arnés sembrando en el día equivocado.
+ *
+ * Es el mismo error que `lib/timezone.ts` lleva años impidiendo dentro del
+ * producto, cometido en la herramienta que lo audita.
+ */
+const TZ_CONSULTORIO = 'America/Mexico_City'
+const enZona = (d) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ_CONSULTORIO, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d)
+
 const hoy = new Date()
 const iso = (d) => d.toISOString()
-const dia = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+const dia = enZona(hoy)
 const enDias = (n) => {
   const d = new Date(hoy)
-  d.setDate(d.getDate() + n)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  d.setUTCDate(d.getUTCDate() + n)
+  return enZona(d)
 }
 
 /**
@@ -117,6 +140,15 @@ const PACIENTES = [
     alergias: '',
     seguroMedico: '',
     notas: 'Pediátrico. Peso 18.4 kg.',
+    /**
+     * HISTORIAL DE INASISTENCIA — para que el aviso de riesgo de no-show se
+     * pueda VER. Sin esto, `calcularRiesgoNoShow` nunca pasa de «bajo» y la
+     * insignia de riesgo no se pinta nunca: el código estaba escrito y la
+     * pantalla que lo enseña no se podía auditar. Misma familia que los cobros
+     * de la unidad 31 — el arnés tiene que poder producir el caso.
+     */
+    noShowCount: 3,
+    cancelacionCount: 2,
   },
 ]
 
@@ -125,14 +157,79 @@ const PACIENTES = [
  * justo lo que V10 §15 pide moderar: si todas las citas están confirmadas, la
  * pantalla se ve tranquila por accidente y no por diseño.
  */
+/**
+ * LOS ESTADOS SON DEL TIPO, NO INVENTADOS.
+ *
+ * Aquí se sembraba `programada`, que NO es miembro de `AppointmentStatus`. El
+ * producto no la conoce, así que `APPOINTMENT_STATUS_CONFIG['programada']` es
+ * `undefined`: la insignia no se pintaba y la rejilla la caía por el `else`
+ * («el resto → sólido»), es decir, la pintaba como si estuviera CONFIRMADA.
+ *
+ * El daño no era del producto sino de esta siembra: hacía que una auditoría
+ * visual concluyera «confirmada y pendiente se ven igual» cuando lo que pasaba
+ * es que el arnés estaba inventando un estado. Misma familia que el `urgencia`
+ * por `urgente` de la unidad 16 — un dato de prueba fuera del vocabulario hace
+ * mentir a la pantalla que se está auditando.
+ *
+ * `pendiente-confirmar` es el estado real de una cita que aún no confirma el
+ * paciente, y es el que de verdad llena la agenda de un consultorio.
+ */
 const CITAS = [
   { id: 'cita-001', pac: 'pac-001', hora: '09:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control de glucosa y revisión de función renal' },
-  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'programada', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
+  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
   { id: 'cita-003', pac: 'pac-002', hora: '11:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Resultados de laboratorio' },
-  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'programada', conf: false, motivo: 'Fiebre de tres días' },
+  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Fiebre de tres días' },
+  /**
+   * Dos casos que EXISTEN en el código y no se podían ver en pantalla:
+   * la cita de cortesía (con su motivo) y la descuadrada con Google Calendar.
+   * Sin sembrarlas, sus avisos no se pintan nunca y no hay forma de auditarlos.
+   */
+  { id: 'cita-008', pac: 'pac-002', hora: '16:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Revisión de control', exento: 'Familiar del personal' },
+  { id: 'cita-009', pac: 'pac-003', hora: '17:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control posoperatorio', syncRoto: true },
+  /**
+   * ATENDIDA Y SIN COBRAR — el único estado en el que aparece el botón de
+   * «Cobrar». Sin ella, el camino del dinero no se puede recorrer en el arnés:
+   * el botón no existe, así que no hay nada que auditar. Cuarta vez en esta
+   * vuelta que la siembra era lo que impedía ver una pantalla.
+   */
+  { id: 'cita-010', pac: 'pac-001', hora: '08:00', dur: 30, tipo: 'Seguimiento', estado: 'atendida', conf: true, motivo: 'Control de presión' },
   { id: 'cita-005', pac: 'pac-003', hora: '13:00', dur: 30, tipo: 'Seguimiento', estado: 'cancelada', conf: false, motivo: 'Control prenatal' },
-  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'programada', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
-  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'programada', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
+  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
+  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
+]
+
+/**
+ * COBROS — para que `/finanzas` se pueda AUDITAR.
+ *
+ * Sin esto la pantalla salía entera a `$0.00`: seis tarjetas de estadística en
+ * cero, una gráfica vacía y una tabla sin filas. Auditar eso y concluir «se ve
+ * plana» no dice nada — es la misma trampa que el día sin citas de la unidad
+ * 23: **una pantalla vacía puntúa distinto sin ser distinta**, y encima esconde
+ * justo los defectos que sólo aparecen con datos (alineación de cifras,
+ * truncado de nombres largos, la gráfica con una barra que se sale).
+ *
+ * Se siembra un mes con forma REAL, no un relleno bonito:
+ *  · varios métodos de pago, para que la partición signifique algo;
+ *  · un reembolso (monto negativo), que es el caso que rompe los promedios;
+ *  · un cobro de cuatro cifras junto a otros de dos, para ver si las columnas
+ *    numéricas se alinean;
+ *  · el paciente del nombre más largo, que es quien desborda la tabla;
+ *  · días con varios cobros y días sin ninguno, para que la gráfica tenga
+ *    relieve en vez de una meseta.
+ */
+const COBROS = [
+  { d: 0,  monto: 1200, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-001', desc: 'Consulta de seguimiento' },
+  { d: 0,  monto: 900,  metodo: 'transferencia',   concepto: 'consulta',      pac: 'pac-002', desc: 'Consulta de seguimiento' },
+  { d: -1, monto: 1800, metodo: 'tarjeta_credito', concepto: 'consulta',      pac: 'pac-004', desc: 'Primera vez' },
+  { d: -1, monto: 350,  metodo: 'efectivo',        concepto: 'estudio',       pac: 'pac-004', desc: 'Electrocardiograma' },
+  { d: -3, monto: 12500, metodo: 'transferencia',  concepto: 'procedimiento', pac: 'pac-003', desc: 'Procedimiento programado' },
+  { d: -4, monto: 900,  metodo: 'tarjeta_debito',  concepto: 'teleconsulta',  pac: 'pac-005', desc: 'Teleconsulta' },
+  { d: -6, monto: 1200, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-001', desc: 'Consulta de seguimiento' },
+  { d: -7, monto: -900, metodo: 'transferencia',   concepto: 'reembolso',     pac: 'pac-002', desc: 'Reembolso por cita cancelada' },
+  { d: -9, monto: 450,  metodo: 'efectivo',        concepto: 'medicamento',   pac: 'pac-001', desc: 'Metformina 850 mg' },
+  { d: -12, monto: 1800, metodo: 'tarjeta_credito', concepto: 'consulta',     pac: 'pac-003', desc: 'Primera vez' },
+  { d: -15, monto: 900, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-005', desc: 'Consulta de seguimiento' },
+  { d: -18, monto: 2400, metodo: 'transferencia',  concepto: 'paquete',       pac: 'pac-004', desc: 'Paquete de control anual' },
 ]
 
 // ── Traductor a la representación tipada de Firestore ───────────────────────
@@ -314,6 +411,8 @@ async function main() {
       alergias: p.alergias,
       seguroMedico: p.seguroMedico,
       notas: p.notas,
+      noShowCount: p.noShowCount ?? 0,
+      cancelacionCount: p.cancelacionCount ?? 0,
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })
@@ -338,6 +437,29 @@ async function main() {
       recordatorio24hEnviado: false,
       recordatorioMismoDiaEnviado: false,
       consentimientoMensajes: true,
+      ...(c.exento ? { cobroExento: true, exentoMotivo: c.exento } : {}),
+      ...(c.syncRoto ? { googleCalendarEventId: 'evt-sintetico-001', googleCalendarSyncStatus: 'error' } : {}),
+      createdAt: iso(hoy),
+      updatedAt: iso(hoy),
+    })
+  }
+
+  // ── Cobros ────────────────────────────────────────────────────────────────
+  for (const [i, c] of COBROS.entries()) {
+    const p = PACIENTES.find(x => x.id === c.pac)
+    const diaCobro = enDias(c.d)
+    await escribir(`clinics/${CLINICA}/cobros/cobro-${String(i + 1).padStart(3, '0')}`, {
+      fecha: `${diaCobro}T12:00:00.000Z`,
+      dia: diaCobro,
+      mes: diaCobro.slice(0, 7),
+      monto: c.monto,
+      metodo: c.metodo,
+      concepto: c.concepto,
+      descripcion: c.desc,
+      patientId: c.pac,
+      patientNombre: p.nombre,
+      medicoId: uid,
+      medicoNombre: 'Dra. Ximena Alcántara Robledo',
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })
@@ -364,7 +486,7 @@ async function main() {
     consultorio  ${CLINICA}
     médica       Dra. Ximena Alcántara Robledo (sintética)
     pacientes    ${PACIENTES.length}
-    citas        ${CITAS.length}  (${CITAS.filter(c => !c.dia).length} hoy, ${dia})
+    cobros       ${COBROS.length}\n    citas        ${CITAS.length}  (${CITAS.filter(c => !c.dia).length} hoy, ${dia})
 
     entrar con   ${CORREO} / ${CLAVE}
     la app       npm run arnes:dev   →  http://localhost:3200

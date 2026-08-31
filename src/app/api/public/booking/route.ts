@@ -8,8 +8,10 @@
  * - Estado inicial: 'solicitada' (no confirmada hasta que el médico/asistente lo haga).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { validarFechaDeAgenda, dentroDeLaVentanaPublica } from '@/lib/agenda/horizonte'
+import { esLaMismaReserva } from '@/lib/agenda/reserva-repetida'
 import { safeLog } from '@/lib/security/sanitize'
-import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { instanteMX, hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { adminDb } from '@/lib/firebase-admin'
@@ -69,7 +71,15 @@ export async function POST(req: NextRequest) {
     if (limTel) return limTel
 
     // Validaciones de forma (defensa contra abuso de endpoint público)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NextResponse.json({ ok: false, error: 'Fecha inválida' }, { status: 400 })
+    /**
+     * La forma sola no basta: `/^\d{4}-\d{2}-\d{2}$/` deja pasar el 30 de
+     * febrero, que `new Date` desborda al 2 de marzo — el hueco se validaba
+     * contra un día y la cita se guardaba en otro. Y no había techo: este
+     * endpoint es PÚBLICO, así que aceptaba una reserva para el año 9999.
+     * Ver `@/lib/agenda/horizonte`.
+     */
+    const fechaAgenda = validarFechaDeAgenda(fecha)
+    if (!fechaAgenda.ok) return NextResponse.json({ ok: false, error: fechaAgenda.mensaje }, { status: 400 })
     if (!/^\d{2}:\d{2}$/.test(hora)) return NextResponse.json({ ok: false, error: 'Hora inválida' }, { status: 400 })
     if (paciente.nombre.length > 120 || paciente.nombre.length < 3) return NextResponse.json({ ok: false, error: 'Nombre fuera de rango' }, { status: 400 })
     if (paciente.telefono.replace(/\D/g, '').length < 7) return NextResponse.json({ ok: false, error: 'Teléfono inválido' }, { status: 400 })
@@ -135,6 +145,20 @@ export async function POST(req: NextRequest) {
     const fechaHoraDt = instanteMX(fecha, hora, tzClinica)
     if (isNaN(fechaHoraDt.getTime()) || fechaHoraDt.getTime() < Date.now()) {
       return NextResponse.json({ ok: false, error: 'No se puede agendar en el pasado' }, { status: 400 })
+    }
+
+    /**
+     * LA MISMA VENTANA QUE OFRECE EL GET — y aquí faltaba.
+     *
+     * `GET /api/public/availability` se negaba a ofrecer un hueco más allá de un
+     * año, y este POST lo aceptaba igual con una petición directa. Es la lección
+     * que este mismo archivo ya tiene escrita dos veces, para los descansos y
+     * para los bloqueos: «no ofrecer» y «no aceptar» son dos cosas distintas, y
+     * éste es un endpoint público.
+     */
+    const ventana = dentroDeLaVentanaPublica(fecha, hoyISO(tzClinica))
+    if (!ventana.ok) {
+      return NextResponse.json({ ok: false, error: ventana.mensaje }, { status: 400 })
     }
 
     const fechaHora = `${fecha} ${hora}`
@@ -284,6 +308,32 @@ export async function POST(req: NextRequest) {
     const end = start + duracion
     const CONFLICTO = Symbol('conflicto')
     let citaId = ''
+    /**
+     * REENVÍO DEL MISMO PACIENTE — NO ES UN CONFLICTO, ES LA MISMA RESERVA.
+     *
+     * ── EL FALLO, MEDIDO ──────────────────────────────────────────────────
+     *
+     * Enviando tres veces la misma reserva (doble clic, o un reintento tras
+     * perder la respuesta), la primera creaba la cita y las otras dos
+     * contestaban **«Ese horario acaba de ocuparse. Elige otro.»**
+     *
+     * Al paciente se le está diciendo que otra persona le quitó el hueco
+     * cuando quien lo tomó fue él. Lo obvio entonces es elegir otra hora — y
+     * acabar con DOS citas. El caso que más duele es el del resultado
+     * desconocido: el servidor creó la cita y la respuesta se perdió por el
+     * camino; el paciente no tiene forma de saber que ya la tiene.
+     *
+     * ── LA REGLA ──────────────────────────────────────────────────────────
+     *
+     * Reenviar exactamente la misma reserva devuelve **la que ya existe**, con
+     * éxito y con su identificador. No se crea nada nuevo y no se miente sobre
+     * lo ocurrido. «Misma reserva» es el mismo teléfono normalizado, el mismo
+     * `fechaHora`, el mismo tipo y una cita todavía viva.
+     *
+     * Dos personas que comparten teléfono no pierden nada: el hueco es uno, y
+     * la segunda no podría reservarlo de todos modos.
+     */
+    let citaExistente = ''
     // Centinela por médico+día (mismo mecanismo que la agenda interna): la tx lo
     // lee y escribe → serializa reservas simultáneas del mismo día y cierra la
     // carrera de inserción fantasma que una query dentro de la tx no bloquea.
@@ -295,9 +345,16 @@ export async function POST(req: NextRequest) {
           apptsCol.where('fechaHora', '>=', `${fecha} 00:00`).where('fechaHora', '<=', `${fecha} 23:59`)
         )
         let conflicto = false
+        citaExistente = ''
         snap.forEach(d => {
           const a = d.data()
           if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
+          // ¿Es ESTA MISMA reserva, reenviada? Se mira antes que el solape,
+          // porque una reserva repetida solapa consigo misma por definición.
+          if (esLaMismaReserva(a, { telefono: tel, fechaHora, tipo })) {
+            citaExistente = d.id
+            return
+          }
           // MULTI-MÉDICO: el conflicto solo aplica contra citas del mismo médico.
           if (medicoId && a.medicoId && a.medicoId !== medicoId) return
           const [ah, am] = (a.fechaHora?.slice(11, 16) || '00:00').split(':').map(Number)
@@ -305,6 +362,8 @@ export async function POST(req: NextRequest) {
           const aEnd = aStart + (a.duracion ?? 30)
           if (start < aEnd && end > aStart) conflicto = true
         })
+        // El reenvío gana al conflicto: la cita que «estorba» es la suya.
+        if (citaExistente) { citaId = citaExistente; return }
         if (conflicto) throw CONFLICTO
 
         tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
@@ -347,6 +406,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: 'Ese horario acaba de ocuparse. Elige otro.' }, { status: 409 })
       }
       throw e
+    }
+
+    /**
+     * LOS EFECTOS DE UNA RESERVA OCURREN UNA VEZ, AUNQUE SE ENVÍE TRES.
+     *
+     * Debajo se avisa al paciente por WhatsApp y se avisa al consultorio. Si
+     * un doble clic o un reintento repitiera esto, el consultorio recibiría
+     * tres «🔔 Nueva cita» de la misma cita y llamaría tres veces. La cita ya
+     * existía: no hay nada nuevo que anunciar.
+     */
+    if (citaExistente) {
+      return NextResponse.json({ ok: true, citaId, fecha, hora, duracion, yaExistia: true })
     }
 
     // Auditoría

@@ -1,4 +1,6 @@
 'use client'
+import { conMayusculaInicial } from '@/lib/texto-es'
+import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useEffect, useId, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
@@ -140,7 +142,7 @@ function fmtFecha(fh: string, tz = 'America/Mexico_City'): { dia: string; fecha:
   const hora = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(fh)
     ? fh.slice(11, 16)
     : d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: tz })
-  return { dia: dia.charAt(0).toUpperCase() + dia.slice(1), fecha, hora }
+  return { dia: conMayusculaInicial(dia), fecha, hora }
 }
 
 function gcalLink(c: Cita, tz: string): string {
@@ -378,7 +380,7 @@ export default function MiPortalPage() {
                   <div className="t-num" style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', lineHeight: 1.1 }}>{f.fecha.split(' ')[0]}</div>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{f.dia} · {f.hora}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{f.dia} · {f.hora}</div>
                   <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}><Stethoscope size={13} className="ds-icon" /> {c.medicoNombre}</div>
                   <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}><Calendar size={13} className="ds-icon" /> {TIPO_LABEL[c.tipo] || 'Consulta'}{c.lugar ? ` · ${c.lugar}` : ''}</div>
                   {c.confirmadoPaciente && <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle2 size={13} className="ds-icon" /> Asistencia confirmada</div>}
@@ -676,7 +678,7 @@ export default function MiPortalPage() {
                 return (
                   <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
                     <div style={{ color: 'var(--text3)', minWidth: 110 }} className="t-num">{f.fecha}</div>
-                    <div style={{ color: 'var(--text2)', flex: 1, textTransform: 'capitalize' }}>{TIPO_LABEL[c.tipo] || 'Consulta'} · {c.estado.replace('-', ' ')}</div>
+                    <div style={{ color: 'var(--text2)', flex: 1 }}>{TIPO_LABEL[c.tipo] || 'Consulta'} · {conMayusculaInicial(c.estado.replace('-', ' '))}</div>
                   </div>
                 )
               })}
@@ -784,7 +786,7 @@ export default function MiPortalPage() {
           cinco es el techo, no el objetivo. Van fijos abajo porque esta pantalla
           se usa con una mano, de pie, en la sala de espera.
         */}
-        <nav aria-label="Secciones" style={{
+        <nav aria-label="Secciones" className="mi-barra-destinos" style={{
           position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
           display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
           background: 'var(--s1)', borderTop: '1px solid var(--border)',
@@ -843,7 +845,7 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
         acto y no se pueden separar por descuido.
       */}
       <label htmlFor={idFecha} style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" aria-hidden="true" /> Elige un nuevo horario</label>
-      <input id={idFecha} type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
+      <input id={idFecha} type="date" value={fecha} min={hoy} max={FECHA_MAXIMA_AGENDA} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
       {/*
         Los horarios se rellenan solos al cambiar el día: sin región viva, el
         cambio ocurre en silencio.

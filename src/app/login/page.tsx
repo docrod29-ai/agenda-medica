@@ -1,4 +1,5 @@
 'use client'
+import { esFalloDeRed, MENSAJE_SIN_RED } from '@/lib/auth/fallo-de-red'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendPasswordResetEmail } from 'firebase/auth'
@@ -62,6 +63,7 @@ function LoginInner() {
       router.replace(destino)
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
+      if (esFalloDeRed(err)) { setError(MENSAJE_SIN_RED); return }
       if (code === 'auth/invalid-verification-code' || code === 'auth/argument-error' || code === 'auth/totp-challenge-timeout') {
         setError('Código incorrecto o expirado. Abre tu app de autenticación y escribe el código actual de 6 dígitos.')
       } else {
@@ -83,6 +85,8 @@ function LoginInner() {
       // Cuenta con 2FA: pedir el código de 6 dígitos (no es contraseña incorrecta).
       const resolver = obtenerResolverMfa(err)
       if (resolver) { setMfaResolver(resolver); setSubmitting(false); return }
+      // La red primero: sin ella, ningún código de credenciales significa nada.
+      if (esFalloDeRed(err)) { setError(MENSAJE_SIN_RED); return }
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         setError('Correo o contraseña incorrectos. Si te registraste con Google, entra con el botón "Continuar con Google" de arriba. Si olvidaste tu contraseña, usa el enlace de abajo.')
@@ -108,6 +112,7 @@ function LoginInner() {
       await signInWithRedirect(auth, provider)
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
+      if (esFalloDeRed(err)) { setError(MENSAJE_SIN_RED); return }
       if (code === 'auth/unauthorized-domain') {
         setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
       } else {
@@ -226,7 +231,7 @@ function LoginInner() {
                 />
               </div>
               {error && (
-                <div style={{ background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--red)' }}>
+                <div role="alert" style={{ background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--red)' }}>
                   {error}
                 </div>
               )}
@@ -340,7 +345,7 @@ function LoginInner() {
             </div>
 
             {error && (
-              <div style={{
+              <div role="alert" style={{
                 background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
                 borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--red)',
               }}>
@@ -388,7 +393,7 @@ function LoginInner() {
           ¿No tienes cuenta?{' '}
           {/* Subrayado: enlace DENTRO de una frase — sólo color no lo distingue
               (WCAG 1.4.1, la misma razón de a.nx-ident). */}
-          <Link href={invite ? `/registro?invite=${invite}` : '/registro'} style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          <Link className="nx-enlace-tactil" href={invite ? `/registro?invite=${invite}` : '/registro'} style={{ color: 'var(--teal)', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>
             Crea una gratis →
           </Link>
         </div>

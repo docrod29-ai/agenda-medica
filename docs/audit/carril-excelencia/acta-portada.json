@@ -1,0 +1,92 @@
+[
+  {
+    "modo": "normal",
+    "ancho": 390,
+    "conEntrada": 6,
+    "revelables": 7,
+    "invisibles": [],
+    "preparadosAlFinal": 0,
+    "revelados": 7,
+    "latido": {
+      "duracion": "2.4s",
+      "iteraciones": "infinite"
+    },
+    "desborde": false,
+    "consola": []
+  },
+  {
+    "modo": "normal",
+    "ancho": 768,
+    "conEntrada": 6,
+    "revelables": 7,
+    "invisibles": [],
+    "preparadosAlFinal": 0,
+    "revelados": 7,
+    "latido": {
+      "duracion": "2.4s",
+      "iteraciones": "infinite"
+    },
+    "desborde": false,
+    "consola": []
+  },
+  {
+    "modo": "normal",
+    "ancho": 1440,
+    "conEntrada": 6,
+    "revelables": 7,
+    "invisibles": [],
+    "preparadosAlFinal": 0,
+    "revelados": 7,
+    "latido": {
+      "duracion": "2.4s",
+      "iteraciones": "infinite"
+    },
+    "desborde": false,
+    "consola": []
+  },
+  {
+    "modo": "reducido",
+    "ancho": 390,
+    "conEntrada": 6,
+    "revelables": 7,
+    "invisibles": [],
+    "preparadosAlFinal": 0,
+    "revelados": 0,
+    "latido": {
+      "duracion": "1e-05s",
+      "iteraciones": "1"
+    },
+    "desborde": false,
+    "consola": []
+  },
+  {
+    "modo": "reducido",
+    "ancho": 768,
+    "conEntrada": 6,
+    "revelables": 7,
+    "invisibles": [],
+    "preparadosAlFinal": 0,
+    "revelados": 0,
+    "latido": {
+      "duracion": "1e-05s",
+      "iteraciones": "1"
+    },
+    "desborde": false,
+    "consola": []
+  },
+  {
+    "modo": "reducido",
+    "ancho": 1440,
+    "conEntrada": 6,
+    "revelables": 7,
+    "invisibles": [],
+    "preparadosAlFinal": 0,
+    "revelados": 0,
+    "latido": {
+      "duracion": "1e-05s",
+      "iteraciones": "1"
+    },
+    "desborde": false,
+    "consola": []
+  }
+]

@@ -44,17 +44,32 @@ describe('el portal descuenta el calendario del médico', () => {
   })
 })
 
+/**
+ * EL CUERPO DE UN `case`, HASTA EL SIGUIENTE — NO UNA VENTANA DE N BYTES.
+ *
+ * Estas dos comprobaciones recortaban 900 y 2 600 caracteres a ojo. Cualquier
+ * línea que se añadiera dentro del `case` empujaba la llamada fuera de la
+ * ventana y ponía la prueba en rojo **sin que el invariante se hubiera roto**:
+ * pasó al meter la validación de fecha en `reagendar`. Un guardián que falla
+ * por crecer es un guardián que alguien acaba subiendo de número hasta que deja
+ * de mirar nada.
+ */
+function cuerpoDelCaso(fuente: string, etiqueta: string): string {
+  const i = fuente.indexOf(etiqueta)
+  expect(i, `no se encontró ${etiqueta}`).toBeGreaterThan(-1)
+  const siguiente = fuente.indexOf("case '", i + etiqueta.length)
+  return fuente.slice(i, siguiente > i ? siguiente : undefined)
+}
+
 describe('en los DOS caminos, que es el punto', () => {
   it('al ofrecer los huecos', () => {
     // Validar sin ofrecer bien es ofrecer horas que no existen.
-    const i = portal.indexOf("case 'slots'")
-    expect(portal.slice(i, i + 900)).toContain('bloquesDelDia(')
+    expect(cuerpoDelCaso(portal, "case 'slots'")).toContain('bloquesDelDia(')
   })
 
   it('y al confirmar el cambio', () => {
     // Ofrecer y rechazar al confirmar es un formulario que miente.
-    const i = portal.indexOf("case 'reagendar'")
-    expect(portal.slice(i, i + 2600)).toContain('bloquesDelDia(')
+    expect(cuerpoDelCaso(portal, "case 'reagendar'")).toContain('bloquesDelDia(')
   })
 
   it('ya no queda ninguna llamada que pase sólo los bloqueos locales', () => {

@@ -1,0 +1,84 @@
+[
+  {
+    "ancho": 390,
+    "pasos": [
+      {
+        "paso": "tipo-de-consulta",
+        "ok": true,
+        "detalle": "button«Primera vez45 min»",
+        "anillo": true
+      },
+      {
+        "paso": "dia",
+        "ok": true,
+        "detalle": "button«Lun 31 de ago»",
+        "anillo": true
+      },
+      {
+        "paso": "hora",
+        "ok": true,
+        "detalle": "button«15:00»",
+        "anillo": true
+      },
+      {
+        "paso": "formulario",
+        "ok": true,
+        "detalle": "nombre,tel,correo",
+        "anillo": true
+      },
+      {
+        "paso": "continuar",
+        "ok": true,
+        "detalle": "button«Continuar →»",
+        "anillo": true
+      },
+      {
+        "paso": "consentimientos-y-confirmar",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · ¡Cita solicitada! ✅ ·  · Tu solicitud llegó al consultorio. Te",
+        "anillo": true
+      }
+    ]
+  },
+  {
+    "ancho": 1440,
+    "pasos": [
+      {
+        "paso": "tipo-de-consulta",
+        "ok": true,
+        "detalle": "button«Primera vez45 min»",
+        "anillo": true
+      },
+      {
+        "paso": "dia",
+        "ok": true,
+        "detalle": "button«Lun 31 de ago»",
+        "anillo": true
+      },
+      {
+        "paso": "hora",
+        "ok": true,
+        "detalle": "button«15:45»",
+        "anillo": true
+      },
+      {
+        "paso": "formulario",
+        "ok": true,
+        "detalle": "nombre,tel,correo",
+        "anillo": true
+      },
+      {
+        "paso": "continuar",
+        "ok": true,
+        "detalle": "button«Continuar →»",
+        "anillo": true
+      },
+      {
+        "paso": "consentimientos-y-confirmar",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · ¡Cita solicitada! ✅ ·  · Tu solicitud llegó al consultorio. Te",
+        "anillo": true
+      }
+    ]
+  }
+]

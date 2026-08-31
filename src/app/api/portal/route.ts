@@ -15,7 +15,8 @@ import {
 } from '@/lib/portal/vigencia-del-enlace'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
-import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { instanteMX, hoyISO, TZ_DEFAULT } from '@/lib/timezone'
+import { validarFechaHoraDeAgenda, dentroDeLaVentanaPublica } from '@/lib/agenda/horizonte'
 import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
@@ -502,10 +503,24 @@ export async function POST(req: NextRequest) {
         if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
           return NextResponse.json({ error: `Reagenda en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
         }
-        if (!body.nuevaFechaHora || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(body.nuevaFechaHora)) {
-          return NextResponse.json({ error: 'Horario inválido' }, { status: 400 })
+        /**
+         * REAGENDAR PASA POR LA MISMA PUERTA QUE AGENDAR.
+         *
+         * Aquí sólo se miraba la FORMA, y la forma deja pasar el 30 de febrero:
+         * `new Date` lo desborda al 2 de marzo, así que la cita se revalidaba
+         * contra un día y se guardaba en otro — sin chocar con las citas reales
+         * de ninguno de los dos. Tampoco había techo. Ver
+         * `@/lib/agenda/horizonte`.
+         */
+        const nueva = validarFechaHoraDeAgenda(body.nuevaFechaHora)
+        if (!nueva.ok) {
+          return NextResponse.json({ error: nueva.mensaje }, { status: 400 })
         }
-        const nuevaFechaHora = body.nuevaFechaHora
+        const ventanaPortal = dentroDeLaVentanaPublica(nueva.fecha, hoyISO(config?.zonaHoraria || TZ_DEFAULT))
+        if (!ventanaPortal.ok) {
+          return NextResponse.json({ error: ventanaPortal.mensaje }, { status: 400 })
+        }
+        const nuevaFechaHora = nueva.fechaHora
         const fecha = nuevaFechaHora.slice(0, 10)
         const hhmm = nuevaFechaHora.slice(11, 16)
         const dayQuery = adminDb.collection('clinics').doc(clinicId).collection('appointments')

@@ -27,6 +27,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { comoBloqueos } from '@/lib/calendario/ocupado-externo'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import type { TimeBlock } from '@/lib/time-blocks-core'
+import { conTiempoLimite } from '@/lib/fetch-con-timeout'
 
 export interface OcupadoDelMedico {
   bloqueos: TimeBlock[]
@@ -37,6 +38,14 @@ export interface OcupadoDelMedico {
 }
 
 const VACIO: OcupadoDelMedico = { bloqueos: [], consultado: false, fallo: false }
+
+/**
+ * Cuánto se espera al calendario del médico antes de seguir sin él.
+ *
+ * Generoso para una llamada real a Google, muy por debajo de lo que aguanta un
+ * paciente mirando una pantalla de reserva que no acaba de cargar.
+ */
+export const ESPERA_GOOGLE_MS = 6000
 
 /**
  * Los intervalos ocupados de ESE médico ese día, como bloqueos de agenda.
@@ -70,8 +79,31 @@ export async function ocupadoEnGoogle(
     const desde = instanteMX(fecha, '00:00', tz).toISOString()
     const hasta = instanteMX(fecha, '23:59', tz).toISOString()
 
+    /**
+     * CON TECHO — porque un `catch` no captura un CUELGUE.
+     *
+     * Este archivo ya degradaba bien cuando Google falla, y lo razona en
+     * `POR_QUE_NO_SE_ESCONDE_EL_DIA`: «ni la agenda pública ni el bot se caen
+     * porque Google tenga un mal día». Pero **un cuelgue es Google teniendo un
+     * mal día**, y era el único caso que no cubría: `googleapis` no trae tiempo
+     * máximo, así que una petición que no vuelve deja pendiente la promesa, el
+     * `catch` de abajo sin nada que capturar, y con ella **la petición de
+     * disponibilidad del paciente** — que es quien está mirando la pantalla de
+     * reserva mientras tanto.
+     *
+     * Es la misma forma que el «Guardando…» eterno del alta de la asistente
+     * (unidad 37): la degradación estaba escrita, y no llegaba a ejecutarse.
+     *
+     * Al agotarse se toma exactamente el mismo camino que un fallo —
+     * `fallo: true`, sin bloqueos— que es el que este archivo ya declaró
+     * correcto y justificó por escrito.
+     */
     const { intervalosOcupados } = await import('@/lib/google-calendar')
-    const r = await intervalosOcupados(refreshToken, opciones.googleCalendarId || 'primary', desde, hasta)
+    const r = await conTiempoLimite(
+      intervalosOcupados(refreshToken, opciones.googleCalendarId || 'primary', desde, hasta),
+      ESPERA_GOOGLE_MS,
+      'el calendario de Google del médico',
+    )
     if (!r.ok) return { bloqueos: [], consultado: false, fallo: true }
 
     return { bloqueos: comoBloqueos(r.intervalos, medicoId), consultado: true, fallo: false }

@@ -1,4 +1,5 @@
 'use client'
+import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useState, useEffect } from 'react'
 import { WaitlistEntry, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { hoyISO, ahoraMinutosDelDia } from '@/lib/timezone'
@@ -134,8 +135,8 @@ export default function ListaEsperaPage() {
                 {/* Priority badge */}
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                  background: entry.prioridad <= 1 ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'rgba(59,130,246,0.15)',
-                  color: entry.prioridad <= 1 ? '#f87171' : '#60a5fa',
+                  background: entry.prioridad <= 1 ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'color-mix(in srgb, var(--blue) 15%, transparent)',
+                  color: entry.prioridad <= 1 ? 'var(--red)' : 'var(--blue)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700,
                 }}>
@@ -159,8 +160,8 @@ export default function ListaEsperaPage() {
                 {/* Estado */}
                 <span style={{
                   fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-pill)', fontWeight: 500,
-                  background: entry.estado === 'activo' ? 'rgba(59,130,246,0.15)' : entry.estado === 'contactado' ? 'color-mix(in srgb, var(--amber) 15%, transparent)' : 'color-mix(in srgb, var(--green) 15%, transparent)',
-                  color: entry.estado === 'activo' ? '#60a5fa' : entry.estado === 'contactado' ? '#fbbf24' : '#4ade80',
+                  background: entry.estado === 'activo' ? 'color-mix(in srgb, var(--blue) 15%, transparent)' : entry.estado === 'contactado' ? 'color-mix(in srgb, var(--amber) 15%, transparent)' : 'color-mix(in srgb, var(--green) 15%, transparent)',
+                  color: entry.estado === 'activo' ? 'var(--blue)' : entry.estado === 'contactado' ? 'var(--amber)' : 'var(--green)',
                 }}>
                   {entry.estado}
                 </span>
@@ -200,7 +201,7 @@ export default function ListaEsperaPage() {
           que pongas aquí, y va a confirmar sobre eso. Verifica que el hueco de verdad esté libre.
         </p>
         <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Input type="date" label="Fecha" value={notificando?.fecha ?? ''}
+          <Input type="date" label="Fecha" max={FECHA_MAXIMA_AGENDA} value={notificando?.fecha ?? ''}
             onChange={e => setNotificando(n => n && { ...n, fecha: e.target.value })} />
           <Input type="time" label="Hora" value={notificando?.hora ?? ''}
             onChange={e => setNotificando(n => n && { ...n, hora: e.target.value })} />
@@ -273,7 +274,7 @@ function AddWaitlistModal({ onClose, onSaved, userEmail }: { onClose: () => void
           ))}
         </Select>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <Input label="Fecha disponible a partir de" type="date" value={fechaDeseada} onChange={e => setFechaDeseada(e.target.value)} />
+          <Input label="Fecha disponible a partir de" type="date" max={FECHA_MAXIMA_AGENDA} value={fechaDeseada} onChange={e => setFechaDeseada(e.target.value)} />
           <Input label="Rango horario preferido" value={rangoHorario} onChange={e => setRangoHorario(e.target.value)} placeholder="Ej. Mañana, 9-12" />
         </div>
         <Input label="Prioridad (1 = mayor prioridad)" type="number" min={1} max={10} value={prioridad} onChange={e => setPrioridad(Number(e.target.value))} />

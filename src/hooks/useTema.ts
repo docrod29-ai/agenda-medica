@@ -18,16 +18,14 @@
  * Semántica intacta del ThemeToggle original:
  *  - default = OSCURO (marca Ausculta); 'auto' sólo si el usuario lo eligió;
  *  - ciclo: auto → dark → light → auto;
- *  - 'auto' borra la llave (sigue al SO); dark/light la persisten;
+ *  - los tres modos SE PERSISTEN, 'auto' incluido: borrarlo lo hacía
+ *    indistinguible de «nunca eligió» y no sobrevivía a una recarga;
  *  - hasta montar no se pinta control alguno (evita flicker SSR).
  */
 import { useEffect, useState } from 'react'
+import { EVENTO_TEMA, LLAVE_TEMA, modoGuardado, type ModoTema } from '@/lib/tema'
 
-export type ModoTema = 'dark' | 'light' | 'auto'
-
-const KEY = 'nexusmed.theme'
-/** Lo emite quien cicla; lo escuchan todas las vistas del tema. */
-const EVENTO_TEMA = 'nx:tema'
+export type { ModoTema }
 
 function aplicar(modo: ModoTema) {
   const html = document.documentElement
@@ -43,7 +41,14 @@ export function useTema() {
   const [montado, setMontado] = useState(false)
 
   useEffect(() => {
-    const guardado = (localStorage.getItem(KEY) as ModoTema | null) ?? 'dark'
+    /**
+     * `modoGuardado` es la MISMA tabla que usa el guion del `<head>`. Antes
+     * aquí había un `?? 'dark'` propio, y como «automático» se guardaba
+     * BORRANDO la llave, la ausencia se leía como oscuro: el automático no
+     * sobrevivía a una recarga y el control decía «oscuro» como si lo hubiera
+     * elegido el médico. Ver `src/lib/tema.ts`.
+     */
+    const guardado = modoGuardado(localStorage.getItem(LLAVE_TEMA))
     setModo(guardado)
     aplicar(guardado)
     setMontado(true)
@@ -59,8 +64,12 @@ export function useTema() {
     const siguiente: ModoTema = modo === 'auto' ? 'dark' : modo === 'dark' ? 'light' : 'auto'
     setModo(siguiente)
     aplicar(siguiente)
-    if (siguiente === 'auto') localStorage.removeItem(KEY)
-    else localStorage.setItem(KEY, siguiente)
+    /**
+     * «Automático» SE ESCRIBE. Representarlo con el hueco lo hacía
+     * indistinguible de «nunca elegí nada», y las dos cosas acababan en
+     * oscuro. Ausencia de dato no es dato de ausencia.
+     */
+    localStorage.setItem(LLAVE_TEMA, siguiente)
     window.dispatchEvent(new CustomEvent<ModoTema>(EVENTO_TEMA, { detail: siguiente }))
   }
 

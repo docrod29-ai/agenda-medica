@@ -68,11 +68,11 @@ function Fila({ c }: { c: Comprobacion }) {
       <Link
         href={c.destino}
         data-destino={c.id}
-        className="t-body"
+        className="t-body nx-enlace-riel"
         style={{
           flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4,
           minHeight: 44, padding: '0 4px',
-          fontWeight: 600, color: 'var(--nexus)',
+          fontWeight: 600,
         }}>
         {c.destinoLabel} <ChevronRight size={14} aria-hidden />
       </Link>

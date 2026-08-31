@@ -33,10 +33,22 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const fuente = readFileSync(join(process.cwd(), 'src/app/layout.tsx'), 'utf8')
+/**
+ * El guion vive en `@/lib/tema` desde que se descubrió que el layout y
+ * `useTema` eran DOS lectores con su propia tabla — y que por eso el modo
+ * «automático» no sobrevivía a una recarga
+ * (`el-tema-automatico-sobrevive-a-una-recarga.test.ts`). El PAR que vigila
+ * esta prueba no cambia: si hay mutador pre-pintada, hay supresión en <html>.
+ * Lo que cambia es dónde se lee el mutador.
+ */
+const guion = readFileSync(join(process.cwd(), 'src/lib/tema.ts'), 'utf8')
 
 describe('V10-BUG-001 — tema pre-pintada e hidratación', () => {
   it('el script anti-flicker sigue existiendo (sin él, destello claro en tema oscuro)', () => {
-    expect(fuente).toMatch(/document\.documentElement\.setAttribute\('data-theme'/)
+    expect(guion).toMatch(/document\.documentElement\.setAttribute\('data-theme'/)
+    // …y el layout sigue inyectándolo antes de la primera pintada.
+    expect(fuente).toContain('GUION_TEMA')
+    expect(fuente).toMatch(/<script dangerouslySetInnerHTML=\{\{ __html: GUION_TEMA \}\} \/>/)
   })
 
   it('el <html> declara suppressHydrationWarning — el par obligado del mutador pre-pintada', () => {
