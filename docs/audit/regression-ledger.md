@@ -17487,3 +17487,63 @@ fixture: fingir que una corrida v2 se compara con una v1 sería peor que decirlo
   comportamiento del producto bajo esa carga.
 
 **Prueba.** `src/__tests__/el-arnes-daba-a-todos-los-pacientes-la-misma-historia.test.ts` (21 casos).
+
+---
+
+## REG-441 — la sección titulada «no citadas de memoria» citaba de memoria
+
+**Eje.** WS-01 · custodia del tablero. **Fecha.** 31-ago-2026.
+
+### Qué fallaba
+
+REG-416 derivó el estado por requisito; REG-426 añadió el conteo de los tres
+programas. El censo dejó apuntado lo que quedaba: *«la prosa de cada WS sigue a
+mano y puede envejecer»*.
+
+Al medirlo contra el árbol, la prosa que había envejecido era **justo la que
+promete no envejecer**. La sección se titula, literal:
+
+```
+## Compuertas medidas en este SHA — no citadas de memoria
+```
+
+y citaba, escritos a mano:
+
+| Lo que decía | Lo que era |
+|---|---|
+| trinquete de lint **96** | **95**, desde hacía días |
+| **10 844** casos, 788 archivos | **12 019**, 860 archivos |
+| «medido el 29-ago, tras REG-348…REG-362» | el ledger iba por REG-440 |
+
+### Causa raíz, por cuarta vez este mes
+
+Con REG-424, REG-428 y REG-438 son cuatro: **cuanto mejor explicada está una
+garantía, menos probable es que alguien vaya a comprobar si el código la
+cumple.** Un título que promete no citar de memoria no impide citar de memoria.
+Un guardián sí.
+
+### La línea entre lo derivado y lo escrito a mano, razonada
+
+Se derivan los **techos** y los conteos que se leen de un archivo:
+`lint-techo.json`, `techos-de-diseno.json`, `MASTER_STATE.json`,
+`invariantes-clinicos.json`. Los cuatro existían ya y los cuatro tienen su propio
+guardián; lo único que faltaba era que el tablero los **leyera** en vez de
+repetirlos.
+
+**No se deriva el resultado de correr la suite.** Exige correrla, y meter una
+corrida de tres minutos dentro de un generador de documentación lo convierte en
+algo que nadie ejecuta — y un generador que nadie ejecuta deja el documento
+igual de viejo, con la ceremonia añadida.
+
+Así que ese número sigue siendo una **foto**: ahora se llama así, lleva fecha, y
+dice que si no cuadra con lo de hoy **gana lo de hoy**.
+
+### Qué NO cubre
+
+- **La prosa de cada WS sigue a mano**, y debe: es criterio, no un `grep`. Lo que
+  ya no puede envejecer son las cifras.
+- **No comprueba que la foto sea reciente**, que exigiría correr la suite desde
+  el guardián — lo que se decidió no hacer.
+- **No vigila los tableros de GitHub** (#296, #310, #314).
+
+**Prueba.** `src/__tests__/el-tablero-citaba-de-memoria-en-la-seccion-que-promete-no-hacerlo.test.ts` (9 casos).

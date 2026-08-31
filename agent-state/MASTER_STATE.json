@@ -21,12 +21,13 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M scripts/product/generate-consultorio-load-fixture.mjs",
+    " M scripts/programa/tablero-derivado.mjs",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/el-arnes-daba-a-todos-los-pacientes-la-misma-historia.test.ts"
+    "?? src/__tests__/el-tablero-citaba-de-memoria-en-la-seccion-que-promete-no-hacerlo.test.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -62,10 +63,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 291,
+    "regsEnElLedger": 292,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 862,
-    "casosDePrueba": 10841,
+    "archivosDePrueba": 863,
+    "casosDePrueba": 10850,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

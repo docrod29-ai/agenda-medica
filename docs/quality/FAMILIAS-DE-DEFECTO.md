@@ -43,10 +43,20 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 89 de 291, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 90 de 292, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-440** (31-ago-2026), y la familia apareció
+El miembro más reciente es **REG-441** (31-ago-2026), y cierra la serie del mes
+con la versión más literal del patrón: una sección del tablero titulada
+**«Compuertas medidas en este SHA — no citadas de memoria»** citaba de memoria un
+trinquete de 96 con el techo en 95.
+
+Con REG-424, REG-428 y REG-438 son cuatro este mes. La regla, ya sin rodeos:
+**cuanto mejor explicada está una garantía, menos probable es que alguien vaya a
+comprobar si el código la cumple.** Un título que promete algo no lo impide; un
+guardián sí.
+
+Antes que él, **REG-440** (31-ago-2026), y la familia apareció
 **dentro de su propio golden**: los primeros casos probaban la distribución nueva
 llamándola directamente, y al desconectarla del generador —dejándolo plano otra
 vez— no caía ninguno. Probaban el módulo, no que el módulo corriera. Hicieron

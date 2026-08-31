@@ -102,14 +102,97 @@ export function generar(rs = censo()) {
   return l.join('\n')
 }
 
+export const INICIO_COMPUERTAS = '<!-- COMPUERTAS-DERIVADAS:INICIO -->'
+export const FIN_COMPUERTAS = '<!-- COMPUERTAS-DERIVADAS:FIN -->'
+
+/**
+ * LAS COMPUERTAS, DERIVADAS — REG-441.
+ *
+ * La sección se titulaba «Compuertas medidas en este SHA — **no citadas de
+ * memoria**» y citaba de memoria: decía un trinquete de 96 cuando el techo
+ * llevaba días en 95, y 10 844 casos cuando el árbol tenía 12 019.
+ *
+ * Es la cuarta vez este mes —con REG-424, REG-428 y REG-438— que **la garantía
+ * mejor explicada es la que nadie fue a comprobar**. Un título que promete no
+ * citar de memoria no impide citar de memoria; un guardián sí.
+ *
+ * ── LO QUE SE DERIVA Y LO QUE NO ────────────────────────────────────────────
+ *
+ * Se derivan los TECHOS y los conteos del árbol, que se leen de un archivo.
+ * **No se deriva el resultado de correr la suite**: eso exige correrla, y meter
+ * una corrida de tres minutos dentro de un generador de documentación lo
+ * convertiría en algo que nadie ejecuta.
+ *
+ * Así que el resultado sigue siendo una FOTO, y se dice que lo es, con su
+ * comando al lado para que cualquiera la repita. Lo que ya no puede pasar es que
+ * la foto cite un techo distinto del que el trinquete comprueba hoy.
+ */
+export function compuertas() {
+  const leer = (r) => JSON.parse(readFileSync(r, 'utf8'))
+  const techoLint = leer('docs/audit/lint-techo.json')
+  const techosDiseno = leer('scripts/design/techos-de-diseno.json')
+  const estado = leer('agent-state/MASTER_STATE.json')
+  const sello = leer('src/lib/clinical/invariantes-clinicos.json')
+  return {
+    techoLint: techoLint.errores ?? null,
+    casosDeclarados: estado.derivado?.casosDePrueba ?? null,
+    archivosDePrueba: estado.derivado?.archivosDePrueba ?? null,
+    ultimaREG: estado.derivado?.ultimaREG ?? null,
+    archivosSellados: sello.archivos?.length ?? null,
+    casosSellados: sello.totalCasos ?? null,
+    metricasDeDiseno: Object.keys(techosDiseno.techos ?? {}).length,
+  }
+}
+
+export function generarCompuertas(c = compuertas()) {
+  const l = []
+  l.push(INICIO_COMPUERTAS)
+  l.push('')
+  l.push('> **Los TECHOS de este bloque se DERIVAN.** `node scripts/programa/tablero-derivado.mjs`')
+  l.push('> los reescribe y su guardián falla si están viejos. Antes de REG-441 esta sección se')
+  l.push('> titulaba «no citadas de memoria» y citaba un trinquete de 96 cuando llevaba días en 95.')
+  l.push('>')
+  l.push('> **El RESULTADO de correr la suite no se deriva**: exige correrla, y una corrida de tres')
+  l.push('> minutos dentro de un generador de documentación es algo que nadie ejecuta. Sigue siendo')
+  l.push('> una foto, y por eso lleva su comando al lado.')
+  l.push('')
+  l.push('| Compuerta | Techo o cota derivada | Cómo se repite |')
+  l.push('|---|---|---|')
+  l.push(`| Trinquete de lint | **${c.techoLint}** — sólo puede bajar | \`node scripts/lint-trinquete.mjs\` |`)
+  l.push(`| Casos declarados en el árbol | **${c.casosDeclarados}** en ${c.archivosDePrueba} archivos | \`node scripts/agent-state/actualizar.mjs\` |`)
+  l.push(`| Sellado clínico | **${c.archivosSellados} archivos · ${c.casosSellados} casos**, no pueden encoger | \`npx vitest run src/__tests__/clinical-safety-gate.test.ts\` |`)
+  l.push(`| Trinquete de diseño | ${c.metricasDeDiseno} métricas, todas al techo | \`node scripts/design/trinquete-de-diseno.mjs\` |`)
+  l.push(`| Última reparación en el ledger | **${c.ultimaREG}** | \`docs/audit/regression-ledger.md\` |`)
+  l.push('| Compila | `npx tsc --noEmit` · `npm run build` | con los placeholders `NEXT_PUBLIC_FIREBASE_*` |')
+  l.push('| Navegador real | **no ejecutado** | ver WS-05 |')
+  l.push('')
+  l.push(FIN_COMPUERTAS)
+  return l.join('\n')
+}
+
 /** Mete o sustituye el bloque en el tablero. */
 export function aplicar(texto = readFileSync(TABLERO, 'utf8'), bloque = generar()) {
+  texto = aplicarCompuertas(texto)
   const i = texto.indexOf(INICIO)
   const j = texto.indexOf(FIN)
   if (i >= 0 && j > i) return texto.slice(0, i) + bloque + texto.slice(j + FIN.length)
   /* La primera vez va justo después del encabezado, antes de la prosa. */
   const trasTitulo = texto.indexOf('\n## ')
   return texto.slice(0, trasTitulo) + '\n\n' + bloque + '\n' + texto.slice(trasTitulo)
+}
+
+/**
+ * Igual que `aplicar`, para el bloque de compuertas. La primera vez se mete
+ * justo debajo del encabezado de su sección, que ya existe y lleva su prosa.
+ */
+export function aplicarCompuertas(texto, bloque = generarCompuertas()) {
+  const i = texto.indexOf(INICIO_COMPUERTAS)
+  const j = texto.indexOf(FIN_COMPUERTAS)
+  if (i >= 0 && j > i) return texto.slice(0, i) + bloque + texto.slice(j + FIN_COMPUERTAS.length)
+  const titulo = texto.indexOf('## Compuertas medidas')
+  if (titulo < 0) return texto
+  const finLinea = texto.indexOf('\n', titulo)
+  return texto.slice(0, finLinea + 1) + '\n' + bloque + '\n' + texto.slice(finLinea + 1)
 }
 
 if (process.argv[1]?.endsWith('tablero-derivado.mjs')) {

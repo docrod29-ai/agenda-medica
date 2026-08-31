@@ -127,16 +127,36 @@ trabajo interno se acabó.
 
 ## Compuertas medidas en este SHA — no citadas de memoria
 
-| Compuerta | Resultado | Observación |
-|---|---|---|
-| `npx vitest run` | **10 844 pasan · 1 falla** (788 archivos) | Baseline del 28-ago eran 10 566; **+278 casos, cero regresiones**. La única falla sigue siendo `ops-timeout-y-punto-ciego.test.ts` |
-| `node scripts/lint-trinquete.mjs` | **96**, igual que el techo | Sin deuda nueva |
-| `npx tsc --noEmit` | **limpio** | |
-| `npm run build` | **compila** | Con los placeholders del CI (`NEXT_PUBLIC_FIREBASE_*`). Sin ellos falla en «collect page data» por `auth/invalid-api-key`: es del entorno, no del árbol |
-| trinquete de diseño | **al techo**, sin holgura | |
-| navegador real | **no ejecutado** | ver WS-05 |
+<!-- COMPUERTAS-DERIVADAS:INICIO -->
 
-Medido el 29-ago-2026 sobre el árbol de esta rama, tras REG-348…REG-362.
+> **Los TECHOS de este bloque se DERIVAN.** `node scripts/programa/tablero-derivado.mjs`
+> los reescribe y su guardián falla si están viejos. Antes de REG-441 esta sección se
+> titulaba «no citadas de memoria» y citaba un trinquete de 96 cuando llevaba días en 95.
+>
+> **El RESULTADO de correr la suite no se deriva**: exige correrla, y una corrida de tres
+> minutos dentro de un generador de documentación es algo que nadie ejecuta. Sigue siendo
+> una foto, y por eso lleva su comando al lado.
+
+| Compuerta | Techo o cota derivada | Cómo se repite |
+|---|---|---|
+| Trinquete de lint | **95** — sólo puede bajar | `node scripts/lint-trinquete.mjs` |
+| Casos declarados en el árbol | **10850** en 863 archivos | `node scripts/agent-state/actualizar.mjs` |
+| Sellado clínico | **450 archivos · 6529 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
+| Trinquete de diseño | 9 métricas, todas al techo | `node scripts/design/trinquete-de-diseno.mjs` |
+| Última reparación en el ledger | **REG-503** | `docs/audit/regression-ledger.md` |
+| Compila | `npx tsc --noEmit` · `npm run build` | con los placeholders `NEXT_PUBLIC_FIREBASE_*` |
+| Navegador real | **no ejecutado** | ver WS-05 |
+
+<!-- COMPUERTAS-DERIVADAS:FIN -->
+
+**La foto de la última corrida.** Se repite con los comandos de arriba; si estas
+cifras no cuadran con lo que sale hoy, **gana lo que sale hoy** y esta foto está
+vieja.
+
+| | |
+|---|---|
+| `npx vitest run` | **12 019 pasan · 1 falla** (860 archivos) |
+| Fecha de la foto | 31-ago-2026, tras REG-433…REG-441 |
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes
