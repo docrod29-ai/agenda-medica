@@ -146,6 +146,8 @@ const FOTO = (e) => {
 
 const medido = {}
 const detalle = {}
+/* Rutas que montaron pero no pintaron ni un control: sospechosas, no verdes. */
+const rutasVacias = []
 
 for (const ruta of RUTAS_CON_PORTAL) {
   await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded' }).catch(() => {})
@@ -264,6 +266,23 @@ for (const ruta of RUTAS_CON_PORTAL) {
   // URL literal dejaría un techo nuevo cada vez, comparable con nada.
   medido[claveDeRuta(ruta)] = mudos.length
   detalle[claveDeRuta(ruta)] = { total: cuantos, mudos }
+
+  /**
+   * SUELO POR RUTA: cero controles NO es cero mudos.
+   *
+   * Una ruta que monta su `<main>` pero no pinta un solo control da «0 mudos» y
+   * casa con su techo de 0. El total global —que aborta por debajo de 100— no la
+   * salva: su cero se absorbe entre las otras veintitantas.
+   *
+   * Es la misma distinción que salvó la unidad 88 en los diálogos, donde
+   * «Cobrar» dijo «sin abrir, queda sin medir» en vez de 0 y por eso se
+   * investigó. Aquí faltaba, y estaba declarado como NOT_PROVEN.
+   *
+   * Ninguna pantalla de trabajo de este producto tiene cero controles: todas
+   * llevan al menos el armazón. Si alguna los tuviera de verdad, este aviso lo
+   * dirá y se declara — que es justo lo contrario de que pase en silencio.
+   */
+  if (cuantos === 0) rutasVacias.push(claveDeRuta(ruta))
   console.log(`  ${String(mudos.length).padStart(3)} mudos de ${String(cuantos).padEnd(4)} ${ruta}`)
   if (mudos.length) mudos.slice(0, 6).forEach(m => console.log(`        · ${m}`))
 }
@@ -474,6 +493,11 @@ for (const ruta of RUTAS_CON_PORTAL.map(claveDeRuta)) {
 
 /* Los diálogos no tienen techo por ruta: su cuenta buena es CERO y punto. */
 for (const m of mudosDeDialogos) peores.push(m)
+
+/* Y una ruta sin un solo control no está en cero: está sin medir. */
+for (const r of rutasVacias) {
+  peores.push(`${r}: 0 controles encontrados — la ruta montó pero no pintó nada que pulsar; eso no es «0 mudos», es «sin medir»`)
+}
 
 if (peores.length) {
   console.error('\n  MÁS CONTROLES MUDOS QUE ANTES:\n' + peores.map(p => '   · ' + p).join('\n') + '\n')
