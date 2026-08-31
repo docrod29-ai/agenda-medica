@@ -304,6 +304,14 @@ sin medir: piden un paciente, y un consultorio de cero no tiene ninguno.
 - **benchmark quality** — comparar contra una referencia externa es un juicio, y
   este carril sólo escribe lo que puede volver a medir.
 
+## Y una tercera que NO es una decisión, sino un límite del entorno
+
+- **WebKit** — `BLOCKED_EXTERNAL`. Las 69 combinaciones, los diez arneses y todo
+  lo demás están medidos en **Chromium**, porque es el único navegador instalado
+  en esta caja (`/opt/pw-browsers/`) y el entorno prohíbe `playwright install`.
+  El encargo lo pide por su nombre; se registra sin medir, y no se disfraza de
+  medido.
+
 ## Los diez guiones, para volver a correrlo
 
 ```bash
@@ -315,6 +323,7 @@ npm run arnes:estado-de-carga      # el hueco dice que está cargando
 npm run arnes:caida-de-datos       # una caída no borra el consultorio
 npm run arnes:caida-parcial        # una caída parcial no es un día libre
 npm run arnes:cita-fuera-de-hora   # ninguna cita se queda fuera de la rejilla
+npm run arnes:dialogos-teclado     # el foco entra, Escape cierra, el foco vuelve
 npm run arnes:consultorio-vacio    # el estado vacío, con un consultorio de cero
 npm run arnes:texto-largo          # el texto largo cabe y el campo lo enseña
 npm run arnes:listas-largas        # 250 pacientes y 90 citas, en su propio consultorio

@@ -43,10 +43,11 @@
  * sitios que disparan usan `DisparadorAyuda` (la lección de `estoy-grabando`:
  * una cadena repetida en dos archivos es una compuerta que se abre sola).
  */
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import { AsistenteChat } from '@/components/AsistenteChat'
 import { useGrabando } from '@/hooks/useGrabando'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 import { HelpCircle, X, BookOpen } from 'lucide-react'
 
 /** Lo despachan los disparadores estáticos; lo escucha este componente. */
@@ -81,6 +82,7 @@ export function DisparadorAyuda({ className, style, children }: {
 export function BotonAyuda() {
   const [abierto, setAbierto] = useState(false)
   const grabando = useGrabando()
+  const cajaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const abrir = () => setAbierto(v => !v)
@@ -88,12 +90,29 @@ export function BotonAyuda() {
     return () => window.removeEventListener(EVENTO_ABRIR_AYUDA, abrir)
   }, [])
 
+  /**
+   * EL TECLADO DEL PANEL — era el único `role="dialog"` del producto sin él.
+   *
+   * Medido el 30-ago en `/citas`: el panel abría, **el foco se quedaba fuera** y
+   * **Escape no lo cerraba**. Quien usa teclado o lector abría la ayuda y se
+   * encontraba con que la ayuda no existía para él, y para quitarla de encima
+   * tenía que ir tabulando a ciegas hasta la aspa.
+   *
+   * No es una implementación nueva: es la misma que ya usan el `Modal`, el
+   * cajón de navegación, la paleta y el tour. Este panel se escribió antes de
+   * que el gancho existiera y se quedó atrás — la familia de siempre: la
+   * lección aprendida en un componente y no en el de al lado.
+   */
+  useDialogoDeTeclado(abierto, cajaRef, () => setAbierto(false))
+
   if (grabando) return null
 
   return (
     <>
       {abierto && (
         <div
+          ref={cajaRef}
+          tabIndex={-1}
           className="boton-ayuda-panel"
           role="dialog"
           aria-label="Asistente de ayuda"

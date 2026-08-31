@@ -4787,3 +4787,71 @@ build` compila · `arnes:caida-parcial` en verde con su tercer bloque.
 - El aviso no se comprueba que se QUITE al volver el permiso.
 - `accionesPendientes` sigue sin saber que una fuente falló: recibe listas
   vacías y no puede distinguirlas. El aviso vive en la pantalla, no en el motor.
+
+---
+
+## Unidad 76 — el único diálogo del producto sin teclado
+
+**DE DÓNDE SALE.** De buscar qué requisito del encargo **no medía nadie**. Dos
+salieron a la vez, y sólo uno es accionable aquí:
+
+- **WebKit** — `BLOCKED_EXTERNAL`. En esta caja sólo está instalado Chromium
+  (`/opt/pw-browsers/`: chromium, chromium_headless_shell, ffmpeg) y el entorno
+  prohíbe `playwright install`. Se registra y se salta, como manda el encargo.
+- **El teclado de los diálogos** — interno, y sin medir. El arnés de foco mira
+  los campos de formulario; los diálogos no los miraba ninguno, **aunque la
+  regla de diseño los nombre literalmente**: «modal que no atrapa el foco ni
+  cierra con Escape» está en la lista de mínimos que fallan la compuerta.
+
+**LO QUE HABÍA.** Ocho `role="dialog"` en el producto. Siete usan
+`useDialogoDeTeclado` —el gancho donde viven las cinco conductas: Escape, foco
+atrapado, foco inicial, scroll bloqueado y foco devuelto—. Uno no: `BotonAyuda`,
+el panel del asistente. Medido en `/citas`:
+
+```
+foco entra: false · sigue abierto tras Escape: sí
+```
+
+Quien usa teclado o lector pulsaba «Ayuda» y el panel se abría **sin que el foco
+se moviera**: para él la ayuda no había ocurrido. Y para quitársela de encima
+tenía que tabular a ciegas hasta la aspa, porque Escape no hacía nada.
+
+**No era una decisión.** El panel se escribió antes de que el gancho existiera, y
+cuando las cinco conductas se sacaron de `ui/Modal` a un sitio común, éste se
+quedó atrás. La familia de siempre: la lección aprendida en un componente y no en
+el de al lado. Los otros dos ficheros que parecían faltar —`nota/` y `finanzas/`—
+eran **falsas alarmas del grep**: sus menciones a Escape están dentro de
+comentarios que explican cómo ya se pasaron a la primitiva.
+
+**EL ARREGLO.** `useDialogoDeTeclado`, igual que los otros siete. No es una
+implementación nueva; es la que ya estaba bien, aplicada donde faltaba.
+
+**PROBADO AL REVÉS.** Con la versión anterior recompilada: `arnes:dialogos-teclado`
+marca FALLA en el panel —«el foco NO entra · Escape NO lo cierra»— y **deja la
+paleta en verde**, así que el arnés discrimina y no acusa a todos. El golden cae
+con el mismo cambio, nombrando el archivo.
+
+**EL ARNÉS ABRE LOS DIÁLOGOS, no lee el código**, y a propósito: el gancho puede
+estar llamado con un `ref` que no llega al elemento o con `abierto` mal cableado,
+y el código se leería perfecto. Se abre, se pulsa Escape y se mira dónde quedó el
+foco. El golden cubre lo otro —que ninguno se quede sin gancho— porque el arnés
+sólo sabe abrir dos de los ocho.
+
+**COMPUERTAS.** `vitest` 10 863 de 10 864 —sólo `ops-timeout-y-punto-ciego`— ·
+lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run
+build` compila · `arnes:dialogos-teclado` en verde.
+
+**RESIDUAL_RISK.**
+
+- **El arnés sólo sabe abrir 2 de los 8 diálogos.** Los que piden un estado
+  difícil —un cobro a medias, una firma, un laboratorio— no se abren, y **no
+  estar en la lista significa que no se vigilan**, no que estén bien.
+- **La trampa de foco no se mide**: que Tab no se escape del diálogo pide contar
+  tabulaciones y es otra medición. El gancho la implementa; nadie la comprueba
+  en navegador.
+- El aviso de cierre de sesión **no** cierra con Escape a propósito, y por eso
+  no está en la lista del arnés: desactivar sin querer un control de seguridad
+  es el defecto contrario.
+- **WebKit sigue sin medirse.** Todo lo de este carril está medido en Chromium.
+- Un diálogo escrito con `role={'dialog'}` en vez de la forma literal se le
+  escapa al golden.
