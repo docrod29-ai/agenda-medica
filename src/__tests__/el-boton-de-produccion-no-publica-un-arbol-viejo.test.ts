@@ -59,20 +59,55 @@ describe('la compuerta del árbol autorizado', () => {
     expect(v.nivel).toBe('ok')
   })
 
-  it('PARA cuando el pin está por detrás — el caso real del 31-ago', () => {
+  it('PARA cuando el pin está por detrás Y difiere en lo que se publica', () => {
     const v = decidirArbolAutorizado({
       shaAutorizado: VIEJO, cabezaDeMain: CABEZA, commitsDetras: 87,
+      publicablesQueDifieren: ['firestore.rules'],
     })
     expect(v.ok).toBe(false)
     expect(v.nivel).toBe('error')
     // El mensaje tiene que decir CUÁNTO, o no se sabe si es un commit o cien.
     expect(v.motivo).toContain('87 commits por detrás')
+    // Y CUÁL difiere, o hay que ir a buscarlo a mano.
+    expect(v.motivo).toContain('firestore.rules')
+  })
+
+  it('DEJA PASAR un pin atrasado cuando nada de lo publicable cambió — el caso real del 31-ago', () => {
+    // 87 commits detrás y las reglas byte a byte idénticas: publicar desde el pin
+    // equivale a publicar desde la cabeza. La versión anterior de esta compuerta
+    // lo paraba, y por eso era inusable: al fusionar un PR, el commit de merge
+    // deja el pin atrás sin que nada peligroso haya cambiado.
+    const v = decidirArbolAutorizado({
+      shaAutorizado: VIEJO, cabezaDeMain: CABEZA, commitsDetras: 87,
+      publicablesQueDifieren: [],
+    })
+    expect(v.ok).toBe(true)
+    expect(v.motivo).toContain('idéntico')
+  })
+
+  it('PARA si no se pudo comparar lo publicable — no se sabe NO es coincide', () => {
+    const v = decidirArbolAutorizado({
+      shaAutorizado: VIEJO, cabezaDeMain: CABEZA, commitsDetras: 87,
+      publicablesQueDifieren: null,
+    })
+    expect(v.ok).toBe(false)
+    expect(v.motivo).toContain('NO se pudo comparar')
+  })
+
+  it('nombra TODOS los publicables que difieren, no sólo el primero', () => {
+    const v = decidirArbolAutorizado({
+      shaAutorizado: VIEJO, cabezaDeMain: CABEZA,
+      publicablesQueDifieren: ['firestore.rules', 'public/sw.js'],
+    })
+    expect(v.motivo).toContain('firestore.rules')
+    expect(v.motivo).toContain('public/sw.js')
   })
 
   it('PARA cuando el pin ni siquiera está en la historia de main', () => {
     // Peor que atrasado: son las reglas de una rama que nadie fusionó.
     const v = decidirArbolAutorizado({
       shaAutorizado: VIEJO, cabezaDeMain: CABEZA, esAncestroDeMain: false,
+      publicablesQueDifieren: [],
     })
     expect(v.ok).toBe(false)
     expect(v.motivo).toContain('NO está en la historia de main')
@@ -91,6 +126,7 @@ describe('la compuerta del árbol autorizado', () => {
     // Si el pin cambia y nadie actualiza la excepción, la excepción caduca sola.
     const v = decidirArbolAutorizado({
       shaAutorizado: VIEJO, cabezaDeMain: CABEZA, rollbackAutorizado: CABEZA,
+      publicablesQueDifieren: ['firestore.rules'],
     })
     expect(v.ok).toBe(false)
   })
@@ -111,6 +147,7 @@ describe('la compuerta del árbol autorizado', () => {
     // Con '' == '' un `if (a === b)` mal escrito dejaría pasar cualquier cosa.
     const v = decidirArbolAutorizado({
       shaAutorizado: VIEJO, cabezaDeMain: CABEZA, rollbackAutorizado: '',
+      publicablesQueDifieren: ['firestore.rules'],
     })
     expect(v.ok).toBe(false)
   })
@@ -132,6 +169,16 @@ describe('el workflow de producción usa esa compuerta de verdad', () => {
 
   it('declara ROLLBACK_AUTORIZADO, y vacío por defecto', () => {
     expect(yaml).toMatch(/ROLLBACK_AUTORIZADO:\s*''/)
+  })
+
+  it('calcula de verdad qué publicables difieren, y se los pasa a la decisión', () => {
+    // Una decisión que sabe comparar contenido no sirve de nada si el workflow
+    // no le pasa el dato. «Escrito y sin conectar», aplicado a un YAML.
+    for (const f of ['firestore.rules', 'firestore.indexes.json', 'public/version.txt', 'public/sw.js']) {
+      expect(yaml).toContain(f)
+    }
+    expect(yaml).toContain('PUBLICABLES_DIFIEREN')
+    expect(yaml).toContain('git diff --quiet')
   })
 
   it('lee la compuerta desde main, no desde el árbol que va a publicar', () => {

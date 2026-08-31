@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0
 
       # ─────────────────────────────────────────────────────────────────────
-      # COMPUERTA 0 · el árbol autorizado tiene que ser el de HOY.
+      # COMPUERTA 0 · lo que se publique tiene que ser lo de HOY.
       #
       # Las compuertas 1-3 no pueden cazar un pin envejecido: la 1 compara el sha
       # consigo mismo, y la 3 comprueba que producción sirva VERSION_ESPERADA —
@@ -66,7 +66,7 @@ jobs:
       # LA COMPUERTA SE LEE DE `main`, NO DEL CHECKOUT. Si viajara con el árbol
       # que vigila, un árbol viejo traería su propia compuerta vieja.
       # ─────────────────────────────────────────────────────────────────────
-      - name: 'Compuerta 0 · el árbol autorizado es la cabeza de main'
+      - name: 'Compuerta 0 · el árbol autorizado publica lo mismo que la cabeza de main'
         run: |
           set -euo pipefail
           CABEZA="$(git ls-remote origin refs/heads/main | cut -f1)"
@@ -81,6 +81,24 @@ jobs:
           if [ -n "$CABEZA" ]; then
             git merge-base --is-ancestor "$SHA_AUTORIZADO" FETCH_HEAD 2>/dev/null || ES_ANCESTRO=no
             COMMITS_DETRAS="$(git rev-list --count "$SHA_AUTORIZADO"..FETCH_HEAD 2>/dev/null || true)"
+          fi
+
+          # LO QUE ESTE BOTÓN PUBLICA O CERTIFICA. Si estos cuatro coinciden entre
+          # el pin y la cabeza, publicar desde el pin equivale a publicar desde la
+          # cabeza — y un pin atrasado deja de ser un problema. Si difieren, se
+          # para y se dice CUÁLES.
+          #
+          # Si no se pudo comparar (falta FETCH_HEAD), la variable se queda SIN
+          # DEFINIR a propósito y la decisión lo trata como «no se sabe», que para.
+          PUBLICABLES="firestore.rules firestore.indexes.json public/version.txt public/sw.js"
+          if git rev-parse --verify -q FETCH_HEAD >/dev/null; then
+            DIFIEREN=""
+            for F in $PUBLICABLES; do
+              if ! git diff --quiet "$SHA_AUTORIZADO" FETCH_HEAD -- "$F" 2>/dev/null; then
+                DIFIEREN="${DIFIEREN:+$DIFIEREN,}$F"
+              fi
+            done
+            export PUBLICABLES_DIFIEREN="$DIFIEREN"
           fi
 
           git show FETCH_HEAD:scripts/ops/arbol-autorizado.mjs > "$RUNNER_TEMP/arbol-autorizado.mjs"
