@@ -50,7 +50,7 @@
 | `/citas` | medico | ✅ | 1213 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2669 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 7326 | 7 | — | ✅ | ✅ |
-| `/consultor` | medico | ✅ | 346 | 0 | — | ✅ | — |
+| `/consultor` | medico | ✅ | 355 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 341 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 279 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 1041 | 0 | — | ✅ | — |

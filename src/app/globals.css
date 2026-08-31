@@ -875,6 +875,24 @@ tbody tr:last-child { border-bottom: none; }
   background: var(--s2);
   color: var(--text);
 }
+/* La barra de pregunta del consultor arranca donde acaba el riel (224px), no en
+   el borde de la ventana: con `left: 0` tapaba «Ayuda» y «Cerrar sesión». En
+   móvil el riel no existe y la barra ocupa todo. */
+.nx-consultor-barra { left: 224px; }
+@media (max-width: 768px) {
+  .nx-consultor-barra { left: 0; }
+}
+
+/*
+   PIE DEL RIEL — «Ayuda» y «Cerrar sesión» son más callados que un destino, a
+   propósito: son sistema, no navegación clínica. Ese tono iba escrito en línea
+   (`color: var(--text3)`), y en línea le ganaba al `:hover` de `.nav-item`, así
+   que se quedaban sin responder. Se conserva el tono y se le devuelve la
+   respuesta.
+*/
+.nav-item--tenue { color: var(--text3); }
+.nav-item--tenue:hover { color: var(--text2); }
+
 .nav-item.active {
   background: var(--s2);
   color: var(--text);

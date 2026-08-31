@@ -170,7 +170,19 @@ for (const ancho of ANCHOS) {
       }
       const tapados = []
       let vistos = 0
-      for (const e of document.querySelector('main').querySelectorAll('a,button,[role=button],input,select,textarea')) {
+      /*
+       * TODO EL DOCUMENTO, no sólo `<main>`.
+       *
+       * Este guion nació de un aviso que tapaba dos botones DENTRO del
+       * contenido, y se quedó mirando ahí. El armazón —el riel, la barra, el
+       * pie— no lo miraba, y ahí estaba el caso peor: en `/consultor`, la barra
+       * de preguntas es `position: fixed; left: 0`, así que en escritorio se
+       * comía los 89px de abajo del riel y dejaba «Ayuda» y «Cerrar sesión»
+       * imposibles de pulsar. Lo encontró el arnés de estaticidad por
+       * casualidad —el control salía mudo porque el `:hover` caía en la barra—,
+       * no éste, que es el que debía.
+       */
+      for (const e of document.querySelectorAll('a,button,[role=button],input,select,textarea')) {
         if (e.offsetParent === null) continue
         const v = visible(e)
         if (!v) continue

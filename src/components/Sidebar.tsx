@@ -126,9 +126,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       {esMedicoReal && (
         <button
           onClick={() => { onClose?.(); window.dispatchEvent(new Event('nexus:open-palette')) }}
+          /* El fondo lo pone `nx-acc-caja`: en línea le ganaba al `:hover` y
+             este botón —el único mudo de todo el armazón— no acusaba el puntero
+             pese a ser la puerta de la paleta y estar a la vista siempre. */
+          className="nx-acc-caja"
           style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-            background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10,
+            border: '1px solid var(--border)', borderRadius: 10,
             padding: '8px 12px', margin: '4px 0 10px', cursor: 'pointer', color: 'var(--text3)',
           }}
         >
@@ -231,11 +235,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         {/* RTC-32 — el FAB de ayuda murió también en escritorio; su casa es el
             pie subordinado del riel, y esta barra (rol asistente) necesita la
             misma capacidad. Mover no puede significar perder para un rol. */}
-        <DisparadorAyuda className="nav-item" style={{ color: 'var(--text3)' }}>
+        <DisparadorAyuda className="nav-item nav-item--tenue">
           <HelpCircle size={16} />
           Ayuda
         </DisparadorAyuda>
-        <button onClick={handleLogout} className="nav-item" style={{ color: 'var(--text3)' }}>
+        <button onClick={handleLogout} className="nav-item nav-item--tenue">
           <LogOut size={16} />
           Cerrar sesión
         </button>

@@ -112,7 +112,14 @@ await pag.waitForTimeout(9000)
    contaba como mudo**: el guion informó 0 en las 22 rutas. Un cero perfecto es
    la forma que tiene una medición rota de parecer un aprobado. */
 const FOTO = (e) => {
-  const props = ['backgroundColor', 'color', 'filter', 'boxShadow', 'transform', 'borderColor', 'textDecorationLine']
+  /*
+   * `textDecorationColor` lo trajo un falso positivo: el nombre del paciente de
+   * la franja de identidad responde al puntero subiendo el color del SUBRAYADO
+   * —de `--text3` a `--text`, decisión de WCAG 1.4.1 tomada a propósito— y esta
+   * foto sólo miraba `textDecorationLine`, que no cambia. El control estaba
+   * bien; la foto estaba incompleta.
+   */
+  const props = ['backgroundColor', 'color', 'filter', 'boxShadow', 'transform', 'borderColor', 'textDecorationLine', 'textDecorationColor']
   const trozos = []
   for (let n = e; n && n.tagName !== 'MAIN' && n !== document.body; n = n.parentElement) {
     const c = getComputedStyle(n)
@@ -151,7 +158,15 @@ for (const ruta of RUTAS) {
 
   const cuantos = await pag.evaluate(() => {
     let i = 0
-    document.querySelector('main').querySelectorAll('a,button,[role=button]').forEach(e => {
+    /*
+     * TODO EL DOCUMENTO, no sólo `<main>`. Hasta el 31-ago el armazón —el riel,
+     * la barra superior, el pie— no lo miraba nadie, aunque esté en todas las
+     * pantallas y se use más que cualquier control de contenido. Al abrirlo
+     * salió uno mudo de verdad: el buscador «Buscar… ⌘K», con el fondo escrito
+     * en línea ganándole al `:hover`. Al ser el armazón el mismo en todas las
+     * rutas, un defecto suyo aparece en las 22 a la vez, que es lo que debe pasar.
+     */
+    document.querySelectorAll('a,button,[role=button]').forEach(e => {
       const b = e.getBoundingClientRect()
       if (!b.width || e.offsetParent === null) return
       if (e.disabled === true || e.getAttribute('aria-disabled') === 'true') return
@@ -183,6 +198,33 @@ for (const ruta of RUTAS) {
       await pag.waitForTimeout(300)
       const despues = await el.evaluate(FOTO)
       if (antes === despues) {
+        /*
+         * ANTES DE ACUSAR, SE MIRA SI HAY UN VELO ENCIMA.
+         *
+         * La bienvenida es un `position: fixed; inset: 0` con `z-index: 200`.
+         * Mientras está puesta, el `:hover` del ratón cae en ELLA y no en el
+         * control de debajo, así que todo lo que se mida sale «mudo» sin
+         * estarlo. Y no basta con descartarla al entrar en la ruta: aparece con
+         * retraso y se colaba a mitad del recorrido. Pasó de verdad — este guion
+         * acusó de mudo a «Cerrar sesión» en `/consultor`, que está vivo.
+         *
+         * Una medición tomada bajo un velo no es una medición: se para en vez de
+         * publicar un defecto que no existe.
+         */
+        const velo = await pag.evaluate(() => {
+          for (const d of document.querySelectorAll('[role=dialog][aria-modal="true"]')) {
+            const c = getComputedStyle(d)
+            const b = d.getBoundingClientRect()
+            if (c.position === 'fixed' && b.width > innerWidth * 0.8 && b.height > innerHeight * 0.8) return true
+          }
+          return false
+        }).catch(() => false)
+        if (velo) {
+          console.error(`\n  ${ruta}: apareció un diálogo a pantalla completa durante la medición.`)
+          console.error('  Lo que se midiera a partir de ahí sería el velo, no la pantalla. Se para.\n')
+          await nav.close()
+          process.exit(2)
+        }
         const rot = await el.evaluate(e => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 34))
         mudos.push(rot.replace(/\s+/g, ' '))
       }
