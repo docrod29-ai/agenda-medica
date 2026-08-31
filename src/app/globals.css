@@ -3968,6 +3968,45 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-segmento:hover:not([aria-pressed='true']) { background: var(--s3); }
 .nx-segmento[aria-pressed='true'] { background: var(--s3); }
 
+/* ACCIÓN TEÑIDA, con el tinte como parámetro.
+
+   «No cobrar a este paciente (cortesía)» llevaba su `color-mix` morado escrito
+   en el `style={{ }}`, así que no acusaba el puntero — y no es un control
+   cualquiera: exime un cobro.
+
+   Se parametriza en vez de escribir una clase por color, porque ya hay dos
+   tintes distintos en el producto. `.nx-acc-riesgo` es exactamente esta forma
+   con el rojo escrito a fuego; no se refunde aquí para no tocar lo que ya
+   funciona, pero es el candidato natural a plegarse a ésta el día que alguien
+   pase por ahí. */
+.nx-acc-tenido {
+  background: color-mix(in srgb, var(--nx-tinte) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nx-tinte) 35%, transparent);
+  color: var(--nx-tinte);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-acc-tenido:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nx-tinte) 18%, transparent);
+  border-color: color-mix(in srgb, var(--nx-tinte) 55%, transparent);
+}
+.nx-acc-tenido:active:not(:disabled) {
+  background: color-mix(in srgb, var(--nx-tinte) 24%, transparent);
+}
+
+/* ENLACE DENTRO DE UNA FRASE. El acuse es el subrayado, no un cambio de color:
+   así el enlace conserva el tono que le toque donde esté.
+
+   Ojo con lo que lo rompía: `textDecoration: 'none'` escrito en el `style={{ }}`
+   le gana al `:hover` de la hoja igual que un `background` en línea. Quitarlo
+   del JSX es parte del arreglo, no un detalle de limpieza. */
+.nx-enlace-en-texto {
+  text-decoration: none;
+  transition: text-decoration-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-enlace-en-texto:hover { text-decoration: underline; }
+
 /* El enlace que remata un aviso del riel («Citas ›»): se subraya al pasar. Es
    un enlace, y el subrayado es lo que dice que lo es sin añadirle una caja. */
 .nx-enlace-riel {
