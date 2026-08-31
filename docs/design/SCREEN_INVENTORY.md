@@ -35,7 +35,7 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 970 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 982 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
