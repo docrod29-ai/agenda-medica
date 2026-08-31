@@ -311,6 +311,7 @@ export default function CalendarioPage() {
         {view === 'dia' && (
           <DayView
             horarios={horariosDelConsultorio}
+            festivos={diasFestivos}
             date={baseDate}
             hoy={hoy}
             appointments={appointments}
@@ -546,17 +547,24 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
   )
 }
 
-function DayView({ date, hoy, appointments, horarios, onCellClick, onApptClick, loading }: {
+function DayView({ date, hoy, appointments, horarios, festivos, onCellClick, onApptClick, loading }: {
   date: Date
   hoy: string
   appointments: Appointment[]
   horarios: DiaDeHorario[]
+  festivos: readonly string[]
   onCellClick: (hora: string) => void
   onApptClick: (a: Appointment) => void
   loading: boolean
 }) {
   const ds = diaDeRejilla(date)
   const ahoraMin = useAhoraMinutos()
+  /*
+   * En el DÍA, el horario que manda es el de ESE día de la semana, no los siete.
+   * `getDay()` da 0 en domingo y este producto numera de lunes a domingo.
+   */
+  const horarioDelDia = horarios[(date.getDay() + 6) % 7]
+  const diaFestivo = esFestivo(ds, festivos)
   /**
    * «Hoy» llega de fuera a propósito. Calcularlo aquí añadía una llamada más a
    * `hoyISO()` sin zona, y `timezone-sitios` lleva trinquete sobre ese número:
@@ -567,7 +575,7 @@ function DayView({ date, hoy, appointments, horarios, onCellClick, onApptClick, 
   const esHoy = ds === hoy
   const dayAppts = appointments.filter(a => a.fechaHora.startsWith(ds)).sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
   /* Las horas de ESTE día, con el horario del consultorio como suelo. */
-  const HORAS = useMemo(() => horasAEnsenar(dayAppts, horarios), [dayAppts, horarios])
+  const HORAS = useMemo(() => horasAEnsenar(dayAppts, horarioDelDia ? [horarioDelDia] : horarios), [dayAppts, horarios, horarioDelDia])
 
   return (
     <div style={{ height: '100%', overflow: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
@@ -578,6 +586,8 @@ function DayView({ date, hoy, appointments, horarios, onCellClick, onApptClick, 
           <div
             key={h}
             className="nx-agenda-celda"
+            /* La misma banda que en la semana: aquí sólo hay una columna. */
+            data-cerrado={!diaFestivo && estaAbierto(h, horarioDelDia) ? undefined : ''}
             style={{ display: 'flex', borderBottom: '1px solid var(--border)', minHeight: 56, cursor: cellAppts.length === 0 ? 'pointer' : 'default', position: 'relative' }}
             /* Misma regla que en la semana: botón sólo si la hora está libre. */
             {...(cellAppts.length === 0

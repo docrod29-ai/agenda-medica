@@ -253,6 +253,52 @@ try {
       if (ab('19:00') !== 0) fallos.push('el médico de tarde termina a las 19:00 y la banda da esa franja por abierta')
     }
   }
+
+  /* ── Y LA VISTA DE DÍA ───────────────────────────────────────────────────
+   * Llevaba la banda desde la unidad 83. Se mide aquí y no en un guion aparte
+   * porque la configuración sembrada ya está puesta: medirla en otro sitio
+   * costaría sembrarla dos veces.
+   */
+  /*
+   * SE QUITA EL FILTRO ANTES, y no es un detalle: la primera versión medía el
+   * día con el médico de tarde todavía seleccionado y acusaba al producto de dar
+   * las 11:00 por cerradas. Lo estaban — para ÉL, que entra a las 16:00. El
+   * defecto era del guion. (De paso queda visto que el horario del médico llega
+   * también a la vista de día.)
+   */
+  const volverATodos = pag.locator('button:visible').filter({ hasText: /Arnes Medico De Tarde/i }).first()
+  if (await volverATodos.count().catch(() => 0)) {
+    await volverATodos.click().catch(() => {})
+    await pag.waitForTimeout(1200)
+    const todos = pag.locator('button:visible').filter({ hasText: /todos los médicos/i }).first()
+    if (await todos.count().catch(() => 0)) { await todos.click().catch(() => {}); await pag.waitForTimeout(3500) }
+  }
+
+  const botonDia = pag.locator('button:visible').filter({ hasText: /^Día$/ }).first()
+  if (!(await botonDia.count().catch(() => 0))) {
+    console.log('  día      · no apareció el conmutador de vista — la vista de día queda sin medir')
+  } else {
+    await botonDia.click().catch(() => {})
+    await pag.waitForTimeout(4000)
+    const dia = await pag.evaluate(() => {
+      const celdas = [...document.querySelectorAll('.nx-agenda-celda')]
+      return celdas.map(c => ({
+        etiqueta: (c.querySelector('div')?.textContent || '').trim(),
+        cerrada: c.hasAttribute('data-cerrado'),
+      }))
+    })
+    const cerradaEn = (h) => dia.find(x => x.etiqueta.startsWith(h))?.cerrada
+    console.log(`  día      · ${dia.length} franjas · 08:00 cerrada=${cerradaEn('08:00')} · 11:00 cerrada=${cerradaEn('11:00')} · 14:00 cerrada=${cerradaEn('14:00')} · 17:00 cerrada=${cerradaEn('17:00')}`)
+    if (!dia.length) {
+      console.log('  día      · la rejilla del día salió vacía — sin medir')
+    } else {
+      if (cerradaEn('08:00') === false) fallos.push('vista de día: las 08:00 son antes de abrir y la banda las da por abiertas')
+      if (cerradaEn('14:00') === false) fallos.push('vista de día: las 14:00 son la comida y la banda las da por abiertas')
+      if (cerradaEn('11:00') === true) fallos.push('vista de día: las 11:00 están dentro del horario y la banda las da por cerradas')
+      if (cerradaEn('17:00') === true) fallos.push('vista de día: las 17:00 están dentro del horario y la banda las da por cerradas')
+    }
+  }
+
 } finally {
   /*
    * Y SE DEVUELVE TODO. Con la forma que tenía antes, no con «lo normal»: si el

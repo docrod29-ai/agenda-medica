@@ -5233,9 +5233,56 @@ alternando— · lint 95 = techo · `tsc` limpio · `npm run build` compila ·
   el arnés lo dice con esas palabras, «la banda está puesta y no se ve», y las
   comprobaciones de estructura se quedan verdes, así que discrimina. No se
   inventa un umbral perceptual: eso sería un número sacado de la manga.
-- **Sólo la vista de semana.** Ni el día ni el mes llevan banda, así que tampoco
-  hay nada que vigilar ahí.
+- ~~Sólo la vista de semana.~~ **La de día la lleva desde la unidad 83**, y el
+  arnés la mide. La de MES sigue sin banda: no tiene rejilla de horas, así que
+  la banda por horas no le aplica; una banda por DÍAS —cerrar el festivo y el
+  domingo— sí tendría sentido y **no está hecha**.
 - Un `kill -9` a mitad de corrida deja la configuración sembrada puesta. El
   `finally` cubre los fallos normales, no eso.
 - Sigue sin distinguirse «cerrado por festivo» de «cerrado porque no se atiende
   ese día», y para el médico son cosas distintas.
+
+---
+
+## Unidad 83 — la vista de día también tiene horas cerradas
+
+**DE DÓNDE SALE.** Del riesgo residual de la unidad 82: la banda existía sólo en
+la vista de semana. La de **día** es la que usa el médico para mirar hoy, y tenía
+el mismo defecto — las 07:00 pintadas igual de agendables que las 11:00.
+
+**EL ARREGLO.** El mismo `estaAbierto` y el mismo `esFestivo`, con una diferencia:
+aquí manda el horario de **ese** día de la semana, no los siete. `getDay()` da 0
+en domingo y este producto numera de lunes a domingo, así que el índice es
+`(getDay() + 6) % 7`. De paso, el alto de la rejilla del día se calcula ya con el
+horario de ese día en vez de con los siete.
+
+**MEDIDO**, con el consultorio de 09:00 a 20:00 y comida de 14:00 a 16:00:
+
+```
+08:00 cerrada=true   11:00 cerrada=false   14:00 cerrada=true   17:00 cerrada=false
+```
+
+**PROBADO AL REVÉS.** Quitando el atributo de la celda del día y recompilando, el
+arnés canta «las 08:00 son antes de abrir y la banda las da por abiertas» y «las
+14:00 son la comida…» — y **las comprobaciones de la semana se quedan verdes**,
+así que discrimina entre las dos vistas.
+
+**Y OTRO DEFECTO MÍO, EN EL ARNÉS.** La primera versión medía el día **con el
+filtro del médico de tarde todavía puesto** y acusó al producto de dar las 11:00
+por cerradas. Lo estaban — **para él**, que entra a las 16:00. El defecto era del
+guion, que ahora quita el filtro antes de medir. De paso quedó visto, sin
+buscarlo, que el horario del médico llega también a la vista de día.
+
+**COMPUERTAS.** `vitest` 11 993 de 11 994 —`ops-timeout-y-punto-ciego`, el de
+siempre— · lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc` limpio ·
+`npm run build` compila · `arnes:banda-de-atencion` verde, y rojo al quitar la
+banda del día.
+
+**RESIDUAL_RISK.**
+
+- **La vista de MES sigue sin banda.** No tiene rejilla de horas, así que la
+  banda por horas no le aplica; una banda por DÍAS —marcar el festivo y el
+  domingo— sí tendría sentido y no está hecha.
+- Sigue sin distinguirse «cerrado por festivo» de «cerrado porque no se atiende
+  ese día».
+- El arnés mide cuatro franjas del día (08, 11, 14, 17), no las trece.
