@@ -5722,7 +5722,19 @@ llevó a planear una unidad entera para cubrir algo ya cubierto.
   —el veredicto— con el mensaje, y las otras 21 rutas siguen en cero: la regla
   discrimina en vez de teñirlo todo.
 
-  Queda sin cerrar el equivalente en `nada-tapa`. **NOT_PROVEN, y estrecho.**
+  **Y el equivalente en `nada-tapa` también queda cerrado**, con el mismo reverso
+  y el mismo mensaje:
+
+  ```
+  VACÍA /guia — montó y no pintó nada que pulsar: sin medir, no en cero
+  Rutas que montaron sin un solo control — eso no es «0 tapados», es «sin medir»
+  EXIT=1
+  ```
+
+  Este reverso corrió en un **worktree aparte**, no sobre el árbol de trabajo.
+  Tres veces en esta sesión el árbol tuvo un defecto instalado a propósito, con
+  una ventana en la que un commit podía capturarlo. El defecto pertenece a la
+  medición, no a la rama — y el árbol se quedó limpio de principio a fin.
 
   Se corrige aquí por la misma razón por la que se corrigió la cabecera del
   golden de diálogos en 88c: un riesgo declarado DE MÁS gasta el crédito de la
