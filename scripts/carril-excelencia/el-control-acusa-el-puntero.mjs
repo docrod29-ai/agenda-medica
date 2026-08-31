@@ -439,6 +439,19 @@ const mudosDeDialogos = []
     ...['Preguntar', 'Cuidado', 'Documentos', 'Perfil'].map(destino => ({
       nombre: `portal · ${destino}`,
       sel: 'main',
+      /**
+       * AQUÍ EL VACÍO ES LEGÍTIMO, y hay que decirlo o el arnés miente.
+       *
+       * Estos cuatro destinos son TEXTO hoy: cero controles dentro de `<main>`.
+       * La maquinaria de diálogos trata «cero controles» como «no se pudo
+       * abrir», y con eso imprimía cuatro líneas de «sin medir» sobre pantallas
+       * que SÍ se abrieron. Un arnés que dice algo falso es peor que uno que
+       * calla.
+       *
+       * Con esto, cero significa «medido, y no había nada que medir» — y el día
+       * que alguien añada un control ahí, entra en la cuenta solo.
+       */
+      permitirVacio: true,
       abrir: async () => {
         const t = tokenDelPortal('clinico')
         if (!t) return
@@ -469,7 +482,13 @@ const mudosDeDialogos = []
       })
       return i
     }, d.sel).catch(() => -1)
-    if (cuantosD <= 0) { console.log(`  ${'sin abrir'.padEnd(9)} ${d.nombre} — queda sin medir`); continue }
+    if (cuantosD < 0) { console.log(`  ${'sin abrir'.padEnd(9)} ${d.nombre} — queda sin medir`); continue }
+    if (cuantosD === 0) {
+      // Cero controles: legítimo sólo donde se ha declarado que lo es.
+      if (d.permitirVacio) { console.log(`  ${'sin nada'.padEnd(9)} ${d.nombre} — se abrió y no tiene controles`); continue }
+      console.log(`  ${'sin abrir'.padEnd(9)} ${d.nombre} — queda sin medir`)
+      continue
+    }
     const mudosD = []
     for (let i = 0; i < cuantosD; i++) {
       const el = pagD.locator(`[data-acuse-dialogo="d${i}"]`)
