@@ -361,13 +361,36 @@ const mudosDeDialogos = []
       abrir: async () => {
         await pagD.goto(`${BASE}/citas`, { waitUntil: 'domcontentloaded' })
         await pagD.waitForTimeout(6000)
+
+        /**
+         * DOS SITIOS, PORQUE EL PRODUCTO NO LO REPITE.
+         *
+         * La primera versión de esta sonda buscó `^Cobrar$` sólo dentro del menú
+         * «Más acciones» y salió «sin abrir». No era el producto: era la sonda,
+         * equivocada en las dos mitades a la vez.
+         *
+         * Cobrar es la ACCIÓN PRIMARIA de la fila cuando la cita está atendida
+         * y sin cobrar, y entonces se pinta como botón directo. El ítem del menú
+         * se llama «Registrar cobro» y sólo sale
+         * `{puedeCobrar && accion?.tipo !== 'cobrar'}` — es decir, se esconde a
+         * propósito cuando el botón directo ya está, para no ofrecer lo mismo
+         * dos veces. Está mejor pensado que mi primer intento de medirlo.
+         *
+         * Así que se busca primero el botón de la fila y luego el del menú.
+         */
+        const directo = pagD.locator('button:visible').filter({ hasText: /^Cobrar$/ }).first()
+        if (await directo.count().catch(() => 0)) {
+          await directo.click({ timeout: 8000 }).catch(() => {})
+          await pagD.waitForTimeout(1500)
+          return
+        }
+
         const menus = pagD.locator('button:visible[aria-label^="Más acciones"]')
         const cuantos = await menus.count().catch(() => 0)
-        // La primera fila puede no ofrecer «Cobrar»; se prueban varias.
         for (let i = 0; i < Math.min(cuantos, 6); i++) {
           await menus.nth(i).click({ timeout: 5000 }).catch(() => {})
           await pagD.waitForTimeout(900)
-          const it = pagD.locator('[role=menuitem]:visible').filter({ hasText: /^Cobrar$/ }).first()
+          const it = pagD.locator('[role=menuitem]:visible').filter({ hasText: /Registrar cobro/i }).first()
           if (await it.count().catch(() => 0)) {
             await it.click({ timeout: 5000 }).catch(() => {})
             await pagD.waitForTimeout(1500)
