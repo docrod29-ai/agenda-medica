@@ -1,5 +1,5 @@
 /**
- * GOLDEN — REG-415: EL SELLO DE LAS REGLAS DEPENDÍA DE QUE ALGUIEN SE ACORDARA.
+ * GOLDEN — REG-416: EL SELLO DE LAS REGLAS DEPENDÍA DE QUE ALGUIEN SE ACORDARA.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -88,7 +88,7 @@ function analizar(yaml: string) {
   }
 }
 
-describe('REG-415 — EL QUE PUBLICA LAS REGLAS ES EL QUE LAS SELLA', () => {
+describe('REG-416 — EL QUE PUBLICA LAS REGLAS ES EL QUE LAS SELLA', () => {
   const hoy = analizar(workflow)
 
   it('el despliegue publica firestore.rules', () => {

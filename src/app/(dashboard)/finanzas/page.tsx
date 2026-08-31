@@ -625,7 +625,7 @@ export default function FinanzasPage() {
         title="Anular cobro"
         footer={(
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button disabled={anulaGuardando} onClick={() => setAnulando(null)} style={{ background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+            <button disabled={anulaGuardando} onClick={() => setAnulando(null)} className="nx-acc-caja" style={{ color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
             <button
               disabled={anulaGuardando || !motivoAnul.trim() || !clinicId || !user}
               onClick={async () => {
@@ -640,7 +640,8 @@ export default function FinanzasPage() {
                   toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
                 } finally { setAnulaGuardando(false) }
               }}
-              style={{ background: 'var(--red)', color: 'var(--sobre-aviso)', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
+              className="nx-acc-destructiva"
+              style={{ color: 'var(--sobre-aviso)', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
             >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
           </div>
         )}

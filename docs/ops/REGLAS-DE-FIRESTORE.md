@@ -50,7 +50,7 @@ acta de la ejecución, junto al `FIRESTORE_RULES_SHA256` del resumen. Actualizar
 el sello es copiar tres líneas de un acta, no reconstruir un dato.
 
 Que ese paso no se pueda borrar en silencio lo vigila
-`src/__tests__/el-despliegue-emite-su-propio-sello.test.ts` (REG-415).
+`src/__tests__/el-despliegue-emite-su-propio-sello.test.ts` (REG-416).
 
 ## PENDIENTE DE DESPLIEGUE
 

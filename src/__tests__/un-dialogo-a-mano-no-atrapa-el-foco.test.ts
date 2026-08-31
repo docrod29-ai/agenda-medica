@@ -40,7 +40,22 @@
  * · Escáner de fuente: no pulsa Escape ni tabula. Que `ui/Modal` atrape el foco
  *   de verdad se comprueba en navegador, y esta prueba sólo exige que el
  *   diálogo de anular PASE por él.
- * · No mira `src/app/mi/**` (portal del paciente) ni UCI/hospital.
+ * · **CORREGIDO el 31-ago: SÍ mira `src/app/mi/**`.** La línea anterior decía
+ *   que no, y era falsa: el barrido es `find src/app src/components`, o sea 221
+ *   archivos con el portal dentro. Medido, y probado al revés metiéndole al
+ *   portal un `fixed; inset: 0` sin teclado — el guardián lo canta por su
+ *   nombre. Lo que pasa es que el portal HOY no tiene ninguna capa a pantalla
+ *   completa: su única `fixed` es la barra de destinos (`left/right/bottom`),
+ *   que no es un diálogo.
+ *
+ *   Se corrige porque una limitación declarada de menos cuesta trabajo real:
+ *   llevó a planear una unidad entera para «cubrir el portal», que ya estaba
+ *   cubierto. Un «QUÉ NO CUBRE» equivocado hacia abajo es tan caro como uno
+ *   equivocado hacia arriba — sólo que la factura la paga el siguiente.
+ * · **UCI/hospital SÍ entran** por el mismo `find`; no se separan del resto.
+ * · Lo que de verdad NO cubre: un diálogo que no sea una capa `fixed` a pantalla
+ *   completa —el patrón `CAPA` pide `inset: 0` o `top: 0 … left: 0`—, y el
+ *   teclado de verdad: esto lee fuente, no pulsa Escape ni tabula.
  * · No juzga el orden de tabulación dentro de un diálogo correcto.
  */
 import { describe, it, expect } from 'vitest'

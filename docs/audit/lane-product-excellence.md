@@ -5471,3 +5471,504 @@ compila · trinquete de interfaz sin regresión · `arnes:dialogos-teclado` en v
   formularios de varios pasos esconden controles hasta que se llega a ellos, y
   este arnés mide una sola pantalla por ruta. Lo que no se pintó, no se midió.
 - El portal del paciente sigue fuera de las 22 rutas.
+
+---
+
+## Unidad 87 — el portal del paciente entra a los arneses, y el botón de producción deja de poder publicar un árbol viejo
+
+Salió todo de tirar de un solo hilo: `/mi/[token]` estaba fuera de las 22 rutas.
+
+### 87a · El acuñado del token estaba copiado a mano TRES veces
+
+Y esto casi impide que se viera nada de lo demás. Un token que el servidor
+**rechaza** no rompe el arnés: el navegador aterriza en «enlace no válido»
+—pocos controles, todos correctos— y el arnés publica **un cero tranquilizador**.
+El portal quedaría declarado medido y verde sin haberse mirado nunca.
+
+`trinquete-de-interfaz.mjs`, `destinos-del-portal.mjs`, y la cuarta copia iba a
+ser la mía. Extraído a `scripts/carril-excelencia/token-del-portal.mjs`.
+
+El golden no comprueba que el token esté «bien formado»: lo pasa por
+`verificarTokenPaciente`, la función que corre en el servidor. Es «el dato tiene
+que LLEGAR» — que el emisor **diga** lo acordado no prueba que el receptor lo
+**admita**.
+
+**PROBADO AL REVÉS**, 5 defectos instalados: firma con otro secreto (2 rojos),
+identidad renombrada `c`→`clinic` (2), paciente distinto (1), token caducado (3).
+El quinto —renombrar `a`→`alcance`— **pasa, y está bien**: el verificador degrada
+a propósito un alcance desconocido a `agenda`, así que el token sigue valiendo y
+el arnés seguiría midiendo el portal de verdad. Fue el primer reverso que probé,
+y quedarme ahí me habría hecho concluir que el golden no servía.
+
+### 87b · El portal no tenía `<main>`
+
+Medido sobre el DOM vivo, no sobre el HTML servido —que es sólo el armazón—:
+`main: 0 · roleMain: 0 · nav: 1 · h1: 1 · controles: 14`.
+
+**Por qué nadie lo había visto**, comprobado y no deducido:
+
+| axe sobre el portal | Violaciones |
+|---|---|
+| `wcag2a/2aa/21a/21aa/22aa` — lo que corre el trinquete | **0** |
+| `best-practice` — lo que **no** corre | `landmark-one-main` ×1 · `region` ×6 |
+
+El portal pasaba **69/69 en verde** con seis bloques fuera de todo landmark. La
+compuerta no mentía: medía otra cosa. Y `.claude/rules/patient-facing-ai.md` dice
+por qué pesa más aquí — del lado del médico un fallo así se lo come alguien
+entrenado para verlo.
+
+Arreglado: la columna de contenido pasa de `<div>` a `<main>`, y el `<nav>` de
+los cinco destinos sale fuera. Las dos violaciones **a 0**.
+
+### 87c · Cuatro de los cinco destinos no acusaban el puntero
+
+`5 mudos de 12` → **0**. El formulario previo y `Preguntar · Cuidado ·
+Documentos · Perfil`. «Hoy» no sale y está bien: el arnés excluye `aria-current`.
+
+Causa raíz: `background: 'none'` y el `color` en el `style={{ }}`. Arreglado con
+`.nx-destino-portal` (mismos peldaños que `.nx-acc-plana`) y `.nx-acc-plana` +
+`data-abierto` para el formulario. **PROBADO AL REVÉS**: devolviendo el estilo en
+línea, el arnés canta **los cuatro, por su nombre**.
+
+### 87d · «Anular cobro» — los dos botones del pie, mudos
+
+`2 mudos de 3` → **0**. Y hay un detalle que habría dado un cero falso: **el
+arnés salta los `disabled` a propósito**, y «Anular cobro» está apagado hasta que
+se escribe un motivo. Abrir el diálogo no bastaba: sin escribir el motivo, el
+control destructivo queda fuera de la cuenta y el diálogo sale «0 mudos» sin
+haber mirado lo que importa. El arnés ahora **lleva el producto al estado**.
+
+Es la lección de la unidad 86 un paso más allá: no basta con que el control
+exista; tiene que estar **en el estado en el que se usa**.
+
+`.btn-danger` ya existía y **no se usó**: es el destructivo *fantasma*, y en un
+diálogo de confirmación la acción destructiva es la principal y va rellena.
+Cambiarla habría sido bajarle el peso visual — un cambio de producto disfrazado
+de arreglo. Se añade `.nx-acc-destructiva`, hermano de `.nx-acc-fuerte`, sin
+colores nuevos.
+
+**El reverso de esta subunidad es el propio orden de los hechos**: 2 mudos con el
+defecto presente, 0 después, mismo arnés y mismo diálogo.
+
+### 87e · El botón de producción podía publicar reglas de un árbol viejo, en verde
+
+`deploy-production.yml` hace checkout de un pin escrito a mano. Sus compuertas no
+pueden cazar que envejezca: la 1 compara el sha consigo mismo y la 3 comprueba
+que producción sirva `VERSION_ESPERADA`, **que no cambia cuando cambia el árbol**.
+
+**Compuerta 0**: el pin se conserva —es el acto de autorización del dueño— pero
+se le exige ser la cabeza de `main`. Y **se lee de `main`, no del checkout**: una
+compuerta que viaja con lo que vigila no vigila nada.
+
+**PROBADO AL REVÉS**, 3 defectos: quitar la llamada (2 rojos), moverla después de
+publicar las reglas (1), hacer que la decisión deje pasar todo (6).
+
+### RESIDUAL_RISK
+
+- **La Compuerta 0 hace inusable el flujo de fijar el pin en un PR, y eso es un
+  defecto de mi diseño, no del producto.** Al fusionar, el commit de merge mueve
+  `main` por delante del pin que ese mismo PR escribió. Ocurrió **tres veces en
+  una tarde**: `ee1b3632` (87 detrás), `3bada501` (5), `8f74901d` (2). El único
+  flujo que la satisface es editar el pin **directamente en `main`** antes de
+  pulsar. Propuesta pendiente de decisión del dueño: dejar pasar cuando el pin
+  sea antepasado de `main` **y** `firestore.rules`, `firestore.indexes.json`,
+  `version.txt` y `sw.js` sean idénticos entre pin y cabeza — o sea, cuando nada
+  de lo que este workflow publica haya cambiado. Compararía contenido en vez de
+  nombres. **NO IMPLEMENTADO.**
+- **El punto ciego de producción sigue abierto.** Nada en el repositorio
+  distingue qué árbol sirve producción. La Compuerta 0 vigila lo que se
+  **autoriza**, no lo que está **publicado**.
+- **La Compuerta 3 no se pudo comprobar**: exige que producción sirva la versión
+  esperada y este entorno recibe 403 contra el sitio vivo. `BLOCKED_EXTERNAL`.
+- **El portal se mide con token de alcance `agenda`**, el de mostrador. El
+  alcance `clinico` —el que abre secreto médico— **NO se mide**.
+- **`CobrarModal` sigue sin abrirse**, y los diálogos del portal tampoco: el
+  golden `un-dialogo-a-mano-no-atrapa-el-foco` declara que **no mira
+  `src/app/mi/**`**.
+- Un trinquete a 0 sólo vigila **lo que se llegó a pintar el día que se midió**.
+- **WebKit sigue `BLOCKED_EXTERNAL`**: sólo hay Chromium en esta caja.
+
+### COMPUERTAS
+
+`vitest` **12 027 de 12 028** —el rojo es `ops-timeout-y-punto-ciego`, ambiental,
+y esta vez **verificado**: corrido sobre `origin/main` limpio en un worktree
+aparte, falla idéntico— · lint **95 = techo** · trinquete de diseño **sin deuda
+nueva** · `tsc` limpio · `npm run build` compila · `arnes:acuse-puntero`
+**`EXIT=0`** con el techo del portal declarado · `arnes:nada-tapa` **0 tapados de
+848** · inventario de pantallas regenerado con su script.
+
+### UNA COSA QUE APRENDÍ DE MIS PROPIOS ERRORES, Y QUE VALE PARA EL CARRIL
+
+Seis veces me equivoqué en esta unidad, y las seis las cazó medir en vez de
+confiar: el arnés culpó al servidor cuando el defecto era el `<main>` ausente; un
+`grep` demasiado estrecho me hizo decir que nadie usaba el `Modal` compartido;
+`pkill -f` mató mi propio shell dos veces —su patrón casa con la línea de
+comandos del propio bash— y por eso un build nunca arrancó; lancé otro build sin
+las variables del arnés; y reporté «6/6 en verde» sin notar que ese verde era de
+dos commits atrás, porque los empujes con `GITHUB_TOKEN` dejan el
+`pull_request:synchronize` en *approval-required* y CI no vuelve a correr.
+
+El hilo común con los cinco defectos del producto es el mismo: **una compuerta en
+verde no dice que lo que te importa esté bien; dice que lo que ella mide está
+bien.**
+
+---
+
+## Unidad 88 — los diálogos de estado difícil, y tres errores míos de medición
+
+El #420 dejó declarado que sólo se abrían DOS diálogos y que los de estado
+difícil —un cobro a medias, una firma— seguían sin mirarse. Se abren dos más.
+
+### 88a · «Anular cobro» — 2 mudos de 3 → 0
+
+`Cancelar` y `Anular cobro`, los dos botones del pie. Es la confirmación de un
+acto destructivo sobre dinero y sus dos botones se leían como texto.
+
+**Y hay un detalle que habría dado un cero falso.** El arnés salta los `disabled`
+a propósito —un botón apagado no tiene que acusar nada— y «Anular cobro» está
+apagado hasta que se escribe un motivo. Abrir el diálogo NO bastaba: sin escribir
+el motivo, el control destructivo queda fuera de la cuenta y el diálogo sale «0
+mudos» sin haber mirado lo que importa. El arnés ahora **lleva el producto al
+estado**.
+
+Es la lección de la unidad 86 un paso más allá: no basta con que el control
+exista; tiene que estar **en el estado en el que se usa**.
+
+`.btn-danger` ya existía y NO se usó: es el destructivo *fantasma*, y en un
+diálogo de confirmación la acción destructiva es la principal y va rellena.
+Cambiarla habría sido bajarle el peso visual — un cambio de producto disfrazado
+de arreglo. Se añade `.nx-acc-destructiva`, hermano de `.nx-acc-fuerte`.
+
+### 88b · «Cobrar una cita» — 2 mudos de 5 → 0
+
+El enlace a Configuración y **«No cobrar a este paciente (cortesía)»**, que exime
+un cobro.
+
+El botón llevaba su `color-mix` morado en el `style={{ }}`. Se parametriza en vez
+de escribir una clase por color: `.nx-acc-tenido` toma el tinte por variable CSS,
+con el precedente que ya existía (`--nx-revelar-retraso`). `.nx-acc-riesgo` es
+esta misma forma con el rojo escrito a fuego; **no se refunde** —no se toca lo que
+funciona— pero queda anotado como candidato.
+
+El enlace tenía `textDecoration: 'none'` en línea, que le gana al `:hover` de la
+hoja igual que un `background`: **quitarlo del JSX es parte del arreglo**. La
+clase no toca el color; el acuse es el subrayado.
+
+### 88c · Lo que se fue a buscar y NO existía
+
+El golden `un-dialogo-a-mano-no-atrapa-el-foco` declaraba no mirar
+`src/app/mi/**`. Se fue a cubrir eso y las dos premisas eran falsas:
+
+1. **El portal no tiene diálogos.** Su única capa `fixed` es la barra de
+   destinos, que no lo es.
+2. **El barrido SÍ cubría el portal**: `find src/app src/components` son 221
+   archivos con el portal dentro. Probado al revés metiéndole un
+   `fixed; inset: 0` sin teclado — el guardián lo canta por su nombre.
+
+Corregida la cabecera. Una limitación declarada **de menos** cuesta trabajo real:
+llevó a planear una unidad entera para cubrir algo ya cubierto.
+
+### TRES ERRORES MÍOS DE MEDICIÓN, Y LO QUE ENSEÑAN
+
+- **La sonda de «Cobrar» buscó en el sitio equivocado y con el texto
+  equivocado.** Cobrar es la acción PRIMARIA de la fila —botón directo— y el ítem
+  del menú se llama «Registrar cobro», que además sólo sale
+  `{puedeCobrar && accion?.tipo !== 'cobrar'}`: se esconde a propósito para no
+  duplicar. **El producto estaba mejor pensado que mi forma de medirlo.** Se
+  comprobó contra el emulador que `cita-010` era cobrable ANTES de tocar la
+  sonda, para no arreglarla sobre una hipótesis.
+- **El inventario de pantallas me cazó dos veces el mismo día**, las dos por
+  regenerarlo ANTES de tocar el último archivo. La compuerta acertó las dos; el
+  orden de mis pasos fue el fallo. Se le añade a esa compuerta el mensaje que le
+  faltaba: comparaba dos documentos enteros y escupía ochenta filas de diff
+  sabiendo la respuesta —«regenera»— sin decirla.
+- **Reporté «6/6 en verde» sobre un árbol que ya no era el del PR.** Los empujes
+  con `GITHUB_TOKEN` dejan el `pull_request:synchronize` en *approval-required*,
+  así que CI no vuelve a correr solo; `workflow_dispatch` es la salida que el
+  propio `ci.yml` documenta. Un PR puede quedarse con un verde que ya no describe
+  su cabeza.
+
+### RESIDUAL_RISK
+
+- **Vacío no es cero — y mi primera versión de este riesgo estaba EXAGERADA.**
+  «Cobrar» salió «sin abrir — queda sin medir» y por eso se investigó; con un «0
+  mudos» habría pasado por bueno un diálogo que nunca se abrió, y los dos mudos
+  que tocan dinero seguirían ahí.
+
+  Escribí aquí que «los demás arneses no distinguen vacío de cero». **Fui a
+  comprobarlo y es falso**: `nada-tapa` reporta `ROTA` por ruta cuando la página
+  no montó, y aborta con «no está midiendo» si en total ve menos de 100
+  controles; `acuse-puntero` tiene las dos salvaguardas equivalentes.
+
+  Lo que de verdad faltaba era más estrecho: **un suelo POR RUTA**. Una sola ruta
+  que renderice vacía imprimía `ok /ruta (0)` y su cero quedaba absorbido por el
+  total global.
+
+  **CERRADO en la misma sesión.** `acuse-puntero` marca ahora en rojo cualquier
+  ruta que monte su `<main>` y no pinte un solo control. Probado al revés
+  declarando `/guia` vacía:
+
+  ```
+  MÁS CONTROLES MUDOS QUE ANTES:
+   · /guia: 0 controles encontrados — la ruta montó pero no pintó nada
+     que pulsar; eso no es «0 mudos», es «sin medir»
+  ```
+
+  Y el reverso hubo que **repetirlo**, porque el primero no probaba nada: salió
+  `EXIT=2`, que viene de la salvaguarda global —«sólo 42 controles en 2 rutas»—
+  y aborta ANTES de llegar a la sección donde vive la regla. El mensaje nunca se
+  imprimió y estuve a punto de darlo por bueno. **Un `exit != 0` no es «el
+  guardián funcionó»: es «algo falló».** Repetido con las 22 rutas, sale `EXIT=1`
+  —el veredicto— con el mensaje, y las otras 21 rutas siguen en cero: la regla
+  discrimina en vez de teñirlo todo.
+
+  **Y el equivalente en `nada-tapa` también queda cerrado**, con el mismo reverso
+  y el mismo mensaje:
+
+  ```
+  VACÍA /guia — montó y no pintó nada que pulsar: sin medir, no en cero
+  Rutas que montaron sin un solo control — eso no es «0 tapados», es «sin medir»
+  EXIT=1
+  ```
+
+  Este reverso corrió en un **worktree aparte**, no sobre el árbol de trabajo.
+  Tres veces en esta sesión el árbol tuvo un defecto instalado a propósito, con
+  una ventana en la que un commit podía capturarlo. El defecto pertenece a la
+  medición, no a la rama — y el árbol se quedó limpio de principio a fin.
+
+  Se corrige aquí por la misma razón por la que se corrigió la cabecera del
+  golden de diálogos en 88c: un riesgo declarado DE MÁS gasta el crédito de la
+  lista. Si la mitad de lo que dice esta sección no se sostiene al comprobarlo,
+  nadie comprueba la otra mitad.
+- **Sólo cuatro diálogos + el portal.** Una firma, un internamiento, una receta
+  a medias: siguen sin abrirse, y no estar en la lista significa que **no se
+  vigilan**.
+- **El estado se lleva a mano, y sólo hasta donde llega la sonda.** «Anular
+  cobro» se mide con el motivo escrito; no se mide guardando, ni con el diálogo
+  en su estado de error.
+- El alcance `clinico` del portal sigue **sin medirse**.
+- `.nx-acc-riesgo` sigue duplicando la forma de `.nx-acc-tenido`. Declarado, no
+  arreglado.
+- **WebKit sigue `BLOCKED_EXTERNAL`**.
+
+### COMPUERTAS
+
+`vitest` **12 028 de 12 028 en local** · lint **95 = techo** · trinquete de
+diseño **sin deuda nueva** · `tsc` limpio · `arnes:acuse-puntero` **0 mudos en
+los cinco diálogos** · `arnes:nada-tapa` 0 de 848 · inventario regenerado.
+
+---
+
+## Unidad 89 — la compuerta por contenido, y las cuatro pantallas del portal que nadie miraba
+
+Autorizado por el dueño: «cambia la compuerta y sigue con el portal clínico».
+
+### 89a · La Compuerta 0 compara lo que publica, no la identidad del sha
+
+La versión de la unidad 87 exigía que el pin FUERA la cabeza de `main`. Cazaba el
+fallo pero era **inusable**: al fusionar un PR, el commit de merge mueve `main`
+por delante del pin que ese mismo PR acaba de escribir. Ocurrió **tres veces en
+una tarde** —87, 5 y 2 commits— y ninguna era peligrosa.
+
+Una compuerta que salta siempre acaba desactivada o rodeada.
+
+Ahora compara los **cuatro archivos que este workflow publica o certifica**:
+`firestore.rules`, `firestore.indexes.json`, `version.txt`, `sw.js`. Si coinciden,
+publicar desde el pin **equivale** a publicar desde la cabeza.
+
+**Medido con los archivos reales, no con un valor pasado a mano:**
+
+```
+pin 8f74901d (del #419) vs cabeza 481f50f8 — 2 commits detrás
+  idéntico firestore.rules · firestore.indexes.json · version.txt · sw.js
+  → pasa, exit 0
+```
+
+Con la versión anterior, el botón estaría bloqueado **ahora mismo** sin motivo.
+
+Y se añade un caso que antes no existía: si **no se pudo comparar**, para. Un
+dato que falta no es un dato que coincide.
+
+**PROBADO AL REVÉS en worktree**: ignorar el contenido en la decisión → 5 rojos;
+quitar el cálculo del workflow → 1 rojo; restaurado → 14 en verde.
+
+### 89b · El portal tenía DOS caras y sólo se medía una
+
+El alcance `clinico` abre `documentos` y `paquetes`. Comprobado del otro lado:
+token clínico → **200 con datos**; token de mostrador → **403**. El arnés veía la
+pantalla **con el muro puesto** y contaba sus controles como si fueran todos.
+
+Dos techos separados —`/mi/[token]` y `/mi/[token:clinico]`, ambos **0**— porque
+no son la misma pantalla con más datos: donde una enseña un muro, la otra enseña
+documentos. El alcance se lee **del propio token**, para que la etiqueta no pueda
+desincronizarse de lo medido.
+
+### 89c · Y el portal son CINCO pantallas detrás de una URL
+
+El destino vive en estado de cliente. El arnés mide «la pantalla al aterrizar»,
+así que en todo el carril sólo ha visto `hoy`. Las otras cuatro —donde el
+paciente lee su plan y sus recetas— no las miraba nadie.
+
+Se sembró un paquete de visita **LIBERADO** (sintético, cumpliendo las tres
+condiciones de `visibleParaElPaciente`) para que hubiera algo detrás del muro. La
+medición siguió dando lo mismo y **parecía que el sembrado no servía**. Al
+mirarlo en el navegador salió que el paquete SÍ se pinta, pero bajo **«Cuidado»**,
+no bajo «Documentos» —que sigue vacío porque no hay recetas firmadas—. Sin
+navegar, la conclusión habría sido falsa.
+
+**Los cuatro destinos son TEXTO: cero controles.** No escondían ningún mudo. Lo
+que se cierra es la cobertura, no un defecto — y decirlo «arreglado» habría sido
+otro cero tranquilizador.
+
+### 89d · Y fabriqué un cero falso yo mismo
+
+Al meter esos cuatro destinos, la corrida imprimió cuatro líneas de
+`sin abrir … queda sin medir`. **Falso**: los cuatro se abrieron. La maquinaria
+de diálogos trataba «cero controles» como «no se pudo abrir».
+
+Es «vacío no es cero» **al revés**: llevo la sesión persiguiendo ceros que no
+significaban lo que parecían, y produje uno. Un arnés que dice algo falso es peor
+que uno que calla.
+
+Ahora distingue tres cosas donde juntaba dos:
+
+```
+sin abrir  → el selector no existe: no se pudo medir
+sin nada   → se abrió y no tiene controles (declarado legítimo)
+N mudos    → se midió
+```
+
+`permitirVacio` va **por diálogo**, no global: un modal con cero controles sigue
+cantando «sin abrir», porque ahí el cero sí es sospechoso.
+
+### RESIDUAL_RISK
+
+- **La superficie medible del portal se encoge según avanza el día.** Medido: a
+  las 07:00 (hora del consultorio) daba 12 controles; a las 10:35, 9 — las citas
+  pasadas dejan de ser «próximas». Para el techo da igual (cuenta mudos), pero un
+  control que sólo exista con una cita futura podría estar mudo sin que nadie lo
+  vea si todas las corridas caen por la tarde. **NOT_PROVEN.**
+- ~~**El paquete liberado se siembra a mano.**~~ **CERRADO en la misma sesión.**
+  Vive ya en `sembrar-emulador.mjs`, con las tres condiciones de
+  `visibleParaElPaciente` puestas a propósito —un DRAFT no es visible y mediría
+  otra vez la pantalla vacía—. Probado borrando y resembrando desde cero: el que
+  estaba puesto a mano (`paq-arnes-001`) desapareció con el limpiado, y el del
+  sembrador (`paq-demo-001`) sale visible para el paciente. Una caja recién
+  sembrada ya tiene la superficie clínica.
+- ~~**`Documentos` sigue vacío.**~~ **CERRADO en la misma sesión.** El sembrador
+  crea ahora una nota **firmada** con receta, y `Documentos` pasó de
+  «se abrió y no tiene controles» a **`0 mudos de 1`**: el botón de descargar
+  receta existe, se mide y acusa el puntero. Lleva en el producto desde que
+  existe el portal y **no lo había mirado nadie** — no por estar escondido, sino
+  porque el consultorio de pruebas no tenía ninguna receta que lo hiciera
+  aparecer.
+
+  No bastaba con sembrar un medicamento: `documentos` los cruza por
+  `medicamentosDeLaReceta`, que exige `procedenciaClinica != 'ya_lo_toma'` y
+  `estado: 'activa'`. Se leyeron los dos predicados ANTES de sembrar. Uno
+  cualquiera se habría filtrado, `Documentos` seguiría vacío y habría salido el
+  cuarto cero vacío de la sesión.
+
+  Se siembran DOS medicamentos para ejercitar la frontera y no el camino feliz:
+  el `se_prescribe_hoy` baja a la receta, el `ya_lo_toma` no. Esa separación es
+  la que impide que la historia farmacológica de un paciente salga impresa como
+  prescripción de un médico con cédula.
+- La Compuerta 0 sigue vigilando lo que se **autoriza**, no lo que está
+  **publicado**. El punto ciego de producción no se cierra con esto.
+- **Sólo cuatro diálogos.** Una firma, un internamiento: siguen sin abrirse.
+
+### COMPUERTAS
+
+`acuse-puntero` con las dos caras del portal, los cuatro diálogos y los cuatro
+destinos · lint **95 = techo** · `tsc` limpio · golden de la compuerta **14 en
+verde** · inventario regenerado.
+
+---
+
+## Unidad 90 — el documento medicolegal, que nunca se había medido, y no pintaba
+
+### 90a · La pantalla donde acaba el trabajo del médico llevaba fuera del arnés
+
+Las 22 rutas del `acuse-puntero` son las pantallas donde se **trabaja**. Ninguna
+era `/nota/[patientId]/[notaId]`: el sitio donde el médico **lee lo que firmó**,
+y de donde salen la receta, la orden, el PDF y el Word. La salida del producto —
+«que el médico salga de la consulta con la nota hecha»— no la miraba nadie.
+
+Al abrirla por primera vez no pintaba: **«Algo salió mal»**, con un único botón
+«Reintentar» que no puede funcionar nunca contra un fallo de render determinista.
+
+Y la causa era mía: el sembrado escribía la nota sin `metadata`. Un sembrador
+`.mjs` no pasa por `tsc`, así que `NotaMedica` decía «obligatorio» y no lo
+comprobaba nadie.
+
+**Pero el defecto no era el fixture.** Ese documento cruzó tres puertas sin una
+queja —el escritor, Firestore, y la ruta del portal del paciente, que pintó su
+receta porque sólo mira `estado` y `medicamentos`— y reventó en el cuarto lector.
+`normNota`, el normalizador por el que pasa TODO lector de notas del producto,
+defendía cuatro arreglos y no `metadata`. Una nota vieja o un respaldo restaurado
+a medias deja el documento **íntegro en Firestore e ilegible desde el producto**.
+
+Se defiende con el objeto **vacío**, no con valores plausibles: la pantalla ya
+sabe decir «Falta el nombre del establecimiento (NOM-004)» y «[FALTA CÉDULA
+PROFESIONAL]». Lo único que hacía falta era dejarla llegar. → **REG-415**.
+
+### 90b · Y al encenderse destapó otros dos, como siempre
+
+| Dónde | Qué | Antes → después |
+|---|---|---|
+| `/nota/…` | «Ver versiones anteriores» — la única puerta al historial | 1 mudo de 8 → **0 de 16** |
+| `/expediente/pac-001` | la cabecera de cada nota del expediente | 1 mudo de 25 → **0 de 25** |
+| `/consulta/pac-001` | «ya no» ×2 — el acto de SUSPENDER un medicamento | 2 mudos de 24 → **0 de 24** |
+| diálogo «agregar una adenda» | corregir un documento firmado | nunca medido → **0 de 3** |
+
+Los dos últimos no aparecían **porque no había datos que los hicieran aparecer**.
+Un cero sobre una lista vacía no dice «está bien»: dice «aquí no hay nada». Es la
+misma lección de la unidad 89 llegando por el otro lado.
+
+Los tres son el defecto de siempre —`background` o `color` en el `style={{ }}`,
+que le gana por especificidad al `:hover` de la hoja—. El «ya no» estrena
+`.nx-accion-en-prosa`: un paso de color y no de caja, porque dos de éstas
+seguidas dentro de una frase, con caja cada una, convierten un renglón de texto
+en una botonera.
+
+### 90c · Y me cargué una sonda que funcionaba, «robusteciéndola»
+
+El botón «Adenda» lleva icono, así que su `textContent` es `" Adenda"` con un
+espacio delante y un `hasText: /^Adenda$/` **no encuentra nada**. El arnés no
+dice «no coincide»: dice «no se pudo abrir», que se lee como problema del
+producto. Cambié las sondas a `getByRole`, que compara contra el nombre
+accesible.
+
+Y se me olvidó `exact: true`. El `name` de `getByRole` es **subcadena** por
+omisión, así que la sonda de «Cobrar» dejó de encontrar el botón de la fila y
+empezó a encontrar —y a **pulsar**— el filtro «1 por cobrar» de la cabecera.
+Filtró la agenda y después dijo «sin abrir» sobre una lista que ella misma había
+cambiado.
+
+La versión «robusta» era **peor** que la frágil: la frágil no encontraba nada;
+ésta encontraba otra cosa y actuaba sobre ella. Cambiar un localizador es cambiar
+lo que el arnés **hace**, no cómo lo dice.
+
+### RIESGO RESIDUAL
+
+- El barrido de REG-415 sólo mira el visor de la nota. Otras pantallas que lean
+  notas pueden tener desreferencias duras propias sobre campos que `normNota`
+  tampoco defiende.
+- El barrido da por buena una guarda que esté **en cualquier punto del archivo**.
+  Un `&&` en una rama distinta a la del acceso lo aprobaría sin serlo.
+- `/nota/…` entra en el `acuse-puntero` y **en ningún otro arnés**: foco, tema
+  claro, huecos de carga y 390px siguen sin recorrerla.
+- Sigue sin abrirse el diálogo de **firmar y cerrar la nota** — el acto central
+  del producto. Pide llevar la consulta a un estado que ninguna sonda construye
+  hoy.
+- El punto ciego de producción no se mueve: nada distingue todavía qué árbol
+  sirve el sitio vivo.
+
+### COMPUERTAS
+
+`acuse-puntero` **0 mudos en las 25 rutas y los 9 diálogos** · `npx vitest run`
+entero (12 037 casos; el único rojo restante es `ops-timeout-y-punto-ciego`, que
+necesita una IP que trague paquetes y el proxy de esta caja contesta — ya
+declarado en REG-414) · lint **95 = techo** · trinquete de diseño sin deuda nueva
+· `tsc` limpio · golden nuevo **5 casos, probado al revés ×3** · sellado en
+`invariantes-clinicos.json` · sala de datos, tablero e inventario regenerados.

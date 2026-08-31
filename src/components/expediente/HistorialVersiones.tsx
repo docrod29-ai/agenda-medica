@@ -74,10 +74,24 @@ export function HistorialVersiones({ clinicId, patientId, notaId }: {
 
   return (
     <div className="no-print" style={{ marginTop: 16 }}>
+      {/*
+        MEDIDO el 31-ago en `/nota/pac-001/…`: éste era el ÚNICO control mudo de
+        los ocho de la pantalla. Mismo defecto de siempre —`background` en el
+        `style={{ }}`, que le gana por especificidad a cualquier `:hover` de la
+        hoja—, y encima el que más falta hace: es la puerta al historial de
+        versiones, la única forma que tiene el médico de recuperar lo que una
+        sobrescritura se llevó. Leerlo como texto es no abrirlo nunca.
+
+        `aria-expanded` porque esto REVELA contenido debajo: sin él, quien usa
+        lector de pantalla no sabe si el historial está abierto ni que este
+        botón lo controla.
+      */}
       <button
         onClick={abrir}
+        className="nx-acc-plana"
+        aria-expanded={abierto}
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent',
+          display: 'inline-flex', alignItems: 'center', gap: 6,
           border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px',
           fontSize: 12.5, color: 'var(--text2)', cursor: 'pointer',
         }}

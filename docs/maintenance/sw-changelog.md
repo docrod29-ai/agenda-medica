@@ -3,6 +3,55 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1178 — el portal del paciente y el documento firmado entran a los arneses
+
+**40 commits desde v1177** · 10 archivos de código de producto · **cero rutas de
+API nuevas, cero pantallas nuevas, ni reglas ni índices**.
+
+Un despliegue arrastra TODO lo no desplegado, así que el paquete son dos cosas:
+los 5 commits que ya estaban en `main` de otro carril (actas de v1176 y v1177, y
+el pin del botón de producción — 4 archivos, +67/−4, todo documentación y
+workflow) y las cuatro unidades del carril de excelencia.
+
+### Lo que cambia para quien usa la aplicación
+
+**El portal del paciente** —la única pantalla que ve un paciente— no tenía
+`<main>`: seis bloques de contenido fuera de todo landmark, sin punto al que
+saltar con «ir al contenido». Y cuatro de sus cinco destinos no acusaban el
+puntero, entre ellos «Confirmar cita». Un paciente que no ve que algo se puede
+pulsar, simplemente no lo pulsa.
+
+**El visor del documento medicolegal** (`/nota/…`) se caía entero —«Algo salió
+mal», con un «Reintentar» que no puede funcionar— ante una nota sin bloque
+`metadata`. Una nota anterior al campo, o un respaldo restaurado a medias,
+quedaba íntegra en Firestore e **ilegible desde el producto**, y con ella la
+receta, la orden y el Word, que salen de esa pantalla. Ver **REG-415**.
+
+**Controles que se leían como texto**, todos por el mismo defecto —la apariencia
+escrita en el `style={{ }}` del JSX, que le gana por especificidad al `:hover` de
+la hoja—:
+
+- «Anular cobro» y «Cobrar una cita», los dos diálogos que tocan dinero.
+- «Ver versiones anteriores», la única puerta al historial de una nota
+  sobrescrita.
+- La cabecera de cada nota del expediente longitudinal.
+- «ya no», el acto de suspender un medicamento en la consulta.
+
+### Lo que cambia para quien lo mantiene
+
+El botón de producción podía publicar `firestore.rules` de un árbol viejo **con
+las tres compuertas en verde**: ninguna podía cazar que el pin envejeciera. La
+**Compuerta 0** compara ahora el contenido de los cuatro archivos que ese
+workflow publica o certifica, y se lee de `main` y no del checkout — una
+compuerta que viaja con lo que vigila no vigila nada.
+
+### Lo que este paquete NO trae
+
+Ni reglas de Firestore ni índices: **no hay nada que publicar aparte del
+despliegue**. Ni rutas de API nuevas, ni pantallas nuevas, ni cambios de esquema.
+
+---
+
 ## v1177 — dos controles que no se podían pulsar
 
 **Se preparó sin despliegue y se publicó el mismo día, 31-ago 19:33 UTC**

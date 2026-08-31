@@ -16,20 +16,29 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1177",
+  "ultimaVersionEnProduccion": "nexusmed-v1178",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M .github/workflows/deploy-production.yml",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/ops/INDICES-DE-FIRESTORE.md",
+    "M  .github/workflows/deploy-production.yml",
+    "UU agent-state/MASTER_STATE.json",
+    "M  docs/audit/carril-excelencia/techos-de-estaticidad.json",
+    "M  docs/audit/lane-product-excellence.md",
+    "UU docs/audit/regression-ledger.md",
+    "UU docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "A  docs/maintenance/ESTADO-DE-PRODUCCION-2026-08-31.md",
+    "M  docs/maintenance/PAQUETE-PRODUCCION-2026-08-30.md",
+    "M  docs/maintenance/sw-changelog.md",
     " M docs/ops/REGLAS-DE-FIRESTORE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M firestore.rules.estado.json",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-despliegue-emite-su-propio-sello.test.ts"
+    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  public/sw.js",
+    "M  public/version.txt",
+    "M  scripts/carril-excelencia/destinos-del-portal.mjs",
+    "M  scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
+    "M  scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
+    "A  scripts/carril-excelencia/token-del-portal.mjs",
+    "M  scripts/carril-excelencia/trinquete-de-interfaz.mjs",
+    "M  scripts/design/sembrar-emulador.mjs"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +74,10 @@
   ],
   "ramaActual": "claude/explicacion-informativa-6t499i",
   "derivado": {
-    "regsEnElLedger": 266,
+    "regsEnElLedger": 267,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 887,
-    "casosDePrueba": 10789,
+    "archivosDePrueba": 890,
+    "casosDePrueba": 10813,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
