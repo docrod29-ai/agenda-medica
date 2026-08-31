@@ -15139,3 +15139,67 @@ de leerse.
 (8 casos declarados, 18 con las expansiones de `it.each`), probada al revés por
 sus dos mitades: quitando el filtro caen 14
 casos, quitando el dedup caen 2.
+
+## REG-413 — la comprobación que impide robar la firma de otro médico no tenía guardián
+
+**CÓMO SE DESCUBRIÓ.** Revisando el PR #355 para decidir si se rescataba.
+`docs/maintenance/PRS-SIN-ABSORBER-2026-08-30.md` lo daba por casi cubierto —«la
+ruta y el token **sí** están en `main`: lo que falta son dos guardianes, no la
+funcionalidad»—. Al medirlo, la primera mitad resultó cierta y la segunda
+también, y era peor de lo que sonaba: `grep -rl diseno-url src/__tests__/` **no
+devolvía nada**.
+
+### Qué protege lo que no se estaba vigilando
+
+`POST /api/receta/diseno-url` acuña URLs firmadas para el proxy
+`GET /api/receta/diseno`, que descarga de Firebase Storage con el **Admin SDK** —
+que se salta las reglas de Storage. Lo que hay detrás de esos paths es el
+**membrete, la firma autógrafa y el sello** del médico: lo que va impreso en una
+receta con cédula profesional.
+
+La ruta tiene su comprobación, con su comentario («IDOR (auditoría P1)»): sólo se
+acuña el diseño propio o el de un miembro de la MISMA clínica —la asistente
+imprime por su médico—, y el cruce a otra clínica se corta.
+
+Una línea. Sin una sola prueba. Es exactamente el modo de fallo de
+`security-tenant.md`: la protección vive en el servidor, que es donde debe estar,
+pero nada impide que el siguiente refactor se la lleve por delante en verde.
+
+### El golden, y lo que deja declarado sin arreglar
+
+`la-firma-del-medico-no-se-acuna-para-otro.test.ts` congela el cruce de clínica,
+el caso de la asistente, el corte sin sesión —comprobando que **no se lee ninguna
+membresía** antes de cortar—, el fallo cerrado cuando Firestore no contesta, y
+los paths con traversal o sin dueño derivable.
+
+Probado al revés: quitando la línea de la comprobación caen **5 casos**, y los 10
+que siguen pasando son los que deben (si cayeran todos, el guardián estaría
+midiendo que la ruta no acuña nada, que es otra cosa).
+
+Y congela **tres sitios donde el árbol de hoy es más laxo** que lo que propone el
+PR #355. No se arreglan aquí porque tocan la papelería en uso y eso lo decide el
+dueño; quedan escritos para que endurecerlos sea una decisión y no un descuido:
+
+1. **Sin secreto configurado la ruta falla ABIERTA** — devuelve la URL pelada en
+   vez de negarse. #355 la haría fallar cerrada con 503.
+2. **El token liga `path|exp`, no al dueño ni al consultorio**, y dura **24 h**.
+   Una URL firmada que se filtre —un PDF reenviado, el historial, una caché—
+   sirve durante toda esa vida. #355 mete `ownerUid` y `clinicId` dentro del HMAC
+   y baja la vida a 15 min.
+3. **Una URL SIN firma sigue pasando** por el proxy mientras
+   `RECETA_DISENO_FIRMA` no valga `obligatoria` en Vercel. Es una variable de
+   entorno de producción, no código: ninguna prueba puede verla. El código de la
+   fase 2 ya está cableado en los dos caminos de papelería (`print-element` y
+   `pdf-download`), así que la condición que el propio módulo pone para encender
+   el candado —«cuando el camino de impresión acuñe URLs firmadas»— **ya se
+   cumple**; falta probar la papelería en vivo y darle al interruptor.
+
+### Qué NO cubre
+
+- No prueba Firebase de verdad (el Admin SDK va con dobles) ni las reglas de
+  Storage.
+- No prueba el proxy `GET /api/receta/diseno`; sólo el acuñador.
+- No arregla los tres puntos de arriba: los declara.
+
+**Prueba.** `src/__tests__/la-firma-del-medico-no-se-acuna-para-otro.test.ts`
+(15 casos, 12 declarados).
