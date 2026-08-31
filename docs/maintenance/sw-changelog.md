@@ -3,6 +3,47 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1177 — dos controles que no se podían pulsar
+
+**Este bump se prepara SIN su despliegue.** El paquete vive en
+[`PAQUETE-PRODUCCION-2026-08-31-v1177.md`](PAQUETE-PRODUCCION-2026-08-31-v1177.md).
+
+**5 commits desde v1176** · 13 archivos · +359 / −26 · 7 de código de producto.
+Cero rutas de API nuevas, cero pantallas nuevas, y **ni reglas ni índices**.
+
+Un paquete pequeño con dos arreglos que no son cosméticos.
+
+### En `/consultor`, «Cerrar sesión» y «Ayuda» estaban muertos
+
+La barra de preguntas es `position: fixed; left: 0`, y en escritorio el riel de
+navegación ocupa los primeros 224 px — la barra se comía sus últimos 89. No es
+«se ve raro»: `document.elementFromPoint` en el centro del botón devolvía **la
+barra**, no el botón. Ahora arranca en 224 px, y en móvil —donde no hay riel—
+sigue ocupando todo.
+
+### En `/asistente`, las ocho horas que se pulsan para agendar no respondían
+
+Son literalmente el control con el que se agenda una cita. No aparecieron en la
+medición anterior porque aquel día **no había ninguna franja pintada**.
+
+### Y el punto ciego que los tapaba a los dos
+
+El arnés de estaticidad sólo miraba `<main>`. El armazón —riel, barra, pie— está
+en **todas** las pantallas y no lo medía nadie. El guardián que debía cazar el
+solape (`nada-tapa`) tenía **el mismo punto ciego**. Los dos se abren ahora a
+todo el documento, y el de solapes queda probado al revés: con la barra en
+`left: 0` canta 1 tapado; con el arreglo, 0.
+
+Queda escrita la lección, que vale más que los dos arreglos: **un trinquete a 0
+sólo vigila lo que se llegó a pintar el día que se midió.**
+
+### Qué NO cubre
+
+Sólo se abren dos diálogos: los que piden un estado difícil —un cobro a medias,
+una firma— siguen sin mirarse. Los formularios de varios pasos esconden controles.
+El portal del paciente sigue fuera de las 22 rutas. Y todo está medido en
+Chromium: WebKit sigue `BLOCKED_EXTERNAL`.
+
 ## v1176 — el carril de excelencia: la agenda deja de aceptar días que no existen
 
 **Este bump se prepara SIN su despliegue.** El paquete completo vive en
