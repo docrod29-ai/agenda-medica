@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Appointment } from '@/types'
 import { useClinic } from '@/context/ClinicContext'
@@ -80,43 +80,70 @@ export function useAppointments(desdeISO?: string) {
  * listener de la clínica entera y filtraba en el cliente, que es exactamente el
  * gasto que se quería evitar.
  *
- * ── POR QUÉ ESTO SIGUE SIN TECHO, Y NO ES UN OLVIDO (REG-352) ───────────────
+ * ── EL TECHO QUE FALTABA, YA PUESTO (REG-352 → REG-415) ─────────────────────
  *
- * El comentario anterior decía «se traen todas las fechas: son pocas». Es cierto
- * casi siempre y falso justo donde importa —el paciente de años— y esto es un
- * **listener**: se queda abierto pagando esa historia entera cada vez que cambia
- * una cita.
+ * Esto era un listener SIN cota: se quedaba abierto pagando el historial entero
+ * del paciente cada vez que cambiaba una cita. En el paciente de años —el que
+ * más importa— eso es exactamente donde duele.
  *
- * La reparación obvia —`orderBy('fechaHora','desc')` + `limit`— **no se puede
- * desplegar hoy**. Firestore exige un ÍNDICE COMPUESTO para combinar la
- * igualdad por `pacienteId` con un orden por otro campo, y este repositorio **no
- * tiene forma de crear índices**: se hacen a mano en la consola del dueño (es la
- * misma pared que P1-14). Publicar esa consulta rompería la pantalla de consulta
- * en producción con `FAILED_PRECONDITION` en cuanto alguien la abriera.
+ * La reparación no se podía desplegar mientras el índice `appointments
+ * (pacienteId, fechaHora)` no existiera: Firestore no degrada una consulta así,
+ * la RECHAZA con `FAILED_PRECONDITION`, y habría roto la pantalla de consulta en
+ * producción. Ya está desplegado, así que la consulta pide orden y cota.
  *
- * Y acotar SIN orden es peor que no acotar: Firestore devolvería 200 citas
- * arbitrarias, y el único llamador busca **la cita de HOY**. Una consulta que
- * pierde la cita de hoy hace que el cobro no se ligue al encuentro — el defecto
- * que este hook existe para evitar.
+ * ── POR QUÉ `desc` Y NO `asc` ───────────────────────────────────────────────
  *
- * Así que se deja acotado por PACIENTE (que ya es la diferencia grande frente al
- * listener del consultorio entero) y el índice que falta queda **declarado en
- * `firestore.indexes.json`**, para que deje de ser un hueco invisible y pase a
- * ser una acción concreta del dueño. `BLOCKED_EXTERNAL`, con nombre.
+ * El único llamador busca **la cita de HOY**: sin ella el cobro no se liga al
+ * encuentro, que es el defecto que este hook existe para evitar. `desc` trae las
+ * más recientes —y las futuras ya agendadas— así que la de hoy entra en la
+ * ventana salvo que el paciente tuviera más de `TOPE_CITAS_PACIENTE` citas
+ * FUTURAS, que no es una consulta real. `asc` traería las más viejas y la
+ * perdería siempre.
+ *
+ * ── Y EL RECORTE SE DECLARA ─────────────────────────────────────────────────
+ *
+ * `truncada` sale del hook porque un recorte que nadie ve se lee como «ésas eran
+ * todas». Hoy no lo pinta nadie —el llamador sólo quiere la de hoy— y por eso
+ * está: el día que alguien liste el historial desde aquí, el dato ya está y no
+ * hay que acordarse de nada.
+ *
+ * ── LO QUE DA POR SUPUESTO ──────────────────────────────────────────────────
+ *
+ * Que toda cita tiene `fechaHora`. Un `orderBy` **excluye** los documentos a los
+ * que les falta el campo, no los pone al final. Aquí se sostiene: `fechaHora` es
+ * obligatorio en `Appointment` y el llamador ya hacía `c.fechaHora.slice(…)` sin
+ * guarda, o sea que una cita sin fecha ya reventaba antes de este cambio.
  */
+
+/**
+ * Cuántas citas del paciente se traen. Cincuenta cubre cualquier historial real
+ * de consulta y deja la ventana muy por encima de las citas futuras que un
+ * paciente puede tener a la vez.
+ */
+export const TOPE_CITAS_PACIENTE = 50
+
 export function usePatientAppointments(patientId: string) {
   const { clinicId } = useClinic()
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [truncada, setTruncada] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!clinicId || !patientId) { setLoading(false); return }
 
-    const q = query(collection(db, 'clinics', clinicId, 'appointments'), where('pacienteId', '==', patientId))
+    const q = query(
+      collection(db, 'clinics', clinicId, 'appointments'),
+      where('pacienteId', '==', patientId),
+      /* El orden de los campos ES el del índice declarado. Cambiarlo aquí sin
+         cambiarlo allí devuelve `FAILED_PRECONDITION`, no una lista peor. */
+      orderBy('fechaHora', 'desc'),
+      limit(TOPE_CITAS_PACIENTE),
+    )
     const unsub = onSnapshot(q,
       (snap) => {
         setAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)))
+        setTruncada(snap.size >= TOPE_CITAS_PACIENTE)
         setLoading(false)
       },
       (err) => { setError(err.message); setLoading(false) }
@@ -124,5 +151,5 @@ export function usePatientAppointments(patientId: string) {
     return () => unsub()
   }, [clinicId, patientId])
 
-  return { appointments, loading, error }
+  return { appointments, truncada, loading, error }
 }

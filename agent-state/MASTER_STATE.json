@@ -58,7 +58,7 @@
   ],
   "ramaActual": "claude/paquete-v1177",
   "derivado": {
-    "regsEnElLedger": 265,
+    "regsEnElLedger": 266,
     "ultimaREG": "REG-503",
     "archivosDePrueba": 886,
     "casosDePrueba": 10778,

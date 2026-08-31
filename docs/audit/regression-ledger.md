@@ -15282,3 +15282,128 @@ archivos del defecto volvió a caer.
 con techo además de suelo: probada al revés a 5 s (cae el suelo) y a 600 s (cae
 el techo, porque «subir el tope» no puede volverse el martillo con el que se
 esconde un cuelgue real).
+
+---
+
+## REG-415 — el guardián de índices se saltaba lo que no entendía, y dos consultas vivas llevaban meses sin índice
+
+**CÓMO SE DESCUBRIÓ.** Reparando los cuatro sacrificios que
+`docs/ops/INDICES-DE-FIRESTORE.md` declaraba —worklist, lista de espera, citas
+del paciente, resumen de notas—, una vez desplegados sus índices. Antes de tocar
+las consultas se comprobó **al revés** el guardián que las vigila
+(`el-indice-que-nadie-declaro.test.ts`): se le quitó un índice del archivo y se
+esperó que fallara.
+
+No falló. Pasó en verde.
+
+### Las dos capas de silencio
+
+El guardián tenía dos huecos, y **cada uno solo bastaba** para dar por buena una
+consulta rota:
+
+1. **No leía la consulta.** Resolvía la colección en dos formas —`collection(db,
+   …, 'literal')` escrito dentro del `query(...)`, y un alias
+   `const X = (…) => collection(…, 'literal')`— y cualquier otra forma la
+   **saltaba con un `continue`**. `getWaitlist` pasa por un ayudante declarado
+   con `function` que recibe el nombre por parámetro:
+
+   ```ts
+   function col(clinicId: string, name: string) { return collection(db, 'clinics', clinicId, name) }
+   query(col(clinicId, COLLECTIONS.waitlist), where('estado','==','activo'), orderBy('createdAt','asc'))
+   ```
+
+2. **Y aunque la hubiera leído, la comparación era falsa.** `estaDeclarado`
+   comprobaba que los campos **estuvieran** en algún índice de esa colección, en
+   cualquier orden. A Firestore le importa el orden, y el propio encabezado del
+   archivo lo declaraba como limitación conocida. Con
+   `waitlist(estado, prioridad, createdAt)` declarado, la consulta
+   `estado ==` → `orderBy createdAt` daba por cubierta. **No lo está**: Firestore
+   exige que el campo del `orderBy` vaya inmediatamente después de las
+   igualdades, y no admite campos de más. Hace falta `waitlist(estado, createdAt)`.
+
+### La causa raíz
+
+Un guardián que se salta lo que no entiende no dice «no lo sé»: dice «está bien».
+El `continue` convertía un caso desconocido en un caso aprobado, y la lista de
+huérfanas salía vacía por la razón equivocada — el mismo modo de fallo que este
+archivo ya había tenido una vez (la expresión regular ingenua que no encontraba
+ni una consulta) y que su propio caso «el lector encuentra consultas de verdad»
+existía para atrapar. Ese caso comprueba que encuentre **algunas**, no que no se
+deje ninguna.
+
+### Lo que había debajo
+
+Dos consultas que el producto **ya hace hoy**, sin índice declarado:
+
+| Colección | La consulta | Dónde se rompe |
+|---|---|---|
+| `waitlist` | `estado == activo` → `orderBy createdAt` | La pantalla de lista de espera (`getWaitlist`) |
+| `clinic_invitations` | `clinicId ==` → `orderBy createdAt` | Invitar a alguien al consultorio (`listarInvitaciones`, pantalla de configuración) |
+
+Igual que con las cuatro de REG-379, esto **no afirma que estén rotas en
+producción hoy**: Firestore crea índices a mano cuando alguien sigue el enlace del
+error, y un `deploy --only firestore:indexes` no borra los que no estén en el
+archivo. Lo que estaba roto es la **declaración**, y con ella cualquier
+consultorio nuevo o proyecto restaurado desde este repositorio. Cuáles existen de
+verdad se mira en la consola, del otro lado.
+
+### El arreglo
+
+**El guardián**, que es lo que impide que vuelva a pasar:
+
+- Resuelve tres formas de nombrar la colección: literal, ayudante de nombre fijo,
+  y ayudante que recibe el nombre por parámetro (incluidos `COLLECTIONS.x` y
+  `const COL = 'literal'`).
+- Lo que **sigue** sin poder resolver ya no se salta: se acumula y **falla** en un
+  caso propio. Una forma nueva pone el guardián en rojo y pide que se le enseñe,
+  en vez de darla por buena.
+- La comparación aplica las reglas que Firestore aplica de verdad: igualdades
+  primero en cualquier orden, `orderBy` después **en su orden exacto**, sin campos
+  de más, y direcciones que coincidan todas o estén todas invertidas.
+
+**Las cuatro reparaciones** que esto desbloqueaba, cada una quitando su aviso:
+
+| Módulo | Antes | Ahora |
+|---|---|---|
+| `whatsapp/ofrecer-hueco.ts` | 200 entradas cualesquiera, prioridad ordenada en memoria: con la lista llena, el hueco podía ofrecérsele a alguien menos prioritario | `orderBy prioridad, createdAt`: el recorte se lleva a los MENOS prioritarios |
+| `hooks/useAppointments.ts` | listener vivo sin cota sobre el historial entero del paciente | `orderBy fechaHora desc` + `limit(50)`, con `truncada` declarado |
+| `expediente/firestore.ts` | 40 notas bajadas para quedarse con 3, filtrando el estado en memoria | `where estado == firmada` + `limit(3)` |
+| `tareas-clinicas/firestore.ts` | 200 tareas **arbitrarias** de N | `orderBy creadaEn`: las que se caen son las más nuevas, nunca las viejas |
+
+**El doble de Firestore** (`_harness/firestore-admin-en-memoria.ts`) no
+implementaba `orderBy`, así que la consulta de la lista de espera lanzaba
+`TypeError` en quince casos. Se añadió **con las dos mitades**: ordenar, y
+**excluir los documentos a los que les falta el campo del `orderBy`** — que es lo
+que Firestore hace y lo que convierte «una entrada sin `prioridad`» en «una
+entrada que desaparece de la lista sin que nada lo diga». Un doble que pusiera los
+huecos al final haría pasar una prueba que en producción pierde a un paciente.
+
+### Lo que este arreglo NO cierra
+
+- **P1-14 sigue abierto a medias.** Pedía «las más urgentes» del worklist y esto
+  da «las más antiguas». Ordenar por urgencia en el servidor necesita dos cosas
+  que no están: un índice `(estado, prioridad, creadaEn)` **y** un campo numérico
+  de peso, porque `prioridad` guarda texto y en orden alfabético `alta` iría antes
+  que `critica`. Queda en el tablero, no tachado.
+- **El guardián no mira el `queryScope`.** Un índice de `COLLECTION` no sirve para
+  un `collectionGroup`, y eso pasaría en verde.
+- **Nada de esto prueba que los índices estén construidos.** Declararlos,
+  desplegarlos y verlos `Enabled` son tres actos, y los dos últimos son del dueño,
+  en la consola. Esta rama **no se fusiona hasta que estén verdes**: una consulta
+  cuyo índice no existe no devuelve lista vacía, falla entera con
+  `FAILED_PRECONDITION`.
+
+**Pruebas.**
+
+- `src/__tests__/el-indice-que-nadie-declaro.test.ts` (5 casos). Probado al
+  revés: quitando del archivo los dos índices nuevos, los nombra a los dos.
+- `src/__tests__/el-historial-completo-no-cabe-en-una-pantalla.test.ts` (28
+  casos), con uno nuevo que encuentra una nota firmada **enterrada bajo cuarenta
+  borradores** — el hueco que la ventana abría, y que falla sin el arreglo.
+- `src/__tests__/lista-espera-rango-horario.test.ts` (20 casos): la SECUENCIA de
+  los dos `orderBy`, que es lo que Firestore exige y lo que una prueba de
+  presencia no ve.
+- `src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts` (16 casos):
+  el camino real, contra el doble que ahora sí implementa `orderBy`.
+- `src/__tests__/un-borrado-que-deja-citas-no-es-un-borrado.test.ts` (13 casos):
+  el hook de citas ya acota, con el orden que el índice sirve.

@@ -567,7 +567,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * el fallo, y creerle costó un diagnóstico equivocado escrito en un PR.
      */
 
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414],
+    /**
+     * 415 es el instrumento MINTIENDO, que es peor que no tenerlo. El guardián
+     * de índices existía, corría en verde y llevaba meses tapando dos consultas
+     * sin índice: se SALTABA con un `continue` las consultas cuya colección no
+     * sabía leer, y comparaba que los campos estuvieran en vez de que estuvieran
+     * en el orden que Firestore exige.
+     *
+     * Un guardián que se salta lo que no entiende no dice «no lo sé»: dice «está
+     * bien». Por eso el arreglo no fue sólo enseñarle a leer más formas, sino
+     * hacer que lo ilegible FALLE. Y se descubrió porque antes de tocar el código
+     * que el guardián protege se le probó al revés — que es la única manera de
+     * saber si un instrumento mide.
+     */
+
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415],
   },
   {
     clave: 'hueco_como_dato',

@@ -940,12 +940,6 @@ export async function getVersionesNota(clinicId: string, patientId: string, nota
 }
 
 /**
- * VENTANA de notas recientes que se mira para armar el resumen de las últimas
- * firmadas. Ver `getUltimasNotasResumen`.
- */
-export const VENTANA_RESUMEN_NOTAS = 40
-
-/**
  * Última nota firmada para construir contexto de IA.
  *
  * ── LO QUE COSTABA (REG-350) ────────────────────────────────────────────────
@@ -955,28 +949,35 @@ export const VENTANA_RESUMEN_NOTAS = 40
  * resumen**. En un paciente crónico eso son megabytes por cada apertura de la
  * consulta, y corre en el navegador del médico con el paciente enfrente.
  *
- * ── POR QUÉ LA VENTANA ES POR FECHA Y EL FILTRO EN MEMORIA ──────────────────
+ * ── AHORA SE PIDEN LAS TRES FIRMADAS, Y NADA MÁS (REG-352 → REG-415) ────────
  *
- * Combinar `where('estado','==','firmada')` con `orderBy('fechaConsulta')`
- * exigiría un **índice compuesto**, que se crea fuera de este repositorio (la
- * misma pared que P1-14). El comentario anterior ya lo decía, y su respuesta fue
- * quitar el `orderBy` — es decir, quitar el LÍMITE.
+ * Combinar `where('estado','==','firmada')` con `orderBy('fechaConsulta')` exige
+ * un **índice compuesto**. Mientras no existió, esto leía una ventana de las
+ * `VENTANA_RESUMEN_NOTAS` notas más recientes y filtraba el estado EN MEMORIA:
+ * cuarenta documentos bajados para quedarse con tres cadenas de texto.
  *
- * Se hace al revés: se ordena por fecha con `limit`, que **no necesita índice
- * compuesto**, y el estado se filtra en memoria sobre esa ventana. El coste pasa
- * a depender de la ventana y no del historial.
+ * Con `notas(estado, fechaConsulta)` desplegado se pide lo que de verdad se
+ * quiere: las `limit` firmadas más recientes. El coste deja de depender de la
+ * ventana y pasa a depender de lo que se usa.
  *
- * ── QUÉ SE PIERDE, Y POR QUÉ ES ACEPTABLE AQUÍ ──────────────────────────────
+ * ── Y SE CIERRA EL HUECO QUE LA VENTANA ABRÍA ───────────────────────────────
  *
- * Si las últimas `VENTANA_RESUMEN_NOTAS` notas fueran TODAS borradores, este
- * resumen saldría vacío aunque el paciente tenga firmadas más atrás. Antes no
- * pasaba. Es aceptable **sólo porque este texto es contexto de IA y una tarjeta
- * de cortesía**: su ausencia no afirma nada sobre el paciente, y la cadena vacía
- * ya era una salida posible.
+ * Con el filtro en memoria, un paciente cuyas últimas cuarenta notas fueran
+ * TODAS borradores devolvía resumen vacío aunque tuviera firmadas más atrás. Era
+ * aceptable sólo porque este texto es contexto de IA y una tarjeta de cortesía.
+ * Ya no hace falta que sea aceptable: la consulta va a buscar firmadas, estén
+ * donde estén.
  *
- * **No vale el mismo razonamiento** para nada que sostenga una conclusión
- * clínica —problemas activos, medicación vigente, el bloqueo NOM-004—: eso lee
- * `listarNotasCompat` y mira `truncada`, o una consulta indexada propia.
+ * **Sigue sin valer** para nada que sostenga una conclusión clínica —problemas
+ * activos, medicación vigente, el bloqueo NOM-004—: eso lee `listarNotasCompat`
+ * y mira `truncada`.
+ *
+ * ── LO QUE DA POR SUPUESTO ──────────────────────────────────────────────────
+ *
+ * Que una nota firmada tiene `fechaConsulta`. Un `orderBy` **excluye** los
+ * documentos sin el campo. Ya era así antes de este cambio —la consulta anterior
+ * también ordenaba por `fechaConsulta`—, así que no se pierde nada que hoy se
+ * viera.
  */
 export async function getUltimasNotasResumen(
   clinicId: string,
@@ -985,13 +986,12 @@ export async function getUltimasNotasResumen(
 ): Promise<string> {
   const snap = await getDocs(query(
     notasCol(clinicId, patientId),
+    /* El orden ES el del índice `notas(estado, fechaConsulta)`. */
+    where('estado', '==', 'firmada'),
     orderBy('fechaConsulta', 'desc'),
-    limitarA(VENTANA_RESUMEN_NOTAS),
+    limitarA(limit),
   ))
-  const notas = snap.docs
-    .map(d => d.data() as NotaMedica)
-    .filter(n => n.estado === 'firmada')
-    .slice(0, limit)
+  const notas = snap.docs.map(d => d.data() as NotaMedica)
   if (notas.length === 0) return ''
   return notas
     .map(n => `[${(n.fechaConsulta || '').slice(0, 10)}] ${n.resumenEjecutivo || (n.diagnosticos ?? []).map(d => d.descripcion).join(', ')}`)

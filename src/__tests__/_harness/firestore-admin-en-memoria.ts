@@ -28,9 +28,11 @@
  * QUE NO ES
  *
  * No es Firestore. No valida reglas de seguridad, no impone tipos de campo ni
- * limites de documento, y sus queries solo entienden `where` sobre igualdad y
- * rangos de cadena, que es lo que usa la ruta bajo prueba. Todo lo que dependa
- * de las REGLAS se prueba contra el emulador (`emulator/*.emu.test.ts`), no aqui.
+ * limites de documento, y sus queries entienden `where` (igualdad, `in` y rangos
+ * de CADENA, que es lo que usan las rutas bajo prueba), `orderBy` -con la
+ * exclusion de los documentos a los que les falta el campo, igual que Firestore-
+ * y `limit`. Todo lo que dependa de las REGLAS se prueba contra el emulador
+ * (`emulator/*.emu.test.ts`), no aqui.
  */
 
 type Datos = Record<string, unknown>
@@ -147,26 +149,49 @@ function pasa(datos: Datos, f: Filtro): boolean {
   throw new Error(`Operador no soportado por la tienda en memoria: ${f.op}`)
 }
 
+interface Orden { campo: string; dir: 'asc' | 'desc' }
+
 class Consulta {
   constructor(
     readonly tienda: TiendaEnMemoria,
     readonly ruta: string,
     readonly filtros: Filtro[] = [],
     readonly tope: number | null = null,
+    readonly ordenes: Orden[] = [],
   ) {}
 
   where(campo: string, op: string, valor: unknown): Consulta {
-    return new Consulta(this.tienda, this.ruta, [...this.filtros, { campo, op, valor }], this.tope)
+    return new Consulta(this.tienda, this.ruta, [...this.filtros, { campo, op, valor }], this.tope, this.ordenes)
   }
 
   /**
-   * `limit(n)`. NO es adorno: se recorta DESPUES de filtrar, en orden de
-   * insercion, que es lo unico que esta tienda puede prometer. Una ruta que
-   * dependa del orden real de un indice de Firestore no se puede probar aqui, y
-   * eso hay que saberlo antes de escribir la asercion.
+   * `orderBy(campo, dir)` — y con las DOS mitades de lo que Firestore hace.
+   *
+   * La primera es la obvia: ordenar. La segunda es la que se olvida y la que
+   * decide si una consulta pierde pacientes — **un documento al que le falta el
+   * campo del `orderBy` no se ordena el ultimo: NO SALE**. Firestore no puede
+   * colocar en un indice lo que no tiene valor para esa columna.
+   *
+   * Esta mitad esta aqui a proposito, aunque hoy ninguna consulta de la
+   * aplicacion dependa de ella: es la trampa de `ofrecer-hueco` (una entrada de
+   * lista sin `prioridad` desapareceria de la lectura sin que nada lo dijera) y
+   * la de `useAppointments` (una cita sin `fechaHora`). Un doble que ordenara
+   * poniendo los huecos al final haria pasar una prueba que en produccion
+   * pierde a un paciente.
+   */
+  orderBy(campo: string, dir: 'asc' | 'desc' = 'asc'): Consulta {
+    return new Consulta(this.tienda, this.ruta, this.filtros, this.tope, [...this.ordenes, { campo, dir }])
+  }
+
+  /**
+   * `limit(n)`. NO es adorno: se recorta DESPUES de filtrar y de ordenar. Sin
+   * `orderBy` el recorte va en orden de insercion, que es lo unico que esta
+   * tienda puede prometer: una ruta que dependa del orden real de un indice de
+   * Firestore y no lo pida con `orderBy` no se puede probar aqui, y eso hay que
+   * saberlo antes de escribir la asercion.
    */
   limit(n: number): Consulta {
-    return new Consulta(this.tienda, this.ruta, this.filtros, n)
+    return new Consulta(this.tienda, this.ruta, this.filtros, n, this.ordenes)
   }
 
   /**
@@ -187,7 +212,20 @@ class Consulta {
        * cambiar — o sea, denunciaba un defecto del producto que era del doble.
        */
       ref: new RefDoc(this.tienda, `${this.ruta}/${d.id}`),
-    })).filter(d => this.filtros.every(f => pasa(d.datos, f)))
+    }))
+      .filter(d => this.filtros.every(f => pasa(d.datos, f)))
+      /* Firestore EXCLUYE lo que no tiene el campo por el que se ordena. */
+      .filter(d => this.ordenes.every(o => d.datos[o.campo] !== undefined && d.datos[o.campo] !== null))
+      .sort((a, b) => {
+        for (const o of this.ordenes) {
+          const va = a.datos[o.campo] as string | number
+          const vb = b.datos[o.campo] as string | number
+          if (va === vb) continue
+          const cmp = va < vb ? -1 : 1
+          return o.dir === 'desc' ? -cmp : cmp
+        }
+        return 0
+      })
     const docs = this.tope === null ? todos : todos.slice(0, this.tope)
     return { docs, size: docs.length, empty: docs.length === 0 }
   }

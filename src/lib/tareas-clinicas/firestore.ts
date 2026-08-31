@@ -11,7 +11,7 @@
  * El `patientId` va dentro, así que el camino inverso —los pendientes de ESTE
  * paciente— sigue siendo una consulta directa.
  */
-import { collection, doc, addDoc, setDoc, getDoc, updateDoc, getDocs, query, where, limit } from 'firebase/firestore'
+import { collection, doc, addDoc, setDoc, getDoc, updateDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import {
   puedeTransicionar, puedeCerrarse, conTransicion,
@@ -120,17 +120,31 @@ export interface WorklistVivo {
 export async function tareasVivas(clinicId: string, tope = 200): Promise<WorklistVivo> {
   if (!clinicId) return { tareas: [], truncada: false, tope }
   /**
-   * SIN `orderBy`: EL ORDEN LO PONE EL WORKLIST, NO FIRESTORE.
+   * CON `orderBy('creadaEn')`: EL RECORTE DEJA DE SER ARBITRARIO (REG-415).
    *
-   * La consulta llevaba `orderBy('creadaEn')` junto al `where … in …`, y esa
-   * combinación exige un índice compuesto que hay que crear a mano en la consola.
-   * Mientras no existe, la lectura falla entera — que es como se abrió esta
-   * pantalla por primera vez en producción: error, no lista vacía.
+   * `ordenWorklist` reordena todo en el cliente —primero lo que hay que escalar,
+   * luego por prioridad, luego por antigüedad— así que este `orderBy` **no
+   * decide lo que se ve**. Decide otra cosa, que es la que importaba: CUÁLES son
+   * las `tope` que llegan cuando el consultorio tiene más.
    *
-   * Y el `orderBy` era además redundante: `ordenWorklist` reordena todo en el
-   * cliente (primero lo que hay que escalar, luego por prioridad, luego por
-   * antigüedad), así que el orden que devolviera Firestore se perdía igual.
-   * Quitarlo elimina la dependencia del índice sin cambiar lo que se ve.
+   * Sin él, Firestore devolvía `tope` documentos cualesquiera, en orden de
+   * identificador. Con él, las que se quedan fuera son siempre las MÁS NUEVAS, y
+   * las viejas —las que llevan semanas sin que nadie las mire, las que de verdad
+   * se olvidan— no pueden caerse del worklist.
+   *
+   * ── LO QUE ESTO **NO** CIERRA ───────────────────────────────────────────────
+   *
+   * P1-14 pedía «las más urgentes», y esto da «las más antiguas». No es lo
+   * mismo. Ordenar por urgencia en el servidor necesita dos cosas que este cambio
+   * no trae: un índice `(estado, prioridad, creadaEn)` y un campo NUMÉRICO de
+   * peso, porque `prioridad` guarda texto y en orden alfabético `alta` iría antes
+   * que `critica` — Firestore ordenaría al revés de lo que dice la palabra.
+   * Queda escrito en el tablero, no tachado.
+   *
+   * El orden del `orderBy` ES el del índice `tareas_clinicas(estado, creadaEn)`.
+   * Y da por supuesto que toda tarea tiene `creadaEn`: un `orderBy` EXCLUYE los
+   * documentos sin el campo. Es obligatorio en `TareaClinica` y los tres sitios
+   * que crean tareas (`derivar.ts`) lo ponen siempre.
    */
   /**
    * Se piden `tope + 1` para SABER si se quedó corto. El extra no se devuelve:
@@ -144,6 +158,7 @@ export async function tareasVivas(clinicId: string, tope = 200): Promise<Worklis
        Dejarla fuera de esta consulta la haría desaparecer del worklist, que es
        justo lo que pasaba cuando agendar equivalía a cerrar. */
     where('estado', 'in', ['solicitada', 'aceptada', 'en_curso', 'agendada', 'completada']),
+    orderBy('creadaEn', 'asc'),
     limit(tope + 1),
   )
   const snap = await getDocs(q)

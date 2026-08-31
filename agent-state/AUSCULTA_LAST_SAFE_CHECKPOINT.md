@@ -19,7 +19,7 @@ KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.25
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno — P1-20 abierto y cerrado con REG-364)
-BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
+BLOCKED_EXTERNAL=P1-6 E0-06 alergias · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
 DO_NOT_REGRESS=REG-323 · REG-501…REG-376
 ```
 
@@ -119,7 +119,7 @@ Dos huecos que vivían en comentarios sueltos pasan a ser artefactos con lista:
 
 | Qué | Dónde | Comando del dueño |
 |---|---|---|
-| Índices compuestos (P1-14, worklist, lista de espera, citas, resumen) | `firestore.indexes.json` + `docs/ops/INDICES-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:indexes` |
+| Índices compuestos — las 4 consultas YA los usan (REG-415), así que el despliegue va **ANTES** de fusionar | `firestore.indexes.json` (9 índices) + `docs/ops/INDICES-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:indexes` y **verlos `Enabled` en la consola** |
 | Reglas escritas y sin desplegar (`members`, bloque `clinico`, los `match` de REG-340) | `firestore.rules.estado.json` + `docs/ops/REGLAS-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:rules` |
 
 Los dos siguen `BLOCKED_EXTERNAL`. La diferencia es que ahora se puede pedir de
@@ -150,18 +150,32 @@ Los dos hacían **pasar pruebas vacías**, así que quedan anotados:
 Cualquier prueba anterior que afirmara sobre escrituras con este doble hay que
 mirarla de nuevo: pudo estar en verde por esto.
 
-### El índice que falta ya no vive en comentarios
+### Los índices: declarados, usados, y esperando el despliegue (REG-415)
 
-`firestore.indexes.json` + `docs/ops/INDICES-DE-FIRESTORE.md` reúnen los cuatro
-módulos que hoy están peor por no tener índice compuesto (worklist P1-14, lista de
-espera, citas del paciente, resumen de notas). Sigue `BLOCKED_EXTERNAL` —lo
-despliega el dueño con `npx firebase deploy --only firestore:indexes`— pero ahora
-es **una acción concreta y no un hueco invisible**.
+Los cuatro sacrificios que vivían en comentarios están **reparados**: worklist,
+lista de espera, citas del paciente y resumen de notas ya piden orden y cota.
+
+Y al comprobar el guardián **al revés** antes de tocar nada, se descubrió que no
+fallaba: se saltaba en silencio las consultas cuya colección no sabía leer, y
+comparaba presencia de campos en vez de orden. Debajo había **dos consultas vivas
+sin índice** — `getWaitlist` y `listarInvitaciones`. Son nueve índices ahora.
+
+**EL ORDEN DE DESPLIEGUE ES LO ÚNICO PELIGROSO QUE QUEDA AQUÍ.** Los índices van
+**antes** que el código: una consulta sin su índice no devuelve lista vacía, falla
+entera. Y el botón de producción no protege de esto —su compuerta 3 exige que el
+sitio ya sirva la versión antes de publicar los índices—, así que se despliegan
+aparte, se ven `Enabled` en la consola, y sólo entonces se fusiona.
+
+El detalle operativo, con los nueve índices y quién los usa, en
+`docs/ops/INDICES-DE-FIRESTORE.md`.
 
 ### Herramientas que el resto del programa puede usar
 
 1. **`_harness/firestore-admin-en-memoria.ts`** — `doc`, `getAll`, `batch`,
-   `tx.getAll` y un gancho de interceptación **en la lectura**.
+   `tx.getAll`, un gancho de interceptación **en la lectura** y, desde REG-415,
+   `orderBy` con las DOS mitades de lo que Firestore hace: ordenar **y excluir
+   los documentos a los que les falta el campo del orden**. La segunda es la que
+   convierte «una entrada sin `prioridad`» en «una entrada que desaparece».
 2. **`_harness/firestore-cliente-en-memoria.ts`** — cuenta documentos leídos,
    entiende `getCountFromServer`, `startAfter` **en la dirección del orden**, y
    sabe simular una **lectura caída** —global (`fallos.lectura`) o en una

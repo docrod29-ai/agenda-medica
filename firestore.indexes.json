@@ -17,6 +17,14 @@
       ]
     },
     {
+      "collectionGroup": "clinic_invitations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clinicId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "farmacia",
       "queryScope": "COLLECTION",
       "fields": [
@@ -54,6 +62,14 @@
       "fields": [
         { "fieldPath": "estado", "order": "ASCENDING" },
         { "fieldPath": "creadaEn", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "waitlist",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
     },
     {

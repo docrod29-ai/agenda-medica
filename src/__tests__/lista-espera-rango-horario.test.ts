@@ -153,12 +153,24 @@ describe('el tope ya no recorta en silencio', () => {
   it('y cuando se alcanza, se DICE', () => {
     // Un recorte que nadie ve se lee como «ya estaban todos».
     expect(s).toContain('if (waitlistSnap.size >= TOPE_LISTA)')
-    expect(s).toContain('puede haber pacientes MÁS prioritarios fuera de la lectura')
+    expect(s).toContain('los que quedaron fuera son los MENOS prioritarios')
   })
 
-  it('el aviso explica qué haría falta para arreglarlo del todo', () => {
-    // El índice compuesto se crea a mano en la consola, y mientras no exista la
-    // lectura fallaría ENTERA: por eso no se pide desde el código.
-    expect(s).toContain('índice compuesto')
+  it('y el recorte se lleva a los MENOS prioritarios, no a cualquiera (REG-415)', () => {
+    /**
+     * Este caso decía antes «el aviso explica qué haría falta para arreglarlo del
+     * todo», porque el arreglo estaba bloqueado por un índice sin desplegar. Ya
+     * está desplegado, así que lo que se vigila es el arreglo, no su excusa.
+     *
+     * EL ORDEN DE LOS DOS `orderBy` NO ES ESTILO. Tiene que ser el mismo que el
+     * del índice `waitlist(estado, prioridad, createdAt)`; al revés, Firestore
+     * rechaza la consulta ENTERA con `FAILED_PRECONDITION` y no se le ofrece el
+     * hueco a nadie. Por eso se comprueba la secuencia y no sólo la presencia.
+     */
+    const codigo = s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '')
+    const pos = (t: string) => codigo.indexOf(t)
+    expect(pos("orderBy('prioridad', 'asc')")).toBeGreaterThan(-1)
+    expect(pos("orderBy('createdAt', 'asc')")).toBeGreaterThan(pos("orderBy('prioridad', 'asc')"))
+    expect(pos("where('estado', 'in', ['activo', 'contactado'])")).toBeLessThan(pos("orderBy('prioridad', 'asc')"))
   })
 })
