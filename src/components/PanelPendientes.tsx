@@ -20,22 +20,62 @@ const COLOR: Record<Prioridad, string> = { alta: 'var(--red)', media: 'var(--amb
 export function PanelPendientes() {
   const { clinicId } = useClinic()
   const hoy = hoyISO()
-  const { appointments } = useAppointments(`${hoy} 00:00`)
+  const { appointments, error: falloCitas } = useAppointments(`${hoy} 00:00`)
   const [cobros, setCobros] = useState<Cobro[]>([])
   const [membresias, setMembresias] = useState<Membresia[]>([])
+  /**
+   * QUÉ FUENTES NO SE PUDIERON CONSULTAR.
+   *
+   * Las tres se tragaban su fallo —dos con un `.catch(() => {})` vacío y la de
+   * citas sin recoger `error`— y las tres alimentan la misma lista. Con una
+   * caída, la lista sale corta o vacía, y con la lista vacía este panel
+   * **desaparecía del tablero**: ni error, ni hueco, ni rastro. Un panel que se
+   * quita solo dice «no tienes nada que hacer hoy» sin haberlo comprobado.
+   */
+  /*
+   * Se guarda DE QUÉ PETICIÓN fue el fallo, no un `true` pelado.
+   *
+   * Con un booleano hacía falta ponerlo a `false` al principio del efecto —o el
+   * aviso de ayer seguiría puesto hoy—, y eso es un `setState` síncrono dentro
+   * de un efecto, que el trinquete de lint caza con razón. Atado a su petición
+   * se limpia solo: cambia el día o el consultorio, la llave deja de coincidir y
+   * el fallo caduca sin que nadie lo borre.
+   */
+  const peticion = `${clinicId ?? ''}|${hoy}`
+  const [falloCobrosEn, setFalloCobrosEn] = useState<string | null>(null)
+  const [falloMembresiasEn, setFalloMembresiasEn] = useState<string | null>(null)
+  const falloCobros = falloCobrosEn === peticion
+  const falloMembresias = falloMembresiasEn === peticion
 
   useEffect(() => {
     if (!clinicId) return
-    listarCobros(clinicId, hoy, hoy).then(setCobros).catch(() => {})
-    listarMembresias(clinicId).then(setMembresias).catch(() => {})
-  }, [clinicId, hoy])
+    listarCobros(clinicId, hoy, hoy).then(setCobros).catch(() => setFalloCobrosEn(peticion))
+    listarMembresias(clinicId).then(setMembresias).catch(() => setFalloMembresiasEn(peticion))
+  }, [clinicId, hoy, peticion])
 
   const acciones = useMemo(
     () => accionesPendientes({ citas: appointments, cobros, membresias, hoy }),
     [appointments, cobros, membresias, hoy],
   )
   const r = resumenAcciones(acciones)
-  if (acciones.length === 0) return null
+
+  /**
+   * Qué NO se pudo mirar, con su nombre. Se dice cuál falló porque no es lo
+   * mismo no haber podido ver los cobros que no haber podido ver la agenda: el
+   * médico sabe a qué pantalla ir a mirar a mano.
+   */
+  const sinConsultar = [
+    falloCitas ? 'las citas' : null,
+    falloCobros ? 'los cobros' : null,
+    falloMembresias ? 'las membresías' : null,
+  ].filter(Boolean) as string[]
+
+  /*
+   * El panel sólo desaparece cuando **de verdad** no hay nada: cero acciones Y
+   * las tres fuentes contestaron. Si alguna falló, se queda y lo dice — aunque
+   * la lista esté vacía, que es justo el caso en que callarse engaña más.
+   */
+  if (acciones.length === 0 && sinConsultar.length === 0) return null
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--panel, var(--s1)', padding: '16px 18px', marginBottom: 18 }}>
@@ -63,6 +103,22 @@ export function PanelPendientes() {
         ))}
       </div>
       {acciones.length > 8 && <div className="nx-meta" style={{ marginTop: 8 }}>+{acciones.length - 8} más</div>}
+      {/*
+        Y el aviso, que vale para las dos formas de engañar: la lista vacía que
+        parece un día tranquilo, y la lista corta que parece completa.
+      */}
+      {sinConsultar.length > 0 && (
+        <div
+          role="status"
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 10, fontSize: 12, lineHeight: 1.45, color: 'var(--amber)' }}
+        >
+          <CircleAlert size={13} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+          <span>
+            No se pudieron consultar {sinConsultar.join(' ni ')}.{' '}
+            {acciones.length === 0 ? 'Esto NO quiere decir que no tengas nada pendiente.' : 'Puede faltar algo en esta lista.'}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

@@ -4723,3 +4723,67 @@ roto el ancho de 390.
   vea. El clic sobre la celda libre usa el mismo camino de siempre.
 - La vista de MES no se mira: no usa rejilla de horas.
 - El arnés sólo prueba dos horas, 06:30 y 20:30. No barre las 24.
+
+---
+
+## Unidad 75 — un panel que se quita solo está afirmando algo
+
+**DE DÓNDE SALE.** Del barrido que dejó abierta la unidad 73: de las nueve
+llamadas a `useAppointments`, sólo dos recogían `error`. Éste —`PanelPendientes`,
+«Siguiente acción», **lo primero que mira el médico al entrar**— no sólo no lo
+recogía: además tenía dos `.catch` vacíos, que es la forma más explícita que hay
+de tragarse un fallo.
+
+```js
+listarCobros(...).then(setCobros).catch(() => {})
+listarMembresias(...).then(setMembresias).catch(() => {})
+const { appointments } = useAppointments(...)      // `error` sin recoger
+...
+if (acciones.length === 0) return null
+```
+
+**LO QUE ESO HACÍA.** Las tres fuentes alimentan la misma lista. Con una caída la
+lista sale **corta**; con las tres, **vacía**. Y con la lista vacía el panel se
+quitaba del tablero entero: ni error, ni hueco, ni rastro de que hubiera
+existido.
+
+Un panel que desaparece no se está callando: está diciendo **«hoy no tienes nada
+que hacer»**. Y lo dice sin haberlo comprobado. Detrás puede haber un cobro sin
+cerrar, una membresía vencida o un paciente sin confirmar.
+
+**EL ARREGLO.** Se recogen los tres fallos y el panel sólo desaparece cuando de
+verdad no hay nada: cero acciones **y** las tres fuentes contestaron. Si alguna
+falló, se queda y **dice cuál** — no es lo mismo no haber podido ver los cobros
+que no haber podido ver la agenda: el médico sabe a qué pantalla ir a mirar a
+mano. El aviso distingue las dos formas de engañar: lista vacía («esto NO quiere
+decir que no tengas nada pendiente») y lista corta («puede faltar algo en esta
+lista»).
+
+**PROBADO AL REVÉS, y con precisión sobre QUÉ mitad.** Negando la lectura de
+`cobros` en el emulador, con el código anterior: el panel se queda —porque las
+citas seguían dando acciones— y **no dice** que le falta una fuente. Ésa es la
+mitad medida en navegador: la lista corta que parece completa. La otra mitad —la
+desaparición— pide que las tres fuentes den cero a la vez y **no se midió en
+navegador**; la vigila el golden, sobre la condición de salida temprana. Se dice
+así en vez de dar por vista una pantalla que no se vio.
+
+**Y OTRO TRINQUETE QUE CAZÓ EL CAMBIO.** El lint subió a 96 sobre 95: mi primera
+versión ponía los fallos a `false` al principio del efecto —un `setState`
+síncrono dentro de un efecto—. Se arregló el cambio, no el techo, y el arreglo
+salió mejor que el original: el fallo se guarda **atado a la petición que lo
+produjo**, así que caduca solo cuando cambia el día o el consultorio, sin que
+nadie tenga que acordarse de borrarlo.
+
+**COMPUERTAS.** `vitest` 10 861 de 10 862 —sólo `ops-timeout-y-punto-ciego`— ·
+lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run
+build` compila · `arnes:caida-parcial` en verde con su tercer bloque.
+
+**RESIDUAL_RISK.**
+
+- **Siguen sin recoger `error` dos consumidores**: `/asistente` y
+  `useNotificacionesCitas`. No se han medido, y no estar en ningún guardián
+  significa que **nadie los mira**.
+- La desaparición del panel no está medida en navegador (arriba, con su razón).
+- El aviso no se comprueba que se QUITE al volver el permiso.
+- `accionesPendientes` sigue sin saber que una fuente falló: recibe listas
+  vacías y no puede distinguirlas. El aviso vive en la pantalla, no en el motor.

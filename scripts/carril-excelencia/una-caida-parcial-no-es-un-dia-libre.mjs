@@ -70,9 +70,15 @@ const CON_PERMISO = `      match /appointments/{docId} {
         allow read: if isMember(clinicId);`
 const SIN_PERMISO = `      match /appointments/{docId} {
         allow read: if false;`
-if (!REGLAS.includes(CON_PERMISO)) {
-  console.error('\n  La regla de lectura de `appointments` cambió de forma; este guion ya no sabe negarla.\n')
-  process.exit(2)
+const COBROS_CON = `      match /cobros/{cobroId} {
+        allow read: if isMember(clinicId);`
+const COBROS_SIN = `      match /cobros/{cobroId} {
+        allow read: if false;`
+for (const [que, trozo] of [['appointments', CON_PERMISO], ['cobros', COBROS_CON]]) {
+  if (!REGLAS.includes(trozo)) {
+    console.error(`\n  La regla de lectura de \`${que}\` cambió de forma; este guion ya no sabe negarla.\n`)
+    process.exit(2)
+  }
 }
 
 /** Publica reglas en el EMULADOR. Nunca toca el proyecto real. */
@@ -84,6 +90,7 @@ const publicarReglas = async (contenido) => {
   if (!r.ok) throw new Error(`No se pudieron publicar las reglas: ${r.status} ${await r.text()}`)
 }
 const negarCitas = () => publicarReglas(REGLAS.replace(CON_PERMISO, SIN_PERMISO))
+const negarCobros = () => publicarReglas(REGLAS.replace(COBROS_CON, COBROS_SIN))
 const devolverReglas = () => publicarReglas(REGLAS)
 
 const DICE_AGENDA = /no se pudo cargar tu agenda/i
@@ -210,6 +217,33 @@ try {
    * navegador**, y así está escrito en la matriz.
    */
   console.log('  modal        · NOT_PROVEN en navegador — inalcanzable con el permiso negado (ver cabecera)')
+
+  /* ── 3 · EL PANEL «SIGUIENTE ACCIÓN» DEL TABLERO ────────────────────────── */
+  /*
+   * Este es el caso más callado de los tres: el panel junta citas, cobros y
+   * membresías, y si la lista sale vacía **se quitaba del tablero entero**. Ni
+   * error, ni hueco, ni rastro. Un panel que desaparece dice «hoy no tienes
+   * nada que hacer» sin haberlo comprobado.
+   *
+   * Se niegan los COBROS —no las citas— a propósito: así el resto del tablero
+   * sigue funcionando y lo que se mide es exactamente una fuente caída de tres.
+   */
+  await devolverReglas()
+  await pag.goto(`${BASE}/dashboard`, { waitUntil: 'domcontentloaded' })
+  await pag.waitForTimeout(9000)
+  const conCobros = await pag.evaluate(() => document.body.innerText || '')
+  if (!/Siguiente acción/i.test(conCobros)) {
+    console.log('  panel        · el tablero no enseña «Siguiente acción» ni con todo bien — sin medir')
+  } else {
+    await negarCobros()
+    await pag.reload({ waitUntil: 'domcontentloaded' })
+    await pag.waitForTimeout(12000)
+    const sinCobros = await pag.evaluate(() => document.body.innerText || '')
+    const sigue = /Siguiente acción/i.test(sinCobros)
+    const loDice = /no se pudieron consultar/i.test(sinCobros)
+    console.log(`  panel        · sigue en el tablero: ${sigue} · lo dice: ${loDice}`)
+    if (!loDice) fallos.push('el panel «Siguiente acción» no dice que no pudo consultar los cobros')
+  }
 } finally {
   await devolverReglas().catch(e => console.error('  AVISO: no se pudieron devolver las reglas:', String(e).slice(0, 120)))
   if (nav) await nav.close().catch(() => {})

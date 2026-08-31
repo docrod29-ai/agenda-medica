@@ -243,7 +243,7 @@ que no midió es peor que uno que no mide.
 | `/lista-espera` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/finanzas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/operaciones` | 0 | no | 0 | ok | 0 | ok | ok | ok |
-| `/dashboard` | 0 | no | 0 | ok | 0 ² | ok | ok | ok |
+| `/dashboard` | 0 | no | 0 | ok | 0 ² | ok | ok · parcial **arreglado u75** | ok |
 | `/pacientes` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/pendientes` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/configuracion` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok | n/a ⁴ |
