@@ -311,6 +311,40 @@ const mudosDeDialogos = []
         await pagD.locator('button:visible, [role=menuitem]:visible').filter({ hasText: /Editar cita/i }).first().click({ timeout: 5000 })
       },
     },
+    /**
+     * LOS DIÁLOGOS DE ESTADO DIFÍCIL, que hasta hoy no se abría ninguno.
+     *
+     * Los dos de arriba se abren con un clic desde la pantalla en la que ya
+     * estamos. Éstos piden LLEVAR EL PRODUCTO A UN ESTADO: un cobro que anular,
+     * y un motivo escrito para que el botón destructivo deje de estar apagado.
+     *
+     * Y eso importa para lo que mide este arnés: un control `disabled` se salta
+     * a propósito —un botón apagado no tiene que acusar nada—, así que el botón
+     * «Anular cobro» NO se medía aunque el diálogo se hubiera abierto. Sin
+     * escribir el motivo, el control más peligroso del producto queda fuera de
+     * la cuenta y el diálogo sale «0 mudos» sin haber mirado lo que importa.
+     *
+     * Es la confirmación de un acto DESTRUCTIVO sobre dinero. El golden de
+     * fuente `un-dialogo-a-mano-no-atrapa-el-foco` ya exige que pase por
+     * `ui/Modal`; lo que nadie había comprobado es cómo se comporta al PULSAR.
+     */
+    {
+      nombre: 'anular un cobro',
+      sel: '[role=dialog]',
+      abrir: async () => {
+        await pagD.goto(`${BASE}/finanzas`, { waitUntil: 'domcontentloaded' })
+        await pagD.waitForTimeout(6000)
+        await pagD.locator('button:visible').filter({ hasText: /^Anular$/ }).first()
+          .click({ timeout: 8000 })
+        await pagD.waitForTimeout(1500)
+        // El motivo enciende el botón destructivo. Sin esto no se mide.
+        const campo = pagD.locator('[role=dialog] textarea, [role=dialog] input[type=text]').first()
+        if (await campo.count().catch(() => 0)) {
+          await campo.fill('captura equivocada — medición del arnés').catch(() => {})
+          await pagD.waitForTimeout(600)
+        }
+      },
+    },
   ]
 
   for (const d of DIALOGOS) {
