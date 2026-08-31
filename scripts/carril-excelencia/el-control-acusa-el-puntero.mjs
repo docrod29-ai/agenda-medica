@@ -250,6 +250,88 @@ for (const ruta of RUTAS) {
   if (mudos.length) mudos.slice(0, 6).forEach(m => console.log(`        · ${m}`))
 }
 
+/*
+ * ── Y LOS DIÁLOGOS, QUE SE MIDEN ABIERTOS ──────────────────────────────────
+ *
+ * Un control dentro de un diálogo no existe hasta que el diálogo se abre, así
+ * que el recorrido por rutas de arriba no lo ve nunca. `arnes:dialogos-teclado`
+ * sí los abre, pero mira el TECLADO —foco y Escape—, no el puntero.
+ *
+ * Medido el 31-ago al abrirlos por primera vez: el modal de agendar, limpio; el
+ * panel de ayuda, **dos mudos** —el enlace «Guía» y la aspa de cerrar—, los dos
+ * con el estilo en línea ganándole al `:hover`, que es el defecto de siempre.
+ *
+ * Sólo se miran los dos que este guion sabe abrir. Los que piden un estado
+ * difícil —un cobro a medias, una firma— siguen sin mirarse, y no estar aquí
+ * significa que NO se vigilan.
+ */
+const mudosDeDialogos = []
+{
+  /* Se reutiliza la pestaña que YA tiene sesión: una nueva iría a `/login` y
+     el producto la rebotaría al tablero, que fue lo que pasó la primera vez. */
+  const pagD = pag
+  await pagD.goto(`${BASE}/citas`, { waitUntil: 'domcontentloaded' })
+  await pagD.waitForTimeout(8000)
+  for (const t of [/^saltar$/i, /^entendido$/i]) {
+    const b = pagD.locator('button:visible').filter({ hasText: t }).first()
+    if (await b.count().catch(() => 0)) { await b.click().catch(() => {}); await pagD.waitForTimeout(700) }
+  }
+
+  const DIALOGOS = [
+    {
+      nombre: 'panel de ayuda',
+      sel: '[role=dialog][aria-label="Asistente de ayuda"]',
+      abrir: async () => { await pagD.locator('[aria-label="Abrir ayuda"]').first().click({ timeout: 5000 }) },
+    },
+    {
+      nombre: 'modal de agendar',
+      sel: '[role=dialog]',
+      abrir: async () => {
+        const m = pagD.locator('button:visible[aria-label^="Más acciones"]').first()
+        await m.click({ timeout: 5000 })
+        await pagD.waitForTimeout(1000)
+        await pagD.locator('button:visible, [role=menuitem]:visible').filter({ hasText: /Editar cita/i }).first().click({ timeout: 5000 })
+      },
+    },
+  ]
+
+  for (const d of DIALOGOS) {
+    await pagD.keyboard.press('Escape').catch(() => {})
+    await pagD.waitForTimeout(800)
+    await d.abrir().catch(() => {})
+    await pagD.waitForTimeout(2800)
+    const cuantosD = await pagD.evaluate(sel => {
+      const caja = document.querySelector(sel)
+      if (!caja) return -1
+      let i = 0
+      caja.querySelectorAll('a,button,[role=button]').forEach(e => {
+        const b = e.getBoundingClientRect()
+        if (!b.width || e.offsetParent === null) return
+        if (e.disabled === true || e.getAttribute('aria-disabled') === 'true') return
+        for (const a of ['aria-pressed', 'aria-checked', 'aria-selected']) if (e.getAttribute(a) === 'true') return
+        e.dataset.acuseDialogo = 'd' + (i++)
+      })
+      return i
+    }, d.sel).catch(() => -1)
+    if (cuantosD <= 0) { console.log(`  ${'sin abrir'.padEnd(9)} ${d.nombre} — queda sin medir`); continue }
+    const mudosD = []
+    for (let i = 0; i < cuantosD; i++) {
+      const el = pagD.locator(`[data-acuse-dialogo="d${i}"]`)
+      try {
+        const antes = await el.evaluate(FOTO)
+        await el.hover({ force: true, timeout: 3000 })
+        await pagD.waitForTimeout(200)
+        if (antes === await el.evaluate(FOTO)) {
+          mudosD.push((await el.evaluate(e => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 30))).replace(/\s+/g, ' '))
+        }
+      } catch { /* se fue del árbol */ }
+    }
+    console.log(`  ${String(mudosD.length).padStart(3)} mudos de ${String(cuantosD).padEnd(4)} ${d.nombre} (diálogo)`)
+    mudosD.forEach(m => console.log(`        · ${m}`))
+    if (mudosD.length) mudosDeDialogos.push(`${d.nombre}: ${mudosD.length} mudos (${mudosD.join(', ')})`)
+  }
+}
+
 await nav.close()
 
 // Un barrido que no encuentra controles no es un aprobado: es un barrido roto.
@@ -281,6 +363,9 @@ for (const ruta of RUTAS) {
   if (medido[ruta] > antes) peores.push(`${ruta}: ${medido[ruta]} mudos, el techo era ${antes}`)
   if (medido[ruta] < antes) mejores.push(`${ruta}: ${medido[ruta]} mudos, el techo decía ${antes}`)
 }
+
+/* Los diálogos no tienen techo por ruta: su cuenta buena es CERO y punto. */
+for (const m of mudosDeDialogos) peores.push(m)
 
 if (peores.length) {
   console.error('\n  MÁS CONTROLES MUDOS QUE ANTES:\n' + peores.map(p => '   · ' + p).join('\n') + '\n')

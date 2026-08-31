@@ -5422,3 +5422,52 @@ eso quedó limpio. Un arnés que explica cómo desmentirlo vale el doble.
 - El portal del paciente (`/mi/[token]`) sigue fuera de las 22 rutas.
 - «Acusa el puntero» sigue siendo un cambio de estilo cualquiera: uno
   imperceptible cuenta igual que uno claro.
+
+---
+
+## Unidad 86 — los diálogos, y las ocho horas que se pulsan para agendar
+
+**DE DÓNDE SALE.** Del riesgo residual de la unidad 85: «los diálogos siguen sin
+medirse para estaticidad». Un control dentro de un diálogo **no existe** hasta
+que el diálogo se abre, así que el recorrido por rutas no lo ve nunca.
+`arnes:dialogos-teclado` sí los abre, pero mira el TECLADO —foco y Escape—, no el
+puntero.
+
+**LO QUE SALIÓ AL ABRIRLOS.** El modal de agendar, limpio. El panel de ayuda,
+**dos mudos**: el enlace «Guía» y la aspa de cerrar, los dos con el estilo en
+línea ganándole al `:hover`. Arreglados con `nx-enlace-riel` y `nx-acc-plana`.
+
+**Y UN HALLAZGO QUE NO BUSCABA, mayor que el anterior.** Al volver a medir,
+`/asistente` pasó de 11 controles a 23 y saltaron **ocho mudos**: las **horas
+disponibles** —09:00, 11:00, 12:00…—, que son literalmente lo que se pulsa para
+agendar una cita. No habían aparecido antes porque en la medición de la unidad 84
+no había ninguna franja pintada; el trinquete las vio en cuanto hubo datos que las
+hicieran salir.
+
+Mismo defecto y **el mismo azul escrito a mano** que las tarjetas de día
+(`rgba(61,90,254,0.15)`). `nx-chip` + `aria-pressed`, y el tinte pasa a
+`--nexus-soft`.
+
+Eso deja una lección que vale más que el arreglo: **un trinquete a 0 sólo vigila
+lo que se llegó a pintar el día que se midió.** Una pantalla con estado —y
+`/asistente` es un formulario de varios pasos— esconde controles hasta que se
+llega a ellos.
+
+**PROBADO AL REVÉS.** Devolviendo el enlace «Guía» a su estilo en línea y
+recompilando, el arnés canta `panel de ayuda: 1 mudos (Guía)` y las 22 rutas se
+quedan en 0 — discrimina entre el diálogo y las pantallas.
+
+**COMPUERTAS.** `vitest` 12 012 de 12 013 —`ops-timeout-y-punto-ciego`— · lint 95
+= techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run build`
+compila · trinquete de interfaz sin regresión · `arnes:dialogos-teclado` en verde
+· `arnes:acuse-puntero` en verde con los dos diálogos dentro.
+
+**RESIDUAL_RISK.**
+
+- **Sólo se abren dos diálogos.** Los que piden un estado difícil —un cobro a
+  medias, una firma, un laboratorio— siguen sin mirarse, y no estar en la lista
+  significa que **no se vigilan**.
+- **Y lo que enseñó `/asistente` sigue siendo verdad para el resto**: los
+  formularios de varios pasos esconden controles hasta que se llega a ellos, y
+  este arnés mide una sola pantalla por ruta. Lo que no se pintó, no se midió.
+- El portal del paciente sigue fuera de las 22 rutas.

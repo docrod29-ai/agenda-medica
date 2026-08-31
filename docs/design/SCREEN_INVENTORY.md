@@ -44,7 +44,7 @@
 | `/teleconsulta/[citaId]` | paciente | ✅ | 112 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
-| `/asistente` | medico | ✅ | 854 | 0 | — | ✅ | — |
+| `/asistente` | medico | ✅ | 863 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 843 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1213 | 6 | — | ✅ | — |

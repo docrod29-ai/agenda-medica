@@ -127,10 +127,15 @@ export function BotonAyuda() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb, var(--nexus) 6%, transparent)' }}>
             <HelpCircle size={17} style={{ color: 'var(--teal)' }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', flex: 1 }}>Asistente de ayuda</span>
-            <Link href="/guia" onClick={() => setAbierto(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}>
+            {/* El color y el subrayado los pone `nx-enlace-riel`: en línea le
+                ganaban al `:hover` y este enlace no acusaba el puntero. */}
+            <Link href="/guia" onClick={() => setAbierto(false)} className="nx-enlace-riel" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
               <BookOpen size={13} /> Guía
             </Link>
-            <button onClick={() => setAbierto(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex', padding: 2 }}>
+            {/* Igual la aspa: el fondo va en la hoja para que el `:hover` pueda
+                ganar. Cerrar un panel sin saber si el ratón está encima del
+                control es de las cosas que más se fallan con prisa. */}
+            <button onClick={() => setAbierto(false)} aria-label="Cerrar" className="nx-acc-plana" style={{ border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex', padding: 2, borderRadius: 'var(--r-sm)' }}>
               <X size={18} />
             </button>
           </div>
