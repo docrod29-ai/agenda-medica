@@ -5855,8 +5855,24 @@ cantando «sin abrir», porque ahí el cero sí es sospechoso.
   estaba puesto a mano (`paq-arnes-001`) desapareció con el limpiado, y el del
   sembrador (`paq-demo-001`) sale visible para el paciente. Una caja recién
   sembrada ya tiene la superficie clínica.
-- **`Documentos` sigue vacío**: no hay recetas firmadas en el sembrado, así que el
-  botón de descargar receta **no se ha medido nunca**.
+- ~~**`Documentos` sigue vacío.**~~ **CERRADO en la misma sesión.** El sembrador
+  crea ahora una nota **firmada** con receta, y `Documentos` pasó de
+  «se abrió y no tiene controles» a **`0 mudos de 1`**: el botón de descargar
+  receta existe, se mide y acusa el puntero. Lleva en el producto desde que
+  existe el portal y **no lo había mirado nadie** — no por estar escondido, sino
+  porque el consultorio de pruebas no tenía ninguna receta que lo hiciera
+  aparecer.
+
+  No bastaba con sembrar un medicamento: `documentos` los cruza por
+  `medicamentosDeLaReceta`, que exige `procedenciaClinica != 'ya_lo_toma'` y
+  `estado: 'activa'`. Se leyeron los dos predicados ANTES de sembrar. Uno
+  cualquiera se habría filtrado, `Documentos` seguiría vacío y habría salido el
+  cuarto cero vacío de la sesión.
+
+  Se siembran DOS medicamentos para ejercitar la frontera y no el camino feliz:
+  el `se_prescribe_hoy` baja a la receta, el `ya_lo_toma` no. Esa separación es
+  la que impide que la historia farmacológica de un paciente salga impresa como
+  prescripción de un médico con cédula.
 - La Compuerta 0 sigue vigilando lo que se **autoriza**, no lo que está
   **publicado**. El punto ciego de producción no se cierra con esto.
 - **Sólo cuatro diálogos.** Una firma, un internamiento: siguen sin abrirse.
