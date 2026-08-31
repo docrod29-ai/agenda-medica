@@ -5,7 +5,8 @@ del `const CACHE`.
 
 ## v1177 — dos controles que no se podían pulsar
 
-**Este bump se prepara SIN su despliegue.** El paquete vive en
+**Se preparó sin despliegue y se publicó el mismo día, 31-ago 19:33 UTC**
+(`PRODUCTION_RELEASE=SUCCESS`). El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-08-31-v1177.md`](PAQUETE-PRODUCCION-2026-08-31-v1177.md).
 
 **5 commits desde v1176** · 13 archivos · +359 / −26 · 7 de código de producto.
@@ -46,7 +47,8 @@ Chromium: WebKit sigue `BLOCKED_EXTERNAL`.
 
 ## v1176 — el carril de excelencia: la agenda deja de aceptar días que no existen
 
-**Este bump se prepara SIN su despliegue.** El paquete completo vive en
+**Se preparó sin despliegue y se publicó el mismo día, 31-ago 13:28 UTC**
+(`PRODUCTION_RELEASE=SUCCESS`). El paquete completo vive en
 [`PAQUETE-PRODUCCION-2026-08-31.md`](PAQUETE-PRODUCCION-2026-08-31.md).
 
 **87 commits desde v1175** (31-ago) · 342 archivos · +22 934 / −819 · 102 de
