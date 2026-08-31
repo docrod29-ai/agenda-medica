@@ -138,6 +138,18 @@ function NoEntregados({ clinicId }: { clinicId: string | null }) {
     id: string; para: string; plantilla: string; texto: string
     intentos: number; pausas: number; ultimoError: string; desde: string
   }[] | null>(null)
+  /**
+   * REG-438 · los fallos del BOT, que hasta hoy nadie podía ver.
+   *
+   * Son lista aparte y **sin botón**: nunca estuvieron en una cola y no se
+   * pueden reintentar —eso exige una plantilla aprobada en Meta, trámite del
+   * dueño—. La única salida es llamar al paciente, y decirlo es el trabajo de
+   * esta lista.
+   */
+  const [delBot, setDelBot] = useState<{
+    id: string; origen: string; telefono: string
+    extracto: string; motivo: string; cuando: string
+  }[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reviviendo, setReviviendo] = useState<string | null>(null)
   const [recarga, setRecarga] = useState(0)
@@ -152,11 +164,11 @@ function NoEntregados({ clinicId }: { clinicId: string | null }) {
       .then(async r => {
         const j = await r.json()
         if (!r.ok) throw new Error(j?.error || 'Error')
-        if (vivo) { setMuertas(j.muertas ?? []); setError(null) }
+        if (vivo) { setMuertas(j.muertas ?? []); setDelBot(j.delBot ?? []); setError(null) }
       })
       /* Un fallo de lectura NO se pinta como «no hay ninguno»: son cosas
          opuestas y el médico decide distinto ante cada una. */
-      .catch(e => { if (vivo) { setError(String(e.message || e)); setMuertas(null) } })
+      .catch(e => { if (vivo) { setError(String(e.message || e)); setMuertas(null); setDelBot(null) } })
     return () => { vivo = false }
   }, [clinicId, recarga])
 
@@ -188,7 +200,14 @@ function NoEntregados({ clinicId }: { clinicId: string | null }) {
     )
   }
   if (muertas === null) return null
-  if (muertas.length === 0) {
+  /**
+   * REG-438 · «ninguno» sólo si las DOS están vacías.
+   *
+   * Antes esta rama miraba sólo la cola: con el bot fallando y la cola limpia,
+   * la pantalla decía «ningún mensaje se ha rendido» — una afirmación falsa
+   * sobre lo que el médico venía a comprobar.
+   */
+  if (muertas.length === 0 && (delBot?.length ?? 0) === 0) {
     return (
       <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1)' }}>
         <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>No entregados</div>
@@ -201,13 +220,40 @@ function NoEntregados({ clinicId }: { clinicId: string | null }) {
 
   return (
     <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1)' }}>
+      {(delBot?.length ?? 0) > 0 && (
+        <section style={{ marginBottom: muertas.length ? 18 : 0 }}>
+          <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>
+            Respuestas del bot que no salieron — {delBot?.length}
+          </div>
+          <p className="t-body" style={{ color: 'var(--text2)', margin: '0 0 10px' }}>
+            Fallaron dentro de la conversación con el paciente y <b>no se pueden reintentar</b>:
+            volver a escribir fuera de las 24 horas exige una plantilla aprobada.
+            Si alguno era una confirmación de cita, ese paciente no se enteró — hay que llamarle.
+          </p>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(delBot ?? []).map(b => (
+              <li key={b.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                <div className="t-body" style={{ color: 'var(--text)' }}>{b.telefono} · {b.origen}</div>
+                <div className="t-caption" style={{ color: 'var(--text2)', wordBreak: 'break-word' }}>{b.extracto}</div>
+                <div className="t-caption" style={{ color: 'var(--text3)', marginTop: 2 }}>
+                  {b.cuando.slice(0, 16).replace('T', ' ')}{b.motivo ? ` · ${b.motivo}` : ''}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {muertas.length > 0 && (
       <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>
         No entregados — {muertas.length}
       </div>
+      )}
+      {muertas.length > 0 && (
       <p className="t-body" style={{ color: 'var(--text2)', margin: '0 0 10px' }}>
         Agotaron los reintentos y ya no se vuelven a mandar solos. Volver a intentarlo
         <b> puede duplicar el mensaje</b>: puede que llegara y sólo se perdiera el acuse.
       </p>
+      )}
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {muertas.map(m => (
           <li key={m.id} style={{

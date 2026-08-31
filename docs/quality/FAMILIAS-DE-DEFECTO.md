@@ -43,10 +43,21 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 86 de 288, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 87 de 289, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-437** (31-ago-2026): `agendada` era un estado
+El miembro más reciente es **REG-438** (31-ago-2026), y es la forma más pura que
+ha tomado esta familia: una colección con **un escritor y cero lectores**.
+`whatsapp_no_entregados` estaba declarada en los tres sitios que exige la regla
+de inquilinos, respaldada, cerrada al cliente por las dos puntas — y no había
+manera de mirarla. Tres guardianes en verde sobre algo invisible.
+
+Con la agravante de que la cabecera del propio módulo prometía, con esas
+palabras, que «un fallo registrado se puede **VER**, contar y arreglar a mano».
+Es la tercera vez este mes —con REG-424 y REG-428— que la garantía mejor
+explicada es la que nadie fue a comprobar.
+
+Antes que él, **REG-437** (31-ago-2026): `agendada` era un estado
 vivo, probado y bien argumentado que **no estaba conectado a la agenda**. Ninguna
 tarea sabía a qué cita se refería, así que cuando esa cita se cancelaba o el
 paciente no venía, el pendiente seguía leyéndose como «esperando al paciente»

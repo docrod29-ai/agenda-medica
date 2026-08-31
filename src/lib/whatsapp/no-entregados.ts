@@ -74,6 +74,54 @@ export async function registrarNoEntregado(
   }
 }
 
+/** Cuántos se leen de una pasada. No es una cifra clínica: es cuánto cabe en una pantalla. */
+export const TOPE_A_LISTAR = 50
+
+export interface NoEntregadoLeido extends NoEntregado {
+  readonly id: string
+}
+
+/**
+ * LOS FALLOS DEL BOT, PARA PODER MIRARLOS — REG-438.
+ *
+ * La cabecera de este módulo prometía que «un fallo registrado se puede VER,
+ * contar y arreglar a mano». No se podía: la colección tenía **un escritor y
+ * cero lectores**. Estaba declarada en los tres sitios que exige la regla de
+ * inquilinos —reglas, matriz y respaldo—, respaldada, cerrada al cliente… e
+ * invisible.
+ *
+ * Cuanto mejor explicada está una garantía, menos probable es que alguien vaya a
+ * comprobar si el código la cumple. Es el mismo patrón de REG-424 y REG-428.
+ *
+ * **Lanza** si no puede leer, en vez de devolver `[]`: «no se pudo leer» y «no
+ * hay ninguno» llevan al médico a cosas opuestas, y ésa es la razón por la que
+ * existe el sobre de recuperación de evidencia.
+ */
+export async function listarNoEntregados(
+  clinicId: string, tope = TOPE_A_LISTAR,
+): Promise<NoEntregadoLeido[]> {
+  const snap = await adminDb.collection('clinics').doc(clinicId)
+    .collection('whatsapp_no_entregados')
+    .orderBy('createdAt', 'desc')
+    .limit(tope)
+    .get()
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as NoEntregado) }))
+}
+
+export const POR_QUE_NO_LLEVAN_BOTON =
+  'Porque no se pueden reintentar. Reintentar fuera de la ventana de 24 h exige '
+  + 'una plantilla aprobada en Meta y ese trámite es del dueño. Poner un botón '
+  + 'que no puede cumplir sería peor que no ponerlo: el médico creería que el '
+  + 'mensaje va a salir y dejaría de llamar por teléfono, que es lo único que '
+  + 'hoy sí funciona.'
+
+export const POR_QUE_SON_DOS_LISTAS_Y_NO_UNA =
+  'Porque son dos hechos distintos y se actúa distinto sobre cada uno. Los de la '
+  + 'COLA agotaron sus reintentos y se pueden devolver a ella —con el riesgo de '
+  + 'duplicar—. Los del BOT nunca estuvieron en una cola: fallaron dentro de la '
+  + 'conversación y la única salida es llamar al paciente. Fundirlos en una lista '
+  + 'con un botón haría creer que los segundos también se reintentan.'
+
 export const POR_QUE_NO_SE_ENCOLA =
   'Porque reintentar fuera de la ventana de 24 h exige una plantilla aprobada en ' +
   'Meta, y ese trámite todavía no está hecho: encolar mensajes que no se van a ' +

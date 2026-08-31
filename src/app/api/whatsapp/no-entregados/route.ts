@@ -27,6 +27,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { listarMuertas, revivirEntrada } from '@/lib/whatsapp/outbox'
+import { listarNoEntregados } from '@/lib/whatsapp/no-entregados'
 
 export async function GET(req: NextRequest) {
   const clinicId = req.nextUrl.searchParams.get('clinicId')
@@ -36,7 +37,23 @@ export async function GET(req: NextRequest) {
   if (!acc.ok) return acc.response
 
   try {
-    const muertas = await listarMuertas(clinicId)
+    /**
+     * REG-438 · las DOS listas por la misma puerta.
+     *
+     * `whatsapp_no_entregados` —los fallos del bot dentro de la conversación—
+     * tenía un escritor y cero lectores: estaba declarada en los tres sitios,
+     * respaldada, cerrada al cliente, e invisible. Un médico que abriera esta
+     * pantalla veía la mitad de los mensajes que no llegaron.
+     *
+     * Van por la MISMA ruta y la misma capacidad porque es la misma pregunta
+     * («¿qué no llegó?»), y separarlas en dos puertas sería el criterio paralelo
+     * que este repositorio persigue. Van en campos distintos porque son hechos
+     * distintos: los del bot NO se pueden reintentar.
+     */
+    const [muertas, delBot] = await Promise.all([
+      listarMuertas(clinicId),
+      listarNoEntregados(clinicId),
+    ])
     /**
      * Se devuelve lo que hace falta para RECONOCER el mensaje y decidir, no la
      * entrada entera: `meta` lleva contexto de sesión que no aporta nada en una
@@ -53,6 +70,15 @@ export async function GET(req: NextRequest) {
         pausas: m.pausas ?? 0,
         ultimoError: m.ultimoError ?? '',
         desde: m.proximoIntentoAt,
+      })),
+      /**
+       * El registro del bot ya nace minimizado —últimos cuatro dígitos y 120
+       * caracteres— así que se pasa tal cual: recortarlo más lo dejaría sin
+       * poder reconocer de qué mensaje se trata, que es para lo único que sirve.
+       */
+      delBot: delBot.map(b => ({
+        id: b.id, origen: b.origen, telefono: b.telefono,
+        extracto: b.extracto, motivo: b.motivo, cuando: b.createdAt,
       })),
     })
   } catch (e) {

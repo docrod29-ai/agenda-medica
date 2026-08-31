@@ -17226,3 +17226,84 @@ REG-404 cerró con el signo cambiado. Sin ese plazo no se puede poner `venceEn`.
   elegidor se vea bien en móvil está sin comprobar y se declara.
 
 **Prueba.** `src/__tests__/agendada-era-una-declaracion-no-un-hecho.test.ts` (21 casos).
+
+---
+
+## REG-438 — los fallos del bot: un escritor y cero lectores
+
+**Eje.** TR-WHATSAPP · entrega. **Fecha.** 31-ago-2026.
+
+### Corrección del censo, la octava de este bucle
+
+El `queFalta` decía que «el mensaje REACTIVO del bot no pasa por el outbox — esa
+respuesta se pierde y **no queda en ninguna cola**».
+
+La primera mitad es cierta y es una **decisión**, no un hueco: `no-entregados.ts`
+la argumenta —reintentar fuera de la ventana de 24 h exige una plantilla aprobada
+en Meta, trámite del dueño, y encolar mensajes que no se van a poder mandar sería
+fabricar una cola que crece y no entrega—.
+
+La segunda mitad era **falsa**: sí queda constancia. `registrarNoEntregado`
+escribe desde el helper `send()` del bot, que cubre sus 36 llamadas.
+
+### El defecto real, que era peor
+
+```
+grep whatsapp_no_entregados → firestore.rules
+                            → matriz-acceso.ts
+                            → respaldo.ts
+                            → el módulo que ESCRIBE
+                            → ningún lector
+```
+
+**Un escritor y cero lectores.** La colección estaba declarada en los tres sitios
+que exige la regla de inquilinos, respaldada, cerrada al cliente por las dos
+puntas… e invisible. Y la cabecera del propio módulo prometía, con estas
+palabras, que «un fallo registrado se puede **VER**, contar y arreglar a mano —
+una llamada de teléfono».
+
+Peor todavía: REG-432 había construido una pantalla llamada **«No entregados»**.
+Un médico que la abriera con la cola limpia y el bot fallando leía «ningún
+mensaje se ha rendido» — una afirmación falsa sobre exactamente lo que venía a
+comprobar.
+
+El caso concreto: el paciente agenda por WhatsApp, la confirmación falla, la cita
+queda creada y él no se entera. Se registraba. Nadie podía leerlo.
+
+### Causa raíz — y ya van tres
+
+La misma de REG-424 y REG-428: **cuanto mejor explicada está una garantía, menos
+probable es que alguien vaya a comprobar si el código la cumple.** Aquí la
+garantía estaba escrita en la cabecera del módulo que la incumplía.
+
+### Dos listas, una puerta, y ningún botón
+
+Van por la **misma ruta y la misma capacidad** (`mensajeria.enviar`), porque es
+la misma pregunta —«¿qué no llegó?»— y separarlas sería el criterio paralelo que
+ya se corrigió una vez en esta misma ruta.
+
+Van en **campos distintos** porque son hechos distintos: los de la cola agotaron
+sus reintentos y se pueden devolver a ella, con el riesgo de duplicar; los del
+bot nunca estuvieron en una cola y **no se pueden reintentar**.
+
+Por eso los del bot van **sin botón**. Uno que no puede cumplir sería peor que
+ninguno: el médico creería que el mensaje va a salir y dejaría de llamar por
+teléfono, que es lo único que hoy sí funciona. Se probó al revés poniéndoselo.
+
+Y «ningún mensaje se ha rendido» ahora exige que las **dos** estén vacías.
+
+### PHI
+
+El registro nace minimizado —últimos cuatro dígitos y 120 caracteres— y se pasa
+tal cual. Ampliarlo para «reconocer mejor» el mensaje sería meter PHI donde se
+decidió que no la hubiera.
+
+### Qué NO cubre
+
+- **No los encola ni los reintenta.** Sigue haciendo falta la plantilla aprobada.
+- **No dice a qué paciente**, por diseño.
+- **No archiva ni descarta** lo que el médico ya resolvió por teléfono. Sigue
+  abierto en el eje.
+- **No es una prueba de navegador.**
+
+**Prueba.** `src/__tests__/los-fallos-del-bot-tenian-un-escritor-y-cero-lectores.test.ts` (13 casos).
