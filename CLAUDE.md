@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# NexusMED — carta operativa
+# Ausculta — carta operativa
 
 Plataforma clínica del **Dr. David Alonso Rodríguez Luna** (internista e
 infectólogo). Next.js 16 · React 19 · TypeScript · Firestore · Vercel · PWA.
