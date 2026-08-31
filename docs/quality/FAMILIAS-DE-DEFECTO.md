@@ -43,10 +43,17 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 82 de 284, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 83 de 285, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-433** (31-ago-2026), y trae la variante que hace
+El miembro más reciente es **REG-434** (31-ago-2026): tres defensas contra la
+caída de PubMed, escritas, probadas y **mirando todas al transporte**. NCBI
+contesta `200` con una página de error, el transporte es impecable, y el testigo
+que separa «no se pudo preguntar» de «no hay literatura» se quedaba en `false`.
+Las dos frases que el médico tenía que leer estaban escritas desde hacía meses.
+Sólo salía la equivocada.
+
+Antes que él, **REG-433** (31-ago-2026), que trae la variante que hace
 más difícil de ver a esta familia: **el dato sí llegaba, y el destinatario lo
 tiraba**. El DOI, la abreviatura ISO, el PMCID, el acceso abierto y la salvedad
 del diseño se calculaban, se serializaban, cruzaban la red y llegaban al

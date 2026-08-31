@@ -19,6 +19,7 @@ import {
 } from '@/lib/evidencia/fallo-del-proveedor'
 
 import { licenciaDePmc } from '@/lib/evidencia/licencia-pmc'
+import { leerEsearch, leerEfetch } from '@/lib/evidencia/una-respuesta-ilegible-no-es-una-respuesta'
 import { exigeQueSeBaje } from '@/lib/evidence-integrations/de-donde-se-baja'
 
 const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils'
@@ -233,7 +234,17 @@ async function esearch(term: string, max: number, signal?: AbortSignal, testigo?
     const r = await ncbiFetch(url, signal)
     if (!r.ok) { if (testigo) testigo.fallo = true; return [] }
     const d = await r.json()
-    return d?.esearchresult?.idlist ?? []
+    /**
+     * REG-434 · un 200 con el cuerpo ilegible no es «no hay artículos».
+     *
+     * NCBI contesta `{"esearchresult":{"ERROR":"…"}}` con estado 200. Es JSON
+     * válido, `r.json()` no lanza, y `?? []` lo convertía en una búsqueda sin
+     * resultados. El médico leía «no hay literatura» de una pregunta que nunca
+     * se respondió.
+     */
+    const lectura = leerEsearch(d)
+    if (!lectura.legible) { if (testigo) testigo.fallo = true; return [] }
+    return (d as { esearchresult: { idlist: string[] } }).esearchresult.idlist
   } catch { if (testigo) testigo.fallo = true; return [] }
 }
 
@@ -247,6 +258,14 @@ async function efetchArts(ids: string[], signal?: AbortSignal, testigo?: Testigo
     if (!r.ok) { if (testigo) testigo.fallo = true; return [] }
     xml = await r.text()
   } catch { if (testigo) testigo.fallo = true; return [] }
+  /**
+   * REG-434 · lo mismo por el otro lado, y aquí `r.text()` NUNCA lanza: una
+   * página de error HTML o un XML cortado a la mitad daban cero bloques y cero
+   * artículos, con el testigo intacto. A `efetch` sólo se le piden ids que
+   * `esearch` acaba de devolver, así que «cero de N» no tiene lectura inocente.
+   */
+  const legibilidad = leerEfetch(xml, ids.length)
+  if (!legibilidad.legible) { if (testigo) testigo.fallo = true; return [] }
   const bloques = xml.split('<PubmedArticle>').slice(1)
   const arts: ArticuloPubMed[] = []
   for (const b of bloques) {

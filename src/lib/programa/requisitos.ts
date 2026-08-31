@@ -345,12 +345,20 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-04.inyeccion-de-fallos', ws: 'WS-04', titulo: 'Comportamiento ante caída de proveedor, probado inyectando el fallo',
     estado: 'PARTIAL',
-    evidencia: 'REG-389 corrigió este censo (decía NOT_STARTED y era falso). REG-414 cerró la mitad que faltaba de la CONSULTA: la degradación se comprobaba recortando la rama de error del fuente y mirando que no contuviera setDiagnosticos([]) — una prueba que se pone roja por reformatear y verde por descuido. Ahora la decisión vive en `que-sobrevive-a-un-fallo.ts` y se ejecuta para las cuatro clases de fallo.',
-    comando: 'npx vitest run src/__tests__/consultorio-degradacion-segura.test.ts',
-    resultado: '14 casos, 8 de comportamiento. Ninguna clase de fallo puede perder un campo clínico; la lista incluye signos y alergias, que el guardián viejo nunca miró.',
-    queFalta: 'La inyección de fallos de WhatsApp y de Evidence sigue sin medirse (el gateway de IA sí la tiene, con 404, 429, red caída, llave revocada, salida ilegible y créditos devueltos). Y probar que la PANTALLA hace lo que la decisión dice exige un navegador: hoy se comprueba que la llama en las cuatro ramas y que no quedan mensajes escritos a mano.',
-    artefactos: ['src/lib/expediente/que-sobrevive-a-un-fallo.ts'],
-    pruebas: ['src/__tests__/ia-gateway.test.ts', 'src/__tests__/ia-fallo-proveedor.test.ts', 'src/__tests__/un-proveedor-caido-no-se-reintenta-mil-veces.test.ts', 'src/__tests__/consultorio-degradacion-segura.test.ts'],
+    queFalta: 'CORRECCIÓN DEL CENSO (REG-434): esta entrada decía que la inyección de fallos de WhatsApp y de Evidence «sigue sin medirse» y era FALSO — las dos tienen su golden desde hace tiempo (5xx, tiempo agotado, 429, credencial caducada, circuito por consultorio y por fuente, dead-letter, testigo) y ninguno estaba listado aquí. Lo que sí faltaba salió comparando CLASE POR CLASE contra las seis del gateway de IA: la SALIDA ILEGIBLE no estaba en Evidence. NCBI contesta 200 con `{"esearchresult":{"ERROR":"…"}}` o con una página HTML, el transporte es impecable, y las tres defensas existentes miran el transporte: el testigo se quedaba en false y el médico leía «PubMed no devolvió artículos» de una búsqueda que nunca obtuvo respuesta. Cerrado por la forma de la respuesta, no por su contenido: una búsqueda legítimamente vacía sigue siendo una respuesta. FALTA: la salida ilegible de openFDA (otra forma de contestar, otro cuello de botella); las respuestas PARCIALES de efetch, que se dejan pasar a propósito; y probar que la PANTALLA hace lo que la decisión dice, que exige un navegador — hoy se comprueba que la llama en las cuatro ramas y que no quedan mensajes escritos a mano.',
+    evidencia: 'REG-389 corrigió este censo (decía NOT_STARTED y era falso). REG-414 cerró la mitad que faltaba de la CONSULTA: la degradación se comprobaba recortando la rama de error del fuente y mirando que no contuviera setDiagnosticos([]) — una prueba que se pone roja por reformatear y verde por descuido. Ahora la decisión vive en `que-sobrevive-a-un-fallo.ts` y se ejecuta para las cuatro clases de fallo. REG-434 añadió la salida ilegible de Evidence, confirmada EJECUTÁNDOLA antes de arreglarla: 0 artículos y testigo en false.',
+    comando: 'npx vitest run src/__tests__/un-200-ilegible-no-es-no-hay-articulos.test.ts',
+    resultado: '16 casos verdes. Probado al revés tres veces, una de ellas contra pasarse de frenada: si una lista vacía cuenta como caída, caen dos casos.',
+    artefactos: ['src/lib/expediente/que-sobrevive-a-un-fallo.ts', 'src/lib/evidencia/una-respuesta-ilegible-no-es-una-respuesta.ts'],
+    pruebas: [
+      'src/__tests__/ia-gateway.test.ts',
+      'src/__tests__/ia-fallo-proveedor.test.ts',
+      'src/__tests__/un-proveedor-caido-no-se-reintenta-mil-veces.test.ts',
+      'src/__tests__/consultorio-degradacion-segura.test.ts',
+      'src/__tests__/una-caida-de-whatsapp-no-mata-la-cola.test.ts',
+      'src/__tests__/una-fuente-caida-no-cuelga-la-consulta.test.ts',
+      'src/__tests__/un-200-ilegible-no-es-no-hay-articulos.test.ts',
+    ],
   }),
 
   /* ═══ WS-05 · Móvil ═══════════════════════════════════════════════════════ */

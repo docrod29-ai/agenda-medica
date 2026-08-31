@@ -16902,3 +16902,74 @@ las pantallas: queda declarado como límite del guardián, no arreglado de paso.
 - **No es una prueba de navegador**: comprueba el tipo y el render en el fuente.
 
 **Prueba.** `src/__tests__/el-doi-llegaba-a-la-pantalla-y-no-se-pintaba.test.ts` (20 casos).
+
+---
+
+## REG-434 — NCBI contestaba 200 con basura y el médico leía «no hay literatura»
+
+**Eje.** WS-04 · inyección de fallos. **Fecha.** 31-ago-2026.
+
+### Cómo se descubrió, y una corrección del censo
+
+El `queFalta` decía que la inyección de fallos de WhatsApp y de Evidence «sigue
+sin medirse». **Es falso, y es la séptima entrada del censo que resulta estar
+desfasada al comprobarla contra el árbol.** Existen
+`una-caida-de-whatsapp-no-mata-la-cola` (21 casos: 5xx, tiempo agotado, credencial
+caducada, 429, teléfono mal escrito, plantilla no aprobada, circuito por
+consultorio, dead-letter, presupuesto del mensaje) y
+`una-fuente-caida-no-cuelga-la-consulta` (14: 5xx, tiempo agotado, 429, circuito
+por fuente, testigo). Ninguna de las dos estaba listada en `pruebas`.
+
+Lo que sí faltaba apareció comparando **clase por clase** contra las que sí tiene
+el gateway de IA. De sus seis —404, 429, red caída, llave revocada, salida
+ilegible, créditos devueltos— la **salida ilegible** no estaba en Evidence.
+
+Y se confirmó ejecutándolo, no leyéndolo: con NCBI contestando 200 y basura,
+`buscarEvidencia` devolvía `0 artículos · testigo.fallo: false`.
+
+### Causa raíz
+
+`pubmed.ts` marcaba el testigo en tres sitios —circuito abierto, respuesta no
+`ok`, `fetch` que lanza—. Los tres miran el **transporte**. Un cuerpo ilegible
+llega con el transporte impecable:
+
+- `esearch` devuelve `{"esearchresult":{"ERROR":"Invalid db name"}}` con 200. Es
+  JSON válido, `r.json()` no lanza, y `?? []` lo convertía en cero resultados.
+- `efetch` devuelve una página de error HTML o un XML cortado. `r.text()`
+  **nunca lanza** sobre eso, y el `split` daba cero bloques.
+
+Las dos son conductas reales de E-utilities bajo carga.
+
+### Lo que costaba
+
+La ruta ya tenía las dos frases escritas, y bien escritas: *«NO SE PUDO CONSULTAR
+PubMed […] no digas que no existe evidencia»* frente a *«PubMed no devolvió
+artículos para estos términos»*. Con el testigo en `false` salía la segunda.
+
+El médico —y el modelo que le redacta el análisis, que recibe la misma frase en
+su prompt— leían **«no hay literatura sobre esto»** de una búsqueda que nunca
+obtuvo respuesta. Regla 4 al revés, en el sitio donde el producto se juega su
+credibilidad. El aparato para decirlo bien existía entero; sólo no se disparaba.
+
+### Señalar de menos, nunca de más
+
+Una búsqueda legítimamente **sin resultados** es un dato clínico:
+`{"esearchresult":{"count":"0","idlist":[]}}` es una respuesta que dice cero.
+Marcarla como caída sería este mismo defecto con el signo cambiado, y le quitaría
+al médico una respuesta que sí tiene. Por eso se exige la **forma** de la
+respuesta —que `idlist` sea una lista— y no que traiga algo. Ese caso se probó al
+revés: haciendo que una lista vacía cuente como caída, caen dos casos.
+
+### Qué NO cubre
+
+- **Las respuestas parciales de `efetch`**: tres de cinco pasan. Distinguir un
+  truncamiento de un registro que NCBI retiró exige mirar cuáles faltan, y marcar
+  de más convertiría cualquier respuesta incompleta en una caída.
+- **No mira si el contenido es correcto.** Un XML bien formado con datos
+  equivocados pasa, y debe pasar.
+- **No cubre openFDA**, que tiene otra forma de contestar. Declarado, no hecho.
+- **No abre el circuito.** Un cuerpo ilegible marca el testigo; no cuenta como
+  «el proveedor no está», porque contestó. Si debe abrirlo es otra decisión.
+- **No prueba la pantalla.** Que el médico LEA la frase es de navegador.
+
+**Prueba.** `src/__tests__/un-200-ilegible-no-es-no-hay-articulos.test.ts` (16 casos).
