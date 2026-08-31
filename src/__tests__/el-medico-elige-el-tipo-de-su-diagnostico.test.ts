@@ -160,6 +160,49 @@ describe('la procedencia se dice, y sólo cuando hay algo que decir', () => {
     expect(Boolean(d.descripcion?.trim() && d.tipoOrigen !== 'medico')).toBe(false)
   })
 
+  it('AVISA Y NO BLOQUEA — decisión del dueño, 31-ago-2026 (D-025)', () => {
+    /**
+     * Hasta esta fecha regía por CONSERVACIÓN: se avisaba y no se obligaba
+     * porque obligar era fijar política clínica, y eso es del médico. El dueño
+     * lo decidió, con las tres opciones sobre la mesa —avisar sin obligar,
+     * bloquear la firma, o bloquear sólo el diagnóstico que se imprime—.
+     *
+     * Su razón: firmar es un acto medicolegal suyo, y bloquearlo por un campo
+     * que el sistema rellenó solo lo deja rehén del clasificador — y en una
+     * consulta con prisa, un bloqueo se aprende a esquivar.
+     *
+     * Este caso existe para que nadie lo convierta en bloqueo sin volver a
+     * preguntar. Si algún día se decide bloquear, este caso cae y obliga a
+     * mirar el registro de decisiones antes de cambiarlo.
+     */
+    const bloque = CONSULTA.slice(
+      CONSULTA.indexOf("diagnosticos.some(d => d.descripcion.trim() && d.tipoOrigen !== 'medico')"),
+      CONSULTA.indexOf('Agregar diagnóstico'),
+    )
+    /* Es un `nx-meta`: un aviso de texto, no una compuerta. */
+    expect(bloque).toContain('nx-meta')
+    expect(bloque).toMatch(/Revísalo antes de firmar/)
+    /* Y NO toca el botón de firmar ni deshabilita nada. */
+    expect(bloque).not.toMatch(/disabled|puedeFirmar|bloquea/i)
+  })
+
+  it('el botón de firmar no mira el origen del tipo', () => {
+    /**
+     * La otra mitad, y la que de verdad lo prueba: el guardián de arriba mira el
+     * bloque del aviso, y alguien podría bloquear la firma en OTRO sitio. Aquí
+     * se comprueba que la condición de firmar no sabe nada de `tipoOrigen`.
+     */
+    const i = CONSULTA.indexOf('const puedeFirmar')
+    if (i >= 0) {
+      expect(CONSULTA.slice(i, i + 400)).not.toContain('tipoOrigen')
+    }
+    /* Y en toda la pantalla, `tipoOrigen` no aparece junto a `disabled`. */
+    for (const m of CONSULTA.matchAll(/tipoOrigen/g)) {
+      const alrededor = CONSULTA.slice(Math.max(0, m.index - 200), m.index + 200)
+      expect(alrededor, 'tipoOrigen no puede deshabilitar nada').not.toMatch(/disabled=\{[^}]*tipoOrigen/)
+    }
+  })
+
   it('y se dice UNA vez, no por fila', () => {
     /**
      * Un aviso por diagnóstico, en una nota con seis, es ruido que se aprende a

@@ -24,16 +24,12 @@
     " M docs/data-room/INDICE.md",
     " M docs/product/AUSCULTA-MASTER-BOARD.md",
     " M docs/product/DECISION_REGISTER.md",
+    " M docs/product/PROGRAMAS-EN-VUELO.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/el-motor-de-aplicabilidad-leia-mas-de-lo-que-le-llegaba.test.ts",
-    " M src/__tests__/el-router-bajaba-de-modelo-sin-avisar.test.ts",
+    " M src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/copiloto.ts",
-    " M src/lib/expediente/lo-que-el-expediente-dice-del-embarazo.ts",
-    " M src/lib/ia/que-modelo-se-eligio.ts",
-    " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/el-diferencial-de-embarazo-ahora-avisa.test.ts"
+    " M src/lib/programa/requisitos.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -69,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 294,
+    "regsEnElLedger": 295,
     "ultimaREG": "REG-503",
     "archivosDePrueba": 865,
-    "casosDePrueba": 10879,
+    "casosDePrueba": 10881,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

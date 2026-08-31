@@ -26,13 +26,13 @@
 
 | Estado | Cuántos |
 |---|---|
-| `PARTIAL` | 34 |
-| `PROVEN` | 30 |
+| `PARTIAL` | 33 |
+| `PROVEN` | 31 |
 | `BLOCKED_EXTERNAL` | 14 |
 | `NEEDS_CLINICAL_REVIEW` | 1 |
 | `DEFERRED_BY_OWNER` | 1 |
 
-### Internamente accionables — 34
+### Internamente accionables — 33
 
 Lo que se puede cerrar sin pedirle nada a nadie. Si esta lista está vacía, el
 trabajo interno se acabó.
@@ -55,7 +55,6 @@ trabajo interno se acabó.
 | `WS-10.problemas-medicacion-alergias` | `PARTIAL` |
 | `WS-10.procedimientos-dispositivos` | `PARTIAL` |
 | `WS-10.banderas-y-respuesta` | `PARTIAL` |
-| `WS-10.pantalla-de-certeza` | `PARTIAL` |
 | `WS-11.estados-del-cierre` | `PARTIAL` |
 | `WS-11.laboratorio` | `PARTIAL` |
 | `WS-11.interconsultas-imagen` | `PARTIAL` |
@@ -140,8 +139,8 @@ trabajo interno se acabó.
 | Compuerta | Techo o cota derivada | Cómo se repite |
 |---|---|---|
 | Trinquete de lint | **95** — sólo puede bajar | `node scripts/lint-trinquete.mjs` |
-| Casos declarados en el árbol | **10879** en 865 archivos | `node scripts/agent-state/actualizar.mjs` |
-| Sellado clínico | **452 archivos · 6555 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
+| Casos declarados en el árbol | **10881** en 865 archivos | `node scripts/agent-state/actualizar.mjs` |
+| Sellado clínico | **452 archivos · 6557 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
 | Trinquete de diseño | 9 métricas, todas al techo | `node scripts/design/trinquete-de-diseno.mjs` |
 | Última reparación en el ledger | **REG-503** | `docs/audit/regression-ledger.md` |
 | Compila | `npx tsc --noEmit` · `npm run build` | con los placeholders `NEXT_PUBLIC_FIREBASE_*` |

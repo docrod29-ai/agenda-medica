@@ -17698,3 +17698,54 @@ identificadores, y necesita los conjuntos y umbrales de
 - **Que el aviso se LEA**: eso es pantalla.
 
 **Prueba.** `src/__tests__/el-diferencial-de-embarazo-ahora-avisa.test.ts` (11 casos).
+
+---
+
+## REG-444 — la tercera y la cuarta decisión, y un requisito que se cierra
+
+**Eje.** WS-10.pantalla-de-certeza. **Fecha.** 31-ago-2026.
+
+Como REG-443: no repara un defecto, cierra dos preguntas. **Ninguna de las dos
+cambia comportamiento** — una confirma lo que hay y la otra difiere. Con las dos,
+`WS-10.pantalla-de-certeza` pasa de `PARTIAL` a `PROVEN`.
+
+### D-025 · firmar avisa, y no bloquea
+
+Se le plantearon tres opciones: avisar sin obligar, bloquear la firma, o bloquear
+sólo el diagnóstico que va a imprimirse. Eligió la primera, que es la que ya
+regía **por conservación** —obligar era fijar política clínica y eso es del
+médico—.
+
+Su razón: firmar es un acto medicolegal suyo, y bloquearlo por un campo que el
+sistema rellenó solo lo deja rehén del clasificador. En una consulta con prisa,
+un bloqueo se aprende a esquivar.
+
+**Lo que sí se añadió es el guardián.** El aviso ya tenía sus casos; lo que no
+tenía era uno que fijara que **no bloquea**. Ahora hay dos:
+
+- el bloque del aviso es un `nx-meta` —texto, no compuerta— y no contiene
+  `disabled`;
+- y `tipoOrigen` no aparece en ninguna condición que deshabilite nada en toda la
+  pantalla. Esta segunda es la que de verdad lo prueba: alguien podría bloquear
+  la firma en otro sitio.
+
+Probado al revés: convertir el aviso en bloqueo tira tres casos; quitar el aviso,
+uno.
+
+### D-026 · el diagnóstico de ingreso de hospital sigue siendo cadena libre
+
+**Diferido.** Convertirlo en un diagnóstico con tipo es un cambio de modelo con
+migración de los episodios existentes, y toca el documento del episodio — que es
+justo el que crece sin techo (WS-03, REG-442). Hospital y UCI están en ALPHA y no
+a la venta, así que el retorno hoy es bajo y el riesgo no.
+
+Se reabre cuando Hospital se prepare para venderse.
+
+### Por qué se anota una decisión que no cambia nada
+
+Porque el estatus no es cosmético. Un valor por omisión que nadie eligió acaba
+pareciendo elegido, y entonces ya nadie lo revisa. Lo que antes decía «rige por
+conservación» ahora dice quién lo decidió, cuándo, y **qué se descartó** — una
+decisión sin sus alternativas no se puede revisar dentro de seis meses.
+
+**Prueba.** `src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts` (13 casos).
