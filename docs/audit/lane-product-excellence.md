@@ -4846,9 +4846,11 @@ build` compila · `arnes:dialogos-teclado` en verde.
 - **El arnés sólo sabe abrir 2 de los 8 diálogos.** Los que piden un estado
   difícil —un cobro a medias, una firma, un laboratorio— no se abren, y **no
   estar en la lista significa que no se vigilan**, no que estén bien.
-- **La trampa de foco no se mide**: que Tab no se escape del diálogo pide contar
-  tabulaciones y es otra medición. El gancho la implementa; nadie la comprueba
-  en navegador.
+- ~~La trampa de foco no se mide.~~ **Se mide desde el 31-ago**: 25 tabulaciones
+  por diálogo —más del doble de los controles de cualquiera— comprobando que
+  ninguna caiga fuera. Probado al revés quitándole el gancho al panel de ayuda:
+  **25 de 25 se van fuera**, y la paleta se queda en 25/25, así que discrimina.
+  Lo que sigue sin medirse es el ORDEN dentro del diálogo.
 - El aviso de cierre de sesión **no** cierra con Escape a propósito, y por eso
   no está en la lista del arnés: desactivar sin querer un control de seguridad
   es el defecto contrario.

@@ -32,8 +32,9 @@
  * · **Sólo los diálogos que este guion sabe abrir.** Los que piden un estado
  *   difícil —un cobro a medias, una firma— no se miran, y no estar aquí
  *   significa que NO se vigilan.
- * · No mide la trampa de foco (que Tab no se escape): eso pide contar
- *   tabulaciones y es otra medición.
+ * · La trampa de foco SÍ se mide desde el 31-ago: 25 tabulaciones por diálogo,
+ *   más del doble de los controles de cualquiera de ellos, comprobando que
+ *   ninguna caiga fuera. Lo que no se mide es el orden DENTRO del diálogo.
  * · No comprueba el aviso de cierre de sesión, que a propósito NO cierra con
  *   Escape — desactivar un control de seguridad sin querer es el defecto
  *   contrario.
@@ -121,6 +122,28 @@ for (const d of DIALOGOS) {
     return !!(caja && document.activeElement && caja.contains(document.activeElement))
   }, d.dialogo)
 
+  /*
+   * LA TRAMPA DE FOCO, contada con tabulaciones de verdad.
+   *
+   * El gancho la implementa y la regla de diseño la nombra, pero nadie la
+   * medía: hasta aquí este guion sólo miraba la entrada y la salida. Un Tab de
+   * más navega la página de debajo sin que se vea — el foco se va a un botón
+   * que el médico no está mirando, y el siguiente Enter lo pulsa.
+   *
+   * Se dan 25 tabulaciones, que es más del doble de los controles de
+   * cualquiera de estos diálogos: con la trampa puesta, el ciclo se cierra
+   * sobre sí mismo y las 25 caen dentro.
+   */
+  let fugas = 0
+  for (let i = 0; i < 25; i++) {
+    await pag.keyboard.press('Tab')
+    const dentro = await pag.evaluate(sel => {
+      const caja = document.querySelector(sel)
+      return !!(caja && document.activeElement && caja.contains(document.activeElement))
+    }, d.dialogo).catch(() => true)
+    if (!dentro) fugas++
+  }
+
   await pag.keyboard.press('Escape')
   await pag.waitForTimeout(1200)
   const sigueAbierto = await pag.locator(d.dialogo).count().catch(() => 0)
@@ -129,10 +152,11 @@ for (const d of DIALOGOS) {
 
   const mal = []
   if (!focoEntra) mal.push('el foco NO entra')
+  if (fugas) mal.push(`el foco se ESCAPA: ${fugas} de 25 tabulaciones caen fuera del diálogo`)
   if (sigueAbierto) mal.push('Escape NO lo cierra')
   else if (!focoVuelve) mal.push(`el foco no vuelve a quien lo abrió (${quienAbrio} → ${focoTras})`)
 
-  console.log(`  ${(mal.length ? 'FALLA' : ' ok  ').padEnd(11)} ${d.nombre.padEnd(22)} foco entra ${focoEntra} · cierra con Escape ${!sigueAbierto} · foco vuelve ${focoVuelve}`)
+  console.log(`  ${(mal.length ? 'FALLA' : ' ok  ').padEnd(11)} ${d.nombre.padEnd(22)} foco entra ${focoEntra} · atrapa ${25 - fugas}/25 · cierra con Escape ${!sigueAbierto} · foco vuelve ${focoVuelve}`)
   if (mal.length) fallos.push(`${d.nombre}: ${mal.join(' · ')}`)
 
   // Si Escape no lo cerró, se cierra a mano para no arrastrarlo al siguiente.
