@@ -4,6 +4,13 @@
 > publicaría. Nadie ha desplegado nada. Publicar a producción sigue siendo
 > decisión del dueño (`.claude/rules/deployment-and-flags.md`).
 
+> **SUPERADO — 31-ago-2026 13:28 UTC. PUBLICADO Y VERIFICADO.** El dueño corrió el
+> botón sobre `3bada501`: ejecuciones
+> [#9](https://github.com/docrod29-ai/agenda-medica/actions/runs/33396253979) y
+> [#10](https://github.com/docrod29-ai/agenda-medica/actions/runs/33396994838), las
+> dos `PRODUCTION_RELEASE=SUCCESS`. No se borra nada de lo de abajo: era verdad
+> cuando se escribió. **Este documento ya no describe algo pendiente.**
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1175` → **`nexusmed-v1176`** |
