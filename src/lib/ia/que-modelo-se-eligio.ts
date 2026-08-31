@@ -165,13 +165,27 @@ export const POR_QUE_NO_SE_BLOQUEA =
   + 'velocidad sin avisar», y la regla 3 dice que nada cambia en silencio. Este '
   + 'módulo garantiza que se vea; qué hacer con ello, no.'
 
-export const LA_PREGUNTA_PARA_EL_DUENO =
-  'NEEDS_CLINICAL_REVIEW. Cuando el modelo previsto para el nivel pedido no está '
-  + 'disponible, ¿la nota debe generarse igual con lo que haya —marcada— o debe '
-  + 'negarse y pedir reintentar más tarde? Hoy se genera y se marca, porque negarse '
-  + 'dejaría al médico sin nota en una consulta real. Opción A: seguir así. '
-  + 'Opción B: negarse en `premium` y seguir en los demás. Opción C: negarse '
-  + 'siempre. Hoy rige A por conservación, no por decisión.'
+/**
+ * LA DECISIÓN, TOMADA — 31-ago-2026, por el médico dueño.
+ *
+ * Sustituye a `LA_PREGUNTA_PARA_EL_DUENO`. La conducta **no cambia**: se
+ * confirma la que había. Lo que cambia es su estatus — dejaba de regir por
+ * conservación y pasa a regir por decisión, que no es lo mismo aunque el código
+ * sea idéntico: un valor por omisión que nadie eligió acaba pareciendo elegido.
+ */
+export const LA_DECISION_DEL_DUENO =
+  'DECIDIDO por el médico dueño el 31-ago-2026, opción A: cuando el modelo '
+  + 'previsto para el nivel pedido no está disponible, la nota SE GENERA con lo '
+  + 'que haya y se MARCA. No se niega. Razón: negarse deja al médico sin nota en '
+  + 'una consulta real, y desde REG-436 el aviso sí llega a la pantalla como '
+  + 'texto visible — que era el defecto de verdad, no la degradación en sí. Se '
+  + 'descartaron la opción B (negarse sólo en premium) y la C (negarse siempre).'
+
+export const LO_QUE_SIGUE_SIN_DECIDIRSE =
+  'Si el modelo elegido SE COMPORTA como el pedido. Esto compara '
+  + 'identificadores, no calidad, y comprobarlo necesita los conjuntos de '
+  + 'referencia y los umbrales de `WS-12.contratos-de-evaluacion`, que siguen '
+  + 'esperando al médico.'
 
 export const LO_QUE_NO_SE_VIGILA: readonly string[] = [
   'Que el modelo elegido SE COMPORTE como el pedido. Esto compara identificadores, no calidad: un modelo de la lista puede rendir peor un martes y esto no lo ve.',

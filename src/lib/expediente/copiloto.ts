@@ -466,6 +466,11 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
    * Un `presuntivo` o un `diferencial` **sí** cuentan para AVISAR —el riesgo de
    * un embarazo no detectado pesa más—, pero no para afirmar: el texto lo dice
    * en condicional más abajo. Sin `tipo` se comporta como antes.
+   *
+   * Esto fue FALSO durante años: el código excluía el `diferencial`. Lo hizo
+   * cierto la decisión del dueño del 31-ago-2026 (REG-443), y afecta a la rama
+   * `evitar` —estatinas, tetraciclinas y doxiciclina, quinolonas, AINE—; los
+   * `contraindicado` avisaban ya en cualquier paciente.
    */
   /* WS-09 — la lectura se mudó a `lo-que-el-expediente-dice-del-embarazo.ts`
      para que el motor de aplicabilidad no escriba una segunda. La CONDUCTA no

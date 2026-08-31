@@ -24,21 +24,24 @@
  * Aplanarlo a un booleano habría obligado a elegir una de las dos, y la elegida
  * habría estado mal para el otro.
  *
- * ── UNA DISCREPANCIA QUE SE ENCONTRÓ AL MUDAR ESTO, Y NO SE RESOLVIÓ ────────
+ * ── UNA DISCREPANCIA QUE SE ENCONTRÓ AL MUDAR ESTO, Y SE RESOLVIÓ ──────────
  *
- * El comentario del copiloto dice, con estas palabras, que «un `presuntivo` o un
- * `diferencial` **sí** cuentan para AVISAR». Su código dice otra cosa:
+ * El comentario del copiloto decía, con estas palabras, que «un `presuntivo` o
+ * un `diferencial` **sí** cuentan para AVISAR». Su código decía otra cosa:
  *
  *     dxGestacional.some(d => d.tipo !== 'descartado' && d.tipo !== 'diferencial')
  *
- * El `diferencial` está **excluido**. El comentario y el código no coinciden, y
- * lleva así desde que se escribieron.
+ * El `diferencial` estaba **excluido**, y llevaban años contradiciéndose.
  *
- * Aquí se conserva **la conducta del código, no la del comentario**, y se dice
- * por qué: cambiarla movería un aviso de seguridad de medicamentos en embarazo,
- * y si un embarazo listado como diferencial debe disparar ese aviso es una
- * decisión clínica del médico. Está declarada en `LA_DISCREPANCIA_DEL_DIFERENCIAL`
- * para que se pueda resolver, no para que se olvide.
+ * Al mudar la lectura aquí (WS-09) se conservó la conducta del CÓDIGO y se dejó
+ * la pregunta declarada, porque cambiarla movía un aviso de seguridad de
+ * medicamentos en embarazo y eso es del médico.
+ *
+ * **El 31-ago-2026 el dueño decidió: el diferencial SÍ cuenta.** Ahora el
+ * comentario es cierto. Ver `LA_DECISION_DEL_DIFERENCIAL`, que además corrige el
+ * alcance: la pregunta decía «el aviso de fármaco contraindicado» y era falso —
+ * los siete `contraindicado` avisan siempre y no dependían de esto. Lo que
+ * cambia son los cuatro `evitar`.
  *
  * ── LO QUE NO HACE ──────────────────────────────────────────────────────────
  *
@@ -116,11 +119,17 @@ export function loQueElExpedienteDiceDelEmbarazo(
 /**
  * Para AVISAR: ¿hay que tratar a esta paciente como potencialmente embarazada?
  *
- * **Es la línea del copiloto, movida y no cambiada.** El `diferencial` queda
- * fuera, como estaba. Ver `LA_DISCREPANCIA_DEL_DIFERENCIAL`.
+ * **El `diferencial` cuenta desde el 31-ago-2026**, por decisión del médico
+ * dueño. Ver `LA_DECISION_DEL_DIFERENCIAL`: hasta esa fecha quedaba fuera por
+ * conservación —el comentario del copiloto y su código llevaban años
+ * contradiciéndose— y ahora el comentario es cierto.
+ *
+ * Sólo se excluye lo que alguien DESCARTÓ. Una paciente con «embarazo
+ * descartado» en marzo y «embarazo» como diferencial hoy cuenta: hay una
+ * hipótesis viva, y ésa es la que manda.
  */
 export function tratarComoEmbarazada(l: LecturaDelEmbarazo): boolean {
-  return l.tipos.some(t => t !== 'descartado' && t !== 'diferencial')
+  return l.tipos.some(t => t !== 'descartado')
 }
 
 /**
@@ -136,16 +145,38 @@ export function embarazoParaAplicabilidad(l: LecturaDelEmbarazo): boolean | unde
   return undefined
 }
 
-export const LA_DISCREPANCIA_DEL_DIFERENCIAL =
-  'NEEDS_CLINICAL_REVIEW. El comentario del copiloto dice que un «presuntivo o un '
-  + 'diferencial SÍ cuentan para avisar»; su código excluye el diferencial. Se '
-  + 'conservó la conducta del CÓDIGO al mudar la lectura aquí, porque cambiarla '
-  + 'mueve un aviso de seguridad de medicamentos en embarazo. La pregunta para el '
-  + 'médico: un embarazo listado como DIFERENCIAL, ¿debe disparar el aviso de '
-  + 'fármaco contraindicado en embarazo? Opción A: sí — más avisos, ninguno '
-  + 'perdido, y el comentario pasa a ser cierto. Opción B: no — se queda como '
-  + 'está y se corrige el comentario. Hoy rige B por conservación, no por '
-  + 'decisión.'
+/**
+ * LA DECISIÓN, TOMADA — 31-ago-2026, por el médico dueño.
+ *
+ * Sustituye a `LA_DISCREPANCIA_DEL_DIFERENCIAL`, que declaraba la pregunta
+ * abierta. Se conserva el histórico porque el ledger lo cita.
+ *
+ * ── EL ALCANCE REAL, QUE LA PREGUNTA SOBREESTIMABA ──────────────────────────
+ *
+ * La declaración anterior decía que esto movía «el aviso de fármaco
+ * CONTRAINDICADO en embarazo». **Era falso**, y se vio al medir el copiloto
+ * antes de preguntar: su condición es
+ *
+ *     x.embarazo === 'contraindicado' || (x.embarazo === 'evitar' && embarazoConfirmado)
+ *
+ * Los siete `contraindicado` —IECA/ARA II, warfarina, ACOD, isotretinoína,
+ * valproato, metotrexato, agonistas GLP-1— avisan **siempre**, en cualquier
+ * paciente, y esta decisión no los toca.
+ *
+ * Lo que decide es la rama `evitar`, que son cuatro: **estatinas, tetraciclinas
+ * y doxiciclina, quinolonas y AINE**. Con el embarazo como diferencial, ahora
+ * también avisan.
+ */
+export const LA_DECISION_DEL_DIFERENCIAL =
+  'DECIDIDO por el médico dueño el 31-ago-2026: un embarazo listado como '
+  + 'DIFERENCIAL SÍ cuenta para avisar. Afecta a la rama `evitar` —estatinas, '
+  + 'tetraciclinas y doxiciclina, quinolonas y AINE—; los siete `contraindicado` '
+  + 'avisaban ya en cualquier paciente y no dependían de esto. Razón: son cuatro '
+  + 'fármacos, así que el riesgo de fatiga de alerta es bajo, y doxiciclina y '
+  + 'quinolonas son de lo más prescrito en edad fértil en la especialidad del '
+  + 'dueño. Hasta esta fecha regía lo contrario POR CONSERVACIÓN, no por '
+  + 'decisión, y el comentario del copiloto llevaba años diciendo lo que el '
+  + 'código no hacía.'
 
 export const POR_QUE_NO_ES_UN_BOOLEANO =
   'Porque los dos consumidores preguntan cosas distintas. El copiloto AVISA, y '

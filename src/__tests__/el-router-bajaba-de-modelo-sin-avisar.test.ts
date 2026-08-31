@@ -70,7 +70,7 @@ import { resolve } from 'node:path'
 import {
   elegirModelo, sePuedeRecordar,
   POR_QUE_NO_SE_CACHEA_UNA_DEGRADACION, POR_QUE_NO_SE_BLOQUEA,
-  LA_PREGUNTA_PARA_EL_DUENO, LO_QUE_NO_SE_VIGILA,
+  LA_DECISION_DEL_DUENO, LO_QUE_SIGUE_SIN_DECIDIRSE, LO_QUE_NO_SE_VIGILA,
 } from '@/lib/ia/que-modelo-se-eligio'
 
 const leer = (r: string) => readFileSync(resolve(process.cwd(), r), 'utf8')
@@ -196,10 +196,28 @@ describe('y el aviso LLEGA — que es donde se rompe siempre', () => {
 })
 
 describe('lo que este módulo declara que no decide', () => {
-  it('no bloquea, y dice por qué y cuál es la pregunta del médico', () => {
+  it('no bloquea, y ahora es por DECISIÓN y no por conservación', () => {
+    /**
+     * ACTUALIZADO EN REG-443. La conducta es la misma; lo que cambió es su
+     * estatus. Aquí vivía `LA_PREGUNTA_PARA_EL_DUENO`, con sus tres opciones y
+     * su `NEEDS_CLINICAL_REVIEW`, porque nadie la había elegido: regía por
+     * conservación. El dueño eligió la A el 31-ago-2026.
+     *
+     * Un valor por omisión que nadie eligió acaba pareciendo elegido, y esa
+     * confusión es lo que este caso impide.
+     */
     expect(POR_QUE_NO_SE_BLOQUEA).toMatch(/política clínica/)
-    expect(LA_PREGUNTA_PARA_EL_DUENO).toMatch(/^NEEDS_CLINICAL_REVIEW/)
-    expect(LA_PREGUNTA_PARA_EL_DUENO).toMatch(/Opción A[\s\S]*Opción B[\s\S]*Opción C/)
+    expect(LA_DECISION_DEL_DUENO).toMatch(/^DECIDIDO/)
+    expect(LA_DECISION_DEL_DUENO).toMatch(/31-ago-2026/)
+    expect(LA_DECISION_DEL_DUENO).toMatch(/SE GENERA/)
+    /* Y las que se descartaron quedan escritas: una decisión sin sus
+       alternativas no se puede revisar dentro de seis meses. */
+    expect(LA_DECISION_DEL_DUENO).toMatch(/opción B[\s\S]*C \(negarse siempre\)/)
+  })
+
+  it('y lo que sigue SIN decidirse queda aparte, no confundido con lo decidido', () => {
+    expect(LO_QUE_SIGUE_SIN_DECIDIRSE).toMatch(/SE COMPORTA/)
+    expect(LO_QUE_SIGUE_SIN_DECIDIRSE).toMatch(/contratos-de-evaluacion/)
   })
 
   it('y declara lo que no vigila', () => {

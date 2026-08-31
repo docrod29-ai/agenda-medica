@@ -78,7 +78,7 @@ import {
 } from '@/lib/evidencia/aplicabilidad'
 import {
   loQueElExpedienteDiceDelEmbarazo, tratarComoEmbarazada, embarazoParaAplicabilidad,
-  LA_DISCREPANCIA_DEL_DIFERENCIAL,
+  LA_DECISION_DEL_DIFERENCIAL,
 } from '@/lib/expediente/lo-que-el-expediente-dice-del-embarazo'
 import { tfgPorCkdEpi } from '@/lib/expediente/funcion-renal'
 
@@ -156,23 +156,48 @@ describe('una sospecha de embarazo no afirma ni niega', () => {
 describe('la conducta del copiloto no cambió al mudar la lectura', () => {
   const dx = (descripcion: string, tipo?: string) => ({ descripcion, tipo }) as never
 
-  it('avisar sigue contando el presuntivo y excluyendo el diferencial', () => {
+  it('avisar cuenta el presuntivo Y el diferencial — decisión del dueño, 31-ago-2026', () => {
     /**
-     * Es la línea del copiloto, movida y NO cambiada:
-     *   some(d => d.tipo !== 'descartado' && d.tipo !== 'diferencial')
-     * Si alguien la «arregla» para que coincida con el comentario, esto cae — y
-     * tiene que caer, porque eso mueve un aviso de seguridad.
+     * ACTUALIZADO EN REG-443, y no es un retoque: cambia un aviso de seguridad.
+     *
+     * Este caso fijaba la conducta que se CONSERVÓ al mudar la lectura aquí
+     * —el `diferencial` fuera— mientras el comentario del copiloto decía lo
+     * contrario. El dueño decidió que cuenta, así que el comentario pasa a ser
+     * cierto y este caso pasa a fijar la conducta nueva.
+     *
+     * Lo único que se excluye es lo que alguien DESCARTÓ.
      */
     expect(tratarComoEmbarazada(loQueElExpedienteDiceDelEmbarazo([dx('Embarazo', 'presuntivo')]))).toBe(true)
-    expect(tratarComoEmbarazada(loQueElExpedienteDiceDelEmbarazo([dx('Embarazo', 'diferencial')]))).toBe(false)
+    expect(tratarComoEmbarazada(loQueElExpedienteDiceDelEmbarazo([dx('Embarazo', 'diferencial')]))).toBe(true)
     expect(tratarComoEmbarazada(loQueElExpedienteDiceDelEmbarazo([dx('Embarazo', 'descartado')]))).toBe(false)
     expect(tratarComoEmbarazada(loQueElExpedienteDiceDelEmbarazo([dx('Embarazo')]))).toBe(true)
   })
 
-  it('y la discrepancia queda declarada, con sus dos opciones', () => {
-    expect(LA_DISCREPANCIA_DEL_DIFERENCIAL).toContain('NEEDS_CLINICAL_REVIEW')
-    expect(LA_DISCREPANCIA_DEL_DIFERENCIAL).toContain('Opción A')
-    expect(LA_DISCREPANCIA_DEL_DIFERENCIAL).toContain('Opción B')
+  it('sin diagnóstico gestacional NO se avisa: ausencia de dato no es dato', () => {
+    /* El caso que impide que la decisión se pase de frenada. Ampliar a quién se
+       avisa no puede convertir «nadie ha dicho nada» en «puede estar embarazada». */
+    expect(tratarComoEmbarazada(loQueElExpedienteDiceDelEmbarazo([]))).toBe(false)
+    expect(tratarComoEmbarazada(loQueElExpedienteDiceDelEmbarazo([dx('Hipertensión')]))).toBe(false)
+  })
+
+  it('un descartado viejo NO tapa un diferencial vivo', () => {
+    /* «Embarazo descartado» en marzo y «embarazo» como diferencial hoy: hay una
+       hipótesis viva, y ésa manda. */
+    expect(tratarComoEmbarazada(loQueElExpedienteDiceDelEmbarazo([
+      dx('Embarazo descartado', 'descartado'), dx('Embarazo', 'diferencial'),
+    ]))).toBe(true)
+  })
+
+  it('la decisión queda registrada, con su fecha y su alcance REAL', () => {
+    expect(LA_DECISION_DEL_DIFERENCIAL).toContain('DECIDIDO')
+    expect(LA_DECISION_DEL_DIFERENCIAL).toContain('31-ago-2026')
+    /**
+     * El alcance importa y la pregunta lo sobreestimaba: decía «el aviso de
+     * fármaco CONTRAINDICADO» y los siete `contraindicado` avisan SIEMPRE, en
+     * cualquier paciente. Lo que esta decisión mueve son los cuatro `evitar`.
+     */
+    expect(LA_DECISION_DEL_DIFERENCIAL).toMatch(/evitar/)
+    expect(LA_DECISION_DEL_DIFERENCIAL).toMatch(/no dependían de esto/)
   })
 })
 

@@ -749,8 +749,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * La lección: cuando falta una política, el código ya está aplicando una.
      * Conviene que sea la que falla cerrado, y que la decisión siga marcada
      * como del dueño en vez de darse por tomada.
+     *
+     * 443 son las DOS PRIMERAS de la lista de catorce que se le pasó al dueño el
+     * 31-ago-2026, y traen la lección de vuelta con una vuelta de tuerca: una de
+     * las dos (D-024) **no cambió una sola línea de conducta**. Sólo cambió su
+     * estatus, de regir por conservación a regir por decisión.
+     *
+     * Parece cosmético y no lo es: un valor por omisión que nadie eligió acaba
+     * pareciendo elegido, y entonces ya nadie lo revisa. Contarlas aquí es lo
+     * que impide que una omisión se disfrace de criterio.
      */
-    regs: [174, 175, 292, 357],
+    regs: [174, 175, 292, 357, 443],
   },
   {
     /**

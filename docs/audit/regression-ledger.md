@@ -17623,3 +17623,78 @@ REG-440 (los comentarios del arnés) van tres: **un guardián de fuente tiene qu
 mirar código, no prosa.**
 
 **Prueba.** `src/__tests__/nadie-vigilaba-el-riesgo-nombrado.test.ts` (15 casos).
+
+---
+
+## REG-443 — las dos primeras decisiones del dueño, tomadas
+
+**Ejes.** WS-09 (aplicabilidad) y WS-12.router. **Fecha.** 31-ago-2026.
+
+Esto no repara un defecto: **cierra dos preguntas** que llevaban rigiendo por
+conservación. Se anota en el ledger porque una de las dos cambia un aviso de
+seguridad clínica, y porque la pregunta que se le hizo al dueño estaba mal
+formulada — y eso también hay que dejarlo escrito.
+
+### D-023 · el embarazo como diferencial cuenta para avisar
+
+REG-427 encontró que **el comentario del copiloto y su código llevaban años
+contradiciéndose**: el comentario decía que un presuntivo o un diferencial «sí
+cuentan para AVISAR» y el código excluía el diferencial. Se conservó la conducta
+del código y se dejó la pregunta declarada. **El dueño decidió que cuenta.** Ahora
+el comentario es cierto.
+
+**El alcance de la pregunta estaba mal, y era mío.** `LA_DISCREPANCIA_DEL_DIFERENCIAL`
+decía que esto movía «el aviso de fármaco CONTRAINDICADO en embarazo». Falso, y se
+vio midiendo el copiloto antes de preguntar:
+
+| Rama | Fármacos | ¿Depende de la decisión? |
+|---|---|---|
+| `contraindicado` | IECA/ARA II, warfarina, ACOD, isotretinoína, valproato, metotrexato, agonistas GLP-1 | **No.** Avisan siempre, en cualquier mujer en edad fértil |
+| `evitar` | estatinas, tetraciclinas y doxiciclina, quinolonas, AINE | **Sí.** Sólo avisan si se trata como embarazada |
+
+Preguntar con el alcance equivocado habría sido pedirle una decisión sobre algo
+que no estaba decidiendo. El texto queda corregido en el módulo y en el copiloto.
+
+**El coste estaba escrito en el código y se aceptó a sabiendas.**
+`riesgoGestacional` dice que los `evitar` piden confirmación *«sin esto se
+metería ruido en toda mujer en edad fértil»*. Lo que lo hace aceptable, y es lo
+que se le planteó: son cuatro fármacos, y el aviso no salta en toda mujer en edad
+fértil sino sólo cuando **alguien escribió un embarazo en el cuadro** — un acto
+del médico, no una suposición del sistema.
+
+Medido después del cambio:
+
+```
+doxiciclina + embarazo diferencial  → acción: «evítalo en el embarazo»   ← nuevo
+doxiciclina, sin dx gestacional     → nada
+doxiciclina + embarazo descartado   → nada
+warfarina, sin dx gestacional       → crítico: contraindicado            ← igual
+varón / fuera de 12-50 años         → nada                               ← igual
+```
+
+Probado al revés en las dos direcciones: devolviendo la conducta vieja caen tres
+casos, y haciendo que avise sin diagnóstico gestacional —que sería pasarse de
+frenada— caen otros tres.
+
+### D-024 · el modelo caído: generar y marcar
+
+La conducta **no cambia**: se confirma la que había, opción A. Lo que cambia es
+su estatus, y no es lo mismo aunque el código sea idéntico: **un valor por
+omisión que nadie eligió acaba pareciendo elegido.** Se descartaron negarse sólo
+en `premium` y negarse siempre; las dos quedan escritas, porque una decisión sin
+sus alternativas no se puede revisar dentro de seis meses.
+
+Sigue sin decidirse, y queda aparte para no confundirlo con lo decidido: si el
+modelo elegido **se comporta** como el pedido. Eso es calidad y no
+identificadores, y necesita los conjuntos y umbrales de
+`WS-12.contratos-de-evaluacion`.
+
+### Qué NO cubre
+
+- **La lactancia**, que es otra lista y otro mecanismo.
+- **El puerperio**, que sigue sin contar como embarazo y debe (icu-013).
+- **Los vocabularios**: un embarazo escrito con una palabra que
+  `diagnosticosGestacionales` no reconoce no se ve.
+- **Que el aviso se LEA**: eso es pantalla.
+
+**Prueba.** `src/__tests__/el-diferencial-de-embarazo-ahora-avisa.test.ts` (11 casos).
