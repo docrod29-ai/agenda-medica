@@ -15203,3 +15203,82 @@ dueño; quedan escritos para que endurecerlos sea una decisión y no un descuido
 
 **Prueba.** `src/__tests__/la-firma-del-medico-no-se-acuna-para-otro.test.ts`
 (15 casos, 12 declarados).
+
+## REG-414 — la suite fallaba por la carga de la máquina, y el resumen del fallo mentía
+
+**CÓMO SE DESCUBRIÓ.** Preparando el despliegue de v1175. `npx vitest run`
+entero caía de forma intermitente, en archivos distintos cada vez y sin que
+nadie hubiera tocado nada. Tres vueltas seguidas sobre el mismo árbol:
+
+```
+vuelta 1   la-agenda-es-un-riel.test.ts
+vuelta 2   (verde)
+vuelta 3   la-agenda-es-un-riel.test.ts  +  tope-creditos.test.ts
+```
+
+### El diagnóstico que era falso, y por qué se deja escrito
+
+La primera lectura fue **equivocada**: como el caso pasaba en aislamiento y
+pasaba en `origin/main` sin tocar, se concluyó «interferencia entre archivos de
+prueba, estado de módulo que otro test deja sucio». Se llegó a escribir así en
+un PR.
+
+No lo era. Al capturar la salida completa en vez de quedarse con la línea del
+`FAIL`, el error no era una aserción:
+
+```
+Error: Test timed out in 5000ms.
+  ❯ la-agenda-es-un-riel.test.ts:123
+    await import('../app/(dashboard)/citas/page')
+  ❯ tope-creditos.test.ts:60
+    await import('@/lib/ai-keys')
+```
+
+**El resumen de un fallo no es el fallo.** `grep FAIL` decía «cae este caso»; el
+log decía «se acabó el tiempo en un import». Son diagnósticos distintos y llevan
+a arreglos distintos — el primero habría mandado a buscar contaminación de
+módulos que no existe.
+
+### La causa raíz
+
+52 archivos de prueba hacen `await import(...)` **dentro** del `it()`. Ese import
+transforma y carga un grafo entero —`citas/page.tsx` arrastra Next, Firebase e
+iconos— y su coste cae dentro de la ventana de 5 s del caso, que es el defecto de
+vitest. Con 841 archivos compitiendo por CPU, pasarse de 5 s no es raro: es
+cuestión de qué trabajador tuvo mala suerte. Por eso cambiaba de archivo en cada
+vuelta.
+
+### El arreglo, y por qué no es tapar el problema
+
+`testTimeout: 20_000` en `vitest.config.ts`.
+
+Ninguna de esas pruebas afirma que un import sea rápido: **no hay una sola
+aserción sobre latencia en toda la suite**. El tope existe para que un caso
+COLGADO no cuelgue el lote, y a 20 s sigue haciendo exactamente eso — un bucle
+infinito o una promesa que nunca resuelve siguen fallando. Lo único que se quita
+es que el runner llame «fallo» a una máquina ocupada.
+
+La alternativa era convertir a import estático los 29 archivos que no usan
+`vi.mock` (los otros 23 lo necesitan para que el mock se aplique antes de cargar
+el módulo). Son 29 diffs en pruebas que hoy funcionan, para arreglar lo mismo que
+arregla una línea.
+
+**Medido después del cambio**: dos vueltas completas de la suite entera. La
+primera, 842 archivos y 11 674 casos, **todo en verde**. La segunda, sólo
+`ops-timeout-y-punto-ciego`, que falla por entorno —necesita una IP que trague
+paquetes y el proxy de esta caja contesta— y ya fallaba antes. Ninguno de los dos
+archivos del defecto volvió a caer.
+
+### Qué NO cubre
+
+- El guardián vigila la CONFIGURACIÓN, no la ausencia de intermitencia: que un
+  flake haya desaparecido no lo puede demostrar una prueba.
+- No toca `hookTimeout` (10 s). No se ha observado caer, y cambiar lo que no se
+  ha visto romper es como se acumulan números que nadie sabe explicar.
+- No convierte los 29 imports dinámicos prescindibles. Queda declarado como
+  trabajo posible, no necesario.
+
+**Prueba.** `src/__tests__/el-tope-por-caso-no-mide-la-maquina.test.ts` (4 casos),
+con techo además de suelo: probada al revés a 5 s (cae el suelo) y a 600 s (cae
+el techo, porque «subir el tope» no puede volverse el martillo con el que se
+esconde un cuelgue real).
