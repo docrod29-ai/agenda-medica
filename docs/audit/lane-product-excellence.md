@@ -5756,3 +5756,109 @@ llevó a planear una unidad entera para cubrir algo ya cubierto.
 `vitest` **12 028 de 12 028 en local** · lint **95 = techo** · trinquete de
 diseño **sin deuda nueva** · `tsc` limpio · `arnes:acuse-puntero` **0 mudos en
 los cinco diálogos** · `arnes:nada-tapa` 0 de 848 · inventario regenerado.
+
+---
+
+## Unidad 89 — la compuerta por contenido, y las cuatro pantallas del portal que nadie miraba
+
+Autorizado por el dueño: «cambia la compuerta y sigue con el portal clínico».
+
+### 89a · La Compuerta 0 compara lo que publica, no la identidad del sha
+
+La versión de la unidad 87 exigía que el pin FUERA la cabeza de `main`. Cazaba el
+fallo pero era **inusable**: al fusionar un PR, el commit de merge mueve `main`
+por delante del pin que ese mismo PR acaba de escribir. Ocurrió **tres veces en
+una tarde** —87, 5 y 2 commits— y ninguna era peligrosa.
+
+Una compuerta que salta siempre acaba desactivada o rodeada.
+
+Ahora compara los **cuatro archivos que este workflow publica o certifica**:
+`firestore.rules`, `firestore.indexes.json`, `version.txt`, `sw.js`. Si coinciden,
+publicar desde el pin **equivale** a publicar desde la cabeza.
+
+**Medido con los archivos reales, no con un valor pasado a mano:**
+
+```
+pin 8f74901d (del #419) vs cabeza 481f50f8 — 2 commits detrás
+  idéntico firestore.rules · firestore.indexes.json · version.txt · sw.js
+  → pasa, exit 0
+```
+
+Con la versión anterior, el botón estaría bloqueado **ahora mismo** sin motivo.
+
+Y se añade un caso que antes no existía: si **no se pudo comparar**, para. Un
+dato que falta no es un dato que coincide.
+
+**PROBADO AL REVÉS en worktree**: ignorar el contenido en la decisión → 5 rojos;
+quitar el cálculo del workflow → 1 rojo; restaurado → 14 en verde.
+
+### 89b · El portal tenía DOS caras y sólo se medía una
+
+El alcance `clinico` abre `documentos` y `paquetes`. Comprobado del otro lado:
+token clínico → **200 con datos**; token de mostrador → **403**. El arnés veía la
+pantalla **con el muro puesto** y contaba sus controles como si fueran todos.
+
+Dos techos separados —`/mi/[token]` y `/mi/[token:clinico]`, ambos **0**— porque
+no son la misma pantalla con más datos: donde una enseña un muro, la otra enseña
+documentos. El alcance se lee **del propio token**, para que la etiqueta no pueda
+desincronizarse de lo medido.
+
+### 89c · Y el portal son CINCO pantallas detrás de una URL
+
+El destino vive en estado de cliente. El arnés mide «la pantalla al aterrizar»,
+así que en todo el carril sólo ha visto `hoy`. Las otras cuatro —donde el
+paciente lee su plan y sus recetas— no las miraba nadie.
+
+Se sembró un paquete de visita **LIBERADO** (sintético, cumpliendo las tres
+condiciones de `visibleParaElPaciente`) para que hubiera algo detrás del muro. La
+medición siguió dando lo mismo y **parecía que el sembrado no servía**. Al
+mirarlo en el navegador salió que el paquete SÍ se pinta, pero bajo **«Cuidado»**,
+no bajo «Documentos» —que sigue vacío porque no hay recetas firmadas—. Sin
+navegar, la conclusión habría sido falsa.
+
+**Los cuatro destinos son TEXTO: cero controles.** No escondían ningún mudo. Lo
+que se cierra es la cobertura, no un defecto — y decirlo «arreglado» habría sido
+otro cero tranquilizador.
+
+### 89d · Y fabriqué un cero falso yo mismo
+
+Al meter esos cuatro destinos, la corrida imprimió cuatro líneas de
+`sin abrir … queda sin medir`. **Falso**: los cuatro se abrieron. La maquinaria
+de diálogos trataba «cero controles» como «no se pudo abrir».
+
+Es «vacío no es cero» **al revés**: llevo la sesión persiguiendo ceros que no
+significaban lo que parecían, y produje uno. Un arnés que dice algo falso es peor
+que uno que calla.
+
+Ahora distingue tres cosas donde juntaba dos:
+
+```
+sin abrir  → el selector no existe: no se pudo medir
+sin nada   → se abrió y no tiene controles (declarado legítimo)
+N mudos    → se midió
+```
+
+`permitirVacio` va **por diálogo**, no global: un modal con cero controles sigue
+cantando «sin abrir», porque ahí el cero sí es sospechoso.
+
+### RESIDUAL_RISK
+
+- **La superficie medible del portal se encoge según avanza el día.** Medido: a
+  las 07:00 (hora del consultorio) daba 12 controles; a las 10:35, 9 — las citas
+  pasadas dejan de ser «próximas». Para el techo da igual (cuenta mudos), pero un
+  control que sólo exista con una cita futura podría estar mudo sin que nadie lo
+  vea si todas las corridas caen por la tarde. **NOT_PROVEN.**
+- **El paquete liberado se siembra a mano**, no desde `sembrar-emulador.mjs`. Una
+  caja recién sembrada NO tiene esa superficie, y la cara clínica volvería a
+  medirse vacía sin avisar. **NOT_PROVEN.**
+- **`Documentos` sigue vacío**: no hay recetas firmadas en el sembrado, así que el
+  botón de descargar receta **no se ha medido nunca**.
+- La Compuerta 0 sigue vigilando lo que se **autoriza**, no lo que está
+  **publicado**. El punto ciego de producción no se cierra con esto.
+- **Sólo cuatro diálogos.** Una firma, un internamiento: siguen sin abrirse.
+
+### COMPUERTAS
+
+`acuse-puntero` con las dos caras del portal, los cuatro diálogos y los cuatro
+destinos · lint **95 = techo** · `tsc` limpio · golden de la compuerta **14 en
+verde** · inventario regenerado.
