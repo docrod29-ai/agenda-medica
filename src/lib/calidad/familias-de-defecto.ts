@@ -549,7 +549,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * habría sido peor: un peso es una penalización, y una penalización se
      * compensa con volumen.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409],
+    /**
+     * 413 es esta familia en su forma más barata de arreglar y más cara de
+     * ignorar: la comprobación que impide acuñar la firma de otro médico
+     * existía, estaba en el servidor y funcionaba — y `grep -rl diseno-url
+     * src/__tests__/` no devolvía nada. No faltaba la defensa: faltaba el
+     * instrumento que avisa el día que alguien se la lleva por delante, que en
+     * una protección de aislamiento entre consultorios es el día que nadie mira.
+     */
+
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413],
   },
   {
     clave: 'hueco_como_dato',

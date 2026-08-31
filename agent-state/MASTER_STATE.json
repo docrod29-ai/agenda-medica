@@ -19,10 +19,13 @@
   "ultimaVersionEnProduccion": "nexusmed-v1175",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-08-30.md"
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/la-firma-del-medico-no-se-acuna-para-otro.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -56,12 +59,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/lista-pendejadas-ab9sak",
+  "ramaActual": "claude/lista-pendejadas-ab9sak-355",
   "derivado": {
-    "regsEnElLedger": 263,
+    "regsEnElLedger": 264,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 840,
-    "casosDePrueba": 10476,
+    "archivosDePrueba": 841,
+    "casosDePrueba": 10488,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
