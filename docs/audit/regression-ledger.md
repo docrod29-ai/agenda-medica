@@ -16598,3 +16598,82 @@ distinción que hace accionable cada marca.
   sería peor que no tener el patrón.
 
 **Prueba.** `src/__tests__/el-pasaje-esta-y-dice-lo-contrario.test.ts` (19 casos).
+
+---
+
+## REG-430 — una denegación no es una anomalía; el mismo usuario en dos consultorios, sí
+
+**QUÉ SE PEDÍA.** `WS-13.alertas`: «las anomalías de autorización siguen sin
+instrumentar, y hasta que no se escriban en algún sitio no hay nada que leer».
+
+### El hueco
+
+`verificar.ts` deniega correctamente y lo apunta con `safeLog.warn`. **Un log de
+servidor no es una señal**: hay que ir a buscarlo, en el sitio correcto, el día
+correcto, y sospechando ya lo que se busca. Es el mismo defecto que REG-396 cerró
+para los incidentes de IA y REG-420 para los errores del navegador.
+
+### La frontera, y no es un número inventado
+
+**Una denegación es el sistema funcionando.** Alguien pulsó algo que su rol no
+puede. Avisar de cada una convierte el canal en ruido, y un canal ruidoso deja de
+leerse justo el día que importa.
+
+Dos patrones no son ruido:
+
+1. **Un mismo usuario denegado en DOS consultorios distintos.** Un miembro de un
+   consultorio no tiene por qué tocar otro; que le rebote la puerta de dos
+   inquilinos no es un rol mal configurado, es alguien probando dónde entra. Es la
+   «anomalía de aislamiento entre inquilinos» que el charter nombra, y **bastan
+   dos** porque el segundo ya no tiene explicación inocente — cualitativo, como en
+   REG-420, no una cifra elegida.
+2. **Insistencia sobre la misma capacidad.** Un rol mal puesto da una denegación y
+   el usuario pide permiso. Aquí sí hace falta un número, y se declara como lo que
+   es: una cota operativa, no una cifra clínica.
+
+La insistencia se cuenta **por capacidad, no en total**. Diez denegaciones
+repartidas entre diez capacidades es alguien perdido por la aplicación; diez
+contra la misma es otra cosa. Contar en total habría convertido lo primero en una
+alarma.
+
+Y el sondeo **manda sobre la insistencia**: un mismo hecho no sale dos veces con
+dos nombres, o el conteo del aviso dejaría de significar algo.
+
+### Lo que no se anota
+
+Nada del paciente. Una anomalía de autorización se investiga con **quién y
+dónde**, nunca con sobre qué expediente. Por eso la ruta va sin parámetros:
+`/api/expediente/abc123xyz789` llevaría un identificador de paciente dentro.
+
+### La colección, declarada en los tres sitios
+
+`platform_authz_denegadas`, cerrada al cliente **por las dos puntas** — quien
+sondea no debe poder leer el registro de su propio sondeo. En `firestore.rules`,
+en la matriz de acceso, y fuera del respaldo del consultorio por el comodín
+`platform_*`, que ya declara que lo de la plataforma no va en el archivo que el
+médico descarga.
+
+No se metió en `platform_admin_log` a propósito: ésa es la bitácora de lo que hace
+el dueño, y mezclarla con quién fue denegado conflaría dos cosas distintas.
+
+### El vigilante NO las marca como vistas
+
+Al revés que los errores del navegador. Una denegación es un registro de
+seguridad: sacarla del radar por haber avisado una vez perdería la serie, que es
+justo lo que hace visible un patrón. La ventana las deja de contar sola.
+
+### Qué NO cubre
+
+- **Los 5xx del servidor**, la otra mitad que el censo nombra. Medir el error de
+  TODA ruta HTTP exige instrumentar el borde y decidir dónde viven esas métricas —
+  **la misma infraestructura que `WS-12.p99` deja abierta**. Son el mismo bloqueo
+  y conviene tratarlos juntos.
+- **Las denegaciones sin actor** (401 sin token): sin uid no hay patrón que seguir,
+  y escribirlas llenaría la colección de filas que no dicen nada.
+- **El canal sigue sin destino**: `OPS_ALERTA_WEBHOOK` es acción del dueño. Sin él
+  `enviarAlertaOps` lo declara y no da nada por avisado.
+- **`firestore.rules` no se despliega aquí**: publicar las reglas es acción del
+  dueño. La escritura funciona igual porque va por Admin SDK; lo que espera al
+  despliegue es el cierre de la lectura desde el cliente.
+
+**Prueba.** `src/__tests__/una-denegacion-no-es-una-anomalia-dos-consultorios-si.test.ts` (20 casos).

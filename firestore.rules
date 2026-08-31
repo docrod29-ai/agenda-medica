@@ -1168,6 +1168,14 @@ service cloud.firestore {
     match /platform_admin_log/{logId} {
       allow read, write: if false; // Admin SDK only
     }
+    // Denegaciones de autorización (WS-13). Las escribe el servidor cuando un rol
+    // pide algo que no puede, y las lee el vigilante para ver el PATRÓN — una
+    // denegación suelta es el sistema funcionando; el mismo usuario rebotado en
+    // dos consultorios distintos, no. Cerrada al cliente por las dos puntas: quien
+    // sondea no debe poder leer el registro de su propio sondeo.
+    match /platform_authz_denegadas/{denId} {
+      allow read, write: if false; // Admin SDK only
+    }
     // Paquetes de la plataforma (combinaciones de módulos + precio) — los define
     // el dueño desde /superadmin vía API. Nunca desde el cliente.
     match /platform_packages/{pkgId} {

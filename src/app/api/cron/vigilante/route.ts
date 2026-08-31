@@ -31,6 +31,9 @@ import {
 import { correlacionDeTrabajo } from '@/lib/observabilidad/correlacion'
 import { adminDb } from '@/lib/firebase-admin'
 import { averias, comoSeCuenta, firmaDelError } from '@/lib/ops/lo-que-se-repite'
+import {
+  anomalias, comoSeCuentan as comoSeCuentanAnomalias, COLECCION as COLECCION_AUTHZ,
+} from '@/lib/ops/lo-que-no-deberia-pasar'
 
 /**
  * La ventana que mira el vigilante. Es su propio periodo por dos —así una
@@ -217,6 +220,43 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       /* Un aviso que falla no puede llevarse por delante el resto del vigilante. */
       safeLog.warn('[cron/vigilante] no se pudieron leer los errores del navegador', e)
+    }
+
+    /**
+     * ── ANOMALÍAS DE AUTORIZACIÓN — WS-13 / REG-430 ─────────────────────────
+     *
+     * Las denegaciones se anotaban sólo en el log del servidor, que hay que ir a
+     * buscar sabiendo ya lo que se busca. Aquí se lee el PATRÓN, que es lo único
+     * que distingue un rol mal configurado de alguien probando dónde entra.
+     *
+     * NO se marcan como vistas: a diferencia de un error del navegador, una
+     * denegación es un registro de seguridad y borrarla del radar por haber
+     * avisado una vez perdería la serie. La ventana las deja de contar sola.
+     */
+    let anomaliasAvisadas = 0
+    try {
+      const desde = new Date(Date.now() - VENTANA_DE_ERRORES_MS).toISOString()
+      const snap = await adminDb.collection(COLECCION_AUTHZ)
+        .orderBy('cuando', 'desc')
+        .limit(TOPE_ERRORES)
+        .get()
+      const denegaciones = snap.docs
+        .map(d => d.data() as { uid: string; clinicId: string; capacidad: string; ruta: string; cuando: string })
+        .filter(d => String(d.cuando ?? '') >= desde)
+      const raras = anomalias(denegaciones)
+      if (raras.length) {
+        const r = await enviarAlertaOps({
+          titulo: `${raras.length} anomalía(s) de autorización`,
+          detalle: comoSeCuentanAnomalias(raras),
+          /* La escala del canal tiene dos escalones y los dos casos son graves:
+             un sondeo entre consultorios no es un aviso. */
+          gravedad: 'grave',
+          origen: 'cron/vigilante',
+        })
+        if (r.enviada) anomaliasAvisadas = raras.length
+      }
+    } catch (e) {
+      safeLog.warn('[cron/vigilante] no se pudieron leer las denegaciones de autorización', e)
     }
 
     // El vigilante también late: si se cae ÉL, el propio diagnóstico lo enseña

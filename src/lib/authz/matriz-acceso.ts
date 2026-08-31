@@ -558,6 +558,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Bitácora de acciones del dueño. Nunca desde el cliente.',
   },
   {
+    ruta: 'platform_authz_denegadas/{denId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Denegaciones de autorización (WS-13). Las escribe el servidor al denegar y las lee el vigilante para ver el patrón. Cerrada al cliente por las dos puntas: quien sondea no debe poder leer el registro de su propio sondeo. Sin PHI — actor, consultorio, capacidad y ruta sin parámetros.',
+  },
+  {
     ruta: 'platform_packages/{pkgId}',
     clase: 'plataforma',
     guardaLectura: 'servidor',

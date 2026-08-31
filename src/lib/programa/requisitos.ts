@@ -627,15 +627,11 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-13.alertas', ws: 'WS-13', titulo: 'Lo que se rompe llega a alguien, sin que haya que sospecharlo',
     estado: 'PARTIAL',
-    evidencia: 'REG-396 conectó la caída de la IA de plataforma. REG-397 conectó la cola de WhatsApp pausada y el dead-letter (este censo decía que faltaba: estaba viejo). REG-420 conecta lo que revienta en el navegador — se recogía en la colección `errores` y había que abrir el panel del dueño para verlo. No avisa de todo y NO usa umbral: un usuario con un error puede ser su navegador; dos usuarios distintos con el mismo error es del producto. Los anónimos se cuentan aparte porque si el login revienta nadie puede identificarse para demostrarlo.',
-    comando: 'npx vitest run src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts',
-    resultado: '19 casos. La firma normaliza las cifras del mensaje —sin eso cada aparición parecería única y el aviso no saltaría nunca— y no junta rutas distintas. Se marca como visto SÓLO si el aviso salió.',
-    queFalta: 'Dos señales siguen sin instrumentar, y hasta que no se escriban en algún sitio no hay nada que leer: los 5xx genéricos del servidor y las anomalías de autorización. Eso es instrumentar antes que avisar. Y el CANAL sigue sin destino: OPS_ALERTA_WEBHOOK es acción del dueño — sin él, enviarAlertaOps lo declara y no marca nada como avisado, que es lo correcto.',
-    artefactos: ['src/lib/ops/lo-que-se-repite.ts', 'src/app/api/cron/vigilante/route.ts'],
+    queFalta: 'REG-420 cerró los errores del navegador (un reporte no es una avería; dos personas distintas con el mismo error, sí) y REG-430 las ANOMALÍAS DE AUTORIZACIÓN, que sólo vivían en un log de servidor —y un log hay que ir a buscarlo sabiendo ya lo que se busca—. La frontera no es un número inventado: una denegación es el sistema funcionando; el MISMO usuario rebotado en DOS consultorios distintos es alguien probando dónde entra, y bastan dos porque el segundo ya no tiene explicación inocente. La insistencia se cuenta por capacidad, no en total. La colección va declarada en los tres sitios y cerrada al cliente por las dos puntas. FALTA: (1) los 5xx genéricos del servidor — medir el error de toda ruta HTTP exige instrumentar el borde y decidir dónde viven esas métricas, LA MISMA infraestructura que WS-12.p99 deja abierta, así que son el mismo bloqueo; (2) el CANAL sigue sin destino: OPS_ALERTA_WEBHOOK es acción del dueño y sin él enviarAlertaOps lo declara y no marca nada como avisado, que es lo correcto; (3) desplegar firestore.rules es acción del dueño — la escritura ya funciona por Admin SDK, lo que espera es el cierre de la lectura desde el cliente.',
+    artefactos: ['src/lib/ops/lo-que-se-repite.ts', 'src/lib/ops/lo-que-no-deberia-pasar.ts'],
     pruebas: [
-      'src/__tests__/ops-latido-y-alerta.test.ts',
-      'src/__tests__/la-averia-de-la-ia-llega-a-alguien.test.ts',
       'src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts',
+      'src/__tests__/una-denegacion-no-es-una-anomalia-dos-consultorios-si.test.ts',
     ],
   }),
   R({
