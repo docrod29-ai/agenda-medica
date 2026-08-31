@@ -13,7 +13,10 @@
  */
 import { collection, doc, addDoc, setDoc, getDoc, updateDoc, getDocs, query, where, limit } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
-import { puedeTransicionar, type TareaClinica, type EstadoTarea } from './modelo'
+import {
+  puedeTransicionar, puedeCerrarse, conTransicion,
+  type TareaClinica, type EstadoTarea, type CierreDeTarea,
+} from './modelo'
 
 const COL = (clinicId: string) => collection(db, 'clinics', clinicId, 'tareas_clinicas')
 
@@ -49,9 +52,30 @@ function idDerivado(t: Omit<TareaClinica, 'id'>): string | null {
  * ya movió: si la aceptó o la cerró, volver a imprimir la orden no puede
  * devolverla a «solicitada».
  */
-export async function crearTareas(clinicId: string, tareas: readonly Omit<TareaClinica, 'id'>[]): Promise<number> {
-  if (!clinicId || !tareas.length) return 0
+/**
+ * ── QUÉ DEVUELVE, Y POR QUÉ NO BASTABA UN NÚMERO (REG-411) ──────────────────
+ *
+ * Devolvía `Promise<number>`: cuántas entraron. Con eso el llamador puede
+ * AVISAR de que faltan —REG-344 lo hizo— pero no puede hacer nada más, porque no
+ * sabe **cuáles**. Y un pendiente clínico que nadie puede nombrar es un
+ * pendiente que nadie puede reintentar: la única defensa posible era un aviso
+ * en pantalla, que se lo lleva la primera navegación.
+ *
+ * Ahora devuelve también las que no entraron, que es lo que permite guardarlas y
+ * volver a ofrecerlas. El número sigue ahí para quien sólo quiera contar.
+ */
+export interface ResultadoDeCrear {
+  readonly creadas: number
+  /** Las que NO quedaron escritas. Vacío no significa «no lo intenté». */
+  readonly noEntraron: readonly Omit<TareaClinica, 'id'>[]
+}
+
+export async function crearTareas(
+  clinicId: string, tareas: readonly Omit<TareaClinica, 'id'>[],
+): Promise<ResultadoDeCrear> {
+  if (!clinicId || !tareas.length) return { creadas: 0, noEntraron: [] }
   let n = 0
+  const noEntraron: Omit<TareaClinica, 'id'>[] = []
   for (const t of tareas) {
     try {
       // `undefined` revienta en Firestore («Unsupported field value»): se limpian
@@ -70,15 +94,31 @@ export async function crearTareas(clinicId: string, tareas: readonly Omit<TareaC
       }
       n++
     } catch {
-      /* una tarea que falle no puede tumbar las demás */
+      /* una tarea que falle no puede tumbar las demás — pero sí se apunta */
+      noEntraron.push(t)
     }
   }
-  return n
+  return { creadas: n, noEntraron }
+}
+
+export interface WorklistVivo {
+  tareas: TareaClinica[]
+  /**
+   * true = se alcanzó el tope. HAY pendientes vivos que NO vienen en `tareas`.
+   *
+   * REG-344 — no es cosmético. Sin `orderBy` (ver abajo) los que vienen son un
+   * subconjunto ARBITRARIO: entre los que faltan puede estar un resultado
+   * crítico sin revisar. Un worklist que se queda corto en silencio enseña «no
+   * hay nada pendiente» de un consultorio que sí lo tiene, y eso es peor que no
+   * enseñar nada.
+   */
+  truncada: boolean
+  tope: number
 }
 
 /** Las tareas VIVAS del consultorio. El worklist. */
-export async function tareasVivas(clinicId: string, tope = 200): Promise<TareaClinica[]> {
-  if (!clinicId) return []
+export async function tareasVivas(clinicId: string, tope = 200): Promise<WorklistVivo> {
+  if (!clinicId) return { tareas: [], truncada: false, tope }
   /**
    * SIN `orderBy`: EL ORDEN LO PONE EL WORKLIST, NO FIRESTORE.
    *
@@ -92,13 +132,25 @@ export async function tareasVivas(clinicId: string, tope = 200): Promise<TareaCl
    * antigüedad), así que el orden que devolviera Firestore se perdía igual.
    * Quitarlo elimina la dependencia del índice sin cambiar lo que se ve.
    */
+  /**
+   * Se piden `tope + 1` para SABER si se quedó corto. El extra no se devuelve:
+   * sólo sirve para poder decirlo. Es el mismo truco que `listarPacientesPagina`,
+   * y aquí importa más — allí falta un nombre en una lista, aquí falta trabajo
+   * clínico que nadie va a recordar.
+   */
   const q = query(
     COL(clinicId),
-    where('estado', 'in', ['solicitada', 'aceptada', 'en_curso', 'completada']),
-    limit(tope),
+    /* `agendada` es VIVA (REG-404): la cita existe y el paciente no ha venido.
+       Dejarla fuera de esta consulta la haría desaparecer del worklist, que es
+       justo lo que pasaba cuando agendar equivalía a cerrar. */
+    where('estado', 'in', ['solicitada', 'aceptada', 'en_curso', 'agendada', 'completada']),
+    limit(tope + 1),
   )
   const snap = await getDocs(q)
-  return snap.docs.map(d => ({ ...(d.data() as TareaClinica), id: d.id }))
+  const truncada = snap.docs.length > tope
+  const tareas = (truncada ? snap.docs.slice(0, tope) : snap.docs)
+    .map(d => ({ ...(d.data() as TareaClinica), id: d.id }))
+  return { tareas, truncada, tope }
 }
 
 /**
@@ -144,7 +196,7 @@ export async function cambiarEstado(
   clinicId: string,
   tarea: TareaClinica,
   nuevo: EstadoTarea,
-  extra: { motivoCancelacion?: string } = {},
+  extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea> } = {},
 ): Promise<ResultadoCambio> {
   const v = puedeTransicionar(tarea.estado, nuevo)
   if (!v.permitido) return { ok: false, motivo: v.motivo }
@@ -164,11 +216,38 @@ export async function cambiarEstado(
   }
   if (nuevo === 'completada') patch.completadaEn = ahora
   if (nuevo === 'cerrada') {
+    /**
+     * ── CERRAR YA NO ES UN SOLO ACTO (REG-360) ──────────────────────────────
+     *
+     * «Cerrar» abarcaba de golpe las tres etapas del §9 —DECISION, ACTION y
+     * PATIENT COMMUNICATION— sin distinguirlas, así que un resultado crítico
+     * cerrado **sin que nadie llamara al paciente** se veía igual que uno donde
+     * sí se llamó.
+     *
+     * Ahora se exige decir QUÉ SE DECIDIÓ. El aviso al paciente **no** se
+     * exige —hacerlo convertiría cada cierre en un formulario y un worklist que
+     * cuesta se abandona— pero tampoco se inventa: sin registrar, se lee como
+     * `sin_dato`, nunca como «se avisó».
+     */
+    const cierre: Partial<CierreDeTarea> = { ...extra.cierre, quien: uid, cuando: ahora }
+    const puede = puedeCerrarse(cierre)
+    if (!puede.permitido) return { ok: false, motivo: puede.motivo }
+    patch.cierre = cierre
     // Cerrar ES la constancia de que alguien lo revisó: sin autor no significa nada.
     patch.cerradaEn = ahora
     patch.cerradaPor = uid
   }
   if (nuevo === 'cancelada') patch.motivoCancelacion = String(extra.motivoCancelacion).trim()
+
+  /**
+   * El registro de transiciones: sin él, «cerrada» no dice cuándo se aceptó,
+   * quién la tuvo, ni si se reabrió por el camino. Acotado, para que una tarea
+   * reabierta muchas veces no haga crecer su documento sin techo.
+   */
+  patch.transiciones = conTransicion(tarea.transiciones, {
+    de: tarea.estado, a: nuevo, quien: uid, cuando: ahora,
+    ...(extra.motivoCancelacion ? { motivo: String(extra.motivoCancelacion).trim() } : {}),
+  })
 
   try {
     await updateDoc(doc(COL(clinicId), String(tarea.id)), patch)

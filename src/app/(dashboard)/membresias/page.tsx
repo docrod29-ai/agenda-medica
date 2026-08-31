@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
-import { getPatients } from '@/lib/firestore'
+import { useBusquedaDePacientes } from '@/hooks/useBusquedaDePacientes'
 import { hoyISO } from '@/lib/timezone'
 import { fmtMXN, METODO_LABEL, type MetodoPago } from '@/lib/cobros'
 import { PageHeader, Button, Spinner, Modal, Input, Select } from '@/components/ui'
@@ -34,7 +34,6 @@ export default function MembresiasPage() {
   const [membs, setMembs] = useState<Membresia[]>([])
   const [cuotaACobrar, setCuotaACobrar] = useState<Membresia | null>(null)
   const [metodoCobro, setMetodoCobro] = useState<MetodoPago>('efectivo')
-  const [pacientes, setPacientes] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [modalPlan, setModalPlan] = useState(false)
   const [asignar, setAsignar] = useState(false)
@@ -48,8 +47,10 @@ export default function MembresiasPage() {
   }
   useEffect(() => {
     if (!clinicId) return
-    Promise.all([listarPlanes(clinicId), listarMembresias(clinicId), getPatients(clinicId)])
-      .then(([p, m, pac]) => { setPlanes(p); setMembs(m); setPacientes(pac) })
+    // El directorio ya no se precarga: el único sitio que lo usaba era el
+    // buscador del modal, y desde REG-351 ése pregunta al servidor.
+    Promise.all([listarPlanes(clinicId), listarMembresias(clinicId)])
+      .then(([p, m]) => { setPlanes(p); setMembs(m) })
       .catch(e => console.error('[membresias]', e))
       .finally(() => setLoading(false))
   }, [clinicId])
@@ -188,7 +189,7 @@ export default function MembresiasPage() {
         try { await crearPlan(clinicId!, p); toast('Plan creado', 'success'); setModalPlan(false); recargar() }
         catch { toast('No se pudo crear el plan', 'error') }
       }} />}
-      {asignar && <ModalAsignar planes={planes} pacientes={pacientes} onClose={() => setAsignar(false)}
+      {asignar && <ModalAsignar clinicId={clinicId} planes={planes} onClose={() => setAsignar(false)}
         onAsignar={async (pac, plan) => {
           try { await asignarMembresia(clinicId!, { pacienteId: pac.id!, pacienteNombre: pac.nombre, plan, creadoPor: user!.uid }); toast('Membresía asignada', 'success'); setAsignar(false); recargar() }
           catch { toast('No se pudo asignar la membresía', 'error') }
@@ -255,11 +256,18 @@ function ModalPlan({ onClose, onCrear }: { onClose: () => void; onCrear: (p: Omi
   )
 }
 
-function ModalAsignar({ planes, pacientes, onClose, onAsignar }: { planes: PlanMembresia[]; pacientes: Patient[]; onClose: () => void; onAsignar: (p: Patient, plan: PlanMembresia) => void }) {
+/**
+ * REG-351 — el buscador de este modal filtraba «la lista» en memoria, y desde
+ * REG-341 esa lista viene recortada: por encima del techo se le decía «no está»
+ * a un paciente que sí está, y la membresía no se podía asignar sin darlo de
+ * alta otra vez. Ahora pregunta al servidor.
+ */
+function ModalAsignar({ clinicId, planes, onClose, onAsignar }: { clinicId: string | null; planes: PlanMembresia[]; onClose: () => void; onAsignar: (p: Patient, plan: PlanMembresia) => void }) {
   const [busca, setBusca] = useState('')
   const [pacSel, setPacSel] = useState<Patient | null>(null)
   const [planId, setPlanId] = useState(planes[0]?.id ?? '')
-  const filtrados = useMemo(() => busca.trim() ? pacientes.filter(p => p.nombre.toLowerCase().includes(busca.toLowerCase())).slice(0, 8) : [], [busca, pacientes])
+  const busqueda = useBusquedaDePacientes(clinicId, busca)
+  const filtrados = busqueda.resultados.slice(0, 8)
   return (
     <Modal open onClose={onClose} title="Asignar membresía" footer={
       <><Button variant="secondary" onClick={onClose}>Cancelar</Button>
@@ -274,8 +282,22 @@ function ModalAsignar({ planes, pacientes, onClose, onAsignar }: { planes: PlanM
             </div>
           ) : (
             <>
-              <Input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar paciente por nombre…" />
+              <Input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar paciente por nombre o teléfono…" />
               {filtrados.map(p => <button key={p.id} onClick={() => { setPacSel(p); setBusca('') }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 11px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--s1)', color: 'var(--text)', cursor: 'pointer', marginTop: 4 }}>{p.nombre}</button>)}
+              {!busqueda.textoCorto && filtrados.length === 0 && (
+                <div style={{ fontSize: 12, marginTop: 6, color: busqueda.sePudoPreguntar ? 'var(--text3)' : 'var(--amber)' }}>
+                  {busqueda.buscando
+                    ? 'Buscando…'
+                    : busqueda.sePudoPreguntar
+                      ? 'Sin coincidencias. La búsqueda es por el principio del nombre o del teléfono.'
+                      : 'No se pudo consultar el directorio: esto NO significa que el paciente no exista.'}
+                </div>
+              )}
+              {busqueda.truncada && (
+                <div role="status" style={{ fontSize: 12, marginTop: 6, color: 'var(--amber)' }}>
+                  Hay más coincidencias de las que caben aquí; escribe más letras.
+                </div>
+              )}
             </>
           )}
         </label>

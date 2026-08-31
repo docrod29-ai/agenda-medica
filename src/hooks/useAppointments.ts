@@ -78,8 +78,31 @@ export function useAppointments(desdeISO?: string) {
 /**
  * Citas de UN paciente. Consulta propia por `pacienteId` — antes montaba el
  * listener de la clínica entera y filtraba en el cliente, que es exactamente el
- * gasto que se quería evitar. Aquí SÍ se traen todas las fechas: el historial
- * completo de un paciente es el punto, y son pocas.
+ * gasto que se quería evitar.
+ *
+ * ── POR QUÉ ESTO SIGUE SIN TECHO, Y NO ES UN OLVIDO (REG-352) ───────────────
+ *
+ * El comentario anterior decía «se traen todas las fechas: son pocas». Es cierto
+ * casi siempre y falso justo donde importa —el paciente de años— y esto es un
+ * **listener**: se queda abierto pagando esa historia entera cada vez que cambia
+ * una cita.
+ *
+ * La reparación obvia —`orderBy('fechaHora','desc')` + `limit`— **no se puede
+ * desplegar hoy**. Firestore exige un ÍNDICE COMPUESTO para combinar la
+ * igualdad por `pacienteId` con un orden por otro campo, y este repositorio **no
+ * tiene forma de crear índices**: se hacen a mano en la consola del dueño (es la
+ * misma pared que P1-14). Publicar esa consulta rompería la pantalla de consulta
+ * en producción con `FAILED_PRECONDITION` en cuanto alguien la abriera.
+ *
+ * Y acotar SIN orden es peor que no acotar: Firestore devolvería 200 citas
+ * arbitrarias, y el único llamador busca **la cita de HOY**. Una consulta que
+ * pierde la cita de hoy hace que el cobro no se ligue al encuentro — el defecto
+ * que este hook existe para evitar.
+ *
+ * Así que se deja acotado por PACIENTE (que ya es la diferencia grande frente al
+ * listener del consultorio entero) y el índice que falta queda **declarado en
+ * `firestore.indexes.json`**, para que deje de ser un hueco invisible y pase a
+ * ser una acción concreta del dueño. `BLOCKED_EXTERNAL`, con nombre.
  */
 export function usePatientAppointments(patientId: string) {
   const { clinicId } = useClinic()

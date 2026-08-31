@@ -44,6 +44,31 @@ const ORIGENES: OrigenAviso[] = [
    * que alguien diga si bloquea. Este AVISA, no bloquea.
    */
   'pauta_deformada',
+  /**
+   * REG-370 — el procedimiento que el extractor oyó y la nota no recoge.
+   * Declarado aquí a mano, como manda esta lista. AVISA, no bloquea: puede ser
+   * una palabra mal oída, y apagar el botón de Firmar por un posible falso
+   * positivo enseña a esquivar la compuerta.
+   */
+  'procedimiento_sin_escribir',
+  /**
+   * REG-373 — el fármaco que figura como vigente y que el dictado sólo nombra
+   * en pasado. AVISA, no bloquea: «ya no la toma» y «se la suspendimos y la
+   * vamos a reanudar» se dictan igual, y la diferencia la sabe el médico.
+   */
+  'farmaco_solo_en_pasado',
+  /**
+   * REG-410 — sobre cuánto expediente se comprobó. Declarado aquí a mano, como
+   * manda esta lista.
+   *
+   * Es el único `contexto` de la barra que NO se pliega, y las dos mitades de
+   * eso son deliberadas: `contexto` porque en un paciente con historial largo
+   * sale siempre, y un aviso que sale siempre en nivel `revisa` enseña a
+   * saltarse el nivel `revisa` —donde viven la alergia y la interacción—; y no
+   * plegable porque un aviso escondido que dice «esto se comprobó a medias» es
+   * un aviso que nadie lee justo cuando importa.
+   */
+  'historial_recortado',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
@@ -123,6 +148,13 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       sinRespaldo: [{ afirmacion: 'nefropatía diabética estadio 4', huerfanas: ['nefropatia'] }],
       /** Su caso literal, de una nota ya firmada (REG-238). */
       pautas: [{ nombre: 'Moxifloxacino', frecuencia: '24 tras', duracion: '14 editas' }],
+      /** REG-410 — y sobre cuánto expediente se comprobó todo lo anterior. */
+      historialRecortado: true,
+      cuantoSeComprobo: { farmacos: 3, problemas: 2 },
+      /** REG-370 — se oyó y la nota no lo recoge. */
+      procedimientosSinEscribir: [{ texto: 'Colecistectomía', mensaje: 'Se mencionó «Colecistectomía» y la nota no lo recoge.' }],
+      /** REG-373 — vigente en la lista, pasado en el dictado. */
+      farmacosEnPasado: [{ nombre: 'Warfarina', mensaje: 'Le dieron warfarina cuando la operaron — y Warfarina figura como vigente.' }],
     })
     const origenes = new Set(avisos.map(a => a.origen))
     for (const o of ORIGENES) expect(origenes, `${o} se perdió`).toContain(o)

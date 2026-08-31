@@ -25,6 +25,9 @@ import {
   type Latido,
 } from '@/lib/ops/latido'
 import { enviarAlertaOps } from '@/lib/ops/alerta'
+import {
+  incidentesSinAvisar, marcarAvisadas, textoDeIncidencias,
+} from '@/lib/ia/incidentes-servidor'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -89,14 +92,81 @@ export async function GET(req: NextRequest) {
       safeLog.warn(`[cron/vigilante] ${duelen.map(d => `${d.job}=${d.estado}`).join(', ')}`)
     }
 
+    /**
+     * ── LA COLA DE WHATSAPP, QUE TAMPOCO GRITABA (REG-397) ───────────────────
+     *
+     * REG-391 hizo que una caída del proveedor **pause** las entradas en vez de
+     * gastarles el presupuesto de reintentos. Bien — pero una cola pausada se ve
+     * desde fuera exactamente igual que una tarde tranquila: el cron termina
+     * `ok`, `enviados: 0`, y nada parece roto. Y el dead-letter, que existe
+     * desde hace mucho, **no lo enseña ninguna pantalla**.
+     *
+     * Los dos son huecos de agenda que nadie ocupó. Se leen del latido del cron
+     * de recordatorios —que ya los cuenta— en vez de recorrer los consultorios
+     * otra vez desde aquí.
+     */
+    const cola = porJob.get('reminders')?.detalle as
+      { pausadas?: number; muertas?: number } | undefined
+    const pausadas = Number(cola?.pausadas ?? 0)
+    const muertas = Number(cola?.muertas ?? 0)
+    if (pausadas > 0 || muertas > 0) {
+      await enviarAlertaOps({
+        titulo: 'Avisos de WhatsApp que no salieron',
+        detalle: [
+          pausadas > 0 ? `· ${pausadas} en pausa: el proveedor no estaba respondiendo. No han gastado reintentos y se vuelven a intentar solas.` : '',
+          muertas > 0 ? `· ${muertas} rendidas (dead-letter). Éstas ya NO se reintentan: hay que mirarlas.` : '',
+        ].filter(Boolean).join('\n'),
+        /* Una pausa se arregla sola cuando el proveedor vuelve; una rendida, no. */
+        gravedad: muertas > 0 ? 'grave' : 'aviso',
+        origen: 'cron/vigilante',
+      })
+    }
+
+    /**
+     * ── LA AVERÍA QUE MOTIVÓ TODO ESTO, POR FIN CONECTADA (REG-396) ──────────
+     *
+     * `incidentes-servidor.ts` nació porque «el 31-jul-2026 la IA de la
+     * plataforma estuvo caída y nadie se enteró hasta que el dueño la probó a
+     * mano». Anotaba la incidencia en Firestore y **ahí se quedaba**: para verla
+     * había que abrir el tablero. El canal de alerta existía; el vigilante
+     * gritaba por crons caídos y saldo bajo; de esto, no.
+     *
+     * Va después de lo demás a propósito: es un aviso, no un diagnóstico, y si
+     * su lectura falla no puede llevarse por delante el resto del vigilante.
+     */
+    const incidencias = await incidentesSinAvisar().catch(() => [] as Record<string, unknown>[])
+    let incidenciasAvisadas = 0
+    if (incidencias.length) {
+      const r = await enviarAlertaOps({
+        titulo: `${incidencias.length} incidencia(s) de IA de plataforma sin avisar`,
+        detalle: textoDeIncidencias(incidencias),
+        gravedad: incidencias.some(i => i.urgente === true) ? 'grave' : 'aviso',
+        origen: 'cron/vigilante',
+      })
+      /**
+       * Se marcan SÓLO si el aviso salió. Marcarlas antes convertiría una caída
+       * del webhook en un silencio permanente: quedarían como avisadas sin que
+       * nadie las hubiera recibido.
+       */
+      if (r.enviada) incidenciasAvisadas = await marcarAvisadas(incidencias.map(i => String(i.id)))
+    }
+
     // El vigilante también late: si se cae ÉL, el propio diagnóstico lo enseña
     // la próxima vez que alguien mire.
     await registrarLatido('vigilante', {
       ok: true, duracionMs: Date.now() - arranque,
-      detalle: { vigilados: ds.length, conProblema: duelen.length, saldosBajos: saldosQueDuelen.length },
+      detalle: {
+        vigilados: ds.length, conProblema: duelen.length, saldosBajos: saldosQueDuelen.length,
+        incidenciasIA: incidencias.length, incidenciasAvisadas,
+        colaPausada: pausadas, colaMuerta: muertas,
+      },
     })
 
-    return NextResponse.json({ ok: true, diagnostico: ds, saldos, alerta })
+    return NextResponse.json({
+      ok: true, diagnostico: ds, saldos, alerta,
+      incidencias: { sinAvisar: incidencias.length, avisadas: incidenciasAvisadas },
+      cola: { pausadas, muertas },
+    })
   } catch (e) {
     safeLog.error('[cron/vigilante]', e)
     await registrarLatido('vigilante', {

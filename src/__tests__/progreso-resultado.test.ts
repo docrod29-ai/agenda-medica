@@ -86,32 +86,90 @@ describe('progresoResultado — OWNER, REVIEW y CLOSED siguen la progresión rea
   })
 })
 
-describe('progresoResultado — DECISION, ACTION y PATIENT COMMUNICATION: sin_dato SIEMPRE, cerrada o no', () => {
-  const SIN_DATO = ['decision', 'accion', 'aviso_paciente'] as const
+/**
+ * ── POR QUÉ ESTE BLOQUE CAMBIÓ (REG-360) ─────────────────────────────────────
+ *
+ * Decía «sin_dato SIEMPRE, cerrada o no», y era correcto: DECISION, ACTION y
+ * PATIENT COMMUNICATION no tenían dónde vivir, y rellenarlas al cerrar habría
+ * sido inventar un dato.
+ *
+ * Ahora tienen campo (`TareaClinica.cierre`). Lo que NO cambia —y es lo que
+ * estos casos siguen vigilando— es que **nada se deduce de `estado ===
+ * 'cerrada'`**: una tarea cerrada sin registrar el aviso sigue diciendo
+ * `sin_dato`, no «avisado» ni «no avisado».
+ */
+describe('progresoResultado — las tres etapas del cierre NO se deducen del estado', () => {
+  const DEL_CIERRE = ['decision', 'accion', 'aviso_paciente'] as const
 
-  it.each(['solicitada', 'aceptada', 'en_curso', 'completada', 'cerrada', 'cancelada'] as EstadoTarea[])(
-    'con estado=%s, las tres etapas sin campo propio siguen en sin_dato',
+  it.each(['solicitada', 'aceptada', 'en_curso', 'completada'] as EstadoTarea[])(
+    'con estado=%s y sin cierre registrado, no están hechas',
     (estado) => {
       const etapas = progresoResultado({ estado, ownerUid: 'uid-1' })
-      for (const clave of SIN_DATO) {
-        const e = etapa(etapas, clave)
-        expect(e.estado, `${clave} en estado=${estado}`).toBe('sin_dato')
-        expect(e.motivoSinDato, `${clave} debe explicar POR QUÉ falta el dato`).toBeTruthy()
+      for (const clave of DEL_CIERRE) {
+        expect(etapa(etapas, clave).estado, `${clave} en estado=${estado}`).not.toBe('hecha')
       }
     },
   )
 
-  it('el motivo declarado no es genérico: nombra que "cerrar" es el único acto hoy', () => {
+  it('EL CASO: cerrada SIN registrar nada → sin_dato, no «hecha»', () => {
+    /**
+     * Un resultado crítico revisado y cerrado sin que nadie llamara al paciente
+     * no puede verse igual que uno donde sí se llamó.
+     */
     const etapas = progresoResultado({ estado: 'cerrada', ownerUid: 'uid-1' })
-    expect(etapa(etapas, 'decision').motivoSinDato).toMatch(/cerrar/i)
+    for (const clave of DEL_CIERRE) {
+      const e = etapa(etapas, clave)
+      expect(e.estado, clave).toBe('sin_dato')
+      expect(e.motivoSinDato, `${clave} debe explicar POR QUÉ falta`).toBeTruthy()
+    }
   })
-})
 
-describe('progresoResultado — ocho etapas exactas, en el orden de §9', () => {
-  it('devuelve las ocho claves en el orden RESULT→…→CLOSED', () => {
-    const etapas = progresoResultado({ estado: 'solicitada', ownerUid: undefined })
-    expect(etapas.map(e => e.clave)).toEqual([
-      'resultado', 'significado', 'dueno', 'revision', 'decision', 'accion', 'aviso_paciente', 'cerrado',
-    ])
+  it('y el motivo dice que NO CONSTA, no que no se hiciera', () => {
+    const etapas = progresoResultado({ estado: 'cerrada', ownerUid: 'uid-1' })
+    expect(etapa(etapas, 'aviso_paciente').motivoSinDato).toMatch(/no consta/i)
+  })
+
+  it('cuando el cierre SÍ registra la decisión, la etapa se enseña hecha', () => {
+    const etapas = progresoResultado({
+      estado: 'cerrada', ownerUid: 'uid-1',
+      cierre: { decision: 'Se repite el estudio en 3 meses', quien: 'uid-1', cuando: '2026-08-29T10:00:00.000Z' },
+    })
+    expect(etapa(etapas, 'decision').estado).toBe('hecha')
+    // Y lo que NO se registró sigue sin constar: registrar una cosa no acredita
+    // las otras dos.
+    expect(etapa(etapas, 'accion').estado).toBe('sin_dato')
+    expect(etapa(etapas, 'aviso_paciente').estado).toBe('sin_dato')
+  })
+
+  it('«no aplica» CUENTA como registrado: alguien miró y decidió', () => {
+    // Lo contrario castigaría la respuesta honesta y empujaría a marcar
+    // «avisado» por comodidad.
+    const etapas = progresoResultado({
+      estado: 'cerrada', ownerUid: 'uid-1',
+      cierre: {
+        decision: 'Control normal', avisoAlPaciente: 'no_aplica',
+        quien: 'uid-1', cuando: '2026-08-29T10:00:00.000Z',
+      },
+    })
+    expect(etapa(etapas, 'aviso_paciente').estado).toBe('hecha')
+  })
+
+  it('«no avisado» también es un dato, y se distingue de no saberlo', () => {
+    const etapas = progresoResultado({
+      estado: 'cerrada', ownerUid: 'uid-1',
+      cierre: {
+        decision: 'Pendiente de contactar', avisoAlPaciente: 'no_avisado',
+        quien: 'uid-1', cuando: '2026-08-29T10:00:00.000Z',
+      },
+    })
+    expect(etapa(etapas, 'aviso_paciente').estado).toBe('hecha')
+  })
+
+  it('cancelada no atribuye ningún cierre', () => {
+    const etapas = progresoResultado({ estado: 'cancelada', ownerUid: undefined })
+    expect(etapa(etapas, 'cerrado').estado).toBe('pendiente')
+    for (const clave of DEL_CIERRE) {
+      expect(etapa(etapas, clave).estado, clave).not.toBe('hecha')
+    }
   })
 })

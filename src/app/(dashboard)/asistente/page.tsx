@@ -14,7 +14,8 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useToast } from '@/context/ToastContext'
-import { getPatients, createPatient } from '@/lib/firestore'
+import { createPatient } from '@/lib/firestore'
+import { candidatosDePaciente } from '@/lib/pacientes/candidatos'
 import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 import { normalizarNombre } from '@/lib/csv-pacientes'
 import type { Patient } from '@/types'
@@ -85,7 +86,9 @@ function AsistenteInner() {
   const [consiente, setConsiente] = useState(true)   // consentimiento de mensajes (visible/toggleable)
   // Typeahead de paciente: sugiere pacientes existentes al escribir (reconocer >
   // recordar) → autollena nombre+teléfono, menos tecleo y menos errores/duplicados.
-  const [pacientesDir, setPacientesDir] = useState<Patient[]>([])
+  // Desde REG-351 las sugerencias las trae el SERVIDOR (`sugeridos`, más abajo):
+  // no hay un «directorio» en memoria que filtrar, porque ese directorio venía
+  // recortado y callaba a quien no cupo.
   const [mostrarSug, setMostrarSug] = useState(false)
   const [doctorId, setDoctorId] = useState('')
   const [tipo, setTipo] = useState<AppointmentType>('primera-vez')
@@ -113,20 +116,39 @@ function AsistenteInner() {
     if (clinicId) listarBloques(clinicId).then(setBloques).catch(() => {})
   }, [clinicId])
 
-  // Directorio de pacientes para el typeahead (getPatients está cacheado).
+  /**
+   * ── EL TYPEAHEAD PREGUNTA AL SERVIDOR (REG-351) ──────────────────────────
+   *
+   * Esto se bajaba «el directorio» y lo filtraba en memoria. Desde REG-341 ese
+   * directorio viene **recortado**, así que en un consultorio grande el
+   * typeahead dejaba de sugerir a un paciente que sí existe — y quien agenda,
+   * al no verlo, lo da de alta otra vez. El resultado no es una lista fea: es
+   * un expediente partido en dos.
+   *
+   * La sugerencia se ata al texto que la produjo. Sin eso se enseñarían un
+   * instante los resultados de la búsqueda anterior, que en una lista de
+   * pacientes significa enseñar **otra persona** a quien está agendando.
+   */
+  const [sugeridos, setSugeridos] = useState<{ q: string; pacientes: Patient[] } | null>(null)
   useEffect(() => {
-    if (clinicId) getPatients(clinicId).then(setPacientesDir).catch(() => {})
-  }, [clinicId])
+    if (!clinicId) return
+    const q = nombre.trim()
+    const tel = q.replace(/\D/g, '')
+    // Por debajo de esto no hay consulta: dos letras sondean media agenda.
+    if (normalizarNombre(q).length < 2 && tel.length < 3) return
+    let vivo = true
+    const t = setTimeout(() => {
+      candidatosDePaciente(clinicId, { nombre: q, telefono: tel.length >= 3 ? q : '' })
+        .then(c => { if (vivo) setSugeridos({ q, pacientes: c.pacientes }) })
+        .catch(() => { /* sin red no se sugiere; el alta sigue disponible */ })
+    }, 220)
+    return () => { vivo = false; clearTimeout(t) }
+  }, [clinicId, nombre])
 
-  const sugerencias = useMemo(() => {
-    const q = normalizarNombre(nombre)
-    const tel = nombre.replace(/\D/g, '')
-    if (q.length < 2 && tel.length < 3) return []
-    return pacientesDir.filter(p =>
-      (q.length >= 2 && normalizarNombre(p.nombre).includes(q)) ||
-      (tel.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(tel)),
-    ).slice(0, 6)
-  }, [nombre, pacientesDir])
+  const sugerencias = useMemo(
+    () => (sugeridos && sugeridos.q === nombre.trim() ? sugeridos.pacientes.slice(0, 6) : []),
+    [sugeridos, nombre],
+  )
 
   const elegirPaciente = (p: Patient) => {
     setNombre(p.nombre)
@@ -267,14 +289,33 @@ function AsistenteInner() {
       let avisoSinExpediente = false
       try {
         /**
-         * CON TECHO. `getPatients` es una lectura del SDK de Firestore y sin
-         * red **no rechaza**: se queda pendiente. El `try/catch` de abajo no
-         * podía capturar nada y el `finally` que devuelve el botón a su sitio
-         * no llegaba a correr — «Guardando…» para siempre, medido a 18 s.
+         * CON TECHO, Y CONTRA EL CONJUNTO CORRECTO — las dos cosas.
+         *
+         * El techo: una lectura del SDK de Firestore sin red **no rechaza**, se
+         * queda pendiente. El `try/catch` de abajo no podía capturar nada y el
+         * `finally` que devuelve el botón a su sitio no llegaba a correr —
+         * «Guardando…» para siempre, medido a 18 s. Vale igual para el sondeo
+         * indexado de abajo, que es la misma clase de lectura.
+         *
+         * REG-351 — CON QUÉ SE COMPARA. Esto leía «el directorio», que desde
+         * REG-341 viene recortado: por encima del techo `elegirExpedienteParaCita`
+         * comparaba contra una lista que no contenía al paciente y creaba uno
+         * nuevo. La regla de abajo seguía siendo correcta; lo que estaba mal era
+         * el conjunto sobre el que decidía.
+         *
+         * Ahora los candidatos salen de dos sondeos indexados —teléfono y
+         * nombre— y el coste no depende del tamaño del consultorio.
          */
-        const pacientes = await conTiempoLimite(
-          getPatients(clinicId!), ESPERA_EXPEDIENTE_MS, 'el expediente del paciente',
+        const { pacientes, sePudoPreguntar } = await conTiempoLimite(
+          candidatosDePaciente(clinicId!, { nombre: nombreLimpio, telefono: tel }),
+          ESPERA_EXPEDIENTE_MS, 'el expediente del paciente',
         )
+        /**
+         * Si NO se pudo preguntar, no se decide. Crear un expediente aquí sería
+         * fabricar un duplicado a partir de un fallo de lectura, y colgar de él
+         * la cita; el aviso ya existe para el caso de «sin expediente».
+         */
+        if (!sePudoPreguntar) throw new Error('no se pudo consultar el directorio de pacientes')
         /**
          * CON QUÉ EXPEDIENTE SE FUNDE ESTA CITA.
          *

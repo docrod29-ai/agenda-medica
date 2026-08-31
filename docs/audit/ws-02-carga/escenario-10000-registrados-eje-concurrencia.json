@@ -1,0 +1,150 @@
+{
+  "syntheticNonPhi": true,
+  "candidateSha": "62ad2724240c4bc7d776ec6a238f998f2843152b",
+  "environment": "firestore-emulator-local",
+  "scenario": "WS-02.registrados-10000",
+  "seed": "20260830",
+  "registeredPhysicians": 386,
+  "concurrentConsultations": 386,
+  "requestCount": 4632,
+  "successCount": 4632,
+  "errorCount": 0,
+  "latencyMs": {
+    "p50": 809.0812019999994,
+    "p95": 3091.1223237499994,
+    "p99": 3557.2074177399995
+  },
+  "crossTenantLeakageCount": 0,
+  "idempotencyViolationCount": 0,
+  "durableSavePassed": true,
+  "recoveryPassed": true,
+  "throughput": 311.915,
+  "errorRate": 0,
+  "firestoreOps": {
+    "lecturas": 15378,
+    "escrituras": 3474,
+    "total": 18852
+  },
+  "timeoutRate": null,
+  "backpressureRejections": null,
+  "providerHealth": null,
+  "blankScreenCount": null,
+  "lostDraftCount": null,
+  "silentProviderFailureCount": null,
+  "unboundedReadCount": null,
+  "queues": {
+    "transcription": null,
+    "reasoning": null,
+    "evidence": null,
+    "document": null
+  },
+  "modeloDeConcurrencia": {
+    "version": 1,
+    "escenario": "WS-02.registrados-10000",
+    "usuariosRegistrados": 10000,
+    "derivado": {
+      "medicos": 5500,
+      "medicosActivos": 2475,
+      "pacientesActivosDia": 44550,
+      "medicosEnConsultaALaVez": 297,
+      "sesionesConcurrentes": 386,
+      "consultorios": 2750,
+      "concurrenciaPorConsultorio": 0.14,
+      "concurrenciaPorMedico": 1.3,
+      "concurrenciaSostenida": 386,
+      "concurrenciaEnRafaga": 1158,
+      "documentosResidentes": 198000
+    },
+    "mezclaEsperada": {
+      "porConsulta": {
+        "lecturas": 6,
+        "escrituras": 12,
+        "ia": 2,
+        "evidencia": 0.3,
+        "total": 20.3,
+        "enElArnes": 9
+      },
+      "lecturasPorEscritura": 0.5,
+      "llamadasIaPorSegundo": 0.495,
+      "llamadasEvidenciaPorSegundo": 0.0742,
+      "throughputSostenido": 5.024,
+      "throughputEnRafaga": 15.073
+    },
+    "faltaFuera": [
+      {
+        "eje": "volumen",
+        "necesita": "198,000 documentos residentes (cota local: 50,000)",
+        "conQue": "Un proyecto de Firestore de ensayo con los índices desplegados y siembra previa. El emulador guarda los documentos en memoria y no llega."
+      },
+      {
+        "eje": "proveedores",
+        "necesita": "Proveedores de voz, razonamiento y evidencia de verdad al otro lado",
+        "conQue": "Cuotas de ensayo y presupuesto autorizado por el dueño. Sin proveedor no hay cola, ni contrapresión, ni salud de proveedor que medir: esos cuatro campos van en null."
+      }
+    ],
+    "formaDeLaCarga": {
+      "tipo": "saturacion",
+      "throughputDelModelo": 5.024,
+      "vecesElModelo": 62.1,
+      "noHaceRitmo": "El arnés no espacia las peticiones al caudal del escenario; corre a fondo."
+    },
+    "cobertura": {
+      "peticionesPorConsultaEnElArnes": 9,
+      "peticionesPorConsultaDelModelo": 20.3,
+      "fraccion": 0.443,
+      "queNoProvoca": "autoguardado del borrador, receta u orden, transcripción, redacción y consulta de evidencia."
+    }
+  },
+  "complete": false,
+  "noMedido": [
+    {
+      "campo": "blankScreenCount",
+      "razon": "Es de navegador: hace falta el producto corriendo y Playwright recorriéndolo."
+    },
+    {
+      "campo": "lostDraftCount",
+      "razon": "Es de navegador: el borrador vive en IndexedDB, que un emulador de Firestore no tiene."
+    },
+    {
+      "campo": "silentProviderFailureCount",
+      "razon": "Hace falta un proveedor de IA o de voz de verdad al otro lado."
+    },
+    {
+      "campo": "unboundedReadCount",
+      "razon": "Es una propiedad ESTÁTICA del árbol y la vigila su propio guardián, no una carrera."
+    },
+    {
+      "campo": "timeoutRate",
+      "razon": "El arnés no impone plazo, así que no hay vencidos que contar. Un 0 diría que se midió."
+    },
+    {
+      "campo": "backpressureRejections",
+      "razon": "La contrapresión admite o rechaza frente a un proveedor lento; aquí no hay ninguno."
+    },
+    {
+      "campo": "providerHealth",
+      "razon": "Sin proveedor no hay circuito que abrir ni salud que reportar."
+    },
+    {
+      "campo": "queues.transcription",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.reasoning",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.evidence",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.document",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    }
+  ],
+  "sondas": {
+    "fugaEntreConsultorios": 772,
+    "idempotencia": 50,
+    "guardadoDurable": 50
+  }
+}

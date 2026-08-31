@@ -225,3 +225,18 @@ jobs:
         env:
           PLAYWRIGHT_LOCAL: '1'
           PLAYWRIGHT_BASE_URL: http://localhost:3000
+      # REG-380 — el tamaño de un teléfono, sobre el MISMO chromium que ya está
+      # instalado: no descarga un motor más y no alarga el job de forma
+      # apreciable. Mide desbordamiento horizontal, objetivo táctil, consola
+      # propia y foco visible, que es lo que hasta ahora sólo se comprobaba
+      # LEYENDO el árbol.
+      #
+      # Lo que NO mide, y por eso WS-05 sigue sin PROVEN: el rebote de iPhone es
+      # de WebKit —`overflow-anchor` y el encadenamiento elástico— y en Chromium
+      # no existe. Para eso hace falta el proyecto `iphone-safari`, y ése sí
+      # descarga WebKit.
+      - name: La pantalla en un teléfono (Chromium, NO es un iPhone)
+        run: npx playwright test --project=telefono-chromium e2e/telefono.spec.ts
+        env:
+          PLAYWRIGHT_LOCAL: '1'
+          PLAYWRIGHT_BASE_URL: http://localhost:3000

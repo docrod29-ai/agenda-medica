@@ -11,7 +11,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
-import { getPatients } from '@/lib/firestore'
+import { useBusquedaDePacientes } from '@/hooks/useBusquedaDePacientes'
+import { getPatient } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import {
   listarItems, crearItem, actualizarItem, borrarItem, registrarMovimiento, listarMovimientos,
@@ -38,7 +39,6 @@ export default function FarmaciaPage() {
   const [creando, setCreando] = useState(false)
   const [moviendo, setMoviendo] = useState<{ item: FarmaciaItem; tipo: 'entrada' | 'salida' } | null>(null)
   /** Para poder decir a QUIÉN se dispensó (trazabilidad lote → paciente). */
-  const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([])
   /** El libro de movimientos de un ítem, que hasta ahora no se podía abrir. */
   const [verMovimientos, setVerMovimientos] = useState<FarmaciaItem | null>(null)
 
@@ -61,12 +61,24 @@ export default function FarmaciaPage() {
 
   useEffect(() => { recargar() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [clinicId])
 
-  useEffect(() => {
-    if (!clinicId) return
-    getPatients(clinicId)
-      .then(ps => setPacientes(ps.map(p => ({ id: p.id!, nombre: p.nombre }))))
-      .catch(() => { /* sin lista, la dispensación sigue pudiéndose registrar sin paciente */ })
-  }, [clinicId])
+  /**
+   * REG-351 — AQUÍ YA NO SE PRECARGA «EL DIRECTORIO».
+   *
+   * Esto llenaba un `<select>` con todos los pacientes del consultorio. Dos
+   * defectos, y el segundo es el grave:
+   *
+   *  · un desplegable con miles de opciones no se puede usar;
+   *  · desde REG-341 la lista viene **recortada**, así que en un consultorio
+   *    grande el paciente al que se le está dispensando **no aparecía entre las
+   *    opciones**. Y en un controlado el campo es OBLIGATORIO: quien dispensa
+   *    tiene delante un desplegable sin la persona que tiene enfrente, y la
+   *    salida se registra a nombre de otro o sin nombre. Ese libro es
+   *    exactamente lo que se exhibe en una revisión (NOM-220).
+   *
+   * Ahora se busca en el servidor. El nombre del paciente ya elegido se guarda
+   * al elegirlo, así que el libro de movimientos lo sigue pudiendo pintar sin
+   * un directorio en memoria.
+   */
 
   // Filtrar + buscar
   const visibles = useMemo(() => {
@@ -266,7 +278,6 @@ export default function FarmaciaPage() {
         <ModalHistorial
           clinicId={clinicId}
           item={verMovimientos}
-          pacientes={pacientes}
           onClose={() => setVerMovimientos(null)}
         />
       )}
@@ -274,9 +285,9 @@ export default function FarmaciaPage() {
       {/* Modal de movimiento (entrada/salida) */}
       {moviendo && (
         <ModalMovimiento
+          clinicId={clinicId}
           item={moviendo.item}
           tipo={moviendo.tipo}
-          pacientes={pacientes}
           onClose={() => setMoviendo(null)}
           onConfirmar={async (cantidad, motivo, extra) => {
             if (!clinicId) return
@@ -524,10 +535,10 @@ function ModalItem({ item, onClose, onGuardar }: {
   )
 }
 
-function ModalMovimiento({ item, tipo, pacientes, onClose, onConfirmar }: {
+function ModalMovimiento({ clinicId, item, tipo, onClose, onConfirmar }: {
+  clinicId: string | null
   item: FarmaciaItem
   tipo: 'entrada' | 'salida'
-  pacientes: { id: string; nombre: string }[]
   onClose: () => void
   onConfirmar: (cantidad: number, motivo: string | undefined, extra: { patientId?: string; tipoReal: MovimientoFarmacia['tipo'] }) => Promise<void>
 }) {
@@ -542,6 +553,13 @@ function ModalMovimiento({ item, tipo, pacientes, onClose, onConfirmar }: {
    * no dice a quién se le dio no sirve para lo único que se le pide.
    */
   const [patientId, setPatientId] = useState('')
+  /**
+   * Quién se eligió, con su nombre. Se guarda el NOMBRE y no sólo el id porque
+   * ya no hay un directorio en memoria del que sacarlo (REG-351).
+   */
+  const [pacienteElegido, setPacienteElegido] = useState<{ id: string; nombre: string } | null>(null)
+  const [buscaPac, setBuscaPac] = useState('')
+  const busquedaPac = useBusquedaDePacientes(clinicId, buscaPac)
   /**
    * QUÉ CLASE DE SALIDA ES.
    *
@@ -633,10 +651,48 @@ function ModalMovimiento({ item, tipo, pacientes, onClose, onConfirmar }: {
                 ? <span style={{ color: 'var(--red)' }}>· obligatorio, es controlado</span>
                 : <span style={{ color: 'var(--text3)' }}>(opcional)</span>}
             </label>
-            <select value={patientId} onChange={e => setPatientId(e.target.value)} style={inp}>
-              <option value="">— sin paciente —</option>
-              {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
+            {pacienteElegido ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 10 }}>
+                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{pacienteElegido.nombre}</span>
+                <button
+                  type="button"
+                  onClick={() => { setPacienteElegido(null); setPatientId('') }}
+                  style={{ background: 'none', border: 'none', color: 'var(--nexus)', cursor: 'pointer', fontSize: 12, minHeight: 44, padding: '0 6px' }}
+                >Cambiar</button>
+              </div>
+            ) : (
+              <>
+                <input
+                  value={buscaPac}
+                  onChange={e => setBuscaPac(e.target.value)}
+                  placeholder="Busca por nombre o teléfono…"
+                  aria-label="Buscar al paciente al que se dispensa"
+                  style={inp}
+                />
+                {busquedaPac.resultados.slice(0, 6).map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => { setPacienteElegido({ id: String(p.id), nombre: p.nombre }); setPatientId(String(p.id)); setBuscaPac('') }}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 11px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', color: 'var(--text)', cursor: 'pointer', marginTop: 4, minHeight: 44 }}
+                  >{p.nombre}</button>
+                ))}
+                {!busquedaPac.textoCorto && busquedaPac.resultados.length === 0 && (
+                  <div style={{ fontSize: 12, marginTop: 6, color: busquedaPac.sePudoPreguntar ? 'var(--text3)' : 'var(--amber)' }}>
+                    {busquedaPac.buscando
+                      ? 'Buscando…'
+                      : busquedaPac.sePudoPreguntar
+                        ? 'Sin coincidencias. La búsqueda es por el principio del nombre o del teléfono.'
+                        : 'No se pudo consultar el directorio: esto NO significa que el paciente no exista.'}
+                  </div>
+                )}
+                {busquedaPac.truncada && (
+                  <div role="status" style={{ fontSize: 12, marginTop: 6, color: 'var(--amber)' }}>
+                    Hay más coincidencias de las que caben aquí; escribe más letras.
+                  </div>
+                )}
+              </>
+            )}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, lineHeight: 1.45 }}>
               Queda en el libro de movimientos: es la trazabilidad lote → paciente que se exhibe en una revisión.
             </div>
@@ -680,10 +736,9 @@ const inp: React.CSSProperties = {
  * no sirve para lo único que se le pide —enseñar qué entró, qué salió y a quién—
  * y en controlados es justo lo que se exhibe en una revisión.
  */
-function ModalHistorial({ clinicId, item, pacientes, onClose }: {
+function ModalHistorial({ clinicId, item, onClose }: {
   clinicId: string
   item: FarmaciaItem
-  pacientes: { id: string; nombre: string }[]
   onClose: () => void
 }) {
   const [movs, setMovs] = useState<MovimientoFarmacia[] | null>(null)
@@ -699,7 +754,36 @@ function ModalHistorial({ clinicId, item, pacientes, onClose }: {
     return () => { vivo = false }
   }, [clinicId, item.id])
 
-  const nombreDe = (id?: string) => pacientes.find(p => p.id === id)?.nombre
+  /**
+   * A QUIÉN SE LE DIO, RESUELTO POR LOS IDs QUE HAY EN EL LIBRO (REG-351).
+   *
+   * Antes se buscaba el nombre dentro del directorio en memoria — que venía
+   * recortado, así que en un consultorio grande el libro de movimientos pintaba
+   * «paciente a1b2c3» en vez del nombre justo en las dispensaciones más
+   * antiguas. Un libro de controlados que no dice a quién se le dio no sirve
+   * para lo único que se le pide (NOM-220).
+   *
+   * Se leen sólo los ids que aparecen en ESTE historial: son pocos y acotados
+   * por los movimientos del ítem, no por el tamaño del consultorio.
+   */
+  const [nombres, setNombres] = useState<Record<string, string>>({})
+  useEffect(() => {
+    if (!movs) return
+    const ids = [...new Set(movs.map(m => m.patientId).filter((x): x is string => !!x))]
+    if (ids.length === 0) return
+    let vivo = true
+    Promise.all(ids.map(id => getPatient(clinicId, id).catch(() => null)))
+      .then(ps => {
+        if (!vivo) return
+        const mapa: Record<string, string> = {}
+        ps.forEach((p, i) => { if (p?.nombre) mapa[ids[i]] = p.nombre })
+        setNombres(mapa)
+      })
+      .catch(() => { /* sin nombre se pinta el id, que es la verdad disponible */ })
+    return () => { vivo = false }
+  }, [movs, clinicId])
+
+  const nombreDe = (id?: string) => (id ? nombres[id] : undefined)
 
   const ETIQUETA: Record<MovimientoFarmacia['tipo'], string> = {
     entrada: 'Entrada', salida: 'Dispensado', ajuste: 'Ajuste', caducidad: 'Caducado', merma: 'Merma',

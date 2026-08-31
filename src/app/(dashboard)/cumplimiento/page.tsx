@@ -13,7 +13,8 @@ import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
 import { collection, getDocs, orderBy, query, where, limit as fbLimit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { getPatients } from '@/lib/firestore'
+import { useBusquedaDePacientes } from '@/hooks/useBusquedaDePacientes'
+import { usePacientesPorId } from '@/hooks/usePacientesPorId'
 import {
   listarSolicitudesArco, resolverSolicitudArco,
   ARCO_TIPO_LABEL, type ArcoRequest, type ArcoEstado,
@@ -108,14 +109,18 @@ export default function CumplimientoPage() {
   const [pacienteFiltro, setPacienteFiltro] = useState('')
   const [descargandoBitacora, setDescargandoBitacora] = useState(false)
   const [eventoFiltro, setEventoFiltro] = useState('')
-  const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([])
 
-  useEffect(() => {
-    if (!clinicId) return
-    getPatients(clinicId)
-      .then(ps => setPacientes(ps.map(p => ({ id: p.id, nombre: p.nombre }))))
-      .catch(() => { /* el filtro es una ayuda: sin lista, la bitácora se ve igual */ })
-  }, [clinicId])
+  /**
+   * REG-351 — EL FILTRO POR PACIENTE YA NO ES UN DESPLEGABLE DEL DIRECTORIO.
+   *
+   * Se llenaba con `getPatients`, que desde REG-341 devuelve como mucho 500. En
+   * un consultorio grande el paciente que un auditor —o el propio paciente
+   * ejerciendo ARCO— quiere rastrear **no estaba entre las opciones**, y esta
+   * pantalla existe precisamente para contestar «quién vio este expediente y
+   * cuándo». Un filtro que no puede nombrar al paciente no puede contestarla.
+   *
+   * Se busca en el servidor. El nombre del elegido se guarda al elegirlo.
+   */
 
   useEffect(() => {
     if (!clinicId) return
@@ -398,7 +403,7 @@ export default function CumplimientoPage() {
         <>
           <AsientosPendientes />
           <Bitacora
-            entries={bitacora} loading={loading} pacientes={pacientes}
+            clinicId={clinicId} entries={bitacora} loading={loading}
             pacienteFiltro={pacienteFiltro} setPacienteFiltro={setPacienteFiltro}
             descargarBitacora={descargarBitacora} descargando={descargandoBitacora}
             eventoFiltro={eventoFiltro} setEventoFiltro={setEventoFiltro}
@@ -604,12 +609,19 @@ function MotoresResumen() {
 
 /** Panel de política de retención NOM-004 numeral 5.7 — mínimo 5 años desde última anotación */
 function RetencionResumen({ clinicId }: { clinicId: string }) {
-  const [pacientesViejos, setPacientesViejos] = useState<{ count: number; mas5: number }>({ count: 0, mas5: 0 })
+  const [pacientesViejos, setPacientesViejos] = useState<{ count: number; mas5: number; truncada: boolean }>({ count: 0, mas5: 0, truncada: false })
 
   useEffect(() => {
     if (!clinicId) return
-    import('@/lib/firestore').then(async ({ getPatients }) => {
-      const pacientes = await getPatients(clinicId)
+    import('@/lib/firestore').then(async ({ listarPacientesCompat }) => {
+      /**
+       * REG-351 — ESTE PANEL DA UN VEREDICTO NOM-004, Y LO DABA SOBRE UN
+       * RECORTE. `getPatients` tiene techo desde REG-341: en un consultorio
+       * grande el panel decía «al día» habiendo mirado 500 de N, que es
+       * exactamente la respuesta que nadie vuelve a comprobar. Un cumplimiento
+       * que se afirma sin haber mirado es peor que uno que se declara pendiente.
+       */
+      const { pacientes, truncada } = await listarPacientesCompat(clinicId)
       const ahora = Date.now()
       const cincoAnios = 5 * 365 * 24 * 60 * 60 * 1000
       const mas5 = pacientes.filter(p => {
@@ -617,18 +629,23 @@ function RetencionResumen({ clinicId }: { clinicId: string }) {
         if (!ult) return false
         return ahora - new Date(ult).getTime() > cincoAnios
       }).length
-      setPacientesViejos({ count: pacientes.length, mas5 })
+      setPacientesViejos({ count: pacientes.length, mas5, truncada })
     }).catch(() => {})
   }, [clinicId])
 
-  const ok = pacientesViejos.mas5 === 0
+  // Con la lista recortada NO se puede afirmar que esté al día: sólo que entre
+  // los que se pudieron mirar no había ninguno vencido.
+  const ok = pacientesViejos.mas5 === 0 && !pacientesViejos.truncada
   return (
     <Resumen
       ok={ok}
       titulo="Política de retención (NOM-004 numeral 5.7)"
-      descripcion={ok
-        ? `${pacientesViejos.count} pacientes en expediente. Ninguno supera 5 años sin actividad.`
-        : `${pacientesViejos.mas5} paciente(s) con >5 años sin actividad. Revisa si proceden para archivar o anonimizar.`}
+      descripcion={
+        pacientesViejos.truncada
+          ? `Se revisaron ${pacientesViejos.count} pacientes y hay MÁS sin revisar, así que no se puede afirmar que la retención esté al día.${pacientesViejos.mas5 > 0 ? ` Entre los revisados ya hay ${pacientesViejos.mas5} con >5 años sin actividad.` : ''} Abre la lista para revisarla por partes.`
+          : ok
+            ? `${pacientesViejos.count} pacientes en expediente. Ninguno supera 5 años sin actividad.`
+            : `${pacientesViejos.mas5} paciente(s) con >5 años sin actividad. Revisa si proceden para archivar o anonimizar.`}
       accion={
         <a href="/cumplimiento/retencion" className="btn btn-secondary" style={{ fontSize: 12 }}>
           <FileSearch size={12} /> Ver lista
@@ -656,16 +673,28 @@ function Resumen({ ok, titulo, descripcion, accion }: { ok: boolean; titulo: str
 }
 
 function Bitacora({
-  entries, loading, pacientes, pacienteFiltro, setPacienteFiltro, eventoFiltro, setEventoFiltro,
+  clinicId, entries, loading, pacienteFiltro, setPacienteFiltro, eventoFiltro, setEventoFiltro,
   descargarBitacora, descargando,
 }: {
+  clinicId: string | null
   entries: AuditEntry[]; loading: boolean
-  pacientes: { id: string; nombre: string }[]
   pacienteFiltro: string; setPacienteFiltro: (v: string) => void
   descargarBitacora: () => void; descargando: boolean
   eventoFiltro: string; setEventoFiltro: (v: string) => void
 }) {
-  const nombrePaciente = (id?: string) => pacientes.find(p => p.id === id)?.nombre ?? ''
+  const [buscaPac, setBuscaPac] = useState('')
+  const [nombreFiltrado, setNombreFiltrado] = useState('')
+  const busquedaPac = useBusquedaDePacientes(clinicId, buscaPac)
+
+  /**
+   * A quién pertenece cada asiento, resuelto por los ids QUE HAY EN LA BITÁCORA
+   * (REG-351). Antes salía del directorio en memoria, que venía recortado: los
+   * asientos de pacientes fuera del recorte se pintaban con ocho caracteres de
+   * su id — que es justo el estado del que esta pantalla salió.
+   */
+  const porId = usePacientesPorId(clinicId, entries.map(e => e.patientId))
+  const nombrePaciente = (id?: string) =>
+    (id ? porId.get(id)?.nombre : '') || (id === pacienteFiltro ? nombreFiltrado : '') || ''
   // El filtro por evento SÍ es de navegador: se aplica sobre lo ya traído, y
   // por eso la cabecera dice sobre qué conjunto está filtrando.
   const visibles = eventoFiltro ? entries.filter(e => e.evento === eventoFiltro) : entries
@@ -685,11 +714,46 @@ function Bitacora({
         el paciente reducido a ocho caracteres de su id.
       */}
       <div style={{ padding: 12, borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <select className="input" value={pacienteFiltro} onChange={e => setPacienteFiltro(e.target.value)}
-          style={{ flex: '1 1 220px', fontSize: 12.5 }} aria-label="Filtrar por paciente">
-          <option value="">Toda la clínica (últimos 200)</option>
-          {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-        </select>
+        <div style={{ flex: '1 1 220px' }}>
+          {pacienteFiltro ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 11px', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }}>
+              <span style={{ fontWeight: 600, color: 'var(--text)' }}>{nombreFiltrado || pacienteFiltro}</span>
+              <button
+                type="button"
+                onClick={() => { setPacienteFiltro(''); setNombreFiltrado(''); setBuscaPac('') }}
+                style={{ background: 'none', border: 'none', color: 'var(--nexus)', cursor: 'pointer', fontSize: 12, minHeight: 44, padding: '0 6px' }}
+              >Toda la clínica</button>
+            </div>
+          ) : (
+            <>
+              <input
+                className="input"
+                value={buscaPac}
+                onChange={e => setBuscaPac(e.target.value)}
+                placeholder="Toda la clínica (últimos 200) · busca un paciente…"
+                aria-label="Filtrar por paciente"
+                style={{ width: '100%', fontSize: 12 }}
+              />
+              {busquedaPac.resultados.slice(0, 6).map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { setPacienteFiltro(String(p.id)); setNombreFiltrado(p.nombre); setBuscaPac('') }}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 11px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', color: 'var(--text)', cursor: 'pointer', marginTop: 4, fontSize: 12, minHeight: 44 }}
+                >{p.nombre}</button>
+              ))}
+              {!busquedaPac.textoCorto && busquedaPac.resultados.length === 0 && (
+                <div style={{ fontSize: 12, marginTop: 6, color: busquedaPac.sePudoPreguntar ? 'var(--text3)' : 'var(--amber)' }}>
+                  {busquedaPac.buscando
+                    ? 'Buscando…'
+                    : busquedaPac.sePudoPreguntar
+                      ? 'Sin coincidencias. La búsqueda es por el principio del nombre o del teléfono.'
+                      : 'No se pudo consultar el directorio: esto NO significa que el paciente no exista.'}
+                </div>
+              )}
+            </>
+          )}
+        </div>
         <select className="input" value={eventoFiltro} onChange={e => setEventoFiltro(e.target.value)}
           style={{ flex: '1 1 200px', fontSize: 12.5 }} aria-label="Filtrar por tipo de evento">
           <option value="">Todos los tipos</option>

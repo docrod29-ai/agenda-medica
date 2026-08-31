@@ -1,0 +1,37 @@
+{
+  "syntheticNonPhi": true,
+  "entorno": "firestore-emulator con firestore.rules reales",
+  "pacientes": {
+    "pequeno": 200,
+    "grande": 20000
+  },
+  "notasPorPaciente": 3,
+  "documentosSembrados": 80300,
+  "documentosLeidos": {
+    "pequeno.pagina": {
+      "docs": 21,
+      "consultas": 1
+    },
+    "pequeno.busqueda": {
+      "docs": 125,
+      "consultas": 5
+    },
+    "pequeno.notas": {
+      "docs": 11,
+      "consultas": 1
+    },
+    "grande.pagina": {
+      "docs": 21,
+      "consultas": 1
+    },
+    "grande.busqueda": {
+      "docs": 125,
+      "consultas": 5
+    },
+    "grande.notas": {
+      "docs": 11,
+      "consultas": 1
+    }
+  },
+  "loQueNoMide": "Autorización (la mide tenant-aislamiento) y latencia (un emulador local no se parece a producción)."
+}

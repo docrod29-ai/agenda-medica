@@ -1,0 +1,71 @@
+{
+  "syntheticNonPhi": true,
+  "candidateSha": "5e110eab0cee5e0b995bad9848cb97d892e275b1",
+  "environment": "firestore-emulator-local",
+  "scenario": "consultorio-2k-emulador",
+  "seed": "20260830",
+  "registeredPhysicians": 100,
+  "concurrentConsultations": 50,
+  "requestCount": 8000,
+  "successCount": 8000,
+  "errorCount": 0,
+  "latencyMs": {
+    "p50": 59.77389849999963,
+    "p95": 141.0932221499997,
+    "p99": 187.9100222799999
+  },
+  "crossTenantLeakageCount": 0,
+  "idempotencyViolationCount": 0,
+  "durableSavePassed": true,
+  "recoveryPassed": true,
+  "blankScreenCount": null,
+  "lostDraftCount": null,
+  "silentProviderFailureCount": null,
+  "unboundedReadCount": null,
+  "queues": {
+    "transcription": null,
+    "reasoning": null,
+    "evidence": null,
+    "document": null
+  },
+  "complete": false,
+  "noMedido": [
+    {
+      "campo": "blankScreenCount",
+      "razon": "Es de navegador: hace falta el producto corriendo y Playwright recorriéndolo."
+    },
+    {
+      "campo": "lostDraftCount",
+      "razon": "Es de navegador: el borrador vive en IndexedDB, que un emulador de Firestore no tiene."
+    },
+    {
+      "campo": "silentProviderFailureCount",
+      "razon": "Hace falta un proveedor de IA o de voz de verdad al otro lado."
+    },
+    {
+      "campo": "unboundedReadCount",
+      "razon": "Es una propiedad ESTÁTICA del árbol y la vigila su propio guardián, no una carrera."
+    },
+    {
+      "campo": "queues.transcription",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.reasoning",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.evidence",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    },
+    {
+      "campo": "queues.document",
+      "razon": "No hay cola sin un proveedor detrás; en un emulador no existe ninguna."
+    }
+  ],
+  "sondas": {
+    "fugaEntreConsultorios": 200,
+    "idempotencia": 50,
+    "guardadoDurable": 50
+  }
+}

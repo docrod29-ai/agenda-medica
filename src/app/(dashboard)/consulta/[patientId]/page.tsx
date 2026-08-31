@@ -27,7 +27,7 @@ import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
 import { auth, db } from '@/lib/firebase'
 import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
-import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
+import { getPatient, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
 import { claveDeIntento } from '@/lib/idempotencia'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
@@ -39,11 +39,15 @@ import {
   debeOfrecerRecuperacion, hayAudioQueNoSePuedePurgar, puedeReemplazarTranscripcion,
   leerNotaPrevia, decidirAdopcionDeNotaPrevia,
 } from '@/lib/expediente/recuperacion-consulta'
+import {
+  hayAlgoQuePerder, guardarRespaldoLocal, signosConValor,
+  AVISO_SIN_ESPACIO, type EstadoDelBorrador,
+} from '@/lib/expediente/el-borrador-no-se-pierde'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
 import {
-  createNota, updateNota, getNota, getNotas, deleteNota, getUltimasNotasResumen,
+  createNota, updateNota, getNota, listarNotasCompat, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
 import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
@@ -54,6 +58,12 @@ import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
 import { frasesInciertas } from '@/lib/expediente/certeza'
 import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
+import {
+  procedimientosQueNoQuedaronEscritos, avisoDeProcedimientoSinEscribir,
+} from '@/lib/expediente/el-procedimiento-que-no-quedo-escrito'
+import {
+  farmacosSoloMencionadosEnPasado, avisoDeFarmacoEnPasado,
+} from '@/lib/expediente/el-farmaco-que-ya-no-toma'
 import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
@@ -66,6 +76,16 @@ import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-
 import { leerHechosDeCierre, marcarHechoDeCierre, guardarSeguimientoDeCierre, leerSeguimientoDeCierre } from '@/lib/expediente/cierre-hechos'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/expediente/procedencia'
+import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
+import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
+import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
+import { trayectoriaDe, comoSeDiceLaTrayectoria } from '@/lib/expediente/laboratorio/la-trayectoria'
+import {
+  vigenciaDeLaFuncionRenal, avisoDeFuncionRenalCaduca,
+} from '@/lib/expediente/laboratorio/vigencia-de-la-funcion-renal'
+import { queCambio, comoSeDiceElCambio } from '@/lib/expediente/laboratorio/que-cambio-de-verdad'
+import { dispositivosQueTrae, comoSeDicenLosDispositivos } from '@/lib/expediente/los-dispositivos-que-trae'
+import { listarPanelesLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
 
 /**
  * Alergias del paciente (texto libre) → lista para el sello de procedencia.
@@ -128,10 +148,11 @@ import { MientrasHablas } from '@/components/MientrasHablas'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
-import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { interaccionesDelCuadro, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { SelloMotor } from '@/components/SelloMotor'
 import { construirPlanPROA } from '@/lib/expediente/proa'
 import { logAudit } from '@/lib/expediente/audit-log'
+import { safeLog } from '@/lib/security/sanitize'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import { generarHashIntegridad, generarHashFirma, normalizarParaSello, HASH_VERSION } from '@/lib/expediente/integrity'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
@@ -144,10 +165,15 @@ import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/derivar'
 import { comoSeDice, discrepanciasDeMedicacion } from '@/lib/tareas-clinicas/reconciliacion'
 import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expediente/duracion-cumplida'
-import { crearTareas } from '@/lib/tareas-clinicas/firestore'
+import { abrirPendientes as abrirPendientesEn } from '@/lib/tareas-clinicas/abrir'
 import { DialogoDiarizado, Section, S, CampoNarrativo } from './consulta-ui'
-import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
-import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
+import { estadoDeProblemas, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import {
+  estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
+  listaConAlergeno,
+  type NotaConAlergias,
+} from '@/lib/expediente/alergias-longitudinales'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
@@ -172,6 +198,7 @@ import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib
 import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib/expediente/temporalidad'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
+import { vigilarGestoDelUsuario } from '@/lib/ui/el-dedo-manda'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
@@ -225,6 +252,15 @@ const FotosClinicas = dynamic(() => import('@/components/FotosClinicas').then(m 
 const PreopAssessment = dynamic(() => import('@/components/PreopAssessment').then(m => m.PreopAssessment), { ssr: false })
 const ValoracionInmuno = dynamic(() => import('@/components/pacientes/ValoracionInmuno'), { ssr: false })
 const CobrarModal = dynamic(() => import('@/components/CobrarModal').then(m => m.CobrarModal), { ssr: false })
+/**
+ * Cuántas trayectorias caben en la línea de la consulta (REG-369).
+ *
+ * Un paciente con panel completo tiene decenas de analitos; enseñarlos todos
+ * convertiría esta línea en el inventario que la regla de diseño prohíbe. Los
+ * que entran son los que el motor está usando, y de ésos los primeros.
+ */
+const TOPE_TRAYECTORIAS_EN_PANTALLA = 4
+
 const PanelLaboratorios = dynamic(() => import('@/components/laboratorio/PanelLaboratorios').then(m => m.PanelLaboratorios), { ssr: false })
 const RevisionPanel = dynamic(() => import('@/components/RevisionPanel').then(m => m.RevisionPanel), { ssr: false })
 const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPanel), { ssr: false })
@@ -270,9 +306,6 @@ const ESPECIALIDADES_POR_GRUPO: { grupo: string; items: string[] }[] = [
 ]
 
 /** ¿Hay algún signo vital capturado? Objeto de signos con algún valor no vacío. */
-function signosConValor(sv: SignosVitales | undefined | null): boolean {
-  return !!sv && Object.values(sv as Record<string, unknown>).some(v => v != null && String(v).trim() !== '')
-}
 
 /**
  * Qué decirle al médico según POR QUÉ no hubo separación de voces.
@@ -868,7 +901,37 @@ export default function ConsultaActivaPage() {
    * declaración. Se rellenan en el efecto que lee las notas firmadas.
    */
   const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
+  /** true = el historial del que salen `vigentes` y `problemas` vino recortado. */
+  const [historialTruncado, setHistorialTruncado] = useState(false)
   const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
+  /**
+   * LO QUE LAS NOTAS FIRMADAS SELLARON EN ALERGIAS.
+   *
+   * Sale del MISMO recorrido de notas que la medicación y los problemas: cero
+   * lecturas nuevas a Firestore. Se guarda crudo y se proyecta abajo en un
+   * `useMemo`, porque la proyección depende también de `patient.alergias`, que
+   * el médico edita en línea en esta misma pantalla — si se calculara aquí, el
+   * aviso seguiría diciendo «no está en la lista» después de que la añadiera.
+   */
+  const [alergiasSelladas, setAlergiasSelladas] =
+    useState<{ notas: NotaConAlergias[]; asOf: string }>({ notas: [], asOf: '' })
+  /**
+   * LAS DUDAS QUE SIGUEN EN PIE (REG-367).
+   *
+   * Sale del MISMO recorrido de notas que la medicación, los problemas y las
+   * alergias: cero lecturas nuevas. Se guarda ya resuelto y no las notas
+   * enteras, que son documentos grandes y aquí sólo hacen falta dos campos.
+   */
+  const [dudasDeAntes, setDudasDeAntes] = useState<DudaDeAntes[]>([])
+  /**
+   * LOS PANELES DE LABORATORIO DEL PACIENTE (REG-368).
+   *
+   * Ya estaban en esta pantalla —la pestaña de Laboratorios los pinta— pero los
+   * leía sólo ese componente, así que el número no llegaba a los motores. Una
+   * creatinina del mes pasado no disparaba el ajuste renal de lo que se receta
+   * hoy. Es REG-188 en el eje que faltaba.
+   */
+  const [panelesLab, setPanelesLab] = useState<PanelLaboratorio[]>([])
 
   /**
    * ── EL CUADRO COMPLETO, FUERA DEL useMemo (REG-188) ─────────────────────────
@@ -880,6 +943,100 @@ export default function ConsultaActivaPage() {
    */
   const medsDelCuadro = medicacionDelCuadro(medicamentos, vigentes)
   const dxDelCuadro = problemasDelCuadro(diagnosticos, problemas)
+
+  /**
+   * LO QUE LA COMPUERTA DE ALERGIAS NO ESTÁ MIRANDO (WS-10).
+   *
+   * En el cuerpo y no en un `useMemo`, por la misma razón que las dos líneas de
+   * arriba: una función importada dentro de una memoización manual no la
+   * preserva el React Compiler y el trinquete de lint lo caza.
+   *
+   * Depende de `patient?.alergias`, que se edita en línea aquí mismo: en cuanto
+   * el médico devuelve la alergia a la lista, el aviso desaparece solo. Un aviso
+   * que sigue gritando después de que le hicieras caso deja de leerse.
+   */
+  const estadoAlergias = estadoDeAlergias(
+    alergiasSelladas.notas, patient, alergiasSelladas.asOf,
+    { historialIncompleto: historialTruncado },
+  )
+  const avisoAlergias = avisoDeAlergiasQueNoSeVen(estadoAlergias)
+
+  /**
+   * En el cuerpo y no dentro del `useMemo` de abajo: una función importada
+   * dentro de una memoización manual no la preserva el React Compiler y el
+   * trinquete de lint lo caza — la misma razón que `medsDelCuadro`.
+   */
+  /**
+   * LO QUE EL PACIENTE LLEVA PUESTO (REG-371).
+   *
+   * Sale de `patient`, que ya está cargado: cero lecturas nuevas. En el cuerpo y
+   * no en un `useMemo`, por la misma razón que las otras derivaciones — el React
+   * Compiler no preserva una función importada dentro de una memoización manual.
+   */
+  const loQueLleva = dispositivosQueTrae(patient)
+  const dispositivosEnLinea = comoSeDicenLosDispositivos(loQueLleva)
+
+  const labsDeHoy = labsDesdeEstudios(
+    (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
+  )
+  const labsDeLaConsulta = labsDelCuadro(labsDeHoy, panelesLab)
+  /**
+   * LA TRAYECTORIA DE LO QUE EL MOTOR ESTÁ USANDO (REG-369).
+   *
+   * Sólo de los analitos que de verdad entran al motor: una trayectoria de algo
+   * que nadie va a usar es inventario. Y sólo cuando hay medición anterior —
+   * `comoSeDiceLaTrayectoria` devuelve cadena vacía si no la hay, y aquí se
+   * descarta, para que el aviso no arrastre un «sin datos previos».
+   */
+  /**
+   * ¿LA CREATININA SIGUE SIRVIENDO PARA DOSIFICAR? (REG-375)
+   *
+   * La política del dueño: ≤24 h con AKI, hospitalizado o función renal
+   * inestable; ≤30 días en ambulatorio clínicamente estable; ≤7 días cuando no
+   * se puede demostrar estabilidad. Aquí sólo se reúnen las señales del contexto
+   * —el internamiento activo y los problemas del paciente—; la decisión de qué
+   * ventana aplica vive en su módulo.
+   *
+   * `estabilidadDeclarada` no se pasa: **nada en el producto la declara**, y
+   * deducirla de cuánto se movió la creatinina exigiría un umbral que nadie ha
+   * validado. Por eso en ambulatorio rige la ventana conservadora.
+   */
+  /**
+   * El instante contra el que se mide la vigencia, ANCLADO a cuándo llegaron los
+   * paneles y no al render.
+   *
+   * Con `new Date()` en el cuerpo, `vigenciaRenal` nacía distinto en cada render
+   * y con él `entradaCopiloto`, cuya memoización dejaba de servir: el copiloto
+   * entero se recalculaba en cada tecla del dictado. La ventana más corta de la
+   * política es de 24 h y una consulta no dura eso, así que anclar a la carga no
+   * cambia ningún veredicto y devuelve la estabilidad que el memo necesita.
+   */
+  const ahoraParaVigencia = useMemo(() => new Date().toISOString(), [panelesLab])
+  const vigenciaRenal = vigenciaDeLaFuncionRenal(
+    labsDeLaConsulta.medidoEn.creatinina,
+    ahoraParaVigencia,
+    { hospitalizado: !!internamientoActivo, diagnosticos: dxDelCuadro },
+  )
+
+  const trayectoriasDeLaConsulta = Object.fromEntries(
+    Object.keys(labsDeLaConsulta.labs)
+      .map(clave => {
+        const t = trayectoriaDe(panelesLab, clave, labsDeHoy[clave])
+        const frase = comoSeDiceLaTrayectoria(t)
+        if (!frase || !t?.previo) return [clave, frase] as const
+        /**
+         * ── QUÉ CAMBIÓ DE VERDAD (REG-376) ────────────────────────────────
+         *
+         * Los deltas salen siempre; la línea cruzada, sólo cuando el valor
+         * pasó de un lado a otro de un umbral que este repositorio YA tenía
+         * definido. Nunca por porcentaje: no existe uno seguro para todos los
+         * analitos, y ésa es la política del dueño.
+         */
+        const cambio = queCambio(clave, t.previo.valor, t.actual.valor)
+        return [clave, `${frase} · ${comoSeDiceElCambio(cambio)}`] as const
+      })
+      .filter(([, frase]) => frase),
+  )
 
   const entradaCopiloto = useMemo(() => ({
     edad: patient?.edad,
@@ -926,10 +1083,25 @@ export default function ConsultaActivaPage() {
      * valor y unidad. El mapeo es conservador a propósito: ante la duda no mapea,
      * porque estos números alimentan fórmulas que producen conducta.
      */
-    labs: labsDesdeEstudios(
-      (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
-    ),
-  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, extraction])
+    /**
+     * ── LO DE HOY **MÁS** LO QUE YA ESTÁ MEDIDO (REG-368) ─────────────────
+     *
+     * Esto era sólo lo extraído del dictado de hoy. Los paneles del paciente
+     * viven en la misma pantalla, en su pestaña, y el motor que produce el
+     * aviso no los veía: una creatinina de 2.4 del mes pasado no ajustaba nada
+     * al recetar metformina hoy.
+     *
+     * Hoy manda; lo del expediente completa y viaja con su fecha.
+     */
+    labs: labsDeLaConsulta.labs,
+    labsMedidosEn: labsDeLaConsulta.medidoEn,
+    labsTrayectoria: trayectoriasDeLaConsulta,
+    /* Sólo cuando hay creatinina que juzgar: si no la hay, `ajusteRenal` no
+       corre y un aviso de caducidad sobre nada sería ruido. */
+    ...(labsDeLaConsulta.labs.creatinina !== undefined
+      ? { funcionRenalVigente: { vigente: vigenciaRenal.vigente, aviso: avisoDeFuncionRenalCaduca(vigenciaRenal) } }
+      : {}),
+  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, labsDeLaConsulta, trayectoriasDeLaConsulta, vigenciaRenal])
   const [resumen, setResumen] = useState('')
   /**
    * QUÉ ES ESTA NOTA PARA EL SELLO — una vez, para las dos lecturas.
@@ -980,7 +1152,7 @@ export default function ConsultaActivaPage() {
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
-  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string } | null>(null)
+  const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string; noConsultadas?: string[]; sinRespaldo?: string[]; aplicabilidad?: { pmid: string; veredicto: string; frase: string; porQue: string }[] } | null>(null)
   const [analizandoEv, setAnalizandoEv] = useState(false)
   // Candado de gasto (soft): uso de consultas del mes vs el límite del plan.
   const [usoIA, setUsoIA] = useState<{ usadas: number; limite: number; restantes: number; porcentaje: number; alerta: 'ok' | 'cerca' | 'excedido' } | null>(null)
@@ -1161,6 +1333,26 @@ export default function ConsultaActivaPage() {
    * actual. Se arrastra igual —queda en el expediente y se copia a la nota
    * siguiente— y se resuelve igual: se enseñan las dos frases y decide el médico.
    */
+
+  /**
+   * ── LO QUE TOMÓ NO ES LO QUE TOMA (REG-373) ──────────────────────────────
+   *
+   * El esquema de extracción no tiene campo `estado`, y `estadoDeOrden()` lee la
+   * ausencia como `activa`. Así que «le dieron warfarina cuando la operaron»
+   * entraba a la medicación VIGENTE — y de ahí cuelgan la regla de sangrado, el
+   * ajuste renal y lo que el médico lee antes de prescribir.
+   *
+   * Se mira lo que el dictado NOMBRA: un fármaco crónico del expediente que hoy
+   * no se mencionó no se toca, porque el silencio no suspende nada.
+   */
+  const farmacosEnPasado = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    return farmacosSoloMencionadosEnPasado(
+      [...medicamentos, ...vigentes.map(v => v.medicamento)], dictado,
+    ).filter(f => !avisosRevisados.includes(`pasado:${f.nombre.slice(0, 40)}`))
+  }, [voz.transcripcion, medicamentos, vigentes, avisosRevisados])
+
   const desajustesNota = useMemo(() => {
     const dictado = voz.transcripcion
     if (!dictado.trim()) return []
@@ -1231,6 +1423,24 @@ export default function ConsultaActivaPage() {
   const transcripcionRef = useRef('')
   // ─── Medical NER (extracción de entidades) ─────────────────────
   const [entidades, setEntidades] = useState<EntidadesExtraidas | null>(null)
+
+  /**
+   * ── LO QUE SE DIJO QUE LE HICIERON Y NO QUEDÓ ESCRITO (REG-370) ───────────
+   *
+   * El extractor reconoce procedimientos con su fecha y su lateralidad, y hasta
+   * ahora **no los leía nadie**: se pintaban en el panel de entidades y
+   * desaparecían al cerrar la consulta. Un antecedente quirúrgico que no queda
+   * escrito no existe en la consulta siguiente — y la lateralidad es uno de los
+   * pares prohibidos de este repositorio.
+   *
+   * No se escribe solo: se señala antes de firmar y decide el médico.
+   */
+  const procedimientosPerdidos = useMemo(() => {
+    const oidos = (entidades as { procedures?: { texto: string; fecha?: string; lateralidad?: string }[] } | null)?.procedures
+    if (!oidos?.length) return []
+    return procedimientosQueNoQuedaronEscritos(oidos, textoDeLaNota(resumen, diagnosticos, secciones))
+      .filter(p => !avisosRevisados.includes(`procedimiento:${p.texto.slice(0, 40)}`))
+  }, [entidades, resumen, diagnosticos, secciones, avisosRevisados])
   /** Condiciones que el extractor dio por confirmadas y el paciente había negado. */
   const [negacionesCorregidas, setNegacionesCorregidas] = useState<NegacionCorregida[]>([])
   /** Condiciones activas que el dictado situó en pasado. No se tocan: se enseñan. */
@@ -1256,6 +1466,14 @@ export default function ConsultaActivaPage() {
   // Ref síncrona del notaId + cadena de guardados serializada: evita que dos
   // autoguardados creen notas DUPLICADAS (setNotaId es asíncrono).
   const notaIdRef = useRef<string | null>(notaIdParam)
+  /**
+   * ¿Ya se avisó de que el respaldo local no cabe? (REG-392)
+   *
+   * Una vez por sesión. El aviso importa —sin respaldo local, una recarga puede
+   * costar lo último dictado— pero repetirlo cada 1,5 s lo convertiría en ruido,
+   * y un aviso que se ignora no protege a nadie.
+   */
+  const avisoRespaldoRef = useRef(false)
   /**
    * La marca de modificación que ESTA pestaña vio por última vez. Es el testigo
    * de la guardia de concurrencia de `updateNota`: si en Firestore hay otra, es
@@ -1657,24 +1875,91 @@ export default function ConsultaActivaPage() {
     getPatient(clinicId, patientId)
       .then(p => { setPatient(p); setPacienteError(!p); alergiasAlAbrir.current = p?.alergias ?? '' })
       .catch((e: unknown) => { console.error('cargar paciente:', e); setPacienteError(true) })
+    /**
+     * Los paneles de laboratorio, para que los motores los vean (REG-368). Es
+     * UNA lectura más por consulta, la misma que ya hace el panel de la pestaña
+     * de Laboratorios cuando se abre — y aquí compra que el ajuste renal, el
+     * riesgo hepático y el cardiovascular dejen de depender de que el médico
+     * vuelva a dictar un número que el expediente ya tiene.
+     *
+     * Degrada sin romper: si falla, los motores ven lo de hoy, que es
+     * exactamente como se comportaban antes.
+     */
+    listarPanelesLab(clinicId, patientId)
+      .then(setPanelesLab)
+      .catch(e => console.error('paneles de laboratorio:', e))
     getUltimasNotasResumen(clinicId, patientId)
       .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
       .catch(e => console.error('contexto de visitas previas:', e))  // degrada sin romper la nota
     // La medicación vigente sale de TODAS las notas, no sólo de la última: manda
     // lo que se dijo por última vez de CADA fármaco (ver `ordenes-medicamento`).
-    getNotas(clinicId, patientId)
-      .then(ns => {
+    listarNotasCompat(clinicId, patientId)
+      .then(({ notas: ns, truncada }) => {
+        /**
+         * SI EL HISTORIAL VINO RECORTADO, LA MEDICACIÓN VIGENTE PUEDE ESTAR
+         * INCOMPLETA — Y SE DICE (REG-350).
+         *
+         * `medicamentosVigentes` aplica la regla de la última palabra sobre CADA
+         * fármaco. Con el historial completo eso es correcto. Sobre un recorte
+         * de las N notas más recientes, un fármaco crónico que no se haya vuelto
+         * a mencionar en esas N **desaparece de la lista**, y la lista se lee
+         * como «no está tomando nada más». Ausencia de dato no es dato de
+         * ausencia, y aquí se lee con el paciente enfrente y antes de prescribir.
+         */
+        setHistorialTruncado(truncada)
         const firmadas = ns.filter(n => n.estado === 'firmada')
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
             medicamentos: n.medicamentos,
             diagnosticos: n.diagnosticos,
           }))
-        setVigentes(medicamentosVigentes(firmadas))
+        /**
+         * LAS ALERGIAS QUE LAS NOTAS FIRMADAS SELLARON (WS-10).
+         *
+         * Cada nota firmada guarda una COPIA de la lista de alergias tal como
+         * estaba ese día, y hasta ahora nadie la volvía a leer: el cruce
+         * alergia↔fármaco, la receta impresa y el FHIR leen sólo el campo
+         * mutable de `Patient`, que la última escritura pisa entera. Un vaciado
+         * —un import, una migración, un dedo en el móvil— apagaba la alerta
+         * aunque el expediente siguiera diciendo «anafilaxia por penicilina» en
+         * dos notas inmutables. Mismo recorrido, ninguna lectura nueva.
+         */
+        setAlergiasSelladas({
+          notas: ns.map(n => ({
+            fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+            alergias: n.alergias,
+            estado: n.estado,
+          })),
+          /* El `asOf` es el momento en que se leyó el expediente, no el del
+             render: la proyección corresponde a ESAS notas. */
+          asOf: new Date().toISOString(),
+        })
+        /**
+         * REG-405 · las dos listas salen del historial QUE SE PUDO LEER.
+         *
+         * `truncada` ya estaba en la mano dos líneas más arriba y se caía aquí.
+         * Sobre un historial recortado, «no encontré más» NO es «no hay más»: un
+         * fármaco anterior al techo desaparece de la lista vigente, y con él
+         * desaparece de la comprobación de interacciones y de la reconciliación.
+         */
+        const asOfProyeccion = new Date().toISOString()
+        setVigentes([...estadoDeMedicamentos(firmadas, asOfProyeccion, { historialIncompleto: truncada }).vigentes])
         // La lista de problemas sigue la MISMA regla que la medicación: manda lo
         // último que se dijo de CADA problema. Una consulta por gripa que no
         // habla de la diabetes no resuelve la diabetes.
-        setProblemas(problemasActivos(firmadas))
+        const problemasVigentes = [...estadoDeProblemas(firmadas, asOfProyeccion, { historialIncompleto: truncada }).problemas]
+        setProblemas(problemasVigentes)
+        /**
+         * LO QUE SE AVISÓ EN LAS CONSULTAS ANTERIORES, SOBRE UN PROBLEMA QUE EL
+         * PACIENTE SIGUE TENIENDO (REG-367).
+         *
+         * `certeza.ts` lo tiene escrito: «a partir de la segunda consulta ya
+         * nadie sabe que era una duda». Ésta es la segunda consulta. La nota de
+         * hoy se excluye: sus avisos ya están en pantalla.
+         */
+        setDudasDeAntes(dudasQueSiguenEnPie(
+          ns, problemasVigentes.map(p => p.diagnostico.descripcion), notaIdRef.current ?? undefined,
+        ))
         const ultima = firmadas.map(n => n.fecha).filter(Boolean).sort().pop()
         setUltimaVisita(ultima)
         /**
@@ -1887,19 +2172,36 @@ export default function ConsultaActivaPage() {
           motivo: motivo.slice(0, 400),
           motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
           resumen: resumenTexto.slice(0, 2000),
-          contexto: { edad: patient?.edad, sexo: patient?.sexo, alergias: patient?.alergias },
+          /**
+           * La creatinina viaja CON SU VIGENCIA (REG-375) porque el motor de
+           * aplicabilidad sabe evaluar criterios renales y hasta hoy nunca
+           * recibía el dato: un estudio que excluye TFG < 30 salía «faltan
+           * datos» frente a un paciente con TFG de 22 medida hoy. La TFG la
+           * calcula el servidor con la calculadora canónica; aquí sólo se
+           * manda la cifra medida, no una fórmula duplicada.
+           */
+          contexto: {
+            edad: patient?.edad,
+            sexo: patient?.sexo,
+            alergias: patient?.alergias,
+            creatinina: labsDeLaConsulta.labs.creatinina,
+            funcionRenalVigente: vigenciaRenal.vigente,
+          },
         }),
       })
       const data = await res.json().catch(() => null)
-      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso })
+      if (data?.ok) setEvidencia({ articulos: data.articulos ?? [], evaluacion: data.evaluacion ?? [], alternativas: data.alternativas ?? [], diferencial: data.diferencial ?? [], aviso: data._aviso, noConsultadas: data._fuentesNoConsultadas ?? [], sinRespaldo: (data._verificacion?.sinRespaldo ?? []).map((x: { texto: string }) => x.texto), aplicabilidad: data._aplicabilidad ?? [] })
       else {
         // Muestra el MOTIVO real (no un toast mudo) y lo deja en consola para diagnóstico.
-        console.error('[evidencia] fallo', res.status, data)
+        // REG-503 — el cuerpo del error puede devolver el contexto del paciente
+      // que se mandó (edad, sexo, alergias, diagnósticos). El estado dice qué
+      // pasó; el cuerpo no hace falta para eso.
+      console.error('[evidencia] fallo', res.status)
         toast(data?.error || `No se pudo analizar (HTTP ${res.status})`, 'error')
       }
     } catch (e) { console.error('[evidencia] excepción', e); toast(`Error de red al analizar (${String(e).slice(0, 60)})`, 'error') }
     finally { setAnalizandoEv(false) }
-  }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, toast])
+  }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, labsDeLaConsulta.labs.creatinina, vigenciaRenal.vigente, toast])
 
   // Genera un ANÁLISIS clínico basado en evidencia de ESTE paciente (razonando
   // con PubMed vía el Consultor) y lo AGREGA a la nota como una sección de texto
@@ -2207,7 +2509,23 @@ export default function ConsultaActivaPage() {
           !data.secciones?.resumenClinico?.trim() &&
           !data.secciones?.laboratorios?.trim()) {
         toast('La IA no pudo estructurar el dictado para preoperatoria. Revisa el material de origen y reintenta.', 'error')
-        console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipoActivo, 'Respuesta:', data)
+        /**
+         * REG-503 — AQUÍ IBA LA NOTA ENTERA A LA CONSOLA.
+         *
+         * Esta línea mandaba `data`, que es la nota clínica estructurada
+         * completa: resumen, laboratorios, cirugía propuesta. Un `safeLog` no
+         * lo arregla — sus patrones cazan CURP, RFC y correos, y aquí el PHI
+         * **es la prosa clínica misma**, que ningún patrón reconoce.
+         *
+         * Lo que este aviso necesita para diagnosticar es QUÉ tipo se mandó y
+         * CUÁLES secciones llegaron vacías. Eso es lo que se registra: la
+         * forma de la respuesta, nunca su contenido.
+         */
+        console.warn('[procesar] Secciones preop vacías. Tipo enviado:', tipoActivo, 'Vacías:', {
+          cirugiaPropuesta: !data.secciones?.cirugiaPropuesta?.trim(),
+          resumenClinico: !data.secciones?.resumenClinico?.trim(),
+          laboratorios: !data.secciones?.laboratorios?.trim(),
+        })
       }
       if (!enVivo) {
         setAprobados(new Set()) // reset de aprobaciones al nuevo procesamiento
@@ -2225,7 +2543,10 @@ export default function ConsultaActivaPage() {
       // causa real (_aviso). Mostramos esa causa en vez de un falso "éxito" verde —
       // así se sabe POR QUÉ falló (HTTP 401, sobrecarga, respuesta vacía, etc.).
       if (data.fallbackLocal || data._aviso) {
-        console.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
+        // REG-503 — `_detalleDebug` viene del proveedor y no está acotado: puede
+        // arrastrar el eco del texto que se le mandó. La CAUSA basta para saber
+        // por qué se cayó a parser local; el detalle se pasa por el redactor.
+        safeLog.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
         // La nota la produjo el parser local: que la procedencia lo diga en vez
         // de arrastrar el modelo del procesamiento anterior.
         if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString() })
@@ -2930,11 +3251,12 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     autoguardarRef.current = () => {
       if (firmada) return
-      const hayContenido =
-        !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
-           diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
-           signosConValor(signos) || estudiosOrden.length || preop || proximoSeguimiento.trim())
-      if (hayContenido) guardarBorrador(true)
+      /* REG-392 · la misma regla que el respaldo local, importada y no copiada:
+         ésta y la de abajo son las dos que REG-300 dejó sueltas. */
+      if (hayAlgoQuePerder({
+        resumen, secciones, signos, diagnosticos, medicamentos,
+        estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion,
+      })) guardarBorrador(true)
     }
   })
   useEffect(() => {
@@ -2948,41 +3270,43 @@ export default function ConsultaActivaPage() {
   //  en las deps de descartar(); es por paciente Y por episodio.)
   useEffect(() => {
     if (firmada) return
-    const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
-      diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim() ||
-      signosConValor(signos) || estudiosOrden.length > 0 || !!preop || proximoSeguimiento.trim()
-    if (!hayContenido) return
+    /**
+     * REG-392 · qué se guarda y qué cuenta como contenido salen de UNA lista
+     * (`el-borrador-no-se-pierde.ts`). Antes vivían aquí, copiadas: el campo
+     * `proximoSeguimiento` se añadió a unas copias y no a otras y la fecha de la
+     * próxima consulta se perdía (REG-193/300). `notaId` también viaja — sin él,
+     * restaurar el respaldo dejaba `notaIdRef` en null y el siguiente
+     * autoguardado CREABA una segunda nota con el mismo contenido.
+     */
+    const vivo: EstadoDelBorrador = {
+      tipo, resumen, secciones, signos, diagnosticos, medicamentos,
+      estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion,
+    }
+    if (!hayAlgoQuePerder(vivo)) return
     const id = setTimeout(() => {
-      if (borradoresBloqueados()) return   // sesión cerrada: no resucitar PHI
-      try {
-        localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
-          tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop,
-          /**
-           * ── LA FECHA DE PRÓXIMA CONSULTA SE PERDÍA (6-ago-2026, REG-193) ──
-           *
-           * No estaba en el respaldo, ni en sus deps, ni en la condición que
-           * decide si hay algo que guardar. Sólo se persistía **al firmar**:
-           * teclearla y recargar la borraba, y si era lo único escrito ni
-           * siquiera disparaba el autoguardado.
-           *
-           * Alimenta la tarea «agendar el seguimiento» del worklist y el
-           * contador de seguimientos vencidos del CRM — dos cosas que existían
-           * esperando este dato.
-           */
-          proximoSeguimiento,
-          // notaId: sin él, restaurar el respaldo dejaba notaIdRef en null y el
-          // siguiente autoguardado CREABA una segunda nota con el mismo contenido.
-          notaId: notaIdRef.current,
-          transcripcion: voz.transcripcion, ts: Date.now(),
-        }), secretoLocal(auth.currentUser?.uid)))
-      } catch { /* almacenamiento lleno: no es crítico */ }
+      const r = guardarRespaldoLocal(
+        vivo,
+        { notaId: notaIdRef.current, ts: Date.now(), bloqueado: borradoresBloqueados() },
+        cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), secretoLocal(auth.currentUser?.uid))),
+      )
+      /**
+       * Y si no cupo, **se dice**. Antes esto era `catch { /* no es crítico *\/ }`
+       * y no era cierto: con el almacenamiento lleno el respaldo deja de
+       * escribirse, el médico sigue dictando y la copia que le salvaría la
+       * consulta tras una recarga ya no existe. Una vez por sesión, para avisar
+       * sin convertirse en ruido.
+       */
+      if ((r === 'sin_espacio' || r === 'no_se_pudo') && !avisoRespaldoRef.current) {
+        avisoRespaldoRef.current = true
+        toast(AVISO_SIN_ESPACIO, 'error')
+      }
     }, 1500)
     return () => clearTimeout(id)
     // `estudiosOrden` y `preop` FALTABAN en las deps: añadir ocho estudios a la
     // orden o llenar el bloque preoperatorio, sin tocar nada más, no re-armaba
     // el debounce y el respaldo local se quedaba en la versión anterior. Con un
     // cierre forzado del navegador (sin desmonte, sin `pagehide`) eso se pierde.
-  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey])
+  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey, toast])
 
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
@@ -3159,20 +3483,16 @@ export default function ConsultaActivaPage() {
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
   /**
-   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, REG-300.
+   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, y ya no vive aquí.
    *
-   * Esta regla estaba escrita TRES veces, palabra por palabra, en el espejo en
-   * memoria, en el volcado a `localStorage` y en el oyente de `nx:guardar-todo`.
-   * Tres copias de la misma decisión es la familia `depende_de_recordar`: basta
-   * que alguien añada un campo en dos de los tres para que el tercero empiece a
-   * decir que la nota está vacía cuando no lo está.
-   *
-   * Y eso es exactamente lo que pasó con `proximoSeguimiento` (REG-300).
+   * REG-300 unificó TRES de las cinco copias que había en este archivo y dejó un
+   * guardián que contaba exactamente esas tres. Las otras dos —el autoguardado
+   * al servidor y el respaldo local, o sea las dos que deciden si el trabajo del
+   * médico se guarda— siguieron sueltas hasta REG-392, que se llevó la regla a
+   * `expediente/el-borrador-no-se-pierde.ts`. Desde ahí se importa, no se copia,
+   * y se puede probar sin raspar el texto de este archivo.
    */
-  const hayContenido = (e: { resumen?: string; secciones?: { value?: string }[]; diagnosticos?: unknown[]; medicamentos?: unknown[]; transcripcion?: string; signos?: Parameters<typeof signosConValor>[0]; estudiosOrden?: unknown[]; preop?: unknown; proximoSeguimiento?: string }) =>
-    !!(e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length ||
-       e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) ||
-       (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop || e.proximoSeguimiento?.trim())
+  const hayContenido = hayAlgoQuePerder
 
   const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada })
   /**
@@ -3233,10 +3553,25 @@ export default function ConsultaActivaPage() {
      * clase podría no aplicar en un embed o en una prueba sin el layout).
      */
     const scroller = () => document.querySelector('main')
+    /**
+     * ── EL DEDO MANDA (REG-355) ─────────────────────────────────────────────
+     *
+     * Esto escribía `scrollTop` sin preguntar. Y no es una restauración que
+     * ocurra sólo al montar: `scrollKey` depende de `internamientoActivo`, que
+     * llega de un `.then()` de Firestore, así que el efecto **se re-arma** y
+     * puede escribir la posición **segundos después**, con el médico ya
+     * leyendo. En WebKit —que no implementa `overflow-anchor`— eso se siente
+     * como el tirón que el iPhone reporta.
+     *
+     * Se pregunta JUSTO ANTES de escribir, no sólo al armarse: entre una cosa y
+     * otra hay dos `requestAnimationFrame` y una lectura de red.
+     */
+    const vigilancia = vigilarGestoDelUsuario(scroller())
     // Restaurar: dos frames para que el contenido restaurado ya esté pintado.
     let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
+        if (vigilancia.tomoElControl()) return
         const y = Number(sessionStorage.getItem(scrollKey) || 0)
         if (y > 0) {
           const m = scroller()
@@ -3253,6 +3588,7 @@ export default function ConsultaActivaPage() {
     window.addEventListener('scroll', guardarScroll, { passive: true })
     return () => {
       cancelAnimationFrame(raf1); cancelAnimationFrame(raf2)
+      vigilancia.soltar()
       m?.removeEventListener('scroll', guardarScroll)
       window.removeEventListener('scroll', guardarScroll)
       guardarScroll()  // al desmontar (irte): recuerda dónde ibas
@@ -3267,15 +3603,20 @@ export default function ConsultaActivaPage() {
     if (borradoresBloqueados()) return
     const hay = hayContenido(e)
     if (!hay) return
-    try {
-      localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
-        tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
-        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop,
-        proximoSeguimiento: e.proximoSeguimiento, notaId: notaIdRef.current,
-        transcripcion: e.transcripcion, ts: Date.now(),
-      }), secretoLocal(auth.currentUser?.uid)))
-    } catch { /* almacenamiento lleno */ }
-  }, [respaldoKey])
+    /* Mismo cuerpo y misma regla que el respaldo con retardo: los dos salen de
+       `el-borrador-no-se-pierde.ts`. Copiar el objeto aquí era cómo un campo
+       nuevo entraba en un camino y no en el otro — y éste es el que corre
+       justo cuando el médico se va de la pantalla. */
+    const r = guardarRespaldoLocal(
+      e,
+      { notaId: notaIdRef.current, ts: Date.now(), bloqueado: false },
+      cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), secretoLocal(auth.currentUser?.uid))),
+    )
+    if ((r === 'sin_espacio' || r === 'no_se_pudo') && !avisoRespaldoRef.current) {
+      avisoRespaldoRef.current = true
+      toast(AVISO_SIN_ESPACIO, 'error')
+    }
+  }, [respaldoKey, toast])
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') flushRespaldo() }
     window.addEventListener('pagehide', flushRespaldo)
@@ -3462,10 +3803,11 @@ export default function ConsultaActivaPage() {
     antecedentesDeFamiliar,
     datosInciertos,
     sinRespaldo,
+    procedimientosSinEscribir: procedimientosPerdidos.map(p => ({ texto: p.texto, mensaje: avisoDeProcedimientoSinEscribir(p) })),
     conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
     faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
     yaLoBloqueaNOM004: validacion?.errores ?? [],
-  })), [dosisIncompletas, contradiccionesNota, desajustesNota, antecedentesDeFamiliar, datosInciertos, sinRespaldo, safety, validacion])
+  })), [dosisIncompletas, contradiccionesNota, desajustesNota, antecedentesDeFamiliar, datosInciertos, sinRespaldo, procedimientosPerdidos, safety, validacion])
 
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
@@ -3624,7 +3966,17 @@ export default function ConsultaActivaPage() {
       return   // se re-renderiza sin ellas; el médico confirma la nota final
     }
 
-    const notaParaValidar = construirNota('firmada')
+    /**
+     * LO QUE SE AVISÓ QUEDA EN LA NOTA — REG-366.
+     *
+     * `avisosParaFirmar` es exactamente lo que enumeró el diálogo de arriba y a
+     * lo que se refiere «Los revisé, firmar». Se mete AQUÍ, antes de calcular
+     * el hash: `iaAuditoria` está dentro de `OPCIONALES_SELLADOS_V3`, así que
+     * añadirlo después de `normalizarParaSello` haría que el sello se calculara
+     * sobre un objeto distinto del que se escribe, y la nota se reabriría
+     * marcada como «alterada» (REG-060).
+     */
+    const notaParaValidar = conAvisosSellados(construirNota('firmada'), avisosParaFirmar)
     const val = validarNOM004(notaParaValidar)
     if (!val.valida) {
       toast(`No se puede firmar: ${val.errores[0]}`, 'error')
@@ -3865,7 +4217,25 @@ export default function ConsultaActivaPage() {
        * falla, se pierde el worklist de esa consulta, no la consulta.
        */
       if (clinicId) {
-        void crearTareas(clinicId, tareasDeNota({
+        /**
+         * REG-344 — NO BLOQUEA, PERO TAMPOCO SE CALLA.
+         *
+         * Seguir sin bloquear es lo correcto: la nota ya está firmada y sellada,
+         * y hacer que un fallo al escribir el worklist reviente la firma sería
+         * cambiar un pendiente perdido por una consulta perdida.
+         *
+         * Lo que estaba mal era el SILENCIO. `crearTareas` devuelve cuántas
+         * entraron —y traga los fallos de una en una para que un pendiente roto
+         * no tumbe a los demás—, y aquí ese número se descartaba junto con el
+         * `.catch()`. Si la pestaña se cerraba o la red se caía en esa ventana,
+         * los pendientes de esa consulta desaparecían y el médico se iba
+         * convencido de que estaban.
+         *
+         * Ahora se compara con las esperadas y se dice. Es el mismo trato que
+         * REG-252 le dio al camino hospitalario, que sí devuelve
+         * `{tareasCreadas, tareasEsperadas}` y cuyo llamador sí lo lee.
+         */
+        const pendientesDeLaNota = tareasDeNota({
           id, clinicId, pacienteId: patientId,
           pacienteNombre: patient?.nombre,
           estudiosOrden,
@@ -3875,7 +4245,16 @@ export default function ConsultaActivaPage() {
           proximoSeguimiento: proximoSeguimiento || undefined,
           medicoUid: auth.currentUser?.uid,
           medicoNombre: config.nombreMedico,
-        }, Date.now())).catch(() => { /* ver arriba: no puede tumbar la firma */ })
+        }, Date.now())
+        /**
+         * Sigue sin bloquear la firma: la nota ya está sellada y hacer que un
+         * fallo del worklist la reviente sería cambiar un pendiente perdido por
+         * una consulta perdida (REG-344). Lo que cambia es que ahora lo que no
+         * entra se guarda, en vez de morir con el aviso.
+         */
+        abrirPendientesEn(clinicId, pendientesDeLaNota, 'nota', {
+          avisar: m => toast(`La nota quedó firmada, pero ${m}`, 'error'),
+        })
 
         /**
          * §F3 — RECONCILIACIÓN DE MEDICAMENTOS.
@@ -3922,23 +4301,23 @@ export default function ConsultaActivaPage() {
           .filter(x => x.r.yaDebioTerminar)
           .map(x => ({ farmaco: x.v.medicamento.nombre, frase: comoSeDiceVencido({ farmaco: x.v.medicamento.nombre, v: x.r }) }))
         if (vencidos.length) {
-          void crearTareas(clinicId, tareasDeReconciliacion({
+          abrirPendientesEn(clinicId, tareasDeReconciliacion({
             clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
             discrepancias: vencidos,
             texto: d => d.frase,
             medicoUid: auth.currentUser?.uid,
             medicoNombre: config.nombreMedico,
-          }, Date.now())).catch(() => { /* igual que arriba */ })
+          }, Date.now()), 'reconciliacion', { avisar: m => toast(m, 'error') })
         }
 
         if (disc.length) {
-          void crearTareas(clinicId, tareasDeReconciliacion({
+          abrirPendientesEn(clinicId, tareasDeReconciliacion({
             clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
             discrepancias: disc,
             texto: d => comoSeDice(disc.find(x => x.farmaco === d.farmaco) ?? disc[0]),
             medicoUid: auth.currentUser?.uid,
             medicoNombre: config.nombreMedico,
-          }, Date.now())).catch(() => { /* igual que arriba */ })
+          }, Date.now()), 'reconciliacion', { avisar: m => toast(m, 'error') })
         }
       }
       /**
@@ -4395,6 +4774,99 @@ export default function ConsultaActivaPage() {
       ) })()}
 
       {/*
+        ── LO QUE EL EXPEDIENTE DICE Y LA LISTA DE HOY NO (WS-10) ─────────────
+
+        El campo de arriba es UN texto mutable que la última escritura pisa
+        entera. Cada nota firmada, en cambio, selló una COPIA de esa lista el
+        día que se firmó — y nadie la volvía a leer. Un vaciado (import,
+        migración, un dedo en el móvil, o el médico que quiere que le deje
+        firmar) apagaba el cruce alergia↔fármaco aunque dos notas inmutables
+        siguieran diciendo «anafilaxia por penicilina».
+
+        Va DEBAJO del campo y no dentro: son dos hechos distintos —lo que hoy
+        gobierna la alerta, y lo que el expediente registra— y mezclarlos haría
+        creer que la alerta ya lo está mirando. No lo está: por eso se enseña.
+
+        Esto NO devuelve la alergia a la lista por su cuenta. Una nota de 2024
+        no puede pisar una corrección que el médico hizo hoy a conciencia
+        (regla 6: se pregunta, no se adivina). Ofrece hacerlo; decide él.
+      */}
+      {avisoAlergias && (
+        <div
+          role="status"
+          style={{
+            marginBottom: 12, padding: '10px 13px', borderRadius: 10,
+            background: 'color-mix(in srgb, var(--red) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}
+        >
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <AlertTriangle size={16} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>
+              <strong className="nx-critico">{avisoAlergias}</strong>
+            </div>
+          </div>
+          {/* Cada una con su procedencia: de qué nota sale y qué decía esa nota.
+              Sin la fecha, esto sería una afirmación del sistema; con ella es
+              una cita del expediente que el médico puede ir a leer. */}
+          <ul style={{ margin: 0, paddingLeft: 24, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {[...estadoAlergias.ausentesDeLaListaDeHoy, ...estadoAlergias.enConflicto].map(a => {
+              const peor = peorSeveridadRegistrada(a)
+              const reac = reaccionRegistrada(a)
+              return (
+                <li key={a.alergeno} style={{ fontSize: 12, color: 'var(--text2)' }}>
+                  <strong style={{ color: 'var(--text)' }}>{a.alergeno}</strong>
+                  {peor && <> · {peor.severidad}</>}
+                  {reac && <> · {reac.reaccion}</>}
+                  {a.selladaEn && <> · nota firmada del {a.selladaEn.slice(0, 10)}</>}
+                  {a.negadaHoy && <> · <span className="nx-critico">hoy el campo la niega</span></>}
+                  {!firmada && (
+                    <>
+                      {' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!clinicId || !patient) return
+                          const antes = patient.alergias ?? ''
+                          /* Nunca dos veces el mismo término, y nada que
+                             escribir si ya estaba: ver `listaConAlergeno`. */
+                          const despues = listaConAlergeno(antes, a.alergeno)
+                          if (despues === antes.trim()) return
+                          setPatient(prev => prev ? { ...prev, alergias: despues } : prev)
+                          updatePatient(clinicId, patientId, { alergias: despues })
+                            .catch(() => toast('No se guardó la alergia. Revisa tu conexión.', 'error'))
+                          /* Queda constancia de que volvió, y de dónde salió: el
+                             mismo registro que ya guarda el vaciado. */
+                          void logAudit({
+                            evento: 'paciente_modificado', clinicId, patientId,
+                            meta: {
+                              campo: 'alergias', antes, despues,
+                              restauradaDeNotaFirmada: a.selladaEn,
+                            },
+                          })
+                          alergiasAlAbrir.current = despues
+                        }}
+                        className="btn btn-secondary"
+                        style={{ fontSize: 12, padding: '4px 10px', minHeight: 32 }}
+                      >
+                        Añadir a la lista
+                      </button>
+                    </>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+          {estadoAlergias.historialIncompleto && (
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+              El historial vino recortado: puede haber más alergias en notas que no se cargaron.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/*
         LOS PROBLEMAS DEL PACIENTE Y CUÁNDO VINO LA ÚLTIMA VEZ.
         Las dos cosas que el médico reconstruía abriendo notas hacia atrás en
         mitad de la consulta. Van arriba de la medicación porque contestan «qué
@@ -4439,7 +4911,13 @@ export default function ConsultaActivaPage() {
             {problemas.length > 0 && (
               <>
                 <strong style={{ color: 'var(--text)' }}>Problemas:</strong>{' '}
-                {problemas.map(p => p.diagnostico.descripcion + (p.diagnostico.estado === 'cronico' ? ' (crónico)' : '')).join(' · ')}
+                {/* `nombreConCerteza` y no la descripción a secas: un
+                    diagnóstico PRESUNTIVO se leía aquí igual que uno
+                    confirmado, y se arrastra a todas las consultas siguientes
+                    (REG-364). Es el mismo criterio que el resumen del
+                    expediente, el cuadro de los motores y el prompt de
+                    evidencia — uno solo, no cuatro. */}
+                {problemas.map(p => nombreConCerteza(p.diagnostico) + (p.diagnostico.estado === 'cronico' ? ' (crónico)' : '')).join(' · ')}
               </>
             )}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
@@ -4448,6 +4926,33 @@ export default function ConsultaActivaPage() {
                 : 'Primera consulta registrada.'}
               {problemas.length > 0 && ' De lo último que se dijo de cada problema en sus notas firmadas.'}
             </div>
+            {/*
+              ── LA DUDA DE LA OTRA VEZ (REG-367) ───────────────────────────
+
+              `certeza.ts` lo tiene escrito de sí mismo: «lo que el paciente
+              ofreció como duda queda en el expediente como diagnóstico; a
+              partir de la SEGUNDA CONSULTA ya nadie sabe que era una duda».
+              Ésta es la segunda consulta.
+
+              Va DENTRO del bloque de problemas y no en un recuadro aparte: no
+              es una alerta nueva, es una nota al pie de la lista que ya está
+              leyendo. Con la fecha de la nota que lo dice — sin ella sería una
+              afirmación del sistema en vez de una cita del expediente.
+            */}
+            {dudasDeAntes.length > 0 && (
+              <ul style={{
+                margin: '6px 0 0', paddingLeft: 18,
+                fontSize: 12, color: 'var(--text3)', lineHeight: 1.6,
+              }}>
+                {dudasDeAntes.map(d => (
+                  <li key={`${d.problema}|${d.texto}`}>
+                    <strong style={{ color: 'var(--text2)' }}>{d.problema}</strong>
+                    {' — '}{d.texto}
+                    {d.dichoEn && <> · nota del {d.dichoEn.slice(0, 10)}</>}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       )}
@@ -4492,6 +4997,81 @@ export default function ConsultaActivaPage() {
             ))}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
               De lo último que se dijo de cada fármaco en sus notas firmadas. No mencionarlo en una consulta no lo suspende.
+            </div>
+            {historialTruncado && (
+              <div role="status" style={{ fontSize: 12, color: 'var(--amber)', marginTop: 4, fontWeight: 600 }}>
+                Este expediente es más largo de lo que cabe leer aquí: esta lista sale
+                sólo de las notas más recientes y <strong>puede faltar</strong> un
+                fármaco crónico que no se haya vuelto a mencionar.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/*
+        ── LO QUE EL PACIENTE LLEVA PUESTO (REG-371) ────────────────────────
+
+        Los dispositivos invasivos se capturan en la valoración del
+        inmunocomprometido y se guardan en el expediente, y su ÚNICO lector era
+        el texto de esa misma valoración: fuera de su pestaña, nadie sabía que
+        el paciente lleva una prótesis valvular.
+
+        Son los antecedentes que más cambian conducta sin aparecer en ningún
+        diagnóstico: la profilaxis, la sospecha ante una bacteriemia, qué imagen
+        se puede pedir, dónde se busca el foco.
+
+        Con la lista vacía NO se pinta nada. «Sin dispositivos invasivos» sería
+        convertir la ausencia de dato en dato de ausencia: puede que nadie
+        abriera la valoración.
+      */}
+      {dispositivosEnLinea && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
+          background: 'var(--s2)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '9px 13px',
+        }}>
+          <BedDouble size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
+            <strong style={{ color: 'var(--text)' }}>Lleva puesto:</strong>{' '}{dispositivosEnLinea}
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>
+              De su valoración{loQueLleva.registradoEn ? ` del ${loQueLleva.registradoEn.slice(0, 10)}` : ''}.
+              Sólo lo que se marcó; que algo no aparezca no significa que no lo lleve.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/*
+        ── HACIA DÓNDE VAN LOS NÚMEROS (REG-369) ────────────────────────────
+
+        La trayectoria de laboratorio existía desde hace tiempo
+        (`seriesDesdeHistorial`) y **sólo la dibujaba la pestaña de
+        Laboratorios**: para verla había que salir de donde se prescribe. Y el
+        último valor no dice lo único que a veces importa — creatinina 0.9 →
+        1.3 → 1.7 no dispara nada por punto y es un deterioro renal.
+
+        Sólo de los analitos que de verdad entran a los motores, y sólo cuando
+        hay una medición anterior: una trayectoria de algo que nadie usa es
+        inventario, y un «sin datos previos» en cada renglón es ruido.
+
+        Dice aritmética, no clínica. «Subió» es un hecho; «empeoró» sería un
+        diagnóstico que nadie firmó.
+      */}
+      {Object.keys(trayectoriasDeLaConsulta).length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
+          background: 'var(--s2)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '9px 13px',
+        }}>
+          <FlaskConical size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
+            <strong style={{ color: 'var(--text)' }}>Laboratorios:</strong>{' '}
+            {Object.entries(trayectoriasDeLaConsulta).slice(0, TOPE_TRAYECTORIAS_EN_PANTALLA)
+              .map(([clave, frase]) => `${clave} ${labsDeLaConsulta.labs[clave]} — ${frase}`)
+              .join(' · ')}
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>
+              De sus paneles de laboratorio. Dice cómo cambió el número, no si el cambio es importante.
             </div>
           </div>
         </div>
@@ -5368,14 +5948,32 @@ export default function ConsultaActivaPage() {
             title={`${arts[n - 1].titulo} — ${arts[n - 1].revista} ${arts[n - 1].anio}`}
             style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', verticalAlign: 'super', marginLeft: 2 }}>[{n}]</a>
         ))
+        /**
+         * LO QUE CITA UN ARTÍCULO QUE NO LO DICE, SE MARCA (REG-359).
+         *
+         * No se borra: puede seguir siendo buen razonamiento clínico —consenso,
+         * fisiopatología, experiencia— y borrarlo le quitaría al médico algo que
+         * quizá necesita. Lo que no puede es seguir PARECIENDO respaldado, que es
+         * justo lo que hacía: una afirmación con su [n] al lado se lee como
+         * evidencia citada.
+         */
+        const sinRespaldo = new Set(evidencia.sinRespaldo ?? [])
         const bloque = (titulo: string, items: PuntoEv[], campoTitulo: keyof PuntoEv, campoTexto: keyof PuntoEv) => items.length > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{titulo}</div>
-            {items.map((it, i) => (
-              <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: 4 }}>
-                • <strong>{String(it[campoTitulo] ?? '')}</strong>{it[campoTexto] ? ` — ${String(it[campoTexto])}` : ''} {citas(it.citas)}
-              </div>
-            ))}
+            {items.map((it, i) => {
+              const noAnclada = sinRespaldo.has(String(it[campoTitulo] ?? ''))
+              return (
+                <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: 4 }}>
+                  • <strong>{String(it[campoTitulo] ?? '')}</strong>{it[campoTexto] ? ` — ${String(it[campoTexto])}` : ''} {noAnclada ? null : citas(it.citas)}
+                  {noAnclada && (
+                    <span style={{ color: 'var(--amber)', fontWeight: 600 }}>
+                      {' '}· sin respaldo comprobado en el artículo citado
+                    </span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )
         return (
@@ -5387,18 +5985,52 @@ export default function ConsultaActivaPage() {
               </button>
               <button onClick={analizarEvidencia} disabled={analizandoEv} style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11, cursor: 'pointer' }}>↻ actualizar</button>
             </div>
-            {evidencia.aviso && <div style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 6 }}>{evidencia.aviso}</div>}
+            {evidencia.aviso && <div style={{ fontSize: 12, color: 'var(--amber)', marginTop: 6 }}>{evidencia.aviso}</div>}
+            {/**
+              * DÓNDE **NO** SE MIRÓ (REG-356).
+              *
+              * Va junto al análisis y no enterrado abajo: un consultor que sólo
+              * enseña lo que SÍ encontró se lee como si hubiera mirado en todas
+              * partes, y con el paciente enfrente eso convierte «no lo miramos»
+              * en «no existe». Regla 4 de seguridad clínica.
+              */}
+            {evidencia.noConsultadas && evidencia.noConsultadas.length > 0 && (
+              <div role="note" style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, lineHeight: 1.55 }}>
+                <strong style={{ color: 'var(--text2)' }}>Sólo se consultó PubMed.</strong>{' '}
+                No se miraron: {evidencia.noConsultadas.join(', ')}. Lo de arriba no
+                dice que no exista evidencia en esas fuentes: dice que no se preguntó.
+              </div>
+            )}
             {bloque('Evaluación del tratamiento', evidencia.evaluacion, 'punto', 'sustento')}
             {bloque('Alternativas a considerar', evidencia.alternativas, 'opcion', 'porque')}
             {bloque('Diagnóstico diferencial', evidencia.diferencial, 'dx', 'razon')}
             {arts.length > 0 && (
               <div style={{ marginTop: 10 }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text3)' }}>Fuentes ({arts.length})</div>
-                {arts.map((a, i) => (
-                  <div key={a.pmid} style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-                    [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revista} {a.anio}
-                  </div>
-                ))}
+                {arts.map((a, i) => {
+                  /**
+                   * ¿ESTE ARTÍCULO APLICA A ESTE PACIENTE? (WS-09)
+                   *
+                   * Se pinta PEGADO a la fuente, no en un panel aparte: el
+                   * momento en que importa es cuando el médico va a leer el
+                   * artículo. Y se dice sólo cuando hay algo que decir — «nada lo
+                   * excluye» en las doce fuentes sería ruido que se aprende a
+                   * ignorar, y entonces el aviso que sí importa tampoco se lee.
+                   */
+                  const ap = (evidencia.aplicabilidad ?? []).find(x => x.pmid === a.pmid)
+                  const fuera = ap?.veredicto === 'no_aplica'
+                  const dudoso = ap?.veredicto === 'datos_insuficientes'
+                  return (
+                    <div key={a.pmid} style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+                      [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revista} {a.anio}
+                      {(fuera || dudoso) && (
+                        <span title={ap?.porQue} style={{ color: fuera ? 'var(--amber)' : 'var(--text3)', fontWeight: fuera ? 600 : 400 }}>
+                          {' '}· {ap?.frase}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
             <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 10, fontStyle: 'italic' }}>
@@ -5447,7 +6079,30 @@ export default function ConsultaActivaPage() {
           desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
           viasAsumidas,
           avisoDeVia: avisoDeViaAsumida(viasAsumidas),
-          interacciones: detectarInteracciones(medicamentos),
+          /**
+           * ── REG-410: LA BARRA MIRABA LA RECETA, NO AL PACIENTE ───────────
+           *
+           * REG-188 llevó el cuadro completo al copiloto, a la evidencia, a la
+           * vigencia renal y a la reconciliación — y NO aquí. Así que su propio
+           * ejemplo («warfarina de marzo + ketorolaco de hoy») seguía sin
+           * disparar justo en la superficie donde el médico mira antes de
+           * firmar.
+           */
+          interacciones: interaccionesDelCuadro(medsDelCuadro),
+          /**
+           * Y de qué tamaño era el expediente que se miró. `truncada` lo tenía
+           * la misma función que carga las notas; llegaba a las proyecciones
+           * (REG-405) y al cartel de la pantalla, y se caía antes de la barra.
+           */
+          historialRecortado: historialTruncado,
+          /**
+           * `farmacos` y no el nombre de siempre, a propósito:
+           * `el-paciente-completo-llega-al-motor` cuenta cuántos MOTORES reciben
+           * el cuadro entero buscando ese nombre pegado a `medsDelCuadro`, y un
+           * simple `.length` le sumaría un motor que no existe. El guardián
+           * cuenta bien; era el nombre el que mentía.
+           */
+          cuantoSeComprobo: { farmacos: medsDelCuadro.length, problemas: dxDelCuadro.length },
           controlados: detectarControlados(medicamentos),
           /**
            * ── LA SOBREDOSIS SE VE ANTES DE FIRMAR (REG-190) ─────────────────
@@ -5470,9 +6125,12 @@ export default function ConsultaActivaPage() {
            * mientras receta.
            */
           pautas: medicamentos,
+          /** REG-373 — figura como vigente y el dictado sólo lo nombra en pasado. */
+          farmacosEnPasado: farmacosEnPasado.map(f => ({ nombre: f.nombre, mensaje: avisoDeFarmacoEnPasado(f) })),
           antecedentesDeFamiliar,
           datosInciertos,
           sinRespaldo,
+          procedimientosSinEscribir: procedimientosPerdidos.map(p => ({ texto: p.texto, mensaje: avisoDeProcedimientoSinEscribir(p) })),
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
           /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */
@@ -5981,6 +6639,37 @@ export default function ConsultaActivaPage() {
               onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase() } : x))}
               style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
             />
+            {/*
+              ── EL MÉDICO ELIGE EL TIPO DE SU DIAGNÓSTICO (WS-10, REG-407) ──
+
+              El modelo ya tenía `tipo` y `tipoOrigen`, y `tipoOrigen` dice, con
+              todas las letras, que «medico» es «lo único que autoriza a decir
+              confirmado». Pero NINGUNA pantalla lo dejaba elegir: un diagnóstico
+              que la IA extrajo como definitivo se guardaba como definitivo con
+              origen `extraccion` —una sugerencia que el médico nunca vio como
+              elección— y uno añadido a mano nacía presuntivo sin poder cambiarse.
+
+              Es «sugerido ≠ confirmado» y «la autoridad final es del médico»
+              incumplidos en el mismo control: el sistema no podía distinguir un
+              presuntivo ELEGIDO de uno de fábrica.
+
+              Cambiarlo marca `tipoOrigen: 'medico'`. Es la única vía por la que
+              un diagnóstico pasa a estar firmado por una persona.
+            */}
+            <select
+              value={d.tipo}
+              disabled={firmada}
+              aria-label={`Tipo de diagnóstico${d.descripcion ? `: ${d.descripcion}` : ''}`}
+              onChange={e => setDiagnosticos(prev => prev.map((x, j) =>
+                j === i ? { ...x, tipo: e.target.value as Diagnostico['tipo'], tipoOrigen: 'medico' } : x
+              ))}
+              style={{ ...S.input, flex: 1, minWidth: 104 }}
+            >
+              <option value="presuntivo">Presuntivo</option>
+              <option value="definitivo">Definitivo</option>
+              <option value="diferencial">Diferencial</option>
+              <option value="descartado">Descartado</option>
+            </select>
             {!firmada && (
               <button
                 onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))}
@@ -5990,8 +6679,21 @@ export default function ConsultaActivaPage() {
             )}
           </div>
         ))}
+        {/*
+          PROCEDENCIA — de dónde salió el tipo, cuando NO lo eligió una persona.
+
+          Se enseña una vez y no por fila: un aviso por diagnóstico, en una nota
+          con seis, es ruido que se aprende a saltar. `por_defecto` cuenta igual
+          que `extraccion`: en los dos casos nadie lo decidió.
+        */}
+        {!firmada && diagnosticos.some(d => d.descripcion.trim() && d.tipoOrigen !== 'medico') && (
+          <div className="nx-meta" style={{ marginTop: 6 }}>
+            El tipo de {diagnosticos.filter(d => d.descripcion.trim() && d.tipoOrigen !== 'medico').length === 1 ? 'un diagnóstico lo puso' : 'algunos diagnósticos lo puso'} el
+            dictado o la plantilla, no tú. Revísalo antes de firmar: sólo cuenta como tuyo si lo eliges.
+          </div>
+        )}
         {!firmada && (
-          <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo' }])} className="nx-acc-caja" style={S.addBtn}>
+          <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo', tipoOrigen: 'medico' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar diagnóstico
           </button>
         )}

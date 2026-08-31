@@ -29,6 +29,7 @@
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { auth } from './firebase'
 import { conTiempoLimite } from './fetch-con-timeout'
+import { CABECERA_CORRELACION, nuevaCorrelacion } from '@/lib/observabilidad/correlacion'
 
 /**
  * Cuánto se espera a que Firebase resuelva la sesión.
@@ -95,6 +96,15 @@ export const ESPERA_TOKEN_MS = 12000
 export const MENSAJE_TOKEN_SIN_RED =
   'No se pudo confirmar tu sesión. Revisa la conexión e inténtalo de nuevo.'
 
+/**
+ * La correlación de ESTA pestaña.
+ *
+ * Se acuña una vez por carga y viaja en todas las peticiones: así los registros
+ * de una misma sesión de trabajo se agrupan solos. No lleva uid ni nada del
+ * paciente — su forma no lo permite (ver `observabilidad/correlacion.ts`).
+ */
+const CORRELACION_DE_LA_PESTANA = nuevaCorrelacion()
+
 export async function fetchAutenticado(url: string, opts: RequestInit = {}): Promise<Response> {
   const user = await usuarioCuandoSePueda()
   if (!user) throw new Error('No hay sesión activa')
@@ -108,5 +118,7 @@ export async function fetchAutenticado(url: string, opts: RequestInit = {}): Pro
   ).catch(() => { throw new Error(MENSAJE_TOKEN_SIN_RED) })
   const headers = new Headers(opts.headers)
   headers.set('Authorization', `Bearer ${token}`)
+  /* El hilo que permite seguir una petición del navegador al proveedor (WS-13). */
+  if (!headers.has(CABECERA_CORRELACION)) headers.set(CABECERA_CORRELACION, CORRELACION_DE_LA_PESTANA)
   return fetch(url, { ...opts, headers })
 }

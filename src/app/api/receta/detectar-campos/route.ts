@@ -5,6 +5,7 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, gateCreditos, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 /**
  * IA de visión: recibe la imagen del FORMATO de receta del médico y detecta dónde
@@ -25,7 +26,10 @@ const headers = (key: string) => ({ 'x-api-key': key, 'anthropic-version': ANTHR
 async function resolverModelo(key: string): Promise<string> {
   if (MODEL_OVERRIDE) return MODEL_OVERRIDE
   try {
-    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: headers(key) })
+    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', {
+      headers: headers(key),
+      signal: AbortSignal.timeout(20_000),   // REG-346
+    })
     if (res.ok) {
       const ids: string[] = ((await res.json()).data ?? []).map((m: { id: string }) => m.id)
       return MODELOS.find(c => ids.includes(c)) ?? ids.find(id => id.includes('sonnet')) ?? ids[0] ?? MODELOS[0]
@@ -74,6 +78,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto = {
     feature: 'receta-detectar-campos',
     requestId: req.headers.get('x-vercel-id') || `rd-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: COSTO_CREDITOS.recetaVision, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }
@@ -82,6 +87,7 @@ export async function POST(req: NextRequest) {
   try {
     const model = await resolverModelo(key)
     const res = await fetch('https://api.anthropic.com/v1/messages', {
+      signal: AbortSignal.timeout(60_000),   // REG-346
       method: 'POST',
       headers: headers(key),
       body: JSON.stringify({

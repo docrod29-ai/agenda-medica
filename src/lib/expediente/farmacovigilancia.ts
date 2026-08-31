@@ -132,7 +132,7 @@ const REGLAS: ReglaInteraccion[] = [
   },
 ]
 
-export function detectarInteracciones(medicamentos: { nombre?: string }[]): AlertaFarmaco[] {
+export function detectarInteracciones(medicamentos: readonly { nombre?: string }[]): AlertaFarmaco[] {
   const nombres = medicamentos.map(m => norm(m.nombre ?? '')).filter(Boolean)
   if (nombres.length < 2) return []
   /**
@@ -161,6 +161,55 @@ export function detectarInteracciones(medicamentos: { nombre?: string }[]): Aler
   return alertas
 }
 
+/**
+ * ── LAS INTERACCIONES DEL PACIENTE, NO LAS DE LA RECETA DE HOY ──────────────
+ *
+ * REG-188 encontró que los motores clínicos recibían **sólo la receta de hoy** y
+ * lo escribió con este ejemplo: *«paciente con warfarina de marzo al que hoy se
+ * le receta ketorolaco: la regla de sangrado existe y está probada, y no
+ * dispara»*. La reparación creó `cuadro-completo` y lo llevó al copiloto, a la
+ * evidencia, a la vigencia renal y a la reconciliación.
+ *
+ * **A la barra de avisos no.** Siguió llamando `detectarInteracciones(medicamentos)`
+ * con la lista de hoy — o sea que el escenario exacto que REG-188 nombra, en la
+ * superficie donde el médico mira antes de firmar, seguía sin disparar. Es la
+ * familia «escrito y sin conectar» sobre una reparación anterior: el arreglo
+ * llegó a cuatro consumidores y no al quinto, que era el que enseñaba el aviso.
+ *
+ * ── POR QUÉ NO BASTA CON PASARLE LA LISTA LARGA ─────────────────────────────
+ *
+ * Porque entonces una interacción entre dos fármacos que el paciente lleva
+ * tomando años saldría **en cada consulta**, para siempre, junto a la que se
+ * acaba de crear. Y este archivo ya aprendió lo que cuesta eso: *«las alertas
+ * falsas son caras: enseñan al médico a ignorar el panel, y entonces la
+ * verdadera tampoco se lee»*. Una alerta verdadera pero repetida hasta el
+ * cansancio hace el mismo daño.
+ *
+ * Así que se separa lo que **cambia hoy** de lo que ya venía, corriendo el mismo
+ * detector sobre dos subconjuntos. Sin motor nuevo y sin heurística: si la
+ * interacción ya salía con la medicación previa sola, no la introduce esta
+ * consulta.
+ */
+export interface InteraccionDelCuadro extends AlertaFarmaco {
+  /**
+   * ¿La crea lo que se prescribe HOY?
+   *
+   * `false` no significa «menos grave»: significa que ya existía antes de esta
+   * consulta y que el médico probablemente ya la conoce. Lo que cambia es cuánto
+   * tiene que gritar, no si se dice.
+   */
+  introducidaHoy: boolean
+}
+
+export function interaccionesDelCuadro(
+  cuadro: readonly { nombre?: string; deHoy?: boolean }[],
+): InteraccionDelCuadro[] {
+  const previos = cuadro.filter(m => !m.deHoy)
+  /* Las que ya salían SIN lo de hoy: ésas no las introduce esta consulta. */
+  const yaEstaban = new Set(detectarInteracciones(previos).map(a => a.titulo))
+  return detectarInteracciones(cuadro).map(a => ({ ...a, introducidaHoy: !yaEstaban.has(a.titulo) }))
+}
+
 // ─────────────────────────────────────────────────────────────────
 // 2. CONTROLADOS COFEPRIS (Reglamento de Insumos para la Salud)
 //    Fracción I  — estupefacientes (receta especial con código de barras)
@@ -187,7 +236,7 @@ const REQUISITO_POR_FRACCION: Record<ControladoDetectado['fraccion'], string> = 
   V: 'Fracción V: venta libre / sin requisito especial de receta.',
 }
 
-export function detectarControlados(medicamentos: { nombre?: string }[]): ControladoDetectado[] {
+export function detectarControlados(medicamentos: readonly { nombre?: string }[]): ControladoDetectado[] {
   const out: ControladoDetectado[] = []
   const vistos = new Set<string>()
   for (const m of medicamentos) {

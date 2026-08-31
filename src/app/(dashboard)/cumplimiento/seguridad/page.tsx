@@ -25,6 +25,7 @@ export default function SeguridadPage() {
   const [factorId, setFactorId] = useState<string | null>(null)
   const [secret, setSecret] = useState<TotpSecret | null>(null)
   const [qrUrl, setQrUrl] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')
   const [codigo, setCodigo] = useState('')
   const [cargando, setCargando] = useState(false)
   const [nombreFactor, setNombreFactor] = useState('Mi dispositivo')
@@ -36,6 +37,32 @@ export default function SeguridadPage() {
     setTieneTotp(!!totp)
     setFactorId(totp?.uid ?? null)
   }, [user])
+
+  /**
+   * EL QR SE DIBUJA AQUÍ, NO EN UN TERCERO (REG-502).
+   *
+   * Antes esta pantalla componía `https://api.qrserver.com/...?data=<otpauth://>`
+   * y lo ponía de `src` en un `<img>`. El `otpauth://` **lleva dentro el secreto
+   * compartido del segundo factor**: pedirle el dibujo a un tercero le entrega,
+   * en la cadena de consulta de una URL, la semilla que genera los códigos. Un
+   * segundo factor cuya semilla viajó a un servidor ajeno ya no es un segundo
+   * factor.
+   *
+   * La hermana `configuracion/secciones-seguridad.tsx` ya lo hacía en local, con
+   * este mismo comentario. Había dos pantallas de enrolamiento y se arregló una.
+   */
+  useEffect(() => {
+    if (!qrUrl) return
+    // `vivo` y no un `setQrDataUrl('')` de entrada: escribir estado de forma
+    // síncrona en el cuerpo del efecto encadena renders (lo caza el linter), y
+    // aquí no hace falta — el QR sólo se pinta cuando hay `qrUrl`.
+    let vivo = true
+    import('qrcode')
+      .then(QR => QR.toDataURL(qrUrl, { width: 220, margin: 2 }))
+      .then(url => { if (vivo) setQrDataUrl(url) })
+      .catch(() => { /* sin QR se puede seguir: la clave manual está debajo */ })
+    return () => { vivo = false }
+  }, [qrUrl])
 
   const iniciarEnrolar = async () => {
     if (!user) return
@@ -172,11 +199,9 @@ export default function SeguridadPage() {
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Escanea el código QR</h2>
           <div style={{ textAlign: 'center', padding: 18, background: '#fff', borderRadius: 10, marginBottom: 12 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrUrl)}&size=220x220&margin=8`}
-              alt="QR para 2FA"
-              style={{ width: 220, height: 220 }}
-            />
+            {qrDataUrl
+              ? <img src={qrDataUrl} alt="QR para 2FA" style={{ width: 220, height: 220 }} />
+              : <div style={{ width: 220, height: 220, display: 'grid', placeItems: 'center', color: 'var(--text3)' }}>Generando el código…</div>}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 14 }}>
             ¿No puedes escanear? Copia este código en tu app:<br />

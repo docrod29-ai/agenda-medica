@@ -69,11 +69,11 @@ Decir «42 motores sin conectar» era inflar. Medido:
 | | Cuántos | Qué son |
 |---|---|---|
 | **Envoltorios** | 34 | ≤3 líneas sobre una función que **sí corre**. `sePuedeFirmar` es `motivosParaNoFirmar().length === 0`. No son defectos: son comodidad que nadie usó. |
-| **Con cuerpo real** | 8 | Los que merecen mirarse uno a uno. |
+| **Con cuerpo real** | 9 | Los que merecen mirarse uno a uno. |
 
 **Un número que mezcla las tres cosas no sirve para decidir nada.**
 
-### Los ocho con cuerpo real
+### Los nueve con cuerpo real
 
 - `src/lib/clinical/safety-gate.ts::invariantesProtegidos`
 - `src/lib/expediente/ordenes-medicamento.ts::resumenVigentes`
@@ -83,8 +83,9 @@ Decir «42 motores sin conectar» era inflar. Medido:
 - `src/lib/hospital/eventos.ts::validarCorreccion`
 - `src/lib/hospital/firestore.ts::getInternamientosDePaciente`
 - `src/lib/uci/benchmark.ts::correrBenchmark`
+- `src/lib/asr/lo-que-pesa-de-un-error.ts::leerConsulta`
 
-De esos ocho, **`validarCorreccion` está bloqueado en el dueño, no en el
+De esos nueve, **`validarCorreccion` está bloqueado en el dueño, no en el
 código**: exige una política como parámetro obligatorio y `POLITICA_CORRECCION`
 nace en `null` a propósito. Quién puede corregir, en qué ventana y si el motivo
 es obligatorio son decisiones de política de registro clínico con peso NOM-004.
@@ -93,8 +94,8 @@ Está en `agent-state/OWNER_DECISIONS_REQUIRED.md`.
 ## El barrido, cerrado: los cinco que quedan (REG-263)
 
 Empezó en **50**. Once motores se conectaron de verdad. De los **39** que
-quedan, **34 son envoltorios** y **cinco tienen cuerpo real** — y **ninguno de
-los cinco es un defecto**. Verificado uno a uno, leyendo el código:
+quedan, **34 son envoltorios** y **seis tienen cuerpo real** — y **ninguno de
+los seis es un defecto**. Verificado uno a uno, leyendo el código:
 
 | Símbolo | Por qué no tiene llamador |
 |---|---|
@@ -103,6 +104,7 @@ los cinco es un defecto**. Verificado uno a uno, leyendo el código:
 | `invariantesProtegidos` | Deriva el conjunto protegido para la **compuerta clínica**; su consumidor es esa compuerta |
 | `correrBenchmark` | Arranque de un banco de pruebas que **se corre a mano** y se paga |
 | `obtenerVersion` | **Redundante**: `listarVersiones` ya devuelve las versiones enteras, así que restaurar no necesita una segunda lectura |
+| `leerConsulta` | **Evaluación, no camino del médico.** Compara una transcripción contra su GOLD, y en una consulta de verdad no hay gold — si lo hubiera, no haría falta transcribir. Su consumidor es `scripts/medir-wer-limpio.ts`, que necesita el corpus de 6 000 audios del dueño y por eso no vive en el CI. Misma categoría que `correrBenchmark` |
 
 **Un residuo explicado no es deuda: es una decisión.** Conectar `obtenerVersion`
 añadiría una lectura de Firestore para traer lo que ya está en memoria; conectar

@@ -8,12 +8,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
-import { getAppointments, getPatients } from '@/lib/firestore'
+import { getAppointments, listarPacientesCompat, TECHO_COMPAT_PACIENTES } from '@/lib/firestore'
 import { where } from 'firebase/firestore'
 import type { Appointment, Patient } from '@/types'
 import {
   TrendingUp, TrendingDown, Users, CalendarCheck2, UserX,
-  DollarSign, ArrowUpRight, Loader2, Lightbulb,
+  DollarSign, ArrowUpRight, Loader2, Lightbulb, AlertTriangle,
 } from 'lucide-react'
 import { PageHeader, Spinner, Select } from '@/components/ui'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
@@ -32,6 +32,7 @@ export default function CRMPage() {
   const { clinicId } = useClinic()
   const [appts, setAppts] = useState<Appointment[]>([])
   const [pacientes, setPacientes] = useState<Patient[]>([])
+  const [listaTruncada, setListaTruncada] = useState(false)
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState<Periodo>('mes')
 
@@ -43,10 +44,19 @@ export default function CRMPage() {
     const ventana = isoDaysAgo(120) + ' 00:00'
     Promise.all([
       getAppointments(clinicId, [where('fechaHora', '>=', ventana)]),
-      getPatients(clinicId),
+      listarPacientesCompat(clinicId),
     ]).then(([a, p]) => {
       setAppts(a)
-      setPacientes(p)
+      setPacientes(p.pacientes)
+      /**
+       * REG-351 — ESTAS CIFRAS SALEN DE UNA LISTA QUE PUEDE VENIR RECORTADA.
+       *
+       * «Pacientes activos», «inactivos», «en riesgo de no-show»: todas se
+       * cuentan sobre `pacientes`, que desde REG-341 tiene techo. Un porcentaje
+       * de retención calculado sobre 500 de N no está poco afinado: **es otro
+       * número**, y se lee como un hecho del consultorio.
+       */
+      setListaTruncada(p.truncada)
     }).catch(e => {
       // Sin esto, un error de lectura (permiso/offline/token) dejaba el spinner
       // "Cargando datos…" para siempre, sin error ni reintento.
@@ -138,6 +148,24 @@ export default function CRMPage() {
           </Select>
         )}
       />
+
+      {/**
+        * REG-351 — un tablero de cifras que salen de una lista recortada no está
+        * «poco afinado»: dice otra cosa. Y una cifra se lee como un hecho.
+        */}
+      {listaTruncada && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Estas cifras se calcularon sobre los primeros <strong>{TECHO_COMPAT_PACIENTES}</strong> pacientes.
+            Tu consultorio tiene más, así que <strong>no son el total</strong>: sirven para ver la tendencia, no para reportar.
+          </span>
+        </div>
+      )}
 
       {loading ? (
         <Spinner center label="Cargando datos…" />

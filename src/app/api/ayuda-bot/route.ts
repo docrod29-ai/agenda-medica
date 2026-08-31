@@ -14,6 +14,7 @@ import { gateCreditos, resolverClaveIA  } from '@/lib/ai-keys'
 import { conocimientoTexto } from '@/lib/ayuda/conocimiento'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { llamarIA } from '@/lib/ia/gateway'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -64,7 +65,8 @@ ${conocimientoTexto()}`
     // el gasto del bot de ayuda no se podía atribuir a nadie en el libro de costos.
     // Los créditos siguen en 0 A PROPÓSITO: preguntar cómo se usa la aplicación no
     // se le cobra al médico. Lo que no puede ser es que el gasto sea anónimo.
-    { feature: 'ayuda-bot', requestId: req.headers.get('x-vercel-id') || `ab-${acceso.uid}-${Date.now()}`, clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente },
+    { feature: 'ayuda-bot', requestId: req.headers.get('x-vercel-id') || `ab-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req), clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente },
   )
   if (r.ok && r.texto.trim()) return NextResponse.json({ ok: true, respuesta: r.texto.trim() })
 

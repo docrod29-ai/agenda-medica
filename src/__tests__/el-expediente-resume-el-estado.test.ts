@@ -73,8 +73,14 @@ describe('los motores, medidos', () => {
 
 describe('CORREN en el expediente', () => {
   it('la pantalla los importa y los usa', () => {
-    expect(exp).toContain("import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'")
-    expect(exp).toContain("import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'")
+    /**
+     * REG-405 · la pantalla pasó a pedir la PROYECCIÓN en vez de la lista pelada:
+     * `estadoDeProblemas` es `problemasActivos` con el sobre que dice de cuánto
+     * historial salió. Lo que este caso protege —que la pantalla los importe y
+     * los use— no cambió; cambió por qué puerta entran.
+     */
+    expect(exp).toContain("import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'")
+    expect(exp).toContain("import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'")
     expect(exp).toMatch(/resumenProblemas\(problemas\)/)
     expect(exp).toMatch(/resumenVigentes\(vigentes\)/)
   })
@@ -118,7 +124,10 @@ describe('por qué NO se conectaron donde pedía su comentario', () => {
      * pedía un sitio que resultó no ser el suyo, y eso se deja escrito para
      * que nadie lo «arregle» moviéndolo allí.
      */
-    expect(consulta).toMatch(/problemas\.map\(p => p\.diagnostico\.descripcion/)
+    /* REG-364 cambió CÓMO se nombra cada problema —`nombreConCerteza`, para que
+       un presuntivo no se lea como confirmado— pero no QUÉ enseña la consulta,
+       que es lo que este guardián protege: la lista ENTERA, no un resumen. */
+    expect(consulta).toMatch(/problemas\.map\(p => nombreConCerteza\(p\.diagnostico\)/)
     expect(exp).toMatch(/No van en la consulta: ahí las dos listas ya se enseñan ENTERAS/)
   })
 })

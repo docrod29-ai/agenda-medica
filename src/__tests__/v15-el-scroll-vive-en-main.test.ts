@@ -84,7 +84,10 @@ describe('V15 — el shell del dashboard tiene fondo (§23)', () => {
   })
 
   it('el riel lateral puede desplazar su propio contenido dentro del shell con tope', () => {
-    expect(CSS).toMatch(/\.sidebar \{ overflow-y: auto; \}/)
+    // REG-355 le añadió `overscroll-behavior: contain` en la misma regla: al
+    // llegar a su tope, el riel ya no encadena el gesto al documento.
+    expect(CSS).toMatch(/\.sidebar \{ overflow-y: auto;/)
+    expect(CSS).toMatch(/\.sidebar \{ overflow-y: auto; overscroll-behavior: contain; \}/)
   })
 })
 

@@ -175,3 +175,65 @@ describe('REG-337 · el riel se mueve solo a sí mismo', () => {
     expect(CODIGO).toMatch(/scrollIntoView\(\{ behavior: comportamientoScroll\(\), block: 'start' \}\)/)
   })
 })
+
+/**
+ * DOS PROPIEDADES QUE VIENEN DE OTRA REPARACIÓN DEL MISMO DEFECTO.
+ *
+ * El rebote del riel se encontró y se arregló DOS VECES, en paralelo y sin que
+ * una rama viera a la otra: aquí como REG-337 —con la aritmética en el módulo
+ * canónico `lib/ui/traer-a-la-vista.ts`— y en el carril de #398 como REG-342,
+ * con una función local en el propio componente. Misma causa, mismo archivo,
+ * incluso el mismo caso 5 del mismo test reescrito por los dos.
+ *
+ * Al absorber ese carril se conserva UNA sola implementación —la canónica, que
+ * además acota contra el tope real— y su golden se retira. Pero traía dos casos
+ * que aquí no estaban, y son los dos que hablan de PROPIEDADES en vez de
+ * ejemplos. Se portan enteros, que es la razón de que este bloque exista.
+ *
+ * Lo que NO se porta: sus casos de ejemplo y sus comprobaciones de cableado,
+ * porque los de arriba ya los cubren con la misma intención y más cobertura.
+ */
+describe('REG-337 · las dos propiedades portadas del golden de REG-342', () => {
+  /** Traduce la geometría en coordenadas de contenido a la del puerto real. */
+  const enElPuerto = (itemIzq: number, itemAncho: number, scrollLeft: number, anchoVisible: number) => ({
+    scrollLeft,
+    puertoIzquierda: 0,
+    puertoDerecha: anchoVisible,
+    objetivoIzquierda: itemIzq - scrollLeft,
+    objetivoDerecha: itemIzq + itemAncho - scrollLeft,
+  })
+
+  it('EL INVARIANTE — ninguna entrada produce nada que no sea un scrollLeft', () => {
+    // Barrido determinista: sea cual sea la geometría, la respuesta es `null` o
+    // un número >= 0 destinado al eje horizontal del riel. No hay forma de que
+    // esta función pida mover la página, que es la propiedad que se rompió.
+    for (let izq = -200; izq <= 800; izq += 37) {
+      for (let ancho = 0; ancho <= 300; ancho += 61) {
+        for (let sl = 0; sl <= 600; sl += 97) {
+          for (const av of [0, 120, 390, 1024]) {
+            const r = destinoDelRielHorizontal(enElPuerto(izq, ancho, sl, av))
+            if (r === null) continue
+            expect(typeof r).toBe('number')
+            expect(Number.isFinite(r)).toBe(true)
+            expect(r).toBeGreaterThanOrEqual(0)
+          }
+        }
+      }
+    }
+  })
+
+  it('el resultado deja el ítem DENTRO de la ventana visible', () => {
+    // La propiedad que el médico nota: después de mover, el activo se ve.
+    for (const c of [
+      { itemIzq: 500, itemAncho: 80, scrollLeft: 0, anchoVisible: 300 },
+      { itemIzq: 10, itemAncho: 80, scrollLeft: 400, anchoVisible: 300 },
+      { itemIzq: 295, itemAncho: 20, scrollLeft: 0, anchoVisible: 300 },
+    ]) {
+      const destino = destinoDelRielHorizontal(enElPuerto(c.itemIzq, c.itemAncho, c.scrollLeft, c.anchoVisible))
+      expect(destino).not.toBeNull()
+      const sl = destino as number
+      expect(c.itemIzq).toBeGreaterThanOrEqual(sl - 2)
+      expect(c.itemIzq + c.itemAncho).toBeLessThanOrEqual(sl + c.anchoVisible + 2)
+    }
+  })
+})

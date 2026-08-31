@@ -95,7 +95,15 @@ export const COLECCIONES: ColeccionRespaldo[] = [
     ],
   },
   { ruta: 'appointments', descripcion: 'Citas: fecha, tipo, estado, médico y paciente.' },
-  { ruta: 'internamientos', descripcion: 'Episodios hospitalarios.', hijas: ['signos', 'icu_stays', 'icu_observations', 'handoff_revisiones', 'bed_assignments'] },
+  /**
+   * `registros` es la bitácora APPEND-ONLY del episodio (REG-340). El documento
+   * del internamiento guarda arrays-caché recortados (`.slice(-100)`); la copia
+   * ÍNTEGRA y sin truncar, que es la que existe para la NOM-004, vive aquí.
+   * Faltaba en este manifiesto: se restauraba el episodio y su bitácora legal no
+   * volvía — y el pie del archivo seguía diciendo `completo: true`. Es el mismo
+   * fallo que ya costó las adendas, un nivel más abajo.
+   */
+  { ruta: 'internamientos', descripcion: 'Episodios hospitalarios.', hijas: ['signos', 'icu_stays', 'icu_observations', 'handoff_revisiones', 'bed_assignments', 'registros'] },
   { ruta: 'waitlist', descripcion: 'Lista de espera.' },
   { ruta: 'config', descripcion: 'Configuración del consultorio: horario, membrete, formato de receta, firma.' },
   { ruta: 'doctors', descripcion: 'Médicos del consultorio.' },
@@ -125,6 +133,13 @@ export const COLECCIONES: ColeccionRespaldo[] = [
   { ruta: 'learning', descripcion: 'Preferencias aprendidas del médico.' },
   { ruta: 'chat', descripcion: 'Mensajes internos del equipo.' },
   { ruta: 'chat_reads', descripcion: 'Marcas de lectura del chat interno.' },
+  { ruta: 'members', descripcion: 'El nombre que cada miembro del equipo eligió para el chat interno.' },
+  { ruta: 'memoria_medico', descripcion: 'Memoria de trabajo del médico: sus últimas notas resumidas para dar continuidad. Se reconstruye, pero perderla cuesta contexto clínico.' },
+  { ruta: 'uci_copilot_feedback', descripcion: 'Lo que el médico respondió a las sugerencias del copiloto de UCI. Es la materia prima de la evaluación: sin ella no se puede medir si el copiloto ayuda.' },
+  { ruta: 'whatsapp_outbox', descripcion: 'Mensajes de WhatsApp pendientes de enviar.' },
+  { ruta: 'whatsapp_contacts', descripcion: 'Contactos de WhatsApp del consultorio y su consentimiento.' },
+  { ruta: 'whatsapp_status', descripcion: 'Estado de entrega de cada mensaje de WhatsApp.' },
+  { ruta: 'whatsapp_events', descripcion: 'Eventos del canal de WhatsApp: conexiones y desconexiones.' },
 ]
 
 /**
@@ -133,9 +148,70 @@ export const COLECCIONES: ColeccionRespaldo[] = [
  * Cada exclusión es una decisión, no un olvido — y por eso el guardián exige que
  * esté escrita aquí en vez de simplemente ausente.
  */
+/**
+ * ── LO QUE VIVE FUERA DE `clinics/{clinicId}` Y AUN ASÍ ES DEL CONSULTORIO ───
+ *
+ * Tres colecciones de NIVEL RAÍZ pertenecen a un consultorio y no colgaban de
+ * él: llevan el consultorio en un campo, no en la ruta. El manifiesto de arriba
+ * sólo sabía recorrer el árbol bajo `clinics/{clinicId}`, así que ninguna de las
+ * tres se respaldaba.
+ *
+ * La que importa es `clinic_members`: es lo que ATA una cuenta a un
+ * consultorio. Un respaldo restaurado sin ella devuelve pacientes, notas,
+ * recetas y agenda… y **nadie que pueda entrar a verlos**. El archivo se veía
+ * completo porque lo que faltaba no estaba en la lista de lo que se busca.
+ *
+ * No se respalda ninguna `platform_*`: son de la PLATAFORMA, no de este
+ * consultorio, y meterlas en el archivo que el médico descarga sería darle
+ * datos de otros. Se declaran abajo con su motivo.
+ */
+export interface ColeccionRaiz {
+  /** Nombre de la colección de nivel raíz. */
+  ruta: string
+  /** Campo por el que se filtra al consultorio. */
+  campoClinica: string
+  descripcion: string
+}
+
+export const COLECCIONES_RAIZ: readonly ColeccionRaiz[] = [
+  {
+    ruta: 'clinic_members',
+    campoClinica: 'clinicId',
+    descripcion: 'Quién pertenece a este consultorio y con qué rol. Sin esto, un respaldo restaurado no deja entrar a nadie.',
+  },
+  {
+    ruta: 'clinic_invitations',
+    campoClinica: 'clinicId',
+    descripcion: 'Invitaciones para unirse al consultorio, con su rol y su caducidad.',
+  },
+  {
+    ruta: 'clinic_review_requests',
+    campoClinica: 'clinicId',
+    descripcion: 'Solicitudes de reseña enviadas a pacientes. Llevan el nombre del paciente y de su médico.',
+  },
+]
+
+/**
+ * Colecciones de nivel raíz que NO entran en el respaldo de un consultorio, con
+ * su motivo. Un respaldo del que no se sabe qué falta tampoco sirve.
+ */
+export const RAIZ_EXCLUIDAS: Record<string, string> = {
+  'platform_*': 'Estado de la PLATAFORMA (planes, pagos, recargas, incidentes, latidos, CSP), no de este consultorio. Meterlo en el archivo que el médico descarga sería entregarle datos de otros consultorios.',
+  errores: 'Informes de error ya redactados, de toda la plataforma. Sirven para operar el producto, no para reconstruir un consultorio.',
+  soporte: 'Mensajes de soporte de toda la plataforma.',
+  rate_limits: 'Ventanas de limitación de tasa. Viven minutos y se reconstruyen solas.',
+  oauthStates: 'Nonces de un solo uso para conectar Google Calendar o WhatsApp. Caducan en minutos; restaurar uno viejo sería restaurar una llave muerta.',
+  transcript_owners: 'Dueño de cada transcripción en vuelo. Efímero: existe entre que se manda el audio y vuelve el texto.',
+  whatsapp_channels: 'Enrutado de canales de WhatsApp de toda la plataforma.',
+  whatsapp_dedup: 'Marcas anti-duplicado de mensajes entrantes. Efímeras por definición.',
+  anticipos_procesados: 'Marcas de idempotencia de Stripe, de toda la plataforma.',
+  recargas_procesadas: 'Marcas de idempotencia de recargas, de toda la plataforma.',
+}
+
 export const EXCLUIDAS: Record<string, string> = {
   secretos: 'Las llaves de API del consultorio. Meterlas en un archivo que el médico descarga, manda por correo y deja en su escritorio convertiría un respaldo en una filtración de credenciales. Se vuelven a pegar en Configuración.',
   bot_sessions: 'Estado efímero de las conversaciones del bot de WhatsApp: se reconstruye solo con el siguiente mensaje y no describe nada del consultorio.',
+  slot_locks: 'Candados de un hueco de agenda mientras se confirma una cita. Viven segundos y existen para que dos personas no reserven el mismo hueco; restaurar un candado viejo sólo bloquearía una agenda que ya está libre.',
 }
 
 export interface LineaRespaldo {
