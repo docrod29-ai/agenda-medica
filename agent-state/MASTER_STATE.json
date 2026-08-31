@@ -25,7 +25,8 @@
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-firma-del-medico-no-se-acuna-para-otro.test.ts"
+    " M vitest.config.ts",
+    "?? src/__tests__/el-tope-por-caso-no-mide-la-maquina.test.ts"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -59,12 +60,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/lista-pendejadas-ab9sak-355",
+  "ramaActual": "claude/el-tope-de-5s-no-mide-nada",
   "derivado": {
-    "regsEnElLedger": 264,
+    "regsEnElLedger": 265,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 841,
-    "casosDePrueba": 10488,
+    "archivosDePrueba": 842,
+    "casosDePrueba": 10492,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

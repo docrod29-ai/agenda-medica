@@ -558,7 +558,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * una protección de aislamiento entre consultorios es el día que nadie mira.
      */
 
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413],
+    /**
+     * 414 es esta familia sobre el propio INSTRUMENTO. La suite caía en archivos
+     * distintos cada vuelta y el resumen del runner decía «cae este caso» — así
+     * que se buscó contaminación entre pruebas, que no existía. Lo que faltaba
+     * medir era el log entero: el error nunca fue una aserción, era «Test timed
+     * out in 5000ms» dentro de un `await import`. El resumen de un fallo no es
+     * el fallo, y creerle costó un diagnóstico equivocado escrito en un PR.
+     */
+
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414],
   },
   {
     clave: 'hueco_como_dato',
