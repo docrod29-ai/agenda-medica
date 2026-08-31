@@ -17817,3 +17817,57 @@ se llama.
 - **No es una prueba de navegador.**
 
 **Prueba.** `src/__tests__/de-que-manera-consta-el-aviso-de-un-critico.test.ts` (16 casos).
+
+---
+
+## REG-446 — el primero de los quince umbrales, y tiene dos ejes
+
+**Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 31-ago-2026.
+
+### D-029 · el umbral de `nota-consulta`
+
+Quince de los diecisiete contratos esperaban una cifra del médico. El dueño fijó
+el primero, el de la nota, y lo fijó **con dos números distintos**:
+
+| Eje | Umbral | Por qué |
+|---|---|---|
+| **pérdida** | ≤ 1 % | Exigente pero medible. Deja margen para el caso raro —un fármaco dicho a medias, un nombre que el léxico no tiene— sin normalizar la pérdida |
+| **alucinación** | 0 % | Un medicamento perdido se nota al leer la nota; uno **añadido** sale impreso con cédula profesional y nadie lo busca, porque nadie sabe que está |
+
+Se le plantearon 0 %, 1 %, 5 % y «no reprueba, sólo se mide» para cada eje, y la
+advertencia de que **un umbral inalcanzable deja la compuerta siempre en rojo, y
+una compuerta siempre roja se deja de mirar**. Eligió 0 % sólo donde la asimetría
+lo justifica.
+
+### El tipo no podía llevar dos números
+
+`UmbralDecidido` tenía un único `valor`. Meter los dos ejes en un solo número
+habría borrado justo la asimetría que él acababa de decidir — que es lo que hace
+útil la decisión.
+
+Ahora lleva `ejes`, y **`valor` es el más laxo de los dos, a propósito**: quien
+lea sólo ese campo no puede llevarse una impresión mejor que la real. Con el más
+estricto, un lector superficial creería que la capacidad exige cero en todo. Hay
+guardián, y cae si alguien lo invierte.
+
+### El guardián se actualizó sin bajarlo
+
+`cada-capacidad-de-ia-tiene-su-contrato` exigía que **todo** umbral decidido
+saliera de «una regla escrita», porque los dos únicos que había eran ceros
+derivados de reglas del repositorio. Con la decisión del médico, esa exigencia
+habría obligado a disfrazarla de regla — o a bajar el guardián.
+
+Ahora acepta **dos fuentes y ninguna tercera**: una regla escrita, o una decisión
+del médico **con fecha**. Probado al revés tres veces: un número «porque es lo
+habitual» cae, una decisión sin fecha cae, y poner el valor más estricto cae.
+
+### Qué NO cubre
+
+- **Los otros catorce umbrales**, que siguen esperando.
+- **El conjunto real**: se mide sobre `casos-oro.ts`, que es sintético. El
+  estudio sobre dictados reales de-identificados es del dueño y no existe.
+- **Que el umbral se APLIQUE**: el contrato lo declara y el censo lo comprueba;
+  correr la evaluación contra un conjunto y bloquear por debajo del umbral es
+  otra mitad, y necesita el conjunto.
+
+**Prueba.** `src/__tests__/cada-capacidad-de-ia-tiene-su-contrato.test.ts` (15 casos).

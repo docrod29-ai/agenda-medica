@@ -51,6 +51,22 @@ export interface UmbralDecidido {
   readonly valor: number
   /** De dónde sale. Un número sin esto es una preferencia disfrazada. */
   readonly fuente: string
+  /**
+   * CUANDO UNA CAPACIDAD TIENE DOS EJES DE ERROR CON COSTES DISTINTOS — REG-446.
+   *
+   * `nota-consulta` es el caso que lo obligó. Sus dos errores no cuestan lo
+   * mismo, y el médico dueño los fijó distintos a propósito:
+   *
+   *  · **perder** un medicamento que se dictó → lo notas al leer la nota.
+   *  · **añadir** uno que nadie dictó → sale impreso con cédula profesional, y
+   *    nadie lo busca porque nadie sabe que está.
+   *
+   * Meter los dos en un solo número habría borrado justo la asimetría que él
+   * decidió. `valor` sigue siendo el umbral principal —el más laxo de los dos,
+   * para que quien lea sólo ese campo no se lleve una impresión mejor de la
+   * real— y aquí van los ejes con su nombre.
+   */
+  readonly ejes?: readonly { readonly nombre: string; readonly valor: number; readonly porQue: string }[]
 }
 
 export type Umbral =
@@ -96,7 +112,44 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
     consecuenciaDelError: 'Un medicamento perdido al extraer no aparece en la receta ni en la lista activa. Un medicamento AÑADIDO acaba impreso con cédula profesional.',
     conjunto: 'src/lib/ia/casos-oro.ts (sintético). El estudio sobre dictados reales de-identificados es del dueño y no existe todavía.',
     metrica: 'exactitud por campo y proxy de alucinación (`ia/evaluacion.ts`)',
-    umbral: pendiente('Cuánta pérdida de medicamentos y diagnósticos es tolerable, y a partir de qué proporción de alucinación se bloquea la redacción. Lo fija el médico responsable sobre su propio corpus.'),
+    umbral: {
+      /**
+       * DECIDIDO por el médico dueño el 31-ago-2026 (D-029). Dos ejes, porque
+       * sus dos errores no cuestan lo mismo — ver `UmbralDecidido.ejes`.
+       *
+       * `valor` es el más LAXO de los dos, a propósito: quien lea sólo este
+       * campo no puede llevarse una impresión mejor que la real.
+       */
+      valor: 0.01,
+      fuente:
+        'DECIDIDO por el médico dueño el 31-ago-2026 (D-029), sobre la métrica de '
+        + '`ia/evaluacion.ts` y el conjunto sintético de `casos-oro.ts`. Se le '
+        + 'plantearon 0 %, 1 %, 5 % y «no reprueba, sólo se mide» para cada eje, y '
+        + 'la advertencia de que un umbral inalcanzable deja la compuerta siempre '
+        + 'en rojo y se deja de mirar.',
+      ejes: [
+        {
+          nombre: 'perdida',
+          valor: 0.01,
+          porQue:
+            'Hasta 1 de cada 100 medicamentos o diagnósticos dictados puede faltar. '
+            + 'Exigente pero medible: deja margen para el caso raro —un fármaco dicho '
+            + 'a medias, un nombre que el léxico no tiene— sin normalizar la pérdida. '
+            + 'Se descartó el 0 % porque un umbral inalcanzable deja la compuerta '
+            + 'siempre en rojo, y una compuerta siempre roja se deja de mirar.',
+        },
+        {
+          nombre: 'alucinacion',
+          valor: 0,
+          porQue:
+            'CERO. Aquí la asimetría sí justifica el cero: un medicamento perdido se '
+            + 'nota al leer la nota; uno AÑADIDO sale impreso con cédula profesional '
+            + 'y nadie lo busca, porque nadie sabe que está. Es el fallo más caro que '
+            + 'este producto puede cometer, y coincide con la regla 1 — nada se '
+            + 'inventa.',
+        },
+      ],
+    },
     politicaDeFallo: 'degrada_y_lo_dice',
   }),
   C({
