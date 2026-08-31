@@ -5690,10 +5690,25 @@ llevó a planear una unidad entera para cubrir algo ya cubierto.
 
 ### RESIDUAL_RISK
 
-- **La precaución que salvó la unidad sigue siendo la excepción, no la regla.**
-  «Cobrar» salió «sin abrir — queda sin medir» y por eso se investigó. Si
-  hubiera salido «0 mudos», habría pasado por bueno un diálogo que nunca se
-  abrió. Los demás arneses de este carril **no** distinguen vacío de cero.
+- **Vacío no es cero — y mi primera versión de este riesgo estaba EXAGERADA.**
+  «Cobrar» salió «sin abrir — queda sin medir» y por eso se investigó; con un «0
+  mudos» habría pasado por bueno un diálogo que nunca se abrió, y los dos mudos
+  que tocan dinero seguirían ahí.
+
+  Escribí aquí que «los demás arneses no distinguen vacío de cero». **Fui a
+  comprobarlo y es falso**: `nada-tapa` reporta `ROTA` por ruta cuando la página
+  no montó, y aborta con «no está midiendo» si en total ve menos de 100
+  controles; `acuse-puntero` tiene las dos salvaguardas equivalentes.
+
+  Lo que de verdad falta es más estrecho: **un suelo POR RUTA**. Una sola ruta
+  que renderice vacía imprime `ok /ruta (0)` y su cero queda absorbido por el
+  total global. El número se ve —no es silencioso— pero nada lo convierte en
+  rojo. **NOT_PROVEN, y estrecho.**
+
+  Se corrige aquí por la misma razón por la que se corrigió la cabecera del
+  golden de diálogos en 88c: un riesgo declarado DE MÁS gasta el crédito de la
+  lista. Si la mitad de lo que dice esta sección no se sostiene al comprobarlo,
+  nadie comprueba la otra mitad.
 - **Sólo cuatro diálogos + el portal.** Una firma, un internamiento, una receta
   a medias: siguen sin abrirse, y no estar en la lista significa que **no se
   vigilan**.
