@@ -15139,3 +15139,146 @@ de leerse.
 (8 casos declarados, 18 con las expansiones de `it.each`), probada al revés por
 sus dos mitades: quitando el filtro caen 14
 casos, quitando el dedup caen 2.
+
+## REG-413 — la comprobación que impide robar la firma de otro médico no tenía guardián
+
+**CÓMO SE DESCUBRIÓ.** Revisando el PR #355 para decidir si se rescataba.
+`docs/maintenance/PRS-SIN-ABSORBER-2026-08-30.md` lo daba por casi cubierto —«la
+ruta y el token **sí** están en `main`: lo que falta son dos guardianes, no la
+funcionalidad»—. Al medirlo, la primera mitad resultó cierta y la segunda
+también, y era peor de lo que sonaba: `grep -rl diseno-url src/__tests__/` **no
+devolvía nada**.
+
+### Qué protege lo que no se estaba vigilando
+
+`POST /api/receta/diseno-url` acuña URLs firmadas para el proxy
+`GET /api/receta/diseno`, que descarga de Firebase Storage con el **Admin SDK** —
+que se salta las reglas de Storage. Lo que hay detrás de esos paths es el
+**membrete, la firma autógrafa y el sello** del médico: lo que va impreso en una
+receta con cédula profesional.
+
+La ruta tiene su comprobación, con su comentario («IDOR (auditoría P1)»): sólo se
+acuña el diseño propio o el de un miembro de la MISMA clínica —la asistente
+imprime por su médico—, y el cruce a otra clínica se corta.
+
+Una línea. Sin una sola prueba. Es exactamente el modo de fallo de
+`security-tenant.md`: la protección vive en el servidor, que es donde debe estar,
+pero nada impide que el siguiente refactor se la lleve por delante en verde.
+
+### El golden, y lo que deja declarado sin arreglar
+
+`la-firma-del-medico-no-se-acuna-para-otro.test.ts` congela el cruce de clínica,
+el caso de la asistente, el corte sin sesión —comprobando que **no se lee ninguna
+membresía** antes de cortar—, el fallo cerrado cuando Firestore no contesta, y
+los paths con traversal o sin dueño derivable.
+
+Probado al revés: quitando la línea de la comprobación caen **5 casos**, y los 10
+que siguen pasando son los que deben (si cayeran todos, el guardián estaría
+midiendo que la ruta no acuña nada, que es otra cosa).
+
+Y congela **tres sitios donde el árbol de hoy es más laxo** que lo que propone el
+PR #355. No se arreglan aquí porque tocan la papelería en uso y eso lo decide el
+dueño; quedan escritos para que endurecerlos sea una decisión y no un descuido:
+
+1. **Sin secreto configurado la ruta falla ABIERTA** — devuelve la URL pelada en
+   vez de negarse. #355 la haría fallar cerrada con 503.
+2. **El token liga `path|exp`, no al dueño ni al consultorio**, y dura **24 h**.
+   Una URL firmada que se filtre —un PDF reenviado, el historial, una caché—
+   sirve durante toda esa vida. #355 mete `ownerUid` y `clinicId` dentro del HMAC
+   y baja la vida a 15 min.
+3. **Una URL SIN firma sigue pasando** por el proxy mientras
+   `RECETA_DISENO_FIRMA` no valga `obligatoria` en Vercel. Es una variable de
+   entorno de producción, no código: ninguna prueba puede verla. El código de la
+   fase 2 ya está cableado en los dos caminos de papelería (`print-element` y
+   `pdf-download`), así que la condición que el propio módulo pone para encender
+   el candado —«cuando el camino de impresión acuñe URLs firmadas»— **ya se
+   cumple**; falta probar la papelería en vivo y darle al interruptor.
+
+### Qué NO cubre
+
+- No prueba Firebase de verdad (el Admin SDK va con dobles) ni las reglas de
+  Storage.
+- No prueba el proxy `GET /api/receta/diseno`; sólo el acuñador.
+- No arregla los tres puntos de arriba: los declara.
+
+**Prueba.** `src/__tests__/la-firma-del-medico-no-se-acuna-para-otro.test.ts`
+(15 casos, 12 declarados).
+
+## REG-414 — la suite fallaba por la carga de la máquina, y el resumen del fallo mentía
+
+**CÓMO SE DESCUBRIÓ.** Preparando el despliegue de v1175. `npx vitest run`
+entero caía de forma intermitente, en archivos distintos cada vez y sin que
+nadie hubiera tocado nada. Tres vueltas seguidas sobre el mismo árbol:
+
+```
+vuelta 1   la-agenda-es-un-riel.test.ts
+vuelta 2   (verde)
+vuelta 3   la-agenda-es-un-riel.test.ts  +  tope-creditos.test.ts
+```
+
+### El diagnóstico que era falso, y por qué se deja escrito
+
+La primera lectura fue **equivocada**: como el caso pasaba en aislamiento y
+pasaba en `origin/main` sin tocar, se concluyó «interferencia entre archivos de
+prueba, estado de módulo que otro test deja sucio». Se llegó a escribir así en
+un PR.
+
+No lo era. Al capturar la salida completa en vez de quedarse con la línea del
+`FAIL`, el error no era una aserción:
+
+```
+Error: Test timed out in 5000ms.
+  ❯ la-agenda-es-un-riel.test.ts:123
+    await import('../app/(dashboard)/citas/page')
+  ❯ tope-creditos.test.ts:60
+    await import('@/lib/ai-keys')
+```
+
+**El resumen de un fallo no es el fallo.** `grep FAIL` decía «cae este caso»; el
+log decía «se acabó el tiempo en un import». Son diagnósticos distintos y llevan
+a arreglos distintos — el primero habría mandado a buscar contaminación de
+módulos que no existe.
+
+### La causa raíz
+
+52 archivos de prueba hacen `await import(...)` **dentro** del `it()`. Ese import
+transforma y carga un grafo entero —`citas/page.tsx` arrastra Next, Firebase e
+iconos— y su coste cae dentro de la ventana de 5 s del caso, que es el defecto de
+vitest. Con 841 archivos compitiendo por CPU, pasarse de 5 s no es raro: es
+cuestión de qué trabajador tuvo mala suerte. Por eso cambiaba de archivo en cada
+vuelta.
+
+### El arreglo, y por qué no es tapar el problema
+
+`testTimeout: 20_000` en `vitest.config.ts`.
+
+Ninguna de esas pruebas afirma que un import sea rápido: **no hay una sola
+aserción sobre latencia en toda la suite**. El tope existe para que un caso
+COLGADO no cuelgue el lote, y a 20 s sigue haciendo exactamente eso — un bucle
+infinito o una promesa que nunca resuelve siguen fallando. Lo único que se quita
+es que el runner llame «fallo» a una máquina ocupada.
+
+La alternativa era convertir a import estático los 29 archivos que no usan
+`vi.mock` (los otros 23 lo necesitan para que el mock se aplique antes de cargar
+el módulo). Son 29 diffs en pruebas que hoy funcionan, para arreglar lo mismo que
+arregla una línea.
+
+**Medido después del cambio**: dos vueltas completas de la suite entera. La
+primera, 842 archivos y 11 674 casos, **todo en verde**. La segunda, sólo
+`ops-timeout-y-punto-ciego`, que falla por entorno —necesita una IP que trague
+paquetes y el proxy de esta caja contesta— y ya fallaba antes. Ninguno de los dos
+archivos del defecto volvió a caer.
+
+### Qué NO cubre
+
+- El guardián vigila la CONFIGURACIÓN, no la ausencia de intermitencia: que un
+  flake haya desaparecido no lo puede demostrar una prueba.
+- No toca `hookTimeout` (10 s). No se ha observado caer, y cambiar lo que no se
+  ha visto romper es como se acumulan números que nadie sabe explicar.
+- No convierte los 29 imports dinámicos prescindibles. Queda declarado como
+  trabajo posible, no necesario.
+
+**Prueba.** `src/__tests__/el-tope-por-caso-no-mide-la-maquina.test.ts` (4 casos),
+con techo además de suelo: probada al revés a 5 s (cae el suelo) y a 600 s (cae
+el techo, porque «subir el tope» no puede volverse el martillo con el que se
+esconde un cuelgue real).

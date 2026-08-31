@@ -549,7 +549,25 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * habría sido peor: un peso es una penalización, y una penalización se
      * compensa con volumen.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409],
+    /**
+     * 413 es esta familia en su forma más barata de arreglar y más cara de
+     * ignorar: la comprobación que impide acuñar la firma de otro médico
+     * existía, estaba en el servidor y funcionaba — y `grep -rl diseno-url
+     * src/__tests__/` no devolvía nada. No faltaba la defensa: faltaba el
+     * instrumento que avisa el día que alguien se la lleva por delante, que en
+     * una protección de aislamiento entre consultorios es el día que nadie mira.
+     */
+
+    /**
+     * 414 es esta familia sobre el propio INSTRUMENTO. La suite caía en archivos
+     * distintos cada vuelta y el resumen del runner decía «cae este caso» — así
+     * que se buscó contaminación entre pruebas, que no existía. Lo que faltaba
+     * medir era el log entero: el error nunca fue una aserción, era «Test timed
+     * out in 5000ms» dentro de un `await import`. El resumen de un fallo no es
+     * el fallo, y creerle costó un diagnóstico equivocado escrito en un PR.
+     */
+
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414],
   },
   {
     clave: 'hueco_como_dato',
