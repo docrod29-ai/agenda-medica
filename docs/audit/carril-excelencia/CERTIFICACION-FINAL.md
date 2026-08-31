@@ -239,7 +239,7 @@ que no midió es peor que uno que no mide.
 |---|---:|---|---:|---|---:|---|---|---|
 | `/citas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/calendario` | 0 | no | 0 | ok | 0 | **arreglado u66** | ok · parcial **arreglado u73** | n/a ⁴ |
-| `/asistente` | 0 | no | 3 ¹ | ok | 0 | ok | ok | ok |
+| `/asistente` | 0 | no | **0** ¹ | ok | 0 | ok | ok | ok |
 | `/lista-espera` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/finanzas` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/operaciones` | 0 | no | 0 | ok | 0 | ok | ok | ok |
@@ -254,16 +254,19 @@ que no midió es peor que uno que no mide.
 | `/farmacia` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/corte-caja` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/cumplimiento` | 0 | no | 0 | ok | 0 | ok | ok | ok |
-| `/cumplimiento/retencion` | 0 | no | 3 ¹ | ok | 0 | ok | ok | ok |
+| `/cumplimiento/retencion` | 0 | no | **0** ¹ | ok | 0 | ok | ok | ok |
 | `/consultor` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/guia` | 0 | no | 0 | ok | 0 | ok | ok | ok |
 | `/consulta/pac-001` | 0 | no | 0 | ok | 0 | ok | ok | — |
-| `/expediente/pac-001` | 0 | no | 2 ¹ | ok | 0 | ok | ok | — |
+| `/expediente/pac-001` | 0 | no | **0** ¹ | ok | 0 | ok | ok | — |
 | `/mi/[token]` (portal) | 0 | no | — | — | — | — | — | — |
 
-¹ **Los 8 mudos que quedan están todos en archivos ya declarados en
-CROSS_LANE_CONFLICT.** Se dejan medidos, con nombre, y sin tocar: bajar un número
-a cambio de complicarle el merge a otro carril no es una mejora.
+¹ ~~Los 8 mudos que quedan…~~ **Cerrado el 31-ago (unidad 84).** Estaban todos en
+archivos de `CROSS_LANE_CONFLICT` y por eso se dejaron sin tocar; al entrar el
+otro carril en `main` dejaron de estar bloqueados. Siete eran el mismo defecto
+—fondo en línea ganándole al `:hover`— y el octavo no era un defecto: era la
+lista de exclusiones del propio arnés, que no conocía `aria-checked`. **Cero
+mudos en las 22 rutas**, con los techos a 0.
 
 ² `/dashboard` llegó a tener **dos botones «Consulta» imposibles de pulsar** bajo
 el aviso de notificaciones, sin posición de scroll que los liberara (unidad 64).
