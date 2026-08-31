@@ -11,13 +11,14 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus } from '@/types'
 import { getWeekDates } from '@/lib/availability'
-import { hoyISO, fechaISOLocal } from '@/lib/timezone'
+import { hoyISO } from '@/lib/timezone'
 import { ChevronLeft, ChevronRight, Plus, Loader2, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAhoraMinutos } from '@/hooks/useAhoraMinutos'
 import { etiquetaDeCita } from '@/lib/agenda/etiqueta-de-cita'
 import { horasAEnsenar, type DiaDeHorario } from '@/lib/agenda/horas-a-ensenar'
+import { anclaDeRejilla, diaDeRejilla } from '@/lib/agenda/dia-de-rejilla'
 
 /**
  * Semántica VISUAL del estado en la rejilla del calendario.
@@ -72,14 +73,33 @@ const ETIQUETA_PASO: Record<View, string> = { dia: 'Día', semana: 'Semana', mes
 
 export default function CalendarioPage() {
   const router = useRouter()
-  const [baseDate, setBaseDate] = useState(new Date())
+  /**
+   * EL CALENDARIO ABRE EN EL «HOY» DEL CONSULTORIO, no en el del navegador.
+   *
+   * `new Date()` es el reloj del aparato. `hoyISO()` es el día en la zona del
+   * consultorio, y es el que usa TODO lo demás de esta pantalla: la vista de
+   * día, y el resaltado de «hoy» en la cabecera de la semana.
+   *
+   * Cuando los dos no coinciden —y para un consultorio en México con el aparato
+   * en UTC eso pasa TODAS LAS TARDES, de las 18:00 en adelante— la rejilla abría
+   * en la semana siguiente y **el resaltado de hoy desaparecía**: ningún día en
+   * azul, porque el día resaltado no estaba en la semana pintada. El médico
+   * abre su agenda de la tarde y se encuentra la semana que viene, vacía, sin
+   * ancla.
+   *
+   * Medido el 31-ago: el navegador decía «Mon Aug 31», el consultorio decía
+   * 30-ago, y el calendario abría en «31 ago – 6 sep» sin ningún día marcado.
+   *
+   * El mediodía evita los bordes de horario de verano al construir la fecha.
+   */
+  const [baseDate, setBaseDate] = useState(() => anclaDeRejilla(hoyISO()))
   // La ventana de citas se pide desde un mes ANTES de lo que estás viendo, para
   // que navegar hacia atrás traiga esas citas en vez de mostrar el mes vacío.
   const desdeVentana = useMemo(() => {
     const d = new Date(baseDate)
     d.setMonth(d.getMonth() - 1)
-    // fechaISOLocal, no toISOString: este último convierte a UTC y corre el día.
-    return `${fechaISOLocal(d)} 00:00`
+    // `diaDeRejilla`, no `toISOString()`: éste da el día en UTC y corre la fecha.
+    return `${diaDeRejilla(d)} 00:00`
   }, [baseDate])
   const { appointments: allAppointments, loading, error: falloAgenda } = useAppointments(desdeVentana)
   const { config } = useConfig()
@@ -257,7 +277,7 @@ export default function CalendarioPage() {
             date={baseDate}
             hoy={hoy}
             appointments={appointments}
-            onCellClick={(h) => openNew(fechaISOLocal(baseDate), h)}
+            onCellClick={(h) => openNew(diaDeRejilla(baseDate), h)}
             onApptClick={openEdit}
             loading={loading}
           />
@@ -304,11 +324,10 @@ function WeekView({ weekDates, appointments, horarios, onCellClick, onApptClick,
   /*
    * Los siete días en texto, UNA vez. Antes cada fila de hora los volvía a
    * calcular —siete por fila, trece filas— y la cabecera otra vez. Además de
-   * trabajo repetido, cada llamada suelta a `fechaISOLocal` sin zona cuenta en
-   * el trinquete de `timezone-sitios`, que es la lista de sitios a revisar el
-   * día que la zona del consultorio deje de publicarse a tiempo.
+   * trabajo repetido, era una conversión de huso por celda — y ésa era
+   * justamente la que ponía las citas de un día bajo el rótulo de otro.
    */
-  const diasISO = useMemo(() => weekDates.map(d => fechaISOLocal(d)), [weekDates])
+  const diasISO = useMemo(() => weekDates.map(diaDeRejilla), [weekDates])
   const HORAS = useMemo(() => {
     const dias = new Set(diasISO)
     return horasAEnsenar(appointments.filter(a => dias.has(a.fechaHora.slice(0, 10))), horarios)
@@ -490,7 +509,7 @@ function DayView({ date, hoy, appointments, horarios, onCellClick, onApptClick, 
   onApptClick: (a: Appointment) => void
   loading: boolean
 }) {
-  const ds = fechaISOLocal(date)
+  const ds = diaDeRejilla(date)
   const ahoraMin = useAhoraMinutos()
   /**
    * «Hoy» llega de fuera a propósito. Calcularlo aquí añadía una llamada más a
@@ -638,7 +657,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', height: 'calc(100% - 37px)', overflow: 'auto' }}>
         {days.map((d, i) => {
           if (!d) return <div key={i} style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg)', opacity: 0.3 }} />
-          const ds = fechaISOLocal(d)
+          const ds = diaDeRejilla(d)
           const isToday = ds === today
           // Ordenado por hora ANTES del slice(0,3): sin esto, el orden del snapshot
           // (no garantizado cronológico) podía ocultar la cita más temprana del día

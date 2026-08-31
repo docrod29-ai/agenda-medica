@@ -4855,3 +4855,86 @@ build` compila · `arnes:dialogos-teclado` en verde.
 - **WebKit sigue sin medirse.** Todo lo de este carril está medido en Chromium.
 - Un diálogo escrito con `role={'dialog'}` en vez de la forma literal se le
   escapa al golden.
+
+---
+
+## Unidad 77 — la columna rotulada «31» contenía las citas del 30
+
+**DE DÓNDE SALE, y de cómo casi se pierde.** El arnés de las citas fuera de hora
+empezó a fallar **sólo en la vista de semana**, después de que el contenedor
+cruzara la medianoche UTC. La primera reacción fue sospechar del arreglo de la
+unidad 74. Mirar la captura dijo otra cosa, y bastante peor.
+
+Antes de eso hubo que arreglar dos cosas del propio arnés, y las dos merecen
+constar porque las dos producían un rojo falso:
+
+1. **El emulador de auth se había caído.** Firestore seguía en pie, así que la
+   pantalla de acceso salía y el fallo parecía del producto. Se levantó de nuevo
+   y se recreó el usuario **con su UID original** —el que apunta el documento de
+   `clinic_members`—, porque uno nuevo deja al médico sin consultorio.
+2. **El arnés sembraba con la fecha del CONTENEDOR.** El contenedor va en UTC y
+   el consultorio en México: a esa hora eran días distintos, así que se sembraban
+   citas para un día que la pantalla no estaba mirando, y el guion informó que
+   hasta la LISTA las escondía. No las escondía: no existían para ese día.
+
+**EL DEFECTO DE VERDAD, que estaba debajo.** El calendario usaba DOS husos a la
+vez, y en la misma casilla:
+
+- el número de la cabecera salía de `d.getDate()` — el calendario **del aparato**;
+- la llave con la que se buscan las citas de esa casilla salía de
+  `fechaISOLocal(d)`, que convierte el instante a la zona **del consultorio**.
+
+`getWeekDates` fabrica sus siete fechas como **posiciones de calendario** —a
+mediodía, con aritmética local—, no como instantes. Convertirlas de huso las corre
+de día en cuanto el aparato y el consultorio no coinciden. Y encima la semana que
+se abría salía de `new Date()` mientras el resaltado de «hoy» salía de `hoyISO()`.
+
+Medido con el navegador en `Pacific/Kiritimati` (UTC+14) y el consultorio en
+México (UTC−6):
+
+```
+días en la cabecera: 31, 1, 2, 3, 4, 5, 6
+marcados como hoy:  31        ← y hoy, en el consultorio, era el 30
+```
+
+**La columna rotulada «31» estaba marcada como hoy y contenía las citas del 30.**
+Son dos defectos, y el segundo es el que no se ve: abrir en la semana equivocada
+se nota; poner las citas de un día bajo el rótulo de otro, no.
+
+**EL ARREGLO.** Una casilla de rejilla es un **día del calendario**, no un momento
+en la línea del tiempo: se lee por las mismas partes con las que se construyó y se
+rotula (`lib/agenda/dia-de-rejilla`), sin convertir de huso. Y el ancla de la
+rejilla se pone en el día del CONSULTORIO, que es el que usa todo lo demás de la
+pantalla. **Para quien tiene el aparato en la zona de su consultorio —el caso
+normal— no cambia absolutamente nada.**
+
+**PROBADO AL REVÉS, en navegador y en la suite.** Devolviendo `new Date()` y
+`fechaISOLocal`: el arnés marca «la semana abierta no contiene el 30» y «el 30 no
+está marcado como hoy».
+
+**Y UNA TAUTOLOGÍA CAZADA A TIEMPO.** La primera versión del golden «pasó» con el
+defecto puesto, y estuvo a punto de quedarse así: la suite **fija la zona**
+(`vitest.config.ts`: `TZ = America/Mexico_City`), así que en una corrida normal el
+aparato y el consultorio siempre coinciden — justo el caso en que esto no se
+manifiesta. Se comprobó imprimiendo la zona dentro de vitest en vez de darla por
+buena. Con el interruptor que ya existía, `TZ_TESTS=Pacific/Kiritimati`, y la
+conversión devuelta, caen tres casos con el desfase exacto
+(«expected '2025-12-31' to be '2026-01-01'»). Queda escrito en la cabecera del
+golden, porque el siguiente que lo lea merece saberlo.
+
+**COMPUERTAS.** `vitest` 11 986 de 11 987 —sólo `ops-timeout-y-punto-ciego`— ·
+lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run
+build` compila · **trinquete de interfaz sin regresión (69 combinaciones)** · los
+cinco arneses de este carril en verde.
+
+**RESIDUAL_RISK.**
+
+- **No se cubre el cambio de día con la pantalla ABIERTA**: a medianoche del
+  consultorio, `baseDate` sigue donde estaba. Es el estado inicial lo que se
+  arregló, no un reloj vivo.
+- **La vista de MES no se miró.**
+- Sólo se prueba una zona **por delante** del consultorio. La simétrica —por
+  detrás— produce el defecto espejo y **no se vigila**.
+- El resto del producto sigue usando `fechaISOLocal` donde toca: esto cambia
+  **sólo** la rejilla del calendario, que es donde las fechas son casillas y no
+  instantes.

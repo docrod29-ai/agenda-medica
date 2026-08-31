@@ -41,8 +41,22 @@ const PROYECTO = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? 'demo-nexusmed-v
 const CLINICA = process.env.CLINICA ?? 'consultorio-demo-v10'
 const ADMIN = { 'Content-Type': 'application/json', Authorization: 'Bearer owner' }
 
-const HOY = new Date()
-const hoyISO = `${HOY.getFullYear()}-${String(HOY.getMonth() + 1).padStart(2, '0')}-${String(HOY.getDate()).padStart(2, '0')}`
+/**
+ * «HOY» EN LA ZONA DEL CONSULTORIO, no en la del contenedor.
+ *
+ * La primera versión usaba la fecha local de la máquina y **dio un falso
+ * positivo el 31-ago**: el contenedor va en UTC y a esa hora en México todavía
+ * era día 30, así que se sembraban citas para un día que la pantalla no estaba
+ * mirando y el guion informó que el calendario —y hasta la LISTA— las escondía.
+ * No las escondía: no existían para el día que se estaba viendo.
+ *
+ * El producto calcula su «hoy» con la zona del consultorio. El arnés tiene que
+ * calcularlo igual, o mide otro día y lo llama defecto.
+ */
+const ZONA = process.env.ZONA_CONSULTORIO ?? 'America/Mexico_City'
+const hoyISO = new Intl.DateTimeFormat('en-CA', {
+  timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date())
 const FUERA = ['06:30', '20:30']
 const docId = (h) => `arnes-fuera-de-hora-${h.replace(':', '')}`
 
