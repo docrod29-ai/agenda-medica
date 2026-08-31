@@ -749,10 +749,19 @@ function AsistenteInner() {
                   <button
                     key={h}
                     onClick={() => setHoraSeleccionada(h)}
+                    /*
+                      Igual que las tarjetas de día, y por lo mismo: `nx-chip`
+                      pone el fondo —en línea le ganaba al `:hover` y estas ocho
+                      horas, que son LO que se pulsa para agendar, no acusaban el
+                      puntero—, `aria-pressed` dice cuál está elegida, y el tinte
+                      deja de ser un `rgba(61,90,254,0.15)` escrito a mano para
+                      ser `--nexus-soft`.
+                    */
+                    className="nx-chip"
+                    aria-pressed={horaSeleccionada === h}
                     style={{
                       padding: '8px 4px', borderRadius: 8, fontSize: 13, fontWeight: 500,
                       border: horaSeleccionada === h ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: horaSeleccionada === h ? 'rgba(61,90,254,0.15)' : 'var(--s2)',
                       color: horaSeleccionada === h ? 'var(--teal)' : 'var(--text)',
                       cursor: 'pointer', transition: 'all var(--mov-rapido) var(--mov-curva)',
                     }}

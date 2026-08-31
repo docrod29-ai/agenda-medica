@@ -192,11 +192,20 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       {/* SEARCH / COMMAND — quinto contexto, es acción, no ruta */}
+      {/*
+        El fondo lo pone `nx-acc-caja`: en línea le ganaba al `:hover` y este
+        botón no acusaba el puntero pese a estar a la vista en todas las
+        pantallas. El gemelo de `Sidebar.tsx` tenía el MISMO defecto y se arregló
+        a la vez — es la familia de siempre («la lección se aprende en un
+        componente y no en el de al lado»), y aquí los dos componentes pintan el
+        mismo control.
+      */}
       <button
         onClick={abrirBusqueda}
+        className="nx-acc-caja"
         style={{
           display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-          background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10,
+          border: '1px solid var(--border)', borderRadius: 10,
           padding: '8px 12px', margin: '4px 0 10px', cursor: 'pointer', color: 'var(--text3)',
         }}
       >
@@ -233,11 +242,11 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
             clínico — §15). No suma un destino al riel: es un botón que abre un
             panel, y por eso está FUERA del <nav> que cuenta los ≤5 contextos.
             La compuerta de grabación viene dentro de `DisparadorAyuda`. */}
-        <DisparadorAyuda className="nav-item" style={{ color: 'var(--text3)', width: '100%' }}>
+        <DisparadorAyuda className="nav-item nav-item--tenue" style={{ width: '100%' }}>
           <HelpCircle size={16} className="nx-flow-rail-quiet-icon" />
           Ayuda
         </DisparadorAyuda>
-        <button onClick={handleLogout} className="nav-item" style={{ color: 'var(--text3)', width: '100%' }}>
+        <button onClick={handleLogout} className="nav-item nav-item--tenue" style={{ width: '100%' }}>
           <LogOut size={16} className="nx-flow-rail-quiet-icon" />
           Cerrar sesión
         </button>

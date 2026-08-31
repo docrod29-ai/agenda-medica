@@ -112,7 +112,14 @@ await pag.waitForTimeout(9000)
    contaba como mudo**: el guion informó 0 en las 22 rutas. Un cero perfecto es
    la forma que tiene una medición rota de parecer un aprobado. */
 const FOTO = (e) => {
-  const props = ['backgroundColor', 'color', 'filter', 'boxShadow', 'transform', 'borderColor', 'textDecorationLine']
+  /*
+   * `textDecorationColor` lo trajo un falso positivo: el nombre del paciente de
+   * la franja de identidad responde al puntero subiendo el color del SUBRAYADO
+   * —de `--text3` a `--text`, decisión de WCAG 1.4.1 tomada a propósito— y esta
+   * foto sólo miraba `textDecorationLine`, que no cambia. El control estaba
+   * bien; la foto estaba incompleta.
+   */
+  const props = ['backgroundColor', 'color', 'filter', 'boxShadow', 'transform', 'borderColor', 'textDecorationLine', 'textDecorationColor']
   const trozos = []
   for (let n = e; n && n.tagName !== 'MAIN' && n !== document.body; n = n.parentElement) {
     const c = getComputedStyle(n)
@@ -151,7 +158,15 @@ for (const ruta of RUTAS) {
 
   const cuantos = await pag.evaluate(() => {
     let i = 0
-    document.querySelector('main').querySelectorAll('a,button,[role=button]').forEach(e => {
+    /*
+     * TODO EL DOCUMENTO, no sólo `<main>`. Hasta el 31-ago el armazón —el riel,
+     * la barra superior, el pie— no lo miraba nadie, aunque esté en todas las
+     * pantallas y se use más que cualquier control de contenido. Al abrirlo
+     * salió uno mudo de verdad: el buscador «Buscar… ⌘K», con el fondo escrito
+     * en línea ganándole al `:hover`. Al ser el armazón el mismo en todas las
+     * rutas, un defecto suyo aparece en las 22 a la vez, que es lo que debe pasar.
+     */
+    document.querySelectorAll('a,button,[role=button]').forEach(e => {
       const b = e.getBoundingClientRect()
       if (!b.width || e.offsetParent === null) return
       if (e.disabled === true || e.getAttribute('aria-disabled') === 'true') return
@@ -183,6 +198,33 @@ for (const ruta of RUTAS) {
       await pag.waitForTimeout(300)
       const despues = await el.evaluate(FOTO)
       if (antes === despues) {
+        /*
+         * ANTES DE ACUSAR, SE MIRA SI HAY UN VELO ENCIMA.
+         *
+         * La bienvenida es un `position: fixed; inset: 0` con `z-index: 200`.
+         * Mientras está puesta, el `:hover` del ratón cae en ELLA y no en el
+         * control de debajo, así que todo lo que se mida sale «mudo» sin
+         * estarlo. Y no basta con descartarla al entrar en la ruta: aparece con
+         * retraso y se colaba a mitad del recorrido. Pasó de verdad — este guion
+         * acusó de mudo a «Cerrar sesión» en `/consultor`, que está vivo.
+         *
+         * Una medición tomada bajo un velo no es una medición: se para en vez de
+         * publicar un defecto que no existe.
+         */
+        const velo = await pag.evaluate(() => {
+          for (const d of document.querySelectorAll('[role=dialog][aria-modal="true"]')) {
+            const c = getComputedStyle(d)
+            const b = d.getBoundingClientRect()
+            if (c.position === 'fixed' && b.width > innerWidth * 0.8 && b.height > innerHeight * 0.8) return true
+          }
+          return false
+        }).catch(() => false)
+        if (velo) {
+          console.error(`\n  ${ruta}: apareció un diálogo a pantalla completa durante la medición.`)
+          console.error('  Lo que se midiera a partir de ahí sería el velo, no la pantalla. Se para.\n')
+          await nav.close()
+          process.exit(2)
+        }
         const rot = await el.evaluate(e => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 34))
         mudos.push(rot.replace(/\s+/g, ' '))
       }
@@ -206,6 +248,88 @@ for (const ruta of RUTAS) {
   detalle[ruta] = { total: cuantos, mudos }
   console.log(`  ${String(mudos.length).padStart(3)} mudos de ${String(cuantos).padEnd(4)} ${ruta}`)
   if (mudos.length) mudos.slice(0, 6).forEach(m => console.log(`        · ${m}`))
+}
+
+/*
+ * ── Y LOS DIÁLOGOS, QUE SE MIDEN ABIERTOS ──────────────────────────────────
+ *
+ * Un control dentro de un diálogo no existe hasta que el diálogo se abre, así
+ * que el recorrido por rutas de arriba no lo ve nunca. `arnes:dialogos-teclado`
+ * sí los abre, pero mira el TECLADO —foco y Escape—, no el puntero.
+ *
+ * Medido el 31-ago al abrirlos por primera vez: el modal de agendar, limpio; el
+ * panel de ayuda, **dos mudos** —el enlace «Guía» y la aspa de cerrar—, los dos
+ * con el estilo en línea ganándole al `:hover`, que es el defecto de siempre.
+ *
+ * Sólo se miran los dos que este guion sabe abrir. Los que piden un estado
+ * difícil —un cobro a medias, una firma— siguen sin mirarse, y no estar aquí
+ * significa que NO se vigilan.
+ */
+const mudosDeDialogos = []
+{
+  /* Se reutiliza la pestaña que YA tiene sesión: una nueva iría a `/login` y
+     el producto la rebotaría al tablero, que fue lo que pasó la primera vez. */
+  const pagD = pag
+  await pagD.goto(`${BASE}/citas`, { waitUntil: 'domcontentloaded' })
+  await pagD.waitForTimeout(8000)
+  for (const t of [/^saltar$/i, /^entendido$/i]) {
+    const b = pagD.locator('button:visible').filter({ hasText: t }).first()
+    if (await b.count().catch(() => 0)) { await b.click().catch(() => {}); await pagD.waitForTimeout(700) }
+  }
+
+  const DIALOGOS = [
+    {
+      nombre: 'panel de ayuda',
+      sel: '[role=dialog][aria-label="Asistente de ayuda"]',
+      abrir: async () => { await pagD.locator('[aria-label="Abrir ayuda"]').first().click({ timeout: 5000 }) },
+    },
+    {
+      nombre: 'modal de agendar',
+      sel: '[role=dialog]',
+      abrir: async () => {
+        const m = pagD.locator('button:visible[aria-label^="Más acciones"]').first()
+        await m.click({ timeout: 5000 })
+        await pagD.waitForTimeout(1000)
+        await pagD.locator('button:visible, [role=menuitem]:visible').filter({ hasText: /Editar cita/i }).first().click({ timeout: 5000 })
+      },
+    },
+  ]
+
+  for (const d of DIALOGOS) {
+    await pagD.keyboard.press('Escape').catch(() => {})
+    await pagD.waitForTimeout(800)
+    await d.abrir().catch(() => {})
+    await pagD.waitForTimeout(2800)
+    const cuantosD = await pagD.evaluate(sel => {
+      const caja = document.querySelector(sel)
+      if (!caja) return -1
+      let i = 0
+      caja.querySelectorAll('a,button,[role=button]').forEach(e => {
+        const b = e.getBoundingClientRect()
+        if (!b.width || e.offsetParent === null) return
+        if (e.disabled === true || e.getAttribute('aria-disabled') === 'true') return
+        for (const a of ['aria-pressed', 'aria-checked', 'aria-selected']) if (e.getAttribute(a) === 'true') return
+        e.dataset.acuseDialogo = 'd' + (i++)
+      })
+      return i
+    }, d.sel).catch(() => -1)
+    if (cuantosD <= 0) { console.log(`  ${'sin abrir'.padEnd(9)} ${d.nombre} — queda sin medir`); continue }
+    const mudosD = []
+    for (let i = 0; i < cuantosD; i++) {
+      const el = pagD.locator(`[data-acuse-dialogo="d${i}"]`)
+      try {
+        const antes = await el.evaluate(FOTO)
+        await el.hover({ force: true, timeout: 3000 })
+        await pagD.waitForTimeout(200)
+        if (antes === await el.evaluate(FOTO)) {
+          mudosD.push((await el.evaluate(e => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 30))).replace(/\s+/g, ' '))
+        }
+      } catch { /* se fue del árbol */ }
+    }
+    console.log(`  ${String(mudosD.length).padStart(3)} mudos de ${String(cuantosD).padEnd(4)} ${d.nombre} (diálogo)`)
+    mudosD.forEach(m => console.log(`        · ${m}`))
+    if (mudosD.length) mudosDeDialogos.push(`${d.nombre}: ${mudosD.length} mudos (${mudosD.join(', ')})`)
+  }
 }
 
 await nav.close()
@@ -239,6 +363,9 @@ for (const ruta of RUTAS) {
   if (medido[ruta] > antes) peores.push(`${ruta}: ${medido[ruta]} mudos, el techo era ${antes}`)
   if (medido[ruta] < antes) mejores.push(`${ruta}: ${medido[ruta]} mudos, el techo decía ${antes}`)
 }
+
+/* Los diálogos no tienen techo por ruta: su cuenta buena es CERO y punto. */
+for (const m of mudosDeDialogos) peores.push(m)
 
 if (peores.length) {
   console.error('\n  MÁS CONTROLES MUDOS QUE ANTES:\n' + peores.map(p => '   · ' + p).join('\n') + '\n')

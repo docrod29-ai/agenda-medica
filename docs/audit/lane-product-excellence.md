@@ -5345,3 +5345,129 @@ toca colores de fondo en tres pantallas.
 - «Acusa el puntero» se mide comparando estilo antes y después de posar el ratón:
   un cambio imperceptible cuenta igual que uno claro. Que se VEA sigue siendo un
   juicio, no una medida.
+
+---
+
+## Unidad 85 — el armazón no lo miraba nadie, y ahí estaba el peor defecto
+
+**DE DÓNDE SALE.** Del riesgo residual de la unidad 84: «el arnés sólo mira
+`<main>`; la barra lateral, la superior y los diálogos quedan fuera». El armazón
+está en **todas** las pantallas y se usa más que cualquier control de contenido,
+y no lo medía nadie.
+
+**LO QUE APARECIÓ AL ABRIRLO, en orden de gravedad:**
+
+**1 · En `/consultor`, «Cerrar sesión» y «Ayuda» no se podían pulsar.** La barra
+de preguntas es `position: fixed; bottom: 0; left: 0; right: 0` — y en escritorio
+el riel ocupa los primeros 224px, así que la barra se comía sus últimos 89px. No
+es «se ve raro»: `document.elementFromPoint` en el centro del botón devolvía la
+barra, no el botón. Ahora arranca en 224px, y en móvil —donde no hay riel— sigue
+ocupando todo.
+
+Lo encontró el arnés de **estaticidad**, por casualidad: el control salía «mudo»
+porque el `:hover` caía en la barra. El que debía cazarlo —`arnes:nada-tapa`—
+también miraba sólo `<main>`. **Los dos se abren a todo el documento**, y el de
+solapes queda probado al revés: con la barra devuelta a `left: 0` canta 1 control
+tapado; con el arreglo, 0.
+
+**2 · El buscador «Buscar… ⌘K» no acusaba el puntero** — el fondo en línea
+ganándole al `:hover`, otra vez. Y estaba **duplicado**: `Sidebar.tsx` y
+`FlowRail.tsx` pintan el mismo control, y arreglé primero el que no se renderiza.
+La familia de siempre, con el matiz de que aquí los dos componentes existen a la
+vez. Se arreglaron los dos.
+
+**3 · Los tres botones del aviso de notificaciones** —«Activar», «Después» y la
+X— tenían el mismo defecto. `nx-acc-fuerte` y `nx-acc-plana`.
+
+**4 · «Ayuda» y «Cerrar sesión» del pie del riel.** Su tono más callado
+(`--text3`) iba en línea y le ganaba al `:hover`. Se conserva el tono con
+`.nav-item--tenue` y se le devuelve la respuesta.
+
+**Y DOS FALSOS POSITIVOS QUE ERAN DEFECTOS DE MI ARNÉS, no del producto:**
+
+- **El nombre del paciente** de la franja de identidad responde subiendo el color
+  del **subrayado** —decisión de WCAG 1.4.1 tomada a propósito— y la foto de
+  estilos sólo miraba `textDecorationLine`, que no cambia. Faltaba
+  `textDecorationColor`.
+- **«Cerrar sesión» en `/consultor`** salía mudo *además* por la barra de arriba,
+  pero antes de dar con eso el guion también me acusó por la **bienvenida**: es
+  un `fixed; inset: 0` que aparece con retraso, y mientras está puesta el
+  `:hover` cae en ella y todo sale mudo. Ahora, antes de acusar a un control, se
+  comprueba que no haya un velo a pantalla completa; si lo hay, **se para** en
+  vez de publicar un número falso.
+
+**MEDIDO DESPUÉS: 0 mudos en las 22 rutas con el documento entero, y 819
+controles mirados sin uno solo tapado.**
+
+**COMPUERTAS.** `vitest` 11 993 de 11 994 —`ops-timeout-y-punto-ciego`— · lint 95
+= techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run build`
+compila · trinquete de interfaz sin regresión.
+
+**UN GUARDIÁN MÁS ANCLADO EN LA FORMA, el cuarto de este carril.**
+`v15-push-optin-no-tapa-el-pulgar` pedía `className="nx-push-optin-accion"` con
+las comillas pegadas y se puso rojo al sumar la clase del puntero. La clase
+seguía puesta y los 44px seguían aplicándose. Reescrito para comprobar que la
+clase **esté**, no que sea la única, y probado al revés quitándosela a un botón.
+
+**Y EL BUILD ME ENGAÑÓ UNA VEZ.** El trinquete de interfaz falló con «la página
+cargó SIN hoja de estilo» —tras un build donde el proxy tumbó la petición a
+`fonts.googleapis.com`—. No era un defecto: era `.next` a medias. El propio
+guion dice qué hacer («borra .next, construye, arranca y vuelve a medir»), y con
+eso quedó limpio. Un arnés que explica cómo desmentirlo vale el doble.
+
+**RESIDUAL_RISK.**
+
+- **Los diálogos siguen sin medirse para estaticidad**: se miden abiertos sólo en
+  `arnes:dialogos-teclado`, y ése mira teclado, no puntero.
+- El portal del paciente (`/mi/[token]`) sigue fuera de las 22 rutas.
+- «Acusa el puntero» sigue siendo un cambio de estilo cualquiera: uno
+  imperceptible cuenta igual que uno claro.
+
+---
+
+## Unidad 86 — los diálogos, y las ocho horas que se pulsan para agendar
+
+**DE DÓNDE SALE.** Del riesgo residual de la unidad 85: «los diálogos siguen sin
+medirse para estaticidad». Un control dentro de un diálogo **no existe** hasta
+que el diálogo se abre, así que el recorrido por rutas no lo ve nunca.
+`arnes:dialogos-teclado` sí los abre, pero mira el TECLADO —foco y Escape—, no el
+puntero.
+
+**LO QUE SALIÓ AL ABRIRLOS.** El modal de agendar, limpio. El panel de ayuda,
+**dos mudos**: el enlace «Guía» y la aspa de cerrar, los dos con el estilo en
+línea ganándole al `:hover`. Arreglados con `nx-enlace-riel` y `nx-acc-plana`.
+
+**Y UN HALLAZGO QUE NO BUSCABA, mayor que el anterior.** Al volver a medir,
+`/asistente` pasó de 11 controles a 23 y saltaron **ocho mudos**: las **horas
+disponibles** —09:00, 11:00, 12:00…—, que son literalmente lo que se pulsa para
+agendar una cita. No habían aparecido antes porque en la medición de la unidad 84
+no había ninguna franja pintada; el trinquete las vio en cuanto hubo datos que las
+hicieran salir.
+
+Mismo defecto y **el mismo azul escrito a mano** que las tarjetas de día
+(`rgba(61,90,254,0.15)`). `nx-chip` + `aria-pressed`, y el tinte pasa a
+`--nexus-soft`.
+
+Eso deja una lección que vale más que el arreglo: **un trinquete a 0 sólo vigila
+lo que se llegó a pintar el día que se midió.** Una pantalla con estado —y
+`/asistente` es un formulario de varios pasos— esconde controles hasta que se
+llega a ellos.
+
+**PROBADO AL REVÉS.** Devolviendo el enlace «Guía» a su estilo en línea y
+recompilando, el arnés canta `panel de ayuda: 1 mudos (Guía)` y las 22 rutas se
+quedan en 0 — discrimina entre el diálogo y las pantallas.
+
+**COMPUERTAS.** `vitest` 12 012 de 12 013 —`ops-timeout-y-punto-ciego`— · lint 95
+= techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run build`
+compila · trinquete de interfaz sin regresión · `arnes:dialogos-teclado` en verde
+· `arnes:acuse-puntero` en verde con los dos diálogos dentro.
+
+**RESIDUAL_RISK.**
+
+- **Sólo se abren dos diálogos.** Los que piden un estado difícil —un cobro a
+  medias, una firma, un laboratorio— siguen sin mirarse, y no estar en la lista
+  significa que **no se vigilan**.
+- **Y lo que enseñó `/asistente` sigue siendo verdad para el resto**: los
+  formularios de varios pasos esconden controles hasta que se llega a ellos, y
+  este arnés mide una sola pantalla por ruta. Lo que no se pintó, no se midió.
+- El portal del paciente sigue fuera de las 22 rutas.

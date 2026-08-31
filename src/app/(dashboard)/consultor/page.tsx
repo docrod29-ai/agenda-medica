@@ -320,7 +320,16 @@ export default function ConsultorPage() {
       </div>
 
       {/* Barra de pregunta fija abajo */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
+      {/*
+        LA BARRA NO EMPIEZA EN EL BORDE DE LA VENTANA: EMPIEZA DONDE ACABA EL RIEL.
+        Con `left: 0` esta barra fija tapaba los 89px de abajo del riel de
+        navegación —«Ayuda», «Cerrar sesión» y el correo—, que en escritorio
+        ocupa los primeros 224px. No era «se ve raro»: el botón de cerrar sesión
+        quedaba debajo y no se podía pulsar. Se vio midiendo qué elemento
+        contesta en el centro del botón (`elementFromPoint`), no leyendo el CSS.
+        En móvil el riel no existe, así que la barra vuelve a ocupar todo.
+      */}
+      <div className="nx-consultor-barra" style={{ position: 'fixed', bottom: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             value={pregunta}

@@ -44,13 +44,13 @@
 | `/teleconsulta/[citaId]` | paciente | ✅ | 112 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
-| `/asistente` | medico | ✅ | 854 | 0 | — | ✅ | — |
+| `/asistente` | medico | ✅ | 863 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 843 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1213 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2669 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 7326 | 7 | — | ✅ | ✅ |
-| `/consultor` | medico | ✅ | 346 | 0 | — | ✅ | — |
+| `/consultor` | medico | ✅ | 355 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 341 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 279 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 1041 | 0 | — | ✅ | — |
