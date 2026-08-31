@@ -214,6 +214,66 @@ export interface TareaClinica {
  */
 export type AvisoAlPaciente = 'avisado' | 'no_avisado' | 'no_aplica'
 
+/**
+ * DE QUÉ MANERA CONSTA EL AVISO — decisión del dueño, 31-ago-2026 (D-028).
+ *
+ * El censo pedía «qué destinatarios cuentan»: hasta hoy sólo constaba sí /
+ * todavía no / no hacía falta, **sin a quién ni por qué vía**.
+ *
+ * El dueño decidió que **las cuatro cuentan como avisado**, con estas palabras:
+ * «al que sea». Así que ninguna de ellas vale menos que otra a la hora de
+ * marcar el cierre — lo que se registra es CUÁL fue, no cuánto vale.
+ *
+ * ── UN CAMPO, UNA PREGUNTA ──────────────────────────────────────────────────
+ *
+ * Tres de las cuatro son *a quién* y la cuarta es *por qué vía*. Guardarlas en
+ * un campo llamado `destinatario` habría sido un campo haciendo dos trabajos,
+ * que es REG-418 — el defecto que este repositorio lleva cazando desde entonces.
+ *
+ * Por eso el campo pregunta una sola cosa: **de qué manera consta**. Las cuatro
+ * respuestas son respuestas a esa pregunta.
+ */
+export type ComoSeAviso =
+  /** Se habló con el paciente. Comunicación de ida y vuelta. */
+  | 'hablado_con_paciente'
+  /** Se habló con un cuidador autorizado. */
+  | 'hablado_con_cuidador'
+  /** Se le entregó a otro médico tratante, que es quien va a actuar. */
+  | 'entregado_a_otro_medico'
+  /**
+   * Se mandó un mensaje. **Sin confirmación de que se leyera.**
+   *
+   * Cuenta como avisado por decisión del dueño, y se guarda distinto de los
+   * otros tres a propósito: este repositorio ya sabe que un mensaje puede morir
+   * sin acuse (REG-432, REG-438), y quien lea el expediente dentro de un año
+   * tiene derecho a distinguir «hablé con él» de «le mandé un mensaje».
+   */
+  | 'mensaje_enviado'
+
+export const COMO_SE_AVISO_ETIQUETA: Record<ComoSeAviso, string> = {
+  hablado_con_paciente: 'Hablé con el paciente',
+  hablado_con_cuidador: 'Hablé con un cuidador',
+  entregado_a_otro_medico: 'Lo tomó otro médico',
+  mensaje_enviado: 'Mandé un mensaje',
+}
+
+/** Los que fueron una conversación de ida y vuelta. */
+const HUBO_CONVERSACION: ReadonlySet<ComoSeAviso> = new Set<ComoSeAviso>([
+  'hablado_con_paciente', 'hablado_con_cuidador', 'entregado_a_otro_medico',
+])
+
+/**
+ * ¿Consta que alguien lo RECIBIÓ, o sólo que se mandó?
+ *
+ * No cambia si cuenta como avisado —el dueño decidió que las cuatro cuentan—,
+ * pero permite que la pantalla lo diga y que un día se pueda contar cuántos
+ * críticos constan sólo por un mensaje sin acuse.
+ */
+export function constaQueLoRecibieron(c: ComoSeAviso | undefined): boolean | null {
+  if (!c) return null   // no se registró: no es «no lo recibieron»
+  return HUBO_CONVERSACION.has(c)
+}
+
 export interface CierreDeTarea {
   /** Qué se decidió. Obligatorio: cerrar sin decisión es cerrar sin cerrar. */
   readonly decision: string
@@ -224,6 +284,13 @@ export interface CierreDeTarea {
   readonly accion?: string
   /** Si se le avisó al paciente. Sin valor = no se registró. */
   readonly avisoAlPaciente?: AvisoAlPaciente
+  /**
+   * De qué manera consta el aviso (D-028). Opcional **a propósito**: exigirlo
+   * convertiría el cierre en un formulario, y un worklist que cuesta se
+   * abandona. Sin valor con `avisado` = se avisó y no se dijo cómo, que es
+   * exactamente lo que pasaba antes de este campo.
+   */
+  readonly comoSeAviso?: ComoSeAviso
   readonly quien: string
   readonly cuando: string
 }
@@ -320,6 +387,23 @@ export function preguntasAlCerrar(
   if (cierre?.avisoAlPaciente) return []
   return ['Este resultado es crítico. ¿Se le avisó a alguien? Cerrar sin contestar deja el expediente diciendo que no consta.']
 }
+
+export const LA_DECISION_DEL_PLAZO =
+  'DECIDIDO por el médico dueño el 31-ago-2026 (D-027): un valor crítico NO '
+  + 'vence. Se le ofrecieron 1 h, 4 h, 24 h y ninguno, y eligió ninguno. Así que '
+  + '`venceEn` no se pone en las tareas de resultado crítico y `estaVencida` no '
+  + 'opina sobre ellas — igual que antes, pero ahora por decisión y no por '
+  + 'conservación. Lo que sigue en pie es que se PREGUNTA al cerrar: sin plazo, '
+  + 'la pregunta es la única defensa que queda.'
+
+export const LA_DECISION_DE_QUIEN_CUENTA =
+  'DECIDIDO por el médico dueño el 31-ago-2026 (D-028): cuentan como avisado '
+  + 'hablar con el paciente, hablar con un cuidador autorizado, entregárselo a '
+  + 'otro médico tratante Y un mensaje enviado — «al que sea», con sus palabras. '
+  + 'Se le advirtió expresamente de que un mensaje puede morir sin acuse '
+  + '(REG-432, REG-438) y aun así cuenta. Lo que SÍ se guarda es CUÁL de las '
+  + 'cuatro fue, para que quien lea el expediente dentro de un año distinga '
+  + '«hablé con él» de «le mandé un mensaje».'
 
 export const POR_QUE_EL_CRITICO_PREGUNTA_Y_NO_BLOQUEA =
   'Si el aviso de un valor crítico debe ser obligatorio, y en cuánto tiempo, es ' +

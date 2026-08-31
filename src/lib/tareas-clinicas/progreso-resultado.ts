@@ -33,7 +33,7 @@
  *
  * Módulo PURO — ninguna consulta a Firestore, ningún cálculo clínico.
  */
-import { avisoRegistrado } from './modelo'
+import { avisoRegistrado, constaQueLoRecibieron } from './modelo'
 import type { EstadoTarea, Prioridad, TareaClinica } from './modelo'
 
 export type EstadoEtapa = 'hecha' | 'actual' | 'pendiente' | 'sin_dato'
@@ -108,6 +108,17 @@ export function progresoResultado(
   const actualEsRevision = !terminal && tieneDueno && !enRevision
   const actualEsCierre = !terminal && enRevision
 
+/**
+ * Cómo se llama la etapa del aviso. «Aviso al paciente» a secas cuando no
+ * consta cómo — que es lo que decía antes de REG-445 y sigue diciendo cuando el
+ * médico no lo detalla, porque el campo es opcional.
+ */
+function etiquetaDelAviso(t: Pick<TareaClinica, 'cierre'>): string {
+  const recibido = constaQueLoRecibieron(t.cierre?.comoSeAviso)
+  if (recibido === null) return 'Aviso al paciente'
+  return recibido ? 'Aviso al paciente (hablado)' : 'Aviso al paciente (por mensaje)'
+}
+
   const marcar = (hecha: boolean, actual: boolean): EstadoEtapa => (hecha ? 'hecha' : actual ? 'actual' : 'pendiente')
 
   return [
@@ -127,7 +138,19 @@ export function progresoResultado(
      * avisó» decide si alguien llama a un paciente, y no puede vivir en dos
      * sitios con la posibilidad de divergir.
      */
-    etapaDeCierre('aviso_paciente', 'Aviso al paciente', avisoRegistrado(t) !== null, cerrada),
+    /**
+     * REG-445 · la etiqueta dice DE QUÉ MANERA, cuando consta.
+     *
+     * El dueño decidió (D-028) que las cuatro vías cuentan como avisado,
+     * incluido un mensaje enviado, sabiendo que un mensaje puede morir sin acuse
+     * — este producto lo mide en dos pantallas (REG-432, REG-438).
+     *
+     * Así que cuenta igual y el estado de la etapa no cambia. Lo que cambia es
+     * que aquí, donde el médico LEE el progreso del resultado, se distingue una
+     * conversación de un mensaje. Sin esto, la decisión se habría guardado en un
+     * campo que nadie mira, que es la familia que este repositorio persigue.
+     */
+    etapaDeCierre('aviso_paciente', etiquetaDelAviso(t), avisoRegistrado(t) !== null, cerrada),
     { clave: 'cerrado', etiqueta: 'Cerrado', estado: marcar(cerrada, actualEsCierre) },
   ]
 }

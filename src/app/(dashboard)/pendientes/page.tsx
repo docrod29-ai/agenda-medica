@@ -53,7 +53,8 @@ import { auth } from '@/lib/firebase'
 import { tareasVivas, tareasCerradasRecientes, cambiarEstado } from '@/lib/tareas-clinicas/firestore'
 import {
   ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO, preguntasAlCerrar,
-  type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente,
+  COMO_SE_AVISO_ETIQUETA,
+  type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente, type ComoSeAviso,
 } from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import {
@@ -353,6 +354,8 @@ export default function PendientesPage() {
   const [decision, setDecision] = useState('')
   const [accion, setAccion] = useState('')
   const [aviso, setAviso] = useState<AvisoAlPaciente | ''>('')
+  /** REG-445 · de qué manera consta el aviso. Opcional. */
+  const [como, setComo] = useState<ComoSeAviso | ''>('')
   const [motivo, setMotivo] = useState('')
   /**
    * REG-437 · «Ya quedó agendada» exige decir A QUÉ CITA.
@@ -582,7 +585,7 @@ export default function PendientesPage() {
   /** Abrir el diálogo de cancelación. Vivía en línea dentro de `Tarjeta`, que
       ahora es un componente de módulo y no ve el estado de la página. */
   const abrirCierre = useCallback((t: TareaClinica) => {
-    setDecision(''); setAccion(''); setAviso('')
+    setDecision(''); setAccion(''); setAviso(''); setComo('')
     setCerrando(t)
   }, [])
 
@@ -797,6 +800,45 @@ export default function PendientesPage() {
               dirá que no consta, no que no se avisó.
             </span>
             {/**
+              * REG-445 · DE QUÉ MANERA consta el aviso (D-028).
+              *
+              * El censo pedía «qué destinatarios cuentan»: hasta hoy sólo
+              * constaba sí / todavía no / no hacía falta, sin a quién ni por qué
+              * vía. El dueño decidió que las cuatro cuentan.
+              *
+              * Sólo aparece si se marcó «Sí, se le avisó» — preguntarlo cuando
+              * la respuesta es «todavía no» sería pedir el detalle de algo que
+              * no ha pasado. Y sigue siendo OPCIONAL: exigirlo convertiría el
+              * cierre en un formulario, y un worklist que cuesta se abandona.
+              */}
+            {aviso === 'avisado' && (
+              <div style={{ display: 'grid', gap: 6, marginTop: 4 }}>
+                <span className="nx-meta">¿De qué manera? (opcional)</span>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {(Object.keys(COMO_SE_AVISO_ETIQUETA) as ComoSeAviso[]).map(valor => (
+                    <Button
+                      key={valor}
+                      size="sm"
+                      variant={como === valor ? undefined : 'secondary'}
+                      onClick={() => setComo(como === valor ? '' : valor)}
+                    >{COMO_SE_AVISO_ETIQUETA[valor]}</Button>
+                  ))}
+                </div>
+                {/**
+                  * Un mensaje cuenta como avisado por decisión del dueño, y aun
+                  * así esto se dice: el sistema YA SABE que un mensaje puede
+                  * morir sin acuse (REG-432, REG-438). Callarlo aquí sería
+                  * esconder algo que el propio producto mide.
+                  */}
+                {como === 'mensaje_enviado' && (
+                  <span className="nx-meta" style={{ color: 'var(--amber)' }}>
+                    Un mensaje enviado no confirma que se leyera. Queda registrado como avisado,
+                    y también queda registrado que fue por mensaje.
+                  </span>
+                )}
+              </div>
+            )}
+            {/**
               * REG-403 · un valor crítico no es un cierre cualquiera.
               *
               * `avisoAlPaciente` es opcional a propósito —exigirlo en cada cierre
@@ -833,6 +875,7 @@ export default function PendientesPage() {
                       decision: decision.trim(),
                       ...(accion.trim() ? { accion: accion.trim() } : {}),
                       ...(aviso ? { avisoAlPaciente: aviso } : {}),
+                      ...(aviso === 'avisado' && como ? { comoSeAviso: como } : {}),
                     },
                   })
                 }

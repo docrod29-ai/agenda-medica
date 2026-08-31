@@ -558,10 +558,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-11.laboratorio', ws: 'WS-11', titulo: 'Un resultado de laboratorio de consultorio genera tarea de revisión',
-    estado: 'PARTIAL',
-    queFalta: 'CORRECCIÓN DEL CENSO (REG-403): tres de los cuatro campos que esta entrada pedía YA EXISTEN, en el sitio correcto y con otro nombre — `revisado` es `estado: cerrada` de la tarea, `revisadoPor` es `cerradaPor` y `revisadoEn` es `cerradaEn`. Ponerlos en el panel es lo que la arquitectura prohíbe, y `laboratorio/firestore.ts` lo tiene escrito bajo el título «DÓNDE VIVE REVISADO»: crearía una segunda fuente de verdad del mismo hecho. Construirlos habría sido construir el defecto, con el censo dando la orden. El cuarto SÍ faltaba y se cerró: nada registraba que un valor crítico se hubiera comunicado, así que «lo vi» y «localicé a alguien» eran el mismo gesto. Ahora el cierre de un crítico PREGUNTA (no bloquea: si el aviso debe ser obligatorio y en cuánto tiempo es política clínica, y fijarla está prohibido). FALTA, y necesita al médico: el plazo máximo entre ver un crítico y avisar, y qué destinatarios cuentan — hoy sólo consta sí/todavía no/no hacía falta, sin a quién ni por qué vía.',
-    artefactos: ['src/lib/tareas-clinicas/modelo.ts'],
-    pruebas: ['src/__tests__/un-critico-visto-no-es-un-critico-avisado.test.ts'],
+    estado: 'PROVEN',
+    evidencia: 'CORRECCIÓN DEL CENSO (REG-403): tres de los cuatro campos que esta entrada pedía YA EXISTÍAN, en el sitio correcto y con otro nombre — `revisado` es `estado: cerrada`, `revisadoPor` es `cerradaPor` y `revisadoEn` es `cerradaEn`. Ponerlos en el panel es lo que la arquitectura prohíbe y `laboratorio/firestore.ts` lo tiene escrito bajo el título «DÓNDE VIVE REVISADO»: crearía una segunda fuente de verdad del mismo hecho. Construirlos habría sido construir el defecto con el censo dando la orden. El cuarto sí faltaba y se cerró: nada registraba que un valor crítico se hubiera comunicado, así que «lo vi» y «localicé a alguien» eran el mismo gesto. REG-445 cerró las DOS preguntas que quedaban, las dos del médico dueño: (D-027) un crítico NO vence —se ofrecieron 1 h, 4 h, 24 h y ninguno—, así que la pregunta al cerrar es la única defensa y hay guardián que cae si alguien la quita; y (D-028) cuentan las cuatro vías, incluido un mensaje enviado, advertido de que puede morir sin acuse (REG-432/438). Se guarda CUÁL fue, en un campo que pregunta una sola cosa —de qué manera consta— para no repetir REG-418, y el progreso del resultado lo distingue: «(hablado)» / «(por mensaje)». El trinquete de conexión cazó que el lector quedaba sin llamador y se conectó ahí.',
+    comando: 'npx vitest run src/__tests__/de-que-manera-consta-el-aviso-de-un-critico.test.ts',
+    resultado: '16 casos verdes. Probado al revés cuatro veces.',
+    artefactos: ['src/lib/tareas-clinicas/modelo.ts', 'src/lib/tareas-clinicas/progreso-resultado.ts'],
+    pruebas: ['src/__tests__/de-que-manera-consta-el-aviso-de-un-critico.test.ts', 'src/__tests__/el-cierre-se-llena-no-se-adivina.test.ts'],
   }),
   R({
     id: 'WS-11.interconsultas-imagen', ws: 'WS-11', titulo: 'Interconsultas, referencias e imagen dentro del ciclo',

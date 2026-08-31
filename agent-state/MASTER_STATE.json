@@ -19,17 +19,18 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
+    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/product/DECISION_REGISTER.md",
-    " M docs/product/PROGRAMAS-EN-VUELO.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts",
+    " M src/app/(dashboard)/pendientes/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/programa/requisitos.ts"
+    " M src/lib/programa/requisitos.ts",
+    " M src/lib/tareas-clinicas/modelo.ts",
+    " M src/lib/tareas-clinicas/progreso-resultado.ts",
+    "?? src/__tests__/de-que-manera-consta-el-aviso-de-un-critico.test.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +66,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 295,
+    "regsEnElLedger": 296,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 865,
-    "casosDePrueba": 10881,
+    "archivosDePrueba": 866,
+    "casosDePrueba": 10897,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

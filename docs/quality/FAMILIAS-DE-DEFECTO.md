@@ -36,14 +36,14 @@ Eso cambia dónde conviene mirar mañana.
 | Pérdida de datos | 11 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
-| *Decisión del médico dueño, no defecto* | 6 | Cambiaron el comportamiento, pero nada estaba roto — y una de ellas no cambió ni una línea: sólo dejó de regir por conservación |
+| *Decisión del médico dueño, no defecto* | 7 | Cambiaron el comportamiento, pero nada estaba roto — y una de ellas no cambió ni una línea: sólo dejó de regir por conservación |
 | Al modelo de datos le faltaba un eje | 2 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
 
 ---
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 91 de 295, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 91 de 296, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-442** (31-ago-2026), y con él son **cinco este

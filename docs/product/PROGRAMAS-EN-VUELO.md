@@ -8,7 +8,7 @@ para que «quedan N accionables» no vuelva a leerse como si fuera el producto e
 
 | Programa | Carril | Requisitos | Abiertos | Fuente |
 |---|---|---|---|---|
-| Ausculta — Master Completion Loop | master | 80 | 33 | `src/lib/programa/requisitos.ts` |
+| Ausculta — Master Completion Loop | master | 80 | 32 | `src/lib/programa/requisitos.ts` |
 | V9 — Experiencia del paciente y diseño | compartido | 25 | 5 | `agent-state/BACKLOG.json` |
 | V10 — Excelencia visual | product-excellence | 39 | 27 | `agent-state/V10_BACKLOG.json` |
 

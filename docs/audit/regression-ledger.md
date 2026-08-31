@@ -17749,3 +17749,71 @@ conservación» ahora dice quién lo decidió, cuándo, y **qué se descartó** 
 decisión sin sus alternativas no se puede revisar dentro de seis meses.
 
 **Prueba.** `src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts` (13 casos).
+
+---
+
+## REG-445 — «avisado» no decía a quién ni por qué vía
+
+**Eje.** WS-11.laboratorio. **Fecha.** 31-ago-2026.
+
+Dos decisiones más del dueño. Con ellas `WS-11.laboratorio` pasa de `PARTIAL` a
+`PROVEN`.
+
+### D-027 · un crítico no vence
+
+Se le ofrecieron 1 h, 4 h, 24 h y «que no venza nunca». Eligió el último, que es
+lo que ya regía. Así que `venceEn` no se pone y `estaVencida` no opina sobre un
+crítico — igual que antes, ahora por decisión.
+
+Lo que queda en pie, y este golden lo fija: **sin plazo, la pregunta al cerrar es
+la única defensa**. Si alguien la quitara, un crítico podría cerrarse sin que
+conste nada y sin que nada venciera nunca — «lo vi» y «localicé a alguien»
+otra vez indistinguibles, que es lo que hace crítico a un valor crítico.
+
+### D-028 · las cuatro vías cuentan
+
+Hablar con el paciente, hablar con un cuidador autorizado, entregárselo a otro
+médico tratante **y un mensaje enviado**. Con sus palabras: «al que sea».
+
+**Se le advirtió** de que un mensaje puede morir sin acuse —no es una suposición:
+este repositorio lo mide desde REG-432 y REG-438, con una pantalla de mensajes
+que se rindieron y otra de respuestas del bot que no salieron— y eligió que
+cuente igual. Cuenta.
+
+Lo que se construyó es la otra mitad: **se guarda cuál de las cuatro fue**, para
+que quien lea el expediente dentro de un año distinga «hablé con él» de «le mandé
+un mensaje».
+
+### Un campo, una pregunta
+
+Tres de las cuatro opciones son *a quién* y la cuarta es *por qué vía*.
+Guardarlas en un campo llamado `destinatario` habría sido un campo haciendo dos
+trabajos — REG-418, el defecto que este repositorio lleva cazando desde entonces.
+El campo pregunta una sola cosa: **de qué manera consta**.
+
+Es opcional, como `avisoAlPaciente` y por la misma razón: exigirlo convierte el
+cierre en un formulario, y un worklist que cuesta se abandona. Sin valor con
+`avisado` significa lo mismo que significaba antes de que el campo existiera.
+
+### Y el trinquete de conexión me cazó otra vez
+
+`constaQueLoRecibieron` quedó exportado **sin un solo llamador** — cuarta vez en
+esta serie, con REG-437, REG-440 y REG-442. La decisión del dueño se habría
+guardado en un campo que nadie mira.
+
+Se conectó donde el médico ya lee el progreso del resultado: la etapa cambia de
+nombre a «Aviso al paciente (hablado)» o «(por mensaje)». **El estado no cambia**
+—las cuatro cuentan como hechas, que es lo que él decidió—; lo que cambia es cómo
+se llama.
+
+### Qué NO cubre
+
+- **No obliga**, ni el aviso ni su detalle.
+- **No verifica nada**: marcar «hablé con el paciente» no prueba que se hablara.
+  Registra lo que el médico declara, como todo el cierre.
+- **No cruza con el outbox**: marcar «mandé un mensaje» no comprueba que ese
+  mensaje saliera ni que no muriera en la cola. Sería lo siguiente, y necesita
+  atar el cierre a un identificador de mensaje que hoy no existe.
+- **No es una prueba de navegador.**
+
+**Prueba.** `src/__tests__/de-que-manera-consta-el-aviso-de-un-critico.test.ts` (16 casos).
