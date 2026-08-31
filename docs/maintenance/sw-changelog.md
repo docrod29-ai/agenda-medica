@@ -3,14 +3,14 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1175 — REG-373 a REG-412, y las reglas de Firestore que van APARTE
+## v1175 — REG-373 a REG-413, y las reglas de Firestore que van APARTE
 
 **Este bump se prepara SIN su despliegue.** El paquete completo, con lo que se
 declara antes de publicar, vive en
 [`PAQUETE-PRODUCCION-2026-08-30.md`](PAQUETE-PRODUCCION-2026-08-30.md).
 
-**78 commits desde v1174** (28-ago → 30-ago) · 294 archivos · +46 068 / −1 091 ·
-138 archivos de código de producto.
+**84 commits desde v1174** (28-ago → 31-ago) · 299 archivos · +46 589 / −1 100 ·
+138 archivos de código de producto — el mismo número que al declararse.
 
 ### Lo que hay que hacer a mano, y si no se hace queda roto
 
@@ -35,6 +35,9 @@ npx firebase deploy --only firestore:rules,firestore:indexes --project nexomed-a
 
 ### Seguridad clínica y expediente longitudinal
 
+- **REG-413** — la comprobación que impide acuñar una URL firmada del membrete, la
+  firma autógrafa y el sello de otro consultorio existía en el servidor y **no
+  tenía ni una prueba**. No cambia comportamiento: pone el guardián que faltaba.
 - **REG-412** — «Negadas» se pintaba como un alérgeno en el aviso del expediente,
   con severidad y con botón; cada pulsación la añadía otra vez al campo del
   paciente. Lo que se filtra al escribir se filtra ahora también al leer.
