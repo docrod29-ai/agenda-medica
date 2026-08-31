@@ -354,7 +354,21 @@ export default function MiPortalPage() {
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '24px 16px 96px' }}>
-      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+      {/*
+        EL CONTENIDO PRINCIPAL, CON SU PUNTO DE REFERENCIA.
+
+        Esta columna era un `<div>`, así que el portal —la ÚNICA pantalla que
+        ve un paciente— no tenía `<main>`: ni punto al que saltar con «ir al
+        contenido», ni región que anunciar. Seis bloques quedaban fuera de
+        todo landmark (`region` ×6 en axe).
+
+        No lo cazaba nadie porque `landmark-one-main` y `region` son reglas de
+        BUENAS PRÁCTICAS de axe, y el trinquete de interfaz corre sólo las
+        etiquetas WCAG A/AA — donde esta pantalla daba 0 violaciones y pasaba
+        en verde. Del lado del médico eso se sortea; un paciente con lector de
+        pantalla no tiene a dónde saltar.
+      */}
+      <main style={{ maxWidth: 560, margin: '0 auto' }}>
         {/* Encabezado */}
         <div style={{ marginBottom: 24 }}>
           <div className="t-overline" style={{ color: 'var(--nexus)' }}>{sesion.clinica?.nombre || 'Mi portal'}</div>
@@ -778,38 +792,38 @@ export default function MiPortalPage() {
           <ShieldCheck size={13} className="ds-icon" /> Acceso privado y seguro · Ausculta
         </div>
         </>)}
+      </main>
 
-        {/*
-          LOS CINCO DESTINOS — móvil primero.
+      {/*
+        LOS CINCO DESTINOS — móvil primero.
 
-          La especificación fija un máximo de 4-5 destinos primarios en móvil, y
-          cinco es el techo, no el objetivo. Van fijos abajo porque esta pantalla
-          se usa con una mano, de pie, en la sala de espera.
-        */}
-        <nav aria-label="Secciones" className="mi-barra-destinos" style={{
-          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
-          display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
-          background: 'var(--s1)', borderTop: '1px solid var(--border)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        }}>
-          {DESTINOS.map(d => {
-            const activo = destino === d.id
-            return (
-              <button key={d.id} onClick={() => setDestino(d.id)}
-                aria-current={activo ? 'page' : undefined}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                  padding: '10px 4px', minHeight: 56,
-                  color: activo ? 'var(--nexus)' : 'var(--text3)',
-                }}>
-                <d.icono size={20} aria-hidden />
-                <span style={{ fontSize: 'var(--t-overline)' }}>{d.etiqueta}</span>
-              </button>
-            )
-          })}
-        </nav>
-      </div>
+        La especificación fija un máximo de 4-5 destinos primarios en móvil, y
+        cinco es el techo, no el objetivo. Van fijos abajo porque esta pantalla
+        se usa con una mano, de pie, en la sala de espera.
+      */}
+      <nav aria-label="Secciones" className="mi-barra-destinos" style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
+        display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
+        background: 'var(--s1)', borderTop: '1px solid var(--border)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+        {DESTINOS.map(d => {
+          const activo = destino === d.id
+          return (
+            <button key={d.id} onClick={() => setDestino(d.id)}
+              aria-current={activo ? 'page' : undefined}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                padding: '10px 4px', minHeight: 56,
+                color: activo ? 'var(--nexus)' : 'var(--text3)',
+              }}>
+              <d.icono size={20} aria-hidden />
+              <span style={{ fontSize: 'var(--t-overline)' }}>{d.etiqueta}</span>
+            </button>
+          )
+        })}
+      </nav>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
