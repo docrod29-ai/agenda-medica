@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| **SHA base del paquete** | `cb9c78f16d2e1cd56db880ea5ccca8983338fe67` (`main`) |
+| **SHA base del paquete** | `main` — recontado, ver §0 |
 | **Versión del service worker** | `nexusmed-v1174` → **`nexusmed-v1175`** |
 | **Última línea desplegada** | `86ffe981` — `ops: nexusmed-v1174`, 28-ago. Ver §1 |
-| **Commits que entran** | **78** (63 directos + 15 merges) |
+| **Commits que entran** | **84** — 82 medidos + los 2 de esta corrección. Ver §0 |
 | **Rango de fechas** | 28-ago-2026 → 30-ago-2026 |
-| **Superficie** | 294 archivos · +46 068 / −1 091 líneas · **138 de código de producto** |
+| **Superficie** | 299 archivos · +46 589 / −1 100 líneas · **138 de código de producto — el mismo número** |
 | **Rutas de API nuevas** | **0** |
 | **Pantallas nuevas** | **0** |
-| **CI sobre el SHA base** | 6/6 en verde (PR #407 y #408, runs `33340052759` y `33342089732`) |
+| **CI sobre el SHA base** | 6/6 en verde (PR #407, #408, #409 y #410) |
 | **Deploy de reglas de Firestore** | **OBLIGATORIO Y APARTE** — ver §2 |
 
 ---
@@ -26,9 +26,41 @@
 > pidió": publica todo lo pendiente. Declarar el paquete antes de publicar.»
 > — `.claude/rules/deployment-and-flags.md`
 
-El siguiente `vercel --prod` no publica el arreglo de «Negadas»: publica los **78
+El siguiente `vercel --prod` no publica el arreglo de «Negadas»: publica los **84
 commits** de dos días, de una vez. Esto es la declaración de ese paquete, escrita
 **antes** de publicar y no después.
+
+---
+
+## 0. RECONTADO — el paquete creció después de declararse (31-ago, 01:20 UTC)
+
+Este documento se escribió sobre `cb9c78f1` y declaró **78 commits**. Antes de
+publicar entraron dos PRs más, así que las cifras de arriba **ya no eran las
+suyas**. Se recuentan aquí en vez de dejarlas envejecer, que es exactamente lo que
+§6 avisaba que pasaría.
+
+| | Al declararse | Hoy |
+|---|---:|---:|
+| Commits | 78 | **82** medidos, + 2 de esta corrección = **84** |
+| Archivos | 294 | 299 |
+| **Código de producto** | **138** | **138** |
+
+Que la última fila **no se mueva** es lo único que importa de este recuento. Lo
+que entró después de la declaración es:
+
+- `53eacd5e` + su merge (**#409**) — el propio bump a v1175, el changelog y este
+  documento. O sea: el paquete declarándose a sí mismo.
+- `bdbb9c39` + su merge (**#410**) — **REG-413**, un archivo de prueba nuevo
+  (`la-firma-del-medico-no-se-acuna-para-otro.test.ts`), su entrada en el ledger,
+  su sello y su clasificación.
+- Los 2 de esta corrección, que son este texto.
+
+**Ni una línea de `src/app/`, ni de las rutas de API, ni de ningún motor
+clínico.** El riesgo del despliegue es el mismo que cuando se declaró: lo que se
+añadió son pruebas y papel.
+
+Y el recuento se cuenta a sí mismo a propósito: un acta que se excluye de su
+propia cuenta es un acta que miente por un commit.
 
 ---
 
