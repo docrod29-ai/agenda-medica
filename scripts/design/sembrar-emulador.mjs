@@ -462,6 +462,50 @@ async function main() {
     clinicianContactRules: 'Si algo de esto empeora, comunícate con el consultorio antes de la cita.',
   })
 
+  /**
+   * UNA NOTA FIRMADA CON RECETA — para que «Documentos» del portal no esté vacío.
+   *
+   * `action:'documentos'` no devuelve `medicamentos` en crudo: los cruza por
+   * `medicamentosDeLaReceta`, que separa cinco cosas que no son lo mismo —lo que
+   * el paciente REFIRIÓ que toma, lo que la IA extrajo sin confirmar, lo
+   * suspendido, lo vencido, y lo que el médico INDICÓ—. Sólo lo último baja al
+   * papel.
+   *
+   * Por eso este medicamento lleva `procedenciaClinica: 'se_prescribe_hoy'` y
+   * `estado: 'activa'`: son las DOS condiciones que ese filtro exige. Sembrar
+   * uno con `ya_lo_toma` o en `borrador` dejaría «Documentos» vacío igual, y el
+   * arnés volvería a medir un cero que no vigila nada.
+   *
+   * La nota va `firmada` porque la ruta filtra por `estado == 'firmada'`: una
+   * nota sin firmar no es una receta y no debe llegarle al paciente.
+   *
+   * Medicamento sintético, sin dosis real: lo que se vigila aquí es que la
+   * pantalla se comporte, no lo que dice. Cero pacientes reales.
+   */
+  await escribir(`clinics/${CLINICA}/patients/pac-001/notas/nota-demo-001`, {
+    estado: 'firmada',
+    fechaConsulta: iso(hoy).slice(0, 10),
+    firmadaEn: iso(hoy),
+    medicoNombre: 'Dra. Ximena Alcántara Robledo (sintética)',
+    medicamentos: [
+      {
+        nombre: 'Medicamento sintético A',
+        procedenciaClinica: 'se_prescribe_hoy',
+        estado: 'activa',
+        indicacion: 'Una toma por la mañana, con alimento.',
+      },
+      {
+        // Referido por el paciente: NO debe bajar a la receta. Está aquí a
+        // propósito, para que el sembrado ejercite la frontera y no sólo el
+        // camino feliz.
+        nombre: 'Medicamento sintético B',
+        procedenciaClinica: 'ya_lo_toma',
+        estado: 'activa',
+        indicacion: 'Lo tomaba desde antes de esta consulta.',
+      },
+    ],
+  })
+
   // ── Agenda ────────────────────────────────────────────────────────────────
   for (const c of CITAS) {
     const p = PACIENTES.find(x => x.id === c.pac)
