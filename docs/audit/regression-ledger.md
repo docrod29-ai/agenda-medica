@@ -16973,3 +16973,87 @@ revés: haciendo que una lista vacía cuente como caída, caen dos casos.
 - **No prueba la pantalla.** Que el médico LEA la frase es de navegador.
 
 **Prueba.** `src/__tests__/un-200-ilegible-no-es-no-hay-articulos.test.ts` (16 casos).
+
+---
+
+## REG-435 — el interruptor lo derrotaba un 200 con basura
+
+**Eje.** WS-04 · inyección de fallos. **Fecha.** 31-ago-2026.
+
+### Cómo se descubrió
+
+Yendo a cerrar la salida ilegible de **openFDA**, que REG-434 dejó declarada como
+lo que faltaba. Buscando dónde ponerla resultó que openFDA ya devuelve `null`
+para todo, y su cabecera lo argumenta bien: quien llama trata la ausencia de
+etiqueta como «no hay dosis oficial», y el prompt manda verificar en el Cuadro
+Básico sin inventar cifras. **El defecto que iba a arreglar no estaba ahí.**
+
+El que sí estaba era otro, y en las **dos** fuentes.
+
+### Qué fallaba
+
+Los dos clientes anotaban el éxito del interruptor así:
+
+```ts
+anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuesta(r.status))
+```
+
+`'contesto'` en la máquina de estados es `return CERRADO`: **cierra el circuito y
+olvida los fallos anteriores**. Un proveedor degradado que contesta `200` con una
+página de error —lo que hace un balanceador o una CDN cuando el origen se cae—
+reseteaba su propio interruptor en cada intento y no llegaba nunca a los tres
+fallos seguidos que hacen falta para abrir.
+
+Medido antes de tocar nada:
+
+| Fuente | Fallo | Peticiones | Circuito |
+|---|---|---:|---|
+| openFDA | `503` | 3 de 40 | abierto |
+| openFDA | `200` + HTML | **40 de 40** | ninguno |
+| PubMed | `200` + HTML | **16 de 16** | ninguno |
+
+El interruptor de REG-391 estaba derrotado por el **orden de dos líneas**.
+
+### Causa raíz
+
+Anotar el éxito al ver el código de estado es afirmar que el proveedor está bien
+porque contestó **algo**. La función que lo anotaba no había visto el cuerpo: en
+PubMed ni siquiera podía, porque `ncbiFetch` devuelve la `Response` y quien
+parsea es otro.
+
+Es «ausencia de dato no es dato de ausencia» del lado contrario: **presencia de
+respuesta no es presencia de respuesta útil.**
+
+Había además un camino ciego: en `esearch`, `await r.json()` sobre HTML lanzaba y
+lo comía un `catch` que no anotaba nada, porque `ncbiFetch` ya había devuelto y
+su propio `catch` no lo veía. El parseo pasa ahora a su propio `try`.
+
+### El arreglo, y por qué la primera mitad es una RESTA
+
+1. **No se anota el éxito hasta que alguien ha leído el cuerpo y le sirve.** Eso
+   no añade un fallo: quita un éxito que nadie había comprobado.
+2. Un cuerpo inservible sí cuenta como fallo, **y por eso distingue de quién es**:
+   - **del proveedor** — el cuerpo no es de este protocolo: HTML donde iba JSON,
+     un XML cortado, un objeto sin la forma de la API. Cuenta.
+   - **de quien llama** — el cuerpo *sí* es la respuesta de la API y trae un
+     error nuestro dentro: `{"esearchresult":{"ERROR":"Invalid db name"}}`. **No
+     cuenta**: apagaría la evidencia de todos los médicos por un defecto propio
+     y, siendo constante, el circuito no volvería a cerrarse nunca. Es la misma
+     razón por la que un 401 no abre el circuito de WhatsApp.
+
+Después del arreglo, los tres casos medidos se comportan igual que un `503`
+honesto: 3 peticiones y circuito abierto. Un `ERROR` nuestro sigue haciendo las
+16 sin abrir nada, y dos respuestas rotas seguidas de respuestas sanas no dejan
+ningún circuito abierto.
+
+### Qué NO cubre
+
+- **Sólo PubMed y openFDA.** El gateway de IA y WhatsApp anotan su éxito en otro
+  sitio y con otra forma; no se tocaron, y si tienen el mismo orden es otra
+  unidad.
+- **No mide el tiempo ahorrado**, sólo cuántas peticiones se hacen.
+- **Un cuerpo válido con contenido equivocado** cuenta como proveedor sano, y debe.
+- **No se prueba contra la red real**: el proveedor está simulado; lo que se
+  prueba es la máquina de estados y el orden de las anotaciones.
+
+**Prueba.** `src/__tests__/el-interruptor-lo-derrotaba-un-200-con-basura.test.ts` (10 casos).

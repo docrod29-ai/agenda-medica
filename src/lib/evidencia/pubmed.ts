@@ -15,7 +15,7 @@ import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
 import { permiteLlamar, anotarVeredicto } from '@/lib/red/interruptor'
 import {
   claveCircuitoEvidencia, veredictoDeRespuestaEvidencia, veredictoDeExcepcionEvidencia,
-  FuenteNoConsultada,
+  FuenteNoConsultada, anotarQueLaRespuestaSirvio,
 } from '@/lib/evidencia/fallo-del-proveedor'
 
 import { licenciaDePmc } from '@/lib/evidencia/licencia-pmc'
@@ -93,7 +93,19 @@ function ncbiFetch(url: string, signal?: AbortSignal): Promise<Response> {
     _ultima = Date.now()
     try {
       const r = await fetchConTimeout(url, { signal }, TIMEOUT.evidencia)
-      anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuestaEvidencia(r.status))
+      /**
+       * REG-435 · aquí NO se anota el éxito.
+       *
+       * `'contesto'` cierra el circuito y borra los fallos anteriores, y esta
+       * función no ha visto el cuerpo: sólo sabe que el socket funcionó. Con
+       * NCBI devolviendo 200 y una página de error, anotarlo aquí reseteaba el
+       * interruptor en cada intento — medido: 16 peticiones y ningún circuito.
+       *
+       * Lo anota QUIEN LEE el cuerpo, con `anotarQueLaRespuestaSirvio`, que es
+       * quien puede saber si sirvió. El fallo de transporte sí se anota aquí,
+       * porque de eso sí hay evidencia.
+       */
+      if (!r.ok) anotarVeredicto(clave, veredictoDeRespuestaEvidencia(r.status))
       return r
     } catch (e) {
       anotarVeredicto(clave, veredictoDeExcepcionEvidencia(e))
@@ -233,7 +245,23 @@ async function esearch(term: string, max: number, signal?: AbortSignal, testigo?
   try {
     const r = await ncbiFetch(url, signal)
     if (!r.ok) { if (testigo) testigo.fallo = true; return [] }
-    const d = await r.json()
+    /**
+     * REG-435 · el parseo va en su PROPIO try.
+     *
+     * Un 200 con HTML hace lanzar a `r.json()`, y el `catch` de abajo se lo
+     * comía sin anotar nada —`ncbiFetch` ya había devuelto, así que su catch no
+     * lo veía—. Ése era el camino por el que NCBI degradado hacía las dieciséis
+     * peticiones de la medición sin abrir jamás su circuito.
+     */
+    let d: unknown
+    try {
+      d = await r.json()
+    } catch {
+      if (testigo) testigo.fallo = true
+      /* No es JSON: no es la API de NCBI contestando. */
+      anotarVeredicto(claveCircuitoEvidencia('ncbi'), 'el_proveedor_no_esta')
+      return []
+    }
     /**
      * REG-434 · un 200 con el cuerpo ilegible no es «no hay artículos».
      *
@@ -243,7 +271,16 @@ async function esearch(term: string, max: number, signal?: AbortSignal, testigo?
      * se respondió.
      */
     const lectura = leerEsearch(d)
-    if (!lectura.legible) { if (testigo) testigo.fallo = true; return [] }
+    if (!lectura.legible) {
+      if (testigo) testigo.fallo = true
+      /* REG-435 · un cuerpo que no es de este protocolo cuenta como caída; un
+         error NUESTRO dentro de una respuesta válida, no. */
+      anotarVeredicto(claveCircuitoEvidencia('ncbi'), lectura.deQuien === 'del_proveedor'
+        ? 'el_proveedor_no_esta' : 'no_dice_nada_del_proveedor')
+      return []
+    }
+    /* REG-435 · aquí sí consta que la respuesta sirvió: se leyó y era una. */
+    anotarQueLaRespuestaSirvio('ncbi')
     return (d as { esearchresult: { idlist: string[] } }).esearchresult.idlist
   } catch { if (testigo) testigo.fallo = true; return [] }
 }
@@ -265,7 +302,13 @@ async function efetchArts(ids: string[], signal?: AbortSignal, testigo?: Testigo
    * `esearch` acaba de devolver, así que «cero de N» no tiene lectura inocente.
    */
   const legibilidad = leerEfetch(xml, ids.length)
-  if (!legibilidad.legible) { if (testigo) testigo.fallo = true; return [] }
+  if (!legibilidad.legible) {
+    if (testigo) testigo.fallo = true
+    anotarVeredicto(claveCircuitoEvidencia('ncbi'), legibilidad.deQuien === 'del_proveedor'
+      ? 'el_proveedor_no_esta' : 'no_dice_nada_del_proveedor')
+    return []
+  }
+  anotarQueLaRespuestaSirvio('ncbi')
   const bloques = xml.split('<PubmedArticle>').slice(1)
   const arts: ArticuloPubMed[] = []
   for (const b of bloques) {
@@ -397,6 +440,13 @@ export async function textoCompletoPMCConIdentidad(
       const el = await ncbiFetch(conKey(`${EUTILS}/elink.fcgi?dbfrom=pubmed&db=pmc&retmode=json&id=${pmid}`), opts.signal)
       if (!el.ok) return
       const ej = await el.json()
+      /**
+       * REG-435 · el elink SÍ trajo una respuesta de E-utilities. Que este
+       * artículo no esté en PMC es un dato, no un fallo del proveedor — pero si
+       * esto no se anotara, el camino de PMC dejaría de dar señal de vida y
+       * tres fallos sueltos en un día abrirían un circuito que nadie merece.
+       */
+      if (ej && typeof ej === 'object' && 'linksets' in ej) anotarQueLaRespuestaSirvio('ncbi')
       const dbs = ej?.linksets?.[0]?.linksetdbs ?? []
       const pmcid = dbs.flatMap((l: { links?: string[] }) => l.links ?? [])[0]
       if (!pmcid) return
@@ -405,6 +455,7 @@ export async function textoCompletoPMCConIdentidad(
       const fx = await ncbiFetch(conKey(`${EUTILS}/efetch.fcgi?db=pmc&id=${pmcid}&rettype=xml`), opts.signal)
       if (!fx.ok) return
       const xml = await fx.text()
+      if (/<[a-z]/i.test(xml)) anotarQueLaRespuestaSirvio('ncbi')
       /**
        * ANTES de extraer una sola línea. Extraer y luego decidir dejaría el
        * texto en memoria y a un `return` de distancia de acabar en un prompt.

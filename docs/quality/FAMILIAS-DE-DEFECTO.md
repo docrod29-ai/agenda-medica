@@ -43,10 +43,19 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 83 de 285, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 84 de 286, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-434** (31-ago-2026): tres defensas contra la
+El miembro más reciente es **REG-435** (31-ago-2026), y es la variante más
+incómoda: **una defensa que corre, y que su propio éxito desactiva**. El
+interruptor de circuito de PubMed y openFDA anotaba «contestó» al ver el código
+de estado, y «contestó» borra los fallos anteriores. Un proveedor degradado que
+devuelve `200` con la página de su balanceador reseteaba su interruptor en cada
+intento: 40 peticiones de 40, ningún circuito. Con un `503` honesto, tres. La
+defensa estaba escrita, probada, conectada — y derrotada por el orden de dos
+líneas.
+
+Antes que él, **REG-434** (31-ago-2026): tres defensas contra la
 caída de PubMed, escritas, probadas y **mirando todas al transporte**. NCBI
 contesta `200` con una página de error, el transporte es impecable, y el testigo
 que separa «no se pudo preguntar» de «no hay literatura» se quedaba en `false`.

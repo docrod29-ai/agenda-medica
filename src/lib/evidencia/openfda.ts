@@ -12,6 +12,7 @@ import { permiteLlamar, anotarVeredicto } from '@/lib/red/interruptor'
 import { exigeQueSeBaje } from '@/lib/evidence-integrations/de-donde-se-baja'
 import {
   claveCircuitoEvidencia, veredictoDeRespuestaEvidencia, veredictoDeExcepcionEvidencia,
+  anotarQueLaRespuestaSirvio,
 } from '@/lib/evidencia/fallo-del-proveedor'
 
 const FDA = 'https://api.fda.gov/drug/label.json'
@@ -43,9 +44,30 @@ async function pedir(url: string): Promise<Record<string, unknown> | null> {
     /* WS-06 — misma puerta que PubMed: el host, declarado, antes de salir. */
     exigeQueSeBaje(url)
     const r = await fetchConTimeout(url, {}, TIMEOUT.evidencia)
-    anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuestaEvidencia(r.status))
-    if (!r.ok) return null
-    return await r.json()
+    if (!r.ok) { anotarVeredicto(clave, veredictoDeRespuestaEvidencia(r.status)); return null }
+    /**
+     * REG-435 · el éxito se anota DESPUÉS de leer el cuerpo, no al ver el 200.
+     *
+     * `'contesto'` cierra el circuito y borra los fallos anteriores. Anotándolo
+     * aquí arriba, api.fda.gov devolviendo 200 con una página de error —lo que
+     * hace un balanceador cuando el origen se cae— reseteaba su propio
+     * interruptor en cada intento: medido, 40 peticiones y ningún circuito,
+     * frente a 3 peticiones con un 503 honesto.
+     */
+    let cuerpo: Record<string, unknown>
+    try {
+      cuerpo = await r.json()
+    } catch {
+      /**
+       * Un 200 cuyo cuerpo no es JSON no es la API de openFDA contestando: es
+       * un balanceador contestando por ella. Cuenta como caída — si no, esta
+       * degradación no abriría el circuito nunca, que es lo que se midió.
+       */
+      anotarVeredicto(clave, 'el_proveedor_no_esta')
+      return null
+    }
+    anotarQueLaRespuestaSirvio('openfda')
+    return cuerpo
   } catch (e) {
     anotarVeredicto(clave, veredictoDeExcepcionEvidencia(e))
     return null

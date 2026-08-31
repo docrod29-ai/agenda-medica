@@ -24,10 +24,12 @@
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/evidencia/fallo-del-proveedor.ts",
+    " M src/lib/evidencia/openfda.ts",
     " M src/lib/evidencia/pubmed.ts",
+    " M src/lib/evidencia/una-respuesta-ilegible-no-es-una-respuesta.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/un-200-ilegible-no-es-no-hay-articulos.test.ts",
-    "?? src/lib/evidencia/una-respuesta-ilegible-no-es-una-respuesta.ts"
+    "?? src/__tests__/el-interruptor-lo-derrotaba-un-200-con-basura.test.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 285,
+    "regsEnElLedger": 286,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 857,
-    "casosDePrueba": 10746,
+    "archivosDePrueba": 858,
+    "casosDePrueba": 10756,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
