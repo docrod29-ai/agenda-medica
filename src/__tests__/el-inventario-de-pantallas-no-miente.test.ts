@@ -82,8 +82,21 @@ describe('el inventario de pantallas coincide con el árbol de rutas', () => {
      *
      * Probada al revés: se le quitó una fila al markdown a mano y falló; se
      * regeneró y pasó.
+     *
+     * EL MENSAJE DICE CÓMO ARREGLARLO, y no es cortesía. La comparación es de
+     * documento entero: cuando falla, la salida es un diff de ochenta filas del
+     * que hay que deducir qué pasó. Cazó dos veces el mismo día el mismo olvido
+     * —tocar una pantalla y no regenerar— y las dos costó diagnóstico en vez de
+     * un `node scripts/…`. Una compuerta que sabe la respuesta y no la dice
+     * cobra su peaje cada vez.
      */
-    expect(readFileSync(DOC, 'utf8')).toBe(generar())
+    expect(
+      readFileSync(DOC, 'utf8'),
+      'El inventario no coincide con el árbol. Casi siempre es que se tocó una ' +
+      'pantalla y no se regeneró el documento: corre ' +
+      '`node scripts/design/inventario-de-pantallas.mjs`. No lo edites a mano — ' +
+      'sale de un script a propósito.',
+    ).toBe(generar())
   })
 
   it('cuenta las mismas pantallas que un recorrido independiente del árbol', () => {

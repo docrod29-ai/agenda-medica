@@ -46,7 +46,7 @@
  */
 import { chromium } from 'playwright'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { createHmac } from 'node:crypto'
+import { tokenDelPortal, claveDeRuta } from './token-del-portal.mjs'
 
 const CHROME = process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const BASE = process.env.BASE || 'http://localhost:3300'
@@ -83,27 +83,15 @@ const RUTAS = [
 ]
 
 /**
- * EL PORTAL DEL PACIENTE, que necesita entrar por su propia puerta.
- *
- * No lleva sesión de equipo: lleva un token HMAC. Se acuña aquí con el mismo
- * secreto que el servidor —`PORTAL_PACIENTE_SECRET`— y el mismo cálculo que
- * `lib/patient-token.ts`. Sin la variable no se mide y se dice; medir el portal
- * con un token inválido sería medir su pantalla de «enlace no válido» creyendo
- * que es el portal.
+ * EL PORTAL DEL PACIENTE entra por su propia puerta: un token HMAC, no la
+ * sesión del equipo. El acuñado vive en `token-del-portal.mjs` — UNA sola
+ * copia, porque dos copias de un cálculo de firma divergen y la olvidada
+ * acuñaría un token que el servidor rechaza: el arnés mediría la pantalla de
+ * «enlace no válido» creyendo que mide el portal, y publicaría un cero.
  *
  * Se midió por primera vez el 30-ago y salió con una violación: el botón
  * flotante del tema tapaba el destino «Perfil» de la barra del paciente.
  */
-function tokenDelPortal() {
-  const sec = process.env.PORTAL_PACIENTE_SECRET
-  if (!sec || sec.length < 16) return null
-  const payload = {
-    c: 'consultorio-demo-v10', p: 'pac-001',
-    e: Math.floor(Date.now() / 1000) + 30 * 86400, a: 'agenda', v: 0,
-  }
-  const b64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
-  return `${b64}.${createHmac('sha256', sec).update(b64).digest('base64url')}`
-}
 const ANCHOS = [390, 768, 1440]
 const ALTOS = { 390: 844, 768: 1024, 1440: 900 }
 
@@ -192,7 +180,7 @@ for (const w of ANCHOS) {
     }
     // El token cambia en cada corrida (lleva caducidad): la clave se guarda
     // sin él, o el trinquete no podría comparar dos días seguidos.
-    const clave = ruta.startsWith('/mi/') ? '/mi/[token]' : ruta
+    const clave = claveDeRuta(ruta)
     medido[`${clave}@${w}`] = { axe, ariaCurrent: dom.ariaCurrent, desborde: dom.desborde, erroresDeConsola: errores.length }
     pag.removeAllListeners('console')
   }

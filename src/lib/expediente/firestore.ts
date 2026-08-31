@@ -26,7 +26,12 @@ function notaDoc(clinicId: string, patientId: string, notaId: string) {
 
 /** Defaults defensivos: notas viejas pueden no traer arreglos → el timeline del
  *  expediente reventaba al hacer .map/.length sobre undefined. */
-function normNota(raw: Record<string, unknown>, id: string): NotaMedica {
+/**
+ * Exportada para poder probarla DIRECTAMENTE: es el único sitio por el que pasa
+ * todo lector de notas del producto, así que lo que aquí no se defienda lo paga
+ * la pantalla que lo lea. Ver el golden `un-documento-sin-metadata-no-tumba-el-visor`.
+ */
+export function normNota(raw: Record<string, unknown>, id: string): NotaMedica {
   const n = raw as unknown as Partial<NotaMedica>
   return {
     ...(raw as unknown as NotaMedica),
@@ -35,6 +40,36 @@ function normNota(raw: Record<string, unknown>, id: string): NotaMedica {
     medicamentos: Array.isArray(n.medicamentos) ? n.medicamentos : [],
     alergias: Array.isArray(n.alergias) ? n.alergias : [],
     secciones: Array.isArray(n.secciones) ? n.secciones : [],
+    /*
+     * ── `metadata` FALTABA EN LA LISTA, Y ES LA QUE TIRA LA PANTALLA ─────────
+     *
+     * Las cuatro de arriba se defienden porque un documento viejo puede no
+     * traerlas. `metadata` puede faltar por lo mismo —una nota anterior al
+     * campo, un respaldo restaurado a medias— y NO se defendía, aunque el tipo
+     * la declara obligatoria.
+     *
+     * Lo que pasa entonces no es que falte un dato: el visor medicolegal hace
+     * `nota.metadata.establecimiento` sin guarda **en cada render**, así que la
+     * pantalla entera cae en la frontera de error y el médico ve «Algo salió
+     * mal» con un botón «Reintentar» que no puede funcionar nunca —un fallo de
+     * render determinista da el mismo resultado todas las veces—. El documento
+     * está íntegro en Firestore y es ILEGIBLE desde el producto. Lo mismo le
+     * pasa a la exportación a Word, que hace el mismo acceso.
+     *
+     * Se descubrió sembrando una nota a mano para poder MEDIR esa pantalla: el
+     * sembrador escribió el documento, Firestore lo aceptó, la ruta del portal
+     * lo leyó sin queja —sólo mira `estado` y `medicamentos`— y el visor
+     * reventó. «El dato tiene que LLEGAR», en la frontera entre dos lectores
+     * del mismo documento.
+     *
+     * NO se rellena con valores plausibles: se deja el objeto vacío a propósito.
+     * La pantalla ya sabe declarar lo que falta —«Falta el nombre del
+     * establecimiento. Es dato obligatorio del expediente (NOM-004)»,
+     * «[FALTA CÉDULA PROFESIONAL]», sello «—»—, y eso es lo que tiene que
+     * verse. Inventar un establecimiento sería peor que la caída: sale impreso.
+     * Ausencia de dato no es dato de ausencia.
+     */
+    metadata: (n.metadata ?? {}) as NotaMedica['metadata'],
   }
 }
 

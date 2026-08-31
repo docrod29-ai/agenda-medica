@@ -15282,3 +15282,78 @@ archivos del defecto volvió a caer.
 con techo además de suelo: probada al revés a 5 s (cae el suelo) y a 600 s (cae
 el techo, porque «subir el tope» no puede volverse el martillo con el que se
 esconde un cuelgue real).
+
+---
+
+## REG-415 — una nota sin `metadata` dejaba el documento medicolegal ilegible desde el producto
+
+**Dónde**: `src/lib/expediente/firestore.ts` (`normNota`) ·
+`src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx` · `src/lib/nota-word.ts`
+
+### Qué fallaba
+
+Una nota guardada sin el bloque `metadata` no pintaba un hueco: **tumbaba entera
+la pantalla del documento**. El médico veía «Algo salió mal. Ocurrió un error en
+esta pantalla. Tus datos están a salvo», con un único botón «Reintentar» que no
+puede funcionar nunca — un fallo de render determinista da el mismo resultado
+todas las veces.
+
+La nota seguía íntegra en Firestore. Era ilegible **desde el producto**, y con
+ella se iban la receta, la orden, el PDF y el Word, que salen de esa pantalla.
+
+### Cómo se descubrió
+
+No lo encontró una prueba. Lo encontró querer **medir** esa pantalla: el arnés
+del carril de excelencia no la había abierto nunca, y al sembrar una nota firmada
+para poder abrirla, la nota se escribió sin `metadata`. El sembrador es un
+`.mjs`, así que no pasa por `tsc`: el tipo `NotaMedica` declaraba el campo
+obligatorio y **nadie lo comprobaba**.
+
+Lo que convierte esto en regresión y no en «un fixture mal escrito» es lo que
+pasó después: ese documento cruzó **tres puertas** sin una queja —el escritor lo
+aceptó, Firestore lo aceptó, y la ruta del portal del paciente lo leyó y pintó su
+receta, porque sólo mira `estado` y `medicamentos`— y reventó en el cuarto
+lector. Es «el dato tiene que LLEGAR» entre dos lectores **del mismo documento**:
+que uno lo lea bien no dice nada del otro.
+
+### Causa raíz
+
+`normNota` es el normalizador por el que pasa todo lector de notas del producto.
+Defendía cuatro campos de arreglo —`diagnosticos`, `medicamentos`, `alergias`,
+`secciones`— y no `metadata`. El visor hace `nota.metadata.establecimiento` sin
+guarda **en cada render**; `nota-word.ts` hace el mismo acceso.
+
+Y el visor no es coherente consigo mismo: usa `nota.metadata?.medicoId` en una
+línea y `nota.metadata.establecimiento` en otra. Preguntar «¿este archivo usa
+alguna vez `?.` sobre `metadata`?» daba un **falso verde justo sobre el campo que
+fallaba**. Por eso el guardián mira aparición por aparición.
+
+### El arreglo, y por qué no rellena
+
+`metadata: (n.metadata ?? {}) as NotaMedica['metadata']` — el objeto **vacío**, a
+propósito.
+
+La pantalla ya sabe declarar lo que falta: «Falta el nombre del establecimiento.
+Es dato obligatorio del expediente (NOM-004)», «[FALTA CÉDULA PROFESIONAL]»,
+sello «—». Ése es el comportamiento correcto y estaba escrito desde antes; lo
+único que hacía falta era **dejarlo llegar**. Rellenar con un establecimiento
+plausible sería peor que la caída: apagaría esos avisos y saldría impreso con
+cédula profesional. Ausencia de dato no es dato de ausencia.
+
+### Qué NO cubre
+
+- Sólo se barrió el visor de la nota. Otras pantallas que lean notas pueden tener
+  desreferencias duras propias sobre campos que `normNota` tampoco defiende.
+- El barrido reconoce como guarda que el campo se ponga a prueba **en algún punto
+  del archivo**. Un `&&` en una rama distinta a la del acceso lo daría por bueno
+  sin serlo.
+- No dice nada sobre si los datos que sí llegan son correctos: sólo sobre si la
+  pantalla sobrevive a que falten.
+
+**Prueba.** `src/__tests__/un-documento-sin-metadata-no-tumba-el-visor.test.ts`
+(5 casos). **Probada al revés tres veces**: quitar la defensa de `normNota` → 2
+rojos; rellenar con un establecimiento plausible en vez de dejarlo ausente → 1
+rojo; estrenar en el visor una desreferencia dura nueva → 1 rojo, nombrando el
+campo. Y el propio barrido se corrigió al revés: su primera versión daba por
+bueno `nota.firma.timestamp` porque el nombre aparecía entre comillas invertidas
+**dentro de un comentario** cuarenta líneas más arriba.

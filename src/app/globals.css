@@ -3845,6 +3845,68 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-acc-fuerte:disabled,
 .nx-acc-fuerte[data-inerte] { background: var(--s3); }
 
+/* LOS CINCO DESTINOS DEL PORTAL DEL PACIENTE.
+
+   Los cuatro que no están activos NO acusaban el puntero: el `background: none`
+   y el `color` iban en el `style={{ }}` del JSX, así que ninguna regla de la
+   hoja podía ganarles. Es el mismo defecto de siempre —el estilo en línea se
+   come el `:hover`— pero aquí cae sobre la navegación primaria de la ÚNICA
+   pantalla que ve un paciente: los cinco sitios a los que puede ir.
+
+   El activo se distingue por `aria-current="page"`, que ya llevaba puesto — no
+   por una clase paralela. Mismos peldaños de superficie que `.nx-acc-plana`:
+   sin degradado, sin sombra, sin radio nuevo, sin un color que no exista ya. */
+.nx-destino-portal {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px;
+  min-height: 56px;          /* el mínimo táctil de 44px, con holgura */
+  color: var(--text3);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva);
+}
+.nx-destino-portal:hover { background: var(--s2); color: var(--text); }
+.nx-destino-portal:active { background: var(--s3); }
+
+/* Donde ya estás: se tiñe, y al pasar por encima sigue acusando sin fingir que
+   te lleva a otro sitio. */
+.nx-destino-portal[aria-current='page'] { color: var(--nexus); }
+.nx-destino-portal[aria-current='page']:hover { background: var(--nexus-soft); }
+
+/* LA CONFIRMACIÓN DESTRUCTIVA RELLENA — «Anular cobro», y las que vengan.
+
+   `.btn-danger` ya existe, pero es el destructivo FANTASMA: transparente con
+   tinte rojo al pasar. Sirve para un «Anular» perdido en una fila. NO sirve
+   aquí: en un diálogo de confirmación, la acción destructiva es la acción
+   PRINCIPAL y va rellena. Cambiarla a fantasma sería bajarle el peso visual —
+   un cambio de producto disfrazado de arreglo.
+
+   Faltaba, pues, el hermano destructivo de `.nx-acc-fuerte`. Mismos pasos que
+   él: relleno, un punto más oscuro al pasar, y apagado a superficie muerta
+   cuando está deshabilitado. Sin colores nuevos: `--red` ya existe y el
+   oscurecido se calcula, que es el idioma que ya usa `.nx-acc-riesgo`.
+
+   Se midió con el diálogo en su estado real —con el motivo escrito, porque sin
+   él el botón está apagado y el arnés lo salta— y salió MUDO: el fondo iba en
+   el `style={{ }}` y el `:hover` de la hoja no podía ganarle. */
+.nx-acc-destructiva {
+  background: var(--red);
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.nx-acc-destructiva:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 82%, #000);
+}
+.nx-acc-destructiva:active:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 74%, #000);
+}
+.nx-acc-destructiva:disabled { background: var(--s3); }
+
 /* Fila que despliega un panel: abierta se QUEDA con la superficie puesta, para
    que se vea cuál está abierta sin tener que leer el signo de la flecha. */
 .nx-acc-plana[data-abierto] { background: var(--s2); }
@@ -3905,6 +3967,65 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-segmento { background: transparent; transition: background var(--mov-rapido) var(--mov-curva); }
 .nx-segmento:hover:not([aria-pressed='true']) { background: var(--s3); }
 .nx-segmento[aria-pressed='true'] { background: var(--s3); }
+
+/* ACCIÓN TEÑIDA, con el tinte como parámetro.
+
+   «No cobrar a este paciente (cortesía)» llevaba su `color-mix` morado escrito
+   en el `style={{ }}`, así que no acusaba el puntero — y no es un control
+   cualquiera: exime un cobro.
+
+   Se parametriza en vez de escribir una clase por color, porque ya hay dos
+   tintes distintos en el producto. `.nx-acc-riesgo` es exactamente esta forma
+   con el rojo escrito a fuego; no se refunde aquí para no tocar lo que ya
+   funciona, pero es el candidato natural a plegarse a ésta el día que alguien
+   pase por ahí. */
+.nx-acc-tenido {
+  background: color-mix(in srgb, var(--nx-tinte) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nx-tinte) 35%, transparent);
+  color: var(--nx-tinte);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-acc-tenido:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nx-tinte) 18%, transparent);
+  border-color: color-mix(in srgb, var(--nx-tinte) 55%, transparent);
+}
+.nx-acc-tenido:active:not(:disabled) {
+  background: color-mix(in srgb, var(--nx-tinte) 24%, transparent);
+}
+
+/* ENLACE DENTRO DE UNA FRASE. El acuse es el subrayado, no un cambio de color:
+   así el enlace conserva el tono que le toque donde esté.
+
+   Ojo con lo que lo rompía: `textDecoration: 'none'` escrito en el `style={{ }}`
+   le gana al `:hover` de la hoja igual que un `background` en línea. Quitarlo
+   del JSX es parte del arreglo, no un detalle de limpieza. */
+.nx-enlace-en-texto {
+  text-decoration: none;
+  transition: text-decoration-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-enlace-en-texto:hover { text-decoration: underline; }
+
+/* LA ACCIÓN QUE VIVE DENTRO DE UNA FRASE.
+
+   El caso: «Está tomando: Fármaco A · ya no · Fármaco B · ya no» en la consulta.
+   El «ya no» no es una nota al pie: es el acto de SUSPENDER un medicamento, que
+   este producto trata a propósito como acto y no como olvido, y se escribe en la
+   nota de hoy. Y no acusaba el puntero — `background` y `color` iban en el
+   `style={{ }}`, así que ninguna regla de la hoja podía ganarles.
+
+   Ya va subrayada, así que lo que le falta no es decir «esto se pulsa»: es
+   confirmar CUÁL de las dos se va a pulsar. Por eso el paso es de color y no de
+   caja: dos de estas seguidas dentro de la misma frase, con una caja cada una,
+   convertirían un renglón de texto en una botonera.
+
+   El color de reposo se muda AQUÍ. Dejarlo en el JSX sería dejar el defecto. */
+.nx-accion-en-prosa {
+  color: var(--text3);
+  transition: color var(--mov-rapido) var(--mov-curva);
+}
+.nx-accion-en-prosa:hover:not(:disabled) { color: var(--text); }
 
 /* El enlace que remata un aviso del riel («Citas ›»): se subraya al pasar. Es
    un enlace, y el subrayado es lo que dice que lo es sin añadirle una caja. */
