@@ -5848,9 +5848,13 @@ cantando «sin abrir», porque ahí el cero sí es sospechoso.
   pasadas dejan de ser «próximas». Para el techo da igual (cuenta mudos), pero un
   control que sólo exista con una cita futura podría estar mudo sin que nadie lo
   vea si todas las corridas caen por la tarde. **NOT_PROVEN.**
-- **El paquete liberado se siembra a mano**, no desde `sembrar-emulador.mjs`. Una
-  caja recién sembrada NO tiene esa superficie, y la cara clínica volvería a
-  medirse vacía sin avisar. **NOT_PROVEN.**
+- ~~**El paquete liberado se siembra a mano.**~~ **CERRADO en la misma sesión.**
+  Vive ya en `sembrar-emulador.mjs`, con las tres condiciones de
+  `visibleParaElPaciente` puestas a propósito —un DRAFT no es visible y mediría
+  otra vez la pantalla vacía—. Probado borrando y resembrando desde cero: el que
+  estaba puesto a mano (`paq-arnes-001`) desapareció con el limpiado, y el del
+  sembrador (`paq-demo-001`) sale visible para el paciente. Una caja recién
+  sembrada ya tiene la superficie clínica.
 - **`Documentos` sigue vacío**: no hay recetas firmadas en el sembrado, así que el
   botón de descargar receta **no se ha medido nunca**.
 - La Compuerta 0 sigue vigilando lo que se **autoriza**, no lo que está

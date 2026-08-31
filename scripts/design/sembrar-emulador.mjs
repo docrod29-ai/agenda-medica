@@ -418,6 +418,50 @@ async function main() {
     })
   }
 
+  /**
+   * UN PAQUETE DE VISITA LIBERADO — para que la cara CLÍNICA del portal exista.
+   *
+   * El portal del paciente tiene dos caras: con el enlace de mostrador
+   * (`agenda`) enseña un muro donde con el clínico enseña el plan y las recetas.
+   * Sin un paquete liberado, esa segunda cara se pinta VACÍA y el arnés la mide
+   * en cero — un cero real que no vigila nada, porque no hay nada que vigilar.
+   *
+   * Se sembró a mano la primera vez y quedó declarado como riesgo: una caja
+   * recién sembrada habría vuelto a medir la cara clínica vacía SIN AVISAR. Por
+   * eso vive aquí, donde no se puede olvidar.
+   *
+   * Las TRES condiciones de `visibleParaElPaciente` —RELEASED, approvedBy y
+   * approvedAt— van puestas a propósito: un paquete DRAFT no es visible para el
+   * paciente, y sembrar uno así mediría otra vez la pantalla vacía. Es la regla
+   * «DRAFT hasta que el médico apruebe» de `.claude/rules/patient-facing-ai.md`.
+   *
+   * Todo sintético, como el resto del sembrado. Cero pacientes reales.
+   */
+  await escribir(`clinics/${CLINICA}/patients/pac-001/paquetes_visita/paq-demo-001`, {
+    estado: 'RELEASED',
+    approvedBy: 'medico-demo-sintetico',
+    approvedAt: Date.now(),
+    version: 1,
+    fechaConsulta: iso(hoy).slice(0, 10),
+    encounterSummary: 'Control de presión arterial. Cifras dentro de lo esperado para el plan actual.',
+    medicationInstructions: [
+      { nombre: 'Medicamento sintético A', instruccion: 'Una toma por la mañana, con alimento.' },
+    ],
+    medicationChanges: [
+      { nombre: 'Medicamento sintético A', tipo: 'sin-cambio' },
+    ],
+    orders: ['Estudio de laboratorio de control'],
+    followUp: 'Cita de seguimiento en cuatro semanas.',
+    warningSigns: ['Dolor de cabeza intenso que no cede', 'Visión borrosa'],
+    alergias: 'Penicilina (anafilaxia), sulfas, AINEs',
+    prescriptor: {
+      nombre: 'Dra. Ximena Alcántara Robledo (sintética)',
+      cedulaProfesional: '00000000',
+      especialidad: 'Medicina Interna',
+    },
+    clinicianContactRules: 'Si algo de esto empeora, comunícate con el consultorio antes de la cita.',
+  })
+
   // ── Agenda ────────────────────────────────────────────────────────────────
   for (const c of CITAS) {
     const p = PACIENTES.find(x => x.id === c.pac)
