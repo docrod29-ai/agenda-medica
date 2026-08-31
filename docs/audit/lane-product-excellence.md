@@ -5700,10 +5700,29 @@ llevó a planear una unidad entera para cubrir algo ya cubierto.
   no montó, y aborta con «no está midiendo» si en total ve menos de 100
   controles; `acuse-puntero` tiene las dos salvaguardas equivalentes.
 
-  Lo que de verdad falta es más estrecho: **un suelo POR RUTA**. Una sola ruta
-  que renderice vacía imprime `ok /ruta (0)` y su cero queda absorbido por el
-  total global. El número se ve —no es silencioso— pero nada lo convierte en
-  rojo. **NOT_PROVEN, y estrecho.**
+  Lo que de verdad faltaba era más estrecho: **un suelo POR RUTA**. Una sola ruta
+  que renderice vacía imprimía `ok /ruta (0)` y su cero quedaba absorbido por el
+  total global.
+
+  **CERRADO en la misma sesión.** `acuse-puntero` marca ahora en rojo cualquier
+  ruta que monte su `<main>` y no pinte un solo control. Probado al revés
+  declarando `/guia` vacía:
+
+  ```
+  MÁS CONTROLES MUDOS QUE ANTES:
+   · /guia: 0 controles encontrados — la ruta montó pero no pintó nada
+     que pulsar; eso no es «0 mudos», es «sin medir»
+  ```
+
+  Y el reverso hubo que **repetirlo**, porque el primero no probaba nada: salió
+  `EXIT=2`, que viene de la salvaguarda global —«sólo 42 controles en 2 rutas»—
+  y aborta ANTES de llegar a la sección donde vive la regla. El mensaje nunca se
+  imprimió y estuve a punto de darlo por bueno. **Un `exit != 0` no es «el
+  guardián funcionó»: es «algo falló».** Repetido con las 22 rutas, sale `EXIT=1`
+  —el veredicto— con el mensaje, y las otras 21 rutas siguen en cero: la regla
+  discrimina en vez de teñirlo todo.
+
+  Queda sin cerrar el equivalente en `nada-tapa`. **NOT_PROVEN, y estrecho.**
 
   Se corrige aquí por la misma razón por la que se corrigió la cabecera del
   golden de diálogos en 88c: un riesgo declarado DE MÁS gasta el crédito de la
