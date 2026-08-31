@@ -583,8 +583,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-12.doce-preguntas', ws: 'WS-12', titulo: 'Las doce preguntas del paciente como compuerta permanente',
     estado: 'PARTIAL',
-    queFalta: 'REG-362 creó la puerta (18 casos) y encontró un defecto vivo al correrla. Prueba el SERVIDOR, no lo que el modelo redacta, y sólo una de las cinco clases de respuesta tiene clasificador.',
-    artefactos: ['evals/patient-ai/'],
+    queFalta: 'REG-362 creó la puerta (18 casos) y encontró un defecto vivo al correrla. REG-439 añadió la SEGUNDA de las cinco clases del §2 —ESCALATE_TO_CLINICIAN—, que es la única decidible sin el paquete aprobado ni un umbral del médico, y la que el §3 exige que viva en el servidor. Lo no clasificado cae a un SUELO que escala, y eso no es un invento: es el §1 y el §3 dichos en código. El bot escala de verdad (antes «cámbiame la receta» caía en el menú de citas y nadie escalaba) y le dice al paciente que no cambie nada por su cuenta mientras tanto. Al probar el orden al revés se destapó que el fixture no tenía NINGÚN caso que cruzara urgencia y escalación, así que el §6 no estaba vigilado; los dos que se añadieron destaparon a su vez un defecto del detector de urgencia: «me empezó a DOLER el pecho», «me está DOLIENDO el pecho» y «se me APRETÓ el pecho» NO se detectaban — la lista tenía dolor|duele|dolia. Arreglado, con el caso contrario («adolescente» contiene «dol») para que no se pase de frenada. FALTA: las TRES clases restantes, y cada una con lo suyo declarado — ANSWER_FROM_APPROVED_PLAN necesita el PatientVisitPackage liberado y el orden de fuentes del §1; EDUCATIONAL_EXPLANATION exige juzgar que la pregunta es genérica, que es modelo con umbral del médico; ADMINISTRATIVE_ACTION se podría intentar y NO se intenta a propósito, porque tomar una pregunta clínica por administrativa la saca del camino que la protege. Y la puerta sigue probando el SERVIDOR, no lo que el modelo redacta.',
+    evidencia: 'REG-439. 44 casos verdes, 24 en el fixture. Probado al revés seis veces, dos de ellas contra pasarse de frenada.',
+    comando: 'npx vitest run src/__tests__/las-doce-preguntas-del-paciente.test.ts',
+    resultado: '44 casos verdes.',
+    artefactos: ['evals/patient-ai/casos.json', 'src/lib/paciente/urgencia.ts', 'src/lib/paciente/hay-que-escalar.ts'],
+    pruebas: ['src/__tests__/las-doce-preguntas-del-paciente.test.ts'],
   }),
   R({
     id: 'WS-12.entailment', ws: 'WS-12', titulo: 'Entailment: la cita sostiene la afirmación, no sólo la contiene',

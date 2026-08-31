@@ -101,7 +101,22 @@ const REGLAS: ReadonlyArray<{ motivo: MotivoUrgencia; prueba: (t: string) => boo
     prueba: t =>
       /dolor torac/.test(t) ||
       (/\bpecho\b/.test(t) &&
-        /(dolor|duele|dolia|opresion|oprime|aprieta|apreta|apretando|presion|arde|ardor|punzada|punzante|pesadez|quema)/.test(t)),
+        /**
+         * REG-439 · `doler`, `doliendo` y `apret` faltaban, y son tres formas
+         * completamente normales de decirlo en español:
+         *
+         *   «me empezó a DOLER el pecho»   ·   «me está DOLIENDO el pecho»
+         *   «se me APRETÓ el pecho»
+         *
+         * Las tres salían NO urgentes. Se vio añadiendo al fixture un caso que
+         * cruza escalación y urgencia —«me tomé el doble y me empezó a doler el
+         * pecho»— para vigilar el orden del §6; el orden estaba bien y lo que
+         * falló fue el detector.
+         *
+         * `molestia` NO se añade: es demasiado inespecífico y es justo el ruido
+         * contra el que advierte el §6. Declarado en `LO_QUE_NO_SE_VIGILA`.
+         */
+        /(dolor|duele|dolia|doler|doliendo|opresion|oprime|aprieta|apreta|apret|apretando|presion|arde|ardor|punzada|punzante|pesadez|quema)/.test(t)),
   },
   {
     motivo: 'dificultad_respiratoria',

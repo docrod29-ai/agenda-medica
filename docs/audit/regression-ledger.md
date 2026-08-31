@@ -17307,3 +17307,102 @@ decidió que no la hubiera.
 - **No es una prueba de navegador.**
 
 **Prueba.** `src/__tests__/los-fallos-del-bot-tenian-un-escritor-y-cero-lectores.test.ts` (13 casos).
+
+---
+
+## REG-439 — la segunda clase, y tres formas de decir «me duele el pecho» que no se detectaban
+
+**Eje.** WS-12 · las doce preguntas. **Fecha.** 31-ago-2026.
+
+### Qué faltaba
+
+REG-362 creó la puerta del §7 y su fixture. El censo dejó apuntado lo que
+quedaba: **de las cinco clases del §2, sólo una tenía clasificador** — la
+urgencia. Y el §2 no admite huecos: *«toda respuesta se clasifica ANTES de
+redactarse, y la clase se guarda con la respuesta. Una respuesta sin clase es un
+defecto, no un caso raro»*.
+
+Sin la segunda clase, ocho de los doce casos salían sólo como `no_urgente`, que
+dice lo que un mensaje **no** es. «¿Puedo tomarme el doble?» y «no puedo ver los
+horarios en la página» eran indistinguibles.
+
+### Por qué ésta y no otra
+
+De las cuatro que faltaban, `ESCALATE_TO_CLINICIAN` es la única decidible sin el
+paquete aprobado y sin un umbral del médico — y es la que el §3 exige que viva en
+el servidor: *«si una ruta lo permite y sólo el prompt lo impide, está mal
+construida»*.
+
+`ADMINISTRATIVE_ACTION` se podría intentar y **no se intenta**: el error caro va
+en una sola dirección. Tomar una pregunta administrativa por clínica cuesta que
+la vea una persona; tomar una clínica por administrativa la saca del camino que
+la protege.
+
+### El suelo, que no es un invento
+
+Lo que no se sabe clasificar **escala**. Eso es el §1 —«si un dato no se sostiene
+en un nivel 1-8, no hay respuesta: hay escalación»— y el §3 —«la escalación es el
+producto, no el fallo»—, dichos en código. Devolver «sin clase» sería el defecto
+que el §2 nombra; contestar por defecto dejaría que el silencio del clasificador
+autorice una respuesta que nadie aprobó.
+
+### El bot escala de verdad
+
+Hasta hoy, «cámbiame la receta» caía en la máquina de estados de citas: menú,
+FAQ, agendar. **Nadie escalaba.** Ahora el webhook escala, después de la urgencia
+(§6: gana a todo lo demás), avisa al consultorio y cierra la sesión.
+
+Usa las reglas **nombradas** del §3, no el suelo: el suelo escala todo lo no
+clasificado y mandaría al médico un «agéndame para mañana», dejando el producto
+muerto. Declarado en `POR_QUE_EL_BOT_NO_USA_EL_SUELO`.
+
+Y el mensaje al paciente dice lo único que hace falta y nada más: **«mientras
+tanto, no cambie nada de su tratamiento por su cuenta»**. Alguien que pregunta si
+puede tomarse el doble y no recibe respuesta puede tomárselo igual.
+
+### Lo que el fixture destapó, que es lo caro
+
+Al probar el clasificador al revés, invertir el orden urgencia/escalación **no
+tiraba ninguna prueba**: no había un solo caso que casara con las dos cosas, así
+que el orden del §6 no estaba vigilado. Añadí dos que cruzan —«ya dejé de tomarlo
+y ahora no puedo respirar», «me tomé el doble y me empezó a doler el pecho»— y el
+segundo **falló**.
+
+No por el orden. Por el detector de urgencia:
+
+```
+dolor|duele|dolia   ← lo que había
+```
+
+**Tres formas completamente normales de decirlo en español no disparaban la
+urgencia**, medidas una por una:
+
+| Frase | Antes |
+|---|---|
+| «Me empezó a **doler** el pecho.» | no urgente |
+| «Me está **doliendo** el pecho.» | no urgente |
+| «Se me **apretó** el pecho.» | no urgente |
+
+Un detector de seguridad que cubre el presente y no el pretérito cubre la mitad
+de lo que la gente escribe. Las tres quedan como regresión permanente.
+
+`molestia` **no** se añadió: es demasiado inespecífico y es justo el ruido contra
+el que advierte el §6. Declarado en `LO_QUE_NO_SE_VIGILA`.
+
+### Y el lado contrario, para que el arreglo no se pase de frenada
+
+`adolescente` contiene `dol`. Si el arreglo se hubiera hecho con la raíz suelta
+en vez de con las flexiones nombradas, «mi hijo adolescente se golpeó el pecho
+jugando» habría salido como dolor torácico. Ese caso está en el fixture y cae si
+alguien lo intenta — probado.
+
+### Qué NO cubre
+
+- **Las otras tres clases**, declaradas con qué les falta a cada una.
+- **El idioma**: las reglas son para el español de México; otro idioma cae al
+  suelo, que escala.
+- **La gravedad**: esto dice que hay que mirar ya, no cuánto ni con qué
+  prioridad.
+- **No es una prueba de navegador ni de conversación real.**
+
+**Prueba.** `src/__tests__/las-doce-preguntas-del-paciente.test.ts` (44 casos, 24 en el fixture).
