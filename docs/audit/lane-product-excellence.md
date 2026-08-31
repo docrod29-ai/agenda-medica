@@ -5165,13 +5165,72 @@ documento a documento que el emulador quedó como estaba: sin `diasFestivos`, si
 
 **RESIDUAL_RISK.**
 
-- **Nada de esta banda tiene arnés que se vuelva a correr solo.** El horario
-  partido, el horario del médico y el festivo se midieron a mano, con datos
-  sintéticos, y se limpiaron. Es «medido una vez», no «vigilado» — y es el hueco
-  más honesto que deja esta tanda: el día que alguien rompa la banda, no salta
-  nada. Un arnés que siembre config, mida y limpie sería la unidad siguiente.
+- ~~Nada de esta banda tiene arnés que se vuelva a correr solo.~~ **Cerrado en la
+  unidad 82**, que es exactamente el arnés que esta línea pedía.
 - La banda sigue siendo sólo de la vista de **semana**: ni el día ni el mes la
   llevan.
 - Un festivo se pinta igual que un domingo. No se distingue «cerrado porque es
   festivo» de «cerrado porque no se atiende ese día», y para el médico son cosas
   distintas.
+
+---
+
+## Unidad 82 — «medido una vez» no es «vigilado»
+
+**DE DÓNDE SALE.** De la línea que yo mismo escribí al cerrar la unidad 81:
+*«nada de esta banda tiene arnés que se vuelva a correr solo… el día que alguien
+rompa la banda, no salta nada»*. Las cuatro propiedades de la banda —horario,
+comida, médico filtrado y festivo— estaban medidas **a mano**, con datos
+sintéticos que se sembraban y se borraban a mano. Eso no es una compuerta: es una
+anécdota.
+
+Y era la peor clase de hueco para este defecto en concreto, porque **las cuatro
+veces el patrón fue el mismo**: el motor ya sabía y la pantalla no se había
+enterado. Ese defecto no rompe ninguna prueba y sólo se ve mirando la pantalla —
+es decir, vuelve en cuanto nadie mire.
+
+**LO QUE HACE.** `npm run arnes:banda-de-atencion` siembra un consultorio de
+09:00 a 20:00 con la comida de 14:00 a 16:00, declara festivo el miércoles **de
+la semana que el calendario va a abrir** —calculado desde el «hoy» del
+consultorio, no del contenedor— y crea dos médicos, uno con horario propio de
+sólo tarde. Después mide la rejilla por filas y por columnas.
+
+Medido con eso:
+
+```
+filas:    07:00=0  08:00=0  09:00=6 … 13:00=6  14:00=0  15:00=0  16:00=6 … 19:00=6
+columnas: 24=9  25=9  26=0  27=9  28=9  29=9  30=9      · festivo: 26
+filtro:   15:00=0  16:00=6  18:00=6  19:00=0
+```
+
+Los 6 de 7 en las horas abiertas son la columna del festivo, cerrada.
+
+**PROBADO AL REVÉS.** Desactivando la banda y recompilando, el arnés canta **seis
+fallos con nombre** —«07:00 debería estar cerrada en toda la semana y hay 6
+celdas abiertas», «el médico de tarde NO atiende a las 15:00 y la banda la da por
+abierta»…—. Y **la columna del festivo se queda en 0**, porque esa comprobación
+es otra: el arnés discrimina en vez de ponerse rojo entero, que es lo que hace
+falta para que un rojo signifique algo.
+
+**DEVUELVE LA CONFIGURACIÓN COMO ESTABA, no «a lo normal».** Lee el documento
+antes de tocarlo y restaura los campos con la forma que tenían —si el consultorio
+ya traía horario propio, borrarlo lo dejaría distinto de como estaba—. Se
+comprobó después de cada corrida: sin `horario`, sin `diasFestivos`, cero
+médicos.
+
+**COMPUERTAS.** `vitest` 11 993 de 11 994 —`ops-timeout-y-punto-ciego`, que en la
+corrida anterior pasó y en ésta no: es del entorno y lleva todo el carril
+alternando— · lint 95 = techo · `tsc` limpio · `npm run build` compila ·
+`arnes:banda-de-atencion` verde, y rojo con la banda desactivada.
+
+**RESIDUAL_RISK.**
+
+- **No comprueba el COLOR**, sólo el atributo `data-cerrado`. Que el tinte se vea
+  —y que se vea en los dos temas— se juzgó mirando capturas, y eso sigue sin
+  automatizarse.
+- **Sólo la vista de semana.** Ni el día ni el mes llevan banda, así que tampoco
+  hay nada que vigilar ahí.
+- Un `kill -9` a mitad de corrida deja la configuración sembrada puesta. El
+  `finally` cubre los fallos normales, no eso.
+- Sigue sin distinguirse «cerrado por festivo» de «cerrado porque no se atiende
+  ese día», y para el médico son cosas distintas.

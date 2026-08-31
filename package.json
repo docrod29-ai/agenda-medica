@@ -45,6 +45,7 @@
     "arnes:cita-fuera-de-hora": "node scripts/carril-excelencia/la-cita-fuera-de-hora-se-ve.mjs",
     "arnes:dialogos-teclado": "node scripts/carril-excelencia/todo-dialogo-se-cierra-con-escape.mjs",
     "arnes:hoy-del-consultorio": "node scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
+    "arnes:banda-de-atencion": "node scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
     "arnes:consultorio-vacio": "node scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
     "arnes:texto-largo": "node scripts/carril-excelencia/el-texto-largo-cabe.mjs",
     "arnes:listas-largas": "node scripts/carril-excelencia/las-listas-largas.mjs",
