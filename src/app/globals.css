@@ -3879,6 +3879,34 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-destino-portal[aria-current='page'] { color: var(--nexus); }
 .nx-destino-portal[aria-current='page']:hover { background: var(--nexus-soft); }
 
+/* LA CONFIRMACIÓN DESTRUCTIVA RELLENA — «Anular cobro», y las que vengan.
+
+   `.btn-danger` ya existe, pero es el destructivo FANTASMA: transparente con
+   tinte rojo al pasar. Sirve para un «Anular» perdido en una fila. NO sirve
+   aquí: en un diálogo de confirmación, la acción destructiva es la acción
+   PRINCIPAL y va rellena. Cambiarla a fantasma sería bajarle el peso visual —
+   un cambio de producto disfrazado de arreglo.
+
+   Faltaba, pues, el hermano destructivo de `.nx-acc-fuerte`. Mismos pasos que
+   él: relleno, un punto más oscuro al pasar, y apagado a superficie muerta
+   cuando está deshabilitado. Sin colores nuevos: `--red` ya existe y el
+   oscurecido se calcula, que es el idioma que ya usa `.nx-acc-riesgo`.
+
+   Se midió con el diálogo en su estado real —con el motivo escrito, porque sin
+   él el botón está apagado y el arnés lo salta— y salió MUDO: el fondo iba en
+   el `style={{ }}` y el `:hover` de la hoja no podía ganarle. */
+.nx-acc-destructiva {
+  background: var(--red);
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.nx-acc-destructiva:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 82%, #000);
+}
+.nx-acc-destructiva:active:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 74%, #000);
+}
+.nx-acc-destructiva:disabled { background: var(--s3); }
+
 /* Fila que despliega un panel: abierta se QUEDA con la superficie puesta, para
    que se vea cuál está abierta sin tener que leer el signo de la flecha. */
 .nx-acc-plana[data-abierto] { background: var(--s2); }
