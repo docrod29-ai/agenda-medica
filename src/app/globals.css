@@ -3845,6 +3845,40 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-acc-fuerte:disabled,
 .nx-acc-fuerte[data-inerte] { background: var(--s3); }
 
+/* LOS CINCO DESTINOS DEL PORTAL DEL PACIENTE.
+
+   Los cuatro que no están activos NO acusaban el puntero: el `background: none`
+   y el `color` iban en el `style={{ }}` del JSX, así que ninguna regla de la
+   hoja podía ganarles. Es el mismo defecto de siempre —el estilo en línea se
+   come el `:hover`— pero aquí cae sobre la navegación primaria de la ÚNICA
+   pantalla que ve un paciente: los cinco sitios a los que puede ir.
+
+   El activo se distingue por `aria-current="page"`, que ya llevaba puesto — no
+   por una clase paralela. Mismos peldaños de superficie que `.nx-acc-plana`:
+   sin degradado, sin sombra, sin radio nuevo, sin un color que no exista ya. */
+.nx-destino-portal {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px;
+  min-height: 56px;          /* el mínimo táctil de 44px, con holgura */
+  color: var(--text3);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva);
+}
+.nx-destino-portal:hover { background: var(--s2); color: var(--text); }
+.nx-destino-portal:active { background: var(--s3); }
+
+/* Donde ya estás: se tiñe, y al pasar por encima sigue acusando sin fingir que
+   te lleva a otro sitio. */
+.nx-destino-portal[aria-current='page'] { color: var(--nexus); }
+.nx-destino-portal[aria-current='page']:hover { background: var(--nexus-soft); }
+
 /* Fila que despliega un panel: abierta se QUEDA con la superficie puesta, para
    que se vea cuál está abierta sin tener que leer el signo de la flecha. */
 .nx-acc-plana[data-abierto] { background: var(--s2); }

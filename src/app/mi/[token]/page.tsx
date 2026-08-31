@@ -811,13 +811,8 @@ export default function MiPortalPage() {
           const activo = destino === d.id
           return (
             <button key={d.id} onClick={() => setDestino(d.id)}
-              aria-current={activo ? 'page' : undefined}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                padding: '10px 4px', minHeight: 56,
-                color: activo ? 'var(--nexus)' : 'var(--text3)',
-              }}>
+              className="nx-destino-portal"
+              aria-current={activo ? 'page' : undefined}>
               <d.icono size={20} aria-hidden />
               <span style={{ fontSize: 'var(--t-overline)' }}>{d.etiqueta}</span>
             </button>
@@ -936,7 +931,10 @@ function FormularioPrevio({ token }: { token: string }) {
       <button
         type="button"
         onClick={() => setAbierto(v => !v)}
-        style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        className="nx-acc-plana"
+        aria-expanded={abierto}
+        data-abierto={abierto ? '' : undefined}
+        style={{ width: '100%', textAlign: 'left', border: 'none', padding: 8, margin: -8, borderRadius: 10, cursor: 'pointer' }}
       >
         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Cuéntale a tu médico antes de la consulta</div>
         <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4, lineHeight: 1.5 }}>
