@@ -176,6 +176,33 @@ jobs:
             npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive
           fi
 
+      # El último sitio donde esto dependía de que alguien se acordara era
+      # CALCULAR el hash a mano después de publicar. Lo calcula el despliegue,
+      # sobre el árbol que acaba de publicar, y lo deja escrito en el acta.
+      - name: 'Firestore · emitir el sello de las reglas'
+        id: sello
+        if: steps.rules.outcome == 'success'
+        run: |
+          set -euo pipefail
+          HASH="$(sha256sum firestore.rules | cut -d' ' -f1)"
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Sello de firestore.rules"
+            echo
+            echo "Las reglas del árbol \`$SHA_AUTORIZADO\` quedan publicadas."
+            echo "Para que el repositorio lo sepa, pega esto en \`firestore.rules.estado.json\`:"
+            echo
+            echo '```json'
+            echo "  \"hashDesplegado\": \"$HASH\","
+            echo "  \"confirmadoEl\": \"$(date -u +%Y-%m-%d)\","
+            echo "  \"shaDelArbol\": \"$SHA_AUTORIZADO\","
+            echo '```'
+            echo
+            echo "Esto NO dice nada de los índices: \`--only firestore:indexes\` contesta"
+            echo "al enviar, no al terminar. Eso se mira en la consola del proyecto."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "FIRESTORE_RULES_SHA256=$HASH"
+
       - name: Limpiar credencial temporal
         if: always()
         run: rm -f "$RUNNER_TEMP/firebase-sa.json" "$RUNNER_TEMP/status.json"
@@ -211,6 +238,7 @@ jobs:
         env:
           R_VERSION: ${{ steps.version.outcome }}
           R_RULES: ${{ steps.rules.outcome }}
+          SELLO_REGLAS: ${{ steps.sello.outputs.hash }}
           R_SECURITY: ${{ steps.security.outcome }}
           R_SMOKE: ${{ steps.smoke.outcome }}
           R_PORTAL: ${{ steps.portal.outcome }}
@@ -230,6 +258,7 @@ jobs:
             echo "VERSION=$VERSION_ESPERADA"
             echo "VERCEL_PROJECT=agenda-medica"
             echo "FIRESTORE_RULES=$R_RULES"
+            echo "FIRESTORE_RULES_SHA256=${SELLO_REGLAS:-no-emitido}"
             echo "SECURITY_E2E=$R_SECURITY"
             echo "SMOKE=$R_SMOKE"
             echo "SMOKE_PORTAL=$R_PORTAL"

@@ -1,7 +1,9 @@
 # Índices compuestos de Firestore — lo que falta, con nombre
 
-> **Estado**: `BLOCKED_EXTERNAL`. Este archivo **declara** los índices; no los
-> crea. Desplegarlos es una acción del dueño (ver abajo).
+> **Estado**: `BLOCKED_EXTERNAL`, y el bloqueo ya no es el despliegue. El
+> workflow de producción los **manda** desde v1175, y los mandó el 31-ago con
+> v1177. Lo que falta es **mirar del otro lado**: ver en la consola del proyecto
+> que están `Enabled`. Ver «El envío no es la construcción», abajo.
 
 ## Por qué existe este archivo
 
@@ -68,6 +70,26 @@ npx firebase deploy --only firestore:indexes --project nexomed-agenda
 Crear un índice sobre una colección con datos **tarda** (minutos u horas según el
 volumen) y hasta que termina la consulta sigue fallando. Por eso se despliega y
 se **verifica** antes de tocar el código que lo usaría.
+
+## El envío no es la construcción
+
+`firebase deploy --only firestore:indexes` **contesta al enviar, no al terminar**.
+La construcción de un índice compuesto sobre una colección con datos es asíncrona
+y puede fallar **después** de que el comando haya dicho `success`.
+
+Por eso un acta con `FIRESTORE_RULES = success` cierra la fila de las reglas
+—ésas rigen en cuanto se publican— y **no cierra ésta**. Son dos afirmaciones
+distintas que salen del mismo comando:
+
+| Qué dijo el despliegue | Qué demuestra | Qué NO demuestra |
+|---|---|---|
+| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | Que `firestore.indexes.json` llegó al proyecto | Que los índices estén **construidos** |
+
+**Lo que falta, y no puede vivir en este repositorio**: abrir la consola de
+Firestore del proyecto `nexomed-agenda`, pestaña de índices, y comprobar que cada
+uno dice `Enabled` y no `Building` ni `Error`. Hasta entonces, ninguna consulta
+nueva puede depender de ellos — la regla del `FAILED_PRECONDITION` de abajo sigue
+en pie tal cual.
 
 ## Después de desplegarlos
 

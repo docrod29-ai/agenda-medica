@@ -15282,3 +15282,79 @@ archivos del defecto volvió a caer.
 con techo además de suelo: probada al revés a 5 s (cae el suelo) y a 600 s (cae
 el techo, porque «subir el tope» no puede volverse el martillo con el que se
 esconde un cuelgue real).
+
+---
+
+## REG-415 — las reglas ya regían y el repositorio seguía diciendo que no
+
+**CÓMO SE DESCUBRIÓ.** Revisando por qué `docs/ops/REGLAS-DE-FIRESTORE.md`
+seguía listando `clinics/{id}/members/{uid}` como «sin regla desplegada» cuando
+el acta de `nexusmed-v1177` registraba `FIRESTORE_RULES = success`. Las dos cosas
+eran ciertas a la vez, y eso es lo que las hacía sospechosas.
+
+```
+acta de v1177   FIRESTORE_RULES = success   sobre 8f74901d, 31-ago 19:33 UTC
+firestore.rules en 8f74901d   sha256 3032001e14…e90a9
+firestore.rules hoy           sha256 3032001e14…e90a9   (sin cambios desde 29502fb9, 30-ago)
+firestore.rules.estado.json   hashDesplegado: ""
+```
+
+El despliegue había ocurrido. El **registro del despliegue** no se había escrito.
+
+### El defecto no es un dato falso, es un aviso que sobrevivió a su causa
+
+REG-340 dejó el estado bien construido: el hash se **deriva**, y si no coincide,
+el documento tiene que declarar qué no rige y qué se rompe mientras tanto. Lo que
+quedó abierto fue **quién rellena el hash**. Era un paso manual al final de un
+despliegue —correr `sha256sum` sobre el árbol correcto y pegarlo— y un paso
+manual al final de un despliegue es un paso que se salta.
+
+Con el sello vacío, el guardián exige una lista de pendientes, y la lista de
+pendientes decía que el apodo del chat del consultorio **no se guarda nunca**
+(REG-340), que el bloque clínico de E0-06 no rige y que las nueve colecciones de
+REG-340 sólo las cubre el comodín de denegación. Nada de eso era ya verdad.
+
+Cuesta lo mismo que la mentira contraria. Un documento que asusta con un hueco
+cerrado manda a la siguiente sesión a desplegar algo que ya está desplegado — o,
+peor, la acostumbra a que ese renglón no signifique nada.
+
+### La causa raíz
+
+`depende_de_recordar`, un escalón por encima de donde REG-340 lo dejó. Se le
+quitó la memoria al **estado** y se le dejó al **acto de registrarlo**.
+
+### El arreglo: el que publica es el que sella
+
+Un paso nuevo en `.github/workflows/deploy-production.yml`, «Firestore · emitir
+el sello de las reglas», corre justo después del despliegue y calcula el sha256
+del `firestore.rules` **que acaba de publicar** — el del árbol de
+`SHA_AUTORIZADO`, porque el checkout es ése. Lo escribe en el resumen de la
+ejecución (`FIRESTORE_RULES_SHA256`) y en el acta. Rellenar el sello pasa a ser
+copiar tres líneas de un acta, no reconstruir un dato.
+
+**Lo que deliberadamente NO se hizo**: que el workflow se auto-commitee el
+sello. `firestore.rules.estado.json` dice, con todas las letras, que el hash no
+se toca sin haber desplegado; un registro que se escribe solo deja de ser el
+acto de alguien que miró que el despliegue terminó bien. Se automatiza el
+**cálculo**, no la **confirmación**.
+
+El sello de hoy queda relleno con la evidencia citada —ejecuciones #11 y #12, el
+árbol `8f74901d`, lo que devolvió el acta— y la tabla de pendientes queda vacía,
+que es lo que el guardián hermano exige cuando el hash cuadra.
+
+### Qué NO cubre
+
+- **No comprueba producción.** Como REG-340: el hash dice lo que alguien
+  confirmó haber desplegado. Si se rellena sin desplegar, miente.
+- **No cubre los índices.** Van en el mismo comando y **no terminan con él**:
+  `--only firestore:indexes` contesta al enviar, y la construcción de un índice
+  compuesto es asíncrona. «Deploy success» no es «índices `Enabled`»; eso se mira
+  en la consola del proyecto (`docs/ops/INDICES-DE-FIRESTORE.md`).
+- **No obliga a pegar el sello**, a propósito. Sólo hace que el valor exista sin
+  que nadie lo calcule.
+
+**Prueba.** `src/__tests__/el-despliegue-emite-su-propio-sello.test.ts` (11 casos),
+probada al revés sobre cinco workflows mutilados: borrar el paso del sello,
+borrar el despliegue de las reglas, cambiar el hash derivado por una constante
+pegada, quitar el sello del acta y dejar que el acta cierre en verde sin el paso
+de Firestore. Los cinco caen.

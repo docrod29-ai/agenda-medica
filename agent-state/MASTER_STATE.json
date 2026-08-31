@@ -19,10 +19,17 @@
   "ultimaVersionEnProduccion": "nexusmed-v1177",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-08-31-v1177.md"
+    "M .github/workflows/deploy-production.yml",
+    " M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/ops/INDICES-DE-FIRESTORE.md",
+    " M docs/ops/REGLAS-DE-FIRESTORE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M firestore.rules.estado.json",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/el-despliegue-emite-su-propio-sello.test.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -56,12 +63,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/paquete-v1177",
+  "ramaActual": "claude/explicacion-informativa-6t499i",
   "derivado": {
-    "regsEnElLedger": 265,
+    "regsEnElLedger": 266,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 886,
-    "casosDePrueba": 10778,
+    "archivosDePrueba": 887,
+    "casosDePrueba": 10789,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

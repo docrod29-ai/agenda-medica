@@ -882,7 +882,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * recuento marcó como deuda una lectura que sí acota, porque resolvía los
      * nombres en todo el archivo y otra función tenía una variable homónima.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502],
+    /**
+     * 415 es esta familia **sobre la reparación de 340**, un escalón más arriba.
+     * 340 le quitó la memoria al ESTADO: el sello guarda el sha256 de las reglas
+     * desplegadas y una compuerta falla cuando se separa del archivo. Lo que
+     * quedó dependiendo de que alguien se acordara fue el ACTO DE REGISTRARLO —
+     * correr `sha256sum` a mano después de desplegar y pegarlo.
+     *
+     * Y se saltó: las reglas se publicaron el 31-ago con v1177, el sello se
+     * quedó vacío, y el repositorio pasó a declarar rotas unas protecciones que
+     * ya regían. Su lección: derivar el dato no basta si EMITIRLO sigue siendo un
+     * paso manual al final de un despliegue. Ahí lo emite quien publica.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 415, 502],
   },
   {
     /**
