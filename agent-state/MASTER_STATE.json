@@ -16,17 +16,13 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1175",
+  "ultimaVersionEnProduccion": "nexusmed-v1176",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M vitest.config.ts",
-    "?? src/__tests__/el-tope-por-caso-no-mide-la-maquina.test.ts"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt",
+    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-08-31.md"
   ],
   "actualizado": "2026-08-30",
   "resumenDesdeElUltimoEstado": {
@@ -60,12 +56,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/el-tope-de-5s-no-mide-nada",
+  "ramaActual": "claude/paquete-v1176",
   "derivado": {
     "regsEnElLedger": 265,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 842,
-    "casosDePrueba": 10492,
+    "archivosDePrueba": 886,
+    "casosDePrueba": 10778,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
