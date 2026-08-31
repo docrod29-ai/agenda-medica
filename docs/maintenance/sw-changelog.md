@@ -3,6 +3,72 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1176 — el carril de excelencia: la agenda deja de aceptar días que no existen
+
+**Este bump se prepara SIN su despliegue.** El paquete completo vive en
+[`PAQUETE-PRODUCCION-2026-08-31.md`](PAQUETE-PRODUCCION-2026-08-31.md).
+
+**87 commits desde v1175** (31-ago) · 342 archivos · +22 934 / −819 · 102 de
+código de producto. **Cero rutas de API nuevas y cero pantallas nuevas.**
+
+Casi todo es el carril de excelencia de producto (PR #399, 27 unidades, cada una
+nacida de una medición en navegador y no de una opinión sobre una captura).
+
+### Lo que arregla, y que hoy está vivo en producción
+
+**Una cita podía reservarse dos veces sobre el mismo hueco, en un día que no
+existe.** `2027-02-30` pasaba la validación de forma y `new Date` la desbordaba
+al **2 de marzo**: la cita se validaba contra el horario de un día y se guardaba
+en otro. Y como el chequeo de solapes consulta por la fecha original, **no
+chocaba** con las citas reales del 2 de marzo. Resultado: dos pacientes en el
+mismo hueco, y una cita que no aparece en la vista de ningún día.
+
+Tampoco había techo: `9999-12-31` generaba huecos, y `/api/appointments` no
+miraba la fecha en absoluto — el GET de disponibilidad se negaba a **ofrecer** un
+hueco a tres años y el POST lo **aceptaba**. Ahora hay una puerta única
+(`src/lib/agenda/horizonte.ts`), techo `2050-12-31`, sin pregenerar fechas.
+
+**Reenviar la misma reserva le decía al paciente que otro le quitó el hueco**
+—«Ese horario acaba de ocuparse»— cuando quien lo había tomado era él. Ahora es
+idempotente.
+
+**Con la red caída, `/login` mandaba a recuperar una contraseña que nunca estuvo
+mal** («Error al iniciar sesión») y `/registro` no decía nada.
+
+### Accesibilidad, medida en Chromium real a 390 / 768 / 1440
+
+- **Los dos críticos de `/calendario` eliminados**: las flechas que mueven el mes
+  no tenían nombre (`button-name`), registrado en las líneas base de V10 **y**
+  V15, medido dos veces y nunca cerrado.
+- **El riel de navegación se apagaba en toda la familia de la agenda**: cero
+  `aria-current` en `/citas`, `/calendario`, `/asistente` y `/lista-espera`. La
+  causa no era una ruta olvidada — la lista de destinos estaba escrita **dos
+  veces** y las copias habían divergido en diecisiete rutas. Ahora 9 de 9.
+- **El estado de la cita vivía sólo en el pixel**: el nombre accesible decía
+  «Cita de … a las 13:00» de una cita **cancelada**. Ahora lo dice en las tres
+  vistas.
+- **Objetivos táctiles a 390 px**: de 12 incumplimientos a 2.
+
+### El instrumento
+
+- **REG-414** — la suite fallaba por la carga de la máquina, no por el código:
+  «Test timed out in 5000ms» dentro de un `await import()`, en archivos distintos
+  cada vuelta. El primer diagnóstico fue equivocado y queda escrito en el ledger.
+- Un **trinquete de interfaz** de 18 combinaciones ruta×ancho, con el mismo
+  contrato que los otros dos: axe, consola y desborde sólo bajan; `aria-current`
+  sólo sube. Antes había un álbum de capturas, no una compuerta.
+
+### Qué NO lleva
+
+**Ni reglas ni índices de Firestore.** A diferencia de v1175, este despliegue es
+sólo código: no hay paso aparte con `firebase deploy`.
+
+Y lo que el propio carril dejó declarado sin resolver: `/finanzas` sigue
+STATIC/FLAT · la fatiga de tarjeta se midió (15 en `/asistente`, 11–13 en
+`/finanzas`) y **no se redujo** · ningún lector de pantalla real · el trinquete de
+interfaz **no corre en CI** (necesita emuladores) · y tres violaciones de
+`/calendario` que son decisión de producto, no defectos.
+
 ## v1175 — REG-373 a REG-413, y las reglas de Firestore que van APARTE
 
 **Este bump se prepara SIN su despliegue.** El paquete completo, con lo que se
