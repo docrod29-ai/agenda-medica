@@ -64,6 +64,10 @@ import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 import { siguientePaso } from '@/lib/tareas-clinicas/por-que-esta-aqui'
+import { loQueElCalendarioDice, citasQueHayQueLeer, type CitaLeible } from '@/lib/tareas-clinicas/lo-que-el-calendario-dice'
+import { getAppointments, getAppointment } from '@/lib/firestore'
+import { formatDateMX } from '@/lib/availability'
+import type { Appointment, AppointmentStatus } from '@/types'
 import { DisparadorPorQue, LentePorQue, usePorQue } from '@/components/tareas/PorQueEstaAqui'
 import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -102,12 +106,48 @@ function fechaCorta(iso?: string): string {
   rota por una declaración mal colocada. Ninguna prueba de fuente lo habría
   visto.
 */
-function Tarjeta({ t, ahora, porQueId, onAbrirPorQue, onMover, onCerrar, onCancelar, onIrAlExpediente }: {
+/**
+ * Las citas que NO sirven para sostener un «agendada»: ya no hay nada puesto.
+ *
+ * `reagendada` está aquí a propósito — esa cita concreta dejó de existir. Que
+ * haya otra nueva se verá en la lista, porque la lista son las citas FUTURAS.
+ */
+/**
+ * Lee las citas que los pendientes `agendada` nombran. REG-437.
+ *
+ * Por identificador y no por ventana: los casos que importan —el paciente no
+ * vino, la cita se canceló— ya PASARON, así que una ventana futura los perdería
+ * justo a ellos. Topado por `citasQueHayQueLeer`.
+ *
+ * Una lectura que falla devuelve lo que sí pudo: el resto queda `no_consta`,
+ * que es «no se pudo saber», nunca «la cita ya no está».
+ */
+async function citasDeLasTareas(
+  clinicId: string, tareas: readonly TareaClinica[],
+): Promise<ReadonlyMap<string, CitaLeible>> {
+  const ids = citasQueHayQueLeer(tareas)
+  const out = new Map<string, CitaLeible>()
+  await Promise.all(ids.map(async id => {
+    try {
+      const c = await getAppointment(clinicId, id)
+      if (c) out.set(id, { id: c.id, estado: c.estado })
+    } catch { /* no_consta: no se pudo leer ésta */ }
+  }))
+  return out
+}
+
+const CITA_MUERTA: ReadonlySet<AppointmentStatus> = new Set<AppointmentStatus>([
+  'cancelada', 'reagendada', 'no-asistio',
+])
+
+function Tarjeta({ t, cita, ahora, porQueId, onAbrirPorQue, onMover, onAgendar, onCerrar, onCancelar, onIrAlExpediente }: {
   t: TareaClinica
   ahora: number
   porQueId: string | null
   onAbrirPorQue: (t: TareaClinica, disparador: HTMLElement) => void
   onMover: (t: TareaClinica, nuevo: EstadoTarea) => void
+  onAgendar: (t: TareaClinica) => void
+  cita?: CitaLeible
   /** Cerrar pasa por un formulario: no es lo mismo que avanzar de estado (REG-361). */
   onCerrar: (t: TareaClinica) => void
   onCancelar: (t: TareaClinica) => void
@@ -116,6 +156,7 @@ function Tarjeta({ t, ahora, porQueId, onAbrirPorQue, onMover, onCerrar, onCance
     const esc = debeEscalar(t, ahora)
     const vencida = estaVencida(t, ahora)
     const paso = siguientePaso(t)
+    const calendario = loQueElCalendarioDice(t, t.citaId ? cita : undefined)
     return (
       <div style={{
         border: `1px solid ${esc.escalar ? 'var(--red)' : 'var(--border)'}`,
@@ -160,6 +201,25 @@ function Tarjeta({ t, ahora, porQueId, onAbrirPorQue, onMover, onCerrar, onCance
           <ProgresoResultado estado={t.estado} ownerUid={t.ownerUid} prioridad={t.prioridad} />
         )}
 
+        {/**
+          * REG-437 · lo que el calendario dice de un «agendada».
+          *
+          * `agendada` era una declaración que nadie contrastaba: con la cita
+          * cancelada o el paciente sin acudir, el pendiente seguía leyéndose
+          * como «esperando al paciente» para siempre. Se pinta SÓLO cuando hay
+          * algo que decir — el caso normal (la cita sigue en pie) calla, porque
+          * decirlo en cada tarjeta sería ruido que enseña a ignorar el aviso.
+          */}
+        {calendario.pideAtencion && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 2,
+            fontSize: 12, lineHeight: 1.45, color: 'var(--amber)',
+          }}>
+            <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{calendario.frase}</span>
+          </div>
+        )}
+
         {/* El paciente ya no vive aquí: subió a la cabecera como identidad.
             El metadato queda para dueño y vencimiento — .nx-meta, fechas en
             .nx-num (tabulares). */}
@@ -190,7 +250,12 @@ function Tarjeta({ t, ahora, porQueId, onAbrirPorQue, onMover, onCerrar, onCance
           {paso && (
             <Button
               size="sm"
-              onClick={() => (paso.estado === 'cerrada' ? onCerrar(t) : onMover(t, paso.estado))}
+              onClick={() => {
+                if (paso.estado === 'cerrada') return onCerrar(t)
+                /* REG-437 · «agendada» no se declara: se señala una cita. */
+                if (paso.estado === 'agendada') return onAgendar(t)
+                return onMover(t, paso.estado)
+              }}
             >
               {paso.estado === 'cerrada' ? <CheckCircle2 size={14} /> : null} {paso.texto}
             </Button>
@@ -289,6 +354,19 @@ export default function PendientesPage() {
   const [accion, setAccion] = useState('')
   const [aviso, setAviso] = useState<AvisoAlPaciente | ''>('')
   const [motivo, setMotivo] = useState('')
+  /**
+   * REG-437 · «Ya quedó agendada» exige decir A QUÉ CITA.
+   *
+   * Antes era una declaración que nadie podía contrastar: si esa cita se
+   * cancelaba o el paciente no venía, el pendiente se quedaba esperando a nadie
+   * para siempre. Ahora se elige, y con el identificador guardado el worklist
+   * puede decir después qué pasó de verdad.
+   */
+  const [agendando, setAgendando] = useState<TareaClinica | null>(null)
+  /** Las citas que los pendientes `agendada` nombran, por identificador. */
+  const [citasPorId, setCitasPorId] = useState<ReadonlyMap<string, CitaLeible>>(new Map())
+  const [citasDelPaciente, setCitasDelPaciente] = useState<Appointment[] | null>(null)
+  const [cargandoCitas, setCargandoCitas] = useState(false)
   const [soloMias, setSoloMias] = useState(false)
   const [recarga, setRecarga] = useState(0)
   /**
@@ -375,6 +453,18 @@ export default function PendientesPage() {
       .then(w => {
         if (!vivo) return
         setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0); setErrorCarga(''); setAhora(Date.now())
+        /**
+         * REG-437 · qué dice el calendario de los que se declararon agendados.
+         *
+         * Se leen SÓLO las citas que las tareas nombran, por identificador, y
+         * con tope: la ventana futura no serviría —los casos que importan
+         * (no-asistió, atendida) ya pasaron— y una lectura sin cota en el camino
+         * diario es lo que WS-03 prohíbe.
+         *
+         * Si esta lectura falla no se pinta nada: `no_consta` es «no se pudo
+         * saber», nunca «la cita ya no está».
+         */
+        void citasDeLasTareas(clinicId, w.tareas).then(m => { if (vivo) setCitasPorId(m) })
         /* Los que no están en Firestore porque no se pudieron escribir (REG-411). */
         setPerdidos(perdidosDe(clinicId, leerPerdidos(leerAlmacen)))
       })
@@ -423,7 +513,7 @@ export default function PendientesPage() {
 
   const mover = useCallback(async (
     t: TareaClinica, nuevo: EstadoTarea,
-    extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea> } = {},
+    extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea>; citaId?: string } = {},
   ) => {
     if (!clinicId) return
     const r = await cambiarEstado(clinicId, t, nuevo, extra)
@@ -462,6 +552,32 @@ export default function PendientesPage() {
       setCargandoCerradas(false)
     }
   }, [clinicId, cerradas, toast])
+
+  /**
+   * REG-437 · abrir el elegidor de cita.
+   *
+   * Se leen las citas FUTURAS de ese paciente. Si hay exactamente una no hay
+   * ambigüedad y se ofrece marcada; si hay varias, elige el médico; si no hay
+   * ninguna, se dice — y ahí está el hallazgo: se iba a declarar «agendada» sin
+   * que existiera una cita a la que apuntar.
+   */
+  const abrirAgendar = useCallback(async (t: TareaClinica) => {
+    setAgendando(t)
+    setCitasDelPaciente(null)
+    if (!clinicId) return
+    setCargandoCitas(true)
+    try {
+      const desde = new Date().toISOString().slice(0, 16).replace('T', ' ')
+      const todas = await getAppointments(clinicId, { desde })
+      setCitasDelPaciente(todas.filter(c => c.pacienteId === t.patientId && !CITA_MUERTA.has(c.estado)))
+    } catch (e) {
+      console.error('[pendientes] no se pudieron leer las citas del paciente', e)
+      /* `null` sigue significando «no se pudo leer», que NO es «no tiene citas». */
+      toast('No se pudieron leer las citas de este paciente.', 'error')
+    } finally {
+      setCargandoCitas(false)
+    }
+  }, [clinicId, toast])
 
   /** Abrir el diálogo de cancelación. Vivía en línea dentro de `Tarjeta`, que
       ahora es un componente de módulo y no ve el estado de la página. */
@@ -553,7 +669,7 @@ export default function PendientesPage() {
               <h2 style={{ fontSize: 14, margin: 0, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} /> Requiere atención ({urgentes.length})
               </h2>
-              {urgentes.map(t => <Tarjeta key={t.id} t={t} ahora={ahora} porQueId={porQueId} onAbrirPorQue={alternarPorQue} onMover={mover} onCerrar={abrirCierre} onCancelar={abrirCancelar} onIrAlExpediente={irAlExpediente} />)}
+              {urgentes.map(t => <Tarjeta key={t.id} t={t} cita={t.citaId ? citasPorId.get(t.citaId) : undefined} ahora={ahora} porQueId={porQueId} onAbrirPorQue={alternarPorQue} onMover={mover} onAgendar={abrirAgendar} onCerrar={abrirCierre} onCancelar={abrirCancelar} onIrAlExpediente={irAlExpediente} />)}
             </section>
           )}
           {ORDEN_ESTADO_DE_ACCION.filter(cat => cat !== 'vencida').map(cat => {
@@ -564,7 +680,7 @@ export default function PendientesPage() {
                 <h2 style={{ fontSize: 14, margin: 0, color: 'var(--text3)' }}>
                   {ETIQUETA_ESTADO_DE_ACCION[cat]} ({items.length})
                 </h2>
-                {items.map(t => <Tarjeta key={t.id} t={t} ahora={ahora} porQueId={porQueId} onAbrirPorQue={alternarPorQue} onMover={mover} onCerrar={abrirCierre} onCancelar={abrirCancelar} onIrAlExpediente={irAlExpediente} />)}
+                {items.map(t => <Tarjeta key={t.id} t={t} cita={t.citaId ? citasPorId.get(t.citaId) : undefined} ahora={ahora} porQueId={porQueId} onAbrirPorQue={alternarPorQue} onMover={mover} onAgendar={abrirAgendar} onCerrar={abrirCierre} onCancelar={abrirCancelar} onIrAlExpediente={irAlExpediente} />)}
               </section>
             )
           })}
@@ -732,6 +848,50 @@ export default function PendientesPage() {
         Cancelar EXIGE motivo. Sin él, «ya no aplica» y «lo quité de la lista»
         son el mismo gesto, y el segundo es justo lo que hay que poder auditar.
       */}
+      {/**
+        * REG-437 · a qué cita quedó agendado.
+        *
+        * El botón decía «Ya quedó agendada» y guardaba una declaración sin
+        * respaldo. Con el identificador, el worklist puede decir después que esa
+        * cita se canceló, se movió o que el paciente no vino — que es cuando el
+        * seguimiento se perdía en silencio.
+        */}
+      <Modal open={!!agendando} onClose={() => setAgendando(null)} title="¿A qué cita quedó agendado?">
+        <div style={{ display: 'grid', gap: 12 }}>
+          {cargandoCitas && <p className="nx-meta" style={{ margin: 0 }}>Buscando sus citas…</p>}
+          {!cargandoCitas && citasDelPaciente !== null && citasDelPaciente.length === 0 && (
+            <p className="nx-meta" style={{ margin: 0 }}>
+              Este paciente no tiene ninguna cita futura. Agéndala primero: sin cita, marcar el
+              pendiente como agendado lo deja esperando a nadie.
+            </p>
+          )}
+          {!cargandoCitas && citasDelPaciente !== null && citasDelPaciente.length > 0 && (
+            <div style={{ display: 'grid', gap: 6 }}>
+              {citasDelPaciente.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    const t = agendando
+                    setAgendando(null)
+                    if (t) mover(t, 'agendada', { citaId: c.id })
+                  }}
+                  style={{
+                    textAlign: 'left', minHeight: 44, padding: '10px 12px', borderRadius: 10,
+                    border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
+                    cursor: 'pointer', fontSize: 14, fontFamily: 'inherit',
+                  }}
+                >
+                  {formatDateMX(c.fechaHora.slice(0, 10))} · {c.fechaHora.slice(11, 16)}
+                  {c.motivo ? ` — ${c.motivo}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Button variant="ghost" onClick={() => setAgendando(null)}>Volver</Button>
+          </div>
+        </div>
+      </Modal>
       <Modal open={!!cancelando} onClose={() => setCancelando(null)} title="¿Por qué ya no aplica?">
         <div style={{ display: 'grid', gap: 12 }}>
           <p className="nx-meta" style={{ margin: 0 }}>

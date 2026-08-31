@@ -52,7 +52,21 @@ const ESCRITOR = readFileSync('src/lib/tareas-clinicas/firestore.ts', 'utf8')
 
 describe('CERRAR YA NO ES «AVANZAR DE ESTADO»', () => {
   it('el botón de cerrar abre el formulario, no mueve el estado directo', () => {
-    expect(PANTALLA).toContain("paso.estado === 'cerrada' ? onCerrar(t) : onMover(t, paso.estado)")
+    /**
+     * ACTUALIZADO EN REG-437, sin debilitarlo.
+     *
+     * La aserción casaba con el ternario literal
+     * `paso.estado === 'cerrada' ? onCerrar(t) : onMover(t, paso.estado)`.
+     * REG-437 lo partió en una cadena de `if` porque `agendada` también dejó de
+     * ser un movimiento directo: ahora abre el elegidor de cita.
+     *
+     * Lo que este guardián protege no era la sintaxis sino la REGLA: cerrar
+     * pasa por el formulario. Se comprueba en la forma nueva —y se comprueba
+     * además que `cerrada` NO llegue a `onMover`, que es la única manera de
+     * romperla—.
+     */
+    expect(PANTALLA).toMatch(/if \(paso\.estado === 'cerrada'\) return onCerrar\(t\)/)
+    expect(PANTALLA).not.toMatch(/onMover\(t, 'cerrada'\)/)
   })
 
   it('y el formulario existe, con su título', () => {

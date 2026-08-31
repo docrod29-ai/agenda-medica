@@ -115,6 +115,21 @@ export async function getAppointments(
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
 }
 
+/**
+ * Una cita por su identificador. REG-437.
+ *
+ * Hacía falta porque un pendiente declarado `agendada` nombra UNA cita, y los
+ * casos que importan —el paciente no vino, la cita se canceló— ya pasaron: una
+ * ventana de agenda futura los perdería justo a ellos.
+ *
+ * `null` = no existe. Una lectura que FALLA lanza, para que quien llama pueda
+ * distinguir «no existe» de «no se pudo leer».
+ */
+export async function getAppointment(clinicId: string, id: string): Promise<Appointment | null> {
+  const snap = await getDoc(d(clinicId, COLLECTIONS.appointments, id))
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Appointment) : null
+}
+
 export async function getAppointmentsByDate(clinicId: string, fecha: string): Promise<Appointment[]> {
   return getAppointments(clinicId, { desde: fecha + ' 00:00', hasta: fecha + ' 23:59' })
 }

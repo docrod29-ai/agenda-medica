@@ -43,10 +43,20 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 85 de 287, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 86 de 288, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-436** (31-ago-2026): el router de la nota podía
+El miembro más reciente es **REG-437** (31-ago-2026): `agendada` era un estado
+vivo, probado y bien argumentado que **no estaba conectado a la agenda**. Ninguna
+tarea sabía a qué cita se refería, así que cuando esa cita se cancelaba o el
+paciente no venía, el pendiente seguía leyéndose como «esperando al paciente»
+para siempre.
+
+Y trae la lección más incómoda de la semana: **el trinquete de conexión cazó una
+función que yo mismo acababa de escribir sin llamador**. La familia no se cierra
+leyendo sobre ella.
+
+Antes que él, **REG-436** (31-ago-2026): el router de la nota podía
 servir Haiku para una nota que el dueño decidió que **no escatima**, y el modelo
 llegaba al cliente como procedencia sin que nadie lo comparara con lo que se
 había pedido. Un identificador que el médico no puede evaluar no es un aviso.

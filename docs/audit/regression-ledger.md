@@ -17142,3 +17142,87 @@ Se comprueba el texto visible, no un `title=` — la lección de REG-433.
 - **No cubre el 404 ni los reintentos**, que ya tienen su camino.
 
 **Prueba.** `src/__tests__/el-router-bajaba-de-modelo-sin-avisar.test.ts` (19 casos).
+
+---
+
+## REG-437 — «agendada» era una declaración, no un hecho del calendario
+
+**Eje.** WS-11 · estados del cierre. **Fecha.** 31-ago-2026.
+
+### Qué fallaba
+
+REG-404 añadió `agendada` como estado VIVO y arregló algo grave: antes el
+pendiente de seguimiento se **cerraba** al crear la cita, así que agendar contaba
+como haber visto al paciente y un no-show no reabría nada.
+
+Quedaba la otra mitad, y el censo la nombraba: **`agendada` es lo que alguien
+declaró, no lo que el calendario dice.** `TareaClinica` no tenía un solo campo
+que apuntara a la cita — el botón decía «Ya quedó agendada» y guardaba una
+palabra. `grep citaId src/lib/tareas-clinicas` no devolvía nada.
+
+Consecuencia: si esa cita se cancela, se reagenda, o el paciente no viene, el
+pendiente se queda en `agendada` —el worklist lo agrupa en `esperando_paciente`—
+**para siempre**. No hay a quién esperar. El seguimiento se evapora en silencio,
+que es lo contrario de lo que promete este eje.
+
+### Por qué hacía falta un campo, y no sólo un cruce
+
+Sin `citaId` no hay cruce posible. Casar por paciente y fecha sería **adivinar**
+cuál de sus citas es, y un paciente con dos controles el mismo mes tendría dos
+candidatas indistinguibles. Es el patrón de REG-422: el identificador lo acuña
+quien hace la acción y viaja con ella, en su propio campo — meterlo en `origenId`
+sería un campo haciendo dos trabajos, que es REG-418.
+
+### Las tres piezas
+
+1. **`citaId` en el modelo**, y `cambiarEstado` lo **exige** al pasar a
+   `agendada`. Sólo en la transición nueva: inventarle una cita a las tareas que
+   ya están ahí sería fabricar el dato que esto existe para tener de verdad.
+2. **El botón dejó de declarar**: abre un elegidor con las citas futuras de ese
+   paciente. Si no tiene ninguna, se dice — y ahí está el hallazgo: se iba a
+   marcar «agendada» sin que existiera una cita a la que apuntar.
+3. **La tarjeta dice qué pasó**: la cita se canceló o se movió, el paciente no
+   vino, o el paciente ya vino. Sólo cuando hay algo que decir; el caso normal
+   calla, porque decirlo en cada tarjeta sería ruido.
+
+La lectura del calendario va **por identificador y con tope**: una ventana futura
+perdería justo los casos que importan —no-asistió, atendida ya pasaron— y una
+lectura sin cota en la pantalla más visitada es lo que WS-03 persigue.
+
+### Ausencia de dato no es dato de ausencia
+
+Una tarea sin `citaId`, una cita que no se pudo leer, o una cita distinta de la
+que la tarea nombra: las tres salen `no_consta` y **no pintan nada**. Nunca «la
+cita ya no está». Se probó al revés: haciendo que una cita ilegible cuente como
+cancelada, cae el caso.
+
+### Lo que NO se hizo
+
+**La tarea no se mueve sola.** Qué hacer cuando el paciente no vino —cuánto se
+espera, si escala, a quién— es política clínica del médico, queda en
+`LA_PREGUNTA_PARA_EL_DUENO`, y moverla por nuestra cuenta sería el defecto que
+REG-404 cerró con el signo cambiado. Sin ese plazo no se puede poner `venceEn`.
+
+### Dos guardianes del propio repositorio dispararon, y tenían razón
+
+- **El trinquete de conexión** subió las huérfanas de 39 a 40: `pidenAtencion`,
+  un ayudante que **escribí y que nadie llamaba**. Es exactamente la familia que
+  este bucle lleva toda la semana cerrando, cometida por mí. Se borró.
+- **El guardián de REG-361** casaba con el ternario literal del botón, que aquí
+  se partió en una cadena de `if` porque `agendada` también dejó de ser un
+  movimiento directo. Se actualizó a la forma nueva **sin debilitarlo**: ahora
+  comprueba además que `cerrada` no llegue nunca a `onMover`, y se probó al
+  revés.
+- El trinquete de diseño cazó un `fontSize: 12.5` fuera de escala. Se arregló el
+  cambio, no el techo.
+
+### Qué NO cubre
+
+- **Si una cita `reagendada` tiene otra NUEVA detrás.** Se sabe que la que el
+  pendiente nombraba dejó de existir; que exista otra no lo dice este dato.
+- **Los pendientes que no son de seguimiento.**
+- **No es una prueba de navegador**: se comprueba la lógica, la puerta y que la
+  pantalla lo pida y lo pinte en el fuente. Que el modal atrape el foco y que el
+  elegidor se vea bien en móvil está sin comprobar y se declara.
+
+**Prueba.** `src/__tests__/agendada-era-una-declaracion-no-un-hecho.test.ts` (21 casos).

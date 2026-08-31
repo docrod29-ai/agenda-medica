@@ -248,10 +248,25 @@ export async function cambiarEstado(
   clinicId: string,
   tarea: TareaClinica,
   nuevo: EstadoTarea,
-  extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea> } = {},
+  extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea>; citaId?: string } = {},
 ): Promise<ResultadoCambio> {
   const v = puedeTransicionar(tarea.estado, nuevo)
   if (!v.permitido) return { ok: false, motivo: v.motivo }
+  /**
+   * REG-437 · no se declara «agendada» sin decir CUÁL cita.
+   *
+   * Sin el identificador, `agendada` era una declaración que nadie podía
+   * contrastar: si la cita se cancelaba o el paciente no venía, el pendiente
+   * seguía esperando a nadie. Casarla después por paciente y fecha sería
+   * adivinar cuál de sus citas era.
+   *
+   * Se exige sólo en la transición NUEVA. Las tareas que ya están en `agendada`
+   * sin él se leen como «no se puede saber» — reescribirlas sería inventarles
+   * una cita.
+   */
+  if (nuevo === 'agendada' && !String(extra.citaId ?? '').trim()) {
+    return { ok: false, motivo: 'Marcar un pendiente como agendado exige decir a qué cita.' }
+  }
   if (nuevo === 'cancelada' && !String(extra.motivoCancelacion ?? '').trim()) {
     // Cancelar sin motivo convierte «ya no aplica» en «lo quité de la lista».
     return { ok: false, motivo: 'Cancelar un pendiente exige decir por qué.' }
@@ -266,6 +281,7 @@ export async function cambiarEstado(
       patch.ownerNombre = auth.currentUser?.displayName || auth.currentUser?.email || ''
     }
   }
+  if (nuevo === 'agendada') patch.citaId = String(extra.citaId).trim()
   if (nuevo === 'completada') patch.completadaEn = ahora
   if (nuevo === 'cerrada') {
     /**

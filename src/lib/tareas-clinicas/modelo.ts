@@ -148,6 +148,20 @@ export interface TareaClinica {
    * Va acompañado de `origen`, que dice de QUÉ clase es este id.
    */
   origenId?: string
+  /**
+   * LA CITA QUE SOSTIENE UN `agendada` — REG-437.
+   *
+   * Sin esto, `agendada` era una DECLARACIÓN y no un hecho del calendario: si la
+   * cita se cancelaba, se movía o el paciente no venía, el pendiente se quedaba
+   * esperando a nadie para siempre.
+   *
+   * Va en su propio campo y no dentro de `origenId`, que ya significa otra cosa
+   * (de qué hecho NACIÓ la tarea). Un campo haciendo dos trabajos es REG-418.
+   *
+   * Ausente en las tareas anteriores a este campo: eso se lee como «no se puede
+   * saber», nunca como «no hay cita». Ver `lo-que-el-calendario-dice.ts`.
+   */
+  citaId?: string
   tipo: TipoTarea
   titulo: string
   detalle?: string
