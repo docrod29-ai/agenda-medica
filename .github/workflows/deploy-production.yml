@@ -27,6 +27,11 @@ permissions:
 
 env:
   SHA_AUTORIZADO: ee1b363225082c88ce5ddcfbc7401a8c6dbe7206
+  # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
+  # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
+  # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
+  # que envejeció sin que nadie se enterara. Ver Compuerta 0.
+  ROLLBACK_AUTORIZADO: ''
   VERSION_ESPERADA: nexusmed-v1175
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
@@ -48,6 +53,44 @@ jobs:
           # de la variable, y actualizar el despliegue es cambiar UN número.
           ref: ${{ env.SHA_AUTORIZADO }}
           fetch-depth: 0
+
+      # ─────────────────────────────────────────────────────────────────────
+      # COMPUERTA 0 · el árbol autorizado tiene que ser el de HOY.
+      #
+      # Las compuertas 1-3 no pueden cazar un pin envejecido: la 1 compara el sha
+      # consigo mismo, y la 3 comprueba que producción sirva VERSION_ESPERADA —
+      # que NO cambia cuando cambia el árbol. Mientras `version.txt` no se mueva,
+      # la misma cadena describe árboles distintos, así que la 3 pasa igual con el
+      # pin al día que con uno 87 commits atrás. Pasó el 31-ago.
+      #
+      # LA COMPUERTA SE LEE DE `main`, NO DEL CHECKOUT. Si viajara con el árbol
+      # que vigila, un árbol viejo traería su propia compuerta vieja.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: 'Compuerta 0 · el árbol autorizado es la cabeza de main'
+        run: |
+          set -euo pipefail
+          CABEZA="$(git ls-remote origin refs/heads/main | cut -f1)"
+
+          # Traer main para poder contar la distancia y saber si el pin está en su
+          # historia. Si esto falla no se adivina: se sigue con los datos que haya
+          # y la decisión se toma abajo.
+          git fetch --quiet origin main || true
+
+          ES_ANCESTRO=si
+          COMMITS_DETRAS=""
+          if [ -n "$CABEZA" ]; then
+            git merge-base --is-ancestor "$SHA_AUTORIZADO" FETCH_HEAD 2>/dev/null || ES_ANCESTRO=no
+            COMMITS_DETRAS="$(git rev-list --count "$SHA_AUTORIZADO"..FETCH_HEAD 2>/dev/null || true)"
+          fi
+
+          git show FETCH_HEAD:scripts/ops/arbol-autorizado.mjs > "$RUNNER_TEMP/arbol-autorizado.mjs"
+
+          SHA_AUTORIZADO="$SHA_AUTORIZADO" \
+          CABEZA_DE_MAIN="$CABEZA" \
+          ROLLBACK_AUTORIZADO="${ROLLBACK_AUTORIZADO:-}" \
+          ES_ANCESTRO="$ES_ANCESTRO" \
+          COMMITS_DETRAS="$COMMITS_DETRAS" \
+          node "$RUNNER_TEMP/arbol-autorizado.mjs"
 
       - name: 'Compuerta 1 · SHA, versión y REG-323'
         run: |
