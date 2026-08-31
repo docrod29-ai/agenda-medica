@@ -473,15 +473,14 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     pruebas: ['src/__tests__/la-proyeccion-no-le-gana-a-la-nota.test.ts'],
   }),
   R({
-    id: 'WS-10.problemas-medicacion-alergias', ws: 'WS-10', titulo: 'Problemas activos, medicación activa y alergias, longitudinales',
+    id: 'WS-10.problemas-medicacion-alergias', ws: 'WS-10', titulo: 'Problemas, medicación y alergias con temporalidad y procedencia',
     estado: 'PARTIAL',
-    queFalta: 'REG-405 dio a problemas y medicación el MISMO sobre que alergias ya tenía desde REG-363 (asOf, version, historialRecortado) y lo cableó: las dos pantallas tenían `truncada` en la mano y lo dejaban caer en la puerta, así que con un historial largo la medicación vigente se calculaba sobre una ventana y se enseñaba como el expediente entero — un fármaco anterior al techo desaparecía también de la comprobación de interacciones. FALTA la persistencia, y NO se hizo a propósito: guardar una proyección sin decidir quién manda cuando el caché y las notas discrepan crea la segunda fuente de verdad que WS-10.proyeccion-no-es-segunda-verdad prohíbe. El sobre era su precondición. Falta además que la pantalla PINTE el recorte: hoy el dato le llega y no lo enseña.',
-    artefactos: [
-      'src/lib/expediente/alergias-longitudinales.ts',
-      'src/lib/expediente/problemas-activos.ts',
-      'src/lib/expediente/ordenes-medicamento.ts',
+    queFalta: 'REG-405 dio a problemas y medicación el MISMO sobre que alergias ya tenía (asOf, version, historialRecortado). REG-431 cerró el último tramo: el sobre llegaba a las dos pantallas y las dos lo TIRABAN — la consulta se quedaba con `.vigentes` y `.problemas`, y el expediente lo devolvía del useMemo mientras la desestructuración lo dejaba fuera. Las dos escribían «de lo último que se dijo en sus notas firmadas», que afirma sobre el expediente ENTERO y sobre una ventana es falso. Ahora se pinta, pegado a esa frase, con una definición única que sustituye a las tres copias escritas a mano. FALTA la persistencia, y NO se hace a propósito: guardar una proyección sin decidir quién manda cuando el caché y las notas discrepan crea la segunda fuente de verdad que WS-10.proyeccion-no-es-segunda-verdad prohíbe. Falta también decir CUÁNTO se quedó fuera, que no se sabe: el productor sabe que truncó, no cuánto había.',
+    artefactos: ['src/lib/expediente/problemas-activos.ts', 'src/lib/expediente/ordenes-medicamento.ts'],
+    pruebas: [
+      'src/__tests__/una-lista-no-dice-de-cuanto-historial-salio.test.ts',
+      'src/__tests__/el-sobre-llegaba-a-la-puerta-y-se-tiraba.test.ts',
     ],
-    pruebas: ['src/__tests__/una-lista-no-dice-de-cuanto-historial-salio.test.ts'],
   }),
   R({
     id: 'WS-10.historico-no-es-actual', ws: 'WS-10', titulo: 'Histórico ≠ actual en diagnóstico y en medicamento',

@@ -168,7 +168,10 @@ import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expedien
 import { abrirPendientes as abrirPendientesEn } from '@/lib/tareas-clinicas/abrir'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
-import { estadoDeProblemas, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import {
+  estadoDeProblemas, haceCuanto, nombreConCerteza, avisoDeHistorialRecortado,
+  type ProblemaVigente,
+} from '@/lib/expediente/problemas-activos'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
   type NotaConAlergias,
@@ -4872,7 +4875,10 @@ export default function ConsultaActivaPage() {
           </ul>
           {estadoAlergias.historialIncompleto && (
             <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-              El historial vino recortado: puede haber más alergias en notas que no se cargaron.
+              {/* La de alergias dice «más alergias» y no «más»: es el mismo hecho
+                  sobre otra lista, y la frase canónica no debe fingir precisión
+                  que no tiene. Se compone. */}
+              {avisoDeHistorialRecortado(true).replace('más en notas', 'más alergias en notas')}
             </div>
           )}
         </div>
@@ -4937,6 +4943,13 @@ export default function ConsultaActivaPage() {
                 ? `Última consulta ${haceCuanto(ultimaVisita, new Date().toISOString())}.`
                 : 'Primera consulta registrada.'}
               {problemas.length > 0 && ' De lo último que se dijo de cada problema en sus notas firmadas.'}
+              {/* REG-431 — la frase de arriba afirma sobre el expediente ENTERO.
+                  El sobre de la proyección traía `historialRecortado` y esta
+                  pantalla lo tiraba en la puerta: se quedaba sólo con
+                  `.problemas` y `.vigentes`. */}
+              {problemas.length > 0 && avisoDeHistorialRecortado(historialTruncado) && (
+                <> {avisoDeHistorialRecortado(historialTruncado)}</>
+              )}
             </div>
             {/*
               ── LA DUDA DE LA OTRA VEZ (REG-367) ───────────────────────────

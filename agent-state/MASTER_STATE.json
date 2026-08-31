@@ -21,18 +21,17 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/security/matriz-acceso-phi.md",
-    " M firestore.rules",
-    " M src/app/api/cron/vigilante/route.ts",
-    " M src/lib/authz/matriz-acceso.ts",
-    " M src/lib/authz/verificar.ts",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/expediente/problemas-activos.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/una-denegacion-no-es-una-anomalia-dos-consultorios-si.test.ts",
-    "?? src/lib/ops/lo-que-no-deberia-pasar.ts"
+    "?? src/__tests__/el-sobre-llegaba-a-la-puerta-y-se-tiraba.test.ts"
   ],
-  "actualizado": "2026-08-30",
+  "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -66,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 281,
+    "regsEnElLedger": 282,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 853,
-    "casosDePrueba": 10687,
+    "archivosDePrueba": 854,
+    "casosDePrueba": 10697,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

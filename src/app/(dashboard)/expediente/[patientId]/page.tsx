@@ -37,7 +37,9 @@ import { InternamientosDelPaciente } from '@/components/InternamientosDelPacient
 import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
 import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
-import { estadoDeProblemas, nombreConCerteza, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import {
+  estadoDeProblemas, nombreConCerteza, resumenProblemas, avisoDeHistorialRecortado,
+} from '@/lib/expediente/problemas-activos'
 import { banderasDeclaradas, LO_QUE_NO_SE_VIGILA, resumenDeBanderas } from '@/lib/expediente/banderas-declaradas'
 import { alergiasDe } from '@/lib/seguridad/alergias'
 import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
@@ -177,7 +179,9 @@ export default function ExpedientePage() {
     problemas" en el riel y "4" en el resumen según el momento del render.
     Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
   */
-  const { problemas, vigentes } = useMemo(() => {
+  /* REG-431 — `proyeccionRecortada` se calculaba, se devolvía, y la
+     desestructuración la tiraba. El defecto entero cabía en esta línea. */
+  const { problemas, vigentes, proyeccionRecortada } = useMemo(() => {
     const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
       fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
       medicamentos: n.medicamentos,
@@ -427,7 +431,7 @@ export default function ExpedientePage() {
         )}
         {banderas.historialIncompleto && (
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
-            El historial vino recortado: puede haber más en notas que no se cargaron.
+            {avisoDeHistorialRecortado(true)}
           </div>
         )}
         <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.6 }}>
@@ -465,7 +469,7 @@ export default function ExpedientePage() {
             </ul>
             {estadoAlergias.historialIncompleto && (
               <div style={{ color: 'var(--text3)', marginTop: 4 }}>
-                El historial vino recortado: puede haber más en notas que no se cargaron.
+                {avisoDeHistorialRecortado(true)}
               </div>
             )}
           </div>
@@ -484,6 +488,13 @@ export default function ExpedientePage() {
             <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
               De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
+              {/* REG-431 — `proyeccionRecortada` se calculaba y no se pintaba en
+                  ningún sitio. La línea de arriba afirma sobre el expediente
+                  ENTERO; sobre una ventana es falsa y el médico no puede saberlo
+                  mirando la pantalla. */}
+              {avisoDeHistorialRecortado(proyeccionRecortada) && (
+                <> {avisoDeHistorialRecortado(proyeccionRecortada)}</>
+              )}
             </div>
           </div>
         </div>

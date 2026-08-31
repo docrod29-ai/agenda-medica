@@ -16677,3 +16677,73 @@ justo lo que hace visible un patrón. La ventana las deja de contar sola.
   despliegue es el cierre de la lectura desde el cliente.
 
 **Prueba.** `src/__tests__/una-denegacion-no-es-una-anomalia-dos-consultorios-si.test.ts` (20 casos).
+
+---
+
+## REG-431 — el sobre llegaba a la puerta y se tiraba al abrirlo
+
+**QUÉ SE PEDÍA.** `WS-10.problemas-medicacion-alergias`: «falta que la pantalla
+PINTE el recorte: hoy el dato le llega y no lo enseña».
+
+### El defecto, y cabía en una línea
+
+REG-405 le dio a problemas y a medicación el mismo sobre que las alergias ya
+tenían desde REG-363: `asOf`, `version` y **`historialRecortado`**. El sobre
+llegaba entero a las dos pantallas y las dos lo tiraban:
+
+- la **consulta** se quedaba sólo con `.vigentes` y `.problemas`;
+- el **expediente** lo devolvía del `useMemo`… y la desestructuración lo dejaba
+  fuera:
+
+```ts
+const { problemas, vigentes } = useMemo(() => {
+  …
+  return { problemas: p.problemas, vigentes: m.vigentes, proyeccionRecortada: p.historialRecortado }
+})
+```
+
+Calculado, devuelto, y descartado al abrirlo.
+
+### Por qué importa
+
+Las dos pantallas escriben debajo de la lista *«de lo último que se dijo de cada
+problema en sus notas firmadas»* — una afirmación sobre el expediente **entero**.
+Sobre una ventana es falsa, y el médico no tiene forma de saberlo mirando.
+
+Y no es cosmético: sobre un historial recortado un fármaco anterior al techo
+desaparece de la lista vigente y, con ella, **de la comprobación de
+interacciones**.
+
+### La causa raíz
+
+«El dato tiene que LLEGAR» en su último tramo: el productor lo calculó bien, el
+transporte lo trajo entero, y el consumidor lo descartó. Es el mismo tramo que
+falló en REG-427 —el motor leía cuatro dimensiones y la ruta le pasaba dos— con
+la diferencia de que aquí no hubo que tocar al productor.
+
+### Una frase, no cinco
+
+La misma oración estaba escrita **a mano tres veces** en dos pantallas, para las
+alergias. Dos copias más habrían sido la forma habitual de que la próxima diga
+algo distinto sin que nadie lo note. Ahora hay una definición y las cinco pasan
+por ella.
+
+`avisoDeHistorialRecortado(false)` devuelve cadena vacía a propósito: quien la
+pinta no tiene que acordarse de comprobar el booleano antes de usarla.
+
+Y dice **«puede haber más»**, no «hay más»: el productor sabe que truncó, no
+cuánto se quedó fuera. Afirmar lo segundo sería inventar.
+
+### Qué NO cubre
+
+- **No persiste la proyección**, y sigue sin hacerse a propósito: guardar un caché
+  sin decidir quién manda cuando discrepa de las notas crea la segunda fuente de
+  verdad que `WS-10.proyeccion-no-es-segunda-verdad` prohíbe. El sobre era su
+  precondición, no su sustituto.
+- **No cambia el techo de lectura** ni lo hace configurable.
+- **No dice cuánto se quedó fuera**, porque no se sabe.
+- **No se comprobó en navegador** que la frase se vea: se comprueba que el dato
+  llegue al componente, que vaya pegado a la frase que sin él es falsa, y que las
+  cinco copias pasen por una sola definición.
+
+**Prueba.** `src/__tests__/el-sobre-llegaba-a-la-puerta-y-se-tiraba.test.ts` (10 casos).

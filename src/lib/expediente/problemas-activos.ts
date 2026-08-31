@@ -198,6 +198,48 @@ export const POR_QUE_NO_HAY_RESPALDO_AL_IMPRIMIR =
   + 'de la receta. El campo es editable: no rellenarlo le cuesta al médico una '
   + 'línea, rellenarlo mal le costaba no darse cuenta.'
 
+/**
+ * LO QUE HAY QUE DECIR CUANDO EL HISTORIAL VINO RECORTADO — REG-431.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * REG-405 le dio a problemas y a medicación el mismo sobre que las alergias ya
+ * tenían: `asOf`, `version` y **`historialRecortado`**. El sobre llegaba a las
+ * dos pantallas, y las dos lo tiraban en la puerta:
+ *
+ *   · la consulta se quedaba sólo con `.vigentes` y `.problemas`;
+ *   · el expediente lo guardaba en `proyeccionRecortada` y no lo pintaba en
+ *     ningún sitio.
+ *
+ * Así que las dos escribían debajo de la lista «de lo último que se dijo de cada
+ * problema en sus notas firmadas» —una afirmación sobre el expediente ENTERO—
+ * cuando lo que habían leído era una ventana. Sobre un historial recortado, «no
+ * encontré más» no es «no hay más», y un fármaco anterior al techo desaparece
+ * también de la comprobación de interacciones.
+ *
+ * ── POR QUÉ UNA FRASE Y NO TRES ─────────────────────────────────────────────
+ *
+ * La misma oración estaba escrita a mano **tres veces** en dos pantallas, para
+ * las alergias. Una cuarta y una quinta copia habrían sido la forma habitual de
+ * que la próxima diga algo distinto sin que nadie lo note. Vive aquí, donde vive
+ * la proyección que la hace necesaria.
+ *
+ * Devuelve cadena vacía cuando no hay nada que decir: quien la pinta no tiene
+ * que acordarse de comprobar el booleano.
+ */
+export function avisoDeHistorialRecortado(recortado: boolean): string {
+  return recortado
+    ? 'El historial vino recortado: puede haber más en notas que no se cargaron.'
+    : ''
+}
+
+export const POR_QUE_EL_RECORTE_SE_DICE =
+  'Porque debajo de la lista dice «de lo último que se dijo de cada problema en '
+  + 'sus notas firmadas», y eso es una afirmación sobre el expediente ENTERO. '
+  + 'Sobre una ventana es falsa, y el médico no tiene forma de saberlo mirando la '
+  + 'pantalla. Ausencia de dato no es dato de ausencia, tambien cuando la ausencia '
+  + 'la causo un tope de lectura.'
+
 /** Frase corta para el encabezado de la consulta. */
 export function resumenProblemas(activos: readonly ProblemaVigente[]): string {
   if (!activos.length) return 'Sin problemas registrados'
