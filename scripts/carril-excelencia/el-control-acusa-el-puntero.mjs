@@ -67,6 +67,20 @@ const RUTAS = (process.env.RUTAS ?? [
   '/crm', '/reactivacion', '/resenas', '/membresias', '/farmacia',
   '/corte-caja', '/cumplimiento', '/cumplimiento/retencion', '/consultor',
   '/guia', '/consulta/pac-001', '/expediente/pac-001',
+  /*
+   * EL DOCUMENTO MEDICOLEGAL, que llevaba fuera de esta lista desde el principio.
+   *
+   * `/nota/[patientId]/[notaId]` es donde el médico LEE lo que firmó, y de donde
+   * salen la receta, la orden, el Word y el PDF. Es la salida del producto —«que
+   * el médico salga de la consulta con la nota hecha»— y ninguna de las 22 rutas
+   * de arriba la tocaba: se medían las pantallas donde se TRABAJA, no la que
+   * queda.
+   *
+   * Al abrirla por primera vez ni siquiera pintaba: reventaba en el arranque
+   * porque el sembrado escribía una nota sin `metadata`. O sea que esta ruta
+   * llevaba fuera el tiempo suficiente para que ni hubiera con qué medirla.
+   */
+  '/nota/pac-001/nota-demo-001',
 ].join(',')).split(',')
 
 /**
@@ -353,7 +367,11 @@ const mudosDeDialogos = []
       abrir: async () => {
         await pagD.goto(`${BASE}/finanzas`, { waitUntil: 'domcontentloaded' })
         await pagD.waitForTimeout(6000)
-        await pagD.locator('button:visible').filter({ hasText: /^Anular$/ }).first()
+        // Por ROL, no por texto: ver la nota de «agregar una adenda». Un icono
+        // añadido mañana a este botón convertiría el `hasText` anclado en un
+        // «no se pudo abrir» silencioso sobre el control más peligroso del
+        // producto.
+        await pagD.getByRole('button', { name: 'Anular', exact: true }).first()
           .click({ timeout: 8000 })
         await pagD.waitForTimeout(1500)
         // El motivo enciende el botón destructivo. Sin esto no se mide.
@@ -397,7 +415,7 @@ const mudosDeDialogos = []
          *
          * Así que se busca primero el botón de la fila y luego el del menú.
          */
-        const directo = pagD.locator('button:visible').filter({ hasText: /^Cobrar$/ }).first()
+        const directo = pagD.getByRole('button', { name: 'Cobrar', exact: true }).first()
         if (await directo.count().catch(() => 0)) {
           await directo.click({ timeout: 8000 }).catch(() => {})
           await pagD.waitForTimeout(1500)
@@ -418,6 +436,52 @@ const mudosDeDialogos = []
           await pagD.keyboard.press('Escape').catch(() => {})
           await pagD.waitForTimeout(400)
         }
+      },
+    },
+    /**
+     * LA ADENDA — corregir un documento firmado que NO se puede tocar.
+     *
+     * Es el tercer diálogo de estado difícil, y el que pide el estado más caro:
+     * sólo existe sobre una nota FIRMADA, así que hasta que el sembrado no supo
+     * escribir una (con `metadata`, `secciones` y bloque de `firma`) no había
+     * forma de abrirlo. Y como «Anular cobro», su acción primaria nace APAGADA
+     * —motivo de tres letras y texto—, así que sin escribir los dos campos el
+     * diálogo salía «0 mudos» sin haber mirado el botón que importa.
+     *
+     * Se busca por ROL, no por texto, y eso no es un detalle de estilo: el botón
+     * lleva icono, así que su `textContent` es `" Adenda"` con un espacio
+     * delante y un `hasText: /^Adenda$/` no encuentra NADA. Playwright no
+     * normaliza el espacio cuando el filtro es una expresión regular anclada.
+     * Falla en silencio y de la peor manera: el arnés no dice «no coincide»,
+     * dice «no se pudo abrir», que se lee como problema del producto. `getByRole`
+     * compara contra el NOMBRE ACCESIBLE, ya normalizado — que además es lo que
+     * oye quien usa lector de pantalla, o sea lo que hay que medir de todos modos.
+     *
+     * Y VA CON `exact: true`, que es la mitad que se me olvidó la primera vez.
+     * El `name` de `getByRole` es SUBCADENA por omisión. Al cambiar la sonda de
+     * «Cobrar» a `getByRole` sin `exact`, `.first()` dejó de encontrar el botón
+     * de la fila y empezó a encontrar el filtro «1 por cobrar» de la cabecera —
+     * y lo PULSÓ. El arnés no falló: filtró la agenda y luego dijo «sin abrir»
+     * sobre una lista que él mismo había cambiado.
+     *
+     * O sea que la versión «robusta» era peor que la frágil: la frágil no
+     * encontraba nada, ésta encontraba otra cosa y actuaba sobre ella. Cambiar
+     * un localizador es cambiar lo que el arnés hace, no cómo lo dice.
+     */
+    {
+      nombre: 'agregar una adenda',
+      sel: '[role=dialog]',
+      abrir: async () => {
+        await pagD.goto(`${BASE}/nota/pac-001/nota-demo-001`, { waitUntil: 'domcontentloaded' })
+        await pagD.waitForTimeout(7000)
+        await pagD.getByRole('button', { name: 'Adenda', exact: true }).first().click({ timeout: 8000 })
+        await pagD.waitForTimeout(1200)
+        // Los dos campos encienden «Agregar adenda». Sin esto no se mide.
+        await pagD.locator('[role=dialog] input').first()
+          .fill('Corrección sintética — medición del arnés').catch(() => {})
+        await pagD.locator('[role=dialog] textarea').first()
+          .fill('Texto sintético de medición.').catch(() => {})
+        await pagD.waitForTimeout(600)
       },
     },
     /**
@@ -457,7 +521,10 @@ const mudosDeDialogos = []
         if (!t) return
         await pagD.goto(`${BASE}/mi/${t}`, { waitUntil: 'domcontentloaded' })
         await pagD.waitForTimeout(7000)
-        await pagD.locator('nav button').filter({ hasText: new RegExp(`^${destino}$`) })
+        // Por rol y dentro del `nav`, para no confundirlo con un botón del
+        // cuerpo que se llame igual. Hoy estos cinco destinos son texto pelado,
+        // así que el filtro anclado también acertaba — pero acertaba por suerte.
+        await pagD.locator('nav').getByRole('button', { name: destino, exact: true })
           .first().click({ timeout: 6000 }).catch(() => {})
         await pagD.waitForTimeout(2500)
       },

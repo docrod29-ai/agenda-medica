@@ -483,10 +483,86 @@ async function main() {
    * pantalla se comporte, no lo que dice. Cero pacientes reales.
    */
   await escribir(`clinics/${CLINICA}/patients/pac-001/notas/nota-demo-001`, {
+    id: 'nota-demo-001',
+    clinicId: CLINICA,
+    pacienteId: 'pac-001',
+    pacienteNombre: PACIENTES.find(x => x.id === 'pac-001').nombre,
+    tipo: 'seguimiento',
     estado: 'firmada',
     fechaConsulta: iso(hoy).slice(0, 10),
     firmadaEn: iso(hoy),
     medicoNombre: 'Dra. Ximena Alcántara Robledo (sintética)',
+    /*
+     * LA PRIMERA VERSIÓN DE ESTE SEMBRADO NO TRAÍA `metadata` NI `secciones`.
+     *
+     * Y pasó desapercibido porque el ÚNICO lector que se miró fue la ruta del
+     * portal, que sólo lee `estado` y `medicamentos`. El visor medicolegal
+     * —`/nota/[patientId]/[notaId]`, el sitio donde el médico LEE el documento—
+     * hace `nota.metadata.establecimiento` sin guarda y `nota.secciones.filter`,
+     * así que reventaba entero: «Algo salió mal», con un «Reintentar» que no
+     * puede arreglar un fallo determinista de render.
+     *
+     * Es «el dato tiene que LLEGAR» en su forma más literal: el que escribe lo
+     * aceptó, Firestore lo aceptó, un lector lo aceptó — y el lector que
+     * importaba no podía pintarlo. Un sembrador en `.mjs` no pasa por `tsc`, así
+     * que `NotaMedica` decía «obligatorio» y nadie lo comprobaba.
+     *
+     * Ahora se siembra contra el TIPO, no contra el lector que se tenía a mano.
+     */
+    metadata: {
+      id: 'nota-demo-001',
+      tipoNota: 'seguimiento',
+      clinicId: CLINICA,
+      pacienteId: 'pac-001',
+      medicoId: uid,
+      // Sintéticas y marcadas como tales: ni cédula ni establecimiento reales.
+      cedulaProfesional: 'CED-SINTETICA-0000',
+      especialidad: 'Medicina Interna (sintética)',
+      establecimiento: 'Consultorio sintético de medición',
+      fechaCreacion: iso(hoy),
+      fechaModificacion: iso(hoy),
+      /*
+       * SELLO VACÍO A PROPÓSITO. El visor distingue cuatro estados de integridad
+       * y `''` cae en `sin-sello`, que es la verdad: esta nota no se firmó por el
+       * producto, se escribió a mano en el emulador. Inventar un SHA-256 la
+       * pintaría de ROJO —«pudo haber sido alterada»— y el arnés estaría midiendo
+       * una alarma falsa que yo mismo fabriqué.
+       */
+      hashIntegridad: '',
+      version: 1,
+      estado: 'firmada',
+      fuenteGeneracion: 'manual',
+    },
+    /*
+     * Y LA FIRMA, que es lo que hace que sea un documento y no un borrador.
+     *
+     * `estado: 'firmada'` a solas no basta: el pie del documento pregunta por
+     * `nota.estado === 'firmada' && nota.firma`, así que sin este bloque la nota
+     * salía sellada arriba y estampada BORRADOR abajo — un documento que se
+     * contradice a sí mismo, y encima el estado que hace falta para la ADENDA,
+     * que es corrección de nota FIRMADA.
+     *
+     * `hashFirma` va vacío por lo mismo que `hashIntegridad`: no se inventa un
+     * sello. Sin él la pantalla dice `sin-sello`, que es la verdad.
+     */
+    firma: {
+      nombreMedico: 'Dra. Ximena Alcántara Robledo (sintética)',
+      cedulaProfesional: 'CED-SINTETICA-0000',
+      especialidad: 'Medicina Interna (sintética)',
+      timestamp: iso(hoy),
+      hashFirma: '',
+    },
+    /*
+     * Texto sintético y SIN UNA SOLA CIFRA CLÍNICA: aquí se vigila que la
+     * pantalla se comporte, no lo que dice. `clinical-safety.md` §1 — una dosis
+     * o un umbral inventados en un fixture acaban citándose como si fueran algo.
+     */
+    secciones: [
+      { key: 'subjetivo', label: 'Subjetivo', value: 'Contenido sintético de medición. No corresponde a ninguna persona.' },
+      { key: 'objetivo', label: 'Objetivo', value: 'Contenido sintético de medición.' },
+      { key: 'analisis', label: 'Análisis', value: 'Contenido sintético de medición.' },
+      { key: 'plan', label: 'Plan', value: 'Contenido sintético de medición.' },
+    ],
     medicamentos: [
       {
         nombre: 'Medicamento sintético A',

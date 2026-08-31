@@ -567,7 +567,22 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * el fallo, y creerle costó un diagnóstico equivocado escrito en un PR.
      */
 
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414],
+    /**
+     * 415 es esta familia con la prueba más incómoda de todas: el instrumento
+     * no faltaba por descuido, faltaba porque NO HABÍA CON QUÉ ENCENDERLO. El
+     * arnés no había abierto nunca el visor del documento medicolegal, y al ir
+     * a abrirlo resultó que la pantalla ni pintaba — el consultorio de prueba no
+     * tenía una sola nota que enseñar, y la que se sembró para tenerla reventaba
+     * la pantalla entera. Un instrumento que no se puede encender no es un
+     * instrumento flojo: es la misma ausencia, mejor disimulada.
+     *
+     * Y al encenderse destapó otros dos, como dice el patrón de esta familia:
+     * la cabecera de cada nota del expediente y el «ya no» que suspende un
+     * medicamento en la consulta, mudos los dos. No aparecían porque no había
+     * datos que los hicieran aparecer — un cero sobre una lista vacía no dice
+     * «está bien», dice «aquí no hay nada».
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415],
   },
   {
     clave: 'hueco_como_dato',

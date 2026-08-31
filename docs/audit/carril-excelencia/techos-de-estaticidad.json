@@ -24,6 +24,7 @@
     "/guia": 0,
     "/consulta/pac-001": 0,
     "/expediente/pac-001": 0,
+    "/nota/pac-001/nota-demo-001": 0,
     "/mi/[token]": 0,
     "/mi/[token:clinico]": 0
   }

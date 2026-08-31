@@ -5882,3 +5882,93 @@ cantando «sin abrir», porque ahí el cero sí es sospechoso.
 `acuse-puntero` con las dos caras del portal, los cuatro diálogos y los cuatro
 destinos · lint **95 = techo** · `tsc` limpio · golden de la compuerta **14 en
 verde** · inventario regenerado.
+
+---
+
+## Unidad 90 — el documento medicolegal, que nunca se había medido, y no pintaba
+
+### 90a · La pantalla donde acaba el trabajo del médico llevaba fuera del arnés
+
+Las 22 rutas del `acuse-puntero` son las pantallas donde se **trabaja**. Ninguna
+era `/nota/[patientId]/[notaId]`: el sitio donde el médico **lee lo que firmó**,
+y de donde salen la receta, la orden, el PDF y el Word. La salida del producto —
+«que el médico salga de la consulta con la nota hecha»— no la miraba nadie.
+
+Al abrirla por primera vez no pintaba: **«Algo salió mal»**, con un único botón
+«Reintentar» que no puede funcionar nunca contra un fallo de render determinista.
+
+Y la causa era mía: el sembrado escribía la nota sin `metadata`. Un sembrador
+`.mjs` no pasa por `tsc`, así que `NotaMedica` decía «obligatorio» y no lo
+comprobaba nadie.
+
+**Pero el defecto no era el fixture.** Ese documento cruzó tres puertas sin una
+queja —el escritor, Firestore, y la ruta del portal del paciente, que pintó su
+receta porque sólo mira `estado` y `medicamentos`— y reventó en el cuarto lector.
+`normNota`, el normalizador por el que pasa TODO lector de notas del producto,
+defendía cuatro arreglos y no `metadata`. Una nota vieja o un respaldo restaurado
+a medias deja el documento **íntegro en Firestore e ilegible desde el producto**.
+
+Se defiende con el objeto **vacío**, no con valores plausibles: la pantalla ya
+sabe decir «Falta el nombre del establecimiento (NOM-004)» y «[FALTA CÉDULA
+PROFESIONAL]». Lo único que hacía falta era dejarla llegar. → **REG-415**.
+
+### 90b · Y al encenderse destapó otros dos, como siempre
+
+| Dónde | Qué | Antes → después |
+|---|---|---|
+| `/nota/…` | «Ver versiones anteriores» — la única puerta al historial | 1 mudo de 8 → **0 de 16** |
+| `/expediente/pac-001` | la cabecera de cada nota del expediente | 1 mudo de 25 → **0 de 25** |
+| `/consulta/pac-001` | «ya no» ×2 — el acto de SUSPENDER un medicamento | 2 mudos de 24 → **0 de 24** |
+| diálogo «agregar una adenda» | corregir un documento firmado | nunca medido → **0 de 3** |
+
+Los dos últimos no aparecían **porque no había datos que los hicieran aparecer**.
+Un cero sobre una lista vacía no dice «está bien»: dice «aquí no hay nada». Es la
+misma lección de la unidad 89 llegando por el otro lado.
+
+Los tres son el defecto de siempre —`background` o `color` en el `style={{ }}`,
+que le gana por especificidad al `:hover` de la hoja—. El «ya no» estrena
+`.nx-accion-en-prosa`: un paso de color y no de caja, porque dos de éstas
+seguidas dentro de una frase, con caja cada una, convierten un renglón de texto
+en una botonera.
+
+### 90c · Y me cargué una sonda que funcionaba, «robusteciéndola»
+
+El botón «Adenda» lleva icono, así que su `textContent` es `" Adenda"` con un
+espacio delante y un `hasText: /^Adenda$/` **no encuentra nada**. El arnés no
+dice «no coincide»: dice «no se pudo abrir», que se lee como problema del
+producto. Cambié las sondas a `getByRole`, que compara contra el nombre
+accesible.
+
+Y se me olvidó `exact: true`. El `name` de `getByRole` es **subcadena** por
+omisión, así que la sonda de «Cobrar» dejó de encontrar el botón de la fila y
+empezó a encontrar —y a **pulsar**— el filtro «1 por cobrar» de la cabecera.
+Filtró la agenda y después dijo «sin abrir» sobre una lista que ella misma había
+cambiado.
+
+La versión «robusta» era **peor** que la frágil: la frágil no encontraba nada;
+ésta encontraba otra cosa y actuaba sobre ella. Cambiar un localizador es cambiar
+lo que el arnés **hace**, no cómo lo dice.
+
+### RIESGO RESIDUAL
+
+- El barrido de REG-415 sólo mira el visor de la nota. Otras pantallas que lean
+  notas pueden tener desreferencias duras propias sobre campos que `normNota`
+  tampoco defiende.
+- El barrido da por buena una guarda que esté **en cualquier punto del archivo**.
+  Un `&&` en una rama distinta a la del acceso lo aprobaría sin serlo.
+- `/nota/…` entra en el `acuse-puntero` y **en ningún otro arnés**: foco, tema
+  claro, huecos de carga y 390px siguen sin recorrerla.
+- Sigue sin abrirse el diálogo de **firmar y cerrar la nota** — el acto central
+  del producto. Pide llevar la consulta a un estado que ninguna sonda construye
+  hoy.
+- El punto ciego de producción no se mueve: nada distingue todavía qué árbol
+  sirve el sitio vivo.
+
+### COMPUERTAS
+
+`acuse-puntero` **0 mudos en las 25 rutas y los 9 diálogos** · `npx vitest run`
+entero (12 037 casos; el único rojo restante es `ops-timeout-y-punto-ciego`, que
+necesita una IP que trague paquetes y el proxy de esta caja contesta — ya
+declarado en REG-414) · lint **95 = techo** · trinquete de diseño sin deuda nueva
+· `tsc` limpio · golden nuevo **5 casos, probado al revés ×3** · sellado en
+`invariantes-clinicos.json` · sala de datos, tablero e inventario regenerados.

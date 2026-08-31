@@ -19,10 +19,20 @@
   "ultimaVersionEnProduccion": "nexusmed-v1177",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-08-31-v1177.md"
+    "M docs/audit/carril-excelencia/techos-de-estaticidad.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
+    " M scripts/design/sembrar-emulador.mjs",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
+    " M src/app/globals.css",
+    " M src/components/expediente/HistorialVersiones.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/expediente/firestore.ts",
+    "?? src/__tests__/un-documento-sin-metadata-no-tumba-el-visor.test.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -56,12 +66,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/paquete-v1177",
+  "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 265,
+    "regsEnElLedger": 266,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 886,
-    "casosDePrueba": 10778,
+    "archivosDePrueba": 889,
+    "casosDePrueba": 10802,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
