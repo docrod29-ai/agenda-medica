@@ -5611,3 +5611,102 @@ dos commits atrás, porque los empujes con `GITHUB_TOKEN` dejan el
 El hilo común con los cinco defectos del producto es el mismo: **una compuerta en
 verde no dice que lo que te importa esté bien; dice que lo que ella mide está
 bien.**
+
+---
+
+## Unidad 88 — los diálogos de estado difícil, y tres errores míos de medición
+
+El #420 dejó declarado que sólo se abrían DOS diálogos y que los de estado
+difícil —un cobro a medias, una firma— seguían sin mirarse. Se abren dos más.
+
+### 88a · «Anular cobro» — 2 mudos de 3 → 0
+
+`Cancelar` y `Anular cobro`, los dos botones del pie. Es la confirmación de un
+acto destructivo sobre dinero y sus dos botones se leían como texto.
+
+**Y hay un detalle que habría dado un cero falso.** El arnés salta los `disabled`
+a propósito —un botón apagado no tiene que acusar nada— y «Anular cobro» está
+apagado hasta que se escribe un motivo. Abrir el diálogo NO bastaba: sin escribir
+el motivo, el control destructivo queda fuera de la cuenta y el diálogo sale «0
+mudos» sin haber mirado lo que importa. El arnés ahora **lleva el producto al
+estado**.
+
+Es la lección de la unidad 86 un paso más allá: no basta con que el control
+exista; tiene que estar **en el estado en el que se usa**.
+
+`.btn-danger` ya existía y NO se usó: es el destructivo *fantasma*, y en un
+diálogo de confirmación la acción destructiva es la principal y va rellena.
+Cambiarla habría sido bajarle el peso visual — un cambio de producto disfrazado
+de arreglo. Se añade `.nx-acc-destructiva`, hermano de `.nx-acc-fuerte`.
+
+### 88b · «Cobrar una cita» — 2 mudos de 5 → 0
+
+El enlace a Configuración y **«No cobrar a este paciente (cortesía)»**, que exime
+un cobro.
+
+El botón llevaba su `color-mix` morado en el `style={{ }}`. Se parametriza en vez
+de escribir una clase por color: `.nx-acc-tenido` toma el tinte por variable CSS,
+con el precedente que ya existía (`--nx-revelar-retraso`). `.nx-acc-riesgo` es
+esta misma forma con el rojo escrito a fuego; **no se refunde** —no se toca lo que
+funciona— pero queda anotado como candidato.
+
+El enlace tenía `textDecoration: 'none'` en línea, que le gana al `:hover` de la
+hoja igual que un `background`: **quitarlo del JSX es parte del arreglo**. La
+clase no toca el color; el acuse es el subrayado.
+
+### 88c · Lo que se fue a buscar y NO existía
+
+El golden `un-dialogo-a-mano-no-atrapa-el-foco` declaraba no mirar
+`src/app/mi/**`. Se fue a cubrir eso y las dos premisas eran falsas:
+
+1. **El portal no tiene diálogos.** Su única capa `fixed` es la barra de
+   destinos, que no lo es.
+2. **El barrido SÍ cubría el portal**: `find src/app src/components` son 221
+   archivos con el portal dentro. Probado al revés metiéndole un
+   `fixed; inset: 0` sin teclado — el guardián lo canta por su nombre.
+
+Corregida la cabecera. Una limitación declarada **de menos** cuesta trabajo real:
+llevó a planear una unidad entera para cubrir algo ya cubierto.
+
+### TRES ERRORES MÍOS DE MEDICIÓN, Y LO QUE ENSEÑAN
+
+- **La sonda de «Cobrar» buscó en el sitio equivocado y con el texto
+  equivocado.** Cobrar es la acción PRIMARIA de la fila —botón directo— y el ítem
+  del menú se llama «Registrar cobro», que además sólo sale
+  `{puedeCobrar && accion?.tipo !== 'cobrar'}`: se esconde a propósito para no
+  duplicar. **El producto estaba mejor pensado que mi forma de medirlo.** Se
+  comprobó contra el emulador que `cita-010` era cobrable ANTES de tocar la
+  sonda, para no arreglarla sobre una hipótesis.
+- **El inventario de pantallas me cazó dos veces el mismo día**, las dos por
+  regenerarlo ANTES de tocar el último archivo. La compuerta acertó las dos; el
+  orden de mis pasos fue el fallo. Se le añade a esa compuerta el mensaje que le
+  faltaba: comparaba dos documentos enteros y escupía ochenta filas de diff
+  sabiendo la respuesta —«regenera»— sin decirla.
+- **Reporté «6/6 en verde» sobre un árbol que ya no era el del PR.** Los empujes
+  con `GITHUB_TOKEN` dejan el `pull_request:synchronize` en *approval-required*,
+  así que CI no vuelve a correr solo; `workflow_dispatch` es la salida que el
+  propio `ci.yml` documenta. Un PR puede quedarse con un verde que ya no describe
+  su cabeza.
+
+### RESIDUAL_RISK
+
+- **La precaución que salvó la unidad sigue siendo la excepción, no la regla.**
+  «Cobrar» salió «sin abrir — queda sin medir» y por eso se investigó. Si
+  hubiera salido «0 mudos», habría pasado por bueno un diálogo que nunca se
+  abrió. Los demás arneses de este carril **no** distinguen vacío de cero.
+- **Sólo cuatro diálogos + el portal.** Una firma, un internamiento, una receta
+  a medias: siguen sin abrirse, y no estar en la lista significa que **no se
+  vigilan**.
+- **El estado se lleva a mano, y sólo hasta donde llega la sonda.** «Anular
+  cobro» se mide con el motivo escrito; no se mide guardando, ni con el diálogo
+  en su estado de error.
+- El alcance `clinico` del portal sigue **sin medirse**.
+- `.nx-acc-riesgo` sigue duplicando la forma de `.nx-acc-tenido`. Declarado, no
+  arreglado.
+- **WebKit sigue `BLOCKED_EXTERNAL`**.
+
+### COMPUERTAS
+
+`vitest` **12 028 de 12 028 en local** · lint **95 = techo** · trinquete de
+diseño **sin deuda nueva** · `tsc` limpio · `arnes:acuse-puntero` **0 mudos en
+los cinco diálogos** · `arnes:nada-tapa` 0 de 848 · inventario regenerado.
