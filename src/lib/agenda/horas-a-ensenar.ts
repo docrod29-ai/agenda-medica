@@ -45,7 +45,13 @@ function hora(hhmm: string | undefined): number | null {
   return Number.isFinite(h) && h >= 0 && h <= 23 ? h : null
 }
 
-export interface DiaDeHorario { activo?: boolean; inicio?: string; fin?: string }
+export interface DiaDeHorario {
+  activo?: boolean
+  inicio?: string
+  fin?: string
+  /** Horario partido: los huecos de dentro del día (la comida, un quirófano fijo). */
+  descansos?: { inicio: string; fin: string }[]
+}
 
 /**
  * Las horas a pintar, de la primera a la última, ambas incluidas.
@@ -127,7 +133,42 @@ export function estaAbierto(hora: number, dia: DiaDeHorario | undefined): boolea
   const i = hora24(dia.inicio)
   const f = hora24(dia.fin)
   if (i === null || f === null) return true   // sin horario declarado, no se opina
-  return hora >= i && hora < f
+  if (hora < i || hora >= f) return false
+
+  /*
+   * EL HORARIO PARTIDO — que no es un caso raro: el tipo lo dice con todas las
+   * letras, «un médico que atiende de 9 a 14 y de 16 a 20, que en México es lo
+   * normal, no la excepción».
+   *
+   * `getAvailableSlots` ya se salta las franjas que pisan un descanso, así que
+   * sin esto la rejilla enseñaba como abierta una hora que el selector de horas
+   * se niega a ofrecer: la pantalla dice una cosa y el motor otra.
+   *
+   * SE TIÑE DE MENOS, NUNCA DE MÁS. Sólo se marca cerrada la hora que el
+   * descanso cubre ENTERA. Un descanso de 14:30 a 15:30 deja las 14:00 y las
+   * 15:00 medio abiertas —se puede agendar en ellas— y pintarlas de cerrado
+   * sería decirle al médico que no puede cuando sí puede.
+   */
+  return !(dia.descansos ?? []).some(d => {
+    /*
+     * EN MINUTOS, no en horas. La primera versión comparaba con `hora24`, que
+     * se queda con la hora y **tira los minutos**: un descanso de 14:30 a 15:30
+     * se leía como 14 a 15 y cerraba las 14:00 enteras. Lo cazó su propio caso.
+     */
+    const di = minutosDelDia(d?.inicio)
+    const df = minutosDelDia(d?.fin)
+    if (di === null || df === null) return false
+    // Cubre la franja ENTERA: empieza en la hora o antes, acaba en la siguiente o después.
+    return di <= hora * 60 && df >= (hora + 1) * 60
+  })
+}
+
+/** `'HH:mm'` → minutos desde medianoche, o `null`. Los minutos importan. */
+function minutosDelDia(hhmm: string | undefined): number | null {
+  if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null
+  const [h, m] = hhmm.split(':').map(Number)
+  if (!Number.isFinite(h) || !Number.isFinite(m) || h < 0 || h > 23 || m < 0 || m > 59) return null
+  return h * 60 + m
 }
 
 /** `'HH:mm'` → hora, o `null`. Igual que la de arriba, con nombre propio. */

@@ -164,4 +164,37 @@ describe('la banda de atención se ve', () => {
     expect(estaAbierto(3, {})).toBe(true)
     expect(estaAbierto(3, undefined)).toBe(true)
   })
+
+  /*
+   * EL HORARIO PARTIDO. No es un caso raro: el tipo lo dice —«de 9 a 14 y de 16
+   * a 20, que en México es lo normal, no la excepción»— y `getAvailableSlots` ya
+   * se salta esas franjas. Sin esto la rejilla enseñaba como abierta una hora
+   * que el selector se niega a ofrecer: la pantalla decía una cosa y el motor
+   * otra.
+   */
+  const partido = { activo: true, inicio: '09:00', fin: '20:00', descansos: [{ inicio: '14:00', fin: '16:00' }] }
+
+  it('EL DEFECTO: la hora de comer no se enseña como agendable', () => {
+    expect(estaAbierto(13, partido), 'las 13:00 son antes de la comida').toBe(true)
+    expect(estaAbierto(14, partido), 'las 14:00 caen dentro del descanso').toBe(false)
+    expect(estaAbierto(15, partido), 'las 15:00 caen dentro del descanso').toBe(false)
+    expect(estaAbierto(16, partido), 'a las 16:00 se vuelve a atender').toBe(true)
+  })
+
+  it('SE TIÑE DE MENOS: un descanso que no cubre la hora entera no la cierra', () => {
+    // De 14:30 a 15:30 se puede agendar a las 14:00 y a las 15:00: decir que no
+    // sería quitarle al médico dos horas que sí tiene.
+    const corto = { activo: true, inicio: '09:00', fin: '20:00', descansos: [{ inicio: '14:30', fin: '15:30' }] }
+    expect(estaAbierto(14, corto)).toBe(true)
+    expect(estaAbierto(15, corto)).toBe(true)
+  })
+
+  it('dos descansos cuentan los dos, y un descanso ilegible no cierra nada', () => {
+    const dos = { activo: true, inicio: '08:00', fin: '20:00', descansos: [{ inicio: '14:00', fin: '15:00' }, { inicio: '17:00', fin: '18:00' }] }
+    expect(estaAbierto(14, dos)).toBe(false)
+    expect(estaAbierto(17, dos)).toBe(false)
+    expect(estaAbierto(16, dos)).toBe(true)
+    const roto = { activo: true, inicio: '08:00', fin: '20:00', descansos: [{ inicio: '', fin: 'xx' }] }
+    expect(estaAbierto(14, roto), 'un descanso ilegible no puede cerrar la tarde').toBe(true)
+  })
 })

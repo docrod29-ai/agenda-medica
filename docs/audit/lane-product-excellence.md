@@ -5008,11 +5008,67 @@ fondo.
 
 **RESIDUAL_RISK.**
 
-- **El horario partido sigue sin verse.** `DaySchedule` admite huecos dentro del
-  día —la comida— y esto sólo mira `inicio` y `fin`: la hora de comer se enseña
-  como abierta, igual que antes. Es el hueco más visible que deja esta unidad.
+- ~~El horario partido sigue sin verse.~~ **Cerrado en la misma sesión**, ver
+  abajo: era el hueco más visible que dejaba esta unidad y no llegó a dormir.
 - **No mira festivos** (`diasFestivos` existe y `getDaySchedule` lo usa; la
   rejilla no).
 - **No mira horarios por médico**: usa el del consultorio, aunque el producto
   sepa de horarios individuales.
 - La vista de **día** y la de **mes** no llevan la banda: sólo la semana.
+
+---
+
+## Unidad 79 — la hora de comer se enseñaba como agendable
+
+**DE DÓNDE SALE.** Del riesgo residual que dejó la unidad 78, sin dejarlo dormir.
+`DaySchedule` tiene `descansos` —el horario partido— y el tipo no lo trata como
+un adorno: «un médico que atiende de 9 a 14 y de 16 a 20, **que en México es lo
+normal, no la excepción**».
+
+**LO QUE FALLABA, y por qué es de la familia de siempre.** `getAvailableSlots`
+**ya** se salta las franjas que pisan un descanso (`pisaDescanso`, desde hace
+tiempo). La rejilla no. Así que el selector de horas se negaba a ofrecer las
+14:00 mientras la rejilla las pintaba abiertas y clicables: **la pantalla decía
+una cosa y el motor otra**, y el que se lleva el chasco es quien confía en la
+pantalla.
+
+**MEDIDO EN NAVEGADOR**, con el consultorio puesto a 09:00–20:00 y descanso de
+14:00 a 16:00:
+
+```
+07:00  cerradas 7/7      13:00  cerradas 0/7
+08:00  cerradas 7/7      14:00  cerradas 7/7   ← la comida
+09:00  cerradas 0/7      15:00  cerradas 7/7   ←
+…                        16:00  cerradas 0/7
+```
+
+**SE TIÑE DE MENOS, NUNCA DE MÁS.** Sólo se marca cerrada la hora que el descanso
+cubre **entera**. Un descanso de 14:30 a 15:30 deja las 14:00 y las 15:00 medio
+abiertas —se puede agendar en ellas—, y pintarlas de cerrado sería decirle al
+médico que no puede cuando sí puede.
+
+**Y ESE MISMO CASO CAZÓ UN DEFECTO MÍO.** La primera versión comparaba con
+`hora24`, que se queda con la hora y **tira los minutos**: un descanso de 14:30 a
+15:30 se leía como «de 14 a 15» y cerraba las 14:00 enteras. El caso «se tiñe de
+menos» se puso rojo antes de que nadie lo viera en una pantalla. Ahora se compara
+en minutos desde medianoche.
+
+**PROBADO AL REVÉS.** Quitando la comprobación de descansos, caen dos casos: «las
+14:00 caen dentro del descanso» y su gemelo de las 15:00.
+
+**COMPUERTAS.** `vitest` 11 993 de 11 994 —sólo `ops-timeout-y-punto-ciego`— ·
+lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run
+build` compila. La configuración del emulador se devolvió a como estaba: el
+descanso se puso para medir y se quitó, para no mover la línea base de los otros
+arneses.
+
+**RESIDUAL_RISK.**
+
+- **Los festivos siguen sin verse.** `diasFestivos` existe y `getDaySchedule` lo
+  usa; la rejilla no lo mira. Es ahora el hueco más grande de esta banda.
+- **Ni los horarios por médico**: la banda usa el del consultorio, aunque el
+  producto sepa de horarios individuales y la rejilla se pueda filtrar por médico.
+  Con el filtro puesto en un médico con otro horario, la banda miente.
+- La banda sigue siendo sólo de la vista de **semana**.
+- Un descanso que cubre media hora no se dibuja de ninguna forma: o cubre la
+  franja entera o no se ve. Media franja sombreada pediría otra pieza.
