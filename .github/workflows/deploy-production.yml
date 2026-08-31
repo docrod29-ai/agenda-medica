@@ -42,7 +42,11 @@ jobs:
       - name: Traer el árbol autorizado
         uses: actions/checkout@v4
         with:
-          ref: 815011509c39ff161c793880881bec5f9cde2282
+          # UNA SOLA FUENTE. El SHA se escribía aquí Y en SHA_AUTORIZADO, y las dos
+          # copias divergieron: la compuerta comparaba un checkout viejo contra una
+          # variable nueva y se detenía sin decir por qué eran distintos. Ahora sale
+          # de la variable, y actualizar el despliegue es cambiar UN número.
+          ref: ${{ env.SHA_AUTORIZADO }}
           fetch-depth: 0
 
       - name: 'Compuerta 1 · SHA, versión y REG-323'
