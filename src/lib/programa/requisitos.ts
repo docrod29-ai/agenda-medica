@@ -775,8 +775,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'TR-HISTORIA.practica-longitudinal', ws: 'TR-HISTORIA', titulo: 'Práctica sintética con años de historia, no cascarones',
     estado: 'PARTIAL',
-    queFalta: 'REG-383 siembra 50 000 pacientes CON tres notas firmadas cada uno (200 300 documentos) y comprueba que navegar no escala con la historia total. Falta la distribución de medicamentos, laboratorios y órdenes, y una mezcla realista en vez de tres notas iguales por paciente.',
+    queFalta: 'REG-383 siembra 50 000 pacientes CON tres notas firmadas cada uno (200 300 documentos) y comprueba que navegar no escala con la historia total. REG-440 cerró la distribución: el generador daba a TODOS exactamente los mismos encuentros y nada más, así que el p99 de una consulta era la mediana y el fixture escondía justo el caso que duele, el expediente largo. Ahora hay cola larga, medicamentos con vacío y polifarmacia, y laboratorios y órdenes que NO salen en todos los encuentros —la mitad del coste de navegar un expediente está en los que no tienen nada—. Los pesos se declaran como CARGA y no como epidemiología: nadie los ha medido contra una práctica real, y escribir «el 45 % acude una sola vez» sin fuente es la regla 1 aplicada a un arnés. Los laboratorios no llevan analito ni valor y los medicamentos no llevan fármaco, por lo mismo. La normalización se comprueba en el código (la primera versión daba 1.178: un 18 % más carga de la pedida, en silencio) y el esquema sube a v2 porque una corrida nueva no se compara con una vieja. FALTA: validar los pesos contra una práctica real, que necesita al dueño o un consultorio piloto; y correr el arnés con esta forma nueva en el emulador, que es la mitad que mide el producto y no el fixture.',
+    evidencia: 'REG-440. 21 casos verdes. El golden se cazó a sí mismo dos veces: los primeros casos probaban los módulos por separado y NO caían al desconectar la distribución del generador —la familia «escrito, probado y sin conectar» dentro de su propio golden—, y los guardianes de «no traen analito ni valor» casaban con los comentarios que explican por qué no están.',
+    comando: 'npx vitest run src/__tests__/el-arnes-daba-a-todos-los-pacientes-la-misma-historia.test.ts',
+    resultado: '21 casos verdes. Probado al revés cinco veces.',
     artefactos: ['scripts/product/generate-consultorio-load-fixture.mjs'],
+    pruebas: ['src/__tests__/el-arnes-daba-a-todos-los-pacientes-la-misma-historia.test.ts', 'src/__tests__/el-arnes-de-carga-no-inventa-un-cero.test.ts'],
   }),
   R({
     id: 'TR-ESPECIALIDAD.infecto', ws: 'TR-ESPECIALIDAD', titulo: 'Paquete de Infectología y optimización de antimicrobianos',

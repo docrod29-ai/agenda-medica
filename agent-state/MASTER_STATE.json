@@ -19,18 +19,14 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M evals/patient-ai/casos.json",
-    " M src/__tests__/las-doce-preguntas-del-paciente.test.ts",
-    " M src/app/api/whatsapp/webhook/route.ts",
+    " M scripts/product/generate-consultorio-load-fixture.mjs",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/paciente/urgencia.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/lib/paciente/hay-que-escalar.ts"
+    "?? src/__tests__/el-arnes-daba-a-todos-los-pacientes-la-misma-historia.test.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +62,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 290,
+    "regsEnElLedger": 291,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 861,
-    "casosDePrueba": 10820,
+    "archivosDePrueba": 862,
+    "casosDePrueba": 10841,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

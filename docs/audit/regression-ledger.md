@@ -17406,3 +17406,84 @@ alguien lo intenta — probado.
 - **No es una prueba de navegador ni de conversación real.**
 
 **Prueba.** `src/__tests__/las-doce-preguntas-del-paciente.test.ts` (44 casos, 24 en el fixture).
+
+---
+
+## REG-440 — 50 000 pacientes con exactamente tres notas cada uno no es una consulta
+
+**Eje.** TR-HISTORIA · práctica longitudinal. **Fecha.** 31-ago-2026.
+
+### Qué faltaba
+
+REG-383 siembra 50 000 pacientes con tres notas firmadas cada uno. El censo dejó
+apuntado lo que quedaba: **la distribución**. El generador daba a todos los
+pacientes el mismo número exacto de encuentros y nada más — ni medicamentos, ni
+laboratorios, ni órdenes.
+
+Un fixture uniforme mide un caso que no existe y **esconde justo el que duele**:
+con todos iguales, el percentil 99 de una consulta es la mediana, así que la
+corrida no puede encontrar el problema que va a encontrar el primer paciente con
+quince años de historia.
+
+Y la mitad del coste real de navegar un expediente está en lo que **no** tiene
+nada: un fixture donde todos los encuentros traen laboratorios no ejercita el
+camino vacío, que es el más común.
+
+### Lo que no se puede inventar, y aquí es sutil
+
+Los pesos **no son epidemiología**. Nadie los ha medido contra una práctica real.
+Son una forma de carga elegida para que el fixture tenga cola larga, y el módulo
+lo dice con esas palabras.
+
+Escribir «el 45 % de los pacientes acude una sola vez» sin fuente sería la regla
+1 aplicada a un arnés: no rompe nada, no falla ninguna prueba, y alguien lo cita
+en un documento comercial seis meses después.
+
+Por lo mismo, los laboratorios **no llevan analito ni valor** y los medicamentos
+**no llevan nombre de fármaco**: aquí se cuenta el documento, y una cifra de
+laboratorio sintética con aspecto de resultado es justo lo que no puede existir
+sin fuente.
+
+### El defecto que apareció al escribir esto
+
+La primera versión de los pesos daba una media ponderada de **1.178**. Quien
+pidiera «50 000 pacientes × 3 encuentros» habría obtenido 177 000 documentos en
+vez de 150 000, **sin que nada lo dijera**. Un arnés que miente sobre su propia
+carga mide otra cosa y la llama lo pedido.
+
+La normalización se comprueba ahora **en el código** —el módulo lanza al cargarse
+si se desbalancea— y no en un comentario: una aritmética escrita en prosa
+envejece el día que alguien mueve un peso. Probado al revés.
+
+El sesgo del redondeo (`Math.max(1, …)` empuja el tramo corto hacia arriba) se
+**mide y se declara**, no se corrige ni se esconde: un arnés que dice 150 000 y
+entrega 155 000 sigue mintiendo, aunque poco.
+
+### Un generador derivado por paciente
+
+Los campos nuevos no pueden consumir del generador principal: cada llamada de más
+desplaza la secuencia de todos los pacientes siguientes. Derivándolo de
+`(semilla, ordinal)`, añadir un campo mañana no mueve a nadie más.
+
+El esquema sube a **v2** de todas formas, porque la distribución sí cambia el
+fixture: fingir que una corrida v2 se compara con una v1 sería peor que decirlo.
+
+### El golden se cazó a sí mismo, dos veces
+
+1. Los primeros casos probaban `historiaDe` y `cuantosMedicamentos` **por
+   separado**. Al probarlos al revés —desconectando la distribución del generador
+   y dejándolo plano— **ninguno cayó**: probaban el módulo, no que corriera. Es
+   la familia «escrito, probado y sin conectar» montada dentro de su propio
+   golden. Se añadieron cinco casos que miran la **salida**.
+2. Los guardianes de «no traen analito ni valor» inspeccionaban el fuente entero
+   y caían sobre **los propios comentarios que explican por qué no están**. Ahora
+   inspeccionan sólo las líneas de código.
+
+### Qué NO cubre
+
+- **No valida los pesos contra una práctica real.**
+- **No genera contenido clínico**: ni analitos, ni valores, ni fármacos.
+- **No corre el arnés**: comprueba la forma de lo que genera, no el
+  comportamiento del producto bajo esa carga.
+
+**Prueba.** `src/__tests__/el-arnes-daba-a-todos-los-pacientes-la-misma-historia.test.ts` (21 casos).

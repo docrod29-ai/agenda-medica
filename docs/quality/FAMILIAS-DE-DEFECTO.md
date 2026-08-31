@@ -43,10 +43,16 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 88 de 290, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 89 de 291, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-439** (31-ago-2026), y su parte más cara no fue
+El miembro más reciente es **REG-440** (31-ago-2026), y la familia apareció
+**dentro de su propio golden**: los primeros casos probaban la distribución nueva
+llamándola directamente, y al desconectarla del generador —dejándolo plano otra
+vez— no caía ninguno. Probaban el módulo, no que el módulo corriera. Hicieron
+falta cinco casos más que miran la salida.
+
+Antes que él, **REG-439** (31-ago-2026), y su parte más cara no fue
 lo que estaba sin conectar sino lo que apareció al conectarlo: para vigilar el
 orden entre urgencia y escalación hizo falta un caso que cruzara las dos, y ese
 caso destapó que **«me empezó a doler el pecho» no se detectaba como urgencia**.
