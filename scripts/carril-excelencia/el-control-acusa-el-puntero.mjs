@@ -52,6 +52,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { conPortal, claveDeRuta } from './token-del-portal.mjs'
 
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const BASE = process.env.BASE ?? 'http://localhost:3300'
@@ -67,6 +68,21 @@ const RUTAS = (process.env.RUTAS ?? [
   '/corte-caja', '/cumplimiento', '/cumplimiento/retencion', '/consultor',
   '/guia', '/consulta/pac-001', '/expediente/pac-001',
 ].join(',')).split(',')
+
+/**
+ * EL PORTAL DEL PACIENTE ENTRA AQUÍ, y llevaba fuera desde el principio.
+ *
+ * Las 22 rutas de arriba son todas del lado del MÉDICO. El portal es la única
+ * pantalla que ve un paciente, y `.claude/rules/patient-facing-ai.md` dice por
+ * qué eso no se hereda: del lado del médico, un control que se lee como texto
+ * lo salva alguien entrenado para sospechar. Un paciente que no ve que algo se
+ * puede pulsar, simplemente no lo pulsa — y ese control era «Confirmar cita».
+ *
+ * No lleva la sesión del equipo: lleva su token. Sin `PORTAL_PACIENTE_SECRET`
+ * no se mide, y `conPortal` lo dice en voz alta en vez de dejar un hueco
+ * silencioso con buena conciencia.
+ */
+const RUTAS_CON_PORTAL = conPortal(RUTAS)
 
 const nav = await chromium.launch({ executablePath: CHROME })
 const ctx = await nav.newContext({ viewport: { width: 1440, height: 900 } })
@@ -131,7 +147,7 @@ const FOTO = (e) => {
 const medido = {}
 const detalle = {}
 
-for (const ruta of RUTAS) {
+for (const ruta of RUTAS_CON_PORTAL) {
   await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded' }).catch(() => {})
   await pag.waitForTimeout(5000)
   for (const t of [/^saltar$/i, /^entendido$/i]) {
@@ -244,8 +260,10 @@ for (const ruta of RUTAS) {
     process.exit(2)
   }
 
-  medido[ruta] = mudos.length
-  detalle[ruta] = { total: cuantos, mudos }
+  // La clave estable: el token del portal cambia en cada corrida y guardar la
+  // URL literal dejaría un techo nuevo cada vez, comparable con nada.
+  medido[claveDeRuta(ruta)] = mudos.length
+  detalle[claveDeRuta(ruta)] = { total: cuantos, mudos }
   console.log(`  ${String(mudos.length).padStart(3)} mudos de ${String(cuantos).padEnd(4)} ${ruta}`)
   if (mudos.length) mudos.slice(0, 6).forEach(m => console.log(`        · ${m}`))
 }
@@ -337,7 +355,7 @@ await nav.close()
 // Un barrido que no encuentra controles no es un aprobado: es un barrido roto.
 const totalControles = Object.values(detalle).reduce((a, d) => a + d.total, 0)
 if (totalControles < 100) {
-  console.error(`\n  Sólo se encontraron ${totalControles} controles en ${RUTAS.length} rutas. No está midiendo.\n`)
+  console.error(`\n  Sólo se encontraron ${totalControles} controles en ${RUTAS_CON_PORTAL.length} rutas. No está midiendo.\n`)
   process.exit(2)
 }
 
@@ -357,7 +375,7 @@ if (ACTUALIZAR) {
 const { techos } = JSON.parse(readFileSync(TECHOS, 'utf8'))
 const peores = []
 const mejores = []
-for (const ruta of RUTAS) {
+for (const ruta of RUTAS_CON_PORTAL.map(claveDeRuta)) {
   const antes = techos[ruta]
   if (antes === undefined) { peores.push(`${ruta}: sin techo declarado — añádelo con --actualizar`); continue }
   if (medido[ruta] > antes) peores.push(`${ruta}: ${medido[ruta]} mudos, el techo era ${antes}`)

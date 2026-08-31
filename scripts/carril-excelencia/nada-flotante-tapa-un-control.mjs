@@ -43,6 +43,7 @@
  *   hacer: apartar el contenido y mover la hoja son dos arreglos distintos.
  */
 import { chromium } from 'playwright'
+import { conPortal } from './token-del-portal.mjs'
 
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const BASE = process.env.BASE ?? 'http://localhost:3300'
@@ -57,6 +58,8 @@ const RUTAS = (process.env.RUTAS ?? [
 
 const nav = await chromium.launch({ executablePath: CHROME })
 let tapadosTotal = 0
+/* El aviso de «portal sin medir» se dice UNA vez, no una por ancho. */
+let avisoPortalPendiente = true
 let controlesTotal = 0
 
 for (const ancho of ANCHOS) {
@@ -77,7 +80,16 @@ for (const ancho of ANCHOS) {
   await pag.waitForTimeout(9000)
 
   console.log(`\n  ── ${ancho}px ─────────────────────────────`)
-  for (const ruta of RUTAS) {
+  /**
+   * EL PORTAL DEL PACIENTE TAMBIÉN. Aquí importa más que en ninguna otra
+   * pantalla: el 30-ago el trinquete de interfaz cazó el botón flotante del
+   * tema tapando el destino «Perfil» de la barra del paciente. Un control
+   * tapado en el lado del médico se sortea; el paciente no sabe que hay algo
+   * debajo.
+   */
+  const rutasDeEsteAncho = conPortal(RUTAS, { avisar: avisoPortalPendiente })
+  avisoPortalPendiente = false
+  for (const ruta of rutasDeEsteAncho) {
     await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded' }).catch(() => {})
     await pag.waitForTimeout(4500)
     for (const t of [/^saltar$/i, /^entendido$/i]) {

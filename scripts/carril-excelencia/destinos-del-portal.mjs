@@ -31,18 +31,16 @@
  */
 import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
-import { createHmac } from 'node:crypto'
+import { tokenDelPortal } from './token-del-portal.mjs'
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const AXE = readFileSync('node_modules/axe-core/axe.min.js', 'utf8')
-const sec = process.env.PORTAL_PACIENTE_SECRET
-if (!sec || sec.length < 16) {
+/* El acuñado vive en `token-del-portal.mjs`: UNA copia. Ésta era la tercera. */
+const TOKEN = tokenDelPortal()
+if (!TOKEN) {
   console.error('  Falta PORTAL_PACIENTE_SECRET (16+ caracteres). Sin él se mediría la')
   console.error('  pantalla de «enlace no válido» creyendo que es el portal.')
   process.exit(2)
 }
-const payload = { c: 'consultorio-demo-v10', p: 'pac-001', e: Math.floor(Date.now()/1000)+30*86400, a: 'agenda', v: 0 }
-const b64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
-const TOKEN = `${b64}.${createHmac('sha256', sec).update(b64).digest('base64url')}`
 
 const DESTINOS = ['Hoy', 'Preguntar', 'Cuidado', 'Documentos', 'Perfil']
 const nav = await chromium.launch({ executablePath: CHROME })
