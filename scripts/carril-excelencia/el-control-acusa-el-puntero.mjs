@@ -52,7 +52,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { chromium } from 'playwright'
-import { conPortal, claveDeRuta } from './token-del-portal.mjs'
+import { conPortal, claveDeRuta, tokenDelPortal } from './token-del-portal.mjs'
 
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const BASE = process.env.BASE ?? 'http://localhost:3300'
@@ -420,6 +420,35 @@ const mudosDeDialogos = []
         }
       },
     },
+    /**
+     * LOS CUATRO DESTINOS DEL PORTAL QUE NADIE HABÍA ABIERTO.
+     *
+     * El portal es UNA url con CINCO pantallas detrás: el destino vive en estado
+     * de cliente, no en la ruta. El arnés mide «la pantalla al aterrizar», así
+     * que durante todo este carril sólo vio `hoy` — las otras cuatro, que son
+     * donde el paciente lee su plan y sus recetas, no las miraba nadie.
+     *
+     * Medido antes de escribir esto: hoy los cuatro destinos son TEXTO, cero
+     * controles dentro de `<main>`. O sea que no escondían ningún mudo. Pero un
+     * control que se añada mañana ahí no lo vigilaría nadie, y eso es lo que se
+     * cierra: la cobertura, no un defecto.
+     *
+     * Se abren con el token CLÍNICO a propósito: con el de mostrador, «Cuidado»
+     * y «Documentos» enseñan un muro en vez de su contenido.
+     */
+    ...['Preguntar', 'Cuidado', 'Documentos', 'Perfil'].map(destino => ({
+      nombre: `portal · ${destino}`,
+      sel: 'main',
+      abrir: async () => {
+        const t = tokenDelPortal('clinico')
+        if (!t) return
+        await pagD.goto(`${BASE}/mi/${t}`, { waitUntil: 'domcontentloaded' })
+        await pagD.waitForTimeout(7000)
+        await pagD.locator('nav button').filter({ hasText: new RegExp(`^${destino}$`) })
+          .first().click({ timeout: 6000 }).catch(() => {})
+        await pagD.waitForTimeout(2500)
+      },
+    })),
   ]
 
   for (const d of DIALOGOS) {
