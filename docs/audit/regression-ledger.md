@@ -17057,3 +17057,88 @@ ningún circuito abierto.
   prueba es la máquina de estados y el orden de las anotaciones.
 
 **Prueba.** `src/__tests__/el-interruptor-lo-derrotaba-un-200-con-basura.test.ts` (10 casos).
+
+---
+
+## REG-436 — el router podía servir Haiku para una nota «no escatimar», sin avisar
+
+**Eje.** WS-12 · router. **Fecha.** 31-ago-2026.
+
+### Qué fallaba
+
+El censo pedía «probar el respaldo del router ante caída de proveedor, y que no
+degrade calidad clínica en silencio».
+
+El respaldo ante **caída** está bien, y se confirmó: si `/v1/models` no contesta
+se usa `candidatos[0]` —el modelo de arriba— y si no existe, el 404 redescubre.
+Eso no degrada nada.
+
+Lo que sí degradaba, en silencio, era la elección cuando la lista **sí** llega:
+
+```ts
+candidatos.find(c => ids.includes(c))
+  ?? ids.find(id => id.includes('sonnet'))
+  ?? ids[0]
+```
+
+El último ramal se queda con **el primer modelo que la cuenta tenga**. Para el
+perfil `premium` —la nota que el dueño decidió que usa el razonamiento máximo,
+«no escatimar»— eso puede ser Haiku. El modelo viajaba al cliente como
+procedencia y **nadie lo comparaba con lo que se había pedido**: el médico veía
+un identificador que no puede evaluar.
+
+Y peor: `modeloResuelto` se cacheaba por instancia y sólo se limpiaba con un 404.
+Una elección de último recurso hecha durante una caída parcial quedaba
+**clavada** toda la vida de la instancia caliente — todas las notas de todos los
+médicos de esa instancia, con el modelo equivocado y sin aviso.
+
+### Causa raíz
+
+La elección vivía **dentro de la función que hace la petición**, así que no se
+podía probar sin red y no había dónde poner la pregunta «¿esto es peor de lo que
+se pidió?». Ahora la decisión vive en un módulo puro.
+
+### Hermano de un defecto que ya costó semanas
+
+REG-167: una petición que el proveedor rechazaba y que, «al venir junto a una
+lista de modelos, **degradaba el motor al modelo viejo sin error ni aviso**.
+Semanas así». Mismo ramal, mismo silencio.
+
+### Lo que NO se cambió, a propósito
+
+**El modelo elegido es el mismo en todos los casos**, medido antes y después:
+cambiar a qué modelo se cae es una decisión de producto, no una limpieza. Lo que
+cambia es que ahora se sabe, se dice, y **no se recuerda**.
+
+Tampoco se **bloquea** la nota. Negarse a generarla cuando el modelo previsto no
+está es política clínica, y está declarada en `LA_PREGUNTA_PARA_EL_DUENO` con sus
+tres opciones. Hoy rige «generar y marcar» por conservación, no por decisión —
+negarse dejaría al médico sin nota en una consulta real.
+
+### Señalar de menos
+
+Caer a otro `sonnet` cuando el perfil **ya pedía** sonnet (que es todo el perfil
+`pro`) **no** se marca: es el respaldo previsto, no «lo que haya», y marcarlo
+enseñaría a ignorar la marca. Se probó al revés: marcándolo, cae un caso.
+
+Y se distingue `null` (el descubrimiento no contestó) de `[]` (contestó y la
+cuenta no tiene nada) — consecuencias opuestas, y pintarlas igual es el defecto
+que REG-434 acaba de cerrar en otra fuente.
+
+### El aviso llega
+
+La ruta devuelve `_modeloDegradado` y `_avisoModelo`; la pantalla los recibe y
+pinta un banner con la misma forma que el de modo económico, encima de él,
+porque es la misma clase de hecho: **la nota no se generó como el médico creía**.
+Se comprueba el texto visible, no un `title=` — la lección de REG-433.
+
+### Qué NO cubre
+
+- **No comprueba que el modelo elegido SE COMPORTE como el pedido.** Compara
+  identificadores, no calidad.
+- **Sólo el router de la NOTA.** El consultor, el copiloto de UCI y la
+  transcripción eligen su modelo por su cuenta.
+- **No prueba el navegador.**
+- **No cubre el 404 ni los reintentos**, que ya tienen su camino.
+
+**Prueba.** `src/__tests__/el-router-bajaba-de-modelo-sin-avisar.test.ts` (19 casos).

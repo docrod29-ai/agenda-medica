@@ -603,7 +603,12 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-12.router', ws: 'WS-12', titulo: 'El médico expresa intención clínica, no elige marca de modelo',
     estado: 'PARTIAL',
-    queFalta: 'planes-ia.ts respeta la regla. Falta probar el fallback del router ante caída de proveedor, y que no degrade calidad clínica en silencio para ahorrar.',
+    queFalta: 'REG-436 cerró la mitad que pedía esta entrada. El RESPALDO ante caída ya estaba bien y se confirmó: si /v1/models no contesta se usa candidatos[0] —el modelo de arriba— y el 404 redescubre. Lo que degradaba en silencio era la elección cuando la lista SÍ llega: `?? ids[0]` se quedaba con el primer modelo que la cuenta tuviera, que para el perfil premium —la nota que el dueño decidió que no escatima— puede ser Haiku; el modelo viajaba como procedencia y nadie lo comparaba con lo pedido. Y la elección se cacheaba por instancia, así que un último recurso escogido durante una caída parcial quedaba clavado para todas las notas de esa instancia caliente. Cerrado SIN cambiar qué modelo se elige (eso es producto, no limpieza): la decisión se mudó a un módulo puro que dice CÓMO se llegó a él, una degradación no se cachea, y el aviso llega hasta la pantalla como texto visible. FALTA: (1) si la nota debe NEGARSE cuando el modelo previsto no está, en vez de generarse marcada — es política clínica y está declarada en LA_PREGUNTA_PARA_EL_DUENO con tres opciones; (2) comprobar que el modelo elegido SE COMPORTE como el pedido, que es calidad y no identificadores, y necesita los conjuntos de WS-12.contratos-de-evaluacion; (3) los otros consumidores de IA —consultor, copiloto de UCI, transcripción— eligen su modelo por su cuenta y no pasan por aquí.',
+    evidencia: 'REG-436. Medido antes y después: el modelo elegido es idéntico en los cinco casos. Probado al revés cuatro veces, una contra pasarse de frenada (marcar el respaldo de familia en un perfil que ya pedía esa familia tira un caso).',
+    comando: 'npx vitest run src/__tests__/el-router-bajaba-de-modelo-sin-avisar.test.ts',
+    resultado: '19 casos verdes.',
+    artefactos: ['src/lib/planes-ia.ts', 'src/lib/ia/que-modelo-se-eligio.ts'],
+    pruebas: ['src/__tests__/el-router-bajaba-de-modelo-sin-avisar.test.ts'],
   }),
   R({
     id: 'WS-12.p99', ws: 'WS-12', titulo: 'p99 y tasa de error medidas, no citadas',

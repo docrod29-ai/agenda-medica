@@ -1160,6 +1160,15 @@ export default function ConsultaActivaPage() {
   // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
   // IA económica (Sonnet 5, sin separación de voces ni 2ª opinión). No bloquea.
   const [modoEco, setModoEco] = useState(false)
+  /**
+   * REG-436 · el router puede servir un modelo que NO es el del nivel pedido.
+   *
+   * La decisión del dueño lo dice con todas las letras —«no bajar de modelo por
+   * velocidad sin avisar»— y hasta ahora el modelo viajaba como procedencia y
+   * nadie lo comparaba con lo pedido. El aviso viene calculado del servidor: la
+   * pantalla lo enseña, no lo juzga.
+   */
+  const [avisoModelo, setAvisoModelo] = useState('')
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   /**
    * REG-433 · el DOI y la abreviatura ISO YA venían en la respuesta —
@@ -2354,6 +2363,7 @@ export default function ConsultaActivaPage() {
       if (!enVivo) {
         setSinCreditos(null); setModoEco(!!data._modoEconomico); if (data._motor) setMotorUsado(data._motor as ClaveMotor)
         if (data._modelo) setProvenanceIA({ modelo: data._modelo as string, promptVersion: data._promptVersion as string, apiVersion: data._apiVersion as string, generadoEn: new Date().toISOString() })
+        setAvisoModelo(data._modeloDegradado ? String(data._avisoModelo ?? '') : '')
       }  // éxito → limpia aviso; marca modo económico + motor usado + provenance
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
@@ -5824,6 +5834,25 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      {/**
+        * REG-436 · el nivel pedido no estaba y se usó otro modelo.
+        *
+        * Va ARRIBA del aviso de modo económico y con su misma forma, porque es
+        * la misma clase de hecho: la nota no se generó como el médico creía. Se
+        * enseña sólo cuando el servidor lo marcó degradado — decirlo en cada
+        * nota lo convertiría en ruido y dejaría de leerse.
+        */}
+      {avisoModelo && !sinCreditos && !grabandoAhora() && (
+        <div style={{
+          marginBottom: 14, padding: '13px 16px', borderRadius: 14,
+          border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber)' }}>
+            <AlertTriangle size={16} /> Esta nota no usó el nivel de IA que pediste
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{avisoModelo}</div>
+        </div>
+      )}
       {modoEco && !sinCreditos && !grabandoAhora() && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,

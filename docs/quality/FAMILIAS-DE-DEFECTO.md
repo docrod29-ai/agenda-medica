@@ -43,10 +43,15 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 84 de 286, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 85 de 287, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-435** (31-ago-2026), y es la variante más
+El miembro más reciente es **REG-436** (31-ago-2026): el router de la nota podía
+servir Haiku para una nota que el dueño decidió que **no escatima**, y el modelo
+llegaba al cliente como procedencia sin que nadie lo comparara con lo que se
+había pedido. Un identificador que el médico no puede evaluar no es un aviso.
+
+Antes que él, **REG-435** (31-ago-2026), y es la variante más
 incómoda: **una defensa que corre, y que su propio éxito desactiva**. El
 interruptor de circuito de PubMed y openFDA anotaba «contestó» al ver el código
 de estado, y «contestó» borra los fallos anteriores. Un proveedor degradado que
