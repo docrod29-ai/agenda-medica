@@ -16,15 +16,15 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1176",
+  "ultimaVersionEnProduccion": "nexusmed-v1177",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M docs/maintenance/sw-changelog.md",
     " M public/sw.js",
     " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-08-31.md"
+    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-08-31-v1177.md"
   ],
-  "actualizado": "2026-08-30",
+  "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -56,7 +56,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/paquete-v1176",
+  "ramaActual": "claude/paquete-v1177",
   "derivado": {
     "regsEnElLedger": 265,
     "ultimaREG": "REG-503",
