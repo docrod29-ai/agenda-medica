@@ -17547,3 +17547,79 @@ dice que si no cuadra con lo de hoy **gana lo de hoy**.
 - **No vigila los tableros de GitHub** (#296, #310, #314).
 
 **Prueba.** `src/__tests__/el-tablero-citaba-de-memoria-en-la-seccion-que-promete-no-hacerlo.test.ts` (9 casos).
+
+---
+
+## REG-442 — «un riesgo declarado se puede vigilar», y nadie lo vigilaba
+
+**Eje.** WS-03 · documentos que crecen. **Fecha.** 31-ago-2026.
+
+### Qué fallaba
+
+REG-424 topó `administraciones` y dejó tres arrays sin tope —`movimientos`,
+`indicaciones`, `interconsultas`— con la razón bien argumentada: el documento del
+episodio es su **única copia**, y recortarlas borraría traslados u órdenes vivas.
+
+Y terminaba así, con estas palabras: *«Quedan como riesgo NOMBRADO en vez de uno
+que nadie ha mirado. Un riesgo declarado **se puede vigilar**; uno que vive en la
+forma de un documento, no.»*
+
+**Nadie lo vigilaba.** No había un solo medidor. El riesgo estaba nombrado,
+clasificado, con guardián de CI para que no aparezcan arrays nuevos sin
+clasificar… y sin nadie que mirara cuánto ocupa un episodio real.
+
+### Por qué aquí importa más que en ninguna parte
+
+Todas las mutaciones del episodio son un solo `tx.update` sobre el mismo
+documento. Al pasar de 1 MB, Firestore rechaza la escritura entera: no falla lo
+último que se añadió, **falla egresar al paciente**. Un aviso que llega después
+de eso no es un aviso.
+
+### Causa raíz, por quinta vez este mes
+
+Con REG-424, REG-428, REG-438 y REG-441 son cinco: **cuanto mejor explicada está
+una garantía, menos probable es que alguien vaya a comprobar si el código la
+cumple.** Aquí la promesa estaba escrita en el módulo que la incumplía, dos
+párrafos por encima del código.
+
+### Lo que se hizo, y lo que se decidió NO hacer
+
+Se mide **en la transacción del gateway**, que ya tiene el documento en la mano
+—no cuesta ni una lectura más— y sobre el documento que se va a **escribir**, que
+es el que puede ser rechazado. El aviso dice **qué campo lo llena**: sin eso no
+es accionable.
+
+**Sacarlas a subcolección no se hizo**, y no por falta de ganas: es una migración
+de modelo que toca `firestore.rules`, y desplegarlas es del dueño. Una migración
+a medias —el código nuevo con las reglas viejas— rompería producción el día del
+despliegue. Queda declarado como lo que cierra el riesgo de verdad.
+
+**No bloquea.** Frenar una mutación clínica por un umbral de tamaño sería peor
+que el riesgo que evita. Probado al revés poniéndole el bloqueo.
+
+**No se devuelve al médico.** Se pensó pintarlo en la pantalla del episodio y se
+descartó: no puede hacer nada con «tu episodio ocupa el 82 %» en mitad de una
+mutación clínica, y lo que lo arregla no está en su mano. Además los quince
+llamadores del gateway descartan la respuesta, así que el campo habría viajado
+hasta el navegador para que nadie lo leyera — la familia, añadida a sabiendas.
+Va al registro del servidor y, cuando es crítico, al canal de operaciones.
+
+### Los umbrales no son cifras clínicas
+
+`LIMITE_FIRESTORE` es un hecho del proveedor: 1 MiB por documento. Las dos
+fracciones son **margen de operación** — cuánto se quiere para reaccionar. Se
+vigila al 60 % y no al 90 % porque a estos tres arrays les crecen elementos
+grandes de golpe y del 90 % al 100 % puede haber una sola escritura.
+
+Y la medida se queda **corta a propósito**: cuenta el JSON en UTF-8, mientras
+Firestore cobra además los nombres de campo, los índices y una sobrecarga por
+documento. El aviso llega antes — nunca después, que es el error que importaría.
+
+### Tercera vez que un guardián mío casa con su propia explicación
+
+El comentario de la alerta dice «sin PHI: ni paciente, ni cama, ni servicio» y
+contiene las tres palabras que el guardián busca. Con REG-437 (el `title=`) y
+REG-440 (los comentarios del arnés) van tres: **un guardián de fuente tiene que
+mirar código, no prosa.**
+
+**Prueba.** `src/__tests__/nadie-vigilaba-el-riesgo-nombrado.test.ts` (15 casos).

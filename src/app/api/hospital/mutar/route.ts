@@ -10,6 +10,9 @@
  * Resp: { ok, id? } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { tamanoDelEpisodio, type TamanoDelEpisodio } from '@/lib/hospital/lo-que-cabe-en-un-episodio'
+import { enviarAlertaOps } from '@/lib/ops/alerta'
+import { safeLog } from '@/lib/security/sanitize'
 import { idDeEstanciaArchivada, hayQueArchivar } from '@/lib/hospital/estancias-uci'
 import { verificarMiembro } from '@/lib/auth-server'
 import { exigeCapacidad } from '@/lib/authz/verificar'
@@ -331,7 +334,15 @@ export async function POST(req: NextRequest) {
     const ref = col.doc(internamientoId)
     /** Hilo del expediente para la bitácora; se llena dentro de la transacción. */
     let pacienteIdDelEpisodio = ''
-    await adminDb.runTransaction(async (tx) => {
+    /**
+     * REG-442 · la transacción DEVUELVE lo que ocupa el episodio.
+     *
+     * Por retorno y no por efecto lateral sobre un `let` exterior: el callback
+     * puede no llegar a ejecutarse, así que el compilador no puede saber que la
+     * variable quedó llena — y una asignación que el compilador no ve es una que
+     * mañana nadie ve tampoco.
+     */
+    const tamano: TamanoDelEpisodio | null = await adminDb.runTransaction(async (tx) => {
       const snap = await tx.get(ref)
       if (!snap.exists) throw new Error('no-existe')
       const inter = { id: snap.id, ...(snap.data() as Any) }
@@ -547,11 +558,29 @@ export async function POST(req: NextRequest) {
         } catch { /* el alta clínica no se detiene por el historial de camas */ }
       }
 
-      tx.update(ref, { ...patch(accion, inter, payload, now, actor), updatedAt: now })
+      const cambios = { ...patch(accion, inter, payload, now, actor), updatedAt: now }
+      /**
+       * REG-442 · cuánto le queda al episodio antes de PARARSE.
+       *
+       * `lo-que-cabe-en-un-episodio.ts` dejó tres arrays sin tope —`movimientos`,
+       * `indicaciones`, `interconsultas`— porque el documento es su única copia,
+       * y terminaba diciendo que quedan «como riesgo NOMBRADO… un riesgo
+       * declarado SE PUEDE VIGILAR». Nadie lo vigilaba.
+       *
+       * Aquí importa más que en ninguna parte: al llegar a 1 MB no falla lo
+       * último que se añadió, falla TODO — incluido egresar al paciente.
+       *
+       * Se mide sobre el documento que se va a ESCRIBIR, que es el que puede ser
+       * rechazado, y **no bloquea**: frenar una mutación clínica por un umbral de
+       * tamaño sería peor que el riesgo que evita.
+       */
+      const medida = tamanoDelEpisodio({ ...(inter as Any), ...cambios })
+      tx.update(ref, cambios)
       // Además del array-caché en el doc, persiste el registro clínico COMPLETO
       // a la subcolección append-only (sin truncar) → no se pierde nada (NOM-004).
       const durable = registroDurable(accion, payload, now, actor.nombre)
       if (durable) tx.set(ref.collection('registros').doc(), durable)
+      return medida
     })
 
     /**
@@ -599,6 +628,37 @@ export async function POST(req: NextRequest) {
       }).catch(() => { /* la bitácora no revierte un cambio clínico ya aplicado */ })
     }
 
+    /**
+     * REG-442 · el aviso va a OPERACIONES, no al médico.
+     *
+     * Se pensó devolverlo también en la respuesta para pintarlo en la pantalla
+     * del episodio, y se descartó por dos razones:
+     *
+     *  · **El médico no puede hacer nada con él.** «Tu episodio ocupa el 82 %»
+     *    en mitad de una mutación clínica es ruido en el peor momento, y lo que
+     *    lo arregla —sacar los arrays a subcolección— no está en su mano.
+     *  · Los quince llamadores del gateway descartan la respuesta, así que el
+     *    campo habría viajado hasta el navegador para que nadie lo leyera: la
+     *    familia «escrito y sin conectar», añadida a sabiendas.
+     *
+     * Va al registro del servidor y, cuando es crítico, al canal de operaciones
+     * — que hoy DECLARA que no tiene destino en vez de fingir que avisó
+     * (`OPS_ALERTA_WEBHOOK` es acción del dueño, WS-13).
+     */
+    if (tamano && tamano.estado !== 'holgado') {
+      safeLog.warn(`[hospital/mutar] episodio al ${Math.round(tamano.fraccion * 100)} % del máximo por documento`)
+      if (tamano.estado === 'critico') {
+        void enviarAlertaOps({
+          titulo: 'Un episodio está cerca del máximo por documento',
+          /* Sin PHI: ni paciente, ni cama, ni servicio. Quien opera necesita
+             saber QUÉ campo lo llena y en qué consultorio, no de quién es. */
+          detalle: `${tamano.aviso} · consultorio ${clinicId} · episodio ${internamientoId}`,
+          gravedad: 'grave',
+          origen: 'hospital/mutar',
+        })
+          .catch(() => { /* la alerta no revierte un cambio clínico ya aplicado */ })
+      }
+    }
     return NextResponse.json({ ok: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'error'

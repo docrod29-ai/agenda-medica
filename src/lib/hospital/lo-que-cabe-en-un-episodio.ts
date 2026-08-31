@@ -172,3 +172,126 @@ export const POR_QUE_1MB_NO_ERA_UN_TOPE =
   + 'se puede registrar una administración, ni suspender una orden, ni egresar al '
   + 'paciente. El límite de Firestore no es un techo: es el punto donde el '
   + 'episodio deja de funcionar.'
+
+
+/**
+ * ── CUÁNTO LE QUEDA AL EPISODIO ANTES DE PARARSE — REG-442 ──────────────────
+ *
+ * Este módulo terminaba diciendo que los tres arrays sin tope quedan «como
+ * riesgo NOMBRADO en vez de uno que nadie ha mirado. Un riesgo declarado **se
+ * puede vigilar**; uno que vive en la forma de un documento, no».
+ *
+ * Nadie lo vigilaba. Era la garantía escrita y sin cumplir — la misma forma que
+ * REG-424, REG-428, REG-438 y REG-441.
+ *
+ * Y aquí importa más que en ninguna: cuando el documento pasa de 1 MB no falla
+ * lo último que se añadió, **falla egresar al paciente**. Un aviso que llega
+ * después de eso no es un aviso.
+ *
+ * ── LOS UMBRALES NO SON CIFRAS CLÍNICAS ─────────────────────────────────────
+ *
+ * `LIMITE_FIRESTORE` es un hecho del proveedor: 1 MiB por documento, no una
+ * elección. Las dos fracciones son cuánto margen se quiere para reaccionar, y se
+ * declaran como lo que son — margen de operación, no medicina.
+ *
+ * `vigilar` al 60 % y no al 90 %: a los tres arrays sin tope les crecen
+ * elementos grandes de golpe —una indicación con su texto, una interconsulta con
+ * su motivo— y del 90 % al 100 % puede haber una sola escritura.
+ */
+
+/** 1 MiB. Es el límite de Firestore por documento, no una elección nuestra. */
+export const LIMITE_FIRESTORE = 1_048_576
+
+/** Margen de OPERACIÓN, no cifra clínica: cuánto se quiere para reaccionar. */
+export const FRACCION_VIGILAR = 0.6
+export const FRACCION_CRITICO = 0.8
+
+export type EstadoDeTamano = 'holgado' | 'vigilar' | 'critico'
+
+export interface QueLoLlena {
+  readonly campo: string
+  readonly bytes: number
+  /** Cuántos elementos tiene, cuando es un array. */
+  readonly elementos: number | null
+  /** ¿Está topado? Si no, es de los que crecen sin techo. */
+  readonly topado: boolean
+}
+
+export interface TamanoDelEpisodio {
+  readonly bytes: number
+  readonly fraccion: number
+  readonly estado: EstadoDeTamano
+  /** Los campos más pesados, de mayor a menor. Sin esto el aviso no es accionable. */
+  readonly queLoLlena: readonly QueLoLlena[]
+  /** Qué decirle a quien lo lea. Vacío cuando está holgado. */
+  readonly aviso: string
+}
+
+/** Bytes reales de un valor serializado, en UTF-8. */
+function bytesDe(v: unknown): number {
+  if (v === undefined) return 0
+  try { return Buffer.byteLength(JSON.stringify(v), 'utf8') } catch { return 0 }
+}
+
+const CAMPOS_SIN_TOPE = new Set(
+  ARRAYS_DEL_EPISODIO.filter(a => a.tope === null).map(a => a.campo),
+)
+
+/**
+ * Cuánto ocupa el episodio y qué lo está llenando. PURO.
+ *
+ * Se mide sobre el documento que se va a ESCRIBIR, no sobre el que se leyó: el
+ * que importa es el que puede ser rechazado.
+ */
+export function tamanoDelEpisodio(doc: Record<string, unknown> | null | undefined): TamanoDelEpisodio {
+  const d = doc ?? {}
+  const bytes = bytesDe(d)
+  const fraccion = bytes / LIMITE_FIRESTORE
+  const queLoLlena = Object.entries(d)
+    .map(([campo, v]) => ({
+      campo,
+      bytes: bytesDe(v),
+      elementos: Array.isArray(v) ? v.length : null,
+      topado: TOPES[campo] !== undefined,
+    }))
+    .filter(c => c.bytes > 0)
+    .sort((a, b) => b.bytes - a.bytes)
+    .slice(0, 5)
+
+  const estado: EstadoDeTamano =
+    fraccion >= FRACCION_CRITICO ? 'critico' : fraccion >= FRACCION_VIGILAR ? 'vigilar' : 'holgado'
+
+  return { bytes, fraccion, estado, queLoLlena, aviso: avisoDeTamano(estado, fraccion, queLoLlena) }
+}
+
+function avisoDeTamano(
+  estado: EstadoDeTamano, fraccion: number, queLoLlena: readonly QueLoLlena[],
+): string {
+  if (estado === 'holgado') return ''
+  const culpable = queLoLlena.find(c => !c.topado && CAMPOS_SIN_TOPE.has(c.campo)) ?? queLoLlena[0]
+  const porQuien = culpable ? ` Lo que más ocupa: \`${culpable.campo}\`${culpable.elementos !== null ? ` (${culpable.elementos} elementos)` : ''}.` : ''
+  const pct = Math.round(fraccion * 100)
+  return estado === 'critico'
+    ? `El episodio ocupa el ${pct} % del máximo por documento. Al llegar al 100 % NO falla lo último: deja de poder registrarse una administración, suspenderse una orden o EGRESAR AL PACIENTE.${porQuien}`
+    : `El episodio ocupa el ${pct} % del máximo por documento y sigue creciendo.${porQuien}`
+}
+
+export const POR_QUE_SE_MIDE_ANTES_DE_ESCRIBIR =
+  'Porque el documento que puede ser rechazado es el que se va a escribir, no el '
+  + 'que se leyó. Y porque cuando el límite se alcanza no falla lo último que se '
+  + 'añadió: falla TODO, incluido egresar al paciente. Un aviso que llega después '
+  + 'de eso no es un aviso.'
+
+export const POR_QUE_LOS_UMBRALES_NO_SON_CLINICOS =
+  'Porque `LIMITE_FIRESTORE` es un hecho del proveedor —1 MiB por documento— y '
+  + 'las dos fracciones son margen de OPERACIÓN: cuánto se quiere para reaccionar. '
+  + 'Se vigila al 60 % y no al 90 % porque a los tres arrays sin tope les crecen '
+  + 'elementos grandes de golpe, y del 90 % al 100 % puede haber una sola '
+  + 'escritura.'
+
+export const LO_QUE_ESTA_MEDIDA_NO_HACE: readonly string[] = [
+  'No topa nada nuevo: `movimientos`, `indicaciones` e `interconsultas` siguen sin techo, porque el documento es su única copia y recortarlas borraría traslados u órdenes vivas.',
+  'No mide el tamaño REAL que Firestore cobra: éste cuenta el JSON en UTF-8, y el proveedor añade el nombre de cada campo, los índices y una sobrecarga por documento. La cifra queda POR DEBAJO de la real, así que el aviso llega antes — nunca después, que es el error que importaría.',
+  'No migra a subcolección, que es lo que cerraría el riesgo de verdad: toca `firestore.rules`, y desplegarlas es del dueño.',
+  'No bloquea la escritura. Frenar una mutación clínica por un umbral de tamaño sería peor que el riesgo que evita.',
+]

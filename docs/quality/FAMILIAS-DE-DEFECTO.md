@@ -43,10 +43,21 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 90 de 292, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 91 de 293, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-441** (31-ago-2026), y cierra la serie del mes
+El miembro más reciente es **REG-442** (31-ago-2026), y con él son **cinco este
+mes** de la misma subespecie. `lo-que-cabe-en-un-episodio.ts` terminaba diciendo,
+con estas palabras, que los tres arrays sin tope quedan «como riesgo NOMBRADO…
+un riesgo declarado **se puede vigilar**». Nadie lo vigilaba: no había un solo
+medidor, dos párrafos por debajo de la promesa.
+
+Con REG-424, REG-428, REG-438 y REG-441, la regla ya no admite matices:
+**cuanto mejor explicada está una garantía, menos probable es que alguien vaya a
+comprobar si el código la cumple.** Una prosa convincente es, en este
+repositorio, una señal de dónde mirar.
+
+Antes que él, **REG-441** (31-ago-2026), y cierra la serie del mes
 con la versión más literal del patrón: una sección del tablero titulada
 **«Compuertas medidas en este SHA — no citadas de memoria»** citaba de memoria un
 trinquete de 96 con el techo en 95.
