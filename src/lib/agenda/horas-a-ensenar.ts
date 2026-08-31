@@ -86,3 +86,53 @@ export function horasAEnsenar(
 
   return Array.from({ length: ultima - primera + 1 }, (_, i) => primera + i)
 }
+
+/**
+ * ¿ESTÁ EL CONSULTORIO ABIERTO A ESA HORA, ESE DÍA?
+ *
+ * La rejilla enseña de 07:00 a 19:00 como suelo, pero el consultorio por defecto
+ * atiende de 09:00 a 18:00 —y los viernes hasta las 14:00, y los fines de semana
+ * nada—. Sin esto, **todas las filas pesan lo mismo**: la de las 07:00 se ve
+ * igual de agendable que la de las 11:00, y el médico no puede ver de un vistazo
+ * cuándo está abierto.
+ *
+ * El producto ya dice esto mismo para el fin de semana, con un tinte apenas
+ * perceptible en la celda. Esto extiende ese vocabulario que ya existe a las
+ * horas cerradas; no inventa uno nuevo.
+ *
+ * **Tiñe, no bloquea.** Agendar fuera de horario es legítimo —una urgencia, un
+ * favor— y este repositorio ya tiene dicho cómo se tratan esos casos: «la salida
+ * autorizada, no un muro». Lo que faltaba era que se viera.
+ *
+ * La franja de las 17:00 con cierre a las 18:00 está ABIERTA: dura hasta las
+ * 18:00, que es justo cuando cierra. La de las 18:00 ya no.
+ *
+ * QUÉ NO CUBRE
+ * ────────────
+ * · **El horario partido**: `DaySchedule` admite huecos dentro del día (la
+ *   comida) y esto sólo mira `inicio` y `fin`. La hora de comer se enseñará como
+ *   abierta, igual que antes.
+ * · No mira días festivos.
+ * · No sabe de horarios por médico: usa el del consultorio.
+ */
+export function estaAbierto(hora: number, dia: DiaDeHorario | undefined): boolean {
+  /*
+   * SIN DÍA, NO SE OPINA. La primera versión devolvía `false` aquí y teñía la
+   * columna entera de cerrado cuando el consultorio no había declarado ese día.
+   * Eso es ausencia de dato tomada por dato de ausencia —la regla 4— pintada en
+   * la rejilla. Lo cazó su propio caso de prueba.
+   */
+  if (!dia) return true
+  if (dia.activo === false) return false
+  const i = hora24(dia.inicio)
+  const f = hora24(dia.fin)
+  if (i === null || f === null) return true   // sin horario declarado, no se opina
+  return hora >= i && hora < f
+}
+
+/** `'HH:mm'` → hora, o `null`. Igual que la de arriba, con nombre propio. */
+function hora24(hhmm: string | undefined): number | null {
+  if (!hhmm || hhmm.length < 2) return null
+  const h = Number.parseInt(hhmm.slice(0, 2), 10)
+  return Number.isFinite(h) && h >= 0 && h <= 23 ? h : null
+}

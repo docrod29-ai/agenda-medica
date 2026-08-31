@@ -71,10 +71,25 @@ describe('la agenda acusa recibo', () => {
   })
 
   it('la hoja declara respuesta al ratón para celda y bloque', () => {
-    expect(HOJA).toMatch(/\.nx-agenda-celda:hover\s*\{[^}]*background/)
-    expect(HOJA).toMatch(/\.nx-agenda-bloque:hover\s*\{[^}]*filter/)
+    /*
+     * ESTE CASO SE ANCLABA EN LA FORMA LITERAL y cazó un cambio que NO era un
+     * defecto: pedía `.nx-agenda-celda:hover {` con la llave pegada, y al
+     * añadirse un segundo selector a la misma regla —`.nx-agenda-celda:hover,
+     * .nx-agenda-celda[data-cerrado]:hover { … }`— dejó de casar aunque el
+     * puntero seguía respondiendo (medido en navegador: la celda cerrada pasa
+     * de `rgb(11,12,14)` a `rgb(26,29,33)` al posar el ratón).
+     *
+     * Un guardián que sólo entiende una forma de escribir la regla obliga a
+     * escribirla de esa forma. Ahora se comprueba la INVARIANTE: que exista una
+     * regla de `:hover` sobre la celda —sola o acompañada— que toque el fondo.
+     */
+    const reglaDeCelda = HOJA.match(/([^{}]*\.nx-agenda-celda:hover[^{}]*)\{([^}]*)\}/)
+    expect(reglaDeCelda, 'la celda de la agenda dejó de responder al puntero en la hoja').not.toBeNull()
+    expect(reglaDeCelda![2], 'la regla de `:hover` de la celda ya no toca el fondo').toContain('background')
+
+    expect(HOJA).toMatch(/\.nx-agenda-bloque:hover[^{}]*\{[^}]*filter/)
     // Y al pulsar, que es lo que acusa recibo en una pantalla táctil.
-    expect(HOJA).toMatch(/\.nx-agenda-bloque:active\s*\{[^}]*transform/)
+    expect(HOJA).toMatch(/\.nx-agenda-bloque:active[^{}]*\{[^}]*transform/)
   })
 
   it('el foco de teclado recibe el mismo trato que el ratón', () => {

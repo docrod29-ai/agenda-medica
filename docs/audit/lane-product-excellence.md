@@ -4944,3 +4944,75 @@ cinco arneses de este carril en verde.
 - El resto del producto sigue usando `fechaISOLocal` donde toca: esto cambia
   **sólo** la rejilla del calendario, que es donde las fechas son casillas y no
   instantes.
+
+---
+
+## Unidad 78 — cincuenta de las noventa y una celdas eran horas cerradas, y pesaban lo mismo
+
+**DE DÓNDE SALE.** De la unidad 74, que hizo que la rejilla consultara el horario
+del consultorio para decidir **hasta dónde llegar**. Al mirar la captura después,
+lo que quedaba claro era otra cosa: la rejilla llega de 07:00 a 19:00 y el
+consultorio atiende de 09:00 a 18:00 —los viernes hasta las 14:00, los fines de
+semana nada—, así que **50 de las 91 celdas de la semana son horas cerradas** y
+se veían exactamente igual que las abiertas.
+
+«Todo con el mismo peso visual» está literalmente en la lista de lo que esta
+interfaz no debe parecer.
+
+**LO QUE SE INTENTÓ PRIMERO, Y POR QUÉ NO VALÍA.** Copiar el tinte que ya existe
+para el fin de semana: un velo claro al 3 %. Se implementó, se compiló, se
+miró — y **no se veía nada**. Peor: iba en la dirección contraria. Aclarar una
+banda grande la ADELANTA, y lo que tiene que hacer una hora cerrada es
+retroceder. Se cambió a `--bg`, que en los **dos temas** es la superficie que hay
+debajo de la rejilla (`--s1`): la hora cerrada se lee como «aquí no hay mesa de
+trabajo, se ve el suelo». Un token que ya existía; ni gradiente, ni sombra, ni
+color inventado.
+
+Mirado otra vez en los dos temas: el viernes por la tarde, el sábado, el domingo
+y las franjas de antes de las 09:00 y después de las 18:00 se leen de un vistazo.
+En claro incluso mejor que en oscuro.
+
+**TIÑE, NO BLOQUEA.** Agendar fuera de horario sigue pudiéndose: una urgencia es
+legítima, y este repositorio ya tiene dicho cómo se tratan esos casos —«la salida
+autorizada, no un muro»—. Lo que faltaba era que se viera.
+
+**MEDIDO.** 91 celdas, **50 marcadas**, y el puntero sigue vivo sobre una celda
+cerrada (`rgb(11,12,14) → rgb(26,29,33)`). Eso último no es un detalle: la
+primera versión usaba `[data-finde][data-cerrado]`, **dos atributos**, que le
+gana en especificidad a un `:hover` de uno solo — habría dejado muerta la
+respuesta al ratón en las celdas de fin de semana. Es el mismo defecto que ya
+costó las 91 celdas de esta rejilla una vez, ahora por especificidad en vez de
+por estilo en línea. Se vio comprobando el color antes y después de posar el
+ratón, no leyendo el CSS.
+
+**DOS COSAS QUE CAZARON MIS PROPIOS CASOS DE PRUEBA:**
+
+1. **`estaAbierto` devolvía `false` cuando no había día declarado**, y habría
+   teñido de cerrado la columna entera de un consultorio que no publicó ese día.
+   Ausencia de dato tomada por dato de ausencia —la regla 4— pintada en la
+   rejilla. Ahora, sin horario, **no se opina**.
+2. **`la-agenda-acusa-recibo` se puso rojo**, y no era un defecto: pedía
+   `.nx-agenda-celda:hover {` con la llave pegada, y al añadir un segundo
+   selector a la misma regla dejó de casar aunque el puntero respondía. Guardián
+   anclado en la forma literal —el tercero de este carril—. Se reescribió para
+   comprobar la **invariante** (que exista una regla de `:hover` sobre la celda,
+   sola o acompañada, que toque el fondo) y se probó al revés **por los dos
+   lados**: sin fondo en la regla, y sin regla ninguna.
+
+**COMPUERTAS.** `vitest` 11 990 de 11 991 —sólo `ops-timeout-y-punto-ciego`— ·
+lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run
+build` compila · **trinquete de interfaz sin regresión (69 combinaciones)** ·
+**`arnes:tema-claro`: 44 combinaciones, axe 0, 0 de 91 campos sin foco** — que
+aquí importaba de verdad, porque los bloques de cita ahora se pintan sobre otro
+fondo.
+
+**RESIDUAL_RISK.**
+
+- **El horario partido sigue sin verse.** `DaySchedule` admite huecos dentro del
+  día —la comida— y esto sólo mira `inicio` y `fin`: la hora de comer se enseña
+  como abierta, igual que antes. Es el hueco más visible que deja esta unidad.
+- **No mira festivos** (`diasFestivos` existe y `getDaySchedule` lo usa; la
+  rejilla no).
+- **No mira horarios por médico**: usa el del consultorio, aunque el producto
+  sepa de horarios individuales.
+- La vista de **día** y la de **mes** no llevan la banda: sólo la semana.

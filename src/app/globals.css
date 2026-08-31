@@ -3607,10 +3607,32 @@ span.riel-aviso { cursor: default; }
 /* Tinte de fin de semana. Vivía como estilo en línea en la página, donde
    ganaba a `:hover` y dejaba la respuesta al ratón muerta en las 91 celdas. */
 .nx-agenda-celda[data-finde] { background: rgba(242, 239, 233, 0.022); }
+/*
+   HORAS EN QUE EL CONSULTORIO NO ATIENDE.
+
+   La primera versión copiaba el tinte del fin de semana —un velo CLARO al 3 %— y
+   al mirarla no servía para nada: invisible, y encima en la dirección
+   equivocada. Aclarar una banda grande la ADELANTA, y lo que tiene que hacer una
+   hora cerrada es retroceder.
+
+   Se usa `--bg`, que en los dos temas es la superficie de debajo de la rejilla
+   (`--s1`). Así la hora cerrada se lee como «aquí no hay mesa de trabajo, se ve
+   el suelo», con un token que ya existe y sin inventar un color.
+*/
+.nx-agenda-celda[data-cerrado] { background: var(--bg); }
+/*
+   EL RATÓN Y EL FOCO SIGUEN GANANDO, y se dice con la especificidad en la mano:
+   `.nx-agenda-celda[data-cerrado]` y `.nx-agenda-celda:hover` empatan, así que
+   manda el orden — y el `:hover` va después. Se nombra el atributo igualmente
+   para que un reordenado del archivo no mate la respuesta al puntero en 50 de
+   las 91 celdas, que es el defecto que ya costó esta rejilla una vez.
+*/
 @media (hover: hover) {
-  .nx-agenda-celda:hover { background: var(--s2); }
+  .nx-agenda-celda:hover,
+  .nx-agenda-celda[data-cerrado]:hover { background: var(--s2); }
 }
-.nx-agenda-celda:focus-visible { background: var(--s2); }
+.nx-agenda-celda:focus-visible,
+.nx-agenda-celda[data-cerrado]:focus-visible { background: var(--s2); }
 
 .nx-agenda-bloque {
   transition:

@@ -17,7 +17,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAhoraMinutos } from '@/hooks/useAhoraMinutos'
 import { etiquetaDeCita } from '@/lib/agenda/etiqueta-de-cita'
-import { horasAEnsenar, type DiaDeHorario } from '@/lib/agenda/horas-a-ensenar'
+import { horasAEnsenar, estaAbierto, type DiaDeHorario } from '@/lib/agenda/horas-a-ensenar'
 import { anclaDeRejilla, diaDeRejilla } from '@/lib/agenda/dia-de-rejilla'
 
 /**
@@ -59,6 +59,9 @@ function estiloEstadoCita(estado: AppointmentStatus): { opacity: number; borderS
   if (estado === 'solicitada' || estado === 'pendiente-confirmar' || estado === 'pendiente-datos' || estado === 'reagendada') return { opacity: 0.85, borderStyle: 'dashed', tachado: false }
   return { opacity: 1, borderStyle: 'solid', tachado: false }
 }
+
+/** Lunes a domingo, que es como se numera la rejilla de este producto. */
+const ORDEN_SEMANA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 
 type View = 'semana' | 'mes' | 'dia'
 
@@ -111,7 +114,12 @@ export default function CalendarioPage() {
    * necesita poder AGENDAR a las 20:00, no sólo ver lo ya agendado.
    */
   const horariosDelConsultorio = useMemo(
-    () => (config?.horario ? Object.values(config.horario) : []),
+    /*
+     * En orden de lunes a domingo, POR NOMBRE y no por `Object.values`: el orden
+     * de las llaves de un objeto que viene de la base no está garantizado, y
+     * aquí el índice ES el día de la semana.
+     */
+    () => ORDEN_SEMANA.map(d => config?.horario?.[d] ?? {}),
     [config],
   )
   const appointments = useMemo(() => {
@@ -387,6 +395,12 @@ function WeekView({ weekDates, appointments, horarios, onCellClick, onApptClick,
                  * bien.
                  */
                 data-finde={di >= 5 ? '' : undefined}
+                /*
+                  Y las horas en que el consultorio NO atiende. Sin esto la fila
+                  de las 07:00 se ve igual de agendable que la de las 11:00.
+                  Tiñe, no bloquea: agendar fuera de horario sigue pudiéndose.
+                */
+                data-cerrado={estaAbierto(h, horarios[di]) ? undefined : ''}
                 className="nx-agenda-celda"
                 /**
                  * UN BOTÓN DENTRO DE OTRO BOTÓN NO ES NAVEGABLE.

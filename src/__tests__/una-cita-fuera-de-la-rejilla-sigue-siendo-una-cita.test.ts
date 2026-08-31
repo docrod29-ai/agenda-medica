@@ -52,7 +52,7 @@
  * · No dice nada de la vista de MES, que no usa rejilla de horas.
  */
 import { describe, it, expect } from 'vitest'
-import { horasAEnsenar, PRIMERA_POR_DEFECTO, ULTIMA_POR_DEFECTO } from '@/lib/agenda/horas-a-ensenar'
+import { horasAEnsenar, estaAbierto, PRIMERA_POR_DEFECTO, ULTIMA_POR_DEFECTO } from '@/lib/agenda/horas-a-ensenar'
 
 const cita = (fechaHora: string) => ({ fechaHora })
 const dia = (inicio: string, fin: string, activo = true) => ({ activo, inicio, fin })
@@ -102,5 +102,66 @@ describe('una cita fuera de la rejilla sigue siendo una cita', () => {
     const h = horasAEnsenar([cita(''), cita('2026-08-30'), cita('2026-08-30 xx:00')], [])
     expect(h[0]).toBe(PRIMERA_POR_DEFECTO)
     expect(h[h.length - 1]).toBe(ULTIMA_POR_DEFECTO)
+  })
+})
+
+/**
+ * Y LA BANDA DE ATENCIÓN — la otra mitad de «la rejilla dice algo».
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * Con la rejilla de 07:00 a 19:00 y un consultorio que atiende de 09:00 a 18:00
+ * —los viernes hasta las 14:00, los fines de semana nada—, **50 de las 91 celdas
+ * de la semana son horas cerradas** y se veían exactamente igual que las
+ * abiertas. «Todo con el mismo peso visual» está en la lista de lo que esta
+ * interfaz no debe parecer.
+ *
+ * ── LO QUE SE INTENTÓ PRIMERO, Y POR QUÉ NO VALÍA ───────────────────────────
+ *
+ * Copiar el tinte del fin de semana —un velo CLARO al 3 %—. Al mirar la captura
+ * no se veía nada, y además iba en la dirección contraria: aclarar una banda
+ * grande la ADELANTA, cuando una hora cerrada tiene que retroceder. Se cambió a
+ * `--bg`, la superficie que hay debajo de la rejilla en los DOS temas.
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * La franja de las 17:00 con cierre a las 18:00 está ABIERTA —dura hasta las
+ * 18:00, que es cuando cierra—. La de las 18:00 ya no. Un día inactivo está
+ * cerrado entero. Y sin horario declarado **no se opina**: no se pinta nada.
+ *
+ * ── PROBADO AL REVÉS ────────────────────────────────────────────────────────
+ *
+ * Medido en navegador: 50 de 91 celdas marcadas, cuatro fondos distintos, y el
+ * puntero sigue vivo sobre una celda cerrada (`rgb(11,12,14) -> rgb(26,29,33)`).
+ * Los casos de aquí abajo caen si el borde se corre una hora.
+ *
+ * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
+ *
+ * · **El horario partido**: `DaySchedule` admite huecos dentro del día (la
+ *   comida) y esto sólo mira `inicio` y `fin`.
+ * · No mira festivos ni horarios por médico.
+ * · No bloquea: agendar fuera de horario sigue pudiéndose, a propósito.
+ */
+describe('la banda de atención se ve', () => {
+  const dia = { activo: true, inicio: '09:00', fin: '18:00' }
+
+  it('EL BORDE: la franja del cierre está abierta; la siguiente, no', () => {
+    expect(estaAbierto(17, dia), 'las 17:00 duran hasta las 18:00: está abierto').toBe(true)
+    expect(estaAbierto(18, dia), 'a las 18:00 ya cerró').toBe(false)
+  })
+
+  it('el borde de apertura, igual de exacto', () => {
+    expect(estaAbierto(8, dia)).toBe(false)
+    expect(estaAbierto(9, dia)).toBe(true)
+  })
+
+  it('un día inactivo está cerrado a todas horas', () => {
+    const cerrado = { activo: false, inicio: '09:00', fin: '18:00' }
+    for (const h of [8, 9, 13, 17, 20]) expect(estaAbierto(h, cerrado)).toBe(false)
+  })
+
+  it('sin horario declarado NO se opina — no se tiñe media rejilla por un hueco', () => {
+    expect(estaAbierto(3, {})).toBe(true)
+    expect(estaAbierto(3, undefined)).toBe(true)
   })
 })
