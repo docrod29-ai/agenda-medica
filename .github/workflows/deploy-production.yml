@@ -26,13 +26,13 @@ permissions:
   statuses: read
 
 env:
-  SHA_AUTORIZADO: b0ba014ce4e4f11faba27ccf9a6e7fb20e9a9b2a
+  SHA_AUTORIZADO: 8f74901d7a177c2336c80f16c6677965916c0f75
   # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
   # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
   # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
   # que envejeció sin que nadie se enterara. Ver Compuerta 0.
   ROLLBACK_AUTORIZADO: ''
-  VERSION_ESPERADA: nexusmed-v1176
+  VERSION_ESPERADA: nexusmed-v1177
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
