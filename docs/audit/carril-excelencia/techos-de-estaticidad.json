@@ -23,6 +23,7 @@
     "/consultor": 0,
     "/guia": 0,
     "/consulta/pac-001": 0,
-    "/expediente/pac-001": 0
+    "/expediente/pac-001": 0,
+    "/mi/[token]": 0
   }
 }
