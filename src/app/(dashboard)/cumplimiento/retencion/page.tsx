@@ -146,9 +146,14 @@ export default function RetencionPage() {
 
   return (
     <div className="nx-canvas">
-      <button onClick={() => router.push('/cumplimiento')} style={{
+      {/*
+        El color se lo pone la hoja (`nx-acc-texto--tenue`) y no el estilo en
+        línea: escrito aquí le ganaba al `:hover` y el botón se quedaba mudo al
+        puntero. Es la misma razón por la que se mudaron los otros de esta rama.
+      */}
+      <button onClick={() => router.push('/cumplimiento')} className="nx-acc-texto nx-acc-texto--tenue" style={{
         display: 'flex', alignItems: 'center', gap: 6,
-        background: 'none', border: 'none', color: 'var(--text3)',
+        background: 'none', border: 'none',
         fontSize: 13, cursor: 'pointer', marginBottom: 14,
       }}>
         <ArrowLeft size={14} /> Cumplimiento
@@ -214,12 +219,16 @@ export default function RetencionPage() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         <button
           onClick={() => setFiltro('por_revisar')}
+          className="nx-chip"
+          aria-pressed={filtro === 'por_revisar'}
           style={tabStyle(filtro === 'por_revisar')}
         >
           Por revisar ({porRevisar.length})
         </button>
         <button
           onClick={() => setFiltro('todos')}
+          className="nx-chip"
+          aria-pressed={filtro === 'todos'}
           style={tabStyle(filtro === 'todos')}
         >
           Todos ({evaluaciones.length})
@@ -324,9 +333,21 @@ function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; 
   )
 }
 
+/**
+ * EL FONDO YA NO SE PINTA AQUÍ, y no es una mudanza cosmética.
+ *
+ * Escrito en línea le ganaba al `:hover` de la hoja, así que las dos píldoras de
+ * esta pantalla eran de las tres únicas que no acusaban el puntero en todo el
+ * producto. Lo pinta `.nx-chip`, que además lee el estado de `aria-pressed` —
+ * que estas dos no tenían, así que un lector de pantalla no sabía cuál estaba
+ * puesta.
+ *
+ * Y el tinte del activo deja de ser un `color-mix` propio para ser
+ * `--nexus-soft`, que es el token que existe justo para esto: así esta pantalla
+ * y las de `/pacientes` y `/reactivacion` se pintan igual sin ponerse de acuerdo.
+ */
 const tabStyle = (activo: boolean): React.CSSProperties => ({
   padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-  background: activo ? 'color-mix(in srgb, var(--nexus) 12%, transparent)' : 'var(--s2)',
   color: activo ? 'var(--teal)' : 'var(--text2)',
   border: activo ? '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)' : '1px solid var(--border)',
 })

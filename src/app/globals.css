@@ -3871,6 +3871,17 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-chip--relleno[aria-pressed='true'] { background: var(--nexus-solido); }
 .nx-chip--relleno[aria-pressed='true']:hover { background: var(--nexus-hover); }
 
+/* Riel del expediente. El fondo vive aquí y no en línea por la razón de
+   siempre: en línea le ganaba al `:hover` y las entradas del riel eran de las
+   últimas del producto que no acusaban el puntero. El seleccionado ya se
+   distingue por la barra de acento y el peso del texto, así que el `:hover`
+   sólo tiene que insinuar — sin competir con esa señal. */
+.nx-spine-item {
+  background: none;
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.nx-spine-item:hover { background: var(--s2); }
+
 /* Conmutador segmentado dentro de un carril (Día · Semana · Mes): la activa
    lleva la superficie puesta, la inactiva se insinúa al pasar. */
 .nx-segmento { background: transparent; transition: background var(--mov-rapido) var(--mov-curva); }

@@ -174,6 +174,7 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
             onClick={() => irA(it.id)}
             aria-current={seleccionado ? 'true' : undefined}
             data-spine-target={`spine-${it.id}`}
+            className="nx-spine-item"
             style={{
               position: 'relative',
               display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
@@ -183,7 +184,9 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
               minHeight: 44, padding: '10px 12px',
               fontSize: 14, whiteSpace: 'nowrap', cursor: 'pointer',
               scrollSnapAlign: 'start',
-              border: 'none', background: 'none', fontFamily: 'inherit',
+              /* El fondo lo pone la hoja (`nx-spine-item`): escrito aquí le
+                 ganaba al `:hover` y el riel se quedaba mudo al puntero. */
+              border: 'none', fontFamily: 'inherit',
               /* Selección = cobalto (VISUAL_DNA §3), pero dicho como lo dice la
                  navegación de este producto: barra de acento y texto que sube
                  de peso — no un relleno que compite con los datos de al lado. */

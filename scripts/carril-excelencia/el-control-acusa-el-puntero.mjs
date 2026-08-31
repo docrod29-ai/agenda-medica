@@ -21,8 +21,9 @@
  * ──────────────────────────────────────────────────────
  * · Un `<button disabled>` que no responde está **bien**: decir «aquí puedes
  *   pulsar» cuando no se puede es peor que callarse.
- * · **El control que ya está puesto** —`aria-pressed="true"`, `.active`, o
- *   `aria-current`— tampoco tiene que decir «puedes venir aquí»: ya estás. El
+ * · **El control que ya está puesto** —`aria-pressed`, `aria-checked`,
+ *   `aria-selected`, `.active` o `aria-current`— tampoco tiene que decir
+ *   «puedes venir aquí»: ya estás. El
  *   filtro activo, la pestaña abierta y el destino donde estás llevan su
  *   superficie puesta precisamente porque son el sitio actual, y por eso
  *   apuntarlos no cambia nada.
@@ -155,6 +156,16 @@ for (const ruta of RUTAS) {
       if (!b.width || e.offsetParent === null) return
       if (e.disabled === true || e.getAttribute('aria-disabled') === 'true') return
       if (e.getAttribute('aria-pressed') === 'true') return
+      /*
+       * Y `aria-checked` / `aria-selected`, que dicen lo MISMO con el atributo
+       * que le toca a cada rol: `role="radio"` se anuncia con `aria-checked` y
+       * una pestaña con `aria-selected`. Esta lista sólo tenía `aria-pressed`, y
+       * por eso acusaba de mudo al tipo de cita elegido en `/asistente` — un
+       * `role="radio"` que declara su estado como debe. El defecto era de esta
+       * lista, no de la pantalla.
+       */
+      if (e.getAttribute('aria-checked') === 'true') return
+      if (e.getAttribute('aria-selected') === 'true') return
       if (e.getAttribute('aria-current') && e.getAttribute('aria-current') !== 'false') return
       if (e.classList.contains('active')) return
       e.dataset.acusePuntero = 'p' + (i++)

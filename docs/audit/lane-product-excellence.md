@@ -5286,3 +5286,62 @@ banda del día.
 - Sigue sin distinguirse «cerrado por festivo» de «cerrado porque no se atiende
   ese día».
 - El arnés mide cuatro franjas del día (08, 11, 14, 17), no las trece.
+
+---
+
+## Unidad 84 — los ocho controles mudos, y uno que no lo era
+
+**DE DÓNDE SALE.** De un bloqueo que se levantó. Los ocho controles que no
+acusaban el puntero estaban **todos** en archivos declarados en
+`CROSS_LANE_CONFLICT`, y el encargo decía no invadirlos: «bajar un número a
+cambio de complicarle el merge a otro carril no es una mejora». Al entrar el otro
+carril en `main` y quedar la fusión limpia, dejaron de estar bloqueados.
+
+**SIETE ERAN DEFECTOS, Y TODOS EL MISMO.** El fondo escrito en línea le gana al
+`:hover` de la hoja. Es la unidad 22 de este carril, cometida en tres pantallas
+más:
+
+| Dónde | Qué | Arreglo |
+|---|---|---|
+| `/cumplimiento/retencion` | volver a Cumplimiento | `nx-acc-texto--tenue`, color fuera del `style` |
+| `/cumplimiento/retencion` | «Por revisar» y «Todos» | `nx-chip` + `aria-pressed` |
+| `/expediente/pac-001` | las entradas del riel clínico | `nx-spine-item`, fondo en la hoja |
+| `/asistente` | flechas de mes (las dos) | `nx-acc-caja` |
+| `/asistente` | tarjeta de día | `nx-chip` + `aria-pressed` |
+
+**Y DE PASO, DOS COSAS QUE NO SE BUSCABAN.** Las píldoras de `/retencion` y las
+tarjetas de día de `/asistente` **no declaraban cuál estaba puesta**: un lector
+de pantalla no podía saber qué filtro estaba activo. Ahora lo dicen con
+`aria-pressed`. Y la tarjeta de día se pintaba con `rgba(61,90,254,0.1)` — **un
+azul escrito a mano que no es de la paleta** — donde el resto del producto usa
+`--nexus-soft`.
+
+**EL OCTAVO NO ERA UN DEFECTO, Y EL DEFECTO ERA MÍO.** «Primera vez · 60 min» de
+`/asistente` salía mudo porque es la opción **elegida por defecto**, y una opción
+ya puesta no tiene que decir «puedes venir aquí»: ya estás. El arnés sabía eso —
+excluye `aria-pressed="true"`, `.active` y `aria-current`— pero **no
+`aria-checked`**, que es como declara su estado un `role="radio"`. La lista de
+exclusiones era mía y estaba incompleta. Se añaden `aria-checked` y
+`aria-selected` (el de las pestañas).
+
+Corregir el arnés antes de «arreglar» la pantalla es la diferencia entre bajar un
+número y mejorar el producto.
+
+**MEDIDO DESPUÉS: cero controles mudos en las 22 rutas**, y los techos bajados a
+**0 en todas** — así que el próximo control que no acuse el puntero salta el
+mismo día.
+
+**COMPUERTAS.** `vitest` 11 993 de 11 994 —`ops-timeout-y-punto-ciego`— · lint 95
+= techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run build`
+compila · **trinquete de interfaz sin regresión (69 combinaciones)** ·
+**`arnes:tema-claro` 44 combinaciones, axe 0** — que importaba porque este cambio
+toca colores de fondo en tres pantallas.
+
+**RESIDUAL_RISK.**
+
+- **El arnés sólo mira `<main>`**: la barra lateral, la superior y los diálogos
+  quedan fuera. Un control mudo ahí no lo ve nadie.
+- Mide 22 rutas del panel. El portal del paciente (`/mi/[token]`) no entra.
+- «Acusa el puntero» se mide comparando estilo antes y después de posar el ratón:
+  un cambio imperceptible cuenta igual que uno claro. Que se VEA sigue siendo un
+  juicio, no una medida.

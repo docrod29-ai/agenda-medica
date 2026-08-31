@@ -657,10 +657,13 @@ function AsistenteInner() {
                 onClick={() => setMesOffset(m => Math.max(0, m - 1))}
                 disabled={mesOffset <= 0}
                 aria-label="Mes anterior"
+                /* El fondo lo pone `nx-acc-caja`: en línea le ganaba al `:hover`
+                   y las flechas del mes no acusaban el puntero. */
+                className="nx-acc-caja"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 34, height: 34, borderRadius: 8,
-                  border: '1px solid var(--border)', background: 'var(--s2)',
+                  border: '1px solid var(--border)',
                   color: mesOffset <= 0 ? 'var(--text3)' : 'var(--text)',
                   cursor: mesOffset <= 0 ? 'default' : 'pointer',
                   opacity: mesOffset <= 0 ? 0.4 : 1,
@@ -676,10 +679,13 @@ function AsistenteInner() {
                 onClick={() => setMesOffset(m => Math.min(MAX_MES_OFFSET, m + 1))}
                 disabled={mesOffset >= MAX_MES_OFFSET}
                 aria-label="Mes siguiente"
+                /* El fondo lo pone `nx-acc-caja`: en línea le ganaba al `:hover`
+                   y las flechas del mes no acusaban el puntero. */
+                className="nx-acc-caja"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 34, height: 34, borderRadius: 8,
-                  border: '1px solid var(--border)', background: 'var(--s2)',
+                  border: '1px solid var(--border)',
                   color: mesOffset >= MAX_MES_OFFSET ? 'var(--text3)' : 'var(--text)',
                   cursor: mesOffset >= MAX_MES_OFFSET ? 'default' : 'pointer',
                   opacity: mesOffset >= MAX_MES_OFFSET ? 0.4 : 1,
@@ -697,11 +703,21 @@ function AsistenteInner() {
                     key={d}
                     onClick={() => setFecha(d)}
                     disabled={lugares === 0}
+                    /*
+                      `nx-chip` pone el fondo, y con eso se arreglan tres cosas
+                      de una: el día acusa el puntero —en línea el fondo le
+                      ganaba al `:hover`—, el elegido se anuncia por
+                      `aria-pressed` en vez de sólo por color, y el tinte deja de
+                      ser un `rgba(61,90,254,0.1)` escrito a mano —un azul que no
+                      es de la paleta— para ser `--nexus-soft`, el token que ya
+                      usan las demás píldoras del producto.
+                    */
+                    className="nx-chip"
+                    aria-pressed={isSelected}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '10px 14px', borderRadius: 10, fontSize: 13,
                       border: isSelected ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: isSelected ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
                       color: lugares === 0 ? 'var(--text3)' : isSelected ? 'var(--teal)' : 'var(--text)',
                       cursor: lugares === 0 ? 'default' : 'pointer',
                       // Un día sin cupo va apagado, pero LEGIBLE: con 0.4 sobre un

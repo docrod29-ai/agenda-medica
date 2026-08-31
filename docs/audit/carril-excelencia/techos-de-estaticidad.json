@@ -1,10 +1,10 @@
 {
   "queEsEsto": "Controles habilitados que NO acusan el puntero, por ruta. SÓLO PUEDEN BAJAR. Si un cambio deja más controles mudos, se arregla el cambio — no se mueve el techo. Se actualiza con --actualizar y sólo cuando la mejora es real.",
-  "medidoEl": "2026-08-30",
+  "medidoEl": "2026-08-31",
   "techos": {
     "/citas": 0,
     "/calendario": 0,
-    "/asistente": 3,
+    "/asistente": 0,
     "/lista-espera": 0,
     "/finanzas": 0,
     "/operaciones": 0,
@@ -19,10 +19,10 @@
     "/farmacia": 0,
     "/corte-caja": 0,
     "/cumplimiento": 0,
-    "/cumplimiento/retencion": 3,
+    "/cumplimiento/retencion": 0,
     "/consultor": 0,
     "/guia": 0,
     "/consulta/pac-001": 0,
-    "/expediente/pac-001": 2
+    "/expediente/pac-001": 0
   }
 }

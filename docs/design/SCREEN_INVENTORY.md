@@ -44,7 +44,7 @@
 | `/teleconsulta/[citaId]` | paciente | ✅ | 112 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
-| `/asistente` | medico | ✅ | 838 | 0 | — | ✅ | — |
+| `/asistente` | medico | ✅ | 854 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 843 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1213 | 6 | — | ✅ | — |
@@ -55,7 +55,7 @@
 | `/crm` | medico | ✅ | 279 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 1041 | 0 | — | ✅ | — |
 | `/cumplimiento/motores` | medico | ✅ | 206 | 1 | — | ✅ | — |
-| `/cumplimiento/retencion` | medico | ✅ | 333 | 2 | — | ✅ | — |
+| `/cumplimiento/retencion` | medico | ✅ | 354 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 384 | 5 | — | ✅ | — |
 | `/expediente/[patientId]` | medico | ✅ | 1130 | 14 | — | ✅ | — |
