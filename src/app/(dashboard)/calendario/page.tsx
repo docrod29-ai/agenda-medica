@@ -12,7 +12,7 @@ import { configParaMedico } from '@/lib/horario-medico'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus } from '@/types'
-import { getWeekDates } from '@/lib/availability'
+import { getWeekDates, esFestivo } from '@/lib/availability'
 import { hoyISO } from '@/lib/timezone'
 import { ChevronLeft, ChevronRight, Plus, Loader2, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
@@ -143,6 +143,13 @@ export default function CalendarioPage() {
     },
     [config, doctors, medicoFiltro],
   )
+  /*
+   * Los festivos van aparte del horario porque no son del día de la semana sino
+   * de la FECHA. `getDaySchedule` ya devuelve `null` en un festivo —así que el
+   * selector de horas no ofrece ninguna—, y sin esto la rejilla pintaba el día
+   * entero abierto: otra vez la pantalla diciendo una cosa y el motor otra.
+   */
+  const diasFestivos = useMemo(() => config?.diasFestivos ?? [], [config])
   const appointments = useMemo(() => {
     if (!medicoFiltro) return allAppointments
     return allAppointments.filter(a => a.medicoId === medicoFiltro)
@@ -295,6 +302,7 @@ export default function CalendarioPage() {
             weekDates={weekDates}
             appointments={appointments}
             horarios={horariosDelConsultorio}
+            festivos={diasFestivos}
             onCellClick={openNew}
             onApptClick={openEdit}
             loading={loading}
@@ -334,10 +342,11 @@ export default function CalendarioPage() {
   )
 }
 
-function WeekView({ weekDates, appointments, horarios, onCellClick, onApptClick, loading }: {
+function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, onApptClick, loading }: {
   weekDates: Date[]
   appointments: Appointment[]
   horarios: DiaDeHorario[]
+  festivos: readonly string[]
   onCellClick: (fecha: string, hora: string) => void
   onApptClick: (a: Appointment) => void
   loading: boolean
@@ -361,6 +370,8 @@ function WeekView({ weekDates, appointments, horarios, onCellClick, onApptClick,
     const dias = new Set(diasISO)
     return horasAEnsenar(appointments.filter(a => dias.has(a.fechaHora.slice(0, 10))), horarios)
   }, [diasISO, appointments, horarios])
+  /* Un festivo cierra el día ENTERO, así que se resuelve por columna y no por celda. */
+  const esFestivoElDia = useMemo(() => diasISO.map(d => esFestivo(d, festivos)), [diasISO, festivos])
 
   return (
     <div style={{ height: '100%', overflow: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
@@ -421,7 +432,7 @@ function WeekView({ weekDates, appointments, horarios, onCellClick, onApptClick,
                   de las 07:00 se ve igual de agendable que la de las 11:00.
                   Tiñe, no bloquea: agendar fuera de horario sigue pudiéndose.
                 */
-                data-cerrado={estaAbierto(h, horarios[di]) ? undefined : ''}
+                data-cerrado={!esFestivoElDia[di] && estaAbierto(h, horarios[di]) ? undefined : ''}
                 className="nx-agenda-celda"
                 /**
                  * UN BOTÓN DENTRO DE OTRO BOTÓN NO ES NAVEGABLE.

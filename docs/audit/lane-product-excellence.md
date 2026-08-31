@@ -5114,9 +5114,64 @@ build` compila.
 
 **RESIDUAL_RISK.**
 
-- **Los festivos siguen sin verse.** `diasFestivos` existe y `getDaySchedule` lo
-  usa; la banda no lo mira. Es el hueco más grande que queda aquí.
+- ~~Los festivos siguen sin verse.~~ **Cerrado abajo**, en la unidad 81.
 - **Esto no tiene arnés que se vuelva a correr solo.** Se midió a mano con datos
   sintéticos y se limpió; no queda un guion que lo repita. Es la diferencia entre
   «medido una vez» y «vigilado», y aquí es lo primero.
 - La banda sigue siendo sólo de la vista de **semana**.
+
+---
+
+## Unidad 81 — el día festivo se pintaba entero como agendable
+
+**DE DÓNDE SALE.** Del último riesgo residual que quedaba de la banda. Es la
+tercera vez seguida que aparece **el mismo patrón**, y por eso vale la pena
+nombrarlo así: `getDaySchedule` devuelve `null` en un festivo —de modo que el
+selector de horas **no ofrece ninguna**— y la rejilla pintaba el día entero
+abierto y clicable. Igual que con el horario partido y con el horario del médico:
+**el motor ya sabía; la pantalla no se había enterado.**
+
+**MEDIDO EN NAVEGADOR**, con el miércoles 26 declarado festivo y el consultorio
+en su horario por defecto:
+
+```
+24: 9 abiertas de 13      28: 5 abiertas de 13   ← viernes cierra a las 14:00
+25: 9 abiertas de 13      29: 0 abiertas de 13
+26: 0 abiertas de 13  ←   30: 0 abiertas de 13
+27: 9 abiertas de 13
+```
+
+**PROBADO AL REVÉS**, también en navegador: quitando la comprobación del cableado
+y recompilando, el miércoles 26 vuelve a **9 abiertas de 13** — el festivo
+desaparece de la pantalla mientras el selector sigue sin ofrecer horas.
+
+**Se usa `esFestivo` de `lib/availability`**, que es el que ya usa
+`getDaySchedule`: la misma función, no una regla nueva. Entiende las dos formas
+que admite el producto —fecha completa `YYYY-MM-DD` y recurrente `MM-DD`— porque
+se le pasa el arreglo tal cual.
+
+Un festivo cierra el día **entero**, así que se resuelve **por columna** y no por
+celda: siete llamadas por semana en vez de noventa y una.
+
+**COMPUERTAS.** `vitest` **11 994 de 11 994** —esta vez `ops-timeout-y-punto-ciego`
+también pasó, que es exactamente la alternancia que este carril lleva
+documentando: es del entorno— · lint 95 = techo · trinquete de diseño sin deuda
+nueva · `tsc` limpio · `npm run build` compila · `arnes:cita-fuera-de-hora` y
+`arnes:hoy-del-consultorio` en verde sobre este build.
+
+El festivo sembrado y el resto de datos de prueba se quitaron, y se comprobó
+documento a documento que el emulador quedó como estaba: sin `diasFestivos`, sin
+`horario` propio y con cero médicos.
+
+**RESIDUAL_RISK.**
+
+- **Nada de esta banda tiene arnés que se vuelva a correr solo.** El horario
+  partido, el horario del médico y el festivo se midieron a mano, con datos
+  sintéticos, y se limpiaron. Es «medido una vez», no «vigilado» — y es el hueco
+  más honesto que deja esta tanda: el día que alguien rompa la banda, no salta
+  nada. Un arnés que siembre config, mida y limpie sería la unidad siguiente.
+- La banda sigue siendo sólo de la vista de **semana**: ni el día ni el mes la
+  llevan.
+- Un festivo se pinta igual que un domingo. No se distingue «cerrado porque es
+  festivo» de «cerrado porque no se atiende ese día», y para el médico son cosas
+  distintas.
