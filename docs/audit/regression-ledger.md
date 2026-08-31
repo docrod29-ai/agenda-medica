@@ -16747,3 +16747,72 @@ cuánto se quedó fuera. Afirmar lo segundo sería inventar.
   cinco copias pasen por una sola definición.
 
 **Prueba.** `src/__tests__/el-sobre-llegaba-a-la-puerta-y-se-tiraba.test.ts` (10 casos).
+
+---
+
+## REG-432 — el aviso decía cuántos mensajes se rindieron, y con un número no se hace nada
+
+**QUÉ SE PEDÍA.** `TR-WHATSAPP.entrega`: «un aviso dice CUÁNTAS hay, no deja
+verlas, ni reintentarlas, ni saber de qué paciente eran. Cerrar esto es la
+pantalla del dead-letter».
+
+### El hueco
+
+REG-397 puso el instrumento: el vigilante cuenta las entradas muertas del outbox y
+las distingue de las pausadas —una pausa se arregla sola cuando el proveedor
+vuelve; una muerta ya no se reintenta nunca—.
+
+Pero el outbox sólo tenía `contarMuertas`. **Contar es el primer paso y no es el
+trabajo**: con un número no se ve de qué paciente era el mensaje, ni qué decía, ni
+por qué murió, ni se puede volver a intentar. Un recordatorio de cita que murió es
+un paciente que no sabe que tiene cita, y hasta hoy eso sólo se sabía en plural.
+
+### Por qué revivir es un acto y no un reintento automático
+
+Una entrada muerta agotó sus reintentos, y **desde la cola no se distinguen dos
+casos opuestos**: que el mensaje no llegara nunca —y entonces revivirlo es lo
+correcto— o que llegara y se perdiera el acuse.
+
+Reintentar a ciegas duplicaría el mensaje al paciente. Así que no se reintenta
+solo: lo revive una persona que **ve** el mensaje, y la pantalla se lo dice antes
+de que pulse, no después. El golden fija que el aviso esté **antes** del botón.
+
+Al revivir, los intentos se ponen a cero —si no, nacería agotada y volvería a
+morir en el primer fallo— pero **las pausas se conservan**: cuentan otra cosa
+—cuántas veces no estaba el proveedor— y borrarlas escondería que el problema era
+él. Y queda escrito quién la revivió: una muerta que vuelve ya falló una vez.
+
+### Un criterio de autorización que me inventé, y se corrigió
+
+La primera versión de la ruta distinguía dos puertas —ver con membresía, revivir
+con `clinico.escribir`— y sonaba razonable. **No es el modelo del árbol**: aquí la
+mensajería es UNA capacidad (`mensajeria.enviar`, la misma que
+`/api/whatsapp/entregas`), y la cola lleva teléfonos y textos de pacientes, así
+que verla no es más inocente que usarla.
+
+Dos partes decidiendo lo mismo con reglas distintas es exactamente lo que este
+repositorio persigue por todas partes. Se alineó con la que ya existía.
+
+También se marcó de más al declararla: `activacionPendiente` habría dicho que la
+puerta está declarada y **no puesta**, que es lo contrario de lo que hace la ruta.
+
+### Una cola ilegible no es una cola vacía
+
+`listarMuertas` lanza en vez de devolver `[]`, la ruta responde 503, y la pantalla
+distingue las dos. «No se pudo leer» y «no hay ninguno» tienen consecuencias
+opuestas para el médico — es el defecto que el sobre de recuperación de evidencia
+existe para no repetir.
+
+### Qué NO cubre
+
+- **El mensaje REACTIVO del bot sigue fuera.** No pasa por el outbox: si el
+  proveedor está caído cuando el paciente escribe, esa respuesta se pierde y no
+  queda en ninguna cola. Sigue abierto.
+- **No deduplica.** Revivir puede duplicar, y la única defensa es que lo decida una
+  persona informada. Una clave de idempotencia de punta a punta con el proveedor
+  sería la defensa real, y no existe.
+- **No borra ni archiva** lo que el médico decida no reintentar.
+- **No se probó en navegador**: se comprueba la lógica de la cola, la puerta de
+  autorización y que la pantalla avise del riesgo antes del botón.
+
+**Prueba.** `src/__tests__/un-numero-de-mensajes-muertos-no-deja-hacer-nada.test.ts` (13 casos).

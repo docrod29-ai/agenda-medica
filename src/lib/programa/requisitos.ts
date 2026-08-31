@@ -722,11 +722,14 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     pruebas: ['src/__tests__/la-automatizacion-no-firma.test.ts'],
   }),
   R({
-    id: 'TR-WHATSAPP.entrega', ws: 'TR-WHATSAPP', titulo: 'Un mensaje al paciente ni se pierde ni se duplica',
+    id: 'TR-WHATSAPP.entrega', ws: 'TR-WHATSAPP', titulo: 'Lo encolado llega, y lo que no, se ve y se puede reintentar',
     estado: 'PARTIAL',
-    queFalta: 'El interruptor y la caída del proveedor ya están (REG-391), y REG-397 puso el instrumento que faltaba: el cron cuenta pausadas y rendidas, y el vigilante avisa distinguiéndolas —una pausa se arregla sola cuando el proveedor vuelve; una rendida ya no se reintenta nunca—. Sigue PARTIAL y ahora por una razón precisa: un aviso dice CUÁNTAS hay, no deja verlas, ni reintentarlas, ni saber de qué paciente eran. Cerrar esto es la pantalla del dead-letter. Falta además el mensaje REACTIVO del bot, que no pasa por el outbox: si el proveedor está caído cuando el paciente escribe, esa respuesta se pierde y no queda en ninguna cola.',
-    artefactos: ['src/lib/whatsapp/outbox.ts'],
-    pruebas: ['src/__tests__/una-cola-en-pausa-no-es-una-tarde-tranquila.test.ts'],
+    queFalta: 'REG-391 puso el interruptor y REG-397 el instrumento (el vigilante cuenta pausadas y rendidas y las distingue). REG-432 cerró la pantalla del dead-letter: contar era el primer paso y no el trabajo — con un número no se ve de qué paciente era, ni qué decía, ni por qué murió, ni se puede reintentar. Ahora se listan y se pueden devolver a la cola, con la MISMA puerta que /entregas (`mensajeria.enviar`) y avisando ANTES del botón de que reintentar puede DUPLICAR el mensaje: desde la cola no se distingue si no llegó nunca o si llegó y se perdió el acuse. Los intentos se reinician y las pausas se conservan, porque cuentan cosas distintas. FALTA: (1) el mensaje REACTIVO del bot, que no pasa por el outbox — si el proveedor está caído cuando el paciente escribe, esa respuesta se pierde y no queda en ninguna cola; (2) una clave de idempotencia de punta a punta con el proveedor, que es la única defensa REAL contra el duplicado (hoy la defensa es que lo decida una persona informada); (3) archivar o descartar lo que el médico decida no reintentar.',
+    artefactos: ['src/lib/whatsapp/outbox.ts', 'src/app/api/whatsapp/no-entregados/route.ts'],
+    pruebas: [
+      'src/__tests__/una-caida-de-whatsapp-no-mata-la-cola.test.ts',
+      'src/__tests__/un-numero-de-mensajes-muertos-no-deja-hacer-nada.test.ts',
+    ],
   }),
   R({
     id: 'TR-RAZONAMIENTO.procedencia', ws: 'TR-RAZONAMIENTO', titulo: 'Lo que la IA redacta enseña de dónde salió',
