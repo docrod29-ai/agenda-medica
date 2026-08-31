@@ -345,6 +345,39 @@ const mudosDeDialogos = []
         }
       },
     },
+    /**
+     * COBRAR — el otro diálogo de estado difícil, y el que toca dinero de
+     * verdad. Se abre por la misma puerta que «Editar cita»: el menú «Más
+     * acciones» de una fila de la agenda.
+     *
+     * Puede no aparecer: el propio producto sólo ofrece «Cobrar» en ciertos
+     * estados de la cita (unidad 120 de `citas/page.tsx` — antes salía en
+     * todas, incluidas las que ni habían pasado). Si no está, el arnés lo dice
+     * con «sin abrir … queda sin medir» en vez de dar un cero.
+     */
+    {
+      nombre: 'cobrar una cita',
+      sel: '[role=dialog]',
+      abrir: async () => {
+        await pagD.goto(`${BASE}/citas`, { waitUntil: 'domcontentloaded' })
+        await pagD.waitForTimeout(6000)
+        const menus = pagD.locator('button:visible[aria-label^="Más acciones"]')
+        const cuantos = await menus.count().catch(() => 0)
+        // La primera fila puede no ofrecer «Cobrar»; se prueban varias.
+        for (let i = 0; i < Math.min(cuantos, 6); i++) {
+          await menus.nth(i).click({ timeout: 5000 }).catch(() => {})
+          await pagD.waitForTimeout(900)
+          const it = pagD.locator('[role=menuitem]:visible').filter({ hasText: /^Cobrar$/ }).first()
+          if (await it.count().catch(() => 0)) {
+            await it.click({ timeout: 5000 }).catch(() => {})
+            await pagD.waitForTimeout(1500)
+            return
+          }
+          await pagD.keyboard.press('Escape').catch(() => {})
+          await pagD.waitForTimeout(400)
+        }
+      },
+    },
   ]
 
   for (const d of DIALOGOS) {
