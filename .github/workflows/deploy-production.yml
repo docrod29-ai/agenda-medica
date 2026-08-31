@@ -26,8 +26,8 @@ permissions:
   statuses: read
 
 env:
-  SHA_AUTORIZADO: 3bada5017d9f07a0f68ba7493e853a19f957246c
-  VERSION_ESPERADA: nexusmed-v1176
+  SHA_AUTORIZADO: 8f74901d7a177c2336c80f16c6677965916c0f75
+  VERSION_ESPERADA: nexusmed-v1177
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
