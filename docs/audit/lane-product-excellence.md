@@ -5225,9 +5225,14 @@ alternando— · lint 95 = techo · `tsc` limpio · `npm run build` compila ·
 
 **RESIDUAL_RISK.**
 
-- **No comprueba el COLOR**, sólo el atributo `data-cerrado`. Que el tinte se vea
-  —y que se vea en los dos temas— se juzgó mirando capturas, y eso sigue sin
-  automatizarse.
+- **No juzga si el tinte se ve LO BASTANTE**, y esa parte sigue siendo un juicio
+  hecho mirando capturas. Lo que sí comprueba desde la misma sesión es que
+  **algo lo pinte**: la celda cerrada tiene que salir con el token elegido
+  (`--bg`) y la abierta no. Probado al revés quitando **sólo la regla de la
+  hoja** y dejando el atributo puesto —el escenario «escrito y sin conectar»—:
+  el arnés lo dice con esas palabras, «la banda está puesta y no se ve», y las
+  comprobaciones de estructura se quedan verdes, así que discrimina. No se
+  inventa un umbral perceptual: eso sería un número sacado de la manga.
 - **Sólo la vista de semana.** Ni el día ni el mes llevan banda, así que tampoco
   hay nada que vigilar ahí.
 - Un `kill -9` a mitad de corrida deja la configuración sembrada puesta. El

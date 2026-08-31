@@ -34,8 +34,11 @@
  * QUÉ NO CUBRE
  * ────────────
  * · **Sólo la vista de semana.** Ni el día ni el mes llevan banda.
- * · No comprueba el COLOR, sólo el atributo `data-cerrado`. Que el tinte se vea
- *   se juzgó mirando capturas en los dos temas, y eso no se automatiza aquí.
+ * · **No juzga si el tinte se ve LO BASTANTE.** Comprueba que la celda cerrada
+ *   se pinte con el token elegido (`--bg`) y la abierta no —que es la decisión,
+ *   y se puede comprobar—, pero no inventa un umbral perceptual: eso sería un
+ *   número sacado de la manga. Que el tinte se lea se juzgó mirando capturas en
+ *   los dos temas.
  * · No distingue «cerrado por festivo» de «cerrado porque no se atiende»: la
  *   pantalla tampoco, y está dicho como riesgo.
  * · Si el guion muere de forma violenta —un `kill -9`— la configuración sembrada
@@ -179,6 +182,39 @@ try {
   /* Y las que tienen que estar abiertas en algún día. */
   for (const h of ['09:00', '13:00', '16:00', '19:00']) {
     if (abiertasEn(h) <= 0) fallos.push(`${h} está dentro del horario y no hay ninguna celda abierta`)
+  }
+
+  /*
+   * Y QUE ALGO LA PINTE. El atributo puede estar puesto y la hoja no tener
+   * regla que lo dibuje —«escrito y sin conectar», la familia de siempre— y
+   * hasta aquí este arnés habría dado verde con la banda invisible.
+   *
+   * No se inventa un umbral de «se ve lo bastante»: eso sería un número sacado
+   * de la manga, y aquí no se hace. Se comprueba la DECISIÓN: la celda cerrada
+   * se pinta con `--bg` —la superficie de debajo de la rejilla, que es el token
+   * elegido y funciona en los dos temas— y la abierta no.
+   */
+  const pintura = await pag.evaluate(() => {
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
+    const aRgb = (hex) => {
+      const h = hex.replace('#', '')
+      return `rgb(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)})`
+    }
+    const celdas = [...document.querySelectorAll('.nx-agenda-celda')]
+    const cerrada = celdas.find(c => c.hasAttribute('data-cerrado'))
+    const abierta = celdas.find(c => !c.hasAttribute('data-cerrado'))
+    return {
+      esperado: aRgb(bg),
+      fondoCerrada: cerrada ? getComputedStyle(cerrada).backgroundColor : null,
+      fondoAbierta: abierta ? getComputedStyle(abierta).backgroundColor : null,
+    }
+  })
+  console.log(`  pintura  · cerrada ${pintura.fondoCerrada} · abierta ${pintura.fondoAbierta} · --bg ${pintura.esperado}`)
+  if (pintura.fondoCerrada !== pintura.esperado) {
+    fallos.push(`la celda cerrada lleva el atributo pero se pinta ${pintura.fondoCerrada}, no \`--bg\` (${pintura.esperado}): la banda está puesta y no se ve`)
+  }
+  if (pintura.fondoAbierta === pintura.esperado) {
+    fallos.push('la celda ABIERTA se pinta igual que la cerrada: la banda no distingue nada')
   }
 
   /* La columna del festivo, cerrada entera. */
