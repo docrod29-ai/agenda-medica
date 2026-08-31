@@ -43,10 +43,23 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 81 de 283, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 82 de 284, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
+El miembro más reciente es **REG-433** (31-ago-2026), y trae la variante que hace
+más difícil de ver a esta familia: **el dato sí llegaba, y el destinatario lo
+tiraba**. El DOI, la abreviatura ISO, el PMCID, el acceso abierto y la salvedad
+del diseño se calculaban, se serializaban, cruzaban la red y llegaban al
+navegador — y los `type` de las dos pantallas declaraban cinco campos cada uno.
+Un campo que el tipo no declara no existe para el render, y TypeScript no avisa
+de un campo de más en lo que recibe.
+
+El más caro de los cinco era la salvedad de REG-401 —«PubMed no lo declaró
+aleatorizado»—, que **tenía una prueba**: comprobaba que la ruta la mandara.
+Nadie comprobó que llegara a unos ojos. Es la regla «el dato tiene que LLEGAR»
+cazando un caso de sí misma.
+
+Antes que él, **REG-335** (27-ago-2026), que es la familia
 describiendo su propia forma. `PaqueteDeVisita` llegó con su modelo, su máquina
 de estados `DRAFT`/`RELEASED`, su compuerta en el servidor, la acción del portal
 que la usa, las reglas de Firestore, la matriz de acceso, el manifiesto del

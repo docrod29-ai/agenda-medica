@@ -130,6 +130,15 @@ export const HOSTS_DE_EVIDENCIA: readonly HostDeEvidencia[] = [
     que: 'El registro del artículo, para abrirlo.',
   },
   {
+    host: 'doi.org',
+    comoSeUsa: 'solo_se_enlaza',
+    baseLegal:
+      'El resolvedor de la DOI Foundation. Abre en el navegador del médico la '
+      + 'página que el editor haya designado para ese artículo, bajo los términos '
+      + 'de ese editor. No se le pide nada: se construye la URL y se pinta.',
+    que: 'El artículo en el sitio de su editorial, por su identificador estable.',
+  },
+  {
     host: 'www.accessdata.fda.gov',
     comoSeUsa: 'solo_se_enlaza',
     baseLegal: 'El buscador de la propia FDA. Se enlaza; no se le pide nada.',

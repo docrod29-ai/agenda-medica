@@ -16816,3 +16816,89 @@ existe para no repetir.
   autorización y que la pantalla avise del riesgo antes del botón.
 
 **Prueba.** `src/__tests__/un-numero-de-mensajes-muertos-no-deja-hacer-nada.test.ts` (13 casos).
+
+---
+
+## REG-433 — el DOI llegaba a la pantalla y se pintaba «título · revista año»
+
+**Eje.** WS-07 · identidad de revista. **Fecha.** 31-ago-2026.
+
+### Cómo se descubrió
+
+Leyendo el `queFalta` del censo **contra el árbol** antes de construir nada, que es
+lo que este bucle hace desde que seis entradas resultaron estar desfasadas.
+
+El censo decía «falta pintarlo: la pantalla todavía no enseña el DOI». Es cierto.
+Lo que no decía —y se vio al buscar por qué— es que **el dato ya estaba en el
+cliente**. No faltaba traerlo. `/api/expediente/evidencia` devuelve los artículos
+enteros, con su `doi` y su `revistaAbrev` dentro, y `/api/consultor-evidencia`
+compone un `articulosMin` con `doi`, `revistaAbrev`, `pmcid`, `accesoAbierto` y
+`tipoSalvedad`.
+
+Los dos tipos de pantalla declaraban cinco campos cada uno. Un campo que el tipo
+no declara no existe para el render: los datos cruzaban la red y se tiraban en la
+puerta.
+
+### Causa raíz
+
+`.claude/rules/el-dato-tiene-que-llegar.md`, literal: *«una prueba de contrato
+comprueba que el código **diga** lo acordado. No comprueba que el destinatario lo
+**acepte**»*. Un `interface` de pantalla es un destinatario que rechaza en
+silencio, y TypeScript no avisa de un campo de más en el objeto que recibe.
+
+### El caso caro apareció de rebote
+
+Grepeando `tipoSalvedad`: dos apariciones en la ruta, **una en un test que
+comprueba la ruta**, ninguna en una pantalla.
+
+Es la salvedad de REG-401 —«PubMed no lo declaró aleatorizado: puede ser de un
+solo brazo o de fase temprana»—, escrita precisamente porque «Ensayo clínico» a
+secas es correcto y aun así el lector da por hecha una aleatorización que nadie
+declaró. Su prueba comprobaba que la ruta la mandara. Nadie comprobó que llegara
+a unos ojos, y no llegaba. Es la segunda mitad de REG-401, cerrada aquí.
+
+### Las tres reglas nuevas
+
+- **Un DOI mal formado se enseña sin enlace.** Un `doi.org` con un DOI roto
+  *parece* verificable y no lleva a ninguna parte; el médico que lo pulsa aprende
+  que las referencias de este producto no van a ningún sitio. Se retira la
+  promesa de que resuelve, no el dato.
+- **Existir y poder reproducirse no son lo mismo.** «Sólo hay resumen» y «hay
+  texto completo en PMC y su licencia no deja copiarlo aquí» llevan al médico a
+  cosas distintas: en el segundo puede ir a leerlo. `licencia-pmc.ts` ya
+  distinguía las dos y la distinción se perdía antes de la pantalla.
+- **Los alias de revista se observan, no se inventan.** El censo pedía un catálogo
+  nombre ↔ abreviatura. Un catálogo NLM completo son decenas de miles de entradas
+  y escribirlo de memoria es la regla 1 aplicada a la bibliografía. No hace falta:
+  cada registro de PubMed trae **las dos formas a la vez**, y desde REG-398 las
+  dos se conservan. Lo que nunca se vio emparejado sale `undefined`, no `false` —
+  «Am J Med» y «Am J Med Sci» son dos revistas y un emparejamiento por parecido
+  las fundiría.
+
+### Un guardián que pasó al probarlo al revés
+
+De las cuatro mitades, tres cayeron al meterles el defecto. **La cuarta no.** La
+aserción era `/\{a\.tipoSalvedad\}/` y casaba con `title={a.tipoSalvedad}`, o sea
+con el tooltip del badge. Quitar la línea visible la dejaba verde.
+
+Un aviso que sólo existe al pasar el ratón no llega, y en un móvil no existe. Se
+exigió texto visible (`>{a.tipoSalvedad}</div>`) y entonces sí cayó.
+
+### Un host que llevaba dos años sin declarar
+
+Declarar `doi.org` en `de-donde-se-baja.ts` hizo falta porque el módulo nuevo vive
+en `src/lib/evidencia`, que es lo que el escáner mira. Las dos pantallas llevaban
+enlazando `doi.org` **desde REG-398 sin declararlo**, porque `CAMINO_DE_EVIDENCIA`
+no incluye `src/app/(dashboard)`. Ampliarlo arrastraría todos los hosts de todas
+las pantallas: queda declarado como límite del guardián, no arreglado de paso.
+
+### Qué NO cubre
+
+- **No valida el DOI contra Crossref.** Comprueba su **forma**; uno bien formado
+  puede no existir. Necesita red y declarar el host.
+- **No sabe si hay texto completo fuera de PMC.** Un artículo abierto en el sitio
+  de su editorial sale `no_consta`, que es «no se miró», nunca «no hay».
+- **No construye el catálogo NLM.**
+- **No es una prueba de navegador**: comprueba el tipo y el render en el fuente.
+
+**Prueba.** `src/__tests__/el-doi-llegaba-a-la-pantalla-y-no-se-pintaba.test.ts` (20 casos).

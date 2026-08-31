@@ -25,6 +25,7 @@ import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
 import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
+import { enlaceDoi } from '@/lib/evidencia/identidad-de-la-publicacion'
 import { auth, db } from '@/lib/firebase'
 import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
 import { getPatient, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
@@ -1160,7 +1161,14 @@ export default function ConsultaActivaPage() {
   // IA económica (Sonnet 5, sin separación de voces ni 2ª opinión). No bloquea.
   const [modoEco, setModoEco] = useState(false)
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
-  type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
+  /**
+   * REG-433 · el DOI y la abreviatura ISO YA venían en la respuesta —
+   * `/api/expediente/evidencia` devuelve los artículos enteros— y este tipo
+   * declaraba cinco campos, así que TypeScript los borraba y el render pintaba
+   * «título · revista año». La cola de «el dato tiene que LLEGAR»: no faltaba
+   * traerlo, faltaba no tirarlo en la puerta.
+   */
+  type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string; doi?: string; revistaAbrev?: string }
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
   const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string; noConsultadas?: string[]; sinRespaldo?: string[]; aplicabilidad?: { pmid: string; veredicto: string; frase: string; porQue: string }[] } | null>(null)
   const [analizandoEv, setAnalizandoEv] = useState(false)
@@ -6024,10 +6032,27 @@ export default function ConsultaActivaPage() {
                   const dudoso = ap?.veredicto === 'datos_insuficientes'
                   return (
                     <div key={a.pmid} style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-                      [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revista} {a.anio}
+                      [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revistaAbrev || a.revista} {a.anio}
                       {(fuera || dudoso) && (
                         <span title={ap?.porQue} style={{ color: fuera ? 'var(--amber)' : 'var(--text3)', fontWeight: fuera ? 600 : 400 }}>
                           {' '}· {ap?.frase}
+                        </span>
+                      )}
+                      {/**
+                        * El DOI (REG-433). Es lo que hace CITABLE una referencia: la URL de
+                        * PubMed sirve para mirar, el DOI sobrevive a que la revista cambie de
+                        * sitio y es lo que necesita un gestor bibliográfico.
+                        *
+                        * El enlace sólo se ofrece cuando la forma cuadra: un `doi.org` con un
+                        * DOI roto parece verificable y no lleva a ninguna parte. Si no cuadra
+                        * se enseña el identificador como texto — se retira la promesa de que
+                        * resuelve, no el dato.
+                        */}
+                      {a.doi && (
+                        <span style={{ marginLeft: 6 }}>
+                          {enlaceDoi(a.doi)
+                            ? <a href={enlaceDoi(a.doi) as string} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>DOI: {a.doi}</a>
+                            : <span title="El DOI que dio la fuente no tiene la forma 10.xxxx/yyy, así que no se enlaza.">DOI: {a.doi}</span>}
                         </span>
                       )}
                     </div>
