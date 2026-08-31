@@ -112,7 +112,9 @@ export async function POST(req: NextRequest) {
     const exp = Math.floor((fechaHora + 2 * 60 * 60_000) / 1000)
 
     // Crear sala en Daily
+    // REG-346 — crear una sala es un POST corto; si tarda, no va a llegar.
     const res = await fetch('https://api.daily.co/v1/rooms', {
+      signal: AbortSignal.timeout(15_000),
       method: 'POST',
       headers: { Authorization: `Bearer ${DAILY_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({

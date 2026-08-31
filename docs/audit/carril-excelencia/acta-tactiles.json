@@ -1,0 +1,44 @@
+[
+  {
+    "ruta": "/",
+    "pequenos": [
+      {
+        "etiqueta": "a«Operación»",
+        "w": 59,
+        "h": 20,
+        "hEfectivo": 42
+      },
+      {
+        "etiqueta": "a«Soporte»",
+        "w": 46,
+        "h": 20,
+        "hEfectivo": 40
+      },
+      {
+        "etiqueta": "button«Tema: oscuro (clic: claro)»",
+        "w": 44,
+        "h": 44,
+        "hEfectivo": 43
+      }
+    ]
+  },
+  {
+    "ruta": "/reservar/consultorio-demo-v10",
+    "pequenos": [
+      {
+        "etiqueta": "button«Tema: oscuro (clic: claro)»",
+        "w": 44,
+        "h": 44,
+        "hEfectivo": 43
+      }
+    ]
+  },
+  {
+    "ruta": "/login",
+    "pequenos": []
+  },
+  {
+    "ruta": "/registro",
+    "pequenos": []
+  }
+]

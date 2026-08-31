@@ -3,7 +3,7 @@
  * Modal de cobro rápido — se abre desde la lista de citas o desde finanzas.
  * Pre-llena datos cuando se invoca desde una cita específica.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   registrarCobro, exentarCobro, cobrosDeCita, METODO_LABEL, CONCEPTO_LABEL,
   type MetodoPago, type ConceptoCobro,
@@ -16,6 +16,7 @@ import { logAudit } from '@/lib/expediente/audit-log'
 import { DollarSign, HeartHandshake } from 'lucide-react'
 import { Modal, Button } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
+import { claveDeIntento } from '@/lib/idempotencia'
 
 export interface CobrarModalProps {
   clinicId: string
@@ -76,6 +77,13 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
   const [referencia, setReferencia] = useState('')
   const [notas, setNotas] = useState('')
   const [guardando, setGuardando] = useState(false)
+  /**
+   * El nombre del intento de cobro en curso. En una `ref` y no en estado porque
+   * tiene que ser legible SÍNCRONAMENTE dentro del mismo `guardar()`: un segundo
+   * clic antes del re-render leería el estado viejo, que es justo el caso que
+   * esto existe para cubrir. `null` = no hay intento vivo.
+   */
+  const claveIntentoRef = useRef<string | null>(null)
   // Modo cortesía (no cobrar): decisión deliberada y auditada.
   const [modoCortesia, setModoCortesia] = useState(false)
   const [motivoCortesia, setMotivoCortesia] = useState('')
@@ -150,6 +158,20 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       toast('Elige de qué médico es este cobro', 'error'); return
     }
     setGuardando(true)
+    /**
+     * GOLDEN PATH 9 — LA CLAVE DEL INTENTO SOBREVIVE AL REINTENTO.
+     *
+     * Se acuña al enviar y NO se tira si algo falla: el segundo envío tras un
+     * timeout aparente —o tras el toast de error de un fallo que en realidad
+     * había commiteado— repite la misma clave, así que converge al mismo cobro
+     * en vez de registrar otro. Se suelta sólo cuando el cobro quedó guardado:
+     * a partir de ahí, volver a cobrar es una intención NUEVA (un segundo abono
+     * legítimo, por ejemplo) y le toca una clave nueva.
+     *
+     * `guardando` sólo apaga el botón, y sólo en esta pestaña: no defiende del
+     * reintento, ni del médico cobrando en otra pantalla, ni del refresh.
+     */
+    claveIntentoRef.current ??= claveDeIntento()
     try {
       const id = await registrarCobro(clinicId, {
         monto: n,
@@ -166,7 +188,9 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
         referenciaExterna: referencia.trim() || undefined,
         notas: notas.trim() || undefined,
         creadoPor,
-      })
+      }, { claveIdempotencia: claveIntentoRef.current })
+      // El cobro ya está registrado: lo que venga después es otra intención.
+      claveIntentoRef.current = null
       // Marca la cita con el cobro para EVITAR DOBLE COBRO (el botón se oculta si ya tiene cobroId).
       let marcadaLaCita = true
       if (prefill?.citaId) {
@@ -230,7 +254,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       open
       onClose={onClose}
       title={modoCortesia
-        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><HeartHandshake size={18} color="#a855f7" /> No cobrar (cortesía)</span>
+        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><HeartHandshake size={18} color="var(--purple)" /> No cobrar (cortesía)</span>
         : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><DollarSign size={18} color="var(--teal)" /> Registrar cobro</span>}
       footer={modoCortesia ? (
         <>
@@ -422,8 +446,8 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
               onClick={() => setModoCortesia(true)}
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.35)',
-                color: '#a855f7', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600,
+                background: 'color-mix(in srgb, var(--purple) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--purple) 35%, transparent)',
+                color: 'var(--purple)', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', marginTop: 2,
               }}
             >

@@ -2,9 +2,10 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
-import { getPatients } from '@/lib/firestore'
+import { listarPacientesPagina, buscarPacientes } from '@/lib/firestore'
 import { normalizarNombre } from '@/lib/csv-pacientes'
 import type { Patient } from '@/types'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 import { Search, User, CornerDownLeft, CalendarPlus, FlaskConical, Calculator, CalendarDays, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
 
 /** Acciones rápidas del centro de comandos (navegación teclado-primero). */
@@ -29,8 +30,22 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [pacientes, setPacientes] = useState<Patient[]>([])
+  /**
+   * El resultado va ATADO al texto que lo produjo. Guardar sólo la lista
+   * obligaría a limpiarla de forma síncrona al cambiar el texto —que encadena
+   * renders— y, peor, dejaría enseñando un instante los resultados de la
+   * búsqueda anterior como si fueran de ésta.
+   */
+  const [busqueda, setBusqueda] = useState<{ q: string; pacientes: Patient[]; truncada: boolean } | null>(null)
   const [activo, setActivo] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const cajaRef = useRef<HTMLDivElement>(null)
+  /**
+   * Estable, para que el efecto del teclado no se remonte en cada pintado.
+   * El Escape de la paleta ya lo trae su atajo global de arriba; éste es el
+   * mismo cierre, dicho una vez, y el que recibe el gancho del diálogo.
+   */
+  const cerrar = useCallback(() => setOpen(false), [])
 
   // Atajo global ⌘K / Ctrl+K para abrir; Escape para cerrar. También se abre por
   // un evento (`nexus:open-palette`) que dispara el botón visible del sidebar —
@@ -54,14 +69,44 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
     }
   }, [enabled])
 
-  // Carga perezosa del directorio al abrir (getPatients está cacheado).
+  /**
+   * A3 — LA PALETA YA NO SE BAJA EL CONSULTORIO PARA ENSEÑAR SEIS.
+   *
+   * Antes pedía la lista entera al abrirse y filtraba en memoria. Está montada
+   * en el layout, así que era una descarga del directorio completo desde
+   * CUALQUIER pantalla, para pintar como mucho seis filas.
+   *
+   * Ahora: al abrir, una PÁGINA corta para las sugerencias en frío; al teclear,
+   * la búsqueda INDEXADA. El número de lecturas depende de lo que se enseña, no
+   * de cuántos pacientes tenga el consultorio.
+   *
+   * Y esto importa más de lo que parece desde la escala: con la lista acotada,
+   * un filtro en memoria buscaría dentro de un recorte y diría «no hay» de un
+   * paciente que existe. Un buscador que se calla eso es peor que uno lento.
+   */
   useEffect(() => {
     if (open && clinicId && pacientes.length === 0) {
-      getPatients(clinicId).then(setPacientes).catch(() => {})
+      listarPacientesPagina(clinicId, { limite: 6 })
+        .then(p => setPacientes(p.pacientes))
+        .catch(() => {})
     }
     if (open) { setActivo(0); setTimeout(() => inputRef.current?.focus(), 30) }
     else setQuery('')
   }, [open, clinicId, pacientes.length])
+
+  /** Búsqueda indexada con rebote: cada tecleo no es una consulta. */
+  useEffect(() => {
+    if (!open || !clinicId) return
+    const q = query.trim()
+    if (q.length < 2) return
+    let vivo = true
+    const t = setTimeout(() => {
+      buscarPacientes(clinicId, q, { ventana: 20 })
+        .then(r => { if (vivo) setBusqueda({ q, pacientes: r.pacientes, truncada: r.truncada }) })
+        .catch(() => { /* sin red, quedan las sugerencias en frío */ })
+    }, 180)
+    return () => { vivo = false; clearTimeout(t) }
+  }, [open, clinicId, query])
 
   // Lista combinada: acciones rápidas + pacientes, filtradas por el texto, con un
   // índice plano para navegar con teclado sobre ambas.
@@ -72,15 +117,21 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
     const acciones: Entrada[] = ACCIONES
       .filter(a => q.length < 1 || normalizarNombre(a.label).includes(q))
       .map(a => ({ kind: 'accion', ...a }))
-    const pac = (q.length < 1 && tel.length < 3
-      ? pacientes.slice(0, 6)
-      : pacientes.filter(p =>
+    /**
+     * Con menos de dos caracteres no hay consulta indexada todavía: se enseñan
+     * las sugerencias en frío, y sobre ellas sí vale filtrar en memoria porque
+     * son seis y son las que se tienen delante. A partir de dos, manda el
+     * servidor — filtrar en memoria buscaría dentro de un recorte.
+     */
+    const deServidor = busqueda && busqueda.q === query.trim() ? busqueda.pacientes : null
+    const base = deServidor ?? (q.length >= 1 || tel.length >= 3
+      ? pacientes.filter(p =>
           (q.length >= 1 && normalizarNombre(p.nombre).includes(q)) ||
-          (tel.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(tel)),
-        ).slice(0, 6)
-    ).map<Entrada>(p => ({ kind: 'paciente', p }))
+          (tel.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(tel)))
+      : pacientes)
+    const pac = base.slice(0, 6).map<Entrada>(p => ({ kind: 'paciente', p }))
     return [...acciones, ...pac]
-  }, [query, pacientes])
+  }, [query, pacientes, busqueda])
 
   const ejecutar = useCallback((e: Entrada) => {
     setOpen(false)
@@ -93,6 +144,20 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
     else if (ev.key === 'Enter' && entradas[activo]) { ev.preventDefault(); ejecutar(entradas[activo]) }
   }
 
+  /**
+   * LA PALETA ES TECLADO-PRIMERO Y ERA LA ÚNICA SIN TRAMPA DE FOCO.
+   *
+   * Tenía Escape y enfocaba su campo, que es lo que se nota al usarla con
+   * ratón. Lo que faltaba sólo se nota con el teclado: **tabular desde el campo
+   * de búsqueda se iba a la página de detrás**, con la paleta abierta encima. En
+   * el centro de comandos —lo único de este producto que existe para no tocar el
+   * ratón— eso es el defecto más caro de todos.
+   *
+   * `enfocaAlAbrir: false`: el foco inicial ya lo pone el efecto de arriba,
+   * sobre el campo de búsqueda, que es donde debe ir. Pelearse por él parpadea.
+   */
+  useDialogoDeTeclado(open, cajaRef, cerrar, { enfocaAlAbrir: false })
+
   if (!enabled || !open) return null
 
   return (
@@ -104,6 +169,10 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
       }}
     >
       <div
+        ref={cajaRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Centro de comandos"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 560, background: 'var(--s1)', border: '1px solid var(--border)',
@@ -118,12 +187,26 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
             onChange={e => { setQuery(e.target.value); setActivo(0) }}
             onKeyDown={onKeyNav}
             placeholder="Buscar paciente o acción (nueva cita, corte de caja…)"
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text)' }}
+            style={{ flex: 1, background: 'none', border: 'none', fontSize: 15, color: 'var(--text)' }}
           />
           <span style={{ fontSize: 11, color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>Esc</span>
         </div>
 
         <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+          {/**
+            * A3 — «no encontré» y «no miré entera» no son lo mismo.
+            *
+            * La búsqueda lee una VENTANA acotada. Cuando esa ventana se llena,
+            * puede haber coincidencias fuera, y callarlo enseñaría «sin
+            * coincidencias» de un paciente que existe. Es la regla 4 de
+            * seguridad clínica dicha en un buscador: la ausencia de un
+            * resultado no es prueba de que el paciente no esté.
+            */}
+          {busqueda && busqueda.q === query.trim() && busqueda.truncada && (
+            <div style={{ padding: '8px 16px', fontSize: 12, color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>
+              Hay más coincidencias de las que caben aquí. Afina la búsqueda.
+            </div>
+          )}
           {entradas.length === 0 ? (
             <div style={{ padding: '22px 16px', fontSize: 13.5, color: 'var(--text3)', textAlign: 'center' }}>
               {pacientes.length === 0 ? 'Cargando…' : 'Sin coincidencias.'}

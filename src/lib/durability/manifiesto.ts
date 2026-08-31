@@ -36,7 +36,7 @@
  *
  * Módulo PURO.
  */
-import { EXCLUIDAS, indiceRespaldo } from '@/lib/clinica/respaldo'
+import { COLECCIONES_RAIZ, EXCLUIDAS, RAIZ_EXCLUIDAS, indiceRespaldo } from '@/lib/clinica/respaldo'
 
 /**
  * Versión del contrato del archivo.
@@ -61,6 +61,19 @@ export interface CabeceraRespaldo {
   generadoEn: string
   indice: Record<string, string>
   excluidas: Record<string, string>
+  /**
+   * Las colecciones que viven FUERA de `clinics/{id}` y aun así son del
+   * consultorio (`clinic_members` la primera), y las que se dejan fuera a
+   * propósito con su razón.
+   *
+   * Se declaran en la cabecera por lo mismo que el resto del índice: un
+   * respaldo del que no se sabe qué falta no sirve para decidir si alcanza.
+   * Aparecieron en el árbol después de que este manifiesto se escribiera, y sin
+   * declararlas el archivo v2 describiría un consultorio más pequeño que el que
+   * de verdad se llevó.
+   */
+  raiz: string[]
+  raizExcluidas: Record<string, string>
   /**
    * Lo que este archivo NO contiene aunque exista en el consultorio, con su
    * razón. Sin esto, el que restaura cree que un metadato de foto restaurado es
@@ -208,6 +221,8 @@ export function cabeceraV2(clinicId: string, generadoEn: string, schemaVersion: 
     generadoEn,
     indice: indiceRespaldo(),
     excluidas: EXCLUIDAS,
+    raiz: COLECCIONES_RAIZ.map(c => c.ruta),
+    raizExcluidas: RAIZ_EXCLUIDAS,
     fueraDelArchivo: { ...FUERA_DEL_ARCHIVO },
   }
 }

@@ -21,15 +21,21 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
       <div style={{ width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(61,90,254,0.15)', display: 'grid', placeItems: 'center', color: 'var(--nexus)' }}>
-            <Stethoscope size={18} />
+            <Stethoscope size={18} aria-hidden="true" />
           </div>
-          <strong style={{ fontSize: 15 }}>Ausculta · Verificación de documento</strong>
+          {/*
+            A11Y-GATE-001: esto era un <strong>. Se ve igual y no es lo mismo —
+            un <strong> no aparece en la lista de encabezados, así que esta
+            pantalla no tenía por dónde entrar con un lector de pantalla: había
+            que recorrerla desde el principio, párrafo a párrafo.
+          */}
+          <h1 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Ausculta · Verificación de documento</h1>
         </div>
 
         {!r ? (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--red)', marginBottom: 10 }}>
-              <ShieldX size={22} /> <strong style={{ fontSize: 16 }}>No verificable</strong>
+              <ShieldX size={22} aria-hidden="true" /> <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>No verificable</h2>
             </div>
             <p style={{ fontSize: 14, opacity: 0.8, lineHeight: 1.55 }}>
               Este código no corresponde a un documento válido de Ausculta, o fue alterado o expiró.
@@ -39,7 +45,7 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
         ) : (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--green)', marginBottom: 14 }}>
-              <ShieldCheck size={22} /> <strong style={{ fontSize: 16 }}>Integridad verificada</strong>
+              <ShieldCheck size={22} aria-hidden="true" /> <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Integridad verificada</h2>
             </div>
             <Fila k="Documento" v="Generado por Ausculta" />
             <Fila k="Folio" v={r.folio} />

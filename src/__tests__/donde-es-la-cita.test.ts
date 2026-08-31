@@ -13,8 +13,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const BASE = 'https://agenda-medica-one.vercel.app'
-const PRESENCIAL = { tipo: 'seguimiento', direccion: 'Av. Universidad 100', googleMapsUrl: 'https://maps.example/x' }
-const VIDEO = { tipo: 'teleconsulta', citaId: 'cita-1', clinicId: 'clin-1', direccion: 'Av. Universidad 100', baseUrl: BASE }
+/**
+ * `tokenPaciente: ''` va EXPLÍCITO desde que el campo es obligatorio (REG-323).
+ * Ésa es toda la gracia del cambio: quien no tiene token tiene que escribirlo, y
+ * eso es una decisión, no un olvido. Los casos que sí lo llevan lo añaden encima.
+ */
+const PRESENCIAL = { tipo: 'seguimiento', direccion: 'Av. Universidad 100', googleMapsUrl: 'https://maps.example/x', tokenPaciente: '' }
+const VIDEO = { tipo: 'teleconsulta', citaId: 'cita-1', clinicId: 'clin-1', direccion: 'Av. Universidad 100', baseUrl: BASE, tokenPaciente: '' }
 
 describe('dondeEsLaCita', () => {
   it('una cita presencial sigue llevando dirección y mapa', () => {
@@ -74,7 +79,7 @@ describe('dondeEsLaCita', () => {
   })
 
   it('sin dirección capturada no se inventa una línea vacía', () => {
-    expect(dondeEsLaCita({ tipo: 'primera-vez' }).lineas).toEqual([])
+    expect(dondeEsLaCita({ tipo: 'primera-vez', tokenPaciente: '' }).lineas).toEqual([])
   })
 })
 

@@ -1,0 +1,140 @@
+[
+  {
+    "ancho": 390,
+    "pasos": [
+      {
+        "paso": "1-login",
+        "ok": true,
+        "detalle": "/dashboard"
+      },
+      {
+        "paso": "2-agenda",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Hoy · Sábado 29 de agosto de 2026 · Nueva cita · 5 citas · Estado… · Pendientes · Confirmadas · En sala · En consulta · Finalizadas · Canceladas · No asistió · 09:00 · 30 min"
+      },
+      {
+        "paso": "3-cerrar-tour",
+        "ok": true,
+        "detalle": "tour cerrado"
+      },
+      {
+        "paso": "4-abrir-alta",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos del paciente · Nombre completo * · Teléfono (WhatsApp) · Tipo de consulta · Primera vez · 45 min · Seguimi"
+      },
+      {
+        "paso": "5-datos-paciente",
+        "ok": true,
+        "detalle": "nombre + teléfono"
+      },
+      {
+        "paso": "6-mes-adelante",
+        "ok": true,
+        "detalle": "14 saltos · mes visible: Agosto de 2026 (antes 0 días)"
+      },
+      {
+        "paso": "7-elegir-dia-y-hora",
+        "ok": true,
+        "detalle": "día Lunes, 31 de agosto · hora 11:15"
+      },
+      {
+        "paso": "8-agendar",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos del paciente · Nombre completo * · Teléfono (WhatsApp) · Tipo de consulta · Primera vez · 45 min · Seguimiento · 30 min · Urgente · 30 min · Revisión de e"
+      }
+    ],
+    "consola": []
+  },
+  {
+    "ancho": 768,
+    "pasos": [
+      {
+        "paso": "1-login",
+        "ok": true,
+        "detalle": "/dashboard"
+      },
+      {
+        "paso": "2-agenda",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Hoy · Sábado 29 de agosto de 2026 · Nueva cita · 5 citas · Estado… · Pendientes · Confirmadas · En sala · En consulta · Finalizadas · Canceladas · No asistió · 09:00 · 30 min"
+      },
+      {
+        "paso": "3-cerrar-tour",
+        "ok": true,
+        "detalle": "tour cerrado"
+      },
+      {
+        "paso": "4-abrir-alta",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos del paciente · Nombre completo * · Teléfono (WhatsApp) · Tipo de consulta · Primera vez · 45 min · Seguimi"
+      },
+      {
+        "paso": "5-datos-paciente",
+        "ok": true,
+        "detalle": "nombre + teléfono"
+      },
+      {
+        "paso": "6-mes-adelante",
+        "ok": true,
+        "detalle": "14 saltos · mes visible: Agosto de 2026 (antes 0 días)"
+      },
+      {
+        "paso": "7-elegir-dia-y-hora",
+        "ok": true,
+        "detalle": "día Lunes, 31 de agosto · hora 12:00"
+      },
+      {
+        "paso": "8-agendar",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos del paciente · Nombre completo * · Teléfono (WhatsApp) · Tipo de consulta · Primera vez · 45 min · Seguimiento · 30 min · Urgente · 30 min · Revisión de e"
+      }
+    ],
+    "consola": []
+  },
+  {
+    "ancho": 1440,
+    "pasos": [
+      {
+        "paso": "1-login",
+        "ok": true,
+        "detalle": "/dashboard"
+      },
+      {
+        "paso": "2-agenda",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Ximena Alcántara Robledo · Buscar… · ⌘K · Hoy · Paciente · Encuentro · Seguimiento · OPERACIONES · Operaciones · Ayuda · Cerrar sesión · demo@nexusmed.test · Hoy · Sábado 29 "
+      },
+      {
+        "paso": "3-cerrar-tour",
+        "ok": true,
+        "detalle": "tour cerrado"
+      },
+      {
+        "paso": "4-abrir-alta",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Ximena Alcántara Robledo · Buscar… · ⌘K · Hoy · Paciente · Encuentro · Seguimiento · OPERACIONES · Operaciones · Ayuda · Cerrar sesión · demo@nexusmed.test · Portal del Asi"
+      },
+      {
+        "paso": "5-datos-paciente",
+        "ok": true,
+        "detalle": "nombre + teléfono"
+      },
+      {
+        "paso": "6-mes-adelante",
+        "ok": true,
+        "detalle": "14 saltos · mes visible: Agosto de 2026 (antes 0 días)"
+      },
+      {
+        "paso": "7-elegir-dia-y-hora",
+        "ok": true,
+        "detalle": "día Lunes, 31 de agosto · hora 12:45"
+      },
+      {
+        "paso": "8-agendar",
+        "ok": true,
+        "detalle": "Consultorio de Medicina Interna · Ximena Alcántara Robledo · Buscar… · ⌘K · Hoy · Paciente · Encuentro · Seguimiento · OPERACIONES · Operaciones · Ayuda · Cerrar sesión · demo@nexusmed.test · Portal del Asistente ·  · Agenda citas rápidamente ·  · Datos "
+      }
+    ],
+    "consola": []
+  }
+]

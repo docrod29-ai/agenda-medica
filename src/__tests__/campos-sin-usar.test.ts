@@ -44,7 +44,6 @@ const CAMPOS_ACEPTADOS: Record<string, string> = {
   // El modelo se escribió entero en su iteración; las fases que lo consumen
   // (icu-003 en adelante) no han llegado. Es trabajo por fases DECLARADO, no
   // olvidado: la bitácora del loop de UCI lo dice y el Dr. lo pidió así.
-  'ICUObservation.encounterId': 'Modelo de observación de UCI (icu-002). La fase que lo consume, icu-003 VOICE_CAPTURE, no ha llegado.',
   'ICUObservation.conceptCode': 'Del mismo bloque icu-002: el código estándar de la observación.',
   'ICUObservation.normalizedUnit': 'Del mismo bloque icu-002: la unidad normalizada de la observación.',
   'ICUObservation.effectiveAt': 'Del mismo bloque icu-002: cuándo fue cierta la observación, que no es cuándo se dictó.',
@@ -69,8 +68,6 @@ const CAMPOS_ACEPTADOS: Record<string, string> = {
   // Son contratos: se escribieron enteros y sus pruebas los ejercitan campo por
   // campo. Eso NO los convierte en usados —una prueba no es un consumidor—,
   // pero tampoco son un descuido. Van aquí para que se vea la diferencia.
-  'Claim.apoyos': 'Modelo de evidencia (E2): los pasajes que sostienen una afirmación. El Consultor todavía no arma sus respuestas con esta estructura.',
-  'Passage.sourceId': 'Del mismo modelo de evidencia: de qué fuente salió el pasaje, para poder comprobar la cita.',
   'Efecto.citaLiteral': 'Del mismo modelo: la cifra TAL CUAL aparece en el texto, que es lo que permite rechazar una cifra no literal.',
   'Efecto.ic95': 'Del mismo modelo: el intervalo de confianza del efecto.',
   'ICUObservation.normalizedValue': 'Del bloque icu-002: el valor normalizado, lo único que un motor puede usar para calcular.',

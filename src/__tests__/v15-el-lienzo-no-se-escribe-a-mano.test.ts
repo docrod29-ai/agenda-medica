@@ -132,8 +132,22 @@ describe('el lienzo de página se declara una vez', () => {
      * buscador de la de una página. Quedan contados a propósito; que sigan
      * ahí no es deuda pendiente, y borrarlos rompería el ancho de una caja.
      */
-    for (const p of ['src/app/(dashboard)/cumplimiento/page.tsx', 'src/app/(dashboard)/finanzas/page.tsx', 'src/app/(dashboard)/pacientes/page.tsx']) {
+    for (const p of ['src/app/(dashboard)/cumplimiento/page.tsx', 'src/app/(dashboard)/pacientes/page.tsx']) {
       expect(leer(p), `${p} perdió la medida de su bloque`).toMatch(/maxWidth:\s*420/)
     }
+
+    /**
+     * `/finanzas` SALIÓ de la lista, y en la buena dirección.
+     *
+     * Su `maxWidth: 420` era el ancho del diálogo de anular un cobro, escrito a
+     * mano junto al resto del diálogo. Al pasarlo al `ui/Modal` canónico —que
+     * es lo que este guardián pide para los lienzos, aplicado a una caja— la
+     * medida dejó de estar en línea y pasó a declararla el sistema. El
+     * trinquete lo confirma: `lienzosAMano` 43 → 42 y `radiosFueraDeEscala`
+     * 618 → 617 en la misma corrida.
+     *
+     * No es que se borrara un número: es que dejó de escribirse a mano.
+     */
+    expect(leer('src/app/(dashboard)/finanzas/page.tsx'), 'el diálogo volvió a escribirse a mano').toMatch(/<Modal\s/)
   })
 })

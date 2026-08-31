@@ -65,6 +65,8 @@ const inicioFila = PAGINA.indexOf('function AppointmentRow')
 const inicioHero = PAGINA.indexOf('function ProxHero')
 const finHero = PAGINA.indexOf('function DashboardFallback')
 const FILA = PAGINA.slice(inicioFila, inicioHero)
+/** La hoja donde vive la atenuación por token de la fila pasada. */
+const CSS_HOY = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
 const HERO = PAGINA.slice(inicioHero, finHero === -1 ? undefined : finHero)
 
 describe('los segmentos existen donde el test los espera', () => {
@@ -140,7 +142,31 @@ describe('freeze funcional — la rebanada es tipográfica, no de conducta', () 
     expect(FILA).toMatch(/<StatusBadge status=\{appt\.estado\}/)
   })
 
-  it('lo pasado se sigue atenuando', () => {
-    expect(FILA).toMatch(/opacity: isPast \? 0\.6 : 1/)
+  /**
+   * ESTE CASO CONGELABA EL CÓMO, Y EL CÓMO ESTABA MAL.
+   *
+   * Pedía literalmente `opacity: isPast ? 0.6 : 1`. La intención era buena —lo
+   * pasado se atenúa— pero el medio no: bajar la opacidad de un texto que ya
+   * usa `--text3` a 12,5 px lo tira por debajo de 4.5:1. Medido con axe el
+   * 30-ago a 390px en `/dashboard`: **2.85 : 1** en la duración y en el motivo
+   * de cada cita ya atendida.
+   *
+   * Y `globals.css` ya prohibía justo eso, por escrito, sobre `.riel-entrada`:
+   * «lo pasado y lo cerrado se ATENÚAN POR TOKEN, no por opacity». La fila de
+   * al lado no lo seguía, y esta prueba lo mantenía en su sitio.
+   *
+   * Así que se congela la INTENCIÓN, no el literal: lo pasado se distingue, y
+   * se distingue sin tocar la opacidad del texto pequeño.
+   */
+  it('lo pasado se sigue atenuando — y por token, no por opacidad', () => {
+    // Sigue habiendo un estado «pasado» en la fila, y sigue pintándose.
+    expect(FILA).toContain('data-pasada={isPast')
+    // La identidad Y la hora bajan de tono. Se piden las dos por nombre: con
+    // un patrón laxo, borrar una de las dos seguía pasando la prueba.
+    expect(CSS_HOY).toMatch(/\.cita-fila\[data-pasada\] \.nx-ident \{[^}]*var\(--text2\)/)
+    expect(CSS_HOY).toMatch(/\.cita-fila\[data-pasada\] \.riel-hora \{[^}]*var\(--text2\)/)
+
+    // Y NO vuelve por la vía que axe midió por debajo de AA.
+    expect(FILA, 'la opacidad sobre --text3 a 12,5px da 2.85:1').not.toMatch(/opacity: isPast/)
   })
 })

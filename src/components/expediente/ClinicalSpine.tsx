@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
+import { destinoDelRielHorizontal } from '@/lib/ui/traer-a-la-vista'
 
 /**
  * CLINICAL SPINE — V15-PATIENT-WORKSPACE-001 (§7: "a longitudinal structural
@@ -70,18 +71,55 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
   }, [items.map(it => it.id).join('|')])
 
   /**
-   * EL RIEL SE MUEVE CON LA LECTURA.
+   * EL RIEL SE MUEVE CON LA LECTURA — Y **SÓLO** EL RIEL.
    *
    * Si el médico baja por el expediente y la categoría activa está fuera de la
    * parte visible del riel, el indicador de posición no indica nada: señala un
-   * sitio que no se ve. Se trae el activo a la vista dentro del propio riel —
-   * `nearest`, para no arrastrar la página.
+   * sitio que no se ve. Así que el activo se trae a la vista dentro del riel.
+   *
+   * ── LA PANTALLA QUE BOTABA (REG-337) ───────────────────────────────────────
+   *
+   * Esto se hacía con `scrollIntoView({ block: 'nearest', inline: 'nearest' })`
+   * y el comentario decía «`nearest`, para no arrastrar la página». Es falso:
+   * `nearest` elige la ALINEACIÓN, no a quién se desplaza. `scrollIntoView`
+   * recorre **todos** los ancestros desplazables —el documento incluido— y
+   * mueve cada uno.
+   *
+   * Con el ancla del paciente en `position: sticky` y este riel justo debajo en
+   * flujo normal, al bajar ~100px el riel sale del viewport. El observador de
+   * arriba marca otra sección activa → este efecto pide traer a la vista un
+   * botón que ya no se ve → el navegador **sube la página** para enseñarlo → al
+   * subir vuelve a cambiar la sección visible → otro salto. La pantalla botaba
+   * mientras se bajaba, en teléfono y en escritorio: el defecto estaba en la
+   * API del DOM, no en el dispositivo.
+   *
+   * El arreglo es desplazar el scrollport por su nombre. `riel.scrollTo(...)`
+   * no puede tocar a un ancestro aunque quiera. La aritmética vive aparte
+   * (`lib/ui/traer-a-la-vista.ts`) para poder probarla de verdad, y devuelve
+   * `null` cuando el activo ya se ve — un desplazamiento de 0px, animado,
+   * se pelea con el dedo del médico igual que uno de 300px.
    */
   const rielRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
-    if (!activo || !rielRef.current) return
-    const el = rielRef.current.querySelector<HTMLElement>(`[data-spine-target="spine-${activo}"]`)
-    el?.scrollIntoView({ behavior: comportamientoScroll(), block: 'nearest', inline: 'nearest' })
+    const riel = rielRef.current
+    if (!activo || !riel) return
+    const el = riel.querySelector<HTMLElement>(`[data-spine-target="spine-${activo}"]`)
+    if (!el) return
+    const puerto = riel.getBoundingClientRect()
+    const caja = el.getBoundingClientRect()
+    const destino = destinoDelRielHorizontal({
+      scrollLeft: riel.scrollLeft,
+      puertoIzquierda: puerto.left,
+      puertoDerecha: puerto.right,
+      objetivoIzquierda: caja.left,
+      objetivoDerecha: caja.right,
+      // El mismo aire que `scrollPaddingLeft` de abajo: el corte cae entre
+      // ítems, no a media palabra (RT-15).
+      margen: 2,
+      maximo: riel.scrollWidth - riel.clientWidth,
+    })
+    if (destino === null) return
+    riel.scrollTo({ left: destino, behavior: comportamientoScroll() })
   }, [activo])
 
   if (items.length === 0) return null
@@ -136,6 +174,7 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
             onClick={() => irA(it.id)}
             aria-current={seleccionado ? 'true' : undefined}
             data-spine-target={`spine-${it.id}`}
+            className="nx-spine-item"
             style={{
               position: 'relative',
               display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
@@ -145,7 +184,9 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
               minHeight: 44, padding: '10px 12px',
               fontSize: 14, whiteSpace: 'nowrap', cursor: 'pointer',
               scrollSnapAlign: 'start',
-              border: 'none', background: 'none', fontFamily: 'inherit',
+              /* El fondo lo pone la hoja (`nx-spine-item`): escrito aquí le
+                 ganaba al `:hover` y el riel se quedaba mudo al puntero. */
+              border: 'none', fontFamily: 'inherit',
               /* Selección = cobalto (VISUAL_DNA §3), pero dicho como lo dice la
                  navegación de este producto: barra de acento y texto que sube
                  de peso — no un relleno que compite con los datos de al lado. */

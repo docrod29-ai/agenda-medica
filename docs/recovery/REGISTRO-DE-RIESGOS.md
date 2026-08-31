@@ -154,11 +154,45 @@
 | **safeToFixHere** | sí |
 | **ownerSlice** | #312 |
 | **proposedTest** | `respaldo-ida-y-vuelta` — «sólo a consultorio VACÍO», ahora exigiendo las cinco señales. |
-| **residuo** | Con `sobrescribir=1` sigue siendo posible. Ver R-09. |
+| **residuo** | Con `sobrescribir=1` sigue siendo posible restaurar encima de un consultorio con datos PROPIOS. Lo que ya no puede es deshacer una supresión ARCO: ver R-09, cerrado. |
 
 ---
 
-## R-09 · `sobrescribir=1` puede deshacer una supresión ARCO — **P1 · ABIERTO**
+## R-09 · `sobrescribir=1` puede deshacer una supresión ARCO — **P1 · CERRADO (31-ago-2026)**
+
+> **Cerrado, y el rodeo importa más que el cierre.**
+>
+> Esta ficha daba el riesgo por bloqueado a la espera de #306: decía que hacía
+> falta leer `arco_requests` del destino y decidir un criterio de coincidencia de
+> identidad de paciente —«¿por `patientId`? ¿por CURP? ¿por nombre?»—, que es una
+> decisión de producto que no tocaba a esta rebanada.
+>
+> **La dependencia no existía.** La supresión ya deja su propio asiento en la
+> bitácora del destino (`audit_log`, `evento: 'paciente_borrado'` con
+> `meta.accion: 'supresion_arco'`), y ese asiento **nombra al paciente**: es una
+> afirmación fechada de que el derecho se ejerció, no una inferencia sobre quién
+> es quién. No hay criterio de coincidencia que decidir porque no hay que
+> coincidir nada.
+>
+> Se deja escrito porque es el patrón caro: **un riesgo declarado bloqueado por
+> una dependencia que nadie comprobó se queda abierto indefinidamente**, y el
+> registro de riesgos deja de ser una lista de trabajo para ser una lista de
+> excusas. Éste llevaba ocho días así.
+>
+> | | |
+> |---|---|
+> | **Dónde corre** | `src/lib/durability/supresion-arco.ts`, CANDADO 0 de `api/clinic/importar` |
+> | **Cuándo** | En la ADMISIÓN de cada línea, antes de comparar nada con el destino |
+> | **`sobrescribir=1`** | **No lo salta.** Ese permiso es para pisar datos propios del consultorio, no para deshacer el derecho de un tercero |
+> | **En modo ensayo** | También. Un ensayo que no aplique la compuerta prometería que el expediente vuelve, y quien lea esa promesa pulsará el botón |
+> | **Prueba** | `src/__tests__/durabilidad-supresion-arco-y-perdida-clinica.test.ts` (37 casos), probada al revés con cinco defectos instalados |
+>
+> **Lo que sigue sin cubrirse:** la compuerta DETIENE, no reactiva. Reactivar un
+> expediente cancelado es una decisión legal con el titular delante, y eso no lo
+> modela ningún código de aquí.
+
+### Cómo estaba declarado antes de cerrarse
+
 
 | | |
 |---|---|

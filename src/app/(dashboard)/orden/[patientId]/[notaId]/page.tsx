@@ -11,7 +11,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { auth } from '@/lib/firebase'
-import { crearTareas } from '@/lib/tareas-clinicas/firestore'
+import { abrirPendientes } from '@/lib/tareas-clinicas/abrir'
 import { tareasDeNota } from '@/lib/tareas-clinicas/derivar'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
@@ -356,13 +356,18 @@ export default function GeneradorOrdenPage() {
   const crearPendientesDeLaOrden = () => {
     if (!clinicId || !estudios.length) return
     const ahora = Date.now()
-    void crearTareas(clinicId, tareasDeNota({
+    /**
+     * REG-411 — la orden ya está emitida y esto no puede tumbarla, que es lo que
+     * decía el `catch` vacío que había aquí. Lo que le faltaba era la otra mitad:
+     * no tumbarla NO es lo mismo que perder el pendiente sin decirlo.
+     */
+    abrirPendientes(clinicId, tareasDeNota({
       id: notaId, clinicId, pacienteId: patientId,
       pacienteNombre: patient?.nombre,
       estudiosOrden: estudios,
       medicoUid: auth.currentUser?.uid ?? undefined,
       medicoNombre: config?.nombreMedico,
-    }, ahora)).catch(() => { /* la orden ya está emitida: esto no puede tumbarla */ })
+    }, ahora), 'orden', { avisar: m => toast(`La orden quedó emitida, pero ${m}`, 'error') })
   }
   const [indicaciones, setIndicaciones] = useState('')
   const [diagnostico, setDiagnostico] = useState('')

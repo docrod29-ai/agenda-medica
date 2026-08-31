@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useId } from 'react'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { EVENTO_GRABANDO } from '@/lib/seguridad/estoy-grabando'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 
 /**
  * Cierre automático de sesión por inactividad (control de seguridad LFPDPPP /
@@ -129,6 +130,30 @@ export function AutoLogout() {
     // El efecto ya NO depende de `avisando` → no se re-monta al aparecer el aviso.
   }, [reiniciar])
 
+  /**
+   * EL TECLADO DE ESTE AVISO, CON UNA DIFERENCIA A PROPÓSITO.
+   *
+   * Trampa de foco, foco inicial y foco devuelto: sí, y hacían falta. Sin
+   * trampa, quien sólo usa teclado podía tabular fuera del aviso y **no llegar
+   * a «Seguir conectado» antes de que se cerrara la sesión** — perdiendo el
+   * trabajo que el aviso existe para no perder.
+   *
+   * `cierraConEscape: false`: esto NO se descarta con Escape. Es un control de
+   * seguridad —cierre por inactividad, LFPDPPP— y un Escape distraído lo
+   * desactivaría sin que nadie lo decidiera. Se sale por sus dos botones, que
+   * es donde el foco queda atrapado.
+   *
+   * Por eso no se migra a `ui/Modal`: `Modal` cierra con Escape, y aquí eso
+   * sería un defecto. Mismo teclado, una regla distinta, declarada.
+   *
+   * `role="alertdialog"` y no `dialog`: interrumpe y pide una decisión con un
+   * plazo. Es la diferencia que un lector de pantalla anuncia.
+   */
+  const cajaRef = useRef<HTMLDivElement>(null)
+  const tituloId = useId()
+  const textoId = useId()
+  useDialogoDeTeclado(avisando, cajaRef, reiniciar, { cierraConEscape: false })
+
   if (!avisando) return null
 
   return (
@@ -136,12 +161,20 @@ export function AutoLogout() {
       position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.55)',
       backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
-      <div style={{
-        width: '100%', maxWidth: 380, background: 'var(--s1)', border: '1px solid var(--border)',
-        borderRadius: 16, padding: 26, textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.35)',
-      }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>¿Sigues ahí?</div>
-        <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.55, margin: '0 0 20px' }}>
+      <div
+        ref={cajaRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={tituloId}
+        aria-describedby={textoId}
+        tabIndex={-1}
+        style={{
+          width: '100%', maxWidth: 380, background: 'var(--s1)', border: '1px solid var(--border)',
+          borderRadius: 16, padding: 26, textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.35)',
+        }}
+      >
+        <div id={tituloId} style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>¿Sigues ahí?</div>
+        <p id={textoId} style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.55, margin: '0 0 20px' }}>
           Por seguridad, cerraremos tu sesión en <strong style={{ color: 'var(--nexus)' }}>{restante}s</strong> por
           inactividad. Guardaremos tu nota en el servidor antes de cerrar.
         </p>

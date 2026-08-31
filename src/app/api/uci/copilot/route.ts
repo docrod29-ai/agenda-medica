@@ -26,6 +26,7 @@ import { snapshotUCI, buildCopilotUser, COPILOT_SYSTEM, parseSalidaCopilot, fusi
 import { safeLog } from '@/lib/security/sanitize'
 import { esFundador as fundador } from '@/lib/authz/fundador'
 import { llamarIA, type Contexto } from '@/lib/ia/gateway'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const MODELOS_CLAUDE = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-5']
 const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
@@ -172,6 +173,7 @@ export async function POST(req: NextRequest) {
   const ctx: Contexto = {
     feature: `copilot-uci:${motor.clave}`,
     requestId: req.headers.get('x-vercel-id') || `uci-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: acceso.clinicId ?? null,
     uid: acceso.uid,
     creditos: cfg.creditos,

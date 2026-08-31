@@ -190,6 +190,66 @@ export function admiteHojaCarta(recetaConfig: RecetaConfig): boolean {
 }
 
 /**
+ * DÓNDE CAE LA RECETA DENTRO DE LA HOJA QUE SALE DE LA IMPRESORA.
+ *
+ * La receta va CENTRADA en la hoja carta y agrandada para llenar bien la hoja,
+ * dejando márgenes parejos. Carta es tamaño ESTÁNDAR → el navegador y cualquier
+ * impresora lo respetan (a diferencia de "media carta", que Safari redondea a A5
+ * y desacomoda). La escala ajusta la receta dentro de (carta − margen) sin
+ * deformarla.
+ *
+ * ── POR QUÉ ESTO ES UNA FUNCIÓN Y NO SEIS LÍNEAS DENTRO DE `HostCarta` ──────
+ *
+ * Porque hay un segundo interesado: el recuadro que el médico ARRASTRA en la
+ * vista previa de configuración para decir dónde cae el tratamiento. Ese
+ * recuadro se dibuja ENCIMA del documento, así que tiene que saber en qué punto
+ * de la hoja física empieza la receta y cuánto se agrandó. Mientras el cálculo
+ * vivió sólo aquí, quien dibujaba encima tenía que adivinarlo — y adivinó mal.
+ */
+export function colocacionEnCarta(paper: { widthMm: number; heightMm: number }): {
+  escala: number; offsetXMm: number; offsetYMm: number
+} {
+  const MARGEN_MM = 14
+  const escala = Math.min(
+    (CARTA.widthMm - 2 * MARGEN_MM) / paper.widthMm,
+    (CARTA.heightMm - 2 * MARGEN_MM) / paper.heightMm,
+  )
+  return {
+    escala,
+    offsetXMm: (CARTA.widthMm - paper.widthMm * escala) / 2,
+    offsetYMm: (CARTA.heightMm - paper.heightMm * escala) / 2,
+  }
+}
+
+/**
+ * Lo mismo, resuelto para una configuración completa: la hoja física, la receta
+ * dentro de ella, y la transformación que lleva de una a la otra. Sin host de
+ * carta la respuesta es la identidad — la receta ES la hoja.
+ */
+export function colocacionDeLaReceta(recetaConfig: RecetaConfig): {
+  hostWidthMm: number; hostHeightMm: number
+  recetaWidthMm: number; recetaHeightMm: number
+  offsetXMm: number; offsetYMm: number
+  escala: number; esHostCarta: boolean
+} {
+  const paper = paperEfectivo(recetaConfig)
+  const host = dimensionesImpresion(recetaConfig)
+  if (!host.esHostCarta) {
+    return {
+      hostWidthMm: host.widthMm, hostHeightMm: host.heightMm,
+      recetaWidthMm: paper.widthMm, recetaHeightMm: paper.heightMm,
+      offsetXMm: 0, offsetYMm: 0, escala: 1, esHostCarta: false,
+    }
+  }
+  const { escala, offsetXMm, offsetYMm } = colocacionEnCarta(paper)
+  return {
+    hostWidthMm: host.widthMm, hostHeightMm: host.heightMm,
+    recetaWidthMm: paper.widthMm, recetaHeightMm: paper.heightMm,
+    offsetXMm, offsetYMm, escala, esHostCarta: true,
+  }
+}
+
+/**
  * Dimensiones del papel ORIENTADAS al diseño subido, IGUAL que HojaCustom.
  *
  * BUG que el Dr cazó en vivo: la hoja se orienta al diseño (si la imagen es
@@ -408,16 +468,7 @@ export function RecetaDocumento({ data, config, recetaConfig, containerId = 'rec
  * + línea punteada de corte ✂ donde termina el papel de la receta
  * ════════════════════════════════════════════════════════════════ */
 function HostCarta({ paper, children }: { paper: { widthMm: number; heightMm: number }; children: React.ReactNode }) {
-  // La receta va CENTRADA en la hoja carta y agrandada para llenar bien la hoja,
-  // dejando márgenes parejos. Carta es tamaño ESTÁNDAR → el navegador y cualquier
-  // impresora lo respetan (a diferencia de "media carta", que Safari redondea a A5
-  // y desacomoda). Escala = ajustar la receta dentro de (carta − margen), sin
-  // deformar (mantiene proporción).
-  const MARGEN_MM = 14
-  const escala = Math.min(
-    (CARTA.widthMm - 2 * MARGEN_MM) / paper.widthMm,
-    (CARTA.heightMm - 2 * MARGEN_MM) / paper.heightMm,
-  )
+  const { escala } = colocacionEnCarta(paper)
   return (
     <div
       className="receta-sheet"
@@ -873,7 +924,23 @@ function HojaGenerada({
             textTransform: 'uppercase',
             letterSpacing: 0.5,
           }}>
-            <div style={{ color: accent }}>{data.tipo === 'receta' ? 'Receta Médica' : 'Orden Médica'}</div>
+            {/*
+              EL TÍTULO DEL DOCUMENTO NO LLEVA EL COLOR DE MARCA.
+
+              Medido con axe a 1440 en `/receta` y `/orden`: el acento por
+              omisión da **2.48 : 1** sobre el papel blanco, en texto de 11 px.
+
+              El acento es del médico —lo elige en configuración— y sigue en
+              TODO lo decorativo: los filetes de arriba y abajo de este bloque,
+              la barra del encabezado, el ℞ y los rellenos. Lo que deja de
+              hacer es cargar con texto pequeño que hay que LEER, en un papel
+              que se imprime y se archiva.
+
+              El gris es del mismo juego neutro que este documento ya usa
+              (#111 el nombre del médico, #666 el folio de al lado): un
+              recetario no sigue al tema de la aplicación, se imprime.
+            */}
+            <div style={{ color: '#333' }}>{data.tipo === 'receta' ? 'Receta Médica' : 'Orden Médica'}</div>
             <div style={{ fontSize: 9.5, color: '#666', fontWeight: 500 }}>
               Folio: {data.folio} · {data.fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
@@ -1082,7 +1149,9 @@ function EncabezadoAuto({
         <div style={{ width: 3, background: accent, borderRadius: 2, flexShrink: 0 }} />
         <div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: -0.2, lineHeight: 1.1 }}>{medico}</div>
-          {especialidad && <div style={{ fontSize: 10.5, color: accent, fontWeight: 600, marginTop: 1 }}>{especialidad}</div>}
+          {/* Misma razón que el título: 10.5 px con el acento por omisión daban
+              2.48 : 1. El acento sigue justo al lado, en la barra de 3 px. */}
+          {especialidad && <div style={{ fontSize: 10.5, color: '#444', fontWeight: 600, marginTop: 1 }}>{especialidad}</div>}
           {cedula !== '—' && <div style={{ fontSize: 9, color: '#555', marginTop: 1 }}>Cédula Prof. {cedula}</div>}
         </div>
       </div>

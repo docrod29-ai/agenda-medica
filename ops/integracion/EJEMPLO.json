@@ -1,0 +1,31 @@
+{
+  "_lee_esto_primero": [
+    "MANIFIESTO DE LOTE. Declara qué DEBE quedar integrado, para que la",
+    "compuerta lo compruebe en vez de que lo suponga el que empuja.",
+    "Copia este archivo con el nombre del lote y rellena las dos listas.",
+    "",
+    "POR QUÉ EXISTEN LAS DOS LISTAS, y no sólo `commits`:",
+    "el 27-ago-2026 `ffc21823` tenía a `1d9a55f3` de ancestro Y HABÍA REVERTIDO",
+    "su contenido entero — `createWaitlistEntry` idempotente, lista-espera.ts,",
+    "urgencia.ts y cinco pruebas. La ancestría estaba intacta; el trabajo no.",
+    "Por eso `simbolos_que_deben_seguir_vivos` es la comprobación que de verdad",
+    "protege: es «el dato tiene que LLEGAR» aplicado a una integración."
+  ],
+
+  "_no_pasa_tal_cual": "ESTE ARCHIVO NO ESTÁ HECHO PARA PASAR. El sha es de relleno y el símbolo que declara SE PERDIÓ el 27-ago: corriendo la compuerta contra él, el paso B sale ROJO. Es la demostración, no un lote real.",
+
+  "lote": "ejemplo — renómbralo",
+  "base": "origin/main",
+
+  "commits": [
+    { "sha": "0000000000000000000000000000000000000000", "que_es": "cada PR/commit que el lote promete integrar" }
+  ],
+
+  "simbolos_que_deben_seguir_vivos": [
+    {
+      "simbolo": "claveDeEspera",
+      "archivo": "src/lib/firestore.ts",
+      "por_que": "REG-326 · sin él, entrar dos veces en la lista de espera vuelve a ser posible y el hueco libre se anuncia a dos sitios de los tres que hay"
+    }
+  ]
+}

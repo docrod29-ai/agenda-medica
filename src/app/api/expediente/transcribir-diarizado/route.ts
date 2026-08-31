@@ -25,6 +25,7 @@ import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { adminDb } from '@/lib/firebase-admin'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -185,6 +186,9 @@ export async function POST(req: NextRequest) {
         method: 'POST',
         headers: { authorization: key },
         body: bytes,
+        // REG-346 — subir el audio es lo más pesado del camino; sin tope, un
+        // socket colgado se lleva la función entera y con ella el dictado.
+        signal: AbortSignal.timeout(120_000),
       })
       if (!up.ok) return NextResponse.json({ ok: false, error: `AssemblyAI upload HTTP ${up.status}` }, { status: 502 })
       audio_url = (await up.json()).upload_url
@@ -319,6 +323,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: { authorization: key, 'content-type': 'application/json' },
       body: JSON.stringify(cuerpo),
+      signal: AbortSignal.timeout(30_000),   // REG-346
     })
 
     const sub = await enviar(armar())
@@ -398,6 +403,7 @@ export async function POST(req: NextRequest) {
       {
         feature: 'transcribir-diarizado',
         requestId: req.headers.get('x-vercel-id') || `td-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
         clinicId: clinicId ?? null, uid: acceso.uid,
         creditos: COSTO_CREDITOS.transcribirDiarizado, fuente,
         esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
@@ -447,7 +453,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const r = await fetch(`${AAI}/transcript/${id}`, { headers: { authorization: key } })
+    // REG-346 — el sondeo se repite en bucle: sin tope, UNA vuelta colgada
+    // basta para inmovilizar la función hasta el final de su presupuesto.
+    const r = await fetch(`${AAI}/transcript/${id}`, {
+      headers: { authorization: key },
+      signal: AbortSignal.timeout(20_000),
+    })
     if (!r.ok) return NextResponse.json({ ok: false, error: `AssemblyAI HTTP ${r.status}` }, { status: 502 })
     const d = await r.json()
 

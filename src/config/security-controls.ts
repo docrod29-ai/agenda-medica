@@ -72,9 +72,9 @@ export const SECURITY_CONTROLS: SecurityControl[] = [
     evidencia: 'docs/security/backup-and-restore.md (restore drill: BLOCKED — requiere infraestructura).',
   },
   {
-    id: 'mfa', titulo: 'Autenticación multifactor (MFA)', estado: 'planned',
-    detalle: 'Diseño listo (TOTP + códigos de recuperación, obligatorio para administradores). Requiere habilitar Identity Platform en el proyecto para implementarlo y probarlo.',
-    evidencia: 'docs/security/mfa-design.md (BLOCKED — requiere Identity Platform).',
+    id: 'mfa', titulo: 'Autenticación multifactor (MFA)', estado: 'implemented-pending-verification',
+    detalle: 'TOTP funcionando: enrolamiento en Configuración, resolución en el login, y el servidor LEE si la sesión usó el segundo factor. La consola del dueño lo exige a quien lo tenga enrolado. Falta extenderlo al resto de rutas privilegiadas, que es una decisión de política del dueño.',
+    evidencia: 'src/lib/mfa.ts + login/page.tsx + auth-server.ts (sign_in_second_factor) + superadmin.ts. Vigilado por src/__tests__/el-segundo-factor-llega-al-servidor.test.ts.',
   },
   {
     id: 'pentest', titulo: 'Prueba de penetración externa anual', estado: 'planned',

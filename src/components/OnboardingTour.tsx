@@ -1,8 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { Calendar, Stethoscope, Mic, FileText, X, ArrowRight } from 'lucide-react'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 
 /**
  * Tour de bienvenida (4 pasos) para el primer ingreso del médico.
@@ -55,22 +56,41 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
     return () => clearTimeout(t)
   }, [enabled, user?.uid])
 
+  /**
+   * Plana, sin `useCallback`. El gancho del teclado depende de ella, así que la
+   * tentación es memoizarla a mano — y el compilador de React de este proyecto
+   * lo hace ya: envolverla produce «Existing memoization could not be
+   * preserved» y **sube el trinquete de lint**. Probado, no supuesto.
+   */
   const cerrar = () => {
     try { if (user?.uid) localStorage.setItem(claveVisto(user.uid), '1') } catch { /* noop */ }
     setVisible(false)
   }
 
-  // Escape salta el tour
+  /**
+   * ESCAPE Y TRAMPA DE FOCO VIENEN DEL GANCHO; AVANZAR SIGUE SIENDO SUYO.
+   *
+   * El tour ya se anunciaba (`role="dialog"`, `aria-modal`) y ya salía con
+   * Escape. Le faltaba la trampa: tabular durante la bienvenida se iba al panel
+   * de detrás, que es justo lo que el tour tapa. Y es lo primero que ve un
+   * médico nuevo.
+   *
+   * El Escape sale de aquí para que no queden dos manejadores llamando a
+   * `cerrar`. Flecha derecha y Enter se quedan: son de este tour, no de
+   * cualquier diálogo.
+   */
   useEffect(() => {
     if (!visible) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') cerrar()
       if (e.key === 'ArrowRight' || e.key === 'Enter') avanzar()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, paso])
+
+  const tarjetaRef = useRef<HTMLDivElement>(null)
+  useDialogoDeTeclado(visible, tarjetaRef, cerrar)
 
   const avanzar = () => {
     if (paso < PASOS.length - 1) setPaso(paso + 1)
@@ -100,6 +120,8 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
       }}
     >
       <div
+        ref={tarjetaRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="nx-tour-card"
         style={{

@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 23-ago-2026.
-**Fuente**: los 174 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 30-ago-2026.
+**Fuente**: los REG de `docs/audit/regression-ledger.md` (265 clasificados hoy).
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -43,10 +43,25 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 39 de 174, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 74 de 269, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-320** (15-ago-2026), y lo encontró un banco de
+El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
+describiendo su propia forma. `PaqueteDeVisita` llegó con su modelo, su máquina
+de estados `DRAFT`/`RELEASED`, su compuerta en el servidor, la acción del portal
+que la usa, las reglas de Firestore, la matriz de acceso, el manifiesto del
+respaldo y la exportación ARCO. Todo escrito. Todo probado. Y **ningún camino
+del producto escribía jamás un documento en esa colección**, porque la función
+que lo componía se había borrado el mismo día por no tener llamador.
+
+No faltaba una pantalla: faltaba el **acto**. Nada podía pasar de `DRAFT` a
+`RELEASED` porque no existía ninguna superficie con autoridad para hacerlo, y
+mientras tanto la hoja que sí se componía salía del borrador EN CURSO y no
+llegaba al paciente por ningún camino. Es el coste entero de esta familia en un
+solo defecto: la pieza mejor pensada del lado del paciente, terminada y sin
+entregar.
+
+Antes que él, **REG-320** (15-ago-2026), y lo encontró un banco de
 flujos haciendo el trabajo del médico en el teléfono: el respaldo local de la
 nota se escribía, se conservaba en disco y **no se ofrecía nunca** al reabrir
 una nota por `?nota=`, porque la única condición capaz de enseñarlo probaba que
@@ -113,9 +128,31 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 35 de 174.**
+**«El sistema se contradice a sí mismo» — 44 de 269.**
 
-Sumó REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
+Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
+caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
+`transcripcionMotor` —lo que oyó el reconocedor— **le correspondía ir sellado**,
+por qué todavía no lo estaba y hasta cuándo entraría: «cuando se suba a
+`hashVersion` 4». Mientras tanto el sello decía «verificada» de notas firmadas en
+las que ese campo se podía alterar. Las dos partes eran correctas por su cuenta;
+el defecto vivía en el hueco.
+
+Escribirlo así la hizo barata de cerrar —el diseño ya estaba hecho— y a la vez la
+dejó abierta **casi doscientos REG**, porque nada la ponía en rojo. Una deuda
+declarada no es una deuda vigilada: lo que no tiene guardián no tiene fecha.
+
+Antes REG-336 (27-ago-2026), y es la forma más cara que ha tomado esta familia:
+la compuerta que deja **firmar** pedía `medicoId` y cédula; la que deja
+**entregar al paciente** pedía nombre y cédula. Ninguna de las dos estaba mal
+por su cuenta. En el hueco cabía una nota firmable e **inentregable**, y como
+`nota.firma` es inmutable, irreparable: el paciente no recibía su hoja nunca y
+el mensaje mandaba al médico a revisar la cédula, que sí estaba. Lo encontró el
+Golden Path GP-FINAL recorriendo el consultorio en un navegador, con los 10 480
+casos de la suite en verde — ninguna prueba de unidad podía verlo, porque el
+defecto no estaba en ninguna de las dos piezas sino entre ellas.
+
+Y antes REG-313 (14-ago-2026): la exportación del expediente lanzaba **dos
 avisos que se contradecían sobre el mismo archivo** —«los borradores van
 marcados como preliminares» y «los borradores NO van»—, y el falso era el
 último en pintarse, o sea el que se leía. El médico creía que el archivo que
@@ -172,9 +209,15 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 24 de 174**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 37 de 269**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
+
+El miembro más reciente es **REG-331** (27-ago-2026), y es esta familia dicha en
+voz alta: veintitrés defectos de accesibilidad en las seis pantallas que ve el
+paciente, con 10 425 casos en verde. No se rompió nada — es que ese eje no lo
+medía nadie. El instrumento (`npm run a11y:paciente`) los encontró todos el día
+que se encendió, que es exactamente lo que hace esta familia cada vez.
 
 **«Decisión del médico dueño» — 2**, contados aparte a propósito. Meterlos en el
 saco de «defectos» inflaría la cuenta con cosas que nadie rompió.
@@ -206,31 +249,3 @@ vez de en una entrada más.
 También comprueba que ningún REG esté en dos familias (un defecto tiene una causa
 raíz), que ninguna familia cite un REG inexistente, y que la advertencia de
 arriba siga escrita.
-
----
-
-## La ronda del 23-ago-2026 — respaldo y restauración (#312)
-
-Cuatro defectos de una vez, y los cuatro repartidos en familias distintas. No es
-casualidad: salieron de mirar **la misma frontera** desde los dos lados.
-
-- **REG-323** → *El sistema se contradice a sí mismo*. `restaurar.ts` documenta
-  en su propia cabecera que el SDK admin ignora las reglas de Firestore —y
-  deriva la colección de la ruta precisamente por eso— mientras la ruta que lo
-  consume escribía con `merge: true` sin comparar nada. El módulo avisaba del
-  peligro y la ruta lo cruzaba igual.
-- **REG-324** → *Nadie lo estaba midiendo*. El pie del respaldo decía «completo»
-  y no existía el instrumento capaz de desmentirlo. Al encenderlo —recuentos por
-  colección y huella— destapó los otros tres, que es exactamente lo que esta
-  familia hace siempre.
-- **REG-325** → *Fuga entre consultorios y dinero*. Re-enraizar la ruta ponía el
-  documento en el consultorio correcto y lo dejaba declarando pertenecer al de
-  origen.
-- **REG-326** → *El hueco tratado como dato*. «No hay pacientes» se guardaba
-  como «el consultorio está vacío», y el caso en que esa señal falla —una
-  supresión ARCO se los llevó— es justo el caso en que el error es más grave.
-
-Lo que esto sugiere para mañana: **la frontera que hay que mirar es la que
-cruza un dato al salir y al volver.** Es la misma lección de «el dato tiene que
-LLEGAR», aplicada al viaje de vuelta: no basta con que el archivo se escriba
-bien; hay que mirar del otro lado, con el archivo en la mano, qué queda escrito.

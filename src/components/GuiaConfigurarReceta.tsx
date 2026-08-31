@@ -1,128 +1,101 @@
 'use client'
 /**
- * Guía en el SITIO donde el médico se atora: la pantalla de Recetas, órdenes y notas.
+ * QUÉ HACER CUANDO LA PRUEBA NO SALIÓ IGUAL QUE TU PAPEL.
  *
- * El Dr. lo pidió literal: "no quiero que batallen mis clientes… enséñales a
- * configurar su receta para que no se confundan y sea muy fácil". Mandarlos a
- * leer la guía en otra pantalla es justo lo que no funciona: se configura aquí,
- * así que la explicación vive aquí.
+ * ── DE DÓNDE VIENE ESTE COMPONENTE ──────────────────────────────────────────
  *
- * Arranca ABIERTA mientras no haya nada configurado, y se pliega sola en cuanto
- * el médico ya subió su formato o eligió su papel — para no estorbar todos los
- * días a quien ya lo resolvió.
+ * Nació como una guía de SEIS pasos, desplegada arriba del todo de «Recetas,
+ * órdenes y notas», porque el Dr. pidió: «no quiero que batallen mis clientes».
+ * No funcionó, y el mismo Dr. dijo por qué: «esto se me hace muy complejo […]
+ * la pantalla está muy llena y los va a confundir».
+ *
+ * La guía explicaba lo que la pantalla debería hacer sola. Seis pasos de texto
+ * arriba de nueve tarjetas de controles es MÁS pantalla, no menos: para cuando
+ * el médico termina de leer, ya no sabe cuál de las nueve tarjetas era el paso
+ * tres. Así que los pasos se convirtieron en la pantalla misma —tres tarjetas
+ * numeradas, una por paso, con el control dentro— y aquí sólo queda lo que la
+ * app **no puede arreglar por su cuenta**.
+ *
+ * ── QUÉ QUEDA, Y POR QUÉ ────────────────────────────────────────────────────
+ *
+ * Tres averías, en orden de frecuencia real, cada una con lo que la causa. La
+ * primera vive FUERA de la aplicación —el diálogo de impresión del sistema
+ * decide el papel físico— y es la que más se confunde con un defecto nuestro:
+ * la receta sale perfecta y la hoja no.
+ *
+ * Se muestra sólo cuando el médico dice que la prueba no cuadró. Un texto de
+ * ayuda que se lee siempre es ruido; leído en el minuto en que algo falló, es
+ * la respuesta.
  */
-import { useState } from 'react'
-import { ChevronDown, Ruler, Printer, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { AlertTriangle, Printer, Ruler } from 'lucide-react'
 
-export interface GuiaConfigurarRecetaProps {
-  /** ¿Ya hay algo configurado? Si no, la guía se muestra abierta. */
-  yaConfigurado: boolean
+interface Averia {
+  sintoma: string
+  causa: string
+  arreglo: ReactNode
+  icono: ReactNode
 }
 
-const PASOS: { t: string; d: string }[] = [
+const AVERIAS: Averia[] = [
   {
-    t: 'Mide tu receta con una regla',
-    d: 'De borde a borde: primero el ANCHO, luego el ALTO. Por ejemplo 13 × 23 cm. Todo lo demás depende de este número.',
+    sintoma: 'Salió chiquita en medio de una hoja grande',
+    causa: 'Es el diálogo de impresión de tu computadora, no la app: está encogiendo la hoja para que quepa.',
+    arreglo: (
+      <>
+        Al imprimir, revisa tres cosas en esa ventana: <strong>Tamaño del papel</strong> igual
+        al que elegiste aquí (si no aparece, créalo en «Administrar tamaños personalizados»),
+        <strong> Escala 100 %</strong> — nunca «Ajustar al papel» — y la <strong>Orientación</strong> que
+        corresponda a tu hoja.
+      </>
+    ),
+    icono: <Printer size={16} style={{ color: 'var(--amber)' }} />,
   },
   {
-    t: 'Elige ese tamaño abajo, en “Tamaño de papel”',
-    d: 'Si el tuyo no está en la lista, elige “Personalizado” y escribe las medidas en milímetros (13 cm = 130 mm).',
+    sintoma: 'Los medicamentos taparon mi logo o mi pie de página',
+    causa: 'La zona donde cae el texto está más grande que el hueco libre de tu papel.',
+    arreglo: (
+      <>
+        Aquí abajo, en <strong>Dónde cae el texto</strong>, sube el margen de arriba o el de abajo —
+        o arrastra el recuadro de la vista previa hasta el hueco libre de tu diseño.
+      </>
+    ),
+    icono: <Ruler size={16} style={{ color: 'var(--nexus)' }} />,
   },
   {
-    t: 'Sube tu papel membretado',
-    d: 'En “Usa TU propia receta”, sube una foto o PDF de tu receta. Queda de fondo y la app solo encima los datos del paciente y los medicamentos. Si no tienes papel propio, sáltate este paso: se genera un encabezado con los datos de tu consultorio.',
-  },
-  {
-    t: '¿Tu papel ya trae las líneas de Nombre, Edad y Fecha?',
-    d: 'Activa “Mi diseño ya tiene campos del paciente impresos” para que la app no las dibuje encima. Luego arrastra cada etiqueta sobre su línea — o pulsa “Detectar los campos” y solo acomódalas.',
-  },
-  {
-    t: 'Sube tu firma',
-    d: 'Más abajo, en esta misma pantalla, está “Firma + sello”. Firma en una hoja BLANCA con plumón negro, tómale foto de frente con buena luz y recórtala. Saldrá en tus recetas, órdenes y notas.',
-  },
-  {
-    t: 'Guarda y haz una prueba',
-    d: 'Pulsa “Guardar template” y luego “Imprimir prueba”. Compara esa hoja contra tu papel real ANTES de usarla con un paciente.',
+    sintoma: 'El nombre, la edad o la fecha cayeron en otro lugar',
+    causa: 'Tu papel ya trae esas líneas impresas y la app las colocó en un sitio distinto.',
+    arreglo: (
+      <>
+        Vuelve al paso 1, abre <strong>Ajustar dónde caen los datos</strong> y arrastra cada etiqueta
+        sobre su línea; <strong>Detectar los campos</strong> vuelve a leer tu formato y las coloca solas.
+        Si tu papel ya los trae escritos y no quieres que la app los repita, activa
+        <strong> Mi papel ya trae los datos del paciente</strong>.
+      </>
+    ),
+    icono: <AlertTriangle size={16} style={{ color: 'var(--text3)' }} />,
   },
 ]
 
-export function GuiaConfigurarReceta({ yaConfigurado }: GuiaConfigurarRecetaProps) {
-  const [abierta, setAbierta] = useState(!yaConfigurado)
-
+export function GuiaConfigurarReceta() {
   return (
-    <div style={{
-      border: '1px solid color-mix(in srgb, var(--nexus) 35%, transparent)', borderRadius: 12,
-      background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', overflow: 'hidden',
-    }}>
-      <button
-        onClick={() => setAbierta(v => !v)}
-        aria-expanded={abierta}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-          padding: '13px 15px', background: 'none', border: 'none',
-          cursor: 'pointer', textAlign: 'left', color: 'var(--text)',
-        }}
-      >
-        <Ruler size={17} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, display: 'block' }}>
-            Cómo dejar tu receta idéntica a tu papel
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text3)' }}>
-            6 pasos · se hace una sola vez
-          </span>
-        </span>
-        {yaConfigurado && !abierta && (
-          <CheckCircle2 size={16} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-        )}
-        <ChevronDown
-          size={18}
-          style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform var(--mov-rapido) var(--mov-curva)', transform: abierta ? 'rotate(180deg)' : 'none' }}
-        />
-      </button>
-
-      {abierta && (
-        <div style={{ padding: '0 15px 15px' }}>
-          <ol style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 11 }}>
-            {PASOS.map((p, i) => (
-              <li key={i} style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>
-                <strong style={{ color: 'var(--text)' }}>{p.t}.</strong> {p.d}
-              </li>
-            ))}
-          </ol>
-
-          {/* El paso que NO está en la app y es el que más confunde: el diálogo
-              de impresión del sistema decide el papel FÍSICO. */}
-          <div style={{
-            display: 'flex', gap: 9, marginTop: 13, padding: '11px 12px',
-            fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55,
-            background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', borderRadius: 9,
-          }}>
-            <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
-            <span>
-              <strong style={{ color: 'var(--text)' }}>Falta un paso fuera de la app.</strong> Al imprimir,
-              tu computadora decide el papel físico. En ese diálogo revisa tres cosas:
-              <strong> Tamaño del papel</strong> igual al que elegiste aquí (si no aparece, créalo en
-              “Administrar tamaños personalizados”), <strong>Escala 100 %</strong> — nunca “Ajustar al papel” —
-              y la <strong>Orientación</strong> que corresponda a tu hoja. Si la miniatura se ve como una
-              hoja grande con tu receta chiquita adentro, es exactamente este paso.
-            </span>
-          </div>
-
-          <div style={{
-            display: 'flex', gap: 9, marginTop: 9, padding: '11px 12px',
-            fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55,
-            background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 9,
-          }}>
-            <Printer size={15} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 2 }} />
-            <span>
-              <strong style={{ color: 'var(--text)' }}>¿No tienes papel cortado a la medida?</strong> Elige
-              el tamaño de tu receta y deja “Hoja carta + corte”: sale en una hoja carta normal con una
-              línea punteada para recortar. Funciona en cualquier impresora, sin configurar nada.
-            </span>
+    <div style={{ display: 'grid', gap: 10 }}>
+      {AVERIAS.map((a) => (
+        <div
+          key={a.sintoma}
+          style={{
+            display: 'flex', gap: 10, padding: '10px 12px',
+            background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10,
+          }}
+        >
+          <span style={{ flexShrink: 0, marginTop: 2 }}>{a.icono}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>«{a.sintoma}»</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2, lineHeight: 1.5 }}>{a.causa}</div>
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4, lineHeight: 1.5 }}>{a.arreglo}</div>
           </div>
         </div>
-      )}
+      ))}
     </div>
   )
 }

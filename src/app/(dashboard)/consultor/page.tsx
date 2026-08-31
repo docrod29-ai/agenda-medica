@@ -2,14 +2,26 @@
 import { useState, useRef, useEffect } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useClinic } from '@/context/ClinicContext'
-import { getPatients } from '@/lib/firestore'
+import { getPatient } from '@/lib/firestore'
 import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound, AlertTriangle } from 'lucide-react'
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string; doi?: string }
-interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean; sinCitas?: boolean }
+/**
+ * El estado REAL de la recuperación (#314), no una interpretación de la lista
+ * de artículos. `sin_resultados` («se preguntó y no hay») y `no_consultado`
+ * («no se pudo preguntar») producían la misma pantalla, y son lo contrario.
+ */
+interface Recuperacion {
+  estado: 'con_evidencia' | 'sin_resultados' | 'no_consultado'
+  fuentesCitables?: number
+  procedencia?: { sourceId: string; proveedor: string }[]
+  avisos?: string[]
+  motivo?: string | null
+}
+interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean; sinCitas?: boolean; recuperacion?: Recuperacion }
 
 /** Nivel de evidencia orientativo por DISEÑO del estudio (proxy tipo GRADE, no un grado GRADE formal). */
 function nivelEvidencia(tipo?: string): { label: string; color: string } | null {
@@ -56,8 +68,15 @@ export default function ConsultorPage() {
     if (!clinicId) return
     const id = new URLSearchParams(window.location.search).get('paciente')
     if (!id) return
-    getPatients(clinicId).then(ps => {
-      const p = ps.find(x => x.id === id)
+    /**
+     * A3 — UNA PANTALLA QUE NECESITA UN PACIENTE LEE UN PACIENTE.
+     *
+     * Antes se descargaba el directorio para hacer `.find()`. Además del coste,
+     * con la lista ya acotada un `.find()` sobre el recorte devolvería «no
+     * está» de un paciente que sí existe: el contexto clínico desaparecería en
+     * silencio justo en el consultorio grande.
+     */
+    getPatient(clinicId, id).then(p => {
       if (!p) return
       const alergias = p.alergias?.trim() || 'no referidas'
       setPacienteNombre(p.nombre)
@@ -106,9 +125,9 @@ export default function ConsultorPage() {
         const lineas = buf.split('\n'); buf = lineas.pop() ?? ''
         for (const linea of lineas) {
           const s = linea.trim(); if (!s) continue
-          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; sinCitas?: boolean }
+          let ev: { type?: string; text?: string; error?: string; articulos?: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; sinCitas?: boolean; recuperacion?: Recuperacion }
           try { ev = JSON.parse(s) } catch { continue }
-          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, fechaBusqueda: ev.fechaBusqueda, sinCitas: ev.sinCitas === true, cargando: false })
+          if (ev.type === 'meta') patch({ articulos: ev.articulos ?? [], cenetecUrl: ev.cenetecUrl, modelos: ev.modelos, fechaBusqueda: ev.fechaBusqueda, sinCitas: ev.sinCitas === true, recuperacion: ev.recuperacion, cargando: false })
           else if (ev.type === 'delta') { acc += ev.text ?? ''; patch({ respuesta: acc, cargando: false }) }
           else if (ev.type === 'error') { acc = acc || `⚠️ ${ev.error}`; patch({ respuesta: acc, cargando: false }) }
         }
@@ -136,7 +155,8 @@ export default function ConsultorPage() {
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 10px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,0.10)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--nexus)', fontWeight: 600 }}>
           <UserRound size={13} /> Sobre: {pacienteNombre}
           <button onClick={() => { setPacienteNombre(''); setPacienteCtx('') }} title="Quitar contexto del paciente"
-            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
+            className="nx-acc-texto"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
             <X size={13} />
           </button>
         </div>
@@ -147,8 +167,8 @@ export default function ConsultorPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 10 }}>Ejemplos para empezar:</div>
           <div style={{ display: 'grid', gap: 8 }}>
             {EJEMPLOS.map((e, i) => (
-              <button key={i} onClick={() => preguntar(e)}
-                style={{ textAlign: 'left', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', fontSize: 13.5, cursor: 'pointer' }}>
+              <button key={i} onClick={() => preguntar(e)} className="nx-acc-caja"
+                style={{ textAlign: 'left', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', color: 'var(--text2)', fontSize: 13.5, cursor: 'pointer' }}>
                 {e}
               </button>
             ))}
@@ -183,11 +203,53 @@ export default function ConsultorPage() {
                       reformulaba, la respuesta se leía idéntica a una respaldada
                       por literatura. El dato ya existía; sólo que nadie lo usaba.
                     */}
+                    {/*
+                      Y LA OTRA MITAD: «no se pudo preguntar» NO es «no hay».
+                      El cartel de abajo afirmaba que PubMed no tenía resultados
+                      también cuando PubMed no había contestado — un fallo de red
+                      con forma de hallazgo clínico. Ahora el estado viene del
+                      sobre de recuperación (#314) y cada caso dice lo suyo.
+                    */}
+                    {t.recuperacion?.estado === 'no_consultado' && !t.cargando && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 'var(--r-md)', padding: '8px 10px', color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)' }}>
+                        <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>
+                          NO se pudo consultar PubMed. <strong>No se sabe si hay literatura sobre esto</strong> —
+                          no es que no exista. Lo de abajo es razonamiento clínico sin búsqueda bibliográfica;
+                          vuelve a intentarlo en un momento.
+                          {t.recuperacion?.motivo ? <><br /><span style={{ opacity: 0.85 }}>{t.recuperacion.motivo}</span></> : null}
+                        </span>
+                      </div>
+                    )}
                     {t.sinCitas && !t.cargando && (
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 8, padding: '8px 10px', color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
                         <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                         <span>Sin resultados de PubMed para esta pregunta. Lo de abajo es razonamiento clínico, no literatura citada — verifica antes de aplicarlo.</span>
                       </div>
+                    )}
+                    {/**
+                      * QUÉ SE CONSULTÓ Y QUÉ NO (REG-345).
+                      *
+                      * `seleccion.ts` construye estos avisos con una regla
+                      * explícita: un proveedor no operativo BAJA en el orden
+                      * pero **no desaparece** — el médico tiene que poder leer
+                      * «UpToDate: no se consultó». El servidor los calculaba, los
+                      * mandaba por el cable en `meta.recuperacion.avisos`, la
+                      * pantalla los tipaba… y no los pintaba en ningún sitio.
+                      *
+                      * O sea: la honestidad estaba escrita, probada y sin llegar.
+                      * Un consultor que sólo enseña lo que SÍ encontró se lee
+                      * como si hubiera mirado en todas partes.
+                      */}
+                    {!t.cargando && !!t.recuperacion?.avisos?.length && (
+                      <details style={{ marginBottom: 10 }}>
+                        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text3)', listStyle: 'revert' }}>
+                          Qué se consultó para responder ({t.recuperacion.avisos.length})
+                        </summary>
+                        <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
+                          {t.recuperacion.avisos.map((a, i) => <li key={i}>{a}</li>)}
+                        </ul>
+                      </details>
                     )}
                     <MiniMarkdown texto={t.respuesta} />
                     {/*
@@ -258,7 +320,16 @@ export default function ConsultorPage() {
       </div>
 
       {/* Barra de pregunta fija abajo */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
+      {/*
+        LA BARRA NO EMPIEZA EN EL BORDE DE LA VENTANA: EMPIEZA DONDE ACABA EL RIEL.
+        Con `left: 0` esta barra fija tapaba los 89px de abajo del riel de
+        navegación —«Ayuda», «Cerrar sesión» y el correo—, que en escritorio
+        ocupa los primeros 224px. No era «se ve raro»: el botón de cerrar sesión
+        quedaba debajo y no se podía pulsar. Se vio midiendo qué elemento
+        contesta en el centro del botón (`elementFromPoint`), no leyendo el CSS.
+        En móvil el riel no existe, así que la barra vuelve a ocupar todo.
+      */}
+      <div className="nx-consultor-barra" style={{ position: 'fixed', bottom: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             value={pregunta}
@@ -269,6 +340,8 @@ export default function ConsultorPage() {
             style={{ flex: 1, resize: 'none', maxHeight: 120, padding: '11px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 14, lineHeight: 1.4, fontFamily: 'inherit' }}
           />
           <button onClick={() => preguntar(pregunta)} disabled={cargando || !pregunta.trim()}
+            // Es la acción primaria de la pantalla y era un icono sin nombre.
+            aria-label={cargando ? 'Consultando la evidencia…' : 'Enviar la pregunta'}
             style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 12, border: 'none', cursor: cargando || !pregunta.trim() ? 'default' : 'pointer', background: cargando || !pregunta.trim() ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {cargando ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={18} />}
           </button>

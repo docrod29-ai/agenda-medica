@@ -6,14 +6,24 @@ import { sincronizarCitaDelPortal, estadoDeSync } from '@/lib/calendario/sincron
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
-import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
+import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarOResponder, limitarEstricto } from '@/lib/rate-limit'
+import {
+  decidirVigencia,
+  respuestaDeVigencia,
+  type LecturaDelExpediente,
+} from '@/lib/portal/vigencia-del-enlace'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
-import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { instanteMX, hoyISO, TZ_DEFAULT } from '@/lib/timezone'
+import { validarFechaHoraDeAgenda, dentroDeLaVentanaPublica } from '@/lib/agenda/horizonte'
 import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
 import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
+import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
+import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import type { Patient } from '@/types'
 
 /**
  * API del Portal del Paciente (magic-link, sin contraseña).
@@ -24,6 +34,19 @@ import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paqu
  */
 
 const MIN_HORAS_DEFECTO = 24
+
+/**
+ * LAS ACCIONES QUE MUEVEN ALGO DEL CONSULTORIO.
+ *
+ * `formulario` está aquí y antes no: escribe en el expediente del paciente
+ * (`patients/{id}/formularios_previos/actual`) y dispara un WhatsApp al
+ * consultorio en cada envío. Contarlo como lectura dejaba un camino de
+ * escritura y de mensajería con el cupo ancho de mirar la agenda.
+ */
+const ACCIONES_QUE_MUEVEN = new Set(['confirmar', 'cancelar', 'reagendar', 'formulario'])
+
+/** Las que devuelven secreto médico. Exigen alcance `clinico` Y su propio cupo. */
+const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes'])
 
 /**
  * EL OFFSET DEL CONSULTORIO, NO UN -06:00 QUEMADO.
@@ -157,6 +180,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Petición inválida' }, { status: 400 })
   }
 
+  /**
+   * FRENO ANTES DE LA PUERTA — PATIENT-PORTAL-001 (P1).
+   *
+   * Los límites por paciente sólo se pueden cobrar DESPUÉS de verificar el
+   * token, porque la clave sale de él. Así que una ráfaga de tokens INVÁLIDOS
+   * —adivinar, o simplemente inundar— no la contaba nadie: era la única forma
+   * de pegarle a esta ruta sin cupo ninguno.
+   *
+   * Por IP y antes de todo, igual que `public/booking` y `public/resena`. La
+   * ventana es ancha (120/10 min) a propósito: detrás de una IP de operador
+   * móvil hay muchos pacientes reales, y lo que esto tiene que cortar es la
+   * ráfaga automatizada, no la familia que comparte NAT.
+   *
+   * Estricto: si el freno no puede contar, esta ruta no atiende. Es el mismo
+   * criterio que la revocación de aquí abajo —no poder comprobar no es permiso—
+   * y el coste es un reintento a los treinta segundos.
+   */
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+  const limiteIp = await limitarEstricto(`portal:ip:${ip}`, 120, 600,
+    'Demasiadas solicitudes desde esta conexión. Espera un momento e inténtalo de nuevo.')
+  if (limiteIp) return limiteIp
+
   const sesion = verificarTokenPaciente(body.token)
   if (!sesion) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
@@ -164,24 +209,105 @@ export async function POST(req: NextRequest) {
   const { clinicId, patientId, alcance } = sesion
 
   /**
-   * ¿SIGUE VIGENTE ESTE ENLACE?
+   * ¿SIGUE VIGENTE ESTE ENLACE? Y SI NO SE PUEDE SABER, NO SE PASA.
    *
-   * La firma y la caducidad no bastaban: no había forma de invalidar un enlace
-   * ya emitido —teléfono perdido, número reciclado, mensaje reenviado— y la
-   * única salida era esperar a que caducara. El expediente lleva ahora un
-   * contador; subirlo tumba de golpe todos los enlaces anteriores.
+   * La firma y la caducidad no bastan: sin esto no había forma de invalidar un
+   * enlace ya emitido —teléfono perdido, número reciclado, mensaje reenviado— y
+   * la única salida era esperar a que caducara. El expediente lleva un contador;
+   * subirlo tumba de golpe todos los enlaces anteriores.
    *
-   * Si la lectura falla se deja pasar: dejar al paciente fuera de su propia
-   * agenda por un mal minuto de Firestore es peor que el riesgo que esto acota,
-   * y la firma y la caducidad siguen protegiendo.
+   * ANTES, si la lectura fallaba SE DEJABA PASAR. El invariante de esta unidad
+   * dice lo contrario, y el porqué entero —incluida la razón por la que el
+   * fail-open no le devolvía la agenda a ningún paciente legítimo— está en
+   * `lib/portal/vigencia-del-enlace.ts`. Aquí sólo se consume la decisión.
    */
+  /**
+   * UNA SOLA LECTURA, DOS INVARIANTES — unión de H-01 y PATIENT-PORTAL-001.
+   *
+   * Las dos reparaciones necesitaban el MISMO documento y llegaron por caminos
+   * distintos: H-01 lo leía para quedarse con las alergias que la receta del
+   * paciente debe poder enseñar; PATIENT-PORTAL-001 lo leía para comprobar que
+   * el enlace no está revocado. Conservar las dos como venían costaba dos
+   * lecturas de Firestore por petición y dejaba dos criterios distintos sobre
+   * el mismo dato.
+   *
+   * Se lee una vez y la lectura alimenta las dos:
+   *
+   *  · la decisión de vigencia va por `decidirVigencia`, que es pura y se
+   *    prueba con una tabla — aquí sólo se le pasa lo leído;
+   *  · `paciente` y `pacienteLeido` siguen saliendo de la misma lectura.
+   *
+   * Lo que CAMBIA respecto de H-01, y es a propósito: antes, si Firestore
+   * fallaba, el portal seguía y servía los documentos con `alergiasLeidas:
+   * false`. Ahora responde 503 y no sirve nada. No es un retroceso de H-01:
+   * es la misma regla —error ≠ ausencia— dicha más fuerte. H-01 impedía
+   * imprimir «Sin registro» sobre un fallo de lectura; esto impide además
+   * imprimir el documento entero mientras no se sepa si el enlace vale.
+   *
+   * El 503 lleva `Retry-After` y NO quema el enlace (ver el módulo).
+   */
+  let paciente: Patient | null = null
+  let pacienteLeido = false
+  let lectura: LecturaDelExpediente
   try {
-    const pSnap = await adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId).get()
-    const vPaciente = (pSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion
-    if (!tokenVigente(sesion.version, vPaciente)) {
-      return NextResponse.json({ error: 'Este enlace ya no es válido. Pídele uno nuevo al consultorio.' }, { status: 401 })
+    const pSnap = await adminDb
+      .collection('clinics').doc(clinicId)
+      .collection('patients').doc(patientId)
+      .get()
+    const datos = pSnap.data() as (Patient & { portalTokenVersion?: number }) | undefined
+    if (pSnap.exists && datos) {
+      paciente = datos as Patient
+      pacienteLeido = true
     }
-  } catch { /* ver arriba */ }
+    lectura = { ok: true, existe: Boolean(pSnap.exists), version: datos?.portalTokenVersion }
+  } catch (e) {
+    // Nunca el token ni el patientId: el identificador de un expediente es un
+    // dato de paciente y esto acaba en los logs de Vercel.
+    safeLog.error(`[portal] ${clinicId}: no se pudo comprobar la vigencia del enlace`, e)
+    lectura = { ok: false }
+  }
+  const noVigente = respuestaDeVigencia(decidirVigencia(sesion.version, lectura))
+  if (noVigente) return noVigente
+
+  /**
+   * LÍMITE DE TASA POR PACIENTE.
+   *
+   * Esta ruta no tenía ningún `limitar*`, a diferencia de sus hermanas
+   * (`telesalud/sala`, `public/booking`): un token filtrado —reenviado por
+   * WhatsApp, capturado de una URL compartida— podía usarse para enumerar
+   * citas o mover la agenda del consultorio sin ningún freno.
+   *
+   * Tres ventanas, de la más ancha a la más estrecha, y cada una cubre un
+   * riesgo distinto:
+   *
+   *  · general (40/10 min) — lecturas repetidas de lo propio. Fail-OPEN: si el
+   *    freno no cuenta, mirar la propia agenda sigue permitido; no se gana
+   *    ningún privilegio por mirar.
+   *  · mutación (10/10 min) — lo que MUEVE la agenda del consultorio:
+   *    confirmar, cancelar, reagendar y el formulario previo. Estricto.
+   *  · clínico (15/10 min) — lo que devuelve secreto médico: `documentos` y
+   *    `paquetes`. Estricto, y aparte del general, porque 40 lecturas de la
+   *    propia agenda no son 40 descargas del recetario.
+   *
+   * Las dos ventanas estrictas son el invariante dicho en el otro eje: durante
+   * una incidencia, un token puede seguir MIRANDO lo suyo, pero no gana la
+   * capacidad de mover la agenda ni de vaciar el expediente sin freno.
+   */
+  const limiteGeneral = await limitarOResponder(`portal:${clinicId}:${patientId}`, 40, 600,
+    'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.')
+  if (limiteGeneral) return limiteGeneral
+
+  if (ACCIONES_QUE_MUEVEN.has(String(body.action))) {
+    const limiteMutacion = await limitarEstricto(`portal:mutacion:${clinicId}:${patientId}`, 10, 600,
+      'Demasiados cambios a tu cita en poco tiempo. Espera un momento e inténtalo de nuevo.')
+    if (limiteMutacion) return limiteMutacion
+  }
+
+  if (ACCIONES_CLINICAS.has(String(body.action))) {
+    const limiteClinico = await limitarEstricto(`portal:clinico:${clinicId}:${patientId}`, 15, 600,
+      'Demasiadas consultas a tus documentos en poco tiempo. Espera un momento e inténtalo de nuevo.')
+    if (limiteClinico) return limiteClinico
+  }
 
   // Helper: asegura que la cita pertenezca a este paciente
   const citaDelPaciente = async (citaId?: string): Promise<Appointment | NextResponse> => {
@@ -377,10 +503,24 @@ export async function POST(req: NextRequest) {
         if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
           return NextResponse.json({ error: `Reagenda en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
         }
-        if (!body.nuevaFechaHora || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(body.nuevaFechaHora)) {
-          return NextResponse.json({ error: 'Horario inválido' }, { status: 400 })
+        /**
+         * REAGENDAR PASA POR LA MISMA PUERTA QUE AGENDAR.
+         *
+         * Aquí sólo se miraba la FORMA, y la forma deja pasar el 30 de febrero:
+         * `new Date` lo desborda al 2 de marzo, así que la cita se revalidaba
+         * contra un día y se guardaba en otro — sin chocar con las citas reales
+         * de ninguno de los dos. Tampoco había techo. Ver
+         * `@/lib/agenda/horizonte`.
+         */
+        const nueva = validarFechaHoraDeAgenda(body.nuevaFechaHora)
+        if (!nueva.ok) {
+          return NextResponse.json({ error: nueva.mensaje }, { status: 400 })
         }
-        const nuevaFechaHora = body.nuevaFechaHora
+        const ventanaPortal = dentroDeLaVentanaPublica(nueva.fecha, hoyISO(config?.zonaHoraria || TZ_DEFAULT))
+        if (!ventanaPortal.ok) {
+          return NextResponse.json({ error: ventanaPortal.mensaje }, { status: 400 })
+        }
+        const nuevaFechaHora = nueva.fechaHora
         const fecha = nuevaFechaHora.slice(0, 10)
         const hhmm = nuevaFechaHora.slice(11, 16)
         const dayQuery = adminDb.collection('clinics').doc(clinicId).collection('appointments')
@@ -619,25 +759,80 @@ export async function POST(req: NextRequest) {
             { status: 403 },
           )
         }
-        // Recetas del paciente: derivadas de sus notas FIRMADAS con medicamentos.
+        /**
+         * ── H-01 · LA AUTORIDAD DE PRESCRIPCIÓN SE APLICA AQUÍ, EN EL SERVIDOR ──
+         *
+         * ESTO DEVOLVÍA `n.medicamentos` EN CRUDO, y la pantalla del paciente lo
+         * bajaba a un `.doc` titulado «RECETA MÉDICA». En esa lista cruda viven,
+         * mezclados y sin distinguir:
+         *
+         *   · lo que el paciente REFIRIÓ que toma      `procedenciaClinica:'ya_lo_toma'`
+         *   · lo que la IA extrajo y nadie confirmó    `estado:'borrador'`
+         *   · lo que el médico SUSPENDIÓ o canceló     `suspendida`/`cancelada`
+         *   · lo que venció sin que nadie lo revisara  `probablemente_terminada`
+         *
+         * Es decir: la historia farmacológica del paciente salía impresa como
+         * prescripción de un médico con cédula, sin que ningún médico lo hubiera
+         * indicado. Historia, medicación actual, plan, prescripción y receta son
+         * cinco cosas distintas y aquí se habían colapsado en una.
+         *
+         * La frontera existía —`medicamentosDeLaReceta`— pero vivía compuesta a
+         * mano dentro de la pantalla del médico, así que protegía sólo a esa
+         * pantalla. Ahora es una función, y esta ruta la cruza: la regla se aplica
+         * en el SERVIDOR porque el destinatario es el paciente, y esconder un
+         * renglón en la pantalla no cierra la ruta HTTP que lo devuelve.
+         *
+         * Y una nota deja de ser «una receta» por tener medicamentos: lo es
+         * cuando queda algo que el médico indicó de verdad. Una nota que sólo
+         * recogió antecedentes ya no aparece en la lista.
+         */
         const snap = await adminDb
           .collection('clinics').doc(clinicId)
           .collection('patients').doc(patientId)
           .collection('notas')
           .where('estado', '==', 'firmada')
           .get()
+
+        /**
+         * LAS ALERGIAS DE LA RECETA — verdad del expediente, o silencio.
+         *
+         * `alergiasParaImpreso` es la misma primitiva que usa la receta del
+         * médico: prefiere `alergiasEstructuradas` sobre el texto libre, así que
+         * un paciente cuya alergia sólo está estructurada no sale como «sin
+         * registro». Y `alergiasLeidas` viaja aparte a propósito: si el
+         * expediente no se pudo leer, la receta no afirma NADA sobre alergias —
+         * ni «sin registro», ni «negadas». Ausencia de dato no es dato de
+         * ausencia, y aquí el lector es alguien que no puede detectar el error.
+         */
+        const alergias = pacienteLeido ? alergiasParaImpreso(paciente) : ''
+
         const docs = snap.docs
           .map(d => ({ id: d.id, ...(d.data() as Omit<NotaMedica, 'id'>) }))
-          .filter(n => Array.isArray(n.medicamentos) && n.medicamentos.length > 0)
-          .map(n => ({
+          .map(n => ({ nota: n, recetados: medicamentosDeLaReceta(n.medicamentos ?? []) }))
+          .filter(({ recetados }) => recetados.length > 0)
+          .map(({ nota: n, recetados }) => ({
             id: n.id,
             fecha: n.fechaConsulta,
+            /**
+             * QUIÉN PRESCRIBIÓ, DE LA FIRMA Y DE NINGÚN OTRO SITIO.
+             *
+             * `firma` es el snapshot inmutable del momento de firmar (NOM-024):
+             * el médico que de verdad respondió por esta receta, con la cédula
+             * que tenía ese día. La configuración VIVA del consultorio no sirve
+             * aquí — cambiaría retroactivamente el autor de un acto medicolegal.
+             *
+             * Antes sólo viajaba el nombre, y la pantalla ni siquiera lo usaba:
+             * el paciente descargaba una «RECETA MÉDICA» sin prescriptor y con
+             * «[FALTA CÉDULA PROFESIONAL]» impreso donde va la cédula.
+             */
             medico: n.firma?.nombreMedico ?? '',
+            cedulaProfesional: n.firma?.cedulaProfesional ?? '',
+            especialidad: n.firma?.especialidad ?? '',
             diagnostico: (n.diagnosticos ?? []).map(dx => dx.descripcion).filter(Boolean).join(', '),
-            medicamentos: n.medicamentos ?? [],
+            medicamentos: recetados,
           }))
           .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
-        return NextResponse.json({ documentos: docs })
+        return NextResponse.json({ documentos: docs, alergias, alergiasLeidas: pacienteLeido })
       }
 
       default:

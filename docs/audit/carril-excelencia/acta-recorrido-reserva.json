@@ -1,0 +1,140 @@
+[
+  {
+    "ancho": 390,
+    "pasos": [
+      {
+        "paso": "1-abrir",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo"
+      },
+      {
+        "paso": "2-tipo",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · Volver · Elige el día · Lun 31 de ago · Mar 1 de sep · Mié 2 de se"
+      },
+      {
+        "paso": "3-dia",
+        "ok": true,
+        "detalle": "Lun 31 de ago"
+      },
+      {
+        "paso": "4-hora",
+        "ok": true,
+        "detalle": "09:00"
+      },
+      {
+        "paso": "5-datos",
+        "ok": true,
+        "detalle": "texto,tel,email"
+      },
+      {
+        "paso": "6-continuar",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · Volver · Confirma y acepta · Primera vez · con · Dra. Ximena Alcántara Robledo · lunes, 31 de agosto · 09:00 h"
+      },
+      {
+        "paso": "7-consentir",
+        "ok": true,
+        "detalle": "2 casillas"
+      },
+      {
+        "paso": "8-confirmar",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · ¡Cita solicitada! ✅ ·  · Tu solicitud llegó al consultorio. Te contactaremos por WhatsApp para confirmar. ·  · Primera vez · con · Dra. Ximena Alcántara Robledo · lunes, 31 de agosto · 09:00 h ·  · Si necesitas reprogr"
+      }
+    ],
+    "consola": []
+  },
+  {
+    "ancho": 768,
+    "pasos": [
+      {
+        "paso": "1-abrir",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo"
+      },
+      {
+        "paso": "2-tipo",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · Volver · Elige el día · Lun 31 de ago · Mar 1 de sep · Mié 2 de se"
+      },
+      {
+        "paso": "3-dia",
+        "ok": true,
+        "detalle": "Lun 31 de ago"
+      },
+      {
+        "paso": "4-hora",
+        "ok": true,
+        "detalle": "09:45"
+      },
+      {
+        "paso": "5-datos",
+        "ok": true,
+        "detalle": "texto,tel,email"
+      },
+      {
+        "paso": "6-continuar",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · Volver · Confirma y acepta · Primera vez · con · Dra. Ximena Alcántara Robledo · lunes, 31 de agosto · 09:45 h"
+      },
+      {
+        "paso": "7-consentir",
+        "ok": true,
+        "detalle": "2 casillas"
+      },
+      {
+        "paso": "8-confirmar",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · ¡Cita solicitada! ✅ ·  · Tu solicitud llegó al consultorio. Te contactaremos por WhatsApp para confirmar. ·  · Primera vez · con · Dra. Ximena Alcántara Robledo · lunes, 31 de agosto · 09:45 h ·  · Si necesitas reprogr"
+      }
+    ],
+    "consola": []
+  },
+  {
+    "ancho": 1440,
+    "pasos": [
+      {
+        "paso": "1-abrir",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo"
+      },
+      {
+        "paso": "2-tipo",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · Volver · Elige el día · Lun 31 de ago · Mar 1 de sep · Mié 2 de se"
+      },
+      {
+        "paso": "3-dia",
+        "ok": true,
+        "detalle": "Lun 31 de ago"
+      },
+      {
+        "paso": "4-hora",
+        "ok": true,
+        "detalle": "10:30"
+      },
+      {
+        "paso": "5-datos",
+        "ok": true,
+        "detalle": "texto,tel,email"
+      },
+      {
+        "paso": "6-continuar",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · Volver · Confirma y acepta · Primera vez · con · Dra. Ximena Alcántara Robledo · lunes, 31 de agosto · 10:30 h"
+      },
+      {
+        "paso": "7-consentir",
+        "ok": true,
+        "detalle": "2 casillas"
+      },
+      {
+        "paso": "8-confirmar",
+        "ok": true,
+        "detalle": "Dra. Ximena Alcántara Robledo · Medicina Interna e Infectología · ¡Cita solicitada! ✅ ·  · Tu solicitud llegó al consultorio. Te contactaremos por WhatsApp para confirmar. ·  · Primera vez · con · Dra. Ximena Alcántara Robledo · lunes, 31 de agosto · 10:30 h ·  · Si necesitas reprogr"
+      }
+    ],
+    "consola": []
+  }
+]

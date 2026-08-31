@@ -46,7 +46,9 @@ import {
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-import { leerAprendido, olvidar, type PalabraAprendida } from '@/lib/asr/aprendizaje-firestore'
+import {
+  leerVocabularioCompleto, olvidar, TOPE_PARA_ADMINISTRAR, type PalabraAprendida,
+} from '@/lib/asr/aprendizaje-firestore'
 
 type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'seguridad' | 'bot' | 'medicos' | 'equipo' | 'suscripcion' | 'entregas' | 'dictado'
 
@@ -61,6 +63,9 @@ export default function ConfiguracionPage() {
   const [form, setForm] = useState<ClinicConfig>({ ...DEFAULT_CONFIG })
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState('')
+  // Lo reporta `FirmaUploadSection`, que es quien lee del subdocumento
+  // protegido: el paso 2 de la pestaña de recetas lo usa para marcarse resuelto.
+  const [firmaLista, setFirmaLista] = useState(false)
   const [gcalConnected, setGcalConnected] = useState<boolean | null>(null)
   const [gcalLoading, setGcalLoading] = useState(false)
   const [gcalCalendars, setGcalCalendars] = useState<{ id: string; summary: string; primary: boolean }[]>([])
@@ -324,10 +329,22 @@ export default function ConfiguracionPage() {
   const TABS = TAB_GROUPS.flatMap(g => g.tabs.filter(t => !t.modoMin || mode === t.modoMin))
 
   if (loading) {
+    /*
+      LA PANTALLA NO PIERDE SU NOMBRE MIENTRAS CARGA.
+
+      Antes, `<main>` entero era un renglón en la esquina: 23 caracteres, sin
+      título y sin estructura — medido con la red lenta. El médico pulsaba
+      «Configuración» y se quedaba mirando un lienzo vacío sin saber si había
+      llegado. La cabecera es lo único que ya se sabe sin datos, así que se
+      queda; el contenido espera debajo.
+    */
     return (
-      <div role="status" style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" /> Cargando configuración…
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="nx-canvas">
+        <h1 className="t-h1" style={{ margin: '0 0 20px' }}>Configuración</h1>
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)' }}>
+          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" /> Cargando configuración…
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
       </div>
     )
   }
@@ -1000,25 +1017,34 @@ export default function ConfiguracionPage() {
       {/* Recetas y órdenes */}
       {/* TODO lo de impresos en UNA pestaña: receta/orden, firma y hoja de notas.
           Antes la firma y el membrete de notas vivían en "Datos del consultorio",
-          lejos de donde se configura lo que se imprime. */}
+          lejos de donde se configura lo que se imprime. Y ya no van una debajo de
+          otra: la firma es el PASO 2 y la hoja de notas es un ajuste raro. Se
+          pasan MONTADAS —esta página es la que tiene el formulario en memoria— y
+          `RecetasTab` decide dónde caen. */}
       {tab === 'recetas' && (
-        <div style={{ display: 'grid', gap: 20 }}>
-          <RecetasTab clinicId={clinicId} />
-
-          {/* 🖋️ Firma + sello POR MÉDICO — sale en notas, recetas y órdenes */}
-          <FirmaUploadSection
-            form={form}
-            clinicId={clinicId}
-            onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
-          />
-
-          {/* 📄 Hoja membretada para NOTAS — general o por médico */}
-          <MembreteNotaSection
-            form={form}
-            clinicId={clinicId}
-            onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
-          />
-        </div>
+        <RecetasTab
+          clinicId={clinicId}
+          /* Quién sabe si hay firma es la propia sección, que lee del
+             subdocumento protegido; deducirlo aquí desde `form` daría
+             «pendiente» a todo médico ya migrado (config/main no la tiene). */
+          firmaLista={firmaLista}
+          firmaSlot={
+            <FirmaUploadSection
+              compacto
+              form={form}
+              clinicId={clinicId}
+              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
+              onEstado={setFirmaLista}
+            />
+          }
+          notasSlot={
+            <MembreteNotaSection
+              form={form}
+              clinicId={clinicId}
+              onLocalChange={(patch) => setForm(f => ({ ...f, ...patch }))}
+            />
+          }
+        />
       )}
 
       {/* Seguridad — MFA / 2FA */}
@@ -1486,7 +1512,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
             style={{
               width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
               borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--text)',
-              outline: 'none', resize: 'vertical', lineHeight: 1.6,
+              resize: 'vertical', lineHeight: 1.6,
             }}
           />
         </div>
@@ -1584,7 +1610,7 @@ function MedicosTab() {
                   placeholder={f.placeholder}
                   style={{
                     width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                    borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none',
+                    borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--text)',
                   }}
                 />
               </div>
@@ -2553,6 +2579,16 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
  */
 function DictadoAprendidoTab({ clinicId }: { clinicId: string | null }) {
   const [lista, setLista] = useState<PalabraAprendida[]>([])
+  /**
+   * ¿La lista se quedó corta? (REG-393)
+   *
+   * Ésta es la pantalla donde el médico QUITA palabras. Enseñarle una lista
+   * recortada como si fuera completa le haría creer que ya no queda nada que
+   * revisar — ausencia de dato tomada por dato de ausencia.
+   */
+  const [truncada, setTruncada] = useState(false)
+  /** ¿Se pudo leer? Una lista vacía por un fallo de red no es «no ha aprendido nada». */
+  const [leida, setLeida] = useState(true)
   const [cargando, setCargando] = useState(true)
   const { toast } = useToast()
 
@@ -2566,7 +2602,9 @@ function DictadoAprendidoTab({ clinicId }: { clinicId: string | null }) {
    */
   const cargar = useCallback(() => {
     if (!clinicId) return
-    leerAprendido(clinicId).then(setLista).finally(() => setCargando(false))
+    leerVocabularioCompleto(clinicId)
+      .then(r => { setLista(r.lista); setTruncada(r.truncada); setLeida(r.leida) })
+      .finally(() => setCargando(false))
   }, [clinicId])
   useEffect(() => { cargar() }, [cargar])
 
@@ -2583,10 +2621,20 @@ function DictadoAprendidoTab({ clinicId }: { clinicId: string | null }) {
       </div>
       {lista.length === 0 ? (
         <div style={{ fontSize: 13, color: 'var(--text3)' }}>
-          Todavía no ha aprendido ninguna palabra. Aparecen aquí cuando corriges la misma dos veces.
+          {leida
+            /* Dos frases, porque son dos hechos distintos (REG-393). La de
+               abajo se pintaba también cuando la lectura fallaba. */
+            ? 'Todavía no ha aprendido ninguna palabra. Aparecen aquí cuando corriges la misma dos veces.'
+            : 'No se pudo leer el vocabulario aprendido. No quiere decir que esté vacío: vuelve a intentarlo.'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {truncada && (
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4 }}>
+              Se muestran las {TOPE_PARA_ADMINISTRAR.toLocaleString('es-MX')} palabras más
+              corregidas. Hay más aprendidas que no caben en esta lista.
+            </div>
+          )}
           {lista.map(p => (
             <div key={p.palabra} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px',

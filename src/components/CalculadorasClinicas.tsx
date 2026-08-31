@@ -151,7 +151,7 @@ const toggle = (on: boolean): React.CSSProperties => ({
 })
 const select: React.CSSProperties = {
   background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7,
-  padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none', maxWidth: 240,
+  padding: '5px 8px', fontSize: 12, color: 'var(--text)', maxWidth: 240,
 }
 
 export type { Calculadora }

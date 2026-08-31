@@ -18,6 +18,7 @@ import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
+import { TIMEOUT } from '@/lib/fetch-con-timeout'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
@@ -28,6 +29,7 @@ import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCredit
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -91,7 +93,16 @@ async function resolverModelo(key: string, perfil: Perfil): Promise<string> {
   if (modeloResuelto[perfil]) return modeloResuelto[perfil]
   const candidatos = CANDIDATOS[perfil]
   try {
-    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: headersAnthropic(key) })
+    /**
+     * REG-346 — con señal. Es un GET de descubrimiento, pero corre en una ruta
+     * con `maxDuration = 800`: un socket colgado aquí inmoviliza la lambda los
+     * 800 s enteros, facturados por GB-segundo, y el médico se queda mirando.
+     * Ya pasó una vez con 300 (`sw-changelog`); aquí sería casi el triple.
+     */
+    const res = await fetch('https://api.anthropic.com/v1/models?limit=100', {
+      headers: headersAnthropic(key),
+      signal: AbortSignal.timeout(TIMEOUT.ia),
+    })
     if (res.ok) {
       const data = await res.json()
       const ids: string[] = (data.data ?? []).map((m: { id: string }) => m.id)
@@ -229,12 +240,29 @@ async function llamarClaudeConReintentos(key: string, model: string, system: str
 // mismo prompt, para que Claude luego fusione lo mejor de ambos. Devuelve el JSON
 // crudo del modelo o null (a prueba de fallos: si algo falla, se ignora).
 const MODELOS_OPENAI_NOTA = ['gpt-5', 'gpt-4o']
-async function generarNotaOpenAI(keyOAI: string, system: string, userMsg: string): Promise<Record<string, unknown> | null> {
+async function generarNotaOpenAI(
+  keyOAI: string, system: string, userMsg: string,
+  /**
+   * REG-346 — LO QUE QUEDA DEL RELOJ, IGUAL QUE CLAUDE.
+   *
+   * `llamarClaude` ya recibía `msDisponibles` y ponía su `AbortSignal`; ésta no
+   * tenía ninguna. En una ruta con `maxDuration = 800` eso significa que un
+   * socket que no cierra inmoviliza la lambda los 800 s enteros —facturados por
+   * GB-segundo— y el médico se queda mirando una nota que ya no va a llegar.
+   *
+   * El ensamble es ADEMÁS el candidato natural a colgarse: es la segunda
+   * opinión, la que se puede perder sin perder la nota. Por eso se le da un
+   * tope propio y se le deja fallar: `null` ya significa «sigue con la de
+   * Claude».
+   */
+  msDisponibles = TIMEOUT.ia,
+): Promise<Record<string, unknown> | null> {
   async function llamar(model: string) {
     return fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${keyOAI}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }], response_format: { type: 'json_object' }, max_completion_tokens: 8000 }),
+      signal: AbortSignal.timeout(msDisponibles),
     })
   }
   try {
@@ -344,6 +372,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto = {
     feature: 'nota-consulta',
     requestId: req.headers.get('x-vercel-id') || `np-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null,
     uid: acceso.uid,
     creditos: 0,   // los créditos los cobra esta ruta por su cuenta, más abajo
@@ -467,7 +496,7 @@ export async function POST(req: NextRequest) {
        */
       const quien = quienPaga(fuente)
       const clase = claseDeFallo(res.status, err)
-      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'nota', status: res.status })
+      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'nota-consulta', status: res.status })
       return fallbackVisible(
         transcripcion, tipo,
         avisoAlMedico(clase, quien, 'anthropic').texto,

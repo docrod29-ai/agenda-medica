@@ -97,7 +97,13 @@ describe('la hoja inferior no se esconde detrás de la barra del pulgar', () => 
     /* `main` reserva `calc(72px + env(safe-area-inset-bottom, 0px))`. Si un día
        la barra cambia de alto, las dos reservas tienen que moverse juntas: dos
        números distintos para la misma barra es cómo se rompe esto en silencio. */
-    const dePrincipal = css.match(/main\s*\{[^}]*padding-bottom:\s*calc\((\d+)px/)
+    /* El ancla `(?:^|\n)\s*main\s*\{` busca la regla de `main` A SECAS. Sin ella
+       el patrón casaba con cualquier selector TERMINADO en `main {` —incluido
+       `html:has(.nx-push-optin) main {`, que aparta el final de la lista
+       mientras el aviso de notificaciones pregunta— y este caso empezó a
+       comparar el pie de la hoja contra una reserva CONDICIONAL que no es la
+       de la barra. Falló con «expected '72' to be '236'». */
+    const dePrincipal = css.match(/(?:^|\n)\s*main\s*\{[^}]*padding-bottom:\s*calc\((\d+)px/)
     expect(dePrincipal, 'la reserva de <main> desapareció: las dos van juntas').not.toBeNull()
     const deLaHoja = bloqueDeLaHojaInferior().match(/\.modal-footer\s*\{[^}]*?(\d+)px\s*\+\s*env\(safe-area/)
       ?? bloqueDeLaHojaInferior().match(/\.modal-footer\s*\{[^}]*?\+\s*(\d+)px/)

@@ -107,3 +107,55 @@ export const POR_QUE_EL_SILENCIO_NO_SUSPENDE =
   'que el paciente la haya dejado: significa que hoy no hablé de ella. ' +
   'Interpretar el silencio como suspensión borraría medicación crónica de la ' +
   'lista, que es exactamente el error que produce una interacción no vista.'
+
+/* ── LA PROYECCIÓN, CON LO QUE UNA LISTA NO PUEDE DECIR (WS-10, REG-405) ──── */
+
+/**
+ * Lo mismo que en `problemas-activos.ts`, y por lo mismo — pero aquí cuesta más.
+ *
+ * Una lista de medicamentos vigentes calculada sobre una ventana del historial
+ * se enseña como **la medicación del paciente**. Un fármaco recetado antes del
+ * techo desaparece de esa lista, y con él desaparece de todo lo que la usa: la
+ * comprobación de interacciones no lo mira, la reconciliación no lo echa en
+ * falta, y la nota nueva se escribe como si el paciente no lo tomara.
+ *
+ * «No encontré más» no es «no hay más». `medicamentosVigentes` sigue siendo el
+ * núcleo puro; lo que cambia es que quien pinta la lista puede —y tiene que—
+ * decir de cuánto historial salió.
+ */
+export const VERSION_PROYECCION_MEDICAMENTOS = 1
+
+export interface EstadoDeMedicamentos {
+  /** ISO del instante al que corresponde esta proyección. Se pasa; no se lee el reloj. */
+  readonly asOf: string
+  readonly version: number
+  readonly vigentes: readonly OrdenVigente[]
+  /** true = el historial del que sale esto vino recortado (REG-350). */
+  readonly historialRecortado: boolean
+}
+
+/**
+ * La medicación vigente **con el sobre que dice de dónde salió**.
+ *
+ * @param asOf ISO del momento de la proyección. Se pasa para que sea pura.
+ * @param opciones `historialIncompleto` cuando las notas vinieron recortadas.
+ */
+export function estadoDeMedicamentos(
+  notas: readonly NotaConMedicamentos[],
+  asOf: string,
+  opciones: { historialIncompleto?: boolean } = {},
+): EstadoDeMedicamentos {
+  return {
+    asOf,
+    version: VERSION_PROYECCION_MEDICAMENTOS,
+    vigentes: medicamentosVigentes(notas),
+    historialRecortado: opciones.historialIncompleto === true,
+  }
+}
+
+export const POR_QUE_IMPORTA_MAS_EN_MEDICAMENTOS =
+  'Un fármaco anterior al techo del historial desaparece de la lista vigente, y ' +
+  'con él desaparece de todo lo que la usa: la comprobación de interacciones no ' +
+  'lo mira, la reconciliación no lo echa en falta, y la nota nueva se escribe ' +
+  'como si el paciente no lo tomara. La lista tiene que poder decir que salió de ' +
+  'una ventana.'

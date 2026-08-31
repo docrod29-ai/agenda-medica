@@ -19,7 +19,7 @@ import {
   ArrowLeft, Mic, FileText, Loader2, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
-  Camera, FlaskConical, Link2Off, Sparkles, Bug, ExternalLink,
+  Camera, FlaskConical, Link2Off, Sparkles, Bug, ExternalLink, AlertTriangle,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
@@ -37,8 +37,12 @@ import { InternamientosDelPaciente } from '@/components/InternamientosDelPacient
 import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
 import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
-import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'
-import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
+import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import { estadoDeBanderas, avisoDeBanderasIncompletas } from '@/lib/expediente/banderas-de-riesgo'
+import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
+import {
+  estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
+} from '@/lib/expediente/alergias-longitudinales'
 
 /**
  * ¿ESTA NOTA ES HOSPITALARIA? UNA regla, no dos.
@@ -81,7 +85,7 @@ export default function ExpedientePage() {
   const { clinicId } = useClinic()
   const { user } = useAuth()
   const { toast, confirm } = useToast()
-  const { notas, loading, error: errorNotas, reload } = useExpediente(patientId)
+  const { notas, loading, error: errorNotas, reload, truncada: historialTruncado, techo: techoHistorial } = useExpediente(patientId)
   const [errorPaciente, setErrorPaciente] = useState('')
   const [descargandoTodo, setDescargandoTodo] = useState(false)
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -172,14 +176,66 @@ export default function ExpedientePage() {
     problemas" en el riel y "4" en el resumen según el momento del render.
     Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
   */
-  const { problemas, vigentes } = useMemo(() => {
+  const { problemas, vigentes, proyeccionRecortada } = useMemo(() => {
     const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
       fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
       medicamentos: n.medicamentos,
       diagnosticos: n.diagnosticos,
     }))
-    return { problemas: problemasActivos(firmadas), vigentes: medicamentosVigentes(firmadas) }
-  }, [notas])
+    /**
+     * REG-405 · las dos listas viajan CON el recorte del historial.
+     *
+     * Esta pantalla ya tenía `historialTruncado` en la mano —lo pide
+     * `useExpediente`— y lo dejaba caer aquí. Sobre un historial recortado, «no
+     * encontré más» NO es «no hay más»: un fármaco o una comorbilidad anteriores
+     * al techo desaparecían de la lista sin que nada lo dijera. Es la misma regla
+     * que ya cumplía la proyección de alergias, que sí lo recibe.
+     */
+    const asOf = new Date().toISOString()
+    const p = estadoDeProblemas(firmadas, asOf, { historialIncompleto: historialTruncado })
+    const m = estadoDeMedicamentos(firmadas, asOf, { historialIncompleto: historialTruncado })
+    return { problemas: p.problemas, vigentes: m.vigentes, proyeccionRecortada: p.historialRecortado }
+  }, [notas, historialTruncado])
+
+  /**
+   * LAS ALERGIAS SEGÚN EL EXPEDIENTE ENTERO, NO SEGÚN UN CAMPO (WS-10).
+   *
+   * En el cuerpo y no en un `useMemo`: una función importada dentro de una
+   * memoización manual no la preserva el React Compiler (misma razón que en
+   * `/consulta`). Sale de `notas`, que ya están cargadas: cero lecturas nuevas.
+   *
+   * `historialIncompleto` viaja porque sobre un recorte «no encontré más» NO es
+   * «no hay más», y esa diferencia es la regla 4 de seguridad clínica.
+   */
+  /* El instante en que llegaron ESTAS notas — no el del render, que cambia
+     solas y haría que la proyección no fuera comparable consigo misma. */
+  const asOfNotas = useMemo(() => (notas.length ? new Date().toISOString() : ''), [notas])
+  const estadoAlergias = estadoDeAlergias(
+    notas.map(n => ({
+      fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+      alergias: n.alergias,
+      estado: n.estado,
+    })),
+    patient, asOfNotas,
+    { historialIncompleto: historialTruncado },
+  )
+  const avisoAlergias = avisoDeAlergiasQueNoSeVen(estadoAlergias)
+
+  /**
+   * EL EJE DE RIESGOS (WS-10) — reúne, no decide.
+   *
+   * Sale de las dos proyecciones que esta pantalla YA tiene y de las etiquetas
+   * del paciente: cero lecturas nuevas. Qué condición cuenta como bandera es
+   * política clínica del dueño y NO se decide aquí; lo que se enseña es lo que
+   * el médico o el consultorio ya declararon, con quién lo dijo y cuándo.
+   */
+  const banderas = estadoDeBanderas(
+    estadoAlergias,
+    { problemas, historialRecortado: proyeccionRecortada },
+    patient?.tags,
+    asOfNotas,
+  )
+  const avisoBanderas = avisoDeBanderasIncompletas(banderas)
 
   /*
     CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — sólo enseña las
@@ -215,9 +271,37 @@ export default function ExpedientePage() {
   return (
     <div className="nx-canvas">
       {/* Back */}
-      <button onClick={volver} style={backBtn}>
+      <button onClick={volver} className="nx-acc-texto nx-acc-texto--tenue" style={backBtn}>
         <ArrowLeft size={15} /> Atrás
       </button>
+
+      {/**
+        * EL HISTORIAL PUEDE VENIR RECORTADO, Y ESO SE DICE ARRIBA (REG-350).
+        *
+        * Va antes del ancla del paciente a propósito: de estas notas cuelgan los
+        * problemas activos, la medicación vigente y el resumen que se lee más
+        * abajo. Si falta historia, el médico tiene que saberlo ANTES de leer
+        * conclusiones derivadas de ella, no después.
+        *
+        * Un expediente recortado en silencio no enseña una lista incompleta:
+        * enseña «no tiene ese antecedente», que es la afirmación contraria y la
+        * que nadie vuelve a comprobar. Regla 4 de seguridad clínica.
+        */}
+      {historialTruncado && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Se cargaron las <strong>{techoHistorial}</strong> notas más recientes.
+            Este paciente tiene <strong>más historia de la que se ve aquí</strong>:
+            los diagnósticos, los medicamentos y el resumen de abajo salen sólo de
+            estas notas, así que <strong>no des por ausente</strong> lo que no aparezca.
+          </span>
+        </div>
+      )}
 
       {/* PATIENT ANCHOR (§7, V15-PATIENT-WORKSPACE-001) — identidad, alergia
           y encuentro en curso, SIEMPRE visible mientras se recorre el
@@ -236,7 +320,7 @@ export default function ExpedientePage() {
            porqué medido en `PatientAnchor` — 720px sin usar a la izquierda de
            un botón que tenía su propia fila. */
         accion={
-          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} style={primaryBtn}>
+          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} className="nx-acc-fuerte" style={primaryBtn}>
             <Mic size={16} /> Nueva consulta
           </button>
         }
@@ -296,6 +380,83 @@ export default function ExpedientePage() {
         fármacos"; si cada uno lo recalculara aparte, un mismo paciente
         podría mostrar números distintos según dónde se mire.
       */}
+      {/*
+        ── LO QUE EL EXPEDIENTE REGISTRA EN ALERGIAS Y LA LISTA DE HOY NO (WS-10) ──
+
+        Las alergias del producto salen de UN campo mutable de `Patient` que la
+        última escritura pisa entera; cada nota firmada, en cambio, selló una
+        copia de esa lista el día que se firmó, y nadie la volvía a leer. Aquí
+        —donde se revisa el expediente, no donde se prescribe— se enseña la
+        discrepancia con su procedencia: qué nota lo dice y de qué fecha.
+
+        No corrige nada. Corregir es un acto del médico, y su sitio es
+        `/consulta`, donde el campo se edita con el paciente delante.
+      */}
+      {avisoAlergias && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
+          background: 'color-mix(in srgb, var(--red) 8%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
+          borderRadius: 10, padding: '10px 13px',
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 2 }} />
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
+            <strong className="nx-critico">{avisoAlergias}</strong>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {[...estadoAlergias.ausentesDeLaListaDeHoy, ...estadoAlergias.enConflicto].map(a => {
+                const peor = peorSeveridadRegistrada(a)
+                const reac = reaccionRegistrada(a)
+                return (
+                  <li key={a.alergeno}>
+                    <strong style={{ color: 'var(--text)' }}>{a.alergeno}</strong>
+                    {peor && <> · {peor.severidad}</>}
+                    {reac && <> · {reac.reaccion}</>}
+                    {a.selladaEn && <> · nota firmada del {a.selladaEn.slice(0, 10)}</>}
+                    {a.negadaHoy && <> · <span className="nx-critico">hoy el campo la niega</span></>}
+                  </li>
+                )
+              })}
+            </ul>
+            {estadoAlergias.historialIncompleto && (
+              <div style={{ color: 'var(--text3)', marginTop: 4 }}>
+                El historial vino recortado: puede haber más en notas que no se cargaron.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/*
+        LO QUE YA ESTÁ DECLARADO COMO RIESGO, JUNTO (WS-10).
+
+        No es una alarma y por eso no se pinta como tal: el aviso de alergias de
+        arriba SÍ señala algo que la compuerta de hoy no está mirando, y esto
+        sólo reúne lo que ya consta. Dos rojos seguidos harían que ninguno se
+        leyera.
+
+        Cada línea dice de dónde salió. Ninguna se reescribe.
+      */}
+      {banderas.banderas.length > 0 && (
+        <section style={{ marginBottom: 16 }} aria-label="Banderas de riesgo declaradas">
+          <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', fontWeight: 600 }}>
+            Riesgos declarados
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
+            {banderas.banderas.map((b, i) => (
+              <li key={`${b.origen}-${b.texto}-${i}`}>
+                <strong style={{ color: 'var(--text)' }}>{b.texto}</strong>
+                {b.detalle && <> · {b.detalle}</>}
+                {b.desde && <> · desde el {b.desde.slice(0, 10)}</>}
+                <span style={{ color: 'var(--text3)' }}> · {b.declaradoPor}</span>
+              </li>
+            ))}
+          </ul>
+          {avisoBanderas && (
+            <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{avisoBanderas}</div>
+          )}
+        </section>
+      )}
+
       {(problemas.length > 0 || vigentes.length > 0) && (
         <div id="spine-problemas" style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
@@ -368,7 +529,7 @@ export default function ExpedientePage() {
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {([['todas', 'Todas'], ['consulta', 'Consulta'], ['hospital', 'Hospital']] as const).map(([k, l]) => (
-          <button key={k} onClick={() => setFiltro(k)} style={chip(filtro === k)}>{l}</button>
+          <button key={k} onClick={() => setFiltro(k)} className="nx-chip nx-chip--relleno" aria-pressed={filtro === k} style={chip(filtro === k)}>{l}</button>
         ))}
       </div>
 
@@ -572,7 +733,7 @@ export default function ExpedientePage() {
           texto — sin diagnósticos ni recetas estructuradas.
         </p>
         <div className="actions-row">
-          <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => router.push(`/referencia/${patientId}`)} className="nx-acc-caja" style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Send size={15} /> Carta de referencia
           </button>
           {/*
@@ -607,7 +768,7 @@ export default function ExpedientePage() {
             } catch {
               toast('No se pudo conectar para armar el expediente', 'error')
             } finally { setDescargandoTodo(false) }
-          }} disabled={descargandoTodo} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
+          }} disabled={descargandoTodo} className="nx-acc-caja" style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
             <Upload size={15} /> {descargandoTodo ? 'Armando…' : 'Expediente completo'}
           </button>
           <button onClick={async () => {
@@ -672,7 +833,8 @@ export default function ExpedientePage() {
             acaba una frase.
           */
           aria-label="Enviar a otro sistema — archivo FHIR R4"
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+          className="nx-acc-caja"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
             <Upload size={15} />
             {/*
               RTC-21 (§25) — EL BOTÓN DICE EL TRABAJO; LA SIGLA SE QUEDA DEBAJO.
@@ -783,9 +945,13 @@ function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | nu
   */
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', marginBottom: 16, overflow: 'hidden' }}>
-      <button onClick={() => setAbierto(a => !a)} style={{
+      <button onClick={() => setAbierto(a => !a)}
+        aria-expanded={abierto}
+        className="nx-acc-plana"
+        data-abierto={abierto || undefined}
+        style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
-        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
+        border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
       }}>
         {abierto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         <span style={{ fontSize: 14, fontWeight: 700 }}>Datos del paciente</span>
@@ -910,9 +1076,9 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               {!firmada && (
-                <button onClick={onEditar} style={ghostBtn}>Continuar edición</button>
+                <button onClick={onEditar} className="nx-acc-caja" style={ghostBtn}>Continuar edición</button>
               )}
-              <button onClick={onImprimir} style={ghostBtn}><Printer size={13} /> Imprimir / PDF</button>
+              <button onClick={onImprimir} className="nx-acc-caja" style={ghostBtn}><Printer size={13} /> Imprimir / PDF</button>
               {/* Receta y Orden — solo cuando la nota está firmada (datos confiables) */}
               {firmada && (
                 <>
@@ -956,8 +1122,8 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
   )
 }
 
-const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
+const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, border: 'none', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
 const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
-const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
-const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
-const chip = (active: boolean): React.CSSProperties => ({ background: active ? 'var(--nexus-solido)' : 'var(--s2)', color: active ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })
+const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
+const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
+const chip = (active: boolean): React.CSSProperties => ({ color: active ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })

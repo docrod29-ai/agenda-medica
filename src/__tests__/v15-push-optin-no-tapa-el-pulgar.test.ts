@@ -95,9 +95,21 @@ describe('V15 — push opt-in móvil: hoja ENCIMA del BottomNav, nunca sobre él
   })
 
   it('§24: Activar/Después y la X llevan clase, y la hoja les da 44px táctiles', () => {
-    // Las dos acciones comparten la clase (aparecen dos veces en el JSX).
-    expect(BANNER.match(/className="nx-push-optin-accion"/g)?.length).toBe(2)
-    expect(BANNER).toContain('className="nx-push-optin-cerrar"')
+    /*
+     * SE COMPRUEBA QUE LLEVEN LA CLASE, NO QUE SEA LA ÚNICA.
+     *
+     * Este caso pedía `className="nx-push-optin-accion"` con las comillas
+     * pegadas, y se puso rojo el día que los botones sumaron `nx-acc-fuerte` /
+     * `nx-acc-plana` para acusar el puntero. La clase seguía puesta y los 44px
+     * seguían aplicándose: lo que fallaba era la forma de escribirla. Es el
+     * cuarto guardián de este carril anclado en la forma en vez de en la
+     * invariante — y un guardián que sólo admite una forma de escribir la clase
+     * obliga a escribirla así para siempre.
+     */
+    const conClase = (c: string) =>
+      (BANNER.match(new RegExp(`className="[^"]*\\b${c}\\b[^"]*"`, 'g')) ?? []).length
+    expect(conClase('nx-push-optin-accion'), 'las dos acciones perdieron su clase de objetivo táctil').toBe(2)
+    expect(conClase('nx-push-optin-cerrar'), 'la X perdió su clase de objetivo táctil').toBe(1)
     const accion = bloqueCss('.nx-push-optin-accion {')
     expect(Number(accion.match(/min-height:\s*(\d+)px/)?.[1])).toBeGreaterThanOrEqual(44)
     const cerrar = bloqueCss('.nx-push-optin-cerrar {')

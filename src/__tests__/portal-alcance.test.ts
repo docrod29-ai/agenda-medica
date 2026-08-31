@@ -15,10 +15,23 @@ import { createHmac } from 'node:crypto'
  * Datos 100% ficticios. Sin red, sin emulador.
  */
 
+/**
+ * El limitador se dobla en pase libre. Este archivo mide el ALCANCE del token y
+ * nada más; con el limitador real, el doble de Firestore de aquí abajo lo haría
+ * fallar y desde REG-331 un freno que no puede contar cierra con 503, tapando
+ * el 403 que es lo que aquí se quiere ver. Qué ventanas invoca la ruta se prueba
+ * en `portal-limite-de-tasa.test.ts`.
+ */
+vi.mock('@/lib/rate-limit', () => ({
+  limitarOResponder: async () => null,
+  limitarEstricto: async () => null,
+}))
+
 // ── Dobles del Admin SDK ──────────────────────────────────────────────────
 const getCitas = vi.fn()
 const getConfig = vi.fn()
 const getNotas = vi.fn()
+const getPaciente = vi.fn()
 
 vi.mock('@/lib/firebase-admin', () => ({
   default: {},
@@ -29,7 +42,18 @@ vi.mock('@/lib/firebase-admin', () => ({
           if (sub === 'appointments') return { where: () => ({ get: getCitas }) }
           if (sub === 'config') return { doc: () => ({ get: getConfig }) }
           if (sub === 'patients') {
-            return { doc: () => ({ collection: () => ({ where: () => ({ get: getNotas }) }) }) }
+            /**
+             * `get` del propio expediente: desde REG-331 la ruta comprueba la
+             * vigencia del enlace ANTES de mirar el alcance, y sin este doble
+             * la comprobación no podría hacerse y la ruta cerraría con 503 —
+             * tapando justo lo que este archivo mide.
+             */
+            return {
+              doc: () => ({
+                get: getPaciente,
+                collection: () => ({ where: () => ({ get: getNotas }) }),
+              }),
+            }
           }
           throw new Error(`subcolección inesperada en el test: ${sub}`)
         },
@@ -43,11 +67,32 @@ import { crearTokenPaciente, verificarTokenPaciente, linkPortalPaciente } from '
 
 /** El mismo fallback de desarrollo que usa `patient-token.ts` fuera de producción. */
 const SECRETO_DEV = 'dev-portal-secret-no-usar-en-produccion-0123456789'
+
+/**
+ * ESTE ARCHIVO FIRMA TOKENS A MANO, ASÍ QUE TIENE QUE FIJAR EL SECRETO.
+ *
+ * Dos casos de aquí abajo re-firman un payload con `SECRETO_DEV` y esperan que
+ * el verificador los acepte. Eso sólo es cierto mientras `PORTAL_PACIENTE_SECRET`
+ * NO esté puesta: `getSecret()` la lee en cada llamada y prefiere la del
+ * entorno.
+ *
+ * Se descubrió al exportar esa variable en la misma terminal para que el arnés
+ * pudiera medir el portal del paciente: la suite se puso roja con «expected null
+ * not to be null» y el rojo no decía nada del producto. Una prueba que depende
+ * de que NADIE haya exportado una variable depende de que alguien se acuerde.
+ * Ahora la fija ella.
+ */
+beforeEach(() => {
+  vi.stubEnv('PORTAL_PACIENTE_SECRET', SECRETO_DEV)
+})
 const CLINICA = 'clinica-ficticia'
 const PACIENTE = 'pac-ficticio-001'
 
 function req(body: unknown) {
-  return { json: async () => body } as unknown as Parameters<typeof POST>[0]
+  return {
+    json: async () => body,
+    headers: new Headers({ 'x-forwarded-for': '203.0.113.9' }),
+  } as unknown as Parameters<typeof POST>[0]
 }
 
 function snap(docs: Record<string, unknown>[]) {
@@ -58,6 +103,8 @@ beforeEach(() => {
   getCitas.mockReset()
   getConfig.mockReset()
   getNotas.mockReset()
+  getPaciente.mockReset()
+  getPaciente.mockResolvedValue({ exists: true, data: () => ({ portalTokenVersion: 0 }) })
   getCitas.mockResolvedValue(snap([]))
   getConfig.mockResolvedValue({ exists: false })
   getNotas.mockResolvedValue(snap([

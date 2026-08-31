@@ -188,11 +188,22 @@ const POSICIONES_DE_CARGA = [
 /**
  * Exenciones con MOTIVO. Sin motivo no hay exención.
  * Ojo: `api.qrserver.com` está permitido por `img-src ... https:` (la política no
- * restringe imágenes por host), pero se deja anotado porque es un HALLAZGO abierto
- * de privacidad, no una bendición: ver docs/seguridad/csp-enforce.md §Hallazgos.
+ * restringe imágenes por host), y se deja anotado con lo que hoy manda de verdad:
+ * ver docs/seguridad/csp-enforce.md §Hallazgos.
+ *
+ * REG-502 CERRÓ LA PARTE GRAVE. El hallazgo decía «manda el otpauth:// a un
+ * tercero», y era cierto en las DOS pantallas de enrolamiento: el `otpauth://`
+ * lleva dentro el secreto compartido del segundo factor. Ya no lo manda ninguna
+ * — las dos dibujan el QR en el navegador con `qrcode`.
+ *
+ * LO QUE QUEDA, Y POR QUÉ NO ES LO MISMO: dos QR de enlaces PÚBLICOS (el
+ * `wa.me` de auto-agenda y la URL de reservas del consultorio). Ahí no viaja
+ * ningún secreto: viaja una dirección hecha para repartirse. Sigue siendo una
+ * dependencia de un tercero y no funciona sin red, pero no es divulgación de
+ * un secreto y no se cuenta como si lo fuera.
  */
 const EXENCIONES: Record<string, string> = {
-  'api.qrserver.com': 'img-src permite https: en general (QR del enrolamiento MFA). HALLAZGO abierto: manda el otpauth:// a un tercero.',
+  'api.qrserver.com': 'img-src permite https: en general. Sólo QR de enlaces PÚBLICOS (auto-agenda, reservas). El secreto TOTP ya NO viaja: REG-502.',
 }
 
 /** Sólo código que se sirve al navegador: los tests no se despachan a nadie. */

@@ -1,6 +1,6 @@
 'use client'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useCerrarConEscape } from '@/lib/ui/activable'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { estadoPaywall } from '@/lib/finanzas/paywall-prueba'
 import { useRouter, usePathname } from 'next/navigation'
@@ -556,7 +556,19 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   // La barra lateral abierta atrapaba el foco: sólo cerraba tocando el telón.
-  useCerrarConEscape(sidebarOpen, () => setSidebarOpen(false))
+  /**
+   * EL CAJÓN YA CERRABA CON ESCAPE. LO QUE LE FALTABA ERA LA TRAMPA DE FOCO.
+   *
+   * `useDialogoDeTeclado` sustituye al gancho estrecho —no se suma— porque dos
+   * manejadores de Escape sobre el mismo panel es una forma cara de que un día
+   * cierren cosas distintas.
+   *
+   * Este cajón es de la ASISTENTE (el médico navega con la barra de abajo), y
+   * es el único sitio desde el que llega a media aplicación en el teléfono.
+   */
+  const cajonRef = useRef<HTMLDivElement>(null)
+  const cerrarCajon = useCallback(() => setSidebarOpen(false), [])
+  useDialogoDeTeclado(sidebarOpen, cajonRef, cerrarCajon)
 
   // Rutas que SOLO pueden ver médicos/admin (datos clínicos sensibles).
   // La asistente NUNCA debe verlas, sin importar el toggle de UI.
@@ -725,8 +737,15 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         }}
       />
       <div
+        ref={cajonRef}
         role="dialog"
+        aria-modal="true"
         aria-label="Menú"
+        tabIndex={-1}
+        // Cerrado, el cajón sigue en el DOM (entra deslizándose). `inert` lo
+        // saca del orden de tabulación mientras no está: sin esto, tabular por
+        // la pantalla pasa por media aplicación que no se ve.
+        inert={!sidebarOpen}
         style={{
           position: 'fixed', top: 0, left: 0, bottom: 0,
           width: 'min(82vw, 320px)',

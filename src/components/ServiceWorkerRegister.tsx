@@ -1,5 +1,6 @@
 'use client'
 import { useEffect } from 'react'
+import { PREFIJO_VERSION } from '@/lib/marca'
 
 /**
  * Registra el service worker y AUTO-ACTUALIZA en silencio cuando hay un despliegue
@@ -64,10 +65,26 @@ export function ServiceWorkerRegister() {
              */
             const res = await fetch('/version.txt', { cache: 'no-store' })
             const texto = await res.text()
-            const m = texto.match(/ausculta-v(\d+)/)
+            /**
+             * EL PREFIJO SALE DE `marca.ts`, NO DE UN LITERAL AQUÍ.
+             *
+             * Aquí había un literal escrito a mano con el prefijo de la
+             * MARCA NUEVA. Lo que escriben `sw.js` y
+             * `version.txt` es `nexusmed-vNNN` —y tiene que seguir siendo eso,
+             * está declarado en `NO_SE_RENOMBRAN` porque cambiarlo rompe la
+             * comprobación de versión desplegada—. Así que la expresión no
+             * casaba NUNCA: `servidor` y `local` salían los dos `null`, la
+             * guarda de abajo devolvía, y esta purga —la que existe para el
+             * «no me abre nada y va lentísimo» de arriba— no corría jamás.
+             *
+             * Sin error y sin aviso, que es lo que la hizo durar. Un literal
+             * repetido a mano en el lector se desfasa del escritor siempre.
+             */
+            const sello = new RegExp(`${PREFIJO_VERSION}(\\d+)`)
+            const m = texto.match(sello)
             const servidor = m ? m[1] : null
             const vivo = (window as unknown as { __AUSCULTA_VERSION?: string }).__AUSCULTA_VERSION
-            const local = vivo ? (vivo.match(/ausculta-v(\d+)/)?.[1] ?? null) : null
+            const local = vivo ? (vivo.match(sello)?.[1] ?? null) : null
             if (!servidor || !local || servidor === local) return
 
             sessionStorage.setItem('nx-purgado', '1')

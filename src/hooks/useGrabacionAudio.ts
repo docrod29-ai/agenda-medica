@@ -808,6 +808,55 @@ async function transcribirParte(blob: Blob, ext: string, contexto: CtxDictado = 
  */
 export interface ResultadoPorPartes { texto: string; lotesFallidos: number }
 
+/**
+ * ── UNA TRANSCRIPCIÓN INCOMPLETA NO ES UNA TRANSCRIPCIÓN — H-07 ─────────────
+ *
+ * Las dos preguntas que hay que hacerle a un resultado por partes estaban
+ * escritas a mano, en línea, y **en un solo camino de los dos**.
+ *
+ * Al detener, `detener()` se bifurca: cuando `modoDeHabla === 'dictado'` se
+ * transcribe directo y se sale por arriba; si no, se intenta diarizar y se cae
+ * al camino largo. El camino largo aprendió —a base de fallos— que:
+ *
+ *   · un texto hecho SÓLO de marcadores `[⚠ FALTA UN TRAMO…]` no es texto, y
+ *   · si faltó algún tramo, el audio es lo único que permite recuperarlo.
+ *
+ * La rama de dictado se llevó `.texto` y tiró `lotesFallidos` al suelo. Con eso
+ * una transcripción a la que le faltaban tramos se daba por buena **y borraba
+ * los trozos de IndexedDB**: la única fuente recuperable, destruida justo en el
+ * caso en que ya había ido mal una vez.
+ *
+ * Ahora la decisión está escrita UNA vez y la consumen las dos ramas. Es la
+ * misma lección de REG-300: tres copias de una regla son tres oportunidades de
+ * que una se quede vieja.
+ */
+
+/** El texto sin los marcadores de tramo perdido. Lo que de verdad se oyó. */
+export function textoUtil(r: ResultadoPorPartes): string {
+  return r.texto.replace(/\[⚠[^\]]*\]/g, '').trim()
+}
+
+/**
+ * ¿Falló TODO? Con lotes caídos y nada aprovechable debajo de las advertencias,
+ * lo que hay en pantalla no es una nota: es un parte de daños. Quien llama debe
+ * caer al respaldo del streaming en vivo, que sí tiene contenido.
+ */
+export function soloSonAdvertencias(r: ResultadoPorPartes): boolean {
+  return r.lotesFallidos > 0 && !textoUtil(r)
+}
+
+/**
+ * ¿Se puede borrar el audio guardado?
+ *
+ * Sólo con CERO lotes caídos. Un fallo parcial deja una transcripción con
+ * huecos, y el audio es lo único que permite volver a por ellos. Éste es el
+ * guardián de H-07: probado al revés (devolviendo `true` a secas) el golden
+ * falla.
+ */
+export function sePuedeBorrarElAudio(r: ResultadoPorPartes): boolean {
+  return r.lotesFallidos === 0
+}
+
 async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, contexto: CtxDictado = {}): Promise<ResultadoPorPartes> {
   if (chunks.length === 0) return { texto: '', lotesFallidos: 0 }
   const header = chunks[0]
@@ -1703,16 +1752,32 @@ export function useGrabacionAudio(): UseGrabacionAudio {
      * de algo que salió bien.
      */
     if (modoDeHablaRef.current === 'dictado') {
-      const texto = GRANDE
-        ? (await transcribirEnPartes(allChunks, rec.mimeType, ext, { ...contextoRef.current, duracionSeg: duracionRef.current })).texto
-        : await transcribirBlobSimple(blob, ext, { ...contextoRef.current, duracionSeg: duracionRef.current })
-      if (texto.trim()) {
+      /**
+       * ── H-07 · AQUÍ SE TIRABA `lotesFallidos` AL SUELO ────────────────────
+       *
+       * Esta rama se quedaba con `.texto` y descartaba el conteo de lotes
+       * caídos. Con eso, una transcripción a la que le faltaban tramos —texto
+       * cosido con marcadores `[⚠ FALTA UN TRAMO…]`— pasaba el `texto.trim()`,
+       * se daba por buena, y el `borrarChunks` de abajo se llevaba el audio.
+       *
+       * Fallo parcial fingiendo éxito, y destruyendo de paso la única fuente
+       * con la que se podía reintentar. Ahora se usan las MISMAS dos preguntas
+       * que el camino largo ya sabía hacer.
+       */
+      const porPartes: ResultadoPorPartes = GRANDE
+        ? await transcribirEnPartes(allChunks, rec.mimeType, ext, { ...contextoRef.current, duracionSeg: duracionRef.current })
+        : { texto: await transcribirBlobSimple(blob, ext, { ...contextoRef.current, duracionSeg: duracionRef.current }), lotesFallidos: 0 }
+      if (porPartes.texto.trim() && !soloSonAdvertencias(porPartes)) {
         setUtterances([]); utterancesRef.current = []
-        await aplicar(texto)
-        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
+        await aplicar(porPartes.texto)
+        // Sólo se borra el audio si NO faltó ningún tramo — igual que abajo.
+        if (recoveryKeyRef.current && sePuedeBorrarElAudio(porPartes)) {
+          await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
+        }
         return
       }
-      // Sin texto: cae al camino de siempre, que ya sabe usar el respaldo en vivo.
+      // Sin texto útil: cae al camino de siempre, que ya sabe usar el respaldo
+      // en vivo. Y sin borrar nada: el audio se queda para poder reintentar.
     }
 
     // 1) Diarización (separa voces): audio corto pasa directo; audio LARGO sube a
@@ -1767,14 +1832,13 @@ export function useGrabacionAudio(): UseGrabacionAudio {
      * La misma cuenta que hizo falta para no borrar el audio (`lotesFallidos`)
      * servía para esto y no se usaba.
      */
-    const todoFalló = porPartes.lotesFallidos > 0 && !porPartes.texto
-      .replace(/\[⚠[^\]]*\]/g, '').trim()
+    const todoFalló = soloSonAdvertencias(porPartes)
 
     if (texto.trim() && !todoFalló) {
       await aplicar(texto)
       // Solo se borra el audio si NO faltó ningún tramo. Si algo se perdió, el
       // audio es lo único que permite recuperarlo: se conserva.
-      if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
+      if (recoveryKeyRef.current && sePuedeBorrarElAudio(porPartes)) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
       return
     }
 

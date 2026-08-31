@@ -30,6 +30,8 @@ export interface AccesoOk {
   email?: string
   clinicId?: string
   role?: string
+  /** ¿La sesión resolvió un segundo factor? Sale del token, no se supone. */
+  segundoFactor?: boolean
 }
 export interface AccesoErr {
   ok: false
@@ -41,15 +43,36 @@ function err(status: number, mensaje: string): AccesoErr {
   return { ok: false, response: NextResponse.json({ ok: false, error: mensaje }, { status }) }
 }
 
-/** Extrae y verifica el ID-token de Firebase del header Authorization. */
-async function verificarToken(req: NextRequest): Promise<{ uid: string; email?: string } | null> {
+/**
+ * Extrae y verifica el ID-token de Firebase del header Authorization.
+ *
+ * ── POR QUÉ SE LEE `sign_in_second_factor` (REG-384) ─────────────────────────
+ *
+ * Firebase pone en el token **cómo** se inició la sesión: si el usuario resolvió
+ * un segundo factor, el token trae `firebase.sign_in_second_factor`. Este
+ * archivo lo **descartaba**: decodificaba el token y se quedaba sólo con `uid` y
+ * `email`.
+ *
+ * Consecuencia: el producto tenía TOTP implementado y funcionando —enrolamiento
+ * en configuración, resolución en el login— y **ninguna ruta del servidor podía
+ * saber si la sesión que tenía delante había usado el segundo factor**. Una
+ * sesión sin él tenía privilegios idénticos. Es el patrón «el dato tiene que
+ * LLEGAR» en la frontera de autenticación: el dato llegaba y nadie lo leía.
+ */
+async function verificarToken(
+  req: NextRequest,
+): Promise<{ uid: string; email?: string; segundoFactor: boolean } | null> {
   const header = req.headers.get('authorization') || req.headers.get('Authorization')
   if (!header || !header.startsWith('Bearer ')) return null
   const token = header.slice(7).trim()
   if (!token) return null
   try {
     const decoded = await admin.auth().verifyIdToken(token)
-    return { uid: decoded.uid, email: decoded.email }
+    return {
+      uid: decoded.uid,
+      email: decoded.email,
+      segundoFactor: Boolean(decoded.firebase?.sign_in_second_factor),
+    }
   } catch {
     return null
   }
@@ -63,7 +86,7 @@ async function verificarToken(req: NextRequest): Promise<{ uid: string; email?: 
 export async function verificarUsuario(req: NextRequest): Promise<Acceso> {
   const u = await verificarToken(req)
   if (!u) return err(401, 'No autenticado. Inicia sesión nuevamente.')
-  return { ok: true, uid: u.uid, email: u.email }
+  return { ok: true, uid: u.uid, email: u.email, segundoFactor: u.segundoFactor }
 }
 
 /**
@@ -87,7 +110,7 @@ export async function verificarMiembro(req: NextRequest, clinicId: string): Prom
     if (!snap.exists || data?.clinicId !== clinicId) {
       return err(403, 'No tienes acceso a esta clínica.')
     }
-    return { ok: true, uid: u.uid, email: u.email, clinicId, role: data?.role }
+    return { ok: true, uid: u.uid, email: u.email, clinicId, role: data?.role, segundoFactor: u.segundoFactor }
   } catch {
     return err(500, 'Error verificando membresía')
   }
@@ -138,7 +161,7 @@ export async function verificarModuloIA(req: NextRequest, modulo: string): Promi
       // ya distingue ese código para ofrecer el plan en vez de un error seco.
       return err(402, paywall.mensaje)
     }
-    return { ok: true, uid: u.uid, email: u.email, clinicId, role: miembro.data()?.role }
+    return { ok: true, uid: u.uid, email: u.email, clinicId, role: miembro.data()?.role, segundoFactor: u.segundoFactor }
   } catch {
     // Error transitorio de Firestore. Para módulos de consulta (expediente) se es
     // fail-OPEN: no tumbar la IA de todos por una lectura puntual. Pero para los
@@ -147,7 +170,7 @@ export async function verificarModuloIA(req: NextRequest, modulo: string): Promi
     if (MODULOS_OPT_IN.includes(modulo)) {
       return err(503, 'No se pudo verificar tu plan en este momento. Intenta de nuevo en unos segundos.')
     }
-    return { ok: true, uid: u.uid, email: u.email }
+    return { ok: true, uid: u.uid, email: u.email, segundoFactor: u.segundoFactor }
   }
 }
 

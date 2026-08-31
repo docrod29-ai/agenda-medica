@@ -1,0 +1,223 @@
+{
+  "recorrido": "GP-FINAL · flujo médico",
+  "total": 36,
+  "ok": 35,
+  "defectos": 0,
+  "p0": 0,
+  "p1": 0,
+  "casos": [
+    {
+      "id": "GP-01",
+      "titulo": "login del médico llega al tablero",
+      "resultado": "OK",
+      "evidencia": "http://localhost:3000/dashboard"
+    },
+    {
+      "id": "GP-02",
+      "titulo": "la agenda del día pinta citas reales",
+      "resultado": "OK",
+      "evidencia": "7 citas"
+    },
+    {
+      "id": "GP-03",
+      "titulo": "el paciente sembrado aparece en la agenda",
+      "resultado": "OK",
+      "evidencia": "Aurelio en agenda"
+    },
+    {
+      "id": "GP-04",
+      "titulo": "la consulta abre con el paciente correcto",
+      "resultado": "OK",
+      "evidencia": "Aurelio Domínguez Peña"
+    },
+    {
+      "id": "GP-04b",
+      "titulo": "la consulta NO nombra a otro paciente",
+      "resultado": "OK",
+      "evidencia": "sólo el paciente abierto"
+    },
+    {
+      "id": "GP-05a",
+      "titulo": "existe el gesto de grabar la consulta",
+      "resultado": "OK"
+    },
+    {
+      "id": "GP-05b",
+      "titulo": "no se graba sin consentimiento: o lo pide, o ya consta en el expediente",
+      "resultado": "OK",
+      "evidencia": "diálogo de consentimiento"
+    },
+    {
+      "id": "GP-05c",
+      "titulo": "con el consentimiento dado, la pantalla dice que está grabando",
+      "resultado": "OK",
+      "evidencia": "Grabando · 0:05"
+    },
+    {
+      "id": "GP-06",
+      "titulo": "la consulta sobrevive 16 ciclos de trabajo sin cerrarse ni navegar sola",
+      "resultado": "OK",
+      "evidencia": "http://localhost:3000/consulta/pac-aurelio-dominguez"
+    },
+    {
+      "id": "GP-07",
+      "titulo": "el scroll y la navegación normal no interrumpen la grabación",
+      "resultado": "OK",
+      "evidencia": "33s de trabajo continuo"
+    },
+    {
+      "id": "GP-08",
+      "titulo": "la edición manual del médico entra en la nota",
+      "resultado": "OK"
+    },
+    {
+      "id": "GP-09",
+      "titulo": "el borrador se guarda y la pantalla lo dice",
+      "resultado": "OK",
+      "evidencia": "sin acuse"
+    },
+    {
+      "id": "GP-10",
+      "titulo": "la app sigue en pie sin red (no se cae ni navega sola)",
+      "resultado": "OK",
+      "evidencia": "http://localhost:3000/consulta/pac-aurelio-dominguez"
+    },
+    {
+      "id": "GP-11",
+      "titulo": "al volver la red la consulta sigue usable",
+      "resultado": "OK",
+      "evidencia": "el texto del médico sigue en pantalla"
+    },
+    {
+      "id": "GP-12",
+      "titulo": "tras recargar, la consulta vuelve al mismo paciente",
+      "resultado": "OK",
+      "evidencia": "http://localhost:3000/consulta/pac-aurelio-dominguez"
+    },
+    {
+      "id": "GP-13",
+      "titulo": "tras recargar, el trabajo del médico NO se pierde",
+      "resultado": "OK",
+      "evidencia": "motivo=\"Dolor abdominal de tres días de evolució\" padecimiento=\"Inicia hace tres dias con dolor en epiga\""
+    },
+    {
+      "id": "GP-14",
+      "titulo": "la corrección manual del médico se queda escrita",
+      "resultado": "OK",
+      "evidencia": "acentos y ortografía corregidos a mano"
+    },
+    {
+      "id": "GP-15",
+      "titulo": "ninguna parte del nombre del paciente entra en lo aprendido del consultorio",
+      "resultado": "NO_EJECUTADO",
+      "evidencia": "no hubo dictado real (sin proveedor de ASR): esta prueba NO cubre H-19 en navegador; lo cubren sus goldens sellados"
+    },
+    {
+      "id": "GP-16",
+      "titulo": "la pantalla tiene un eje para lo que sugiere la IA",
+      "resultado": "OK",
+      "evidencia": "Escalas sugeridas por el diagnóstico"
+    },
+    {
+      "id": "GP-17",
+      "titulo": "el médico puede confirmar un diagnóstico con un acto explícito",
+      "resultado": "OK",
+      "evidencia": "Gastritis aguda añadida por el médico"
+    },
+    {
+      "id": "GP-18",
+      "titulo": "el plan de tratamiento se escribe en la nota",
+      "resultado": "OK"
+    },
+    {
+      "id": "GP-19",
+      "titulo": "prescribir es un acto explícito del médico, distinto de dictar el plan",
+      "resultado": "OK",
+      "evidencia": "Omeprazol prescrito por el médico"
+    },
+    {
+      "id": "GP-19b",
+      "titulo": "sin nombre de quien firma, la firma se cierra (REG-336)",
+      "resultado": "OK",
+      "evidencia": "botón de firma apagado"
+    },
+    {
+      "id": "GP-19c",
+      "titulo": "y el motivo nombra el NOMBRE que falta, no la cédula que sí está",
+      "resultado": "OK",
+      "evidencia": "No se puede firmar todavía — 3 cosas por resolver: Falta el nombre del médico que firma: sin él la nota queda sin a quién atribuirse y no se le puede entregar nada al paciente. Se escribe en Configura"
+    },
+    {
+      "id": "GP-20a",
+      "titulo": "si no se puede firmar, la pantalla DICE por qué (no un botón mudo)",
+      "resultado": "OK",
+      "evidencia": "motivo: No se puede firmar todavía — 2 cosas por resolver: Falta: Exploración física · y 1 más arriba"
+    },
+    {
+      "id": "GP-20b",
+      "titulo": "resuelto lo que la pantalla pedía, la firma se abre",
+      "resultado": "OK",
+      "evidencia": "firma habilitada"
+    },
+    {
+      "id": "GP-20c",
+      "titulo": "la nota queda FIRMADA en el expediente (no sólo en la pantalla)",
+      "resultado": "OK",
+      "evidencia": "la nota de esta consulta (KztTbhI3fPYnHU0D0kI0) quedó con estado=firmada"
+    },
+    {
+      "id": "GP-20d",
+      "titulo": "tras firmar, el producto lleva al siguiente paso del cierre",
+      "resultado": "OK",
+      "evidencia": "http://localhost:3000/receta/pac-aurelio-dominguez/KztTbhI3fPYnHU0D0kI0"
+    },
+    {
+      "id": "GP-21a",
+      "titulo": "la receta de la nota firmada se puede abrir",
+      "resultado": "OK",
+      "evidencia": "http://localhost:3000/receta/pac-aurelio-dominguez/KztTbhI3fPYnHU0D0kI0"
+    },
+    {
+      "id": "GP-21b",
+      "titulo": "la receta lleva lo prescrito hoy",
+      "resultado": "OK",
+      "evidencia": "Omeprazol en la receta"
+    },
+    {
+      "id": "GP-21c",
+      "titulo": "la receta NO arrastra la medicación que el paciente ya tomaba",
+      "resultado": "OK",
+      "evidencia": "sólo lo de hoy"
+    },
+    {
+      "id": "GP-22a",
+      "titulo": "con la nota firmada, el médico alcanza el acto de entregar al paciente",
+      "resultado": "OK",
+      "evidencia": "bloque «Entregar al paciente» presente"
+    },
+    {
+      "id": "GP-22b",
+      "titulo": "firmar por sí solo NO libera nada al paciente",
+      "resultado": "OK",
+      "evidencia": "paquete de la nota de hoy tras firmar: todavía no existe"
+    },
+    {
+      "id": "GP-22c",
+      "titulo": "el acto de liberar está DISPONIBLE sobre una nota recién firmada",
+      "resultado": "OK",
+      "evidencia": "botón activo"
+    },
+    {
+      "id": "GP-22d",
+      "titulo": "liberar escribe el paquete como RELEASED, con quién y cuándo",
+      "resultado": "OK",
+      "evidencia": "paquete KztTbhI3fPYnHU0D0kI0 RELEASED por jbOyE9otS7d9jriq9POoTp5m8Aht"
+    },
+    {
+      "id": "GP-23",
+      "titulo": "la consulta ofrece su cierre (checklist si está firmada, barra si no)",
+      "resultado": "OK",
+      "evidencia": "checklist «Ya está firmada. Falta esto»"
+    }
+  ]
+}

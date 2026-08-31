@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useId, useRef } from 'react'
+import { useId, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 
 type Size = 'md' | 'wide' | 'xl'
 
@@ -26,54 +27,16 @@ export function Modal({ open, onClose, title, size = 'md', footer, closeOnOverla
   /**
    * ESCAPE, FOCO ATRAPADO, FOCO INICIAL, SCROLL BLOQUEADO Y FOCO DEVUELTO.
    *
-   * Antes sólo escuchaba Escape. Faltaban las otras cuatro, y se notaban:
+   * Las cinco vivían aquí, escritas a mano, y estaban bien. Se sacaron a
+   * `useDialogoDeTeclado` **sin cambiarlas** cuando hizo falta darles el mismo
+   * teclado a los diálogos que no pueden ser un `Modal`: el aviso de cierre de
+   * sesión (que no debe cerrarse con Escape), el cajón de navegación y la
+   * paleta de búsqueda.
    *
-   *  · Sin trampa de foco, un Tab de más salía del modal y se navegaba la lista
-   *    de citas de atrás sin verla — con el diálogo de cobro abierto encima.
-   *  · Sin foco inicial, quien usa lector de pantalla se quedaba donde estaba y
-   *    el diálogo no existía para él.
-   *  · Sin bloquear el scroll del cuerpo, en móvil el fondo se desplazaba bajo
-   *    el modal al arrastrar.
-   *  · Sin devolver el foco, al cerrar se volvía al principio de la página en
-   *    vez de al botón que lo abrió.
+   * Escribirlas cinco veces era la alternativa, y este repositorio ya sabe cómo
+   * acaba eso.
    */
-  useEffect(() => {
-    if (!open) return
-    const disparador = document.activeElement as HTMLElement | null
-    const scrollPrevio = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    const enfocables = () => Array.from(
-      cajaRef.current?.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ) ?? [],
-    ).filter(el => el.offsetParent !== null || el === document.activeElement)
-
-    // Foco inicial: el primer control del diálogo, o el diálogo mismo si no hay.
-    const primeros = enfocables()
-    ;(primeros[0] ?? cajaRef.current)?.focus?.()
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return }
-      if (e.key !== 'Tab') return
-      const items = enfocables()
-      if (!items.length) { e.preventDefault(); return }
-      const primero = items[0], ultimo = items[items.length - 1]
-      const activo = document.activeElement as HTMLElement | null
-      // El ciclo se cierra sobre sí mismo en los dos sentidos.
-      if (e.shiftKey && (activo === primero || !cajaRef.current?.contains(activo))) {
-        e.preventDefault(); ultimo.focus()
-      } else if (!e.shiftKey && activo === ultimo) {
-        e.preventDefault(); primero.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = scrollPrevio
-      disparador?.focus?.()
-    }
-  }, [open, onClose])
+  useDialogoDeTeclado(open, cajaRef, onClose)
 
   const titleId = useId()
 

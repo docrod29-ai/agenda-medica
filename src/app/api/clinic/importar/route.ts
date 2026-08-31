@@ -22,6 +22,10 @@
  *  · **Las llaves de API no entran nunca**, aunque el archivo las traiga.
  *  · **Una línea rota no aborta la restauración**: se rechaza con su razón y
  *    aparece en el informe.
+ *  · **Restaurar no le quita nada a otro consultorio** (REG-348): las
+ *    colecciones de nivel raíz comparten espacio de identificadores, así que se
+ *    mira quién es el dueño ANTES de escribir — y desde REG-349 mirar y escribir
+ *    son **un solo acto**, dentro de una transacción.
  *
  * ── LOS CANDADOS QUE FALTABAN (#312) ─────────────────────────────────────────
  *
@@ -56,7 +60,10 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { COLECCIONES, rutasDelArbol } from '@/lib/clinica/respaldo'
-import { leerLinea, reenraizar, admitir, type InformeRestauracion } from '@/lib/clinica/restaurar'
+import {
+  leerLinea, reenraizar, reenraizarPorCampo, admitir, admitirRaizExistente,
+  type InformeRestauracion, type Veredicto,
+} from '@/lib/clinica/restaurar'
 import { evaluarCompletitud, type ObservadoAlReleer } from '@/lib/durability/manifiesto'
 import { huellaDeEntrada, huellaDeDocumento, acumuladorDeConjunto, huellaDelArchivo, huellaDeTrabajo } from '@/lib/durability/huellas'
 import { referenciasForasteras, evaluarAislamiento } from '@/lib/durability/aislamiento'
@@ -72,6 +79,20 @@ export const maxDuration = 300
 
 /** Documentos por lote. Firestore admite 500; se deja margen. */
 const LOTE = 400
+/**
+ * Documentos de nivel raíz que se comprueban y se escriben **en una sola
+ * transacción**.
+ *
+ * Se leen en bloque en vez de uno a uno porque una ida y vuelta por documento,
+ * en un consultorio con miles de solicitudes de reseña, gasta el presupuesto de
+ * la función entera antes de escribir nada.
+ *
+ * El tope es 200 y no 500 —el máximo de escrituras de una transacción de
+ * Firestore— por dos razones: deja margen para que el grupo entero quepa con
+ * holgura, y acota lo que se pierde cuando una reejecución por contención
+ * obliga a repetir el grupo.
+ */
+const LOTE_RAIZ = 200
 /** Tope de líneas rechazadas que se detallan. El resto sólo se cuenta. */
 const TOPE_RECHAZADAS = 50
 /** Tope de documentos detenidos que se detallan. El resto sólo se cuenta. */
@@ -171,6 +192,7 @@ export async function POST(req: NextRequest) {
     const informe: InformeRestauracion = {
       escritos: 0, porColeccion: {}, rechazadas: [],
       archivoCompleto: false, origen: null, reenraizado: false,
+      raizReapuntada: 0, raizDeOtroConsultorio: 0,
     }
     const conteos: ConteosDeRestauracion = { ...CONTEOS_EN_CERO }
     const detenidos: Detenido[] = []
@@ -221,6 +243,18 @@ export async function POST(req: NextRequest) {
     let cabecera: Record<string, unknown> | null = null
     let pie: Record<string, unknown> | null = null
     const admitidos: { ruta: string; rutaOriginal: string; coleccion: string; datos: Record<string, unknown> }[] = []
+    /**
+     * Las de NIVEL RAÍZ van en su propia lista y por su propio camino.
+     *
+     * `clinic_members/{uid}` es la misma ruta en todos los consultorios, así que
+     * no se re-enraíza: se comprueba de quién es y se escribe en una
+     * transacción (REG-348 · REG-349). Pasan por los mismos candados de
+     * admisión —política y supresión ARCO— y por ninguno de los que comparan
+     * versiones de un documento del árbol.
+     */
+    const admitidosRaiz: {
+      ruta: string; coleccion: string; campoClinica: string; datos: Record<string, unknown>
+    }[] = []
     const conteosObservados: Record<string, number> = {}
     const conjunto = acumuladorDeConjunto()
     let observados = 0
@@ -250,15 +284,31 @@ export async function POST(req: NextRequest) {
        */
       const v = admitir(l.coleccion)
       if (!v.escribir) { rechazar(v.porQue, l.ruta); conteos.excluidosPorPolitica++; continue }
-      if (!conocidas.has(l.coleccion)) { rechazar(`colección desconocida: ${l.coleccion}`, l.ruta); continue }
+      if (l.nivel !== 'raiz' && !conocidas.has(l.coleccion)) {
+        rechazar(`colección desconocida: ${l.coleccion}`, l.ruta)
+        continue
+      }
 
       /**
        * CANDADO 1 — PROCEDENCIA. La cabecera dice de qué consultorio es este
        * archivo. Una línea que venga de otro se re-enraizaría igual y
        * aterrizaría aquí como si fuera nuestra: el archivo llevaría dos
        * historias clínicas y sólo se vería una.
+       *
+       * NO se aplica a las de nivel raíz, y esto hay que decirlo o se vuelve a
+       * poner: su ruta es `clinic_members/{uid}`, así que el segundo segmento es
+       * un IDENTIFICADOR DE PERSONA, no un consultorio. Comparado contra el
+       * `clinicId` de la cabecera no coincide nunca, y este candado detendría
+       * la restauración de TODAS las membresías — es decir, dejaría el
+       * consultorio restaurado sin nadie que pueda entrar a verlo, que es
+       * exactamente el daño que REG-343 y REG-348 existen para impedir.
+       *
+       * Su equivalente para las raíces es `admitirRaizExistente`, en la segunda
+       * pasada: ahí no se pregunta de dónde VIENE el documento sino de quién ES
+       * el identificador en el destino, que es la pregunta que sí tiene sentido
+       * cuando el espacio de nombres es compartido.
        */
-      const raizOriginal = l.ruta.split('/')[1]
+      const raizOriginal = l.nivel === 'raiz' ? null : l.ruta.split('/')[1]
       if (informe.origen && raizOriginal && raizOriginal !== informe.origen) {
         conteos.esperados++
         conteos.contaminacionEntreConsultorios++
@@ -283,6 +333,13 @@ export async function POST(req: NextRequest) {
       if (!arco.admite) {
         conteos.supresionesArcoVigentes++
         detener(l.ruta, arco.motivo, arco.porQue)
+        continue
+      }
+
+      if (l.nivel === 'raiz') {
+        admitidosRaiz.push({
+          ruta: l.ruta, coleccion: l.coleccion, campoClinica: l.campoClinica, datos: l.datos,
+        })
         continue
       }
 
@@ -408,6 +465,106 @@ export async function POST(req: NextRequest) {
     }
     await vaciar()
 
+    /**
+     * ── LAS DE NIVEL RAÍZ (REG-348 · REG-349) ──────────────────────────────
+     *
+     * `clinic_members/{uid}` es la MISMA ruta en todos los consultorios: no hay
+     * re-enraizado de ruta que los separe. Escribir a ciegas con `merge`
+     * arrastraría al consultorio que se restaura a alguien que hoy trabaja en
+     * otro, y esa persona perdería el acceso al suyo sin que nadie hiciera nada
+     * mal. Por eso se mira de quién es el documento antes de escribirlo.
+     *
+     * **REG-349 — mirar y escribir tienen que ser UN acto.** REG-348 lo miraba
+     * con un `getAll` suelto y escribía después, en un lote que se commiteaba
+     * más tarde. Entre las dos cosas no había nada, así que un alta normal en
+     * el consultorio vecino, ocurrida en ese hueco, se perdía: la restauración
+     * escribía sobre una foto vieja y le quitaba la cuenta a esa persona **sin
+     * que nadie hubiera hecho nada mal**, y el informe lo contaba como escrito.
+     *
+     * Ahora el grupo entero va dentro de una **transacción**: la lectura fija la
+     * versión de cada documento y, si alguna cambió antes del commit, Firestore
+     * reejecuta y la segunda vuelta sí ve al vecino y se aparta.
+     *
+     * El árbol del consultorio (`clinics/{id}/…`) NO necesita esto y sigue por
+     * lote: ahí la ruta ya separa los consultorios y no hay identificador que
+     * disputar. Pagar una transacción por cada nota sería caro sin comprar nada.
+     *
+     * ── LO QUE CAMBIA AL CONVIVIR CON LOS CANDADOS (#312) ───────────────────
+     *
+     * Estas líneas ya pasaron por la política de exclusión y por la supresión
+     * ARCO en la primera pasada — `clinic_review_requests` lleva el nombre del
+     * paciente, así que sí puede referirse a un expediente cancelado.
+     *
+     * Lo que NO se les aplica son los tres candados que comparan versiones de
+     * un documento del árbol: aquí no se elige entre el archivo y el destino,
+     * se decide de quién es el identificador. Y un rechazo por ese motivo entra
+     * en `contaminacionEntreConsultorios`, para que el veredicto lo recoja en
+     * vez de quedarse sólo en el aviso.
+     */
+    type DecisionRaiz = { indice: number; veredicto: Veredicto; reapuntado: boolean }
+
+    /**
+     * Qué hacer con cada documento del grupo, visto lo que hay hoy en el
+     * destino. **Puro**: no toca el informe.
+     *
+     * Que sea puro no es estilo. El cuerpo de una transacción se REEJECUTA ante
+     * contención, así que cualquier contador que se tocara aquí dentro contaría
+     * dos veces la misma línea — y el informe de una restauración es lo único
+     * que le queda a quien la corrió para saber qué pasó.
+     */
+    const decidirRaiz = (
+      grupo: typeof admitidosRaiz,
+      actuales: Array<{ exists: boolean; data: () => Record<string, unknown> | undefined }>,
+    ): DecisionRaiz[] => grupo.map((g, indice) => {
+      const snap = actuales[indice]
+      return {
+        indice,
+        veredicto: admitirRaizExistente(
+          snap?.exists ? snap.data() : undefined, g.campoClinica, clinicId,
+        ),
+        reapuntado: g.datos[g.campoClinica] !== clinicId,
+      }
+    })
+
+    for (let i = 0; i < admitidosRaiz.length; i += LOTE_RAIZ) {
+      const grupo = admitidosRaiz.slice(i, i + LOTE_RAIZ)
+      const refs = grupo.map(g => adminDb.doc(g.ruta))
+
+      /**
+       * EL ENSAYO LEE, PERO NO NECESITA TRANSACCIÓN: no escribe nada, así que no
+       * hay nada que proteger de una carrera. Lo que sí hace —y hace falta que
+       * haga— es la MISMA comprobación: un ensayo que no ve la colisión no
+       * ensaya el paso que puede fallar.
+       */
+      const decisiones = simular
+        ? decidirRaiz(grupo, await adminDb.getAll(...refs))
+        : await adminDb.runTransaction(async tx => {
+            const actuales = await tx.getAll(...refs)
+            const d = decidirRaiz(grupo, actuales)
+            for (const { indice, veredicto } of d) {
+              if (!veredicto.escribir) continue
+              const g = grupo[indice]
+              tx.set(refs[indice], reenraizarPorCampo(g.datos, g.campoClinica, clinicId), { merge: true })
+            }
+            return d
+          })
+
+      // Ya commiteado (o ya sabido, en el ensayo): AHORA se cuenta.
+      for (const { indice, veredicto, reapuntado } of decisiones) {
+        const g = grupo[indice]
+        if (!veredicto.escribir) {
+          informe.raizDeOtroConsultorio++
+          conteos.contaminacionEntreConsultorios++
+          detener(g.ruta, 'raiz-de-otro-consultorio', veredicto.porQue)
+          continue
+        }
+        if (reapuntado) informe.raizReapuntada++
+        informe.escritos++
+        conteos.escritos++
+        informe.porColeccion[g.coleccion] = (informe.porColeccion[g.coleccion] ?? 0) + 1
+      }
+    }
+
     conteos.rechazadas = rechazadasTotal
     const dictamen = dictaminar(conteos, informe.archivoCompleto, completitud.estado)
 
@@ -435,9 +592,27 @@ export async function POST(req: NextRequest) {
           supresionesArco: conteos.supresionesArcoVigentes,
           archivoCompleto: informe.archivoCompleto,
           completitud: completitud.estado,
+          raizReapuntada: informe.raizReapuntada,
+          raizDeOtroConsultorio: informe.raizDeOtroConsultorio,
         },
         timestamp: new Date().toISOString(),
       }).catch(() => { /* la bitácora no puede tumbar una restauración ya aplicada */ })
+    }
+
+    /**
+     * LO QUE FALTA SE DICE, Y SE DICE ENTERO.
+     *
+     * Un aviso sustituyendo a otro deja al médico creyendo que ya vio todo lo
+     * que hay que ver. Se acumulan.
+     */
+    const avisos: string[] = []
+    if (!informe.archivoCompleto) {
+      avisos.push('El archivo no traía la línea de cierre: puede estar cortado. Lo escrito sirve, pero NO lo des por completo.')
+    }
+    if (informe.raizDeOtroConsultorio > 0) {
+      avisos.push(
+        `${informe.raizDeOtroConsultorio} documento(s) de nivel raíz NO se restauraron porque su identificador ya pertenece a otro consultorio: restaurarlos se lo habrían quitado. Si alguno era una membresía, esa persona NO podrá entrar hasta que se le dé de alta a mano.`,
+      )
     }
 
     /**
@@ -483,8 +658,7 @@ export async function POST(req: NextRequest) {
         'El audio de las consultas, que es efímero por diseño. Lo que sí vuelve, dentro de cada nota, es la transcripción del motor y la de trabajo.',
         'Las cuentas de acceso: los identificadores de médico de las notas apuntan a cuentas que hay que volver a dar de alta.',
       ],
-      aviso: informe.archivoCompleto ? null
-        : 'El archivo no traía la línea de cierre: puede estar cortado. Lo escrito sirve, pero NO lo des por completo.',
+      aviso: avisos.length > 0 ? avisos.join(' · ') : null,
     })
   } catch (e) {
     safeLog.error('[clinic/importar]', e)

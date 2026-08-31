@@ -15,6 +15,7 @@ import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { resolverClaveIA, creditosAgotados, registrarUso, registrarCreditos } from '@/lib/ai-keys'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODELOS = ['claude-sonnet-4-6', 'claude-sonnet-4-5']
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
       {
         feature: 'inmuno-redactar',
         requestId: req.headers.get('x-vercel-id') || `ir-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
         clinicId: clinicId ?? null, uid: acceso.uid, creditos: COSTO_CREDITOS.inmunoRedactar, fuente,
         esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
       },

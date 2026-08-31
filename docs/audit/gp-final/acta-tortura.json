@@ -1,0 +1,142 @@
+{
+  "recorrido": "GP-FINAL · tortura",
+  "total": 22,
+  "ok": 20,
+  "defectos": 0,
+  "p0": 0,
+  "p1": 0,
+  "casos": [
+    {
+      "id": "TOR-A10",
+      "titulo": "a los 10 minutos la consulta sigue abierta y el trabajo intacto",
+      "resultado": "OK",
+      "evidencia": "en la consulta: true · texto intacto: true"
+    },
+    {
+      "id": "TOR-A20",
+      "titulo": "a los 20 minutos la consulta sigue abierta y el trabajo intacto",
+      "resultado": "OK",
+      "evidencia": "en la consulta: true · texto intacto: true"
+    },
+    {
+      "id": "TOR-A30",
+      "titulo": "a los 30 minutos la consulta sigue abierta y el trabajo intacto",
+      "resultado": "OK",
+      "evidencia": "en la consulta: true · texto intacto: true"
+    },
+    {
+      "id": "TOR-B",
+      "titulo": "recargar en medio de la consulta no pierde el trabajo",
+      "resultado": "OK",
+      "evidencia": "recuperado: \"Marca de la consulta larga: minuto cero.\""
+    },
+    {
+      "id": "TOR-C",
+      "titulo": "recargar tras parar el audio no pierde el trabajo escrito",
+      "resultado": "OK",
+      "evidencia": "recuperado: \"Marca de la consulta larga: minuto cero.\""
+    },
+    {
+      "id": "TOR-D",
+      "titulo": "lo escrito sin red sigue ahí cuando la red vuelve",
+      "resultado": "OK",
+      "evidencia": "en pie sin red: true · texto tras volver: \"Marca de la consulta larga: minuto cero. Añad\""
+    },
+    {
+      "id": "TOR-E",
+      "titulo": "el doble clic en Guardar no duplica la nota",
+      "resultado": "OK",
+      "evidencia": "notas antes 16 → después 16"
+    },
+    {
+      "id": "TOR-G",
+      "titulo": "dos pestañas sobre el mismo encuentro no crean dos notas",
+      "resultado": "OK",
+      "evidencia": "notas del paciente antes 1 → después 1"
+    },
+    {
+      "id": "TOR-H1",
+      "titulo": "la consulta del paciente 1 no muestra el texto del paciente 2",
+      "resultado": "OK",
+      "evidencia": "sin cruce"
+    },
+    {
+      "id": "TOR-H2",
+      "titulo": "la consulta del paciente 1 sigue nombrando al paciente 1",
+      "resultado": "OK",
+      "evidencia": "Aurelio Domínguez: true · Joaquín Esparza: false"
+    },
+    {
+      "id": "TOR-H3",
+      "titulo": "en la BASE, lo del paciente 2 no está en el expediente del 1",
+      "resultado": "OK",
+      "evidencia": "expediente 1: 16 notas · expediente 2: 1 notas"
+    },
+    {
+      "id": "TOR-J",
+      "titulo": "tras el botón atrás, la pantalla habla del mismo paciente que su URL",
+      "resultado": "OK",
+      "evidencia": "consulta de pac-ernesto-quiroga, coherente"
+    },
+    {
+      "id": "TOR-K1",
+      "titulo": "la consulta abre en un teléfono con el paciente correcto",
+      "resultado": "OK",
+      "evidencia": "390×844"
+    },
+    {
+      "id": "TOR-K2",
+      "titulo": "en el teléfono la pantalla no se desborda a lo ancho",
+      "resultado": "OK",
+      "evidencia": "sin scroll horizontal"
+    },
+    {
+      "id": "TOR-M",
+      "titulo": "el teclado mueve el foco por los controles y el foco SE VE",
+      "resultado": "OK",
+      "evidencia": "foco en A · anillo visible: true"
+    },
+    {
+      "id": "TOR-N",
+      "titulo": "al 200% de zoom (1440 → 720 CSS px) no aparece scroll horizontal",
+      "resultado": "OK",
+      "evidencia": "sin scroll horizontal"
+    },
+    {
+      "id": "TOR-L",
+      "titulo": "en escritorio la consulta abre con el paciente correcto",
+      "resultado": "OK",
+      "evidencia": "720×900"
+    },
+    {
+      "id": "TOR-O",
+      "titulo": "con la IA caída la respuesta no filtra jerga técnica ni secretos",
+      "resultado": "OK",
+      "evidencia": "HTTP 401 · {\"ok\":false,\"error\":\"No autenticado. Inicia sesión nuevamente.\"}"
+    },
+    {
+      "id": "TOR-P",
+      "titulo": "una escritura clínica sin sesión no pasa",
+      "resultado": "OK",
+      "evidencia": "HTTP 401"
+    },
+    {
+      "id": "TOR-I",
+      "titulo": "la separación entre consultorios se comprueba en el recorrido del paciente",
+      "resultado": "NO_EJECUTADO",
+      "evidencia": "ver GP-T1/GP-T2/GP-T3 en acta-paciente.json"
+    },
+    {
+      "id": "TOR-F",
+      "titulo": "transcripción tardía que llega DESPUÉS de la edición manual",
+      "resultado": "NO_EJECUTADO",
+      "evidencia": "no ejecutable en este arnés: sin proveedor de ASR no hay transcripción que llegue tarde"
+    },
+    {
+      "id": "TOR-Q",
+      "titulo": "el recorrido corre contra un build de producción, no contra `next dev`",
+      "resultado": "OK",
+      "evidencia": "npm run build + next start, que es lo que publica Vercel"
+    }
+  ]
+}

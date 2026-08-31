@@ -32,7 +32,7 @@ import { NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
-import { COLECCIONES, rama, type RamaRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
+import { COLECCIONES, COLECCIONES_RAIZ, rama, type RamaRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
 import { cabeceraV2, pieV2, FORMATO_V2 } from '@/lib/durability/manifiesto'
 import { huellaDeEntrada, acumuladorDeConjunto } from '@/lib/durability/huellas'
 
@@ -170,6 +170,60 @@ export async function GET(req: NextRequest) {
            */
           problemas.push(c.ruta)
           safeLog.warn(`[clinic/exportar] colección ${c.ruta} ilegible`, e)
+        }
+      }
+
+      /**
+       * LAS DE NIVEL RAÍZ (REG-343). Llevan el consultorio en un CAMPO, no en la
+       * ruta, así que el recorrido del árbol de arriba no las alcanzaba nunca.
+       *
+       * `clinic_members` es la que duele: es lo que ata una cuenta a un
+       * consultorio. Restaurar sin ella devuelve el expediente entero y a nadie
+       * que pueda entrar a verlo.
+       *
+       * Mismo recorrido paginado por `__name__` que el resto —el filtro por
+       * `clinicId` no cambia la forma— y el mismo trato ante un fallo: se
+       * declara en `problemas` y el respaldo sigue.
+       */
+      for (const c of COLECCIONES_RAIZ) {
+        try {
+          const base = adminDb.collection(c.ruta).where(c.campoClinica, '==', clinicId)
+          let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined
+          for (;;) {
+            let q = base.orderBy('__name__').limit(PAGINA)
+            if (cursor) q = q.startAfter(cursor)
+            const snap = await q.get()
+            if (snap.empty) break
+            for (const d of snap.docs) {
+              const l = lineaDeDocumento(c.ruta, c.ruta, d.id, d.data())
+              linea(l)
+              documentos++
+              /**
+               * Las raíces entran al recuento y a la huella COMO TODO LO DEMÁS.
+               *
+               * Este bucle nació cuando el pie sólo llevaba un total, y sumar a
+               * `documentos` bastaba. Con el pie conciliable ya no: el que
+               * restaura compara colección por colección, y una raíz que suma al
+               * total pero no aparece en `conteos` hace que la suma de las
+               * partes no dé el total — un descuadre permanente en todo respaldo,
+               * que enseña a ignorar la señal que debía dispararse sólo cuando
+               * falta algo.
+               *
+               * Y la huella importa más aún: sin esto, `clinic_members` quedaría
+               * fuera de la huella del conjunto. Es la colección que ata una
+               * cuenta a un consultorio; restaurarla mal devuelve el expediente
+               * entero y a nadie que pueda entrar a verlo, y la huella diría que
+               * el archivo está intacto.
+               */
+              conteos[c.ruta] = (conteos[c.ruta] ?? 0) + 1
+              conjunto.añadir(await huellaDeEntrada(l._ruta, l as Record<string, unknown>))
+            }
+            cursor = snap.docs[snap.docs.length - 1]
+            if (snap.size < PAGINA) break
+          }
+        } catch (e) {
+          problemas.push(c.ruta)
+          safeLog.warn(`[clinic/exportar] colección raíz ${c.ruta} ilegible`, e)
         }
       }
 

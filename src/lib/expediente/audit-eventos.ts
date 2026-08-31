@@ -105,6 +105,21 @@ export type AuditEvento =
   | 'cita_reagendada_portal'     // el paciente movió su cita desde su enlace
   | 'cita_cancelada_whatsapp'    // el paciente canceló hablando con el bot
   | 'formulario_previo_enviado'  // el paciente llenó su información antes de la consulta
+  /**
+   * === LO QUE SE LE LIBERA AL PACIENTE (V9 · POSTVISIT-001) ===
+   *
+   * Firmar la nota y liberarle información al paciente son DOS actos, y por eso
+   * dejan DOS rastros. `nota_firmada` acredita el acto medicolegal hacia el
+   * expediente; éstos acreditan el acto de comunicación hacia el paciente: quién
+   * autorizó que leyera el resumen de su consulta, en qué versión y cuándo.
+   *
+   * Sin esta pareja, la pregunta «¿quién aprobó que este paciente leyera esto?»
+   * sólo se podría contestar mirando un campo del propio documento — el mismo
+   * campo que una migración puede escribir. La bitácora es lo que no se puede
+   * reescribir desde la pantalla que se audita.
+   */
+  | 'paquete_liberado'           // se liberó al paciente el paquete de una visita
+  | 'paquete_retirado'           // se retiró un paquete ya liberado (vuelve a DRAFT)
 
 /**
  * CÓMO SE LEE CADA EVENTO — en la pantalla de cumplimiento y en cualquier otra.
@@ -164,6 +179,8 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   cita_reagendada_portal: 'El paciente reagendó (portal)',
   cita_cancelada_whatsapp: 'El paciente canceló (WhatsApp)',
   formulario_previo_enviado: 'El paciente envió su información previa',
+  paquete_liberado: 'Liberó el resumen de la visita al paciente',
+  paquete_retirado: 'Retiró el resumen de la visita del portal',
 }
 
 /** Cómo enseñar un evento, incluido uno que todavía no tenga etiqueta. */

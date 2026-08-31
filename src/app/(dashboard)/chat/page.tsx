@@ -1,4 +1,5 @@
 'use client'
+import { conMayusculaInicial } from '@/lib/texto-es'
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
@@ -218,8 +219,8 @@ export default function ChatPage() {
         {grupos.map(g => (
           <div key={g.fecha}>
             <div style={{ textAlign: 'center', margin: '14px 0' }}>
-              <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--s2)', padding: '3px 12px', borderRadius: 'var(--r-pill)', textTransform: 'capitalize' }}>
-                {g.fecha}
+              <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--s2)', padding: '3px 12px', borderRadius: 'var(--r-pill)' }}>
+                {conMayusculaInicial(g.fecha)}
               </span>
             </div>
             {g.msgs.map((m, i) => {
@@ -335,7 +336,7 @@ export default function ChatPage() {
           style={{
             flex: 1, background: 'var(--s2)', border: '1px solid var(--border)',
             borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text)',
-            outline: 'none', resize: 'none', minHeight: 44, maxHeight: 120,
+            resize: 'none', minHeight: 44, maxHeight: 120,
             fontFamily: 'inherit',
           }}
         />

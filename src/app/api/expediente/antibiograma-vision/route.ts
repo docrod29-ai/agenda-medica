@@ -21,6 +21,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import { VISION_SYSTEM_PROMPT, buildVisionUserPrompt, PerfilExtraido } from '@/lib/expediente/antibiograma/vision'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -106,6 +107,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto = {
     feature: 'antibiograma-vision',
     requestId: req.headers.get('x-vercel-id') || `av-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }

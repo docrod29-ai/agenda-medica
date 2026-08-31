@@ -24,6 +24,7 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos  } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -164,6 +165,8 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },
       body: upstream,
+      // REG-346 — cabe dentro de `maxDuration = 60` con margen para responder.
+      signal: AbortSignal.timeout(50_000),
     })
   }
 
@@ -200,6 +203,7 @@ export async function POST(req: NextRequest) {
           {
             feature: 'transcribir',
             requestId: req.headers.get('x-vercel-id') || `tr-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
             clinicId: clinicId ?? null, uid: acceso.uid,
             creditos: COSTO_CREDITOS.transcribir, fuente,
             esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
@@ -231,7 +235,7 @@ export async function POST(req: NextRequest) {
       if (res.status === 401) {
         const quien = quienPaga(fuente)
         const clase = claseDeFallo(res.status, ultimoError)
-        reportarFalloIA({ clase, quien, proveedor: 'openai', feature: 'transcripcion', status: res.status })
+        reportarFalloIA({ clase, quien, proveedor: 'openai', feature: 'transcribir', status: res.status })
         return NextResponse.json({ ok: false, error: avisoAlMedico(clase, quien, 'openai').texto }, { status: 502 })
       }
       // CUALQUIER otro error (400/404/429/500/502/503/529): NO abortar — probar el

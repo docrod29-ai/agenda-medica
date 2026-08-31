@@ -3,6 +3,322 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1177 — dos controles que no se podían pulsar
+
+**Se preparó sin despliegue y se publicó el mismo día, 31-ago 19:33 UTC**
+(`PRODUCTION_RELEASE=SUCCESS`). El paquete y el acta de la ejecución viven en
+[`PAQUETE-PRODUCCION-2026-08-31-v1177.md`](PAQUETE-PRODUCCION-2026-08-31-v1177.md).
+
+**5 commits desde v1176** · 13 archivos · +359 / −26 · 7 de código de producto.
+Cero rutas de API nuevas, cero pantallas nuevas, y **ni reglas ni índices**.
+
+Un paquete pequeño con dos arreglos que no son cosméticos.
+
+### En `/consultor`, «Cerrar sesión» y «Ayuda» estaban muertos
+
+La barra de preguntas es `position: fixed; left: 0`, y en escritorio el riel de
+navegación ocupa los primeros 224 px — la barra se comía sus últimos 89. No es
+«se ve raro»: `document.elementFromPoint` en el centro del botón devolvía **la
+barra**, no el botón. Ahora arranca en 224 px, y en móvil —donde no hay riel—
+sigue ocupando todo.
+
+### En `/asistente`, las ocho horas que se pulsan para agendar no respondían
+
+Son literalmente el control con el que se agenda una cita. No aparecieron en la
+medición anterior porque aquel día **no había ninguna franja pintada**.
+
+### Y el punto ciego que los tapaba a los dos
+
+El arnés de estaticidad sólo miraba `<main>`. El armazón —riel, barra, pie— está
+en **todas** las pantallas y no lo medía nadie. El guardián que debía cazar el
+solape (`nada-tapa`) tenía **el mismo punto ciego**. Los dos se abren ahora a
+todo el documento, y el de solapes queda probado al revés: con la barra en
+`left: 0` canta 1 tapado; con el arreglo, 0.
+
+Queda escrita la lección, que vale más que los dos arreglos: **un trinquete a 0
+sólo vigila lo que se llegó a pintar el día que se midió.**
+
+### Qué NO cubre
+
+Sólo se abren dos diálogos: los que piden un estado difícil —un cobro a medias,
+una firma— siguen sin mirarse. Los formularios de varios pasos esconden controles.
+El portal del paciente sigue fuera de las 22 rutas. Y todo está medido en
+Chromium: WebKit sigue `BLOCKED_EXTERNAL`.
+
+## v1176 — el carril de excelencia: la agenda deja de aceptar días que no existen
+
+**Se preparó sin despliegue y se publicó el mismo día, 31-ago 13:28 UTC**
+(`PRODUCTION_RELEASE=SUCCESS`). El paquete completo vive en
+[`PAQUETE-PRODUCCION-2026-08-31.md`](PAQUETE-PRODUCCION-2026-08-31.md).
+
+**87 commits desde v1175** (31-ago) · 342 archivos · +22 934 / −819 · 102 de
+código de producto. **Cero rutas de API nuevas y cero pantallas nuevas.**
+
+Casi todo es el carril de excelencia de producto (PR #399, 27 unidades, cada una
+nacida de una medición en navegador y no de una opinión sobre una captura).
+
+### Lo que arregla, y que hoy está vivo en producción
+
+**Una cita podía reservarse dos veces sobre el mismo hueco, en un día que no
+existe.** `2027-02-30` pasaba la validación de forma y `new Date` la desbordaba
+al **2 de marzo**: la cita se validaba contra el horario de un día y se guardaba
+en otro. Y como el chequeo de solapes consulta por la fecha original, **no
+chocaba** con las citas reales del 2 de marzo. Resultado: dos pacientes en el
+mismo hueco, y una cita que no aparece en la vista de ningún día.
+
+Tampoco había techo: `9999-12-31` generaba huecos, y `/api/appointments` no
+miraba la fecha en absoluto — el GET de disponibilidad se negaba a **ofrecer** un
+hueco a tres años y el POST lo **aceptaba**. Ahora hay una puerta única
+(`src/lib/agenda/horizonte.ts`), techo `2050-12-31`, sin pregenerar fechas.
+
+**Reenviar la misma reserva le decía al paciente que otro le quitó el hueco**
+—«Ese horario acaba de ocuparse»— cuando quien lo había tomado era él. Ahora es
+idempotente.
+
+**Con la red caída, `/login` mandaba a recuperar una contraseña que nunca estuvo
+mal** («Error al iniciar sesión») y `/registro` no decía nada.
+
+### Accesibilidad, medida en Chromium real a 390 / 768 / 1440
+
+- **Los dos críticos de `/calendario` eliminados**: las flechas que mueven el mes
+  no tenían nombre (`button-name`), registrado en las líneas base de V10 **y**
+  V15, medido dos veces y nunca cerrado.
+- **El riel de navegación se apagaba en toda la familia de la agenda**: cero
+  `aria-current` en `/citas`, `/calendario`, `/asistente` y `/lista-espera`. La
+  causa no era una ruta olvidada — la lista de destinos estaba escrita **dos
+  veces** y las copias habían divergido en diecisiete rutas. Ahora 9 de 9.
+- **El estado de la cita vivía sólo en el pixel**: el nombre accesible decía
+  «Cita de … a las 13:00» de una cita **cancelada**. Ahora lo dice en las tres
+  vistas.
+- **Objetivos táctiles a 390 px**: de 12 incumplimientos a 2.
+
+### El instrumento
+
+- **REG-414** — la suite fallaba por la carga de la máquina, no por el código:
+  «Test timed out in 5000ms» dentro de un `await import()`, en archivos distintos
+  cada vuelta. El primer diagnóstico fue equivocado y queda escrito en el ledger.
+- Un **trinquete de interfaz** de 18 combinaciones ruta×ancho, con el mismo
+  contrato que los otros dos: axe, consola y desborde sólo bajan; `aria-current`
+  sólo sube. Antes había un álbum de capturas, no una compuerta.
+
+### Qué NO lleva
+
+**Ni reglas ni índices de Firestore.** A diferencia de v1175, este despliegue es
+sólo código: no hay paso aparte con `firebase deploy`.
+
+Y lo que el propio carril dejó declarado sin resolver: `/finanzas` sigue
+STATIC/FLAT · la fatiga de tarjeta se midió (15 en `/asistente`, 11–13 en
+`/finanzas`) y **no se redujo** · ningún lector de pantalla real · el trinquete de
+interfaz **no corre en CI** (necesita emuladores) · y tres violaciones de
+`/calendario` que son decisión de producto, no defectos.
+
+## v1175 — REG-373 a REG-413, y las reglas de Firestore que van APARTE
+
+**Este bump se prepara SIN su despliegue.** El paquete completo, con lo que se
+declara antes de publicar, vive en
+[`PAQUETE-PRODUCCION-2026-08-30.md`](PAQUETE-PRODUCCION-2026-08-30.md).
+
+**84 commits desde v1174** (28-ago → 31-ago) · 299 archivos · +46 589 / −1 100 ·
+138 archivos de código de producto — el mismo número que al declararse.
+
+### Lo que hay que hacer a mano, y si no se hace queda roto
+
+`vercel --prod` **no publica `firestore.rules`**. Este paquete las cambia
+(REG-340) y sin ese despliegue aparte quedan rotas dos cosas que el código nuevo
+da por buenas:
+
+- **El apodo del chat** (`clinics/{id}/members/{uid}`) se leía y se escribía
+  desde el navegador **sin regla**, así que caía en el comodín de denegación:
+  no se guardaba nunca y nadie se enteraba, porque el código cae con elegancia
+  al nombre por omisión.
+- **La bitácora append-only del episodio** (`.../registros/{id}`), que es la
+  copia íntegra para la NOM-004 y no estaba declarada en ningún sitio — así que
+  no se respaldaba.
+
+Y **70 líneas nuevas de `firestore.indexes.json`**: una consulta que las
+necesite falla en producción hasta que se publiquen.
+
+```
+npx firebase deploy --only firestore:rules,firestore:indexes --project nexomed-agenda
+```
+
+### Seguridad clínica y expediente longitudinal
+
+- **REG-413** — la comprobación que impide acuñar una URL firmada del membrete, la
+  firma autógrafa y el sello de otro consultorio existía en el servidor y **no
+  tenía ni una prueba**. No cambia comportamiento: pone el guardián que faltaba.
+- **REG-412** — «Negadas» se pintaba como un alérgeno en el aviso del expediente,
+  con severidad y con botón; cada pulsación la añadía otra vez al campo del
+  paciente. Lo que se filtra al escribir se filtra ahora también al leer.
+- **REG-410** — la warfarina de marzo, otra vez, y en la pantalla donde se firma:
+  el cuadro completo llegaba a cuatro consumidores y no a la barra de avisos.
+- **REG-409** — un WER bajo no compensa una dosis por mil.
+- **REG-405** — dos proyecciones volvían a ser la puerta que devuelve un array
+  pelado: la medicación vigente se calculaba sobre una ventana y se enseñaba
+  como el expediente entero.
+- **REG-403 / REG-404** — «lo vi» y «localicé a alguien» eran el mismo gesto; y
+  agendar contaba como haber visto al paciente.
+- **REG-411** — un aviso efímero sobre una pérdida permanente es no avisar.
+- **WS-09** — la función renal llega al motor de aplicabilidad, que llevaba dos
+  dimensiones ciegas.
+- **WS-10** — el eje de riesgos reúne lo que ya está declarado, y no decide qué
+  es un riesgo.
+- **WS-12** — una cita literal que dice LO CONTRARIO de lo que respalda.
+
+### Evidencia y consultor
+
+REG-400 (el pasaje existe, es literal, y aun así el estudio no lo demuestra) ·
+REG-401 (la etiqueta del diseño decía más de lo que dijo la fuente) · REG-402
+(una guía tiene edición, y las ediciones se sustituyen) · REG-406 (el guardián
+que impide que una proyección se vuelva la verdad) · REG-407 (un presuntivo
+elegido no es un presuntivo de fábrica).
+
+### Operación del bucle
+
+El bucle deja de girar en vacío y de pintarse de verde · un tablero, un escritor
+· los dos pliegos del dueño entran al repositorio y los carriles se miden contra
+ellos · el escritor no puede regenerar un documento derivado, así que se le
+prohíbe tocarlo.
+
+### Qué NO entra
+
+Ninguna ruta de API nueva y **ninguna pantalla nueva** — así que `e2e:seguridad:prod`
+no debería teñirse de rojo por una ruta privada que producción todavía no sirve.
+
+## v1174 — «Recetas, órdenes y notas» son tres pasos (REG-338, REG-339)
+
+**Este bump va CON su despliegue**, igual que v1173.
+
+**Qué lleva de producto.** La pantalla donde el médico configura lo que se
+imprime, rehecha a petición del dueño: *«esto se me hace muy complejo […] que el
+usuario no batalle tanto para subir su hoja membretada y su receta, que no
+batalle para configurar el papel en su impresora y que no batalle en acomodar
+dónde va el nombre, edad, etcétera […] está muy llena y los va a confundir»*.
+
+- **Tres pasos, y el paso ES el control**: 1 tu papel · 2 tu firma · 3 imprime
+  una prueba. Antes: una guía de seis pasos arriba y once tarjetas de ajustes
+  abajo, todas abiertas y sin relación declarada entre unas y otras.
+- **Los datos se colocan solos al subir el formato.** La detección existía
+  detrás de un clic que casi nadie encontraba; ahora corre en la subida y dice
+  cuántos campos colocó. Sigue siendo visible y arrastrable.
+- **Los arreglos de impresión salen sólo cuando la prueba no cuadró**, con la
+  avería nombrada y su causa.
+- El resto —papel, estilo, color, datos legales, hoja de notas— sigue entero,
+  plegado en «Ajustes avanzados». Medido en navegador: el editor pasa de
+  3 848 px a 931 px de alto al abrir.
+- **REG-338** — la sección que sube la firma la leía de `config/main`, que
+  REG-014 vació al moverla a `config/firma`: consultorio migrado + recarga =
+  recuadro vacío con la firma guardada y saliendo impresa.
+- **REG-339** — la vista previa salía **recortada por la derecha con la
+  configuración de fábrica**: el documento se dibuja sobre hoja carta
+  (`imprimirEn: 'carta'`, el modo por defecto) y el marco se dimensionaba a la
+  receta. Medido después del arreglo: marco 340 × 439, hoja 340 × 439, cero
+  píxeles de sobra por los cuatro lados, en tres tamaños y dos temas.
+
+**El paquete, declarado.** Entre `v1173` y este bump hay **tres commits**, todos
+de esta unidad, y tocan **siete ficheros de aplicación**:
+
+- `configuracion/secciones-recetas.tsx` · `configuracion/page.tsx` ·
+  `configuracion/secciones-cuenta.tsx` — la pantalla y sus dos secciones.
+- `components/GuiaConfigurarReceta.tsx` — deja de ser la guía de seis pasos y
+  pasa a ser el diagnóstico de «no cuadró».
+- `components/RecetaDocumento.tsx` · `components/RecetaPreviewWrapper.tsx` — la
+  colocación de la receta en la hoja y la escala de la vista previa, ahora en
+  una sola fuente. **Los usan también `/receta` y `/orden`**, que son impresos
+  clínicos: su comportamiento NO cambia (el cálculo es el mismo, sólo se sacó
+  de donde estaba para que un tercero pudiera preguntarlo).
+- `lib/ayuda/conocimiento.ts` — la ayuda del asistente y de `/guia`, reescrita a
+  los tres pasos.
+
+Más su golden, las dos entradas del ledger, el sello, la clasificación de
+familia y el trinquete de lint apretado de 96 a 95.
+
+**Riesgo declarado.** El único cambio que toca código compartido con los
+impresos que ve el paciente es la extracción de `colocacionEnCarta` desde el
+JSX de `HostCarta`: misma fórmula, mismo resultado, con una prueba que fija la
+geometría en números. Lo demás vive dentro de la pantalla de configuración.
+
+---
+
+## v1173 — La pantalla del expediente deja de botar al bajar (REG-337)
+
+**Este bump SÍ va con su despliegue**, que es la condición que `v1172` dejó
+escrita y que la convierte en una cuenta honesta otra vez.
+
+**Qué lleva de producto.** REG-337, y nada más: `/expediente/[patientId]` saltaba
+sola de vuelta arriba mientras se bajaba, en teléfono y en escritorio.
+`ClinicalSpine` seguía la lectura con
+`scrollIntoView({ block: 'nearest', inline: 'nearest' })` creyendo —lo decía su
+propio comentario— que `nearest` no arrastraba la página. `nearest` elige la
+alineación, no a quién se desplaza: `scrollIntoView` mueve **todos** los
+ancestros desplazables, y aquí el ancestro es el `<main>` del shell. Ahora se
+desplaza el riel por su nombre (`riel.scrollTo`), que no puede tocar a nadie más.
+
+**El paquete, declarado.** Entre el árbol servido en `v1172`
+(`ef0624cb`) y este bump hay **once commits**, y sólo uno toca la aplicación:
+
+- `.github/workflows/deploy-production.yml` y `ausculta-autonomous-loop.yml` —
+  709 líneas de automatización de operaciones. **No entran en el build**: son
+  workflows de GitHub, no código de la app.
+- `src/components/expediente/ClinicalSpine.tsx` + `src/lib/ui/traer-a-la-vista.ts`
+  (nuevo) — el arreglo de REG-337.
+- Su prueba, su entrada en el ledger, su sello y su clasificación de familia.
+
+O sea: **el único cambio de comportamiento que este despliegue publica es
+REG-337.** No arrastra producto pendiente, que es lo que `v1172` existía para
+evitar.
+
+**Medido en Chromium antes de publicar** (shell real: `100dvh` + `overflow:hidden`,
+scroll en `<main>`; rueda hacia abajo en pasos de 140px):
+
+| | llegó a | ¿al fondo? | botes |
+|---|---|---|---|
+| antes · móvil 390×844 | 875 px de 2325 | **no** | 6 |
+| después · móvil | 2325 px de 2325 | sí | 0 |
+| antes · escritorio 1440×900 | 875 px de 2269 | **no** | 6 |
+| después · escritorio | 2269 px de 2269 | sí | 0 |
+
+Y **con el dedo** (eventos táctiles reales, cinco teléfonos): antes 6-9 botes y
+sin llegar nunca al fondo; después, al fondo y 0 botes en los cinco.
+
+**Lo que este bump NO arregla, declarado.**
+
+- **`firestore.rules` sigue yendo aparte.** `vercel --prod` no las publica y el
+  cambio de REG-323 (`laboratorios`) continúa sin desplegar. Este despliegue no
+  lo toca ni lo resuelve.
+- **No se ha recorrido `/expediente/[patientId]` real con datos**: lo medido fue
+  un arnés que copia su estructura e importa la aritmética real. La comprobación
+  en el producto vivo es el primer paso después de publicar.
+
+## v1172 — El paquete de producción se declara ANTES de publicarlo
+
+No trae producto: trae la **cuenta**. Producción sigue en `v1149` (8-ago) y el
+siguiente `vercel --prod` no publicaría el arreglo de anoche — publicaría **hasta 229
+commits de veinte días** de una sola vez, porque un despliegue arrastra todo lo
+no desplegado.
+
+El inventario —los 229 commits uno por uno, las 63 regresiones que
+cierran, dónde caen los 2 012 archivos y qué NO afirma este paquete— vive en
+[`PAQUETE-PRODUCCION-2026-08-27.md`](PAQUETE-PRODUCCION-2026-08-27.md).
+
+Lo que este bump obliga a no olvidar:
+
+- **`firestore.rules` va aparte.** `vercel --prod` no las publica, y desde
+  `v1149` hay dos cambios sin desplegar. El que importa es REG-323
+  (`laboratorios`): sin él, la defensa que impide archivar una hoja bajo el
+  paciente equivocado se queda en una sola capa, la del cliente.
+- **La base no se sabe, y este archivo es parte de la causa.** `v1171` se subió
+  el 9-ago dentro de un commit de producto que nunca se publicó, y los 164
+  commits siguientes no volvieron a tocar `public/sw.js`. Cualquier despliegue
+  hecho entre el 9 y el 27 de agosto sirve el mismo `/version.txt`: el número
+  dejó de identificar el árbol publicado. Por eso 229 es una **cota superior**,
+  no una medición, y lo único que la resuelve es el SHA del despliegue de
+  producción en el panel de Vercel. `v1172` vuelve a atar el contador a la
+  realidad — a condición de que el siguiente bump vaya con su despliegue.
+
+Nada se publicó. Preparar el paquete y publicarlo son dos actos, y el segundo es
+del dueño.
+
 ## v1169 — el arnés de capturas encuentra sus dos primeros defectos (REG-307, REG-308)
 
 Primera pasada del golden flow AUTENTICADO en navegador real (emuladores +

@@ -424,7 +424,7 @@ export async function cargarResultadosLab(
     }))
     : []
 
-  const tareasCreadas = aCrear.length ? await crearTareas(clinicId, aCrear) : 0
+  const tareasCreadas = aCrear.length ? (await crearTareas(clinicId, aCrear)).creadas : 0
   return { tareasCreadas, tareasEsperadas: aCrear.length }
 }
 

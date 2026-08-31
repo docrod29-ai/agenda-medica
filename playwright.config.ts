@@ -48,5 +48,31 @@ export default defineConfig({
     { name: 'webkit',        use: { ...devices['Desktop Safari'] } },
     { name: 'iphone-safari', use: { ...devices['iPhone 14'] } },
     { name: 'android-chrome', use: { ...devices['Pixel 7'] } },
+    /**
+     * El TAMAÑO de un iPhone sobre el motor de Chromium — el único que se puede
+     * correr sin el binario de WebKit instalado.
+     *
+     * Va con nombre propio y no reutiliza `iphone-safari` a propósito: lo que
+     * mide es layout, objetivo táctil, consola y foco, NO el rebote elástico ni
+     * la falta de `overflow-anchor`, que son de WebKit. Llamarlo «iphone» a secas
+     * sería dejar que un verde de Chromium se lea como un iPhone probado.
+     */
+    {
+      name: 'telefono-chromium',
+      use: {
+        ...devices['iPhone 14'],
+        browserName: 'chromium',
+        defaultBrowserType: 'chromium',
+        /**
+         * Un entorno con Chromium ya instalado —CI, un contenedor de agente— no
+         * siempre trae la build EXACTA que pide la versión de Playwright del
+         * repositorio, y `playwright install` puede estar cortado. Con
+         * `PLAYWRIGHT_CHROMIUM_PATH` se usa el que haya; sin ella, el de siempre.
+         */
+        ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+          ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } }
+          : {}),
+      },
+    },
   ],
 })
