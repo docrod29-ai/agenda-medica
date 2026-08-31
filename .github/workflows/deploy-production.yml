@@ -32,7 +32,7 @@ env:
   # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
   # que envejeció sin que nadie se enterara. Ver Compuerta 0.
   ROLLBACK_AUTORIZADO: ''
-  VERSION_ESPERADA: nexusmed-v1177
+  VERSION_ESPERADA: nexusmed-v1178
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
