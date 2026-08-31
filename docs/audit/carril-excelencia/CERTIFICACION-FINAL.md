@@ -325,6 +325,7 @@ npm run arnes:caida-parcial        # una caída parcial no es un día libre
 npm run arnes:cita-fuera-de-hora   # ninguna cita se queda fuera de la rejilla
 npm run arnes:dialogos-teclado     # el foco entra, Escape cierra, el foco vuelve
 npm run arnes:hoy-del-consultorio  # la agenda abre anclada en el día del consultorio
+npm run arnes:banda-de-atencion    # horario, comida, festivo y médico filtrado
 npm run arnes:consultorio-vacio    # el estado vacío, con un consultorio de cero
 npm run arnes:texto-largo          # el texto largo cabe y el campo lo enseña
 npm run arnes:listas-largas        # 250 pacientes y 90 citas, en su propio consultorio
