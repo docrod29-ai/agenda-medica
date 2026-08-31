@@ -4932,7 +4932,11 @@ cinco arneses de este carril en verde.
 - **No se cubre el cambio de día con la pantalla ABIERTA**: a medianoche del
   consultorio, `baseDate` sigue donde estaba. Es el estado inicial lo que se
   arregló, no un reloj vivo.
-- **La vista de MES no se miró.**
+- ~~La vista de MES no se miró.~~ **Medida** justo después: el arnés cambia a
+  «Mes» con el aparato en Kiritimati y comprueba que marque el día del
+  consultorio — sale bien (marca el 30). Lo que **no** se corrió aparte es su
+  mitad al revés: comparte ancla y lectura de día con la semana, que sí se probó
+  al revés, y por eso se dice «medida», no «probada al revés».
 - Sólo se prueba una zona **por delante** del consultorio. La simétrica —por
   detrás— produce el defecto espejo y **no se vigila**.
 - El resto del producto sigue usando `fechaISOLocal` donde toca: esto cambia

@@ -118,4 +118,51 @@ if (fallos.length) {
     + fallos.map(f => '   · ' + f).join('\n') + '\n')
   process.exit(1)
 }
+/*
+ * ── Y LA VISTA DE MES ────────────────────────────────────────────────────────
+ * La unidad 77 dejó el mes escrito como riesgo residual («no se miró»). Se mira:
+ * comparte el ancla y la misma lectura de día, así que si una está bien la otra
+ * debería estarlo — «debería» es justo lo que este carril no acepta.
+ */
+console.log('')
+const nav2 = await chromium.launch({ executablePath: CHROME })
+const ctx2 = await nav2.newContext({ viewport: { width: 1440, height: 900 }, timezoneId: ZONA_DEL_APARATO })
+const pag2 = await ctx2.newPage()
+await pag2.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' })
+await pag2.locator('input[type=email]').first().fill('demo@nexusmed.test')
+await pag2.locator('input[type=password]').first().fill('demo1234')
+await pag2.locator('button[type=submit]').first().click()
+await pag2.waitForTimeout(9000)
+await pag2.goto(`${BASE}/calendario`, { waitUntil: 'domcontentloaded' })
+await pag2.waitForTimeout(8000)
+for (const t of [/^saltar$/i, /^entendido$/i]) {
+  const b = pag2.locator('button:visible').filter({ hasText: t }).first()
+  if (await b.count().catch(() => 0)) { await b.click().catch(() => {}); await pag2.waitForTimeout(700) }
+}
+const botonMes = pag2.locator('button:visible').filter({ hasText: /^Mes$/ }).first()
+let mes = null
+if (await botonMes.count().catch(() => 0)) {
+  await botonMes.click().catch(() => {})
+  await pag2.waitForTimeout(4500)
+  mes = await pag2.evaluate(() => {
+    const teal = getComputedStyle(document.documentElement).getPropertyValue('--teal').trim()
+    const h = teal.replace('#', '')
+    const esperado = `rgb(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)})`
+    return [...document.querySelectorAll('main *')]
+      .filter(e => /^\d{1,2}$/.test((e.textContent || '').trim()) && getComputedStyle(e).color === esperado)
+      .map(e => (e.textContent || '').trim())
+  })
+}
+await nav2.close()
+
+if (mes === null) {
+  console.log('  mes · no se encontró el conmutador de vista — el MES queda sin medir')
+} else {
+  console.log(`  mes · marcados como hoy: ${mes.join(', ') || '(ninguno)'} · se espera el ${diaEsperado}`)
+  if (!mes.includes(diaEsperado)) {
+    console.error('\n  LA VISTA DE MES NO MARCA EL HOY DEL CONSULTORIO.\n')
+    process.exit(1)
+  }
+}
+
 console.log('\n  El calendario abre en la semana del consultorio, con su día marcado.\n')
