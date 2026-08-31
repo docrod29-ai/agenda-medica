@@ -7,6 +7,8 @@ import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
+import { useDoctors } from '@/hooks/useDoctors'
+import { configParaMedico } from '@/lib/horario-medico'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus } from '@/types'
@@ -113,14 +115,33 @@ export default function CalendarioPage() {
    * rejilla llegue hasta donde se atiende: una consulta que cierra a las 21:00
    * necesita poder AGENDAR a las 20:00, no sólo ver lo ya agendado.
    */
+  /**
+   * El horario que manda en la banda: el del MÉDICO FILTRADO si tiene el suyo,
+   * y si no el del consultorio.
+   *
+   * Se resuelve con `configParaMedico`, que es donde vive esa decisión y ya la
+   * usa el cálculo de huecos. Sin esto, con el filtro puesto en un médico con
+   * horario propio la rejilla pintaría la banda del consultorio mientras el
+   * selector de horas ofrece la del médico — la pantalla diciendo una cosa y el
+   * motor otra, que es el defecto que esta unidad y la anterior vienen a cerrar.
+   *
+   * Hoy `horarioPropio` **no lo enciende ninguna pantalla** (lo dice el propio
+   * tipo), así que en la práctica esto devuelve el del consultorio siempre. Se
+   * cablea igualmente porque el día que se encienda, el defecto ya no está.
+   */
+  const { doctors } = useDoctors()
   const horariosDelConsultorio = useMemo(
-    /*
-     * En orden de lunes a domingo, POR NOMBRE y no por `Object.values`: el orden
-     * de las llaves de un objeto que viene de la base no está garantizado, y
-     * aquí el índice ES el día de la semana.
-     */
-    () => ORDEN_SEMANA.map(d => config?.horario?.[d] ?? {}),
-    [config],
+    () => {
+      const medico = medicoFiltro ? doctors.find(d => d.id === medicoFiltro) : null
+      const cfg = configParaMedico(config, medico)
+      /*
+       * En orden de lunes a domingo, POR NOMBRE y no por `Object.values`: el
+       * orden de las llaves de un objeto que viene de la base no está
+       * garantizado, y aquí el índice ES el día de la semana.
+       */
+      return ORDEN_SEMANA.map(d => cfg?.horario?.[d] ?? {})
+    },
+    [config, doctors, medicoFiltro],
   )
   const appointments = useMemo(() => {
     if (!medicoFiltro) return allAppointments

@@ -5066,9 +5066,57 @@ arneses.
 
 - **Los festivos siguen sin verse.** `diasFestivos` existe y `getDaySchedule` lo
   usa; la rejilla no lo mira. Es ahora el hueco más grande de esta banda.
-- **Ni los horarios por médico**: la banda usa el del consultorio, aunque el
-  producto sepa de horarios individuales y la rejilla se pueda filtrar por médico.
-  Con el filtro puesto en un médico con otro horario, la banda miente.
+- ~~Ni los horarios por médico.~~ **Cerrado abajo, y de paso corregido lo que
+  decía esta línea**: afirmaba «la banda miente» como si pasara hoy, y no pasaba
+  — `horarioPropio` no lo enciende ninguna pantalla. Era una exageración mía.
 - La banda sigue siendo sólo de la vista de **semana**.
 - Un descanso que cubre media hora no se dibuja de ninguna forma: o cubre la
   franja entera o no se ve. Media franja sombreada pediría otra pieza.
+
+---
+
+## Unidad 80 — la banda del médico filtrado, y una exageración mía corregida
+
+**DE DÓNDE SALE.** Del último riesgo residual de la unidad 79. Al ir a cerrarlo,
+lo primero que apareció fue que **yo lo había escrito mal**: decía «con el filtro
+puesto en un médico con otro horario, la banda miente», como si fuera algo que
+pasa hoy. No pasa. El propio tipo lo dice: «HORARIO PROPIO — **hoy nadie lo
+enciende**», y no hay pantalla que lo active.
+
+Queda corregido arriba. Un carril que exagera sus propios riesgos residuales
+gasta la credibilidad de los que sí son ciertos.
+
+**LO QUE SÍ SE HACE, y por qué aun así vale la pena.** La rejilla se puede
+filtrar por médico, y `getAvailableSlots` **ya** resuelve el horario con
+`configParaMedico` —el sitio donde vive esa decisión—. La banda no lo hacía: leía
+el del consultorio y punto. El día que alguien encienda `horarioPropio`, la
+pantalla y el motor se separarían otra vez.
+
+Se cablea con **el mismo helper**, no con una regla nueva. Tres líneas.
+
+**MEDIDO, con un médico sintético de sólo tarde (16:00–19:00):**
+
+```
+SIN filtro:  07:00 7/7  08:00 7/7  09:00 2/7 … 14:00 3/7 … 18:00 7/7
+CON filtro:  07:00 7/7 … 15:00 7/7  16:00 0/7  17:00 0/7  18:00 0/7  19:00 7/7
+```
+
+Sin filtro, la banda del consultorio —con el viernes cerrando a las 14:00, que es
+el 3/7—. Con el filtro, **sólo sus tres horas abiertas**, y las 19:00 cerradas
+porque a esa hora termina. El médico sintético y su compañero se borraron al
+acabar, y se comprobó que el emulador quedó como estaba: cero médicos y sin
+`horario` propio en la configuración, que es lo que hace que caiga a
+`DEFAULT_CONFIG`.
+
+**COMPUERTAS.** `vitest` 11 993 de 11 994 —sólo `ops-timeout-y-punto-ciego`— ·
+lint 95 = techo · trinquete de diseño sin deuda nueva · `tsc` limpio · `npm run
+build` compila.
+
+**RESIDUAL_RISK.**
+
+- **Los festivos siguen sin verse.** `diasFestivos` existe y `getDaySchedule` lo
+  usa; la banda no lo mira. Es el hueco más grande que queda aquí.
+- **Esto no tiene arnés que se vuelva a correr solo.** Se midió a mano con datos
+  sintéticos y se limpió; no queda un guion que lo repita. Es la diferencia entre
+  «medido una vez» y «vigilado», y aquí es lo primero.
+- La banda sigue siendo sólo de la vista de **semana**.
