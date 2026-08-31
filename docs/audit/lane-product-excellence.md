@@ -5471,3 +5471,143 @@ compila · trinquete de interfaz sin regresión · `arnes:dialogos-teclado` en v
   formularios de varios pasos esconden controles hasta que se llega a ellos, y
   este arnés mide una sola pantalla por ruta. Lo que no se pintó, no se midió.
 - El portal del paciente sigue fuera de las 22 rutas.
+
+---
+
+## Unidad 87 — el portal del paciente entra a los arneses, y el botón de producción deja de poder publicar un árbol viejo
+
+Salió todo de tirar de un solo hilo: `/mi/[token]` estaba fuera de las 22 rutas.
+
+### 87a · El acuñado del token estaba copiado a mano TRES veces
+
+Y esto casi impide que se viera nada de lo demás. Un token que el servidor
+**rechaza** no rompe el arnés: el navegador aterriza en «enlace no válido»
+—pocos controles, todos correctos— y el arnés publica **un cero tranquilizador**.
+El portal quedaría declarado medido y verde sin haberse mirado nunca.
+
+`trinquete-de-interfaz.mjs`, `destinos-del-portal.mjs`, y la cuarta copia iba a
+ser la mía. Extraído a `scripts/carril-excelencia/token-del-portal.mjs`.
+
+El golden no comprueba que el token esté «bien formado»: lo pasa por
+`verificarTokenPaciente`, la función que corre en el servidor. Es «el dato tiene
+que LLEGAR» — que el emisor **diga** lo acordado no prueba que el receptor lo
+**admita**.
+
+**PROBADO AL REVÉS**, 5 defectos instalados: firma con otro secreto (2 rojos),
+identidad renombrada `c`→`clinic` (2), paciente distinto (1), token caducado (3).
+El quinto —renombrar `a`→`alcance`— **pasa, y está bien**: el verificador degrada
+a propósito un alcance desconocido a `agenda`, así que el token sigue valiendo y
+el arnés seguiría midiendo el portal de verdad. Fue el primer reverso que probé,
+y quedarme ahí me habría hecho concluir que el golden no servía.
+
+### 87b · El portal no tenía `<main>`
+
+Medido sobre el DOM vivo, no sobre el HTML servido —que es sólo el armazón—:
+`main: 0 · roleMain: 0 · nav: 1 · h1: 1 · controles: 14`.
+
+**Por qué nadie lo había visto**, comprobado y no deducido:
+
+| axe sobre el portal | Violaciones |
+|---|---|
+| `wcag2a/2aa/21a/21aa/22aa` — lo que corre el trinquete | **0** |
+| `best-practice` — lo que **no** corre | `landmark-one-main` ×1 · `region` ×6 |
+
+El portal pasaba **69/69 en verde** con seis bloques fuera de todo landmark. La
+compuerta no mentía: medía otra cosa. Y `.claude/rules/patient-facing-ai.md` dice
+por qué pesa más aquí — del lado del médico un fallo así se lo come alguien
+entrenado para verlo.
+
+Arreglado: la columna de contenido pasa de `<div>` a `<main>`, y el `<nav>` de
+los cinco destinos sale fuera. Las dos violaciones **a 0**.
+
+### 87c · Cuatro de los cinco destinos no acusaban el puntero
+
+`5 mudos de 12` → **0**. El formulario previo y `Preguntar · Cuidado ·
+Documentos · Perfil`. «Hoy» no sale y está bien: el arnés excluye `aria-current`.
+
+Causa raíz: `background: 'none'` y el `color` en el `style={{ }}`. Arreglado con
+`.nx-destino-portal` (mismos peldaños que `.nx-acc-plana`) y `.nx-acc-plana` +
+`data-abierto` para el formulario. **PROBADO AL REVÉS**: devolviendo el estilo en
+línea, el arnés canta **los cuatro, por su nombre**.
+
+### 87d · «Anular cobro» — los dos botones del pie, mudos
+
+`2 mudos de 3` → **0**. Y hay un detalle que habría dado un cero falso: **el
+arnés salta los `disabled` a propósito**, y «Anular cobro» está apagado hasta que
+se escribe un motivo. Abrir el diálogo no bastaba: sin escribir el motivo, el
+control destructivo queda fuera de la cuenta y el diálogo sale «0 mudos» sin
+haber mirado lo que importa. El arnés ahora **lleva el producto al estado**.
+
+Es la lección de la unidad 86 un paso más allá: no basta con que el control
+exista; tiene que estar **en el estado en el que se usa**.
+
+`.btn-danger` ya existía y **no se usó**: es el destructivo *fantasma*, y en un
+diálogo de confirmación la acción destructiva es la principal y va rellena.
+Cambiarla habría sido bajarle el peso visual — un cambio de producto disfrazado
+de arreglo. Se añade `.nx-acc-destructiva`, hermano de `.nx-acc-fuerte`, sin
+colores nuevos.
+
+**El reverso de esta subunidad es el propio orden de los hechos**: 2 mudos con el
+defecto presente, 0 después, mismo arnés y mismo diálogo.
+
+### 87e · El botón de producción podía publicar reglas de un árbol viejo, en verde
+
+`deploy-production.yml` hace checkout de un pin escrito a mano. Sus compuertas no
+pueden cazar que envejezca: la 1 compara el sha consigo mismo y la 3 comprueba
+que producción sirva `VERSION_ESPERADA`, **que no cambia cuando cambia el árbol**.
+
+**Compuerta 0**: el pin se conserva —es el acto de autorización del dueño— pero
+se le exige ser la cabeza de `main`. Y **se lee de `main`, no del checkout**: una
+compuerta que viaja con lo que vigila no vigila nada.
+
+**PROBADO AL REVÉS**, 3 defectos: quitar la llamada (2 rojos), moverla después de
+publicar las reglas (1), hacer que la decisión deje pasar todo (6).
+
+### RESIDUAL_RISK
+
+- **La Compuerta 0 hace inusable el flujo de fijar el pin en un PR, y eso es un
+  defecto de mi diseño, no del producto.** Al fusionar, el commit de merge mueve
+  `main` por delante del pin que ese mismo PR escribió. Ocurrió **tres veces en
+  una tarde**: `ee1b3632` (87 detrás), `3bada501` (5), `8f74901d` (2). El único
+  flujo que la satisface es editar el pin **directamente en `main`** antes de
+  pulsar. Propuesta pendiente de decisión del dueño: dejar pasar cuando el pin
+  sea antepasado de `main` **y** `firestore.rules`, `firestore.indexes.json`,
+  `version.txt` y `sw.js` sean idénticos entre pin y cabeza — o sea, cuando nada
+  de lo que este workflow publica haya cambiado. Compararía contenido en vez de
+  nombres. **NO IMPLEMENTADO.**
+- **El punto ciego de producción sigue abierto.** Nada en el repositorio
+  distingue qué árbol sirve producción. La Compuerta 0 vigila lo que se
+  **autoriza**, no lo que está **publicado**.
+- **La Compuerta 3 no se pudo comprobar**: exige que producción sirva la versión
+  esperada y este entorno recibe 403 contra el sitio vivo. `BLOCKED_EXTERNAL`.
+- **El portal se mide con token de alcance `agenda`**, el de mostrador. El
+  alcance `clinico` —el que abre secreto médico— **NO se mide**.
+- **`CobrarModal` sigue sin abrirse**, y los diálogos del portal tampoco: el
+  golden `un-dialogo-a-mano-no-atrapa-el-foco` declara que **no mira
+  `src/app/mi/**`**.
+- Un trinquete a 0 sólo vigila **lo que se llegó a pintar el día que se midió**.
+- **WebKit sigue `BLOCKED_EXTERNAL`**: sólo hay Chromium en esta caja.
+
+### COMPUERTAS
+
+`vitest` **12 027 de 12 028** —el rojo es `ops-timeout-y-punto-ciego`, ambiental,
+y esta vez **verificado**: corrido sobre `origin/main` limpio en un worktree
+aparte, falla idéntico— · lint **95 = techo** · trinquete de diseño **sin deuda
+nueva** · `tsc` limpio · `npm run build` compila · `arnes:acuse-puntero`
+**`EXIT=0`** con el techo del portal declarado · `arnes:nada-tapa` **0 tapados de
+848** · inventario de pantallas regenerado con su script.
+
+### UNA COSA QUE APRENDÍ DE MIS PROPIOS ERRORES, Y QUE VALE PARA EL CARRIL
+
+Seis veces me equivoqué en esta unidad, y las seis las cazó medir en vez de
+confiar: el arnés culpó al servidor cuando el defecto era el `<main>` ausente; un
+`grep` demasiado estrecho me hizo decir que nadie usaba el `Modal` compartido;
+`pkill -f` mató mi propio shell dos veces —su patrón casa con la línea de
+comandos del propio bash— y por eso un build nunca arrancó; lancé otro build sin
+las variables del arnés; y reporté «6/6 en verde» sin notar que ese verde era de
+dos commits atrás, porque los empujes con `GITHUB_TOKEN` dejan el
+`pull_request:synchronize` en *approval-required* y CI no vuelve a correr.
+
+El hilo común con los cinco defectos del producto es el mismo: **una compuerta en
+verde no dice que lo que te importa esté bien; dice que lo que ella mide está
+bien.**
