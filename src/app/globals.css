@@ -880,6 +880,32 @@ tbody tr:last-child { border-bottom: none; }
   align-items: center;
   gap: 10px;
 }
+/*
+  EL NOMBRE DEL CONSULTORIO CABE EN UNA LÍNEA, O SE CORTA — Y LA REGLA VIVE
+  AQUÍ, NO EN CADA COMPONENTE.
+
+  «Consultorio de Medicina Interna» —un nombre corriente, no un caso extremo—
+  envolvía a dos renglones y empujaba el nombre de la médica contra el borde.
+  Se ve en las ocho capturas del arnés del emulador
+  (`docs/audit/ausculta-transformacion/interno/`) y en los dos anchos: es la
+  cabecera del shell, así que el defecto sale en cada pantalla a la vez.
+
+  Se arregló primero en `Sidebar.tsx`… y no cambió nada, porque a 1440 quien
+  pinta esa cabecera es `FlowRail.tsx`, que lleva el MISMO bloque. Es la
+  familia que el propio `FlowRail` tiene escrita treinta líneas más abajo: «la
+  lección se aprende en un componente y no en el de al lado». Por eso la regla
+  baja a la clase que los dos comparten: para que no haya un tercero al que
+  olvidársele.
+
+  `min-width: 0` en el envoltorio es lo que permite que un hijo de flex encoja
+  por debajo de su contenido — sin él, `text-overflow` no recorta nada.
+*/
+.sidebar-logo > div:last-child { min-width: 0; }
+.sidebar-logo > div:last-child > div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .sidebar-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 1px; }
 
