@@ -15433,3 +15433,119 @@ probada al revés sobre cinco workflows mutilados: borrar el paso del sello,
 borrar el despliegue de las reglas, cambiar el hash derivado por una constante
 pegada, quitar el sello del acta y dejar que el acta cierre en verde sin el paso
 de Firestore. Los cinco caen.
+
+---
+
+## REG-417 — la consulta trabajaba sin la edad del paciente, y ninguna compuerta lo dijo
+
+**Dónde**: `src/app/(dashboard)/consulta/[patientId]/page.tsx` ·
+`src/lib/expediente/pediatria.ts` (`edadEnAnios`, ya existía)
+
+### Qué fallaba
+
+La consulta leía `patient.edad` —un número guardado— y no derivaba nada de
+`patient.fechaNacimiento`. Con el campo vacío, **trece lecturas** de esa pantalla
+degradaban en silencio:
+
+- `esPediatrico` nunca se encendía → sin modo pediátrico
+- `esGineco` nunca se encendía → sin módulo de ginecología
+- las vacunas atrasadas devolvían 0 → un cero que no vigila nada
+- el memo de contexto de **seguridad** y cada llamada a motor recibían `undefined`
+- al copiloto le llegaba, literalmente, la cadena «? años»
+
+Ninguno avisaba. Es «ausencia de dato no es dato de ausencia» en la capa que
+decide dosis.
+
+### Cómo se descubrió
+
+Mirando el primer pliegue de `/consulta` en el navegador. El subtítulo decía
+«· Femenino · Nota de Primera Vez», con un **separador huérfano** donde debía ir
+la edad — y el paciente sí tenía fecha de nacimiento en el expediente. El síntoma
+visible era un « · » de más; lo que había debajo era la capa que decide dosis
+trabajando sin la edad.
+
+### Causa raíz
+
+Dos campos para un solo hecho: el expediente guarda `fechaNacimiento` y las
+pantallas leen `edad`. `edadEnAnios` —motor determinista, ya probado en
+`pediatria.ts`— existía y la consulta **no lo llamaba**: la regla «escrito,
+probado y sin conectar». `/pacientes` sí lo llama, pero **sólo** al teclear la
+fecha en su formulario, y guarda el resultado como número.
+
+### El arreglo
+
+Cuando hay fecha de nacimiento, la edad **derivada manda** sobre la guardada. Un
+número guardado es la foto del día que se escribió: quien se registró con 66
+sigue teniendo 66 cinco años después. La resta la hace el motor, no la pantalla
+(`clinical-safety` §2). No se escribe nada en Firestore: corregir el documento
+del paciente es otro acto, del médico. Y sin fecha ni edad, la pantalla lo
+**declara** («— edad no registrada») en vez de callarlo.
+
+### Qué NO cubre
+
+- Sólo la consulta. Otras pantallas que lean `edad` sin derivarla siguen viendo
+  la foto vieja.
+- No corrige el dato en Firestore, a propósito.
+- No vigila que los trece consumidores usen bien la edad: sólo que la reciban.
+
+**Prueba.** `src/__tests__/la-edad-de-la-consulta-no-es-una-foto-vieja.test.ts`
+(8 casos), con los dos casos de compuerta —pediátrica y ginecológica— probados
+en los dos sentidos: encendida con la edad al día, apagada y muda sin ella.
+
+---
+
+## REG-418 — la alergia se decía dos veces en la misma franja, y su guardián clavaba el defecto
+
+**Dónde**: `src/lib/seguridad/alergias.ts` ·
+`src/app/(dashboard)/consulta/[patientId]/page.tsx` ·
+`src/__tests__/v15-rtc14-una-sola-presentacion-de-alergias.test.ts`
+
+### Qué fallaba
+
+En el primer pliegue de la consulta, la franja de alergias decía lo mismo dos
+veces, en rojo, a 700 px de distancia:
+
+```
+Alergias: Penicilina (anafilaxia), sulfas, AINEs   se lee: Penicilina (anafilaxia) · sulfas · AINEs
+```
+
+### Causa raíz
+
+La condición era `alergenos.join(' · ') !== (patient?.alergias ?? '').trim()` —
+comparar dos **cadenas ya puntuadas**. El texto escrito separa con «, » y la
+lectura con « · », así que difieren como cadena aunque digan exactamente lo
+mismo, y la condición se cumplía **siempre**.
+
+El comentario del código ya declaraba la intención correcta —«sólo aparece
+cuando la lectura AÑADE algo»—. Lo que no coincidía era la implementación: un
+guardián que dice lo que quiere hacer y comprueba otra cosa.
+
+Es REG-311 —«dos avisos del mismo dato compiten entre sí, y el segundo se aprende
+a ignorar»— reapareciendo **en horizontal** cuando se fusionaron los dos avisos
+verticales.
+
+### Y el guardián existente clavaba el defecto
+
+`v15-rtc14` §4 exigía esa expresión **literal**. Estaba en verde mientras el
+defecto estaba en pantalla, porque comprobaba que el código dijera una cadena
+concreta en vez de que **hiciera** lo que su propio nombre promete. Se reescribió
+para exigir la regla, y la conducta se prueba con casos aparte.
+
+### El arreglo
+
+`laLecturaAnadeAlgo` compara **conjuntos normalizados**: mismos alérgenos, en
+cualquier orden, con cualquier separador, sin acentos ni mayúsculas → no añade
+nada y no se pinta. Y al revés sigue funcionando: con prosa clínica —«Niega
+penicilina. Alérgico a sulfas»— la lectura sí añade y se ve.
+
+### Qué NO cubre
+
+- No dice si la lectura es **correcta**, sólo si es redundante. Un alérgeno mal
+  extraído se sigue enseñando — que es lo que debe pasar.
+- Los separadores reconocidos son los que un médico escribe de verdad. Uno
+  exótico haría que la lectura se considere distinta y se pinte: falla hacia
+  enseñar de más, no de menos.
+
+**Prueba.** `src/__tests__/la-alergia-no-se-dice-dos-veces-en-la-misma-franja.test.ts`
+(8 casos). **Probada al revés**: restaurar la comparación de cadenas → 4 rojos,
+incluido el caso real; quitar la normalización de acentos → 1 rojo.

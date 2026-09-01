@@ -2,7 +2,7 @@
   "sellado": "2026-08-31",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6135,
+  "totalCasos": 6156,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -733,6 +733,10 @@
       "minCasos": 24
     },
     {
+      "archivo": "src/__tests__/la-alergia-no-se-dice-dos-veces-en-la-misma-franja.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/la-alerta-tiene-quien-la-lea.test.ts",
       "minCasos": 12
     },
@@ -787,6 +791,10 @@
     {
       "archivo": "src/__tests__/la-duracion-que-ya-vencio.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/la-edad-de-la-consulta-no-es-una-foto-vieja.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts",
@@ -1675,6 +1683,10 @@
     {
       "archivo": "src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/v15-rtc14-una-sola-presentacion-de-alergias.test.ts",
+      "minCasos": 5
     },
     {
       "archivo": "src/__tests__/v15-rtc21-exportar-dice-el-trabajo.test.ts",

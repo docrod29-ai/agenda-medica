@@ -4077,3 +4077,60 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   border-color: color-mix(in srgb, var(--nexus) 55%, transparent);
 }
 
+
+
+/* ── LA BANDA DE CONTEXTO DE LA CONSULTA ───────────────────────────────────
+
+   MEDIDO en navegador el 1-sep, primer pliegue de `/consulta`: el contexto del
+   paciente se pintaba con CINCO contenedores de geometría idéntica — problemas
+   y última visita, medicación vigente, dispositivos, trayectorias de
+   laboratorio, visitas anteriores — todos `1px solid var(--border)` + radio 10
+   + un icono de 16 + una etiqueta en negrita. Cambiaba el icono y nada más.
+
+   Eso es exactamente lo que la regla de diseño prohíbe medir y dejar pasar:
+   «tablero hecho enteramente de tarjetas redondeadas» y «todo con el mismo peso
+   visual». Cinco cajas iguales no son jerarquía: son inventario. El médico no
+   puede saber, mirando, cuál de las cinco le importa hoy.
+
+   Y no se arregla repintándolas. Se arregla quitándoles la caja: R3 de la
+   gramática NexusMED —«cero contenedores nuevos donde el espacio y el tipo ya
+   jerarquizan»—. Las cinco pasan a ser FILAS de una sola banda, separadas por
+   una línea de pelo. Una caja donde había cinco, y la jerarquía la hace la
+   tipografía de cada fila, no su borde.
+
+   POR QUÉ CON ADYACENCIA Y NO CON UN ENVOLTORIO. Las cinco filas son
+   condicionales: cualquiera puede no existir. Un `<div>` envolvente pintaría la
+   caja aunque dentro no quedara ninguna. Con `+` la banda la forman las que de
+   verdad se rindieron, y si mañana alguien mete un bloque distinto en medio,
+   las de cada lado se agrupan solas y la de en medio queda aparte — degrada a
+   lo que había, nunca a algo roto.
+
+   La alergia NO entra en la banda, a propósito: no es contexto, es un aviso de
+   riesgo, y es lo único de este pliegue que debe poder gritar. */
+.nx-ctx {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 13px;
+  margin-bottom: 12px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+/* La fila que tiene otra detrás pierde su borde de abajo y sus esquinas: deja
+   de ser una caja y pasa a ser la parte de arriba de la banda. */
+.nx-ctx:has(+ .nx-ctx) {
+  margin-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* Y la que va detrás se pega a la anterior con una línea de pelo en vez de con
+   dos bordes y un hueco de 12px. */
+.nx-ctx + .nx-ctx {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top-color: var(--border);
+}
+/* El icono de cada fila baja de rango: era un color más compitiendo en cinco
+   sitios. Marca la fila, no la reclama. */
+.nx-ctx > svg { flex-shrink: 0; margin-top: 1px; color: var(--text3); opacity: 0.75; }

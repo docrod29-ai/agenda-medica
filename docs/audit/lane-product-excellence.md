@@ -5972,3 +5972,126 @@ necesita una IP que trague paquetes y el proxy de esta caja contesta — ya
 declarado en REG-414) · lint **95 = techo** · trinquete de diseño sin deuda nueva
 · `tsc` limpio · golden nuevo **5 casos, probado al revés ×3** · sellado en
 `invariantes-clinicos.json` · sala de datos, tablero e inventario regenerados.
+
+---
+
+## Unidad 91 — el primer pliegue de la consulta, mirado como médico
+
+Primera unidad del bloque de núcleo. Producto corriendo, Chromium real, 1440 y
+390, tema oscuro. **BEFORE/AFTER en `docs/design/capturas/v91/`.**
+
+La consulta es la pantalla donde el médico pasa el día. Su primer pliegue tenía
+**cinco defectos reales**, y ninguno lo cazaba una prueba: cuatro sólo se ven
+mirando, y el quinto sólo se ve mirando **en un teléfono**.
+
+### 91a · La lista de alergias se cortaba en el teléfono
+
+A 390 px se leía `Penicilina (anafilaxia), sulfas, AINE` — sin la «s» final, sin
+puntos suspensivos y sin ningún indicio de que hubiera más. **El dato más letal
+del producto, cortado a media palabra.**
+
+La causa es el control: un `<input>` de una línea recorta su contenido al ancho,
+en silencio. No lo cazó ninguna medición —la página no desbordaba, el recorte
+pasaba DENTRO del campo— y ninguna prueba puede cazarlo leyendo el código.
+
+`<textarea>` de una fila que crece con el contenido: envuelve en vez de cortar y
+conserva la edición directa que el médico pidió.
+
+Y el mismo defecto, dos filas más abajo: el segundo medicamento vigente llegaba
+a **x=418 en un viewport de 390**, y esos 28 px de fuera se llevaban su «ya no»
+— el control que SUSPENDE un fármaco, invisible en el teléfono.
+
+### 91b · La edad no estaba, y de ella cuelgan las compuertas clínicas
+
+El subtítulo decía `· Femenino · Nota de Primera Vez`, con un separador huérfano
+donde debía ir la edad. El paciente **sí** tenía `fechaNacimiento`.
+
+El separador era lo de menos. `patient.edad` se lee en **trece sitios** de esta
+pantalla, y con el campo vacío todos degradan **en silencio**:
+
+| Lectura | Con la edad ausente |
+|---|---|
+| `esPediatrico` | nunca se enciende → sin modo pediátrico |
+| `esGineco` | nunca se enciende → sin módulo de ginecología |
+| vacunas atrasadas | devuelve 0 — un cero que no vigila nada |
+| memo de contexto de **seguridad** y cada motor | reciben `undefined` |
+| copiloto | recibe, literalmente, «? años» |
+
+`edadEnAnios` —motor determinista, ya probado— **existía y esta pantalla no lo
+llamaba**: la regla «escrito, probado y sin conectar» del propio repositorio.
+
+Y lo derivado manda sobre lo guardado: un número guardado es la foto del día que
+se escribió. Quien se registró con 66 sigue teniendo 66 cinco años después, y de
+esa cifra cuelgan el ajuste renal y la dosis pediátrica. → **REG-417**.
+
+### 91c · La alergia se decía DOS VECES en la misma franja
+
+```
+Alergias: Penicilina (anafilaxia), sulfas, AINEs    se lee: Penicilina (anafilaxia) · sulfas · AINEs
+```
+
+La condición era `alergenos.join(' · ') !== texto.trim()`: comparar dos **cadenas
+ya puntuadas**. El texto separa con «, » y la lectura con « · », así que difieren
+como cadena aunque digan lo mismo — y se cumplía **siempre**.
+
+Es REG-311 —«dos avisos del mismo dato compiten, y el segundo se aprende a
+ignorar»— reapareciendo **en horizontal** cuando se fusionaron los dos avisos
+verticales. Ahora se compara por conjunto normalizado. → **REG-418**.
+
+**Y el guardián de RTC-14 clavaba el defecto**: exigía esa expresión literal.
+Estaba en verde mientras el defecto estaba en pantalla, porque comprobaba que el
+código dijera una cadena concreta en vez de que hiciera lo que su nombre promete.
+
+### 91d · `Visitas anteriores: [2026-09-01]`
+
+Corchetes que parecen un array de depuración, fecha ISO en un producto es-MX, y
+**vacío** cuando la nota no traía resumen: una caja entera con borde que no decía
+nada. Ahora `1 sep 2026 — sin resumen`: la visita sigue apareciendo y declara lo
+que le falta, porque quitarla habría sido más limpio de leer y clínicamente
+falso — el paciente vino ese día.
+
+Mismo ISO crudo en «Lleva puesto: … del 2026-09-01», por la misma razón: nadie
+había mirado el renglón.
+
+### 91e · Cinco cajas del mismo peso no son jerarquía: son inventario
+
+El contexto del paciente se pintaba con **cinco contenedores de geometría
+idéntica** —problemas, medicación, dispositivos, trayectorias, visitas— todos
+`1px solid var(--border)` + radio 10 + icono de 16 + etiqueta en negrita.
+Cambiaba el icono y nada más.
+
+Es lo que la ley de diseño prohíbe: «tablero hecho enteramente de tarjetas
+redondeadas» y «todo con el mismo peso visual». El médico no puede saber,
+mirando, cuál de las cinco le importa hoy.
+
+No se arregla repintándolas: se les quita la caja (**R3** de la gramática
+NexusMED). Las cinco pasan a ser filas de **una** banda separadas por una línea
+de pelo. **De 5 contenedores a 1.** La alergia se queda fuera a propósito: no es
+contexto, es riesgo, y es lo único de este pliegue que debe poder gritar.
+
+Con adyacencia CSS (`+` y `:has`) y no con un envoltorio, porque las cinco filas
+son condicionales: un `<div>` envolvente pintaría la caja aunque dentro no
+quedara ninguna.
+
+### RIESGO RESIDUAL
+
+- **La banda lidera con lo más débil**: «Última consulta hoy.» ocupa la primera
+  fila —la posición más prominente— con el dato menos accionable. La jerarquía
+  DENTRO de la banda no está resuelta.
+- El círculo de grabar sigue a 96 px dominando el pliegue, y en modo «vivo» usa
+  `var(--teal)` y un `#ef4444` a mano mientras `EmpezarAGrabar` usa
+  `--nexus-solido`: **dos colores para la misma acción** según el modo de voz.
+- `EmpezarAGrabar` declara **dos** estados (`listo | procesando`) contra los
+  **seis** de la máquina (`inactivo | grabando | pausado | subiendo | listo |
+  error`). La unidad 92 entra por ahí.
+- Sólo tema oscuro y sólo Chromium. Claro y WebKit, sin medir.
+- La derivación de edad es **sólo en la consulta**: otras pantallas que lean
+  `edad` siguen viendo la foto vieja.
+
+### COMPUERTAS
+
+`npx vitest run` 12 062/12 064 —los dos rojos son el inventario (regenerado
+después) y `ops-timeout-y-punto-ciego`, de entorno, ya declarado en REG-414— ·
+lint **95 = techo** · trinquete de diseño sin deuda nueva · `tsc` limpio · dos
+golden nuevos **8 + 8 casos**, probados al revés · recorte a 390 medido en
+navegador: **de 2 elementos fuera de pantalla a 0**.
