@@ -23,15 +23,20 @@
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/product/AUSCULTA-MASTER-BOARD.md",
+    " M docs/product/DECISION_REGISTER.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M docs/quality/MOTORES-SIN-CONECTAR.md",
+    " M src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
+    " M src/__tests__/el-umbral-decidido-de-verdad-reprueba.test.ts",
+    " M src/lib/asr/lo-que-pesa-de-un-error.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
     " M src/lib/ia/contratos-de-evaluacion.ts",
     " M src/lib/ia/evaluacion.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/el-umbral-decidido-de-verdad-reprueba.test.ts"
+    "?? src/__tests__/el-motor-de-voz-tiene-techo.test.ts"
   ],
-  "actualizado": "2026-08-31",
+  "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -65,10 +70,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 298,
+    "regsEnElLedger": 299,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 867,
-    "casosDePrueba": 10914,
+    "archivosDePrueba": 868,
+    "casosDePrueba": 10932,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

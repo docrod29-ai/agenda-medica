@@ -11,7 +11,7 @@
  * instrumento de medición, PURO y testeable.
  */
 
-import { esperaAlMedico, type Umbral } from './contratos-de-evaluacion'
+import type { LoMedido } from './contratos-de-evaluacion'
 
 export interface CasoOro {
   id: string
@@ -206,224 +206,44 @@ export function evaluarConjunto(oro: CasoOro[], generadas: SalidaGenerada[]): { 
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * LA COMPUERTA DEL UMBRAL — el número decidido se APLICA, no sólo se declara.
- *
- * ── POR QUÉ EXISTE ───────────────────────────────────────────────────────────
- *
- * El 31-ago-2026 el médico dueño fijó el primero de los quince umbrales de IA
- * (D-029, REG-446): para `nota-consulta`, hasta 1 de cada 100 campos dictados
- * puede perderse, y CERO inventados. Quedó escrito en el contrato, con su
- * fuente y sus dos ejes.
- *
- * Y ahí se paró. El contrato lo **declaraba** y nadie corría la evaluación
- * contra él: el arnés medía por un lado, el número vivía por otro, y entre los
- * dos no había función alguna. Un umbral que no reprueba nada es exactamente lo
- * que el propio contrato llama una métrica decorativa — sólo que esta vez la
- * decoración la habríamos puesto nosotros, encima de una decisión que el médico
- * sí tomó.
- *
- * Es la familia «escrito y sin conectar» de la regla *el dato tiene que LLEGAR*,
- * aplicada a un número en vez de a un campo.
- *
- * ── CÓMO SE TRADUCE CADA EJE A LO QUE EL ARNÉS MIDE ─────────────────────────
- *
- * El médico decidió sobre «medicamentos o diagnósticos dictados que faltan» y
- * «medicamentos añadidos». El arnés mide campos. La traducción es de quien
- * escribe el código, así que se dice entera y se elige siempre la lectura MÁS
- * ESTRICTA — nunca la que hace pasar más fácil:
- *
- *  · **perdida** ← `resumen.tasaError` = (faltantes + incorrectos) / esperados.
- *    Se cuentan también los INCORRECTOS, no sólo los ausentes. Un campo que
- *    llegó cambiado tampoco llegó: la enalapril que sale como enalaprilato no
- *    está «presente con matices», está mal. Contarlo dentro es más duro que la
- *    lectura literal de la palabra «perdida», y ése es el lado por el que se
- *    quiere errar.
- *
- *  · **alucinacion** ← `resumen.alucinacionesPorCaso`. Con el umbral en cero el
- *    denominador da igual; se deja el promedio por caso para que el día que
- *    alguien lo suba por encima de cero, el número siga significando algo.
- *
- * ── LO QUE NO ES VERDE ──────────────────────────────────────────────────────
- *
- * Tres cosas que un lector distraído leería como «pasa» y aquí no lo son:
- *
- *  1. **Un umbral que todavía espera al médico.** `NEEDS_CLINICAL_REVIEW` no es
- *     permiso: es una decisión sin tomar. Catorce de las quince capacidades
- *     están así hoy.
- *  2. **Un conjunto vacío.** Cero casos dan cero errores y cero alucinaciones.
- *     Si borrar el corpus pusiera la compuerta en verde, la compuerta mediría
- *     el corpus y no el producto.
- *  3. **Un eje que este arnés no sabe medir.** Si mañana el contrato declara un
- *     eje nuevo, la compuerta lo dice en vez de ignorarlo. Ausencia de medida no
- *     es medida de ausencia.
- *
- * ── LO QUE ESTA COMPUERTA **NO** HACE ───────────────────────────────────────
- *
- * No mide el producto con pacientes reales, y el número que produce no es la
- * tasa de alucinación de Ausculta: el conjunto es sintético, pequeño y nuestro.
- * Y —lo importante— **es demasiado pequeño para ejercer el 1 % que el médico
- * fijó**: con cuatro campos esperados, el escalón más pequeño que se puede medir
- * es 25 %, veinticinco veces el umbral. Hoy la compuerta se comporta, en el eje
- * `perdida`, como si el umbral fuera cero. Eso es más estricto, no más laxo, y
- * por eso se aplica igual — pero se DECLARA en cada lectura
- * (`elConjuntoNoAlcanzaElUmbral`), porque nadie debe creer que el 1 % está
- * puesto a prueba. Para ejercerlo de verdad hacen falta ≥ 100 campos esperados,
- * y ese conjunto no existe todavía.
+   LO QUE ESTE ARNÉS LE ENTREGA A LA COMPUERTA — REG-447, generalizado en REG-448.
+
+   La compuerta que compara contra el umbral decidido vive en
+   `contratos-de-evaluacion.ts`, con el tipo `Umbral` al que aplica. Aquí sólo
+   queda la TRADUCCIÓN: qué mide este arnés y cómo se llama cada eje.
+
+   ── CÓMO SE TRADUCE CADA EJE, Y POR QUÉ ASÍ ─────────────────────────────────
+
+   El médico decidió (D-029) sobre «medicamentos o diagnósticos dictados que
+   faltan» y «medicamentos añadidos». Este arnés mide CAMPOS. La traducción es de
+   quien escribe el código, así que se dice entera y se elige siempre la lectura
+   MÁS ESTRICTA — nunca la que hace pasar más fácil:
+
+    · **perdida** ← `tasaError` = (faltantes + incorrectos) / esperados. Se
+      cuentan también los INCORRECTOS. Un campo que llegó cambiado tampoco
+      llegó: la enalapril que sale como enalaprilato no está «presente con
+      matices», está mal. Contarlo dentro es más duro que la lectura literal de
+      la palabra «perdida», y ése es el lado por el que se quiere errar.
+
+    · **alucinacion** ← `alucinacionesPorCaso`. Con el umbral en cero el
+      denominador da igual; se deja el promedio por caso para que el día que
+      alguien lo suba por encima de cero, el número siga significando algo.
    ═════════════════════════════════════════════════════════════════════════ */
 
-/** Los ejes que este arnés sabe medir. Cualquier otro se declara no medible. */
-export type NombreDeEje = 'perdida' | 'alucinacion'
-
-export const EJES_MEDIBLES: readonly NombreDeEje[] = Object.freeze(['perdida', 'alucinacion'])
-
-export interface EjeMedido {
-  readonly nombre: string
-  /** `null` cuando este arnés no sabe medir el eje que el contrato declara. */
-  readonly medido: number | null
-  readonly umbral: number
-  readonly veredicto: 'pasa' | 'reprueba' | 'no_se_puede_medir'
-  /** El escalón más pequeño distinto de cero que este conjunto puede medir. */
-  readonly resolucion: number
-  /** El conjunto es tan pequeño que no puede distinguir el umbral del cero. */
-  readonly elConjuntoNoAlcanzaElUmbral: boolean
-}
-
-export type Veredicto =
-  /** Todos los ejes medidos quedan en o por debajo de su umbral. */
-  | 'pasa'
-  /** Al menos un eje se pasó. */
-  | 'reprueba'
-  /** El umbral lo tiene que fijar alguien con cédula. No es permiso. */
-  | 'sin_umbral_decidido'
-  /** No se midió nada: cero casos. No es permiso. */
-  | 'sin_conjunto'
-  /** El contrato declara un eje que este arnés no sabe medir. No es permiso. */
-  | 'sin_ejes_medibles'
-
-export interface LecturaDeLaCompuerta {
-  readonly veredicto: Veredicto
-  readonly ejes: readonly EjeMedido[]
-  readonly porQue: string
-}
-
 /** Lo que el arnés midió, traducido a los nombres de eje que usó el médico. */
-export function medirEjes(r: ResumenEvaluacion): Record<NombreDeEje, number> {
-  return {
-    perdida: r.tasaError,
-    alucinacion: r.alucinacionesPorCaso,
-  }
+export function medirEjes(r: ResumenEvaluacion): Record<string, number> {
+  return { perdida: r.tasaError, alucinacion: r.alucinacionesPorCaso }
 }
 
 /** El escalón mínimo medible de cada eje. Un umbral por debajo no se ejerce. */
-export function resolucionDelConjunto(r: ResumenEvaluacion): Record<NombreDeEje, number> {
+export function resolucionDelConjunto(r: ResumenEvaluacion): Record<string, number> {
   return {
     perdida: r.camposEsperados > 0 ? 1 / r.camposEsperados : 1,
     alucinacion: r.casos > 0 ? 1 / r.casos : 1,
   }
 }
 
-export const UN_SOLO_NUMERO_CUBRE_LOS_DOS_EJES =
-  'El contrato declara un umbral único, sin ejes. Se aplica el MISMO número a '
-  + 'los dos: repartirlo sería inventar una asimetría que nadie decidió.'
-
-export const PORQUE_UN_UMBRAL_PENDIENTE_NO_ES_VERDE =
-  'El umbral de esta capacidad todavía lo tiene que fijar alguien con cédula. '
-  + 'NEEDS_CLINICAL_REVIEW no es permiso: es una decisión sin tomar, y una '
-  + 'compuerta que la leyera como aprobada convertiría el hueco en un visto bueno.'
-
-export const PORQUE_UN_CONJUNTO_VACIO_NO_ES_VERDE =
-  'Cero casos dan cero errores y cero alucinaciones. Si borrar el corpus pusiera '
-  + 'la compuerta en verde, la compuerta mediría el corpus y no el producto.'
-
-/**
- * Aplica el umbral decidido a lo que el arnés midió.
- *
- * Nunca devuelve `pasa` por omisión: si falta el umbral, falta el conjunto o
- * falta la medida de un eje, lo dice con su propio veredicto.
- */
-export function aplicarUmbral(umbral: Umbral, resumen: ResumenEvaluacion): LecturaDeLaCompuerta {
-  if (esperaAlMedico(umbral)) {
-    return { veredicto: 'sin_umbral_decidido', ejes: [], porQue: PORQUE_UN_UMBRAL_PENDIENTE_NO_ES_VERDE }
-  }
-
-  if (resumen.casos === 0) {
-    return { veredicto: 'sin_conjunto', ejes: [], porQue: PORQUE_UN_CONJUNTO_VACIO_NO_ES_VERDE }
-  }
-
-  const medido = medirEjes(resumen)
-  const resolucion = resolucionDelConjunto(resumen)
-
-  const declarados = umbral.ejes ?? EJES_MEDIBLES.map(nombre => ({
-    nombre, valor: umbral.valor, porQue: UN_SOLO_NUMERO_CUBRE_LOS_DOS_EJES,
-  }))
-
-  const ejes: EjeMedido[] = declarados.map(e => {
-    const sabeMedirlo = (EJES_MEDIBLES as readonly string[]).includes(e.nombre)
-    if (!sabeMedirlo) {
-      return {
-        nombre: e.nombre, medido: null, umbral: e.valor,
-        veredicto: 'no_se_puede_medir', resolucion: 1, elConjuntoNoAlcanzaElUmbral: false,
-      }
-    }
-    const nombre = e.nombre as NombreDeEje
-    const m = medido[nombre]
-    const res = resolucion[nombre]
-    return {
-      nombre,
-      medido: m,
-      umbral: e.valor,
-      veredicto: m <= e.valor ? 'pasa' : 'reprueba',
-      resolucion: res,
-      elConjuntoNoAlcanzaElUmbral: e.valor > 0 && e.valor < res,
-    }
-  })
-
-  const reprobados = ejes.filter(e => e.veredicto === 'reprueba')
-  if (reprobados.length > 0) {
-    return {
-      veredicto: 'reprueba',
-      ejes,
-      porQue: reprobados.map(e => `${e.nombre}: ${e.medido} > ${e.umbral}`).join('; '),
-    }
-  }
-
-  const sinMedir = ejes.filter(e => e.veredicto === 'no_se_puede_medir')
-  if (sinMedir.length > 0) {
-    return {
-      veredicto: 'sin_ejes_medibles',
-      ejes,
-      porQue:
-        `El contrato declara ${sinMedir.map(e => `«${e.nombre}»`).join(', ')} y este arnés no sabe medirlo. `
-        + 'Ausencia de medida no es medida de ausencia: no se da por bueno.',
-    }
-  }
-
-  const noEjercidos = ejes.filter(e => e.elConjuntoNoAlcanzaElUmbral)
-  return {
-    veredicto: 'pasa',
-    ejes,
-    porQue: noEjercidos.length === 0
-      ? 'Todos los ejes quedan en o por debajo de su umbral.'
-      : `Pasa, pero el conjunto es demasiado pequeño para ejercer ${noEjercidos.map(e => `«${e.nombre}»`).join(', ')}: `
-        + `el escalón mínimo medible (${noEjercidos.map(e => e.resolucion).join(', ')}) es mayor que el umbral. `
-        + 'De hecho se está aplicando como si fuera cero.',
-  }
+/** Lo que la compuerta necesita para juzgar una evaluación de campos. */
+export function loMedidoDeLaNota(r: ResumenEvaluacion): LoMedido {
+  return { hayConjunto: r.casos > 0, ejes: medirEjes(r), resolucion: resolucionDelConjunto(r) }
 }
-
-/**
- * EL ÚNICO SITIO DONDE SE DEFINE «VERDE».
- *
- * Existe para que ningún llamador escriba `veredicto !== 'reprueba'` y convierta
- * los tres huecos —umbral pendiente, conjunto vacío, eje sin medir— en un visto
- * bueno por descuido.
- */
-export function esVerde(l: LecturaDeLaCompuerta): boolean {
-  return l.veredicto === 'pasa'
-}
-
-export const LO_QUE_ESTA_COMPUERTA_NO_HACE: readonly string[] = Object.freeze([
-  'No mide el producto con pacientes reales: el conjunto es sintético, pequeño y nuestro. El número que da NO es la tasa de alucinación de Ausculta.',
-  'No ejerce el 1 % que fijó el médico: con cuatro campos esperados el escalón mínimo medible es 25 %. Hoy se comporta como un cero en el eje `perdida` —más estricto, no más laxo— y lo declara en cada lectura.',
-  'No corre en producción ni bloquea una nota. Es una compuerta del CI: dice si las defensas deterministas siguen en pie entre una versión y la siguiente.',
-  'No sabe si la traducción de eje a métrica es la que el médico tenía en la cabeza. Se eligió la lectura más estricta y se dejó escrita para que él la pueda desmentir.',
-])

@@ -56,11 +56,14 @@ import { describe, it, expect } from 'vitest'
 import { CASOS_ORO } from '@/lib/ia/casos-oro'
 import {
   evaluarConjunto, type SalidaGenerada,
-  aplicarUmbral, esVerde, medirEjes, resolucionDelConjunto,
-  LO_QUE_ESTA_COMPUERTA_NO_HACE, PORQUE_UN_CONJUNTO_VACIO_NO_ES_VERDE,
-  PORQUE_UN_UMBRAL_PENDIENTE_NO_ES_VERDE,
+  medirEjes, resolucionDelConjunto, loMedidoDeLaNota,
 } from '@/lib/ia/evaluacion'
-import { CONTRATOS, PENDIENTE_DEL_MEDICO, type Umbral } from '@/lib/ia/contratos-de-evaluacion'
+import {
+  CONTRATOS, PENDIENTE_DEL_MEDICO, sinUmbral, type Umbral,
+  aplicarUmbral, esVerde,
+  LO_QUE_LA_COMPUERTA_NO_HACE, PORQUE_UN_CONJUNTO_VACIO_NO_ES_VERDE,
+  PORQUE_UN_UMBRAL_PENDIENTE_NO_ES_VERDE,
+} from '@/lib/ia/contratos-de-evaluacion'
 
 /** El umbral REAL del contrato. Si alguien lo cambia allí, esta prueba lo usa. */
 const UMBRAL_DE_LA_NOTA: Umbral = CONTRATOS.find(c => c.capacidad === 'nota-consulta')!.umbral
@@ -70,7 +73,7 @@ const salidaCorrecta = (): SalidaGenerada[] =>
   CASOS_ORO.map(c => ({ id: c.id, campos: { ...c.esperado } }))
 
 const correr = (generadas: SalidaGenerada[], umbral: Umbral = UMBRAL_DE_LA_NOTA) =>
-  aplicarUmbral(umbral, evaluarConjunto(CASOS_ORO, generadas).resumen)
+  aplicarUmbral(umbral, loMedidoDeLaNota(evaluarConjunto(CASOS_ORO, generadas).resumen))
 
 describe('EL UMBRAL DE D-029 SE APLICA, no sólo se declara', () => {
   it('el veredicto sale del contrato, no de una copia', () => {
@@ -182,11 +185,18 @@ describe('AL REVÉS POR EL OTRO LADO — no se pasa de frenada', () => {
 describe('LOS TRES HUECOS QUE NO SON VERDE', () => {
   it('un umbral que espera al médico NO es permiso', () => {
     /**
-     * Catorce de las quince capacidades están así hoy. Si `NEEDS_CLINICAL_REVIEW`
+     * Trece de las quince capacidades están así hoy. Si `NEEDS_CLINICAL_REVIEW`
      * se leyera como aprobado, el hueco se convertiría en un visto bueno — y
      * sería el fallo que el propio contrato existe para impedir.
      */
-    const pendiente = CONTRATOS.find(c => c.capacidad === 'transcribir')!.umbral
+    /**
+     * Se toma del censo, no por nombre: cuando escribí esto el ejemplo era
+     * `transcribir`, y AL DÍA SIGUIENTE el médico lo decidió (D-030). Una prueba
+     * que nombra una capacidad concreta caduca en cuanto el trabajo avanza.
+     */
+    const quedanPendientes = sinUmbral()
+    expect(quedanPendientes.length, 'si no queda ninguno, este hueco ya no existe').toBeGreaterThan(0)
+    const pendiente = quedanPendientes[0].umbral
     const lectura = correr(salidaCorrecta(), pendiente)
     expect(lectura.veredicto).toBe('sin_umbral_decidido')
     expect(esVerde(lectura)).toBe(false)
@@ -199,7 +209,7 @@ describe('LOS TRES HUECOS QUE NO SON VERDE', () => {
      * fácil de tener la compuerta verde sería vaciar el corpus, y la compuerta
      * mediría el corpus en vez del producto.
      */
-    const lectura = aplicarUmbral(UMBRAL_DE_LA_NOTA, evaluarConjunto([], []).resumen)
+    const lectura = aplicarUmbral(UMBRAL_DE_LA_NOTA, loMedidoDeLaNota(evaluarConjunto([], []).resumen))
     expect(lectura.veredicto).toBe('sin_conjunto')
     expect(esVerde(lectura)).toBe(false)
     expect(lectura.porQue).toBe(PORQUE_UN_CONJUNTO_VACIO_NO_ES_VERDE)
@@ -218,7 +228,7 @@ describe('LOS TRES HUECOS QUE NO SON VERDE', () => {
     const lectura = correr(salidaCorrecta(), conEjeDesconocido)
     expect(lectura.veredicto).toBe('sin_ejes_medibles')
     expect(esVerde(lectura)).toBe(false)
-    expect(lectura.porQue).toMatch(/no sabe medirlo/)
+    expect(lectura.porQue).toMatch(/el arnés no lo midió/)
   })
 
   it('`esVerde` es el ÚNICO sitio donde se define verde', () => {
@@ -271,15 +281,15 @@ describe('LO QUE ESTA COMPUERTA NO PUEDE MEDIR, dicho a tiempo', () => {
     }))
     const { resumen } = evaluarConjunto(cien, cien.map(c => ({ id: c.id, campos: c.esperado })))
     expect(resolucionDelConjunto(resumen).perdida).toBe(0.01)
-    const lectura = aplicarUmbral(UMBRAL_DE_LA_NOTA, resumen)
+    const lectura = aplicarUmbral(UMBRAL_DE_LA_NOTA, loMedidoDeLaNota(resumen))
     expect(lectura.ejes.find(e => e.nombre === 'perdida')!.elConjuntoNoAlcanzaElUmbral).toBe(false)
   })
 
   it('y NO se presenta como una medición de producción', () => {
-    const texto = LO_QUE_ESTA_COMPUERTA_NO_HACE.join(' ')
-    expect(texto).toMatch(/NO es la tasa de alucinación de Ausculta/)
+    const texto = LO_QUE_LA_COMPUERTA_NO_HACE.join(' ')
+    expect(texto).toMatch(/NO son las tasas de error de Ausculta/)
     expect(texto).toMatch(/No corre en producción/)
-    expect(LO_QUE_ESTA_COMPUERTA_NO_HACE.length).toBeGreaterThanOrEqual(4)
+    expect(LO_QUE_LA_COMPUERTA_NO_HACE.length).toBeGreaterThanOrEqual(4)
   })
 
   it('la traducción de cada eje a la métrica está escrita, no supuesta', () => {

@@ -59,7 +59,12 @@ const EXPLICADOS: Record<string, RegExp> = {
    * verdad no hay gold: si lo hubiera, no haría falta transcribir. Evaluación,
    * misma categoría que `correrBenchmark`.
    */
-  'src/lib/asr/lo-que-pesa-de-un-error.ts::leerConsulta': /Evaluación, no camino del médico/,
+  /**
+   * REG-448. `leerConsulta` salió de aquí porque ya la llama `leerElMotor`, en
+   * su propio archivo. El huérfano es ahora el de arriba, por la misma razón de
+   * siempre: evaluación, no camino del médico.
+   */
+  'src/lib/asr/lo-que-pesa-de-un-error.ts::leerElMotor': /Evaluación, no camino del médico/,
 }
 
 describe('el residuo está explicado, uno a uno', () => {

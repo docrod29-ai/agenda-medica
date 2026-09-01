@@ -156,9 +156,47 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
     capacidad: 'transcribir', ruta: 'src/app/api/expediente/transcribir/route.ts',
     queDecide: 'Convierte el audio de la consulta en texto. Es la fuente de todo lo demás.',
     consecuenciaDelError: 'Una palabra mal oída en una cifra o una unidad viaja a la nota, a la receta y al expediente. El error se lee bien.',
-    conjunto: 'No existe gold de voz. Y no puede nacer de audio real: la voz es biométrica (regla de datos). El gold nace sintético o actuado, y todavía no está.',
+    conjunto: 'CORRECCIÓN DEL CENSO (REG-448): esto decía «no existe gold de voz… todavía no está», y sí existe — `synthetic-data/dialogos-consulta/`: 12 diálogos actuados con guion (el oro) y la salida real del motor. Sigue sin poder nacer de audio real: la voz es biométrica (regla de datos). 532 palabras de oro: pequeño, y por eso lo que NO cubre se declara en `LO_QUE_ESTE_CONJUNTO_NO_MIDE`.',
     metrica: 'WER ponderado por consecuencia clínica, no WER a secas (TR-VOZ.error-clinicamente-pesado)',
-    umbral: pendiente('Qué tasa de error es aceptable, y sobre todo con qué peso entra un error de cifra o de unidad frente a uno de relleno. Es una decisión clínica, no de ingeniería.'),
+    umbral: {
+      /**
+       * El valor suelto es el MÁS LAXO de los tres ejes, igual que en D-029:
+       * quien lea sólo este campo no puede llevarse mejor impresión que la real.
+       */
+      valor: 0.05,
+      fuente:
+        'TRES ejes, y sólo UNO lo decidió el médico. Los dos ceros salen de una regla YA ESCRITA '
+        + '(`src/lib/asr/politica-critica.ts`): un cambio de cifra, de unidad o de lateralidad está '
+        + 'PROHIBIDO, no penalizado — no entra en ninguna media, porque una media se compensa con '
+        + 'volumen. El tercero, el error ordinario, lo fijó el médico dueño el 1-sep-2026 (D-030) sobre '
+        + 'la medición real de `synthetic-data/dialogos-consulta`, que ese día daba 1,7 %.',
+      ejes: [
+        {
+          nombre: 'criticos', valor: 0,
+          porQue:
+            'CERO, y no es una preferencia: `politica-critica.ts` dice que estas sustituciones están '
+            + 'prohibidas, no penalizadas. Un peso —por alto que sea— se compensa con frases buenas.',
+        },
+        {
+          nombre: 'sinClasificar', valor: 0,
+          porQue:
+            'CERO por la misma razón, y por una más: si «no sé qué es esto» no reprobara, el módulo '
+            + 'saldría tanto más limpio cuanto menos supiera reconocer. Ausencia de dato no es dato de '
+            + 'ausencia, también en una métrica.',
+        },
+        {
+          nombre: 'ordinario', valor: 0.05,
+          porQue:
+            'DECIDIDO por el médico dueño el 1-sep-2026 (D-030), con la medición delante: 1,7 % ese día. '
+            + 'Se plantearon 2 %, 5 %, 10 % y ninguno. Eligió 5 % —tres veces lo medido— porque esto no '
+            + 'vigila la calidad de la redacción: vigila un DERRUMBE. Si el proveedor degrada el modelo '
+            + 'en silencio (ya pasó: REG-167) el error ordinario sube y los críticos siguen en cero, así '
+            + 'que sin este techo no se entera nadie. Se descartó el 2 % por quedar tan pegado a la '
+            + 'medición que un solo diálogo malo lo pondría rojo, y una compuerta que se pone roja por '
+            + 'ruido se deja de mirar.',
+        },
+      ],
+    },
     politicaDeFallo: 'degrada_y_lo_dice',
   }),
   C({
@@ -331,3 +369,184 @@ export const POR_QUE_EL_NOMBRE_IMPORTA =
   'y el registro de incidencias. Tres rutas usaban DOS nombres para la misma ' +
   'capacidad —uno por registro—, así que «qué está fallando» y «qué está ' +
   'costando» no se podían cruzar. Un solo censo de nombres lo cierra de raíz.'
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LA COMPUERTA DEL UMBRAL — el número decidido se APLICA, no sólo se declara.
+
+   ── POR QUÉ EXISTE (REG-447) ────────────────────────────────────────────────
+
+   El 31-ago-2026 el médico dueño fijó el primer umbral (D-029, REG-446). Quedó
+   escrito arriba, con su fuente y sus ejes… y **nadie corría nada contra él**:
+   el arnés medía por un lado, el número vivía por otro, y entre los dos no había
+   una sola función. Un umbral que no reprueba nada es exactamente lo que este
+   archivo llama una métrica decorativa — sólo que la decoración la habríamos
+   puesto nosotros, encima de una decisión que el médico sí tomó.
+
+   Es la familia «escrito y sin conectar» de la regla *el dato tiene que LLEGAR*,
+   aplicada a un número en vez de a un campo.
+
+   ── POR QUÉ VIVE AQUÍ Y NO EN EL ARNÉS (REG-448) ────────────────────────────
+
+   Nació dentro de `ia/evaluacion.ts`, pegada al único arnés que existía. Al día
+   siguiente el médico fijó el umbral de `transcribir` (D-030) y ese se mide con
+   OTRO instrumento —`asr/lo-que-pesa-de-un-error.ts`, que cuenta errores
+   pesados, no campos—. Dos instrumentos, un solo tipo `Umbral`: la compuerta
+   pertenece al tipo, no a uno de los dos medidores. Cada arnés traduce lo suyo a
+   `LoMedido` y la comparación se hace UNA vez, en un sitio.
+
+   La alternativa era una segunda compuerta para voz, con su propia idea de qué
+   es «verde». Eso es exactamente lo que la política de este repositorio prohíbe.
+
+   ── LO QUE NO ES VERDE ──────────────────────────────────────────────────────
+
+   Tres cosas que un lector distraído leería como «pasa» y aquí no lo son:
+
+    1. **Un umbral que todavía espera al médico.** `NEEDS_CLINICAL_REVIEW` no es
+       permiso: es una decisión sin tomar.
+    2. **Un conjunto vacío.** Cero casos dan cero errores. Si borrar el corpus
+       pusiera la compuerta en verde, la compuerta mediría el corpus y no el
+       producto.
+    3. **Un eje que el arnés no sabe medir.** Si el contrato declara un eje que
+       la medición no trae, se dice en vez de ignorarlo. Ausencia de medida no es
+       medida de ausencia (seguridad clínica §4).
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/** Lo que un arnés le entrega a la compuerta. Cada uno traduce lo suyo. */
+export interface LoMedido {
+  /** `false` cuando no se midió nada. Un conjunto vacío no es un aprobado. */
+  readonly hayConjunto: boolean
+  /** Nombre de eje → valor medido. Los nombres son los del contrato. */
+  readonly ejes: Record<string, number>
+  /** Nombre de eje → escalón mínimo distinto de cero que el conjunto distingue. */
+  readonly resolucion: Record<string, number>
+}
+
+export interface EjeMedido {
+  readonly nombre: string
+  /** `null` cuando el arnés no sabe medir el eje que el contrato declara. */
+  readonly medido: number | null
+  readonly umbral: number
+  readonly veredicto: 'pasa' | 'reprueba' | 'no_se_puede_medir'
+  readonly resolucion: number
+  /** El conjunto es tan pequeño que no puede distinguir el umbral del cero. */
+  readonly elConjuntoNoAlcanzaElUmbral: boolean
+}
+
+export type Veredicto =
+  /** Todos los ejes medidos quedan en o por debajo de su umbral. */
+  | 'pasa'
+  /** Al menos un eje se pasó. */
+  | 'reprueba'
+  /** El umbral lo tiene que fijar alguien con cédula. No es permiso. */
+  | 'sin_umbral_decidido'
+  /** No se midió nada. No es permiso. */
+  | 'sin_conjunto'
+  /** El contrato declara un eje que el arnés no sabe medir. No es permiso. */
+  | 'sin_ejes_medibles'
+
+export interface LecturaDeLaCompuerta {
+  readonly veredicto: Veredicto
+  readonly ejes: readonly EjeMedido[]
+  readonly porQue: string
+}
+
+export const UN_SOLO_NUMERO_CUBRE_TODOS_LOS_EJES =
+  'El contrato declara un umbral único, sin ejes. Se aplica el MISMO número a '
+  + 'todos los que el arnés midió: repartirlo sería inventar una asimetría que nadie decidió.'
+
+export const PORQUE_UN_UMBRAL_PENDIENTE_NO_ES_VERDE =
+  'El umbral de esta capacidad todavía lo tiene que fijar alguien con cédula. '
+  + 'NEEDS_CLINICAL_REVIEW no es permiso: es una decisión sin tomar, y una '
+  + 'compuerta que la leyera como aprobada convertiría el hueco en un visto bueno.'
+
+export const PORQUE_UN_CONJUNTO_VACIO_NO_ES_VERDE =
+  'Cero casos dan cero errores. Si borrar el corpus pusiera la compuerta en '
+  + 'verde, la compuerta mediría el corpus y no el producto.'
+
+/**
+ * Aplica el umbral decidido a lo que un arnés midió.
+ *
+ * Nunca devuelve `pasa` por omisión: si falta el umbral, falta el conjunto o
+ * falta la medida de un eje, lo dice con su propio veredicto.
+ */
+export function aplicarUmbral(umbral: Umbral, medido: LoMedido): LecturaDeLaCompuerta {
+  if (esperaAlMedico(umbral)) {
+    return { veredicto: 'sin_umbral_decidido', ejes: [], porQue: PORQUE_UN_UMBRAL_PENDIENTE_NO_ES_VERDE }
+  }
+  if (!medido.hayConjunto) {
+    return { veredicto: 'sin_conjunto', ejes: [], porQue: PORQUE_UN_CONJUNTO_VACIO_NO_ES_VERDE }
+  }
+
+  const declarados = umbral.ejes ?? Object.keys(medido.ejes).map(nombre => ({
+    nombre, valor: umbral.valor, porQue: UN_SOLO_NUMERO_CUBRE_TODOS_LOS_EJES,
+  }))
+
+  const ejes: EjeMedido[] = declarados.map(e => {
+    const m = medido.ejes[e.nombre]
+    if (m === undefined) {
+      return {
+        nombre: e.nombre, medido: null, umbral: e.valor,
+        veredicto: 'no_se_puede_medir', resolucion: 1, elConjuntoNoAlcanzaElUmbral: false,
+      }
+    }
+    const res = medido.resolucion[e.nombre] ?? 1
+    return {
+      nombre: e.nombre,
+      medido: m,
+      umbral: e.valor,
+      veredicto: m <= e.valor ? 'pasa' : 'reprueba',
+      resolucion: res,
+      elConjuntoNoAlcanzaElUmbral: e.valor > 0 && e.valor < res,
+    }
+  })
+
+  const reprobados = ejes.filter(e => e.veredicto === 'reprueba')
+  if (reprobados.length > 0) {
+    return {
+      veredicto: 'reprueba',
+      ejes,
+      porQue: reprobados.map(e => `${e.nombre}: ${e.medido} > ${e.umbral}`).join('; '),
+    }
+  }
+
+  const sinMedir = ejes.filter(e => e.veredicto === 'no_se_puede_medir')
+  if (sinMedir.length > 0) {
+    return {
+      veredicto: 'sin_ejes_medibles',
+      ejes,
+      porQue:
+        `El contrato declara ${sinMedir.map(e => `«${e.nombre}»`).join(', ')} y el arnés no lo midió. `
+        + 'Ausencia de medida no es medida de ausencia: no se da por bueno.',
+    }
+  }
+
+  const noEjercidos = ejes.filter(e => e.elConjuntoNoAlcanzaElUmbral)
+  return {
+    veredicto: 'pasa',
+    ejes,
+    porQue: noEjercidos.length === 0
+      ? 'Todos los ejes quedan en o por debajo de su umbral.'
+      : `Pasa, pero el conjunto es demasiado pequeño para ejercer ${noEjercidos.map(e => `«${e.nombre}»`).join(', ')}: `
+        + `el escalón mínimo medible (${noEjercidos.map(e => e.resolucion).join(', ')}) es mayor que el umbral. `
+        + 'De hecho se está aplicando como si fuera cero.',
+  }
+}
+
+/**
+ * EL ÚNICO SITIO DONDE SE DEFINE «VERDE».
+ *
+ * Existe para que ningún llamador escriba `veredicto !== 'reprueba'` y convierta
+ * los tres huecos —umbral pendiente, conjunto vacío, eje sin medir— en un visto
+ * bueno por descuido.
+ */
+export function esVerde(l: LecturaDeLaCompuerta): boolean {
+  return l.veredicto === 'pasa'
+}
+
+export const LO_QUE_LA_COMPUERTA_NO_HACE: readonly string[] = Object.freeze([
+  'No mide ningún producto con pacientes reales: los conjuntos son sintéticos y nuestros. Los números que da NO son las tasas de error de Ausculta con pacientes.',
+  'No corre en producción ni bloquea una nota. Es una compuerta del CI: dice si las defensas deterministas siguen en pie entre una versión y la siguiente.',
+  'No ejerce un umbral más fino que la resolución del conjunto que lo mide. Cuando eso pasa lo DECLARA en cada lectura, y de hecho aplica el umbral como si fuera cero — más estricto, no más laxo.',
+  'No sabe si la traducción de eje a métrica es la que el médico tenía en la cabeza. Cada arnés elige la lectura más estricta y la deja escrita para que él la pueda desmentir.',
+])
+

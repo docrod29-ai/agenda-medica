@@ -17820,6 +17820,104 @@ se llama.
 
 ---
 
+## REG-448 — el umbral de la voz, y el conjunto que el censo daba por inexistente
+
+**Eje.** WS-12.contratos-de-evaluacion + TR-VOZ. **Fecha.** 1-sep-2026.
+**Prueba.** `src/__tests__/el-motor-de-voz-tiene-techo.test.ts`.
+
+### Dos cosas, y la segunda la destapó la primera
+
+**El umbral de `transcribir` no existía.** El instrumento que pesa errores de voz
+(`asr/lo-que-pesa-de-un-error.ts`) lleva meses escrito y ya separaba críticos,
+sin clasificar y ordinarios. Nadie lo corría contra un conjunto, y el tercer eje
+—cuánto error ordinario es demasiado— no lo había fijado nadie.
+
+**Y el censo mentía sobre el conjunto.** El contrato decía, literalmente: *«No
+existe gold de voz […] todavía no está»*. Y sí estaba, en el árbol:
+`synthetic-data/dialogos-consulta/` — 12 diálogos actuados con su guion y la
+salida real del motor al lado. **Novena entrada del censo que resulta estar vieja
+al ir a construir sobre ella.** Se corrige el censo; no se construye un segundo
+conjunto.
+
+### Se midió ANTES de preguntar
+
+La medición era la pregunta: sin ella, la alternativa era inventar una cifra o
+pedirle una a ciegas al médico.
+
+| | |
+|---|---|
+| Palabras del guion | 532, en 12 consultas |
+| WER crudo | 10,0 % — engañoso: casi todo puntuación y «tres»/«3» |
+| WER normalizado | **1,7 %** |
+| Errores ordinarios | 5 (0,94 %) |
+| Sin clasificar | **0** |
+| Críticos | **1** |
+
+### El crítico es real y tiene nombre
+
+**DLG-004.** El guion dice *«Van dos veces este mes»* —las caídas que cuenta la
+hija—. El motor **se comió la frase entera**: se perdió la cifra y se perdió
+quién la dijo. (De paso funde a la hija con la paciente en un solo hablante, que
+es un defecto de diarización y esta lectura, que sólo ve texto, no vigila.)
+
+### Lo que decidió el médico (D-030) y lo que no
+
+Tres ejes que **no se suman**, y sólo uno es suyo:
+
+| Eje | Umbral | De dónde sale |
+|---|---|---|
+| `criticos` | 0 | Regla ya escrita: `politica-critica.ts` — prohibido, **no penalizado** |
+| `sinClasificar` | 0 | La misma, más: «no sé qué es esto» no puede salir más limpio cuanto menos se reconozca |
+| `ordinario` | **5 %** | **Decisión del médico, 1-sep-2026**, con 1,7 % delante |
+
+Eligió 5 % —tres veces lo medido— porque ese eje no vigila la redacción: vigila
+un **derrumbe**. Si el proveedor degrada el modelo en silencio (ya pasó, REG-167)
+el ordinario sube y los críticos no. Descartó el 2 % por quedar tan pegado a la
+medición que un solo diálogo malo lo pondría rojo, y una compuerta que se pone
+roja por ruido se deja de mirar.
+
+Y a nivel de motor eligió **trinquete** sobre las consultas con crítico —sellado
+en 1, sólo baja— en vez de dejar el CI rojo. **Eso no es tolerar el error**: la
+compuerta del contrato sigue en cero y sigue diciendo `reprueba` hoy; la consulta
+sigue saliendo `aprobada: false`. El trinquete decide qué hace el CI *mientras*
+DLG-004 se arregla, y el defecto queda escrito con nombre en
+`EL_CRITICO_QUE_SIGUE_ABIERTO`, con un guardián que cae si alguien lo borra.
+
+### La compuerta se mudó, y por eso
+
+REG-447 la puso dentro de `ia/evaluacion.ts`, pegada al único arnés que había. Al
+día siguiente hizo falta para un instrumento distinto —éste cuenta errores
+pesados, no campos—. **Dos arneses, un solo tipo `Umbral`:** la compuerta
+pertenece al tipo, no a uno de los dos medidores. Vive ahora en
+`contratos-de-evaluacion.ts`; cada arnés traduce lo suyo a `LoMedido` y la
+comparación se hace UNA vez. La alternativa era una segunda compuerta para voz
+con su propia idea de qué es verde, que es justo lo que la política prohíbe.
+
+### Una prueba que ya había caducado
+
+El golden de REG-447 usaba `transcribir` como ejemplo de «umbral pendiente». A
+las veinticuatro horas dejó de serlo. Ahora lo toma de `sinUmbral()`, del censo:
+una prueba que nombra una capacidad concreta caduca en cuanto el trabajo avanza.
+
+### Probado al revés cinco veces
+
+Contar los críticos como tasa (que se diluyan) · ignorar el techo ordinario ·
+borrar el nombre del defecto de la declaración · subir el umbral de críticos a 1 ·
+dar por bueno un conjunto vacío. Las cinco ponen la prueba en rojo. Por el otro
+lado —pasarse de frenada— se comprueba que mayúsculas y puntuación no reprueban
+(el WER crudo era 10 % y el normalizado 1,7 %: casi todo eran comas) y que una
+transcripción perfecta no reprueba por nada.
+
+Y una contraprueba que importa: **quitando DLG-004 el motor pasa**, así que el
+rojo es de ese diálogo y de nada más.
+
+### El fixture que no probaba nada
+
+El primer intento ensuciaba con `palabra0` → `vocablo0` y el alineador no
+clasificaba **ni una**: la prueba habría quedado verde por un fixture mal
+construido, no por el código. Es REG-197 otra vez. Se ensucia con palabras
+corrientes de verdad —`gato` → `rata`— y queda dicho en el propio ayudante.
+
 ## REG-447 — el umbral estaba decidido, escrito… y no reprobaba nada
 
 **Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 1-sep-2026.
