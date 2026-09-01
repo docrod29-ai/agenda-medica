@@ -146,9 +146,9 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
   pieza lo encuentra, porque cada mitad está bien.
 */
 const COLORES = {
-  bajo: { fg: 'var(--green)', bg: 'color-mix(in srgb, var(--green) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--green) 35%, transparent)' },
-  medio: { fg: 'var(--amber)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--amber) 35%, transparent)' },
-  alto: { fg: 'var(--red)', bg: 'color-mix(in srgb, var(--red) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--red) 40%, transparent)' },
+  bajo: { fg: 'var(--green-texto)', bg: 'color-mix(in srgb, var(--green) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--green) 35%, transparent)' },
+  medio: { fg: 'var(--amber-texto)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--amber) 35%, transparent)' },
+  alto: { fg: 'var(--red-texto)', bg: 'color-mix(in srgb, var(--red) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--red) 40%, transparent)' },
 } as const
 
 const badge = (nivel: keyof typeof COLORES): React.CSSProperties => ({

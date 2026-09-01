@@ -108,6 +108,56 @@ describe('la pareja de color habla un solo idioma', () => {
     expect(css, 'el tinte claro dejó de ser el estrecho').toMatch(/--tinte: 8%/)
   })
 
+  /**
+   * EL QUINTO PAPEL: TEXTO SOBRE SU PROPIO TINTE.
+   *
+   * Arreglar la pareja destapó el defecto de debajo. Los tokens semánticos
+   * están medidos «sobre --s3, la peor superficie» — y eso es cierto de las
+   * SUPERFICIES. Cuando el mismo color se usa de TINTE bajo su propio texto,
+   * el fondo ya no es una superficie: es la superficie tirando hacia el color.
+   * Y cuando el tinte se ANIDA —un panel teñido con filas teñidas dentro, que
+   * es como se pintan los avisos del copiloto— se aleja el doble.
+   *
+   * Medido por axe sobre /demo/razonamiento servida, DESPUÉS de la corrección
+   * anterior: --red #E66464 sobre el tinte anidado da 4,21 en oscuro, y
+   * --amber #B45309 da 3,80 en claro. En avisos que dicen «Amoxicilina choca
+   * con una alergia registrada».
+   *
+   * Es la misma lección que `--nexus` / `--nexus-solido` ya enseñó para el
+   * acento —dos papeles con requisitos OPUESTOS necesitan dos valores— y que
+   * nunca se generalizó al resto de la paleta. Aquí está el par que faltaba.
+   */
+  it('el texto sobre su propio tinte tiene su token, en los tres temas', () => {
+    const css = leer('src/app/globals.css')
+    for (const tok of ['--red-texto', '--amber-texto', '--green-texto']) {
+      expect((css.match(new RegExp(`${tok}:`, 'g')) ?? []).length, `${tok} no está en los tres temas`).toBe(3)
+    }
+  })
+
+  it('y los avisos clínicos lo usan: son los que se leen peor y más importan', () => {
+    for (const p of ['src/components/Copiloto.tsx', 'src/components/CalculadorasClinicas.tsx']) {
+      expect(leer(p), `${p} pinta el texto con el token del tinte`).toMatch(/var\(--(?:red|amber|green)-texto\)/)
+    }
+  })
+
+  /**
+   * Y el acto del héroe entra desde la AUSENCIA, no atenuado.
+   *
+   * Entraba desde `opacity: 0.34`. axe lo marcó en tema claro: a esa opacidad
+   * «Padecimiento actual» da 3,55 : 1. Y no se arregla subiendo el número —
+   * calculado con la fórmula WCAG sobre las superficies reales, ni al 70 % de
+   * opacidad ese texto llega a 4,5. Atenuar texto es pedirle prestada
+   * legibilidad al contraste para expresar una secuencia.
+   */
+  it('el héroe no atenúa texto para decir «todavía no»', () => {
+    const css = leer('src/app/globals.css')
+    const m = css.match(/@keyframes nx-acto \{([\s\S]*?)\n\}/)
+    expect(m, 'ya no existe la secuencia del héroe').toBeTruthy()
+    expect(m![1], 'vuelve el texto atenuado por debajo del contraste mínimo')
+      .not.toMatch(/opacity:\s*0\.[1-9]/)
+    expect(m![1]).toMatch(/opacity:\s*0;/)
+  })
+
   it('y los sitios corregidos lo usan, en vez de fijar el porcentaje', () => {
     // Un token declarado que nadie usa es una decisión escrita y sin conectar.
     const usos = PAREJAS_CORREGIDAS.filter(p => leer(p).includes('var(--tinte)')).length

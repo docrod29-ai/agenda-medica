@@ -61,8 +61,8 @@ const CHIP: Record<Estado, { t: string; c: string; bg: string }> = {
   no era el color: era usarlos. Y el tinte de fondo se deriva del mismo token
   con `color-mix`, para que los dos lados de la pareja se muevan juntos.
 */
-  activo:  { t: 'Activo',       c: 'var(--green)', bg: 'color-mix(in srgb, var(--green) var(--tinte), transparent)' },
-  parcial: { t: 'En expansión', c: 'var(--amber)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)' },
+  activo:  { t: 'Activo',       c: 'var(--green-texto)', bg: 'color-mix(in srgb, var(--green) var(--tinte), transparent)' },
+  parcial: { t: 'En expansión', c: 'var(--amber-texto)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)' },
   roadmap: { t: 'Roadmap',      c: 'var(--blue)',  bg: 'color-mix(in srgb, var(--blue) var(--tinte), transparent)' },
 }
 

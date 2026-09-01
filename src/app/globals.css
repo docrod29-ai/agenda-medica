@@ -2249,6 +2249,11 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   /* En claro el tinte OSCURECE el fondo y el contraste baja: 8 % y no 14 %.
      Ver la nota de --tinte en el bloque oscuro. */
   --tinte: 8%;
+  /* En claro el tinte oscurece el fondo: el texto tiene que ir MÁS oscuro que
+     el token, no más claro. Ver la nota de --*-texto en el bloque oscuro. */
+  --red-texto:   #A32020;
+  --amber-texto: #8A3F07;
+  --green-texto: #14672F;
 
   /* Texto ink (alto contraste pero sin negro puro — más sofisticado) */
   --text:      #0B0C0E;
@@ -2332,6 +2337,9 @@ html[data-vt-continuidad] .page-transition { animation: none; }
     --nexus-borde2: color-mix(in srgb, var(--nexus) 52%, transparent);
     --nexus-tenue:  color-mix(in srgb, var(--nexus) 7%, transparent);
     --tinte: 8%;   /* ver la nota de --tinte en el bloque oscuro */
+    --red-texto:   #A32020;
+    --amber-texto: #8A3F07;
+    --green-texto: #14672F;
     --text:      #0B0C0E;
     --text2:     #565A60;
     --text3:     #63666B;   /* AA sobre TODAS las superficies claras — ver nota arriba */
@@ -4219,6 +4227,40 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
     ya está medido y es el bueno.
   */
   --tinte: 14%;
+
+  /*
+    EL TEXTO SOBRE SU PROPIO TINTE — el quinto papel, y la misma lección que
+    ya enseñó `--nexus-solido`, generalizada.
+
+    Los tokens semánticos están medidos «sobre `--s3`, la peor superficie». Y
+    eso es cierto — de las SUPERFICIES. Pero cuando el mismo color se usa de
+    TINTE bajo su propio texto, el fondo ya no es una superficie: es la
+    superficie tirando hacia el color. Y cuando ese tinte se anida —un panel
+    teñido con filas teñidas dentro, que es como se pintan los avisos del
+    copiloto— el fondo se aleja el doble.
+
+    Medido por axe sobre `/demo/razonamiento` servida:
+
+        --red   #E66464 sobre el tinte anidado #442324  →  4,21   (oscuro)
+        --amber #B45309 sobre el tinte anidado #F0DCD3  →  3,80   (claro)
+
+    Los dos por debajo de 4,5, en avisos que dicen «Amoxicilina choca con una
+    alergia registrada» y «FIB-4 3.05 — riesgo alto de fibrosis». Un token
+    correcto y una regla correcta que juntos fallan: exactamente lo que
+    `--nexus` / `--nexus-solido` ya resolvió para el acento —dos papeles con
+    requisitos OPUESTOS necesitan dos valores— y que nunca se generalizó al
+    resto de la paleta.
+
+    Aquí está el par que faltaba. Verificado con la fórmula WCAG 2.1 contra el
+    peor fondo medido, y contra la superficie normal, que también tiene que
+    seguir pasando:
+
+        oscuro  #F08585  →  5,56 sobre el tinte anidado · 6,08 sobre --s3
+        claro   #8A3F07  →  5,68 sobre el tinte anidado · 6,24 sobre --s3
+  */
+  --red-texto:   #F08585;
+  --amber-texto: #F0A94A;
+  --green-texto: #4BC97A;
 }
 
 .nx-pub {
@@ -4633,10 +4675,32 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   animation: nx-acto var(--mov-lento) var(--mov-curva) both;
   animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-acto, 0) * var(--nx-ritmo-compas));
 }
+/*
+  EL ACTO QUE NO HA LLEGADO ESTÁ AUSENTE, NO ATENUADO.
+
+  Primero entraba desde `opacity: 0.34` — lo justo para leerse como «todavía
+  no» sin parecer un panel roto. axe lo midió sobre la portada servida en tema
+  claro y lo marcó: a esa opacidad, «Padecimiento actual» da **3,55 : 1** y el
+  rótulo del acto **3,99**, contra el mínimo de 4,5. Es texto VISIBLE y por
+  debajo del mínimo durante casi dos segundos.
+
+  Y no se arregla subiendo el número: calculado con la fórmula WCAG sobre las
+  superficies reales, ni al 70 % de opacidad este texto llega a 4,5. Atenuar
+  texto es pedirle prestada legibilidad al contraste para expresar una
+  secuencia, y el préstamo no alcanza.
+
+  Así que el acto entra desde la ausencia: `opacity: 0` no es texto ilegible,
+  es texto que aún no está — y el hueco lo sigue reservando el elemento, así
+  que nada salta cuando llega. El efecto además es más nítido: los tres actos
+  APARECEN en orden en vez de encenderse.
+
+  El riesgo de un estado inicial invisible —que nadie llegue a quitarlo— no
+  existe aquí: la secuencia la lleva CSS con `both`, y una animación de CSS
+  termina aunque el JavaScript nunca cargue. Bajo `prefers-reduced-motion` el
+  bloque del final de esta hoja la apaga y declara el estado final.
+*/
 @keyframes nx-acto {
-  /* 0.34 y no 0.18: por debajo de un tercio el acto se lee como DESHABILITADO
-     —un panel roto— en vez de «todavía no». Se comprobó mirando la captura. */
-  from { opacity: 0.34; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
 /* El nudo del hilo enciende cuando le llega el turno a SU acto. */

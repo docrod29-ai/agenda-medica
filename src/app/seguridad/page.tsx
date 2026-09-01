@@ -36,7 +36,7 @@ function Badge({ estado }: { estado: SecurityState }) {
          seguía al tema. En claro daba 2,61 : 1, medido por axe sobre la página
          servida. Ver la nota en Copiloto.tsx. */
       background: activo ? 'color-mix(in srgb, var(--green) var(--tinte), transparent)' : 'color-mix(in srgb, var(--amber) var(--tinte), transparent)',
-      color: activo ? 'var(--green)' : 'var(--amber)',
+      color: activo ? 'var(--green-texto)' : 'var(--amber-texto)',
       border: `1px solid ${activo ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
     }}>
       {ESTADO_LABEL[estado]}

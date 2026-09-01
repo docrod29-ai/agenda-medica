@@ -40,9 +40,16 @@ interface Props {
   el token EXISTÍA y sólo lo usaba una mitad. Ninguna revisión de una sola
   pieza lo encuentra, porque cada mitad está bien.
 */
+/*
+  El TEXTO va en `--*-texto`, no en el token del tinte. Son dos papeles con
+  requisitos opuestos —el tinte tira el fondo hacia el color, el texto tiene
+  que separarse de él— exactamente como `--nexus` y `--nexus-solido`. Medido
+  por axe sobre la página servida: con el token del tinte, 4,21 en oscuro y
+  3,80 en claro, en avisos clínicos. Ver la nota de --*-texto en globals.css.
+*/
 const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
-  critico: { fg: 'var(--red)', bg: 'color-mix(in srgb, var(--red) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--red) 35%, transparent)' },
-  accion:  { fg: 'var(--amber)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--amber) 30%, transparent)' },
+  critico: { fg: 'var(--red-texto)', bg: 'color-mix(in srgb, var(--red) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--red) 35%, transparent)' },
+  accion:  { fg: 'var(--amber-texto)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--amber) 30%, transparent)' },
   info:    { fg: 'var(--text2)', bg: 'var(--s1)', bd: 'var(--border)' },
 }
 
