@@ -16529,3 +16529,61 @@ las más nuevas, y que **una lectura caída no se convierte en una lista vacía*
 - **Quedan 28 lecturas sin cota** en Consultorio y 9 en Hospital, inventariadas y
   con su techo. Ésta es una menos, no el final del trabajo.
 
+---
+
+## REG-430 — la escotilla del Chromium instalado estaba sólo en el proyecto del teléfono, y dejaba sin correr la matriz de seguridad
+
+**QUÉ FALLABA.** `playwright.config.ts` tiene una escotilla para los entornos que
+ya traen un Chromium pero no la build **exacta** que pide la versión de Playwright
+del repositorio, con `playwright install` cortado:
+
+```ts
+...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+  ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } }
+  : {}),
+```
+
+Estaba **sólo en el proyecto `telefono-chromium`**. El proyecto `chromium` —el
+que corre `e2e/seguridad.spec.ts`, la matriz de **cabeceras de seguridad** y de
+CSP— no la tenía.
+
+**CÓMO SE DESCUBRIÓ.** Corriendo `npm run e2e:seguridad` contra el servidor local
+para cerrar lo comprobable de seguridad sin salir del contenedor. Medido:
+
+```
+9 failed · 48 passed
+Error: browserType.launch: Executable doesn't exist at
+  /opt/pw-browsers/chromium_headless_shell-1228/chrome-headless-shell-linux64/…
+```
+
+Con el 1194 instalado al lado.
+
+**POR QUÉ IMPORTA MÁS DE LO QUE PARECE.** Los nueve que caían son **exactamente
+los que necesitan navegador** —grupo B, la CSP en ejecución y los recursos que se
+pierden por el camino—. Los de cabeceras pasan igual porque van por petición
+cruda. Es decir: el hueco de configuración se llevaba **la mitad que sólo se
+puede ver ejecutando**, y dejaba la otra en verde — la forma más cómoda de creer
+que la matriz corrió.
+
+**LA CAUSA RAÍZ.** Una escotilla escrita para el caso en que se descubrió (el
+arnés del teléfono) y no para la clase de problema, que es del ENTORNO y afecta a
+cualquier proyecto que lance un navegador.
+
+**LA REGLA QUE LO HACE SEGURO.** La misma escotilla en el proyecto `chromium`,
+con su comentario diciendo qué se rompió sin ella y qué mitad se llevaba.
+
+**Comprobado después**: `PLAYWRIGHT_CHROMIUM_PATH=…/chromium-1194/chrome-linux/chrome
+npm run e2e:seguridad` → **57 en verde, 0 caídos**, 2 saltados (el grupo D exige
+arrancar con `CSP_MODE=enforce`, que es otra corrida).
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No arregla WebKit.** Los proyectos `webkit` e `iphone-safari` siguen sin
+  binario y su descarga sigue bloqueada por política de red (REG-425/426/427).
+  Una escotilla al Chromium instalado no da un WebKit.
+- **No corre el grupo D.** La CSP en modo `enforce` necesita arrancar el servidor
+  con `CSP_MODE=enforce`; sigue siendo otra corrida, y sigue declarado.
+- **No sustituye `e2e:seguridad:prod`.** Las cabeceras de PRODUCCIÓN se comprueban
+  contra el sitio vivo **después** de publicar, que es donde son accionables
+  (`deployment-and-flags.md`).
+

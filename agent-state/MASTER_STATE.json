@@ -23,17 +23,13 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/gp-final/acta-medico.json",
-    " M docs/audit/gp-final/acta-paciente.json",
-    " M docs/audit/gp-final/acta-tortura.json",
-    " M docs/audit/regression-ledger.md",
-    " M src/__tests__/las-lecturas-sin-cota-solo-bajan.test.ts",
-    " M src/app/(dashboard)/lista-espera/page.tsx",
-    " M src/app/(dashboard)/operaciones/page.tsx",
+    "M docs/audit/regression-ledger.md",
+    " M docs/product/AUSCULTA-CONSULTORIO-FINAL-READINESS.md",
+    " M playwright.config.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/firestore.ts",
-    "?? src/__tests__/la-lista-de-espera-no-se-recorta-en-silencio.test.ts"
+    "?? docs/audit/ws-02-carga/README-corrida-2026-09-01.md",
+    "?? docs/audit/ws-02-carga/escenario-2000-registrados-97b2a312.json",
+    "?? docs/audit/ws-03-consultorio-grande/lecturas-2000.json"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -69,7 +65,7 @@
   ],
   "ramaActual": "claude/firebase-indices-query-optimization-lyrva1",
   "derivado": {
-    "regsEnElLedger": 282,
+    "regsEnElLedger": 283,
     "ultimaREG": "REG-505",
     "archivosDePrueba": 898,
     "casosDePrueba": 10991,

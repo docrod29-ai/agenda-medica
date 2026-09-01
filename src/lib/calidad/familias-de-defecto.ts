@@ -665,7 +665,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * cuarenta 200, nadie lo va a mirar distinto.
      */
 
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428],
+    /**
+     * 430 es el instrumento que NO PUDO CORRER, y cuya mitad superviviente se
+     * lee como si hubiera corrido. La escotilla que permite usar un Chromium ya
+     * instalado estaba sólo en el proyecto del teléfono; el proyecto `chromium`
+     * —el de la matriz de cabeceras de seguridad— no la tenía, y sus nueve casos
+     * de navegador caían con «Executable doesn't exist». Los de cabeceras pasan
+     * por petición cruda, así que el verde parcial tapaba justo la mitad que sólo
+     * se puede ver ejecutando.
+     */
+
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430],
   },
   {
     clave: 'hueco_como_dato',
