@@ -20,7 +20,7 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(61,90,254,0.15)', display: 'grid', placeItems: 'center', color: 'var(--nexus)' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--nexus-soft)', display: 'grid', placeItems: 'center', color: 'var(--nexus)' }}>
             <Stethoscope size={18} aria-hidden="true" />
           </div>
           {/*

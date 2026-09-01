@@ -95,14 +95,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       <div className="sidebar-logo">
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.32)',
+          background: 'var(--nexus-soft)', border: '1px solid var(--nexus-borde)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           {/* Mark Ausculta en miniatura */}
           <MarcaAusculta size={20} />
         </div>
+        {/* El recorte lo hace `.sidebar-logo` en globals.css — la misma regla
+            sirve al gemelo de `FlowRail`. El `title` sí vive aquí: el nombre
+            entero tiene que seguir estando a un puntero de distancia. */}
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+          <div title={config.nombreClinica || 'Ausculta'} style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
             {config.nombreClinica || 'Ausculta'}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)' }}>

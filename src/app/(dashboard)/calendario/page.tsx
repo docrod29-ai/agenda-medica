@@ -154,7 +154,30 @@ export default function CalendarioPage() {
     if (!medicoFiltro) return allAppointments
     return allAppointments.filter(a => a.medicoId === medicoFiltro)
   }, [allAppointments, medicoFiltro])
-  const [view, setView] = useState<View>('semana')
+  /**
+   * LA VISTA CON LA QUE ABRE EL CALENDARIO NO PUEDE SER LA MISMA EN UN TELÉFONO.
+   *
+   * Abría SIEMPRE en semana. Medido a 390 px con la consulta sembrada: siete
+   * columnas en 366 px son ~44 px por día, y el bloque de cita sólo alcanza a
+   * enseñar «09:45» y un nombre cortado a la mitad («Maria…»). No se puede
+   * saber quién viene ni a qué — que es lo único para lo que se abre la agenda.
+   *
+   * En día, ese mismo bloque tiene el ancho entero y se lee el nombre completo
+   * y el motivo. Es el mismo principio que ya gobierna el resto del shell: por
+   * breakpoint se decide qué persiste, no se apila todo.
+   *
+   * Se elige UNA vez, al montar, y no se vuelve a tocar: si el médico cambia a
+   * semana en su teléfono —porque quiere ver el hueco del jueves— girar la
+   * pantalla no se lo puede deshacer. La preferencia del usuario gana a la
+   * inicial desde el momento en que la expresa.
+   *
+   * Sin ventana (SSR) se elige semana, que es lo que ve el escritorio: el móvil
+   * corrige en el primer render del cliente y nunca se ve el estado intermedio,
+   * porque el calendario no se pinta hasta tener las citas.
+   */
+  const [view, setView] = useState<View>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches ? 'dia' : 'semana',
+  )
   /**
    * UN solo «hoy» por render, para el botón de nueva cita y para la vista de
    * día. Antes cada sitio preguntaba por su cuenta; además de sumar llamadas
@@ -352,6 +375,10 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
   onApptClick: (a: Appointment) => void
   loading: boolean
 }) {
+  // Cuántos médicos activos hay. Con uno solo, el color por médico no
+  // distingue a nadie y se usa el acento de marca — ver colorMedico.
+  const { activeDoctors } = useDoctors()
+  const cuantosMedicos = activeDoctors.length
   const today = hoyISO()
   const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
   const ahoraMin = useAhoraMinutos()
@@ -490,8 +517,12 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                 {cellAppts.map(a => {
                   const minOffset = parseInt(a.fechaHora.slice(14, 16))
                   const heightPct = Math.min((a.duracion / 60) * 100, 200)
-                  // Multi-doctor: colorea según el médico; un solo médico → cobalto de marca
-                  const color = a.medicoId ? colorMedico(a.medicoId) : 'var(--nexus)'
+                  // Multi-doctor: colorea según el médico; un solo médico →
+                  // cobalto de marca. El SEGUNDO argumento es lo que hace que
+                  // esa segunda mitad ocurra de verdad: la condición anterior
+                  // preguntaba si la CITA tiene médico, no si el consultorio
+                  // tiene varios. Ver colorMedico en DoctorFilter.tsx.
+                  const color = a.medicoId ? colorMedico(a.medicoId, cuantosMedicos) : 'var(--nexus)'
                   const est = estiloEstadoCita(a.estado)
                   return (
                     <div
@@ -615,7 +646,7 @@ function DayView({ date, hoy, appointments, horarios, festivos, onCellClick, onA
                   {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
-                    background: 'rgba(61,90,254,0.1)', border: `1px ${est.borderStyle} rgba(61,90,254,0.3)`,
+                    background: 'var(--nexus-soft)', border: `1px ${est.borderStyle} var(--nexus-borde)`,
                     borderLeft: `3px ${est.borderStyle} var(--teal)`, borderRadius: 6, padding: '6px 10px',
                     cursor: 'pointer',
                     /**
@@ -741,7 +772,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
               style={{
                 borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
                 padding: '6px', minHeight: 80,
-                background: isToday ? 'rgba(61,90,254,0.05)' : 'transparent',
+                background: isToday ? 'var(--nexus-tenue)' : 'transparent',
                 transition: 'background var(--mov-rapido) var(--mov-curva)',
               }}
               onMouseEnter={e => !isToday && (e.currentTarget.style.background = 'var(--s2)')}

@@ -962,7 +962,7 @@ export default function UciPanelPage() {
                           fontSize: 11.5, fontWeight: 600, padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
                           minHeight: 30,
                           border: `1px solid ${on ? 'var(--nexus)' : 'var(--border)'}`,
-                          background: on ? 'rgba(61,90,254,0.14)' : 'transparent',
+                          background: on ? 'var(--nexus-soft)' : 'transparent',
                           color: on ? 'var(--nexus)' : 'var(--text3)',
                         }}
                       >

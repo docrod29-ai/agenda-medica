@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavPublica } from '@/components/landing/NavPublica'
 import { DemoWorkflow } from '@/components/DemoWorkflow'
 
 export const metadata = {
@@ -41,14 +42,31 @@ const FINANZAS: Item[] = [
 ]
 
 const CHIP: Record<Estado, { t: string; c: string; bg: string }> = {
-  activo:  { t: 'Disponible hoy', c: '#0d9488', bg: 'rgba(13,148,136,.14)' },
-  parcial: { t: 'En expansión',   c: '#b45309', bg: 'color-mix(in srgb, var(--amber) 14%, transparent)' },
-  roadmap: { t: 'Roadmap',        c: '#4f5bd5', bg: 'rgba(79,91,213,.14)' },
+/*
+  LOS ESTADOS HABLAN EL TEMA, y no lo hacían.
+
+  `#0d9488`, `#b45309` y `#4f5bd5` eran literales: no seguían al tema, así que
+  el mismo tono servía para el fondo claro y para el oscuro. axe los midió
+  sobre la página servida y los tres REPROBABAN sobre su propio tinte oscuro,
+  en los tres anchos — 30 nodos sólo en esta página.
+
+  Los tres tokens semánticos ya existían con su contraste medido por tema
+  (`--green`, `--amber`, `--blue`, ver la nota de globals.css). Lo que faltaba
+  no era el color: era usarlos. Y el tinte de fondo se deriva del mismo token
+  con `color-mix`, para que los dos lados de la pareja se muevan juntos.
+*/
+  activo:  { t: 'Disponible hoy', c: 'var(--green-texto)', bg: 'color-mix(in srgb, var(--green) var(--tinte), transparent)' },
+  parcial: { t: 'En expansión',   c: 'var(--amber-texto)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)' },
+  roadmap: { t: 'Roadmap',        c: 'var(--blue)',  bg: 'color-mix(in srgb, var(--blue) var(--tinte), transparent)' },
 }
 
 export default function OperacionPage() {
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 90px' }}>
+    /* El menú va FUERA de la columna de 900: dentro heredaba su ancho y salía
+       apretado. Ver la nota larga en `/privacidad`. */
+    <div className="nx-pub">
+      <NavPublica />
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 20px 90px' }}>
       <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal)', fontWeight: 700 }}>
         Operación y finanzas
       </div>
@@ -91,6 +109,7 @@ export default function OperacionPage() {
         <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }}>
           Planes
         </Link>
+      </div>
       </div>
     </div>
   )

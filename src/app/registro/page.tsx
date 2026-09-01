@@ -22,6 +22,8 @@ import { MarcaAuth } from '@/components/brand/MarcaAuth'
 import Link from 'next/link'
 import { MetaPixel, trackConversion } from '@/components/MetaPixel'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
+import { EsperaDeLaPuerta } from '@/components/landing/EsperaDeLaPuerta'
+import { LEMA } from '@/lib/marca'
 
 const BENEFICIOS = [
   'Agenda y calendario inteligente',
@@ -33,8 +35,11 @@ const BENEFICIOS = [
 ]
 
 export default function RegistroPage() {
+  // El fallback era un <div> negro de alto de pantalla: con la conexión mala,
+  // la puerta de registro se veía como una página rota. Mismo hueco que
+  // /login — ver EsperaDeLaPuerta.
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg)' }} />}>
+    <Suspense fallback={<EsperaDeLaPuerta />}>
       <RegistroInner />
     </Suspense>
   )
@@ -172,7 +177,10 @@ function RegistroInner() {
             </div>
             <div>
               <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>Ausculta</div>
-              <div style={{ fontSize: 12, color: 'var(--text3)' }}>El consultorio, conectado.</div>
+              {/* Era «El consultorio, conectado»: la promesa retirada, y la
+                  tercera copia a mano de una frase que ahora tiene constante.
+                  Ver DESCRIPCION en src/lib/marca.ts. */}
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>{LEMA}</div>
             </div>
           </div>
 

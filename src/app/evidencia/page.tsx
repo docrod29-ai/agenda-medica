@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, BookOpen, ShieldCheck } from 'lucide-react'
+import { ExternalLink, BookOpen, ShieldCheck } from 'lucide-react'
+import { NavPublica } from '@/components/landing/NavPublica'
 import { EVIDENCIA_RECORDATORIOS, doiUrl, pubmedUrl } from '@/lib/landing-evidencia'
 
 export const metadata: Metadata = {
@@ -15,12 +16,23 @@ export const metadata: Metadata = {
  */
 export default function EvidenciaPage() {
   return (
-    <main style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)' }}>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 22px 80px' }}>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text3)', fontSize: 14, textDecoration: 'none', marginBottom: 22 }}>
-          <ArrowLeft size={15} /> Volver
-        </Link>
+    /*
+      LA NAVEGACIÓN DEL SITIO, QUE ESTA PÁGINA NO TENÍA — y FUERA de `<main>`.
 
+      Medido: `NavPublica` estaba en 3 de las 11 páginas públicas, y el propio
+      menú lista «Evidencia» y «Seguridad» como destinos: se pulsaba y se
+      aterrizaba en una página sin menú. `/evidencia` tenía UNA sola salida
+      interna medida.
+
+      Puesto sin más dentro de la raíz quedaba DENTRO de `<main>` —medido:
+      `main .nx-nav-publica` daba 1— y un landmark de navegación dentro del
+      landmark de contenido principal le miente a quien recorre la página por
+      landmarks. Se envuelve: menú fuera, contenido dentro.
+    */
+    <div className="nx-pub">
+      <NavPublica />
+      <main style={{ color: 'var(--text)' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 22px 80px' }}>
         <h1 className="nx-display" style={{ fontSize: 'clamp(28px,4.5vw,42px)', fontWeight: 600, margin: '0 0 12px', letterSpacing: '-0.03em' }}>
           Evidencia y transparencia
         </h1>
@@ -70,7 +82,8 @@ export default function EvidenciaPage() {
           </p>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   )
 }
 
