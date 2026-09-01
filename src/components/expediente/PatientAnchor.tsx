@@ -6,6 +6,7 @@ import type { NotaMedica } from '@/types/expediente'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import { avatarColor } from '@/lib/avatar-color'
 import { alergenosDe, negacionesEnTexto } from '@/lib/seguridad/alergias'
+import { edadEnAnios } from '@/lib/expediente/pediatria'
 
 /**
  * PATIENT ANCHOR — V15-PATIENT-WORKSPACE-001 (§7: identidad, edad/sexo,
@@ -99,9 +100,35 @@ export function PatientAnchor({
           <h1 className="nx-display nx-ancla-nombre nx-vt-paciente">
             {patient?.nombre ?? 'Paciente'}
           </h1>
+          {/*
+            ── EL MISMO DEFECTO QUE LA CONSULTA, AQUÍ (unidad 91 → 93) ────────
+            Decía «· Femenino · 5555010101»: separador HUÉRFANO delante, porque
+            la edad se concatenaba con `''` cuando faltaba y el « · » del sexo se
+            escribía igual. Al arreglarlo en la consulta quedó declarado que
+            otras pantallas seguían con la foto vieja; ésta es una.
+
+            Tres cosas cambian:
+
+            1. Las piezas se ARMAN y se unen, así que no hay separadores
+               huérfanos falte lo que falte.
+            2. La edad se DERIVA de la fecha de nacimiento con el motor
+               determinista (`edadEnAnios`), que ya existía y esta pantalla no
+               llamaba. Un número guardado es la foto del día que se escribió.
+            3. El TELÉFONO baja de este renglón. Es el subtítulo de la identidad
+               CLÍNICA del paciente —lo que hay que saber antes de decidir— y un
+               número de contacto no compite ahí con la edad. Sigue en «Datos del
+               paciente», que es su sitio.
+
+            Y la edad ausente se declara en vez de desaparecer: un hueco callado
+            en este renglón se lee como «ya la vi».
+          */}
           <div className="nx-meta" style={{ marginTop: 2 }}>
-            {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}
-            {patient?.telefono ? ` · ${patient.telefono}` : ''}
+            {[
+              edadEnAnios(patient?.fechaNacimiento) != null
+                ? `${edadEnAnios(patient?.fechaNacimiento)} años`
+                : patient?.edad != null ? `${patient.edad} años` : '— edad no registrada',
+              patient?.sexo,
+            ].filter(Boolean).join(' · ')}
           </div>
         </div>
         {encuentroActivo && (

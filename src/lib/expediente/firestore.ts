@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import type { NotaMedica, Adenda } from '@/types/expediente'
+import { fechaCorta } from '@/lib/formato/fecha'
 // `stripUndefined` se mudó a un módulo puro (sin SDK) para poder simular el viaje
 // a Firestore en los tests del sello de integridad. Ver serializacion.ts.
 import { stripUndefined } from './serializacion'
@@ -1050,11 +1051,7 @@ export async function getUltimasNotasResumen(
  *    vino ese día. Ausencia de resumen no es ausencia de visita.
  */
 function resumenDeUnaVisita(n: NotaMedica): string {
-  const iso = (n.fechaConsulta || '').slice(0, 10)
-  const d = iso ? new Date(`${iso}T12:00:00`) : null
-  const fecha = d && !Number.isNaN(d.getTime())
-    ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
-    : 'fecha no registrada'
+  const fecha = fechaCorta(n.fechaConsulta) || 'fecha no registrada'
   const dxs = (n.diagnosticos ?? []).map(d2 => d2.descripcion).filter(Boolean).join(', ')
   const que = (n.resumenEjecutivo || '').trim() || dxs || 'sin resumen'
   return `${fecha} — ${que}`

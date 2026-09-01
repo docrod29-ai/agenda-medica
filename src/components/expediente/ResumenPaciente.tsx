@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import type { Patient } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
 import { Activity } from 'lucide-react'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 /**
  * RESUMEN DEL PACIENTE — "todo en un solo lugar".
@@ -43,7 +44,11 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
   }, [orden])
 
   const ultimaFecha = ultima?.fechaConsulta || ultima?.createdAt
-  const fmt = (iso?: string) => { if (!iso) return null; try { return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return null } }
+  /* Era `{ day: '2-digit' }` y daba «01 sep 2026», mientras dos renglones más
+     abajo la MISMA pantalla decía «1 sep 2026» y una tercera línea decía
+     «2026-09-01». Tres lecturas de la misma clase de hecho en un pliegue.
+     Ahora sale del módulo único (`@/lib/formato/fecha`). */
+  const fmt = (iso?: string) => fechaCorta(iso) || null
 
   const vitales: { label: string; valor: string }[] = []
   if (signos) {

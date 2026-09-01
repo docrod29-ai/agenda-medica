@@ -43,6 +43,7 @@ import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
 } from '@/lib/expediente/alergias-longitudinales'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 /**
  * ¿ESTA NOTA ES HOSPITALARIA? UNA regla, no dos.
@@ -411,7 +412,7 @@ export default function ExpedientePage() {
                     <strong style={{ color: 'var(--text)' }}>{a.alergeno}</strong>
                     {peor && <> · {peor.severidad}</>}
                     {reac && <> · {reac.reaccion}</>}
-                    {a.selladaEn && <> · nota firmada del {a.selladaEn.slice(0, 10)}</>}
+                    {a.selladaEn && <> · nota firmada del {fechaCorta(a.selladaEn)}</>}
                     {a.negadaHoy && <> · <span className="nx-critico">hoy el campo la niega</span></>}
                   </li>
                 )
@@ -446,7 +447,7 @@ export default function ExpedientePage() {
               <li key={`${b.origen}-${b.texto}-${i}`}>
                 <strong style={{ color: 'var(--text)' }}>{b.texto}</strong>
                 {b.detalle && <> · {b.detalle}</>}
-                {b.desde && <> · desde el {b.desde.slice(0, 10)}</>}
+                {b.desde && <> · desde el {fechaCorta(b.desde)}</>}
                 <span style={{ color: 'var(--text3)' }}> · {b.declaradoPor}</span>
               </li>
             ))}
@@ -598,7 +599,7 @@ export default function ExpedientePage() {
             {(() => {
               const fechas = notasFiltradas.map(n => n.fechaConsulta).filter(Boolean).sort()
               const primera = fechas[0]
-              return primera ? <span style={{ color: 'var(--text3)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>· desde {new Date(primera).toLocaleDateString('es-MX', { dateStyle: 'medium' })}</span> : null
+              return primera ? <span style={{ color: 'var(--text3)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>· desde {fechaCorta(primera)}</span> : null
             })()}
           </div>
           {notasFiltradas.map((n, i) => (

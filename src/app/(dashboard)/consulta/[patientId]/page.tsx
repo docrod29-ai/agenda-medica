@@ -206,6 +206,7 @@ import {
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
   Scissors, Baby, Calculator, Camera, HeartPulse, Brain, MessageSquare,
 } from 'lucide-react'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 /**
  * Los paneles clínicos se cargan SOLO cuando el médico los abre.
@@ -348,14 +349,6 @@ const ESPECIALIDADES_POR_GRUPO: { grupo: string; items: string[] }[] = [
  * No se escribe nada: esto es SÓLO para lo que se lee y se calcula en esta
  * consulta. Corregir el documento del paciente es otro acto, del médico.
  */
-/** Fecha en es-MX. El producto no enseña ISO en ningún sitio de cara al médico. */
-function fechaCortaMX(iso: string): string {
-  const d = new Date(`${iso.slice(0, 10)}T12:00:00`)
-  return Number.isNaN(d.getTime())
-    ? iso.slice(0, 10)
-    : d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
 function conLaEdadAlDia(p: Patient | null): Patient | null {
   if (!p) return p
   const derivada = edadEnAnios(p.fechaNacimiento)
@@ -4918,7 +4911,7 @@ export default function ConsultaActivaPage() {
                   <strong style={{ color: 'var(--text)' }}>{a.alergeno}</strong>
                   {peor && <> · {peor.severidad}</>}
                   {reac && <> · {reac.reaccion}</>}
-                  {a.selladaEn && <> · nota firmada del {a.selladaEn.slice(0, 10)}</>}
+                  {a.selladaEn && <> · nota firmada del {fechaCorta(a.selladaEn)}</>}
                   {a.negadaHoy && <> · <span className="nx-critico">hoy el campo la niega</span></>}
                   {!firmada && (
                     <>
@@ -5043,7 +5036,7 @@ export default function ConsultaActivaPage() {
                   <li key={`${d.problema}|${d.texto}`}>
                     <strong style={{ color: 'var(--text2)' }}>{d.problema}</strong>
                     {' — '}{d.texto}
-                    {d.dichoEn && <> · nota del {d.dichoEn.slice(0, 10)}</>}
+                    {d.dichoEn && <> · nota del {fechaCorta(d.dichoEn)}</>}
                   </li>
                 ))}
               </ul>
@@ -5136,7 +5129,7 @@ export default function ConsultaActivaPage() {
               {/* Fecha en es-MX, como el resto del producto. Salía `del 2026-09-01`
                   — el mismo ISO crudo que «Visitas anteriores» imprimía entre
                   corchetes, y por la misma razón: nadie había mirado el renglón. */}
-              De su valoración{loQueLleva.registradoEn ? ` del ${fechaCortaMX(loQueLleva.registradoEn)}` : ''}.
+              De su valoración{loQueLleva.registradoEn ? ` del ${fechaCorta(loQueLleva.registradoEn)}` : ''}.
               Sólo lo que se marcó; que algo no aparezca no significa que no lo lleve.
             </div>
           </div>

@@ -6183,3 +6183,79 @@ un recuerdo. Al ampliarlo encontró **un quinto reloj** que yo había dejado en
 `ops-timeout-y-punto-ciego` de entorno (REG-414)— · lint **95 = techo** ·
 trinquete de diseño sin deuda nueva · `tsc` limpio · golden nuevo **7 casos,
 probado al revés ×3**, y el propio reverso corrigió el guardián.
+
+---
+
+## Unidad 93 — Patient State: una sola fecha en todo el producto
+
+Tercera unidad del núcleo. Capturas en `docs/design/capturas/v93/`.
+
+### Lo que se vio mirando el expediente longitudinal
+
+Dos renglones seguidos decían la misma fecha de dos maneras:
+
+```
+Actividad: 1 consulta · última visita  01 sep 2026
+                        · desde         1 sep 2026
+```
+
+Y un tercer sitio de la misma pantalla decía `· desde el 2026-09-01`. Tres
+lecturas de la misma clase de hecho —cuándo pasó algo— en un pliegue, y la
+tercera no es español: es el formato en que la base guarda el dato.
+
+### Lo medido en el árbol entero
+
+| | Antes | Después |
+|---|---|---|
+| Pantallas que enseñan ISO al médico | **9** | **0** |
+| Especificaciones de formato de fecha | **6+** | **1** (`fechaCorta`) |
+| Formatos en el pliegue del expediente | **3** | **1** |
+
+Una fecha en un expediente no es adorno: es cuándo se prescribió, cuándo se
+firmó, desde cuándo toma un fármaco. Leerlas en tres formatos obliga a traducir,
+y traducir es donde se equivoca uno. El producto ya tuvo un defecto de esta
+familia —«08/09/2026», formato de EE. UU. en un producto es-MX, defecto #8 de la
+auditoría de identidad— y volvió por otra puerta.
+
+**Los usos técnicos se separaron uno a uno, no en bloque**: FHIR **exige**
+`birthDate` en ISO, Google Calendar arma un `datetime` de API, y los nombres de
+archivo de respaldo llevan la fecha ordenable a propósito. Cada uno queda
+nombrado en el guardián, para que añadir otro sea una decisión y no un descuido.
+
+### 93b · El renglón de identidad, que era el residual de la unidad 91
+
+`· Femenino · 5555010101` — el mismo separador huérfano de la consulta, sin edad,
+y con el **teléfono** ocupando el subtítulo de la identidad CLÍNICA. La edad se
+deriva ahora con el mismo motor determinista; el teléfono baja a «Datos del
+paciente», que es su sitio. Queda `68 años · Femenino`.
+
+### 93c · Y CINCO guardianes más clavaban la ortografía
+
+`dosing-consulta`, `stripe-prueba-una-vez`,
+`la-alergia-sellada-en-una-nota-firmada-no-desaparece` (×2) y
+`la-duda-de-la-otra-vez-vuelve-a-salir` exigían el ISO literal
+(`toContain('2026-08-01')`, `toContain('a.selladaEn.slice(0, 10)')`).
+
+Ninguno era una regresión: la fecha sigue llegando, que es lo que esos casos
+protegen. Lo que exigían era **cómo se escribe**. Van **ocho** guardianes en tres
+unidades clavando una ortografía en vez de una conducta — es un patrón del
+repositorio, no un accidente.
+
+### RIESGO RESIDUAL
+
+- **La pregunta de Patient State sigue sin contestarse.** «¿Cómo está este
+  paciente AHORA?» exige distinguir activo / resuelto / histórico / incierto /
+  sugerido / confirmado / descartado, y hoy todo pesa igual. Esta unidad arregló
+  la fecha y la identidad; la **jerarquía de estado** no.
+- Las dos cajas de contexto del expediente siguen sin usar la banda `.nx-ctx` de
+  la unidad 91: el mismo hecho se pinta distinto en dos pantallas.
+- El avatar-círculo con inicial sigue ahí (defecto #9 de identidad).
+- `0 dx · 2 fármacos` — jerga abreviada en la navegación primaria.
+- Sólo tema oscuro, sólo Chromium, sólo escritorio.
+
+### COMPUERTAS
+
+`npx vitest run` **12 076 de 12 077** —el único rojo es `ops-timeout-y-punto-ciego`,
+de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
+· `tsc` limpio · golden nuevo **6 casos, probado al revés ×3**, uno de ellos con
+otra ortografía a propósito.
