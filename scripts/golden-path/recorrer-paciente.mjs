@@ -170,12 +170,41 @@ try {
     `HTTP ${rotoR.status}`, 'P0')
 
   // ── 33/34 · límite de peticiones y reintento ──────────────────────────
+  //
+  // `paquetes` es la acción CLÍNICA: devuelve secreto médico, y su tope es
+  // 15/600s (`limitarEstricto`). Cuarenta en paralelo tienen que encontrar
+  // freno.
+  //
+  // ── POR QUÉ SE CUENTAN LOS TRES ESTADOS Y NO SÓLO EL 429 ─────────────
+  //
+  // Este caso decía `0/40 respondieron 429` y con eso no se podía saber qué
+  // había pasado, que es lo primero que hay que saber. Hay DOS desenlaces
+  // buenos y uno malo, y los tres dan «cero 429»:
+  //
+  //  · **429** — el freno contó y cortó. Lo esperado.
+  //  · **503** — el freno NO PUDO contar y por eso no deja pasar
+  //    (`limitarEstricto`, MOTIVO_SIN_FRENO). También es freno, y es la
+  //    respuesta correcta bajo contención: cuarenta transacciones en paralelo
+  //    sobre el MISMO documento de `rate_limits` es justo donde el contador
+  //    tiene más razones para no poder contar.
+  //  · **200 en las cuarenta** — no hubo freno ninguno. Eso sí es el defecto,
+  //    y es el peor de los tres porque se parece al primero desde fuera.
+  //
+  // Por eso el caso pasa con 429 **o** con 503, y la evidencia dice la
+  // distribución entera en vez de un solo número que no distingue.
   const golpes = []
   for (let i = 0; i < 40; i++) golpes.push(portal(tClinico, 'paquetes'))
   const resp = await Promise.all(golpes)
+  const porEstado = {}
+  for (const x of resp) porEstado[x.status] = (porEstado[x.status] ?? 0) + 1
   const limitados = resp.filter(x => x.status === 429)
-  R('GP-33', 'el portal tiene freno ante una ráfaga', limitados.length > 0,
-    `${limitados.length}/40 respondieron 429`)
+  const sinFreno = resp.filter(x => x.status === 503)
+  const frenados = limitados.length + sinFreno.length
+  R('GP-33', 'el portal frena una ráfaga: la corta (429) o no deja pasar sin poder contar (503)',
+    frenados > 0,
+    `${frenados}/40 frenados — distribución ${JSON.stringify(porEstado)}`
+    + ` (429=el freno contó y cortó · 503=no pudo contar y por eso no pasa · 200=SIN FRENO)`,
+    'P1')
   const trasLimite = await portal(tClinico, 'session')
   R('GP-34', 'tras el freno, el paciente sigue pudiendo entrar (no se quema el enlace)',
     trasLimite.status === 200 || trasLimite.status === 429,

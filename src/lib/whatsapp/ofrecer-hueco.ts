@@ -23,6 +23,7 @@ import { encolarReintento } from '@/lib/whatsapp/outbox'
 import { registrarNoEntregado } from '@/lib/whatsapp/no-entregados'
 import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
+import { conRespaldoSinIndice } from '@/lib/firestore/indice-que-todavia-no-esta'
 
 /**
  * Cuánta lista de espera se lee de una vez.
@@ -95,33 +96,67 @@ export async function ofrecerHuecoLiberado(
      *
      * Se traen los dos estados y se filtra abajo por antigüedad del contacto:
      * `contactado` significa «ya se le ofreció algo hace poco», no «ya no
-     * cuenta». El filtro va en memoria porque un `where in` + dos `orderBy`
-     * exige un índice compuesto que hay que crear a mano en la consola — y
-     * mientras no exista, la lectura falla ENTERA y no se ofrece a nadie.
+     * cuenta». Ese filtro sigue en memoria —y seguirá— porque depende de CUÁNTO
+     * hace que se le contactó, comparado con la hora de ahora: es una regla de
+     * tiempo, no un campo que Firestore pueda ordenar.
      */
     /**
-     * Y EL TOPE YA NO RECORTA EN SILENCIO.
+     * EL TOPE YA RECORTA POR LA COLA, NO POR EL MEDIO (REG-421).
      *
-     * Era `.limit(60)` **sin `orderBy`**: Firestore devolvía sesenta entradas
-     * cualesquiera —en orden de identificador— y la prioridad se ordenaba
-     * DESPUÉS, en memoria. Con más de sesenta en lista, el paciente de prioridad
-     * 1 podía no estar entre las sesenta que llegaron, y el hueco se le ofrecía
+     * Era `.limit(TOPE_LISTA)` **sin `orderBy`**: Firestore devolvía doscientas
+     * entradas cualesquiera —en orden de identificador— y la prioridad se
+     * ordenaba DESPUÉS, en memoria. Con más entradas que el tope, el paciente de
+     * prioridad 1 podía no estar entre las que llegaron, y el hueco se le ofrecía
      * a alguien menos prioritario **sin que nada lo indicara**.
      *
-     * No se puede pedir `orderBy('prioridad')` junto al `where in` sin crear un
-     * índice compuesto a mano en la consola —y mientras no exista, la lectura
-     * falla ENTERA y no se ofrece a nadie—. Así que se sube el tope a algo que
-     * cubre cualquier lista real y, sobre todo, **se declara cuando se alcanza**:
-     * un recorte que nadie ve se lee como «ya estaban todos».
+     * Ahora ordena Firestore, con el índice `waitlist(estado, prioridad,
+     * createdAt)` ya desplegado: el recorte se lleva a los MENOS prioritarios,
+     * que es el único recorte que este módulo puede permitirse. El orden fino
+     * —los ya contactados vuelven a la rueda pasadas unas horas— lo sigue
+     * poniendo `candidatos()` en memoria sobre esta lectura: es una regla de
+     * TIEMPO, no de campo, y no hay índice que la exprese.
+     *
+     * EL ORDEN DE LOS `orderBy` NO ES ESTILO: tiene que ser el mismo que el del
+     * índice (`prioridad` antes que `createdAt`) o Firestore rechaza la consulta
+     * entera con `FAILED_PRECONDITION`.
+     *
+     * LO QUE ESTO DA POR SUPUESTO: que toda entrada tiene `prioridad` y
+     * `createdAt`. Un `orderBy` en Firestore **no ordena los documentos a los que
+     * les falta el campo: los EXCLUYE**. Los dos son obligatorios en
+     * `WaitlistEntry` y `createWaitlistEntry` —el único escritor— siempre los
+     * pone, así que aquí no falta ninguno. Si algún día entra otro escritor, esa
+     * garantía se rompe en silencio y un paciente desaparece de la lista sin que
+     * nada lo diga.
      */
-    const waitlistSnap = await clinicRef.collection('waitlist')
-      .where('estado', 'in', ['activo', 'contactado'])
-      .limit(TOPE_LISTA)
-      .get()
+    /**
+     * Y MIENTRAS EL ÍNDICE NO ESTÉ CONSTRUIDO, NO SE DEJA DE OFRECER EL HUECO.
+     *
+     * Firestore no degrada esta consulta: la rechaza. Sin respaldo, entre que
+     * este código llega a producción y que el índice cuaja, **a nadie se le
+     * ofrece el hueco liberado** — y eso no se ve como un error, se ve como una
+     * lista de espera vacía. El respaldo es la lectura de antes: sin orden, con
+     * la prioridad puesta en memoria por `candidatos()`, que es lo que se hacía
+     * hasta REG-421 y sigue funcionando sin índice.
+     */
+    const { valor: waitlistSnap, degradada } = await conRespaldoSinIndice(
+      'waitlist(estado, prioridad, createdAt)',
+      () => clinicRef.collection('waitlist')
+        .where('estado', 'in', ['activo', 'contactado'])
+        .orderBy('prioridad', 'asc')
+        .orderBy('createdAt', 'asc')
+        .limit(TOPE_LISTA)
+        .get(),
+      () => clinicRef.collection('waitlist')
+        .where('estado', 'in', ['activo', 'contactado'])
+        .limit(TOPE_LISTA)
+        .get(),
+    )
     if (waitlistSnap.size >= TOPE_LISTA) {
       safeLog.warn(`[ofrecer-hueco] ${clinicId}: la lista de espera llegó al tope de ${TOPE_LISTA}; `
-        + 'puede haber pacientes MÁS prioritarios fuera de la lectura. Hace falta el índice compuesto '
-        + "(estado + prioridad) para ordenar en la consulta.")
+        + (degradada
+          ? 'y SIN el índice de prioridad los que quedaron fuera son cualesquiera: '
+            + 'puede haber pacientes MÁS prioritarios sin ver.'
+          : 'los que quedaron fuera son los MENOS prioritarios, pero siguen sin verse.'))
     }
 
     if (waitlistSnap.empty) {

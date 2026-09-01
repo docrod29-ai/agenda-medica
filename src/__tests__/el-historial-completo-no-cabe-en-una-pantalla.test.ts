@@ -93,7 +93,6 @@ import {
   listarNotasPagina, listarNotasCompat, getNotasDeInternamiento,
   resumenRetencionDeNotas, tieneNotaFirmada, getUltimasNotasResumen,
   LIMITE_PAGINA_NOTAS, LIMITE_MAX_PAGINA_NOTAS, TECHO_COMPAT_NOTAS,
-  VENTANA_RESUMEN_NOTAS,
 } from '@/lib/expediente/firestore'
 
 const CLINICA = 'clinica-sintetica-1'
@@ -304,20 +303,41 @@ describe('LA PANTALLA DE RETENCIÓN NO SE BAJA 500 HISTORIALES', () => {
   })
 })
 
-describe('EL CONTEXTO DE IA MIRA UNA VENTANA, NO EL HISTORIAL', () => {
-  it('tres resúmenes ya no cuestan todas las notas firmadas', async () => {
+describe('EL CONTEXTO DE IA PIDE LAS TRES FIRMADAS, NI UNA MÁS (REG-421)', () => {
+  it('tres resúmenes cuestan tres lecturas, no una ventana de cuarenta', async () => {
     sembrarNotas(1000)
     reset()
     const texto = await getUltimasNotasResumen(CLINICA, PACIENTE)
     expect(texto).toContain('Resumen sintético 0')
-    expect(h.contador.lecturas).toBe(VENTANA_RESUMEN_NOTAS)
+    expect(
+      h.contador.lecturas,
+      'con el índice `notas(estado, fechaConsulta)` desplegado se piden las 3 '
+      + 'firmadas más recientes; antes se bajaban 40 y se filtraba en memoria',
+    ).toBe(3)
   })
 
-  it('sigue quedándose sólo con las FIRMADAS de esa ventana', async () => {
+  it('sigue quedándose sólo con las FIRMADAS', async () => {
     sembrarNotas(10, i => ({ estado: i < 2 ? 'borrador' : 'firmada' }))
     const texto = await getUltimasNotasResumen(CLINICA, PACIENTE)
     expect(texto).not.toContain('Resumen sintético 0')
     expect(texto).toContain('Resumen sintético 2')
+  })
+
+  it('encuentra una firmada ENTERRADA bajo cuarenta borradores', async () => {
+    /**
+     * ÉSTE ES EL HUECO QUE CIERRA REG-421, Y FALLA SIN EL ARREGLO.
+     *
+     * Con la ventana de 40 + filtro en memoria, un paciente cuyas últimas
+     * cuarenta notas fueran borradores devolvía resumen VACÍO aunque tuviera
+     * firmadas más atrás. Se toleraba porque este texto es contexto de IA y una
+     * tarjeta de cortesía — pero era una ausencia que no significaba nada, y en
+     * esta casa la ausencia de dato no es dato de ausencia.
+     *
+     * Con `where('estado','==','firmada')` en la consulta, la busca donde esté.
+     */
+    sembrarNotas(45, i => ({ estado: i < 41 ? 'borrador' : 'firmada' }))
+    const texto = await getUltimasNotasResumen(CLINICA, PACIENTE)
+    expect(texto).toContain('Resumen sintético 41')
   })
 
   it('sin notas firmadas devuelve cadena vacía, no un texto a medias', async () => {
