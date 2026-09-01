@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavPublica } from '@/components/landing/NavPublica'
 
 export const metadata = {
   title: 'Arquitectura · Ausculta',
@@ -68,7 +69,11 @@ const CHIP: Record<Estado, { t: string; c: string; bg: string }> = {
 
 export default function ArquitecturaPage() {
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 90px' }}>
+    /* El menú va FUERA de la columna de 900: dentro heredaba su ancho y salía
+       apretado. Ver la nota larga en `/privacidad`. */
+    <div className="nx-pub">
+      <NavPublica />
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 20px 90px' }}>
       <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal)', fontWeight: 700 }}>
         Arquitectura
       </div>
@@ -118,6 +123,7 @@ export default function ArquitecturaPage() {
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }}>
           Volver al inicio
         </Link>
+      </div>
       </div>
     </div>
   )

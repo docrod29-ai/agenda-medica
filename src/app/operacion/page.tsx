@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavPublica } from '@/components/landing/NavPublica'
 import { DemoWorkflow } from '@/components/DemoWorkflow'
 
 export const metadata = {
@@ -61,7 +62,11 @@ const CHIP: Record<Estado, { t: string; c: string; bg: string }> = {
 
 export default function OperacionPage() {
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 90px' }}>
+    /* El menú va FUERA de la columna de 900: dentro heredaba su ancho y salía
+       apretado. Ver la nota larga en `/privacidad`. */
+    <div className="nx-pub">
+      <NavPublica />
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 20px 90px' }}>
       <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal)', fontWeight: 700 }}>
         Operación y finanzas
       </div>
@@ -104,6 +109,7 @@ export default function OperacionPage() {
         <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }}>
           Planes
         </Link>
+      </div>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 # Transformación de experiencia de producto — acta
 
-Trece unidades, del 1-sep-2026. Cada una salió de **mirar el producto servido
+Catorce unidades, del 1-sep-2026. Cada una salió de **mirar el producto servido
 en un navegador**, no de leer el código; las capturas de `antes/` y `despues/`
 son la prueba, y `interno/` son las pantallas del consultorio con sesión real
 contra el emulador.
@@ -34,6 +34,7 @@ node scripts/ausculta-transformacion/axe-detalle.mjs http://localhost:3200 /prec
 # interacción, que una captura no demuestra
 node scripts/ausculta-transformacion/probar-menu.mjs       http://localhost:3200 <salida>
 node scripts/ausculta-transformacion/menos-movimiento.mjs  http://localhost:3200
+node scripts/ausculta-transformacion/el-sitio-es-un-sitio.mjs http://localhost:3200
 node scripts/ausculta-transformacion/medir-color.mjs
 node scripts/ausculta-transformacion/medir-sidebar.mjs
 ```
@@ -56,6 +57,8 @@ node scripts/ausculta-transformacion/medir-sidebar.mjs
 | La barra del portal salía **1440 × 60** en escritorio | Caja medida de `nav[aria-label=Secciones]` | `portal/hoy-1440-dark.png` |
 | «IA» y «Regla con código» se pintaban del **mismo color** | Color computado de cada distintivo, uno a uno | `evidencia/fallo-390-dark.png` |
 | El sello «PubMed real» seguía puesto con PubMed caído | El estado real, con la salida a PubMed cerrada | `evidencia/fallo-390-dark.png` |
+| El menú listaba «Evidencia» y al llegar **no había menú** | Salidas internas contadas página por página | `sitio/evidencia-movil.png` |
+| `/privacidad` fallaba la **hidratación** (`<ul>` dentro de `<p>`) | Leyendo la consola del navegador | — |
 
 Y una que sólo se vio **volviendo a medir después de arreglar**: la cabecera
 del shell se corrigió en `Sidebar.tsx` y no cambió un píxel, porque a 1440
@@ -80,6 +83,10 @@ quien la pinta es `FlowRail.tsx`. El diff se veía perfecto.
 | El portal en `arnes:nada-tapa` | SIN MEDIR (faltaba el secreto) | **22 controles, 0 tapados** |
 | Colores distintos entre los 4 orígenes del razonamiento | 3 de 4 | **4 de 4**, y con tinte propio |
 | Trinquete de diseño · tamaños fuera de escala | 1 947 | **1 869** |
+| Páginas públicas con la navegación del sitio | 3 de 11 | **11 de 11** |
+| Salidas internas de `/evidencia` | 1 | **8** |
+| Menús pintados dentro de `<main>` | 4 | **0** |
+| Errores de hidratación en las páginas legales | 1 | **0** |
 
 ## Lo que NO se pudo comprobar aquí, dicho
 
@@ -101,10 +108,6 @@ quien la pinta es `FlowRail.tsx`. El diff se veía perfecto.
   `eutils.ncbi.nlm.nih.gov` —el proxy de salida lo rechaza—, así que se midió
   con la respuesta simulada (`page.route`). Lo que devuelva la red real, no
   visto.
-- **El sitio público, fuera de la portada.** `NavPublica` está en 3 de 11
-  páginas públicas. Siguen sin navegación: `/evidencia`, `/seguridad`,
-  `/arquitectura`, `/operacion`, `/contacto`, `/paquetes`, `/privacidad`,
-  `/terminos`. Medido: `/evidencia` tiene **una sola salida interna** (`/`).
 - **Que el `tel:911` marque de verdad.** Chromium sin marcador no llama a nadie.
   Lo comprobado es que el destino sea un enlace `tel:` con el número del módulo,
   y no texto muerto.
@@ -128,7 +131,15 @@ ya cerradas en el guion que las sufrió:
    no la que se despliega. Salió el mismo resultado —0 tapados— pero por
    suerte, no por método: se repitió con la hoja buena (789 controles, 0
    tapados) y **ése** es el número que cuenta.
-3. **La hoja de estilos servida en caliente.** `next dev` volvió a servir el CSS
+3. **Medir a media animación.** La portada entra con `nx-acto`, que arranca en
+   `opacity: 0`. axe lanzado ahí lee ese cero y canta contraste 1,55 — y como
+   el reparto de tiempos cambia con lo que tarde en compilar el servidor, la
+   violación salía **en una ruta distinta en cada corrida**. Una violación que
+   se mueve de sitio no es un defecto: es un cronómetro mal puesto. Comprobado
+   a 1,6 s, 4 s y 8 s: cero. El arnés espera ahora a que acaben las animaciones
+   **finitas** — esperar al latido infinito del héroe lo colgaba, y un arnés
+   colgado no da un rojo, no da nada.
+4. **La hoja de estilos servida en caliente.** `next dev` volvió a servir el CSS
    viejo tras editar `globals.css`: la barra de destinos se midió en 358 × 294,
    apilada, porque la regla nueva sencillamente no estaba en el fragmento
    servido. Se comprueba pidiendo el `.css` servido y buscando la regla dentro;

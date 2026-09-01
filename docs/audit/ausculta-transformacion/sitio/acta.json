@@ -1,0 +1,34 @@
+[
+  {
+    "ruta": "/evidencia",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 1560,
+    "consola": []
+  },
+  {
+    "ruta": "/evidencia",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 1105,
+    "consola": []
+  },
+  {
+    "ruta": "/privacidad",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 4242,
+    "consola": []
+  },
+  {
+    "ruta": "/privacidad",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 2597,
+    "consola": []
+  }
+]

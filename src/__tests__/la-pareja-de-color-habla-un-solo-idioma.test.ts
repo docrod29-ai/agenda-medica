@@ -92,12 +92,32 @@ describe('la pareja de color habla un solo idioma', () => {
   })
 
   it('las dos páginas legales dejan de forzar su propio tema', () => {
+    /**
+     * El fondo se comprueba por la REGLA, no por dónde está escrito. Pedía
+     * literalmente `background: 'var(--bg)'` en el `style` de la página, y al
+     * entrar la navegación pública ese fondo pasó al envoltorio `.nx-pub`
+     * —que es donde debe estar, porque ahora el menú también va dentro—. La
+     * página seguía siendo correcta y el guardián la daba por rota.
+     *
+     * Lo que no se negocia sigue igual: ni fondo blanco ni texto casi negro a
+     * mano, y el fondo del tema puesto en algún sitio de la página.
+     */
     for (const p of ['src/app/terminos/page.tsx', 'src/app/privacidad/page.tsx']) {
       const src = sinComentarios(leer(p))
       expect(src, `${p} vuelve a imponer fondo blanco`).not.toMatch(/background:\s*'#fff'/)
       expect(src, `${p} vuelve a imponer texto casi negro`).not.toMatch(/color:\s*'#1a1a1a'/)
-      expect(src).toContain("background: 'var(--bg)'")
+      const enElEnvoltorio = src.includes('className="nx-pub"')
+      expect(
+        enElEnvoltorio || src.includes("background: 'var(--bg)'"),
+        `${p} dejó de heredar el fondo del tema`,
+      ).toBe(true)
     }
+    // Y el envoltorio SÍ pinta el fondo del tema: si dejara de hacerlo, las dos
+    // páginas se quedarían transparentes y el caso de arriba no lo notaría.
+    const css = leer('src/app/globals.css')
+    const i = css.indexOf('.nx-pub {')
+    expect(i, 'desapareció el envoltorio público').toBeGreaterThan(-1)
+    expect(css.slice(i, i + 120)).toContain('background: var(--bg)')
   })
 
   it('el tinte semántico tiene un porcentaje POR TEMA, no uno solo', () => {

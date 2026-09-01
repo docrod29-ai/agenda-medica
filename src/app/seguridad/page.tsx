@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavPublica } from '@/components/landing/NavPublica'
 import type { Metadata } from 'next'
 import { Shield, Lock, Users, FileClock, DatabaseBackup, Server, Bug, Bell, Brain, ArrowLeft } from 'lucide-react'
 import { SECURITY_CONTROLS, ESTADO_LABEL, esActivo, type SecurityState } from '@/config/security-controls'
@@ -46,12 +47,23 @@ function Badge({ estado }: { estado: SecurityState }) {
 
 export default function SeguridadPage() {
   return (
-    <main style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)' }}>
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text3)', fontSize: 14, textDecoration: 'none', marginBottom: 28 }}>
-          <ArrowLeft size={15} /> Volver
-        </Link>
+    /*
+      LA NAVEGACIÓN DEL SITIO, QUE ESTA PÁGINA NO TENÍA — y FUERA de `<main>`.
 
+      Medido: `NavPublica` estaba en 3 de las 11 páginas públicas, y el propio
+      menú lista «Evidencia» y «Seguridad» como destinos: se pulsaba y se
+      aterrizaba en una página sin menú. `/evidencia` tenía UNA sola salida
+      interna medida.
+
+      Puesto sin más dentro de la raíz quedaba DENTRO de `<main>` —medido:
+      `main .nx-nav-publica` daba 1— y un landmark de navegación dentro del
+      landmark de contenido principal le miente a quien recorre la página por
+      landmarks. Se envuelve: menú fuera, contenido dentro.
+    */
+    <div className="nx-pub">
+      <NavPublica />
+      <main style={{ color: 'var(--text)' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px 80px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--nexus-soft)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--nexus)' }}>
             <Shield size={22} />
@@ -156,6 +168,7 @@ export default function SeguridadPage() {
           </p>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   )
 }
