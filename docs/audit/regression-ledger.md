@@ -15549,3 +15549,130 @@ penicilina. Alérgico a sulfas»— la lectura sí añade y se ve.
 **Prueba.** `src/__tests__/la-alergia-no-se-dice-dos-veces-en-la-misma-franja.test.ts`
 (8 casos). **Probada al revés**: restaurar la comparación de cadenas → 4 rojos,
 incluido el caso real; quitar la normalización de acentos → 1 rojo.
+
+---
+
+## REG-419 — cuatro relojes y tres palabras para un solo estado de grabación
+
+**Dónde**: `src/lib/encuentro/vocabulario-de-la-escucha.ts` (nuevo) ·
+`src/components/InstrumentStrip.tsx` · `src/components/MientrasHablas.tsx` ·
+`src/app/(dashboard)/consulta/[patientId]/page.tsx`
+
+### Qué fallaba
+
+Medido en navegador con la consulta **grabando de verdad** (micrófono falso,
+ciclo completo desde el consentimiento):
+
+```
+relojes a la vez ........ 4   →  «0:39», «0:39», «00:39», «00:39»
+palabras de estado ...... 3   →  «Grabando», «Escuchando», «Esperando voz»
+regiones aria-live ...... 6, dos releyendo el cronómetro entero cada segundo
+relojes escritos a mano .. 5
+```
+
+Para quien usa lector de pantalla eso no es información: es un goteo continuo de
+cifras —«Rosalía Mendieta Cuevas · Grabando · 00:39»— una vez por segundo,
+durante una consulta con el paciente hablando.
+
+### Causa raíz, que no es la que parece
+
+**No había cuatro fuentes de verdad.** Hay una —el `EVENTO_GRABANDO` que escuchan
+`MarcoEscuchando`, `InstrumentStrip`, `FlowRail` y `BottomNav`— y el invariante
+de arquitectura se respetaba.
+
+Lo duplicado era la **presentación**. «La misma entidad se pinta distinto según
+dónde se mire» permite que una franja sea discreta y otra grande; no permite que
+una diga «Escuchando» y otra «Grabando» del mismo segundo. Eso no es pintar
+distinto: es **decir** distinto.
+
+### El arreglo
+
+Un módulo de vocabulario. Palabra y reloj salen de ahí. Dos decisiones que son
+clínicas y no de estilo:
+
+1. **«Grabando», no «Escuchando»**: el paciente firmó consentimiento para que la
+   conversación *se grabe*, el audio se guarda y `data-privacy` declara que la
+   voz es biométrica. La palabra suave es la equivocada justo aquí.
+2. **`grabando` no se anuncia**: lleva el reloj. Se anuncia el CAMBIO de estado,
+   no el paso del tiempo. El `role="status"` de la franja **no se quita** —
+   sostiene la regla `region` de axe que `v15-a11y-avisos-en-landmark` cerró—:
+   se calla el reloj con `aria-hidden`, no la franja.
+
+### Qué NO cubre
+
+- Siguen siendo **cuatro indicadores**; ahora dicen lo mismo. Reducirlos es otra
+  unidad.
+- Dos controles de detener con texto más un ⏹ sin texto. Sin tocar.
+- `Esperando voz…` sigue leyéndose como contradicción de «Grabando».
+- El control flotante queda encima de un campo de signos vitales.
+
+**Prueba.** `src/__tests__/un-estado-de-la-escucha-se-dice-una-sola-vez.test.ts`
+(7 casos). **Probada al revés ×3.** Y el propio reverso corrigió el guardián: su
+primera versión exigía la ortografía exacta que ya había visto —espacios
+incluidos— y dejó pasar la misma copia escrita de otra forma. Al ampliarla
+encontró un **quinto** reloj que el arreglo había dejado atrás.
+
+---
+
+## REG-420 — nueve pantallas le enseñaban al médico la fecha en ISO
+
+**Dónde**: `src/lib/formato/fecha.ts` (nuevo) · expediente · consulta ·
+pacientes · corte de caja · `dosing/consulta.ts` · `finanzas/prueba-gratis.ts` ·
+`ResumenPaciente`
+
+### Qué fallaba
+
+En el expediente longitudinal, dos renglones seguidos decían la misma fecha de
+dos maneras, y un tercer sitio de la misma pantalla la decía en ISO:
+
+```
+Actividad: 1 consulta · última visita  01 sep 2026
+                        · desde         1 sep 2026
+                        · desde el      2026-09-01
+```
+
+Contado en el árbol entero: **9** pantallas de cara al médico imprimían ISO crudo
+y había **6 o más** especificaciones de formato para la misma clase de hecho.
+
+### Por qué importa más de lo que parece
+
+Una fecha en un expediente no es adorno: es cuándo se prescribió, cuándo se
+firmó, desde cuándo toma un fármaco. `2026-09-01`, `01 sep 2026` y `1 sep 2026`
+son la misma fecha, pero leerlas juntas obliga a traducir, y traducir es donde se
+equivoca uno. El producto ya tuvo un defecto de esta familia —«08/09/2026»,
+formato de EE. UU. en un producto es-MX— y volvió por otra puerta.
+
+### El arreglo
+
+Dos formas y ninguna más: `fechaCorta` y `fechaConHora`. `YYYY-MM-DD` se
+interpreta al mediodía, porque a secas es UTC y en México retrocede un día. Lo
+que no es una fecha devuelve `''`, nunca «Invalid Date» ni el ISO de entrada: un
+hueco visible en vez de disfrazado.
+
+Los usos **técnicos** se separan uno a uno y no en bloque: FHIR exige `birthDate`
+en ISO, Google Calendar arma un `datetime` de API, los nombres de archivo de
+respaldo llevan la fecha ordenable. Cada uno queda nombrado en el guardián para
+que añadir otro sea una decisión y no un descuido.
+
+### Qué NO cubre
+
+- Las fechas dentro de documentos imprimibles (receta, nota Word) tienen su
+  propio formato legal y no se tocan aquí.
+- No cuenta formatos en el navegador: cuenta lo que el código puede producir.
+- No unifica los formatos CON hora del resto del producto.
+
+**Prueba.** `src/__tests__/una-sola-fecha-en-todo-el-producto.test.ts` (6 casos).
+**Probada al revés ×3**, una de ellas devolviendo el ISO **con otra ortografía**
+(`slice( 0 , 10 )`) — la lección de REG-419 aplicada. Las aserciones fijan la
+FORMA y no la cadena: la abreviatura del mes la decide el ICU del entorno, y
+clavarla haría un guardián que falla al actualizar Node sin que el producto
+cambie.
+
+### Y cinco guardianes clavaban la ortografía
+
+`dosing-consulta`, `stripe-prueba-una-vez`,
+`la-alergia-sellada-en-una-nota-firmada-no-desaparece` (×2) y
+`la-duda-de-la-otra-vez-vuelve-a-salir` exigían el ISO literal. Ninguno era una
+regresión —la fecha sigue llegando, que es lo que protegen—: exigían **cómo se
+escribe**. Van **ocho** guardianes en tres unidades clavando una ortografía en
+vez de una conducta.

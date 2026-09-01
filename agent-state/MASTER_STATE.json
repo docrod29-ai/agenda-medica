@@ -19,23 +19,10 @@
   "ultimaVersionEnProduccion": "nexusmed-v1178",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/lane-product-excellence.md",
-    " M docs/audit/regression-ledger.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/v15-rtc14-una-sola-presentacion-de-alergias.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/globals.css",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/firestore.ts",
-    " M src/lib/seguridad/alergias.ts",
-    "?? docs/design/capturas/v91/",
-    "?? sonda-consulta.mjs",
-    "?? sonda-recorte.mjs",
-    "?? src/__tests__/la-alergia-no-se-dice-dos-veces-en-la-misma-franja.test.ts",
-    "?? src/__tests__/la-edad-de-la-consulta-no-es-una-foto-vieja.test.ts"
+    " M src/lib/calidad/familias-de-defecto.ts"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -71,10 +58,10 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 269,
+    "regsEnElLedger": 271,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 892,
-    "casosDePrueba": 10829,
+    "archivosDePrueba": 894,
+    "casosDePrueba": 10842,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
