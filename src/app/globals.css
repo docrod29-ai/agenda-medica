@@ -4459,7 +4459,11 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   gap: 8px;
   padding: 14px 18px 16px;
 }
-.nx-nav-panel-cuenta .btn { height: 44px; text-decoration: none; }
+/* 46 y no 44: el panel cerrado lleva `scale(0.97)` para poder animarse, y una
+   caja de 44 escalada mide 42,7. Un blanco táctil no puede vivir pegado al
+   mínimo — cualquier transform futuro lo empujaría por debajo sin que nadie
+   cambiara el número. Lo midió el e2e de teléfono en CI, no una captura. */
+.nx-nav-panel-cuenta .btn { min-height: 46px; text-decoration: none; }
 /* Las filas entran escalonadas: la lista se lee como lista. */
 .nx-nav-panel[data-abierto='true'] .nx-nav-panel-fila {
   animation: nx-nav-fila var(--mov-normal) var(--mov-curva) both;

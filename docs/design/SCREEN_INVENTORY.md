@@ -58,7 +58,7 @@
 | `/cumplimiento/retencion` | medico | ✅ | 354 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 384 | 5 | — | ✅ | — |
-| `/expediente/[patientId]` | medico | ✅ | 1145 | 14 | — | ✅ | — |
+| `/expediente/[patientId]` | medico | ✅ | 1149 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 822 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 755 | 0 | — | ✅ | — |
@@ -68,7 +68,7 @@
 | `/migracion` | medico | ✅ | 417 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
-| `/nota/[patientId]/[notaId]` | medico | ✅ | 1006 | 2 | — | ✅ | — |
+| `/nota/[patientId]/[notaId]` | medico | ✅ | 1020 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 405 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 845 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1239 | 4 | — | ✅ | — |
@@ -78,7 +78,7 @@
 | `/referencia/[patientId]` | medico | ✅ | 297 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 453 | 5 | — | ✅ | — |
-| `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1732 | 4 | — | ✅ | ✅ |
+| `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1733 | 4 | — | ✅ | ✅ |
 | `/hospitalizacion/camas` | alpha | ✅ | 239 | 1 | — | ✅ | — |
 | `/hospitalizacion/indicadores` | alpha | ✅ | 102 | 0 | — | ✅ | — |
 | `/hospitalizacion/unidades` | alpha | ✅ | 171 | 0 | — | ✅ | — |

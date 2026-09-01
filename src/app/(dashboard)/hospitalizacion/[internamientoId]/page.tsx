@@ -51,6 +51,7 @@ import {
 import { TIPO_NOTA_LABEL, type NotaMedica } from '@/types/expediente'
 import type { Patient, Doctor } from '@/types'
 import { Modal, Button, Spinner } from '@/components/ui'
+import { fechaLegible } from '@/lib/fecha-local'
 import {
   ArrowLeft, BedDouble, Stethoscope, Clock, FileText, Plus, LogOut, Pill,
   Send, Check, Activity, Syringe, Ban, ShieldCheck, Printer, AlertTriangle, ScanLine, ClipboardCheck, HeartPulse,
@@ -695,7 +696,7 @@ export default function EpisodioPage() {
                 <FileText size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{TIPO_NOTA_LABEL[n.tipo] ?? n.tipo}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{new Date(n.fechaConsulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}{n.estado === 'firmada' ? ' · firmada' : ' · borrador'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{/* Mismo fallo que en el expediente: fecha suelta leída como UTC. */}{fechaLegible(n.fechaConsulta, 'medium')}{n.estado === 'firmada' ? ' · firmada' : ' · borrador'}</div>
                 </div>
                 {n.medicamentos?.length > 0 && <Pill size={14} style={{ color: 'var(--text3)' }} />}
               </button>

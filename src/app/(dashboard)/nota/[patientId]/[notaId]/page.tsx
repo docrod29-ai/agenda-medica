@@ -28,6 +28,8 @@ import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { fechaLegible } from '@/lib/fecha-local'
+import { hoyISO } from '@/lib/timezone'
 
 /**
  * La tinta del documento-papel. UN solo literal: el color va INLINE en cada
@@ -116,7 +118,14 @@ export default function NotaImprimiblePage() {
     if (!el) return
     setDescargando(true)
     const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-    const fechaCorta = new Date(nota?.fechaConsulta ?? Date.now()).toISOString().slice(0, 10)
+    /*
+      El nombre del PDF lleva la fecha del ENCUENTRO. `fechaConsulta` ya es
+      `YYYY-MM-DD`, así que se recorta — no se pasa por `new Date`, que la leería
+      como UTC y volvería a correr un día si algún día llegara con hora. El
+      respaldo es el hoy DEL CONSULTORIO (`hoyISO`), no el del navegador: a las
+      once de la noche en México, `Date.now()` en UTC ya es mañana.
+    */
+    const fechaCorta = (nota?.fechaConsulta ?? '').slice(0, 10) || hoyISO()
     try {
       if (membrete) {
         // Nota membretada: PDF LIMPIO hoja-por-hoja (una .nota-sheet = una página
@@ -266,7 +275,12 @@ export default function NotaImprimiblePage() {
   if (!nota) return <EmptyState icon={<FileText size={22} />} title="Nota no encontrada" />
 
 
-  const fecha = new Date(nota.fechaConsulta).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })
+  /*
+    LA FECHA DEL DOCUMENTO FIRMADO. Aquí no es una etiqueta: es parte de lo que
+    se sostiene medicolegalmente. `new Date('2026-09-01')` es medianoche UTC y
+    en México pintaba el DÍA ANTERIOR, con una hora inventada encima.
+  */
+  const fecha = fechaLegible(nota.fechaConsulta, 'long')
   const medico = nota.firma?.nombreMedico || config?.nombreMedico || 'Médico'
   const cedula = nota.firma?.cedulaProfesional || config?.cedulaProfesional || '—'
   const especialidad = nota.firma?.especialidad || config?.especialidad || ''
