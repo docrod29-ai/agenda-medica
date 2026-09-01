@@ -26,7 +26,7 @@ permissions:
   statuses: read
 
 env:
-  SHA_AUTORIZADO: 8f74901d7a177c2336c80f16c6677965916c0f75
+  SHA_AUTORIZADO: e72f22a9e82025fd3e06beb6982b377adc67d6da
   # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
   # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
   # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin

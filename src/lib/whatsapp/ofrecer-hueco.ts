@@ -100,7 +100,7 @@ export async function ofrecerHuecoLiberado(
      * tiempo, no un campo que Firestore pueda ordenar.
      */
     /**
-     * EL TOPE YA RECORTA POR LA COLA, NO POR EL MEDIO (REG-417).
+     * EL TOPE YA RECORTA POR LA COLA, NO POR EL MEDIO (REG-421).
      *
      * Era `.limit(TOPE_LISTA)` **sin `orderBy`**: Firestore devolvía doscientas
      * entradas cualesquiera —en orden de identificador— y la prioridad se

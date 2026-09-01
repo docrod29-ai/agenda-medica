@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 74 de 268, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 74 de 272, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
@@ -128,7 +128,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 43 de 268.**
+**«El sistema se contradice a sí mismo» — 44 de 272.**
 
 Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
 caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
@@ -209,7 +209,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 38 de 268**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 39 de 272**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
@@ -219,7 +219,7 @@ verde. No se rompió nada — es que ese eje no lo medía nadie. El instrumento
 (`npm run a11y:paciente`) los encontró todos el día que se encendió, que es
 exactamente lo que hace esta familia cada vez.
 
-El miembro más reciente es **REG-417** (1-sep-2026), y es la versión más afilada:
+El miembro más reciente es **REG-421** (1-sep-2026), y es la versión más afilada:
 ahí el instrumento **sí existía y corría en verde**. El guardián de índices se
 saltaba con un `continue` las consultas que no sabía leer, y llevaba meses tapando
 dos consultas vivas sin índice. No medir es un hueco; medir mal es un hueco que

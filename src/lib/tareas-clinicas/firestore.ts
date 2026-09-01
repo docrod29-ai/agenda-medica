@@ -120,7 +120,7 @@ export interface WorklistVivo {
 export async function tareasVivas(clinicId: string, tope = 200): Promise<WorklistVivo> {
   if (!clinicId) return { tareas: [], truncada: false, tope }
   /**
-   * CON `orderBy('creadaEn')`: EL RECORTE DEJA DE SER ARBITRARIO (REG-417).
+   * CON `orderBy('creadaEn')`: EL RECORTE DEJA DE SER ARBITRARIO (REG-421).
    *
    * `ordenWorklist` reordena todo en el cliente —primero lo que hay que escalar,
    * luego por prioridad, luego por antigüedad— así que este `orderBy` **no

@@ -984,7 +984,7 @@ export async function getVersionesNota(clinicId: string, patientId: string, nota
  * resumen**. En un paciente crónico eso son megabytes por cada apertura de la
  * consulta, y corre en el navegador del médico con el paciente enfrente.
  *
- * ── AHORA SE PIDEN LAS TRES FIRMADAS, Y NADA MÁS (REG-352 → REG-417) ────────
+ * ── AHORA SE PIDEN LAS TRES FIRMADAS, Y NADA MÁS (REG-352 → REG-421) ────────
  *
  * Combinar `where('estado','==','firmada')` con `orderBy('fechaConsulta')` exige
  * un **índice compuesto**. Mientras no existió, esto leía una ventana de las

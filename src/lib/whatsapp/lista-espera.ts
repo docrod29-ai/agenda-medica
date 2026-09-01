@@ -12,7 +12,7 @@
  * `contactado` significa «ya se le ofreció algo hace poco», no «ya no cuenta».
  * Pasadas unas horas vuelve a la rueda.
  *
- * ── QUÉ ORDENA FIRESTORE Y QUÉ ORDENA ESTE MÓDULO (REG-417) ──────────────────
+ * ── QUÉ ORDENA FIRESTORE Y QUÉ ORDENA ESTE MÓDULO (REG-421) ──────────────────
  *
  * Desde que el índice `waitlist(estado, prioridad, createdAt)` está desplegado,
  * **la prioridad y la antigüedad las ordena Firestore** en la propia consulta

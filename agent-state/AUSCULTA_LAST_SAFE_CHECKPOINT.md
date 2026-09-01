@@ -119,7 +119,7 @@ Dos huecos que vivían en comentarios sueltos pasan a ser artefactos con lista:
 
 | Qué | Dónde | Comando del dueño |
 |---|---|---|
-| Índices compuestos — las 4 consultas YA los usan (REG-417), así que el despliegue va **ANTES** de fusionar | `firestore.indexes.json` (9 índices) + `docs/ops/INDICES-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:indexes` y **verlos `Enabled` en la consola** |
+| Índices compuestos — las 4 consultas YA los usan (REG-421), así que el despliegue va **ANTES** de fusionar | `firestore.indexes.json` (9 índices) + `docs/ops/INDICES-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:indexes` y **verlos `Enabled` en la consola** |
 | Reglas escritas y sin desplegar (`members`, bloque `clinico`, los `match` de REG-340) | `firestore.rules.estado.json` + `docs/ops/REGLAS-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:rules` |
 
 Los dos siguen `BLOCKED_EXTERNAL`. La diferencia es que ahora se puede pedir de
@@ -150,7 +150,7 @@ Los dos hacían **pasar pruebas vacías**, así que quedan anotados:
 Cualquier prueba anterior que afirmara sobre escrituras con este doble hay que
 mirarla de nuevo: pudo estar en verde por esto.
 
-### Los índices: declarados, usados, y esperando el despliegue (REG-417)
+### Los índices: declarados, usados, y esperando el despliegue (REG-421)
 
 Los cuatro sacrificios que vivían en comentarios están **reparados**: worklist,
 lista de espera, citas del paciente y resumen de notas ya piden orden y cota.
@@ -172,7 +172,7 @@ El detalle operativo, con los nueve índices y quién los usa, en
 ### Herramientas que el resto del programa puede usar
 
 1. **`_harness/firestore-admin-en-memoria.ts`** — `doc`, `getAll`, `batch`,
-   `tx.getAll`, un gancho de interceptación **en la lectura** y, desde REG-417,
+   `tx.getAll`, un gancho de interceptación **en la lectura** y, desde REG-421,
    `orderBy` con las DOS mitades de lo que Firestore hace: ordenar **y excluir
    los documentos a los que les falta el campo del orden**. La segunda es la que
    convierte «una entrada sin `prioridad`» en «una entrada que desaparece».

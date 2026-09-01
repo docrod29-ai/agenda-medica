@@ -80,7 +80,7 @@ export function useAppointments(desdeISO?: string) {
  * listener de la clínica entera y filtraba en el cliente, que es exactamente el
  * gasto que se quería evitar.
  *
- * ── EL TECHO QUE FALTABA, YA PUESTO (REG-352 → REG-417) ─────────────────────
+ * ── EL TECHO QUE FALTABA, YA PUESTO (REG-352 → REG-421) ─────────────────────
  *
  * Esto era un listener SIN cota: se quedaba abierto pagando el historial entero
  * del paciente cada vez que cambiaba una cita. En el paciente de años —el que

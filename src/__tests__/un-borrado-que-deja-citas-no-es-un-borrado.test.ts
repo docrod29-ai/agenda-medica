@@ -226,9 +226,9 @@ describe('LO QUE FALTA POR UN ÍNDICE DEJA DE VIVIR EN COMENTARIOS SUELTOS', () 
     expect(doc).toContain('FAILED_PRECONDITION')
   })
 
-  it('y el hook de citas YA acota, con el orden que el índice sirve (REG-417)', () => {
+  it('y el hook de citas YA acota, con el orden que el índice sirve (REG-421)', () => {
     /**
-     * Este caso decía lo contrario hasta REG-417: comprobaba que el hook
+     * Este caso decía lo contrario hasta REG-421: comprobaba que el hook
      * EXPLICARA por qué no acotaba. Ahora el índice está desplegado y lo que hay
      * que vigilar es que la consulta pida las dos cosas —orden y cota— y en el
      * sentido correcto: `desc`, porque el llamador busca la cita de HOY y `asc`

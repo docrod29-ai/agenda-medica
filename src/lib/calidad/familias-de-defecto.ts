@@ -334,6 +334,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * exactamente el patrón de esta familia.
      */
     /**
+     * 417 entra aquí y no en `perdida`: la nota firmada todavía no se había
+     * perdido en ninguna parte. Lo que había eran dos partes del producto
+     * afirmando cosas incompatibles — `restaurar.ts` documenta en su cabecera
+     * que el SDK admin ignora las reglas de Firestore y deriva la colección de
+     * la ruta precisamente por eso, mientras la ruta que lo consume escribía
+     * con `merge: true` sin comparar nada. El fallo vivía en el hueco entre las
+     * dos, y ninguna estaba mal por su cuenta.
+     */
+     /**
      * 336 es esta familia en su forma más cara: la compuerta que deja FIRMAR
      * pide `medicoId` y cédula; la que deja ENTREGAR pide nombre y cédula.
      * Ninguna de las dos está mal por su cuenta. En el hueco cabía una nota
@@ -429,8 +438,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ofrecer. El campo de alergias de un paciente acabó diciendo «Negadas,
      * Negadas, Negadas».
      */
-
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417],
   },
   {
     clave: 'habla_real',
@@ -448,6 +456,11 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
     /**
+     * 418 es el caso puro de esta familia: el pie del respaldo decía «completo»
+     * y NO EXISTÍA el instrumento que lo habría desmentido — ni recuento por
+     * colección, ni huella. Al encenderlo destapó los otros tres de la ronda.
+     */
+     /**
      * 331 es esta familia en su forma más literal: veintitrés defectos de
      * accesibilidad en las pantallas del paciente con la suite entera en
      * verde. No fallaba nada; es que nadie estaba mirando ese eje.
@@ -584,7 +597,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      */
 
     /**
-     * 417 es el instrumento MINTIENDO, que es peor que no tenerlo. El guardián
+     * 421 es el instrumento MINTIENDO, que es peor que no tenerlo. El guardián
      * de índices existía, corría en verde y llevaba meses tapando dos consultas
      * sin índice: se SALTABA con un `continue` las consultas cuya colección no
      * sabía leer, y comparaba que los campos estuvieran en vez de que estuvieran
@@ -596,7 +609,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que el guardián protege se le probó al revés — que es la única manera de
      * saber si un instrumento mide.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 417],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421],
   },
   {
     clave: 'hueco_como_dato',
@@ -606,6 +619,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'peligroso de todos porque el resultado se LEE bien: una vía, una dosis, ' +
       'una negativa, indistinguibles de un dato real.',
     /**
+     * 326: «no hay pacientes» se guardaba como «el consultorio está vacío», y
+     * el caso en que la señal falla —una supresión ARCO se los llevó— es
+     * exactamente el caso en que el error es más grave. Un consultorio vacío y
+     * un consultorio suprimido se LEÍAN igual.
+     */
+     /**
      * 332 y 333 son la misma familia por dos caras distintas, y por eso van
      * juntas y no repartidas por su consecuencia.
      *
@@ -657,7 +676,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * arreglo no fue ablandar el validador sino escribir `null` y dejar que lo
      * rechace: un informe rechazado es información; un cero, no.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378],
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420],
   },
   {
     clave: 'aislamiento',
@@ -666,6 +685,11 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Un dato o un cobro que cruza la frontera de su dueño. Poco frecuente y ' +
       'de consecuencia alta: aquí un solo caso es un incidente, no una molestia.',
     /**
+     * 325: re-enraizar la ruta ponía el documento en el consultorio correcto y
+     * lo dejaba declarando pertenecer al de origen. Un solo caso es un
+     * incidente, y por eso el veredicto se detiene en vez de avisar.
+     */
+     /**
      * 339: la nota clínica entera se escribía en la consola del navegador. El
      * dato cruza la frontera de su dueño igual que en los otros cuatro, sólo que
      * la salida no es otro consultorio: es el equipo, el soporte y la captura de
@@ -687,7 +711,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * coincidan en el tiempo, que es la clase de fuga que ninguna revisión de
      * permisos encuentra porque los permisos estaban bien.
      */
-    regs: [153, 161, 162, 163, 224, 349, 503],
+    regs: [153, 161, 162, 163, 224, 349, 419, 503],
   },
   {
     clave: 'charter_vacio',

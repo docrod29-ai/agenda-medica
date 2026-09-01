@@ -1,8 +1,8 @@
 # Índices compuestos de Firestore — los que hay, y en qué orden se despliega
 
-> **Estado**: nueve índices declarados y **las consultas ya los usan** (REG-417).
+> **Estado**: nueve índices declarados y **las consultas ya los usan** (REG-421).
 > Siete de los nueve se **enviaron** el 31-ago con v1177; los dos que encontró
-> REG-417 —`waitlist(estado, createdAt)` y `clinic_invitations`— todavía no,
+> REG-421 —`waitlist(estado, createdAt)` y `clinic_invitations`— todavía no,
 > porque no existían. Y enviar no es construir: ver «El envío no es la
 > construcción». **Léase «El orden importa» antes de fusionar nada.**
 
@@ -70,9 +70,9 @@ en pie tal cual.
 Las dos filas de `waitlist` **no sobran**: Firestore exige que el campo del
 `orderBy` vaya inmediatamente después de las igualdades y no admite campos de
 más, así que el índice de tres **no sirve** para la consulta de dos. Ésa fue
-exactamente la trampa de REG-417.
+exactamente la trampa de REG-421.
 
-## Los cuatro sacrificios, reparados (REG-417)
+## Los cuatro sacrificios, reparados (REG-421)
 
 Estas cuatro consultas estaban escritas peor de lo que debían **a propósito**,
 cada una con su aviso, porque su índice no existía. Ya no:

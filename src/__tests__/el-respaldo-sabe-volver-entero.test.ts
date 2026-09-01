@@ -219,6 +219,25 @@ describe('LA RUTA DE IMPORTACIÓN ESTÁ CABLEADA A TODO ESTO', () => {
     expect(rutaImportar).toContain('const LOTE_RAIZ = 200')
   })
 
+  /**
+   * El bloque que decide y escribe las colecciones de nivel raíz.
+   *
+   * Se busca por `type DecisionRaiz` porque es lo primero de ese tramo y no se
+   * mueve: antes se buscaba `const vaciarRaiz`, que desapareció cuando la ruta
+   * dejó de escribir mientras leía (#312). Un ancla que ya no existe hace que
+   * el `slice` devuelva CADENA VACÍA — y una cadena vacía no contiene nada, así
+   * que las comprobaciones de abajo fallarían por no encontrar el código en vez
+   * de por estar mal. Peor sería lo contrario: un `toContain` sobre el archivo
+   * entero pasaría aunque la transacción estuviera en otra parte.
+   */
+  const bloqueDeLasRaices = () => {
+    const desde = rutaImportar.indexOf('type DecisionRaiz')
+    const hasta = rutaImportar.indexOf('conteos.rechazadas = rechazadasTotal')
+    expect(desde, 'no se encontró el bloque de las colecciones raíz').toBeGreaterThan(-1)
+    expect(hasta, 'no se encontró el final del bloque de las raíces').toBeGreaterThan(desde)
+    return rutaImportar.slice(desde, hasta)
+  }
+
   it('y mirar y escribir son UN acto: van dentro de una transacción (REG-349)', () => {
     /**
      * ── POR QUÉ ESTA ASERCIÓN CAMBIÓ ────────────────────────────────────────
@@ -234,10 +253,7 @@ describe('LA RUTA DE IMPORTACIÓN ESTÁ CABLEADA A TODO ESTO', () => {
      * escribe es el transaccional— y no como la prueba del comportamiento, que
      * es la de allá.
      */
-    const bloque = rutaImportar.slice(
-      rutaImportar.indexOf('const vaciarRaiz'),
-      rutaImportar.indexOf('for (const crudo of texto.split'),
-    )
+    const bloque = bloqueDeLasRaices()
     expect(bloque).toContain('adminDb.runTransaction(')
     expect(bloque).toContain('tx.getAll(')
     // La lectura transaccional va ANTES de la escritura transaccional: Firestore
@@ -252,20 +268,38 @@ describe('LA RUTA DE IMPORTACIÓN ESTÁ CABLEADA A TODO ESTO', () => {
      * tiene que hacer la MISMA comprobación, y la hace con la misma función
      * pura que el camino real.
      */
-    const bloque = rutaImportar.slice(
-      rutaImportar.indexOf('const vaciarRaiz'),
-      rutaImportar.indexOf('for (const crudo of texto.split'),
-    )
+    const bloque = bloqueDeLasRaices()
     expect(bloque).toContain('simular\n        ? decidirRaiz(grupo, await adminDb.getAll(...refs))')
     // La MISMA función decide en los dos caminos: si se bifurcara el criterio,
     // el ensayo dejaría de predecir lo que hace la restauración de verdad.
     expect(bloque.match(/decidirRaiz\(grupo,/g)?.length).toBe(2)
   })
 
-  it('vacía lo que quede pendiente antes del último commit', () => {
-    // Un buffer que no se vacía pierde justo la última tanda, que en un archivo
-    // real es donde viven estas colecciones: el exportador las escribe al final.
-    expect(rutaImportar).toContain('await vaciarRaiz()\n    await vaciar()')
+  it('se procesan TODAS las raíces admitidas, no las de una tanda', () => {
+    /**
+     * ── ESTA COMPROBACIÓN CAMBIÓ DE FORMA, NO DE FONDO (#312) ──────────────
+     *
+     * Antes decía `await vaciarRaiz()\n    await vaciar()`: la ruta escribía
+     * mientras leía, así que había un BUFFER, y un buffer que no se vacía
+     * pierde justo la última tanda — que en un archivo real es donde viven
+     * estas colecciones, porque el exportador las escribe al final.
+     *
+     * Con los candados de durabilidad la ruta lee el archivo ENTERO antes de
+     * escribir nada, así que ya no hay buffer que se pueda quedar a medias: hay
+     * una lista completa (`admitidosRaiz`) y un recorrido sobre ella. El riesgo
+     * cambia de sitio — ya no es «se quedó algo sin vaciar» sino «el recorrido
+     * no llega al final de la lista»— y esto comprueba lo segundo.
+     *
+     * Lo que NO cambia es qué protege: que ninguna membresía se quede fuera en
+     * silencio. Y quien lo prueba de verdad sigue siendo
+     * `restaurar-no-le-quita-la-cuenta-a-otro-consultorio.test.ts`, ejecutando
+     * la ruta; esto es la comprobación estructural que la acompaña.
+     */
+    expect(rutaImportar).toContain('for (let i = 0; i < admitidosRaiz.length; i += LOTE_RAIZ)')
+    // El corte del lote es el declarado, no un número suelto: si alguien
+    // escribiera aquí un literal, la constante dejaría de mandar sin que nada
+    // lo dijera.
+    expect(rutaImportar).toContain('const LOTE_RAIZ')
   })
 
   it('y lo que no se pudo restaurar se DICE, sin tapar el otro aviso', () => {

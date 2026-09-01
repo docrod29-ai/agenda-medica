@@ -20,25 +20,25 @@
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M  .github/workflows/deploy-production.yml",
-    "UU agent-state/MASTER_STATE.json",
+    "M  agent-state/MASTER_STATE.json",
     "M  docs/audit/carril-excelencia/techos-de-estaticidad.json",
     "M  docs/audit/lane-product-excellence.md",
-    "UU docs/audit/regression-ledger.md",
-    "UU docs/data-room/INDICE.md",
+    "M  docs/audit/regression-ledger.md",
+    "MM docs/data-room/INDICE.md",
     "M  docs/design/SCREEN_INVENTORY.md",
     "A  docs/maintenance/ESTADO-DE-PRODUCCION-2026-08-31.md",
     "M  docs/maintenance/PAQUETE-PRODUCCION-2026-08-30.md",
     "M  docs/maintenance/sw-changelog.md",
-    " M docs/ops/REGLAS-DE-FIRESTORE.md",
-    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  docs/ops/INDICES-DE-FIRESTORE.md",
+    "M  docs/ops/REGLAS-DE-FIRESTORE.md",
+    "MM docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  firestore.rules.estado.json",
     "M  public/sw.js",
     "M  public/version.txt",
     "M  scripts/carril-excelencia/destinos-del-portal.mjs",
     "M  scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
     "M  scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
-    "A  scripts/carril-excelencia/token-del-portal.mjs",
-    "M  scripts/carril-excelencia/trinquete-de-interfaz.mjs",
-    "M  scripts/design/sembrar-emulador.mjs"
+    "A  scripts/carril-excelencia/token-del-portal.mjs"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -72,12 +72,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/explicacion-informativa-6t499i",
+  "ramaActual": "product/durability-preserve-312",
   "derivado": {
-    "regsEnElLedger": 268,
+    "regsEnElLedger": 272,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 890,
-    "casosDePrueba": 10813,
+    "archivosDePrueba": 892,
+    "casosDePrueba": 10925,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

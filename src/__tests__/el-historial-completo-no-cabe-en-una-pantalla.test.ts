@@ -303,7 +303,7 @@ describe('LA PANTALLA DE RETENCIÓN NO SE BAJA 500 HISTORIALES', () => {
   })
 })
 
-describe('EL CONTEXTO DE IA PIDE LAS TRES FIRMADAS, NI UNA MÁS (REG-417)', () => {
+describe('EL CONTEXTO DE IA PIDE LAS TRES FIRMADAS, NI UNA MÁS (REG-421)', () => {
   it('tres resúmenes cuestan tres lecturas, no una ventana de cuarenta', async () => {
     sembrarNotas(1000)
     reset()
@@ -325,7 +325,7 @@ describe('EL CONTEXTO DE IA PIDE LAS TRES FIRMADAS, NI UNA MÁS (REG-417)', () =
 
   it('encuentra una firmada ENTERRADA bajo cuarenta borradores', async () => {
     /**
-     * ÉSTE ES EL HUECO QUE CIERRA REG-417, Y FALLA SIN EL ARREGLO.
+     * ÉSTE ES EL HUECO QUE CIERRA REG-421, Y FALLA SIN EL ARREGLO.
      *
      * Con la ventana de 40 + filtro en memoria, un paciente cuyas últimas
      * cuarenta notas fueran borradores devolvía resumen VACÍO aunque tuviera
