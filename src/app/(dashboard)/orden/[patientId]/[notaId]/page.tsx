@@ -475,7 +475,7 @@ export default function GeneradorOrdenPage() {
   const sinCedula = !!config && !config.cedulaProfesional?.trim()
 
   const descargarWord = () => {
-    descargarRecetaWord(
+    void descargarRecetaWord(
       {
         tipo: 'orden',
         folio,

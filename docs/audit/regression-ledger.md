@@ -244,6 +244,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-151 | Clínico (P0) · alergia que desaparece | **Una alergia real se perdía detrás de una negación.** «Niega penicilina. **Alérgico a sulfas**» devolvía `[]`: sin el punto como separador era UN fragmento, y `esAlergiaNegada` lo filtraba entero. La alergia a sulfas desaparecía de **los cuatro** sitios que leen del parser canónico — la compuerta de la receta, la nota que valida NOM-004, el recurso FHIR y el sesgo del reconocedor. El camino hospitalario (`hospital/cds.ts`) ya partía por punto y su comentario decía por qué: «para no perder una alergia real que venga después de una negada». Conocía el modo de fallo; el canónico no | CLOSED (v1036) | `src/__tests__/auditoria-v7-dia1.test.ts`. Se añade el punto **exigiendo espacio detrás**, para no partir decimales («2.5 mg») ni abreviaturas («Penicilina G.») — sin esa condición el arreglo habría creado un problema nuevo. **Y la tercera ruta cruda**: la alerta alergia↔fármaco de la pantalla de consulta metía el campo entero como un solo alérgeno, sin partir y sin filtrar negaciones, así que «niega alergia a penicilina» + amoxicilina pintaba la alerta CRÍTICA roja justo donde se prescribe — REG-034 y REG-035 por tercera vez, y en el mismo archivo había otras dos lecturas que sí usaban el parser bueno |
 | REG-152 | Pérdida de datos (legal) | **El respaldo «completo» no guardaba las ADENDAS ni el versionado.** El exportador bajaba **un solo nivel** y las adendas viven dos: `patients/{p}/notas/{n}/adendas/{a}`. La adenda es el **único mecanismo de corrección** que existe sobre una nota firmada, que es inmutable por la NOM-024 — así que restaurar ese respaldo devolvía la nota y **borraba la corrección legal**, mientras el pie del archivo decía `completo: true`. Y el simulacro de ida y vuelta medía fielmente la mitad equivocada | CLOSED (v1037) | `src/__tests__/respaldo-consultorio.test.ts`. `hijas` pasa de lista plana a **árbol** (`RamaRespaldo`) y el exportador recorre recursivamente. **Y el guardián era estructuralmente ciego**: escaneaba `^ {6}match /` —sólo el primer nivel—, así que no podía ver el hueco; ahora recorre el bloque de `clinics` a cualquier profundidad y compara contra el árbol declarado. Tercera prueba del día que **fijaba el defecto en verde**: exigía con `toEqual` la lista incompleta de cinco hijas. Fijar la forma de una lista no prueba que la lista esté completa |
 | REG-506 | Despliegue / integridad de la publicación | **El despliegue de índices no enviaba ni un índice, y firmaba el acta.** `firebase.json` declaraba `firestore.rules` y **no** `firestore.indexes`; en firebase-tools el envío entero cuelga de esa clave (`if (firestoreConfig.indexes)`), así que el paso imprimía «deploying indexes...», recorría una lista vacía y contestaba `Deploy complete!`. Tres ejecuciones (#11, #12, #13) cerraron `PRODUCTION_RELEASE=SUCCESS` sin publicar los ocho índices — cuatro de ellos, de consultas que el producto YA hace (bandeja ARCO, lista de farmacia, rastro de un controlado y la página **pública** del médico), y Firestore rechaza entera una consulta sin índice | CLOSED (v1179) | `src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts` (probado al revés con la configuración exacta de v1178) + el propio paso del workflow, que ahora exige en la salida la línea `deployed indexes in ... successfully` en vez de creerse el código de salida |
+| REG-507 | Seguridad / papelería | **El .doc de la receta guardaba un ENLACE al membrete, y ese enlace sólo funcionaba porque el candado estaba apagado.** `receta-word` no lee del DOM —lee `recetaConfig.membreteDataUrl`, la URL guardada SIN firma— y la incrustaba absolutizada en el documento. Word lo abre desde el disco y pide esa URL **sin sesión y sin firma**. Los caminos de pantalla sí estaban cubiertos (`print-element`, `pdf-download`, `FirmadorDisenos`); éste no podía estarlo. Con `RECETA_DISENO_FIRMA=obligatoria` habría dado 403 y el membrete habría salido roto en una receta con cédula profesional | CLOSED (v1179) | `src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts` (7 casos, probada al revés reinstalando el defecto: fallan 4). El membrete se incrusta como data URI, no se firma: una firma caduca a las 24 h y un .doc se reabre semanas después |
 
 ## REG-153 · El anticipo se podía cobrar DOS veces
 
@@ -15844,3 +15845,50 @@ camino automático no los mandaba.
 
 **Prueba.** `src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts`,
 probada al revés reproduciendo la configuración exacta de v1178.
+
+
+## REG-507 · El membrete del Word era un enlace, y el enlace vivía del candado apagado
+
+**Cómo se descubrió.** Preparando el último pendiente del dueño: poner
+`RECETA_DISENO_FIRMA=obligatoria`, que cierra una ruta que sirve papelería **y
+fotografía clínica** sin comprobar sesión (R-06). Antes de activarlo se fue a
+verificar el primer paso del plan que el propio código describe: *«primero se
+acuñan URLs firmadas en el camino de impresión y se PRUEBA la papelería real;
+sólo entonces se pone el candado»*.
+
+Los caminos de pantalla estaban cubiertos y bien: `print-element`,
+`pdf-download` y el `FirmadorDisenos` montado en el layout del dashboard
+reescriben las `<img>` a su versión firmada. El del **Word no**, y no podía
+estarlo: `receta-word` no pasa por el DOM.
+
+**La causa raíz.** `recetaConfig.membreteDataUrl` guarda
+`/api/receta/diseno?path=…` —sin firma, tal como la acuñó `/api/config/imagen`—
+y `construirRecetaHTML` la absolutizaba dentro del `.doc`. Word abre el archivo
+desde el disco y pide esa URL **sin sesión y sin firma**. Hoy pasa porque la
+ruta acepta enlaces sin firmar; con el candado puesto, 403.
+
+**Por qué ningún guardián lo habría visto.** El candado no se activa con un
+cambio de código: se activa con una variable de entorno en Vercel. El defecto
+habría aparecido en la primera receta que alguien abriera en Word, ya en
+producción, con la cédula del médico al lado del hueco.
+
+**Por qué un data URI y no una URL firmada.** Firmar bastaba para no romperse el
+primer día y rompía el trigésimo: una firma caduca a las 24 h
+(`DISENO_TOKEN_TTL_S`) y un `.doc` se guarda, se reenvía y se reabre semanas
+después. Un membrete que desaparece solo de un documento medicolegal, sin que
+nadie toque nada, es peor que uno que nunca estuvo. Incrustado, el documento
+deja de depender de la red, de la sesión, del candado y del reloj — y deja de
+ser un consumidor del camino sin firma, que es de lo que el candado quiere
+quedarse sin.
+
+**Contrato, igual que el resto del circuito**: `resolverMembreteParaWord` nunca
+lanza ni bloquea. Si el proxy contesta mal, si la red falla o si lo que vuelve no
+es una imagen, se devuelve la URL de siempre y el documento sale como salía.
+
+**Qué NO cubre.** Que Word lo pinte bien: eso es la comprobación en vivo que el
+plan de dos pasos exige del dueño **antes** de poner el candado. Tampoco cubre
+las URLs `https://` legadas de Storage en configs viejas (traerlas sería
+cross-origin); ésas quedan cerradas por el candado y se declara.
+
+**Prueba.** `src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts`,
+7 casos, probada al revés reinstalando el defecto (fallan 4).

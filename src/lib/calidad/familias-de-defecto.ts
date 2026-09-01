@@ -334,7 +334,24 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que toda consulta compuesta estuviera DECLARADA. Declarar, enviar y
      * construir son tres actos, y sólo el primero tenía dueño.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 506],
+    /**
+     * 507 es esta familia con el matiz más incómodo: la maquinaria de firma
+     * estaba escrita, probada y CONECTADA en tres caminos —impresión, PDF y la
+     * vista previa del dashboard—. El cuarto, el Word, no podía conectarse:
+     * `receta-word` no lee del DOM, lee la URL guardada en la configuración, y
+     * el firmador global reescribe `<img>` del documento vivo.
+     *
+     * O sea que la cobertura no era «casi completa»: era completa en el eje que
+     * alguien miró —los caminos que pasan por el DOM— y vacía en el que no.
+     * Contar caminos cubiertos no dice nada si no se enumeran TODOS los
+     * consumidores de la ruta que se va a cerrar.
+     *
+     * Y lo que lo hacía invisible: el candado se activa con una variable de
+     * entorno en Vercel, no con un cambio de código. Ningún guardián corre
+     * cuando alguien escribe en una pantalla de ajustes. El defecto habría
+     * salido en la primera receta abierta en Word, ya en producción.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 506, 507],
   },
   {
     clave: 'se_contradice',

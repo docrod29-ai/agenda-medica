@@ -112,6 +112,13 @@ un comando.
 Se lee en `src/lib/ai-keys.ts` y en `api/expediente/transcribir-diarizado`, y
 `resolverClaveIA` deja que la llave del consultorio gane sobre la del entorno.
 
+## La quinta, que no estaba en la cola
+
+`RECETA_DISENO_FIRMA=obligatoria` cierra una ruta que sirve papelería **y
+fotografía clínica** sin comprobar sesión. Tiene condición previa, comprobación
+en vivo y plan de reversión propios:
+**[`docs/ops/RECETA-DISENO-FIRMA.md`](RECETA-DISENO-FIRMA.md)**.
+
 ## El hueco que queda declarado
 
 El código lee **128 variables de entorno** distintas (16 de ellas `NEXT_PUBLIC_`)
