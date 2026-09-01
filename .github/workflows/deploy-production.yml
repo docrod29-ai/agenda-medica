@@ -250,8 +250,9 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           set -euo pipefail
+          SALIDA="$RUNNER_TEMP/firebase-deploy.log"
           if [ "$MODO" = "token" ]; then
-            npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN"
+            npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN" 2>&1 | tee "$SALIDA"
           else
             case "$MODO" in
               sa) JSON="$FIREBASE_SERVICE_ACCOUNT" ;;
@@ -264,8 +265,32 @@ jobs:
             printf '%s' "$JSON" > "$RUTA"
             chmod 600 "$RUTA"
             export GOOGLE_APPLICATION_CREDENTIALS="$RUTA"
-            npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive
+            npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive 2>&1 | tee "$SALIDA"
           fi
+
+          # ─────────────────────────────────────────────────────────────────
+          # REG-506 · EL CÓDIGO DE SALIDA NO DICE QUE SE HAYA ENVIADO NADA.
+          #
+          # Durante tres ejecuciones (#11, #12, #13) este paso salió `success`
+          # y NO envió ni un índice: `firebase.json` no declaraba
+          # `firestore.indexes`, y en firebase-tools el envío entero cuelga de
+          # esa clave (`if (firestoreConfig.indexes)`). El CLI imprimía su
+          # encabezado «deploying indexes...», recorría una lista vacía y
+          # contestaba `Deploy complete!`.
+          #
+          # `deployIndexes` sólo escribe «deployed indexes in <archivo>
+          # successfully» cuando de verdad mandó un archivo. Se exige esa
+          # línea, no el código de salida.
+          #
+          # Esto comprueba el ENVÍO, no la CONSTRUCCIÓN: los índices se
+          # construyen después, de forma asíncrona, y eso se mira en la consola
+          # del proyecto (docs/ops/INDICES-DE-FIRESTORE.md).
+          # ─────────────────────────────────────────────────────────────────
+          grep -q 'deployed indexes in' "$SALIDA" || {
+            echo "::error::El despliegue NO envió los índices. Falta la línea de éxito de firebase-tools: comprueba que firebase.json declare firestore.indexes (REG-506)."
+            exit 1
+          }
+          echo "Índices enviados de verdad, no sólo anunciados."
 
       # El último sitio donde esto dependía de que alguien se acordara era
       # CALCULAR el hash a mano después de publicar. Lo calcula el despliegue,

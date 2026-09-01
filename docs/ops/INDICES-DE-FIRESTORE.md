@@ -1,9 +1,13 @@
 # Índices compuestos de Firestore — lo que falta, con nombre
 
-> **Estado**: `BLOCKED_EXTERNAL`, y el bloqueo ya no es el despliegue. El
-> workflow de producción los **manda** desde v1175, y los mandó el 31-ago con
-> v1177. Lo que falta es **mirar del otro lado**: ver en la consola del proyecto
-> que están `Enabled`. Ver «El envío no es la construcción», abajo.
+> **Estado**: `BLOCKED_EXTERNAL`. Este encabezado decía, hasta el 1-sep-2026,
+> que el workflow «los manda desde v1175» y que lo único que faltaba era mirar
+> la consola. **Era falso**: no se había enviado ni un índice —ver REG-506—.
+> `firebase.json` no declaraba `firestore.indexes`, y sin esa clave el CLI
+> anuncia el paso, recorre una lista vacía y contesta `Deploy complete!`.
+> Corregido; el envío queda pendiente del **próximo** disparo del botón, y la
+> construcción sigue mirándose en la consola. Ver «El envío no es la
+> construcción», abajo.
 
 ## Por qué existe este archivo
 
@@ -83,7 +87,15 @@ distintas que salen del mismo comando:
 
 | Qué dijo el despliegue | Qué demuestra | Qué NO demuestra |
 |---|---|---|
-| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | Que `firestore.indexes.json` llegó al proyecto | Que los índices estén **construidos** |
+| `success` en las ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862), [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) y [#13](https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206) | **Nada sobre los índices.** REG-506: las tres salieron bien sin enviar ninguno | Ni que llegaran, ni que estén construidos |
+| A partir del arreglo de REG-506: la línea `deployed indexes in firestore.indexes.json successfully` en la salida, que el propio paso exige | Que el archivo **llegó** al proyecto | Que los índices estén **construidos** |
+
+**Cómo se supo, y por qué no bastaba el código de salida.** El log de la #13
+imprime `deploying indexes...` y salta directo a `Deploy complete!`, sin las dos
+líneas que `firebase-tools` escribe cuando de verdad manda un archivo
+(`reading indexes from …` y `deployed indexes in … successfully`). El comando
+contestó que sí; el dato no cruzó. Desde REG-506 el paso **falla** si esa línea
+no aparece.
 
 **Lo que falta, y no puede vivir en este repositorio**: abrir la consola de
 Firestore del proyecto `nexomed-agenda`, pestaña de índices, y comprobar que cada

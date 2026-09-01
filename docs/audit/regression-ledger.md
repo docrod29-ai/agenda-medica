@@ -243,6 +243,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-150 | Clínico (voz) · cifra plausible y equivocada | **Un decimal dictado con «y» perdía su último dígito.** «pH siete punto **treinta y cinco**» salía «pH 7.30 y 5»; el potasio 3.42 quedaba 3.40; la norepinefrina 0.35 quedaba 0.30. La parte ENTERA sí unía decena y unidad con «y»; la decimal rompía el bucle y el 5 se caía fuera como texto suelto. Es la forma **natural** de dictar un pH, un potasio, un INR o una dosis de vasopresor en español, y **lo que quedaba era plausible** — el peor modo de falla. El guardián no lo veía: sólo vigila cifras que DESAPARECEN, y aquí la que sobra aparece. Corre en TODAS las rutas: el pipeline va delante del extractor y del modelo que redacta | CLOSED (v1036) | `src/__tests__/auditoria-v7-dia1.test.ts`. Se acepta la «y» entre decena y unidad dentro de la parte decimal y se compone (30+5=35), sólo cuando la decena es múltiplo de diez. **Es gramática del español, no criterio clínico.** Encontrado por el auditor de seguridad de medicación del Día 1 del Master Loop V7 y verificado ejecutando el motor |
 | REG-151 | Clínico (P0) · alergia que desaparece | **Una alergia real se perdía detrás de una negación.** «Niega penicilina. **Alérgico a sulfas**» devolvía `[]`: sin el punto como separador era UN fragmento, y `esAlergiaNegada` lo filtraba entero. La alergia a sulfas desaparecía de **los cuatro** sitios que leen del parser canónico — la compuerta de la receta, la nota que valida NOM-004, el recurso FHIR y el sesgo del reconocedor. El camino hospitalario (`hospital/cds.ts`) ya partía por punto y su comentario decía por qué: «para no perder una alergia real que venga después de una negada». Conocía el modo de fallo; el canónico no | CLOSED (v1036) | `src/__tests__/auditoria-v7-dia1.test.ts`. Se añade el punto **exigiendo espacio detrás**, para no partir decimales («2.5 mg») ni abreviaturas («Penicilina G.») — sin esa condición el arreglo habría creado un problema nuevo. **Y la tercera ruta cruda**: la alerta alergia↔fármaco de la pantalla de consulta metía el campo entero como un solo alérgeno, sin partir y sin filtrar negaciones, así que «niega alergia a penicilina» + amoxicilina pintaba la alerta CRÍTICA roja justo donde se prescribe — REG-034 y REG-035 por tercera vez, y en el mismo archivo había otras dos lecturas que sí usaban el parser bueno |
 | REG-152 | Pérdida de datos (legal) | **El respaldo «completo» no guardaba las ADENDAS ni el versionado.** El exportador bajaba **un solo nivel** y las adendas viven dos: `patients/{p}/notas/{n}/adendas/{a}`. La adenda es el **único mecanismo de corrección** que existe sobre una nota firmada, que es inmutable por la NOM-024 — así que restaurar ese respaldo devolvía la nota y **borraba la corrección legal**, mientras el pie del archivo decía `completo: true`. Y el simulacro de ida y vuelta medía fielmente la mitad equivocada | CLOSED (v1037) | `src/__tests__/respaldo-consultorio.test.ts`. `hijas` pasa de lista plana a **árbol** (`RamaRespaldo`) y el exportador recorre recursivamente. **Y el guardián era estructuralmente ciego**: escaneaba `^ {6}match /` —sólo el primer nivel—, así que no podía ver el hueco; ahora recorre el bloque de `clinics` a cualquier profundidad y compara contra el árbol declarado. Tercera prueba del día que **fijaba el defecto en verde**: exigía con `toEqual` la lista incompleta de cinco hijas. Fijar la forma de una lista no prueba que la lista esté completa |
+| REG-506 | Despliegue / integridad de la publicación | **El despliegue de índices no enviaba ni un índice, y firmaba el acta.** `firebase.json` declaraba `firestore.rules` y **no** `firestore.indexes`; en firebase-tools el envío entero cuelga de esa clave (`if (firestoreConfig.indexes)`), así que el paso imprimía «deploying indexes...», recorría una lista vacía y contestaba `Deploy complete!`. Tres ejecuciones (#11, #12, #13) cerraron `PRODUCTION_RELEASE=SUCCESS` sin publicar los ocho índices — cuatro de ellos, de consultas que el producto YA hace (bandeja ARCO, lista de farmacia, rastro de un controlado y la página **pública** del médico), y Firestore rechaza entera una consulta sin índice | CLOSED (v1179) | `src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts` (probado al revés con la configuración exacta de v1178) + el propio paso del workflow, que ahora exige en la salida la línea `deployed indexes in ... successfully` en vez de creerse el código de salida |
 
 ## REG-153 · El anticipo se podía cobrar DOS veces
 
@@ -15780,3 +15781,66 @@ encima de un consultorio con datos propios.
 Lo que sigue **sin** cubrirse: reactivar un expediente cancelado es una decisión
 legal con el titular delante, y esta compuerta no la modela — sólo detiene. El
 riesgo vive en `docs/recovery/REGISTRO-DE-RIESGOS.md`.
+
+## REG-506 · El despliegue anunciaba los índices y no mandaba ninguno
+
+**Cómo se descubrió.** Repasando los pendientes del dueño. El primero de la lista
+era «desplegar índices y reglas», y `docs/ops/INDICES-DE-FIRESTORE.md` lo daba por
+medio resuelto: *«el workflow de producción los manda desde v1175, y los mandó el
+31-ago con v1177»*. Lo único que faltaba, decía, era mirar la consola.
+
+Se fue a mirar la respuesta real —regla «el dato tiene que LLEGAR»— en el log de
+la ejecución [#13](https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206):
+
+```
+i  firestore: deploying indexes...
+✔  firestore: released rules firestore.rules to cloud.firestore
+✔  Deploy complete!
+```
+
+Faltan las **dos** líneas que `firebase-tools` imprime cuando de verdad manda
+índices: `reading indexes from <archivo>...` y `deployed indexes in <archivo>
+successfully`. No salieron en ninguna de las tres ejecuciones.
+
+**La causa raíz.** `firebase.json` declaraba `firestore.rules` y no
+`firestore.indexes`. En firebase-tools 15.25.1 (`src/deploy/firestore/prepare.ts`)
+todo el envío cuelga de esa clave:
+
+```ts
+if (firestoreConfig.indexes) { prepareIndexes(...) }   // ← nunca entraba
+```
+
+`getFirestoreConfig` no rellena nada por omisión, así que
+`context.firestore.indexes` quedaba en `[]` y `deployIndexes` imprimía su
+encabezado, recorría un arreglo vacío y salía bien. **`--only firestore:indexes`
+no lo arregla**: ese argumento decide si el paso corre, no de dónde saca los
+índices. Por eso el comando parecía correcto leyéndolo.
+
+**Por qué importaba.** Cuatro de los ocho índices (REG-379) son de consultas que
+el producto **ya hace hoy**: bandeja ARCO, lista de farmacia, rastro de un
+controlado y la página **pública** del médico. Firestore no degrada una consulta
+sin índice —la rechaza entera con `FAILED_PRECONDITION`—, y el repositorio
+llevaba tres ejecuciones dando el envío por hecho.
+
+**Qué se hizo.** La clave en `firebase.json`, y —lo que de verdad cierra esto— el
+paso del workflow **comprueba su propia salida**: guarda el log del despliegue y
+exige la línea de éxito de `deployIndexes`. Si vuelve a mandar cero índices, el
+despliegue falla en vez de firmar el acta. Se corrigieron también las dos
+afirmaciones falsas que el repositorio ya tenía escritas
+(`docs/ops/INDICES-DE-FIRESTORE.md` y `firestore.rules.estado.json`).
+
+**La familia.** Es REG-167, REG-170 y REG-160 otra vez: el comando contesta que
+sí y el dato no cruza la frontera. La novedad aquí es que el guardián que
+protegía la mitad de arriba —`el-indice-que-nadie-declaro.test.ts`, que vigila
+que toda consulta compuesta esté **declarada** en `firestore.indexes.json`—
+estaba en verde y era correcto: nadie vigilaba que ese archivo **se enviara**.
+Declarar, enviar y construir son tres actos, y sólo el primero tenía dueño.
+
+**Qué NO cubre.** Sigue sin demostrarse que los índices estén **construidos**: eso
+es asíncrono, puede fallar después del envío y se mira en la consola del
+proyecto. Y no afirma que esas cuatro consultas estén rotas en producción hoy —un
+índice pudo crearse a mano desde el enlace del error—: lo que afirma es que el
+camino automático no los mandaba.
+
+**Prueba.** `src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts`,
+probada al revés reproduciendo la configuración exacta de v1178.

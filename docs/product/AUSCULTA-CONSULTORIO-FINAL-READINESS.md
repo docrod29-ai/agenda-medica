@@ -227,6 +227,15 @@ a 8. Los cuatro nuevos (REG-379) son de consultas que el producto **ya hace hoy*
 del médico— y que Firestore rechaza con `FAILED_PRECONDITION` si el índice no
 existe. Los otros cuatro siguen siendo anticipados.
 
+**Antes de correrlos, algo que cambió el 1-sep-2026 (REG-506).** Hasta ese día
+estos dos comandos publicaban **sólo las reglas**: `firebase.json` no declaraba
+`firestore.indexes`, y sin esa clave el CLI anuncia el paso, recorre una lista
+vacía y contesta `Deploy complete!`. Es decir: el comando de arriba, tal como
+estaba escrito aquí, no habría enviado ningún índice — ni corrido a mano, ni por
+el botón de producción, que llevaba tres ejecuciones dándolo por hecho. Ya está
+corregido, y el paso del workflow ahora **falla** si la salida no trae la línea
+de éxito de los índices.
+
 **Verificar del otro lado, que es la mitad que no puede vivir aquí**: en la
 consola del proyecto, que los ocho aparezcan como `Enabled` y no `Building`. Crear
 un índice sobre una colección con datos tarda, y hasta que termina la consulta

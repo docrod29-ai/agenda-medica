@@ -314,7 +314,27 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * enseñaba descripción, código y borrar.
      */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501],
+    /**
+     * 506 es esta familia sobre el DESPLIEGUE, y con el comando contestando que
+     * sí. `firebase.json` no declaraba `firestore.indexes`, y en firebase-tools
+     * el envío entero cuelga de esa clave: el paso imprimía «deploying
+     * indexes...», recorría una lista vacía y contestaba `Deploy complete!`.
+     * Tres ejecuciones del botón cerraron `PRODUCTION_RELEASE=SUCCESS` sin
+     * publicar un solo índice —cuatro de ellos, de consultas que el producto ya
+     * hace—, y el repositorio lo había escrito como hecho en dos documentos.
+     *
+     * Lo que lo hace de esta familia y no de `depende_de_recordar`: nadie
+     * olvidó nada. El paso corría, en el momento correcto, y su salida decía
+     * que había ido bien. Lo que faltaba era mirar QUÉ contestó el proveedor —y
+     * la respuesta lo decía en claro: no salían las dos líneas que firebase
+     * imprime cuando de verdad manda un archivo.
+     *
+     * Y trae su propio matiz: el guardián de la mitad de arriba
+     * (`el-indice-que-nadie-declaro`) estaba en verde y era correcto. Vigilaba
+     * que toda consulta compuesta estuviera DECLARADA. Declarar, enviar y
+     * construir son tres actos, y sólo el primero tenía dueño.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 506],
   },
   {
     clave: 'se_contradice',
