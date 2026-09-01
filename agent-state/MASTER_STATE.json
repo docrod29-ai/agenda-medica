@@ -16,31 +16,27 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1178",
-  "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
+  "ultimaVersionEnProduccion": {
+    "version": "nexusmed-v1177",
+    "confirmadaEl": "2026-08-31",
+    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064",
+    "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
+  },
   "trabajoLocalSinSubir": [
     "M  .github/workflows/deploy-production.yml",
     "M  agent-state/MASTER_STATE.json",
-    "M  docs/audit/carril-excelencia/techos-de-estaticidad.json",
-    "M  docs/audit/lane-product-excellence.md",
     "M  docs/audit/regression-ledger.md",
-    "MM docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "A  docs/maintenance/ESTADO-DE-PRODUCCION-2026-08-31.md",
-    "M  docs/maintenance/PAQUETE-PRODUCCION-2026-08-30.md",
-    "M  docs/maintenance/sw-changelog.md",
-    "M  docs/ops/INDICES-DE-FIRESTORE.md",
-    "M  docs/ops/REGLAS-DE-FIRESTORE.md",
-    "MM docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  firestore.rules.estado.json",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    "M  scripts/carril-excelencia/destinos-del-portal.mjs",
-    "M  scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
-    "M  scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
-    "A  scripts/carril-excelencia/token-del-portal.mjs"
+    "M  docs/data-room/INDICE.md",
+    "M  docs/product/AUSCULTA-CONSULTORIO-FINAL-READINESS.md",
+    "M  docs/product/AUSCULTA-MASTER-BOARD.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  scripts/agent-state/actualizar.mjs",
+    "M  src/__tests__/el-tablero-del-loop-no-miente.test.ts",
+    "A  src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts",
+    "M  src/lib/calidad/familias-de-defecto.ts",
+    "M  src/lib/clinical/invariantes-clinicos.json"
   ],
-  "actualizado": "2026-08-31",
+  "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -72,12 +68,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "product/durability-preserve-312",
+  "ramaActual": "claude/firebase-indices-query-optimization-lyrva1",
   "derivado": {
-    "regsEnElLedger": 272,
-    "ultimaREG": "REG-503",
-    "archivosDePrueba": 892,
-    "casosDePrueba": 10925,
+    "regsEnElLedger": 274,
+    "ultimaREG": "REG-505",
+    "archivosDePrueba": 893,
+    "casosDePrueba": 10936,
     "lint": "ver scripts/lint-trinquete.mjs"
-  }
+  },
+  "versionEnElRepo": "nexusmed-v1178"
 }

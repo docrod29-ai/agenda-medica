@@ -26,13 +26,21 @@ permissions:
   statuses: read
 
 env:
+  # LA ÚNICA COSA QUE SE ESCRIBE A MANO AQUÍ. La versión ya NO se escribe: se
+  # DERIVA de este árbol (ver «La versión sale del árbol autorizado»).
+  #
+  # Por qué. La versión estaba escrita dos veces —aquí en el pin, y otra vez en
+  # VERSION_ESPERADA— y las dos copias se separaron: al fusionarse #420 la
+  # versión subió a v1178 y el pin se quedó en el árbol de v1177. La Compuerta 1
+  # exige que coincidan, así que el botón quedó SIN PODER DESPLEGAR, y sólo se
+  # descubría pulsándolo. Es el mismo defecto que #413 cerró para el SHA, en la
+  # otra mitad del par. Ver REG-504.
   SHA_AUTORIZADO: e72f22a9e82025fd3e06beb6982b377adc67d6da
   # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
   # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
   # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
   # que envejeció sin que nadie se enterara. Ver Compuerta 0.
   ROLLBACK_AUTORIZADO: ''
-  VERSION_ESPERADA: nexusmed-v1178
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
@@ -110,6 +118,29 @@ jobs:
           COMMITS_DETRAS="$COMMITS_DETRAS" \
           node "$RUNNER_TEMP/arbol-autorizado.mjs"
 
+      # ─────────────────────────────────────────────────────────────────────
+      # LA VERSIÓN SALE DEL ÁRBOL AUTORIZADO, NO DE UNA SEGUNDA COPIA A MANO.
+      #
+      # Se escribía en `env:` y tenía que coincidir con el `version.txt` del pin.
+      # Dos sitios para el mismo dato es un sitio de más: se separaron y el botón
+      # quedó sin poder desplegar. Ahora hay UNA fuente — el árbol que se
+      # autoriza— y repuntar el despliegue vuelve a ser cambiar UN número.
+      #
+      # Esto NO afloja nada: la comprobación que importa es la Compuerta 3, que
+      # exige que PRODUCCIÓN sirva esta versión, y sigue siendo una comparación
+      # entre el repositorio y el sitio vivo.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: 'La versión sale del árbol autorizado'
+        run: |
+          set -euo pipefail
+          V="$(tr -d '[:space:]' < public/version.txt)"
+          case "$V" in
+            nexusmed-v[0-9]*) ;;
+            *) echo "::error::version.txt no tiene forma de versión: '$V'"; exit 1 ;;
+          esac
+          echo "VERSION_ESPERADA=$V" >> "$GITHUB_ENV"
+          echo "Versión derivada del árbol autorizado: $V"
+
       - name: 'Compuerta 1 · SHA, versión y REG-323'
         run: |
           set -euo pipefail
@@ -117,10 +148,9 @@ jobs:
             echo "::error::El checkout no coincide con el SHA autorizado."
             exit 1
           }
-          [ "$(tr -d '[:space:]' < public/version.txt)" = "$VERSION_ESPERADA" ] || {
-            echo "::error::version.txt no es $VERSION_ESPERADA."
-            exit 1
-          }
+          # `version.txt` lo GENERA `scripts/version-sw.mjs` a partir de `sw.js`.
+          # Que coincidan no es tautología: son dos archivos, y si divergen el
+          # navegador purga en bucle o no purga nunca.
           grep -q "const CACHE = '$VERSION_ESPERADA'" public/sw.js || {
             echo "::error::sw.js no declara $VERSION_ESPERADA."
             exit 1

@@ -947,7 +947,26 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ya regían. Su lección: derivar el dato no basta si EMITIRLO sigue siendo un
      * paso manual al final de un despliegue. Ahí lo emite quien publica.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 502],
+    /**
+     * 504 y 505 son el mismo día y la misma familia, en sus dos formas.
+     *
+     * 504 es un par PARTIDO POR LA MITAD: #413 quitó el SHA duplicado del botón
+     * de producción «así no puede repetirse», y dejó la VERSIÓN escrita dos
+     * veces al lado. Se separaron y el botón quedó sin poder desplegar, sin
+     * forma de enterarse salvo pulsándolo. Cerrar una mitad de un par y dejar la
+     * otra es de lo más caro de esta familia: el segundo caso llega con el
+     * primero ya olvidado.
+     *
+     * 505 es la variante más engañosa: el dato SÍ se derivaba —241 lo arregló—
+     * pero de la FUENTE equivocada. Y el primer arreglo repitió el defecto el
+     * mismo día, porque se buscó otra fuente dentro del repositorio cuando el
+     * dato no está en el repositorio.
+     *
+     * Su lección conjunta: derivar no es la reparación, es la mitad. La otra
+     * mitad es DE DÓNDE — y se salta con facilidad porque un dato derivado ya
+     * viene con autoridad y nadie vuelve a mirarlo con desconfianza.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 502, 504, 505],
   },
   {
     /**
