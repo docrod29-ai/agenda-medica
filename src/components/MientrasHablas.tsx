@@ -38,6 +38,7 @@
  * franja, no una pantalla.
  */
 import { Mic, Pause, Play, Square, Loader2 } from 'lucide-react'
+import { PALABRA, reloj } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 export type EstadoDeLaBarra = 'listo' | 'grabando' | 'pausado' | 'procesando'
 
@@ -58,11 +59,6 @@ export interface MientrasHablasProps {
   alPausar: () => void
   alReanudar: () => void
   alDetener: () => void
-}
-
-const mmss = (s: number) => {
-  const t = Math.max(0, Math.floor(s))
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`
 }
 
 /** El botón principal. 64 px: el pulgar no falla y el ratón tampoco. */
@@ -114,7 +110,6 @@ export function MientrasHablas(p: MientrasHablasProps) {
     <div
       role="region"
       aria-label="Grabación de la consulta"
-      aria-live="polite"
       style={{
         /*
           `sticky` sirve para los dos: en el teléfono se queda abajo al alcance
@@ -130,20 +125,60 @@ export function MientrasHablas(p: MientrasHablasProps) {
         display: 'flex', flexDirection: 'column', gap: 10,
       }}
     >
+      {/*
+        ── EL ANUNCIO DICE EL ESTADO, NO LA HORA ────────────────────────────
+        Este contenedor llevaba `aria-live="polite"` y DENTRO lleva el reloj de
+        la grabación. Medido el 1-sep con la consulta grabando: SEIS regiones
+        vivas en pantalla, y ésta releía la duración entera cada segundo. Para
+        quien usa lector de pantalla eso no es información: es un goteo continuo
+        de cifras encima de todo lo demás, en la pantalla donde está hablando
+        con un paciente.
+
+        Lo que hay que anunciar es el CAMBIO —empezó, se pausó, se está armando
+        la nota, falló—, no el paso del tiempo. Así que el `aria-live` baja del
+        contenedor a este renglón invisible, que sólo cambia cuando cambia el
+        estado, y `SE_ANUNCIA` deja fuera `grabando` justo por el reloj.
+      */}
+      <span
+        role="status"
+        aria-live="polite"
+        style={{
+          position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+          overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
+        }}
+      >
+        {p.estado === 'pausado' ? PALABRA.pausado
+          : p.estado === 'procesando' ? PALABRA.estructurando
+            : p.estado === 'listo' ? '' : ''}
+      </span>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         {botonPrincipal(p)}
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/*
+              LA PALABRA SALE DEL VOCABULARIO COMÚN. Ésta decía «Escuchando»
+              mientras la barra superior, la banda de transporte y el control
+              flotante decían «Grabando» — del mismo segundo, en la misma
+              pantalla. No son cuatro fuentes de verdad (todas escuchan el mismo
+              `EVENTO_GRABANDO`): era la PRESENTACIÓN la que estaba duplicada, y
+              cada copia había elegido su palabra.
+
+              Y es «Grabando» y no «Escuchando» a propósito: el paciente firmó un
+              consentimiento para que la conversación SE GRABE, el audio se
+              guarda, y `data-privacy` declara que la voz es biométrica. La
+              palabra suave es la palabra equivocada justo aquí.
+            */}
             <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
               {p.estado === 'listo' ? 'Grabar la consulta'
-                : p.estado === 'pausado' ? 'En pausa'
-                  : p.estado === 'procesando' ? 'Armando la nota…'
-                    : 'Escuchando'}
+                : p.estado === 'pausado' ? PALABRA.pausado
+                  : p.estado === 'procesando' ? PALABRA.estructurando
+                    : PALABRA.grabando}
             </span>
             {activo && (
               <span style={{ fontSize: 14, color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>
-                {mmss(p.duracion)}
+                {reloj(p.duracion)}
               </span>
             )}
           </div>

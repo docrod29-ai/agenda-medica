@@ -6095,3 +6095,91 @@ después) y `ops-timeout-y-punto-ciego`, de entorno, ya declarado en REG-414— 
 lint **95 = techo** · trinquete de diseño sin deuda nueva · `tsc` limpio · dos
 golden nuevos **8 + 8 casos**, probados al revés · recorte a 390 medido en
 navegador: **de 2 elementos fuera de pantalla a 0**.
+
+---
+
+## Unidad 92 — un estado, dicho una vez
+
+Segunda unidad del núcleo. **Grabando de verdad**: Chromium con micrófono falso,
+ciclo completo desde el consentimiento. Capturas en `docs/design/capturas/v92/`.
+
+### Lo que ve el médico mientras habla
+
+| Medido grabando | Antes | Después |
+|---|---|---|
+| Relojes en pantalla | 4, en **2 formatos** (`0:39` / `00:39`) | 4, en **1** |
+| Palabras para el estado | **3** — Grabando · Escuchando · Esperando voz | **2** |
+| Regiones `aria-live` que releen el reloj | **2** | **0** |
+| Relojes escritos a mano en el código | **5** | **0** |
+
+### 92a · No eran cuatro fuentes de verdad. Era una, pintada cuatro veces
+
+Hay **una** fuente —el `EVENTO_GRABANDO` que escuchan `MarcoEscuchando`,
+`InstrumentStrip`, `FlowRail` y `BottomNav`— y el propio código lo declara. El
+invariante de arquitectura se respetaba.
+
+Lo duplicado era la **presentación**. «La misma entidad se pinta distinto según
+dónde se mire» permite que la barra superior sea discreta y la banda del
+encuentro grande. No permite que una diga «Escuchando» y otra «Grabando» del
+mismo segundo: eso no es pintar distinto, es **decir** distinto.
+
+El vocabulario pasa a vivir en un módulo —`vocabulario-de-la-escucha`— y los
+cuatro sitios lo piden en vez de escribirlo.
+
+### 92b · «Grabando», no «Escuchando»
+
+«Escuchando» suena mejor y es la palabra equivocada. El paciente firmó un
+consentimiento para que la conversación **se grabe** y se transcriba; el audio se
+guarda y `data-privacy` declara que **la voz es biométrica**. Llamarle «escuchar»
+a un acto que el paciente consintió como grabar suaviza justo lo que no se debe
+suavizar, y en la pantalla donde está delante.
+
+### 92c · El reloj se calla para el lector de pantalla
+
+Dos regiones `role="status"` contenían el cronómetro. `role="status"` implica
+`aria-live`, así que un lector de pantalla releía «Rosalía Mendieta Cuevas ·
+Grabando · 00:39» **entero, una vez por segundo**, encima de todo lo demás —
+durante una consulta con el paciente hablando.
+
+No se quita `role="status"`: está ahí para satisfacer la regla `region` de axe
+que `v15-a11y-avisos-en-landmark` ya cerró, y quitarlo reabriría la violación más
+repetida de la rama. Se calla **el reloj**, no la franja. El cambio de estado
+—empezó, se pausó, se está armando la nota, falló— lo anuncia **una vez** un
+renglón invisible.
+
+### 92d · Y tres guardianes clavaban los defectos que venían a evitar
+
+`v15-rtc14` §4 exigía la comparación de cadenas de la alergia. `v15-rtc22` §5
+exigía literalmente `Grabando · {formatearDuracion(segundos)}` — una de las
+cuatro copias. **Mientras el guardián exigiera la copia, la copia no se podía
+quitar.** Los dos se reescribieron para exigir la conducta.
+
+### 92e · Y mi propio guardián nuevo tampoco cazaba nada
+
+La regla «nadie vuelve a escribir el reloj a mano» pedía
+`Math.floor(...)/ 60)).padStart` — la ortografía exacta, espacios incluidos. Al
+probarla al revés con `Math.floor(s/60)` siguió en **verde**. Un guardián que
+sólo reconoce la versión del defecto que ya conocía no vigila la familia: vigila
+un recuerdo. Al ampliarlo encontró **un quinto reloj** que yo había dejado en
+`MientrasHablas`.
+
+### RIESGO RESIDUAL
+
+- **Siguen siendo cuatro indicadores.** Ahora dicen lo mismo, pero el médico ve
+  cuatro. Reducirlos es la unidad siguiente y toca decidir cuál manda.
+- **Dos controles de detener** con texto (`Terminar`, `Detener y generar nota`)
+  más un ⏹ sin texto. Sin tocar.
+- **`Esperando voz…` sigue contradiciendo** a «Grabando» mientras la barra de
+  nivel se mueve. Es otro hecho —¿llega señal?—, no otro estado, pero se lee como
+  contradicción.
+- El control flotante queda **encima de un campo de signos vitales** (`FR`).
+  Medido; no arreglado.
+- Sólo tema oscuro, sólo Chromium, sólo escritorio. Voice a 390 sin medir.
+- El círculo de 96 px y `--nexus-solido` siguen sin revisarse.
+
+### COMPUERTAS
+
+`npx vitest run` 12 068/12 071 —inventario regenerado después, y
+`ops-timeout-y-punto-ciego` de entorno (REG-414)— · lint **95 = techo** ·
+trinquete de diseño sin deuda nueva · `tsc` limpio · golden nuevo **7 casos,
+probado al revés ×3**, y el propio reverso corrigió el guardián.

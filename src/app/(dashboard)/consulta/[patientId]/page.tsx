@@ -136,6 +136,7 @@ import { alergenosDe, alergiasDe, laLecturaAnadeAlgo } from '@/lib/seguridad/ale
 import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
 
 import { vacunasSegunEdad, edadEnAnios } from '@/lib/expediente/pediatria'
+import { rotulo } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 
 
@@ -4663,7 +4664,9 @@ export default function ConsultaActivaPage() {
     }
   }, [cedulaRapida, clinicId])
 
-  const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
+  /* El reloj del modo «vivo». El formateo ya no vive aquí: sale del vocabulario
+     común, para que los cuatro relojes de la pantalla cuenten igual. */
+  const segundosVivo = voz.duracion
 
   return (
     <div className="nx-canvas">
@@ -5327,7 +5330,7 @@ export default function ConsultaActivaPage() {
               </button>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-                  {voz.grabando ? `Grabando · ${mmss}` : 'Grabar consulta (en vivo)'}
+                  {voz.grabando ? rotulo('grabando', segundosVivo) : 'Grabar consulta (en vivo)'}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
                   {voz.grabando
@@ -5462,10 +5465,15 @@ export default function ConsultaActivaPage() {
               )}
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-                  {audio.estado === 'grabando' ? `Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}${audio.chunksTranscritos > 0 ? ` · ${audio.chunksTranscritos} chunks transcritos` : ''}`
-                    : audio.estado === 'pausado' ? `⏸ Pausado · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}`
-                    : audio.estado === 'subiendo' ? 'Transcribiendo audio…'
-                    : audio.estado === 'listo' ? 'Transcripción lista'
+                  {/* El rótulo sale del vocabulario común. Antes esta línea
+                      escribía «Grabando · MM:SS» con su propio `padStart` y
+                      «⏸ Pausado» con otro, mientras la banda de arriba decía
+                      «Escuchando · M:SS» del mismo segundo. */}
+                  {audio.estado === 'grabando'
+                    ? `${rotulo('grabando', audio.duracion)}${audio.chunksTranscritos > 0 ? ` · ${audio.chunksTranscritos} chunks transcritos` : ''}`
+                    : audio.estado === 'pausado' ? rotulo('pausado', audio.duracion)
+                    : audio.estado === 'subiendo' ? rotulo('subiendo')
+                    : audio.estado === 'listo' ? rotulo('listo')
                     : 'Grabar la conversación completa (médico + paciente)'}
                 </div>
                 {/*
@@ -7390,9 +7398,7 @@ export default function ConsultaActivaPage() {
         }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            Grabando · {modoVoz === 'vivo'
-              ? mmss
-              : `${String(Math.floor(audio.duracion / 60)).padStart(2, '0')}:${String(audio.duracion % 60).padStart(2, '0')}`}
+            {rotulo('grabando', modoVoz === 'vivo' ? segundosVivo : audio.duracion)}
           </span>
           <button
             onClick={async () => { if (modoVoz === 'vivo') voz.detener(); else await audio.detener() }}

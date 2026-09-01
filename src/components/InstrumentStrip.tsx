@@ -40,6 +40,7 @@ import { getPatient } from '@/lib/firestore'
 import { patientIdDeLaRuta } from '@/lib/nav/paciente-de-la-ruta'
 import { EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-grabando'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
+import { reloj, rotulo } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 /**
  * Nombre del paciente cuya ruta se está viendo ahora mismo, o `null` si esta
@@ -93,11 +94,13 @@ function useSegundosGrabando(): number | null {
   return segundos
 }
 
-function formatearDuracion(s: number): string {
-  const m = Math.floor(s / 60)
-  const r = s % 60
-  return `${m}:${String(r).padStart(2, '0')}`
-}
+/**
+ * El reloj sale del vocabulario común (`vocabulario-de-la-escucha`), no de una
+ * copia local. Medido el 1-sep grabando de verdad: había CUATRO relojes en
+ * pantalla contando el mismo segundo, y esta copia daba `0:39` mientras la banda
+ * del encuentro daba `00:39`. Dos formatos para un reloj.
+ */
+const formatearDuracion = reloj
 
 /**
  * `enTopbar` (V15-MOBILE-001, tercera rebanada, §22/§23): en móvil la franja
@@ -204,7 +207,7 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
              cobalto, nunca rojo — rojo aquí significa riesgo clínico, y el
              cobalto es el territorio libre de significado clínico (ver el
              comentario «POR QUÉ NO ES ROJO» en MarcoEscuchando.tsx). */
-          <span className="nx-num" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600, flexShrink: 0 }}>
+          <span aria-hidden className="nx-num" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600, flexShrink: 0 }}>
             <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
             {formatearDuracion(segundos)}
           </span>
@@ -272,9 +275,27 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
            el marco perimetral — un solo idioma para «el micrófono está
            abierto» en todo el shell. 8ª rebanada: nx-num — los dígitos del
            timer son tabulares, el ancho no tiembla a cada segundo. */
-        <span className="nx-num" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600 }}>
+        /*
+          `aria-hidden` SOBRE EL RELOJ, y no sobre la franja.
+
+          Esta franja es `role="status"` a propósito: es lo que satisface la
+          regla `region` de axe (`v15-a11y-avisos-en-landmark`), y quitarlo
+          reabriría la violación más repetida de la rama. Pero `role="status"`
+          implica `aria-live`, y dentro va un reloj que cambia cada segundo:
+          medido el 1-sep grabando, DOS regiones vivas releían «Rosalía Mendieta
+          Cuevas · Grabando · 00:39» entero, una vez por segundo, encima de todo
+          lo demás.
+
+          Así que se calla el RELOJ, no la franja. El cambio de estado —empezó,
+          se pausó, se está armando la nota, falló— lo anuncia una sola vez el
+          renglón invisible de `MientrasHablas`. Lo que se pierde es el goteo de
+          cifras; lo que se conserva es el aviso.
+        */
+        <span aria-hidden className="nx-num" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600 }}>
           <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
-          Grabando · {formatearDuracion(segundos)}
+          {/* La PALABRA también sale del vocabulario: esta decía «Grabando» y la
+              banda del encuentro decía «Escuchando», del mismo segundo. */}
+          {rotulo('grabando', segundos)}
         </span>
       )}
     </div>
