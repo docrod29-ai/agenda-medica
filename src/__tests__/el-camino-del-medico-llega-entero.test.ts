@@ -63,6 +63,35 @@ const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/asr/lo-que-pesa-de-un-error.ts': 'EVALUACIÓN de voz: compara contra un gold, y en consulta no hay gold. Lo consume scripts/medir-wer-limpio.ts, que necesita el corpus del dueño.',
 }
 
+/**
+ * ── EL ARNÉS DE RECUPERACIÓN (#312) ──────────────────────────────────────────
+ *
+ * Módulos que NO se alcanzan desde `src/app/` A PROPÓSITO: son el arnés de
+ * simulacro de recuperación y los contratos que documentan lo que todavía no
+ * tiene pantalla. Los corre `scripts/recovery/simulacro-recuperacion.mjs` y sus
+ * pruebas; su sitio es el CI, igual que el de los demás gates.
+ *
+ * Se declaran POR NOMBRE en vez de subir `FUERA_DEL_CAMINO_HOY`, y no es un
+ * matiz: un número más alto admite cualquier módulo nuevo sin que nadie lo
+ * mire, que es justo lo que este trinquete existe para impedir. Con la lista,
+ * cada uno cuesta una línea y una razón.
+ *
+ * Los que SÍ corren en producción no están aquí: `manifiesto`, `huellas`,
+ * `aislamiento`, `verdad-firmada`, `idempotencia`, `veredicto`,
+ * `reconciliacion`, `integridad-referencial` y `ensayo` los importan
+ * `api/clinic/exportar` y `api/clinic/importar`.
+ */
+const ARNES_DE_RECUPERACION: Readonly<Record<string, string>> = {
+  'src/lib/durability/fixtures.ts': 'Consultorio sintético y las dieciséis averías. Un fixture con pantalla sería un fixture que alguien edita para que pase.',
+  'src/lib/durability/inventario.ts': 'Inventario de clases de dato con su régimen de restauración. Lo consume el arnés y su guardián: una pantalla no protegería de que una colección nueva se quede sin régimen; lo que protege es que el CI lo cace.',
+  'src/lib/durability/crecimiento.ts': 'Proyección de almacenamiento con procedencias OBSERVADO/ESCENARIO/OBJETIVO. Trabajo de operación, no de consulta; su consumidor es el acta del simulacro.',
+  'src/lib/durability/rpo-rto.ts': 'Tabla de tramos de recuperación con TARGET/OBSERVED/NOT_MEASURED. Es evidencia de operación; su sitio es el acta.',
+  'src/lib/durability/adjuntos.ts': 'Cruce metadato ↔ objeto de Storage. Necesita un listado del bucket, que sólo tiene el arnés; conectarlo a una pantalla exigiría exponer el bucket al navegador.',
+  'src/lib/durability/archivado.ts': 'Ciclo de vida del expediente. NO se conecta hasta que el dueño fije el plazo mínimo de conservación (hoy `NEEDS_CLINICAL_REVIEW`): una pantalla que enseñe «elegible para borrado» sin plazo decidido es peor que ninguna.',
+  'src/lib/durability/rollback.ts': 'Plan de reversión de una restauración. Sin colección donde persistir los asientos —y toda colección nueva exige publicar reglas, que es del dueño— no hay a qué conectarlo todavía.',
+  'src/lib/durability/autosave-contrato.ts': 'Máquina de estados del punto seguro de la consulta. La pantalla es de #306: el traspaso exacto está en `docs/recovery/HANDOFF-306-AUTOGUARDADO.md`.',
+}
+
 describe('el camino del médico llega entero', () => {
   const alcanzables = alcanzableDesdeLaApp()
   it('el lector funciona (si no, todo lo de abajo pasaría por vacío)', () => { expect(alcanzables.size).toBeGreaterThan(300); expect(alcanzables.has('src/lib/expediente/firestore.ts')).toBe(true) })
@@ -76,7 +105,24 @@ describe('el camino del médico llega entero', () => {
   it.each(EL_CAMINO)('$paso — sus módulos existen', ({ modulos }) => { expect(modulos.filter(m => !existsSync(join(RAIZ,m)))).toEqual([]) })
   it.each(EL_CAMINO)('$paso — se llega desde la app', ({ paso, modulos }) => { const desconectados=modulos.filter(m=>!alcanzables.has(m)); expect(desconectados,`${paso}: fuera del camino → ${desconectados.join(', ')}`).toEqual([]) })
   it('el documento nombra los siete pasos', () => { const t=readFileSync(DOC,'utf8'); for(const p of EL_CAMINO) expect(t).toContain(p.paso) })
-  it('los módulos fuera del camino no aumentan', () => { const libs:string[]=[]; const anda=(d:string)=>{ for(const e of readdirSync(join(RAIZ,d))){ if(e==='__tests__') continue; const rel=`${d}/${e}`; if(statSync(join(RAIZ,rel)).isDirectory()) anda(rel); else if(/\.tsx?$/.test(e)) libs.push(rel) } }; anda('src/lib'); anda('src/components'); const fuera=libs.filter(f=>!alcanzables.has(f)); expect(fuera.length,`subió a ${fuera.length}. Los nuevos:\n  ${fuera.filter(f=>!ISLAS_DE_DOS[f]).slice(0,12).join('\n  ')}`).toBeLessThanOrEqual(FUERA_DEL_CAMINO_HOY); expect(fuera.filter(f=>!ISLAS_DE_DOS[f]).length, 'toda isla nueva debe declararse con motivo').toBeLessThanOrEqual(FUERA_DEL_CAMINO_HOY - Object.keys(ISLAS_DE_DOS).length) })
+  it('los módulos fuera del camino no aumentan', () => { const libs:string[]=[]; const anda=(d:string)=>{ for(const e of readdirSync(join(RAIZ,d))){ if(e==='__tests__') continue; const rel=`${d}/${e}`; if(statSync(join(RAIZ,rel)).isDirectory()) anda(rel); else if(/\.tsx?$/.test(e)) libs.push(rel) } }; anda('src/lib'); anda('src/components'); const fuera=libs.filter(f=>!alcanzables.has(f)&&!ARNES_DE_RECUPERACION[f]); expect(fuera.length,`subió a ${fuera.length}. Los nuevos:\n  ${fuera.filter(f=>!ISLAS_DE_DOS[f]).slice(0,12).join('\n  ')}`).toBeLessThanOrEqual(FUERA_DEL_CAMINO_HOY); expect(fuera.filter(f=>!ISLAS_DE_DOS[f]).length, 'toda isla nueva debe declararse con motivo').toBeLessThanOrEqual(FUERA_DEL_CAMINO_HOY - Object.keys(ISLAS_DE_DOS).length) })
   it('las islas declaradas siguen existiendo', () => { for(const f of Object.keys(ISLAS_DE_DOS)) expect(existsSync(join(RAIZ,f)),`${f} ya no existe: quítalo de la lista`).toBe(true) })
+  it('el arnés de recuperación existe, se declara y NO se alcanza desde la app', () => {
+    /**
+     * Las dos mitades. Si un módulo del arnés se vuelve alcanzable, esta lista
+     * pasa a mentir y hay que quitarlo de ella — que es lo que pasó con
+     * `clinica/simulacro.ts`, hoy alcanzable desde `api/clinic/importar`.
+     *
+     * Se comprueban las dos direcciones a propósito: que exista (si no, la lista
+     * excusa a un archivo que ya no está y el techo queda flojo en silencio) y
+     * que NO se alcance (si no, la lista está excusando algo que ya no necesita
+     * excusa, y el techo real es más bajo de lo que este archivo dice).
+     */
+    for (const [f, razon] of Object.entries(ARNES_DE_RECUPERACION)) {
+      expect(existsSync(join(RAIZ, f)), `${f} ya no existe: quítalo de la lista`).toBe(true)
+      expect(razon.length, `${f} no dice por qué`).toBeGreaterThan(40)
+      expect(alcanzables.has(f), `${f} YA se alcanza desde src/app: quítalo de ARNES_DE_RECUPERACION`).toBe(false)
+    }
+  })
   it('el documento dice qué NO prueba esto', () => { const t=readFileSync(DOC,'utf8'); expect(t).toContain('que el cable existe'); expect(t).toContain('llegaban tarde') })
 })

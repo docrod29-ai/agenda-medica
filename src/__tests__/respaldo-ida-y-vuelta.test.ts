@@ -187,7 +187,17 @@ describe('una línea rota no tumba la restauración', () => {
 
 describe('los candados de la ruta', () => {
   it('sólo a consultorio VACÍO, salvo que se pida lo contrario', () => {
-    expect(ruta).toContain("clinicRef.collection('patients').limit(1).get()")
+    /**
+     * ── MIRAR SÓLO PACIENTES Y CITAS NO BASTABA (#312) ────────────────────
+     *
+     * Un consultorio con cobros, con bitácora o con internamientos —pero sin
+     * pacientes, porque una supresión ARCO se los llevó— pasaba por «vacío», y
+     * encima se le restauraba un respaldo anterior a la supresión: el derecho
+     * ejercido por el paciente se deshacía sin que nadie lo pidiera.
+     */
+    for (const señal of ['patients', 'appointments', 'cobros', 'audit_log', 'internamientos']) {
+      expect(ruta, `falta la señal ${señal}`).toContain(`clinicRef.collection('${señal}').limit(1).get()`)
+    }
     expect(ruta).toContain('mezclaría dos historias clínicas')
     expect(POR_QUE_SOLO_A_CLINICA_VACIA).toMatch(/consultorio vacío/i)
   })

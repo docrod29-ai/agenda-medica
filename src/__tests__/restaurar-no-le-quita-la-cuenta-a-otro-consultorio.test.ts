@@ -64,6 +64,7 @@
  *   prueba en `el-respaldo-sabe-volver-entero.test.ts`.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { FORMATO_V1 } from '@/lib/durability/manifiesto'
 import { NextRequest } from 'next/server'
 import { TiendaEnMemoria, adminDbSobre } from './_harness/firestore-admin-en-memoria'
 
@@ -91,7 +92,22 @@ let t: TiendaEnMemoria
 /** El NDJSON tal cual sale del exportador, con su cabecera y su pie. */
 function respaldo(lineas: Record<string, unknown>[]): string {
   return [
-    JSON.stringify({ _tipo: 'cabecera', clinicId: ORIGEN, generado: '2026-08-29T00:00:00.000Z' }),
+    /**
+     * La cabecera lleva `formato`, y hay que decir por qué se añadió aquí.
+     *
+     * Este fixture nació cuando la ruta no miraba el formato del archivo. Desde
+     * la compuerta de completitud (#312) sí lo mira: una cabecera que no dice
+     * QUÉ archivo es se declara `invalido` y no se escribe nada — fail-closed, y
+     * a propósito, porque adivinar que un archivo sin identificar es un v1 es
+     * exactamente «ausencia de dato tomada por dato».
+     *
+     * Ningún respaldo real cae ahí: el exportador ha emitido `formato` desde que
+     * existe. El que no lo llevaba era este fixture. Se corrige el fixture para
+     * que se parezca a un archivo de verdad, NO la compuerta — y las
+     * afirmaciones de abajo, que son sobre la carrera de las membresías, no se
+     * tocan.
+     */
+    JSON.stringify({ _tipo: 'cabecera', formato: FORMATO_V1, clinicId: ORIGEN, generado: '2026-08-29T00:00:00.000Z' }),
     ...lineas.map(l => JSON.stringify(l)),
     JSON.stringify({ _tipo: 'pie', completo: true }),
   ].join('\n')
