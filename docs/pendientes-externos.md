@@ -27,7 +27,14 @@
 2. Facturación CFDI: cuenta en **Facturama** (o PAC equivalente).
 3. Poner las llaves como variables de entorno en **Vercel** (Production): `STRIPE_SECRET_KEY`,
    `STRIPE_WEBHOOK_SECRET`, y las de Facturama. (El código de cobro/paywall ya existe; solo faltan llaves.)
-4. Configurar el **webhook de Stripe** apuntando a `/api/stripe/...` (te doy la URL exacta cuando lo hagas).
+4. Configurar el **webhook de Stripe** apuntando a `https://agenda-medica-one.vercel.app/api/stripe/webhook`
+   (la ruta exacta, verificada en `src/app/api/stripe/webhook/route.ts` — ya no hace falta pedirla).
+   El `whsec_…` lo **emite Stripe al crear el endpoint**; ese es el valor de `STRIPE_WEBHOOK_SECRET`.
+
+**El formato de cada variable, qué pasa sin ella y cómo comprobar que llegó**:
+[`docs/ops/VARIABLES-DE-ENTORNO.md`](ops/VARIABLES-DE-ENTORNO.md). Ahí está también
+la advertencia que no es obvia: **una variable de Vercel no surte efecto hasta el
+siguiente despliegue**, y un despliegue arrastra todo lo no publicado.
 
 ### 3. Protección de rama en `main`  — *el gate clínico YA existe, falta que BLOQUEE* (unidad E0-11)
 
