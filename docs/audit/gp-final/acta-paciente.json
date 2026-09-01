@@ -34,7 +34,7 @@
       "id": "GP-26c",
       "titulo": "un paquete en DRAFT NO sale del portal aunque exista en la base",
       "resultado": "OK",
-      "evidencia": "en la base: RELEASED,RELEASED,DRAFT · devueltos por el portal: RELEASED,RELEASED"
+      "evidencia": "en la base: DRAFT,RELEASED · devueltos por el portal: RELEASED"
     },
     {
       "id": "GP-26d",
@@ -64,7 +64,7 @@
       "id": "GP-29",
       "titulo": "el portal del paciente carga en un teléfono",
       "resultado": "OK",
-      "evidencia": "CONSULTORIO DE MEDICINA INTERNA REFORMA | Hola, Luz | Aquí puedes gestionar tus citas. | Próximas citas | No tienes citas próximas. | Hoy | Preguntar "
+      "evidencia": "CONSULTORIO DE MEDICINA INTERNA REFORMA | Hola, Luz | Aquí puedes gestionar tus citas. | Próximas citas | SEP | 1 | Martes · 09:30 | Dra. Elena Sandov"
     },
     {
       "id": "GP-30a",
@@ -98,9 +98,9 @@
     },
     {
       "id": "GP-33",
-      "titulo": "el portal tiene freno ante una ráfaga",
+      "titulo": "el portal frena una ráfaga: la corta (429) o no deja pasar sin poder contar (503)",
       "resultado": "OK",
-      "evidencia": "30/40 respondieron 429"
+      "evidencia": "30/40 frenados — distribución {\"200\":10,\"429\":30} (429=el freno contó y cortó · 503=no pudo contar y por eso no pasa · 200=SIN FRENO)"
     },
     {
       "id": "GP-34",

@@ -314,7 +314,44 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * enseñaba descripción, código y borrar.
      */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501],
+    /**
+     * 425, 426 y 427 son los tres que salieron de ABRIR EL PRODUCTO en un
+     * teléfono, y los tres son esta familia en formas distintas:
+     *
+     *  · **425** — el gancho escrito y la regla no: `<span className=
+     *    "nx-fila-porque">` con esa clase inexistente en toda la hoja. El
+     *    control se veía perfecto y su toque se lo quedaba el velo de la fila.
+     *    Lo caro de esta forma es que en el diff **parece que hay algo**: el
+     *    nombre está ahí.
+     *  · **426** — el respaldo que no cabe donde está escrito. `100vh` en un
+     *    estilo EN LÍNEA no puede llevar su `100dvh` detrás; la hoja lo hace
+     *    bien en todas partes y un atributo `style` no puede.
+     *  · **427** — la CONDICIÓN PREVIA que falta. 28 usos de
+     *    `env(safe-area-inset-*)` corriendo y valiendo cero, porque
+     *    `viewport-fit=cover` es una línea en otro archivo que nadie vigilaba.
+     *    No es que el módulo no corra: corre y no hace nada.
+     *
+     * Lo que enseñan juntos: esta familia no se caza leyendo el diff de quien la
+     * comete —los tres diffs se ven bien— sino abriendo el producto y
+     * preguntándole al navegador. `document.elementFromPoint` en el centro del
+     * control es la única pregunta que responde «¿esto recibe el toque?».
+     */
+
+    /**
+     * 431 es esta familia sobre un archivo que NO es código, y por eso escuece:
+     * `firestore.indexes.json` estaba bien escrito y era el archivo MEJOR
+     * VIGILADO del repositorio —REG-421 le puso guardián, REG-422 lo endureció—
+     * y `firebase.json` nunca declaró dónde estaba. Dos regresiones de trabajo
+     * sobre su contenido, y el contenido no lo leía nadie.
+     *
+     * El despliegue no fallaba: `--only firestore:indexes` sin declarar no
+     * publica nada y devuelve `success`. Escrito, probado, y sin conectar — con
+     * un acta firmada diciendo que sí.
+     *
+     * Se descubrió acompañando al dueño a hacerlo a mano, y viendo la consola
+     * vacía en su pantalla.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431],
   },
   {
     clave: 'se_contradice',
@@ -595,7 +632,64 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * datos que los hicieran aparecer — un cero sobre una lista vacía no dice
      * «está bien», dice «aquí no hay nada».
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418],
+
+    /**
+     * 421 es el instrumento MINTIENDO, que es peor que no tenerlo. El guardián
+     * de índices existía, corría en verde y llevaba meses tapando dos consultas
+     * sin índice: se SALTABA con un `continue` las consultas cuya colección no
+     * sabía leer, y comparaba que los campos estuvieran en vez de que estuvieran
+     * en el orden que Firestore exige.
+     *
+     * Un guardián que se salta lo que no entiende no dice «no lo sé»: dice «está
+     * bien». Por eso el arreglo no fue sólo enseñarle a leer más formas, sino
+     * hacer que lo ilegible FALLE. Y se descubrió porque antes de tocar el código
+     * que el guardián protege se le probó al revés — que es la única manera de
+     * saber si un instrumento mide.
+     */
+
+    /**
+     * 422 es el DÍA SIGUIENTE de 421, sobre el mismo guardián y por su otra
+     * limitación declarada: «sólo ve el SDK de cliente… está declarado aquí y
+     * sigue siendo trabajo pendiente, NO un hueco tapado». Era un hueco tapado.
+     * Detrás vivía `platform_cost_ledger(feature, ts)`, la consulta con la que se
+     * mide el costo por nota — y como su ruta la envuelve en un `try/catch`, el
+     * índice que falta no se ve como un error: se ve como que no hay datos de
+     * costo, sobre la pantalla con la que se decide el precio.
+     *
+     * Lo que enseñan 421 y 422 juntos no es que este guardián estuviera mal
+     * escrito. Es que **una limitación declarada tiene fecha de caducidad o se
+     * convierte en un hueco**: declarar un punto ciego lo hace honesto, no lo
+     * hace inofensivo, y a partir del día siguiente el archivo en verde se lee
+     * como «todo bien» sin que nadie vuelva al párrafo que decía dónde no miraba.
+     * Es lo mismo que REG-377 dijo de las deudas con fecha puesta, dicho de los
+     * instrumentos.
+     */
+    /**
+     * 428 es el instrumento que MIDE y cuya salida no distingue. GP-33 dispara
+     * cuarenta peticiones en paralelo contra el freno del portal del paciente y
+     * contaba sólo los 429 — pero «cero 429» lo producen TRES desenlaces, y dos
+     * son correctos: el freno cortó (429), el freno no pudo contar y por eso no
+     * dejó pasar (503, fail-closed), o no hubo freno (cuarenta 200). Medido con
+     * la distribución puesta: `{200:10, 429:25, 503:5}` — el freno funciona.
+     *
+     * Su lección propia, que 421 y 422 rozaban desde el otro lado: un caso cuya
+     * EVIDENCIA no separa el desenlace bueno del malo falla en la dirección
+     * peligrosa. Se pone rojo cuando el producto se porta bien (todo 503), y un
+     * caso que da falsos rojos se aprende a ignorar — así que el día que salgan
+     * cuarenta 200, nadie lo va a mirar distinto.
+     */
+
+    /**
+     * 430 es el instrumento que NO PUDO CORRER, y cuya mitad superviviente se
+     * lee como si hubiera corrido. La escotilla que permite usar un Chromium ya
+     * instalado estaba sólo en el proyecto del teléfono; el proyecto `chromium`
+     * —el de la matriz de cabeceras de seguridad— no la tenía, y sus nueve casos
+     * de navegador caían con «Executable doesn't exist». Los de cabeceras pasan
+     * por petición cruda, así que el verde parcial tapaba justo la mitad que sólo
+     * se puede ver ejecutando.
+     */
+
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430],
   },
   {
     clave: 'hueco_como_dato',
@@ -952,7 +1046,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * mitad es DE DÓNDE — y se salta con facilidad porque un dato derivado ya
      * viene con autoridad y nadie vuelve a mirarlo con desconfianza.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 502, 504, 505],
+    /**
+     * 424 es esta familia en el orden entre DOS SISTEMAS que no se hablan. Los
+     * índices de Firestore hay que desplegarlos ANTES que el código que los usa
+     * —Firestore no degrada una consulta sin índice, la RECHAZA— y la integración
+     * de Vercel publica sola con cada merge. Lo único que sostenía ese orden era
+     * un párrafo en un documento de operación: alguien tenía que acordarse el día
+     * correcto, y entre medias cuatro pantallas se abrían con un error.
+     *
+     * El arreglo no es un recordatorio mejor: es que romper el orden deje de
+     * romper la pantalla (`conRespaldoSinIndice`) y que la degradación se VEA. El
+     * orden sigue siendo el correcto; lo que ya no depende de la memoria es el
+     * daño.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 502, 504, 505],
   },
   {
     /**
@@ -1066,7 +1173,28 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * aprendido ninguna palabra» — un fallo de red afirmando que el vocabulario
      * del médico está vacío.
      */
-    regs: [341, 350, 351, 352, 393],
+    /**
+     * 423 es esta familia enseñando que **acotar bien no es lo mismo que acotar**.
+     * Los tres anteriores pusieron el techo; 423 es sobre QUÉ se queda dentro
+     * cuando el techo aprieta. El worklist recortaba por antigüedad —una mejora
+     * real sobre el recorte arbitrario de antes— y con eso el resultado crítico
+     * de esta mañana era el PRIMERO en caerse, en un consultorio grande y sólo en
+     * un consultorio grande. Con fixtures pequeños las tres versiones se
+     * comportan igual, que es la marca de esta familia.
+     *
+     * Su lección propia: el criterio del recorte también es un supuesto de
+     * tamaño. «Los 200 primeros» sólo es una respuesta aceptable mientras 200
+     * sean todos.
+     */
+    /**
+     * 429 es la misma lección que 341→351, aplicada a tiempo por una vez: la
+     * lista de espera se leía entera, y acotarla A SECAS la habría dejado peor —
+     * un recorte que se presenta como completo es un paciente esperando que
+     * nadie ve. Por eso `getWaitlist` dejó de devolver un array pelado: un array
+     * no puede decir que viene recortado.
+     */
+
+    regs: [341, 350, 351, 352, 393, 423, 429],
   },
 ] as const
 

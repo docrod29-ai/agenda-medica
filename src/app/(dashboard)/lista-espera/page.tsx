@@ -23,13 +23,22 @@ export default function ListaEsperaPage() {
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  /**
+   * >0 = la lectura se quedó en el tope y HAY entradas activas fuera.
+   *
+   * Se pinta porque una lista de espera recortada que se presenta como completa
+   * es un paciente esperando que nadie ve — el mismo defecto que REG-351 cerró
+   * en nueve pantallas.
+   */
+  const [truncada, setTruncada] = useState(0)
   const [notificando, setNotificando] = useState<{ entry: WaitlistEntry; fecha: string; hora: string } | null>(null)
 
   const load = async () => {
     if (!clinicId) return
     try {
       const data = await getWaitlist(clinicId)
-      setEntries(data)
+      setEntries(data.entradas)
+      setTruncada(data.truncada ? data.tope : 0)
     } catch (e) {
       // Un fallo de lectura NO puede verse igual que una lista vacía: para un
       // médico con cientos de registros, eso se lee como pérdida total de datos.
@@ -105,6 +114,20 @@ export default function ListaEsperaPage() {
         subtitle="Pacientes esperando disponibilidad"
         actions={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Agregar</Button>}
       />
+
+      {!loading && truncada > 0 && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <span>
+            Se están mostrando <strong>{truncada}</strong> personas y <strong>hay más</strong> esperando.
+            Esta lista <strong>no está completa</strong>: las que faltan son las que se apuntaron
+            más recientemente.
+          </span>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 0 }}>
         {loading ? (

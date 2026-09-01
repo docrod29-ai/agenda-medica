@@ -26,6 +26,37 @@ Necesita emuladores de Firebase, un build completo y un Chromium. La suite de
 vitest (10 494 casos) sigue siendo la compuerta de cada cambio; esto es la
 compuerta del **release**, y se corre a mano antes de proponer uno.
 
+## Un caso que no distinguía — REG-428
+
+GP-33 dispara **cuarenta peticiones en paralelo** contra el freno del portal del
+paciente (`action: 'paquetes'`, la acción clínica, tope 15/600s) y contaba sólo
+los `429`. Eso no basta: **tres desenlaces distintos dan «cero 429»** y dos son
+correctos.
+
+| Respuesta | Qué significa | ¿Defecto? |
+|---|---|---|
+| `429` | el freno contó y cortó | no |
+| `503` | el freno **no pudo contar** y por eso no deja pasar (`limitarEstricto`, fail-closed) | no |
+| `200` en las cuarenta | **no hubo freno** | **sí, P1** |
+
+Cuarenta transacciones en paralelo sobre el **mismo** documento de `rate_limits`
+es justo donde el contador tiene más razones para no poder contar, así que el
+`503` no es un caso raro: es el esperable bajo ráfaga.
+
+Medido el 1-sep con la distribución puesta:
+
+```
+30/40 frenados — distribución {"200":10,"429":25,"503":5}
+```
+
+El freno funciona. El caso acepta ahora `429` **o** `503` e imprime la
+distribución entera, así que un rojo sólo puede querer decir una cosa.
+
+**La lección, que vale para cualquier caso de este arnés**: si la evidencia no
+separa el desenlace bueno del malo, el caso falla en la dirección peligrosa — se
+pone rojo cuando el producto se porta bien, y un caso que da falsos rojos se
+aprende a ignorar.
+
 ## Lo que este arnés NO cubre, y hay que decirlo
 
 - **No hay proveedor de ASR ni de IA.** Así que no se dicta de verdad: no se

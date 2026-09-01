@@ -43,7 +43,30 @@ export default defineConfig({
   // médicos y pacientes. WebKit + Mobile Safari son clave porque muchos entran
   // desde iPhone (fallos que solo pasan en Safari no se ven en Chrome).
   projects: [
-    { name: 'chromium',      use: { ...devices['Desktop Chrome'] } },
+    /**
+     * `PLAYWRIGHT_CHROMIUM_PATH` también aquí, y no sólo en `telefono-chromium`.
+     *
+     * La escotilla existía sólo en el proyecto del teléfono, y el mismo problema
+     * de entorno —un Chromium instalado que no es la build EXACTA que pide la
+     * versión de Playwright del repositorio, con `playwright install` cortado—
+     * deja sin correr `e2e/seguridad.spec.ts`, que es la matriz de CABECERAS DE
+     * SEGURIDAD. Medido el 1-sep: 48 casos en verde y 9 caídos con
+     * «Executable doesn't exist at …/chromium_headless_shell-1228», teniendo el
+     * 1194 instalado al lado.
+     *
+     * Los que caían son justo los que necesitan navegador (grupo B, la CSP en
+     * ejecución); los de cabeceras pasan porque van por petición cruda. O sea que
+     * el hueco se lleva **la mitad que sólo se puede ver ejecutando**.
+     */
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+          ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } }
+          : {}),
+      },
+    },
     { name: 'firefox',       use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit',        use: { ...devices['Desktop Safari'] } },
     { name: 'iphone-safari', use: { ...devices['iPhone 14'] } },

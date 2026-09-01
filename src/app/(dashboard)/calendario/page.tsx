@@ -228,7 +228,7 @@ export default function CalendarioPage() {
   }, [view, baseDate, weekDates])
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 52px)' }}>
+    <div className="nx-alto-de-trabajo" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
       {/* Topbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Calendario</h1>
