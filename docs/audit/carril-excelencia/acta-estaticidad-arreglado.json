@@ -1,0 +1,14 @@
+[
+  {
+    "ruta": "/calendario",
+    "ancho": 390,
+    "elementosVisibles": 149,
+    "conMovimiento": 40,
+    "tarjetas": 11,
+    "tamanosTipograficos": 7,
+    "pesosDeFuente": 4,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 844,
+    "consola": []
+  }
+]
