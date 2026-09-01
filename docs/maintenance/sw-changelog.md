@@ -3,6 +3,58 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1179 — la durabilidad del expediente, la firma de la receta, y los índices que nunca se publicaron
+
+**Se prepara SIN su despliegue.** El paquete vive en
+[`PAQUETE-PRODUCCION-2026-09-01-v1179.md`](PAQUETE-PRODUCCION-2026-09-01-v1179.md).
+
+**40 commits desde v1178** (24 directos + 16 merges) · 121 archivos ·
++17 571 / −693 · **49 de código de producto** · **18 regresiones cerradas**.
+Cero rutas de API nuevas, cero pantallas nuevas.
+
+**Este paquete SÍ toca `firestore.indexes.json`** — y es el primero que de verdad
+lo publica. Ver el acta antes de pulsar el botón.
+
+### Lo que cambia para el médico
+
+**El respaldo se puede conciliar, y la restauración tiene cinco candados**
+(#349, REG-417…420). El pie del archivo lleva recuento por colección y huella del
+conjunto, así que «restauramos 10 000 documentos» ya se puede desmentir si
+faltaban 300. Y lo que más pesa: **un paciente cuya supresión ARCO consta en el
+consultorio de destino no vuelve** al restaurar un respaldo anterior — ni con
+`sobrescribir=1`, ni en modo ensayo.
+
+**La firma de la receta deja de ser transferible** (#355, REG-432). El permiso de
+las imágenes de papelería pasa de ligar `path|exp` a ligar
+`versión + path + dueño + consultorio + caducidad`, y de durar 24 h a durar 15
+min. Antes, una URL filtrada servía un día entero y cruzaba consultorios.
+
+Y **si el membrete no carga, ahora te avisa antes de imprimir** en vez de
+entregar una receta incompleta en silencio. Ese defecto no existía: lo iba a
+crear el propio arreglo, y se cerró con él.
+
+**Cuatro consultas vivas llevaban meses sin índice** (#425, REG-421…424, 429,
+431). Y el guardián que debía cazarlo se saltaba lo que no entendía.
+
+### Los índices: la parte que hay que leer despacio
+
+`firebase.json` **nunca declaró dónde estaban los índices**. `firebase deploy
+--only firestore:indexes` no falla cuando no encuentra nada que publicar:
+devuelve éxito. Así que todas las actas anteriores registraron el paso en
+`success` **y no publicaron un solo índice** (REG-431).
+
+Con la línea puesta, este despliegue publica los **12 índices compuestos por
+primera vez**. Construirlos sobre colecciones con datos tarda de minutos a horas.
+
+Lo que impide que eso rompa una pantalla es REG-424: la consulta buena se
+intenta, y **sólo** si el error dice que falta el índice se cae al camino de
+antes, devolviendo `degradada: true` — y eso sube hasta donde se ve («no se pudo
+ordenar por urgencia: lo que se ve son los más antiguos»). Un permiso denegado o
+una red caída **siguen subiendo**: si esto los absorbiera, convertiría una fuga
+de aislamiento en una lista corta, que es peor porque no se ve.
+
+---
+
 ## v1178 — el portal del paciente y el documento firmado entran a los arneses
 
 **40 commits desde v1177** · 10 archivos de código de producto · **cero rutas de
