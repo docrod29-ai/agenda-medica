@@ -16175,3 +16175,226 @@ lista vacía —«ausencia de dato no es dato de ausencia» aplicado a una lectu
   de construirse mientras la pantalla está abierta, sigue leyendo sin cota hasta
   que se vuelva a montar.
 
+---
+
+## REG-425 — «¿Por qué está aquí?» no recibía el toque: el velo de la fila se lo quedaba
+
+**QUÉ FALLABA.** En `/pacientes`, a 390px, pulsar «¿Por qué está aquí?» **no abría
+la lente**: navegaba al expediente del paciente.
+
+`.nx-fila-abrir::after { position: absolute; inset: 0 }` es un **velo**
+deliberado — el área de golpe estirada sobre la fila entera, para que pulsar en
+cualquier punto abra el expediente con el pulgar. El disparador de la lente vivía
+**debajo** de ese velo, así que el toque nunca le llegaba.
+
+**CÓMO SE DESCUBRIÓ.** Abriendo el producto, no leyendo el código: emuladores de
+Firebase, la clínica sintética de `sembrar-capturas.mjs`, el build de producción
+servido, y Chromium a 390×844.
+`scripts/design/medir-el-alto-del-telefono.mjs` pregunta
+`document.elementFromPoint` en el **centro exacto** de cada control, que es lo
+único que responde a «¿este control recibe el toque?»:
+
+```
+/pacientes   TAPADOS: «¿Por qué está aquí?» por nx-fila-abrir  ×3
+```
+
+Tres filas de tres: **todas las que tienen un pendiente vivo** — exactamente las
+filas que esa pregunta existe para explicar. Ninguna prueba lo veía porque
+ninguna abría el producto: el árbol es correcto, el `onClick` está bien escrito y
+el botón se ve perfectamente.
+
+**LA CAUSA RAÍZ.** El mecanismo estaba **resuelto y documentado a veinte líneas
+de distancia**. «Editar», el otro control de la fila, lleva `position: relative;
+z-index: 1` en línea con un comentario que dice literalmente *«por encima del velo
+de .nx-fila-abrir::after: hermano, no hijo, del control que abre — el clic en
+Editar cae aquí y no navega»*.
+
+El disparador de la lente se envolvió en `<span className="nx-fila-porque">` —
+**un nombre de clase que no existía en ninguna hoja de estilos**. `escrito_y_sin_conectar`
+en su forma más barata de cometer: se escribe el gancho y se olvida la regla, y
+como el nombre está ahí, en la revisión del diff parece que hay algo.
+
+Detalle que lo hizo invisible más tiempo: en móvil «Editar» **está oculto**
+(`@media (max-width: 768px)`), así que el único control que quedaba en la fila era
+justo el roto. En escritorio, con el ratón, el defecto también estaba — y ahí
+tampoco lo vio nadie.
+
+**LA REGLA QUE LO HACE SEGURO — y por qué es genérica.** Escribir
+`.nx-fila-porque` habría arreglado este control y dejado el mismo defecto
+esperando al **cuarto**. La hoja dice ahora que dentro de una fila de paciente,
+cualquier cosa pulsable que no sea la que abre vive por encima del velo:
+
+```css
+.nx-fila-paciente button:not(.nx-fila-abrir),
+.nx-fila-paciente a[href],
+.nx-fila-paciente [role="button"]:not(.nx-fila-abrir) { position: relative; z-index: 1; }
+```
+
+Nadie tiene que acordarse de nada al añadir un control. Y **el velo no se quitó**:
+la salida fácil habría sido borrar el `::after`, que arregla el toque del control
+y rompe el de la FILA, que es como se abre un expediente con el pulgar.
+
+**LA PRUEBA.** El arnés, en navegador, y
+`src/__tests__/en-un-telefono-el-control-recibe-el-toque.test.ts` (6 casos) para
+que CI lo vigile sin emuladores. Probada al revés: quitando la regla genérica de
+la hoja, los tres casos caen; y hay un caso que comprueba que la defensa **NO
+cuelga del nombre** `.nx-fila-porque` —si colgara, borrarlo la desarmaría otra
+vez— y que el velo sigue existiendo.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sólo las filas de paciente.** Otra lista con su propio velo tendría que traer
+  su propia regla; esto no lo ve.
+- **No cubre un control pintado FUERA de la fila y encima de ella.** Eso ya no es
+  el velo.
+- **La prueba de CI no mide**: mide el arnés, y el arnés necesita emuladores y un
+  build, así que no corre en CI. Lo que se vigila es que la regla no se deshaga.
+
+---
+
+## REG-426 — el alto del calendario describía una pantalla que no era ésta
+
+**QUÉ FALLABA.** `/calendario` llevaba, **en línea**:
+
+```jsx
+<div style={{ …, height: 'calc(100vh - 52px)' }}>
+```
+
+y era el **único** alto fijo en `vh` de todo el árbol. Medido en Chromium a
+390×844 con la clínica sembrada:
+
+```
+/calendario   div height: calc(-52px + 100vh) → 792px, sobra 57px
+```
+
+**792px de alto contra 735 visibles.** Y en un iPhone es peor y no un poco:
+`100vh` en Safari es la altura del viewport **con la barra del navegador
+oculta** — siempre mayor que lo que hay delante.
+
+El `- 52px`, además, es la topbar de **escritorio**. En el teléfono la topbar mide
+48px + área segura y abajo hay una barra de 53px más el indicador del iPhone. La
+resta describía una pantalla que no es ésta.
+
+**CÓMO SE DESCUBRIÓ.** El mismo arnés que REG-425, en la mitad que mide el ALTO.
+Los arneses de móvil que ya existían miden el **ancho** —desbordamiento
+horizontal, objetivo táctil de 44×44, contraste, foco—; nadie medía el alto, que
+es donde vive la familia de defectos que sólo aparece en un teléfono.
+
+**LA CAUSA RAÍZ.** Un estilo **en línea** no puede tener respaldo: una propiedad,
+un valor. `globals.css` hace bien lo contrario en todos sus `100vh` —siempre
+seguidos de `100dvh`, y el navegador se queda con la última que entiende—, pero
+esa defensa **no cabe en un atributo `style`**. El defecto no es usar `vh`: es
+usarlo donde no se le puede poner respaldo.
+
+**LA REGLA QUE LO HACE SEGURO.** La altura se muda a la hoja, con el par en el
+orden correcto (`vh` primero, `dvh` después: al revés ganaría `vh` en todos los
+navegadores modernos, que es el arreglo escrito al revés):
+
+```css
+.nx-alto-de-trabajo { height: calc(100vh - 52px); height: calc(100dvh - 52px); }
+```
+
+**LA PRUEBA.** El arnés —tras el arreglo, `/calendario` no declara ninguna altura
+en `vh`— y el mismo golden de REG-425, que barre `src/app` y `src/components`
+buscando `height` en `vh` escrito en línea. Probada al revés: devolviendo el
+estilo en línea, el caso cae; y el cedazo se prueba sobre fuentes de mentira para
+comprobar que **no** marca `minHeight` ni `maxHeight` —un mínimo mayor que el
+viewport sólo añade scroll, y el scroll se resuelve solo—, que es donde un
+guardián demasiado ancho se habría vuelto ruido.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No dice que la resta sea la correcta.** Dice que ya no está en línea y que
+  tiene respaldo. Que el contenido llegue al fondo se comprueba corriendo el
+  arnés.
+- **No cubre las hojas de estilo.** Ahí `100vh` está bien y se queda: siempre va
+  con su `dvh`.
+- **No es un iPhone.** Ver abajo.
+
+---
+
+## REG-427 — las 28 reservas de área segura colgaban de una línea que nadie vigilaba
+
+**QUÉ FALLABA.** El repositorio usa `env(safe-area-inset-*)` en **28 sitios** de
+ocho archivos: la barra inferior, la topbar móvil, el botón de ayuda, los botones
+flotantes, el pie del modal, el portal del paciente, la pantalla de reserva y la
+de unirse. Todos por la misma razón: que un control no quede debajo del «home
+indicator» de un iPhone ni cortado por el notch.
+
+**`env(safe-area-inset-*)` vale CERO salvo que el documento declare
+`viewport-fit=cover`.** No falla, no avisa, no rompe el CSS: devuelve `0px`, y las
+28 reservas se convierten en nada.
+
+En este repositorio esa declaración es **una línea, en un archivo**
+(`src/app/layout.tsx`), y **no había ninguna prueba que la mirara**:
+`grep -rn viewportFit` devuelve una sola línea en todo el árbol, y sobre
+`src/__tests__` devolvía cero.
+
+**CÓMO SE DESCUBRIÓ.** Buscando defectos de móvil internamente comprobables
+mientras WebKit sigue sin poder instalarse. Se contaron los usos de área segura y
+se buscó **quién garantiza su condición previa**. Nadie.
+
+**POR QUÉ IMPORTA.** Borrar esa línea —o mover el `viewport` a otro sitio en una
+refactorización de rutas— dejaría los 28 usos escritos, bien escritos, y **sin
+efecto**: la barra inferior se metería bajo el indicador del iPhone, con toda la
+suite en verde. Es `escrito_y_sin_conectar` en su forma de **condición previa**:
+no es que el módulo no corra, es que corre y no hace nada porque falta un
+interruptor que vive en otro archivo. Y es hermana de «el dato tiene que LLEGAR»:
+el valor se calcula, se escribe en la propiedad correcta y **llega como cero**.
+
+**LA REGLA QUE LO HACE SEGURO.** Si algo usa `env(safe-area-inset-*)`, el layout
+raíz declara `viewportFit: 'cover'`. Las dos mitades se comprueban juntas: la
+lista de dependientes se **deriva** del árbol, no se escribe, así que el día que
+nadie dependa, el guardián lo dice en vez de seguir exigiendo.
+
+Va en el mismo golden que el zoom no esté desactivado (`userScalable: false`,
+`maximumScale` por debajo de 2 — WCAG 1.4.4): es el mismo bloque y el mismo modo
+de fallo, tocar `viewport` por una razón de maquetación y de paso apagar el zoom.
+
+**LA PRUEBA.**
+`src/__tests__/el-area-segura-del-telefono-llega-o-vale-cero.test.ts` (5 casos).
+Probada al revés en tres formas: quitando la línea, poniéndole `viewport-fit:
+contain` —un valor **válido** que NO activa el área segura, que es la forma sutil
+de romperlo— y apagando el zoom. Y un caso comprueba que el lector lee el
+**bloque** `viewport` y no el archivo entero: si devolviera el archivo, los casos
+pasarían por encontrar la palabra en un comentario.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba que el área segura valga lo correcto en un iPhone.** Eso es WebKit
+  sobre hardware con notch. `BLOCKED_EXTERNAL`.
+- **No prueba que Next emita la etiqueta.** Prueba lo que el árbol declara.
+- **No mide si la reserva ALCANZA**: que se reserve no dice que los 72px de
+  colchón basten.
+- **Sólo mira el layout raíz.**
+
+---
+
+## WS-05 · lo que estos tres REG **no** cierran, comprobado hoy
+
+Los tres se midieron en **Chromium con el tamaño de un teléfono**. Los dos
+mecanismos del rebote de iPhone son de WebKit y ahí no existen: `overflow-anchor`
+—que Chromium implementa y WebKit no— y el rebote elástico al encadenar el gesto.
+
+**WebKit no se puede instalar en este entorno.** Comprobado el 1-sep, no supuesto:
+
+```
+$ PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 npx playwright install webkit
+Error: Download failed: server returned code 403
+  'request blocked: no rule or allowlist entry allows host "cdn.playwright.dev"'
+Error: … host "playwright.download.prss.microsoft.com"
+
+$ curl -sS "$HTTPS_PROXY/__agentproxy/status"
+"kind": "connect_rejected", "detail": "gateway answered 403 to CONNECT
+ (policy denial or upstream failure)", "host": "cdn.playwright.dev:443"
+```
+
+Es una **denegación de política de red**, no un fallo de descarga. Lo desbloquea
+el dueño de una de dos formas: añadiendo esos dos hosts a la política del entorno
+—y entonces corre el proyecto `iphone-safari` que `playwright.config.ts` ya
+declara—, o con un iPhone real, que es lo que §38 pide de verdad: 390px, diez
+repeticiones, `scrollTop` que nunca baje solo.
+
+**Hasta entonces WS-05 no se marca `PROVEN`**, y nada de REG-425/426/427 debe
+usarse para marcarlo.
+

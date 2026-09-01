@@ -337,6 +337,10 @@
       "minCasos": 33
     },
     {
+      "archivo": "src/__tests__/el-area-segura-del-telefono-llega-o-vale-cero.test.ts",
+      "minCasos": 5
+    },
+    {
       "archivo": "src/__tests__/el-arnes-caza-la-alucinacion-que-importa.test.ts",
       "minCasos": 12
     },
@@ -558,6 +562,10 @@
     },
     {
       "archivo": "src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/en-un-telefono-el-control-recibe-el-toque.test.ts",
       "minCasos": 6
     },
     {

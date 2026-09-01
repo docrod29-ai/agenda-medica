@@ -314,7 +314,30 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * enseñaba descripción, código y borrar.
      */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501],
+    /**
+     * 425, 426 y 427 son los tres que salieron de ABRIR EL PRODUCTO en un
+     * teléfono, y los tres son esta familia en formas distintas:
+     *
+     *  · **425** — el gancho escrito y la regla no: `<span className=
+     *    "nx-fila-porque">` con esa clase inexistente en toda la hoja. El
+     *    control se veía perfecto y su toque se lo quedaba el velo de la fila.
+     *    Lo caro de esta forma es que en el diff **parece que hay algo**: el
+     *    nombre está ahí.
+     *  · **426** — el respaldo que no cabe donde está escrito. `100vh` en un
+     *    estilo EN LÍNEA no puede llevar su `100dvh` detrás; la hoja lo hace
+     *    bien en todas partes y un atributo `style` no puede.
+     *  · **427** — la CONDICIÓN PREVIA que falta. 28 usos de
+     *    `env(safe-area-inset-*)` corriendo y valiendo cero, porque
+     *    `viewport-fit=cover` es una línea en otro archivo que nadie vigilaba.
+     *    No es que el módulo no corra: corre y no hace nada.
+     *
+     * Lo que enseñan juntos: esta familia no se caza leyendo el diff de quien la
+     * comete —los tres diffs se ven bien— sino abriendo el producto y
+     * preguntándole al navegador. `document.elementFromPoint` en el centro del
+     * control es la única pregunta que responde «¿esto recibe el toque?».
+     */
+
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427],
   },
   {
     clave: 'se_contradice',

@@ -3435,6 +3435,37 @@ span.riel-aviso { cursor: default; }
   .nx-fila-paciente .nx-fila-chevron { display: none !important; }
 }
 
+/* ── TODO CONTROL DE LA FILA, POR ENCIMA DEL VELO ───────────────────────────
+   Medido en Chromium a 390×844 con la clínica sembrada: pulsar «¿Por qué está
+   aquí?» en `/pacientes` NO abría la lente — `document.elementFromPoint` en el
+   centro del control devolvía `.nx-fila-abrir`. El toque caía en el velo y
+   navegaba al expediente. Tres filas de tres afectadas: todas las que tienen un
+   pendiente vivo, que son exactamente las filas que esa pregunta existe para
+   explicar.
+
+   POR QUÉ PASÓ, y por qué la regla es genérica y no una clase más. El mecanismo
+   estaba resuelto y documentado a veinte líneas de distancia: «Editar» lleva
+   `position: relative; z-index: 1` EN LÍNEA con un comentario que dice
+   literalmente «por encima del velo de .nx-fila-abrir::after». El disparador de
+   la lente se envolvió en `<span className="nx-fila-porque">` — un nombre de
+   clase que **no existía en ninguna hoja**. Escrito, y sin conectar.
+
+   Arreglarlo escribiendo `.nx-fila-porque` habría dejado el mismo defecto
+   esperando al CUARTO control. Así que la regla no nombra controles: dice que
+   dentro de una fila de paciente, cualquier cosa pulsable que no sea la que
+   abre el expediente vive por encima del velo. `position: relative` sin
+   desplazamiento no mueve nada; sólo crea el contexto que hace que `z-index`
+   cuente. Ver REG-425.
+
+   Lo que esto NO arregla: un control que se pinte FUERA de `.nx-fila-paciente`
+   y encima de ella. Eso ya no es el velo, es otro problema. */
+.nx-fila-paciente button:not(.nx-fila-abrir),
+.nx-fila-paciente a[href],
+.nx-fila-paciente [role="button"]:not(.nx-fila-abrir) {
+  position: relative;
+  z-index: 1;
+}
+
 /* ── RTC-08 · la señal de «hay un encuentro abierto» ─────────────────────────
    Punto de ESTADO del riel: dice que hay una consulta a medio escribir que se
    puede retomar. Vive aquí y no en FlowRail.tsx porque el guardián de Fase 10
@@ -4077,3 +4108,27 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   border-color: color-mix(in srgb, var(--nexus) 55%, transparent);
 }
 
+/* ── EL ALTO DE LA PANTALLA DEL CALENDARIO ───────────────────────────────────
+   Era `height: calc(100vh - 52px)` EN LÍNEA, y era el ÚNICO alto fijo en `vh`
+   de todo el árbol. Medido en Chromium a 390×844: 792px de alto contra 735px
+   visibles — **57px por debajo de lo que se ve**.
+
+   En un iPhone es peor y no un poco: `100vh` en Safari es la altura del
+   viewport CON LA BARRA DEL NAVEGADOR OCULTA, o sea siempre mayor que lo que
+   hay delante. Y el `- 52px` es la topbar de ESCRITORIO; en el teléfono la
+   topbar mide 48px + área segura y abajo hay una barra de 53px + el indicador
+   del iPhone. La resta describe una pantalla que no es ésta.
+
+   Un estilo EN LÍNEA no puede tener respaldo —una propiedad, un valor— así que
+   la altura se muda aquí, donde sí: `vh` primero para el navegador que no
+   entienda `dvh`, `dvh` después para el que sí. `dvh` es la altura REAL del
+   viewport móvil, la que cambia cuando la barra se recoge.
+
+   Lo que esto NO arregla: la resta sigue siendo una constante. Que hoy el
+   contenido llegue al fondo se comprueba con
+   `node scripts/design/medir-el-alto-del-telefono.mjs`, no leyendo esto.
+   Ver REG-426. */
+.nx-alto-de-trabajo {
+  height: calc(100vh - 52px);
+  height: calc(100dvh - 52px);
+}

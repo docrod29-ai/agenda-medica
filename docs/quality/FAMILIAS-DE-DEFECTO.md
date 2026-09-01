@@ -3,7 +3,7 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 31-ago-2026.
-**Fuente**: los REG de `docs/audit/regression-ledger.md` (277 clasificados hoy).
+**Fuente**: los REG de `docs/audit/regression-ledger.md` (280 clasificados hoy).
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -43,8 +43,22 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 74 de 277, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 77 de 280, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+Los tres últimos (REG-425, 426 y 427, 1-sep-2026) salieron de **abrir el producto
+en un teléfono**, y los tres son la familia en formas distintas: el gancho
+escrito y la regla no (`className="nx-fila-porque"`, una clase que no existía en
+ninguna hoja, y el toque del control se lo quedaba el velo de la fila); el
+respaldo que no cabe donde está escrito (`100vh` en un estilo EN LÍNEA no puede
+llevar su `100dvh` detrás); y la **condición previa** que falta (28 usos de
+`env(safe-area-inset-*)` corriendo y valiendo cero porque `viewport-fit=cover`
+era una línea en otro archivo que nadie vigilaba).
+
+Lo que enseñan juntos: **esta familia no se caza leyendo el diff de quien la
+comete.** Los tres diffs se ven bien. Se caza abriendo el producto y
+preguntándole al navegador — `document.elementFromPoint` en el centro del control
+es la única pregunta que responde «¿esto recibe el toque?».
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
 describiendo su propia forma. `PaqueteDeVisita` llegó con su modelo, su máquina
@@ -128,7 +142,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 44 de 277.**
+**«El sistema se contradice a sí mismo» — 44 de 280.**
 
 Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
 caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
@@ -209,7 +223,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 39 de 277**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 39 de 280**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
