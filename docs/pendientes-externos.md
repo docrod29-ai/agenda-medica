@@ -36,25 +36,36 @@ verifica los 78 archivos de invariantes clínicos y de seguridad, y que además 
 **borró, apagó (`skip`/`only`) o vació** uno de ellos. Funciona y está probado
 (`docs/ci/clinical-safety-gate.md`).
 
-**Lo que el código NO puede hacer:** *impedir el merge*. Eso lo decide GitHub. Hoy, un PR con el
-gate en **rojo** se puede mergear igual — el gate avisa, pero no bloquea.
+**Lo que el código NO puede hacer:** *impedir el merge*. Eso lo decide GitHub. Si el ruleset no
+exige `clinical-safety`, un PR con el gate en **rojo** se puede mergear igual: el gate avisa, pero
+no bloquea. **Este párrafo afirmaba que hoy es así**; se corrige, porque no está comprobado — la
+API dice que `main` está protegida y no dice de qué.
 
-**Qué hacer (≈5 min, una sola vez):** en `github.com/docrod29-ai/agenda-medica` →
-**Settings → Rules → Rulesets → New branch ruleset** (o *Settings → Branches*), sobre `main`:
+**Dónde están los pasos, y por qué ya no están aquí.** Esta sección daba la
+instrucción en prosa y **le faltaban tres de los cinco nombres**, incluido el
+único que no coincide con el id de su job: el job `lint` reporta a GitHub como
+**`lint (trinquete)`**. Quien escribiera `lint` en el ruleset habría exigido un
+check que nadie reporta nunca, y GitHub habría dejado **todos los PRs**
+esperándolo para siempre, con el botón de merge gris.
 
-1. **Require a pull request before merging** — si no, `push` directo a `main` es una puerta trasera.
-2. **Require status checks to pass** → marcar exactamente **`clinical-safety`** *y* **`verificar`**.
-3. **Require branches to be up to date before merging** — evita el merge que rompe el invariante
-   solo al combinarse con lo que ya está en `main`.
-4. **Do not allow bypassing the above settings** (incluir administradores; si no, el dueño se
-   salta su propio gate sin querer).
+Los pasos verificados, los cinco nombres tal como los reporta `ci.yml`, y por qué
+sólo se exigen tres, viven ahora en un solo sitio:
+**[`docs/ops/PROTECCION-DE-RAMA.md`](ops/PROTECCION-DE-RAMA.md)**, con un guardián
+(`src/__tests__/la-proteccion-de-rama-exige-checks-que-existen.test.ts`) que falla
+si alguien renombra uno de los tres exigidos.
 
-**Sin el paso 2, la unidad E0-11 queda a medias**: el código está completo, pero el criterio de
-aceptación («un PR que rompe un invariante clínico no puede mergearse») no se cumple.
+**Lo que sí sigue siendo cierto aquí**: el código está completo y el criterio de
+aceptación de E0-11 —«un PR que rompe un invariante clínico no puede
+mergearse»— **no lo cumple el código**, lo cumple una casilla en GitHub. La rama
+ya reporta `protected: true`, pero la API no dice **qué** exige el ruleset: eso
+se comprueba abriendo un PR y viendo los tres checks listados como *Required*.
 
-**Opcional, mismo sitio:** `.github/CODEOWNERS` ya asigna los directorios clínicos a `@docrod29-ai`.
-Para que sirva hay que activar **Require review from Code Owners** en el mismo ruleset, y confirmar
-que ese es tu handle real de GitHub (se dedujo de la URL del remoto, no está verificado).
+**Y en el mismo ruleset** (ya no es opcional: decidido el 1-sep-2026):
+`.github/CODEOWNERS` asigna los directorios clínicos a `@docrod29-ai` y **hasta ahora no surtía
+efecto** — el archivo existía y nadie lo exigía. Hay que activar **Require review from Code
+Owners** y confirmar que ese es el handle real de GitHub: se dedujo de la URL del remoto y **no
+está verificado**. Si no lo fuera, GitHub marca la línea como inválida y **la ignora en silencio**,
+que es la peor de las dos formas de fallar.
 
 ---
 
