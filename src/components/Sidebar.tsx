@@ -95,7 +95,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       <div className="sidebar-logo">
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.32)',
+          background: 'var(--nexus-soft)', border: '1px solid var(--nexus-borde)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           {/* Mark Ausculta en miniatura */}

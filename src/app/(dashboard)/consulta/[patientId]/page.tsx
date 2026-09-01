@@ -5094,7 +5094,7 @@ export default function ConsultaActivaPage() {
 
       {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
       {esNotaHospital && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--text2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', fontSize: 12.5, color: 'var(--text2)' }}>
           <BedDouble size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           Nota de <strong>Hospitalización</strong> — al guardar/firmar regresas al episodio, no a Consulta.
         </div>
@@ -5124,7 +5124,7 @@ export default function ConsultaActivaPage() {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16,
           padding: '10px 14px', borderRadius: 10,
-          background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.3)',
+          background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
         }}>
           <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
@@ -5927,7 +5927,7 @@ export default function ConsultaActivaPage() {
         <button
           onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
           title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'var(--nexus-tenue)', color: 'var(--nexus)', border: '1px solid var(--nexus-borde)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗
         </button>
       )}
@@ -6440,7 +6440,7 @@ export default function ConsultaActivaPage() {
       {ofreceReproyectar && !firmada && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 11, flexWrap: 'wrap',
-          background: 'rgba(61,90,254,0.07)', border: '1px solid rgba(61,90,254,0.3)',
+          background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
           <Sparkles size={17} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} />
@@ -6933,7 +6933,7 @@ export default function ConsultaActivaPage() {
         <>
           {/* ── Chat de corrección por IA ── */}
           {!firmada && (
-            <div style={{ marginTop: 18, border: '1px solid rgba(61,90,254,0.35)', borderRadius: 12, background: 'rgba(61,90,254,0.05)', padding: 14 }}>
+            <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 12, background: 'var(--nexus-tenue)', padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
                 <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
               </div>

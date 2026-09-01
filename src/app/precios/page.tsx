@@ -27,7 +27,7 @@ function Card({ plan }: { plan: PlanCreditos }) {
       position: 'relative', flex: '1 1 300px', maxWidth: 380, background: 'var(--s1)',
       border: '1px solid ' + (destacado ? 'var(--nexus)' : 'var(--border)'),
       borderRadius: 18, padding: '26px 24px',
-      boxShadow: destacado ? '0 12px 40px rgba(61,90,254,0.14)' : '0 1px 3px rgba(0,0,0,0.05)',
+      boxShadow: destacado ? '0 12px 40px var(--nexus-soft)' : '0 1px 3px rgba(0,0,0,0.05)',
     }}>
       {destacado && (
         <div style={{

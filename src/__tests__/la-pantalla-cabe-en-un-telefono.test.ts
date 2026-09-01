@@ -140,16 +140,45 @@ describe('nada obliga a la página a moverse de lado', () => {
     expect(culpables, 'usar minmax(min(Npx, 100%), …)').toEqual([])
   })
 
+  /**
+   * La barra de la portada la reescribió la transformación de producto
+   * (`NavPublica`), y con ella cambiaron los nombres de clase. El REQUISITO no
+   * cambió —a 460 px la barra iba de borde a borde y la última acción quedaba
+   * pegada al canto—, así que el caso no se borra: se apunta a la barra nueva.
+   *
+   * Y se aprende del original: comprobar `className="nav-portada"` ataba el
+   * caso a UNA implementación, y por eso se rompió al rediseñar sin que nada
+   * del comportamiento hubiera empeorado. Lo que de verdad importa —que la
+   * barra quepa y que nada se salga— lo mide el navegador en
+   * `scripts/ausculta-transformacion/probar-menu.mjs`, que además pulsa el menú.
+   */
   it('la barra de la portada se estrecha en un teléfono', () => {
     const css = leer('src', 'app', 'globals.css')
-    const portada = leer('src', 'app', 'page.tsx')
+    const nav = leer('src', 'components', 'landing', 'NavPublica.tsx')
     // La clase tiene que estar puesta: una regla sin quien la lleve no hace nada
     // — la familia «escrito, probado y sin conectar».
-    expect(portada).toMatch(/className="nav-portada"/)
-    expect(portada).toMatch(/className="nav-portada-marca"/)
+    expect(nav).toMatch(/className="nx-nav-publica"/)
+    expect(nav).toMatch(/className="nx-nav-marca-texto"/)
     expect(css).toMatch(/@media \(max-width: 460px\)/)
-    expect(css).toMatch(/\.nav-portada \{[^}]*padding-left:\s*12px/)
+    expect(css).toMatch(/\.nx-nav-publica \{ padding-left: 12px/)
     // Y el nombre escrito se retira sólo en lo MUY estrecho, no siempre.
-    expect(css).toMatch(/@media \(max-width: 380px\)[\s\S]{0,200}\.nav-portada-marca \{ display: none/)
+    expect(css).toMatch(/@media \(max-width: 380px\)[\s\S]{0,400}\.nx-nav-marca-texto \{ display: none/)
+  })
+
+  /**
+   * El menú móvil que la portada NO TENÍA. Este caso vigila que siga teniendo
+   * las cuatro cosas sin las que un cajón no es usable, y que no vuelva a
+   * desaparecer: el disparador, su estado declarado para el lector de pantalla,
+   * el panel enlazado, y `inert` mientras esté cerrado —sin eso, tabular por la
+   * portada pasa por cinco enlaces invisibles.
+   */
+  it('la portada tiene un menú móvil, y es alcanzable con teclado', () => {
+    const nav = leer('src', 'components', 'landing', 'NavPublica.tsx')
+    expect(nav).toMatch(/aria-expanded=\{abierto\}/)
+    expect(nav).toMatch(/aria-controls=\{idPanel\}/)
+    expect(nav).toMatch(/inert=\{!abierto\}/)
+    // Escape cierra Y devuelve el foco al disparador (WCAG 2.4.3).
+    expect(nav).toMatch(/e\.key === 'Escape'/)
+    expect(nav).toMatch(/botonRef\.current\?\.focus\(\)/)
   })
 })

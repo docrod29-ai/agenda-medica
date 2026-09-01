@@ -21,7 +21,7 @@ export default function PaquetesPage() {
           <ArrowLeft size={15} /> Ver los motores
         </Link>
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--nexus)', background: 'var(--nexus-soft, rgba(61,90,254,.09))', padding: '5px 11px', borderRadius: 'var(--r-pill)', marginBottom: 14 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--nexus)', background: 'var(--nexus-soft, var(--nexus-soft))', padding: '5px 11px', borderRadius: 'var(--r-pill)', marginBottom: 14 }}>
           <Layers size={14} /> Specialty Packages
         </div>
 

@@ -87,7 +87,7 @@
 | `/uci/benchmark` | alpha | ✅ | 265 | 0 | — | ✅ | — |
 | `/uci/dosificacion` | alpha | ✅ | 585 | 0 | — | ✅ | — |
 | `/uci/enfermeria` | alpha | ✅ | 206 | 1 | — | ✅ | — |
-| `/` | publica | ✅ | 680 | 12 | — | ✅ | — |
+| `/` | publica | ✅ | 413 | 13 | — | — | — |
 | `/arquitectura` | publica | — | 112 | 2 | — | ✅ | — |
 | `/contacto` | publica | — | 70 | 2 | — | ✅ | — |
 | `/demo` | publica | — | 312 | 5 | — | ✅ | — |

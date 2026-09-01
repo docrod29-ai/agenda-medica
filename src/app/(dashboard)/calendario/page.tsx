@@ -615,7 +615,7 @@ function DayView({ date, hoy, appointments, horarios, festivos, onCellClick, onA
                   {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
-                    background: 'rgba(61,90,254,0.1)', border: `1px ${est.borderStyle} rgba(61,90,254,0.3)`,
+                    background: 'var(--nexus-soft)', border: `1px ${est.borderStyle} var(--nexus-borde)`,
                     borderLeft: `3px ${est.borderStyle} var(--teal)`, borderRadius: 6, padding: '6px 10px',
                     cursor: 'pointer',
                     /**
@@ -741,7 +741,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
               style={{
                 borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
                 padding: '6px', minHeight: 80,
-                background: isToday ? 'rgba(61,90,254,0.05)' : 'transparent',
+                background: isToday ? 'var(--nexus-tenue)' : 'transparent',
                 transition: 'background var(--mov-rapido) var(--mov-curva)',
               }}
               onMouseEnter={e => !isToday && (e.currentTarget.style.background = 'var(--s2)')}

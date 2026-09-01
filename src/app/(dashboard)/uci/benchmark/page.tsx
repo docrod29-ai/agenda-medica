@@ -125,7 +125,7 @@ export default function BenchmarkVozPage() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
         {([['guion', 'Leer el guion'], ['libre', 'Dictado libre']] as const).map(([k, txt]) => (
           <button key={k} onClick={() => setModo(k)} style={{
-            background: modo === k ? 'rgba(61,90,254,0.14)' : 'none',
+            background: modo === k ? 'var(--nexus-soft)' : 'none',
             border: `1px solid ${modo === k ? 'var(--nexus)' : 'var(--border)'}`,
             color: modo === k ? 'var(--nexus)' : 'var(--text3)',
             borderRadius: 9, padding: '7px 13px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', minHeight: 36,

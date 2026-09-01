@@ -2,13 +2,13 @@
   "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
   "techos": {
     "respaldosDeToken": 0,
-    "hexEnLinea": 357,
-    "tamanosFueraDeEscala": 1947,
-    "radiosFueraDeEscala": 617,
-    "sombrasEnLinea": 21,
-    "gradientes": 14,
+    "hexEnLinea": 346,
+    "tamanosFueraDeEscala": 1901,
+    "radiosFueraDeEscala": 603,
+    "sombrasEnLinea": 20,
+    "gradientes": 11,
     "cristal": 14,
-    "halosDeColor": 6,
+    "halosDeColor": 5,
     "lienzosAMano": 42
   },
   "peores": [
@@ -104,19 +104,6 @@
       "total": 68
     },
     {
-      "archivo": "src/app/(dashboard)/configuracion/secciones-recetas.tsx",
-      "respaldos": 0,
-      "hex": 5,
-      "tam": 36,
-      "rad": 16,
-      "sombras": 1,
-      "gradientes": 0,
-      "cristal": 0,
-      "halos": 0,
-      "lienzos": 0,
-      "total": 58
-    },
-    {
       "archivo": "src/app/(dashboard)/antibiograma/page.tsx",
       "respaldos": 0,
       "hex": 8,
@@ -130,17 +117,30 @@
       "total": 56
     },
     {
-      "archivo": "src/app/page.tsx",
+      "archivo": "src/app/demo/page.tsx",
       "respaldos": 0,
-      "hex": 6,
-      "tam": 35,
-      "rad": 9,
-      "sombras": 0,
-      "gradientes": 3,
-      "cristal": 2,
+      "hex": 11,
+      "tam": 26,
+      "rad": 15,
+      "sombras": 1,
+      "gradientes": 0,
+      "cristal": 0,
       "halos": 0,
       "lienzos": 0,
-      "total": 55
+      "total": 53
+    },
+    {
+      "archivo": "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
+      "respaldos": 0,
+      "hex": 9,
+      "tam": 30,
+      "rad": 3,
+      "sombras": 0,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
+      "lienzos": 8,
+      "total": 50
     }
   ]
 }
