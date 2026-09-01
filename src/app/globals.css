@@ -3831,6 +3831,11 @@ span.riel-aviso { cursor: default; }
 html:has(.mi-barra-destinos) .theme-toggle {
   bottom: calc(60px + 16px + env(safe-area-inset-bottom, 0px));
 }
+/* En escritorio la dársena está separada del borde y CENTRADA, así que ya no se
+   estorban: el botón vuelve a su sitio en vez de flotar a media pantalla. */
+@media (min-width: 900px) {
+  html:has(.mi-barra-destinos) .theme-toggle { bottom: 24px; }
+}
 
 /* ── LAS FILAS DE OPERACIONES RESPONDEN AL PUNTERO ───────────────────────────
 
@@ -3933,6 +3938,54 @@ html:has(.mi-barra-destinos) .theme-toggle {
    El activo se distingue por `aria-current="page"`, que ya llevaba puesto — no
    por una clase paralela. Mismos peldaños de superficie que `.nx-acc-plana`:
    sin degradado, sin sombra, sin radio nuevo, sin un color que no exista ya. */
+/* ── LOS DESTINOS DEL PORTAL DEL PACIENTE ────────────────────────────────────
+
+   MEDIDO en el navegador, con sesión y token de alcance clínico: a 1440 la
+   barra salía **1440 × 60**, cinco columnas iguales de 288 px, mientras la
+   columna de contenido mide 560. El destino activo era, por tanto, una losa
+   cian de 288 px de ancho — la quinta parte de la pantalla — bajo un contenido
+   que ocupaba el tercio de en medio. Una barra de teléfono estirada a un
+   escritorio, que es exactamente lo que la regla de diseño prohíbe.
+
+   No podía ser de otra manera: la colocación estaba en el `style` en línea del
+   componente, y un estilo en línea gana a toda media query. Mover las cinco
+   propiedades aquí no es orden por gusto — es lo que hace POSIBLE que haya dos
+   formas.
+
+   · teléfono  → barra fija abajo, a lo ancho: se usa con una mano, de pie.
+   · escritorio → dársena centrada sobre la columna de contenido, del ancho de
+     lo que se está leyendo. Sin sombra nueva: el trinquete de diseño sólo baja,
+     y un borde y una superficie ya la separan del fondo.
+*/
+.mi-barra-destinos {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  gap: 2px;
+  /* 2px de holgura para que el teñido del activo sea una pastilla y no una losa
+     de borde a borde; el alto útil (60px) no cambia. */
+  padding: 2px 2px calc(2px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 900px) {
+  .mi-barra-destinos {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(560px, calc(100% - 32px));
+    bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 4px;
+  }
+}
+
 .nx-destino-portal {
   background: transparent;
   border: none;
@@ -3952,9 +4005,14 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-destino-portal:active { background: var(--s3); }
 
 /* Donde ya estás: se tiñe, y al pasar por encima sigue acusando sin fingir que
-   te lleva a otro sitio. */
-.nx-destino-portal[aria-current='page'] { color: var(--nexus); }
-.nx-destino-portal[aria-current='page']:hover { background: var(--nexus-soft); }
+   te lleva a otro sitio.
+
+   El teñido va REDONDEADO y con holgura, no de borde a borde de la celda: a
+   1440 la celda mide 288 px y el activo se pintaba como una losa cian de un
+   quinto de pantalla. Se marca el destino, no se ilumina un tercio del mueble. */
+.nx-destino-portal { border-radius: 10px; }
+.nx-destino-portal[aria-current='page'] { color: var(--nexus); background: var(--nexus-soft); }
+.nx-destino-portal[aria-current='page']:hover { background: color-mix(in srgb, var(--nexus) 18%, transparent); }
 
 /* LA CONFIRMACIÓN DESTRUCTIVA RELLENA — «Anular cobro», y las que vengan.
 

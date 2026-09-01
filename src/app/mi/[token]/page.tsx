@@ -13,6 +13,7 @@ import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
+import ViaDeUrgencia from '@/components/portal/ViaDeUrgencia'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -113,11 +114,11 @@ const API = '/api/portal'
  * cuántos destinos hay ni cómo se llaman.
  */
 const DESTINOS = [
-  { id: 'hoy' as const,        etiqueta: 'Hoy',        icono: Home },
-  { id: 'preguntar' as const,  etiqueta: 'Preguntar',  icono: MessageCircle },
-  { id: 'cuidado' as const,    etiqueta: 'Cuidado',    icono: HeartPulse },
-  { id: 'documentos' as const, etiqueta: 'Documentos', icono: FileText },
-  { id: 'perfil' as const,     etiqueta: 'Perfil',     icono: User },
+  { id: 'hoy' as const,        etiqueta: 'Hoy',        icono: Home,          pista: 'Tus citas: confirmar, reagendar o cancelar.' },
+  { id: 'preguntar' as const,  etiqueta: 'Preguntar',  icono: MessageCircle, pista: 'Cómo hablar con el equipo de tu médico.' },
+  { id: 'cuidado' as const,    etiqueta: 'Cuidado',    icono: HeartPulse,    pista: 'Lo que tu médico te dejó de cada consulta.' },
+  { id: 'documentos' as const, etiqueta: 'Documentos', icono: FileText,      pista: 'Tus recetas, para descargar y llevar.' },
+  { id: 'perfil' as const,     etiqueta: 'Perfil',     icono: User,          pista: 'Tu enlace, tu consultorio y tus datos.' },
 ]
 
 const ESTADO_TERMINAL = new Set(['atendida', 'finalizada', 'cancelada', 'no-asistio', 'reagendada'])
@@ -192,6 +193,18 @@ export default function MiPortalPage() {
   const [error, setError] = useState('')
   const [accion, setAccion] = useState<string>('') // id de cita con acción en curso
   const [reagendando, setReagendando] = useState<string>('') // id de cita en modo reagenda
+  /** id de la cita cuya cancelación se está confirmando en la propia pantalla. */
+  const [cancelando, setCancelando] = useState<string>('')
+  /**
+   * LO QUE NO SE PUDO HACER, ESCRITO EN LA PANTALLA — no en un `alert()`.
+   *
+   * Tres fallos se contaban con el diálogo nativo del navegador. El paciente
+   * toca «Aceptar» y la pantalla queda EXACTAMENTE igual que si hubiera
+   * funcionado: no hay forma de saber después si su cita se canceló o no. Un
+   * aviso que se puede cerrar sin dejar rastro no es un aviso de error, es un
+   * error escondido detrás de un botón.
+   */
+  const [avisoAccion, setAvisoAccion] = useState('')
   /** Pago del anticipo: se abre el Checkout de Stripe atado a la cita. */
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState('')
@@ -245,16 +258,16 @@ export default function MiPortalPage() {
   }, [sesion?.clinica?.nombre])
 
   const accionCita = async (action: string, citaId: string, extra: Record<string, unknown> = {}) => {
-    setAccion(citaId + action)
+    setAccion(citaId + action); setAvisoAccion('')
     try {
       const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, token, citaId, ...extra }) })
       const data = await r.json().catch(() => ({}))
-      if (!r.ok) { alert(data.error || 'No se pudo completar la acción.'); return false }
+      if (!r.ok) { setAvisoAccion(data.error || 'No se pudo completar la acción. Tu cita sigue como estaba.'); return false }
       await cargar()
       setReagendando('')
       return true
     } catch {
-      alert('Sin conexión. Intenta de nuevo.')
+      setAvisoAccion('Sin conexión. Tu cita sigue como estaba: vuelve a intentarlo.')
       return false
     } finally {
       setAccion('')
@@ -304,7 +317,7 @@ export default function MiPortalPage() {
      * descargaba nada y el paciente no veía ningún error.
      */
     const fechaDoc = fechaFlexible(doc.fecha, tzClinica)
-    if (!fechaDoc) { alert('Esta receta no tiene una fecha válida. Pídesela al consultorio.'); return }
+    if (!fechaDoc) { setAvisoAccion('Esta receta no tiene una fecha válida. Pídesela al consultorio.'); return }
     /**
      * LA RECETA DEL PACIENTE DICE QUIÉN LA PRESCRIBIÓ — H-01.
      *
@@ -369,12 +382,37 @@ export default function MiPortalPage() {
         pantalla no tiene a dónde saltar.
       */}
       <main style={{ maxWidth: 560, margin: '0 auto' }}>
-        {/* Encabezado */}
-        <div style={{ marginBottom: 24 }}>
+        {/*
+          EL ENCABEZADO DICE DÓNDE ESTÁS.
+
+          El subtítulo era fijo —«Aquí puedes gestionar tus citas.»— y se pintaba
+          en los CINCO destinos: medido, las veinte combinaciones de ancho y tema.
+          Encima del plan de cuidado, encima de las recetas y encima del aviso de
+          urgencia, la única línea que orienta nombraba otra pantalla.
+        */}
+        <div style={{ marginBottom: 20 }}>
           <div className="t-overline" style={{ color: 'var(--nexus)' }}>{sesion.clinica?.nombre || 'Mi portal'}</div>
           <h1 className="t-display" style={{ marginTop: 4 }}>Hola{sesion.paciente ? `, ${sesion.paciente.split(' ')[0]}` : ''}</h1>
-          <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 4 }}>Aquí puedes gestionar tus citas.</p>
+          <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 4 }}>
+            {DESTINOS.find(d => d.id === destino)?.pista}
+          </p>
         </div>
+
+        {/*
+          LA VÍA DE URGENCIA, ANTES QUE NADA Y EN TODOS LOS DESTINOS.
+          §6 de `patient-facing-ai.md`. Estaba en el tercer párrafo de una sola
+          pestaña, en la letra más pequeña del portal, y el número no se podía
+          marcar. Ver `src/components/portal/ViaDeUrgencia.tsx`.
+        */}
+        <ViaDeUrgencia telefonoConsultorio={sesion.clinica?.telefono} />
+
+        {avisoAccion && (
+          <div role="alert" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', border: '1px solid color-mix(in srgb, var(--red) 42%, transparent)', background: 'color-mix(in srgb, var(--red) var(--tinte), var(--s1))', borderRadius: 'var(--r-lg)', padding: 14, marginBottom: 20 }}>
+            <AlertTriangle size={17} aria-hidden="true" style={{ color: 'var(--red-texto)', flexShrink: 0, marginTop: 1 }} />
+            <p style={{ margin: 0, flex: 1, fontSize: 14, color: 'var(--text2)', lineHeight: 1.55 }}>{avisoAccion}</p>
+            <button type="button" onClick={() => setAvisoAccion('')} className="btn btn-ghost btn-sm">Entendido</button>
+          </div>
+        )}
 
         {destino === 'hoy' && (<>
         {/* Próximas citas */}
@@ -446,13 +484,49 @@ export default function MiPortalPage() {
                     <button onClick={() => setReagendando(reagendando === c.id ? '' : c.id)} disabled={!!accion} className="btn btn-secondary btn-sm">
                       <CalendarClock size={14} /> Reagendar
                     </button>
-                    <button onClick={() => { if (confirm('¿Cancelar esta cita?')) accionCita('cancelar', c.id) }} disabled={!!accion} aria-busy={accion === c.id + 'cancelar'} className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }}>
-                      {accion === c.id + 'cancelar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} aria-hidden="true" />} Cancelar
+                    <button onClick={() => setCancelando(cancelando === c.id ? '' : c.id)} disabled={!!accion} aria-expanded={cancelando === c.id} className="btn btn-secondary btn-sm" style={{ color: 'var(--red-texto)' }}>
+                      <XCircle size={14} aria-hidden="true" /> Cancelar
                     </button>
                     <a href={gcalLink(c, tzClinica)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
                       <CalendarPlus size={14} /> Agendar
                     </a>
                   </div>
+                  {/*
+                    CANCELAR UNA CITA MÉDICA NO SE PREGUNTA CON UN `confirm()`.
+
+                    Comprobado disparándolo en el navegador: salía el diálogo
+                    NATIVO «¿Cancelar esta cita?». Ese cuadro no se puede
+                    rotular, ni traducir, ni leer con el resto de la pantalla, y
+                    sus dos botones dicen «Aceptar» y «Cancelar» — donde
+                    «Cancelar» significa *no cancelar*. En la pantalla del
+                    paciente, la palabra del botón contradice la acción.
+
+                    Y no decía **nada de lo que importa**: que hay una ventana de
+                    aviso del consultorio, y que reagendar es una alternativa que
+                    ya está ahí al lado. Se dice antes, no después.
+                  */}
+                  {cancelando === c.id && (
+                    <div role="group" aria-label="Confirmar la cancelación" style={{ marginTop: 14, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--red) 34%, transparent)' }}>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>¿Cancelar esta cita?</p>
+                      <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+                        {sesion.minHoras > 0
+                          ? `Tu consultorio pide avisar con al menos ${sesion.minHoras} horas de anticipación. `
+                          : ''}
+                        Si sólo te queda mal la hora, puedes reagendarla sin perderla.
+                      </p>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                        <button onClick={() => accionCita('cancelar', c.id).then(ok => { if (ok) setCancelando('') })} disabled={!!accion} aria-busy={accion === c.id + 'cancelar'} className="btn btn-sm nx-acc-destructiva" style={{ color: 'var(--sobre-aviso)' }}>
+                          {accion === c.id + 'cancelar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} aria-hidden="true" />} Sí, cancelar
+                        </button>
+                        <button onClick={() => { setCancelando(''); setReagendando(c.id) }} disabled={!!accion} className="btn btn-secondary btn-sm">
+                          <CalendarClock size={14} aria-hidden="true" /> Mejor reagendar
+                        </button>
+                        <button onClick={() => setCancelando('')} disabled={!!accion} className="btn btn-ghost btn-sm">
+                          Dejarla como está
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {reagendando === c.id && <PanelReagenda cita={c} token={token} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
                 </>
               )}
@@ -534,21 +608,37 @@ export default function MiPortalPage() {
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Preguntar</h2>
           <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)' }}>
             <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
-              Si tienes una duda sobre tu tratamiento, escríbele a tu consultorio.
+              Si tienes una duda sobre tu tratamiento, habla con tu consultorio.
               Quien te responde es el equipo de tu médico.
             </p>
-            {sesion.clinica?.telefono && (
+            {/*
+              ESTE DESTINO NO PUEDE QUEDARSE SIN NINGUNA ACCIÓN.
+
+              Medido en el navegador: con el consultorio sin teléfono en su
+              configuración, «Preguntar» pintaba **cero botones y cero enlaces**.
+              Una pantalla que existe para llevarte con tu médico, diciéndote que
+              hables con él y sin decir cómo — y sin decir tampoco que no lo sabe.
+              El silencio se lee como «ya lo intenté».
+            */}
+            {sesion.clinica?.telefono ? (
               <a href={`tel:${sesion.clinica.telefono}`} className="btn btn-primary btn-sm"
                  style={{ display: 'inline-flex', marginTop: 14 }}>
-                Llamar al consultorio
+                <Phone size={14} aria-hidden="true" /> Llamar al consultorio
               </a>
+            ) : (
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
+                Tu consultorio no dejó aquí un teléfono. Usa el número por el que
+                agendaste tu cita, o pídeselo cuando vayas.
+              </p>
             )}
-            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 14, marginBottom: 0 }}>
-              Si es una urgencia —dolor en el pecho, dificultad para respirar,
-              síntomas neurológicos— no esperes respuesta por aquí: acude a
-              urgencias o llama al 911.
-            </p>
           </div>
+          {/*
+            Y desde aquí también se llega a lo que tu médico ya te dejó escrito:
+            era la única pantalla del portal sin salida hacia otra.
+          */}
+          <button type="button" onClick={() => setDestino('cuidado')} className="btn btn-ghost btn-sm" style={{ marginTop: 12 }}>
+            <HeartPulse size={14} aria-hidden="true" /> Ver lo que me dejó mi médico
+          </button>
         </>)}
         {destino === 'cuidado' && (<>
           {/*
@@ -801,12 +891,13 @@ export default function MiPortalPage() {
         cinco es el techo, no el objetivo. Van fijos abajo porque esta pantalla
         se usa con una mano, de pie, en la sala de espera.
       */}
-      <nav aria-label="Secciones" className="mi-barra-destinos" style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
-        display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
-        background: 'var(--s1)', borderTop: '1px solid var(--border)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}>
+      {/*
+        La colocación vive en la hoja, no aquí: un estilo en línea gana a
+        cualquier media query, así que con esto puesto en el `style` la barra NO
+        PODÍA tener dos formas. Es la razón mecánica de que fuera la misma
+        pantalla estirada. Ver `.mi-barra-destinos` en globals.css.
+      */}
+      <nav aria-label="Secciones" className="mi-barra-destinos">
         {DESTINOS.map(d => {
           const activo = destino === d.id
           return (

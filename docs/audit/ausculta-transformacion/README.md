@@ -1,6 +1,6 @@
 # Transformación de experiencia de producto — acta
 
-Ocho unidades, del 1-sep-2026. Cada una salió de **mirar el producto servido
+Doce unidades, del 1-sep-2026. Cada una salió de **mirar el producto servido
 en un navegador**, no de leer el código; las capturas de `antes/` y `despues/`
 son la prueba, y `interno/` son las pantallas del consultorio con sesión real
 contra el emulador.
@@ -19,6 +19,12 @@ node scripts/design/sembrar-emulador.mjs
 npm run arnes:dev                                  # http://localhost:3200
 SALIDA=docs/audit/ausculta-transformacion/interno ANCHOS=390,1440 \
   node scripts/carril-excelencia/capturar-con-sesion.mjs http://localhost:3200 hoy <rutas…>
+
+# el portal del paciente (token HMAC, no sesión de equipo)
+PORTAL_PACIENTE_SECRET=<16+ caracteres, el mismo del servidor> npm run arnes:dev
+PORTAL_PACIENTE_SECRET=… node scripts/ausculta-transformacion/mirar-el-portal.mjs   http://localhost:3200 <salida>
+PORTAL_PACIENTE_SECRET=… node scripts/ausculta-transformacion/cancelar-una-cita.mjs http://localhost:3200 <salida>
+BASE=http://localhost:3200 PORTAL_PACIENTE_SECRET=… node scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs
 
 # accesibilidad, en los DOS temas
 node scripts/carril-excelencia/axe-recorridos.mjs   http://localhost:3200 <rutas…>   # oscuro
@@ -44,6 +50,10 @@ node scripts/ausculta-transformacion/medir-sidebar.mjs
 | La agenda del teléfono no dejaba leer un nombre | Captura de `/calendario` a 390 con sesión | `interno/calendario-hoy-390.png` |
 | La agenda salía **rosa** con un solo médico | `getComputedStyle` del bloque real | `medir-color.mjs` |
 | El nombre del consultorio envolvía a dos renglones | Alto medido: 42 px en vez de 21 | `medir-sidebar.mjs` |
+| El aviso de urgencia del paciente era el texto **más pequeño y más apagado** del portal | Estilos computados de los cinco destinos | `portal/preguntar-390-*.png` |
+| «Preguntar» pintaba **cero** botones y cero enlaces | `ctrl 0` en las cuatro combinaciones | `mirar-el-portal.mjs` |
+| Cancelar una cita salía por un `confirm()` **nativo** | Pulsándolo con un escuchador de diálogos | `cancelar-una-cita.mjs` |
+| La barra del portal salía **1440 × 60** en escritorio | Caja medida de `nav[aria-label=Secciones]` | `portal/hoy-1440-dark.png` |
 
 Y una que sólo se vio **volviendo a medir después de arreglar**: la cabecera
 del shell se corrigió en `Sidebar.tsx` y no cambió un píxel, porque a 1440
@@ -61,7 +71,11 @@ quien la pinta es `FlowRail.tsx`. El diff se veía perfecto.
 | Marcas de proveedor de IA de cara al médico | 7 | 0 |
 | Trinquete de lint | 95 | **94** |
 | Trinquete de diseño · hex en línea | 357 | **328** |
-| Trinquete de diseño · tamaños fuera de escala | 1 947 | **1 874** |
+| Trinquete de diseño · tamaños fuera de escala | 1 947 | **1 873** |
+| Diálogos nativos del navegador en el portal del paciente | 4 (`confirm` ×1, `alert` ×3) | **0** |
+| Destinos del portal sin ninguna acción | 3 de 5 | **0** |
+| Ancho de la barra de destinos a 1440 | 1 440 px | **560 px**, centrada sobre la columna |
+| El portal en `arnes:nada-tapa` | SIN MEDIR (faltaba el secreto) | **22 controles, 0 tapados** |
 
 ## Lo que NO se pudo comprobar aquí, dicho
 
@@ -72,4 +86,29 @@ quien la pinta es `FlowRail.tsx`. El diff se veía perfecto.
   IndexedDB y no se deja frenar desde fuera.
 - **La línea de tiempo del expediente con años de historia.** El emulador
   siembra un encuentro; juzgar si «cuenta una historia» con una muestra de uno
-  sería opinar, no medir.
+  sería opinar, no medir. Se resolvió sembrando once
+  (`sembrar-historia-larga.mjs`), y ahí salió la fecha corrida de un día.
+- **Que el `tel:911` marque de verdad.** Chromium sin marcador no llama a nadie.
+  Lo comprobado es que el destino sea un enlace `tel:` con el número del módulo,
+  y no texto muerto.
+- **El aviso de urgencia repetido en los cinco destinos.** Es una decisión, no
+  una medición: la regla dice que la urgencia gana, y ver el aviso cinco veces
+  cuesta menos que no verlo una. Si a un paciente real se le vuelve invisible
+  por costumbre, eso sólo se sabe con pacientes reales.
+
+## Dos trampas del arnés que dieron falsos verdes
+
+Las dos costaron una lectura equivocada antes de descubrirse, y las dos están
+ya cerradas en el guion que las sufrió:
+
+1. **El limitador de tasa.** `/api/portal` permite 15 peticiones de alcance
+   clínico cada diez minutos, y cada carga gasta dos. Pasado el tope, «Cuidado»
+   y «Documentos» pintan sus estados de error —que son correctos, y no son el
+   portal— y la captura se ve sanísima. `mirar-el-portal.mjs` ahora **aborta con
+   3** si ve un 429.
+2. **La hoja de estilos servida en caliente.** `next dev` volvió a servir el CSS
+   viejo tras editar `globals.css`: la barra de destinos se midió en 358 × 294,
+   apilada, porque la regla nueva sencillamente no estaba en el fragmento
+   servido. Se comprueba pidiendo el `.css` servido y buscando la regla dentro;
+   se arregla parando el servidor, borrando `.next` y arrancando en frío. Van
+   cuatro veces en esta rama.
