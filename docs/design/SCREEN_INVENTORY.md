@@ -35,7 +35,7 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 982 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 1073 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
@@ -92,7 +92,7 @@
 | `/contacto` | publica | — | 70 | 2 | — | ✅ | — |
 | `/demo` | publica | — | 510 | 4 | — | ✅ | — |
 | `/demo/interactivo` | publica | ✅ | 772 | 2 | — | ✅ | — |
-| `/demo/razonamiento` | publica | ✅ | 146 | 3 | — | ✅ | — |
+| `/demo/razonamiento` | publica | ✅ | 158 | 3 | — | ✅ | — |
 | `/evidencia` | publica | — | 81 | 1 | — | ✅ | — |
 | `/legal` | publica | ✅ | 113 | 1 | — | ✅ | — |
 | `/login` | publica | ✅ | 391 | 5 | — | ✅ | — |

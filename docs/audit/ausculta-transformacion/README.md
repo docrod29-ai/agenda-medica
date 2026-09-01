@@ -1,6 +1,6 @@
 # Transformación de experiencia de producto — acta
 
-Doce unidades, del 1-sep-2026. Cada una salió de **mirar el producto servido
+Trece unidades, del 1-sep-2026. Cada una salió de **mirar el producto servido
 en un navegador**, no de leer el código; las capturas de `antes/` y `despues/`
 son la prueba, y `interno/` son las pantallas del consultorio con sesión real
 contra el emulador.
@@ -54,6 +54,8 @@ node scripts/ausculta-transformacion/medir-sidebar.mjs
 | «Preguntar» pintaba **cero** botones y cero enlaces | `ctrl 0` en las cuatro combinaciones | `mirar-el-portal.mjs` |
 | Cancelar una cita salía por un `confirm()` **nativo** | Pulsándolo con un escuchador de diálogos | `cancelar-una-cita.mjs` |
 | La barra del portal salía **1440 × 60** en escritorio | Caja medida de `nav[aria-label=Secciones]` | `portal/hoy-1440-dark.png` |
+| «IA» y «Regla con código» se pintaban del **mismo color** | Color computado de cada distintivo, uno a uno | `evidencia/fallo-390-dark.png` |
+| El sello «PubMed real» seguía puesto con PubMed caído | El estado real, con la salida a PubMed cerrada | `evidencia/fallo-390-dark.png` |
 
 Y una que sólo se vio **volviendo a medir después de arreglar**: la cabecera
 del shell se corrigió en `Sidebar.tsx` y no cambió un píxel, porque a 1440
@@ -76,6 +78,8 @@ quien la pinta es `FlowRail.tsx`. El diff se veía perfecto.
 | Destinos del portal sin ninguna acción | 3 de 5 | **0** |
 | Ancho de la barra de destinos a 1440 | 1 440 px | **560 px**, centrada sobre la columna |
 | El portal en `arnes:nada-tapa` | SIN MEDIR (faltaba el secreto) | **22 controles, 0 tapados** |
+| Colores distintos entre los 4 orígenes del razonamiento | 3 de 4 | **4 de 4**, y con tinte propio |
+| Trinquete de diseño · tamaños fuera de escala | 1 947 | **1 869** |
 
 ## Lo que NO se pudo comprobar aquí, dicho
 
@@ -88,6 +92,19 @@ quien la pinta es `FlowRail.tsx`. El diff se veía perfecto.
   siembra un encuentro; juzgar si «cuenta una historia» con una muestra de uno
   sería opinar, no medir. Se resolvió sembrando once
   (`sembrar-historia-larga.mjs`), y ahí salió la fecha corrida de un día.
+- **El panel de razonamiento DENTRO de la consulta.** Se monta sólo si hay
+  diagnósticos, medicamentos, resumen o signos, y la consulta sembrada está en
+  blanco: el arnés no encontró ni el desplegable. Lo verificado es el mismo
+  componente en `/demo/razonamiento`. Sembrar una consulta con datos clínicos
+  es trabajo con nombre.
+- **El estado de ÉXITO de la evidencia en vivo.** Este entorno no alcanza
+  `eutils.ncbi.nlm.nih.gov` —el proxy de salida lo rechaza—, así que se midió
+  con la respuesta simulada (`page.route`). Lo que devuelva la red real, no
+  visto.
+- **El sitio público, fuera de la portada.** `NavPublica` está en 3 de 11
+  páginas públicas. Siguen sin navegación: `/evidencia`, `/seguridad`,
+  `/arquitectura`, `/operacion`, `/contacto`, `/paquetes`, `/privacidad`,
+  `/terminos`. Medido: `/evidencia` tiene **una sola salida interna** (`/`).
 - **Que el `tel:911` marque de verdad.** Chromium sin marcador no llama a nadie.
   Lo comprobado es que el destino sea un enlace `tel:` con el número del módulo,
   y no texto muerto.
@@ -106,7 +123,12 @@ ya cerradas en el guion que las sufrió:
    y «Documentos» pintan sus estados de error —que son correctos, y no son el
    portal— y la captura se ve sanísima. `mirar-el-portal.mjs` ahora **aborta con
    3** si ve un 429.
-2. **La hoja de estilos servida en caliente.** `next dev` volvió a servir el CSS
+2. **Una medición contra la hoja vieja.** `arnes:nada-tapa` se corrió sobre el
+   portal ANTES de descubrir el CSS rancio, así que midió la barra apilada y
+   no la que se despliega. Salió el mismo resultado —0 tapados— pero por
+   suerte, no por método: se repitió con la hoja buena (789 controles, 0
+   tapados) y **ése** es el número que cuenta.
+3. **La hoja de estilos servida en caliente.** `next dev` volvió a servir el CSS
    viejo tras editar `globals.css`: la barra de destinos se midió en 358 × 294,
    apilada, porque la regla nueva sencillamente no estaba en el fragmento
    servido. Se comprueba pidiendo el `.css` servido y buscando la regla dentro;

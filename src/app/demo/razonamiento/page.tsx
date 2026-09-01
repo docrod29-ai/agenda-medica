@@ -110,7 +110,19 @@ export default function DemoRazonamientoPage() {
         <h2 style={{ fontSize: 17, fontWeight: 700, margin: '10px 0 8px' }}>Los 12 pasos, con fuente y confianza</h2>
         <PanelRazonamiento entrada={CASO} embebido />
 
-        <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>Evidencia real, recuperada al momento</h2>
+        {/*
+          EL TÍTULO TAMBIÉN ES UNA AFIRMACIÓN, Y TENÍA QUE SOBREVIVIR AL FALLO.
+
+          Decía «Evidencia real, recuperada al momento» — en 17 px y en negrita,
+          justo encima del bloque que en ese momento estaba diciendo que PubMed
+          no había contestado. Arreglar el sello de dentro y dejar el título
+          fuera habría movido el problema tres centímetros.
+
+          El título nuevo dice la REGLA, que es cierta en los dos estados, y
+          convierte el fallo en la demostración de la regla en vez de en una
+          promesa rota. Que es, además, lo que de verdad vende este producto.
+        */}
+        <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>La evidencia se recupera de PubMed — o no se enseña</h2>
         <EvidenciaEnVivo />
 
         <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>Y lo que el copiloto sugiere (calculado, no inventado)</h2>
