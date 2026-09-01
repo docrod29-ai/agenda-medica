@@ -19,15 +19,17 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/product/DECISION_REGISTER.md",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/cada-capacidad-de-ia-tiene-su-contrato.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
     " M src/lib/ia/contratos-de-evaluacion.ts",
-    " M src/lib/programa/requisitos.ts"
+    " M src/lib/ia/evaluacion.ts",
+    " M src/lib/programa/requisitos.ts",
+    "?? src/__tests__/el-umbral-decidido-de-verdad-reprueba.test.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 297,
+    "regsEnElLedger": 298,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 866,
-    "casosDePrueba": 10898,
+    "archivosDePrueba": 867,
+    "casosDePrueba": 10914,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

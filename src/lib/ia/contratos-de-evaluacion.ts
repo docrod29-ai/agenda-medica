@@ -303,8 +303,15 @@ export function nombresCanonicos(): readonly string[] {
   return CONTRATOS.map(c => c.capacidad)
 }
 
-/** ¿Este umbral lo tiene que fijar todavía alguien con cédula? */
-export function esperaAlMedico(u: Umbral): boolean {
+/**
+ * ¿Este umbral lo tiene que fijar todavía alguien con cédula?
+ *
+ * Es un predicado de tipo a propósito (REG-447): la compuerta que aplica el
+ * umbral necesita ESTRECHAR el tipo para leer `valor` y `ejes`, y si esto
+ * devolviera un `boolean` a secas haría falta un `as` en el sitio exacto donde
+ * un `as` mal puesto convertiría un umbral pendiente en un número.
+ */
+export function esperaAlMedico(u: Umbral): u is { readonly [PENDIENTE_DEL_MEDICO]: string } {
   return PENDIENTE_DEL_MEDICO in u
 }
 

@@ -17820,6 +17820,95 @@ se llama.
 
 ---
 
+## REG-447 — el umbral estaba decidido, escrito… y no reprobaba nada
+
+**Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 1-sep-2026.
+**Prueba.** `src/__tests__/el-umbral-decidido-de-verdad-reprueba.test.ts`.
+
+### Lo que faltaba
+
+REG-446 dejó el umbral de `nota-consulta` escrito en el contrato con su fuente y
+sus dos ejes. Su propia entrada del ledger lo dijo: *«que el umbral se APLIQUE es
+otra mitad»*. Esa mitad era ésta.
+
+El arnés (`ia/evaluacion.ts`) medía por un lado. El número del médico vivía por
+otro. **Entre los dos no había una sola función.** Un umbral que no puede
+reprobar nada es lo que el propio contrato llama una métrica decorativa — sólo
+que aquí la decoración la habríamos puesto nosotros, encima de una decisión que
+el médico sí tomó. Es la familia «escrito y sin conectar» de *el dato tiene que
+LLEGAR*, aplicada a un número en vez de a un campo.
+
+### La compuerta
+
+`aplicarUmbral()` toma el umbral **del contrato** —no una copia— y el resumen
+del arnés, y da un veredicto. Se prueba que el número manda: la misma salida rota
+que reprueba con el 1 % del médico pasa con un 50 % armado en la prueba.
+
+La traducción de eje a métrica es de quien escribe el código, así que se eligió
+siempre el lado estricto y se dejó escrita:
+
+| Eje del médico | Lo que mide | Por qué así |
+|---|---|---|
+| **pérdida** | `tasaError` = (faltantes + **incorrectos**) / esperados | Un campo que llegó cambiado tampoco llegó. Contar los incorrectos es más duro que la lectura literal de «perdida» |
+| **alucinación** | `alucinacionesPorCaso` | Con el umbral en cero el denominador da igual; se deja el promedio para el día que alguien lo suba |
+
+### Tres cosas que un descuido leería como verde
+
+1. **Umbral pendiente.** Catorce de las quince capacidades siguen en
+   `NEEDS_CLINICAL_REVIEW`. Si eso se leyera como aprobado, el hueco pasaría a
+   ser un visto bueno.
+2. **Conjunto vacío.** Cero casos dan cero errores y cero alucinaciones: sin
+   guarda, **la forma más fácil de tener la compuerta verde sería borrar el
+   corpus**, y la compuerta mediría el corpus en vez del producto.
+3. **Un eje que el arnés no sabe medir.** Ausencia de dato no es dato de
+   ausencia (seguridad clínica §4), dicho en lenguaje de compuerta.
+
+Ninguno de los tres devuelve `pasa`, y `esVerde()` es el **único** sitio donde se
+define «verde» — existe para que nadie escriba `veredicto !== 'reprueba'` y
+convierta los tres huecos en aprobación por descuido.
+
+### Lo que hay que decir y no es cómodo: el 1 % no se está ejerciendo
+
+Medido antes de escribir nada: el corpus tiene **4 casos y 4 campos esperados**.
+El escalón más pequeño que se puede medir en el eje `perdida` es **1/4 = 25 %**,
+veinticinco veces el umbral. En la práctica la compuerta se comporta hoy como si
+ese umbral fuera **cero**.
+
+Eso es más estricto, no más laxo, así que se aplica igual. Lo que no se puede
+hacer es callarlo: cada lectura lo declara (`elConjuntoNoAlcanzaElUmbral`) y el
+`porQue` lo dice con todas las letras. **Para ejercer el 1 % de D-029 harían
+falta ≥ 100 campos esperados, y ese conjunto no existe.** Hay contraprueba con
+cien campos sintéticos: la limitación es del corpus, no del código.
+
+### Probado al revés cinco veces
+
+Quitar la guarda del conjunto vacío · ignorar el umbral · callar la resolución ·
+leer un umbral pendiente como verde · dejar de medir la alucinación. Las cinco
+mutaciones ponen la prueba en rojo. Y por el otro lado —el de pasarse de
+frenada— se comprueba que la variación de redacción y un campo de más que **sí
+estaba en el dictado** no reprueban: una compuerta siempre roja se deja de mirar,
+que es el argumento con el que el médico descartó el 0 % en `perdida`.
+
+### Los trinquetes decidieron dónde vive, y tenían razón
+
+La compuerta nació como módulo aparte, y **dos trinquetes la rechazaron**:
+`modulos-sin-conectar` porque nadie la llamaba, y `el-camino-del-medico-llega-entero`
+porque subía de 33 a 34 los módulos fuera del camino del médico — y ese techo sólo
+baja.
+
+La salida no era subir el techo ni declarar una isla más: era que la compuerta
+**no es un módulo aparte**. Vive dentro de `ia/evaluacion.ts`, que es el
+instrumento que mide. Un arnés que mide y no compara contra el umbral decidido
+está a medias; separarlos habría dejado dos mitades de un solo instrumento en dos
+archivos, y un archivo nuevo fuera del camino para justificarlo. El techo se
+queda en 33.
+
+### Un cambio de tipo, pequeño y a propósito
+
+`esperaAlMedico()` pasa a ser predicado de tipo. Sin eso, la compuerta habría
+necesitado un `as` justo en el sitio donde un `as` mal puesto convierte un umbral
+pendiente en un número.
+
 ## REG-446 — el primero de los quince umbrales, y tiene dos ejes
 
 **Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 31-ago-2026.
