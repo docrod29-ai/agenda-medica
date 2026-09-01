@@ -17,9 +17,9 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": {
-    "version": "nexusmed-v1177",
-    "confirmadaEl": "2026-08-31",
-    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064",
+    "version": "nexusmed-v1178",
+    "confirmadaEl": "2026-09-01",
+    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
