@@ -23,13 +23,10 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/recovery/REGISTRO-DE-RIESGOS.md",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt",
+    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-09-01-v1179.md"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -63,7 +60,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "product/receta-diseno-security-350",
+  "ramaActual": "claude/paquete-v1179",
   "derivado": {
     "regsEnElLedger": 285,
     "ultimaREG": "REG-505",
@@ -71,5 +68,5 @@
     "casosDePrueba": 11048,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1178"
+  "versionEnElRepo": "nexusmed-v1179"
 }
