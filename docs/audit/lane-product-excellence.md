@@ -6259,3 +6259,81 @@ repositorio, no un accidente.
 de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
 · `tsc` limpio · golden nuevo **6 casos, probado al revés ×3**, uno de ellos con
 otra ortografía a propósito.
+
+---
+
+## Unidad 94 — Evidence: lo que el médico lee cuando la IA no está
+
+Cuarta unidad del núcleo. Capturas en `docs/design/capturas/v94/`.
+
+### Lo primero, declarado: la RESPUESTA no se pudo medir
+
+`/api/consultor-evidencia` necesita `ANTHROPIC_API_KEY` y PubMed. En esta caja no
+hay ninguna de las dos. **La calidad de la respuesta —jerarquía de evidencia,
+solidez, aplicabilidad a ESTE paciente, contradicciones— queda `BLOCKED_EXTERNAL`
+y sin medir.** Lo que sí se pudo ejercitar es lo que el brief nombra aparte: el
+vacío y el error.
+
+### 94a · Se preguntó de verdad, y esto es lo que contestó
+
+```
+⚠️ No hay API key de Claude configurada.
+```
+
+En el **sitio de la respuesta**. Contado después en el árbol:
+
+| | Antes | Después |
+|---|---|---|
+| Rutas que mandan jerga de proveedor al cliente | **19** | **0** |
+| Redacciones distintas del mismo hecho | **7** | **1** |
+
+Cuatro de ellas eran fallos **en marcha**, no falta de llave: un médico que acaba
+de grabar a un paciente leía `OpenAI 429` o `AssemblyAI upload HTTP 413`.
+
+### 94b · Y una de cara al PACIENTE
+
+`/api/telesalud/sala` devolvía `ok: true` con una URL de `meet.example.com` y el
+aviso «DAILY_API_KEY no configurada — usando URL ficticia». Esa pantalla la abre
+**el paciente** con su token del portal. El producto entregaba un enlace de
+videoconsulta que no lleva a ninguna consulta, explicado en lenguaje de
+programador.
+
+### 94c · Y casi escribo un módulo paralelo
+
+Escribí `cuando-la-ia-no-esta.ts` antes de buscar. **`fallo-proveedor.ts` ya
+existía** y es exactamente «lo que el médico lee cuando la IA no funciona»: tiene
+`claseDeFallo`, `quienPaga`, `avisoAlMedico`. Al descubrirlo, el archivo nuevo se
+fusionó dentro en vez de quedarse al lado — `AGENTS.md` §5 lo prohíbe, y aquí
+además habría dejado **dos vocabularios para el mismo momento**, que es el
+defecto que las unidades 92 y 93 vinieron a quitar.
+
+Y me hizo ver algo que estaba **bien** y casi rompo: `avisoAlMedico` nombra al
+proveedor **a propósito** cuando la llave es del consultorio —«Tu llave de
+Anthropic fue rechazada… Actualízala»—. Si el médico le paga a ese proveedor,
+tiene que saber a cuál entrar. El guardián lo respeta.
+
+### 94d · El vacío del Consultor: 56% de la pantalla
+
+Medido: **506 px de 900** entre el último ejemplo y el campo de escribir. La
+pantalla es un chat vacío con cuatro ejemplos arriba y un campo abajo. Declarado,
+**no arreglado**.
+
+### RIESGO RESIDUAL
+
+- **La respuesta de evidencia sigue sin medirse.** `BLOCKED_EXTERNAL`.
+- **El error sigue saliendo en el hueco de la RESPUESTA**, con `⚠️` delante. En
+  una superficie de evidencia, lo que ocupa el lugar de la evidencia tiene que
+  ser inconfundiblemente no-evidencia.
+- **No está en región viva**: quien usa lector de pantalla no se entera de que su
+  pregunta falló. Anunciar el flujo delta a delta sería REG-419 otra vez, así que
+  hay que anunciar la CONCLUSIÓN — decisión de diseño, no hecha.
+- El vacío de 506 px, sin tocar.
+- El paciente no aparece por ningún lado en la superficie de evidencia: «¿aplica
+  a ESTE paciente?» no se contesta.
+
+### COMPUERTAS
+
+`npx vitest run` **12 082 de 12 083** —el único rojo es `ops-timeout-y-punto-ciego`,
+de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
+· `tsc` limpio · golden nuevo **6 casos, probado al revés ×3**, uno con otra
+redacción de la jerga · verificado en navegador preguntando de verdad.

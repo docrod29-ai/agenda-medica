@@ -22,6 +22,22 @@
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/api/consultor-evidencia/route.ts",
+    " M src/app/api/expediente/antibiograma-razonar/route.ts",
+    " M src/app/api/expediente/antibiograma-vision/route.ts",
+    " M src/app/api/expediente/corregir/route.ts",
+    " M src/app/api/expediente/evidencia/route.ts",
+    " M src/app/api/expediente/extraer-entidades/route.ts",
+    " M src/app/api/expediente/laboratorio-vision/route.ts",
+    " M src/app/api/expediente/procesar/route.ts",
+    " M src/app/api/expediente/transcribir-chunk/route.ts",
+    " M src/app/api/expediente/transcribir-diarizado/route.ts",
+    " M src/app/api/expediente/transcribir/route.ts",
+    " M src/app/api/expediente/verificar-nota/route.ts",
+    " M src/app/api/inmuno/redactar/route.ts",
+    " M src/app/api/receta/detectar-campos/route.ts",
+    " M src/app/api/telesalud/sala/route.ts",
+    " M src/app/api/uci/copilot/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts"
   ],
   "actualizado": "2026-09-01",
@@ -58,10 +74,10 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 271,
+    "regsEnElLedger": 272,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 894,
-    "casosDePrueba": 10842,
+    "archivosDePrueba": 895,
+    "casosDePrueba": 10848,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

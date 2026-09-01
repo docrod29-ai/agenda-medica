@@ -40,6 +40,7 @@ import { leerMemoriaMedico, textoMemoria, aprenderDeMedico } from '@/lib/memoria
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300  // el Consultor encadena varios modelos; margen amplio (se topa al plan de Vercel)
@@ -273,7 +274,7 @@ export async function POST(req: NextRequest) {
   // con llave propia del consultorio NO se corta, porque paga su propia API.
   const corteCreditos = await gateCreditos(clinicId, fuente)
   if (corteCreditos) return corteCreditos
-  if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
+  if (!key) return NextResponse.json({ ok: false, error: iaNoDisponible('evidencia').mensaje }, { status: 503 })
 
   let body: { pregunta?: string; historial?: { rol: string; texto: string }[]; contextoPaciente?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }

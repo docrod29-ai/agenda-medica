@@ -210,3 +210,104 @@ export const POR_QUE_EL_MENSAJE_DEPENDE_DE_QUIEN_PAGA =
   'La llave del consultorio la puede arreglar él en un minuto y hay que ' +
   'decírselo; la de la plataforma no la puede tocar y el aviso urgente le toca ' +
   'al dueño, no al cliente.'
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LA IA QUE NO ESTÁ — que no es lo mismo que la IA que falló
+   ══════════════════════════════════════════════════════════════════════════
+
+   Todo lo de arriba describe una llamada que SALIÓ MAL: la llave fue rechazada,
+   la cuenta no tiene saldo, el proveedor está saturado. `ClaseFallo` no tiene
+   —y no debe tener— un caso para «no hay llave», porque ahí no falló nada: la
+   capacidad nunca se encendió.
+
+   Se añade aquí y no en un módulo aparte porque este archivo ES «lo que el
+   médico lee cuando la IA no funciona», y partirlo en dos habría dejado dos
+   vocabularios para el mismo momento — exactamente el defecto que las unidades
+   92 y 93 de este carril vinieron a quitar.
+
+   ── QUÉ SE MIDIÓ (1-sep-2026) ─────────────────────────────────────────────
+
+   Se preguntó de verdad en el Consultor de Evidencia, sin proveedor detrás, y
+   lo que apareció EN EL SITIO DE LA RESPUESTA fue:
+
+       ⚠️ No hay API key de Claude configurada.
+
+   Contado después: 15 rutas devolvían jerga de proveedor, en 7 redacciones
+   distintas del mismo hecho, desde la más completa hasta `OPENAI_API_KEY no
+   configurada` a secas.
+
+   Y aquí NO se nombra al proveedor, al revés que en `avisoAlMedico`. La
+   diferencia no es de estilo: cuando una llave del consultorio es rechazada, el
+   médico tiene que saber A CUÁL proveedor entrar a arreglarla. Cuando no hay
+   llave ninguna, el nombre del proveedor no le sirve para nada — es una
+   decisión de la casa — y `security-tenant` prohíbe que un error cuente el
+   interior.
+
+   ── Y LO QUE ESTE BLOQUE SÍ DICE Y `avisoAlMedico` NO ─────────────────────
+
+   Qué NO se perdió, por capacidad. `avisoAlMedico` dice «Tu dictado está
+   guardado» en todas sus clases, que es verdad en el camino del dictado y no
+   significa nada en el consultor de evidencia. Aquí cada capacidad dice lo
+   suyo, porque es la pregunta real a media consulta.
+*/
+
+/** Las capacidades de IA que el producto puede perder por separado. */
+export type CapacidadIA =
+  | 'nota'          // estructurar la nota desde el dictado
+  | 'transcripcion' // pasar el audio a texto
+  | 'diarizacion'   // separar las voces del médico y el paciente
+  | 'evidencia'     // el consultor de evidencia
+  | 'vision'        // leer una foto de laboratorio o antibiograma
+  | 'razonamiento'  // segunda opinión, antibiograma razonado
+
+/**
+ * QUÉ NO SE PIERDE. Es lo que hace útil un mensaje de error a media consulta, y
+ * es distinto para cada capacidad: por eso no hay un texto único.
+ */
+const LO_QUE_QUEDA: Record<CapacidadIA, string> = {
+  nota: 'Lo que ya está escrito en la nota se conserva y se puede seguir escribiendo a mano.',
+  transcripcion: 'El audio de la consulta NO se pierde: queda guardado y se puede transcribir después.',
+  diarizacion: 'La transcripción sigue funcionando; lo que no se hace es separar quién dijo cada cosa.',
+  evidencia: 'La consulta y la nota no se ven afectadas.',
+  vision: 'El archivo queda adjunto al expediente y se puede capturar a mano.',
+  razonamiento: 'La nota, la receta y las órdenes siguen funcionando con normalidad.',
+}
+
+const QUE_ES: Record<CapacidadIA, string> = {
+  nota: 'No se puede estructurar la nota automáticamente',
+  transcripcion: 'No se puede transcribir el audio',
+  diarizacion: 'No se pueden separar las voces',
+  evidencia: 'No se puede consultar la evidencia',
+  vision: 'No se puede leer la imagen',
+  razonamiento: 'No se puede pedir la revisión asistida',
+}
+
+export interface IaNoDisponible {
+  /** Para el médico. Sin nombres de proveedor, sin jerga. */
+  mensaje: string
+  /**
+   * Si volver a pulsar puede servir. Una llave que falta NO se arregla
+   * reintentando, y ofrecerlo sería mandar al médico a chocar contra la pared.
+   */
+  reintentar: boolean
+  /** Para distinguir esto de una respuesta de verdad allá donde se pinte. */
+  clase: 'ia_no_disponible'
+}
+
+/**
+ * El mensaje único. `puedeConfigurar` decide el final: quien administra el
+ * consultorio puede arreglarlo; quien no, necesita saber a quién decírselo — y
+ * mandarle a «Configuración» a alguien sin permiso es peor que no decir nada.
+ */
+export function iaNoDisponible(capacidad: CapacidadIA, puedeConfigurar = true): IaNoDisponible {
+  const salida = puedeConfigurar
+    ? 'Actívala en Configuración → Llaves de IA.'
+    : 'Pídele a quien administra el consultorio que la active.'
+  return {
+    mensaje: `${QUE_ES[capacidad]}: la asistencia de IA no está activada en este consultorio. `
+      + `${LO_QUE_QUEDA[capacidad]} ${salida}`,
+    reintentar: false,
+    clase: 'ia_no_disponible',
+  }
+}

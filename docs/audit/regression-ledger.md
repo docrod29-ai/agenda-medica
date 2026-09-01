@@ -15676,3 +15676,79 @@ cambie.
 regresión —la fecha sigue llegando, que es lo que protegen—: exigían **cómo se
 escribe**. Van **ocho** guardianes en tres unidades clavando una ortografía en
 vez de una conducta.
+
+---
+
+## REG-421 — quince rutas le contaban al médico de quién era el modelo
+
+**Dónde**: `src/lib/ia/fallo-proveedor.ts` · 15 rutas de `src/app/api/` ·
+`src/app/api/telesalud/sala/route.ts`
+
+### Qué fallaba
+
+Se preguntó **de verdad** en el Consultor de Evidencia, sin proveedor detrás, y
+lo que apareció **en el sitio de la respuesta** fue:
+
+```
+⚠️ No hay API key de Claude configurada.
+```
+
+Contado después en el árbol: **15 rutas** devolvían jerga de proveedor, en **7
+redacciones distintas** del mismo hecho — desde la más completa hasta
+`OPENAI_API_KEY no configurada` a secas. Y cuatro eran fallos **en marcha**, no
+falta de llave: un médico que acaba de grabar a un paciente leía `OpenAI 429` o
+`AssemblyAI upload HTTP 413`.
+
+### Y una peor, de cara al paciente
+
+`/api/telesalud/sala` devolvía `ok: true` con una URL de `meet.example.com` y el
+aviso «DAILY_API_KEY no configurada — usando URL ficticia». `/teleconsulta/[citaId]`
+lo pinta tal cual, y **esa pantalla la abre el paciente con su token del portal**.
+El producto entregaba un enlace de videoconsulta que no lleva a ninguna consulta,
+explicado en lenguaje de programador.
+
+### Por qué no es redacción
+
+1. **Nombraba al proveedor** en la interfaz de un producto clínico.
+   `security-tenant` prohíbe que un error cuente el interior.
+2. **Salía donde iba la respuesta.** En una superficie de evidencia, lo que ocupa
+   el lugar de la evidencia tiene que ser inconfundiblemente no-evidencia.
+3. **No decía qué NO se perdió** — la pregunta real a media consulta: ¿se fue el
+   audio? ¿se fue lo que llevo escrito?
+
+### El arreglo, y dónde vive
+
+`iaNoDisponible(capacidad, puedeConfigurar)` **dentro de `fallo-proveedor.ts`**,
+no en un módulo nuevo. Ese archivo ya es «lo que el médico lee cuando la IA no
+funciona»; partirlo habría dejado dos vocabularios para el mismo momento, que es
+el defecto que las unidades 92 y 93 vinieron a quitar.
+
+`ClaseFallo` cubre una llamada que salió mal —llave rechazada, sin saldo,
+saturación— y no tiene caso para «no hay llave», porque ahí no falló nada: la
+capacidad nunca se encendió. Son situaciones distintas, en el mismo módulo.
+
+Los cuatro fallos en marcha se enrutaron por `avisoAlMedico`, **que ya existía**
+y clasifica el HTTP.
+
+### Lo que aquí NO se prohíbe, a propósito
+
+`avisoAlMedico` **sí** nombra al proveedor cuando la llave es del consultorio:
+«Tu llave de Anthropic fue rechazada… Actualízala». Es correcto — si el médico le
+paga a ese proveedor, tiene que saber a cuál entrar — y el guardián lo respeta.
+La diferencia es de fondo: con llave propia el nombre es accionable; sin llave
+ninguna es una decisión de la casa que no le sirve para nada.
+
+### Qué NO cubre
+
+- Sólo el mensaje de «la IA no está activada» y los cuatro fallos de
+  transcripción. Otras causas (red, cuota) siguen con su texto.
+- **El mensaje sigue saliendo en el hueco de la respuesta**, con un `⚠️` delante,
+  y **no está en una región viva**: quien usa lector de pantalla no se entera de
+  que su pregunta falló. Declarado, no arreglado — anunciar un flujo delta a
+  delta sería el defecto de REG-419 otra vez.
+
+**Prueba.** `src/__tests__/el-error-de-la-ia-no-nombra-al-proveedor.test.ts`
+(6 casos). **Probada al revés ×3**, una con **otra redacción** de la jerga. El
+barrido excluye `safeLog` —registro de servidor, no viaja al cliente— y
+`avisoAlMedico`; su primera versión los cazaba y habría obligado a borrar un log
+útil para pasar una prueba.

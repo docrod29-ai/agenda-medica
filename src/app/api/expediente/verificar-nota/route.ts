@@ -24,6 +24,7 @@ import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY)
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
-  if (!key) return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY no configurada' }, { status: 503 })
+  if (!key) return NextResponse.json({ ok: false, error: iaNoDisponible('razonamiento').mensaje }, { status: 503 })
 
   let body: { nota?: NotaEntrada; transcripcion?: string; contexto?: Record<string, unknown> }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }

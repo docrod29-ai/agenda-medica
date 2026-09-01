@@ -26,6 +26,7 @@ import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!API_KEY) {
     return NextResponse.json(
-      { ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' },
+      { ok: false, error: iaNoDisponible('nota').mensaje },
       { status: 503 },
     )
   }
