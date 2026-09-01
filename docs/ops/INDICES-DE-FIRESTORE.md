@@ -50,6 +50,27 @@ fallando**: por eso se despliega, se espera, y se comprueba en la consola
 (https://console.firebase.google.com/project/nexomed-agenda/firestore/indexes)
 que los **doce** dicen **Habilitado**, no «Compilando».
 
+## Y antes que nada: NINGUNO se ha desplegado nunca (REG-431)
+
+**Medido en la consola el 1-sep-2026**: `Firestore → Índices → Manuales` del
+proyecto `nexomed-agenda` estaba **vacía**. Cero índices compuestos.
+
+La causa no era el permiso ni la construcción: `firebase.json` declaraba
+`firestore.rules` y **nunca declaró `firestore.indexes.json`**. Un
+`deploy --only firestore:indexes` sin esa línea no falla — no encuentra nada que
+publicar y devuelve `success`. Por eso el acta de v1177 cuadra y la consola está
+vacía: las reglas sí llegaron; los índices no llegaron nunca.
+
+Ya está declarado, y lo sostiene
+`src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts`, que
+deriva los objetivos del `--only` del workflow real y exige que cada uno esté
+declarado.
+
+**Consecuencia para la tabla de abajo**: la columna «¿enviado?» decía ocho.
+**Son cero.** Se dejó de contar sobre el árbol desplegado —que era cierto y era
+insuficiente— porque enviar el archivo y que el archivo esté declarado son dos
+cosas distintas, y sólo la segunda se puede medir desde aquí.
+
 ## El envío no es la construcción
 
 `firebase deploy --only firestore:indexes` **contesta al enviar, no al terminar**.

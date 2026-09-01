@@ -337,7 +337,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * control es la única pregunta que responde «¿esto recibe el toque?».
      */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427],
+    /**
+     * 431 es esta familia sobre un archivo que NO es código, y por eso escuece:
+     * `firestore.indexes.json` estaba bien escrito y era el archivo MEJOR
+     * VIGILADO del repositorio —REG-421 le puso guardián, REG-422 lo endureció—
+     * y `firebase.json` nunca declaró dónde estaba. Dos regresiones de trabajo
+     * sobre su contenido, y el contenido no lo leía nadie.
+     *
+     * El despliegue no fallaba: `--only firestore:indexes` sin declarar no
+     * publica nada y devuelve `success`. Escrito, probado, y sin conectar — con
+     * un acta firmada diciendo que sí.
+     *
+     * Se descubrió acompañando al dueño a hacerlo a mano, y viendo la consola
+     * vacía en su pantalla.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431],
   },
   {
     clave: 'se_contradice',

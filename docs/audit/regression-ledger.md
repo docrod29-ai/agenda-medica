@@ -16587,3 +16587,98 @@ arrancar con `CSP_MODE=enforce`, que es otra corrida).
   contra el sitio vivo **después** de publicar, que es donde son accionables
   (`deployment-and-flags.md`).
 
+
+---
+
+## REG-431 — el despliegue de índices decía `success` y no publicaba ninguno
+
+**CÓMO SE DESCUBRIÓ.** Acompañando al dueño, paso a paso, a crear los índices a
+mano en la consola de Firebase — porque él no usa terminal. Al llegar a
+**Firestore → Índices → Manuales** del proyecto `nexomed-agenda`, la pestaña
+estaba **vacía**. Cero índices compuestos.
+
+Y el acta de `nexusmed-v1177`, sobre ese mismo proyecto, registraba el paso
+`firestore:rules,firestore:indexes` en **`success`** (ejecuciones #11 y #12 del
+31-ago). REG-416 hasta selló el sha256 de las reglas publicadas, y cuadraba.
+
+Las dos cosas eran ciertas a la vez. Eso es lo que las hacía sospechosas — el
+mismo olor que REG-416.
+
+### La causa raíz: una línea que nunca existió
+
+```json
+"firestore": {
+  "rules": "firestore.rules"     ← declarado
+}                                ← "indexes" NUNCA estuvo
+```
+
+`firebase deploy --only firestore:indexes` publica los índices **sólo si
+`firebase.json` declara dónde están**. Si no lo declara, **no falla**: no
+encuentra nada que publicar y devuelve éxito. Hizo exactamente lo que se le
+pidió; lo que se le pidió era nada.
+
+Por eso las reglas sí llegaban —están declaradas, y su sello cuadra— y los
+índices no llegaron nunca. Ni el 31-ago, ni en ningún despliegue anterior.
+
+### Por qué es la regla «el dato tiene que LLEGAR» en su forma más cara
+
+`firestore.indexes.json` era el archivo **mejor vigilado del repositorio**.
+REG-421 le puso un guardián que deriva las consultas del árbol; REG-422 lo
+endureció para que comprobara el ORDEN de los campos y para que lo ilegible
+fallara en vez de saltarse. Dos regresiones seguidas de trabajo sobre su
+**contenido**.
+
+Y todo ese trabajo comprobaba que el archivo estuviera **bien escrito**. Ninguna
+prueba comprobaba que **llegara**. El archivo era perfecto y no lo leía nadie.
+
+Ninguna prueba mentía. Faltaba.
+
+### Lo que estuvo pasando mientras tanto, sin verse
+
+Una consulta compuesta sin índice se RECHAZA con `FAILED_PRECONDITION`. Pero las
+rutas que ya la hacían la envuelven en un `try/catch` que devuelve vacío:
+
+| Pantalla | Lo que el médico veía |
+|---|---|
+| Lista de la farmacia | vacía, como si no hubiera inventario |
+| Página **pública** del médico | sin reseñas publicadas |
+| Lista de espera | vacía, como si nadie estuviera esperando |
+| Libro de costos del simulador | «sin libro de costos» (REG-422) |
+
+**No se veían rotas: se veían sin datos.** Es el modo de fallo que REG-422 nombró
+para una pantalla, aquí multiplicado por todas.
+
+### El arreglo
+
+Una línea en `firebase.json` — y el guardián que la sostiene, que es lo que de
+verdad cierra esto:
+
+`src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts` lee los
+objetivos del `--only` **del workflow real**, no de una lista escrita a mano, y
+exige que cada uno esté declarado en `firebase.json` y que el archivo declarado
+exista. Es genérico a propósito: el día que alguien añada `storage` o `hosting`
+al `--only`, este caso lo exige declarado sin que nadie se acuerde de ampliarlo.
+
+**Probado al revés**: se reconstruye el `firebase.json` que había antes de este
+arreglo y se comprueba que el guardián lo caza.
+
+### Qué NO cubre
+
+- **No prueba que el despliegue funcione.** Que el archivo esté declarado no dice
+  que la credencial tenga permiso de escribir índices, ni que Firestore termine
+  de construirlos. Eso se mira en la consola, del otro lado, y sigue siendo
+  `BLOCKED_EXTERNAL`.
+- **Sólo lee el workflow de producción.** Un despliegue a mano con otro `--only`
+  no lo ve nadie.
+- **No dice cuánto tiempo llevaba así.** El acta del 31-ago es la primera
+  evidencia registrada, pero la línea nunca estuvo: cualquier despliegue anterior
+  tampoco publicó índices.
+
+### Lo que este hallazgo dice del método, y conviene no olvidar
+
+Los tres —REG-416, REG-422 y éste— salieron de mirar del otro lado, no de leer
+código. Y éste salió de algo más barato todavía: **acompañar al dueño a hacer una
+tarea manual**. La consola vacía la vio él en su pantalla, no una prueba.
+
+**Prueba.** `src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts`
+(4 casos, probado al revés).
