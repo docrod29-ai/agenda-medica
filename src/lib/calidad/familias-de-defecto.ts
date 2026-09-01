@@ -650,7 +650,22 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Es lo mismo que REG-377 dijo de las deudas con fecha puesta, dicho de los
      * instrumentos.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422],
+    /**
+     * 428 es el instrumento que MIDE y cuya salida no distingue. GP-33 dispara
+     * cuarenta peticiones en paralelo contra el freno del portal del paciente y
+     * contaba sólo los 429 — pero «cero 429» lo producen TRES desenlaces, y dos
+     * son correctos: el freno cortó (429), el freno no pudo contar y por eso no
+     * dejó pasar (503, fail-closed), o no hubo freno (cuarenta 200). Medido con
+     * la distribución puesta: `{200:10, 429:25, 503:5}` — el freno funciona.
+     *
+     * Su lección propia, que 421 y 422 rozaban desde el otro lado: un caso cuya
+     * EVIDENCIA no separa el desenlace bueno del malo falla en la dirección
+     * peligrosa. Se pone rojo cuando el producto se porta bien (todo 503), y un
+     * caso que da falsos rojos se aprende a ignorar — así que el día que salgan
+     * cuarenta 200, nadie lo va a mirar distinto.
+     */
+
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428],
   },
   {
     clave: 'hueco_como_dato',

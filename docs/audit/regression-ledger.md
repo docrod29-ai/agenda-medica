@@ -16398,3 +16398,75 @@ repeticiones, `scrollTop` que nunca baje solo.
 **Hasta entonces WS-05 no se marca `PROVEN`**, y nada de REG-425/426/427 debe
 usarse para marcarlo.
 
+---
+
+## REG-428 — el caso que vigila el freno del portal no distinguía «no hay freno» de «el freno no dejó pasar»
+
+**QUÉ FALLABA.** GP-33 del recorrido del paciente dispara **cuarenta peticiones
+en paralelo** a `/api/portal` con `action: 'paquetes'` —la acción CLÍNICA, la que
+devuelve secreto médico, con tope de 15/600s— y comprobaba una sola cosa:
+
+```js
+const limitados = resp.filter(x => x.status === 429)
+R('GP-33', 'el portal tiene freno ante una ráfaga', limitados.length > 0,
+  `${limitados.length}/40 respondieron 429`)
+```
+
+El 1-sep salió `0/40 respondieron 429`. Y con ese dato **no se puede saber qué
+pasó**, porque hay TRES desenlaces distintos que producen «cero 429» y dos de
+ellos son correctos:
+
+| Respuesta | Qué significa | ¿Defecto? |
+|---|---|---|
+| `429` | el freno contó y cortó | no |
+| `503` | el freno **no pudo contar** y por eso no deja pasar (`limitarEstricto`, `MOTIVO_SIN_FRENO`) | no — es fail-closed, y es lo correcto |
+| `200` ×40 | **no hubo freno ninguno** | **sí, y es P1** |
+
+Cuarenta transacciones en paralelo sobre el **mismo** documento de `rate_limits`
+es precisamente donde el contador tiene más razones para no poder contar, así que
+el 503 no es un caso raro: es el esperable bajo ráfaga. Un caso que no los separa
+deja pasar el tercero disfrazado del segundo.
+
+**CÓMO SE DESCUBRIÓ.** Corriendo el arnés completo sobre este árbol en vez de
+heredar el verde de otra rama. Salió el único rojo de 74 casos, y **antes de
+llamarlo defecto del producto** se instrumentó el caso para que dijera la
+distribución entera. Medido:
+
+```
+30/40 frenados — distribución {"200":10,"429":25,"503":5}
+```
+
+**El freno funciona.** Veinticinco cortadas por conteo, cinco rechazadas por no
+poder contar, y diez que pasaron —que es lo correcto: el tope es 15 y parte de la
+ventana ya estaba consumida por los pasos anteriores del recorrido.
+
+**LA CAUSA RAÍZ.** Un caso que mide **una** de las tres salidas posibles y trata
+las otras dos como la misma cosa. No es que la aserción esté mal: es que la
+EVIDENCIA que imprime —un solo número— no alcanza para decidir. Es la familia
+`sin_medir` en su forma más incómoda: el instrumento existe, corre, y su salida
+no distingue el caso bueno del malo.
+
+Y el coste va en la dirección peligrosa. Con `limitados.length > 0` el caso se
+pone **rojo cuando el producto se comporta bien** (todo 503) — y un caso que da
+falsos rojos se aprende a ignorar; el día que salgan cuarenta `200`, nadie lo
+mirará distinto.
+
+**LA REGLA QUE LO HACE SEGURO.** El caso acepta **429 o 503** —los dos son freno—
+y su evidencia lleva la **distribución entera** con la leyenda de qué significa
+cada estado. Ahora un rojo sólo puede significar una cosa: cuarenta peticiones
+pasaron sin freno.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba el freno contra Firestore real.** Es el emulador, y la contención
+  de transacciones no es la misma.
+- **No fija el umbral.** 15/600s es criterio del dueño, no una cifra clínica; este
+  caso comprueba que EXISTE un freno, no que 15 sea el número correcto.
+- **No cubre el freno por IP** (`portal:ip:{ip}`, 120/600s), que es el que protege
+  de una ráfaga de tokens **inválidos**: aquí todas las peticiones llevan un token
+  válido. Ese sigue cubierto sólo por `portal-limite-de-tasa.test.ts`, que
+  comprueba las llamadas y no el comportamiento.
+- **No dice qué pasó en la corrida del 1-sep** que dio `0/40`: esa corrida no
+  guardó la distribución, y por eso existe este REG. Lo que sí está medido es que,
+  con el caso arreglado, el freno responde.
+

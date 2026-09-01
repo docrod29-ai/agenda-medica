@@ -24,14 +24,10 @@
   },
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M src/app/(dashboard)/calendario/page.tsx",
-    " M src/app/globals.css",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/capturas/alto-del-telefono/",
-    "?? scripts/design/medir-el-alto-del-telefono.mjs",
-    "?? src/__tests__/el-area-segura-del-telefono-llega-o-vale-cero.test.ts",
-    "?? src/__tests__/en-un-telefono-el-control-recibe-el-toque.test.ts"
+    " M docs/ops/INDICES-DE-FIRESTORE.md",
+    " M docs/product/AUSCULTA-CONSULTORIO-FINAL-READINESS.md",
+    " M scripts/golden-path/recorrer-paciente.mjs",
+    " M src/lib/calidad/familias-de-defecto.ts"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -67,7 +63,7 @@
   ],
   "ramaActual": "claude/firebase-indices-query-optimization-lyrva1",
   "derivado": {
-    "regsEnElLedger": 280,
+    "regsEnElLedger": 281,
     "ultimaREG": "REG-505",
     "archivosDePrueba": 897,
     "casosDePrueba": 10984,

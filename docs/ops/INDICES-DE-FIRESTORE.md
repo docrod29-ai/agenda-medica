@@ -168,6 +168,34 @@ nunca contenido** — llevan PHI y por eso esto no puede vivir en CI
    escribe con el peso «sin clasificar», que la manda al final del worklist pero
    **la deja dentro**.
 
+## `pesoUrgencia` NO añade un despliegue de reglas — comprobado
+
+El campo nuevo de REG-423 se escribe en `clinics/{id}/tareas_clinicas/{tareaId}`,
+y la pregunta obligada es si `firestore.rules` lo deja pasar: una colección con la
+forma **congelada** (`hasOnly`) rechazaría un campo que no estuviera en su lista,
+y entonces P1-14 arrastraría un despliegue de reglas —que es autorización del
+dueño— a su camino crítico.
+
+No lo arrastra. La regla de esa colección no congela la forma:
+
+```
+match /tareas_clinicas/{tareaId} {
+  allow read: if isMedico(clinicId);
+  allow create, update: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
+  allow delete: if false;
+}
+```
+
+Los nueve `hasOnly` del archivo son de otras colecciones (`aprendizaje`,
+`invitaciones`, `displayName`, `used/usedAt`, `role`…). Y `tareas_clinicas` ya
+está declarada en los **tres sitios** que exige `security-tenant.md` —reglas,
+matriz de acceso y manifiesto del respaldo—, así que esto **añade un campo, no
+una colección**.
+
+Dicho al revés, que es lo que importa para decidir el orden: **el único
+despliegue que P1-14 necesita es el de índices.** Las reglas se quedan como
+están.
+
 ## Y si el índice todavía no está — REG-424
 
 El orden de arriba (índices primero) es el correcto y no cambia. Lo que cambia es
