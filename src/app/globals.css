@@ -4154,14 +4154,19 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   --pub-lectura: 640px;
   /* El escalón de entrada de una lista: lo justo para leerse como lista. */
   --pub-escalon: 22ms;
-  /* EL COMPÁS DE LA OBRA DEL HÉROE. No son tokens de `--mov-*` a propósito, y
-     por el mismo motivo que `nx-latido` tiene los suyos: `--mov-*` mide lo que
-     tarda un CONTROL en responder (80–320 ms), y esto mide lo que tarda una
-     persona en LEER un acto antes de que llegue el siguiente. Con 200 ms los
-     tres actos se atropellan y no se lee ninguno. */
-  --nx-arranque: 320ms;   /* lo que se espera antes de empezar a contar */
-  --nx-compas:   740ms;   /* de un acto al siguiente */
-  --nx-pulso:    320ms;   /* medio ciclo de la onda: es un pulso, no un cambio */
+  /* ── EL RITMO, QUE NO ES LO MISMO QUE EL MOVIMIENTO ────────────────────────
+     `--mov-*` mide lo que tarda un CONTROL en responder: 80–320 ms, porque por
+     encima de eso la interfaz se siente lenta. `--nx-ritmo-*` mide otra cosa —
+     lo que tarda una PERSONA en leer un acto antes de que llegue el siguiente,
+     o lo que dura una vuelta de un indicador que no está esperando a nadie.
+     Son magnitudes distintas y meterlas en la misma escala tiene consecuencia:
+     bajar una transición de la aplicación atropellaría los tres tiempos de la
+     portada. Es el mismo motivo por el que `nx-latido` tiene los suyos.
+     Siguen siendo tokens: lo que no se admite es la cifra suelta. */
+  --nx-ritmo-arranque: 320ms;   /* lo que se espera antes de empezar a contar */
+  --nx-ritmo-compas:   740ms;   /* de un acto de la obra al siguiente */
+  --nx-ritmo-pulso:    320ms;   /* medio ciclo de la onda: un pulso, no un cambio */
+  --nx-ritmo-giro:     1s;      /* una vuelta del indicador de espera */
 }
 
 .nx-pub {
@@ -4568,13 +4573,13 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
    el riesgo del estado inicial oculto. `--nx-acto` (0, 1, 2) escalona; `both`
    deja el estado final fijado. Ver la cabecera de HeroConsulta.tsx. */
 .nx-hero-acto {
-  /* `--nx-compas` es el ritmo de la obra, no una transición de interfaz: es
+  /* `--nx-ritmo-compas` es el ritmo de la obra, no una transición de interfaz: es
      el tiempo que tarda en leerse un acto antes de que llegue el siguiente.
      Igual que `nx-latido`, no puede salir de `--mov-*` — con 200 ms los tres
      actos se atropellarían y no se leería ninguno. Se declara aquí, con su
      motivo, en vez de repetirse suelto en cinco reglas. */
   animation: nx-acto var(--mov-lento) var(--mov-curva) both;
-  animation-delay: calc(var(--nx-arranque) + var(--nx-acto, 0) * var(--nx-compas));
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-acto, 0) * var(--nx-ritmo-compas));
 }
 @keyframes nx-acto {
   /* 0.34 y no 0.18: por debajo de un tercio el acto se lee como DESHABILITADO
@@ -4585,7 +4590,7 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
 /* El nudo del hilo enciende cuando le llega el turno a SU acto. */
 .nx-hero-acto::after {
   animation: nx-nudo var(--mov-lento) var(--mov-curva) both;
-  animation-delay: calc(var(--nx-arranque) + var(--nx-acto, 0) * var(--nx-compas));
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-acto, 0) * var(--nx-ritmo-compas));
 }
 @keyframes nx-nudo {
   from { background: var(--s3); border-color: var(--border2); }
@@ -4593,7 +4598,7 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
 }
 .nx-hero-acto-rotulo {
   animation: nx-rotulo var(--mov-lento) var(--mov-curva) both;
-  animation-delay: calc(var(--nx-arranque) + var(--nx-acto, 0) * var(--nx-compas));
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-acto, 0) * var(--nx-ritmo-compas));
 }
 @keyframes nx-rotulo {
   from { color: var(--text3); }
@@ -4606,14 +4611,14 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
      perfil en seno de arriba. Con `both` se quedaba clavada en el fotograma
      inicial (20 %) y la onda terminaba siendo una fila de puntos, que es lo
      que enseñó la captura. */
-  animation: nx-onda var(--nx-pulso) ease-in-out 6 alternate;
-  animation-delay: calc(var(--nx-arranque) + var(--nx-i) * -46ms);
+  animation: nx-onda var(--nx-ritmo-pulso) ease-in-out 6 alternate;
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-i) * -46ms);
 }
 @keyframes nx-onda { from { height: 20%; } to { height: 100%; } }
 /* Los hechos entran uno a uno dentro de la ventana del segundo acto. */
 .nx-hero-hecho {
   animation: nx-hecho var(--mov-normal) var(--mov-curva) both;
-  animation-delay: calc(var(--nx-arranque) + var(--nx-compas) + var(--nx-orden, 0) * 90ms);
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-ritmo-compas) + var(--nx-orden, 0) * 90ms);
 }
 @keyframes nx-hecho {
   from { opacity: 0; transform: translateY(4px) scale(0.97); }
@@ -4873,3 +4878,66 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   .nx-negativa { padding: 17px 0; }
   .nx-plan { padding: 22px 20px; }
 }
+
+/* ── LA PUERTA: iniciar sesión pertenece al mismo producto ───────────────────
+   La transición portada → sesión → producto tiene que sentirse como una sola
+   cosa. Antes la puerta era un formulario anónimo con la promesa retirada, sin
+   camino de vuelta, y con dos esperas que eran huecos negros. */
+
+.nx-puerta {
+  min-height: 100vh;
+  min-height: 100dvh;   /* el 100vh de iOS mide de más y corta el pie */
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  overflow: hidden;
+}
+.nx-puerta-columna { width: 100%; max-width: 420px; position: relative; }
+.nx-puerta-marca { text-align: center; margin-bottom: 30px; }
+.nx-puerta-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.nx-puerta-volver:hover { background: var(--s1); }
+.nx-puerta-sello {
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  border-radius: var(--r-lg);
+  background: var(--s1);
+  border: 1px solid var(--nexus-borde);
+  color: var(--nexus);
+}
+.nx-puerta-nombre {
+  font-size: 30px; font-weight: 500; color: var(--text); margin: 0;
+  letter-spacing: -0.02em;
+}
+.nx-puerta-promesa {
+  margin: 10px 0 0;
+  font-size: 14.5px; color: var(--text2); letter-spacing: -0.005em;
+}
+.nx-puerta-tarjeta {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 26px 26px 28px;
+  display: grid;
+  gap: 14px;
+}
+.nx-puerta-espera {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 4px;
+  font-size: 13.5px; color: var(--text2);
+}
+.nx-puerta-hueso { display: block; border-radius: var(--r-sm); width: 100%; }
+/* El giro, del sistema y en un solo sitio: estaba redefinido a mano como
+   `@keyframes spin` dentro de tres pantallas. */
+.nx-gira { animation: nx-gira var(--nx-ritmo-giro) linear infinite; color: var(--nexus); flex-shrink: 0; }
+@keyframes nx-gira { to { transform: rotate(360deg); } }

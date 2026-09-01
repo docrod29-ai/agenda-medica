@@ -1,0 +1,34 @@
+[
+  {
+    "ruta": "/login",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 844,
+    "consola": []
+  },
+  {
+    "ruta": "/login",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/registro",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 844,
+    "consola": []
+  },
+  {
+    "ruta": "/registro",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 900,
+    "consola": []
+  }
+]

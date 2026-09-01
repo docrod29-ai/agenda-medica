@@ -123,14 +123,15 @@ describe('el movimiento habla los tokens del sistema', () => {
       // El latido lleva su propia duración larga a propósito (2.4s): un
       // token de 320ms haría un parpadeo, no un latido. Se declara aquí.
       if (texto.includes('nx-latido')) continue
-      // Y el COMPÁS de la obra del héroe, por la misma razón y con la misma
-      // forma: `--mov-*` mide lo que tarda un CONTROL en responder (80–320 ms);
-      // `--nx-compas` / `--nx-pulso` miden lo que tarda una persona en LEER un
-      // acto antes de que llegue el siguiente. No son la misma magnitud, y
-      // meterlos en `--mov-*` haría que bajar una transición de la aplicación
-      // atropellara los tres tiempos de la portada. Siguen siendo tokens: lo
-      // que este caso prohíbe es la cifra suelta, no la escala propia.
-      if (/var\(--nx-(?:compas|pulso|arranque)\)/.test(texto)) continue
+      // Y el RITMO, por la misma razón y con la misma forma. `--mov-*` mide lo
+      // que tarda un CONTROL en responder (80–320 ms); `--nx-ritmo-*` mide lo
+      // que tarda una PERSONA en leer un acto antes de que llegue el siguiente,
+      // o lo que dura una vuelta de un indicador que no espera a nadie. No son
+      // la misma magnitud, y meterlas en `--mov-*` haría que bajar una
+      // transición de la aplicación atropellara los tres tiempos de la portada.
+      // Lo que este caso prohíbe es la CIFRA SUELTA, no una escala propia con
+      // su nombre y su motivo escritos.
+      if (/var\(--nx-ritmo-/.test(texto)) continue
       // `animation: none` no tiene duración que tokenizar: es el APAGADO, y es
       // justamente lo que el bloque de menos-movimiento tiene que decir.
       if (/animation:\s*none/.test(texto)) continue
