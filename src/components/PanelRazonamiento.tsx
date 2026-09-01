@@ -15,7 +15,12 @@ const FUENTE_LABEL: Record<FuenteRazon, string> = {
   determinista: 'Regla con código', modelo: 'IA', evidencia: 'PubMed', meta: 'Sistema',
 }
 const FUENTE_COLOR: Record<FuenteRazon, string> = {
-  determinista: 'var(--teal)', modelo: 'var(--nexus)', evidencia: '#a855f7', meta: 'var(--text3)',
+  /* `evidencia` era `#a855f7` a mano: literal, sin tema, y medido por axe
+     sobre la página servida daba 4,49 : 1 — por debajo de 4,5 por una
+     centésima, en los tres anchos. El token `--purple` ya está calculado con
+     el contraste comprobado por tema (4,62 en oscuro, ver globals.css); el
+     literal era una copia del valor de Tailwind, no una decisión. */
+  determinista: 'var(--teal)', modelo: 'var(--nexus)', evidencia: 'var(--purple)', meta: 'var(--text3)',
 }
 const CONF_LABEL: Record<ConfianzaRazon, string> = { alta: 'Alta', media: 'Media', baja: 'Baja', na: '—' }
 

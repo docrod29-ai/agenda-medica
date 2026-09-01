@@ -16,9 +16,9 @@ const ACTUALIZADO = 'julio de 2026'
 
 export default function TerminosPage() {
   return (
-    <main style={{ maxWidth: 780, margin: '0 auto', padding: '48px 22px 80px', color: '#1a1a1a', background: '#fff', lineHeight: 1.7, fontSize: 16 }}>
-      <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 6px', color: '#0b1220' }}>Términos y Condiciones de Uso</h1>
-      <p style={{ color: '#667', margin: '0 0 28px', fontSize: 14 }}>Plataforma Ausculta · Última actualización: {ACTUALIZADO}</p>
+    <main style={{ maxWidth: 780, margin: '0 auto', padding: '48px 22px 80px', color: 'var(--text)', background: 'var(--bg)', lineHeight: 1.7, fontSize: 16 }}>
+      <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 6px', color: 'var(--text)' }}>Términos y Condiciones de Uso</h1>
+      <p style={{ color: 'var(--text2)', margin: '0 0 28px', fontSize: 14 }}>Plataforma Ausculta · Última actualización: {ACTUALIZADO}</p>
 
       <p>
         Estos Términos y Condiciones (los <strong>“Términos”</strong>) regulan el acceso y uso de <strong>Ausculta</strong>,
@@ -123,7 +123,7 @@ export default function TerminosPage() {
         <a href="/privacidad" style={{ color: 'var(--teal)', fontWeight: 600 }}>Aviso de Privacidad</a>.
       </Section>
 
-      <p style={{ marginTop: 36, fontSize: 13, color: '#889' }}>
+      <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text2)' }}>
         Ausculta — Agenda médica y expediente clínico electrónico · México.
       </p>
     </main>
@@ -133,7 +133,7 @@ export default function TerminosPage() {
 function Section({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section style={{ marginTop: 26 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: '#0b1220' }}>{titulo}</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text)' }}>{titulo}</h2>
       <p style={{ margin: 0 }}>{children}</p>
     </section>
   )

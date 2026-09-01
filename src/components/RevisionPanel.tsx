@@ -52,7 +52,9 @@ interface Props {
   sinMarco?: boolean
 }
 
-const CONF_COLOR: Record<Confianza, string> = { alta: '#4ade80', media: '#f59e0b', baja: '#f87171' }
+/* Literales de Tailwind pensados para fondo oscuro: en tema claro no cambiaban.
+   Ver la nota de la pareja tinte+texto en Copiloto.tsx. */
+const CONF_COLOR: Record<Confianza, string> = { alta: 'var(--green)', media: 'var(--amber)', baja: 'var(--red)' }
 const HABLANTE_LABEL: Record<Hablante, string> = {
   medico: 'Médico', paciente: 'Paciente', acompanante: 'Acompañante', desconocido: '—',
 }

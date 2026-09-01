@@ -3,6 +3,7 @@ import { PLANES, RECARGA, MOTORES, TOPE_ECONOMICO, precioAnual, consultasIncluid
 import { adminDb } from '@/lib/firebase-admin'
 import { catalogoEfectivo, type CatalogoGuardado } from '@/lib/finanzas/catalogo-planes'
 import { TablaNivelesIA } from '@/components/TablaNivelesIA'
+import { NavPublica } from '@/components/landing/NavPublica'
 
 export const metadata = {
   title: 'Precios · Ausculta',
@@ -111,7 +112,21 @@ async function planesVigentes() {
 export default async function PreciosPage() {
   const planes = await planesVigentes()
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '56px 20px 80px' }}>
+    /*
+      `<main>` Y LA BARRA DEL SITIO.
+
+      axe medía sobre /precios servido: `landmark-one-main` y `region` — la
+      página NO tenía un solo landmark, así que para un lector de pantalla su
+      contenido entero quedaba fuera de la estructura y no había forma de
+      saltar al contenido principal.
+
+      Y no tenía navegación: se llegaba desde la portada y sólo se salía con el
+      botón atrás. Con la barra pública comparte el mismo sitio que la portada,
+      el demo y las dos puertas.
+    */
+    <div className="nx-pub">
+      <NavPublica />
+      <main style={{ padding: '48px 20px 80px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Precios</div>
         <h1 style={{ fontSize: 34, fontWeight: 800, color: 'var(--text)', margin: '10px 0 0', letterSpacing: -0.5 }}>
@@ -183,6 +198,7 @@ export default async function PreciosPage() {
         según el motor de IA que elijas (⚡ 1 · ⭐ 3 · 💎 10). Al agotar tus créditos sigues con ⚡ Rápida sin costo hasta un tope mensual; pasado ese punto la IA se pausa
         y recargas o subes de plan. Nunca hay cobros de sorpresa. Cancela cuando quieras.
       </p>
+      </main>
     </div>
   )
 }

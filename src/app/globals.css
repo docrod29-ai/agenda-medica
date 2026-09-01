@@ -2220,6 +2220,9 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   --nexus-borde:  color-mix(in srgb, var(--nexus) 34%, transparent);
   --nexus-borde2: color-mix(in srgb, var(--nexus) 52%, transparent);
   --nexus-tenue:  color-mix(in srgb, var(--nexus) 7%, transparent);
+  /* En claro el tinte OSCURECE el fondo y el contraste baja: 8 % y no 14 %.
+     Ver la nota de --tinte en el bloque oscuro. */
+  --tinte: 8%;
 
   /* Texto ink (alto contraste pero sin negro puro — más sofisticado) */
   --text:      #0B0C0E;
@@ -2302,6 +2305,7 @@ html[data-vt-continuidad] .page-transition { animation: none; }
     --nexus-borde:  color-mix(in srgb, var(--nexus) 34%, transparent);
     --nexus-borde2: color-mix(in srgb, var(--nexus) 52%, transparent);
     --nexus-tenue:  color-mix(in srgb, var(--nexus) 7%, transparent);
+    --tinte: 8%;   /* ver la nota de --tinte en el bloque oscuro */
     --text:      #0B0C0E;
     --text2:     #565A60;
     --text3:     #63666B;   /* AA sobre TODAS las superficies claras — ver nota arriba */
@@ -4167,6 +4171,28 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   --nx-ritmo-compas:   740ms;   /* de un acto de la obra al siguiente */
   --nx-ritmo-pulso:    320ms;   /* medio ciclo de la onda: un pulso, no un cambio */
   --nx-ritmo-giro:     1s;      /* una vuelta del indicador de espera */
+
+  /*
+    EL TINTE DE UN COLOR SEMÁNTICO — y por qué no puede ser el mismo en los dos
+    temas.
+
+    Un token semántico se mide contra las SUPERFICIES (`--s1`…`--s3`), y con eso
+    se da por bueno. Pero cuando ese mismo color se usa de TINTE bajo su propio
+    texto, el fondo deja de ser la superficie: es la superficie mezclada con el
+    color. En oscuro eso ACLARA el fondo un poco y el contraste sube; en claro
+    lo OSCURECE y el contraste baja.
+
+    Medido por axe sobre /arquitectura y /operacion servidas en tema claro:
+    `--amber` (#b45309) sobre su propio tinte al 14 % daba 3,98 y 4,14 — por
+    debajo de 4,5 — mientras el MISMO par en oscuro pasaba. Un token correcto
+    y una regla correcta que juntos fallan sólo en un tema: la familia «el
+    sistema se contradice a sí mismo», otra vez, y otra vez invisible mirando
+    una sola pieza.
+
+    Se separa el porcentaje por tema en vez de retocar el tono, porque el tono
+    ya está medido y es el bueno.
+  */
+  --tinte: 14%;
 }
 
 .nx-pub {

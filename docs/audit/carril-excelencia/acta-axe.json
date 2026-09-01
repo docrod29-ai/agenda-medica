@@ -15,17 +15,47 @@
     "violaciones": []
   },
   {
-    "ruta": "/reservar/consultorio-demo-v10",
+    "ruta": "/demo",
     "ancho": 390,
     "violaciones": []
   },
   {
-    "ruta": "/reservar/consultorio-demo-v10",
+    "ruta": "/demo",
     "ancho": 768,
     "violaciones": []
   },
   {
-    "ruta": "/reservar/consultorio-demo-v10",
+    "ruta": "/demo",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/demo/interactivo",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/demo/interactivo",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/demo/interactivo",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/demo/razonamiento",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/demo/razonamiento",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/demo/razonamiento",
     "ancho": 1440,
     "violaciones": []
   },
@@ -56,6 +86,141 @@
   },
   {
     "ruta": "/registro",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/precios",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/precios",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/precios",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/paquetes",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/paquetes",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/paquetes",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/seguridad",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/seguridad",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/seguridad",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/evidencia",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/evidencia",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/evidencia",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/contacto",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/contacto",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/contacto",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/terminos",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/terminos",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/terminos",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/privacidad",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/privacidad",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/privacidad",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/arquitectura",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/arquitectura",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/arquitectura",
+    "ancho": 1440,
+    "violaciones": []
+  },
+  {
+    "ruta": "/operacion",
+    "ancho": 390,
+    "violaciones": []
+  },
+  {
+    "ruta": "/operacion",
+    "ancho": 768,
+    "violaciones": []
+  },
+  {
+    "ruta": "/operacion",
     "ancho": 1440,
     "violaciones": []
   }

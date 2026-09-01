@@ -32,8 +32,11 @@ function Badge({ estado }: { estado: SecurityState }) {
   return (
     <span style={{
       fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--r-pill)', whiteSpace: 'nowrap',
-      background: activo ? 'color-mix(in srgb, var(--green) 14%, transparent)' : 'color-mix(in srgb, var(--amber) 14%, transparent)',
-      color: activo ? '#16a34a' : '#d97706',
+      /* El fondo salía del token y el texto era un literal: media pareja
+         seguía al tema. En claro daba 2,61 : 1, medido por axe sobre la página
+         servida. Ver la nota en Copiloto.tsx. */
+      background: activo ? 'color-mix(in srgb, var(--green) var(--tinte), transparent)' : 'color-mix(in srgb, var(--amber) var(--tinte), transparent)',
+      color: activo ? 'var(--green)' : 'var(--amber)',
       border: `1px solid ${activo ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
     }}>
       {ESTADO_LABEL[estado]}
@@ -133,7 +136,20 @@ export default function SeguridadPage() {
           <p style={{ margin: '0 0 8px' }}>
             Para ejercer tus derechos ARCO (acceso, rectificación, cancelación, oposición) o reportar un
             incidente de seguridad, escríbenos a{' '}
-            <a href={`mailto:${CORREO_PRIVACIDAD}`} style={{ color: 'var(--nexus)' }}>{CORREO_PRIVACIDAD}</a>.
+            {/*
+              SUBRAYADO, NO SÓLO COLOR. axe lo midió sobre la página servida:
+              el acento contra el texto que lo rodea da 1,28 : 1 —el mínimo
+              para distinguir un enlace SÓLO por color es 3 : 1— y no llevaba
+              ninguna otra marca. Es WCAG 1.4.1: un enlace dentro de una frase
+              que sólo se distingue por el tono no existe para quien no
+              distingue ese tono. Misma razón que `a.nx-ident` y que el
+              «Crea una gratis →» de la puerta.
+            */}
+            <a
+              href={`mailto:${CORREO_PRIVACIDAD}`}
+              className="nx-enlace-tactil"
+              style={{ color: 'var(--nexus)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >{CORREO_PRIVACIDAD}</a>.
           </p>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text3)' }}>
             Consulta también nuestro <Link href="/terminos" style={{ color: 'var(--nexus)' }}>aviso de privacidad y términos</Link>.

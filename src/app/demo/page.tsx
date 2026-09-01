@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { Calendar, Mic, FileText, MessageCircle, Headset, ArrowRight, CheckCircle2, MousePointerClick, FlaskConical, Sparkles, ShieldAlert, BookOpen, Repeat, Smartphone } from 'lucide-react'
+import { Calendar, Mic, FileText, MessageCircle, Headset, ArrowRight, CheckCircle2, MousePointerClick, FlaskConical, Sparkles, ShieldAlert, BookOpen, Repeat, Smartphone, Lock } from 'lucide-react'
 import { NavPublica } from '@/components/landing/NavPublica'
 
 export const metadata: Metadata = {
@@ -343,11 +343,31 @@ function Mock({ tipo }: { tipo: string }) {
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--blue)', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 'var(--r-pill)', marginBottom: 12 }}>
           <Headset size={12} /> Modo asistente
         </div>
+        {/*
+          «SIN ACCESO» NO SE DICE ATENUANDO. La fila estaba a `opacity: 0.5`
+          para significar «esto no lo ve», y axe lo midió en la página servida:
+          2,24 : 1 — por debajo de la mitad del mínimo de 4,5. Dos cosas mal en
+          una: el texto es ilegible, y el significado depende de percibir una
+          diferencia de claridad, que es justo lo que no percibe quien más
+          necesita el contraste.
+
+          Lo dice el candado, el rótulo y el trazo discontinuo, a contraste
+          entero. Es la regla de Patient State en pequeño: no depender del
+          color, ni de la opacidad.
+        */}
         {[['María Robles', '09:00', true], ['Juan Pérez', '10:30', true], ['Expediente clínico', '', false]].map((r, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--s2)', marginBottom: 7, opacity: r[2] ? 1 : 0.5 }}>
-            <span style={{ flex: 1, fontSize: 12, color: 'var(--text)' }}>{r[0]}</span>
-            {r[2] ? <span style={{ fontSize: 12, color: 'var(--text3)' }}>{r[1] as string}</span>
-                  : <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>🔒 sin acceso</span>}
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8,
+            marginBottom: 7,
+            background: r[2] ? 'var(--s2)' : 'transparent',
+            border: r[2] ? '1px solid transparent' : '1px dashed var(--border2)',
+          }}>
+            <span style={{ flex: 1, fontSize: 12, color: r[2] ? 'var(--text)' : 'var(--text2)' }}>{r[0]}</span>
+            {r[2]
+              ? <span style={{ fontSize: 12, color: 'var(--text2)' }}>{r[1] as string}</span>
+              : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text2)' }}>
+                  <Lock size={12} aria-hidden="true" /> sin acceso
+                </span>}
           </div>
         ))}
       </div>

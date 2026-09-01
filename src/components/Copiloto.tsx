@@ -26,9 +26,23 @@ interface Props {
   onAceptar?: (categoria: string) => void
 }
 
+/*
+  LA PAREJA TINTE + TEXTO HABLA EL MISMO IDIOMA, y no lo hacía.
+
+  El FONDO ya salía del token (`color-mix(… var(--red) …)`) y el TEXTO era un
+  literal de Tailwind (`#f87171`). Media pareja seguía al tema y la otra media
+  no: en oscuro cuadraban por casualidad —el literal está pensado para fondo
+  oscuro—, y en claro el tinte se oscurece mientras el texto sigue siendo el
+  claro. Medido por axe sobre la página servida en tema claro: 2,04 : 1, contra
+  4,5 — en avisos que dicen «choca con una alergia registrada».
+
+  Es la misma familia que el acento sin token, vista desde el otro lado: aquí
+  el token EXISTÍA y sólo lo usaba una mitad. Ninguna revisión de una sola
+  pieza lo encuentra, porque cada mitad está bien.
+*/
 const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
-  critico: { fg: '#f87171', bg: 'color-mix(in srgb, var(--red) 8%, transparent)', bd: 'color-mix(in srgb, var(--red) 35%, transparent)' },
-  accion:  { fg: '#f59e0b', bg: 'color-mix(in srgb, var(--amber) 7%, transparent)', bd: 'color-mix(in srgb, var(--amber) 30%, transparent)' },
+  critico: { fg: 'var(--red)', bg: 'color-mix(in srgb, var(--red) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--red) 35%, transparent)' },
+  accion:  { fg: 'var(--amber)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--amber) 30%, transparent)' },
   info:    { fg: 'var(--text2)', bg: 'var(--s1)', bd: 'var(--border)' },
 }
 
