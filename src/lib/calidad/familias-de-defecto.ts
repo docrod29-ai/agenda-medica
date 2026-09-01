@@ -756,7 +756,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * arreglo no fue ablandar el validador sino escribir `null` y dejar que lo
      * rechace: un informe rechazado es información; un cero, no.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420],
+    /**
+     * 432 es esta familia en su forma más incómoda: la creó un arreglo
+     * CORRECTO. Cerrar el proxy de la papelería hizo que una imagen sin
+     * capacidad dejara de verse, y el módulo trató esa ausencia como un estado
+     * aceptable —«el documento no se rompe»— en vez de como una pérdida que
+     * declarar. El hueco era la imagen que falta; el dato que se dio por bueno,
+     * que el documento estaba completo.
+     *
+     * Su lección: un endurecimiento cambia lo que el usuario RECIBE, y hay que
+     * mirar si cambia también lo que el usuario VE. Si no, se entrega algo
+     * distinto de lo que se enseñó.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432],
   },
   {
     clave: 'aislamiento',

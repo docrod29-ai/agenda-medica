@@ -15300,6 +15300,18 @@ Y congela **tres sitios donde el árbol de hoy es más laxo** que lo que propone
 PR #355. No se arreglan aquí porque tocan la papelería en uso y eso lo decide el
 dueño; quedan escritos para que endurecerlos sea una decisión y no un descuido:
 
+> **LOS TRES, CERRADOS — 1-sep-2026, PR #355.** El dueño lo decidió, que era la
+> condición que este apartado ponía. La papelería en uso no se rompe: el cliente
+> vuelve a acuñar la capacidad en los tres caminos (vista previa, impresión y
+> PDF), y cuando no puede **avisa** en vez de entregar el documento incompleto en
+> silencio — ése es **REG-432**, un defecto que este cierre iba a crear y se cerró
+> con él.
+>
+> Las dos afirmaciones que congelaban la laxitud en el golden **se invirtieron,
+> no se borraron**: ahora vigilan lo contrario, y eso es lo que este apartado
+> quería conseguir. Funcionó como se diseñó — se pusieron rojas al fusionar y
+> obligaron a venir aquí a leer por qué estaban así.
+
 1. **Sin secreto configurado la ruta falla ABIERTA** — devuelve la URL pelada en
    vez de negarse. #355 la haría fallar cerrada con 503.
 2. **El token liga `path|exp`, no al dueño ni al consultorio**, y dura **24 h**.
@@ -16682,3 +16694,68 @@ tarea manual**. La consola vacía la vio él en su pantalla, no una prueba.
 
 **Prueba.** `src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts`
 (4 casos, probado al revés).
+
+---
+
+## REG-432 — cerrar el hueco de la receta la dejaba salir sin membrete, y sin decirlo
+
+**QUÉ FALLABA.** No es un defecto que existiera: es uno que el #355 **iba a
+crear**, encontrado al revivirlo y cerrado en el mismo cambio.
+
+Hasta el #355, una `<img>` de papelería con la URL pelada
+(`/api/receta/diseno?path=…`, sin firma) la servía el proxy sin más. Al cerrar
+R-06 el proxy pasa a fallar **cerrado**, así que esa misma imagen deja de verse.
+
+El cliente la repone antes de imprimir… salvo cuando no puede: sin sesión, con
+el endpoint caído, o pasados los 1 500 ms de tope. En esos casos el documento
+salía **igual, sin membrete y sin firma, y sin decir nada**.
+
+**CÓMO SE DESCUBRIÓ.** Leyendo el comentario del propio módulo al revivir el PR:
+
+> «si el endpoint falla […] las imágenes se quedan con su URL original (que el
+> proxy ya rechaza: **se verá rota**, pero el resto del documento sale)»
+
+Estaba escrito, y escrito como comportamiento aceptado. Lo es para el CÓDIGO —el
+documento no se rompe— y no lo es para el MÉDICO, que se entera cuando el
+paciente ya se fue con el papel.
+
+**CAUSA RAÍZ.** Un endurecimiento correcto que cambia lo que el usuario RECIBE sin
+cambiar lo que el usuario VE. El módulo razonó sobre su propio contrato («nunca
+rompo el documento») y no sobre la consecuencia («el documento sale distinto de
+como se ve en pantalla»). Es la misma familia que «el hueco tratado como dato»:
+la ausencia de la imagen se trató como un estado aceptable en vez de como una
+pérdida que declarar.
+
+**LA REGLA QUE LO HACE SEGURO.** Nada cambia en silencio. Un documento que sale
+distinto de como el médico lo ve se avisa **antes** del último momento en que
+puede pararlo — el diálogo de impresión, o el guardado del PDF.
+
+Avisa y **no bloquea**: una receta sin membrete sigue siendo válida —el contenido
+legal es el texto y la cédula, no la papelería— así que la decisión es del
+médico. Bloquear le quitaría una receta que sí puede entregar.
+
+**CONTROL PERMANENTE.** Canal `onAvisoPapeleria`, separado de `onError` a
+propósito: `onError` significa «no se imprimió nada» y éste «se imprimió, con
+esto de menos». Cae a `onError` si nadie lo pasa, porque los seis sitios que
+imprimen ya lo cablean a los toasts y el fallo que esto existe para impedir es el
+silencio. Cubre también el acuñado **parcial**, que un `try/catch` no ve: el
+servidor comprueba el consultorio POR PATH, así que puede devolver la capacidad
+del membrete y no la de la firma.
+
+**Prueba.** `src/__tests__/una-receta-sin-membrete-no-sale-callada.test.ts`
+(9 casos), probada al revés con tres defectos: quitar el aviso del acuñado
+parcial (cae 1), volver a rendirse en silencio (caen 4), y que la impresión deje
+de avisar (cae 1).
+
+**Qué NO cubre, declarado.**
+
+- **No comprueba que el médico LEA el aviso.** El canal es el toast de la app y
+  se auto-cierra a los 3,5 s — que es exactamente lo que **REG-411** llama «un
+  aviso efímero sobre una pérdida permanente es no avisar». Aquí la pérdida no es
+  permanente (se vuelve a imprimir) y por eso no se escaló a modal, pero la
+  limitación queda escrita y no descubierta dentro de seis meses.
+- **No cubre la vista previa** (`FirmadorDisenos`), que reacuña en cada mutación
+  del DOM: avisar ahí sería avisar en bucle. La vista previa enseña la imagen
+  rota, que en pantalla sí se ve.
+- **No impide que la capacidad caduque entre el aviso y la impresión.**
+
