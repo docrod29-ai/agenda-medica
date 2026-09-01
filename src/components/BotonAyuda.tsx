@@ -43,10 +43,11 @@
  * sitios que disparan usan `DisparadorAyuda` (la lección de `estoy-grabando`:
  * una cadena repetida en dos archivos es una compuerta que se abre sola).
  */
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import { AsistenteChat } from '@/components/AsistenteChat'
 import { useGrabando } from '@/hooks/useGrabando'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 import { HelpCircle, X, BookOpen } from 'lucide-react'
 
 /** Lo despachan los disparadores estáticos; lo escucha este componente. */
@@ -81,6 +82,7 @@ export function DisparadorAyuda({ className, style, children }: {
 export function BotonAyuda() {
   const [abierto, setAbierto] = useState(false)
   const grabando = useGrabando()
+  const cajaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const abrir = () => setAbierto(v => !v)
@@ -88,12 +90,29 @@ export function BotonAyuda() {
     return () => window.removeEventListener(EVENTO_ABRIR_AYUDA, abrir)
   }, [])
 
+  /**
+   * EL TECLADO DEL PANEL — era el único `role="dialog"` del producto sin él.
+   *
+   * Medido el 30-ago en `/citas`: el panel abría, **el foco se quedaba fuera** y
+   * **Escape no lo cerraba**. Quien usa teclado o lector abría la ayuda y se
+   * encontraba con que la ayuda no existía para él, y para quitarla de encima
+   * tenía que ir tabulando a ciegas hasta la aspa.
+   *
+   * No es una implementación nueva: es la misma que ya usan el `Modal`, el
+   * cajón de navegación, la paleta y el tour. Este panel se escribió antes de
+   * que el gancho existiera y se quedó atrás — la familia de siempre: la
+   * lección aprendida en un componente y no en el de al lado.
+   */
+  useDialogoDeTeclado(abierto, cajaRef, () => setAbierto(false))
+
   if (grabando) return null
 
   return (
     <>
       {abierto && (
         <div
+          ref={cajaRef}
+          tabIndex={-1}
           className="boton-ayuda-panel"
           role="dialog"
           aria-label="Asistente de ayuda"
@@ -108,10 +127,15 @@ export function BotonAyuda() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb, var(--nexus) 6%, transparent)' }}>
             <HelpCircle size={17} style={{ color: 'var(--teal)' }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', flex: 1 }}>Asistente de ayuda</span>
-            <Link href="/guia" onClick={() => setAbierto(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}>
+            {/* El color y el subrayado los pone `nx-enlace-riel`: en línea le
+                ganaban al `:hover` y este enlace no acusaba el puntero. */}
+            <Link href="/guia" onClick={() => setAbierto(false)} className="nx-enlace-riel" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
               <BookOpen size={13} /> Guía
             </Link>
-            <button onClick={() => setAbierto(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex', padding: 2 }}>
+            {/* Igual la aspa: el fondo va en la hoja para que el `:hover` pueda
+                ganar. Cerrar un panel sin saber si el ratón está encima del
+                control es de las cosas que más se fallan con prisa. */}
+            <button onClick={() => setAbierto(false)} aria-label="Cerrar" className="nx-acc-plana" style={{ border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex', padding: 2, borderRadius: 'var(--r-sm)' }}>
               <X size={18} />
             </button>
           </div>

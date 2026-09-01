@@ -13,6 +13,7 @@ import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { Clinic, ClinicMember } from '@/types'
+import { seSabeQueNoTieneConsultorio } from '@/lib/clinica/saber-si-hay-consultorio'
 
 interface ClinicCtx {
   clinicId: string | null
@@ -83,6 +84,35 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       if (unsubClinic) { unsubClinic(); unsubClinic = null }
 
       if (!snap.exists()) {
+        /**
+         * «NO EXISTE» Y «NO LO PUDE CONFIRMAR» NO SON LO MISMO.
+         *
+         * Firestore entrega primero lo que tiene en cache y después lo que dice
+         * el servidor. Un documento ausente en un snapshot `fromCache` no
+         * significa que no exista: significa que **todavía no se sabe** —o que
+         * el servidor no contesta—.
+         *
+         * Sin esta guarda, una caída de red hacía esto: el médico entraba, el
+         * snapshot llegaba vacío desde cache, `needsSetup` se ponía en cierto y
+         * el layout lo mandaba a `/setup` — «Configura tu consultorio ·
+         * ¡Bienvenido!». Su consultorio de siempre desaparecía y la aplicación
+         * lo trataba como usuario nuevo. Medido: cortando el acceso a datos, las
+         * cuatro rutas probadas acababan en el asistente de alta.
+         *
+         * Y la pantalla correcta YA EXISTÍA a dos líneas de aquí: «No pudimos
+         * cargar tu consultorio · Tus datos están a salvo en el servidor». Sólo
+         * había que no confundir el hueco con el dato para llegar a ella: al no
+         * resolver, la red de seguridad de 8 s de arriba pone el error y es esa
+         * pantalla la que sale.
+         *
+         * Un usuario realmente nuevo llega igual a `/setup`: su snapshot vacío
+         * acaba confirmado por el servidor (`fromCache` en falso) y entonces sí.
+         *
+         * Regla 4 de seguridad clínica, aplicada a la puerta de entrada:
+         * ausencia de dato no es dato de ausencia.
+         */
+        if (!seSabeQueNoTieneConsultorio({ existe: false, deCache: snap.metadata.fromCache })) return
+
         // No clinic yet — needs setup
         setClinicId(null)
         setClinic(null)

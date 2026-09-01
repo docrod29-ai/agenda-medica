@@ -140,6 +140,18 @@ jobs:
       - run: npm ci
       - run: node scripts/lint-trinquete.mjs
 
+      # ── A11Y-GATE-001: la superficie del paciente, en cero ──────────────
+      #
+      # Va en el job del trinquete y no en el de vitest a propósito: la
+      # compuerta de verdad son las pruebas (`a11y-*.test.ts`, dentro de
+      # `npx vitest run`), y esto es la SEGUNDA mirada — la que imprime en el
+      # registro qué archivo y qué línea, para que quien lea un CI rojo no
+      # tenga que reproducirlo en su máquina para saber qué tocar.
+      #
+      # No añade dependencias: el analizador usa la API del compilador de
+      # TypeScript, que ya estaba en `devDependencies`.
+      - run: node scripts/design/medir-a11y-superficies-paciente.mjs --detalle
+
   # ── P0-5: el smoke público NO corría en ningún lado ───────────────────────
   #
   # `playwright.config.ts` y dos specs existían desde hace tiempo, pero ningún
@@ -210,6 +222,21 @@ jobs:
       # espera a que responda. Sin esa variable, `baseURL` vuelve a producción.
       - name: Smoke público + cabeceras de seguridad (contra el build del PR)
         run: npx playwright test --project=chromium e2e/smoke-publico.spec.ts e2e/seguridad.spec.ts
+        env:
+          PLAYWRIGHT_LOCAL: '1'
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+      # REG-380 — el tamaño de un teléfono, sobre el MISMO chromium que ya está
+      # instalado: no descarga un motor más y no alarga el job de forma
+      # apreciable. Mide desbordamiento horizontal, objetivo táctil, consola
+      # propia y foco visible, que es lo que hasta ahora sólo se comprobaba
+      # LEYENDO el árbol.
+      #
+      # Lo que NO mide, y por eso WS-05 sigue sin PROVEN: el rebote de iPhone es
+      # de WebKit —`overflow-anchor` y el encadenamiento elástico— y en Chromium
+      # no existe. Para eso hace falta el proyecto `iphone-safari`, y ése sí
+      # descarga WebKit.
+      - name: La pantalla en un teléfono (Chromium, NO es un iPhone)
+        run: npx playwright test --project=telefono-chromium e2e/telefono.spec.ts
         env:
           PLAYWRIGHT_LOCAL: '1'
           PLAYWRIGHT_BASE_URL: http://localhost:3000

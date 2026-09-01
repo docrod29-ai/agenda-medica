@@ -1,14 +1,16 @@
 'use client'
+import { conMayusculaInicial } from '@/lib/texto-es'
+import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useCerrarConEscape } from '@/lib/ui/activable'
-import { actualizarContadoresPaciente } from '@/lib/agenda/contadores-paciente'
+import { cambiarEstadoCita } from '@/lib/agenda/transicion-cita'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { estadoCita } from '@/components/StatusBadge'
 import { calcularRiesgoNoShow, NIVEL_LABEL } from '@/lib/no-show-risk'
-import { getPatients } from '@/lib/firestore'
+import { usePacientesPorId } from '@/hooks/usePacientesPorId'
 import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
 import { DoctorFilter, useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
@@ -18,7 +20,7 @@ import { quitarExencion } from '@/lib/cobros'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
-import { updateAppointment, deleteAppointment } from '@/lib/firestore'
+import { deleteAppointment } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
 import { openWhatsApp, msgConfirmacion, msgRecordatorio24h } from '@/lib/whatsapp'
 import {
@@ -37,6 +39,7 @@ import { Button, EmptyState, Spinner } from '@/components/ui'
 import { AgendaVacia } from '@/components/brand/EmptyArt'
 import { describirAgendaVacia } from '@/lib/agenda/vacio-de-la-agenda'
 import { useMode } from '@/context/ModeContext'
+import { useAhoraMinutos, comoHHMM } from '@/hooks/useAhoraMinutos'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
   { label: 'Todas', value: 'todas' },
@@ -109,12 +112,6 @@ export default function CitasPage() {
   const [cobrarAppt, setCobrarAppt] = useState<Appointment | null>(null)
   const { clinicId } = useClinic()
   const { toast, confirm } = useToast()
-  const [pacientes, setPacientes] = useState<Patient[]>([])
-
-  useEffect(() => {
-    if (!clinicId) return
-    getPatients(clinicId).then(setPacientes).catch(() => { /* ignore */ })
-  }, [clinicId])
 
   /**
    * "por-cobrar" no es un estado de la cita: es una VISTA. El cobro no lo hace el
@@ -200,9 +197,16 @@ export default function CitasPage() {
     router.replace(urlAgendaRef.current(), { scroll: false })
   }, [params, appointments, router, loading, toast])
 
-  // Índice O(1) por id: antes cada fila hacía pacientes.find() lineal → O(filas ×
-  // pacientes) en cada tecla del buscador y cada toggle de menú (jank con miles de pacientes).
-  const patientById = useMemo(() => new Map(pacientes.map(p => [p.id, p])), [pacientes])
+  /**
+   * Índice O(1) por id. Antes salía de «la lista» del consultorio, que desde
+   * REG-341 viene RECORTADA: las citas cuyo paciente quedó fuera del recorte se
+   * pintaban sin nombre y sin su señal de riesgo de inasistencia, igual que si
+   * el paciente no existiera (REG-351).
+   *
+   * Ahora se resuelven los ids que esta pantalla va a pintar. Son los de la
+   * agenda visible: pocos, y acotados por la vista y no por el consultorio.
+   */
+  const patientById = usePacientesPorId(clinicId, appointments.map(a => a.pacienteId))
 
   const filtered = useMemo(() => {
     return appointments.filter(a => {
@@ -258,6 +262,9 @@ export default function CitasPage() {
     return { total: day.length, conf, pend, porCobrar }
   }, [appointments, selectedDate, medicoFiltro])
 
+  /** ¿Se puede afirmar un número? Sólo con los datos ya en la mano. */
+  const hayConteo = !loading && !errorCitas
+
   // Si el filtro está en "por-cobrar" y ya no queda ninguno (se cobró el último), el
   // chip desaparece pero el filtro se quedaba atascado mostrando "sin citas". Se
   // regresa a "todas" para no dejar la lista vacía con citas que sí existen ese día.
@@ -282,7 +289,9 @@ export default function CitasPage() {
   // («De Agosto», Visual DNA §6 nº18).
   const fechaLarga = useMemo(() => {
     const f = format(new Date(selectedDate + 'T12:00'), "EEEE d 'de' MMMM 'de' yyyy", { locale: es })
-    return f.charAt(0).toUpperCase() + f.slice(1)
+    // El helper compartido: esta línea era la ÚNICA pantalla arreglada, y su
+    // propio comentario ya fichaba el defecto «en calendario». Ver `@/lib/texto-es`.
+    return conMayusculaInicial(f)
   }, [selectedDate])
 
   // ¿Trabaja aquí más de un médico? Si no, el nombre del médico en cada
@@ -294,21 +303,15 @@ export default function CitasPage() {
   )
 
   /**
-   * EL MOMENTO ACTUAL — la hora del consultorio para el marcador de AHORA.
-   * Nace tras montar (null en el primer render) para no fabricar un mismatch
-   * de hidratación por hora servidor≠cliente (la familia de
-   * V10-HARNESS-OBS-001), y se refresca cada minuto.
+   * EL MOMENTO ACTUAL — ahora del hook compartido `useAhoraMinutos`.
+   *
+   * Este reloj estaba escrito aquí a mano y el calendario no tenía ninguno, así
+   * que la rejilla semanal no dibujaba la hora actual. Al dárselo al calendario
+   * había dos caminos: copiarlo, o sacarlo. Copiado, las dos vistas de la misma
+   * agenda acabarían refrescando a ritmos distintos.
    */
-  const [ahoraHHMM, setAhoraHHMM] = useState<string | null>(null)
-  useEffect(() => {
-    const tick = () => {
-      const min = ahoraMinutosDelDia()
-      setAhoraHHMM(`${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`)
-    }
-    tick()
-    const id = setInterval(tick, 60_000)
-    return () => clearInterval(id)
-  }, [])
+  const ahoraMin = useAhoraMinutos()
+  const ahoraHHMM = comoHHMM(ahoraMin)
   const esHoy = selectedDate === todayStr()
 
   // Dónde se inserta el marcador de AHORA: antes de la primera cita cuya hora
@@ -386,10 +389,28 @@ export default function CitasPage() {
 
   const handleStatusChange = async (appt: Appointment, newStatus: AppointmentStatus) => {
     try {
-      await updateAppointment(clinicId!, appt.id, { estado: newStatus })
-      // Contadores del paciente: sin esto, marcar "no asistió" no dejaba rastro y
-      // el motor de riesgo de no-show operaba con su señal principal en cero.
-      actualizarContadoresPaciente(clinicId!, appt.pacienteId, appt.estado, newStatus, appt.fechaHora)
+      /**
+       * GOLDEN PATH 9 — LA TRANSICIÓN LA DECIDE EL SERVIDOR.
+       *
+       * Antes esto escribía a ciegas (`updateAppointment`) y después llamaba a
+       * los contadores con `appt.estado`, que es la FOTO que tiene esta
+       * pantalla. Doble toque, reintento tras timeout aparente o la asistente y
+       * el médico a la vez: las dos llamadas veían la misma foto vieja y
+       * `noShowCount` subía DOS veces por una sola falta.
+       *
+       * `cambiarEstadoCita` lee el estado previo dentro de la transacción y
+       * escribe el contador en ella. Si la cita YA estaba en ese estado devuelve
+       * `aplicado: false`: nada de contador, nada de bitácora y nada de volver a
+       * avisar a la lista de espera.
+       */
+      const r = await cambiarEstadoCita(clinicId!, appt.id, newStatus)
+      if (!r.aplicado) {
+        // Converger no es fallar: la cita ya está donde se pidió. Se dice sin
+        // fabricar una segunda transición.
+        toast(`Ya estaba en «${newStatus}»`, 'info')
+        setMenuId(null)
+        return
+      }
       /**
        * BITÁCORA. Cancelar una cita desde este menú no dejaba ninguna entrada,
        * mientras que agendar desde el portal público sí la deja. Con dos
@@ -398,7 +419,10 @@ export default function CitasPage() {
        */
       logAudit({
         evento: 'cita_estado_cambiado', clinicId: clinicId!, patientId: appt.pacienteId,
-        meta: { citaId: appt.id, de: appt.estado, a: newStatus, fechaHora: appt.fechaHora },
+        // `de` sale del SERVIDOR, no de la foto de esta pantalla: si otra sesión
+        // ya había movido la cita, la bitácora tiene que decir de dónde vino de
+        // verdad, no de dónde creía este navegador que venía.
+        meta: { citaId: appt.id, de: r.estadoPrevio, a: newStatus, fechaHora: appt.fechaHora },
       })
       toast(`Estado actualizado: ${newStatus}`, 'success')
       setMenuId(null)
@@ -406,7 +430,7 @@ export default function CitasPage() {
       // Antes solo el modal notificaba; las cancelaciones rápidas del dropdown
       // dejaban el hueco sin ofrecer.
       const liberado = ['cancelada', 'reagendada', 'no-asistio'].includes(newStatus) &&
-        !['cancelada', 'reagendada', 'no-asistio'].includes(appt.estado)
+        !['cancelada', 'reagendada', 'no-asistio'].includes(r.estadoPrevio)
 
       /**
        * CANCELAR TAMBIÉN BORRA EL EVENTO DE GOOGLE CALENDAR.
@@ -447,8 +471,16 @@ export default function CitasPage() {
           toast('La cita se actualizó, pero NO se pudo avisar a la lista de espera del hueco libre.', 'error')
         })
       }
-    } catch {
-      toast('Error al actualizar', 'error')
+    } catch (e) {
+      // La cita pudo haberse borrado desde otra sesión mientras este menú estaba
+      // abierto. «Error al actualizar» mandaría a mirar el wifi; el motivo real
+      // se dice, porque lo que hay que hacer (recargar) es distinto.
+      toast(
+        (e as { code?: string })?.code === 'cita-inexistente'
+          ? 'Esa cita ya no existe: recarga la agenda.'
+          : 'Error al actualizar',
+        'error',
+      )
     }
   }
 
@@ -531,7 +563,7 @@ export default function CitasPage() {
             <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día anterior" onClick={() => setSelectedDate(prevDay(selectedDate))}>
               <ChevronLeft size={16} />
             </button>
-            <h1 className="nx-display" style={{ margin: 0 }}>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</h1>
+            <h1 className="nx-display" style={{ margin: 0 }}>{conMayusculaInicial(dateLabel)}</h1>
             <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día siguiente" onClick={() => setSelectedDate(nextDay(selectedDate))}>
               <ChevronRight size={16} />
             </button>
@@ -552,7 +584,7 @@ export default function CitasPage() {
             <input
               ref={fechaInputRef}
               className="riel-fecha-input"
-              type="date" value={selectedDate}
+              type="date" value={selectedDate} max={FECHA_MAXIMA_AGENDA}
               aria-label="Ir a una fecha"
               onChange={e => setSelectedDate(paramFecha(e.target.value))}
             />
@@ -580,15 +612,43 @@ export default function CitasPage() {
       */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
         <div className="riel-filtros" role="group" aria-label="Filtrar las citas del día">
-          <button className="riel-filtro" aria-pressed={statusFilter === 'todas'} onClick={() => setStatusFilter('todas')}>
-            <span className="riel-filtro-n">{daySummary.total}</span> {daySummary.total === 1 ? 'cita' : 'citas'}
+          {/**
+            * UN CONTADOR NO PUEDE DECIR «0» MIENTRAS NO SABE.
+            *
+            * La LISTA de abajo sí estaba resuelta: mientras carga enseña
+            * «Cargando citas…», y si falla lo dice —hay hasta un comentario en
+            * este archivo explicando que un fallo de carga no puede verse como
+            * «hoy no hay nada»—. Pero este contador, que va ENCIMA, seguía
+            * pintando `daySummary.total`, que es 0 hasta que llegan los datos.
+            *
+            * Resultado, medido con 2 s de latencia: la pantalla decía
+            * «0 citas» y, dos centímetros más abajo, «Cargando citas…». El
+            * producto contradiciéndose a sí mismo en un solo golpe de vista — y
+            * en el peor sentido, porque el médico que mira de reojo se queda con
+            * el número, no con el spinner.
+            *
+            * Alguien arregló la lista y no el contador. Ausencia de dato no es
+            * dato de ausencia (`clinical-safety`, regla 4): mientras no se sabe,
+            * se dice que no se sabe.
+            */}
+          <button
+            className="riel-filtro"
+            aria-pressed={statusFilter === 'todas'}
+            onClick={() => setStatusFilter('todas')}
+            disabled={!hayConteo}
+          >
+            {hayConteo ? (
+              <><span className="riel-filtro-n">{daySummary.total}</span> {daySummary.total === 1 ? 'cita' : 'citas'}</>
+            ) : (
+              <><span className="riel-filtro-n" aria-hidden="true">—</span> citas<span className="nx-solo-lector">: aún cargando</span></>
+            )}
           </button>
-          {daySummary.pend > 0 && (
+          {hayConteo && daySummary.pend > 0 && (
             <button className="riel-filtro" aria-pressed={statusFilter === 'pendientes'} onClick={() => setStatusFilter(statusFilter === 'pendientes' ? 'todas' : 'pendientes')}>
               <span className="riel-filtro-n">{daySummary.pend}</span> por confirmar
             </button>
           )}
-          {daySummary.porCobrar > 0 && (
+          {hayConteo && daySummary.porCobrar > 0 && (
             <button className="riel-filtro" aria-pressed={statusFilter === 'por-cobrar'} onClick={() => setStatusFilter(statusFilter === 'por-cobrar' ? 'todas' : 'por-cobrar')}>
               <span className="riel-filtro-n">{daySummary.porCobrar}</span> por cobrar
             </button>
@@ -1017,6 +1077,10 @@ function RielEntrada({
               title={appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'}
             >
               cortesía
+              {/* El MOTIVO viajaba sólo en `title`. Aquí sí llega a todos. */}
+              <span className="nx-solo-lector">
+                {appt.exentoMotivo ? `: ${appt.exentoMotivo}` : ' — no se cobra'}
+              </span>
             </span>
           )}
           {/*
@@ -1034,12 +1098,21 @@ function RielEntrada({
             >
               <AlertTriangle size={10} className="ds-icon" />
               {reparando ? 'Reparando…' : 'Calendario descuadrado'}
+              {/* Qué pasó y qué hace este botón: estaba sólo en `title`, así que
+                  el nombre accesible era «Calendario descuadrado» a secas. */}
+              <span className="nx-solo-lector">. {avisoDesincronizada(appt.estado)}</span>
             </button>
           )}
           {/* Riesgo de no-show alto: señal operativa real — conserva su aviso */}
           {riesgo && (riesgo.nivel === 'alto' || riesgo.nivel === 'muy_alto') && (
             <span className="riel-aviso" title={`Riesgo: ${riesgo.score}/100. ${riesgo.recomendacion}`}>
               <AlertTriangle size={10} className="ds-icon" /> {NIVEL_LABEL[riesgo.nivel]}
+              {/* La insignia sólo decía el NIVEL. La cifra y —sobre todo— la
+                  recomendación vivían en `title`, y son justo lo que le dice a
+                  la asistente si toca llamar al paciente. */}
+              <span className="nx-solo-lector">
+                . Riesgo {riesgo.score} de 100. {riesgo.recomendacion}
+              </span>
             </span>
           )}
         </div>

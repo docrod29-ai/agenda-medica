@@ -1,5 +1,6 @@
 import { analitoDe, valorPlausible, type Analito } from './analitos'
 import { evaluarCriticoLab, censuraDe, type Censura } from '@/lib/hospital/lab-criticos'
+import { sujetosLeidos, type SujetoLeido } from './sujeto'
 
 /**
  * VALIDACIÓN DE LO QUE LA IA EXTRAE DE UN PDF/FOTO DE LABORATORIO.
@@ -9,10 +10,11 @@ import { evaluarCriticoLab, censuraDe, type Censura } from '@/lib/hospital/lab-c
  * que devolvió, se agrupa por analito canónico y se marca la criticidad con el
  * motor ya auditado. Nada de esto confía en la IA para decidir criticidad.
  *
- * PRIVACIDAD: esta función NO conserva identificadores del paciente aunque la IA
- * los devolviera. El registro se guarda bajo el patientId; el nombre/folio/CURP
- * que aparezca en la hoja se descarta a propósito (constraint del proyecto: la
- * extracción por foto no captura identificadores del paciente).
+ * PRIVACIDAD: esta función NO conserva identificadores del paciente. El nombre
+ * que aparezca en la hoja es la excepción y viaja aparte, en `sujetos`: sirve
+ * para verificar de QUIÉN es la evidencia antes de escribirla (REG-323) y
+ * muere ahí — no entra en `resultados` ni se persiste. El folio, la CURP, la
+ * dirección y el resto siguen descartados a propósito.
  *
  * Puro y determinista → testeable.
  */
@@ -60,6 +62,12 @@ export interface PanelValidado {
   resultados: ResultadoValidado[]
   /** Filas que la IA leyó pero no se reconocieron: se conservan como texto, sin graficar. */
   noReconocidas: { estudio: string; valor: string; unidad?: string }[]
+  /**
+   * A quién dice pertenecer la hoja. TRANSITORIO: se compara contra el paciente
+   * de destino y se descarta. Sin esto, el panel se archivaba bajo el paciente
+   * que estuviera abierto en la pantalla (REG-323).
+   */
+  sujetos: SujetoLeido[]
 }
 
 /** Lee un número aceptando coma decimal y signos de desigualdad; null si ambiguo. */
@@ -92,7 +100,7 @@ export function fechaValida(f: string | undefined | null): string {
  *
  * @param crudo  lo que devolvió la IA de visión (sin confiar en su criticidad)
  */
-export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[] }): PanelValidado {
+export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacientes?: unknown }): PanelValidado {
   const resultados: ResultadoValidado[] = []
   const noReconocidas: PanelValidado['noReconocidas'] = []
   const vistos = new Set<string>()
@@ -136,7 +144,7 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[] }): Pa
     })
   }
 
-  return { fecha: fechaValida(crudo.fecha), resultados, noReconocidas }
+  return { fecha: fechaValida(crudo.fecha), resultados, noReconocidas, sujetos: sujetosLeidos(crudo.pacientes) }
 }
 
 /**

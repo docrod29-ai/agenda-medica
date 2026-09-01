@@ -5,6 +5,8 @@
  * Vista simplificada: nombre, teléfono, doctor, tipo, fecha, hora disponible.
  * Un solo clic → cita creada.
  */
+import { conMayusculaInicial } from '@/lib/texto-es'
+import { mesesHastaElTecho, esFechaDeAgendaValida } from '@/lib/agenda/horizonte'
 import { useState, useMemo, useEffect } from 'react'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -12,12 +14,13 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { useFiltroMedico, colorMedico } from '@/components/DoctorFilter'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { useToast } from '@/context/ToastContext'
-import { getPatients, createPatient } from '@/lib/firestore'
+import { createPatient } from '@/lib/firestore'
+import { candidatosDePaciente } from '@/lib/pacientes/candidatos'
 import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 import { normalizarNombre } from '@/lib/csv-pacientes'
 import type { Patient } from '@/types'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { getAvailableSlots } from '@/lib/availability'
+import { getAvailableSlots, esFestivo } from '@/lib/availability'
 import { listarBloques, type TimeBlock } from '@/lib/time-blocks'
 import { AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -29,6 +32,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { configParaMedico } from '@/lib/horario-medico'
+import { conTiempoLimite } from '@/lib/fetch-con-timeout'
 
 function todayStr() {
   return hoyISO()  // fecha en zona MX, no UTC (bug "hoy salta a mañana")
@@ -47,6 +51,12 @@ function formatDateLong(d: string): string {
 const TIPOS: { value: AppointmentType; label: string }[] = Object.entries(APPOINTMENT_TYPE_CONFIG).map(
   ([k, v]) => ({ value: k as AppointmentType, label: v.label })
 )
+
+/**
+ * Techo para las lecturas de expediente del alta rápida. Generoso para una
+ * conexión mala, muy por debajo de lo que nadie espera mirando un botón.
+ */
+const ESPERA_EXPEDIENTE_MS = 8000
 
 export default function AsistentePage() {
   return (
@@ -76,7 +86,9 @@ function AsistenteInner() {
   const [consiente, setConsiente] = useState(true)   // consentimiento de mensajes (visible/toggleable)
   // Typeahead de paciente: sugiere pacientes existentes al escribir (reconocer >
   // recordar) → autollena nombre+teléfono, menos tecleo y menos errores/duplicados.
-  const [pacientesDir, setPacientesDir] = useState<Patient[]>([])
+  // Desde REG-351 las sugerencias las trae el SERVIDOR (`sugeridos`, más abajo):
+  // no hay un «directorio» en memoria que filtrar, porque ese directorio venía
+  // recortado y callaba a quien no cupo.
   const [mostrarSug, setMostrarSug] = useState(false)
   const [doctorId, setDoctorId] = useState('')
   const [tipo, setTipo] = useState<AppointmentType>('primera-vez')
@@ -104,20 +116,39 @@ function AsistenteInner() {
     if (clinicId) listarBloques(clinicId).then(setBloques).catch(() => {})
   }, [clinicId])
 
-  // Directorio de pacientes para el typeahead (getPatients está cacheado).
+  /**
+   * ── EL TYPEAHEAD PREGUNTA AL SERVIDOR (REG-351) ──────────────────────────
+   *
+   * Esto se bajaba «el directorio» y lo filtraba en memoria. Desde REG-341 ese
+   * directorio viene **recortado**, así que en un consultorio grande el
+   * typeahead dejaba de sugerir a un paciente que sí existe — y quien agenda,
+   * al no verlo, lo da de alta otra vez. El resultado no es una lista fea: es
+   * un expediente partido en dos.
+   *
+   * La sugerencia se ata al texto que la produjo. Sin eso se enseñarían un
+   * instante los resultados de la búsqueda anterior, que en una lista de
+   * pacientes significa enseñar **otra persona** a quien está agendando.
+   */
+  const [sugeridos, setSugeridos] = useState<{ q: string; pacientes: Patient[] } | null>(null)
   useEffect(() => {
-    if (clinicId) getPatients(clinicId).then(setPacientesDir).catch(() => {})
-  }, [clinicId])
+    if (!clinicId) return
+    const q = nombre.trim()
+    const tel = q.replace(/\D/g, '')
+    // Por debajo de esto no hay consulta: dos letras sondean media agenda.
+    if (normalizarNombre(q).length < 2 && tel.length < 3) return
+    let vivo = true
+    const t = setTimeout(() => {
+      candidatosDePaciente(clinicId, { nombre: q, telefono: tel.length >= 3 ? q : '' })
+        .then(c => { if (vivo) setSugeridos({ q, pacientes: c.pacientes }) })
+        .catch(() => { /* sin red no se sugiere; el alta sigue disponible */ })
+    }, 220)
+    return () => { vivo = false; clearTimeout(t) }
+  }, [clinicId, nombre])
 
-  const sugerencias = useMemo(() => {
-    const q = normalizarNombre(nombre)
-    const tel = nombre.replace(/\D/g, '')
-    if (q.length < 2 && tel.length < 3) return []
-    return pacientesDir.filter(p =>
-      (q.length >= 2 && normalizarNombre(p.nombre).includes(q)) ||
-      (tel.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(tel)),
-    ).slice(0, 6)
-  }, [nombre, pacientesDir])
+  const sugerencias = useMemo(
+    () => (sugeridos && sugeridos.q === nombre.trim() ? sugeridos.pacientes.slice(0, 6) : []),
+    [sugeridos, nombre],
+  )
 
   const elegirPaciente = (p: Patient) => {
     setNombre(p.nombre)
@@ -159,8 +190,38 @@ function AsistenteInner() {
     return getAvailableSlots(fecha, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined)
   }, [fecha, duracion, appointments, efectiveConfig, doctorId, bloques])
 
-  // Navegación por MES: se puede avanzar hasta 12 meses (1 año) con las flechas ◀ ▶.
-  const MAX_MES_OFFSET = 12
+  /**
+   * POR QUÉ ESTE DÍA NO TIENE HUECOS.
+   *
+   * «No hay horarios» es cierto en tres situaciones que no significan lo
+   * mismo para quien está al teléfono: el consultorio no abre ese día de la
+   * semana, es festivo, o está lleno. Sólo la tercera se resuelve buscando
+   * otra hora; las dos primeras se resuelven buscando otro DÍA.
+   *
+   * Regla 4 de `clinical-safety` en versión de agenda: ausencia de hueco no
+   * es dato de ausencia. Si no se puede saber el motivo, se dice lo que se
+   * sabe y nada más — no se inventa una explicación plausible.
+   */
+  const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
+  const motivoSinHorarios = useMemo(() => {
+    if (!fecha || !efectiveConfig) return 'No hay horarios disponibles este día'
+    if (esFestivo(fecha, efectiveConfig.diasFestivos)) return 'Ese día es festivo: el consultorio no abre.'
+    const diaSemana = DIAS_SEMANA[new Date(fecha + 'T12:00:00').getDay()]
+    const horario = efectiveConfig.horario?.[diaSemana]
+    if (!horario?.activo) return 'El consultorio no abre ese día de la semana.'
+    return 'Ese día ya está lleno: no queda ningún hueco libre.'
+  }, [fecha, efectiveConfig])
+
+  /**
+   * Navegación por MES con las flechas ◀ ▶, hasta el techo REAL de la agenda.
+   *
+   * Era `12`, escrito a mano. Eso hacía de esta pantalla un tercer horizonte
+   * —ni el techo de la plataforma ni la ventana del portal público— y la misma
+   * asistente, en `citas`, tenía a su lado un campo que llega a 2050. Dos
+   * alcances para la misma persona, y ninguno que dijera el suyo.
+   * Ver `@/lib/agenda/horizonte`.
+   */
+  const MAX_MES_OFFSET = useMemo(() => mesesHastaElTecho(todayStr()), [])
   const [mesOffset, setMesOffset] = useState(0)
 
   // Fecha (día 1) del mes que se está viendo. offset 0 = mes actual.
@@ -180,10 +241,39 @@ function AsistenteInner() {
     const dias: string[] = []
     for (let dia = 1; dia <= ultimoDia; dia++) {
       const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
-      if (iso >= hoy) dias.push(iso)
+      // Ni días pasados ni días que el servidor va a rechazar por pasar el techo.
+      if (iso >= hoy && esFechaDeAgendaValida(iso)) dias.push(iso)
     }
     return dias
   }, [mesVista])
+
+  /**
+   * CUÁNTOS LUGARES TIENE CADA DÍA DEL MES — una sola vez.
+   *
+   * Esto se calculaba DENTRO del `map` que pinta la lista, así que
+   * `getAvailableSlots` corría una vez por día en cada render, y la sugerencia
+   * de «ir al primer día con lugar» lo habría vuelto a correr por su cuenta.
+   * Calculado aquí, la lista y la sugerencia leen lo mismo — y no pueden
+   * discrepar sobre cuántos lugares tiene un día.
+   */
+  const lugaresPorDia = useMemo(() => {
+    if (!efectiveConfig) return []
+    return diasDelMes.map(dia => ({
+      dia,
+      lugares: getAvailableSlots(dia, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined).length,
+    }))
+  }, [diasDelMes, duracion, appointments, efectiveConfig, doctorId, bloques])
+
+  /**
+   * El primer día del mes a la vista que SÍ tiene lugar. Se OFRECE, no se
+   * salta: cambiar la fecha en silencio es lo que la asistente no puede
+   * permitirse no haber visto.
+   */
+  const primerDiaConLugar = useMemo(
+    () => lugaresPorDia.find(d => d.lugares > 0 && d.dia !== fecha) ?? null,
+    [lugaresPorDia, fecha],
+  )
+
 
   const handleSubmit = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }
@@ -198,7 +288,34 @@ function AsistenteInner() {
       let pacienteId = ''
       let avisoSinExpediente = false
       try {
-        const pacientes = await getPatients(clinicId!)
+        /**
+         * CON TECHO, Y CONTRA EL CONJUNTO CORRECTO — las dos cosas.
+         *
+         * El techo: una lectura del SDK de Firestore sin red **no rechaza**, se
+         * queda pendiente. El `try/catch` de abajo no podía capturar nada y el
+         * `finally` que devuelve el botón a su sitio no llegaba a correr —
+         * «Guardando…» para siempre, medido a 18 s. Vale igual para el sondeo
+         * indexado de abajo, que es la misma clase de lectura.
+         *
+         * REG-351 — CON QUÉ SE COMPARA. Esto leía «el directorio», que desde
+         * REG-341 viene recortado: por encima del techo `elegirExpedienteParaCita`
+         * comparaba contra una lista que no contenía al paciente y creaba uno
+         * nuevo. La regla de abajo seguía siendo correcta; lo que estaba mal era
+         * el conjunto sobre el que decidía.
+         *
+         * Ahora los candidatos salen de dos sondeos indexados —teléfono y
+         * nombre— y el coste no depende del tamaño del consultorio.
+         */
+        const { pacientes, sePudoPreguntar } = await conTiempoLimite(
+          candidatosDePaciente(clinicId!, { nombre: nombreLimpio, telefono: tel }),
+          ESPERA_EXPEDIENTE_MS, 'el expediente del paciente',
+        )
+        /**
+         * Si NO se pudo preguntar, no se decide. Crear un expediente aquí sería
+         * fabricar un duplicado a partir de un fallo de lectura, y colgar de él
+         * la cita; el aviso ya existe para el caso de «sin expediente».
+         */
+        if (!sePudoPreguntar) throw new Error('no se pudo consultar el directorio de pacientes')
         /**
          * CON QUÉ EXPEDIENTE SE FUNDE ESTA CITA.
          *
@@ -228,7 +345,7 @@ function AsistenteInner() {
         if (existente) {
           pacienteId = existente.id
         } else {
-          pacienteId = await createPatient(clinicId!, {
+          pacienteId = await conTiempoLimite(createPatient(clinicId!, {
             nombre: nombreLimpio,
             telefono: tel,
             noShowCount: 0,
@@ -236,7 +353,7 @@ function AsistenteInner() {
             createdAt: '',
             updatedAt: '',
             creadoPor: user?.email || 'asistente',
-          })
+          }), ESPERA_EXPEDIENTE_MS, 'el alta del expediente')
         }
       } catch (e) {
         /**
@@ -345,7 +462,6 @@ function AsistenteInner() {
                 style={{
                   width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
                   borderRadius: 10, padding: '10px 14px', fontSize: 14, color: 'var(--text)',
-                  outline: 'none',
                 }}
               />
               {mostrarSug && sugerencias.length > 0 && (
@@ -391,7 +507,6 @@ function AsistenteInner() {
                   style={{
                     width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
                     borderRadius: 10, padding: '10px 14px 10px 34px', fontSize: 14, color: 'var(--text)',
-                    outline: 'none',
                   }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
                   onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
@@ -449,25 +564,72 @@ function AsistenteInner() {
               <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 8 }}>
                 Tipo de consulta
               </label>
-              <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {TIPOS.map(t => (
+              {/**
+                * OCHO ALTERNATIVAS DE UNA ELECCIÓN NO SON OCHO OBJETOS.
+                *
+                * Cada tipo era un rectángulo con su propio borde: ocho cajas de
+                * 179×56 con el mismo peso visual, una al lado de otra. Contadas
+                * una a una parecen ocho tarjetas, y leídas de golpe son
+                * inventario — §6 del encargo: «las tarjetas indican agrupación
+                * con sentido, no decoran contenido».
+                *
+                * Pero además era FALSO como modelo: no son ocho cosas, son ocho
+                * formas de contestar UNA pregunta. Un control, no un catálogo.
+                *
+                * Ahora el borde lo lleva el GRUPO y las opciones viven dentro,
+                * separadas por líneas. La única que se destaca es la elegida —
+                * que es la información que de verdad hay que ver de un vistazo.
+                *
+                * De paso deja de ser un montón de `<button>` sueltos y pasa a ser
+                * un `radiogroup`: quien navega con teclado recorre el grupo con
+                * las flechas en vez de tabular ocho veces, y el lector anuncia
+                * «2 de 8» en vez de ocho botones sin relación.
+                */}
+              <div
+                role="radiogroup"
+                aria-label="Tipo de consulta"
+                style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0,
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+                  overflow: 'hidden',
+                }}
+              >
+                {TIPOS.map((t, i) => {
+                  const elegido = tipo === t.value
+                  const mins = efectiveConfig.duraciones?.[t.value] || 30
+                  return (
                   <button
                     key={t.value}
+                    role="radio"
+                    aria-checked={elegido}
                     onClick={() => setTipo(t.value)}
+                    className="nx-opcion-tipo"
+                    data-elegido={elegido ? '' : undefined}
                     style={{
-                      padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
-                      border: tipo === t.value ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: tipo === t.value ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
-                      color: tipo === t.value ? 'var(--teal)' : 'var(--text2)',
-                      cursor: 'pointer', transition: 'all var(--mov-rapido) var(--mov-curva)', textAlign: 'left',
+                      padding: '10px 12px', fontSize: 'var(--t-caption)', fontWeight: 500,
+                      border: 'none',
+                      /* Rejilla interna: línea a la izquierda salvo en la primera
+                         columna, y arriba salvo en la primera fila. */
+                      borderLeft: i % 2 === 1 ? '1px solid var(--border)' : 'none',
+                      borderTop: i >= 2 ? '1px solid var(--border)' : 'none',
+                      /* El fondo lo pinta la hoja por `data-elegido`: escrito
+                         aquí en línea ganaría a `:hover` y lo dejaría muerto —
+                         exactamente el defecto de la unidad 22, que cometí una
+                         segunda vez en este mismo archivo antes de acordarme. */
+                      color: elegido ? 'var(--teal)' : 'var(--text2)',
+                      cursor: 'pointer', textAlign: 'left',
+                      transition: 'background var(--mov-rapido) var(--mov-curva), color var(--mov-rapido) var(--mov-curva)',
                     }}
                   >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><TipoCitaIcon tipo={t.value} size={13} /> {t.label}</span>
-                    <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
-                      {duracion === efectiveConfig.duraciones?.[t.value] ? `${efectiveConfig.duraciones?.[t.value]} min` : `${efectiveConfig.duraciones?.[t.value] || 30} min`}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: elegido ? 600 : 500 }}>
+                      <TipoCitaIcon tipo={t.value} size={13} /> {t.label}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 'var(--t-overline)', color: 'var(--text3)', marginTop: 2 }}>
+                      {mins} min
                     </span>
                   </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -495,10 +657,13 @@ function AsistenteInner() {
                 onClick={() => setMesOffset(m => Math.max(0, m - 1))}
                 disabled={mesOffset <= 0}
                 aria-label="Mes anterior"
+                /* El fondo lo pone `nx-acc-caja`: en línea le ganaba al `:hover`
+                   y las flechas del mes no acusaban el puntero. */
+                className="nx-acc-caja"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 34, height: 34, borderRadius: 8,
-                  border: '1px solid var(--border)', background: 'var(--s2)',
+                  border: '1px solid var(--border)',
                   color: mesOffset <= 0 ? 'var(--text3)' : 'var(--text)',
                   cursor: mesOffset <= 0 ? 'default' : 'pointer',
                   opacity: mesOffset <= 0 ? 0.4 : 1,
@@ -506,18 +671,21 @@ function AsistenteInner() {
               >
                 <ChevronLeft size={18} />
               </button>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize', textAlign: 'center', flex: 1 }}>
-                {mesLabel}
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', textAlign: 'center', flex: 1 }}>
+                {conMayusculaInicial(mesLabel)}
               </span>
               <button
                 type="button"
                 onClick={() => setMesOffset(m => Math.min(MAX_MES_OFFSET, m + 1))}
                 disabled={mesOffset >= MAX_MES_OFFSET}
                 aria-label="Mes siguiente"
+                /* El fondo lo pone `nx-acc-caja`: en línea le ganaba al `:hover`
+                   y las flechas del mes no acusaban el puntero. */
+                className="nx-acc-caja"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 34, height: 34, borderRadius: 8,
-                  border: '1px solid var(--border)', background: 'var(--s2)',
+                  border: '1px solid var(--border)',
                   color: mesOffset >= MAX_MES_OFFSET ? 'var(--text3)' : 'var(--text)',
                   cursor: mesOffset >= MAX_MES_OFFSET ? 'default' : 'pointer',
                   opacity: mesOffset >= MAX_MES_OFFSET ? 0.4 : 1,
@@ -527,33 +695,42 @@ function AsistenteInner() {
               </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 420, overflowY: 'auto' }}>
-              {diasDelMes.map(d => {
-                const daySlots = getAvailableSlots(d, duracion, appointments, efectiveConfig, undefined, bloques, doctorId || undefined)
+              {lugaresPorDia.map(({ dia: d, lugares }) => {
                 const isSelected = d === fecha
                 const isToday = d === todayStr()
                 return (
                   <button
                     key={d}
                     onClick={() => setFecha(d)}
-                    disabled={daySlots.length === 0}
+                    disabled={lugares === 0}
+                    /*
+                      `nx-chip` pone el fondo, y con eso se arreglan tres cosas
+                      de una: el día acusa el puntero —en línea el fondo le
+                      ganaba al `:hover`—, el elegido se anuncia por
+                      `aria-pressed` en vez de sólo por color, y el tinte deja de
+                      ser un `rgba(61,90,254,0.1)` escrito a mano —un azul que no
+                      es de la paleta— para ser `--nexus-soft`, el token que ya
+                      usan las demás píldoras del producto.
+                    */
+                    className="nx-chip"
+                    aria-pressed={isSelected}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '10px 14px', borderRadius: 10, fontSize: 13,
                       border: isSelected ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: isSelected ? 'rgba(61,90,254,0.1)' : 'var(--s2)',
-                      color: daySlots.length === 0 ? 'var(--text3)' : isSelected ? 'var(--teal)' : 'var(--text)',
-                      cursor: daySlots.length === 0 ? 'default' : 'pointer',
+                      color: lugares === 0 ? 'var(--text3)' : isSelected ? 'var(--teal)' : 'var(--text)',
+                      cursor: lugares === 0 ? 'default' : 'pointer',
                       // Un día sin cupo va apagado, pero LEGIBLE: con 0.4 sobre un
                       // texto ya atenuado (--text3) quedaba casi invisible en claro.
-                      opacity: daySlots.length === 0 ? 0.6 : 1,
+                      opacity: lugares === 0 ? 0.6 : 1,
                       transition: 'all var(--mov-rapido) var(--mov-curva)',
                     }}
                   >
-                    <span style={{ textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      {isToday ? <><CalendarDays size={13} className="ds-icon" /> Hoy</> : formatDateLong(d)}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      {isToday ? <><CalendarDays size={13} className="ds-icon" /> Hoy</> : conMayusculaInicial(formatDateLong(d))}
                     </span>
                     <span style={{ fontSize: 11, color: isSelected ? 'var(--teal)' : 'var(--text3)' }}>
-                      {daySlots.length > 0 ? `${daySlots.length} lugares` : 'Sin lugar'}
+                      {lugares > 0 ? `${lugares} ${lugares === 1 ? 'lugar' : 'lugares'}` : 'Sin lugar'}
                     </span>
                   </button>
                 )
@@ -572,10 +749,19 @@ function AsistenteInner() {
                   <button
                     key={h}
                     onClick={() => setHoraSeleccionada(h)}
+                    /*
+                      Igual que las tarjetas de día, y por lo mismo: `nx-chip`
+                      pone el fondo —en línea le ganaba al `:hover` y estas ocho
+                      horas, que son LO que se pulsa para agendar, no acusaban el
+                      puntero—, `aria-pressed` dice cuál está elegida, y el tinte
+                      deja de ser un `rgba(61,90,254,0.15)` escrito a mano para
+                      ser `--nexus-soft`.
+                    */
+                    className="nx-chip"
+                    aria-pressed={horaSeleccionada === h}
                     style={{
                       padding: '8px 4px', borderRadius: 8, fontSize: 13, fontWeight: 500,
                       border: horaSeleccionada === h ? '1px solid var(--teal)' : '1px solid var(--border)',
-                      background: horaSeleccionada === h ? 'rgba(61,90,254,0.15)' : 'var(--s2)',
                       color: horaSeleccionada === h ? 'var(--teal)' : 'var(--text)',
                       cursor: 'pointer', transition: 'all var(--mov-rapido) var(--mov-curva)',
                     }}
@@ -587,9 +773,40 @@ function AsistenteInner() {
             </div>
           )}
 
+          {/**
+            * EL VACÍO DICE POR QUÉ, Y A DÓNDE IR.
+            *
+            * Aquí ponía «No hay horarios disponibles este día» y nada más. El
+            * problema no era el tono: era que el día seleccionado por omisión
+            * es HOY, y si hoy el consultorio no abre —sábado, domingo,
+            * festivo— la asistente aterriza en un callejón sin salida
+            * mientras, dos filas más arriba, hay un día con nueve lugares.
+            *
+            * Visto en el arnés: «Hoy · Sin lugar» seleccionado y en gris,
+            * «Domingo 30 · Sin lugar», «Lunes 31 · 9 lugares». El mensaje
+            * decía la verdad y aun así engañaba, porque quien lo lee entiende
+            * «no hay citas» y no «hoy no se abre».
+            *
+            * Dos arreglos, ninguno mueve nada por su cuenta:
+            *  · se dice el MOTIVO cuando se puede saber (cerrado / festivo /
+            *    lleno). Ausencia de hueco no es lo mismo que ausencia de día.
+            *  · se OFRECE el primer día con lugar, como acción de un clic. No
+            *    se salta solo: un cambio de fecha en silencio es justo lo que
+            *    la asistente no puede permitirse no haber visto.
+            */}
           {fecha && slots.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text3)', fontSize: 13 }}>
-              No hay horarios disponibles este día
+            <div style={{ textAlign: 'center', padding: '20px 8px', color: 'var(--text3)', fontSize: 13 }}>
+              <div>{motivoSinHorarios}</div>
+              {primerDiaConLugar && (
+                <button
+                  type="button"
+                  onClick={() => setFecha(primerDiaConLugar.dia)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ marginTop: 12 }}
+                >
+                  Ir al {conMayusculaInicial(formatDateLong(primerDiaConLugar.dia))} · {primerDiaConLugar.lugares} lugares
+                </button>
+              )}
             </div>
           )}
         </div>

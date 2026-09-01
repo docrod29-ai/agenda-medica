@@ -6,6 +6,10 @@
  * médico necesita saber QUÉ CAMBIA CLÍNICAMENTE, no solo el precio. Esta tabla
  * lee la fuente única (MOTORES en planes-ia) y la muestra en /precios y en el
  * selector de la nota. Si mañana cambia un nivel, la tabla cambia sola.
+ *
+ * El subtítulo de cada fila es la CAPACIDAD del nivel, no el modelo que lo
+ * ejecuta: aquí se pintaba `m.modelos` ("Opus 4.8 + GPT-5") y era la vía por la
+ * que la marca del proveedor llegaba a la pantalla del médico (#345).
  */
 import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
 import { Check } from 'lucide-react'
@@ -32,7 +36,7 @@ export function TablaNivelesIA({ compacto = false }: { compacto?: boolean }) {
                 <td style={{ ...td, whiteSpace: 'nowrap' }}>
                   <span style={{ fontSize: 15 }}>{m.emoji}</span>{' '}
                   <strong style={{ color: 'var(--text)' }}>{m.nombre}</strong>
-                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>{m.modelos}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>{m.capacidad}</div>
                 </td>
                 <td style={{ ...td, color: 'var(--text2)' }}>{m.usoRecomendado}</td>
                 <td style={td}>

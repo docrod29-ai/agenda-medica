@@ -62,10 +62,24 @@ describe('/pendientes — closed recently conectado, no huérfano', () => {
   })
 
   it('NO se llama dentro del useEffect que carga tareasVivas al montar', () => {
-    const inicioEffect = PAGINA.indexOf('useEffect(() => {')
-    const finEffect = PAGINA.indexOf('}, [clinicId, recarga])')
-    expect(inicioEffect).toBeGreaterThan(-1)
+    /**
+     * ── POR QUÉ SE BUSCA EL EFECTO ASÍ Y NO POR SU LISTA LITERAL ──────────
+     *
+     * Buscaba el final del efecto con la cadena exacta `}, [clinicId, recarga])`.
+     * Añadirle una dependencia legítima —REG-411 le sumó el lector del
+     * almacenamiento local— dejaba ese `indexOf` en -1, y el caso se caía sin que
+     * nada de lo que vigila hubiera cambiado.
+     *
+     * Un guardián anclado al texto exacto de una lista de dependencias vigila la
+     * lista, no la propiedad. Ahora se busca el efecto que CARGA `tareasVivas`,
+     * que es de lo que hablaba desde el principio.
+     */
+    const inicioEffect = PAGINA.indexOf('tareasVivas(clinicId)')
+    expect(inicioEffect, 'no se localizó la carga del worklist').toBeGreaterThan(-1)
+    const finEffect = PAGINA.indexOf('  }, [', inicioEffect)
     expect(finEffect).toBeGreaterThan(inicioEffect)
+    const deps = PAGINA.slice(finEffect, PAGINA.indexOf(')', finEffect))
+    expect(deps, 'el efecto localizado no es el de la carga').toContain('clinicId')
     const cuerpoEffect = PAGINA.slice(inicioEffect, finEffect)
     expect(cuerpoEffect).not.toContain('tareasCerradasRecientes')
   })

@@ -16,28 +16,35 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1171",
-  "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
+  "ultimaVersionEnProduccion": {
+    "version": "nexusmed-v1178",
+    "confirmadaEl": "2026-09-01",
+    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206",
+    "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
+  },
   "trabajoLocalSinSubir": [
-    "M agent-state/V15_CURRENT_ITERATION.md",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M src/app/(dashboard)/chat/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/page.tsx",
-    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/capturas/v15-coherencia/",
-    "?? docs/design/v15/V15-COHERENCIA-DE-PRODUCTO.md",
-    "?? scripts/design/arnes-coherencia-v15.sh",
-    "?? scripts/design/medir-coherencia-de-producto-v15.mjs",
-    "?? src/__tests__/v15-cada-destino-declara-su-encabezado.test.ts",
-    "?? src/__tests__/v15-el-documento-clinico-nombra-al-paciente.test.ts",
-    "?? src/components/TituloDeDocumentoClinico.tsx"
+    "M  docs/SIMULACRO_RESTAURACION.md",
+    "M  docs/audit/regression-ledger.md",
+    "M  docs/data-room/INDICE.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "A  docs/recovery/DECISIONES-DEL-DUENO.md",
+    "A  docs/recovery/HANDOFF-306-AUTOGUARDADO.md",
+    "A  docs/recovery/PLAN-SIMULACRO.md",
+    "A  docs/recovery/README.md",
+    "A  docs/recovery/REGISTRO-DE-RIESGOS.md",
+    "A  docs/recovery/evidencia/simulacro-recuperacion-2026-01-05-750p-7db323f2b3.json",
+    "A  docs/recovery/evidencia/simulacro-recuperacion-2026-01-05-750p-7db323f2b3.md",
+    "M  package.json",
+    "A  scripts/recovery/simulacro-recuperacion.mjs",
+    "A  src/__tests__/durabilidad-respaldo-y-restauracion.test.ts",
+    "A  src/__tests__/durabilidad-supresion-arco-y-perdida-clinica.test.ts",
+    "M  src/__tests__/el-camino-del-medico-llega-entero.test.ts",
+    "M  src/__tests__/el-respaldo-sabe-volver-entero.test.ts",
+    "M  src/__tests__/renombrar-la-marca-no-borra-el-audio.test.ts",
+    "M  src/__tests__/respaldo-consultorio.test.ts",
+    "M  src/__tests__/respaldo-ida-y-vuelta.test.ts"
   ],
-  "actualizado": "2026-08-15",
+  "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -69,12 +76,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-v15-final-coherence-vhiuj8",
+  "ramaActual": "claude/despliegues-master-loop-a8bb7x",
   "derivado": {
-    "regsEnElLedger": 170,
-    "ultimaREG": "REG-322",
-    "archivosDePrueba": 705,
-    "casosDePrueba": 8635,
+    "regsEnElLedger": 273,
+    "ultimaREG": "REG-505",
+    "archivosDePrueba": 893,
+    "casosDePrueba": 10934,
     "lint": "ver scripts/lint-trinquete.mjs"
-  }
+  },
+  "versionEnElRepo": "nexusmed-v1178"
 }

@@ -69,3 +69,72 @@ describe('emulador sólo con proyecto demo-*', () => {
     expect(fuente.split('connectFirestoreEmulator(').length - 1).toBe(1)
   })
 })
+
+/**
+ * EL ARNÉS TIENE QUE ENCENDER EL CANDADO QUE EL CÓDIGO LEE.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * `src/lib/firebase.ts` lee `NEXT_PUBLIC_FIREBASE_EMULATORS` (**plural**). El
+ * guion `arnes:dev` de `package.json` exportaba
+ * `NEXT_PUBLIC_FIREBASE_EMULATOR` (**singular**) — copiado del comentario de
+ * cabecera de ese mismo archivo, que también decía el singular.
+ *
+ * Consecuencia: `npm run arnes:dev` **nunca conectó a los emuladores**. El
+ * navegador salía a `identitytoolkit.googleapis.com` de verdad y el inicio de
+ * sesión sintético se quedaba en «Entrando…» hasta que la red lo cortaba. O
+ * sea: el arnés que existe para poder mirar las pantallas sin pacientes reales
+ * no podía abrir ninguna pantalla con sesión.
+ *
+ * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
+ *
+ * Levantando los emuladores y recorriendo el alta de cita de la asistente en un
+ * navegador real. El inicio de sesión se quedaba colgado; la traza de red
+ * enseñaba la petición saliendo a Google en vez de a `127.0.0.1:9099`.
+ *
+ * Estaba **escrito** en `agent-state/V15_CURRENT_ITERATION.md` desde antes —
+ * «el arnés se escribió con el singular y el candado lee el plural»— y aun así
+ * el guion siguió roto: saberlo y arreglarlo no son lo mismo. Por eso esto es
+ * una prueba y no una nota.
+ *
+ * ── QUÉ **NO** CUBRE ────────────────────────────────────────────────────────
+ *
+ * No levanta emuladores ni comprueba que la conexión funcione: compara los dos
+ * textos que tienen que decir lo mismo. Que conecte de verdad se ve en el
+ * navegador, y eso vive fuera de CI.
+ */
+describe('el arnés y el candado dicen la misma variable', () => {
+  const paquete = readFileSync(join(process.cwd(), 'package.json'), 'utf8')
+  const guiones: Record<string, string> = JSON.parse(paquete).scripts
+
+  /** El nombre que el código LEE de verdad, sacado del propio módulo. */
+  const LEIDA = fuente.match(/process\.env\.(NEXT_PUBLIC_FIREBASE_EMULATORS?)/)?.[1]
+
+  it('el módulo lee una variable, y es la plural', () => {
+    expect(LEIDA).toBe('NEXT_PUBLIC_FIREBASE_EMULATORS')
+  })
+
+  it('ningún guion enciende el candado con el nombre equivocado', () => {
+    const malos = Object.entries(guiones)
+      .filter(([, cmd]) => /NEXT_PUBLIC_FIREBASE_EMULATOR=/.test(cmd))
+      .map(([k]) => k)
+    expect(
+      malos,
+      `estos guiones exportan el nombre SINGULAR, que el candado no lee: ${malos.join(', ')}`,
+    ).toEqual([])
+  })
+
+  it('el arnés visual enciende exactamente la variable que el módulo lee', () => {
+    const arnes = guiones['arnes:dev'] ?? ''
+    expect(arnes, 'no existe el guion arnes:dev').not.toBe('')
+    expect(arnes).toContain(`${LEIDA}=1`)
+    // Y el segundo candado: el proyecto tiene que ser `demo-*`.
+    expect(arnes).toMatch(/NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-/)
+  })
+
+  it('el comentario del módulo no contradice al código — así empezó esto', () => {
+    // Un comentario que dice otra cosa es de donde se copió el nombre malo.
+    const cabecera = fuente.slice(0, fuente.indexOf('const firebaseConfig'))
+    expect(cabecera).not.toMatch(/NEXT_PUBLIC_FIREBASE_EMULATOR[^S]/)
+  })
+})

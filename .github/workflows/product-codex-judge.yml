@@ -20,9 +20,11 @@ run-name: ${{ github.event_name == 'workflow_dispatch' && format('Ausculta-Codex
 
 concurrency:
   group: ausculta-product-codex-judge-${{ github.event.issue.number || inputs.pr_number }}
-  # Only a real judge request may supersede another judge for the same PR.
-  # Recovery/status/bot comments must never cancel an in-flight paid audit.
-  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.comment.body, '/ausculta-codex-judge ') }}
+  # Never destroy an in-flight paid audit to start another request for the same
+  # product PR. Recovery/exact-SHA markers prevent bounded fallback duplicates;
+  # any later legitimate request queues rather than cancelling immutable work
+  # before its verdict artifact can be persisted.
+  cancel-in-progress: false
 
 jobs:
   judge:
@@ -32,7 +34,10 @@ jobs:
       github.event.comment.user.login == github.repository_owner &&
       startsWith(github.event.comment.body, '/ausculta-codex-judge '))
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # High-effort independent audits can legitimately exceed 45 minutes. Keep a
+    # bounded ceiling, but leave enough wall-clock for Codex to finish and for
+    # the immutable verdict artifact to be validated/uploaded afterward.
+    timeout-minutes: 90
     permissions:
       contents: read
       actions: read

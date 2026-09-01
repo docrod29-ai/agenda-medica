@@ -1,21 +1,23 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Patient, type ClinicConfig } from '@/types'
-import { getPatients, createPatient, updatePatient, getConfig } from '@/lib/firestore'
+import { listarPacientesCompat, buscarPacientes, TECHO_COMPAT_PACIENTES, createPatient, updatePatient, getConfig } from '@/lib/firestore'
 import { edadEnAnios } from '@/lib/expediente/pediatria'
 import { getCenso } from '@/lib/hospital/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Users, Phone, AlertCircle, Calendar, Pencil, Cake, BedDouble, ChevronRight, FileClock } from 'lucide-react'
+import { Plus, Search, X, Users, Phone, AlertCircle, AlertTriangle, Calendar, Pencil, Cake, BedDouble, ChevronRight, FileClock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { PageHeader, Button, ButtonLink, EmptyState, Spinner, Modal } from '@/components/ui'
 import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
+import { duplicadosProbablesDe } from '@/lib/pacientes/candidatos'
 import { describirListaVacia } from '@/lib/pacientes/vacio-de-la-lista'
+import { construirGuardadoDePaciente } from '@/lib/pacientes/campos-que-se-guardan'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
@@ -34,6 +36,17 @@ export default function PacientesPage() {
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
   const [search, setSearch] = useState('')
+  /**
+   * REG-347 — LO QUE LA LISTA NO TRAE.
+   *
+   * `getPatients` dejó de bajarse el consultorio entero (REG-341) y pasó a tener
+   * un techo. Bien para la escala, y peligroso aquí si no se dice: en un
+   * consultorio de 600 pacientes esta pantalla enseñaría 500 y el médico no
+   * tendría forma de saber que faltan cien.
+   */
+  const [listaTruncada, setListaTruncada] = useState(false)
+  /** Resultado de la búsqueda EN EL SERVIDOR, atado al texto que lo produjo. */
+  const [busquedaServidor, setBusquedaServidor] = useState<{ q: string; pacientes: Patient[]; truncada: boolean } | null>(null)
   const [filtro, setFiltro] = useState<'recientes' | 'todos' | 'alerta'>('recientes')
   const [modalOpen, setModalOpen] = useState(false)
   const [editPatient, setEditPatient] = useState<Patient | null>(null)
@@ -56,8 +69,9 @@ export default function PacientesPage() {
   const load = async () => {
     if (!clinicId) return
     try {
-      const data = await getPatients(clinicId)
-      setPatients(data)
+      const lista = await listarPacientesCompat(clinicId)
+      setPatients(lista.pacientes)
+      setListaTruncada(lista.truncada)
       getCenso(clinicId).then(c => setInternados(new Set(c.map(i => i.pacienteId)))).catch(() => {})
     } catch (e) {
       // Un fallo de lectura NO puede verse igual que una lista vacía: para un
@@ -100,7 +114,7 @@ export default function PacientesPage() {
     if (!clinicId) return
     let vivo = true
     tareasVivas(clinicId)
-      .then(t => { if (vivo) { setWorklist({ estado: 'lista', tareas: t }); setAhora(Date.now()) } })
+      .then(w => { if (vivo) { setWorklist({ estado: 'lista', tareas: w.tareas }); setAhora(Date.now()) } })
       .catch(e => { console.error('[pacientes] no se pudo leer el worklist', e) })
     return () => { vivo = false }
   }, [clinicId])
@@ -121,15 +135,41 @@ export default function PacientesPage() {
 
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
+  /**
+   * REG-347 — LA BÚSQUEDA PREGUNTA AL SERVIDOR.
+   *
+   * Filtrar en memoria sobre una lista con techo busca dentro de un RECORTE: la
+   * pantalla diría «sin resultados» de un paciente que existe, que es la peor
+   * respuesta posible en la pantalla donde se le busca. La consulta indexada no
+   * depende del techo.
+   *
+   * Se mantiene el filtro en memoria por debajo: con menos de dos caracteres no
+   * hay consulta todavía, y mientras la del servidor viaja, lo que ya está
+   * cargado sigue respondiendo.
+   */
+  useEffect(() => {
+    if (!clinicId) return
+    const q = search.trim()
+    if (q.length < 2) return
+    let vivo = true
+    const t = setTimeout(() => {
+      buscarPacientes(clinicId, q)
+        .then(r => { if (vivo) setBusquedaServidor({ q, pacientes: r.pacientes, truncada: r.truncada }) })
+        .catch(() => { /* sin red queda el filtro local, que es mejor que nada */ })
+    }, 200)
+    return () => { vivo = false; clearTimeout(t) }
+  }, [clinicId, search])
+
   // Búsqueda: aplana resultados sobre TODOS los pacientes (ignora el chip).
   const resultadosBusqueda = useMemo(() => {
     const q = norm(search.trim())
     if (!q) return null
+    if (busquedaServidor && busquedaServidor.q === search.trim()) return busquedaServidor.pacientes
     const qDig = search.replace(/\D/g, '')  // teléfono: comparar solo dígitos (ignora espacios/guiones)
     return patients
       .filter(p => norm(p.nombre).includes(q) || (qDig !== '' && (p.telefono ?? '').replace(/\D/g, '').includes(qDig)) || norm(p.email ?? '').includes(q) || norm(p.curp ?? '').includes(q))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
-  }, [patients, search])
+  }, [patients, search, busquedaServidor])
 
   /**
    * A QUIÉN SE PARECE LO QUE NO ENCONTRÓ.
@@ -435,9 +475,8 @@ export default function PacientesPage() {
             // oscuro, 7.0:1 claro — ver globals.css). --teal + negro medía
             // 2.99:1 en claro: el trazo no está pensado para ser fondo.
             return (
-              <button key={k} onClick={() => setFiltro(k)} style={{
+              <button key={k} onClick={() => setFiltro(k)} className="nx-chip nx-chip--relleno" aria-pressed={activo} style={{
                 padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                background: activo ? 'var(--nexus-solido)' : 'var(--s2)',
                 color: activo ? '#fff' : 'var(--text2)',
                 border: `1px solid ${activo ? 'var(--nexus-solido)' : 'var(--border)'}`,
               }}>{label}</button>
@@ -454,6 +493,30 @@ export default function PacientesPage() {
           encabezado del grupo, que además DICE algo («Vistos recientemente»,
           «3 con inasistencias»). El marco era lo genérico; el encabezado es lo
           que informa. */}
+      {/**
+        * REG-347 — LA LISTA DICE LO QUE NO TRAE.
+        *
+        * Con el techo de REG-341 esta pantalla enseña como mucho
+        * `TECHO_COMPAT_PACIENTES`. Callarlo en la pantalla donde se BUSCA a un
+        * paciente sería la peor versión del defecto: «no está» de alguien que
+        * sí está. La búsqueda ya pregunta al servidor y no depende del techo —
+        * este aviso es para el que RECORRE la lista, no para el que busca.
+        */}
+      {!loading && !errorCarga && listaTruncada && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 12,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Se listan los primeros <strong>{TECHO_COMPAT_PACIENTES}</strong> pacientes.
+            Hay más en el consultorio: <strong>búscalos por nombre, teléfono o CURP</strong> —
+            la búsqueda sí llega a todos.
+          </span>
+        </div>
+      )}
+
       <div style={{ borderTop: '1px solid var(--border)' }}>
         {loading ? (
           <Spinner center label="Cargando pacientes…" />
@@ -887,32 +950,32 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
     if (!f.edad.trim()) { toast('La edad es requerida', 'error'); return }
     setSaving(true)
     try {
-      const tel = f.telefono.replace(/\D/g, '')
-      const payload = {
-        nombre: f.nombre.trim(),
-        telefono: tel,
-        // UN SOLO teléfono en la pantalla (29-jul-2026), dos campos por debajo.
-        // El formulario ya no pregunta el WhatsApp por separado —en la práctica es
-        // el mismo número—, pero el export FHIR y otras rutas leen `whatsapp`
-        // aparte: si se quedara vacío, un paciente nuevo perdería su contacto móvil
-        // ahí. Se respeta el que ya estuviera guardado y sólo se rellena si falta.
-        whatsapp: (f.whatsapp.replace(/\D/g, '') || tel),
-        email: f.email.trim(),
-        fechaNacimiento: f.fechaNacimiento,
-        edad: f.edad ? Number(f.edad) : undefined,
-        sexo: (f.sexo || undefined) as Patient['sexo'],
-        curp: f.curp.trim().toUpperCase() || undefined,
-        seguroMedico: f.seguroMedico.trim(),
-        alergias: f.alergias.trim(),
-        notas: f.notas.trim(),
-        noShowCount: patient?.noShowCount ?? 0,
-        cancelacionCount: patient?.cancelacionCount ?? 0,
-        creadoPor: patient?.creadoPor ?? userEmail,
-        updatedAt: new Date().toISOString(),
-        createdAt: patient?.createdAt ?? new Date().toISOString(),
-      }
+      /**
+       * QUÉ VIAJA Y QUÉ NO — REG-323.
+       *
+       * El payload se construye fuera, en `@/lib/pacientes/campos-que-se-guardan`,
+       * porque decidir qué se escribe encima de un expediente es una regla
+       * clínica y no un detalle de este formulario: mandar SIEMPRE el estado
+       * completo hacía que corregir un teléfono en modo secretaria borrara las
+       * alergias del paciente. `updateDoc` sobrescribe campo por campo, y un
+       * campo que la pantalla no enseñó no lleva lo que alguien escribió: lleva
+       * el eco de la copia con la que se abrió el modal, que puede tener 30 s de
+       * retraso respecto a lo que el médico acaba de anotar en `/consulta`.
+       */
+      const payload = construirGuardadoDePaciente(f, {
+        modo: mode,
+        previo: patient,
+        autor: userEmail,
+        ahora: new Date().toISOString(),
+      })
       if (patient) {
-        await updatePatient(clinicId!, patient.id, payload)
+        /**
+         * `patient.updatedAt` es la marca que ESTA pantalla vio al abrir el
+         * editor. Si el documento cambió desde entonces —el médico anotando una
+         * alergia en su pestaña mientras aquí se corregía el teléfono—, la
+         * escritura se rechaza en vez de pisarla.
+         */
+        await updatePatient(clinicId!, patient.id, payload, patient.updatedAt)
         toast('Paciente actualizado', 'success')
       } else {
         /**
@@ -930,13 +993,32 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
          * está SEGURO: un «probable» ya se ofreció arriba y detenerlo dos veces
          * sería castigar a quien ya decidió.
          */
-        const frescos = await getPatients(clinicId!, { force: true })
-        const seguros = buscarPosiblesDuplicados(
-          payload,
-          // Se respeta el «es otra persona» de la tarjeta: quien ya lo descartó
-          // arriba no merece que se lo vuelvan a preguntar al guardar.
-          frescos.filter(p => !descartados.has(p.id)),
-        ).filter(c => c.certeza === 'seguro')
+        /**
+         * REG-347 — SE PREGUNTA POR ESTE PACIENTE, NO SE BAJA EL DIRECTORIO.
+         *
+         * Antes se releía la lista completa sin caché. Con el techo de REG-341
+         * eso pasó a ser peor que caro: releía como mucho 500 y el duplicado
+         * podía estar entre los que no vinieron — un aviso antiduplicado que
+         * falla en silencio justo en los consultorios donde más falta hace.
+         *
+         * Ahora se hacen dos sondeos indexados: por TELÉFONO, que es la señal
+         * fuerte de duplicado, y por NOMBRE. El coste no depende del tamaño del
+         * consultorio.
+         *
+         * LO QUE ESTO NO ALCANZA, declarado: la búsqueda es por PREFIJO, así que
+         * un duplicado escrito con el orden de los nombres cambiado —«López
+         * María» frente a «María López»— y SIN teléfono en común no aparece.
+         * Antes tampoco aparecía por encima del techo, y de forma arbitraria;
+         * ahora al menos el hueco es conocido y tiene forma.
+         */
+        /**
+         * REG-351 — los dos sondeos viven ahora en `pacientes/candidatos.ts`.
+         * Se escribieron aquí y otras nueve pantallas seguían filtrando el
+         * recorte en memoria; copiarlos nueve veces habría garantizado que
+         * divergieran. Se respeta el «es otra persona» de la tarjeta: quien ya
+         * lo descartó arriba no merece que se lo vuelvan a preguntar al guardar.
+         */
+        const { seguros } = await duplicadosProbablesDe(clinicId!, payload, descartados)
         if (seguros.length) {
           const d = seguros[0]
           const seguir = await confirm(
@@ -982,8 +1064,19 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
         toast(consentimiento ? 'Paciente registrado' : 'Paciente registrado — sin aviso de privacidad', consentimiento ? 'success' : 'info')
       }
       onSaved()
-    } catch {
-      toast('Error al guardar', 'error')
+    } catch (e) {
+      /**
+       * UN CONFLICTO NO ES UN FALLO DE RED, Y NO SE DICE IGUAL.
+       *
+       * «Error al guardar» manda a mirar el wifi mientras lo que pasa es que
+       * alguien más está trabajando sobre el mismo paciente. Se dice con esas
+       * palabras y se pide recargar, que es lo único que trae la copia buena.
+       */
+      if ((e as { code?: string })?.code === 'conflicto-de-version') {
+        toast('Otra sesión modificó a este paciente mientras tenías el editor abierto. NO se guardó, para no pisar su trabajo. Cierra y vuelve a abrirlo.', 'error')
+      } else {
+        toast('Error al guardar', 'error')
+      }
     } finally {
       setSaving(false)
     }

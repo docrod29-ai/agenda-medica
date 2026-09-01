@@ -14,6 +14,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 import { verificarCapacidad } from '@/lib/authz/verificar'
+import { fetchConTimeout, TiempoAgotado } from '@/lib/fetch-con-timeout'
 
 const GRAPH = 'https://graph.facebook.com/v20.0'
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     if (!acceso.ok) return acceso.response
 
     // 1. Validar credenciales: pedir el número a Graph API
-    const res = await fetch(
+    const res = await fetchConTimeout(
       `${GRAPH}/${phoneNumberId}?fields=display_phone_number,verified_name&access_token=${encodeURIComponent(token)}`
     )
     if (!res.ok) {
@@ -67,6 +68,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, phoneNumber })
   } catch (err) {
     safeLog.error('[manual-connect] Error:', err)
+    // Igual que en `meta-connect`: «se tardó» y «falló» se contestan distinto.
+    if (err instanceof TiempoAgotado) {
+      return NextResponse.json({
+        ok: false,
+        error: 'Meta no respondió a tiempo. No se cambió nada: vuelve a intentar la conexión.',
+      }, { status: 504 })
+    }
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

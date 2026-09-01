@@ -18,6 +18,8 @@ import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarEstricto } from '@/lib/rate-limit'
+import { bloquearSiNoVigente } from '@/lib/portal/vigencia-del-enlace'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -37,6 +39,38 @@ export async function POST(req: NextRequest) {
     const { clinicId, patientId } = sesion
 
     if (!citaId) return NextResponse.json({ ok: false, error: 'Falta la cita' }, { status: 400 })
+
+    /**
+     * Y LA REVOCACIÓN, QUE AQUÍ NO SE COMPROBABA EN ABSOLUTO — PATIENT-PORTAL-001 (P1).
+     *
+     * Esta ruta acepta el MISMO magic-link que `/api/portal`, pero sólo miraba
+     * la firma y la caducidad. El contador `portalTokenVersion` que el
+     * consultorio sube para tumbar un enlace perdido no llegaba hasta aquí: el
+     * enlace revocado dejaba de ver la agenda y seguía pudiendo abrir sesiones
+     * de cobro a nombre del paciente durante los días que le quedaran de vida.
+     *
+     * Va ANTES del limitador y antes de tocar Stripe. No es un cambio de
+     * política comercial ni de cobro: es la misma autorización que la ruta
+     * hermana, aplicada donde faltaba.
+     */
+    const noVigente = await bloquearSiNoVigente(clinicId, patientId, sesion.version)
+    if (noVigente) return noVigente
+
+    /**
+     * LÍMITE DE TASA — PATIENT-PORTAL-001. Cada llamada crea una sesión de
+     * Checkout en Stripe (una llamada de API de terceros, con su propio
+     * costo de superficie de abuso): sin freno, un token filtrado permitía
+     * generar sesiones sin límite.
+     *
+     * ESTRICTO (P1): si el limitador no puede contar, no se abre la sesión.
+     * Abrir cobros a nombre de un paciente sin ningún freno es justo lo que no
+     * puede pasar durante una incidencia, y el pago admite un reintento a los
+     * treinta segundos. No cambia el monto, la moneda ni nada de Stripe: sólo
+     * cuándo se llega a llamarlo.
+     */
+    const limite = await limitarEstricto(`pago:${clinicId}:${patientId}`, 8, 600,
+      'Demasiados intentos de pago en poco tiempo. Espera un momento e inténtalo de nuevo.')
+    if (limite) return limite
 
     const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId)
     const citaSnap = await citaRef.get()

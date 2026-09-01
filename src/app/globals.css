@@ -124,6 +124,24 @@
   --green:     #1BA34D;
   --purple:    #A375F2;
 
+  /* ─── ROSA: EL ACENTO DE GINECOLOGÍA, QUE NO TENÍA CARA CLARA ────────────
+
+     No es un color nuevo: es el que ya pintaban a mano `PanelGineco` y la
+     tarjeta de CHA₂DS₂-VASc de `PreopAssessment` (#f472b6 / #ec4899). Vivía
+     como literal, así que NO cambiaba con el tema — y en claro daba 2,65:1
+     sobre la superficie de panel. El acento de la especialidad quedaba
+     ilegible justo con la luz del consultorio, que es la que enciende el
+     tema claro.
+
+     Se le da token en vez de mapearlo a --purple porque el rosa es la
+     decisión de identidad de ese panel; lo que estaba roto era el tema
+     claro, no el tono.
+
+     Medido con la fórmula de luminancia relativa WCAG 2.1, sobre --s3 (la
+     peor superficie de cada tema):
+       oscuro #F472B6 → 5.50 : 1 ✓ AA   ·   claro #BE185D → 5.02 : 1 ✓ AA */
+  --rosa:      #F472B6;
+
   /* ─── ESTADO CLÍNICO: CADA COLOR CON SUS TRES CARAS ──────────────────────
 
      EL DEFECTO MEDIDO (9-ago-2026, sobre los 208 archivos .tsx):
@@ -857,6 +875,24 @@ tbody tr:last-child { border-bottom: none; }
   background: var(--s2);
   color: var(--text);
 }
+/* La barra de pregunta del consultor arranca donde acaba el riel (224px), no en
+   el borde de la ventana: con `left: 0` tapaba «Ayuda» y «Cerrar sesión». En
+   móvil el riel no existe y la barra ocupa todo. */
+.nx-consultor-barra { left: 224px; }
+@media (max-width: 768px) {
+  .nx-consultor-barra { left: 0; }
+}
+
+/*
+   PIE DEL RIEL — «Ayuda» y «Cerrar sesión» son más callados que un destino, a
+   propósito: son sistema, no navegación clínica. Ese tono iba escrito en línea
+   (`color: var(--text3)`), y en línea le ganaba al `:hover` de `.nav-item`, así
+   que se quedaban sin responder. Se conserva el tono y se le devuelve la
+   respuesta.
+*/
+.nav-item--tenue { color: var(--text3); }
+.nav-item--tenue:hover { color: var(--text2); }
+
 .nav-item.active {
   background: var(--s2);
   color: var(--text);
@@ -953,6 +989,19 @@ tbody tr:last-child { border-bottom: none; }
   z-index: 30;
   margin: 16px 0 0;
 }
+/**
+ * REG-342 — OCULTA, PERO SIN SALIR DEL FLUJO.
+ *
+ * Antes el componente devolvía `null` cuando la zona de cierre entraba en
+ * pantalla, y esta barra —52px + 16 de margen— desaparecía del flujo. La altura
+ * del documento encogía justo cuando el dedo estaba abajo del todo, o sea con
+ * `scrollTop` en su máximo, y WebKit lo recorta: eso se ve como un rebote.
+ *
+ * `visibility: hidden` la saca del árbol de accesibilidad y del orden de
+ * tabulación, pero conserva la caja. La altura no cambia y no hay nada que
+ * recortar.
+ */
+.nx-cierre-al-pulgar--oculto { visibility: hidden; }
 @media (max-width: 768px) {
   .nx-cierre-al-pulgar { display: block; }
 }
@@ -1023,6 +1072,40 @@ tbody tr:last-child { border-bottom: none; }
     margin: -10px -10px 0 0;
   }
 }
+
+/* ── MIENTRAS EL AVISO PREGUNTA, EL FINAL DE LA LISTA SE APARTA ────────────
+
+   MEDIDO en `/dashboard` a 1440: con el aviso de notificaciones puesto, DOS
+   botones «Consulta» —la acción primera de dos de las citas del día— quedaban
+   DEBAJO de la hoja fija, y `elementFromPoint` sobre su centro devolvía el
+   aviso, no el botón. Un clic ahí lo recibía el aviso.
+
+   Y no había forma de salir: el scroll de este producto vive en `<main>`, se
+   llevó hasta el final (189 de 189) y **los dos seguían tapados**. No era una
+   fila que pasa por debajo mientras se desplaza: era el final de la lista, sin
+   sitio al que moverla.
+
+   RTC-32 retiró de aquí la regla que apartaba unos flotantes de otros porque su
+   causa había muerto. Tenía razón en lo suyo y este caso es otro: no es el
+   aviso contra otro widget, es el aviso contra el CONTENIDO. La familia es la
+   misma que la del toggle de tema sobre la barra del paciente a 390px.
+
+   Se reserva el hueco que ocupa, medido de verdad y con holgura:
+
+     1440 · 1024 → 162px      768 → 187px      390 → 221px
+
+   Si el aviso creciera, el guion del arnés vuelve a contarlo. */
+html:has(.nx-push-optin) main { padding-bottom: 176px; }
+@media (max-width: 768px) {
+  /* El `!important` no es adorno: a este ancho `main` ya lleva
+     `padding-bottom: calc(72px + safe) !important` para apartarse de la barra
+     inferior, y sin repetirlo esta regla NO LLEGABA — medido: a 390px el
+     relleno seguía siendo 72px. «El dato tiene que LLEGAR», también cuando el
+     dato es una regla de estilo. */
+  html:has(.nx-push-optin) main {
+    padding-bottom: calc(236px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
 /* RTC-32 — aquí vivía la regla que apartaba los widgets flotantes de la
    esquina mientras el aviso de push preguntaba: el FAB (z-60) tapaba su X y el
    toggle (z-199) pintaba sobre el borde de la hoja a 390px. La convivencia
@@ -1050,10 +1133,38 @@ tbody tr:last-child { border-bottom: none; }
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  /* Ver «EL ENCADENAMIENTO DE SCROLL» abajo. */
+  overscroll-behavior: none;
 }
+
+/* ── EL ENCADENAMIENTO DE SCROLL (REG-355) ─────────────────────────────────
+   `overscroll-behavior` NO aparecía en ninguna parte de este repositorio, y es
+   una de las dos piezas que explican por qué el rebote es de iPhone y no de
+   Android.
+
+   Cuando un contenedor con scroll llega a su tope, el navegador **encadena** el
+   gesto al ancestro: en WebKit eso produce el rebote elástico del documento y,
+   con el shell a `100dvh; overflow:hidden`, un tirón que devuelve la vista sin
+   que nadie lo haya pedido. Basta con seguir arrastrando dentro de la nota
+   después del final.
+
+   `contain` corta la cadena sin quitarle al usuario el rebote DENTRO de su
+   contenedor —que es la señal táctil de «aquí se acabó»—; `none` en el shell
+   quita además el rebote del documento entero, que ahí no significa nada porque
+   el shell no scrollea.
+
+   La otra pieza es `overflow-anchor`, que WebKit no implementa y que por tanto
+   no se puede arreglar desde el CSS: ésa se compensa en JS
+   (`lib/ui/el-dedo-manda.ts`).
+
+   NO ESTÁ VERIFICADO EN UN DISPOSITIVO. Sólo hay Chromium en el entorno, así
+   que esto es la corrección razonada de un mecanismo conocido, no una
+   observación. Ver WS-05 en el tablero. */
+main { overscroll-behavior-y: contain; }
+
 /* Dentro del shell con tope, el riel/menú lateral necesita su propio scroll
    cuando el contenido exceda el viewport (antes crecía con el documento). */
-.sidebar { overflow-y: auto; }
+.sidebar { overflow-y: auto; overscroll-behavior: contain; }
 
 /* Pantalla-LIENZO (V15-MOBILE-001, 6ª rebanada, §22/§23): una pantalla
    app-like (hoy: /chat) que llena EXACTO el espacio visible y desplaza su
@@ -1500,8 +1611,18 @@ html[data-vt-continuidad] .page-transition { animation: none; }
      abajo) y el enlace lleva z-index 1 para que la capa de transición de
      página no se coma el borde inferior del golpe. Sin los dos, el área
      efectiva medía 40, no 44. */
-  a.nx-ident, .nx-cta-aviso { position: relative; z-index: 1; }
-  a.nx-ident::before, .nx-cta-aviso::before {
+  a.nx-ident, .nx-cta-aviso, .nx-enlace-tactil { position: relative; z-index: 1; }
+  /* ENLACES DE ACCIÓN SUELTOS — la familia que aquel guardián dejó declarada.
+     `v15-a11y-tactiles-de-enlace` cerró `a.nx-ident` y `.nx-cta-aviso`, y dijo
+     con todas las letras lo que NO cubría: «un enlace nuevo con otra clase no
+     está vigilado por esto».
+     Medidos a 390 px con hit-testing: doce enlaces de acción por debajo de
+     44 px de alto — «Inicia sesión aquí →» (129×18) en la portada y «Crea una
+     gratis →» (113×18) en el inicio de sesión, que son literalmente los dos
+     caminos entre las dos puertas del producto, más los del pie.
+     Mismo mecanismo, por la misma razón: el pseudo estira el ÁREA DE GOLPE sin
+     mover un píxel de lo visible, y sólo en puntero grueso. */
+  a.nx-ident::before, .nx-cta-aviso::before, .nx-enlace-tactil::before {
     content: '';
     position: absolute;
     top: calc(50% + 2px); left: 50%;
@@ -2072,7 +2193,19 @@ html[data-vt-continuidad] .page-transition { animation: none; }
      este lado se quedó sin aplicar — y el claro es el que sale por defecto con
      luz de consultorio. --text3 lleva TODOS los placeholders, las pistas CIE-10 y
      el texto de ayuda. */
-  --text3:     #6B6F75;
+  /* MEDIDO con axe en tema claro, que este carril no había mirado nunca:
+     #6B6F75 daba **4.46 : 1** sobre el crema de los avisos y **4.33 : 1** sobre
+     el tinte de la opción elegida — por debajo del 4.5 que pide AA para texto
+     normal, y en `--s3` bajaba a 4.20. Salió en `/cumplimiento` («Todavía no ha
+     llegado ningún reporte», «Tu cuenta NO tiene 2FA») y en `/asistente`.
+
+     #63666B despeja **todas** las superficies claras del producto: --s 5.76,
+     --bg 5.51, --s2 5.20, --s3 4.79, y los dos tintes 4.94 y 5.09.
+
+     El tema oscuro ya había pagado esto —su `--text3` subió de #6C7075 (≈3.8:1)
+     a #8A8F94 (≈5:1), y está escrito arriba—. La lección se aprendió en un tema
+     y no en el de al lado. */
+  --text3:     #63666B;
 
   /* Semánticas — versiones light-mode (contraste AA) */
   --blue:      #2057C5;
@@ -2081,6 +2214,7 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   --red:       #B91C1C;
   --green:     #14532D;
   --purple:    #6D28D9;
+  --rosa:      #BE185D;
   /* Sobre el ámbar/rojo profundos del claro gana el blanco (ver :root). */
   --sobre-aviso: #FFFFFF;
 
@@ -2131,14 +2265,28 @@ html[data-vt-continuidad] .page-transition { animation: none; }
     --teal-glow:    var(--nexus-soft);
     --text:      #0B0C0E;
     --text2:     #565A60;
-    --text3:     #6B6F75;   /* AA — ver nota arriba */
+    --text3:     #63666B;   /* AA sobre TODAS las superficies claras — ver nota arriba */
     --blue:      #2057C5;
     --blue-dim:  #1A4AA8;
     --amber:     #B45309;
     --red:       #B91C1C;
     --green:     #14532D;
     --purple:    #6D28D9;
+    --rosa:      #BE185D;
     --sobre-aviso: #FFFFFF;   /* ver :root — blanco sobre los rellenos claros */
+    /* ELEVACIÓN CLARA. Sin estas tres, el auto-claro heredaba las sombras
+       NEGRAS de :root sobre el crema — que es justo lo que el bloque de
+       arriba dice que «se lee como suciedad». Ver el guardián
+       `el-tema-claro-es-uno-solo.test.ts`. */
+    --elev-1: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+    --elev-2: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+    --elev-3: 0 16px 40px -12px color-mix(in srgb, var(--text) 14%, transparent);
+    /* Aviso claro — mismo motivo: sin esto el recuadro de aviso se pintaba
+       con el ámbar translúcido del tema OSCURO. */
+    --warn-bg:     #FFF8E6;
+    --warn-border: #F0C36D;
+    --warn-text:   #8A6100;
+    --success:     var(--green);
     --badge-green-t:  #0F5C2E; --badge-green-b:  #E1F0E7;
     --badge-blue-t:   #1B3FA8; --badge-blue-b:   #E4EAFB;
     --badge-amber-t:  #92400E; --badge-amber-b:  #FBEEDD;
@@ -2832,6 +2980,9 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 .hoy-vertodas {
   font-size: 13px;
   color: var(--teal);
+  /* Era el único enlace de la portada sin acuse: mismo tono apuntado que en
+     reposo. Se subraya al pasar —es un enlace, no un botón— y así lo dice. */
+  transition: color var(--mov-rapido) var(--mov-curva);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -2841,6 +2992,8 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   min-height: 44px;      /* área táctil WCAG 2.2 AA */
   align-self: center;
 }
+
+.hoy-vertodas:hover { color: var(--text); text-decoration: underline; }
 
 /* El recuento del día: un renglón de texto donde había cuatro tarjetas. */
 .hoy-resumen {
@@ -3357,3 +3510,570 @@ span.riel-aviso { cursor: default; }
    que Hoy ofrece hacer tiene que ser clínico (medición de anatomía §29: la
    primera acción consecuente era «Nueva cita», a 8px). */
 .hoy-bloque-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ═════════════════════════════════════════════════════════════════
+   PORTADA · MOVIMIENTO CON INTENCIÓN (carril de excelencia)
+   ═════════════════════════════════════════════════════════════════
+
+   POR QUÉ EXISTE. La portada tenía TRES transiciones en 655 líneas y ni una
+   sola entrada: el sistema de movimiento (`--mov-*`, el apagador de §24)
+   estaba entero y sin usar ahí. Una portada quieta no es sobria, es plana —
+   y ésta es la primera pantalla de un producto que se vende por lo bien
+   hecho que está.
+
+   LAS TRES REGLAS QUE SE SIGUEN AQUÍ.
+
+   1 · Toda duración y toda curva salen de los tokens. Ni un número suelto:
+       es el contrato que vigila `v15-motion-inline-habla-tokens`.
+
+   2 · Nada nace invisible en la HOJA. Las entradas del héroe usan
+       `animation` con `both`, así que bajo `prefers-reduced-motion` el
+       apagador de §24 las resuelve en 0,01 ms y el contenido queda en su
+       estado final — visible y quieto. Las de scroll esconden desde
+       JavaScript y sólo tras preguntar la preferencia (ver `Revelar.tsx`).
+
+   3 · El movimiento DICE algo. La entrada escalonada ordena la lectura; el
+       pulso del micrófono del escaparate dice que el producto está
+       escuchando, que es literalmente lo que vende. Nada gira porque sí.
+   ───────────────────────────────────────────────────────────────── */
+
+@keyframes nx-entra {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Entrada del héroe: una sola voz, y el escalón lo pone `--nx-retraso`. */
+.nx-entra {
+  animation: nx-entra var(--mov-lento) var(--mov-curva) both;
+  animation-delay: var(--nx-retraso, var(--mov-nada));
+}
+
+/* Revelado al llegar. El estado «preparado» lo pone JavaScript, nunca la
+   hoja: sin `data-revelar` esto no hace absolutamente nada y el bloque se
+   ve como siempre. */
+.nx-revelar[data-revelar='preparado'] {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+}
+.nx-revelar[data-revelar='visible'] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--mov-lento) var(--mov-curva) var(--nx-revelar-retraso, var(--mov-nada)),
+    transform var(--mov-lento) var(--mov-curva) var(--nx-revelar-retraso, var(--mov-nada));
+}
+
+/* EL PULSO DEL MICRÓFONO. No es decoración: el escaparate del héroe enseña
+   una nota dictándose, y este latido es lo que la hace creíble. Es opacidad,
+   no tamaño — nada se mueve de sitio, así que no arrastra la vista fuera del
+   texto. Bajo movimiento reducido, §24 lo deja en una sola iteración y en
+   0,01 ms: se queda encendido y quieto. */
+@keyframes nx-latido {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+.nx-escucha {
+  animation: nx-latido 2.4s var(--mov-curva) infinite;
+}
+
+/* Levantar al pasar por encima — las tarjetas de la portada responden al
+   dedo y al ratón. `translateY` de 3px: se nota y no salta. */
+.nx-lift {
+  transition:
+    transform var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva),
+    box-shadow var(--mov-rapido) var(--mov-curva);
+}
+@media (hover: hover) {
+  .nx-lift:hover { transform: translate3d(0, -3px, 0); border-color: var(--border2); }
+}
+.nx-lift:active { transform: translate3d(0, -1px, 0); }
+
+/* ─────────────────────────────────────────────────────────────────
+   LA REJILLA DE LA AGENDA — carril de excelencia de producto.
+
+   Tres cosas que a la rejilla semanal le faltaban, y ninguna es adorno:
+
+   1 · AHORA. `/citas` dibuja la hora actual desde v9xx (`.riel-ahora`); el
+       calendario no la dibujaba en absoluto. Dos vistas de la MISMA agenda,
+       y sólo una sabía qué hora es. Aquí está la otra mitad, con el mismo
+       vocabulario visual para que se lean como el mismo producto.
+
+   2 · RESPUESTA AL DEDO Y AL RATÓN. Los bloques de cita y las celdas vacías
+       decían `cursor: pointer` y no declaraban ninguna transición: se podían
+       pulsar y no acusaban recibo. Un hueco que no responde parece un hueco
+       muerto, y el médico vuelve a pulsar.
+
+       (Aquí decía la duración nula con su literal, y el guardián de
+       `v15-motion-tokens-una-sola-voz` la leyó como una duración escrita a
+       mano dentro de una transición. Tenía razón en cazarla: su escáner no
+       distingue comentario de declaración, y ésa es la clase de excepción que
+       luego deja pasar la de verdad. Se reescribió el comentario, no el
+       guardián.)
+
+   3 · El hueco vacío sólo se ofrece cuando el ratón está encima. Sin esto la
+       rejilla no dice dónde se puede agendar hasta que uno lo adivina.
+
+   Nada de esto pinta estado clínico: el estado va en el nombre accesible y
+   en la insignia. El movimiento aquí dice «te oí», no «esto está confirmado».
+   ───────────────────────────────────────────────────────────────── */
+
+.nx-agenda-celda {
+  background: transparent;
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+/* Tinte de fin de semana. Vivía como estilo en línea en la página, donde
+   ganaba a `:hover` y dejaba la respuesta al ratón muerta en las 91 celdas. */
+.nx-agenda-celda[data-finde] { background: rgba(242, 239, 233, 0.022); }
+/*
+   HORAS EN QUE EL CONSULTORIO NO ATIENDE.
+
+   La primera versión copiaba el tinte del fin de semana —un velo CLARO al 3 %— y
+   al mirarla no servía para nada: invisible, y encima en la dirección
+   equivocada. Aclarar una banda grande la ADELANTA, y lo que tiene que hacer una
+   hora cerrada es retroceder.
+
+   Se usa `--bg`, que en los dos temas es la superficie de debajo de la rejilla
+   (`--s1`). Así la hora cerrada se lee como «aquí no hay mesa de trabajo, se ve
+   el suelo», con un token que ya existe y sin inventar un color.
+*/
+.nx-agenda-celda[data-cerrado] { background: var(--bg); }
+/*
+   EL RATÓN Y EL FOCO SIGUEN GANANDO, y se dice con la especificidad en la mano:
+   `.nx-agenda-celda[data-cerrado]` y `.nx-agenda-celda:hover` empatan, así que
+   manda el orden — y el `:hover` va después. Se nombra el atributo igualmente
+   para que un reordenado del archivo no mate la respuesta al puntero en 50 de
+   las 91 celdas, que es el defecto que ya costó esta rejilla una vez.
+*/
+@media (hover: hover) {
+  .nx-agenda-celda:hover,
+  .nx-agenda-celda[data-cerrado]:hover { background: var(--s2); }
+}
+.nx-agenda-celda:focus-visible,
+.nx-agenda-celda[data-cerrado]:focus-visible { background: var(--s2); }
+
+.nx-agenda-bloque {
+  transition:
+    transform var(--mov-presion) var(--mov-curva),
+    filter var(--mov-rapido) var(--mov-curva),
+    box-shadow var(--mov-rapido) var(--mov-curva);
+}
+@media (hover: hover) {
+  .nx-agenda-bloque:hover {
+    filter: brightness(1.35);
+    box-shadow: var(--elev-2);
+    z-index: 3;
+  }
+}
+.nx-agenda-bloque:active { transform: scale(0.985); }
+
+/* Las opciones de tipo de consulta: el borde lo lleva el grupo, no cada una.
+   El foco tiene que verse SIN borde propio, así que va por dentro. */
+.nx-opcion-tipo { background: transparent; }
+.nx-opcion-tipo[data-elegido] { background: var(--nexus-soft); }
+.nx-opcion-tipo:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
+@media (hover: hover) {
+  .nx-opcion-tipo:not([data-elegido]):hover { background: var(--s2); }
+}
+
+/* SÓLO PARA QUIEN NO VE LA PANTALLA.
+   Nace de un patrón que este carril encontró tres veces: información que
+   viajaba ÚNICAMENTE en `title=`. `title` es un canal de PUNTERO — no existe
+   en una tableta ni para un lector de pantalla. Cuando el dato no cabe en el
+   texto visible, va aquí y `title` se queda como comodidad del ratón, que es
+   para lo que sirve.
+   Se oculta sin sacarlo del árbol accesible: `display:none` lo borraría. */
+.nx-solo-lector {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* El número del día en la vista de MES es ahora el control que abre ese día
+   (antes lo era la celda entera, y las píldoras de cita quedaban DENTRO de un
+   botón). Mide 24×24, que es justo el mínimo de WCAG 2.2 §2.5.8, así que el
+   foco tiene que verse sin ampliar la caja: se dibuja por fuera. */
+.nx-agenda-dia-mes { cursor: pointer; }
+.nx-agenda-dia-mes:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* AHORA, en la rejilla. La línea cruza la columna del día y el punto marca el
+   borde por donde empieza — igual que en `/citas`. El color es el de la marca
+   porque «ahora» es orientación, no severidad clínica. */
+.nx-agenda-ahora {
+  position: absolute;
+  left: 0; right: 0;
+  height: 0;
+  border-top: 2px solid var(--teal);
+  z-index: 4;
+  pointer-events: none;
+}
+.nx-agenda-ahora::before {
+  content: '';
+  position: absolute;
+  left: -1px; top: -4px;
+  width: 7px; height: 7px;
+  border-radius: var(--r-circulo);
+  background: var(--teal);
+}
+
+/* Lo pasado en la fila de Hoy: mismo trato que `.riel-entrada[data-momento]`.
+   El nombre baja de tono y de peso; la duración y el motivo se quedan en su
+   token AA. Antes era `opacity: 0.6` inline y axe medía 2.85 : 1 a 390px. */
+.cita-fila[data-pasada] .nx-ident { color: var(--text2); font-weight: 500; }
+.cita-fila[data-pasada] .riel-hora { color: var(--text2); font-weight: 500; }
+
+/* ── EL BOTÓN FLOTANTE NO SE PONE ENCIMA DE LA BARRA DEL PACIENTE ──────────
+
+   MEDIDO, no supuesto: en `/mi/[token]` a 390px, axe marcó el destino
+   «Perfil» como objetivo táctil insuficiente — 78×59 de caja, pero **22px
+   útiles**, porque `.theme-toggle` (fijo, `bottom: 16px; right: 16px`,
+   z-index 199) le cae encima. El paciente toca su perfil y lo que pasa es que
+   cambia el color de la pantalla.
+
+   POR QUÉ ESTABA AHÍ. La regla RTC-32 de más arriba retiró la convivencia de
+   los botones flotantes razonando que sólo quedaba el toggle «fuera del shell
+   —login, registro, marketing—», donde flota sobre formularios. La lista era
+   correcta y estaba incompleta: **el portal del paciente también vive fuera
+   del shell**, y allí no hay un formulario debajo sino su barra de destinos.
+   Una regla que se retira porque su causa desapareció en las superficies que
+   alguien enumeró, y una superficie no estaba en la lista.
+
+   EL NÚMERO. 60px es el alto real de la barra, medido en el navegador a 390px,
+   no un valor de catálogo. Más el aire de la esquina y el área segura del
+   teléfono. Mismo procedimiento que `.nx-push-optin` con el BottomNav. */
+html:has(.mi-barra-destinos) .theme-toggle {
+  bottom: calc(60px + 16px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── LAS FILAS DE OPERACIONES RESPONDEN AL PUNTERO ───────────────────────────
+
+   MEDIDO, no opinado: en `/operaciones`, **0 de 22 controles** tenían
+   transición alguna. Veintidós destinos navegables que no acusan el puntero se
+   leen como una lista de texto, no como sitios a los que se puede ir. Es el
+   síntoma que el encargo llama «estático»: no le falta adorno, le falta
+   ACUSE DE RECIBO.
+
+   No se inventa un lenguaje nuevo. Es exactamente el que ya hablan `.nav-item`
+   (el riel) y `.cal-cell` (la rejilla de la agenda): el fondo sube un peldaño
+   de superficie. Sin sombra, sin degradado, sin radio nuevo — nada de lo que
+   el propio encargo prohíbe.
+
+   El estado :active importa MÁS que el :hover, y es el que faltaba en los dos
+   idiomas anteriores: en un teléfono no hay puntero, así que el único acuse
+   posible es el del dedo. Sin él, tocar un destino y esperar a que navegue es
+   medio segundo sin saber si el toque contó. */
+.nx-op-fila {
+  /* El fondo vive AQUÍ y no en el `style={{ }}` de la fila. La primera versión
+     lo dejó en línea como `background: 'transparent'` y el `:hover` de abajo no
+     podía ganarle: la transición se aplicaba, el color no cambiaba, y en el
+     navegador la fila seguía tan muerta como antes. Es el mismo defecto de
+     especificidad que dejó sin anillo de foco a 33 campos del producto. */
+  background: transparent;
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva);
+}
+.nx-op-fila:hover:not(:disabled) { background: var(--s2); }
+.nx-op-fila:active:not(:disabled) { background: var(--s3); }
+/* El icono acompaña: pasa de metadato a contenido mientras la fila está viva. */
+.nx-op-fila:hover:not(:disabled) .nx-op-icono { color: var(--text2); }
+
+/* ── LAS ACCIONES DE LA CONSULTA ACUSAN EL PUNTERO ─────────────────────────
+
+   MEDIDO: en `/consulta/pac-001` —el sitio donde el médico escribe la nota—
+   **16 de 16 botones no respondían al puntero**. Ninguno. Ni «Grabar la
+   consulta», que es la acción primera del producto, ni «Firmar y cerrar nota»,
+   que es la última. Un botón que no acusa el puntero se lee como texto.
+
+   POR QUÉ NO BASTABA CON PONERLES `.btn`. La geometría no coincide: `.btn` mide
+   36px de alto y tiene su relleno y su radio, y estas acciones van desde una
+   tarjeta de herramienta hasta un botón de firma de 15×28. Adoptarla movería la
+   pantalla entera.
+
+   POR QUÉ NO BASTABA CON AÑADIR UN `:hover`. El fondo estaba en el `style={{ }}`
+   de cada botón, y el estilo en línea le GANA por especificidad al selector.
+   Es el mismo defecto que dejó sin anillo de foco a 33 campos, y el mismo que
+   hizo que las filas de `/operaciones` tuvieran transición y no cambiaran de
+   color. Por eso el fondo se muda AQUÍ: es la lección que ya está escrita en
+   `.btn` —«la apariencia vive en la HOJA, no en el JSX»— aplicada a la pantalla
+   que faltaba.
+
+   Los pasos son los MISMOS que los de `.btn-*`: una superficie hacia arriba al
+   pasar, otra al pulsar. Sin degradado, sin sombra, sin radio nuevo. */
+.nx-acc-plana,
+.nx-acc-riesgo,
+.nx-acc-caja,
+.nx-acc-fuerte {
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+
+/* Acción de apoyo: sin caja hasta que se la señala. Como `.btn-ghost`. */
+.nx-acc-plana { background: transparent; }
+.nx-acc-plana:hover:not(:disabled) { background: var(--s2); color: var(--text); }
+.nx-acc-plana:active:not(:disabled) { background: var(--s3); }
+
+/* Acción de apoyo que destruye trabajo: el acuse va teñido, como `.btn-danger`. */
+.nx-acc-riesgo { background: transparent; }
+.nx-acc-riesgo:hover:not(:disabled) { background: color-mix(in srgb, var(--red) 10%, transparent); }
+.nx-acc-riesgo:active:not(:disabled) { background: color-mix(in srgb, var(--red) 16%, transparent); }
+
+/* Acción con caja propia: sube un peldaño de superficie. Como `.btn-secondary`. */
+.nx-acc-caja { background: var(--s2); }
+.nx-acc-caja:hover:not(:disabled) { background: var(--s3); border-color: var(--border2); }
+.nx-acc-caja:active:not(:disabled) { background: var(--s3); }
+
+/* La acción que manda. Como `.btn-primary`.
+   `[data-inerte]` es para el ÚNICO sitio donde esta piel la lleva un `<span>` y
+   no un `<button>`: el rótulo «Estructurando la nota…» mientras la IA trabaja.
+   Un `<span>` no puede estar `:disabled`, y sin esto se pintaría encendido. */
+.nx-acc-fuerte { background: var(--nexus-solido); }
+.nx-acc-fuerte:hover:not(:disabled):not([data-inerte]) { background: var(--nexus-hover); }
+.nx-acc-fuerte:active:not(:disabled):not([data-inerte]) { background: var(--nexus-hover); opacity: 0.92; }
+.nx-acc-fuerte:disabled,
+.nx-acc-fuerte[data-inerte] { background: var(--s3); }
+
+/* LOS CINCO DESTINOS DEL PORTAL DEL PACIENTE.
+
+   Los cuatro que no están activos NO acusaban el puntero: el `background: none`
+   y el `color` iban en el `style={{ }}` del JSX, así que ninguna regla de la
+   hoja podía ganarles. Es el mismo defecto de siempre —el estilo en línea se
+   come el `:hover`— pero aquí cae sobre la navegación primaria de la ÚNICA
+   pantalla que ve un paciente: los cinco sitios a los que puede ir.
+
+   El activo se distingue por `aria-current="page"`, que ya llevaba puesto — no
+   por una clase paralela. Mismos peldaños de superficie que `.nx-acc-plana`:
+   sin degradado, sin sombra, sin radio nuevo, sin un color que no exista ya. */
+.nx-destino-portal {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px;
+  min-height: 56px;          /* el mínimo táctil de 44px, con holgura */
+  color: var(--text3);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva);
+}
+.nx-destino-portal:hover { background: var(--s2); color: var(--text); }
+.nx-destino-portal:active { background: var(--s3); }
+
+/* Donde ya estás: se tiñe, y al pasar por encima sigue acusando sin fingir que
+   te lleva a otro sitio. */
+.nx-destino-portal[aria-current='page'] { color: var(--nexus); }
+.nx-destino-portal[aria-current='page']:hover { background: var(--nexus-soft); }
+
+/* LA CONFIRMACIÓN DESTRUCTIVA RELLENA — «Anular cobro», y las que vengan.
+
+   `.btn-danger` ya existe, pero es el destructivo FANTASMA: transparente con
+   tinte rojo al pasar. Sirve para un «Anular» perdido en una fila. NO sirve
+   aquí: en un diálogo de confirmación, la acción destructiva es la acción
+   PRINCIPAL y va rellena. Cambiarla a fantasma sería bajarle el peso visual —
+   un cambio de producto disfrazado de arreglo.
+
+   Faltaba, pues, el hermano destructivo de `.nx-acc-fuerte`. Mismos pasos que
+   él: relleno, un punto más oscuro al pasar, y apagado a superficie muerta
+   cuando está deshabilitado. Sin colores nuevos: `--red` ya existe y el
+   oscurecido se calcula, que es el idioma que ya usa `.nx-acc-riesgo`.
+
+   Se midió con el diálogo en su estado real —con el motivo escrito, porque sin
+   él el botón está apagado y el arnés lo salta— y salió MUDO: el fondo iba en
+   el `style={{ }}` y el `:hover` de la hoja no podía ganarle. */
+.nx-acc-destructiva {
+  background: var(--red);
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.nx-acc-destructiva:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 82%, #000);
+}
+.nx-acc-destructiva:active:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 74%, #000);
+}
+.nx-acc-destructiva:disabled { background: var(--s3); }
+
+/* Fila que despliega un panel: abierta se QUEDA con la superficie puesta, para
+   que se vea cuál está abierta sin tener que leer el signo de la flecha. */
+.nx-acc-plana[data-abierto] { background: var(--s2); }
+.nx-acc-plana[data-abierto]:hover:not(:disabled) { background: var(--s3); }
+
+/* Control de texto suelto —«Buscar», «limpiar», el tipo de nota—: 2px de
+   relleno, así que un fondo al pasar saldría apretado contra las letras. Aquí
+   el acuse es el propio texto, que sube de tono. */
+/* El color base vive AQUÍ, y no es un capricho: la primera versión lo dejó en
+   el `style={{ }}` y el `:hover` no podía ganarle. Tercera vez en esta misma
+   unidad que el estilo en línea se come la regla — la primera fueron 33 campos
+   sin anillo de foco, la segunda las filas de `/operaciones`. */
+.nx-acc-texto {
+  color: var(--text2);
+  transition: color var(--mov-rapido) var(--mov-curva);
+}
+.nx-acc-texto--tenue { color: var(--text3); }
+.nx-acc-texto:hover:not(:disabled) { color: var(--text); }
+
+/* Píldora de filtro. El fondo vive aquí por la razón de siempre: en línea le
+   ganaba al `:hover`. El estado activo se lee de `aria-pressed`, que es el
+   atributo que ya usa `.riel-filtro` para lo mismo — y que estas píldoras no
+   tenían, así que un lector de pantalla no sabía cuál estaba puesta. */
+.nx-chip {
+  background: var(--s2);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-chip:hover:not(:disabled) { background: var(--s3); }
+/* `--nexus-soft` es el token que existe justo para esto (rgba del acento al
+   14%); usarlo en vez de un `color-mix` en línea es lo que hace que dos
+   pantallas distintas se pinten igual sin ponerse de acuerdo. */
+.nx-chip[aria-pressed='true'] { background: var(--nexus-soft); }
+.nx-chip[aria-pressed='true']:hover { background: color-mix(in srgb, var(--nexus) 24%, transparent); }
+
+/* Píldora de filtro RELLENA. La activa va con `--nexus-solido` y blanco encima
+   —«5.16:1 ✓ AA», el contraste ya medido en `/pacientes` y `/reactivacion`,
+   donde `--nexus` como fondo daba 2.93:1 y lo cazó axe a 390px—. La decisión no
+   se toca: sólo se muda de sitio, para que el `:hover` pueda ganarle al estilo
+   en línea. */
+.nx-chip--relleno[aria-pressed='true'] { background: var(--nexus-solido); }
+.nx-chip--relleno[aria-pressed='true']:hover { background: var(--nexus-hover); }
+
+/* Riel del expediente. El fondo vive aquí y no en línea por la razón de
+   siempre: en línea le ganaba al `:hover` y las entradas del riel eran de las
+   últimas del producto que no acusaban el puntero. El seleccionado ya se
+   distingue por la barra de acento y el peso del texto, así que el `:hover`
+   sólo tiene que insinuar — sin competir con esa señal. */
+.nx-spine-item {
+  background: none;
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.nx-spine-item:hover { background: var(--s2); }
+
+/* Conmutador segmentado dentro de un carril (Día · Semana · Mes): la activa
+   lleva la superficie puesta, la inactiva se insinúa al pasar. */
+.nx-segmento { background: transparent; transition: background var(--mov-rapido) var(--mov-curva); }
+.nx-segmento:hover:not([aria-pressed='true']) { background: var(--s3); }
+.nx-segmento[aria-pressed='true'] { background: var(--s3); }
+
+/* ACCIÓN TEÑIDA, con el tinte como parámetro.
+
+   «No cobrar a este paciente (cortesía)» llevaba su `color-mix` morado escrito
+   en el `style={{ }}`, así que no acusaba el puntero — y no es un control
+   cualquiera: exime un cobro.
+
+   Se parametriza en vez de escribir una clase por color, porque ya hay dos
+   tintes distintos en el producto. `.nx-acc-riesgo` es exactamente esta forma
+   con el rojo escrito a fuego; no se refunde aquí para no tocar lo que ya
+   funciona, pero es el candidato natural a plegarse a ésta el día que alguien
+   pase por ahí. */
+.nx-acc-tenido {
+  background: color-mix(in srgb, var(--nx-tinte) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nx-tinte) 35%, transparent);
+  color: var(--nx-tinte);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-acc-tenido:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nx-tinte) 18%, transparent);
+  border-color: color-mix(in srgb, var(--nx-tinte) 55%, transparent);
+}
+.nx-acc-tenido:active:not(:disabled) {
+  background: color-mix(in srgb, var(--nx-tinte) 24%, transparent);
+}
+
+/* ENLACE DENTRO DE UNA FRASE. El acuse es el subrayado, no un cambio de color:
+   así el enlace conserva el tono que le toque donde esté.
+
+   Ojo con lo que lo rompía: `textDecoration: 'none'` escrito en el `style={{ }}`
+   le gana al `:hover` de la hoja igual que un `background` en línea. Quitarlo
+   del JSX es parte del arreglo, no un detalle de limpieza. */
+.nx-enlace-en-texto {
+  text-decoration: none;
+  transition: text-decoration-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-enlace-en-texto:hover { text-decoration: underline; }
+
+/* LA ACCIÓN QUE VIVE DENTRO DE UNA FRASE.
+
+   El caso: «Está tomando: Fármaco A · ya no · Fármaco B · ya no» en la consulta.
+   El «ya no» no es una nota al pie: es el acto de SUSPENDER un medicamento, que
+   este producto trata a propósito como acto y no como olvido, y se escribe en la
+   nota de hoy. Y no acusaba el puntero — `background` y `color` iban en el
+   `style={{ }}`, así que ninguna regla de la hoja podía ganarles.
+
+   Ya va subrayada, así que lo que le falta no es decir «esto se pulsa»: es
+   confirmar CUÁL de las dos se va a pulsar. Por eso el paso es de color y no de
+   caja: dos de estas seguidas dentro de la misma frase, con una caja cada una,
+   convertirían un renglón de texto en una botonera.
+
+   El color de reposo se muda AQUÍ. Dejarlo en el JSX sería dejar el defecto. */
+.nx-accion-en-prosa {
+  color: var(--text3);
+  transition: color var(--mov-rapido) var(--mov-curva);
+}
+.nx-accion-en-prosa:hover:not(:disabled) { color: var(--text); }
+
+/* El enlace que remata un aviso del riel («Citas ›»): se subraya al pasar. Es
+   un enlace, y el subrayado es lo que dice que lo es sin añadirle una caja. */
+.nx-enlace-riel {
+  color: var(--nexus);
+  text-decoration: none;
+  transition: color var(--mov-rapido) var(--mov-curva);
+}
+.nx-enlace-riel:hover { color: var(--text); text-decoration: underline; }
+
+/* ── LA REJILLA VACÍA DICE QUE ESTÁ CARGANDO ───────────────────────────────
+   Va flotando sobre la rejilla y no en el flujo: metido en el flujo empujaría
+   la agenda hacia abajo al aparecer y la subiría al irse, y un salto de
+   posición en la pantalla que más se mira todo el día se paga caro. */
+.nx-agenda-lienzo { position: relative; }
+.nx-agenda-cargando {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+/* El aviso operativo del riel es pulsable: que lo diga al apuntarlo. */
+.riel-aviso { transition: background var(--mov-rapido) var(--mov-curva); }
+button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--amber) 22%, transparent); }
+
+/* Sugerencia del asistente: nace sobre `--s1` y se tiñe al pasar, con el mismo
+   acento que ya lleva en el borde. */
+.nx-chip-sugerencia {
+  background: var(--s1);
+  transition:
+    background var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-chip-sugerencia:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nexus) 10%, transparent);
+  border-color: color-mix(in srgb, var(--nexus) 55%, transparent);
+}
+

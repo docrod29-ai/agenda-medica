@@ -3,6 +3,7 @@ import { configParaMedico } from '@/lib/horario-medico'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import type { Appointment } from '@/types'
+import { validarFechaHoraDeAgenda } from '@/lib/agenda/horizonte'
 
 /**
  * Alta de cita ATÓMICA (dashboard/asistente). Reemplaza el addDoc del cliente:
@@ -24,6 +25,21 @@ export async function POST(req: NextRequest) {
   const { clinicId, appointment, reagendarId } = body
   if (!clinicId || !appointment?.fechaHora) {
     return NextResponse.json({ error: 'Faltan datos de la cita' }, { status: 400 })
+  }
+
+  /**
+   * LA FECHA EXISTE Y CABE EN EL HORIZONTE — antes de tocar nada.
+   *
+   * Aquí no se comprobaba NADA: se rebanaba `fechaHora.slice(0, 10)` y adelante.
+   * Un `'2027-02-30 09:00'` pasaba entero, y `getDaySchedule` le leía el horario
+   * del 2 de marzo porque `new Date` desborda en silencio — la cita se validaba
+   * contra un día y se archivaba en otro, sin chocar con las citas reales de
+   * ninguno de los dos. Y sin techo, `'2205-03-14 09:00'` creaba una cita a
+   * ciento ochenta años que ninguna vista de día alcanza a enseñar.
+   */
+  const fechaValida = validarFechaHoraDeAgenda(appointment.fechaHora)
+  if (!fechaValida.ok) {
+    return NextResponse.json({ error: fechaValida.mensaje }, { status: 400 })
   }
 
   const acc = await verificarMiembro(req, clinicId)
@@ -98,6 +114,14 @@ export async function POST(req: NextRequest) {
     const v = (appointment as Record<string, unknown>)[k]
     if (v !== undefined) limpia[k] = v
   }
+
+  /**
+   * Un reintento de la MISMA operación debe converger al mismo documento.
+   * Comparamos únicamente los campos que esta vía está autorizada a escribir:
+   * timestamps, cobros, sync y demás estado ajeno al alta no participan.
+   */
+  const mismaSolicitud = (actual: Record<string, unknown>) =>
+    CAMPOS_CITA.every((k) => (actual[k] ?? null) === (limpia[k] ?? null))
 
   const fecha = appointment.fechaHora.slice(0, 10)
   const hora = appointment.fechaHora.slice(11, 16)
@@ -176,7 +200,9 @@ export async function POST(req: NextRequest) {
   }
 
   const CONFLICTO = Symbol('conflicto')
+  const NO_ESTA = Symbol('no-esta')
   let id = ''
+  let reintentoIdempotente = false
   /** Cómo estaba la cita ANTES de moverla, para poder decir qué cambió. */
   let antes: Record<string, unknown> | null = null
   try {
@@ -205,16 +231,32 @@ export async function POST(req: NextRequest) {
         apptsCol.where('fechaHora', '>=', `${fecha} 00:00`).where('fechaHora', '<=', `${fecha} 23:59`)
       )
       let conflicto = false
+      let altaYaExistente = ''
       snap.forEach(d => {
         const a = d.data()
         if (['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)) return
         if (d.id === reagendarId) return   // la propia cita que se está moviendo
+        if (!reagendarId && mismaSolicitud(a as Record<string, unknown>)) {
+          altaYaExistente = d.id
+          return
+        }
         if (medicoId && a.medicoId && a.medicoId !== medicoId) return
         const [ah, am] = (a.fechaHora?.slice(11, 16) || '00:00').split(':').map(Number)
         const aStart = ah * 60 + am
         const aEnd = aStart + (a.duracion ?? 30)
         if (start < aEnd && end > aStart) conflicto = true
       })
+
+      // El primer intento pudo haber COMMITTEADO y perdido su respuesta. El
+      // segundo llega a esta misma transacción, ve exactamente la cita que pidió
+      // y devuelve su id: no crea otro documento, no devuelve un falso 409 y no
+      // vuelve a escribir bitácora.
+      if (altaYaExistente) {
+        id = altaYaExistente
+        reintentoIdempotente = true
+        return
+      }
+
       if (conflicto && !quiereSobreagendar) throw CONFLICTO
       if (conflicto) {
         // Queda EN LA CITA, no sólo en la bitácora: quien la abra mañana tiene
@@ -225,7 +267,6 @@ export async function POST(req: NextRequest) {
         limpia.sobreagendadaEn = now
       }
 
-      tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
       if (reagendarId) {
         // REAGENDAR por la misma vía transaccional. Antes la edición iba por
         // `updateAppointment` directo desde el navegador: sin transacción, sin
@@ -237,16 +278,38 @@ export async function POST(req: NextRequest) {
         // transacción: fuera de ella podría estar leyendo una versión que otro
         // acaba de pisar, y la bitácora diría que cambió algo que no cambió.
         const previa = await tx.get(ref)
-        antes = previa.exists ? (previa.data() as Record<string, unknown>) : null
+        /**
+         * REAGENDAR NO CREA. El id lo pone el CLIENTE, y `tx.set(..., {merge:true})`
+         * sobre un documento que no existe lo CREA: reagendar una cita ya borrada
+         * —o un id inventado— fabricaba una cita nueva con la identidad que
+         * eligiera quien llamara. Dos reintentos de esa misma edición sobre un
+         * documento que fue borrado en medio dejaban dos citas.
+         *
+         * El id sigue sin poder salir de este consultorio (`apptsCol` cuelga de
+         * `clinics/{clinicId}`), pero dentro de él tampoco debe poder nombrar una
+         * entidad nueva: mover algo que no está es un 404, no un alta.
+         */
+        if (!previa.exists) throw NO_ESTA
+        antes = previa.data() as Record<string, unknown>
+        if (mismaSolicitud(antes)) {
+          id = reagendarId
+          reintentoIdempotente = true
+          return
+        }
+        tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
         tx.set(ref, { ...limpia, updatedAt: now, updatedPor: acc.uid }, { merge: true })
         id = reagendarId
       } else {
+        tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
         const ref = apptsCol.doc()
         tx.set(ref, { ...limpia, createdAt: now, updatedAt: now, creadoPor: acc.uid, updatedPor: acc.uid })
         id = ref.id
       }
     })
   } catch (e) {
+    if (e === NO_ESTA) {
+      return NextResponse.json({ error: 'Esa cita ya no existe: recarga la agenda antes de moverla.' }, { status: 404 })
+    }
     if (e === CONFLICTO) {
       // `sobreagendable` le dice a la pantalla que existe una salida autorizada,
       // en vez de dejar al usuario contra un muro.
@@ -281,20 +344,22 @@ export async function POST(req: NextRequest) {
       if (a !== undefined && de !== a) cambios[k] = { de: de ?? null, a }
     }
   }
-  void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
-    evento: reagendarId ? 'cita_reagendada' : 'cita_creada',
-    clinicId,
-    patientId: appointment.pacienteId ?? '',
-    citaId: id,
-    timestamp: now,
-    medicoUid: acc.uid,
-    medicoEmail: acc.email ?? '',
-    meta: {
-      origen: 'consultorio',
-      ...(reagendarId ? { cambios } : { fechaHora: limpia.fechaHora, tipo: limpia.tipo }),
-      ...(quiereSobreagendar ? { sobreagendada: true } : {}),
-    },
-  }).catch(() => { /* la bitácora no puede tumbar una cita ya dada de alta */ })
+  if (!reintentoIdempotente) {
+    void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
+      evento: reagendarId ? 'cita_reagendada' : 'cita_creada',
+      clinicId,
+      patientId: appointment.pacienteId ?? '',
+      citaId: id,
+      timestamp: now,
+      medicoUid: acc.uid,
+      medicoEmail: acc.email ?? '',
+      meta: {
+        origen: 'consultorio',
+        ...(reagendarId ? { cambios } : { fechaHora: limpia.fechaHora, tipo: limpia.tipo }),
+        ...(quiereSobreagendar ? { sobreagendada: true } : {}),
+      },
+    }).catch(() => { /* la bitácora no puede tumbar una cita ya dada de alta */ })
+  }
 
-  return NextResponse.json({ id, sobreagendada: quiereSobreagendar })
+  return NextResponse.json({ id, sobreagendada: quiereSobreagendar, idempotent: reintentoIdempotente })
 }

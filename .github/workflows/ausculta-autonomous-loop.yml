@@ -1,0 +1,271 @@
+name: Ausculta Autonomous Completion Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '13 * * * *'
+
+concurrency:
+  group: ausculta-autonomous-completion
+  cancel-in-progress: false
+
+jobs:
+  continue-master-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+      actions: write
+      pull-requests: read
+      issues: read
+    env:
+      TARGET_BRANCH: product/ausculta-loop-2026-08-30
+      PR_NUMBER: '401'
+      WRITER_MAX_TURNS: '200'
+      HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
+
+    steps:
+      - name: Checkout autonomous product branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify immutable starting point and owner boundaries
+        id: start
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_BRANCH" == product/* ]] || { echo "::error::FORBIDDEN_TARGET=$TARGET_BRANCH"; exit 90; }
+          [[ "$TARGET_BRANCH" != "main" ]] || { echo "::error::MAIN_IS_FORBIDDEN"; exit 91; }
+          pr="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          state="$(jq -r '.state' <<<"$pr")"
+          head_ref="$(jq -r '.head.ref' <<<"$pr")"
+          head_sha="$(jq -r '.head.sha' <<<"$pr")"
+          [[ "$state" == "open" ]] || { echo "::error::AUTONOMOUS_PR_NOT_OPEN"; exit 92; }
+          [[ "$head_ref" == "$TARGET_BRANCH" ]] || { echo "::error::PR_HEAD_MISMATCH expected=$TARGET_BRANCH actual=$head_ref"; exit 93; }
+          local_sha="$(git rev-parse HEAD)"
+          [[ "$local_sha" == "$head_sha" ]] || { echo "::error::CHECKOUT_MISMATCH local=$local_sha pr=$head_sha"; exit 94; }
+          [[ -z "$(git status --porcelain)" ]] || { echo "::error::UNCLEAN_START"; exit 95; }
+          echo "sha=$head_sha" >> "$GITHUB_OUTPUT"
+          if [[ -f agent-state/AUSCULTA_AUTONOMOUS_COMPLETE ]]; then echo "complete=true" >> "$GITHUB_OUTPUT"; else echo "complete=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Stop cleanly when complete
+        if: steps.start.outputs.complete == 'true'
+        run: echo "Ausculta autonomous loop is complete."
+
+      - name: Verify this lane is still the writer of record
+        id: lane
+        if: steps.start.outputs.complete != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          START_SHA: ${{ steps.start.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          behind="$(git rev-list --count HEAD..origin/main)"
+          if [[ "$behind" -gt 0 ]]; then
+            echo "::warning::LANE_STALE target=$TARGET_BRANCH behind_main=$behind"
+            echo "standdown=stale" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          others="$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" \
+            | jq -r --arg b "$TARGET_BRANCH" '.[] | select(.head.ref != $b) | .head.ref')"
+          while IFS= read -r ref; do
+            [[ -n "$ref" ]] || continue
+            git fetch --no-tags origin "$ref" >/dev/null 2>&1 || continue
+            git merge-base --is-ancestor "$START_SHA" FETCH_HEAD >/dev/null 2>&1 || continue
+            ahead="$(git rev-list --count "$START_SHA"..FETCH_HEAD)"
+            if [[ "$ahead" -gt 0 ]]; then
+              echo "::warning::LANE_SUPERSEDED by=$ref commits_ahead=$ahead"
+              echo "standdown=superseded" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done <<< "$others"
+          echo "standdown=" >> "$GITHUB_OUTPUT"
+
+      - name: Say why this cycle stands down
+        if: steps.lane.outputs.standdown != ''
+        env:
+          STANDDOWN: ${{ steps.lane.outputs.standdown }}
+        shell: bash
+        run: |
+          case "$STANDDOWN" in
+            stale) echo "La rama de este carril va por detras de main: escribir aqui crea historia divergente. Re-apuntar TARGET_BRANCH/PR_NUMBER antes de seguir." ;;
+            superseded) echo "Otro carril ya construyo sobre esta punta: este bucle dejaria de ser el unico escritor del tablero. Re-apuntar TARGET_BRANCH/PR_NUMBER al carril vivo." ;;
+          esac
+          echo "Mapa de carriles: docs/maintenance/CARRILES-Y-BUCLES.md"
+
+      - name: Require writer transport
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
+        run: |
+          set -euo pipefail
+          [[ "$HAS_ANTHROPIC" == "true" ]] || { echo "::error::MISSING_WRITER_TRANSPORT"; exit 96; }
+
+      - uses: actions/setup-node@v4
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install repository dependencies
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
+        run: npm ci
+
+      - name: Build autonomous writer prompt
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
+        shell: bash
+        run: |
+          cat > /tmp/ausculta-autonomous-prompt.txt <<'PROMPT'
+          AUSCULTA — AUTONOMOUS MASTER COMPLETION LOOP.
+          You are the ONE WRITER for this cycle. Continue the existing Ausculta Consultorio program; do not restart it.
+          Read completely before editing: CLAUDE.md, AGENTS.md, every file in .claude/rules/, docs/product/AUSCULTA-MASTER-BOARD.md, agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md, and relevant implementation/tests.
+          Select the highest-priority executable INTERNAL P0; if none, the highest-priority executable INTERNAL P1. Skip BLOCKED_EXTERNAL items and continue to the next executable internal item. Do not ask the owner which reversible technical task to do next.
+          Complete one coherent bounded unit with root cause and regression. Preserve Clinical Truth, physician authority, provenance, tenant isolation, no-inventar, signed-note integrity, recovery, existing valid regressions, and current safety gates. Do not create parallel truth stores. Hospital/UCI and Documents Zero-Friction remain deferred. No PHI, no production actions, no billing, no licenses, no secret changes, no destructive migrations. Do not merge main or deploy. Do not edit GitHub workflows, deployment config, secrets/env files, dependency manifests/lockfiles, firestore.rules or storage.rules. You may update the Master Board and checkpoint.
+          If all non-deferred internal work is truly exhausted, create docs/product/AUSCULTA-CONSULTORIO-FINAL-READINESS.md and agent-state/AUSCULTA_AUTONOMOUS_COMPLETE only when internal P0=0 and internal P1=0 and everything remaining is PROVEN, BLOCKED_EXTERNAL, or owner-deferred.
+          NEVER HAND-EDIT A GENERATED DOCUMENT. Several documents carry figures derived from counting the tree, and a guard fails when the figures do not match what their script would produce. You have NO Bash, so you CANNOT regenerate them: therefore do not touch them at all. Leave them to the human or to the tool. The known ones: docs/data-room/INDICE.md (node scripts/data-room/actualizar-cifras.mjs), docs/design/SCREEN_INVENTORY.md (node scripts/design/inventario-de-pantallas.mjs), the CENSO block of docs/product/AUSCULTA-MASTER-BOARD.md between the CENSO:INICIO and CENSO:FIN markers (npx tsx scripts/product/censo-al-tablero.mjs), and docs/calidad (node scripts/calidad/lo-que-espera-al-dueno.mjs). A document that says GENERADO or "no se edita a mano" in its header is one of these even if it is not listed. This is REG-241 in the repository: what can be derived IS derived. If your unit needs a figure in one of them to change, do the code work and say in the checkpoint which document has to be regenerated afterwards — do not write the number yourself.
+          If a mandatory gate would fail because of a document you cannot regenerate, that is a reason to CHOOSE A DIFFERENT UNIT, not a reason to edit the document.
+          DO NOT COMMIT OR PUSH. The workflow will verify, test, commit and push.
+          PROMPT
+
+      - name: Install Claude Code
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Claude Opus writer
+        id: claude
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
+        continue-on-error: true
+        timeout-minutes: 45
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          claude -p "$(cat /tmp/ausculta-autonomous-prompt.txt)" --model opus --max-turns "$WRITER_MAX_TURNS" --output-format json --allowedTools "Read" "Write" "Edit" "Glob" "Grep" --disallowedTools "Bash" "WebSearch" "WebFetch" > /tmp/claude-result.json
+
+      - name: Classify writer delta
+        id: delta
+        if: steps.start.outputs.complete != 'true' && steps.lane.outputs.standdown == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$(git status --porcelain)" ]]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; echo "::warning::NO_WRITER_DELTA_THIS_CYCLE"; fi
+
+      - name: Keep the writer's own account of the cycle
+        if: always() && steps.claude.conclusion != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: writer-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/claude-result.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: A writer that could not run is a red cycle, not a green one
+        if: steps.claude.outcome == 'failure' && steps.delta.outputs.changed != 'true'
+        shell: bash
+        run: |
+          echo "El escritor termino en error y no dejo ni un cambio: este ciclo NO progreso."
+          echo "--- primeras lineas de /tmp/claude-result.json ---"
+          head -c 4000 /tmp/claude-result.json 2>/dev/null || echo "(el escritor no dejo salida)"
+          echo
+          echo "::error::WRITER_FAILED_NO_DELTA"
+          exit 1
+
+      - name: Enforce autonomous mutation scope
+        if: steps.delta.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --porcelain | sed 's/^...//' | sed 's/^.* -> //' > /tmp/changed.txt
+          while IFS= read -r path; do
+            case "$path" in
+              src/*|tests/*|e2e/*|docs/*|scripts/*|agent-state/*|synthetic-data/*|fixtures/*|playwright.config.ts|firestore.indexes.json) ;;
+              *) echo "::error::FORBIDDEN_AUTONOMOUS_SCOPE=$path"; exit 100 ;;
+            esac
+            case "$path" in
+              .github/*|package.json|package-lock.json|firestore.rules|storage.rules|firebase.json|vercel.json|next.config.*|.env*|public/sw.js|public/version.txt) echo "::error::FORBIDDEN_SENSITIVE_CHANGE=$path"; exit 101 ;;
+            esac
+          done < /tmp/changed.txt
+          git diff --check
+
+      - name: Mandatory gates
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyBUILD-ONLY-PLACEHOLDER-000000000000
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-build.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/lint-trinquete.mjs
+          npx tsc --noEmit
+          npx vitest run
+          npm run build
+          git diff --check
+
+      - name: Prove branch did not move during writer cycle
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          START_SHA: ${{ steps.start.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET_BRANCH"
+          remote="$(git rev-parse "origin/$TARGET_BRANCH")"
+          [[ "$remote" == "$START_SHA" ]] || { echo "::error::TARGET_MOVED_DURING_CYCLE expected=$START_SHA actual=$remote"; exit 104; }
+
+      - name: Commit and push safe checkpoint
+        id: checkpoint
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ausculta-autonomous-loop[bot]"
+          git config user.email "ausculta-autonomous-loop[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "::error::NO_STAGED_DELTA"; exit 105; }
+          git commit -m "autonomous: continue Ausculta Consultorio completion loop"
+          sha="$(git rev-parse HEAD)"
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push "https://github.com/${GITHUB_REPOSITORY}.git" "HEAD:$TARGET_BRANCH"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch canonical CI for exact checkpoint
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
+
+      - name: Optional Codex judge after checkpoint
+        if: steps.delta.outputs.changed == 'true' && env.HAS_OPENAI == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_SHA: ${{ steps.checkpoint.outputs.sha }}
+        shell: bash
+        run: gh workflow run product-codex-judge.yml --repo "$GITHUB_REPOSITORY" --ref main -f pr_number="$PR_NUMBER" -f expected_sha="$NEW_SHA"
+
+      - name: Chain the next cycle only after real progress
+        if: steps.checkpoint.outputs.sha != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          since="$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"
+          recent="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ausculta-autonomous-loop.yml/runs?per_page=50" | jq --arg since "$since" '[.workflow_runs[] | select(.created_at > $since)] | length')"
+          if (( recent >= 4 )); then echo "::warning::CHAIN_SUPPRESSED runs_in_last_hour=$recent"; exit 0; fi
+          gh workflow run ausculta-autonomous-loop.yml --repo "$GITHUB_REPOSITORY" --ref main

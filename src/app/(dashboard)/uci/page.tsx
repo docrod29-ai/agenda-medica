@@ -1203,14 +1203,18 @@ export default function UciPanelPage() {
           que el audio no entendió se veía EXACTAMENTE IGUAL que uno íntegro.
         */}
         {audio.sinDiarizacion && audio.estado === 'listo' && (
-          <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
+          /* Mismo criterio que la consulta (unidad 55): hubo nota, con el motor
+             alterno. Advertencia, no pérdida — `status`, no `alert`. */
+          <div role="status" style={{ marginTop: 10, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
             <b>Sin separación de voces en este pase.</b>{' '}
             {MOTIVO_SIN_DIARIZACION[audio.sinDiarizacion]}{' '}
             Revisa fármacos, dosis y parámetros del ventilador antes de firmar.
           </div>
         )}
         {audio.chunksFallidos > 0 && (
-          <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
+          /* Igual que en la consulta: el texto en vivo va incompleto y la
+             transcripción final no. Advertencia, y llega mientras se dicta. */
+          <div role="status" style={{ marginTop: 10, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
             <b>Faltan {audio.chunksFallidos} tramo(s) en el texto en vivo.</b>{' '}
             La transcripción final usa la grabación completa; lo que ves ahora está incompleto.
           </div>

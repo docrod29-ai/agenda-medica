@@ -5,7 +5,7 @@
  * El paciente NO necesita cuenta — solo identificarse con sus datos básicos.
  * La solicitud llega a la clínica que la atiende en máximo 20 días hábiles.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { crearSolicitudArco, ARCO_TIPO_LABEL, type ArcoTipo } from '@/lib/arco'
 import { generarAvisoPrivacidad } from '@/lib/aviso-privacidad'
@@ -92,8 +92,13 @@ export default function PortalPrivacidadPage() {
   if (paso === 'enviado') {
     return (
       <div style={layoutStyle}>
-        <div style={cardStyle}>
-          <Check size={48} color="#10b981" style={{ marginBottom: 16 }} />
+        {/*
+          A11Y-GATE-001: el folio es el ACUSE de la solicitud ARCO — lo único que
+          el paciente se lleva para reclamar el plazo de 20 días hábiles. Aparecía
+          tras un cambio de vista sin que el lector de pantalla lo anunciara.
+        */}
+        <div style={cardStyle} role="status">
+          <Check size={48} color="#10b981" style={{ marginBottom: 16 }} aria-hidden="true" />
           <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Solicitud recibida</h1>
           <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 16, lineHeight: 1.6 }}>
             Tu solicitud fue registrada con el folio:
@@ -195,10 +200,12 @@ export default function PortalPrivacidadPage() {
               <Field label="CURP (opcional, ayuda a localizar tu expediente)" value={curp} onChange={(v) => setCurp(v.toUpperCase())} maxLength={18} />
               <Field label="Identificación oficial (ej. INE folio 1234)" value={identificacion} onChange={setIdentificacion} />
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                <label htmlFor="arco-descripcion" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
                   Describe tu solicitud *
                 </label>
                 <textarea
+                  id="arco-descripcion"
+                  aria-describedby="arco-descripcion-cuenta"
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value.slice(0, 1000))}
                   rows={4}
@@ -208,7 +215,9 @@ export default function PortalPrivacidadPage() {
                     fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
                   }}
                 />
-                <div style={{ fontSize: 10.5, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{descripcion.length}/1000</div>
+                <div id="arco-descripcion-cuenta" aria-live="polite" style={{ fontSize: 10.5, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>
+                  {descripcion.length} de 1000 caracteres
+                </div>
               </div>
               <div style={{
                 padding: 10, background: '#fef3c7', borderRadius: 6, fontSize: 12, color: 'var(--amber)',
@@ -223,10 +232,11 @@ export default function PortalPrivacidadPage() {
               <button
                 onClick={enviar}
                 disabled={enviando || !nombre || !telefono || !descripcion}
+                aria-busy={enviando}
                 className="btn btn-primary"
                 style={{ marginTop: 6 }}
               >
-                {enviando ? <><Loader2 size={14} className="spin" /> Enviando…</> : 'Enviar solicitud'}
+                {enviando ? <><Loader2 size={14} className="spin" aria-hidden="true" /> Enviando…</> : 'Enviar solicitud'}
               </button>
             </div>
           </>
@@ -236,11 +246,24 @@ export default function PortalPrivacidadPage() {
   )
 }
 
+/**
+ * A11Y-GATE-001. El `<label>` de este helper NO estaba atado a su `<input>`:
+ * ni `htmlFor`, ni anidado. Se veía perfectamente y no existía — un lector de
+ * pantalla llegaba al campo del nombre y anunciaba «cuadro de edición», sin
+ * decir de qué. En un formulario de derechos ARCO, donde el paciente escribe su
+ * nombre, su teléfono y su CURP, eso es el formulario entero.
+ *
+ * `useId` es lo correcto aquí y no un contador propio: el identificador tiene
+ * que ser el MISMO en el servidor y en el cliente, o React lo rehace al
+ * hidratar y el vínculo se rompe justo después de pintarse.
+ */
 function Field({ label, value, onChange, type = 'text', placeholder, maxLength }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; maxLength?: number }) {
+  const id = useId()
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>
+      <label htmlFor={id} style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>
       <input
+        id={id}
         type={type} value={value} maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

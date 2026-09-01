@@ -305,7 +305,26 @@ service cloud.firestore {
          */
         match /laboratorios/{labId} {
           allow read: if isMedico(clinicId);
-          allow create, delete: if isMedico(clinicId);
+          /**
+           * REG-323 — SEGUNDA CAPA DEL VÍNCULO DE SUJETO.
+           *
+           * El panel declara DENTRO a qué paciente y consultorio pertenece, y
+           * aquí se exige que eso sea la ruta donde se está escribiendo. La
+           * frontera que decide de quién es la hoja vive en el cliente
+           * (`autorizaGuardar`); esto impide que un documento que dice ser de
+           * otro paciente aterrice aquí aunque alguien salte la pantalla.
+           *
+           * Los campos se exigen sólo SI VIENEN: los paneles anteriores a
+           * REG-323 no los llevan, y una restauración de respaldo los reescribe
+           * tal como se guardaron. Bloquearlos convertiría un candado nuevo en
+           * un respaldo que no se puede restaurar.
+           */
+          allow create: if isMedico(clinicId)
+                        && (!('pacienteId' in request.resource.data)
+                            || request.resource.data.pacienteId == docId)
+                        && (!('clinicId' in request.resource.data)
+                            || request.resource.data.clinicId == clinicId);
+          allow delete: if isMedico(clinicId);
           allow update: if false;
         }
 
@@ -458,6 +477,22 @@ service cloud.firestore {
         match /bed_assignments/{asigId} {
           allow read: if isClinicoHospital(clinicId);
           allow create, update, delete: if false;   // sólo servidor
+        }
+        /**
+         * LA BITÁCORA APPEND-ONLY DEL EPISODIO (REG-340).
+         *
+         * El documento del internamiento guarda arrays-caché RECORTADOS
+         * (`.slice(-100)`); la copia íntegra y sin truncar —la que existe para la
+         * NOM-004— vive aquí. La escribe sólo el Admin SDK dentro de la misma
+         * transacción que muta el episodio.
+         *
+         * No estaba declarada en ninguno de los tres sitios, así que no se
+         * respaldaba: se restauraba el episodio, su bitácora legal no volvía, y
+         * el pie del archivo seguía diciendo `completo: true`.
+         */
+        match /registros/{registroId} {
+          allow read: if isClinicoHospital(clinicId);
+          allow create, update, delete: if false;   // append-only, sólo servidor
         }
       }
       // Rol hospitalario por usuario. La ESCRITURA la controla médico/admin de la
@@ -947,6 +982,64 @@ service cloud.firestore {
       }
       match /chat_reads/{uid} {
         allow read, write: if isAuth() && request.auth.uid == uid && isMember(clinicId);
+      }
+
+      /**
+       * EL NOMBRE QUE CADA UNO ELIGE PARA EL CHAT (REG-340).
+       *
+       * Esta colección se leía Y se escribía desde el navegador
+       * (`chat/page.tsx:57` y `:66`) y **no tenía regla**, así que la caía el
+       * comodín de denegación total del final: la escritura se rechazaba y la
+       * lectura volvía vacía. El apodo no se guardaba nunca y nadie se
+       * enteraba, porque el código cae con elegancia al nombre por omisión.
+       *
+       * Misma forma que `chat_reads`: el documento de uno, en el consultorio de
+       * uno. Y con la forma CONGELADA — es un apodo para el chat interno, no un
+       * sitio donde apoyar nada clínico ni un rol.
+       */
+      match /members/{uid} {
+        allow read: if isMember(clinicId);
+        allow write: if isAuth() && request.auth.uid == uid && isMember(clinicId)
+                     && request.resource.data.keys().hasOnly(['displayName'])
+                     && request.resource.data.displayName is string
+                     && request.resource.data.displayName.size() <= 80;
+      }
+
+      /**
+       * ── SÓLO SERVIDOR, Y DECLARADO (REG-340) ────────────────────────────────
+       *
+       * Las siete de abajo las escribe únicamente el Admin SDK desde rutas de
+       * API, que se salta las reglas. Antes no estaban aquí en absoluto, y ésa
+       * era justo la avería: los dos guardianes —el de la matriz y el del
+       * respaldo— comparan contra ESTE archivo y lo tratan como el censo de lo
+       * que existe. Una colección que nunca entra aquí es invisible para los
+       * tres sitios de declaración A LA VEZ, y la suite se queda verde.
+       *
+       * Se declaran cerradas: `if false` no cambia nada en ejecución —el comodín
+       * de denegación total del final ya las negaba— pero las vuelve VISIBLES
+       * para los guardianes, que es lo que faltaba. Si una pantalla necesita
+       * leerlas, tendrá que escribir su regla aquí a propósito.
+       */
+      match /memoria_medico/{uid} {
+        allow read, write: if false;   // sólo servidor (Admin SDK)
+      }
+      match /slot_locks/{fecha} {
+        allow read, write: if false;   // sólo servidor (Admin SDK)
+      }
+      match /uci_copilot_feedback/{docId} {
+        allow read, write: if false;   // sólo servidor (Admin SDK)
+      }
+      match /whatsapp_outbox/{docId} {
+        allow read, write: if false;   // sólo servidor (Admin SDK)
+      }
+      match /whatsapp_contacts/{docId} {
+        allow read, write: if false;   // sólo servidor (Admin SDK)
+      }
+      match /whatsapp_status/{docId} {
+        allow read, write: if false;   // sólo servidor (Admin SDK)
+      }
+      match /whatsapp_events/{docId} {
+        allow read, write: if false;   // sólo servidor (Admin SDK)
       }
     }
 

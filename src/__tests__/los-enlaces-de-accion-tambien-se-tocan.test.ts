@@ -1,0 +1,114 @@
+/**
+ * GOLDEN — los enlaces que son ACCIONES también se pueden tocar.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * `.claude/rules/design-system.md` pone «objetivo táctil por debajo de 44×44»
+ * entre los mínimos que FALLAN la compuerta. Medido a 390 px con hit-testing:
+ * **doce** enlaces de acción por debajo de 44 px de alto. Entre ellos los dos
+ * que conectan las dos puertas del producto:
+ *
+ *   · portada → «Inicia sesión aquí →»  129×18
+ *   · login   → «Crea una gratis →»     113×18
+ *
+ * Dieciocho píxeles de alto en un teléfono. Son literalmente el camino de ida
+ * y vuelta entre registrarse y entrar.
+ *
+ * ── POR QUÉ EXISTÍA ─────────────────────────────────────────────────────────
+ *
+ * No es un olvido nuevo: `v15-a11y-tactiles-de-enlace` ya lo había cerrado
+ * para `a.nx-ident` y `.nx-cta-aviso`, y **declaró lo que no cubría** — «un
+ * enlace nuevo con otra clase no está vigilado por esto». La causa raíz que
+ * aquel guardián nombra sigue en pie: el bloque `@media (pointer: coarse)` de
+ * `globals.css` cubre `.btn`, `button`, `select`, `input` y `textarea`, pero
+ * **nunca cubrió `<a>`**. Todo control que sea un enlace nace sin mínimo
+ * táctil.
+ *
+ * ── LA REGLA, QUE ES LA QUE YA HABÍA ────────────────────────────────────────
+ *
+ * No se pone `min-height`: engordaría lo visible y movería la maqueta. Se
+ * estira el ÁREA DE GOLPE con un pseudo invisible centrado
+ * (`max(100%, 44px)`), y **sólo en puntero grueso** — en escritorio el clic
+ * fino no lo necesita y estirarlo robaría clics de selección de texto.
+ *
+ * Aquí sólo se añade la nueva familia al mismo mecanismo.
+ *
+ * ── CÓMO SE MIDE, Y LA TRAMPA QUE TRAE ──────────────────────────────────────
+ *
+ * `getBoundingClientRect` **no ve el pseudo**: una radiografía que lea rects
+ * vuelve a ver 18 px donde el dedo sí llega. Aquel guardián lo dejó escrito y
+ * este carril tropezó igual dos veces antes de obedecerlo:
+ *
+ *   1. leyendo rects en vez de hit-testear;
+ *   2. hit-testeando elementos **por debajo del pliegue**, donde
+ *      `elementFromPoint` no ve nada.
+ *
+ * El instrumento correcto está en `scripts/carril-excelencia/tactiles.mjs`:
+ * trae el elemento a la pantalla, y busca el alcance real hacia arriba y hacia
+ * abajo en vez de suponerlo simétrico — el pseudo se sesga 2 px hacia el
+ * pulgar a propósito.
+ *
+ * ── QUÉ **NO** CUBRE ────────────────────────────────────────────────────────
+ *
+ * - Esto comprueba que la clase esté puesta y que la regla exista dentro del
+ *   bloque de puntero grueso. Los píxeles los mide el arnés, no CI.
+ * - Quedan dos enlaces del pie por debajo (40 y 42 px medidos): sus pseudos se
+ *   pisan entre sí en una fila apretada. Está declarado en el acta.
+ */
+import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const leer = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8')
+const CSS = leer('src/app/globals.css')
+const PORTADA = leer('src/app/page.tsx')
+const LOGIN = leer('src/app/login/page.tsx')
+
+describe('la nueva familia usa el mecanismo que ya existía', () => {
+  it('el pseudo de golpe cubre también `.nx-enlace-tactil`', () => {
+    expect(CSS).toMatch(/\.nx-enlace-tactil::before/)
+    expect(CSS).toMatch(/a\.nx-ident,\s*\.nx-cta-aviso,\s*\.nx-enlace-tactil \{ position: relative/)
+  })
+
+  it('y vive DENTRO del bloque de puntero grueso — fuera robaría clics', () => {
+    /**
+     * Es la guarda de alcance que el guardián original ya exigía para las
+     * otras dos familias: en escritorio el clic fino no necesita 44 px, y
+     * estirar el área le quitaría al usuario la selección de texto vecina.
+     */
+    const iCoarse = CSS.indexOf('@media (pointer: coarse)')
+    const iRegla = CSS.indexOf('.nx-enlace-tactil::before')
+    expect(iCoarse).toBeGreaterThan(-1)
+    expect(iRegla).toBeGreaterThan(iCoarse)
+    // …y antes de que ese bloque cierre: se busca el siguiente @media.
+    const iSiguienteMedia = CSS.indexOf('@media', iCoarse + 10)
+    expect(iRegla, 'la regla quedó fuera del bloque coarse').toBeLessThan(iSiguienteMedia)
+  })
+
+  it('el pseudo sigue midiendo al menos 44 y sin contenido visible', () => {
+    const i = CSS.indexOf('.nx-enlace-tactil::before')
+    const bloque = CSS.slice(i, CSS.indexOf('}', i))
+    expect(bloque).toContain("content: ''")
+    expect(bloque).toMatch(/width: max\(100%, 44px\)/)
+    expect(bloque).toMatch(/height: max\(100%, 44px\)/)
+  })
+})
+
+describe('los caminos entre las dos puertas del producto', () => {
+  it('«Inicia sesión aquí →» de la portada lo lleva', () => {
+    const i = PORTADA.indexOf('Inicia sesión aquí')
+    const etiqueta = PORTADA.slice(PORTADA.lastIndexOf('<Link', i), i)
+    expect(etiqueta, 'el enlace a login sigue midiendo 18px de alto').toContain('nx-enlace-tactil')
+  })
+
+  it('«Crea una gratis →» del inicio de sesión, también', () => {
+    const i = LOGIN.indexOf('Crea una gratis')
+    const etiqueta = LOGIN.slice(LOGIN.lastIndexOf('<Link', i), i)
+    expect(etiqueta, 'el enlace a registro sigue midiendo 18px de alto').toContain('nx-enlace-tactil')
+  })
+
+  it('y los demás enlaces de acción de la portada', () => {
+    // Doce medidos; los del pie y los dos de confianza incluidos.
+    expect((PORTADA.match(/nx-enlace-tactil/g) ?? []).length).toBeGreaterThanOrEqual(11)
+  })
+})

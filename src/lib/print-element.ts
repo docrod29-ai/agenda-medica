@@ -52,6 +52,20 @@ export function imprimirElemento(
      * toasts. La decisión de NO imprimir basura se mantiene; solo cambia el canal.
      */
     onError?: (mensaje: string) => void
+    /**
+     * Aviso de que el documento SÍ se imprime, pero incompleto: no se pudo
+     * cargar el membrete, la firma o el sello (#355).
+     *
+     * Es un canal distinto de `onError` a propósito. `onError` significa «no se
+     * imprimió nada»; éste significa «se imprimió, con esto de menos». Meterlos
+     * en el mismo cajón haría que el médico leyera uno con la expectativa del
+     * otro, y en un papel que lleva su cédula eso importa.
+     *
+     * Si no se pasa, cae a `onError`. La suplencia es deliberada: los seis
+     * sitios que imprimen ya cablean `onError` a los toasts, y el fallo que
+     * este aviso existe para impedir es justamente el silencio.
+     */
+    onAvisoPapeleria?: (mensaje: string) => void
   },
 ): void {
   if (typeof window === 'undefined') return
@@ -211,7 +225,22 @@ export function imprimirElemento(
   // capacidad por vencer. Si algo falla o tarda, se imprime con las URLs que
   // hubiera: el acuñado nunca puede romper el resto de la receta.
   void import('@/lib/receta-diseno-client')
-    .then(m => m.firmarImagenesDiseno(Array.from(win.document.images), { esperarRecargaMs: 0 }))
+    .then(m => m.firmarImagenesDiseno(Array.from(win.document.images), {
+      esperarRecargaMs: 0,
+      /**
+       * Se avisa ANTES de abrir el diálogo de impresión, que es el último
+       * momento en que el médico puede parar. Un aviso que llegara después es
+       * un aviso sobre un papel que ya está en la bandeja.
+       */
+      onIncompleto: (faltan) => {
+        const msg = faltan === 1
+          ? 'Este documento va a salir SIN una de sus imágenes de papelería (membrete, firma o sello): no se pudo cargar. El texto y la cédula van completos. Comprueba tu conexión y vuelve a imprimir si la necesitas.'
+          : `Este documento va a salir SIN ${faltan} de sus imágenes de papelería (membrete, firma o sello): no se pudieron cargar. El texto y la cédula van completos. Comprueba tu conexión y vuelve a imprimir si las necesitas.`
+        const canal = opts?.onAvisoPapeleria ?? opts?.onError
+        // eslint-disable-next-line no-alert
+        if (canal) canal(msg); else window.alert(msg)
+      },
+    }))
     .catch(() => 0)
     .finally(esperarImagenesEImprimir)
 }

@@ -20,7 +20,11 @@ export function Skeleton({ w = '100%', h = 16, r = 8, style }: { w?: number | st
 /** Página genérica de carga: encabezado + fila de tarjetas + lista. */
 export function SkeletonPage() {
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }} aria-busy="true" aria-label="Cargando…">
+    /* `aria-label` sobre un `div` SIN rol es un atributo prohibido: axe lo marca
+       y, peor, un lector de pantalla no tiene por qué anunciarlo — la pantalla
+       se queda muda justo mientras carga. `role="status"` es lo que hace que
+       «Cargando…» se diga de verdad. Medido en `/crm`, 390px. */
+    <div role="status" aria-busy="true" aria-label="Cargando…" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Skeleton w={220} h={26} />
         <Skeleton w={320} h={14} />

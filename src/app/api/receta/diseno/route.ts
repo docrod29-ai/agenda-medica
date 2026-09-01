@@ -6,6 +6,12 @@ import {
   verificarCapacidadDiseno,
   type VerificacionDiseno,
 } from '@/lib/receta-diseno-token'
+/**
+ * El tope por destino es de `main` (REG-346) y se conserva: esta ruta baja un
+ * objeto de Storage, y una descarga sin tope cuelga la función entera. Que este
+ * carril reescriba QUIÉN puede pedirla no cambia CUÁNTO se espera.
+ */
+import { fetchConTimeout } from '@/lib/fetch-con-timeout'
 
 /**
  * Proxy SAME-ORIGIN del formato de receta guardado en Firebase Storage.
@@ -122,7 +128,9 @@ export async function GET(req: NextRequest) {
   if (!permitida) return new Response('Origen no permitido', { status: 403 })
 
   try {
-    const r = await fetch(u, { cache: 'no-store' })
+    // Con tiempo máximo: es un proxy, y un Storage lento inmoviliza la función
+    // igual que un proveedor lento. Misma razón que documenta el helper.
+    const r = await fetchConTimeout(u, { cache: 'no-store' })
     if (!r.ok) return new Response('Diseño no encontrado', { status: 404 })
     const contentType = r.headers.get('content-type') ?? 'image/png'
     const buf = await r.arrayBuffer()

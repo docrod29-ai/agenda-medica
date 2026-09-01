@@ -14,6 +14,7 @@ import {
 import { ultimoEntranteAt, enviosProactivosHoy, registrarEnvioProactivo } from '@/lib/whatsapp/contacts'
 import { resolverSilencio, enHorarioPermitido, type ConfigSilencio } from '@/lib/whatsapp/horario'
 import { topeDiario, superaTope, type ConfigFrecuencia } from '@/lib/whatsapp/frecuencia'
+import type { Veredicto } from '@/lib/red/interruptor'
 
 export type ResultadoProactivo = 'enviado' | 'omitido' | 'fallo' | 'optout' | 'silencio' | 'tope'
 
@@ -38,7 +39,15 @@ export async function enviarProactivo(
     /** hoyISO() en MX. Si se da, se respeta el tope diario por contacto. */
     fechaHoyMx?: string
   },
-): Promise<{ resultado: ResultadoProactivo; via: 'texto' | 'plantilla' | 'ninguno' }> {
+): Promise<{
+  resultado: ResultadoProactivo
+  via: 'texto' | 'plantilla' | 'ninguno'
+  /**
+   * Si el fallo fue del PROVEEDOR y no del mensaje (REG-391). Quien drena la
+   * cola lo necesita para no gastarle un reintento a un mensaje que está bien.
+   */
+  veredicto?: Veredicto
+}> {
   // Horas de silencio: no enviar proactivos de madrugada. El recordatorio no se
   // marca enviado → el siguiente ciclo del cron lo reintenta cuando pase el silencio.
   if (opts.minutosDelDiaMx != null) {
@@ -70,7 +79,7 @@ export async function enviarProactivo(
     const r = await sendWhatsApp(clinicId, to, opts.textoLibre, { proactivo: true })
     if (r.optout) return { resultado: 'optout', via: 'ninguno' }
     if (r.ok) await contar()
-    return { resultado: r.ok ? 'enviado' : 'fallo', via: 'texto' }
+    return { resultado: r.ok ? 'enviado' : 'fallo', via: 'texto', veredicto: r.veredicto }
   }
 
   if (canal === 'plantilla' && plantilla) {
@@ -81,7 +90,7 @@ export async function enviarProactivo(
     )
     if (r.optout) return { resultado: 'optout', via: 'ninguno' }
     if (r.ok) await contar()
-    return { resultado: r.ok ? 'enviado' : 'fallo', via: 'plantilla' }
+    return { resultado: r.ok ? 'enviado' : 'fallo', via: 'plantilla', veredicto: r.veredicto }
   }
 
   // omitir: fuera de ventana y sin plantilla aprobada

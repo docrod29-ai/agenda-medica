@@ -1,0 +1,19 @@
+{
+  "syntheticNonPhi": true,
+  "entorno": "firestore-emulator (127.0.0.1:8080)",
+  "destino": "destino_sintetico_smtf41alf",
+  "documentosEnElArchivo": 2000,
+  "lineasRechazadas": 0,
+  "archivoCompleto": true,
+  "lote": 400,
+  "topeDeFirestore": 500,
+  "topeDelLoteComprobado": false,
+  "escritos": 2000,
+  "releidos": 2000,
+  "faltantes": [],
+  "errorDeLote": null,
+  "msEscritura": 513,
+  "msLectura": 142,
+  "docsPorSegundo": 3898,
+  "loQueEsteNumeroNoEs": "No es el RTO. Es restaurar un NDJSON en una base ya viva; resucitar una base perdida es `gcloud firestore databases restore` + PITR, que son de la consola. Y el tope de escrituras por lote NO queda comprobado: el emulador acepta 600."
+}

@@ -118,9 +118,11 @@ export function NotificacionesPushOptIn() {
           <button
             onClick={aceptar}
             disabled={solicitando}
-            className="nx-push-optin-accion"
+            /* El fondo va en la hoja (`nx-acc-fuerte`): en línea le ganaba al
+               `:hover` y los tres botones de este aviso estaban mudos. */
+            className="nx-push-optin-accion nx-acc-fuerte"
             style={{
-              background: 'var(--nexus-solido)', color: '#fff', border: 'none',
+              color: '#fff', border: 'none',
               borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700,
               cursor: 'pointer',
             }}
@@ -129,9 +131,9 @@ export function NotificacionesPushOptIn() {
           </button>
           <button
             onClick={dismiss}
-            className="nx-push-optin-accion"
+            className="nx-push-optin-accion nx-acc-plana"
             style={{
-              background: 'transparent', color: 'var(--text3)', border: 'none',
+              color: 'var(--text3)', border: 'none',
               borderRadius: 6, padding: '6px 10px', fontSize: 12, cursor: 'pointer',
             }}
           >
@@ -142,9 +144,9 @@ export function NotificacionesPushOptIn() {
       <button
         onClick={dismiss}
         aria-label="Cerrar aviso de notificaciones"
-        className="nx-push-optin-cerrar"
+        className="nx-push-optin-cerrar nx-acc-plana"
         style={{
-          background: 'none', border: 'none', color: 'var(--text3)',
+          border: 'none', color: 'var(--text3)',
           cursor: 'pointer', padding: 2, flexShrink: 0,
         }}
       >

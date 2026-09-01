@@ -1,4 +1,5 @@
 'use client'
+import { nombreMedicoParaMostrar } from '@/lib/nombre-medico'
 /**
  * FLOW RAIL — V15-SHELL-GREYBOX-001.
  *
@@ -67,6 +68,7 @@ import { salirSeguro } from '@/lib/salir-seguro'
 import { useGrabando } from '@/hooks/useGrabando'
 import { useEncuentroAbierto } from '@/hooks/useEncuentroAbierto'
 import { rutaDelEncuentro } from '@/lib/nav/encuentro-abierto'
+import { contextoDeRuta } from '@/lib/navegacion/contextos'
 
 /**
  * V15-ENCOUNTER-MODE-001, §8.1 «navigation visually quiets»: medido en la
@@ -115,12 +117,15 @@ import { rutaDelEncuentro } from '@/lib/nav/encuentro-abierto'
  * privadas idénticas del hook (la otra en BottomNav) que dejaron a la pila de
  * avisos del layout sin cubrir.
  */
-const ES_CONTEXTO_PACIENTE = (p: string) =>
-  p.startsWith('/pacientes') || p.startsWith('/expedientes') || p.startsWith('/expediente/')
-
-const ES_CONTEXTO_ENCUENTRO = (p: string) =>
-  p.startsWith('/consulta/') || p.startsWith('/nota/') || p.startsWith('/receta/') ||
-  p.startsWith('/orden/') || p.startsWith('/referencia/')
+/**
+ * Los contextos ya no se deciden aquí: viven en `@/lib/navegacion/contextos`,
+ * que es la única tabla, y de la que también bebe la barra inferior.
+ *
+ * Antes esta copia decía que «Operaciones» eran tres rutas cuando el índice de
+ * `/operaciones` declara veinte, así que al entrar en `/citas`, `/calendario`,
+ * `/asistente` o `/lista-espera` el riel se apagaba entero — ni ítem activo ni
+ * `aria-current`. El detalle y la medición, en ese módulo.
+ */
 
 export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname() ?? ''
@@ -145,7 +150,8 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
    *      deja en la lista de pacientes y encima ilumina «Paciente» rompe la
    *      pregunta de §15 en el primer uso.
    */
-  const enEncuentro = ES_CONTEXTO_ENCUENTRO(pathname)
+  const contexto = contextoDeRuta(pathname)
+  const enEncuentro = contexto === 'encuentro'
   const abierto = useEncuentroAbierto()
   const encounterHref = enEncuentro
     ? pathname
@@ -179,19 +185,27 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
             {config.nombreClinica || 'Ausculta'}
           </div>
           <div className="nx-flow-rail-quiet-hide" style={{ fontSize: 12, color: 'var(--text3)' }}>
-            {config.nombreMedico
-              ? (/^Dr\.?\s+|^Dra\.?\s+/i.test(config.nombreMedico) ? config.nombreMedico : `Dr. ${config.nombreMedico}`)
-              : 'Consultorio'}
+            {/* Sin inventar título — ver `@/lib/nombre-medico`. */}
+            {nombreMedicoParaMostrar(config.nombreMedico) ?? 'Consultorio'}
           </div>
         </div>
       </div>
 
       {/* SEARCH / COMMAND — quinto contexto, es acción, no ruta */}
+      {/*
+        El fondo lo pone `nx-acc-caja`: en línea le ganaba al `:hover` y este
+        botón no acusaba el puntero pese a estar a la vista en todas las
+        pantallas. El gemelo de `Sidebar.tsx` tenía el MISMO defecto y se arregló
+        a la vez — es la familia de siempre («la lección se aprende en un
+        componente y no en el de al lado»), y aquí los dos componentes pintan el
+        mismo control.
+      */}
       <button
         onClick={abrirBusqueda}
+        className="nx-acc-caja"
         style={{
           display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-          background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10,
+          border: '1px solid var(--border)', borderRadius: 10,
           padding: '8px 12px', margin: '4px 0 10px', cursor: 'pointer', color: 'var(--text3)',
         }}
       >
@@ -203,9 +217,9 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
       {/* Los cuatro contextos que SÍ son ruta */}
       <nav className="sidebar-nav" aria-label="Contextos clínicos">
         <RailLink href="/dashboard" label="Hoy" icon={CalendarClock}
-          activo={pathname === '/dashboard'} onNavigate={onNavigate} />
+          activo={contexto === 'hoy'} onNavigate={onNavigate} />
         <RailLink href="/pacientes" label="Paciente" icon={UserSquare2}
-          activo={ES_CONTEXTO_PACIENTE(pathname)} onNavigate={onNavigate} />
+          activo={contexto === 'paciente'} onNavigate={onNavigate} />
         <RailLink href={encounterHref} label="Encuentro" icon={Stethoscope}
           activo={enEncuentro} onNavigate={onNavigate}
           titulo={encounterTitulo}
@@ -214,11 +228,11 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
              ruido sobre la superficie clínica (§8.5). */
           senal={!enEncuentro && !!abierto} />
         <RailLink href="/pendientes" label="Seguimiento" icon={ListChecks}
-          activo={pathname.startsWith('/pendientes')} onNavigate={onNavigate} />
+          activo={contexto === 'seguimiento'} onNavigate={onNavigate} />
 
         <div className="nav-section-title nx-flow-rail-quiet-hide" style={{ marginTop: 14 }}>Operaciones</div>
         <RailLink href="/operaciones" label="Operaciones" icon={Settings2}
-          activo={pathname.startsWith('/operaciones') || pathname.startsWith('/configuracion') || pathname.startsWith('/guia')}
+          activo={contexto === 'operaciones'}
           onNavigate={onNavigate} subordinado />
       </nav>
 
@@ -228,11 +242,11 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
             clínico — §15). No suma un destino al riel: es un botón que abre un
             panel, y por eso está FUERA del <nav> que cuenta los ≤5 contextos.
             La compuerta de grabación viene dentro de `DisparadorAyuda`. */}
-        <DisparadorAyuda className="nav-item" style={{ color: 'var(--text3)', width: '100%' }}>
+        <DisparadorAyuda className="nav-item nav-item--tenue" style={{ width: '100%' }}>
           <HelpCircle size={16} className="nx-flow-rail-quiet-icon" />
           Ayuda
         </DisparadorAyuda>
-        <button onClick={handleLogout} className="nav-item" style={{ color: 'var(--text3)', width: '100%' }}>
+        <button onClick={handleLogout} className="nav-item nav-item--tenue" style={{ width: '100%' }}>
           <LogOut size={16} className="nx-flow-rail-quiet-icon" />
           Cerrar sesión
         </button>

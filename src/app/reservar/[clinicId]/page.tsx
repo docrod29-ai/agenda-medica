@@ -6,6 +6,8 @@
  * Funciona 24/7, sin requerir cuenta.
  */
 import { useEffect, useMemo, useState } from 'react'
+import { conMayusculaInicial } from '@/lib/texto-es'
+import { DIAS_VENTANA_RESERVA_PUBLICA } from '@/lib/agenda/horizonte'
 import { useParams } from 'next/navigation'
 import {
   Stethoscope, Calendar, Clock, User, CheckCircle2, Loader2, ArrowLeft, MapPin, Phone,
@@ -52,6 +54,9 @@ const TIPO_LABEL: Record<string, string> = {
  * empezaba la lista el día 3 y el 2 de agosto entero desaparecía, sin mensaje.
  * El generador de huecos ya usaba `cfg.zonaHoraria`; la lista de días no.
  */
+/** Cuántos días añade cada «Ver más días». Cuatro semanas: un mes de vista. */
+const PASO_HORIZONTE_DIAS = 28
+
 function nextDays(n: number, tz?: string): string[] {
   const out: string[] = []
   const hoy = hoyISO(tz || 'America/Mexico_City')
@@ -66,6 +71,20 @@ export default function ReservarPage() {
   const [step, setStep] = useState<Step>('tipo')
   const [tipo, setTipo] = useState('')
   const [medicoId, setMedicoId] = useState('')
+  /**
+   * HASTA DÓNDE MIRA EL CALENDARIO DEL PACIENTE — y por qué puede crecer.
+   *
+   * Eran 14 días fijos. El servidor abre la reserva en línea con **un año** de
+   * anticipación (`DIAS_VENTANA_RESERVA_PUBLICA`), así que el paciente que
+   * necesitaba una cita a seis semanas no tenía forma de pedirla: la ventana
+   * existía y ninguna superficie llegaba a ella.
+   *
+   * Empieza en dos semanas porque es donde cae casi toda reserva, y crece de
+   * cuatro en cuatro cuando el paciente lo pide. No se pregenera el año: los
+   * días se calculan al pedirlos, y nunca hay más lista que la que se está
+   * enseñando.
+   */
+  const [horizonteDias, setHorizonteDias] = useState(PASO_HORIZONTE_DIAS)
   const [fecha, setFecha] = useState('')
   const [hora, setHora] = useState('')
   const [slots, setSlots] = useState<string[]>([])
@@ -123,11 +142,11 @@ export default function ReservarPage() {
   const dias = useMemo(() => {
     if (!info) return []
     const DAY_KEYS = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado']
-    return nextDays(14, info.zonaHoraria).filter(d => {
+    return nextDays(horizonteDias, info.zonaHoraria).filter(d => {
       const dk = DAY_KEYS[new Date(d + 'T12:00:00').getDay()]
       return info.horarios[dk]?.activo
     })
-  }, [info])
+  }, [info, horizonteDias])
 
   const tiposCita = info?.tiposCita.filter(t => Number(t.duracion) > 0) ?? []
 
@@ -156,7 +175,13 @@ export default function ReservarPage() {
               <Stethoscope size={20} color="var(--nexus)" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>{info.clinic.nombreMedico || info.clinic.nombre}</div>
+              {/*
+                A11Y-GATE-001: era un <div>. La pantalla donde un paciente reserva
+                su cita no tenía NINGÚN <h1>: el encabezado más alto era el <h2>
+                del paso en curso, así que con un lector de pantalla no había
+                forma de saber de quién es este consultorio sin recorrerlo entero.
+              */}
+              <h1 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{info.clinic.nombreMedico || info.clinic.nombre}</h1>
               {info.clinic.especialidad && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}>{info.clinic.especialidad}</div>}
             </div>
           </div>
@@ -201,23 +226,46 @@ export default function ReservarPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(110px, 100%), 1fr))', gap: 8 }}>
               {dias.map(d => {
                 const dt = new Date(d + 'T12:00:00')
-                const label = dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
+                const label = conMayusculaInicial(dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }))
                 return (
                   <button key={d} onClick={() => { setFecha(d); setStep('hora') }} style={{ ...btnList, textAlign: 'center', padding: '10px 6px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{label}</div>
+                    {/* Sin `textTransform: 'capitalize'`: ponía «Lun 31 De Ago».
+                        La mayúscula la pone `conMayusculaInicial`, que es la
+                        regla del español — sólo la primera letra. */}
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{label}</div>
                   </button>
                 )
               })}
             </div>
+            {horizonteDias < DIAS_VENTANA_RESERVA_PUBLICA && (
+              <button
+                type="button"
+                onClick={() => setHorizonteDias(d => Math.min(d + PASO_HORIZONTE_DIAS, DIAS_VENTANA_RESERVA_PUBLICA))}
+                style={{
+                  marginTop: 12, width: '100%', minHeight: 44, background: 'transparent',
+                  border: '1px dashed var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--text2)',
+                  fontSize: 'var(--t-body)', fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                Ver más días
+              </button>
+            )}
           </Card>
         )}
 
         {step === 'hora' && (
           <Card title={`Elige el horario · ${new Date(fecha + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}`} onBack={() => setStep('fecha')}>
+            {/*
+              A11Y-GATE-001: la lista de horarios se rellena sola tras elegir el
+              día. Sin región viva, quien usa lector de pantalla se quedaba en un
+              silencio indistinguible de «esta pantalla está rota» — y el «no hay
+              horarios este día», que es el que obliga a volver atrás, tampoco se
+              anunciaba nunca.
+            */}
             {loadingSlots ? (
-              <div style={{ color: 'var(--text3)', fontSize: 13 }}><Loader2 size={14} style={{ animation: 'spin 1s linear infinite', display: 'inline-block', verticalAlign: 'middle' }} /> Cargando horarios…</div>
+              <div role="status" style={{ color: 'var(--text3)', fontSize: 13 }}><Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite', display: 'inline-block', verticalAlign: 'middle' }} /> Cargando horarios…</div>
             ) : slots.length === 0 ? (
-              <div style={{ color: 'var(--text3)', fontSize: 13 }}>No hay horarios disponibles este día. Elige otra fecha.</div>
+              <div role="status" style={{ color: 'var(--text3)', fontSize: 13 }}>No hay horarios disponibles este día. Elige otra fecha.</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(80px, 100%), 1fr))', gap: 6 }}>
                 {slots.map(s => (
@@ -232,18 +280,38 @@ export default function ReservarPage() {
 
         {step === 'datos' && (
           <Card title="Tus datos" onBack={() => setStep('hora')}>
-            <FormField label="Nombre completo *">
-              <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan García López" autoFocus />
-            </FormField>
-            <FormField label="Teléfono / WhatsApp *">
-              <input className="input" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="614-123-4567" type="tel" />
-            </FormField>
-            <FormField label="Correo (opcional)">
-              <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" type="email" />
-            </FormField>
-            <FormField label="Motivo (opcional)">
-              <textarea className="input" rows={2} value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Describe brevemente el motivo de tu visita" style={{ resize: 'vertical' }} />
-            </FormField>
+            {/*
+              A11Y-GATE-001: los cuatro <label> se pintaban pero no estaban
+              atados a su campo — ni `htmlFor`, ni anidados. Se apoyaban en el
+              `placeholder`, que NO es etiqueta: desaparece con la primera letra
+              que se escribe, así que quien vuelve a revisar el formulario ya no
+              sabe cuál campo es cuál.
+
+              El identificador va escrito a mano en los dos lados, y eso es
+              deliberado. La versión anterior de este arreglo le pasaba el
+              `htmlFor` al helper y dejaba que él lo reenviara al <label>: se
+              veía más limpio y **el guardián no podía comprobarlo**, porque el
+              vínculo cruzaba el límite del componente. Es la regla «el dato
+              tiene que LLEGAR» aplicada a una etiqueta: que el helper reciba el
+              identificador no prueba que se lo dé a nadie. Aquí el par
+              `htmlFor`/`id` se ve entero en un solo sitio, y por eso se puede
+              vigilar.
+
+              `autoComplete` es la otra mitad del favor — un paciente mayor
+              rellenando su teléfono en el móvil.
+            */}
+            <Campo htmlFor="reservar-nombre" label="Nombre completo *">
+              <input id="reservar-nombre" className="input" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan García López" autoComplete="name" autoFocus />
+            </Campo>
+            <Campo htmlFor="reservar-telefono" label="Teléfono / WhatsApp *">
+              <input id="reservar-telefono" className="input" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="614-123-4567" type="tel" autoComplete="tel" />
+            </Campo>
+            <Campo htmlFor="reservar-email" label="Correo (opcional)">
+              <input id="reservar-email" className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" type="email" autoComplete="email" />
+            </Campo>
+            <Campo htmlFor="reservar-motivo" label="Motivo (opcional)">
+              <textarea id="reservar-motivo" className="input" rows={2} value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Describe brevemente el motivo de tu visita" style={{ resize: 'vertical' }} />
+            </Campo>
             <button
               disabled={!nombre.trim() || telefono.replace(/\D/g, '').length < 7}
               onClick={() => setStep('consentimientos')}
@@ -271,6 +339,7 @@ export default function ReservarPage() {
             </label>
             <button
               disabled={!c1 || !c2 || enviando}
+              aria-busy={enviando}
               onClick={enviar}
               style={{ ...btnPrimary, marginTop: 14, opacity: c1 && c2 && !enviando ? 1 : 0.5 }}
             >
@@ -295,7 +364,7 @@ export default function ReservarPage() {
 
         {step === 'error' && (
           <Card title="No se pudo agendar">
-            <p style={{ fontSize: 14, color: 'var(--red)', margin: '0 0 12px' }}>{errorMsg}</p>
+            <p role="alert" style={{ fontSize: 14, color: 'var(--red)', margin: '0 0 12px' }}>{errorMsg}</p>
             <button onClick={() => setStep('hora')} style={btnPrimary}>← Intentar otro horario</button>
           </Card>
         )}
@@ -330,10 +399,10 @@ function Card({ title, children, onBack }: { title: string; children: React.Reac
     </div>
   )
 }
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+function Campo({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label htmlFor={htmlFor} style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>{label}</label>
       {children}
     </div>
   )
@@ -361,7 +430,7 @@ function FullPage({ children }: { children: React.ReactNode }) {
 }
 function ErrorCard({ msg }: { msg: string }) {
   return (
-    <div style={{ maxWidth: 380, textAlign: 'center', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
+    <div role="alert" style={{ maxWidth: 380, textAlign: 'center', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
       <div style={{ fontSize: 38, marginBottom: 10 }}>😕</div>
       <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px' }}>No disponible</h2>
       <p style={{ fontSize: 13, color: 'var(--text2)' }}>{msg}</p>

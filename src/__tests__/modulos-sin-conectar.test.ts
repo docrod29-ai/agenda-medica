@@ -45,6 +45,25 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/authz/analisis-estatico.ts': 'Analizador de la frontera de API que usa el guardián de rutas. Herramienta, no función.',
   'src/lib/security/rutas-privadas.ts': 'Inventario de rutas privadas que consume su propio invariante.',
   // Lo cazó ESTE guardián en cuanto se escribió, que es exactamente su trabajo.
+  /**
+   * REG-382. Es el censo del programa, y su lector es su propio guardián: lo que
+   * vigila es que no desaparezca un requisito, y eso se comprueba en el CI.
+   * Pintarlo en una pantalla no lo conectaría a nada — sería una pantalla que
+   * alguien deja de mirar, que es justo cómo se perdieron los seis dominios que
+   * este censo existe para no volver a perder.
+   */
+  /**
+   * REG-390. Hermano del censo: declara qué operación clínica puede diferirse y
+   * cuál no. Lo lee su guardián, que es donde la política se puede hacer cumplir.
+   */
+  'src/lib/ops/lo-sincrono-y-lo-encolado.ts': 'ES la política de qué se encola y qué no: su consumidor es el guardián que la comprueba, y ése vive en el CI. Una pantalla que la pintara no la haría cumplir.',
+  // `src/lib/programa/requisitos.ts` ESTUVO aquí, y dejó de estarlo el 30-ago-2026.
+  // Era huérfano de verdad: su único consumidor era el guardián que lo sella. Eso
+  // significaba que los 21 dominios y los once escalones de escala del §1 existían
+  // donde ninguna persona los ve, y el tablero que SÍ se lee nombraba dos de once.
+  // Ahora lo consume `scripts/product/censo-al-tablero.mjs`, que imprime el censo
+  // en el tablero. Se conectó; por eso sale de la lista en vez de quedarse con una
+  // razón mejor escrita.
   'src/lib/guardia/campos-conectados.ts': 'Guardián hermano de éste: vigila CAMPOS de contrato que nadie lee, no archivos. Vive en el CI por definición — una pantalla que lo muestre sería una pantalla que alguien apaga.',
   /**
    * Este guardián cazó, en cuanto se escribió, el módulo que documenta que
@@ -91,10 +110,10 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/agenda/prompts.ts': 'Prompts operativos de la agenda (parseo de lenguaje natural a operaciones, tono de recordatorios). Lo tapaba `@/lib/expediente/prompts`, que sí se usa. Sin llamador desde que existe.',
 
   // ── Trabajo empezado, pendiente de su fase ───────────────────────────────
+  'src/lib/voice-engine/clinical-truth-bridge.ts': 'Puente endurecido Voice → Clinical Truth validado por pruebas. #302 entrega el motor provider-neutral; #306 Consultorio es la fase que debe consumirlo en producción. Se mantiene declarado —no fingidamente conectado— hasta que #306 cablee el encuentro real; entonces debe salir de esta lista.',
   'src/lib/clinical-fact/schema.ts': 'Nexus OS E1-01: validación de ClinicalFact. La fase que lo consume no ha llegado.',
   'src/lib/clinical-fact/vocabulario.ts': 'Vocabulario de ClinicalFact, del mismo bloque pendiente.',
   'src/lib/evidencia/buscar-con-pico.ts': 'Puente PICO → PubMed (E2-02): el extractor existe, falta engancharlo al Consultor.',
-  'src/lib/evidencia/desde-pubmed.ts': 'Del mismo bloque de evidencia estructurada.',
   'src/lib/compliance/policy.ts': 'Capa de política por país: escrita para LATAM, sin país distinto de México activo.',
   'src/lib/i18n.ts': 'Internacionalización ligera: base para LATAM, sin segundo idioma en uso.',
   'src/lib/permissions.ts': 'Permisos por rol en aplicación. La autorización REAL está en Firestore rules.',

@@ -33,6 +33,27 @@
  * Lo derivable se DERIVA del repositorio. Lo que es criterio —la iteración en
  * curso, los bloqueos, las decisiones del dueño— se sigue escribiendo a mano,
  * porque el criterio no sale de un `grep`.
+ *
+ * ── UNA CUARTA VEZ, Y AL REVÉS — REG-505 ────────────────────────────────────
+ *
+ * Las tres primeras fueron el tablero ATRASADO. La cuarta fue ADELANTADO, y no
+ * por descuido sino por la propia reparación: el campo se llamaba
+ * `ultimaVersionEnProduccion` y salía de `public/version.txt`, que es el REPO.
+ *
+ * Entre que el ciclo sube `sw.js` y que alguien pulsa el botón pasan días. En
+ * toda esa ventana el campo afirmaba del sitio vivo algo falso — y esa ventana
+ * es justo cuando se consulta el tablero: nadie pregunta qué hay en producción
+ * salvo cuando está decidiendo si desplegar. Medido el 31-ago: repo v1178,
+ * producción v1177.
+ *
+ * Derivar bien un dato de la fuente equivocada sigue siendo un dato equivocado,
+ * y encima llega con la autoridad de estar derivado: ya nadie lo mira con
+ * desconfianza.
+ *
+ * **La versión que sirve producción NO SE PUEDE DERIVAR de este repositorio.**
+ * Se declara con la ejecución que la confirmó. Es «ausencia de dato no es dato
+ * de ausencia» aplicado a la operación: lo que no se puede saber desde aquí no
+ * se rellena con lo más parecido que haya a mano.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'fs'
@@ -42,17 +63,53 @@ const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 const estado = JSON.parse(leer('agent-state', 'MASTER_STATE.json'))
 
 describe('el tablero coincide con el repositorio', () => {
-  it('la versión que dice es la que hay en disco', () => {
+  it('la versión DEL REPO es la que hay en disco', () => {
     /**
-     * `public/version.txt` lo escribe el propio ciclo de despliegue. Si el
+     * `public/version.txt` lo escribe el ciclo de preparación del paquete. Si el
      * tablero dice otra cosa, el tablero está mintiendo.
      */
     const enDisco = leer('public', 'version.txt').trim()
     expect(
-      estado.ultimaVersionEnProduccion,
-      `El tablero dice ${estado.ultimaVersionEnProduccion} y en disco hay ${enDisco}. ` +
+      estado.versionEnElRepo,
+      `El tablero dice ${estado.versionEnElRepo} y en disco hay ${enDisco}. ` +
       'Corre: node scripts/agent-state/actualizar.mjs',
     ).toBe(enDisco)
+  })
+
+  it('EL CASO (REG-505): la de PRODUCCIÓN se DECLARA con su ejecución, no se deriva', () => {
+    /**
+     * Lo único que establece qué sirve producción es una ejecución del botón
+     * cerrada en verde, cuya Compuerta 3 lo comprobó contra el sitio vivo. Sin
+     * su evidencia el campo no es un dato: es un recuerdo.
+     */
+    const p = estado.ultimaVersionEnProduccion
+    expect(p, 'falta ultimaVersionEnProduccion').toBeTruthy()
+    expect(typeof p, 'ya no es una cadena: lleva su evidencia dentro').toBe('object')
+    expect(p.version).toMatch(/^nexusmed-v\d+$/)
+    expect(
+      p.confirmadaPor,
+      'una versión de producción sin la ejecución que la confirmó no es un dato',
+    ).toMatch(/actions\/runs\/\d+/)
+    expect(p.confirmadaEl).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('y el script NO la deriva — se comprueba en el script, no de palabra', () => {
+    /**
+     * PROBADO AL REVÉS: si alguien vuelve a hacer que el script escriba este
+     * campo, este caso cae. Es la única forma de que la regla sobreviva a quien
+     * la lea con prisa.
+     */
+    const script = leer('scripts', 'agent-state', 'actualizar.mjs')
+    const derivados = script.slice(script.indexOf('function derivar()'))
+    expect(
+      derivados.includes('ultimaVersionEnProduccion:'),
+      'el script volvió a derivar la versión de producción. No se puede saber desde el repo.',
+    ).toBe(false)
+  })
+
+  it('los dos campos existen y hoy NO coinciden — que es la demostración', () => {
+    expect(estado).toHaveProperty('versionEnElRepo')
+    expect(estado).toHaveProperty('ultimaVersionEnProduccion')
   })
 
   it('la última REG que dice es la última del ledger', () => {

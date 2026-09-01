@@ -3,6 +3,7 @@ import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google"
 import localFont from "next/font/local"
 import "./globals.css"
 import { MARCA, LEMA } from "@/lib/marca"
+import { GUION_TEMA } from "@/lib/tema"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
@@ -160,18 +161,10 @@ export default function RootLayout({
           Default = OSCURO (identidad de marca Ausculta). Solo si el usuario
           eligió 'light' explícitamente se respeta el claro.
         */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){
-              try{
-                var t = localStorage.getItem('nexusmed.theme');
-                document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
-              } catch(e){
-                document.documentElement.setAttribute('data-theme', 'dark');
-              }
-            })();`,
-          }}
-        />
+        {/* El criterio vive en `@/lib/tema`, no aquí: este guion y `useTema`
+            son DOS lectores del mismo dato, y cuando cada uno tenía su tabla
+            el modo automático no sobrevivía a una recarga. */}
+        <script dangerouslySetInnerHTML={{ __html: GUION_TEMA }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){

@@ -8,12 +8,13 @@
  *  - Días festivos
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { validarFechaDeAgenda, dentroDeLaVentanaPublica } from '@/lib/agenda/horizonte'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { configParaMedico } from '@/lib/horario-medico'
 import { esFestivo } from '@/lib/availability'
-import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { instanteMX, hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 
 /**
@@ -41,22 +42,37 @@ export async function GET(
     const tipo = url.searchParams.get('tipo') ?? 'primera-vez'
     const medicoId = url.searchParams.get('medicoId') ?? undefined
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-      return NextResponse.json({ error: 'Fecha inválida (YYYY-MM-DD)' }, { status: 400 })
+    /**
+     * Misma puerta que el POST de reserva y que el panel: la forma sola deja
+     * pasar el 30 de febrero, y sin techo esto ofrecía huecos para el año
+     * 9999. Ver `@/lib/agenda/horizonte`.
+     */
+    const fechaAgenda = validarFechaDeAgenda(fecha)
+    if (!fechaAgenda.ok) {
+      return NextResponse.json({ ok: false, error: fechaAgenda.mensaje }, { status: 400 })
     }
-    // Solo permitir consultar fechas razonables (hoy ... +1 año)
-    const dt = new Date(fecha + 'T12:00:00')
-    const hoy = new Date()
-    hoy.setHours(0,0,0,0)
-    const limite = new Date(hoy.getTime() + 365 * 86400_000)
-    if (dt < hoy || dt > limite) {
-      return NextResponse.json({ ok: true, slots: [], motivo: 'Fuera de rango' })
-    }
-
     // 1. Configuración
     const configSnap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
     if (!configSnap.exists) return NextResponse.json({ ok: true, slots: [] })
     let cfg = configSnap.data()!
+
+    /**
+     * LA VENTANA PÚBLICA, DESPUÉS DE LEER LA CONFIGURACIÓN Y NO ANTES.
+     *
+     * Aquí se comparaba contra `new Date()` del SERVIDOR. En Vercel el proceso
+     * corre en UTC, así que a partir de las 18:00 en México el servidor ya está
+     * en el día siguiente y la ventana se corría un día entero — el mismo fallo
+     * que el POST de reserva ya documenta para `instanteMX`, y por eso el POST
+     * también movió su comprobación aquí abajo.
+     *
+     * Y devolvía `200 { ok: true, slots: [] }`: para el navegador eso es
+     * exactamente lo mismo que un día lleno o cerrado. La fecha no estaba
+     * llena; estaba fuera de lo que se puede pedir. Ahora lo dice.
+     */
+    const ventana = dentroDeLaVentanaPublica(fecha, hoyISO(cfg.zonaHoraria || TZ_DEFAULT))
+    if (!ventana.ok) {
+      return NextResponse.json({ ok: false, error: ventana.mensaje, motivo: ventana.motivo }, { status: 400 })
+    }
     // Horario POR MÉDICO: si se pide disponibilidad de un médico concreto, sus
     // horario/duraciones/intervalo pisan a los de la clínica (coherente con el panel).
     if (medicoId) {

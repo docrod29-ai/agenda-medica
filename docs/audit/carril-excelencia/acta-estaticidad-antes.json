@@ -1,0 +1,98 @@
+[
+  {
+    "ruta": "/citas",
+    "ancho": 1440,
+    "elementosVisibles": 196,
+    "conMovimiento": 21,
+    "tarjetas": 0,
+    "tamanosTipograficos": 10,
+    "pesosDeFuente": 4,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/calendario",
+    "ancho": 1440,
+    "elementosVisibles": 226,
+    "conMovimiento": 16,
+    "tarjetas": 1,
+    "tamanosTipograficos": 8,
+    "pesosDeFuente": 4,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/pacientes",
+    "ancho": 1440,
+    "elementosVisibles": 93,
+    "conMovimiento": 13,
+    "tarjetas": 0,
+    "tamanosTipograficos": 7,
+    "pesosDeFuente": 3,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/asistente",
+    "ancho": 1440,
+    "elementosVisibles": 166,
+    "conMovimiento": 20,
+    "tarjetas": 15,
+    "tamanosTipograficos": 9,
+    "pesosDeFuente": 4,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/lista-espera",
+    "ancho": 1440,
+    "elementosVisibles": 89,
+    "conMovimiento": 13,
+    "tarjetas": 1,
+    "tamanosTipograficos": 8,
+    "pesosDeFuente": 3,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/finanzas",
+    "ancho": 1440,
+    "elementosVisibles": 189,
+    "conMovimiento": 14,
+    "tarjetas": 11,
+    "tamanosTipograficos": 13,
+    "pesosDeFuente": 5,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/dashboard",
+    "ancho": 1440,
+    "elementosVisibles": 190,
+    "conMovimiento": 22,
+    "tarjetas": 2,
+    "tamanosTipograficos": 11,
+    "pesosDeFuente": 4,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/pendientes",
+    "ancho": 1440,
+    "elementosVisibles": 81,
+    "conMovimiento": 12,
+    "tarjetas": 0,
+    "tamanosTipograficos": 8,
+    "pesosDeFuente": 3,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  }
+]

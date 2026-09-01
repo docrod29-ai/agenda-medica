@@ -83,13 +83,44 @@ const esperarCarga = (img: HTMLImageElement, ms: number): Promise<void> =>
  * Acuña la capacidad de las imágenes dadas y espera su recarga. Devuelve
  * cuántas se cambiaron. Jamás lanza.
  */
-export async function firmarImagenesDiseno(imgs: HTMLImageElement[], opts?: { timeoutMs?: number; esperarRecargaMs?: number }): Promise<number> {
+export async function firmarImagenesDiseno(
+  imgs: HTMLImageElement[],
+  opts?: {
+    timeoutMs?: number
+    esperarRecargaMs?: number
+    /**
+     * Se llama cuando alguna imagen se queda SIN capacidad, con cuántas son.
+     *
+     * ── POR QUÉ EXISTE ────────────────────────────────────────────────────
+     *
+     * Desde que el proxy falla cerrado (#355), una `<img>` sin capacidad no se
+     * ve: el membrete, la firma o el sello salen rotos. Antes de #355 la URL
+     * pelada pasaba y el documento salía completo, así que este camino era
+     * invisible y no había nada que avisar.
+     *
+     * Ahora sí lo hay, y callarlo sería lo peor de los dos mundos: se entrega
+     * una receta sin membrete Y el médico se entera cuando el paciente ya se
+     * fue con ella. La regla del producto es que nada cambia en silencio.
+     *
+     * Es un AVISO, no un bloqueo: una receta sin membrete sigue siendo válida
+     * —el contenido legal es el texto y la cédula, no la papelería— así que
+     * decidir si se imprime igual es del médico, no de este módulo.
+     */
+    onIncompleto?: (faltan: number) => void
+  },
+): Promise<number> {
   const timeoutMs = opts?.timeoutMs ?? 1500
+  let porFirmar: HTMLImageElement[] = []
+  /** Un solo sitio por el que se abandona, para que ninguna salida quede muda. */
+  const rendirse = (): number => {
+    if (porFirmar.length > 0) opts?.onIncompleto?.(porFirmar.length)
+    return 0
+  }
   try {
-    const porFirmar = imgs.filter(img => NECESITA_CAPACIDAD(img.src))
+    porFirmar = imgs.filter(img => NECESITA_CAPACIDAD(img.src))
     if (porFirmar.length === 0) return 0
     const paths = [...new Set(porFirmar.map(img => pathDe(img.src)).filter(Boolean))]
-    if (paths.length === 0) return 0
+    if (paths.length === 0) return rendirse()
 
     const { fetchAutenticado } = await import('@/lib/auth-client')
     const res = await Promise.race([
@@ -98,9 +129,9 @@ export async function firmarImagenesDiseno(imgs: HTMLImageElement[], opts?: { ti
       }),
       new Promise<null>(r => setTimeout(() => r(null), timeoutMs)),
     ])
-    if (!res || !res.ok) return 0
+    if (!res || !res.ok) return rendirse()
     const data = await res.json().catch(() => null) as { urls?: Record<string, string> } | null
-    if (!data?.urls) return 0
+    if (!data?.urls) return rendirse()
 
     let firmadas = 0
     const recargas: Promise<void>[] = []
@@ -113,8 +144,13 @@ export async function firmarImagenesDiseno(imgs: HTMLImageElement[], opts?: { ti
       }
     }
     await Promise.all(recargas)
+    // El acuñado PARCIAL también avisa: el servidor puede devolver la capacidad
+    // del membrete y no la de la firma —son paths distintos y la comprobación de
+    // consultorio es por path— y un documento al que le falta la firma no es un
+    // documento al que no le falta nada.
+    if (firmadas < porFirmar.length) opts?.onIncompleto?.(porFirmar.length - firmadas)
     return firmadas
   } catch {
-    return 0   // sin firma: el documento sale igual que siempre
+    return rendirse()   // sin capacidad: el documento sale, pero se dice
   }
 }

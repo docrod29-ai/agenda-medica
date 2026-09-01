@@ -1,12 +1,15 @@
 'use client'
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { useCerrarConEscape } from '@/lib/ui/activable'
+import { useState, useEffect, useMemo, useRef, useCallback, useId } from 'react'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useToast } from '@/context/ToastContext'
 import { guardarPanelLab, listarPanelesLab, borrarPanelLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
 import { seriesDesdeHistorial, type PanelValidado } from '@/lib/expediente/laboratorio/extraccion'
+import { dictaminarSujeto, vinculoDeSujeto, type DictamenSujeto, type DestinoPaciente } from '@/lib/expediente/laboratorio/sujeto'
+import { claveDeIntento } from '@/lib/idempotencia'
+import { getPatient } from '@/lib/firestore'
 import { GraficaLab } from './GraficaLab'
-import { FlaskConical, Upload, Loader2, AlertTriangle, Trash2, Check, X } from 'lucide-react'
+import { FlaskConical, Upload, Loader2, AlertTriangle, ShieldAlert, Trash2, Check, X } from 'lucide-react'
 
 const GRUPO_LABEL: Record<string, string> = {
   renal: 'Función renal', hepatico: 'Función hepática', lipidos: 'Perfil de lípidos',
@@ -17,9 +20,16 @@ const GRUPO_LABEL: Record<string, string> = {
 /**
  * Historial de laboratorios del paciente con gráficas de tendencia.
  *
- * Flujo: adjuntar PDF/foto → la IA transcribe (ruta laboratorio-vision) → el
- * médico REVISA lo extraído (nada se guarda sin su visto bueno) → se guarda como
- * un panel fechado → las gráficas se recalculan sobre todo el historial.
+ * Flujo: adjuntar PDF/foto → la IA transcribe (ruta laboratorio-vision) → se
+ * VERIFICA de quién es la hoja → el médico REVISA lo extraído (nada se guarda
+ * sin su visto bueno) → se guarda como un panel fechado → las gráficas se
+ * recalculan sobre todo el historial.
+ *
+ * El paso de verificación no es decorativo (REG-323): «revisa lo que leyó la IA»
+ * pedía repasar los NÚMEROS, nunca el SUJETO, y el panel se archivaba bajo el
+ * paciente que estuviera abierto. Aquí se pinta el veredicto; quien lo hace
+ * cumplir es `guardarPanelLab`, que sin vínculo no escribe — esconder el botón
+ * no cierra una escritura.
  */
 export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
   clinicId: string
@@ -31,9 +41,55 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
   const [paneles, setPaneles] = useState<PanelLaboratorio[]>([])
   const [cargando, setCargando] = useState(true)
   const [subiendo, setSubiendo] = useState(false)
-  const [revision, setRevision] = useState<(PanelValidado & { fuente: 'pdf' | 'foto' }) | null>(null)
+  /**
+   * La revisión guarda el DESTINO con el que se verificó, no sólo el panel. Si el
+   * médico cambia de paciente con el modal abierto, el vínculo deja de valer:
+   * caduca, no se re-apunta al nuevo.
+   */
+  const [revisionCruda, setRevision] = useState<(PanelValidado & {
+    fuente: 'pdf' | 'foto'
+    destino: DestinoPaciente
+    dictamen: DictamenSujeto
+    /** Nombre de la intención: sobrevive al reintento y evita duplicar el estudio. */
+    clave: string
+  }) | null>(null)
+  /**
+   * Una revisión PERTENECE al paciente con el que se verificó. Si cambió el
+   * expediente abierto, deja de existir — no se re-apunta al nuevo. Se deriva en
+   * el render en vez de limpiarse en un efecto: así no hay un instante, por
+   * corto que sea, en que la pantalla ofrezca «Guardar» sobre un expediente que
+   * nadie verificó.
+   */
+  const revision = revisionCruda
+    && revisionCruda.destino.clinicId === clinicId
+    && revisionCruda.destino.patientId === patientId
+    ? revisionCruda : null
+  /** Sólo para `sin-identificar`: el médico afirma que la hoja es de este paciente. */
+  const [confirmadoSujeto, setConfirmadoSujeto] = useState(false)
+  /**
+   * El nombre viaja JUNTO al paciente al que pertenece, por el mismo motivo: un
+   * nombre del paciente anterior sobreviviendo un render es una verificación
+   * hecha contra la persona equivocada.
+   */
+  const [pacienteRef, setPacienteRef] = useState<{ clinicId: string; patientId: string; nombre: string } | null>(null)
+  const pacienteNombre = pacienteRef && pacienteRef.clinicId === clinicId && pacienteRef.patientId === patientId
+    ? pacienteRef.nombre : null
   // Un modal que sólo cierra con el ratón deja atrapado a quien navega con teclado.
-  useCerrarConEscape(!!revision, () => setRevision(null))
+  /**
+   * Escape ya lo tenía, con el gancho estrecho `useCerrarConEscape`. Lo que le
+   * faltaba era la **trampa de foco**: tabular desde la revisión se iba al
+   * panel de detrás, y esta pantalla decide de quién es una hoja de resultados
+   * — incluida la casilla de «confirmo que son de este paciente».
+   *
+   * `useDialogoDeTeclado` trae Escape y además trampa, foco inicial, scroll
+   * bloqueado y foco devuelto, así que sustituye al estrecho en vez de
+   * sumarse: dos manejadores de Escape sobre el mismo diálogo es una forma
+   * cara de que un día cierren cosas distintas.
+   */
+  const cajaRevisionRef = useRef<HTMLDivElement>(null)
+  const idTituloRevision = useId()
+  const cerrarRevision = useCallback(() => setRevision(null), [])
+  useDialogoDeTeclado(!!revision, cajaRevisionRef, cerrarRevision)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const cargar = useCallback(() => {
@@ -43,6 +99,20 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
   }, [clinicId, patientId, toast])
   useEffect(cargar, [cargar])
 
+  /**
+   * El nombre del paciente sale del EXPEDIENTE, no de quien monta el componente:
+   * es contra eso contra lo que se compara la hoja, y un nombre pasado por
+   * parámetro sería otra vez «lo que dice la pantalla».
+   */
+  useEffect(() => {
+    let vivo = true
+    if (!clinicId || !patientId) return
+    getPatient(clinicId, patientId)
+      .then(p => { if (vivo) setPacienteRef({ clinicId, patientId, nombre: p?.nombre?.trim() || '' }) })
+      .catch(() => { if (vivo) setPacienteRef({ clinicId, patientId, nombre: '' }) })
+    return () => { vivo = false }
+  }, [clinicId, patientId])
+
   const series = useMemo(() => seriesDesdeHistorial(paneles.map(p => ({ fecha: p.fecha, resultados: p.resultados }))), [paneles])
   const porGrupo = useMemo(() => {
     const m = new Map<string, typeof series>()
@@ -51,6 +121,14 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
   }, [series])
 
   const onArchivo = async (file: File) => {
+    /**
+     * Sin saber a quién pertenece el expediente abierto no hay contra qué
+     * verificar la hoja. Se para aquí en vez de archivar a ciegas.
+     */
+    if (!pacienteNombre) {
+      toast('No se pudo leer el nombre del paciente de este expediente, así que no se puede verificar de quién es la hoja. Recarga e inténtalo de nuevo.', 'error')
+      return
+    }
     const esPdf = file.type === 'application/pdf'
     const esImg = file.type.startsWith('image/')
     if (!esPdf && !esImg) { toast('Adjunta un PDF o una imagen (foto) del laboratorio', 'error'); return }
@@ -65,7 +143,19 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
       })
       const data = await resp.json().catch(() => null)
       if (!data?.ok) { toast(data?.error ?? 'No se pudo interpretar el archivo', 'error'); return }
-      setRevision({ ...(data.panel as PanelValidado), fuente: esPdf ? 'pdf' : 'foto' })
+      const panel = data.panel as PanelValidado
+      const destino: DestinoPaciente = { clinicId, patientId, nombre: pacienteNombre }
+      const dictamen = dictaminarSujeto(panel.sujetos ?? [], destino)
+      /**
+       * Lo que la hoja dice de otra persona no se enseña en el expediente de
+       * ésta: se avisa y se para. Ni un renglón de PHI ajena entra a la pantalla.
+       */
+      if (dictamen.veredicto === 'no-coincide' || dictamen.veredicto === 'ambiguo') {
+        toast(dictamen.motivo, 'error')
+        return
+      }
+      setConfirmadoSujeto(false)
+      setRevision({ ...panel, fuente: esPdf ? 'pdf' : 'foto', destino, dictamen, clave: claveDeIntento() })
     } catch { toast('Error de red al interpretar el archivo', 'error') }
     finally { setSubiendo(false); if (fileRef.current) fileRef.current.value = '' }
   }
@@ -73,13 +163,37 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
   const guardarRevision = async () => {
     if (!revision) return
     if (!revision.fecha) { toast('Ponle una fecha al estudio para poder graficarlo en el tiempo', 'error'); return }
+    /**
+     * El vínculo se acuña contra el destino con el que se VERIFICÓ, no contra el
+     * paciente que esté abierto ahora. Si son distintos, `guardarPanelLab` lo
+     * rechaza — aquí sólo se evita el viaje.
+     */
+    const vinculo = vinculoDeSujeto(revision.dictamen, revision.destino, confirmadoSujeto, new Date().toISOString())
+    if (!vinculo) { toast(revision.dictamen.motivo, 'error'); return }
     try {
-      await guardarPanelLab(clinicId, patientId, {
+      const guardado = await guardarPanelLab(clinicId, patientId, {
         fecha: revision.fecha, resultados: revision.resultados,
         noReconocidas: revision.noReconocidas, fuente: revision.fuente,
-      })
-      toast('Laboratorio guardado', 'success'); setRevision(null); cargar()
-    } catch { toast('NO se pudo guardar el laboratorio. Reintenta.', 'error') }
+      }, vinculo, revision.clave)
+      /**
+       * REG-501 — un pendiente que no nació NO se calla. El laboratorio está
+       * guardado (eso no se pierde), pero si la tarea de revisión no entró,
+       * nadie va a acordarse de mirarlo: hay que decirlo en el momento, no
+       * dejar que el silencio parezca éxito.
+       */
+      if (guardado.tareasCreadas < guardado.tareasEsperadas) {
+        toast('Laboratorio guardado, pero NO se pudo abrir el pendiente de revisión. Revísalo hoy.', 'error')
+      } else {
+        toast('Laboratorio guardado', 'success')
+      }
+      setRevision(null); setConfirmadoSujeto(false); cargar()
+    } catch (e) {
+      // Un rechazo por sujeto no vinculado NO es «reintenta»: es «esto no es de
+      // este paciente». Decirlo mal enseñaría a insistir hasta que entre.
+      toast(e instanceof Error && e.name === 'ErrorSujetoNoVinculado'
+        ? e.message
+        : 'NO se pudo guardar el laboratorio. Reintenta.', 'error')
+    }
   }
 
   const criticos = series.flatMap(s => s.puntos.filter(p => p.critico).map(p => ({ etiqueta: s.etiqueta, valor: p.valor, censurada: p.censurada, unidad: s.unidad, fecha: p.fecha })))
@@ -114,7 +228,8 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
               <Check size={14} /> Agregar a la nota
             </button>
           )}
-          <button className="btn btn-primary btn-sm" disabled={subiendo} onClick={() => fileRef.current?.click()}
+          <button className="btn btn-primary btn-sm" disabled={subiendo || !pacienteNombre} onClick={() => fileRef.current?.click()}
+            title={pacienteNombre === null ? 'Cargando el expediente…' : !pacienteNombre ? 'No se pudo leer el nombre del paciente: sin él no se puede verificar de quién es la hoja.' : 'Adjunta el PDF o la foto del reporte'}
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {subiendo ? <><Loader2 size={14} className="spin" /> Interpretando…</> : <><Upload size={14} /> Adjuntar PDF o foto</>}
           </button>
@@ -122,7 +237,8 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
       </div>
       <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>
         Sube el PDF o una foto del reporte. La IA lee los valores, tú los revisas y se grafican en el tiempo.
-        Por privacidad, no se guarda ningún dato que identifique al paciente que venga en la hoja.
+        Antes de guardar se comprueba que la hoja sea de <strong>{pacienteNombre || 'este paciente'}</strong>: si es de otra
+        persona, se bloquea. El nombre se usa sólo para esa comprobación y no se guarda.
       </p>
 
       {criticos.length > 0 && (
@@ -168,11 +284,42 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
       {/* Revisión antes de guardar */}
       {revision && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }} onClick={() => setRevision(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', borderRadius: 16, padding: 20, maxWidth: 560, width: '100%', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
+          <div
+            ref={cajaRevisionRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={idTituloRevision}
+            tabIndex={-1}
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg)', borderRadius: 16, padding: 20, maxWidth: 560, width: '100%', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border)' }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Revisa lo que leyó la IA</div>
+              <div id={idTituloRevision} style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Revisa lo que leyó la IA</div>
               <button onClick={() => setRevision(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><X size={18} /></button>
             </div>
+            {/*
+              DE QUIÉN ES LA HOJA. Va ARRIBA de los valores a propósito: el
+              sujeto se decide antes que las cifras, y un aviso que aparece
+              debajo de una tabla no llegó (REG-323).
+            */}
+            {revision.dictamen.veredicto === 'sin-identificar' ? (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 10, padding: '11px 14px', marginBottom: 12 }}>
+                <ShieldAlert size={16} aria-hidden="true" style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+                <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>
+                  <strong>El archivo no dice de quién es.</strong> Nadie puede verificarlo por ti.
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 8, cursor: 'pointer', minHeight: 44, padding: '4px 0' }}>
+                    <input type="checkbox" checked={confirmadoSujeto} onChange={e => setConfirmadoSujeto(e.target.checked)}
+                      style={{ width: 20, height: 20, flexShrink: 0, marginTop: 1 }} />
+                    <span>Confirmo que estos resultados son de <strong>{revision.destino.nombre}</strong>.</span>
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text2)', marginBottom: 12 }}>
+                <Check size={14} aria-hidden="true" style={{ color: 'var(--teal)', flexShrink: 0 }} />
+                <span>Verificado: la hoja es de <strong>{revision.destino.nombre}</strong>.</span>
+              </div>
+            )}
             <label style={{ fontSize: 12, color: 'var(--text2)' }}>Fecha del estudio</label>
             <input type="date" className="input" value={revision.fecha} onChange={e => setRevision({ ...revision, fecha: e.target.value })} style={{ marginBottom: 12 }} />
             {revision.resultados.length === 0 && <p style={{ fontSize: 13, color: 'var(--amber)' }}>No se reconoció ningún valor graficable. Revisa el archivo.</p>}
@@ -201,7 +348,10 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
               <button className="btn btn-sm" onClick={() => setRevision(null)}>Cancelar</button>
-              <button className="btn btn-primary btn-sm" onClick={guardarRevision} disabled={revision.resultados.length === 0} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={14} /> Guardar</button>
+              <button className="btn btn-primary btn-sm" onClick={guardarRevision}
+                disabled={revision.resultados.length === 0 || (revision.dictamen.requiereConfirmacion && !confirmadoSujeto)}
+                title={revision.dictamen.requiereConfirmacion && !confirmadoSujeto ? 'Confirma primero de quién son estos resultados' : undefined}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={14} /> Guardar</button>
             </div>
           </div>
         </div>

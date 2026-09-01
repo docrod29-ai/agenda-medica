@@ -146,11 +146,28 @@ describe('todo PANEL abierto cierra con Escape', () => {
     ['src/app/(dashboard)/layout.tsx', 'sidebarOpen'],
   ] as const
 
+  /**
+   * DOS GANCHOS VALEN, PORQUE LOS DOS CIERRAN CON ESCAPE.
+   *
+   * `useCerrarConEscape` es el estrecho: sólo Escape, y es lo correcto para un
+   * desplegable o un menú, donde atrapar el foco sería un defecto.
+   * `useDialogoDeTeclado` es el de diálogo: Escape **y** trampa de foco, foco
+   * inicial y foco devuelto.
+   *
+   * Este caso vigila la conducta —«se sale con Escape»—, no cuál de los dos se
+   * usó. Pedir el estrecho por su nombre habría impedido que un panel MEJORARA
+   * al de diálogo, que es lo que pasó con la revisión de laboratorios y con el
+   * cajón de navegación en la unidad 51.
+   */
   for (const [ruta, estado] of CON_ESCAPE) {
     it(`${ruta.split('/').pop()} (${estado})`, () => {
       const s = readFileSync(join(...ruta.split('/')), 'utf8')
-      expect(s).toContain("useCerrarConEscape")
-      expect(s).toMatch(new RegExp(`useCerrarConEscape\\(\\s*!*${estado}`))
+      const estrecho = new RegExp(`useCerrarConEscape\\(\\s*!*${estado}`)
+      const dialogo = new RegExp(`useDialogoDeTeclado\\(\\s*!*${estado}`)
+      expect(
+        estrecho.test(s) || dialogo.test(s),
+        `${ruta} no cierra con Escape mientras ${estado} está abierto`,
+      ).toBe(true)
     })
   }
 

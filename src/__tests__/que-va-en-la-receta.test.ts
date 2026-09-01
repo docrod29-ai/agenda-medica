@@ -1,20 +1,22 @@
 /**
- * QUÉ VA EN LA RECETA — REG-221.
+ * QUÉ VA EN LA RECETA — REG-221 / Golden Path 5.
  *
  * ── LA QUEJA, CON SUS PALABRAS ──────────────────────────────────────────────
  *
  *   «no me gusta que hagas la receta con lo que te digo de antecedentes,
  *    la receta es cuando ya te estén diciendo el plan»
  *
- * ── LAS DOS CAUSAS ──────────────────────────────────────────────────────────
+ * ── CONTRATO DE SEGURIDAD ───────────────────────────────────────────────────
  *
- * **1.** El eje `procedenciaClinica` existía en el tipo, en el esquema auditado,
- * en la regla 6-ter del prompt y en una prueba sellada. Pero la lista PLANA que
- * lee la pantalla no lo declaraba, y `z.object` borra las claves que no declara.
- * El campo nunca llegó a la receta.
+ * La lista clínica sigue llenándose durante la conversación porque de ella
+ * dependen alergias, interacciones y dosis. Pero «apareció en la extracción» no
+ * equivale a «el médico decidió prescribirlo».
  *
- * **2.** La lista de medicamentos se acumulaba: lo que entró en el minuto dos no
- * salía nunca, aunque el pase final decidiera otra cosa.
+ * La frontera conoce quién creó cada lote: `nuevos` viene de IA. Si ese lote no
+ * declara `procedenciaClinica`, el renglón queda `borrador`: visible/revisable y
+ * útil para seguridad, pero no imprimible. Los renglones manuales legados sin
+ * etiqueta siguen siendo compatibles porque sí nacieron de una acción directa
+ * del médico.
  */
 import { describe, it, expect } from 'vitest'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
@@ -41,7 +43,7 @@ describe('el campo sobrevive al esquema (era donde se borraba)', () => {
     expect(r.medicamentos[0].procedenciaClinica).toBe('se_prescribe_hoy')
   })
 
-  it('sin el campo sigue siendo válido, y NO se inventa un valor', () => {
+  it('sin el campo sigue siendo válido, y NO se inventa un valor en el parser', () => {
     const r = RespuestaExtraccion.parse({ medicamentos: [{ nombre: 'metformina' }] })
     expect(r.medicamentos[0].procedenciaClinica).toBeUndefined()
   })
@@ -52,10 +54,11 @@ describe('qué baja al papel', () => {
     med('losartán', { procedenciaClinica: 'ya_lo_toma' }),
     med('metformina', { procedenciaClinica: 'ya_lo_toma' }),
     med('amoxicilina', { procedenciaClinica: 'se_prescribe_hoy' }),
-    med('paracetamol'),   // sin etiquetar
+    med('paracetamol'), // renglón manual legado: acción directa del médico
+    med('ceftriaxona', { estado: 'borrador' }), // intención automática todavía no resuelta
   ]
 
-  it('lo que ya tomaba NO se receta', () => {
+  it('lo que ya tomaba y lo todavía borrador NO se receta', () => {
     expect(loQueSeReceta(lista).map(m => m.nombre)).toEqual(['amoxicilina', 'paracetamol'])
   })
 
@@ -63,18 +66,70 @@ describe('qué baja al papel', () => {
     expect(loQueYaTomaba(lista).map(m => m.nombre)).toEqual(['losartán', 'metformina'])
   })
 
-  it('ANTE LA DUDA SE IMPRIME: sin etiqueta, se queda en la receta', () => {
-    /**
-     * Dejar de más un renglón que el médico borra de un toque es una molestia;
-     * quitar de la receta un antibiótico que sí se prescribió es un paciente que
-     * no se lo toma. Las dos equivocaciones no cuestan lo mismo.
-     */
+  it('un renglón manual legado sin etiqueta conserva compatibilidad', () => {
     expect(deDondeSale(med('paracetamol'))).toBe('no_se_sabe')
     expect(loQueSeReceta([med('paracetamol')])).toHaveLength(1)
   })
 
   it('un valor que no es ninguno de los dos se trata como «no se sabe»', () => {
     expect(deDondeSale({ procedenciaClinica: 'quizá' } as never)).toBe('no_se_sabe')
+  })
+
+  it('una orden suspendida, terminada o cancelada no revive en la receta', () => {
+    const terminales = [
+      med('A', { estado: 'suspendida', procedenciaClinica: 'se_prescribe_hoy' }),
+      med('B', { estado: 'terminada', procedenciaClinica: 'se_prescribe_hoy' }),
+      med('C', { estado: 'cancelada', procedenciaClinica: 'se_prescribe_hoy' }),
+    ]
+    expect(loQueSeReceta(terminales)).toEqual([])
+  })
+})
+
+describe('firewall IA → plan/receta', () => {
+  it('una mención automática sin intención explícita queda visible como BORRADOR y no se imprime', () => {
+    const out = fusionarMedicamentos({
+      previos: [],
+      nuevos: [med('metformina', { dosis: '850 mg' })],
+    })
+    expect(out).toHaveLength(1)
+    expect(out[0]).toMatchObject({ nombre: 'metformina', estado: 'borrador' })
+    expect(out[0].procedenciaClinica).toBeUndefined()
+    expect(loQueSeReceta(out)).toEqual([])
+  })
+
+  it('si la IA declara «ya lo toma», permanece en la nota pero nunca cruza a receta', () => {
+    const out = fusionarMedicamentos({
+      previos: [],
+      nuevos: [med('losartán', { dosis: '50 mg', procedenciaClinica: 'ya_lo_toma' })],
+    })
+    expect(out[0].estado).toBeUndefined()
+    expect(loQueYaTomaba(out).map(m => m.nombre)).toEqual(['losartán'])
+    expect(loQueSeReceta(out)).toEqual([])
+  })
+
+  it('si la IA declara «se prescribe hoy», la orden sí puede cruzar al papel', () => {
+    const out = fusionarMedicamentos({
+      previos: [],
+      nuevos: [med('amoxicilina', {
+        dosis: '500 mg', frecuencia: 'cada 8 horas', duracion: '7 días',
+        procedenciaClinica: 'se_prescribe_hoy',
+      })],
+    })
+    expect(out[0].estado).toBeUndefined()
+    expect(loQueSeReceta(out).map(m => m.nombre)).toEqual(['amoxicilina'])
+  })
+
+  it('un renglón manual previo sin etiqueta NO hereda el borrador automático al completarse', () => {
+    const manual = med('amoxicilina', { dosis: '875 mg' })
+    const out = fusionarMedicamentos({
+      previos: [manual],
+      nuevos: [med('amoxicilina', { frecuencia: 'cada 12 horas' })],
+    })
+    expect(out).toHaveLength(1)
+    expect(out[0].dosis).toBe('875 mg')
+    expect(out[0].frecuencia).toBe('cada 12 horas')
+    expect(out[0].estado).toBeUndefined()
+    expect(loQueSeReceta(out)).toHaveLength(1)
   })
 })
 
@@ -86,6 +141,7 @@ describe('la lista deja de acumularse', () => {
     const pase2 = [med('amoxicilina', { dosis: '500 mg' })]
     const out = fusionarMedicamentos({ previos: pase1, nuevos: pase2, deLaIaAnterior: pase1 })
     expect(out.map(m => m.nombre)).toEqual(['amoxicilina'])
+    expect(out[0].estado).toBe('borrador')
   })
 
   it('lo que escribió el MÉDICO no se toca jamás', () => {
@@ -95,14 +151,17 @@ describe('la lista deja de acumularse', () => {
       previos, nuevos: [med('amoxicilina')], deLaIaAnterior: [med('losartán')],
     })
     expect(out.map(m => m.nombre)).toEqual(['ivermectina', 'amoxicilina'])
+    expect(out[0].estado).toBeUndefined()
+    expect(out[1].estado).toBe('borrador')
   })
 
-  it('sin saber qué puso la IA antes, NO se quita nada', () => {
-    // El error caro es borrarle un fármaco al médico, no dejarle uno de más.
+  it('sin saber qué puso la IA antes, NO se quita nada de la nota', () => {
     const out = fusionarMedicamentos({
       previos: [med('losartán')], nuevos: [med('amoxicilina')],
     })
     expect(out.map(m => m.nombre)).toEqual(['losartán', 'amoxicilina'])
+    expect(out[0].estado).toBeUndefined()
+    expect(out[1].estado).toBe('borrador')
   })
 
   it('el mismo fármaco por los dos lados no se duplica', () => {
@@ -139,15 +198,31 @@ describe('está conectado de verdad', () => {
       'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
     expect(src).toContain('fusionarMedicamentos({')
     expect(src).toContain('medDeLaIaRef.current = nuevosMed')
+    // Todo lote automático atraviesa fusionarMedicamentos antes de tocar estado.
+    expect(src).toContain('setMedicamentos(prev => fusionarMedicamentos({')
     // Y no queda ningún resto del `[...prev, ...nuevos]` que acumulaba.
     expect(src).not.toMatch(/\[\.\.\.prev, \.\.\.nuevosMed\.filter/)
   })
 
-  it('la pantalla de receta filtra por procedencia', async () => {
+  it('la pantalla de receta filtra por procedencia/estado antes de imprimir', async () => {
+    /**
+     * ESTA AFIRMACIÓN SE ACTUALIZÓ EN H-01, Y HAY QUE DECIR POR QUÉ.
+     *
+     * Comprobaba `loQueSeReceta(...)` seguido de `.filter(m => estaVigente(m))`:
+     * la composición correcta, escrita a mano DENTRO de esta pantalla. Eso es
+     * justamente lo que dejó al portal del paciente sin la regla — una frontera
+     * clínica que vive dentro de un componente sólo protege a ese componente.
+     *
+     * La composición se mudó a `medicamentosDeLaReceta`, que es ahora la única
+     * puerta y la que aplica también el servidor. Lo que se congela aquí es que
+     * la pantalla la CRUCE, no dónde está escrita.
+     */
     const { readFileSync } = await import('fs')
     const { join } = await import('path')
     const src = readFileSync(join(process.cwd(),
       'src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx'), 'utf8')
-    expect(src).toContain('loQueSeReceta(n.medicamentos ?? [])')
+    expect(src).toContain('medicamentosDeLaReceta(n.medicamentos ?? [])')
+    // Y no queda una segunda composición a mano que pueda divergir de la puerta.
+    expect(src).not.toContain('loQueSeReceta(')
   })
 })

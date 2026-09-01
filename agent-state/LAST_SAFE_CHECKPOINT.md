@@ -6,7 +6,90 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 28-ago-2026 — **`GP-FINAL` recorrido · REG-336 cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`GP-FINAL`** — REG-336 |
+| **SHA** | `ac6a4bc4` sobre `release/consultorio-final-candidate-2026-08-27` |
+| **Incorpora** | PR #382 (`bac9b02c`, POSTVISIT-001) en avance rápido, sin perder nada previo |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El checkpoint anterior decía, con todas las letras: «**nada se ha visto en un
+navegador**». Ya se ha visto. El consultorio se recorrió de punta a punta en
+Chromium, como médico y como paciente, contra un build de producción y los
+emuladores: **78 casos, 0 P0, 0 P1**, actas en `docs/audit/gp-final/`.
+
+Reproducible con una orden:
+
+```bash
+bash scripts/golden-path/arnes-gp-final.sh
+```
+
+**Lo que encontró — REG-336.** Con los 10 480 casos de la suite en verde, el
+paso 22 no se podía dar: la nota se firmaba, la receta salía, y «Liberar al
+paciente» estaba apagado culpando a una cédula que sí estaba. Faltaba el
+**nombre**. `validarNOM004` (deja firmar) no lo pide; `componerPaquete` (deja
+entregar) sí. En el hueco cabía una nota firmable e **inentregable**, y con
+`nota.firma` inmutable, irreparable. Arreglado en la compuerta única de REG-189,
+con golden probado al revés, sello y clasificación.
+
+**Lo que este recorrido NO afirma**, y queda declarado:
+
+- **Sin proveedor de ASR no se dicta.** La transcripción tardía tras edición
+  manual (escenario F) y H-19 en navegador (paso 15) siguen sin recorrerse. Sus
+  goldens sellados los cubren; la vuelta por el navegador, no.
+- Corre contra el **emulador**, no contra Firestore real.
+- No se mandó ningún WhatsApp ni se emitió ninguna receta real.
+- El arnés **no corre en CI**: necesita emuladores, build y Chromium. Es la
+  compuerta del *release*, no la de cada cambio.
+
+**Una advertencia para quien lo repita.** El arnés se equivocó ocho veces antes
+de acertar una, y estuvo a punto de reportar ocho defectos inexistentes. Está
+contado en `docs/audit/gp-final/README.md`. Antes de creerle a una prueba que
+dice que el producto está roto, hay que descartar que la rota sea la prueba.
+
+---
+
+## Checkpoint · 27-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-335 |
+| **Cierra además** | `POSTVISIT-GATE-001` · `POSTVISIT-ENTREGA-001` |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El post-visita del consultorio está cerrado de punta a punta: consulta → nota
+firmada → receta y órdenes → paquete → **liberación explícita** → portal del
+paciente → entrega. Y el invariante que lo gobierna tiene por fin dónde vivir:
+
+```
+FIRMAR UNA NOTA ≠ LIBERARLE INFORMACIÓN AL PACIENTE
+```
+
+- **`componerPaquete` volvió a `paquete-de-visita.ts`**, con su llamador. Se
+  niega a componer de un borrador y de una nota sin firma con cédula, y dice
+  cuál de las dos.
+- **`/api/expediente/paquete-de-visita`** es la única puerta que escribe: bajo
+  `firmar`, contra la membresía real del consultorio, idempotente por el id
+  derivado del `notaId`, con `versionEsperada` para que la pestaña vieja no pise
+  la nueva, y con `retirar` como única marcha atrás — que sube versión, no borra.
+- **`/api/portal/link` ya emite alcance `clinico`** a petición explícita
+  cobrando `firmar`. Sin eso no había llave y la entrega no podía existir.
+- **`/mi/[token]`** pinta lo liberado, con prescriptor y cédula del sello de
+  firma, y distingue el fallo de red de la ausencia.
+
+**Lo que sigue vacío y declarado**: `warningSigns` y `educationalMaterial`. Son
+indicación médica y evidencia curada; la pantalla del médico **enseña el hueco**
+en vez de rellenarlo. `documents` y `unansweredQuestions` esperan a
+`DOCUMENTS-001` y `PATIENT-AI-001`.
+
+**Lo que este checkpoint NO afirma**: nada se ha visto en un navegador. La regla
+de diseño exige recorrer el flujo de verdad, y eso queda pendiente.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

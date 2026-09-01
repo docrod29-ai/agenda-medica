@@ -19,17 +19,26 @@ export async function sha256Hex(input: string): Promise<string> {
 
 /**
  * Serialización ESTABLE: ordena las llaves de todo objeto de forma determinista
- * y omite `undefined`. Es indispensable porque Firestore NO conserva el orden de
- * las llaves de los mapas al recargar la nota; sin esto, el JSON —y por tanto el
- * hash— cambiaría al releer una nota intacta y daría un falso "alterada".
+ * y omite `undefined`.
+ *
+ * EXPORTADA (v-durabilidad, #312) sin tocar una coma de su cuerpo: el arnés de
+ * recuperación necesita la MISMA canonicalización para poder comparar un
+ * documento del respaldo con el documento vivo. Reimplementarla allí sería
+ * fabricar una segunda verdad sobre qué significa «el mismo documento» — y dos
+ * canonicalizaciones que discrepan producen «alterada» sobre notas intactas,
+ * que es el modo de falla grave del sello (REG-060).
+ *
+ * Es indispensable porque Firestore NO conserva el orden de las llaves de los
+ * mapas al recargar la nota; sin esto, el JSON —y por tanto el hash— cambiaría
+ * al releer una nota intacta y daría un falso "alterada".
  */
-function estable(x: unknown): unknown {
-  if (Array.isArray(x)) return x.map(estable)
+export function ordenEstable(x: unknown): unknown {
+  if (Array.isArray(x)) return x.map(ordenEstable)
   if (x && typeof x === 'object') {
     const src = x as Record<string, unknown>
     const out: Record<string, unknown> = {}
     for (const k of Object.keys(src).sort()) {
-      if (src[k] !== undefined) out[k] = estable(src[k])
+      if (src[k] !== undefined) out[k] = ordenEstable(src[k])
     }
     return out
   }
@@ -49,7 +58,7 @@ function estable(x: unknown): unknown {
  * razón de ser de v3; ver COBERTURA_SELLO.
  */
 function canonicoV2(nota: NotaMedica): string {
-  return JSON.stringify(estable({
+  return JSON.stringify(ordenEstable({
     id: nota.metadata.id,
     tipo: nota.tipo,
     pacienteId: nota.pacienteId,
@@ -80,7 +89,7 @@ function canonicoV2(nota: NotaMedica): string {
  * firmable no vuelve a quedar fuera del sello por descuido.
  */
 function canonicoV3(nota: NotaMedica): string {
-  return JSON.stringify(estable({
+  return JSON.stringify(ordenEstable({
     // Versión LITERAL, no `nota.metadata.hashVersion`: sellar la versión declarada
     // sería auto-referencia. Con el literal, bajarle la versión a un sello v3 para
     // que se re-verifique con el juego de campos v2 no cuela → sale "alterada".
@@ -128,14 +137,96 @@ function canonicoV3(nota: NotaMedica): string {
   }))
 }
 
+/**
+ * Sello v4 — entra el MATERIAL DE ORIGEN (REG-377).
+ *
+ * ── QUÉ CAMBIA RESPECTO DE v3, Y POR QUÉ AHORA ───────────────────────────────
+ *
+ * `CAMPOS_NO_SELLADOS_V3` lo tenía escrito desde REG-199, con su fecha de
+ * caducidad puesta: **`transcripcionMotor` ES material de origen y le
+ * CORRESPONDE ir sellado**, pero añadirlo a v3 habría cambiado el hash de todas
+ * las notas ya firmadas y las habría marcado «alterada» de golpe — la falsa
+ * alarma exacta de REG-060. «Entra al sello cuando se suba a hashVersion 4, que
+ * es su propia versión con su propia migración.» Ésta es esa versión.
+ *
+ * Lo que estaba sin sellar es lo que oyó el reconocedor: la fuente de la que se
+ * re-proyecta la nota y de la que cuelga cualquier discusión medicolegal. En una
+ * nota firmada se podía alterar sin que el sello lo notara.
+ *
+ * ── UN SOLO CAMPO, Y NINGUNA RANURA RESERVADA ────────────────────────────────
+ *
+ * La primera versión de este cambio abría además dos ranuras vacías
+ * —`procedimientos`, `dispositivos`— «para no tener que subir a v5 el día que
+ * alguien las escriba». `campos-sin-usar.test.ts` las rechazó, y tenía razón: un
+ * campo declarado que nadie escribe **es una promesa del modelo**, y esa promesa
+ * habría quedado en pie indefinidamente, porque documentar un procedimiento es
+ * un acto del médico y hoy nada lo captura (REG-370).
+ *
+ * Lo que se compraba con esa deuda tampoco valía: subir de versión es
+ * exactamente lo que este archivo sabe hacer —`CANONICO` despacha por versión y
+ * las notas v2 siguen verificando— así que un v5, el día que exista quien llene
+ * esos campos, cuesta una entrada en la tabla y su prueba. v4 queda como la
+ * migración ya recorrida que lo demuestra.
+ *
+ * ── POR QUÉ NO ROMPE NADA ────────────────────────────────────────────────────
+ *
+ * `CANONICO` despacha por la versión que la nota DECLARA. Una nota v3 se
+ * re-verifica con `canonicoV3`, byte por byte igual que ayer; una v2, con
+ * `canonicoV2`. Sólo las notas nuevas nacen v4. Es exactamente lo que se hizo al
+ * pasar de v2 a v3, y por eso las v2 siguen verificando hoy.
+ */
+function canonicoV4(nota: NotaMedica): string {
+  return JSON.stringify(ordenEstable({
+    /* Literal, como en v3: sellar la versión declarada sería auto-referencia, y
+       con el literal no cuela bajarle la versión a un sello para re-verificarlo
+       con un juego de campos más corto. */
+    v: 4,
+    id: nota.metadata.id,
+    clinicId: nota.clinicId ?? null,
+    pacienteId: nota.pacienteId,
+    pacienteNombre: nota.pacienteNombre ?? '',
+    tipo: nota.tipo,
+    fechaConsulta: nota.fechaConsulta,
+    createdAt: nota.createdAt ?? null,
+    creadoPor: nota.creadoPor ?? '',
+    meta: {
+      tipoNota: nota.metadata.tipoNota ?? null,
+      clinicId: nota.metadata.clinicId ?? null,
+      pacienteId: nota.metadata.pacienteId ?? null,
+      medicoId: nota.metadata.medicoId,
+      cedulaProfesional: nota.metadata.cedulaProfesional ?? '',
+      especialidad: nota.metadata.especialidad ?? '',
+      establecimiento: nota.metadata.establecimiento ?? '',
+      fechaCreacion: nota.metadata.fechaCreacion ?? null,
+      fuenteGeneracion: nota.metadata.fuenteGeneracion ?? null,
+    },
+    resumenEjecutivo: nota.resumenEjecutivo ?? '',
+    secciones: nota.secciones,
+    signosVitales: nota.signosVitales ?? null,
+    diagnosticos: nota.diagnosticos,
+    medicamentos: nota.medicamentos,
+    alergias: nota.alergias,
+    preop: nota.preop ?? null,
+    hospital: nota.hospital ?? null,
+    infectologia: nota.infectologia ?? null,
+    estudiosOrden: nota.estudiosOrden ?? null,
+    internamientoId: nota.internamientoId ?? null,
+    iaAuditoria: nota.iaAuditoria ?? null,
+    transcripcionCruda: nota.transcripcionCruda ?? null,
+    dialogoDiarizado: nota.dialogoDiarizado ?? null,
+    /* ── lo único que v4 añade ── */
+    transcripcionMotor: nota.transcripcionMotor ?? null,
+  }))
+}
+
 /** Versión del algoritmo de sello que usan las notas NUEVAS. */
-export const HASH_VERSION = 3
+export const HASH_VERSION = 4
 
 /**
  * Versiones que este build sabe RE-VERIFICAR.
  * v1 no está: dependía del orden de llaves, que Firestore no conserva.
  */
-export const VERSIONES_VERIFICABLES = [2, 3] as const
+export const VERSIONES_VERIFICABLES = [2, 3, 4] as const
 export type VersionSello = (typeof VERSIONES_VERIFICABLES)[number]
 
 /**
@@ -146,6 +237,7 @@ export type VersionSello = (typeof VERSIONES_VERIFICABLES)[number]
 const CANONICO: Record<VersionSello, (n: NotaMedica) => string> = {
   2: canonicoV2,
   3: canonicoV3,
+  4: canonicoV4,
 }
 
 /**
@@ -199,6 +291,17 @@ export const CAMPOS_SELLADOS_V3: readonly string[] = [
 const OPCIONALES_SELLADOS_V3 = [
   'signosVitales', 'preop', 'hospital', 'infectologia', 'estudiosOrden',
   'internamientoId', 'iaAuditoria', 'transcripcionCruda', 'dialogoDiarizado',
+  /**
+   * El que añade v4 (REG-377). Va aquí y no en una lista aparte porque
+   * `normalizarParaSello` se aplica a la nota que se va a FIRMAR, y las notas
+   * nuevas nacen v4: dejarlo fuera reproduciría REG-060 —el hash calculado
+   * sobre `null` y el documento conservando el valor viejo por el MERGE de
+   * `updateDoc`— justo en el material de origen.
+   *
+   * Para una nota v3 es inocuo: su canónico no lo mira, así que normalizar un
+   * campo de más no cambia su hash.
+   */
+  'transcripcionMotor',
 ] as const
 
 /**
@@ -299,6 +402,29 @@ export const CAMPOS_NO_SELLADOS_V3: readonly { campo: string; razon: string }[] 
 ]
 
 /**
+ * Partición del sello **v4**, que es el que rige para las notas nuevas.
+ *
+ * `CAMPOS_SELLADOS_V3` / `CAMPOS_NO_SELLADOS_V3` se conservan como **acta
+ * histórica**: son lo que cubre el sello de las notas que ya están firmadas con
+ * v3, y de ahí sale lo que la pantalla les dice. No se editan.
+ */
+export const CAMPOS_SELLADOS_V4: readonly string[] = [
+  ...CAMPOS_SELLADOS_V3,
+  'transcripcionMotor',
+]
+
+/**
+ * Lo que v4 sigue sin cubrir. Es v3 menos lo que v4 ya sella.
+ *
+ * Se **deriva**, no se copia: escribir la lista a mano dejaría que las dos
+ * dijeran cosas distintas el día que se añada un campo, que es exactamente el
+ * defecto que REG-199 arregló.
+ */
+export const CAMPOS_NO_SELLADOS_V4: readonly { campo: string; razon: string }[] =
+  CAMPOS_NO_SELLADOS_V3.filter(x => !CAMPOS_SELLADOS_V4.includes(x.campo))
+
+
+/**
  * Qué cubre cada versión del sello, para poder DECÍRSELO al médico en la nota.
  * `noCubre` son nombres de campo (máquina); `noCubreEtiquetas`, lenguaje humano
  * para la pantalla.
@@ -351,6 +477,17 @@ export const COBERTURA_SELLO: Record<VersionSello, {
     cubre: CAMPOS_SELLADOS_V3,
     noCubre: CAMPOS_NO_SELLADOS_V3.map(x => x.campo),
     noCubreEtiquetas: CAMPOS_NO_SELLADOS_V3.map(x => ETIQUETA_NO_SELLADO[x.campo] ?? x.campo),
+  },
+  /**
+   * v4 cubre además el material de origen. Lo que sigue fuera son los campos
+   * que **no deben** ir sellados y llevan su razón escrita: los que se escriben
+   * después de calcular el hash, los derivados y las transiciones legítimas
+   * posteriores a la firma.
+   */
+  4: {
+    cubre: CAMPOS_SELLADOS_V4,
+    noCubre: CAMPOS_NO_SELLADOS_V4.map(x => x.campo),
+    noCubreEtiquetas: CAMPOS_NO_SELLADOS_V4.map(x => ETIQUETA_NO_SELLADO[x.campo] ?? x.campo),
   },
 }
 

@@ -23,6 +23,7 @@ import { llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { gateCreditos, resolverClaveIA } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -112,6 +113,7 @@ export async function POST(req: NextRequest) {
       {
         feature: 'atribuir-roles',
         requestId: req.headers.get('x-vercel-id') || `ar-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
         clinicId: clinicId ?? null, uid: acceso.uid, creditos: COSTO_CREDITOS.atribuirRoles, fuente,
         esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
       },

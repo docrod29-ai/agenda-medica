@@ -33,18 +33,39 @@ export const CampoAuditado = z.object({
 })
 export type CampoAuditado = z.infer<typeof CampoAuditado>
 
-/** Diagnóstico auditado. */
+/**
+ * Diagnóstico auditado.
+ *
+ * ── `tipo` CONSERVA SU ORIGEN (REG-372) ──────────────────────────────────────
+ *
+ * `tipo` decide si un diagnóstico sale al mundo como **confirmado**: la
+ * exportación FHIR lo mapea a `verificationStatus`. Aquí lo pone el modelo o lo
+ * rellena la omisión, y hasta ahora los dos casos quedaban **idénticos**.
+ *
+ * El valor efectivo por omisión sigue siendo `presuntivo` —no cambia nada de lo
+ * que ya funcionaba— pero ahora se registra si el modelo LO DIJO o si lo puso
+ * este esquema. Se hace con un `transform` en vez de un `.default()` porque un
+ * default de zod no deja rastro de haberse aplicado.
+ */
 export const DiagnosticoAuditado = z.object({
   descripcion:  z.string(),
   codigoCIE10:  z.string().optional().default(''),
-  tipo:         z.enum(['presuntivo', 'definitivo', 'diferencial', 'descartado']).optional().default('presuntivo'),
+  tipo:         z.enum(['presuntivo', 'definitivo', 'diferencial', 'descartado']).optional(),
   estado:       z.enum(['activo', 'resuelto', 'cronico', 'en_seguimiento']).optional().default('activo'),
   confidence:   Confianza.optional().default('baja'),
   source_quote: z.string().optional().default(''),
   speaker:      Hablante.optional().default('desconocido'),
   needs_review: z.boolean().optional().default(true),
   reason:       z.string().optional().default(''),
-})
+}).transform(d => ({
+  ...d,
+  /* El efectivo por omisión sigue siendo `presuntivo`: no cambia el
+     comportamiento, sólo deja de perderse quién lo puso. */
+  tipo: d.tipo ?? ('presuntivo' as const),
+  /* Nunca `'medico'` desde aquí: esto es lo que dijo un modelo, y una
+     sugerencia no es una firma. */
+  tipoOrigen: (d.tipo ? 'extraccion' : 'por_defecto') as 'extraccion' | 'por_defecto',
+}))
 export type DiagnosticoAuditado = z.infer<typeof DiagnosticoAuditado>
 
 /** Medicamento auditado. */

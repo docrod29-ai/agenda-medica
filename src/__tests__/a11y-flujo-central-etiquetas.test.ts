@@ -64,9 +64,29 @@ describe('agenda: el navegador de fecha tiene nombres accesibles', () => {
 describe('consulta: las secciones narrativas de la nota tienen nombre', () => {
   it('el textarea de cada sección lleva aria-label con su etiqueta', () => {
     const src = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
-    // La forma concreta: dentro del map de `secciones`, el <textarea> se nombra
-    // con la misma etiqueta que el médico ve en el título del Section.
-    expect(src).toMatch(/<textarea\s*\n\s*aria-label=\{s\.label\}/)
+    /*
+      EL CAMPO SE MUDÓ A UN COMPONENTE, Y ESTE CASO TUVO QUE APRENDER A SEGUIRLO.
+
+      Comprobaba el `<textarea aria-label={s.label}>` escrito a mano en el `map`.
+      Ese textarea ya no está: las secciones narrativas usan `CampoNarrativo`,
+      que **crece con lo que tiene dentro** —antes enseñaban 70px de 2 887px de
+      texto— y que sigue poniendo el `aria-label`.
+
+      Lo que este caso protege NO es dónde está escrito el atributo: es que cada
+      sección narrativa tenga nombre accesible, porque su título visible vive en
+      el `<Section>` de al lado sin asociar. Eso sigue siendo cierto, y ahora se
+      comprueba en los dos sitios: que la página le pase la etiqueta, y que el
+      componente la convierta en `aria-label`.
+    */
+    expect(src, 'las secciones narrativas dejaron de recibir su etiqueta')
+      .toMatch(/<CampoNarrativo\s*\n\s*etiqueta=\{s\.label\}/)
+    const ui = leer('src/app/(dashboard)/consulta/[patientId]/consulta-ui.tsx')
+    const i = ui.indexOf('export function CampoNarrativo')
+    expect(i, 'CampoNarrativo desapareció').toBeGreaterThan(-1)
+    expect(
+      ui.slice(i, i + 1400),
+      'CampoNarrativo dejó de convertir la etiqueta en `aria-label`: el campo se queda sin nombre',
+    ).toMatch(/aria-label=\{props\.etiqueta\}/)
   })
 })
 

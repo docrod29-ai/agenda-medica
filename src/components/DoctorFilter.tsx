@@ -78,12 +78,13 @@ export function DoctorFilter({
 
   const seleccionado = activeDoctors.find(d => d.id === medicoId)
 
-  // Colores cíclicos para los avatares (consistentes por id)
-  const colorFor = (id: string): string => {
-    const colores = ['#14b8a6', '#a78bfa', '#f59e0b', '#3b82f6', '#ec4899']
-    const hash = Array.from(id).reduce((s, c) => s + c.charCodeAt(0), 0)
-    return colores[hash % colores.length]
-  }
+  /**
+   * Color del avatar. Es `colorMedico`, no una segunda copia: aquí había una
+   * implementación idéntica al helper exportado de abajo, y el sentido de
+   * este color es que sea EL MISMO para un médico en toda la aplicación. Dos
+   * copias de la tabla es la forma de que un día deje de serlo.
+   */
+  const colorFor = colorMedico
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -100,7 +101,7 @@ export function DoctorFilter({
           <>
             <span style={{
               width: 22, height: 22, borderRadius: '50%',
-              background: colorFor(seleccionado.id), color: '#000',
+              background: colorFor(seleccionado.id), color: 'var(--sobre-aviso)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, fontSize: 11,
             }}>
@@ -163,7 +164,7 @@ export function DoctorFilter({
                 >
                   <span style={{
                     width: 24, height: 24, borderRadius: '50%',
-                    background: colorFor(d.id), color: '#000', flexShrink: 0,
+                    background: colorFor(d.id), color: 'var(--sobre-aviso)', flexShrink: 0,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 700, fontSize: 11,
                   }}>
@@ -186,9 +187,16 @@ export function DoctorFilter({
   )
 }
 
-/** Helper: obtiene color del médico (consistente por id) */
+/**
+ * Color del médico, consistente por id y ÚNICO en toda la aplicación.
+ *
+ * Los cinco tonos salen de los tokens: escritos a mano eran pasteles de tema
+ * oscuro (`#14b8a6`, `#a78bfa`, `#f59e0b`, `#3b82f6`, `#ec4899`) y en tema
+ * claro tres de los cinco quedaban por debajo de 4,5:1. La inicial que va
+ * encima usa `--sobre-aviso`, que es tinta en oscuro y blanco en claro.
+ */
 export function colorMedico(id: string): string {
-  const colores = ['#14b8a6', '#a78bfa', '#f59e0b', '#3b82f6', '#ec4899']
+  const colores = ['var(--nexus)', 'var(--purple)', 'var(--amber)', 'var(--blue)', 'var(--rosa)']
   const hash = Array.from(id).reduce((s, c) => s + c.charCodeAt(0), 0)
   return colores[hash % colores.length]
 }

@@ -134,7 +134,14 @@ describe('está conectado de verdad, no sólo escrito', () => {
   it('y llega a los DOS motores, no a uno', () => {
     // El defecto original estaba en los dos sitios: el copiloto y la evidencia.
     expect(page.split('medicamentos: medsDelCuadro').length - 1).toBe(2)
-    expect(page.split('diagnosticos: dxDelCuadro').length - 1).toBe(2)
+    /**
+     * TRES desde REG-375: además del copiloto y la evidencia, el cuadro de
+     * problemas es lo que decide si el paciente tiene un daño renal AGUDO, y de
+     * eso depende qué ventana de vigencia se le exige a la creatinina antes de
+     * dosificar. Lo que este caso protege sigue siendo lo mismo —que ningún
+     * consumidor reciba la lista pelada de hoy— y ahora hay un consumidor más.
+     */
+    expect(page.split('diagnosticos: dxDelCuadro').length - 1).toBe(3)
   })
 
   it('a los MOTORES ya no se les pasa la lista pelada de hoy', () => {

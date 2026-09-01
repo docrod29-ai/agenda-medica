@@ -11,6 +11,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // ── Dobles del Admin SDK ──────────────────────────────────────────────────
 const verifyIdToken = vi.fn()
+/**
+ * REG-384: la consola del dueño pregunta si hay segundo factor enrolado cuando
+ * la sesión no lo usó. Por omisión, sin factores — el caso «el dueño entra» no
+ * es el caso del segundo factor, y mezclarlos haría ilegible el rojo del día que
+ * uno de los dos se rompa.
+ */
+const getUser = vi.fn(async () => ({ multiFactor: { enrolledFactors: [] } }))
 const getMiembro = vi.fn()
 
 /**
@@ -21,7 +28,7 @@ const getMiembro = vi.fn()
 const getClinica = vi.fn()
 
 vi.mock('@/lib/firebase-admin', () => ({
-  default: { auth: () => ({ verifyIdToken }) },
+  default: { auth: () => ({ verifyIdToken, getUser }) },
   adminDb: {
     collection: (nombre: string) => ({
       doc: () => ({ get: nombre === 'clinics' ? getClinica : getMiembro }),
@@ -42,6 +49,8 @@ const miembro = (data: Record<string, unknown> | null) => ({ exists: data !== nu
 
 beforeEach(() => {
   verifyIdToken.mockReset()
+  getUser.mockReset()
+  getUser.mockResolvedValue({ multiFactor: { enrolledFactors: [] } })
   getMiembro.mockReset()
   getClinica.mockReset()
 })

@@ -115,12 +115,24 @@ export interface RespuestaDelPendiente {
  * repositorio rota en el sitio más caro: el día que alguien cambie el orden en
  * una, la otra sigue ofreciendo un botón que `cambiarEstado` va a rechazar.
  *
- * Enseñar los seis estados sería enseñar el modelo, no el trabajo.
+ * Enseñar los siete estados sería enseñar el modelo, no el trabajo.
  */
 export function siguientePaso(
-  t: Pick<TareaClinica, 'estado'>,
+  t: Pick<TareaClinica, 'estado' | 'tipo'>,
 ): { estado: EstadoTarea; texto: string } | null {
   if (t.estado === 'solicitada' || t.estado === 'aceptada') return { estado: 'en_curso', texto: 'Tomarla' }
+  /**
+   * EL SEGUIMIENTO TIENE UN PASO MÁS QUE LOS DEMÁS (REG-404).
+   *
+   * Agendar la cita no es haber visto al paciente. El paso siguiente de un
+   * seguimiento en curso es `agendada` —queda una cita puesta y el pendiente
+   * sigue vivo—, y sólo cuando el paciente viene se marca «ya se hizo».
+   *
+   * Antes se pasaba de `en_curso` a `completada` de un salto, así que agendar
+   * contaba como atender: si el paciente no venía, nada lo reabría.
+   */
+  if (t.estado === 'en_curso' && t.tipo === 'seguimiento') return { estado: 'agendada', texto: 'Ya quedó agendada' }
+  if (t.estado === 'agendada') return { estado: 'completada', texto: 'El paciente vino' }
   if (t.estado === 'en_curso') return { estado: 'completada', texto: 'Ya se hizo' }
   if (t.estado === 'completada') return { estado: 'cerrada', texto: 'Lo revisé — cerrar' }
   return null

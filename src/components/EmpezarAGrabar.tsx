@@ -63,10 +63,11 @@ export function EmpezarAGrabar(p: EmpezarAGrabarProps) {
       onClick={p.alPulsar}
       disabled={p.estado === 'procesando'}
       aria-label="Grabar la consulta: capta al médico y al paciente y separa las voces"
+      className="nx-acc-caja"
       style={{
         width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: 12, padding: '30px 20px', borderRadius: 16,
-        background: 'var(--s2)', border: '1px solid var(--border)',
+        border: '1px solid var(--border)',
         cursor: p.estado === 'procesando' ? 'wait' : 'pointer',
         textAlign: 'center',
       }}

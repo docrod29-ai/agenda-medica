@@ -68,7 +68,7 @@ export default function SoporteSection({ clinicId, nombre }: { clinicId?: string
           </div>
           <textarea value={mensaje} onChange={e => setMensaje(e.target.value)} rows={4}
             placeholder="Escribe aquí lo que quieras contarnos…"
-            style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)', outline: 'none', resize: 'vertical' }} />
+            style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)', resize: 'vertical' }} />
           {error && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{error}</div>}
           <button onClick={enviar} disabled={enviando}
             style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: enviando ? 'wait' : 'pointer' }}>

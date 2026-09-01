@@ -140,7 +140,6 @@ export default function SetupPage() {
               style={{
                 width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
                 borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)',
-                outline: 'none',
               }}
               onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
@@ -159,7 +158,6 @@ export default function SetupPage() {
               style={{
                 width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
                 borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)',
-                outline: 'none',
               }}
               onFocus={e => e.currentTarget.style.borderColor = 'var(--teal)'}
               onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
@@ -187,7 +185,7 @@ export default function SetupPage() {
                 placeholder="Medicina Interna"
                 style={{
                   width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)', outline: 'none',
+                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)',
                 }}
               />
             </div>
@@ -210,7 +208,7 @@ export default function SetupPage() {
                 inputMode="tel"
                 style={{
                   width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)', outline: 'none',
+                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)',
                 }}
               />
             </div>
@@ -226,7 +224,7 @@ export default function SetupPage() {
                 inputMode="numeric"
                 style={{
                   width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)', outline: 'none',
+                  borderRadius: 10, padding: '12px 16px', fontSize: 14, color: 'var(--text)',
                 }}
               />
             </div>

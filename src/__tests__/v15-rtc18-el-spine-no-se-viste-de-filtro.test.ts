@@ -101,10 +101,18 @@ describe('RTC-18 — lo que navega no se viste de filtro', () => {
     expect(SPINE).not.toMatch(/(?:linear|radial|conic)-gradient\(/)
   })
 
-  it('5 · el riel trae el activo a la vista', () => {
+  it('5 · el riel trae el activo a la vista — moviendo SÓLO el riel (REG-337)', () => {
     // Un indicador de posición que señala un sitio fuera de la parte visible
     // del riel no indica nada.
-    expect(SPINE).toMatch(/block: 'nearest', inline: 'nearest'/)
+    //
+    // Este caso pedía `block: 'nearest', inline: 'nearest'` y con eso congelaba
+    // el defecto: `nearest` elige la ALINEACIÓN, no a quién se desplaza, y
+    // `scrollIntoView` movía TODOS los ancestros — la página del expediente
+    // botaba al bajar. La propiedad que este caso quería asegurar nunca fue
+    // «usa nearest»: era «el activo se ve dentro del riel». Se dice ahora por
+    // el mecanismo que de verdad la cumple. El porqué completo y su aritmética
+    // probada, en `reg337-la-pantalla-no-bota-al-bajar.test.ts`.
+    expect(SPINE).toMatch(/riel\.scrollTo\(\{ left: destino/)
     expect(SPINE).toMatch(/data-spine-target="spine-\$\{activo\}"/)
   })
 

@@ -160,8 +160,17 @@ export function seParecen(a: string, b: string): boolean {
   return distancia(x, y, permitidas) <= permitidas
 }
 
-/** Levenshtein con corte temprano: si se pasa del tope, no interesa el valor. */
-function distancia(a: string, b: string, tope: number): number {
+/**
+ * Levenshtein con corte temprano: si se pasa del tope, no interesa el valor.
+ *
+ * Se exporta desde el 27-ago-2026 (H-19): el filtro de identidad del
+ * aprendizaje necesita saber si una palabra se PARECE a una parte del nombre
+ * del paciente —un apellido mal oído no coincide letra a letra con el
+ * expediente—. Es la misma medida que ya usaba `seParecen` aquí; añadir un
+ * segundo Levenshtein al módulo de aprendizaje habría sido duplicar la
+ * primitiva.
+ */
+export function distancia(a: string, b: string, tope: number): number {
   let fila = Array.from({ length: b.length + 1 }, (_, j) => j)
   for (let i = 1; i <= a.length; i++) {
     const nueva = [i]

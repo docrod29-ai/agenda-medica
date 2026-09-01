@@ -1,0 +1,360 @@
+# Cierre de PRODUCCIÓN — UN SOLO CLIC.
+#
+# La aplicación ya usa la integración GitHub↔Vercel existente.
+# Este workflow NO vuelve a desplegar Vercel ni pide secretos de Vercel.
+# Sólo:
+#   1) verifica que el árbol clínico autorizado y la versión son los esperados,
+#   2) verifica que Vercel apunta al proyecto principal agenda-medica,
+#   3) verifica que el sitio vivo ya sirve VERSION_ESPERADA,
+#   4) publica firestore.rules Y firestore.indexes usando una credencial Firebase
+#      ya existente,
+#   5) corre seguridad y smoke contra producción.
+#
+# No hay inputs para evitar errores de pegado. El SHA y la URL están fijados aquí.
+
+name: Despliegue a producción (manual)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  statuses: read
+
+env:
+  # LA ÚNICA COSA QUE SE ESCRIBE A MANO AQUÍ. La versión ya NO se escribe: se
+  # DERIVA de este árbol (ver «La versión sale del árbol autorizado»).
+  #
+  # Por qué. La versión estaba escrita dos veces —aquí en el pin, y otra vez en
+  # VERSION_ESPERADA— y las dos copias se separaron: al fusionarse #420 la
+  # versión subió a v1178 y el pin se quedó en el árbol de v1177. La Compuerta 1
+  # exige que coincidan, así que el botón quedó SIN PODER DESPLEGAR, y sólo se
+  # descubría pulsándolo. Es el mismo defecto que #413 cerró para el SHA, en la
+  # otra mitad del par. Ver REG-504.
+  SHA_AUTORIZADO: e72f22a9e82025fd3e06beb6982b377adc67d6da
+  # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
+  # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
+  # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
+  # que envejeció sin que nadie se enterara. Ver Compuerta 0.
+  ROLLBACK_AUTORIZADO: ''
+  FIREBASE_PROJECT: nexomed-agenda
+  URL_PROD: https://agenda-medica-one.vercel.app
+
+jobs:
+  produccion:
+    name: Cerrar producción
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 60
+
+    steps:
+      - name: Traer el árbol autorizado
+        uses: actions/checkout@v4
+        with:
+          # UNA SOLA FUENTE. El SHA se escribía aquí Y en SHA_AUTORIZADO, y las dos
+          # copias divergieron: la compuerta comparaba un checkout viejo contra una
+          # variable nueva y se detenía sin decir por qué eran distintos. Ahora sale
+          # de la variable, y actualizar el despliegue es cambiar UN número.
+          ref: ${{ env.SHA_AUTORIZADO }}
+          fetch-depth: 0
+
+      # ─────────────────────────────────────────────────────────────────────
+      # COMPUERTA 0 · lo que se publique tiene que ser lo de HOY.
+      #
+      # Las compuertas 1-3 no pueden cazar un pin envejecido: la 1 compara el sha
+      # consigo mismo, y la 3 comprueba que producción sirva VERSION_ESPERADA —
+      # que NO cambia cuando cambia el árbol. Mientras `version.txt` no se mueva,
+      # la misma cadena describe árboles distintos, así que la 3 pasa igual con el
+      # pin al día que con uno 87 commits atrás. Pasó el 31-ago.
+      #
+      # LA COMPUERTA SE LEE DE `main`, NO DEL CHECKOUT. Si viajara con el árbol
+      # que vigila, un árbol viejo traería su propia compuerta vieja.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: 'Compuerta 0 · el árbol autorizado publica lo mismo que la cabeza de main'
+        run: |
+          set -euo pipefail
+          CABEZA="$(git ls-remote origin refs/heads/main | cut -f1)"
+
+          # Traer main para poder contar la distancia y saber si el pin está en su
+          # historia. Si esto falla no se adivina: se sigue con los datos que haya
+          # y la decisión se toma abajo.
+          git fetch --quiet origin main || true
+
+          ES_ANCESTRO=si
+          COMMITS_DETRAS=""
+          if [ -n "$CABEZA" ]; then
+            git merge-base --is-ancestor "$SHA_AUTORIZADO" FETCH_HEAD 2>/dev/null || ES_ANCESTRO=no
+            COMMITS_DETRAS="$(git rev-list --count "$SHA_AUTORIZADO"..FETCH_HEAD 2>/dev/null || true)"
+          fi
+
+          # LO QUE ESTE BOTÓN PUBLICA O CERTIFICA. Si estos cuatro coinciden entre
+          # el pin y la cabeza, publicar desde el pin equivale a publicar desde la
+          # cabeza — y un pin atrasado deja de ser un problema. Si difieren, se
+          # para y se dice CUÁLES.
+          #
+          # Si no se pudo comparar (falta FETCH_HEAD), la variable se queda SIN
+          # DEFINIR a propósito y la decisión lo trata como «no se sabe», que para.
+          PUBLICABLES="firestore.rules firestore.indexes.json public/version.txt public/sw.js"
+          if git rev-parse --verify -q FETCH_HEAD >/dev/null; then
+            DIFIEREN=""
+            for F in $PUBLICABLES; do
+              if ! git diff --quiet "$SHA_AUTORIZADO" FETCH_HEAD -- "$F" 2>/dev/null; then
+                DIFIEREN="${DIFIEREN:+$DIFIEREN,}$F"
+              fi
+            done
+            export PUBLICABLES_DIFIEREN="$DIFIEREN"
+          fi
+
+          git show FETCH_HEAD:scripts/ops/arbol-autorizado.mjs > "$RUNNER_TEMP/arbol-autorizado.mjs"
+
+          SHA_AUTORIZADO="$SHA_AUTORIZADO" \
+          CABEZA_DE_MAIN="$CABEZA" \
+          ROLLBACK_AUTORIZADO="${ROLLBACK_AUTORIZADO:-}" \
+          ES_ANCESTRO="$ES_ANCESTRO" \
+          COMMITS_DETRAS="$COMMITS_DETRAS" \
+          node "$RUNNER_TEMP/arbol-autorizado.mjs"
+
+      # ─────────────────────────────────────────────────────────────────────
+      # LA VERSIÓN SALE DEL ÁRBOL AUTORIZADO, NO DE UNA SEGUNDA COPIA A MANO.
+      #
+      # Se escribía en `env:` y tenía que coincidir con el `version.txt` del pin.
+      # Dos sitios para el mismo dato es un sitio de más: se separaron y el botón
+      # quedó sin poder desplegar. Ahora hay UNA fuente — el árbol que se
+      # autoriza— y repuntar el despliegue vuelve a ser cambiar UN número.
+      #
+      # Esto NO afloja nada: la comprobación que importa es la Compuerta 3, que
+      # exige que PRODUCCIÓN sirva esta versión, y sigue siendo una comparación
+      # entre el repositorio y el sitio vivo.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: 'La versión sale del árbol autorizado'
+        run: |
+          set -euo pipefail
+          V="$(tr -d '[:space:]' < public/version.txt)"
+          case "$V" in
+            nexusmed-v[0-9]*) ;;
+            *) echo "::error::version.txt no tiene forma de versión: '$V'"; exit 1 ;;
+          esac
+          echo "VERSION_ESPERADA=$V" >> "$GITHUB_ENV"
+          echo "Versión derivada del árbol autorizado: $V"
+
+      - name: 'Compuerta 1 · SHA, versión y REG-323'
+        run: |
+          set -euo pipefail
+          [ "$(git rev-parse HEAD)" = "$SHA_AUTORIZADO" ] || {
+            echo "::error::El checkout no coincide con el SHA autorizado."
+            exit 1
+          }
+          # `version.txt` lo GENERA `scripts/version-sw.mjs` a partir de `sw.js`.
+          # Que coincidan no es tautología: son dos archivos, y si divergen el
+          # navegador purga en bucle o no purga nunca.
+          grep -q "const CACHE = '$VERSION_ESPERADA'" public/sw.js || {
+            echo "::error::sw.js no declara $VERSION_ESPERADA."
+            exit 1
+          }
+          grep -q "REG-323" firestore.rules || {
+            echo "::error::firestore.rules no contiene REG-323."
+            exit 1
+          }
+          grep -q "request.resource.data.pacienteId == docId" firestore.rules || {
+            echo "::error::Falta la guarda de REG-323."
+            exit 1
+          }
+          echo "Árbol, versión y REG-323 confirmados."
+
+      - name: 'Compuerta 2 · Vercel usa el proyecto principal agenda-medica'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 30 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$SHA_AUTORIZADO/status" \
+            > "$RUNNER_TEMP/status.json"
+
+          TARGETS="$(jq -r '.statuses[] | select(.context=="Vercel" and .state=="success") | .target_url // empty' "$RUNNER_TEMP/status.json")"
+          echo "$TARGETS" | grep -Fq "/docrod29-ais-projects/agenda-medica/" || {
+            echo "::error::No hay Vercel SUCCESS del SHA autorizado en el proyecto principal agenda-medica."
+            exit 1
+          }
+          if echo "$TARGETS" | grep -Fq "/agenda-medica-v10/"; then
+            echo "::error::Vercel apunta a agenda-medica-v10. Se detiene."
+            exit 1
+          fi
+          echo "Proyecto Vercel principal confirmado."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: 'Compuerta 3 · producción ya sirve la versión esperada'
+        id: version
+        run: |
+          set -euo pipefail
+          for INTENTO in $(seq 1 20); do
+            SERVIDO="$(curl -fsS --max-time 20 "$URL_PROD/version.txt" | tr -d '[:space:]' || true)"
+            echo "intento $INTENTO: '$SERVIDO'"
+            if [ "$SERVIDO" = "$VERSION_ESPERADA" ]; then
+              echo "Producción sirve $VERSION_ESPERADA."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::Producción no sirve $VERSION_ESPERADA. No se tocaron reglas."
+          exit 1
+
+      # Reutiliza cualquiera de los nombres habituales si ya existen.
+      # Sólo si NINGUNO existe se detiene y dice exactamente qué falta.
+      - name: 'Firebase · localizar credencial existente'
+        id: firebase_auth
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
+            echo "modo=sa" >> "$GITHUB_OUTPUT"; echo "nombre=FIREBASE_SERVICE_ACCOUNT" >> "$GITHUB_OUTPUT"
+          elif [ -n "${FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA:-}" ]; then
+            echo "modo=sa-nexomed" >> "$GITHUB_OUTPUT"; echo "nombre=FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA" >> "$GITHUB_OUTPUT"
+          elif [ -n "${GOOGLE_CREDENTIALS:-}" ]; then
+            echo "modo=google" >> "$GITHUB_OUTPUT"; echo "nombre=GOOGLE_CREDENTIALS" >> "$GITHUB_OUTPUT"
+          elif [ -n "${GCP_SA_KEY:-}" ]; then
+            echo "modo=gcp" >> "$GITHUB_OUTPUT"; echo "nombre=GCP_SA_KEY" >> "$GITHUB_OUTPUT"
+          elif [ -n "${FIREBASE_TOKEN:-}" ]; then
+            echo "modo=token" >> "$GITHUB_OUTPUT"; echo "nombre=FIREBASE_TOKEN" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::No existe una credencial Firebase reutilizable en el environment production. Añade UNA: FIREBASE_SERVICE_ACCOUNT (recomendada) o FIREBASE_TOKEN."
+            exit 1
+          fi
+          echo "Credencial Firebase encontrada sin mostrar su valor."
+
+      - name: 'Firestore · desplegar reglas e índices'
+        id: rules
+        env:
+          MODO: ${{ steps.firebase_auth.outputs.modo }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "$MODO" = "token" ]; then
+            npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN"
+          else
+            case "$MODO" in
+              sa) JSON="$FIREBASE_SERVICE_ACCOUNT" ;;
+              sa-nexomed) JSON="$FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA" ;;
+              google) JSON="$GOOGLE_CREDENTIALS" ;;
+              gcp) JSON="$GCP_SA_KEY" ;;
+              *) echo "::error::Modo Firebase desconocido."; exit 1 ;;
+            esac
+            RUTA="$RUNNER_TEMP/firebase-sa.json"
+            printf '%s' "$JSON" > "$RUTA"
+            chmod 600 "$RUTA"
+            export GOOGLE_APPLICATION_CREDENTIALS="$RUTA"
+            npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive
+          fi
+
+      # El último sitio donde esto dependía de que alguien se acordara era
+      # CALCULAR el hash a mano después de publicar. Lo calcula el despliegue,
+      # sobre el árbol que acaba de publicar, y lo deja escrito en el acta.
+      - name: 'Firestore · emitir el sello de las reglas'
+        id: sello
+        if: steps.rules.outcome == 'success'
+        run: |
+          set -euo pipefail
+          HASH="$(sha256sum firestore.rules | cut -d' ' -f1)"
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Sello de firestore.rules"
+            echo
+            echo "Las reglas del árbol \`$SHA_AUTORIZADO\` quedan publicadas."
+            echo "Para que el repositorio lo sepa, pega esto en \`firestore.rules.estado.json\`:"
+            echo
+            echo '```json'
+            echo "  \"hashDesplegado\": \"$HASH\","
+            echo "  \"confirmadoEl\": \"$(date -u +%Y-%m-%d)\","
+            echo "  \"shaDelArbol\": \"$SHA_AUTORIZADO\","
+            echo '```'
+            echo
+            echo "Esto NO dice nada de los índices: \`--only firestore:indexes\` contesta"
+            echo "al enviar, no al terminar. Eso se mira en la consola del proyecto."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "FIRESTORE_RULES_SHA256=$HASH"
+
+      - name: Limpiar credencial temporal
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-sa.json" "$RUNNER_TEMP/status.json"
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: 'Seguridad · producción'
+        id: security
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.URL_PROD }}
+        run: npm run e2e:seguridad:prod
+
+      - name: 'Smoke · público'
+        id: smoke
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.URL_PROD }}
+        run: npx playwright test --project=chromium e2e/smoke-publico.spec.ts
+
+      - name: 'Smoke · portal fail-closed'
+        id: portal
+        run: |
+          set -euo pipefail
+          CODIGO="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' -d '{}' "$URL_PROD/api/portal")"
+          echo "POST /api/portal sin enlace → $CODIGO"
+          case "$CODIGO" in
+            4*) echo "Portal correcto." ;;
+            *) echo "::error::Portal respondió $CODIGO sin enlace; se esperaba 4xx."; exit 1 ;;
+          esac
+
+      - name: Acta final
+        if: always()
+        env:
+          R_VERSION: ${{ steps.version.outcome }}
+          R_RULES: ${{ steps.rules.outcome }}
+          SELLO_REGLAS: ${{ steps.sello.outputs.hash }}
+          R_SECURITY: ${{ steps.security.outcome }}
+          R_SMOKE: ${{ steps.smoke.outcome }}
+          R_PORTAL: ${{ steps.portal.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "$R_VERSION" = success ] && [ "$R_RULES" = success ] && [ "$R_SECURITY" = success ] && [ "$R_SMOKE" = success ] && [ "$R_PORTAL" = success ]; then
+            RESULTADO=SUCCESS
+          else
+            RESULTADO=FAILED
+          fi
+          {
+            echo "## Acta del cierre de producción"
+            echo
+            echo '```'
+            echo "PRODUCTION_URL=$URL_PROD"
+            echo "APP_SHA=$SHA_AUTORIZADO"
+            echo "VERSION=$VERSION_ESPERADA"
+            echo "VERCEL_PROJECT=agenda-medica"
+            echo "FIRESTORE_RULES=$R_RULES"
+            echo "FIRESTORE_RULES_SHA256=${SELLO_REGLAS:-no-emitido}"
+            echo "SECURITY_E2E=$R_SECURITY"
+            echo "SMOKE=$R_SMOKE"
+            echo "SMOKE_PORTAL=$R_PORTAL"
+            echo "PRODUCTION_RELEASE=$RESULTADO"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "PRODUCTION_RELEASE=$RESULTADO"
+          [ "$RESULTADO" = SUCCESS ] || exit 1

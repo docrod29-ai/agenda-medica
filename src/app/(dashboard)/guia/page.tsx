@@ -70,16 +70,16 @@ export default function GuiaPage() {
       <div style={{ position: 'relative', marginBottom: 12 }}>
         <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar en la guía (ej. receta, voz, créditos)…"
-          style={{ width: '100%', padding: '11px 12px 11px 38px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', color: 'var(--text)', fontSize: 14, outline: 'none' }} />
+          style={{ width: '100%', padding: '11px 12px 11px 38px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', color: 'var(--text)', fontSize: 14 }} />
       </div>
 
       {/* Filtro por rol */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
         {ROLES.map(r => (
-          <button key={r.id} onClick={() => setRol(r.id)} style={{
+          <button key={r.id} onClick={() => setRol(r.id)} className="nx-chip" aria-pressed={rol === r.id} style={{
             fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
             border: '1px solid ' + (rol === r.id ? 'var(--teal)' : 'var(--border)'),
-            background: rol === r.id ? 'color-mix(in srgb, var(--nexus) 10%, transparent)' : 'var(--s2)', color: rol === r.id ? 'var(--teal)' : 'var(--text2)',
+            color: rol === r.id ? 'var(--teal)' : 'var(--text2)',
           }}>{r.label}</button>
         ))}
       </div>
@@ -91,7 +91,10 @@ export default function GuiaPage() {
           return (
             <div key={s.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', overflow: 'hidden' }}>
               <button onClick={() => setAbierta(open ? null : s.id)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--text)' }}>
+                aria-expanded={open}
+                className="nx-acc-plana"
+                data-abierto={open || undefined}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--text)' }}>
                 <span style={{ color: 'var(--teal)', flexShrink: 0 }}>{ICONO[s.id] ?? <Lightbulb size={18} />}</span>
                 <span style={{ flex: 1 }}>
                   <span style={{ fontSize: 15, fontWeight: 700, display: 'block' }}>{s.titulo}</span>

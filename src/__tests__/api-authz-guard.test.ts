@@ -26,8 +26,11 @@ import { analizarRuta } from '@/lib/authz/analisis-estatico'
  * Las TRES propiedades de E0-06 se conservan una por una, re-expresadas contra la
  * capacidad DECLARADA (que es más fuerte: `authz-rutas-declaradas.test.ts` verifica
  * además que el código coincide con la declaración):
- *   1. `portal/link` sigue accesible a la asistente del mostrador y emite alcance
- *      `agenda`, nunca `clinico`.
+ *   1. `portal/link` sigue accesible a la asistente del mostrador y sigue emitiendo
+ *      alcance `agenda` POR OMISIÓN. Desde POSTVISIT-001 puede emitir `clinico`,
+ *      pero sólo a petición explícita y cobrando `firmar` = {medico, admin}: la
+ *      propiedad nunca fue «la cadena no aparece», era «quien no puede responder
+ *      por el expediente no emite una llave que lo abre».
  *   2. `telesalud/token` sigue exigiendo {medico, admin} para emitir alcance
  *      `clinico`.
  *   3. `/api/portal` sigue exigiendo `alcance === 'clinico'` ANTES de leer notas.
@@ -84,11 +87,57 @@ describe('E0-06 · el emisor de magic-links no puede regalar alcance clínico', 
   const PORTAL = resolve(DIR_API, 'portal/route.ts')
   const TELESALUD = resolve(DIR_API, 'telesalud/token/route.ts')
 
-  it('/api/portal/link emite alcance `agenda` explícito y nunca `clinico`', () => {
+  /**
+   * ── LA PROPIEDAD DE E0-06, RE-EXPRESADA EN POSTVISIT-001 ──────────────────
+   *
+   * Hasta el 27-ago-2026 esto decía `expect(src).not.toContain("'clinico'")`, y
+   * era el enunciado correcto de una propiedad que en realidad no es «la cadena
+   * no aparece» sino:
+   *
+   *     nadie que no pueda responder por el expediente emite una llave que lo abre.
+   *
+   * `POSTVISIT-001` obligó a distinguirlas. El médico que acaba de liberarle a su
+   * paciente el resumen de la consulta necesita darle el enlace que lo abre, y el
+   * único emisor de alcance clínico que existía era el de la teleconsulta: la
+   * puerta estaba y no había llave (`POSTVISIT-ENTREGA-001`).
+   *
+   * Así que la ruta ya puede emitir `clinico` — **a petición explícita y cobrando
+   * `firmar`**, que es {medico, admin}. La rama de fábrica no cambia: sin pedir
+   * nada sale `agenda`, y cualquier valor que no sea exactamente `'clinico'`
+   * degrada a `agenda` (falla cerrado).
+   *
+   * Estas cuatro asserts son estrictamente MÁS fuertes que la anterior: la vieja
+   * se satisfacía borrando una cadena, y éstas exigen que el privilegio esté
+   * atado a una capacidad clínica y que el camino por omisión siga siendo el
+   * del mostrador.
+   */
+  it('/api/portal/link emite `agenda` por omisión y sólo emite `clinico` a petición explícita', () => {
     const src = codigo(LINK)
-    expect(src).toContain("'agenda'")
-    expect(src, 'portal/link NO debe emitir tokens de alcance clínico: lo llama cualquier rol')
-      .not.toContain("'clinico'")
+    // La decisión sale de una comparación EXACTA contra el cuerpo…
+    expect(src).toMatch(/String\(body\.alcance \?\? ''\) === 'clinico'/)
+    // …y lo que no sea exactamente eso cae en `agenda`: falla cerrado.
+    expect(src).toMatch(/pideClinico \? 'clinico' : 'agenda'/)
+  })
+
+  it('/api/portal/link cobra una capacidad CLÍNICA para emitir alcance clínico', () => {
+    /**
+     * Ésta es la que muerde. Si alguien quita el `verificarCapacidad` y deja el
+     * `verificarMiembro` de la rama de agenda cubriendo las dos, la asistente
+     * del mostrador vuelve a poder emitir una credencial de 30 días con el
+     * expediente dentro — que es EXACTAMENTE la P0 que E0-06 cerró.
+     */
+    const src = codigo(LINK)
+    expect(src).toMatch(/pideClinico\s*\r?\n?\s*\?\s*await verificarCapacidad\(req, body\.clinicId, 'firmar'\)/)
+  })
+
+  it('la capacidad que abre esa rama es exactamente {medico, admin}', () => {
+    /**
+     * El conjunto de roles, no el nombre de la capacidad: renombrar `firmar` no
+     * puede colar a enfermería, farmacia ni laboratorio en el emisor clínico.
+     */
+    const roles = [...rolesCon('firmar')].sort()
+    expect(roles).toEqual(['admin', 'medico'])
+    for (const r of ROLES_NO_CLINICOS) expect(roles).not.toContain(r)
   })
 
   it('/api/portal/link sigue accesible a la asistente del mostrador (no rompe el flujo real)', () => {

@@ -3,18 +3,15 @@
 /**
  * CambiosCifrasPanel — las cifras, unidades y siglas que el pipeline reescribió.
  *
- * Por qué existe: el pipeline calculaba estas dos listas en cada dictado y **no
- * las devolvía nadie**. El médico veía las correcciones de fármacos —hay un panel
- * para eso desde hace versiones— y no veía las de **dosis**.
- *
- * La regla ya estaba escrita en el panel de al lado: en un documento clínico-legal
- * nada cambia en silencio. Si «dos gramos» quedó como «2 g», eso es una edición a
- * su dictado y tiene que poder verla y deshacerla.
- *
- * Colapsado por defecto, salvo cuando hay cifras o unidades: ésas se abren solas.
+ * La lista sigue disponible donde una superficie especializada la necesita
+ * (por ejemplo UCI). En el Golden Path ambulatorio de Consultorio, en cambio,
+ * la normalización determinista segura es provenance y no una tarea de depuración
+ * para el médico: allí este panel no se renderiza. La incertidumbre clínicamente
+ * material sigue escalando por AlertasDictado/ambigüedad contextual antes de firmar.
  */
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { ChevronDown, ChevronRight, RotateCcw, Hash } from 'lucide-react'
 import { cuantosTocanCifra, type CambioVisible } from '@/lib/asr/cambios-visibles'
 
@@ -27,29 +24,27 @@ interface Props {
 const VACIO: ReadonlySet<number> = new Set()
 
 export function CambiosCifrasPanel({ cambios, onRevertir }: Props) {
+  const pathname = usePathname()
   const conCifra = cuantosTocanCifra(cambios)
   /**
    * EL ESTADO VA ATADO A **ESTA** LISTA, no a un efecto que la persiga.
    *
    * Los índices son de la lista actual: tras un segundo dictado, la posición 2
    * ya es otro cambio y se quedaría marcada como revertida —en gris y sin botón
-   * de deshacer—. Es el mismo defecto que ya se corrigió una vez en el panel de
-   * correcciones léxicas.
-   *
-   * Se guarda junto a la referencia de la lista y se **deriva** en el render, en
-   * vez de sincronizarlo con un `useEffect`: un efecto que llama a `setState`
-   * provoca un render en cascada, y además deja un fotograma con los datos
-   * viejos — el botón «deshacer» del dictado anterior, encima del nuevo.
+   * de deshacer—. Se guarda junto a la referencia de la lista y se deriva en el
+   * render para no dejar un fotograma con datos viejos.
    */
   const [marcados, setMarcados] = useState<{ lista: CambioVisible[]; idx: ReadonlySet<number> } | null>(null)
   const revertidos = marcados?.lista === cambios ? marcados.idx : VACIO
 
   const [plegado, setPlegado] = useState<{ lista: CambioVisible[]; abierto: boolean } | null>(null)
-  // Por defecto: abierto si hay cifras o unidades —son dosis—, cerrado si sólo
-  // hay siglas. Mientras el médico no toque la cabecera, manda el defecto.
   const abierto = plegado?.lista === cambios ? plegado.abierto : conCifra > 0
   const setAbierto = (v: boolean) => setPlegado({ lista: cambios, abierto: v })
 
+  // GP12: en la consulta ambulatoria el médico no audita normalizaciones seguras.
+  // No se borra `cambios`: la provenance permanece en el pipeline y las excepciones
+  // clínicamente materiales siguen su gate contextual. UCI conserva esta superficie.
+  if (pathname.startsWith('/consulta/')) return null
   if (cambios.length === 0) return null
   const activos = cambios.length - revertidos.size
 

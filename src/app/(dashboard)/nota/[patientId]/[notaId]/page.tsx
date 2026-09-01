@@ -13,6 +13,8 @@ import { encabezadoHospital } from '@/lib/hospital/bloque-nota'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota, agregarAdenda, getAdendas } from '@/lib/expediente/firestore'
+import { claveDeIntento } from '@/lib/idempotencia'
+import { avisosSelladosDe } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { HistorialVersiones } from '@/components/expediente/HistorialVersiones'
 import { getPatient } from '@/lib/firestore'
 import { useAuth } from '@/hooks/useAuth'
@@ -102,6 +104,12 @@ export default function NotaImprimiblePage() {
    * Las notas nuevas nacen con el sello completo, así que esto no se muestra.
    */
   const [selloNoCubre, setSelloNoCubre] = useState<readonly string[]>([])
+  /**
+   * Lo que el sistema avisó al firmar (REG-366). Sale de la propia nota: cero
+   * lecturas nuevas, y `null` en las notas anteriores a que esto existiera —que
+   * no es lo mismo que «no hubo avisos», y por eso el campo no se escribe vacío.
+   */
+  const avisosSellados = avisosSelladosDe(nota)
 
   const descargarPDF = async () => {
     const el = document.getElementById('doc')
@@ -117,7 +125,7 @@ export default function NotaImprimiblePage() {
         // SIN hojas en blanco (una hoja = una página exacta).
         const sheets = Array.from(el.querySelectorAll<HTMLElement>('.nota-sheet'))
         if (sheets.length) {
-          await descargarPaginasComoPDF(sheets, { filename: `Nota_${nombre}_${fechaCorta}`, anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm })
+          await descargarPaginasComoPDF(sheets, { filename: `Nota_${nombre}_${fechaCorta}`, anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm, onAvisoPapeleria: (m) => toast(m, 'error') })
         } else {
           await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter', margin: 0 })
         }
@@ -146,9 +154,23 @@ export default function NotaImprimiblePage() {
     }
   }
 
+  /**
+   * LA CLAVE DEL INTENTO DE ADENDA (REG-395).
+   *
+   * Se acuña una vez y **se conserva mientras el intento no termine bien**: eso
+   * es lo que hace que el reintento tras una respuesta perdida apunte al mismo
+   * documento en vez de crear una segunda enmienda. Al terminar bien se borra,
+   * porque escribir otra adenda después es una intención NUEVA y le toca clave
+   * nueva.
+   *
+   * Un ref y no un estado: cambiarla no tiene que repintar nada.
+   */
+  const claveAdendaRef = useRef<string | null>(null)
+
   const guardarAdenda = async () => {
     if (!clinicId || !textoAdenda.trim() || motivoAdenda.trim().length < 3) return
     setGuardandoAdenda(true)
+    claveAdendaRef.current ??= claveDeIntento()
     try {
       const nueva = await agregarAdenda(clinicId, patientId, notaId, {
         texto: textoAdenda.trim(),
@@ -175,8 +197,11 @@ export default function NotaImprimiblePage() {
         autorCedula: medicoEnSesion
           ? (medicoEnSesion.cedulaProfesional || undefined)
           : (config?.cedulaProfesional || undefined),
-      })
-      setAdendas(prev => [...prev, nueva])
+      }, claveAdendaRef.current)
+      /* Terminó bien: la intención se cerró y la siguiente adenda es otra. */
+      claveAdendaRef.current = null
+      /* Si el reintento convergió sobre la que ya estaba, no se pinta dos veces. */
+      setAdendas(prev => prev.some(a => a.id === nueva.id) ? prev : [...prev, nueva])
       setTextoAdenda(''); setMotivoAdenda(''); setModalAdenda(false)
       // NOM-004: la enmienda a una nota firmada queda en la bitácora inalterable.
       try {
@@ -565,6 +590,44 @@ export default function NotaImprimiblePage() {
             Sello de formato anterior (v{nota.metadata.hashVersion ?? 1}): verificado sobre el cuerpo
             de la nota. <strong>No cubre</strong>: {selloNoCubre.join(', ')}. Las notas nuevas se
             sellan completas.
+          </div>
+        )}
+
+        {/*
+          ── LO QUE EL SISTEMA AVISÓ AL FIRMAR (REG-366) ──────────────────────
+
+          Estos avisos se enseñaban una vez, en la consulta, y se descartaban al
+          firmar. La duda que el paciente expresó —«creo que me dijeron que tenía
+          anemia»— duraba lo que duraba la sesión del navegador, y de un aviso
+          mostrado y aceptado no quedaba rastro ninguno.
+
+          `no-print` a propósito: es cómo se revisó la nota, no parte del
+          documento que se le entrega al paciente ni del que va a la farmacia.
+          Aquí lo lee quien vuelve al expediente, que es quien lo necesita.
+        */}
+        {avisosSellados && (
+          <div className="no-print" style={{
+            marginTop: 16, padding: '10px 13px', borderRadius: 10,
+            background: 'var(--s2)', border: '1px solid var(--border)',
+            color: 'var(--text2)', fontSize: 12, lineHeight: 1.6,
+          }}>
+            <strong style={{ color: 'var(--text)' }}>
+              Lo que el sistema señaló antes de firmar, y el médico revisó:
+            </strong>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {avisosSellados.avisos.map(a => (
+                <li key={a.id}>{a.texto}</li>
+              ))}
+            </ul>
+            {avisosSellados.total > avisosSellados.avisos.length && (
+              <div style={{ color: 'var(--text3)', marginTop: 4 }}>
+                …y {avisosSellados.total - avisosSellados.avisos.length} más, que no cupieron en el sello.
+              </div>
+            )}
+            <div style={{ color: 'var(--text3)', marginTop: 6 }}>
+              Ninguno impedía firmar. Se registran porque un aviso mostrado y aceptado es parte
+              de cómo se tomó la decisión — y porque una duda que sólo se ve una vez se pierde.
+            </div>
           </div>
         )}
 

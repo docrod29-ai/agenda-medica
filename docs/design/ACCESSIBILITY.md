@@ -183,3 +183,104 @@ página. Ambas están en `V10_BACKLOG.json` (`V10-A11Y-001`, P1).
 **Qué NO cubre esta línea base todavía**: teclado (orden y foco visible),
 lector de pantalla, `prefers-reduced-motion`, zoom 200 %, y las pantallas fuera
 del golden flow. Se amplía en `V10-A11Y-001`.
+
+---
+
+# La compuerta de la superficie del paciente — `A11Y-GATE-001` (27-ago-2026)
+
+Todo lo de arriba se **midió** con axe en un navegador y quedó anotado. Ninguna
+de esas mediciones era una **compuerta**: `tests/visual/arnes-a11y.mjs` y los
+`scripts/design/axe-*.mjs` necesitan servidor levantado y emulador sembrado, así
+que corren cuando alguien se acuerda. Un guardián que sólo corre cuando alguien
+se acuerda no es una red — y en efecto, la línea base de arriba lleva desde el
+9-ago sin que nada impida que los mismos defectos vuelvan a entrar.
+
+Esta unidad pone la primera red **automática**, y la pone donde más asimétrico
+es el daño: la superficie del paciente.
+
+## Por qué el paciente primero
+
+Es la asimetría de `patient-facing-ai.md` dicha en interfaz. Hasta hoy la
+interfaz de este producto le hablaba a un internista con cédula: un defecto se
+lo comía alguien entrenado para verlo. El paciente **no puede detectarlo** — y
+es un paciente de 70 años, en un teléfono, con el texto al 200 %. Que no pueda
+reservar su cita no se manifiesta como un error: se manifiesta como que no
+reservó.
+
+## Qué corre, y cuándo
+
+```bash
+npm run a11y:paciente          # el medidor, con archivo y línea
+npx vitest run src/__tests__/a11y-*.test.ts
+```
+
+Y en CI, en el job del trinquete, en cada PR. **Sin dependencias nuevas**: el
+analizador usa la API del compilador de TypeScript, que ya era `devDependency`
+(Apache-2.0). Cero paquetes de pago, cero servicios externos, cero binarios que
+descargar.
+
+| Pieza | Qué hace |
+|---|---|
+| `scripts/design/lib/a11y-jsx.mjs` | 15 reglas sobre el árbol real del TSX |
+| `scripts/design/lib/contraste-wcag.mjs` | la aritmética de WCAG 2.2, con composición de alfa |
+| `scripts/design/medir-a11y-superficies-paciente.mjs` | las 10 superficies + 34 pares de contraste + el inventario de rutas |
+| `a11y-la-superficie-del-paciente-no-pierde-terreno.test.ts` | la compuerta |
+| `a11y-el-detector-si-puede-fallar.test.ts` | el guardián **del** guardián |
+
+## Las 15 reglas
+
+`botonSoloIconoSinNombre` · `enlaceSinNombreAccesible` · `campoSinEtiqueta` ·
+`interactivoSinTeclado` · `focoInvisible` · `botonOcupadoSinAriaBusy` ·
+`anchoFijoRompeReflujo` · `imagenSinAlt` · `iframeSinTitulo` ·
+`dialogoSinAriaModal` · `dialogoSinNombre` · `dialogoSinEscape` ·
+`sinEncabezadoPrincipal` · `saltoDeNivelDeEncabezado` ·
+`estadoAsincronoSinRegionViva`
+
+Cada una está probada **al revés**: el defecto sintético la dispara y la
+corrección mínima la calla. Las dos mitades — un detector que grita siempre pasa
+la primera y no sirve, porque pone en rojo la corrección igual que el defecto y
+acaba desactivado (REG-245).
+
+## Las diez superficies
+
+`/mi/[token]` (portal, con la hoja/paquete de la visita) · `/reservar/[clinicId]`
+· `/dr/[clinicId]` · `/verificar/[token]` · `/privacidad` ·
+`/privacidad/[clinicId]` · `/teleconsulta/[citaId]` · `/resena/[token]` ·
+`/pago/exito` · `/pago/cancelado`
+
+La lista **no se puede quedar corta en silencio**: hay un guardián que cruza
+`src/app/` con ella y con la lista de exclusiones declaradas, y falla cuando
+aparece una `page.tsx` pública que nadie clasificó. Así es como se pierde una
+compuerta — no porque alguien la borre, sino porque deja de cubrir lo que se
+añadió después.
+
+## Aquí el número es 0, y es prohibición
+
+No es el trinquete de diseño, que cuenta deuda tolerada y la deja bajar. Son
+diez archivos, caben en una tarde, y es la superficie donde el lector no puede
+detectar el error.
+
+**En el resto de la aplicación esta unidad no toca nada.** Poner hoy en rojo 200
+pantallas es la manera segura de que alguien borre el guardián el martes. El
+barrido al resto es trabajo aparte, y su forma natural es la del trinquete:
+contar, sellar, y que el número sólo baje.
+
+## Qué NO cubre esta compuerta
+
+- **No abre un navegador.** El contraste **pintado** (texto sobre imagen o
+  degradado), el orden real del foco y la trampa de foco de un modal siguen
+  siendo axe con Chromium — y mirar la pantalla, que la ley de diseño exige
+  aparte («no se aprueba una interfaz leyendo el código»).
+- **No cruza el límite del componente.** Un `<button>` que vive en
+  `components/ui/` no lo juzga la superficie que lo usa.
+- **No mide el contraste de los bordes** (WCAG 1.4.11, 3:1). `--border` está en
+  1,18:1 en oscuro **a propósito**: es un separador decorativo, no el límite que
+  identifica un control. Cambiarlo es rediseño.
+- **La regla de la región viva cuenta por archivo, no por estado.** Una sola
+  `aria-live` la apaga entera. Se descubrió reparando `/mi/[token]`: la regla se
+  puso en verde con el formulario previo arreglado mientras el cartel de «tu
+  enlace ya no vale» seguía mudo. Se encontró **mirando**, no midiendo.
+- **No cubre el resto de la aplicación.**
+
+Los 23 defectos que encontró el primer día, y sus arreglos, están en
+`docs/audit/regression-ledger.md` § REG-331.

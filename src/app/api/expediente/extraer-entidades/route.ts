@@ -25,6 +25,7 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { correlacionDe } from '@/lib/observabilidad/correlacion'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -128,6 +129,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto = {
     feature: 'extraer-entidades',
     requestId: req.headers.get('x-vercel-id') || `ee-${acceso.uid}-${Date.now()}`,
+        correlacion: correlacionDe(req),
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }
@@ -158,7 +160,7 @@ export async function POST(req: NextRequest) {
       // enseña un problema interno. El mensaje sale del clasificador compartido.
       const quien = quienPaga(fuente)
       const clase = claseDeFallo(res.status, err)
-      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'entidades', status: res.status })
+      reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'extraer-entidades', status: res.status })
       return NextResponse.json({ ok: false, error: avisoAlMedico(clase, quien, 'anthropic').texto }, { status: 502 })
     }
 

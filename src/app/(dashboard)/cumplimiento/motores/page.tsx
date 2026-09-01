@@ -30,6 +30,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { ArrowLeft, FlaskConical, ShieldCheck, Search } from 'lucide-react'
 import { CLINICAL_ENGINE_REGISTRY } from '@/lib/clinical/registry'
+import { avisoDeVigencia } from '@/lib/clinical/guias'
 
 const ESTILO_ESTADO: Record<string, { etiqueta: string; color: string; fondo: string }> = {
   pendiente_validacion: { etiqueta: 'SIN VALIDAR', color: 'var(--amber)', fondo: 'color-mix(in srgb, var(--amber) 12%, transparent)' },
@@ -139,6 +140,23 @@ export default function MotoresPage() {
                 </div>
 
                 <Campo titulo="De dónde salen sus reglas" texto={m.referencia} />
+                {/**
+                  * REG-402 · una guía tiene edición, y las ediciones se sustituyen.
+                  *
+                  * La referencia es una cadena: no puede decir si «KDIGO 2020» sigue
+                  * siendo la vigente. El día que salga la siguiente edición este texto
+                  * seguirá igual, con el mismo aspecto de referencia comprobada. El
+                  * sistema no lo sabe, así que lo DICE en vez de callarlo.
+                  *
+                  * Sólo aparece cuando se reconoce una cita de guía: ponerlo sobre los
+                  * campos que son prosa larga lo llenaría todo de ruido, y un aviso que
+                  * se ignora no protege a nadie.
+                  */}
+                {avisoDeVigencia(m.referencia) && (
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4, lineHeight: 1.5 }}>
+                    {avisoDeVigencia(m.referencia)}
+                  </div>
+                )}
                 {m.calculos?.length ? <Campo titulo="Qué decide" texto={m.calculos.join(' · ')} /> : null}
                 <Campo titulo="Qué hace si falta un dato" texto={m.missingData} />
 

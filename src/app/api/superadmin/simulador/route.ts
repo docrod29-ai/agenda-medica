@@ -22,6 +22,7 @@ import { verificarSuperadmin } from '@/lib/superadmin'
 import { safeLog } from '@/lib/security/sanitize'
 import { catalogoEfectivo, type CatalogoGuardado } from '@/lib/finanzas/catalogo-planes'
 import { PLANES_ORDEN } from '@/lib/planes-ia'
+import { PROCEDENCIA_POR_MOTOR } from '@/lib/ia/procedencia-motor'
 import {
   simular, PERFILES, OTROS_COSTOS_VACIOS,
   type CostoMedidoPorNota, type OtrosCostosMensuales,
@@ -117,7 +118,21 @@ export async function GET(req: NextRequest) {
       })),
     }))
 
-    return NextResponse.json({ ok: true, medido, otros, usdMxn, perfiles: PERFILES, tamanos: TAMANOS, matriz })
+    /**
+     * QUÉ CORRE DEBAJO DE CADA NIVEL — sólo para este panel de superadmin.
+     *
+     * El médico ya no ve proveedor ni modelo (#345): elige la INTENCIÓN clínica y
+     * el router resuelve el cómputo. Pero un promedio de «$0.60 USD por nota
+     * Máxima» no se puede juzgar sin saber qué se está pagando, así que la
+     * procedencia interna aterriza AQUÍ, que es su destinatario legítimo.
+     *
+     * Es orientativa: el costo real se calcula con el id de modelo que devuelve
+     * el proveedor en cada llamada, no con esta etiqueta.
+     */
+    const procedencia = Object.fromEntries(
+      (['rapida', 'estandar', 'maxima'] as const).map(m => [m, PROCEDENCIA_POR_MOTOR[m].etiquetaAuditoria]),
+    )
+    return NextResponse.json({ ok: true, medido, procedencia, otros, usdMxn, perfiles: PERFILES, tamanos: TAMANOS, matriz })
   } catch (e) {
     safeLog.error('[superadmin/simulador]', String(e).slice(0, 200))
     return NextResponse.json({ ok: false, error: 'No se pudo calcular la simulación.' }, { status: 500 })

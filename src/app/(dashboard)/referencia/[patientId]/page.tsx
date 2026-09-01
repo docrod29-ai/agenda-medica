@@ -4,7 +4,7 @@ import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
-import { getNotas } from '@/lib/expediente/firestore'
+import { getNota, listarNotasPagina } from '@/lib/expediente/firestore'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
@@ -62,12 +62,26 @@ export default function CartaReferenciaPage() {
 
   useEffect(() => {
     if (!clinicId || !patientId) return
-    Promise.all([getPatient(clinicId, patientId), getNotas(clinicId, patientId)]).then(([ps, notas]) => {
+    /**
+     * REG-350 — esto pedía el historial ENTERO para prellenar un impreso con UNA
+     * nota. Dos lecturas acotadas hacen lo mismo:
+     *
+     *  · con `?nota=`, se pide **esa** nota por su id. Además de barato es más
+     *    correcto: la nota pedida podía ser antigua y quedar por debajo de
+     *    cualquier techo, y entonces el impreso se habría prellenado en silencio
+     *    con OTRA nota — la referencia de un paciente hablando de otra visita.
+     *  · sin él, una página corta de las más recientes basta para «la última,
+     *    preferiblemente firmada».
+     */
+    const notaParam = searchParams.get('nota')
+    Promise.all([
+      getPatient(clinicId, patientId),
+      notaParam
+        ? getNota(clinicId, patientId, notaParam).then(n => (n ? [n] : []))
+        : listarNotasPagina(clinicId, patientId, { limite: 20 }).then(p => p.notas),
+    ]).then(([ps, notas]) => {
       setPatient(ps)
-      // Prellenar con la última nota (preferir firmada; si viene ?nota= usar esa)
-      const notaParam = searchParams.get('nota')
       const nota: NotaMedica | undefined =
-        (notaParam && notas.find(n => n.id === notaParam)) ||
         notas.find(n => n.estado === 'firmada') ||
         notas[0]
       if (nota) {

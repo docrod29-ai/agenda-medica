@@ -41,7 +41,15 @@ export interface Sugerencia {
 }
 
 export interface MedicamentoConsulta { nombre: string; dosis?: string }
-export interface DiagnosticoConsulta { descripcion: string }
+export interface DiagnosticoConsulta {
+  descripcion: string
+  /**
+   * Con cuánta seguridad lo dio el médico. Opcional porque hay llamadores
+   * antiguos que sólo mandan la descripción; ausente se trata como el caso
+   * seguro para cada motor, nunca como «confirmado» por defecto.
+   */
+  tipo?: 'definitivo' | 'presuntivo' | 'descartado' | 'diferencial'
+}
 
 export interface SignosConsulta {
   ta?: string
@@ -67,6 +75,45 @@ export interface EntradaCopiloto {
   signos?: SignosConsulta
   /** Laboratorios sueltos si la nota los trae: creatinina, ast, alt, plaquetas, ldl… */
   labs?: Record<string, number>
+  /**
+   * CUÁNDO SE MIDIÓ CADA UNO — sólo para los que vienen del EXPEDIENTE (REG-368).
+   *
+   * Desde que los paneles del paciente llegan a este motor (`labsDelCuadro`), un
+   * número puede ser de hoy o de hace ocho meses. Decir «TFG estimada 28
+   * (creatinina 2.4)» sin decir de cuándo es esa creatinina afirma una vigencia
+   * que nadie comprobó.
+   *
+   * Ausente = de esta consulta. No se rellena con la fecha de hoy: un «medido
+   * hoy» al lado de lo que el médico acaba de dictar es ruido.
+   */
+  labsMedidosEn?: Record<string, string>
+  /**
+   * DE DÓNDE VIENE CADA NÚMERO — la medición anterior, dicha (REG-369).
+   *
+   * Ya redactada por `comoSeDiceLaTrayectoria` («subió desde 1.6 el 2026-01-10»).
+   * Aquí llega como texto y no como puntos a propósito: este motor no debe
+   * decidir cómo se lee una trayectoria, sólo citarla. Y lo que cita es
+   * aritmética —subió, bajó, igual— nunca un juicio.
+   *
+   * Ausente = no hay medición anterior. Un «sin datos previos» colgando de cada
+   * aviso es ruido.
+   */
+  labsTrayectoria?: Record<string, string>
+  /**
+   * ¿La creatinina sigue sirviendo para dosificar? — política del dueño (REG-375).
+   *
+   * Se recibe ya resuelta: qué ventana aplica es una decisión clínica y vive en
+   * `laboratorio/vigencia-de-la-funcion-renal.ts`, no en este motor. Aquí sólo se
+   * dice lo que esa decisión dictó.
+   *
+   * Ausente = no se evaluó, y entonces este motor se comporta como antes. No se
+   * da por vigente lo que nadie comprobó, simplemente no se afirma nada.
+   */
+  funcionRenalVigente?: {
+    vigente: boolean
+    /** El aviso ya redactado, con la marca `STALE_RENAL_FUNCTION`. */
+    aviso: string
+  }
 }
 
 // ── utilidades ──────────────────────────────────────────────────────────────
@@ -276,6 +323,22 @@ function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
 
 // ── 3. SEGURIDAD: ajuste renal de lo recetado ───────────────────────────────
 
+/**
+ * Cómo se cita un laboratorio que puede no ser de hoy — REG-368.
+ *
+ * Una sola definición para los cuatro sitios que nombran un valor: si el número
+ * vino del expediente, la frase lleva **cuándo se midió**; si lo dictó el médico
+ * en esta consulta, va limpia.
+ */
+function citaDelLab(e: EntradaCopiloto, clave: string, texto: string): string {
+  const cuando = e.labsMedidosEn?.[clave]
+  const trayecto = e.labsTrayectoria?.[clave]
+  /* Fecha primero, trayectoria después: «creatinina 2.4 mg/dL, medida el
+     2026-07-14, subió desde 1.6 el 2026-01-10». Las dos son procedencia; la
+     segunda sólo aparece si hay una medición anterior de verdad. */
+  return `${texto}${cuando ? `, medida el ${cuando}` : ''}${trayecto ? `, ${trayecto}` : ''}`
+}
+
 function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
   const cr = e.labs?.creatinina
   const edad = e.edad
@@ -303,7 +366,7 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
     return [{
       id: 'renal:unidad',
       nivel: 'info',
-      titulo: `Creatinina ${cr}: revisa la unidad (mg/dL)`,
+      titulo: `${citaDelLab(e, 'creatinina', `Creatinina ${cr}`)}: revisa la unidad (mg/dL)`,
       detalle: `Un valor fuera de 0.1–25 mg/dL suele venir en µmol/L (dividir entre 88.4) o ser un error de captura. No se estima TFG ni se ajustan dosis hasta corregir la unidad.`,
       textoNota: `Creatinina ${cr} fuera de rango en mg/dL — verificar unidad antes de ajustar por función renal.`,
     }]
@@ -315,6 +378,27 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
   if (!Number.isFinite(tfg) || tfg >= 60) return []
 
   const out: Sugerencia[] = []
+  /**
+   * ── LA CREATININA QUE SE PASÓ DE SU VENTANA (REG-375) ─────────────────────
+   *
+   * Va PRIMERO y no sustituye a nada: la política del dueño dice que no se
+   * bloquee en silencio ni se invente función renal. Así que las
+   * recomendaciones de abajo se siguen dando —con su fecha, desde REG-368— y
+   * encima se dice que el dato está caduco y qué hace falta.
+   *
+   * Sólo aquí, que es donde se emite una recomendación de dosificación
+   * dependiente del riñón. Un aviso de caducidad en una consulta que no
+   * prescribe nada renal sería ruido.
+   */
+  if (e.funcionRenalVigente && !e.funcionRenalVigente.vigente) {
+    out.push({
+      id: 'renal:stale',
+      nivel: 'accion',
+      titulo: 'Función renal no vigente para dosificar',
+      detalle: e.funcionRenalVigente.aviso,
+      textoNota: '',
+    })
+  }
   for (const m of meds) {
     const nm = norm(m.nombre ?? '')
     /**
@@ -337,8 +421,13 @@ function ajusteRenal(e: EntradaCopiloto): Sugerencia[] {
       titulo: a.contraindicado
         ? `${f.nombre} está contraindicado con TFG de ${Math.round(tfg)}`
         : `${f.nombre} requiere ajuste con TFG de ${Math.round(tfg)}`,
-      detalle: a.conducta + (a.nota ? ` ${a.nota}` : ''),
-      textoNota: `Con TFG estimada de ${Math.round(tfg)} mL/min/1.73 m² (CKD-EPI 2021): ${f.nombre} — ${a.conducta}`,
+      /* La TFG sale de una creatinina que puede no ser de hoy (REG-368). El
+         aviso que cambia la conducta tiene que decir de cuándo es el número: sin
+         eso afirma una vigencia que nadie comprobó, y es el aviso más grave que
+         produce este motor. */
+      detalle: `${a.conducta}${a.nota ? ` ${a.nota}` : ''}${
+        e.labsMedidosEn?.creatinina ? ` TFG calculada con la creatinina del ${e.labsMedidosEn.creatinina}.` : ''}`,
+      textoNota: `Con TFG estimada de ${Math.round(tfg)} mL/min/1.73 m² (CKD-EPI 2021, ${citaDelLab(e, 'creatinina', `creatinina ${cr} mg/dL`)}): ${f.nombre} — ${a.conducta}`,
     })
   }
   return out
@@ -359,8 +448,33 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
   // los teratógenos categoría 'evitar' dispararan un aviso "La paciente cursa
   // embarazo" a una puérpera — incoherente. La lactancia es otra cosa (transferencia
   // a leche, no teratogenicidad) y tiene su propia lista, no este flag.
-  const embarazoConfirmado = (e.diagnosticos ?? []).some(d =>
+  /**
+   * ── «CURSA EMBARAZO» ES UNA AFIRMACIÓN, Y SE GANA (REG-364) ───────────────
+   *
+   * Esto miraba sólo la descripción. Un `tipo:'descartado'` —«embarazo
+   * descartado», que es como se documenta una prueba negativa— encendía el
+   * aviso de categoría `evitar`, cuyo detalle dice literalmente **«La paciente
+   * cursa embarazo»** y cuyo `textoNota` se puede insertar en la nota firmada.
+   * Un descarte convertido en afirmación, dentro de un documento medicolegal.
+   *
+   * `problemasDelCuadro` ya no deja pasar los descartados, pero este motor no
+   * puede depender de que su llamador filtre: quien afirma es él.
+   *
+   * Un `presuntivo` o un `diferencial` **sí** cuentan para AVISAR —el riesgo de
+   * un embarazo no detectado pesa más—, pero no para afirmar: el texto lo dice
+   * en condicional más abajo. Sin `tipo` se comporta como antes.
+   */
+  const dxGestacional = (e.diagnosticos ?? []).filter(d =>
     /embaraz|gestaci|gr[aá]vid|obst[eé]tric|prenatal/i.test(d.descripcion ?? ''))
+  const embarazoConfirmado = dxGestacional.some(d => d.tipo !== 'descartado' && d.tipo !== 'diferencial')
+  /**
+   * ¿Alguien lo dio por CIERTO? Decide si el aviso AFIRMA o sólo CITA la nota.
+   *
+   * `presuntivo` no cuenta como afirmación —es el valor de fábrica del esquema,
+   * no un juicio (REG-365)— pero tampoco se lee como negación: cuando no consta,
+   * el aviso dice lo que el expediente dice y no más.
+   */
+  const embarazoAfirmado = dxGestacional.some(d => d.tipo === undefined || d.tipo === 'definitivo')
   const coincide = (x: { farmaco: string; sinonimos?: string[] }, nm: string) =>
     (x.sinonimos ?? []).some(s => nm.includes(norm(s))) ||
     nm.includes(norm(x.farmaco)) ||
@@ -391,7 +505,10 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
         id: `gesta:evitar:${m.nombre}`,
         nivel: 'accion',
         titulo: `${m.nombre}: evítalo en el embarazo`,
-        detalle: `La paciente cursa embarazo. ${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''}`,
+        /* Afirma sólo si alguien lo afirmó; si no, CITA el expediente. Lo que
+           no puede hacer es dar por cierto un embarazo que nadie confirmó ni
+           por falso uno que nadie descartó. */
+        detalle: `${embarazoAfirmado ? 'La paciente cursa embarazo.' : 'Hay un embarazo registrado en la nota.'} ${g.motivo}${g.alternativa ? ` Alternativa: ${g.alternativa}` : ''}`,
         textoNota: `${m.nombre} debe evitarse en el embarazo; se comentó y se valoró una alternativa. ${g.motivo}`,
       })
     }
@@ -543,7 +660,7 @@ function calculosAutomaticos(e: EntradaCopiloto): Sugerencia[] {
         detalle: tfg < 60
           ? 'Por debajo de 60: revisa que todo lo que se elimina por riñón esté ajustado.'
           : 'Por CKD-EPI 2021, sin coeficiente de raza.',
-        textoNota: `TFG estimada por CKD-EPI 2021: ${Math.round(tfg)} mL/min/1.73 m² (creatinina ${e.labs.creatinina} mg/dL).`,
+        textoNota: `TFG estimada por CKD-EPI 2021: ${Math.round(tfg)} mL/min/1.73 m² (${citaDelLab(e, 'creatinina', `creatinina ${e.labs.creatinina} mg/dL`)}).`,
       })
     }
   }

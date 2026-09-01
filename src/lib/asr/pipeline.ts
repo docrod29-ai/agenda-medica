@@ -76,6 +76,10 @@ export interface ResultadoPipeline {
 /**
  * Pasa un transcript por todas las etapas posteriores al reconocedor.
  *
+ * La conversión del Voice Engine a Clinical Truth NO ocurre aquí: pertenece a la
+ * frontera de integración de Consultorio. Mantenerla separada evita que un pipeline
+ * de texto puro fabrique o transporte autoridad clínica que no posee.
+ *
  * @param crudo lo que devolvió el ASR, sin tocar.
  */
 export function procesarTranscript(crudo: string): ResultadoPipeline {
