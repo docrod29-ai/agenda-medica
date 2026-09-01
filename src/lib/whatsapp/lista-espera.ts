@@ -12,12 +12,20 @@
  * `contactado` significa «ya se le ofreció algo hace poco», no «ya no cuenta».
  * Pasadas unas horas vuelve a la rueda.
  *
- * ── POR QUÉ SE ORDENA AQUÍ Y NO EN FIRESTORE ─────────────────────────────────
+ * ── QUÉ ORDENA FIRESTORE Y QUÉ ORDENA ESTE MÓDULO (REG-421) ──────────────────
  *
- * Un `where … in …` con dos `orderBy` exige un índice compuesto que hay que
- * crear a mano en la consola. Mientras no exista, la lectura falla ENTERA y no
- * se ofrece el hueco a nadie — que es exactamente cómo se rompió la pantalla de
- * pendientes la primera vez. Se lee plano y se ordena en memoria.
+ * Desde que el índice `waitlist(estado, prioridad, createdAt)` está desplegado,
+ * **la prioridad y la antigüedad las ordena Firestore** en la propia consulta
+ * (`ofrecer-hueco.ts`): así el tope de lectura recorta a los MENOS prioritarios
+ * y no a cualquiera.
+ *
+ * Lo que sigue viviendo aquí, y seguirá, es la elegibilidad por TIEMPO: quién
+ * vuelve a la rueda pasadas las horas de gracia. Eso compara `contactadoEn` con
+ * la hora de ahora, y no hay índice que exprese «hace más de seis horas».
+ *
+ * Este módulo mantiene su propio orden por prioridad porque es PURO y se prueba
+ * solo: reordenar una lista ya ordenada no cuesta nada, y así el criterio queda
+ * escrito en un sitio que no depende de que un índice exista.
  *
  * Módulo PURO.
  */
