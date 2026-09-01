@@ -5131,3 +5131,39 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   .nx-demo-capitulo:nth-child(even) .nx-demo-dicho,
   .nx-demo-capitulo:nth-child(even) .nx-demo-obra { order: initial; }
 }
+
+/* ── EL LATIDO DE «TE ESTOY OYENDO» ──────────────────────────────────────────
+   Los dos botones de grabación de la consulta latían con un `@keyframes pulse`
+   declarado DENTRO de la pantalla y pintado con `var(--red)`. Dos cosas mal:
+
+   · **Rojo.** Este repositorio ya selló la regla para `MarcoEscuchando` y para
+     `InstrumentStrip` — rojo significa RIESGO CLÍNICO, y enseñar al médico a
+     leerlo como «está grabando» erosiona el color con el que se le avisa de una
+     alergia. Los dos botones de esta pantalla se quedaron fuera de aquel
+     arreglo: la lección se aprendió en un componente y no en el de al lado.
+   · **Declarado en una pantalla.** Un `@keyframes` dentro de un `<style>` de
+     página no lo alcanza ningún barrido del sistema, así que el apagador de
+     `prefers-reduced-motion` de §24 tampoco: seguía latiendo para quien había
+     pedido que no.
+
+   Aquí late en cobalto, que es lo que ya dicen el marco y la franja cuando el
+   micrófono está abierto, y se apaga con todo lo demás. */
+@keyframes nx-escuchando-latido {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nexus) 50%, transparent); }
+  50%      { box-shadow: 0 0 0 12px color-mix(in srgb, var(--nexus) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="nx-escuchando-latido"] { animation: none !important; }
+}
+
+/* ── LO QUE FLOTA RESERVA SU SITIO ───────────────────────────────────────────
+   La píldora de «Grabando · mm:ss / Detener y generar nota» es `position:
+   fixed` y se posa sobre lo que haya debajo. A 1440 sobra sitio; a 390 px,
+   medido con la grabación en marcha, se posaba encima de tres botones de
+   herramientas — y el ÚLTIMO control de la pantalla no tiene a dónde
+   desplazarse para salir de debajo.
+
+   Mientras la píldora existe, el lienzo reserva su alto. Es más barato y más
+   fiable que moverla: la píldora está donde el pulgar la alcanza, y el
+   contenido deja de quedarse debajo. */
+html.nx-hay-pildora-grabando main { padding-bottom: 96px; }
