@@ -334,7 +334,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * exactamente el patrón de esta familia.
      */
     /**
-     * 415 entra aquí y no en `perdida`: la nota firmada todavía no se había
+     * 417 entra aquí y no en `perdida`: la nota firmada todavía no se había
      * perdido en ninguna parte. Lo que había eran dos partes del producto
      * afirmando cosas incompatibles — `restaurar.ts` documenta en su cabecera
      * que el SDK admin ignora las reglas de Firestore y deriva la colección de
@@ -438,7 +438,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ofrecer. El campo de alergias de un paciente acabó diciendo «Negadas,
      * Negadas, Negadas».
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 415],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417],
   },
   {
     clave: 'habla_real',
@@ -456,7 +456,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
     /**
-     * 416 es el caso puro de esta familia: el pie del respaldo decía «completo»
+     * 418 es el caso puro de esta familia: el pie del respaldo decía «completo»
      * y NO EXISTÍA el instrumento que lo habría desmentido — ni recuento por
      * colección, ni huella. Al encenderlo destapó los otros tres de la ronda.
      */
@@ -579,7 +579,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * out in 5000ms» dentro de un `await import`. El resumen de un fallo no es
      * el fallo, y creerle costó un diagnóstico equivocado escrito en un PR.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 416],
+
+    /**
+     * 415 es esta familia con la prueba más incómoda de todas: el instrumento
+     * no faltaba por descuido, faltaba porque NO HABÍA CON QUÉ ENCENDERLO. El
+     * arnés no había abierto nunca el visor del documento medicolegal, y al ir
+     * a abrirlo resultó que la pantalla ni pintaba — el consultorio de prueba no
+     * tenía una sola nota que enseñar, y la que se sembró para tenerla reventaba
+     * la pantalla entera. Un instrumento que no se puede encender no es un
+     * instrumento flojo: es la misma ausencia, mejor disimulada.
+     *
+     * Y al encenderse destapó otros dos, como dice el patrón de esta familia:
+     * la cabecera de cada nota del expediente y el «ya no» que suspende un
+     * medicamento en la consulta, mudos los dos. No aparecían porque no había
+     * datos que los hicieran aparecer — un cero sobre una lista vacía no dice
+     * «está bien», dice «aquí no hay nada».
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418],
   },
   {
     clave: 'hueco_como_dato',
@@ -646,7 +662,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * arreglo no fue ablandar el validador sino escribir `null` y dejar que lo
      * rechace: un informe rechazado es información; un cero, no.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 418],
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420],
   },
   {
     clave: 'aislamiento',
@@ -681,7 +697,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * coincidan en el tiempo, que es la clase de fuga que ninguna revisión de
      * permisos encuentra porque los permisos estaban bien.
      */
-    regs: [153, 161, 162, 163, 224, 349, 417, 503],
+    regs: [153, 161, 162, 163, 224, 349, 419, 503],
   },
   {
     clave: 'charter_vacio',
@@ -905,7 +921,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * recuento marcó como deuda una lectura que sí acota, porque resolvía los
      * nombres en todo el archivo y otra función tenía una variable homónima.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502],
+    /**
+     * 416 es esta familia **sobre la reparación de 340**, un escalón más arriba.
+     * 340 le quitó la memoria al ESTADO: el sello guarda el sha256 de las reglas
+     * desplegadas y una compuerta falla cuando se separa del archivo. Lo que
+     * quedó dependiendo de que alguien se acordara fue el ACTO DE REGISTRARLO —
+     * correr `sha256sum` a mano después de desplegar y pegarlo.
+     *
+     * Y se saltó: las reglas se publicaron el 31-ago con v1177, el sello se
+     * quedó vacío, y el repositorio pasó a declarar rotas unas protecciones que
+     * ya regían. Su lección: derivar el dato no basta si EMITIRLO sigue siendo un
+     * paso manual al final de un despliegue. Ahí lo emite quien publica.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 502],
   },
   {
     /**

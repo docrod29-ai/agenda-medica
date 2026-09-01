@@ -15283,26 +15283,185 @@ con techo además de suelo: probada al revés a 5 s (cae el suelo) y a 600 s (ca
 el techo, porque «subir el tope» no puede volverse el martillo con el que se
 esconde un cuelgue real).
 
+---
+
+## REG-415 — una nota sin `metadata` dejaba el documento medicolegal ilegible desde el producto
+
+**Dónde**: `src/lib/expediente/firestore.ts` (`normNota`) ·
+`src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx` · `src/lib/nota-word.ts`
+
+### Qué fallaba
+
+Una nota guardada sin el bloque `metadata` no pintaba un hueco: **tumbaba entera
+la pantalla del documento**. El médico veía «Algo salió mal. Ocurrió un error en
+esta pantalla. Tus datos están a salvo», con un único botón «Reintentar» que no
+puede funcionar nunca — un fallo de render determinista da el mismo resultado
+todas las veces.
+
+La nota seguía íntegra en Firestore. Era ilegible **desde el producto**, y con
+ella se iban la receta, la orden, el PDF y el Word, que salen de esa pantalla.
+
+### Cómo se descubrió
+
+No lo encontró una prueba. Lo encontró querer **medir** esa pantalla: el arnés
+del carril de excelencia no la había abierto nunca, y al sembrar una nota firmada
+para poder abrirla, la nota se escribió sin `metadata`. El sembrador es un
+`.mjs`, así que no pasa por `tsc`: el tipo `NotaMedica` declaraba el campo
+obligatorio y **nadie lo comprobaba**.
+
+Lo que convierte esto en regresión y no en «un fixture mal escrito» es lo que
+pasó después: ese documento cruzó **tres puertas** sin una queja —el escritor lo
+aceptó, Firestore lo aceptó, y la ruta del portal del paciente lo leyó y pintó su
+receta, porque sólo mira `estado` y `medicamentos`— y reventó en el cuarto
+lector. Es «el dato tiene que LLEGAR» entre dos lectores **del mismo documento**:
+que uno lo lea bien no dice nada del otro.
+
+### Causa raíz
+
+`normNota` es el normalizador por el que pasa todo lector de notas del producto.
+Defendía cuatro campos de arreglo —`diagnosticos`, `medicamentos`, `alergias`,
+`secciones`— y no `metadata`. El visor hace `nota.metadata.establecimiento` sin
+guarda **en cada render**; `nota-word.ts` hace el mismo acceso.
+
+Y el visor no es coherente consigo mismo: usa `nota.metadata?.medicoId` en una
+línea y `nota.metadata.establecimiento` en otra. Preguntar «¿este archivo usa
+alguna vez `?.` sobre `metadata`?» daba un **falso verde justo sobre el campo que
+fallaba**. Por eso el guardián mira aparición por aparición.
+
+### El arreglo, y por qué no rellena
+
+`metadata: (n.metadata ?? {}) as NotaMedica['metadata']` — el objeto **vacío**, a
+propósito.
+
+La pantalla ya sabe declarar lo que falta: «Falta el nombre del establecimiento.
+Es dato obligatorio del expediente (NOM-004)», «[FALTA CÉDULA PROFESIONAL]»,
+sello «—». Ése es el comportamiento correcto y estaba escrito desde antes; lo
+único que hacía falta era **dejarlo llegar**. Rellenar con un establecimiento
+plausible sería peor que la caída: apagaría esos avisos y saldría impreso con
+cédula profesional. Ausencia de dato no es dato de ausencia.
+
+### Qué NO cubre
+
+- Sólo se barrió el visor de la nota. Otras pantallas que lean notas pueden tener
+  desreferencias duras propias sobre campos que `normNota` tampoco defiende.
+- El barrido reconoce como guarda que el campo se ponga a prueba **en algún punto
+  del archivo**. Un `&&` en una rama distinta a la del acceso lo daría por bueno
+  sin serlo.
+- No dice nada sobre si los datos que sí llegan son correctos: sólo sobre si la
+  pantalla sobrevive a que falten.
+
+**Prueba.** `src/__tests__/un-documento-sin-metadata-no-tumba-el-visor.test.ts`
+(5 casos). **Probada al revés tres veces**: quitar la defensa de `normNota` → 2
+rojos; rellenar con un establecimiento plausible en vez de dejarlo ausente → 1
+rojo; estrenar en el visor una desreferencia dura nueva → 1 rojo, nombrando el
+campo. Y el propio barrido se corrigió al revés: su primera versión daba por
+bueno `nota.firma.timestamp` porque el nombre aparecía entre comillas invertidas
+**dentro de un comentario** cuarenta líneas más arriba.
+
+---
+
+## REG-416 — las reglas ya regían y el repositorio seguía diciendo que no
+
+**CÓMO SE DESCUBRIÓ.** Revisando por qué `docs/ops/REGLAS-DE-FIRESTORE.md`
+seguía listando `clinics/{id}/members/{uid}` como «sin regla desplegada» cuando
+el acta de `nexusmed-v1177` registraba `FIRESTORE_RULES = success`. Las dos cosas
+eran ciertas a la vez, y eso es lo que las hacía sospechosas.
+
+```
+acta de v1177   FIRESTORE_RULES = success   sobre 8f74901d, 31-ago 19:33 UTC
+firestore.rules en 8f74901d   sha256 3032001e14…e90a9
+firestore.rules hoy           sha256 3032001e14…e90a9   (sin cambios desde 29502fb9, 30-ago)
+firestore.rules.estado.json   hashDesplegado: ""
+```
+
+El despliegue había ocurrido. El **registro del despliegue** no se había escrito.
+
+### El defecto no es un dato falso, es un aviso que sobrevivió a su causa
+
+REG-340 dejó el estado bien construido: el hash se **deriva**, y si no coincide,
+el documento tiene que declarar qué no rige y qué se rompe mientras tanto. Lo que
+quedó abierto fue **quién rellena el hash**. Era un paso manual al final de un
+despliegue —correr `sha256sum` sobre el árbol correcto y pegarlo— y un paso
+manual al final de un despliegue es un paso que se salta.
+
+Con el sello vacío, el guardián exige una lista de pendientes, y la lista de
+pendientes decía que el apodo del chat del consultorio **no se guarda nunca**
+(REG-340), que el bloque clínico de E0-06 no rige y que las nueve colecciones de
+REG-340 sólo las cubre el comodín de denegación. Nada de eso era ya verdad.
+
+Cuesta lo mismo que la mentira contraria. Un documento que asusta con un hueco
+cerrado manda a la siguiente sesión a desplegar algo que ya está desplegado — o,
+peor, la acostumbra a que ese renglón no signifique nada.
+
+### La causa raíz
+
+`depende_de_recordar`, un escalón por encima de donde REG-340 lo dejó. Se le
+quitó la memoria al **estado** y se le dejó al **acto de registrarlo**.
+
+### El arreglo: el que publica es el que sella
+
+Un paso nuevo en `.github/workflows/deploy-production.yml`, «Firestore · emitir
+el sello de las reglas», corre justo después del despliegue y calcula el sha256
+del `firestore.rules` **que acaba de publicar** — el del árbol de
+`SHA_AUTORIZADO`, porque el checkout es ése. Lo escribe en el resumen de la
+ejecución (`FIRESTORE_RULES_SHA256`) y en el acta. Rellenar el sello pasa a ser
+copiar tres líneas de un acta, no reconstruir un dato.
+
+**Lo que deliberadamente NO se hizo**: que el workflow se auto-commitee el
+sello. `firestore.rules.estado.json` dice, con todas las letras, que el hash no
+se toca sin haber desplegado; un registro que se escribe solo deja de ser el
+acto de alguien que miró que el despliegue terminó bien. Se automatiza el
+**cálculo**, no la **confirmación**.
+
+El sello de hoy queda relleno con la evidencia citada —ejecuciones #11 y #12, el
+árbol `8f74901d`, lo que devolvió el acta— y la tabla de pendientes queda vacía,
+que es lo que el guardián hermano exige cuando el hash cuadra.
+
+### Qué NO cubre
+
+- **No comprueba producción.** Como REG-340: el hash dice lo que alguien
+  confirmó haber desplegado. Si se rellena sin desplegar, miente.
+- **No cubre los índices.** Van en el mismo comando y **no terminan con él**:
+  `--only firestore:indexes` contesta al enviar, y la construcción de un índice
+  compuesto es asíncrona. «Deploy success» no es «índices `Enabled`»; eso se mira
+  en la consola del proyecto (`docs/ops/INDICES-DE-FIRESTORE.md`).
+- **No obliga a pegar el sello**, a propósito. Sólo hace que el valor exista sin
+  que nadie lo calcule.
+
+**Prueba.** `src/__tests__/el-despliegue-emite-su-propio-sello.test.ts` (11 casos),
+probada al revés sobre cinco workflows mutilados: borrar el paso del sello,
+borrar el despliegue de las reglas, cambiar el hash derivado por una constante
+pegada, quitar el sello del acta y dejar que el acta cierre en verde sin el paso
+de Firestore. Los cinco caen.
+
+
 <!--
-  RENUMERADO AL REVIVIR EL PR #349 (31-ago-2026).
+  RENUMERADO DOS VECES AL REVIVIR EL PR #349 (31-ago-2026).
 
-  Estas cuatro entradas nacieron el 23-ago como REG-323 … REG-326. La rama se
-  quedó 296 commits atrás y, mientras tanto, `main` asignó ESOS MISMOS CUATRO
-  NÚMEROS a cuatro regresiones distintas (el teléfono que borraba alergias, el
-  laboratorio archivado en el paciente equivocado, el enlace de teleconsulta, y
-  el bot contestando el horario a un dolor torácico).
+  Primera vez: estas cuatro entradas nacieron el 23-ago como REG-323 … REG-326 y
+  `main` habia dado esos cuatro numeros a otras cuatro regresiones. Se movieron a
+  415 … 418.
 
-  No es la primera vez: el propio ledger registra un `reconcile: REG-323–REG-330
-  renumerados`. Un número de regresión es la llave con la que se encuentra la
-  causa raíz y la prueba que la sella; dos regresiones con la misma llave hacen
-  que la búsqueda devuelva la historia equivocada, y eso se descubre el día que
-  alguien la necesita.
+  Segunda vez, el MISMO DIA: mientras este PR esperaba, el bucle autonomo tomo
+  REG-415, choco a su vez con el 415 de aqui, se renumero a si mismo a REG-416 —
+  y ese 416 volvio a chocar con el de aqui. Se mueven otra vez:
+  415→417 · 416→418 · 417→419 · 418→420.
 
-  Se conservan las de `main` con su número y se mueven éstas al final de la
-  serie:  323→415 · 324→416 · 325→417 · 326→418.
+  QUE ENSEÑA ESTO, que vale mas que la renumeracion: el numero de regresion es un
+  CONTADOR GLOBAL que se asigna a mano, y hay dos escritores —el bucle autonomo y
+  el trabajo dirigido— que lo leen antes de escribir. Entre leer y fusionar cabe
+  el otro. No es un descuido de nadie: es una condicion de carrera con la forma
+  exacta de REG-349, la que esta misma rama arreglo para `clinic_members`, y
+  volvera a pasar mientras el numero se elija leyendo el ledger.
+
+  Quien fusione el segundo renumera. Mientras tanto, cada colision queda escrita
+  aqui en vez de resolverse en silencio: un numero de regresion es la llave con
+  la que se encuentra la causa raiz y la prueba que la sella, y dos regresiones
+  con la misma llave devuelven la historia equivocada el dia que alguien la
+  necesita.
 -->
 
-## REG-415 — la restauración era la única puerta por la que se podía reescribir una nota firmada
+## REG-417 — la restauración era la única puerta por la que se podía reescribir una nota firmada
 
 **Área.** Respaldo y restauración del consultorio (#312). Encontrado leyendo
 `src/lib/clinica/restaurar.ts` —que **documenta el peligro en su propia
@@ -15355,7 +15514,7 @@ actúa. Y no cubre notas selladas con v2: el fixture sella con la versión actua
 
 ---
 
-## REG-416 — el pie del respaldo certificaba «completo» sin nada con qué desmentirse
+## REG-418 — el pie del respaldo certificaba «completo» sin nada con qué desmentirse
 
 **Área.** Formato del respaldo del consultorio (#312).
 
@@ -15394,7 +15553,7 @@ declara en la cabecera (`fueraDelArchivo`) en vez de silenciarse.
 
 ---
 
-## REG-417 — re-enraizar la ruta dejaba el documento declarando pertenecer a otro consultorio
+## REG-419 — re-enraizar la ruta dejaba el documento declarando pertenecer a otro consultorio
 
 **Área.** Aislamiento entre consultorios durante la restauración (#312).
 
@@ -15440,7 +15599,7 @@ que es una declaración de límite, no un aprobado. Ver R-05 en
 
 ---
 
-## REG-418 — «consultorio vacío» miraba dos colecciones, y una supresión ARCO se podía deshacer sin querer
+## REG-420 — «consultorio vacío» miraba dos colecciones, y una supresión ARCO se podía deshacer sin querer
 
 **Área.** Candado de la restauración (#312).
 

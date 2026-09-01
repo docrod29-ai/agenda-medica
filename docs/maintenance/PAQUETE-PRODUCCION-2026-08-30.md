@@ -1,5 +1,10 @@
 # Paquete de producción — `nexusmed-v1175`
 
+> **SUPERADO — este paquete YA SE PUBLICÓ el 31-ago 03:10 UTC.** El estado
+> «PREPARADO, NO PUBLICADO» de abajo describe el momento en que se escribió y
+> ya no es cierto. Lo que sigue vale como acta de lo que se declaró; para el
+> estado de hoy ver [`ESTADO-DE-PRODUCCION-2026-08-31.md`](ESTADO-DE-PRODUCCION-2026-08-31.md).
+
 > **Estado: PREPARADO, NO PUBLICADO.** Este documento describe exactamente qué se
 > publicaría. Nadie ha desplegado nada. Publicar a producción y desplegar reglas
 > de Firestore siguen siendo decisiones del dueño

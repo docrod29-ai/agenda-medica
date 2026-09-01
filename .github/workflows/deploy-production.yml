@@ -27,7 +27,12 @@ permissions:
 
 env:
   SHA_AUTORIZADO: 8f74901d7a177c2336c80f16c6677965916c0f75
-  VERSION_ESPERADA: nexusmed-v1177
+  # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
+  # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
+  # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
+  # que envejeció sin que nadie se enterara. Ver Compuerta 0.
+  ROLLBACK_AUTORIZADO: ''
+  VERSION_ESPERADA: nexusmed-v1178
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
@@ -48,6 +53,62 @@ jobs:
           # de la variable, y actualizar el despliegue es cambiar UN número.
           ref: ${{ env.SHA_AUTORIZADO }}
           fetch-depth: 0
+
+      # ─────────────────────────────────────────────────────────────────────
+      # COMPUERTA 0 · lo que se publique tiene que ser lo de HOY.
+      #
+      # Las compuertas 1-3 no pueden cazar un pin envejecido: la 1 compara el sha
+      # consigo mismo, y la 3 comprueba que producción sirva VERSION_ESPERADA —
+      # que NO cambia cuando cambia el árbol. Mientras `version.txt` no se mueva,
+      # la misma cadena describe árboles distintos, así que la 3 pasa igual con el
+      # pin al día que con uno 87 commits atrás. Pasó el 31-ago.
+      #
+      # LA COMPUERTA SE LEE DE `main`, NO DEL CHECKOUT. Si viajara con el árbol
+      # que vigila, un árbol viejo traería su propia compuerta vieja.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: 'Compuerta 0 · el árbol autorizado publica lo mismo que la cabeza de main'
+        run: |
+          set -euo pipefail
+          CABEZA="$(git ls-remote origin refs/heads/main | cut -f1)"
+
+          # Traer main para poder contar la distancia y saber si el pin está en su
+          # historia. Si esto falla no se adivina: se sigue con los datos que haya
+          # y la decisión se toma abajo.
+          git fetch --quiet origin main || true
+
+          ES_ANCESTRO=si
+          COMMITS_DETRAS=""
+          if [ -n "$CABEZA" ]; then
+            git merge-base --is-ancestor "$SHA_AUTORIZADO" FETCH_HEAD 2>/dev/null || ES_ANCESTRO=no
+            COMMITS_DETRAS="$(git rev-list --count "$SHA_AUTORIZADO"..FETCH_HEAD 2>/dev/null || true)"
+          fi
+
+          # LO QUE ESTE BOTÓN PUBLICA O CERTIFICA. Si estos cuatro coinciden entre
+          # el pin y la cabeza, publicar desde el pin equivale a publicar desde la
+          # cabeza — y un pin atrasado deja de ser un problema. Si difieren, se
+          # para y se dice CUÁLES.
+          #
+          # Si no se pudo comparar (falta FETCH_HEAD), la variable se queda SIN
+          # DEFINIR a propósito y la decisión lo trata como «no se sabe», que para.
+          PUBLICABLES="firestore.rules firestore.indexes.json public/version.txt public/sw.js"
+          if git rev-parse --verify -q FETCH_HEAD >/dev/null; then
+            DIFIEREN=""
+            for F in $PUBLICABLES; do
+              if ! git diff --quiet "$SHA_AUTORIZADO" FETCH_HEAD -- "$F" 2>/dev/null; then
+                DIFIEREN="${DIFIEREN:+$DIFIEREN,}$F"
+              fi
+            done
+            export PUBLICABLES_DIFIEREN="$DIFIEREN"
+          fi
+
+          git show FETCH_HEAD:scripts/ops/arbol-autorizado.mjs > "$RUNNER_TEMP/arbol-autorizado.mjs"
+
+          SHA_AUTORIZADO="$SHA_AUTORIZADO" \
+          CABEZA_DE_MAIN="$CABEZA" \
+          ROLLBACK_AUTORIZADO="${ROLLBACK_AUTORIZADO:-}" \
+          ES_ANCESTRO="$ES_ANCESTRO" \
+          COMMITS_DETRAS="$COMMITS_DETRAS" \
+          node "$RUNNER_TEMP/arbol-autorizado.mjs"
 
       - name: 'Compuerta 1 · SHA, versión y REG-323'
         run: |
@@ -176,6 +237,33 @@ jobs:
             npx --no-install firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive
           fi
 
+      # El último sitio donde esto dependía de que alguien se acordara era
+      # CALCULAR el hash a mano después de publicar. Lo calcula el despliegue,
+      # sobre el árbol que acaba de publicar, y lo deja escrito en el acta.
+      - name: 'Firestore · emitir el sello de las reglas'
+        id: sello
+        if: steps.rules.outcome == 'success'
+        run: |
+          set -euo pipefail
+          HASH="$(sha256sum firestore.rules | cut -d' ' -f1)"
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Sello de firestore.rules"
+            echo
+            echo "Las reglas del árbol \`$SHA_AUTORIZADO\` quedan publicadas."
+            echo "Para que el repositorio lo sepa, pega esto en \`firestore.rules.estado.json\`:"
+            echo
+            echo '```json'
+            echo "  \"hashDesplegado\": \"$HASH\","
+            echo "  \"confirmadoEl\": \"$(date -u +%Y-%m-%d)\","
+            echo "  \"shaDelArbol\": \"$SHA_AUTORIZADO\","
+            echo '```'
+            echo
+            echo "Esto NO dice nada de los índices: \`--only firestore:indexes\` contesta"
+            echo "al enviar, no al terminar. Eso se mira en la consola del proyecto."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "FIRESTORE_RULES_SHA256=$HASH"
+
       - name: Limpiar credencial temporal
         if: always()
         run: rm -f "$RUNNER_TEMP/firebase-sa.json" "$RUNNER_TEMP/status.json"
@@ -211,6 +299,7 @@ jobs:
         env:
           R_VERSION: ${{ steps.version.outcome }}
           R_RULES: ${{ steps.rules.outcome }}
+          SELLO_REGLAS: ${{ steps.sello.outputs.hash }}
           R_SECURITY: ${{ steps.security.outcome }}
           R_SMOKE: ${{ steps.smoke.outcome }}
           R_PORTAL: ${{ steps.portal.outcome }}
@@ -230,6 +319,7 @@ jobs:
             echo "VERSION=$VERSION_ESPERADA"
             echo "VERCEL_PROJECT=agenda-medica"
             echo "FIRESTORE_RULES=$R_RULES"
+            echo "FIRESTORE_RULES_SHA256=${SELLO_REGLAS:-no-emitido}"
             echo "SECURITY_E2E=$R_SECURITY"
             echo "SMOKE=$R_SMOKE"
             echo "SMOKE_PORTAL=$R_PORTAL"

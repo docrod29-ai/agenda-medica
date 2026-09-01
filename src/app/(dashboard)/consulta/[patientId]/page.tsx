@@ -4990,7 +4990,8 @@ export default function ConsultaActivaPage() {
                     type="button"
                     onClick={() => setMedPorCambiar({ nombre: v.medicamento.nombre, dosis: v.medicamento.dosis, estado: 'suspendida', motivo: '' })}
                     title={`Marcar que ${v.medicamento.nombre} ya no lo toma`}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 11.5, padding: '0 2px 0 5px', textDecoration: 'underline' }}
+                    className="nx-accion-en-prosa"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, padding: '0 2px 0 5px', textDecoration: 'underline' }}
                   >ya no</button>
                 )}
               </span>

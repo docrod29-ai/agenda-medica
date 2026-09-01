@@ -1018,9 +1018,24 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
         flex: 1, marginBottom: 14, background: 'var(--s1)',
         border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden',
       }}>
-        <button onClick={onToggle} style={{
+        {/*
+          La cabecera de cada nota del expediente longitudinal ABRE la nota, y no
+          acusaba el puntero: `background: 'none'` en el `style={{ }}` se come
+          cualquier `:hover` de la hoja. Es la lista por la que el médico recorre
+          la historia del paciente — una fila que no responde se lee como una
+          ficha impresa, y no se pulsa.
+
+          No salía en las mediciones porque el consultorio de prueba no tenía
+          ninguna nota firmada que pintar: el control existía y no había datos
+          que lo hicieran aparecer. Un cero de esa lista no decía «está bien»,
+          decía «aquí no hay nada».
+
+          `aria-expanded` porque despliega la nota debajo; el chevrón lo dice
+          para quien lo ve y para nadie más.
+        */}
+        <button onClick={onToggle} className="nx-acc-plana" aria-expanded={abierta} style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12,
+          padding: '14px 16px', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12,
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

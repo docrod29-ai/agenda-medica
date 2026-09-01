@@ -52,6 +52,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { conPortal, claveDeRuta, tokenDelPortal } from './token-del-portal.mjs'
 
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const BASE = process.env.BASE ?? 'http://localhost:3300'
@@ -66,7 +67,36 @@ const RUTAS = (process.env.RUTAS ?? [
   '/crm', '/reactivacion', '/resenas', '/membresias', '/farmacia',
   '/corte-caja', '/cumplimiento', '/cumplimiento/retencion', '/consultor',
   '/guia', '/consulta/pac-001', '/expediente/pac-001',
+  /*
+   * EL DOCUMENTO MEDICOLEGAL, que llevaba fuera de esta lista desde el principio.
+   *
+   * `/nota/[patientId]/[notaId]` es donde el médico LEE lo que firmó, y de donde
+   * salen la receta, la orden, el Word y el PDF. Es la salida del producto —«que
+   * el médico salga de la consulta con la nota hecha»— y ninguna de las 22 rutas
+   * de arriba la tocaba: se medían las pantallas donde se TRABAJA, no la que
+   * queda.
+   *
+   * Al abrirla por primera vez ni siquiera pintaba: reventaba en el arranque
+   * porque el sembrado escribía una nota sin `metadata`. O sea que esta ruta
+   * llevaba fuera el tiempo suficiente para que ni hubiera con qué medirla.
+   */
+  '/nota/pac-001/nota-demo-001',
 ].join(',')).split(',')
+
+/**
+ * EL PORTAL DEL PACIENTE ENTRA AQUÍ, y llevaba fuera desde el principio.
+ *
+ * Las 22 rutas de arriba son todas del lado del MÉDICO. El portal es la única
+ * pantalla que ve un paciente, y `.claude/rules/patient-facing-ai.md` dice por
+ * qué eso no se hereda: del lado del médico, un control que se lee como texto
+ * lo salva alguien entrenado para sospechar. Un paciente que no ve que algo se
+ * puede pulsar, simplemente no lo pulsa — y ese control era «Confirmar cita».
+ *
+ * No lleva la sesión del equipo: lleva su token. Sin `PORTAL_PACIENTE_SECRET`
+ * no se mide, y `conPortal` lo dice en voz alta en vez de dejar un hueco
+ * silencioso con buena conciencia.
+ */
+const RUTAS_CON_PORTAL = conPortal(RUTAS)
 
 const nav = await chromium.launch({ executablePath: CHROME })
 const ctx = await nav.newContext({ viewport: { width: 1440, height: 900 } })
@@ -130,8 +160,10 @@ const FOTO = (e) => {
 
 const medido = {}
 const detalle = {}
+/* Rutas que montaron pero no pintaron ni un control: sospechosas, no verdes. */
+const rutasVacias = []
 
-for (const ruta of RUTAS) {
+for (const ruta of RUTAS_CON_PORTAL) {
   await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded' }).catch(() => {})
   await pag.waitForTimeout(5000)
   for (const t of [/^saltar$/i, /^entendido$/i]) {
@@ -244,8 +276,27 @@ for (const ruta of RUTAS) {
     process.exit(2)
   }
 
-  medido[ruta] = mudos.length
-  detalle[ruta] = { total: cuantos, mudos }
+  // La clave estable: el token del portal cambia en cada corrida y guardar la
+  // URL literal dejaría un techo nuevo cada vez, comparable con nada.
+  medido[claveDeRuta(ruta)] = mudos.length
+  detalle[claveDeRuta(ruta)] = { total: cuantos, mudos }
+
+  /**
+   * SUELO POR RUTA: cero controles NO es cero mudos.
+   *
+   * Una ruta que monta su `<main>` pero no pinta un solo control da «0 mudos» y
+   * casa con su techo de 0. El total global —que aborta por debajo de 100— no la
+   * salva: su cero se absorbe entre las otras veintitantas.
+   *
+   * Es la misma distinción que salvó la unidad 88 en los diálogos, donde
+   * «Cobrar» dijo «sin abrir, queda sin medir» en vez de 0 y por eso se
+   * investigó. Aquí faltaba, y estaba declarado como NOT_PROVEN.
+   *
+   * Ninguna pantalla de trabajo de este producto tiene cero controles: todas
+   * llevan al menos el armazón. Si alguna los tuviera de verdad, este aviso lo
+   * dirá y se declara — que es justo lo contrario de que pase en silencio.
+   */
+  if (cuantos === 0) rutasVacias.push(claveDeRuta(ruta))
   console.log(`  ${String(mudos.length).padStart(3)} mudos de ${String(cuantos).padEnd(4)} ${ruta}`)
   if (mudos.length) mudos.slice(0, 6).forEach(m => console.log(`        · ${m}`))
 }
@@ -293,6 +344,191 @@ const mudosDeDialogos = []
         await pagD.locator('button:visible, [role=menuitem]:visible').filter({ hasText: /Editar cita/i }).first().click({ timeout: 5000 })
       },
     },
+    /**
+     * LOS DIÁLOGOS DE ESTADO DIFÍCIL, que hasta hoy no se abría ninguno.
+     *
+     * Los dos de arriba se abren con un clic desde la pantalla en la que ya
+     * estamos. Éstos piden LLEVAR EL PRODUCTO A UN ESTADO: un cobro que anular,
+     * y un motivo escrito para que el botón destructivo deje de estar apagado.
+     *
+     * Y eso importa para lo que mide este arnés: un control `disabled` se salta
+     * a propósito —un botón apagado no tiene que acusar nada—, así que el botón
+     * «Anular cobro» NO se medía aunque el diálogo se hubiera abierto. Sin
+     * escribir el motivo, el control más peligroso del producto queda fuera de
+     * la cuenta y el diálogo sale «0 mudos» sin haber mirado lo que importa.
+     *
+     * Es la confirmación de un acto DESTRUCTIVO sobre dinero. El golden de
+     * fuente `un-dialogo-a-mano-no-atrapa-el-foco` ya exige que pase por
+     * `ui/Modal`; lo que nadie había comprobado es cómo se comporta al PULSAR.
+     */
+    {
+      nombre: 'anular un cobro',
+      sel: '[role=dialog]',
+      abrir: async () => {
+        await pagD.goto(`${BASE}/finanzas`, { waitUntil: 'domcontentloaded' })
+        await pagD.waitForTimeout(6000)
+        // Por ROL, no por texto: ver la nota de «agregar una adenda». Un icono
+        // añadido mañana a este botón convertiría el `hasText` anclado en un
+        // «no se pudo abrir» silencioso sobre el control más peligroso del
+        // producto.
+        await pagD.getByRole('button', { name: 'Anular', exact: true }).first()
+          .click({ timeout: 8000 })
+        await pagD.waitForTimeout(1500)
+        // El motivo enciende el botón destructivo. Sin esto no se mide.
+        const campo = pagD.locator('[role=dialog] textarea, [role=dialog] input[type=text]').first()
+        if (await campo.count().catch(() => 0)) {
+          await campo.fill('captura equivocada — medición del arnés').catch(() => {})
+          await pagD.waitForTimeout(600)
+        }
+      },
+    },
+    /**
+     * COBRAR — el otro diálogo de estado difícil, y el que toca dinero de
+     * verdad. Se abre por la misma puerta que «Editar cita»: el menú «Más
+     * acciones» de una fila de la agenda.
+     *
+     * Puede no aparecer: el propio producto sólo ofrece «Cobrar» en ciertos
+     * estados de la cita (unidad 120 de `citas/page.tsx` — antes salía en
+     * todas, incluidas las que ni habían pasado). Si no está, el arnés lo dice
+     * con «sin abrir … queda sin medir» en vez de dar un cero.
+     */
+    {
+      nombre: 'cobrar una cita',
+      sel: '[role=dialog]',
+      abrir: async () => {
+        await pagD.goto(`${BASE}/citas`, { waitUntil: 'domcontentloaded' })
+        await pagD.waitForTimeout(6000)
+
+        /**
+         * DOS SITIOS, PORQUE EL PRODUCTO NO LO REPITE.
+         *
+         * La primera versión de esta sonda buscó `^Cobrar$` sólo dentro del menú
+         * «Más acciones» y salió «sin abrir». No era el producto: era la sonda,
+         * equivocada en las dos mitades a la vez.
+         *
+         * Cobrar es la ACCIÓN PRIMARIA de la fila cuando la cita está atendida
+         * y sin cobrar, y entonces se pinta como botón directo. El ítem del menú
+         * se llama «Registrar cobro» y sólo sale
+         * `{puedeCobrar && accion?.tipo !== 'cobrar'}` — es decir, se esconde a
+         * propósito cuando el botón directo ya está, para no ofrecer lo mismo
+         * dos veces. Está mejor pensado que mi primer intento de medirlo.
+         *
+         * Así que se busca primero el botón de la fila y luego el del menú.
+         */
+        const directo = pagD.getByRole('button', { name: 'Cobrar', exact: true }).first()
+        if (await directo.count().catch(() => 0)) {
+          await directo.click({ timeout: 8000 }).catch(() => {})
+          await pagD.waitForTimeout(1500)
+          return
+        }
+
+        const menus = pagD.locator('button:visible[aria-label^="Más acciones"]')
+        const cuantos = await menus.count().catch(() => 0)
+        for (let i = 0; i < Math.min(cuantos, 6); i++) {
+          await menus.nth(i).click({ timeout: 5000 }).catch(() => {})
+          await pagD.waitForTimeout(900)
+          const it = pagD.locator('[role=menuitem]:visible').filter({ hasText: /Registrar cobro/i }).first()
+          if (await it.count().catch(() => 0)) {
+            await it.click({ timeout: 5000 }).catch(() => {})
+            await pagD.waitForTimeout(1500)
+            return
+          }
+          await pagD.keyboard.press('Escape').catch(() => {})
+          await pagD.waitForTimeout(400)
+        }
+      },
+    },
+    /**
+     * LA ADENDA — corregir un documento firmado que NO se puede tocar.
+     *
+     * Es el tercer diálogo de estado difícil, y el que pide el estado más caro:
+     * sólo existe sobre una nota FIRMADA, así que hasta que el sembrado no supo
+     * escribir una (con `metadata`, `secciones` y bloque de `firma`) no había
+     * forma de abrirlo. Y como «Anular cobro», su acción primaria nace APAGADA
+     * —motivo de tres letras y texto—, así que sin escribir los dos campos el
+     * diálogo salía «0 mudos» sin haber mirado el botón que importa.
+     *
+     * Se busca por ROL, no por texto, y eso no es un detalle de estilo: el botón
+     * lleva icono, así que su `textContent` es `" Adenda"` con un espacio
+     * delante y un `hasText: /^Adenda$/` no encuentra NADA. Playwright no
+     * normaliza el espacio cuando el filtro es una expresión regular anclada.
+     * Falla en silencio y de la peor manera: el arnés no dice «no coincide»,
+     * dice «no se pudo abrir», que se lee como problema del producto. `getByRole`
+     * compara contra el NOMBRE ACCESIBLE, ya normalizado — que además es lo que
+     * oye quien usa lector de pantalla, o sea lo que hay que medir de todos modos.
+     *
+     * Y VA CON `exact: true`, que es la mitad que se me olvidó la primera vez.
+     * El `name` de `getByRole` es SUBCADENA por omisión. Al cambiar la sonda de
+     * «Cobrar» a `getByRole` sin `exact`, `.first()` dejó de encontrar el botón
+     * de la fila y empezó a encontrar el filtro «1 por cobrar» de la cabecera —
+     * y lo PULSÓ. El arnés no falló: filtró la agenda y luego dijo «sin abrir»
+     * sobre una lista que él mismo había cambiado.
+     *
+     * O sea que la versión «robusta» era peor que la frágil: la frágil no
+     * encontraba nada, ésta encontraba otra cosa y actuaba sobre ella. Cambiar
+     * un localizador es cambiar lo que el arnés hace, no cómo lo dice.
+     */
+    {
+      nombre: 'agregar una adenda',
+      sel: '[role=dialog]',
+      abrir: async () => {
+        await pagD.goto(`${BASE}/nota/pac-001/nota-demo-001`, { waitUntil: 'domcontentloaded' })
+        await pagD.waitForTimeout(7000)
+        await pagD.getByRole('button', { name: 'Adenda', exact: true }).first().click({ timeout: 8000 })
+        await pagD.waitForTimeout(1200)
+        // Los dos campos encienden «Agregar adenda». Sin esto no se mide.
+        await pagD.locator('[role=dialog] input').first()
+          .fill('Corrección sintética — medición del arnés').catch(() => {})
+        await pagD.locator('[role=dialog] textarea').first()
+          .fill('Texto sintético de medición.').catch(() => {})
+        await pagD.waitForTimeout(600)
+      },
+    },
+    /**
+     * LOS CUATRO DESTINOS DEL PORTAL QUE NADIE HABÍA ABIERTO.
+     *
+     * El portal es UNA url con CINCO pantallas detrás: el destino vive en estado
+     * de cliente, no en la ruta. El arnés mide «la pantalla al aterrizar», así
+     * que durante todo este carril sólo vio `hoy` — las otras cuatro, que son
+     * donde el paciente lee su plan y sus recetas, no las miraba nadie.
+     *
+     * Medido antes de escribir esto: hoy los cuatro destinos son TEXTO, cero
+     * controles dentro de `<main>`. O sea que no escondían ningún mudo. Pero un
+     * control que se añada mañana ahí no lo vigilaría nadie, y eso es lo que se
+     * cierra: la cobertura, no un defecto.
+     *
+     * Se abren con el token CLÍNICO a propósito: con el de mostrador, «Cuidado»
+     * y «Documentos» enseñan un muro en vez de su contenido.
+     */
+    ...['Preguntar', 'Cuidado', 'Documentos', 'Perfil'].map(destino => ({
+      nombre: `portal · ${destino}`,
+      sel: 'main',
+      /**
+       * AQUÍ EL VACÍO ES LEGÍTIMO, y hay que decirlo o el arnés miente.
+       *
+       * Estos cuatro destinos son TEXTO hoy: cero controles dentro de `<main>`.
+       * La maquinaria de diálogos trata «cero controles» como «no se pudo
+       * abrir», y con eso imprimía cuatro líneas de «sin medir» sobre pantallas
+       * que SÍ se abrieron. Un arnés que dice algo falso es peor que uno que
+       * calla.
+       *
+       * Con esto, cero significa «medido, y no había nada que medir» — y el día
+       * que alguien añada un control ahí, entra en la cuenta solo.
+       */
+      permitirVacio: true,
+      abrir: async () => {
+        const t = tokenDelPortal('clinico')
+        if (!t) return
+        await pagD.goto(`${BASE}/mi/${t}`, { waitUntil: 'domcontentloaded' })
+        await pagD.waitForTimeout(7000)
+        // Por rol y dentro del `nav`, para no confundirlo con un botón del
+        // cuerpo que se llame igual. Hoy estos cinco destinos son texto pelado,
+        // así que el filtro anclado también acertaba — pero acertaba por suerte.
+        await pagD.locator('nav').getByRole('button', { name: destino, exact: true })
+          .first().click({ timeout: 6000 }).catch(() => {})
+        await pagD.waitForTimeout(2500)
+      },
+    })),
   ]
 
   for (const d of DIALOGOS) {
@@ -313,7 +549,13 @@ const mudosDeDialogos = []
       })
       return i
     }, d.sel).catch(() => -1)
-    if (cuantosD <= 0) { console.log(`  ${'sin abrir'.padEnd(9)} ${d.nombre} — queda sin medir`); continue }
+    if (cuantosD < 0) { console.log(`  ${'sin abrir'.padEnd(9)} ${d.nombre} — queda sin medir`); continue }
+    if (cuantosD === 0) {
+      // Cero controles: legítimo sólo donde se ha declarado que lo es.
+      if (d.permitirVacio) { console.log(`  ${'sin nada'.padEnd(9)} ${d.nombre} — se abrió y no tiene controles`); continue }
+      console.log(`  ${'sin abrir'.padEnd(9)} ${d.nombre} — queda sin medir`)
+      continue
+    }
     const mudosD = []
     for (let i = 0; i < cuantosD; i++) {
       const el = pagD.locator(`[data-acuse-dialogo="d${i}"]`)
@@ -337,7 +579,7 @@ await nav.close()
 // Un barrido que no encuentra controles no es un aprobado: es un barrido roto.
 const totalControles = Object.values(detalle).reduce((a, d) => a + d.total, 0)
 if (totalControles < 100) {
-  console.error(`\n  Sólo se encontraron ${totalControles} controles en ${RUTAS.length} rutas. No está midiendo.\n`)
+  console.error(`\n  Sólo se encontraron ${totalControles} controles en ${RUTAS_CON_PORTAL.length} rutas. No está midiendo.\n`)
   process.exit(2)
 }
 
@@ -357,7 +599,7 @@ if (ACTUALIZAR) {
 const { techos } = JSON.parse(readFileSync(TECHOS, 'utf8'))
 const peores = []
 const mejores = []
-for (const ruta of RUTAS) {
+for (const ruta of RUTAS_CON_PORTAL.map(claveDeRuta)) {
   const antes = techos[ruta]
   if (antes === undefined) { peores.push(`${ruta}: sin techo declarado — añádelo con --actualizar`); continue }
   if (medido[ruta] > antes) peores.push(`${ruta}: ${medido[ruta]} mudos, el techo era ${antes}`)
@@ -366,6 +608,11 @@ for (const ruta of RUTAS) {
 
 /* Los diálogos no tienen techo por ruta: su cuenta buena es CERO y punto. */
 for (const m of mudosDeDialogos) peores.push(m)
+
+/* Y una ruta sin un solo control no está en cero: está sin medir. */
+for (const r of rutasVacias) {
+  peores.push(`${r}: 0 controles encontrados — la ruta montó pero no pintó nada que pulsar; eso no es «0 mudos», es «sin medir»`)
+}
 
 if (peores.length) {
   console.error('\n  MÁS CONTROLES MUDOS QUE ANTES:\n' + peores.map(p => '   · ' + p).join('\n') + '\n')
