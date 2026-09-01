@@ -4941,3 +4941,77 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
    `@keyframes spin` dentro de tres pantallas. */
 .nx-gira { animation: nx-gira var(--nx-ritmo-giro) linear infinite; color: var(--nexus); flex-shrink: 0; }
 @keyframes nx-gira { to { transform: rotate(360deg); } }
+
+/* ── EL DEMO: una visita, no un catálogo ─────────────────────────────────── */
+
+.nx-demo-entrada { align-items: center; }
+.nx-demo-titulo { font-size: clamp(32px, 4.6vw, 52px); }
+.nx-demo-video { display: flex; justify-content: center; }
+.nx-demo-video video {
+  width: 100%; max-width: 320px; aspect-ratio: 9 / 16;
+  border-radius: var(--r-lg);
+  background: #000;
+  border: 1px solid var(--border);
+  box-shadow: var(--elev-3, 0 20px 50px rgba(0,0,0,0.35));
+}
+.nx-demo-visita { list-style: none; margin: 0; padding: 0; }
+.nx-demo-capitulo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  gap: 20px 44px;
+  align-items: center;
+  padding: 26px 0;
+  border-top: 1px solid var(--border);
+}
+.nx-demo-capitulo:last-child { border-bottom: 1px solid var(--border); }
+.nx-demo-paso { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.nx-demo-icono {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: var(--r-md);
+  background: var(--nexus-soft);
+  border: 1px solid var(--nexus-borde);
+  color: var(--nexus);
+}
+.nx-demo-n {
+  font-size: 12px; font-weight: 600; color: var(--nexus);
+  font-variant-numeric: tabular-nums;
+}
+.nx-demo-titular {
+  margin: 0 0 8px;
+  font-size: clamp(19px, 2.2vw, 23px); font-weight: 600;
+  letter-spacing: -0.02em; color: var(--text);
+  text-wrap: balance;
+}
+.nx-demo-subtitular {
+  margin: 0 0 7px;
+  font-size: 16.5px; font-weight: 600; letter-spacing: -0.015em; color: var(--text);
+}
+.nx-demo-texto {
+  margin: 0;
+  font-size: 14.5px; line-height: 1.6; color: var(--text2);
+  max-width: 54ch;
+}
+.nx-demo-alrededor {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 32px;
+}
+.nx-demo-satelite { display: grid; gap: 16px; align-content: start; }
+.nx-demo-satelite .nx-demo-texto { font-size: 13.5px; }
+.nx-demo-cierre-acciones { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.nx-demo-cierre-acciones .btn { text-decoration: none; }
+
+/* Los capítulos alternan lado: la vista no se lee como una tabla de dos
+   columnas, y el ojo vuelve al principio de cada capítulo. */
+.nx-demo-capitulo:nth-child(even) .nx-demo-dicho { order: 2; }
+.nx-demo-capitulo:nth-child(even) .nx-demo-obra { order: 1; }
+
+@media (max-width: 860px) {
+  .nx-demo-entrada { grid-template-columns: 1fr; }
+  .nx-demo-capitulo { grid-template-columns: 1fr; gap: 16px; padding: 22px 0; }
+  /* En una sola columna el texto va SIEMPRE primero: alternar el orden en
+     vertical deja capítulos que empiezan por una maqueta sin explicar. */
+  .nx-demo-capitulo:nth-child(even) .nx-demo-dicho,
+  .nx-demo-capitulo:nth-child(even) .nx-demo-obra { order: initial; }
+}

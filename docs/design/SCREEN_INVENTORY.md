@@ -90,7 +90,7 @@
 | `/` | publica | ✅ | 413 | 13 | — | — | — |
 | `/arquitectura` | publica | — | 112 | 2 | — | ✅ | — |
 | `/contacto` | publica | — | 70 | 2 | — | ✅ | — |
-| `/demo` | publica | — | 312 | 5 | — | ✅ | — |
+| `/demo` | publica | — | 490 | 4 | — | ✅ | — |
 | `/demo/interactivo` | publica | ✅ | 772 | 2 | — | ✅ | — |
 | `/demo/razonamiento` | publica | ✅ | 146 | 3 | — | ✅ | — |
 | `/evidencia` | publica | — | 81 | 1 | — | ✅ | — |
