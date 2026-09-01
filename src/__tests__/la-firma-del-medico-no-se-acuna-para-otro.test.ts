@@ -186,25 +186,70 @@ describe('la firma de un médico no se acuña para otro consultorio', () => {
 })
 
 /**
- * Lo laxo, congelado a propósito: si alguien lo endurece (que es lo que propone
- * el PR #355), estas dos se ponen rojas y le obligan a venir aquí a leer por qué
- * estaban así. Un golden también sirve para que un cambio deseable no pase
- * inadvertido.
+ * ── LO QUE ERA LAXO, Y DEJÓ DE SERLO — #355, 1-sep-2026 ──────────────────────
+ *
+ * Este bloque nació congelando tres laxitudes A PROPÓSITO, con esta nota:
+ *
+ *   «si alguien lo endurece (que es lo que propone el PR #355), estas dos se
+ *    ponen rojas y le obligan a venir aquí a leer por qué estaban así»
+ *
+ * Funcionó: al fusionar el #355 se pusieron rojas las dos, y esto es la lectura
+ * que exigían. Las afirmaciones se INVIERTEN —no se borran— porque el valor del
+ * golden no era el número, era el registro de que alguien miró y decidió.
+ *
+ * Lo que cambió, medido contra el código, no contra el PR:
+ *
+ *   | | Antes | Ahora |
+ *   |---|---|---|
+ *   | Qué liga la firma | `path\|exp` | `version\|path\|ownerUid\|clinicId\|exp` |
+ *   | Cuánto dura | 24 h | 15 min |
+ *   | Sin secreto en el servidor | devolvía la URL PELADA (falla abierta) | **503** |
+ *   | URL sin firma en el proxy | pasaba salvo `RECETA_DISENO_FIRMA=obligatoria` | se rechaza, y la compatibilidad **no existe en producción** |
+ *
+ * El cambio que más pesa no es el de los 15 minutos: es el de la ÚLTIMA fila.
+ * Antes la puerta estaba abierta y se cerraba poniendo una variable de entorno;
+ * ahora está cerrada y sólo se abre poniendo otra —y ni así en producción—. Una
+ * defensa que depende de que alguien se acuerde de encenderla ya falló una vez
+ * en este repositorio, y es una familia de defecto con nombre propio.
+ *
+ * QUÉ NO CUBRE: que la capacidad no se pueda REENVIAR. Quince minutos y el
+ * ligado al dueño acotan el daño de una fuga, no la impiden: quien tenga la URL
+ * dentro de su ventana baja ese objeto. Cerrarlo del todo exige una sesión en el
+ * proxy, y el proxy lo consume un `<img>` que no manda cabeceras.
  */
-describe('lo que hoy es MÁS LAXO de lo que el #355 propone — declarado, no arreglado', () => {
-  it('SIN SECRETO la ruta falla ABIERTA: devuelve la URL pelada, sin firma', async () => {
+describe('lo que era laxo y el #355 cerró — probado al revés en su día', () => {
+  it('SIN SECRETO la ruta falla CERRADA: 503, y ninguna URL sale', async () => {
+    /**
+     * Antes devolvía `/api/receta/diseno?path=…` sin firma, y el proxy la
+     * aceptaba: una variable que faltara en el servidor abría la puerta entera.
+     * Un fallo de configuración no puede ser un permiso.
+     */
     delete env.RECETA_DISENO_SECRET
     delete env.PORTAL_PACIENTE_SECRET
-    const urls = await urlsDe(await acunar({ paths: [FIRMA_DE_A] }))
-    expect(urls[FIRMA_DE_A]).toBe(`/api/receta/diseno?path=${encodeURIComponent(FIRMA_DE_A)}`)
-    expect(urls[FIRMA_DE_A]).not.toMatch(/sig=/)
+    const res = await acunar({ paths: [FIRMA_DE_A] }) as Response
+    expect(res.status).toBe(503)
+    const cuerpo = await res.json()
+    expect(cuerpo.ok).toBe(false)
+    expect(cuerpo.urls, 'un 503 que además devuelve urls no es un 503').toBeUndefined()
   })
 
-  it('la firma acuñada dura 24 h, y no lleva dentro ni el dueño ni el consultorio', async () => {
+  it('la capacidad dura 15 minutos y lleva dentro el dueño y el consultorio', async () => {
     const urls = await urlsDe(await acunar({ paths: [FIRMA_DE_A] }))
-    const exp = Number(new URL(urls[FIRMA_DE_A], 'https://x.mx').searchParams.get('exp'))
-    const vidaH = (exp - Math.floor(Date.now() / 1000)) / 3600
-    expect(vidaH).toBeGreaterThan(23)
-    expect(urls[FIRMA_DE_A]).not.toMatch(/[?&](own|cid)=/)
+    const u = new URL(urls[FIRMA_DE_A], 'https://x.mx')
+    const vidaMin = (Number(u.searchParams.get('exp')) - Math.floor(Date.now() / 1000)) / 60
+
+    // Techo Y suelo. Sin el suelo, una capacidad que caducara al instante
+    // pasaría esta prueba y rompería el producto; sin el techo, volver a las
+    // 24 h no la despertaría.
+    expect(vidaMin).toBeLessThanOrEqual(15)
+    expect(vidaMin).toBeGreaterThan(10)
+
+    // Lo que de verdad cambia el modelo de amenaza: la firma deja de ser
+    // transferible entre consultorios porque el dueño y la clínica van DENTRO
+    // del mensaje que se firma, no al lado.
+    expect(u.searchParams.get('own')).toBe(MEDICO_A)
+    expect(u.searchParams.get('cid')).toBe(CLINICA_A)
+    expect(u.searchParams.get('v')).toBe('v2')
+    expect(u.searchParams.get('sig')).toMatch(/^[0-9a-f]{64}$/)
   })
 })

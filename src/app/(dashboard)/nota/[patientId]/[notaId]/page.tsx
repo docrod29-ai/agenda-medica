@@ -125,7 +125,7 @@ export default function NotaImprimiblePage() {
         // SIN hojas en blanco (una hoja = una página exacta).
         const sheets = Array.from(el.querySelectorAll<HTMLElement>('.nota-sheet'))
         if (sheets.length) {
-          await descargarPaginasComoPDF(sheets, { filename: `Nota_${nombre}_${fechaCorta}`, anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm })
+          await descargarPaginasComoPDF(sheets, { filename: `Nota_${nombre}_${fechaCorta}`, anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm, onAvisoPapeleria: (m) => toast(m, 'error') })
         } else {
           await descargarComoPDF(el, { filename: `Nota_${nombre}_${fechaCorta}`, format: 'letter', margin: 0 })
         }
