@@ -23,10 +23,12 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-09-01-v1179.md"
+    "M .github/workflows/deploy-production.yml",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M src/__tests__/el-despliegue-emite-su-propio-sello.test.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/el-acta-del-despliegue-acuso-al-paso-que-salio-bien.test.ts"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -60,12 +62,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/paquete-v1179",
+  "ramaActual": "claude/ausculta-product-transformation-mckih5",
   "derivado": {
-    "regsEnElLedger": 285,
+    "regsEnElLedger": 286,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 902,
-    "casosDePrueba": 11048,
+    "archivosDePrueba": 914,
+    "casosDePrueba": 11142,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

@@ -16759,3 +16759,104 @@ de avisar (cae 1).
   rota, que en pantalla sí se ve.
 - **No impide que la capacidad caduque entre el aviso y la impresión.**
 
+## REG-433 — el acta del despliegue acusó al único paso que había salido bien
+
+**CÓMO SE DESCUBRIÓ.** El dueño pulsó el botón de producción —ejecución **#14**,
+1-sep 22:41 UTC, sobre `fc3a515`— y salió en rojo. El acta que se le enseñó:
+
+```
+FIRESTORE_RULES=failure
+FIRESTORE_RULES_SHA256=no-emitido
+SECURITY_E2E=skipped
+SMOKE=skipped
+SMOKE_PORTAL=skipped
+PRODUCTION_RELEASE=FAILED
+```
+
+Y el log del job, tres líneas antes del error:
+
+```
+✔  cloud.firestore: rules file firestore.rules compiled successfully
+i  firestore: latest version of firestore.rules already up to date, skipping upload...
+i  firestore: deploying indexes...
+Error: Request to …/collectionGroups/appointments/indexes had
+       HTTP Error: 403, The caller does not have permission
+```
+
+**Las reglas eran lo único que había salido bien, y el acta las señaló a ellas.**
+Quien leyera el resumen —el dueño, que no usa terminal— saldría a buscar el
+fallo dentro de `firestore.rules`, que estaba impecable.
+
+### La causa raíz
+
+Un paso, dos actos: `--only firestore:rules,firestore:indexes`, y **una sola
+variable** (`R_RULES`) para el resultado de ambos.
+
+Publicar reglas y crear índices son operaciones distintas con **permisos
+distintos**: `datastore.indexes.create` no viene incluido con el permiso de
+publicar reglas. Pueden acabar distinto, y de hecho acabaron distinto. Contarlas
+con una sola variable **obliga al acta a mentir sobre una de las dos**.
+
+### Las dos consecuencias, peores que el rótulo
+
+**1. Las reglas quedaron publicadas y sin sellar.** El paso del sello cuelga de
+`steps.rules.outcome == 'success'`, así que se saltó también. Las reglas rigen en
+producción y el repositorio no tiene con qué saberlo — que es, palabra por
+palabra, **REG-416**.
+
+**2. Nadie comprobó producción.** `Seguridad · producción`, `Smoke · público` y
+`Smoke · portal fail-closed` salieron **`skipped`**: son las tres únicas que
+miran el sitio vivo, que acababa de recibir una versión nueva. Un permiso que
+falta en Google Cloud dejó sin medir si el producto funcionaba.
+
+### Lo que REG-431 ya había declarado
+
+Este fallo **estaba anunciado**. La sección «qué NO cubre» de REG-431, escrita
+horas antes:
+
+> «Que el archivo esté declarado no dice que la credencial tenga **permiso de
+> escribir índices**, ni que Firestore termine de construirlos. Eso se mira en
+> la consola, del otro lado, y sigue siendo `BLOCKED_EXTERNAL`.»
+
+Se declaró la duda y la duda salió cierta. Lo que faltaba no era la sospecha:
+era que el acta supiera **distinguir** cuál de los dos actos había fallado.
+
+### El arreglo
+
+Dos pasos con su `--only` propio y su propia variable (`R_RULES`,
+`R_INDICES`), las dos exigidas para dar `SUCCESS` — **la compuerta no se
+relaja, se vuelve seis en vez de cinco**. Las tres comprobaciones del sitio vivo
+pasan a `!cancelled()`: se ejecutan aunque Firestore falle, porque miden otra
+cosa. Y cuando el fallo de índices sea un 403, el resumen nombra el rol que
+falta (`roles/datastore.indexAdmin`) y dice que se concede en la consola de
+Google Cloud, **no en este repositorio**.
+
+### La trampa que el propio arreglo casi repite
+
+La primera versión puso `if: steps.cred.outcome == 'success'`. En GitHub
+Actions, **un `if:` sin función de estado se envuelve implícitamente en
+`success()`**: ese paso habría seguido saltándose en cuanto algo anterior
+fallara, mientras el comentario de al lado prometía lo contrario. Se cazó
+imprimiendo el grafo de pasos ya resuelto en vez de releer el diff. De ahí los
+`!cancelled() &&` explícitos, y de ahí el cuarto caso del golden, que exige que
+todo `if` que dependa de un paso concreto lo declare.
+
+### Estado
+
+**CLOSED** en lo que es de este repositorio.
+`src/__tests__/el-acta-del-despliegue-acuso-al-paso-que-salio-bien.test.ts`
+(8 casos, probado al revés: reponer el paso único o quitar los `!cancelled()`
+lo pone rojo).
+
+El **403 sigue abierto y es externo**: falta `roles/datastore.indexAdmin` en la
+cuenta de servicio del proyecto `nexomed-agenda`, y eso se concede en IAM.
+`BLOCKED_EXTERNAL`, como REG-431.
+
+### Qué NO cubre
+
+- **No arregla el permiso.** Sólo hace que el acta diga la verdad sobre él.
+- **No ejecuta el workflow.** El golden lee el YAML; que GitHub lo interprete
+  como se espera se ve en la ejecución siguiente del botón.
+- **No comprueba que los índices se construyan.** `firebase deploy` contesta al
+  ENVIAR; la construcción va por su cuenta y puede fallar después, con el
+  `success` ya impreso.
