@@ -58,7 +58,7 @@ en «collect page data» con `auth/invalid-api-key`. Es del entorno, no del árb
 | **10** Patient State | `PARTIAL`, y es donde más se avanzó | Ver la tabla propia, abajo |
 | **11** Ciclo cerrado | `PARTIAL` | REG-360/361: el cierre distingue decisión, acción y aviso al paciente, y `/pendientes` los llena por formulario. Faltan interconsultas, referencias e imagen |
 | **12** Evaluación | `PARTIAL` | REG-362 creó la puerta que la regla exigía (`evals/patient-ai/`) y **encontró un defecto vivo al correrla**. Falta evaluar lo que el modelo REDACTA |
-| **13** Seguridad · DR | `PARTIAL` | 99 rutas revisadas: **ni una escribe datos clínicos sin validar sesión y pertenencia**, con analizador estático del argumento literal por método. Índices y reglas: `BLOCKED_EXTERNAL` |
+| **13** Seguridad · DR | `PARTIAL` | 99 rutas revisadas: **ni una escribe datos clínicos sin validar sesión y pertenencia**, con analizador estático del argumento literal por método. **Reglas: desplegadas el 31-ago-2026** (ejecuciones #11 y #12; sello en `firestore.rules.estado.json`, y REG-416 hace que lo emita el propio despliegue). **Índices: enviados, no confirmados** — la construcción es asíncrona, falta ver `Enabled` en la consola |
 | **22/23/24** Especialidad | `PARTIAL` | El catálogo público se **deriva** de la misma tabla que gobierna la consulta: no puede prometer una herramienta que la consulta no enseña |
 
 ---
@@ -169,8 +169,11 @@ reales. Las tres cosas están arriba con su estado.
 
 Por orden de lo que más pesa:
 
-1. **Desplegar índices y reglas.** Es una tarde de trabajo del dueño y desbloquea
-   dos filas de la tabla de arriba.
+1. ~~**Desplegar índices y reglas.**~~ **Hecho el 31-ago-2026**, en las
+   ejecuciones #11 y #12 del botón, que corren las dos cosas en un paso. Las
+   reglas quedan **selladas** y su lista de pendientes, vacía. De los índices
+   sólo consta el **envío**: falta abrir la consola y verlos `Enabled`. Esa
+   media fila es lo único que sigue abierto aquí.
 2. ~~**Medir la escala de verdad** (WS-02): el arnés que produzca el JSON que el
    validador ya sabe leer.~~ **Hecho (REG-378)** en lo que un emulador puede
    responder. Lo que falta ya no es código: es un entorno que se parezca a

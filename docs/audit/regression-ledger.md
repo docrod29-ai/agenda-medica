@@ -956,6 +956,126 @@ blanco que parecería un olvido.
 
 ---
 
+## REG-504 — el botón de producción quedó sin poder desplegar, y sólo se veía pulsándolo
+
+**QUÉ FALLABA.** `deploy-production.yml` escribía la versión **dos veces**:
+
+```yaml
+env:
+  SHA_AUTORIZADO:   8f74901…        # un árbol, que trae su version.txt
+  VERSION_ESPERADA: nexusmed-v1178  # la misma cosa, otra vez, a mano
+```
+
+Y la Compuerta 1 exige que coincidan. Al fusionarse el PR #420 la versión del
+repositorio subió a v1178 y **el pin se quedó en el árbol de v1177**: la pareja
+pasó a ser imposible de satisfacer.
+
+El botón quedó **incapaz de desplegar**, y no había forma de enterarse salvo
+pulsándolo. La Compuerta 1 lo mira, sí — pero ya dentro del despliegue, cuando ya
+has decidido publicar.
+
+**CÓMO SE DESCUBRIÓ.** Preparando el paquete de v1178, comprobando contra qué
+árbol iba a publicar el botón **antes** de decirle al dueño «fusiona y pulsa». El
+pin traía `nexusmed-v1177` y `VERSION_ESPERADA` decía `nexusmed-v1178`.
+
+Es la razón por la que se comprueba antes de dar una instrucción: la instrucción
+habría fallado en la primera compuerta.
+
+**LA CAUSA RAÍZ.** Dos sitios para el mismo dato. El PR #413 ya había cerrado
+exactamente esto en la **otra mitad del par** —el SHA estaba escrito dos veces y
+las copias divergieron— y lo arregló quitando el literal en vez de corregirlo,
+«así no puede repetirse». La versión quedó fuera de aquel arreglo, y se repitió
+con la misma forma.
+
+Que un arreglo cierre una mitad de un par y deje la otra es de las formas más
+caras de esta familia: el segundo caso llega con el primero ya olvidado.
+
+**LA REGLA QUE LO HACE SEGURO.** La versión se **deriva del árbol autorizado**
+—`public/version.txt` del pin, exportada a `GITHUB_ENV`— y deja de escribirse en
+`env:`. Una sola fuente: repuntar el despliegue vuelve a ser cambiar UN número.
+
+No afloja nada. Lo que protege de verdad es la Compuerta 3 —que **producción**
+sirva esa versión—, y sigue comparando el repositorio contra el sitio vivo. Lo
+que se quita es una comparación de un archivo consigo mismo.
+
+**LA PRUEBA.**
+`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts` (6 casos).
+Probado al revés en las dos formas de romperlo: devolviendo `VERSION_ESPERADA` a
+`env:` cae el caso principal, y quitándola sin derivarla cae el que vigila que se
+derive — porque dejar la variable vacía sería peor que el defecto original.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No comprueba que el pin sea el árbol correcto.** Eso es la Compuerta 0.
+- **No mira producción.** Ninguna prueba de aquí lo hace.
+- **No impide poner a propósito un pin de un árbol viejo**: para eso está
+  `ROLLBACK_AUTORIZADO`, que obliga a declararlo en el diff.
+- **Sólo mira este workflow.** Si otro archivo empezara a fijar la versión a
+  mano, esto no lo ve.
+
+---
+
+## REG-505 — el tablero afirmaba de producción lo que leía del repositorio
+
+**QUÉ FALLABA.** `agent-state/MASTER_STATE.json` tiene un campo
+`ultimaVersionEnProduccion`, y el script que lo deriva lo sacaba de
+`public/version.txt`.
+
+`version.txt` **es el repositorio**. Lo sube el ciclo de preparación del paquete,
+y entre ese bump y el momento en que alguien pulsa el botón pueden pasar días. En
+toda esa ventana el tablero afirmaba del sitio vivo algo que no era cierto.
+
+**CÓMO SE DESCUBRIÓ.** Preparando v1178. Al subir `sw.js`, el guardián
+`el-tablero-del-loop-no-miente` se puso rojo pidiendo que el tablero dijera v1178
+«porque es lo que hay en disco». Producción servía v1177. **El guardián estaba
+exigiendo que el tablero mintiera.**
+
+**LA CAUSA RAÍZ.** REG-241 arregló bien la mitad difícil —que el dato se
+**derive** en vez de recordarse— y dejó sin revisar la fácil: **de dónde**. Un
+dato bien derivado de la fuente equivocada sigue siendo un dato equivocado, y
+además llega con la autoridad de estar derivado, que es lo que lo hace peor: ya
+nadie lo mira con desconfianza.
+
+La ventana en la que mentía es exactamente aquella en la que se le consulta:
+nadie pregunta «qué versión hay en producción» salvo cuando está decidiendo si
+desplegar.
+
+**EL PRIMER ARREGLO TAMBIÉN ESTABA MAL, Y ES LA MITAD QUE IMPORTA.** El primer
+intento derivó el campo de `VERSION_ESPERADA` del botón. Repitió el defecto **el
+mismo día**: esa variable también se escribe antes de desplegar. Buscar otra
+fuente dentro del repositorio no podía funcionar porque **el dato no está en el
+repositorio**.
+
+**LA REGLA QUE LO HACE SEGURO.** Dos campos, dos naturalezas:
+
+| Campo | Fuente | |
+|---|---|---|
+| `versionEnElRepo` | `public/version.txt` | derivado |
+| `ultimaVersionEnProduccion` | una ejecución del botón en verde | **declarado, con su evidencia** |
+
+Es «ausencia de dato no es dato de ausencia» aplicado a la operación: lo que no
+se puede saber desde aquí no se rellena con lo más parecido que haya a mano.
+
+**LA PRUEBA.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts`
+(13 casos declarados, 22 en ejecución; **4 nuevos**). Probado al revés en las dos
+formas de romperlo: que el script vuelva a derivar el campo, y que la versión se
+declare sin la ejecución que la confirmó. La demostración de que el campo único
+no podía ser correcto es que hoy los dos valores difieren — repo v1178,
+producción v1177.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sigue sin preguntarle al sitio vivo.** El campo declarado vale lo que valga
+  la ejecución que cita. Si alguien lo escribe sin haber desplegado, miente —
+  con la misma defensa que el sello de las reglas (REG-416): lleva su ejecución
+  dentro, así que la mentira es comprobable.
+- **Se pega a mano después de cada despliegue.** El acta del run ya imprime
+  `VERSION` y `PRODUCTION_RELEASE`, así que es copiar, no recordar.
+- **No cubre un despliegue hecho por fuera del botón.** La integración de Vercel
+  publica por su cuenta con cada merge a `main`.
+
+---
+
 ## REG-177 — «No especificada» entraba como dato (v1061)
 
 **Encontrado** — 5-ago-2026, tirando del hilo de REG-172, REG-173 y REG-176: los
