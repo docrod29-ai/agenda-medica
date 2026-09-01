@@ -31,7 +31,11 @@
  * Lee la VERDAD del repositorio —no la memoria de nadie— y reescribe los campos
  * derivables:
  *
- *   · versión desplegada  ← public/version.txt
+ *   · versión EN EL REPO   ← public/version.txt
+ *
+ * La versión que sirve PRODUCCIÓN **no se deriva**: no se puede saber desde el
+ * repositorio. Se declara con la ejecución que la confirmó, y este script no la
+ * toca (REG-505).
  *   · REG cerradas        ← docs/audit/regression-ledger.md
  *   · nº de pruebas       ← el conteo de `it(`/`test(` del árbol de pruebas
  *   · rama activa         ← git
@@ -56,8 +60,16 @@ const sh = (cmd) => {
   try { return execSync(cmd, { cwd: RAIZ, encoding: 'utf8' }).trim() } catch { return '' }
 }
 
-/** La versión que está DESPLEGADA, según el archivo que sirve producción. */
-function versionEnDisco() {
+/**
+ * La versión que hay EN EL REPOSITORIO. No es la que sirve producción.
+ *
+ * Este archivo lo sube el ciclo de preparación del paquete, ANTES de publicar.
+ * Entre el bump y el despliegue —que pueden ser días— el repositorio va por
+ * delante, y llamar a esto «la versión en producción» convierte el tablero en
+ * una afirmación falsa sobre el sitio vivo justo en la ventana en la que alguien
+ * lo consulta para decidir si desplegar (REG-505).
+ */
+function versionEnElRepo() {
   try { return readFileSync(join(RAIZ, 'public', 'version.txt'), 'utf8').trim() } catch { return null }
 }
 
@@ -104,7 +116,7 @@ function derivar() {
   const pruebas = contarPruebas()
   const reg = regsDelLedger()
   return {
-    ultimaVersionEnProduccion: versionEnDisco(),
+    versionEnElRepo: versionEnElRepo(),
     ramaActual: sh('git rev-parse --abbrev-ref HEAD') || null,
     trabajoLocalSinSubir: sh('git status --porcelain').split('\n').filter(Boolean).slice(0, 20),
     /** Fecha del último commit: no se inventa «hoy», se lee del repositorio. */
@@ -125,19 +137,19 @@ const actual = JSON.parse(readFileSync(ESTADO, 'utf8'))
 const nuevo = derivar()
 
 const desfasado =
-  actual.ultimaVersionEnProduccion !== nuevo.ultimaVersionEnProduccion ||
+  actual.versionEnElRepo !== nuevo.versionEnElRepo ||
   actual.derivado?.ultimaREG !== nuevo.derivado.ultimaREG
 
 if (soloVerificar) {
   if (desfasado) {
     console.error(
       `  El tablero del loop está DESFASADO.\n` +
-      `     dice: ${actual.ultimaVersionEnProduccion} / ${actual.derivado?.ultimaREG ?? '—'}\n` +
-      `      es:  ${nuevo.ultimaVersionEnProduccion} / ${nuevo.derivado.ultimaREG}\n\n` +
+      `     dice: ${actual.versionEnElRepo} / ${actual.derivado?.ultimaREG ?? '—'}\n` +
+      `      es:  ${nuevo.versionEnElRepo} / ${nuevo.derivado.ultimaREG}\n\n` +
       `  Arréglalo con: node scripts/agent-state/actualizar.mjs\n`)
     process.exit(1)
   }
-  console.log(`  Tablero al día: ${nuevo.ultimaVersionEnProduccion} · ${nuevo.derivado.ultimaREG}`)
+  console.log(`  Tablero al día: repo ${nuevo.versionEnElRepo} · ${nuevo.derivado.ultimaREG}`)
   process.exit(0)
 }
 
@@ -146,7 +158,7 @@ if (soloVerificar) {
 writeFileSync(ESTADO, JSON.stringify({ ...actual, ...nuevo }, null, 2) + '\n')
 console.log(
   `  Tablero derivado del repositorio:\n` +
-  `     versión   ${nuevo.ultimaVersionEnProduccion}\n` +
+  `     repo      ${nuevo.versionEnElRepo}\n` +
   `     última    ${nuevo.derivado.ultimaREG}  (${nuevo.derivado.regsEnElLedger} en el ledger)\n` +
   `     pruebas   ${nuevo.derivado.casosDePrueba} en ${nuevo.derivado.archivosDePrueba} archivos\n` +
   `     rama      ${nuevo.ramaActual}\n`)

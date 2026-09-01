@@ -18,7 +18,10 @@
 2. **El botón no despliega la app.** Publica `firestore.rules`, certifica y corre
    seguridad y smoke contra el sitio vivo. Para `nexusmed-v1178` **no hay reglas
    ni índices que publicar**: el paquete no las toca.
-3. **El botón estaba roto desde el 31-ago 20:26 UTC.** Se repara aquí (REG-417).
+3. **El botón estuvo roto desde el 31-ago 20:26 UTC.** Ya está reparado **en
+   `main`**: entró con el PR #422 como **REG-504** (la versión se deriva del
+   árbol autorizado y desaparece de `env:`). Comprobado corriendo la propia
+   Compuerta 0 con los valores de hoy — ver §2.
 4. **No se ven cambios porque los tres últimos paquetes casi no tienen cara.**
    Cero pantallas nuevas y cero rutas de API nuevas en v1176, v1177 y v1178. Lo
    que traen son controles que no se podían pulsar, un visor que se caía y
@@ -33,16 +36,17 @@
 | **Último cierre completo** | 31-ago **19:33 UTC**, [run 33431057064](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) — éxito |
 | **Árbol certificado** | `8f74901d` — `nexusmed-v1177` |
 | **Reglas de Firestore** | Publicadas y **selladas** (REG-416) |
-| **Cabeza de `main` hoy** | `e72f22a9` — `nexusmed-v1178`, 41 commits por delante |
-| **Qué traen esos 41 commits** | 41 archivos · +2 818 / −130 · **ni reglas, ni índices, ni rutas de API, ni pantallas nuevas** |
+| **Pin del botón hoy** | `e72f22a9` — `nexusmed-v1178` |
+| **Cabeza de `main` hoy** | `19d58353` — `nexusmed-v1178`, 56 commits por delante del árbol certificado |
+| **Qué traen esos 56 commits** | 86 archivos · +12 759 / −278 · **cero rutas de API nuevas y cero pantallas nuevas** (medido con `git diff --name-status … -- 'src/app/api/**/route.ts' 'src/app/**/page.tsx'`). Reglas e índices: idénticos |
 
 «Certificado» y «servido» no son lo mismo, y la diferencia importa: lo primero lo
 mide el botón; lo segundo lo hace Vercel solo. Los 41 commits de diferencia ya
-están servidos si Vercel construyó `e72f22a9`; lo que les falta es el acta.
+están servidos si Vercel construyó la cabeza; lo que les falta es el acta.
 
 ---
 
-## 2. El botón llevaba desde ayer sin poder correr — REG-417
+## 2. El botón estuvo sin poder correr, y hoy ya no — REG-504
 
 No se dedujo del YAML: se corrió **su propia compuerta** con los valores reales.
 
@@ -59,10 +63,32 @@ decidirArbolAutorizado(...) →
 `a1734b2` subió el service worker a v1178 y movió con él `VERSION_ESPERADA`, pero
 no `SHA_AUTORIZADO`. Son el mismo hecho escrito en dos renglones, y se separaron.
 
-**El arreglo, en este mismo cambio:** la versión se **deriva** del árbol
-autorizado y desaparece de `env:`. Queda **un** mando, el pin — que sigue siendo
-el acto de autorización del dueño. Detalle, causa raíz y lo que no cubre:
-**REG-417** en `docs/audit/regression-ledger.md`.
+**El arreglo ya está en `main`** (PR #422, **REG-504**): la versión se **deriva**
+del árbol autorizado y desaparece de `env:`. Queda **un** mando, el pin — que
+sigue siendo el acto de autorización del dueño. Causa raíz y lo que no cubre:
+**REG-504** en `docs/audit/regression-ledger.md`; el golden es
+`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts`.
+
+### Y hoy la Compuerta 0 pasa. Medido, no deducido
+
+El pin (`e72f22a9`) ya no es la cabeza de `main` —van 15 commits por delante—,
+así que la pregunta no es retórica. Se corrió la compuerta con los valores
+reales:
+
+```
+$ SHA_AUTORIZADO=e72f22a9… CABEZA_DE_MAIN=19d58353… ES_ANCESTRO=si \
+  COMMITS_DETRAS=15 PUBLICABLES_DIFIEREN='' node scripts/ops/arbol-autorizado.mjs
+
+El árbol autorizado e72f22a9 está por detrás de la cabeza (19d58353), 15 commits
+por detrás, pero TODO lo que este workflow publica o certifica es idéntico:
+publicar desde el pin equivale a publicar desde la cabeza.
+exit=0
+```
+
+Los cuatro publicables —`firestore.rules`, `firestore.indexes.json`,
+`public/version.txt`, `public/sw.js`— son byte a byte iguales entre el pin y la
+cabeza. Por eso pasa: **no** porque la compuerta se haya aflojado, sino porque
+publicar desde el pin y desde la cabeza es publicar lo mismo.
 
 ---
 
@@ -96,9 +122,10 @@ despliegue lo va a hacer aparecer.
 
 ## 4. Lo que falta para cerrar producción — tres pasos
 
-1. **Fusionar este cambio a `main`** (decisión del dueño). Repara el botón.
+1. **El botón ya está reparado en `main`** (REG-504, PR #422). No hace falta
+   fusionar nada para pulsarlo.
 2. **Pulsar el botón** — Actions → «Despliegue a producción (manual)» → *Run
-   workflow*. Con el pin al día, la Compuerta 0 pasa; si Vercel no hubiera
+   workflow*. La Compuerta 0 pasa hoy —comprobado arriba—; si Vercel no hubiera
    construido ese árbol, la Compuerta 2 para y no toca nada.
 3. **Pegar el sello** que emite el acta (`FIRESTORE_RULES_SHA256`) en
    `firestore.rules.estado.json`. El despliegue lo calcula; confirmarlo sigue
@@ -119,7 +146,7 @@ Nada de esto es requisito para que la app esté al día: los tres son el **acta*
   Vercel no ha construido la cabeza y eso sí es un problema de despliegue.
 - **El punto ciego del 31-ago sigue abierto**: `public/version.txt` es una copia
   del propio repositorio, así que la cadena de versión no puede detectar una
-  deriva entre dos árboles que declaran lo mismo. REG-417 quita una fuente de
+  deriva entre dos árboles que declaran lo mismo. REG-504 quita una fuente de
   verdad duplicada; **no** cierra ésta.
 - **No se corrió nada contra producción.** Ni reglas, ni smoke, ni seguridad:
   eso vive en el botón, y el botón es del dueño.

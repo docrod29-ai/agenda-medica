@@ -35,6 +35,7 @@ import {
   POR_QUE_NDJSON, POR_QUE_SE_EXCLUYEN_LOS_SECRETOS,
   rutasDelArbol,
 } from '@/lib/clinica/respaldo'
+import { cabeceraV2, pieV2 } from '@/lib/durability/manifiesto'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 const reglas = leer('firestore.rules')
@@ -214,19 +215,42 @@ describe('la ruta: servidor, streaming y paginada', () => {
 })
 
 describe('el archivo dice qué trae y qué le falta', () => {
+  /**
+   * ── LA CABECERA Y EL PIE SE MUDARON, Y EL GUARDIÁN LOS SIGUE (#312) ───────
+   *
+   * Se escribían a mano en la ruta. Ahora los arma `durability/manifiesto.ts`,
+   * porque el pie pasó a llevar el recuento POR COLECCIÓN y la huella del
+   * conjunto —sin eso, quien restaura no puede comparar lo que llegó con lo
+   * que debía llegar— y esas dos piezas tienen que decir lo mismo del lado que
+   * escribe y del que lee.
+   *
+   * El guardián comprueba la salida REAL de esas funciones, no un literal en la
+   * ruta: un guardián que sólo mira el texto de un archivo deja de proteger en
+   * cuanto el texto se mueve, y eso es exactamente lo que acababa de pasar.
+   */
   it('la cabecera va primera, con el índice y lo excluido', () => {
     // Un respaldo del que no se sabe qué falta no sirve para decidir si alcanza,
     // y ésa es la única pregunta que importa el día que hace falta.
-    const i = ruta.indexOf("_tipo: 'cabecera'")
-    expect(i).toBeGreaterThan(0)
-    expect(ruta).toContain('excluidas: EXCLUIDAS')
+    expect(ruta).toContain('linea(cabeceraV2(')
+    const c = cabeceraV2('X', '2026-01-01T00:00:00.000Z', 1)
+    expect(c._tipo).toBe('cabecera')
+    expect(c.excluidas).toEqual(EXCLUIDAS)
+    expect(Object.keys(c.indice).length).toBe(COLECCIONES.length)
     expect(Object.keys(indiceRespaldo()).length).toBe(COLECCIONES.length)
+    // Y dice lo que el archivo NO puede traer aunque exista en el consultorio.
+    expect(Object.keys(c.fueraDelArchivo).length).toBeGreaterThan(0)
   })
 
   it('el pie cierra el archivo y declara los problemas', () => {
     // Sin pie, no hay forma de saber si la descarga se cortó a la mitad.
-    expect(ruta).toContain("_tipo: 'pie'")
-    expect(ruta).toContain('completo: problemas.length === 0')
+    expect(ruta).toContain('linea(pieV2(')
+    const p = pieV2(2, { patients: 2 }, 'abc', [])
+    expect(p._tipo).toBe('pie')
+    expect(p.completo).toBe(true)
+    expect(pieV2(2, { patients: 2 }, 'abc', ['patients/x/notas']).completo).toBe(false)
+    // Y trae con qué desmentirse: recuento por colección y huella.
+    expect(p.conteos).toEqual({ patients: 2 })
+    expect(p.huella).toBe('abc')
   })
 
   it('una colección ilegible se declara y el respaldo sigue', () => {

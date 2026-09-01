@@ -1,8 +1,8 @@
 {
-  "sellado": "2026-08-31",
+  "sellado": "2026-09-01",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6135,
+  "totalCasos": 6274,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -321,6 +321,14 @@
       "minCasos": 37
     },
     {
+      "archivo": "src/__tests__/durabilidad-respaldo-y-restauracion.test.ts",
+      "minCasos": 74
+    },
+    {
+      "archivo": "src/__tests__/durabilidad-supresion-arco-y-perdida-clinica.test.ts",
+      "minCasos": 37
+    },
+    {
       "archivo": "src/__tests__/e0-12-sello-integridad.test.ts",
       "minCasos": 25
     },
@@ -530,7 +538,7 @@
     },
     {
       "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
-      "minCasos": 10
+      "minCasos": 13
     },
     {
       "archivo": "src/__tests__/el-texto-completo-solo-si-la-licencia-lo-permite.test.ts",
@@ -921,8 +929,8 @@
       "minCasos": 15
     },
     {
-      "archivo": "src/__tests__/la-version-del-despliegue-no-se-escribe-dos-veces.test.ts",
-      "minCasos": 7
+      "archivo": "src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-version-del-prompt-no-miente.test.ts",
@@ -1291,6 +1299,10 @@
     {
       "archivo": "src/__tests__/respaldo-consultorio.test.ts",
       "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/respaldo-ida-y-vuelta.test.ts",
+      "minCasos": 19
     },
     {
       "archivo": "src/__tests__/restaurar-no-le-quita-la-cuenta-a-otro-consultorio.test.ts",

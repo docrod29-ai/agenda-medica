@@ -956,6 +956,141 @@ blanco que parecería un olvido.
 
 ---
 
+## REG-504 — el botón de producción quedó sin poder desplegar, y sólo se veía pulsándolo
+
+**QUÉ FALLABA.** `deploy-production.yml` escribía la versión **dos veces**:
+
+```yaml
+env:
+  SHA_AUTORIZADO:   8f74901…        # un árbol, que trae su version.txt
+  VERSION_ESPERADA: nexusmed-v1178  # la misma cosa, otra vez, a mano
+```
+
+Y la Compuerta 1 exige que coincidan. Al fusionarse el PR #420 la versión del
+repositorio subió a v1178 y **el pin se quedó en el árbol de v1177**: la pareja
+pasó a ser imposible de satisfacer.
+
+El botón quedó **incapaz de desplegar**, y no había forma de enterarse salvo
+pulsándolo. La Compuerta 1 lo mira, sí — pero ya dentro del despliegue, cuando ya
+has decidido publicar.
+
+**CÓMO SE DESCUBRIÓ.** Preparando el paquete de v1178, comprobando contra qué
+árbol iba a publicar el botón **antes** de decirle al dueño «fusiona y pulsa». El
+pin traía `nexusmed-v1177` y `VERSION_ESPERADA` decía `nexusmed-v1178`.
+
+Es la razón por la que se comprueba antes de dar una instrucción: la instrucción
+habría fallado en la primera compuerta.
+
+**LA CAUSA RAÍZ.** Dos sitios para el mismo dato. El PR #413 ya había cerrado
+exactamente esto en la **otra mitad del par** —el SHA estaba escrito dos veces y
+las copias divergieron— y lo arregló quitando el literal en vez de corregirlo,
+«así no puede repetirse». La versión quedó fuera de aquel arreglo, y se repitió
+con la misma forma.
+
+Que un arreglo cierre una mitad de un par y deje la otra es de las formas más
+caras de esta familia: el segundo caso llega con el primero ya olvidado.
+
+**LA REGLA QUE LO HACE SEGURO.** La versión se **deriva del árbol autorizado**
+—`public/version.txt` del pin, exportada a `GITHUB_ENV`— y deja de escribirse en
+`env:`. Una sola fuente: repuntar el despliegue vuelve a ser cambiar UN número.
+
+No afloja nada. Lo que protege de verdad es la Compuerta 3 —que **producción**
+sirva esa versión—, y sigue comparando el repositorio contra el sitio vivo. Lo
+que se quita es una comparación de un archivo consigo mismo.
+
+**LA PRUEBA.**
+`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts` (8 casos).
+Probado al revés en las tres formas de romperlo: devolviendo `VERSION_ESPERADA` a
+`env:` cae el caso principal; quitándola sin derivarla cae el que vigila que se
+derive —porque dejar la variable vacía sería peor que el defecto original—; y
+**bajando el paso de derivación por debajo de la Compuerta 1** cae el que vigila
+el ORDEN.
+
+Los dos últimos casos (el orden, y su mutilación) se añadieron al absorber el
+PR #426, que había encontrado el mismo defecto por su cuenta y traía esa
+comprobación de más. Se quedó la comprobación, no el archivo duplicado: dos
+goldens sobre el mismo workflow son la misma familia de defecto que REG-504.
+
+**Por qué el orden importa y no es paranoia.** El paso puede existir, leer el
+archivo correcto y exportar a `GITHUB_ENV`, y no servir de nada si vive DESPUÉS
+de la Compuerta 1. Con `set -euo pipefail`, una variable **sin definir** aborta
+—eso se salva solo—; pero un `version.txt` en blanco define `VERSION_ESPERADA`
+como cadena **vacía**, y entonces las compuertas 1 y 3 comparan contra la nada y
+pasan las dos. Por eso la derivación rechaza una versión sin forma **antes** de
+exportarla, y por eso se vigila que esté arriba.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No comprueba que el pin sea el árbol correcto.** Eso es la Compuerta 0.
+- **No mira producción.** Ninguna prueba de aquí lo hace.
+- **No impide poner a propósito un pin de un árbol viejo**: para eso está
+  `ROLLBACK_AUTORIZADO`, que obliga a declararlo en el diff.
+- **Sólo mira este workflow.** Si otro archivo empezara a fijar la versión a
+  mano, esto no lo ve.
+
+---
+
+## REG-505 — el tablero afirmaba de producción lo que leía del repositorio
+
+**QUÉ FALLABA.** `agent-state/MASTER_STATE.json` tiene un campo
+`ultimaVersionEnProduccion`, y el script que lo deriva lo sacaba de
+`public/version.txt`.
+
+`version.txt` **es el repositorio**. Lo sube el ciclo de preparación del paquete,
+y entre ese bump y el momento en que alguien pulsa el botón pueden pasar días. En
+toda esa ventana el tablero afirmaba del sitio vivo algo que no era cierto.
+
+**CÓMO SE DESCUBRIÓ.** Preparando v1178. Al subir `sw.js`, el guardián
+`el-tablero-del-loop-no-miente` se puso rojo pidiendo que el tablero dijera v1178
+«porque es lo que hay en disco». Producción servía v1177. **El guardián estaba
+exigiendo que el tablero mintiera.**
+
+**LA CAUSA RAÍZ.** REG-241 arregló bien la mitad difícil —que el dato se
+**derive** en vez de recordarse— y dejó sin revisar la fácil: **de dónde**. Un
+dato bien derivado de la fuente equivocada sigue siendo un dato equivocado, y
+además llega con la autoridad de estar derivado, que es lo que lo hace peor: ya
+nadie lo mira con desconfianza.
+
+La ventana en la que mentía es exactamente aquella en la que se le consulta:
+nadie pregunta «qué versión hay en producción» salvo cuando está decidiendo si
+desplegar.
+
+**EL PRIMER ARREGLO TAMBIÉN ESTABA MAL, Y ES LA MITAD QUE IMPORTA.** El primer
+intento derivó el campo de `VERSION_ESPERADA` del botón. Repitió el defecto **el
+mismo día**: esa variable también se escribe antes de desplegar. Buscar otra
+fuente dentro del repositorio no podía funcionar porque **el dato no está en el
+repositorio**.
+
+**LA REGLA QUE LO HACE SEGURO.** Dos campos, dos naturalezas:
+
+| Campo | Fuente | |
+|---|---|---|
+| `versionEnElRepo` | `public/version.txt` | derivado |
+| `ultimaVersionEnProduccion` | una ejecución del botón en verde | **declarado, con su evidencia** |
+
+Es «ausencia de dato no es dato de ausencia» aplicado a la operación: lo que no
+se puede saber desde aquí no se rellena con lo más parecido que haya a mano.
+
+**LA PRUEBA.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts`
+(13 casos declarados, 22 en ejecución; **4 nuevos**). Probado al revés en las dos
+formas de romperlo: que el script vuelva a derivar el campo, y que la versión se
+declare sin la ejecución que la confirmó. La demostración de que el campo único
+no podía ser correcto es que hoy los dos valores difieren — repo v1178,
+producción v1177.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sigue sin preguntarle al sitio vivo.** El campo declarado vale lo que valga
+  la ejecución que cita. Si alguien lo escribe sin haber desplegado, miente —
+  con la misma defensa que el sello de las reglas (REG-416): lleva su ejecución
+  dentro, así que la mentira es comprobable.
+- **Se pega a mano después de cada despliegue.** El acta del run ya imprime
+  `VERSION` y `PRODUCTION_RELEASE`, así que es copiar, no recordar.
+- **No cubre un despliegue hecho por fuera del botón.** La integración de Vercel
+  publica por su cuenta con cada merge a `main`.
+
+---
+
 ## REG-177 — «No especificada» entraba como dato (v1061)
 
 **Encontrado** — 5-ago-2026, tirando del hilo de REG-172, REG-173 y REG-176: los
@@ -15434,70 +15569,229 @@ borrar el despliegue de las reglas, cambiar el hash derivado por una constante
 pegada, quitar el sello del acta y dejar que el acta cierre en verde sin el paso
 de Firestore. Los cinco caen.
 
+
+<!--
+  RENUMERADO DOS VECES AL REVIVIR EL PR #349 (31-ago-2026).
+
+  Primera vez: estas cuatro entradas nacieron el 23-ago como REG-323 … REG-326 y
+  `main` habia dado esos cuatro numeros a otras cuatro regresiones. Se movieron a
+  415 … 418.
+
+  Segunda vez, el MISMO DIA: mientras este PR esperaba, el bucle autonomo tomo
+  REG-415, choco a su vez con el 415 de aqui, se renumero a si mismo a REG-416 —
+  y ese 416 volvio a chocar con el de aqui. Se mueven otra vez:
+  415→417 · 416→418 · 417→419 · 418→420.
+
+  QUE ENSEÑA ESTO, que vale mas que la renumeracion: el numero de regresion es un
+  CONTADOR GLOBAL que se asigna a mano, y hay dos escritores —el bucle autonomo y
+  el trabajo dirigido— que lo leen antes de escribir. Entre leer y fusionar cabe
+  el otro. No es un descuido de nadie: es una condicion de carrera con la forma
+  exacta de REG-349, la que esta misma rama arreglo para `clinic_members`, y
+  volvera a pasar mientras el numero se elija leyendo el ledger.
+
+  Quien fusione el segundo renumera. Mientras tanto, cada colision queda escrita
+  aqui en vez de resolverse en silencio: un numero de regresion es la llave con
+  la que se encuentra la causa raiz y la prueba que la sella, y dos regresiones
+  con la misma llave devuelven la historia equivocada el dia que alguien la
+  necesita.
+-->
+
+## REG-417 — la restauración era la única puerta por la que se podía reescribir una nota firmada
+
+**Área.** Respaldo y restauración del consultorio (#312). Encontrado leyendo
+`src/lib/clinica/restaurar.ts` —que **documenta el peligro en su propia
+cabecera**— y comparándolo con la ruta que lo consume.
+
+**Qué fallaba.** `/api/clinic/importar` escribía cada documento con:
+
+```ts
+lote.set(adminDb.doc(destino), l.datos, { merge: true })
+```
+
+sin mirar qué había en el destino. Y escribe con el **SDK admin**, que **ignora
+las reglas de Firestore**: la regla que hace inmutable una nota firmada
+
+```
+allow update: if isMedico(clinicId) && resource.data.estado != 'firmada'
+```
+
+no se evalúa por ese camino ni una vez. La restauración era, por construcción,
+la única puerta de toda la aplicación por la que se podía reescribir un
+documento medicolegal.
+
+Y `merge: true` lo empeora: deja los campos que el archivo no trae y pisa los que
+sí, produciendo una **mezcla de dos versiones que nunca existió**, con un
+`metadata.hashIntegridad` —que también viene del archivo— capaz de no
+corresponder a ninguna de las dos.
+
+**Causa raíz.** Familia «la defensa vive en un sitio y el peligro cruza por
+otro». El módulo puro se escribió con la advertencia correcta —de hecho deriva
+la colección de la ruta precisamente porque el admin ignora las reglas— y la
+ruta que lo llama nunca implementó la mitad que le tocaba: comparar antes de
+escribir. La misma forma que REG-160 (validar un campo y escribir en otro), un
+nivel más arriba.
+
+**Control permanente.** Antes de escribir sobre una nota que ya existe y está
+firmada: si el contenido es idéntico no se escribe y cuenta como restaurada
+—eso es lo que hace inocuo el reintento—; si difiere en cualquier campo,
+**no se escribe** y el veredicto entero pasa a `REVISION_HUMANA`; y si el sello
+que trae el archivo no cuadra con el contenido que trae el archivo, tampoco se
+escribe, porque la nota venía alterada de antes.
+`src/__tests__/durabilidad-respaldo-y-restauracion.test.ts` (74 casos, probado
+al revés: la misma nota sin alterar sí se escribe y el veredicto es `COMPLETA`).
+
+**Qué NO cubre, declarado.** No hay emulador: se prueban los motores puros y se
+comprueba por lectura del archivo que la ruta los llama. Tampoco cubre
+`transcripcionMotor`, que **no está en el sello v3** por REG-060 — una nota
+firmada cuyo único cambio esté ahí pasa la comprobación de sello; la detiene la
+comparación de contenido completo, que es una defensa distinta y se dice cuál
+actúa. Y no cubre notas selladas con v2: el fixture sella con la versión actual.
+
 ---
 
-## REG-417 — el único botón de producción llevaba diecinueve horas roto, y nada lo decía
+## REG-418 — el pie del respaldo certificaba «completo» sin nada con qué desmentirse
 
-**CÓMO SE DESCUBRIÓ.** El 1-sep, contestando «¿ya se puede desplegar? no veo
-ningún cambio en la aplicación». No se dedujo del texto del workflow: se corrió
-su propia compuerta con los valores reales de `main`.
+**Área.** Formato del respaldo del consultorio (#312).
 
+**Qué fallaba.** El pie del NDJSON decía `documentos`, `problemas` y `completo`,
+y `completo` se calculaba de UNA sola cosa: que ninguna colección hubiera
+lanzado una excepción al leerse.
+
+Eso deja pasar el fallo caro, que **no lanza nada**: una rama del árbol que
+nadie declaró se exporta de menos, no falla nada, y el archivo se certifica
+completo. Es literalmente lo que ya había pasado con
+`patients/{p}/notas/{n}/adendas` —el único mecanismo de corrección sobre una
+nota firmada— mientras el pie decía `completo: true`.
+
+Y sin recuento por colección, quien restaura **no puede comparar** lo que llegó
+con lo que debía llegar: «restauramos 10 000 documentos» no dice si faltaban
+trescientos.
+
+**Causa raíz.** Un indicador derivado de una sola señal, presentado como
+veredicto global. El guardián `respaldo-consultorio` caza la colección que falta
+**en el código** (compara el manifiesto contra `firestore.rules`); nada cazaba la
+exportación que sale corta **en tiempo de ejecución**.
+
+**Control permanente.** Formato `nexusmed-respaldo-2`: el pie lleva recuento por
+colección y huella del conjunto, acumulada **sumando módulo 2^256** —conmutativa,
+así que no depende del orden de lectura, y de 32 bytes constantes, así que no
+exige tener el consultorio entero en memoria—. No es un XOR a propósito: con XOR
+dos elementos iguales se cancelan y un documento duplicado desaparecería de la
+huella, que es una de las averías que hay que ver. `nexusmed-respaldo-1` se
+sigue leyendo pero **no puede alcanzar el veredicto «completo»**, y se dice por
+qué. `src/__tests__/durabilidad-respaldo-y-restauracion.test.ts`.
+
+**Qué NO cubre, declarado.** La huella prueba que el CONJUNTO de documentos es
+el mismo. No prueba que ninguno esté mal: los dos lados pueden estar mal igual.
+Y no cubre los objetos de Cloud Storage, que no viajan en el archivo — eso se
+declara en la cabecera (`fueraDelArchivo`) en vez de silenciarse.
+
+---
+
+## REG-419 — re-enraizar la ruta dejaba el documento declarando pertenecer a otro consultorio
+
+**Área.** Aislamiento entre consultorios durante la restauración (#312).
+
+**Qué fallaba.** `reenraizar()` reescribe `clinics/A/patients/P` →
+`clinics/B/patients/P`, que es lo correcto y lo que hace posible restaurar en
+otro sitio. Pero **no toca el contenido**, y el contenido lleva la clínica de
+origen por dentro:
+
+```json
+{ "clinicId": "A", "metadata": { "clinicId": "A" }, … }
 ```
-SHA_AUTORIZADO   8f74901d   (árbol de nexusmed-v1177)
-cabeza de main   e72f22a9   (árbol de nexusmed-v1178)
-VERSION_ESPERADA nexusmed-v1178   ← escrita a mano, ya movida
 
-decidirArbolAutorizado(...) →
-  ok:false · «41 commits por detrás Y difiere en lo que este workflow publica:
-  public/version.txt, public/sw.js»
+El resultado es un documento **guardado en B que declara pertenecer a A**. No
+falla nada, no avisa nadie, y la siguiente consulta que filtre por ese campo verá
+lo que no debe o dejará de ver lo que sí.
+
+Además, `reenraizar` reescribe la raíz de CUALQUIER ruta: una línea de un tercer
+consultorio metida a mano en el archivo también se re-enraíza y aterriza en el
+destino como si fuera suya.
+
+**Causa raíz.** Un invariante —el aislamiento entre consultorios— que vive en
+dos sitios a la vez (la ruta y el contenido) y sólo se comprobaba en uno. El que
+no se comprueba es el que falla.
+
+**Control permanente.** Dos candados. **Procedencia**: cada raíz original se
+compara contra el `clinicId` que declara la cabecera; una línea de otro origen se
+detiene. **Aislamiento por dentro**: se recorre el documento entero buscando
+campos de inquilino y rutas incrustadas de otro consultorio.
+
+Y una consecuencia que se declara en vez de resolverse a la ligera: `clinicId`
+está **dentro del sello v3**, así que restaurar una nota FIRMADA en otro
+consultorio no tiene salida limpia —dejar el campo contamina, reescribirlo altera
+un documento inmutable—. No se elige: es `REVISION_HUMANA`, y es una decisión
+medicolegal sobre titularidad del expediente.
+`src/__tests__/durabilidad-respaldo-y-restauracion.test.ts`.
+
+**Qué NO cubre, declarado.** Detecta referencias que **se pueden leer** del
+documento. Los objetos de Cloud Storage se enraízan por `uid` de médico
+(`receta-diseno/{uid}/…`), así que desde el documento es **imposible** saber a
+qué consultorio pertenece el objeto: eso sale como `referencia-no-verificable`,
+que es una declaración de límite, no un aprobado. Ver R-05 en
+`docs/recovery/REGISTRO-DE-RIESGOS.md`.
+
+---
+
+## REG-420 — «consultorio vacío» miraba dos colecciones, y una supresión ARCO se podía deshacer sin querer
+
+**Área.** Candado de la restauración (#312).
+
+**Qué fallaba.** La comprobación de consultorio vacío era:
+
+```ts
+const [pac, cit] = await Promise.all([
+  clinicRef.collection('patients').limit(1).get(),
+  clinicRef.collection('appointments').limit(1).get(),
+])
 ```
 
-Desde `a1734b2` (31-ago 20:26 UTC) hasta la reparación, pulsar el botón paraba
-en la Compuerta 0. Doce ejecuciones anteriores en verde, CI 5/5 en verde, y el
-único camino a `firestore.rules` cerrado sin que nada lo dijera.
+Un consultorio con cobros, con bitácora de accesos o con internamientos —pero
+**sin pacientes, porque una supresión ARCO se los llevó**— pasaba por vacío. Y
+encima de ese consultorio se restauraba un respaldo anterior a la supresión.
 
-### El defecto: la versión estaba escrita dos veces
+Un derecho ejercido por un paciente (LFPDPPP Art. 25-26) se deshacía sin que
+nadie lo pidiera y sin que nadie se enterara.
 
-`a1734b2` subió el service worker a `v1178` y movió con él `VERSION_ESPERADA`
-—«dos sitios que dicen la versión son dos sitios que se desincronizan», dice su
-propio mensaje— pero no movió `SHA_AUTORIZADO`. El pin y la versión son el mismo
-hecho («qué árbol se publica») escrito en dos renglones, y se separaron en el
-commit que citaba la regla para justificar mover uno solo.
+**Causa raíz.** Una señal elegida por conveniencia —«si hay pacientes, hay
+datos»— tratada como definición. El caso en que la señal falla es precisamente
+el caso en que el error es más grave.
 
-### Por qué no lo cazó nada
+**Control permanente.** Cinco señales: `patients`, `appointments`, `cobros`,
+`audit_log`, `internamientos`. Escritas **una a una** y no recorriendo un
+arreglo, porque el detector de rutas que leen identidad de paciente
+(`authz-rutas-declaradas`) busca `collection('patients')` en el texto: con un
+bucle, la ruta que reescribe el consultorio entero dejaba de contar como lectora
+de PHI y el guardián pasaba en verde sin ella. Es la cuarta vez que un guardián
+textual se apaga solo en este repositorio.
+`src/__tests__/durabilidad-respaldo-y-restauracion.test.ts` y
+`src/__tests__/respaldo-ida-y-vuelta.test.ts`.
 
-- Las compuertas viven **en el runner**. Sólo hablan cuando alguien pulsa.
-- El golden de la Compuerta 0
-  (`el-boton-de-produccion-no-publica-un-arbol-viejo.test.ts`) prueba la
-  **decisión** con shas de mentira y lee el YAML para comprobar que la llama.
-  Nunca compara el pin con la versión: no puede: el checkout de CI es de
-  profundidad 1 y el árbol del pin no está en la máquina.
+**Qué NO cubre, declarado.** Con `sobrescribir=1` sigue siendo posible restaurar
+encima de un consultorio con datos propios.
 
-### El arreglo: un solo mando
+> **CERRADO DESPUÉS, EN ESTA MISMA RAMA — 31-ago-2026.** Este apartado declaraba
+> pendiente el invariante «un paciente cuya supresión consta en el destino no
+> vuelve», y lo daba por bloqueado a la espera de #306, porque suponía que había
+> que cruzar `arco_requests` y decidir un criterio de coincidencia de identidad.
+>
+> No hizo falta: la supresión ya deja su propio asiento en la bitácora del
+> destino (`audit_log`, `evento: 'paciente_borrado'` con
+> `meta.accion: 'supresion_arco'`), que es una AFIRMACIÓN FECHADA de que el
+> derecho se ejerció, no una inferencia sobre quién es quién. De ahí sale el
+> conjunto de expedientes suprimidos, y con él la compuerta que corre en la
+> admisión de cada línea (`src/lib/durability/supresion-arco.ts`, CANDADO 0 de
+> `api/clinic/importar`). `sobrescribir=1` **no la salta**: ese permiso es para
+> pisar datos propios del consultorio, no para deshacer el derecho de un tercero.
+>
+> Se deja escrito el rodeo, no sólo el resultado: la razón por la que esto
+> llevaba semanas sin cerrarse era una dependencia que no existía. Dar por
+> bloqueado lo que no se ha intentado cuesta lo mismo que un defecto.
+>
+> **Prueba.** `src/__tests__/durabilidad-supresion-arco-y-perdida-clinica.test.ts`
+> (37 casos), probada al revés con cinco defectos instalados.
 
-La versión **se deriva** del árbol autorizado después del checkout
-(`public/version.txt` → `$GITHUB_ENV`) y desaparece de `env:`. Queda un mando:
-el pin. La autorización del dueño sigue siendo suya —el pin, que la Compuerta 0
-obliga a ser la cabeza de `main` o idéntico en lo publicable—, no una cadena
-escrita al lado que puede envejecer sola.
-
-Se quita además, de la Compuerta 1, la comparación `version.txt` ↔
-`VERSION_ESPERADA`: derivada la segunda de la primera, era `x = x`. Se queda la
-que sí puede fallar — que `sw.js` declare otra versión que `version.txt` — y la
-forma de la versión, que el paso de derivación exige antes de exportarla: con la
-cadena vacía, las compuertas 1 y 3 compararían `"" = ""` y pasarían las dos.
-
-### Qué NO cubre
-
-- **No sabe qué sirve producción.** Sigue siendo la Compuerta 3 contra el sitio
-  vivo, desde el runner. El punto ciego de
-  `ESTADO-DE-PRODUCCION-2026-08-31.md` sigue abierto.
-- **No mueve el pin solo**, a propósito: el pin es el acto de autorización del
-  dueño. Lo que se arregla es que envejecer no rompa el botón por dos sitios a
-  la vez.
-- **No cubre el pin atrasado**: eso es la Compuerta 0 y su propio golden.
-
-**Prueba.** `src/__tests__/la-version-del-despliegue-no-se-escribe-dos-veces.test.ts`
-(7 casos), probada al revés sobre cuatro workflows mutilados: volver a escribir
-`VERSION_ESPERADA` en `env:`, quitar la derivación, moverla detrás de su primer
-uso y quitarle el rechazo de una versión ilegible. Los cuatro caen.
+Lo que sigue **sin** cubrirse: reactivar un expediente cancelado es una decisión
+legal con el titular delante, y esta compuerta no la modela — sólo detiene. El
+riesgo vive en `docs/recovery/REGISTRO-DE-RIESGOS.md`.
