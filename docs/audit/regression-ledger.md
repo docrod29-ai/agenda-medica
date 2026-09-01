@@ -15433,3 +15433,71 @@ probada al revés sobre cinco workflows mutilados: borrar el paso del sello,
 borrar el despliegue de las reglas, cambiar el hash derivado por una constante
 pegada, quitar el sello del acta y dejar que el acta cierre en verde sin el paso
 de Firestore. Los cinco caen.
+
+---
+
+## REG-417 — el único botón de producción llevaba diecinueve horas roto, y nada lo decía
+
+**CÓMO SE DESCUBRIÓ.** El 1-sep, contestando «¿ya se puede desplegar? no veo
+ningún cambio en la aplicación». No se dedujo del texto del workflow: se corrió
+su propia compuerta con los valores reales de `main`.
+
+```
+SHA_AUTORIZADO   8f74901d   (árbol de nexusmed-v1177)
+cabeza de main   e72f22a9   (árbol de nexusmed-v1178)
+VERSION_ESPERADA nexusmed-v1178   ← escrita a mano, ya movida
+
+decidirArbolAutorizado(...) →
+  ok:false · «41 commits por detrás Y difiere en lo que este workflow publica:
+  public/version.txt, public/sw.js»
+```
+
+Desde `a1734b2` (31-ago 20:26 UTC) hasta la reparación, pulsar el botón paraba
+en la Compuerta 0. Doce ejecuciones anteriores en verde, CI 5/5 en verde, y el
+único camino a `firestore.rules` cerrado sin que nada lo dijera.
+
+### El defecto: la versión estaba escrita dos veces
+
+`a1734b2` subió el service worker a `v1178` y movió con él `VERSION_ESPERADA`
+—«dos sitios que dicen la versión son dos sitios que se desincronizan», dice su
+propio mensaje— pero no movió `SHA_AUTORIZADO`. El pin y la versión son el mismo
+hecho («qué árbol se publica») escrito en dos renglones, y se separaron en el
+commit que citaba la regla para justificar mover uno solo.
+
+### Por qué no lo cazó nada
+
+- Las compuertas viven **en el runner**. Sólo hablan cuando alguien pulsa.
+- El golden de la Compuerta 0
+  (`el-boton-de-produccion-no-publica-un-arbol-viejo.test.ts`) prueba la
+  **decisión** con shas de mentira y lee el YAML para comprobar que la llama.
+  Nunca compara el pin con la versión: no puede: el checkout de CI es de
+  profundidad 1 y el árbol del pin no está en la máquina.
+
+### El arreglo: un solo mando
+
+La versión **se deriva** del árbol autorizado después del checkout
+(`public/version.txt` → `$GITHUB_ENV`) y desaparece de `env:`. Queda un mando:
+el pin. La autorización del dueño sigue siendo suya —el pin, que la Compuerta 0
+obliga a ser la cabeza de `main` o idéntico en lo publicable—, no una cadena
+escrita al lado que puede envejecer sola.
+
+Se quita además, de la Compuerta 1, la comparación `version.txt` ↔
+`VERSION_ESPERADA`: derivada la segunda de la primera, era `x = x`. Se queda la
+que sí puede fallar — que `sw.js` declare otra versión que `version.txt` — y la
+forma de la versión, que el paso de derivación exige antes de exportarla: con la
+cadena vacía, las compuertas 1 y 3 compararían `"" = ""` y pasarían las dos.
+
+### Qué NO cubre
+
+- **No sabe qué sirve producción.** Sigue siendo la Compuerta 3 contra el sitio
+  vivo, desde el runner. El punto ciego de
+  `ESTADO-DE-PRODUCCION-2026-08-31.md` sigue abierto.
+- **No mueve el pin solo**, a propósito: el pin es el acto de autorización del
+  dueño. Lo que se arregla es que envejecer no rompa el botón por dos sitios a
+  la vez.
+- **No cubre el pin atrasado**: eso es la Compuerta 0 y su propio golden.
+
+**Prueba.** `src/__tests__/la-version-del-despliegue-no-se-escribe-dos-veces.test.ts`
+(7 casos), probada al revés sobre cuatro workflows mutilados: volver a escribir
+`VERSION_ESPERADA` en `env:`, quitar la derivación, moverla detrás de su primer
+uso y quitarle el rechazo de una versión ilegible. Los cuatro caen.

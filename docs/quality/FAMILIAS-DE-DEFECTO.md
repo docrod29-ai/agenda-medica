@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 74 de 267, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 74 de 268, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
@@ -128,9 +128,20 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 43 de 267.**
+**«El sistema se contradice a sí mismo» — 44 de 268.**
 
-Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
+Sumó REG-417 (1-sep-2026), y es esta familia sobre la herramienta que publica
+las reglas de aislamiento. «Qué árbol se publica» estaba escrito en **dos
+renglones del mismo archivo**: el pin del árbol autorizado y la versión
+esperada. Ninguno estaba mal por su cuenta —el pin apuntaba a un árbol real y
+certificado, la versión era la de la cabeza de `main`— y en el hueco cabía un
+botón que no podía correr: el pin decía v1177 y la versión decía v1178.
+Diecinueve horas sin camino a `firestore.rules`, con doce ejecuciones anteriores
+en verde y CI 5/5 en verde. Lo caro de esta forma es que **el defecto sólo habla
+cuando alguien pulsa**: las compuertas viven en el runner, y entre pulsación y
+pulsación el repositorio no tiene cómo decir que su único botón está roto.
+
+Antes REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
 caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
 `transcripcionMotor` —lo que oyó el reconocedor— **le correspondía ir sellado**,
 por qué todavía no lo estaba y hasta cuándo entraría: «cuando se suba a
@@ -209,7 +220,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 37 de 267**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 37 de 268**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

@@ -19,26 +19,13 @@
   "ultimaVersionEnProduccion": "nexusmed-v1178",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M  .github/workflows/deploy-production.yml",
-    "UU agent-state/MASTER_STATE.json",
-    "M  docs/audit/carril-excelencia/techos-de-estaticidad.json",
-    "M  docs/audit/lane-product-excellence.md",
-    "UU docs/audit/regression-ledger.md",
-    "UU docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "A  docs/maintenance/ESTADO-DE-PRODUCCION-2026-08-31.md",
-    "M  docs/maintenance/PAQUETE-PRODUCCION-2026-08-30.md",
-    "M  docs/maintenance/sw-changelog.md",
-    " M docs/ops/REGLAS-DE-FIRESTORE.md",
-    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    "M  scripts/carril-excelencia/destinos-del-portal.mjs",
-    "M  scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
-    "M  scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
-    "A  scripts/carril-excelencia/token-del-portal.mjs",
-    "M  scripts/carril-excelencia/trinquete-de-interfaz.mjs",
-    "M  scripts/design/sembrar-emulador.mjs"
+    "M .github/workflows/deploy-production.yml",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? docs/maintenance/ESTADO-DE-PRODUCCION-2026-09-01.md",
+    "?? src/__tests__/la-version-del-despliegue-no-se-escribe-dos-veces.test.ts"
   ],
   "actualizado": "2026-08-31",
   "resumenDesdeElUltimoEstado": {
@@ -72,12 +59,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/explicacion-informativa-6t499i",
+  "ramaActual": "claude/analisis-cambios-produccion-7eyrmu",
   "derivado": {
-    "regsEnElLedger": 267,
+    "regsEnElLedger": 268,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 890,
-    "casosDePrueba": 10813,
+    "archivosDePrueba": 891,
+    "casosDePrueba": 10820,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

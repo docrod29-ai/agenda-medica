@@ -5,7 +5,7 @@
 # Sólo:
 #   1) verifica que el árbol clínico autorizado y la versión son los esperados,
 #   2) verifica que Vercel apunta al proyecto principal agenda-medica,
-#   3) verifica que el sitio vivo ya sirve VERSION_ESPERADA,
+#   3) verifica que el sitio vivo ya sirve la versión DEL ÁRBOL AUTORIZADO,
 #   4) publica firestore.rules Y firestore.indexes usando una credencial Firebase
 #      ya existente,
 #   5) corre seguridad y smoke contra producción.
@@ -26,13 +26,18 @@ permissions:
   statuses: read
 
 env:
-  SHA_AUTORIZADO: 8f74901d7a177c2336c80f16c6677965916c0f75
+  SHA_AUTORIZADO: e72f22a9e82025fd3e06beb6982b377adc67d6da
   # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
   # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
   # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
   # que envejeció sin que nadie se enterara. Ver Compuerta 0.
   ROLLBACK_AUTORIZADO: ''
-  VERSION_ESPERADA: nexusmed-v1178
+  # NO hay `VERSION_ESPERADA` aquí, a propósito: se DERIVA del árbol que se acaba
+  # de traer (paso siguiente). Escribirla a mano era el SEGUNDO sitio que decía la
+  # versión, y los dos se desincronizaron el 31-ago — el pin se quedó en el árbol
+  # de v1177 mientras esta variable subía a v1178. El botón quedó inservible:
+  # paraba en la Compuerta 1 diciendo «version.txt no es nexusmed-v1178», que es
+  # verdad y no dice qué hacer. Un solo mando: el pin.
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
@@ -53,6 +58,23 @@ jobs:
           # de la variable, y actualizar el despliegue es cambiar UN número.
           ref: ${{ env.SHA_AUTORIZADO }}
           fetch-depth: 0
+
+      # La versión NO se escribe dos veces. Sale del árbol autorizado, que es el
+      # único que se va a publicar y certificar.
+      - name: 'La versión sale del árbol autorizado, no de una copia a mano'
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '[:space:]' < public/version.txt)"
+          # Ausencia de dato no es dato de ausencia: un version.txt vacío o con
+          # otra forma NO se convierte en «cualquier versión vale». Para aquí, para
+          # que las compuertas 1 y 3 nunca comparen contra una cadena vacía —
+          # `"" = ""` las dejaría pasar las dos.
+          case "$VERSION" in
+            nexusmed-v[0-9]*) : ;;
+            *) echo "::error::public/version.txt del árbol autorizado no tiene forma de versión: '$VERSION'."; exit 1 ;;
+          esac
+          echo "VERSION_ESPERADA=$VERSION" >> "$GITHUB_ENV"
+          echo "Versión derivada del árbol autorizado: $VERSION"
 
       # ─────────────────────────────────────────────────────────────────────
       # COMPUERTA 0 · lo que se publique tiene que ser lo de HOY.
@@ -117,10 +139,12 @@ jobs:
             echo "::error::El checkout no coincide con el SHA autorizado."
             exit 1
           }
-          [ "$(tr -d '[:space:]' < public/version.txt)" = "$VERSION_ESPERADA" ] || {
-            echo "::error::version.txt no es $VERSION_ESPERADA."
-            exit 1
-          }
+          # AQUÍ YA NO SE COMPARA `version.txt` CON LA VERSIÓN ESPERADA. Desde que
+          # la versión se deriva de ese mismo archivo, esa comparación sería una
+          # tautología —`x = x`— y una comprobación que no puede fallar no es una
+          # comprobación. Lo que sí puede fallar, y se queda: que `sw.js` declare
+          # otra cosa que `version.txt`, y que el archivo tenga forma de versión
+          # (eso lo mira el paso que la deriva, y para si no).
           grep -q "const CACHE = '$VERSION_ESPERADA'" public/sw.js || {
             echo "::error::sw.js no declara $VERSION_ESPERADA."
             exit 1

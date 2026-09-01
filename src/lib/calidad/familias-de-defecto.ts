@@ -430,7 +430,22 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Negadas, Negadas».
      */
 
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412],
+    /**
+     * 417 es esta familia sobre el ÚNICO botón que publica las reglas de
+     * aislamiento. «Qué árbol se publica» estaba escrito en dos renglones del
+     * mismo archivo: el pin (`SHA_AUTORIZADO`) y la versión (`VERSION_ESPERADA`).
+     * Ninguno de los dos está mal por su cuenta —el pin apuntaba a un árbol real
+     * y certificado, la versión era la de la cabeza de `main`—, y en el hueco
+     * cabía un botón que no podía correr: el pin decía v1177 y la versión decía
+     * v1178. Diecinueve horas sin camino a `firestore.rules`, con doce
+     * ejecuciones anteriores en verde y CI 5/5 en verde.
+     *
+     * No entra en `sin_medir` aunque nada lo midiera: las compuertas viven en el
+     * runner y sólo hablan cuando alguien pulsa. El defecto no era la falta de
+     * instrumento; era que el mismo hecho estuviera escrito dos veces.
+     */
+
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417],
   },
   {
     clave: 'habla_real',

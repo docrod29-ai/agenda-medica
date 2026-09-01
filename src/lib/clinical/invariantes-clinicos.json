@@ -921,6 +921,10 @@
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/la-version-del-despliegue-no-se-escribe-dos-veces.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/la-version-del-prompt-no-miente.test.ts",
       "minCasos": 6
     },
