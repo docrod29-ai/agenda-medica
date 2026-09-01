@@ -568,7 +568,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      */
 
     /**
-     * 415 es el instrumento MINTIENDO, que es peor que no tenerlo. El guardián
+     * 415 es esta familia con la prueba más incómoda de todas: el instrumento
+     * no faltaba por descuido, faltaba porque NO HABÍA CON QUÉ ENCENDERLO. El
+     * arnés no había abierto nunca el visor del documento medicolegal, y al ir
+     * a abrirlo resultó que la pantalla ni pintaba — el consultorio de prueba no
+     * tenía una sola nota que enseñar, y la que se sembró para tenerla reventaba
+     * la pantalla entera. Un instrumento que no se puede encender no es un
+     * instrumento flojo: es la misma ausencia, mejor disimulada.
+     *
+     * Y al encenderse destapó otros dos, como dice el patrón de esta familia:
+     * la cabecera de cada nota del expediente y el «ya no» que suspende un
+     * medicamento en la consulta, mudos los dos. No aparecían porque no había
+     * datos que los hicieran aparecer — un cero sobre una lista vacía no dice
+     * «está bien», dice «aquí no hay nada».
+     */
+
+    /**
+     * 417 es el instrumento MINTIENDO, que es peor que no tenerlo. El guardián
      * de índices existía, corría en verde y llevaba meses tapando dos consultas
      * sin índice: se SALTABA con un `continue` las consultas cuya colección no
      * sabía leer, y comparaba que los campos estuvieran en vez de que estuvieran
@@ -580,8 +596,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que el guardián protege se le probó al revés — que es la única manera de
      * saber si un instrumento mide.
      */
-
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 417],
   },
   {
     clave: 'hueco_como_dato',
@@ -896,7 +911,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * recuento marcó como deuda una lectura que sí acota, porque resolvía los
      * nombres en todo el archivo y otra función tenía una variable homónima.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502],
+    /**
+     * 416 es esta familia **sobre la reparación de 340**, un escalón más arriba.
+     * 340 le quitó la memoria al ESTADO: el sello guarda el sha256 de las reglas
+     * desplegadas y una compuerta falla cuando se separa del archivo. Lo que
+     * quedó dependiendo de que alguien se acordara fue el ACTO DE REGISTRARLO —
+     * correr `sha256sum` a mano después de desplegar y pegarlo.
+     *
+     * Y se saltó: las reglas se publicaron el 31-ago con v1177, el sello se
+     * quedó vacío, y el repositorio pasó a declarar rotas unas protecciones que
+     * ya regían. Su lección: derivar el dato no basta si EMITIRLO sigue siendo un
+     * paso manual al final de un despliegue. Ahí lo emite quien publica.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 502],
   },
   {
     /**

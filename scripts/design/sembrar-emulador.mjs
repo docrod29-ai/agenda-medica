@@ -418,6 +418,170 @@ async function main() {
     })
   }
 
+  /**
+   * UN PAQUETE DE VISITA LIBERADO — para que la cara CLÍNICA del portal exista.
+   *
+   * El portal del paciente tiene dos caras: con el enlace de mostrador
+   * (`agenda`) enseña un muro donde con el clínico enseña el plan y las recetas.
+   * Sin un paquete liberado, esa segunda cara se pinta VACÍA y el arnés la mide
+   * en cero — un cero real que no vigila nada, porque no hay nada que vigilar.
+   *
+   * Se sembró a mano la primera vez y quedó declarado como riesgo: una caja
+   * recién sembrada habría vuelto a medir la cara clínica vacía SIN AVISAR. Por
+   * eso vive aquí, donde no se puede olvidar.
+   *
+   * Las TRES condiciones de `visibleParaElPaciente` —RELEASED, approvedBy y
+   * approvedAt— van puestas a propósito: un paquete DRAFT no es visible para el
+   * paciente, y sembrar uno así mediría otra vez la pantalla vacía. Es la regla
+   * «DRAFT hasta que el médico apruebe» de `.claude/rules/patient-facing-ai.md`.
+   *
+   * Todo sintético, como el resto del sembrado. Cero pacientes reales.
+   */
+  await escribir(`clinics/${CLINICA}/patients/pac-001/paquetes_visita/paq-demo-001`, {
+    estado: 'RELEASED',
+    approvedBy: 'medico-demo-sintetico',
+    approvedAt: Date.now(),
+    version: 1,
+    fechaConsulta: iso(hoy).slice(0, 10),
+    encounterSummary: 'Control de presión arterial. Cifras dentro de lo esperado para el plan actual.',
+    medicationInstructions: [
+      { nombre: 'Medicamento sintético A', instruccion: 'Una toma por la mañana, con alimento.' },
+    ],
+    medicationChanges: [
+      { nombre: 'Medicamento sintético A', tipo: 'sin-cambio' },
+    ],
+    orders: ['Estudio de laboratorio de control'],
+    followUp: 'Cita de seguimiento en cuatro semanas.',
+    warningSigns: ['Dolor de cabeza intenso que no cede', 'Visión borrosa'],
+    alergias: 'Penicilina (anafilaxia), sulfas, AINEs',
+    prescriptor: {
+      nombre: 'Dra. Ximena Alcántara Robledo (sintética)',
+      cedulaProfesional: '00000000',
+      especialidad: 'Medicina Interna',
+    },
+    clinicianContactRules: 'Si algo de esto empeora, comunícate con el consultorio antes de la cita.',
+  })
+
+  /**
+   * UNA NOTA FIRMADA CON RECETA — para que «Documentos» del portal no esté vacío.
+   *
+   * `action:'documentos'` no devuelve `medicamentos` en crudo: los cruza por
+   * `medicamentosDeLaReceta`, que separa cinco cosas que no son lo mismo —lo que
+   * el paciente REFIRIÓ que toma, lo que la IA extrajo sin confirmar, lo
+   * suspendido, lo vencido, y lo que el médico INDICÓ—. Sólo lo último baja al
+   * papel.
+   *
+   * Por eso este medicamento lleva `procedenciaClinica: 'se_prescribe_hoy'` y
+   * `estado: 'activa'`: son las DOS condiciones que ese filtro exige. Sembrar
+   * uno con `ya_lo_toma` o en `borrador` dejaría «Documentos» vacío igual, y el
+   * arnés volvería a medir un cero que no vigila nada.
+   *
+   * La nota va `firmada` porque la ruta filtra por `estado == 'firmada'`: una
+   * nota sin firmar no es una receta y no debe llegarle al paciente.
+   *
+   * Medicamento sintético, sin dosis real: lo que se vigila aquí es que la
+   * pantalla se comporte, no lo que dice. Cero pacientes reales.
+   */
+  await escribir(`clinics/${CLINICA}/patients/pac-001/notas/nota-demo-001`, {
+    id: 'nota-demo-001',
+    clinicId: CLINICA,
+    pacienteId: 'pac-001',
+    pacienteNombre: PACIENTES.find(x => x.id === 'pac-001').nombre,
+    tipo: 'seguimiento',
+    estado: 'firmada',
+    fechaConsulta: iso(hoy).slice(0, 10),
+    firmadaEn: iso(hoy),
+    medicoNombre: 'Dra. Ximena Alcántara Robledo (sintética)',
+    /*
+     * LA PRIMERA VERSIÓN DE ESTE SEMBRADO NO TRAÍA `metadata` NI `secciones`.
+     *
+     * Y pasó desapercibido porque el ÚNICO lector que se miró fue la ruta del
+     * portal, que sólo lee `estado` y `medicamentos`. El visor medicolegal
+     * —`/nota/[patientId]/[notaId]`, el sitio donde el médico LEE el documento—
+     * hace `nota.metadata.establecimiento` sin guarda y `nota.secciones.filter`,
+     * así que reventaba entero: «Algo salió mal», con un «Reintentar» que no
+     * puede arreglar un fallo determinista de render.
+     *
+     * Es «el dato tiene que LLEGAR» en su forma más literal: el que escribe lo
+     * aceptó, Firestore lo aceptó, un lector lo aceptó — y el lector que
+     * importaba no podía pintarlo. Un sembrador en `.mjs` no pasa por `tsc`, así
+     * que `NotaMedica` decía «obligatorio» y nadie lo comprobaba.
+     *
+     * Ahora se siembra contra el TIPO, no contra el lector que se tenía a mano.
+     */
+    metadata: {
+      id: 'nota-demo-001',
+      tipoNota: 'seguimiento',
+      clinicId: CLINICA,
+      pacienteId: 'pac-001',
+      medicoId: uid,
+      // Sintéticas y marcadas como tales: ni cédula ni establecimiento reales.
+      cedulaProfesional: 'CED-SINTETICA-0000',
+      especialidad: 'Medicina Interna (sintética)',
+      establecimiento: 'Consultorio sintético de medición',
+      fechaCreacion: iso(hoy),
+      fechaModificacion: iso(hoy),
+      /*
+       * SELLO VACÍO A PROPÓSITO. El visor distingue cuatro estados de integridad
+       * y `''` cae en `sin-sello`, que es la verdad: esta nota no se firmó por el
+       * producto, se escribió a mano en el emulador. Inventar un SHA-256 la
+       * pintaría de ROJO —«pudo haber sido alterada»— y el arnés estaría midiendo
+       * una alarma falsa que yo mismo fabriqué.
+       */
+      hashIntegridad: '',
+      version: 1,
+      estado: 'firmada',
+      fuenteGeneracion: 'manual',
+    },
+    /*
+     * Y LA FIRMA, que es lo que hace que sea un documento y no un borrador.
+     *
+     * `estado: 'firmada'` a solas no basta: el pie del documento pregunta por
+     * `nota.estado === 'firmada' && nota.firma`, así que sin este bloque la nota
+     * salía sellada arriba y estampada BORRADOR abajo — un documento que se
+     * contradice a sí mismo, y encima el estado que hace falta para la ADENDA,
+     * que es corrección de nota FIRMADA.
+     *
+     * `hashFirma` va vacío por lo mismo que `hashIntegridad`: no se inventa un
+     * sello. Sin él la pantalla dice `sin-sello`, que es la verdad.
+     */
+    firma: {
+      nombreMedico: 'Dra. Ximena Alcántara Robledo (sintética)',
+      cedulaProfesional: 'CED-SINTETICA-0000',
+      especialidad: 'Medicina Interna (sintética)',
+      timestamp: iso(hoy),
+      hashFirma: '',
+    },
+    /*
+     * Texto sintético y SIN UNA SOLA CIFRA CLÍNICA: aquí se vigila que la
+     * pantalla se comporte, no lo que dice. `clinical-safety.md` §1 — una dosis
+     * o un umbral inventados en un fixture acaban citándose como si fueran algo.
+     */
+    secciones: [
+      { key: 'subjetivo', label: 'Subjetivo', value: 'Contenido sintético de medición. No corresponde a ninguna persona.' },
+      { key: 'objetivo', label: 'Objetivo', value: 'Contenido sintético de medición.' },
+      { key: 'analisis', label: 'Análisis', value: 'Contenido sintético de medición.' },
+      { key: 'plan', label: 'Plan', value: 'Contenido sintético de medición.' },
+    ],
+    medicamentos: [
+      {
+        nombre: 'Medicamento sintético A',
+        procedenciaClinica: 'se_prescribe_hoy',
+        estado: 'activa',
+        indicacion: 'Una toma por la mañana, con alimento.',
+      },
+      {
+        // Referido por el paciente: NO debe bajar a la receta. Está aquí a
+        // propósito, para que el sembrado ejercite la frontera y no sólo el
+        // camino feliz.
+        nombre: 'Medicamento sintético B',
+        procedenciaClinica: 'ya_lo_toma',
+        estado: 'activa',
+        indicacion: 'Lo tomaba desde antes de esta consulta.',
+      },
+    ],
+  })
+
   // ── Agenda ────────────────────────────────────────────────────────────────
   for (const c of CITAS) {
     const p = PACIENTES.find(x => x.id === c.pac)

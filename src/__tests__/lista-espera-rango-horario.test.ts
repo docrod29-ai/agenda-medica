@@ -156,7 +156,7 @@ describe('el tope ya no recorta en silencio', () => {
     expect(s).toContain('los que quedaron fuera son los MENOS prioritarios')
   })
 
-  it('y el recorte se lleva a los MENOS prioritarios, no a cualquiera (REG-415)', () => {
+  it('y el recorte se lleva a los MENOS prioritarios, no a cualquiera (REG-417)', () => {
     /**
      * Este caso decía antes «el aviso explica qué haría falta para arreglarlo del
      * todo», porque el arreglo estaba bloqueado por un índice sin desplegar. Ya

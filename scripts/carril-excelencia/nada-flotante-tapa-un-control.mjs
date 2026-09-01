@@ -43,6 +43,7 @@
  *   hacer: apartar el contenido y mover la hoja son dos arreglos distintos.
  */
 import { chromium } from 'playwright'
+import { conPortal } from './token-del-portal.mjs'
 
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const BASE = process.env.BASE ?? 'http://localhost:3300'
@@ -57,6 +58,10 @@ const RUTAS = (process.env.RUTAS ?? [
 
 const nav = await chromium.launch({ executablePath: CHROME })
 let tapadosTotal = 0
+/* Rutas que montaron y no pintaron un solo control: sin medir, no en cero. */
+const rutasVacias = []
+/* El aviso de «portal sin medir» se dice UNA vez, no una por ancho. */
+let avisoPortalPendiente = true
 let controlesTotal = 0
 
 for (const ancho of ANCHOS) {
@@ -77,7 +82,16 @@ for (const ancho of ANCHOS) {
   await pag.waitForTimeout(9000)
 
   console.log(`\n  ── ${ancho}px ─────────────────────────────`)
-  for (const ruta of RUTAS) {
+  /**
+   * EL PORTAL DEL PACIENTE TAMBIÉN. Aquí importa más que en ninguna otra
+   * pantalla: el 30-ago el trinquete de interfaz cazó el botón flotante del
+   * tema tapando el destino «Perfil» de la barra del paciente. Un control
+   * tapado en el lado del médico se sortea; el paciente no sabe que hay algo
+   * debajo.
+   */
+  const rutasDeEsteAncho = conPortal(RUTAS, { avisar: avisoPortalPendiente })
+  avisoPortalPendiente = false
+  for (const ruta of rutasDeEsteAncho) {
     await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded' }).catch(() => {})
     await pag.waitForTimeout(4500)
     for (const t of [/^saltar$/i, /^entendido$/i]) {
@@ -216,13 +230,39 @@ for (const ancho of ANCHOS) {
       console.log(`  TAPA  ${ruta} — ${tapados.length}`)
       tapados.forEach(t => console.log(`          · ${t}`))
     } else {
-      console.log(`    ok  ${ruta} (${abajo.vistos})`)
+      /**
+       * VACÍO NO ES CERO, TAMBIÉN AQUÍ.
+       *
+       * Una ruta que monta su `<main>` y no pinta un solo control imprimía
+       * `ok /ruta (0)`: cero tapados sobre cero mirados. El número se veía
+       * —no era silencioso— pero nada lo ponía en rojo, y la salvaguarda
+       * global (menos de 100 en total) no la salva: ese cero se absorbe
+       * entre las otras veintitantas.
+       *
+       * Hermana de la misma regla en `acuse-puntero`, y de la que salvó la
+       * unidad 88 en los diálogos, donde «Cobrar» dijo «sin abrir, queda sin
+       * medir» en vez de 0 y por eso se investigó.
+       */
+      if (abajo.vistos === 0) {
+        console.log(`  VACÍA ${ruta} — montó y no pintó nada que pulsar: sin medir, no en cero`)
+        rutasVacias.push(ruta)
+      } else {
+        console.log(`    ok  ${ruta} (${abajo.vistos})`)
+      }
     }
   }
   await ctx.close()
 }
 
 await nav.close()
+
+if (rutasVacias.length) {
+  console.error(
+    '\n  Rutas que montaron sin un solo control — eso no es «0 tapados», es «sin medir»:\n' +
+    rutasVacias.map(r => '   · ' + r).join('\n') + '\n',
+  )
+  process.exit(1)
+}
 
 if (controlesTotal < 100) {
   console.error(`\n  Sólo se miraron ${controlesTotal} controles. No está midiendo.\n`)

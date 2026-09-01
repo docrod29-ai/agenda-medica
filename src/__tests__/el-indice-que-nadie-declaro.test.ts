@@ -41,7 +41,7 @@
  * · **Sólo ve el SDK de cliente** (`query(collection(...), where, orderBy)`). Lo
  *   que corre por el SDK admin en las rutas de servidor no lo lee este guardián:
  *   está declarado aquí y sigue siendo trabajo pendiente, no un hueco tapado.
- * · **Sí comprueba el orden de los campos desde REG-415** — igualdades primero,
+ * · **Sí comprueba el orden de los campos desde REG-417** — igualdades primero,
  *   `orderBy` después y en su orden exacto, sin campos de más. Lo que NO mira es
  *   el `queryScope`: un índice de `COLLECTION` no sirve para un
  *   `collectionGroup`, y eso pasaría este guardián.
@@ -90,7 +90,7 @@ function bloquesDeQuery(fuente: string): string[] {
  * dentro del `query(...)`, y un alias `const X = (…) => collection(…, 'literal')`.
  * Cualquier otra cosa la **saltaba en silencio** con un `continue`.
  *
- * Y así es como se le escapó `getWaitlist` (REG-415), que llama a un ayudante
+ * Y así es como se le escapó `getWaitlist` (REG-417), que llama a un ayudante
  * declarado con `function` y recibe el nombre por PARÁMETRO:
  *
  *   function col(clinicId, name) { return collection(db, 'clinics', clinicId, name) }
@@ -236,7 +236,7 @@ const DECLARADOS = JSON.parse(readFileSync('firestore.indexes.json', 'utf8')).in
 }[]
 
 /**
- * CUÁNDO UN ÍNDICE SIRVE DE VERDAD PARA UNA CONSULTA (REG-415).
+ * CUÁNDO UN ÍNDICE SIRVE DE VERDAD PARA UNA CONSULTA (REG-417).
  *
  * La primera versión de este guardián comprobaba que los campos **estuvieran**,
  * en cualquier orden y en cualquier índice de la colección. Su propio encabezado

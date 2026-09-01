@@ -1,8 +1,10 @@
 # Índices compuestos de Firestore — los que hay, y en qué orden se despliega
 
-> **Estado**: los índices están **declarados y las consultas ya los usan**
-> (REG-415). Desplegarlos y verlos `Enabled` en la consola sigue siendo una
-> acción del dueño. **Léase «El orden importa» antes de fusionar nada.**
+> **Estado**: nueve índices declarados y **las consultas ya los usan** (REG-417).
+> Siete de los nueve se **enviaron** el 31-ago con v1177; los dos que encontró
+> REG-417 —`waitlist(estado, createdAt)` y `clinic_invitations`— todavía no,
+> porque no existían. Y enviar no es construir: ver «El envío no es la
+> construcción». **Léase «El orden importa» antes de fusionar nada.**
 
 ## El orden importa, y es contraintuitivo
 
@@ -30,6 +32,26 @@ fallando**: por eso se despliega, se espera, y se comprueba en la consola
 (https://console.firebase.google.com/project/nexomed-agenda/firestore/indexes)
 que los nueve dicen **Habilitado**, no «Compilando».
 
+## El envío no es la construcción
+
+`firebase deploy --only firestore:indexes` **contesta al enviar, no al terminar**.
+La construcción de un índice compuesto sobre una colección con datos es asíncrona
+y puede fallar **después** de que el comando haya dicho `success`.
+
+Por eso un acta con `FIRESTORE_RULES = success` cierra la fila de las reglas
+—ésas rigen en cuanto se publican— y **no cierra ésta**. Son dos afirmaciones
+distintas que salen del mismo comando:
+
+| Qué dijo el despliegue | Qué demuestra | Qué NO demuestra |
+|---|---|---|
+| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | Que `firestore.indexes.json` llegó al proyecto | Que los índices estén **construidos** |
+
+**Lo que falta, y no puede vivir en este repositorio**: abrir la consola de
+Firestore del proyecto `nexomed-agenda`, pestaña de índices, y comprobar que cada
+uno dice `Enabled` y no `Building` ni `Error`. Hasta entonces, ninguna consulta
+nueva puede depender de ellos — la regla del `FAILED_PRECONDITION` de abajo sigue
+en pie tal cual.
+
 ## Los nueve, y quién los usa
 
 | Colección | Campos | Quién la hace |
@@ -48,9 +70,9 @@ que los nueve dicen **Habilitado**, no «Compilando».
 Las dos filas de `waitlist` **no sobran**: Firestore exige que el campo del
 `orderBy` vaya inmediatamente después de las igualdades y no admite campos de
 más, así que el índice de tres **no sirve** para la consulta de dos. Ésa fue
-exactamente la trampa de REG-415.
+exactamente la trampa de REG-417.
 
-## Los cuatro sacrificios, reparados (REG-415)
+## Los cuatro sacrificios, reparados (REG-417)
 
 Estas cuatro consultas estaban escritas peor de lo que debían **a propósito**,
 cada una con su aviso, porque su índice no existía. Ya no:

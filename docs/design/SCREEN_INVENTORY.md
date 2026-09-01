@@ -35,7 +35,7 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 970 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 982 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1213 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2669 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 7326 | 7 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 7327 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 355 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 341 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 279 | 1 | — | ✅ | — |
@@ -58,10 +58,10 @@
 | `/cumplimiento/retencion` | medico | ✅ | 354 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 384 | 5 | — | ✅ | — |
-| `/expediente/[patientId]` | medico | ✅ | 1130 | 14 | — | ✅ | — |
+| `/expediente/[patientId]` | medico | ✅ | 1145 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 822 | 0 | — | ✅ | — |
-| `/finanzas` | medico | ✅ | 754 | 0 | — | ✅ | — |
+| `/finanzas` | medico | ✅ | 755 | 0 | — | ✅ | — |
 | `/guia` | medico | ✅ | 134 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 286 | 0 | — | ✅ | — |
 | `/membresias` | medico | ✅ | 325 | 0 | — | ✅ | — |
