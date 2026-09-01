@@ -23,11 +23,17 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/ops/INDICES-DE-FIRESTORE.md",
-    " M docs/product/AUSCULTA-CONSULTORIO-FINAL-READINESS.md",
-    " M scripts/golden-path/recorrer-paciente.mjs",
-    " M src/lib/calidad/familias-de-defecto.ts"
+    "M docs/audit/gp-final/acta-medico.json",
+    " M docs/audit/gp-final/acta-paciente.json",
+    " M docs/audit/gp-final/acta-tortura.json",
+    " M docs/audit/regression-ledger.md",
+    " M src/__tests__/las-lecturas-sin-cota-solo-bajan.test.ts",
+    " M src/app/(dashboard)/lista-espera/page.tsx",
+    " M src/app/(dashboard)/operaciones/page.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/firestore.ts",
+    "?? src/__tests__/la-lista-de-espera-no-se-recorta-en-silencio.test.ts"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +69,10 @@
   ],
   "ramaActual": "claude/firebase-indices-query-optimization-lyrva1",
   "derivado": {
-    "regsEnElLedger": 281,
+    "regsEnElLedger": 282,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 897,
-    "casosDePrueba": 10984,
+    "archivosDePrueba": 898,
+    "casosDePrueba": 10991,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1178"

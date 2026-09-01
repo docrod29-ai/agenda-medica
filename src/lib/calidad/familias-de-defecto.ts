@@ -1162,7 +1162,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * tamaño. «Los 200 primeros» sólo es una respuesta aceptable mientras 200
      * sean todos.
      */
-    regs: [341, 350, 351, 352, 393, 423],
+    /**
+     * 429 es la misma lección que 341→351, aplicada a tiempo por una vez: la
+     * lista de espera se leía entera, y acotarla A SECAS la habría dejado peor —
+     * un recorte que se presenta como completo es un paciente esperando que
+     * nadie ve. Por eso `getWaitlist` dejó de devolver un array pelado: un array
+     * no puede decir que viene recortado.
+     */
+
+    regs: [341, 350, 351, 352, 393, 423, 429],
   },
 ] as const
 

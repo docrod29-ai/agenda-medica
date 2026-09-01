@@ -163,19 +163,19 @@
       "id": "GP-20c",
       "titulo": "la nota queda FIRMADA en el expediente (no sólo en la pantalla)",
       "resultado": "OK",
-      "evidencia": "la nota de esta consulta (KztTbhI3fPYnHU0D0kI0) quedó con estado=firmada"
+      "evidencia": "la nota de esta consulta (nota__8050615f9f520939a67a667da26734fb) quedó con estado=firmada"
     },
     {
       "id": "GP-20d",
       "titulo": "tras firmar, el producto lleva al siguiente paso del cierre",
       "resultado": "OK",
-      "evidencia": "http://localhost:3000/receta/pac-aurelio-dominguez/KztTbhI3fPYnHU0D0kI0"
+      "evidencia": "http://localhost:3000/receta/pac-aurelio-dominguez/nota__8050615f9f520939a67a667da26734fb"
     },
     {
       "id": "GP-21a",
       "titulo": "la receta de la nota firmada se puede abrir",
       "resultado": "OK",
-      "evidencia": "http://localhost:3000/receta/pac-aurelio-dominguez/KztTbhI3fPYnHU0D0kI0"
+      "evidencia": "http://localhost:3000/receta/pac-aurelio-dominguez/nota__8050615f9f520939a67a667da26734fb"
     },
     {
       "id": "GP-21b",
@@ -211,7 +211,7 @@
       "id": "GP-22d",
       "titulo": "liberar escribe el paquete como RELEASED, con quién y cuándo",
       "resultado": "OK",
-      "evidencia": "paquete KztTbhI3fPYnHU0D0kI0 RELEASED por jbOyE9otS7d9jriq9POoTp5m8Aht"
+      "evidencia": "paquete nota__8050615f9f520939a67a667da26734fb RELEASED por YJakAZ6RtDLRByeFMsG3zASM5AzW"
     },
     {
       "id": "GP-23",

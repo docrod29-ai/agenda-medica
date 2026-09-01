@@ -845,6 +845,10 @@
       "minCasos": 16
     },
     {
+      "archivo": "src/__tests__/la-lista-de-espera-no-se-recorta-en-silencio.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/la-maqueta-se-construyo-entera.test.ts",
       "minCasos": 13
     },

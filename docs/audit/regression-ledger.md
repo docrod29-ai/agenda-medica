@@ -16470,3 +16470,62 @@ pasaron sin freno.
   guardó la distribución, y por eso existe este REG. Lo que sí está medido es que,
   con el caso arreglado, el freno responde.
 
+---
+
+## REG-429 — la lista de espera se leía entera, y acotarla a secas la habría dejado peor
+
+**QUÉ FALLABA.** `getWaitlist` bajaba la colección **completa**:
+
+```ts
+where('estado','==','activo') + orderBy('createdAt','asc')     // sin techo
+```
+
+Crece con el **consultorio**, no con el paciente, así que es de las que sólo
+duelen cuando el producto empieza a funcionar: una lista de espera de mil
+personas se baja entera cada vez que alguien abre `/lista-espera`, y otra vez en
+`/operaciones`. Estaba inventariada en `scripts/escala/lecturas-sin-cota.mjs`
+desde que ese inventario existe.
+
+**CÓMO SE DESCUBRIÓ.** Bajando el techo de ese inventario —una lista que sólo
+puede bajar— en vez de dejarlo donde estaba. `getWaitlist` era la candidata más
+clara de las 29 de Consultorio: crece con el consultorio, tiene **dos pantallas**
+que la llaman, y su índice `waitlist(estado, createdAt)` ya estaba declarado.
+
+**LA CAUSA RAÍZ, Y LA TRAMPA DEL ARREGLO.** Poner `limit` y devolver el mismo
+array habría cambiado un problema de **coste** por uno **peor**: una lista
+recortada que se presenta como completa. Es literalmente el defecto que REG-351
+encontró en nueve pantallas a la vez, y aquí significa un paciente esperando un
+hueco que nadie ve, y un semáforo de `/operaciones` que dice «al día» de una
+lista que no lo está.
+
+**LA REGLA QUE LO HACE SEGURO.** `getWaitlist` **deja de devolver un array
+pelado** —un array no puede decir que viene recortado— y devuelve
+`{ entradas, truncada, tope }`. Se pide `tope + 1` para SABER si se quedó corta;
+la de más no se devuelve, sólo sirve para poder decirlo. `/lista-espera` lo pinta.
+
+Y el `orderBy('createdAt','asc')` deja de ser decorativo: hace que las que se
+caen sean siempre las **más nuevas**, nunca las que llevan más tiempo esperando —
+que son de quien peor sienta un olvido.
+
+**Techo del inventario: 29 → 28** en Consultorio. Sólo baja.
+
+**LA PRUEBA.** `src/__tests__/la-lista-de-espera-no-se-recorta-en-silencio.test.ts`
+(7 casos). El caso que importa **mide documentos LEÍDOS**, no devueltos, que es la
+diferencia que ninguna prueba de forma puede ver: con tres veces el tope
+sembradas, la lectura no puede pasar de `tope + 1`. Probada al revés quitando el
+`limitarA`: ese caso cae, y sólo ése. Además: el borde exacto (en el tope no se
+declara recortada — un aviso falso se aprende a ignorar), que lo que se cae son
+las más nuevas, y que **una lectura caída no se convierte en una lista vacía**.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No es a quién se le ofrece un hueco.** Eso lo decide `ofrecerHuecoLiberado`
+  con su propia lectura ordenada por PRIORIDAD y su propio índice. Ésta es la
+  lista que se **pinta**.
+- **200 no es una cifra clínica**: es el techo de una lectura. Lo que se vigila no
+  es que 200 sea correcto, sino que alcanzarlo se DIGA.
+- **No prueba que la pantalla lo pinte.** Que `truncada` llegue no demuestra que
+  se vea; eso es navegador.
+- **Quedan 28 lecturas sin cota** en Consultorio y 9 en Hospital, inventariadas y
+  con su techo. Ésta es una menos, no el final del trabajo.
+
