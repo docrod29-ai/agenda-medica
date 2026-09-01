@@ -1,5 +1,37 @@
 [
   {
+    "ruta": "/",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 11918,
+    "consola": []
+  },
+  {
+    "ruta": "/",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 5659,
+    "consola": []
+  },
+  {
+    "ruta": "/demo",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 7082,
+    "consola": []
+  },
+  {
+    "ruta": "/demo",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 4624,
+    "consola": []
+  },
+  {
     "ruta": "/login",
     "ancho": 390,
     "estado": "200",
@@ -16,19 +48,35 @@
     "consola": []
   },
   {
-    "ruta": "/registro",
+    "ruta": "/precios",
     "ancho": 390,
     "estado": "200",
     "desborde": false,
-    "alto": 844,
+    "alto": 4592,
     "consola": []
   },
   {
-    "ruta": "/registro",
+    "ruta": "/precios",
     "ancho": 1440,
     "estado": "200",
     "desborde": false,
-    "alto": 900,
+    "alto": 2395,
+    "consola": []
+  },
+  {
+    "ruta": "/seguridad",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 4160,
+    "consola": []
+  },
+  {
+    "ruta": "/seguridad",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 2667,
     "consola": []
   }
 ]
