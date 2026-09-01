@@ -906,7 +906,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Falla algo y el sistema culpa a otra cosa. Cuesta doble: la avería y las ' +
       'horas persiguiendo la avería equivocada.',
-    regs: [155, 156, 251, 317, 327, 328],
+    /**
+     * 433 es esta familia en el sitio donde más cara sale: el ACTA DEL
+     * DESPLIEGUE, que es lo único que el dueño lee para saber cómo fue.
+     *
+     * Reglas e índices se publicaban en un paso con una sola variable. Fallaron
+     * los índices por un 403 de permisos y el acta imprimió
+     * `FIRESTORE_RULES=failure` — cuando el log de esa misma ejecución dice
+     * «rules file compiled successfully» y «already up to date». Las reglas eran
+     * lo ÚNICO que había salido bien, y el acta las señaló a ellas.
+     *
+     * Es hermana de 431 y su reverso exacto: allí el acta decía `success` de un
+     * paso que no publicó nada; aquí dice `failure` de un paso que publicó
+     * bien. Las dos salen de la misma raíz — un acta que cuenta dos actos
+     * distintos con una sola casilla — y por eso la cierra la misma idea:
+     * separar los actos, no mejorar el mensaje.
+     */
+    regs: [155, 156, 251, 317, 327, 328, 433],
   },
   {
     clave: 'decision_del_dueno',
