@@ -11,6 +11,7 @@ import type { NotaMedica, Adenda } from '@/types/expediente'
 import { stripUndefined } from './serializacion'
 import { logAudit } from './audit-log'
 import { idIdempotente } from '@/lib/idempotencia'
+import { conRespaldoSinIndice } from '@/lib/firestore/indice-que-todavia-no-esta'
 
 /**
  * Notas clínicas viven en:
@@ -1014,19 +1015,52 @@ export async function getVersionesNota(clinicId: string, patientId: string, nota
  * también ordenaba por `fechaConsulta`—, así que no se pierde nada que hoy se
  * viera.
  */
+/**
+ * LA VENTANA del índice, y qué se hace mientras dura.
+ *
+ * Entre que este código llega a producción (Vercel publica con cada merge) y
+ * que `notas(estado, fechaConsulta)` termina de construirse, la consulta de
+ * arriba se RECHAZA. Si eso tumbara la apertura de la consulta, el médico se
+ * quedaría sin pantalla con el paciente enfrente por un índice que todavía no
+ * cuajó.
+ *
+ * El respaldo es exactamente lo que hacía antes de REG-421: leer una ventana de
+ * notas recientes y filtrar el estado en memoria. Peor —cuarenta documentos para
+ * quedarse con tres cadenas, y un paciente cuyas últimas cuarenta notas sean
+ * todas borradores devuelve vacío— pero **funciona sin índice**.
+ *
+ * Aquí el recorte no se propaga hacia arriba, y se dice por qué: esto es
+ * contexto de IA y una tarjeta de cortesía, su ausencia no afirma nada sobre el
+ * paciente, y la cadena vacía ya era una salida posible. **No vale el mismo
+ * razonamiento** para nada que sostenga una conclusión clínica —problemas
+ * activos, medicación vigente, el bloqueo NOM-004—: eso lee `listarNotasCompat`
+ * y mira `truncada`.
+ */
+export const VENTANA_RESUMEN_SIN_INDICE = 40
+
 export async function getUltimasNotasResumen(
   clinicId: string,
   patientId: string,
   limit = 3,
 ): Promise<string> {
-  const snap = await getDocs(query(
-    notasCol(clinicId, patientId),
-    /* El orden ES el del índice `notas(estado, fechaConsulta)`. */
-    where('estado', '==', 'firmada'),
-    orderBy('fechaConsulta', 'desc'),
-    limitarA(limit),
-  ))
-  const notas = snap.docs.map(d => d.data() as NotaMedica)
+  const { valor: notas } = await conRespaldoSinIndice<NotaMedica[]>(
+    'notas(estado, fechaConsulta)',
+    async () => (await getDocs(query(
+      notasCol(clinicId, patientId),
+      /* El orden ES el del índice `notas(estado, fechaConsulta)`. */
+      where('estado', '==', 'firmada'),
+      orderBy('fechaConsulta', 'desc'),
+      limitarA(limit),
+    ))).docs.map(d => d.data() as NotaMedica),
+    async () => (await getDocs(query(
+      notasCol(clinicId, patientId),
+      orderBy('fechaConsulta', 'desc'),
+      limitarA(VENTANA_RESUMEN_SIN_INDICE),
+    ))).docs
+      .map(d => d.data() as NotaMedica)
+      .filter(n => n.estado === 'firmada')
+      .slice(0, limit),
+  )
   if (notas.length === 0) return ''
   return notas
     .map(n => `[${(n.fechaConsulta || '').slice(0, 10)}] ${n.resumenEjecutivo || (n.diagnosticos ?? []).map(d => d.descripcion).join(', ')}`)

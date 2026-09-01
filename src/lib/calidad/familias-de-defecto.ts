@@ -609,7 +609,25 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que el guardián protege se le probó al revés — que es la única manera de
      * saber si un instrumento mide.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421],
+
+    /**
+     * 422 es el DÍA SIGUIENTE de 421, sobre el mismo guardián y por su otra
+     * limitación declarada: «sólo ve el SDK de cliente… está declarado aquí y
+     * sigue siendo trabajo pendiente, NO un hueco tapado». Era un hueco tapado.
+     * Detrás vivía `platform_cost_ledger(feature, ts)`, la consulta con la que se
+     * mide el costo por nota — y como su ruta la envuelve en un `try/catch`, el
+     * índice que falta no se ve como un error: se ve como que no hay datos de
+     * costo, sobre la pantalla con la que se decide el precio.
+     *
+     * Lo que enseñan 421 y 422 juntos no es que este guardián estuviera mal
+     * escrito. Es que **una limitación declarada tiene fecha de caducidad o se
+     * convierte en un hueco**: declarar un punto ciego lo hace honesto, no lo
+     * hace inofensivo, y a partir del día siguiente el archivo en verde se lee
+     * como «todo bien» sin que nadie vuelva al párrafo que decía dónde no miraba.
+     * Es lo mismo que REG-377 dijo de las deudas con fecha puesta, dicho de los
+     * instrumentos.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422],
   },
   {
     clave: 'hueco_como_dato',
@@ -966,7 +984,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * mitad es DE DÓNDE — y se salta con facilidad porque un dato derivado ya
      * viene con autoridad y nadie vuelve a mirarlo con desconfianza.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 502, 504, 505],
+    /**
+     * 424 es esta familia en el orden entre DOS SISTEMAS que no se hablan. Los
+     * índices de Firestore hay que desplegarlos ANTES que el código que los usa
+     * —Firestore no degrada una consulta sin índice, la RECHAZA— y la integración
+     * de Vercel publica sola con cada merge. Lo único que sostenía ese orden era
+     * un párrafo en un documento de operación: alguien tenía que acordarse el día
+     * correcto, y entre medias cuatro pantallas se abrían con un error.
+     *
+     * El arreglo no es un recordatorio mejor: es que romper el orden deje de
+     * romper la pantalla (`conRespaldoSinIndice`) y que la degradación se VEA. El
+     * orden sigue siendo el correcto; lo que ya no depende de la memoria es el
+     * daño.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 502, 504, 505],
   },
   {
     /**
@@ -1080,7 +1111,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * aprendido ninguna palabra» — un fallo de red afirmando que el vocabulario
      * del médico está vacío.
      */
-    regs: [341, 350, 351, 352, 393],
+    /**
+     * 423 es esta familia enseñando que **acotar bien no es lo mismo que acotar**.
+     * Los tres anteriores pusieron el techo; 423 es sobre QUÉ se queda dentro
+     * cuando el techo aprieta. El worklist recortaba por antigüedad —una mejora
+     * real sobre el recorte arbitrario de antes— y con eso el resultado crítico
+     * de esta mañana era el PRIMERO en caerse, en un consultorio grande y sólo en
+     * un consultorio grande. Con fixtures pequeños las tres versiones se
+     * comportan igual, que es la marca de esta familia.
+     *
+     * Su lección propia: el criterio del recorte también es un supuesto de
+     * tamaño. «Los 200 primeros» sólo es una respuesta aceptable mientras 200
+     * sean todos.
+     */
+    regs: [341, 350, 351, 352, 393, 423],
   },
 ] as const
 

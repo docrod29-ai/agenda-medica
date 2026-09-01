@@ -41,7 +41,8 @@
  *
  * Módulo PURO.
  */
-import type { TareaClinica, EstadoTarea, Prioridad } from './modelo'
+import type { TareaClinica, EstadoTarea } from './modelo'
+import { pesoDeUrgencia } from './modelo'
 
 /** Estados en los que la tarea sigue reclamando algo. */
 const VIVOS: readonly EstadoTarea[] = ['solicitada', 'aceptada', 'en_curso', 'completada']
@@ -79,7 +80,11 @@ export interface CabosDelPaciente {
 
 const DIA_MS = 86_400_000
 
-const PESO_PRIORIDAD: Record<Prioridad, number> = { critica: 0, alta: 1, normal: 2 }
+/* LA SEGUNDA COPIA DE LA TABLA, BORRADA (P1-14).
+   Aquí vivía `{ critica: 0, alta: 1, normal: 2 }` y en `modelo.ts` había otra
+   igual. El orden del servidor iba a ser la tercera. Ahora las tres preguntan a
+   `pesoDeUrgencia`, que es donde está escrito el criterio — y donde está escrito
+   qué pasa con una prioridad que no se reconoce. */
 
 /** Milisegundos de un ISO, o `null` si no lo es. Nunca lanza. */
 function ms(iso?: string): number | null {
@@ -134,8 +139,8 @@ export function cabosDelPaciente(
     if ((a.diasVencido ?? -1) !== (b.diasVencido ?? -1)) return (b.diasVencido ?? -1) - (a.diasVencido ?? -1)
 
     /* Luego la prioridad que puso quien la creó. Aquí no se deduce ninguna. */
-    const pa = PESO_PRIORIDAD[a.tarea.prioridad] ?? 2
-    const pb = PESO_PRIORIDAD[b.tarea.prioridad] ?? 2
+    const pa = pesoDeUrgencia(a.tarea.prioridad)
+    const pb = pesoDeUrgencia(b.tarea.prioridad)
     if (pa !== pb) return pa - pb
 
     /* Y por último la que vence antes; las que no tienen plazo, al final. */

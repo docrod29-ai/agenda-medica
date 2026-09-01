@@ -23,6 +23,7 @@ import { encolarReintento } from '@/lib/whatsapp/outbox'
 import { registrarNoEntregado } from '@/lib/whatsapp/no-entregados'
 import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
+import { conRespaldoSinIndice } from '@/lib/firestore/indice-que-todavia-no-esta'
 
 /**
  * Cuánta lista de espera se lee de una vez.
@@ -127,15 +128,35 @@ export async function ofrecerHuecoLiberado(
      * garantía se rompe en silencio y un paciente desaparece de la lista sin que
      * nada lo diga.
      */
-    const waitlistSnap = await clinicRef.collection('waitlist')
-      .where('estado', 'in', ['activo', 'contactado'])
-      .orderBy('prioridad', 'asc')
-      .orderBy('createdAt', 'asc')
-      .limit(TOPE_LISTA)
-      .get()
+    /**
+     * Y MIENTRAS EL ÍNDICE NO ESTÉ CONSTRUIDO, NO SE DEJA DE OFRECER EL HUECO.
+     *
+     * Firestore no degrada esta consulta: la rechaza. Sin respaldo, entre que
+     * este código llega a producción y que el índice cuaja, **a nadie se le
+     * ofrece el hueco liberado** — y eso no se ve como un error, se ve como una
+     * lista de espera vacía. El respaldo es la lectura de antes: sin orden, con
+     * la prioridad puesta en memoria por `candidatos()`, que es lo que se hacía
+     * hasta REG-421 y sigue funcionando sin índice.
+     */
+    const { valor: waitlistSnap, degradada } = await conRespaldoSinIndice(
+      'waitlist(estado, prioridad, createdAt)',
+      () => clinicRef.collection('waitlist')
+        .where('estado', 'in', ['activo', 'contactado'])
+        .orderBy('prioridad', 'asc')
+        .orderBy('createdAt', 'asc')
+        .limit(TOPE_LISTA)
+        .get(),
+      () => clinicRef.collection('waitlist')
+        .where('estado', 'in', ['activo', 'contactado'])
+        .limit(TOPE_LISTA)
+        .get(),
+    )
     if (waitlistSnap.size >= TOPE_LISTA) {
       safeLog.warn(`[ofrecer-hueco] ${clinicId}: la lista de espera llegó al tope de ${TOPE_LISTA}; `
-        + 'los que quedaron fuera son los MENOS prioritarios, pero siguen sin verse.')
+        + (degradada
+          ? 'y SIN el índice de prioridad los que quedaron fuera son cualesquiera: '
+            + 'puede haber pacientes MÁS prioritarios sin ver.'
+          : 'los que quedaron fuera son los MENOS prioritarios, pero siguen sin verse.'))
     }
 
     if (waitlistSnap.empty) {

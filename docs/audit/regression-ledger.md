@@ -15904,3 +15904,274 @@ huecos al final haría pasar una prueba que en producción pierde a un paciente.
   el camino real, contra el doble que ahora sí implementa `orderBy`.
 - `src/__tests__/un-borrado-que-deja-citas-no-es-un-borrado.test.ts` (13 casos):
   el hook de citas ya acota, con el orden que el índice sirve.
+
+---
+
+## REG-422 — la limitación declarada del guardián de índices tapaba un índice, y la lista con la que se verifica decía nueve de diez
+
+**QUÉ FALLABA — dos cosas, y las dos de la misma forma.**
+
+**(a) El índice que nadie veía.** `superadmin/simulador` hace, por el **SDK
+admin**:
+
+```ts
+adminDb.collection('platform_cost_ledger')
+  .where('feature', '==', 'procesar').orderBy('ts', 'desc').limit(2000)
+```
+
+Igualdad sobre un campo, orden sobre otro: Firestore **no puede servirla sin
+índice compuesto**, y `firestore.indexes.json` no lo declaraba.
+
+Lo caro no es el error de Firestore. Es lo que hay encima: esa función envuelve
+la consulta en un `try/catch` que devuelve el promedio **vacío** y escribe
+`[simulador] sin libro de costos`. O sea que el índice que falta **no se ve como
+un fallo: se ve como que no hay datos de costo** — y el costo medido por nota es
+con lo que se decide el precio del producto. Es «ausencia de dato no es dato de
+ausencia» y «el mensaje mentía sobre la causa» en la misma línea: el libro está
+lleno, lo que falta es el índice.
+
+**(b) La lista de verificación decía otro número.** `docs/ops/INDICES-DE-FIRESTORE.md`
+es lo que el dueño abre para comprobar en la consola que cada índice figura
+`Enabled`. Decía **«los nueve»** en cinco sitios, y el archivo declaraba **diez**.
+Decía además «siete de los nueve se enviaron el 31-ago»; el árbol que de verdad
+se desplegó —`8f74901d`, el certificado de v1177— llevaba **ocho**:
+
+```
+$ git show 8f74901d:firestore.indexes.json | jq '.indexes | length'
+8
+```
+
+Una verificación que cuenta nueve sobre diez termina con uno sin mirar, y el que
+sobra puede ser justo uno de los que el código nuevo ya usa.
+
+**CÓMO SE DESCUBRIÓ.** Revisando el PR #425 antes de dejarlo fusionable, en vez
+de leer lo que decía. Se contaron los índices del archivo (**diez**) contra los
+que el documento decía (**nueve**), y se barrió el árbol con el criterio del
+propio guardián —igualdad sobre un campo, orden sobre otro— aplicado a las
+cadenas del SDK admin, que el guardián declaraba no leer. Salieron dos: la de
+`waitlist`, declarada, y la de `platform_cost_ledger`, que no.
+
+**LA CAUSA RAÍZ.** Una **limitación declarada** que se quedó a vivir. El
+encabezado del guardián decía, literal: «sólo ve el SDK de cliente… está
+declarado aquí y sigue siendo trabajo pendiente, **no un hueco tapado**». Era un
+hueco tapado. Declarar un punto ciego lo hace honesto, no lo hace inofensivo: a
+partir del día siguiente, el archivo en verde se lee como «todo bien» y nadie
+vuelve al párrafo que decía dónde no miraba.
+
+Es la misma forma que REG-421 encontró en este mismo archivo un día antes —allí
+la limitación era «no comprueba el ORDEN de los campos» y tapaba `getWaitlist`—.
+Dos veces el mismo guardián, dos veces su propia letra pequeña. Lo que enseña no
+es que este archivo esté mal escrito: es que **una limitación declarada tiene
+fecha de caducidad o se convierte en un hueco**, exactamente como REG-377 dijo de
+las deudas con fecha puesta.
+
+Y (b) es la misma causa en el otro plano: un número **escrito a mano** sobre un
+hecho que vive en un archivo. El documento y el archivo no tenían quién los
+comparara.
+
+**LA REGLA QUE LO HACE SEGURO.**
+
+1. El guardián **lee las cadenas del SDK admin** (`cadenasAdmin`), con el mismo
+   criterio y el mismo trato para lo que no sabe resolver: entra en `ilegibles` y
+   **falla**, no se salta. Su encabezado ya no declara ese punto ciego porque ya
+   no lo tiene.
+2. `platform_cost_ledger(feature ↑, ts ↓)` queda declarado. **Once** índices.
+3. El documento de operación deja de contar a mano: hay tres casos que comparan
+   su tabla y su numeral contra `firestore.indexes.json` — cada colección
+   nombrada, **una fila por índice** (no por colección: `waitlist` necesita dos),
+   y el numeral en palabras igual al conteo, sin que sobreviva ningún otro.
+
+**LA PRUEBA.** `src/__tests__/el-indice-que-nadie-declaro.test.ts` (12 casos,
+antes 8). Probada al revés en las tres formas:
+
+- quitando `platform_cost_ledger` del archivo, la consulta admin queda huérfana y
+  el guardián la nombra con su ruta;
+- el lector de cadenas admin se corre sobre fuentes de mentira: encuentra la que
+  necesita índice, **se calla** con la que filtra y ordena por el mismo campo (eso
+  lo sirve el índice de un solo campo que Firestore crea solo) y **declara**, en
+  vez de saltarse, la que no puede resolver;
+- con el documento tal y como estaba y el archivo con diez, el caso del numeral
+  cae diciendo «el documento no dice “diez” y hay 10 índices declarados».
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sigue sin saber si el índice está CONSTRUIDO.** Declarar, desplegar y ver
+  `Enabled` son tres actos y los dos últimos son de la consola. Este REG añade un
+  índice a la lista que hay que verificar; no verifica ninguno.
+- **Una cadena admin cuya colección no sea un literal.** Hoy las dos que hay lo
+  son. El día que una use una variable, esa consulta entra en `ilegibles` y el
+  archivo se pone rojo — que es lo contrario de lo que hacía antes.
+- **El `queryScope` sigue sin mirarse.** Un índice de `COLLECTION` no sirve para
+  un `collectionGroup` y eso pasaría en verde. Se declara aquí, con la lección de
+  arriba puesta: **es una limitación con fecha, no un párrafo tranquilizador.**
+- **No mira el `try/catch` de `simulador`.** Ese `catch` sigue convirtiendo
+  cualquier fallo de esa lectura en «no hay datos de costo». El índice arreglado
+  quita la causa que se conocía; no quita el silencio.
+
+---
+
+## REG-423 — el worklist recortaba por antigüedad y eso no es urgencia (P1-14, la mitad que faltaba)
+
+**QUÉ FALLABA.** `tareasVivas()` trae como mucho `tope` tareas (200). La pregunta
+que decide si el worklist sirve no es cuántas: es **cuáles**. Tuvo tres respuestas
+y las dos primeras fallaban:
+
+| | Qué llegaba | Qué se caía |
+|---|---|---|
+| Sin `orderBy` (hasta REG-421) | `tope` documentos cualesquiera, en orden de identificador | cualquiera, incluido un resultado crítico sin revisar |
+| `orderBy('creadaEn')` (REG-421) | las `tope` más VIEJAS | **las más nuevas** — o sea, el crítico de esta mañana |
+| Por urgencia (esto) | las `tope` más URGENTES, y a igual urgencia las más viejas | lo menos urgente, que es el único recorte que este worklist puede permitirse |
+
+REG-421 fue una mejora real —una tarea vieja ya no podía caerse— y a la vez
+**sustituyó urgencia por antigüedad**, que es literalmente lo que P1-14 decía que
+no. En un consultorio con más pendientes vivos que el tope, el resultado crítico
+de hoy es el primero en caerse, y se cae en silencio: el aviso de REG-344 dice
+«hay más», no «falta lo urgente».
+
+**CÓMO SE DESCUBRIÓ.** Cerrando P1-14 de verdad en vez de darlo por cerrado con
+REG-421. El propio comentario de `tareasVivas` lo decía —«P1-14 pedía las más
+urgentes, y esto da las más antiguas»— escrito como deuda con nombre. Una deuda
+con nombre sigue siendo un defecto vivo mientras nadie la paga (REG-377).
+
+**LA CAUSA RAÍZ, QUE NO ES EL `orderBy`.** `prioridad` guarda **texto**, y
+Firestore ordena texto alfabéticamente:
+
+```
+alta  <  critica  <  normal
+```
+
+`orderBy('prioridad')` habría puesto lo ALTO delante de lo CRÍTICO. Y no se
+habría visto: **una lista ordenada al revés de lo que dice la palabra no parece
+rota, parece ordenada.** Por eso el arreglo no era añadir un `orderBy`: el orden
+del servidor necesitaba un NÚMERO que no existía.
+
+**LA REGLA QUE LO HACE SEGURO.**
+
+1. **`ESCALERA_DE_URGENCIA` y `pesoUrgencia`.** La proyección numérica de
+   `prioridad`, derivada por `pesoDeUrgencia` en la ÚNICA puerta de escritura
+   (`crearTareas`), que **pisa** cualquier valor que venga de fuera. `prioridad`
+   sigue siendo el dato; el número existe sólo para que Firestore pueda elegir
+   CUÁLES manda. Una vez leídas, el orden lo pone la palabra —así, si un peso
+   guardado se desincronizara, podría cambiar qué tareas llegan pero **nunca** el
+   orden en que se ven—, y `urgenciaDeLaTarea` sabe decir que miente.
+2. **Los huecos de la escalera son a propósito**: 0, 10, 20 y no 0, 1, 2. Un
+   escalón nuevo cabe **sin reescribir el peso de ninguna tarea ya guardada**.
+   Una migración de datos clínicos por un escalón de una lista es un riesgo que
+   no hace falta correr.
+3. **La red de seguridad, que no es opcional.** Un `orderBy` de Firestore **no
+   ordena los documentos a los que les falta el campo: los EXCLUYE**. La consulta
+   de urgencia, ella sola, **haría desaparecer del worklist todos los pendientes
+   escritos antes de esta migración** — un expediente entero de trabajo clínico,
+   sin error, sin lista vacía, sin nada que lo dijera. Por eso se leen dos
+   consultas y se unen por id: la de urgencia (lo mejor ordenado, sólo lo
+   migrado) y la de antigüedad de REG-421, con su índice ya desplegado y su campo
+   obligatorio desde el primer día, que **trae todo**.
+4. **Cuándo sobra la segunda lectura se MIDE, no se recuerda**:
+   `migracionPendiente` sale de si queda alguna tarea viva sin peso. El backfill
+   es `scripts/migraciones/peso-de-urgencia.mjs`, que **lee la escalera de
+   `modelo.ts`** en vez de copiarla.
+5. **Índice** `tareas_clinicas(estado, pesoUrgencia, creadaEn)`, declarado.
+
+**Y SE BORRARON LAS DOS COPIAS DE LA TABLA.** El peso de cada prioridad estaba
+escrito a mano en `modelo.ts` (`ordenWorklist`) y otra vez en
+`cabos-del-paciente.ts`. El orden del servidor iba a ser **la tercera**, y ésa sí
+podía desincronizarse de las otras dos sin que se viera. Las tres preguntan ahora
+a `pesoDeUrgencia`.
+
+**LA PRUEBA.**
+`src/__tests__/el-worklist-recorta-por-urgencia-no-por-antiguedad.test.ts`
+(23 casos). Probada al revés en cuatro sitios:
+
+- **el defecto, medido sobre los mismos datos**: con cinco críticas nuevas y
+  cinco normales viejas, el recorte por antigüedad se lleva las cinco normales y
+  **ni una sola crítica** — no es una hipótesis, es el orden que devuelve
+  `orderBy('creadaEn')` con `limit(5)`;
+- **el orden alfabético**, medido: `['normal','critica','alta'].sort()` da
+  `['alta','critica','normal']`, con `alta` primero;
+- **un peso pasado desde fuera se pisa**, o `pesoUrgencia` sería una segunda
+  fuente de verdad capaz de decir que una tarea crítica es normal;
+- **la exclusión de Firestore**, reproducida: la consulta por `pesoUrgencia` no ve
+  la tarea histórica, y el worklist sí la devuelve.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Tres escalones, no cuatro.** No hay nivel «bajo»: ningún camino del producto
+  crea una tarea de prioridad baja —las tres las pone `derivar.ts` a partir de lo
+  que el médico escribió— y añadir un valor que nadie produce sería «escrito y sin
+  conectar», la familia más grande de este repositorio. **Qué acto clínico
+  significa «esto puede esperar» es una decisión del dueño**, no de un archivo de
+  software. El día que exista, entra en la escalera con su número y no cambia
+  nada más: ni el índice, ni la consulta, ni el orden, ni las tareas guardadas.
+- **No decide la urgencia.** La pone quien crea la tarea. Aquí sólo se ordena.
+- **No prueba Firestore**: prueba contra el doble en memoria, que sí reproduce la
+  exclusión por campo ausente pero no impone índices ni latencia.
+- **No prueba que el índice esté CONSTRUIDO.** Sigue siendo la consola.
+- **La segunda lectura cuesta.** Mientras la migración esté pendiente, el worklist
+  paga dos consultas de `tope + 1`. Es el precio de no perder los pendientes
+  históricos, y se apaga solo cuando el backfill termina.
+- **`tareasDePaciente` sigue con `limit(100)`** y sin declarar su recorte. Sigue
+  anotado, como en REG-344.
+
+---
+
+## REG-424 — un índice que todavía no está construido rompía la pantalla, y el orden de despliegue era una instrucción
+
+**QUÉ FALLABA.** Firestore **no degrada** una consulta que necesita un índice
+compuesto: la RECHAZA con `FAILED_PRECONDITION`. Y declarar el índice,
+desplegarlo y verlo `Enabled` son **tres actos**: `firebase deploy` contesta al
+ENVIAR, y la construcción sobre una colección con datos tarda de minutos a horas —
+o falla después, con el `success` ya impreso.
+
+Mientras tanto el código nuevo **ya está servido**: la integración de Vercel
+publica sola con cada merge a `main`. En esa ventana, cuatro consultas indexadas
+—el worklist, las citas del paciente, el resumen de notas y a quién se le ofrece
+un hueco— rompían su pantalla. Es literalmente como se abrió el worklist por
+primera vez en producción: con un error, no con una lista vacía.
+
+**CÓMO SE DESCUBRIÓ.** Revisando el PR #425 antes de dejarlo fusionable.
+`docs/ops/INDICES-DE-FIRESTORE.md` dice, con razón, que los índices se despliegan
+ANTES que el código. Eso es una **instrucción**, y una instrucción depende de que
+alguien la recuerde el día correcto — la misma defensa que falló en REG-504, donde
+había que acordarse de mover dos sitios a la vez.
+
+**LA CAUSA RAÍZ.** Un requisito de ORDEN entre dos sistemas que no se hablan (el
+despliegue de índices y el de Vercel), sostenido sólo por un documento.
+
+**LA REGLA QUE LO HACE SEGURO.** `src/lib/firestore/indice-que-todavia-no-esta.ts`:
+se corre la consulta buena y, **sólo** si el error dice que falta el índice, se cae
+al camino de antes y se devuelve `degradada: true`. El orden de despliegue sigue
+siendo el correcto; lo que cambia es que romperlo ya no rompe la pantalla.
+
+Y **nada se calla**: `degradada` sube hasta donde se ve. El worklist expone
+`ordenadaPorUrgencia` y `/pendientes` lo pinta («no se pudo ordenar por urgencia:
+lo que se ve son los más antiguos»); `usePatientAppointments` expone `acotada`;
+`ofrecer-hueco` cambia su aviso para decir que los que quedaron fuera son
+cualesquiera, no los menos prioritarios.
+
+**Y no se traga nada.** Sólo el error que dice que falta el índice. Un permiso
+denegado, una red caída o una regla mal desplegada **siguen subiendo**: si esto
+los absorbiera, convertiría una fuga de aislamiento en una lista corta, que es
+peor porque no se ve. El `code: 9` del SDK admin **no basta por sí solo** —
+`FAILED_PRECONDITION` también sale de una transacción que perdió su precondición—
+así que ahí se exige además que el mensaje hable del índice.
+
+**LA PRUEBA.**
+`src/__tests__/un-indice-que-todavia-no-esta-no-rompe-la-pantalla.test.ts`
+(7 casos) y el bloque de degradación del golden de REG-423 (4 casos más), sobre un
+doble que ahora sabe simular un índice ausente (`fallos.indiceAusenteSobre`).
+Probada al revés: un `permission-denied` sube y **el respaldo ni siquiera corre**;
+con el índice presente NO se declara degradada (si no, el aviso sería ruido
+permanente); y si el respaldo también falla, el error sube en vez de devolver una
+lista vacía —«ausencia de dato no es dato de ausencia» aplicado a una lectura.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No sustituye al despliegue.** Un producto que lee siempre por el camino peor
+  no está bien, está sobreviviendo. Por eso `degradada` se pinta.
+- **No reconoce un mensaje que el proveedor cambie.** Si Firestore escribe otra
+  frase y no manda `code`, esto deja de reconocerlo y el error SUBE — el lado
+  seguro del que equivocarse, pero es un lado.
+- **`usePatientAppointments` se resuscribe**, no reintenta: si el índice termina
+  de construirse mientras la pantalla está abierta, sigue leyendo sin cota hasta
+  que se vuelva a montar.
+

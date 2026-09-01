@@ -92,6 +92,105 @@ export type TipoTarea =
 
 export type Prioridad = 'critica' | 'alta' | 'normal'
 
+/**
+ * LA ESCALERA DE URGENCIA — una sola tabla, y el número que Firestore puede
+ * ordenar (P1-14).
+ *
+ * ── POR QUÉ UN NÚMERO Y NO LA PALABRA ────────────────────────────────────────
+ *
+ * `prioridad` guarda TEXTO, y Firestore ordena texto alfabéticamente:
+ *
+ *     alta  <  critica  <  normal
+ *
+ * O sea que `orderBy('prioridad')` pondría lo ALTO por delante de lo CRÍTICO, y
+ * lo haría en silencio: una lista ordenada al revés de lo que dice la palabra no
+ * se ve rota, se ve ordenada. Por eso el orden del servidor necesita un número.
+ *
+ * ── ESTO NO ES UNA SEGUNDA FUENTE DE VERDAD ─────────────────────────────────
+ *
+ * `prioridad` sigue siendo el dato. `pesoUrgencia` es su **proyección para el
+ * índice**, y se deriva SIEMPRE de ella, en la única puerta de escritura que
+ * existe (`crearTareas`). Nadie se lo pasa desde fuera; nadie lo edita después.
+ * Es la misma figura que `version.txt` frente a `sw.js`: dos archivos, un solo
+ * hecho, y una regla que dice cuál se calcula del otro.
+ *
+ * Y como toda proyección, tiene que poder comprobarse: quien lee una tarea cuyo
+ * peso guardado NO coincide con su `prioridad` se queda con la PRIORIDAD y lo
+ * dice (`urgenciaDeLaTarea`). La palabra manda sobre el número, siempre.
+ *
+ * ── LOS HUECOS DE LA ESCALERA SON A PROPÓSITO ───────────────────────────────
+ *
+ * 0, 10, 20 y no 0, 1, 2: si algún día el dueño decide que hace falta un escalón
+ * intermedio, cabe **sin volver a escribir el peso de todas las tareas ya
+ * guardadas**. Una migración de datos clínicos por un escalón de una lista es un
+ * riesgo que no hace falta correr.
+ *
+ * ── LO QUE HOY NO EXISTE, Y NO SE INVENTA ───────────────────────────────────
+ *
+ * Hay TRES escalones, no cuatro. `normal` es el nivel medio y **no hay un nivel
+ * bajo**: ningún camino del producto crea una tarea de prioridad baja —las tres
+ * las pone `derivar.ts` a partir de lo que el médico escribió— y añadir un valor
+ * que nadie produce sería «escrito y sin conectar», la familia de defecto más
+ * grande de este repositorio.
+ *
+ * Cuál sería el hecho clínico que significa «esto puede esperar» es una decisión
+ * de producto del dueño, no de un archivo de software. El día que exista, entra
+ * aquí con su número y **nada más cambia**: ni el índice, ni la consulta, ni el
+ * orden del worklist, ni las tareas ya guardadas.
+ */
+export const ESCALERA_DE_URGENCIA: Record<Prioridad, number> = {
+  critica: 0,
+  alta: 10,
+  normal: 20,
+}
+
+/**
+ * El peso de lo que NO se puede clasificar.
+ *
+ * Mayor que cualquier escalón, así que una tarea sin prioridad legible cae al
+ * final del worklist — pero **cae dentro**, que es lo único que importa: lo que
+ * no se entiende no se tira. Un pendiente clínico que desaparece porque su campo
+ * venía raro es exactamente el daño que este módulo existe para evitar.
+ */
+export const PESO_SIN_CLASIFICAR = 99
+
+/**
+ * Peso de una prioridad. Total: cualquier entrada devuelve un número.
+ *
+ * Acepta `undefined` y cualquier cadena porque los datos históricos existen: una
+ * tarea escrita antes de que el campo fuera obligatorio, o por una versión que
+ * usaba otro vocabulario, tiene que poder ordenarse igual. **Ausencia de dato no
+ * es dato de ausencia**: no se asume `normal` —eso afirmaría que alguien la
+ * clasificó— sino `PESO_SIN_CLASIFICAR`, que dice «no lo sé» y no se cuela por
+ * delante de lo que sí está clasificado.
+ */
+export function pesoDeUrgencia(prioridad: Prioridad | string | undefined | null): number {
+  if (typeof prioridad !== 'string') return PESO_SIN_CLASIFICAR
+  const peso = (ESCALERA_DE_URGENCIA as Record<string, number | undefined>)[prioridad]
+  return peso ?? PESO_SIN_CLASIFICAR
+}
+
+/**
+ * La urgencia EFECTIVA de una tarea leída de la base, y si su peso guardado
+ * mentía.
+ *
+ * La proyección puede desincronizarse por dos caminos reales: una tarea escrita
+ * antes de que el campo existiera (no trae peso) y una escritura futura que
+ * cambiara `prioridad` sin recalcularlo. En los dos casos manda la palabra, y en
+ * el segundo se DICE — porque un dato derivado que no coincide con su fuente es
+ * un defecto, no una curiosidad.
+ */
+export function urgenciaDeLaTarea(
+  t: Pick<TareaClinica, 'prioridad'> & { pesoUrgencia?: number },
+): { peso: number; pesoGuardadoMiente: boolean } {
+  const peso = pesoDeUrgencia(t.prioridad)
+  const guardado = t.pesoUrgencia
+  return {
+    peso,
+    pesoGuardadoMiente: typeof guardado === 'number' && guardado !== peso,
+  }
+}
+
 export interface TareaClinica {
   id?: string
   clinicId: string
@@ -104,6 +203,16 @@ export interface TareaClinica {
   titulo: string
   detalle?: string
   prioridad: Prioridad
+  /**
+   * LA PROYECCIÓN NUMÉRICA de `prioridad`, para que el ORDEN lo pueda poner
+   * Firestore (P1-14). Ver `ESCALERA_DE_URGENCIA`.
+   *
+   * Opcional en el tipo **a propósito**: las tareas escritas antes de P1-14 no lo
+   * tienen, y declararlo obligatorio haría que el compilador dijera que están
+   * todas al día cuando no lo están. Lo escribe `crearTareas` —la única puerta— y
+   * nadie se lo pasa desde fuera.
+   */
+  pesoUrgencia?: number
   /**
    * Quién responde. Puede estar vacío al nacer —una tarea derivada no sabe
    * todavía a quién asignarse— y por eso `sinDueno` es una consulta de primera
@@ -378,7 +487,13 @@ export function estaViva(t: Pick<TareaClinica, 'estado'>): boolean {
  */
 export function ordenWorklist(a: TareaClinica, b: TareaClinica, ahoraMs: number): number {
   const esc = (t: TareaClinica) => (debeEscalar(t, ahoraMs).escalar ? 0 : 1)
-  const pri = (t: TareaClinica) => ({ critica: 0, alta: 1, normal: 2 })[t.prioridad] ?? 3
+  /* LA MISMA ESCALERA QUE USA EL SERVIDOR. Aquí vivía una copia de la tabla
+     —`{critica:0, alta:1, normal:2}` escrito a mano— y había otra en
+     `cabos-del-paciente.ts`. Dos copias ya eran la trampa que `AGENTS.md`
+     nombra; con el orden del servidor iba a haber una tercera, y ésa sí podía
+     desincronizarse de las otras dos sin que se viera: una lista mal ordenada no
+     parece rota, parece ordenada. */
+  const pri = (t: TareaClinica) => pesoDeUrgencia(t.prioridad)
   return esc(a) - esc(b) || pri(a) - pri(b) || String(a.creadaEn).localeCompare(String(b.creadaEn))
 }
 

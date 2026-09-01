@@ -49,6 +49,14 @@
       ]
     },
     {
+      "collectionGroup": "platform_cost_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "feature", "order": "ASCENDING" },
+        { "fieldPath": "ts", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "reviews",
       "queryScope": "COLLECTION",
       "fields": [
@@ -61,6 +69,15 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "creadaEn", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tareas_clinicas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "pesoUrgencia", "order": "ASCENDING" },
         { "fieldPath": "creadaEn", "order": "ASCENDING" }
       ]
     },

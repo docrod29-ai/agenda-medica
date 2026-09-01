@@ -4,6 +4,7 @@ import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/f
 import { db } from '@/lib/firebase'
 import { Appointment } from '@/types'
 import { useClinic } from '@/context/ClinicContext'
+import { esIndiceQueFalta } from '@/lib/firestore/indice-que-todavia-no-esta'
 
 /**
  * Citas de la clínica, ACOTADAS A UNA VENTANA DE FECHAS.
@@ -126,30 +127,73 @@ export function usePatientAppointments(patientId: string) {
   const { clinicId } = useClinic()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [truncada, setTruncada] = useState(false)
+  /**
+   * `false` = se está leyendo SIN cota, porque el índice todavía no existe.
+   *
+   * No se calla: el motivo entero de acotar era no pagar el historial completo
+   * del paciente en un listener abierto, y si eso no se está consiguiendo hay que
+   * poder saberlo desde fuera en vez de deducirlo de la factura.
+   */
+  const [acotada, setAcotada] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!clinicId || !patientId) { setLoading(false); return }
 
-    const q = query(
-      collection(db, 'clinics', clinicId, 'appointments'),
-      where('pacienteId', '==', patientId),
-      /* El orden de los campos ES el del índice declarado. Cambiarlo aquí sin
-         cambiarlo allí devuelve `FAILED_PRECONDITION`, no una lista peor. */
-      orderBy('fechaHora', 'desc'),
-      limit(TOPE_CITAS_PACIENTE),
-    )
-    const unsub = onSnapshot(q,
-      (snap) => {
-        setAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)))
-        setTruncada(snap.size >= TOPE_CITAS_PACIENTE)
-        setLoading(false)
+    let vivo = true
+    let unsub: (() => void) | null = null
+
+    const recibir = (acotadaEsta: boolean) => (snap: { docs: { id: string; data(): unknown }[]; size: number }) => {
+      if (!vivo) return
+      setAppointments(snap.docs.map(d => ({ id: d.id, ...(d.data() as object) } as Appointment)))
+      setTruncada(acotadaEsta && snap.size >= TOPE_CITAS_PACIENTE)
+      setAcotada(acotadaEsta)
+      setLoading(false)
+    }
+
+    const base = collection(db, 'clinics', clinicId, 'appointments')
+
+    /**
+     * EL RESPALDO DE UN LISTENER NO ES UN `try/catch`.
+     *
+     * `onSnapshot` no lanza: entrega el error por su callback. Así que la ventana
+     * en la que el índice todavía se está construyendo llegaría aquí como un
+     * `error` puesto en el estado — y la pantalla de consulta se abriría con un
+     * mensaje rojo en vez de con las citas del paciente, por un índice que aún no
+     * cuajó. Se vuelve a suscribir sin orden ni cota, que es lo que había antes
+     * de REG-421, y se DICE en `acotada`.
+     *
+     * Sólo por «falta el índice»: cualquier otro error sigue llegando al estado.
+     */
+    const sinCota = () => {
+      if (!vivo) return
+      unsub = onSnapshot(
+        query(base, where('pacienteId', '==', patientId)),
+        recibir(false),
+        (err) => { if (vivo) { setError(err.message); setLoading(false) } },
+      )
+    }
+
+    unsub = onSnapshot(
+      query(
+        base,
+        where('pacienteId', '==', patientId),
+        /* El orden de los campos ES el del índice declarado. Cambiarlo aquí sin
+           cambiarlo allí devuelve `FAILED_PRECONDITION`, no una lista peor. */
+        orderBy('fechaHora', 'desc'),
+        limit(TOPE_CITAS_PACIENTE),
+      ),
+      recibir(true),
+      (err) => {
+        if (!vivo) return
+        if (esIndiceQueFalta(err)) { sinCota(); return }
+        setError(err.message); setLoading(false)
       },
-      (err) => { setError(err.message); setLoading(false) }
     )
-    return () => unsub()
+
+    return () => { vivo = false; unsub?.() }
   }, [clinicId, patientId])
 
-  return { appointments, truncada, loading, error }
+  return { appointments, truncada, acotada, loading, error }
 }

@@ -422,7 +422,7 @@
     },
     {
       "archivo": "src/__tests__/el-indice-que-nadie-declaro.test.ts",
-      "minCasos": 5
+      "minCasos": 12
     },
     {
       "archivo": "src/__tests__/el-limite-de-palabra-no-entiende-acentos.test.ts",
@@ -551,6 +551,10 @@
     {
       "archivo": "src/__tests__/el-valor-censurado-no-se-da-por-normal.test.ts",
       "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/el-worklist-recorta-por-urgencia-no-por-antiguedad.test.ts",
+      "minCasos": 23
     },
     {
       "archivo": "src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts",
@@ -1571,6 +1575,10 @@
     {
       "archivo": "src/__tests__/un-hueco-se-escribe-no-se-reclama.test.ts",
       "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/un-indice-que-todavia-no-esta-no-rompe-la-pantalla.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/un-monologo-no-es-un-dialogo.test.ts",
