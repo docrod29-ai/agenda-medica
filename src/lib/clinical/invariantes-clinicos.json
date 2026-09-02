@@ -525,6 +525,14 @@
       "minCasos": 25
     },
     {
+      "archivo": "src/__tests__/el-selector-de-fecha-oculto-se-comia-tres-tabuladores.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts",
+      "minCasos": 2
+    },
+    {
       "archivo": "src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts",
       "minCasos": 3
     },
@@ -797,6 +805,10 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts",
+      "minCasos": 4
+    },
+    {
       "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
       "minCasos": 13
     },
@@ -935,6 +947,14 @@
     {
       "archivo": "src/__tests__/la-revista-no-sube-la-calidad.test.ts",
       "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts",
+      "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-sala-de-datos-no-infla.test.ts",

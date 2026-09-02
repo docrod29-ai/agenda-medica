@@ -63,6 +63,27 @@ const DIALOGOS = [
     teclas: 'Control+KeyK',
     dialogo: '[role=dialog]',
   },
+  /**
+   * LA ADENDA DE LA NOTA FIRMADA — el diálogo con más peso medicolegal del
+   * producto, y el único que no estaba en esta lista.
+   *
+   * Los otros dos viven en `/citas`. Éste vive sobre el documento firmado y
+   * sirve para «corregir o aclarar sin alterar la nota»: si atrapa mal el foco,
+   * quien usa lector de pantalla corrige a ciegas un documento que ya tiene
+   * valor legal.
+   *
+   * Se añadió el 2-sep tras medirlo a 390 px con el arnés de emuladores: sale
+   * bien —el foco entra en «Cerrar», doce tabulaciones y ninguna se salió,
+   * Escape lo cierra y el foco vuelve al botón que lo abrió—. Se añade
+   * **precisamente porque sale bien**: lo que no se mide no está protegido, y
+   * un diálogo correcto que nadie vigila deja de serlo en el primer refactor.
+   */
+  {
+    nombre: 'adenda de la nota firmada',
+    ruta: '/nota/pac-001/nota-demo-001',
+    abridor: 'button[title^="Corregir o aclarar"]',
+    dialogo: '[role=dialog][aria-modal="true"]',
+  },
 ]
 
 const nav = await chromium.launch({ executablePath: CHROME })
