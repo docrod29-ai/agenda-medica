@@ -17900,3 +17900,107 @@ firma separada por un punto; un token opaco es una forma normal de emitirla.
   cabecera que alguien registre a mano, sigue sin pasar por aquí.
 - **No caduca los tokens filtrados.** Los del portal duran lo que duren; esto
   impide la fuga nueva, no deshace la vieja.
+
+---
+
+## REG-445 — el paciente tenía dónde preguntar y nadie del otro lado
+
+**CÓMO SE DESCUBRIÓ.** Contestando «¿qué falta para que se vea producto nuevo?».
+No de una auditoría: de mirar qué prometía el repositorio y qué corría.
+
+`.claude/rules/patient-facing-ai.md` §2 fija **cinco clases de respuesta y
+ninguna sexta**. El código implementaba **una**: `URGENT_REVIEW_REQUIRED`, en
+`urgencia.ts`, y sólo para el canal de WhatsApp. Las otras cuatro vivían en un
+`as const` con un comentario que decía «se nombran aquí para que quien las
+implemente no invente un nombre nuevo».
+
+Y el destino «Preguntar» del portal —uno de los cinco de la especificación— era
+**un párrafo**: le decía al paciente que llamara al consultorio.
+
+```
+CLASES_RESPUESTA_PACIENTE            5 nombres
+clase: 'ANSWER_FROM_APPROVED_PLAN'   0 apariciones en todo src/
+clase: 'ADMINISTRATIVE_ACTION'       0
+clase: 'ESCALATE_TO_CLINICIAN'       0
+/mi/[token] destino «preguntar»      un <p> y un botón de teléfono
+```
+
+### La causa raíz
+
+`charter_vacio`, y en su forma más incómoda: **la sección estaba escrita, la
+puerta que la vigila existía, y las dos declaraban honestamente que no había
+nada detrás.** El golden `las-doce-preguntas-del-paciente` comprobaba que sólo
+una clase tuviera clasificador — o sea, el repositorio sabía exactamente lo que
+le faltaba y lo tenía medido.
+
+Eso no es un defecto escondido: es un hueco declarado que nadie llenó. Cuesta
+distinto y hay que decirlo distinto.
+
+### El arreglo: se clasifica antes de contestar, y se contesta CITANDO
+
+`src/lib/paciente/pregunta-del-paciente.ts`, determinista y **sin modelo de
+lenguaje**. El §1 ordena las fuentes 1-9 y dice que el nivel 9 «nunca origina un
+dato del paciente»; la forma más barata de garantizarlo no es instruir a un
+modelo para que se porte bien, es no tener modelo. Lo que devuelve como
+respuesta es una cadena que ya venía dentro del paquete que el médico liberó.
+
+**El orden es la defensa:**
+
+```
+1. urgencia (§6)          2. acto prohibido (§3)      3. administrativa
+4. cita del plan liberado                             5. escalar
+```
+
+El 2 va antes que el 4, y ahí está todo. «¿Puedo tomarme el doble del
+metoprolol?» **encuentra el metoprolol en el plan del propio paciente**: una
+búsqueda hecha primero le habría contestado cómo tomarlo — respondiendo una
+pregunta que nadie hizo y dejando sin responder la que sí. Peor con «estoy
+embarazada, ¿sigo con el metoprolol?», sobre un plan que quizá se escribió sin
+saberlo. Es la regla 5 —ausencia de dato no es dato de ausencia— en su forma más
+cara, y los dos casos son fixture permanente (`ai-05`, `ai-06`).
+
+El destino por omisión es **escalar**. Por eso un vocabulario incompleto pierde
+precisión y nunca seguridad: lo que no encaja en un patrón cae en el paso 5.
+
+### Y la escalación LLEGA, que es lo que la convierte en producto
+
+`/api/portal` acción `preguntar`: alcance `clinico`, freno propio (8 en diez
+minutos, estricto), clasificación en el servidor, escritura en
+`patients/{id}/preguntas_paciente` **antes** de contestarle al paciente —decirle
+«ya quedó registrada» y que no quede es peor que no ofrecer el canal— y aviso al
+consultorio por su propio WhatsApp cuando el motor lo pide.
+
+La respuesta se **congela** en el documento. Es la doctrina del paquete aplicada
+aquí: si se recalculara al leerla, lo que el paciente leyó el martes cambiaría
+solo el jueves y nadie podría reconstruir qué se le dijo.
+
+Colección nueva, declarada en los **tres** sitios que exige
+`security-tenant.md`: `firestore.rules` (`write: if false` — si el navegador
+pudiera escribir, quien tuviera el token se fabricaría la constancia de que el
+sistema le contestó algo), `matriz-acceso.ts` y el manifiesto del respaldo. Y
+además en el inventario de durabilidad y en la exportación ARCO, que sus propios
+guardianes exigieron.
+
+### Qué NO cubre, declarado
+
+- **`EDUCATIONAL_EXPLANATION` sigue sin implementación**, y el golden lo
+  comprueba. Explicar en palabras más simples es el nivel 9, y aquí no hay
+  modelo. Una explicación enlatada sería originar un dato fuera de las fuentes
+  1-8. Cuatro de cinco, dicho como es.
+- **La pantalla no se ha visto en un navegador.** La regla de diseño dice que no
+  se aprueba una interfaz leyendo el código, y este contenedor no puede
+  levantarla: faltan las `NEXT_PUBLIC_FIREBASE_*`. Queda en `BLOCKERS.md`.
+- **El vocabulario es incompleto a propósito** (clinical-safety §5): que una
+  forma de pedir un cambio de dosis no esté escrita significa que ese caso no se
+  detecta como acto prohibido, no que sea benigno — cae en escalar.
+- **No hay pantalla del médico** para lo que se escaló. La pregunta se guarda y
+  el aviso sale por WhatsApp; el buzón donde el consultorio las cierra es
+  trabajo con nombre, no algo que se pueda dar por hecho.
+
+**Pruebas.** `src/__tests__/lo-que-el-paciente-pregunta-se-clasifica-antes-de-contestarse.test.ts`
+(20 casos, 48 ejecutados con el fixture), probada al revés con el defecto
+inyectado en el módulo real —invertir el orden pone en rojo 11 casos, entre
+ellos `ai-05` y `ai-06`— y con cuatro motores mutilados dentro de la propia
+prueba. `src/__tests__/la-pregunta-del-paciente-la-clasifica-el-servidor.test.ts` (22), con
+cinco mutilaciones de la ruta. `src/__tests__/la-pantalla-de-preguntar-no-clasifica-ni-adivina.test.ts`
+(15). Y `evals/patient-ai/casos.json` pasa de 18 casos a 29.

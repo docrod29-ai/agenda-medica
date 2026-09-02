@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 80 de 297, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 80 de 298, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 Los tres últimos (REG-425, 426 y 427, 1-sep-2026) salieron de **abrir el producto

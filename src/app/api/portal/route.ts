@@ -21,6 +21,12 @@ import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
 import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
+import {
+  clasificarPregunta,
+  avisoDePreguntaAlConsultorio,
+  TOPE_TEXTO_PREGUNTA,
+  type PlanLiberado,
+} from '@/lib/paciente/pregunta-del-paciente'
 import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import type { Patient } from '@/types'
@@ -46,7 +52,22 @@ const MIN_HORAS_DEFECTO = 24
 const ACCIONES_QUE_MUEVEN = new Set(['confirmar', 'cancelar', 'reagendar', 'formulario'])
 
 /** Las que devuelven secreto médico. Exigen alcance `clinico` Y su propio cupo. */
-const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes'])
+const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes', 'preguntar', 'preguntas'])
+
+/**
+ * PREGUNTAR TIENE SU PROPIO FRENO, Y NO ES EL DE LA AGENDA.
+ *
+ * No cabe en `ACCIONES_QUE_MUEVEN` —no mueve la agenda de nadie— pero tampoco
+ * es una lectura: **escribe en el expediente y puede disparar un WhatsApp al
+ * consultorio**. Sin freno propio, un token filtrado convierte el buzón del
+ * médico en un canal de spam, y un consultorio que recibe cien avisos deja de
+ * leer el que importaba.
+ *
+ * Ocho en diez minutos: un paciente con dudas de verdad hace tres o cuatro
+ * preguntas seguidas; ochenta no las hace nadie. Estricto, como todo lo que
+ * puede molestar a un humano: si el freno no puede contar, no se atiende.
+ */
+const PREGUNTAS_POR_VENTANA = 8
 
 /**
  * EL OFFSET DEL CONSULTORIO, NO UN -06:00 QUEMADO.
@@ -173,6 +194,8 @@ export async function POST(req: NextRequest) {
     action?: string; token?: string; citaId?: string; fecha?: string; nuevaFechaHora?: string
     /** Formulario previo a la consulta (P-019): lo escribe el paciente. */
     respuestas?: unknown
+    /** La pregunta del paciente (V9 PATIENT-AI-001). Se recorta y se clasifica en el servidor. */
+    texto?: string
   }
   try {
     body = await req.json()
@@ -307,6 +330,12 @@ export async function POST(req: NextRequest) {
     const limiteClinico = await limitarEstricto(`portal:clinico:${clinicId}:${patientId}`, 15, 600,
       'Demasiadas consultas a tus documentos en poco tiempo. Espera un momento e inténtalo de nuevo.')
     if (limiteClinico) return limiteClinico
+  }
+
+  if (body.action === 'preguntar') {
+    const limitePregunta = await limitarEstricto(`portal:pregunta:${clinicId}:${patientId}`, PREGUNTAS_POR_VENTANA, 600,
+      'Has enviado varias preguntas seguidas. Espera unos minutos; tu consultorio ya tiene las anteriores.')
+    if (limitePregunta) return limitePregunta
   }
 
   // Helper: asegura que la cita pertenezca a este paciente
@@ -737,6 +766,195 @@ export async function POST(req: NextRequest) {
           .filter(visibleParaElPaciente)
           .sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
         return NextResponse.json({ paquetes })
+      }
+
+      /**
+       * PREGUNTAR — V9 · PATIENT-AI-001. «ASK NEXUS», y no es un chatbot.
+       *
+       * ── LO QUE ESTA RUTA GARANTIZA, Y LA PANTALLA NO PODRÍA ────────────────
+       *
+       * La clasificación corre AQUÍ, en el servidor, por la razón del §3 de
+       * `.claude/rules/patient-facing-ai.md`: «si una ruta lo permite y sólo el
+       * prompt lo impide, está mal construida». Tres cosas que sólo se pueden
+       * garantizar de este lado:
+       *
+       *  1. **El plan es el liberado.** Se lee de Firestore y se filtra con
+       *     `visibleParaElPaciente`, la misma compuerta de `paquetes`. Si el
+       *     navegador mandara el plan, la lista de fuentes del §1 sería una
+       *     recomendación.
+       *  2. **La clase la pone el servidor.** Es la decisión de seguridad de
+       *     esta unidad, y por eso `preguntas_paciente` es `write: if false`.
+       *  3. **La escalación llega a un humano.** Es la mitad que convierte esto
+       *     en un producto: «la escalación es el producto, no el fallo».
+       *
+       * ── AQUÍ NO HAY MODELO DE LENGUAJE ─────────────────────────────────────
+       *
+       * Ninguno. `clasificarPregunta` es determinista y lo que devuelve como
+       * respuesta es una cadena que ya venía dentro del paquete que el médico
+       * liberó. El nivel 9 del §1 no origina datos del paciente, y la forma más
+       * barata de garantizarlo es no tenerlo.
+       */
+      case 'preguntar': {
+        if (alcance !== 'clinico') {
+          return NextResponse.json(
+            { error: 'Pide a tu médico el acceso para poder preguntar por aquí.' },
+            { status: 403 },
+          )
+        }
+        const texto = String(body.texto ?? '').trim().slice(0, TOPE_TEXTO_PREGUNTA)
+        if (!texto) {
+          return NextResponse.json({ error: 'Escribe tu pregunta.' }, { status: 400 })
+        }
+
+        /**
+         * EL PLAN ES EL ÚLTIMO LIBERADO. Y si no hay ninguno, es `null` —
+         * que NO es lo mismo que un plan vacío: con `null` el motor escala con
+         * motivo `sin_plan_liberado` en vez de contestar sobre la nada.
+         */
+        const snapPlanes = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('paquetes_visita')
+          .get()
+        const liberados = snapPlanes.docs
+          .map(d => d.data() as unknown as PaqueteDeVisita)
+          .filter(visibleParaElPaciente)
+          .sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
+        const plan: PlanLiberado | null = liberados[0]
+          ? {
+              notaId: liberados[0].notaId,
+              fechaConsulta: liberados[0].fechaConsulta,
+              medicationInstructions: liberados[0].medicationInstructions ?? [],
+              // `?? null` y no `?? []`: la lista vacía afirmaría «no hubo
+              // cambios» sobre un paquete que quizá no pudo calcularlos.
+              medicationChanges: liberados[0].medicationChanges ?? null,
+              orders: liberados[0].orders ?? [],
+              followUp: liberados[0].followUp ?? '',
+              version: liberados[0].version ?? 1,
+            }
+          : null
+
+        const config = await leerConfig(clinicId)
+        const telConsultorio = telefonoDelConsultorio(config)
+        const r = clasificarPregunta(texto, { plan, telefonoConsultorio: telConsultorio })
+
+        /**
+         * SE GUARDA ANTES DE CONTESTAR, Y CON LISTA BLANCA.
+         *
+         * Antes de responderle al paciente, porque una escalación que se
+         * pierde por un fallo de escritura le habría dicho «ya quedó
+         * registrada» sin quedar registrada — y eso es peor que no ofrecer el
+         * canal. Si esto lanza, cae al `catch` de la ruta y el paciente ve un
+         * error honesto en vez de una promesa falsa.
+         *
+         * Lista blanca de campos, nunca `...body`: lo que entra al expediente
+         * se enumera. Es la misma regla que ya aplica la cita del portal.
+         */
+        const doc = {
+          texto,
+          clase: r.clase,
+          motivo: r.motivo,
+          /**
+           * LA RESPUESTA SE CONGELA, NO SE RECALCULA.
+           *
+           * Es la misma doctrina que el paquete: «lo que se entregó se
+           * entregó». Si mañana el médico libera una versión nueva del plan y
+           * esto se recalculara al leerlo, la respuesta que el paciente recibió
+           * el martes cambiaría sola el jueves — y nadie podría reconstruir qué
+           * se le dijo. Guardarla cuesta una cadena; no guardarla cuesta la
+           * única prueba de lo que este canal contestó.
+           */
+          respuesta: r.texto,
+          procedencia: r.procedencia,
+          respondida: r.clase === 'ANSWER_FROM_APPROVED_PLAN',
+          escalada: r.avisarAlConsultorio,
+          /** Nadie del consultorio la ha leído todavía. Lo cierra el médico. */
+          atendidaEn: null as number | null,
+          creadaEn: Date.now(),
+          origen: 'portal',
+        }
+        const ref = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('preguntas_paciente')
+          .add(doc)
+
+        /**
+         * EL AVISO NO PUEDE TUMBAR LA RESPUESTA, PERO TAMPOCO PUEDE PERDERSE.
+         *
+         * `avisarAlConsultorio` ya deja registro en `whatsapp_outbox` cuando el
+         * envío falla, así que un WhatsApp caído no borra la escalación: la
+         * pregunta está escrita en el expediente pase lo que pase, y el aviso
+         * queda en la cola de no entregados.
+         */
+        if (r.avisarAlConsultorio && telConsultorio) {
+          await avisarAlConsultorio(
+            clinicId,
+            telConsultorio,
+            avisoDePreguntaAlConsultorio(paciente?.nombre ?? '', r.motivo, texto),
+            'portal:pregunta',
+          )
+        }
+
+        /**
+         * AL PACIENTE NO SE LE DEVUELVE EL MOTIVO.
+         *
+         * Saber que su frase encajó en `cambio_de_dosis` no le sirve de nada y
+         * le enseña a esquivar el clasificador. El motivo es para el
+         * consultorio, que es quien decide. Va en el documento, no en el JSON.
+         */
+        return NextResponse.json({
+          id: ref.id,
+          clase: r.clase,
+          texto: r.texto,
+          procedencia: r.procedencia,
+          escalada: r.avisarAlConsultorio,
+        })
+      }
+
+      /**
+       * SU PROPIO HISTORIAL — para que una respuesta no se pierda al recargar.
+       *
+       * La especificación pone «eliminar la pérdida de estado» entre las
+       * prioridades más altas. Una respuesta que sólo vive en la memoria de la
+       * pestaña se pierde con el primer bloqueo de pantalla del teléfono, que es
+       * exactamente donde está el paciente.
+       *
+       * Devuelve LO SUYO y nada más: la consulta cuelga de su `patientId`, que
+       * sale del token y no del cuerpo de la petición.
+       */
+      case 'preguntas': {
+        if (alcance !== 'clinico') {
+          return NextResponse.json(
+            { error: 'Pide a tu médico el acceso para poder preguntar por aquí.' },
+            { status: 403 },
+          )
+        }
+        const snapP = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('preguntas_paciente')
+          .get()
+        const preguntas = snapP.docs
+          .map(d => {
+            const p = d.data() as Record<string, unknown>
+            // Lista blanca también de SALIDA: `motivo` no se le devuelve al
+            // paciente, ni siquiera en su propio historial.
+            return {
+              id: d.id,
+              texto: String(p.texto ?? ''),
+              clase: String(p.clase ?? ''),
+              // La respuesta CONGELADA de aquel día, no una recalculada hoy.
+              respuesta: String(p.respuesta ?? ''),
+              procedencia: (p.procedencia ?? null) as unknown,
+              escalada: Boolean(p.escalada),
+              atendidaEn: (p.atendidaEn ?? null) as number | null,
+              creadaEn: Number(p.creadaEn ?? 0),
+            }
+          })
+          .sort((a, b) => b.creadaEn - a.creadaEn)
+          .slice(0, 20)
+        return NextResponse.json({ preguntas })
       }
 
       case 'documentos': {
