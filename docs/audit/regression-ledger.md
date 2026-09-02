@@ -18116,7 +18116,7 @@ esto es lo que convierte una anécdota en un defecto: **por casualidad**. Un avi
 programado de otra sesión mencionó de pasada un «REG-436» doce minutos después de
 que ese número ya hubiera entrado a `main`.
 
-**Seis colisiones en dos días, entre varias sesiones que no se veían:**
+**Seis colisiones el mismo día, entre varias sesiones que no se veían:**
 
 ```
 REG-434  la cita de la portada        (#433, 00:05)
@@ -18127,9 +18127,13 @@ REG-438  ESTE MISMO GUARDIÁN          (#438, 05:39)   → 440
 REG-438  el riel del expediente       (#440, 06:13)
 REG-440  ESTE MISMO GUARDIÁN otra vez (#438)          → 444
 REG-440  la siembra del arnés         (#440, fusionado a main primero)
-REG-444  ESTE MISMO GUARDIÁN, tercera vez (#438)       → 445
+REG-444  ESTE MISMO GUARDIÁN, tercera (#438)          → 445
 REG-444  el token del paciente        (#441, fusionado a main primero)
 ```
+
+**Seis**, y tres de ellas se las llevó esta ficha. Cada vez que se renumeró al
+primer libre, otra rama alcanzó `main` con ese número antes que ella. El número
+sólo es estable cuando el PR se fusiona: mientras espera, es una apuesta.
 
 ### Tres de ellas se las llevó esta misma ficha
 

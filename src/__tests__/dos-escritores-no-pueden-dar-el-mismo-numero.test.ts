@@ -3,7 +3,7 @@
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
- * El 2-sep-2026 el contador de regresiones se repartió mal CINCO veces en un
+ * El 2-sep-2026 el contador de regresiones se repartió mal SEIS veces en un
  * solo día, entre varias sesiones que no se veían:
  *
  *   REG-434  la cita de la portada        (#433, 00:05)
@@ -14,6 +14,12 @@
  *   REG-438  el riel del expediente       (#440, 06:13)
  *   REG-440  ESTE MISMO GUARDIÁN, otra vez (#438)          → renumerado a 444
  *   REG-440  la siembra del arnés          (#440, fusionado a main)
+ *   REG-444  ESTE MISMO GUARDIÁN, tercera  (#438)          → renumerado a 445
+ *   REG-444  el token del paciente         (#441, fusionado a main)
+ *
+ * TRES de las seis se las llevó este fichero. Cada vez que se renumeró al primer
+ * libre, otra rama alcanzó `main` con ese número antes que él. El número sólo es
+ * estable cuando el PR se fusiona: mientras espera, es una apuesta.
  *
  * ── CÓMO SE DESCUBRIÓ ────────────────────────────────────────────────────────
  *
@@ -29,13 +35,10 @@
  * Se escribió como REG-438; mientras corría su CI, otra sesión reclamó ese
  * número para el riel del expediente, y pasó a REG-440. Mientras esperaba a que
  * lo fusionaran, ESE número también se lo llevó otra rama —la siembra del
- * arnés—, que además llegó a `main` primero. Pasó a REG-444, y al fusionarse
- * este PR el 2-sep ESE número también estaba ya en `main` —el token del
- * paciente, PR #441—. Acabó en REG-445.
+ * arnés—, que además llegó a `main` primero. Acabó en REG-445.
  *
- * Tres renumeraciones antes de aterrizar, y ninguna culpa de nadie: es la forma
- * del sistema haciendo exactamente lo que hace. La tercera ocurrió DESPUÉS de
- * que este guardián existiera, y el guardián la cazó: es su tercer caso real.
+ * Dos renumeraciones antes de aterrizar, y ninguna culpa de nadie: es la forma
+ * del sistema haciendo exactamente lo que hace.
  *
  * ── Y LA QUINTA LA CAZÓ ÉL MISMO, EN VIVO ────────────────────────────────────
  *

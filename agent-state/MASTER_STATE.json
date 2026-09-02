@@ -23,26 +23,12 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "A  .env.example",
-    "M  .github/CODEOWNERS",
-    "M  .gitignore",
-    "M  agent-state/MASTER_STATE.json",
     "M  docs/audit/regression-ledger.md",
     "MM docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "A  docs/ops/INVENTARIO-DE-ENTORNO.md",
-    "A  docs/ops/PROTECCION-DE-RAMA.md",
-    "A  docs/ops/RECETA-DISENO-FIRMA.md",
-    "A  docs/ops/VARIABLES-DE-ENTORNO.md",
-    "A  docs/ops/inventario-de-entorno.json",
-    "M  docs/pendientes-externos.md",
-    "M  docs/product/AUSCULTA-CONSULTORIO-FINAL-READINESS.md",
     "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "A  scripts/ops/inventario-de-entorno.mjs",
     "M  src/__tests__/dos-escritores-no-pueden-dar-el-mismo-numero.test.ts",
-    "A  src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts",
-    "A  src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts",
-    "A  src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts"
+    "M  src/lib/calidad/familias-de-defecto.ts",
+    "M  src/lib/clinical/invariantes-clinicos.json"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {

@@ -1215,7 +1215,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      */
     /**
      * 445 es esta familia en su forma más pura: un contador GLOBAL que se asigna
-     * A MANO y tiene VARIOS ESCRITORES. Seis colisiones en dos días entre varias
+     * A MANO y tiene VARIOS ESCRITORES. Seis colisiones el mismo día entre varias
      * sesiones que no se veían, y ninguna la vio una compuerta: las dos primeras
      * se vieron leyendo un conflicto de fusión, la tercera leyendo por casualidad
      * un aviso de otra sesión, y otras tres se las llevó el propio guardián — nació
