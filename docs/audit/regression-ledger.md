@@ -246,6 +246,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-506 | Despliegue / integridad de la publicación | **El despliegue de índices no enviaba ni un índice, y firmaba el acta.** `firebase.json` declaraba `firestore.rules` y **no** `firestore.indexes`; en firebase-tools el envío entero cuelga de esa clave (`if (firestoreConfig.indexes)`), así que el paso imprimía «deploying indexes...», recorría una lista vacía y contestaba `Deploy complete!`. Tres ejecuciones (#11, #12, #13) cerraron `PRODUCTION_RELEASE=SUCCESS` sin publicar los ocho índices — cuatro de ellos, de consultas que el producto YA hace (bandeja ARCO, lista de farmacia, rastro de un controlado y la página **pública** del médico), y Firestore rechaza entera una consulta sin índice | CLOSED (v1179) | `src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts` (probado al revés con la configuración exacta de v1178) + el propio paso del workflow, que ahora exige en la salida la línea `deployed indexes in ... successfully` en vez de creerse el código de salida |
 | REG-507 | Seguridad / papelería | **El .doc de la receta guardaba un ENLACE al membrete, y ese enlace sólo funcionaba porque el candado estaba apagado.** `receta-word` no lee del DOM —lee `recetaConfig.membreteDataUrl`, la URL guardada SIN firma— y la incrustaba absolutizada en el documento. Word lo abre desde el disco y pide esa URL **sin sesión y sin firma**. Los caminos de pantalla sí estaban cubiertos (`print-element`, `pdf-download`, `FirmadorDisenos`); éste no podía estarlo. Con `RECETA_DISENO_FIRMA=obligatoria` habría dado 403 y el membrete habría salido roto en una receta con cédula profesional | CLOSED (v1179) | `src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts` (7 casos, probada al revés reinstalando el defecto: fallan 4). El membrete se incrusta como data URI, no se firma: una firma caduca a las 24 h y un .doc se reabre semanas después |
 | REG-508 | Seguridad / configuración | **La pantalla de Configuración le dictaba al médico un token de verificación que el servidor no acepta.** Imprimía el literal `agenda-medica-bot` como «Token de verificación» para teclear en Meta, pero `whatsapp/webhook` sólo acepta `WHATSAPP_WEBHOOK_TOKEN` (o su alias) y **sin respaldo**. Con la variable puesta a otra cosa —lo normal— seguir esa instrucción hacía que Meta no verificara el webhook y el bot de pacientes se quedara mudo, con un síntoma que no se parece a la causa; con la variable puesta a ese literal, el secreto compartido quedaba publicado en la pantalla. El mismo literal vivía además en `meta-connect` dentro de una constante **sin un solo consumidor** | CLOSED (v1179) | `src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts` (5 casos, probada al revés por las DOS mitades: devolviendo el literal a la pantalla y la constante muerta al conector) |
+| REG-509 | Herramienta / determinismo | **Un archivo generado que salía distinto en cada máquina.** `inventario-de-entorno.mjs` leía la lista de `grep -rl`, que la devuelve en el orden del SISTEMA DE ARCHIVOS, y para las 9 variables que se leen en más de un archivo de `src/` elegía el respaldo «del primero que apareciera». En el contenedor de trabajo salía uno y en el runner otro: el inventario y `.env.example` diferían **sin que cambiara una línea del código**, y su propio guardián puso `verificar` en rojo en el primer CI del PR #437. El `localeCompare` del orden final era una segunda fuente latente de lo mismo | CLOSED (v1179) | `src/__tests__/ninguna-variable-de-entorno-vive-sin-declarar.test.ts` — caso «el orden en que llegan los archivos no cambia el resultado»: se le pasa la lista **al revés** y se exige el mismo resultado. Probado reinstalando el defecto: fallan 2 |
 
 ## REG-153 · El anticipo se podía cobrar DOS veces
 
@@ -15940,3 +15941,48 @@ podía hacer aquí era dejar de dictar un valor falso.
 
 **Prueba.** `src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts`,
 5 casos, probada al revés por las dos mitades.
+
+
+## REG-509 · El inventario salía distinto en cada máquina
+
+**Cómo se descubrió.** El primer CI del PR #437 puso `verificar` en rojo, y el
+que falló fue **el guardián del inventario recién escrito**: decía que
+`inventario-de-entorno.json` y `.env.example` estaban desfasados, cuando en la
+máquina donde se generaron estaban al día.
+
+**La causa raíz.** `grep -rl` devuelve los archivos en el orden del sistema de
+archivos, no alfabético — medido: 241 archivos, sin ordenar. Y **nueve variables
+se leen en más de un archivo de `src/`**, así que la elección
+`deProduccion.find(d => d.archivo.startsWith('src/'))` se quedaba con «el primero
+que apareciera». Otro sistema de archivos, otro respaldo, otro archivo generado.
+
+Había una segunda fuente latente del mismo problema: el orden final se hacía con
+`localeCompare`, que ignora el guion bajo en su fuerza primaria —`NEXTAUTH_URL`
+cae antes o después de `NEXT_PUBLIC_APP_URL` según la ICU del entorno—.
+
+**Por qué importa más de lo que parece.** Un artefacto derivado que depende de la
+máquina convierte a su guardián en una trampa: rojo en CI, verde en local, y el
+remedio que se le ocurre a cualquiera —regenerar y volver a empujar— no arregla
+nada porque el siguiente runner puede ordenar distinto otra vez. El camino corto
+desde ahí es borrar la comprobación, y entonces el inventario se queda sin dueño,
+que es justo lo que venía a resolver.
+
+**Qué se hizo.** La lista se ordena antes de leer; el respaldo se elige por nombre
+de archivo, no por orden de llegada; y el orden final es por punto de código.
+Además `--verificar` ahora **dice QUÉ difiere** —la primera línea distinta, con lo
+que hay en disco y lo derivado— en vez de sólo anunciar el desfase: un mensaje que
+no permite diagnosticar obliga a reproducir a ciegas, que es lo que costó este
+ciclo.
+
+**Lo que este ciclo confirmó de paso.** `ops-timeout-y-punto-ciego` **pasó** en el
+runner. El rojo que lleva semanas apareciendo en el contenedor de trabajo es del
+entorno, como estaba declarado, y ahora hay una ejecución que lo demuestra.
+
+**Qué NO cubre.** Que el archivo generado sea idéntico en cualquier máquina: se
+vigila la independencia del orden de llegada, que es por donde se coló esto. Una
+versión distinta de `grep`, o un `src/` con archivos que aquí no existen, seguirían
+sin verse desde el repositorio.
+
+**Prueba.** El caso «AL REVÉS: el orden en que llegan los archivos no cambia el
+resultado», que le pasa la lista invertida a la derivación y exige el mismo
+resultado.

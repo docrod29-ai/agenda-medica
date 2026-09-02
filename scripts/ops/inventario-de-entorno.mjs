@@ -75,11 +75,24 @@ const sinComentarios = (fuente) => fuente
  * Recorre el árbol y devuelve, por variable, quién la lee y con qué respaldo.
  * Exportada para que el guardián derive lo mismo sin volver a escribir el lector.
  */
-export function inventarioDelArbol() {
-  const archivos = execSync(
+export function inventarioDelArbol(listaDeArchivos) {
+  /**
+   * EL ORDEN DE `grep` NO ES UN ORDEN — REG-509.
+   *
+   * `grep -rl` devuelve los archivos en el orden del SISTEMA DE ARCHIVOS, no
+   * alfabético. Nueve variables se leen en más de un archivo de `src/`, y el
+   * respaldo elegido era «el primero que apareciera»: en otra máquina aparecía
+   * otro, y el archivo generado salía distinto sin que cambiara una línea del
+   * código. Se ordena antes de leer, y más abajo se elige el respaldo por
+   * nombre de archivo en vez de por orden de llegada.
+   *
+   * `listaDeArchivos` existe para que el guardián pueda pasarla al revés y
+   * comprobar que el resultado no cambia.
+   */
+  const archivos = (listaDeArchivos ?? execSync(
     "grep -rl 'process\\.env' src scripts --include=*.ts --include=*.tsx --include=*.mjs --include=*.js 2>/dev/null || true",
     { encoding: 'utf8' },
-  ).trim().split('\n').filter(Boolean)
+  ).trim().split('\n').filter(Boolean)).slice().sort()
 
   const vistas = new Map()
   for (const archivo of archivos) {
@@ -112,7 +125,9 @@ export function inventarioDelArbol() {
        * LANZA si falta. Mentir en la dirección de «tiene respaldo» es
        * exactamente el error que no se puede permitir aquí.
        */
-      const deProduccion = v.defectos.filter(d => !d.archivo.includes('__tests__'))
+      const deProduccion = v.defectos
+        .filter(d => !d.archivo.includes('__tests__'))
+        .sort((a, b) => (a.archivo < b.archivo ? -1 : a.archivo > b.archivo ? 1 : 0))
       const preferido = deProduccion.find(d => d.archivo.startsWith('src/')) ?? deProduccion[0]
       return {
         nombre,
@@ -124,7 +139,13 @@ export function inventarioDelArbol() {
         archivos,
       }
     })
-    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+    /**
+     * Por PUNTO DE CÓDIGO, no `localeCompare`: éste ignora el guion bajo en su
+     * fuerza primaria —`NEXTAUTH_URL` cae antes o después de
+     * `NEXT_PUBLIC_APP_URL` según la ICU del entorno— y habría sido la segunda
+     * fuente de archivos distintos en máquinas distintas.
+     */
+    .sort((a, b) => (a.nombre < b.nombre ? -1 : a.nombre > b.nombre ? 1 : 0))
 }
 
 function comoJson(inv) {
@@ -197,7 +218,22 @@ if (process.argv.includes('--verificar')) {
   if (leer(ENV_EJEMPLO) !== ejemplo) problemas.push(ENV_EJEMPLO)
   if (problemas.length) {
     console.error(`\n  Inventario de entorno desfasado: ${problemas.join(', ')}`)
-    console.error('  → node scripts/ops/inventario-de-entorno.mjs\n')
+    /**
+     * QUÉ difiere, no sólo QUE difiere. La primera versión sólo anunciaba el
+     * desfase, y cuando salió en CI —y no en la máquina donde se generó— no
+     * había forma de saber por qué sin adivinar. Un mensaje que no permite
+     * diagnosticar obliga a reproducir a ciegas.
+     */
+    const primeraDiferencia = (viejo, nuevo) => {
+      const a = viejo.split('\n'), b = nuevo.split('\n')
+      for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+        if (a[i] !== b[i]) return `    línea ${i + 1}\n      en disco: ${a[i] ?? '(no existe)'}\n      derivado: ${b[i] ?? '(no existe)'}`
+      }
+      return '    (sin diferencia de líneas)'
+    }
+    if (problemas.includes(JSON_SALIDA)) console.error(primeraDiferencia(sinFecha(leer(JSON_SALIDA)), sinFecha(json)))
+    if (problemas.includes(ENV_EJEMPLO)) console.error(primeraDiferencia(leer(ENV_EJEMPLO), ejemplo))
+    console.error('\n  → node scripts/ops/inventario-de-entorno.mjs\n')
     process.exit(1)
   }
   console.log(`  Inventario de entorno al día: ${inv.length} variables.`)

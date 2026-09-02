@@ -36,6 +36,11 @@
  *   algo que no lo tiene sería peor.
  * · **No ve variables construidas dinámicamente** (`process.env[nombre]`). Hoy
  *   no hay ninguna; el día que la haya, este inventario no la verá.
+ * · **No comprueba que el archivo generado sea igual en OTRA máquina.** Lo que
+ *   comprueba es que no dependa del orden de llegada de los archivos, que es
+ *   por donde se coló REG-509. Otras fuentes de no-determinismo —una versión
+ *   distinta de `grep`, un `src/` con archivos que aquí no existen— seguirían
+ *   sin verse desde aquí.
  * · No comprueba que `INVENTARIO-DE-ENTORNO.md` describa cada una: el
  *   conocimiento humano se escribe a mano y no se puede exigir por conteo sin
  *   invitar a rellenarlo con ruido.
@@ -96,6 +101,34 @@ describe('ninguna variable de entorno vive sin declarar', () => {
     /* Y que la generación esté al día — el script lo compara entero. */
     expect(() => execSync('node scripts/ops/inventario-de-entorno.mjs --verificar', { stdio: 'pipe' }))
       .not.toThrow()
+  })
+
+  it('AL REVÉS: el orden en que llegan los archivos no cambia el resultado', () => {
+    /**
+     * REG-509 — LA PRUEBA QUE FALTABA, Y QUE HABRÍA AHORRADO UN CI EN ROJO.
+     *
+     * `grep -rl` devuelve los archivos en el orden del sistema de archivos.
+     * Nueve variables se leen en más de un archivo de `src/`, y el respaldo
+     * elegido era «el primero que apareciera»: en esta máquina uno, en el
+     * runner otro, y el archivo generado salía distinto **sin que cambiara una
+     * línea del código**. El guardián de arriba lo vio en CI y no aquí, que es
+     * la peor forma de verlo.
+     *
+     * Se le pasa la lista al revés y se exige el MISMO resultado. Con el código
+     * anterior —sin ordenar, y eligiendo por orden de llegada— esto falla.
+     */
+    const archivos = execSync(
+      "grep -rl 'process\\.env' src scripts --include=*.ts --include=*.tsx --include=*.mjs --include=*.js 2>/dev/null || true",
+      { encoding: 'utf8' },
+    ).trim().split('\n').filter(Boolean)
+    expect(archivos.length).toBeGreaterThan(100)
+
+    const alDerecho = inventarioDelArbol(archivos)
+    const alReves = inventarioDelArbol([...archivos].reverse())
+    expect(
+      alReves,
+      'el inventario depende del orden en que el sistema de archivos devuelve los archivos',
+    ).toEqual(alDerecho)
   })
 
   it('la plantilla se puede versionar (si no, el guardián moriría en un clon limpio)', () => {

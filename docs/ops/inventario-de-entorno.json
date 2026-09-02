@@ -8,8 +8,8 @@
       "publica": false,
       "deLaPlataforma": false,
       "ambito": "scripts",
-      "defectoLiteral": "1440,390",
-      "defectoDe": "scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
+      "defectoLiteral": "390,768,1440",
+      "defectoDe": "scripts/carril-excelencia/capturar-con-sesion.mjs",
       "archivos": [
         "scripts/carril-excelencia/capturar-con-sesion.mjs",
         "scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs",
@@ -23,7 +23,7 @@
       "deLaPlataforma": false,
       "ambito": "runtime",
       "defectoLiteral": "",
-      "defectoDe": "src/app/api/inmuno/redactar/route.ts",
+      "defectoDe": "src/app/api/ayuda-bot/route.ts",
       "archivos": [
         "src/app/api/ayuda-bot/route.ts",
         "src/app/api/consultor-evidencia/route.ts",
@@ -48,7 +48,7 @@
       "deLaPlataforma": false,
       "ambito": "runtime",
       "defectoLiteral": "",
-      "defectoDe": "src/app/api/expediente/procesar/route.ts",
+      "defectoDe": "src/app/api/expediente/corregir/route.ts",
       "archivos": [
         "src/app/api/expediente/corregir/route.ts",
         "src/app/api/expediente/extraer-entidades/route.ts",
@@ -165,7 +165,7 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "http://127.0.0.1:9099",
-      "defectoDe": "scripts/carril-excelencia/las-listas-largas.mjs",
+      "defectoDe": "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
       "archivos": [
         "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
         "scripts/carril-excelencia/las-listas-largas.mjs"
@@ -188,7 +188,7 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "http://localhost:3300",
-      "defectoDe": "scripts/carril-excelencia/trinquete-de-interfaz.mjs",
+      "defectoDe": "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
       "archivos": [
         "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
         "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
@@ -224,7 +224,7 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "http://localhost:3000",
-      "defectoDe": "scripts/design/axe-encuentro-v15.mjs",
+      "defectoDe": "scripts/design/atribuir-js-consulta-v15.mjs",
       "archivos": [
         "scripts/design/atribuir-js-consulta-v15.mjs",
         "scripts/design/axe-detalle-contraste-v15.mjs",
@@ -403,7 +403,7 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
-      "defectoDe": "scripts/carril-excelencia/tactiles.mjs",
+      "defectoDe": "scripts/carril-excelencia/axe-recorridos.mjs",
       "archivos": [
         "scripts/carril-excelencia/axe-recorridos.mjs",
         "scripts/carril-excelencia/capturar-con-sesion.mjs",
@@ -423,7 +423,7 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
-      "defectoDe": "scripts/design/capturas-v10.mjs",
+      "defectoDe": "scripts/design/axe-v10.mjs",
       "archivos": [
         "scripts/design/axe-v10.mjs",
         "scripts/design/capturas-v10.mjs"
@@ -609,7 +609,7 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "baseline",
-      "defectoDe": "scripts/design/medir-primer-viewport-expediente-v15.mjs",
+      "defectoDe": "scripts/design/medir-lienzo-escritorio-v15.mjs",
       "archivos": [
         "scripts/design/medir-lienzo-escritorio-v15.mjs",
         "scripts/design/medir-primer-viewport-expediente-v15.mjs"
@@ -780,7 +780,7 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "nexomed-agenda",
-      "defectoDe": "scripts/simulacro-restauracion-firestore.mjs",
+      "defectoDe": "scripts/product/run-consultorio-load.mjs",
       "archivos": [
         "scripts/product/run-consultorio-load.mjs",
         "scripts/simulacro-restauracion-firestore.mjs"
@@ -902,7 +902,7 @@
       "deLaPlataforma": false,
       "ambito": "runtime",
       "defectoLiteral": "",
-      "defectoDe": "src/app/api/whatsapp/webhook/route.ts",
+      "defectoDe": "src/app/api/whatsapp/meta-connect/route.ts",
       "archivos": [
         "src/app/api/whatsapp/meta-connect/route.ts",
         "src/app/api/whatsapp/webhook/route.ts"
@@ -936,7 +936,7 @@
       "deLaPlataforma": false,
       "ambito": "runtime",
       "defectoLiteral": "https://agenda-medica-one.vercel.app",
-      "defectoDe": "src/app/robots.ts",
+      "defectoDe": "src/app/(dashboard)/configuracion/page.tsx",
       "archivos": [
         "src/app/(dashboard)/configuracion/page.tsx",
         "src/app/api/calendar/callback/route.ts",
@@ -983,22 +983,10 @@
       "deLaPlataforma": false,
       "ambito": "runtime",
       "defectoLiteral": "arnes-visual-v10",
-      "defectoDe": "scripts/carril-excelencia/las-listas-largas.mjs",
+      "defectoDe": "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
       "archivos": [
         "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
         "scripts/carril-excelencia/las-listas-largas.mjs",
-        "src/__tests__/setup.ts",
-        "src/lib/firebase.ts"
-      ]
-    },
-    {
-      "nombre": "NEXT_PUBLIC_FIREBASE_APP_ID",
-      "publica": true,
-      "deLaPlataforma": false,
-      "ambito": "runtime",
-      "defectoLiteral": null,
-      "defectoDe": null,
-      "archivos": [
         "src/__tests__/setup.ts",
         "src/lib/firebase.ts"
       ]
@@ -1011,6 +999,18 @@
       "defectoLiteral": null,
       "defectoDe": null,
       "archivos": [
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_APP_ID",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/setup.ts",
         "src/lib/firebase.ts"
       ]
     },
@@ -1055,7 +1055,7 @@
       "deLaPlataforma": false,
       "ambito": "runtime",
       "defectoLiteral": "demo-nexusmed-v10",
-      "defectoDe": "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+      "defectoDe": "scripts/carril-excelencia/documentos-del-encuentro.mjs",
       "archivos": [
         "scripts/carril-excelencia/documentos-del-encuentro.mjs",
         "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
@@ -1160,7 +1160,7 @@
       "deLaPlataforma": false,
       "ambito": "runtime",
       "defectoLiteral": "",
-      "defectoDe": "src/app/api/expediente/procesar/route.ts",
+      "defectoDe": "src/app/api/expediente/antibiograma-razonar/route.ts",
       "archivos": [
         "scripts/asr-benchmark-audio.ts",
         "scripts/benchmark-voz-uci.ts",
@@ -1784,7 +1784,7 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "America/Mexico_City",
-      "defectoDe": "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+      "defectoDe": "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
       "archivos": [
         "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
         "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
