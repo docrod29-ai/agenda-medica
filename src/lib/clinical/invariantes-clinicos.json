@@ -2,7 +2,7 @@
   "sellado": "2026-09-02",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6388,
+  "totalCasos": 6396,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -797,10 +797,6 @@
       "minCasos": 5
     },
     {
-      "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
-      "minCasos": 13
-    },
-    {
       "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",
       "minCasos": 20
     },
@@ -855,6 +851,10 @@
     {
       "archivo": "src/__tests__/la-identidad-de-la-publicacion-no-se-tira.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
+      "minCasos": 13
     },
     {
       "archivo": "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
@@ -1331,6 +1331,10 @@
     {
       "archivo": "src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts",

@@ -17308,3 +17308,76 @@ separador.
 - **`Visitas anteriores: [2026-09-02]`** se vio y **no** se tocó. El corchete es
   el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
   contexto de los motores: cambiarla por estética movería lo que el modelo lee.
+
+---
+
+## REG-438 — el token del paciente viajaba entero al registro de errores
+
+**QUÉ FALLABA.** `redactarRuta` —el redactor por el que pasa toda ruta antes de
+escribirse en `errores`— tapaba identificadores de paciente y **dejaba pasar
+enteras las credenciales**.
+
+Medido contra `main`, no deducido:
+
+```
+/mi/eyJwIjoi….YWJjZGVm…        →  /mi/eyJwIjoi….YWJjZGVm…     ← sin tocar
+/resena/…                       →  sin tocar
+/verificar/…                    →  sin tocar
+/unirse/…                       →  sin tocar
+/consulta/paciente123abc        →  /consulta/:id               ← esto sí funcionaba
+```
+
+`/mi/<token>` **es** la sesión del paciente: quien tenga esa cadena abre su
+expediente. Y `errores` es una colección **raíz**, legible desde la consola del
+dueño de la plataforma — no está bajo `clinics/{id}`, así que ni siquiera el
+aislamiento entre consultorios la acota.
+
+**CAUSA RAÍZ — dos, y las dos hay que decirlas.**
+
+1. `SEGMENTOS_CON_ID` nació para tapar **identificadores**, y nadie volvió a
+   mirarla cuando aparecieron rutas que llevan **credenciales**. Un token no es
+   un id: filtrar un id revela a quién le pasó algo; filtrar un token **entrega
+   el acceso**.
+2. La heurística de reserva no lo alcanzaba: exige `^[A-Za-z0-9_-]+$`, y el
+   token tiene forma `base64url(payload).base64url(firma)` — **el punto rompe el
+   patrón**. La red de seguridad tenía justo el agujero del caso que importaba.
+
+**CÓMO SE DESCUBRIÓ.** Levantando el PR #342 por petición del dueño. Sus dos
+hallazgos declarados ya estaban reparados en `main`; éste no estaba en su
+resumen — venía dentro del diff, en un archivo que su propia directiva marcaba
+como «shared file, REVIEW REQUIRED». La revisión que pedía era la que lo
+encontró.
+
+**LA REGLA QUE LO HACE SEGURO.** Dos capas, y ninguna basta sola:
+
+- las rutas de cara al paciente (`mi`, `resena`, `verificar`, `unirse`,
+  `reservar`, `teleconsulta`) declaran que su segmento siguiente es una
+  credencial;
+- cualquier segmento con **forma de token firmado** se borra aunque nadie
+  declarara su ruta — porque la ruta de mañana no está en ninguna lista.
+
+Y **lo inocuo no se estropea**: se exigen dos o tres mitades de diez caracteres
+o más, así que `favicon.ico`, `sitemap.xml` y `pdf.worker.min.mjs` pasan intactos.
+Un redactor que rompe el informe se acaba apagando, y entonces no protege nada.
+
+**Prueba.** `src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts`
+(8 casos), probada al revés con tres defectos: quitar la detección de token
+firmado (cae 1), aflojar el mínimo de cada mitad a 3 (cae 1, por redactar de
+más), y **quitar la lista de rutas de paciente**.
+
+Ese tercero es el que enseña algo: con el golden tal y como venía del #342,
+quitar la lista dejaba **los siete casos en verde** — todos pasaban por la otra
+mitad. Se añadió el caso que la fija: un token **sin punto**, que no cazan ni la
+detección de firma ni la heurística de id. Nada obliga a que una credencial lleve
+firma separada por un punto; un token opaco es una forma normal de emitirla.
+
+**Qué NO cubre, declarado.**
+
+- **No redacta lo ya escrito.** Los `errores` anteriores a este cambio conservan
+  los tokens que registraron. Purgarlos es una decisión del dueño sobre datos de
+  producción.
+- **Sólo la RUTA.** Un token metido en el cuerpo de un mensaje de error, o en una
+  cabecera que alguien registre a mano, sigue sin pasar por aquí.
+- **No caduca los tokens filtrados.** Los del portal duran lo que duren; esto
+  impide la fuga nueva, no deshace la vieja.
+
