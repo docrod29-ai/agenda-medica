@@ -33,6 +33,71 @@ omisión: pulsarlo sin tocar nada **sólo lee y cuenta**.
 
 ---
 
+## TERCERA ACTUALIZACIÓN — el inventario se verificó contra el código, y ocho renglones estaban muertos
+
+El dueño pidió seguir con dos arreglos del teléfono. **Los dos ya estaban
+hechos.** Eso obligó a comprobar el resto en vez de seguir trabajando de una
+lista vieja: el backlog V10 es del 9-10 de agosto y el programa V15 ha cerrado
+cosas encima sin volver a tocarlo.
+
+Barrido del 2-sep-2026, archivo por archivo. **Nada de lo de abajo se dedujo del
+tablero: se leyó el código de hoy.**
+
+### Cerrados, con su prueba
+
+| Renglón | Qué se encontró |
+|---|---|
+| `V10-MOBILE-CALENDARIO-SEMANA` | El calendario **ya abre en vista día** por debajo de 640 px, y se elige UNA vez al montar para que girar el teléfono no deshaga lo que el médico eligió. Guardián `la-agenda-en-un-telefono-y-el-color-que-no-distingue.test.ts`, 7 casos en verde |
+| `V10-CALENDARIO-002` | El color que no distinguía confirmada de pendiente lo cubre **ese mismo guardián** |
+| `V10-DEBT-010` | El nombre del paciente **ya no se trunca**: `minWidth: 0`, sin ellipsis, `.nx-ident` envuelve. Y el `nested-interactive` se resolvió de raíz — la fila dejó de ser control y `Editar` pasó a ser **hermano** del botón de identidad, no hijo. Guardianes `v15-rtc11-fila-paciente-movil` y `v15-a11y-pacientes-sin-nested-interactive` |
+| `V10-A11Y-BOTONES-SIN-NOMBRE` | `src/components/ThemeToggle.tsx:38` ya lleva `aria-label` |
+| `V10-FECHAS-INCONSISTENTES` | **Ni un `en-US`** en todo el dashboard. El `08/09/2026` que se leía como 8 de septiembre ya no existe |
+| `V10-CONSULTA-001` | La alergia ya no sale dos veces: guardián `v15-rtc14-una-sola-presentacion-de-alergias.test.ts` |
+| `V10-SHELL-ALMACEN` · `V10-DEBT-004` | «Agenda Médica» no aparece en shell, nav ni cabecera |
+| `PATIENT-PREVIO-001` | `resumenPrevio()` **sí se pinta**: `consulta/[patientId]/page.tsx` lo consume. El paciente no está rellenando algo que nadie lee |
+
+### Uno que NO era un defecto — y conviene que no vuelva a apuntarse como tal
+
+**`PATIENT-TELE-002` — el enlace de videoconsulta por WhatsApp.**
+
+El webhook manda `tokenPaciente: ''` **a propósito, y está razonado en el
+código**: una cita se reserva semanas antes, y un token acuñado en ese momento
+estaría **muerto el día de la consulta**. Por eso el mensaje de alta dice la
+verdad («recibirás el enlace antes de tu cita») en vez de dar un enlace roto.
+
+Quien cumple la promesa es `api/cron/reminders`, que **sí acuña el token**
+(`tokenPaciente: tokenSala`) el día anterior, cuando nace vivo. **El paciente sí
+recibe enlace.** La queja del backlog —«el paciente sigue sin enlace»— es falsa
+hoy.
+
+### Lo que sigue abierto de verdad
+
+| Renglón | Estado verificado hoy |
+|---|---|
+| **`SAFE-003`** · «sin referencia de dosis» se descarta también en niños | **Abierto.** El filtro sigue en `receta/…/page.tsx:201`. **Y no lo puede cerrar un agente** — ver abajo |
+| `PATIENT-I18N-001` | **Abierto.** Sigue sin importarlo nadie. (Casi lo doy por cerrado: el único resultado de búsqueda en `mi/[token]/page.tsx:851` es **un comentario que dice justamente que nadie lo importa**) |
+| `DESIGN-MIGRAR-001` | **Abierto, pero muy avanzado**: los techos han bajado de 565→**320** hex en línea, 2029→**1869** tamaños fuera de escala, 638→**600** radios, 24→**19** sombras |
+| `NAV-NAVEGADOR-001` | **Abierto.** Sigue sin comprobarse en un navegador si el botón central remonta la consulta |
+
+### Por qué SAFE-003 no lo cierra un agente, aunque parezca de interfaz
+
+Para no mostrar «sin referencia» sólo a los niños hay que decidir **quién es
+niño**, y el motor de dosis **no tiene ningún punto de corte de edad**: sus
+comprobaciones pediátricas se disparan por **dosis por kilo o peso presente**, y
+por `edadMinimaOralAnios` **de cada fármaco**, no por una edad global. Escribir
+un `< 18` sería inventar un punto de corte clínico — la regla 1.
+
+Y quitar el filtro entero tampoco: se puso para **no saturar la receta**, y la
+fatiga de alerta es `R-02` en el registro de riesgos, con riesgo residual
+**ALTO**. Cambiarlo sin decidirlo empeoraría un riesgo declarado para arreglar
+otro.
+
+**La pregunta para el dueño, en una frase**: ¿quién debe ver «no tengo
+referencia de este fármaco» —todos, sólo cuando se dosifica por kilo, sólo por
+debajo de una edad que usted fije— y con qué peso visual?
+
+---
+
 ## SEGUNDA ACTUALIZACIÓN — cinco conversaciones más
 
 El dueño enseñó otras cinco. Traen **tres pendientes que no estaban** en este
