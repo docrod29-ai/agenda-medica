@@ -125,6 +125,24 @@ Dos huecos que vivían en comentarios sueltos pasan a ser artefactos con lista:
 Los dos siguen `BLOCKED_EXTERNAL`. La diferencia es que ahora se puede pedir de
 una vez y se sabe qué se rompe mientras tanto. **Conviene pedir las dos juntas.**
 
+> **Al día del 2-sep-2026 — el primero está CERRADO.** No se corrige el renglón
+> de arriba, se le añade éste: lo que decía era cierto cuando se escribió.
+>
+> Los índices son **doce**, no nueve —REG-422 y REG-423 encontraron tres más—, y
+> el comando de la tabla **no habría funcionado por DOS motivos**, no uno:
+>
+> 1. `firebase.json` nunca declaró `firestore.indexes.json`, así que devolvía
+>    `success` sin publicar nada (REG-431);
+> 2. arreglado eso, la cuenta de servicio contestó **403**: le faltaba
+>    `roles/datastore.indexAdmin`. Publicar reglas y crear índices son permisos
+>    distintos, y tenía sólo el primero.
+>
+> El dueño concedió el rol, la ejecución #15 del botón los publicó el 1-sep 23:51
+> UTC, y él los vio `Enabled` en la consola el 2-sep. El detalle vive en
+> `docs/ops/INDICES-DE-FIRESTORE.md`.
+>
+> El segundo —las reglas escritas y sin desplegar— **sigue abierto**.
+
 ### Lo que el tablero decía y el código desmentía
 
 - `PaletteBusqueda` figuraba como «descarga 50 000 pacientes para enseñar 6».
