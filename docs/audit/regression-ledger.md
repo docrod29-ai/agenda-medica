@@ -16877,3 +16877,102 @@ que la #14 dejó en `skipped`, corrieron y pasaron.
 - **No comprueba que los índices se construyan.** `firebase deploy` contesta al
   ENVIAR; la construcción va por su cuenta y puede fallar después, con el
   `success` ya impreso.
+
+## REG-434 — la cita de la portada se pintaba con una palabra por renglón
+
+**CÓMO SE DESCUBRIÓ.** El dueño abrió el sitio **en su iPhone** y mandó cuatro
+capturas. En «El recorrido», cada uno de los nueve pasos lleva debajo la cita
+del fallo real que lo hizo necesario, y las nueve salían así:
+
+```
+│ El
+│ paciente
+│ nunca
+│ ve
+│ un
+│ borrador.
+```
+
+Veintidós palabras en veintidós renglones, en la primera pantalla del producto,
+**en producción**.
+
+### La causa raíz, y no es de WebKit
+
+`.nx-camino-paso` es una rejilla de dos columnas —`46px` para el número, el
+resto para el texto— y `.nx-camino-prueba` **no declaraba en cuál va**. La
+auto-colocación de `grid` la mete entonces en la primera celda libre, que en la
+fila 3 es la de la IZQUIERDA: la del número.
+
+Arriba de 1000 px sí había `grid-column: 3` explícito, dentro de la media query
+que le da su propia columna. Por eso el defecto vivía **sólo por debajo de
+1000 px**, y por eso ninguna captura de escritorio lo enseñaba.
+
+Reproducido en Chromium, medido:
+
+| ancho | ancho de la cita | palabras / renglones |
+|---|---|---|
+| 390 | **34 px** de 342 disponibles | 23 / 23 = **1,0** |
+| 640 | **34 px** de 592 | 23 / 23 = **1,0** |
+| 900 | **46 px** de 852 | 23 / 22 = 1,05 |
+| 1000 | 374 px de 952 | 23 / 2 = 11,5 ← aquí sí había regla |
+
+Después: 290 px a 390, 540 a 640, 788 a 900.
+
+### Por qué CINCO compuertas verdes no lo vieron
+
+Esto es lo que hay que aprender, porque el defecto llegó a producción:
+
+- **No desborda a lo ancho.** Cabe: el texto se ajusta a la tira.
+- **No falla axe.** Contraste, roles y etiquetas, correctos.
+- **No rompe el blanco táctil.** Ni siquiera es un control.
+- **No sale en escritorio**, que es donde más se mira.
+- El alto de la página creció, pero **nadie vigilaba el alto de esa sección**.
+
+La única comprobación que lo habría cazado no existía: **contar palabras por
+renglón**. Ahora existe —
+`scripts/ausculta-transformacion/ningun-texto-cae-en-una-astilla.mjs`— y recorre
+las doce rutas públicas en cuatro anchos.
+
+### La sonda gritó en falso antes de servir
+
+Su primera versión acusó **25 sitios; 24 estaban sanos**. Contaba con
+`textContent`, que pega los textos hijos sin espacio —«⭐ Estándar» +
+«Razonamiento…» = «EstándarRazonamiento»— y subcontaba las palabras de cada
+celda de tabla. Con `innerText` y el filtro de proporción —la astilla es mucho
+más angosta que el sitio que tiene; una celda de 298 px en una fila de 858 es
+una columna y está bien— quedó en **1 de 1**.
+
+Una sonda que grita en falso se acaba ignorando, que es el mismo fallo que este
+carril persiguió en los avisos del portal.
+
+### El arreglo, y el hermano que destapó
+
+`grid-column: 2` en la regla base de la cita. Y al escribir el guardián, éste
+acusó también a `.nx-camino-titulo` y `.nx-camino-texto`: **tampoco declaraban
+columna**. Hoy caen bien por casualidad —la auto-colocación acierta en las filas
+1 y 2 porque el número las ocupa ambas— y basta añadir un hijo, o cambiarle el
+`grid-row` al número, para que se derramen igual sin que el diff enseñe nada.
+Los tres la declaran ahora.
+
+### Probado al revés, y con la hoja SERVIDA
+
+Quitando `grid-column: 2`, la sonda vuelve a acusar **9** (los nueve pasos). El
+primer intento salió INVERTIDO —0 con el fallo puesto y 9 con el arreglo— porque
+`next dev` iba un cambio por detrás: la trampa del CSS rancio, **tercera vez en
+esta rama**. Se rehízo esperando a que la regla apareciera en el `.css` servido,
+no a que pasaran cuatro segundos.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-cita-de-la-portada-cayo-en-la-columna-del-numero.test.ts`
+(5 casos) más la sonda del navegador.
+
+### Qué NO cubre
+
+- **El guardián es de fuente**: comprueba que la columna esté declarada. Que
+  ningún texto caiga en una astilla lo mide la sonda, y **la sonda no corre en
+  CI**.
+- **Sólo mira esta rejilla.** Otro hijo de otro `grid` sin columna declarada
+  tiene el mismo defecto; la sonda sí lo vería, el guardián no.
+- **No es un iPhone.** Se reprodujo y se arregló en Chromium. Que en WebKit real
+  se vea bien lo dice el dueño, que es quien tiene el teléfono.

@@ -23,14 +23,16 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M .github/workflows/deploy-production.yml",
-    " M docs/audit/regression-ledger.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M src/__tests__/el-despliegue-emite-su-propio-sello.test.ts",
+    " M src/app/globals.css",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-acta-del-despliegue-acuso-al-paso-que-salio-bien.test.ts"
+    "?? docs/audit/ausculta-transformacion/recorrido-390-arreglado.png",
+    "?? scripts/ausculta-transformacion/ningun-texto-cae-en-una-astilla.mjs",
+    "?? src/__tests__/la-cita-de-la-portada-cayo-en-la-columna-del-numero.test.ts"
   ],
-  "actualizado": "2026-09-01",
+  "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -64,10 +66,10 @@
   ],
   "ramaActual": "claude/ausculta-product-transformation-mckih5",
   "derivado": {
-    "regsEnElLedger": 286,
+    "regsEnElLedger": 287,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 914,
-    "casosDePrueba": 11142,
+    "archivosDePrueba": 915,
+    "casosDePrueba": 11147,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"
