@@ -214,7 +214,7 @@ export const S = {
    * mínimo que `design-system.md` pone entre los que tumban la compuerta.
    *
    * Sube el alto, no el `fontSize`: la escala tipográfica está medida y este
-   * campo no necesita letra más grande, necesita más sitio donde dar. Ver REG-436.
+   * campo no necesita letra más grande, necesita más sitio donde dar. Ver REG-437.
    */
   miniInput: { width: '100%', minHeight: 44, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 8px', fontSize: 13, color: 'var(--text)' } as React.CSSProperties,
   row: { display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' } as React.CSSProperties,

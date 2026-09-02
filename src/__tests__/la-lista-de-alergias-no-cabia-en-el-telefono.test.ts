@@ -1,5 +1,5 @@
 /**
- * LA LISTA DE ALERGIAS NO CABÍA EN EL TELÉFONO — REG-436.
+ * LA LISTA DE ALERGIAS NO CABÍA EN EL TELÉFONO — REG-437.
  *
  * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
  *

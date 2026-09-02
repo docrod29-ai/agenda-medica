@@ -5323,7 +5323,7 @@ html.nx-hay-pildora-grabando main { padding-bottom: 96px; }
 
    `flex-shrink: 0` en la lectura sigue siendo lo correcto: apretarla hasta
    ilegible sería peor que bajarla de línea. Lo que faltaba era permitirle BAJAR.
-   Ver REG-436. */
+   Ver REG-437. */
 .nx-franja-alergias {
   flex-wrap: wrap;
 }

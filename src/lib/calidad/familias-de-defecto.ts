@@ -365,7 +365,25 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * tocar un blanco táctil. Cinco compuertas verdes sobre una pantalla
      * ilegible.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431, 434],
+    /**
+     * 436 es esta familia en la PERSONA, y es la variante que más tiempo
+     * sobrevive. `scripts/migraciones/peso-de-urgencia.mjs` estaba escrito,
+     * probado, era idempotente y su cabecera decía la verdad: «correr algo
+     * contra datos clínicos vivos es del dueño». Nadie podía correrlo. Pedía una
+     * credencial que sólo existe dentro de los secretos del repositorio, y el
+     * dueño no usa terminal: hacían falta dos mitades que ninguna persona tenía
+     * juntas.
+     *
+     * Lo que la distingue de 335 o 337: allí faltaba el ACTO que llama al
+     * módulo, y un guardián de módulos huérfanos podía verlo. Aquí el llamador
+     * es una PERSONA, y ningún guardián mira si esa persona puede alcanzar el
+     * botón. Se disfrazó de decisión pendiente —que es la etiqueta que nadie
+     * vuelve a revisar— durante meses.
+     *
+     * La reparación no añade capacidad: mueve la ejecución al único sitio donde
+     * las dos mitades ya están juntas.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431, 434, 436],
   },
   {
     clave: 'se_contradice',
@@ -704,7 +722,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      */
 
     /**
-     * 436 es 331 otra vez, un eje más allá. Aquélla eran veintitrés fallos de
+     * 437 es 331 otra vez, un eje más allá. Aquélla eran veintitrés fallos de
      * accesibilidad con la suite en verde porque nadie miraba ESE eje; ésta es
      * la pantalla donde el médico pasa la consulta, que **nunca se había abierto
      * a 390 px**. El JSX era correcto. El CSS era correcto. El defecto sólo
@@ -718,7 +736,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * no. Un instrumento que sólo cuenta no sustituye a mirar — es la mitad del
      * método, no el método.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 436, 437],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438],
   },
   {
     clave: 'hueco_como_dato',

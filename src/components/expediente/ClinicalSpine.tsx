@@ -181,7 +181,7 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
            navegación horizontal. Lo que se PIERDE queda dicho: ya no hay
            garantía de que tras un arrastre el reposo caiga en un límite de ítem.
            Lo que se GANA es que ninguna categoría se esconda antes de que el
-           médico toque nada. Ver REG-437. */
+           médico toque nada. Ver REG-438. */
         scrollPaddingLeft: 2,
       }}
     >

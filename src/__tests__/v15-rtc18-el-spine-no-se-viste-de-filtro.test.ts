@@ -41,7 +41,7 @@
  *    porque parecía un chip; como riel se mide con la vara de la navegación.
  * 4. **El corte no se tapa con un degradado** —que además sería deuda nueva del
  *    trinquete—. La forma original de esto era anclar el desplazamiento al
- *    principio de cada ítem con `scroll-snap`; **REG-437 la retiró**, porque
+ *    principio de cada ítem con `scroll-snap`; **REG-438 la retiró**, porque
  *    medida en un teléfono hacía lo contrario de lo que prometía: al llegar la
  *    3ª categoría el navegador re-enganchaba el carril y lo mandaba al extremo,
  *    dejando la primera a media palabra. La regla sigue; la implementación no.
@@ -101,7 +101,7 @@ describe('RTC-18 — lo que navega no se viste de filtro', () => {
     expect(SPINE).not.toMatch(/minHeight: 32/)
   })
 
-  it('4 · el corte no se tapa con un degradado — y ya NO se engancha (REG-437)', () => {
+  it('4 · el corte no se tapa con un degradado — y ya NO se engancha (REG-438)', () => {
     /**
      * ESTE CASO CAMBIÓ DE IMPLEMENTACIÓN, NO DE REGLA.
      *
@@ -110,7 +110,7 @@ describe('RTC-18 — lo que navega no se viste de filtro', () => {
      * contrario: al insertarse la 3ª categoría el navegador volvía a enganchar
      * el carril y aterrizaba en el EXTREMO, dejando «Diagnósticos y
      * medicamentos» en `left: -229` — cortado a media palabra, que es
-     * exactamente lo que el enganche estaba puesto para impedir. REG-437.
+     * exactamente lo que el enganche estaba puesto para impedir. REG-438.
      *
      * Lo que sobrevive intacto es la otra mitad, que sigue siendo cierta: el
      * corte no se tapa con un degradado. Y se le añade lo que la medición

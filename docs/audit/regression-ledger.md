@@ -16696,17 +16696,25 @@ arreglo y se comprueba que el guardián lo caza.
   de construirlos. Eso se mira en la consola, del otro lado, y sigue siendo
   `BLOCKED_EXTERNAL`.
 
-  **CERRADO el 2-sep-2026, y esta duda salió cierta las dos veces.** El permiso
-  faltaba: declarado el archivo, el paso lo intentó de verdad y contestó
-  `403 · The caller does not have permission` (ejecución #14). A la cuenta de
-  servicio le faltaba `roles/datastore.indexAdmin` — publicar reglas y crear
-  índices son permisos distintos, y tenía sólo el primero; lo concedió el dueño
-  en IAM. Con él, la ejecución #15 los envió, y la consola enseña **los doce en
-  `Habilitado`**, coincidiendo campo por campo con `firestore.indexes.json`.
-  Ver `docs/ops/INDICES-DE-FIRESTORE.md`.
-
-  Que la sección «qué NO cubre» de este REG describiera con precisión el fallo
-  que vendría después es el argumento entero a favor de escribirlas.
+  > **CERRADO el 2-sep-2026 — y esta duda salió cierta las dos veces.**
+  >
+  > Durante cuatro actas «se publicaron los índices» significó **tres** cosas
+  > distintas y ninguna se distinguía de las otras. Juntarlas fue el defecto, así
+  > que el cierre se escribe partido:
+  >
+  > | | |
+  > |---|---|
+  > | **Declarados** | REG-431, arreglado: `firebase.json` ya nombra `firestore.indexes.json` |
+  > | **Enviados** | Ejecución **#15**, 1-sep 23:51 UTC. Antes hizo falta el permiso: declarado el archivo, el paso lo intentó de verdad y contestó `403 · The caller does not have permission` (ejecución #14). A la cuenta de servicio le faltaba `roles/datastore.indexAdmin` —publicar reglas y crear índices son permisos distintos, y tenía sólo el primero—; lo concedió el dueño en IAM. Y el paso ya corre `--only firestore:indexes` **él solo**, la separación que trajo REG-433, así que su `success` no puede confundirse con el de las reglas |
+  > | **Construidos** | La consola enseña **los doce en `Habilitado`**, coincidiendo campo por campo con `firestore.indexes.json`. Lo miró el dueño el 2-sep. Ver `docs/ops/INDICES-DE-FIRESTORE.md` |
+  >
+  > Que la sección «qué NO cubre» de este REG describiera con precisión el fallo
+  > que vendría después es el argumento entero a favor de escribirlas.
+  >
+  > **Lo que NO cierra**: la tercera fila es una observación **fechada**, no un
+  > estado que se revalide solo. Un índice puede fallar después, y el día que se
+  > declare el trece hay que volver a mirar. Desde este repositorio no se puede
+  > medir, y por eso no hay guardián.
 - **Sólo lee el workflow de producción.** Un despliegue a mano con otro `--only`
   no lo ve nadie.
 - **No dice cuánto tiempo llevaba así.** El acta del 31-ago es la primera
@@ -16883,6 +16891,18 @@ cerró en `SUCCESS` con los dos pasos nuevos en verde por separado —
 `FIRESTORE_RULES` y `FIRESTORE_INDICES`— y con el sello de las reglas emitido,
 que en la #14 se había saltado. Las tres comprobaciones contra el sitio vivo,
 que la #14 dejó en `skipped`, corrieron y pasaron.
+
+> **CERRADO — 2-sep-2026.** El dueño concedió el rol en IAM y lo confirmó en la
+> conversación. La ejecución **#15** (1-sep 23:51 UTC) pasó el paso de índices en
+> `success`, y la #16 lo repitió.
+>
+> Y esto es lo que el arreglo compró, dicho con el caso delante: en la #14 el
+> mismo fallo se presentó como `FIRESTORE_RULES=failure` y mandaba a buscar el
+> problema dentro de `firestore.rules`, que estaba impecable. Con los dos pasos
+> separados, el resumen nombró el rol que faltaba y **dónde se concede** — y por
+> eso se concedió. El arreglo no evitó el 403: hizo que el 403 se pudiera leer.
+>
+> Lo que sigue fuera: que Firestore **termine de construirlos**. Ver REG-431.
 
 ### Qué NO cubre
 
@@ -17069,7 +17089,102 @@ como uno.
 - **No cierra actas solo.** Sigue haciéndose a mano; lo que cambia es que ahora
   olvidarlo pone la suite en rojo.
 
-## REG-436 — la lista de alergias no cabía en el teléfono
+## REG-436 — el paso que «esperaba decisión del dueño» era imposible de ejecutar
+
+> **NÚMERO REASIGNADO al unificar, 2-sep-2026.** Este defecto nació como REG-434
+> en su propia rama, y REG-434 ya estaba dado —a la cita de la portada, más
+> arriba— en otra rama abierta el mismo día. Dos sesiones numeraron contra el
+> mismo `main` sin verse. Se queda el que lo reclamó primero y éste pasa a
+> **REG-436**; es la misma colisión que enseña REG-267, y por eso se dice en vez
+> de renumerar en silencio.
+
+
+**CÓMO SE DESCUBRIÓ.** Cerrada la cadena de los índices —REG-431 declaró el
+archivo, IAM concedió el permiso, la ejecución
+[#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+publicó los doce y el dueño los vio `Enabled` en la consola el 2-sep— quedaba un
+solo pendiente: el backfill de `pesoUrgencia`. Al ir a guiarlo, el paso no era
+una decisión: era un muro.
+
+`scripts/migraciones/peso-de-urgencia.mjs` pide
+`GOOGLE_APPLICATION_CREDENTIALS` apuntando a un JSON de cuenta de servicio. Esa
+credencial vive en los secretos de este repositorio, y de ahí **no sale**.
+Correrlo exigía tener a la vez terminal y una copia de la credencial. El dueño no
+usa terminal; los agentes no pueden leer el secreto. **Nadie reunía las dos
+mitades.**
+
+### La causa raíz
+
+La cabecera del script decía, y decía bien:
+
+> «**No decide cuándo correrlo.** Correr algo contra datos clínicos vivos es del
+> dueño.»
+
+Es una frase correcta que tapó un defecto. El paso figuró meses como *pendiente
+de decisión del dueño* cuando la decisión no era lo que faltaba: faltaba **poder
+tomarla**. Un pendiente marcado «esperando a una persona» no se vuelve a mirar;
+uno marcado «imposible» sí.
+
+Es la familia de «escrito y sin conectar», en su forma operativa: la herramienta
+existe, es correcta, está probada — y no hay ningún camino real desde la persona
+que decide hasta su ejecución.
+
+### El arreglo
+
+`.github/workflows/backfill-peso-de-urgencia.yml` — un botón donde la credencial
+ya está. No añade capacidad ni permisos: mueve la ejecución al único sitio que
+reúne las dos mitades.
+
+- **`escribir` nace en `false`.** Apretarlo sin tocar nada lee y cuenta; no
+  escribe un documento. Escribir exige marcar la casilla, que es un gesto
+  distinto de abrir la pantalla.
+- **Una casilla y no una frase que teclear**, al revés que el botón de
+  producción: aquel no tiene inputs para que no se pegue mal un SHA; aquí el
+  script sólo AÑADE un campo derivado y es idempotente, así que el daño de un
+  clic de más es cero y el de una frase mal pegada no.
+- **`FIREBASE_TOKEN` se rechaza nombrando por qué.** `deploy-production.yml`
+  lo acepta porque el CLI lo entiende; `firebase-admin` **no** —
+  `applicationDefault()` quiere un archivo de cuenta de servicio—. Sin esa
+  comprobación el fallo saldría dentro del SDK, sin nombrar la causa: la forma
+  exacta de REG-433, aplicada antes de que costara una ejecución.
+- **Los recuentos van al resumen**, no sólo al log. El dueño no lee logs. Y son
+  recuentos, nunca contenido: esos documentos llevan PHI (`data-privacy.md`).
+
+### El papel que sobrevivió al arreglo
+
+`docs/ops/INDICES-DE-FIRESTORE.md` siguió afirmando **«OCHO de los doce se
+enviaron»** hasta el 2-sep — el día siguiente a medirse **cero** en la consola, y
+con los doce ya construidos. Es el documento con el que alguien verifica la
+consola dentro de seis meses.
+
+Se corrige y **se deja escrito el número falso**, porque la lección no es el
+número: es que se contaba sobre el árbol desplegado —cierto e insuficiente— en
+vez de sobre el proyecto. La tabla «El envío no es la construcción» pasa a tener
+tres filas, y la primera vale **nada**: `success` sobre un `--only` que no
+publicaba.
+
+### Estado
+
+**CLOSED.**
+`src/__tests__/el-boton-del-backfill-no-escribe-por-defecto.test.ts`
+(10 casos, probado al revés con cinco defectos: poner `default: true`, colar
+`--escribir` en la rama de ensayo, aceptar el token, quitar el `always()` de la
+limpieza y mover el proyecto — los cinco lo ponen rojo).
+
+### Qué NO cubre
+
+- **No corre el backfill.** El botón existe; apretarlo es del dueño, que era la
+  frase correcta desde el principio — ahora con un botón detrás.
+- **No prueba que el workflow funcione.** El golden lee el YAML. Que GitHub lo
+  interprete como se espera, y que Firestore acepte las escrituras, se ve en la
+  primera ejecución y del otro lado.
+- **No verifica la lógica del script** —pesos, paginación, idempotencia—: eso
+  vive en el script y en el modelo del que lee la escalera.
+- **No busca otros pasos con el mismo defecto.** Este se encontró al ir a
+  ejecutarlo, no por barrido. Cualquier otro «pendiente de decisión» que en
+  realidad sea imposible sigue igual de invisible.
+
+## REG-437 — la lista de alergias no cabía en el teléfono
 
 **CÓMO SE DESCUBRIÓ.** Abriendo `/consulta/pac-001` en Chromium a 390×844
 contra el arnés de emuladores y **mirando la captura**. Ninguna prueba de este
@@ -17176,7 +17291,7 @@ separador.
   el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
   contexto de los motores: cambiarla por estética movería lo que el modelo lee.
 
-## REG-437 — el riel del expediente saltaba a su extremo al cargar, y escondía la primera categoría
+## REG-438 — el riel del expediente saltaba a su extremo al cargar, y escondía la primera categoría
 
 **CÓMO SE DESCUBRIÓ.** Siguiendo el hueco que REG-436 dejó declarado en su «qué
 NO cubre»: *«`expediente/[patientId]` pinta su propia franja de alergias; no se

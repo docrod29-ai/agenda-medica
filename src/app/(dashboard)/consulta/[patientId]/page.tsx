@@ -5047,7 +5047,7 @@ export default function ConsultaActivaPage() {
                 Sin espacio partible, el navegador no tenía dónde cortar: a 390 px
                 el segundo fármaco no bajaba de línea, se salía de la pantalla
                 27 px. Ahora el separador es texto normal —punto de corte— y lo
-                indivisible es sólo el par nombre+acción. Ver REG-436. */
+                indivisible es sólo el par nombre+acción. Ver REG-437. */
               <span key={`${v.medicamento.nombre}-${i}`}>
                 {i > 0 && ' · '}
                 <span style={{ whiteSpace: 'nowrap' }}>
@@ -6637,7 +6637,7 @@ export default function ConsultaActivaPage() {
                 único indicio visible que quedaba dentro del campo, el
                 marcador de posición, DESAPARECE al escribir el primer dígito.
                 `design-system.md` lo pone entre los mínimos que tumban la
-                compuerta: «campo sin etiqueta». Ver REG-436. */
+                compuerta: «campo sin etiqueta». Ver REG-437. */
               <div key={k}>
                 <label htmlFor={`signo-${k}`} style={S.miniLabel}>{label}</label>
                 <input
