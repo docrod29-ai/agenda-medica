@@ -22,17 +22,7 @@
     "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [
-    "A  .github/workflows/backfill-peso-de-urgencia.yml",
-    "UU agent-state/MASTER_STATE.json",
-    "UU docs/audit/regression-ledger.md",
-    "UU docs/data-room/INDICE.md",
-    "UU docs/ops/INDICES-DE-FIRESTORE.md",
-    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "A  src/__tests__/el-boton-del-backfill-no-escribe-por-defecto.test.ts",
-    "UU src/lib/calidad/familias-de-defecto.ts",
-    "UU src/lib/clinical/invariantes-clinicos.json"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -65,12 +55,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-cierre-pendientes-lxo3gp",
+  "ramaActual": "claude/consolidar-pendientes-2j663v",
   "derivado": {
-    "regsEnElLedger": 289,
+    "regsEnElLedger": 290,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 916,
-    "casosDePrueba": 11161,
+    "archivosDePrueba": 917,
+    "casosDePrueba": 11174,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

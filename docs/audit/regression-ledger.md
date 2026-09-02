@@ -17183,3 +17183,128 @@ limpieza y mover el proyecto — los cinco lo ponen rojo).
 - **No busca otros pasos con el mismo defecto.** Este se encontró al ir a
   ejecutarlo, no por barrido. Cualquier otro «pendiente de decisión» que en
   realidad sea imposible sigue igual de invisible.
+
+## REG-437 — la lista de alergias no cabía en el teléfono
+
+> **NÚMERO REASIGNADO, 2-sep-2026 — y es la TERCERA colisión del mismo día.**
+> Este defecto se subió a su rama como REG-436 a las 04:47 UTC. `main` ya había
+> dado ese número al backfill doce minutos antes, a las 04:35. Pasa a
+> **REG-437**; se queda quien lo reclamó primero, igual que en la reasignación
+> de arriba y que en REG-267.
+>
+> **Y el commit se quedó fuera.** Su PR (#433) se unificó y cerró **antes** de
+> que este commit llegara a la rama, así que el arreglo estuvo escrito, probado
+> y subido —y ausente del producto— hasta que se rescató aquí. Los otros dos
+> commits de esa rama (REG-434 y REG-435) sí habían entrado, que es justo lo que
+> hace creíble suponer que éste también.
+>
+> **La causa no es descuido y no la arregla renumerar.** El contador de
+> regresiones es global, se asigna a mano, y el guardián del ledger comprueba
+> que cada REG **tenga ficha**, no que sea **único frente a lo que otra rama
+> abierta ya reclamó**. Mientras eso siga así, va a repetirse: hoy tres veces.
+> Queda escrito en `docs/maintenance/PENDIENTES-CONSOLIDADOS-2026-09-02.md` §G.
+
+**CÓMO SE DESCUBRIÓ.** Abriendo `/consulta/pac-001` en Chromium a 390×844
+contra el arnés de emuladores y **mirando la captura**. Ninguna prueba de este
+repositorio podía cazarlo: el JSX era correcto, el CSS era correcto, y el
+defecto sólo existe cuando los dos se miden juntos a un ancho concreto.
+
+Medido en el navegador:
+
+```
+franja de alergias   pedía 555 px   en una caja de 356
+la lectura acababa   en x = 572     con la ventana en 390
+overflow-x           visible        → ni siquiera había barra que arrastrar
+```
+
+El contenido era «Penicilina (anafilaxia) · sulfas · AINEs». **AINEs no estaba
+escondido: no existía.** No había gesto que lo trajera a la pantalla.
+
+**POR QUÉ ESTA LÍNEA.** Es la que se lee ANTES de recetar. Un médico que ve
+«Penicilina (anafilaxia), sulfa…» cortado no tiene forma de saber que falta un
+tercer alérgeno, y `clinical-safety.md` §4 dice que la ausencia de un dato no es
+dato de su ausencia. La franja cumplía en escritorio y mentía por omisión en el
+bolsillo, que es donde se pasa visita.
+
+**CAUSA RAÍZ.** La fila es `display: flex` en un `style` **en línea**, sin
+`flex-wrap`, con la lectura en `flex-shrink: 0`.
+
+Y `flex-shrink: 0` **era la decisión correcta**: apretar «se lee: …» hasta
+dejarlo ilegible sería peor que no enseñarlo. Lo que faltaba no era dejarla
+encoger — era dejarla **bajar**. Un `style` en línea no puede tener una forma a
+390 px y otra a 1440: la colocación tenía que mudarse a CSS. Misma lección que
+la barra del portal (REG-425).
+
+### El primer arreglo estuvo mal, y la medición lo aprobó
+
+Poner sólo `flex-wrap: wrap` dejó los desbordamientos en **cero** — y la
+pantalla peor de leer que con el defecto. La lectura dejaba de salirse y se
+metía en los 150 px que sobraban al lado del campo, saliendo a palabra por
+renglón: `se lee: / Penicilina / (anafilaxia) / · sulfas · / AINEs`.
+
+Exactamente la patología que el dueño fotografió en la portada (REG-434). **La
+medición decía verde; la captura decía que no.** Hizo falta `flex-basis: 100%`
+bajo 900 px para bajarla entera, lo que de paso le devuelve al campo el ancho
+completo. `design-system.md` dice que no se aprueba una interfaz leyendo el
+código; esto añade que tampoco leyendo sólo los números.
+
+### Lo que apareció en la misma mirada
+
+| Qué | Antes | Después |
+|---|---|---|
+| Elementos que se salen a la derecha (390) | 2 | **0** |
+| Ancho pedido por la franja de alergias | 555 en 356 | **356 en 356** |
+| Campos sin etiqueta | 9 | **0** |
+| Objetivos táctiles bajo 44×44 | 10 | **2** |
+| Errores de consola | 0 | 0 |
+
+- **La medicación se salía 27 px.** El separador « · » vivía **dentro** del
+  `white-space: nowrap` que mantiene juntos el fármaco y su botón «ya no» — y
+  con él, el único espacio partible entre un fármaco y el siguiente. Sin punto
+  de corte el navegador no bajaba de línea. Mantener unido el par nombre+acción
+  sigue siendo correcto: un «ya no» huérfano al principio de un renglón no dice
+  de qué medicamento habla. El separador no formaba parte de ese par.
+- **Nueve campos sin etiqueta.** Los siete signos vitales tenían `<label>` con
+  el texto correcto y ningún `htmlFor`: se ven «TA», «FC», «SpO₂» y se anuncian
+  como cajas anónimas. El marcador de posición, único indicio que quedaba
+  dentro, **desaparece al escribir el primer dígito**.
+- **Los signos vitales medían 113×40 y el campo de alergias 244×24.** Se
+  capturan de pie, con el paciente delante. Sube el **alto**, no la letra: la
+  escala tipográfica está medida y la vigila el trinquete de diseño.
+
+### Probado al revés — tres veces, y una cuarta que corrigió el guardián
+
+- Quitando la media query, cae el caso de la línea propia.
+- Devolviendo el separador dentro del `nowrap`, cae el caso del separador.
+- Quitando el `minHeight: 44`, cae el de los signos vitales.
+- Y en el navegador, en la **misma página cargada**, devolviéndole a la lectura
+  su `flex-shrink: 0` y su `nowrap`: 356 → **555** px pedidos, la lectura
+  acabando **182 px fuera** de la ventana. Se hizo así porque el servidor de
+  desarrollo seguía sirviendo CSS viejo — la trampa de siempre, cuarta vez en
+  esta rama; midiendo con y sin el defecto dentro de la misma hoja no puede
+  colarse.
+
+La **cuarta** fue del propio guardián: el caso del separador preguntaba «¿hay un
+`nowrap` más adelante?» y pasaba con el defecto puesto, porque siempre lo hay en
+alguna parte del archivo. Reescrito para mirar el envoltorio que contiene al
+separador.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts`
+(13 casos) más `scripts/ausculta-transformacion/mirar-la-consulta.mjs`.
+
+### Qué NO cubre
+
+- **El guardián es de fuente.** Que el texto quepa de verdad lo mide la sonda, y
+  **la sonda no corre en CI**: necesita emuladores de Firebase y un navegador.
+- **No es un iPhone.** Todo lo medido es Chromium a 390 px. WebKit no está en
+  este entorno y no se declara probado.
+- **No mira las otras pantallas.** `expediente/[patientId]` pinta su propia
+  franja de alergias; no se ha medido a 390 y este guardián no la vigila.
+- **Los dos «ya no» siguen a 34×44 a propósito.** Son botones dentro de una
+  frase, el caso que WCAG 2.2 §2.5.8 exceptúa; ensancharlos rompería la prosa
+  que los hace comprensibles. Se declara, no se esconde.
+- **`Visitas anteriores: [2026-09-02]`** se vio y **no** se tocó. El corchete es
+  el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
+  contexto de los motores: cambiarla por estética movería lo que el modelo lee.

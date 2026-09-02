@@ -721,7 +721,22 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * se puede ver ejecutando.
      */
 
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430],
+    /**
+     * 437 es 331 otra vez, un eje más allá. Aquélla eran veintitrés fallos de
+     * accesibilidad con la suite en verde porque nadie miraba ESE eje; ésta es
+     * la pantalla donde el médico pasa la consulta, que **nunca se había abierto
+     * a 390 px**. El JSX era correcto. El CSS era correcto. El defecto sólo
+     * existe cuando los dos se miden juntos a un ancho concreto — y la lista de
+     * alergias se salía 182 px de un teléfono, con `overflow-x: visible`, sin
+     * gesto que la trajera de vuelta.
+     *
+     * Lo que la hace valer aparte: el instrumento nuevo **también se equivocó**.
+     * El primer arreglo dejó los desbordamientos en cero y la pantalla peor de
+     * leer, a palabra por renglón. La medición decía verde; la captura decía que
+     * no. Un instrumento que sólo cuenta no sustituye a mirar — es la mitad del
+     * método, no el método.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437],
   },
   {
     clave: 'hueco_como_dato',
