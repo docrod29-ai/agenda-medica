@@ -1,7 +1,7 @@
 # Variables de entorno pendientes — qué poner, y cómo saber que llegó
 
-> Alcance: las **cuatro** que estaban en la cola del dueño. No es el inventario
-> completo — ver «El hueco que queda declarado», al final.
+> Alcance: las **cuatro** que estaban en la cola del dueño. El inventario
+> completo de las 127 está en [`INVENTARIO-DE-ENTORNO.md`](INVENTARIO-DE-ENTORNO.md).
 
 ## La regla que decide cuándo se pueden poner
 
@@ -119,17 +119,16 @@ fotografía clínica** sin comprobar sesión. Tiene condición previa, comprobac
 en vivo y plan de reversión propios:
 **[`docs/ops/RECETA-DISENO-FIRMA.md`](RECETA-DISENO-FIRMA.md)**.
 
-## El hueco que queda declarado
+## El inventario completo
 
-El código lee **128 variables de entorno** distintas (16 de ellas `NEXT_PUBLIC_`)
-y **no existe `.env.example` ni ningún inventario**. Lo que cada una espera vive
-en comentarios repartidos por el árbol.
+Ya existe. El código lee **127 variables** (16 públicas) y todas están declaradas
+en [`INVENTARIO-DE-ENTORNO.md`](INVENTARIO-DE-ENTORNO.md), derivadas del árbol
+por `scripts/ops/inventario-de-entorno.mjs` y con un guardián que se pone rojo si
+alguien añade una lectura sin regenerar. La plantilla para arrancar una máquina
+nueva es [`.env.example`](../../.env.example).
 
-Es el mismo patrón que tenían los índices de Firestore antes de
-`docs/ops/INDICES-DE-FIRESTORE.md`: un comentario no es un entregable, y así
-nadie puede saber **cuántas faltan** ni pedirlas de una vez. Un consultorio
-nuevo, un proyecto restaurado o una máquina de trabajo recién montada lo
-descubren variable a variable, en producción.
+**Corrección**: este archivo decía «128». Eran 127: la de más era una mención en
+el comentario de una prueba, no una lectura. La cifra sale ahora del inventario.
 
-Este archivo cubre cuatro. Las otras 124 siguen sin declarar, y eso es trabajo
-pendiente — no un hueco tapado.
+Este archivo se queda con lo que el inventario derivado no puede saber: qué valor
+poner en las cuatro pendientes y cómo comprobar que llegó.
