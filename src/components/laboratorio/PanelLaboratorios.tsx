@@ -304,7 +304,34 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {revision.resultados.map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                  <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: 'var(--red)', fontWeight: 700 }}> ⚠ crítico</span>}{r.noEvaluable && <span title={r.motivoNoEvaluable} style={{ color: 'var(--amber)', fontWeight: 700 }}> ⚠ verificar</span>}</span>
+                  {/**
+                    * REG-451 · EL ESTADO TIENE QUE LLEGAR A LA PANTALLA.
+                    *
+                    * `noEvaluable` sólo se enciende cuando la unidad no cuadra con
+                    * la del umbral de criticidad. Un valor fuera de los límites de
+                    * captura EN la unidad canónica —una ferritina de 2 000 000— no
+                    * lo enciende: se veía como una fila normal, sin una marca, y
+                    * encima ya no entra a la gráfica. Marcado sin avisar es lo
+                    * mismo que no marcado.
+                    *
+                    * Y el motivo va como TEXTO VISIBLE, no en un `title`: un aviso
+                    * que sólo existe al pasar el ratón no existe en el teléfono
+                    * (REG-433).
+                    */}
+                  <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: 'var(--red)', fontWeight: 700 }}> ⚠ crítico</span>}{(r.noEvaluable || (r.estado && r.estado !== 'ACCEPTED')) && <span style={{ color: 'var(--amber)', fontWeight: 700 }}> ⚠ verificar</span>}
+                    {r.estado && r.estado !== 'ACCEPTED' && (
+                      <span style={{ display: 'block', fontSize: 12, color: 'var(--text2)' }}>
+                        {r.unidadOriginal !== r.unidad
+                          ? `La hoja dice ${r.valorOriginal} ${r.unidadOriginal} y aquí se grafica en ${r.unidad}. No entra a la gráfica hasta que lo confirmes.`
+                          : `${r.valorOriginal} ${r.unidadOriginal} queda fuera de lo que se puede capturar sin revisar. No entra a la gráfica hasta que lo confirmes.`}
+                      </span>
+                    )}
+                    {r.convertidoCon && (
+                      <span style={{ display: 'block', fontSize: 12, color: 'var(--text2)' }}>
+                        Convertido de {r.valorOriginal} {r.unidadOriginal}.
+                      </span>
+                    )}
+                  </span>
                   {/* El comparador del reporte, fuera del input: un `type=number`
                       no lo admite y sin él la revisión enseñaría 400 donde la
                       hoja decía «>400». No es editable porque es del laboratorio,

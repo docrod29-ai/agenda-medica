@@ -77,7 +77,21 @@ const UMBRAL: Umbral = CONTRATOS.find(c => c.capacidad === 'laboratorio-vision')
  * analito ya está y lo tira el rango plausible. Pide normalización de unidad,
  * que es la §27 del catálogo del dueño y es otra unidad de trabajo.
  */
-const FILAS_QUE_NO_LLEGAN = 1
+const FILAS_QUE_NO_LLEGAN = 0
+
+/**
+ * EL SEGUNDO NÚMERO, QUE NO SE PUEDE CALLAR — REG-451.
+ *
+ * Desde que la fila fuera de rango ya no se tira (§1 de D-032), «llega al panel»
+ * y «entra a la serie temporal» dejaron de ser lo mismo. El eje del médico
+ * (D-031) mide lo primero y hoy da CERO. Pero dos filas llegan marcadas y sin
+ * gráfica, y si sólo se midiera el eje, esas dos desaparecerían del informe justo
+ * cuando dejaron de desaparecer del panel.
+ *
+ * Las dos son unidad sin factor de conversión citado: glucosa en mmol/L y PCR en
+ * mg/dL. Sólo puede BAJAR, y baja cuando el médico entregue los factores.
+ */
+const FILAS_SIN_GRAFICA = 2
 
 interface Hoja { readonly id: string; readonly contexto: string; readonly filas: FilaCruda[] }
 
@@ -180,54 +194,77 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     expect(lectura.ejes.map(e => e.umbral)).toEqual([0, 0, 0.05])
   })
 
-  it('1 de 46 filas no llega: 2,2 % por debajo del techo del 5 %', () => {
+  it('las 46 filas llegan al panel: 0 %', () => {
     /**
-     * El 1-sep-2026 esto medía 7 de 46 —15,2 %— y la compuerta salía ROJA. Seis
-     * de las siete eran cobertura del catálogo, y el médico entregó los números
-     * al día siguiente (D-032). No se arregló el umbral: se arregló la causa.
+     * LA HISTORIA DE ESTE NÚMERO, QUE ES LO QUE HACE HONESTO EL CERO:
+     *
+     *  · 1-sep (REG-449): 7 de 46 fuera. 15,2 %. ROJO.
+     *  · 2-sep (REG-450): 1 de 46. El médico entregó los rangos (D-032).
+     *  · 2-sep (REG-451): 0 de 46 — pero NO porque se recuperara nada más, sino
+     *    porque su §1 dice que la fila fuera de rango se acepta provisionalmente
+     *    en vez de tirarse. Cambió la política, no sólo el número.
+     *
+     * Por eso justo debajo se mide lo OTRO: cuántas llegan sin gráfica.
      */
     const m = medirElFoso(corpus())
     expect(m.filas).toBe(46)
     expect(m.perdidas).toBe(FILAS_QUE_NO_LLEGAN)
-    expect(m.ejes.perdido).toBeLessThan(0.05)
 
     const lectura = aplicarUmbral(UMBRAL, m)
     expect(lectura.veredicto).toBe('pasa')
     expect(esVerde(lectura)).toBe(true)
   })
 
-  it('la que queda es la glucosa en mmol/L, y no es cobertura de catálogo', () => {
+  it('pero DOS llegan sin gráfica, y eso se cuenta aparte', () => {
     /**
-     * Un vocabulario es vocabulario, no criterio: que faltara un término
-     * significaba que ese caso no se vigilaba, no que estuviera bien. Seis se
-     * cubrieron. La séptima NO se cubre con más analitos — el analito ya está.
+     * «Llega al panel» y «entra a la serie» dejaron de ser lo mismo. Si sólo se
+     * midiera el eje del médico, estas dos desaparecerían del informe justo
+     * cuando dejaron de desaparecer del panel.
      */
+    const sinGrafica: string[] = []
+    for (const h of corpus()) {
+      const panel = validarPanel({ fecha: '2026-09-01', filas: h.filas })
+      sinGrafica.push(...panel.resultados.filter(r => !r.graficable).map(r => `${r.clave}:${r.estado}`))
+    }
+    expect(sinGrafica.sort()).toEqual(['glucosa:VERIFY_UNIT', 'pcr:VERIFY_UNIT'])
+    expect(sinGrafica.length).toBe(FILAS_SIN_GRAFICA)
+  })
+
+  it('y NADA se queda ya en `noReconocidas`: el catálogo cubre este corpus', () => {
     const fuera: string[] = []
     for (const h of corpus()) {
       const panel = validarPanel({ fecha: '2026-09-01', filas: h.filas })
       fuera.push(...panel.noReconocidas.map(n => n.estudio))
     }
-    expect(fuera).toEqual(['Glucosa'])
+    expect(fuera).toEqual([])
   })
 
-  it('la séptima es otra cosa: glucosa en mmol/L se cae entera', () => {
+  it('la glucosa en mmol/L ya NO se cae: llega marcada (REG-451)', () => {
     /**
-     * El analito SÍ está en el catálogo. Lo tira el rango plausible: 7,2 no es
-     * una glucosa en mg/dL. La defensa hace lo correcto —mejor fuera que un
-     * punto falso en la gráfica— pero el paciente cuyo laboratorio reporte en
-     * unidades del SI se queda sin serie de glucosa y nadie se lo dice.
+     * Hasta REG-451 esta fila desaparecía del panel: el analito estaba en el
+     * catálogo y lo tiraba el rango plausible, porque 7,2 no es una glucosa en
+     * mg/dL. La defensa hacía lo correcto —mejor fuera que un punto falso en la
+     * gráfica— pero el paciente cuyo laboratorio reporta en unidades del SI se
+     * quedaba sin serie y sin aviso, y eso se ve como una gráfica corta, que es
+     * como no verse.
+     *
+     * Ahora se acepta provisionalmente (§1), se marca `VERIFY_UNIT` y NO entra a
+     * la gráfica. El valor NO se convierte: el factor mmol/L → mg/dL no está en
+     * el catálogo del dueño y una equivalencia no se inventa.
      */
     const panel = validarPanel({
       fecha: '2026-09-01',
       filas: [{ estudio: 'Glucosa', valor: '7.2', unidad: 'mmol/L', referencia: '3.9-5.5' }],
     })
-    expect(panel.resultados).toHaveLength(0)
-    expect(panel.noReconocidas[0].estudio).toBe('Glucosa')
-    // Y no se pierde: sobrevive como texto, con su unidad.
-    expect(panel.noReconocidas[0].unidad).toBe('mmol/L')
+    expect(panel.noReconocidas).toEqual([])
+    const glu = panel.resultados[0]
+    expect(glu.estado).toBe('VERIFY_UNIT')
+    expect(glu.graficable, 'un 7,2 en la serie de mg/dL sería un punto falso').toBe(false)
+    expect(glu.valorOriginal).toBe(7.2)
+    expect(glu.unidadOriginal).toBe('mmol/L')
   })
 
-  it('el trinquete: 1 fila, y sólo puede bajar', () => {
+  it('el trinquete: 0 filas fuera del panel, y sólo puede bajar', () => {
     const m = medirElFoso(corpus())
     expect(
       m.perdidas,

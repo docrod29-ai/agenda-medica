@@ -17820,6 +17820,96 @@ se llama.
 
 ---
 
+## REG-451 — el valor correcto en otra unidad, y el equivocado que sí era plausible
+
+**Eje.** Laboratorio · §27 y §28 de D-032. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-numero-correcto-en-otra-unidad.test.ts`.
+
+### Eran dos, y la segunda nadie la había mirado
+
+**1. El valor correcto en otra unidad desaparecía.** El validador daba una sola
+respuesta a dos preguntas: si el número no era plausible en la unidad
+convencional, la fila salía del panel. Bien para un disparate; mal para una
+glucosa de 7,2 mmol/L, que es una glucosa normal reportada en el sistema
+internacional. El paciente cuyo laboratorio reporta en SI se quedaba sin serie y
+sin aviso — y eso se ve como una gráfica corta, que es como no verse.
+
+**2. Y el peor: el valor equivocado que SÍ es plausible.** Salió en la misma
+medición, en la hoja LAB-008:
+
+> **PCR 84 mg/dL.** La unidad canónica es mg/L. 84 mg/dL son **840** mg/L.
+
+84 es un valor perfectamente plausible en mg/L —el rango es 0–600—, así que el
+límite de plausibilidad **no lo caza y no puede cazarlo**. Entraba a la serie
+temporal como un 84 al lado de valores en mg/L: **una PCR de sepsis dibujada como
+una PCR de resfriado**, en la misma gráfica, sin una marca.
+
+Un límite compara magnitudes. La unidad no es una magnitud: es lo que dice qué
+significa la magnitud. Ningún rango, por estrecho que sea, sustituye a mirarla.
+
+Yo iba a por la glucosa. La PCR salió sola.
+
+### La política, que es del dueño
+
+Su **§28** fija el orden: **normalizar la unidad primero, comprobar la
+plausibilidad después.** Al revés, un valor correcto en otra unidad parece
+imposible. Su **§1** fija la salida: fuera de rango se **acepta
+provisionalmente** y se marca; nunca truncar, nunca sustituir, nunca corregir en
+silencio. Su **§27.1**: el valor y la unidad originales no se pierden jamás.
+
+### Sólo hay DOS conversiones, y es a propósito
+
+Un factor de conversión es una **equivalencia**, y la regla 1 de seguridad
+clínica las nombra: o salen de una fuente citada, o no existen.
+
+| Analito | Desde | Factor | Fuente |
+|---|---|---|---|
+| Vitamina D | nmol/L | ÷ 2,496 | §6, literal: «ng/mL × 2.496 ≈ nmol/L» |
+| Creatinina | µmol/L | ÷ 88,4 | §27.1, del ejemplo trabajado: 140 µmol/L → 1,58 mg/dL |
+
+**La de la glucosa no está** — y es la que abrió todo esto. 18,0182 se sabe de
+memoria, y por eso mismo es la clase de cifra que la regla 1 prohíbe escribir sin
+fuente: no rompe nada, no falla ninguna prueba, y sale impresa con cédula. Se
+queda en `VERIFY_UNIT` hasta que él la dé, con su entrada en
+`CONVERSIONES_QUE_FALTAN`.
+
+### El dato tiene que LLEGAR a la pantalla
+
+Aquí casi se me escapa. El panel encendía el ámbar «⚠ verificar» sólo con
+`noEvaluable`, que se activa cuando la unidad no cuadra con la del umbral de
+criticidad. Un valor fuera de los límites de captura **en la unidad canónica**
+—una ferritina de 2 000 000 ng/mL— no lo enciende: se habría visto como una fila
+normal, sin marca, y encima ya sin gráfica. **Marcado sin avisar es lo mismo que
+no marcado.**
+
+Ahora el ámbar se enciende con el estado, y el motivo va como **texto visible**,
+no en un `title`: un aviso que sólo existe al pasar el ratón no existe en el
+teléfono (REG-433). La conversión también se dice —«Convertido de 80 umol/L»—
+porque una corrección que no se puede ver es una edición que alguien le hizo al
+dato sin decírselo (seguridad clínica §3).
+
+### El número cambió de significado, así que ahora son dos
+
+Con la fila ya no tirada, «llega al panel» y «entra a la serie» dejaron de ser lo
+mismo. El eje del médico (D-031) mide lo primero: **0 de 46**. Pero **2 llegan
+sin gráfica** —glucosa mmol/L y PCR mg/dL, las dos por falta de factor— y eso se
+cuenta aparte, con su propio trinquete. Si sólo se midiera el eje, esas dos
+desaparecerían del informe justo cuando dejaron de desaparecer del panel.
+
+| | 1-sep | 2-sep (450) | 2-sep (451) |
+|---|---|---|---|
+| Fuera del panel | 7 (15,2 %) | 1 (2,2 %) | **0** |
+| Sin gráfica | — | — | **2** |
+
+### Probado al revés siete veces
+
+Ignorar la unidad distinta (vuelve el defecto de la PCR) · convertir sin factor
+citado · truncar al límite en vez de conservar · dejar que lo no graficable entre
+a la serie · volver a tirar la fila fuera de rango · encender el ámbar sólo con
+`noEvaluable` · devolver el motivo a un tooltip. Las siete ponen la prueba en
+rojo. Y por el otro lado: una hoja entera en unidades canónicas no marca **nada**,
+porque una compuerta que avisa de todo se aprende a cerrar sin leer.
+
 ## REG-450 — el rojo del laboratorio se cierra por la causa, no por el umbral
 
 **Eje.** WS-12 + laboratorio. **Fecha.** 2-sep-2026.

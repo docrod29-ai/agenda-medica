@@ -1,4 +1,5 @@
-import { analitoDe, valorPlausible, type Analito } from './analitos'
+import { analitoDe, type Analito } from './analitos'
+import { dictaminar, type EstadoDeValidacion } from './unidades'
 import { evaluarCriticoLab, censuraDe, type Censura } from '@/lib/hospital/lab-criticos'
 import { sujetosLeidos, type SujetoLeido } from './sujeto'
 
@@ -53,6 +54,22 @@ export interface ResultadoValidado {
   motivoNoEvaluable?: string
   /** Se puso en una serie temporal (analito reconocido y valor plausible). */
   graficable: boolean
+  /**
+   * ── LO QUE D-032 §27.1 EXIGE CONSERVAR (REG-451) ──────────────────────────
+   *
+   * «Nunca eliminar la unidad original después de normalizar.» Si sólo se
+   * guardara el valor canónico, nadie podría discutir una conversión ni auditar
+   * de dónde salió el número que está en el expediente.
+   */
+  estado?: EstadoDeValidacion
+  /** El valor tal como lo imprimió el laboratorio. */
+  valorOriginal?: number
+  /** La unidad tal como la imprimió el laboratorio. */
+  unidadOriginal?: string
+  /** Con qué factor se convirtió y de dónde sale ese factor. */
+  convertidoCon?: string
+  /** Por qué este resultado está en el estado en que está. */
+  porQueDelEstado?: string
 }
 
 /** El panel completo tras validar. */
@@ -111,16 +128,33 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
     if (!estudio) continue
 
     const a: Analito | null = analitoDe(estudio, fila.unidad?.trim())
-    if (!a || num === null || !valorPlausible(a.clave, num)) {
+    /**
+     * ── EL ORDEN DEL §28, Y POR QUÉ IMPORTA (REG-451) ────────────────────────
+     *
+     * Antes esta condición metía TRES cosas en el mismo saco: analito no
+     * reconocido, número ilegible y valor no plausible. Las dos primeras siguen
+     * cayendo a `noReconocidas`, que es donde les toca.
+     *
+     * La tercera **ya no**. Un valor «no plausible» en la unidad convencional a
+     * menudo es un valor CORRECTO en otra unidad —glucosa 7,2 mmol/L— y tirarlo
+     * dejaba al paciente sin serie y sin aviso. El §1 del catálogo del dueño lo
+     * ordena al revés: aceptar provisionalmente y marcar para verificar.
+     *
+     * Y el §28 fija el orden: primero se normaliza la unidad, DESPUÉS se
+     * comprueba la plausibilidad. Al revés, un valor correcto en otra unidad
+     * parece imposible.
+     */
+    if (!a || num === null) {
       // Reconocible como texto pero no graficable: se conserva sin inventar serie.
       noReconocidas.push({ estudio, valor: String(fila.valor ?? ''), unidad: fila.unidad?.trim() || undefined })
       continue
     }
+    const dictamen = dictaminar(a, num, fila.unidad)
     // Un mismo analito repetido en la hoja: se queda el primero (evita duplicar el punto).
     if (vistos.has(a.clave)) continue
     vistos.add(a.clave)
 
-    const unidad = fila.unidad?.trim() || a.unidad
+    const unidad = dictamen.unidad
     // Se evalúa con la unidad TAL COMO la reportó el laboratorio (no la del analito):
     // si difiere del umbral, evaluable=false y se marca «verificar» en vez de normal.
     // Y con el comparador, que `aNumero` acaba de pelar: sin él, «>400» se
@@ -135,12 +169,18 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
      */
     const noEvaluable = !ev.evaluable && (!!fila.unidad?.trim() || !!censurada)
     resultados.push({
-      clave: a.clave, etiqueta: a.etiqueta, valor: num, censurada, unidad,
+      clave: a.clave, etiqueta: a.etiqueta, valor: dictamen.valor, censurada, unidad,
       referencia: fila.referencia?.trim() || undefined,
       critico: ev.critico,
       noEvaluable: noEvaluable || undefined,
       motivoNoEvaluable: noEvaluable ? ev.motivo : undefined,
-      graficable: true,
+      /** Sólo entra a la serie temporal lo que se puede creer tal como está. */
+      graficable: dictamen.graficable,
+      estado: dictamen.estado,
+      valorOriginal: dictamen.valorOriginal,
+      unidadOriginal: dictamen.unidadOriginal,
+      convertidoCon: dictamen.conversion?.fuente,
+      porQueDelEstado: dictamen.porQue,
     })
   }
 
