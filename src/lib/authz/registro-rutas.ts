@@ -373,6 +373,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   },
   'cron/vigilante': { tipo: 'cron', motivo: 'Vigila los latidos de los otros crons y avisa. Autenticado por `CRON_SECRET`; no hay usuario.' },
   'cron/limpiar-audio': { tipo: 'cron', motivo: 'Barrido diario del audio de consulta abandonado en Storage. Autenticado por `CRON_SECRET`; no hay usuario.' },
+  'cron/audio-nom004': { tipo: 'cron', motivo: 'Barrido de retención NOM-004 del audio CONSERVADO (REG-511). Autenticado por `CRON_SECRET`; no hay usuario. Toca PHI —borra un archivo de audio— con autorización explícita del dueño, y SECO por omisión: sin `?aplicar=1` cuenta y no borra. No decide nada del expediente: la nota, la transcripción y el sello se quedan.' },
 }
 
 /** Tipos de exigencia que OBLIGAN a documentar el motivo por escrito. */

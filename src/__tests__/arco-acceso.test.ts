@@ -157,8 +157,36 @@ describe('el detector de PHI sigue la librería', () => {
   })
 
   it('y las dos rutas del expediente vuelven a estar en la lista de PHI', () => {
-    // `clinic/exportar` y `clinic/importar` entraron en medio al llegar el
-    // respaldo del consultorio y su camino de vuelta.
-    expect(guardian).toContain("'arco/acceso', 'arco/cancelar', 'clinic/exportar', 'clinic/importar', 'expediente/exportar/[patientId]'")
+    /**
+     * SE COMPRUEBA LA INTENCIÓN, NO EL LITERAL — corregido el 2-sep-2026.
+     *
+     * Este caso clavaba la cadena entera —cinco nombres seguidos, comas
+     * incluidas— y se ponía rojo cada vez que alguien añadía una ruta EN MEDIO,
+     * sin que ninguna de las que vigila hubiera dejado la lista. Pasó con
+     * `cron/audio-nom004` (REG-511), que ordena entre `clinic/importar` y
+     * `expediente/exportar`.
+     *
+     * Es la misma lección que dejó escrita REG-249 sobre `sesgo-con-el-paciente`:
+     * una prueba que se rompe con cada añadido enseña a editarla sin leerla, y
+     * entonces deja de proteger. Lo que este caso quiere decir es que estas cinco
+     * rutas siguen en la lista de PHI — y eso se comprueba una por una, sin
+     * depender de quién esté sentado al lado.
+     */
+    /**
+     * Y se mira DENTRO de la lista de PHI, no en el archivo entero: estos
+     * nombres también aparecen en `conPaciente` y en comentarios, así que un
+     * `toContain` suelto pasaba aunque la ruta hubiera salido de aquí. Se
+     * comprobó al revés y no se ponía rojo — por eso se acota la ventana.
+     */
+    // Ojo con el corchete: `expediente/exportar/[patientId]` lleva uno dentro,
+    // así que una clase `[^\]]*` se corta a media lista. Se cierra en `])`.
+    const lista = /expect\(conPHI\)\.toEqual\(\[([\s\S]*?)\]\)/.exec(guardian)?.[1]
+    expect(lista, 'no se encontró la lista conPHI en el guardián').toBeTruthy()
+    for (const ruta of [
+      'arco/acceso', 'arco/cancelar', 'clinic/exportar', 'clinic/importar',
+      'expediente/exportar/[patientId]',
+    ]) {
+      expect(lista, `${ruta} salió de la lista de PHI`).toContain(`'${ruta}'`)
+    }
   })
 })

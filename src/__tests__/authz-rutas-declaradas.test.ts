@@ -174,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(99)   // +1 el 2026-08-27: `expediente/paquete-de-visita` (POSTVISIT-001: la única puerta que libera al paciente el resumen de su visita); +1 el 2026-08-04: `arco/oponerse` (la «O» de ARCO, que se «resolvía» con un prompt() y no apagaba el contacto); +1 el 2026-08-04: `superadmin/incidentes` (la franja que le avisa al dueño de una caída de IA donde esté, sin tener que abrir su tablero); +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(100)  // +1 el 2026-09-02: `cron/audio-nom004` (REG-511: la retención NOM-004 del audio conservado, seca por omisión); +1 el 2026-08-27: `expediente/paquete-de-visita` (POSTVISIT-001: la única puerta que libera al paciente el resumen de su visita); +1 el 2026-08-04: `arco/oponerse` (la «O» de ARCO, que se «resolvía» con un prompt() y no apagaba el contacto); +1 el 2026-08-04: `superadmin/incidentes` (la franja que le avisa al dueño de una caída de IA donde esté, sin tener que abrir su tablero); +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -515,6 +515,14 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
        * endpoint que MUEVE DINERO no puede quedar abierto.
        */
       'cron/asientos',
+      /**
+       * 15 → 16 al añadir `cron/audio-nom004` (REG-511). Sin guardián de SESIÓN
+       * por lo mismo: lo dispara Vercel y no hay usuario. Mismo `CRON_SECRET`
+       * fail-closed — y aquí la razón es la más fuerte de las tres: es el único
+       * cron que BORRA PHI, y encima seco por omisión, así que sin `?aplicar=1`
+       * ni siquiera borra.
+       */
+      'cron/audio-nom004',
       'cron/limpiar-audio',
       'cron/reminders',
       /**
@@ -571,6 +579,26 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       // El token del PACIENTE es vía legítima: desde E0-06 lleva alcance y la ruta
       // lo comprueba en el handler.
       if (e.tipo === 'tokenPaciente') continue
+      /**
+       * UN CRON NO TIENE USUARIO, así que «qué roles alcanzan esta capacidad» no
+       * es la pregunta correcta para él — y exigirle una capacidad inventada
+       * DEBILITARÍA este guardián: metería una declaración que no gobierna nada.
+       *
+       * Lo que sí se le exige, y es más fuerte que cualquier rol: **fail-closed
+       * sobre `CRON_SECRET`**. Sin secreto configurado no corre en producción, y
+       * sin cabecera correcta contesta 401. Ningún rol, ni el clínico, llega.
+       *
+       * La exención se comprueba, no se concede: si un cron pierde ese candado,
+       * este mismo caso lo caza. Nace con `cron/audio-nom004` (REG-511), el
+       * primer cron que lee PHI clínico — porque para aplicar la retención
+       * NOM-004 tiene que saber cuándo fue el último acto médico del paciente.
+       */
+      if (e.tipo === 'cron') {
+        const failClosed = /CRON_SECRET no configurado \(fail-closed\)/.test(src)
+          && /Unauthorized/.test(src)
+        if (!failClosed) infractoras.push(`${clave}: cron que lee PHI sin candado fail-closed`)
+        continue
+      }
       const caps = capacidadesDeRuta(e)
       if (caps.length === 0) { infractoras.push(`${clave}: sin capacidad`); continue }
       for (const cap of caps) {
@@ -594,7 +622,12 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
     // FIRMADA para componer lo que el paciente leerá. Es lectura de PHI clínico —
     // medicamentos, diagnósticos y alergias— y por eso va bajo `firmar`, que es
     // capacidad clínica y no alcanza a ningún rol de mostrador.
-    expect(conPHI).toEqual(['arco/acceso', 'arco/cancelar', 'clinic/exportar', 'clinic/importar', 'expediente/exportar/[patientId]', 'expediente/paquete-de-visita', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
+    // +1 el 2026-09-02 (REG-511): `cron/audio-nom004` es el PRIMER cron que lee
+    // PHI clínico. No es un descuido: para aplicar la retención NOM-004 tiene que
+    // saber cuándo fue el último acto médico del paciente. Va sin capacidad —no
+    // tiene usuario— y a cambio se le exige el candado fail-closed, comprobado
+    // arriba.
+    expect(conPHI).toEqual(['arco/acceso', 'arco/cancelar', 'clinic/exportar', 'clinic/importar', 'cron/audio-nom004', 'expediente/exportar/[patientId]', 'expediente/paquete-de-visita', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
   })
 
   it('las rutas que tocan la IDENTIDAD del paciente están congeladas (segundo nivel de PHI)', () => {
@@ -640,6 +673,14 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
        */
       'clinic/exportar-excel',
       'clinic/importar',
+      /**
+       * REG-511: recorre `patients` para saber cuándo fue el último acto médico
+       * de cada uno — que es el reloj de la NOM-004— y decidir si su audio ya
+       * caducó. Lee la identidad; NO la escribe, NO la exporta y NO la registra:
+       * de todo el recorrido sólo salen RECUENTOS. Y no borra nada sin
+       * `?aplicar=1`.
+       */
+      'cron/audio-nom004',
       /**
        * +1 el 2026-08-26: el recordatorio firma el enlace de la teleconsulta con
        * la VERSIÓN del expediente, para que una revocación posterior lo tumbe.

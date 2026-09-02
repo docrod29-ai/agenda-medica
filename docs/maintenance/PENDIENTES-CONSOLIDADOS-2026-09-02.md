@@ -33,6 +33,26 @@ omisión: pulsarlo sin tocar nada **sólo lee y cuenta**.
 
 ---
 
+## PENDIENTE HEREDADO — el recuento de vulnerabilidades está desfasado (no es de este trabajo)
+
+`la-cifra-de-seguridad-no-se-pudre` sale **roja**: el documento publica 11
+vulnerabilidades y `npm audit` reporta **9** hoy. Críticas y altas siguen en
+**cero** en los dos.
+
+**Comprobado que es anterior**: se corrió el caso con `git stash`, sobre el árbol
+limpio, y falla igual. Ninguna de las unidades del 2-sep tocó `package.json` ni
+el lockfile.
+
+**Por qué no se arregla aquí.** El caso dice el comando —`node
+scripts/seguridad/auditar.mjs`— y regenerarlo es un renglón. Pero esas cifras son
+el recuento de vulnerabilidades del producto: bajar de 11 a 9 puede ser que se
+arreglaran dos, o que dos dejaran de detectarse. **Regenerarlo dentro de un
+commit de retención de audio sería enterrar esa pregunta en un diff que nadie
+relaciona.** Es su propia unidad: correr el script, mirar qué dos se fueron, y
+escribirlo.
+
+---
+
 ## HALLAZGO GRAVE — la ruta del audio NUNCA llega a la nota
 
 Encontrado el 2-sep-2026 yendo a construir el borrado NOM-004 que el dueño

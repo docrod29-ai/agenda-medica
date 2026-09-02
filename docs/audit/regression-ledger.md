@@ -17543,3 +17543,77 @@ conservado en el manifiesto.
   decisión, de tamaño y de coste.
 - **No implementa la caducidad NOM-004**: la desbloquea. Ya hay un sitio con una
   sola vida que barrer. El barrido es su propia unidad.
+
+
+## REG-511 — el audio caduca por la NOM-004, y el plazo tiene UN solo dueño
+
+**LA CADENA, CERRADA.** El dueño autorizó conservar el audio (8-ago-2026) y
+borrarlo según la NOM-004 (2-sep-2026). Escribir lo segundo exigió reparar dos
+cosas antes, y las dos salieron de tirar de un solo hilo — *«¿de qué paciente es
+este audio?»*:
+
+    REG-509  la ruta no llegaba a la nota  → no se sabía de quién era el archivo
+    REG-510  vivía donde el audio de trabajo → un cron lo borraba a las 24 h
+    REG-511  y sólo entonces: cuándo caduca
+
+Una caducidad de cinco años sobre archivos que no llegaban al segundo día, y sin
+saber de quién eran, no significaba nada. Por eso el orden no era negociable.
+
+**EL INVARIANTE DE ESTA ENTRADA: aquí no hay ningún plazo escrito.**
+`src/lib/expediente/audio-nom004.ts` recibe el estado de retención ya calculado;
+sale de `evaluarRetencion`, que cita la norma —«periodo mínimo de 5 años contados
+a partir de la fecha del último acto médico», numeral 5.7—. Duplicar ese número
+daría **dos relojes que un día discrepan**, y elegir otro —la fecha del archivo,
+que era lo cómodo— sería inventar una regla más estricta que la norma y llamarla
+«la norma». Hay un caso que se pone rojo si alguien mete una constante de días.
+
+**LAS TRES NEGATIVAS.** Un barrendero que borra PHI de forma permanente se juzga
+por lo que se niega a hacer:
+
+1. **Sin veredicto, no se borra.** `no_evaluable` significa que faltó un dato
+   para calcularlo, no que el expediente sea viejo (regla 4).
+2. **Huérfano, no se borra.** Si ninguna nota lo referencia no se sabe de quién
+   es. Es TODO el audio anterior a REG-509, y adivinar ahí sería borrar el
+   expediente de alguien que vino hace tres años.
+3. **Contradicción, no se borra.** Un `vencido` sin días calculados es un dato
+   que se contradice a sí mismo.
+
+Y una cuarta, en la ruta: **«cercano» no es «vencido»**. Un barrido que redondee
+hacia abajo se lleva PHI que la norma todavía obliga a conservar.
+
+**LA RUTA — `/api/cron/audio-nom004`.**
+
+- **Seca por omisión.** Sin `?aplicar=1` cuenta y no borra. Borrar PHI es
+  irreversible y merece el mismo gesto aparte que el botón del backfill: primero
+  se mira el número.
+- **Recorre por PACIENTE, no por bucket.** No necesita índice nuevo, y tiene una
+  propiedad mejor: **un objeto que ninguna nota referencia nunca se visita**, así
+  que no puede borrarse por accidente. La negativa nº2 hecha estructura.
+- **Es otra ruta a propósito.** `api/cron/retencion` tiene escrito que no toca el
+  expediente, y eso sigue en pie; aflojar aquel invariante para meter esto aquí
+  habría sido el error. Allí sigue prohibido; aquí hay autorización explícita y
+  acotada a un archivo de audio.
+- **Recuentos, nunca contenido.** Ni rutas ni identificadores en los logs: la
+  ruta lleva el uid del médico y la clave de la consulta.
+- **Fail-closed** sin `CRON_SECRET`, y sin bucket **declara** en vez de responder
+  «0 borrados» — que se lee igual que «no pude mirar», y sólo uno de los dos
+  significa que hay PHI esperando.
+
+**CLOSED.** `src/__tests__/el-audio-caduca-por-la-nom-no-por-un-reloj-propio.test.ts`
+(21 casos). **Probado al revés con siete defectos**, y dos de ellos borran de
+más: incluir los «cercano» · borrar sin poder fechar el último acto · borrar
+huérfanos · meter un segundo reloj en el módulo · que la ruta nazca aplicando ·
+quitar el fail-closed · registrar la ruta del audio en el log.
+
+### Qué NO cubre
+
+- **No se ha ejecutado contra datos reales.** Se prueba la decisión y las
+  propiedades de seguridad de la ruta; que borre lo que debe se ve la primera vez
+  que se corre **en seco** y se mira el número. Ese paso es del dueño.
+- **El audio anterior a REG-509 no lo borra nunca**, por diseño. Sigue en el
+  bucket, huérfano. Limpiarlo es otro problema y no se resuelve adivinando.
+- **No decide nada del expediente.** La nota, la transcripción y el sello se
+  quedan.
+- **No está programado en ningún `vercel.json`**: existe la ruta, no la
+  periodicidad. Conectarlo es una decisión de operación, y encadenarlo sin haber
+  mirado una corrida en seco sería exactamente lo que esta entrada evita.

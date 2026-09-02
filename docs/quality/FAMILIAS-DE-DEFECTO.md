@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 83 de 293, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 84 de 294, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 Los tres últimos (REG-425, 426 y 427, 1-sep-2026) salieron de **abrir el producto
@@ -142,7 +142,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 44 de 293.**
+**«El sistema se contradice a sí mismo» — 44 de 294.**
 
 Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
 caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
@@ -223,7 +223,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 43 de 293**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 43 de 294**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

@@ -548,7 +548,7 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   R({
     id: 'WS-13.aislamiento', ws: 'WS-13', titulo: 'Ninguna ruta escribe datos clínicos sin validar sesión y pertenencia',
     estado: 'PROVEN',
-    evidencia: '99 rutas revisadas con analizador estático del argumento literal por método HTTP; y REG-378 lo midió corriendo, con sesiones de cliente contra las reglas cargadas.',
+    evidencia: '100 rutas revisadas con analizador estático del argumento literal por método HTTP; y REG-378 lo midió corriendo, con sesiones de cliente contra las reglas cargadas.',
     comando: 'npx vitest run src/__tests__/api-authz-guard.test.ts && node scripts/product/run-consultorio-load.mjs …',
     resultado: '0 fugas en 200 sondas cruzadas (100 de lectura + 100 de escritura) sobre 20 consultorios.',
     artefactos: ['src/lib/authz/analisis-estatico.ts', 'docs/audit/ws-02-carga/emulador-100-medicos.json'],
@@ -614,7 +614,7 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
     id: 'WS-13.pentest', ws: 'WS-13', titulo: 'Pentest externo',
     estado: 'BLOCKED_EXTERNAL',
     desbloqueaCon: 'Contratar un tercero. No hay mitad automatizable.',
-    preparacionInterna: '99 rutas revisadas, analizador estático de autorización, aislamiento medido corriendo (REG-378).',
+    preparacionInterna: '100 rutas revisadas, analizador estático de autorización, aislamiento medido corriendo (REG-378).',
   }),
 
   /* ═══ Transversales que el tablero no tenía ═══════════════════════════════ */
