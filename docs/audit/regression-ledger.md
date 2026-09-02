@@ -17475,3 +17475,71 @@ contra 0, y 1 parada sin foco visible contra 0.
 - **`/pendientes` se miró y no se tocó.** Sale vacío en la siembra y su estado
   vacío está bien resuelto: dice qué aparecería y por qué. Juzgarlo de verdad
   pide sembrar pendientes, y eso queda pendiente.
+
+## REG-440 — la siembra del arnés hacía parecer rota una pantalla sana
+
+**CÓMO SE DESCUBRIÓ.** Mirando `/pacientes` a 390 px. Los números salían
+perfectos —cero desbordamiento, cero objetivos táctiles pequeños, cero campos
+sin etiqueta, cero errores de consola— y la captura enseñaba la pantalla vacía:
+
+```
+Recientes | Todos A-Z (5) | Con alerta (1)
+Ninguno tiene citas recientes. Hay 5 expedientes en total.
+```
+
+`/pacientes` abre en «Recientes». Con ocho citas hoy en la agenda, una de ellas
+ya atendida, la primera pantalla de la lista de pacientes no enseñaba a nadie.
+
+**NO ERA UN DEFECTO DEL PRODUCTO**, y comprobarlo llevó su rato. «Recientes»
+filtra por `ultimaCita`, y el producto **sí** lo escribe: al pasar una cita a
+atendida, finalizada o pagada (`contadores-paciente.ts`, cuyo encabezado
+documenta que ese campo se leía en cuatro pantallas sin que nadie lo escribiera
+— ya arreglado).
+
+**CAUSA RAÍZ.** La siembra escribía `noShowCount` y `cancelacionCount` —lo que
+dejaría una transición a «no asistió»— y **no** escribía `ultimaCita`, que es lo
+que deja una transición a «atendida». Sembraba la cita ya en estado `atendida`,
+saltándose el camino que habría tocado al paciente. Incoherente consigo misma.
+
+**POR QUÉ MERECE ENTRADA.** El guion de siembra tiene escrito en su cabecera que
+«una siembra bonita produce una auditoría visual mentirosa». Esto mentía en la
+**otra dirección**, que es igual de caro y menos evidente: hace que una pantalla
+sana parezca rota. El final malo no es perder el rato persiguiendo un defecto que
+no existe — es «arreglar» una pantalla que estaba bien.
+
+Un arnés que miente no es un arnés a medias: produce conclusiones falsas con la
+autoridad de haber sido medido.
+
+**EL ARREGLO.** `ultimaCita` se **deriva** de las citas sembradas con la misma
+lista de estados que usa `esAtencionEfectiva`, y se omite el campo cuando el
+paciente no tiene ninguna cita atendida — «ausencia de dato no es dato de
+ausencia» también en la siembra. Escribir una fecha a mano habría durado hasta
+que alguien cambiara una cita de estado.
+
+| | Antes | Después |
+|---|---|---|
+| «Recientes» en `/pacientes` | **vacío**, con 5 expedientes | **Recientes (1)** · «visto hoy» |
+| `ultimaCita` en la siembra | nunca | derivado de las citas |
+
+### Probado al revés
+
+Quitando `'pagada'` de la lista de la siembra, el caso cae nombrando la
+diferencia con la del producto.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts`
+(4 casos).
+
+### Qué NO cubre
+
+- **No ejecuta la siembra.** Compara las dos listas leyendo los archivos. Que el
+  emulador acabe con el documento correcto se ve corriendo `npm run
+  arnes:sembrar` y mirando la pantalla, y eso **no corre en CI**.
+- **No vigila los otros campos derivados.** `noShowCount` y `cancelacionCount`
+  se siguen escribiendo a mano y este guardián no los ata a las citas: hoy la
+  siembra no tiene ninguna cita en `no-asistio`, así que derivarlos daría cero y
+  perdería el caso duro que el número a mano representa. Se dice, no se esconde.
+- **No dice que `/pacientes` esté auditada.** Lo único que se afirma es que su
+  primer pliegue ya enseña lo que enseñaría un consultorio real. El A-Z, la
+  búsqueda y la fila de alerta siguen sin recorrer.

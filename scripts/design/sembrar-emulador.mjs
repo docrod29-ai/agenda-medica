@@ -401,6 +401,35 @@ async function main() {
     horaFin: '19:00',
   })
 
+  /**
+   * `ultimaCita` SE DERIVA DE LAS CITAS, NO SE ESCRIBE A MANO.
+   *
+   * La siembra escribía `noShowCount` y `cancelacionCount` —lo que dejaría una
+   * transición a «no asistió»— y NO escribía `ultimaCita`, que es lo que deja
+   * una transición a «atendida». Incoherente consigo misma, y con una
+   * consecuencia que engaña: `/pacientes` abre en «Recientes», «Recientes»
+   * filtra por `ultimaCita`, y el arnés enseñaba la pantalla VACÍA —«Ninguno
+   * tiene citas recientes. Hay 5 expedientes en total»— con ocho citas hoy y
+   * una de ellas atendida.
+   *
+   * Eso es peor que una siembra pobre: hace que una pantalla sana parezca rota.
+   * El guion ya avisa arriba de que «una siembra bonita produce una auditoría
+   * visual mentirosa»; ésta mentía en la otra dirección, y se tarda lo mismo en
+   * perseguir un defecto que no existe.
+   *
+   * Se deriva con la MISMA regla del producto —`esAtencionEfectiva` en
+   * `src/lib/agenda/contadores-paciente.ts`— y no con una fecha inventada, para
+   * que la siembra no pueda separarse de la regla sin que un guardián lo vea.
+   */
+  const ESTADOS_QUE_CUENTAN_COMO_ATENCION = ['atendida', 'finalizada', 'pagada']
+  const ultimaCitaDe = new Map()
+  for (const c of CITAS) {
+    if (!ESTADOS_QUE_CUENTAN_COMO_ATENCION.includes(c.estado)) continue
+    const fecha = c.dia || dia
+    const previa = ultimaCitaDe.get(c.pac)
+    if (!previa || fecha > previa) ultimaCitaDe.set(c.pac, fecha)
+  }
+
   // ── Pacientes ─────────────────────────────────────────────────────────────
   for (const p of PACIENTES) {
     await escribir(`clinics/${CLINICA}/patients/${p.id}`, {
@@ -413,6 +442,9 @@ async function main() {
       notas: p.notas,
       noShowCount: p.noShowCount ?? 0,
       cancelacionCount: p.cancelacionCount ?? 0,
+      // Ausente cuando el paciente no tiene ninguna cita atendida: ausencia de
+      // dato no es dato de ausencia, tampoco en la siembra.
+      ...(ultimaCitaDe.has(p.id) ? { ultimaCita: ultimaCitaDe.get(p.id) } : {}),
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })
