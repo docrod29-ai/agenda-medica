@@ -546,7 +546,7 @@
     },
     {
       "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
-      "minCasos": 13
+      "minCasos": 15
     },
     {
       "archivo": "src/__tests__/el-texto-completo-solo-si-la-licencia-lo-permite.test.ts",
@@ -954,7 +954,7 @@
     },
     {
       "archivo": "src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts",
-      "minCasos": 6
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-version-del-prompt-no-miente.test.ts",

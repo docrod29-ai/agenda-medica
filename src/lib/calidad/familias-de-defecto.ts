@@ -1101,7 +1101,26 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * orden sigue siendo el correcto; lo que ya no depende de la memoria es el
      * daño.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 502, 504, 505],
+    /**
+     * 435 es esta familia en el PAPEL que entra al procedimiento, no en el dato.
+     *
+     * 241 y 505 arreglaron el tablero; nadie ató a él el encabezado de las actas
+     * de paquete. Resultado: la de v1172 llevaba cinco días diciendo «nadie ha
+     * desplegado nada» de algo publicado, y la de v1175 afirmaba el despliegue
+     * SIN CITAR la ejecución — que es 505 otra vez, en otro documento.
+     *
+     * Lo que la distingue de 416 es a quién engaña. 416 dejaba el repositorio
+     * declarando rotas unas protecciones que ya regían: se leía como alarma. Ésta
+     * se lee como permiso — un acta que dice que no se ha desplegado nada invita a
+     * desplegar, y un despliegue arrastra TODO lo no desplegado, no lo que el
+     * acta enumera.
+     *
+     * Su lección: la familia no acaba en el dato derivado. Alcanza a cualquier
+     * documento que sea ENTRADA de un procedimiento, y esos no se derivan de
+     * nada — se cierran a mano. Lo único que se puede automatizar es que olvidarlo
+     * ponga la suite en rojo.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 502, 504, 505],
   },
   {
     /**

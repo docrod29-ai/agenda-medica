@@ -999,10 +999,25 @@ sirva esa versión—, y sigue comparando el repositorio contra el sitio vivo. L
 que se quita es una comparación de un archivo consigo mismo.
 
 **LA PRUEBA.**
-`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts` (6 casos).
-Probado al revés en las dos formas de romperlo: devolviendo `VERSION_ESPERADA` a
-`env:` cae el caso principal, y quitándola sin derivarla cae el que vigila que se
-derive — porque dejar la variable vacía sería peor que el defecto original.
+`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts` (8 casos).
+Probado al revés en las tres formas de romperlo: devolviendo `VERSION_ESPERADA` a
+`env:` cae el caso principal; quitándola sin derivarla cae el que vigila que se
+derive —porque dejar la variable vacía sería peor que el defecto original—; y
+**bajando el paso de derivación por debajo de la Compuerta 1** cae el que vigila
+el ORDEN.
+
+Los dos últimos casos (el orden, y su mutilación) se añadieron al absorber el
+PR #426, que había encontrado el mismo defecto por su cuenta y traía esa
+comprobación de más. Se quedó la comprobación, no el archivo duplicado: dos
+goldens sobre el mismo workflow son la misma familia de defecto que REG-504.
+
+**Por qué el orden importa y no es paranoia.** El paso puede existir, leer el
+archivo correcto y exportar a `GITHUB_ENV`, y no servir de nada si vive DESPUÉS
+de la Compuerta 1. Con `set -euo pipefail`, una variable **sin definir** aborta
+—eso se salva solo—; pero un `version.txt` en blanco define `VERSION_ESPERADA`
+como cadena **vacía**, y entonces las compuertas 1 y 3 comparan contra la nada y
+pasan las dos. Por eso la derivación rechaza una versión sin forma **antes** de
+exportarla, y por eso se vigila que esté arriba.
 
 **QUÉ NO CUBRE, DECLARADO.**
 
@@ -16976,3 +16991,80 @@ no a que pasaran cuatro segundos.
   tiene el mismo defecto; la sonda sí lo vería, el guardián no.
 - **No es un iPhone.** Se reprodujo y se arregló en Chromium. Que en WebKit real
   se vea bien lo dice el dueño, que es quien tiene el teléfono.
+
+## REG-435 — el acta de un paquete ya desplegado seguía diciendo «nadie ha desplegado nada»
+
+**CÓMO SE DESCUBRIÓ.** Comprobando la ejecución #15 del botón paso por paso para
+poner al día el acta de `nexusmed-v1179` — que aún se encabezaba con «Estado:
+PREPARADO, NO PUBLICADO» pese a llevar horas en producción. Al bajar a mirar cómo
+lo habían hecho las actas hermanas apareció lo de verdad: **no era una, eran
+tres**, y de dos clases distintas.
+
+| Acta | Versión | Qué decía | Qué era cierto |
+|---|---|---|---|
+| `PAQUETE-PRODUCCION-2026-08-27.md` | v1172 | «Nadie ha desplegado nada» | publicada el 28-ago, ejecución #4 |
+| `PAQUETE-PRODUCCION-2026-08-30.md` | v1175 | «YA SE PUBLICÓ», **sin citar ejecución** | publicada el 31-ago, ejecución #8 |
+| `PAQUETE-PRODUCCION-2026-09-01-v1179.md` | v1179 | «PREPARADO, NO PUBLICADO» | publicada el 1-sep, ejecuciones #15 y #16 |
+
+La de v1172 llevaba **cinco días** así. Las de v1176 y v1177 sí estaban cerradas
+en forma, lo que descarta que faltara la convención: existía y se aplicaba a
+mano, que es exactamente el diagnóstico que `el-tablero-del-loop-no-miente` ya
+tenía escrito desde REG-241 — «mientras no lo derive un script, va a volver a
+pasar».
+
+**CAUSA RAÍZ.** Cerrar un acta era un acto de memoria. Nada ataba el encabezado
+del acta al único sitio que sabe qué sirve producción,
+`agent-state/MASTER_STATE.json → ultimaVersionEnProduccion`, un campo que desde
+REG-505 ya lleva dentro la ejecución que lo confirma.
+
+**POR QUÉ NO ES PAPELEO.** Un acta de paquete no es documentación: es la entrada
+del procedimiento de despliegue, el documento que se abre justo antes de decidir.
+Un acta que dice «nadie ha desplegado nada» de algo ya desplegado invita a
+desplegarlo otra vez — y un despliegue **arrastra todo lo no desplegado**
+(`.claude/rules/deployment-and-flags.md`), no sólo lo que el acta enumera.
+
+La de v1175 es la variante más fina: afirmaba el despliegue **sin su evidencia**.
+Es el defecto que cerró REG-505 —una versión de producción sin la ejecución que
+la confirma es un recuerdo, no un dato— reaparecido en otro papel.
+
+**EL ARREGLO.** Los cinco números que sirvieron para cerrarlas salen del
+repositorio y de la API de Actions, no de la memoria: para cada ejecución en
+verde se leyó el `VERSION_ESPERADA` del workflow **en su propio árbol**, que es
+lo que su Compuerta 3 midió contra el sitio vivo.
+
+Y se añadieron dos casos a `el-tablero-del-loop-no-miente.test.ts`, que es donde
+ya vivían las cuatro veces anteriores de esta misma familia:
+
+1. ningún acta de una versión **≤ la de producción** puede quedarse sin su aviso
+   de SUPERADO **con URL de ejecución**;
+2. al cerrarla **no se le borra** el estado con el que nació.
+
+El segundo salió de un error propio de esta misma sesión: la de v1179 se cerró
+primero sustituyendo «PREPARADO, NO PUBLICADO» por «PUBLICADO». Se lee mejor y
+destruye el dato de qué se sabía al escribirla; las actas ya cerradas lo dicen
+con sus palabras — «un acta que se reescribe deja de servir para reconstruir qué
+se sabía y cuándo».
+
+### Probado al revés
+
+- Quitando el aviso de v1172, el primer caso cae **nombrando el archivo**.
+- Borrando el «PREPARADO, NO PUBLICADO» de v1179, el segundo cae igual.
+- Y el guardián encontró por su cuenta la tercera acta —la de v1175, con
+  SUPERADO pero sin ejecución— que la lectura a ojo había dado por buena.
+
+### Estado
+
+**CLOSED.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts` — 24 casos al
+correr; el sello dice 15 porque cuenta el `it.each` de la memoria del programa
+como uno.
+
+### Qué NO cubre
+
+- **No sale a la red.** No comprueba que la ejecución citada exista ni que
+  cerrara en verde; exige que haya una URL, no que sea la correcta.
+- **No vigila el sentido contrario con fuerza.** Un acta que se declarara
+  publicada sin haberlo sido pasa con sólo inventarse un enlace.
+- **No dice nada de las versiones posteriores a la de producción.** Un acta
+  preparada y aún sin publicar es el caso normal y debe poder existir.
+- **No cierra actas solo.** Sigue haciéndose a mano; lo que cambia es que ahora
+  olvidarlo pone la suite en rojo.

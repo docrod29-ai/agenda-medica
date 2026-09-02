@@ -18,19 +18,22 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": {
     "version": "nexusmed-v1179",
-    "confirmadaEl": "2026-09-01",
+    "confirmadaEl": "2026-09-02",
     "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M src/app/globals.css",
+    "MM agent-state/MASTER_STATE.json",
+    "MM docs/audit/regression-ledger.md",
+    "A  docs/maintenance/ESTADO-DE-PRODUCCION-2026-09-01.md",
+    " M docs/maintenance/PAQUETE-PRODUCCION-2026-08-27.md",
+    " M docs/maintenance/PAQUETE-PRODUCCION-2026-08-30.md",
+    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-01-v1179.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/el-tablero-del-loop-no-miente.test.ts",
+    "M  src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/audit/ausculta-transformacion/recorrido-390-arreglado.png",
-    "?? scripts/ausculta-transformacion/ningun-texto-cae-en-una-astilla.mjs",
-    "?? src/__tests__/la-cita-de-la-portada-cayo-en-la-columna-del-numero.test.ts"
+    "MM src/lib/clinical/invariantes-clinicos.json"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +69,10 @@
   ],
   "ramaActual": "claude/ausculta-product-transformation-mckih5",
   "derivado": {
-    "regsEnElLedger": 287,
+    "regsEnElLedger": 288,
     "ultimaREG": "REG-505",
     "archivosDePrueba": 915,
-    "casosDePrueba": 11147,
+    "casosDePrueba": 11151,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"
