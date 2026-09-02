@@ -9,11 +9,29 @@
 > repositorio puede decirlo.
 >
 > Se enviaron desde el propio botón, ejecución
-> [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33574082611)
-> del 2-sep 00:07 UTC sobre `c7eb7032` — la primera que corrió con
-> `firebase.json` declarando `firestore.indexes.json`. Su paso dijo
-> `deploying indexes…` y `deployed indexes … successfully`, que es exactamente
-> la línea que **nunca** había aparecido (REG-431).
+> [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+> del **1-sep 23:51 UTC** sobre `c7eb7032` — la primera que llegó a publicarlos.
+> Su paso dijo `deploying indexes…` y `deployed indexes … successfully`, la línea
+> que **nunca** había aparecido. La [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33573846056)
+> (2-sep 00:07 UTC) corrió sobre el **mismo árbol** catorce minutos después y
+> republicó lo mismo: el paso es idempotente, no hubo doble publicación de nada.
+>
+> **Hicieron falta DOS arreglos, y el segundo sólo se vio cuando el primero dejó
+> de taparlo.** REG-431 hizo que `firebase.json` declarara el archivo; hasta
+> entonces el paso no publicaba nada y devolvía `success`. Declarado el archivo,
+> la ejecución [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699)
+> por fin lo intentó de verdad y contestó:
+>
+> ```
+> Error: Request to https://firestore.googleapis.com/v1/projects/nexomed-agenda/
+> databases/(default)/collectionGroups/appointments/indexes had HTTP Error: 403,
+> The caller does not have permission
+> ```
+>
+> A la cuenta de servicio le faltaba `roles/datastore.indexAdmin`: **publicar
+> reglas y crear índices son permisos distintos**, y tenía sólo el primero. El
+> dueño lo concedió en IAM, y la #15 pasó. Era exactamente la duda que REG-431
+> había dejado declarada en su «qué NO cubre», y salió cierta.
 >
 > Con eso queda cerrado el renglón que este documento traía abierto desde el
 > 31-ago. **Lo que sigue en pie es el ORDEN**: un índice nuevo se despliega
@@ -97,7 +115,8 @@ distintas que salen del mismo comando:
 |---|---|---|
 | `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | Que `firestore.indexes.json` llegó al proyecto | Que los índices estén **construidos** |
 | `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064), **releído** | Nada. `firebase.json` no declaraba el archivo: no había qué publicar (REG-431) | — |
-| `success` el 2-sep, ejecución [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33574082611), con `deploying indexes…` en el log | Que los doce se **enviaron** de verdad | Seguía sin demostrar que estuvieran construidos |
+| **`failure`** el 1-sep, ejecución [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699) | Que con el archivo ya declarado faltaba **el permiso**: `403, The caller does not have permission` al crear el índice de `appointments` | El acta lo rotuló `FIRESTORE_RULES=failure` — y las reglas habían pasado. Eso es REG-433 |
+| `success` el **1-sep 23:51**, ejecución [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371), con `deploying indexes…` en el log | Que los doce se **enviaron** de verdad, ya con `roles/datastore.indexAdmin` concedido | Seguía sin demostrar que estuvieran construidos |
 | La consola, mirada por el dueño el **2-sep-2026** | Que los doce dicen `Enabled` | Nada más: es el dato que faltaba, y no vuelve a comprobarse solo |
 
 **Eso que faltaba, y que no puede vivir en este repositorio** —abrir la consola

@@ -129,10 +129,16 @@ una vez y se sabe qué se rompe mientras tanto. **Conviene pedir las dos juntas.
 > de arriba, se le añade éste: lo que decía era cierto cuando se escribió.
 >
 > Los índices son **doce**, no nueve —REG-422 y REG-423 encontraron tres más—, y
-> el comando de la tabla **no habría funcionado**: `firebase.json` nunca declaró
-> `firestore.indexes.json`, así que devolvía `success` sin publicar nada
-> (REG-431). Arreglado eso, se desplegaron desde el botón el 2-sep 00:07 UTC y el
-> dueño los vio `Enabled` en la consola ese mismo día. El detalle vive en
+> el comando de la tabla **no habría funcionado por DOS motivos**, no uno:
+>
+> 1. `firebase.json` nunca declaró `firestore.indexes.json`, así que devolvía
+>    `success` sin publicar nada (REG-431);
+> 2. arreglado eso, la cuenta de servicio contestó **403**: le faltaba
+>    `roles/datastore.indexAdmin`. Publicar reglas y crear índices son permisos
+>    distintos, y tenía sólo el primero.
+>
+> El dueño concedió el rol, la ejecución #15 del botón los publicó el 1-sep 23:51
+> UTC, y él los vio `Enabled` en la consola el 2-sep. El detalle vive en
 > `docs/ops/INDICES-DE-FIRESTORE.md`.
 >
 > El segundo —las reglas escritas y sin desplegar— **sigue abierto**.
