@@ -26,23 +26,12 @@
     "UU agent-state/MASTER_STATE.json",
     "UU docs/audit/regression-ledger.md",
     "UU docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
     "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "A  scripts/ausculta-transformacion/caminar-con-el-teclado.mjs",
-    "A  scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
-    "A  scripts/ausculta-transformacion/el-estado-sobrevive-a-la-interrupcion.mjs",
-    "M  scripts/ausculta-transformacion/mirar-la-consulta.mjs",
-    "M  scripts/carril-excelencia/todo-dialogo-se-cierra-con-escape.mjs",
-    "M  scripts/design/sembrar-emulador.mjs",
     " M src/__tests__/dos-escritores-no-pueden-dar-el-mismo-numero.test.ts",
-    "A  src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts",
-    "A  src/__tests__/el-selector-de-fecha-oculto-se-comia-tres-tabuladores.test.ts",
-    "A  src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts",
-    "A  src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
-    "A  src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts",
-    "M  src/__tests__/los-enlaces-de-accion-tambien-se-tocan.test.ts",
-    "M  src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",
-    "M  src/app/(dashboard)/calendario/page.tsx"
+    "A  src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts",
+    "MM src/lib/calidad/familias-de-defecto.ts",
+    "UU src/lib/clinical/invariantes-clinicos.json",
+    "M  src/lib/security/sanitize.ts"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -78,10 +67,10 @@
   ],
   "ramaActual": "claude/ausculta-cierre-pendientes-lxo3gp",
   "derivado": {
-    "regsEnElLedger": 297,
+    "regsEnElLedger": 298,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 923,
-    "casosDePrueba": 11205,
+    "archivosDePrueba": 924,
+    "casosDePrueba": 11213,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

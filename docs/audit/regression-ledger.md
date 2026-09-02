@@ -17816,9 +17816,94 @@ a 405.
 - **No sella la rejilla de semana.** Se midió y hoy no tiene el defecto (cero
   recortados), pero este guardián no lo vigila.
 
+<!--
+  RENUMERADO — TERCERA COLISION DEL CONTADOR EN DOS DIAS (2-sep-2026).
+
+  Esta entrada se escribio como REG-438 y, entre escribirla y fusionarla, 
+  asigno ese numero a otra regresion. Pasa a REG-444.
+
+  Es la tercera vez esta semana: ya ocurrio con 323-326 -> 415-418 -> 417-420.
+  El numero es un contador global asignado a mano y hay dos escritores que lo
+  leen antes de escribir; entre leer y fusionar cabe el otro. Misma forma que
+  REG-349 —mirar y escribir no son un acto—, y volvera a pasar mientras el
+  numero se elija leyendo el ledger.
+-->
+
 ---
 
-## REG-444 — el mismo número de regresión se podía dar dos veces, y nada lo decía
+## REG-444 — el token del paciente viajaba entero al registro de errores
+
+**QUÉ FALLABA.** `redactarRuta` —el redactor por el que pasa toda ruta antes de
+escribirse en `errores`— tapaba identificadores de paciente y **dejaba pasar
+enteras las credenciales**.
+
+Medido contra `main`, no deducido:
+
+```
+/mi/eyJwIjoi….YWJjZGVm…        →  /mi/eyJwIjoi….YWJjZGVm…     ← sin tocar
+/resena/…                       →  sin tocar
+/verificar/…                    →  sin tocar
+/unirse/…                       →  sin tocar
+/consulta/paciente123abc        →  /consulta/:id               ← esto sí funcionaba
+```
+
+`/mi/<token>` **es** la sesión del paciente: quien tenga esa cadena abre su
+expediente. Y `errores` es una colección **raíz**, legible desde la consola del
+dueño de la plataforma — no está bajo `clinics/{id}`, así que ni siquiera el
+aislamiento entre consultorios la acota.
+
+**CAUSA RAÍZ — dos, y las dos hay que decirlas.**
+
+1. `SEGMENTOS_CON_ID` nació para tapar **identificadores**, y nadie volvió a
+   mirarla cuando aparecieron rutas que llevan **credenciales**. Un token no es
+   un id: filtrar un id revela a quién le pasó algo; filtrar un token **entrega
+   el acceso**.
+2. La heurística de reserva no lo alcanzaba: exige `^[A-Za-z0-9_-]+$`, y el
+   token tiene forma `base64url(payload).base64url(firma)` — **el punto rompe el
+   patrón**. La red de seguridad tenía justo el agujero del caso que importaba.
+
+**CÓMO SE DESCUBRIÓ.** Levantando el PR #342 por petición del dueño. Sus dos
+hallazgos declarados ya estaban reparados en `main`; éste no estaba en su
+resumen — venía dentro del diff, en un archivo que su propia directiva marcaba
+como «shared file, REVIEW REQUIRED». La revisión que pedía era la que lo
+encontró.
+
+**LA REGLA QUE LO HACE SEGURO.** Dos capas, y ninguna basta sola:
+
+- las rutas de cara al paciente (`mi`, `resena`, `verificar`, `unirse`,
+  `reservar`, `teleconsulta`) declaran que su segmento siguiente es una
+  credencial;
+- cualquier segmento con **forma de token firmado** se borra aunque nadie
+  declarara su ruta — porque la ruta de mañana no está en ninguna lista.
+
+Y **lo inocuo no se estropea**: se exigen dos o tres mitades de diez caracteres
+o más, así que `favicon.ico`, `sitemap.xml` y `pdf.worker.min.mjs` pasan intactos.
+Un redactor que rompe el informe se acaba apagando, y entonces no protege nada.
+
+**Prueba.** `src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts`
+(8 casos), probada al revés con tres defectos: quitar la detección de token
+firmado (cae 1), aflojar el mínimo de cada mitad a 3 (cae 1, por redactar de
+más), y **quitar la lista de rutas de paciente**.
+
+Ese tercero es el que enseña algo: con el golden tal y como venía del #342,
+quitar la lista dejaba **los siete casos en verde** — todos pasaban por la otra
+mitad. Se añadió el caso que la fija: un token **sin punto**, que no cazan ni la
+detección de firma ni la heurística de id. Nada obliga a que una credencial lleve
+firma separada por un punto; un token opaco es una forma normal de emitirla.
+
+**Qué NO cubre, declarado.**
+
+- **No redacta lo ya escrito.** Los `errores` anteriores a este cambio conservan
+  los tokens que registraron. Purgarlos es una decisión del dueño sobre datos de
+  producción.
+- **Sólo la RUTA.** Un token metido en el cuerpo de un mensaje de error, o en una
+  cabecera que alguien registre a mano, sigue sin pasar por aquí.
+- **No caduca los tokens filtrados.** Los del portal duran lo que duren; esto
+  impide la fuga nueva, no deshace la vieja.
+
+---
+
+## REG-445 — el mismo número de regresión se podía dar dos veces, y nada lo decía
 
 **CÓMO SE DESCUBRIÓ.** Al unificar cuatro PRs que llevaban un día abiertos a la
 vez. Los ficheros de contabilidad chocaron y hubo que leerlos enteros; ahí
@@ -17827,7 +17912,7 @@ esto es lo que convierte una anécdota en un defecto: **por casualidad**. Un avi
 programado de otra sesión mencionó de pasada un «REG-436» doce minutos después de
 que ese número ya hubiera entrado a `main`.
 
-**Cinco colisiones el mismo día, entre varias sesiones que no se veían:**
+**Seis colisiones el mismo día, entre varias sesiones que no se veían:**
 
 ```
 REG-434  la cita de la portada        (#433, 00:05)
@@ -17838,7 +17923,13 @@ REG-438  ESTE MISMO GUARDIÁN          (#438, 05:39)   → 440
 REG-438  el riel del expediente       (#440, 06:13)
 REG-440  ESTE MISMO GUARDIÁN otra vez (#438)          → 444
 REG-440  la siembra del arnés         (#440, fusionado a main primero)
+REG-444  ESTE MISMO GUARDIÁN, tercera (#438)          → 445
+REG-444  el token del paciente        (#441, fusionado a main primero)
 ```
+
+**Seis**, y tres de ellas se las llevó esta ficha. Cada vez que se renumeró al
+primer libre, otra rama alcanzó `main` con ese número antes que ella. El número
+sólo es estable cuando el PR se fusiona: mientras espera, es una apuesta.
 
 ### Dos de ellas se las llevó esta misma ficha
 
