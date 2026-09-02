@@ -24,15 +24,34 @@
  *
  * «Por casualidad» es el dato importante. No hubo compuerta roja en ninguna.
  *
- * ── Y LA CUARTA SE LA LLEVÓ ESTE FICHERO ─────────────────────────────────────
+ * ── LA CUARTA Y LA QUINTA SE LAS LLEVÓ ESTE FICHERO ──────────────────────────
  *
- * Se escribió como REG-438, y mientras esperaba a que su CI terminara, otra
- * sesión reclamó REG-438 para el riel del expediente. Este guardián pasó a
- * REG-444 sin haber llegado a fusionarse.
+ * Se escribió como REG-438; mientras corría su CI, otra sesión reclamó ese
+ * número para el riel del expediente, y pasó a REG-440. Mientras esperaba a que
+ * lo fusionaran, ESE número también se lo llevó otra rama —la siembra del
+ * arnés—, que además llegó a `main` primero. Acabó en REG-444.
  *
- * Se deja escrito porque es la mejor prueba que puede tener: la reparación de un
- * defecto lo sufrió antes de aterrizar. Y porque contesta sola a la pregunta de
- * si valía la pena — habrían convivido dos REG-438, y nada lo habría dicho.
+ * Dos renumeraciones antes de aterrizar, y ninguna culpa de nadie: es la forma
+ * del sistema haciendo exactamente lo que hace.
+ *
+ * ── Y LA QUINTA LA CAZÓ ÉL MISMO, EN VIVO ────────────────────────────────────
+ *
+ * Al traer `main` dentro, git fusionó las dos fichas de REG-440 SIN CONFLICTO
+ * —caían lejos una de otra— y las dejó conviviendo. Nada del repositorio lo
+ * habría dicho salvo esta prueba, que se puso roja y las nombró:
+ *
+ *   REG-440
+ *     · REG-440 — la siembra del arnés hacía parecer rota una pantalla sana
+ *     · REG-440 — el mismo número de regresión se podía dar dos veces
+ *
+ * No es un fixture: es el ledger de verdad, en la fusión de verdad. Es el caso
+ * exacto que este fichero existe para impedir, y ocurrió mientras se escribía.
+ *
+ * (Y una nota sobre cómo se escribió esta cabecera: el primer intento de
+ * corregirla NO se aplicó — la búsqueda ya no casaba tras un renombrado previo,
+ * y `str.replace` no avisa cuando no encuentra nada. Quedó una tabla diciendo
+ * cinco y una prosa contando cuatro. La misma familia de defecto, en el mismo
+ * fichero, el mismo día.)
  *
  * ── LA CAUSA RAÍZ ────────────────────────────────────────────────────────────
  *
