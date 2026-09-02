@@ -16875,3 +16875,90 @@ cuenta de servicio del proyecto `nexomed-agenda`, y eso se concede en IAM.
 - **No comprueba que los índices se construyan.** `firebase deploy` contesta al
   ENVIAR; la construcción va por su cuenta y puede fallar después, con el
   `success` ya impreso.
+
+## REG-434 — el paso que «esperaba decisión del dueño» era imposible de ejecutar
+
+**CÓMO SE DESCUBRIÓ.** Cerrada la cadena de los índices —REG-431 declaró el
+archivo, IAM concedió el permiso, la ejecución
+[#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+publicó los doce y el dueño los vio `Enabled` en la consola el 2-sep— quedaba un
+solo pendiente: el backfill de `pesoUrgencia`. Al ir a guiarlo, el paso no era
+una decisión: era un muro.
+
+`scripts/migraciones/peso-de-urgencia.mjs` pide
+`GOOGLE_APPLICATION_CREDENTIALS` apuntando a un JSON de cuenta de servicio. Esa
+credencial vive en los secretos de este repositorio, y de ahí **no sale**.
+Correrlo exigía tener a la vez terminal y una copia de la credencial. El dueño no
+usa terminal; los agentes no pueden leer el secreto. **Nadie reunía las dos
+mitades.**
+
+### La causa raíz
+
+La cabecera del script decía, y decía bien:
+
+> «**No decide cuándo correrlo.** Correr algo contra datos clínicos vivos es del
+> dueño.»
+
+Es una frase correcta que tapó un defecto. El paso figuró meses como *pendiente
+de decisión del dueño* cuando la decisión no era lo que faltaba: faltaba **poder
+tomarla**. Un pendiente marcado «esperando a una persona» no se vuelve a mirar;
+uno marcado «imposible» sí.
+
+Es la familia de «escrito y sin conectar», en su forma operativa: la herramienta
+existe, es correcta, está probada — y no hay ningún camino real desde la persona
+que decide hasta su ejecución.
+
+### El arreglo
+
+`.github/workflows/backfill-peso-de-urgencia.yml` — un botón donde la credencial
+ya está. No añade capacidad ni permisos: mueve la ejecución al único sitio que
+reúne las dos mitades.
+
+- **`escribir` nace en `false`.** Apretarlo sin tocar nada lee y cuenta; no
+  escribe un documento. Escribir exige marcar la casilla, que es un gesto
+  distinto de abrir la pantalla.
+- **Una casilla y no una frase que teclear**, al revés que el botón de
+  producción: aquel no tiene inputs para que no se pegue mal un SHA; aquí el
+  script sólo AÑADE un campo derivado y es idempotente, así que el daño de un
+  clic de más es cero y el de una frase mal pegada no.
+- **`FIREBASE_TOKEN` se rechaza nombrando por qué.** `deploy-production.yml`
+  lo acepta porque el CLI lo entiende; `firebase-admin` **no** —
+  `applicationDefault()` quiere un archivo de cuenta de servicio—. Sin esa
+  comprobación el fallo saldría dentro del SDK, sin nombrar la causa: la forma
+  exacta de REG-433, aplicada antes de que costara una ejecución.
+- **Los recuentos van al resumen**, no sólo al log. El dueño no lee logs. Y son
+  recuentos, nunca contenido: esos documentos llevan PHI (`data-privacy.md`).
+
+### El papel que sobrevivió al arreglo
+
+`docs/ops/INDICES-DE-FIRESTORE.md` siguió afirmando **«OCHO de los doce se
+enviaron»** hasta el 2-sep — el día siguiente a medirse **cero** en la consola, y
+con los doce ya construidos. Es el documento con el que alguien verifica la
+consola dentro de seis meses.
+
+Se corrige y **se deja escrito el número falso**, porque la lección no es el
+número: es que se contaba sobre el árbol desplegado —cierto e insuficiente— en
+vez de sobre el proyecto. La tabla «El envío no es la construcción» pasa a tener
+tres filas, y la primera vale **nada**: `success` sobre un `--only` que no
+publicaba.
+
+### Estado
+
+**CLOSED.**
+`src/__tests__/el-boton-del-backfill-no-escribe-por-defecto.test.ts`
+(10 casos, probado al revés con cinco defectos: poner `default: true`, colar
+`--escribir` en la rama de ensayo, aceptar el token, quitar el `always()` de la
+limpieza y mover el proyecto — los cinco lo ponen rojo).
+
+### Qué NO cubre
+
+- **No corre el backfill.** El botón existe; apretarlo es del dueño, que era la
+  frase correcta desde el principio — ahora con un botón detrás.
+- **No prueba que el workflow funcione.** El golden lee el YAML. Que GitHub lo
+  interprete como se espera, y que Firestore acepte las escrituras, se ve en la
+  primera ejecución y del otro lado.
+- **No verifica la lógica del script** —pesos, paginación, idempotencia—: eso
+  vive en el script y en el modelo del que lee la escalera.
+- **No busca otros pasos con el mismo defecto.** Este se encontró al ir a
+  ejecutarlo, no por barrido. Cualquier otro «pendiente de decisión» que en
+  realidad sea imposible sigue igual de invisible.

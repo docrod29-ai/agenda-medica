@@ -78,7 +78,7 @@
   ],
   "ramaActual": "claude/analisis-cambios-produccion-7eyrmu",
   "derivado": {
-    "regsEnElLedger": 286,
+    "regsEnElLedger": 287,
     "ultimaREG": "REG-505",
     "archivosDePrueba": 914,
     "casosDePrueba": 11144,

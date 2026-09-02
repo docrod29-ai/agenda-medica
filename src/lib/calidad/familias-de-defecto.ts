@@ -351,7 +351,25 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Se descubrió acompañando al dueño a hacerlo a mano, y viendo la consola
      * vacía en su pantalla.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431],
+    /**
+     * 434 es esta familia en la PERSONA, y es la variante que más tiempo
+     * sobrevive. `scripts/migraciones/peso-de-urgencia.mjs` estaba escrito,
+     * probado, era idempotente y su cabecera decía la verdad: «correr algo
+     * contra datos clínicos vivos es del dueño». Nadie podía correrlo. Pedía una
+     * credencial que sólo existe dentro de los secretos del repositorio, y el
+     * dueño no usa terminal: hacían falta dos mitades que ninguna persona tenía
+     * juntas.
+     *
+     * Lo que la distingue de 335 o 337: allí faltaba el ACTO que llama al
+     * módulo, y un guardián de módulos huérfanos podía verlo. Aquí el llamador
+     * es una PERSONA, y ningún guardián mira si esa persona puede alcanzar el
+     * botón. Se disfrazó de decisión pendiente —que es la etiqueta que nadie
+     * vuelve a revisar— durante meses.
+     *
+     * La reparación no añade capacidad: mueve la ejecución al único sitio donde
+     * las dos mitades ya están juntas.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431, 434],
   },
   {
     clave: 'se_contradice',
