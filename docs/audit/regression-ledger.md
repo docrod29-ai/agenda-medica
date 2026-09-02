@@ -15827,3 +15827,76 @@ borrar la comparación del producto los dejaba a todos en verde. Es el defecto q
 este carril lleva encontrando toda la sesión —un guardián que comprueba su
 recuerdo de la regla en vez de la regla— esta vez en mi propia prueba. Se añadió
 el caso que mira la función real.
+
+---
+
+## REG-423 — el expediente no decía quién había puesto cada diagnóstico
+
+**Dónde**: `src/components/expediente/ResumenPaciente.tsx`
+
+### Qué fallaba
+
+Medido en navegador el 1-sep-2026, con un paciente sembrado a propósito con los
+tres ejes del modelo (`tipo`, `estado`, `tipoOrigen`): los cuatro diagnósticos
+vigentes se pintaban **en el mismo nodo de texto**, con el mismo color, peso y
+tamaño, bajo el rótulo «Diagnósticos activos»:
+
+```
+Condición crónica sintética A · Condición activa sintética B ·
+Sospecha sintética C · Propuesta de la IA sintética D
+```
+
+Uno definitivo puesto por el médico y otro que el modelo propuso y **nadie
+avaló**, indistinguibles.
+
+### Cómo se descubrió
+
+Sembrando los tres ejes. El consultorio de prueba no tenía **ni un** diagnóstico,
+así que la jerarquía de estado del expediente se estaba juzgando sobre una lista
+vacía — que es dar por buena una pantalla porque no tiene nada que enseñar.
+
+### Causa raíz
+
+`ResumenPaciente` empujaba `d.descripcion` **pelada** a una lista de cadenas.
+`tipo` y `tipoOrigen` viajaban en el documento firmado y se tiraban ahí.
+
+### Lo que NO se hizo, y es la mitad importante
+
+**No se etiqueta `presuntivo`.** REG-365 lo decidió y sigue siendo correcto: es
+el valor de fábrica del esquema —«nadie dijo nada»—, y escribir «(presuntivo)»
+junto a una crónica confirmada afirma una duda que el médico nunca expresó, en
+casi todos los renglones. Iba a romperlo y el comentario de `nombreConCerteza` lo
+impidió. La prueba lo fija en los dos sentidos.
+
+### El arreglo
+
+Se dice la **procedencia**, que es otro eje y era invisible:
+`tipoOrigen === 'medico'` es «lo eligió una persona» y el resto no. Es la misma
+frontera que `la-certeza-que-sale-al-mundo` ya aplica al salir a FHIR —`confirmed`
+sólo con `medico`— y la que la consulta ya avisa antes de firmar. `requisitos.ts`
+declaraba el hueco: «FALTA la misma elección en las otras superficies que
+muestran diagnósticos (**expediente**…)».
+
+Y se dice **una vez y no por fila**, con la regla que ya eligió la consulta:
+`por_defecto` cuenta igual que `extraccion` — en los dos casos nadie lo decidió.
+El aviso habla del **registro**, no de la clínica: «lo puso el dictado o la
+plantilla, no una persona», nunca «no confirmado» ni «dudoso», porque lo que
+falta es una firma, no certeza.
+
+### Qué NO cubre
+
+- **Dice cuántos, no cuáles.** En la consulta «una vez» funciona porque cada
+  diagnóstico tiene su fila con selector; aquí van unidos por « · », así que
+  copiar la regla fielmente cuesta identificabilidad. Marcar por fila
+  contradiría la política del producto y el argumento de ruido de REG-365;
+  reordenar por procedencia rompería el orden cronológico. **Es una decisión del
+  dueño**, y queda abierta.
+- No añade al expediente el selector de tipo de la consulta: avalar desde aquí
+  sigue sin poder hacerse.
+- No toca UCI ni hospitalización, que muestran diagnósticos con el mismo hueco.
+
+**Prueba.** `src/__tests__/el-expediente-dice-quien-puso-el-diagnostico.test.ts`
+(6 casos). **Probada al revés ×4**: tirar `tipoOrigen` → 1 rojo; pasar el aviso a
+por fila → 1 rojo; que el aviso afirme una duda clínica («no confirmados») → 1
+rojo; y **etiquetar `presuntivo`** → 1 rojo, que es el que protege REG-365 de un
+arreglo futuro de la procedencia.

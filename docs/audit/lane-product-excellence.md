@@ -6416,3 +6416,78 @@ comprueba su recuerdo de la regla en vez de la regla— esta vez en la mía. Van
 trinquete de diseño sin deuda nueva · `tsc` limpio · golden nuevo **11 casos,
 probado al revés ×3** · verificado en navegador en los dos sentidos: hoy 8/8
 atenuadas, mañana a peso completo.
+
+---
+
+## Unidad 96 — el expediente dice quién puso cada diagnóstico
+
+Primera de la pasada transversal (tu paso 6), y cobra el residual más grande que
+llevaba declarado: la jerarquía de estado del paciente.
+
+### 96a · No se podía juzgar sobre una lista vacía
+
+El consultorio de prueba no tenía **ni un** diagnóstico. Se sembraron los tres
+ejes del modelo —`tipo`, `estado`, `tipoOrigen`— con seis casos: crónico
+definitivo, activo definitivo, sospecha del médico, **propuesta del modelo sin
+avalar**, descartado y resuelto.
+
+Sin eso, la jerarquía se estaba dando por buena porque no había nada que enseñar.
+
+### 96b · Y los cuatro vigentes eran indistinguibles
+
+Medido: los cuatro se pintaban **en el mismo nodo de texto**, mismo color, peso y
+tamaño, bajo «Diagnósticos activos». Un hecho puesto por el médico y una
+propuesta del modelo que nadie avaló, iguales.
+
+La causa: `ResumenPaciente` empujaba `d.descripcion` **pelada**. `tipo` y
+`tipoOrigen` viajaban en el documento firmado y se tiraban ahí. → **REG-423**.
+
+### 96c · El modelo ya lo sabía todo, y el producto ya lo había decidido
+
+No hubo que inventar ninguna jerarquía:
+
+| Ya existía | Dónde |
+|---|---|
+| Los tres ejes (`tipo`, `estado`, `tipoOrigen`) | `types/expediente.ts` |
+| «`medico` es lo único que autoriza a decir confirmado» | el propio tipo |
+| `confirmed` de FHIR reservado a `medico` | `la-certeza-que-sale-al-mundo.ts` |
+| Selector de tipo por fila, que marca `tipoOrigen: 'medico'` | consulta (REG-407) |
+| Aviso antes de firmar, **una vez y no por fila** | consulta |
+| **El hueco, declarado**: «FALTA en las otras superficies (expediente…)» | `requisitos.ts` |
+
+La unidad es coherencia transversal en su forma más literal: llevar a una
+pantalla la distinción que el resto del producto ya aplica.
+
+### 96d · Y estuve a punto de romper REG-365
+
+Mi primer plan era etiquetar `presuntivo`. El comentario de `nombreConCerteza` lo
+impidió: **`presuntivo` es el valor de fábrica del esquema** —«nadie dijo nada»—,
+y escribirlo junto a una crónica confirmada afirma una duda que el médico nunca
+expresó, en casi todos los renglones. Una etiqueta que sale siempre deja de
+leerse el día que sí significa algo.
+
+La prueba nueva lo fija **en los dos sentidos**, para que un arreglo futuro de la
+procedencia no se lo lleve por delante.
+
+Y el aviso habla del **registro**, no de la clínica: «lo puso el dictado o la
+plantilla, no una persona» — nunca «no confirmado» ni «dudoso». Lo que falta es
+una firma, no certeza. Hay un reverso dedicado a eso.
+
+### RIESGO RESIDUAL
+
+- **Dice cuántos, no cuáles.** En la consulta «una vez y no por fila» funciona
+  porque cada diagnóstico tiene su fila con selector; aquí van unidos por « · ».
+  Marcar por fila contradiría la política del producto y el argumento de ruido de
+  REG-365; reordenar por procedencia rompería el orden cronológico. **Es decisión
+  del dueño**, y queda abierta.
+- Avalar un diagnóstico **desde el expediente** sigue sin poder hacerse.
+- UCI y hospitalización muestran diagnósticos con el mismo hueco. Sin tocar.
+- Sigue sin distinguirse `activo` de `crónico` de `en seguimiento` en esa línea:
+  esta unidad cerró el eje de PROCEDENCIA, no el de momento clínico.
+
+### COMPUERTAS
+
+`npx vitest run` **12 099 de 12 100** —el único rojo es `ops-timeout-y-punto-ciego`,
+de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
+· `tsc` limpio · golden nuevo **6 casos, probado al revés ×4**, uno de ellos
+protegiendo una decisión ajena (REG-365).

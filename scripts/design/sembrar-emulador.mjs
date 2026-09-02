@@ -553,6 +553,40 @@ async function main() {
       hashFirma: '',
     },
     /*
+     * ── LOS TRES EJES DEL ESTADO DEL PACIENTE, SEMBRADOS ────────────────────
+     *
+     * `Diagnostico` distingue tres cosas a la vez, y el consultorio de prueba no
+     * tenía NI UNO, así que la jerarquía de estado del expediente se estaba
+     * juzgando sobre una lista vacía — que es como dar por buena una pantalla
+     * porque no tiene nada que enseñar.
+     *
+     *   tipo   → definitivo · presuntivo · descartado · diferencial   (certeza)
+     *   estado → activo · resuelto · cronico · en_seguimiento         (momento)
+     *   tipoOrigen → quién puso el tipo: el médico o la IA           (procedencia)
+     *
+     * Se siembra uno de cada combinación que importa, para que se pueda VER si
+     * la pantalla los distingue. Descripciones sintéticas y sin cifras: lo que
+     * se vigila es si el ojo separa un hecho de una sospecha, no el contenido.
+     */
+    diagnosticos: [
+      { descripcion: 'Condición crónica sintética A', tipo: 'definitivo', estado: 'cronico',
+        fechaDiagnostico: '2019-04-11', tipoOrigen: 'medico' },
+      { descripcion: 'Condición activa sintética B', tipo: 'definitivo', estado: 'activo',
+        fechaDiagnostico: iso(hoy).slice(0, 10), tipoOrigen: 'medico' },
+      // SOSPECHA, no hecho: tiene que verse distinto de las dos de arriba.
+      { descripcion: 'Sospecha sintética C', tipo: 'presuntivo', estado: 'en_seguimiento',
+        fechaDiagnostico: iso(hoy).slice(0, 10), tipoOrigen: 'medico' },
+      // La IA lo propuso y el médico NO lo ha avalado: el caso más delicado.
+      { descripcion: 'Propuesta de la IA sintética D', tipo: 'presuntivo', estado: 'activo',
+        fechaDiagnostico: iso(hoy).slice(0, 10), tipoOrigen: 'extraccion' },
+      // DESCARTADO: estuvo sobre la mesa y ya no. No puede leerse como vigente.
+      { descripcion: 'Descartada sintética E', tipo: 'descartado', estado: 'resuelto',
+        fechaDiagnostico: '2024-02-20', tipoOrigen: 'medico' },
+      // RESUELTO: fue verdad y ya no lo es. Distinto de descartado.
+      { descripcion: 'Resuelta sintética F', tipo: 'definitivo', estado: 'resuelto',
+        fechaDiagnostico: '2023-08-05', tipoOrigen: 'medico' },
+    ],
+    /*
      * Texto sintético y SIN UNA SOLA CIFRA CLÍNICA: aquí se vigila que la
      * pantalla se comporte, no lo que dice. `clinical-safety.md` §1 — una dosis
      * o un umbral inventados en un fixture acaban citándose como si fueran algo.

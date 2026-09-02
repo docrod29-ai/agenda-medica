@@ -21,18 +21,16 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/(dashboard)/citas/page.tsx",
-    " M src/app/globals.css",
+    " M scripts/design/sembrar-emulador.mjs",
+    " M src/components/expediente/ResumenPaciente.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/capturas/v95/",
-    "?? sonda-agenda.mjs",
-    "?? sonda-riel.mjs",
-    "?? src/__tests__/el-riel-mira-el-reloj.test.ts"
+    "?? docs/design/capturas/v96/",
+    "?? sonda-estado2.mjs",
+    "?? src/__tests__/el-expediente-dice-quien-puso-el-diagnostico.test.ts"
   ],
-  "actualizado": "2026-09-01",
+  "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -66,10 +64,10 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 273,
+    "regsEnElLedger": 274,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 896,
-    "casosDePrueba": 10859,
+    "archivosDePrueba": 897,
+    "casosDePrueba": 10865,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
