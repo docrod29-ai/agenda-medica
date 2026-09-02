@@ -54,6 +54,18 @@ export interface EstadoDoble {
      * primera guarda y no la que se quería mirar.
      */
     lecturaEn?: string
+    /**
+     * SIMULA UN ÍNDICE QUE NO EXISTE.
+     *
+     * Toda consulta que ordene por este campo lanza `FAILED_PRECONDITION`, que es
+     * literalmente lo que hace Firestore: **no degrada la consulta, la rechaza**.
+     *
+     * Hace falta porque la ventana peligrosa de un índice nuevo es real —el
+     * código llega a producción con cada merge y la construcción del índice tarda
+     * de minutos a horas— y sin poder reproducirla no se puede probar que la
+     * pantalla sobreviva. Es el par de `conRespaldoSinIndice`.
+     */
+    indiceAusenteSobre?: string
   }
 }
 
@@ -108,6 +120,17 @@ export function firestoreClienteSobre(h: EstadoDoble) {
       case '>': return (v as string) > (c as string)
       case '<=': return (v as string) <= (c as string)
       case '<': return (v as string) < (c as string)
+      /**
+       * `in` — hasta P1-14 este doble lo rechazaba, así que la única consulta
+       * grande que lo usa (el worklist, `where('estado','in',[…])`) no se podía
+       * probar contra él y se probaba contra un muñeco que no filtraba nada.
+       *
+       * Como en Firestore: es una IGUALDAD contra cualquiera de la lista, y un
+       * documento sin el campo no entra (lo cubre el `v === undefined` de
+       * arriba).
+       */
+      case 'in': return Array.isArray(c) && c.some(x => x === v)
+      case 'not-in': return Array.isArray(c) && !c.some(x => x === v)
       default: throw new Error(`operador no soportado en el doble: ${op}`)
     }
   }
@@ -140,6 +163,14 @@ export function firestoreClienteSobre(h: EstadoDoble) {
       throw new Error('FAILED_PRECONDITION: the query requires an index')
     }
     const ordenes = cs.filter(c => c.t === 'orderBy') as Extract<Restriccion, { t: 'orderBy' }>[]
+    if (h.fallos.indiceAusenteSobre && ordenes.some(o => o.campo === h.fallos.indiceAusenteSobre)) {
+      /* Con el `code` del SDK de cliente, no sólo el texto: quien lo reconozca
+         tiene que reconocer lo que manda Firestore de verdad. */
+      throw Object.assign(
+        new Error('The query requires an index. You can create it here: https://console.firebase.google.com/…'),
+        { code: 'failed-precondition' },
+      )
+    }
     let filas = filasDe(ref)
     for (const c of cs) {
       if (c.t === 'where') filas = filas.filter(f => cumple(valorDe(f, c.campo), c.op, c.valor))

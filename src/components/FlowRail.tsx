@@ -181,7 +181,9 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
           <MarcaAusculta size={20} />
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+          {/* El recorte a una línea lo hace `.sidebar-logo` en globals.css, que
+              es la clase que este bloque comparte con `Sidebar.tsx`. */}
+          <div title={config.nombreClinica || 'Ausculta'} style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
             {config.nombreClinica || 'Ausculta'}
           </div>
           <div className="nx-flow-rail-quiet-hide" style={{ fontSize: 12, color: 'var(--text3)' }}>

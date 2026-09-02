@@ -92,10 +92,30 @@ describe('V15 — las etiquetas de navegación NUNCA se atenúan ni se ocultan',
     expect(FLOW_RAIL).toContain("<span style={{ flex: 1 }}>{label}</span>")
   })
 
+  /**
+   * EL REQUISITO, NO LA CADENA EXACTA.
+   *
+   * Este caso afirmaba el objeto de estilo del div palabra por palabra. Se
+   * puso rojo el día que ese div ganó un `title` —para poder recortar el
+   * nombre largo a una línea sin esconderlo— sin que la identidad se hubiera
+   * atenuado ni un poco. Atar un guardián a una cadena literal lo convierte
+   * en un guardián del formato, no de la regla.
+   *
+   * La regla es: **la identidad del consultorio NO se aquieta al grabar.** Se
+   * comprueba mirando la etiqueta que la pinta y exigiendo que no lleve
+   * ninguna de las dos clases de aquietamiento.
+   */
   it('el nombre del consultorio (identidad) no lleva nx-flow-rail-quiet-hide ni nx-flow-rail-quiet-icon', () => {
-    expect(FLOW_RAIL).toContain(
-      "<div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>"
-    )
+    // El TEXTO, no el `title`: el atributo repite la misma expresión, así que
+    // buscar la primera aparición aterrizaba dentro de la etiqueta de apertura.
+    const i = FLOW_RAIL.indexOf('>\n            {config.nombreClinica ||')
+    expect(i, 'ya no se pinta el nombre del consultorio en el riel').toBeGreaterThan(-1)
+    const etiqueta = FLOW_RAIL.slice(FLOW_RAIL.lastIndexOf('<div', i), i)
+    expect(etiqueta, 'la identidad se aquieta al grabar').not.toContain('nx-flow-rail-quiet-hide')
+    expect(etiqueta).not.toContain('nx-flow-rail-quiet-icon')
+    // Y sigue siendo el texto primario, no uno secundario.
+    expect(etiqueta).toContain("color: 'var(--text)'")
+    expect(etiqueta).toContain('fontWeight: 600')
   })
 
   it('no queda ningún rastro de la clase anterior de opacidad plana sobre texto (nx-flow-rail-quietable)', () => {

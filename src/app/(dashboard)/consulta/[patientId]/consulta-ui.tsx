@@ -201,7 +201,7 @@ export const S = {
      de escala — el guardián lo cazó en la misma corrida. */
   grabCardSola: { background: 'transparent', border: 0, padding: 0, marginBottom: 20 } as React.CSSProperties,
   transcripcion: { width: '100%', marginTop: 14, minHeight: 100, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, resize: 'vertical' } as React.CSSProperties,
-  resumen: { display: 'flex', gap: 8, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 8, padding: '12px 14px', marginBottom: 18 } as React.CSSProperties,
+  resumen: { display: 'flex', gap: 8, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', borderRadius: 8, padding: '12px 14px', marginBottom: 18 } as React.CSSProperties,
   textarea: { width: '100%', minHeight: 70, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, fontSize: 13, color: 'var(--text)', lineHeight: 1.6, resize: 'vertical' } as React.CSSProperties,
   input: { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, color: 'var(--text)' } as React.CSSProperties,
   miniLabel: { fontSize: 11, color: 'var(--text3)', display: 'block', marginBottom: 3 } as React.CSSProperties,

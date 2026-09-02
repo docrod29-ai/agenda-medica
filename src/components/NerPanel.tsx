@@ -342,7 +342,7 @@ function Seccion({ icono, titulo, children }: { icono: React.ReactNode; titulo: 
 type ChipColor = 'teal' | 'ambar' | 'rojo' | 'gris'
 function chipStyle(color: ChipColor): React.CSSProperties {
   const palette: Record<ChipColor, { bg: string; border: string; text: string }> = {
-    teal:  { bg: 'rgba(61, 90, 254, 0.10)',  border: 'rgba(61, 90, 254, 0.32)',  text: 'var(--text)' },
+    teal:  { bg: 'var(--nexus-soft)',  border: 'var(--nexus-borde)',  text: 'var(--text)' },
     ambar: { bg: 'color-mix(in srgb, var(--amber) 10%, transparent)',  border: 'color-mix(in srgb, var(--amber) 40%, transparent)',  text: 'var(--text)' },
     rojo:  { bg: 'color-mix(in srgb, var(--red) 10%, transparent)',  border: 'color-mix(in srgb, var(--red) 40%, transparent)',  text: 'var(--text)' },
     gris:  { bg: 'var(--s2)',                 border: 'var(--border2)',           text: 'var(--text2)' },

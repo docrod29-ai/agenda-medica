@@ -1055,6 +1055,10 @@ function RielEntrada({
             propio médico (sólo aparece el médico cuando hay más de uno). */}
         <div className="riel-nombre">
           {appt.pacienteNombre}
+          {/* `colorMedico` sin el segundo argumento a propósito: el guardia ya
+              está en la condición de arriba —`multiMedico &&`— así que si esto
+              se pinta es porque hay más de un médico, y el color sí distingue a
+              alguien. Ver la nota de colorMedico en DoctorFilter.tsx. */}
           {multiMedico && appt.medicoId && appt.medicoNombre && (
             <span className="riel-medico" style={{ color: colorMedico(appt.medicoId) }}>
               {appt.medicoNombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').split(' ')[0]}

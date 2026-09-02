@@ -1,0 +1,14 @@
+[
+  {
+    "ruta": "/expediente/pac-001",
+    "ancho": 1440,
+    "elementosVisibles": 469,
+    "conMovimiento": 39,
+    "tarjetas": 19,
+    "tamanosTipograficos": 10,
+    "pesosDeFuente": 6,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  }
+]

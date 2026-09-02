@@ -88,6 +88,18 @@ test('los controles que se tocan miden al menos 44×44', async ({ page }) => {
    * Se excluyen los enlaces dentro de un párrafo: un enlace en línea hereda la
    * altura de su texto y exigirle 44 px sería exigir que el texto corrido tenga
    * interlineado de botón. La regla es para los CONTROLES.
+   *
+   * Y se excluye lo que NO SE PUEDE TOCAR. `display: none` no basta desde que
+   * existe el menú móvil de la portada: su panel está cerrado con
+   * `visibility: hidden` + `inert` + `scale(0.97)` —hace falta que siga en el
+   * árbol para poder animarlo— y `getBoundingClientRect` devuelve la caja YA
+   * ESCALADA. Resultado: dos botones de 44 px medían 43 estando cerrados, y el
+   * caso fallaba por un control que ningún dedo puede alcanzar.
+   *
+   * Ampliar la exclusión no ablanda la regla: un control invisible o `inert` no
+   * es un blanco táctil, por definición. Lo que sí se hizo además fue darle
+   * holgura al botón (46 px), para que la medida no viva pegada al límite —
+   * ver `.nx-nav-panel-cuenta .btn` en globals.css.
    */
   await page.goto('/', { waitUntil: 'networkidle' })
   const pequenos = await page.evaluate((minimo) => {
@@ -96,7 +108,10 @@ test('los controles que se tocan miden al menos 44×44', async ({ page }) => {
     for (const el of controles) {
       const r = el.getBoundingClientRect()
       if (r.width === 0 && r.height === 0) continue            // oculto
-      if (getComputedStyle(el).display === 'none') continue
+      const cs = getComputedStyle(el)
+      if (cs.display === 'none' || cs.visibility === 'hidden') continue
+      // `inert` marca un subárbol que no recibe puntero ni foco.
+      if (el.closest('[inert]')) continue
       if (r.width < minimo || r.height < minimo) {
         malos.push(`${el.tagName.toLowerCase()}«${(el.textContent ?? '').trim().slice(0, 24)}» ${Math.round(r.width)}×${Math.round(r.height)}`)
       }

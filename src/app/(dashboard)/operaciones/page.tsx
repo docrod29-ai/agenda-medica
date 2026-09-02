@@ -209,7 +209,7 @@ function useEstadoOperativo(clinicId: string | null | undefined) {
     const desde = hoyISO()
     Promise.all([
       rescatar(getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]), 'citas'),
-      rescatar(getWaitlist(clinicId), 'lista de espera'),
+      rescatar(getWaitlist(clinicId).then(r => r.entradas), 'lista de espera'),
       rescatar(listarItems(clinicId), 'farmacia'),
     ]).then(([citas, listaEspera, farmacia]) => {
       if (!vivo) return

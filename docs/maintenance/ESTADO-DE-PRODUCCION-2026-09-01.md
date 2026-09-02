@@ -9,6 +9,33 @@
 
 ---
 
+## LO QUE SE SUPO DESPUÉS — léase antes que nada
+
+Este acta se escribió **antes** de REG-431, y hay una frase suya que sin este
+aviso se lee al revés de la verdad.
+
+Abajo, en «Respuesta corta», el punto 2 dice que para `nexusmed-v1178` **no había
+índices que publicar**. Eso era cierto de ese paquete — y daba a entender algo
+falso: que cuando SÍ hubiera índices, el botón los publicaría.
+
+No podía. `firebase.json` declaraba `rules` y **nunca declaró `indexes`**, así que
+`--only firestore:indexes` no fallaba: no encontraba nada que publicar y devolvía
+`success`. **En la consola del proyecto no había ni un índice compuesto.** Se vio
+acompañando al dueño a crearlos a mano, en su pantalla; no la habría cazado
+ninguna prueba de este repositorio.
+
+Por eso el acta de v1177 cuadra, y su sello de reglas (REG-416) también: las
+reglas sí se publicaban. Los índices nunca.
+
+El arreglo y su guardián están en `main` (REG-431), y con ellos se invirtió el
+orden que este documento y el PR #425 daban por bueno: **fusionar primero**, y
+sólo entonces desplegar índices.
+
+**Lo que sigue siendo cierto de este acta**: el diagnóstico del botón (REG-504),
+las cifras de por qué no se veían cambios, y que la Compuerta 0 pasaba el 1-sep.
+
+---
+
 ## Respuesta corta
 
 1. **La aplicación no espera a ningún botón.** Vercel publica por su integración

@@ -195,7 +195,43 @@ export function DoctorFilter({
  * claro tres de los cinco quedaban por debajo de 4,5:1. La inicial que va
  * encima usa `--sobre-aviso`, que es tinta en oscuro y blanco en claro.
  */
-export function colorMedico(id: string): string {
+/**
+ * EL COLOR POR MÉDICO SÓLO SIRVE SI HAY MÁS DE UN MÉDICO.
+ *
+ * ── QUÉ SE VEÍA ───────────────────────────────────────────────────────────
+ *
+ * En el consultorio de UN solo médico —que es el caso comercial principal— la
+ * agenda entera salía ROSA. No por un error de tono: `colorMedico` reparte
+ * cinco colores por hash del id, y con un solo médico toca el que toque, para
+ * siempre. Medido en el arnés con la consulta sembrada: `rgb(244,114,182)`,
+ * el rosa que este sistema reserva al acento de ginecología, en las ocho citas
+ * del día y en las dos de la semana siguiente.
+ *
+ * ── POR QUÉ ESTABA ASÍ, Y POR QUÉ ES «ESCRITO Y SIN CONECTAR» ─────────────
+ *
+ * La intención correcta ya estaba ESCRITA, en el comentario de quien llama:
+ *
+ *     // Multi-doctor: colorea según el médico; un solo médico → cobalto de marca
+ *     const color = a.medicoId ? colorMedico(a.medicoId) : 'var(--nexus)'
+ *
+ * Pero la condición no implementa lo que dice el comentario. Pregunta si la
+ * cita TIENE médico, no si el consultorio tiene VARIOS — y una cita de un
+ * consultorio de un solo médico también tiene `medicoId`. Así que la rama del
+ * cobalto no se ejecutaba nunca en el caso para el que se escribió.
+ *
+ * ── LA REGLA ──────────────────────────────────────────────────────────────
+ *
+ * El criterio es el mismo que ya decide si el SELECTOR se dibuja
+ * (`activeDoctors.length <= 1`, arriba en este archivo): un color por médico
+ * distingue médicos, y donde no hay a quién distinguir no distingue nada —
+ * sólo gasta el único acento que el producto tiene para decir «esto es
+ * Ausculta».
+ *
+ * Vive aquí, junto al selector, para que las dos decisiones no puedan
+ * separarse: el día que una cambie de criterio, la otra está a tres líneas.
+ */
+export function colorMedico(id: string, cuantosMedicos = 2): string {
+  if (cuantosMedicos <= 1) return 'var(--nexus)'
   const colores = ['var(--nexus)', 'var(--purple)', 'var(--amber)', 'var(--blue)', 'var(--rosa)']
   const hash = Array.from(id).reduce((s, c) => s + c.charCodeAt(0), 0)
   return colores[hash % colores.length]

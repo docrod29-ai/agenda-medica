@@ -1,5 +1,5 @@
 {
-  "errores": 95,
+  "errores": 94,
   "porArchivo": {
     "src/app/(dashboard)/asistente/page.tsx": 2,
     "src/app/(dashboard)/citas/page.tsx": 2,
@@ -27,7 +27,6 @@
     "src/app/demo/interactivo/page.tsx": 1,
     "src/app/mi/[token]/page.tsx": 2,
     "src/app/not-found.tsx": 1,
-    "src/app/page.tsx": 1,
     "src/app/reservar/[clinicId]/page.tsx": 1,
     "src/app/setup/page.tsx": 1,
     "src/app/superadmin/contabilidad/page.tsx": 1,
