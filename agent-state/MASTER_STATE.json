@@ -23,26 +23,12 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "UU agent-state/MASTER_STATE.json",
     "M  docs/audit/regression-ledger.md",
-    "UU docs/data-room/INDICE.md",
-    "UU docs/design/SCREEN_INVENTORY.md",
-    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "A  scripts/ausculta-transformacion/caminar-con-el-teclado.mjs",
-    "A  scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
-    "A  scripts/ausculta-transformacion/el-estado-sobrevive-a-la-interrupcion.mjs",
-    "M  scripts/ausculta-transformacion/mirar-la-consulta.mjs",
-    "M  scripts/carril-excelencia/todo-dialogo-se-cierra-con-escape.mjs",
-    "M  scripts/design/sembrar-emulador.mjs",
-    "A  src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts",
-    "A  src/__tests__/el-selector-de-fecha-oculto-se-comia-tres-tabuladores.test.ts",
-    "A  src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts",
-    "A  src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
-    "A  src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts",
-    "M  src/__tests__/los-enlaces-de-accion-tambien-se-tocan.test.ts",
-    "A  src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts",
-    "M  src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",
-    "M  src/app/(dashboard)/calendario/page.tsx"
+    "MM docs/data-room/INDICE.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  src/__tests__/dos-escritores-no-pueden-dar-el-mismo-numero.test.ts",
+    "M  src/lib/calidad/familias-de-defecto.ts",
+    "M  src/lib/clinical/invariantes-clinicos.json"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -76,12 +62,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/pendientes-por-completar-5q7gsp",
+  "ramaActual": "fusion-438",
   "derivado": {
-    "regsEnElLedger": 301,
+    "regsEnElLedger": 302,
     "ultimaREG": "REG-509",
-    "archivosDePrueba": 928,
-    "casosDePrueba": 11236,
+    "archivosDePrueba": 929,
+    "casosDePrueba": 11243,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"
