@@ -293,9 +293,40 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
     capacidad: 'laboratorio-vision', ruta: 'src/app/api/expediente/laboratorio-vision/route.ts',
     queDecide: 'Lee una hoja de laboratorio fotografiada y saca los valores.',
     consecuenciaDelError: 'Un valor mal leído es una cifra clínica falsa en el expediente, con su unidad y su rango.',
-    conjunto: 'No existe. Ninguna hoja real puede entrar sin ser sintética (regla de datos).',
+    conjunto: '`synthetic-data/laboratorio-hojas/HOJAS.jsonl` (REG-449): 8 hojas sintéticas, 46 filas, escritas como se imprimen en México — abreviaturas («Glu», «TGO», «Hto»), coma decimal, valores censurados («>400»), unidades del SI y analitos fuera del catálogo. Ninguna hoja real puede entrar sin ser sintética (regla de datos). MIDE EL FOSO DETERMINISTA, NO LA VISIÓN: las filas entran como si el modelo las hubiera leído perfectas, así que dos de los tres ejes sólo se ejercen al revés. Medir la visión de verdad pide imágenes y llamadas de API, y es la mitad que falta.',
     metrica: 'exactitud por analito, con la unidad',
-    umbral: pendiente('Cuántos analitos mal leídos por hoja son tolerables. Como toda lectura de cifras, tiende a cero.'),
+    umbral: {
+      /** El más LAXO de los tres ejes, igual que en D-029 y D-030. */
+      valor: 0.05,
+      fuente:
+        'DECIDIDO por el médico dueño el 1-sep-2026 (D-031), sobre `synthetic-data/laboratorio-hojas`. TRES ejes, '
+        + 'porque los errores no cuestan lo mismo. Y queda UNA pregunta sin hacerle, declarada a propósito en '
+        + 'LO_QUE_NO_SE_LE_PREGUNTO_DEL_LABORATORIO: cuántos analitos INVENTADOS se toleran. Se mide y se reporta, '
+        + 'pero no se le pone umbral, porque no se lo pregunté y no se adivina.',
+      ejes: [
+        {
+          nombre: 'valorMalLeido', valor: 0,
+          porQue:
+            'CERO. Una creatinina de 1,2 que sale 12 es una cifra clínica FALSA en el expediente, y no se ve al leer '
+            + 'el panel porque tiene la forma correcta: entra a la gráfica de tendencia y a los cálculos renales. '
+            + 'Se plantearon 1 %, 1 ‰ y «cero para la unidad, 1 % para el valor»; eligió cero para los dos.',
+        },
+        {
+          nombre: 'unidadMalLeida', valor: 0,
+          porQue:
+            'CERO por la misma razón y una peor: la unidad cambia el significado entero. Es el fallo que la auditoría '
+            + 'de julio de 2026 ya había cazado —un valor de pánico en una unidad rara archivado como normal—, y por '
+            + 'eso existe `noEvaluable`.',
+        },
+        {
+          nombre: 'perdido', valor: 0.05,
+          porQue:
+            'MÁS LAXO que los otros dos a propósito, y el médico lo eligió sabiendo por qué: lo que falta SE NOTA '
+            + '—la hoja sigue adjunta y el panel se ve corto— mientras que lo mal leído no. Además la fila perdida no '
+            + 'desaparece: sobrevive como texto en `noReconocidas`. Se plantearon 1 %, 5 %, 10 % y «sólo se cuenta».',
+        },
+      ],
+    },
     politicaDeFallo: 'pregunta_al_medico',
   }),
   C({
@@ -549,4 +580,20 @@ export const LO_QUE_LA_COMPUERTA_NO_HACE: readonly string[] = Object.freeze([
   'No ejerce un umbral más fino que la resolución del conjunto que lo mide. Cuando eso pasa lo DECLARA en cada lectura, y de hecho aplica el umbral como si fuera cero — más estricto, no más laxo.',
   'No sabe si la traducción de eje a métrica es la que el médico tenía en la cabeza. Cada arnés elige la lectura más estricta y la deja escrita para que él la pueda desmentir.',
 ])
+
+/**
+ * LA PREGUNTA QUE NO SE LE HIZO AL MÉDICO SOBRE EL LABORATORIO — REG-449.
+ *
+ * Un analito INVENTADO —una fila en el panel que no está en la hoja— es la
+ * cuarta cosa que puede salir mal, y no tiene umbral porque no se la pregunté.
+ * Se mide y se reporta; no se le pone número.
+ *
+ * Poner cero «porque es obvio» sería exactamente lo que la regla 1 prohíbe: una
+ * decisión clínica que nadie tomó, con aspecto de acordada. Que en la nota
+ * decidiera 0 % de alucinación (D-029) no lo decide aquí — son dos capacidades,
+ * y extender una decisión de una a otra es adivinar con papeleo.
+ */
+export const LO_QUE_NO_SE_LE_PREGUNTO_DEL_LABORATORIO =
+  'NEEDS_CLINICAL_REVIEW: cuántos analitos INVENTADOS por hoja se toleran. Se '
+  + 'cuenta en cada lectura y no reprueba. Lo decide el médico dueño, no este archivo.'
 

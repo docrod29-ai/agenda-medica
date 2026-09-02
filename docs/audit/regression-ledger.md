@@ -17820,6 +17820,100 @@ se llama.
 
 ---
 
+## REG-449 — el umbral del laboratorio se aplica, y sale ROJO por el catálogo
+
+**Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 1-sep-2026.
+**Prueba.** `src/__tests__/la-hoja-de-laboratorio-llega-entera.test.ts`.
+
+### Qué faltaba
+
+`laboratorio-vision` no tenía umbral ni conjunto. El contrato decía: «No existe.
+Ninguna hoja real puede entrar sin ser sintética». Lo segundo es cierto; lo
+primero era **una tarea, no un hecho** — nadie había escrito las hojas.
+
+Se escribieron 8 hojas sintéticas como se imprimen en México (abreviaturas «Glu»
+/ «TGO» / «Hto», coma decimal, «>400», unidades del SI, analitos fuera del
+catálogo) y se midió **antes** de pedirle el número al médico.
+
+### El resultado, con su umbral puesto: rojo
+
+| | |
+|---|---|
+| Filas | 46, en 8 hojas |
+| Llegan al panel | 39 |
+| **No llegan** | **7 → 15,2 %** contra un techo del 5 % |
+| Analitos inventados | 0 |
+
+**Y la causa no es la visión.** Seis de las siete son **cobertura del catálogo**:
+ácido úrico, neutrófilos, linfocitos, VCM, vitamina D y ferritina no están en
+`analitos.ts`, que cubre 24. Una hoja de rutina trae más de 24.
+
+La séptima es distinta y es la que más enseña: **glucosa 7,2 mmol/L**. El analito
+sí está; lo tira el rango plausible, porque 7,2 no es una glucosa en mg/dL. La
+defensa hace lo correcto —mejor fuera que un punto falso en la gráfica— pero el
+paciente cuyo laboratorio reporte en unidades del SI **se queda sin serie de
+glucosa y nadie se lo dice**.
+
+### Lo que decidió el médico (D-031)
+
+| Eje | Umbral | Por qué |
+|---|---|---|
+| `valorMalLeido` | 0 | Cifra clínica falsa que no se ve al leer: tiene la forma correcta y entra a la gráfica y a los cálculos renales |
+| `unidadMalLeida` | 0 | Cambia el significado entero. Es el fallo de la auditoría de julio: valor de pánico en unidad rara archivado como normal |
+| `perdido` | 5 % | Más laxo **a propósito**: lo que falta se nota, y la fila sobrevive como texto en `noReconocidas` |
+
+### La pregunta que NO se le hizo, declarada
+
+Un **analito inventado** —una fila en el panel que no está en la hoja— no tiene
+umbral, porque no se lo pregunté. Se cuenta y se reporta; no reprueba. Que en la
+nota decidiera 0 % de alucinación (D-029) **no lo decide aquí**: son dos
+capacidades, y extender una decisión de una a otra es adivinar con papeleo. Queda
+en `LO_QUE_NO_SE_LE_PREGUNTO_DEL_LABORATORIO` con su `NEEDS_CLINICAL_REVIEW` y su
+guardián.
+
+### Lo que este conjunto NO mide, y hay que decirlo fuerte
+
+**No mide la visión.** Las filas entran como si el modelo las hubiera leído
+perfectas, así que **dos de los tres ejes salen cero por construcción** y sólo se
+ejercen al revés, inyectando el defecto. Medirlos de verdad pide imágenes y
+llamadas de API: es la mitad que el médico dejó para después.
+
+Y el 15,2 % **depende de las hojas que escribí yo**. Ocho químicas básicas
+habrían dado 0 %. Se escribieron para parecerse a las de verdad, y eso es un
+juicio mío, no una medición del producto. Queda dicho en la cabecera del golden.
+
+### Trinquete, con el patrón que el propio dueño fijó en D-030
+
+Sellado en 7 filas: sólo puede bajar. Bajarlo es añadir analitos al catálogo, y
+eso pide rango plausible con fuente — una cifra que no se inventa. Como en
+DLG-004, el trinquete **no da por bueno** el hueco: la compuerta del contrato
+sigue diciendo `reprueba`, y el motivo está escrito con nombre y apellido.
+
+### El medidor casero que medía otra cosa
+
+La primera versión comparaba a mano el nombre de la fila con la clave del
+resultado, y marcaba dos inventados que no lo eran: «Filtrado glomerular» → `tfg`
+y «c-HDL» → `hdl`. Se compara con `analitoDe`, el mismo mapeo canónico que usa
+producción. **Un medidor con su propia idea de qué es un analito mide otra cosa
+que el producto.**
+
+### Probado al revés cuatro veces
+
+Subir el techo de perdido al 50 % · hacer tolerante `valorMalLeido` · borrar la
+pregunta pendiente · quitarle al corpus su hoja de unidades del SI. Las cuatro
+ponen la prueba en rojo. Por el otro lado se comprueba que las abreviaturas NO se
+pierden (si «Glu» y «TGO» no llegaran, la serie temporal se partiría en dos), que
+la coma decimal no convierte 1,2 en 12, y que los censurados conservan su
+comparador.
+
+### Sin módulo nuevo, a propósito
+
+La lectura vive en el golden y no en `src/lib`. La lógica de producción que
+ejercita —`validarPanel`— ya existe, y un módulo nuevo sin más consumidor que
+este golden es el huérfano que los dos trinquetes de conexión llevan toda la
+semana rechazando. Cuando exista la mitad de imágenes y haya un segundo
+consumidor de verdad, se muda.
+
 ## REG-448 — el umbral de la voz, y el conjunto que el censo daba por inexistente
 
 **Eje.** WS-12.contratos-de-evaluacion + TR-VOZ. **Fecha.** 1-sep-2026.

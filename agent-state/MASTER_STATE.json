@@ -19,22 +19,14 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/product/DECISION_REGISTER.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/quality/MOTORES-SIN-CONECTAR.md",
-    " M src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
-    " M src/__tests__/el-umbral-decidido-de-verdad-reprueba.test.ts",
-    " M src/lib/asr/lo-que-pesa-de-un-error.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
     " M src/lib/ia/contratos-de-evaluacion.ts",
-    " M src/lib/ia/evaluacion.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/el-motor-de-voz-tiene-techo.test.ts"
+    "?? src/__tests__/la-hoja-de-laboratorio-llega-entera.test.ts",
+    "?? synthetic-data/laboratorio-hojas/"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -70,10 +62,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 299,
+    "regsEnElLedger": 300,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 868,
-    "casosDePrueba": 10932,
+    "archivosDePrueba": 869,
+    "casosDePrueba": 10950,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
