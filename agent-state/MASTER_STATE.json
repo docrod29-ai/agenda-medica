@@ -24,11 +24,10 @@
   },
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M src/app/globals.css",
+    " M src/app/(dashboard)/calendario/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
-    "?? src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts"
+    "?? src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -64,10 +63,10 @@
   ],
   "ramaActual": "claude/ausculta-product-transformation-mckih5",
   "derivado": {
-    "regsEnElLedger": 295,
+    "regsEnElLedger": 296,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 921,
-    "casosDePrueba": 11196,
+    "archivosDePrueba": 922,
+    "casosDePrueba": 11198,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

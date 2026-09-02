@@ -529,6 +529,10 @@
       "minCasos": 6
     },
     {
+      "archivo": "src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts",
+      "minCasos": 2
+    },
+    {
       "archivo": "src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts",
       "minCasos": 3
     },
