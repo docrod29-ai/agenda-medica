@@ -1153,7 +1153,24 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * nada — se cierran a mano. Lo único que se puede automatizar es que olvidarlo
      * ponga la suite en rojo.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 502, 504, 505],
+    /**
+     * 440 es esta familia en su forma más pura: un contador GLOBAL que se asigna
+     * A MANO y tiene VARIOS ESCRITORES. Cuatro colisiones el mismo día entre tres
+     * sesiones que no se veían, y ninguna la vio una compuerta: las dos primeras
+     * se vieron leyendo un conflicto de fusión, la tercera leyendo por casualidad
+     * un aviso de otra sesión, y la cuarta se la llevó el propio guardián — nació
+     * como REG-438 y otra rama reclamó ese número mientras corría su CI.
+     *
+     * REG-267 ya había escrito la causa palabra por palabra y se quedó en lección
+     * sin guardián, que es cómo esta familia sobrevive: el dato existe, alguien
+     * tiene que acordarse, y acordarse no falla ruidosamente.
+     *
+     * Lo que la distingue de 241 o 505 es que aquí NO se puede derivar el dato: la
+     * fuente de verdad del contador está repartida entre ramas que no se ven. Por
+     * eso la reparación no es derivarlo —sería mentir— sino mover el rojo al único
+     * momento en que las dos mitades existen a la vez: la fusión.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 440, 502, 504, 505],
   },
   {
     /**

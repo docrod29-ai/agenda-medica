@@ -17308,3 +17308,96 @@ separador.
 - **`Visitas anteriores: [2026-09-02]`** se vio y **no** se tocó. El corchete es
   el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
   contexto de los motores: cambiarla por estética movería lo que el modelo lee.
+
+---
+
+## REG-440 — el mismo número de regresión se podía dar dos veces, y nada lo decía
+
+**CÓMO SE DESCUBRIÓ.** Al unificar cuatro PRs que llevaban un día abiertos a la
+vez. Los ficheros de contabilidad chocaron y hubo que leerlos enteros; ahí
+apareció que `REG-434` estaba dado a **dos defectos distintos**. Horas después, y
+esto es lo que convierte una anécdota en un defecto: **por casualidad**. Un aviso
+programado de otra sesión mencionó de pasada un «REG-436» doce minutos después de
+que ese número ya hubiera entrado a `main`.
+
+**Cuatro colisiones el mismo día, entre tres sesiones que no se veían:**
+
+```
+REG-434  la cita de la portada       (#433, 00:05)
+REG-434  el backfill inejecutable    (#436, 00:58)   → 436
+REG-436  el backfill inejecutable    (main, 04:35)
+REG-436  la lista de alergias        (rama, 04:47)   → 437
+REG-438  ESTE MISMO GUARDIÁN         (#438, 05:39)   → 440
+REG-438  el riel del expediente      (#440, 06:13)
+```
+
+### La cuarta se la llevó esta misma ficha
+
+Este guardián se escribió como **REG-438**. Mientras su CI terminaba, otra sesión
+reclamó REG-438 para el riel del expediente. Pasó a **REG-440** sin haber llegado
+a fusionarse.
+
+Se deja escrito porque es la mejor prueba que puede tener —la reparación de un
+defecto lo sufrió antes de aterrizar— y porque contesta sola a la pregunta de si
+valía la pena: habrían convivido dos REG-438, y **nada lo habría dicho**.
+
+### La causa raíz
+
+El contador de regresiones es **global**, se asigna **a mano** y tiene **varios
+escritores** que numeran contra el `main` que veían al empezar. Una rama abierta
+hace una hora no puede saber qué número reclamó otra hace diez minutos.
+
+Eso no es descuido: es la forma del sistema. **REG-267 ya lo había dicho** —
+«el contador es global, se asigna a mano y tiene dos escritores»— y allí costó
+perder una reparación clínica entera. Se escribió como lección y se quedó en
+lección: no se le puso guardián. Hoy los escritores son tres.
+
+### Por qué llegaba tan lejos sin verse
+
+Porque **git no ayuda**. Dos entradas con el mismo número, si caen lejos una de
+otra en el fichero, se fusionan **sin conflicto**. El único motivo de que la
+colisión de REG-434 se viera es que las dos fichas quedaron adyacentes.
+
+`regsDuplicados()` en `familias-de-defecto.ts` sí caza un número clasificado dos
+veces —existe desde hace tiempo— pero llega tarde y por otro camino: exige que
+las dos entradas estén **clasificadas**, y vigila la clasificación, no el
+registro. El ledger, que es la fuente, no tenía ninguna.
+
+Y se vio en vivo: al fusionar, `familias-de-defecto.ts` dejó un `436` en **dos
+familias distintas sin que git señalara conflicto**.
+
+### La regla que lo hace seguro
+
+**No se puede impedir que dos sesiones ELIJAN el mismo número.** Nada dentro de
+una rama sabe qué hay en otra, y fingir lo contrario sería inventarse una
+comprobación que no comprueba.
+
+Lo que sí se puede impedir —y es donde ocurre el daño— es que dos entradas con el
+mismo número lleguen a **convivir en silencio**. El aviso llega al fusionar, no al
+numerar, y eso basta: fusionar es cuando el número deja de ser de una rama y pasa
+a ser del proyecto.
+
+`src/__tests__/dos-escritores-no-pueden-dar-el-mismo-numero.test.ts`, **7 casos**.
+Probado al revés de dos maneras: con un fixture de dos encabezados iguales, y
+—lo que importa— **devolviéndole a la ficha de las alergias su número original
+sobre el ledger de verdad**, donde el guardián se puso rojo y nombró las dos
+fichas en conflicto.
+
+Y probado al revés **del** al revés, porque un guardián demasiado ansioso se
+acaba desactivando: un encabezado que declara dos números a la vez
+—`## REG-179 / REG-180`, que comparten causa y ficha— **no** es una colisión, y
+tampoco lo son las menciones en prosa (`Ver REG-436` aparece en el CSS, en el
+JSX y en tres fichas más) ni un `###` dentro de una ficha.
+
+### Qué NO cubre
+
+- **No ve otra rama.** Dos ramas con el mismo número siguen verdes por separado.
+  Es exactamente lo que le pasó a esta ficha, y no se puede arreglar desde dentro.
+- **No propone el número libre.** Eso ya lo calcula
+  `scripts/mantenimiento/absorber-rama.mjs`.
+- **No exige que el número sea el siguiente.** Un hueco no es un defecto: los
+  números se saltan al renumerar —438 y 439 quedan libres tras esta tanda— y
+  exigirlos correlativos pondría en rojo cada renumeración.
+- **No arregla la causa de fondo**, que es que el contador se asigne a mano. Un
+  contador derivado lo cerraría de verdad; cambiarlo hoy renumeraría casi 300
+  entradas y rompería toda cita cruzada del repositorio. Queda dicho, no hecho.
