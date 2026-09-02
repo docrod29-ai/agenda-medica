@@ -383,7 +383,56 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * La reparación no añade capacidad: mueve la ejecución al único sitio donde
      * las dos mitades ya están juntas.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431, 434, 436],
+    /**
+     * 506 es esta familia sobre el DESPLIEGUE, y con el comando contestando que
+     * sí. `firebase.json` no declaraba `firestore.indexes`, y en firebase-tools
+     * el envío entero cuelga de esa clave: el paso imprimía «deploying
+     * indexes...», recorría una lista vacía y contestaba `Deploy complete!`.
+     *
+     * Lo que lo hace de esta familia y no de `depende_de_recordar`: nadie
+     * olvidó nada. El paso corría, en el momento correcto, y su salida decía
+     * que había ido bien. Lo que faltaba era mirar QUÉ contestó el proveedor.
+     *
+     * Nota de concurrencia, que es media lección: otra sesión encontró el mismo
+     * defecto en paralelo y su arreglo llegó antes a `main` —y llegó más lejos,
+     * con el diagnóstico del 403 de IAM—. Dos carriles gastando el mismo
+     * hallazgo es T-1 del tablero, y se ve al fusionar, no antes.
+     */
+
+    /**
+     * 507 es esta familia con el matiz más incómodo: la maquinaria de firma
+     * estaba escrita, probada y CONECTADA en tres caminos —impresión, PDF y la
+     * vista previa del dashboard—. El cuarto, el Word, no podía conectarse:
+     * `receta-word` no lee del DOM, lee la URL guardada en la configuración.
+     *
+     * O sea que la cobertura no era «casi completa»: era completa en el eje que
+     * alguien miró —los caminos que pasan por el DOM— y vacía en el que no.
+     * Contar caminos cubiertos no dice nada si no se enumeran TODOS los
+     * consumidores de la ruta que se va a cerrar.
+     */
+
+    /**
+     * 508 es esta familia en su forma más literal —`meta-connect` declaraba una
+     * constante que no usaba nadie— pero el daño estaba en el otro extremo: la
+     * PANTALLA imprimía ese literal como instrucción para teclear en Meta, y el
+     * servidor no lo acepta. Lo que estaba «sin conectar» no era una función:
+     * era el ACUERDO entre lo que el producto le dice al médico que ponga y lo
+     * que el producto va a aceptar después.
+     *
+     * Y el síntoma no se parece a la causa: «no me llegan los mensajes de
+     * WhatsApp» no lleva a «la pantalla me dictó un token equivocado».
+     */
+
+    /**
+     * 509 es esta familia aplicada a una HERRAMIENTA, no al producto: el
+     * inventario de entorno leía la lista de `grep`, que llega en el orden del
+     * sistema de archivos, y elegía el respaldo «del primero que apareciera».
+     * El artefacto derivado salía distinto en cada máquina, y eso convierte a su
+     * guardián en una trampa —rojo en CI, verde en local— cuyo camino corto es
+     * borrar la comprobación. Se ve una sola vez: cuando corre en otra parte.
+     */
+
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509],
   },
   {
     clave: 'se_contradice',

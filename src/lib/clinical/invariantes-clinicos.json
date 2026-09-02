@@ -397,6 +397,10 @@
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts",
+      "minCasos": 6
+    },
+    {
       "archivo": "src/__tests__/el-despliegue-emite-su-propio-sello.test.ts",
       "minCasos": 11
     },
@@ -447,6 +451,10 @@
     {
       "archivo": "src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts",
@@ -563,6 +571,10 @@
     {
       "archivo": "src/__tests__/el-texto-completo-solo-si-la-licencia-lo-permite.test.ts",
       "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts",
+      "minCasos": 5
     },
     {
       "archivo": "src/__tests__/el-tope-por-caso-no-mide-la-maquina.test.ts",
@@ -1195,6 +1207,10 @@
     {
       "archivo": "src/__tests__/ninguna-pantalla-recibe-una-lista-muda.test.ts",
       "minCasos": 22
+    },
+    {
+      "archivo": "src/__tests__/ninguna-variable-de-entorno-vive-sin-declarar.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/no-hay-un-porcentaje-universal.test.ts",

@@ -47,6 +47,8 @@ export function construirRecetaHTML(
   data: RecetaWordData,
   config: ClinicConfig | null,
   recetaConfig: RecetaConfig,
+  /** REG-507 — membrete ya convertido a data URI por `descargarRecetaWord`. */
+  membreteResuelto?: string,
 ): string {
   const medico = config?.nombreMedico ?? ''
   const cedula = config?.cedulaProfesional ?? ''
@@ -78,6 +80,8 @@ export function construirRecetaHTML(
     if (recetaConfig.disenoCompletoDataUrl) return ''
     const u = recetaConfig.membreteDataUrl
     if (!u) return ''
+    // REG-507: si ya se resolvió a un data URI autocontenido, ese gana.
+    if (membreteResuelto) return membreteResuelto
     if (/^(data:|https?:)/i.test(u)) return u
     if (typeof window === 'undefined') return u
     return new URL(u, window.location.origin).href
@@ -176,13 +180,58 @@ export function construirRecetaHTML(
 </body></html>`
 }
 
+/**
+ * ¿Es una URL RELATIVA del proxy del diseño? Sólo ésas se pueden traer
+ * same-origin con la sesión del navegador.
+ */
+const ES_PROXY_RELATIVO = (u: string): boolean => u.startsWith('/api/receta/diseno')
+
+/**
+ * REG-507 — el membrete del .doc, autocontenido.
+ *
+ * El .doc guardaba un ENLACE ABSOLUTO al proxy (`/api/receta/diseno?path=…`) y
+ * Word lo pedía al abrir el archivo desde el disco: sin sesión y sin firma. Eso
+ * funcionaba sólo porque la ruta aceptaba enlaces sin firmar, que es justo el
+ * hueco que `RECETA_DISENO_FIRMA=obligatoria` viene a cerrar.
+ *
+ * Se trae la imagen aquí —dentro de la app, con la sesión puesta— y se incrusta
+ * en el documento. El .doc deja de depender de la red, de la sesión y del
+ * candado, y de paso deja de caducar.
+ *
+ * **Nunca lanza ni bloquea**: si algo falla se devuelve la URL de siempre y el
+ * documento sale como salía. Mismo contrato que `firmarImagenesDiseno`.
+ */
+export async function resolverMembreteParaWord(u: string, timeoutMs = 4000): Promise<string> {
+  if (!u || !ES_PROXY_RELATIVO(u) || typeof window === 'undefined') return u
+  try {
+    const control = new AbortController()
+    const t = setTimeout(() => control.abort(), timeoutMs)
+    const r = await fetch(new URL(u, window.location.origin).href, { signal: control.signal })
+    clearTimeout(t)
+    if (!r.ok) return u
+    const blob = await r.blob()
+    const dataUri = await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result ?? ''))
+      fr.onerror = () => reject(new Error('no se pudo leer el membrete'))
+      fr.readAsDataURL(blob)
+    })
+    return dataUri.startsWith('data:image/') ? dataUri : u
+  } catch {
+    return u
+  }
+}
+
 /** Genera y descarga la receta/orden como archivo .doc (editable en Word). */
-export function descargarRecetaWord(
+export async function descargarRecetaWord(
   data: RecetaWordData,
   config: ClinicConfig | null,
   recetaConfig: RecetaConfig,
-): void {
-  const html = construirRecetaHTML(data, config, recetaConfig)
+): Promise<void> {
+  const membreteResuelto = recetaConfig.disenoCompletoDataUrl
+    ? undefined
+    : await resolverMembreteParaWord(recetaConfig.membreteDataUrl ?? '')
+  const html = construirRecetaHTML(data, config, recetaConfig, membreteResuelto)
   const blob = new Blob(['﻿', html], { type: 'application/msword' })
   const url = URL.createObjectURL(blob)
   const nombrePac = (data.pacienteNombre || 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
