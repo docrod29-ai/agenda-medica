@@ -367,8 +367,19 @@ describe('E1-01 · guardián del hueco de cobertura de unidades', () => {
   })
 
   it('las unidades de ANALITOS que HOY faltan siguen siendo exactamente éstas', () => {
+    /**
+     * EL HUECO CRECIÓ, Y ESO ES LO QUE ESTE GUARDIÁN EXISTE PARA QUE SE VEA.
+     *
+     * REG-450 metió ocho analitos del catálogo del dueño (D-032) y con ellos dos
+     * unidades que el motor de cantidades todavía no sabe expresar: `fL` (VCM) y
+     * `ng/mL` (ferritina, vitamina D). No se «arregló» ampliando `FACTORES` de
+     * paso: ampliarlo toca un guardián deliberado de otra unidad de trabajo, y
+     * hacerlo de refilón es cómo un hueco declarado se convierte en uno oculto.
+     *
+     * Sigue siendo prerrequisito de E1-03, ahora con cinco unidades en vez de tres.
+     */
     const faltantes = [...new Set(ANALITOS.map((a) => a.unidad))].filter((u) => !unidadEsExpresable(u))
-    expect(faltantes.sort()).toEqual(['10³/µL', 'U/L', 'µUI/mL'])
+    expect(faltantes.sort()).toEqual(['10³/µL', 'U/L', 'fL', 'ng/mL', 'µUI/mL'])
   })
 
   it('el comportamiento seguro está garantizado: lo no expresable FALLA, no se degrada', () => {

@@ -1,5 +1,9 @@
 /**
- * GOLDEN — REG-449. El umbral de `laboratorio-vision` (D-031) se aplica, y sale ROJO.
+ * GOLDEN — REG-449. El umbral de `laboratorio-vision` (D-031) se aplica.
+ *
+ * Al escribirse salía ROJO (7 de 46, 15,2 %). REG-450 cerró la causa con los
+ * números del médico (D-032) y hoy mide 1 de 46. La historia se conserva abajo
+ * porque explica POR QUÉ existen estos analitos y estos casos.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -11,8 +15,8 @@
  *
  * Se escribieron 8 hojas sintéticas como se imprimen en México —abreviaturas,
  * coma decimal, «>400», unidades del SI— y se midió ANTES de pedirle el número
- * al médico. Con su umbral puesto, la compuerta sale **roja**: 7 de 46 filas
- * (15,2 %) no llegan al panel, contra un techo del 5 %.
+ * al médico. Con su umbral puesto, la compuerta salía **roja**: 7 de 46 filas
+ * (15,2 %) no llegaban al panel, contra un techo del 5 %.
  *
  * Y la causa NO es la visión. **Seis de las siete son cobertura del catálogo**:
  * ácido úrico, neutrófilos, linfocitos, VCM, vitamina D y ferritina no están en
@@ -63,11 +67,17 @@ const HOJAS = join(RAIZ, 'synthetic-data/laboratorio-hojas/HOJAS.jsonl')
 const UMBRAL: Umbral = CONTRATOS.find(c => c.capacidad === 'laboratorio-vision')!.umbral
 
 /**
- * EL TRINQUETE. Medido el 1-sep-2026: 7 filas de 46 no llegan al panel. Sólo
- * puede BAJAR — y baja añadiendo analitos al catálogo, que es trabajo que
- * necesita rangos con fuente y por tanto una decisión del médico.
+ * EL TRINQUETE. Sólo puede BAJAR.
+ *
+ *  · 1-sep-2026 (REG-449): **7** de 46. Seis eran cobertura del catálogo.
+ *  · 2-sep-2026 (REG-450): **1** de 46. El médico entregó el catálogo maestro de
+ *    plausibilidad (D-032) y los seis analitos entraron con SUS números.
+ *
+ * La que queda es la glucosa en mmol/L, y no se arregla con más analitos: el
+ * analito ya está y lo tira el rango plausible. Pide normalización de unidad,
+ * que es la §27 del catálogo del dueño y es otra unidad de trabajo.
  */
-const FILAS_QUE_NO_LLEGAN = 7
+const FILAS_QUE_NO_LLEGAN = 1
 
 interface Hoja { readonly id: string; readonly contexto: string; readonly filas: FilaCruda[] }
 
@@ -93,14 +103,20 @@ function medirElFoso(hojas: readonly Hoja[]): LoMedido & { filas: number; llegan
      * Un analito INVENTADO: llegó al panel algo que la hoja no traía. Se cuenta
      * y NO tiene umbral — el médico no lo decidió (`LO_QUE_NO_SE_LE_PREGUNTO…`).
      *
-     * PREMISA CORREGIDA: mi primera versión comparaba cadenas a mano y marcaba
-     * dos inventados que no lo eran («Filtrado glomerular» → `tfg`, «c-HDL» →
-     * `hdl`). Se compara con `analitoDe`, que es el mismo mapeo canónico que usa
-     * producción: un medidor con su propia idea de qué es un analito mide otra
-     * cosa que el producto.
+     * PREMISA CORREGIDA DOS VECES, y las dos por lo mismo:
+     *
+     *  1. La primera versión comparaba cadenas a mano y marcaba dos inventados
+     *     que no lo eran («Filtrado glomerular» → `tfg`, «c-HDL» → `hdl`).
+     *  2. La segunda ya usaba `analitoDe`, pero SIN la unidad — y en cuanto
+     *     REG-450 hizo que la unidad desambiguara el diferencial leucocitario,
+     *     «Neutrófilos %» volvió a contarse como inventado.
+     *
+     * La lección es la misma las dos veces: el medidor tiene que llamar al mapeo
+     * canónico **con las mismas entradas que usa producción**. Uno con su propia
+     * idea de qué es un analito mide otra cosa que el producto.
      */
     const clavesDeLaHoja = new Set(
-      h.filas.map(f => analitoDe(String(f.estudio ?? ''))?.clave).filter(Boolean),
+      h.filas.map(f => analitoDe(String(f.estudio ?? ''), f.unidad?.trim())?.clave).filter(Boolean),
     )
     inventadas += panel.resultados.filter(r => !clavesDeLaHoja.has(r.clave)).length
   }
@@ -164,33 +180,34 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     expect(lectura.ejes.map(e => e.umbral)).toEqual([0, 0, 0.05])
   })
 
-  it('7 de 46 filas no llegan al panel: 15,2 % contra un techo del 5 %', () => {
+  it('1 de 46 filas no llega: 2,2 % por debajo del techo del 5 %', () => {
+    /**
+     * El 1-sep-2026 esto medía 7 de 46 —15,2 %— y la compuerta salía ROJA. Seis
+     * de las siete eran cobertura del catálogo, y el médico entregó los números
+     * al día siguiente (D-032). No se arregló el umbral: se arregló la causa.
+     */
     const m = medirElFoso(corpus())
     expect(m.filas).toBe(46)
     expect(m.perdidas).toBe(FILAS_QUE_NO_LLEGAN)
-    expect(m.ejes.perdido).toBeGreaterThan(0.05)
+    expect(m.ejes.perdido).toBeLessThan(0.05)
 
     const lectura = aplicarUmbral(UMBRAL, m)
-    expect(lectura.veredicto).toBe('reprueba')
-    expect(esVerde(lectura)).toBe(false)
-    expect(lectura.porQue).toMatch(/perdido/)
+    expect(lectura.veredicto).toBe('pasa')
+    expect(esVerde(lectura)).toBe(true)
   })
 
-  it('y NO es culpa de la visión: seis de las siete son el CATÁLOGO', () => {
+  it('la que queda es la glucosa en mmol/L, y no es cobertura de catálogo', () => {
     /**
-     * `analitos.ts` cubre 24 analitos y una hoja de rutina trae más. Un
-     * vocabulario es vocabulario, no criterio: que falte un término significa
-     * que ese caso no se vigila. Bajarlo de 7 pide añadir analitos con su rango
-     * plausible, y ese rango es una cifra que no se inventa.
+     * Un vocabulario es vocabulario, no criterio: que faltara un término
+     * significaba que ese caso no se vigilaba, no que estuviera bien. Seis se
+     * cubrieron. La séptima NO se cubre con más analitos — el analito ya está.
      */
     const fuera: string[] = []
     for (const h of corpus()) {
       const panel = validarPanel({ fecha: '2026-09-01', filas: h.filas })
       fuera.push(...panel.noReconocidas.map(n => n.estudio))
     }
-    expect(fuera.sort()).toEqual([
-      'Ferritina', 'Glucosa', 'Linfocitos', 'Neutrófilos', 'VCM', 'Vitamina D', 'Ácido úrico',
-    ])
+    expect(fuera).toEqual(['Glucosa'])
   })
 
   it('la séptima es otra cosa: glucosa en mmol/L se cae entera', () => {
@@ -210,13 +227,13 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     expect(panel.noReconocidas[0].unidad).toBe('mmol/L')
   })
 
-  it('el trinquete: 7 filas, y sólo puede bajar', () => {
+  it('el trinquete: 1 fila, y sólo puede bajar', () => {
     const m = medirElFoso(corpus())
     expect(
       m.perdidas,
       m.perdidas > FILAS_QUE_NO_LLEGAN
         ? 'SUBIÓ: el catálogo cubre menos que ayer, o el validador tira más.'
-        : 'BAJÓ: baja FILAS_QUE_NO_LLEGAN y di en el ledger qué analito se cubrió.',
+        : 'BAJÓ: baja FILAS_QUE_NO_LLEGAN y di en el ledger qué se cubrió.',
     ).toBe(FILAS_QUE_NO_LLEGAN)
   })
 })
@@ -227,7 +244,7 @@ describe('AL REVÉS — los dos ejes que este conjunto NO mide', () => {
    * entran perfectas. Así que se ejercen inyectando el defecto, que es la única
    * forma honesta de saber que la compuerta los vigilaría.
    */
-  const conDefecto = (ejes: Partial<Record<string, number>>): LoMedido => {
+  const conDefecto = (ejes: Record<string, number>): LoMedido => {
     const base = medirElFoso(corpus())
     return { ...base, ejes: { ...base.ejes, ...ejes } }
   }

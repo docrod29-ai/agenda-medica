@@ -134,13 +134,39 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
     candidatos: ['pcr', 'pcr_molecular'],
     nota: 'NEEDS_CLINICAL_REVIEW (E1-02/Q2): «PCR» puede ser proteína C reactiva o reacción en cadena de la polimerasa. Sin decisión del médico dueño no se elige: confirmar con el usuario.',
   },
+  /**
+   * REG-450 · §25.2 del catálogo de plausibilidad del dueño (D-032).
+   *
+   * Éstos no esperan una decisión: son ambiguos POR NATURALEZA, y lo seguirán
+   * siendo. La hoja imprime «Neutrófilos» y sólo la unidad dice si es el
+   * porcentaje o el absoluto. Colocar 75 en la serie del absoluto es un valor
+   * mal leído —el eje que el médico puso en CERO (D-031)— y no se ve, porque
+   * tiene la forma correcta.
+   */
+  neutrofilos: {
+    candidatos: ['neutrofilosPct', 'neutrofilosAbs'],
+    nota: '«Neutrófilos» no identifica un analito sin su unidad: 75 (%) y 7,5 (×10³/µL) son resultados distintos (§25.2 de D-032). La unidad decide; sin ella se pregunta.',
+  },
+  neutros: {
+    candidatos: ['neutrofilosPct', 'neutrofilosAbs'],
+    nota: 'Igual que «neutrófilos»: la abreviatura tampoco dice si es porcentaje o absoluto.',
+  },
+  linfocitos: {
+    candidatos: ['linfocitosPct', 'linfocitosAbs'],
+    nota: '«Linfocitos» no identifica un analito sin su unidad: 28 (%) y 2,8 (×10³/µL) son resultados distintos (§25.2 de D-032). La unidad decide; sin ella se pregunta.',
+  },
+  linfos: {
+    candidatos: ['linfocitosPct', 'linfocitosAbs'],
+    nota: 'Igual que «linfocitos»: la abreviatura tampoco dice si es porcentaje o absoluto.',
+  },
 }
 
 /**
  * NEEDS_CLINICAL_REVIEW · Q1 — LOINC de laboratorio.
  *
  * Trinquete: número de conceptos de dominio `laboratorio` SIN ningún código
- * estándar. Hoy son TODOS (25 = 24 de ANALITOS + creatinina_orina), porque
+ * estándar. Hoy son TODOS (33 = 32 de ANALITOS + creatinina_orina; eran 25 antes
+ * de que REG-450 añadiera los ocho de D-032), porque
  * elegir un LOINC no es mecánico —cambia según magnitud (masa vs. sustancia) y
  * espécimen— y un código equivocado viaja al exterior dentro de un `Observation`
  * de FHIR, donde otro sistema lo lee como verdad.
@@ -148,7 +174,17 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
  * Este número sólo puede BAJAR, y sólo cuando el médico dueño valide la tabla
  * concepto→LOINC. El test T-5 lo fija: nadie «completa» el catálogo inventando.
  */
-export const LAB_SIN_CODIGO_CONGELADO = 25
+/**
+ * SUBE CUANDO ENTRA UN ANALITO, Y ESO NO ES UNA EXCEPCIÓN AL TRINQUETE.
+ *
+ * Lo que este número vigila es que nadie INVENTE un LOINC, no que el catálogo no
+ * crezca. Un analito nuevo sin código es exactamente lo correcto: el §27.3 y el
+ * §35 del catálogo del dueño piden LOINC, y elegirlo no es mecánico —cambia con
+ * la magnitud y el espécimen— así que lo valida él, no yo.
+ *
+ * Baja SÓLO cuando el médico dueño valide una fila concepto→LOINC.
+ */
+export const LAB_SIN_CODIGO_CONGELADO = 33
 
 // ---------------------------------------------------------------------------
 // 3.b PROCEDENCIA DE LOS SINÓNIMOS — la afirmación «aquí no se inventó nada»
@@ -350,6 +386,36 @@ const SINONIMOS_LAB: Readonly<Record<string, readonly string[]>> = {
   cloro: ['cloro', 'cl', 'cloro serico'],
   tsh: ['tsh', 'tirotropina'],
   pcr: ['pcr', 'proteina c reactiva'],
+
+  /**
+   * ── LOS OCHO DE D-032 (REG-450) ──────────────────────────────────────────
+   *
+   * Derivados de los literales que están EN los `patron` de `analitos.ts`, como
+   * todos los de arriba. Ni uno inventado; el invariante T-10 lo comprueba
+   * llamando a `analitoDe` con la unidad del propio concepto.
+   */
+  acidoUrico: ['acido urico', 'ac urico', 'ac. urico', 'a urico', 'a. urico'],
+  ferritina: ['ferritina'],
+  vitaminaD: ['vitamina d', '25 oh d', '25-oh d', '25 hidroxi vitamina d', 'calcidiol'],
+  vcm: ['vcm', 'mcv', 'volumen corpuscular medio'],
+  /**
+   * EL DIFERENCIAL LEUCOCITARIO COMPARTE TÉRMINOS A PROPÓSITO — §25.2 de D-032.
+   *
+   * «Neutrófilos» a secas NO identifica un analito: puede ser 75 (%) o 7,5
+   * (×10³/µL), y son dos series distintas. Los términos desnudos se declaran en
+   * LOS DOS conceptos para que el resolutor devuelva `ambiguo`, que es la
+   * verdad, en vez de elegir uno. Es la misma postura que toma `analitoDe`
+   * cuando no le dan unidad: no se adivina.
+   *
+   * Y por eso las claves son `…Pct` y `…Abs`, y NINGUNA es la palabra desnuda:
+   * si una de las dos se llamara `neutrofilos`, esa palabra tendría dueño, y la
+   * hoja que imprime «Neutrófilos» no dice cuál de los dos es. Los nombres salen
+   * del propio §25.2 (`neutrophils_percent` / `neutrophils_absolute`).
+   */
+  neutrofilosPct: ['neutrofilos', 'neutros'],
+  neutrofilosAbs: ['neutrofilos absolutos', 'neutrofilos', 'neutros', 'anc'],
+  linfocitosPct: ['linfocitos', 'linfos'],
+  linfocitosAbs: ['linfocitos absolutos', 'linfocitos', 'linfos', 'alc'],
 }
 
 /**

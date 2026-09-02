@@ -457,8 +457,16 @@ function procedenciaDe(c: ConceptoCanonico, s: string): string | null {
     if (display && normalizarTermino(display) === s) return `display LOINC ${cod.codigo} en recursos.ts`
   }
 
-  // 3 · oráculo de laboratorio: producción YA hace ese mapeo.
-  if (c.dominio === 'laboratorio' && analitoDe(s)?.clave === c.clave) return 'analitoDe()'
+  /**
+   * 3 · oráculo de laboratorio: producción YA hace ese mapeo.
+   *
+   * Se le pasa la UNIDAD del propio concepto (REG-450). Desde que el diferencial
+   * leucocitario se desambigua por unidad (§25.2 de D-032), `analitoDe('neutrofilos')`
+   * a secas devuelve `null` a propósito — y sin la unidad este oráculo declararía
+   * huérfano un sinónimo que producción sí resuelve. Sigue exigiendo la clave
+   * EXACTA: preguntar con la unidad no afloja nada, sólo pregunta bien.
+   */
+  if (c.dominio === 'laboratorio' && analitoDe(s, c.unidadConvencional)?.clave === c.clave) return 'analitoDe()'
 
   // 4 · oráculo de signos vitales. Se exige el campo ESPERADO y que no se llene
   //     ningún otro: una confirmación por casualidad no cuenta como fuente.

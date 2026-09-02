@@ -17820,6 +17820,76 @@ se llama.
 
 ---
 
+## REG-450 — el rojo del laboratorio se cierra por la causa, no por el umbral
+
+**Eje.** WS-12 + laboratorio. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-diferencial-no-es-una-sola-cosa.test.ts`.
+
+### De dónde venía
+
+REG-449 dejó la compuerta de `laboratorio-vision` en rojo: 7 de 46 filas no
+llegaban al panel, 15,2 % contra un techo del 5 %. **Seis de las siete eran
+cobertura del catálogo**, y no se pudieron arreglar ese día porque un analito
+necesita su rango plausible y un rango plausible es una cifra clínica.
+
+El médico dueño entregó al día siguiente un **catálogo maestro de plausibilidad**
+(D-032) — ~200 analitos con su unidad canónica y sus límites de captura, más las
+reglas de modelado. Vive íntegro en
+`docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md`, con su autor y su fecha.
+
+**No se arregló el umbral: se arregló la causa.** 15,2 % → **2,2 %**. Verde.
+
+### El defecto que su documento evitó, y que yo iba a cometer
+
+Su **§25.2** dice algo que este código no sabía:
+
+> «Neutrófilos 75 %» y «Neutrófilos 7.5 ×10³/µL» son resultados **distintos** y
+> deben mapearse a variables diferentes.
+
+Y el nombre impreso en la hoja es **el mismo**. `analitoDe` sólo miraba el
+nombre, así que habría metido el 75 en la serie del absoluto. Eso no es un
+analito perdido —que se nota, y que se conserva como texto—: es un **valor mal
+leído**, con la forma correcta, invisible. Y ése es el eje que el propio médico
+había puesto en CERO el día anterior (D-031).
+
+Añadir el diferencial sin mirar la unidad habría cambiado un defecto declarado
+por uno silencioso. **Peor que no añadirlo.**
+
+Lo notable es que el rango plausible **no** lo habría cazado: 75 está dentro de
+0–500, porque un absoluto de 75 ×10³/µL es una leucocitosis brutal pero creíble
+(su §30 pide justamente eso). El límite no distingue; la unidad sí.
+
+Así que la unidad decide, y **sin unidad no se adivina**: `analitoDe` devuelve
+`null` y la fila se conserva como texto. Señalar de menos y declararlo.
+
+### Lo que NO se hizo, y por qué
+
+- **No se cargó el catálogo entero.** Entraron ocho de ~200. Los demás siguen sin
+  vigilarse, que no es lo mismo que estar bien.
+- **No se adoptaron sus rangos ensanchados para los analitos que ya existían.**
+  Su catálogo pone la glucosa en 1–3000 donde aquí hay 20–1500. Adoptarlo hoy,
+  **sin normalización de unidad**, haría que 7,2 mmol/L pasara como 7,2 mg/dL: un
+  valor imposible aceptado en silencio. Su propio §28 pone la normalización
+  ANTES de la plausibilidad; mientras ese paso no exista, el rango estrecho es la
+  única defensa. Hay guardián que cae si alguien lo ensancha.
+- **Ninguno de los ocho lleva banda de referencia.** Su §1: el intervalo de
+  referencia lo pone el laboratorio, con su método, sexo, edad y población.
+
+### El medidor casero, corregido por segunda vez
+
+El contador de «analitos inventados» de REG-449 volvió a fallar: ya usaba
+`analitoDe`, pero **sin la unidad**, así que en cuanto la unidad pasó a
+desambiguar, «Neutrófilos %» se contó como inventado. Misma lección que la
+primera vez: el medidor tiene que llamar al mapeo canónico **con las mismas
+entradas que usa producción**.
+
+### Probado al revés cinco veces
+
+Quitar `exigeUnidad` (el nombre manda y el 75 se va al absoluto) · adivinar
+cuando no hay unidad · cambiar uno de los ocho rangos · ponerle banda de
+referencia inventada a la vitamina D · adoptar los rangos anchos del catálogo en
+la glucosa. Las cinco ponen la prueba en rojo.
+
 ## REG-449 — el umbral del laboratorio se aplica, y sale ROJO por el catálogo
 
 **Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 1-sep-2026.

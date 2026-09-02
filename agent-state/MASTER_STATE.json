@@ -19,16 +19,24 @@
   "ultimaVersionEnProduccion": "nexusmed-v1174",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md",
     " M docs/product/DECISION_REGISTER.md",
+    " M src/__tests__/clinical-fact.test.ts",
+    " M src/__tests__/clinical-vocabulario.test.ts",
+    " M src/__tests__/fixtures/conceptos.ts",
+    " M src/__tests__/la-hoja-de-laboratorio-llega-entera.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical-fact/vocabulario.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/ia/contratos-de-evaluacion.ts",
+    " M src/lib/expediente/laboratorio/analitos.ts",
+    " M src/lib/expediente/laboratorio/extraccion.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/la-hoja-de-laboratorio-llega-entera.test.ts",
-    "?? synthetic-data/laboratorio-hojas/"
+    "?? docs/clinical/",
+    "?? src/__tests__/el-diferencial-no-es-una-sola-cosa.test.ts"
   ],
-  "actualizado": "2026-09-01",
+  "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -62,10 +70,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 300,
+    "regsEnElLedger": 301,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 869,
-    "casosDePrueba": 10950,
+    "archivosDePrueba": 870,
+    "casosDePrueba": 10962,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

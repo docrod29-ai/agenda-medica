@@ -37,7 +37,11 @@ export const TERMINOS_DESCONOCIDOS: readonly string[] = [
   '',
   '   ',
   'procalcitonina',
-  'ferritina',
+  // 'ferritina' salió de aquí en REG-450: entró al catálogo con los números de
+  // D-032. Se sustituye por otra del mismo documento que TODAVÍA no está cargada
+  // —de los ~200 analitos del catálogo del dueño sólo hay 32—, para que este
+  // fixture siga probando lo que probaba: que lo no cargado no se inventa.
+  'haptoglobina',
   'un texto que no es un analito',
 ]
 

@@ -110,7 +110,7 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
     const num = aNumero(fila.valor)
     if (!estudio) continue
 
-    const a: Analito | null = analitoDe(estudio)
+    const a: Analito | null = analitoDe(estudio, fila.unidad?.trim())
     if (!a || num === null || !valorPlausible(a.clave, num)) {
       // Reconocible como texto pero no graficable: se conserva sin inventar serie.
       noReconocidas.push({ estudio, valor: String(fila.valor ?? ''), unidad: fila.unidad?.trim() || undefined })
@@ -173,7 +173,7 @@ export function seriesDesdeHistorial(
       if (!r.graficable) continue
       let s = porClave.get(r.clave)
       if (!s) {
-        const meta = analitoDe(r.etiqueta)
+        const meta = analitoDe(r.etiqueta, r.unidad)
         s = { clave: r.clave, etiqueta: r.etiqueta, unidad: r.unidad, grupo: meta?.grupo ?? 'otro', refMin: meta?.refMin, refMax: meta?.refMax, puntos: [] }
         porClave.set(r.clave, s)
       }
