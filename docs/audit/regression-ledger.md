@@ -17298,8 +17298,19 @@ separador.
 
 - **El guardián es de fuente.** Que el texto quepa de verdad lo mide la sonda, y
   **la sonda no corre en CI**: necesita emuladores de Firebase y un navegador.
-- **No es un iPhone.** Todo lo medido es Chromium a 390 px. WebKit no está en
-  este entorno y no se declara probado.
+- **No es un iPhone** — y sin embargo, ESTE arreglo sí se vio en uno.
+  Todo lo que mide este repositorio es Chromium a 390 px; WebKit no está en el
+  entorno. Pero el 2-sep-2026, tras fusionar el PR #439, **el dueño abrió la
+  consulta en su iPhone y confirmó que la franja de alergias se lee entera**.
+  Es la única observación de este defecto en hardware real, y por eso se escribe
+  aquí en vez de quedarse en un chat.
+
+  **Lo que esa confirmación NO cierra**: WS-05 sigue `BLOCKED_EXTERNAL`. El
+  rebote elástico es OTRA prueba —arrastrar más allá del final diez veces y
+  comprobar que `scrollTop` no baja solo, §38— y no se ha corrido. Que el ancho
+  esté bien en un iPhone no dice nada del rebote: son dos ejes distintos, y
+  confundirlos sería exactamente el error que este arreglo cazó al medir JSX y
+  CSS por separado.
 - **No mira las otras pantallas.** `expediente/[patientId]` pinta su propia
   franja de alergias; no se ha medido a 390 y este guardián no la vigila.
 - **Los dos «ya no» siguen a 34×44 a propósito.** Son botones dentro de una

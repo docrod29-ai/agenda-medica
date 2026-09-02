@@ -38,7 +38,16 @@ omisión: pulsarlo sin tocar nada **sólo lee y cuenta**.
 El dueño enseñó otras cinco. Traen **tres pendientes que no estaban** en este
 documento, y uno de los tres es trabajo terminado que no llegó al producto.
 
-### 1 · Un arreglo del teléfono está escrito, probado, subido — y NO está en el producto
+### 1 · ~~Un arreglo del teléfono está escrito, probado, subido — y NO está en el producto~~ **CERRADO**
+
+> **Rescatado y en producción el 2-sep-2026** como **REG-437**, PR #439 (CI 5/5),
+> fusionado con autorización del dueño. **Y confirmado en un iPhone real**: abrió
+> la consulta y la franja de alergias se lee entera.
+>
+> **No cierra WS-05.** El rebote elástico es otra prueba y sigue sin correrse.
+> Que el ancho esté bien no dice nada del rebote.
+
+Lo que decía este apartado, conservado:
 
 `5ce5da80` · **«la lista de alergias no cabía en el teléfono»** — se salía 182 px
 en `/consulta`. Vive en la rama `claude/ausculta-product-transformation-mckih5`.
