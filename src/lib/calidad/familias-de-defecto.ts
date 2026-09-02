@@ -507,7 +507,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ofrecer. El campo de alergias de un paciente acabó diciendo «Negadas,
      * Negadas, Negadas».
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417],
+    /**
+     * 444 es esta familia sobre una LISTA. `SEGMENTOS_CON_ID` decía «aquí viene
+     * un identificador» y las rutas del paciente decían «aquí viene una
+     * credencial»: dos afirmaciones sobre el mismo segmento, y ninguna estaba
+     * mal por su cuenta. El fallo vivía en que nadie las comparó cuando
+     * aparecieron las segundas.
+     *
+     * Su lección: una lista que nombra una CLASE de cosa envejece cuando llega
+     * una clase nueva que se le parece. Filtrar un id revela a quién le pasó
+     * algo; filtrar un token entrega el acceso.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444],
   },
   {
     clave: 'habla_real',

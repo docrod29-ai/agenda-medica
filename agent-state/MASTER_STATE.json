@@ -23,11 +23,26 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M src/app/(dashboard)/calendario/page.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts"
+    "M  agent-state/MASTER_STATE.json",
+    "M  docs/audit/regression-ledger.md",
+    "M  docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "MM docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "A  scripts/ausculta-transformacion/caminar-con-el-teclado.mjs",
+    "A  scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
+    "A  scripts/ausculta-transformacion/el-estado-sobrevive-a-la-interrupcion.mjs",
+    "M  scripts/ausculta-transformacion/mirar-la-consulta.mjs",
+    "M  scripts/carril-excelencia/todo-dialogo-se-cierra-con-escape.mjs",
+    "M  scripts/design/sembrar-emulador.mjs",
+    "A  src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts",
+    "A  src/__tests__/el-selector-de-fecha-oculto-se-comia-tres-tabuladores.test.ts",
+    "A  src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts",
+    "A  src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
+    "A  src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts",
+    "M  src/__tests__/los-enlaces-de-accion-tambien-se-tocan.test.ts",
+    "M  src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",
+    "M  src/app/(dashboard)/calendario/page.tsx",
+    "M  src/app/(dashboard)/citas/page.tsx"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -61,12 +76,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-product-transformation-mckih5",
+  "ramaActual": "claude/el-token-del-paciente-no-va-al-registro",
   "derivado": {
-    "regsEnElLedger": 296,
+    "regsEnElLedger": 297,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 922,
-    "casosDePrueba": 11198,
+    "archivosDePrueba": 923,
+    "casosDePrueba": 11206,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

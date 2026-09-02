@@ -2,7 +2,7 @@
   "sellado": "2026-09-02",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6388,
+  "totalCasos": 6396,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -449,6 +449,10 @@
       "minCasos": 11
     },
     {
+      "archivo": "src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts",
+      "minCasos": 2
+    },
+    {
       "archivo": "src/__tests__/el-motor-tiene-que-aportar.test.ts",
       "minCasos": 6
     },
@@ -525,20 +529,16 @@
       "minCasos": 25
     },
     {
-      "archivo": "src/__tests__/el-selector-de-fecha-oculto-se-comia-tres-tabuladores.test.ts",
-      "minCasos": 6
-    },
-    {
-      "archivo": "src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts",
-      "minCasos": 2
-    },
-    {
       "archivo": "src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts",
       "minCasos": 3
     },
     {
       "archivo": "src/__tests__/el-segundo-factor-llega-al-servidor.test.ts",
       "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/el-selector-de-fecha-oculto-se-comia-tres-tabuladores.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts",
@@ -805,14 +805,6 @@
       "minCasos": 5
     },
     {
-      "archivo": "src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts",
-      "minCasos": 4
-    },
-    {
-      "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
-      "minCasos": 13
-    },
-    {
       "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",
       "minCasos": 20
     },
@@ -841,6 +833,10 @@
       "minCasos": 36
     },
     {
+      "archivo": "src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts",
+      "minCasos": 4
+    },
+    {
       "archivo": "src/__tests__/la-firma-del-medico-no-se-acuna-para-otro.test.ts",
       "minCasos": 12
     },
@@ -867,6 +863,10 @@
     {
       "archivo": "src/__tests__/la-identidad-de-la-publicacion-no-se-tira.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
+      "minCasos": 13
     },
     {
       "archivo": "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
@@ -941,6 +941,10 @@
       "minCasos": 31
     },
     {
+      "archivo": "src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
       "minCasos": 20
     },
@@ -949,20 +953,16 @@
       "minCasos": 12
     },
     {
-      "archivo": "src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts",
-      "minCasos": 4
-    },
-    {
-      "archivo": "src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
-      "minCasos": 8
-    },
-    {
       "archivo": "src/__tests__/la-sala-de-datos-no-infla.test.ts",
       "minCasos": 14
     },
     {
       "archivo": "src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts",
       "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts",
+      "minCasos": 4
     },
     {
       "archivo": "src/__tests__/la-sobredosis-se-ve-antes-de-firmar.test.ts",
@@ -1351,6 +1351,10 @@
     {
       "archivo": "src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts",
