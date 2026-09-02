@@ -4749,7 +4749,7 @@ export default function ConsultaActivaPage() {
           la píldora de más abajo NEUTRA — dos alarmas contradictorias para el
           mismo dato en el mismo viewport (REG-311). */}
       {(() => { const alergenosDelPaciente = alergenosDe(patient ?? {}); const hayAlergias = alergenosDelPaciente.length > 0; return (
-      <div style={{
+      <div className="nx-franja-alergias" style={{
         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
         background: hayAlergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
         border: `1px solid ${hayAlergias ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'}`,
@@ -4793,8 +4793,14 @@ export default function ConsultaActivaPage() {
           // Regla 4 de clinical-safety: ausencia de dato no es dato de ausencia.
           // Guardián: alergias-placeholder-no-afirma.test.ts
           placeholder="No registradas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
+          // El «Alergias:» de al lado es un `<strong>`, no una etiqueta: se ve y
+          // no se anuncia. El campo más importante de la pantalla se leía como
+          // una caja sin nombre.
+          aria-label="Alergias del paciente"
           disabled={firmada}
-          style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14 }}
+          // 244×24 medido en el teléfono: es un campo de verdad, editable, no un
+          // enlace dentro de una frase — y el más importante de la pantalla.
+          style={{ flex: 1, minHeight: 44, background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14 }}
         />
         {/**
           * RTC-14 — LA LECTURA DEL SISTEMA, AQUÍ Y NO EN OTRA CAJA.
@@ -4813,8 +4819,8 @@ export default function ConsultaActivaPage() {
           */}
         {hayAlergias && alergenosDelPaciente.join(' · ') !== (patient?.alergias ?? '').trim() && (
           <span
-            className="nx-critico"
-            style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700 }}
+            className="nx-critico nx-lectura-alergenos"
+            style={{ fontSize: 12.5, fontWeight: 700 }}
             title="Lo que el sistema entiende como alérgeno a partir de lo escrito"
           >
             se lee: {alergenosDelPaciente.join(' · ')}
@@ -5032,8 +5038,19 @@ export default function ConsultaActivaPage() {
               ahí lo recoge la regla de la última palabra.
             */}
             {vigentes.map((v, i) => (
-              <span key={`${v.medicamento.nombre}-${i}`} style={{ whiteSpace: 'nowrap' }}>
+              /*
+                EL SEPARADOR VA FUERA DEL `nowrap`, Y ÉSA ES TODA LA CORRECCIÓN.
+                Mantener juntos el fármaco y su «ya no» es lo correcto: partirlos
+                deja un botón huérfano al principio de un renglón sin decir de qué
+                medicamento habla. Pero el « · » estaba DENTRO de ese `nowrap`, y
+                con él el único espacio que había entre un fármaco y el siguiente.
+                Sin espacio partible, el navegador no tenía dónde cortar: a 390 px
+                el segundo fármaco no bajaba de línea, se salía de la pantalla
+                27 px. Ahora el separador es texto normal —punto de corte— y lo
+                indivisible es sólo el par nombre+acción. Ver REG-436. */
+              <span key={`${v.medicamento.nombre}-${i}`}>
                 {i > 0 && ' · '}
+                <span style={{ whiteSpace: 'nowrap' }}>
                 {[v.medicamento.nombre, v.medicamento.dosis].filter(Boolean).join(' ')}
                 {!firmada && (
                   <button
@@ -5044,6 +5061,7 @@ export default function ConsultaActivaPage() {
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, padding: '0 2px 0 5px', textDecoration: 'underline' }}
                   >ya no</button>
                 )}
+                </span>
               </span>
             ))}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
@@ -6610,9 +6628,20 @@ export default function ConsultaActivaPage() {
         <Section title="Signos vitales" icon={<Stethoscope size={15} />}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(90px, 100%), 1fr))', gap: 10 }}>
             {([['ta', 'TA', '120/80'], ['fc', 'FC', 'lpm'], ['fr', 'FR', 'rpm'], ['temperatura', 'T°', '°C'], ['spo2', 'SpO₂', '%'], ['peso', 'Peso', 'kg'], ['talla', 'Talla', 'cm']] as const).map(([k, label, ph]) => (
+              /*
+                LA ETIQUETA SE VE, PERO NO ESTABA ATADA AL CAMPO.
+                Había `<label>` con el texto correcto —«TA», «FC», «SpO₂»— y
+                ningún `htmlFor`, así que para el navegador y para un lector de
+                pantalla estos siete campos eran cajas anónimas: se anuncia
+                «edición de texto, 120/80» sin decir de qué signo se trata. Y el
+                único indicio visible que quedaba dentro del campo, el
+                marcador de posición, DESAPARECE al escribir el primer dígito.
+                `design-system.md` lo pone entre los mínimos que tumban la
+                compuerta: «campo sin etiqueta». Ver REG-436. */
               <div key={k}>
-                <label style={S.miniLabel}>{label}</label>
+                <label htmlFor={`signo-${k}`} style={S.miniLabel}>{label}</label>
                 <input
+                  id={`signo-${k}`}
                   value={(signos[k] as string | number | undefined) ?? ''}
                   /**
                    * DECIMALES. Esto hacía `Number(e.target.value)` en cada tecla:
@@ -7050,6 +7079,7 @@ export default function ConsultaActivaPage() {
                   onChange={e => setInstruccionCorr(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
                   placeholder="Escribe la corrección…"
+                  aria-label="Corrección para la nota"
                   disabled={corrigiendo}
                   style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
                 />

@@ -5302,3 +5302,58 @@ html.nx-hay-pildora-grabando main { padding-bottom: 96px; }
   height: calc(100dvh - 52px);
 }
 
+
+/* ── LA LISTA DE ALERGIAS CABE EN UN TELÉFONO ─────────────────────────────────
+
+   La franja es una fila de tres piezas: el icono, la etiqueta «Alergias:», el
+   campo con lo ESCRITO y —cuando aporta algo— la LECTURA del sistema («se lee:
+   penicilina · sulfas · AINEs»). Las dos mitades hacen falta y son hechos
+   distintos: RTC-14 lo explica y `v15-rtc14-una-sola-presentacion-de-alergias`
+   lo sella.
+
+   La fila nació en escritorio, en un `style` en línea, sin `flex-wrap` y con la
+   lectura en `flex-shrink: 0`. A 390 px eso no se recorta ni se desplaza: **se
+   sale de la pantalla**. Medido — el contenido pedía 555 px en una caja de 356,
+   y el `overflow-x` era `visible`, así que ni siquiera había barra que arrastrar.
+   El tercer alérgeno no estaba escondido: no existía.
+
+   Es la línea que se lee ANTES de recetar. Un médico que ve «Penicilina
+   (anafilaxia), sulfa…» cortado no sabe que falta algo — y `clinical-safety.md`
+   §4 dice que la ausencia de un dato no es dato de su ausencia.
+
+   `flex-shrink: 0` en la lectura sigue siendo lo correcto: apretarla hasta
+   ilegible sería peor que bajarla de línea. Lo que faltaba era permitirle BAJAR.
+   Ver REG-436. */
+.nx-franja-alergias {
+  flex-wrap: wrap;
+}
+/* Un hijo flex con `flex: 1` no baja de su tamaño intrínseco mientras
+   `min-width` sea `auto`: el campo empujaba a la lectura fuera en vez de
+   estrecharse él. */
+.nx-franja-alergias > input {
+  min-width: 0;
+}
+/* `flex-shrink: 0` en la lectura sigue siendo lo correcto en ESCRITORIO: hay
+   sitio de sobra y la fila se pinta igual que siempre. */
+.nx-lectura-alergenos {
+  flex-shrink: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+/* EN EL TELÉFONO, LÍNEA PROPIA — Y NO ES LO MISMO QUE «QUE SE PARTA».
+   El primer intento sólo puso `flex-wrap: wrap` y quedó peor de leer que el
+   defecto: la lectura dejaba de salirse, sí, pero se metía en la columna de
+   150 px que sobraba al lado del campo y salía a palabra por renglón —
+   «se lee: / Penicilina / (anafilaxia) / · sulfas · / AINEs». Exactamente la
+   patología que el dueño fotografió en la portada (REG-434), en la línea que
+   más importa de la pantalla.
+   `flex-basis: 100%` la baja ENTERA bajo el campo, que además le devuelve al
+   campo el ancho completo. Se vio mirando la captura, no la medición: los
+   desbordamientos ya daban cero. */
+@media (max-width: 899px) {
+  .nx-lectura-alergenos {
+    flex-basis: 100%;
+    margin-left: 24px;
+  }
+}

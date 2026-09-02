@@ -793,6 +793,10 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
+      "minCasos": 13
+    },
+    {
       "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",
       "minCasos": 20
     },
