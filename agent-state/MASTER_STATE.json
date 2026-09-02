@@ -24,13 +24,10 @@
   },
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M src/app/(dashboard)/consulta/[patientId]/consulta-ui.tsx",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/globals.css",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? scripts/ausculta-transformacion/mirar-la-consulta.mjs",
-    "?? src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts"
+    " M scripts/ausculta-transformacion/mirar-la-consulta.mjs",
+    " M src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",
+    " M src/components/expediente/ClinicalSpine.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -66,7 +63,7 @@
   ],
   "ramaActual": "claude/ausculta-product-transformation-mckih5",
   "derivado": {
-    "regsEnElLedger": 289,
+    "regsEnElLedger": 290,
     "ultimaREG": "REG-505",
     "archivosDePrueba": 916,
     "casosDePrueba": 11164,

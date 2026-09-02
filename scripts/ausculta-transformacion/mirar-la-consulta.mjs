@@ -1,11 +1,24 @@
 /**
- * MIRAR LA CONSULTA EN EL TELÉFONO. Sonda de OBSERVAR: no arregla nada,
- * cuenta lo que hay. 390x844 (iPhone en Chromium, que NO es un iPhone).
+ * MIRAR UNA PANTALLA DEL MÉDICO EN EL TELÉFONO.
+ *
+ * Sonda de OBSERVAR: no arregla nada, cuenta lo que hay. 390×844 por omisión,
+ * que es un iPhone en Chromium — y Chromium NO es un iPhone.
+ *
+ * Nació mirando la consulta y se generalizó a la segunda pantalla, en vez de
+ * copiarse: una sonda por pantalla son cinco sondas que divergen, y la que
+ * mide de más gana por accidente.
+ *
+ *   node scripts/ausculta-transformacion/mirar-la-consulta.mjs \
+ *        http://localhost:3200  <carpeta de salida>  [ancho]  [ruta]
+ *
+ * Necesita el arnés con emuladores (`arnes:emuladores` · `arnes:sembrar` ·
+ * `arnes:dev`) y por eso NO corre en CI.
  */
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-const [base, salida, anchoStr] = process.argv.slice(2)
+const [base, salida, anchoStr, rutaArg] = process.argv.slice(2)
+const ruta = rutaArg || '/consulta/pac-001'
 const w = Number(anchoStr || 390)
 mkdirSync(salida, { recursive: true })
 const nav = await chromium.launch({ executablePath: CHROME,
@@ -30,7 +43,7 @@ for (let i = 0; i < 15; i++) {
   if (await b.count()) await b.click({ force: true }); else await p.keyboard.press('Escape')
   await p.waitForTimeout(500)
 }
-await p.goto(base + '/consulta/pac-001', { waitUntil: 'domcontentloaded' })
+await p.goto(base + ruta, { waitUntil: 'domcontentloaded' })
 await p.waitForTimeout(3500)
 for (let i = 0; i < 8; i++) {
   const d = p.locator('[role="dialog"][aria-label*="ienvenida"]')
@@ -38,8 +51,9 @@ for (let i = 0; i < 8; i++) {
   await d.locator('button').last().click({ force: true }).catch(() => {})
   await p.waitForTimeout(400)
 }
-await p.screenshot({ path: `${salida}/consulta-${w}.png`, fullPage: false })
-await p.screenshot({ path: `${salida}/consulta-${w}-completa.png`, fullPage: true })
+const nombre = ruta.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'raiz'
+await p.screenshot({ path: `${salida}/${nombre}-${w}.png`, fullPage: false })
+await p.screenshot({ path: `${salida}/${nombre}-${w}-completa.png`, fullPage: true })
 
 const m = await p.evaluate(() => {
   const vis = e => { const r = e.getBoundingClientRect()
@@ -71,5 +85,5 @@ const m = await p.evaluate(() => {
     }).length,
   }
 })
-console.log(JSON.stringify({ ancho: w, ...m, erroresDeConsola: consola.slice(0, 10) }, null, 2))
+console.log(JSON.stringify({ ruta, ancho: w, ...m, erroresDeConsola: consola.slice(0, 10) }, null, 2))
 await nav.close()

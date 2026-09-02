@@ -17175,3 +17175,98 @@ separador.
 - **`Visitas anteriores: [2026-09-02]`** se vio y **no** se tocó. El corchete es
   el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
   contexto de los motores: cambiarla por estética movería lo que el modelo lee.
+
+## REG-437 — el riel del expediente saltaba a su extremo al cargar, y escondía la primera categoría
+
+**CÓMO SE DESCUBRIÓ.** Siguiendo el hueco que REG-436 dejó declarado en su «qué
+NO cubre»: *«`expediente/[patientId]` pinta su propia franja de alergias; no se
+ha medido a 390 y este guardián no la vigila»*. La franja estaba bien. El riel
+de categorías, no.
+
+Y **los números salían limpios**: cero desbordamiento del documento, cero
+objetivos táctiles pequeños, cero campos sin etiqueta, cero errores de consola.
+Lo delató la captura: la primera pestaña se leía **«· fármacos»**.
+
+**QUÉ PASABA, cronometrado a 390 px:**
+
+```
+ 800 ms   2 categorías cargadas · max 0    · scrollLeft 0
+1132 ms   llega la 3ª          · max 245  · scrollLeft SALTA a 245
+```
+
+245 es exactamente el máximo del carril. Con la página en `scrollY 0`, sin
+ningún ítem activo y sin foco en nada, el riel quedaba desplazado hasta el
+final: **«Diagnósticos y medicamentos» en `left: -229`**, con 67 px visibles de
+sus 312.
+
+**CAUSA RAÍZ.** `scrollSnapType: 'x proximity'`. Al insertarse un ítem, el
+navegador vuelve a enganchar el carril y aterriza en el extremo. Comprobado
+apagándolo: `scrollLeft` se queda en 0 y **no se dispara ni un evento de
+scroll**.
+
+**LA IRONÍA, que es lo que lo hace valer.** Ese `scroll-snap` estaba puesto por
+RT-15 para que *«el corte cayera ENTRE ítems, no a media palabra»*. Medido en un
+teléfono hacía exactamente lo contrario: cortaba «Diagnósticos y medicamentos»
+por la mitad, y encima por la izquierda — donde un texto cortado no se lee como
+«desliza para ver más» sino como un fallo de pintado.
+
+### Se intentó conservarlo, y se midió que era peor
+
+Manteniendo el enganche y corrigiendo después (`scrollLeft = 0` mientras no haya
+activo) el resultado es correcto y **parpadea**: 245 a los 800 ms, 0 a los 1500.
+Cambiar un defecto quieto por movimiento es peor, y este repositorio tiene una
+regla sobre respetar «menos movimiento». Se descartó por la medición, no por
+opinión.
+
+### Antes y después
+
+| | Antes | Después |
+|---|---|---|
+| `scrollLeft` al cargar | **245** (el máximo) | **0** |
+| Eventos de scroll durante el arranque | 1 | **0** |
+| «Diagnósticos y medicamentos» | `left: -229`, 67 px de 312 | **entero, de 16 a 328** |
+| Ítems cortados por la izquierda | 1 | **0** |
+
+El corte queda ahora a la **derecha**, sobre «Encu…», que es la señal que sí se
+reconoce: hay más, desliza.
+
+### El guardián se reescribió, no se borró
+
+`v15-rtc18-el-spine-no-se-viste-de-filtro` exigía en su caso 4 el
+`scrollSnapType: 'x proximity'` — atado a UNA implementación. Se reescribió como
+la regla que protegía: el corte **no se tapa con un degradado** (esa mitad sigue
+intacta y sigue siendo cierta) y el carril **no se engancha**, que es lo que la
+medición añadió. La prosa de su cabecera se corrigió con él: un golden que
+describe una implementación retirada miente sobre por qué existe.
+
+Y hubo que hacerle leer la fuente **sin comentarios**: el componente explica en
+prosa por qué ya no lleva `scrollSnapType`, y esa explicación cita el literal.
+Un guardián que leyera el archivo crudo se dispararía con la razón de su propio
+arreglo — la misma trampa que ya cayó dos veces en esta rama.
+
+### Probado al revés
+
+Devolviendo `scrollSnapType: 'x proximity'` al contenedor, el caso 4 cae. Y en
+el navegador, con y sin él: 245 contra 0, un evento de scroll contra ninguno.
+
+### Estado
+
+**CLOSED.** `src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts`
+(6 casos) más `scripts/ausculta-transformacion/mirar-la-consulta.mjs`.
+
+### Qué NO cubre
+
+- **Lo que se pierde, dicho.** Ya no hay garantía de que tras un arrastre el
+  reposo caiga en un límite de ítem: el riel descansa donde lo deja el dedo, que
+  es lo que hace cualquier carril de navegación horizontal. Se cambió una
+  garantía que no se cumplía por una que sí.
+- **El guardián es de fuente.** Que el carril arranque en 0 lo mide la sonda, y
+  **la sonda no corre en CI**.
+- **No es un iPhone.** Chromium a 390 px. WebKit tiene su propia aritmética de
+  `scroll-snap` y no se declara probado.
+- **No se miró el resto del expediente**: la historia clínica, sus filtros y la
+  tarjeta de documentos quedan sin medir a 390.
+- **Los tres botones del riel no son `role="tab"` y está bien.** Son un `<nav>`
+  con `aria-current`: navegan dentro de la página, no cambian de panel. La sonda
+  contó cero pestañas y eso NO es un defecto — queda escrito para que nadie lo
+  «arregle».

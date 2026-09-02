@@ -157,11 +157,31 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
         display: 'flex', gap: 2, overflowX: 'auto', marginBottom: 16,
         WebkitOverflowScrolling: 'touch',
         borderBottom: '1px solid var(--border)',
-        /* EL CORTE CAE ENTRE ÍTEMS, NO A MEDIA PALABRA (RT-15). En vez de
-           tapar el corte con un degradado —que además sería deuda nueva del
-           trinquete— se hace que no pueda cortar mal: el desplazamiento se
-           ancla al principio de cada ítem. */
-        scrollSnapType: 'x proximity',
+        /* AQUÍ VIVÍA UN `scroll-snap`, Y HACÍA LO CONTRARIO DE LO QUE PROMETÍA.
+           RT-15 pedía que el corte cayera ENTRE ítems y no a media palabra, y
+           se ancló el desplazamiento al principio de cada ítem con
+           `scrollSnapType: 'x proximity'`. Medido a 390 px, lo que pasaba era:
+
+             800 ms   2 categorías cargadas · max 0    · scrollLeft 0
+            1132 ms   llega la 3ª · max 245 · **scrollLeft salta a 245**
+
+           Al insertarse un ítem, el navegador vuelve a enganchar el carril y
+           aterriza en el EXTREMO. Resultado en el teléfono: el médico abre el
+           expediente, con la página arriba y sin nada seleccionado, y la primera
+           categoría —«Diagnósticos y medicamentos»— está en `left: -229`. Se lee
+           «· fármacos». O sea que el corte caía a media palabra, que es
+           exactamente lo que este `scroll-snap` estaba puesto para impedir.
+
+           Se probó conservarlo y corregir después (`scrollLeft = 0` mientras no
+           haya activo): funciona y **parpadea** —245 a los 800 ms, 0 a los
+           1500—, que es cambiar un defecto quieto por movimiento. Peor.
+
+           Sin él: `scrollLeft` se queda en 0, ni un evento de scroll, y el riel
+           descansa donde lo deja el dedo, que es lo que hace cualquier carril de
+           navegación horizontal. Lo que se PIERDE queda dicho: ya no hay
+           garantía de que tras un arrastre el reposo caiga en un límite de ítem.
+           Lo que se GANA es que ninguna categoría se esconda antes de que el
+           médico toque nada. Ver REG-437. */
         scrollPaddingLeft: 2,
       }}
     >
@@ -183,7 +203,8 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
                  navegación se mide con la vara de la navegación. */
               minHeight: 44, padding: '10px 12px',
               fontSize: 14, whiteSpace: 'nowrap', cursor: 'pointer',
-              scrollSnapAlign: 'start',
+              /* Sin `scroll-snap-type` en el contenedor, `scroll-snap-align` no
+                 hace nada: se va con él en vez de quedarse de adorno. */
               /* El fondo lo pone la hoja (`nx-spine-item`): escrito aquí le
                  ganaba al `:hover` y el riel se quedaba mudo al puntero. */
               border: 'none', fontFamily: 'inherit',
