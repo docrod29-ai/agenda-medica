@@ -1,17 +1,39 @@
 # Índices compuestos de Firestore — los que hay, y en qué orden se despliega
 
-> **Estado**: **doce** índices declarados y **las consultas ya los usan**
-> (REG-421, REG-422, REG-423).
+> **Estado**: **doce** índices declarados, **construidos en producción** y **las
+> consultas ya los usan** (REG-421, REG-422, REG-423).
 >
-> **OCHO de los doce se enviaron** el 31-ago con v1177 — contados sobre el árbol
-> que de verdad se desplegó (`git show 8f74901d:firestore.indexes.json`), no de
-> memoria. Los **cuatro** que faltan no existían entonces:
-> `waitlist(estado, createdAt)` y `clinic_invitations` los encontró REG-421;
-> `platform_cost_ledger(feature, ts)` lo encontró REG-422 al enseñarle al
-> guardián a leer el SDK admin; y `tareas_clinicas(estado, pesoUrgencia,
-> creadaEn)` lo trae REG-423, que es el que cierra P1-14.
+> **DESPLEGADOS Y CONSTRUIDOS — 2-sep-2026.** El detalle, con los
+> identificadores que el proyecto dio a cada uno, en «Por qué NINGUNO existió
+> hasta el 2-sep» y «CONSTRUIDOS», abajo.
 >
-> Y enviar no es construir: ver «El envío no es la construcción».
+> **Los doce dicen `Enabled`** en la consola de `nexomed-agenda` — comprobado por
+> el dueño el **2-sep**, del otro lado, que es el único sitio donde eso se puede
+> comprobar.
+>
+> **Antes de ese día no había NINGUNO.** No siete, no ocho: cero. Esa cifra la
+> midió el dueño abriendo «Índices → Manuales» el 1-sep y encontrando la pestaña
+> **vacía**, sobre un proyecto cuyas actas de despliegue llevaban meses diciendo
+> `success`. Este documento afirmó «ocho de los doce se enviaron» hasta el 2-sep,
+> y era falso: se corrige aquí en vez de borrarse, porque el error es la lección.
+>
+> Hicieron falta **dos** arreglos, y ninguno bastaba solo:
+>
+> | Herida | Qué pasaba | Dónde se arregló |
+> |---|---|---|
+> | **REG-431** | `firebase.json` declaraba `firestore.rules` y **nunca** el archivo de índices. `--only firestore:indexes` no encontraba nada que publicar y devolvía `success` | En este repositorio |
+> | **El 403** | Declarado el archivo, la cuenta de servicio **no tenía permiso** para crear índices. Salió a la luz en la ejecución [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699) (1-sep 22:41 UTC), que falló ruidosamente — el primer fallo honesto de esta serie | En IAM de Google Cloud: rol `roles/datastore.indexAdmin`. **No** en este repositorio |
+>
+> La primera ejecución que publicó índices de verdad fue la
+> [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+> (1-sep 23:50 UTC), con `FIRESTORE_INDICES=success` — una fila del acta que no
+> existía dos horas antes, y que trajo REG-433 justamente para poder distinguir
+> este acto del de las reglas. La [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33573846056)
+> lo repitió sin cambiar nada, que es lo que se espera de un despliegue idempotente.
+>
+> Y enviar sigue sin ser construir: ver «El envío no es la construcción». Lo que
+> cerró esta fila no fue el `success`, fue la consola.
+>
 > **Léase «El orden importa» antes de fusionar nada.**
 >
 > El número de arriba y la tabla de abajo **no se escriben a mano**: los vigila
@@ -50,7 +72,7 @@ fallando**: por eso se despliega, se espera, y se comprueba en la consola
 (https://console.firebase.google.com/project/nexomed-agenda/firestore/indexes)
 que los **doce** dicen **Habilitado**, no «Compilando».
 
-## Y antes que nada: NINGUNO se ha desplegado nunca (REG-431)
+## Por qué NINGUNO existió hasta el 2-sep (REG-431 + el 403)
 
 **Medido en la consola el 1-sep-2026**: `Firestore → Índices → Manuales` del
 proyecto `nexomed-agenda` estaba **vacía**. Cero índices compuestos.
@@ -66,10 +88,33 @@ Ya está declarado, y lo sostiene
 deriva los objetivos del `--only` del workflow real y exige que cada uno esté
 declarado.
 
-**Consecuencia para la tabla de abajo**: la columna «¿enviado?» decía ocho.
-**Son cero.** Se dejó de contar sobre el árbol desplegado —que era cierto y era
-insuficiente— porque enviar el archivo y que el archivo esté declarado son dos
-cosas distintas, y sólo la segunda se puede medir desde aquí.
+**Y declararlo no bastó.** La primera ejecución con el archivo ya declarado
+—la [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699),
+1-sep 22:41 UTC— falló así:
+
+```
+i  firestore: reading indexes from firestore.indexes.json...   ← esta línea era nueva
+i  firestore: deploying indexes...
+Error: …/collectionGroups/appointments/indexes had HTTP Error: 403,
+       The caller does not have permission
+```
+
+Dos heridas encadenadas, y la segunda sólo se podía ver una vez curada la
+primera: la cuenta de servicio publicaba **reglas** pero no podía crear
+**índices** — son permisos distintos, y `datastore.indexes.create` no viene con
+el de reglas. Se concedió `roles/datastore.indexAdmin` en IAM de Google Cloud, y
+la [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+publicó los doce.
+
+Que ese 403 saliera **con nombre y apellido** en vez de perderse es mérito de
+REG-433, que separó reglas e índices en dos pasos con dos resultados horas antes.
+El acta de la #14, con el paso único, culpó a `firestore.rules` — que era lo
+único que había salido bien.
+
+**Consecuencia para la tabla de abajo**: la columna «¿enviado?» llegó a decir
+ocho. **Eran cero.** Hoy son doce y están construidos; se deja escrito el número
+falso porque la lección no es el número, es que se contaba sobre el árbol
+desplegado —cierto e insuficiente— en vez de sobre el proyecto.
 
 ## El envío no es la construcción
 
@@ -81,15 +126,76 @@ Por eso un acta con `FIRESTORE_RULES = success` cierra la fila de las reglas
 —ésas rigen en cuanto se publican— y **no cierra ésta**. Son dos afirmaciones
 distintas que salen del mismo comando:
 
-| Qué dijo el despliegue | Qué demuestra | Qué NO demuestra |
+| Qué dijo el despliegue | Qué demostraba | Qué NO demostraba |
 |---|---|---|
-| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | Que `firestore.indexes.json` llegó al proyecto | Que los índices estén **construidos** |
+| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | **Nada.** Ni siquiera que el archivo llegara: `firebase.json` no lo declaraba (REG-431) | Que los índices existieran |
+| `FIRESTORE_INDICES=success` el 1-sep, ejecución [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371) | Que `firestore.indexes.json` llegó al proyecto y Firestore aceptó las doce peticiones | Que los índices estén **construidos** |
+| Los doce en `Enabled` en la consola, 2-sep | Que están **construidos y sirviendo** | — |
 
-**Lo que falta, y no puede vivir en este repositorio**: abrir la consola de
-Firestore del proyecto `nexomed-agenda`, pestaña de índices, y comprobar que cada
-uno dice `Enabled` y no `Building` ni `Error`. Hasta entonces, ninguna consulta
+Las dos primeras filas son la misma frase (`success`) valiendo cosas distintas, y
+por eso esta tabla existe. La de arriba del todo es la más cara: durante meses el
+acta cuadró sobre un proyecto con **cero** índices, porque el comando hizo
+literalmente todo lo que se le pidió y lo que se le pidió era nada.
+
+**Lo que no puede vivir en este repositorio**: sólo la última fila. `Enabled` se
+mira abriendo la consola de Firestore de `nexomed-agenda`, pestaña de índices, y
+comprobando que ninguno dice `Building` ni `Error`. Ninguna prueba de aquí puede
+afirmarlo, y por eso ninguna lo intenta.
+
+### CONSTRUIDOS — comprobado en la consola el 2-sep-2026
+
+**Los doce dicen `Habilitado`.** Ni uno en `Compilando`, ni uno en `Error`.
+
+Lo miró el dueño en `Firestore → Índices → Manuales` del proyecto
+`nexomed-agenda`, en las dos páginas del listado (`1-10 de 12` y `11-12 de 12`),
+y mandó la captura de cada una. La misma pestaña que el 1-sep estaba **vacía**.
+
+Y coinciden con lo declarado **campo por campo**, comparando el listado de la
+consola contra `firestore.indexes.json`: doce declarados, doce construidos,
+misma colección, mismos campos, mismo sentido. Ninguno de más — que sería un
+índice huérfano pagándose sin usarse — y ninguno de menos.
+
+Los identificadores que el proyecto les dio, por si hay que buscar uno en la
+consola — la tabla de «Los doce» de abajo sigue siendo la que enumera qué hace
+cada uno, y no se repite aquí para que no puedan divergir:
+
+| ID en el proyecto | Índice |
+|---|---|
+| `CICAgOjXh4EK` | appointments · pacienteId↑ · fechaHora↓ |
+| `CICAgOjXh4EJ` | arco_requests · estado↑ · fechaSolicitud↓ |
+| `CICAgJiUpoMK` | clinic_invitations · clinicId↑ · createdAt↓ |
+| `CICAgJim14AK` | farmacia · activo↑ · nombre↑ |
+| `CICAgJjF9oIK` | farmacia_movimientos · itemId↑ · fecha↓ |
+| `CICAgJj7z4EK` | notas · estado↑ · fechaConsulta↓ |
+| `CICAgOi3kJAK` | platform_cost_ledger · feature↑ · ts↓ |
+| `CICAgNi47oMK` | reviews · estado↑ · publicadaEn↓ |
+| `CICAgNiav4AK` | tareas_clinicas · estado↑ · pesoUrgencia↑ · creadaEn↑ |
+| `CICAgJiUsZIK` | tareas_clinicas · estado↑ · creadaEn↑ |
+| `CICAgNirolEK` | waitlist · estado↑ · prioridad↑ · createdAt↑ |
+| `CICAgNjpgYIK` | waitlist · estado↑ · createdAt↑ |
+
+`__name__` aparece en la consola y no en el archivo: lo añade Firestore solo.
+No es una diferencia.
+
+**Con esto la cadena queda cerrada de punta a punta** — declarados (REG-431) →
+enviados (ejecución #15, tras el rol `roles/datastore.indexAdmin`) →
+**construidos**. Las cuatro consultas que dependían de ellos ya pueden ordenar
+por lo que les toca, y la degradación de REG-424 vuelve a ser lo que debe ser:
+una red por si acaso, no el camino de todos los días.
+
+### Cómo se vuelve a comprobar
+
+Esto **no se puede medir desde el repositorio** y por eso no hay guardián: hay
+que abrir la consola. Se rehace igual —las dos páginas del listado— cada vez
+que se añada un índice nuevo a `firestore.indexes.json`, y el renglón de arriba
+vuelve a abrirse hasta que alguien lo mire. Hasta entonces, ninguna consulta
 nueva puede depender de ellos — la regla del `FAILED_PRECONDITION` de abajo sigue
 en pie tal cual.
+
+**Para el próximo índice que se añada**: el `success` del despliegue ya vale más
+que antes —la fila 2 es real— pero sigue sin cerrar la fila 3. La secuencia
+completa es: fusionar el índice → apretar el botón → **mirar la consola** → y sólo
+entonces fusionar el código que lo usa.
 
 ## Los doce, y quién los usa
 
@@ -165,8 +271,10 @@ Regla «el dato tiene que LLEGAR». Sobre datos reales se cuentan **recuentos,
 nunca contenido** — llevan PHI y por eso esto no puede vivir en CI
 (`scripts/verificar-invariantes-de-datos.md`):
 
-1. Los **doce** índices, `Enabled` en la consola. No «enviados». La lista exacta
-   es la tabla «Los doce» de arriba, que sale de `firestore.indexes.json`.
+1. ~~Los **doce** índices, `Enabled` en la consola. No «enviados».~~
+   **HECHO el 2-sep-2026** — ver «CONSTRUIDOS», arriba. La lista exacta es la
+   tabla «Los doce», que sale de `firestore.indexes.json`; este punto **vuelve a
+   abrirse** el día que esa tabla crezca.
 2. En `waitlist`: cuántas entradas hay, y cuántas tienen `prioridad` **y**
    `createdAt`. Los dos números tienen que ser el mismo. Un `orderBy` de
    Firestore **excluye** los documentos a los que les falta el campo — no los
@@ -177,6 +285,14 @@ nunca contenido** — llevan PHI y por eso esto no puede vivir en CI
 4. En `tareas_clinicas`: total contra los que tienen `pesoUrgencia`. Mientras no
    sean el mismo número, el worklist sigue pagando su segunda lectura — que es lo
    que impide que un pendiente histórico desaparezca. Lo apaga el backfill:
+
+   **Sin terminal**: Actions → «Backfill de pesoUrgencia (manual)» → Run
+   workflow. Sin marcar nada **cuenta lo que haría y no escribe**; para aplicarlo
+   hay que marcar la casilla `escribir`. Los recuentos salen en el resumen de la
+   ejecución. Esa credencial vive en los secretos del repositorio y no se puede
+   sacar de ahí, que es la razón de que este paso llevara meses pendiente.
+
+   Con terminal y una copia de la credencial:
 
    ```bash
    GOOGLE_APPLICATION_CREDENTIALS=<sa.json> \

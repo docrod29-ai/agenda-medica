@@ -5,15 +5,22 @@ del `const CACHE`.
 
 ## v1179 — la durabilidad del expediente, la firma de la receta, y los índices que nunca se publicaron
 
-**Se prepara SIN su despliegue.** El paquete vive en
+**Publicado el 1-sep 23:51 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #15).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-01-v1179.md`](PAQUETE-PRODUCCION-2026-09-01-v1179.md).
 
 **40 commits desde v1178** (24 directos + 16 merges) · 121 archivos ·
 +17 571 / −693 · **49 de código de producto** · **18 regresiones cerradas**.
 Cero rutas de API nuevas, cero pantallas nuevas.
 
-**Este paquete SÍ toca `firestore.indexes.json`** — y es el primero que de verdad
-lo publica. Ver el acta antes de pulsar el botón.
+**Este paquete tocaba `firestore.indexes.json`, y es el primero que de verdad los
+ENVIÓ** — pero no a la primera: la ejecución #14 murió con un `403` porque a la
+credencial le faltaba `roles/datastore.indexAdmin`, y el acta acusó a las reglas,
+que eran lo único que había salido bien (REG-433). El dueño concedió el rol en
+IAM y la #15 pasó.
+
+Enviar no es construir: si Firestore **terminó de construirlos** sigue sin poder
+verse desde el repositorio.
 
 ### Lo que cambia para el médico
 

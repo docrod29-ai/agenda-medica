@@ -4859,17 +4859,32 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   color: var(--nexus);
   padding-top: 3px;
 }
+/* Título, texto y cita NOMBRAN su columna. Los dos primeros caían bien sin
+   decirlo —la auto-colocación acierta en las filas 1 y 2 porque el número las
+   ocupa ambas en la columna 1— y eso es una casualidad, no un diseño: basta
+   añadir un hijo, o cambiar el `grid-row` del número, para que se derramen a
+   la tira estrecha sin que el diff enseñe nada. Es como pasó con la cita. */
 .nx-camino-titulo {
+  grid-column: 2;
   margin: 0 0 5px;
   font-size: clamp(17px, 2vw, 20px); font-weight: 600;
   letter-spacing: -0.015em; color: var(--text);
 }
 .nx-camino-texto {
+  grid-column: 2;
   margin: 0;
   font-size: 14.5px; line-height: 1.6; color: var(--text2);
   max-width: 62ch;
 }
 .nx-camino-prueba {
+  /* ── LA COLUMNA, QUE FALTABA (REG-434) ──────────────────────────────────────
+     Sin esto, la cita no declara columna y la rejilla la auto-coloca en la
+     PRIMERA hueca: la del número, de 34-46px. Medido en el navegador a 390,
+     640 y 900: 34px de ancho para 342 disponibles, y **23 palabras en 23
+     renglones** — una palabra por línea, en la portada, en producción.
+     Lo vio el dueño en su iPhone; se reproduce igual en Chromium, porque la
+     auto-colocación de `grid` no depende del motor. */
+  grid-column: 2;
   display: block;
   margin: 10px 0 0;
   font-size: 13px; line-height: 1.55;
