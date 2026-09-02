@@ -24,10 +24,11 @@
   },
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M scripts/ausculta-transformacion/mirar-la-consulta.mjs",
-    " M src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
-    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
-    " M src/lib/clinical/invariantes-clinicos.json"
+    " M src/app/globals.css",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
+    "?? src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +64,10 @@
   ],
   "ramaActual": "claude/ausculta-product-transformation-mckih5",
   "derivado": {
-    "regsEnElLedger": 294,
+    "regsEnElLedger": 295,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 920,
-    "casosDePrueba": 11192,
+    "archivosDePrueba": 921,
+    "casosDePrueba": 11196,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

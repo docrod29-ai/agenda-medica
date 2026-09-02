@@ -17667,3 +17667,80 @@ campos. Y en el navegador: 24 bloques fuera contra 5, y 56 contra 5.
 - **`.nx-uci-grid` y `.nx-demo-receta` NO se midieron.** Tienen la misma firma y
   sus rejillas no llegaron a montarse en la corrida. No se tocaron: tocar sin
   medir es lo que este mismo caso acaba de demostrar que sale mal.
+
+## REG-442 — la fila de cita de «Hoy» se tocaba en 39 píxeles
+
+**CÓMO SE DESCUBRIÓ.** Mirando `/dashboard` —la primera pantalla que ve el
+médico al entrar— a 390 px. La pantalla salía limpia en todo lo demás: cero
+recortes, cero campos sin etiqueta, cero errores de consola. Y seis enlaces a
+**354×39**, cinco por debajo del mínimo táctil, uno detrás de otro.
+
+**POR QUÉ ÉSTE Y NO OTRO.** No es un enlace de navegación ni un aviso: **cada
+fila abre un paciente**. Un toque que cae entre dos filas no lleva a una página
+equivocada — abre el **expediente equivocado**, que es el defecto que el equipo
+rojo de este repositorio persigue por su nombre.
+
+**EL MECANISMO YA EXISTÍA, Y ESTE ENLACE ERA EL QUE DECLARÓ QUE FALTABA.**
+`globals.css` tiene, bajo `@media (pointer: coarse)`, una familia que estira el
+**área de golpe** con un pseudo invisible sin mover un píxel de lo visible.
+Su guardián dejó escrito lo que no cubría: *«un enlace nuevo con otra clase no
+está vigilado por esto»*. `.cita-principal` era ese enlace. Se añade a la
+familia en vez de inventarle un mecanismo propio.
+
+### Medido con hit-testing, no con la caja
+
+```
+visible  39   golpe  45      (×4 filas de 30 min)
+visible  58   golpe  60
+visible  78   golpe  81
+```
+
+La caja del enlace **sigue midiendo 39** con el arreglo puesto, y así debe ser:
+lo que cambia es a quién atribuye el navegador un punto. Medirlo con
+`getBoundingClientRect` habría dicho «no funciona».
+
+Y no se le puso `min-height: 44`, que era el atajo: habría engordado la fila
+cinco píxeles por seis filas — treinta píxeles de agenda perdidos en la primera
+pantalla, para arreglar algo que no se ve.
+
+### Tres trampas, y las tres estaban en MI medición
+
+Estuve convencido de que el arreglo no servía. No era el arreglo:
+
+1. **El recorrido de bienvenida tapaba las filas**: el hit-testing contestaba
+   `DIV.nx-tour-card`. Tercera vez que ese modal contamina una medición.
+2. **Las filas están bajo el pliegue** y `elementFromPoint` sólo ve dentro de la
+   ventana: fuera devuelve `null`, el barrido corta al instante y el resultado
+   es «el golpe mide lo mismo que la caja».
+3. **El pseudo de una fila alta mide su propio alto**, no 44 (`max(100%, 44px)`).
+   Al medir la fila de 78 salió un pseudo de 78 y lo leí como avería.
+
+Las tres quedan cerradas en la sonda.
+
+### Probado al revés
+
+Quitando `.cita-principal` de la lista del pseudo, el caso cae — y en el
+navegador el golpe vuelve a 39.
+
+### Estado
+
+**CLOSED.**
+`src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts`
+(4 casos) más
+`scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs`.
+
+### Qué NO cubre
+
+- **El guardián es de fuente.** El área de golpe la mide el navegador y esa
+  sonda **no corre en CI**.
+- **No se añadió al arnés `capturar-tactiles-de-enlace-v15`**, que es donde
+  naturalmente iría. Se intentó y **no se pudo ejecutar**: usa su propia siembra
+  y sus credenciales (`medico@capturas.demo`), que este contenedor no tiene. Se
+  retiró en vez de dejar ahí código sin probar.
+- **No comprueba que el toque NAVEGUE al paciente correcto**, sólo que el punto
+  se atribuya al enlace. Entregar el tap y ver a dónde va es lo que hace el
+  arnés grande — el mismo que no se pudo correr.
+- **No es un iPhone.** Chromium a 390 px con puntero grueso, comprobado y no
+  supuesto.
+- **No mira el resto de `/dashboard`**: la tarjeta de la próxima cita, las tres
+  tareas de «Siguiente acción» y el resumen quedan sin recorrer.
