@@ -113,9 +113,53 @@ distintas que salen del mismo comando:
 | `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | **Nada.** El objetivo no estaba declarado: el comando no publicó ningún índice (REG-431) | Ni el envío ni la construcción |
 | `success` el 1-sep, [ejecución #15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371), paso propio «desplegar ÍNDICES» | Que `firestore.indexes.json` **llegó al proyecto**, esta vez de verdad | Que los índices estén **construidos** |
 
-**Lo que falta, y no puede vivir en este repositorio** —ahora sí es lo ÚNICO que
-falta—: abrir la consola de Firestore del proyecto `nexomed-agenda`, pestaña de
-índices, y comprobar que cada uno dice `Enabled` y no `Building` ni `Error`. Hasta entonces, ninguna consulta
+### CONSTRUIDOS — comprobado en la consola el 2-sep-2026
+
+**Los doce dicen `Habilitado`.** Ni uno en `Compilando`, ni uno en `Error`.
+
+Lo miró el dueño en `Firestore → Índices → Manuales` del proyecto
+`nexomed-agenda`, en las dos páginas del listado (`1-10 de 12` y `11-12 de 12`),
+y mandó la captura de cada una. La misma pestaña que el 1-sep estaba **vacía**.
+
+Y coinciden con lo declarado **campo por campo**, comparando el listado de la
+consola contra `firestore.indexes.json`: doce declarados, doce construidos,
+misma colección, mismos campos, mismo sentido. Ninguno de más — que sería un
+índice huérfano pagándose sin usarse — y ninguno de menos.
+
+Los identificadores que el proyecto les dio, por si hay que buscar uno en la
+consola — la tabla de «Los doce» de abajo sigue siendo la que enumera qué hace
+cada uno, y no se repite aquí para que no puedan divergir:
+
+| ID en el proyecto | Índice |
+|---|---|
+| `CICAgOjXh4EK` | appointments · pacienteId↑ · fechaHora↓ |
+| `CICAgOjXh4EJ` | arco_requests · estado↑ · fechaSolicitud↓ |
+| `CICAgJiUpoMK` | clinic_invitations · clinicId↑ · createdAt↓ |
+| `CICAgJim14AK` | farmacia · activo↑ · nombre↑ |
+| `CICAgJjF9oIK` | farmacia_movimientos · itemId↑ · fecha↓ |
+| `CICAgJj7z4EK` | notas · estado↑ · fechaConsulta↓ |
+| `CICAgOi3kJAK` | platform_cost_ledger · feature↑ · ts↓ |
+| `CICAgNi47oMK` | reviews · estado↑ · publicadaEn↓ |
+| `CICAgNiav4AK` | tareas_clinicas · estado↑ · pesoUrgencia↑ · creadaEn↑ |
+| `CICAgJiUsZIK` | tareas_clinicas · estado↑ · creadaEn↑ |
+| `CICAgNirolEK` | waitlist · estado↑ · prioridad↑ · createdAt↑ |
+| `CICAgNjpgYIK` | waitlist · estado↑ · createdAt↑ |
+
+`__name__` aparece en la consola y no en el archivo: lo añade Firestore solo.
+No es una diferencia.
+
+**Con esto la cadena queda cerrada de punta a punta** — declarados (REG-431) →
+enviados (ejecución #15, tras el rol `roles/datastore.indexAdmin`) →
+**construidos**. Las cuatro consultas que dependían de ellos ya pueden ordenar
+por lo que les toca, y la degradación de REG-424 vuelve a ser lo que debe ser:
+una red por si acaso, no el camino de todos los días.
+
+### Cómo se vuelve a comprobar
+
+Esto **no se puede medir desde el repositorio** y por eso no hay guardián: hay
+que abrir la consola. Se rehace igual —las dos páginas del listado— cada vez
+que se añada un índice nuevo a `firestore.indexes.json`, y el renglón de arriba
+vuelve a abrirse hasta que alguien lo mire. Hasta entonces, ninguna consulta
 nueva puede depender de ellos — la regla del `FAILED_PRECONDITION` de abajo sigue
 en pie tal cual.
 

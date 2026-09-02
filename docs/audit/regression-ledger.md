@@ -16680,6 +16680,18 @@ arreglo y se comprueba que el guardián lo caza.
   que la credencial tenga permiso de escribir índices, ni que Firestore termine
   de construirlos. Eso se mira en la consola, del otro lado, y sigue siendo
   `BLOCKED_EXTERNAL`.
+
+  **CERRADO el 2-sep-2026, y esta duda salió cierta las dos veces.** El permiso
+  faltaba: declarado el archivo, el paso lo intentó de verdad y contestó
+  `403 · The caller does not have permission` (ejecución #14). A la cuenta de
+  servicio le faltaba `roles/datastore.indexAdmin` — publicar reglas y crear
+  índices son permisos distintos, y tenía sólo el primero; lo concedió el dueño
+  en IAM. Con él, la ejecución #15 los envió, y la consola enseña **los doce en
+  `Habilitado`**, coincidiendo campo por campo con `firestore.indexes.json`.
+  Ver `docs/ops/INDICES-DE-FIRESTORE.md`.
+
+  Que la sección «qué NO cubre» de este REG describiera con precisión el fallo
+  que vendría después es el argumento entero a favor de escribirlas.
 - **Sólo lee el workflow de producción.** Un despliegue a mano con otro `--only`
   no lo ve nadie.
 - **No dice cuánto tiempo llevaba así.** El acta del 31-ago es la primera
@@ -16848,9 +16860,14 @@ todo `if` que dependa de un paso concreto lo declare.
 (8 casos, probado al revés: reponer el paso único o quitar los `!cancelled()`
 lo pone rojo).
 
-El **403 sigue abierto y es externo**: falta `roles/datastore.indexAdmin` en la
-cuenta de servicio del proyecto `nexomed-agenda`, y eso se concede en IAM.
-`BLOCKED_EXTERNAL`, como REG-431.
+El **403 quedó cerrado el 2-sep-2026**: el dueño concedió
+`roles/datastore.indexAdmin` a
+`firebase-adminsdk-fbsvc@nexomed-agenda.iam.gserviceaccount.com`, y la
+[ejecución #15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+cerró en `SUCCESS` con los dos pasos nuevos en verde por separado —
+`FIRESTORE_RULES` y `FIRESTORE_INDICES`— y con el sello de las reglas emitido,
+que en la #14 se había saltado. Las tres comprobaciones contra el sitio vivo,
+que la #14 dejó en `skipped`, corrieron y pasaron.
 
 ### Qué NO cubre
 
