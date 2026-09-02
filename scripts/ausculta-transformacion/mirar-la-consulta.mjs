@@ -81,6 +81,31 @@ const m = await p.evaluate(() => {
     alto: document.documentElement.scrollHeight,
     anchoScroll: document.documentElement.scrollWidth,
     desbordaH: document.documentElement.scrollWidth > window.innerWidth + 1,
+    /**
+     * LO QUE TERMINA FUERA DE LA VENTANA — y `desbordaH` NO lo ve.
+     *
+     * Un bloque puede acabar más allá del borde derecho sin que el documento
+     * desborde: si algún ancestro tiene `overflow: hidden`, lo que sobra no se
+     * puede alcanzar, se CORTA. Ahí no hay barra que arrastrar y la página
+     * parece sana.
+     *
+     * Añadido tras REG-441, donde 24 bloques de la columna del editor de la
+     * receta terminaban en x = 396 con la ventana en 390 y `desbordaH` decía
+     * `false`. La medición que encuentra el defecto tiene que vivir en la sonda,
+     * no en un guion de usar y tirar.
+     */
+    terminanFueraDeLaVentana: (() => {
+      const vw = window.innerWidth
+      const fuera = [...document.querySelectorAll('body *')].filter(e => {
+        if (!vis(e)) return false
+        const r = e.getBoundingClientRect()
+        return r.right > vw + 1 && r.width > 40 && (e.innerText || '').trim().length > 0
+      })
+      return { cuantos: fuera.length, ejemplos: fuera.slice(0, 5).map(e => {
+        const r = e.getBoundingClientRect()
+        return `${nombre(e)} · der ${Math.round(r.right)} (se sale ${Math.round(r.right - vw)})`
+      }) }
+    })(),
     controlesVisibles: controles.length,
     objetivosChicos: chicos.length,
     ejemplosChicos: chicos.slice(0, 12).map(e => { const r = e.getBoundingClientRect()

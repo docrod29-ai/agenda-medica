@@ -44,6 +44,33 @@
  * envió. Una regla de CSS que no hace nada es la familia «escrito y sin
  * conectar» en su forma más barata de evitar: basta con medir.
  *
+ * ── LA HERMANA TENÍA EL MISMO DEFECTO, Y ERA PEOR ───────────────────────────
+ *
+ * `/orden` es la tercera de la familia documental, y su código dice que las tres
+ * «hablan el mismo idioma». También heredó el fallo, letra por letra: escritorio
+ * `minmax(0, 1fr) 420px`, móvil `1fr !important`.
+ *
+ * Medido: **56 bloques** terminaban fuera de la ventana, más del doble que en la
+ * receta, porque su columna de editor es más larga. Mismo arreglo, mismo
+ * resultado: 56 → 5, y los 5 son la vista previa.
+ *
+ * ── Y EL RESTO DE LA FAMILIA **NO** LO TENÍA ────────────────────────────────
+ *
+ * Buscando el patrón en todo el repositorio aparecen tres sitios más con la
+ * misma firma —escritorio con `minmax(0, …)`, móvil que lo pierde—:
+ * `.recetas-grid` en configuración, `.nx-uci-grid` y `.nx-demo-receta`.
+ *
+ * **Arreglarlos «por patrón» habría sido un error, y la medición lo cazó.**
+ * `.recetas-grid` se midió con la rejilla DE VERDAD en el DOM —358 px de
+ * contenedor, track de 358, hijo más ancho 358— y **no desborda**: el contenido
+ * de esa columna sí encoge. Un `1fr` sólo es defecto cuando el mínimo del
+ * contenido no cabe.
+ *
+ * Antes de eso, la primera medición dio «cero recortados» en `/configuracion` y
+ * `/demo/interactivo` — y era un FALSO LIMPIO: ninguna de las dos rejillas
+ * estaba en el DOM, porque viven tras una pestaña. Una sonda que informa de una
+ * pantalla que no llegó a montarse miente con números.
+ *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
  * · **La vista previa del papel sigue saliéndose 6 px, y NO se arregló aquí.**
@@ -61,6 +88,10 @@
  * · **No se recorrió con teclado** ni se auditó el resto de la pantalla: los
  *   avisos de COFEPRIS, el selector de plantilla y el modal de firma quedan sin
  *   mirar.
+ * · **`.nx-uci-grid` y `.nx-demo-receta` NO se midieron.** Tienen la misma
+ *   firma y sus rejillas no llegaron a montarse en la corrida (viven tras una
+ *   pestaña o una bandera). No se tocaron: tocar sin medir es lo que este mismo
+ *   caso acaba de demostrar que sale mal.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -68,6 +99,10 @@ import { join } from 'path'
 
 const RECETA = readFileSync(
   join(process.cwd(), 'src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx'),
+  'utf8',
+)
+const ORDEN = readFileSync(
+  join(process.cwd(), 'src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx'),
   'utf8',
 )
 
@@ -102,6 +137,25 @@ describe('la rejilla de la receta no se sale del teléfono', () => {
     const i = RECETA.indexOf('@media (max-width: 1000px)')
     const bloque = RECETA.slice(i, i + 1400)
     expect(bloque).not.toMatch(/\.receta-gen-grid\s*>\s*\*/)
+  })
+})
+
+describe('la hermana documental tiene el mismo arreglo', () => {
+  it('EL CASO: /orden conserva el minmax(0, …) en su override de móvil', () => {
+    /**
+     * PROBADO AL REVÉS: devolviendo `1fr !important`, la sonda vuelve a contar
+     * 56 bloques terminando fuera de la ventana. Medido: 56 → 5.
+     */
+    const i = ORDEN.indexOf('@media (max-width: 1000px)')
+    expect(i, 'ya no está el override de móvil de la orden').toBeGreaterThan(0)
+    const bloque = ORDEN.slice(i, i + 1400)
+    expect(bloque).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)\s*!important/)
+  })
+
+  it('y sus campos también llegan a 44 px', () => {
+    const i = ORDEN.indexOf('const inputStyle')
+    expect(i).toBeGreaterThan(0)
+    expect(ORDEN.slice(i, i + 300)).toMatch(/minHeight:\s*44/)
   })
 })
 

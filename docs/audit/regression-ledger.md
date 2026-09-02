@@ -17613,11 +17613,35 @@ cinco desbordamientos con y sin él.** Era código muerto y no se envió. Una re
 de CSS que no hace nada es «escrito y sin conectar» en su forma más barata de
 evitar: basta con medir en vez de suponer.
 
+### La hermana documental tenía el mismo defecto, y era peor
+
+`/orden` es la tercera de la familia documental, y su código dice que las tres
+«hablan el mismo idioma». También heredó el fallo, letra por letra. Medido:
+**56 bloques** fuera de la ventana, más del doble que en la receta, porque su
+columna de editor es más larga. Mismo arreglo: **56 → 5**.
+
+### Y el resto de la familia NO lo tenía
+
+Buscando el patrón en todo el repositorio salen tres sitios más con la misma
+firma —escritorio con `minmax(0, …)`, móvil que lo pierde—: `.recetas-grid` en
+configuración, `.nx-uci-grid` y `.nx-demo-receta`.
+
+**Arreglarlos «por patrón» habría sido un error, y la medición lo cazó.**
+`.recetas-grid` se midió con la rejilla de verdad en el DOM —contenedor 358 px,
+track 358, hijo más ancho 358— y **no desborda**: el contenido de esa columna sí
+encoge. Un `1fr` sólo es defecto cuando el mínimo del contenido no cabe.
+
+Y antes de eso hubo un **falso limpio**: la primera medición dio «cero
+recortados» en `/configuracion` y `/demo/interactivo`, y ninguna de las dos
+rejillas estaba en el DOM — viven tras una pestaña. Una sonda que informa de una
+pantalla que no llegó a montarse miente con números. Se comprobó la presencia
+antes de creerse el cero.
+
 ### Probado al revés
 
-Devolviendo `grid-template-columns: 1fr !important` cae el caso de la rejilla;
-quitando el `minHeight: 44` cae el de los campos. Y en el navegador: 24 bloques
-fuera contra 5.
+Devolviendo `grid-template-columns: 1fr !important` cae el caso de la rejilla de
+la receta; lo mismo en `/orden`; quitando el `minHeight: 44` cae el de los
+campos. Y en el navegador: 24 bloques fuera contra 5, y 56 contra 5.
 
 ### Estado
 
@@ -17640,3 +17664,6 @@ fuera contra 5.
 - **No es un iPhone.** Chromium a 390 px.
 - **No se recorrió con teclado** ni se auditó el resto: los avisos de COFEPRIS,
   el selector de plantilla y el modal de firma quedan sin mirar.
+- **`.nx-uci-grid` y `.nx-demo-receta` NO se midieron.** Tienen la misma firma y
+  sus rejillas no llegaron a montarse en la corrida. No se tocaron: tocar sin
+  medir es lo que este mismo caso acaba de demostrar que sale mal.

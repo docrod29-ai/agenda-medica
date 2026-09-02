@@ -946,7 +946,7 @@
     },
     {
       "archivo": "src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
-      "minCasos": 6
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-sala-de-datos-no-infla.test.ts",
