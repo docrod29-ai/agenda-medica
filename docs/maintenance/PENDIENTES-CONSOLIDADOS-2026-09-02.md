@@ -6,6 +6,33 @@
 > documento los reúne **todos en un sitio**, sin resumirlos hasta volverlos
 > inútiles y sin inventar ninguno.
 
+## ACTUALIZACIÓN — más tarde el mismo día
+
+Tres cosas de esta lista **se cerraron después de escribirla**, y se dicen aquí
+arriba para que nadie las trabaje dos veces:
+
+1. **Los doce índices de Firestore están CONSTRUIDOS.** El dueño abrió la consola
+   de `nexomed-agenda` → Índices → Manuales y mandó las dos páginas: los doce
+   dicen «Habilitado», ninguno compilando ni en error, y coinciden campo por
+   campo con lo declarado. Cierra REG-431 y REG-433. Era el renglón que llevaba
+   abierto desde el 31-ago y el único punto abierto de **tres** conversaciones
+   distintas.
+2. **El permiso que faltaba está concedido.** `roles/datastore.indexAdmin` — lo
+   puso el dueño en IAM. Era la mitad que hacía que el despliegue contestara
+   `success` sin publicar nada.
+3. **Los cuatro PRs que se solapaban (#433, #434, #435, #436) se unificaron en
+   uno y se fusionaron.** Ya no hay tres versiones del mismo hecho en el ledger.
+
+**Y aparece un pendiente nuevo, que ya no es una decisión sino un botón**: el
+backfill de `pesoUrgencia` (REG-436). Pedía una credencial de cuenta de servicio
+que sólo vive en los secretos del repositorio: nadie podía reunir las dos mitades,
+y llevaba meses etiquetado «pendiente de decisión del dueño», que es la etiqueta
+que nadie vuelve a mirar. Ahora es
+`.github/workflows/backfill-peso-de-urgencia.yml`, con `escribir` en `false` por
+omisión: pulsarlo sin tocar nada **sólo lee y cuenta**.
+
+---
+
 ## Qué se leyó para escribirlo, y qué NO
 
 **Se leyó** (todo el estado durable del repositorio, al día de hoy):
@@ -130,10 +157,10 @@ el repositorio**.
 
 | Qué falta | Comando / acción exacta |
 |---|---|
-| **Ver los DOCE índices `Enabled`** | Consola del proyecto. `deploy` contesta al **enviar**; un índice puede caer en `Error` horas después del `success`. Lista en `docs/ops/INDICES-DE-FIRESTORE.md` |
+| ~~Ver los DOCE índices `Enabled`~~ | **CERRADO el 2-sep-2026.** Verificado en la consola por el dueño: los doce «Habilitado», y coinciden campo por campo con `firestore.indexes.json` — ninguno de más (sería un índice huérfano pagándose sin usarse) ni de menos |
 | **PITR** | `gcloud firestore databases update --database='(default)' --enable-pitr --project nexomed-agenda` |
 | **Ensayo de restauración real** (B-05 / O-2) | `gcloud firestore databases restore --source-backup=<backup> --destination-database=<base-de-ensayo>` — **sobre una base de PRUEBA, nunca producción**. De ahí sale el **RTO real**, que es lo que responde un hospital |
-| **Backfill de `pesoUrgencia`** contra datos vivos | `scripts/migraciones/peso-de-urgencia.mjs` (residuo de P1-14, ya cerrado en código) |
+| **Backfill de `pesoUrgencia`** contra datos vivos | **Ya no necesita terminal ni credencial en mano** (REG-436): Actions → «Backfill peso de urgencia». `escribir` nace en `false`, así que pulsarlo sin tocar nada **lee y cuenta**; el script sólo añade un campo derivado y es idempotente. Sin esto, `/pendientes` ordena por antigüedad y lo dice en pantalla |
 
 > Reglas de Firestore: **desplegadas y selladas el 31-ago-2026**. Índices:
 > **enviados**, los doce; falta verlos construidos.
@@ -281,17 +308,10 @@ Programa con 68 unidades en 10 etapas. En disco hay **18 unidades** con carpeta
 
 # D · PRs ABIERTOS Y RAMAS SIN ABSORBER
 
-## D.1 Los 10 PRs abiertos hoy
+## D.1 Los PRs abiertos — **6**, todos en borrador
 
-**Cuatro recientes, y tres de ellos hablan de lo mismo — hay que reconciliarlos
-antes de fusionar, o el ledger vuelve a tener tres versiones de un hecho:**
-
-| PR | Qué | Nota |
-|---|---|---|
-| #436 | REG-434 — el backfill que «esperaba decisión del dueño» era imposible de correr | |
-| #435 | Los doce índices están construidos — se declara con quién lo midió y cuándo | **Solapa con #434 y #433** |
-| #434 | docs: los índices se enviaron de verdad, y enviar no es construir | **Solapa con #435 y #433** |
-| #433 | Los índices se enviaron por primera vez, y las actas que decían «nadie ha desplegado nada» | **Solapa con #434 y #435** |
+**Los cuatro recientes (#433, #434, #435, #436) ya se unificaron en uno y se
+fusionaron** el 2-sep. Quedan **seis**, todos en borrador.
 
 **Seis en borrador, de la semana del 23-ago, entre 130 y 145 commits por detrás.
 Ninguno se fusiona tal cual** — traerlos por merge es reaplicar un árbol viejo
@@ -404,9 +424,11 @@ Esto es una recomendación, no una decisión tomada.
 
 **Lo que sólo cuesta un rato en una consola:**
 
-5. Ver los **doce índices `Enabled`**, activar **PITR**, y poner
-   `OPS_ALERTA_WEBHOOK` y `TIPO_CAMBIO_USD_MXN`. Y poner la **llave de AssemblyAI
-   en la máquina local**: el corpus y el medidor ya están hechos, es un comando.
+5. ~~Ver los doce índices `Enabled`~~ **hecho el 2-sep**. Queda: activar **PITR**
+   y ensayar una restauración; poner `OPS_ALERTA_WEBHOOK` y
+   `TIPO_CAMBIO_USD_MXN`; y la **llave de AssemblyAI en la máquina local** — el
+   corpus y el medidor ya están hechos, es un comando. Y **pulsar el botón del
+   backfill**, que ahora existe.
 
 **Lo que un agente puede hacer mañana sin preguntar nada:**
 
@@ -414,4 +436,4 @@ Esto es una recomendación, no una decisión tomada.
 7. **`V10-FECHAS-INCONSISTENTES`** — riesgo de lectura real, no cosmético.
 8. **`NAV-NAVEGADOR-001`** — si el botón central de `BottomNav` remonta la consulta, es un P0 que mata grabaciones, y hoy nadie lo ha comprobado.
 9. **`RESCATE-355`** — el más barato de la lista de PRs.
-10. **Reconciliar #433/#434/#435** antes de que el ledger tenga tres versiones del mismo hecho.
+10. ~~Reconciliar #433/#434/#435~~ **hecho el 2-sep**: unificados en uno y fusionados.
