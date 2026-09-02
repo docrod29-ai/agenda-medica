@@ -17186,6 +17186,24 @@ limpieza y mover el proyecto — los cinco lo ponen rojo).
 
 ## REG-437 — la lista de alergias no cabía en el teléfono
 
+> **NÚMERO REASIGNADO, 2-sep-2026 — y es la TERCERA colisión del mismo día.**
+> Este defecto se subió a su rama como REG-436 a las 04:47 UTC. `main` ya había
+> dado ese número al backfill doce minutos antes, a las 04:35. Pasa a
+> **REG-437**; se queda quien lo reclamó primero, igual que en la reasignación
+> de arriba y que en REG-267.
+>
+> **Y el commit se quedó fuera.** Su PR (#433) se unificó y cerró **antes** de
+> que este commit llegara a la rama, así que el arreglo estuvo escrito, probado
+> y subido —y ausente del producto— hasta que se rescató aquí. Los otros dos
+> commits de esa rama (REG-434 y REG-435) sí habían entrado, que es justo lo que
+> hace creíble suponer que éste también.
+>
+> **La causa no es descuido y no la arregla renumerar.** El contador de
+> regresiones es global, se asigna a mano, y el guardián del ledger comprueba
+> que cada REG **tenga ficha**, no que sea **único frente a lo que otra rama
+> abierta ya reclamó**. Mientras eso siga así, va a repetirse: hoy tres veces.
+> Queda escrito en `docs/maintenance/PENDIENTES-CONSOLIDADOS-2026-09-02.md` §G.
+
 **CÓMO SE DESCUBRIÓ.** Abriendo `/consulta/pac-001` en Chromium a 390×844
 contra el arnés de emuladores y **mirando la captura**. Ninguna prueba de este
 repositorio podía cazarlo: el JSX era correcto, el CSS era correcto, y el
@@ -17293,7 +17311,7 @@ separador.
 
 ## REG-438 — el riel del expediente saltaba a su extremo al cargar, y escondía la primera categoría
 
-**CÓMO SE DESCUBRIÓ.** Siguiendo el hueco que REG-436 dejó declarado en su «qué
+**CÓMO SE DESCUBRIÓ.** Siguiendo el hueco que REG-437 dejó declarado en su «qué
 NO cubre»: *«`expediente/[patientId]` pinta su propia franja de alergias; no se
 ha medido a 390 y este guardián no la vigila»*. La franja estaba bien. El riel
 de categorías, no.

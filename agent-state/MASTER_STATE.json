@@ -23,11 +23,12 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M scripts/design/sembrar-emulador.mjs",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts"
+    "UU agent-state/MASTER_STATE.json",
+    "UU docs/audit/regression-ledger.md",
+    "UU docs/data-room/INDICE.md",
+    "A  docs/maintenance/PENDIENTES-CONSOLIDADOS-2026-09-02.md",
+    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "UU src/lib/calidad/familias-de-defecto.ts"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
