@@ -125,6 +125,18 @@ Dos huecos que vivían en comentarios sueltos pasan a ser artefactos con lista:
 Los dos siguen `BLOCKED_EXTERNAL`. La diferencia es que ahora se puede pedir de
 una vez y se sabe qué se rompe mientras tanto. **Conviene pedir las dos juntas.**
 
+> **Al día del 2-sep-2026 — el primero está CERRADO.** No se corrige el renglón
+> de arriba, se le añade éste: lo que decía era cierto cuando se escribió.
+>
+> Los índices son **doce**, no nueve —REG-422 y REG-423 encontraron tres más—, y
+> el comando de la tabla **no habría funcionado**: `firebase.json` nunca declaró
+> `firestore.indexes.json`, así que devolvía `success` sin publicar nada
+> (REG-431). Arreglado eso, se desplegaron desde el botón el 2-sep 00:07 UTC y el
+> dueño los vio `Enabled` en la consola ese mismo día. El detalle vive en
+> `docs/ops/INDICES-DE-FIRESTORE.md`.
+>
+> El segundo —las reglas escritas y sin desplegar— **sigue abierto**.
+
 ### Lo que el tablero decía y el código desmentía
 
 - `PaletteBusqueda` figuraba como «descarga 50 000 pacientes para enseñar 6».

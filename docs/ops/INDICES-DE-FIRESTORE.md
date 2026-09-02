@@ -3,16 +3,22 @@
 > **Estado**: **doce** índices declarados y **las consultas ya los usan**
 > (REG-421, REG-422, REG-423).
 >
-> **OCHO de los doce se enviaron** el 31-ago con v1177 — contados sobre el árbol
-> que de verdad se desplegó (`git show 8f74901d:firestore.indexes.json`), no de
-> memoria. Los **cuatro** que faltan no existían entonces:
-> `waitlist(estado, createdAt)` y `clinic_invitations` los encontró REG-421;
-> `platform_cost_ledger(feature, ts)` lo encontró REG-422 al enseñarle al
-> guardián a leer el SDK admin; y `tareas_clinicas(estado, pesoUrgencia,
-> creadaEn)` lo trae REG-423, que es el que cierra P1-14.
+> **DESPLEGADOS Y CONSTRUIDOS — 2-sep-2026.** Los doce están `Enabled` en la
+> consola del proyecto `nexomed-agenda`. Lo comprobó el dueño en su pantalla,
+> que es el único sitio donde ese dato existe: ninguna prueba de este
+> repositorio puede decirlo.
 >
-> Y enviar no es construir: ver «El envío no es la construcción».
-> **Léase «El orden importa» antes de fusionar nada.**
+> Se enviaron desde el propio botón, ejecución
+> [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33574082611)
+> del 2-sep 00:07 UTC sobre `c7eb7032` — la primera que corrió con
+> `firebase.json` declarando `firestore.indexes.json`. Su paso dijo
+> `deploying indexes…` y `deployed indexes … successfully`, que es exactamente
+> la línea que **nunca** había aparecido (REG-431).
+>
+> Con eso queda cerrado el renglón que este documento traía abierto desde el
+> 31-ago. **Lo que sigue en pie es el ORDEN**: un índice nuevo se despliega
+> ANTES del código que lo usa, y se espera a verlo `Enabled`. Léase «El orden
+> importa» antes de fusionar nada que añada uno.
 >
 > El número de arriba y la tabla de abajo **no se escriben a mano**: los vigila
 > `src/__tests__/el-indice-que-nadie-declaro.test.ts` contra
@@ -50,7 +56,13 @@ fallando**: por eso se despliega, se espera, y se comprueba en la consola
 (https://console.firebase.google.com/project/nexomed-agenda/firestore/indexes)
 que los **doce** dicen **Habilitado**, no «Compilando».
 
-## Y antes que nada: NINGUNO se ha desplegado nunca (REG-431)
+## Estuvieron sin desplegar desde siempre, y ya no — REG-431, cerrado el 2-sep
+
+> **CERRADO.** El 2-sep-2026 se desplegaron desde el botón y el dueño los vio
+> `Enabled` en la consola. Lo de abajo es el diagnóstico, que se conserva porque
+> explica **por qué** un `success` no valía y qué hay que seguir mirando. No se
+> reescribe: un acta que se corrige sirve para reconstruir qué se sabía y cuándo;
+> una que se borra, no.
 
 **Medido en la consola el 1-sep-2026**: `Firestore → Índices → Manuales` del
 proyecto `nexomed-agenda` estaba **vacía**. Cero índices compuestos.
@@ -84,12 +96,17 @@ distintas que salen del mismo comando:
 | Qué dijo el despliegue | Qué demuestra | Qué NO demuestra |
 |---|---|---|
 | `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | Que `firestore.indexes.json` llegó al proyecto | Que los índices estén **construidos** |
+| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064), **releído** | Nada. `firebase.json` no declaraba el archivo: no había qué publicar (REG-431) | — |
+| `success` el 2-sep, ejecución [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33574082611), con `deploying indexes…` en el log | Que los doce se **enviaron** de verdad | Seguía sin demostrar que estuvieran construidos |
+| La consola, mirada por el dueño el **2-sep-2026** | Que los doce dicen `Enabled` | Nada más: es el dato que faltaba, y no vuelve a comprobarse solo |
 
-**Lo que falta, y no puede vivir en este repositorio**: abrir la consola de
-Firestore del proyecto `nexomed-agenda`, pestaña de índices, y comprobar que cada
-uno dice `Enabled` y no `Building` ni `Error`. Hasta entonces, ninguna consulta
-nueva puede depender de ellos — la regla del `FAILED_PRECONDITION` de abajo sigue
-en pie tal cual.
+**Eso que faltaba, y que no puede vivir en este repositorio** —abrir la consola
+de Firestore del proyecto `nexomed-agenda`, pestaña de índices, y comprobar que
+cada uno dice `Enabled` y no `Building` ni `Error`— **está hecho: 2-sep-2026**.
+
+Sigue sin poder vivir aquí. El día que se declare el índice **trece**, esta misma
+comprobación vuelve a hacer falta y nadie de este lado la va a echar de menos: la
+regla del `FAILED_PRECONDITION` de abajo sigue en pie tal cual.
 
 ## Los doce, y quién los usa
 
@@ -165,8 +182,9 @@ Regla «el dato tiene que LLEGAR». Sobre datos reales se cuentan **recuentos,
 nunca contenido** — llevan PHI y por eso esto no puede vivir en CI
 (`scripts/verificar-invariantes-de-datos.md`):
 
-1. Los **doce** índices, `Enabled` en la consola. No «enviados». La lista exacta
-   es la tabla «Los doce» de arriba, que sale de `firestore.indexes.json`.
+1. ~~Los **doce** índices, `Enabled` en la consola. No «enviados».~~
+   **HECHO el 2-sep-2026.** La lista exacta es la tabla «Los doce» de arriba, que
+   sale de `firestore.indexes.json`; se vuelve a mirar cuando esa tabla crezca.
 2. En `waitlist`: cuántas entradas hay, y cuántas tienen `prioridad` **y**
    `createdAt`. Los dos números tienen que ser el mismo. Un `orderBy` de
    Firestore **excluye** los documentos a los que les falta el campo — no los
