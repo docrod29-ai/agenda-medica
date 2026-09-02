@@ -23,11 +23,17 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M src/app/(dashboard)/calendario/page.tsx",
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    " M src/components/RecetaPreviewWrapper.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts"
+    "?? src/__tests__/la-vista-previa-del-papel-se-media-contra-una-constante.test.ts"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +69,10 @@
   ],
   "ramaActual": "claude/ausculta-product-transformation-mckih5",
   "derivado": {
-    "regsEnElLedger": 296,
+    "regsEnElLedger": 297,
     "ultimaREG": "REG-505",
-    "archivosDePrueba": 922,
-    "casosDePrueba": 11198,
+    "archivosDePrueba": 923,
+    "casosDePrueba": 11203,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"
