@@ -39,10 +39,12 @@
  * 2. Sin relleno: un fondo sólido compite con los datos que tiene al lado.
  * 3. §24: 44px de objetivo táctil. Como píldora venía con 32 y nadie lo miró
  *    porque parecía un chip; como riel se mide con la vara de la navegación.
- * 4. **El corte cae entre ítems**, no a media palabra (RT-15): en vez de tapar
- *    el corte con un degradado —que además sería deuda nueva del trinquete— se
- *    hace que no pueda cortar mal, anclando el desplazamiento al principio de
- *    cada ítem.
+ * 4. **El corte no se tapa con un degradado** —que además sería deuda nueva del
+ *    trinquete—. La forma original de esto era anclar el desplazamiento al
+ *    principio de cada ítem con `scroll-snap`; **REG-438 la retiró**, porque
+ *    medida en un teléfono hacía lo contrario de lo que prometía: al llegar la
+ *    3ª categoría el navegador re-enganchaba el carril y lo mandaba al extremo,
+ *    dejando la primera a media palabra. La regla sigue; la implementación no.
  * 5. El riel trae el activo a la vista: un indicador de posición que señala un
  *    sitio fuera de la parte visible no indica nada.
  *
@@ -56,7 +58,7 @@
  * que SÍ son filtros y datos, ahora distinguibles de lo que navega.
  *
  * Probado al revés: devolviendo el radio de píldora falla el caso 1; quitando
- * la barra de acento falla el 2; bajando el táctil a 32 falla el 3; quitando
+ * la barra de acento falla el 2; bajando el táctil a 32 falla el 3; devolviendo
  * el `scroll-snap` falla el 4.
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
@@ -73,7 +75,13 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
-const SPINE = readFileSync(join(process.cwd(), 'src/components/expediente/ClinicalSpine.tsx'), 'utf8')
+const SPINE_CRUDO = readFileSync(join(process.cwd(), 'src/components/expediente/ClinicalSpine.tsx'), 'utf8')
+/**
+ * SIN COMENTARIOS. El componente explica en prosa por qué ya NO lleva
+ * `scrollSnapType`, y esa explicación cita el literal: un guardián que leyera
+ * el archivo crudo se dispararía con la razón de su propio arreglo.
+ */
+const SPINE = SPINE_CRUDO.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 
 describe('RTC-18 — lo que navega no se viste de filtro', () => {
   it('1 · el riel ya no usa forma de píldora', () => {
@@ -93,9 +101,25 @@ describe('RTC-18 — lo que navega no se viste de filtro', () => {
     expect(SPINE).not.toMatch(/minHeight: 32/)
   })
 
-  it('4 · el corte cae entre ítems, y sin añadir un degradado', () => {
-    expect(SPINE).toMatch(/scrollSnapType: 'x proximity'/)
-    expect(SPINE).toMatch(/scrollSnapAlign: 'start'/)
+  it('4 · el corte no se tapa con un degradado — y ya NO se engancha (REG-438)', () => {
+    /**
+     * ESTE CASO CAMBIÓ DE IMPLEMENTACIÓN, NO DE REGLA.
+     *
+     * Pedía `scrollSnapType: 'x proximity'` porque era la forma elegida de que
+     * el corte cayera entre ítems. Medido a 390 px, esa forma hacía lo
+     * contrario: al insertarse la 3ª categoría el navegador volvía a enganchar
+     * el carril y aterrizaba en el EXTREMO, dejando «Diagnósticos y
+     * medicamentos» en `left: -229` — cortado a media palabra, que es
+     * exactamente lo que el enganche estaba puesto para impedir. REG-438.
+     *
+     * Lo que sobrevive intacto es la otra mitad, que sigue siendo cierta: el
+     * corte no se tapa con un degradado. Y se le añade lo que la medición
+     * enseñó: enganchar el carril es lo que lo mandaba al extremo.
+     */
+    expect(SPINE).not.toMatch(/scrollSnapType/)
+    // Sin contenedor de snap, `scroll-snap-align` no hace nada: se fue con él
+    // en vez de quedarse de adorno.
+    expect(SPINE).not.toMatch(/scrollSnapAlign/)
     // El trinquete de diseño cuenta cada `linear-gradient(`: tapar el corte con
     // un degradado habría sido deuda nueva para esconder el defecto.
     expect(SPINE).not.toMatch(/(?:linear|radial|conic)-gradient\(/)

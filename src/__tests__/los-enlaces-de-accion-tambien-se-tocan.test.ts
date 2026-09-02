@@ -68,8 +68,29 @@ const HEROE = leer('src/components/landing/HeroConsulta.tsx')
 
 describe('la nueva familia usa el mecanismo que ya existía', () => {
   it('el pseudo de golpe cubre también `.nx-enlace-tactil`', () => {
+    /**
+     * ESTE CASO CAMBIÓ DE FORMA, NO DE REGLA (REG-442).
+     *
+     * Pedía la lista de selectores LITERAL —`a.nx-ident, .nx-cta-aviso,
+     * .nx-enlace-tactil { position: relative`— y por eso se puso rojo el día
+     * que la familia creció: `.cita-principal`, la fila de cita de «Hoy», entró
+     * al pseudo porque se tocaba en 39 px y cada fila abre un paciente.
+     *
+     * Añadir un miembro a esta familia no es una regresión: es exactamente lo
+     * que el guardián original pedía que pasara cuando dijo «un enlace nuevo con
+     * otra clase no está vigilado por esto». Lo que sí hay que seguir
+     * comprobando —y ahora se comprueba de verdad— es que **cada** clase de la
+     * familia lleve su `position: relative`: sin él, el pseudo absoluto se ancla
+     * al primer ancestro posicionado y el estirón cae en otro sitio, sin que
+     * falle nada visible.
+     */
     expect(CSS).toMatch(/\.nx-enlace-tactil::before/)
-    expect(CSS).toMatch(/a\.nx-ident,\s*\.nx-cta-aviso,\s*\.nx-enlace-tactil \{ position: relative/)
+    const iRel = CSS.indexOf('position: relative; z-index: 1;')
+    expect(iRel, 'ya no está la regla que ancla el pseudo').toBeGreaterThan(0)
+    const lista = CSS.slice(CSS.lastIndexOf('\n', iRel), iRel)
+    for (const clase of ['a.nx-ident', '.nx-cta-aviso', '.nx-enlace-tactil']) {
+      expect(lista, `${clase} salió de la regla que ancla el pseudo`).toContain(clase)
+    }
   })
 
   it('y vive DENTRO del bloque de puntero grueso — fuera robaría clics', () => {

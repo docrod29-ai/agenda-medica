@@ -45,9 +45,9 @@
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 863 | 0 | — | ✅ | — |
-| `/calendario` | medico | ✅ | 874 | 1 | — | ✅ | — |
+| `/calendario` | medico | ✅ | 894 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
-| `/citas` | medico | ✅ | 1217 | 6 | — | ✅ | — |
+| `/citas` | medico | ✅ | 1231 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2685 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 7470 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 355 | 0 | — | ✅ | — |
@@ -70,11 +70,11 @@
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 1020 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 405 | 1 | — | ✅ | — |
-| `/orden/[patientId]/[notaId]` | medico | ✅ | 846 | 2 | — | ✅ | — |
+| `/orden/[patientId]/[notaId]` | medico | ✅ | 864 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1239 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 780 | 3 | — | ✅ | ✅ |
 | `/reactivacion` | medico | ✅ | 365 | 0 | — | ✅ | — |
-| `/receta/[patientId]/[notaId]` | medico | ✅ | 1031 | 2 | — | ✅ | — |
+| `/receta/[patientId]/[notaId]` | medico | ✅ | 1063 | 2 | — | ✅ | — |
 | `/referencia/[patientId]` | medico | ✅ | 297 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 453 | 5 | — | ✅ | — |

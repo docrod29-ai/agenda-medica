@@ -740,8 +740,28 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
         ))}
       </div>
 
-      {/* Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', height: 'calc(100% - 37px)', overflow: 'auto' }}>
+      {/*
+        `minmax(0, 1fr)` Y NO `1fr` A SECAS — y aquí el defecto no es estético.
+
+        Un track `1fr` lleva `min-width: auto` implícito: no baja del ancho MÍNIMO
+        de su contenido. Las celdas con citas llevan chips («08:00 Rosalía») cuyo
+        mínimo ronda los 86 px, así que sus columnas se estiran y las vacías se
+        encogen. Medido a 390 px:
+
+          cabecera de días   [49, 49, 49, 49, 49, 49, 49]   suma 343
+          rejilla de semanas [37, 37, 86, 86, 37, 85, 37]   suma 405  en 340
+
+        Es decir: **las fechas dejaban de alinearse con su día de la semana**, que
+        es exactamente para lo que sirve una rejilla de mes — se lee por columna
+        para saber en qué día cae un número. Y los 65 px que sobraban recortaban
+        la última columna, el domingo.
+
+        La cabecera no se movía porque su contenido («Lun», «Mar») cabe de sobra
+        en el reparto equitativo: por eso las dos rejillas, escritas igual,
+        acababan distintas.
+
+        Misma causa raíz que REG-441 en la receta y la orden. Ver REG-443. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 'calc(100% - 37px)', overflow: 'auto' }}>
         {days.map((d, i) => {
           if (!d) return <div key={i} style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg)', opacity: 0.3 }} />
           const ds = diaDeRejilla(d)

@@ -17312,6 +17312,598 @@ separador.
 - **`Visitas anteriores: [2026-09-02]`** se vio y **no** se tocó. El corchete es
   el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
   contexto de los motores: cambiarla por estética movería lo que el modelo lee.
+## REG-438 — el riel del expediente saltaba a su extremo al cargar, y escondía la primera categoría
+
+**CÓMO SE DESCUBRIÓ.** Siguiendo el hueco que REG-437 dejó declarado en su «qué
+NO cubre»: *«`expediente/[patientId]` pinta su propia franja de alergias; no se
+ha medido a 390 y este guardián no la vigila»*. La franja estaba bien. El riel
+de categorías, no.
+
+Y **los números salían limpios**: cero desbordamiento del documento, cero
+objetivos táctiles pequeños, cero campos sin etiqueta, cero errores de consola.
+Lo delató la captura: la primera pestaña se leía **«· fármacos»**.
+
+**QUÉ PASABA, cronometrado a 390 px:**
+
+```
+ 800 ms   2 categorías cargadas · max 0    · scrollLeft 0
+1132 ms   llega la 3ª          · max 245  · scrollLeft SALTA a 245
+```
+
+245 es exactamente el máximo del carril. Con la página en `scrollY 0`, sin
+ningún ítem activo y sin foco en nada, el riel quedaba desplazado hasta el
+final: **«Diagnósticos y medicamentos» en `left: -229`**, con 67 px visibles de
+sus 312.
+
+**CAUSA RAÍZ.** `scrollSnapType: 'x proximity'`. Al insertarse un ítem, el
+navegador vuelve a enganchar el carril y aterriza en el extremo. Comprobado
+apagándolo: `scrollLeft` se queda en 0 y **no se dispara ni un evento de
+scroll**.
+
+**LA IRONÍA, que es lo que lo hace valer.** Ese `scroll-snap` estaba puesto por
+RT-15 para que *«el corte cayera ENTRE ítems, no a media palabra»*. Medido en un
+teléfono hacía exactamente lo contrario: cortaba «Diagnósticos y medicamentos»
+por la mitad, y encima por la izquierda — donde un texto cortado no se lee como
+«desliza para ver más» sino como un fallo de pintado.
+
+### Se intentó conservarlo, y se midió que era peor
+
+Manteniendo el enganche y corrigiendo después (`scrollLeft = 0` mientras no haya
+activo) el resultado es correcto y **parpadea**: 245 a los 800 ms, 0 a los 1500.
+Cambiar un defecto quieto por movimiento es peor, y este repositorio tiene una
+regla sobre respetar «menos movimiento». Se descartó por la medición, no por
+opinión.
+
+### Antes y después
+
+| | Antes | Después |
+|---|---|---|
+| `scrollLeft` al cargar | **245** (el máximo) | **0** |
+| Eventos de scroll durante el arranque | 1 | **0** |
+| «Diagnósticos y medicamentos» | `left: -229`, 67 px de 312 | **entero, de 16 a 328** |
+| Ítems cortados por la izquierda | 1 | **0** |
+
+El corte queda ahora a la **derecha**, sobre «Encu…», que es la señal que sí se
+reconoce: hay más, desliza.
+
+### El guardián se reescribió, no se borró
+
+`v15-rtc18-el-spine-no-se-viste-de-filtro` exigía en su caso 4 el
+`scrollSnapType: 'x proximity'` — atado a UNA implementación. Se reescribió como
+la regla que protegía: el corte **no se tapa con un degradado** (esa mitad sigue
+intacta y sigue siendo cierta) y el carril **no se engancha**, que es lo que la
+medición añadió. La prosa de su cabecera se corrigió con él: un golden que
+describe una implementación retirada miente sobre por qué existe.
+
+Y hubo que hacerle leer la fuente **sin comentarios**: el componente explica en
+prosa por qué ya no lleva `scrollSnapType`, y esa explicación cita el literal.
+Un guardián que leyera el archivo crudo se dispararía con la razón de su propio
+arreglo — la misma trampa que ya cayó dos veces en esta rama.
+
+### Probado al revés
+
+Devolviendo `scrollSnapType: 'x proximity'` al contenedor, el caso 4 cae. Y en
+el navegador, con y sin él: 245 contra 0, un evento de scroll contra ninguno.
+
+### Estado
+
+**CLOSED.** `src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts`
+(6 casos) más `scripts/ausculta-transformacion/mirar-la-consulta.mjs`.
+
+### Qué NO cubre
+
+- **Lo que se pierde, dicho.** Ya no hay garantía de que tras un arrastre el
+  reposo caiga en un límite de ítem: el riel descansa donde lo deja el dedo, que
+  es lo que hace cualquier carril de navegación horizontal. Se cambió una
+  garantía que no se cumplía por una que sí.
+- **El guardián es de fuente.** Que el carril arranque en 0 lo mide la sonda, y
+  **la sonda no corre en CI**.
+- **No es un iPhone.** Chromium a 390 px. WebKit tiene su propia aritmética de
+  `scroll-snap` y no se declara probado.
+- **No se miró el resto del expediente**: la historia clínica, sus filtros y la
+  tarjeta de documentos quedan sin medir a 390.
+- **Los tres botones del riel no son `role="tab"` y está bien.** Son un `<nav>`
+  con `aria-current`: navegan dentro de la página, no cambian de panel. La sonda
+  contó cero pestañas y eso NO es un defecto — queda escrito para que nadie lo
+  «arregle».
+
+## REG-439 — el selector de fecha oculto se comía tres tabuladores
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo `/citas` **con el teclado** a 390 px contra
+el arnés de emuladores: treinta pulsaciones de Tab, apuntando de cada parada qué
+recibió el foco, cuánto medía y si el indicador se podía ver.
+
+La agenda enseña un botón de calendario de 44×44 —«Elegir una fecha en el
+calendario»— que abre por programa un `<input type="date">` escondido. El input
+vive oculto **con su razón escrita**: el control nativo enseñaría «08/09/2026»,
+formato de Estados Unidos, en un producto es-MX.
+
+Lo que nadie había mirado es que **seguía en el orden de tabulación**:
+
+```
+Elegir una fecha en el calendario   44×44
+Ir a una fecha                      1×1   ← día
+Ir a una fecha                      1×1   ← mes
+Ir a una fecha                      1×1   ← año
+```
+
+Un `input[type=date]` nativo tiene un tramo tabulable por segmento. Tres
+pulsaciones de Tab dentro de una caja de un píxel, con el anillo de foco de 2 px
+dibujado sobre ella: **el foco existía y no se podía ver** (WCAG 2.2 §2.4.7).
+
+**CAUSA RAÍZ.** «Enfocable» y «parada del tabulador» se trataron como lo mismo.
+Sólo hacía falta lo primero: el input se enfoca **por programa** cuando el botón
+lo abre.
+
+**EL ARREGLO.** `tabIndex={-1}`. Comprobado en el navegador, no deducido:
+enfocando el botón visible y pulsando **Enter**, `showPicker()` se llama, sin
+`NotAllowedError` —una pulsación de teclado cuenta como activación de usuario— y
+sin un solo error de consola.
+
+### Lo que apareció en la misma mirada
+
+El filtro «8 citas» medía **39 px de ancho**, cinco por debajo del mínimo, en un
+renglón donde los filtros están a 14 px unos de otros. No es prosa —es un control
+suelto—, así que no le vale la excepción de §2.5.8. Cinco píxeles de `min-width`
+y el renglón se pinta igual: no se partió, «Estado…» sigue cabiendo.
+
+| | Antes | Después |
+|---|---|---|
+| Paradas de tabulador de 1×1 en `/citas` | **3** | **0** |
+| Paradas sin indicador de foco visible | 1 | **0** |
+| Objetivos táctiles bajo 44 px | 2 | **0** |
+
+### La sonda gritó en falso, y se afinó
+
+`mirar-la-consulta.mjs` contaba el input de 1 px como objetivo táctil pequeño.
+No lo es: está fuera del orden de tabulación y tiene un control visible
+equivalente al lado; §2.5.8 habla de objetivos de **puntero**. Se afinó para no
+contar un auxiliar oculto, y **se comprobó que la afinación no tapa nada**: en
+`/consulta` siguen saliendo los dos «ya no» de 34×44 y en `/expediente` sigue
+saliendo cero.
+
+Segunda vez que esta sonda grita en falso. La lección es de REG-434: una sonda
+que grita en falso se acaba ignorando.
+
+### Y la sonda de teclado midió el recorrido de bienvenida
+
+Su primera corrida devolvió «Saltar / Siguiente / Saltar» en bucle: era el modal
+de bienvenida, que tiene trampa de foco —correcta— y hay que cerrar antes. Sin
+eso lo que se mide es el recorrido, no la pantalla. Queda cerrado en el guion.
+
+### Probado al revés
+
+Quitando el `tabIndex={-1}` cae el caso del tabulador; quitando el `min-width`
+del `.riel-filtro` cae el de los filtros. Y en el navegador: 3 paradas de 1×1
+contra 0, y 1 parada sin foco visible contra 0.
+
+### Estado
+
+**CLOSED.**
+`src/__tests__/el-selector-de-fecha-oculto-se-comia-tres-tabuladores.test.ts`
+(6 casos) más `scripts/ausculta-transformacion/caminar-con-el-teclado.mjs`.
+
+### Qué NO cubre
+
+- **El guardián es de fuente.** El recorrido de teclado lo mide la sonda, y **la
+  sonda no corre en CI**.
+- **No es un iPhone ni un lector de pantalla.** Chromium a 390 px con teclado;
+  cómo lo anuncia VoiceOver no se ha comprobado.
+- **No comprueba que el selector nativo sea usable por dentro con teclado.** Eso
+  lo pone el navegador; aquí sólo se comprueba que se abre.
+- **No mira el resto de `/citas`**: las tarjetas de cita, el menú de tres puntos
+  y el buscador quedan sin recorrer con teclado.
+- **`/pendientes` se miró y no se tocó.** Sale vacío en la siembra y su estado
+  vacío está bien resuelto: dice qué aparecería y por qué. Juzgarlo de verdad
+  pide sembrar pendientes, y eso queda pendiente.
+
+## REG-440 — la siembra del arnés hacía parecer rota una pantalla sana
+
+**CÓMO SE DESCUBRIÓ.** Mirando `/pacientes` a 390 px. Los números salían
+perfectos —cero desbordamiento, cero objetivos táctiles pequeños, cero campos
+sin etiqueta, cero errores de consola— y la captura enseñaba la pantalla vacía:
+
+```
+Recientes | Todos A-Z (5) | Con alerta (1)
+Ninguno tiene citas recientes. Hay 5 expedientes en total.
+```
+
+`/pacientes` abre en «Recientes». Con ocho citas hoy en la agenda, una de ellas
+ya atendida, la primera pantalla de la lista de pacientes no enseñaba a nadie.
+
+**NO ERA UN DEFECTO DEL PRODUCTO**, y comprobarlo llevó su rato. «Recientes»
+filtra por `ultimaCita`, y el producto **sí** lo escribe: al pasar una cita a
+atendida, finalizada o pagada (`contadores-paciente.ts`, cuyo encabezado
+documenta que ese campo se leía en cuatro pantallas sin que nadie lo escribiera
+— ya arreglado).
+
+**CAUSA RAÍZ.** La siembra escribía `noShowCount` y `cancelacionCount` —lo que
+dejaría una transición a «no asistió»— y **no** escribía `ultimaCita`, que es lo
+que deja una transición a «atendida». Sembraba la cita ya en estado `atendida`,
+saltándose el camino que habría tocado al paciente. Incoherente consigo misma.
+
+**POR QUÉ MERECE ENTRADA.** El guion de siembra tiene escrito en su cabecera que
+«una siembra bonita produce una auditoría visual mentirosa». Esto mentía en la
+**otra dirección**, que es igual de caro y menos evidente: hace que una pantalla
+sana parezca rota. El final malo no es perder el rato persiguiendo un defecto que
+no existe — es «arreglar» una pantalla que estaba bien.
+
+Un arnés que miente no es un arnés a medias: produce conclusiones falsas con la
+autoridad de haber sido medido.
+
+**EL ARREGLO.** `ultimaCita` se **deriva** de las citas sembradas con la misma
+lista de estados que usa `esAtencionEfectiva`, y se omite el campo cuando el
+paciente no tiene ninguna cita atendida — «ausencia de dato no es dato de
+ausencia» también en la siembra. Escribir una fecha a mano habría durado hasta
+que alguien cambiara una cita de estado.
+
+| | Antes | Después |
+|---|---|---|
+| «Recientes» en `/pacientes` | **vacío**, con 5 expedientes | **Recientes (1)** · «visto hoy» |
+| `ultimaCita` en la siembra | nunca | derivado de las citas |
+
+### Probado al revés
+
+Quitando `'pagada'` de la lista de la siembra, el caso cae nombrando la
+diferencia con la del producto.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-siembra-hacia-parecer-rota-una-pantalla-sana.test.ts`
+(4 casos).
+
+### Qué NO cubre
+
+- **No ejecuta la siembra.** Compara las dos listas leyendo los archivos. Que el
+  emulador acabe con el documento correcto se ve corriendo `npm run
+  arnes:sembrar` y mirando la pantalla, y eso **no corre en CI**.
+- **No vigila los otros campos derivados.** `noShowCount` y `cancelacionCount`
+  se siguen escribiendo a mano y este guardián no los ata a las citas: hoy la
+  siembra no tiene ninguna cita en `no-asistio`, así que derivarlos daría cero y
+  perdería el caso duro que el número a mano representa. Se dice, no se esconde.
+- **No dice que `/pacientes` esté auditada.** Lo único que se afirma es que su
+  primer pliegue ya enseña lo que enseñaría un consultorio real. El A-Z, la
+  búsqueda y la fila de alerta siguen sin recorrer.
+
+## REG-441 — la receta se recortaba seis píxeles en el teléfono
+
+**CÓMO SE DESCUBRIÓ.** Mirando `/receta/pac-001/nota-demo-001` a 390 px contra
+el arnés de emuladores. Medido en el navegador: **24 bloques de la columna del
+editor terminaban en x = 396** con la ventana en 390.
+
+Y no había barra de desplazamiento que los rescatara: el documento **no**
+desborda (`scrollWidth === innerWidth`). Los seis píxeles se cortaban — en los
+dos avisos de COFEPRIS, en el de «este documento saldrá sin firma ni sello», en
+el de la dosis que falta, y en todos los campos.
+
+**CAUSA RAÍZ, y lo que la hace elegante.** La rejilla de escritorio es
+`minmax(0, 1fr) 420px`. Ese `minmax(0, …)` está ahí exactamente para esto: un
+track `1fr` a secas lleva `min-width: auto` implícito y **no baja del ancho
+mínimo de su contenido**.
+
+El override de móvil, doce líneas más abajo, la reescribía a una sola columna y
+**perdía la protección**:
+
+```css
+@media (max-width: 1000px) { .receta-gen-grid { grid-template-columns: 1fr } }
+```
+
+La columna del editor pide 380 px de mínimo —la fila de un medicamento con sus
+campos de dosis— así que el track se quedaba en 380 dentro de un contenedor de
+358. **La regla que protegía el caso ancho no protegía el estrecho**, que es
+donde hacía falta.
+
+### Lo que apareció en la misma mirada
+
+| | Antes | Después |
+|---|---|---|
+| Bloques que terminan fuera de la ventana (390) | **24** | **5** (sólo la vista previa) |
+| Campos por debajo de 44 px de alto | 5 (dos de ellos, la **dosis**) | **0** |
+| Objetivos táctiles pequeños | 6 | **0** |
+| A 1440, lo mismo medido | 0 · 0 | **0 · 0** |
+
+- **Cinco campos a 42 px**, dos por debajo del mínimo — entre ellos los dos de la
+  dosis. Se teclea de pie, con el paciente delante, en la pantalla donde una
+  cifra equivocada sale impresa con cédula profesional.
+- **«Quitar medicamento» a 30×44**: el único control **destructivo** de la fila,
+  pegado a los campos de dosis, con catorce píxeles de ancho de menos.
+
+### Una regla que escribí y no servía
+
+Al arreglar el track añadí también `.receta-gen-grid > * { min-width: 0 }`, que
+es el acompañante clásico. **Lo probé quitándolo y el resultado no se movió:
+cinco desbordamientos con y sin él.** Era código muerto y no se envió. Una regla
+de CSS que no hace nada es «escrito y sin conectar» en su forma más barata de
+evitar: basta con medir en vez de suponer.
+
+### La hermana documental tenía el mismo defecto, y era peor
+
+`/orden` es la tercera de la familia documental, y su código dice que las tres
+«hablan el mismo idioma». También heredó el fallo, letra por letra. Medido:
+**56 bloques** fuera de la ventana, más del doble que en la receta, porque su
+columna de editor es más larga. Mismo arreglo: **56 → 5**.
+
+### Y el resto de la familia NO lo tenía
+
+Buscando el patrón en todo el repositorio salen tres sitios más con la misma
+firma —escritorio con `minmax(0, …)`, móvil que lo pierde—: `.recetas-grid` en
+configuración, `.nx-uci-grid` y `.nx-demo-receta`.
+
+**Arreglarlos «por patrón» habría sido un error, y la medición lo cazó.**
+`.recetas-grid` se midió con la rejilla de verdad en el DOM —contenedor 358 px,
+track 358, hijo más ancho 358— y **no desborda**: el contenido de esa columna sí
+encoge. Un `1fr` sólo es defecto cuando el mínimo del contenido no cabe.
+
+Y antes de eso hubo un **falso limpio**: la primera medición dio «cero
+recortados» en `/configuracion` y `/demo/interactivo`, y ninguna de las dos
+rejillas estaba en el DOM — viven tras una pestaña. Una sonda que informa de una
+pantalla que no llegó a montarse miente con números. Se comprobó la presencia
+antes de creerse el cero.
+
+### Probado al revés
+
+Devolviendo `grid-template-columns: 1fr !important` cae el caso de la rejilla de
+la receta; lo mismo en `/orden`; quitando el `minHeight: 44` cae el de los
+campos. Y en el navegador: 24 bloques fuera contra 5, y 56 contra 5.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts`
+(6 casos) más `scripts/ausculta-transformacion/mirar-la-consulta.mjs`.
+
+### Qué NO cubre
+
+- **La vista previa del papel sigue saliéndose 6 px, y NO se arregló aquí.** Su
+  causa es otra: `RecetaPreviewWrapper` calcula la escala contra un
+  `maxWidth = 380` **constante en píxeles**, elegido para la columna de 420 del
+  escritorio. Merece su propia unidad y no un parche al final de ésta, porque
+  ese número lo **comparte** la pantalla de configuración para convertir píxeles
+  de arrastre en milímetros de papel — y la cabecera del propio componente
+  cuenta que ya se desincronizó una vez y «la receta salía RECORTADA por la
+  derecha». Hacerlo dependiente del contenedor sin tocar los dos lados
+  repetiría ese defecto.
+- **El guardián es de fuente.** Que nada se recorte lo mide el navegador, y esa
+  medición **no corre en CI**.
+- **No es un iPhone.** Chromium a 390 px.
+- **No se recorrió con teclado** ni se auditó el resto: los avisos de COFEPRIS,
+  el selector de plantilla y el modal de firma quedan sin mirar.
+- **`.nx-uci-grid` y `.nx-demo-receta` NO se midieron.** Tienen la misma firma y
+  sus rejillas no llegaron a montarse en la corrida. No se tocaron: tocar sin
+  medir es lo que este mismo caso acaba de demostrar que sale mal.
+
+## REG-442 — la fila de cita de «Hoy» se tocaba en 39 píxeles
+
+**CÓMO SE DESCUBRIÓ.** Mirando `/dashboard` —la primera pantalla que ve el
+médico al entrar— a 390 px. La pantalla salía limpia en todo lo demás: cero
+recortes, cero campos sin etiqueta, cero errores de consola. Y seis enlaces a
+**354×39**, cinco por debajo del mínimo táctil, uno detrás de otro.
+
+**POR QUÉ ÉSTE Y NO OTRO.** No es un enlace de navegación ni un aviso: **cada
+fila abre un paciente**. Un toque que cae entre dos filas no lleva a una página
+equivocada — abre el **expediente equivocado**, que es el defecto que el equipo
+rojo de este repositorio persigue por su nombre.
+
+**EL MECANISMO YA EXISTÍA, Y ESTE ENLACE ERA EL QUE DECLARÓ QUE FALTABA.**
+`globals.css` tiene, bajo `@media (pointer: coarse)`, una familia que estira el
+**área de golpe** con un pseudo invisible sin mover un píxel de lo visible.
+Su guardián dejó escrito lo que no cubría: *«un enlace nuevo con otra clase no
+está vigilado por esto»*. `.cita-principal` era ese enlace. Se añade a la
+familia en vez de inventarle un mecanismo propio.
+
+### Medido con hit-testing, no con la caja
+
+```
+visible  39   golpe  45      (×4 filas de 30 min)
+visible  58   golpe  60
+visible  78   golpe  81
+```
+
+La caja del enlace **sigue midiendo 39** con el arreglo puesto, y así debe ser:
+lo que cambia es a quién atribuye el navegador un punto. Medirlo con
+`getBoundingClientRect` habría dicho «no funciona».
+
+Y no se le puso `min-height: 44`, que era el atajo: habría engordado la fila
+cinco píxeles por seis filas — treinta píxeles de agenda perdidos en la primera
+pantalla, para arreglar algo que no se ve.
+
+### Tres trampas, y las tres estaban en MI medición
+
+Estuve convencido de que el arreglo no servía. No era el arreglo:
+
+1. **El recorrido de bienvenida tapaba las filas**: el hit-testing contestaba
+   `DIV.nx-tour-card`. Tercera vez que ese modal contamina una medición.
+2. **Las filas están bajo el pliegue** y `elementFromPoint` sólo ve dentro de la
+   ventana: fuera devuelve `null`, el barrido corta al instante y el resultado
+   es «el golpe mide lo mismo que la caja».
+3. **El pseudo de una fila alta mide su propio alto**, no 44 (`max(100%, 44px)`).
+   Al medir la fila de 78 salió un pseudo de 78 y lo leí como avería.
+
+Las tres quedan cerradas en la sonda.
+
+### Probado al revés
+
+Quitando `.cita-principal` de la lista del pseudo, el caso cae — y en el
+navegador el golpe vuelve a 39.
+
+### Estado
+
+**CLOSED.**
+`src/__tests__/la-fila-de-cita-de-hoy-abria-el-paciente-equivocado.test.ts`
+(4 casos) más
+`scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs`.
+
+### Qué NO cubre
+
+- **El guardián es de fuente.** El área de golpe la mide el navegador y esa
+  sonda **no corre en CI**.
+- **No se añadió al arnés `capturar-tactiles-de-enlace-v15`**, que es donde
+  naturalmente iría. Se intentó y **no se pudo ejecutar**: usa su propia siembra
+  y sus credenciales (`medico@capturas.demo`), que este contenedor no tiene. Se
+  retiró en vez de dejar ahí código sin probar.
+- **No comprueba que el toque NAVEGUE al paciente correcto**, sólo que el punto
+  se atribuya al enlace. Entregar el tap y ver a dónde va es lo que hace el
+  arnés grande — el mismo que no se pudo correr.
+- **No es un iPhone.** Chromium a 390 px con puntero grueso, comprobado y no
+  supuesto.
+- **No mira el resto de `/dashboard`**: la tarjeta de la próxima cita, las tres
+  tareas de «Siguiente acción» y el resumen quedan sin recorrer.
+
+## REG-443 — el mes no alineaba las fechas con su día de la semana
+
+**CÓMO SE DESCUBRIÓ.** Mirando `/calendario` a 390 px y **entrando en las tres
+vistas**. La de día salía impecable. La de mes tenía cuatro bloques recortados
+por 3 px —parecía un detalle— hasta medir las dos rejillas:
+
+```
+cabecera de días    [49, 49, 49, 49, 49, 49, 49]   suma 343
+rejilla de semanas  [37, 37, 86, 86, 37, 85, 37]   suma 405   en 340
+```
+
+Las dos están escritas **igual** en el código, `repeat(7, 1fr)`, y acababan
+distintas.
+
+**POR QUÉ NO ES UN DETALLE.** Una rejilla de mes se lee **por columna**: se mira
+hacia abajo para saber en qué día de la semana cae un número. Con el cuerpo
+sizado al contenido y la cabecera repartida por igual, esa lectura era falsa — el
+9 no estaba bajo «Mié» aunque fuera miércoles. Y los 65 px que sobraban
+recortaban la última columna: **el domingo no existía**. Los días 6, 13, 20 y 27
+no se veían.
+
+**CAUSA RAÍZ.** Un track `1fr` lleva `min-width: auto` implícito y no baja del
+ancho mínimo de su contenido. Las celdas con citas llevan chips
+(«08:00 Rosalía») cuyo mínimo ronda los 86 px; las de la cabecera llevan «Lun»,
+que cabe de sobra en el reparto equitativo.
+
+Misma raíz que REG-441 en la receta y la orden — **tercera aparición**, y la
+primera encontrada midiendo en vez de por búsqueda de patrón. Lo que confirma lo
+que REG-441 ya dejó dicho: la firma sintáctica no basta, hay que medir.
+
+### El precio, dicho
+
+Con las columnas iguales los chips pasan de «08:00 Rosalía» a «08:00»: el nombre
+ya no cabe. **No es una mejora pura y no se presenta como tal.** Se cambió el
+nombre en tres celdas por que exista el domingo y por que un número esté bajo su
+día. La celda conserva el conteo y el «+N más», y el nombre vive en la vista de
+día, que es donde se lee una agenda.
+
+| | Antes | Después |
+|---|---|---|
+| Tracks del cuerpo | `[37,37,86,86,37,85,37]` = 405 | **`[49]×7` = 343** |
+| ¿Casa con la cabecera? | **no** | **sí** |
+| Domingos visibles | ninguno | **6, 13, 20, 27** |
+| Bloques recortados | 4 | **0** |
+
+### Probado al revés
+
+Devolviendo `repeat(7, 1fr)` cae el caso, y en el navegador las columnas vuelven
+a 405.
+
+### Estado
+
+**CLOSED.** `src/__tests__/el-mes-no-alineaba-las-fechas-con-su-dia-de-la-semana.test.ts`
+(2 casos).
+
+### Qué NO cubre
+
+- **La vista de SEMANA no se tocó.** Sus celdas miden 41×48 —92 objetivos por
+  debajo de 44— y se dejaron **a propósito**: el propio código explica que en el
+  teléfono el calendario abre en día, y que semana existe porque el médico la
+  pide «porque quiere ver el hueco del jueves». Para buscar un hueco, siete
+  columnas estrechas con la ocupación es lo correcto; medir esa vista contra «se
+  leen los nombres» sería medirla contra un trabajo que no hace.
+- **Los chips del mes siguen a 24 px de alto** (35 objetivos). Un mes es una
+  vista densa por definición: subirlos a 44 obligaría a una celda de 140 px y el
+  mes dejaría de caber.
+- **El guardián es de fuente**, y la medición que lo encontró **no corre en CI**.
+- **No es un iPhone.** Chromium a 390 px.
+- **No sella la rejilla de semana.** Se midió y hoy no tiene el defecto (cero
+  recortados), pero este guardián no lo vigila.
+
+<!--
+  RENUMERADO — TERCERA COLISION DEL CONTADOR EN DOS DIAS (2-sep-2026).
+
+  Esta entrada se escribio como REG-438 y, entre escribirla y fusionarla, 
+  asigno ese numero a otra regresion. Pasa a REG-444.
+
+  Es la tercera vez esta semana: ya ocurrio con 323-326 -> 415-418 -> 417-420.
+  El numero es un contador global asignado a mano y hay dos escritores que lo
+  leen antes de escribir; entre leer y fusionar cabe el otro. Misma forma que
+  REG-349 —mirar y escribir no son un acto—, y volvera a pasar mientras el
+  numero se elija leyendo el ledger.
+-->
+
+---
+
+## REG-444 — el token del paciente viajaba entero al registro de errores
+
+**QUÉ FALLABA.** `redactarRuta` —el redactor por el que pasa toda ruta antes de
+escribirse en `errores`— tapaba identificadores de paciente y **dejaba pasar
+enteras las credenciales**.
+
+Medido contra `main`, no deducido:
+
+```
+/mi/eyJwIjoi….YWJjZGVm…        →  /mi/eyJwIjoi….YWJjZGVm…     ← sin tocar
+/resena/…                       →  sin tocar
+/verificar/…                    →  sin tocar
+/unirse/…                       →  sin tocar
+/consulta/paciente123abc        →  /consulta/:id               ← esto sí funcionaba
+```
+
+`/mi/<token>` **es** la sesión del paciente: quien tenga esa cadena abre su
+expediente. Y `errores` es una colección **raíz**, legible desde la consola del
+dueño de la plataforma — no está bajo `clinics/{id}`, así que ni siquiera el
+aislamiento entre consultorios la acota.
+
+**CAUSA RAÍZ — dos, y las dos hay que decirlas.**
+
+1. `SEGMENTOS_CON_ID` nació para tapar **identificadores**, y nadie volvió a
+   mirarla cuando aparecieron rutas que llevan **credenciales**. Un token no es
+   un id: filtrar un id revela a quién le pasó algo; filtrar un token **entrega
+   el acceso**.
+2. La heurística de reserva no lo alcanzaba: exige `^[A-Za-z0-9_-]+$`, y el
+   token tiene forma `base64url(payload).base64url(firma)` — **el punto rompe el
+   patrón**. La red de seguridad tenía justo el agujero del caso que importaba.
+
+**CÓMO SE DESCUBRIÓ.** Levantando el PR #342 por petición del dueño. Sus dos
+hallazgos declarados ya estaban reparados en `main`; éste no estaba en su
+resumen — venía dentro del diff, en un archivo que su propia directiva marcaba
+como «shared file, REVIEW REQUIRED». La revisión que pedía era la que lo
+encontró.
+
+**LA REGLA QUE LO HACE SEGURO.** Dos capas, y ninguna basta sola:
+
+- las rutas de cara al paciente (`mi`, `resena`, `verificar`, `unirse`,
+  `reservar`, `teleconsulta`) declaran que su segmento siguiente es una
+  credencial;
+- cualquier segmento con **forma de token firmado** se borra aunque nadie
+  declarara su ruta — porque la ruta de mañana no está en ninguna lista.
+
+Y **lo inocuo no se estropea**: se exigen dos o tres mitades de diez caracteres
+o más, así que `favicon.ico`, `sitemap.xml` y `pdf.worker.min.mjs` pasan intactos.
+Un redactor que rompe el informe se acaba apagando, y entonces no protege nada.
+
+**Prueba.** `src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts`
+(8 casos), probada al revés con tres defectos: quitar la detección de token
+firmado (cae 1), aflojar el mínimo de cada mitad a 3 (cae 1, por redactar de
+más), y **quitar la lista de rutas de paciente**.
+
+Ese tercero es el que enseña algo: con el golden tal y como venía del #342,
+quitar la lista dejaba **los siete casos en verde** — todos pasaban por la otra
+mitad. Se añadió el caso que la fija: un token **sin punto**, que no cazan ni la
+detección de firma ni la heurística de id. Nada obliga a que una credencial lleve
+firma separada por un punto; un token opaco es una forma normal de emitirla.
+
+**Qué NO cubre, declarado.**
+
+- **No redacta lo ya escrito.** Los `errores` anteriores a este cambio conservan
+  los tokens que registraron. Purgarlos es una decisión del dueño sobre datos de
+  producción.
+- **Sólo la RUTA.** Un token metido en el cuerpo de un mensaje de error, o en una
+  cabecera que alguien registre a mano, sigue sin pasar por aquí.
+- **No caduca los tokens filtrados.** Los del portal duran lo que duren; esto
+  impide la fuga nueva, no deshace la vieja.
+
 ## REG-506 · El despliegue anunciaba los índices y no mandaba ninguno
 
 **Cómo se descubrió.** Repasando los pendientes del dueño. El primero de la lista

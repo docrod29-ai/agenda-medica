@@ -1,11 +1,24 @@
 /**
- * MIRAR LA CONSULTA EN EL TELÉFONO. Sonda de OBSERVAR: no arregla nada,
- * cuenta lo que hay. 390x844 (iPhone en Chromium, que NO es un iPhone).
+ * MIRAR UNA PANTALLA DEL MÉDICO EN EL TELÉFONO.
+ *
+ * Sonda de OBSERVAR: no arregla nada, cuenta lo que hay. 390×844 por omisión,
+ * que es un iPhone en Chromium — y Chromium NO es un iPhone.
+ *
+ * Nació mirando la consulta y se generalizó a la segunda pantalla, en vez de
+ * copiarse: una sonda por pantalla son cinco sondas que divergen, y la que
+ * mide de más gana por accidente.
+ *
+ *   node scripts/ausculta-transformacion/mirar-la-consulta.mjs \
+ *        http://localhost:3200  <carpeta de salida>  [ancho]  [ruta]
+ *
+ * Necesita el arnés con emuladores (`arnes:emuladores` · `arnes:sembrar` ·
+ * `arnes:dev`) y por eso NO corre en CI.
  */
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-const [base, salida, anchoStr] = process.argv.slice(2)
+const [base, salida, anchoStr, rutaArg] = process.argv.slice(2)
+const ruta = rutaArg || '/consulta/pac-001'
 const w = Number(anchoStr || 390)
 mkdirSync(salida, { recursive: true })
 const nav = await chromium.launch({ executablePath: CHROME,
@@ -30,7 +43,7 @@ for (let i = 0; i < 15; i++) {
   if (await b.count()) await b.click({ force: true }); else await p.keyboard.press('Escape')
   await p.waitForTimeout(500)
 }
-await p.goto(base + '/consulta/pac-001', { waitUntil: 'domcontentloaded' })
+await p.goto(base + ruta, { waitUntil: 'domcontentloaded' })
 await p.waitForTimeout(3500)
 for (let i = 0; i < 8; i++) {
   const d = p.locator('[role="dialog"][aria-label*="ienvenida"]')
@@ -38,14 +51,27 @@ for (let i = 0; i < 8; i++) {
   await d.locator('button').last().click({ force: true }).catch(() => {})
   await p.waitForTimeout(400)
 }
-await p.screenshot({ path: `${salida}/consulta-${w}.png`, fullPage: false })
-await p.screenshot({ path: `${salida}/consulta-${w}-completa.png`, fullPage: true })
+const nombre = ruta.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'raiz'
+await p.screenshot({ path: `${salida}/${nombre}-${w}.png`, fullPage: false })
+await p.screenshot({ path: `${salida}/${nombre}-${w}-completa.png`, fullPage: true })
 
 const m = await p.evaluate(() => {
   const vis = e => { const r = e.getBoundingClientRect()
     return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none' }
   const controles = [...document.querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="tab"]')].filter(vis)
-  const chicos = controles.filter(e => { const r = e.getBoundingClientRect(); return r.width < 44 || r.height < 44 })
+  /**
+   * Un elemento FUERA del orden de tabulación y de uno o dos píxeles no es un
+   * objetivo táctil: es un auxiliar que abre un control visible de al lado (el
+   * `input[type=date]` oculto de la agenda, REG-439). Contarlo era gritar en
+   * falso, y una sonda que grita en falso se acaba ignorando — la lección de
+   * REG-434. WCAG 2.5.8 habla de objetivos de PUNTERO; esto no lo es.
+   */
+  const auxiliarOculto = (e, r) => e.tabIndex < 0 && (r.width <= 2 || r.height <= 2)
+  const chicos = controles.filter(e => {
+    const r = e.getBoundingClientRect()
+    if (auxiliarOculto(e, r)) return false
+    return r.width < 44 || r.height < 44
+  })
   const nombre = e => (e.getAttribute('aria-label') || e.innerText || e.getAttribute('placeholder') || e.tagName).trim().replace(/\s+/g, ' ').slice(0, 40)
   const noBoton = [...document.querySelectorAll('[onclick], [role="button"]')].filter(e => vis(e) && e.tagName !== 'BUTTON' && e.tagName !== 'A')
   const campos = [...document.querySelectorAll('input, select, textarea')].filter(vis)
@@ -55,6 +81,31 @@ const m = await p.evaluate(() => {
     alto: document.documentElement.scrollHeight,
     anchoScroll: document.documentElement.scrollWidth,
     desbordaH: document.documentElement.scrollWidth > window.innerWidth + 1,
+    /**
+     * LO QUE TERMINA FUERA DE LA VENTANA — y `desbordaH` NO lo ve.
+     *
+     * Un bloque puede acabar más allá del borde derecho sin que el documento
+     * desborde: si algún ancestro tiene `overflow: hidden`, lo que sobra no se
+     * puede alcanzar, se CORTA. Ahí no hay barra que arrastrar y la página
+     * parece sana.
+     *
+     * Añadido tras REG-441, donde 24 bloques de la columna del editor de la
+     * receta terminaban en x = 396 con la ventana en 390 y `desbordaH` decía
+     * `false`. La medición que encuentra el defecto tiene que vivir en la sonda,
+     * no en un guion de usar y tirar.
+     */
+    terminanFueraDeLaVentana: (() => {
+      const vw = window.innerWidth
+      const fuera = [...document.querySelectorAll('body *')].filter(e => {
+        if (!vis(e)) return false
+        const r = e.getBoundingClientRect()
+        return r.right > vw + 1 && r.width > 40 && (e.innerText || '').trim().length > 0
+      })
+      return { cuantos: fuera.length, ejemplos: fuera.slice(0, 5).map(e => {
+        const r = e.getBoundingClientRect()
+        return `${nombre(e)} · der ${Math.round(r.right)} (se sale ${Math.round(r.right - vw)})`
+      }) }
+    })(),
     controlesVisibles: controles.length,
     objetivosChicos: chicos.length,
     ejemplosChicos: chicos.slice(0, 12).map(e => { const r = e.getBoundingClientRect()
@@ -71,5 +122,5 @@ const m = await p.evaluate(() => {
     }).length,
   }
 })
-console.log(JSON.stringify({ ancho: w, ...m, erroresDeConsola: consola.slice(0, 10) }, null, 2))
+console.log(JSON.stringify({ ruta, ancho: w, ...m, erroresDeConsola: consola.slice(0, 10) }, null, 2))
 await nav.close()
