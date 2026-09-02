@@ -21,24 +21,16 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/api/consultor-evidencia/route.ts",
-    " M src/app/api/expediente/antibiograma-razonar/route.ts",
-    " M src/app/api/expediente/antibiograma-vision/route.ts",
-    " M src/app/api/expediente/corregir/route.ts",
-    " M src/app/api/expediente/evidencia/route.ts",
-    " M src/app/api/expediente/extraer-entidades/route.ts",
-    " M src/app/api/expediente/laboratorio-vision/route.ts",
-    " M src/app/api/expediente/procesar/route.ts",
-    " M src/app/api/expediente/transcribir-chunk/route.ts",
-    " M src/app/api/expediente/transcribir-diarizado/route.ts",
-    " M src/app/api/expediente/transcribir/route.ts",
-    " M src/app/api/expediente/verificar-nota/route.ts",
-    " M src/app/api/inmuno/redactar/route.ts",
-    " M src/app/api/receta/detectar-campos/route.ts",
-    " M src/app/api/telesalud/sala/route.ts",
-    " M src/app/api/uci/copilot/route.ts",
-    " M src/lib/calidad/familias-de-defecto.ts"
+    " M src/app/(dashboard)/citas/page.tsx",
+    " M src/app/globals.css",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? docs/design/capturas/v95/",
+    "?? sonda-agenda.mjs",
+    "?? sonda-riel.mjs",
+    "?? src/__tests__/el-riel-mira-el-reloj.test.ts"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -74,10 +66,10 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 272,
+    "regsEnElLedger": 273,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 895,
-    "casosDePrueba": 10848,
+    "archivosDePrueba": 896,
+    "casosDePrueba": 10859,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

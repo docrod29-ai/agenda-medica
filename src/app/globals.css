@@ -3215,6 +3215,27 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 .riel-entrada[data-momento='hecho'] .riel-hora { color: var(--text2); font-weight: 500; }
 .riel-entrada[data-momento='cerrado'] .riel-nombre,
 .riel-entrada[data-momento='cerrado'] .riel-hora { color: var(--text2); font-weight: 500; }
+
+/* ── PASÓ, Y NO SE RESOLVIÓ ────────────────────────────────────────────────
+
+   Una cita confirmada cuya hora ya pasó no está HECHA —nadie la atendió— ni
+   CERRADA —nadie la canceló—. Medido el 1-sep a las 18:08: seis de las ocho
+   citas del día se pintaban a peso completo, indistinguibles de una que está
+   por venir, porque el momento se derivaba del estado y no del reloj.
+
+   Se atenúa igual que lo pasado, para que el ojo deje de tratarla como «lo
+   siguiente»… */
+.riel-entrada[data-momento='pasado'] .riel-nombre,
+.riel-entrada[data-momento='pasado'] .riel-hora { color: var(--text2); font-weight: 500; }
+
+/* …pero el NODO se dibuja distinto: hueco y con el borde en ámbar, no en gris.
+   «Pasó sin resolverse» no puede leerse como «listo»: son justamente las filas
+   que hay que reconciliar al cerrar el día. Ámbar es, en la paleta del riel,
+   «requiere confirmación humana» — que es exactamente lo que son. */
+.riel-entrada[data-momento='pasado'] .riel-nodo::before {
+  background: var(--bg);
+  border-color: color-mix(in srgb, var(--amber) 70%, transparent);
+}
 .riel-entrada[data-momento='cerrado'] .riel-nombre { text-decoration: line-through; text-decoration-color: var(--text3); }
 
 .riel-cuerpo { grid-area: cuerpo; min-width: 0; }

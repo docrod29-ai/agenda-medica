@@ -15752,3 +15752,78 @@ ninguna es una decisión de la casa que no le sirve para nada.
 barrido excluye `safeLog` —registro de servidor, no viaja al cliente— y
 `avisoAlMedico`; su primera versión los cazaba y habría obligado a borrar un log
 útil para pasar una prueba.
+
+---
+
+## REG-422 — el riel de la agenda no miraba el reloj
+
+**Dónde**: `src/app/(dashboard)/citas/page.tsx` (`momentoDeCita`, `RielEntrada`) ·
+`src/app/globals.css`
+
+### Qué fallaba
+
+Medido en navegador el 1-sep-2026 a las **18:08** (hora del consultorio), con las
+ocho citas del día ya pasadas:
+
+```
+pintadas a peso completo ................. 6 de 8
+atenuadas ................................ 2 — y por ESTADO (atendida,
+                                           cancelada), no por hora
+que aún ofrecían «Iniciar consulta» o
+«Confirmar» como acción primaria ......... 6
+```
+
+El riel es una línea de tiempo con el marcador de AHORA siempre visible, y R1 de
+la gramática NexusMED dice que ese marcador separa «lo pasado (**atenuado**) de
+lo que viene». Sin la atenuación, el riel contesta «aquí hay ocho cosas que
+hacer» cuando el día terminó y ninguna es la siguiente.
+
+### Causa raíz
+
+Todo lo demás estaba construido: el marcador existe, la hoja **ya** atenuaba
+`hecho` y `cerrado` por token —su comentario lo explicaba— y la fila **recibía**
+`ahoraHHMM` del padre.
+
+Pero `ahoraHHMM` estaba en el **tipo** de props de `RielEntrada` y **no se
+desestructuraba**: el padre lo mandaba, el tipo lo declaraba, y la firma lo
+tiraba al suelo. No es que no se usara: era imposible usarlo. Y `momentoDeCita`
+mapeaba estado → momento sin recibir el reloj nunca.
+
+«Escrito y sin conectar» en la pieza que decide qué momento es cada cita, dentro
+de la pantalla cuyo tema **es** el tiempo.
+
+### El arreglo
+
+Un momento nuevo, `pasado`: la cita cuya hora pasó y que nadie atendió ni
+canceló. No es `hecho` —nadie la atendió— ni `cerrado` —nadie la canceló—.
+Llamarle `hecho` para que se atenuara habría sido mentir con tal de que se viera
+bien.
+
+Se atenúa como lo pasado y su **nodo se dibuja en ámbar**, hueco: «pasó sin
+resolverse» no puede leerse como «listo». Son justamente las filas que hay que
+reconciliar al cerrar el día, y ahora forman una columna visible.
+
+Sólo aplica **al día de hoy**: en otro día «pasado» lo es todo o nada.
+
+### Lo que NO cambia, a propósito
+
+- La **acción primaria** se conserva: el médico puede iniciar una consulta tarde
+  o cobrar una visita de la mañana. Cambia el peso visual, no lo que se puede
+  hacer.
+- El **riesgo** no se atenúa: el badge `Alto`, el aviso `Calendario descuadrado`
+  y los avisos de estado mantienen su peso. Atenuar la identidad es correcto;
+  atenuar una advertencia, no.
+
+### Qué NO cubre
+
+- No decide qué hacer con una cita pasada sin resolver: sólo la distingue.
+- No mide la pantalla; la atenuación se comprobó en navegador (8 de 8 atenuadas
+  hoy, 10:30 de mañana a peso completo) y vive en la bitácora del carril.
+
+**Prueba.** `src/__tests__/el-riel-mira-el-reloj.test.ts` (11 casos).
+**Probada al revés ×3.** Y el propio reverso encontró que la prueba **no
+servía**: sus casos de conducta usaban una COPIA local de la regla, así que
+borrar la comparación del producto los dejaba a todos en verde. Es el defecto que
+este carril lleva encontrando toda la sesión —un guardián que comprueba su
+recuerdo de la regla en vez de la regla— esta vez en mi propia prueba. Se añadió
+el caso que mira la función real.

@@ -6337,3 +6337,82 @@ pantalla es un chat vacío con cuatro ejemplos arriba y un campo abajo. Declarad
 de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
 · `tsc` limpio · golden nuevo **6 casos, probado al revés ×3**, uno con otra
 redacción de la jerga · verificado en navegador preguntando de verdad.
+
+---
+
+## Unidad 95 — Agenda: el riel mira el reloj
+
+Quinta unidad del núcleo, y la última de tu orden antes de la pasada transversal.
+Capturas en `docs/design/capturas/v95/`.
+
+### Primero, lo que estaba BIEN
+
+La agenda es, con diferencia, la mejor pantalla del producto. El riel R1 está
+implementado de verdad: nodos sobre una línea vertical, **una acción por
+entrada**, el estado en versalitas con punto de color —no píldoras—, sin
+avatar-círculo, y el **marcador de AHORA** en cobalto. La gramática NexusMED
+existe aquí, no sólo en el documento.
+
+### 95a · Y el riel no miraba el reloj
+
+Medido a las **18:08** (hora del consultorio), con las ocho citas del día ya
+pasadas:
+
+| | Antes | Después |
+|---|---|---|
+| Pintadas a peso completo | **6 de 8** | **0** |
+| Atenuadas | 2, y por **estado** | **8**, por hora |
+| Mañana 10:30 (por venir) | peso completo | peso completo ✔ |
+
+R1 dice que el marcador de ahora separa «lo pasado (**atenuado**) de lo que
+viene». La mitad de esa frase no estaba.
+
+**Y todo lo demás sí estaba construido**: el marcador existe, la hoja ya atenuaba
+`hecho` y `cerrado` por token —su propio comentario lo explica— y la fila
+**recibía** `ahoraHHMM`.
+
+Pero `ahoraHHMM` estaba en el **tipo** de props y **no se desestructuraba**. El
+padre lo mandaba, el tipo lo declaraba, y la firma lo tiraba al suelo: no es que
+no se usara, es que **era imposible usarlo**. Y `momentoDeCita` mapeaba estado →
+momento sin recibir el reloj nunca. → **REG-422**.
+
+### 95b · Un momento nuevo, porque «hecho» habría sido mentira
+
+Una cita confirmada cuya hora pasó no está **hecha** —nadie la atendió— ni
+**cerrada** —nadie la canceló—. Llamarle `hecho` para que se atenuara habría sido
+mentir con tal de que se viera bien.
+
+`pasado` se atenúa como lo pasado y su nodo va **ámbar y hueco**: en la paleta
+del riel, ámbar es «requiere confirmación humana», que es exactamente lo que son.
+En pantalla forman ahora una columna visible de «estos seis se pasaron» — la
+respuesta operativa que el riel debe dar al cerrar el día.
+
+**Lo que NO cambia, a propósito**: la acción primaria se conserva (se puede
+iniciar una consulta tarde o cobrar una visita de la mañana), y el **riesgo no se
+atenúa** — el badge `Alto`, el aviso `Calendario descuadrado` y los estados
+mantienen su peso. Atenuar la identidad es correcto; atenuar una advertencia, no.
+
+### 95c · Y mi prueba no servía
+
+Los reversos encontraron que borrar la comparación del producto dejaba **los diez
+casos en verde**: los de conducta usaban una COPIA local de la regla. Es el
+defecto que este carril lleva encontrando toda la sesión —un guardián que
+comprueba su recuerdo de la regla en vez de la regla— esta vez en la mía. Van
+**nueve** en cinco unidades.
+
+### RIESGO RESIDUAL
+
+- **La acción primaria de una cita pasada sigue siendo la misma.** «Iniciar
+  consulta» a las 18:08 para una cita de las 09:00 es ahora visualmente
+  secundaria, pero sigue diciendo lo mismo. Qué debe ofrecer una cita que se
+  pasó —¿reagendar? ¿marcar no asistió?— es una decisión de producto, no mía.
+- El riel no se midió a 390 px ni en tema claro.
+- «Fin del día · mañana: N citas» no se comprobó con el día vacío.
+
+### COMPUERTAS
+
+`npx vitest run` **12 092 de 12 094** —inventario regenerado después y
+`ops-timeout-y-punto-ciego` de entorno (REG-414)— · lint **95 = techo** ·
+trinquete de diseño sin deuda nueva · `tsc` limpio · golden nuevo **11 casos,
+probado al revés ×3** · verificado en navegador en los dos sentidos: hoy 8/8
+atenuadas, mañana a peso completo.
