@@ -74,6 +74,12 @@ const sinComentarios = (s: string) =>
 
 const ARCHIVOS = fuentes('src')
 
+/**
+ * Los archivos que NO pueden hablar variables CSS. Hoy uno: la tarjeta social,
+ * que pinta `satori` sin `:root`. Ver la nota del caso de la excepción.
+ */
+const SIN_VARIABLES_CSS = ['src/app/opengraph-image.tsx']
+
 function contar(patron: RegExp): Map<string, number> {
   const m = new Map<string, number>()
   for (const p of ARCHIVOS) {
@@ -152,11 +158,38 @@ describe('radio', () => {
      */
     const culpables: string[] = []
     for (const p of ARCHIVOS) {
+      if (SIN_VARIABLES_CSS.some(x => p.endsWith(x))) continue
       for (const m of sinComentarios(readFileSync(p, 'utf8')).matchAll(PILDORA_A_MANO)) {
         culpables.push(`${p} → ${m[0]}`)
       }
     }
     expect(culpables, `usa var(--r-pill):\n${culpables.slice(0, 10).join('\n')}`).toEqual([])
+  })
+
+  /**
+   * LA EXCEPCIÓN, Y POR QUÉ NO ES UN AGUJERO.
+   *
+   * `opengraph-image.tsx` no lo pinta un navegador: lo pinta `satori`, en el
+   * runtime edge, **sin hoja de estilo y sin `:root`**. Ahí `var(--r-pill)` no
+   * cae a un valor de respaldo — `satori` no sabe interpretarlo y **lanza**, y
+   * la ruta devuelve 500. Medido: con `var()` la tarjeta social daba HTTP 500 y
+   * todo enlace compartido salía sin previsualización; con literales, 200.
+   *
+   * O sea: las dos reglas son correctas y en este archivo se contradicen. La
+   * excepción se hace explícita —y estrecha, y con la cifra canónica— en vez de
+   * dejar el caso en rojo o ablandarlo para todos. Que los literales de ese
+   * archivo NO se separen del sistema lo vigila
+   * `el-acento-retirado-no-sigue-pintando.test.ts`.
+   */
+  it('la excepción de satori es UNA, es estrecha, y escribe la píldora canónica', () => {
+    expect(SIN_VARIABLES_CSS).toEqual(['src/app/opengraph-image.tsx'])
+    const og = readFileSync(join('src', 'app', 'opengraph-image.tsx'), 'utf8')
+    // Si tiene que escribir la cifra, escribe la del token (9999px → 999 en un
+    // borde de 40 px es la misma píldora), y NINGUNA de las otras cuatro formas.
+    expect(og).toContain('borderRadius: 999')
+    expect(og).not.toMatch(/borderRadius: (?:100|9999|99|50)\b/)
+    // Y no vuelve a colar un var() por la puerta de atrás.
+    expect(sinComentarios(og)).not.toMatch(/var\(--/)
   })
 
   it('y el token existe de verdad (no es un nombre que no resuelve)', () => {

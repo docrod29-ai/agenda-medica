@@ -40,6 +40,7 @@ import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
 import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'
 import { estadoDeBanderas, avisoDeBanderasIncompletas } from '@/lib/expediente/banderas-de-riesgo'
 import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
+import { fechaLegible } from '@/lib/fecha-local'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
 } from '@/lib/expediente/alergias-longitudinales'
@@ -1046,7 +1047,10 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
               {nota.resumenEjecutivo || nota.diagnosticos.map(d => d.descripcion).join(', ') || 'Sin resumen'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Clock size={11} /> {new Date(nota.fechaConsulta).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
+              {/* `new Date('2026-09-01')` es medianoche UTC: en México pintaba
+                  «31 ago 2026, 6:00 p.m.» — un día antes, y con una hora que
+                  nadie registró. Ver `fechaLegible` en @/lib/fecha-local. */}
+              <Clock size={11} /> {fechaLegible(nota.fechaConsulta)}
             </div>
           </div>
           {abierta ? <ChevronUp size={16} color="var(--text3)" /> : <ChevronDown size={16} color="var(--text3)" />}

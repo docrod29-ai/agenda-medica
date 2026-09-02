@@ -1782,6 +1782,56 @@ export default function ConsultaActivaPage() {
   const esElPrincipio = audio.estado === 'inactivo'
     && !voz.grabando
     && !voz.transcripcion.trim()
+  /**
+   * ¿ESTÁ `MientrasHablas` EN PANTALLA, Y POR TANTO MANDA ÉL?
+   *
+   * Mismo criterio que su propia condición de montaje, en una constante para
+   * que no puedan separarse. Mientras es cierto, la fila de abajo NO repite
+   * el cronómetro, ni el botón de detener, ni el de pausa: ya están arriba.
+   * Ver la nota de `mandaElPanelDeEscucha` en la fila de controles.
+   */
+  const mandaElPanelDeEscucha =
+    !firmada && (audio.estado === 'grabando' || audio.estado === 'pausado' || audio.estado === 'subiendo')
+
+  /**
+   * LA PÍLDORA FLOTANTE SÓLO EXISTE CUANDO EL PANEL NO ESTÁ A LA VISTA.
+   *
+   * Existe porque «grabar una consulta dura veinte minutos y en ese rato uno se
+   * desplaza por la nota». Correcto — pero se pintaba SIEMPRE que se grababa,
+   * también con el panel de escucha a tres centímetros de distancia. Medido en
+   * el navegador con la grabación en marcha: se posaba encima del campo
+   * «Motivo de consulta», o sea que tapaba un control con el que hay que
+   * escribir justo mientras se graba. Es lo que persigue
+   * `arnes:nada-tapa`, que nunca la había visto porque no grababa.
+   *
+   * Con el observador, la píldora aparece cuando el panel se va de la pantalla
+   * — que es su motivo — y desaparece cuando vuelve. Sin observador (o sin
+   * JavaScript) nace VISIBLE: quedarse sin el control de detener es peor que
+   * un solape.
+   */
+  const panelEscuchaRef = useRef<HTMLDivElement>(null)
+  const [panelALaVista, setPanelALaVista] = useState(false)
+  /**
+   * Mientras la píldora flota, el lienzo reserva su alto. La marca va en
+   * `<html>` porque quien hace scroll es `<main>` del shell, que está por
+   * encima de esta pantalla en el árbol.
+   */
+  const hayPildora = (voz.grabando || audio.estado === 'grabando') && !panelALaVista
+  useEffect(() => {
+    const raiz = document.documentElement
+    raiz.classList.toggle('nx-hay-pildora-grabando', hayPildora)
+    return () => raiz.classList.remove('nx-hay-pildora-grabando')
+  }, [hayPildora])
+  useEffect(() => {
+    const el = panelEscuchaRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined
+    const obs = new IntersectionObserver(
+      ([e]) => setPanelALaVista(e.isIntersecting),
+      { threshold: 0.35 },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [mandaElPanelDeEscucha])
 
   const iniciarGrabacion = () => {
     // arrancarSegunModo, NO voz.iniciar directo: `modoVoz` está en 'whisper', así
@@ -4699,7 +4749,7 @@ export default function ConsultaActivaPage() {
           la píldora de más abajo NEUTRA — dos alarmas contradictorias para el
           mismo dato en el mismo viewport (REG-311). */}
       {(() => { const alergenosDelPaciente = alergenosDe(patient ?? {}); const hayAlergias = alergenosDelPaciente.length > 0; return (
-      <div style={{
+      <div className="nx-franja-alergias" style={{
         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
         background: hayAlergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
         border: `1px solid ${hayAlergias ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'}`,
@@ -4743,8 +4793,14 @@ export default function ConsultaActivaPage() {
           // Regla 4 de clinical-safety: ausencia de dato no es dato de ausencia.
           // Guardián: alergias-placeholder-no-afirma.test.ts
           placeholder="No registradas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
+          // El «Alergias:» de al lado es un `<strong>`, no una etiqueta: se ve y
+          // no se anuncia. El campo más importante de la pantalla se leía como
+          // una caja sin nombre.
+          aria-label="Alergias del paciente"
           disabled={firmada}
-          style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14 }}
+          // 244×24 medido en el teléfono: es un campo de verdad, editable, no un
+          // enlace dentro de una frase — y el más importante de la pantalla.
+          style={{ flex: 1, minHeight: 44, background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14 }}
         />
         {/**
           * RTC-14 — LA LECTURA DEL SISTEMA, AQUÍ Y NO EN OTRA CAJA.
@@ -4763,8 +4819,8 @@ export default function ConsultaActivaPage() {
           */}
         {hayAlergias && alergenosDelPaciente.join(' · ') !== (patient?.alergias ?? '').trim() && (
           <span
-            className="nx-critico"
-            style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700 }}
+            className="nx-critico nx-lectura-alergenos"
+            style={{ fontSize: 12.5, fontWeight: 700 }}
             title="Lo que el sistema entiende como alérgeno a partir de lo escrito"
           >
             se lee: {alergenosDelPaciente.join(' · ')}
@@ -4982,8 +5038,19 @@ export default function ConsultaActivaPage() {
               ahí lo recoge la regla de la última palabra.
             */}
             {vigentes.map((v, i) => (
-              <span key={`${v.medicamento.nombre}-${i}`} style={{ whiteSpace: 'nowrap' }}>
+              /*
+                EL SEPARADOR VA FUERA DEL `nowrap`, Y ÉSA ES TODA LA CORRECCIÓN.
+                Mantener juntos el fármaco y su «ya no» es lo correcto: partirlos
+                deja un botón huérfano al principio de un renglón sin decir de qué
+                medicamento habla. Pero el « · » estaba DENTRO de ese `nowrap`, y
+                con él el único espacio que había entre un fármaco y el siguiente.
+                Sin espacio partible, el navegador no tenía dónde cortar: a 390 px
+                el segundo fármaco no bajaba de línea, se salía de la pantalla
+                27 px. Ahora el separador es texto normal —punto de corte— y lo
+                indivisible es sólo el par nombre+acción. Ver REG-437. */
+              <span key={`${v.medicamento.nombre}-${i}`}>
                 {i > 0 && ' · '}
+                <span style={{ whiteSpace: 'nowrap' }}>
                 {[v.medicamento.nombre, v.medicamento.dosis].filter(Boolean).join(' ')}
                 {!firmada && (
                   <button
@@ -4994,6 +5061,7 @@ export default function ConsultaActivaPage() {
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, padding: '0 2px 0 5px', textDecoration: 'underline' }}
                   >ya no</button>
                 )}
+                </span>
               </span>
             ))}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
@@ -5094,7 +5162,7 @@ export default function ConsultaActivaPage() {
 
       {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
       {esNotaHospital && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--text2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', fontSize: 12.5, color: 'var(--text2)' }}>
           <BedDouble size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           Nota de <strong>Hospitalización</strong> — al guardar/firmar regresas al episodio, no a Consulta.
         </div>
@@ -5124,7 +5192,7 @@ export default function ConsultaActivaPage() {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16,
           padding: '10px 14px', borderRadius: 10,
-          background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.3)',
+          background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
         }}>
           <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
@@ -5179,7 +5247,8 @@ export default function ConsultaActivaPage() {
         Sólo aparece MIENTRAS se graba: no es un segundo botón de iniciar, es el
         control a la mano y la prueba en vivo de que capta.
       */}
-      {!firmada && (audio.estado === 'grabando' || audio.estado === 'pausado' || audio.estado === 'subiendo') && (
+      {mandaElPanelDeEscucha && (
+        <div ref={panelEscuchaRef}>
         <MientrasHablas
           estado={audio.estado === 'subiendo' ? 'procesando' : audio.estado === 'pausado' ? 'pausado' : 'grabando'}
           duracion={audio.duracion}
@@ -5191,6 +5260,7 @@ export default function ConsultaActivaPage() {
           alReanudar={() => audio.reanudar()}
           alDetener={() => { void audio.detener() }}
         />
+        </div>
       )}
 
       {/* ── Grabación ── */}
@@ -5229,12 +5299,12 @@ export default function ConsultaActivaPage() {
                 onClick={() => voz.grabando ? voz.detener() : iniciarGrabacion()}
                 style={{
                   width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0,
-                  background: voz.grabando ? '#ef4444' : 'var(--teal)',
+                  background: 'var(--nexus-solido)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  animation: voz.grabando ? 'pulse 1.5s infinite' : 'none',
+                  animation: voz.grabando ? 'nx-escuchando-latido 1.5s infinite' : 'none',
                 }}
               >
-                {voz.grabando ? <Square size={24} color="#fff" fill="#fff" /> : <Mic size={26} color="#000" />}
+                {voz.grabando ? <Square size={24} color="#fff" fill="#fff" /> : <Mic size={26} color="#fff" />}
               </button>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
@@ -5313,6 +5383,28 @@ export default function ConsultaActivaPage() {
                   <Headphones size={16} /> Manos libres {manosLibres ? 'ON' : 'OFF'}
                 </button>
               )}
+                {/*
+                  GRABAR NUNCA ES ROJO.
+
+                  Este botón se ponía `#ef4444` mientras grababa, y latía con un
+                  `@keyframes pulse` de `var(--red)`. Es la regla que este
+                  repositorio ya selló para `MarcoEscuchando` y para
+                  `InstrumentStrip` —rojo significa RIESGO CLÍNICO, y enseñar al
+                  médico a leer rojo como «está grabando» erosiona el color con
+                  el que se le avisa de una alergia— y los dos botones de
+                  grabación de ESTA pantalla se quedaron fuera de aquel arreglo.
+                  La familia de siempre: la lección se aprende en un componente
+                  y no en el de al lado.
+
+                  El acento es el cobalto, que es el territorio libre de
+                  significado clínico, y es lo que ya dicen el marco perimetral
+                  y la franja de instrumentos cuando el micrófono está abierto.
+                  `--nexus-solido` es el relleno medido para llevar blanco
+                  encima (5,16 : 1 en oscuro, 7,00 en claro); `var(--teal)` es
+                  el token de TRAZO y llevaba un icono negro encima, que en el
+                  tema claro es negro sobre un cian oscuro.
+                */}
+              {!mandaElPanelDeEscucha && (
               <button
                 onClick={async () => {
                   if (audio.estado === 'grabando') await audio.detener()
@@ -5323,9 +5415,12 @@ export default function ConsultaActivaPage() {
                 disabled={audio.estado === 'subiendo'}
                 style={{
                   width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: audio.estado === 'subiendo' ? 'default' : 'pointer', flexShrink: 0,
-                  background: (audio.estado === 'grabando' || audio.estado === 'pausado') ? '#ef4444' : 'var(--teal)',
+                  background: 'var(--nexus-solido)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  animation: audio.estado === 'grabando' ? 'pulse 1.5s infinite' : 'none',
+                  /* Late SÓLO mientras se está oyendo de verdad: en pausa el
+                     micrófono está abierto pero no entra nada, y un latido que
+                     no distingue las dos cosas dice que sí. */
+                  animation: audio.estado === 'grabando' ? 'nx-escuchando-latido 1.5s infinite' : 'none',
                 }}
                 title={audio.estado === 'grabando' || audio.estado === 'pausado' ? 'Detener y transcribir' : 'Iniciar grabación'}
               >
@@ -5333,21 +5428,18 @@ export default function ConsultaActivaPage() {
                   ? <Loader2 size={24} color="#fff" style={{ animation: 'spin 1s linear infinite' }} />
                   : (audio.estado === 'grabando' || audio.estado === 'pausado')
                     ? <Square size={24} color="#fff" fill="#fff" />
-                    : <Mic size={26} color="#000" />}
+                    : <Mic size={26} color="#fff" />}
               </button>
-              {(audio.estado === 'grabando' || audio.estado === 'pausado') && (
-                <button
-                  onClick={() => audio.estado === 'grabando' ? audio.pausar() : audio.reanudar()}
-                  style={{
-                    width: 48, height: 48, borderRadius: '50%', border: '1px solid var(--border2)',
-                    background: 'var(--s2)', color: 'var(--text)', cursor: 'pointer', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-                  }}
-                  title={audio.estado === 'grabando' ? 'Pausar (mantiene la grabación)' : 'Reanudar'}
-                >
-                  {audio.estado === 'grabando' ? '⏸' : '▶'}
-                </button>
               )}
+              {/*
+                EL SEGUNDO BOTÓN DE PAUSA SE BORRA, no se esconde.
+
+                Sólo podía aparecer con `grabando | pausado` — exactamente
+                cuando `MientrasHablas` está en pantalla con SU botón de pausa
+                justo encima. Gatearlo lo habría dejado como código que no se
+                ejecuta nunca, que es la deuda que este repositorio persigue con
+                `modulos-sin-conectar`. Si hace falta pausar, se pausa arriba.
+              */}
               {(audio.estado === 'grabando' || audio.estado === 'pausado') && (
                 <button
                   onClick={async () => {
@@ -5372,13 +5464,15 @@ export default function ConsultaActivaPage() {
                 </button>
               )}
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-                  {audio.estado === 'grabando' ? `Grabando · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}${audio.chunksTranscritos > 0 ? ` · ${audio.chunksTranscritos} chunks transcritos` : ''}`
-                    : audio.estado === 'pausado' ? `⏸ Pausado · ${String(Math.floor(audio.duracion / 60)).padStart(2,'0')}:${String(audio.duracion % 60).padStart(2,'0')}`
-                    : audio.estado === 'subiendo' ? 'Transcribiendo audio…'
-                    : audio.estado === 'listo' ? 'Transcripción lista'
-                    : 'Grabar la conversación completa (médico + paciente)'}
-                </div>
+                {/* El cronómetro y el estado los dice `MientrasHablas`, arriba.
+                    Aquí sólo queda lo que ese panel NO tiene: lo que pasa
+                    DESPUÉS de grabar. */}
+                {!mandaElPanelDeEscucha && (
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
+                    {audio.estado === 'listo' ? 'Transcripción lista'
+                      : 'Grabar la conversación completa (médico + paciente)'}
+                  </div>
+                )}
                 {/*
                   NO HUBO SEPARACIÓN DE VOCES — y ahora se dice.
                   Era invisible: la app caía a Whisper y la nota salía idéntica
@@ -5530,11 +5624,15 @@ export default function ConsultaActivaPage() {
                 )}
                 {/* Manos libres: aviso de escucha activa + comandos */}
                 {manosLibres && (
-                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: comandoError ? '#ef4444' : 'var(--teal)' }}>
+                  /* Escuchar comandos también es «te estoy oyendo»: cobalto y el
+                     mismo latido. El ERROR sí es rojo, que es lo que rojo
+                     significa — pero con el token, no con el literal de
+                     Tailwind, que no sigue al tema. */
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: comandoError ? 'var(--red-texto)' : 'var(--nexus)' }}>
                     <span style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: comandoError ? '#ef4444' : 'var(--teal)',
-                      animation: escuchaActiva && !comandoError ? 'pulse 1.5s infinite' : 'none',
+                      background: comandoError ? 'var(--red)' : 'var(--nexus)',
+                      animation: escuchaActiva && !comandoError ? 'nx-escuchando-latido 1.5s infinite' : 'none',
                     }} />
                     {comandoError
                       ? comandoError
@@ -5554,9 +5652,24 @@ export default function ConsultaActivaPage() {
                       <div style={{
                         position: 'absolute', top: 0, left: 0, bottom: 0,
                         width: `${Math.round(audio.nivelAudio * 100)}%`,
-                        background: audio.nivelAudio < 0.05 ? '#9CA3AF'
-                          : audio.nivelAudio < 0.4 ? '#22C55E'
-                          : audio.nivelAudio < 0.75 ? '#EAB308' : '#EF4444',
+                        /*
+                          EL MEDIDOR TAMPOCO LLEGA A ROJO.
+
+                          Iba de gris a verde, a amarillo y a ROJO con cuatro
+                          literales de Tailwind. El rojo aquí es el de un
+                          medidor de audio —«estás saturando»— pero en esta
+                          pantalla rojo ya significa RIESGO CLÍNICO, y un médico
+                          que mira de reojo ve rojo, no un vúmetro. Se queda en
+                          ámbar arriba, que dice lo mismo sin gastar el color
+                          con el que se le avisa de una alergia.
+
+                          Y con tokens: los cuatro literales no seguían al tema,
+                          así que en claro el gris de silencio y el verde eran
+                          los pensados para fondo oscuro.
+                        */
+                        background: audio.nivelAudio < 0.05 ? 'var(--text3)'
+                          : audio.nivelAudio < 0.4 ? 'var(--nexus)'
+                          : audio.nivelAudio < 0.75 ? 'var(--green)' : 'var(--amber)',
                         // INSTRUMENTO, no interfaz (V15-MOTION-001): el medidor
                         // sigue el nivel del micrófono en vivo. `linear` a 60ms está
                         // afinado al ritmo de la señal (y el color de banda a 200ms);
@@ -5927,7 +6040,7 @@ export default function ConsultaActivaPage() {
         <button
           onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
           title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'var(--nexus-tenue)', color: 'var(--nexus)', border: '1px solid var(--nexus-borde)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗
         </button>
       )}
@@ -6440,7 +6553,7 @@ export default function ConsultaActivaPage() {
       {ofreceReproyectar && !firmada && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 11, flexWrap: 'wrap',
-          background: 'rgba(61,90,254,0.07)', border: '1px solid rgba(61,90,254,0.3)',
+          background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
           <Sparkles size={17} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} />
@@ -6515,9 +6628,20 @@ export default function ConsultaActivaPage() {
         <Section title="Signos vitales" icon={<Stethoscope size={15} />}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(90px, 100%), 1fr))', gap: 10 }}>
             {([['ta', 'TA', '120/80'], ['fc', 'FC', 'lpm'], ['fr', 'FR', 'rpm'], ['temperatura', 'T°', '°C'], ['spo2', 'SpO₂', '%'], ['peso', 'Peso', 'kg'], ['talla', 'Talla', 'cm']] as const).map(([k, label, ph]) => (
+              /*
+                LA ETIQUETA SE VE, PERO NO ESTABA ATADA AL CAMPO.
+                Había `<label>` con el texto correcto —«TA», «FC», «SpO₂»— y
+                ningún `htmlFor`, así que para el navegador y para un lector de
+                pantalla estos siete campos eran cajas anónimas: se anuncia
+                «edición de texto, 120/80» sin decir de qué signo se trata. Y el
+                único indicio visible que quedaba dentro del campo, el
+                marcador de posición, DESAPARECE al escribir el primer dígito.
+                `design-system.md` lo pone entre los mínimos que tumban la
+                compuerta: «campo sin etiqueta». Ver REG-437. */
               <div key={k}>
-                <label style={S.miniLabel}>{label}</label>
+                <label htmlFor={`signo-${k}`} style={S.miniLabel}>{label}</label>
                 <input
+                  id={`signo-${k}`}
                   value={(signos[k] as string | number | undefined) ?? ''}
                   /**
                    * DECIMALES. Esto hacía `Number(e.target.value)` en cada tecla:
@@ -6933,7 +7057,7 @@ export default function ConsultaActivaPage() {
         <>
           {/* ── Chat de corrección por IA ── */}
           {!firmada && (
-            <div style={{ marginTop: 18, border: '1px solid rgba(61,90,254,0.35)', borderRadius: 12, background: 'rgba(61,90,254,0.05)', padding: 14 }}>
+            <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 12, background: 'var(--nexus-tenue)', padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
                 <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
               </div>
@@ -6955,6 +7079,7 @@ export default function ConsultaActivaPage() {
                   onChange={e => setInstruccionCorr(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
                   placeholder="Escribe la corrección…"
+                  aria-label="Corrección para la nota"
                   disabled={corrigiendo}
                   style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
                 />
@@ -7291,15 +7416,30 @@ export default function ConsultaActivaPage() {
         />
       )}
 
-      {/* Control flotante de grabación — visible desde cualquier parte (manos libres / celular) */}
-      {(voz.grabando || audio.estado === 'grabando') && (
+      {/* Control flotante de grabación — para cuando el panel de escucha ya no
+          está a la vista (manos libres / celular / nota larga). Ver
+          `panelALaVista`: con el panel delante, esta píldora sólo tapaba.
+
+          `nx-hay-pildora-grabando` le pide al lienzo que RESERVE el alto de la
+          píldora. Sin eso, a 390 px la píldora flota sobre lo que haya debajo
+          —medido: tres botones de herramientas— y el último control de la
+          pantalla se queda debajo sin nada a lo que desplazarse. Es la regla de
+          `arnes:nada-tapa`, que no la había visto porque no grababa. */}
+      {(voz.grabando || audio.estado === 'grabando') && !panelALaVista && (
         <div style={{
           position: 'fixed', left: '50%', bottom: 'calc(84px + env(safe-area-inset-bottom))', transform: 'translateX(-50%)', zIndex: 200,
           display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 24px)',
-          background: 'var(--s1)', border: '1px solid var(--border2, var(--border)',
+          /* El paréntesis de `var(--border2, var(--border)` estaba sin cerrar,
+             así que la declaración entera era inválida y esta píldora flotante
+             se pintaba SIN BORDE sobre el contenido de la nota. El respaldo
+             sobraba: `--border2` está definido en los tres temas. */
+          background: 'var(--s1)', border: '1px solid var(--border2)',
           borderRadius: 'var(--r-pill)', padding: '8px 8px 8px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
         }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />
+          {/* El punto de «estoy grabando», en el mismo idioma que el marco
+              perimetral y que los dos botones: cobalto, nunca rojo. Latía con
+              el `@keyframes pulse` local que se retiró de esta pantalla. */}
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--nexus)', flexShrink: 0, animation: 'nx-escuchando-latido 1.5s infinite' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
             Grabando · {modoVoz === 'vivo'
               ? mmss
@@ -7317,7 +7457,10 @@ export default function ConsultaActivaPage() {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 50%, transparent); } 50% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--red) 0%, transparent); } }
+        /* El latido de «te estoy oyendo» vive en globals.css como
+           nx-escuchando-latido: aquí era ROJO y estaba declarado dentro de una
+           pantalla, así que ni hablaba el idioma del marco perimetral ni podía
+           apagarse con el resto bajo prefers-reduced-motion. */
         @media print { button, textarea:disabled { display: none; } }
       `}</style>
     </div>

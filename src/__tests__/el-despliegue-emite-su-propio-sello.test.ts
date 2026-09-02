@@ -130,7 +130,19 @@ describe('REG-416 — EL QUE PUBLICA LAS REGLAS ES EL QUE LAS SELLA', () => {
     })
 
     it('borrar el despliegue de las reglas se detecta', () => {
-      const mutilado = workflow.replace(/--only firestore:rules,firestore:indexes/g, '--only hosting')
+      /**
+       * La mutación apunta a `--only firestore:rules`, que es EXACTAMENTE lo
+       * que busca el detector de arriba. Antes apuntaba a
+       * `--only firestore:rules,firestore:indexes`, la forma que tenía el
+       * workflow cuando los dos actos iban en un paso; al partirlos (REG-433)
+       * esa cadena dejó de existir, así que la mutación no mutaba nada y el
+       * caso se ponía rojo sin que el cedazo se hubiera roto.
+       *
+       * Mutar lo que el detector mira, y no la forma que tenía el archivo el
+       * día que se escribió el caso, es lo que hace que esto siga probando algo
+       * cuando el workflow cambie otra vez.
+       */
+      const mutilado = workflow.replace(/--only firestore:rules/g, '--only hosting')
       expect(analizar(mutilado).publica).toBe(false)
     })
 

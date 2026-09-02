@@ -1,8 +1,8 @@
 {
-  "sellado": "2026-09-01",
+  "sellado": "2026-09-02",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6299,
+  "totalCasos": 6388,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -337,6 +337,14 @@
       "minCasos": 33
     },
     {
+      "archivo": "src/__tests__/el-acta-del-despliegue-acuso-al-paso-que-salio-bien.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/el-area-segura-del-telefono-llega-o-vale-cero.test.ts",
+      "minCasos": 5
+    },
+    {
       "archivo": "src/__tests__/el-arnes-caza-la-alucinacion-que-importa.test.ts",
       "minCasos": 12
     },
@@ -359,6 +367,10 @@
     {
       "archivo": "src/__tests__/el-borrador-no-se-pierde.test.ts",
       "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/el-boton-del-backfill-no-escribe-por-defecto.test.ts",
+      "minCasos": 10
     },
     {
       "archivo": "src/__tests__/el-boton-dice-por-que-esta-apagado.test.ts",
@@ -422,11 +434,11 @@
     },
     {
       "archivo": "src/__tests__/el-historial-completo-no-cabe-en-una-pantalla.test.ts",
-      "minCasos": 27
+      "minCasos": 28
     },
     {
       "archivo": "src/__tests__/el-indice-que-nadie-declaro.test.ts",
-      "minCasos": 4
+      "minCasos": 12
     },
     {
       "archivo": "src/__tests__/el-limite-de-palabra-no-entiende-acentos.test.ts",
@@ -546,7 +558,7 @@
     },
     {
       "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
-      "minCasos": 13
+      "minCasos": 15
     },
     {
       "archivo": "src/__tests__/el-texto-completo-solo-si-la-licencia-lo-permite.test.ts",
@@ -565,7 +577,15 @@
       "minCasos": 20
     },
     {
+      "archivo": "src/__tests__/el-worklist-recorta-por-urgencia-no-por-antiguedad.test.ts",
+      "minCasos": 23
+    },
+    {
       "archivo": "src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/en-un-telefono-el-control-recibe-el-toque.test.ts",
       "minCasos": 6
     },
     {
@@ -785,6 +805,10 @@
       "minCasos": 12
     },
     {
+      "archivo": "src/__tests__/la-cita-de-la-portada-cayo-en-la-columna-del-numero.test.ts",
+      "minCasos": 5
+    },
+    {
       "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",
       "minCasos": 20
     },
@@ -841,8 +865,16 @@
       "minCasos": 10
     },
     {
+      "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
+      "minCasos": 13
+    },
+    {
       "archivo": "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
       "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/la-lista-de-espera-no-se-recorta-en-silencio.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/la-maqueta-se-construyo-entera.test.ts",
@@ -942,7 +974,7 @@
     },
     {
       "archivo": "src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts",
-      "minCasos": 6
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-version-del-prompt-no-miente.test.ts",
@@ -981,6 +1013,10 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/lista-espera-rango-horario.test.ts",
+      "minCasos": 20
+    },
+    {
       "archivo": "src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts",
       "minCasos": 12
     },
@@ -1007,6 +1043,10 @@
     {
       "archivo": "src/__tests__/lo-que-el-codigo-escribe-esta-declarado.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts",
+      "minCasos": 4
     },
     {
       "archivo": "src/__tests__/lo-que-el-medico-descarto-no-es-un-diagnostico.test.ts",
@@ -1585,6 +1625,10 @@
       "minCasos": 20
     },
     {
+      "archivo": "src/__tests__/un-indice-que-todavia-no-esta-no-rompe-la-pantalla.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/un-monologo-no-es-un-dialogo.test.ts",
       "minCasos": 16
     },
@@ -1663,6 +1707,10 @@
     {
       "archivo": "src/__tests__/una-negacion-sellada-no-es-un-alergeno.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/una-receta-sin-membrete-no-sale-callada.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/una-sola-implementacion-fhir.test.ts",

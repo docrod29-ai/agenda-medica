@@ -63,6 +63,28 @@ export const MARCA = 'Ausculta'
 export const LEMA = 'El consultorio que escucha.'
 
 /**
+ * LO QUE HACE, EN UNA FRASE — la descripción canónica del producto.
+ *
+ * Existe porque no existía, y su ausencia se pagó donde más se nota: la
+ * `description` de `layout.tsx` (la que Google enseña en los resultados), la
+ * del manifiesto de la PWA (la que se ve al instalar la aplicación) y el
+ * subtítulo de `/registro` traían las TRES, escrita a mano, la promesa
+ * **retirada** — «El consultorio, conectado. Agenda, expediente, recetas y
+ * cobros en una sola herramienta» —, la del producto que Ausculta fue antes de
+ * ser un escriba clínico.
+ *
+ * `LEMA` sí estaba centralizado y sí decía la verdad; lo usaba únicamente
+ * `openGraph.description`. Los otros tres sitios no tenían constante a la que
+ * apuntar, así que copiaron. Es la misma familia que el acento sin token: un
+ * papel sin fuente de verdad se resuelve copiando del vecino.
+ *
+ * Se renombra lo que el médico LEE — y esto lo lee antes de entrar.
+ */
+export const DESCRIPCION =
+  'Ausculta escucha la consulta, distingue lo que el paciente afirma de lo que niega ' +
+  'y deja la nota escrita, con la procedencia de cada frase. Tú revisas y firmas.'
+
+/**
  * Prefijos que NO son la marca y que sobreviven al cambio de nombre.
  *
  * Existe exportado para que un guardián pueda comprobarlo: si alguien

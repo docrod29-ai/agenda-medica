@@ -512,6 +512,7 @@ export default function GeneradorOrdenPage() {
         filename: `Orden_${nombre}_${fechaCorta}`,
         anchoMm: host.widthMm,
         altoMm: host.heightMm,
+        onAvisoPapeleria: (m) => toast(m, 'error'),
       })
     } catch (e) {
       console.error('PDF error:', e)

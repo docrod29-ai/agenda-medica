@@ -1,0 +1,82 @@
+{
+  "medidoEn": "2026-09-01T06:49:57.630Z",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "motor": "chromium (NO es WebKit: el rebote de iPhone no se mide aquí)",
+  "rutas": [
+    {
+      "ruta": "/dashboard",
+      "visualAlto": 844,
+      "docAlto": 844,
+      "desbordaHorizontal": false,
+      "alturasEnVh": [],
+      "barraInferiorAlto": 53,
+      "controlesTapados": []
+    },
+    {
+      "ruta": "/calendario",
+      "visualAlto": 844,
+      "docAlto": 844,
+      "desbordaHorizontal": false,
+      "alturasEnVh": [],
+      "barraInferiorAlto": 53,
+      "controlesTapados": []
+    },
+    {
+      "ruta": "/citas",
+      "visualAlto": 844,
+      "docAlto": 844,
+      "desbordaHorizontal": false,
+      "alturasEnVh": [],
+      "barraInferiorAlto": 53,
+      "controlesTapados": []
+    },
+    {
+      "ruta": "/pacientes",
+      "visualAlto": 844,
+      "docAlto": 844,
+      "desbordaHorizontal": false,
+      "alturasEnVh": [],
+      "barraInferiorAlto": 53,
+      "controlesTapados": []
+    },
+    {
+      "ruta": "/pendientes",
+      "visualAlto": 844,
+      "docAlto": 844,
+      "desbordaHorizontal": false,
+      "alturasEnVh": [],
+      "barraInferiorAlto": 53,
+      "controlesTapados": []
+    },
+    {
+      "ruta": "/lista-espera",
+      "visualAlto": 844,
+      "docAlto": 844,
+      "desbordaHorizontal": false,
+      "alturasEnVh": [],
+      "barraInferiorAlto": 53,
+      "controlesTapados": []
+    },
+    {
+      "ruta": "/finanzas",
+      "visualAlto": 844,
+      "docAlto": 844,
+      "desbordaHorizontal": false,
+      "alturasEnVh": [],
+      "barraInferiorAlto": 53,
+      "controlesTapados": []
+    },
+    {
+      "ruta": "/configuracion",
+      "visualAlto": 844,
+      "docAlto": 844,
+      "desbordaHorizontal": false,
+      "alturasEnVh": [],
+      "barraInferiorAlto": 53,
+      "controlesTapados": []
+    }
+  ]
+}

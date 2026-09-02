@@ -1003,10 +1003,25 @@ sirva esa versión—, y sigue comparando el repositorio contra el sitio vivo. L
 que se quita es una comparación de un archivo consigo mismo.
 
 **LA PRUEBA.**
-`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts` (6 casos).
-Probado al revés en las dos formas de romperlo: devolviendo `VERSION_ESPERADA` a
-`env:` cae el caso principal, y quitándola sin derivarla cae el que vigila que se
-derive — porque dejar la variable vacía sería peor que el defecto original.
+`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts` (8 casos).
+Probado al revés en las tres formas de romperlo: devolviendo `VERSION_ESPERADA` a
+`env:` cae el caso principal; quitándola sin derivarla cae el que vigila que se
+derive —porque dejar la variable vacía sería peor que el defecto original—; y
+**bajando el paso de derivación por debajo de la Compuerta 1** cae el que vigila
+el ORDEN.
+
+Los dos últimos casos (el orden, y su mutilación) se añadieron al absorber el
+PR #426, que había encontrado el mismo defecto por su cuenta y traía esa
+comprobación de más. Se quedó la comprobación, no el archivo duplicado: dos
+goldens sobre el mismo workflow son la misma familia de defecto que REG-504.
+
+**Por qué el orden importa y no es paranoia.** El paso puede existir, leer el
+archivo correcto y exportar a `GITHUB_ENV`, y no servir de nada si vive DESPUÉS
+de la Compuerta 1. Con `set -euo pipefail`, una variable **sin definir** aborta
+—eso se salva solo—; pero un `version.txt` en blanco define `VERSION_ESPERADA`
+como cadena **vacía**, y entonces las compuertas 1 y 3 comparan contra la nada y
+pasan las dos. Por eso la derivación rechaza una versión sin forma **antes** de
+exportarla, y por eso se vigila que esté arriba.
 
 **QUÉ NO CUBRE, DECLARADO.**
 
@@ -15304,6 +15319,18 @@ Y congela **tres sitios donde el árbol de hoy es más laxo** que lo que propone
 PR #355. No se arreglan aquí porque tocan la papelería en uso y eso lo decide el
 dueño; quedan escritos para que endurecerlos sea una decisión y no un descuido:
 
+> **LOS TRES, CERRADOS — 1-sep-2026, PR #355.** El dueño lo decidió, que era la
+> condición que este apartado ponía. La papelería en uso no se rompe: el cliente
+> vuelve a acuñar la capacidad en los tres caminos (vista previa, impresión y
+> PDF), y cuando no puede **avisa** en vez de entregar el documento incompleto en
+> silencio — ése es **REG-432**, un defecto que este cierre iba a crear y se cerró
+> con él.
+>
+> Las dos afirmaciones que congelaban la laxitud en el golden **se invirtieron,
+> no se borraron**: ahora vigilan lo contrario, y eso es lo que este apartado
+> quería conseguir. Funcionó como se diseñó — se pusieron rojas al fusionar y
+> obligaron a venir aquí a leer por qué estaban así.
+
 1. **Sin secreto configurado la ruta falla ABIERTA** — devuelve la URL pelada en
    vez de negarse. #355 la haría fallar cerrada con 503.
 2. **El token liga `path|exp`, no al dueño ni al consultorio**, y dura **24 h**.
@@ -15408,7 +15435,6 @@ el techo, porque «subir el tope» no puede volverse el martillo con el que se
 esconde un cuelgue real).
 
 ---
-
 ## REG-415 — una nota sin `metadata` dejaba el documento medicolegal ilegible desde el producto
 
 **Dónde**: `src/lib/expediente/firestore.ts` (`normNota`) ·
@@ -15557,8 +15583,6 @@ probada al revés sobre cinco workflows mutilados: borrar el paso del sello,
 borrar el despliegue de las reglas, cambiar el hash derivado por una constante
 pegada, quitar el sello del acta y dejar que el acta cierre en verde sin el paso
 de Firestore. Los cinco caen.
-
-
 <!--
   RENUMERADO DOS VECES AL REVIVIR EL PR #349 (31-ago-2026).
 
@@ -15785,6 +15809,1509 @@ Lo que sigue **sin** cubrirse: reactivar un expediente cancelado es una decisió
 legal con el titular delante, y esta compuerta no la modela — sólo detiene. El
 riesgo vive en `docs/recovery/REGISTRO-DE-RIESGOS.md`.
 
+---
+
+---
+
+## REG-421 — el guardián de índices se saltaba lo que no entendía, y dos consultas vivas llevaban meses sin índice
+
+**CÓMO SE DESCUBRIÓ.** Reparando los cuatro sacrificios que
+`docs/ops/INDICES-DE-FIRESTORE.md` declaraba —worklist, lista de espera, citas
+del paciente, resumen de notas—, una vez desplegados sus índices. Antes de tocar
+las consultas se comprobó **al revés** el guardián que las vigila
+(`el-indice-que-nadie-declaro.test.ts`): se le quitó un índice del archivo y se
+esperó que fallara.
+
+No falló. Pasó en verde.
+
+### Las dos capas de silencio
+
+El guardián tenía dos huecos, y **cada uno solo bastaba** para dar por buena una
+consulta rota:
+
+1. **No leía la consulta.** Resolvía la colección en dos formas —`collection(db,
+   …, 'literal')` escrito dentro del `query(...)`, y un alias
+   `const X = (…) => collection(…, 'literal')`— y cualquier otra forma la
+   **saltaba con un `continue`**. `getWaitlist` pasa por un ayudante declarado
+   con `function` que recibe el nombre por parámetro:
+
+   ```ts
+   function col(clinicId: string, name: string) { return collection(db, 'clinics', clinicId, name) }
+   query(col(clinicId, COLLECTIONS.waitlist), where('estado','==','activo'), orderBy('createdAt','asc'))
+   ```
+
+2. **Y aunque la hubiera leído, la comparación era falsa.** `estaDeclarado`
+   comprobaba que los campos **estuvieran** en algún índice de esa colección, en
+   cualquier orden. A Firestore le importa el orden, y el propio encabezado del
+   archivo lo declaraba como limitación conocida. Con
+   `waitlist(estado, prioridad, createdAt)` declarado, la consulta
+   `estado ==` → `orderBy createdAt` daba por cubierta. **No lo está**: Firestore
+   exige que el campo del `orderBy` vaya inmediatamente después de las
+   igualdades, y no admite campos de más. Hace falta `waitlist(estado, createdAt)`.
+
+### La causa raíz
+
+Un guardián que se salta lo que no entiende no dice «no lo sé»: dice «está bien».
+El `continue` convertía un caso desconocido en un caso aprobado, y la lista de
+huérfanas salía vacía por la razón equivocada — el mismo modo de fallo que este
+archivo ya había tenido una vez (la expresión regular ingenua que no encontraba
+ni una consulta) y que su propio caso «el lector encuentra consultas de verdad»
+existía para atrapar. Ese caso comprueba que encuentre **algunas**, no que no se
+deje ninguna.
+
+### Lo que había debajo
+
+Dos consultas que el producto **ya hace hoy**, sin índice declarado:
+
+| Colección | La consulta | Dónde se rompe |
+|---|---|---|
+| `waitlist` | `estado == activo` → `orderBy createdAt` | La pantalla de lista de espera (`getWaitlist`) |
+| `clinic_invitations` | `clinicId ==` → `orderBy createdAt` | Invitar a alguien al consultorio (`listarInvitaciones`, pantalla de configuración) |
+
+Igual que con las cuatro de REG-379, esto **no afirma que estén rotas en
+producción hoy**: Firestore crea índices a mano cuando alguien sigue el enlace del
+error, y un `deploy --only firestore:indexes` no borra los que no estén en el
+archivo. Lo que estaba roto es la **declaración**, y con ella cualquier
+consultorio nuevo o proyecto restaurado desde este repositorio. Cuáles existen de
+verdad se mira en la consola, del otro lado.
+
+### El arreglo
+
+**El guardián**, que es lo que impide que vuelva a pasar:
+
+- Resuelve tres formas de nombrar la colección: literal, ayudante de nombre fijo,
+  y ayudante que recibe el nombre por parámetro (incluidos `COLLECTIONS.x` y
+  `const COL = 'literal'`).
+- Lo que **sigue** sin poder resolver ya no se salta: se acumula y **falla** en un
+  caso propio. Una forma nueva pone el guardián en rojo y pide que se le enseñe,
+  en vez de darla por buena.
+- La comparación aplica las reglas que Firestore aplica de verdad: igualdades
+  primero en cualquier orden, `orderBy` después **en su orden exacto**, sin campos
+  de más, y direcciones que coincidan todas o estén todas invertidas.
+
+**Las cuatro reparaciones** que esto desbloqueaba, cada una quitando su aviso:
+
+| Módulo | Antes | Ahora |
+|---|---|---|
+| `whatsapp/ofrecer-hueco.ts` | 200 entradas cualesquiera, prioridad ordenada en memoria: con la lista llena, el hueco podía ofrecérsele a alguien menos prioritario | `orderBy prioridad, createdAt`: el recorte se lleva a los MENOS prioritarios |
+| `hooks/useAppointments.ts` | listener vivo sin cota sobre el historial entero del paciente | `orderBy fechaHora desc` + `limit(50)`, con `truncada` declarado |
+| `expediente/firestore.ts` | 40 notas bajadas para quedarse con 3, filtrando el estado en memoria | `where estado == firmada` + `limit(3)` |
+| `tareas-clinicas/firestore.ts` | 200 tareas **arbitrarias** de N | `orderBy creadaEn`: las que se caen son las más nuevas, nunca las viejas |
+
+**El doble de Firestore** (`_harness/firestore-admin-en-memoria.ts`) no
+implementaba `orderBy`, así que la consulta de la lista de espera lanzaba
+`TypeError` en quince casos. Se añadió **con las dos mitades**: ordenar, y
+**excluir los documentos a los que les falta el campo del `orderBy`** — que es lo
+que Firestore hace y lo que convierte «una entrada sin `prioridad`» en «una
+entrada que desaparece de la lista sin que nada lo diga». Un doble que pusiera los
+huecos al final haría pasar una prueba que en producción pierde a un paciente.
+
+### Lo que este arreglo NO cierra
+
+- **P1-14 sigue abierto a medias.** Pedía «las más urgentes» del worklist y esto
+  da «las más antiguas». Ordenar por urgencia en el servidor necesita dos cosas
+  que no están: un índice `(estado, prioridad, creadaEn)` **y** un campo numérico
+  de peso, porque `prioridad` guarda texto y en orden alfabético `alta` iría antes
+  que `critica`. Queda en el tablero, no tachado.
+- **El guardián no mira el `queryScope`.** Un índice de `COLLECTION` no sirve para
+  un `collectionGroup`, y eso pasaría en verde.
+- **Nada de esto prueba que los índices estén construidos.** Declararlos,
+  desplegarlos y verlos `Enabled` son tres actos, y los dos últimos son del dueño,
+  en la consola. Esta rama **no se fusiona hasta que estén verdes**: una consulta
+  cuyo índice no existe no devuelve lista vacía, falla entera con
+  `FAILED_PRECONDITION`.
+
+**Pruebas.**
+
+- `src/__tests__/el-indice-que-nadie-declaro.test.ts` (5 casos). Probado al
+  revés: quitando del archivo los dos índices nuevos, los nombra a los dos.
+- `src/__tests__/el-historial-completo-no-cabe-en-una-pantalla.test.ts` (28
+  casos), con uno nuevo que encuentra una nota firmada **enterrada bajo cuarenta
+  borradores** — el hueco que la ventana abría, y que falla sin el arreglo.
+- `src/__tests__/lista-espera-rango-horario.test.ts` (20 casos): la SECUENCIA de
+  los dos `orderBy`, que es lo que Firestore exige y lo que una prueba de
+  presencia no ve.
+- `src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts` (16 casos):
+  el camino real, contra el doble que ahora sí implementa `orderBy`.
+- `src/__tests__/un-borrado-que-deja-citas-no-es-un-borrado.test.ts` (13 casos):
+  el hook de citas ya acota, con el orden que el índice sirve.
+
+---
+
+## REG-422 — la limitación declarada del guardián de índices tapaba un índice, y la lista con la que se verifica decía nueve de diez
+
+**QUÉ FALLABA — dos cosas, y las dos de la misma forma.**
+
+**(a) El índice que nadie veía.** `superadmin/simulador` hace, por el **SDK
+admin**:
+
+```ts
+adminDb.collection('platform_cost_ledger')
+  .where('feature', '==', 'procesar').orderBy('ts', 'desc').limit(2000)
+```
+
+Igualdad sobre un campo, orden sobre otro: Firestore **no puede servirla sin
+índice compuesto**, y `firestore.indexes.json` no lo declaraba.
+
+Lo caro no es el error de Firestore. Es lo que hay encima: esa función envuelve
+la consulta en un `try/catch` que devuelve el promedio **vacío** y escribe
+`[simulador] sin libro de costos`. O sea que el índice que falta **no se ve como
+un fallo: se ve como que no hay datos de costo** — y el costo medido por nota es
+con lo que se decide el precio del producto. Es «ausencia de dato no es dato de
+ausencia» y «el mensaje mentía sobre la causa» en la misma línea: el libro está
+lleno, lo que falta es el índice.
+
+**(b) La lista de verificación decía otro número.** `docs/ops/INDICES-DE-FIRESTORE.md`
+es lo que el dueño abre para comprobar en la consola que cada índice figura
+`Enabled`. Decía **«los nueve»** en cinco sitios, y el archivo declaraba **diez**.
+Decía además «siete de los nueve se enviaron el 31-ago»; el árbol que de verdad
+se desplegó —`8f74901d`, el certificado de v1177— llevaba **ocho**:
+
+```
+$ git show 8f74901d:firestore.indexes.json | jq '.indexes | length'
+8
+```
+
+Una verificación que cuenta nueve sobre diez termina con uno sin mirar, y el que
+sobra puede ser justo uno de los que el código nuevo ya usa.
+
+**CÓMO SE DESCUBRIÓ.** Revisando el PR #425 antes de dejarlo fusionable, en vez
+de leer lo que decía. Se contaron los índices del archivo (**diez**) contra los
+que el documento decía (**nueve**), y se barrió el árbol con el criterio del
+propio guardián —igualdad sobre un campo, orden sobre otro— aplicado a las
+cadenas del SDK admin, que el guardián declaraba no leer. Salieron dos: la de
+`waitlist`, declarada, y la de `platform_cost_ledger`, que no.
+
+**LA CAUSA RAÍZ.** Una **limitación declarada** que se quedó a vivir. El
+encabezado del guardián decía, literal: «sólo ve el SDK de cliente… está
+declarado aquí y sigue siendo trabajo pendiente, **no un hueco tapado**». Era un
+hueco tapado. Declarar un punto ciego lo hace honesto, no lo hace inofensivo: a
+partir del día siguiente, el archivo en verde se lee como «todo bien» y nadie
+vuelve al párrafo que decía dónde no miraba.
+
+Es la misma forma que REG-421 encontró en este mismo archivo un día antes —allí
+la limitación era «no comprueba el ORDEN de los campos» y tapaba `getWaitlist`—.
+Dos veces el mismo guardián, dos veces su propia letra pequeña. Lo que enseña no
+es que este archivo esté mal escrito: es que **una limitación declarada tiene
+fecha de caducidad o se convierte en un hueco**, exactamente como REG-377 dijo de
+las deudas con fecha puesta.
+
+Y (b) es la misma causa en el otro plano: un número **escrito a mano** sobre un
+hecho que vive en un archivo. El documento y el archivo no tenían quién los
+comparara.
+
+**LA REGLA QUE LO HACE SEGURO.**
+
+1. El guardián **lee las cadenas del SDK admin** (`cadenasAdmin`), con el mismo
+   criterio y el mismo trato para lo que no sabe resolver: entra en `ilegibles` y
+   **falla**, no se salta. Su encabezado ya no declara ese punto ciego porque ya
+   no lo tiene.
+2. `platform_cost_ledger(feature ↑, ts ↓)` queda declarado. **Once** índices.
+3. El documento de operación deja de contar a mano: hay tres casos que comparan
+   su tabla y su numeral contra `firestore.indexes.json` — cada colección
+   nombrada, **una fila por índice** (no por colección: `waitlist` necesita dos),
+   y el numeral en palabras igual al conteo, sin que sobreviva ningún otro.
+
+**LA PRUEBA.** `src/__tests__/el-indice-que-nadie-declaro.test.ts` (12 casos,
+antes 8). Probada al revés en las tres formas:
+
+- quitando `platform_cost_ledger` del archivo, la consulta admin queda huérfana y
+  el guardián la nombra con su ruta;
+- el lector de cadenas admin se corre sobre fuentes de mentira: encuentra la que
+  necesita índice, **se calla** con la que filtra y ordena por el mismo campo (eso
+  lo sirve el índice de un solo campo que Firestore crea solo) y **declara**, en
+  vez de saltarse, la que no puede resolver;
+- con el documento tal y como estaba y el archivo con diez, el caso del numeral
+  cae diciendo «el documento no dice “diez” y hay 10 índices declarados».
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sigue sin saber si el índice está CONSTRUIDO.** Declarar, desplegar y ver
+  `Enabled` son tres actos y los dos últimos son de la consola. Este REG añade un
+  índice a la lista que hay que verificar; no verifica ninguno.
+- **Una cadena admin cuya colección no sea un literal.** Hoy las dos que hay lo
+  son. El día que una use una variable, esa consulta entra en `ilegibles` y el
+  archivo se pone rojo — que es lo contrario de lo que hacía antes.
+- **El `queryScope` sigue sin mirarse.** Un índice de `COLLECTION` no sirve para
+  un `collectionGroup` y eso pasaría en verde. Se declara aquí, con la lección de
+  arriba puesta: **es una limitación con fecha, no un párrafo tranquilizador.**
+- **No mira el `try/catch` de `simulador`.** Ese `catch` sigue convirtiendo
+  cualquier fallo de esa lectura en «no hay datos de costo». El índice arreglado
+  quita la causa que se conocía; no quita el silencio.
+
+---
+
+## REG-423 — el worklist recortaba por antigüedad y eso no es urgencia (P1-14, la mitad que faltaba)
+
+**QUÉ FALLABA.** `tareasVivas()` trae como mucho `tope` tareas (200). La pregunta
+que decide si el worklist sirve no es cuántas: es **cuáles**. Tuvo tres respuestas
+y las dos primeras fallaban:
+
+| | Qué llegaba | Qué se caía |
+|---|---|---|
+| Sin `orderBy` (hasta REG-421) | `tope` documentos cualesquiera, en orden de identificador | cualquiera, incluido un resultado crítico sin revisar |
+| `orderBy('creadaEn')` (REG-421) | las `tope` más VIEJAS | **las más nuevas** — o sea, el crítico de esta mañana |
+| Por urgencia (esto) | las `tope` más URGENTES, y a igual urgencia las más viejas | lo menos urgente, que es el único recorte que este worklist puede permitirse |
+
+REG-421 fue una mejora real —una tarea vieja ya no podía caerse— y a la vez
+**sustituyó urgencia por antigüedad**, que es literalmente lo que P1-14 decía que
+no. En un consultorio con más pendientes vivos que el tope, el resultado crítico
+de hoy es el primero en caerse, y se cae en silencio: el aviso de REG-344 dice
+«hay más», no «falta lo urgente».
+
+**CÓMO SE DESCUBRIÓ.** Cerrando P1-14 de verdad en vez de darlo por cerrado con
+REG-421. El propio comentario de `tareasVivas` lo decía —«P1-14 pedía las más
+urgentes, y esto da las más antiguas»— escrito como deuda con nombre. Una deuda
+con nombre sigue siendo un defecto vivo mientras nadie la paga (REG-377).
+
+**LA CAUSA RAÍZ, QUE NO ES EL `orderBy`.** `prioridad` guarda **texto**, y
+Firestore ordena texto alfabéticamente:
+
+```
+alta  <  critica  <  normal
+```
+
+`orderBy('prioridad')` habría puesto lo ALTO delante de lo CRÍTICO. Y no se
+habría visto: **una lista ordenada al revés de lo que dice la palabra no parece
+rota, parece ordenada.** Por eso el arreglo no era añadir un `orderBy`: el orden
+del servidor necesitaba un NÚMERO que no existía.
+
+**LA REGLA QUE LO HACE SEGURO.**
+
+1. **`ESCALERA_DE_URGENCIA` y `pesoUrgencia`.** La proyección numérica de
+   `prioridad`, derivada por `pesoDeUrgencia` en la ÚNICA puerta de escritura
+   (`crearTareas`), que **pisa** cualquier valor que venga de fuera. `prioridad`
+   sigue siendo el dato; el número existe sólo para que Firestore pueda elegir
+   CUÁLES manda. Una vez leídas, el orden lo pone la palabra —así, si un peso
+   guardado se desincronizara, podría cambiar qué tareas llegan pero **nunca** el
+   orden en que se ven—, y `urgenciaDeLaTarea` sabe decir que miente.
+2. **Los huecos de la escalera son a propósito**: 0, 10, 20 y no 0, 1, 2. Un
+   escalón nuevo cabe **sin reescribir el peso de ninguna tarea ya guardada**.
+   Una migración de datos clínicos por un escalón de una lista es un riesgo que
+   no hace falta correr.
+3. **La red de seguridad, que no es opcional.** Un `orderBy` de Firestore **no
+   ordena los documentos a los que les falta el campo: los EXCLUYE**. La consulta
+   de urgencia, ella sola, **haría desaparecer del worklist todos los pendientes
+   escritos antes de esta migración** — un expediente entero de trabajo clínico,
+   sin error, sin lista vacía, sin nada que lo dijera. Por eso se leen dos
+   consultas y se unen por id: la de urgencia (lo mejor ordenado, sólo lo
+   migrado) y la de antigüedad de REG-421, con su índice ya desplegado y su campo
+   obligatorio desde el primer día, que **trae todo**.
+4. **Cuándo sobra la segunda lectura se MIDE, no se recuerda**:
+   `migracionPendiente` sale de si queda alguna tarea viva sin peso. El backfill
+   es `scripts/migraciones/peso-de-urgencia.mjs`, que **lee la escalera de
+   `modelo.ts`** en vez de copiarla.
+5. **Índice** `tareas_clinicas(estado, pesoUrgencia, creadaEn)`, declarado.
+
+**Y SE BORRARON LAS DOS COPIAS DE LA TABLA.** El peso de cada prioridad estaba
+escrito a mano en `modelo.ts` (`ordenWorklist`) y otra vez en
+`cabos-del-paciente.ts`. El orden del servidor iba a ser **la tercera**, y ésa sí
+podía desincronizarse de las otras dos sin que se viera. Las tres preguntan ahora
+a `pesoDeUrgencia`.
+
+**LA PRUEBA.**
+`src/__tests__/el-worklist-recorta-por-urgencia-no-por-antiguedad.test.ts`
+(23 casos). Probada al revés en cuatro sitios:
+
+- **el defecto, medido sobre los mismos datos**: con cinco críticas nuevas y
+  cinco normales viejas, el recorte por antigüedad se lleva las cinco normales y
+  **ni una sola crítica** — no es una hipótesis, es el orden que devuelve
+  `orderBy('creadaEn')` con `limit(5)`;
+- **el orden alfabético**, medido: `['normal','critica','alta'].sort()` da
+  `['alta','critica','normal']`, con `alta` primero;
+- **un peso pasado desde fuera se pisa**, o `pesoUrgencia` sería una segunda
+  fuente de verdad capaz de decir que una tarea crítica es normal;
+- **la exclusión de Firestore**, reproducida: la consulta por `pesoUrgencia` no ve
+  la tarea histórica, y el worklist sí la devuelve.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Tres escalones, no cuatro.** No hay nivel «bajo»: ningún camino del producto
+  crea una tarea de prioridad baja —las tres las pone `derivar.ts` a partir de lo
+  que el médico escribió— y añadir un valor que nadie produce sería «escrito y sin
+  conectar», la familia más grande de este repositorio. **Qué acto clínico
+  significa «esto puede esperar» es una decisión del dueño**, no de un archivo de
+  software. El día que exista, entra en la escalera con su número y no cambia
+  nada más: ni el índice, ni la consulta, ni el orden, ni las tareas guardadas.
+- **No decide la urgencia.** La pone quien crea la tarea. Aquí sólo se ordena.
+- **No prueba Firestore**: prueba contra el doble en memoria, que sí reproduce la
+  exclusión por campo ausente pero no impone índices ni latencia.
+- **No prueba que el índice esté CONSTRUIDO.** Sigue siendo la consola.
+- **La segunda lectura cuesta.** Mientras la migración esté pendiente, el worklist
+  paga dos consultas de `tope + 1`. Es el precio de no perder los pendientes
+  históricos, y se apaga solo cuando el backfill termina.
+- **`tareasDePaciente` sigue con `limit(100)`** y sin declarar su recorte. Sigue
+  anotado, como en REG-344.
+
+---
+
+## REG-424 — un índice que todavía no está construido rompía la pantalla, y el orden de despliegue era una instrucción
+
+**QUÉ FALLABA.** Firestore **no degrada** una consulta que necesita un índice
+compuesto: la RECHAZA con `FAILED_PRECONDITION`. Y declarar el índice,
+desplegarlo y verlo `Enabled` son **tres actos**: `firebase deploy` contesta al
+ENVIAR, y la construcción sobre una colección con datos tarda de minutos a horas —
+o falla después, con el `success` ya impreso.
+
+Mientras tanto el código nuevo **ya está servido**: la integración de Vercel
+publica sola con cada merge a `main`. En esa ventana, cuatro consultas indexadas
+—el worklist, las citas del paciente, el resumen de notas y a quién se le ofrece
+un hueco— rompían su pantalla. Es literalmente como se abrió el worklist por
+primera vez en producción: con un error, no con una lista vacía.
+
+**CÓMO SE DESCUBRIÓ.** Revisando el PR #425 antes de dejarlo fusionable.
+`docs/ops/INDICES-DE-FIRESTORE.md` dice, con razón, que los índices se despliegan
+ANTES que el código. Eso es una **instrucción**, y una instrucción depende de que
+alguien la recuerde el día correcto — la misma defensa que falló en REG-504, donde
+había que acordarse de mover dos sitios a la vez.
+
+**LA CAUSA RAÍZ.** Un requisito de ORDEN entre dos sistemas que no se hablan (el
+despliegue de índices y el de Vercel), sostenido sólo por un documento.
+
+**LA REGLA QUE LO HACE SEGURO.** `src/lib/firestore/indice-que-todavia-no-esta.ts`:
+se corre la consulta buena y, **sólo** si el error dice que falta el índice, se cae
+al camino de antes y se devuelve `degradada: true`. El orden de despliegue sigue
+siendo el correcto; lo que cambia es que romperlo ya no rompe la pantalla.
+
+Y **nada se calla**: `degradada` sube hasta donde se ve. El worklist expone
+`ordenadaPorUrgencia` y `/pendientes` lo pinta («no se pudo ordenar por urgencia:
+lo que se ve son los más antiguos»); `usePatientAppointments` expone `acotada`;
+`ofrecer-hueco` cambia su aviso para decir que los que quedaron fuera son
+cualesquiera, no los menos prioritarios.
+
+**Y no se traga nada.** Sólo el error que dice que falta el índice. Un permiso
+denegado, una red caída o una regla mal desplegada **siguen subiendo**: si esto
+los absorbiera, convertiría una fuga de aislamiento en una lista corta, que es
+peor porque no se ve. El `code: 9` del SDK admin **no basta por sí solo** —
+`FAILED_PRECONDITION` también sale de una transacción que perdió su precondición—
+así que ahí se exige además que el mensaje hable del índice.
+
+**LA PRUEBA.**
+`src/__tests__/un-indice-que-todavia-no-esta-no-rompe-la-pantalla.test.ts`
+(7 casos) y el bloque de degradación del golden de REG-423 (4 casos más), sobre un
+doble que ahora sabe simular un índice ausente (`fallos.indiceAusenteSobre`).
+Probada al revés: un `permission-denied` sube y **el respaldo ni siquiera corre**;
+con el índice presente NO se declara degradada (si no, el aviso sería ruido
+permanente); y si el respaldo también falla, el error sube en vez de devolver una
+lista vacía —«ausencia de dato no es dato de ausencia» aplicado a una lectura.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No sustituye al despliegue.** Un producto que lee siempre por el camino peor
+  no está bien, está sobreviviendo. Por eso `degradada` se pinta.
+- **No reconoce un mensaje que el proveedor cambie.** Si Firestore escribe otra
+  frase y no manda `code`, esto deja de reconocerlo y el error SUBE — el lado
+  seguro del que equivocarse, pero es un lado.
+- **`usePatientAppointments` se resuscribe**, no reintenta: si el índice termina
+  de construirse mientras la pantalla está abierta, sigue leyendo sin cota hasta
+  que se vuelva a montar.
+
+---
+
+## REG-425 — «¿Por qué está aquí?» no recibía el toque: el velo de la fila se lo quedaba
+
+**QUÉ FALLABA.** En `/pacientes`, a 390px, pulsar «¿Por qué está aquí?» **no abría
+la lente**: navegaba al expediente del paciente.
+
+`.nx-fila-abrir::after { position: absolute; inset: 0 }` es un **velo**
+deliberado — el área de golpe estirada sobre la fila entera, para que pulsar en
+cualquier punto abra el expediente con el pulgar. El disparador de la lente vivía
+**debajo** de ese velo, así que el toque nunca le llegaba.
+
+**CÓMO SE DESCUBRIÓ.** Abriendo el producto, no leyendo el código: emuladores de
+Firebase, la clínica sintética de `sembrar-capturas.mjs`, el build de producción
+servido, y Chromium a 390×844.
+`scripts/design/medir-el-alto-del-telefono.mjs` pregunta
+`document.elementFromPoint` en el **centro exacto** de cada control, que es lo
+único que responde a «¿este control recibe el toque?»:
+
+```
+/pacientes   TAPADOS: «¿Por qué está aquí?» por nx-fila-abrir  ×3
+```
+
+Tres filas de tres: **todas las que tienen un pendiente vivo** — exactamente las
+filas que esa pregunta existe para explicar. Ninguna prueba lo veía porque
+ninguna abría el producto: el árbol es correcto, el `onClick` está bien escrito y
+el botón se ve perfectamente.
+
+**LA CAUSA RAÍZ.** El mecanismo estaba **resuelto y documentado a veinte líneas
+de distancia**. «Editar», el otro control de la fila, lleva `position: relative;
+z-index: 1` en línea con un comentario que dice literalmente *«por encima del velo
+de .nx-fila-abrir::after: hermano, no hijo, del control que abre — el clic en
+Editar cae aquí y no navega»*.
+
+El disparador de la lente se envolvió en `<span className="nx-fila-porque">` —
+**un nombre de clase que no existía en ninguna hoja de estilos**. `escrito_y_sin_conectar`
+en su forma más barata de cometer: se escribe el gancho y se olvida la regla, y
+como el nombre está ahí, en la revisión del diff parece que hay algo.
+
+Detalle que lo hizo invisible más tiempo: en móvil «Editar» **está oculto**
+(`@media (max-width: 768px)`), así que el único control que quedaba en la fila era
+justo el roto. En escritorio, con el ratón, el defecto también estaba — y ahí
+tampoco lo vio nadie.
+
+**LA REGLA QUE LO HACE SEGURO — y por qué es genérica.** Escribir
+`.nx-fila-porque` habría arreglado este control y dejado el mismo defecto
+esperando al **cuarto**. La hoja dice ahora que dentro de una fila de paciente,
+cualquier cosa pulsable que no sea la que abre vive por encima del velo:
+
+```css
+.nx-fila-paciente button:not(.nx-fila-abrir),
+.nx-fila-paciente a[href],
+.nx-fila-paciente [role="button"]:not(.nx-fila-abrir) { position: relative; z-index: 1; }
+```
+
+Nadie tiene que acordarse de nada al añadir un control. Y **el velo no se quitó**:
+la salida fácil habría sido borrar el `::after`, que arregla el toque del control
+y rompe el de la FILA, que es como se abre un expediente con el pulgar.
+
+**LA PRUEBA.** El arnés, en navegador, y
+`src/__tests__/en-un-telefono-el-control-recibe-el-toque.test.ts` (6 casos) para
+que CI lo vigile sin emuladores. Probada al revés: quitando la regla genérica de
+la hoja, los tres casos caen; y hay un caso que comprueba que la defensa **NO
+cuelga del nombre** `.nx-fila-porque` —si colgara, borrarlo la desarmaría otra
+vez— y que el velo sigue existiendo.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **Sólo las filas de paciente.** Otra lista con su propio velo tendría que traer
+  su propia regla; esto no lo ve.
+- **No cubre un control pintado FUERA de la fila y encima de ella.** Eso ya no es
+  el velo.
+- **La prueba de CI no mide**: mide el arnés, y el arnés necesita emuladores y un
+  build, así que no corre en CI. Lo que se vigila es que la regla no se deshaga.
+
+---
+
+## REG-426 — el alto del calendario describía una pantalla que no era ésta
+
+**QUÉ FALLABA.** `/calendario` llevaba, **en línea**:
+
+```jsx
+<div style={{ …, height: 'calc(100vh - 52px)' }}>
+```
+
+y era el **único** alto fijo en `vh` de todo el árbol. Medido en Chromium a
+390×844 con la clínica sembrada:
+
+```
+/calendario   div height: calc(-52px + 100vh) → 792px, sobra 57px
+```
+
+**792px de alto contra 735 visibles.** Y en un iPhone es peor y no un poco:
+`100vh` en Safari es la altura del viewport **con la barra del navegador
+oculta** — siempre mayor que lo que hay delante.
+
+El `- 52px`, además, es la topbar de **escritorio**. En el teléfono la topbar mide
+48px + área segura y abajo hay una barra de 53px más el indicador del iPhone. La
+resta describía una pantalla que no es ésta.
+
+**CÓMO SE DESCUBRIÓ.** El mismo arnés que REG-425, en la mitad que mide el ALTO.
+Los arneses de móvil que ya existían miden el **ancho** —desbordamiento
+horizontal, objetivo táctil de 44×44, contraste, foco—; nadie medía el alto, que
+es donde vive la familia de defectos que sólo aparece en un teléfono.
+
+**LA CAUSA RAÍZ.** Un estilo **en línea** no puede tener respaldo: una propiedad,
+un valor. `globals.css` hace bien lo contrario en todos sus `100vh` —siempre
+seguidos de `100dvh`, y el navegador se queda con la última que entiende—, pero
+esa defensa **no cabe en un atributo `style`**. El defecto no es usar `vh`: es
+usarlo donde no se le puede poner respaldo.
+
+**LA REGLA QUE LO HACE SEGURO.** La altura se muda a la hoja, con el par en el
+orden correcto (`vh` primero, `dvh` después: al revés ganaría `vh` en todos los
+navegadores modernos, que es el arreglo escrito al revés):
+
+```css
+.nx-alto-de-trabajo { height: calc(100vh - 52px); height: calc(100dvh - 52px); }
+```
+
+**LA PRUEBA.** El arnés —tras el arreglo, `/calendario` no declara ninguna altura
+en `vh`— y el mismo golden de REG-425, que barre `src/app` y `src/components`
+buscando `height` en `vh` escrito en línea. Probada al revés: devolviendo el
+estilo en línea, el caso cae; y el cedazo se prueba sobre fuentes de mentira para
+comprobar que **no** marca `minHeight` ni `maxHeight` —un mínimo mayor que el
+viewport sólo añade scroll, y el scroll se resuelve solo—, que es donde un
+guardián demasiado ancho se habría vuelto ruido.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No dice que la resta sea la correcta.** Dice que ya no está en línea y que
+  tiene respaldo. Que el contenido llegue al fondo se comprueba corriendo el
+  arnés.
+- **No cubre las hojas de estilo.** Ahí `100vh` está bien y se queda: siempre va
+  con su `dvh`.
+- **No es un iPhone.** Ver abajo.
+
+---
+
+## REG-427 — las 28 reservas de área segura colgaban de una línea que nadie vigilaba
+
+**QUÉ FALLABA.** El repositorio usa `env(safe-area-inset-*)` en **28 sitios** de
+ocho archivos: la barra inferior, la topbar móvil, el botón de ayuda, los botones
+flotantes, el pie del modal, el portal del paciente, la pantalla de reserva y la
+de unirse. Todos por la misma razón: que un control no quede debajo del «home
+indicator» de un iPhone ni cortado por el notch.
+
+**`env(safe-area-inset-*)` vale CERO salvo que el documento declare
+`viewport-fit=cover`.** No falla, no avisa, no rompe el CSS: devuelve `0px`, y las
+28 reservas se convierten en nada.
+
+En este repositorio esa declaración es **una línea, en un archivo**
+(`src/app/layout.tsx`), y **no había ninguna prueba que la mirara**:
+`grep -rn viewportFit` devuelve una sola línea en todo el árbol, y sobre
+`src/__tests__` devolvía cero.
+
+**CÓMO SE DESCUBRIÓ.** Buscando defectos de móvil internamente comprobables
+mientras WebKit sigue sin poder instalarse. Se contaron los usos de área segura y
+se buscó **quién garantiza su condición previa**. Nadie.
+
+**POR QUÉ IMPORTA.** Borrar esa línea —o mover el `viewport` a otro sitio en una
+refactorización de rutas— dejaría los 28 usos escritos, bien escritos, y **sin
+efecto**: la barra inferior se metería bajo el indicador del iPhone, con toda la
+suite en verde. Es `escrito_y_sin_conectar` en su forma de **condición previa**:
+no es que el módulo no corra, es que corre y no hace nada porque falta un
+interruptor que vive en otro archivo. Y es hermana de «el dato tiene que LLEGAR»:
+el valor se calcula, se escribe en la propiedad correcta y **llega como cero**.
+
+**LA REGLA QUE LO HACE SEGURO.** Si algo usa `env(safe-area-inset-*)`, el layout
+raíz declara `viewportFit: 'cover'`. Las dos mitades se comprueban juntas: la
+lista de dependientes se **deriva** del árbol, no se escribe, así que el día que
+nadie dependa, el guardián lo dice en vez de seguir exigiendo.
+
+Va en el mismo golden que el zoom no esté desactivado (`userScalable: false`,
+`maximumScale` por debajo de 2 — WCAG 1.4.4): es el mismo bloque y el mismo modo
+de fallo, tocar `viewport` por una razón de maquetación y de paso apagar el zoom.
+
+**LA PRUEBA.**
+`src/__tests__/el-area-segura-del-telefono-llega-o-vale-cero.test.ts` (5 casos).
+Probada al revés en tres formas: quitando la línea, poniéndole `viewport-fit:
+contain` —un valor **válido** que NO activa el área segura, que es la forma sutil
+de romperlo— y apagando el zoom. Y un caso comprueba que el lector lee el
+**bloque** `viewport` y no el archivo entero: si devolviera el archivo, los casos
+pasarían por encontrar la palabra en un comentario.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba que el área segura valga lo correcto en un iPhone.** Eso es WebKit
+  sobre hardware con notch. `BLOCKED_EXTERNAL`.
+- **No prueba que Next emita la etiqueta.** Prueba lo que el árbol declara.
+- **No mide si la reserva ALCANZA**: que se reserve no dice que los 72px de
+  colchón basten.
+- **Sólo mira el layout raíz.**
+
+---
+
+## WS-05 · lo que estos tres REG **no** cierran, comprobado hoy
+
+Los tres se midieron en **Chromium con el tamaño de un teléfono**. Los dos
+mecanismos del rebote de iPhone son de WebKit y ahí no existen: `overflow-anchor`
+—que Chromium implementa y WebKit no— y el rebote elástico al encadenar el gesto.
+
+**WebKit no se puede instalar en este entorno.** Comprobado el 1-sep, no supuesto:
+
+```
+$ PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 npx playwright install webkit
+Error: Download failed: server returned code 403
+  'request blocked: no rule or allowlist entry allows host "cdn.playwright.dev"'
+Error: … host "playwright.download.prss.microsoft.com"
+
+$ curl -sS "$HTTPS_PROXY/__agentproxy/status"
+"kind": "connect_rejected", "detail": "gateway answered 403 to CONNECT
+ (policy denial or upstream failure)", "host": "cdn.playwright.dev:443"
+```
+
+Es una **denegación de política de red**, no un fallo de descarga. Lo desbloquea
+el dueño de una de dos formas: añadiendo esos dos hosts a la política del entorno
+—y entonces corre el proyecto `iphone-safari` que `playwright.config.ts` ya
+declara—, o con un iPhone real, que es lo que §38 pide de verdad: 390px, diez
+repeticiones, `scrollTop` que nunca baje solo.
+
+**Hasta entonces WS-05 no se marca `PROVEN`**, y nada de REG-425/426/427 debe
+usarse para marcarlo.
+
+---
+
+## REG-428 — el caso que vigila el freno del portal no distinguía «no hay freno» de «el freno no dejó pasar»
+
+**QUÉ FALLABA.** GP-33 del recorrido del paciente dispara **cuarenta peticiones
+en paralelo** a `/api/portal` con `action: 'paquetes'` —la acción CLÍNICA, la que
+devuelve secreto médico, con tope de 15/600s— y comprobaba una sola cosa:
+
+```js
+const limitados = resp.filter(x => x.status === 429)
+R('GP-33', 'el portal tiene freno ante una ráfaga', limitados.length > 0,
+  `${limitados.length}/40 respondieron 429`)
+```
+
+El 1-sep salió `0/40 respondieron 429`. Y con ese dato **no se puede saber qué
+pasó**, porque hay TRES desenlaces distintos que producen «cero 429» y dos de
+ellos son correctos:
+
+| Respuesta | Qué significa | ¿Defecto? |
+|---|---|---|
+| `429` | el freno contó y cortó | no |
+| `503` | el freno **no pudo contar** y por eso no deja pasar (`limitarEstricto`, `MOTIVO_SIN_FRENO`) | no — es fail-closed, y es lo correcto |
+| `200` ×40 | **no hubo freno ninguno** | **sí, y es P1** |
+
+Cuarenta transacciones en paralelo sobre el **mismo** documento de `rate_limits`
+es precisamente donde el contador tiene más razones para no poder contar, así que
+el 503 no es un caso raro: es el esperable bajo ráfaga. Un caso que no los separa
+deja pasar el tercero disfrazado del segundo.
+
+**CÓMO SE DESCUBRIÓ.** Corriendo el arnés completo sobre este árbol en vez de
+heredar el verde de otra rama. Salió el único rojo de 74 casos, y **antes de
+llamarlo defecto del producto** se instrumentó el caso para que dijera la
+distribución entera. Medido:
+
+```
+30/40 frenados — distribución {"200":10,"429":25,"503":5}
+```
+
+**El freno funciona.** Veinticinco cortadas por conteo, cinco rechazadas por no
+poder contar, y diez que pasaron —que es lo correcto: el tope es 15 y parte de la
+ventana ya estaba consumida por los pasos anteriores del recorrido.
+
+**LA CAUSA RAÍZ.** Un caso que mide **una** de las tres salidas posibles y trata
+las otras dos como la misma cosa. No es que la aserción esté mal: es que la
+EVIDENCIA que imprime —un solo número— no alcanza para decidir. Es la familia
+`sin_medir` en su forma más incómoda: el instrumento existe, corre, y su salida
+no distingue el caso bueno del malo.
+
+Y el coste va en la dirección peligrosa. Con `limitados.length > 0` el caso se
+pone **rojo cuando el producto se comporta bien** (todo 503) — y un caso que da
+falsos rojos se aprende a ignorar; el día que salgan cuarenta `200`, nadie lo
+mirará distinto.
+
+**LA REGLA QUE LO HACE SEGURO.** El caso acepta **429 o 503** —los dos son freno—
+y su evidencia lleva la **distribución entera** con la leyenda de qué significa
+cada estado. Ahora un rojo sólo puede significar una cosa: cuarenta peticiones
+pasaron sin freno.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No prueba el freno contra Firestore real.** Es el emulador, y la contención
+  de transacciones no es la misma.
+- **No fija el umbral.** 15/600s es criterio del dueño, no una cifra clínica; este
+  caso comprueba que EXISTE un freno, no que 15 sea el número correcto.
+- **No cubre el freno por IP** (`portal:ip:{ip}`, 120/600s), que es el que protege
+  de una ráfaga de tokens **inválidos**: aquí todas las peticiones llevan un token
+  válido. Ese sigue cubierto sólo por `portal-limite-de-tasa.test.ts`, que
+  comprueba las llamadas y no el comportamiento.
+- **No dice qué pasó en la corrida del 1-sep** que dio `0/40`: esa corrida no
+  guardó la distribución, y por eso existe este REG. Lo que sí está medido es que,
+  con el caso arreglado, el freno responde.
+
+---
+
+## REG-429 — la lista de espera se leía entera, y acotarla a secas la habría dejado peor
+
+**QUÉ FALLABA.** `getWaitlist` bajaba la colección **completa**:
+
+```ts
+where('estado','==','activo') + orderBy('createdAt','asc')     // sin techo
+```
+
+Crece con el **consultorio**, no con el paciente, así que es de las que sólo
+duelen cuando el producto empieza a funcionar: una lista de espera de mil
+personas se baja entera cada vez que alguien abre `/lista-espera`, y otra vez en
+`/operaciones`. Estaba inventariada en `scripts/escala/lecturas-sin-cota.mjs`
+desde que ese inventario existe.
+
+**CÓMO SE DESCUBRIÓ.** Bajando el techo de ese inventario —una lista que sólo
+puede bajar— en vez de dejarlo donde estaba. `getWaitlist` era la candidata más
+clara de las 29 de Consultorio: crece con el consultorio, tiene **dos pantallas**
+que la llaman, y su índice `waitlist(estado, createdAt)` ya estaba declarado.
+
+**LA CAUSA RAÍZ, Y LA TRAMPA DEL ARREGLO.** Poner `limit` y devolver el mismo
+array habría cambiado un problema de **coste** por uno **peor**: una lista
+recortada que se presenta como completa. Es literalmente el defecto que REG-351
+encontró en nueve pantallas a la vez, y aquí significa un paciente esperando un
+hueco que nadie ve, y un semáforo de `/operaciones` que dice «al día» de una
+lista que no lo está.
+
+**LA REGLA QUE LO HACE SEGURO.** `getWaitlist` **deja de devolver un array
+pelado** —un array no puede decir que viene recortado— y devuelve
+`{ entradas, truncada, tope }`. Se pide `tope + 1` para SABER si se quedó corta;
+la de más no se devuelve, sólo sirve para poder decirlo. `/lista-espera` lo pinta.
+
+Y el `orderBy('createdAt','asc')` deja de ser decorativo: hace que las que se
+caen sean siempre las **más nuevas**, nunca las que llevan más tiempo esperando —
+que son de quien peor sienta un olvido.
+
+**Techo del inventario: 29 → 28** en Consultorio. Sólo baja.
+
+**LA PRUEBA.** `src/__tests__/la-lista-de-espera-no-se-recorta-en-silencio.test.ts`
+(7 casos). El caso que importa **mide documentos LEÍDOS**, no devueltos, que es la
+diferencia que ninguna prueba de forma puede ver: con tres veces el tope
+sembradas, la lectura no puede pasar de `tope + 1`. Probada al revés quitando el
+`limitarA`: ese caso cae, y sólo ése. Además: el borde exacto (en el tope no se
+declara recortada — un aviso falso se aprende a ignorar), que lo que se cae son
+las más nuevas, y que **una lectura caída no se convierte en una lista vacía**.
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No es a quién se le ofrece un hueco.** Eso lo decide `ofrecerHuecoLiberado`
+  con su propia lectura ordenada por PRIORIDAD y su propio índice. Ésta es la
+  lista que se **pinta**.
+- **200 no es una cifra clínica**: es el techo de una lectura. Lo que se vigila no
+  es que 200 sea correcto, sino que alcanzarlo se DIGA.
+- **No prueba que la pantalla lo pinte.** Que `truncada` llegue no demuestra que
+  se vea; eso es navegador.
+- **Quedan 28 lecturas sin cota** en Consultorio y 9 en Hospital, inventariadas y
+  con su techo. Ésta es una menos, no el final del trabajo.
+
+---
+
+## REG-430 — la escotilla del Chromium instalado estaba sólo en el proyecto del teléfono, y dejaba sin correr la matriz de seguridad
+
+**QUÉ FALLABA.** `playwright.config.ts` tiene una escotilla para los entornos que
+ya traen un Chromium pero no la build **exacta** que pide la versión de Playwright
+del repositorio, con `playwright install` cortado:
+
+```ts
+...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+  ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } }
+  : {}),
+```
+
+Estaba **sólo en el proyecto `telefono-chromium`**. El proyecto `chromium` —el
+que corre `e2e/seguridad.spec.ts`, la matriz de **cabeceras de seguridad** y de
+CSP— no la tenía.
+
+**CÓMO SE DESCUBRIÓ.** Corriendo `npm run e2e:seguridad` contra el servidor local
+para cerrar lo comprobable de seguridad sin salir del contenedor. Medido:
+
+```
+9 failed · 48 passed
+Error: browserType.launch: Executable doesn't exist at
+  /opt/pw-browsers/chromium_headless_shell-1228/chrome-headless-shell-linux64/…
+```
+
+Con el 1194 instalado al lado.
+
+**POR QUÉ IMPORTA MÁS DE LO QUE PARECE.** Los nueve que caían son **exactamente
+los que necesitan navegador** —grupo B, la CSP en ejecución y los recursos que se
+pierden por el camino—. Los de cabeceras pasan igual porque van por petición
+cruda. Es decir: el hueco de configuración se llevaba **la mitad que sólo se
+puede ver ejecutando**, y dejaba la otra en verde — la forma más cómoda de creer
+que la matriz corrió.
+
+**LA CAUSA RAÍZ.** Una escotilla escrita para el caso en que se descubrió (el
+arnés del teléfono) y no para la clase de problema, que es del ENTORNO y afecta a
+cualquier proyecto que lance un navegador.
+
+**LA REGLA QUE LO HACE SEGURO.** La misma escotilla en el proyecto `chromium`,
+con su comentario diciendo qué se rompió sin ella y qué mitad se llevaba.
+
+**Comprobado después**: `PLAYWRIGHT_CHROMIUM_PATH=…/chromium-1194/chrome-linux/chrome
+npm run e2e:seguridad` → **57 en verde, 0 caídos**, 2 saltados (el grupo D exige
+arrancar con `CSP_MODE=enforce`, que es otra corrida).
+
+**QUÉ NO CUBRE, DECLARADO.**
+
+- **No arregla WebKit.** Los proyectos `webkit` e `iphone-safari` siguen sin
+  binario y su descarga sigue bloqueada por política de red (REG-425/426/427).
+  Una escotilla al Chromium instalado no da un WebKit.
+- **No corre el grupo D.** La CSP en modo `enforce` necesita arrancar el servidor
+  con `CSP_MODE=enforce`; sigue siendo otra corrida, y sigue declarado.
+- **No sustituye `e2e:seguridad:prod`.** Las cabeceras de PRODUCCIÓN se comprueban
+  contra el sitio vivo **después** de publicar, que es donde son accionables
+  (`deployment-and-flags.md`).
+
+
+---
+
+## REG-431 — el despliegue de índices decía `success` y no publicaba ninguno
+
+**CÓMO SE DESCUBRIÓ.** Acompañando al dueño, paso a paso, a crear los índices a
+mano en la consola de Firebase — porque él no usa terminal. Al llegar a
+**Firestore → Índices → Manuales** del proyecto `nexomed-agenda`, la pestaña
+estaba **vacía**. Cero índices compuestos.
+
+Y el acta de `nexusmed-v1177`, sobre ese mismo proyecto, registraba el paso
+`firestore:rules,firestore:indexes` en **`success`** (ejecuciones #11 y #12 del
+31-ago). REG-416 hasta selló el sha256 de las reglas publicadas, y cuadraba.
+
+Las dos cosas eran ciertas a la vez. Eso es lo que las hacía sospechosas — el
+mismo olor que REG-416.
+
+### La causa raíz: una línea que nunca existió
+
+```json
+"firestore": {
+  "rules": "firestore.rules"     ← declarado
+}                                ← "indexes" NUNCA estuvo
+```
+
+`firebase deploy --only firestore:indexes` publica los índices **sólo si
+`firebase.json` declara dónde están**. Si no lo declara, **no falla**: no
+encuentra nada que publicar y devuelve éxito. Hizo exactamente lo que se le
+pidió; lo que se le pidió era nada.
+
+Por eso las reglas sí llegaban —están declaradas, y su sello cuadra— y los
+índices no llegaron nunca. Ni el 31-ago, ni en ningún despliegue anterior.
+
+### Por qué es la regla «el dato tiene que LLEGAR» en su forma más cara
+
+`firestore.indexes.json` era el archivo **mejor vigilado del repositorio**.
+REG-421 le puso un guardián que deriva las consultas del árbol; REG-422 lo
+endureció para que comprobara el ORDEN de los campos y para que lo ilegible
+fallara en vez de saltarse. Dos regresiones seguidas de trabajo sobre su
+**contenido**.
+
+Y todo ese trabajo comprobaba que el archivo estuviera **bien escrito**. Ninguna
+prueba comprobaba que **llegara**. El archivo era perfecto y no lo leía nadie.
+
+Ninguna prueba mentía. Faltaba.
+
+### Lo que estuvo pasando mientras tanto, sin verse
+
+Una consulta compuesta sin índice se RECHAZA con `FAILED_PRECONDITION`. Pero las
+rutas que ya la hacían la envuelven en un `try/catch` que devuelve vacío:
+
+| Pantalla | Lo que el médico veía |
+|---|---|
+| Lista de la farmacia | vacía, como si no hubiera inventario |
+| Página **pública** del médico | sin reseñas publicadas |
+| Lista de espera | vacía, como si nadie estuviera esperando |
+| Libro de costos del simulador | «sin libro de costos» (REG-422) |
+
+**No se veían rotas: se veían sin datos.** Es el modo de fallo que REG-422 nombró
+para una pantalla, aquí multiplicado por todas.
+
+### El arreglo
+
+Una línea en `firebase.json` — y el guardián que la sostiene, que es lo que de
+verdad cierra esto:
+
+`src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts` lee los
+objetivos del `--only` **del workflow real**, no de una lista escrita a mano, y
+exige que cada uno esté declarado en `firebase.json` y que el archivo declarado
+exista. Es genérico a propósito: el día que alguien añada `storage` o `hosting`
+al `--only`, este caso lo exige declarado sin que nadie se acuerde de ampliarlo.
+
+**Probado al revés**: se reconstruye el `firebase.json` que había antes de este
+arreglo y se comprueba que el guardián lo caza.
+
+### Qué NO cubre
+
+- **No prueba que el despliegue funcione.** Que el archivo esté declarado no dice
+  que la credencial tenga permiso de escribir índices, ni que Firestore termine
+  de construirlos. Eso se mira en la consola, del otro lado, y sigue siendo
+  `BLOCKED_EXTERNAL`.
+
+  > **CERRADO el 2-sep-2026 — y esta duda salió cierta las dos veces.**
+  >
+  > Durante cuatro actas «se publicaron los índices» significó **tres** cosas
+  > distintas y ninguna se distinguía de las otras. Juntarlas fue el defecto, así
+  > que el cierre se escribe partido:
+  >
+  > | | |
+  > |---|---|
+  > | **Declarados** | REG-431, arreglado: `firebase.json` ya nombra `firestore.indexes.json` |
+  > | **Enviados** | Ejecución **#15**, 1-sep 23:51 UTC. Antes hizo falta el permiso: declarado el archivo, el paso lo intentó de verdad y contestó `403 · The caller does not have permission` (ejecución #14). A la cuenta de servicio le faltaba `roles/datastore.indexAdmin` —publicar reglas y crear índices son permisos distintos, y tenía sólo el primero—; lo concedió el dueño en IAM. Y el paso ya corre `--only firestore:indexes` **él solo**, la separación que trajo REG-433, así que su `success` no puede confundirse con el de las reglas |
+  > | **Construidos** | La consola enseña **los doce en `Habilitado`**, coincidiendo campo por campo con `firestore.indexes.json`. Lo miró el dueño el 2-sep. Ver `docs/ops/INDICES-DE-FIRESTORE.md` |
+  >
+  > Que la sección «qué NO cubre» de este REG describiera con precisión el fallo
+  > que vendría después es el argumento entero a favor de escribirlas.
+  >
+  > **Lo que NO cierra**: la tercera fila es una observación **fechada**, no un
+  > estado que se revalide solo. Un índice puede fallar después, y el día que se
+  > declare el trece hay que volver a mirar. Desde este repositorio no se puede
+  > medir, y por eso no hay guardián.
+- **Sólo lee el workflow de producción.** Un despliegue a mano con otro `--only`
+  no lo ve nadie.
+- **No dice cuánto tiempo llevaba así.** El acta del 31-ago es la primera
+  evidencia registrada, pero la línea nunca estuvo: cualquier despliegue anterior
+  tampoco publicó índices.
+
+### Lo que este hallazgo dice del método, y conviene no olvidar
+
+Los tres —REG-416, REG-422 y éste— salieron de mirar del otro lado, no de leer
+código. Y éste salió de algo más barato todavía: **acompañar al dueño a hacer una
+tarea manual**. La consola vacía la vio él en su pantalla, no una prueba.
+
+**Prueba.** `src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts`
+(4 casos, probado al revés).
+
+---
+
+## REG-432 — cerrar el hueco de la receta la dejaba salir sin membrete, y sin decirlo
+
+**QUÉ FALLABA.** No es un defecto que existiera: es uno que el #355 **iba a
+crear**, encontrado al revivirlo y cerrado en el mismo cambio.
+
+Hasta el #355, una `<img>` de papelería con la URL pelada
+(`/api/receta/diseno?path=…`, sin firma) la servía el proxy sin más. Al cerrar
+R-06 el proxy pasa a fallar **cerrado**, así que esa misma imagen deja de verse.
+
+El cliente la repone antes de imprimir… salvo cuando no puede: sin sesión, con
+el endpoint caído, o pasados los 1 500 ms de tope. En esos casos el documento
+salía **igual, sin membrete y sin firma, y sin decir nada**.
+
+**CÓMO SE DESCUBRIÓ.** Leyendo el comentario del propio módulo al revivir el PR:
+
+> «si el endpoint falla […] las imágenes se quedan con su URL original (que el
+> proxy ya rechaza: **se verá rota**, pero el resto del documento sale)»
+
+Estaba escrito, y escrito como comportamiento aceptado. Lo es para el CÓDIGO —el
+documento no se rompe— y no lo es para el MÉDICO, que se entera cuando el
+paciente ya se fue con el papel.
+
+**CAUSA RAÍZ.** Un endurecimiento correcto que cambia lo que el usuario RECIBE sin
+cambiar lo que el usuario VE. El módulo razonó sobre su propio contrato («nunca
+rompo el documento») y no sobre la consecuencia («el documento sale distinto de
+como se ve en pantalla»). Es la misma familia que «el hueco tratado como dato»:
+la ausencia de la imagen se trató como un estado aceptable en vez de como una
+pérdida que declarar.
+
+**LA REGLA QUE LO HACE SEGURO.** Nada cambia en silencio. Un documento que sale
+distinto de como el médico lo ve se avisa **antes** del último momento en que
+puede pararlo — el diálogo de impresión, o el guardado del PDF.
+
+Avisa y **no bloquea**: una receta sin membrete sigue siendo válida —el contenido
+legal es el texto y la cédula, no la papelería— así que la decisión es del
+médico. Bloquear le quitaría una receta que sí puede entregar.
+
+**CONTROL PERMANENTE.** Canal `onAvisoPapeleria`, separado de `onError` a
+propósito: `onError` significa «no se imprimió nada» y éste «se imprimió, con
+esto de menos». Cae a `onError` si nadie lo pasa, porque los seis sitios que
+imprimen ya lo cablean a los toasts y el fallo que esto existe para impedir es el
+silencio. Cubre también el acuñado **parcial**, que un `try/catch` no ve: el
+servidor comprueba el consultorio POR PATH, así que puede devolver la capacidad
+del membrete y no la de la firma.
+
+**Prueba.** `src/__tests__/una-receta-sin-membrete-no-sale-callada.test.ts`
+(9 casos), probada al revés con tres defectos: quitar el aviso del acuñado
+parcial (cae 1), volver a rendirse en silencio (caen 4), y que la impresión deje
+de avisar (cae 1).
+
+**Qué NO cubre, declarado.**
+
+- **No comprueba que el médico LEA el aviso.** El canal es el toast de la app y
+  se auto-cierra a los 3,5 s — que es exactamente lo que **REG-411** llama «un
+  aviso efímero sobre una pérdida permanente es no avisar». Aquí la pérdida no es
+  permanente (se vuelve a imprimir) y por eso no se escaló a modal, pero la
+  limitación queda escrita y no descubierta dentro de seis meses.
+- **No cubre la vista previa** (`FirmadorDisenos`), que reacuña en cada mutación
+  del DOM: avisar ahí sería avisar en bucle. La vista previa enseña la imagen
+  rota, que en pantalla sí se ve.
+- **No impide que la capacidad caduque entre el aviso y la impresión.**
+
+## REG-433 — el acta del despliegue acusó al único paso que había salido bien
+
+**CÓMO SE DESCUBRIÓ.** El dueño pulsó el botón de producción —ejecución **#14**,
+1-sep 22:41 UTC, sobre `fc3a515`— y salió en rojo. El acta que se le enseñó:
+
+```
+FIRESTORE_RULES=failure
+FIRESTORE_RULES_SHA256=no-emitido
+SECURITY_E2E=skipped
+SMOKE=skipped
+SMOKE_PORTAL=skipped
+PRODUCTION_RELEASE=FAILED
+```
+
+Y el log del job, tres líneas antes del error:
+
+```
+✔  cloud.firestore: rules file firestore.rules compiled successfully
+i  firestore: latest version of firestore.rules already up to date, skipping upload...
+i  firestore: deploying indexes...
+Error: Request to …/collectionGroups/appointments/indexes had
+       HTTP Error: 403, The caller does not have permission
+```
+
+**Las reglas eran lo único que había salido bien, y el acta las señaló a ellas.**
+Quien leyera el resumen —el dueño, que no usa terminal— saldría a buscar el
+fallo dentro de `firestore.rules`, que estaba impecable.
+
+### La causa raíz
+
+Un paso, dos actos: `--only firestore:rules,firestore:indexes`, y **una sola
+variable** (`R_RULES`) para el resultado de ambos.
+
+Publicar reglas y crear índices son operaciones distintas con **permisos
+distintos**: `datastore.indexes.create` no viene incluido con el permiso de
+publicar reglas. Pueden acabar distinto, y de hecho acabaron distinto. Contarlas
+con una sola variable **obliga al acta a mentir sobre una de las dos**.
+
+### Las dos consecuencias, peores que el rótulo
+
+**1. Las reglas quedaron publicadas y sin sellar.** El paso del sello cuelga de
+`steps.rules.outcome == 'success'`, así que se saltó también. Las reglas rigen en
+producción y el repositorio no tiene con qué saberlo — que es, palabra por
+palabra, **REG-416**.
+
+**2. Nadie comprobó producción.** `Seguridad · producción`, `Smoke · público` y
+`Smoke · portal fail-closed` salieron **`skipped`**: son las tres únicas que
+miran el sitio vivo, que acababa de recibir una versión nueva. Un permiso que
+falta en Google Cloud dejó sin medir si el producto funcionaba.
+
+### Lo que REG-431 ya había declarado
+
+Este fallo **estaba anunciado**. La sección «qué NO cubre» de REG-431, escrita
+horas antes:
+
+> «Que el archivo esté declarado no dice que la credencial tenga **permiso de
+> escribir índices**, ni que Firestore termine de construirlos. Eso se mira en
+> la consola, del otro lado, y sigue siendo `BLOCKED_EXTERNAL`.»
+
+Se declaró la duda y la duda salió cierta. Lo que faltaba no era la sospecha:
+era que el acta supiera **distinguir** cuál de los dos actos había fallado.
+
+### El arreglo
+
+Dos pasos con su `--only` propio y su propia variable (`R_RULES`,
+`R_INDICES`), las dos exigidas para dar `SUCCESS` — **la compuerta no se
+relaja, se vuelve seis en vez de cinco**. Las tres comprobaciones del sitio vivo
+pasan a `!cancelled()`: se ejecutan aunque Firestore falle, porque miden otra
+cosa. Y cuando el fallo de índices sea un 403, el resumen nombra el rol que
+falta (`roles/datastore.indexAdmin`) y dice que se concede en la consola de
+Google Cloud, **no en este repositorio**.
+
+### La trampa que el propio arreglo casi repite
+
+La primera versión puso `if: steps.cred.outcome == 'success'`. En GitHub
+Actions, **un `if:` sin función de estado se envuelve implícitamente en
+`success()`**: ese paso habría seguido saltándose en cuanto algo anterior
+fallara, mientras el comentario de al lado prometía lo contrario. Se cazó
+imprimiendo el grafo de pasos ya resuelto en vez de releer el diff. De ahí los
+`!cancelled() &&` explícitos, y de ahí el cuarto caso del golden, que exige que
+todo `if` que dependa de un paso concreto lo declare.
+
+### Estado
+
+**CLOSED** en lo que es de este repositorio.
+`src/__tests__/el-acta-del-despliegue-acuso-al-paso-que-salio-bien.test.ts`
+(8 casos, probado al revés: reponer el paso único o quitar los `!cancelled()`
+lo pone rojo).
+
+El **403 quedó cerrado el 2-sep-2026**: el dueño concedió
+`roles/datastore.indexAdmin` a
+`firebase-adminsdk-fbsvc@nexomed-agenda.iam.gserviceaccount.com`, y la
+[ejecución #15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+cerró en `SUCCESS` con los dos pasos nuevos en verde por separado —
+`FIRESTORE_RULES` y `FIRESTORE_INDICES`— y con el sello de las reglas emitido,
+que en la #14 se había saltado. Las tres comprobaciones contra el sitio vivo,
+que la #14 dejó en `skipped`, corrieron y pasaron.
+
+> **CERRADO — 2-sep-2026.** El dueño concedió el rol en IAM y lo confirmó en la
+> conversación. La ejecución **#15** (1-sep 23:51 UTC) pasó el paso de índices en
+> `success`, y la #16 lo repitió.
+>
+> Y esto es lo que el arreglo compró, dicho con el caso delante: en la #14 el
+> mismo fallo se presentó como `FIRESTORE_RULES=failure` y mandaba a buscar el
+> problema dentro de `firestore.rules`, que estaba impecable. Con los dos pasos
+> separados, el resumen nombró el rol que faltaba y **dónde se concede** — y por
+> eso se concedió. El arreglo no evitó el 403: hizo que el 403 se pudiera leer.
+>
+> Lo que sigue fuera: que Firestore **termine de construirlos**. Ver REG-431.
+
+### Qué NO cubre
+
+- **No arregla el permiso.** Sólo hace que el acta diga la verdad sobre él.
+- **No ejecuta el workflow.** El golden lee el YAML; que GitHub lo interprete
+  como se espera se ve en la ejecución siguiente del botón.
+- **No comprueba que los índices se construyan.** `firebase deploy` contesta al
+  ENVIAR; la construcción va por su cuenta y puede fallar después, con el
+  `success` ya impreso.
+
+## REG-434 — la cita de la portada se pintaba con una palabra por renglón
+
+**CÓMO SE DESCUBRIÓ.** El dueño abrió el sitio **en su iPhone** y mandó cuatro
+capturas. En «El recorrido», cada uno de los nueve pasos lleva debajo la cita
+del fallo real que lo hizo necesario, y las nueve salían así:
+
+```
+│ El
+│ paciente
+│ nunca
+│ ve
+│ un
+│ borrador.
+```
+
+Veintidós palabras en veintidós renglones, en la primera pantalla del producto,
+**en producción**.
+
+### La causa raíz, y no es de WebKit
+
+`.nx-camino-paso` es una rejilla de dos columnas —`46px` para el número, el
+resto para el texto— y `.nx-camino-prueba` **no declaraba en cuál va**. La
+auto-colocación de `grid` la mete entonces en la primera celda libre, que en la
+fila 3 es la de la IZQUIERDA: la del número.
+
+Arriba de 1000 px sí había `grid-column: 3` explícito, dentro de la media query
+que le da su propia columna. Por eso el defecto vivía **sólo por debajo de
+1000 px**, y por eso ninguna captura de escritorio lo enseñaba.
+
+Reproducido en Chromium, medido:
+
+| ancho | ancho de la cita | palabras / renglones |
+|---|---|---|
+| 390 | **34 px** de 342 disponibles | 23 / 23 = **1,0** |
+| 640 | **34 px** de 592 | 23 / 23 = **1,0** |
+| 900 | **46 px** de 852 | 23 / 22 = 1,05 |
+| 1000 | 374 px de 952 | 23 / 2 = 11,5 ← aquí sí había regla |
+
+Después: 290 px a 390, 540 a 640, 788 a 900.
+
+### Por qué CINCO compuertas verdes no lo vieron
+
+Esto es lo que hay que aprender, porque el defecto llegó a producción:
+
+- **No desborda a lo ancho.** Cabe: el texto se ajusta a la tira.
+- **No falla axe.** Contraste, roles y etiquetas, correctos.
+- **No rompe el blanco táctil.** Ni siquiera es un control.
+- **No sale en escritorio**, que es donde más se mira.
+- El alto de la página creció, pero **nadie vigilaba el alto de esa sección**.
+
+La única comprobación que lo habría cazado no existía: **contar palabras por
+renglón**. Ahora existe —
+`scripts/ausculta-transformacion/ningun-texto-cae-en-una-astilla.mjs`— y recorre
+las doce rutas públicas en cuatro anchos.
+
+### La sonda gritó en falso antes de servir
+
+Su primera versión acusó **25 sitios; 24 estaban sanos**. Contaba con
+`textContent`, que pega los textos hijos sin espacio —«⭐ Estándar» +
+«Razonamiento…» = «EstándarRazonamiento»— y subcontaba las palabras de cada
+celda de tabla. Con `innerText` y el filtro de proporción —la astilla es mucho
+más angosta que el sitio que tiene; una celda de 298 px en una fila de 858 es
+una columna y está bien— quedó en **1 de 1**.
+
+Una sonda que grita en falso se acaba ignorando, que es el mismo fallo que este
+carril persiguió en los avisos del portal.
+
+### El arreglo, y el hermano que destapó
+
+`grid-column: 2` en la regla base de la cita. Y al escribir el guardián, éste
+acusó también a `.nx-camino-titulo` y `.nx-camino-texto`: **tampoco declaraban
+columna**. Hoy caen bien por casualidad —la auto-colocación acierta en las filas
+1 y 2 porque el número las ocupa ambas— y basta añadir un hijo, o cambiarle el
+`grid-row` al número, para que se derramen igual sin que el diff enseñe nada.
+Los tres la declaran ahora.
+
+### Probado al revés, y con la hoja SERVIDA
+
+Quitando `grid-column: 2`, la sonda vuelve a acusar **9** (los nueve pasos). El
+primer intento salió INVERTIDO —0 con el fallo puesto y 9 con el arreglo— porque
+`next dev` iba un cambio por detrás: la trampa del CSS rancio, **tercera vez en
+esta rama**. Se rehízo esperando a que la regla apareciera en el `.css` servido,
+no a que pasaran cuatro segundos.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-cita-de-la-portada-cayo-en-la-columna-del-numero.test.ts`
+(5 casos) más la sonda del navegador.
+
+### Qué NO cubre
+
+- **El guardián es de fuente**: comprueba que la columna esté declarada. Que
+  ningún texto caiga en una astilla lo mide la sonda, y **la sonda no corre en
+  CI**.
+- **Sólo mira esta rejilla.** Otro hijo de otro `grid` sin columna declarada
+  tiene el mismo defecto; la sonda sí lo vería, el guardián no.
+- **No es un iPhone.** Se reprodujo y se arregló en Chromium. Que en WebKit real
+  se vea bien lo dice el dueño, que es quien tiene el teléfono.
+
+## REG-435 — el acta de un paquete ya desplegado seguía diciendo «nadie ha desplegado nada»
+
+**CÓMO SE DESCUBRIÓ.** Comprobando la ejecución #15 del botón paso por paso para
+poner al día el acta de `nexusmed-v1179` — que aún se encabezaba con «Estado:
+PREPARADO, NO PUBLICADO» pese a llevar horas en producción. Al bajar a mirar cómo
+lo habían hecho las actas hermanas apareció lo de verdad: **no era una, eran
+tres**, y de dos clases distintas.
+
+| Acta | Versión | Qué decía | Qué era cierto |
+|---|---|---|---|
+| `PAQUETE-PRODUCCION-2026-08-27.md` | v1172 | «Nadie ha desplegado nada» | publicada el 28-ago, ejecución #4 |
+| `PAQUETE-PRODUCCION-2026-08-30.md` | v1175 | «YA SE PUBLICÓ», **sin citar ejecución** | publicada el 31-ago, ejecución #8 |
+| `PAQUETE-PRODUCCION-2026-09-01-v1179.md` | v1179 | «PREPARADO, NO PUBLICADO» | publicada el 1-sep, ejecuciones #15 y #16 |
+
+La de v1172 llevaba **cinco días** así. Las de v1176 y v1177 sí estaban cerradas
+en forma, lo que descarta que faltara la convención: existía y se aplicaba a
+mano, que es exactamente el diagnóstico que `el-tablero-del-loop-no-miente` ya
+tenía escrito desde REG-241 — «mientras no lo derive un script, va a volver a
+pasar».
+
+**CAUSA RAÍZ.** Cerrar un acta era un acto de memoria. Nada ataba el encabezado
+del acta al único sitio que sabe qué sirve producción,
+`agent-state/MASTER_STATE.json → ultimaVersionEnProduccion`, un campo que desde
+REG-505 ya lleva dentro la ejecución que lo confirma.
+
+**POR QUÉ NO ES PAPELEO.** Un acta de paquete no es documentación: es la entrada
+del procedimiento de despliegue, el documento que se abre justo antes de decidir.
+Un acta que dice «nadie ha desplegado nada» de algo ya desplegado invita a
+desplegarlo otra vez — y un despliegue **arrastra todo lo no desplegado**
+(`.claude/rules/deployment-and-flags.md`), no sólo lo que el acta enumera.
+
+La de v1175 es la variante más fina: afirmaba el despliegue **sin su evidencia**.
+Es el defecto que cerró REG-505 —una versión de producción sin la ejecución que
+la confirma es un recuerdo, no un dato— reaparecido en otro papel.
+
+**EL ARREGLO.** Los cinco números que sirvieron para cerrarlas salen del
+repositorio y de la API de Actions, no de la memoria: para cada ejecución en
+verde se leyó el `VERSION_ESPERADA` del workflow **en su propio árbol**, que es
+lo que su Compuerta 3 midió contra el sitio vivo.
+
+Y se añadieron dos casos a `el-tablero-del-loop-no-miente.test.ts`, que es donde
+ya vivían las cuatro veces anteriores de esta misma familia:
+
+1. ningún acta de una versión **≤ la de producción** puede quedarse sin su aviso
+   de SUPERADO **con URL de ejecución**;
+2. al cerrarla **no se le borra** el estado con el que nació.
+
+El segundo salió de un error propio de esta misma sesión: la de v1179 se cerró
+primero sustituyendo «PREPARADO, NO PUBLICADO» por «PUBLICADO». Se lee mejor y
+destruye el dato de qué se sabía al escribirla; las actas ya cerradas lo dicen
+con sus palabras — «un acta que se reescribe deja de servir para reconstruir qué
+se sabía y cuándo».
+
+### Probado al revés
+
+- Quitando el aviso de v1172, el primer caso cae **nombrando el archivo**.
+- Borrando el «PREPARADO, NO PUBLICADO» de v1179, el segundo cae igual.
+- Y el guardián encontró por su cuenta la tercera acta —la de v1175, con
+  SUPERADO pero sin ejecución— que la lectura a ojo había dado por buena.
+
+### Estado
+
+**CLOSED.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts` — 24 casos al
+correr; el sello dice 15 porque cuenta el `it.each` de la memoria del programa
+como uno.
+
+### Qué NO cubre
+
+- **No sale a la red.** No comprueba que la ejecución citada exista ni que
+  cerrara en verde; exige que haya una URL, no que sea la correcta.
+- **No vigila el sentido contrario con fuerza.** Un acta que se declarara
+  publicada sin haberlo sido pasa con sólo inventarse un enlace.
+- **No dice nada de las versiones posteriores a la de producción.** Un acta
+  preparada y aún sin publicar es el caso normal y debe poder existir.
+- **No cierra actas solo.** Sigue haciéndose a mano; lo que cambia es que ahora
+  olvidarlo pone la suite en rojo.
+
+## REG-436 — el paso que «esperaba decisión del dueño» era imposible de ejecutar
+
+> **NÚMERO REASIGNADO al unificar, 2-sep-2026.** Este defecto nació como REG-434
+> en su propia rama, y REG-434 ya estaba dado —a la cita de la portada, más
+> arriba— en otra rama abierta el mismo día. Dos sesiones numeraron contra el
+> mismo `main` sin verse. Se queda el que lo reclamó primero y éste pasa a
+> **REG-436**; es la misma colisión que enseña REG-267, y por eso se dice en vez
+> de renumerar en silencio.
+
+
+**CÓMO SE DESCUBRIÓ.** Cerrada la cadena de los índices —REG-431 declaró el
+archivo, IAM concedió el permiso, la ejecución
+[#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+publicó los doce y el dueño los vio `Enabled` en la consola el 2-sep— quedaba un
+solo pendiente: el backfill de `pesoUrgencia`. Al ir a guiarlo, el paso no era
+una decisión: era un muro.
+
+`scripts/migraciones/peso-de-urgencia.mjs` pide
+`GOOGLE_APPLICATION_CREDENTIALS` apuntando a un JSON de cuenta de servicio. Esa
+credencial vive en los secretos de este repositorio, y de ahí **no sale**.
+Correrlo exigía tener a la vez terminal y una copia de la credencial. El dueño no
+usa terminal; los agentes no pueden leer el secreto. **Nadie reunía las dos
+mitades.**
+
+### La causa raíz
+
+La cabecera del script decía, y decía bien:
+
+> «**No decide cuándo correrlo.** Correr algo contra datos clínicos vivos es del
+> dueño.»
+
+Es una frase correcta que tapó un defecto. El paso figuró meses como *pendiente
+de decisión del dueño* cuando la decisión no era lo que faltaba: faltaba **poder
+tomarla**. Un pendiente marcado «esperando a una persona» no se vuelve a mirar;
+uno marcado «imposible» sí.
+
+Es la familia de «escrito y sin conectar», en su forma operativa: la herramienta
+existe, es correcta, está probada — y no hay ningún camino real desde la persona
+que decide hasta su ejecución.
+
+### El arreglo
+
+`.github/workflows/backfill-peso-de-urgencia.yml` — un botón donde la credencial
+ya está. No añade capacidad ni permisos: mueve la ejecución al único sitio que
+reúne las dos mitades.
+
+- **`escribir` nace en `false`.** Apretarlo sin tocar nada lee y cuenta; no
+  escribe un documento. Escribir exige marcar la casilla, que es un gesto
+  distinto de abrir la pantalla.
+- **Una casilla y no una frase que teclear**, al revés que el botón de
+  producción: aquel no tiene inputs para que no se pegue mal un SHA; aquí el
+  script sólo AÑADE un campo derivado y es idempotente, así que el daño de un
+  clic de más es cero y el de una frase mal pegada no.
+- **`FIREBASE_TOKEN` se rechaza nombrando por qué.** `deploy-production.yml`
+  lo acepta porque el CLI lo entiende; `firebase-admin` **no** —
+  `applicationDefault()` quiere un archivo de cuenta de servicio—. Sin esa
+  comprobación el fallo saldría dentro del SDK, sin nombrar la causa: la forma
+  exacta de REG-433, aplicada antes de que costara una ejecución.
+- **Los recuentos van al resumen**, no sólo al log. El dueño no lee logs. Y son
+  recuentos, nunca contenido: esos documentos llevan PHI (`data-privacy.md`).
+
+### El papel que sobrevivió al arreglo
+
+`docs/ops/INDICES-DE-FIRESTORE.md` siguió afirmando **«OCHO de los doce se
+enviaron»** hasta el 2-sep — el día siguiente a medirse **cero** en la consola, y
+con los doce ya construidos. Es el documento con el que alguien verifica la
+consola dentro de seis meses.
+
+Se corrige y **se deja escrito el número falso**, porque la lección no es el
+número: es que se contaba sobre el árbol desplegado —cierto e insuficiente— en
+vez de sobre el proyecto. La tabla «El envío no es la construcción» pasa a tener
+tres filas, y la primera vale **nada**: `success` sobre un `--only` que no
+publicaba.
+
+### Estado
+
+**CLOSED.**
+`src/__tests__/el-boton-del-backfill-no-escribe-por-defecto.test.ts`
+(10 casos, probado al revés con cinco defectos: poner `default: true`, colar
+`--escribir` en la rama de ensayo, aceptar el token, quitar el `always()` de la
+limpieza y mover el proyecto — los cinco lo ponen rojo).
+
+### Qué NO cubre
+
+- **No corre el backfill.** El botón existe; apretarlo es del dueño, que era la
+  frase correcta desde el principio — ahora con un botón detrás.
+- **No prueba que el workflow funcione.** El golden lee el YAML. Que GitHub lo
+  interprete como se espera, y que Firestore acepte las escrituras, se ve en la
+  primera ejecución y del otro lado.
+- **No verifica la lógica del script** —pesos, paginación, idempotencia—: eso
+  vive en el script y en el modelo del que lee la escalera.
+- **No busca otros pasos con el mismo defecto.** Este se encontró al ir a
+  ejecutarlo, no por barrido. Cualquier otro «pendiente de decisión» que en
+  realidad sea imposible sigue igual de invisible.
+
+## REG-437 — la lista de alergias no cabía en el teléfono
+
+> **NÚMERO REASIGNADO, 2-sep-2026 — y es la TERCERA colisión del mismo día.**
+> Este defecto se subió a su rama como REG-436 a las 04:47 UTC. `main` ya había
+> dado ese número al backfill doce minutos antes, a las 04:35. Pasa a
+> **REG-437**; se queda quien lo reclamó primero, igual que en la reasignación
+> de arriba y que en REG-267.
+>
+> **Y el commit se quedó fuera.** Su PR (#433) se unificó y cerró **antes** de
+> que este commit llegara a la rama, así que el arreglo estuvo escrito, probado
+> y subido —y ausente del producto— hasta que se rescató aquí. Los otros dos
+> commits de esa rama (REG-434 y REG-435) sí habían entrado, que es justo lo que
+> hace creíble suponer que éste también.
+>
+> **La causa no es descuido y no la arregla renumerar.** El contador de
+> regresiones es global, se asigna a mano, y el guardián del ledger comprueba
+> que cada REG **tenga ficha**, no que sea **único frente a lo que otra rama
+> abierta ya reclamó**. Mientras eso siga así, va a repetirse: hoy tres veces.
+> Queda escrito en `docs/maintenance/PENDIENTES-CONSOLIDADOS-2026-09-02.md` §G.
+
+**CÓMO SE DESCUBRIÓ.** Abriendo `/consulta/pac-001` en Chromium a 390×844
+contra el arnés de emuladores y **mirando la captura**. Ninguna prueba de este
+repositorio podía cazarlo: el JSX era correcto, el CSS era correcto, y el
+defecto sólo existe cuando los dos se miden juntos a un ancho concreto.
+
+Medido en el navegador:
+
+```
+franja de alergias   pedía 555 px   en una caja de 356
+la lectura acababa   en x = 572     con la ventana en 390
+overflow-x           visible        → ni siquiera había barra que arrastrar
+```
+
+El contenido era «Penicilina (anafilaxia) · sulfas · AINEs». **AINEs no estaba
+escondido: no existía.** No había gesto que lo trajera a la pantalla.
+
+**POR QUÉ ESTA LÍNEA.** Es la que se lee ANTES de recetar. Un médico que ve
+«Penicilina (anafilaxia), sulfa…» cortado no tiene forma de saber que falta un
+tercer alérgeno, y `clinical-safety.md` §4 dice que la ausencia de un dato no es
+dato de su ausencia. La franja cumplía en escritorio y mentía por omisión en el
+bolsillo, que es donde se pasa visita.
+
+**CAUSA RAÍZ.** La fila es `display: flex` en un `style` **en línea**, sin
+`flex-wrap`, con la lectura en `flex-shrink: 0`.
+
+Y `flex-shrink: 0` **era la decisión correcta**: apretar «se lee: …» hasta
+dejarlo ilegible sería peor que no enseñarlo. Lo que faltaba no era dejarla
+encoger — era dejarla **bajar**. Un `style` en línea no puede tener una forma a
+390 px y otra a 1440: la colocación tenía que mudarse a CSS. Misma lección que
+la barra del portal (REG-425).
+
+### El primer arreglo estuvo mal, y la medición lo aprobó
+
+Poner sólo `flex-wrap: wrap` dejó los desbordamientos en **cero** — y la
+pantalla peor de leer que con el defecto. La lectura dejaba de salirse y se
+metía en los 150 px que sobraban al lado del campo, saliendo a palabra por
+renglón: `se lee: / Penicilina / (anafilaxia) / · sulfas · / AINEs`.
+
+Exactamente la patología que el dueño fotografió en la portada (REG-434). **La
+medición decía verde; la captura decía que no.** Hizo falta `flex-basis: 100%`
+bajo 900 px para bajarla entera, lo que de paso le devuelve al campo el ancho
+completo. `design-system.md` dice que no se aprueba una interfaz leyendo el
+código; esto añade que tampoco leyendo sólo los números.
+
+### Lo que apareció en la misma mirada
+
+| Qué | Antes | Después |
+|---|---|---|
+| Elementos que se salen a la derecha (390) | 2 | **0** |
+| Ancho pedido por la franja de alergias | 555 en 356 | **356 en 356** |
+| Campos sin etiqueta | 9 | **0** |
+| Objetivos táctiles bajo 44×44 | 10 | **2** |
+| Errores de consola | 0 | 0 |
+
+- **La medicación se salía 27 px.** El separador « · » vivía **dentro** del
+  `white-space: nowrap` que mantiene juntos el fármaco y su botón «ya no» — y
+  con él, el único espacio partible entre un fármaco y el siguiente. Sin punto
+  de corte el navegador no bajaba de línea. Mantener unido el par nombre+acción
+  sigue siendo correcto: un «ya no» huérfano al principio de un renglón no dice
+  de qué medicamento habla. El separador no formaba parte de ese par.
+- **Nueve campos sin etiqueta.** Los siete signos vitales tenían `<label>` con
+  el texto correcto y ningún `htmlFor`: se ven «TA», «FC», «SpO₂» y se anuncian
+  como cajas anónimas. El marcador de posición, único indicio que quedaba
+  dentro, **desaparece al escribir el primer dígito**.
+- **Los signos vitales medían 113×40 y el campo de alergias 244×24.** Se
+  capturan de pie, con el paciente delante. Sube el **alto**, no la letra: la
+  escala tipográfica está medida y la vigila el trinquete de diseño.
+
+### Probado al revés — tres veces, y una cuarta que corrigió el guardián
+
+- Quitando la media query, cae el caso de la línea propia.
+- Devolviendo el separador dentro del `nowrap`, cae el caso del separador.
+- Quitando el `minHeight: 44`, cae el de los signos vitales.
+- Y en el navegador, en la **misma página cargada**, devolviéndole a la lectura
+  su `flex-shrink: 0` y su `nowrap`: 356 → **555** px pedidos, la lectura
+  acabando **182 px fuera** de la ventana. Se hizo así porque el servidor de
+  desarrollo seguía sirviendo CSS viejo — la trampa de siempre, cuarta vez en
+  esta rama; midiendo con y sin el defecto dentro de la misma hoja no puede
+  colarse.
+
+La **cuarta** fue del propio guardián: el caso del separador preguntaba «¿hay un
+`nowrap` más adelante?» y pasaba con el defecto puesto, porque siempre lo hay en
+alguna parte del archivo. Reescrito para mirar el envoltorio que contiene al
+separador.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts`
+(13 casos) más `scripts/ausculta-transformacion/mirar-la-consulta.mjs`.
+
+### Qué NO cubre
+
+- **El guardián es de fuente.** Que el texto quepa de verdad lo mide la sonda, y
+  **la sonda no corre en CI**: necesita emuladores de Firebase y un navegador.
+- **No es un iPhone.** Todo lo medido es Chromium a 390 px. WebKit no está en
+  este entorno y no se declara probado.
+- **No mira las otras pantallas.** `expediente/[patientId]` pinta su propia
+  franja de alergias; no se ha medido a 390 y este guardián no la vigila.
+- **Los dos «ya no» siguen a 34×44 a propósito.** Son botones dentro de una
+  frase, el caso que WCAG 2.2 §2.5.8 exceptúa; ensancharlos rompería la prosa
+  que los hace comprensibles. Se declara, no se esconde.
+- **`Visitas anteriores: [2026-09-02]`** se vio y **no** se tocó. El corchete es
+  el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
+  contexto de los motores: cambiarla por estética movería lo que el modelo lee.
 ## REG-506 · El despliegue anunciaba los índices y no mandaba ninguno
 
 **Cómo se descubrió.** Repasando los pendientes del dueño. El primero de la lista

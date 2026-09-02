@@ -283,8 +283,8 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'voz/comandos-config': { tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' } },
 
   // ── recetas y verificación ───────────────────────────────────────────────
-  'receta/diseno': { tipo: 'publica', motivo: 'Proxy same-origin de la imagen del formato de receta (anti-CORS al generar el PDF). Sirve una URL de Storage ya firmada.' },
-  'receta/diseno-url': { tipo: 'sesion', motivo: 'Firma una URL de subida para el diseño de receta del propio usuario.' },
+  'receta/diseno': { tipo: 'publica', motivo: 'Proxy same-origin de la imagen del formato de receta (anti-CORS al generar el PDF). Sin sesión porque una <img> no manda Authorization, pero NO es abierta: exige una capacidad HMAC ligada a version+path+ownerUid+clinicId+exp que sólo acuña la ruta autenticada receta/diseno-url (R-06 / #350).' },
+  'receta/diseno-url': { tipo: 'sesion', motivo: 'Acuña la capacidad del diseño de receta: resuelve el consultorio canónico en clinic_members y sólo liga paths del propio usuario o de un miembro de su misma clínica.' },
   'receta/verificacion-url': { tipo: 'capacidad', capacidad: 'firmar' },
 
   // ── teleconsulta ─────────────────────────────────────────────────────────

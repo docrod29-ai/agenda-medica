@@ -11,6 +11,7 @@ import {
   BookOpen, Search, ChevronDown, Calendar, BedDouble, FileSignature,
   Settings, Users, CreditCard, Smartphone, Lightbulb, AlertTriangle, PlayCircle,
   Mic, Sparkles, FlaskConical, MessageSquare, ReceiptText, LifeBuoy,
+  Compass, KeyRound, UserRound, Tags, PenLine, Repeat, ShieldCheck, Wrench,
 } from 'lucide-react'
 
 const ICONO: Record<string, React.ReactNode> = {
@@ -19,6 +20,12 @@ const ICONO: Record<string, React.ReactNode> = {
   analisis: <FlaskConical size={18} />, recetas: <FileSignature size={18} />, hospital: <BedDouble size={18} />,
   equipo: <Users size={18} />, facturas: <ReceiptText size={18} />, soporte: <LifeBuoy size={18} />,
   planes: <CreditCard size={18} />, navegacion: <Smartphone size={18} />, config: <Settings size={18} />,
+  /* Las nueve secciones que la auditoría contra el producto añadió. Sin
+     entrada aquí caían todas al bombillo genérico y la lista dejaba de poder
+     recorrerse de un vistazo. */
+  'que-es': <Compass size={18} />, cuenta: <KeyRound size={18} />, pacientes: <UserRound size={18} />,
+  'estado-paciente': <Tags size={18} />, firma: <PenLine size={18} />, ordenes: <Repeat size={18} />,
+  portal: <Smartphone size={18} />, privacidad: <ShieldCheck size={18} />, problemas: <Wrench size={18} />,
 }
 
 const ROLES: { id: Rol; label: string }[] = [
@@ -41,7 +48,7 @@ function AsistenteAyuda() {
 export default function GuiaPage() {
   const [rol, setRol] = useState<Rol>('todos')
   const [q, setQ] = useState('')
-  const [abierta, setAbierta] = useState<string | null>('inicio')
+  const [abierta, setAbierta] = useState<string | null>('que-es')
 
   const visibles = useMemo(() => {
     const texto = q.trim().toLowerCase()

@@ -201,11 +201,22 @@ export const S = {
      de escala — el guardián lo cazó en la misma corrida. */
   grabCardSola: { background: 'transparent', border: 0, padding: 0, marginBottom: 20 } as React.CSSProperties,
   transcripcion: { width: '100%', marginTop: 14, minHeight: 100, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, resize: 'vertical' } as React.CSSProperties,
-  resumen: { display: 'flex', gap: 8, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 8, padding: '12px 14px', marginBottom: 18 } as React.CSSProperties,
+  resumen: { display: 'flex', gap: 8, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', borderRadius: 8, padding: '12px 14px', marginBottom: 18 } as React.CSSProperties,
   textarea: { width: '100%', minHeight: 70, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, fontSize: 13, color: 'var(--text)', lineHeight: 1.6, resize: 'vertical' } as React.CSSProperties,
   input: { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, color: 'var(--text)' } as React.CSSProperties,
   miniLabel: { fontSize: 11, color: 'var(--text3)', display: 'block', marginBottom: 3 } as React.CSSProperties,
-  miniInput: { width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 8px', fontSize: 13, color: 'var(--text)' } as React.CSSProperties,
+  /**
+   * `minHeight: 44` NO ES ADORNO.
+   *
+   * Los siete campos de signos vitales medían 113×40 en el teléfono. Se capturan
+   * de pie, con el paciente delante y a menudo con guantes; cuatro píxeles de
+   * menos son el dedo que cae al lado y el dato que no se escribe. 44×44 es el
+   * mínimo que `design-system.md` pone entre los que tumban la compuerta.
+   *
+   * Sube el alto, no el `fontSize`: la escala tipográfica está medida y este
+   * campo no necesita letra más grande, necesita más sitio donde dar. Ver REG-437.
+   */
+  miniInput: { width: '100%', minHeight: 44, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 8px', fontSize: 13, color: 'var(--text)' } as React.CSSProperties,
   row: { display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' } as React.CSSProperties,
   del: { background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 6, flexShrink: 0 } as React.CSSProperties,
   addBtn: { display: 'flex', alignItems: 'center', gap: 5, border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' } as React.CSSProperties,

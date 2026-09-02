@@ -103,7 +103,36 @@
 
 ---
 
-## R-06 · `/api/receta/diseno?path=` sirve objetos sin sesión ni comprobación de consultorio — **P0 · FUERA DE CARRIL**
+## R-06 · `/api/receta/diseno?path=` sirve objetos sin sesión ni comprobación de consultorio — **P0 · CERRADO (1-sep-2026)**
+
+> **Cerrado por el PR #355**, con autorización explícita del dueño — que era lo
+> que faltaba, no el código: el arreglo estaba escrito desde el 23-ago y llevaba
+> nueve días parado porque cambiar el proxy toca la papelería en uso.
+>
+> | | Antes | Ahora |
+> |---|---|---|
+> | Qué liga la firma | `path\|exp` | `version\|path\|ownerUid\|clinicId\|exp` |
+> | Cuánto dura | 24 h | 15 min |
+> | Sin secreto en el servidor | devolvía la URL pelada | **503** |
+> | URL sin firma | pasaba salvo variable de entorno | se rechaza, y la compatibilidad **no existe en producción** |
+>
+> El cambio que más pesa no es el de los 15 minutos: es el de la última fila.
+> Antes la puerta estaba abierta y se cerraba poniendo una variable; ahora está
+> cerrada y sólo se abre poniendo otra, y ni así en producción.
+>
+> **Y trajo un riesgo propio, cerrado en el mismo cambio**: al fallar cerrado el
+> proxy, una imagen de papelería sin capacidad deja de verse, y el documento
+> salía incompleto sin decirlo. Ahora avisa antes del diálogo de impresión y
+> antes de guardar el PDF (**REG-432**). Avisa y no bloquea: una receta sin
+> membrete sigue siendo válida.
+>
+> **Lo que sigue sin cubrirse:** la capacidad se puede REENVIAR dentro de su
+> ventana. Quince minutos y el ligado al dueño acotan el daño de una fuga, no la
+> impiden. Cerrarlo del todo exige sesión en el proxy, y el proxy lo consume un
+> `<img>` que no manda cabeceras.
+
+### Cómo estaba declarado antes de cerrarse
+
 
 | | |
 |---|---|

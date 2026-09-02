@@ -66,6 +66,20 @@ const firebaseJson = JSON.parse(readFileSync('firebase.json', 'utf8'))
 const workflow = readFileSync('.github/workflows/deploy-production.yml', 'utf8')
 
 /**
+ * Las líneas de CÓDIGO del workflow, sin los comentarios.
+ *
+ * Hace falta porque el propio workflow EXPLICA el defecto en su cabecera —«iban
+ * en UN paso con `--only firestore:rules,firestore:indexes`»— y una comprobación
+ * que busque esa cadena en el archivo entero da positivo sobre la nota que
+ * cuenta por qué ya no se hace. Un comentario que describe lo que se dejó de
+ * hacer no es lo que se hace.
+ */
+const codigoDelWorkflow = workflow
+  .split('\n')
+  .filter(l => !/^\s*#/.test(l))
+  .join('\n')
+
+/**
  * La decisión de firebase-tools 15.25.1, copiada tal cual desde
  * `src/deploy/firestore/prepare.ts` + `deploy.ts`:
  *
@@ -118,19 +132,39 @@ describe('REG-506 · el despliegue de índices envía el archivo, y no sólo lo 
     expect(archivosDeIndicesQueSeEnviarian(comoEstabaEnV1178)).toBe(0)
   })
 
-  it('el workflow de producción sigue pidiendo el despliegue de índices', () => {
-    /* La otra mitad: la clave de firebase.json no sirve de nada si el paso deja
-       de pedir `firestore:indexes`. */
-    expect(workflow).toContain('firestore:rules,firestore:indexes')
+  it('los índices se despliegan en su PROPIO paso, no colgados de las reglas', () => {
+    /**
+     * ESTA COMPROBACIÓN CAMBIÓ AL FUSIONAR, Y CONVIENE DECIR POR QUÉ.
+     *
+     * La primera versión exigía que el paso comprobara su salida buscando la
+     * línea de éxito de `deployIndexes`. Mientras esta rama estaba abierta, otra
+     * sesión encontró el mismo defecto y su arreglo llegó antes a `main` — y
+     * llegó MÁS LEJOS: en vez de un `grep` sobre una salida compartida, partió
+     * el paso en dos (`--only firestore:rules` y `--only firestore:indexes`),
+     * guardó el log de los índices y añadió el diagnóstico del 403 de IAM, que
+     * es el fallo real cuando la credencial publica reglas y no crea índices.
+     *
+     * Se conserva la de `main`, que es mejor, y aquí se vigila el invariante
+     * estructural que las dos comparten: **el éxito de las reglas ya no puede
+     * dar por bueno el envío de los índices**, porque son pasos distintos.
+     * Volver a juntarlos —o quitarle el `--only firestore:indexes`— reabriría la
+     * puerta por la que se coló REG-506.
+     */
+    expect(workflow).toContain('--only firestore:indexes')
+    expect(workflow).toContain('id: indices')
   })
 
-  it('y COMPRUEBA la salida del despliegue, en vez de creerse el código de salida', () => {
+  it('y el éxito de las REGLAS ya no puede dar por bueno el de los índices', () => {
     /**
-     * La lección de REG-506 no es la clave que faltaba: es que durante tres
-     * ejecuciones nadie miró lo que contestó el proveedor. El paso guarda su
-     * salida y exige la línea de éxito de `deployIndexes`; si vuelve a mandar
-     * cero índices, el despliegue falla en vez de firmar el acta.
+     * El envío iba en un solo comando —`--only firestore:rules,firestore:indexes`—
+     * con una sola salida y un solo código. Por eso «reglas publicadas» y «cero
+     * índices enviados» cabían en el mismo `success`, que es lo que dejó pasar
+     * REG-506 durante tres ejecuciones del botón. Volver a juntarlos reabre esa
+     * puerta aunque `firebase.json` siga bien.
      */
-    expect(workflow).toContain('deployed indexes in')
+    expect(
+      codigoDelWorkflow,
+      'los índices volvieron a colgar del mismo comando que las reglas',
+    ).not.toContain('firestore:rules,firestore:indexes')
   })
 })

@@ -99,6 +99,31 @@
   --teal-glow:    var(--nexus-soft);
 
   /*
+    EL TRAZO DEL ACENTO — el cuarto papel, que no tenía token.
+
+    `--nexus` es el acento como TEXTO, `--nexus-solido` como RELLENO bajo texto
+    blanco, `--nexus-soft` como BAÑO de fondo. Faltaba el sitio donde el acento
+    aparece más veces por pantalla: el HILO de un borde acentuado — el de la
+    píldora del héroe, el del elemento activo del cajón, el de la ficha de un
+    módulo de IA.
+
+    Como no existía, 45 sitios en 20 archivos lo escribieron a mano — y lo
+    escribieron con el acento ANTERIOR (`rgba(61,90,254,…)`, el índigo que este
+    mismo archivo declara retirado 60 líneas más arriba). El resultado se ve en
+    la portada real, no en el código: la píldora «14 días gratis» lleva RELLENO
+    cian y BORDE índigo; el elemento activo del cajón, también; y los seis
+    chips de icono de la portada son índigo con el icono cian dentro.
+
+    No es un tono mal elegido: es un PAPEL SIN TOKEN, que es de donde salen los
+    literales. Se define con `color-mix` sobre `--nexus` para que el próximo
+    cambio de acento arrastre los cuatro papeles a la vez — que es exactamente
+    lo que no pasó la vez anterior.
+  */
+  --nexus-borde:  color-mix(in srgb, var(--nexus) 34%, transparent);
+  --nexus-borde2: color-mix(in srgb, var(--nexus) 52%, transparent);
+  --nexus-tenue:  color-mix(in srgb, var(--nexus) 7%, transparent);
+
+  /*
     Semántica clínica — DARK, con contraste AA medido.
 
     LA CORRECCIÓN DE CONTRASTE SE HABÍA APLICADO SÓLO A UN TEMA. El bloque
@@ -680,10 +705,18 @@ a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
 @media (max-width: 460px) {
   .nav-portada { padding-left: 12px !important; padding-right: 12px !important; }
   .nav-portada .btn { padding: 0 12px; font-size: 13px; }
+  /* Mismo requisito para la barra pública nueva. El motivo no cambió con el
+     rediseño: a 460 px la barra iba de borde a borde y la última acción
+     quedaba pegada al canto. */
+  .nx-nav-publica { padding-left: 12px; padding-right: 12px; }
+  .nx-nav-panel { left: 8px; right: 8px; }
 }
 @media (max-width: 380px) {
   .nav-portada-marca { display: none; }
   .nav-portada .btn { padding: 0 10px; font-size: 12.5px; }
+  /* El nombre escrito se retira sólo en lo MUY estrecho: el sello de marca se
+     queda, así que sigue habiendo identidad y sigue habiendo enlace a inicio. */
+  .nx-nav-marca-texto { display: none; }
 }
 
 .btn-secondary {
@@ -846,6 +879,32 @@ tbody tr:last-child { border-bottom: none; }
   display: flex;
   align-items: center;
   gap: 10px;
+}
+/*
+  EL NOMBRE DEL CONSULTORIO CABE EN UNA LÍNEA, O SE CORTA — Y LA REGLA VIVE
+  AQUÍ, NO EN CADA COMPONENTE.
+
+  «Consultorio de Medicina Interna» —un nombre corriente, no un caso extremo—
+  envolvía a dos renglones y empujaba el nombre de la médica contra el borde.
+  Se ve en las ocho capturas del arnés del emulador
+  (`docs/audit/ausculta-transformacion/interno/`) y en los dos anchos: es la
+  cabecera del shell, así que el defecto sale en cada pantalla a la vez.
+
+  Se arregló primero en `Sidebar.tsx`… y no cambió nada, porque a 1440 quien
+  pinta esa cabecera es `FlowRail.tsx`, que lleva el MISMO bloque. Es la
+  familia que el propio `FlowRail` tiene escrita treinta líneas más abajo: «la
+  lección se aprende en un componente y no en el de al lado». Por eso la regla
+  baja a la clase que los dos comparten: para que no haya un tercero al que
+  olvidársele.
+
+  `min-width: 0` en el envoltorio es lo que permite que un hijo de flex encoja
+  por debajo de su contenido — sin él, `text-overflow` no recorta nada.
+*/
+.sidebar-logo > div:last-child { min-width: 0; }
+.sidebar-logo > div:last-child > div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 1px; }
@@ -2184,6 +2243,17 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
+  --nexus-borde:  color-mix(in srgb, var(--nexus) 34%, transparent);
+  --nexus-borde2: color-mix(in srgb, var(--nexus) 52%, transparent);
+  --nexus-tenue:  color-mix(in srgb, var(--nexus) 7%, transparent);
+  /* En claro el tinte OSCURECE el fondo y el contraste baja: 8 % y no 14 %.
+     Ver la nota de --tinte en el bloque oscuro. */
+  --tinte: 8%;
+  /* En claro el tinte oscurece el fondo: el texto tiene que ir MÁS oscuro que
+     el token, no más claro. Ver la nota de --*-texto en el bloque oscuro. */
+  --red-texto:   #A32020;
+  --amber-texto: #8A3F07;
+  --green-texto: #14672F;
 
   /* Texto ink (alto contraste pero sin negro puro — más sofisticado) */
   --text:      #0B0C0E;
@@ -2263,6 +2333,13 @@ html[data-vt-continuidad] .page-transition { animation: none; }
     --teal:         var(--nexus);
     --teal-dim:     var(--nexus-hover);
     --teal-glow:    var(--nexus-soft);
+    --nexus-borde:  color-mix(in srgb, var(--nexus) 34%, transparent);
+    --nexus-borde2: color-mix(in srgb, var(--nexus) 52%, transparent);
+    --nexus-tenue:  color-mix(in srgb, var(--nexus) 7%, transparent);
+    --tinte: 8%;   /* ver la nota de --tinte en el bloque oscuro */
+    --red-texto:   #A32020;
+    --amber-texto: #8A3F07;
+    --green-texto: #14672F;
     --text:      #0B0C0E;
     --text2:     #565A60;
     --text3:     #63666B;   /* AA sobre TODAS las superficies claras — ver nota arriba */
@@ -3435,6 +3512,37 @@ span.riel-aviso { cursor: default; }
   .nx-fila-paciente .nx-fila-chevron { display: none !important; }
 }
 
+/* ── TODO CONTROL DE LA FILA, POR ENCIMA DEL VELO ───────────────────────────
+   Medido en Chromium a 390×844 con la clínica sembrada: pulsar «¿Por qué está
+   aquí?» en `/pacientes` NO abría la lente — `document.elementFromPoint` en el
+   centro del control devolvía `.nx-fila-abrir`. El toque caía en el velo y
+   navegaba al expediente. Tres filas de tres afectadas: todas las que tienen un
+   pendiente vivo, que son exactamente las filas que esa pregunta existe para
+   explicar.
+
+   POR QUÉ PASÓ, y por qué la regla es genérica y no una clase más. El mecanismo
+   estaba resuelto y documentado a veinte líneas de distancia: «Editar» lleva
+   `position: relative; z-index: 1` EN LÍNEA con un comentario que dice
+   literalmente «por encima del velo de .nx-fila-abrir::after». El disparador de
+   la lente se envolvió en `<span className="nx-fila-porque">` — un nombre de
+   clase que **no existía en ninguna hoja**. Escrito, y sin conectar.
+
+   Arreglarlo escribiendo `.nx-fila-porque` habría dejado el mismo defecto
+   esperando al CUARTO control. Así que la regla no nombra controles: dice que
+   dentro de una fila de paciente, cualquier cosa pulsable que no sea la que
+   abre el expediente vive por encima del velo. `position: relative` sin
+   desplazamiento no mueve nada; sólo crea el contexto que hace que `z-index`
+   cuente. Ver REG-425.
+
+   Lo que esto NO arregla: un control que se pinte FUERA de `.nx-fila-paciente`
+   y encima de ella. Eso ya no es el velo, es otro problema. */
+.nx-fila-paciente button:not(.nx-fila-abrir),
+.nx-fila-paciente a[href],
+.nx-fila-paciente [role="button"]:not(.nx-fila-abrir) {
+  position: relative;
+  z-index: 1;
+}
+
 /* ── RTC-08 · la señal de «hay un encuentro abierto» ─────────────────────────
    Punto de ESTADO del riel: dice que hay una consulta a medio escribir que se
    puede retomar. Vive aquí y no en FlowRail.tsx porque el guardián de Fase 10
@@ -3754,6 +3862,11 @@ span.riel-aviso { cursor: default; }
 html:has(.mi-barra-destinos) .theme-toggle {
   bottom: calc(60px + 16px + env(safe-area-inset-bottom, 0px));
 }
+/* En escritorio la dársena está separada del borde y CENTRADA, así que ya no se
+   estorban: el botón vuelve a su sitio en vez de flotar a media pantalla. */
+@media (min-width: 900px) {
+  html:has(.mi-barra-destinos) .theme-toggle { bottom: 24px; }
+}
 
 /* ── LAS FILAS DE OPERACIONES RESPONDEN AL PUNTERO ───────────────────────────
 
@@ -3856,6 +3969,54 @@ html:has(.mi-barra-destinos) .theme-toggle {
    El activo se distingue por `aria-current="page"`, que ya llevaba puesto — no
    por una clase paralela. Mismos peldaños de superficie que `.nx-acc-plana`:
    sin degradado, sin sombra, sin radio nuevo, sin un color que no exista ya. */
+/* ── LOS DESTINOS DEL PORTAL DEL PACIENTE ────────────────────────────────────
+
+   MEDIDO en el navegador, con sesión y token de alcance clínico: a 1440 la
+   barra salía **1440 × 60**, cinco columnas iguales de 288 px, mientras la
+   columna de contenido mide 560. El destino activo era, por tanto, una losa
+   cian de 288 px de ancho — la quinta parte de la pantalla — bajo un contenido
+   que ocupaba el tercio de en medio. Una barra de teléfono estirada a un
+   escritorio, que es exactamente lo que la regla de diseño prohíbe.
+
+   No podía ser de otra manera: la colocación estaba en el `style` en línea del
+   componente, y un estilo en línea gana a toda media query. Mover las cinco
+   propiedades aquí no es orden por gusto — es lo que hace POSIBLE que haya dos
+   formas.
+
+   · teléfono  → barra fija abajo, a lo ancho: se usa con una mano, de pie.
+   · escritorio → dársena centrada sobre la columna de contenido, del ancho de
+     lo que se está leyendo. Sin sombra nueva: el trinquete de diseño sólo baja,
+     y un borde y una superficie ya la separan del fondo.
+*/
+.mi-barra-destinos {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  gap: 2px;
+  /* 2px de holgura para que el teñido del activo sea una pastilla y no una losa
+     de borde a borde; el alto útil (60px) no cambia. */
+  padding: 2px 2px calc(2px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 900px) {
+  .mi-barra-destinos {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(560px, calc(100% - 32px));
+    bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 4px;
+  }
+}
+
 .nx-destino-portal {
   background: transparent;
   border: none;
@@ -3875,9 +4036,14 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-destino-portal:active { background: var(--s3); }
 
 /* Donde ya estás: se tiñe, y al pasar por encima sigue acusando sin fingir que
-   te lleva a otro sitio. */
-.nx-destino-portal[aria-current='page'] { color: var(--nexus); }
-.nx-destino-portal[aria-current='page']:hover { background: var(--nexus-soft); }
+   te lleva a otro sitio.
+
+   El teñido va REDONDEADO y con holgura, no de borde a borde de la celda: a
+   1440 la celda mide 288 px y el activo se pintaba como una losa cian de un
+   quinto de pantalla. Se marca el destino, no se ilumina un tercio del mueble. */
+.nx-destino-portal { border-radius: 10px; }
+.nx-destino-portal[aria-current='page'] { color: var(--nexus); background: var(--nexus-soft); }
+.nx-destino-portal[aria-current='page']:hover { background: color-mix(in srgb, var(--nexus) 18%, transparent); }
 
 /* LA CONFIRMACIÓN DESTRUCTIVA RELLENA — «Anular cobro», y las que vengan.
 
@@ -4077,3 +4243,1117 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   border-color: color-mix(in srgb, var(--nexus) 55%, transparent);
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUPERFICIE PÚBLICA — la portada, su navegación y su héroe.
+
+   ── POR QUÉ ESTO ES UNA CAPA Y NO ESTILOS EN LÍNEA ─────────────────────────
+
+   La portada anterior llevaba ~180 objetos de estilo escritos a mano dentro
+   del JSX, con la escala de espaciado inventada renglón a renglón: `96px` de
+   relleno de sección, `64px` de margen bajo cada titular, `40px` de tamaño en
+   cada `h2`. Medido en el navegador, el resultado eran ~280 px de vacío entre
+   la banda de cifras y el titular siguiente, y una página de 6 496 px en
+   escritorio y **9 998 px en el teléfono** — doce pantallas de desplazamiento.
+
+   No era «demasiado aire»: era aire SIN ESCALA. Cada bloque se había medido
+   contra sí mismo, y ninguno contra los demás.
+
+   Aquí el ritmo es un sistema:
+
+       --pub-seccion   relleno vertical de sección   clamp(64 → 104)
+       --pub-aire      separación titular ↔ cuerpo   clamp(28 →  40)
+       --pub-ancho     medida de lectura             1120 / 640 en texto
+
+   ── LA REGLA CONTRA LA SOPA DE TARJETAS ────────────────────────────────────
+
+   En esta capa **una caja con borde tiene que ganárselo**: sólo la tiene lo
+   que es una unidad interactiva o conmensurable (un plan de precios, una fila
+   de menú). Lo demás —los pasos del recorrido, las negativas, las preguntas—
+   se jerarquiza con hilo, espacio y tipografía. Por eso hay tantos
+   `border-bottom` y tan pocos `border-radius` de aquí abajo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --pub-seccion: clamp(64px, 7.5vw, 104px);
+  --pub-aire:    clamp(28px, 3.4vw, 40px);
+  --pub-ancho:   1120px;
+  --pub-lectura: 640px;
+  /* El escalón de entrada de una lista: lo justo para leerse como lista. */
+  --pub-escalon: 22ms;
+  /* ── EL RITMO, QUE NO ES LO MISMO QUE EL MOVIMIENTO ────────────────────────
+     `--mov-*` mide lo que tarda un CONTROL en responder: 80–320 ms, porque por
+     encima de eso la interfaz se siente lenta. `--nx-ritmo-*` mide otra cosa —
+     lo que tarda una PERSONA en leer un acto antes de que llegue el siguiente,
+     o lo que dura una vuelta de un indicador que no está esperando a nadie.
+     Son magnitudes distintas y meterlas en la misma escala tiene consecuencia:
+     bajar una transición de la aplicación atropellaría los tres tiempos de la
+     portada. Es el mismo motivo por el que `nx-latido` tiene los suyos.
+     Siguen siendo tokens: lo que no se admite es la cifra suelta. */
+  --nx-ritmo-arranque: 320ms;   /* lo que se espera antes de empezar a contar */
+  --nx-ritmo-compas:   740ms;   /* de un acto de la obra al siguiente */
+  --nx-ritmo-pulso:    320ms;   /* medio ciclo de la onda: un pulso, no un cambio */
+  --nx-ritmo-giro:     1s;      /* una vuelta del indicador de espera */
+
+  /*
+    EL TINTE DE UN COLOR SEMÁNTICO — y por qué no puede ser el mismo en los dos
+    temas.
+
+    Un token semántico se mide contra las SUPERFICIES (`--s1`…`--s3`), y con eso
+    se da por bueno. Pero cuando ese mismo color se usa de TINTE bajo su propio
+    texto, el fondo deja de ser la superficie: es la superficie mezclada con el
+    color. En oscuro eso ACLARA el fondo un poco y el contraste sube; en claro
+    lo OSCURECE y el contraste baja.
+
+    Medido por axe sobre /arquitectura y /operacion servidas en tema claro:
+    `--amber` (#b45309) sobre su propio tinte al 14 % daba 3,98 y 4,14 — por
+    debajo de 4,5 — mientras el MISMO par en oscuro pasaba. Un token correcto
+    y una regla correcta que juntos fallan sólo en un tema: la familia «el
+    sistema se contradice a sí mismo», otra vez, y otra vez invisible mirando
+    una sola pieza.
+
+    Se separa el porcentaje por tema en vez de retocar el tono, porque el tono
+    ya está medido y es el bueno.
+  */
+  --tinte: 14%;
+
+  /*
+    EL TEXTO SOBRE SU PROPIO TINTE — el quinto papel, y la misma lección que
+    ya enseñó `--nexus-solido`, generalizada.
+
+    Los tokens semánticos están medidos «sobre `--s3`, la peor superficie». Y
+    eso es cierto — de las SUPERFICIES. Pero cuando el mismo color se usa de
+    TINTE bajo su propio texto, el fondo ya no es una superficie: es la
+    superficie tirando hacia el color. Y cuando ese tinte se anida —un panel
+    teñido con filas teñidas dentro, que es como se pintan los avisos del
+    copiloto— el fondo se aleja el doble.
+
+    Medido por axe sobre `/demo/razonamiento` servida:
+
+        --red   #E66464 sobre el tinte anidado #442324  →  4,21   (oscuro)
+        --amber #B45309 sobre el tinte anidado #F0DCD3  →  3,80   (claro)
+
+    Los dos por debajo de 4,5, en avisos que dicen «Amoxicilina choca con una
+    alergia registrada» y «FIB-4 3.05 — riesgo alto de fibrosis». Un token
+    correcto y una regla correcta que juntos fallan: exactamente lo que
+    `--nexus` / `--nexus-solido` ya resolvió para el acento —dos papeles con
+    requisitos OPUESTOS necesitan dos valores— y que nunca se generalizó al
+    resto de la paleta.
+
+    Aquí está el par que faltaba. Verificado con la fórmula WCAG 2.1 contra el
+    peor fondo medido, y contra la superficie normal, que también tiene que
+    seguir pasando:
+
+        oscuro  #F08585  →  5,56 sobre el tinte anidado · 6,08 sobre --s3
+        claro   #8A3F07  →  5,68 sobre el tinte anidado · 6,24 sobre --s3
+  */
+  --red-texto:   #F08585;
+  --amber-texto: #F0A94A;
+  --green-texto: #4BC97A;
+}
+
+.nx-pub {
+  background: var(--bg);
+  min-height: 100vh;
+}
+.nx-pub-seccion {
+  padding: var(--pub-seccion) 24px;
+  max-width: var(--pub-ancho);
+  margin: 0 auto;
+}
+.nx-pub-seccion--ancha { max-width: none; }
+/* La primera sección tras el héroe no vuelve a poner el aire de arriba: el
+   héroe ya lo puso, y sumados daban ~180 px de nada. */
+.nx-hero + * .nx-pub-seccion,
+.nx-hero + .nx-pub-seccion { padding-top: clamp(24px, 3vw, 44px); }
+.nx-pub-rotulo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nexus);
+  margin: 0 0 12px;
+}
+.nx-pub-titulo {
+  font-size: clamp(27px, 3.6vw, 40px);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  margin: 0 0 14px;
+  max-width: 18ch;
+}
+.nx-pub-bajada {
+  font-size: clamp(15.5px, 1.5vw, 17px);
+  line-height: 1.6;
+  color: var(--text2);
+  max-width: var(--pub-lectura);
+  margin: 0 0 var(--pub-aire);
+}
+
+/* ── NAVEGACIÓN PÚBLICA ──────────────────────────────────────────────────── */
+
+.nx-nav-publica {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 60px;
+  padding: 0 clamp(16px, 3vw, 28px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nx-nav-marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.nx-nav-marca-sello {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--s2);
+  border: 1px solid var(--nexus-borde);
+  color: var(--nexus);
+  transition: border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-nav-marca:hover .nx-nav-marca-sello { border-color: var(--nexus-borde2); }
+.nx-nav-marca-texto {
+  font-size: 16px; font-weight: 600;
+  letter-spacing: -0.02em; color: var(--text);
+}
+.nx-nav-destinos {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+.nx-nav-destinos a {
+  position: relative;
+  padding: 7px 12px;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text2);
+  text-decoration: none;
+  transition: color var(--mov-rapido) var(--mov-curva),
+              background var(--mov-rapido) var(--mov-curva);
+}
+.nx-nav-destinos a:hover { color: var(--text); background: var(--s2); }
+.nx-nav-destinos a[aria-current='page'] { color: var(--text); }
+/* Dónde estás, sin depender del color: un subrayado real. */
+.nx-nav-destinos a[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 12px; right: 12px; bottom: 1px;
+  height: 2px; border-radius: 2px;
+  background: var(--nexus);
+}
+.nx-nav-cuenta { display: flex; align-items: center; gap: 8px; }
+.nx-nav-sesion {
+  font-size: 14px; font-weight: 500;
+  color: var(--text2); text-decoration: none;
+  padding: 7px 12px; border-radius: var(--r-sm);
+  transition: color var(--mov-rapido) var(--mov-curva),
+              background var(--mov-rapido) var(--mov-curva);
+}
+.nx-nav-sesion:hover { color: var(--text); background: var(--s2); }
+.nx-nav-cta { height: 36px; text-decoration: none; }
+
+/* El disparador móvil: dos iconos en el mismo hueco, que se relevan girando.
+   Un icono que se sustituye de golpe no dice que sea el MISMO control. */
+.nx-nav-disparador {
+  display: none;
+  margin-left: auto;
+  width: 44px; height: 44px;
+  align-items: center; justify-content: center;
+  background: none; border: 1px solid transparent; border-radius: var(--r-md);
+  color: var(--text); cursor: pointer;
+  transition: background var(--mov-rapido) var(--mov-curva),
+              border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-nav-disparador:hover { background: var(--s2); }
+.nx-nav-disparador[aria-expanded='true'] { background: var(--s2); border-color: var(--border2); }
+.nx-nav-disparador-iconos {
+  position: relative;
+  width: 21px; height: 21px;
+  display: grid; place-items: center;
+}
+.nx-nav-disparador-iconos > * {
+  grid-area: 1 / 1;
+  transition: opacity var(--mov-rapido) var(--mov-curva),
+              transform var(--mov-normal) var(--mov-curva);
+}
+.nx-nav-disparador-iconos > :last-child { opacity: 0; transform: rotate(-90deg); }
+.nx-nav-disparador-iconos[data-abierto='true'] > :first-child { opacity: 0; transform: rotate(90deg); }
+.nx-nav-disparador-iconos[data-abierto='true'] > :last-child { opacity: 1; transform: none; }
+
+/* El panel nace en la esquina del botón y crece hacia abajo: se abre DESDE
+   donde se pulsó. Ver la cabecera de NavPublica.tsx. */
+.nx-nav-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: clamp(12px, 3vw, 24px);
+  left: clamp(12px, 3vw, 24px);
+  transform-origin: top right;
+  background: var(--s1);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-lg);
+  box-shadow: var(--elev-3, 0 16px 40px -12px rgba(0,0,0,0.5));
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  visibility: hidden;
+  transition:
+    opacity var(--mov-rapido) var(--mov-curva),
+    transform var(--mov-normal) var(--mov-curva),
+    visibility 0s linear var(--mov-normal);
+}
+.nx-nav-panel[data-abierto='true'] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.nx-nav-panel-fila {
+  display: grid;
+  gap: 2px;
+  padding: 12px 18px;
+  min-height: 48px;
+  align-content: center;
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--mov-rapido) var(--mov-curva),
+              border-left-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-nav-panel-fila:active { background: var(--s2); }
+.nx-nav-panel-fila[aria-current='page'] {
+  border-left-color: var(--nexus);
+  background: var(--nexus-tenue);
+}
+.nx-nav-panel-rotulo { font-size: 15.5px; font-weight: 600; color: var(--text); }
+.nx-nav-panel-pista { font-size: 12.5px; color: var(--text3); line-height: 1.4; }
+.nx-nav-panel-cuenta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 14px 18px 16px;
+}
+/* 46 y no 44: el panel cerrado lleva `scale(0.97)` para poder animarse, y una
+   caja de 44 escalada mide 42,7. Un blanco táctil no puede vivir pegado al
+   mínimo — cualquier transform futuro lo empujaría por debajo sin que nadie
+   cambiara el número. Lo midió el e2e de teléfono en CI, no una captura. */
+.nx-nav-panel-cuenta .btn { min-height: 46px; text-decoration: none; }
+/* Las filas entran escalonadas: la lista se lee como lista. */
+.nx-nav-panel[data-abierto='true'] .nx-nav-panel-fila {
+  animation: nx-nav-fila var(--mov-normal) var(--mov-curva) both;
+  animation-delay: calc(var(--nx-orden, 0) * var(--pub-escalon));
+}
+@keyframes nx-nav-fila {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (max-width: 900px) {
+  .nx-nav-destinos, .nx-nav-cuenta { display: none; }
+  .nx-nav-disparador { display: flex; }
+  .nx-nav-panel { display: block; }
+}
+
+/* ── EL HÉROE ────────────────────────────────────────────────────────────── */
+
+.nx-hero {
+  max-width: var(--pub-ancho);
+  margin: 0 auto;
+  padding: clamp(40px, 5.2vw, 68px) 24px clamp(40px, 4.4vw, 56px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.02fr);
+  gap: clamp(32px, 5vw, 60px);
+  align-items: center;
+}
+.nx-hero-promesa {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 0 0 22px;
+  padding: 5px 13px;
+  border-radius: var(--r-pill);
+  background: var(--nexus-soft);
+  border: 1px solid var(--nexus-borde);
+  font-size: 12.5px; font-weight: 500; color: var(--text);
+  width: fit-content;
+}
+.nx-hero-punto {
+  width: 6px; height: 6px; border-radius: var(--r-pill);
+  background: var(--nexus);
+}
+.nx-hero-titulo {
+  font-size: clamp(36px, 5.4vw, 62px);
+  line-height: 1.03;
+  letter-spacing: -0.035em;
+  font-weight: 500;
+  color: var(--text);
+  margin: 0 0 20px;
+}
+.nx-hero-hecha { color: var(--nexus); font-style: italic; }
+.nx-hero-bajada {
+  font-size: clamp(15.5px, 1.5vw, 17.5px);
+  line-height: 1.6;
+  color: var(--text2);
+  max-width: 46ch;
+  margin: 0 0 30px;
+}
+.nx-hero-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+.nx-hero-acciones .btn { text-decoration: none; }
+.nx-hero-pie { margin: 18px 0 0; font-size: 14px; color: var(--text3); }
+.nx-hero-enlace { color: var(--nexus); font-weight: 600; text-decoration: none; }
+
+/* La obra: tres actos apilados, unidos por un hilo — es UN proceso, no tres
+   tarjetas. El hilo es lo que lo dice. */
+.nx-hero-obra {
+  margin: 0;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.nx-hero-obra-pie {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 11.5px;
+  color: var(--text3);
+  letter-spacing: 0.02em;
+}
+.nx-hero-acto {
+  position: relative;
+  padding: 16px 18px 18px 40px;
+  border-bottom: 1px solid var(--border);
+}
+.nx-hero-acto:last-child { border-bottom: none; }
+/* El hilo vertical y su nudo: continuidad entre actos. */
+.nx-hero-acto::before {
+  content: '';
+  position: absolute;
+  left: 21px; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--border2);
+}
+.nx-hero-acto:first-of-type::before { top: 22px; }
+.nx-hero-acto:last-child::before { bottom: auto; height: 22px; }
+.nx-hero-acto::after {
+  content: '';
+  position: absolute;
+  left: 17px; top: 19px;
+  width: 9px; height: 9px;
+  border-radius: var(--r-pill);
+  background: var(--s3);
+  border: 1px solid var(--border2);
+  transition: background var(--mov-normal) var(--mov-curva),
+              border-color var(--mov-normal) var(--mov-curva);
+}
+.nx-hero-acto-rotulo {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0 0 10px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text3);
+  transition: color var(--mov-normal) var(--mov-curva);
+}
+.nx-hero-frase {
+  margin: 0 0 6px;
+  font-size: 13.5px; line-height: 1.55; color: var(--text2);
+}
+.nx-hero-frase:last-child { margin-bottom: 0; }
+.nx-hero-quien {
+  display: inline-block;
+  margin-right: 7px;
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text3);
+}
+.nx-hero-onda {
+  display: flex; align-items: center; gap: 3px;
+  height: 30px; margin-bottom: 12px;
+}
+/* Quieta, la onda tiene que seguir LEYÉNDOSE como audio: con 28 barras iguales
+   al 30 % era un guion de puntos. El perfil en seno le da forma de sonido
+   incluso sin animación — que es como la ven quien pidió menos movimiento y
+   quien llega con la secuencia ya terminada. */
+.nx-hero-onda span {
+  width: 3px; border-radius: 3px;
+  background: var(--nexus);
+  opacity: 0.5;
+  height: calc(26% + 58% * (0.5 + 0.5 * sin(calc(var(--nx-i) * 0.9rad))));
+}
+.nx-hero-hechos {
+  list-style: none; margin: 0 0 10px; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.nx-hero-hecho {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border2);
+  background: var(--s2);
+  font-size: 12.5px;
+}
+.nx-hero-hecho-rotulo {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text3);
+}
+.nx-hero-hecho-valor { color: var(--text); font-weight: 500; }
+/* La NEGACIÓN tiene cara propia. Es el error que más caro sale, y por eso no
+   comparte el color de lo afirmado. No usa --red: negar no es una alerta. */
+.nx-hero-hecho[data-clase='niega'] {
+  border-color: var(--nexus-borde2);
+  background: var(--nexus-soft);
+}
+.nx-hero-hecho[data-clase='niega'] .nx-hero-hecho-rotulo { color: var(--nexus); }
+.nx-hero-hecho[data-clase='sigue'] { border-style: dashed; }
+.nx-hero-nota-al-pie {
+  margin: 0;
+  font-size: 12px; line-height: 1.5; color: var(--text3);
+}
+.nx-hero-nota-al-pie strong { color: var(--text2); font-weight: 600; }
+.nx-hero-seccion {
+  margin: 0 0 4px;
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text3);
+}
+.nx-hero-redactado {
+  margin: 0 0 10px;
+  font-size: 13.5px; line-height: 1.65; color: var(--text);
+}
+.nx-hero-procedencia {
+  background: var(--nexus-soft);
+  color: var(--text);
+  border-bottom: 1px solid var(--nexus-borde2);
+  padding: 1px 2px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.nx-hero-sello {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--nexus-solido);
+  color: #fff;
+  font-size: 10px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 1px;
+}
+
+/* ── LOS TRES TIEMPOS, EN CSS ────────────────────────────────────────────────
+   La secuencia la lleva la hoja, no JavaScript. Una animación de CSS termina
+   aunque el paquete nunca cargue: el héroe no puede quedarse a medias, que era
+   el riesgo del estado inicial oculto. `--nx-acto` (0, 1, 2) escalona; `both`
+   deja el estado final fijado. Ver la cabecera de HeroConsulta.tsx. */
+.nx-hero-acto {
+  /* `--nx-ritmo-compas` es el ritmo de la obra, no una transición de interfaz: es
+     el tiempo que tarda en leerse un acto antes de que llegue el siguiente.
+     Igual que `nx-latido`, no puede salir de `--mov-*` — con 200 ms los tres
+     actos se atropellarían y no se leería ninguno. Se declara aquí, con su
+     motivo, en vez de repetirse suelto en cinco reglas. */
+  animation: nx-acto var(--mov-lento) var(--mov-curva) both;
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-acto, 0) * var(--nx-ritmo-compas));
+}
+/*
+  EL ACTO QUE NO HA LLEGADO ESTÁ AUSENTE, NO ATENUADO.
+
+  Primero entraba desde `opacity: 0.34` — lo justo para leerse como «todavía
+  no» sin parecer un panel roto. axe lo midió sobre la portada servida en tema
+  claro y lo marcó: a esa opacidad, «Padecimiento actual» da **3,55 : 1** y el
+  rótulo del acto **3,99**, contra el mínimo de 4,5. Es texto VISIBLE y por
+  debajo del mínimo durante casi dos segundos.
+
+  Y no se arregla subiendo el número: calculado con la fórmula WCAG sobre las
+  superficies reales, ni al 70 % de opacidad este texto llega a 4,5. Atenuar
+  texto es pedirle prestada legibilidad al contraste para expresar una
+  secuencia, y el préstamo no alcanza.
+
+  Así que el acto entra desde la ausencia: `opacity: 0` no es texto ilegible,
+  es texto que aún no está — y el hueco lo sigue reservando el elemento, así
+  que nada salta cuando llega. El efecto además es más nítido: los tres actos
+  APARECEN en orden en vez de encenderse.
+
+  El riesgo de un estado inicial invisible —que nadie llegue a quitarlo— no
+  existe aquí: la secuencia la lleva CSS con `both`, y una animación de CSS
+  termina aunque el JavaScript nunca cargue. Bajo `prefers-reduced-motion` el
+  bloque del final de esta hoja la apaga y declara el estado final.
+*/
+@keyframes nx-acto {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+/* El nudo del hilo enciende cuando le llega el turno a SU acto. */
+.nx-hero-acto::after {
+  animation: nx-nudo var(--mov-lento) var(--mov-curva) both;
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-acto, 0) * var(--nx-ritmo-compas));
+}
+@keyframes nx-nudo {
+  from { background: var(--s3); border-color: var(--border2); }
+  to   { background: var(--nexus); border-color: var(--nexus); }
+}
+.nx-hero-acto-rotulo {
+  animation: nx-rotulo var(--mov-lento) var(--mov-curva) both;
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-acto, 0) * var(--nx-ritmo-compas));
+}
+@keyframes nx-rotulo {
+  from { color: var(--text3); }
+  to   { color: var(--nexus); }
+}
+/* La onda se mueve mientras se está oyendo — y PARA, porque oír termina. Seis
+   pasadas de 320 ms cubren la ventana del primer acto. */
+.nx-hero-onda span {
+  /* Sin `fill-mode`: al acabar, la barra vuelve a su altura declarada — el
+     perfil en seno de arriba. Con `both` se quedaba clavada en el fotograma
+     inicial (20 %) y la onda terminaba siendo una fila de puntos, que es lo
+     que enseñó la captura. */
+  animation: nx-onda var(--nx-ritmo-pulso) ease-in-out 6 alternate;
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-i) * -46ms);
+}
+@keyframes nx-onda { from { height: 20%; } to { height: 100%; } }
+/* Los hechos entran uno a uno dentro de la ventana del segundo acto. */
+.nx-hero-hecho {
+  animation: nx-hecho var(--mov-normal) var(--mov-curva) both;
+  animation-delay: calc(var(--nx-ritmo-arranque) + var(--nx-ritmo-compas) + var(--nx-orden, 0) * 90ms);
+}
+@keyframes nx-hecho {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (max-width: 900px) {
+  .nx-hero { grid-template-columns: 1fr; gap: 32px; }
+  .nx-hero-titulo { max-width: 15ch; }
+}
+
+/* ── EL RECORRIDO: un proceso, no seis tarjetas ──────────────────────────── */
+
+.nx-camino { list-style: none; margin: 0; padding: 0; }
+.nx-camino-paso {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 0 18px;
+  padding: 20px 0 22px 0;
+  border-top: 1px solid var(--border);
+}
+.nx-camino-paso:last-child { border-bottom: 1px solid var(--border); }
+.nx-camino-n {
+  grid-row: 1 / span 2;
+  font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--nexus);
+  padding-top: 3px;
+}
+/* Título, texto y cita NOMBRAN su columna. Los dos primeros caían bien sin
+   decirlo —la auto-colocación acierta en las filas 1 y 2 porque el número las
+   ocupa ambas en la columna 1— y eso es una casualidad, no un diseño: basta
+   añadir un hijo, o cambiar el `grid-row` del número, para que se derramen a
+   la tira estrecha sin que el diff enseñe nada. Es como pasó con la cita. */
+.nx-camino-titulo {
+  grid-column: 2;
+  margin: 0 0 5px;
+  font-size: clamp(17px, 2vw, 20px); font-weight: 600;
+  letter-spacing: -0.015em; color: var(--text);
+}
+.nx-camino-texto {
+  grid-column: 2;
+  margin: 0;
+  font-size: 14.5px; line-height: 1.6; color: var(--text2);
+  max-width: 62ch;
+}
+.nx-camino-prueba {
+  /* ── LA COLUMNA, QUE FALTABA (REG-434) ──────────────────────────────────────
+     Sin esto, la cita no declara columna y la rejilla la auto-coloca en la
+     PRIMERA hueca: la del número, de 34-46px. Medido en el navegador a 390,
+     640 y 900: 34px de ancho para 342 disponibles, y **23 palabras en 23
+     renglones** — una palabra por línea, en la portada, en producción.
+     Lo vio el dueño en su iPhone; se reproduce igual en Chromium, porque la
+     auto-colocación de `grid` no depende del motor. */
+  grid-column: 2;
+  display: block;
+  margin: 10px 0 0;
+  font-size: 13px; line-height: 1.55;
+  color: var(--text3);
+  border-left: 2px solid var(--nexus-borde);
+  padding-left: 12px;
+}
+.nx-camino-prueba strong { color: var(--text2); font-weight: 600; }
+
+/* ── LAS NEGATIVAS: el bloque que ningún competidor puede copiar ─────────── */
+
+.nx-negativas { display: grid; gap: 0; margin-top: var(--pub-aire); }
+.nx-negativa {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px 32px;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+  align-items: baseline;
+}
+.nx-negativa:last-child { border-bottom: 1px solid var(--border); }
+.nx-negativa-que {
+  font-size: clamp(16px, 1.8vw, 18.5px); font-weight: 600;
+  letter-spacing: -0.015em; color: var(--text);
+  margin: 0;
+}
+.nx-negativa-porque {
+  margin: 0;
+  font-size: 14.5px; line-height: 1.6; color: var(--text2);
+}
+@media (max-width: 760px) {
+  .nx-negativa { grid-template-columns: 1fr; gap: 6px; }
+}
+
+/* A partir de 1000 px la prueba se va a su propia columna: la fila pasa a
+   leerse «esto afirmamos | y esto es lo que nos pasó». Antes el texto se
+   cortaba a 62ch y el 40 % derecho de la fila quedaba vacío — medido en la
+   captura de 1440 px. */
+@media (min-width: 1000px) {
+  .nx-camino-paso {
+    grid-template-columns: 42px minmax(0, 1fr) minmax(0, 0.82fr);
+    column-gap: 40px;
+    align-items: start;
+  }
+  .nx-camino-n { grid-row: 1 / span 1; }
+  .nx-camino-titulo { grid-column: 2; }
+  .nx-camino-texto { grid-column: 2; }
+  .nx-camino-prueba {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    margin-top: 3px;
+  }
+}
+
+/* ── PREGUNTAS: filas con hilo, no cajas ─────────────────────────────────── */
+
+.nx-faq { border-top: 1px solid var(--border); }
+.nx-faq-fila { border-bottom: 1px solid var(--border); }
+.nx-faq-boton {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 18px 4px;
+  min-height: 48px;
+  background: none; border: none; cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-size: 15.5px; font-weight: 500;
+  transition: color var(--mov-rapido) var(--mov-curva);
+}
+.nx-faq-boton:hover { color: var(--nexus); }
+.nx-faq-signo {
+  flex-shrink: 0;
+  color: var(--text3);
+  transition: transform var(--mov-normal) var(--mov-curva),
+              color var(--mov-rapido) var(--mov-curva);
+}
+.nx-faq-boton[aria-expanded='true'] .nx-faq-signo { transform: rotate(180deg); color: var(--nexus); }
+/* Se despliega con altura, no apareciendo de golpe: el contenido EMPUJA, que
+   es lo que hace entender que salió de ahí. `grid-template-rows` anima sin
+   tener que medir el alto a mano. */
+.nx-faq-cuerpo {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--mov-normal) var(--mov-curva);
+}
+.nx-faq-cuerpo[data-abierto='true'] { grid-template-rows: 1fr; }
+.nx-faq-cuerpo > div { overflow: hidden; }
+.nx-faq-cuerpo p {
+  margin: 0;
+  padding: 0 4px 20px;
+  font-size: 14.5px; line-height: 1.7; color: var(--text2);
+  max-width: 68ch;
+}
+
+/* ── PRECIOS: aquí la caja SÍ se la gana ─────────────────────────────────── */
+
+.nx-planes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 16px;
+}
+.nx-plan {
+  position: relative;
+  display: flex; flex-direction: column;
+  padding: 26px 24px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transition: border-color var(--mov-normal) var(--mov-curva),
+              transform var(--mov-normal) var(--mov-curva);
+}
+.nx-plan:hover { border-color: var(--border2); transform: translate3d(0, -2px, 0); }
+/* Y al DEDO. Una tarjeta que sólo contesta al puntero no contesta en el
+   teléfono, que es donde se lee la mitad de esta página. Misma regla que
+   `nx-lift`, que existe justamente por esto. */
+.nx-plan:active { transform: translate3d(0, -1px, 0); border-color: var(--nexus-borde); }
+.nx-plan[data-destacado='true'] {
+  border-color: var(--nexus-borde2);
+  background: var(--nexus-tenue);
+}
+.nx-plan-cinta {
+  position: absolute; top: -10px; left: 24px;
+  padding: 3px 11px;
+  border-radius: var(--r-pill);
+  background: var(--nexus-solido); color: #fff;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+}
+.nx-plan-nombre { font-size: 17px; font-weight: 600; color: var(--text); margin: 0 0 2px; }
+.nx-plan-para { font-size: 13px; color: var(--text3); margin: 0 0 18px; }
+.nx-plan-precio { display: flex; align-items: baseline; gap: 6px; margin-bottom: 20px; }
+.nx-plan-cifra {
+  font-size: 38px; font-weight: 600; letter-spacing: -0.03em;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.nx-plan-unidad { font-size: 13px; color: var(--text3); }
+.nx-plan .btn { text-decoration: none; margin-bottom: 20px; }
+.nx-plan-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.nx-plan-lista li {
+  display: grid; grid-template-columns: 15px 1fr; gap: 9px;
+  font-size: 13.5px; line-height: 1.5; color: var(--text2);
+}
+.nx-plan-lista svg { margin-top: 3px; color: var(--nexus); }
+
+/* ── CIERRE Y PIE ────────────────────────────────────────────────────────── */
+
+.nx-cierre {
+  border-top: 1px solid var(--border);
+  background: var(--nexus-tenue);
+  text-align: center;
+  padding: var(--pub-seccion) 24px;
+}
+.nx-cierre .nx-pub-titulo { max-width: none; margin-left: auto; margin-right: auto; }
+.nx-cierre .nx-pub-bajada { margin-left: auto; margin-right: auto; text-align: center; }
+.nx-pie {
+  border-top: 1px solid var(--border);
+  padding: 28px clamp(16px, 3vw, 28px);
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 14px 24px;
+}
+.nx-pie-enlaces { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-left: auto; }
+.nx-pie a { font-size: 13px; color: var(--text3); text-decoration: none; }
+.nx-pie a:hover { color: var(--text2); }
+.nx-pie-copia { font-size: 13px; color: var(--text3); width: 100%; }
+
+/* ── MENOS MOVIMIENTO ────────────────────────────────────────────────────────
+   El apagador global de §24 ya anula duración de transiciones y animaciones.
+   Lo que NO puede anular es un estado inicial oculto, así que aquí se declara
+   el estado FINAL a mano: la obra entera visible y quieta. Es la misma regla
+   que gobierna `Revelar` y `HeroConsulta`. */
+@media (prefers-reduced-motion: reduce) {
+  /* El apagador global de §24 pone la DURACIÓN a 0,01 ms pero NO toca el
+     `animation-delay`: sin esto, un acto con 1,8 s de retraso se quedaría en su
+     fotograma inicial —atenuado— durante casi dos segundos. Se apaga la
+     animación entera y se declara el estado final a mano. */
+  .nx-hero-acto,
+  .nx-hero-acto::after,
+  .nx-hero-acto-rotulo,
+  .nx-hero-onda span,
+  .nx-hero-hecho,
+  .nx-nav-panel[data-abierto='true'] .nx-nav-panel-fila { animation: none !important; }
+  .nx-hero-acto { opacity: 1; transform: none; }
+  .nx-hero-acto::after { background: var(--nexus); border-color: var(--nexus); }
+  .nx-hero-acto-rotulo { color: var(--nexus); }
+}
+
+/* Remate de sección: la línea de letra pequeña que cierra un bloque. Existe
+   como clase porque estaba escrita tres veces en línea con tres tamaños. */
+.nx-pub-remate {
+  margin: 22px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text3);
+}
+.nx-pub-remate .nx-hero-enlace { font-size: 14px; }
+.nx-pub-seccion--angosta { max-width: 820px; }
+.nx-cierre-cta { text-decoration: none; }
+.nx-pie-marca { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+.nx-pie-lugar { font-size: 13px; color: var(--text3); }
+
+/* Separador de la línea de promesa del héroe. */
+.nx-hero-sep { margin: 0 8px; color: var(--border2); }
+.nx-hero-pie { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.nx-hero-pie .nx-hero-sep { margin: 0; }
+
+/* ── EL TELÉFONO NO ES EL ESCRITORIO ENCOGIDO ────────────────────────────────
+   Medido a 390 px: los dos botones del héroe quedaban de anchos distintos
+   (flex-wrap, cada uno con su contenido) y el aire de sección seguía siendo el
+   de escritorio. Aquí las acciones ocupan el ancho —a esa medida no hay ventaja
+   en que un botón sea más corto— y el ritmo se aprieta. */
+@media (max-width: 640px) {
+  :root { --pub-seccion: 52px; --pub-aire: 24px; }
+  .nx-hero-acciones { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .nx-hero-acciones .btn { width: 100%; }
+  .nx-camino-paso { grid-template-columns: 34px minmax(0, 1fr); padding: 18px 0 20px; }
+  .nx-camino-prueba { margin-top: 9px; }
+  .nx-negativa { padding: 17px 0; }
+  .nx-plan { padding: 22px 20px; }
+}
+
+/* ── LA PUERTA: iniciar sesión pertenece al mismo producto ───────────────────
+   La transición portada → sesión → producto tiene que sentirse como una sola
+   cosa. Antes la puerta era un formulario anónimo con la promesa retirada, sin
+   camino de vuelta, y con dos esperas que eran huecos negros. */
+
+.nx-puerta {
+  min-height: 100vh;
+  min-height: 100dvh;   /* el 100vh de iOS mide de más y corta el pie */
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  overflow: hidden;
+}
+.nx-puerta-columna { width: 100%; max-width: 420px; position: relative; }
+.nx-puerta-marca { text-align: center; margin-bottom: 30px; }
+.nx-puerta-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.nx-puerta-volver:hover { background: var(--s1); }
+.nx-puerta-sello {
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  border-radius: var(--r-lg);
+  background: var(--s1);
+  border: 1px solid var(--nexus-borde);
+  color: var(--nexus);
+}
+.nx-puerta-nombre {
+  font-size: 30px; font-weight: 500; color: var(--text); margin: 0;
+  letter-spacing: -0.02em;
+}
+.nx-puerta-promesa {
+  margin: 10px 0 0;
+  font-size: 14.5px; color: var(--text2); letter-spacing: -0.005em;
+}
+.nx-puerta-tarjeta {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 26px 26px 28px;
+  display: grid;
+  gap: 14px;
+}
+.nx-puerta-espera {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 4px;
+  font-size: 13.5px; color: var(--text2);
+}
+.nx-puerta-hueso { display: block; border-radius: var(--r-sm); width: 100%; }
+/* El giro, del sistema y en un solo sitio: estaba redefinido a mano como
+   `@keyframes spin` dentro de tres pantallas. */
+.nx-gira { animation: nx-gira var(--nx-ritmo-giro) linear infinite; color: var(--nexus); flex-shrink: 0; }
+@keyframes nx-gira { to { transform: rotate(360deg); } }
+
+/* ── EL DEMO: una visita, no un catálogo ─────────────────────────────────── */
+
+.nx-demo-entrada { align-items: center; }
+.nx-demo-titulo { font-size: clamp(32px, 4.6vw, 52px); }
+.nx-demo-video { display: flex; justify-content: center; }
+.nx-demo-video video {
+  width: 100%; max-width: 320px; aspect-ratio: 9 / 16;
+  border-radius: var(--r-lg);
+  background: #000;
+  border: 1px solid var(--border);
+  box-shadow: var(--elev-3, 0 20px 50px rgba(0,0,0,0.35));
+}
+.nx-demo-visita { list-style: none; margin: 0; padding: 0; }
+.nx-demo-capitulo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  gap: 20px 44px;
+  align-items: center;
+  padding: 26px 0;
+  border-top: 1px solid var(--border);
+}
+.nx-demo-capitulo:last-child { border-bottom: 1px solid var(--border); }
+.nx-demo-paso { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.nx-demo-icono {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: var(--r-md);
+  background: var(--nexus-soft);
+  border: 1px solid var(--nexus-borde);
+  color: var(--nexus);
+}
+.nx-demo-n {
+  font-size: 12px; font-weight: 600; color: var(--nexus);
+  font-variant-numeric: tabular-nums;
+}
+.nx-demo-titular {
+  margin: 0 0 8px;
+  font-size: clamp(19px, 2.2vw, 23px); font-weight: 600;
+  letter-spacing: -0.02em; color: var(--text);
+  text-wrap: balance;
+}
+.nx-demo-subtitular {
+  margin: 0 0 7px;
+  font-size: 16.5px; font-weight: 600; letter-spacing: -0.015em; color: var(--text);
+}
+.nx-demo-texto {
+  margin: 0;
+  font-size: 14.5px; line-height: 1.6; color: var(--text2);
+  max-width: 54ch;
+}
+.nx-demo-alrededor {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 32px;
+}
+.nx-demo-satelite { display: grid; gap: 16px; align-content: start; }
+.nx-demo-satelite .nx-demo-texto { font-size: 13.5px; }
+.nx-demo-cierre-acciones { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.nx-demo-cierre-acciones .btn { text-decoration: none; }
+
+/* Los capítulos alternan lado: la vista no se lee como una tabla de dos
+   columnas, y el ojo vuelve al principio de cada capítulo. */
+.nx-demo-capitulo:nth-child(even) .nx-demo-dicho { order: 2; }
+.nx-demo-capitulo:nth-child(even) .nx-demo-obra { order: 1; }
+
+@media (max-width: 860px) {
+  .nx-demo-entrada { grid-template-columns: 1fr; }
+  .nx-demo-capitulo { grid-template-columns: 1fr; gap: 16px; padding: 22px 0; }
+  /* En una sola columna el texto va SIEMPRE primero: alternar el orden en
+     vertical deja capítulos que empiezan por una maqueta sin explicar. */
+  .nx-demo-capitulo:nth-child(even) .nx-demo-dicho,
+  .nx-demo-capitulo:nth-child(even) .nx-demo-obra { order: initial; }
+}
+
+/* ── EL LATIDO DE «TE ESTOY OYENDO» ──────────────────────────────────────────
+   Los dos botones de grabación de la consulta latían con un `@keyframes pulse`
+   declarado DENTRO de la pantalla y pintado con `var(--red)`. Dos cosas mal:
+
+   · **Rojo.** Este repositorio ya selló la regla para `MarcoEscuchando` y para
+     `InstrumentStrip` — rojo significa RIESGO CLÍNICO, y enseñar al médico a
+     leerlo como «está grabando» erosiona el color con el que se le avisa de una
+     alergia. Los dos botones de esta pantalla se quedaron fuera de aquel
+     arreglo: la lección se aprendió en un componente y no en el de al lado.
+   · **Declarado en una pantalla.** Un `@keyframes` dentro de un `<style>` de
+     página no lo alcanza ningún barrido del sistema, así que el apagador de
+     `prefers-reduced-motion` de §24 tampoco: seguía latiendo para quien había
+     pedido que no.
+
+   Aquí late en cobalto, que es lo que ya dicen el marco y la franja cuando el
+   micrófono está abierto, y se apaga con todo lo demás. */
+@keyframes nx-escuchando-latido {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nexus) 50%, transparent); }
+  50%      { box-shadow: 0 0 0 12px color-mix(in srgb, var(--nexus) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="nx-escuchando-latido"] { animation: none !important; }
+}
+
+/* ── LO QUE FLOTA RESERVA SU SITIO ───────────────────────────────────────────
+   La píldora de «Grabando · mm:ss / Detener y generar nota» es `position:
+   fixed` y se posa sobre lo que haya debajo. A 1440 sobra sitio; a 390 px,
+   medido con la grabación en marcha, se posaba encima de tres botones de
+   herramientas — y el ÚLTIMO control de la pantalla no tiene a dónde
+   desplazarse para salir de debajo.
+
+   Mientras la píldora existe, el lienzo reserva su alto. Es más barato y más
+   fiable que moverla: la píldora está donde el pulgar la alcanza, y el
+   contenido deja de quedarse debajo. */
+html.nx-hay-pildora-grabando main { padding-bottom: 96px; }
+
+/* ── EL ALTO DE LA PANTALLA DEL CALENDARIO ───────────────────────────────────
+   Era `height: calc(100vh - 52px)` EN LÍNEA, y era el ÚNICO alto fijo en `vh`
+   de todo el árbol. Medido en Chromium a 390×844: 792px de alto contra 735px
+   visibles — **57px por debajo de lo que se ve**.
+
+   En un iPhone es peor y no un poco: `100vh` en Safari es la altura del
+   viewport CON LA BARRA DEL NAVEGADOR OCULTA, o sea siempre mayor que lo que
+   hay delante. Y el `- 52px` es la topbar de ESCRITORIO; en el teléfono la
+   topbar mide 48px + área segura y abajo hay una barra de 53px + el indicador
+   del iPhone. La resta describe una pantalla que no es ésta.
+
+   Un estilo EN LÍNEA no puede tener respaldo —una propiedad, un valor— así que
+   la altura se muda aquí, donde sí: `vh` primero para el navegador que no
+   entienda `dvh`, `dvh` después para el que sí. `dvh` es la altura REAL del
+   viewport móvil, la que cambia cuando la barra se recoge.
+
+   Lo que esto NO arregla: la resta sigue siendo una constante. Que hoy el
+   contenido llegue al fondo se comprueba con
+   `node scripts/design/medir-el-alto-del-telefono.mjs`, no leyendo esto.
+   Ver REG-426. */
+.nx-alto-de-trabajo {
+  height: calc(100vh - 52px);
+  height: calc(100dvh - 52px);
+}
+
+
+/* ── LA LISTA DE ALERGIAS CABE EN UN TELÉFONO ─────────────────────────────────
+
+   La franja es una fila de tres piezas: el icono, la etiqueta «Alergias:», el
+   campo con lo ESCRITO y —cuando aporta algo— la LECTURA del sistema («se lee:
+   penicilina · sulfas · AINEs»). Las dos mitades hacen falta y son hechos
+   distintos: RTC-14 lo explica y `v15-rtc14-una-sola-presentacion-de-alergias`
+   lo sella.
+
+   La fila nació en escritorio, en un `style` en línea, sin `flex-wrap` y con la
+   lectura en `flex-shrink: 0`. A 390 px eso no se recorta ni se desplaza: **se
+   sale de la pantalla**. Medido — el contenido pedía 555 px en una caja de 356,
+   y el `overflow-x` era `visible`, así que ni siquiera había barra que arrastrar.
+   El tercer alérgeno no estaba escondido: no existía.
+
+   Es la línea que se lee ANTES de recetar. Un médico que ve «Penicilina
+   (anafilaxia), sulfa…» cortado no sabe que falta algo — y `clinical-safety.md`
+   §4 dice que la ausencia de un dato no es dato de su ausencia.
+
+   `flex-shrink: 0` en la lectura sigue siendo lo correcto: apretarla hasta
+   ilegible sería peor que bajarla de línea. Lo que faltaba era permitirle BAJAR.
+   Ver REG-437. */
+.nx-franja-alergias {
+  flex-wrap: wrap;
+}
+/* Un hijo flex con `flex: 1` no baja de su tamaño intrínseco mientras
+   `min-width` sea `auto`: el campo empujaba a la lectura fuera en vez de
+   estrecharse él. */
+.nx-franja-alergias > input {
+  min-width: 0;
+}
+/* `flex-shrink: 0` en la lectura sigue siendo lo correcto en ESCRITORIO: hay
+   sitio de sobra y la fila se pinta igual que siempre. */
+.nx-lectura-alergenos {
+  flex-shrink: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+/* EN EL TELÉFONO, LÍNEA PROPIA — Y NO ES LO MISMO QUE «QUE SE PARTA».
+   El primer intento sólo puso `flex-wrap: wrap` y quedó peor de leer que el
+   defecto: la lectura dejaba de salirse, sí, pero se metía en la columna de
+   150 px que sobraba al lado del campo y salía a palabra por renglón —
+   «se lee: / Penicilina / (anafilaxia) / · sulfas · / AINEs». Exactamente la
+   patología que el dueño fotografió en la portada (REG-434), en la línea que
+   más importa de la pantalla.
+   `flex-basis: 100%` la baja ENTERA bajo el campo, que además le devuelve al
+   campo el ancho completo. Se vio mirando la captura, no la medición: los
+   desbordamientos ya daban cero. */
+@media (max-width: 899px) {
+  .nx-lectura-alergenos {
+    flex-basis: 100%;
+    margin-left: 24px;
+  }
+}

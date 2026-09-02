@@ -1,16 +1,17 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
   "generado": "2026-09-02",
-  "total": 127,
+  "total": 129,
   "variables": [
     {
       "nombre": "ANCHOS",
       "publica": false,
       "deLaPlataforma": false,
       "ambito": "scripts",
-      "defectoLiteral": "390,768,1440",
-      "defectoDe": "scripts/carril-excelencia/capturar-con-sesion.mjs",
+      "defectoLiteral": "390,1440",
+      "defectoDe": "scripts/ausculta-transformacion/mirar-el-portal.mjs",
       "archivos": [
+        "scripts/ausculta-transformacion/mirar-el-portal.mjs",
         "scripts/carril-excelencia/capturar-con-sesion.mjs",
         "scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs",
         "scripts/carril-excelencia/el-texto-largo-cabe.mjs",
@@ -290,6 +291,7 @@
         "scripts/design/medir-continuidad-v15.mjs",
         "scripts/design/medir-cromo-flotante-v15.mjs",
         "scripts/design/medir-dia-vacio-citas-v15.mjs",
+        "scripts/design/medir-el-alto-del-telefono.mjs",
         "scripts/design/medir-encuentro-v29.mjs",
         "scripts/design/medir-flujos-clinicos-v15.mjs",
         "scripts/design/medir-grabacion-v15.mjs",
@@ -414,7 +416,8 @@
         "scripts/carril-excelencia/recorrido-reserva.mjs",
         "scripts/carril-excelencia/tactiles.mjs",
         "scripts/carril-excelencia/teclado-reserva.mjs",
-        "scripts/carril-excelencia/trinquete-de-interfaz.mjs"
+        "scripts/carril-excelencia/trinquete-de-interfaz.mjs",
+        "scripts/design/medir-el-alto-del-telefono.mjs"
       ]
     },
     {
@@ -752,6 +755,7 @@
       "defectoLiteral": "127.0.0.1:8080",
       "defectoDe": "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
       "archivos": [
+        "scripts/ausculta-transformacion/sembrar-historia-larga.mjs",
         "scripts/carril-excelencia/documentos-del-encuentro.mjs",
         "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
         "scripts/carril-excelencia/la-cita-fuera-de-hora-se-ve.mjs",
@@ -1151,6 +1155,7 @@
         "src/app/api/cron/vigilante/route.ts",
         "src/lib/firebase.ts",
         "src/lib/patient-token.ts",
+        "src/lib/receta-diseno-token.ts",
         "src/lib/receta-token.ts"
       ]
     },
@@ -1277,6 +1282,19 @@
       ]
     },
     {
+      "nombre": "PLAYWRIGHT_CHROMIUM_PATH",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+      "defectoDe": "scripts/ausculta-transformacion/cancelar-una-cita.mjs",
+      "archivos": [
+        "scripts/ausculta-transformacion/cancelar-una-cita.mjs",
+        "scripts/ausculta-transformacion/mirar-el-portal.mjs",
+        "scripts/ausculta-transformacion/ningun-texto-cae-en-una-astilla.mjs"
+      ]
+    },
+    {
       "nombre": "PLAYWRIGHT_LOCAL",
       "publica": false,
       "deLaPlataforma": false,
@@ -1296,7 +1314,6 @@
       "defectoDe": "src/lib/receta-diseno-token.ts",
       "archivos": [
         "scripts/carril-excelencia/token-del-portal.mjs",
-        "src/__tests__/receta-diseno-token.test.ts",
         "src/__tests__/receta-token.test.ts",
         "src/lib/patient-token.ts",
         "src/lib/receta-diseno-token.ts",
@@ -1315,7 +1332,7 @@
       ]
     },
     {
-      "nombre": "RECETA_DISENO_FIRMA",
+      "nombre": "RECETA_DISENO_COMPAT_SIN_FIRMA",
       "publica": false,
       "deLaPlataforma": false,
       "ambito": "runtime",
@@ -1333,7 +1350,6 @@
       "defectoLiteral": null,
       "defectoDe": null,
       "archivos": [
-        "src/__tests__/receta-diseno-token.test.ts",
         "src/lib/receta-diseno-token.ts"
       ]
     },
@@ -1620,6 +1636,17 @@
       ]
     },
     {
+      "nombre": "TEMAS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "dark,light",
+      "defectoDe": "scripts/ausculta-transformacion/mirar-el-portal.mjs",
+      "archivos": [
+        "scripts/ausculta-transformacion/mirar-el-portal.mjs"
+      ]
+    },
+    {
       "nombre": "TIPO_CAMBIO_USD_MXN",
       "publica": false,
       "deLaPlataforma": false,
@@ -1682,7 +1709,8 @@
       "defectoLiteral": "local",
       "defectoDe": "src/app/api/health/route.ts",
       "archivos": [
-        "src/app/api/health/route.ts"
+        "src/app/api/health/route.ts",
+        "src/lib/receta-diseno-token.ts"
       ]
     },
     {

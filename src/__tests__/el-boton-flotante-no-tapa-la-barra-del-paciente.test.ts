@@ -52,6 +52,9 @@
  *   automatizado**.
  * · Sólo mira ESTE choque. Otros elementos fijos del portal no se revisan.
  * · No juzga los 60px: son el alto medido de la barra hoy, a 390px.
+ * · **Sólo cubre el choque del TELÉFONO.** En escritorio la barra pasó a ser
+ *   una dársena centrada y el toggle vuelve a `bottom: 24px`; que no se toquen
+ *   ahí se midió con `arnes:nada-tapa` a 1440, no lo comprueba este archivo.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -67,14 +70,56 @@ function bottomDeBase(): number {
 }
 
 describe('la barra de destinos del paciente sigue siendo lo que la regla espera', () => {
-  it('existe, es fija y va abajo', () => {
+  /**
+   * ── POR QUÉ ESTOS DOS CASOS CAMBIARON DE SITIO, Y NO DE EXIGENCIA ──────────
+   *
+   * Pedían `position: 'fixed', left: 0, right: 0, bottom: 0` y
+   * `repeat(5, 1fr)` **dentro del JSX**. Eran ciertos, y por eso mismo eran el
+   * problema: mientras la colocación viviera en un `style` en línea, la barra
+   * no podía comportarse distinto en un escritorio —un estilo en línea gana a
+   * toda media query— y a 1440 salía de 1440 × 60 con el destino activo en una
+   * losa cian de 288 px bajo una columna de 560. Un guardián que exige el
+   * estilo en línea es un guardián que impide arreglarlo.
+   *
+   * Lo que la regla del toggle necesita saber sigue siendo lo mismo: que la
+   * barra existe, que va **fija abajo en el teléfono** —que es el ancho donde
+   * se midió el choque, 390px— y que tiene cinco destinos, que es lo que la
+   * hace alta. Eso se comprueba ahora donde vive: en la hoja.
+   */
+  it('existe, es fija y va abajo en el teléfono', () => {
     expect(PORTAL, 'la barra perdió su ancla de estilo').toContain('className="mi-barra-destinos"')
-    expect(PORTAL).toMatch(/position: 'fixed', left: 0, right: 0, bottom: 0/)
+    expect(PORTAL, 'volvió la colocación en línea, que impide la forma de escritorio')
+      .not.toMatch(/mi-barra-destinos" style=/)
+    const base = CSS.slice(CSS.indexOf('.mi-barra-destinos {'))
+    const bloque = base.slice(0, base.indexOf('}'))
+    expect(bloque, 'la barra dejó de ir fija abajo').toMatch(/position: fixed/)
+    expect(bloque).toMatch(/bottom: 0/)
+    expect(bloque).toMatch(/left: 0/)
+    expect(bloque).toMatch(/right: 0/)
   })
 
   it('sigue teniendo cinco destinos, que es lo que la hace tan alta', () => {
     // Si bajara a menos, el alto cambiaría y el número de la regla también.
-    expect(PORTAL).toMatch(/repeat\(5, 1fr\)/)
+    // Se cuenta en el JSX —que es donde se declaran— y se comprueba que la
+    // rejilla de la hoja siga repartiéndose entre los mismos cinco.
+    const destinos = (PORTAL.match(/\{ id: '\w+' as const,/g) ?? []).length
+    expect(destinos, 'cambió el número de destinos del portal').toBe(5)
+    expect(CSS).toMatch(/grid-template-columns: repeat\(5, 1fr\)/)
+  })
+
+  it('y en escritorio NO es la misma barra estirada — ahí el choque es otro', () => {
+    /**
+     * El desplazamiento del toggle está calculado para la barra del TELÉFONO,
+     * pegada al borde y de lado a lado. En escritorio la barra es una dársena
+     * centrada sobre la columna de contenido, así que ni se tocan y el toggle
+     * vuelve a su sitio. Si algún día la barra volviera a ser una sola forma,
+     * este caso lo diría — y habría que rehacer el número de la regla.
+     */
+    const i = CSS.indexOf('@media (min-width: 900px) {\n  .mi-barra-destinos {')
+    expect(i, 'la barra volvió a tener una sola forma').toBeGreaterThan(-1)
+    expect(CSS.slice(i, i + 320)).toMatch(/transform: translateX\(-50%\)/)
+    expect(CSS, 'el toggle se quedó apartado donde ya no hace falta')
+      .toMatch(/@media \(min-width: 900px\) \{\s*html:has\(\.mi-barra-destinos\) \.theme-toggle \{/)
   })
 })
 

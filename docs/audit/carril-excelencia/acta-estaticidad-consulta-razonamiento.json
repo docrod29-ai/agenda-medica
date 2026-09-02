@@ -1,0 +1,14 @@
+[
+  {
+    "ruta": "/consulta/pac-001",
+    "ancho": 1440,
+    "elementosVisibles": 318,
+    "conMovimiento": 29,
+    "tarjetas": 15,
+    "tamanosTipograficos": 11,
+    "pesosDeFuente": 5,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  }
+]

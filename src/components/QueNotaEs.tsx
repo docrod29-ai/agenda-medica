@@ -123,7 +123,7 @@ export function QueNotaEs(p: QueNotaEsProps) {
                     minHeight: 40, padding: '9px 14px', borderRadius: 'var(--r-pill)',
                     fontSize: 13, fontWeight: p.tipo === t ? 700 : 500, cursor: 'pointer',
                     border: `1px solid ${p.tipo === t ? 'var(--nexus)' : 'var(--border)'}`,
-                    background: p.tipo === t ? 'rgba(61,90,254,0.14)' : 'var(--s1)',
+                    background: p.tipo === t ? 'var(--nexus-soft)' : 'var(--s1)',
                     color: p.tipo === t ? 'var(--nexus)' : 'var(--text2)',
                   }}
                 >

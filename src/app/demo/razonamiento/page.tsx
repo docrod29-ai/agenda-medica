@@ -73,7 +73,7 @@ const FINAL_DEMO = {
 export default function DemoRazonamientoPage() {
   return (
     <main style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)' }}>
-      <div style={{ background: 'var(--nexus-soft, rgba(61,90,254,.08))', borderBottom: '1px solid var(--border)', padding: '8px 16px', textAlign: 'center', fontSize: 12.5, color: 'var(--text2)', display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ background: 'var(--nexus-soft, var(--nexus-tenue))', borderBottom: '1px solid var(--border)', padding: '8px 16px', textAlign: 'center', fontSize: 12.5, color: 'var(--text2)', display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
         <Info size={14} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
         <span><strong style={{ color: 'var(--text)' }}>Demostración</strong> · paciente ficticio · los 12 pasos corren con código (sin IA de caja negra); la evidencia se recupera de PubMed en vivo</span>
       </div>
@@ -110,7 +110,19 @@ export default function DemoRazonamientoPage() {
         <h2 style={{ fontSize: 17, fontWeight: 700, margin: '10px 0 8px' }}>Los 12 pasos, con fuente y confianza</h2>
         <PanelRazonamiento entrada={CASO} embebido />
 
-        <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>Evidencia real, recuperada al momento</h2>
+        {/*
+          EL TÍTULO TAMBIÉN ES UNA AFIRMACIÓN, Y TENÍA QUE SOBREVIVIR AL FALLO.
+
+          Decía «Evidencia real, recuperada al momento» — en 17 px y en negrita,
+          justo encima del bloque que en ese momento estaba diciendo que PubMed
+          no había contestado. Arreglar el sello de dentro y dejar el título
+          fuera habría movido el problema tres centímetros.
+
+          El título nuevo dice la REGLA, que es cierta en los dos estados, y
+          convierte el fallo en la demostración de la regla en vez de en una
+          promesa rota. Que es, además, lo que de verdad vende este producto.
+        */}
+        <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>La evidencia se recupera de PubMed — o no se enseña</h2>
         <EvidenciaEnVivo />
 
         <h2 style={{ fontSize: 17, fontWeight: 700, margin: '26px 0 8px' }}>Y lo que el copiloto sugiere (calculado, no inventado)</h2>

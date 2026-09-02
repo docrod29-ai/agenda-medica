@@ -315,59 +315,124 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      */
 
     /**
+     * 425, 426 y 427 son los tres que salieron de ABRIR EL PRODUCTO en un
+     * teléfono, y los tres son esta familia en formas distintas:
+     *
+     *  · **425** — el gancho escrito y la regla no: `<span className=
+     *    "nx-fila-porque">` con esa clase inexistente en toda la hoja. El
+     *    control se veía perfecto y su toque se lo quedaba el velo de la fila.
+     *    Lo caro de esta forma es que en el diff **parece que hay algo**: el
+     *    nombre está ahí.
+     *  · **426** — el respaldo que no cabe donde está escrito. `100vh` en un
+     *    estilo EN LÍNEA no puede llevar su `100dvh` detrás; la hoja lo hace
+     *    bien en todas partes y un atributo `style` no puede.
+     *  · **427** — la CONDICIÓN PREVIA que falta. 28 usos de
+     *    `env(safe-area-inset-*)` corriendo y valiendo cero, porque
+     *    `viewport-fit=cover` es una línea en otro archivo que nadie vigilaba.
+     *    No es que el módulo no corra: corre y no hace nada.
+     *
+     * Lo que enseñan juntos: esta familia no se caza leyendo el diff de quien la
+     * comete —los tres diffs se ven bien— sino abriendo el producto y
+     * preguntándole al navegador. `document.elementFromPoint` en el centro del
+     * control es la única pregunta que responde «¿esto recibe el toque?».
+     */
+
+    /**
+     * 431 es esta familia sobre un archivo que NO es código, y por eso escuece:
+     * `firestore.indexes.json` estaba bien escrito y era el archivo MEJOR
+     * VIGILADO del repositorio —REG-421 le puso guardián, REG-422 lo endureció—
+     * y `firebase.json` nunca declaró dónde estaba. Dos regresiones de trabajo
+     * sobre su contenido, y el contenido no lo leía nadie.
+     *
+     * El despliegue no fallaba: `--only firestore:indexes` sin declarar no
+     * publica nada y devuelve `success`. Escrito, probado, y sin conectar — con
+     * un acta firmada diciendo que sí.
+     *
+     * Se descubrió acompañando al dueño a hacerlo a mano, y viendo la consola
+     * vacía en su pantalla.
+     */
+    /**
+     * 434 es el cuarto de la tanda del teléfono (425, 426, 427) y el más caro,
+     * porque llegó a PRODUCCIÓN y estuvo en la primera pantalla del producto:
+     * la regla que coloca la cita en su columna existía —`grid-column: 3`— y
+     * vivía DENTRO de la media query de 1000 px. Escrita, correcta, y sin
+     * aplicarse en el camino que recorre la mayoría, que es un teléfono.
+     *
+     * Y lo que lo hace de esta familia y no de otra: por debajo de 1000 px la
+     * maquetación seguía «funcionando». La auto-colocación de `grid` no falla
+     * ni avisa: coloca. El párrafo cayó en la columna de 34 px del número y se
+     * derramó a una palabra por renglón, sin desbordar, sin romper axe y sin
+     * tocar un blanco táctil. Cinco compuertas verdes sobre una pantalla
+     * ilegible.
+     */
+    /**
+     * 436 es esta familia en la PERSONA, y es la variante que más tiempo
+     * sobrevive. `scripts/migraciones/peso-de-urgencia.mjs` estaba escrito,
+     * probado, era idempotente y su cabecera decía la verdad: «correr algo
+     * contra datos clínicos vivos es del dueño». Nadie podía correrlo. Pedía una
+     * credencial que sólo existe dentro de los secretos del repositorio, y el
+     * dueño no usa terminal: hacían falta dos mitades que ninguna persona tenía
+     * juntas.
+     *
+     * Lo que la distingue de 335 o 337: allí faltaba el ACTO que llama al
+     * módulo, y un guardián de módulos huérfanos podía verlo. Aquí el llamador
+     * es una PERSONA, y ningún guardián mira si esa persona puede alcanzar el
+     * botón. Se disfrazó de decisión pendiente —que es la etiqueta que nadie
+     * vuelve a revisar— durante meses.
+     *
+     * La reparación no añade capacidad: mueve la ejecución al único sitio donde
+     * las dos mitades ya están juntas.
+     */
+    /**
      * 506 es esta familia sobre el DESPLIEGUE, y con el comando contestando que
      * sí. `firebase.json` no declaraba `firestore.indexes`, y en firebase-tools
      * el envío entero cuelga de esa clave: el paso imprimía «deploying
      * indexes...», recorría una lista vacía y contestaba `Deploy complete!`.
-     * Tres ejecuciones del botón cerraron `PRODUCTION_RELEASE=SUCCESS` sin
-     * publicar un solo índice —cuatro de ellos, de consultas que el producto ya
-     * hace—, y el repositorio lo había escrito como hecho en dos documentos.
      *
      * Lo que lo hace de esta familia y no de `depende_de_recordar`: nadie
      * olvidó nada. El paso corría, en el momento correcto, y su salida decía
-     * que había ido bien. Lo que faltaba era mirar QUÉ contestó el proveedor —y
-     * la respuesta lo decía en claro: no salían las dos líneas que firebase
-     * imprime cuando de verdad manda un archivo.
+     * que había ido bien. Lo que faltaba era mirar QUÉ contestó el proveedor.
      *
-     * Y trae su propio matiz: el guardián de la mitad de arriba
-     * (`el-indice-que-nadie-declaro`) estaba en verde y era correcto. Vigilaba
-     * que toda consulta compuesta estuviera DECLARADA. Declarar, enviar y
-     * construir son tres actos, y sólo el primero tenía dueño.
+     * Nota de concurrencia, que es media lección: otra sesión encontró el mismo
+     * defecto en paralelo y su arreglo llegó antes a `main` —y llegó más lejos,
+     * con el diagnóstico del 403 de IAM—. Dos carriles gastando el mismo
+     * hallazgo es T-1 del tablero, y se ve al fusionar, no antes.
      */
+
     /**
      * 507 es esta familia con el matiz más incómodo: la maquinaria de firma
      * estaba escrita, probada y CONECTADA en tres caminos —impresión, PDF y la
      * vista previa del dashboard—. El cuarto, el Word, no podía conectarse:
-     * `receta-word` no lee del DOM, lee la URL guardada en la configuración, y
-     * el firmador global reescribe `<img>` del documento vivo.
+     * `receta-word` no lee del DOM, lee la URL guardada en la configuración.
      *
      * O sea que la cobertura no era «casi completa»: era completa en el eje que
      * alguien miró —los caminos que pasan por el DOM— y vacía en el que no.
      * Contar caminos cubiertos no dice nada si no se enumeran TODOS los
      * consumidores de la ruta que se va a cerrar.
-     *
-     * Y lo que lo hacía invisible: el candado se activa con una variable de
-     * entorno en Vercel, no con un cambio de código. Ningún guardián corre
-     * cuando alguien escribe en una pantalla de ajustes. El defecto habría
-     * salido en la primera receta abierta en Word, ya en producción.
      */
+
     /**
-     * 508 es esta familia en su forma más literal: `meta-connect` declaraba una
-     * constante con el token de verificación de WhatsApp y **no la usaba en
-     * ninguna parte** — `registerWebhook` no manda ningún token—. Escrito y sin
-     * conectar, cargando además un literal adivinable.
-     *
-     * Pero el daño no estaba ahí, y por eso vale la pena: la PANTALLA de
-     * Configuración imprimía ese mismo literal como instrucción para teclear en
-     * Meta, y el servidor no lo acepta. Lo que estaba «sin conectar» no era una
-     * función: era el ACUERDO entre lo que el producto le dice al médico que
-     * ponga y lo que el producto va a aceptar después. Los dos extremos
-     * existían y nadie comprobó que se tocaran.
+     * 508 es esta familia en su forma más literal —`meta-connect` declaraba una
+     * constante que no usaba nadie— pero el daño estaba en el otro extremo: la
+     * PANTALLA imprimía ese literal como instrucción para teclear en Meta, y el
+     * servidor no lo acepta. Lo que estaba «sin conectar» no era una función:
+     * era el ACUERDO entre lo que el producto le dice al médico que ponga y lo
+     * que el producto va a aceptar después.
      *
      * Y el síntoma no se parece a la causa: «no me llegan los mensajes de
      * WhatsApp» no lleva a «la pantalla me dictó un token equivocado».
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 506, 507, 508, 509],
+
+    /**
+     * 509 es esta familia aplicada a una HERRAMIENTA, no al producto: el
+     * inventario de entorno leía la lista de `grep`, que llega en el orden del
+     * sistema de archivos, y elegía el respaldo «del primero que apareciera».
+     * El artefacto derivado salía distinto en cada máquina, y eso convierte a su
+     * guardián en una trampa —rojo en CI, verde en local— cuyo camino corto es
+     * borrar la comprobación. Se ve una sola vez: cuando corre en otra parte.
+     */
+
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509],
   },
   {
     clave: 'se_contradice',
@@ -648,7 +713,79 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * datos que los hicieran aparecer — un cero sobre una lista vacía no dice
      * «está bien», dice «aquí no hay nada».
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418],
+
+    /**
+     * 421 es el instrumento MINTIENDO, que es peor que no tenerlo. El guardián
+     * de índices existía, corría en verde y llevaba meses tapando dos consultas
+     * sin índice: se SALTABA con un `continue` las consultas cuya colección no
+     * sabía leer, y comparaba que los campos estuvieran en vez de que estuvieran
+     * en el orden que Firestore exige.
+     *
+     * Un guardián que se salta lo que no entiende no dice «no lo sé»: dice «está
+     * bien». Por eso el arreglo no fue sólo enseñarle a leer más formas, sino
+     * hacer que lo ilegible FALLE. Y se descubrió porque antes de tocar el código
+     * que el guardián protege se le probó al revés — que es la única manera de
+     * saber si un instrumento mide.
+     */
+
+    /**
+     * 422 es el DÍA SIGUIENTE de 421, sobre el mismo guardián y por su otra
+     * limitación declarada: «sólo ve el SDK de cliente… está declarado aquí y
+     * sigue siendo trabajo pendiente, NO un hueco tapado». Era un hueco tapado.
+     * Detrás vivía `platform_cost_ledger(feature, ts)`, la consulta con la que se
+     * mide el costo por nota — y como su ruta la envuelve en un `try/catch`, el
+     * índice que falta no se ve como un error: se ve como que no hay datos de
+     * costo, sobre la pantalla con la que se decide el precio.
+     *
+     * Lo que enseñan 421 y 422 juntos no es que este guardián estuviera mal
+     * escrito. Es que **una limitación declarada tiene fecha de caducidad o se
+     * convierte en un hueco**: declarar un punto ciego lo hace honesto, no lo
+     * hace inofensivo, y a partir del día siguiente el archivo en verde se lee
+     * como «todo bien» sin que nadie vuelva al párrafo que decía dónde no miraba.
+     * Es lo mismo que REG-377 dijo de las deudas con fecha puesta, dicho de los
+     * instrumentos.
+     */
+    /**
+     * 428 es el instrumento que MIDE y cuya salida no distingue. GP-33 dispara
+     * cuarenta peticiones en paralelo contra el freno del portal del paciente y
+     * contaba sólo los 429 — pero «cero 429» lo producen TRES desenlaces, y dos
+     * son correctos: el freno cortó (429), el freno no pudo contar y por eso no
+     * dejó pasar (503, fail-closed), o no hubo freno (cuarenta 200). Medido con
+     * la distribución puesta: `{200:10, 429:25, 503:5}` — el freno funciona.
+     *
+     * Su lección propia, que 421 y 422 rozaban desde el otro lado: un caso cuya
+     * EVIDENCIA no separa el desenlace bueno del malo falla en la dirección
+     * peligrosa. Se pone rojo cuando el producto se porta bien (todo 503), y un
+     * caso que da falsos rojos se aprende a ignorar — así que el día que salgan
+     * cuarenta 200, nadie lo va a mirar distinto.
+     */
+
+    /**
+     * 430 es el instrumento que NO PUDO CORRER, y cuya mitad superviviente se
+     * lee como si hubiera corrido. La escotilla que permite usar un Chromium ya
+     * instalado estaba sólo en el proyecto del teléfono; el proyecto `chromium`
+     * —el de la matriz de cabeceras de seguridad— no la tenía, y sus nueve casos
+     * de navegador caían con «Executable doesn't exist». Los de cabeceras pasan
+     * por petición cruda, así que el verde parcial tapaba justo la mitad que sólo
+     * se puede ver ejecutando.
+     */
+
+    /**
+     * 437 es 331 otra vez, un eje más allá. Aquélla eran veintitrés fallos de
+     * accesibilidad con la suite en verde porque nadie miraba ESE eje; ésta es
+     * la pantalla donde el médico pasa la consulta, que **nunca se había abierto
+     * a 390 px**. El JSX era correcto. El CSS era correcto. El defecto sólo
+     * existe cuando los dos se miden juntos a un ancho concreto — y la lista de
+     * alergias se salía 182 px de un teléfono, con `overflow-x: visible`, sin
+     * gesto que la trajera de vuelta.
+     *
+     * Lo que la hace valer aparte: el instrumento nuevo **también se equivocó**.
+     * El primer arreglo dejó los desbordamientos en cero y la pantalla peor de
+     * leer, a palabra por renglón. La medición decía verde; la captura decía que
+     * no. Un instrumento que sólo cuenta no sustituye a mirar — es la mitad del
+     * método, no el método.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437],
   },
   {
     clave: 'hueco_como_dato',
@@ -715,7 +852,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * arreglo no fue ablandar el validador sino escribir `null` y dejar que lo
      * rechace: un informe rechazado es información; un cero, no.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420],
+    /**
+     * 432 es esta familia en su forma más incómoda: la creó un arreglo
+     * CORRECTO. Cerrar el proxy de la papelería hizo que una imagen sin
+     * capacidad dejara de verse, y el módulo trató esa ausencia como un estado
+     * aceptable —«el documento no se rompe»— en vez de como una pérdida que
+     * declarar. El hueco era la imagen que falta; el dato que se dio por bueno,
+     * que el documento estaba completo.
+     *
+     * Su lección: un endurecimiento cambia lo que el usuario RECIBE, y hay que
+     * mirar si cambia también lo que el usuario VE. Si no, se entrega algo
+     * distinto de lo que se enseñó.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432],
   },
   {
     clave: 'aislamiento',
@@ -853,7 +1002,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Falla algo y el sistema culpa a otra cosa. Cuesta doble: la avería y las ' +
       'horas persiguiendo la avería equivocada.',
-    regs: [155, 156, 251, 317, 327, 328],
+    /**
+     * 433 es esta familia en el sitio donde más cara sale: el ACTA DEL
+     * DESPLIEGUE, que es lo único que el dueño lee para saber cómo fue.
+     *
+     * Reglas e índices se publicaban en un paso con una sola variable. Fallaron
+     * los índices por un 403 de permisos y el acta imprimió
+     * `FIRESTORE_RULES=failure` — cuando el log de esa misma ejecución dice
+     * «rules file compiled successfully» y «already up to date». Las reglas eran
+     * lo ÚNICO que había salido bien, y el acta las señaló a ellas.
+     *
+     * Es hermana de 431 y su reverso exacto: allí el acta decía `success` de un
+     * paso que no publicó nada; aquí dice `failure` de un paso que publicó
+     * bien. Las dos salen de la misma raíz — un acta que cuenta dos actos
+     * distintos con una sola casilla — y por eso la cierra la misma idea:
+     * separar los actos, no mejorar el mensaje.
+     */
+    regs: [155, 156, 251, 317, 327, 328, 433],
   },
   {
     clave: 'decision_del_dueno',
@@ -1005,7 +1170,39 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * mitad es DE DÓNDE — y se salta con facilidad porque un dato derivado ya
      * viene con autoridad y nadie vuelve a mirarlo con desconfianza.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 502, 504, 505],
+    /**
+     * 424 es esta familia en el orden entre DOS SISTEMAS que no se hablan. Los
+     * índices de Firestore hay que desplegarlos ANTES que el código que los usa
+     * —Firestore no degrada una consulta sin índice, la RECHAZA— y la integración
+     * de Vercel publica sola con cada merge. Lo único que sostenía ese orden era
+     * un párrafo en un documento de operación: alguien tenía que acordarse el día
+     * correcto, y entre medias cuatro pantallas se abrían con un error.
+     *
+     * El arreglo no es un recordatorio mejor: es que romper el orden deje de
+     * romper la pantalla (`conRespaldoSinIndice`) y que la degradación se VEA. El
+     * orden sigue siendo el correcto; lo que ya no depende de la memoria es el
+     * daño.
+     */
+    /**
+     * 435 es esta familia en el PAPEL que entra al procedimiento, no en el dato.
+     *
+     * 241 y 505 arreglaron el tablero; nadie ató a él el encabezado de las actas
+     * de paquete. Resultado: la de v1172 llevaba cinco días diciendo «nadie ha
+     * desplegado nada» de algo publicado, y la de v1175 afirmaba el despliegue
+     * SIN CITAR la ejecución — que es 505 otra vez, en otro documento.
+     *
+     * Lo que la distingue de 416 es a quién engaña. 416 dejaba el repositorio
+     * declarando rotas unas protecciones que ya regían: se leía como alarma. Ésta
+     * se lee como permiso — un acta que dice que no se ha desplegado nada invita a
+     * desplegar, y un despliegue arrastra TODO lo no desplegado, no lo que el
+     * acta enumera.
+     *
+     * Su lección: la familia no acaba en el dato derivado. Alcanza a cualquier
+     * documento que sea ENTRADA de un procedimiento, y esos no se derivan de
+     * nada — se cierran a mano. Lo único que se puede automatizar es que olvidarlo
+     * ponga la suite en rojo.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 502, 504, 505],
   },
   {
     /**
@@ -1119,7 +1316,28 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * aprendido ninguna palabra» — un fallo de red afirmando que el vocabulario
      * del médico está vacío.
      */
-    regs: [341, 350, 351, 352, 393],
+    /**
+     * 423 es esta familia enseñando que **acotar bien no es lo mismo que acotar**.
+     * Los tres anteriores pusieron el techo; 423 es sobre QUÉ se queda dentro
+     * cuando el techo aprieta. El worklist recortaba por antigüedad —una mejora
+     * real sobre el recorte arbitrario de antes— y con eso el resultado crítico
+     * de esta mañana era el PRIMERO en caerse, en un consultorio grande y sólo en
+     * un consultorio grande. Con fixtures pequeños las tres versiones se
+     * comportan igual, que es la marca de esta familia.
+     *
+     * Su lección propia: el criterio del recorte también es un supuesto de
+     * tamaño. «Los 200 primeros» sólo es una respuesta aceptable mientras 200
+     * sean todos.
+     */
+    /**
+     * 429 es la misma lección que 341→351, aplicada a tiempo por una vez: la
+     * lista de espera se leía entera, y acotarla A SECAS la habría dejado peor —
+     * un recorte que se presenta como completo es un paciente esperando que
+     * nadie ve. Por eso `getWaitlist` dejó de devolver un array pelado: un array
+     * no puede decir que viene recortado.
+     */
+
+    regs: [341, 350, 351, 352, 393, 423, 429],
   },
 ] as const
 

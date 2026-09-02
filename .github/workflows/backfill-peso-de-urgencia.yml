@@ -1,0 +1,184 @@
+# BACKFILL de `pesoUrgencia` — el botón, para que no haga falta una terminal.
+#
+# Corre `scripts/migraciones/peso-de-urgencia.mjs` contra `nexomed-agenda`.
+#
+# ── POR QUÉ EXISTE ───────────────────────────────────────────────────────────
+#
+# El script pide `GOOGLE_APPLICATION_CREDENTIALS` apuntando a un JSON de cuenta
+# de servicio. Esa credencial vive en los secretos de este repositorio y **no se
+# puede sacar de ahí**: quien la tiene es el runner, no una máquina de nadie. Sin
+# este workflow el backfill sólo lo puede correr quien tenga a la vez terminal y
+# una copia de la credencial — que es exactamente el reparto que deja un paso
+# pendiente durante meses.
+#
+# ── EL VALOR POR DEFECTO ES «NO ESCRIBIR», Y ESO NO ES ESTILO ────────────────
+#
+# `escribir` nace en `false`. Apretar el botón sin tocar nada **lee y cuenta**;
+# no escribe un solo documento. Para escribir hay que marcar la casilla a
+# propósito, que es un gesto distinto de abrir la pantalla.
+#
+# Una casilla y no una frase que teclear: el script sólo AÑADE un campo derivado
+# —no borra, no mueve, no toca `prioridad`— y es idempotente, así que el daño de
+# un clic de más es cero y el de una frase mal pegada no lo es. El botón de
+# producción no tiene inputs por esa misma razón, dicha al revés.
+#
+# ── LA CREDENCIAL DE TOKEN NO SIRVE AQUÍ, Y HAY QUE DECIRLO ──────────────────
+#
+# `deploy-production.yml` acepta cinco formas de credencial, y una es
+# `FIREBASE_TOKEN` — un token del CLI de Firebase. El CLI lo entiende;
+# **`firebase-admin` no**: `applicationDefault()` quiere un archivo de cuenta de
+# servicio. Si la única credencial del environment fuera el token, este workflow
+# fallaría dentro del SDK con un error de autenticación que no nombra la causa.
+# Por eso se comprueba ANTES y se para diciendo qué falta — la lección de
+# REG-433, aplicada antes de que cueste una ejecución.
+#
+# ── LO QUE NO SALE EN LOS LOGS ───────────────────────────────────────────────
+#
+# El script imprime RECUENTOS, nunca contenido: esos documentos llevan PHI.
+# Regla `data-privacy.md`. Este workflow no añade ninguna salida propia sobre los
+# datos; sólo copia al resumen lo que el script ya imprimió.
+
+name: Backfill de pesoUrgencia (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      escribir:
+        description: 'ESCRIBIR de verdad. Sin marcar: sólo cuenta lo que haría.'
+        type: boolean
+        default: false
+        required: false
+
+concurrency:
+  group: backfill-peso-de-urgencia
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Fijado aquí y no en un input: un id de proyecto mal pegado es la clase de
+  # error que este repositorio ya pagó una vez (`agenda-medica-v10`, Compuerta 2
+  # del botón de producción).
+  FIREBASE_PROJECT: nexomed-agenda
+
+jobs:
+  backfill:
+    name: Backfill de pesoUrgencia
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # La credencial se busca en el mismo orden que `deploy-production.yml`,
+      # MENOS `FIREBASE_TOKEN`: ver la cabecera.
+      - name: 'Firebase · localizar una credencial que sirva al SDK admin'
+        id: cred
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${FIREBASE_SERVICE_ACCOUNT:-}" ]; then
+            echo "modo=sa" >> "$GITHUB_OUTPUT"
+          elif [ -n "${FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA:-}" ]; then
+            echo "modo=sa-nexomed" >> "$GITHUB_OUTPUT"
+          elif [ -n "${GOOGLE_CREDENTIALS:-}" ]; then
+            echo "modo=google" >> "$GITHUB_OUTPUT"
+          elif [ -n "${GCP_SA_KEY:-}" ]; then
+            echo "modo=gcp" >> "$GITHUB_OUTPUT"
+          elif [ -n "${FIREBASE_TOKEN:-}" ]; then
+            echo "::error::La única credencial del environment es FIREBASE_TOKEN, y firebase-admin no la entiende: applicationDefault() necesita un JSON de cuenta de servicio. Añade FIREBASE_SERVICE_ACCOUNT."
+            exit 1
+          else
+            echo "::error::No hay credencial Firebase en el environment production."
+            exit 1
+          fi
+          echo "Credencial encontrada sin mostrar su valor."
+
+      - name: 'Firebase · escribir la credencial'
+        id: escribir_cred
+        env:
+          MODO: ${{ steps.cred.outputs.modo }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          set -euo pipefail
+          case "$MODO" in
+            sa) JSON="$FIREBASE_SERVICE_ACCOUNT" ;;
+            sa-nexomed) JSON="$FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA" ;;
+            google) JSON="$GOOGLE_CREDENTIALS" ;;
+            gcp) JSON="$GCP_SA_KEY" ;;
+            *) echo "::error::Modo Firebase desconocido."; exit 1 ;;
+          esac
+          RUTA="$RUNNER_TEMP/firebase-sa.json"
+          printf '%s' "$JSON" > "$RUTA"
+          chmod 600 "$RUTA"
+          echo "Credencial escrita sin mostrar su valor."
+
+      # EL PASO QUE IMPORTA. `--escribir` se añade DENTRO de un `if` sobre el
+      # input, y nunca por interpolación en la línea de comando: una variable
+      # vacía interpolada en `node … $BANDERA` es un argumento vacío, pero una
+      # variable con cualquier otro contenido es un argumento cualquiera.
+      - name: 'Backfill'
+        id: backfill
+        if: ${{ !cancelled() && steps.escribir_cred.outcome == 'success' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
+          ESCRIBIR: ${{ inputs.escribir }}
+        run: |
+          set -euo pipefail
+          if [ "$ESCRIBIR" = "true" ]; then
+            echo "MODO ESCRITURA — autorizado marcando la casilla en el formulario."
+            node scripts/migraciones/peso-de-urgencia.mjs \
+              --proyecto "$FIREBASE_PROJECT" --escribir 2>&1 | tee "$RUNNER_TEMP/backfill.log"
+          else
+            echo "ENSAYO — no se escribe nada."
+            node scripts/migraciones/peso-de-urgencia.mjs \
+              --proyecto "$FIREBASE_PROJECT" 2>&1 | tee "$RUNNER_TEMP/backfill.log"
+          fi
+
+      - name: 'Limpiar credencial temporal'
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/firebase-sa.json"
+
+      # El dueño no lee logs. Los recuentos van al resumen de la ejecución, que
+      # es la pantalla que sí mira.
+      - name: 'Acta del backfill'
+        if: ${{ !cancelled() }}
+        env:
+          ESCRIBIR: ${{ inputs.escribir }}
+          R_BACKFILL: ${{ steps.backfill.outcome }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Acta del backfill de \`pesoUrgencia\`"
+            echo
+            echo "- Proyecto: \`$FIREBASE_PROJECT\`"
+            if [ "$ESCRIBIR" = "true" ]; then
+              echo "- Modo: **ESCRITURA**"
+            else
+              echo "- Modo: **ENSAYO** — no se escribió nada. Para aplicarlo, vuelve a lanzarlo marcando la casilla."
+            fi
+            echo "- Resultado: \`$R_BACKFILL\`"
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/backfill.log" 2>/dev/null || echo '(el backfill no llegó a correr)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$R_BACKFILL" = success ]
