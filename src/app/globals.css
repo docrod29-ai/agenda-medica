@@ -3234,7 +3234,29 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
    «requiere confirmación humana» — que es exactamente lo que son. */
 .riel-entrada[data-momento='pasado'] .riel-nodo::before {
   background: var(--bg);
-  border-color: color-mix(in srgb, var(--amber) 70%, transparent);
+  /*
+    85% Y NO 70%, Y EL PORQUÉ ES MEDIDO.
+    El 70% con el que nació esta regla (unidad 95) daba **2.89 : 1 en tema
+    claro** sobre el fondo crema — por debajo del 3 : 1 que WCAG 1.4.11 pide a
+    un componente de interfaz que no es texto. En oscuro daba 3.5 : 1 y pasaba,
+    así que el defecto sólo existía en la mitad del producto que no se había
+    mirado.
+
+    Es exactamente lo que advierte la regla de diseño: los dos temas se diseñan
+    aparte, no se invierten. Un `color-mix` contra `transparent` se apoya en el
+    fondo, y el fondo es lo que cambia entre temas.
+
+       alfa   claro   oscuro
+        70%    2.89     3.50   ← lo que había
+        75%    3.13     3.87
+        85%    3.73     4.69   ← elegido: margen en los dos, sin llegar al sólido
+       100%    4.81     6.14
+
+    85 y no 75: 3.13 pasa por 0.13, y un token de color que se mueva un punto lo
+    tira. Y no 100 porque el nodo lleno es el del momento presente: éste tiene
+    que seguir siendo hueco.
+  */
+  border-color: color-mix(in srgb, var(--amber) 85%, transparent);
 }
 .riel-entrada[data-momento='cerrado'] .riel-nombre { text-decoration: line-through; text-decoration-color: var(--text3); }
 
@@ -4155,3 +4177,19 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
 /* El icono de cada fila baja de rango: era un color más compitiendo en cinco
    sitios. Marca la fila, no la reclama. */
 .nx-ctx > svg { flex-shrink: 0; margin-top: 1px; color: var(--text3); opacity: 0.75; }
+
+
+/* ── EL METADATO DE LA FRANJA DE ALERGIAS ──────────────────────────────────
+
+   MEDIDO por el arnés de tema claro: `--text3` sobre el crema rojizo de esta
+   franja da **4.49 : 1** en tema claro. AA pide 4.5 — falla por una centésima,
+   y falla en la franja del dato más letal del producto.
+
+   El token no está mal: `--text3` ya se ajustó una vez para pasar AA sobre las
+   superficies claras normales. Esta franja NO es una superficie normal: lleva un
+   tinte encima, y nadie había medido el metadato sobre él.
+
+   `--text2` da 5.41 : 1 en claro y 7.41 : 1 en oscuro sobre ese mismo tinte. Se
+   sube el rol SÓLO aquí dentro, no el token global: el resto del producto usa
+   `--text3` sobre superficies sin teñir, donde ya cumple. */
+.nx-franja-alergias .nx-meta { color: var(--text2); }

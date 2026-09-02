@@ -6491,3 +6491,75 @@ una firma, no certeza. Hay un reverso dedicado a eso.
 de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
 · `tsc` limpio · golden nuevo **6 casos, probado al revés ×4**, uno de ellos
 protegiendo una decisión ajena (REG-365).
+
+---
+
+## Unidad 97 — el tema claro, que llevaba seis unidades sin mirarse
+
+Segunda de la pasada transversal. Capturas en `docs/design/capturas/v97/`.
+
+Seis unidades habían añadido CSS —la banda `.nx-ctx`, el nodo `pasado` del riel,
+`.nx-accion-en-prosa`— y **ninguna se había visto en tema claro**. Este producto
+tiene dos temas y sus tokens no son los mismos.
+
+### 97a · Dos defectos, y uno era mío
+
+| | claro | oscuro | mínimo |
+|---|---|---|---|
+| Nodo `pasado` del riel (70 % de ámbar) | **2.89 : 1** | 3.50 : 1 | 3 : 1 (1.4.11) |
+| `--text3` sobre el tinte de la franja de alergias | **4.49 : 1** | ok | 4.5 : 1 (AA) |
+
+El primero lo introduje en la **unidad 95**. Un `color-mix` contra `transparent`
+se apoya en el fondo, y el fondo es justo lo que cambia entre temas.
+
+El segundo lo encontró el arnés, y cae en la franja del **dato más letal del
+producto**, fallando por una centésima. → **REG-424**.
+
+Lo que sí pasó a la primera: `.nx-ctx` (19.57 : 1 y 6.94 : 1) y
+`.nx-accion-en-prosa` (5.76 : 1) en claro.
+
+### 97b · Y casi midiendo el tema oscuro llamándolo claro
+
+Mi primera sonda escribía la llave equivocada **después** de navegar. El tema no
+cambió y reporté contrastes de oscuro como si fueran de claro. Lo cazó mirar la
+captura, y el arnés de tema ya documentaba esa trampa exacta: «la primera versión
+de este guion no lo hacía y midió el tema oscuro dos veces llamándolo claro».
+Ahora la sonda **comprueba que el tema quedó puesto** y descarta la medida si no.
+
+### 97c · Y otra vez la app en blanco leída como defectos
+
+Una corrida dio `document-title` ausente en casi todas las rutas y un contraste
+de 1.88 : 1. No eran defectos: era la app **sin renderizar** porque el build había
+fallado y el servidor servía un árbol roto. La causa del fallo: **por tercera vez
+en la sesión**, un comentario `{/* */}` dentro de un `{cond && ( … )}`, que sólo
+admite un elemento.
+
+### 97d · Dos errores de forma, cazados por los guardianes del repositorio
+
+1. Puse el color en el `style={{ }}`. El guardián de roles tipográficos lo cazó
+   con razón: es lo que este carril lleva quitando desde la unidad 91 — **la
+   apariencia vive en la hoja, no en el JSX**. Ahora es `.nx-franja-alergias .nx-meta`.
+2. Escribí los hex de los tokens en un comentario y el trinquete de diseño subió
+   **357 → 359**. Tenía razón: los valores viven en `globals.css`.
+
+Y un tercero, mío contra mí: el caso de `el-riel-mira-el-reloj` que mira la hoja
+pedía `amber` dentro de 160 caracteres del selector, y se puso rojo cuando el
+arreglo del contraste añadió un comentario en medio. **Un guardián que se rompe
+al documentar el porqué empuja a no documentarlo.** Ahora mira el bloque.
+
+### RIESGO RESIDUAL
+
+- El arnés de claro corre **axe y foco**, no las sondas de estructura. Si un
+  cambio de tema mueve una caja, no lo ve. Declarado en el propio arnés.
+- `TEMA=auto` —el que tiene la mayoría sin saberlo— no se midió en esta corrida.
+- El nodo `pasado` **no se pudo ver en pantalla**: a las 02:47 del consultorio no
+  hay ninguna cita pasada. Su contraste está calculado por token, no observado.
+- 390 px sólo se midió con axe, no con las sondas de recorte de la unidad 91.
+
+### COMPUERTAS
+
+`npx vitest run` **12 100 de 12 100 — la suite entera en verde**, incluido
+`ops-timeout-y-punto-ciego`, que llevaba toda la sesión rojo (es intermitente por
+carga de la máquina: pasó esta vez, no se arregló) · `el-tema-claro-tambien-cuenta`
+**44 combinaciones · axe 0 · 0 de 91 campos sin foco** · lint **95 = techo** ·
+trinquete de diseño sin deuda nueva · `tsc` limpio.

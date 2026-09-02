@@ -15900,3 +15900,70 @@ falta es una firma, no certeza.
 por fila → 1 rojo; que el aviso afirme una duda clínica («no confirmados») → 1
 rojo; y **etiquetar `presuntivo`** → 1 rojo, que es el que protege REG-365 de un
 arreglo futuro de la procedencia.
+
+---
+
+## REG-424 — dos defectos de contraste que sólo existían en tema claro
+
+**Dónde**: `src/app/globals.css` (`[data-momento='pasado']`,
+`.nx-franja-alergias .nx-meta`) · `src/components/expediente/PatientAnchor.tsx`
+
+### Qué fallaba
+
+Seis unidades de este carril habían añadido CSS —la banda de contexto, el nodo
+del riel, la acción en prosa— y **ninguna se había mirado en tema claro**.
+
+Al mirarlo, dos defectos, y uno era mío:
+
+| | claro | oscuro | mínimo |
+|---|---|---|---|
+| Nodo `pasado` del riel (borde, 70 % de ámbar) | **2.89 : 1** | 3.50 : 1 | 3 : 1 (WCAG 1.4.11) |
+| `--text3` sobre el tinte de la franja de alergias | **4.49 : 1** | ok | 4.5 : 1 (AA) |
+
+El primero lo introduje yo en la unidad 95. El segundo lo encontró el arnés de
+tema claro, y cae en la franja del **dato más letal del producto**, fallando por
+una centésima.
+
+### Causa raíz
+
+Un `color-mix` contra `transparent` **se apoya en el fondo**, y el fondo es
+justo lo que cambia entre temas: el 70 % que daba 3.50 en oscuro daba 2.89 en
+claro. Es literalmente lo que advierte la regla de diseño —«tema claro y oscuro
+deben diseñarse por separado, no invertir colores automáticamente»—.
+
+Y `--text3` no está mal: ya se ajustó una vez para pasar AA sobre las superficies
+claras **normales**. La franja de alergias no es una superficie normal —lleva un
+tinte encima— y nadie había medido el metadato sobre él.
+
+### El arreglo
+
+Ámbar al **85 %**: 3.73 en claro y 4.69 en oscuro. No 75 % —3.13 pasa por 0.13, y
+un token que se mueva un punto lo tira— y no 100 % —el nodo lleno es el del
+momento presente, y éste tiene que seguir siendo hueco—.
+
+Y el metadato de la franja sube a `--text2` (5.41 en claro, 7.41 en oscuro),
+**sólo dentro de la franja**: el resto del producto usa `--text3` sobre
+superficies sin teñir, donde ya cumple.
+
+### Dos errores de forma, cazados por los guardianes del repositorio
+
+1. Puse el color en el `style={{ }}`. El guardián de roles tipográficos lo cazó:
+   es exactamente lo que este carril lleva quitando desde la unidad 91 — la
+   apariencia vive en la hoja, no en el JSX. Ahora es una clase.
+2. Escribí los hex de los tokens en un comentario y el trinquete de diseño subió
+   de 357 a 359. Tenía razón: los valores viven en `globals.css`.
+
+### Qué NO cubre
+
+- El arnés de tema claro corre axe y foco; **no repite las sondas de estructura**
+  —estaticidad, solapes, estados de carga— en claro. Si un cambio de tema mueve
+  una caja, esto no lo ve. Está declarado en el propio arnés.
+- No se midió `TEMA=auto` en esta corrida.
+- El nodo `pasado` no se pudo ver en pantalla: a las 02:47 del consultorio no hay
+  ninguna cita pasada. Su contraste está calculado por token, no observado.
+
+**Prueba.** El arnés `el-tema-claro-tambien-cuenta` — **44 combinaciones, axe 0,
+0 de 91 campos sin foco** — y `el-riel-mira-el-reloj`, cuyo caso de la hoja se
+corrigió: pedía `amber` dentro de 160 caracteres del selector y se puso rojo
+cuando el arreglo añadió un comentario en medio. **Un guardián que se rompe al
+documentar el porqué empuja a no documentarlo**; ahora mira el bloque de la regla.

@@ -145,6 +145,16 @@ describe('el riel mira el reloj, no sólo el estado', () => {
 
   it('la hoja atenúa lo pasado y dibuja su nodo distinto de «hecho»', () => {
     expect(CSS).toMatch(/\[data-momento='pasado'\] \.riel-nombre/)
-    expect(CSS).toMatch(/\[data-momento='pasado'\] \.riel-nodo::before[\s\S]{0,160}amber/)
+    /*
+     * Se mira el BLOQUE de la regla, no una ventana de N caracteres.
+     * La primera versión pedía `amber` dentro de los 160 caracteres siguientes
+     * al selector, y se puso en rojo cuando el arreglo del contraste añadió un
+     * comentario en medio: el guardián falló por la LONGITUD DE UN COMENTARIO,
+     * no por el estilo. Un guardián que se rompe al documentar el porqué empuja
+     * a no documentarlo.
+     */
+    const i = CSS.indexOf("[data-momento='pasado'] .riel-nodo::before")
+    const bloque = CSS.slice(i, CSS.indexOf('}', i))
+    expect(bloque).toMatch(/amber/)
   })
 })

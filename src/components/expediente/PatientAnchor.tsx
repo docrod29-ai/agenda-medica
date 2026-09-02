@@ -189,7 +189,10 @@ export function PatientAnchor({
           <AlertTriangle size={14} style={{ flexShrink: 0 }} /> {errorPaciente}
         </div>
       ) : (
-        <div style={{
+        /* `nx-franja-alergias`: la HOJA necesita poder hablar de esta franja
+           —lleva un tinte encima y sus metadatos no contrastan igual que sobre
+           una superficie normal—. Ver `globals.css`. */
+        <div className="nx-franja-alergias" style={{
           ...alertaEstilo,
           color: alergenos.length ? 'var(--red)' : alergiasNegadas ? 'var(--text2)' : 'var(--amber)',
           background: alergenos.length
@@ -210,6 +213,32 @@ export function PatientAnchor({
               ? alergenos.join(' · ')
               : alergiasNegadas ? 'negadas por el paciente' : 'no registradas'}
           </span>
+          {/*
+            ── `--text3` NO LLEGA A AA SOBRE EL TINTE DE ESTA FRANJA ──────────
+            Medido por el arnés de tema claro: **4.49 : 1** de `--text3` sobre el
+            crema rojizo de la franja de alergias, en tema claro. AA pide 4.5, así
+            que falla por una centésima — y falla en la franja del dato más letal
+            del producto.
+
+            (Los valores concretos de cada token viven en `globals.css`, que es su
+            sitio: escribirlos aquí sube el contador de hex del trinquete de
+            diseño, y con razón.)
+
+            El token no está mal: `--text3` ya se ajustó una vez para pasar AA
+            sobre las superficies claras normales. Lo que pasa es que esta franja
+            NO es una superficie normal: lleva un tinte rojo encima, y nadie
+            había medido el metadato sobre él.
+
+            Sube a `--text2`, que da 5.41 : 1 en claro y 7.41 : 1 en oscuro sobre
+            ese mismo tinte. No se toca el token global: se sube el rol del
+            metadato que vive DENTRO de esta franja.
+
+            Y se hace en la HOJA (`.nx-franja-alergias .nx-meta`), no con un color
+            en el `style={{ }}`. Mi primera versión lo puso en línea y el guardián
+            de roles tipográficos lo cazó con razón: es exactamente lo que este
+            carril lleva quitando desde la unidad 91 — la apariencia vive en la
+            hoja, no en el JSX.
+          */}
           {ultimoCambio && (
             <span className="nx-meta" style={{ marginLeft: 'auto' }}>
               Último cambio: {TIPO_NOTA_LABEL[ultimoCambio.tipo]} · {formatoRelativo(ultimoCambio.fechaConsulta || ultimoCambio.createdAt)}
