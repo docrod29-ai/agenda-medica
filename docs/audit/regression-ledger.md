@@ -17385,3 +17385,93 @@ el navegador, con y sin él: 245 contra 0, un evento de scroll contra ninguno.
   con `aria-current`: navegan dentro de la página, no cambian de panel. La sonda
   contó cero pestañas y eso NO es un defecto — queda escrito para que nadie lo
   «arregle».
+
+## REG-439 — el selector de fecha oculto se comía tres tabuladores
+
+**CÓMO SE DESCUBRIÓ.** Recorriendo `/citas` **con el teclado** a 390 px contra
+el arnés de emuladores: treinta pulsaciones de Tab, apuntando de cada parada qué
+recibió el foco, cuánto medía y si el indicador se podía ver.
+
+La agenda enseña un botón de calendario de 44×44 —«Elegir una fecha en el
+calendario»— que abre por programa un `<input type="date">` escondido. El input
+vive oculto **con su razón escrita**: el control nativo enseñaría «08/09/2026»,
+formato de Estados Unidos, en un producto es-MX.
+
+Lo que nadie había mirado es que **seguía en el orden de tabulación**:
+
+```
+Elegir una fecha en el calendario   44×44
+Ir a una fecha                      1×1   ← día
+Ir a una fecha                      1×1   ← mes
+Ir a una fecha                      1×1   ← año
+```
+
+Un `input[type=date]` nativo tiene un tramo tabulable por segmento. Tres
+pulsaciones de Tab dentro de una caja de un píxel, con el anillo de foco de 2 px
+dibujado sobre ella: **el foco existía y no se podía ver** (WCAG 2.2 §2.4.7).
+
+**CAUSA RAÍZ.** «Enfocable» y «parada del tabulador» se trataron como lo mismo.
+Sólo hacía falta lo primero: el input se enfoca **por programa** cuando el botón
+lo abre.
+
+**EL ARREGLO.** `tabIndex={-1}`. Comprobado en el navegador, no deducido:
+enfocando el botón visible y pulsando **Enter**, `showPicker()` se llama, sin
+`NotAllowedError` —una pulsación de teclado cuenta como activación de usuario— y
+sin un solo error de consola.
+
+### Lo que apareció en la misma mirada
+
+El filtro «8 citas» medía **39 px de ancho**, cinco por debajo del mínimo, en un
+renglón donde los filtros están a 14 px unos de otros. No es prosa —es un control
+suelto—, así que no le vale la excepción de §2.5.8. Cinco píxeles de `min-width`
+y el renglón se pinta igual: no se partió, «Estado…» sigue cabiendo.
+
+| | Antes | Después |
+|---|---|---|
+| Paradas de tabulador de 1×1 en `/citas` | **3** | **0** |
+| Paradas sin indicador de foco visible | 1 | **0** |
+| Objetivos táctiles bajo 44 px | 2 | **0** |
+
+### La sonda gritó en falso, y se afinó
+
+`mirar-la-consulta.mjs` contaba el input de 1 px como objetivo táctil pequeño.
+No lo es: está fuera del orden de tabulación y tiene un control visible
+equivalente al lado; §2.5.8 habla de objetivos de **puntero**. Se afinó para no
+contar un auxiliar oculto, y **se comprobó que la afinación no tapa nada**: en
+`/consulta` siguen saliendo los dos «ya no» de 34×44 y en `/expediente` sigue
+saliendo cero.
+
+Segunda vez que esta sonda grita en falso. La lección es de REG-434: una sonda
+que grita en falso se acaba ignorando.
+
+### Y la sonda de teclado midió el recorrido de bienvenida
+
+Su primera corrida devolvió «Saltar / Siguiente / Saltar» en bucle: era el modal
+de bienvenida, que tiene trampa de foco —correcta— y hay que cerrar antes. Sin
+eso lo que se mide es el recorrido, no la pantalla. Queda cerrado en el guion.
+
+### Probado al revés
+
+Quitando el `tabIndex={-1}` cae el caso del tabulador; quitando el `min-width`
+del `.riel-filtro` cae el de los filtros. Y en el navegador: 3 paradas de 1×1
+contra 0, y 1 parada sin foco visible contra 0.
+
+### Estado
+
+**CLOSED.**
+`src/__tests__/el-selector-de-fecha-oculto-se-comia-tres-tabuladores.test.ts`
+(6 casos) más `scripts/ausculta-transformacion/caminar-con-el-teclado.mjs`.
+
+### Qué NO cubre
+
+- **El guardián es de fuente.** El recorrido de teclado lo mide la sonda, y **la
+  sonda no corre en CI**.
+- **No es un iPhone ni un lector de pantalla.** Chromium a 390 px con teclado;
+  cómo lo anuncia VoiceOver no se ha comprobado.
+- **No comprueba que el selector nativo sea usable por dentro con teclado.** Eso
+  lo pone el navegador; aquí sólo se comprueba que se abre.
+- **No mira el resto de `/citas`**: las tarjetas de cita, el menú de tres puntos
+  y el buscador quedan sin recorrer con teclado.
+- **`/pendientes` se miró y no se tocó.** Sale vacío en la siembra y su estado
+  vacío está bien resuelto: dice qué aparecería y por qué. Juzgarlo de verdad
+  pide sembrar pendientes, y eso queda pendiente.

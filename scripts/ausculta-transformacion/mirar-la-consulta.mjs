@@ -59,7 +59,19 @@ const m = await p.evaluate(() => {
   const vis = e => { const r = e.getBoundingClientRect()
     return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none' }
   const controles = [...document.querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="tab"]')].filter(vis)
-  const chicos = controles.filter(e => { const r = e.getBoundingClientRect(); return r.width < 44 || r.height < 44 })
+  /**
+   * Un elemento FUERA del orden de tabulación y de uno o dos píxeles no es un
+   * objetivo táctil: es un auxiliar que abre un control visible de al lado (el
+   * `input[type=date]` oculto de la agenda, REG-439). Contarlo era gritar en
+   * falso, y una sonda que grita en falso se acaba ignorando — la lección de
+   * REG-434. WCAG 2.5.8 habla de objetivos de PUNTERO; esto no lo es.
+   */
+  const auxiliarOculto = (e, r) => e.tabIndex < 0 && (r.width <= 2 || r.height <= 2)
+  const chicos = controles.filter(e => {
+    const r = e.getBoundingClientRect()
+    if (auxiliarOculto(e, r)) return false
+    return r.width < 44 || r.height < 44
+  })
   const nombre = e => (e.getAttribute('aria-label') || e.innerText || e.getAttribute('placeholder') || e.tagName).trim().replace(/\s+/g, ' ').slice(0, 40)
   const noBoton = [...document.querySelectorAll('[onclick], [role="button"]')].filter(e => vis(e) && e.tagName !== 'BUTTON' && e.tagName !== 'A')
   const campos = [...document.querySelectorAll('input, select, textarea')].filter(vis)

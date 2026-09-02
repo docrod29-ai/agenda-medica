@@ -3364,6 +3364,11 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   font-size: 13px; color: var(--text2); font-family: inherit;
   border-bottom: 2px solid transparent;
   min-height: 30px;
+  /* «8 citas» medía 39 px de ancho: cinco por debajo del mínimo táctil, en un
+     renglón donde los filtros están a 14 px unos de otros. No es prosa —es un
+     control suelto—, así que no le vale la excepción de WCAG 2.2 §2.5.8 para
+     lo que va dentro de una frase. Cinco píxeles y ya. Ver REG-439. */
+  min-width: 44px;
 }
 .riel-filtro[aria-pressed='true'] {
   color: var(--nexus); border-bottom-color: var(--nexus-solido); font-weight: 600;
