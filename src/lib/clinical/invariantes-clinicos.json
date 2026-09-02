@@ -950,7 +950,7 @@
     },
     {
       "archivo": "src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts",
-      "minCasos": 6
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-version-del-prompt-no-miente.test.ts",

@@ -999,10 +999,25 @@ sirva esa versión—, y sigue comparando el repositorio contra el sitio vivo. L
 que se quita es una comparación de un archivo consigo mismo.
 
 **LA PRUEBA.**
-`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts` (6 casos).
-Probado al revés en las dos formas de romperlo: devolviendo `VERSION_ESPERADA` a
-`env:` cae el caso principal, y quitándola sin derivarla cae el que vigila que se
-derive — porque dejar la variable vacía sería peor que el defecto original.
+`src/__tests__/la-version-del-boton-no-se-escribe-dos-veces.test.ts` (8 casos).
+Probado al revés en las tres formas de romperlo: devolviendo `VERSION_ESPERADA` a
+`env:` cae el caso principal; quitándola sin derivarla cae el que vigila que se
+derive —porque dejar la variable vacía sería peor que el defecto original—; y
+**bajando el paso de derivación por debajo de la Compuerta 1** cae el que vigila
+el ORDEN.
+
+Los dos últimos casos (el orden, y su mutilación) se añadieron al absorber el
+PR #426, que había encontrado el mismo defecto por su cuenta y traía esa
+comprobación de más. Se quedó la comprobación, no el archivo duplicado: dos
+goldens sobre el mismo workflow son la misma familia de defecto que REG-504.
+
+**Por qué el orden importa y no es paranoia.** El paso puede existir, leer el
+archivo correcto y exportar a `GITHUB_ENV`, y no servir de nada si vive DESPUÉS
+de la Compuerta 1. Con `set -euo pipefail`, una variable **sin definir** aborta
+—eso se salva solo—; pero un `version.txt` en blanco define `VERSION_ESPERADA`
+como cadena **vacía**, y entonces las compuertas 1 y 3 comparan contra la nada y
+pasan las dos. Por eso la derivación rechaza una versión sin forma **antes** de
+exportarla, y por eso se vigila que esté arriba.
 
 **QUÉ NO CUBRE, DECLARADO.**
 
