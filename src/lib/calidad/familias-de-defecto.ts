@@ -351,7 +351,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Se descubrió acompañando al dueño a hacerlo a mano, y viendo la consola
      * vacía en su pantalla.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431],
+    /**
+     * 434 es el cuarto de la tanda del teléfono (425, 426, 427) y el más caro,
+     * porque llegó a PRODUCCIÓN y estuvo en la primera pantalla del producto:
+     * la regla que coloca la cita en su columna existía —`grid-column: 3`— y
+     * vivía DENTRO de la media query de 1000 px. Escrita, correcta, y sin
+     * aplicarse en el camino que recorre la mayoría, que es un teléfono.
+     *
+     * Y lo que lo hace de esta familia y no de otra: por debajo de 1000 px la
+     * maquetación seguía «funcionando». La auto-colocación de `grid` no falla
+     * ni avisa: coloca. El párrafo cayó en la columna de 34 px del número y se
+     * derramó a una palabra por renglón, sin desbordar, sin romper axe y sin
+     * tocar un blanco táctil. Cinco compuertas verdes sobre una pantalla
+     * ilegible.
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431, 434],
   },
   {
     clave: 'se_contradice',
@@ -1087,7 +1101,26 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * orden sigue siendo el correcto; lo que ya no depende de la memoria es el
      * daño.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 502, 504, 505],
+    /**
+     * 435 es esta familia en el PAPEL que entra al procedimiento, no en el dato.
+     *
+     * 241 y 505 arreglaron el tablero; nadie ató a él el encabezado de las actas
+     * de paquete. Resultado: la de v1172 llevaba cinco días diciendo «nadie ha
+     * desplegado nada» de algo publicado, y la de v1175 afirmaba el despliegue
+     * SIN CITAR la ejecución — que es 505 otra vez, en otro documento.
+     *
+     * Lo que la distingue de 416 es a quién engaña. 416 dejaba el repositorio
+     * declarando rotas unas protecciones que ya regían: se leía como alarma. Ésta
+     * se lee como permiso — un acta que dice que no se ha desplegado nada invita a
+     * desplegar, y un despliegue arrastra TODO lo no desplegado, no lo que el
+     * acta enumera.
+     *
+     * Su lección: la familia no acaba en el dato derivado. Alcanza a cualquier
+     * documento que sea ENTRADA de un procedimiento, y esos no se derivan de
+     * nada — se cierran a mano. Lo único que se puede automatizar es que olvidarlo
+     * ponga la suite en rojo.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 502, 504, 505],
   },
   {
     /**

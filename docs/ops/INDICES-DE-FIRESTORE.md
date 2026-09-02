@@ -3,40 +3,20 @@
 > **Estado**: **doce** índices declarados y **las consultas ya los usan**
 > (REG-421, REG-422, REG-423).
 >
-> **DESPLEGADOS Y CONSTRUIDOS — 2-sep-2026.** Los doce están `Enabled` en la
-> consola del proyecto `nexomed-agenda`. Lo comprobó el dueño en su pantalla,
-> que es el único sitio donde ese dato existe: ninguna prueba de este
-> repositorio puede decirlo.
->
-> Se enviaron desde el propio botón, ejecución
+> **DESPLEGADOS Y CONSTRUIDOS — 2-sep-2026.** Los doce dicen `Habilitado` en la
+> consola de `nexomed-agenda`. Enviados por la ejecución
 > [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
-> del **1-sep 23:51 UTC** sobre `c7eb7032` — la primera que llegó a publicarlos.
-> Su paso dijo `deploying indexes…` y `deployed indexes … successfully`, la línea
-> que **nunca** había aparecido. La [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33573846056)
-> (2-sep 00:07 UTC) corrió sobre el **mismo árbol** catorce minutos después y
-> republicó lo mismo: el paso es idempotente, no hubo doble publicación de nada.
+> del botón (1-sep 23:51 UTC) y comprobados uno a uno al día siguiente.
+> El detalle, con los identificadores del proyecto, en «POR FIN SE ENVIARON» y
+> «CONSTRUIDOS», abajo.
 >
-> **Hicieron falta DOS arreglos, y el segundo sólo se vio cuando el primero dejó
-> de taparlo.** REG-431 hizo que `firebase.json` declarara el archivo; hasta
-> entonces el paso no publicaba nada y devolvía `success`. Declarado el archivo,
-> la ejecución [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699)
-> por fin lo intentó de verdad y contestó:
+> **Esta cabecera decía antes «OCHO de los doce se enviaron el 31-ago».** Era
+> falso, y se deja escrito el número falso porque la lección no es el número: se
+> contaba sobre **el árbol desplegado** —cierto, y del todo insuficiente— en vez
+> de sobre **el proyecto**. Eran **cero**. Ver REG-431.
 >
-> ```
-> Error: Request to https://firestore.googleapis.com/v1/projects/nexomed-agenda/
-> databases/(default)/collectionGroups/appointments/indexes had HTTP Error: 403,
-> The caller does not have permission
-> ```
->
-> A la cuenta de servicio le faltaba `roles/datastore.indexAdmin`: **publicar
-> reglas y crear índices son permisos distintos**, y tenía sólo el primero. El
-> dueño lo concedió en IAM, y la #15 pasó. Era exactamente la duda que REG-431
-> había dejado declarada en su «qué NO cubre», y salió cierta.
->
-> Con eso queda cerrado el renglón que este documento traía abierto desde el
-> 31-ago. **Lo que sigue en pie es el ORDEN**: un índice nuevo se despliega
-> ANTES del código que lo usa, y se espera a verlo `Enabled`. Léase «El orden
-> importa» antes de fusionar nada que añada uno.
+> Y enviar no es construir: ver «El envío no es la construcción».
+> **Léase «El orden importa» antes de fusionar nada que añada un índice nuevo.**
 >
 > El número de arriba y la tabla de abajo **no se escriben a mano**: los vigila
 > `src/__tests__/el-indice-que-nadie-declaro.test.ts` contra
@@ -74,13 +54,33 @@ fallando**: por eso se despliega, se espera, y se comprueba en la consola
 (https://console.firebase.google.com/project/nexomed-agenda/firestore/indexes)
 que los **doce** dicen **Habilitado**, no «Compilando».
 
-## Estuvieron sin desplegar desde siempre, y ya no — REG-431, cerrado el 2-sep
+## POR FIN SE ENVIARON — ejecución #15, 1-sep-2026 23:50 UTC
 
-> **CERRADO.** El 2-sep-2026 se desplegaron desde el botón y el dueño los vio
-> `Enabled` en la consola. Lo de abajo es el diagnóstico, que se conserva porque
-> explica **por qué** un `success` no valía y qué hay que seguir mirando. No se
-> reescribe: un acta que se corrige sirve para reconstruir qué se sabía y cuándo;
-> una que se borra, no.
+**El paso «Firestore · desplegar ÍNDICES» cerró en `success` por primera vez en
+la historia del proyecto** ([ejecución
+#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371),
+sobre `c7eb703`).
+
+Hicieron falta **dos** arreglos, y el segundo sólo se vio cuando el primero
+dejó de tapar:
+
+1. **REG-431** — `firebase.json` nunca declaró `firestore.indexes.json`, así que
+   el paso no publicaba nada y devolvía `success`.
+2. **El permiso** — declarado el archivo, el paso por fin lo intentó de verdad y
+   contestó `HTTP 403 · The caller does not have permission` (ejecución #14). A
+   la cuenta `firebase-adminsdk-fbsvc@nexomed-agenda.iam.gserviceaccount.com` le
+   faltaba **`roles/datastore.indexAdmin`**: publicar reglas y crear índices son
+   permisos distintos, y tenía el primero. El dueño lo concedió en IAM el
+   1-sep-2026.
+
+REG-431 había declarado exactamente esta duda en su «qué NO cubre»: «que el
+archivo esté declarado no dice que la credencial tenga permiso de escribir
+índices». Salió cierta.
+
+**Y `success` aquí sigue queriendo decir ENVIADOS, no construidos** — la sección
+siguiente no cambia ni una coma.
+
+### Lo que había antes, y por qué se guarda
 
 **Medido en la consola el 1-sep-2026**: `Firestore → Índices → Manuales` del
 proyecto `nexomed-agenda` estaba **vacía**. Cero índices compuestos.
@@ -97,9 +97,10 @@ deriva los objetivos del `--only` del workflow real y exige que cada uno esté
 declarado.
 
 **Consecuencia para la tabla de abajo**: la columna «¿enviado?» decía ocho.
-**Son cero.** Se dejó de contar sobre el árbol desplegado —que era cierto y era
-insuficiente— porque enviar el archivo y que el archivo esté declarado son dos
-cosas distintas, y sólo la segunda se puede medir desde aquí.
+**Eran cero** hasta la ejecución #15. Se dejó de contar sobre el árbol
+desplegado —que era cierto y era insuficiente— porque enviar el archivo y que el
+archivo esté declarado son dos cosas distintas, y sólo la segunda se puede medir
+desde aquí.
 
 ## El envío no es la construcción
 
@@ -113,19 +114,58 @@ distintas que salen del mismo comando:
 
 | Qué dijo el despliegue | Qué demuestra | Qué NO demuestra |
 |---|---|---|
-| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | Que `firestore.indexes.json` llegó al proyecto | Que los índices estén **construidos** |
-| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064), **releído** | Nada. `firebase.json` no declaraba el archivo: no había qué publicar (REG-431) | — |
-| **`failure`** el 1-sep, ejecución [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699) | Que con el archivo ya declarado faltaba **el permiso**: `403, The caller does not have permission` al crear el índice de `appointments` | El acta lo rotuló `FIRESTORE_RULES=failure` — y las reglas habían pasado. Eso es REG-433 |
-| `success` el **1-sep 23:51**, ejecución [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371), con `deploying indexes…` en el log | Que los doce se **enviaron** de verdad, ya con `roles/datastore.indexAdmin` concedido | Seguía sin demostrar que estuvieran construidos |
-| La consola, mirada por el dueño el **2-sep-2026** | Que los doce dicen `Enabled` | Nada más: es el dato que faltaba, y no vuelve a comprobarse solo |
+| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | **Nada.** El objetivo no estaba declarado: el comando no publicó ningún índice (REG-431) | Ni el envío ni la construcción |
+| `success` el 1-sep, [ejecución #15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371), paso propio «desplegar ÍNDICES» | Que `firestore.indexes.json` **llegó al proyecto**, esta vez de verdad | Que los índices estén **construidos** |
 
-**Eso que faltaba, y que no puede vivir en este repositorio** —abrir la consola
-de Firestore del proyecto `nexomed-agenda`, pestaña de índices, y comprobar que
-cada uno dice `Enabled` y no `Building` ni `Error`— **está hecho: 2-sep-2026**.
+### CONSTRUIDOS — comprobado en la consola el 2-sep-2026
 
-Sigue sin poder vivir aquí. El día que se declare el índice **trece**, esta misma
-comprobación vuelve a hacer falta y nadie de este lado la va a echar de menos: la
-regla del `FAILED_PRECONDITION` de abajo sigue en pie tal cual.
+**Los doce dicen `Habilitado`.** Ni uno en `Compilando`, ni uno en `Error`.
+
+Lo miró el dueño en `Firestore → Índices → Manuales` del proyecto
+`nexomed-agenda`, en las dos páginas del listado (`1-10 de 12` y `11-12 de 12`),
+y mandó la captura de cada una. La misma pestaña que el 1-sep estaba **vacía**.
+
+Y coinciden con lo declarado **campo por campo**, comparando el listado de la
+consola contra `firestore.indexes.json`: doce declarados, doce construidos,
+misma colección, mismos campos, mismo sentido. Ninguno de más — que sería un
+índice huérfano pagándose sin usarse — y ninguno de menos.
+
+Los identificadores que el proyecto les dio, por si hay que buscar uno en la
+consola — la tabla de «Los doce» de abajo sigue siendo la que enumera qué hace
+cada uno, y no se repite aquí para que no puedan divergir:
+
+| ID en el proyecto | Índice |
+|---|---|
+| `CICAgOjXh4EK` | appointments · pacienteId↑ · fechaHora↓ |
+| `CICAgOjXh4EJ` | arco_requests · estado↑ · fechaSolicitud↓ |
+| `CICAgJiUpoMK` | clinic_invitations · clinicId↑ · createdAt↓ |
+| `CICAgJim14AK` | farmacia · activo↑ · nombre↑ |
+| `CICAgJjF9oIK` | farmacia_movimientos · itemId↑ · fecha↓ |
+| `CICAgJj7z4EK` | notas · estado↑ · fechaConsulta↓ |
+| `CICAgOi3kJAK` | platform_cost_ledger · feature↑ · ts↓ |
+| `CICAgNi47oMK` | reviews · estado↑ · publicadaEn↓ |
+| `CICAgNiav4AK` | tareas_clinicas · estado↑ · pesoUrgencia↑ · creadaEn↑ |
+| `CICAgJiUsZIK` | tareas_clinicas · estado↑ · creadaEn↑ |
+| `CICAgNirolEK` | waitlist · estado↑ · prioridad↑ · createdAt↑ |
+| `CICAgNjpgYIK` | waitlist · estado↑ · createdAt↑ |
+
+`__name__` aparece en la consola y no en el archivo: lo añade Firestore solo.
+No es una diferencia.
+
+**Con esto la cadena queda cerrada de punta a punta** — declarados (REG-431) →
+enviados (ejecución #15, tras el rol `roles/datastore.indexAdmin`) →
+**construidos**. Las cuatro consultas que dependían de ellos ya pueden ordenar
+por lo que les toca, y la degradación de REG-424 vuelve a ser lo que debe ser:
+una red por si acaso, no el camino de todos los días.
+
+### Cómo se vuelve a comprobar
+
+Esto **no se puede medir desde el repositorio** y por eso no hay guardián: hay
+que abrir la consola. Se rehace igual —las dos páginas del listado— cada vez
+que se añada un índice nuevo a `firestore.indexes.json`, y el renglón de arriba
+vuelve a abrirse hasta que alguien lo mire. Hasta entonces, ninguna consulta
+nueva puede depender de ellos — la regla del `FAILED_PRECONDITION` de abajo sigue
+en pie tal cual.
 
 ## Los doce, y quién los usa
 
@@ -201,9 +241,8 @@ Regla «el dato tiene que LLEGAR». Sobre datos reales se cuentan **recuentos,
 nunca contenido** — llevan PHI y por eso esto no puede vivir en CI
 (`scripts/verificar-invariantes-de-datos.md`):
 
-1. ~~Los **doce** índices, `Enabled` en la consola. No «enviados».~~
-   **HECHO el 2-sep-2026.** La lista exacta es la tabla «Los doce» de arriba, que
-   sale de `firestore.indexes.json`; se vuelve a mirar cuando esa tabla crezca.
+1. Los **doce** índices, `Enabled` en la consola. No «enviados». La lista exacta
+   es la tabla «Los doce» de arriba, que sale de `firestore.indexes.json`.
 2. En `waitlist`: cuántas entradas hay, y cuántas tienen `prioridad` **y**
    `createdAt`. Los dos números tienen que ser el mismo. Un `orderBy` de
    Firestore **excluye** los documentos a los que les falta el campo — no los

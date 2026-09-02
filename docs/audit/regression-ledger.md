@@ -16695,6 +16695,18 @@ arreglo y se comprueba que el guardián lo caza.
   que la credencial tenga permiso de escribir índices, ni que Firestore termine
   de construirlos. Eso se mira en la consola, del otro lado, y sigue siendo
   `BLOCKED_EXTERNAL`.
+
+  **CERRADO el 2-sep-2026, y esta duda salió cierta las dos veces.** El permiso
+  faltaba: declarado el archivo, el paso lo intentó de verdad y contestó
+  `403 · The caller does not have permission` (ejecución #14). A la cuenta de
+  servicio le faltaba `roles/datastore.indexAdmin` — publicar reglas y crear
+  índices son permisos distintos, y tenía sólo el primero; lo concedió el dueño
+  en IAM. Con él, la ejecución #15 los envió, y la consola enseña **los doce en
+  `Habilitado`**, coincidiendo campo por campo con `firestore.indexes.json`.
+  Ver `docs/ops/INDICES-DE-FIRESTORE.md`.
+
+  Que la sección «qué NO cubre» de este REG describiera con precisión el fallo
+  que vendría después es el argumento entero a favor de escribirlas.
 - **Sólo lee el workflow de producción.** Un despliegue a mano con otro `--only`
   no lo ve nadie.
 - **No dice cuánto tiempo llevaba así.** El acta del 31-ago es la primera
@@ -16863,9 +16875,14 @@ todo `if` que dependa de un paso concreto lo declare.
 (8 casos, probado al revés: reponer el paso único o quitar los `!cancelled()`
 lo pone rojo).
 
-El **403 sigue abierto y es externo**: falta `roles/datastore.indexAdmin` en la
-cuenta de servicio del proyecto `nexomed-agenda`, y eso se concede en IAM.
-`BLOCKED_EXTERNAL`, como REG-431.
+El **403 quedó cerrado el 2-sep-2026**: el dueño concedió
+`roles/datastore.indexAdmin` a
+`firebase-adminsdk-fbsvc@nexomed-agenda.iam.gserviceaccount.com`, y la
+[ejecución #15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371)
+cerró en `SUCCESS` con los dos pasos nuevos en verde por separado —
+`FIRESTORE_RULES` y `FIRESTORE_INDICES`— y con el sello de las reglas emitido,
+que en la #14 se había saltado. Las tres comprobaciones contra el sitio vivo,
+que la #14 dejó en `skipped`, corrieron y pasaron.
 
 ### Qué NO cubre
 
@@ -16875,3 +16892,179 @@ cuenta de servicio del proyecto `nexomed-agenda`, y eso se concede en IAM.
 - **No comprueba que los índices se construyan.** `firebase deploy` contesta al
   ENVIAR; la construcción va por su cuenta y puede fallar después, con el
   `success` ya impreso.
+
+## REG-434 — la cita de la portada se pintaba con una palabra por renglón
+
+**CÓMO SE DESCUBRIÓ.** El dueño abrió el sitio **en su iPhone** y mandó cuatro
+capturas. En «El recorrido», cada uno de los nueve pasos lleva debajo la cita
+del fallo real que lo hizo necesario, y las nueve salían así:
+
+```
+│ El
+│ paciente
+│ nunca
+│ ve
+│ un
+│ borrador.
+```
+
+Veintidós palabras en veintidós renglones, en la primera pantalla del producto,
+**en producción**.
+
+### La causa raíz, y no es de WebKit
+
+`.nx-camino-paso` es una rejilla de dos columnas —`46px` para el número, el
+resto para el texto— y `.nx-camino-prueba` **no declaraba en cuál va**. La
+auto-colocación de `grid` la mete entonces en la primera celda libre, que en la
+fila 3 es la de la IZQUIERDA: la del número.
+
+Arriba de 1000 px sí había `grid-column: 3` explícito, dentro de la media query
+que le da su propia columna. Por eso el defecto vivía **sólo por debajo de
+1000 px**, y por eso ninguna captura de escritorio lo enseñaba.
+
+Reproducido en Chromium, medido:
+
+| ancho | ancho de la cita | palabras / renglones |
+|---|---|---|
+| 390 | **34 px** de 342 disponibles | 23 / 23 = **1,0** |
+| 640 | **34 px** de 592 | 23 / 23 = **1,0** |
+| 900 | **46 px** de 852 | 23 / 22 = 1,05 |
+| 1000 | 374 px de 952 | 23 / 2 = 11,5 ← aquí sí había regla |
+
+Después: 290 px a 390, 540 a 640, 788 a 900.
+
+### Por qué CINCO compuertas verdes no lo vieron
+
+Esto es lo que hay que aprender, porque el defecto llegó a producción:
+
+- **No desborda a lo ancho.** Cabe: el texto se ajusta a la tira.
+- **No falla axe.** Contraste, roles y etiquetas, correctos.
+- **No rompe el blanco táctil.** Ni siquiera es un control.
+- **No sale en escritorio**, que es donde más se mira.
+- El alto de la página creció, pero **nadie vigilaba el alto de esa sección**.
+
+La única comprobación que lo habría cazado no existía: **contar palabras por
+renglón**. Ahora existe —
+`scripts/ausculta-transformacion/ningun-texto-cae-en-una-astilla.mjs`— y recorre
+las doce rutas públicas en cuatro anchos.
+
+### La sonda gritó en falso antes de servir
+
+Su primera versión acusó **25 sitios; 24 estaban sanos**. Contaba con
+`textContent`, que pega los textos hijos sin espacio —«⭐ Estándar» +
+«Razonamiento…» = «EstándarRazonamiento»— y subcontaba las palabras de cada
+celda de tabla. Con `innerText` y el filtro de proporción —la astilla es mucho
+más angosta que el sitio que tiene; una celda de 298 px en una fila de 858 es
+una columna y está bien— quedó en **1 de 1**.
+
+Una sonda que grita en falso se acaba ignorando, que es el mismo fallo que este
+carril persiguió en los avisos del portal.
+
+### El arreglo, y el hermano que destapó
+
+`grid-column: 2` en la regla base de la cita. Y al escribir el guardián, éste
+acusó también a `.nx-camino-titulo` y `.nx-camino-texto`: **tampoco declaraban
+columna**. Hoy caen bien por casualidad —la auto-colocación acierta en las filas
+1 y 2 porque el número las ocupa ambas— y basta añadir un hijo, o cambiarle el
+`grid-row` al número, para que se derramen igual sin que el diff enseñe nada.
+Los tres la declaran ahora.
+
+### Probado al revés, y con la hoja SERVIDA
+
+Quitando `grid-column: 2`, la sonda vuelve a acusar **9** (los nueve pasos). El
+primer intento salió INVERTIDO —0 con el fallo puesto y 9 con el arreglo— porque
+`next dev` iba un cambio por detrás: la trampa del CSS rancio, **tercera vez en
+esta rama**. Se rehízo esperando a que la regla apareciera en el `.css` servido,
+no a que pasaran cuatro segundos.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-cita-de-la-portada-cayo-en-la-columna-del-numero.test.ts`
+(5 casos) más la sonda del navegador.
+
+### Qué NO cubre
+
+- **El guardián es de fuente**: comprueba que la columna esté declarada. Que
+  ningún texto caiga en una astilla lo mide la sonda, y **la sonda no corre en
+  CI**.
+- **Sólo mira esta rejilla.** Otro hijo de otro `grid` sin columna declarada
+  tiene el mismo defecto; la sonda sí lo vería, el guardián no.
+- **No es un iPhone.** Se reprodujo y se arregló en Chromium. Que en WebKit real
+  se vea bien lo dice el dueño, que es quien tiene el teléfono.
+
+## REG-435 — el acta de un paquete ya desplegado seguía diciendo «nadie ha desplegado nada»
+
+**CÓMO SE DESCUBRIÓ.** Comprobando la ejecución #15 del botón paso por paso para
+poner al día el acta de `nexusmed-v1179` — que aún se encabezaba con «Estado:
+PREPARADO, NO PUBLICADO» pese a llevar horas en producción. Al bajar a mirar cómo
+lo habían hecho las actas hermanas apareció lo de verdad: **no era una, eran
+tres**, y de dos clases distintas.
+
+| Acta | Versión | Qué decía | Qué era cierto |
+|---|---|---|---|
+| `PAQUETE-PRODUCCION-2026-08-27.md` | v1172 | «Nadie ha desplegado nada» | publicada el 28-ago, ejecución #4 |
+| `PAQUETE-PRODUCCION-2026-08-30.md` | v1175 | «YA SE PUBLICÓ», **sin citar ejecución** | publicada el 31-ago, ejecución #8 |
+| `PAQUETE-PRODUCCION-2026-09-01-v1179.md` | v1179 | «PREPARADO, NO PUBLICADO» | publicada el 1-sep, ejecuciones #15 y #16 |
+
+La de v1172 llevaba **cinco días** así. Las de v1176 y v1177 sí estaban cerradas
+en forma, lo que descarta que faltara la convención: existía y se aplicaba a
+mano, que es exactamente el diagnóstico que `el-tablero-del-loop-no-miente` ya
+tenía escrito desde REG-241 — «mientras no lo derive un script, va a volver a
+pasar».
+
+**CAUSA RAÍZ.** Cerrar un acta era un acto de memoria. Nada ataba el encabezado
+del acta al único sitio que sabe qué sirve producción,
+`agent-state/MASTER_STATE.json → ultimaVersionEnProduccion`, un campo que desde
+REG-505 ya lleva dentro la ejecución que lo confirma.
+
+**POR QUÉ NO ES PAPELEO.** Un acta de paquete no es documentación: es la entrada
+del procedimiento de despliegue, el documento que se abre justo antes de decidir.
+Un acta que dice «nadie ha desplegado nada» de algo ya desplegado invita a
+desplegarlo otra vez — y un despliegue **arrastra todo lo no desplegado**
+(`.claude/rules/deployment-and-flags.md`), no sólo lo que el acta enumera.
+
+La de v1175 es la variante más fina: afirmaba el despliegue **sin su evidencia**.
+Es el defecto que cerró REG-505 —una versión de producción sin la ejecución que
+la confirma es un recuerdo, no un dato— reaparecido en otro papel.
+
+**EL ARREGLO.** Los cinco números que sirvieron para cerrarlas salen del
+repositorio y de la API de Actions, no de la memoria: para cada ejecución en
+verde se leyó el `VERSION_ESPERADA` del workflow **en su propio árbol**, que es
+lo que su Compuerta 3 midió contra el sitio vivo.
+
+Y se añadieron dos casos a `el-tablero-del-loop-no-miente.test.ts`, que es donde
+ya vivían las cuatro veces anteriores de esta misma familia:
+
+1. ningún acta de una versión **≤ la de producción** puede quedarse sin su aviso
+   de SUPERADO **con URL de ejecución**;
+2. al cerrarla **no se le borra** el estado con el que nació.
+
+El segundo salió de un error propio de esta misma sesión: la de v1179 se cerró
+primero sustituyendo «PREPARADO, NO PUBLICADO» por «PUBLICADO». Se lee mejor y
+destruye el dato de qué se sabía al escribirla; las actas ya cerradas lo dicen
+con sus palabras — «un acta que se reescribe deja de servir para reconstruir qué
+se sabía y cuándo».
+
+### Probado al revés
+
+- Quitando el aviso de v1172, el primer caso cae **nombrando el archivo**.
+- Borrando el «PREPARADO, NO PUBLICADO» de v1179, el segundo cae igual.
+- Y el guardián encontró por su cuenta la tercera acta —la de v1175, con
+  SUPERADO pero sin ejecución— que la lectura a ojo había dado por buena.
+
+### Estado
+
+**CLOSED.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts` — 24 casos al
+correr; el sello dice 15 porque cuenta el `it.each` de la memoria del programa
+como uno.
+
+### Qué NO cubre
+
+- **No sale a la red.** No comprueba que la ejecución citada exista ni que
+  cerrara en verde; exige que haya una URL, no que sea la correcta.
+- **No vigila el sentido contrario con fuerza.** Un acta que se declarara
+  publicada sin haberlo sido pasa con sólo inventarse un enlace.
+- **No dice nada de las versiones posteriores a la de producción.** Un acta
+  preparada y aún sin publicar es el caso normal y debe poder existir.
+- **No cierra actas solo.** Sigue haciéndose a mano; lo que cambia es que ahora
+  olvidarlo pone la suite en rojo.

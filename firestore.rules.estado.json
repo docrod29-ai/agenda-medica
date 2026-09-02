@@ -2,18 +2,19 @@
   "porQue": "Las reglas NO se despliegan con `vercel --prod`. Este archivo recuerda cuáles se confirmaron desplegadas, para que el repositorio pueda DERIVAR si las de hoy ya rigen en producción en vez de depender de que alguien se acuerde. Ver docs/ops/REGLAS-DE-FIRESTORE.md.",
   "hashDesplegado": "3032001e141c42eb835674b9219f17a91e491d38f7a7cb55a77177ecbe0e90a9",
   "confirmadoEl": "2026-09-01",
-  "confirmadoPor": "Workflow «Despliegue a producción (manual)» — ejecuciones #11, #12 y #13",
-  "shaDelArbol": "e72f22a9e82025fd3e06beb6982b377adc67d6da",
+  "confirmadoPor": "Workflow «Despliegue a producción (manual)» — ejecuciones #11, #12, #13 y #15",
+  "shaDelArbol": "59a11d6ba6e85a77c704f38dea3dad062d84dcfd",
   "evidencia": {
-    "queLoPublico": "El paso «Firestore · desplegar reglas e índices» de .github/workflows/deploy-production.yml, que corre `firebase deploy --only firestore:rules,firestore:indexes` sobre el árbol de SHA_AUTORIZADO.",
+    "queLoPublico": "El paso «Firestore · desplegar REGLAS» de .github/workflows/deploy-production.yml, que corre `firebase deploy --only firestore:rules` sobre el árbol de SHA_AUTORIZADO. Hasta la ejecución #14 ese paso publicaba reglas E ÍNDICES a la vez y contaba las dos con una sola variable; se partió en dos por REG-433, después de que un 403 en los índices hiciera que el acta imprimiera FIRESTORE_RULES=failure sobre unas reglas que habían salido perfectas.",
     "ejecuciones": [
       "https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862",
       "https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064",
-      "https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206"
+      "https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206",
+      "https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371"
     ],
-    "queDevolvioElActa": "FIRESTORE_RULES = success · PRODUCTION_RELEASE = SUCCESS, en las tres ejecuciones. La #13 es además la primera en la que el paso «Firestore · emitir el sello de las reglas» corrió de verdad: el hash de este archivo ya no se calcula a mano.",
+    "queDevolvioElActa": "FIRESTORE_RULES = success · PRODUCTION_RELEASE = SUCCESS, en las cuatro ejecuciones. La #13 fue la primera en la que el paso del sello corrió de verdad. La #15 es la primera con FIRESTORE_RULES y FIRESTORE_INDICES contados por separado — y la primera en la que los índices se enviaron de verdad, tras concederle a la cuenta de servicio el rol roles/datastore.indexAdmin.",
     "actaCompleta": "docs/maintenance/PAQUETE-PRODUCCION-2026-08-31-v1177.md",
-    "porQueElHashCuadra": "firestore.rules no ha cambiado desde 29502fb9 (30-ago): su sha256 es el mismo en 8f74901d (v1177), en e72f22a9 (v1178) y en el árbol de hoy. Las tres ejecuciones publicaron el mismo archivo.",
+    "porQueElHashCuadra": "firestore.rules no ha cambiado desde 29502fb9 (30-ago): su sha256 es el mismo en 8f74901d (v1177), en e72f22a9 (v1178) y en 59a11d6 (v1179). Las cuatro ejecuciones publicaron el mismo archivo, y por eso el hash no se movió al subir de versión.",
     "loQueNoDemuestra": "Que los ÍNDICES estén construidos. `deploy --only firestore:indexes` contesta al enviar, no al terminar: la construcción es asíncrona y puede fallar después. Ese renglón se cierra mirando la consola del proyecto, no aquí. Ver docs/ops/INDICES-DE-FIRESTORE.md."
   },
   "comoSeActualiza": "SÓLO después de correr `npx firebase deploy --only firestore:rules --project nexomed-agenda` —o el paso del workflow que hace lo mismo— y ver que terminó bien: se pega el sha256 de firestore.rules, la fecha y quién lo corrió. El propio despliegue emite el valor a pegar en su acta (paso «Firestore · emitir el sello de las reglas»), para que no haya que calcularlo de memoria. Nunca se actualiza para poner una prueba en verde: eso convertiría el registro en una mentira sobre lo que rige en producción."
