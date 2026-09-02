@@ -429,7 +429,7 @@ export default function MiPortalPage() {
      * configuración viva del consultorio, que cambiaría el autor de una receta
      * vieja al actualizar el perfil.
      */
-    descargarRecetaWord(
+    void descargarRecetaWord(
       {
         tipo: 'receta',
         folio: `RX-${doc.id.slice(-7).toUpperCase()}`,

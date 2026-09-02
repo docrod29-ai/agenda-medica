@@ -6,11 +6,11 @@
 
 ---
 
-## Checkpoint · 2-sep-2026 — **`PATIENT-AI-001` cerrada · REG-445**
+## Checkpoint · 2-sep-2026 — **`PATIENT-AI-001` cerrada · REG-446**
 
 | | |
 |---|---|
-| **Unidad cerrada** | **`PATIENT-AI-001`** — REG-445 |
+| **Unidad cerrada** | **`PATIENT-AI-001`** — REG-446 |
 | **SHA** | (esta rama) |
 | **Cierra además** | `PATIENT-TELE-002`, el último P0 abierto — **sin reparar nada**: el renglón estaba desfasado, no el producto |
 | **Siguiente** | **`DOCUMENTS-001`** |

@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...menos la plantilla, que es justo lo que hay que versionar: la genera
+# scripts/ops/inventario-de-entorno.mjs y NO lleva ningun valor real.
+!.env.example
 
 # vercel
 .vercel
