@@ -25,13 +25,14 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M src/__tests__/e0-12-sello-integridad.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/hooks/useGrabacionAudio.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/integrity.ts",
-    " M src/types/expediente.ts",
-    "?? src/__tests__/la-ruta-del-audio-llega-a-la-nota.test.ts"
+    " M src/lib/durability/adjuntos.ts",
+    " M src/lib/expediente/audio-caduco.ts",
+    " M storage.rules",
+    "?? src/__tests__/el-audio-conservado-no-lo-barre-el-cron-de-24h.test.ts"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -67,10 +68,10 @@
   ],
   "ramaActual": "claude/consolidar-pendientes-2j663v",
   "derivado": {
-    "regsEnElLedger": 292,
-    "ultimaREG": "REG-509",
-    "archivosDePrueba": 919,
-    "casosDePrueba": 11200,
+    "regsEnElLedger": 293,
+    "ultimaREG": "REG-510",
+    "archivosDePrueba": 920,
+    "casosDePrueba": 11211,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

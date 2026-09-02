@@ -17485,3 +17485,61 @@ en vez de dejarlo nacer fuera en silencio, que es lo que le pasó a `preop`.
   diseño»**, escrito antes de REG-249. Contradice que se conserve por decisión
   del dueño. No se tocó aquí: es del respaldo, y arreglarlo a ciegas dentro de
   otra unidad es cómo se rompen los manifiestos.
+
+
+## REG-510 — el audio que se conserva vivía donde el que se tira, y se borraba a las 24 h
+
+**CÓMO SE DESCUBRIÓ.** Yendo a construir el barrido NOM-004, al preguntarse
+**quién más toca ese prefijo**. La cadena entera salió de tirar de un hilo: el
+reloj de la norma → de qué paciente es cada audio → REG-509, la ruta no llegaba a
+la nota → y aquí, que el archivo tampoco duraba.
+
+**EL DEFECTO.** `guardarAudioDeLaConsulta` escribía el audio **conservado** en
+`consultas-audio/{uid}/…`, el mismo prefijo del audio de **trabajo**, que el cron
+`limpiar-audio` borra a las 24 h.
+
+El audio que el dueño decidió guardar se borraba al día siguiente. El
+clic-a-audio de REG-250 moría solo, en silencio, y **ninguna prueba se ponía
+roja**: cada pieza, por separado, era correcta. El cron hacía exactamente lo que
+prometía; el hook también. Juntos borraban lo que el médico pidió conservar.
+
+**CAUSA RAÍZ, y estaba escrita en el código que falló.** El comentario de REG-249
+lo decía como si fuera una virtud: «la carpeta que ya existía; **no se abre
+ningún sitio nuevo**». Reutilizar el prefijo parecía prudencia y era el defecto:
+dos vidas opuestas —24 horas y cinco años— compartiendo carpeta.
+
+**EL ARREGLO.** `PREFIJO_AUDIO_CONSERVADO = 'consultas-audio-nota/'`, con sus
+reglas de Storage —mismas defensas, y **lectura**, sin la cual `getDownloadURL`
+lanza `storage/unauthorized` y el reproductor no arranca— y su línea en el
+manifiesto de adjuntos.
+
+**Un prefijo, no una excepción dentro del barrido.** La alternativa era preguntar
+objeto por objeto si alguna nota lo referencia: una lectura cruzada por archivo,
+frágil, que falla hacia el lado caro —si la consulta falla, o se borra PHI que
+debía quedarse, o se conserva PHI que debía irse—. Con dos prefijos el invariante
+es **estructural**: el barrido de 24 h no puede alcanzarlo ni equivocándose,
+porque no lo mira. La barra final de `PREFIJO_AUDIO` ya protegía este caso; el
+propio módulo lo tenía escrito para `consultas-audio-viejo/`.
+
+**CLOSED.** `src/__tests__/el-audio-conservado-no-lo-barre-el-cron-de-24h.test.ts`
+(11 casos). **Probado al revés con seis defectos**: volver al prefijo compartido
+(el original) · igualar los dos prefijos · quitar la barra final · **apagar el
+barrido del audio de trabajo** —que sería «arreglarlo» dejando PHI en el bucket
+para siempre— · quitar la lectura de las reglas · volver a llamar «efímero» al
+conservado en el manifiesto.
+
+### Qué NO cubre
+
+- **El audio ya guardado bajo el prefijo viejo se perdió o se perderá.** No hay
+  migración y no se inventa: lo que el cron ya barrió no vuelve, y lo que quede
+  lo barrerá. Sólo el audio nuevo se conserva de verdad.
+- **Las reglas de Storage hay que desplegarlas.** `vercel --prod` no las publica:
+  `npx firebase deploy --only storage`. Hasta entonces el prefijo nuevo **no
+  tiene reglas** y la escritura será rechazada — es acción del dueño, y esta
+  entrada es el aviso.
+- **El respaldo no se lleva el audio.** Ahora está declarado en `adjuntos.ts`:
+  tras una restauración la nota traerá su `audioPath` y el objeto no estará, así
+  que el clic-a-audio quedará mudo. Meter binarios en el respaldo es otra
+  decisión, de tamaño y de coste.
+- **No implementa la caducidad NOM-004**: la desbloquea. Ya hay un sitio con una
+  sola vida que barrer. El barrido es su propia unidad.

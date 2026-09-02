@@ -1,5 +1,6 @@
 'use client'
 import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import { PREFIJO_AUDIO_CONSERVADO } from '@/lib/expediente/audio-caduco'
 import { dudaEnZonaCritica } from '@/lib/expediente/confianza-audio'
 import { UNIDADES_CANONICAS } from '@/lib/asr/politica-critica'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
@@ -587,9 +588,18 @@ async function intentarDiarizar(
  *
  * ── DÓNDE VIVE ──────────────────────────────────────────────────────────────
  *
- * Bajo `consultas-audio/{uid}/`, que es la carpeta que ya existía y cuya regla
- * de lectura se reparó en REG-2xx (`allow read: if request.auth.uid == uid`).
- * No se abre ningún sitio nuevo.
+ * Bajo `consultas-audio-nota/{uid}/` — y **NO** bajo `consultas-audio/`, que es
+ * donde estaba hasta REG-510.
+ *
+ * Aquí vivía el defecto, y el comentario anterior lo enseñaba: decía «la carpeta
+ * que ya existía; no se abre ningún sitio nuevo», como si reutilizarla fuera la
+ * virtud. `consultas-audio/` es el prefijo del audio de TRABAJO, y el cron
+ * `limpiar-audio` lo barre a las 24 h. Este audio se CONSERVA por decisión del
+ * dueño: compartiendo carpeta, se borraba al día siguiente y el clic-a-audio
+ * moría solo, sin que ninguna prueba se pusiera roja.
+ *
+ * Dos vidas distintas, dos sitios distintos. El invariante es estructural: el
+ * barrido de 24 h no puede alcanzarlo ni equivocándose, porque no lo mira.
  */
 async function guardarAudioDeLaConsulta(
   blob: Blob, ext: string, recoveryKey: string,
@@ -598,7 +608,7 @@ async function guardarAudioDeLaConsulta(
   /* Sin clave no se guarda: es una parte de un lote, no una consulta. */
   if (!recoveryKey) return undefined
   const uid = auth.currentUser.uid
-  const path = `consultas-audio/${uid}/${(recoveryKey || 'tmp').replace(/[^\w-]/g, '_')}-${Date.now()}.${ext}`
+  const path = `${PREFIJO_AUDIO_CONSERVADO}${uid}/${(recoveryKey || 'tmp').replace(/[^\w-]/g, '_')}-${Date.now()}.${ext}`
   await uploadBytes(storageRef(storage, path), blob, { contentType: blob.type || 'audio/webm' })
   return path
 }

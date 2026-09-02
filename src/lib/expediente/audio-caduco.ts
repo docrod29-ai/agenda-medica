@@ -34,6 +34,38 @@
 export const PREFIJO_AUDIO = 'consultas-audio/'
 
 /**
+ * DONDE VIVE EL AUDIO QUE SE CONSERVA — y por qué NO es el mismo sitio.
+ *
+ * ── EL FALLO, medido el 2-sep-2026 ──────────────────────────────────────────
+ *
+ * `guardarAudioDeLaConsulta` (REG-249) escribía en `consultas-audio/{uid}/…`, y
+ * su propio comentario lo decía con orgullo: «la carpeta que ya existía; no se
+ * abre ningún sitio nuevo». Ahí estaba el defecto. Ese prefijo es el del audio
+ * de TRABAJO, y este mismo módulo lo borra a las 24 h.
+ *
+ * Resultado: el audio que el dueño decidió CONSERVAR se borraba al día
+ * siguiente. El clic-a-audio de REG-250 moría solo, en silencio, sin que
+ * ninguna prueba se pusiera roja — porque cada pieza, por separado, era
+ * correcta. Dos vidas opuestas compartiendo carpeta.
+ *
+ * ── POR QUÉ UN PREFIJO Y NO UNA EXCEPCIÓN ───────────────────────────────────
+ *
+ * La alternativa era que el barrido preguntara, objeto por objeto, si alguna
+ * nota lo referencia. Eso es una lectura cruzada por archivo, frágil, y falla
+ * hacia el lado caro: si la consulta falla, o se borra PHI que debía quedarse, o
+ * se conserva PHI que debía irse.
+ *
+ * Con dos prefijos el invariante es ESTRUCTURAL: el barrido de 24 h no puede
+ * alcanzar lo conservado ni equivocándose, porque no lo mira. Y la barra final
+ * de `PREFIJO_AUDIO` ya protegía este caso —está escrito arriba, para
+ * `consultas-audio-viejo/`—, así que `esAudioDeConsulta` no casa con éste.
+ *
+ * Su caducidad es OTRA: la NOM-004, cinco años desde el último acto médico del
+ * paciente. No la decide este módulo ni un reloj de horas.
+ */
+export const PREFIJO_AUDIO_CONSERVADO = 'consultas-audio-nota/'
+
+/**
  * Cuánto puede vivir un audio antes de considerarse abandonado.
  *
  * El sondeo de la diarización dura como mucho ~6 minutos. Veinticuatro horas es

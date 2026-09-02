@@ -6,6 +6,30 @@ rules_version = '2';
 // (AssemblyAI lo descarga con la URL de descarga con token, no por reglas.)
 service firebase.storage {
   match /b/{bucket}/o {
+    // ── AUDIO CONSERVADO (REG-510) ─────────────────────────────────────────
+    //
+    // Sitio APARTE del de arriba, y no por orden: por VIDA. `consultas-audio/`
+    // es el audio de trabajo y el cron `limpiar-audio` lo borra a las 24 h.
+    // Éste se conserva por decisión del dueño y caduca por la NOM-004, cinco
+    // años desde el último acto médico del paciente.
+    //
+    // Compartiendo prefijo, el barrido de 24 h se llevaba el audio conservado
+    // al día siguiente y el clic-a-audio moría solo, sin que nada se pusiera
+    // rojo. Separarlos hace el invariante estructural en vez de una excepción
+    // que alguien tiene que acordarse de mantener.
+    //
+    // Mismas defensas que el de trabajo: sólo el dueño, sólo audio, mismo tope.
+    // La lectura es OBLIGATORIA y por la misma razón que abajo: `getDownloadURL`
+    // es un GET de metadatos gobernado por esta regla, y sin ella el reproductor
+    // del clic-a-audio lanza `storage/unauthorized`.
+    match /consultas-audio-nota/{uid}/{allPaths=**} {
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 80 * 1024 * 1024
+        && (request.resource.contentType.matches('audio/.*') || request.resource.contentType.matches('video/webm.*'));
+      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
+
     match /consultas-audio/{uid}/{allPaths=**} {
       // Límites (auditoría maestra 2026-07 / reporte externo): solo AUDIO, y un tope
       // de tamaño, para que nadie con cuenta suba archivos enormes o contenido

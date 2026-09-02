@@ -41,6 +41,7 @@
 export const PREFIJOS_DE_OBJETO: Readonly<Record<string, string>> = {
   'receta-diseno/': 'Membrete, firma y formato de receta del médico — Y TAMBIÉN las fotografías clínicas, que se cuelan aquí porque `subirImagen` usa la misma ruta. Enraizado por `uid` de médico.',
   'consultas-audio/': 'Audio de consulta para diarizar. Efímero por diseño: lo borra el hook y, si la pestaña muere, el cron `limpiar-audio`.',
+  'consultas-audio-nota/': 'Audio CONSERVADO de la consulta, referenciado por `nota.audioPath` (REG-509). Sostiene el clic-a-audio. NO es efímero y el cron de 24 h no lo mira: caduca por la NOM-004, cinco años desde el último acto médico del paciente (REG-510).',
 }
 
 /** El metadato tal como vive en Firestore. */
@@ -176,7 +177,7 @@ export function cruzarObjetos(
 export const LO_QUE_LA_RESTAURACION_NO_TRAE: Readonly<Record<string, string>> = {
   'fotografía clínica': 'Vuelve la ficha (fecha, región, descripción, a qué nota se ligó). NO vuelve la imagen: sus bytes están en Cloud Storage y el respaldo NDJSON no los lleva.',
   'membrete y firma': 'Vuelve la configuración que los referencia. NO vuelven las imágenes.',
-  'audio de la consulta': 'No vuelve, y es correcto: es efímero por diseño. Lo que sí vuelve, dentro de la nota, es `transcripcionMotor` y `transcripcionCruda`.',
+  'audio de la consulta': 'El de TRABAJO (`consultas-audio/`) no vuelve, y es correcto: es efímero. El CONSERVADO (`consultas-audio-nota/`) tampoco vuelve hoy, y eso ya NO es correcto sin decirlo: la nota restaurada traerá su `audioPath` apuntando a un objeto que el respaldo no llevó, así que el clic-a-audio quedará mudo tras una restauración. Declarado en REG-510; meter binarios en el respaldo es su propia decisión, de tamaño y de coste.',
 }
 
 export const POR_QUE_NO_SE_DESCARGA_NI_UN_ARCHIVO =
