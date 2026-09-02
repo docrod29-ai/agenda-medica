@@ -16696,17 +16696,25 @@ arreglo y se comprueba que el guardián lo caza.
   de construirlos. Eso se mira en la consola, del otro lado, y sigue siendo
   `BLOCKED_EXTERNAL`.
 
-  **CERRADO el 2-sep-2026, y esta duda salió cierta las dos veces.** El permiso
-  faltaba: declarado el archivo, el paso lo intentó de verdad y contestó
-  `403 · The caller does not have permission` (ejecución #14). A la cuenta de
-  servicio le faltaba `roles/datastore.indexAdmin` — publicar reglas y crear
-  índices son permisos distintos, y tenía sólo el primero; lo concedió el dueño
-  en IAM. Con él, la ejecución #15 los envió, y la consola enseña **los doce en
-  `Habilitado`**, coincidiendo campo por campo con `firestore.indexes.json`.
-  Ver `docs/ops/INDICES-DE-FIRESTORE.md`.
-
-  Que la sección «qué NO cubre» de este REG describiera con precisión el fallo
-  que vendría después es el argumento entero a favor de escribirlas.
+  > **CERRADO el 2-sep-2026 — y esta duda salió cierta las dos veces.**
+  >
+  > Durante cuatro actas «se publicaron los índices» significó **tres** cosas
+  > distintas y ninguna se distinguía de las otras. Juntarlas fue el defecto, así
+  > que el cierre se escribe partido:
+  >
+  > | | |
+  > |---|---|
+  > | **Declarados** | REG-431, arreglado: `firebase.json` ya nombra `firestore.indexes.json` |
+  > | **Enviados** | Ejecución **#15**, 1-sep 23:51 UTC. Antes hizo falta el permiso: declarado el archivo, el paso lo intentó de verdad y contestó `403 · The caller does not have permission` (ejecución #14). A la cuenta de servicio le faltaba `roles/datastore.indexAdmin` —publicar reglas y crear índices son permisos distintos, y tenía sólo el primero—; lo concedió el dueño en IAM. Y el paso ya corre `--only firestore:indexes` **él solo**, la separación que trajo REG-433, así que su `success` no puede confundirse con el de las reglas |
+  > | **Construidos** | La consola enseña **los doce en `Habilitado`**, coincidiendo campo por campo con `firestore.indexes.json`. Lo miró el dueño el 2-sep. Ver `docs/ops/INDICES-DE-FIRESTORE.md` |
+  >
+  > Que la sección «qué NO cubre» de este REG describiera con precisión el fallo
+  > que vendría después es el argumento entero a favor de escribirlas.
+  >
+  > **Lo que NO cierra**: la tercera fila es una observación **fechada**, no un
+  > estado que se revalide solo. Un índice puede fallar después, y el día que se
+  > declare el trece hay que volver a mirar. Desde este repositorio no se puede
+  > medir, y por eso no hay guardián.
 - **Sólo lee el workflow de producción.** Un despliegue a mano con otro `--only`
   no lo ve nadie.
 - **No dice cuánto tiempo llevaba así.** El acta del 31-ago es la primera
@@ -16883,6 +16891,18 @@ cerró en `SUCCESS` con los dos pasos nuevos en verde por separado —
 `FIRESTORE_RULES` y `FIRESTORE_INDICES`— y con el sello de las reglas emitido,
 que en la #14 se había saltado. Las tres comprobaciones contra el sitio vivo,
 que la #14 dejó en `skipped`, corrieron y pasaron.
+
+> **CERRADO — 2-sep-2026.** El dueño concedió el rol en IAM y lo confirmó en la
+> conversación. La ejecución **#15** (1-sep 23:51 UTC) pasó el paso de índices en
+> `success`, y la #16 lo repitió.
+>
+> Y esto es lo que el arreglo compró, dicho con el caso delante: en la #14 el
+> mismo fallo se presentó como `FIRESTORE_RULES=failure` y mandaba a buscar el
+> problema dentro de `firestore.rules`, que estaba impecable. Con los dos pasos
+> separados, el resumen nombró el rol que faltaba y **dónde se concede** — y por
+> eso se concedió. El arreglo no evitó el 403: hizo que el 403 se pudiera leer.
+>
+> Lo que sigue fuera: que Firestore **termine de construirlos**. Ver REG-431.
 
 ### Qué NO cubre
 

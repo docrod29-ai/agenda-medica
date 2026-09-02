@@ -251,6 +251,47 @@ Es la regla de `.claude/rules/el-dato-tiene-que-llegar.md` aplicada al pie de la
 letra: el dato no llegó cuando la función que lo escribe devolvió éxito; llegó
 cuando se vio del otro lado.
 
+### El acta que emitió
+
+| | |
+|---|---|
+| **Ejecuciones** | [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699) **falló** · [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371) y [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33573846056) **success** |
+| **SHA publicado** | `59a11d6b` — el paquete de este documento |
+| **Versión** | `nexusmed-v1179`, medida contra el sitio vivo |
+
+```
+FIRESTORE_RULES        = success
+FIRESTORE_INDICES      = success      ← el primero de la historia del proyecto
+FIRESTORE_RULES_SHA256 = 3032001e141c42eb835674b9219f17a91e491d38f7a7cb55a77177ecbe0e90a9
+SECURITY_E2E           = success      57 casos contra producción (2 saltados a propósito)
+SMOKE                  = success      10 casos
+SMOKE_PORTAL           = success      POST /api/portal sin enlace → 401
+PRODUCTION_RELEASE     = SUCCESS
+```
+
+**El arreglo de REG-433 no evitó el 403: hizo que el 403 se pudiera leer.** El
+dueño concedió `roles/datastore.indexAdmin` en IAM y volvió a pulsar.
+
+### Se corrió tres veces, y no hubo doble publicación
+
+La #14 en rojo, y la #15 y #16 en verde con quince minutos de diferencia. Las dos
+verdes publicaron lo mismo: el paso de Firestore es idempotente y el árbol
+apuntado era el mismo `59a11d6b`. Se dice porque dentro de seis meses dos
+ejecuciones seguidas parecen un incidente, y no lo fueron.
+
+### Lo que esto cierra, y lo que no
+
+| | |
+|---|---|
+| ¿El archivo declara los índices? | **Sí** (REG-431) |
+| ¿La credencial tiene permiso? | **Sí**, desde el 1-sep |
+| ¿Se enviaron los doce? | **Sí**, ejecución #15 |
+| ¿Están construidos y `Habilitado`? | **Sí**, mirados en la consola el 2-sep — la única de las cuatro que no se puede medir desde aquí |
+
+Las tres primeras filas eran **una sola** hasta esta semana, y ahí estaba el
+defecto: durante cuatro actas «se publicaron los índices» significó tres cosas
+distintas y ninguna se distinguía de las otras.
+
 ### Lo que este §5 sigue sin afirmar
 
 - **Que la degradación por índice ausente se ejerciera de verdad.** Los índices
