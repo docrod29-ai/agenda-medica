@@ -33,6 +33,76 @@ omisión: pulsarlo sin tocar nada **sólo lee y cuenta**.
 
 ---
 
+## HALLAZGO GRAVE — la ruta del audio NUNCA llega a la nota
+
+Encontrado el 2-sep-2026 yendo a construir el borrado NOM-004 que el dueño
+autorizó. **El borrado no se pudo escribir, y es lo de menos: por el camino
+apareció que el clic-a-audio no sobrevive a cerrar la pestaña.**
+
+### Lo que está bien
+
+REG-249 hizo lo difícil: el audio de la consulta **sí se sube y sí se queda** en
+Cloud Storage, por los dos caminos (multipart y lote), y se guarda **la ruta y
+nunca la URL** — porque una URL de descarga lleva un token dentro y guardarlo
+sería dejar una llave escrita en el expediente.
+
+### Lo que no llega
+
+`audioPath` **nunca se escribe en el documento de la nota**. Verificado hoy, tres
+comprobaciones:
+
+- `src/types/expediente.ts` **no declara el campo**.
+- `src/lib/firestore.ts` y `updateNota` **no lo escriben** nunca.
+- En `consulta/[patientId]/page.tsx` sólo aparece una vez, en la línea 6514,
+  pasándolo como **prop** desde el estado en memoria del hook:
+  `audioPath={audio.audioPath}`.
+
+Vive en la sesión del navegador y muere con ella.
+
+### Qué significa, en la consulta de verdad
+
+| | |
+|---|---|
+| Durante la consulta, con la pestaña abierta | El clic-a-audio **funciona** |
+| Al día siguiente, abriendo la nota firmada | **No hay audio**: nadie sabe dónde está |
+| En Storage | El archivo **sigue ahí**, huérfano, sin nada que lo referencie |
+
+Es exactamente el defecto de REG-170 y la regla «el dato tiene que LLEGAR»: la
+prueba de contrato comprueba que el hook **devuelva** la ruta —y la devuelve, con
+11 casos en verde— pero nadie miró **del otro lado**, en el documento real.
+
+### Y por eso el borrado NOM-004 no se puede escribir todavía
+
+El reloj de la norma cuenta desde el **último acto médico del PACIENTE**. Para
+aplicarlo hay que saber de qué paciente es cada audio, y hoy **el único vínculo
+es la ruta**: `consultas-audio/{uid}/…`, donde `uid` es el **MÉDICO**, no el
+paciente.
+
+Un barrido escrito hoy borraría por una antigüedad que no es la de la norma, o no
+borraría nada. **Construirlo primero sería peor que no construirlo.**
+
+### El orden correcto, y por qué no lo hice solo
+
+1. **Que `audioPath` llegue a la nota.** Es el arreglo, y no es pequeño:
+2. **Toca el SELLO.** Añadir un campo a la nota plantea lo mismo que resolvió
+   REG-377 con `transcripcionMotor`: si entra al canónico, **cambia el hash de
+   todas las notas ya firmadas** y las marca «alterada» de golpe — la falsa
+   alarma que ya costó REG-060. Entra con su propio v5, o se declara fuera.
+3. **Toca el respaldo.** `src/lib/durability/adjuntos.ts:179` dice hoy «audio de
+   la consulta: **no vuelve, y es correcto: es efímero por diseño**». Eso se
+   escribió antes de REG-249 y **contradice** que el audio se conserve por
+   decisión del dueño. Una de las dos frases está vieja y hay que decidir cuál.
+4. **Sólo entonces**, el barrido NOM-004: audio elegible cuando
+   `evaluarRetencion` del paciente dé `vencido` — reusando el motor que ya cita
+   la norma (`DIAS_5_ANIOS`, numeral 5.7), sin inventar ningún plazo. Y **nunca**
+   con `no_evaluable`: ausencia de dato no es dato de ausencia.
+
+**Lo que decide el dueño**: el punto 2 —si el audio entra al sello y con qué
+versión— es de la misma familia que D-08 y no lo toma un agente: es irreversible
+sobre documentos firmados con su cédula.
+
+---
+
 ## HALLAZGO NUEVO — el medidor de motores sin conectar cuenta comentarios
 
 Salió al implementar REG-508, y es de la peor familia: **no rompe nada, no avisa,
