@@ -26,11 +26,25 @@
  * este contenedor no tiene. Se intentó, no se pudo ejecutar, y se retiró en vez
  * de dejar ahí código sin probar.
  *
+ * ── SE GENERALIZÓ EN LA SEGUNDA PANTALLA, NO SE CLONÓ ───────────────────────
+ *
+ * Nació midiendo `.cita-principal` en `/dashboard`. `/pendientes` planteó la
+ * misma pregunta sobre otro enlace (`a.nx-ident`, el nombre del paciente que
+ * encabeza cada pendiente) y la respuesta correcta no era un segundo archivo:
+ * dos sondas del mismo mecanismo divergen, y la que mide de más gana por
+ * accidente. Misma lección que `mirar-la-consulta.mjs`.
+ *
  *   npm run arnes:emuladores · arnes:sembrar · arnes:dev
- *   node scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs
+ *   node scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs \
+ *        [ruta] [selector]
+ *
+ * Por omisión `/dashboard` y `.cita-principal`, que es con lo que nació.
  *
  * NO corre en CI: necesita emuladores y navegador.
  */
+const [rutaArg, selArg] = process.argv.slice(2)
+const RUTA = rutaArg || '/dashboard'
+const SEL = selArg || '.cita-principal'
 import { chromium } from 'playwright'
 const nav = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' })
 const ctx = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
@@ -49,20 +63,24 @@ for (let i = 0; i < 15; i++) {
   if (await b.count()) await b.click({ force: true }); else await p.keyboard.press('Escape')
   await p.waitForTimeout(450)
 }
+if (RUTA !== '/dashboard') {
+  await p.goto('http://localhost:3200' + RUTA, { waitUntil: 'domcontentloaded' })
+  await p.waitForTimeout(3000)
+}
 await p.waitForTimeout(1500)
-const n = await p.evaluate(() => document.querySelectorAll('.cita-principal').length)
+const n = await p.evaluate(sel => document.querySelectorAll(sel).length, SEL)
 const out = []
 for (let i = 0; i < Math.min(n, 6); i++) {
   // LA FILA SE TRAE A LA VISTA ANTES DE MEDIR: elementFromPoint sólo ve dentro
   // de la ventana, y devuelve null fuera — un barrido sobre una fila bajo el
   // pliegue mide cero y parece que el arreglo no sirve.
-  await p.evaluate(k => document.querySelectorAll('.cita-principal')[k]
-    .scrollIntoView({ block: 'center', behavior: 'instant' }), i)
+  await p.evaluate(([sel, k]) => document.querySelectorAll(sel)[k]
+    .scrollIntoView({ block: 'center', behavior: 'instant' }), [SEL, i])
   await p.waitForTimeout(120)
-  out.push(await p.evaluate(k => {
-    const el = document.querySelectorAll('.cita-principal')[k]
+  out.push(await p.evaluate(([sel, k]) => {
+    const el = document.querySelectorAll(sel)[k]
     const b = el.getBoundingClientRect(); const x = Math.round(b.left + b.width / 2)
-    const esEl = y => { const h = document.elementFromPoint(x, y); return !!h && h.closest('.cita-principal') === el }
+    const esEl = y => { const h = document.elementFromPoint(x, y); return !!h && h.closest(sel) === el }
     let arriba = Math.round(b.top) + 1, abajo = Math.round(b.bottom) - 1
     for (let y = arriba; y > b.top - 30; y--) { if (!esEl(y)) break; arriba = y }
     for (let y = abajo; y < b.bottom + 30; y++) { if (!esEl(y)) break; abajo = y }
@@ -72,7 +90,7 @@ for (let i = 0; i < Math.min(n, 6); i++) {
       posicionDelEnlace: getComputedStyle(el).position,
       aTresAbajo: q(Math.round(b.bottom) + 3), aUnoAbajo: q(Math.round(b.bottom) + 1),
       texto: (el.innerText||'').trim().replace(/\s+/g,' ').slice(0, 24) }
-  }, i))
+  }, [SEL, i]))
 }
-console.log(JSON.stringify(out, null, 1))
+console.log(JSON.stringify({ ruta: RUTA, selector: SEL, cuantos: n, filas: out }, null, 1))
 await nav.close()

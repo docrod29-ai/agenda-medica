@@ -17890,3 +17890,133 @@ vuelve a pintarse a 380 en una columna de 358.
 - **No es un iPhone.** Chromium a 390 y 1440.
 - **No mide el caso multi-hoja** (`numPages > 1`): la escala mira una hoja y las
   demás sólo alargan el contenedor, pero eso no se ha comprobado a 390.
+
+## REG-506 — la captura llamada «completa» enseñaba un tercio de la pantalla
+
+**DE DÓNDE VIENE.** De sembrar `/pendientes` para poder juzgarla. La pantalla no
+tenía ni una tarea sembrada, así que salía siempre en su estado vacío y era la
+única del bucle diario sin auditar.
+
+### El defecto
+
+La sonda `mirar-la-consulta.mjs` guardaba dos archivos por pantalla: el del
+pliegue y uno llamado `…-completa.png`, con `fullPage: true`. Comprobado con
+`md5sum`, no deducido: **los dos salían byte a byte idénticos**. Y no era cosa de
+`/pendientes` — pasaba en las cinco pantallas ya auditadas de esta rama:
+
+| ruta | `documentElement.scrollHeight` | contenido real |
+|---|---|---|
+| `/consulta/pac-001` | 844 | 3 094 |
+| `/dashboard` | 844 | 2 651 |
+| `/pendientes` | 844 | 2 407 |
+| `/expediente/pac-001` | 844 | 1 844 |
+| `/citas` | 844 | 1 627 |
+
+### La causa
+
+El cascarón `(dashboard)` fija el documento al alto de la ventana y scrollea un
+`<main>` de dentro. `fullPage: true` extiende el DOCUMENTO, y el documento ya
+cabe: no tiene nada que extender. Por el mismo motivo el `alto` que publicaba la
+sonda decía 844, así que el número tampoco delataba nada.
+
+### Por qué es lo peor que le puede pasar a un arnés
+
+El master loop dice que una pantalla no se aprueba leyendo el código: se lanza,
+se mira y se recorre. Esta sonda existe exactamente para eso — y estaba dando por
+mirado lo que no había enseñado, con un nombre de archivo que prometía lo
+contrario. Cuatro pantallas de esta rama se declararon vistas habiendo visto el
+primer pliegue.
+
+Es «el dato tiene que LLEGAR» cometido en la herramienta que audita, y la hermana
+exacta de REG-440: allí la siembra enseñaba menos de lo que había y hacía
+perseguir un defecto inexistente; aquí la captura enseñaba menos de lo que había
+y hacía dar por buena una pantalla sin verla.
+
+**Lo que NO estaba mal, y hay que decirlo:** los conteos —desbordamiento, campos
+sin etiqueta, objetivos táctiles— salen de `getBoundingClientRect`, que se
+calcula sobre el layout entero independientemente del scroll. Esos números
+siempre fueron correctos. Lo ciego eran los ojos, no la aritmética. Se recorrió
+el bajo pliegue de las cinco pantallas con el arreglo puesto y no apareció ningún
+defecto nuevo.
+
+### El segundo defecto de la misma mirada: contar cajas no es contar dedos
+
+En `/pendientes` la sonda denunciaba **7 objetivos táctiles pequeños de 7**, y los
+siete eran el nombre del paciente que encabeza cada pendiente — `a.nx-ident`, que
+YA está en la familia de `globals.css` que estira el área de golpe con un pseudo
+(REG-442). Por su caja miden 20; al dedo, 45. En `/dashboard` eran 10 de 10.
+
+Un número que es cien por cien ruido no se lee — y la vez que traiga un objetivo
+pequeño de verdad, tampoco. Tercera vez que esta sonda grita en falso (REG-434,
+REG-439).
+
+**No se arregló filtrando por clase.** Lo barato era «no cuentes `a.nx-ident`», y
+eso es creerle al CSS: el día que alguien saque esa clase de la familia, la sonda
+seguiría callada. Ahora se le pregunta al navegador a quién atribuye cada punto,
+con el mismo barrido de `el-area-de-golpe-de-una-fila-de-cita.mjs` — que se
+generalizó (ruta + selector) en vez de clonarse, y sigue dando visible 39 / golpe
+45 en su caso de origen.
+
+**Y el barrido salió mal a la primera.** Aceptaba el punto si el elemento
+golpeado era el enlace, un hijo suyo **o un ancestro**: se derramaba por la
+tarjeta y un enlace de 20 px medía 59 de golpe. Lo cazó que las dos sondas
+dejaron de coincidir (45 contra 59). Una medición que aprueba de más es peor que
+la que grita en falso: aquélla molesta, ésta esconde.
+
+### El tercero: `/pendientes` no se podía juzgar
+
+La siembra no escribía ni una tarea. Ahora siembra ocho — **una por cada grupo**
+de `estado-de-accion.ts`, más una cerrada para «Ver cerrados recientemente» —
+porque un grupo que no se pinta no se puede juzgar.
+
+`pesoUrgencia` se DERIVA de la prioridad con la escalera del producto: sembrar
+directo a Firestore se salta `crearTareas`, que es «la única puerta» que lo
+escribe, y `orderBy` de Firestore **excluye** los documentos sin el campo — las
+tareas habrían desaparecido del worklist. Misma figura que REG-440 con
+`ultimaCita`, y por eso lleva el mismo guardián de dos listas que no pueden
+separarse. Las marcas de tiempo van en ISO completo y no en fecha suelta: una
+fecha suelta se fija en medianoche UTC, o sea siempre en el pasado, y una tarea
+que vence hoy se pintaría «venció» en rojo.
+
+### Medido
+
+- `/pendientes`: alto publicado 844 → **2 407**, capturas 1 → **4**; objetivos
+  táctiles 7 → **0** (7 salvados por el pseudo, 0 sin medir); cero
+  desbordamiento, cero campos sin etiqueta, cero errores de consola, **seis
+  grupos pintados** más el bloque de cerrados.
+- `/dashboard`: 10 candidatos → **0** reales, 10 salvados.
+- `/consulta`: sigue denunciando sus **dos** «ya no» de 34×44 — la afinación no
+  dejó ciega a la sonda.
+- `/expediente` y `/citas`: siguen en 0.
+
+### Probado al revés
+
+Cinco inversiones, cada una con su caso: reponer `h.contains(el)` en el barrido ·
+devolver el `fullPage: true` y el archivo `-completa` · desincronizar la escalera
+de la siembra · volver a la fecha suelta en `creadaEn` · quitar de la siembra el
+tipo que pinta «Otros pendientes». Las cinco ponen rojo su caso y sólo el suyo.
+
+La quinta **pasó en su primera versión con el defecto puesto**: el guardián leía
+el comentario que nombra ese tipo tres líneas más arriba. Tercera vez en esta
+rama (REG-437, REG-438); se compara sin comentarios.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-captura-completa-ensenaba-un-tercio-de-la-pantalla.test.ts`
+(15 casos).
+
+### Qué NO cubre
+
+- **El guardián es de fuente.** Que la captura enseñe la pantalla entera y que el
+  golpe mida 45 lo dice el navegador, y esas sondas **no corren en CI**.
+- **No se revisó el estilo de captura de las otras sondas.**
+  `caminar-con-el-teclado.mjs`, `el-estado-sobrevive-a-la-interrupcion.mjs` y las
+  de `carril-excelencia/` pueden tener el mismo defecto. Se dice, no se esconde.
+- **No dice que `/pendientes` esté auditada de punta a punta.** El recorrido con
+  teclado, el bloque de cerrados desplegado y el diálogo de «¿Por qué está aquí?»
+  quedan sin mirar.
+- **`aceptada` sigue ofreciendo «Tomarla»** — una tarea que ya es mía invita a
+  tomarla otra vez. Se vio y no se tocó: el texto sale de `siguientePaso`, la
+  fuente única del paso legal de una tarea clínica, y cambiar ahí una palabra sin
+  el dueño es fijar vocabulario de producto.
+- **No es un iPhone.** Chromium a 390 px.

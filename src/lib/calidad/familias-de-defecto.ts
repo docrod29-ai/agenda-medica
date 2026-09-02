@@ -736,7 +736,29 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * no. Un instrumento que sólo cuenta no sustituye a mirar — es la mitad del
      * método, no el método.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 444],
+    /**
+     * 506 es esta familia mordiéndose la cola: el defecto estaba **en el
+     * instrumento**, y era el de creerse medido. La sonda guardaba un archivo
+     * llamado `…-completa.png` que salía byte a byte idéntico al del pliegue —
+     * el cascarón scrollea un `<main>` de dentro, así que `fullPage` no tenía
+     * documento que extender— y publicaba un alto de 844 para pantallas de
+     * 1 627 a 3 094 px. Cuatro pantallas de la rama se declararon vistas
+     * habiendo visto el primer tercio.
+     *
+     * 437 dejó dicho que contar no sustituye a mirar. Esto es el escalón
+     * siguiente: **mirar tampoco basta si lo que te enseñan no es la pantalla**.
+     * Y lo que lo delató no fue un guardián, fue sembrar la única pantalla que
+     * faltaba y no reconocer lo que salía.
+     *
+     * La segunda mitad es de la forma de 342 —el instrumento que no puede
+     * fallar por la razón correcta—: la cuenta de objetivos táctiles medía
+     * CAJAS, y en `/pendientes` denunciaba 7 de 7 que el pseudo de REG-442 ya
+     * cubría. Cien por cien ruido. Al reescribirla para medir el área de golpe,
+     * la primera versión del barrido aceptaba al ancestro y absolvía de más:
+     * una medición que aprueba de sobra esconde, mientras que la que grita en
+     * falso sólo molesta.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 444, 506],
   },
   {
     clave: 'hueco_como_dato',
