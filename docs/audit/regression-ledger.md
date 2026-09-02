@@ -17561,3 +17561,82 @@ diferencia con la del producto.
 - **No dice que `/pacientes` esté auditada.** Lo único que se afirma es que su
   primer pliegue ya enseña lo que enseñaría un consultorio real. El A-Z, la
   búsqueda y la fila de alerta siguen sin recorrer.
+
+## REG-441 — la receta se recortaba seis píxeles en el teléfono
+
+**CÓMO SE DESCUBRIÓ.** Mirando `/receta/pac-001/nota-demo-001` a 390 px contra
+el arnés de emuladores. Medido en el navegador: **24 bloques de la columna del
+editor terminaban en x = 396** con la ventana en 390.
+
+Y no había barra de desplazamiento que los rescatara: el documento **no**
+desborda (`scrollWidth === innerWidth`). Los seis píxeles se cortaban — en los
+dos avisos de COFEPRIS, en el de «este documento saldrá sin firma ni sello», en
+el de la dosis que falta, y en todos los campos.
+
+**CAUSA RAÍZ, y lo que la hace elegante.** La rejilla de escritorio es
+`minmax(0, 1fr) 420px`. Ese `minmax(0, …)` está ahí exactamente para esto: un
+track `1fr` a secas lleva `min-width: auto` implícito y **no baja del ancho
+mínimo de su contenido**.
+
+El override de móvil, doce líneas más abajo, la reescribía a una sola columna y
+**perdía la protección**:
+
+```css
+@media (max-width: 1000px) { .receta-gen-grid { grid-template-columns: 1fr } }
+```
+
+La columna del editor pide 380 px de mínimo —la fila de un medicamento con sus
+campos de dosis— así que el track se quedaba en 380 dentro de un contenedor de
+358. **La regla que protegía el caso ancho no protegía el estrecho**, que es
+donde hacía falta.
+
+### Lo que apareció en la misma mirada
+
+| | Antes | Después |
+|---|---|---|
+| Bloques que terminan fuera de la ventana (390) | **24** | **5** (sólo la vista previa) |
+| Campos por debajo de 44 px de alto | 5 (dos de ellos, la **dosis**) | **0** |
+| Objetivos táctiles pequeños | 6 | **0** |
+| A 1440, lo mismo medido | 0 · 0 | **0 · 0** |
+
+- **Cinco campos a 42 px**, dos por debajo del mínimo — entre ellos los dos de la
+  dosis. Se teclea de pie, con el paciente delante, en la pantalla donde una
+  cifra equivocada sale impresa con cédula profesional.
+- **«Quitar medicamento» a 30×44**: el único control **destructivo** de la fila,
+  pegado a los campos de dosis, con catorce píxeles de ancho de menos.
+
+### Una regla que escribí y no servía
+
+Al arreglar el track añadí también `.receta-gen-grid > * { min-width: 0 }`, que
+es el acompañante clásico. **Lo probé quitándolo y el resultado no se movió:
+cinco desbordamientos con y sin él.** Era código muerto y no se envió. Una regla
+de CSS que no hace nada es «escrito y sin conectar» en su forma más barata de
+evitar: basta con medir en vez de suponer.
+
+### Probado al revés
+
+Devolviendo `grid-template-columns: 1fr !important` cae el caso de la rejilla;
+quitando el `minHeight: 44` cae el de los campos. Y en el navegador: 24 bloques
+fuera contra 5.
+
+### Estado
+
+**CLOSED.** `src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts`
+(6 casos) más `scripts/ausculta-transformacion/mirar-la-consulta.mjs`.
+
+### Qué NO cubre
+
+- **La vista previa del papel sigue saliéndose 6 px, y NO se arregló aquí.** Su
+  causa es otra: `RecetaPreviewWrapper` calcula la escala contra un
+  `maxWidth = 380` **constante en píxeles**, elegido para la columna de 420 del
+  escritorio. Merece su propia unidad y no un parche al final de ésta, porque
+  ese número lo **comparte** la pantalla de configuración para convertir píxeles
+  de arrastre en milímetros de papel — y la cabecera del propio componente
+  cuenta que ya se desincronizó una vez y «la receta salía RECORTADA por la
+  derecha». Hacerlo dependiente del contenedor sin tocar los dos lados
+  repetiría ese defecto.
+- **El guardián es de fuente.** Que nada se recorte lo mide el navegador, y esa
+  medición **no corre en CI**.
+- **No es un iPhone.** Chromium a 390 px.
+- **No se recorrió con teclado** ni se auditó el resto: los avisos de COFEPRIS,
+  el selector de plantilla y el modal de firma quedan sin mirar.
