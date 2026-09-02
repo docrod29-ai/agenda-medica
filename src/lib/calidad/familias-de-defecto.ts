@@ -736,7 +736,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * no. Un instrumento que sólo cuenta no sustituye a mirar — es la mitad del
      * método, no el método.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443],
   },
   {
     clave: 'hueco_como_dato',
@@ -1154,7 +1154,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ponga la suite en rojo.
      */
     /**
-     * 440 es esta familia en su forma más pura: un contador GLOBAL que se asigna
+     * 444 es esta familia en su forma más pura: un contador GLOBAL que se asigna
      * A MANO y tiene VARIOS ESCRITORES. Cuatro colisiones el mismo día entre tres
      * sesiones que no se veían, y ninguna la vio una compuerta: las dos primeras
      * se vieron leyendo un conflicto de fusión, la tercera leyendo por casualidad
@@ -1170,7 +1170,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * eso la reparación no es derivarlo —sería mentir— sino mover el rojo al único
      * momento en que las dos mitades existen a la vez: la fusión.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 440, 502, 504, 505],
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 444, 502, 504, 505],
   },
   {
     /**

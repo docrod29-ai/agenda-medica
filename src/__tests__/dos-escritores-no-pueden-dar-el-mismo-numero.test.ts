@@ -1,10 +1,10 @@
 /**
- * DOS ESCRITORES NO PUEDEN DAR EL MISMO NÚMERO — REG-440.
+ * DOS ESCRITORES NO PUEDEN DAR EL MISMO NÚMERO — REG-444.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
- * El 2-sep-2026 el contador de regresiones se repartió mal CUATRO veces en un
- * solo día, entre tres sesiones que no se veían:
+ * El 2-sep-2026 el contador de regresiones se repartió mal CINCO veces en un
+ * solo día, entre varias sesiones que no se veían:
  *
  *   REG-434  la cita de la portada        (#433, 00:05)
  *   REG-434  el backfill inejecutable     (#436, 00:58)   → renumerado a 436
@@ -12,6 +12,8 @@
  *   REG-436  la lista de alergias         (rama, 04:47)   → renumerado a 437
  *   REG-438  ESTE MISMO GUARDIÁN          (#438, 05:39)   → renumerado a 440
  *   REG-438  el riel del expediente       (#440, 06:13)
+ *   REG-440  ESTE MISMO GUARDIÁN, otra vez (#438)          → renumerado a 444
+ *   REG-440  la siembra del arnés          (#440, fusionado a main)
  *
  * ── CÓMO SE DESCUBRIÓ ────────────────────────────────────────────────────────
  *
@@ -26,7 +28,7 @@
  *
  * Se escribió como REG-438, y mientras esperaba a que su CI terminara, otra
  * sesión reclamó REG-438 para el riel del expediente. Este guardián pasó a
- * REG-440 sin haber llegado a fusionarse.
+ * REG-444 sin haber llegado a fusionarse.
  *
  * Se deja escrito porque es la mejor prueba que puede tener: la reparación de un
  * defecto lo sufrió antes de aterrizar. Y porque contesta sola a la pregunta de
