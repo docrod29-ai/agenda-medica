@@ -36,6 +36,36 @@ las cifras de por qué no se veían cambios, y que la Compuerta 0 pasaba el 1-se
 
 ---
 
+## Y DESPUÉS EL BOTÓN CORRIÓ — cuatro veces, 2-sep 00:07 UTC
+
+El apartado anterior corrige lo que este acta **daba a entender**. Éste corrige
+lo que **pide**: sus §4 y §5 hablan de un botón sin pulsar y de una pregunta sin
+contestar. Las dos cosas ya pasaron. Medido en las ejecuciones, no supuesto:
+
+| Ejecución | Cuándo | Árbol | Resultado |
+|---|---|---|---|
+| [#13](https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206) | 1-sep 04:46 UTC | `19d58353` | **éxito** — `nexusmed-v1178` |
+| [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699) | 1-sep 22:42 UTC | `fc3a5159` | fallo |
+| [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371) · [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33573846056) | 1-sep 23:51 y 2-sep 00:07 UTC | `c7eb7032` | **éxito** — `nexusmed-v1179` |
+
+**El `NEEDS_OWNER_VERIFICATION` del §5 está contestado.** «¿Producción sirve
+v1178?» — sí, y no por deducción: la Compuerta 3 lo midió contra el sitio vivo
+desde el runner de GitHub en la #13. Este contenedor no podía mirar; el runner
+sí, y ésa es la diferencia entre declarar una duda y resolverla.
+
+**Los tres pasos del §4 ya se dieron**, y el paquete siguiente encima:
+producción está hoy en **`nexusmed-v1179`**, certificada sobre `c7eb7032` — el
+primer despliegue que de verdad publica los doce índices compuestos, por lo que
+cuenta el apartado de arriba. Su acta es
+[`PAQUETE-PRODUCCION-2026-09-01-v1179.md`](PAQUETE-PRODUCCION-2026-09-01-v1179.md).
+
+**El pin del §2 ya no es el del archivo.** `SHA_AUTORIZADO` es hoy `59a11d6b`
+(v1179), 20 commits por detrás de la cabeza `c7eb7032`, y los cuatro publicables
+son byte a byte idénticos entre los dos. La Compuerta 0 pasa por la misma razón
+que explica el §2, con otros dos shas.
+
+---
+
 ## Respuesta corta
 
 1. **La aplicación no espera a ningún botón.** Vercel publica por su integración
