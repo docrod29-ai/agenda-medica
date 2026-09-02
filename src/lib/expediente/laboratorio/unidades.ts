@@ -120,6 +120,59 @@ export const CONVERSIONES_QUE_FALTAN: readonly { readonly analito: string; reado
   },
 ])
 
+/**
+ * ── §29 · EL DECIMAL QUE SE CORRIÓ ──────────────────────────────────────────
+ *
+ * «Antes de marcar un valor como imposible, evaluar candidatos: ×10 ÷10 ×100
+ * ÷100 ×1000 ÷1000. Ejemplo: Na = 1400 mmol/L podría ser 140 mmol/L. Pero el
+ * sistema debe **sugerir revisión, no corregir automáticamente**.»
+ *
+ * ── LO QUE ESTO NO PUEDE HACER, Y ES LO IMPORTANTE ──────────────────────────
+ *
+ * **Sólo se ofrece cuando la unidad ES la canónica.** Y no es un detalle de
+ * implementación: es la diferencia entre ayudar y mentir.
+ *
+ * Una glucosa de 7,2 mmol/L multiplicada por 10 da 72, que es una glucosa
+ * perfectamente plausible en mg/dL. La sugerencia sería «¿quizá 72 mg/dL?» y
+ * estaría MAL: 7,2 mmol/L son 130 mg/dL. El decimal no se había corrido — lo que
+ * pasaba es que la unidad era otra.
+ *
+ * Cuando la unidad no cuadra, la explicación es la unidad. Ofrecer un decimal
+ * ahí es dar una respuesta verosímil a la pregunta equivocada, que es la peor
+ * clase de ayuda que puede dar un sistema clínico.
+ *
+ * ── Y CUANDO HAY VARIOS CANDIDATOS, SE DICEN TODOS ──────────────────────────
+ *
+ * Una ferritina de 2 000 000 cabe en el rango dividida entre 10, entre 100 y
+ * entre 1000. Elegir uno sería adivinar. Se enseñan los tres y se dice que son
+ * varios: ante la ambigüedad se pregunta, no se resuelve.
+ */
+export const FACTORES_DE_DECIMAL: readonly number[] = Object.freeze([10, 0.1, 100, 0.01, 1000, 0.001])
+
+export interface DecimalCorrido {
+  /** Los valores que SÍ caerían dentro de los límites, en el orden de §29. */
+  readonly candidatos: readonly { readonly factor: number; readonly valor: number }[]
+  /** Sólo uno encaja: la sugerencia es fuerte. Con varios, hay que preguntar. */
+  readonly unico: boolean
+}
+
+/**
+ * ¿Este valor imposible se explicaría con un decimal corrido?
+ *
+ * `null` cuando el valor ya es plausible (no hay nada que sugerir) o cuando
+ * ningún desplazamiento lo mete en rango (entonces no es un decimal: es otra
+ * cosa, y decirlo sería inventarse una explicación).
+ */
+export function decimalCorrido(a: Analito, valor: number): DecimalCorrido | null {
+  const dentro = (v: number) => Number.isFinite(v) && v >= a.min && v <= a.max
+  if (!Number.isFinite(valor) || dentro(valor)) return null
+  const candidatos = FACTORES_DE_DECIMAL
+    .map(factor => ({ factor, valor: valor * factor }))
+    .filter(c => dentro(c.valor))
+  if (candidatos.length === 0) return null
+  return { candidatos, unico: candidatos.length === 1 }
+}
+
 export interface Dictamen {
   readonly estado: EstadoDeValidacion
   /** El valor en la unidad canónica del analito. */
@@ -133,6 +186,11 @@ export interface Dictamen {
   /** Sólo entra a la serie temporal lo que está ACEPTADO. */
   readonly graficable: boolean
   readonly porQue: string
+  /**
+   * §29 — el decimal que se corrió. SUGERENCIA, nunca corrección: el valor de
+   * arriba sigue siendo el que imprimió el laboratorio.
+   */
+  readonly decimalCorrido?: DecimalCorrido
 }
 
 /**
@@ -156,7 +214,12 @@ export function dictaminar(a: Analito, valor: number, unidadReportada?: string):
   if (uOriginal === '' || uOriginal === uCanonica) {
     return plausible(valor)
       ? { ...base, estado: 'ACCEPTED', valor, unidad: a.unidad, graficable: true, porQue: 'Unidad canónica y valor dentro de los límites de captura.' }
-      : { ...base, estado: 'VERIFY_VALUE_OR_UNIT', valor, unidad: a.unidad, graficable: false, porQue: `${valor} queda fuera de ${a.min}–${a.max} ${a.unidad}. Se conserva sin convertir ni truncar: puede ser un decimal corrido, un error de lectura o un valor extraordinario real (§30).` }
+      : {
+        ...base, estado: 'VERIFY_VALUE_OR_UNIT', valor, unidad: a.unidad, graficable: false,
+        /** §29: se ofrece el candidato SOLO aquí, donde la unidad ya cuadra. */
+        decimalCorrido: decimalCorrido(a, valor) ?? undefined,
+        porQue: `${valor} queda fuera de ${a.min}–${a.max} ${a.unidad}. Se conserva sin convertir ni truncar: puede ser un decimal corrido, un error de lectura o un valor extraordinario real (§30).`,
+      }
   }
 
   // 2 · Otra unidad, con factor citado: se convierte y SE DICE con qué.
@@ -186,8 +249,14 @@ export const POR_QUE_TAN_POCAS_CONVERSIONES =
   + 'clínica las nombra: o salen de una fuente citada, o no existen. Aquí viven '
   + 'las dos que el documento del dueño sostiene; las demás lo esperan a él.'
 
+export const POR_QUE_EL_DECIMAL_NO_SE_OFRECE_EN_OTRA_UNIDAD =
+  'Una glucosa de 7,2 mmol/L por 10 da 72, que es una glucosa plausible en '
+  + 'mg/dL — y estaría MAL: 7,2 mmol/L son 130 mg/dL. Cuando la unidad no cuadra, '
+  + 'la explicación es la unidad. Ofrecer un decimal ahí es dar una respuesta '
+  + 'verosímil a la pregunta equivocada.'
+
 export const LO_QUE_ESTA_CAPA_NO_HACE: readonly string[] = Object.freeze([
-  'No detecta el decimal desplazado (§29): mirar ×10, ÷10, ×100… y SUGERIR revisión es otra unidad de trabajo.',
+  'El decimal desplazado (§29) se SUGIERE y nunca se aplica: el valor que se guarda sigue siendo el que imprimió el laboratorio. Y sólo se sugiere con la unidad canónica.',
   'No distingue «sin unidad» de «unidad canónica»: las dos se tratan igual, como antes de D-032. Su §33 tiene `MISSING_UNIT` y todavía no está.',
   'No trae LOINC ni UCUM (§27.2, §27.3): la identificación estandarizada del analito es otro trabajo, y mapear un LOINC equivocado viaja al exterior dentro de un `Observation` de FHIR.',
   'No es la capa de valores críticos ni la de decisión clínica (§26): esta capa sólo dice si el número se puede creer tal como está escrito.',

@@ -1,5 +1,5 @@
 import { analitoDe, type Analito } from './analitos'
-import { dictaminar, type EstadoDeValidacion } from './unidades'
+import { dictaminar, type EstadoDeValidacion, type DecimalCorrido } from './unidades'
 import { evaluarCriticoLab, censuraDe, type Censura } from '@/lib/hospital/lab-criticos'
 import { sujetosLeidos, type SujetoLeido } from './sujeto'
 
@@ -70,6 +70,11 @@ export interface ResultadoValidado {
   convertidoCon?: string
   /** Por qué este resultado está en el estado en que está. */
   porQueDelEstado?: string
+  /**
+   * §29 — lo que el valor PODRÍA ser si se corrió un decimal. Es una sugerencia
+   * para el médico, no una corrección: `valor` sigue siendo lo que dice la hoja.
+   */
+  decimalCorrido?: DecimalCorrido
 }
 
 /** El panel completo tras validar. */
@@ -181,6 +186,7 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
       unidadOriginal: dictamen.unidadOriginal,
       convertidoCon: dictamen.conversion?.fuente,
       porQueDelEstado: dictamen.porQue,
+      decimalCorrido: dictamen.decimalCorrido,
     })
   }
 

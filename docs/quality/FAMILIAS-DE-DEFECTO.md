@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 96 de 302, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 97 de 303, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-442** (31-ago-2026), y con él son **cinco este

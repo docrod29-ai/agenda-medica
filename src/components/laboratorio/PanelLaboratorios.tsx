@@ -326,6 +326,20 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
                           : `${r.valorOriginal} ${r.unidadOriginal} queda fuera de lo que se puede capturar sin revisar. No entra a la gráfica hasta que lo confirmes.`}
                       </span>
                     )}
+                    {/**
+                      * §29 del catálogo del dueño: SUGERIR revisión, nunca
+                      * corregir. No hay botón que lo aplique — el campo de al
+                      * lado ya es editable y la decisión es del médico. Con
+                      * varios candidatos se enseñan todos: elegir uno sería
+                      * adivinar.
+                      */}
+                    {r.decimalCorrido && (
+                      <span style={{ display: 'block', fontSize: 12, color: 'var(--amber)' }}>
+                        {r.decimalCorrido.unico
+                          ? `¿Se corrió un decimal? ${r.valorOriginal} → ${r.decimalCorrido.candidatos[0].valor} ${r.unidad} sí cabe en lo esperado.`
+                          : `¿Se corrió un decimal? Cabrían ${r.decimalCorrido.candidatos.map(c => c.valor).join(', ')} ${r.unidad}. Revísalo en la hoja.`}
+                      </span>
+                    )}
                     {r.convertidoCon && (
                       <span style={{ display: 'block', fontSize: 12, color: 'var(--text2)' }}>
                         Convertido de {r.valorOriginal} {r.unidadOriginal}.

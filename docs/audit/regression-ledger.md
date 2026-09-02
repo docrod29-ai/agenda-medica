@@ -17820,6 +17820,80 @@ se llama.
 
 ---
 
+## REG-452 — el decimal se sugiere, y la sugerencia verosímil que había que NO dar
+
+**Eje.** Laboratorio · §29 de D-032. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-decimal-se-sugiere-no-se-corrige.test.ts`.
+
+### Qué faltaba
+
+REG-451 dejó el valor imposible dentro del panel, marcado y sin gráfica. Eso
+evita el daño, pero no ayuda: el médico ve «sodio 1400 mEq/L · verificar» y tiene
+que ir a la hoja a averiguar qué pasó.
+
+El §29 del catálogo del dueño dice qué hacer **y qué no**:
+
+> «Antes de marcar un valor como imposible, evaluar candidatos: ×10 ÷10 ×100 ÷100
+> ×1000 ÷1000. Ejemplo: Na = 1400 mmol/L podría ser 140 mmol/L. Pero el sistema
+> debe **sugerir revisión, no corregir automáticamente**.»
+
+### La trampa, que es la mitad del trabajo
+
+La sugerencia sólo se ofrece **cuando la unidad ya es la canónica**. No es un
+detalle de implementación:
+
+> Glucosa **7,2 mmol/L × 10 = 72**, que es una glucosa perfectamente plausible en
+> mg/dL. La sugerencia sería «¿quizá 72 mg/dL?» y estaría **mal**: 7,2 mmol/L son
+> 130 mg/dL.
+
+El decimal no se había corrido: la unidad era otra. Cuando la unidad no cuadra,
+la explicación es la unidad. Ofrecer un decimal ahí es dar una respuesta
+**verosímil a la pregunta equivocada** — la peor clase de ayuda que puede dar un
+sistema clínico, porque se acepta sin mirar.
+
+Es el mismo error de REG-197 y del «vesícula» de REG-433, en otra capa: buscar lo
+más parecido en vez de decir que no se sabe.
+
+### Cuando encajan varios, no se elige
+
+| Caso | Candidatos | Veredicto |
+|---|---|---|
+| Na 1400 | 140 | único → sugerencia fuerte |
+| K 42 | 4,2 | único |
+| Hb 134 | 13,4 | único (el g/L sin unidad) |
+| **Creatinina 120** | 12 · 1,2 · 0,12 | **varios** |
+| **Ferritina 2 000 000** | 200 000 · 20 000 · 2 000 | **varios** |
+
+Y en la creatinina el «bonito» es justo el que puede estar mal: 1,2 mg/dL es lo
+que un humano elegiría, pero si lo que pasaba es que venía en µmol/L, 120 µmol/L
+son **1,36**. Elegir por verosimilitud es exactamente cómo se cuela un dato falso.
+
+### El valor no se toca, y la pantalla pregunta
+
+`valor` sigue siendo el que imprimió el laboratorio. **No hay botón que aplique
+la sugerencia**: el campo de al lado ya es editable y la corrección la hace el
+médico, a mano y a la vista. Y el texto es una pregunta —«¿Se corrió un
+decimal?»— y no una afirmación: lo primero invita a mirar la hoja, lo segundo
+afirma algo que este código no sabe.
+
+### Probado al revés cinco veces
+
+Ofrecerlo también en otra unidad (vuelve la trampa) · aplicar la sugerencia al
+valor · quedarse con el primero de varios · sugerir también sobre valores
+plausibles · que la pantalla afirme en vez de preguntar. Las cinco ponen la
+prueba en rojo.
+
+Y por el otro lado: una hoja entera correcta no sugiere **nada**. Si cada glucosa
+normal trajera un «¿quizá 920?», el médico aprendería a cerrar el aviso sin
+leerlo, y ahí se pierde la defensa entera.
+
+### Lo que sigue sin cubrirse, dicho
+
+El error de captura que **sigue siendo plausible** —un sodio de 140 tecleado como
+145— no lo caza esto y no lo cazará. Y no se mira la serie histórica del
+paciente: un salto imposible respecto de su valor anterior sería otra señal, más
+fuerte, y no está.
+
 ## REG-451 — el valor correcto en otra unidad, y el equivocado que sí era plausible
 
 **Eje.** Laboratorio · §27 y §28 de D-032. **Fecha.** 2-sep-2026.
