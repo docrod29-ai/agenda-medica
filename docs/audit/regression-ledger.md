@@ -16695,6 +16695,26 @@ arreglo y se comprueba que el guardián lo caza.
   que la credencial tenga permiso de escribir índices, ni que Firestore termine
   de construirlos. Eso se mira en la consola, del otro lado, y sigue siendo
   `BLOCKED_EXTERNAL`.
+
+  > **RESUELTO A MEDIAS — 2-sep-2026.** De las dos dudas de este párrafo, la
+  > primera está contestada y la segunda no, y separarlas importa.
+  >
+  > **El permiso.** El dueño concedió `roles/datastore.indexAdmin` en IAM tras
+  > el 403 de la ejecución #14, y lo ha confirmado en la conversación. La
+  > ejecución **#15** (1-sep 23:51 UTC, sobre `59a11d6b` / v1179) cerró con
+  > `FIRESTORE_INDICES=success` en un paso que corre `--only firestore:indexes`
+  > **él solo** — la separación que trajo REG-433. Un `success` ahí ya no puede
+  > confundirse con el de las reglas, y el `firebase.json` de ese árbol declara
+  > `"indexes"`. Los tres hechos juntos son lo que faltaba: **los índices se
+  > enviaron de verdad, por primera vez.**
+  >
+  > **La construcción, no.** `firebase deploy` contesta al ENVIAR. Que los doce
+  > terminen `Enabled` —o fallen después, con el `success` ya impreso— sigue
+  > mirándose en la consola y sigue siendo `BLOCKED_EXTERNAL`.
+  >
+  > Se escribe así, partido, porque juntarlas fue el defecto: durante cuatro
+  > actas «se publicaron los índices» significó tres cosas distintas —declarado,
+  > enviado, construido— y ninguna se distinguía de las otras.
 - **Sólo lee el workflow de producción.** Un despliegue a mano con otro `--only`
   no lo ve nadie.
 - **No dice cuánto tiempo llevaba así.** El acta del 31-ago es la primera
@@ -16866,6 +16886,18 @@ lo pone rojo).
 El **403 sigue abierto y es externo**: falta `roles/datastore.indexAdmin` en la
 cuenta de servicio del proyecto `nexomed-agenda`, y eso se concede en IAM.
 `BLOCKED_EXTERNAL`, como REG-431.
+
+> **CERRADO — 2-sep-2026.** El dueño concedió el rol en IAM y lo confirmó en la
+> conversación. La ejecución **#15** (1-sep 23:51 UTC) pasó el paso de índices en
+> `success`, y la #16 lo repitió.
+>
+> Y esto es lo que el arreglo compró, dicho con el caso delante: en la #14 el
+> mismo fallo se presentó como `FIRESTORE_RULES=failure` y mandaba a buscar el
+> problema dentro de `firestore.rules`, que estaba impecable. Con los dos pasos
+> separados, el resumen nombró el rol que faltaba y **dónde se concede** — y por
+> eso se concedió. El arreglo no evitó el 403: hizo que el 403 se pudiera leer.
+>
+> Lo que sigue fuera: que Firestore **termine de construirlos**. Ver REG-431.
 
 ### Qué NO cubre
 

@@ -23,26 +23,8 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M  .github/workflows/deploy-production.yml",
-    "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    "M  agent-state/MASTER_STATE.json",
-    "A  docs/audit/ausculta-transformacion/README.md",
-    "A  docs/audit/ausculta-transformacion/antes/acta.json",
-    "A  docs/audit/ausculta-transformacion/antes/demo-escritorio.png",
-    "A  docs/audit/ausculta-transformacion/antes/demo-movil.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-1440-p00.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-1440-p01.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-1440-p02.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-1440-p03.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-1440-p04.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-1440-p05.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-1440-p06.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-1440-p07.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-390-p00.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-390-p01.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-390-p02.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-390-p03.png",
-    "A  docs/audit/ausculta-transformacion/antes/landing-390-p04.png"
+    "M docs/audit/regression-ledger.md",
+    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-01-v1179.md"
   ],
   "actualizado": "2026-09-01",
   "resumenDesdeElUltimoEstado": {
@@ -76,7 +58,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/analisis-cambios-produccion-7eyrmu",
+  "ramaActual": "claude/indices-publicados-de-verdad",
   "derivado": {
     "regsEnElLedger": 286,
     "ultimaREG": "REG-505",

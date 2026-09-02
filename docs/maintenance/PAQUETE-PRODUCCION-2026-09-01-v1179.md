@@ -3,6 +3,10 @@
 > **Estado: PREPARADO, NO PUBLICADO.** Publicar sigue siendo decisión del dueño
 > (`.claude/rules/deployment-and-flags.md`).
 
+> **SUPERADO — 1-sep-2026 23:51 UTC. PUBLICADO Y VERIFICADO.** Nada de lo de
+> abajo se borra: era verdad cuando se escribió. Lo que pasó de verdad, incluido
+> lo que este documento no supo prever, está en §5.
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1178` → **`nexusmed-v1179`** |
@@ -174,3 +178,57 @@ hasta que esto entre a `main`.
   sintética no lo cierra.
 - **No afirma que una capacidad de receta filtrada sea inservible.** Quince
   minutos y el ligado al dueño **acotan** el daño de una fuga; no la impiden.
+
+---
+
+## 5. Publicado — acta de la ejecución, y lo que el §0 no supo prever
+
+| | |
+|---|---|
+| **Ejecuciones** | [#14](https://github.com/docrod29-ai/agenda-medica/actions/runs/33567555699) **falló** · [#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371) y [#16](https://github.com/docrod29-ai/agenda-medica/actions/runs/33573846056) **success** |
+| **SHA publicado** | `59a11d6b` — el paquete de este documento |
+| **Versión** | `nexusmed-v1179`, medida contra el sitio vivo |
+
+```
+FIRESTORE_RULES        = success
+FIRESTORE_INDICES      = success      ← el primero de la historia del proyecto
+FIRESTORE_RULES_SHA256 = 3032001e141c42eb835674b9219f17a91e491d38f7a7cb55a77177ecbe0e90a9
+SECURITY_E2E           = success      57 casos contra producción (2 saltados a propósito)
+SMOKE                  = success      10 casos
+SMOKE_PORTAL           = success      POST /api/portal sin enlace → 401
+PRODUCTION_RELEASE     = SUCCESS
+```
+
+### La #14 falló, y falló por lo que este documento avisó
+
+El §0 dijo que este paquete publicaba índices por primera vez. Lo que **no**
+supo prever es que la credencial no tuviera permiso para hacerlo: la #14 murió
+con `HTTP 403 — The caller does not have permission` al crear el índice de
+`appointments`.
+
+Y el acta que se le enseñó al dueño decía `FIRESTORE_RULES=failure`, **acusando
+al único paso que había salido bien**. Eso es REG-433, arreglado entre la #14 y
+la #15: dos pasos con su propia variable, y el resumen nombrando el rol que
+falta y dónde se concede.
+
+**El arreglo no evitó el 403 — hizo que el 403 se pudiera leer.** El dueño
+concedió `roles/datastore.indexAdmin` en IAM y volvió a pulsar. La #15 pasó.
+
+### Lo que esto cierra, y lo que no
+
+| | |
+|---|---|
+| ¿El archivo declara los índices? | **Sí** (REG-431) |
+| ¿La credencial tiene permiso? | **Sí**, desde el 1-sep — cerrado |
+| ¿Se enviaron los doce? | **Sí**, ejecución #15 |
+| ¿Están construidos y `Enabled`? | **No se sabe desde aquí.** Sigue `BLOCKED_EXTERNAL` |
+
+Las tres primeras filas eran **una sola** hasta esta semana, y ahí estaba el
+defecto: durante cuatro actas «se publicaron los índices» significó tres cosas
+distintas y ninguna se distinguía de las otras.
+
+### Se corrió tres veces
+
+La #14 en rojo, y la #15 y #16 en verde con dos minutos de diferencia. Las dos
+verdes publicaron lo mismo: el paso de Firestore es idempotente y el árbol
+apuntado era el mismo `59a11d6b`. **No hubo doble publicación de nada.**
