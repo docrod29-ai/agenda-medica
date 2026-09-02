@@ -50,7 +50,33 @@ fallando**: por eso se despliega, se espera, y se comprueba en la consola
 (https://console.firebase.google.com/project/nexomed-agenda/firestore/indexes)
 que los **doce** dicen **Habilitado**, no «Compilando».
 
-## Y antes que nada: NINGUNO se ha desplegado nunca (REG-431)
+## POR FIN SE ENVIARON — ejecución #15, 1-sep-2026 23:50 UTC
+
+**El paso «Firestore · desplegar ÍNDICES» cerró en `success` por primera vez en
+la historia del proyecto** ([ejecución
+#15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371),
+sobre `c7eb703`).
+
+Hicieron falta **dos** arreglos, y el segundo sólo se vio cuando el primero
+dejó de tapar:
+
+1. **REG-431** — `firebase.json` nunca declaró `firestore.indexes.json`, así que
+   el paso no publicaba nada y devolvía `success`.
+2. **El permiso** — declarado el archivo, el paso por fin lo intentó de verdad y
+   contestó `HTTP 403 · The caller does not have permission` (ejecución #14). A
+   la cuenta `firebase-adminsdk-fbsvc@nexomed-agenda.iam.gserviceaccount.com` le
+   faltaba **`roles/datastore.indexAdmin`**: publicar reglas y crear índices son
+   permisos distintos, y tenía el primero. El dueño lo concedió en IAM el
+   1-sep-2026.
+
+REG-431 había declarado exactamente esta duda en su «qué NO cubre»: «que el
+archivo esté declarado no dice que la credencial tenga permiso de escribir
+índices». Salió cierta.
+
+**Y `success` aquí sigue queriendo decir ENVIADOS, no construidos** — la sección
+siguiente no cambia ni una coma.
+
+### Lo que había antes, y por qué se guarda
 
 **Medido en la consola el 1-sep-2026**: `Firestore → Índices → Manuales` del
 proyecto `nexomed-agenda` estaba **vacía**. Cero índices compuestos.
@@ -67,9 +93,10 @@ deriva los objetivos del `--only` del workflow real y exige que cada uno esté
 declarado.
 
 **Consecuencia para la tabla de abajo**: la columna «¿enviado?» decía ocho.
-**Son cero.** Se dejó de contar sobre el árbol desplegado —que era cierto y era
-insuficiente— porque enviar el archivo y que el archivo esté declarado son dos
-cosas distintas, y sólo la segunda se puede medir desde aquí.
+**Eran cero** hasta la ejecución #15. Se dejó de contar sobre el árbol
+desplegado —que era cierto y era insuficiente— porque enviar el archivo y que el
+archivo esté declarado son dos cosas distintas, y sólo la segunda se puede medir
+desde aquí.
 
 ## El envío no es la construcción
 
@@ -83,11 +110,12 @@ distintas que salen del mismo comando:
 
 | Qué dijo el despliegue | Qué demuestra | Qué NO demuestra |
 |---|---|---|
-| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | Que `firestore.indexes.json` llegó al proyecto | Que los índices estén **construidos** |
+| `success` el 31-ago, ejecuciones [#11](https://github.com/docrod29-ai/agenda-medica/actions/runs/33430863862) y [#12](https://github.com/docrod29-ai/agenda-medica/actions/runs/33431057064) | **Nada.** El objetivo no estaba declarado: el comando no publicó ningún índice (REG-431) | Ni el envío ni la construcción |
+| `success` el 1-sep, [ejecución #15](https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371), paso propio «desplegar ÍNDICES» | Que `firestore.indexes.json` **llegó al proyecto**, esta vez de verdad | Que los índices estén **construidos** |
 
-**Lo que falta, y no puede vivir en este repositorio**: abrir la consola de
-Firestore del proyecto `nexomed-agenda`, pestaña de índices, y comprobar que cada
-uno dice `Enabled` y no `Building` ni `Error`. Hasta entonces, ninguna consulta
+**Lo que falta, y no puede vivir en este repositorio** —ahora sí es lo ÚNICO que
+falta—: abrir la consola de Firestore del proyecto `nexomed-agenda`, pestaña de
+índices, y comprobar que cada uno dice `Enabled` y no `Building` ni `Error`. Hasta entonces, ninguna consulta
 nueva puede depender de ellos — la regla del `FAILED_PRECONDITION` de abajo sigue
 en pie tal cual.
 
