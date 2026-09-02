@@ -33,6 +33,82 @@ omisión: pulsarlo sin tocar nada **sólo lee y cuenta**.
 
 ---
 
+## SEGUNDA ACTUALIZACIÓN — cinco conversaciones más
+
+El dueño enseñó otras cinco. Traen **tres pendientes que no estaban** en este
+documento, y uno de los tres es trabajo terminado que no llegó al producto.
+
+### 1 · Un arreglo del teléfono está escrito, probado, subido — y NO está en el producto
+
+`5ce5da80` · **«la lista de alergias no cabía en el teléfono»** — se salía 182 px
+en `/consulta`. Vive en la rama `claude/ausculta-product-transformation-mckih5`.
+**Su PR (#433) se cerró antes de que el commit llegara**, así que el commit quedó
+huérfano: verificado hoy contra `main`, su golden (252 líneas) y sus cambios a
+`consulta-ui.tsx`, `page.tsx` y `globals.css` **no están** en `main`.
+
+Su gemelo sí entró: **REG-434**, la cita de la portada que se pintaba a una
+palabra por renglón, está en el ledger de `main`.
+
+**Qué hace falta**: renumerar ese commit a **REG-437**, traer `main` dentro (la
+rama va **9 commits por detrás**) y abrirlo en un PR nuevo. Nadie lo ha hecho
+porque cada sesión lo ve como trabajo de otra.
+
+### 2 · Y el número con el que se subió ya estaba dado — tercera colisión del mismo día
+
+El commit usa **REG-436**, y `main` le dio ese número al backfill a las 04:35;
+el commit llegó a las 04:47. Doce minutos.
+
+**La causa no es descuido, y va a repetirse**: el contador de regresiones es
+global, se asigna a mano, y **el guardián comprueba que cada número tenga ficha,
+no que sea único frente a lo que otra rama abierta ya reclamó**. Es la misma
+colisión que enseña REG-267. Hoy pasó tres veces.
+
+**Pendiente de verdad**: un guardián que mire **todas las ramas vivas**, no sólo
+el árbol propio. La herramienta existe a medias
+(`scripts/estado-de-las-ramas.mjs`, del 8-ago) y nadie la ató al guardián.
+
+### 3 · NUEVO · Seis analitos esperan una cifra que sólo el médico puede dar
+
+No es el rango de referencia y **no es «lo normal»**. Es el **rango plausible**:
+*fuera de esto, casi seguro que el número viene en otra unidad*. Sirve para tirar
+un valor que ensuciaría la gráfica, no para decir si el paciente está sano.
+
+La pregunta, que se contesta de memoria: **¿cuál es el valor más bajo y el más
+alto de este analito que has visto —o que podrías creerte— en un paciente vivo?**
+
+| Analito | Unidad esperada |
+|---|---|
+| ácido úrico | mg/dL |
+| ferritina | ng/mL |
+| vitamina D | ng/mL |
+| VCM | fL |
+| neutrófilos | % |
+| linfocitos | % |
+
+Ejemplo del que ya está: la glucosa va de **20 a 1500 mg/dL** — no porque 1500
+sea normal, sino porque 1600 sería un error de captura y 7,2 sería mmol/L.
+
+**Alternativa si prefiere no dar números**: una fuente citable (el catálogo de su
+laboratorio de referencia, una edición concreta de un texto) y se cita en el
+módulo. Lo que no se puede es rellenarlas: son cifras clínicas y salen impresas
+al lado de su cédula (regla 1 de seguridad clínica).
+
+**Aparte, y es otra decisión**: la glucosa que llega **en mmol/L**. Ahí el analito
+ya existe y el problema es la unidad del SI — pide convertir o marcar, no un rango.
+
+### 4 · Dos botones que son suyos, y ya existen
+
+- **Backfill de urgencias** — Actions → «Backfill de pesoUrgencia (manual)» → *Run
+  workflow*, **sin marcar nada**: cuenta y no escribe, y los recuentos salen en el
+  resumen de la ejecución, no en el log. Dice el número y se decide si vale la
+  pena marcar `escribir`. Nunca imprime contenido, sólo números: esas tareas
+  llevan datos de pacientes.
+- **Botón de producción**, cuando quiera certificar. El pin va en `59a11d6b`
+  (v1179) y `main` ya va por delante — conviene comprobar la Compuerta 0 antes de
+  apretarlo, o repuntarlo.
+
+---
+
 ## Qué se leyó para escribirlo, y qué NO
 
 **Se leyó** (todo el estado durable del repositorio, al día de hoy):
@@ -405,7 +481,11 @@ Esto no es producto: es que **el tablero se desfasa y ya ha mentido varias veces
    no borraba nada en silencio. **Cualquier prueba anterior que afirmara sobre
    escrituras con ese doble hay que mirarla de nuevo: pudo estar en verde por
    esto.**
-7. **Varias casillas `PARTIAL` del tablero descansan todavía sobre substrings**
+7. **El contador de regresiones no impide colisiones entre ramas.** Tres el
+   2-sep. El guardián verifica que cada número tenga ficha, no que sea único
+   frente a lo que otra rama abierta reclamó. Defecto con nombre propio, de la
+   familia «depende de que alguien se acuerde».
+8. **Varias casillas `PARTIAL` del tablero descansan todavía sobre substrings**
    —se prueban leyendo el código fuente como texto—. Con el arnés de Firestore
    en memoria ya se pueden convertir en medición real.
 
