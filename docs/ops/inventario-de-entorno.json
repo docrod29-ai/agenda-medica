@@ -1752,7 +1752,7 @@
       "defectoLiteral": "",
       "defectoDe": "src/app/api/whatsapp/webhook/route.ts",
       "archivos": [
-        "src/app/api/whatsapp/meta-connect/route.ts",
+        "src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts",
         "src/app/api/whatsapp/webhook/route.ts"
       ]
     },
@@ -1764,7 +1764,6 @@
       "defectoLiteral": null,
       "defectoDe": null,
       "archivos": [
-        "src/app/api/whatsapp/meta-connect/route.ts",
         "src/app/api/whatsapp/webhook/route.ts"
       ]
     },

@@ -351,7 +351,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * cuando alguien escribe en una pantalla de ajustes. El defecto habría
      * salido en la primera receta abierta en Word, ya en producción.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 506, 507],
+    /**
+     * 508 es esta familia en su forma más literal: `meta-connect` declaraba una
+     * constante con el token de verificación de WhatsApp y **no la usaba en
+     * ninguna parte** — `registerWebhook` no manda ningún token—. Escrito y sin
+     * conectar, cargando además un literal adivinable.
+     *
+     * Pero el daño no estaba ahí, y por eso vale la pena: la PANTALLA de
+     * Configuración imprimía ese mismo literal como instrucción para teclear en
+     * Meta, y el servidor no lo acepta. Lo que estaba «sin conectar» no era una
+     * función: era el ACUERDO entre lo que el producto le dice al médico que
+     * ponga y lo que el producto va a aceptar después. Los dos extremos
+     * existían y nadie comprobó que se tocaran.
+     *
+     * Y el síntoma no se parece a la causa: «no me llegan los mensajes de
+     * WhatsApp» no lleva a «la pantalla me dictó un token equivocado».
+     */
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 506, 507, 508],
   },
   {
     clave: 'se_contradice',

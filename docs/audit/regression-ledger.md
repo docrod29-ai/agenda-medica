@@ -245,6 +245,7 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-152 | Pérdida de datos (legal) | **El respaldo «completo» no guardaba las ADENDAS ni el versionado.** El exportador bajaba **un solo nivel** y las adendas viven dos: `patients/{p}/notas/{n}/adendas/{a}`. La adenda es el **único mecanismo de corrección** que existe sobre una nota firmada, que es inmutable por la NOM-024 — así que restaurar ese respaldo devolvía la nota y **borraba la corrección legal**, mientras el pie del archivo decía `completo: true`. Y el simulacro de ida y vuelta medía fielmente la mitad equivocada | CLOSED (v1037) | `src/__tests__/respaldo-consultorio.test.ts`. `hijas` pasa de lista plana a **árbol** (`RamaRespaldo`) y el exportador recorre recursivamente. **Y el guardián era estructuralmente ciego**: escaneaba `^ {6}match /` —sólo el primer nivel—, así que no podía ver el hueco; ahora recorre el bloque de `clinics` a cualquier profundidad y compara contra el árbol declarado. Tercera prueba del día que **fijaba el defecto en verde**: exigía con `toEqual` la lista incompleta de cinco hijas. Fijar la forma de una lista no prueba que la lista esté completa |
 | REG-506 | Despliegue / integridad de la publicación | **El despliegue de índices no enviaba ni un índice, y firmaba el acta.** `firebase.json` declaraba `firestore.rules` y **no** `firestore.indexes`; en firebase-tools el envío entero cuelga de esa clave (`if (firestoreConfig.indexes)`), así que el paso imprimía «deploying indexes...», recorría una lista vacía y contestaba `Deploy complete!`. Tres ejecuciones (#11, #12, #13) cerraron `PRODUCTION_RELEASE=SUCCESS` sin publicar los ocho índices — cuatro de ellos, de consultas que el producto YA hace (bandeja ARCO, lista de farmacia, rastro de un controlado y la página **pública** del médico), y Firestore rechaza entera una consulta sin índice | CLOSED (v1179) | `src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts` (probado al revés con la configuración exacta de v1178) + el propio paso del workflow, que ahora exige en la salida la línea `deployed indexes in ... successfully` en vez de creerse el código de salida |
 | REG-507 | Seguridad / papelería | **El .doc de la receta guardaba un ENLACE al membrete, y ese enlace sólo funcionaba porque el candado estaba apagado.** `receta-word` no lee del DOM —lee `recetaConfig.membreteDataUrl`, la URL guardada SIN firma— y la incrustaba absolutizada en el documento. Word lo abre desde el disco y pide esa URL **sin sesión y sin firma**. Los caminos de pantalla sí estaban cubiertos (`print-element`, `pdf-download`, `FirmadorDisenos`); éste no podía estarlo. Con `RECETA_DISENO_FIRMA=obligatoria` habría dado 403 y el membrete habría salido roto en una receta con cédula profesional | CLOSED (v1179) | `src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts` (7 casos, probada al revés reinstalando el defecto: fallan 4). El membrete se incrusta como data URI, no se firma: una firma caduca a las 24 h y un .doc se reabre semanas después |
+| REG-508 | Seguridad / configuración | **La pantalla de Configuración le dictaba al médico un token de verificación que el servidor no acepta.** Imprimía el literal `agenda-medica-bot` como «Token de verificación» para teclear en Meta, pero `whatsapp/webhook` sólo acepta `WHATSAPP_WEBHOOK_TOKEN` (o su alias) y **sin respaldo**. Con la variable puesta a otra cosa —lo normal— seguir esa instrucción hacía que Meta no verificara el webhook y el bot de pacientes se quedara mudo, con un síntoma que no se parece a la causa; con la variable puesta a ese literal, el secreto compartido quedaba publicado en la pantalla. El mismo literal vivía además en `meta-connect` dentro de una constante **sin un solo consumidor** | CLOSED (v1179) | `src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts` (5 casos, probada al revés por las DOS mitades: devolviendo el literal a la pantalla y la constante muerta al conector) |
 
 ## REG-153 · El anticipo se podía cobrar DOS veces
 
@@ -15892,3 +15893,50 @@ cross-origin); ésas quedan cerradas por el candado y se declara.
 
 **Prueba.** `src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts`,
 7 casos, probada al revés reinstalando el defecto (fallan 4).
+
+
+## REG-508 · El producto dictaba un token que él mismo no iba a aceptar
+
+**Cómo se descubrió.** Del inventario de variables de entorno. `WHATSAPP_VERIFY_TOKEN`
+y `WHATSAPP_WEBHOOK_TOKEN` son alias a propósito, pero el literal
+`agenda-medica-bot` aparecía en el árbol y **el servidor no lo acepta en ningún
+sitio**: `whatsapp/webhook` cae a `''` y rechaza, con la decisión escrita al lado
+—*«sin fallback público… mejor que aceptar un token por defecto que está en el
+repo»*—.
+
+A dos sitios no les llegó ese arreglo:
+
+1. `whatsapp/meta-connect` declaraba `WEBHOOK_VERIFY_TOKEN` con ese literal **y
+   no lo usaba en ninguna parte**: `registerWebhook` hace
+   `POST /{wabaId}/subscribed_apps`, donde no viaja ningún token. El de
+   verificación se teclea una vez en el panel de la app de Meta, no por API.
+2. **La pantalla de Configuración lo imprimía como instrucción**: «Token de
+   verificación: `agenda-medica-bot`». Esto sí lo veía el médico.
+
+**Por qué importa, y por qué no había una salida buena.** Con la variable puesta
+a cualquier otra cosa —lo normal— seguir la instrucción de la pantalla hacía que
+**Meta no verificara el webhook**: el bot de pacientes se queda mudo y el síntoma
+(«no me llegan los mensajes de WhatsApp») no se parece a la causa («la pantalla
+me dictó un token que el servidor no acepta»). Y con la variable puesta a ese
+literal, el secreto compartido con Meta quedaba publicado en la propia pantalla y
+en el repositorio.
+
+**Una corrección de lo que se había escrito.** Al declarar este hallazgo en el
+inventario se dijo que `meta-connect` *«registra la suscripción con el literal»*.
+**No es cierto**: la constante no tenía consumidor. El literal nunca se envió a
+Meta desde el código; lo que sí llegaba al médico era la línea de la pantalla. Se
+corrige aquí y en `docs/ops/INVENTARIO-DE-ENTORNO.md` porque afirmar de más sobre
+un hallazgo de seguridad envenena el registro tanto como no verlo.
+
+**Qué se hizo.** Fuera la constante muerta —con lo que el literal desaparece del
+código— y la pantalla pasa a **nombrar la variable sin enseñar ningún valor**,
+advirtiendo que tiene que coincidir exactamente con el que se teclee en Meta. Un
+token de verificación es un secreto compartido, y una pantalla no es donde se
+reparte.
+
+**Qué NO cubre.** Que el valor de Vercel y el del panel de Meta coincidan de
+verdad: son dos consolas y eso no puede vivir en el repositorio. Lo único que se
+podía hacer aquí era dejar de dictar un valor falso.
+
+**Prueba.** `src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts`,
+5 casos, probada al revés por las dos mitades.

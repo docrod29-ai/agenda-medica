@@ -80,24 +80,34 @@ listas para la misma verdad**. Añadir un socio a una y no a la otra deja la
 interfaz y la autorización diciendo cosas distintas, y el síntoma («veo el menú y
 me rechaza la ruta») no se parece a la causa.
 
-### Los dos nombres del token de WhatsApp, y una diferencia entre ellos
+### Los dos nombres del token de WhatsApp — **cerrado con REG-508**
 
 `WHATSAPP_WEBHOOK_TOKEN` y `WHATSAPP_VERIFY_TOKEN` son alias a propósito: los dos
 caminos aceptan cualquiera de los dos, «para no depender de cuál pusiste en
-Vercel». Eso está bien.
+Vercel». Eso está bien y se queda.
 
-Lo que **no** coincide es qué hacen sin ninguna de las dos:
+Lo que no estaba bien era el literal `agenda-medica-bot`, que vivía en dos sitios
+y **el servidor no acepta en ninguno** —`whatsapp/webhook` cae a `''` y rechaza,
+sin respaldo, con la decisión escrita al lado—:
 
-- `whatsapp/webhook` cae a `''`, avisa en el registro y **rechaza** la
-  verificación.
-- `whatsapp/meta-connect` cae al literal **`'agenda-medica-bot'`** y con él
-  registra la suscripción en Meta.
+- `whatsapp/meta-connect` lo tenía en una constante **sin un solo consumidor**.
+- **La pantalla de Configuración lo imprimía como instrucción** para teclear en
+  Meta. Eso sí lo veía el médico, y era la mitad que hacía daño: con la variable
+  puesta a otra cosa, seguir esa instrucción dejaba el webhook sin verificar y el
+  bot mudo.
 
-Sin las variables, uno le promete a Meta un token que el otro no va a aceptar
-nunca: la conexión parece configurarse y el webhook no verifica jamás. No abre
-ningún acceso —el webhook sigue rechazando— pero es una desalineación silenciosa
-y un literal adivinable haciendo de secreto. **Queda declarado, no reparado**:
-tocarlo es cambiar el camino de alta de WhatsApp y no entra en este inventario.
+**Corrección de lo que este archivo decía antes.** Aquí se afirmó que
+`meta-connect` «cae al literal y con él registra la suscripción en Meta». **No es
+cierto**: esa constante no tenía consumidor y el literal nunca viajó a Meta desde
+el código. `registerWebhook` sólo hace `POST /{wabaId}/subscribed_apps`, donde no
+va ningún token; el de verificación se teclea a mano en el panel de la app. Se
+corrige porque afirmar de más sobre un hallazgo de seguridad envenena el registro
+tanto como no verlo.
+
+Hoy: el literal está fuera del código, y la pantalla **nombra la variable sin
+enseñar ningún valor**. Lo que queda en sus manos es que el valor de
+`WHATSAPP_WEBHOOK_TOKEN` en Vercel y el tecleado en el panel de Meta sean
+idénticos — son dos consolas, y eso no lo puede comprobar el repositorio.
 
 ## Lo que este inventario NO puede decir
 

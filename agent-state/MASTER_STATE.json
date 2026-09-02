@@ -78,8 +78,8 @@
   ],
   "ramaActual": "claude/despliegues-master-loop-a8bb7x",
   "derivado": {
-    "regsEnElLedger": 275,
-    "ultimaREG": "REG-507",
+    "regsEnElLedger": 276,
+    "ultimaREG": "REG-508",
     "archivosDePrueba": 893,
     "casosDePrueba": 10934,
     "lint": "ver scripts/lint-trinquete.mjs"
