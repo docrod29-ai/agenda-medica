@@ -742,6 +742,19 @@ export default function ConsultaActivaPage() {
    */
   const transcripcionMotorGuardadaRef = useRef('')
 
+  /**
+   * LA RUTA DEL AUDIO, CON EL MISMO CUIDADO QUE LA TRANSCRIPCIÓN DE ORIGEN.
+   *
+   * Mismo defecto que arriba, un eje más allá: `audio.audioPath` sólo tiene
+   * valor en la sesión que grabó. Al reabrir la nota mañana —que es cuando se
+   * firma— el grabador está vacío, y escribirlo tal cual BORRARÍA la ruta
+   * guardada, dejando el archivo huérfano en Storage para siempre.
+   *
+   * Este ref conserva lo que la nota ya traía. Es ref y no estado por lo mismo:
+   * `construirNota` corre en cada render y necesita el valor YA.
+   */
+  const audioPathGuardadaRef = useRef('')
+
   const firmadaRef = useRef(false)
   /**
    * ESTA CONSULTA SE DESCARTÓ A PROPÓSITO. NADA PUEDE RESUCITARLA.
@@ -2119,6 +2132,8 @@ export default function ConsultaActivaPage() {
       if (n.transcripcionCruda) voz.setTranscripcion(n.transcripcionCruda)
       // La otra mitad del par de aprendizaje. Ver `transcripcionMotorGuardadaRef`.
       if (n.transcripcionMotor) transcripcionMotorGuardadaRef.current = n.transcripcionMotor
+      // Y la ruta del audio, o el clic-a-audio muere al cerrar la pestaña.
+      if (n.audioPath) audioPathGuardadaRef.current = n.audioPath
       if (n.internamientoId) setNotaInternamientoId(n.internamientoId)  // adopta el episodio
     }).catch(e => {
       console.error('[consulta] no se pudo cargar la nota:', e)
@@ -3083,6 +3098,34 @@ export default function ConsultaActivaPage() {
        * par y el bucle de corrección se quedaba sin nada que aprender.
        */
       transcripcionMotor: audio.transcripcionMotor || transcripcionMotorGuardadaRef.current || undefined,
+      /**
+       * LA RUTA DEL AUDIO — el último palmo de REG-249.
+       *
+       * REG-249 subió el audio por los dos caminos y devolvió su ruta al
+       * llamador; sus once casos comprueban justo eso. Y ahí se acababa: nadie
+       * la escribía en el documento. El clic-a-audio funcionaba con la pestaña
+       * abierta y no existía al día siguiente, sobre la nota firmada, que es
+       * cuando hace falta. El archivo seguía en Storage sin nada que lo
+       * señalara — ni para oírlo, ni para borrarlo cuando venza.
+       *
+       * Es «el dato tiene que LLEGAR» en su forma exacta: la prueba de contrato
+       * comprobaba que la función DEVUELVE la ruta; nadie miró del otro lado.
+       *
+       * **LA RUTA, NUNCA LA URL** — invariante de REG-249 que aquí se hereda:
+       * `getDownloadURL` lleva un token dentro, y guardarlo sería dejar una
+       * llave escrita en el expediente que sigue sirviendo aunque después se
+       * revoque el acceso. La URL se vuelve a pedir al reproducir, que es
+       * cuando las reglas se evalúan otra vez con quien esté mirando.
+       *
+       * **FUERA DEL SELLO, y a propósito.** `canonicoV4` es una lista blanca
+       * explícita: este campo no entra, así que **ninguna nota ya firmada
+       * cambia de hash** y ninguna se marca «alterada» — la falsa alarma que
+       * costó REG-060. Meterlo dentro es una decisión del dueño, irreversible
+       * sobre documentos con su cédula, y sería un v5. Mientras no la tome, lo
+       * honesto es esto: el audio se conserva y se puede oír, y el sello NO lo
+       * cubre.
+       */
+      audioPath: audio.audioPath || audioPathGuardadaRef.current || undefined,
       /**
        * LOS TURNOS, SIN LAS PALABRAS.
        *

@@ -391,6 +391,21 @@ export interface NotaMedica {
    * reescritura automática.
    */
   transcripcionMotor?: string
+
+  /**
+   * Ruta del audio de la consulta en Cloud Storage. **La ruta, nunca la URL**:
+   * `getDownloadURL` lleva un token de acceso dentro y guardarlo sería dejar una
+   * llave escrita en el expediente (REG-249).
+   *
+   * Sostiene el clic-a-audio (REG-250) más allá de la sesión que grabó, y es el
+   * ÚNICO vínculo entre un archivo de audio y su paciente — sin él no se puede
+   * ni reproducir ni aplicar la retención de la NOM-004.
+   *
+   * **No entra en el sello.** `canonicoV4` es lista blanca y este campo queda
+   * fuera: añadirlo cambiaría el hash de todo lo ya firmado. Que entre, y con
+   * qué versión, es decisión del dueño.
+   */
+  audioPath?: string
   // Trazabilidad legal: diálogo separado por voz (diarización), si la hubo.
   // Cada turno = quién habló (A/B/C) y qué dijo. Para auditoría/relectura.
   /**

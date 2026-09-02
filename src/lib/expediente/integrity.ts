@@ -346,6 +346,7 @@ export function normalizarParaSello(nota: NotaMedica): NotaMedica {
  * necesita saber es QUÉ parte del documento queda fuera, en su idioma.
  */
 export const ETIQUETA_NO_SELLADO: Readonly<Record<string, string>> = {
+  audioPath: 'ubicación del audio de la consulta',
   transcripcionMotor: 'transcripción de origen del dictado',
   palabrasAVerificar: 'marcas de duda del audio',
   id: 'identificador interno del documento',
@@ -355,6 +356,10 @@ export const ETIQUETA_NO_SELLADO: Readonly<Record<string, string>> = {
 }
 
 export const CAMPOS_NO_SELLADOS_V3: readonly { campo: string; razon: string }[] = [
+  {
+    campo: 'audioPath',
+    razon: 'Ruta del audio en Storage, escrita al guardar (REG-509). NO se sella, y no es un olvido: `canonicoV4` es lista blanca, así que dejarlo fuera garantiza que ninguna nota ya firmada cambie de hash — la falsa alarma de REG-060. Que entre, y con qué versión, es decisión del dueño: es irreversible sobre documentos con su cédula, misma familia que D-08. Residual declarado y NO menor: quien pueda escribir la nota puede APUNTAR el audio a otro archivo sin que el sello lo note. Lo que el sello sí cubre es el TEXTO de origen (`transcripcionMotor`, desde v4), así que una nota cuyo audio no corresponda a su transcripción es detectable por contradicción, no por el hash.',
+  },
   {
     campo: 'transcripcionMotor',
     razon: 'ES material de origen y le CORRESPONDE ir sellado — pero añadirlo al canónico v3 cambiaría el hash de TODAS las notas ya firmadas y las volvería «alterada» de golpe: la falsa alarma exacta de REG-060. Entra al sello cuando se suba a hashVersion 4, que es su propia versión con su propia migración. Hasta entonces se guarda y NO se sella, dicho aquí en vez de silenciado.',

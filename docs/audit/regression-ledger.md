@@ -17407,3 +17407,81 @@ el reconocedor de dosis por kilo roto. Los ocho ponen rojo al menos un caso.
   línea por un error anterior del propio instrumento. Queda escrito en
   `docs/maintenance/PENDIENTES-CONSOLIDADOS-2026-09-02.md` como unidad propia, y
   la cabecera de `POLITICA_CORRECCION` evita el nombre **diciendo por qué**.
+
+
+## REG-509 — la ruta del audio no llegaba a la nota: el clic-a-audio moría al cerrar la pestaña
+
+**CÓMO SE DESCUBRIÓ.** Yendo a construir el barrido de retención NOM-004 que el
+dueño autorizó el 2-sep-2026. El reloj de la norma cuenta desde el último acto
+médico del **paciente**, y no había forma de saber de qué paciente era cada
+audio: el único vínculo era la carpeta `consultas-audio/{uid}/…`, y ese `uid` es
+el **MÉDICO**. Tirando de ahí apareció el defecto de verdad.
+
+**EL DEFECTO.** `audioPath` no se escribía en ninguna parte del documento. Vivía
+en el estado en memoria del hook y se pasaba como **prop** a la pantalla.
+Verificado por tres vías antes de tocar nada: el tipo no declaraba el campo,
+`updateNota` no lo escribía, y en `consulta/[patientId]/page.tsx` aparecía **una
+sola vez**, en `audioPath={audio.audioPath}`.
+
+| | |
+|---|---|
+| Consulta abierta | El clic-a-audio funcionaba |
+| Al día siguiente, nota firmada | **No había audio** |
+| El archivo en Storage | **Seguía ahí**, huérfano, sin nada que lo señalara |
+
+**CAUSA RAÍZ.** REG-249 hizo lo difícil y bien: sube el audio por los dos caminos
+—multipart y lote— y devuelve su ruta al llamador; once casos lo comprueban. Y
+ahí se acababa. Es **«el dato tiene que LLEGAR»** en su forma exacta: una prueba
+de contrato comprueba que el código **diga** lo acordado, no que el dato **quede
+escrito**. Nadie miró del otro lado, en el documento real. Misma familia que
+REG-170, donde la nota escribía `transcripcionMotor` y ninguna nota firmada lo
+tenía.
+
+**EL ARREGLO** — tres invariantes, y los tres probados al revés:
+
+1. **La ruta, nunca la URL.** Heredado de REG-249: `getDownloadURL` lleva un
+   token dentro y guardarlo sería dejar una llave escrita en el expediente, que
+   sigue sirviendo aunque después se revoque el acceso. La URL se vuelve a pedir
+   al reproducir, cuando las reglas se evalúan otra vez con quien mira.
+2. **No se pisa al reabrir.** En la sesión siguiente el grabador está vacío, así
+   que escribir su valor tal cual **borraría** la ruta guardada y dejaría el
+   archivo huérfano para siempre. `audioPathGuardadaRef` conserva lo que la nota
+   traía — el mismo patrón que `transcripcionMotorGuardadaRef`, un eje más allá.
+3. **Fuera del sello, y declarado.** `canonicoV4` es lista blanca: dejarlo fuera
+   garantiza que **ninguna nota ya firmada cambie de hash**, que es la falsa
+   alarma de REG-060. Entra en `CAMPOS_NO_SELLADOS_V3` con su razón.
+
+**LO QUE NO DECIDE ESTE ARREGLO.** Si el audio debe entrar al sello —y con qué
+versión— es del dueño: es irreversible sobre documentos firmados con su cédula,
+misma familia que D-08. Se le preguntó y contestó «sigue», que no es una
+respuesta a esa pregunta; se tomó el camino **reversible** y se dejó la decisión
+abierta.
+
+**CLOSED.** `src/__tests__/la-ruta-del-audio-llega-a-la-nota.test.ts` (12 casos).
+**Probado al revés con seis defectos inyectados**: no escribir la ruta (el
+defecto original) · escribirla sin el ref, que la borra al reabrir · no
+rehidratar el ref · guardar la URL en vez de la ruta · meterla dentro del sello ·
+quitarle la razón a la exclusión. Los seis ponen rojo al menos un caso.
+
+**De paso, el trinquete del sello funcionó.** `e0-12-sello-integridad` tiene un
+`Record<keyof NotaMedica, true>` que hace fallar `tsc` cuando alguien añade un
+campo: obligó a clasificar `audioPath` como sellado o excluido **con su razón**,
+en vez de dejarlo nacer fuera en silencio, que es lo que le pasó a `preop`.
+
+### Qué NO cubre
+
+- **No prueba que el audio se OIGA.** Prueba que la ruta se escribe, sobrevive y
+  no rompe el sello. Que el reproductor la resuelva se mira en un navegador.
+- **No cierra la retención NOM-004**: la desbloquea. Ya se puede saber de qué
+  paciente es cada audio. El barrido es su propia unidad.
+- **Residual del sello, y no es menor**: quien pueda escribir la nota puede
+  APUNTAR el audio a otro archivo sin que el hash lo note. Lo que el sello sí
+  cubre es el TEXTO de origen (`transcripcionMotor`, desde v4), así que una nota
+  cuyo audio no corresponda a su transcripción es detectable **por
+  contradicción**, no por el hash.
+- **Las notas firmadas antes de hoy no tienen ruta y no la van a tener.** Su
+  audio, si existe, sigue huérfano. No se inventa un vínculo retroactivo.
+- **`adjuntos.ts:179` sigue diciendo que el audio «no vuelve, es efímero por
+  diseño»**, escrito antes de REG-249. Contradice que se conserve por decisión
+  del dueño. No se tocó aquí: es del respaldo, y arreglarlo a ciegas dentro de
+  otra unidad es cómo se rompen los manifiestos.

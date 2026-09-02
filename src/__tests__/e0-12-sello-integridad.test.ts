@@ -116,6 +116,8 @@ function notaV3Completa(): NotaMedica {
     transcripcionCruda: 'Transcripción sintética de la consulta ficticia.',
     // v996: el material de origen y la lista de dudas. Datos 100 % sintéticos.
     transcripcionMotor: 'transcripcion sintetica sin corregir de la consulta ficticia',
+    // Ruta, NUNCA url: si aquí apareciera un token, el guardián de abajo lo cazaría.
+    audioPath: 'consultas-audio/uid-sintetico/consulta-ficticia-1756800000000.webm',
     palabrasAVerificar: [{ texto: 'sintética', momento: '0:03', seguridad: 41 }],
     dialogoDiarizado: [
       { speaker: 'Médico', text: 'Pregunta sintética.' },
@@ -390,7 +392,7 @@ const LLAVES_NOTA: Record<keyof NotaMedica, true> = {
   diagnosticos: true, medicamentos: true, alergias: true, estudiosOrden: true,
   internamientoId: true, hospital: true, infectologia: true, preop: true,
   iaAuditoria: true, transcripcionCruda: true, transcripcionMotor: true,
-  dialogoDiarizado: true, palabrasAVerificar: true, firma: true,
+  dialogoDiarizado: true, palabrasAVerificar: true, audioPath: true, firma: true,
   estado: true, fechaConsulta: true, createdAt: true, updatedAt: true, creadoPor: true,
 }
 
