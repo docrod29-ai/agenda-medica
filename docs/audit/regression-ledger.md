@@ -15967,3 +15967,271 @@ superficies sin teñir, donde ya cumple.
 corrigió: pedía `amber` dentro de 160 caracteres del selector y se puso rojo
 cuando el arreglo añadió un comentario en medio. **Un guardián que se rompe al
 documentar el porqué empuja a no documentarlo**; ahora mira el bloque de la regla.
+
+---
+
+## REG-425 — Finanzas escondía una cifra de dinero detrás de un arrastre lateral, y el trinquete lo daba por bueno
+
+**Dónde**: `src/app/(dashboard)/finanzas/page.tsx` · `src/app/globals.css`
+(`.grid-2`, `.grid-titular-par`) · `scripts/carril-excelencia/trinquete-de-interfaz.mjs`
+
+### Qué fallaba
+
+Barriendo las 28 pantallas del panel a 390 px (unidad 98). En `/finanzas`,
+`<main>` medía 390 px de ancho con **685 px de contenido**: 295 px de pantalla
+quedaban fuera de la vista, y en ellos iba la tarjeta de **Transferencia**
+entera, con su importe y su porcentaje. En la captura se ve el corte a media
+tarjeta: «$90…», «1 cobr…».
+
+El médico que abre Finanzas en el teléfono ve dos de los tres métodos de cobro y
+**nada le dice que hay un tercero**. No es una tarjeta fea: es una cifra de
+dinero escondida.
+
+### Por qué ningún guardián lo vio — y esto es lo importante
+
+`/finanzas` **ya estaba** en la lista de rutas del `trinquete-de-interfaz`, **ya
+se medía** a 390 px, y su contador `desborde` salía en **false**: verde, corrida
+tras corrida, durante meses. Porque la pregunta era
+
+```js
+document.documentElement.scrollWidth > document.documentElement.clientWidth
+```
+
+y el documento **no** se desbordaba: `<main>` lleva `overflow-x: auto` y se
+tragaba el desborde. El contenido no desaparece del documento — se esconde
+detrás de un arrastre lateral que en un teléfono nadie descubre.
+
+Familia **«el dato tiene que LLEGAR»**: el guardián estaba escrito, corría, y
+preguntaba del lado equivocado de la frontera. Un guardián en verde sin nada
+vigilado es peor que ninguno, porque ocupa el sitio del que sí miraría.
+
+El otro guardián de teléfono tampoco podía verlo, y **no es culpa suya**:
+`scripts/calidad/cabe-en-un-telefono.mjs` barre el código fuente buscando lo que
+no puede encoger —anchos fijos, suelos de `minmax`, columnas clavadas en
+píxeles (REG-306)—, y las rejillas que rompieron Finanzas eran `1.1fr 1fr 1fr` y
+`1fr 1fr`: ni un píxel clavado, ni un suelo. Ninguna de sus cuatro clases las
+alcanza. Su cabecera ya lo decía —«no sustituye al navegador: **acota**»— y esta
+regresión es la prueba de que decía la verdad. Por eso el arnés nuevo se llama
+`el-telefono-medido-en-el-navegador` y no repite aquel nombre: es el navegador
+que aquél declara no ser.
+
+### Causa raíz del desborde
+
+Un hijo de rejilla vale por defecto `min-width: auto` — «nunca más angosto que
+tu contenido». Con las columnas escritas en el `style` inline (`1.1fr 1fr 1fr`,
+`1fr 1fr`), donde ningún `@media` las alcanza, y un nombre largo dentro, la
+pista crece más que la pantalla y se lleva la rejilla por delante.
+
+Y el nombre largo no es aquí un caso raro: un nombre mexicano trae cuatro o
+cinco partes. «María Guadalupe de la Concepción Villaseñor Etchegaray» pedía
+301 px en una caja de 256.
+
+Lo más caro del caso: **el recorte del nombre ya estaba escrito** en el código
+(`textOverflow: 'ellipsis'`, `maxWidth: '70%'`) y **no se aplicaba nunca**,
+porque sin `min-width: 0` el hijo no podía encoger. Código correcto, sin efecto
+— la misma forma del defecto que el guardián.
+
+### El arreglo
+
+1. El trinquete pregunta por el desborde **a cada contenedor de scroll de dentro
+   de `<main>`**, no sólo al documento.
+2. Las tres rejillas de Finanzas llevan la utilidad responsiva del sistema
+   (`.grid-2`, que ya existía y ya se usaba en nueve sitios, y
+   `.grid-titular-par`, nueva para la forma «un dato manda y otros dos se
+   comparan»: en el teléfono el titular toma el ancho y el par queda lado a
+   lado, porque apilarlos mataría la comparación, que es para lo que el par
+   existe).
+3. `min-width: 0` en los hijos de esas utilidades y en las filas de los
+   desgloses, que es lo que deja funcionar a la truncación ya escrita.
+
+### Medido
+
+| | antes | después |
+|---|---|---|
+| Ancho de `<main>` en `/finanzas` a 390 px | 390 → **685** | 390 → **390** |
+| Pantallas del panel que se salen a 390 px | 2 de 28 | 0 de 28 |
+
+**Qué NO cubre.** Sólo Chromium: **no hay WebKit en este entorno, así que esto
+no prueba iPhone**. Sólo el ancho, no lo que se sale por abajo. Sólo el panel
+del médico con los datos del arnés: otros datos —un nombre más largo, veinte
+cobros— pueden sacar pantallas que hoy caben. Y las otras ~50 rejillas de
+columnas fijas del producto **no** se tocaron: hoy caben, y quien las vigila es
+el barrido, no una clase puesta a mano en cada una.
+
+**Prueba.** `src/__tests__/el-dinero-cabe-en-un-telefono.test.ts` (6 casos) y el
+arnés `el-telefono-medido-en-el-navegador`, que es el que lo encontró.
+
+---
+
+## REG-426 — en la agenda de un teléfono, el bloque de la cita decía la hora y se comía el nombre del paciente
+
+**Dónde**: `src/app/(dashboard)/calendario/page.tsx` (`EtiquetaDeBloque`,
+vistas de semana y de mes) · `src/app/globals.css` (`.nx-agenda-quien`,
+`.nx-agenda-hora`)
+
+### Qué fallaba
+
+La misma sonda de 390 px, buscando textos cortados **sin puntos suspensivos que
+lo digan**. En `/calendario`, vista de semana, **diez** bloques cortados en
+seco.
+
+Al mirar la captura se vio lo que el número no decía: en un teléfono la columna
+de un día mide unos **41 px**, ahí caben unos cinco caracteres, y los cinco se
+los llevaba la hora. Los bloques decían «08:00», «09:00», «10:30», «13:00» — y
+el nombre del paciente **no llegaba a pintarse nunca**.
+
+La hora ya la da la fila de la izquierda de la rejilla. El nombre no lo da nadie
+más. La pantalla donde el médico busca a quién tiene a las nueve gastaba su
+ancho entero repitiendo el eje y escondiendo la respuesta.
+
+### Causa raíz
+
+El bloque escribía `{hora} {nombre}` como **un solo texto** con
+`overflow: hidden`. En un texto corrido el recorte se lleva siempre lo último, y
+lo último era el nombre. No había forma de que la hora cediera: no era un
+elemento aparte que pudiera retirarse.
+
+### El arreglo
+
+1. **El nombre va primero** en el orden del documento, así que es la hora la que
+   se queda fuera cuando no cabe, y no al revés.
+2. **La hora se retira** por debajo de 640 px en vez de comerse la línea. La
+   hora exacta sigue en el `title` y en la etiqueta accesible del bloque, y a un
+   toque está la cita entera.
+3. **El recorte se declara** con puntos suspensivos. Un nombre cortado en seco
+   —«Ros» por Rosalía o por Rosario— es peor que uno que avisa de que sigue: en
+   una agenda clínica confundir a dos pacientes es un daño, y un recorte mudo
+   invita justo a eso.
+4. Las columnas del día pasan de `1fr` a `minmax(0, 1fr)`: la misma trampa de
+   `min-width: auto` hacía que siete días de 41 px sumaran 287 y se pasaran tres
+   píxeles del contenedor.
+
+### Y aun así, 41 px no dan para un nombre
+
+Con la regla puesta y medido otra vez, los bloques de la semana pasaron de decir
+«08:00» a decir «R…», «M…», «Ta…». Ya no se corta nada en silencio —que era el
+defecto— pero **una letra no es un nombre**. El ancho no da y no lo va a dar.
+
+Así que la agenda **abre en DÍA cuando la pantalla es de teléfono**. La vista de
+día ya existía, tiene la columna entera y escribe «HH:MM — nombre completo». La
+semana no se quita, y en cuanto el médico elige una vista la suposición se
+calla: **una preferencia dicha gana a una preferencia supuesta**.
+
+Y abrir el día delante de la sonda por primera vez destapó dos cosas más:
+
+- **La tarjeta del día se salía 198 px**, porque el arreglo anterior colgó el
+  `white-space: nowrap` de `.nx-agenda-bloque` —la clase que comparten los tres
+  tamaños de bloque— en vez de la etiqueta estrecha. Compartir clase no es
+  compartir forma. La vista de día no se había medido nunca a 390 px: **lo que
+  no es la ruta por defecto no lo mira nadie**.
+- **El tipo de la cita salía en blanco** en las diez citas del arnés. Es
+  REG-427, y no era del producto.
+
+### La vista se deriva; no se copia
+
+La primera versión leía `matchMedia` en un `useEffect` y empujaba el resultado a
+un estado. El lint de React lo rechazó, y tenía razón dos veces: encadena
+renders, y —lo que importa— **un efecto no se entera de que la ventana cambió**.
+Un teléfono que gira, o una ventana de escritorio que alguien estrecha, se
+quedaban con la respuesta del primer render para siempre.
+
+`useSyncExternalStore` es la herramienta: `matchMedia` es un sistema al que uno
+se **suscribe**, no un estado que haya que copiar. Vive en
+`src/hooks/useEsTelefono.ts`, con la instantánea del servidor diciendo «no es un
+teléfono» en vez de adivinar, porque leer el ancho durante el render rompería la
+hidratación.
+
+### Medido
+
+Las cuatro conductas, comprobadas en Chromium de verdad y no deducidas:
+
+| en el navegador | resultado |
+|---|---|
+| 390 vertical | abre en **Día** |
+| girado a 844 | pasa a **Semana** |
+| de vuelta a 390 | vuelve a **Día** |
+| el médico elige Semana y gira | sigue en **Semana** |
+| escritorio 1440 | abre en **Semana** |
+
+| | antes | después |
+|---|---|---|
+| Textos cortados sin decirlo, en las 28 pantallas | **10** | **0** |
+| Rejilla de la semana a 390 px | 343 px en 340 | cabe |
+| Tarjeta del día a 390 px | 340 → **538** | cabe |
+
+**Qué NO cubre.** No mide píxeles: que el nombre quepa de verdad en 41 px lo
+dice el navegador, no el golden. No cubre la vista de **día**, que tiene el
+ancho entero y escribe «HH:MM — nombre completo» a propósito. No juzga el
+umbral de 640 px: es una decisión de dónde está «un teléfono», no una medida.
+Y **sólo Chromium**: esto no prueba iPhone.
+
+**Prueba.** `src/__tests__/en-un-bloque-estrecho-el-nombre-manda.test.ts`
+(8 casos) y el arnés `el-telefono-medido-en-el-navegador`.
+
+---
+
+## REG-427 — el arnés escribía el tipo de cita con su etiqueta, y diez citas enseñaban el tipo en blanco
+
+**Dónde**: `scripts/design/sembrar-emulador.mjs`
+
+### Qué fallaba
+
+Mirando la vista de día de la agenda a 390 px, ya arreglada, la línea bajo cada
+nombre decía « · 30min». Con un hueco delante del punto medio, donde va el tipo
+de la cita.
+
+En el DOM: `"08:00 — Rosalía Mendieta CuevasAtendida  · 30min"` — dos espacios
+seguidos y nada entre ellos.
+
+### Causa raíz
+
+La siembra escribía `tipo: 'Seguimiento'` y `tipo: 'Primera vez'` — las
+**etiquetas** que se le enseñan al médico. El producto guarda la **clave**:
+`'seguimiento'`, `'primera-vez'`. `APPOINTMENT_TYPE_CONFIG[tipo]?.label`
+devolvía `undefined`, React pintó una cadena vacía, y nadie se quejó.
+
+Lo mismo con `origen: 'manual'`, que en el producto es `'Manual'`.
+
+El producto estaba bien: su propio formulario recorre
+`Object.entries(APPOINTMENT_TYPE_CONFIG)`, así que siempre escribe la clave. El
+que mentía era el arnés.
+
+### Por qué importa más de lo que parece
+
+Un arnés que miente **calla mejor que un arnés roto**. Las diez citas del arnés
+llevaban el tipo en blanco, y con ellas **todas las capturas de la agenda que
+hay en `docs/design/capturas/`**: cada medición visual de esa pantalla se hizo
+contra una agenda a la que le faltaba un dato, sin que ninguna lo dijera.
+
+Y es la **cuarta** vez. La cabecera de este mismo archivo ya documentaba
+`urgencia` por `urgente` (unidad 16) y un estado de cita inventado, con la
+lección escrita: «un dato de prueba fuera del vocabulario hace mentir a la
+pantalla que se está auditando». La lección estaba escrita y no estaba
+**ejecutada**.
+
+### El arreglo
+
+La siembra lee el vocabulario de `src/types/index.ts` —`AppointmentType`,
+`AppointmentStatus`, `AppointmentOrigin`— y comprueba cada cita antes de
+escribir nada. Si un valor no casa, **se para** con el campo, el valor y la
+lista de válidos, en vez de escribir la mentira.
+
+Se lee del archivo y no se copia aquí, porque una copia a mano es exactamente
+el defecto que este guardián existe para cazar: se escribe bien el día que se
+escribe y se queda vieja en silencio.
+
+### Medido
+
+| | antes | después |
+|---|---|---|
+| Citas del arnés con el tipo en blanco | **10 de 10** | 0 de 10 |
+| Campos de la cita comprobados contra el vocabulario | 0 | 3 |
+
+**Qué NO cubre.** Sólo las citas. El resto de las colecciones del arnés
+—pacientes, cobros, notas, resultados— **no** comprueban su vocabulario, y
+pueden estar mintiendo igual ahora mismo. Se declara, no se arregla aquí.
+
+**Prueba.** Probado al revés metiendo el defecto en los tres campos, uno a uno:
+la siembra se para en `cita-001` (tipo), `cita-010` (estado) y `cita-001`
+(origen). No hay caso en vitest: el guardián vive donde se escriben los datos,
+que es donde puede pararlos.

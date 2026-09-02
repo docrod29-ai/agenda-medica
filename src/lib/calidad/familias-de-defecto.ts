@@ -582,7 +582,26 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * datos que los hicieran aparecer — un cero sobre una lista vacía no dice
      * «está bien», dice «aquí no hay nada».
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 424],
+    /**
+     * 425, 426 y 427 son la misma lección contada tres veces en una tarde.
+     *
+     * 425: el trinquete de interfaz medía `/finanzas` a 390 px y salía verde,
+     * porque preguntaba por el desborde a `documentElement` mientras `<main>`
+     * se tragaba 295 px de pantalla con su `overflow-x: auto`. Un guardián que
+     * pregunta del lado equivocado de la frontera ocupa el sitio del que sí
+     * miraría.
+     *
+     * 426: la vista de DÍA de la agenda no se había medido nunca a 390 px
+     * —no era la que abría— y saltó a la primera medición, rota, en cuanto se
+     * la puso delante. Lo que no es la ruta por defecto no lo mira nadie.
+     *
+     * 427: la siembra escribía el tipo de cita con su ETIQUETA en vez de su
+     * clave, así que diez citas del arnés enseñaban el tipo en blanco. Nadie
+     * lo midió porque el hueco no rompe nada: sale una línea que dice
+     * « · 30min» y sigue el día. Las capturas de la agenda que hay en
+     * `docs/design/capturas/` se tomaron todas contra ese arnés.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 424, 425, 426, 427],
   },
   {
     clave: 'hueco_como_dato',

@@ -2,6 +2,7 @@
 import { conMayusculaInicial } from '@/lib/texto-es'
 import { useState, useMemo } from 'react'
 import { activable } from '@/lib/ui/activable'
+import { useEsTelefono } from '@/hooks/useEsTelefono'
 import { useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -154,7 +155,32 @@ export default function CalendarioPage() {
     if (!medicoFiltro) return allAppointments
     return allAppointments.filter(a => a.medicoId === medicoFiltro)
   }, [allAppointments, medicoFiltro])
-  const [view, setView] = useState<View>('semana')
+  /**
+   * EN UN TELÉFONO LA AGENDA ABRE EN DÍA.
+   *
+   * La vista de semana en 390 px no es una agenda: son siete columnas de unos
+   * 41 px donde el nombre del paciente no cabe de ninguna manera. Medido en el
+   * navegador, los bloques llegaban a enseñar una letra y un puntito
+   * suspensivo. Ninguna tipografía arregla eso — el ancho no da.
+   *
+   * La vista de DÍA ya existe, tiene la columna entera y escribe
+   * «HH:MM — nombre completo». Es la que responde a la pregunta con la que un
+   * médico abre la agenda en el teléfono: a quién tengo ahora.
+   *
+   * La semana no se quita: sigue a un toque para quien quiera el panorama. Y
+   * en cuanto el médico elige una vista, esto se calla — **una preferencia
+   * dicha gana a una preferencia supuesta**, y sigue ganando si gira el
+   * teléfono.
+   *
+   * La vista es DERIVADA, no un estado que haya que sincronizar. Copiarla a un
+   * estado desde un efecto encadenaba renders y, peor, se quedaba con la
+   * respuesta del primer render: una ventana que se estrecha o un teléfono que
+   * gira no cambiaban nada.
+   */
+  const [vistaElegidaPorElMedico, setVistaElegidaPorElMedico] = useState<View | null>(null)
+  const esTelefono = useEsTelefono()
+  const view: View = vistaElegidaPorElMedico ?? (esTelefono ? 'dia' : 'semana')
+  const elegirVista = (v: View) => setVistaElegidaPorElMedico(v)
   /**
    * UN solo «hoy» por render, para el botón de nueva cita y para la vista de
    * día. Antes cada sitio preguntaba por su cuenta; además de sumar llamadas
@@ -217,7 +243,7 @@ export default function CalendarioPage() {
           {(['dia', 'semana', 'mes'] as View[]).map(v => (
             <button
               key={v}
-              onClick={() => setView(v)}
+              onClick={() => elegirVista(v)}
               className="nx-segmento"
               aria-pressed={view === v}
               style={{
@@ -324,7 +350,7 @@ export default function CalendarioPage() {
           <MonthView
             date={baseDate}
             appointments={appointments}
-            onDayClick={(d) => { setBaseDate(d); setView('dia') }}
+            onDayClick={(d) => { setBaseDate(d); elegirVista('dia') }}
             onApptClick={openEdit}
             loading={loading}
           />
@@ -340,6 +366,31 @@ export default function CalendarioPage() {
         onSaved={() => {}}
       />
     </div>
+  )
+}
+
+/**
+ * Lo que dice un bloque estrecho de la agenda — semana y mes.
+ *
+ * En un teléfono la columna de un día mide unos 41 px. Ahí cabían cinco
+ * caracteres, y los cinco se los llevaba la hora: los bloques decían «08:00»,
+ * «09:00», «10:30» y el nombre del paciente no llegaba a pintarse nunca. La
+ * hora ya la da la fila de la izquierda; el nombre no lo da nadie más.
+ *
+ * Así que el nombre va primero y es el que sobrevive al recorte, y la hora se
+ * retira cuando no cabe en lugar de comerse la línea. Lo que se recorte lo
+ * dirá el puntito suspensivo: un nombre cortado en seco —«Ros» por Rosalía o
+ * por Rosario— es peor que un nombre que avisa de que sigue.
+ *
+ * La hora exacta y el nombre completo siguen en el `title` y en la etiqueta
+ * accesible del bloque, y a un toque está la cita entera.
+ */
+function EtiquetaDeBloque({ hora, quien }: { hora: string; quien: string }) {
+  return (
+    <span className="nx-agenda-etiqueta">
+      <span className="nx-agenda-quien">{quien}</span>
+      <span className="nx-agenda-hora">{hora}</span>
+    </span>
   )
 }
 
@@ -377,7 +428,7 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
   return (
     <div style={{ height: '100%', overflow: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
       {/* Header row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, 1fr)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10, background: 'var(--s2)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10, background: 'var(--s2)' }}>
         <div />
         {weekDates.map((d, i) => {
           const ds = diasISO[i]
@@ -401,7 +452,7 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
 
       {/* Hour rows */}
       {HORAS.map(h => (
-        <div key={h} style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, 1fr)', minHeight: 48, borderBottom: '1px solid var(--border)' }}>
+        <div key={h} style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, minmax(0, 1fr))', minHeight: 48, borderBottom: '1px solid var(--border)' }}>
           <div style={{ padding: '4px 8px', textAlign: 'right', fontSize: 11, color: 'var(--text3)', flexShrink: 0, borderRight: '1px solid var(--border)' }}>
             {String(h).padStart(2, '0')}:00
           </div>
@@ -534,7 +585,7 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                         overflow: 'hidden', zIndex: 2, cursor: 'pointer',
                       }}
                     >
-                      {a.fechaHora.slice(11, 16)} {a.pacienteNombre.split(' ')[0]}
+                      <EtiquetaDeBloque hora={a.fechaHora.slice(11, 16)} quien={a.pacienteNombre.split(' ')[0]} />
                     </div>
                   )
                 })}
@@ -701,7 +752,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
   return (
     <div style={{ height: '100%', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
       {/* Day headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--border)' }}>
         {DAY_HEADERS.map(d => (
           <div key={d} style={{ padding: '8px 0', textAlign: 'center', fontSize: 12, fontWeight: 500, color: 'var(--text3)', borderRight: '1px solid var(--border)' }}>
             {d}
@@ -710,7 +761,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
       </div>
 
       {/* Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', height: 'calc(100% - 37px)', overflow: 'auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 'calc(100% - 37px)', overflow: 'auto' }}>
         {days.map((d, i) => {
           if (!d) return <div key={i} style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg)', opacity: 0.3 }} />
           const ds = diaDeRejilla(d)
@@ -826,7 +877,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
                     marginBottom: 2, cursor: 'pointer',
                   }}
                 >
-                  {a.fechaHora.slice(11, 16)} {a.pacienteNombre.split(' ')[0]}
+                  <EtiquetaDeBloque hora={a.fechaHora.slice(11, 16)} quien={a.pacienteNombre.split(' ')[0]} />
                 </div>
                 )
               })}

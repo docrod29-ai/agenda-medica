@@ -45,7 +45,7 @@
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 863 | 0 | — | ✅ | — |
-| `/calendario` | medico | ✅ | 843 | 1 | — | ✅ | — |
+| `/calendario` | medico | ✅ | 894 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1259 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2669 | 1 | — | ✅ | — |
@@ -61,7 +61,7 @@
 | `/expediente/[patientId]` | medico | ✅ | 1146 | 14 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 822 | 0 | — | ✅ | — |
-| `/finanzas` | medico | ✅ | 755 | 0 | — | ✅ | — |
+| `/finanzas` | medico | ✅ | 758 | 0 | — | ✅ | — |
 | `/guia` | medico | ✅ | 134 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 286 | 0 | — | ✅ | — |
 | `/membresias` | medico | ✅ | 325 | 0 | — | ✅ | — |

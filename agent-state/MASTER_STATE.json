@@ -19,15 +19,26 @@
   "ultimaVersionEnProduccion": "nexusmed-v1178",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    "A  docs/design/capturas/v98/_citas-390.png",
+    "A  docs/design/capturas/v98/_consulta_pac_001-390.png",
+    "A  docs/design/capturas/v98/_consultor-390.png",
+    "A  docs/design/capturas/v98/_dashboard-390.png",
+    "A  docs/design/capturas/v98/_expediente_pac_001-390.png",
+    "A  docs/design/capturas/v98/_finanzas-390.png",
+    "A  docs/design/capturas/v98/_pacientes-390.png",
+    "A  docs/design/capturas/v98/calendario-390-antes.png",
+    "A  docs/design/capturas/v98/finanzas-390-antes.png",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/el-riel-mira-el-reloj.test.ts",
-    " M src/app/globals.css",
-    " M src/components/expediente/PatientAnchor.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    "?? docs/design/capturas/v97/",
-    "?? sonda-claro.mjs"
+    " M package.json",
+    "A  scripts/carril-excelencia/el-telefono-medido-en-el-navegador.mjs",
+    " M scripts/carril-excelencia/trinquete-de-interfaz.mjs",
+    " M scripts/design/sembrar-emulador.mjs",
+    "A  src/__tests__/el-dinero-cabe-en-un-telefono.test.ts",
+    "AM src/__tests__/en-un-bloque-estrecho-el-nombre-manda.test.ts"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +74,10 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 275,
+    "regsEnElLedger": 278,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 897,
-    "casosDePrueba": 10865,
+    "archivosDePrueba": 899,
+    "casosDePrueba": 10885,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

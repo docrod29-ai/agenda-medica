@@ -1563,6 +1563,25 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 @media (max-width: 640px) {
   .grid-2 { grid-template-columns: 1fr !important; }
 }
+/* Un hijo de rejilla vale por defecto min-width:auto, y eso significa "nunca
+   más angosto que tu contenido". Con un nombre largo dentro —y los nombres
+   mexicanos traen cuatro o cinco partes— la pista crece más que la pantalla y
+   se lleva la rejilla por delante. Pasó en Finanzas: el recorte estaba escrito
+   (ellipsis, maxWidth 70%) y no se aplicaba nunca porque el hijo no podía
+   encoger. min-width:0 es lo que deja que la truncación ya escrita funcione. */
+.grid-2 > * { min-width: 0; }
+
+/* Rejilla de TITULAR + PAR: un dato manda y otros dos se comparan entre sí.
+   En un teléfono el titular toma el ancho completo y el par queda lado a lado.
+   Apilar los tres rompería la comparación, que es justo para lo que el par
+   existe (efectivo contra transferencia: la pregunta es cuál pesa más).
+   El !important vence al estilo inline en pantallas chicas. */
+.grid-titular-par { display: grid; }
+.grid-titular-par > * { min-width: 0; }
+@media (max-width: 640px) {
+  .grid-titular-par { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
+  .grid-titular-par > :first-child { grid-column: 1 / -1; }
+}
 
 /* ── Objetivos táctiles ≥44px en dispositivos de dedo ──────────
    En desktop (puntero fino) los botones de 36px están bien y mantienen la
@@ -3709,6 +3728,32 @@ span.riel-aviso { cursor: default; }
   }
 }
 .nx-agenda-bloque:active { transform: scale(0.985); }
+
+/* El nombre manda dentro del bloque estrecho de la agenda.
+   La etiqueta es UNA línea: el nombre ocupa lo que haya y se recorta DICIENDO
+   que se recorta; la hora va detrás y se retira cuando la columna es tan
+   angosta que se comería el nombre —que es lo que pasaba en un teléfono, con
+   columnas de 41 px donde el bloque entero decía «08:00» y ya. La hora exacta
+   sigue en el title y en la etiqueta accesible.
+
+   OJO CON DÓNDE VA ESTO. La primera versión colgó el `white-space: nowrap` de
+   `.nx-agenda-bloque`, que es la clase que comparten los TRES tamaños de
+   bloque — y la vista de día no es una línea estrecha: es una tarjeta de dos
+   renglones con el nombre completo y su insignia. Al dejar de poder partir la
+   línea, esa tarjeta se salió 198 px de la pantalla. La regla es de la
+   ETIQUETA estrecha, no del bloque; el bloque sólo pone su transición. */
+.nx-agenda-etiqueta {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.nx-agenda-quien { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nx-agenda-hora { flex: 0 0 auto; color: var(--text3); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .nx-agenda-hora { display: none; }
+}
 
 /* Las opciones de tipo de consulta: el borde lo lleva el grupo, no cada una.
    El foco tiene que verse SIN borde propio, así que va por dentro. */
