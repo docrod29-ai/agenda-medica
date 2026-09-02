@@ -508,7 +508,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Negadas, Negadas».
      */
     /**
-     * 438 es esta familia sobre una LISTA. `SEGMENTOS_CON_ID` decía «aquí viene
+     * 444 es esta familia sobre una LISTA. `SEGMENTOS_CON_ID` decía «aquí viene
      * un identificador» y las rutas del paciente decían «aquí viene una
      * credencial»: dos afirmaciones sobre el mismo segmento, y ninguna estaba
      * mal por su cuenta. El fallo vivía en que nadie las comparó cuando
@@ -518,7 +518,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * una clase nueva que se le parece. Filtrar un id revela a quién le pasó
      * algo; filtrar un token entrega el acceso.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 438],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444],
   },
   {
     clave: 'habla_real',
@@ -747,7 +747,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * no. Un instrumento que sólo cuenta no sustituye a mirar — es la mitad del
      * método, no el método.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443],
   },
   {
     clave: 'hueco_como_dato',

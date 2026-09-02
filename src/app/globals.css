@@ -1670,7 +1670,7 @@ html[data-vt-continuidad] .page-transition { animation: none; }
      abajo) y el enlace lleva z-index 1 para que la capa de transición de
      página no se coma el borde inferior del golpe. Sin los dos, el área
      efectiva medía 40, no 44. */
-  a.nx-ident, .nx-cta-aviso, .nx-enlace-tactil { position: relative; z-index: 1; }
+  a.nx-ident, .nx-cta-aviso, .nx-enlace-tactil, .cita-principal { position: relative; z-index: 1; }
   /* ENLACES DE ACCIÓN SUELTOS — la familia que aquel guardián dejó declarada.
      `v15-a11y-tactiles-de-enlace` cerró `a.nx-ident` y `.nx-cta-aviso`, y dijo
      con todas las letras lo que NO cubría: «un enlace nuevo con otra clase no
@@ -1681,7 +1681,19 @@ html[data-vt-continuidad] .page-transition { animation: none; }
      caminos entre las dos puertas del producto, más los del pie.
      Mismo mecanismo, por la misma razón: el pseudo estira el ÁREA DE GOLPE sin
      mover un píxel de lo visible, y sólo en puntero grueso. */
-  a.nx-ident::before, .nx-cta-aviso::before, .nx-enlace-tactil::before {
+  /* `.cita-principal` — LA FILA DE CITA DE «HOY», y es la de peor consecuencia
+     de toda esta familia.
+     Medida a 390 px: **354×39**, cinco por debajo del mínimo, y hay seis
+     seguidas. No es un enlace de navegación ni un CTA: cada una ABRE UN
+     PACIENTE. Un toque que cae entre dos filas no lleva a una página
+     equivocada — abre el EXPEDIENTE EQUIVOCADO, que es el defecto que el equipo
+     rojo de este repositorio persigue por su nombre.
+     El guardián de esta familia dejó dicho lo que no cubría: «un enlace nuevo
+     con otra clase no está vigilado por esto». Éste era ese enlace.
+     El pseudo cabe sin pisar nada: la fila lleva 12 px de relleno vertical, así
+     que los 2,5 px que sobran por lado se quedan dentro de su propia fila, y a
+     lo ancho no crece (`max(100%, 44px)` = sus 354). Ver REG-442. */
+  a.nx-ident::before, .nx-cta-aviso::before, .nx-enlace-tactil::before, .cita-principal::before {
     content: '';
     position: absolute;
     top: calc(50% + 2px); left: 50%;
@@ -3364,6 +3376,11 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   font-size: 13px; color: var(--text2); font-family: inherit;
   border-bottom: 2px solid transparent;
   min-height: 30px;
+  /* «8 citas» medía 39 px de ancho: cinco por debajo del mínimo táctil, en un
+     renglón donde los filtros están a 14 px unos de otros. No es prosa —es un
+     control suelto—, así que no le vale la excepción de WCAG 2.2 §2.5.8 para
+     lo que va dentro de una frase. Cinco píxeles y ya. Ver REG-439. */
+  min-width: 44px;
 }
 .riel-filtro[aria-pressed='true'] {
   color: var(--nexus); border-bottom-color: var(--nexus-solido); font-weight: 600;
