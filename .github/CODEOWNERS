@@ -6,7 +6,7 @@
 # Este archivo obliga a que su revisión aparezca en el PR.
 #
 # OJO — esto NO surte efecto por sí solo: hay que activar "Require review from Code Owners"
-# en la protección de rama de `main`. Ver docs/pendientes-externos.md §3.
+# en la protección de rama de `main`. Ver docs/ops/PROTECCION-DE-RAMA.md.
 #
 # El handle se dedujo de la URL del remoto (github.com/docrod29-ai/agenda-medica); si no es
 # el usuario correcto de GitHub, GitHub marcará la línea como inválida y la ignorará.

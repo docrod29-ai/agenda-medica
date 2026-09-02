@@ -243,6 +243,10 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-150 | Clínico (voz) · cifra plausible y equivocada | **Un decimal dictado con «y» perdía su último dígito.** «pH siete punto **treinta y cinco**» salía «pH 7.30 y 5»; el potasio 3.42 quedaba 3.40; la norepinefrina 0.35 quedaba 0.30. La parte ENTERA sí unía decena y unidad con «y»; la decimal rompía el bucle y el 5 se caía fuera como texto suelto. Es la forma **natural** de dictar un pH, un potasio, un INR o una dosis de vasopresor en español, y **lo que quedaba era plausible** — el peor modo de falla. El guardián no lo veía: sólo vigila cifras que DESAPARECEN, y aquí la que sobra aparece. Corre en TODAS las rutas: el pipeline va delante del extractor y del modelo que redacta | CLOSED (v1036) | `src/__tests__/auditoria-v7-dia1.test.ts`. Se acepta la «y» entre decena y unidad dentro de la parte decimal y se compone (30+5=35), sólo cuando la decena es múltiplo de diez. **Es gramática del español, no criterio clínico.** Encontrado por el auditor de seguridad de medicación del Día 1 del Master Loop V7 y verificado ejecutando el motor |
 | REG-151 | Clínico (P0) · alergia que desaparece | **Una alergia real se perdía detrás de una negación.** «Niega penicilina. **Alérgico a sulfas**» devolvía `[]`: sin el punto como separador era UN fragmento, y `esAlergiaNegada` lo filtraba entero. La alergia a sulfas desaparecía de **los cuatro** sitios que leen del parser canónico — la compuerta de la receta, la nota que valida NOM-004, el recurso FHIR y el sesgo del reconocedor. El camino hospitalario (`hospital/cds.ts`) ya partía por punto y su comentario decía por qué: «para no perder una alergia real que venga después de una negada». Conocía el modo de fallo; el canónico no | CLOSED (v1036) | `src/__tests__/auditoria-v7-dia1.test.ts`. Se añade el punto **exigiendo espacio detrás**, para no partir decimales («2.5 mg») ni abreviaturas («Penicilina G.») — sin esa condición el arreglo habría creado un problema nuevo. **Y la tercera ruta cruda**: la alerta alergia↔fármaco de la pantalla de consulta metía el campo entero como un solo alérgeno, sin partir y sin filtrar negaciones, así que «niega alergia a penicilina» + amoxicilina pintaba la alerta CRÍTICA roja justo donde se prescribe — REG-034 y REG-035 por tercera vez, y en el mismo archivo había otras dos lecturas que sí usaban el parser bueno |
 | REG-152 | Pérdida de datos (legal) | **El respaldo «completo» no guardaba las ADENDAS ni el versionado.** El exportador bajaba **un solo nivel** y las adendas viven dos: `patients/{p}/notas/{n}/adendas/{a}`. La adenda es el **único mecanismo de corrección** que existe sobre una nota firmada, que es inmutable por la NOM-024 — así que restaurar ese respaldo devolvía la nota y **borraba la corrección legal**, mientras el pie del archivo decía `completo: true`. Y el simulacro de ida y vuelta medía fielmente la mitad equivocada | CLOSED (v1037) | `src/__tests__/respaldo-consultorio.test.ts`. `hijas` pasa de lista plana a **árbol** (`RamaRespaldo`) y el exportador recorre recursivamente. **Y el guardián era estructuralmente ciego**: escaneaba `^ {6}match /` —sólo el primer nivel—, así que no podía ver el hueco; ahora recorre el bloque de `clinics` a cualquier profundidad y compara contra el árbol declarado. Tercera prueba del día que **fijaba el defecto en verde**: exigía con `toEqual` la lista incompleta de cinco hijas. Fijar la forma de una lista no prueba que la lista esté completa |
+| REG-506 | Despliegue / integridad de la publicación | **El despliegue de índices no enviaba ni un índice, y firmaba el acta.** `firebase.json` declaraba `firestore.rules` y **no** `firestore.indexes`; en firebase-tools el envío entero cuelga de esa clave (`if (firestoreConfig.indexes)`), así que el paso imprimía «deploying indexes...», recorría una lista vacía y contestaba `Deploy complete!`. Tres ejecuciones (#11, #12, #13) cerraron `PRODUCTION_RELEASE=SUCCESS` sin publicar los ocho índices — cuatro de ellos, de consultas que el producto YA hace (bandeja ARCO, lista de farmacia, rastro de un controlado y la página **pública** del médico), y Firestore rechaza entera una consulta sin índice | CLOSED (v1179) | `src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts` (probado al revés con la configuración exacta de v1178) + el propio paso del workflow, que ahora exige en la salida la línea `deployed indexes in ... successfully` en vez de creerse el código de salida |
+| REG-507 | Seguridad / papelería | **El .doc de la receta guardaba un ENLACE al membrete, y ese enlace sólo funcionaba porque el candado estaba apagado.** `receta-word` no lee del DOM —lee `recetaConfig.membreteDataUrl`, la URL guardada SIN firma— y la incrustaba absolutizada en el documento. Word lo abre desde el disco y pide esa URL **sin sesión y sin firma**. Los caminos de pantalla sí estaban cubiertos (`print-element`, `pdf-download`, `FirmadorDisenos`); éste no podía estarlo. Con `RECETA_DISENO_FIRMA=obligatoria` habría dado 403 y el membrete habría salido roto en una receta con cédula profesional | CLOSED (v1179) | `src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts` (7 casos, probada al revés reinstalando el defecto: fallan 4). El membrete se incrusta como data URI, no se firma: una firma caduca a las 24 h y un .doc se reabre semanas después |
+| REG-508 | Seguridad / configuración | **La pantalla de Configuración le dictaba al médico un token de verificación que el servidor no acepta.** Imprimía el literal `agenda-medica-bot` como «Token de verificación» para teclear en Meta, pero `whatsapp/webhook` sólo acepta `WHATSAPP_WEBHOOK_TOKEN` (o su alias) y **sin respaldo**. Con la variable puesta a otra cosa —lo normal— seguir esa instrucción hacía que Meta no verificara el webhook y el bot de pacientes se quedara mudo, con un síntoma que no se parece a la causa; con la variable puesta a ese literal, el secreto compartido quedaba publicado en la pantalla. El mismo literal vivía además en `meta-connect` dentro de una constante **sin un solo consumidor** | CLOSED (v1179) | `src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts` (5 casos, probada al revés por las DOS mitades: devolviendo el literal a la pantalla y la constante muerta al conector) |
+| REG-509 | Herramienta / determinismo | **Un archivo generado que salía distinto en cada máquina.** `inventario-de-entorno.mjs` leía la lista de `grep -rl`, que la devuelve en el orden del SISTEMA DE ARCHIVOS, y para las 9 variables que se leen en más de un archivo de `src/` elegía el respaldo «del primero que apareciera». En el contenedor de trabajo salía uno y en el runner otro: el inventario y `.env.example` diferían **sin que cambiara una línea del código**, y su propio guardián puso `verificar` en rojo en el primer CI del PR #437. El `localeCompare` del orden final era una segunda fuente latente de lo mismo | CLOSED (v1179) | `src/__tests__/ninguna-variable-de-entorno-vive-sin-declarar.test.ts` — caso «el orden en que llegan los archivos no cambia el resultado»: se le pasa la lista **al revés** y se exige el mismo resultado. Probado reinstalando el defecto: fallan 2 |
 
 ## REG-153 · El anticipo se podía cobrar DOS veces
 
@@ -17308,7 +17312,6 @@ separador.
 - **`Visitas anteriores: [2026-09-02]`** se vio y **no** se tocó. El corchete es
   el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
   contexto de los motores: cambiarla por estética movería lo que el modelo lee.
-
 ## REG-438 — el riel del expediente saltaba a su extremo al cargar, y escondía la primera categoría
 
 **CÓMO SE DESCUBRIÓ.** Siguiendo el hueco que REG-437 dejó declarado en su «qué
@@ -17816,9 +17819,295 @@ a 405.
 - **No sella la rejilla de semana.** Se midió y hoy no tiene el defecto (cero
   recortados), pero este guardián no lo vigila.
 
+<!--
+  RENUMERADO — TERCERA COLISION DEL CONTADOR EN DOS DIAS (2-sep-2026).
+
+  Esta entrada se escribio como REG-438 y, entre escribirla y fusionarla, 
+  asigno ese numero a otra regresion. Pasa a REG-444.
+
+  Es la tercera vez esta semana: ya ocurrio con 323-326 -> 415-418 -> 417-420.
+  El numero es un contador global asignado a mano y hay dos escritores que lo
+  leen antes de escribir; entre leer y fusionar cabe el otro. Misma forma que
+  REG-349 —mirar y escribir no son un acto—, y volvera a pasar mientras el
+  numero se elija leyendo el ledger.
+-->
+
 ---
 
-## REG-444 — el mismo número de regresión se podía dar dos veces, y nada lo decía
+## REG-444 — el token del paciente viajaba entero al registro de errores
+
+**QUÉ FALLABA.** `redactarRuta` —el redactor por el que pasa toda ruta antes de
+escribirse en `errores`— tapaba identificadores de paciente y **dejaba pasar
+enteras las credenciales**.
+
+Medido contra `main`, no deducido:
+
+```
+/mi/eyJwIjoi….YWJjZGVm…        →  /mi/eyJwIjoi….YWJjZGVm…     ← sin tocar
+/resena/…                       →  sin tocar
+/verificar/…                    →  sin tocar
+/unirse/…                       →  sin tocar
+/consulta/paciente123abc        →  /consulta/:id               ← esto sí funcionaba
+```
+
+`/mi/<token>` **es** la sesión del paciente: quien tenga esa cadena abre su
+expediente. Y `errores` es una colección **raíz**, legible desde la consola del
+dueño de la plataforma — no está bajo `clinics/{id}`, así que ni siquiera el
+aislamiento entre consultorios la acota.
+
+**CAUSA RAÍZ — dos, y las dos hay que decirlas.**
+
+1. `SEGMENTOS_CON_ID` nació para tapar **identificadores**, y nadie volvió a
+   mirarla cuando aparecieron rutas que llevan **credenciales**. Un token no es
+   un id: filtrar un id revela a quién le pasó algo; filtrar un token **entrega
+   el acceso**.
+2. La heurística de reserva no lo alcanzaba: exige `^[A-Za-z0-9_-]+$`, y el
+   token tiene forma `base64url(payload).base64url(firma)` — **el punto rompe el
+   patrón**. La red de seguridad tenía justo el agujero del caso que importaba.
+
+**CÓMO SE DESCUBRIÓ.** Levantando el PR #342 por petición del dueño. Sus dos
+hallazgos declarados ya estaban reparados en `main`; éste no estaba en su
+resumen — venía dentro del diff, en un archivo que su propia directiva marcaba
+como «shared file, REVIEW REQUIRED». La revisión que pedía era la que lo
+encontró.
+
+**LA REGLA QUE LO HACE SEGURO.** Dos capas, y ninguna basta sola:
+
+- las rutas de cara al paciente (`mi`, `resena`, `verificar`, `unirse`,
+  `reservar`, `teleconsulta`) declaran que su segmento siguiente es una
+  credencial;
+- cualquier segmento con **forma de token firmado** se borra aunque nadie
+  declarara su ruta — porque la ruta de mañana no está en ninguna lista.
+
+Y **lo inocuo no se estropea**: se exigen dos o tres mitades de diez caracteres
+o más, así que `favicon.ico`, `sitemap.xml` y `pdf.worker.min.mjs` pasan intactos.
+Un redactor que rompe el informe se acaba apagando, y entonces no protege nada.
+
+**Prueba.** `src/__tests__/reg-323-el-token-del-paciente-no-va-al-registro.test.ts`
+(8 casos), probada al revés con tres defectos: quitar la detección de token
+firmado (cae 1), aflojar el mínimo de cada mitad a 3 (cae 1, por redactar de
+más), y **quitar la lista de rutas de paciente**.
+
+Ese tercero es el que enseña algo: con el golden tal y como venía del #342,
+quitar la lista dejaba **los siete casos en verde** — todos pasaban por la otra
+mitad. Se añadió el caso que la fija: un token **sin punto**, que no cazan ni la
+detección de firma ni la heurística de id. Nada obliga a que una credencial lleve
+firma separada por un punto; un token opaco es una forma normal de emitirla.
+
+**Qué NO cubre, declarado.**
+
+- **No redacta lo ya escrito.** Los `errores` anteriores a este cambio conservan
+  los tokens que registraron. Purgarlos es una decisión del dueño sobre datos de
+  producción.
+- **Sólo la RUTA.** Un token metido en el cuerpo de un mensaje de error, o en una
+  cabecera que alguien registre a mano, sigue sin pasar por aquí.
+- **No caduca los tokens filtrados.** Los del portal duran lo que duren; esto
+  impide la fuga nueva, no deshace la vieja.
+
+## REG-506 · El despliegue anunciaba los índices y no mandaba ninguno
+
+**Cómo se descubrió.** Repasando los pendientes del dueño. El primero de la lista
+era «desplegar índices y reglas», y `docs/ops/INDICES-DE-FIRESTORE.md` lo daba por
+medio resuelto: *«el workflow de producción los manda desde v1175, y los mandó el
+31-ago con v1177»*. Lo único que faltaba, decía, era mirar la consola.
+
+Se fue a mirar la respuesta real —regla «el dato tiene que LLEGAR»— en el log de
+la ejecución [#13](https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206):
+
+```
+i  firestore: deploying indexes...
+✔  firestore: released rules firestore.rules to cloud.firestore
+✔  Deploy complete!
+```
+
+Faltan las **dos** líneas que `firebase-tools` imprime cuando de verdad manda
+índices: `reading indexes from <archivo>...` y `deployed indexes in <archivo>
+successfully`. No salieron en ninguna de las tres ejecuciones.
+
+**La causa raíz.** `firebase.json` declaraba `firestore.rules` y no
+`firestore.indexes`. En firebase-tools 15.25.1 (`src/deploy/firestore/prepare.ts`)
+todo el envío cuelga de esa clave:
+
+```ts
+if (firestoreConfig.indexes) { prepareIndexes(...) }   // ← nunca entraba
+```
+
+`getFirestoreConfig` no rellena nada por omisión, así que
+`context.firestore.indexes` quedaba en `[]` y `deployIndexes` imprimía su
+encabezado, recorría un arreglo vacío y salía bien. **`--only firestore:indexes`
+no lo arregla**: ese argumento decide si el paso corre, no de dónde saca los
+índices. Por eso el comando parecía correcto leyéndolo.
+
+**Por qué importaba.** Cuatro de los ocho índices (REG-379) son de consultas que
+el producto **ya hace hoy**: bandeja ARCO, lista de farmacia, rastro de un
+controlado y la página **pública** del médico. Firestore no degrada una consulta
+sin índice —la rechaza entera con `FAILED_PRECONDITION`—, y el repositorio
+llevaba tres ejecuciones dando el envío por hecho.
+
+**Qué se hizo.** La clave en `firebase.json`, y —lo que de verdad cierra esto— el
+paso del workflow **comprueba su propia salida**: guarda el log del despliegue y
+exige la línea de éxito de `deployIndexes`. Si vuelve a mandar cero índices, el
+despliegue falla en vez de firmar el acta. Se corrigieron también las dos
+afirmaciones falsas que el repositorio ya tenía escritas
+(`docs/ops/INDICES-DE-FIRESTORE.md` y `firestore.rules.estado.json`).
+
+**La familia.** Es REG-167, REG-170 y REG-160 otra vez: el comando contesta que
+sí y el dato no cruza la frontera. La novedad aquí es que el guardián que
+protegía la mitad de arriba —`el-indice-que-nadie-declaro.test.ts`, que vigila
+que toda consulta compuesta esté **declarada** en `firestore.indexes.json`—
+estaba en verde y era correcto: nadie vigilaba que ese archivo **se enviara**.
+Declarar, enviar y construir son tres actos, y sólo el primero tenía dueño.
+
+**Qué NO cubre.** Sigue sin demostrarse que los índices estén **construidos**: eso
+es asíncrono, puede fallar después del envío y se mira en la consola del
+proyecto. Y no afirma que esas cuatro consultas estén rotas en producción hoy —un
+índice pudo crearse a mano desde el enlace del error—: lo que afirma es que el
+camino automático no los mandaba.
+
+**Prueba.** `src/__tests__/el-despliegue-de-indices-no-mandaba-nada.test.ts`,
+probada al revés reproduciendo la configuración exacta de v1178.
+
+
+## REG-507 · El membrete del Word era un enlace, y el enlace vivía del candado apagado
+
+**Cómo se descubrió.** Preparando el último pendiente del dueño: poner
+`RECETA_DISENO_FIRMA=obligatoria`, que cierra una ruta que sirve papelería **y
+fotografía clínica** sin comprobar sesión (R-06). Antes de activarlo se fue a
+verificar el primer paso del plan que el propio código describe: *«primero se
+acuñan URLs firmadas en el camino de impresión y se PRUEBA la papelería real;
+sólo entonces se pone el candado»*.
+
+Los caminos de pantalla estaban cubiertos y bien: `print-element`,
+`pdf-download` y el `FirmadorDisenos` montado en el layout del dashboard
+reescriben las `<img>` a su versión firmada. El del **Word no**, y no podía
+estarlo: `receta-word` no pasa por el DOM.
+
+**La causa raíz.** `recetaConfig.membreteDataUrl` guarda
+`/api/receta/diseno?path=…` —sin firma, tal como la acuñó `/api/config/imagen`—
+y `construirRecetaHTML` la absolutizaba dentro del `.doc`. Word abre el archivo
+desde el disco y pide esa URL **sin sesión y sin firma**. Hoy pasa porque la
+ruta acepta enlaces sin firmar; con el candado puesto, 403.
+
+**Por qué ningún guardián lo habría visto.** El candado no se activa con un
+cambio de código: se activa con una variable de entorno en Vercel. El defecto
+habría aparecido en la primera receta que alguien abriera en Word, ya en
+producción, con la cédula del médico al lado del hueco.
+
+**Por qué un data URI y no una URL firmada.** Firmar bastaba para no romperse el
+primer día y rompía el trigésimo: una firma caduca a las 24 h
+(`DISENO_TOKEN_TTL_S`) y un `.doc` se guarda, se reenvía y se reabre semanas
+después. Un membrete que desaparece solo de un documento medicolegal, sin que
+nadie toque nada, es peor que uno que nunca estuvo. Incrustado, el documento
+deja de depender de la red, de la sesión, del candado y del reloj — y deja de
+ser un consumidor del camino sin firma, que es de lo que el candado quiere
+quedarse sin.
+
+**Contrato, igual que el resto del circuito**: `resolverMembreteParaWord` nunca
+lanza ni bloquea. Si el proxy contesta mal, si la red falla o si lo que vuelve no
+es una imagen, se devuelve la URL de siempre y el documento sale como salía.
+
+**Qué NO cubre.** Que Word lo pinte bien: eso es la comprobación en vivo que el
+plan de dos pasos exige del dueño **antes** de poner el candado. Tampoco cubre
+las URLs `https://` legadas de Storage en configs viejas (traerlas sería
+cross-origin); ésas quedan cerradas por el candado y se declara.
+
+**Prueba.** `src/__tests__/el-membrete-del-word-no-depende-del-candado.test.ts`,
+7 casos, probada al revés reinstalando el defecto (fallan 4).
+
+
+## REG-508 · El producto dictaba un token que él mismo no iba a aceptar
+
+**Cómo se descubrió.** Del inventario de variables de entorno. `WHATSAPP_VERIFY_TOKEN`
+y `WHATSAPP_WEBHOOK_TOKEN` son alias a propósito, pero el literal
+`agenda-medica-bot` aparecía en el árbol y **el servidor no lo acepta en ningún
+sitio**: `whatsapp/webhook` cae a `''` y rechaza, con la decisión escrita al lado
+—*«sin fallback público… mejor que aceptar un token por defecto que está en el
+repo»*—.
+
+A dos sitios no les llegó ese arreglo:
+
+1. `whatsapp/meta-connect` declaraba `WEBHOOK_VERIFY_TOKEN` con ese literal **y
+   no lo usaba en ninguna parte**: `registerWebhook` hace
+   `POST /{wabaId}/subscribed_apps`, donde no viaja ningún token. El de
+   verificación se teclea una vez en el panel de la app de Meta, no por API.
+2. **La pantalla de Configuración lo imprimía como instrucción**: «Token de
+   verificación: `agenda-medica-bot`». Esto sí lo veía el médico.
+
+**Por qué importa, y por qué no había una salida buena.** Con la variable puesta
+a cualquier otra cosa —lo normal— seguir la instrucción de la pantalla hacía que
+**Meta no verificara el webhook**: el bot de pacientes se queda mudo y el síntoma
+(«no me llegan los mensajes de WhatsApp») no se parece a la causa («la pantalla
+me dictó un token que el servidor no acepta»). Y con la variable puesta a ese
+literal, el secreto compartido con Meta quedaba publicado en la propia pantalla y
+en el repositorio.
+
+**Una corrección de lo que se había escrito.** Al declarar este hallazgo en el
+inventario se dijo que `meta-connect` *«registra la suscripción con el literal»*.
+**No es cierto**: la constante no tenía consumidor. El literal nunca se envió a
+Meta desde el código; lo que sí llegaba al médico era la línea de la pantalla. Se
+corrige aquí y en `docs/ops/INVENTARIO-DE-ENTORNO.md` porque afirmar de más sobre
+un hallazgo de seguridad envenena el registro tanto como no verlo.
+
+**Qué se hizo.** Fuera la constante muerta —con lo que el literal desaparece del
+código— y la pantalla pasa a **nombrar la variable sin enseñar ningún valor**,
+advirtiendo que tiene que coincidir exactamente con el que se teclee en Meta. Un
+token de verificación es un secreto compartido, y una pantalla no es donde se
+reparte.
+
+**Qué NO cubre.** Que el valor de Vercel y el del panel de Meta coincidan de
+verdad: son dos consolas y eso no puede vivir en el repositorio. Lo único que se
+podía hacer aquí era dejar de dictar un valor falso.
+
+**Prueba.** `src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts`,
+5 casos, probada al revés por las dos mitades.
+
+
+## REG-509 · El inventario salía distinto en cada máquina
+
+**Cómo se descubrió.** El primer CI del PR #437 puso `verificar` en rojo, y el
+que falló fue **el guardián del inventario recién escrito**: decía que
+`inventario-de-entorno.json` y `.env.example` estaban desfasados, cuando en la
+máquina donde se generaron estaban al día.
+
+**La causa raíz.** `grep -rl` devuelve los archivos en el orden del sistema de
+archivos, no alfabético — medido: 241 archivos, sin ordenar. Y **nueve variables
+se leen en más de un archivo de `src/`**, así que la elección
+`deProduccion.find(d => d.archivo.startsWith('src/'))` se quedaba con «el primero
+que apareciera». Otro sistema de archivos, otro respaldo, otro archivo generado.
+
+Había una segunda fuente latente del mismo problema: el orden final se hacía con
+`localeCompare`, que ignora el guion bajo en su fuerza primaria —`NEXTAUTH_URL`
+cae antes o después de `NEXT_PUBLIC_APP_URL` según la ICU del entorno—.
+
+**Por qué importa más de lo que parece.** Un artefacto derivado que depende de la
+máquina convierte a su guardián en una trampa: rojo en CI, verde en local, y el
+remedio que se le ocurre a cualquiera —regenerar y volver a empujar— no arregla
+nada porque el siguiente runner puede ordenar distinto otra vez. El camino corto
+desde ahí es borrar la comprobación, y entonces el inventario se queda sin dueño,
+que es justo lo que venía a resolver.
+
+**Qué se hizo.** La lista se ordena antes de leer; el respaldo se elige por nombre
+de archivo, no por orden de llegada; y el orden final es por punto de código.
+Además `--verificar` ahora **dice QUÉ difiere** —la primera línea distinta, con lo
+que hay en disco y lo derivado— en vez de sólo anunciar el desfase: un mensaje que
+no permite diagnosticar obliga a reproducir a ciegas, que es lo que costó este
+ciclo.
+
+**Lo que este ciclo confirmó de paso.** `ops-timeout-y-punto-ciego` **pasó** en el
+runner. El rojo que lleva semanas apareciendo en el contenedor de trabajo es del
+entorno, como estaba declarado, y ahora hay una ejecución que lo demuestra.
+
+**Qué NO cubre.** Que el archivo generado sea idéntico en cualquier máquina: se
+vigila la independencia del orden de llegada, que es por donde se coló esto. Una
+versión distinta de `grep`, o un `src/` con archivos que aquí no existen, seguirían
+sin verse desde el repositorio.
+
+**Prueba.** El caso «AL REVÉS: el orden en que llegan los archivos no cambia el
+resultado», que le pasa la lista invertida a la derivación y exige el mismo
+resultado.
+---
+
+## REG-445 — el mismo número de regresión se podía dar dos veces, y nada lo decía
 
 **CÓMO SE DESCUBRIÓ.** Al unificar cuatro PRs que llevaban un día abiertos a la
 vez. Los ficheros de contabilidad chocaron y hubo que leerlos enteros; ahí
@@ -17827,7 +18116,7 @@ esto es lo que convierte una anécdota en un defecto: **por casualidad**. Un avi
 programado de otra sesión mencionó de pasada un «REG-436» doce minutos después de
 que ese número ya hubiera entrado a `main`.
 
-**Cinco colisiones el mismo día, entre varias sesiones que no se veían:**
+**Seis colisiones en dos días, entre varias sesiones que no se veían:**
 
 ```
 REG-434  la cita de la portada        (#433, 00:05)
@@ -17838,17 +18127,22 @@ REG-438  ESTE MISMO GUARDIÁN          (#438, 05:39)   → 440
 REG-438  el riel del expediente       (#440, 06:13)
 REG-440  ESTE MISMO GUARDIÁN otra vez (#438)          → 444
 REG-440  la siembra del arnés         (#440, fusionado a main primero)
+REG-444  ESTE MISMO GUARDIÁN, tercera vez (#438)       → 445
+REG-444  el token del paciente        (#441, fusionado a main primero)
 ```
 
-### Dos de ellas se las llevó esta misma ficha
+### Tres de ellas se las llevó esta misma ficha
 
 Este guardián se escribió como **REG-438**. Mientras su CI terminaba, otra sesión
 reclamó ese número para el riel del expediente, y pasó a **REG-440**. Mientras
 esperaba a que lo fusionaran, **ese** número también se lo llevó otra rama —la
-siembra del arnés—, que además llegó a `main` primero. Acabó en **REG-444**.
+siembra del arnés—, que además llegó a `main` primero. Pasó a **REG-444** y, al
+fusionarse este PR el 2-sep, **ese** número también estaba ya en `main` —el token
+del paciente, PR #441—. Acabó en **REG-445**.
 
-Dos renumeraciones antes de aterrizar, y ninguna culpa de nadie: es la forma del
-sistema haciendo exactamente lo que hace.
+Tres renumeraciones antes de aterrizar, y ninguna culpa de nadie: es la forma del
+sistema haciendo exactamente lo que hace. La tercera ocurrió **después** de que
+este guardián existiera, y el guardián la cazó: es su tercer caso real.
 
 ### Y la quinta la cazó él mismo, en vivo
 

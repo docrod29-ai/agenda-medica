@@ -28,9 +28,25 @@ import { fetchConTimeout, TiempoAgotado } from '@/lib/fetch-con-timeout'
 const APP_ID     = process.env.META_APP_ID ?? ''
 const APP_SECRET = process.env.META_APP_SECRET ?? ''
 const APP_URL    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
-// Mismo valor que el webhook (acepta cualquiera de los dos nombres para no
-// depender de cuál pusiste en Vercel).
-const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN || 'agenda-medica-bot'
+/**
+ * AQUÍ NO VA EL TOKEN DE VERIFICACIÓN, Y NO ES UN OLVIDO — REG-508.
+ *
+ * Este archivo declaraba `WEBHOOK_VERIFY_TOKEN` con un respaldo literal
+ * (`'agenda-medica-bot'`) y **no lo usaba en ninguna parte**: `registerWebhook`
+ * hace `POST /{wabaId}/subscribed_apps` y ahí no viaja ningún token. El de
+ * verificación se teclea UNA vez en el panel de la app de Meta —Webhooks →
+ * Callback URL + Verify token—, no se configura por WABA ni por API.
+ *
+ * Así que la constante no configuraba nada; sólo dejaba un literal adivinable en
+ * el repositorio y hacía creer, a quien leyera el archivo, que este camino
+ * acordaba un token con Meta. El webhook ya había tomado la decisión correcta y
+ * la dejó escrita —«sin fallback público… mejor que aceptar un token por defecto
+ * que está en el repo»—; a este archivo no le llegó.
+ *
+ * Quien manda es `WHATSAPP_WEBHOOK_TOKEN` (o su alias `WHATSAPP_VERIFY_TOKEN`)
+ * en `src/app/api/whatsapp/webhook/route.ts`, y **tiene que ser el mismo valor
+ * que esté tecleado en el panel de Meta**. Ver docs/ops/INVENTARIO-DE-ENTORNO.md.
+ */
 
 const GRAPH = 'https://graph.facebook.com/v20.0'
 

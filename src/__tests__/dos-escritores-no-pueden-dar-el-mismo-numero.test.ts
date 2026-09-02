@@ -1,5 +1,5 @@
 /**
- * DOS ESCRITORES NO PUEDEN DAR EL MISMO NÚMERO — REG-444.
+ * DOS ESCRITORES NO PUEDEN DAR EL MISMO NÚMERO — REG-445.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -29,10 +29,13 @@
  * Se escribió como REG-438; mientras corría su CI, otra sesión reclamó ese
  * número para el riel del expediente, y pasó a REG-440. Mientras esperaba a que
  * lo fusionaran, ESE número también se lo llevó otra rama —la siembra del
- * arnés—, que además llegó a `main` primero. Acabó en REG-444.
+ * arnés—, que además llegó a `main` primero. Pasó a REG-444, y al fusionarse
+ * este PR el 2-sep ESE número también estaba ya en `main` —el token del
+ * paciente, PR #441—. Acabó en REG-445.
  *
- * Dos renumeraciones antes de aterrizar, y ninguna culpa de nadie: es la forma
- * del sistema haciendo exactamente lo que hace.
+ * Tres renumeraciones antes de aterrizar, y ninguna culpa de nadie: es la forma
+ * del sistema haciendo exactamente lo que hace. La tercera ocurrió DESPUÉS de
+ * que este guardián existiera, y el guardián la cazó: es su tercer caso real.
  *
  * ── Y LA QUINTA LA CAZÓ ÉL MISMO, EN VIVO ────────────────────────────────────
  *
