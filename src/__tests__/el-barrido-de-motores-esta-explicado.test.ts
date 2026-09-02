@@ -18,7 +18,7 @@
  *
  * | Símbolo | Por qué no tiene llamador |
  * |---|---|
- * | `validarCorreccion` | **Bloqueado en el dueño.** Exige una política como parámetro obligatorio y `POLITICA_CORRECCION` nace en `null` a propósito |
+ * | `validarCorreccion` | Estuvo **bloqueado en el dueño**; decidió el 2-sep-2026 (REG-508). Ahora le falta **llamador**: nadie lo invoca, así que corregir sigue sin poder hacerse |
  * | `coherenteConElTipo` | Su comentario dice «se exporta para que un caso del golden la ejecute», y el golden la ejecuta |
  * | `invariantesProtegidos` | Deriva el conjunto protegido para la compuerta clínica; su consumidor es esa compuerta |
  * | `correrBenchmark` | Arranque de un banco de pruebas que se corre a mano y se paga |
@@ -49,7 +49,9 @@ const medir = () => JSON.parse(execSync(
 
 /** Los cinco, con la razón por la que NO se conectan. */
 const EXPLICADOS: Record<string, RegExp> = {
-  'src/lib/hospital/eventos.ts::validarCorreccion': /Bloqueado en el dueño/,
+  // Cambió la razón, no el hecho: el dueño decidió el 2-sep-2026 (REG-508) y
+  // ahora lo que falta es un llamador. Sigue sin conectar, por otro motivo.
+  'src/lib/hospital/eventos.ts::validarCorreccion': /falta\s+un\s+\*\*llamador\*\*/,
   'src/lib/hospital/estados-cama.ts::coherenteConElTipo': /golden/i,
   'src/lib/clinical/safety-gate.ts::invariantesProtegidos': /compuerta clínica/,
   'src/lib/uci/benchmark.ts::correrBenchmark': /se corre a mano/,
@@ -93,10 +95,19 @@ describe('el residuo está explicado, uno a uno', () => {
 }, 300_000)
 
 describe('las razones son verificables en el código, no de palabra', () => {
-  it('`validarCorreccion` exige la política y la constante sigue en null', () => {
+  it('`validarCorreccion` exige la política, y la política YA está decidida', () => {
+    /**
+     * Decía «y la constante sigue en null», que era cierto y era la razón por la
+     * que este motor no se conectaba. El dueño decidió el 2-sep-2026 (REG-508).
+     *
+     * Sigue en la lista de no conectados, y con razón: seguir aquí no depende de
+     * que falte la decisión, sino de que NADIE LO LLAMA todavía. Cambia la
+     * razón, no el hecho — y decirlo así es lo que evita que la lista se
+     * convierta en excusas viejas.
+     */
     const ev = leer('src', 'lib', 'hospital', 'eventos.ts')
     expect(ev).toMatch(/politica: PoliticaCorreccion,/)
-    expect(ev).toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion \| null = null/)
+    expect(ev).toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion = \{/)
   })
 
   it('`coherenteConElTipo` la ejecuta de verdad el golden', () => {

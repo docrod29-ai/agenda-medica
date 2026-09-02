@@ -17319,3 +17319,91 @@ separador.
 - **`Visitas anteriores: [2026-09-02]`** se vio y **no** se tocó. El corchete es
   el formato de `getUltimasNotasResumen`, y esa misma cadena alimenta el
   contexto de los motores: cambiarla por estética movería lo que el modelo lee.
+
+## REG-508 — dos políticas que estaban en `null`, y el aviso que se callaba con el paciente más frágil
+
+**CÓMO SE DESCUBRIÓ.** Barriendo el inventario de pendientes contra el código de
+hoy. Las dos figuraban como «pendiente de decisión del dueño» — la etiqueta que
+nadie vuelve a mirar. Se le hicieron las dos preguntas en una frase cada una y
+las contestó en minutos. No hacía falta más: **hacía falta preguntar**.
+
+**Número tomado con `scripts/estado-de-las-ramas.mjs`**, que mira TODAS las ramas
+vivas y no sólo `main`. Es la herramienta que existía y no se usaba, y por eso
+hubo tres colisiones el 2-sep (ver REG-437).
+
+### 1 · Corregir un registro clínico estaba APAGADO
+
+`validarCorreccion` exige la política como parámetro **obligatorio** y
+`POLITICA_CORRECCION` nacía en `null` a propósito, con su comentario diciéndolo:
+«la única forma de usar esta función es que alguien haya decidido Q2-Q4 y lo haya
+escrito». Mientras tanto, corregir una toma de signos o una administración ya
+registrada **no estaba habilitado en ninguna parte de la aplicación**.
+
+**No era un defecto de software.** El código se negaba a funcionar en vez de
+inventarse un default, que es lo correcto. El defecto estaba en que la pregunta
+nunca llegó al médico **en forma de pregunta contestable**.
+
+**La decisión del dueño, 2-sep-2026, literal**: corrigen médico y enfermería;
+anular una administración sólo el médico; hasta 24 h y no en episodio egresado;
+el motivo es obligatorio.
+
+Tres cosas que se decidieron al escribirla, y se dicen porque no las dijo él:
+
+- **`admin` no entra en ninguna lista.** La matriz de acceso lo agrupa con
+  `medico` en `isMedico` y heredarlo habría sido cómodo. Dijo «médico y
+  enfermería»; un rol administrativo corrigiendo una toma de signos es
+  exactamente lo que esta política acota.
+- **La ventana se cuenta contra el reloj del SERVIDOR.** Si no, adelantar el
+  reloj del portátil la ensancha.
+- **24 h rige TODA corrección**, no sólo las anulaciones: dio una ventana, no dos.
+
+### 2 · SAFE-003 — «sin referencia» se callaba también dosificando por kilo
+
+La receta descartaba **siempre** `sin_referencia` («no tengo con qué comparar
+esta dosis»). El filtro tenía una razón buena y sigue vigente para el resto: es
+informativo, no una alerta, y enseñarlo en cada receta es fatiga de alerta —
+`R-02` del registro de riesgos, con residual **ALTO**.
+
+Pero donde la dosis va **por kilo** el silencio cambia de significado: el margen
+es estrecho, el médico está haciendo una cuenta, y no ver aviso se lee como «la
+dosis está comprobada» cuando la verdad es «no tengo con qué compararla».
+**Ausencia de dato no es dato de ausencia** — la regla 4, dicha en la interfaz.
+
+**El predicado NO es la edad, y es lo importante de esta entrada.** Enseñarlo
+«sólo a los niños» exigiría un punto de corte de edad, y `revisarDosis` **no
+tiene ninguno**: sus comprobaciones pediátricas se disparan por dosis por kilo o
+peso presente, y por `edadMinimaOralAnios` de CADA fármaco. Escribir un `< 18`
+habría sido inventar una cifra clínica — la regla 1, en el sitio más fácil de
+romperla: no falla, no rompe una prueba, y sale impreso con cédula.
+
+`porKilo` ya está en el texto de la prescripción. Cubre al niño y, de paso, al
+adulto con vancomicina, que tiene el mismo problema.
+
+**CLOSED.** `src/__tests__/lo-que-el-medico-decidio-el-2-sep.test.ts` (14 casos).
+**Probado al revés con OCHO defectos inyectados, uno a uno**: política de vuelta
+a `null` (9 rojos) · `admin` colado entre quienes corrigen · enfermería anulando
+administraciones · ventana de 24→72 h · motivo dejando de ser obligatorio ·
+el filtro viejo de la receta · el filtro «mejorado» con un `< 18` inventado ·
+el reconocedor de dosis por kilo roto. Los ocho ponen rojo al menos un caso.
+
+### Qué NO cubre
+
+- **No recorre la ruta de corrección de punta a punta.** Prueba la política y el
+  validador. Que `api/hospital/mutar` la respete es otro guardián y no existe.
+- **No prueba que la receta PINTE el aviso**, sólo que el motor lo produce y que
+  el filtro ya no lo tira. Lo que se ve en pantalla se mira en un navegador.
+- **Una dosis pediátrica en mg absolutos sigue callándose.** «250 mg» a un
+  lactante no lleva `mg/kg` en el texto. Cerrarlo exige la decisión de edad que
+  el dueño no tomó — y que no se toma sola.
+- **`validarCorreccion` sigue sin llamador.** La decisión no lo cableó: ninguna
+  ruta ni pantalla lo invoca, así que corregir sigue sin poder hacerse desde la
+  aplicación. Lo que cambió es la RAZÓN por la que está en
+  `docs/quality/MOTORES-SIN-CONECTAR.md`, no el hecho.
+- **Y esta unidad destapó un defecto del MEDIDOR de esa lista.**
+  `scripts/calidad/motores-conectados.mjs` cuenta apariciones en texto plano,
+  **comentarios incluidos**: nombrar el símbolo en una cabecera lo saca de la
+  lista de huérfanos sin que nadie lo llame. Se intentó reparar el mismo día y se
+  **revirtió** — el trinquete salta de 39 a 46 y rompe un guardián que fija esa
+  línea por un error anterior del propio instrumento. Queda escrito en
+  `docs/maintenance/PENDIENTES-CONSOLIDADOS-2026-09-02.md` como unidad propia, y
+  la cabecera de `POLITICA_CORRECCION` evita el nombre **diciendo por qué**.

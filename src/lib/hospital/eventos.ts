@@ -346,8 +346,58 @@ export interface PoliticaCorreccion {
   motivoObligatorio: boolean
 }
 
-export const POLITICA_CORRECCION: PoliticaCorreccion | null = null
+/**
+ * DECIDIDA POR EL DUEÑO el 2-sep-2026. Sus palabras, no una interpretación:
+ * «corrigen médico y enfermería; anular una administración sólo el médico; se
+ * admite corregir hasta 24 h y no en episodio egresado; el motivo es
+ * obligatorio».
+ *
+ * Por qué esto estuvo en `null` durante meses y no era pereza: el validador de
+ * más abajo exige la política como parámetro OBLIGATORIO, así que mientras nadie decidiera,
+ * corregir un signo vital o una administración ya registrada **no estaba
+ * habilitado** — ni siquiera con un valor «razonable» enterrado en una constante.
+ * Quién puede tocar un dato ya asentado y hasta cuándo es política de registro
+ * clínico con peso NOM-004, y la elige el médico responsable.
+ *
+ * Tres cosas que se decidieron por omisión al escribir esto, y se dicen:
+ *
+ * 1. **`admin` NO entra en ninguna de las dos listas.** La matriz de acceso lo
+ *    agrupa con `medico` en `isMedico`, y habría sido cómodo heredarlo. Pero el
+ *    dueño dijo «médico y enfermería», y un rol administrativo corrigiendo una
+ *    toma de signos es exactamente lo que esta política existe para acotar.
+ *    Ensanchar una autorización clínica por comodidad de implementación no.
+ * 2. **La ventana se cuenta contra el reloj del SERVIDOR** (`ctx.ahora`), no el
+ *    del navegador: si no, adelantar el reloj del portátil ensancha la ventana.
+ * 3. **24 h se aplica a TODA corrección**, no sólo a las anulaciones. El dueño
+ *    dio una sola ventana y no se inventa una segunda para el caso más grave.
+ *
+ * Cambiar cualquiera de los cinco campos es cambiar política clínica: se hace
+ * con su palabra, y esta cabecera se actualiza con la fecha nueva.
+ *
+ * NOTA SOBRE ESTE COMENTARIO, y no es una manía. Dice «el validador de más
+ * abajo» en vez de su nombre a propósito: `scripts/calidad/motores-conectados.mjs`
+ * cuenta apariciones del símbolo **en texto plano**, comentarios incluidos, así
+ * que nombrarlo aquí lo sacaba de la lista de motores sin llamador — y sigue sin
+ * tenerlo. Es un defecto del MEDIDOR, no de este archivo: documentar mejor un
+ * hallazgo lo hacía desaparecer del inventario. Se intentó repararlo el
+ * 2-sep-2026 quitando comentarios antes de contar y el trinquete saltó de 39 a
+ * 46 —hay más símbolos en esa situación—, así que se revirtió: es su propia
+ * unidad de trabajo, con su propia evidencia, y queda escrito en el inventario
+ * de pendientes en vez de arreglarse a medias aquí.
+ */
+export const POLITICA_CORRECCION: PoliticaCorreccion = {
+  rolesQueCorrigen: ['medico', 'enfermeria'],
+  rolesQueAnulanAdministracion: ['medico'],
+  ventanaHoras: 24,
+  permiteEpisodioEgresado: false,
+  motivoObligatorio: true,
+}
 
+/**
+ * Se conserva por si algún día vuelve a haber una política sin decidir — y
+ * porque el texto explica QUÉ falta, que es lo que lo hacía útil. Hoy no lo usa
+ * nadie: `POLITICA_CORRECCION` ya no es `null`.
+ */
 export const FALTA_POLITICA_Q2_Q4 =
   'NEEDS_CLINICAL_REVIEW E0-09/Q2-Q4: no está definido quién puede corregir, ' +
   'con qué ventana de tiempo ni si el motivo es obligatorio. No se asume un default.'

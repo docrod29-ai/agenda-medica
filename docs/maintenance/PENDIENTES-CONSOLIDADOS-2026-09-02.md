@@ -33,6 +33,55 @@ omisión: pulsarlo sin tocar nada **sólo lee y cuenta**.
 
 ---
 
+## HALLAZGO NUEVO — el medidor de motores sin conectar cuenta comentarios
+
+Salió al implementar REG-508, y es de la peor familia: **no rompe nada, no avisa,
+y borra un hallazgo real.**
+
+`scripts/calidad/motores-conectados.mjs` decide si un símbolo tiene llamador
+contando sus apariciones en **texto plano**, comentarios incluidos. Al escribir
+la cabecera de la política de corrección se nombró `validarCorreccion` en su
+propio archivo, y con eso el símbolo pasó de «huérfano» a «usado» — sin que nadie
+lo llame. **Documentar mejor un defecto lo hacía desaparecer del inventario.**
+
+**Se intentó arreglar el 2-sep y se revirtió**, a propósito: quitando comentarios
+antes de contar, el trinquete salta de **39 a 46** —hay al menos siete símbolos
+más en la misma situación— y rompe un guardián que fija esa implementación por un
+error anterior del mismo instrumento. Un arreglo que sube un trinquete siete
+puntos y toca una línea con historia **no se cuela dentro de otra unidad**.
+
+**Qué hace falta**: su propia unidad. Quitar comentarios y cadenas antes de
+contar, mirar uno a uno los ~7 que aparezcan, y decidir cuáles son motores de
+verdad sin conectar y cuáles ruido. Hasta entonces, en `eventos.ts` la cabecera
+dice «el validador de más abajo» en vez del nombre — y **dice por qué**, para que
+nadie lo lea como una manía de estilo.
+
+---
+
+## CUARTA ACTUALIZACIÓN — el dueño contestó cuatro, y dos ya están en el código
+
+Se le presentaron **en una frase cada una, con la recomendación por delante**.
+Las cuatro se contestaron en minutos, después de meses en la cola. Detalle y
+estado de cada una en `agent-state/OWNER_DECISIONS_REQUIRED.md`.
+
+| Decisión | Qué dijo | Dónde está |
+|---|---|---|
+| Corrección de un registro clínico | Médico y enfermería corrigen · anular sólo el médico · 24 h · no en egresado · motivo obligatorio | **Implementada** (REG-508) |
+| `SAFE-003` · «sin referencia» de dosis | Sólo cuando la dosis va **por kilo** | **Implementada** (REG-508) |
+| Retención del audio | Como el expediente, **NOM-004** | Decidida — falta el barrido que borre |
+| `D-09` · router de IA | En la nota **nunca**; en lo demás sí | Decidida — falta portar el PR #345 |
+
+**`SAFE-003` sale de la lista de abiertos.** Y sale sin haber inventado ninguna
+cifra: el predicado es `porKilo`, un hecho que ya estaba en el texto de la
+prescripción, no un punto de corte de edad. Hay un caso de prueba que **falla si
+alguien mete un `< 18`** ahí dentro.
+
+**El número REG se tomó con `scripts/estado-de-las-ramas.mjs`**, que mira las 254
+ramas vivas y no sólo `main` — la herramienta que existía sin usarse y cuya
+ausencia causó las tres colisiones de §2.
+
+---
+
 ## TERCERA ACTUALIZACIÓN — el inventario se verificó contra el código, y ocho renglones estaban muertos
 
 El dueño pidió seguir con dos arreglos del teléfono. **Los dos ya estaban

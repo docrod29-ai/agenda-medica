@@ -1,5 +1,26 @@
 # Decisiones que sólo puede tomar el Dr. — cola, no interrupciones
 
+## CUATRO CONTESTADAS EL 2-SEP-2026 — y lo que falta de cada una
+
+Se le preguntaron **en una frase cada una, con la recomendación por delante**, y
+las cuatro se contestaron en minutos. Llevaban meses en esta cola. La lección no
+es que decidiera rápido: es que **nunca se le habían presentado así**.
+
+| # | Decisión del dueño | Estado en el código |
+|---|---|---|
+| **Corrección de un registro clínico** | Corrigen **médico y enfermería**; **anular una administración sólo el médico**; hasta **24 h** y **no en episodio egresado**; **motivo obligatorio** | ✅ **IMPLEMENTADA** — `POLITICA_CORRECCION` en `src/lib/hospital/eventos.ts`, REG-508, 14 casos probados al revés con 8 defectos inyectados. **Falta**: que `api/hospital/mutar` la aplique y una pantalla donde corregir |
+| **SAFE-003 · «sin referencia» de dosis** | Se enseña **sólo cuando la dosis va por kilo** | ✅ **IMPLEMENTADA** — REG-508. **Falta**: mirarlo en un navegador; y una dosis pediátrica en mg absolutos sigue callándose (exige la decisión de edad que no se tomó) |
+| **Retención del audio de la consulta** | **Como el expediente, NOM-004** — y borrado automático al vencer | ⏳ **DECIDIDA, SIN IMPLEMENTAR.** El plazo NO se inventa: ya existe en el repositorio — `ehrRetentionYears: 5` (`src/lib/compliance/country-profiles.ts:88`) y `DIAS_5_ANIOS` en `src/lib/retencion.ts`, citando NOM-004 numeral 5.7. **Falta**: la tarea de barrido que borre el audio vencido. Ojo — `src/lib/retencion.ts` dice hoy «no borra automáticamente NADA: el médico debe decidir conscientemente», así que el borrado automático del AUDIO no puede colarse dentro de esa política sin decir que son dos cosas distintas |
+| **D-09 · Router de coste/calidad de IA** (PR #345) | **En la nota clínica NUNCA**; el router sólo actúa en lo demás — resúmenes, extracción, búsquedas | ⏳ **DECIDIDA, SIN IMPLEMENTAR.** `RESCATE-345` deja de estar `BLOCKED_BY_OWNER` y pasa a portable. **Falta**: portar los 16 archivos sobre el árbol de hoy —no fusionar el PR, que va 140 commits por detrás— con un guardián que falle si algún camino de la nota puede bajar de modelo |
+
+**Las dos implementadas ya no están en esta cola.** Las dos decididas-sin-implementar
+siguen aquí hasta que el código las cumpla: una decisión que nadie implementó se
+parece demasiado a una decisión que nadie tomó.
+
+---
+
+
+
 El programa las **junta**; no las pregunta una por una. Cada entrada dice qué se
 puede seguir haciendo sin ella, para que nada se detenga por esperar.
 

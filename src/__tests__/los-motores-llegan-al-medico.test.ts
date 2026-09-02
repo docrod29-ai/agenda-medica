@@ -169,7 +169,7 @@ describe('el número significa algo: tres categorías (REG-260)', () => {
     for (const x of m.conCuerpo) expect(doc, `${x} no está en el documento`).toContain(x)
   })
 
-  it('y uno de ellos está bloqueado en el DUEÑO, no en el código', () => {
+  it('y uno de ellos estuvo bloqueado en el DUEÑO — ya no, y falta cablearlo', () => {
     /**
      * `validarCorreccion` exige una política como parámetro obligatorio y
      * `POLITICA_CORRECCION` nace en `null` a propósito: quién puede corregir un
@@ -180,9 +180,13 @@ describe('el número significa algo: tres categorías (REG-260)', () => {
      * exactamente lo que este proyecto no hace.
      */
     const ev = readFileSync(join(RAIZ, 'src/lib/hospital/eventos.ts'), 'utf8')
-    expect(ev).toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion \| null = null/)
+    // La política ya no es null: el dueño la decidió el 2-sep-2026 (REG-508).
+    expect(ev).toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion = \{/)
+    // Y la exigencia que hacía imposible usarla sin decidir NO se relajó.
+    expect(ev).toMatch(/politica: PoliticaCorreccion,/)
+    // Sigue sin llamador: la decisión no lo cableó. Eso es lo que queda.
     const dec = readFileSync(join(RAIZ, 'agent-state/OWNER_DECISIONS_REQUIRED.md'), 'utf8')
-    expect(dec).toMatch(/Política de correcciones a un registro ya hecho/)
+    expect(dec).toMatch(/CUATRO CONTESTADAS EL 2-SEP-2026/)
   })
 }, 300_000)
 

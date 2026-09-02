@@ -194,11 +194,42 @@ export default function GeneradorRecetaPage() {
       // otra vez entre el peso y la alerta pediátrica nunca disparaba.
       // E0-05: `esDosisPorKg` no desaparece — deja de ser un flag y pasa a ser la
       // FÁBRICA que elige la dimensión de la cantidad aquí, en la frontera del texto.
-      const dosisPrescrita = esDosisPorKg(m.dosis)
+      const porKilo = esDosisPorKg(m.dosis)
+      const dosisPrescrita = porKilo
         ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
         : cantidad(mg, 'mg', 'masa')
+      /**
+       * SAFE-003 · «SIN REFERENCIA» SE CALLA EN GENERAL, PERO NO CUANDO SE
+       * DOSIFICA POR KILO. Decisión del dueño, 2-sep-2026.
+       *
+       * El filtro existía por una razón buena y sigue vigente para el resto:
+       * `sin_referencia` es informativo, no una alerta, y enseñarlo en cada
+       * receta es fatiga de alerta — que es `R-02` en el registro de riesgos,
+       * con riesgo residual ALTO. Un aviso que salta de más se acaba ignorando,
+       * y con él los que importan.
+       *
+       * Pero donde la dosis va por kilo el silencio cambia de significado. Ahí
+       * el margen es estrecho y el médico está haciendo una cuenta; no ver
+       * ningún aviso se lee como «la dosis está comprobada» cuando la verdad es
+       * «no tengo con qué compararla». Ausencia de dato no es dato de ausencia
+       * (regla 4 de seguridad clínica), y ésta es esa regla dicha en la
+       * interfaz.
+       *
+       * **El predicado NO es la edad, y es a propósito.** Enseñarlo «sólo a los
+       * niños» exigiría un punto de corte de edad, y `revisarDosis` no tiene
+       * ninguno: sus comprobaciones pediátricas se disparan por dosis por kilo o
+       * por peso presente, y por `edadMinimaOralAnios` de CADA fármaco. Escribir
+       * un `< 18` aquí sería inventar una cifra clínica — la regla 1. `porKilo`
+       * es un hecho que ya está en el texto de la prescripción, no un criterio
+       * nuevo. Cubre al niño, y de paso al adulto con vancomicina, que tiene el
+       * mismo problema.
+       *
+       * **Qué NO cubre**: una dosis pediátrica escrita en mg absolutos («250 mg»
+       * a un lactante) no lleva `mg/kg` en el texto, así que aquí sigue
+       * callándose. Cerrarlo exige la decisión de edad que no se tomó.
+       */
       const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: edadPaciente })
-        .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
+        .filter(a => a.codigo !== 'sin_referencia' || porKilo)
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
     return out

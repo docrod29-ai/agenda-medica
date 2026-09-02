@@ -229,8 +229,19 @@ describe('E0-09 · proyectarEventos — el libro `registros`', () => {
 })
 
 describe('E0-09 · Q2-Q4 — validación de la corrección (determinista DADA una política)', () => {
-  it('la política de corrección vale null en producción', () => {
-    expect(POLITICA_CORRECCION).toBeNull()
+  it('la política de corrección YA está decidida (2-sep-2026)', () => {
+    /**
+     * Este caso afirmaba `toBeNull()`, y tenía razón mientras nadie decidiera:
+     * corregir un registro clínico estaba apagado a propósito. El dueño contestó
+     * las cuatro preguntas (REG-508) y ahora la afirmación fuerte es la
+     * contraria — que NO es null y que dice exactamente lo que él dijo.
+     *
+     * No se relaja el guardián: se le da el nuevo invariante. Volver a `null`
+     * apagaría la corrección otra vez, y eso también debe ponerse rojo.
+     */
+    expect(POLITICA_CORRECCION).not.toBeNull()
+    expect(POLITICA_CORRECCION!.rolesQueAnulanAdministracion).toEqual(['medico'])
+    expect(POLITICA_CORRECCION!.motivoObligatorio).toBe(true)
   })
 
   // POLÍTICA DE PRUEBA — fixture sintético para ejercitar el motor.

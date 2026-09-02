@@ -22,7 +22,24 @@
     "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [],
+  "trabajoLocalSinSubir": [
+    "M agent-state/MASTER_STATE.json",
+    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/maintenance/PENDIENTES-CONSOLIDADOS-2026-09-02.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M docs/quality/MOTORES-SIN-CONECTAR.md",
+    " M src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
+    " M src/__tests__/hospital-eventos-append-only.test.ts",
+    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
+    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/hospital/eventos.ts",
+    "?? src/__tests__/lo-que-el-medico-decidio-el-2-sep.test.ts"
+  ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -57,10 +74,10 @@
   ],
   "ramaActual": "claude/consolidar-pendientes-2j663v",
   "derivado": {
-    "regsEnElLedger": 290,
-    "ultimaREG": "REG-505",
-    "archivosDePrueba": 917,
-    "casosDePrueba": 11174,
+    "regsEnElLedger": 291,
+    "ultimaREG": "REG-508",
+    "archivosDePrueba": 918,
+    "casosDePrueba": 11188,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

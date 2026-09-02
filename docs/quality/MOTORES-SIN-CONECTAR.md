@@ -85,11 +85,20 @@ Decir «42 motores sin conectar» era inflar. Medido:
 - `src/lib/uci/benchmark.ts::correrBenchmark`
 - `src/lib/asr/lo-que-pesa-de-un-error.ts::leerConsulta`
 
-De esos nueve, **`validarCorreccion` está bloqueado en el dueño, no en el
-código**: exige una política como parámetro obligatorio y `POLITICA_CORRECCION`
-nace en `null` a propósito. Quién puede corregir, en qué ventana y si el motivo
-es obligatorio son decisiones de política de registro clínico con peso NOM-004.
-Está en `agent-state/OWNER_DECISIONS_REQUIRED.md`.
+De esos nueve, **`validarCorreccion` estuvo bloqueado en el dueño, no en el
+código** — y **desde el 2-sep-2026 ya no lo está**. Exige una política como
+parámetro obligatorio, y `POLITICA_CORRECCION` nacía en `null` a propósito porque
+quién puede corregir, en qué ventana y si el motivo es obligatorio son decisiones
+de registro clínico con peso NOM-004.
+
+El dueño las contestó (REG-508): corrigen médico y enfermería · anular una
+administración sólo el médico · 24 h · no en episodio egresado · motivo
+obligatorio.
+
+**Sigue en esta lista, y por otra razón**: ya no le falta la decisión, le falta
+un **llamador**. Nadie invoca `validarCorreccion` todavía, así que corregir sigue
+sin poder hacerse desde ninguna pantalla. Cambiar la razón y no el hecho es el
+punto: una lista de excusas que sobrevive a lo que explicaba deja de guardar.
 
 ## El barrido, cerrado: los cinco que quedan (REG-263)
 
@@ -99,7 +108,7 @@ los seis es un defecto**. Verificado uno a uno, leyendo el código:
 
 | Símbolo | Por qué no tiene llamador |
 |---|---|
-| `validarCorreccion` | **Bloqueado en el dueño.** Exige una política como parámetro obligatorio y `POLITICA_CORRECCION` nace en `null` a propósito |
+| `validarCorreccion` | **Ya NO bloqueado en el dueño** (decidió el 2-sep-2026, REG-508). Falta **llamador**: ninguna ruta ni pantalla lo invoca, así que corregir sigue sin poder hacerse |
 | `coherenteConElTipo` | Su comentario dice que se exporta «para que un caso del **golden** la ejecute», y el golden la ejecuta |
 | `invariantesProtegidos` | Deriva el conjunto protegido para la **compuerta clínica**; su consumidor es esa compuerta |
 | `correrBenchmark` | Arranque de un banco de pruebas que **se corre a mano** y se paga |
