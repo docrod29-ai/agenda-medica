@@ -21,14 +21,17 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M package.json",
-    " M src/context/ToastContext.tsx",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M scripts/design/sembrar-emulador.mjs",
+    " M src/__tests__/v15-rtc15-la-lista-dice-algo-clinico.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? scripts/carril-excelencia/la-confirmacion-no-se-dispara-sola.mjs",
-    "?? src/__tests__/ningun-dialogo-se-escribe-su-propio-teclado.test.ts"
+    " M src/lib/pacientes/estado-clinico.ts",
+    "?? docs/design/capturas/v98/pacientes-1440.png",
+    "?? sonda-velocidad.mjs",
+    "?? src/__tests__/la-tarde-no-envejece-al-paciente.test.ts"
   ],
-  "actualizado": "2026-09-02",
+  "actualizado": "2026-09-03",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -62,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 279,
+    "regsEnElLedger": 280,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 900,
-    "casosDePrueba": 10892,
+    "archivosDePrueba": 901,
+    "casosDePrueba": 10899,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

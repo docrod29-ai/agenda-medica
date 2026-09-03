@@ -155,6 +155,24 @@ describe('RTC-15 — el estado clínico de una fila', () => {
   })
 
   it('7 · «visto hace…» habla en días, meses y años — y una cita futura no es «visto»', () => {
+    /**
+     * OJO CON LA FORMA DEL DATO. Estos casos pasaban marcas de tiempo ISO
+     * completas, y lo que la lista manda es `p.ultimaCita`: una FECHA de diez
+     * caracteres, sin hora y sin zona. Con hora completa la cuenta acertaba y
+     * sin ella no, así que este caso estuvo verde mientras el producto decía
+     * «visto ayer» de un paciente atendido esa misma mañana — a partir de las
+     * 18:00 hora del consultorio, todas las tardes. Es REG-429.
+     *
+     * Se conservan las marcas completas (también llegan) y se añade la forma
+     * que manda la lista. El caso a fondo vive en
+     * `la-tarde-no-envejece-al-paciente`.
+     */
+    // Y a una hora que IMPORTE: a las 06:00 del consultorio el día UTC y el
+    // día local coinciden, así que el defecto no se asoma. Sólo aparece de las
+    // 18:00 en adelante, que es cuando el médico repasa la jornada.
+    const LA_TARDE = Date.parse('2026-08-15T00:30:00Z')   // 14-ago, 18:30 en México
+    expect(ultimaVezVisto('2026-08-14', LA_TARDE)).toBe('visto hoy')
+    expect(ultimaVezVisto('2026-08-13', LA_TARDE)).toBe('visto ayer')
     expect(ultimaVezVisto(new Date(AHORA).toISOString(), AHORA)).toBe('visto hoy')
     expect(ultimaVezVisto(new Date(AHORA - DIA).toISOString(), AHORA)).toBe('visto ayer')
     expect(ultimaVezVisto(new Date(AHORA - 5 * DIA).toISOString(), AHORA)).toBe('visto hace 5 días')

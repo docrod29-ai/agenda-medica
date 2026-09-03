@@ -608,8 +608,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * de diálogos SÍ declaraba el hueco en su cabecera («sólo los que este
      * guion sabe abrir»), y una declaración honesta de un hueco sigue siendo un
      * hueco: declarado no es cubierto.
+     *
+     * 429 es la variante de PRUEBA: el guardián existía, corría y comprobaba
+     * una entrada que la producción no produce —marcas de tiempo completas
+     * donde la lista manda una fecha de diez caracteres—. Y a una hora en la
+     * que el defecto no se asoma: las 06:00 del consultorio, cuando el día UTC
+     * y el local coinciden. Una prueba verde sobre la forma equivocada del dato
+     * y a la hora equivocada es dos veces nada.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 424, 425, 426, 427, 428],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 424, 425, 426, 427, 428, 429],
   },
   {
     clave: 'hueco_como_dato',

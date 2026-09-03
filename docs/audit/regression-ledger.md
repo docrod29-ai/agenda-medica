@@ -16314,3 +16314,110 @@ tabulaciones se van y el foco arranca en «Eliminar»; sin la cesión, Enter sob
 `src/__tests__/ningun-dialogo-se-escribe-su-propio-teclado.test.ts` (7 casos),
 que barre **todo `src/`** —`context` incluido— y exige que cada capa que tapa la
 pantalla pase por uno de los dos teclados canónicos.
+
+---
+
+## REG-429 — todas las tardes, a partir de las seis, el producto envejecía un día a todo el que se hubiera atendido ese día
+
+**Dónde**: `src/lib/pacientes/estado-clinico.ts` (`ultimaVezVisto`) ·
+`scripts/design/sembrar-emulador.mjs`
+
+### Qué fallaba
+
+En `/pacientes`, Rosalía —**atendida ese mismo día a las 08:00**— salía como
+«visto ayer». En Reactivación, como «Hace 1 día», dentro del bloque de
+«atendidos hace ≤10 días».
+
+Medido a las 18:11 hora del consultorio. A las 06:00 no pasaba.
+
+### Causa raíz
+
+`ultimaVezVisto` restaba **instantes**:
+
+```js
+const dias = Math.floor((ahoraMs - Date.parse(iso)) / 86_400_000)
+```
+
+`ultimaCita` es una **fecha** a secas —`fechaHora.slice(0, 10)`, «2026-09-02»—
+y `Date.parse` de una fecha sin hora es medianoche **UTC**. En México (UTC−6),
+de las 18:00 en adelante ya es el día siguiente en UTC: la resta pasa de 24 h y
+el paciente de esa mañana se convierte en el de ayer.
+
+Y la tarde es justo cuando el médico repasa la jornada. Es el mismo defecto que
+vaciaba Finanzas y el corte de caja al caer la tarde, ya documentado allí con
+las mismas palabras: **el día del consultorio no es el día UTC**.
+
+### Por qué la prueba que había no lo vio
+
+Porque medía **una forma del dato que nadie envía**. El caso 7 de
+`v15-rtc15-la-lista-dice-algo-clinico` pasaba marcas de tiempo ISO completas
+(`new Date(AHORA - DIA).toISOString()`); lo que la lista manda es `ultimaCita`,
+una fecha de diez caracteres, sin hora y sin zona. Con hora completa la resta de
+instantes acierta; sin ella, no.
+
+Familia «el dato tiene que LLEGAR», en su variante de prueba: el guardián
+existía, corría, y comprobaba una entrada que la producción no produce.
+
+Y había una segunda trampa dentro de la trampa: ese caso usaba `AHORA` =
+12:00 UTC, que son las **06:00** en el consultorio. A esa hora el día UTC y el
+día local coinciden y el defecto no se asoma. Al reparar el guardián, la primera
+versión de la reparación tampoco podía fallar por lo mismo; se ancló a las 18:30
+del consultorio, que es cuando el defecto existe.
+
+### Cómo se descubrió, que es la otra mitad
+
+Midiendo la velocidad percibida, `/pacientes` no llegaba nunca a enseñar un
+nombre. No era lento: la pestaña que abre por defecto, «Recientes», decía
+«Ninguno tiene citas recientes» **con ocho citas en la agenda de ese día**.
+
+`ultimaCita` la escribe la transición de estado (`cambiosPorTransicion`, dentro
+de su transacción), y el arnés escribe las citas **ya en su estado final**: esa
+transición no ocurre nunca y el campo se quedaba vacío para todos. Con él vacío
+no se podía auditar «Recientes», ni los pacientes activos del CRM (contaba
+cero), ni Reactivación (proponía reactivar a quien se atendió hoy), ni la
+retención NOM-004 (evaluaba con la fecha vacía) — **todo con aspecto de pantalla
+vacía legítima**. Mismo defecto que REG-427 en otra forma.
+
+Al sembrar `ultimaCita` derivándola de las citas, las tres pantallas se
+encendieron — y con ellas apareció el «visto ayer» que llevaba escondido detrás.
+
+La regla no se copia en el arnés: se **lee** de `contadores-paciente.ts`, que es
+de quien es. Si allí cambia qué estado cuenta como atención, la siembra se
+entera.
+
+### En el camino, dos cosas que resultaron NO ser defectos
+
+Se dicen porque costaron tiempo y porque la conclusión contraria habría sido
+cara:
+
+- **`noShowCount`, `cancelacionCount` y `ultimaCita` sí se escriben.** Parecía
+  que sólo los tocaba una ruta de mantenimiento que nadie llama. Los escribe
+  `src/lib/agenda/transicion-cita.ts` dentro de la transacción del cambio de
+  estado; el primer barrido no los vio porque miraba `src/lib/*.ts` sin entrar
+  en las carpetas. La cabecera de `contadores-paciente.ts` documenta haber
+  arreglado exactamente eso.
+- **El motor de riesgo de no-show no está ciego.** Su historial es real.
+
+### Medido
+
+En el navegador, a la misma hora en la que estaba mal:
+
+| | antes | después |
+|---|---|---|
+| `/pacientes`, paciente atendido esa mañana | «visto **ayer**» | «visto **hoy**» |
+| `/reactivacion`, el mismo paciente | «Hace 1 día» | «**Hoy**» |
+| `/pacientes` → pestaña «Recientes» | vacía, «ninguno» | «Recientes (1)» |
+| Pacientes con `ultimaCita` en el arnés | 0 de 5 | 1 de 5 |
+
+**Qué NO cubre.** Sólo `ultimaVezVisto`: otros sitios que resten fechas siguen
+sin vigilar aquí. Y **sólo la zona del consultorio por defecto** —
+`fijarZonaConsultorio` no publica fuera del navegador, lo dice su propio código,
+así que un consultorio en otra zona no se puede probar en vitest: que la cuenta
+sea la del consultorio y no la de UTC sí queda probado; que funcione en Madrid,
+no.
+
+**Prueba.** `src/__tests__/la-tarde-no-envejece-al-paciente.test.ts` (7 casos), y
+el caso 7 de `v15-rtc15-la-lista-dice-algo-clinico` reparado para usar la forma
+del dato que manda la lista y una hora en la que el defecto exista. Probado al
+revés: con la resta de instantes, fallan tres casos del golden nuevo y el caso 7
+del viejo.

@@ -423,8 +423,47 @@ async function main() {
     horaFin: '19:00',
   })
 
+  /**
+   * LA ÚLTIMA CITA SE DERIVA DE LAS CITAS, NO SE ESCRIBE A MANO.
+   *
+   * `ultimaCita` no se sembraba, y en el producto la escribe la transición de
+   * estado (`cambiosPorTransicion`) dentro de su transacción. El arnés escribe
+   * las citas ya en su estado final, así que esa transición no ocurre nunca y
+   * el campo se quedaba vacío para todos.
+   *
+   * Lo que eso dejaba sin poder auditar, todo con aspecto de pantalla vacía
+   * legítima:
+   *  · «Recientes» de Pacientes — la pestaña que abre por defecto — decía
+   *    «Ninguno tiene citas recientes» con ocho citas en la agenda de hoy;
+   *  · el CRM contaba CERO pacientes activos y a todos como perdidos;
+   *  · Reactivación proponía reactivar a quien se atendió hoy;
+   *  · Retención NOM-004 evaluaba con la fecha vacía.
+   *
+   * Es el mismo defecto que REG-427 en otra forma: el arnés escribe el estado
+   * final sin lo que ese estado deriva, y las pantallas que leen lo derivado
+   * salen vacías sin decir que les falta un dato.
+   *
+   * La regla no se copia: se lee de `contadores-paciente.ts`, que es de quien
+   * es. Si allí cambia qué estado cuenta como atención, esto se entera.
+   */
+  const ATENCION_EFECTIVA = (() => {
+    const src = readFileSync(new URL('../../src/lib/agenda/contadores-paciente.ts', import.meta.url), 'utf8')
+    const i = src.indexOf('export function esAtencionEfectiva')
+    const cuerpo = src.slice(i, src.indexOf('}', i))
+    const estados = [...cuerpo.matchAll(/estado === '([a-z-]+)'/g)].map(m => m[1])
+    if (estados.length === 0) throw new Error('No se pudo leer esAtencionEfectiva de contadores-paciente.ts')
+    return estados
+  })()
+
+  const ultimaCitaDe = pacienteId => CITAS
+    .filter(c => c.pac === pacienteId && ATENCION_EFECTIVA.includes(c.estado))
+    .map(c => c.dia || dia)
+    .sort()
+    .pop()
+
   // ── Pacientes ─────────────────────────────────────────────────────────────
   for (const p of PACIENTES) {
+    const ultima = ultimaCitaDe(p.id)
     await escribir(`clinics/${CLINICA}/patients/${p.id}`, {
       nombre: p.nombre,
       telefono: p.telefono,
@@ -435,6 +474,7 @@ async function main() {
       notas: p.notas,
       noShowCount: p.noShowCount ?? 0,
       cancelacionCount: p.cancelacionCount ?? 0,
+      ...(ultima ? { ultimaCita: ultima } : {}),
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })
