@@ -1045,7 +1045,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * distintos con una sola casilla — y por eso la cierra la misma idea:
      * separar los actos, no mejorar el mensaje.
      */
-    regs: [155, 156, 251, 317, 327, 328, 433],
+    /**
+     * 510 es la forma más cara de esta familia: la causa y el síntoma están
+     * separados por SEMANAS. Un documento operativo mandaba activar una casilla
+     * de GitHub que exige la aprobación de un code owner, en un repositorio
+     * donde el único code owner es el autor de todos los PR — condición que
+     * nadie puede cumplir. El síntoma habría sido «no puedo fusionar nada»; la
+     * causa, unos ajustes tocados el mes pasado.
+     *
+     * Lo que la mete aquí y no en `charter_vacio` es que la instrucción se leía
+     * CORRECTA. Una configuración se revisa leyéndola, y leyéndola no se ve que
+     * del otro lado no haya nadie que pueda decir que sí.
+     */
+    regs: [155, 156, 251, 317, 327, 328, 433, 510],
   },
   {
     clave: 'decision_del_dueno',

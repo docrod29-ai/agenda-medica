@@ -67,12 +67,17 @@ mergearse»— **no lo cumple el código**, lo cumple una casilla en GitHub. La 
 ya reporta `protected: true`, pero la API no dice **qué** exige el ruleset: eso
 se comprueba abriendo un PR y viendo los tres checks listados como *Required*.
 
-**Y en el mismo ruleset** (ya no es opcional: decidido el 1-sep-2026):
-`.github/CODEOWNERS` asigna los directorios clínicos a `@docrod29-ai` y **hasta ahora no surtía
-efecto** — el archivo existía y nadie lo exigía. Hay que activar **Require review from Code
-Owners** y confirmar que ese es el handle real de GitHub: se dedujo de la URL del remoto y **no
-está verificado**. Si no lo fuera, GitHub marca la línea como inválida y **la ignora en silencio**,
-que es la peor de las dos formas de fallar.
+**Lo que este párrafo mandaba hacer y NO hay que hacer** (corregido el 2-sep-2026, REG-510):
+decía que había que activar **Require review from Code Owners**, y que «ya no es opcional».
+Seguirlo habría cerrado `main` para siempre: `@docrod29-ai` es el único colaborador Y el único
+dueño en `CODEOWNERS` Y el autor de todos los PR, y **GitHub no deja aprobar el PR propio**. La
+condición no la podría cumplir nadie. El detalle, con los tres hechos medidos, está en
+[`docs/ops/PROTECCION-DE-RAMA.md`](ops/PROTECCION-DE-RAMA.md) §«El paso 4 que este archivo mandaba
+dar», y hay un guardián que falla si alguien vuelve a escribirlo.
+
+**Lo que sí quedó verificado de este párrafo**: `docrod29-ai` **es** el handle real de GitHub
+—comprobado contra la API el 2-sep, no deducido de la URL del remoto—, así que el archivo
+`CODEOWNERS` es válido y estará listo el día que exista una segunda persona que pueda aprobar.
 
 ---
 
@@ -113,7 +118,7 @@ que es la peor de las dos formas de fallar.
 |---|---|---|---|---|
 | 1 | MFA (habilitar en Firebase) | Tú | ~10 min | Control de seguridad "activo" |
 | 2 | Stripe Connect + CFDI | Tú + Stripe/Facturama | Medio | Cobro real + facturación |
-| 3 | Protección de rama en `main` (required checks) | Tú | ~5 min | Cierra E0-11: el gate clínico BLOQUEA el merge |
+| 3 | ~~Protección de rama en `main`~~ **HECHO 2-sep-2026** | — | — | Cierra E0-11: los tres checks exigidos, el gate clínico BLOQUEA el merge |
 | 4 | Restore drill (PITR) | Tú + GCP | Medio | "Recuperación probada" |
 | 5 | Pentest externo | Firma de seguridad | Alto ($) | "Evaluado por terceros" |
 | 6 | Certificación (ISO/COFEPRIS) | Certificador | Alto ($$) | Sello regulatorio |
