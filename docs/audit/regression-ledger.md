@@ -16235,3 +16235,82 @@ pueden estar mintiendo igual ahora mismo. Se declara, no se arregla aquí.
 la siembra se para en `cita-001` (tipo), `cita-010` (estado) y `cita-001`
 (origen). No hay caso en vitest: el guardián vive donde se escriben los datos,
 que es donde puede pararlos.
+
+---
+
+## REG-428 — el diálogo que existe para que nada se borre sin querer, borraba sin querer
+
+**Dónde**: `src/context/ToastContext.tsx`
+
+### Qué fallaba
+
+`confirm()` es la confirmación de TODA acción destructiva de la aplicación: la
+que pregunta «¿Eliminar esta cita permanentemente?», la que quita una cortesía,
+la que borra un paciente. Tenía el teclado escrito a mano y le faltaba la trampa
+de foco.
+
+Medido en Chromium el 2-sep, con el diálogo abierto sobre `/citas`:
+
+- **cinco tabulaciones sacaban el foco del diálogo** y lo dejaban en el enlace
+  «Encuentro» de la navegación de detrás — a pesar de su `aria-modal="true"`,
+  que le promete a la tecnología de apoyo que lo de atrás está inerte;
+- y el `Enter` estaba atado a la **ventana**, no al diálogo.
+
+Así que pulsar Enter sobre ese enlace, creyendo que se navegaba, **borraba la
+cita**. Medido: la lista pasó de **7 citas a 6**, y la navegación ni siquiera
+ocurrió.
+
+Una tecla apuntada a otra cosa ejecutando un acto destructivo e irreversible es
+lo más caro que puede hacer justo el diálogo que existe para que nada se borre
+sin querer. No hay deshacer: la cita se va.
+
+### Por qué ningún guardián lo vio
+
+`ToastContext.tsx` vive en `src/context/`, y los dos barridos de diálogos que
+había miraban `src/components` y `src/app`. **Una carpeta fuera de la lista es
+una carpeta sin vigilar, y no se nota**: el barrido sale verde igual.
+
+El arnés `todo-dialogo-se-cierra-con-escape` tampoco lo alcanzaba, y lo dice en
+su cabecera: «sólo los diálogos que este guion sabe abrir… no estar aquí
+significa que NO se vigilan». Estaba declarado. **Declarado no es cubierto** —
+una declaración honesta de un hueco sigue siendo un hueco.
+
+### El arreglo
+
+1. El diálogo usa `useDialogoDeTeclado`, el gancho canónico que ya daban por
+   bueno los otros diecinueve: Escape, trampa de foco, foco inicial, scroll
+   bloqueado y foco devuelto.
+2. El `Enter` vive **dentro** del diálogo (`onKeyDown` en su caja), no en la
+   ventana.
+3. Y **cede ante cualquier control que quiera esa tecla**. Sin esa cesión,
+   pulsar Enter sobre «Cancelar» dispara las dos cosas a la vez y gana la
+   destructiva: probado al revés, la agenda pasó de **8 citas a 7 mientras el
+   médico cancelaba**.
+
+El foco inicial cae ahora en «Cancelar», no en «Eliminar»: en un diálogo
+destructivo el botón que espera bajo el dedo es el que no rompe nada.
+
+### Medido
+
+| en el navegador | antes | después |
+|---|---|---|
+| Tabulaciones que se van del diálogo (de 40) | **38** | **0** |
+| Escape cierra | no | sí |
+| Enter con el foco fuera | **borra la cita** | imposible: el foco no sale |
+| Enter sobre «Cancelar» | — | no borra (8 → 8) |
+| Enter sobre «Eliminar» | — | borra (8 → 7) |
+| Foco inicial | «Eliminar» | «Cancelar» |
+
+**Qué NO cubre.** Sólo Chromium: **no hay WebKit en este entorno, así que esto
+no prueba iPhone**. El guardián estático no mide el foco —un gancho llamado no
+es un foco atrapado— y no ve una capa que no se declare ni con `role="dialog"`
+ni con `inset: 0`. No juzga el orden del foco dentro del diálogo ni lo que oye
+un lector de pantalla real.
+
+**Prueba.** El arnés `la-confirmacion-no-se-dispara-sola` (9 comprobaciones en
+navegador, probado al revés en las dos direcciones: sin el gancho, 38 de 40
+tabulaciones se van y el foco arranca en «Eliminar»; sin la cesión, Enter sobre
+«Cancelar» borra la cita) y
+`src/__tests__/ningun-dialogo-se-escribe-su-propio-teclado.test.ts` (7 casos),
+que barre **todo `src/`** —`context` incluido— y exige que cada capa que tapa la
+pantalla pase por uno de los dos teclados canónicos.

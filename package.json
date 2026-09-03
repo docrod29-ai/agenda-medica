@@ -51,6 +51,7 @@
     "arnes:listas-largas": "node scripts/carril-excelencia/las-listas-largas.mjs",
     "arnes:tema-claro": "node scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs",
     "arnes:telefono-navegador": "node scripts/carril-excelencia/el-telefono-medido-en-el-navegador.mjs",
+    "arnes:confirmacion": "node scripts/carril-excelencia/la-confirmacion-no-se-dispara-sola.mjs",
     "e2e:telefono": "PLAYWRIGHT_LOCAL=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 playwright test e2e/telefono.spec.ts --project=telefono-chromium",
     "simulacro:restauracion:firestore": "npx tsx scripts/simulacro-restauracion-firestore.mjs"
   },

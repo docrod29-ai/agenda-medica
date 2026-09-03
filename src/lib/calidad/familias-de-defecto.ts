@@ -600,8 +600,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * lo midió porque el hueco no rompe nada: sale una línea que dice
      * « · 30min» y sigue el día. Las capturas de la agenda que hay en
      * `docs/design/capturas/` se tomaron todas contra ese arnés.
+     *
+     * 428 es la misma lección en su forma más cara: el diálogo de `confirm()`
+     * vivía en `src/context/`, y los dos barridos de diálogos miraban
+     * `src/components` y `src/app`. Una carpeta fuera de la lista es una
+     * carpeta sin vigilar y no se nota — el barrido sale verde igual. El arnés
+     * de diálogos SÍ declaraba el hueco en su cabecera («sólo los que este
+     * guion sabe abrir»), y una declaración honesta de un hueco sigue siendo un
+     * hueco: declarado no es cubierto.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 424, 425, 426, 427],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 424, 425, 426, 427, 428],
   },
   {
     clave: 'hueco_como_dato',
