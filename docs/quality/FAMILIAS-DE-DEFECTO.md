@@ -25,25 +25,25 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **39** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
-| **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
-| El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
-| Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
-| El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
-| Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
-| El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
-| Estorba al médico | 7 | Correcto por dentro, insoportable por fuera |
-| Pérdida de datos | 11 | Trabajo del médico que desaparece o reaparece solo |
+| **Escrito, probado y sin conectar** | **84** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **El sistema se contradice a sí mismo** | **45** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
+| El habla real no cabía en el motor | 18 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
+| Nadie lo estaba midiendo | 49 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
+| El hueco tratado como dato | 13 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
+| Fuga entre consultorios y dinero | 8 | Un dato o un cobro cruza la frontera de su dueño |
+| El charter existía sin encarnar | 10 | Una sección del charter que vivía como carpeta vacía |
+| Estorba al médico | 9 | Correcto por dentro, insoportable por fuera |
+| Pérdida de datos | 20 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
-| El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
-| *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
-| Al modelo de datos le faltaba un eje | 2 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
+| El mensaje mentía sobre la causa | 8 | Falla algo y el sistema culpa a otra cosa |
+| *Decisión del médico dueño, no defecto* | 4 | Cambiaron el comportamiento, pero nada estaba roto |
+| Al modelo de datos le faltaba un eje | 3 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
 
 ---
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 84 de 302, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 84 de 303, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 Los tres últimos (REG-425, 426 y 427, 1-sep-2026) salieron de **abrir el producto
@@ -142,7 +142,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 45 de 302.**
+**«El sistema se contradice a sí mismo» — 45 de 303.**
 
 Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
 caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
@@ -223,7 +223,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 49 de 302**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 49 de 303**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

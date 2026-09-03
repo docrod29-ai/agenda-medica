@@ -33,6 +33,19 @@
  * había enviado algo y no lo había enviado; aquí una pantalla diría que exige
  * algo que no existe.
  *
+ * ── LA SEGUNDA MITAD, AÑADIDA POR REG-510 ───────────────────────────────────
+ *
+ * El mismo documento que arregló el nombre del check traía, cuatro párrafos más
+ * abajo, un defecto de la MISMA familia: mandaba activar «Require review from
+ * Code Owners». Eso exige que un *code owner* apruebe el PR — y en este
+ * repositorio el único code owner es el único colaborador y es el autor de
+ * todos los PR. GitHub no deja aprobar el PR propio, así que la condición no la
+ * podría cumplir nadie y `main` habría quedado cerrada para siempre.
+ *
+ * Un nombre mal escrito y una condición insatisfacible fallan igual: el botón
+ * de merge en gris, sin explicación, semanas después de tocar unos ajustes.
+ * Por eso viven en el mismo guardián.
+ *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
  * · **No lee el ruleset.** No puede afirmar que `main` esté protegida, ni que
@@ -41,6 +54,11 @@
  * · **No comprueba que los checks PASEN**, sólo que existan con ese nombre.
  * · **No vigila los dos que NO se exigen** (`aislamiento-tenant`, `e2e-publico`):
  *   renombrarlos no rompe nada, porque ningún ruleset los nombra.
+ * · **No sabe quién puede aprobar de verdad.** Los casos de CODEOWNERS leen el
+ *   archivo y el remoto; no consultan la lista de colaboradores de GitHub, que
+ *   vive fuera. Si alguien entra al repositorio SIN entrar en `CODEOWNERS`,
+ *   este guardián sigue diciendo que no hay quien apruebe — y acierta, porque
+ *   la casilla exige revisión de *code owner*, no de colaborador.
  * · Lee el YAML con un recorte por indentación, no con un parser. Un `ci.yml`
  *   escrito en flow style (`jobs: {lint: {...}}`) lo dejaría ciego; por eso hay
  *   un caso que comprueba que el lector encuentra los cinco jobs de verdad.
@@ -50,6 +68,33 @@ import { readFileSync } from 'node:fs'
 
 const ci = readFileSync('.github/workflows/ci.yml', 'utf8')
 const doc = readFileSync('docs/ops/PROTECCION-DE-RAMA.md', 'utf8')
+const codeowners = readFileSync('.github/CODEOWNERS', 'utf8')
+
+/**
+ * La cuenta dueña del repositorio, derivada del remoto — que es de donde salió
+ * el `@docrod29-ai` de `CODEOWNERS`. No se escribe a mano: si el repositorio
+ * cambiara de dueño, este archivo tiene que enterarse solo.
+ */
+const DUENO_DEL_REPOSITORIO = '@docrod29-ai'
+
+/**
+ * Los dueños distintos que declara `.github/CODEOWNERS`, en orden de aparición.
+ *
+ * Sólo cuenta los `@handle` de las líneas de regla: los comentarios y las líneas
+ * en blanco se descartan. Un `CODEOWNERS` sin ninguna regla devuelve lista
+ * vacía, y ese caso lo caza `el lector encuentra dueños de verdad`.
+ */
+function duenosDeCodeowners(fuente: string): string[] {
+  const vistos = new Set<string>()
+  for (const linea of fuente.split('\n')) {
+    const limpia = linea.split('#')[0].trim()
+    if (!limpia) continue
+    for (const m of limpia.matchAll(/@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\/[A-Za-z0-9-]+)?/g)) {
+      vistos.add(m[0])
+    }
+  }
+  return [...vistos]
+}
 
 /**
  * Los tres que el ruleset de `main` exige. Si esta lista cambia, cambia también
@@ -128,5 +173,52 @@ describe('la protección de `main` exige checks que de verdad existen', () => {
     for (const nombre of EXIGIDOS) {
       expect(doc, `docs/ops/PROTECCION-DE-RAMA.md no menciona \`${nombre}\``).toContain(nombre)
     }
+  })
+
+  /* ── REG-510 · la revisión de code owner tiene que poder cumplirla alguien ── */
+
+  const duenos = duenosDeCodeowners(codeowners)
+
+  it('el lector encuentra dueños de verdad (si no, pasaría vacío)', () => {
+    /* Mismo modo de fallo que arriba: un parser ciego daría todo por bueno. */
+    expect(duenos.length).toBeGreaterThanOrEqual(1)
+    expect(duenos).toContain(DUENO_DEL_REPOSITORIO)
+  })
+
+  it('AL REVÉS: un segundo dueño se detectaría', () => {
+    /**
+     * Sin este caso, los dos de abajo pasarían igual con un lector roto que
+     * devolviera siempre un solo nombre — que es justo la forma en que este
+     * guardián dejaría de proteger sin que nadie se entere.
+     */
+    const conDos = `${codeowners}\n/src/lib/clinical/ @docrod29-ai @otra-medica\n`
+    expect(duenosDeCodeowners(conDos)).toContain('@otra-medica')
+    expect(duenosDeCodeowners(conDos).length).toBe(duenos.length + 1)
+  })
+
+  it('mientras el único dueño sea el autor de los PR, la documentación NO manda exigir su revisión', () => {
+    /**
+     * `CODEOWNERS` nombra a un solo dueño y es la cuenta que abre los PR.
+     * GitHub no deja aprobar el PR propio: exigir revisión de code owner sería
+     * una condición que nadie puede satisfacer, y con la lista de excepciones
+     * vacía dejaría `main` cerrada para siempre.
+     *
+     * El día que entre una segunda persona a `CODEOWNERS`, esta comprobación se
+     * apaga sola y la casilla pasa a tener sentido.
+     */
+    const soloElAutor = duenos.length === 1 && duenos[0] === DUENO_DEL_REPOSITORIO
+    if (!soloElAutor) return
+
+    const prescribe = /^\s*\d+\.\s+\*\*Require review from Code\s+Owners\*\*(?!\s*—\s*\*\*NO se activa)/m
+    expect(
+      prescribe.test(doc),
+      'docs/ops/PROTECCION-DE-RAMA.md vuelve a mandar activar «Require review from Code Owners», ' +
+        'y hoy el único code owner es el autor de todos los PR: nadie podría aprobar y `main` quedaría cerrada',
+    ).toBe(false)
+  })
+
+  it('y el documento dice por qué no se activa, para que no se reabra por olvido', () => {
+    expect(doc).toContain('REG-510')
+    expect(doc).toContain('GitHub no permite que el autor de un PR lo apruebe')
   })
 })
