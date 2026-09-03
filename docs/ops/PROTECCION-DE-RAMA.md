@@ -1,8 +1,13 @@
 # Protección de la rama `main` — qué se exige y por qué
 
-> **Estado**: la rama está protegida (`protected: true` en la API), pero **qué**
-> exige el ruleset no se puede leer desde este repositorio. Este archivo declara
-> la configuración acordada; comprobarla es una mirada a la consola de GitHub.
+> **Estado**: configurado y **comprobado en la consola el 2-sep-2026** por el
+> dueño. El ruleset se llama `main protegida`, está `Active`, apunta a `main`,
+> su lista de excepciones está **vacía**, y exige los tres checks de abajo más
+> «Require branches to be up to date before merging».
+>
+> Qué exige un ruleset **no se puede leer desde este repositorio**: la API dice
+> `protected: true` y no dice de qué. Por eso este archivo declara la
+> configuración acordada y la fecha en que se miró.
 
 ## Por qué existe este archivo
 
@@ -60,11 +65,9 @@ alguien no los mira. La defensa ahí es la revisión, no la compuerta.
    - `lint (trinquete)`
 3. **Require branches to be up to date before merging** — evita el merge que
    rompe el invariante sólo al combinarse con lo que ya está en `main`.
-4. **Require review from Code Owners** — `.github/CODEOWNERS` ya asigna el código
-   clínico a `@docrod29-ai` y **hasta ahora no surtía efecto**: el archivo existía
-   y nadie lo exigía. El CI comprueba que los invariantes sigan encendidos; no
-   puede juzgar si un umbral clínico **nuevo** es correcto. Eso sólo lo puede
-   hacer el médico.
+4. **Require review from Code Owners** — **NO se activa. Cerraría `main` para
+   siempre.** Ver «El paso 4 que este archivo mandaba dar» más abajo: es un
+   defecto de este propio documento, corregido en REG-510.
 5. **Do not allow bypassing the above settings**, incluyendo administradores. Sin
    esto el dueño se salta su propio gate sin querer.
 
@@ -83,3 +86,44 @@ La comprobación real es de comportamiento, y son dos:
 
 Si un check exigido se queda en «Expected — Waiting for status to be reported» y
 no arranca nunca, el nombre está mal escrito: cotéjelo contra la tabla de arriba.
+
+## El paso 4 que este archivo mandaba dar — REG-510
+
+Hasta el 2-sep-2026 este documento pedía activar **Require review from Code
+Owners**, y `docs/pendientes-externos.md` §3 lo repetía diciendo que «ya no es
+opcional». Seguirlo habría **bloqueado el repositorio entero**.
+
+**Los tres hechos, medidos ese día contra la API de GitHub:**
+
+| Hecho | Valor |
+|---|---|
+| Colaboradores del repositorio | **uno**: `docrod29-ai`, admin |
+| Dueños que declara `.github/CODEOWNERS` | **uno**: `@docrod29-ai` |
+| Autor de los PR (los abre Claude Code con la identidad del dueño) | `docrod29-ai` |
+
+**GitHub no permite que el autor de un PR lo apruebe.** Con esos tres hechos, la
+casilla exige una aprobación de `@docrod29-ai` sobre PRs de `@docrod29-ai`: una
+condición que **nadie puede satisfacer**. Y como la lista de excepciones está
+vacía —correctamente, es el paso 5—, tampoco habría forma de saltársela.
+
+Todo PR que tocara `/src/lib/clinical/`, `/src/lib/expediente/`,
+`/src/lib/seguridad/`, `firestore.rules` o `ci.yml` habría quedado inmergeable de
+forma permanente. El síntoma —«no puedo fusionar nada»— no se parece en nada a la
+causa, que es exactamente la forma de fallo que este archivo nació para evitar
+(el nombre `lint` mal escrito). Se repitió el patrón un párrafo más abajo.
+
+**Es la misma familia que REG-506**: una configuración que se lee correcta y no
+hace lo que dice. Y la misma lección que el nombre del check: *lo que parece una
+casilla de cumplimiento es una condición que alguien tiene que poder cumplir*.
+
+### Qué protege la revisión clínica mientras tanto, dicho como es
+
+**Nada automático.** El CI comprueba que los invariantes sigan encendidos; **no
+puede juzgar si un umbral clínico nuevo es correcto**. Eso sólo lo puede hacer el
+médico, y hoy lo hace **fuera de GitHub**: nada se fusiona hasta que él lo dice.
+Es una garantía de proceso, no de compuerta, y se declara así en vez de fingir
+que una casilla la cubre.
+
+**Cuándo se activa la casilla**: el día que exista en el repositorio **una segunda
+persona** que sea code owner y pueda aprobar lo que el dueño escribe. Ese día
+esta línea cambia y el guardián de abajo deja de exigir su ausencia.

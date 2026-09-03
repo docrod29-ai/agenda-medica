@@ -18223,3 +18223,89 @@ JSX y en tres fichas más) ni un `###` dentro de una ficha.
 - **No arregla la causa de fondo**, que es que el contador se asigne a mano. Un
   contador derivado lo cerraría de verdad; cambiarlo hoy renumeraría casi 300
   entradas y rompería toda cita cruzada del repositorio. Queda dicho, no hecho.
+
+---
+
+## REG-510 · El documento de la protección de rama mandaba cerrar `main` para siempre
+
+**CÓMO SE DESCUBRIÓ.** Guiando al dueño paso a paso por su propia lista de
+pendientes, en la sesión del 2-sep-2026. Íbamos por el punto 4 de
+`docs/ops/PROTECCION-DE-RAMA.md` —«activar **Require review from Code Owners**»,
+que `docs/pendientes-externos.md` §3 subrayaba con un «ya no es opcional»— y
+antes de decirle que pulsara, se comprobaron los tres hechos que la casilla
+necesita. No cuadraban.
+
+**LO QUE HABRÍA PASADO.** La casilla exige que un *code owner* apruebe el PR.
+Medido contra la API de GitHub ese mismo día:
+
+| Hecho | Valor |
+|---|---|
+| Colaboradores del repositorio | **uno**: `docrod29-ai`, admin |
+| Dueños en `.github/CODEOWNERS` | **uno**: `@docrod29-ai` |
+| Autor de los PR (los abre Claude Code con la identidad del dueño) | `docrod29-ai` |
+
+**GitHub no permite que el autor de un PR lo apruebe.** Con esos tres hechos la
+condición no la puede satisfacer nadie, y la lista de excepciones del ruleset
+está vacía —correctamente: es el paso 5 del mismo documento—, así que tampoco
+habría forma de saltársela.
+
+Resultado: **todo PR que tocara `/src/lib/clinical/`, `/src/lib/expediente/`,
+`/src/lib/seguridad/`, `firestore.rules` o `ci.yml` habría quedado inmergeable de
+forma permanente.** Es decir, todo el trabajo clínico del repositorio.
+
+### La causa raíz, y por qué duele que sea ésta
+
+`PROTECCION-DE-RAMA.md` **nació** para arreglar un defecto de esta forma exacta:
+`docs/pendientes-externos.md` mandaba exigir un check llamado `lint` cuando el
+job reporta como `lint (trinquete)`, y eso habría dejado todos los PR esperando
+un aviso que nadie manda. El archivo lo explica muy bien en su primer párrafo.
+
+Y **cuatro párrafos más abajo, en el mismo archivo**, escribió otra instrucción
+de la misma familia: una condición que se lee correcta y que nadie puede cumplir.
+
+No es descuido: es que **una configuración se revisa leyéndola, y leyéndola las
+dos parecen bien**. La diferencia entre «exige un nombre que no existe» y «exige
+una aprobación que nadie puede dar» sólo aparece si se va a buscar **quién** hay
+del otro lado. Nadie fue a buscarlo, porque el archivo ya se sentía revisado.
+
+Familia: **«El mensaje mentía sobre la causa»** — el síntoma sería «no puedo
+fusionar nada» y la causa estaría en una casilla marcada semanas antes.
+
+### El arreglo
+
+1. `PROTECCION-DE-RAMA.md` deja de mandar activarla, dice **por qué no**, y
+   declara qué protege la revisión clínica mientras tanto: **nada automático**.
+   Hoy la garantiza el proceso —el dueño no autoriza fusionar hasta mirarlo—, y
+   se dice así en vez de fingir que una casilla la cubre.
+2. `pendientes-externos.md` §3 se corrige en el sitio donde lo repetía.
+3. El guardián que ya vigilaba los nombres de los checks vigila también esto:
+   mientras `CODEOWNERS` declare **un solo dueño** y sea la cuenta que abre los
+   PR, el documento **no puede** volver a prescribir la casilla. El día que entre
+   una segunda persona, la comprobación se apaga sola.
+
+**Se verificó de paso, y era otra afirmación sin comprobar**: el propio documento
+decía que `@docrod29-ai` «se dedujo de la URL del remoto y **no está
+verificado**». Se comprobó contra la API: **es el handle real**. `CODEOWNERS` es
+válido y estará listo el día que haya quien apruebe.
+
+### Prueba
+
+`src/__tests__/la-proteccion-de-rama-exige-checks-que-existen.test.ts`, cuatro
+casos nuevos. **Probado al revés**: devolviéndole al documento su párrafo
+original, el caso se pone rojo y nombra la consecuencia. Con el párrafo
+corregido, verde.
+
+El caso `AL REVÉS: un segundo dueño se detectaría` existe porque los otros dos
+pasarían igual con un lector roto que devolviera siempre un solo nombre — que es
+justo cómo este guardián dejaría de proteger sin que nadie se entere.
+
+### Qué NO cubre
+
+- **No lee la lista de colaboradores de GitHub**, que vive fuera del repositorio.
+  Si entra alguien SIN entrar en `CODEOWNERS`, el guardián sigue exigiendo la
+  ausencia de la casilla — y acierta, porque lo que se exige es revisión de *code
+  owner*, no de colaborador.
+- **No lee el ruleset.** Sigue sin poder afirmar qué exige `main` de verdad; eso
+  se mira en la consola y se declara con su fecha.
+- **No resuelve la revisión clínica.** Deja escrito que hoy no hay compuerta que
+  la garantice, que es lo honesto. La solución real es una segunda persona.
