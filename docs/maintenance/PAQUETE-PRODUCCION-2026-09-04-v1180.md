@@ -98,5 +98,61 @@ gobiernan.
 
 ## 5. Lo que pasó de verdad
 
-*(Se rellena tras correr el botón. Si esta sección sigue vacía, el paquete está
-preparado y no publicado.)*
+Se publicó el 4-sep-2026. Los tres pasos salieron en el orden previsto y ninguno
+tuvo que repetirse.
+
+| Paso | Qué fue | Resultado |
+|---|---|---|
+| 1 | PR #449 — service worker a v1180 y esta acta | fusionado, 5 checks de CI en verde |
+| — | Vercel publicó `main` (`44bfcb58`) por su integración de git | producción pasa a servir `nexusmed-v1180` |
+| 2 | PR #450 — `SHA_AUTORIZADO` repuntado a `44bfcb58` | fusionado, 5 checks en verde |
+| 3 | Workflow «Despliegue a producción (manual)», ejecución **#18** | `PRODUCTION_RELEASE=SUCCESS` |
+
+Acta que emitió la ejecución #18:
+
+```
+PRODUCTION_URL=https://agenda-medica-one.vercel.app
+APP_SHA=44bfcb589131db2dd6b9474fbbc70447b75cfea3
+VERSION=nexusmed-v1180
+VERCEL_PROJECT=agenda-medica
+FIRESTORE_RULES=success
+FIRESTORE_INDICES=success
+FIRESTORE_RULES_SHA256=1d91d7077e616e2a600a0f0526d79c46b85d5ffe9d7d5bffd0d8b157923d2df7
+SECURITY_E2E=success
+SMOKE=success
+SMOKE_PORTAL=success
+PRODUCTION_RELEASE=SUCCESS
+```
+
+<https://github.com/docrod29-ai/agenda-medica/actions/runs/33927883098>
+
+### La Compuerta 0 hizo su trabajo, y por eso el paso 2 existe
+
+El pin apuntaba al árbol de v1179. La fusión del paso 1 movió dos de los cuatro
+archivos que ese workflow publica o certifica —`public/version.txt` y
+`public/sw.js`—, así que el pin dejó de ser equivalente a la cabeza. Sin el paso
+2 el botón se habría parado en la Compuerta 0: es exactamente el fallo del
+31-ago que esa compuerta se escribió para cazar, sólo que esta vez llegó
+anticipado en vez de descubierto al pulsar.
+
+### El hueco que se cerró
+
+`firestore.rules` en `main` valía `1d91d707…` y producción servía `3032001e…`.
+La diferencia era la regla de la colección `preguntas_paciente`, que entró con
+#443. Mientras tanto nada estaba roto —el comodín de denegación cubre lo no
+declarado y las escrituras van por el Admin SDK del servidor—, pero la regla
+explícita **no regía**. Ahora sí: `firestore.rules.estado.json` queda sellado con
+`1d91d707…`, y el sha256 del árbol local se comprobó contra el valor que emitió
+el workflow en vez de darse por bueno.
+
+### Lo que esta ejecución NO demuestra
+
+- **Que los índices estén construidos.** `deploy --only firestore:indexes`
+  contesta al enviar, no al terminar; la construcción es asíncrona y puede
+  fallar después. Eso se cierra mirando la consola del proyecto.
+- **Que el service worker viejo se haya retirado de los navegadores.** Sube la
+  versión del caché; la retirada ocurre cuando cada cliente recarga.
+- **Nada sobre habla de consulta real.** Sigue siendo el punto ciego declarado
+  en D-029.
+- Las cifras clínicas del bloque D que siguen sin decidir **no se publicaron
+  resueltas**: siguen marcadas y siguen pendientes.
