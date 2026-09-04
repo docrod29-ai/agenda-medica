@@ -19,17 +19,12 @@
   "ultimaVersionEnProduccion": "nexusmed-v1178",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M scripts/design/sembrar-emulador.mjs",
-    " M src/__tests__/v15-rtc15-la-lista-dice-algo-clinico.test.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/pacientes/estado-clinico.ts",
-    "?? docs/design/capturas/v98/pacientes-1440.png",
-    "?? sonda-velocidad.mjs",
-    "?? src/__tests__/la-tarde-no-envejece-al-paciente.test.ts"
+    "M .gitignore",
+    " M agent-state/MASTER_STATE.json",
+    " M package.json",
+    "?? docs/design/capturas/base/",
+    "?? scripts/carril-excelencia/la-pantalla-no-cambia-sola.mjs",
+    "?? src/__tests__/el-comparador-visual-esta-calibrado.test.ts"
   ],
   "actualizado": "2026-09-03",
   "resumenDesdeElUltimoEstado": {
@@ -67,8 +62,8 @@
   "derivado": {
     "regsEnElLedger": 280,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 901,
-    "casosDePrueba": 10899,
+    "archivosDePrueba": 902,
+    "casosDePrueba": 10906,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
