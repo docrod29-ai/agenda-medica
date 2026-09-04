@@ -1,6 +1,56 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 29-ago-2026 — **P0 = 0 y P1 internos = 0. Empieza el trabajo de los workstreams sin cola**
+## Checkpoint · 3-sep-2026 — **el producto, mirado en un navegador de punta a punta**
+
+```
+CURRENT_BRANCH=claude/ausculta-product-excellence-52rqck
+CURRENT_HEAD=(este commit)
+CURRENT_PR=(sin PR — la rama está empujada, no fusionada)
+CURRENT_WORKSTREAM=Ausculta Product Excellence — las doce cosas que pidió el dueño, cerradas
+LAST_COMPLETED_UNIT=102 · el recorrido completo del médico (REG-430)
+CURRENT_PARTIAL_UNIT=(ninguna)
+EXACT_NEXT_ACTION=Nada empezado a medias. Lo que queda declarado y NO hecho: (1) el panel del instrumento sigue diciendo «Grabando» junto a la barra de voz — un rótulo de más, medido y declarado en REG-430; (2) la respuesta de Evidencia sigue BLOCKED_EXTERNAL por falta de clave de IA y de PubMed; (3) `la-cifra-de-seguridad-no-se-pudre` está en rojo desde antes de este trabajo: `npm audit` pasó de 9 a 11 avisos (0 críticos, 0 altos) y su arreglo es `node scripts/seguridad/auditar.mjs`, que toca un documento del dueño y por eso no se hizo aquí.
+FILES_IN_SCOPE=src/components/MientrasHablas.tsx · src/app/globals.css · src/app/(dashboard)/{finanzas,calendario,consulta}/ · src/context/ToastContext.tsx · src/lib/pacientes/estado-clinico.ts · src/hooks/useEsTelefono.ts · scripts/carril-excelencia/
+FILES_LOCKED=(ninguno — un solo writer)
+TESTS_PASSED=12146
+TESTS_FAILED=2
+KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts (exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante — NO tocar la aserción) · la-cifra-de-seguridad-no-se-pudre.test.ts (deriva de `npm audit`, ver EXACT_NEXT_ACTION). Los dos fallan también en árbol limpio.
+BUILD=compila
+BLOCKED_EXTERNAL=iPhone/WebKit real (el binario no está y su descarga está bloqueada: NADA de este carril prueba iPhone) · clave de IA · PubMed · despliegue de firestore.rules · PITR · pentest
+DO_NOT_REGRESS=REG-425…REG-430
+```
+
+### Los arneses nuevos de este carril
+
+| Comando | Qué mide |
+|---|---|
+| `npm run arnes:telefono-navegador` | Las 28 pantallas a 390 px: arrastre lateral y recorte mudo. Es el navegador que `scripts/calidad/cabe-en-un-telefono.mjs` declara no ser. |
+| `npm run arnes:confirmacion` | El teclado del diálogo destructivo: 9 comprobaciones. |
+| `npm run arnes:regresion-visual` | Línea base de 14 capturas. `--fijar` la fija, `--estabilidad` mide su propio ruido (0.0000 %). |
+| `npm run arnes:dia-del-medico` | El día entero: entrar, ver, abrir, consentir, grabar, detener, firmar, cobrar, recuperar el audio. |
+
+### Cerrado en esta tanda
+
+| REG | Qué |
+|---|---|
+| 425 | Finanzas escondía una cifra de dinero tras un arrastre lateral, y el trinquete preguntaba del lado equivocado de la frontera |
+| 426 | En la agenda de un teléfono el bloque decía la hora y se comía el nombre del paciente |
+| 427 | El arnés escribía el tipo de cita con su etiqueta: diez citas con el tipo en blanco, en todas las capturas del repositorio |
+| 428 | El diálogo que existe para que nada se borre sin querer borraba con un Enter apuntado a otra cosa |
+| 429 | Todas las tardes, a partir de las seis, el producto envejecía un día a quien se hubiera atendido ese día |
+| 430 | La barra que dice «no se va de la pantalla» se iba de la pantalla |
+
+### La lección que se repitió en las seis
+
+Un guardián puede estar escrito, correr y salir verde sin vigilar nada: porque
+pregunta del lado equivocado de la frontera (425), porque mira una carpeta de
+menos (428), porque prueba una forma del dato que nadie envía y a una hora en la
+que el defecto no se asoma (429), o porque mide la pantalla en un estado en el
+que nadie trabaja (430). **Visitar la ruta no es medirla.**
+
+---
+
+## Checkpoint anterior · Checkpoint · 29-ago-2026 — **P0 = 0 y P1 internos = 0. Empieza el trabajo de los workstreams sin cola**
 
 ```
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
