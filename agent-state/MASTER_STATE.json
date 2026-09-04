@@ -23,17 +23,11 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/OWNER_DECISIONS_REQUIRED.md",
-    " M docs/DECISIONES-DEL-DUENO.md",
+    "M .claude/rules/data-privacy.md",
+    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
     " M docs/product/DECISION_REGISTER.md",
-    " M docs/quality/MOTORES-SIN-CONECTAR.md",
-    " M scripts/calidad/motores-conectados.mjs",
-    " M src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
-    " M src/__tests__/hospital-eventos-append-only.test.ts",
-    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
-    " M src/lib/expediente/extraction-schema.ts",
-    " M src/lib/hospital/eventos.ts",
-    " M src/lib/seguridad/clasificacion.ts"
+    " M src/lib/expediente/funcion-renal.ts",
+    " M src/lib/hospital/news2.ts"
   ],
   "actualizado": "2026-09-04",
   "resumenDesdeElUltimoEstado": {
