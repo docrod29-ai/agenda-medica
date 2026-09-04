@@ -74,7 +74,29 @@ function medir(): {
  * y en consulta no hay gold. Es evaluación —misma categoría que
  * `correrBenchmark`— y su consumidor es `scripts/medir-wer-limpio.ts`.
  */
-const TOPE = { huerfanasMax: 39, totalMin: 771 }
+/**
+ * ── 39 → 46 EL 4-sep-2026, Y NO PORQUE CRECIERA LA DEUDA ────────────────────
+ *
+ * Subir un trinquete es lo que este repositorio no hace. Aquí se sube porque
+ * **cambió el instrumento, no el árbol**: hasta ese día `motores-conectados.mjs`
+ * contaba las apariciones del símbolo sobre el texto CRUDO, así que **nombrar un
+ * motor en un comentario lo daba por conectado**. Siete motores llevaban tapados
+ * por eso.
+ *
+ * Se descubrió documentando el motor de corrección: bastó mencionarlo en su
+ * propio JSDoc para que desapareciera del barrido. Un instrumento al que se le
+ * tapa la boca escribiendo su nombre en prosa — y con el efecto exactamente al
+ * revés del deseado: un motor sin conectar dejaba de contarse **justo cuando
+ * alguien se molestaba en documentarlo**.
+ *
+ * Bajar el número deshaciendo el arreglo sería volver a esconderlos. El número
+ * viejo era más bonito y más falso.
+ *
+ * De los siete, dos tienen cuerpo real y están declarados uno a uno en
+ * `MOTORES-SIN-CONECTAR.md` —`masGrave` y `camposQueRequierenRevision`—, los dos
+ * como huecos reales abiertos, no como excusas.
+ */
+const TOPE = { huerfanasMax: 46, totalMin: 771 }
 /* 50 → 48 → 44 el 8-ago-2026:
      · REG-256, la bandeja de alertas del episodio (2)
      · REG-257, CAM-ICU y tres motores POCUS del panel de UCI (4)
@@ -114,7 +136,22 @@ describe('el instrumento no repite el error que ya cometió', () => {
      * Éste es el arreglo del falso positivo: `crossResistenciaFQ` la llama su
      * vecina de archivo, y la primera versión no lo veía.
      */
-    expect(s).toMatch(/const enElSuyo = \(texto\.match\(re\) \?\? \[\]\)\.length > 1/)
+    expect(s).toMatch(/const enElSuyo = \(sinComentarios\(texto\)\.match\(re\) \?\? \[\]\)\.length > 1/)
+  })
+
+  it('y NO cuenta lo que sólo aparece en un comentario', () => {
+    /**
+     * El segundo error del mismo medidor, arreglado el 4-sep-2026: contaba
+     * sobre el texto crudo, así que nombrar un motor en su propio JSDoc lo daba
+     * por conectado. Siete estaban tapados así.
+     *
+     * Se vigila que el filtro exista Y que se use en las DOS comprobaciones —la
+     * del propio archivo y la del resto del árbol—, porque dejar una sin filtrar
+     * devolvería el agujero por la otra puerta.
+     */
+    expect(s, 'desapareció el filtro de comentarios').toMatch(/function sinComentarios/)
+    expect(s, 'la búsqueda fuera del archivo volvió a contar comentarios')
+      .toMatch(/test\(sinComentarios\(t\)\)/)
   })
 
   it('y queda escrito el caso que lo destapó', () => {
@@ -164,25 +201,38 @@ describe('el número significa algo: tres categorías (REG-260)', () => {
      * `scripts/medir-wer-limpio.ts`. El documento de abajo lo obliga a estar
      * escrito, que es lo que impide que esta cuenta suba en silencio.
      */
-    expect(m.conCuerpo.length).toBeLessThanOrEqual(6)
+    /* 6 → 8 el 4-sep-2026, por el mismo arreglo del instrumento: `masGrave` y
+       `camposQueRequierenRevision` estaban tapados por menciones en
+       comentarios. Los dos van con su nombre en el documento de abajo, y los
+       dos declarados como huecos reales abiertos — no se explicaron como
+       benignos ni se arreglaron de paso. */
+    expect(m.conCuerpo.length).toBeLessThanOrEqual(8)
     const doc = readFileSync(join(RAIZ, 'docs/quality/MOTORES-SIN-CONECTAR.md'), 'utf8')
     for (const x of m.conCuerpo) expect(doc, `${x} no está en el documento`).toContain(x)
   })
 
-  it('y uno de ellos está bloqueado en el DUEÑO, no en el código', () => {
+  it('y el que estaba bloqueado en el DUEÑO ya no lo está — ahora falta cablearlo', () => {
     /**
-     * `validarCorreccion` exige una política como parámetro obligatorio y
-     * `POLITICA_CORRECCION` nace en `null` a propósito: quién puede corregir un
-     * registro ya hecho, en qué ventana y si el motivo es obligatorio es
-     * política de registro clínico con peso NOM-004.
+     * `validarCorreccion` estuvo parado en el dueño, no en el código: quién
+     * puede corregir un registro ya hecho, en qué ventana y si el motivo es
+     * obligatorio es política de registro clínico con peso NOM-004, y elegir un
+     * valor «razonable» y enterrarlo en una constante es exactamente lo que
+     * este proyecto no hace.
      *
-     * Elegir un valor «razonable» y enterrarlo en una constante sería
-     * exactamente lo que este proyecto no hace.
+     * Lo decidió el 4-sep-2026 (D-026). Lo que queda es de otra naturaleza y no
+     * se puede confundir con lo anterior: el motor **sigue sin llamador**.
+     * Tener la política no enciende la función.
+     *
+     * Este caso vigila las dos mitades: que la decisión esté escrita donde se
+     * lee, y que el hueco que queda siga declarado con su nombre.
      */
     const ev = readFileSync(join(RAIZ, 'src/lib/hospital/eventos.ts'), 'utf8')
-    expect(ev).toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion \| null = null/)
+    expect(ev).not.toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion \| null = null/)
+    expect(ev, 'el hueco que queda tiene que seguir dicho').toMatch(/SIN_CABLEAR_CORRECCION/)
     const dec = readFileSync(join(RAIZ, 'agent-state/OWNER_DECISIONS_REQUIRED.md'), 'utf8')
     expect(dec).toMatch(/Política de correcciones a un registro ya hecho/)
+    expect(dec, 'la cola del dueño no puede seguir pidiendo lo que ya contestó')
+      .toMatch(/RESUELTA/)
   })
 }, 300_000)
 

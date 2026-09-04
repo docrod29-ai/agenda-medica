@@ -229,8 +229,28 @@ describe('E0-09 · proyectarEventos — el libro `registros`', () => {
 })
 
 describe('E0-09 · Q2-Q4 — validación de la corrección (determinista DADA una política)', () => {
-  it('la política de corrección vale null en producción', () => {
-    expect(POLITICA_CORRECCION).toBeNull()
+  it('la política de producción es la que decidió el dueño, no un default', () => {
+    /**
+     * Hasta el 4-sep-2026 este caso exigía `null`, y era lo correcto: sin
+     * decisión del dueño, cualquier valor habría sido política NOM-004
+     * inventada y enterrada en una constante.
+     *
+     * Ya está decidida (D-026). Ahora se vigila que sea EXACTAMENTE lo que él
+     * contestó — porque una política que deriva sola es igual de peligrosa que
+     * una inventada, y aquí nadie se daría cuenta: los cinco campos se leen
+     * razonables con casi cualquier valor.
+     *
+     * Dos de ellos NO son los que se le recomendaron, y por eso se fijan aquí:
+     * él eligió que enfermería pueda anular una administración, y que el motivo
+     * NO bloquee. Si alguien los «corrige» a lo recomendado, este caso se cae.
+     */
+    expect(POLITICA_CORRECCION).toEqual({
+      rolesQueCorrigen: ['medico', 'enfermeria', 'laboratorio', 'farmacia'],
+      rolesQueAnulanAdministracion: ['medico', 'enfermeria'],
+      ventanaHoras: 24,
+      permiteEpisodioEgresado: false,
+      motivoObligatorio: false,
+    })
   })
 
   // POLÍTICA DE PRUEBA — fixture sintético para ejercitar el motor.
