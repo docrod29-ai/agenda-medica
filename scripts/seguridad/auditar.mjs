@@ -43,17 +43,52 @@ const DOC = join(RAIZ, 'docs', 'seguridad', 'ESTADO-DEPENDENCIAS.md')
 const MARCA_INICIO = '<!-- CIFRAS-DERIVADAS:INICIO -->'
 const MARCA_FIN = '<!-- CIFRAS-DERIVADAS:FIN -->'
 
+/**
+ * FALLA CERRADO — REG-511.
+ *
+ * `npm audit` sale con código ≠ 0 cuando ENCUENTRA algo: eso no es un error del
+ * script, es su resultado, y el JSON viene igual en stdout. Hasta el 3-sep-2026
+ * el `catch` terminaba en `return {}`, y ahí estaba el defecto: **un fallo de
+ * verdad y un árbol limpio devolvían lo mismo**, y `{}` se lee como cero.
+ *
+ * Se cazó escribiendo un `0` en la fila del árbol completo cuando el comando
+ * decía 21 —tres de ellas `high`— porque corrían dos `npm` a la vez y el audit
+ * salió vacío. Un documento de seguridad que dice «cero vulnerabilidades»
+ * cuando hay veintiuna falla hacia el único lado que no se puede permitir.
+ *
+ * La respuesta válida de `npm audit --json` SIEMPRE trae
+ * `metadata.vulnerabilities`. Si no está, el comando no contestó: se lanza, y
+ * el documento se queda como estaba.
+ */
 function auditar(soloProd) {
+  const que = soloProd ? 'npm audit --omit=dev' : 'npm audit'
+  let crudo
   try {
-    const out = execSync(`npm audit${soloProd ? ' --omit=dev' : ''} --json`, {
+    crudo = execSync(`${que} --json`, {
       cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 32 * 1024 * 1024,
     })
-    return JSON.parse(out)
   } catch (e) {
-    /* `npm audit` sale con código ≠ 0 cuando ENCUENTRA algo: eso no es un error
-       del script, es su resultado. El JSON viene igual en stdout. */
-    try { return JSON.parse(e.stdout ?? '{}') } catch { return {} }
+    crudo = e.stdout ?? ''
   }
+
+  let d
+  try {
+    d = JSON.parse(crudo)
+  } catch {
+    throw new Error(
+      `[REG-511] \`${que}\` no devolvió JSON. NO se escriben cifras: un documento de ` +
+      'seguridad en blanco es una afirmación de que no hay nada, y eso no se sabe. ' +
+      'Si hay otro `npm` corriendo a la vez, espere a que termine y repita.',
+    )
+  }
+  if (!d?.metadata?.vulnerabilities || typeof d.metadata.vulnerabilities.total !== 'number') {
+    throw new Error(
+      `[REG-511] \`${que}\` contestó sin \`metadata.vulnerabilities\`. NO se escriben ` +
+      'cifras: el comando no midió nada, y cero medido y cero por no haber medido no ' +
+      'son la misma cosa.',
+    )
+  }
+  return d
 }
 
 function resumen(d) {
@@ -70,6 +105,23 @@ function resumen(d) {
 
 const prod = resumen(auditar(true))
 const todo = resumen(auditar(false))
+
+/**
+ * EL ÁRBOL COMPLETO CONTIENE A PRODUCCIÓN — REG-511.
+ *
+ * Una comprobación de aritmética, no de política: `npm audit` sin `--omit=dev`
+ * mira un superconjunto de lo que mira con él. Si el total de abajo sale menor
+ * que el de arriba, una de las dos medidas está rota, y no se sabe cuál. Se para.
+ *
+ * Es la red que habría cazado el defecto original aunque el JSON hubiera
+ * parseado: 0 nunca puede ser menor que 11.
+ */
+if (todo.total < prod.total) {
+  throw new Error(
+    `[REG-511] El árbol completo (${todo.total}) sale con MENOS avisos que producción ` +
+    `(${prod.total}), y lo contiene. Una de las dos medidas está rota. NO se escribe nada.`,
+  )
+}
 const fecha = execSync('git log -1 --format=%cs', { cwd: RAIZ, encoding: 'utf8' }).trim()
 
 const bloque = [

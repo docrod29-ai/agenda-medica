@@ -53,7 +53,9 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 import { SECURITY_CONTROLS } from '@/config/security-controls'
+import { REQUISITOS } from '@/lib/programa/requisitos'
 
 const leer = (p: string) => readFileSync(p, 'utf8')
 
@@ -161,15 +163,91 @@ describe('el panel de seguridad deja de decir que MFA está sin hacer', () => {
     expect(mfa!.detalle).not.toMatch(/Requiere habilitar Identity Platform/)
   })
 
-  it('tampoco se declara verificado, porque no lo está del todo', () => {
+  it('se declara verificado, y SÓLO porque el dueño cerró el alcance', () => {
     /**
-     * La tentación opuesta es igual de mala. Sólo se exige en la consola del
-     * dueño; el resto de rutas privilegiadas sigue sin exigirlo, y eso es una
-     * decisión de política. `implemented-pending-verification` es exactamente lo
-     * que es.
+     * ── POR QUÉ ESTE CASO CAMBIÓ EL 3-SEP-2026 ────────────────────────────
+     *
+     * Hasta ese día exigía `implemented-pending-verification`, y tenía razón:
+     * el control no estaba a medias por falta de código, sino porque **el
+     * alcance era una casilla abierta** —sólo la consola del dueño lo exigía y
+     * nadie había decidido si eso era el final o una etapa—.
+     *
+     * El dueño lo decidió ese día, con estas palabras: «sólo la consola,
+     * definitivo». Eso no es impaciencia: es que la pregunta que mantenía el
+     * ámbar dejó de estar abierta. Encender TOTP y enrolar un factor NO habría
+     * bastado por sí solo, y esta prueba existe para que eso siga siendo cierto
+     * si alguien lo intenta.
+     *
+     * Lo que NO cambia: el estado sigue siendo falso si el código deja de
+     * coincidir con el alcance declarado. De eso se ocupa el caso siguiente.
      */
-    expect(mfa!.estado).toBe('implemented-pending-verification')
-    expect(mfa!.detalle).toMatch(/decisión de política del dueño/)
+    expect(mfa!.estado).toBe('active-verified')
+    expect(mfa!.detalle, 'el verde no puede ir sin decir hasta dónde llega')
+      .toMatch(/DEFINITIVO/)
+    expect(mfa!.detalle).toMatch(/consola del dueño/)
+    expect(mfa!.detalle, 'tiene que quedar dicho que NO se le impone a nadie')
+      .toMatch(/voluntari/i)
+  })
+
+  it('y el alcance declarado COINCIDE con el código — si alguien lo mueve, se cae', () => {
+    /**
+     * El caso con dientes. «Se exige en la consola del dueño y en ningún otro
+     * sitio» es una afirmación sobre el código, no sobre la intención, y se
+     * puede volver falsa por los dos lados:
+     *
+     *  · si alguien QUITA la comprobación de `superadmin.ts`, el panel diría
+     *    «activo y verificado» sobre algo que ya no exige nada;
+     *  · si alguien la AÑADE en otra ruta, el alcance que el dueño decidió deja
+     *    de ser el que la página cuenta, y el médico se encuentra un candado
+     *    que nadie le anunció.
+     *
+     * Se mide sobre el repositorio: qué archivos de producción nombran el
+     * `sign_in_second_factor` del token. Hoy son exactamente dos, y cada uno
+     * por su razón — `auth-server.ts` lo LEE y lo propaga, `superadmin.ts` es
+     * el único que RECHAZA sin él.
+     *
+     * Se excluye `src/lib/programa/`: el censo de requisitos NOMBRA la cadena en
+     * prosa y no exige nada. Que ese censo cuente lo mismo lo comprueba el caso
+     * siguiente, para que la exclusión no sea un agujero.
+     */
+    const encontrados = execSync(
+      "grep -rl 'sign_in_second_factor' src/lib src/app --include=*.ts --include=*.tsx " +
+        "| grep -v '^src/lib/programa/' || true",
+      { encoding: 'utf8' },
+    ).split('\n').filter(Boolean).sort()
+
+    /* Si el lector no encuentra nada, daría todo por bueno: mismo modo de fallo
+       que ya se comió a otros guardianes de este repositorio. */
+    expect(encontrados.length, 'el lector no encontró NI UNO — está ciego').toBeGreaterThan(0)
+
+    expect(
+      encontrados,
+      'cambió QUIÉN exige el segundo factor. El alcance que declara ' +
+        '`security-controls.ts` («la consola del dueño y ningún otro sitio», decidido ' +
+        'por el dueño el 3-sep-2026) ya no coincide con el código: o se actualiza esa ' +
+        'declaración, o se deshace el cambio. Un panel de cumplimiento que se equivoca ' +
+        'no se puede usar en ninguna dirección.',
+    ).toEqual(['src/lib/auth-server.ts', 'src/lib/superadmin.ts'])
+  })
+
+  it('y el censo de requisitos cuenta la MISMA historia', () => {
+    /**
+     * La exclusión de `src/lib/programa/` del caso anterior deja un hueco: ahí
+     * vive la fila `WS-13.mfa-servidor`, que hasta el 3-sep-2026 decía
+     * `PARTIAL` porque «es decisión de política del dueño». Tomada la decisión,
+     * dos documentos del mismo repositorio contarían cosas distintas del mismo
+     * hecho — que es, literalmente, la familia «el sistema se contradice a sí
+     * mismo».
+     *
+     * Lo cazó este guardián en su PRIMERA corrida, y por eso el hueco se tapa
+     * aquí en vez de dejarlo dicho.
+     */
+    const fila = REQUISITOS.find(r => r.id === 'WS-13.mfa-servidor')
+    expect(fila, 'desapareció la fila del censo').toBeDefined()
+    expect(
+      fila!.estado,
+      'el panel dice «activo y verificado» y el censo dice que falta algo: uno de los dos miente',
+    ).toBe('PROVEN')
   })
 
   it('su evidencia nombra archivos que existen', () => {

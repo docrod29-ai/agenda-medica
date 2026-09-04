@@ -8,7 +8,31 @@
 
 ## ⚡ Ganancias rápidas (dependen solo de ti)
 
-### 1. MFA / verificación en dos pasos  — *código YA listo, falta un switch*
+### 1. ~~MFA / verificación en dos pasos~~ — **HECHO el 3-sep-2026**
+
+> **Cerrado.** TOTP habilitado en el proyecto y con el factor del dueño enrolado y en
+> uso. `/seguridad` declara el control como **activo y verificado**.
+>
+> **Dos cosas que este apartado no sabía**, y que costaron la mayor parte del tiempo:
+>
+> 1. **La app usa TOTP, no SMS.** `src/lib/mfa.ts` sólo llama a
+>    `TotpMultiFactorGenerator`; no hay una línea de SMS en todo el árbol. La MFA por
+>    SMS ya estaba «Habilitada» en la consola y **no le servía de nada al producto**.
+>    Dar por hecho «MFA activada» leyendo esa casilla habría dejado al dueño creyendo
+>    que tenía segundo factor sin tenerlo.
+> 2. **TOTP no tiene pantalla en NINGUNA consola de Google** — ni Firebase ni Identity
+>    Platform lo ofrecen; las dos hablan sólo de SMS. Se habilitó por la API:
+>    `PATCH .../admin/v2/projects/nexomed-agenda/config?updateMask=mfa` con
+>    `providerConfigs[].totpProviderConfig`. Requiere la cabecera
+>    `x-goog-user-project`, sin la cual la API responde un 403 que habla de cuota.
+>
+> **Alcance, decidido por el dueño ese día y definitivo**: el segundo factor se exige
+> en la consola del dueño y en ningún otro sitio. Voluntario para todo lo demás; el
+> camino clínico no lo comprueba a propósito.
+
+<details><summary>Los pasos originales, conservados</summary>
+
+### (original) MFA / verificación en dos pasos  — *código YA listo, falta un switch*
 **Estado real:** la pantalla de 2FA (TOTP con Google Authenticator/Authy) **ya existe y funciona** en la app
 (`Cumplimiento → Seguridad de la cuenta`). Lo único que falta es **habilitar MFA a nivel de proyecto** en Firebase.
 
@@ -20,6 +44,8 @@
 
 **Después, avísame:** cambio el estado del control `mfa` de "planeado" a "activo-verificado" en `/seguridad`
 (solo cuando confirmes que ya enrolaste tu factor — no antes, para no mentir en esa página).
+
+</details>
 
 ### 2. Pagos más profundos (Stripe Connect + CFDI)  — *depende de llaves y config*
 **Qué hacer:**
@@ -116,7 +142,7 @@ dar», y hay un guardián que falla si alguien vuelve a escribirlo.
 ## Resumen de prioridad
 | # | Pendiente | Quién | Esfuerzo | Desbloquea |
 |---|---|---|---|---|
-| 1 | MFA (habilitar en Firebase) | Tú | ~10 min | Control de seguridad "activo" |
+| 1 | ~~MFA~~ **HECHO 3-sep-2026** | — | — | Control de seguridad **activo y verificado** |
 | 2 | Stripe Connect + CFDI | Tú + Stripe/Facturama | Medio | Cobro real + facturación |
 | 3 | ~~Protección de rama en `main`~~ **HECHO 2-sep-2026** | — | — | Cierra E0-11: los tres checks exigidos, el gate clínico BLOQUEA el merge |
 | 4 | Restore drill (PITR) | Tú + GCP | Medio | "Recuperación probada" |
@@ -125,4 +151,4 @@ dar», y hay un guardián que falla si alguien vuelve a escribirlo.
 | 7 | Métricas de precisión | Datos reales | Con el tiempo | Cifras propias verificables |
 | 8 | Prueba social | Clientes reales | Con el tiempo | Testimonios/logos |
 
-**Lo más rentable hoy: #1 (MFA) y #2 (Stripe).** Cuando hagas el #1, dímelo y actualizo `/seguridad` en un minuto.
+**Lo más rentable hoy: #2 (Stripe).** El #1 quedó cerrado el 3-sep-2026 y `/seguridad` ya lo declara activo.
