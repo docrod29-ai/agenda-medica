@@ -17820,6 +17820,82 @@ se llama.
 
 ---
 
+## REG-454 — la hoja que no dijo la unidad dejaba constancia de haberla dicho
+
+**Eje.** Laboratorio · §27.1 y §33 de D-032. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/la-hoja-muda-no-inventa-su-unidad.test.ts`.
+
+### Qué fallaba
+
+Un renglón sin unidad se guardaba así:
+
+```
+Glucosa 92  →  valor: 92 · unidad: 'mg/dL' · unidadOriginal: 'mg/dL'
+```
+
+Y la hoja **no había dicho nada**. El campo que existe precisamente para
+conservar lo que imprimió el laboratorio —el §27.1 del catálogo del dueño:
+«nunca eliminar la unidad original»— estaba diciendo lo que habíamos asumido
+nosotros.
+
+El resultado era **indistinguible** de una hoja que sí declaró mg/dL. Nadie
+podía saber, mirando el expediente, si la unidad venía del laboratorio o de una
+suposición del software.
+
+Es la regla 4 de seguridad clínica en su forma más pura: **ausencia de dato no es
+dato de ausencia**. Y la regla 3: una suposición es una edición al dato, y una
+edición que no se puede ver es una que alguien le hizo al expediente sin decirlo.
+
+### Lo que cambió, y lo que NO
+
+| | Antes | Ahora |
+|---|---|---|
+| Se asume la unidad convencional | sí | **sí** |
+| La fila entra a la gráfica | sí | **sí** |
+| Un pánico sin unidad marca crítico | sí | **sí** |
+| `unidadOriginal` | se rellenaba con la canónica | **vacía** |
+| Se distingue de una hoja que sí la dijo | no | **sí** (`MISSING_UNIT`) |
+| El médico lo ve | no | **sí**, con su propio texto |
+
+**No dejar de graficarlas es deliberado.** Casi todas las hojas mudas están en la
+unidad de siempre, y no graficarlas vaciaría las series de medio consultorio por
+una marca de cautela — el mismo pasarse de frenada que el médico descartó al
+fijar el 5 % de la voz. Lo que se gana es que la suposición **se vea**, no que se
+deje de suponer.
+
+Y por lo mismo `MISSING_UNIT` **no pinta el ámbar «verificar»**: es cautela
+declarada, no un defecto que revisar. Si pintara, media hoja saldría en ámbar y
+el aviso dejaría de significar algo — justo lo que REG-451 consiguió que
+significara.
+
+### Con las dos cosas en duda, se dicen las dos
+
+Un sodio de 1400 **sin unidad** podría ser un decimal corrido (140) o una unidad
+distinta. Se sigue ofreciendo el candidato del §29, pero el texto dice que es
+sólo una de las explicaciones. Ofrecer únicamente el decimal sería dar por
+resuelto lo que no se sabe — el error de REG-452 en su forma más ambigua.
+
+### Lo que esto NO desbloquea
+
+Los rangos anchos del catálogo **siguen sin adoptarse**, y ahora se puede decir
+exactamente por qué: con la hoja muda, un rango ancho aceptaría en silencio un
+valor que venía en otra unidad —la glucosa de 7,2 mmol/L pasaría como 7,2 mg/dL
+si el rango empezara en 1—. Lo que lo desbloquearía es **dejar de graficar lo
+mudo**, y ésa es una decisión del médico dueño, no mía.
+
+### Probado al revés cinco veces
+
+Volver a rellenar `unidadOriginal` con la canónica · dejar de graficar la hoja
+muda · encender el ámbar con `MISSING_UNIT` · quitar el aviso de la pantalla ·
+hablar sólo del decimal cuando la unidad también está en duda.
+
+### Lo que sigue sin cubrirse
+
+**No se distingue «la hoja no lo dijo» de «la IA no lo leyó».** Las dos llegan
+aquí como unidad vacía, y son cosas distintas: la primera es una hoja parca, la
+segunda un fallo de lectura. Separarlas pide un grado de confianza de extracción
+desde la lectura de la hoja, que es el §32 del catálogo y no está.
+
 ## REG-453 — el catálogo entero, y el defecto vivo que apareció al cargarlo
 
 **Eje.** Laboratorio · D-032 §26 y §27.3. **Fecha.** 2-sep-2026.

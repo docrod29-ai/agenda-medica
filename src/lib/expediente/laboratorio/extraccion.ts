@@ -64,8 +64,14 @@ export interface ResultadoValidado {
   estado?: EstadoDeValidacion
   /** El valor tal como lo imprimió el laboratorio. */
   valorOriginal?: number
-  /** La unidad tal como la imprimió el laboratorio. */
+  /**
+   * La unidad tal como la imprimió el laboratorio. AUSENTE cuando la hoja no la
+   * dijo (REG-454): antes se rellenaba con la canónica, y entonces el campo que
+   * conserva lo que dijo el laboratorio decía lo que asumimos nosotros.
+   */
   unidadOriginal?: string
+  /** La unidad con la que se juzgó cuando la hoja no traía ninguna. */
+  unidadAsumida?: string
   /** Con qué factor se convirtió y de dónde sale ese factor. */
   convertidoCon?: string
   /** Por qué este resultado está en el estado en que está. */
@@ -184,6 +190,7 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
       estado: dictamen.estado,
       valorOriginal: dictamen.valorOriginal,
       unidadOriginal: dictamen.unidadOriginal,
+      unidadAsumida: dictamen.unidadAsumida,
       convertidoCon: dictamen.conversion?.fuente,
       porQueDelEstado: dictamen.porQue,
       decimalCorrido: dictamen.decimalCorrido,

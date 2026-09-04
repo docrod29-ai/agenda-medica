@@ -50,6 +50,15 @@ export type EstadoDeValidacion =
   | 'VERIFY_UNIT'
   /** Unidad conocida y valor fuera de los límites de captura. */
   | 'VERIFY_VALUE_OR_UNIT'
+  /**
+   * LA HOJA NO DIJO LA UNIDAD — §33 de D-032, REG-454.
+   *
+   * Se asume la canónica, que es lo que este código hacía desde siempre y lo que
+   * casi siempre acierta. Lo que cambia es que **deja de ser silencioso**: el
+   * resultado dice que la unidad se asumió, y `unidadOriginal` se queda VACÍA en
+   * vez de rellenarse con la que nadie escribió.
+   */
+  | 'MISSING_UNIT'
 
 export interface Conversion {
   /** Se multiplica el valor original por esto para llegar a la unidad canónica. */
@@ -191,7 +200,16 @@ export interface Dictamen {
   readonly unidad: string
   /** Lo que decía la hoja. NUNCA se pierde (§27.1). */
   readonly valorOriginal: number
-  readonly unidadOriginal: string
+  /**
+   * La unidad tal como la imprimió el laboratorio. `undefined` cuando la hoja no
+   * la dijo — y ESO es el arreglo de REG-454: antes se rellenaba con la unidad
+   * canónica, así que el campo que existe para conservar lo que dijo el
+   * laboratorio decía lo que habíamos asumido nosotros. Indistinguible de una
+   * hoja que sí lo dijo.
+   */
+  readonly unidadOriginal?: string
+  /** La unidad con la que se juzgó cuando la hoja no la traía. */
+  readonly unidadAsumida?: string
   /** Con qué factor se convirtió, y de dónde sale. Ausente si no se convirtió. */
   readonly conversion?: Conversion
   /** Sólo entra a la serie temporal lo que está ACEPTADO. */
@@ -218,18 +236,42 @@ export function dictaminar(a: Analito, valor: number, unidadReportada?: string):
   const original = (unidadReportada ?? '').trim()
   const uOriginal = claveDeUnidad(original)
   const uCanonica = claveDeUnidad(a.unidad)
-  const base = { valorOriginal: valor, unidadOriginal: original || a.unidad }
+  const laHojaNoLaDijo = uOriginal === ''
+  /**
+   * REG-454: `unidadOriginal` sólo lleva lo que la hoja dijo. Si no dijo nada, se
+   * queda vacía y la asumida viaja aparte. Rellenarla con la canónica era
+   * fabricar el dato que este campo existe para conservar (§27.1), y dejaba una
+   * hoja muda indistinguible de una que sí declaró la unidad.
+   */
+  const base = laHojaNoLaDijo
+    ? { valorOriginal: valor, unidadAsumida: a.unidad }
+    : { valorOriginal: valor, unidadOriginal: original }
   const plausible = (v: number) => Number.isFinite(v) && v >= a.min && v <= a.max
 
   // 1 · Sin unidad, o ya en la canónica: no hay nada que convertir.
-  if (uOriginal === '' || uOriginal === uCanonica) {
+  if (laHojaNoLaDijo || uOriginal === uCanonica) {
     return plausible(valor)
-      ? { ...base, estado: 'ACCEPTED', valor, unidad: a.unidad, graficable: true, porQue: 'Unidad canónica y valor dentro de los límites de captura.' }
+      ? {
+        ...base,
+        /**
+         * SIGUE GRAFICÁNDOSE, y es a propósito. Casi todas las hojas mudas están
+         * en la unidad de siempre, y no graficarlas vaciaría las series de medio
+         * consultorio por una marca de cautela. Lo que se gana aquí es que la
+         * suposición SE VEA — no que se deje de suponer.
+         */
+        estado: laHojaNoLaDijo ? 'MISSING_UNIT' : 'ACCEPTED',
+        valor, unidad: a.unidad, graficable: true,
+        porQue: laHojaNoLaDijo
+          ? `La hoja no dijo la unidad. Se asumió ${a.unidad}, que es la convencional de este analito, y el valor cabe en sus límites. Si la hoja usaba otra, este número significa otra cosa.`
+          : 'Unidad canónica y valor dentro de los límites de captura.',
+      }
       : {
         ...base, estado: 'VERIFY_VALUE_OR_UNIT', valor, unidad: a.unidad, graficable: false,
         /** §29: se ofrece el candidato SOLO aquí, donde la unidad ya cuadra. */
         decimalCorrido: decimalCorrido(a, valor) ?? undefined,
-        porQue: `${valor} queda fuera de ${a.min}–${a.max} ${a.unidad}. Se conserva sin convertir ni truncar: puede ser un decimal corrido, un error de lectura o un valor extraordinario real (§30).`,
+        porQue: laHojaNoLaDijo
+          ? `${valor} queda fuera de ${a.min}–${a.max} ${a.unidad}, y la hoja NO dijo la unidad. Con las dos cosas en duda, la sugerencia de decimal es sólo una de las explicaciones posibles: la otra es que venga en otra unidad.`
+          : `${valor} queda fuera de ${a.min}–${a.max} ${a.unidad}. Se conserva sin convertir ni truncar: puede ser un decimal corrido, un error de lectura o un valor extraordinario real (§30).`,
       }
   }
 
@@ -268,7 +310,8 @@ export const POR_QUE_EL_DECIMAL_NO_SE_OFRECE_EN_OTRA_UNIDAD =
 
 export const LO_QUE_ESTA_CAPA_NO_HACE: readonly string[] = Object.freeze([
   'El decimal desplazado (§29) se SUGIERE y nunca se aplica: el valor que se guarda sigue siendo el que imprimió el laboratorio. Y sólo se sugiere con la unidad canónica.',
-  'No distingue «sin unidad» de «unidad canónica»: las dos se tratan igual, como antes de D-032. Su §33 tiene `MISSING_UNIT` y todavía no está.',
+  'Con la hoja muda SIGUE graficando: se asume la unidad convencional y se marca `MISSING_UNIT`, pero no se deja de suponer. Dejar de graficar esas filas vaciaría medio expediente por cautela, y eso es una decisión del médico dueño.',
+  'Y por eso NO se adoptan los rangos anchos del catálogo (§30) para los analitos que ya existían: con la hoja muda, un rango ancho acepta en silencio un valor que venía en otra unidad. Lo que desbloquearía eso es dejar de graficar lo mudo, que es la decisión de arriba.',
   'No trae LOINC ni UCUM (§27.2, §27.3): la identificación estandarizada del analito es otro trabajo, y mapear un LOINC equivocado viaja al exterior dentro de un `Observation` de FHIR.',
   'No es la capa de valores críticos ni la de decisión clínica (§26): esta capa sólo dice si el número se puede creer tal como está escrito.',
 ])

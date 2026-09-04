@@ -598,7 +598,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * arreglo no fue ablandar el validador sino escribir `null` y dejar que lo
      * rechace: un informe rechazado es información; un cero, no.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378],
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 454],
   },
   {
     clave: 'aislamiento',

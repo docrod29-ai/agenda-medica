@@ -318,12 +318,22 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
                     * que sólo existe al pasar el ratón no existe en el teléfono
                     * (REG-433).
                     */}
-                  <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: 'var(--red)', fontWeight: 700 }}> ⚠ crítico</span>}{(r.noEvaluable || (r.estado && r.estado !== 'ACCEPTED')) && <span style={{ color: 'var(--amber)', fontWeight: 700 }}> ⚠ verificar</span>}
-                    {r.estado && r.estado !== 'ACCEPTED' && (
+                  <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: 'var(--red)', fontWeight: 700 }}> ⚠ crítico</span>}{(r.noEvaluable || (r.estado && r.estado !== 'ACCEPTED' && r.estado !== 'MISSING_UNIT')) && <span style={{ color: 'var(--amber)', fontWeight: 700 }}> ⚠ verificar</span>}
+                    {/**
+                      * REG-454. La hoja muda tiene su propio texto, y NO dice «no
+                      * entra a la gráfica»: sí entra. Lo que se le cuenta al
+                      * médico es la suposición, para que deje de ser silenciosa.
+                      */}
+                    {r.estado === 'MISSING_UNIT' && (
                       <span style={{ display: 'block', fontSize: 12, color: 'var(--text2)' }}>
-                        {r.unidadOriginal !== r.unidad
+                        La hoja no traía unidad. Se asumió {r.unidadAsumida}; si el laboratorio usaba otra, este número significa otra cosa.
+                      </span>
+                    )}
+                    {r.estado && r.estado !== 'ACCEPTED' && r.estado !== 'MISSING_UNIT' && (
+                      <span style={{ display: 'block', fontSize: 12, color: 'var(--text2)' }}>
+                        {r.unidadOriginal && r.unidadOriginal !== r.unidad
                           ? `La hoja dice ${r.valorOriginal} ${r.unidadOriginal} y aquí se grafica en ${r.unidad}. No entra a la gráfica hasta que lo confirmes.`
-                          : `${r.valorOriginal} ${r.unidadOriginal} queda fuera de lo que se puede capturar sin revisar. No entra a la gráfica hasta que lo confirmes.`}
+                          : `${r.valorOriginal} ${r.unidadOriginal ?? r.unidad} queda fuera de lo que se puede capturar sin revisar. No entra a la gráfica hasta que lo confirmes.`}
                       </span>
                     )}
                     {/**

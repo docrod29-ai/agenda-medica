@@ -224,12 +224,22 @@ describe('AL REVÉS POR EL OTRO LADO — no se pasa de frenada', () => {
     expect(d.conversion).toBeUndefined()
   })
 
-  it('la unidad ausente se sigue tratando como la canónica, igual que antes', () => {
-    // Cambiar esto sería una decisión de producto, no un arreglo: hay pacientes
-    // con series ya construidas así. Queda declarado en LO_QUE_ESTA_CAPA_NO_HACE.
+  it('la unidad ausente se sigue JUZGANDO como la canónica — pero ya se dice', () => {
+    /**
+     * REG-454 movió esto a medias, y las dos mitades importan:
+     *
+     *  · Sigue igual lo que se hace: se asume la unidad convencional y la fila
+     *    entra a la gráfica. Cambiar eso vaciaría las series de medio consultorio.
+     *  · Cambió lo que se GUARDA: `unidadOriginal` ya no se rellena con una
+     *    unidad que la hoja no dijo, y el estado lo declara.
+     */
     const d = dictaminar(analitoPorClave('glucosa')!, 92)
-    expect(d.estado).toBe('ACCEPTED')
-    expect(d.unidadOriginal).toBe('mg/dL')
+    expect(d.valor).toBe(92)
+    expect(d.unidad).toBe('mg/dL')
+    expect(d.graficable).toBe(true)
+    expect(d.estado).toBe('MISSING_UNIT')
+    expect(d.unidadOriginal, 'la hoja no lo dijo: el campo no lo dice').toBeUndefined()
+    expect(d.unidadAsumida).toBe('mg/dL')
   })
 
   it('una hoja entera en unidades canónicas no marca NADA', () => {
@@ -264,7 +274,12 @@ describe('EL DATO TIENE QUE LLEGAR — la pantalla enseña el estado', () => {
      *
      * Marcado sin avisar es lo mismo que no marcado.
      */
-    expect(PANEL()).toMatch(/r\.noEvaluable \|\| \(r\.estado && r\.estado !== 'ACCEPTED'\)/)
+    /**
+     * REG-454 le añadió una excepción: `MISSING_UNIT` NO pinta ámbar, porque es
+     * cautela declarada y no un defecto que revisar. Si pintara, media hoja
+     * saldría en ámbar y el aviso dejaría de significar algo.
+     */
+    expect(PANEL()).toMatch(/r\.noEvaluable \|\| \(r\.estado && r\.estado !== 'ACCEPTED' && r\.estado !== 'MISSING_UNIT'\)/)
   })
 
   it('y el motivo es TEXTO VISIBLE, no un `title` (REG-433)', () => {
