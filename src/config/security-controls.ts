@@ -72,9 +72,9 @@ export const SECURITY_CONTROLS: SecurityControl[] = [
     evidencia: 'docs/security/backup-and-restore.md (restore drill: BLOCKED — requiere infraestructura).',
   },
   {
-    id: 'mfa', titulo: 'Autenticación multifactor (MFA)', estado: 'implemented-pending-verification',
-    detalle: 'TOTP funcionando: enrolamiento en Configuración, resolución en el login, y el servidor LEE si la sesión usó el segundo factor. La consola del dueño lo exige a quien lo tenga enrolado. Falta extenderlo al resto de rutas privilegiadas, que es una decisión de política del dueño.',
-    evidencia: 'src/lib/mfa.ts + login/page.tsx + auth-server.ts (sign_in_second_factor) + superadmin.ts. Vigilado por src/__tests__/el-segundo-factor-llega-al-servidor.test.ts.',
+    id: 'mfa', titulo: 'Autenticación multifactor (MFA)', estado: 'active-verified',
+    detalle: 'TOTP habilitado en el proyecto y con un factor enrolado y en uso (3-sep-2026). Alcance decidido por el dueño ese día y DEFINITIVO: el segundo factor se exige en la consola del dueño y en ningún otro sitio. Es voluntario para todo lo demás —quien no lo enrola entra como siempre, quien lo enrola no puede saltárselo— y el camino clínico no lo comprueba, a propósito: obligar al médico a sacar el teléfono para escribir una nota es fricción que no protege más.',
+    evidencia: 'src/lib/mfa.ts + login/page.tsx + auth-server.ts (sign_in_second_factor) + superadmin.ts. Habilitar TOTP no tiene pantalla en ninguna consola de Google: se hizo por la API de Identity Platform. Vigilado por src/__tests__/el-segundo-factor-llega-al-servidor.test.ts, que falla si el alcance declarado deja de coincidir con el código.',
   },
   {
     id: 'pentest', titulo: 'Prueba de penetración externa anual', estado: 'planned',

@@ -599,9 +599,11 @@ export const REQUISITOS: readonly Requisito[] = Object.freeze([
   }),
   R({
     id: 'WS-13.mfa-servidor', ws: 'WS-13', titulo: 'El segundo factor se exige en el servidor',
-    estado: 'PARTIAL',
-    queFalta: 'REG-384: el servidor ya LEE sign_in_second_factor —lo descartaba— y la consola del dueño lo exige a quien lo tiene enrolado. Extenderlo al resto de rutas privilegiadas cuesta una lectura de usuario por petición y es decisión de política del dueño, no de este código.',
-    artefactos: ['src/lib/auth-server.ts', 'src/lib/superadmin.ts'],
+    estado: 'PROVEN',
+    evidencia: 'REG-384 cableó la lectura: el servidor LEE `sign_in_second_factor` —lo descartaba— y la consola del dueño lo exige a quien lo tiene enrolado. Lo que mantenía esta fila en PARTIAL no era código: era que NADIE había decidido si ese alcance era el final. El dueño lo decidió el 3-sep-2026 —«sólo la consola, definitivo»— y con eso la fila está completa: se exige donde se decidió exigirlo, y en ningún otro sitio a propósito. El camino clínico no lo comprueba porque obligar al médico a sacar el teléfono para escribir una nota es fricción que no protege más.',
+    comando: 'npx vitest run src/__tests__/el-segundo-factor-llega-al-servidor.test.ts',
+    resultado: 'Verde hoy; rojo si `superadmin.ts` deja de exigirlo o si aparece un tercer sitio que lo exija, porque entonces el alcance decidido dejaría de ser el que declara `security-controls.ts`.',
+    artefactos: ['src/lib/auth-server.ts', 'src/lib/superadmin.ts', 'src/config/security-controls.ts'],
     pruebas: ['src/__tests__/el-segundo-factor-llega-al-servidor.test.ts'],
   }),
   R({

@@ -18412,3 +18412,90 @@ justo cómo este guardián dejaría de proteger sin que nadie se entere.
   se mira en la consola y se declara con su fecha.
 - **No resuelve la revisión clínica.** Deja escrito que hoy no hay compuerta que
   la garantice, que es lo honesto. La solución real es una segunda persona.
+
+---
+
+## REG-511 · Un `npm audit` que no corrió se publicaba como «cero vulnerabilidades»
+
+**CÓMO SE DESCUBRIÓ.** Por accidente y mirando. Guiando al dueño por su lista, se
+lanzó `node scripts/seguridad/auditar.mjs` mientras un `npm run build` seguía
+corriendo en la misma máquina. El script escribió en el acta de dependencias:
+
+```
+| Árbol completo (incluye herramientas) | 0 | 0 | 0 | 0 | 0 |
+```
+
+Y lo que delató la mentira no fue una prueba: fue una imposibilidad aritmética.
+La fila de **producción** decía **11** en la misma tabla, y el árbol completo
+**contiene** a producción. Cero no puede ser menor que once.
+
+Medido en ese momento con el comando a mano: el árbol completo tenía **21 avisos,
+tres de ellos `high`**.
+
+### La causa raíz
+
+`auditar.mjs`, en su manejo de errores:
+
+```js
+try { return JSON.parse(e.stdout ?? '{}') } catch { return {} }
+```
+
+El comentario que lo acompañaba era **correcto**: `npm audit` sale con código ≠ 0
+cuando ENCUENTRA algo, y eso es su resultado, no un fallo. Lo que estaba mal era
+el final: cuando el comando fallaba **de verdad** —sin stdout, o con basura— la
+función devolvía `{}`, y `{}` se lee como cero en `metadata.vulnerabilities ?? {}`.
+
+**Un fallo de medición y un árbol limpio devolvían exactamente lo mismo.**
+
+Es «El hueco tratado como dato» en su forma más cara: el resultado se LEE bien.
+Una tabla de ceros no parece rota; parece una buena noticia. Y esa tabla la cita
+la página pública de seguridad.
+
+### Y el guardián tenía el MISMO defecto
+
+`la-cifra-de-seguridad-no-se-pudre.test.ts` llevaba su propia copia del lector,
+acabada igual en `return {}`. Consecuencia: cuando `npm audit` no podía correr,
+el caso comparaba el documento contra ceros inventados y fallaba diciendo
+
+> «El documento y `npm audit` se separaron. Corre: node scripts/seguridad/auditar.mjs»
+
+es decir, **acusaba a un documento correcto y mandaba a ejecutar justo el script
+que escribiría los ceros**. El guardián no sólo no cazaba el defecto: era el
+camino más corto para provocarlo.
+
+Que el arnés herede el defecto del código que vigila es la forma en que esta
+familia sobrevive a tener guardián.
+
+### El arreglo
+
+1. **`auditar.mjs` falla cerrado.** La respuesta válida de `npm audit --json`
+   SIEMPRE trae `metadata.vulnerabilities` con un `total` numérico. Si no está,
+   se lanza con su razón y **el documento se queda como estaba**. No escribir
+   nada es la respuesta correcta a no haber medido.
+2. **Invariante de superconjunto**: si el árbol completo sale con menos avisos
+   que producción, se para. Es la red que habría cazado esto aunque el JSON
+   hubiera parseado — aritmética, no política.
+3. **El guardián deja de inventar ceros**: su lector devuelve `null` cuando no
+   pudo medir, y hay un caso que lo dice con esas palabras en vez de acusar al
+   documento.
+
+### Prueba
+
+**Probado al revés, y sin fixture**: el caso `AL REVÉS: si npm audit no contesta,
+el documento NO se toca` corre el script **de verdad** con un `PATH` donde `npm`
+no existe, y exige tres cosas: que salga con error, que el error nombre REG-511,
+y que el documento quede **byte a byte** como estaba. Antes de este arreglo ese
+caso escribía ceros.
+
+Reproducido además tal como ocurrió: con otro `npm` en marcha el script lanza y no
+toca nada; con la máquina libre mide 11 y 21.
+
+### Qué NO cubre
+
+- **No arregla las 21 vulnerabilidades**, que son otra cosa. Las tres `high`
+  viven en herramientas de desarrollo y no se sirven; el acta lo declara.
+- **No vigila los demás scripts** que derivan cifras de un comando externo. Este
+  patrón —`catch` que devuelve vacío y vacío que se lee como cero— puede estar en
+  otros; no se buscó, y queda dicho en vez de insinuar que se revisaron todos.
+- **No impide correr dos `npm` a la vez.** Impide que eso se convierta en una
+  afirmación falsa, que es lo que importaba.

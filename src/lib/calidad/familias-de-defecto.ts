@@ -875,7 +875,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * mirar si cambia también lo que el usuario VE. Si no, se entrega algo
      * distinto de lo que se enseñó.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432],
+    /**
+     * 511 es esta familia con la peor forma posible: el hueco se leía como una
+     * BUENA noticia. Un `npm audit` que no llegó a correr se publicaba como
+     * «cero vulnerabilidades» en el acta que cita la página de seguridad, sobre
+     * un árbol que tenía veintiuna, tres de ellas `high`.
+     *
+     * Y el guardián llevaba una copia del mismo lector, así que cuando no podía
+     * medir acusaba al documento —correcto— y mandaba a correr el script que
+     * escribiría los ceros. La familia sobrevive a tener guardián cuando el
+     * guardián hereda el defecto.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511],
   },
   {
     clave: 'aislamiento',
