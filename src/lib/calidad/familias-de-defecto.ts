@@ -615,8 +615,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que el defecto no se asoma: las 06:00 del consultorio, cuando el día UTC
      * y el local coinciden. Una prueba verde sobre la forma equivocada del dato
      * y a la hora equivocada es dos veces nada.
+     *
+     * 430 la lleva un paso más adentro: el arnés YA visitaba la consulta, pero
+     * en reposo — y en reposo esa pantalla no tiene ninguna capa flotante, que
+     * sólo aparecen al grabar. Medir la pantalla donde el médico pasa la
+     * consulta entera en un estado en el que nadie trabaja da verde sin
+     * vigilar nada. No basta con visitar la ruta: hay que ponerla en su estado.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 424, 425, 426, 427, 428, 429],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 424, 425, 426, 427, 428, 429, 430],
   },
   {
     clave: 'hueco_como_dato',

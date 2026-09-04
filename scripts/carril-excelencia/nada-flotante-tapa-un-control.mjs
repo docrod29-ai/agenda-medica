@@ -54,9 +54,46 @@ const RUTAS = (process.env.RUTAS ?? [
   '/crm', '/reactivacion', '/resenas', '/membresias', '/farmacia',
   '/corte-caja', '/cumplimiento', '/cumplimiento/retencion', '/consultor',
   '/guia', '/consulta/pac-001', '/expediente/pac-001',
+  /**
+   * LA CONSULTA MIENTRAS SE GRABA — el estado en el que el médico TRABAJA.
+   *
+   * Todas las rutas de arriba se miran en reposo, y la consulta en reposo no
+   * tiene ninguna capa flotante: aparecen al grabar. Así que la pantalla donde
+   * el médico pasa la consulta entera se estaba midiendo en un estado en el que
+   * nadie trabaja, y el guardián salía verde.
+   *
+   * Lo que había debajo, medido a 390 px el 3-sep: una píldora flotante tapaba
+   * TRES controles —manos libres, grabar y pausa—, que son los del instrumento
+   * que ella misma duplicaba.
+   *
+   * El sufijo ` · grabando` no es una ruta: es el escenario. La URL es la parte
+   * de antes.
+   */
+  '/consulta/pac-001 · grabando',
 ].join(',')).split(',')
 
-const nav = await chromium.launch({ executablePath: CHROME })
+/** Poner la pantalla en su estado de trabajo antes de medirla. */
+const ESCENARIOS = {
+  grabando: async (pag) => {
+    const b = pag.getByRole('button', { name: /^Grabar la consulta/ }).first()
+    if (!(await b.count().catch(() => 0))) return 'no hay botón de grabar'
+    await b.click().catch(() => {})
+    await pag.waitForTimeout(1200)
+    const ok = pag.getByRole('button', { name: /Confirmo el consentimiento/ })
+    if (await ok.count().catch(() => 0)) { await ok.click().catch(() => {}); }
+    await pag.waitForTimeout(4500)
+    // Si no llegó a grabar, se DICE: medir una consulta en reposo creyendo que
+    // graba es exactamente el agujero que este escenario vino a tapar.
+    const graba = await pag.evaluate(() => /Grabando/.test(document.body.innerText))
+    return graba ? null : 'pidió grabar y no está grabando'
+  },
+}
+
+const nav = await chromium.launch({
+  executablePath: CHROME,
+  // Un micrófono falso: sin él, el escenario «grabando» se queda en el permiso.
+  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+})
 let tapadosTotal = 0
 /* Rutas que montaron y no pintaron un solo control: sin medir, no en cero. */
 const rutasVacias = []
@@ -65,7 +102,10 @@ let avisoPortalPendiente = true
 let controlesTotal = 0
 
 for (const ancho of ANCHOS) {
-  const ctx = await nav.newContext({ viewport: { width: ancho, height: 900 } })
+  const ctx = await nav.newContext({
+    viewport: { width: ancho, height: 900 },
+    permissions: ['microphone'],
+  })
   const pag = await ctx.newPage()
   await pag.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' })
   try {
@@ -92,13 +132,23 @@ for (const ancho of ANCHOS) {
   const rutasDeEsteAncho = conPortal(RUTAS, { avisar: avisoPortalPendiente })
   avisoPortalPendiente = false
   for (const ruta of rutasDeEsteAncho) {
-    await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded' }).catch(() => {})
+    const [url, escenario] = ruta.split(' · ')
+    await pag.goto(BASE + url, { waitUntil: 'domcontentloaded' }).catch(() => {})
     await pag.waitForTimeout(4500)
     for (const t of [/^saltar$/i, /^entendido$/i]) {
       const b = pag.locator('button:visible').filter({ hasText: t }).first()
       if (await b.count().catch(() => 0)) {
         await b.click().catch(() => {})
         await pag.waitForTimeout(600)
+      }
+    }
+    if (escenario) {
+      const fallo = await ESCENARIOS[escenario]?.(pag)
+      if (fallo) {
+        console.error(`\n  ${ruta}: no se pudo poner la pantalla en su estado — ${fallo}.`)
+        console.error('  Medirla igual diría «nada tapa nada» sobre un estado que no es el de trabajo.\n')
+        await nav.close()
+        process.exit(2)
       }
     }
 

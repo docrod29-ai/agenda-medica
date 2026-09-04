@@ -2,10 +2,10 @@
   "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
   "techos": {
     "respaldosDeToken": 0,
-    "hexEnLinea": 357,
-    "tamanosFueraDeEscala": 1947,
+    "hexEnLinea": 356,
+    "tamanosFueraDeEscala": 1946,
     "radiosFueraDeEscala": 617,
-    "sombrasEnLinea": 21,
+    "sombrasEnLinea": 20,
     "gradientes": 14,
     "cristal": 14,
     "halosDeColor": 6,
@@ -54,15 +54,15 @@
     {
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
       "respaldos": 0,
-      "hex": 13,
-      "tam": 85,
+      "hex": 12,
+      "tam": 84,
       "rad": 29,
-      "sombras": 1,
+      "sombras": 0,
       "gradientes": 0,
       "cristal": 0,
       "halos": 0,
       "lienzos": 0,
-      "total": 128
+      "total": 125
     },
     {
       "archivo": "src/app/demo/interactivo/page.tsx",
@@ -104,19 +104,6 @@
       "total": 68
     },
     {
-      "archivo": "src/app/(dashboard)/configuracion/secciones-recetas.tsx",
-      "respaldos": 0,
-      "hex": 5,
-      "tam": 36,
-      "rad": 16,
-      "sombras": 1,
-      "gradientes": 0,
-      "cristal": 0,
-      "halos": 0,
-      "lienzos": 0,
-      "total": 58
-    },
-    {
       "archivo": "src/app/(dashboard)/antibiograma/page.tsx",
       "respaldos": 0,
       "hex": 8,
@@ -141,6 +128,19 @@
       "halos": 0,
       "lienzos": 0,
       "total": 55
+    },
+    {
+      "archivo": "src/app/demo/page.tsx",
+      "respaldos": 0,
+      "hex": 11,
+      "tam": 26,
+      "rad": 15,
+      "sombras": 1,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
+      "lienzos": 0,
+      "total": 53
     }
   ]
 }

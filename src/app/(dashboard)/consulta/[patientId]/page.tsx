@@ -7381,27 +7381,29 @@ export default function ConsultaActivaPage() {
         />
       )}
 
-      {/* Control flotante de grabación — visible desde cualquier parte (manos libres / celular) */}
-      {(voz.grabando || audio.estado === 'grabando') && (
-        <div style={{
-          position: 'fixed', left: '50%', bottom: 'calc(84px + env(safe-area-inset-bottom))', transform: 'translateX(-50%)', zIndex: 200,
-          display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 24px)',
-          background: 'var(--s1)', border: '1px solid var(--border2, var(--border)',
-          borderRadius: 'var(--r-pill)', padding: '8px 8px 8px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-        }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            {rotulo('grabando', modoVoz === 'vivo' ? segundosVivo : audio.duracion)}
-          </span>
-          <button
-            onClick={async () => { if (modoVoz === 'vivo') voz.detener(); else await audio.detener() }}
-            className="btn btn-primary btn-sm"
-            style={{ borderRadius: 'var(--r-pill)', flexShrink: 0 }}
-          >
-            <Square size={13} fill="currentColor" /> Detener y generar nota
-          </button>
-        </div>
-      )}
+      {/*
+        AQUÍ HABÍA UNA PÍLDORA FLOTANTE CON UN RELOJ Y UN «DETENER».
+        ─────────────────────────────────────────────────────────────
+        Existía porque `MientrasHablas` decía ser `sticky` y no lo era: al bajar
+        por la nota, la barra se iba de la pantalla y no quedaba forma de parar
+        sin volver arriba. La píldora tapaba ese agujero.
+
+        Tapándolo abría otro. Medido a 390 px con la consulta grabando, la
+        píldora **tapaba tres controles** —manos libres, el botón de grabar y el
+        de pausa—: justo los del instrumento que duplicaba. Y en pantalla se
+        decía «Grabando · 00:09» **cuatro veces a la vez** (barra de arriba,
+        barra de voz, instrumento y píldora), con tres controles de parada.
+
+        Lo que ofrecía era además la señal más pobre de las cuatro: un reloj. La
+        cabecera de `MientrasHablas` explica por qué eso es lo de menos — «un
+        contador de tiempo sigue corriendo aunque el micrófono esté silenciado;
+        una barra que se mueve, no».
+
+        Con la barra ya arreglada —`fixed`, con su hueco devuelto al contenido—
+        el agujero no existe: lo que acompaña al médico por la nota es la barra
+        entera, con el nivel de voz, las últimas palabras oídas y el detener.
+        Una sola cosa que dice una sola cosa.
+      */}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }

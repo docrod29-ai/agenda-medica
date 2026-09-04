@@ -110,14 +110,31 @@ export function MientrasHablas(p: MientrasHablasProps) {
     <div
       role="region"
       aria-label="Grabación de la consulta"
+      className="nx-mientras-hablas"
       style={{
         /*
-          `sticky` sirve para los dos: en el teléfono se queda abajo al alcance
-          del pulgar, y en la computadora se pega al borde inferior de la
-          ventana al desplazarse. Un solo comportamiento, dos dispositivos.
+          NO SE VA DE LA PANTALLA — Y ANTES SÍ SE IBA.
+          ────────────────────────────────────────────
+          Esto decía `position: sticky; bottom: 0`, y la cabecera de este
+          archivo promete que «en la computadora se queda pegada arriba al
+          desplazarse». No lo hacía. `sticky` con `bottom` sólo sujeta al
+          elemento al que uno se ACERCA desde arriba: lo pega al borde inferior
+          mientras baja hacia él. En cuanto se pasa de largo, lo suelta.
+          Medido con la consulta grabando: al bajar 1621 px la barra quedaba en
+          `top: -1155`, o sea fuera de la pantalla; a 390 px, en -1718.
+          Es decir: **justo en la consulta larga, que es para lo que existe,
+          desaparecía.** Y lo único que quedaba entonces era una píldora
+          flotante con un reloj — que es la señal que esta misma cabecera
+          advierte que MIENTE: «un contador de tiempo sigue corriendo aunque el
+          micrófono esté silenciado; una barra que se mueve, no».
+          `fixed` es lo que hace lo que el comentario decía. Lo que ocupa se le
+          devuelve al contenido con `--nx-alto-barra-voz` (ver globals.css), para
+          que la barra no tape lo que hay debajo: taparlo sería cambiar un
+          defecto por otro, y ya pasó — la píldora tapaba tres controles a 390.
         */
-        position: 'sticky', bottom: 0, zIndex: 30,
-        marginTop: 12, padding: '12px 14px',
+        position: 'fixed', left: 0, right: 0, bottom: 'var(--nx-fondo-barra-voz, 0px)', zIndex: 30,
+        margin: '0 auto', maxWidth: 'min(1100px, calc(100vw - 24px))',
+        padding: '12px 14px',
         borderRadius: 14,
         background: 'var(--s1)',
         border: `1px solid ${grabando ? 'var(--nexus)' : 'var(--border)'}`,

@@ -19,14 +19,24 @@
   "ultimaVersionEnProduccion": "nexusmed-v1178",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M .gitignore",
-    " M agent-state/MASTER_STATE.json",
-    " M package.json",
-    "?? docs/design/capturas/base/",
-    "?? scripts/carril-excelencia/la-pantalla-no-cambia-sola.mjs",
-    "?? src/__tests__/el-comparador-visual-esta-calibrado.test.ts"
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
+    " M scripts/design/techos-de-diseno.json",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/globals.css",
+    " M src/components/MientrasHablas.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? docs/design/capturas/v102/",
+    "?? medir-voz.mjs",
+    "?? recorrido.mjs",
+    "?? src/__tests__/la-barra-de-voz-no-se-va-de-la-pantalla.test.ts"
   ],
-  "actualizado": "2026-09-03",
+  "actualizado": "2026-09-04",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -60,10 +70,10 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 280,
+    "regsEnElLedger": 281,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 902,
-    "casosDePrueba": 10906,
+    "archivosDePrueba": 903,
+    "casosDePrueba": 10913,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

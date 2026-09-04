@@ -2088,6 +2088,32 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 }
 
 /* ── Bottom Nav — solo visible en móvil ─────────────────── */
+/* ── La barra de voz que no se va de la pantalla ───────────────────────────
+   `MientrasHablas` es `position: fixed` (antes decía `sticky; bottom: 0`, que
+   sólo sujeta al elemento al que uno se acerca desde arriba y lo suelta en
+   cuanto se pasa de largo: en la consulta larga desaparecía justo cuando hacía
+   falta). Aquí se declaran las dos cosas que `fixed` obliga a resolver:
+
+   1. **Dónde se apoya.** En el teléfono, encima de la navegación inferior, no
+      sobre ella. En escritorio, en el borde.
+   2. **Que no tape nada.** Lo que ocupa se le devuelve al contenido como
+      relleno inferior mientras hay barra. Sin esto se cambia un defecto por
+      otro: la píldora flotante que esto sustituye tapaba tres controles a
+      390 px — los del propio instrumento que duplicaba. */
+.nx-mientras-hablas { --nx-fondo-barra-voz: 12px; }
+main:has(.nx-mientras-hablas) {
+  padding-bottom: calc(var(--nx-alto-barra-voz, 132px) + 12px) !important;
+}
+@media (max-width: 768px) {
+  .nx-mientras-hablas {
+    --nx-fondo-barra-voz: calc(72px + env(safe-area-inset-bottom, 0px) + 8px);
+  }
+  main:has(.nx-mientras-hablas) {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)
+                         + var(--nx-alto-barra-voz, 132px) + 16px) !important;
+  }
+}
+
 .bottom-nav-wrap { display: none; }
 @media (max-width: 768px) {
   .bottom-nav-wrap { display: block; }

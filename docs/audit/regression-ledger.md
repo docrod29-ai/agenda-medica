@@ -16421,3 +16421,100 @@ el caso 7 de `v15-rtc15-la-lista-dice-algo-clinico` reparado para usar la forma
 del dato que manda la lista y una hora en la que el defecto exista. Probado al
 revés: con la resta de instantes, fallan tres casos del golden nuevo y el caso 7
 del viejo.
+
+---
+
+## REG-430 — la barra que dice «no se va de la pantalla» se iba de la pantalla
+
+**Dónde**: `src/components/MientrasHablas.tsx` · `src/app/globals.css` ·
+`src/app/(dashboard)/consulta/[patientId]/page.tsx` ·
+`scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs`
+
+### Qué fallaba
+
+Recorriendo el día de un médico en un navegador de verdad: entrar, ver la
+agenda, abrir la consulta, dar consentimiento, grabar, bajar por la nota.
+
+`MientrasHablas` es la barra que —según su propia cabecera— «no se va de la
+pantalla»: lleva el nivel de voz, el tiempo, las últimas palabras oídas y el
+detener. Estaba escrita con `position: sticky; bottom: 0`.
+
+**`sticky` con `bottom` no hace eso.** Sólo sujeta al elemento al que uno se
+ACERCA desde arriba: lo pega al borde inferior mientras baja hacia él, y en
+cuanto se pasa de largo lo suelta. Medido con la consulta grabando: al bajar
+1621 px quedaba en `top: -1155` —fuera de la pantalla— y a 390 px en `-1718`.
+
+Desaparecía **justo en la consulta larga, que es para lo que existe**. Una
+consulta dura veinte minutos.
+
+### Lo que tapaba el agujero
+
+Una píldora flotante con un punto rojo, un reloj y «Detener y generar nota». Con
+ella, la consulta grabando decía **«Grabando · 00:09» cuatro veces a la vez**
+—barra superior, barra de voz, instrumento y píldora— con **tres controles de
+parada** y dos de pausa. Una acción, tres botones; un hecho, cuatro rótulos.
+Contra la regla R2 de la gramática del producto: una acción por entrada.
+
+Y ofrecía la más pobre de las cuatro señales: un reloj. La cabecera de
+`MientrasHablas` explica por qué eso es lo de menos — «un contador de tiempo
+sigue corriendo aunque el micrófono esté silenciado; una barra que se mueve,
+no». Al bajar por la nota, el médico se quedaba con la señal que miente.
+
+### Lo que NO era, y se dice porque yo lo dije primero
+
+Midiendo a mano parecía que la píldora **tapaba tres controles** a 390 px
+—manos libres, grabar y pausa—. El arnés `nada-flotante-tapa-un-control`, que
+aplica la regla de los extremos, dijo que no: los tapaba en reposo y se
+liberaban al desplazarse, y «una fila que pasa por debajo de una capa fija
+mientras uno baja se arregla sola bajando más». **No era una trampa.** El motivo
+para quitar la píldora es la duplicación, no un control atrapado.
+
+### El arreglo
+
+1. La barra es `fixed`: hace lo que su comentario decía.
+2. **Lo que ocupa se le devuelve al contenido** como relleno inferior mientras
+   hay barra, y en el teléfono se apoya ENCIMA de la navegación inferior, no
+   sobre ella.
+3. La píldora se retira, con el porqué escrito donde estaba.
+
+El punto 2 es de carga, no de adorno: probado al revés con una barra alta y sin
+el relleno, el arnés cazó **«Firmar y cerrar nota», «Guardar borrador», «Leer
+resumen» y «Descartar»** atrapados abajo del todo, a 1440 y a 390. Taparle al
+médico el botón de firmar habría sido cambiar un defecto por otro peor.
+
+### Por qué ningún guardián lo vio
+
+`nada-flotante-tapa-un-control` **ya visitaba** `/consulta/pac-001` — en reposo.
+Y la consulta en reposo no tiene ninguna capa flotante: aparecen al grabar. La
+pantalla donde el médico pasa la consulta entera se medía en un estado en el que
+nadie trabaja, y el guardián salía verde.
+
+Es la hermana de REG-426 («lo que no es la ruta por defecto no lo mira nadie»),
+un paso más adentro: **el estado en el que se trabaja tampoco lo miraba nadie.**
+
+Ahora el arnés tiene escenarios: `/consulta/pac-001 · grabando` abre la
+consulta, da el consentimiento y empieza a grabar antes de medir — y si no
+llegó a grabar, **se para** en vez de dar un verde sobre el reposo.
+
+### Medido
+
+| con la consulta grabando | antes | después |
+|---|---|---|
+| Barra visible tras bajar por la nota (1440) | no, `top −1155` | **sí**, `top 798` |
+| Barra visible tras bajar por la nota (390) | no, `top −1718` | **sí**, `top 674` |
+| Rótulos «Grabando» a la vez (1440 / 390) | 4 / 3 | **3 / 2** |
+| Controles de parada | 3 | **1** («Terminar») |
+| Controles atrapados abajo del todo | 0 | **0** (781 controles mirados) |
+
+**Qué NO cubre.** Sólo Chromium: **no prueba iPhone**, donde
+`env(safe-area-inset-bottom)` y la barra del navegador mueven el borde inferior
+de verdad. Y **no baja los rótulos a uno**: quedan la barra y el panel del
+instrumento, que dicen los dos «Grabando». El panel es el instrumento y sus
+controles son suyos; que su rótulo de estado sobre queda **declarado y no
+arreglado**.
+
+**Prueba.** `src/__tests__/la-barra-de-voz-no-se-va-de-la-pantalla.test.ts`
+(7 casos, probado al revés en cinco variantes — una de ellas, la del relleno,
+no fallaba al principio porque había dos reglas con el mismo selector y sólo se
+quitaba una) y el escenario `· grabando` del arnés, probado al revés con una
+barra que sí atrapa.
