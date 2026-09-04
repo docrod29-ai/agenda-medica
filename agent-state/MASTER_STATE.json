@@ -23,22 +23,19 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/pendientes-externos.md",
+    "M agent-state/OWNER_DECISIONS_REQUIRED.md",
+    " M docs/DECISIONES-DEL-DUENO.md",
     " M docs/product/DECISION_REGISTER.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/seguridad/ESTADO-DEPENDENCIAS.md",
-    " M scripts/seguridad/auditar.mjs",
-    " M src/__tests__/el-segundo-factor-llega-al-servidor.test.ts",
-    " M src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts",
-    " M src/config/security-controls.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/programa/requisitos.ts"
+    " M docs/quality/MOTORES-SIN-CONECTAR.md",
+    " M scripts/calidad/motores-conectados.mjs",
+    " M src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
+    " M src/__tests__/hospital-eventos-append-only.test.ts",
+    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
+    " M src/lib/expediente/extraction-schema.ts",
+    " M src/lib/hospital/eventos.ts",
+    " M src/lib/seguridad/clasificacion.ts"
   ],
-  "actualizado": "2026-09-02",
+  "actualizado": "2026-09-04",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -75,7 +72,7 @@
     "regsEnElLedger": 304,
     "ultimaREG": "REG-511",
     "archivosDePrueba": 929,
-    "casosDePrueba": 11253,
+    "casosDePrueba": 11255,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"

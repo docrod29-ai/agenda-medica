@@ -136,6 +136,27 @@ while (cola.length) {
   }
 }
 
+/**
+ * El texto sin comentarios, para CONTAR usos de un símbolo.
+ *
+ * ── POR QUÉ EXISTE (4-sep-2026) ─────────────────────────────────────────────
+ *
+ * Este script contaba las apariciones del símbolo sobre el texto CRUDO. Se
+ * descubrió al documentar `validarCorreccion`: bastó nombrarlo en un comentario
+ * de su propio archivo para que `enElSuyo` diera `true` y el motor
+ * desapareciera del barrido. **Un instrumento al que se le tapa la boca
+ * escribiendo su nombre en prosa**, sin que nadie lo note — y el efecto es que
+ * un motor sin conectar deja de aparecer justo cuando alguien lo documenta.
+ *
+ * LO QUE NO HACE, declarado: no es un parser. Un símbolo dentro de una CADENA
+ * de texto sigue contando como uso. Se acepta a propósito: quitar cadenas
+ * arriesga borrar llamadas reales de la misma línea, y contar de más aquí sólo
+ * deja pasar un motor; contar de menos inventaría huérfanos que no lo son.
+ */
+function sinComentarios(texto) {
+  return texto.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ')
+}
+
 /** Líneas de código del cuerpo de una función, sin comentarios ni vacías. */
 function cuerpoDe(texto, simbolo) {
   const m = new RegExp(`^export\\s+(?:async\\s+)?function\\s+${simbolo}\\b`, 'm').exec(texto)
@@ -168,12 +189,13 @@ for (const dom of DOMINIOS) {
       /* Se busca como palabra completa para que `dosis` no case con `dosisAlta`. */
       const re = new RegExp(`\\b${simbolo}\\b`, 'g')
       /* En su PROPIO archivo hace falta más de una aparición: la declaración
-         siempre está, y contarla haría que todo pareciera usado. */
-      const enElSuyo = (texto.match(re) ?? []).length > 1
+         siempre está, y contarla haría que todo pareciera usado.
+         Se cuenta SIN COMENTARIOS: nombrarlo en un comentario no es usarlo. */
+      const enElSuyo = (sinComentarios(texto).match(re) ?? []).length > 1
       let fuera = false
       for (const [p, t] of contenido) {
         if (p === archivo) continue
-        if (new RegExp(`\\b${simbolo}\\b`).test(t)) { fuera = true; break }
+        if (new RegExp(`\\b${simbolo}\\b`).test(sinComentarios(t))) { fuera = true; break }
       }
       if (!enElSuyo && !fuera) {
         const id = `${relative(RAIZ, archivo)}::${simbolo}`
@@ -188,11 +210,12 @@ for (const dom of DOMINIOS) {
          *       No son defectos: son comodidad que nadie usó.
          *    8  con CUERPO REAL — los que merecen mirarse uno a uno.
          *
-         * Y de esos ocho, alguno está **bloqueado en el dueño**, no en mí:
-         * `validarCorreccion` exige una política como parámetro obligatorio y
-         * su constante nace en `null` a propósito, porque quién puede
-         * corregir, en qué ventana y si el motivo es obligatorio son
-         * decisiones suyas. Conectarla inventándome la política sería
+         * Y de esos ocho, uno estuvo **bloqueado en el dueño**, no en mí:
+         * el motor de corrección exigía una política como parámetro
+         * obligatorio y su constante nacía en `null` a propósito, porque quién
+         * puede corregir, en qué ventana y si el motivo es obligatorio son
+         * decisiones suyas. La contestó el 4-sep-2026 (D-026); lo que le queda
+         * es cableado, no decisión. Conectarla inventándome la política sería
          * exactamente lo que este proyecto no hace.
          *
          * Un número que mezcla las tres cosas no sirve para decidir nada.
