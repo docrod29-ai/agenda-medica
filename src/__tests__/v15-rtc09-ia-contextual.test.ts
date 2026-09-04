@@ -94,12 +94,27 @@ describe('RTC-09 — /operaciones deja de contener «lo clínico»', () => {
     }
   })
 
-  it('3 · el copy de la pantalla ya no promete «todo lo administrativo» a secas mientras aloja Hospital/UCI', () => {
-    // Hospitalización y UCI se quedan (son otro ESCENARIO de atención, no una
-    // capacidad), pero entonces el texto tiene que decirlo: una pantalla que
-    // se describe mal es la misma familia de defecto que un grupo mal llamado.
-    expect(hrefsDeOperaciones()).toContain('/hospitalizacion')
-    expect(OPERACIONES).toMatch(/módulos de hospital/i)
+  it('3 · el copy de la pantalla dice lo que la pantalla PINTA — hoy, sin Hospital/UCI', () => {
+    /**
+     * ACTUALIZADO EL 4-sep-2026 — la regla no cambió, lo que se pinta sí.
+     *
+     * Cuando se escribió, este caso exigía que el subtítulo nombrara «los
+     * módulos de hospital» porque el índice los alojaba: una pantalla que se
+     * describe mal es la misma familia de defecto que un grupo mal llamado.
+     *
+     * El dueño pausó Hospital y UCI en la navegación (la consulta y su agenda
+     * son la prioridad; los dos siguen en ALPHA). Las filas siguen DECLARADAS
+     * —pausar no es borrar— pero ya no se pintan, así que el subtítulo tampoco
+     * puede prometerlas. El invariante es el mismo de siempre: el copy dice lo
+     * que la pantalla enseña.
+     *
+     * La pausa en sí la defiende `hospital-y-uci-en-pausa.test.ts`, incluido
+     * el caso al revés.
+     */
+    expect(hrefsDeOperaciones()).toContain('/hospitalizacion')   // declarado…
+    expect(OPERACIONES).toMatch(/!enPausa\(it\.href\)/)          // …y filtrado
+    const subtitulo = OPERACIONES.match(/subtitle="([^"]+)"/)?.[1] ?? ''
+    expect(subtitulo).not.toMatch(/hospital/i)
   })
 })
 

@@ -32,6 +32,7 @@ import { estadoDeOperaciones, type EstadoDeOperaciones as EstadoOps } from '@/li
 import { EstadoDeOperaciones } from '@/components/operaciones/EstadoDeOperaciones'
 import { useMode } from '@/context/ModeContext'
 import { rutaPermitida } from '@/lib/modulos'
+import { enPausa } from '@/lib/navegacion/modulos-en-pausa'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { useTema } from '@/hooks/useTema'
 import { useToast } from '@/context/ToastContext'
@@ -90,6 +91,17 @@ const GRUPOS: Grupo[] = [
    *    primario del médico de consultorio (§11), pero con el nombre de lo que
    *    son. El título viejo afirmaba que el área admin contenía «lo clínico»,
    *    y eso era justo lo que §11 pide que no pase.
+   */
+  /**
+   * EN PAUSA desde el 4-sep-2026 — decisión del dueño.
+   *
+   * El grupo entero desaparece del índice: `enPausa` filtra sus dos destinos y
+   * un grupo sin destinos no se pinta. La prioridad es **la consulta y su
+   * agenda**, y Hospital/UCI siguen en ALPHA («se usan, no se venden»).
+   *
+   * Se queda AQUÍ ESCRITO, no borrado: la etiqueta, el icono y el «para qué»
+   * de cada destino son el trabajo que costaría rehacer. Volver a ofrecerlo es
+   * vaciar `MODULOS_EN_PAUSA` en `@/lib/navegacion/modulos-en-pausa`.
    */
   {
     titulo: 'Hospital y UCI',
@@ -231,7 +243,11 @@ export default function OperacionesPage() {
     .map(g => ({
       ...g,
       items: g.items.filter(it =>
-        (it.modos === 'ambos' || mode === 'medico') && rutaPermitida(clinic, it.href)),
+        (it.modos === 'ambos' || mode === 'medico')
+        && rutaPermitida(clinic, it.href)
+        // Módulos EN PAUSA: declarados arriba, no ofrecidos hoy. Un grupo que
+        // se queda sin destinos desaparece entero por el `.filter` de abajo.
+        && !enPausa(it.href)),
     }))
     .filter(g => g.items.length > 0)
 
@@ -243,7 +259,7 @@ export default function OperacionesPage() {
           `PageHeader`, que además garantiza el subtítulo por tipo. */}
       <PageHeader
         title="Operaciones"
-        subtitle="La administración del consultorio y los módulos de hospital, aparte del trabajo clínico del día. Cada cosa dice para qué sirve, y los grupos van de lo que se usa todos los días a lo que se configura una vez."
+        subtitle="La administración del consultorio, aparte del trabajo clínico del día. Cada cosa dice para qué sirve, y los grupos van de lo que se usa todos los días a lo que se configura una vez."
       />
 
       <EstadoDeOperaciones estado={estado} cargando={cargando} />
