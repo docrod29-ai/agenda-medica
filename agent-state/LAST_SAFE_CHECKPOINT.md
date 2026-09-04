@@ -6,6 +6,60 @@
 
 ---
 
+## Checkpoint · 2-sep-2026 — **`PATIENT-AI-001` cerrada · REG-446**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`PATIENT-AI-001`** — REG-446 |
+| **SHA** | (esta rama) |
+| **Cierra además** | `PATIENT-TELE-002`, el último P0 abierto — **sin reparar nada**: el renglón estaba desfasado, no el producto |
+| **Siguiente** | **`DOCUMENTS-001`** |
+
+«ASK NEXUS» existe. El destino «Preguntar» del portal era un párrafo que le
+decía al paciente que llamara por teléfono, y de las cinco clases de respuesta
+del §2 de `patient-facing-ai.md` el código implementaba **una**.
+
+Ahora clasifica, y **sin modelo de lenguaje**. Lo que devuelve como respuesta es
+una cadena que ya venía dentro del paquete que su médico liberó; si no la
+encuentra, escala. El nivel 9 del §1 no origina datos del paciente, y la forma
+más barata de garantizarlo es no tenerlo.
+
+**El orden es la defensa**, y es lo único que hay que recordar de esta unidad:
+
+```
+1. urgencia (§6)   2. acto prohibido (§3)   3. administrativa
+4. cita del plan liberado                   5. escalar
+```
+
+El 2 va antes que el 4. «¿Puedo tomarme el doble del metoprolol?» encuentra el
+metoprolol en el plan del propio paciente: buscar primero le habría contestado
+cómo tomarlo, respondiendo una pregunta que nadie hizo. Peor con «estoy
+embarazada, ¿sigo con el metoprolol?», sobre un plan que quizá se escribió sin
+saberlo. Los dos son fixture permanente (`ai-05`, `ai-06`) y con el orden
+invertido se ponen rojos — comprobado inyectando el defecto en el módulo real:
+11 casos caen.
+
+**Y la escalación llega**: se guarda en `preguntas_paciente` ANTES de contestarle
+al paciente, y sale un aviso al WhatsApp del consultorio. Decirle «ya quedó
+registrada» y que no quede es peor que no ofrecer el canal.
+
+**Lo que esta unidad NO afirma**, y queda declarado:
+
+- **La pantalla no se ha visto en un navegador.** La regla de diseño dice que no
+  se aprueba una interfaz leyendo el código; este contenedor no puede levantarla
+  porque faltan las `NEXT_PUBLIC_FIREBASE_*`. Es el mismo bloqueo que tiene
+  parado a `NAV-NAVEGADOR-001`, y ahora frena a dos unidades: está en
+  `BLOCKERS.md` como **B-12**.
+- **`EDUCATIONAL_EXPLANATION` sigue sin implementación.** Cuatro de cinco.
+- **No hay pantalla del médico** para lo que se escaló: la pregunta se guarda y
+  el aviso sale por WhatsApp, pero el buzón donde el consultorio las cierra es
+  trabajo con nombre.
+- **Las reglas de Firestore de la colección nueva no rigen todavía**: se
+  despliegan con el botón, y eso es del dueño. Declarado en
+  `docs/ops/REGLAS-DE-FIRESTORE.md` con qué se rompe mientras tanto (nada hoy).
+
+---
+
 ## Checkpoint · 28-ago-2026 — **`GP-FINAL` recorrido · REG-336 cerrada**
 
 | | |

@@ -92,6 +92,17 @@ export const COLECCIONES: ColeccionRespaldo[] = [
       // La nota lleva DEBAJO su corrección legal (adenda) y su historial.
       { ruta: 'notas', hijas: [{ ruta: 'adendas' }, { ruta: 'versions' }] },
       'laboratorios', 'fotos', 'clinico', 'formularios_previos', 'paquetes_visita',
+      /**
+       * `preguntas_paciente` se respalda, y no es papeleo (V9 PATIENT-AI-001).
+       *
+       * Es el registro de qué preguntó el paciente, cuándo, qué clase le puso el
+       * servidor y si se le contestó citando su plan o se escaló a un humano.
+       * El día que alguien pregunte «¿esto se le dijo al paciente, y quién lo
+       * decidió?», la respuesta vive aquí — igual que el paquete guarda la
+       * redacción que se entregó. Perderlo es perder la mitad medicolegal de
+       * este canal.
+       */
+      'preguntas_paciente',
     ],
   },
   { ruta: 'appointments', descripcion: 'Citas: fecha, tipo, estado, médico y paciente.' },

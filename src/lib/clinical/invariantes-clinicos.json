@@ -937,6 +937,14 @@
       "minCasos": 19
     },
     {
+      "archivo": "src/__tests__/la-pantalla-de-preguntar-no-clasifica-ni-adivina.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/la-pregunta-del-paciente-la-clasifica-el-servidor.test.ts",
+      "minCasos": 22
+    },
+    {
       "archivo": "src/__tests__/la-pregunta-no-es-un-antecedente.test.ts",
       "minCasos": 12
     },
@@ -1087,6 +1095,10 @@
     {
       "archivo": "src/__tests__/lo-que-el-paciente-lleva-puesto-se-ve.test.ts",
       "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/lo-que-el-paciente-pregunta-se-clasifica-antes-de-contestarse.test.ts",
+      "minCasos": 19
     },
     {
       "archivo": "src/__tests__/lo-que-el-texto-se-callo.test.ts",

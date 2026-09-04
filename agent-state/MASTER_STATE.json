@@ -23,11 +23,26 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M .claude/rules/data-privacy.md",
-    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
-    " M docs/product/DECISION_REGISTER.md",
-    " M src/lib/expediente/funcion-renal.ts",
-    " M src/lib/hospital/news2.ts"
+    "M  agent-state/BACKLOG.json",
+    "M  agent-state/BLOCKERS.md",
+    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "UU agent-state/MASTER_STATE.json",
+    "M  agent-state/V9_COMPLETE_CRITERIA.md",
+    "M  docs/ai/V9-BITACORA-Y-OPERACION.md",
+    "M  docs/audit/regression-ledger.md",
+    "M  docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "M  docs/ops/REGLAS-DE-FIRESTORE.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  docs/security/matriz-acceso-phi.md",
+    "M  evals/patient-ai/README.md",
+    "M  evals/patient-ai/casos.json",
+    "M  firestore.rules",
+    "A  src/__tests__/la-pantalla-de-preguntar-no-clasifica-ni-adivina.test.ts",
+    "A  src/__tests__/la-pregunta-del-paciente-la-clasifica-el-servidor.test.ts",
+    "M  src/__tests__/las-doce-preguntas-del-paciente.test.ts",
+    "A  src/__tests__/lo-que-el-paciente-pregunta-se-clasifica-antes-de-contestarse.test.ts",
+    "M  src/app/api/portal/route.ts"
   ],
   "actualizado": "2026-09-04",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +78,10 @@
   ],
   "ramaActual": "claude/chat-pendientes-m4f9p9",
   "derivado": {
-    "regsEnElLedger": 304,
+    "regsEnElLedger": 305,
     "ultimaREG": "REG-511",
-    "archivosDePrueba": 929,
-    "casosDePrueba": 11255,
+    "archivosDePrueba": 932,
+    "casosDePrueba": 11311,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1179"
