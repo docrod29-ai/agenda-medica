@@ -128,10 +128,26 @@ describe('T-3 · casado por término COMPLETO: los falsos positivos medidos no o
     expect(claveDe(termino)).not.toBe(noDebeResolverA)
   })
 
-  it('todos ellos quedan como `desconocido`, no como otra cosa', () => {
-    for (const { termino } of FALSOS_POSITIVOS_MEDIDOS) {
+  it('ninguno resuelve al concepto EQUIVOCADO, que es lo que importa', () => {
+    /**
+     * ── LA PREMISA CAMBIÓ, Y A MEJOR (REG-453) ──────────────────────────────
+     *
+     * Antes esto exigía `desconocido` para los cinco, porque ninguno tenía
+     * concepto propio: la única salida honesta era no resolver.
+     *
+     * «Vitamina B12» ya lo tiene —entró con el catálogo del dueño (§6)— y ahora
+     * resuelve a `vitaminaB12`. Eso NO es el falso positivo que este bloque
+     * vigila: el peligro medido era que cayera en `bilirrubinaTotal` por las dos
+     * letras del final. Sigue sin caer ahí.
+     *
+     * Así que lo que se exige es lo que siempre se quiso exigir: o desconocido,
+     * o su propio concepto. Nunca el ajeno. Endurecer esto a «desconocido
+     * siempre» convertiría el crecimiento del catálogo en un fallo.
+     */
+    for (const { termino, noDebeResolverA } of FALSOS_POSITIVOS_MEDIDOS) {
       const r = resolverConcepto(termino)
-      expect(r.estado).toBe('desconocido')
+      expect(['desconocido', 'resuelto', 'ambiguo'], termino).toContain(r.estado)
+      if (r.estado === 'resuelto') expect(r.concepto.clave, termino).not.toBe(noDebeResolverA)
     }
   })
 
@@ -254,10 +270,19 @@ describe('T-6 · el vocabulario no se bifurca de ANALITOS', () => {
     }
   })
 
-  it('el único concepto de laboratorio que NO viene de ANALITOS es creatinina_orina', () => {
+  it('YA NO hay ningún concepto de laboratorio fuera de ANALITOS', () => {
+    /**
+     * `creatinina_orina` era el único, y existía porque `analitos.ts` no tenía
+     * la creatinina urinaria: se le dio identidad aquí para que la aceptación de
+     * E1-02 no se pudiera «cumplir» colapsando orina y suero.
+     *
+     * REG-453 cargó el catálogo del médico dueño, que SÍ la trae (§20), y reusó
+     * esta misma clave en vez de crear una segunda. Así que el vocabulario ya no
+     * inventa conceptos: todos salen de ANALITOS. Una fuente, no dos.
+     */
     const clavesAnalitos = new Set(ANALITOS.map(a => a.clave))
     const extras = CONCEPTOS_LAB.map(c => c.clave).filter(k => !clavesAnalitos.has(k))
-    expect(extras).toEqual(['creatinina_orina'])
+    expect(extras).toEqual([])
   })
 
   it('ningún analito se quedó con sinónimos por defecto (obliga a declararlos)', () => {
@@ -531,17 +556,35 @@ describe('T-10 · todo sinónimo tiene procedencia comprobable (cierra V-1)', ()
     expect(DISPLAY_POR_CODIGO_LOINC['8480-6']).toBe('Sistólica')
   })
 
-  it('el hallazgo E1-02-H2 queda REGISTRADO, no reparado (regla 5)', () => {
-    // MEDIDO: 'depuracion de creatinina' es una alternativa del patrón de `tfg`
-    // (analitos.ts:47), pero `creatinina` va antes en el array y gana. Producción
-    // manda la depuración a la serie de creatinina SÉRICA. No se toca aquí.
-    expect(analitoDe('depuracion de creatinina')?.clave).toBe('creatinina')
-    // El vocabulario nuevo declara la lectura correcta y cita la divergencia.
+  it('E1-02-H2: una cara REPARADA por REG-453, la otra sigue registrada', () => {
+    /**
+     * El hallazgo tenía dos caras y hoy están en sitios distintos. Decirlo
+     * entero importa: un hallazgo «medio cerrado» que se anota como cerrado es
+     * como no haberlo anotado.
+     *
+     * ── REPARADA ──────────────────────────────────────────────────────────────
+     * «creatinina urinaria» caía en la serie de creatinina SÉRICA. La exclusión
+     * del patrón sólo miraba la palabra «orina» y no cubría «urinaria»: una
+     * defensa escrita analito por analito, con un hueco.
+     *
+     * REG-453 la cerró de raíz. La muestra se decide UNA vez, sobre el nombre
+     * del renglón, y un renglón de orina sólo puede casar con analitos de orina.
+     * Y no hizo falta una clave nueva: el catálogo del dueño trae la creatinina
+     * urinaria y reusa la que el vocabulario ya tenía.
+     *
+     * ── SIGUE ABIERTA ────────────────────────────────────────────────────────
+     * «depuración de creatinina» es una alternativa del patrón de `tfg`, pero el
+     * patrón de `creatinina` gana por orden y manda la depuración a la serie de
+     * creatinina sérica. Eso NO lo toca el espécimen —las dos son de suero— y
+     * cambiar el orden de los patrones a mano es justo la clase de arreglo que
+     * rompe otra cosa sin avisar. Sigue registrada, con su pregunta al médico.
+     */
+    expect(analitoDe('creatinina urinaria')?.clave, 'REPARADA por REG-453').toBe('creatinina_orina')
+    expect(claveDe('creatinina urinaria')).toBe('creatinina_orina')
+
+    expect(analitoDe('depuracion de creatinina')?.clave, 'sigue abierta').toBe('creatinina')
     expect(claveDe('depuración de creatinina')).toBe('tfg')
     expect(PROCEDENCIA_SINONIMO['depuracion de creatinina']?.needsClinicalReview).toContain('E1-02-H2')
-    // Segunda cara del mismo hallazgo: la exclusión sólo mira la palabra «orina».
-    expect(analitoDe('creatinina urinaria')?.clave).toBe('creatinina')
-    expect(claveDe('creatinina urinaria')).toBe('creatinina_orina')
   })
 })
 

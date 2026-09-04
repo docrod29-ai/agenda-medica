@@ -64,6 +64,17 @@ export function claveDeUnidad(u: string | undefined | null): string {
     .toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[μµ]/g, 'u')
+    /**
+     * `10³/µL` y `10^3/µL` son LA MISMA unidad escrita de dos maneras: el
+     * documento del dueño usa el circunflejo y los analitos de producción el
+     * superíndice. Es TIPOGRAFÍA, no una equivalencia clínica — no hay factor de
+     * por medio, es el mismo número y la misma magnitud, así que esto no es una
+     * conversión inventada.
+     *
+     * Sin esto, media biometría hemática salía marcada `VERIFY_UNIT` por un
+     * carácter, y una compuerta que avisa de todo se aprende a cerrar sin leer.
+     */
+    .replace(/³/g, '^3').replace(/⁶/g, '^6').replace(/²/g, '^2')
     .replace(/\s+/g, '')
     .trim()
 }

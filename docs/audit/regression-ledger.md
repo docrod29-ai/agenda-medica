@@ -17820,6 +17820,116 @@ se llama.
 
 ---
 
+## REG-453 — el catálogo entero, y el defecto vivo que apareció al cargarlo
+
+**Eje.** Laboratorio · D-032 §26 y §27.3. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-catalogo-entero-y-de-que-muestra-es.test.ts`.
+
+### Lo que iba a hacer, y lo que encontré
+
+Iba a cargar los ~200 analitos del catálogo del dueño. Al medir cómo se
+comportaba el de 32 apareció esto, **funcionando en producción**:
+
+| El renglón dice | Acababa en |
+|---|---|
+| Glucosa urinaria | serie de glucosa **sérica** |
+| LCR glucosa | serie de glucosa **sérica** |
+| Sodio urinario | serie de sodio **sérico** |
+| LCR leucocitos | serie de leucocitos en **sangre** |
+| Creatinina urinaria | serie de creatinina **sérica** |
+
+El último **pese a que su patrón ya excluía «orina»**: la exclusión no cubría
+«urinaria». Una defensa escrita a mano, analito por analito, con un hueco.
+
+Un sodio urinario de 20 dibujado como sodio sérico se lee como una hiponatremia
+mortal. Una glucosuria de 500, como una urgencia diabética. Y **no se ve**: la
+cifra es real, el analito se llama igual y la gráfica es continua.
+
+### La regla que lo cierra
+
+La muestra se decide **una vez, sobre el nombre del renglón**, no con una
+exclusión por analito. Un renglón de orina sólo puede casar con analitos de
+orina; si no hay ninguno, no casa con nada — mejor sin reconocer que en la serie
+equivocada. Es el §26 del catálogo («no deben mezclarse estas cuatro capas») y su
+§27.3 («no mapear un analito únicamente por el nombre escrito en el PDF»).
+
+Y dentro de la muestra el nombre pelado deja de ser ambiguo, así que «Creatinina
+en orina» —que antes no casaba con nada— ahora casa.
+
+### 220 cifras que no se teclearon
+
+Un dígito cambiado en un límite de captura no rompe nada, no falla ninguna
+prueba, y convierte un límite en otro. Los números se leen por máquina del
+documento del dueño (`scripts/laboratorio/catalogo-d032.mjs` →
+`catalogo-d032.json`), y hay dos guardianes: el JSON contra el documento, y cada
+analito contra su fila. La frase «estas cifras son las suyas» es refutable.
+
+El script comprueba además que el documento **no se contradiga**: repite doce
+analitos entre secciones —la LDH está en hígado y en hemólisis— y las cifras
+coinciden en los doce. Si un día divergen, el módulo revienta al cargarse en vez
+de elegir una.
+
+Lo escrito a mano son veinte líneas: qué grupo y qué muestra tiene cada sección.
+
+### El pie de banco que me cacé, y me lo cazó una prueba de UCI
+
+Metí el nombre pelado dentro de `patron`. Hay **tres sitios que recorren
+analitos mirando `patron` a pelo sobre texto libre**, sin pasar por `analitoDe` y
+por tanto sin el filtro de muestra: con «glucosa» ahí dentro, un «glucosa»
+dictado en el pase de UCI casaba con la glucosa de LCR.
+
+Un patrón que sólo es seguro detrás de un filtro **no puede vivir donde se lee
+sin el filtro**. Vive en `patronEnSuMuestra`, y `analitoDe` lo consulta después
+de decidir la muestra.
+
+### La prosa se sigue leyendo con los 32 de siempre
+
+Buscar cifras en PROSA es otro problema y falla distinto: en una hoja, un renglón
+que dice «Ferritina» es una ferritina; en un dictado, «ratio», «bandas», «pH» o
+«s» aparecen sin ser un resultado. Meter 219 nombres en la lectura de prosa es un
+cambio que nadie pidió y que nadie midió. `ANALITOS_EN_TEXTO` lo declara: mismo
+catálogo, subconjunto para un uso cuyo modo de fallo es otro.
+
+### Media cara de E1-02-H2, cerrada de rebote
+
+Aquel hallazgo tenía dos caras y quedó registrado sin reparar. La de «creatinina
+urinaria» **se cierra aquí**, y de raíz. La de «depuración de creatinina» —que el
+patrón de `creatinina` gana por orden y la manda a la serie sérica— sigue
+abierta: las dos son de suero y el espécimen no la toca.
+
+Su golden dice ahora las dos cosas por separado. Un hallazgo medio cerrado que se
+anota como cerrado es como no haberlo anotado.
+
+### Y no se creó una segunda clave
+
+`creatinina_orina` nació en E1-02 como concepto sin analito detrás. El catálogo
+trae la creatinina urinaria de verdad — y se reusa **su** clave en vez de crear
+`creatininaUrinaria`. Dos claves para el mismo analito son dos fuentes de verdad;
+ganó la que llevaba meses escrita, con sus sinónimos y su pregunta al médico. De
+paso, el vocabulario deja de tener conceptos propios: **todos vienen de ANALITOS**.
+
+### Lo que los guardianes obligaron a declarar
+
+- `LAB_SIN_CODIGO_CONGELADO` 33 → **218**. Ninguno trae LOINC: elegirlo no es
+  mecánico y un código equivocado viaja al exterior dentro de un `Observation`.
+- El hueco de unidades no expresables, 5 → **29**. Se declara en su guardián en
+  vez de ampliar `FACTORES` de refilón.
+- Tres fixtures de «términos que el catálogo no conoce» tuvieron que mudarse
+  —ferritina, procalcitonina, haptoglobina ya se conocen—. Ahora son homocisteína
+  y aldolasa: reales, se piden en consulta, y su documento no las trae.
+
+### Probado al revés cinco veces
+
+Quitar el filtro de muestra (vuelve el defecto vivo) · devolver el pelado a
+`patron` · cambiar una cifra respecto del documento · dejar que la prosa lea el
+catálogo entero · crear una segunda clave para la creatinina de orina.
+
+### Lo que NO cubre
+
+La muestra se decide **por renglón, no por sección**: una hoja con «Química
+urinaria» en la cabecera y «Glucosa» a secas en el renglón sigue cayendo en
+suero. Cerrarlo pide el espécimen como CAMPO desde la lectura de la hoja (§27.3).
+
 ## REG-452 — el decimal se sugiere, y la sugerencia verosímil que había que NO dar
 
 **Eje.** Laboratorio · §29 de D-032. **Fecha.** 2-sep-2026.

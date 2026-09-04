@@ -20,13 +20,25 @@
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M src/components/laboratorio/PanelLaboratorios.tsx",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/__tests__/clinical-fact.test.ts",
+    " M src/__tests__/clinical-vocabulario.test.ts",
+    " M src/__tests__/el-decimal-se-sugiere-no-se-corrige.test.ts",
+    " M src/__tests__/el-diferencial-no-es-una-sola-cosa.test.ts",
+    " M src/__tests__/fixtures/conceptos.ts",
+    " M src/__tests__/laboratorio-extraccion.test.ts",
+    " M src/__tests__/uci-labs-nota.test.ts",
+    " M src/app/(dashboard)/uci/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical-fact/vocabulario.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/laboratorio/extraccion.ts",
+    " M src/lib/expediente/laboratorio/analitos.ts",
     " M src/lib/expediente/laboratorio/unidades.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/el-decimal-se-sugiere-no-se-corrige.test.ts"
+    " M src/lib/uci/labs-nota.ts",
+    "?? scripts/laboratorio/",
+    "?? src/__tests__/el-catalogo-entero-y-de-que-muestra-es.test.ts",
+    "?? src/lib/expediente/laboratorio/catalogo-d032.json"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -62,10 +74,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 303,
+    "regsEnElLedger": 304,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 872,
-    "casosDePrueba": 10998,
+    "archivosDePrueba": 873,
+    "casosDePrueba": 11012,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

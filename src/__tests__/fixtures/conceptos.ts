@@ -36,12 +36,17 @@ export const FALSOS_POSITIVOS_MEDIDOS: readonly { readonly termino: string; read
 export const TERMINOS_DESCONOCIDOS: readonly string[] = [
   '',
   '   ',
-  'procalcitonina',
-  // 'ferritina' salió de aquí en REG-450: entró al catálogo con los números de
-  // D-032. Se sustituye por otra del mismo documento que TODAVÍA no está cargada
-  // —de los ~200 analitos del catálogo del dueño sólo hay 32—, para que este
-  // fixture siga probando lo que probaba: que lo no cargado no se inventa.
-  'haptoglobina',
+  // Esta lista lleva TRES mudanzas y las tres por la misma razón buena: el
+  // catálogo creció. 'ferritina' salió en REG-450 (entró con los números de
+  // D-032); 'procalcitonina' y 'haptoglobina' en REG-453, cuando entró el
+  // catálogo ENTERO del dueño — 220 analitos.
+  //
+  // Ahora hacen falta términos que NO estén en el documento del dueño, y ya no
+  // valen los analitos comunes. Éstos dos son reales, se piden en consulta, y su
+  // catálogo no los trae: por eso siguen probando lo que este fixture prueba —
+  // que lo que no está cargado NO se inventa.
+  'homocisteina',
+  'aldolasa',
   'un texto que no es un analito',
 ]
 

@@ -25,7 +25,7 @@
  */
 
 import type { ConceptoRef } from '@/types/clinical-fact'
-import { ANALITOS } from '@/lib/expediente/laboratorio/analitos'
+import { ANALITOS, CLAVES_DEL_CATALOGO, type Analito } from '@/lib/expediente/laboratorio/analitos'
 
 /**
  * 1.1.0 (2026-07-30) — cierre de la verificación adversarial de E1-02:
@@ -165,8 +165,9 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
  * NEEDS_CLINICAL_REVIEW · Q1 — LOINC de laboratorio.
  *
  * Trinquete: número de conceptos de dominio `laboratorio` SIN ningún código
- * estándar. Hoy son TODOS (33 = 32 de ANALITOS + creatinina_orina; eran 25 antes
- * de que REG-450 añadiera los ocho de D-032), porque
+ * estándar. Hoy son TODOS (218: los 32 escritos a mano más los 186 del catálogo
+ * del dueño. Eran 25, luego 33 con los ocho de REG-450, y 218 desde que REG-453
+ * cargó el catálogo entero), porque
  * elegir un LOINC no es mecánico —cambia según magnitud (masa vs. sustancia) y
  * espécimen— y un código equivocado viaja al exterior dentro de un `Observation`
  * de FHIR, donde otro sistema lo lee como verdad.
@@ -184,7 +185,7 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
  *
  * Baja SÓLO cuando el médico dueño valide una fila concepto→LOINC.
  */
-export const LAB_SIN_CODIGO_CONGELADO = 33
+export const LAB_SIN_CODIGO_CONGELADO = 218
 
 // ---------------------------------------------------------------------------
 // 3.b PROCEDENCIA DE LOS SINÓNIMOS — la afirmación «aquí no se inventó nada»
@@ -386,6 +387,12 @@ const SINONIMOS_LAB: Readonly<Record<string, readonly string[]>> = {
   cloro: ['cloro', 'cl', 'cloro serico'],
   tsh: ['tsh', 'tirotropina'],
   pcr: ['pcr', 'proteina c reactiva'],
+  /**
+   * REG-453: `creatinina_orina` ya viene de ANALITOS (D-032 §20), pero sus tres
+   * términos los decidió una persona en E1-02, no el nombre del documento. Se
+   * quedan declarados a mano, que es lo que este mapa significa.
+   */
+  creatinina_orina: ['creatinina en orina', 'creatinina urinaria', 'creatinina orina'],
 
   /**
    * ── LOS OCHO DE D-032 (REG-450) ──────────────────────────────────────────
@@ -424,7 +431,32 @@ const SINONIMOS_LAB: Readonly<Record<string, readonly string[]>> = {
  * no la FORMA del valor: `hemoglobina` declara exactamente ['hemoglobina'] y eso es
  * correcto — su `patron` en analitos.ts no admite ninguna otra forma.
  */
-export const CLAVES_SINONIMOS_DECLARADOS: readonly string[] = Object.keys(SINONIMOS_LAB)
+/**
+ * ── LOS 187 DEL CATÁLOGO DECLARAN SU SINÓNIMO SOLOS — REG-453 ───────────────
+ *
+ * Un analito que viene del documento del médico dueño tiene UN término y es su
+ * propio nombre en ese documento: «Procalcitonina», «Anti-Xa», «NT-proBNP». No
+ * hay abreviatura que decidir ni criterio que aportar, así que declararlos a
+ * mano sería copiar 187 renglones del mismo sitio del que ya salen.
+ *
+ * Lo que el invariante T-6 protege sigue en pie: un analito escrito A MANO en
+ * producción, sin sinónimos declarados, cae al respaldo `[clave]` y el test lo
+ * delata. Esa exigencia NO se afloja — sólo deja de aplicarse a los que no
+ * tienen nada que declarar. Y T-10 los comprueba igual, uno por uno, contra
+ * `analitoDe`.
+ */
+export const CLAVES_SINONIMOS_DECLARADOS: readonly string[] = [
+  ...Object.keys(SINONIMOS_LAB),
+  ...CLAVES_DEL_CATALOGO,
+]
+
+/** El sinónimo de un analito del catálogo: su nombre en el documento del dueño. */
+function sinonimosDelCatalogo(a: Analito): readonly string[] {
+  const partes = a.etiqueta.includes(' / ')
+    ? a.etiqueta.split('/').map(p => p.trim()).filter(Boolean)
+    : [a.etiqueta]
+  return [...new Set(partes.map(normalizarTermino))]
+}
 
 /**
  * Espécimen declarado, sólo donde el repo YA lo distinguía.
@@ -485,27 +517,31 @@ const CONCEPTOS_LAB: readonly ConceptoCanonico[] = [
     clave: a.clave,
     etiqueta: a.etiqueta,
     dominio: 'laboratorio',
-    ...(ESPECIMEN_LAB[a.clave] ? { especimen: ESPECIMEN_LAB[a.clave] } : {}),
+    /**
+     * REG-453: el espécimen lo trae YA el analito. `ESPECIMEN_LAB` sigue mandando
+     * donde lo declaró una persona —es más específico que la regla general— y el
+     * analito cubre el resto. Antes sólo existía el mapa, así que los 187 del
+     * catálogo habrían entrado sin muestra declarada.
+     */
+    especimen: ESPECIMEN_LAB[a.clave] ?? a.especimen,
     // Si un analito nuevo aparece en producción sin sinónimos declarados aquí,
     // al menos su propia clave lo resuelve; el test T-6 obliga a declararlos.
-    sinonimos: SINONIMOS_LAB[a.clave] ?? [normalizarTermino(a.clave)],
+    sinonimos: SINONIMOS_LAB[a.clave] ?? (CLAVES_DEL_CATALOGO.has(a.clave) ? sinonimosDelCatalogo(a) : [normalizarTermino(a.clave)]),
     codigos: [],                       // NEEDS_CLINICAL_REVIEW · Q1
     unidadConvencional: a.unidad,
   })),
   /**
-   * `creatinina_orina` existe hoy sólo como EXCLUSIÓN en `analitos.ts:44`
-   * (`(?!\s*(en\s*)?orina)`). Se le da identidad propia para que la aceptación
-   * de E1-02 no se pueda «cumplir» colapsando orina y suero en la misma serie.
-   * No comparte ni un sinónimo con `creatinina`.
+   * `creatinina_orina` YA NO SE DECLARA AQUÍ — REG-453.
+   *
+   * Nació en E1-02 como concepto sin analito detrás: existía sólo para que
+   * aquella aceptación no se pudiera «cumplir» colapsando orina y suero. Hoy el
+   * catálogo del dueño (D-032 §20) trae la creatinina urinaria de verdad, con
+   * sus límites de captura, y `analitos.ts` reutiliza ESTA clave para no crear
+   * una segunda. Así que ya viene de arriba, como todos.
+   *
+   * Sus tres sinónimos siguen declarados en `SINONIMOS_LAB`: son términos que
+   * decidió una persona, no el nombre del documento.
    */
-  {
-    clave: 'creatinina_orina',
-    etiqueta: 'Creatinina en orina',
-    dominio: 'laboratorio',
-    especimen: 'orina',
-    sinonimos: ['creatinina en orina', 'creatinina urinaria', 'creatinina orina'],
-    codigos: [],                       // NEEDS_CLINICAL_REVIEW · Q1
-  },
 ]
 
 /**

@@ -25,7 +25,7 @@ import type { FusionCopilot } from '@/lib/uci/copilot'
 import { formatear, type FormatoNota } from '@/lib/uci/formato-nota'
 import { resumen as resumenLabs, type LabMedido } from '@/lib/uci/labs-nota'
 import { planDesdeCopilot } from '@/lib/uci/plan-desde-copilot'
-import { ANALITOS, valorPlausible } from '@/lib/expediente/laboratorio/analitos'
+import { ANALITOS_EN_TEXTO, valorPlausible } from '@/lib/expediente/laboratorio/analitos'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { MOTORES, COPILOT_UCI_POR_MOTOR, type ClaveMotor } from '@/lib/planes-ia'
 import { getInternamiento } from '@/lib/hospital/firestore'
@@ -822,7 +822,8 @@ export default function UciPanelPage() {
    */
   const labsDictados = useMemo(() => {
     const out: LabMedido[] = []
-    for (const a of ANALITOS) {
+    /** REG-453: el subconjunto de PROSA. El catálogo entero casaría solo aquí. */
+    for (const a of ANALITOS_EN_TEXTO) {
       const m = discusionTxt.match(new RegExp(`${a.patron.source}\\s*[:=]?\\s*(\\d+(?:[.,]\\d+)?)`, 'i'))
       if (!m) continue
       const n = Number(String(m[m.length - 1]).replace(',', '.'))

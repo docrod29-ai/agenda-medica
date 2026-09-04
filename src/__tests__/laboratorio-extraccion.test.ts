@@ -37,7 +37,13 @@ describe('reconocimiento de analitos', () => {
     expect(analitoDe('Hemoglobina')?.clave).toBe('hemoglobina')
   })
   it('NO confunde creatinina en orina con la sérica', () => {
-    expect(analitoDe('Creatinina en orina')).toBeNull()
+    /**
+     * REG-453: antes «Creatinina en orina» devolvía `null` —correcto, pero por
+     * defecto: no había analito de orina y la exclusión del patrón la tiraba—.
+     * Ahora el catálogo del dueño la trae (§20) y resuelve a su propio concepto.
+     * Sigue sin caer en la sérica, que es lo que este caso vigila.
+     */
+    expect(analitoDe('Creatinina en orina')?.clave).toBe('creatinina_orina')
     expect(analitoDe('Creatinina')?.clave).toBe('creatinina')
   })
   it('descarta valores fuera de rango (otra unidad)', () => {

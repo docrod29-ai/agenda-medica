@@ -83,7 +83,7 @@ describe('EL EJEMPLO DEL PROPIO §29', () => {
   it('los seis factores son los seis del documento, en su orden', () => {
     expect([...FACTORES_DE_DECIMAL]).toEqual([10, 0.1, 100, 0.01, 1000, 0.001])
     const doc = readFileSync(join(RAIZ, 'docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md'), 'utf8')
-    expect(doc).toMatch(/×10.*÷10.*×100.*÷100.*×1000.*÷1000/s)
+    expect(doc).toMatch(/×10[\s\S]*÷10[\s\S]*×100[\s\S]*÷100[\s\S]*×1000[\s\S]*÷1000/)
   })
 })
 

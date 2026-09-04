@@ -226,15 +226,21 @@ describe('LO QUE NO SE TOCÓ, Y POR QUÉ', () => {
     expect(valorPlausible('glucosa', 7.2), 'una glucosa de 7,2 mg/dL no es posible').toBe(false)
   })
 
-  it('el catálogo entero NO está cargado, y eso se declara', () => {
+  it('el catálogo entero YA está cargado (REG-453)', () => {
     /**
-     * El documento trae ~200 analitos; aquí entraron ocho. Un vocabulario es
-     * vocabulario, no criterio: los que faltan NO se vigilan, que no es lo mismo
-     * que estar bien.
+     * ── LA PREMISA CAMBIÓ, Y EN VEINTICUATRO HORAS ───────────────────────────
+     *
+     * Cuando se escribió esto, el documento traía ~200 analitos y aquí había
+     * ocho: se comprobaba que el hueco estuviera DECLARADO, porque un vocabulario
+     * es vocabulario y lo que falta no se vigila.
+     *
+     * REG-453 lo cargó entero, leído por máquina del propio documento. Se
+     * comprueba lo contrario: que no falte ninguna fila. Si el dueño añade
+     * analitos a su catálogo y nadie regenera, esto se pone rojo.
      */
     const doc = readFileSync(CATALOGO, 'utf8')
     const filasDelDoc = doc.split('\n').filter(l => /^\| [A-ZÁÉÍÓÚa-z]/.test(l)).length
     expect(filasDelDoc).toBeGreaterThan(150)
-    expect(ANALITOS.length).toBeLessThan(40)
+    expect(ANALITOS.length).toBeGreaterThan(200)
   })
 })
