@@ -65,6 +65,40 @@ exacta que la buena, y sobre esa cifra se decide un precio».
 | Se lee en | `src/app/api/superadmin/contabilidad/route.ts` |
 | Sin ella | La contabilidad usa el supuesto viejo y lo declara **en ámbar** como supuesto, no como medición |
 
+#### Automatizarlo está DIFERIDO, no descartado — D-024 (4-sep-2026)
+
+El dueño preguntó si el tipo de cambio puede actualizarse solo cada día. **Sí se
+puede, y el número a mano se pudre en silencio**, así que la pregunta es buena.
+Se difiere porque hoy esa cifra la ve una sola persona, no hay ingresos que
+convertir, y ponerla a mano cuesta un minuto cada varios meses. Se retoma cuando
+el margen sea una decisión de negocio y no un número simbólico.
+
+**El diseño queda escrito para que ese día no se improvise.** Tres cosas, y las
+tres son la diferencia entre que sirva y que mienta:
+
+1. **La fuente es Banxico, no una API de divisas.** Una API genérica devuelve el
+   precio de MERCADO; la contabilidad usa el que publica el **DOF**. Automatizar
+   contra la fuente equivocada daría dos números para el mismo gasto —el panel
+   por un lado y la declaración al SAT por otro—, que es justo lo que esta
+   variable evita hoy obligando a poner el del contador.
+   **Antes de cablear nada se mira la respuesta REAL de Banxico**, no su
+   documentación (regla «el dato tiene que LLEGAR»).
+
+2. **Se guarda el tipo de cambio POR FECHA, no un único valor «actual».** Los
+   costos de agosto se convierten con el de agosto. Un único valor vigente haría
+   que la utilidad de los meses pasados **cambiara sola** cada vez que se abre el
+   panel — peor que un número viejo, porque un número viejo al menos no se mueve.
+
+3. **Falla cerrado y lo dice.** Si no se pudo consultar, NO se rellena con el
+   último que había ni con un cero: se declara «no se pudo consultar, esta cifra
+   es del día tal». Es literalmente **REG-511** con otra ropa —allí un `npm audit`
+   que no corrió se publicó como «cero vulnerabilidades»— y sería reincidir en la
+   misma familia con el número sobre el que se decide un precio.
+
+**Coste real**: la integración, el histórico por fecha, el fallo cerrado y sus
+guardianes. Más un token de Banxico, gratis pero que solicita el dueño — o sea
+que no elimina el paso manual, lo cambia por otro una sola vez.
+
 **Cuidado con el formato**: la lectura es `Number(…) || null`. Un `18,35` con
 coma, o un `$18.35`, dan `NaN` → `null` → **se comporta exactamente igual que si
 no estuviera puesta**, sin error y sin aviso distinto. Compruébelo en
