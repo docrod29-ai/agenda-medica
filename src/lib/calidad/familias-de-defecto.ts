@@ -930,7 +930,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Una sección del charter que vivía como carpeta vacía. No rompe nada hoy; ' +
       'es la diferencia entre un sistema que dice tener un control y uno que lo ' +
       'tiene.',
-    regs: [201, 202, 203, 204, 205, 206, 207, 208, 385, 386],
+    /**
+     * 446 es esta familia con la sección del charter MEDIDA y aun así vacía, y
+     * por eso vale la pena distinguirlo del resto.
+     *
+     * El §2 de `patient-facing-ai.md` fija cinco clases de respuesta. El código
+     * implementaba una. Las otras cuatro vivían en un `as const` con un
+     * comentario que decía «se nombran aquí para que quien las implemente no
+     * invente un nombre nuevo», y el golden de las doce preguntas COMPROBABA que
+     * sólo una tuviera clasificador — para no fingir cobertura.
+     *
+     * O sea: el repositorio sabía exactamente lo que le faltaba, lo tenía
+     * escrito, lo tenía medido y tenía una prueba en verde vigilando el hueco.
+     * No es un defecto escondido; es un hueco declarado que nadie llenó, y el
+     * destino «Preguntar» del portal llevaba meses siendo un párrafo que le
+     * decía al paciente que llamara por teléfono.
+     */
+    regs: [201, 202, 203, 204, 205, 206, 207, 208, 385, 386, 446],
   },
   {
     clave: 'estorba',
@@ -1237,7 +1253,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ponga la suite en rojo.
      */
     /**
-     * 445 es esta familia en su forma más pura: un contador GLOBAL que se asigna
+     * 446 es esta familia en su forma más pura: un contador GLOBAL que se asigna
      * A MANO y tiene VARIOS ESCRITORES. Seis colisiones el mismo día entre varias
      * sesiones que no se veían, y ninguna la vio una compuerta: las dos primeras
      * se vieron leyendo un conflicto de fusión, la tercera leyendo por casualidad

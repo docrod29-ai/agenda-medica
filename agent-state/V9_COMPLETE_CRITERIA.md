@@ -43,7 +43,7 @@ Sin SHA, una unidad no está cerrada.
 | 2 | `NAVIGATION-001` | ✅ **cerrada** | `fed81cc` |
 | 3 | `PATIENT-COMPANION-001` | ✅ **cerrada** | `5d496cf` |
 | 4 | `POSTVISIT-001` | ✅ **cerrada** | (esta rama) |
-| 5 | `PATIENT-AI-001` | ⬜ pendiente | — |
+| 5 | `PATIENT-AI-001` | ✅ **cerrada** | (esta rama) |
 | 6 | `DOCUMENTS-001` | ⬜ pendiente | — |
 | 7 | `CLOSED-LOOP-PATIENT-001` | ⬜ pendiente | — |
 | 8 | `PATIENT-LANGUAGE-001` | ⬜ pendiente | — |
@@ -64,12 +64,28 @@ distinto de `CERRADO`.
 
 | Prioridad | Id |
 |---|---|
-| P0 | `PATIENT-TELE-002` — el enlace de videoconsulta por WhatsApp sigue sin token |
-| P1 | `PATIENT-PORTAL-001` · `A11Y-GATE-001` · `NAV-NAVEGADOR-001` |
+| P0 | **ninguno** |
+| P1 | `NAV-NAVEGADOR-001` — seis comprobaciones que sólo un navegador puede resolver |
 
 > `POSTVISIT-GATE-001` y `POSTVISIT-ENTREGA-001` se cerraron el 27-ago-2026 con
 > `POSTVISIT-001` (REG-335): la compuerta de firma vive en el servidor y lo
 > liberado llega al portal del paciente por un camino recorrido de punta a punta.
+
+> **`PATIENT-TELE-002` se cerró el 2-sep-2026 sin reparar nada**, y merece
+> decirse: **el renglón estaba desfasado, no el producto.** Describía
+> `api/cron/reminders` llamando a `dondeEsLaCita` sin `tokenPaciente`, y ese
+> llamador acuña el token desde `5ea8d03`. Los dos `''` que quedan en
+> `whatsapp/webhook` son una decisión escrita —el bot agenda con semanas de
+> antelación y un token muerto el día de la consulta contesta 404 «tu cita no
+> existe», que es peor que no mandar enlace—. 35 casos en verde lo cubren.
+>
+> Es la advertencia de `GP-FINAL` aplicada al propio backlog: **antes de creerle
+> a algo que dice que el producto está roto, hay que descartar que lo roto sea
+> el instrumento.** Un P0 fantasma cuesta lo mismo que uno real: bloquea el
+> criterio de terminación y manda a la siguiente sesión a reparar lo reparado.
+
+> `PATIENT-PORTAL-001` y `A11Y-GATE-001` ya constan `CERRADO` en `BACKLOG.json`
+> y se retiran de esta lista, que llevaba nombrándolos desde que se escribió.
 
 Un P1 sólo deja de bloquear si el **dueño** lo acepta por escrito en
 `OWNER_DECISIONS_REQUIRED.md` como riesgo residual: aceptar riesgo residual
@@ -92,7 +108,7 @@ Las de §QUALITY GATES, cada una con su evidencia y su fecha:
 | **browser workflow** | ❌ no ejecutado — `NAV-NAVEGADOR-001` |
 | security review | ✅ vigente |
 | patient-safety review | ✅ vigente |
-| **patient-AI red team** | ❌ no existe — llega con `PATIENT-AI-001`, con los 12 casos de la especificación como fixture permanente |
+| **patient-AI red team** | ◐ **existe y corre** desde `PATIENT-AI-001` (2-sep-2026): `evals/patient-ai/casos.json`, 29 casos —los 12 de la especificación más 17 del equipo rojo— contra los módulos deterministas, en cada `vitest run`. **Limitado a propósito, y hay que decirlo**: mide lo que el sistema hace ANTES de dejar redactar, no lo que un modelo redacta. Cubre 4 de las 5 clases del §2; la quinta (`EDUCATIONAL_EXPLANATION`) no tiene implementación y el golden lo comprueba en vez de fingirlo |
 
 **Ninguna compuerta puede declararse aprobada sin haberse ejecutado.** La
 especificación lo prohíbe con todas las letras: *«claim validation not actually

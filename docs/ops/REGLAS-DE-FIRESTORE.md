@@ -57,10 +57,13 @@ Que ese paso no se pueda borrar en silencio lo vigila
 Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
-**Hoy está vacía**: el sello y `firestore.rules` coinciden, así que no hay ninguna
-regla escrita esperando a regir. No se escribe una fila «ninguna» — una tabla con
-una fila de relleno vuelve a hacer fallar al guardián, y con razón: no sabe leer
-intenciones, cuenta filas.
+| Regla | Qué NO rige hoy | Consecuencia mientras tanto |
+|---|---|---|
+| `clinics/{id}/patients/{pid}/preguntas_paciente/{doc}` | El `match` nuevo de V9 `PATIENT-AI-001` (`read: isMedico`, `write: if false`) | **Sin exposición de acceso, y conviene decir por qué.** La colección cae en el comodín de denegación de la raíz, así que hoy ningún cliente la lee ni la escribe — tampoco el médico. Quien escribe es el servidor con Admin SDK, que se salta las reglas, así que el portal del paciente funciona igual. Lo que no rige hasta desplegar es la **lectura del consultorio** por SDK de cliente: la pantalla donde el médico vea lo que preguntaron sus pacientes no traerá nada. Hoy esa pantalla no existe, así que el hueco es teórico; deja de serlo el día que alguien la escriba, y entonces parecerá un defecto de la pantalla |
+
+Mientras esta fila esté aquí, `firestore.rules` tiene una regla escrita que no
+protege ni habilita nada en producción. Se despliega con el botón de producción
+(`npx firebase deploy --only firestore:rules`), y eso es decisión del dueño.
 
 ## Lo que se desplegó, y cuándo
 

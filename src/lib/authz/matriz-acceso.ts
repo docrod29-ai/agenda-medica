@@ -148,6 +148,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'El paquete de la visita: lo que el paciente puede LEER de su consulta, compuesto de material ya firmado (V9 PATIENT-COMPANION-001). Lo escribe el servidor y nadie más: liberar un paquete es un acto de aprobación clínica, y si el navegador pudiera escribirlo, cualquiera con el token del portal podría poner `estado: RELEASED` sobre un borrador. El paciente NO lo lee directo de Firestore — lo sirve /api/portal tras comprobar `visibleParaElPaciente`, igual que el resto de su superficie.',
   },
   {
+    ruta: 'clinics/{clinicId}/patients/{docId}/preguntas_paciente/{docId}',
+    clase: 'clinico',
+    guardaLectura: 'isMedico',
+    guardaEscritura: 'servidor',
+    porQue: 'Lo que el paciente preguntó por el portal, con la clase del §2 de patient-facing-ai que le puso el servidor (V9 PATIENT-AI-001). Lo escribe el servidor y nadie más, y la razón es la CLASE: si el navegador pudiera escribir aquí, quien tuviera el token del portal podría guardar su pregunta ya marcada ANSWER_FROM_APPROVED_PLAN y fabricarse la constancia de que el sistema le contestó algo que nunca le contestó. Clasificar exige ver el plan liberado, y eso sólo lo ve el servidor. Es secreto médico —el texto de la pregunta habla de síntomas y medicamentos—, así que la lectura es isMedico, no isMember. El paciente ve su propio historial por /api/portal, filtrado por su patientId.',
+  },
+  {
     ruta: 'clinics/{clinicId}/patients/{docId}/formularios_previos/{docId}',
     clase: 'clinico',
     guardaLectura: 'isMedico',
