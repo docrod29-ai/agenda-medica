@@ -26,6 +26,7 @@ This register prevents implicit decisions and context drift. Product assertions 
 | D-020 | Voice/AI must robustly handle Spanish, English, Spanglish, accents, abbreviations, medications, doses, labs, specialty and ICU terminology, background noise, self-corrections, and disorganized speech. | ACCEPTED |
 | D-021 | AI may use clinical context to rapidly repair uncertain acoustic recognition, but uncertainty must remain explicit and no uncertain reconstruction may be silently converted into clinical fact. | ACCEPTED |
 | D-022 | Voice release criteria must include accuracy, clinically significant error/omission rates, latency, contextual recovery quality, unnecessary-repeat rate, physician edit time, and physician satisfaction. | ACCEPTED |
+| D-023 | Second-factor (TOTP) scope is FINAL: enforced on the owner console only, voluntary everywhere else, and never on the clinical path — requiring a phone to write a note is friction that buys no additional protection. Owner decision, 3-sep-2026. | ACCEPTED |
 
 ## Conflict rule
 If repository prose, stale Control Plane state, or an agent output conflicts with this canonical product context, do not silently reconcile it. Classify the conflict as CONFLICTIVO/UNKNOWN as appropriate and escalate only when it blocks safe execution.
