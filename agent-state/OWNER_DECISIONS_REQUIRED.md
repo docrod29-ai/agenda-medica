@@ -118,7 +118,28 @@ borrado automático.
 
 **Qué cuesta responder**: una frase.
 
-## CLÍNICA/OPERACIÓN · Política de correcciones a un registro ya hecho
+## CLÍNICA/OPERACIÓN · Política de correcciones a un registro ya hecho — **RESUELTA 4-sep-2026 (D-026)**
+
+> **Contestada por el dueño**, las cuatro preguntas:
+>
+> | | |
+> |---|---|
+> | Quién corrige | médico · enfermería · laboratorio · farmacia — cada quien lo suyo |
+> | Quién **anula** una administración | médico · enfermería |
+> | Ventana | **24 h**, y nunca tras el egreso |
+> | Motivo escrito | se pide y se marca en ámbar, **no bloquea** |
+>
+> Escrita en `src/lib/hospital/eventos.ts` → `POLITICA_CORRECCION`, y fijada por
+> `hospital-eventos-append-only.test.ts` para que nadie la «corrija» a lo que se
+> le había recomendado: en dos de los cuatro campos eligió distinto.
+>
+> **Lo que sigue faltando, y no es la política**: `validarCorreccion` no tiene
+> llamador. Falta el caso `corregir` en `api/hospital/mutar/route.ts` y la
+> pantalla. Es trabajo de **Hospital/UCI**, en ALPHA y no a la venta, así que no
+> compite con el consultorio. Declarado en `SIN_CABLEAR_CORRECCION`.
+
+<details><summary>El planteamiento original, conservado</summary>
+
 
 **Encontrado por el instrumento de REG-255** (`validarCorreccion`, 18 líneas de
 cuerpo real, sin llamador). **No es un defecto de software**: la función exige
@@ -145,6 +166,8 @@ NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
 no hace.
 
 **Qué cuesta responder**: cuatro frases.
+
+</details>
 
 ---
 
