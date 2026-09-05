@@ -55,7 +55,7 @@
  *       node scripts/calidad/motores-conectados.mjs --json
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, dirname } from 'node:path'
 
 const RAIZ = process.cwd()
 
@@ -75,6 +75,8 @@ const DOMINIOS = [
 ]
 
 const esPrueba = (p) => p.includes('__tests__') || /\.test\.tsx?$/.test(p)
+/** ¿Vive en `scripts/`? Un guion llama, pero no es el camino del médico. */
+const esGuion = (p) => p.includes('/scripts/')
 
 function archivosTs(dir, acc = []) {
   let entradas
@@ -88,12 +90,52 @@ function archivosTs(dir, acc = []) {
   return acc
 }
 
-/** Todo el árbol que PODRÍA llamar: app, components, hooks, lib. */
+/**
+ * Archivos de `scripts/`, que no son sólo `.ts`: casi todos son `.mjs`.
+ * `archivosTs` filtra por extensión de TypeScript y los dejaría fuera.
+ */
+function archivosDeGuion(dir, acc = []) {
+  let entradas
+  try { entradas = readdirSync(dir) } catch { return acc }
+  for (const e of entradas) {
+    const p = join(dir, e)
+    if (statSync(p).isDirectory()) archivosDeGuion(p, acc)
+    else if (/\.(mjs|cjs|js|tsx?)$/.test(e)) acc.push(p)
+  }
+  return acc
+}
+
+/**
+ * Todo el árbol que PODRÍA llamar: app, components, hooks, lib — y `scripts/`.
+ *
+ * ── POR QUÉ ENTRA `scripts/` (5-sep-2026, junto a REG-512) ──────────────────
+ *
+ * Sin él, una función llamada ÚNICAMENTE desde un guion salía como «sin ningún
+ * uso», y eso es literalmente falso: alguien la llama.
+ *
+ * El caso: `leerConsulta`, de `lo-que-pesa-de-un-error.ts` —el módulo que mide
+ * cuánto pesa clínicamente un error de transcripción—. Lo llama
+ * `scripts/medir-wer-limpio.ts` en su línea 131, que es el guion que produce
+ * `docs/voice/WER-MEDIDO.md`. Salía denunciado como muerto el instrumento con el
+ * que se mide la voz.
+ *
+ * ── PERO NO ES RAÍZ DE ALCANZABILIDAD, Y ESO ES A PROPÓSITO ─────────────────
+ *
+ * Las semillas del recorrido siguen siendo `app/`, `components/` y `hooks/`. Un
+ * guion NO es el camino del médico: que algo se llame desde una herramienta de
+ * medición no significa que corra en la consulta. Así que `leerConsulta` deja de
+ * ser «sin ningún uso» —porque no lo es— y pasa a «sin llegar al médico», que es
+ * exactamente lo que es y lo que había que poder distinguir.
+ *
+ * Decir «nadie la llama» cuando alguien la llama es la misma clase de error que
+ * REG-512: el instrumento acusando en falso.
+ */
 const universo = [
   ...archivosTs(join(RAIZ, 'src/app')),
   ...archivosTs(join(RAIZ, 'src/components')),
   ...archivosTs(join(RAIZ, 'src/hooks')),
   ...archivosTs(join(RAIZ, 'src/lib')),
+  ...archivosDeGuion(join(RAIZ, 'scripts')),
 ].filter(p => !esPrueba(p))
 
 const contenido = new Map(universo.map(p => [p, readFileSync(p, 'utf8')]))
@@ -113,14 +155,43 @@ const RE_EXPORT_FN = /^export\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm
  * llamado que esté desde dentro de su propia carpeta.
  */
 function moduloDeImport(desde, spec) {
-  if (spec.startsWith('@/')) {
-    const base = join(RAIZ, 'src', spec.slice(2))
-    for (const ext of ['.ts', '.tsx', '/index.ts', '/index.tsx']) {
-      const c = base + ext
-      if (contenido.has(c)) return c
-    }
+  let base = null
+  if (spec.startsWith('@/')) base = join(RAIZ, 'src', spec.slice(2))
+  /*
+   * LAS RELATIVAS TAMBIÉN CUENTAN — arreglado el 5-sep-2026.
+   *
+   * Esta función sólo resolvía `@/…` y devolvía `null` para `./x` y `../x`. El
+   * recorrido desde las pantallas se paraba en la PRIMERA importación relativa,
+   * y todo lo que colgaba debajo quedaba marcado «sin llegar al médico».
+   *
+   * Se descubrió con `crossResistenciaFQ` y `fenotiposExcepcionales` (EUCAST,
+   * antibiograma). La cadena real es:
+   *
+   *   app/(dashboard)/antibiograma/page.tsx
+   *     → '@/lib/expediente/antibiograma'        ← se seguía
+   *     → index.ts: export … from './motor'      ← se PARABA aquí
+   *     → motor.ts: import … from './seguridad'
+   *
+   * O sea: el módulo que más le importa al médico dueño salía denunciado como
+   * muerto, y es de los que mejor conectados están. Tercer falso positivo de
+   * este mismo medidor, y el más caro de los tres: los dos anteriores contaban
+   * de MÁS —tapaban huérfanos—, éste cuenta de MENOS y denuncia a inocentes.
+   *
+   * Un instrumento que acusa en falso enseña a ignorar sus acusaciones, que es
+   * exactamente el fallo que este archivo existe para no cometer.
+   *
+   * LO QUE SIGUE SIN HACER: no resuelve importaciones de paquete (`react`,
+   * `firebase/…`) ni rutas con comillas dobles o backtick. Lo primero es
+   * correcto —no son módulos de este árbol—; lo segundo es una limitación real
+   * y el repositorio escribe sus importaciones con comilla simple.
+   */
+  else if (spec.startsWith('.')) base = join(dirname(desde), spec)
+  if (!base) return null
+  for (const ext of ['.ts', '.tsx', '/index.ts', '/index.tsx']) {
+    const c = base + ext
+    if (contenido.has(c)) return c
   }
-  return null
+  return contenido.has(base) ? base : null
 }
 
 const alcanzables = new Set()
@@ -176,6 +247,7 @@ const huerfanas = []
 const envoltorios = []
 const conCuerpo = []
 const inalcanzables = []
+const soloHerramienta = []
 let total = 0
 
 for (const dom of DOMINIOS) {
@@ -192,12 +264,24 @@ for (const dom of DOMINIOS) {
          siempre está, y contarla haría que todo pareciera usado.
          Se cuenta SIN COMENTARIOS: nombrarlo en un comentario no es usarlo. */
       const enElSuyo = (sinComentarios(texto).match(re) ?? []).length > 1
-      let fuera = false
+      /*
+       * Se distingue QUIÉN lo llama, no sólo SI alguien lo llama.
+       *
+       * Un símbolo cuyo único llamador es un guion de `scripts/` no está muerto
+       * —decir «sin ningún uso» sería falso— pero tampoco corre en la consulta.
+       * Antes de separarlo caía en un tercer sitio, peor que los otros dos:
+       * DESAPARECÍA del informe. Un motor invisible es exactamente lo que este
+       * archivo existe para que no ocurra.
+       */
+      let fueraEnProducto = false
+      let fueraEnGuion = false
       for (const [p, t] of contenido) {
         if (p === archivo) continue
-        if (new RegExp(`\\b${simbolo}\\b`).test(sinComentarios(t))) { fuera = true; break }
+        if (!new RegExp(`\\b${simbolo}\\b`).test(sinComentarios(t))) continue
+        if (esGuion(p)) fueraEnGuion = true
+        else { fueraEnProducto = true; break }
       }
-      if (!enElSuyo && !fuera) {
+      if (!enElSuyo && !fueraEnProducto && !fueraEnGuion) {
         const id = `${relative(RAIZ, archivo)}::${simbolo}`
         huerfanas.push(id)
         /**
@@ -223,16 +307,19 @@ for (const dom of DOMINIOS) {
         const cuerpo = cuerpoDe(texto, simbolo)
         if (cuerpo !== null && cuerpo <= 3) envoltorios.push(id)
         else conCuerpo.push(id)
-      } else if (!llegaAlMedico && !fuera) inalcanzables.push(`${relative(RAIZ, archivo)}::${simbolo}`)
+      } else if (!fueraEnProducto && fueraEnGuion) {
+        soloHerramienta.push(`${relative(RAIZ, archivo)}::${simbolo}`)
+      } else if (!llegaAlMedico && !fueraEnProducto) inalcanzables.push(`${relative(RAIZ, archivo)}::${simbolo}`)
     }
   }
 }
 inalcanzables.sort()
+soloHerramienta.sort()
 
 huerfanas.sort()
 
 if (process.argv.includes('--json')) {
-  console.log(JSON.stringify({ total, huerfanas, envoltorios, conCuerpo, inalcanzables }, null, 2))
+  console.log(JSON.stringify({ total, huerfanas, envoltorios, conCuerpo, inalcanzables, soloHerramienta }, null, 2))
 } else {
   console.log(
     `\n  Motores clínicos y de seguridad: ${total} funciones exportadas.\n` +
@@ -244,5 +331,9 @@ if (process.argv.includes('--json')) {
     `\n  SIN LLEGAR AL MÉDICO (sólo se usan dentro de un módulo que ninguna\n` +
     `  pantalla alcanza): ${inalcanzables.length}\n`)
   for (const h of inalcanzables.slice(0, 40)) console.log(`     · ${h}`)
+  console.log(
+    `\n  SÓLO LO LLAMA UNA HERRAMIENTA (un guion de scripts/, no la consulta):\n` +
+    `  ${soloHerramienta.length}\n`)
+  for (const h of soloHerramienta.slice(0, 40)) console.log(`     · ${h}`)
   console.log('')
 }
