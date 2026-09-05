@@ -3,6 +3,36 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-05-v1181.md`](PAQUETE-PRODUCCION-2026-09-05-v1181.md).
+
+**3 commits desde v1180** (2 de trabajo + 1 de fusión) · 13 archivos ·
++530 / −40 · **3 de código de producto** · cero regresiones cerradas, cero rutas
+de API, cero pantallas nuevas, `firestore.rules` sin tocar.
+
+Dos peticiones del dueño mirando la pantalla de Operaciones, y las dos son la
+misma idea: **que el índice no compita con el trabajo del día**.
+
+**Hospital y UCI salen de la navegación** (D-030). Dos productos en ALPHA —se
+usan, no se venden— encabezando el índice por delante de la consulta y su
+agenda. Pausar no es borrar: las rutas siguen vivas, las pantallas y los motores
+intactos, y las filas del menú siguen escritas con su etiqueta y su «para qué».
+Se reactiva vaciando una lista. No es una defensa de seguridad: el entitlement
+sigue siendo quien decide el acceso.
+
+**El resto de la administración pasa a un cajón** (D-031). Nueve destinos de
+negocio, cumplimiento y documentos ocupaban dos pantallazos antes de lo que se
+usa a diario. Ahora esperan tras «Ver la gestión del consultorio», enteros y a
+un clic. El botón cuenta sus destinos de lo que va a pintar —ya filtrado por
+modo, por módulo y por la pausa—, así que no puede prometer de más.
+
+Ordenar por cadencia ya no bastaba: el problema no era el ORDEN, era la
+CANTIDAD visible de golpe.
+
+---
+
 ## v1180 — el paciente ya puede preguntar, y seis defectos que sólo se veían al ir a ejecutarlos
 
 **PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
