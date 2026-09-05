@@ -179,6 +179,8 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
    * decidir qué se le enseña al paciente como aprobado por su médico (POSTVISIT-001).
    */
   'expediente/paquete-de-visita': { tipo: 'capacidad', capacidad: 'firmar' },
+  // REG-516: marca atendida la pregunta del paciente al cerrar su tarea. Un campo, tres ids, ni un dato del cuerpo al documento.
+  'expediente/pregunta-atendida': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/atribuir-roles': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },

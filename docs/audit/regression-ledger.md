@@ -18855,3 +18855,65 @@ comentarios intactos ponen rojo el detector; el comentario largo entre
   `AUSCULTA-ULTRA-READINESS.md` §3 y no se arreglaron aquí.
 - **`autorizacion-servidor.test.ts`**, cuyo doble ignora el id del documento
   (la frontera del Admin SDK). Hallazgo #3 del mismo informe, abierto.
+
+## REG-516 · La pregunta atendida seguía «pendiente de revisar» en el portal del paciente
+
+**CÓMO SE DESCUBRIÓ.** Lo declaró REG-514 en su «qué NO cubre», el mismo día:
+la tarea `pregunta_paciente` se cierra en `/pendientes` con su decisión, y el
+portal del paciente sigue diciendo «Tu consultorio la tiene pendiente de
+revisar» para siempre. `atendidaEn` nacía en `null` y **ningún código lo
+escribía**; la rama «ya la revisó» del portal era código muerto. Es la mitad
+de vuelta del bucle: la ida (paciente → consultorio) la cerró 514; ésta es la
+vuelta (consultorio → paciente).
+
+### La causa raíz
+
+`preguntas_paciente` está cerrada al navegador a propósito (`write: if false`):
+sólo escribe el servidor, con lista blanca. No había ninguna puerta de servidor
+para el cierre, y la pantalla que cierra la tarea es del navegador. Abrir un
+`update` desde el navegador para un solo campo habría exigido desplegar reglas
+—acción del dueño— y habría abierto una segunda puerta de escritura a una
+colección que sólo tenía una.
+
+### El arreglo
+
+1. **Una ruta de servidor**, `expediente/pregunta-atendida`, bajo
+   `clinico.escribir`: quien puede cerrar una tarea clínica puede dar por
+   atendida la pregunta que la abrió; el mostrador no. Del cuerpo sólo entran
+   tres identificadores con forma validada; el instante lo pone el servidor y
+   el uid sale de la sesión. Se escriben **dos** campos (`atendidaEn`,
+   `atendidaPor`) y nada del cuerpo llega al documento.
+2. **Idempotente**: si ya estaba atendida, no se pisa el instante original y
+   se responde `yaEstaba`. Un doble clic o un reintento no reescriben la
+   historia. Una pregunta que no existe → 404 sin más detalle.
+3. **`/pendientes` la llama después de cerrar**, sólo para tareas
+   `pregunta_paciente` con `preguntaId` (la traza que REG-514 dejó puesta), y
+   si falla **lo dice** con un aviso: la tarea queda cerrada igual y nadie cree
+   que el portal ya cambió.
+4. Declarada en `registro-rutas.ts`; los tres contadores congelados del
+   guardián de rutas suben con su porqué; entra a la lista congelada de rutas
+   que tocan `patients`.
+
+Lo que NO hace: no le contesta al paciente. Marcar atendida es constancia;
+contestar sigue siendo una llamada o una consulta.
+
+### Prueba
+
+`src/__tests__/la-pregunta-atendida-se-ve-en-el-portal.test.ts` (9 casos):
+la ruta ejecutada de verdad con un doble de Firestore que captura cada
+escritura —lista blanca de dos campos, idempotencia, 403 al mostrador y a otro
+consultorio, 404 sin escribir, 400 por forma— y un guardián de la pantalla con
+los comentarios quitados. **Probado al revés**: con `/pendientes` como estaba
+antes de este cambio, el guardián se pone rojo («al cerrar la tarea de una
+pregunta nadie avisa al servidor»).
+
+### Qué NO cubre
+
+- **No renderiza `/pendientes` ni el portal.** La ruta se ejecuta; la pantalla
+  se vigila por fuente. El recorrido en Chromium contra el emulador —preguntar,
+  cerrar, volver al portal y leer «ya la revisó»— es el que cierra de verdad la
+  frase 5 de la vara del paciente, y queda para el tramo de navegador.
+- **No hay plazo**: el paciente sabe si se atendió, no cuándo se atenderá.
+  Fijar cuánto puede esperar una pregunta es política del consultorio.
+- **`atendidaPor` no sale al portal** (la lista blanca de `case 'preguntas'`
+  no lo incluye) y no debe: es traza interna.

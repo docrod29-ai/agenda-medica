@@ -64,6 +64,7 @@ import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 import { siguientePaso } from '@/lib/tareas-clinicas/por-que-esta-aqui'
+import { marcarPreguntaAtendida, tareaConPregunta } from '@/lib/paciente/marcar-pregunta-atendida'
 import { DisparadorPorQue, LentePorQue, usePorQue } from '@/components/tareas/PorQueEstaAqui'
 import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -439,6 +440,16 @@ export default function PendientesPage() {
     const r = await cambiarEstado(clinicId, t, nuevo, extra)
     if (!r.ok) { toast(r.motivo, 'error'); return }
     toast(nuevo === 'cerrada' ? 'Cerrada' : 'Actualizada', 'success')
+    /**
+     * REG-516 — cerrar la tarea de una PREGUNTA del paciente marca la pregunta
+     * como atendida, para que su portal deje de decir «pendiente de revisar».
+     * Después del cierre, no antes: la constancia de la decisión es lo que
+     * manda. Y si no se pudo marcar, se DICE — la tarea queda cerrada igual.
+     */
+    if (nuevo === 'cerrada' && tareaConPregunta(t)) {
+      const m = await marcarPreguntaAtendida(clinicId, t.patientId, t.preguntaId)
+      if (!m.ok) toast(m.motivo, 'error')
+    }
     setRecarga(n => n + 1)
   }, [clinicId, toast])
 

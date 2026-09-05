@@ -1,16 +1,16 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados (REG-512…515)**
+## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados (REG-512…516)**
 
 ```
 CURRENT_BRANCH=claude/ausculta-preservation-improvement-44lutz
-CURRENT_HEAD=bf0cb30 (+ este commit)
+CURRENT_HEAD=(este commit)
 CURRENT_PR=(sin PR: el dueño no lo pidió; la rama está en origin con 4 slices, cada uno con sus compuertas en el mensaje del commit)
-CURRENT_WORKSTREAM=Programa del pliego del 5-sep: UNDERSTAND → MEASURE → PRESERVE → IMPROVE. Fase 0 (reconciliación) y Fase 2 (P0/P1) — sin P0; cuatro P1 confirmados y cerrados, uno a medias
-LAST_COMPLETED_UNIT=REG-515 — el guardián del paciente equivocado se satisfacía con un comentario (sellado, con autotest contra mutantes)
-CURRENT_PARTIAL_UNIT=P1-C segunda mitad: cerrar una tarea `pregunta_paciente` desde /pendientes debe marcar `atendidaEn` en la pregunta por una RUTA DE SERVIDOR (las reglas cierran `preguntas_paciente` al navegador). `preguntaId` ya viaja en la tarea (REG-514)
-EXACT_NEXT_ACTION=(1) ruta de servidor `POST /api/expediente/pregunta-atendida` (o acción en una ruta autenticada existente) con `verificarCapacidad(clinico.escribir)` y lista blanca de UN campo, declarada en `registro-rutas.ts`; (2) en `/pendientes`, al cerrar una tarea `pregunta_paciente`, llamarla con `tarea.preguntaId`; (3) prueba que caiga si el cierre no toca `atendidaEn`; (4) después, portar PR #442 con números nuevos (sus REG-444 y REG-506 ya los gastó main), y los tres siguientes del test-the-test (autorizacion-servidor, csp-manifest, el-llm-no-calcula). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
-FILES_IN_SCOPE=src/app/api/portal/route.ts · src/lib/tareas-clinicas/{modelo,de-una-pregunta,estado-de-accion,por-que-esta-aqui}.ts · src/app/(dashboard)/pendientes/page.tsx · src/lib/authz/registro-rutas.ts
+CURRENT_WORKSTREAM=Programa del pliego del 5-sep: UNDERSTAND → MEASURE → PRESERVE → IMPROVE. Fase 0 (reconciliación) y Fase 2 (P0/P1) — sin P0; los cuatro P1 confirmados, cerrados
+LAST_COMPLETED_UNIT=REG-516 — la pregunta atendida se ve en el portal (ruta de servidor `expediente/pregunta-atendida` + gancho al cerrar en /pendientes)
+CURRENT_PARTIAL_UNIT=(ninguna)
+EXACT_NEXT_ACTION=Receta, verificando primero cada hallazgo en el código antes de tocarlo: (1) `labsDelCuadro` e `interaccionesDelCuadro` (REG-188) llegan a la consulta y NO a `receta/[patientId]/[notaId]/page.tsx` — cablear la misma entrada; (2) `edad` ausente apaga la red pediátrica en silencio — declararlo en pantalla, sin inventar edad; (3) `auditoria/registrar` trunca `meta` a 2000 y si el JSON queda partido descarta el hash del impreso — que falle visible. Después: port de PR #442 con números nuevos; test-the-test (autorizacion-servidor, csp-manifest, el-llm-no-calcula). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
+FILES_IN_SCOPE=src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx · src/lib/expediente/laboratorio/lo-que-ya-esta-medido.ts · src/lib/seguridad/farmacovigilancia.ts · src/app/api/auditoria/registrar/route.ts
 FILES_LOCKED=(ninguno — un solo writer)
 TESTS_PASSED=12634
 TESTS_FAILED=1
@@ -18,9 +18,9 @@ KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — el proxy del co
 BUILD=163/163 con los placeholders NEXT_PUBLIC_FIREBASE_* del CI
 LINT=94 (techo)
 P0_OPEN=(ninguno; cross-tenant refutado en las 99 rutas)
-P1_OPEN=P1-C segunda mitad (atendidaEn). Receta: terapia duplicada, red pediátrica apagada en silencio, creatinina del expediente que no llega a la receta, hash de lo impreso que se pierde al truncar `meta` — reportados por medication-safety, no verificados por el orquestador, en la cola tras P1-C
+P1_OPEN=(ninguno confirmado). Receta: terapia duplicada, red pediátrica apagada en silencio, creatinina del expediente que no llega a la receta, hash de lo impreso que se pierde al truncar `meta` — reportados por medication-safety, NO verificados por el orquestador todavía
 BLOCKED_EXTERNAL=reglas de Firestore sin desplegar · WebKit/iPhone · PITR y restore real · pentest · licencias de evidencia · llave AssemblyAI local. B-12 YA NO: el emulador de Firebase arranca en este contenedor (comprobado el 5-sep)
-DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest)
+DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida)
 ```
 
 ### Qué se hizo en esta sesión, en orden
@@ -38,6 +38,8 @@ DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de 
    `/pendientes` aunque no haya teléfono.
 6. **REG-515** — el guardián del paciente equivocado se probaba contra un
    comentario; ahora contra sus mutantes.
+7. **REG-516** — cerrar la tarea de una pregunta marca la pregunta atendida:
+   el portal del paciente deja de decir «pendiente» para siempre.
 7. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
    en código y todo lo abierto con archivo y línea.
 

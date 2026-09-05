@@ -451,8 +451,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * teléfono, nada; y ninguna pantalla leía la colección. El producto ya
      * tenía el worklist donde un humano mira lo que espera decisión, y la
      * pregunta no entraba ahí. Había llamador — no por todos los caminos.
+     *
+     * 516 es la vuelta del mismo bucle: el portal tenía la rama «ya la
+     * revisó» escrita y `atendidaEn` no lo escribía nadie, porque la colección
+     * está cerrada al navegador y no existía puerta de servidor. Escrito,
+     * leído, y sin nadie que lo llenara.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 512, 513, 514],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 512, 513, 514, 516],
   },
   {
     clave: 'se_contradice',
