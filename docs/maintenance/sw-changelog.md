@@ -3,6 +3,33 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1180 — el paciente ya puede preguntar, y seis defectos que sólo se veían al ir a ejecutarlos
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-04-v1180.md`](PAQUETE-PRODUCCION-2026-09-04-v1180.md).
+
+**97 commits desde v1179** · 374 archivos · +20 229 / −1 598 · **73 de código de
+producto** · **22 regresiones cerradas**. Cero rutas de API nuevas, cero
+pantallas nuevas.
+
+**Este paquete toca `firestore.rules`, y es lo único que no se publica solo.**
+Entra la colección `preguntas_paciente` —lo que el paciente le pregunta a su
+médico, con la clase que le puso el servidor—. Mientras no se despliegue, esa
+colección cae en el comodín de denegación y quien escribe es el servidor con
+Admin SDK: **no hay hueco abierto, hay una regla explícita que aún no rige**.
+
+Lo demás: el destino «Preguntar» del portal deja de ser un párrafo que dice
+«llame por teléfono» y pasa a clasificar y escalar **sin modelo de lenguaje** —
+lo que responde es una cadena que ya venía en el paquete que el médico liberó—;
+seis defectos que se leían correctos y no lo eran (un despliegue que anunciaba
+índices sin mandarlos, un acta de seguridad publicando «cero vulnerabilidades»
+sobre 21, y un documento que mandaba activar una casilla de GitHub que habría
+dejado `main` cerrada para siempre); ocho superficies del médico miradas en un
+teléfono; y seis decisiones del dueño que no cambian comportamiento pero cierran
+preguntas abiertas.
+
+---
+
 ## v1179 — la durabilidad del expediente, la firma de la receta, y los índices que nunca se publicaron
 
 **Publicado el 1-sep 23:51 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #15).
