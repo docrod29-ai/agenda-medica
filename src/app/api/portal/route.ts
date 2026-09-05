@@ -29,6 +29,7 @@ import {
 } from '@/lib/paciente/pregunta-del-paciente'
 import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { tareaDeUnaPregunta, idDeTareaDePregunta } from '@/lib/tareas-clinicas/de-una-pregunta'
 import type { Patient } from '@/types'
 
 /**
@@ -880,12 +881,52 @@ export async function POST(req: NextRequest) {
           .add(doc)
 
         /**
+         * LA ESCALACIÓN LLEGA AL WORKLIST, HAYA TELÉFONO O NO — REG-514.
+         *
+         * Hasta hoy el consultorio se enteraba de una pregunta escalada SÓLO
+         * por el WhatsApp de abajo, y ese WhatsApp sólo se intentaba si había
+         * un teléfono configurado. Ninguna pantalla lee `preguntas_paciente`.
+         * En un consultorio sin `whatsappConsultorio` ni `telefonoAdmin` —el
+         * estado de una prueba recién abierta— «me falta el aire» se escribía
+         * en el expediente, no avisaba a nadie, no dejaba rastro en ningún
+         * sitio del producto, y al paciente se le decía «el consultorio la va
+         * a ver».
+         *
+         * Ahora la pregunta escalada abre una tarea en `tareas_clinicas`, que
+         * es lo que `/pendientes` ya lista y agrupa por urgencia. Se escribe
+         * ANTES del WhatsApp y SIN condicionarla al teléfono: el WhatsApp es el
+         * aviso; el worklist es el rastro. Id derivado de la pregunta, así que
+         * un reintento no abre dos. Y con `merge`, por si el médico ya la
+         * movió cuando llegue un reintento tardío.
+         *
+         * Si esta escritura lanza, cae al `catch` de la ruta igual que la de
+         * la pregunta: el paciente ve un error honesto, no una promesa falsa.
+         */
+        if (r.avisarAlConsultorio) {
+          const tarea = tareaDeUnaPregunta({
+            clinicId,
+            patientId,
+            patientNombre: paciente?.nombre ?? undefined,
+            preguntaId: ref.id,
+            clase: r.clase,
+            motivo: r.motivo,
+            texto,
+            ahoraIso: new Date().toISOString(),
+          })
+          await adminDb
+            .collection('clinics').doc(clinicId)
+            .collection('tareas_clinicas').doc(idDeTareaDePregunta(ref.id))
+            .set(tarea, { merge: true })
+        }
+
+        /**
          * EL AVISO NO PUEDE TUMBAR LA RESPUESTA, PERO TAMPOCO PUEDE PERDERSE.
          *
-         * `avisarAlConsultorio` ya deja registro en `whatsapp_outbox` cuando el
-         * envío falla, así que un WhatsApp caído no borra la escalación: la
-         * pregunta está escrita en el expediente pase lo que pase, y el aviso
-         * queda en la cola de no entregados.
+         * `avisarAlConsultorio` deja registro en `whatsapp_no_entregados`
+         * cuando el envío falla (no en `whatsapp_outbox`: esa cola reintenta,
+         * y ésta no —la pregunta ya tiene su tarea, y lo que no llegó queda
+         * dicho). Sin teléfono no se intenta nada, y desde REG-514 eso ya no
+         * significa que nadie se entere.
          */
         if (r.avisarAlConsultorio && telConsultorio) {
           await avisarAlConsultorio(

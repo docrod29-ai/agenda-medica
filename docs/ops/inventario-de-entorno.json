@@ -1315,6 +1315,7 @@
       "defectoDe": "src/lib/receta-diseno-token.ts",
       "archivos": [
         "scripts/carril-excelencia/token-del-portal.mjs",
+        "src/__tests__/la-pregunta-escalada-llega-al-worklist.test.ts",
         "src/__tests__/receta-token.test.ts",
         "src/lib/patient-token.ts",
         "src/lib/receta-diseno-token.ts",

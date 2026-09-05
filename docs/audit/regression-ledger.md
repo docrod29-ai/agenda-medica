@@ -18683,3 +18683,95 @@ ayudante— y ninguna lista literal de claves fuera de la constante: con el
 - **El error clínicamente ponderado** (`lo-que-pesa-de-un-error.ts`) existe y
   está probado, pero su único consumidor es un script que necesita el corpus:
   no corre en ninguna compuerta. Declarado, no cerrado.
+
+## REG-514 · La pregunta escalada del paciente no le llegaba a nadie del consultorio
+
+**CÓMO SE DESCUBRIÓ.** Dos auditorías read-only independientes del 5-sep-2026
+—experiencia del paciente y seguridad— llegaron a la misma línea de
+`/api/portal`: `if (r.avisarAlConsultorio && telConsultorio)`. Siguiendo el
+dato de punta a punta, como manda `el-dato-tiene-que-llegar.md`:
+
+```
+PACIENTE  «Preguntar»            EXISTE
+API       clasifica sin modelo   EXISTE
+FIRESTORE preguntas_paciente     EXISTE  (lista blanca, antes de contestar)
+WHATSAPP  al consultorio         CONDICIONAL: sólo si hay teléfono
+MÉDICO    lector de la colección NO EXISTE en src/app, components, hooks
+MÉDICO    escritor de atendidaEn NO EXISTE (sólo se escribe `null`)
+PACIENTE  «ya la revisó»         RAMA MUERTA
+```
+
+PATIENT-AI-001 (REG-446) lo había declarado a medias: «no hay pantalla del
+médico para lo que se escaló». El hueco era mayor.
+
+**LO QUE PASABA.** En un consultorio sin `whatsappConsultorio` ni
+`telefonoAdmin` —el estado de una prueba de 14 días recién abierta— «Me falta
+el aire desde anoche» se clasificaba `URGENT_REVIEW_REQUIRED`, se escribía en
+el expediente, **no se intentaba ningún aviso** (y por tanto tampoco corría
+`registrarNoEntregado`), ninguna pantalla del producto lo enseñaba, y el
+paciente leía «Ya quedó registrada y el consultorio la va a ver». La regla de
+IA del paciente dice que «la escalación es el producto, no el fallo»; aquí la
+escalación se perdía con la promesa impresa.
+
+Con teléfono no era mucho mejor: un chat sin estado, sin «cerrar», sin vínculo
+al expediente. Y si el envío fallaba, caía a `whatsapp_no_entregados`, que
+tampoco tiene pantalla.
+
+### La causa raíz
+
+Un solo canal, condicional, hacia fuera del producto. El dato acababa en la
+función que lo escribe. Y el producto **ya tenía** el sitio donde un humano del
+consultorio mira lo que espera decisión —`tareas_clinicas`, que `/pendientes`
+lista, agrupa por urgencia y deja cerrar con decisión, acción y aviso
+(REG-360)— y la pregunta no entraba ahí. Familia «escrito, probado y sin
+conectar», en la variante de REG-337: había llamador, pero no por todos los
+caminos por los que entra el dato.
+
+### El arreglo
+
+1. Toda pregunta que el motor escala o marca urgente abre una `TareaClinica`
+   de tipo **`pregunta_paciente`** (nuevo en `modelo.ts`, con etiqueta), escrita
+   por el servidor con Admin SDK **antes** del WhatsApp y **sin condicionarla
+   al teléfono**. El WhatsApp pasa a ser el aviso; **el worklist es el rastro**.
+2. Urgente → `critica`; escalada → `alta`. `pesoUrgencia` se deriva de la
+   prioridad en la puerta, como en `crearTareas`, y no se acepta de fuera. Sin
+   `venceEn`: cuánto puede esperar una pregunta es política del consultorio.
+3. Id derivado (`pregunta__{preguntaId}`) con `merge`: un reintento no abre
+   dos, y no pisa el estado si el médico ya la movió. La tarea lleva
+   `preguntaId`, la traza hacia atrás y lo que permitirá cerrar el bucle.
+4. `estadoDeAccion` la agrupa en **«necesita revisión»**: llegó de fuera y
+   nadie la ha mirado, la misma forma que el resultado por revisar. Dejarla en
+   «otros» la habría puesto al final de la pantalla. `porQueEstaAqui` explica
+   el origen `portal:pregunta`.
+5. El comentario de la ruta que decía que el fallo iba a `whatsapp_outbox`
+   (cola con reintento) se corrige: va a `whatsapp_no_entregados`, que no
+   reintenta.
+
+Lo que NO cambia, a propósito: el texto que ve el paciente y el clasificador,
+con sus 29 fixtures. «El consultorio la va a ver» es verdad desde hoy porque el
+worklist existe.
+
+### Prueba
+
+`src/__tests__/la-pregunta-escalada-llega-al-worklist.test.ts` (8 casos),
+ejecutando la ruta real con un doble de Firestore que **captura** lo que se
+escribe en `tareas_clinicas`, y el `telefonoDelConsultorio` real. **Probado al
+revés** quitando el arreglo de la ruta: 4 rojos (urgente sin teléfono, escalada,
+orden tarea→WhatsApp, dos preguntas dos tareas), 4 verdes (administrativa no
+abre tarea; la función pura). `estado-de-accion.test.ts` gana el caso del tipo
+nuevo.
+
+### Qué NO cubre
+
+- **Cerrar la tarea todavía no marca `atendidaEn`** en la pregunta: el portal
+  sigue diciendo «pendiente de revisar» aunque el médico la haya contestado
+  por teléfono. Las reglas cierran `preguntas_paciente` al navegador, así que
+  el cierre exige una ruta de servidor. Es la unidad siguiente, con nombre.
+- **No hay respuesta del médico al paciente por el portal.** Eso sigue siendo
+  escalación (llamada), no producto de esta unidad.
+- **No mira `/pendientes` en un navegador.** Comprueba que la tarea quede
+  escrita con la forma que esa pantalla lee, no que se pinte. El recorrido en
+  Chromium contra el emulador queda para cuando se cierre el bucle entero.
+- **La pregunta viaja literal por WhatsApp** (300 caracteres + nombre). Es una
+  decisión pendiente del dueño (D-B en `AUSCULTA-ULTRA-READINESS.md`), no
+  se toca aquí.

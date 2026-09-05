@@ -81,6 +81,12 @@ describe('estadoDeAccion — una tarea, un grupo, con motivo', () => {
     expect(estadoDeAccion(tarea({ tipo: 'otra' }), AHORA)).toBe('otros')
   })
 
+  it('pregunta_paciente (REG-514) es necesita_revision: llegó de fuera y nadie la ha mirado, como un resultado', () => {
+    expect(estadoDeAccion(tarea({ tipo: 'pregunta_paciente' }), AHORA)).toBe('necesita_revision')
+    // Y si venció, vencida gana, como con todo lo demás.
+    expect(estadoDeAccion(tarea({ tipo: 'pregunta_paciente', venceEn: AYER }), AHORA)).toBe('vencida')
+  })
+
   it('ORDEN_ESTADO_DE_ACCION y ETIQUETA_ESTADO_DE_ACCION cubren exactamente las mismas seis claves', () => {
     const claves = Object.keys(ETIQUETA_ESTADO_DE_ACCION).sort()
     expect([...ORDEN_ESTADO_DE_ACCION].sort()).toEqual(claves)

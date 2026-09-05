@@ -101,5 +101,15 @@ export function estadoDeAccion(
    */
   if (t.tipo === 'seguimiento') return t.estado === 'agendada' ? 'esperando_paciente' : 'necesita_agendar'
   if (t.tipo === 'receta_por_entregar') return 'esperando_paciente'
+  /**
+   * UNA PREGUNTA ESCALADA ES «LLEGÓ Y NADIE LO HA MIRADO» (REG-514).
+   *
+   * Es la misma forma que el resultado por revisar: un dato que entró de fuera
+   * —aquí del paciente, allí del laboratorio— y espera a que un humano del
+   * consultorio lo lea y decida. No es una categoría nueva: es la que ya existe
+   * para eso. Dejarla en `otros` la habría puesto al final de la pantalla, que
+   * es exactamente donde una pregunta urgente no puede estar.
+   */
+  if (t.tipo === 'pregunta_paciente') return 'necesita_revision'
   return 'otros'
 }

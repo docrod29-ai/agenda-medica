@@ -162,6 +162,9 @@ function porQueEstaAqui(t: Pick<TareaClinica, 'origen' | 'tipo'>): string {
       return 'Lo abrió el laboratorio, no una consulta: hace falta que alguien lo mire.'
     case 'manual':
       return 'Alguien lo abrió a mano en el consultorio.'
+    case 'portal:pregunta':
+      // REG-514. Qué preguntó va en el detalle de la tarjeta; aquí sólo consta quién abrió.
+      return 'La escribió el paciente desde su portal y el motor la escaló: hace falta que alguien del consultorio la conteste.'
     default:
       // No se reparte entre los tres conocidos. Se dice lo que consta.
       return t.origen
