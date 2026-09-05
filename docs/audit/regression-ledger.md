@@ -18499,3 +18499,70 @@ toca nada; con la máquina libre mide 11 y 21.
   otros; no se buscó, y queda dicho en vez de insinuar que se revisaron todos.
 - **No impide correr dos `npm` a la vez.** Impide que eso se convierta en una
   afirmación falsa, que es lo que importaba.
+
+---
+
+## REG-512 · El medidor de «escrito y sin conectar» acusaba en falso al antibiograma
+
+**CÓMO SE DESCUBRIÓ.** Pidiendo el dueño «qué falta para que la app esté bien
+funcionalmente», se corrió `scripts/calidad/motores-conectados.mjs` — el
+instrumento que existe justamente para contestar esa pregunta. Denunció diez
+símbolos «sin llegar al médico», y dos de ellos eran del módulo de antibiogramas:
+
+```
+· src/lib/expediente/antibiograma/seguridad.ts::crossResistenciaFQ
+· src/lib/expediente/antibiograma/seguridad.ts::fenotiposExcepcionales
+```
+
+Se verificó a mano antes de creerle, porque este mismo medidor ya había mentido
+dos veces. La cadena real existe y está entera:
+
+```
+app/(dashboard)/antibiograma/page.tsx
+  → '@/lib/expediente/antibiograma'          (index.ts)
+  → index.ts:  export … from './motor'
+  → motor.ts:  import { analizarSeguridad } from './seguridad'
+  → seguridad.ts:90-91 llama a fenotiposExcepcionales y a crossResistenciaFQ
+```
+
+**CAUSA RAÍZ.** `moduloDeImport()` resolvía **sólo** las importaciones que
+empiezan por `@/`. Para `./x` y `../x` devolvía `null`, así que el recorrido de
+alcanzabilidad desde las pantallas se detenía en la **primera importación
+relativa** y marcaba como muerto todo lo que colgaba por debajo. En este
+repositorio la librería interna se enlaza casi toda con rutas relativas, así que
+el fallo no era de un símbolo: el cubo entero era mentira.
+
+**POR QUÉ ES EL PEOR DE LOS TRES ERRORES DE ESTE MEDIDOR.** Los dos anteriores
+—contar el uso dentro del propio archivo, y contar nombres escritos en
+comentarios— hacían que el instrumento contara de **más** y tapara huérfanos
+reales. Éste cuenta de **menos**: acusa a módulos que sí corren. Un instrumento
+que denuncia a inocentes enseña a ignorar sus denuncias, y entonces deja de
+proteger también en la dirección en la que acertaba. La cabecera de
+`los-motores-llegan-al-medico.test.ts` ya contaba que un falso positivo de este
+mismo medidor casi hizo «reparar» algo que funcionaba, **en este mismo módulo**.
+
+**LA REGLA QUE LO HACE SEGURO.** Se resuelven las relativas contra el directorio
+del archivo que importa, con la misma cascada de extensiones e `index` que las
+absolutas. Tras el arreglo el cubo baja de 10 a 8, y los dos del antibiograma
+desaparecen.
+
+**PRUEBAS.** `los-motores-llegan-al-medico.test.ts`, tres casos nuevos:
+
+1. **De comportamiento** — ningún símbolo de `/antibiograma/` puede aparecer en
+   `inalcanzables`. Es el que de verdad falla si el recorrido se rompe otra vez,
+   sea por donde sea.
+2. **De fuente** — el script resuelve `spec.startsWith('.')` y usa `dirname`.
+3. **Trinquete nuevo** — `inalcanzablesMax: 8`. Ese tercer cubo no tenía tope: se
+   podía llenar sin que nada se pusiera rojo. Se congela **ahora** que el medidor
+   dice la verdad; congelarlo antes habría sellado ocho acusaciones falsas.
+
+**PROBADO AL REVÉS.** Se reintrodujo el defecto (se comentó la línea que resuelve
+las relativas) y se corrió la suite del archivo: **3 rojos de 15**, exactamente
+los tres casos nuevos, y los otros doce en verde. Después se restauró y volvieron
+los quince.
+
+**LO QUE NO CUBRE.** El medidor sigue sin resolver importaciones de paquete
+(`react`, `firebase/…`) —correcto, no son de este árbol— ni rutas escritas con
+comillas dobles o backtick, que es una limitación real y queda declarada en el
+propio archivo. Y sigue sin ser un parser: un símbolo dentro de una cadena de
+texto cuenta como uso.

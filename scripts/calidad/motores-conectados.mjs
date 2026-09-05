@@ -55,7 +55,7 @@
  *       node scripts/calidad/motores-conectados.mjs --json
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, dirname } from 'node:path'
 
 const RAIZ = process.cwd()
 
@@ -113,14 +113,43 @@ const RE_EXPORT_FN = /^export\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm
  * llamado que esté desde dentro de su propia carpeta.
  */
 function moduloDeImport(desde, spec) {
-  if (spec.startsWith('@/')) {
-    const base = join(RAIZ, 'src', spec.slice(2))
-    for (const ext of ['.ts', '.tsx', '/index.ts', '/index.tsx']) {
-      const c = base + ext
-      if (contenido.has(c)) return c
-    }
+  let base = null
+  if (spec.startsWith('@/')) base = join(RAIZ, 'src', spec.slice(2))
+  /*
+   * LAS RELATIVAS TAMBIÉN CUENTAN — arreglado el 5-sep-2026.
+   *
+   * Esta función sólo resolvía `@/…` y devolvía `null` para `./x` y `../x`. El
+   * recorrido desde las pantallas se paraba en la PRIMERA importación relativa,
+   * y todo lo que colgaba debajo quedaba marcado «sin llegar al médico».
+   *
+   * Se descubrió con `crossResistenciaFQ` y `fenotiposExcepcionales` (EUCAST,
+   * antibiograma). La cadena real es:
+   *
+   *   app/(dashboard)/antibiograma/page.tsx
+   *     → '@/lib/expediente/antibiograma'        ← se seguía
+   *     → index.ts: export … from './motor'      ← se PARABA aquí
+   *     → motor.ts: import … from './seguridad'
+   *
+   * O sea: el módulo que más le importa al médico dueño salía denunciado como
+   * muerto, y es de los que mejor conectados están. Tercer falso positivo de
+   * este mismo medidor, y el más caro de los tres: los dos anteriores contaban
+   * de MÁS —tapaban huérfanos—, éste cuenta de MENOS y denuncia a inocentes.
+   *
+   * Un instrumento que acusa en falso enseña a ignorar sus acusaciones, que es
+   * exactamente el fallo que este archivo existe para no cometer.
+   *
+   * LO QUE SIGUE SIN HACER: no resuelve importaciones de paquete (`react`,
+   * `firebase/…`) ni rutas con comillas dobles o backtick. Lo primero es
+   * correcto —no son módulos de este árbol—; lo segundo es una limitación real
+   * y el repositorio escribe sus importaciones con comilla simple.
+   */
+  else if (spec.startsWith('.')) base = join(dirname(desde), spec)
+  if (!base) return null
+  for (const ext of ['.ts', '.tsx', '/index.ts', '/index.tsx']) {
+    const c = base + ext
+    if (contenido.has(c)) return c
   }
-  return null
+  return contenido.has(base) ? base : null
 }
 
 const alcanzables = new Set()

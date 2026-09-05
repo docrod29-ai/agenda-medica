@@ -96,7 +96,7 @@ function medir(): {
  * `MOTORES-SIN-CONECTAR.md` —`masGrave` y `camposQueRequierenRevision`—, los dos
  * como huecos reales abiertos, no como excusas.
  */
-const TOPE = { huerfanasMax: 46, totalMin: 771 }
+const TOPE = { huerfanasMax: 46, totalMin: 771, inalcanzablesMax: 8 }
 /* 50 → 48 → 44 el 8-ago-2026:
      · REG-256, la bandeja de alertas del episodio (2)
      · REG-257, CAM-ICU y tres motores POCUS del panel de UCI (4)
@@ -117,6 +117,43 @@ describe('el trinquete de conexión', () => {
       `escritos que NO corren en el camino del médico:\n  ` +
       m.huerfanas.slice(0, 10).join('\n  '),
     ).toBeLessThanOrEqual(TOPE.huerfanasMax)
+  })
+
+  it('EL CASO: el antibiograma NO sale acusado de no llegar al médico', () => {
+    /**
+     * Prueba de COMPORTAMIENTO, no de texto fuente: es la que de verdad falla
+     * si el recorrido vuelve a romperse, sea por donde sea.
+     *
+     * La cadena real, comprobada a mano el 5-sep-2026:
+     *   app/(dashboard)/antibiograma/page.tsx
+     *     → '@/lib/expediente/antibiograma' (index.ts)
+     *     → export … from './motor'
+     *     → import { analizarSeguridad } from './seguridad'
+     *   y `analizarSeguridad` llama a `fenotiposExcepcionales` y a
+     *   `crossResistenciaFQ` en las líneas 90-91 de ese archivo.
+     *
+     * Con el medidor roto, esos dos aparecían en `inalcanzables`. El módulo de
+     * antibiogramas es el que más le importa al médico dueño; que el
+     * instrumento lo diera por muerto es justo el error que la cabecera de este
+     * archivo cuenta que casi le hace «reparar» algo que funcionaba.
+     */
+    expect(
+      m.inalcanzables.filter(x => x.includes('/antibiograma/')),
+      'el módulo de antibiogramas vuelve a salir como inalcanzable',
+    ).toEqual([])
+  })
+
+  it('los inalcanzables tampoco suben', () => {
+    /**
+     * Este tercer cubo no tenía trinquete: se podía llenar sin que nada se
+     * pusiera rojo. Se congela ahora que el medidor dice la verdad — antes
+     * habría congelado ocho acusaciones falsas.
+     */
+    expect(
+      m.inalcanzables.length,
+      `Subió de ${TOPE.inalcanzablesMax} a ${m.inalcanzables.length}:\n  ` +
+      m.inalcanzables.slice(0, 10).join('\n  '),
+    ).toBeLessThanOrEqual(TOPE.inalcanzablesMax)
   })
 
   it('el barrido no encoge sin avisar', () => {
@@ -161,6 +198,22 @@ describe('el instrumento no repite el error que ya cometió', () => {
      */
     expect(s).toMatch(/crossResistenciaFQ/)
     expect(s).toMatch(/Un medidor que grita 152 cuando hay muchas menos/)
+  })
+
+  it('y sigue esa cadena también por las importaciones RELATIVAS', () => {
+    /**
+     * TERCER falso positivo del mismo medidor, 5-sep-2026. `moduloDeImport`
+     * sólo resolvía `@/…`; con `./x` devolvía null, así que el recorrido se
+     * paraba en la primera importación relativa y daba por muerto todo lo de
+     * debajo.
+     *
+     * Los dos errores anteriores contaban de MÁS y tapaban huérfanos. Éste
+     * cuenta de MENOS: acusa a módulos que sí corren. Es el más caro, porque
+     * denunciar en falso enseña a ignorar la denuncia.
+     */
+    expect(s, 'volvió a ignorar las importaciones relativas')
+      .toMatch(/spec\.startsWith\('\.'\)/)
+    expect(s, 'sin dirname no se puede resolver una relativa').toMatch(/dirname/)
   })
 
   it('sigue la cadena de importaciones desde las pantallas', () => {
