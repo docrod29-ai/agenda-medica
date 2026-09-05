@@ -1,0 +1,12 @@
+node_modules/
+out/
+*.log
+# Derivados: los regenera preparar.sh (tts.py, grabar.mjs, musica.py, preparar-fuentes.sh)
+public/voz/
+public/clips/
+public/dialogo/
+public/musica/
+public/fonts/
+public/marcas/
+public/guion.json
+public/duraciones.json
