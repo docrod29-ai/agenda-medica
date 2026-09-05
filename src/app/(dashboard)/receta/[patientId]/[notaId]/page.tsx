@@ -1001,7 +1001,6 @@ export default function GeneradorRecetaPage() {
                   paperWidthMm={host.widthMm}
                   paperHeightMm={host.heightMm}
                   numPages={numPages}
-                  maxWidth={380}
                   maxHeight={600}
                 >
                   <RecetaDocumento

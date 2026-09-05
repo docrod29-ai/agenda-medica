@@ -1,16 +1,16 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta cerrada en lo verificado (REG-512…521) · tres decisiones del dueño escritas (D-032…034)**
+## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta cerrada en lo verificado y #442 absorbido (REG-512…523) · tres decisiones del dueño escritas (D-032…034)**
 
 ```
 CURRENT_BRANCH=claude/ausculta-preservation-improvement-44lutz
 CURRENT_HEAD=(este commit)
 CURRENT_PR=(sin PR: el dueño no lo pidió; la rama está en origin con 4 slices, cada uno con sus compuertas en el mensaje del commit)
 CURRENT_WORKSTREAM=Programa del pliego del 5-sep: UNDERSTAND → MEASURE → PRESERVE → IMPROVE. Fase 0 (reconciliación) y Fase 2 (P0/P1) — sin P0; los cuatro P1 confirmados, cerrados
-LAST_COMPLETED_UNIT=REG-521 — terapia duplicada: la misma sustancia en dos renglones (catálogo de dosis: Tempra = paracetamol) o ya vigente, con la suma diaria contra el techo que ya existía; en consulta y receta. Antes: REG-520 (la receta ve el expediente completo), REG-519 (bloqueo ARCO revoca el portal, D-034); D-032 y D-033 escritas en el código que gobiernan
+LAST_COMPLETED_UNIT=REG-522 y REG-523 — port de PR #442 con número nuevo (vista previa medida, captura completa de la sonda); sus pruebas pasan aquí. Antes: REG-521 — terapia duplicada: la misma sustancia en dos renglones (catálogo de dosis: Tempra = paracetamol) o ya vigente, con la suma diaria contra el techo que ya existía; en consulta y receta. Antes: REG-520 (la receta ve el expediente completo), REG-519 (bloqueo ARCO revoca el portal, D-034); D-032 y D-033 escritas en el código que gobiernan
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=Port de PR #442 con números nuevos (REG-444 y REG-506 ya los gastó main): traer los dos commits de `claude/ausculta-product-transformation-mckih5`, renumerar ledger/sello/familia, verificar contra main. Después: test-the-test (autorizacion-servidor ignora el id del documento; csp-manifest no corre en CI; el-llm-no-calcula casa literales). Los tres validadores sin llamador esperan D-D del dueño (readiness §9). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
-FILES_IN_SCOPE=(port de #442) src/lib/receta-template.ts · RecetaPreviewWrapper · docs/audit/regression-ledger.md · src/lib/clinical/invariantes-clinicos.json
+EXACT_NEXT_ACTION=Test-the-test (autorizacion-servidor ignora el id del documento; csp-manifest no corre en CI; el-llm-no-calcula casa literales). Los tres validadores sin llamador esperan D-D del dueño (readiness §9). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
+FILES_IN_SCOPE=src/__tests__/autorizacion-servidor.test.ts · src/__tests__/csp-manifest*.test.ts · src/__tests__/el-llm-no-calcula-en-ninguna-nota.test.ts · .github/workflows/ci.yml
 FILES_LOCKED=(ninguno — un solo writer)
 TESTS_PASSED=12634
 TESTS_FAILED=1
@@ -20,7 +20,7 @@ LINT=93 (techo apretado en REG-517)
 P0_OPEN=(ninguno; cross-tenant refutado en las 99 rutas)
 P1_OPEN=(ninguno confirmado). Receta: los cinco hallazgos de medication-safety verificados; cuatro cerrados (REG-517, 518, 520, 521) y el quinto (validadores sin llamador) es decisión del dueño (D-D)
 BLOCKED_EXTERNAL=reglas de Firestore sin desplegar · WebKit/iPhone · PITR y restore real · pentest · licencias de evidencia · llave AssemblyAI local. B-12 YA NO: el emulador de Firebase arranca en este contenedor (comprobado el 5-sep)
-DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida) · REG-517 (sin edad no se supone adulto) · REG-518 (la huella de la receta larga no se pierde) · REG-519 (el bloqueo ARCO apaga el portal) · REG-520 (la receta ve la medicación vigente y la creatinina del expediente) · REG-521 (la misma sustancia dos veces se dice, con la suma contra el techo del catálogo)
+DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida) · REG-517 (sin edad no se supone adulto) · REG-518 (la huella de la receta larga no se pierde) · REG-519 (el bloqueo ARCO apaga el portal) · REG-520 (la receta ve la medicación vigente y la creatinina del expediente) · REG-521 (la misma sustancia dos veces se dice, con la suma contra el techo del catálogo) · REG-522/523 (port de #442: la vista previa mide su sitio; la sonda recorre el scroller de dentro)
 ```
 
 ### Qué se hizo en esta sesión, en orden
@@ -54,7 +54,10 @@ DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de 
     renglón. Ahora la misma sustancia en dos renglones se dice, con la suma
     diaria contra el techo que ya estaba en el catálogo, y también cuando ya
     está vigente en el expediente. Sin cifras nuevas.
-13. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
+13. **REG-522 y REG-523** — port de PR #442, cuyos números ya había gastado
+    `main`: dos commits traídos tal cual y renumerados. El PR queda para que
+    el dueño lo cierre.
+14. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
    en código y todo lo abierto con archivo y línea.
 
 ---

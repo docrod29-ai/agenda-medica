@@ -839,7 +839,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * más caro. Su lección: un guardián que no se prueba contra su propio
      * mutante no se sabe si mide.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 515],
+    /**
+     * 522 y 523 venían en PR #442 como 444 y 506, números que main ya había
+     * gastado; se portaron el 5-sep-2026 con número nuevo. 523 es esta familia
+     * mordiéndose la cola: el defecto estaba EN EL INSTRUMENTO, y era el de
+     * creerse medido. La sonda guardaba un archivo llamado `…-completa.png`
+     * que salía byte a byte idéntico al del pliegue —el cascarón scrollea un
+     * `<main>` de dentro, así que `fullPage` no tenía documento que extender—
+     * y publicaba un alto de 844 para pantallas de 1 627 a 3 094 px. Y la
+     * cuenta de objetivos táctiles medía CAJAS: 7 de 7 que el pseudo de 442
+     * ya cubría. 522 es su hermana pequeña: la vista previa del papel se
+     * medía contra una constante de 380 px que nadie había medido en un
+     * teléfono, declarada como hueco por 441 y sin cerrar.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 515, 522, 523],
   },
   {
     clave: 'hueco_como_dato',

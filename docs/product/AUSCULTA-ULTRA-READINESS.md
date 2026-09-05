@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…521 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…523 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 698 pasan · 1 falla (entorno)** tras REG-521 (943 archivos); cada slice anota la suya en su commit |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 718 pasan · 1 falla (entorno)** tras REG-523 (945 archivos); cada slice anota la suya en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **467 · 6 547** |
-| Ledger | 305 REG · última REG-511 | **315 · REG-521** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **469 · 6 567** |
+| Ledger | 305 REG · última REG-511 | **317 · REG-523** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -135,7 +135,7 @@ holgura.
 
 | Qué | Dónde | Qué hace falta |
 |---|---|---|
-| PR **#442** — REG-444 y REG-506 (vista previa del papel medida contra una constante; la captura «completa» enseñaba un tercio) | `claude/ausculta-product-transformation-mckih5`, 52 commits atrás | **Sus dos números ya los gastó `main`** (REG-444 = token en registro de errores; REG-506 = índices). Renumerar, traer `main`, PR nuevo. Es la séptima colisión del contador |
+| ~~PR **#442**~~ — REG-444 y REG-506 (vista previa del papel medida contra una constante; la captura «completa» enseñaba un tercio) | `claude/ausculta-product-transformation-mckih5` | **ABSORBIDO el 5-sep en esta rama como REG-522 y REG-523**: los dos commits traídos con `cherry-pick`, código y pruebas tal cual, renumerados porque `main` ya había gastado 444 y 506. Sus pruebas pasan aquí. **El PR #442 lo puede cerrar el dueño**; no se cerró desde aquí |
 | Commit «huérfano» 5ce5da80 (alergias en el teléfono) | — | **Ya está en `main` como REG-437.** El consolidado del 2-sep estaba atrasado; no hay nada que hacer |
 
 ---
@@ -171,6 +171,8 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **519** | La cancelación ARCO dejaba vivo el enlace del portal del paciente | `la-cancelacion-arco-apaga-el-portal.test.ts` (5) | con la ruta como estaba, la versión no subía y `decidirVigencia` seguía diciendo «vigente» |
 | **520** | La receta sólo veía el papel de hoy: ni la medicación vigente ni la creatinina del expediente | `la-receta-ve-el-expediente-completo.test.ts` (16) | con la pantalla como estaba, los cuatro casos del guardián rojos; `detectarInteracciones(hoy)` no ve warfarina + ketorolaco y el cuadro sí |
 | **521** | «Paracetamol 500 mg» + «Tempra 1 g» pasaban renglón a renglón: 4 500 mg/día sin aviso | `la-misma-sustancia-dos-veces-se-dice.test.ts` (17) | `revisarDosis` por renglón, vacío; con la lista y las dos pantallas como estaban, cinco rojos |
+| **522** | (port de #442) La vista previa del papel se medía contra 380 px constantes: recortada en el teléfono, pequeña en escritorio | `la-vista-previa-del-papel-se-media-contra-una-constante.test.ts` (5) | devolviendo `maxWidth = 380` a la firma, cae (según la sesión de origen; aquí sólo se verificó que pasa) |
+| **523** | (port de #442) La captura «completa» de la sonda era byte a byte la del pliegue; la cuenta de objetivos táctiles medía cajas, no dedos; `/pendientes` no se sembraba | `la-captura-completa-ensenaba-un-tercio-de-la-pantalla.test.ts` (15) | cinco inversiones en la sesión de origen; aquí sólo se verificó que pasa |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -211,7 +213,6 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 ## 11 · Siguiente slice
 
 **La receta queda cerrada en lo verificado** (REG-517, 518, 520, 521); los
-tres validadores sin llamador esperan decisión del dueño (§3, §9). Sigue el
-port de #442 con números nuevos, y los tres siguientes del
-test-the-test (`autorizacion-servidor` ignora el id del documento;
+tres validadores sin llamador esperan decisión del dueño (§3, §9). El port de
+#442 está hecho (REG-522, 523). Siguen los tres del test-the-test (`autorizacion-servidor` ignora el id del documento;
 `csp-manifest` no corre en CI; `el-llm-no-calcula` casa literales).
