@@ -36,15 +36,15 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…515 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | ver §7 |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 628 pasan · 1 falla** tras REG-514 (937 archivos); la de REG-515 se anota en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | 94 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **458 · 6 461** |
-| Ledger | 305 REG · última REG-511 | **306 · REG-512** |
-| `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | ver §7 |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **461 · 6 483** |
+| Ledger | 305 REG · última REG-511 | **309 · REG-515** |
+| `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
 el producto no se puede abrir en un navegador desde este entorno. Hoy se
@@ -99,7 +99,7 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 | **P1-A** | `telesalud/sala` aceptaba el magic-link **sin comprobar `portalTokenVersion`**: un enlace revocado seguía abriendo la sala de video 7 días. El cron que lo emite afirmaba lo contrario | ✔ leído y reproducido (200 con URL donde debía ser 401) | **CERRADO — REG-512** |
 | **P1-B** | Voz: los **alérgenos del expediente no llegaban a Whisper** por ningún camino (`anexarContexto` y `flushChunks` omitían `alergias`; las dos rutas lo leían y recibían `[]`). El guardián casaba el literal en la rama de AssemblyAI | ✔ reproducido sobre un `FormData` real | **CERRADO — REG-513** (una lista para los cuatro puntos de envío) |
 | **P1-C** | Portal: una pregunta **escalada** (incluso `URGENT_REVIEW_REQUIRED`) en un consultorio sin teléfono no avisaba a nadie ni dejaba rastro, y al paciente se le decía «el consultorio la va a ver». Nadie leía `preguntas_paciente` | ✔ reproducido ejecutando la ruta: documento escrito, cero tareas, cero avisos | **CERRADO a medias — REG-514**: la escalación abre una tarea `pregunta_paciente` en `/pendientes` (crítica si urgente), haya teléfono o no. **Queda**: cerrar la tarea no marca `atendidaEn` (exige ruta de servidor) |
-| **P1-D** | Test-the-test: el guardián del **paciente equivocado** (asistente, booking, webhook) se satisface con un COMENTARIO — mutante verde en los 3 caminos. El código es sano; el guardián no protege | reportado con mutantes ejecutados | ABIERTO |
+| **P1-D** | Test-the-test: el guardián del **paciente equivocado** (asistente, booking, webhook) se satisfacía con un COMENTARIO — mutante verde en los 3 caminos. El código es sano; el guardián no protegía, y no estaba sellado | ✔ mutantes reproducidos dentro del propio archivo | **CERRADO — REG-515**: comentarios fuera, se exige la llamada Y que su resultado decida, un solo `[0]` declarado, autotest contra los mutantes, barrido de cuartos caminos, sellado |
 
 ### Receta (medication-safety) — PARTIAL / BROKEN, después de los P1
 
@@ -164,6 +164,7 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **512** | El enlace revocado del paciente seguía abriendo la sala de video | `el-enlace-revocado-no-abre-la-sala.test.ts` (8) | 200 con URL → 401/503; el guardián de enumeración nombraba la ruta |
 | **513** | Los alérgenos del expediente no llegaban a Whisper por ningún camino | `los-alergenos-llegan-tambien-a-whisper.test.ts` (8) | la lista vieja sobre un `FormData` real pierde `alergias`; el guardián nombraba las dos listas de Whisper |
 | **514** | La pregunta escalada del paciente no le llegaba a nadie del consultorio | `la-pregunta-escalada-llega-al-worklist.test.ts` (8) | sin el arreglo: 4 rojos (ninguna escritura en `tareas_clinicas`), 4 verdes |
+| **515** | El guardián del paciente equivocado se satisfacía con un comentario | `paciente-equivocado-guardia.test.ts` (10 ejecutados) | autotest: los mutantes «el primero» con import y comentarios intactos ponen rojo el detector; el código real pasa |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -194,9 +195,9 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 
 ## 10 · Preparación para producción — lectura honesta
 
-- **No hay P0 abierto.** Tres P1 cerrados hoy (REG-512, 513, 514 — el último
-  a medias); queda P1-D (guardián, no producto) y la segunda mitad de P1-C
-  (§3). Ninguno bloquea el consultorio del día a día.
+- **No hay P0 abierto.** Cuatro P1 cerrados hoy (REG-512, 513, 514 —a
+  medias— y 515); queda la segunda mitad de P1-C (§3). Ninguno bloquea el
+  consultorio del día a día.
 - **Lo que se vende (Practice)** sigue siendo lo que GP-FINAL recorrió el 1-sep.
 - **Este programa no despliega ni fusiona.** Llega a rama + commit + PR + CI.
 
@@ -205,6 +206,7 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 **P1-C, segunda mitad**: cerrar una tarea `pregunta_paciente` desde
 `/pendientes` marca `atendidaEn` en la pregunta por una ruta de servidor (las
 reglas cierran la colección al navegador), para que el portal deje de decir
-«pendiente de revisar» para siempre. Después **P1-D** (el guardián del paciente
-equivocado que se satisface con un comentario), y el port de #442 con números
-nuevos.
+«pendiente de revisar» para siempre. Después el port de #442 con números
+nuevos, y los tres siguientes del test-the-test: `autorizacion-servidor` (el
+doble ignora el id del documento), `csp-manifest` (4 casos que nunca corren en
+CI) y `el-llm-no-calcula-en-ninguna-nota` (literal exacto).

@@ -18775,3 +18775,83 @@ nuevo.
 - **La pregunta viaja literal por WhatsApp** (300 caracteres + nombre). Es una
   decisión pendiente del dueño (D-B en `AUSCULTA-ULTRA-READINESS.md`), no
   se toca aquí.
+
+## REG-515 · El guardián del paciente equivocado se satisfacía con un comentario
+
+**CÓMO SE DESCUBRIÓ.** Test-the-test read-only del 5-sep-2026, con la consigna
+de meter el defecto y ver si el guardián lo caza. El mutante obvio, aplicado a
+los tres caminos que cuelgan una cita de un expediente (mostrador, reserva
+pública, bot de WhatsApp): sustituir la llamada a `elegirExpedienteParaCita`
+por `candidatos[0]`, dejando el `import` y los comentarios.
+
+```
+asistente/page.tsx    | caso 1 verde | caso 2 verde
+booking/route.ts      | caso 1 verde | caso 2 verde
+whatsapp/webhook.ts   | caso 1 verde | caso 2 verde
+```
+
+**Los seis, verdes con el defecto puesto.** Y el archivo **no estaba sellado**:
+el cero #1 del charter («paciente equivocado») tenía un guardián que no
+protegía y que nadie contaba.
+
+**LO QUE PASABA.** `paciente-equivocado-guardia.test.ts` afirmaba
+`toMatch(/elegirExpedienteParaCita/)` sobre la fuente **con comentarios**. El
+mostrador menciona el símbolo cuatro veces —tres en los comentarios que
+explican por qué existe— y lo llama una. Con la llamada sustituida por «el
+primero de la lista», el símbolo seguía ahí, y el guardián seguía verde. La
+segunda aserción (`where('telefono'…)` seguido de `limit(1)` en una ventana de
+80 caracteres) se saltaba con un comentario largo en medio.
+
+Es REG-506 aplicado al peor invariante posible: **la prueba comprueba que el
+código DIGA algo, y lo encuentra dicho en un comentario**. No había defecto en
+el producto —los tres caminos llaman al motor de verdad—; había un guardián
+de cartón delante del defecto más caro del sistema.
+
+### La causa raíz
+
+Un guardián de texto que confunde **mención** con **uso**. La familia
+«nadie lo estaba midiendo»: el instrumento existía y medía otra cosa. Y
+ninguna prueba probaba al guardián contra su propio defecto, que es lo único
+que habría dicho que no medía.
+
+### El arreglo
+
+1. Se mira el código **sin comentarios** (`limpiarComentarios`, que respeta
+   cadenas) y se exige la **llamada**, no la mención.
+2. Se exige que lo que decide el id sea **el resultado del motor** —`const
+   existente = elegirExpedienteParaCita(` y `pacienteId = existente.id`, y sus
+   equivalentes en cada camino—. Una llamada cuyo resultado se tira, con un
+   `candidatos[0]` al lado, ya no pasa.
+3. Ningún camino toma `[0]` de su lista de expedientes candidatos, salvo el
+   ÚNICO caso declarado y razonado en el código: el bot sin nombre utilizable.
+   Se cuenta: exactamente uno, y guardado por `nombreUtil.length < 4`. Las
+   listas van **por nombre y por camino**, porque el bot tiene otro
+   `candidatos[0]` que es un teléfono normalizado y un patrón genérico lo
+   acusaba en falso (lo cazó la primera corrida).
+4. **Autotest**: los mutantes del auditor se aplican a la fuente real en
+   memoria y el detector tiene que ponerse rojo con cada uno; y el código real,
+   tal cual, tiene que pasar. Patrón de `clinical-safety-gate`.
+5. Barrido: todo archivo de `src/app` que consulte `patients` por teléfono
+   tiene que estar en la lista de caminos, y el barrido no puede encontrar
+   cero.
+6. El archivo entra al **sello**.
+
+### Prueba
+
+`src/__tests__/paciente-equivocado-guardia.test.ts` (10 casos ejecutados, 6
+declarados al inicio de línea para el sello). **Probado al revés dentro del
+propio archivo**: los tres mutantes «el primero» con el import y los
+comentarios intactos ponen rojo el detector; el comentario largo entre
+`where` y `limit(1)` también.
+
+### Qué NO cubre
+
+- **Sigue siendo de fuente.** No ejecuta el mostrador ni el bot con dos
+  homónimos que comparten teléfono; el motor sí está probado con esos casos
+  (`pacientes-duplicados.test.ts`). Convertirlo en ejecución exige el arnés de
+  Admin en memoria para `booking` y `webhook`, y es trabajo con nombre.
+- **Los otros 214 guardianes de texto puro** que contó el mismo test-the-test.
+  Éste era el del cero #1; los diez más críticos están listados en
+  `AUSCULTA-ULTRA-READINESS.md` §3 y no se arreglaron aquí.
+- **`autorizacion-servidor.test.ts`**, cuyo doble ignora el id del documento
+  (la frontera del Admin SDK). Hallazgo #3 del mismo informe, abierto.

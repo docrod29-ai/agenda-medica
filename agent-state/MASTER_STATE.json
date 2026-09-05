@@ -25,16 +25,9 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M scripts/verificar-invariantes-de-datos.md",
-    " M src/__tests__/estado-de-accion.test.ts",
-    " M src/app/api/portal/route.ts",
+    " M src/__tests__/paciente-equivocado-guardia.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/tareas-clinicas/estado-de-accion.ts",
-    " M src/lib/tareas-clinicas/modelo.ts",
-    " M src/lib/tareas-clinicas/por-que-esta-aqui.ts",
-    "?? src/__tests__/la-pregunta-escalada-llega-al-worklist.test.ts",
-    "?? src/lib/tareas-clinicas/de-una-pregunta.ts"
+    " M src/lib/clinical/invariantes-clinicos.json"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -70,10 +63,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 308,
-    "ultimaREG": "REG-514",
+    "regsEnElLedger": 309,
+    "ultimaREG": "REG-515",
     "archivosDePrueba": 937,
-    "casosDePrueba": 11351,
+    "casosDePrueba": 11355,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

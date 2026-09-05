@@ -816,7 +816,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * no. Un instrumento que sólo cuenta no sustituye a mirar — es la mitad del
      * método, no el método.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443],
+    /**
+     * 515 es el instrumento que existía y medía otra cosa. El guardián del
+     * paciente equivocado —cero #1 del charter— comprobaba que el símbolo del
+     * motor apareciera en la fuente, y aparecía en los comentarios que explican
+     * por qué existe: con la llamada sustituida por `candidatos[0]` seguía
+     * verde. No había defecto en el producto; había cartón delante del defecto
+     * más caro. Su lección: un guardián que no se prueba contra su propio
+     * mutante no se sabe si mide.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 515],
   },
   {
     clave: 'hueco_como_dato',
