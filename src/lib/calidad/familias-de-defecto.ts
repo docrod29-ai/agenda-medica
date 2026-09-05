@@ -920,7 +920,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * escribiría los ceros. La familia sobrevive a tener guardián cuando el
      * guardián hereda el defecto.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511],
+    /**
+     * 517 es la regla 4 de seguridad clínica al revés, en la receta: sin
+     * `edad` en el expediente, `undefined` caía por el lado de «adulto» y se
+     * aplicaban los techos de adulto a un niño — sin mg/kg y sin aviso. «No
+     * hay edad» leído como «no es niño». El resultado se LEÍA bien: una receta
+     * sin alertas.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 517],
   },
   {
     clave: 'aislamiento',

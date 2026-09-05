@@ -1,26 +1,26 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados (REG-512…516)**
+## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta empezada (REG-512…517)**
 
 ```
 CURRENT_BRANCH=claude/ausculta-preservation-improvement-44lutz
 CURRENT_HEAD=(este commit)
 CURRENT_PR=(sin PR: el dueño no lo pidió; la rama está en origin con 4 slices, cada uno con sus compuertas en el mensaje del commit)
 CURRENT_WORKSTREAM=Programa del pliego del 5-sep: UNDERSTAND → MEASURE → PRESERVE → IMPROVE. Fase 0 (reconciliación) y Fase 2 (P0/P1) — sin P0; los cuatro P1 confirmados, cerrados
-LAST_COMPLETED_UNIT=REG-516 — la pregunta atendida se ve en el portal (ruta de servidor `expediente/pregunta-atendida` + gancho al cerrar en /pendientes)
+LAST_COMPLETED_UNIT=REG-517 — sin edad en el expediente la receta ya no supone adulto: `edadParaDosificar` (fecha de nacimiento > edad congelada > desconocida, pintada en ámbar)
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=Receta, verificando primero cada hallazgo en el código antes de tocarlo: (1) `labsDelCuadro` e `interaccionesDelCuadro` (REG-188) llegan a la consulta y NO a `receta/[patientId]/[notaId]/page.tsx` — cablear la misma entrada; (2) `edad` ausente apaga la red pediátrica en silencio — declararlo en pantalla, sin inventar edad; (3) `auditoria/registrar` trunca `meta` a 2000 y si el JSON queda partido descarta el hash del impreso — que falle visible. Después: port de PR #442 con números nuevos; test-the-test (autorizacion-servidor, csp-manifest, el-llm-no-calcula). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
+EXACT_NEXT_ACTION=Receta, verificado en el código y sin cerrar: (1) `labsDelCuadro` e `interaccionesDelCuadro` (REG-188) llegan a la consulta y NO a `receta/[patientId]/[notaId]/page.tsx` — cablear la misma entrada (la receta necesita cargar los paneles de laboratorio del paciente y la medicación vigente del cuadro, como hace la consulta en page.tsx:934-982); (2) `auditoria/registrar` trunca `meta` a 2000 y si el JSON queda partido descarta el hash del impreso — que la huella viaje en un campo propio y el truncado sea visible. Después: port de PR #442 con números nuevos; test-the-test (autorizacion-servidor, csp-manifest, el-llm-no-calcula). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
 FILES_IN_SCOPE=src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx · src/lib/expediente/laboratorio/lo-que-ya-esta-medido.ts · src/lib/seguridad/farmacovigilancia.ts · src/app/api/auditoria/registrar/route.ts
 FILES_LOCKED=(ninguno — un solo writer)
 TESTS_PASSED=12634
 TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — el proxy del contenedor rechaza 10.255.255.1 al instante. NO tocar la aserción.
 BUILD=163/163 con los placeholders NEXT_PUBLIC_FIREBASE_* del CI
-LINT=94 (techo)
+LINT=93 (techo apretado en REG-517)
 P0_OPEN=(ninguno; cross-tenant refutado en las 99 rutas)
 P1_OPEN=(ninguno confirmado). Receta: terapia duplicada, red pediátrica apagada en silencio, creatinina del expediente que no llega a la receta, hash de lo impreso que se pierde al truncar `meta` — reportados por medication-safety, NO verificados por el orquestador todavía
 BLOCKED_EXTERNAL=reglas de Firestore sin desplegar · WebKit/iPhone · PITR y restore real · pentest · licencias de evidencia · llave AssemblyAI local. B-12 YA NO: el emulador de Firebase arranca en este contenedor (comprobado el 5-sep)
-DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida)
+DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida) · REG-517 (sin edad no se supone adulto)
 ```
 
 ### Qué se hizo en esta sesión, en orden
@@ -40,6 +40,8 @@ DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de 
    comentario; ahora contra sus mutantes.
 7. **REG-516** — cerrar la tarea de una pregunta marca la pregunta atendida:
    el portal del paciente deja de decir «pendiente» para siempre.
+8. **REG-517** — sin edad en el expediente, la receta ya no aplica topes de
+   adulto a un niño en silencio: lo dice, y usa la fecha de nacimiento.
 7. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
    en código y todo lo abierto con archivo y línea.
 

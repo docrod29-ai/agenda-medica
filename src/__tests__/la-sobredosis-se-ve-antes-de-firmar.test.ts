@@ -126,7 +126,8 @@ describe('está conectado a la consulta, no sólo escrito', () => {
   })
 
   it('con la edad y el peso del paciente, que es lo que activa lo pediátrico', () => {
-    expect(page).toContain('edadAnios: patient?.edad')
+    // REG-517: la edad pasa por `edadParaDosificar` (fecha de nacimiento > edad congelada > desconocida).
+    expect(page).toContain('edadAnios: edadParaDosificar(patient).edad ?? undefined')
     expect(page).toContain('pesoKg: signosNum.peso')
   })
 

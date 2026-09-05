@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…516 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…517 |
 |---|---|---|
 | `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 628 pasan · 1 falla** tras REG-514 (937 archivos); la de REG-515 se anota en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
-| `node scripts/lint-trinquete.mjs` | **94** = techo | 94 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **462 · 6 492** |
-| Ledger | 305 REG · última REG-511 | **310 · REG-516** |
+| `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **463 · 6 501** |
+| Ledger | 305 REG · última REG-511 | **311 · REG-517** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -104,7 +104,7 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 ### Receta (medication-safety) — PARTIAL / BROKEN, después de los P1
 
 - Sin detección de **terapia duplicada** (paracetamol + Tempra pasa) — `NOT_IMPLEMENTED`.
-- **Red pediátrica apagada en silencio** cuando `edad` falta (pacientes del portal público nacen sin `edad`) — BROKEN.
+- ~~**Red pediátrica apagada en silencio** cuando `edad` falta~~ — **CERRADO, REG-517**: la fecha de nacimiento manda, la edad congelada después, y sin ninguna la receta lo pinta en ámbar junto a las dosis. No bloquea (D-A).
 - La **creatinina del expediente** (`labsDelCuadro`) llega a la consulta y **no a la receta**; `interaccionesDelCuadro` (REG-188) tampoco — «escrito y sin conectar».
 - `validacionesGeneralesMedicamentos`, `tieneAlergiaGrave`, `esMedicamentoCritico`: **cero llamadores**.
 - El hash de lo impreso puede **perderse entero** si `meta` se trunca en `auditoria/registrar` (2 000 caracteres, JSON partido → `meta` descartado).
@@ -166,6 +166,7 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **514** | La pregunta escalada del paciente no le llegaba a nadie del consultorio | `la-pregunta-escalada-llega-al-worklist.test.ts` (8) | sin el arreglo: 4 rojos (ninguna escritura en `tareas_clinicas`), 4 verdes |
 | **515** | El guardián del paciente equivocado se satisfacía con un comentario | `paciente-equivocado-guardia.test.ts` (10 ejecutados) | autotest: los mutantes «el primero» con import y comentarios intactos ponen rojo el detector; el código real pasa |
 | **516** | La pregunta atendida seguía «pendiente de revisar» en el portal | `la-pregunta-atendida-se-ve-en-el-portal.test.ts` (9) | con `/pendientes` sin el gancho, el guardián se pone rojo |
+| **517** | Sin edad en el expediente, la receta aplicaba topes de adulto a un niño, en silencio | `la-edad-que-falta-se-dice-no-se-supone-adulto.test.ts` (9) | con las dos pantallas como estaban, cuatro casos rojos |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -204,10 +205,9 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 
 ## 11 · Siguiente slice
 
-**Receta**, verificando primero cada hallazgo de medication-safety en el
-código: (1) la creatinina del expediente (`labsDelCuadro`) y las interacciones
-del cuadro completo (`interaccionesDelCuadro`, REG-188) llegan a la consulta y
-no a la pantalla de receta; (2) la red pediátrica se apaga en silencio cuando
-falta `edad`; (3) el hash de lo impreso se pierde si `meta` se trunca en
+**Receta**, lo que queda verificado y sin cerrar: (1) la creatinina del
+expediente (`labsDelCuadro`) y las interacciones del cuadro completo
+(`interaccionesDelCuadro`, REG-188) llegan a la consulta y no a la pantalla de
+receta; (2) el hash de lo impreso se pierde si `meta` se trunca en
 `auditoria/registrar`. Después el port de #442 con números nuevos, y los tres
 siguientes del test-the-test.

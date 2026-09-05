@@ -79,6 +79,7 @@ import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/
 import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
 import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
+import { edadParaDosificar } from '@/lib/seguridad/edad-para-dosificar'
 import { trayectoriaDe, comoSeDiceLaTrayectoria } from '@/lib/expediente/laboratorio/la-trayectoria'
 import {
   vigenciaDeLaFuncionRenal, avisoDeFuncionRenalCaduca,
@@ -6226,7 +6227,9 @@ export default function ConsultaActivaPage() {
            * cuando el paciente ya se había ido con la receta en la mano.
            */
           dosisPeligrosas: dosisPeligrosasDeLaLista(medicamentos, {
-            edadAnios: patient?.edad ?? undefined,
+            // REG-517: la fecha de nacimiento manda sobre la edad congelada, y
+            // sin ninguna se pasa `undefined` — nunca se supone adulto.
+            edadAnios: edadParaDosificar(patient).edad ?? undefined,
             pesoKg: signosNum.peso ?? undefined,
           }).map(d => ({
             med: d.med,

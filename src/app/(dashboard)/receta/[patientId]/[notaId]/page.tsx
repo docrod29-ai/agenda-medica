@@ -38,6 +38,7 @@ import { detectarInteracciones, detectarControlados } from '@/lib/expediente/far
 import { alergiasDe } from '@/lib/seguridad/alergias'
 import { revisarDosis, revisarUnidadDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
+import { edadParaDosificar, AVISO_SIN_EDAD_PARA_DOSIFICAR } from '@/lib/seguridad/edad-para-dosificar'
 // E0-05: `kg` se importa con alias porque en este archivo `mg` ya es una variable
 // local del bucle de dosis; el alias evita cualquier sombra accidental.
 import { mgPorDl, kg as kgMasa, cantidad, valorEn } from '@/types/clinical-quantity'
@@ -150,7 +151,21 @@ export default function GeneradorRecetaPage() {
 
   // Se saca del memo para que la dependencia inferida sea la EDAD y no el objeto
   // paciente entero: si no, el compilador de React no puede conservar el memo.
-  const edadPaciente = patient?.edad
+  /**
+   * LA EDAD SE CALCULA DE LA FECHA DE NACIMIENTO, Y SI NO HAY, SE DICE — REG-517.
+   *
+   * `patient.edad` es un número congelado: un paciente dado de alta desde la
+   * reserva pública nace sin él, y con `undefined` esta pantalla lo trataba
+   * como ADULTO en silencio — topes de adulto sobre un niño, sin mg/kg y sin
+   * aviso. Ahora manda la fecha de nacimiento (no envejece), después la edad
+   * congelada, y si no hay ninguna `origenEdad === 'desconocida'` y se pinta.
+   */
+  const edadCongelada = patient?.edad
+  const fechaNacimiento = patient?.fechaNacimiento
+  const { edad: edadPaciente, origen: origenEdad } = useMemo(
+    () => edadParaDosificar({ edad: edadCongelada, fechaNacimiento }),
+    [edadCongelada, fechaNacimiento],
+  )
   const pesoDeLaNota = nota?.signosVitales?.peso
 
   const alertasDosis = useMemo(() => {
@@ -197,7 +212,7 @@ export default function GeneradorRecetaPage() {
       const dosisPrescrita = esDosisPorKg(m.dosis)
         ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
         : cantidad(mg, 'mg', 'masa')
-      const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: edadPaciente })
+      const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: edadPaciente ?? undefined })
         .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
@@ -208,7 +223,7 @@ export default function GeneradorRecetaPage() {
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
   const renal = useMemo(() => {
     const cr = parseFloat(creatinina)
-    if (!cr || cr <= 0 || !patient?.edad) return null
+    if (!cr || cr <= 0 || edadPaciente == null || !patient) return null
     const peso = parseFloat(pesoKg)
     // E0-05 — FRONTERA: aquí es donde el número tecleado adquiere su unidad. La
     // etiqueta del campo dice «Creatinina (mg/dL)» y «Peso (kg)»: es el único
@@ -216,10 +231,10 @@ export default function GeneradorRecetaPage() {
     // no puede perderla. El parseo (parseFloat) NO cambia, para no alterar qué
     // teclas acepta el campo.
     return evaluarFuncionRenal(
-      mgPorDl(cr), patient.edad, patient.sexo,
+      mgPorDl(cr), edadPaciente, patient.sexo,
       peso > 0 ? kgMasa(peso) : undefined,
     )
-  }, [creatinina, pesoKg, patient?.edad, patient?.sexo])
+  }, [creatinina, pesoKg, edadPaciente, patient])
   const alertasRenales = useMemo(() => {
     // En <18 años (adulto no aplica) o creatinina implausible (probable error de
     // unidad): no se ajusta por ese valor — daría alertas renales falsas.
@@ -664,6 +679,19 @@ export default function GeneradorRecetaPage() {
           )}
 
           {/* ⚠️ Verificación determinista de DOSIS (error de decimal, sobre-máximo, pediátrico) */}
+          {/* REG-517 — sin edad no hay red pediátrica, y eso se DICE, no se supone adulto. */}
+          {origenEdad === 'desconocida' && (
+            <div role="status" style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'var(--badge-amber-b)', border: '1.5px solid var(--amber)',
+              fontSize: 12, color: 'var(--text)', lineHeight: 1.45,
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+            }}>
+              <AlertTriangle size={15} className="ds-icon" style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+              <span>{AVISO_SIN_EDAD_PARA_DOSIFICAR}</span>
+            </div>
+          )}
+
           {alertasDosis.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
@@ -757,7 +785,7 @@ export default function GeneradorRecetaPage() {
                 </div>
               )}
             </div>
-            {!patient?.edad && (
+            {origenEdad === 'desconocida' && (
               <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 6 }}>
                 Falta la edad del paciente en su expediente para calcular la TFG.
               </div>

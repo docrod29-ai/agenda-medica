@@ -18917,3 +18917,80 @@ pregunta nadie avisa al servidor»).
   Fijar cuánto puede esperar una pregunta es política del consultorio.
 - **`atendidaPor` no sale al portal** (la lista blanca de `case 'preguntas'`
   no lo incluye) y no debe: es traza interna.
+
+## REG-517 · Sin edad en el expediente, la receta aplicaba topes de ADULTO a un niño, en silencio
+
+**CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026,
+siguiendo el dato desde el expediente hasta `revisarDosis`. Verificado por el
+orquestador en la pantalla de receta antes de tocarla:
+
+```
+const edadPaciente = patient?.edad
+const esPediatrico = edadPaciente != null && edadPaciente < 18
+const pesoParaDosis = !esPediatrico ? undefined : …
+```
+
+**LO QUE PASABA.** `patient.edad` es un número **congelado**: se escribe al
+capturar la fecha de nacimiento y no se recalcula. Un paciente dado de alta
+desde la reserva pública (`public/booking`) nace **sin `edad` y sin
+`fechaNacimiento`**. Con `edad === undefined`:
+
+- `esPediatrico` era `false` → no se pasaba el peso → la comprobación mg/kg
+  —la red de seguridad más importante en niños— no corría, y se aplicaban los
+  **techos de adulto**;
+- `revisarDosis` no recibía `edadAnios` → la restricción de ketorolaco oral en
+  menores no se evaluaba;
+- el ajuste renal devolvía `null` sin más.
+
+Y la pantalla no lo decía: había un aviso pequeño para la TFG, y **ninguno
+para la dosis**. Además, aunque hubiera fecha de nacimiento, se ignoraba: un
+niño de 11 registrado hace tres años seguía teniendo 11 en ese campo.
+
+Es la regla 4 de seguridad clínica al revés: **ausencia de dato leída como
+dato de ausencia** — «no hay edad» leído como «no es niño».
+
+### La causa raíz
+
+Familia «el hueco tratado como dato». `undefined` caía por el lado de «adulto»
+en dos decisiones distintas y nadie lo enseñaba. La consulta tenía el mismo
+`edadAnios: patient?.edad` en su barra de dosis.
+
+### El arreglo
+
+1. `lib/seguridad/edad-para-dosificar.ts`, puro: la **fecha de nacimiento
+   manda** (no envejece); si no hay, la edad congelada; si no hay ninguna,
+   `edad: null` con `origen: 'desconocida'`. Nunca un número inventado; nunca
+   adulto por omisión. Una edad implausible (≥130, NaN) no cuenta como dato.
+2. La receta deriva la edad por ahí **una vez** y la usan la dosis y el renal:
+   ya no hay ninguna lectura directa de `patient.edad` que decida algo.
+3. Cuando el origen es «desconocida», la receta lo **pinta en ámbar junto a
+   las dosis** —nombra las dos redes que se apagan y pide la fecha de
+   nacimiento— además del aviso de TFG que ya existía.
+4. La barra de dosis de la consulta pasa por el mismo módulo.
+
+Lo que NO hace, a propósito: no bloquea imprimir sin edad. Eso es política
+del dueño (D-A en el readiness); aquí se dice, no se para.
+
+### Prueba
+
+`src/__tests__/la-edad-que-falta-se-dice-no-se-supone-adulto.test.ts` (9
+casos): tabla de la función pura (fecha > congelada > desconocida; inválidas e
+implausibles no cuentan) y guardián del cableado con los comentarios quitados
+(la receta ya no lee `patient?.edad` a secas, dosis y renal usan la misma edad
+derivada, el aviso va ANTES del bloque de dosis, la consulta pasa por él).
+**Probado al revés**: con las dos pantallas como estaban, cuatro casos rojos.
+
+De paso, la deuda de lint **baja de 94 a 93**: el `useMemo` renal dejaba de
+declarar una dependencia y el trinquete se aprieta.
+
+### Qué NO cubre
+
+- **No renderiza la receta.** El cableado se vigila por fuente.
+- **No arregla que `patient.edad` envejezca en el directorio**: eso es de la
+  pantalla de pacientes. Aquí se deja de depender de él cuando hay fecha.
+- **El resto de lecturas de `patient?.edad` en la consulta** (vacunas,
+  gineco-obstetricia, contexto del copiloto) siguen con el número congelado.
+  Declarado; cada una es una decisión propia y no se cambian en bloque.
+- **La reserva pública sigue creando pacientes sin fecha de nacimiento.**
+  Pedirla ahí es un cambio de producto (fricción en la puerta más expuesta) y
+  no se decide aquí.
