@@ -23,10 +23,14 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-09-05-v1181.md"
+    "M docs/audit/regression-ledger.md",
+    " M src/__tests__/authz-rutas-declaradas.test.ts",
+    " M src/__tests__/telesalud-sala-or.test.ts",
+    " M src/app/api/telesalud/sala/route.ts",
+    " M src/lib/authz/registro-rutas.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/el-enlace-revocado-no-abre-la-sala.test.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -60,12 +64,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/remove-unused-code-h7td7c",
+  "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 305,
-    "ultimaREG": "REG-511",
-    "archivosDePrueba": 934,
-    "casosDePrueba": 11325,
+    "regsEnElLedger": 306,
+    "ultimaREG": "REG-512",
+    "archivosDePrueba": 935,
+    "casosDePrueba": 11333,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

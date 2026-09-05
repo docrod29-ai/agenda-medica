@@ -18499,3 +18499,99 @@ toca nada; con la máquina libre mide 11 y 21.
   otros; no se buscó, y queda dicho en vez de insinuar que se revisaron todos.
 - **No impide correr dos `npm` a la vez.** Impide que eso se convierta en una
   afirmación falsa, que es lo que importaba.
+
+## REG-512 · El enlace REVOCADO del paciente seguía abriendo la sala de video
+
+**CÓMO SE DESCUBRIÓ.** Equipo rojo read-only sobre las 99 rutas de `src/app/api`,
+el 5-sep-2026, con una consigna: refutar cada hallazgo antes de reportarlo. La
+hipótesis principal —escritura clínica cruzando de consultorio— se refutó en las
+99: la variable que se verifica es la misma que enraíza la ruta de Firestore.
+Sobrevivió una sola cosa, y no era un `clinicId`.
+
+`verificarTokenPaciente` —el magic-link HMAC que el consultorio manda por
+WhatsApp— tiene **tres** consumidores en el producto: `/api/portal`,
+`/api/payment/create-checkout` y `/api/telesalud/sala`. REG-331 cerró la
+revocación (`patients/{id}.portalTokenVersion`) en los dos primeros. El tercero
+nunca la miró.
+
+**LO QUE PASABA.** El médico revoca los enlaces de un paciente desde el
+expediente (`portalTokenVersion + 1`). El enlace deja de abrir la agenda… y
+**sigue abriendo la sala de video de su consulta** hasta que caduque, siete días
+después. Es justo la credencial que más importa revocar: el cron de recordatorios
+la acuña para toda teleconsulta y la manda por WhatsApp, y WhatsApp se reenvía.
+Teléfono perdido, número reciclado, mensaje reenviado a un grupo — los tres
+motivos escritos en `patient-token.ts` para que exista la revocación.
+
+Y el repositorio afirmaba lo contrario en dos sitios. El cron que emite el
+enlace de la sala (`cron/reminders/route.ts`) dice literalmente: *«cuando alguien
+revoca los enlaces de ese paciente, el contador sube y éste cae con los demás»*.
+La versión viajaba dentro del token y **del otro lado nadie la leía**. Es «el
+dato tiene que LLEGAR» en su forma de seguridad: el dato acababa en la función
+que lo firma.
+
+### La causa raíz
+
+«Dos rutas, un mismo contrato» — la misma forma que la regla de voz cuenta de
+los dos motores, y que ya pasó tres veces allí. REG-331 cerró la revocación en
+las dos rutas que conocía, y su guardián
+(`portal-revocacion-falla-cerrado.test.ts`) **importa esas dos rutas por
+nombre** en vez de enumerar a quién le llega el token. La tercera quedó fuera
+del fixture y, por tanto, fuera de la defensa.
+
+El guardián estático de `authz-rutas-declaradas` tampoco podía verlo: para una
+ruta `tokenPaciente` sólo exige que **mencione** `verificarTokenPaciente(`. La
+sala lo menciona. Pasaba.
+
+### El arreglo
+
+1. `telesalud/sala` consume la MISMA decisión que sus hermanas
+   (`bloquearSiNoVigente`, `lib/portal/vigencia-del-enlace.ts`), con sus tres
+   estados: `revocado` → 401 definitivo; `indeterminado` → 503 con
+   `Retry-After`, el enlace **no se quema**.
+2. Se comprueba **después** de saber que el token es de esta cita —un token
+   ajeno sigue recibiendo 404 sin que se lea ningún expediente, la fuga de
+   existencia sigue cerrada— y **sólo en la rama del paciente**: el médico entra
+   con su sesión de equipo y no tiene token que revocar; su camino no lee el
+   expediente.
+3. Un guardián nuevo enumera a **todos** los consumidores de
+   `verificarTokenPaciente` en `src/app/api` —hoy tres, y exige que no sean
+   menos— y comprueba que cada uno consuma la decisión de vigencia
+   (`bloquearSiNoVigente` o la pura `decidirVigencia`). **Con los comentarios
+   quitados antes de mirar**: un comentario que nombre la función no cuenta.
+   Es la lección de REG-506, y del test-the-test del mismo día, que encontró
+   otro guardián del paciente equivocado satisfecho por un comentario.
+4. La lista congelada de rutas que leen `patients` (`authz-rutas-declaradas`)
+   incorpora `telesalud/sala` con su porqué, igual que hizo con
+   `create-checkout` en REG-331.
+
+Lo que NO cambia, a propósito: el **alcance**. El cron emite `agenda` para la
+sala y lo razona («deja entrar a la sala y a la agenda del paciente; los
+documentos firmados siguen exigiendo un enlace emitido por un médico»). El
+equipo rojo lo señaló como sospecha; es diseño, no defecto.
+
+### Prueba
+
+`src/__tests__/el-enlace-revocado-no-abre-la-sala.test.ts` (8 casos).
+**Probado al revés**: con la ruta como estaba, los casos 2, 3 y 3b devolvían
+**200 con la URL de la sala** donde debían devolver 401 y 503, y el guardián de
+enumeración nombraba `telesalud/sala`. Con el arreglo, los ocho en verde; el
+caso 4 comprueba que la rama del médico no lee el expediente y el 5 que un
+token ajeno sigue en 404 sin llegar a la vigencia.
+
+`telesalud-sala-or.test.ts` conserva sus 8 casos del OR de autorización; su
+doble de `patient-token` pasa a ser parcial porque la ruta ahora consume
+`tokenVigente`.
+
+### Qué NO cubre
+
+- **No mira la ventana horaria ni Daily.** Sin `DAILY_API_KEY` la ruta devuelve
+  una sala ficticia, que basta para medir la autorización sin salir a la red.
+  Que la sala real respete `nbf`/`exp` es del proveedor.
+- **El guardián de enumeración mira `src/app/api`.** Un consumidor del token en
+  `src/lib` que abriera una puerta propia no lo vería; hoy no existe ninguno, y
+  el guardián exige que los consumidores no sean menos de tres para no quedarse
+  vacuo si el token dejara de usarse.
+- **No cierra la cancelación ARCO sobre el portal** (`arco/cancelar` no sube
+  `portalTokenVersion`; el expediente inexistente ya cuenta como revocado, pero
+  el bloqueo ARCO sin baja no). Es sospecha S2 del mismo equipo rojo y queda
+  abierta con nombre.

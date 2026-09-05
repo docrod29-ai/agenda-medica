@@ -294,7 +294,9 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
       'OR REAL, no un guard normal: (a) token HMAC del paciente DE ESA cita, o (b) ' +
       'miembro autenticado. El token se evalúa PRIMERO y el fallo devuelve 404, no ' +
       '403, para no confirmar que el citaId existe (fuga cerrada en la auditoría ' +
-      'maestra 2026-07).',
+      'maestra 2026-07). Y desde REG-512 comprueba la REVOCACIÓN del enlace ' +
+      '(portalTokenVersion) como sus dos hermanas: antes un enlace revocado ' +
+      'seguía abriendo la sala hasta caducar.',
     // RESUELTO 2026-08-01: el dueño confirmó que el mostrador NO entra a la sala.
     // Entrar a la teleconsulta es asistir al paciente, no agendarlo. La rama del
     // equipo ya exige `clinico.leer`; `secretaria` queda fuera a propósito.

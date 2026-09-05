@@ -33,9 +33,19 @@ vi.mock('@/lib/firebase-admin', () => ({
   },
 }))
 vi.mock('@/lib/rate-limit', () => ({ limitarOResponder: vi.fn(async () => null) }))
-vi.mock('@/lib/patient-token', () => ({
-  verificarTokenPaciente: (...a: unknown[]) => verificarTokenPaciente(...a),
-}))
+/**
+ * Doble PARCIAL desde REG-512: la ruta ahora consume `tokenVigente` (vía
+ * `bloquearSiNoVigente`) además de `verificarTokenPaciente`. Se conserva el
+ * módulo real y sólo se sustituye el verificador; el doble de Firestore de
+ * arriba devuelve la cita también para el expediente, y como no trae
+ * `portalTokenVersion`, la versión 0 del token sigue vigente — este archivo
+ * mide el OR de autorización, no la revocación (ésa vive en
+ * `el-enlace-revocado-no-abre-la-sala.test.ts`).
+ */
+vi.mock('@/lib/patient-token', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/lib/patient-token')>()
+  return { ...real, verificarTokenPaciente: (...a: unknown[]) => verificarTokenPaciente(...a) }
+})
 vi.mock('@/lib/auth-server', () => ({
   verificarMiembro: (...a: unknown[]) => verificarMiembro(...a),
 }))

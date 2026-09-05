@@ -691,6 +691,15 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       // — ni nombre, ni teléfono, ni un solo dato clínico.
       'portal/link',
       'public/booking',
+      /**
+       * REG-512: la tercera consumidora del magic-link, y la que quedó fuera
+       * de REG-331. Abría la SALA DE VIDEO con un enlace ya revocado hasta que
+       * caducara. Ahora lee `patients/{id}.portalTokenVersion` por el mismo
+       * módulo que sus dos hermanas, y sólo eso; sigue siendo `tokenPaciente`
+       * atado a {clinicId, patientId} con la rama alternativa `clinico.leer`
+       * para el equipo, que no pasa por esta lectura.
+       */
+      'telesalud/sala',
       'telesalud/token',
       'whatsapp/webhook',
     ])
