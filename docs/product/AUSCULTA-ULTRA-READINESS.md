@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…523 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…526 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 718 pasan · 1 falla (entorno)** tras REG-523 (945 archivos); cada slice anota la suya en su commit |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 736 pasan · 1 falla (entorno)** tras REG-526 (948 archivos); cada slice anota la suya en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **469 · 6 567** |
-| Ledger | 305 REG · última REG-511 | **317 · REG-523** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **472 · 6 585** |
+| Ledger | 305 REG · última REG-511 | **320 · REG-526** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -124,10 +124,16 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 571 de 934 archivos leen fuente; **215 son 100 % guardianes de texto**; 75 de
 ellos sellados. 82 bucles sobre listas derivadas sin guarda de longitud. 27
 casos con `toBeDefined` como única aserción. **0** tautologías, **0**
-`continue-on-error` en `ci.yml`. `csp-manifest`: 4 casos que nunca corren en CI
-porque vitest va antes del build. `autorizacion-servidor.test.ts`: el doble
-ignora el id del documento (la frontera del Admin SDK). Sello con 31 casos de
-holgura.
+`continue-on-error` en `ci.yml`. ~~`csp-manifest`: 4 casos que nunca corren en CI
+porque vitest va antes del build~~ — **CERRADO, REG-524** (paso tras el build).
+~~`autorizacion-servidor.test.ts`: el doble ignora el id del documento~~ — el
+archivo no existe con ese nombre; lo verificado es peor: **ninguna prueba
+ejecutaba la membresía del servidor**. **CERRADO, REG-526** (primera prueba
+ejecutada contra un doble con id, tres mutantes cazados). ~~`el-llm-no-calcula`
+casa literales~~ — **CERRADO, REG-525** (detector por frases sobre el prompt
+emitido, 442 combinaciones). Quedan: 215 guardianes de texto puros (no se
+reescriben en bloque; se revisan cuando se tocan), 82 bucles sin guarda de
+longitud, 27 `toBeDefined` solos. Sello con 31 casos de holgura.
 
 ---
 
@@ -173,6 +179,9 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **521** | «Paracetamol 500 mg» + «Tempra 1 g» pasaban renglón a renglón: 4 500 mg/día sin aviso | `la-misma-sustancia-dos-veces-se-dice.test.ts` (17) | `revisarDosis` por renglón, vacío; con la lista y las dos pantallas como estaban, cinco rojos |
 | **522** | (port de #442) La vista previa del papel se medía contra 380 px constantes: recortada en el teléfono, pequeña en escritorio | `la-vista-previa-del-papel-se-media-contra-una-constante.test.ts` (5) | devolviendo `maxWidth = 380` a la firma, cae (según la sesión de origen; aquí sólo se verificó que pasa) |
 | **523** | (port de #442) La captura «completa» de la sonda era byte a byte la del pliegue; la cuenta de objetivos táctiles medía cajas, no dedos; `/pendientes` no se sembraba | `la-captura-completa-ensenaba-un-tercio-de-la-pantalla.test.ts` (15) | cinco inversiones en la sesión de origen; aquí sólo se verificó que pasa |
+| **524** | `csp-manifest` llevaba saltada en cada corrida del CI: el build iba después de vitest | `la-csp-del-artefacto-se-comprueba-despues-del-build.test.ts` (3) | con `ci.yml` como estaba, dos rojos |
+| **525** | El guardián de «el modelo no calcula» casaba literales; una orden reformulada pasaba | `el-prompt-no-ordena-aritmetica-con-otras-palabras.test.ts` (7) | el viejo verde con «Estima la TFG con CKD-EPI»; el nuevo rojo |
+| **526** | Ninguna prueba ejecutaba la membresía del servidor; los dobles de las rutas ignoran el id | `la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts` (8) | tres mutantes sobre `auth-server.ts`: 4, 2 y 1 rojos |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -214,5 +223,10 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 
 **La receta queda cerrada en lo verificado** (REG-517, 518, 520, 521); los
 tres validadores sin llamador esperan decisión del dueño (§3, §9). El port de
-#442 está hecho (REG-522, 523). Siguen los tres del test-the-test (`autorizacion-servidor` ignora el id del documento;
-`csp-manifest` no corre en CI; `el-llm-no-calcula` casa literales).
+#442 está hecho (REG-522, 523) y los tres del test-the-test también (REG-524,
+525, 526). Lo que sigue, por orden: (1) los ítems de seguridad reportados en
+§3 y todavía sin verificar por el orquestador (`safeLog` no redacta lo que
+promete; `reclamarCanal` sin transacción; la llave de 360dialog como id de
+documento; `String(err)` hacia el cliente); (2) la verificación en navegador
+(§8) con el arnés de emuladores, que hoy ya arranca aquí; (3) las decisiones
+del dueño pendientes en §9.

@@ -19427,3 +19427,127 @@ rama (REG-437, REG-438); se compara sin comentarios.
   fuente única del paso legal de una tarea clínica, y cambiar ahí una palabra sin
   el dueño es fijar vocabulario de producto.
 - **No es un iPhone.** Chromium a 390 px.
+
+
+## REG-524 · Los cuatro casos de `csp-manifest` llevaban saltados en cada corrida del CI desde que existen
+
+**CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026 («4 casos que nunca
+corren en CI porque vitest va antes del build»). Verificado leyendo
+`.github/workflows/ci.yml`: en el job `verificar`, «Pruebas (vitest)» va antes
+de «Build de producción», y `csp-manifest` (la prueba del manifest) lee `.next/routes-manifest.json`,
+que sólo existe después. Con el build local hecho, la prueba pasa sus cuatro
+casos sobre el artefacto real: la prueba sirve; nadie la dejaba mirar.
+
+**LO QUE PASABA.** La prueba está bien escrita —sin artefacto se declara
+SALTADA, no verde—, pero un caso que siempre se salta es un caso que no existe
+con la ventaja de parecer que sí. La CSP y las dos capas anti-clickjacking del
+artefacto que Vercel consume nunca se comprobaron en CI.
+
+### La causa raíz
+
+«Nadie lo estaba midiendo»: el instrumento existía y el orden del CI lo dejaba
+sin sujeto. La hermana exacta de REG-3xx (`el-gate-mide-el-artefacto-que-revisa`):
+si la prueba lee un artefacto, el artefacto tiene que existir cuando corre.
+
+### El arreglo
+
+Un paso más en el mismo job, después de `npm run build`, que corre sólo la
+prueba del manifest con `npx vitest run`. Nada cambia en la prueba.
+
+### Prueba
+
+`src/__tests__/la-csp-del-artefacto-se-comprueba-despues-del-build.test.ts`
+(3 casos): el paso existe, va después del build, y `csp-manifest` sigue
+declarándose saltada sin artefacto. **Probado al revés**: con `ci.yml` como
+estaba, dos rojos.
+
+### Qué NO cubre
+
+- No ejecuta el CI: comprueba el orden por fuente.
+- `csp-manifest` sigue sin sello, a propósito: en local sin build se salta.
+
+## REG-525 · El guardián de «el modelo no calcula» casaba literales: una orden con otras palabras pasaba
+
+**CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026 («casa
+literales»). Verificado: `el-llm-no-calcula-en-ninguna-nota.test.ts` (REG-194)
+comprueba que no esté la frase exacta «Pediatría: dosis en mg/kg/día Y
+mg/kg/dosis. Holliday-Segar» y que sí esté «16-bis. TÚ NO CALCULAS». «Estima
+la TFG con CKD-EPI» o «calcula la superficie corporal con Mosteller» pasaban
+el guardián sin tocarlo. Y miraba el archivo fuente, no el prompt emitido:
+una guía nueva entra por otro archivo.
+
+### La causa raíz
+
+Un guardián de texto que sella la REDACCIÓN del arreglo en vez de la REGLA.
+Vigilaba que no volviera la frase de REG-194; la regla es que ninguna frase
+ordene aritmética.
+
+### El arreglo
+
+`src/__tests__/_harness/ordenes-de-aritmetica.ts`, instrumento puro del arnés: por frases, delata
+las que nombran una cantidad derivada (percentil, mg/kg, superficie corporal,
+volumen de líquidos, «cálculo de») o una fórmula con nombre (Holliday-Segar,
+Cockcroft, CKD-EPI, MDRD, Schwartz, Mosteller, Du Bois) sin negarla, sin
+atribuirla a un motor y sin convertirla en transcripción. TFG/eGFR no está en
+la lista a propósito: es también un valor que el laboratorio reporta y las
+guías piden documentarlo; sólo su fórmula delata la orden. El guardián nuevo
+corre sobre `buildSystemPrompt` en 13 tipos × 17 especialidades × con/sin
+huecos (442 combinaciones). El viejo se queda: sella la redacción de 16-bis.
+
+### Prueba
+
+`src/__tests__/el-prompt-no-ordena-aritmetica-con-otras-palabras.test.ts`
+(7 casos): las dos frases originales de REG-194 y tres reformulaciones se
+delatan; lo negado, lo atribuido y lo transcrito no; el prompt emitido no
+tiene ninguna; y una orden inyectada por las instrucciones del médico se
+delata en el prompt emitido. **Probado al revés**: el guardián viejo queda
+verde con «Estima la TFG con CKD-EPI» en el prompt; el nuevo, rojo.
+
+### Qué NO cubre
+
+- Escalas que las guías piden DOCUMENTAR si se dictaron (qSOFA, Glasgow,
+  PHQ-9) no cuentan como orden de calcular; declarado en `QUE_NO_VIGILA`.
+- Es vocabulario: una fórmula fuera de la lista no se vigila.
+- No mira `buildUserPrompt`.
+
+## REG-526 · Ninguna prueba ejecutaba la membresía del servidor; los dobles de las rutas ignoran el id del documento
+
+**CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026: «el doble
+ignora el id del documento (la frontera del Admin SDK)» en un archivo que no
+existe con ese nombre. Verificado hoy lo que sí existe: `verificarMiembro`
+(`auth-server.ts`) y `verificarCapacidad` (`authz/verificar.ts`) —la guardia
+de la que cuelgan las 99 rutas— **no las ejecutaba ninguna prueba**. Las
+pruebas de rutas sustituyen la guardia por un doble que siempre dice «ok», y
+sus dobles de Firestore devuelven el documento sin mirar qué id se pidió
+(`doc: () => …`). El guardián estático comprueba que la ruta LLAME a la
+guardia; nadie comprobaba que la guardia hiciera lo que dice.
+
+### La causa raíz
+
+«Nadie lo estaba midiendo», en el peor sitio: un `.doc(clinicId)` donde va
+`.doc(uid)`, o una comparación de `clinicId` que desapareciera, habrían pasado
+la suite entera con 12 700 casos en verde.
+
+### El arreglo
+
+Una prueba que ejecuta la guardia contra un doble que es un MAPA por id: tres
+miembros en `clinic_members`, `doc(id)` devuelve exactamente el que se pidió
+o `exists: false`; el token se resuelve por un mapa igual. No cambia código
+de producción.
+
+### Prueba
+
+`src/__tests__/la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts`
+(8 casos): 401 sin token o con token rechazado y sin tocar la base; 400 sin
+clinicId; 403 sin documento (y se pidió el uid, no la clínica); 403 miembro de
+otra clínica; ok con rol y segundo factor; `verificarUsuario` no lee
+membresía; la capacidad decide por rol; la membresía va antes que la
+capacidad. **Probado al revés** con tres mutantes sobre `auth-server.ts`:
+`.doc(clinicId)` → 4 rojos; sin comparar `clinicId` → 2 rojos; sin mirar
+`exists` → 1 rojo. Revertidos.
+
+### Qué NO cubre
+
+- `verificarModuloIA` y el paywall, con su asimetría fail-open: prueba aparte.
+- Las 99 rutas: siguen siendo del guardián estático. Aquí se prueba la guardia.
+- Firebase Auth: `verifyIdToken` es un doble.

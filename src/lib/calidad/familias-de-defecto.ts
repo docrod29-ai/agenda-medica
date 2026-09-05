@@ -851,8 +851,15 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ya cubría. 522 es su hermana pequeña: la vista previa del papel se
      * medía contra una constante de 380 px que nadie había medido en un
      * teléfono, declarada como hueco por 441 y sin cerrar.
+     *
+     * 524, 525 y 526 son el test-the-test del 5-sep-2026, los tres de esta
+     * familia: una prueba que el CI dejaba siempre saltada (el artefacto se
+     * construía después de medirlo); un guardián que sellaba la REDACCIÓN de un
+     * arreglo y no la regla (una orden de calcular con otras palabras pasaba);
+     * y la guardia de membresía de la que cuelgan las 99 rutas, sin una sola
+     * prueba que la ejecutara contra un doble que distinga ids.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 515, 522, 523],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 515, 522, 523, 524, 525, 526],
   },
   {
     clave: 'hueco_como_dato',

@@ -2,7 +2,7 @@
   "sellado": "2026-09-05",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6567,
+  "totalCasos": 6585,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -517,6 +517,10 @@
       "minCasos": 14
     },
     {
+      "archivo": "src/__tests__/el-prompt-no-ordena-aritmetica-con-otras-palabras.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/el-prompt-no-se-contradice.test.ts",
       "minCasos": 15
     },
@@ -845,6 +849,10 @@
       "minCasos": 4
     },
     {
+      "archivo": "src/__tests__/la-csp-del-artefacto-se-comprueba-despues-del-build.test.ts",
+      "minCasos": 3
+    },
+    {
       "archivo": "src/__tests__/la-direccion-de-las-dependencias.test.ts",
       "minCasos": 8
     },
@@ -919,6 +927,10 @@
     {
       "archivo": "src/__tests__/la-matriz-de-evidencia-no-promete-lo-que-no-hay.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-misma-sustancia-dos-veces-se-dice.test.ts",

@@ -117,6 +117,15 @@ jobs:
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
           NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
+      # ── REG-524: la CSP se comprueba SOBRE EL ARTEFACTO, después de construirlo ──
+      #
+      # `csp-manifest.test.ts` lee `.next/routes-manifest.json`, que es lo que
+      # Vercel consume de verdad. En el paso «Pruebas (vitest)» de arriba ese
+      # archivo todavía no existe, así que sus cuatro casos se declaraban
+      # SALTADOS en cada corrida del CI desde que se escribieron — un verde que
+      # no medía nada. Aquí, con el build recién hecho, sí hay artefacto.
+      - name: CSP del artefacto del build (routes-manifest)
+        run: npx vitest run src/__tests__/csp-manifest.test.ts
 
   # ── A1 de la auditoría maestra: el lint YA es un gate ─────────────────────
   #

@@ -23,24 +23,20 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    "M .github/workflows/ci.yml",
+    " M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
     " M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/maintenance/BITACORA-2026-09-05-preservacion-y-auditoria.md",
     " M docs/product/AUSCULTA-ULTRA-READINESS.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
-    "M  scripts/ausculta-transformacion/mirar-la-consulta.mjs",
-    "M  scripts/design/sembrar-emulador.mjs",
-    "AM src/__tests__/la-captura-completa-ensenaba-un-tercio-de-la-pantalla.test.ts",
-    "AM src/__tests__/la-vista-previa-del-papel-se-media-contra-una-constante.test.ts",
-    "M  src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
-    "M  src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
-    "MM src/components/RecetaPreviewWrapper.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json"
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/_harness/ordenes-de-aritmetica.ts",
+    "?? src/__tests__/el-prompt-no-ordena-aritmetica-con-otras-palabras.test.ts",
+    "?? src/__tests__/la-csp-del-artefacto-se-comprueba-despues-del-build.test.ts",
+    "?? src/__tests__/la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -76,10 +72,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 317,
-    "ultimaREG": "REG-523",
-    "archivosDePrueba": 945,
-    "casosDePrueba": 11439,
+    "regsEnElLedger": 320,
+    "ultimaREG": "REG-526",
+    "archivosDePrueba": 948,
+    "casosDePrueba": 11457,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"
