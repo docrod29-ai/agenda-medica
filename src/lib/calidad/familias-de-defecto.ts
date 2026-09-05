@@ -1064,7 +1064,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * había aviso era un toast, y un toast muere al cambiar de pantalla, que es
      * exactamente lo que se hace después de firmar.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411],
+    /**
+     * 518 es la pérdida que responde `ok: true`. El asiento de bitácora que
+     * guarda qué decía la receta impresa acotaba `meta` cortando el JSON por
+     * carácter y descartándolo ENTERO si quedaba inválido: en las recetas
+     * largas el hash y el folio se iban a `null` sin ningún error. Se acota
+     * por campo y lo omitido se declara en el propio asiento.
+     */
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 518],
   },
   {
     clave: 'tarde',

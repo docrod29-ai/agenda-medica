@@ -18994,3 +18994,65 @@ declarar una dependencia y el trinquete se aprieta.
 - **La reserva pública sigue creando pacientes sin fecha de nacimiento.**
   Pedirla ahí es un cambio de producto (fricción en la puerta más expuesta) y
   no se decide aquí.
+
+## REG-518 · La huella de una receta larga se perdía entera en la bitácora, con `ok: true`
+
+**CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026,
+siguiendo la huella de lo impreso desde el botón de imprimir hasta Firestore.
+Verificado por el orquestador en `api/auditoria/registrar/route.ts`:
+
+```
+const recortada = JSON.stringify(body.meta).slice(0, 2000)
+try { meta = JSON.parse(recortada) } catch { meta = undefined }   // se truncó a medias → se descarta
+```
+
+**LO QUE PASABA.** La receta se puede editar después de firmar la nota y lo
+editado no vuelve al expediente (lo declara `huella-impreso.ts`). El **único
+rastro** de qué decía el papel que se llevó el paciente es `meta` en los
+asientos `receta_generada` / `receta_descargada`: folio, lista de fármacos con
+dosis, total y hash.
+
+Cortar un JSON por la mitad casi siempre lo deja inválido. Una receta con
+muchos renglones o con indicaciones largas pasaba de 2 000 caracteres, el
+`parse` fallaba, y `meta` se escribía como `null` — **con respuesta `ok:
+true`**. Se perdía el hash justo en las recetas que más falta hace poder
+reconstruir, sin ningún error en ningún sitio.
+
+### La causa raíz
+
+Acotar por carácter lo que es un objeto. El tope protegía a la base de
+documentos enormes —bien— y el `catch` convertía «no cupo» en «no había».
+Familia «pérdida de datos»: trabajo del médico que desaparece solo, y de la
+clase que no se nota hasta el día que se necesita.
+
+### El arreglo
+
+`lib/expediente/meta-de-bitacora.ts`, puro: se acota **por campo**. Primero
+los valores cortos (números, booleanos, cadenas cortas: el hash, el folio, el
+total), después las listas de cadenas **elemento a elemento** hasta donde
+quepa, y lo que no cabe se **omite y se declara** en el propio asiento
+(`_truncada: true`, `_camposOmitidos`). El resultado siempre es un objeto
+válido dentro del tope y siempre dice si le falta algo. Un asiento que dice
+«me recortaron doce fármacos» es un asiento; `null` no.
+
+Lo que ya cabía entra tal cual: la forma de siempre para el caso de siempre.
+
+### Prueba
+
+`src/__tests__/la-huella-de-la-receta-larga-no-se-pierde.test.ts` (8 casos):
+tabla de la función pura (lo que cabe no se toca; huella de 80 fármacos
+conserva hash, folio y total y declara lo omitido; cadenas largas y objetos
+anidados se nombran; la huella REAL de 40 medicamentos cabe con su hash) y la
+ruta ejecutada con un doble que captura el asiento. **Probado al revés**: con
+la ruta como estaba, el asiento de la receta de 80 fármacos llevaba
+`meta: null`.
+
+### Qué NO cubre
+
+- **No guarda la receta entera.** La lista de fármacos sigue entrando hasta
+  donde llega el tope; guardar el documento impreso completo es una decisión
+  de producto mayor, declarada en `huella-impreso.ts`.
+- **El hash sigue siendo FNV-1a de 32 bits**: detecta diferencias, no resiste
+  a un adversario. No cambia aquí.
+- **Los asientos históricos con `meta: null`** no se recuperan: lo que no se
+  escribió no está.

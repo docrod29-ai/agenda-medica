@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
+import { acotarMeta } from '@/lib/expediente/meta-de-bitacora'
 
 /**
  * Escritura SERVIDOR de la bitácora de auditoría.
@@ -67,13 +68,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Evento no reconocido' }, { status: 400 })
   }
 
-  // `meta` es libre por diseño (contadores, ids), pero se acota para que no se
-  // convierta en un vertedero de PHI ni en un vector de documentos enormes.
-  let meta: Record<string, unknown> | undefined
-  if (body.meta && typeof body.meta === 'object') {
-    const recortada = JSON.stringify(body.meta).slice(0, 2000)
-    try { meta = JSON.parse(recortada) } catch { meta = undefined }   // se truncó a medias → se descarta
-  }
+  /**
+   * `meta` es libre por diseño (contadores, ids), pero se acota para que no se
+   * convierta en un vertedero de PHI ni en un vector de documentos enormes.
+   *
+   * REG-518 — se acota POR CAMPO, no por carácter. Antes se cortaba el JSON a
+   * 2 000 caracteres y, si quedaba inválido, se descartaba `meta` ENTERO: en
+   * `receta_generada` eso era perder el hash y el folio de lo impreso justo en
+   * las recetas largas, con `ok: true` de respuesta. Ahora lo corto (hash,
+   * folio, total) siempre cabe, la lista de fármacos entra hasta donde llega,
+   * y lo omitido queda declarado en el propio asiento.
+   */
+  const meta = acotarMeta(body.meta)
 
   try {
     await adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({

@@ -24,17 +24,14 @@
   },
   "trabajoLocalSinSubir": [
     "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    " M docs/audit/lint-techo.json",
     " M docs/audit/regression-ledger.md",
     " M docs/product/AUSCULTA-ULTRA-READINESS.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/la-sobredosis-se-ve-antes-de-firmar.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    " M src/app/api/auditoria/registrar/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-edad-que-falta-se-dice-no-se-supone-adulto.test.ts",
-    "?? src/lib/seguridad/edad-para-dosificar.ts"
+    "?? src/__tests__/la-huella-de-la-receta-larga-no-se-pierde.test.ts",
+    "?? src/lib/expediente/meta-de-bitacora.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -70,10 +67,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 311,
-    "ultimaREG": "REG-517",
-    "archivosDePrueba": 939,
-    "casosDePrueba": 11373,
+    "regsEnElLedger": 312,
+    "ultimaREG": "REG-518",
+    "archivosDePrueba": 940,
+    "casosDePrueba": 11381,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"
