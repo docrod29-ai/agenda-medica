@@ -26,9 +26,9 @@
     "M docs/maintenance/sw-changelog.md",
     " M public/sw.js",
     " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-09-04-v1180.md"
+    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-09-05-v1181.md"
   ],
-  "actualizado": "2026-09-04",
+  "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -60,13 +60,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/chat-pendientes-m4f9p9",
+  "ramaActual": "claude/remove-unused-code-h7td7c",
   "derivado": {
     "regsEnElLedger": 305,
     "ultimaREG": "REG-511",
-    "archivosDePrueba": 932,
-    "casosDePrueba": 11311,
+    "archivosDePrueba": 934,
+    "casosDePrueba": 11325,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1180"
+  "versionEnElRepo": "nexusmed-v1181"
 }

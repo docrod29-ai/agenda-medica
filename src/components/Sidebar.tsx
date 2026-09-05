@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
+import { enPausa } from '@/lib/navegacion/modulos-en-pausa'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
@@ -33,6 +34,9 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   // de donde salen, y en 'ambos' porque reclamar un estudio pedido es trabajo
   // de la asistente tanto como del médico.
   { href: '/pendientes',    label: 'Pendientes',     icon: ClipboardList,   modos: 'ambos' },
+  // EN PAUSA (4-sep-2026): declaradas, no pintadas. `enPausa` las filtra abajo
+  // porque la prioridad es la consulta y su agenda; la fila se queda escrita
+  // para que volver a ofrecerlas sea vaciar `MODULOS_EN_PAUSA`, no reescribirla.
   { href: '/hospitalizacion', label: 'Hospitalización', icon: BedDouble,     modos: 'ambos' },
   { href: '/uci',           label: 'UCI',            icon: Activity,        modos: 'medico' },   // /uci es el expediente de terapia, no la calculadora
   { href: '/consultor',     label: 'Consultor IA',   icon: FlaskConical,    modos: 'medico' },
@@ -79,9 +83,14 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   // Filtrar NAV según el modo activo Y los módulos contratados por la clínica
   // (el paquete que compró). rutaPermitida da acceso a TODO si no hay módulos
   // definidos (clínicas previas) y siempre a las rutas core.
+  // …y, encima del entitlement, los módulos EN PAUSA: lo que la plataforma
+  // sabe hacer pero hoy no ofrece (Hospitalización y UCI — ver
+  // `@/lib/navegacion/modulos-en-pausa`). La ruta sigue viva; sólo deja de
+  // tener puerta en el menú.
   const navVisible = NAV.filter(item =>
     (item.modos === 'ambos' || (mode === 'medico' ? item.modos === 'medico' : item.modos === 'secretaria'))
     && rutaPermitida(clinic, item.href)
+    && !enPausa(item.href)
   )
 
   // Misma historia que en AutoLogout: se esperaba 1200 ms fijos y se purgaba
