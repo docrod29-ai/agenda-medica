@@ -6,6 +6,15 @@
 > se escribe ANTES de fusionar, para que lo que se declara no se pueda ajustar
 > a lo que salga.
 
+> **SUPERADO — 5-sep-2026 20:18 UTC. PUBLICADO Y VERIFICADO.** Vercel publicó
+> `main` por su integración de git al fusionarse #452, y el botón corrió sobre
+> `ff4bb541`: ejecución
+> [#19](https://github.com/docrod29-ai/agenda-medica/actions/runs/33989602747),
+> en verde, con la Compuerta 3 midiendo `nexusmed-v1181` contra el sitio vivo al
+> primer intento. La línea de arriba no se borra: era verdad cuando se escribió,
+> y un acta que se reescribe deja de servir para reconstruir qué se sabía y
+> cuándo. Lo que pasó de verdad está en el §5.
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1180` → **`nexusmed-v1181`** |
@@ -108,3 +117,58 @@ regla, no un extra):
   versión del caché; la retirada ocurre cuando cada cliente recarga.
 - **Nada sobre Hospital/UCI como producto.** Siguen en ALPHA y siguen sin
   venderse; esto sólo cambia dónde se ofrecen.
+
+---
+
+## 5. Lo que pasó de verdad
+
+Se publicó el 5-sep-2026. Los tres pasos salieron en el orden previsto y ninguno
+tuvo que repetirse.
+
+| Paso | Qué fue | Resultado |
+|---|---|---|
+| 1 | PR #452 — service worker a v1181 y esta acta | fusionado a las 17:00 UTC, 5 checks de CI en verde |
+| — | Vercel publicó `main` (`ff4bb541`) por su integración de git | producción pasa a servir `nexusmed-v1181` |
+| 2 | PR #453 — `SHA_AUTORIZADO` repuntado a `ff4bb541` | fusionado a las 17:15 UTC, 5 checks en verde |
+| 3 | Workflow «Despliegue a producción (manual)», ejecución **#19** | `PRODUCTION_RELEASE=SUCCESS` |
+
+Acta que emitió la ejecución #19:
+
+```
+PRODUCTION_URL=https://agenda-medica-one.vercel.app
+APP_SHA=ff4bb541dc54a4f2a3cc75049a0eaee879da4d61
+VERSION=nexusmed-v1181
+VERCEL_PROJECT=agenda-medica
+FIRESTORE_RULES=success
+FIRESTORE_INDICES=success
+FIRESTORE_RULES_SHA256=1d91d7077e616e2a600a0f0526d79c46b85d5ffe9d7d5bffd0d8b157923d2df7
+SECURITY_E2E=success
+SMOKE=success
+SMOKE_PORTAL=success
+PRODUCTION_RELEASE=SUCCESS
+```
+
+<https://github.com/docrod29-ai/agenda-medica/actions/runs/33989602747>
+
+### Tres horas entre publicar y cerrar, y por qué el dueño «lo veía igual»
+
+Los pasos 1 y 2 se fusionaron a las 17:00 y 17:15 UTC; el botón no se pulsó
+hasta las 20:16. En ese hueco producción **ya servía v1181** —la Compuerta 3 lo
+midió al primer intento, sin esperar—, pero nada en el repositorio lo decía:
+esta acta seguía en «PREPARADO, NO PUBLICADO» y el tablero en v1179. El dueño
+preguntó si faltaba subirla, y la respuesta correcta era «no: falta cerrar el
+acta».
+
+Que «la viera igual» tiene otra explicación, y está declarada en el §4: el
+service worker viejo sirve su caché hasta que el cliente recarga. Subir la
+versión del caché no retira el anterior de los navegadores abiertos.
+
+### Lo que esta ejecución NO demuestra
+
+- **Reglas e índices**: se reenviaron y Firebase contestó `success`, pero el
+  hash es el mismo que dejó #18 (`1d91d707…`), así que fue un no-op. Esta
+  ejecución no publicó ninguna regla nueva, porque no había ninguna.
+- **Que el service worker viejo se haya retirado de los navegadores.** Sigue
+  siendo el renglón del §4.
+- **El recorrido en móvil y con teclado** del cajón de Operaciones sigue sin
+  verificar por el arnés, igual que decía el §4. Publicar no lo verificó.

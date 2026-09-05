@@ -17,17 +17,12 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": {
-    "version": "nexusmed-v1179",
-    "confirmadaEl": "2026-09-02",
-    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371",
+    "version": "nexusmed-v1181",
+    "confirmadaEl": "2026-09-05",
+    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/33989602747",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-09-05-v1181.md"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -60,7 +55,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/remove-unused-code-h7td7c",
+  "ramaActual": "claude/app-production-deployment-cdhqdd",
   "derivado": {
     "regsEnElLedger": 305,
     "ultimaREG": "REG-511",

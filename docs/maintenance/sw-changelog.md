@@ -5,7 +5,9 @@ del `const CACHE`.
 
 ## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 5-sep 20:18 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #19;
+producción ya servía v1181 desde la fusión de #452, tres horas antes). El
+paquete y lo que declara viven en
 [`PAQUETE-PRODUCCION-2026-09-05-v1181.md`](PAQUETE-PRODUCCION-2026-09-05-v1181.md).
 
 **3 commits desde v1180** (2 de trabajo + 1 de fusión) · 13 archivos ·
@@ -35,7 +37,8 @@ CANTIDAD visible de golpe.
 
 ## v1180 — el paciente ya puede preguntar, y seis defectos que sólo se veían al ir a ejecutarlos
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 4-sep 23:03 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #18).
+El paquete y lo que declara viven en
 [`PAQUETE-PRODUCCION-2026-09-04-v1180.md`](PAQUETE-PRODUCCION-2026-09-04-v1180.md).
 
 **97 commits desde v1179** · 374 archivos · +20 229 / −1 598 · **73 de código de

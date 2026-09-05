@@ -5,6 +5,14 @@
 > con la palabra «DESPLIEGA»; este documento se escribe ANTES de correr el botón,
 > para que lo que se declara no se pueda ajustar a lo que salga.
 
+> **SUPERADO — 4-sep-2026 23:03 UTC. PUBLICADO Y VERIFICADO.** El dueño corrió el
+> botón sobre `44bfcb58`: ejecución
+> [#18](https://github.com/docrod29-ai/agenda-medica/actions/runs/33927883098),
+> en verde, con la Compuerta 3 midiendo `nexusmed-v1180` contra el sitio vivo.
+> La línea de arriba no se borra: era verdad cuando se escribió. Lo que pasó de
+> verdad está en el §5 (y este aviso llegó con el cierre de v1181, el 5-sep:
+> #451 rellenó el §5 pero no lo puso aquí arriba, donde lo busca el guardián).
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1179` → **`nexusmed-v1180`** |
