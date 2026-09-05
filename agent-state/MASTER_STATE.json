@@ -30,13 +30,19 @@
     " M docs/maintenance/BITACORA-2026-09-05-preservacion-y-auditoria.md",
     " M docs/product/AUSCULTA-ULTRA-READINESS.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/canal-whatsapp-no-se-secuestra.test.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/security/sanitize.ts",
-    " M src/lib/whatsapp/reclamar-canal.ts",
-    "?? src/__tests__/dos-consultorios-no-reclaman-el-mismo-canal-a-la-vez.test.ts",
-    "?? src/__tests__/el-log-no-guarda-el-nombre-del-paciente-ni-la-llave-de-stripe.test.ts"
+    " M src/app/api/calendar/calendars/route.ts",
+    " M src/app/api/calendar/callback/route.ts",
+    " M src/app/api/calendar/connect/route.ts",
+    " M src/app/api/calendar/status/route.ts",
+    " M src/app/api/calendar/sync/route.ts",
+    " M src/app/api/clinic/ai-keys/route.ts",
+    " M src/app/api/clinic/whatsapp-disconnect/route.ts",
+    " M src/app/api/consultor-evidencia/route.ts",
+    " M src/app/api/cron/asientos/route.ts",
+    " M src/app/api/cron/reminders/route.ts",
+    " M src/app/api/demo/evidencia/route.ts",
+    " M src/app/api/errores/route.ts",
+    " M src/app/api/expediente/antibiograma-razonar/route.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -72,10 +78,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 322,
-    "ultimaREG": "REG-528",
-    "archivosDePrueba": 950,
-    "casosDePrueba": 11468,
+    "regsEnElLedger": 323,
+    "ultimaREG": "REG-529",
+    "archivosDePrueba": 951,
+    "casosDePrueba": 11473,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

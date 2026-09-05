@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { decidirCobroAnticipo } from '@/lib/finanzas/anticipo'
 import { safeLog } from '@/lib/security/sanitize'
 import { stripe, nivelDePlan, STRIPE_PRICES as PRECIOS_DE_PLAN, STRIPE_PRICES_ANUAL } from '@/lib/stripe'
@@ -839,7 +840,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true })
   } catch (err) {
     safeLog.error(`[Stripe Webhook] Handler error for ${event.type}:`, err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

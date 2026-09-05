@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { safeLog } from '@/lib/security/sanitize'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
@@ -1630,6 +1631,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     safeLog.error('[Bot] Webhook error:', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

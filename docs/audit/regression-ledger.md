@@ -19639,3 +19639,53 @@ de REG-3xx se adaptó a la lectura dentro de la transacción.
 - No ejecuta las tres rutas que llaman a `reclamarCanal`: sigue en el guardián
   de fuente.
 - No es Firestore de verdad: el arnés imita el contrato, no el motor.
+
+
+## REG-529 · Cuarenta rutas devolvían `String(err)` al cliente
+
+**CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 («`String(err)`
+hacia el cliente en ~25 rutas y en un redirect», BAJO). Verificado por el
+orquestador: el `grep` de la auditoría contaba 25 porque el `\b` tras el
+paréntesis se comía los `String(e).slice(…)`; con un detector por línea sobre
+los comentarios quitados salen **46 sitios en 40 rutas**, más un redirect y
+dos avisos dentro de respuestas `ok: true`.
+
+**LO QUE PASABA.** `String(err)` de un error del Admin SDK trae nombres de
+colecciones, rutas de documentos con el id del paciente, mensajes del
+proveedor y a veces el dato que provocó el fallo. Para quien sondea la API es
+reconocimiento gratis; para el médico, ruido. `public/booking` lo había
+arreglado a mano (REG anterior) y ninguna otra ruta lo heredó.
+
+### La causa raíz
+
+Depende de que alguien se acuerde: el arreglo de `booking` era un `catch`
+bien escrito, no una regla. Cada ruta nueva nacía con el patrón viejo y nada
+la paraba.
+
+### El arreglo
+
+`src/lib/security/error-al-cliente.ts`: `errorAlCliente(mensaje?, status?)`,
+que **no recibe el error** y por eso no puede filtrarlo; el detalle sigue
+yendo a `safeLog`, redactado. Las 40 rutas lo usan; donde la ruta sabe algo
+útil («no se pudo procesar la imagen») lo dice. Lo que se queda dentro de la
+aplicación (la nota de respaldo de `procesar`, el latido de `asientos`, el
+`ultimoDebug` de `corregir`) pasa por `redactarString` y se acota. El
+redirect de Google Calendar y los dos avisos llevan texto fijo.
+
+### Prueba
+
+`src/__tests__/el-error-crudo-no-sale-al-cliente.test.ts` (5 casos): el helper
+no acepta el error y responde `ok: false` con mensaje genérico; el mensaje no
+menciona nada interno; **el barrido de todas las rutas** (comentarios fuera):
+`String(err|e)` sólo en líneas que loguean o redactan; el detector contra un
+fixture con el patrón viejo y contra el bueno; ≥20 rutas usan el helper.
+**Probado al revés**: con `src/app/api` como estaba, el caso 3 lista los 46
+sitios y el 5 cae. Las 49 pruebas que importan alguna de esas rutas siguen
+verdes.
+
+### Qué NO cubre
+
+- Otras formas de filtrar el error (`err.message`, `err.stack` en la
+  respuesta): se buscó y hoy no hay ninguna en un `NextResponse.json`, pero el
+  guardián sólo vigila `String(…)`.
+- No ejecuta las rutas: es de fuente.

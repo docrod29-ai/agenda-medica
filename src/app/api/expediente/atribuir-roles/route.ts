@@ -15,6 +15,7 @@
  * nunca rompe el flujo.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { rolesDe, esRolAtribuible, catalogoParaPrompt, NO_IDENTIFICADO } from '@/lib/asr/roles-hablante'
 import { diagnosticarSeparacion } from '@/lib/asr/separacion-fallida'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -143,6 +144,6 @@ export async function POST(req: NextRequest) {
     // Dejar aquí el incremento de antes cobraría DOS VECES la misma nota.
     return NextResponse.json({ ok: true, roles, sinIdentificar, hablantes: hablantes.length, separacionFallida: false })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }

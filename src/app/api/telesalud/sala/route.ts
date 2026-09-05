@@ -9,6 +9,7 @@
  * Devuelve: { ok, url, name, expiresAt }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -174,6 +175,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, url, name, expiresAt: exp })
   } catch (err) {
     safeLog.error('[telesalud/sala]', err)
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

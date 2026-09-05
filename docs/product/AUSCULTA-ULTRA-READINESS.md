@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…528 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…529 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 747 pasan · 1 falla (entorno)** tras REG-528 (950 archivos); cada slice anota la suya en su commit |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 752 pasan · 1 falla (entorno)** tras REG-529 (951 archivos); cada slice anota la suya en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **474 · 6 596** |
-| Ledger | 305 REG · última REG-511 | **322 · REG-528** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **475 · 6 601** |
+| Ledger | 305 REG · última REG-511 | **323 · REG-529** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -115,7 +115,7 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 - ~~`safeLog` no redacta `nombre`, `pacienteNombre`, `diagnosticos`, `motivo` ni `sk_live_`/`whsec_` pese a prometerlo en su cabecera~~ — **CERRADO, REG-527**: llaves clínicas por nombre, Stripe por patrón, cabecera con la lista real.
 - ~~`reclamarCanal` es check-then-write sin transacción~~ — **CERRADO, REG-528**: en `runTransaction`, con la carrera provocada en el arnés. `dueño === ''` sigue contando como libre a propósito (el alta de 360dialog deja el documento sin `clinicId` hasta el callback); declarado en el código.
 - 360dialog: la llave viva como id de documento (`whatsapp_channels/{apiKey}`, escrita por el callback, leída por el webhook con `findClinicByDialog360ApiKey` y borrada por `whatsapp-disconnect`) — **verificado**. Cambiarlo exige otra clave de documento (p. ej. `channelId`) y **migrar los documentos vivos**, que son datos de producción: es decisión del dueño (**D-E**, §9). El webhook se autentica con la cabecera `D360-API-KEY`, que es el mecanismo del proveedor; 360dialog no ofrece firma HMAC del cuerpo, así que «sin HMAC» no es un defecto de aquí. MEDIO-BAJO, sin cambios.
-- `String(err)` hacia el cliente en ~25 rutas y en un redirect. BAJO.
+- ~~`String(err)` hacia el cliente en ~25 rutas y en un redirect~~ — **CERRADO, REG-529**: eran 46 sitios en 40 rutas (el `grep` de la auditoría contaba 25); helper `errorAlCliente` que no recibe el error, detalle a `safeLog`, y un barrido de todas las rutas que no permite `String(err)` fuera de un log o una redacción.
 - ~~`arco/cancelar` no sube `portalTokenVersion`~~ — **CERRADO, REG-519 (D-034)**: el bloqueo ARCO revoca el portal en el mismo acto.
 - `npm audit`: 0 críticas; lo único servido al navegador es `dompurify` (moderada) vía `html2pdf.js`.
 
@@ -184,6 +184,7 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **526** | Ninguna prueba ejecutaba la membresía del servidor; los dobles de las rutas ignoran el id | `la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts` (8) | tres mutantes sobre `auth-server.ts`: 4, 2 y 1 rojos |
 | **527** | `sanitize` prometía redactar nombres y llaves de API; no cazaba el nombre ni Stripe | `el-log-no-guarda-el-nombre-del-paciente-ni-la-llave-de-stripe.test.ts` (5) | con el módulo como estaba, cuatro rojos |
 | **528** | `reclamarCanal` sin transacción: dos consultorios a la vez podían quedarse el mismo canal | `dos-consultorios-no-reclaman-el-mismo-canal-a-la-vez.test.ts` (6) | la carrera provocada en el arnés la gana el segundo (caso 3 rojo) |
+| **529** | Cuarenta rutas devolvían `String(err)` al cliente (46 sitios, un redirect, dos avisos) | `el-error-crudo-no-sale-al-cliente.test.ts` (5) | con `src/app/api` como estaba, el barrido lista los 46 |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -227,9 +228,10 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 **La receta queda cerrada en lo verificado** (REG-517, 518, 520, 521); los
 tres validadores sin llamador esperan decisión del dueño (§3, §9). El port de
 #442 está hecho (REG-522, 523), los tres del test-the-test también (REG-524,
-525, 526) y de los cuatro de seguridad, dos cerrados (REG-527, 528), uno es
-decisión del dueño (D-E) y queda uno: **`String(err)` hacia el cliente en 25
-rutas** — un helper que devuelva un mensaje genérico y deje el detalle en
-`safeLog`, con un guardián de fuente que no permita `String(e)` dentro de un
-`NextResponse.json`. Después: la verificación en navegador (§8) con el arnés
-de emulador, y las decisiones del dueño pendientes en §9 (D-D, D-E).
+525, 526) y de los cuatro de seguridad, tres cerrados (REG-527, 528, 529) y
+uno es decisión del dueño (D-E). **Lo reportado el 5-sep está agotado.** Lo
+que sigue: (1) la verificación en navegador (§8) con el arnés de emulador,
+que hoy arranca aquí — recorrer consulta → receta con paciente sintético y
+mirar que REG-517/520/521 se VEAN (la regla de diseño: no se aprueba una
+interfaz leyendo el código); (2) las decisiones del dueño pendientes en §9
+(D-D, D-E); (3) los 215 guardianes de texto puros, cuando se toquen.

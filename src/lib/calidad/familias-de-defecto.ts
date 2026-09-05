@@ -1363,7 +1363,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * eso la reparación no es derivarlo —sería mentir— sino mover el rojo al único
      * momento en que las dos mitades existen a la vez: la fusión.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505],
+    /**
+     * 529: `public/booking` había dejado de devolver `String(err)` al cliente
+     * con un `catch` bien escrito; las otras cuarenta rutas siguieron igual y
+     * cada ruta nueva nacía con el patrón viejo. Un arreglo que vive en un
+     * `catch` y no en un helper con guardián depende de que el siguiente se
+     * acuerde.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505, 529],
   },
   {
     /**

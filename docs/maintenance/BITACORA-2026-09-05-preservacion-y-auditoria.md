@@ -35,7 +35,7 @@ y, para los cuatro que se cerraron, sin **reproducirlo** primero.
 | Seguridad | la escalación del paciente podía no llegarle a nadie; `safeLog` no redacta lo que promete; check-then-write en `reclamarCanal` |
 | Experiencia del paciente | el bucle de «Preguntar» estaba roto en la mitad del consultorio |
 
-## Qué cambió en esta rama — trece slices, un commit cada uno (y uno para las decisiones)
+## Qué cambió en esta rama — catorce slices, un commit cada uno (y uno para las decisiones)
 
 | REG | Qué | Al revés |
 |---|---|---|
@@ -52,6 +52,7 @@ y, para los cuatro que se cerraron, sin **reproducirlo** primero.
 | **522 · 523** | Port de PR #442 (eran 444 y 506, números que `main` ya había gastado): la vista previa del papel mide su sitio; la sonda de pantallas recorre el scroller de dentro y mide el área de golpe; `/pendientes` se siembra | verificado que las pruebas pasan aquí; las inversiones son de la sesión de origen |
 | **524 · 525 · 526** | Test-the-test: `csp-manifest` corre tras el build (antes, siempre saltada); el prompt se vigila por frases sobre lo emitido (antes, literales); la membresía del servidor tiene su primera prueba ejecutada contra un doble con id | dos rojos sin el paso de CI; el guardián viejo verde con la orden reformulada; tres mutantes de `auth-server.ts` cazados |
 | **527 · 528** | Seguridad: `sanitize` redacta nombres por llave y llaves de Stripe por patrón (su cabecera lo prometía y no lo hacía); `reclamarCanal` en transacción, con la carrera provocada en el arnés en memoria | cuatro rojos con `sanitize.ts` como estaba; la carrera la gana el segundo con `reclamar-canal.ts` como estaba |
+| **529** | Cuarenta rutas devolvían `String(err)` al cliente (la auditoría contó 25; el guardián, 46 sitios): helper que no recibe el error, detalle a `safeLog`, barrido de todas las rutas | con `src/app/api` como estaba, el barrido lista los 46 |
 
 Cada uno con su golden (qué fallaba, cómo se descubrió, causa raíz, regla, **qué
 NO cubre**), su entrada en el ledger, su familia de defecto, su sello, y las
@@ -61,12 +62,12 @@ compuertas medidas en el mensaje del commit.
 
 | | |
 |---|---|
-| `npx vitest run` | **12 747 pasan · 1 falla** · 950 archivos (tras REG-528; la falla es `ops-timeout-y-punto-ciego`, el proxy del contenedor rechaza `10.255.255.1` al instante — entorno, no árbol; en la corrida de REG-520 pasó) |
+| `npx vitest run` | **12 752 pasan · 1 falla** · 951 archivos (tras REG-529; la falla es `ops-timeout-y-punto-ciego`, el proxy del contenedor rechaza `10.255.255.1` al instante — entorno, no árbol; en la corrida de REG-520 pasó) |
 | `npx tsc --noEmit` | limpio |
 | `node scripts/lint-trinquete.mjs` | **93**, techo apretado en REG-517 |
 | `npm run build` | 164/164 páginas, con los placeholders del CI |
-| Sello | 474 archivos · 6 596 casos |
-| Ledger | 322 REG · última **REG-528** |
+| Sello | 475 archivos · 6 601 casos |
+| Ledger | 323 REG · última **REG-529** |
 
 ## Lo que se supo y no estaba escrito
 
@@ -80,10 +81,10 @@ compuertas medidas en el mensaje del commit.
 ## Lo que queda, con nombre
 
 `docs/product/AUSCULTA-ULTRA-READINESS.md` §3 y §11, y el checkpoint en
-`agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md`. Lo primero: `String(err)`
-hacia el cliente en 25 rutas. La llave de 360dialog como id de documento es
-decisión del dueño (D-E). El PR #442 queda absorbido aquí y lo puede cerrar
-el dueño. Los tres validadores
+`agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md`. Lo reportado el 5-sep está
+agotado; lo primero ahora es la verificación en navegador con el arnés. La
+llave de 360dialog como id de documento es decisión del dueño (D-E). El PR
+#442 queda absorbido aquí y lo puede cerrar el dueño. Los tres validadores
 sin llamador son una decisión nueva para el dueño (D-D en el readiness §9).
 
 Las tres decisiones que se le llevaron al dueño (D-A, D-B, D-C) están
