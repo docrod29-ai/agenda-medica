@@ -18600,3 +18600,84 @@ Queda escrito porque el susto era razonable y la comprobación es lo que lo cerr
 comillas dobles o backtick, que es una limitación real y queda declarada en el
 propio archivo. Y sigue sin ser un parser: un símbolo dentro de una cadena de
 texto cuenta como uso.
+
+---
+
+## REG-515 · La receta seguía imprimiendo antecedentes, y el dato que lo impedía se borraba en la frontera
+
+**CÓMO SE DESCUBRIÓ.** El dueño, con la app abierta en su iPhone: *«sigues
+poniéndome en la receta medicamentos de sus antecedentes. No quiero que los
+pongas: esos los tienes que captar del plan, y si no escucha el plan que el
+médico los ponga manualmente.»*
+
+Es la **segunda vez** que reporta exactamente esto. La primera creó
+`que-va-en-la-receta.ts`, cuya cabecera cita sus palabras de entonces.
+
+**LO QUE HACÍA ESTE CASO DISTINTO — Y PEOR.** La primera vez el defecto era de
+la familia conocida: el campo existía y `z.object` lo borraba. Esta vez el
+módulo **ya existía Y ya estaba conectado** a la página de receta. La regla
+corría. Y aun así se colaban.
+
+Cuando una regla corre y el defecto persiste, la regla es incompleta. No sirve
+volver a cablear lo que ya está cableado.
+
+**CAUSA RAÍZ, en dos mitades.**
+
+1. `loQueSeReceta` sólo apartaba lo etiquetado `ya_lo_toma`. Un antecedente que
+   el modelo etiquetara `se_prescribe_hoy` pasaba entero. La única palabra sobre
+   si algo se receta era **la etiqueta que el propio modelo se pone**.
+
+2. El dato que habría podido contradecir esa etiqueta —`speaker`, quién dijo la
+   frase— **se borraba en la frontera**: la lista PLANA de
+   `extraction-schema.ts` no lo declaraba, y `z.object` borra las claves que no
+   declara.
+
+   Es **el mismo defecto que ya se arregló en ese mismo objeto**, un campo más
+   allá. Se reparó `procedenciaClinica` y nadie miró si el vecino tenía la misma
+   herida. Un arreglo puntual sobre un defecto sistémico deja el resto en pie.
+
+**LA REGLA QUE LO HACE SEGURO.** Un antecedente lo dice el paciente («tomo
+metformina»); un plan lo dice el médico («le voy a dar amoxicilina»). Eso no es
+una heurística sobre el nombre del fármaco: es de quién salió la frase.
+
+Un renglón con atribución que **no** sea del médico no baja al papel. La opinión
+del modelo deja de ser la última palabra.
+
+**POR QUÉ LA AUSENCIA NO SE CASTIGA.** Un renglón sin `speaker` no viene del
+dictado: lo escribió el médico a mano, o es de una nota anterior a este campo.
+Ésos se siguen imprimiendo. Quitarle del papel algo que él mismo escribió es el
+error caro en la otra dirección, y este proyecto ya lo tiene documentado.
+
+Lo que sí se para es lo que trae atribución y no es suya: ahí la duda no se
+convierte en permiso, y el médico lo pone a mano — que es literalmente lo que
+pidió.
+
+**PRUEBAS.** `que-va-en-la-receta.test.ts`, cinco casos:
+1. un antecedente **mal etiquetado** por el modelo ya no se imprime;
+2. lo que dijo el médico sí;
+3. un renglón sin atribución sigue imprimiéndose;
+4. `acompanante` y `desconocido` tampoco pasan;
+5. **de frontera** — el esquema plano declara `speaker`, o se borraría otra vez.
+
+**PROBADO AL REVÉS, dos veces.** Quitada la comprobación de atribución: caen los
+casos 1 y 4, y sólo ésos. Borrado `speaker` del esquema: cae el caso 5, y sólo
+ése. Restaurado, los veinticinco en verde.
+
+**UN ERROR QUE SE COMETIÓ ESCRIBIENDO ESTO, Y SE CORRIGIÓ ANTES DE FUSIONAR.**
+El enum se escribió a mano como `['medico','paciente','otro','desconocido']`,
+pero el prompt del repositorio dice `acompanante`, no `otro`. Un modelo que
+mandara `acompanante` habría sido rechazado por el esquema y el dato **no habría
+llegado** — reintroduciendo, con otra cara, el defecto que esta entrada repara.
+Se sustituyó por el enum canónico `Hablante`, que ya existía. Vocabulario
+paralelo donde ya hay uno canónico es la forma más silenciosa de romper una
+frontera.
+
+**LO QUE NO CUBRE, dicho.**
+- Si la diarización atribuye mal la frase, esto hereda ese error. No es una
+  defensa contra un audio mal separado: es una defensa contra que la etiqueta
+  del modelo sea la única palabra.
+- **No mira la SECCIÓN de la nota.** Sigue sin existir un campo que diga «esto
+  salió del plan». Lo que hay es quién habló, y con eso se decide. Si algún día
+  hace falta la sección, es trabajo aparte y queda declarado aquí.
+- No cambia lo que se ve en la NOTA. El antecedente se sigue documentando donde
+  le toca; lo que cambia es que no baja al papel.
