@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…519 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…520 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 628 pasan · 1 falla** tras REG-514 (937 archivos); la de REG-515 se anota en su commit |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 682 pasan · 0 fallan** tras REG-520 (942 archivos); cada slice anota la suya en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **465 · 6 514** |
-| Ledger | 305 REG · última REG-511 | **313 · REG-519** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **466 · 6 530** |
+| Ledger | 305 REG · última REG-511 | **314 · REG-520** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -105,7 +105,7 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 
 - Sin detección de **terapia duplicada** (paracetamol + Tempra pasa) — `NOT_IMPLEMENTED`.
 - ~~**Red pediátrica apagada en silencio** cuando `edad` falta~~ — **CERRADO, REG-517**: la fecha de nacimiento manda, la edad congelada después, y sin ninguna la receta lo pinta en ámbar junto a las dosis. No bloquea (D-A).
-- La **creatinina del expediente** (`labsDelCuadro`) llega a la consulta y **no a la receta**; `interaccionesDelCuadro` (REG-188) tampoco — «escrito y sin conectar».
+- ~~La **creatinina del expediente** (`labsDelCuadro`) llega a la consulta y **no a la receta**; `interaccionesDelCuadro` (REG-188) tampoco~~ — **CERRADO, REG-520**: la receta carga paneles y notas firmadas, cruza lo de hoy con lo vigente (y dice qué ya existía) y precarga la creatinina más reciente con su fecha y su vigencia a 7 días (`STALE_RENAL_FUNCTION` cuando caduca; se sigue calculando, REG-375).
 - `validacionesGeneralesMedicamentos`, `tieneAlergiaGrave`, `esMedicamentoCritico`: **cero llamadores**.
 - ~~El hash de lo impreso puede **perderse entero** si `meta` se trunca~~ — **CERRADO, REG-518**: se acota por campo, el hash y el folio siempre caben, lo omitido se declara en el asiento.
 - Que las alertas **no bloqueen** la impresión es **política**: no se toca sin decisión del dueño (cola §9).
@@ -169,6 +169,7 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **517** | Sin edad en el expediente, la receta aplicaba topes de adulto a un niño, en silencio | `la-edad-que-falta-se-dice-no-se-supone-adulto.test.ts` (9) | con las dos pantallas como estaban, cuatro casos rojos |
 | **518** | La huella de una receta larga se perdía entera en la bitácora, con `ok: true` | `la-huella-de-la-receta-larga-no-se-pierde.test.ts` (8) | con la ruta como estaba, `meta: null` para 80 fármacos |
 | **519** | La cancelación ARCO dejaba vivo el enlace del portal del paciente | `la-cancelacion-arco-apaga-el-portal.test.ts` (5) | con la ruta como estaba, la versión no subía y `decidirVigencia` seguía diciendo «vigente» |
+| **520** | La receta sólo veía el papel de hoy: ni la medicación vigente ni la creatinina del expediente | `la-receta-ve-el-expediente-completo.test.ts` (16) | con la pantalla como estaba, los cuatro casos del guardián rojos; `detectarInteracciones(hoy)` no ve warfarina + ketorolaco y el cuadro sí |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -207,11 +208,10 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 
 ## 11 · Siguiente slice
 
-**Receta**, lo que queda verificado y sin cerrar: la creatinina del
-expediente (`labsDelCuadro`) y las interacciones del cuadro completo
-(`interaccionesDelCuadro`, REG-188) llegan a la consulta y no a la pantalla de
-receta — exige que la receta cargue los paneles de laboratorio y la medicación
-vigente del cuadro, como hace la consulta. Sin verificar todavía: terapia
-duplicada (paracetamol + Tempra), `validacionesGeneralesMedicamentos` y
-`tieneAlergiaGrave` sin llamador. Después el port de #442 con números nuevos,
-y los tres siguientes del test-the-test.
+**Receta**, lo que queda sin verificar: terapia duplicada (paracetamol +
+Tempra) y `validacionesGeneralesMedicamentos` / `tieneAlergiaGrave` sin
+llamador — verificar en el código antes de tocar nada, y si el vocabulario que
+haría falta no existe, declararlo como `NOT_IMPLEMENTED`, no inventarlo.
+Después el port de #442 con números nuevos, y los tres siguientes del
+test-the-test (`autorizacion-servidor` ignora el id del documento;
+`csp-manifest` no corre en CI; `el-llm-no-calcula` casa literales).

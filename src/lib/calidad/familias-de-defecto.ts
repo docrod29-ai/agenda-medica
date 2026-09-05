@@ -460,8 +460,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * 519: el bloqueo ARCO se escribía y el portal no lo miraba. El contador
      * que tumba los enlaces existía desde 331 y ningún camino de ARCO lo
      * subía. Cerrado por decisión del dueño (D-034), en el mismo `set`.
+     *
+     * 520 es 188 en la otra pantalla: el cuadro completo (medicación vigente
+     * + creatinina del expediente) se cableó en la consulta y la receta —donde
+     * se imprime lo que se dispensa— conservó la llamada vieja sobre el papel
+     * de hoy. Dos entradas al mismo motor; la más importante era la ciega.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 512, 513, 514, 516, 519],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 512, 513, 514, 516, 519, 520],
   },
   {
     clave: 'se_contradice',

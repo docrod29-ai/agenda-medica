@@ -34,7 +34,12 @@ import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
-import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { interaccionesDelCuadro, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { medicacionDelCuadro } from '@/lib/expediente/cuadro-completo'
+import { listarNotasCompat } from '@/lib/expediente/firestore'
+import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
+import { listarPanelesLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
+import { creatininaDelExpediente, creatininaParaDosificar, comoSeDiceLaCreatinina } from '@/lib/seguridad/creatinina-para-la-receta'
 import { alergiasDe } from '@/lib/seguridad/alergias'
 import { revisarDosis, revisarUnidadDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
@@ -143,7 +148,21 @@ export default function GeneradorRecetaPage() {
 
   // Interacciones fármaco-fármaco + controlados COFEPRIS (apoyo decisional)
   const meds = useMemo(() => medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })), [medicamentos])
-  const interacciones = useMemo(() => detectarInteracciones(meds), [meds])
+  /**
+   * EL EXPEDIENTE COMPLETO, TAMBIÉN AQUÍ — REG-520.
+   *
+   * La consulta ya cruza lo de hoy con la medicación VIGENTE del expediente
+   * (REG-188) y ya ve la creatinina de los paneles (REG-368). Esta pantalla
+   * —donde se imprime lo que se dispensa— seguía mirando sólo el papel de
+   * hoy: la warfarina de marzo con el ketorolaco de hoy no disparaba nada, y
+   * la creatinina del mes pasado no llegaba al ajuste renal. Mismo motor,
+   * misma entrada; en el cuerpo y no en un `useMemo`, por el React Compiler.
+   */
+  const [panelesLab, setPanelesLab] = useState<PanelLaboratorio[]>([])
+  const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
+  const [historialTruncado, setHistorialTruncado] = useState(false)
+  const medsDelCuadro = medicacionDelCuadro(medicamentos, vigentes)
+  const interacciones = interaccionesDelCuadro(medsDelCuadro)
   const controlados = useMemo(() => detectarControlados(meds), [meds])
 
   // SEGURIDAD CLÍNICA: verificación DETERMINISTA de dosis (error de decimal 50→500,
@@ -225,8 +244,18 @@ export default function GeneradorRecetaPage() {
 
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
+  /**
+   * CON QUÉ CREATININA SE AJUSTA (REG-520): la tecleada hoy manda; si no hay,
+   * la más reciente del expediente con su fecha y su vigencia (REG-375, ventana
+   * conservadora porque esta pantalla no conoce el contexto). El instante se
+   * ancla a la llegada de los paneles, no al render.
+   */
+  const [ahoraParaVigencia, setAhoraParaVigencia] = useState(() => new Date().toISOString())
+  const crExpediente = creatininaDelExpediente(panelesLab)
+  const crDosis = creatininaParaDosificar(creatinina, crExpediente, ahoraParaVigencia)
+  const fraseCreatinina = comoSeDiceLaCreatinina(crDosis)
   const renal = useMemo(() => {
-    const cr = parseFloat(creatinina)
+    const cr = crDosis.origen === 'ninguna' ? 0 : crDosis.valor
     if (!cr || cr <= 0 || edadPaciente == null || !patient) return null
     const peso = parseFloat(pesoKg)
     // E0-05 — FRONTERA: aquí es donde el número tecleado adquiere su unidad. La
@@ -238,7 +267,7 @@ export default function GeneradorRecetaPage() {
       mgPorDl(cr), edadPaciente, patient.sexo,
       peso > 0 ? kgMasa(peso) : undefined,
     )
-  }, [creatinina, pesoKg, edadPaciente, patient])
+  }, [crDosis, pesoKg, edadPaciente, patient])
   const alertasRenales = useMemo(() => {
     // En <18 años (adulto no aplica) o creatinina implausible (probable error de
     // unidad): no se ajusta por ese valor — daría alertas renales falsas.
@@ -300,6 +329,31 @@ export default function GeneradorRecetaPage() {
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [clinicId, patientId, notaId])
+
+  /**
+   * Los paneles de laboratorio y la medicación vigente del expediente (REG-520).
+   * Dos lecturas más, las mismas que ya hace la consulta. Degradan sin romper:
+   * si fallan, esta pantalla ve lo de hoy, que es exactamente como se
+   * comportaba antes — y el historial recortado se declara, no se calla.
+   */
+  useEffect(() => {
+    if (!clinicId || !patientId) return
+    listarPanelesLab(clinicId, patientId)
+      .then(ps => { setPanelesLab(ps); setAhoraParaVigencia(new Date().toISOString()) })
+      .catch(e => console.error('paneles de laboratorio:', e))
+    listarNotasCompat(clinicId, patientId)
+      .then(({ notas: ns, truncada }) => {
+        setHistorialTruncado(truncada)
+        const firmadas = ns.filter(n => n.estado === 'firmada')
+          .map(n => ({
+            fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+            medicamentos: n.medicamentos,
+            diagnosticos: n.diagnosticos,
+          }))
+        setVigentes([...estadoDeMedicamentos(firmadas, new Date().toISOString(), { historialIncompleto: truncada }).vigentes])
+      })
+      .catch(e => console.error('medicación vigente:', e))
+  }, [clinicId, patientId])
 
   // Learning Engine: carga "tus más recetados" del propio médico (fail-safe).
   useEffect(() => {
@@ -734,9 +788,13 @@ export default function GeneradorRecetaPage() {
               {interacciones.map((it, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.45, marginBottom: 3 }}>
                   <strong>{it.titulo}</strong>{it.severidad === 'mayor' ? ' (mayor)' : ''} — {it.detalle}
+                  {!it.introducidaHoy && <span style={{ color: 'var(--text3)' }}> · ya existía antes de hoy</span>}
                 </div>
               ))}
-              <div className="nx-meta" style={{ marginTop: 2, color: 'var(--text2)' }}>Apoyo decisional; no sustituye tu criterio.</div>
+              <div className="nx-meta" style={{ marginTop: 2, color: 'var(--text2)' }}>
+                Cruza lo de hoy con lo que el paciente ya toma según su expediente. Apoyo decisional; no sustituye tu criterio.
+                {historialTruncado && ' El historial vino recortado: la lista de lo que ya toma puede estar incompleta.'}
+              </div>
             </div>
           )}
 
@@ -789,6 +847,11 @@ export default function GeneradorRecetaPage() {
                 </div>
               )}
             </div>
+            {fraseCreatinina && (
+              <div style={{ fontSize: 10.5, color: crDosis.origen === 'expediente' && !crDosis.vigencia.vigente ? 'var(--amber)' : 'var(--text2)', marginTop: 6 }}>
+                {fraseCreatinina}
+              </div>
+            )}
             {origenEdad === 'desconocida' && (
               <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 6 }}>
                 Falta la edad del paciente en su expediente para calcular la TFG.

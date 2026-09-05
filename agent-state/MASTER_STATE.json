@@ -24,17 +24,18 @@
   },
   "trabajoLocalSinSubir": [
     "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    " M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/maintenance/BITACORA-2026-09-05-preservacion-y-auditoria.md",
     " M docs/product/AUSCULTA-ULTRA-READINESS.md",
-    " M docs/product/DECISION_REGISTER.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/whatsapp/policy-risk-register.md",
     " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
-    " M src/app/api/arco/cancelar/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/paciente/pregunta-del-paciente.ts",
-    "?? src/__tests__/la-cancelacion-arco-apaga-el-portal.test.ts"
+    "?? src/__tests__/la-receta-ve-el-expediente-completo.test.ts",
+    "?? src/lib/seguridad/creatinina-para-la-receta.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -70,10 +71,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 313,
-    "ultimaREG": "REG-519",
-    "archivosDePrueba": 941,
-    "casosDePrueba": 11386,
+    "regsEnElLedger": 314,
+    "ultimaREG": "REG-520",
+    "archivosDePrueba": 942,
+    "casosDePrueba": 11402,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

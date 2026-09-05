@@ -1,16 +1,16 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta empezada (REG-512…519) · tres decisiones del dueño escritas (D-032…034)**
+## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta viendo el expediente (REG-512…520) · tres decisiones del dueño escritas (D-032…034)**
 
 ```
 CURRENT_BRANCH=claude/ausculta-preservation-improvement-44lutz
 CURRENT_HEAD=(este commit)
 CURRENT_PR=(sin PR: el dueño no lo pidió; la rama está en origin con 4 slices, cada uno con sus compuertas en el mensaje del commit)
 CURRENT_WORKSTREAM=Programa del pliego del 5-sep: UNDERSTAND → MEASURE → PRESERVE → IMPROVE. Fase 0 (reconciliación) y Fase 2 (P0/P1) — sin P0; los cuatro P1 confirmados, cerrados
-LAST_COMPLETED_UNIT=REG-519 — el bloqueo ARCO revoca el portal en el mismo acto (D-034). D-032 (alergia: sólo avisar) y D-033 (la pregunta viaja completa) escritas en el código que gobiernan
+LAST_COMPLETED_UNIT=REG-520 — la receta ve el expediente completo: medicación vigente (interacciones del cuadro, con «ya existía antes de hoy») y creatinina más reciente con fecha y vigencia a 7 días. Antes: REG-519 (bloqueo ARCO revoca el portal, D-034); D-032 y D-033 escritas en el código que gobiernan
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=Receta, verificado en el código y sin cerrar: `labsDelCuadro` e `interaccionesDelCuadro` (REG-188) llegan a la consulta y NO a `receta/[patientId]/[notaId]/page.tsx` — cablear la misma entrada (la receta necesita cargar los paneles de laboratorio del paciente y la medicación vigente del cuadro, como hace la consulta en page.tsx:934-982). Sin verificar: terapia duplicada; `validacionesGeneralesMedicamentos` y `tieneAlergiaGrave` sin llamador. Después: port de PR #442; test-the-test (autorizacion-servidor, csp-manifest, el-llm-no-calcula). Después: port de PR #442 con números nuevos; test-the-test (autorizacion-servidor, csp-manifest, el-llm-no-calcula). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
-FILES_IN_SCOPE=src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx · src/lib/expediente/laboratorio/lo-que-ya-esta-medido.ts · src/lib/seguridad/farmacovigilancia.ts · src/app/api/auditoria/registrar/route.ts
+EXACT_NEXT_ACTION=Receta, sin verificar todavía: terapia duplicada (paracetamol + Tempra) y `validacionesGeneralesMedicamentos` / `tieneAlergiaGrave` sin llamador — verificar en el código antes de tocar; si falta vocabulario, declarar NOT_IMPLEMENTED, no inventar. Después: port de PR #442 con números nuevos; test-the-test (autorizacion-servidor, csp-manifest, el-llm-no-calcula). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
+FILES_IN_SCOPE=src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx · src/lib/seguridad/creatinina-para-la-receta.ts · src/lib/expediente/medical-dictionary.ts · src/lib/seguridad/alergias.ts
 FILES_LOCKED=(ninguno — un solo writer)
 TESTS_PASSED=12634
 TESTS_FAILED=1
@@ -18,9 +18,9 @@ KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — el proxy del co
 BUILD=163/163 con los placeholders NEXT_PUBLIC_FIREBASE_* del CI
 LINT=93 (techo apretado en REG-517)
 P0_OPEN=(ninguno; cross-tenant refutado en las 99 rutas)
-P1_OPEN=(ninguno confirmado). Receta: terapia duplicada, red pediátrica apagada en silencio, creatinina del expediente que no llega a la receta, hash de lo impreso que se pierde al truncar `meta` — reportados por medication-safety, NO verificados por el orquestador todavía
+P1_OPEN=(ninguno confirmado). Receta: terapia duplicada y validadores sin llamador — reportados por medication-safety, NO verificados por el orquestador todavía. Los otros tres reportados (red pediátrica, creatinina, hash) ya están cerrados: REG-517, REG-520, REG-518
 BLOCKED_EXTERNAL=reglas de Firestore sin desplegar · WebKit/iPhone · PITR y restore real · pentest · licencias de evidencia · llave AssemblyAI local. B-12 YA NO: el emulador de Firebase arranca en este contenedor (comprobado el 5-sep)
-DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida) · REG-517 (sin edad no se supone adulto) · REG-518 (la huella de la receta larga no se pierde) · REG-519 (el bloqueo ARCO apaga el portal)
+DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida) · REG-517 (sin edad no se supone adulto) · REG-518 (la huella de la receta larga no se pierde) · REG-519 (el bloqueo ARCO apaga el portal) · REG-520 (la receta ve la medicación vigente y la creatinina del expediente)
 ```
 
 ### Qué se hizo en esta sesión, en orden
@@ -47,7 +47,10 @@ DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de 
 10. **D-032, D-033, D-034** — el dueño decidió: la alergia crítica sólo avisa,
     la pregunta del paciente viaja completa por WhatsApp, y la cancelación
     ARCO apaga el portal. La tercera es código: **REG-519**.
-7. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
+11. **REG-520** — la receta ve el expediente completo, como la consulta: la
+    warfarina de marzo con el ketorolaco de hoy ya dispara, y la creatinina
+    del último panel llega al ajuste renal con su fecha y su vigencia.
+12. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
    en código y todo lo abierto con archivo y línea.
 
 ---

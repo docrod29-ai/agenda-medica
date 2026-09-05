@@ -19106,3 +19106,61 @@ tres casos rojos (la versión no subía y `decidirVigencia` seguía diciendo
   decisión (REG-331, REG-512).
 - **La oposición ARCO (`arco/oponerse`) no revoca el portal**, y es correcto:
   oponerse es dejar de recibir contacto proactivo, no dejar de ver lo propio.
+
+## REG-520 · La receta sólo veía el papel de hoy: ni la medicación vigente ni la creatinina del expediente
+
+**CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026
+(readiness §3, «la creatinina del expediente llega a la consulta y no a la
+receta; `interaccionesDelCuadro` tampoco»). Verificado por el orquestador en
+`receta/[patientId]/[notaId]/page.tsx`: `detectarInteracciones(meds)` sobre los
+renglones de hoy, y el campo «Creatinina (mg/dL)» vacío al nacer, sin nada que
+lo precargara.
+
+**LO QUE PASABA.** La consulta cruza lo de hoy con la medicación VIGENTE
+(REG-188) y ve la creatinina de los paneles con su vigencia (REG-368, REG-375).
+La pantalla donde se **imprime** lo que se dispensa no hacía ninguna de las
+dos cosas: la warfarina firmada en marzo con el ketorolaco de hoy no disparaba
+nada, y la creatinina 2.4 del mes pasado no llegaba al ajuste renal salvo que
+el médico la recordara y la tecleara. Dos superficies, dos entradas distintas
+al mismo motor; la más importante era la que menos veía.
+
+### La causa raíz
+
+«Escrito y sin conectar», la variante de REG-188 en la otra pantalla: el
+cuadro completo se cableó en la consulta y la receta conservó la llamada vieja.
+Nada avisaba, porque cada pantalla tenía su propia entrada al motor.
+
+### El arreglo
+
+Misma entrada que la consulta: la receta carga los paneles de laboratorio y
+las notas firmadas, construye el cuadro con `medicacionDelCuadro(hoy, vigentes)`
+y pasa por `interaccionesDelCuadro`, que dice si la interacción la introduce
+lo de hoy o ya existía (se pinta «ya existía antes de hoy»). Para la
+creatinina, un módulo puro nuevo, `creatinina-para-la-receta.ts`: la tecleada
+manda; si no hay, la más reciente del expediente **con fecha y vigencia**
+(ventana conservadora de 7 días, porque la receta no conoce el contexto);
+fuera de ventana se marca `STALE_RENAL_FUNCTION` y se sigue calculando —la
+política del dueño (REG-375) dice «pide una actual», no «apaga el ajuste». La
+frase va debajo del campo. El historial recortado se declara junto a las
+interacciones. Si las dos lecturas nuevas fallan, la pantalla se comporta
+exactamente como antes.
+
+### Prueba
+
+`src/__tests__/la-receta-ve-el-expediente-completo.test.ts` (16 casos): tabla
+de los tres helpers puros (panel más reciente, límite censurado, tecleada
+manda, caducidad a 7 días con la marca literal); la interacción
+warfarina + ketorolaco que `detectarInteracciones(hoy)` NO ve y el cuadro sí,
+marcada como introducida hoy; y el guardián de fuente con los comentarios
+fuera. **Probado al revés**: con la pantalla como estaba (`git stash`), los
+cuatro casos del guardián rojos.
+
+### Qué NO cubre
+
+- **No renderiza la receta**: helpers puros por tabla, cableado por fuente.
+- **No prueba las lecturas de Firestore**: `listarPanelesLab` y
+  `listarNotasCompat` tienen las suyas y la consulta las usa igual.
+- **No conoce el contexto renal** (hospitalizado, AKI): por eso la ventana
+  conservadora. Cuando la receta lo sepa, se le pasan las señales y REG-375
+  abre la ventana sola.
+- **No mira la alergia ni la terapia duplicada**: siguen en el readiness §11.
