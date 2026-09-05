@@ -24,11 +24,8 @@
   },
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M scripts/calidad/motores-conectados.mjs",
-    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
-    " M src/lib/calidad/familias-de-defecto.ts"
+    " M src/__tests__/los-motores-llegan-al-medico.test.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -67,7 +64,7 @@
     "regsEnElLedger": 306,
     "ultimaREG": "REG-512",
     "archivosDePrueba": 934,
-    "casosDePrueba": 11328,
+    "casosDePrueba": 11329,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

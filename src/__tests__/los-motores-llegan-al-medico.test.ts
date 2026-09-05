@@ -55,6 +55,8 @@ function medir(): {
   /** Los que merecen mirarse uno a uno. */
   conCuerpo: string[]
   inalcanzables: string[]
+  /** Sólo lo llama un guion de scripts/: no está muerto, pero no corre en la consulta. */
+  soloHerramienta: string[]
 } {
   const out = execSync('node scripts/calidad/motores-conectados.mjs --json', {
     cwd: RAIZ, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
@@ -154,6 +156,29 @@ describe('el trinquete de conexión', () => {
       `Subió de ${TOPE.inalcanzablesMax} a ${m.inalcanzables.length}:\n  ` +
       m.inalcanzables.slice(0, 10).join('\n  '),
     ).toBeLessThanOrEqual(TOPE.inalcanzablesMax)
+  })
+
+  it('EL CASO: lo que sólo llama un guion no se declara «sin ningún uso»', () => {
+    /**
+     * `leerConsulta` mide cuánto pesa CLÍNICAMENTE un error de transcripción, y
+     * lo llama `scripts/medir-wer-limpio.ts:131` — el guion que produce
+     * `docs/voice/WER-MEDIDO.md`. El barrido sólo miraba `app`, `components`,
+     * `hooks` y `lib`, así que lo denunciaba como muerto: falso, alguien lo
+     * llama.
+     *
+     * Y al meter `scripts/` en el universo apareció un agujero PEOR que el
+     * falso positivo: dejaba de estar en «sin uso» y no entraba en ningún otro
+     * cubo — DESAPARECÍA del informe. Un motor invisible es exactamente lo que
+     * este archivo existe para impedir. De ahí el cuarto cubo.
+     */
+    expect(
+      m.huerfanas.filter(x => x.includes('lo-que-pesa-de-un-error')),
+      'el medidor de la voz vuelve a salir como muerto',
+    ).toEqual([])
+    expect(
+      m.soloHerramienta,
+      'leerConsulta se volvió invisible: no está en ningún cubo',
+    ).toContain('src/lib/asr/lo-que-pesa-de-un-error.ts::leerConsulta')
   })
 
   it('el barrido no encoge sin avisar', () => {

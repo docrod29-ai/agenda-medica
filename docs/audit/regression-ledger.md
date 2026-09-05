@@ -18561,6 +18561,40 @@ las relativas) y se corrió la suite del archivo: **3 rojos de 15**, exactamente
 los tres casos nuevos, y los otros doce en verde. Después se restauró y volvieron
 los quince.
 
+**SEGUNDO PUNTO CIEGO DEL MISMO BARRIDO, ENCONTRADO EL MISMO DÍA.** Su universo
+de llamadores era `app`, `components`, `hooks` y `lib`. **`scripts/` no estaba**,
+así que una función llamada ÚNICAMENTE desde un guion salía como «sin ningún
+uso» — y eso no es un matiz, es falso: alguien la llama.
+
+El caso: `leerConsulta`, de `lo-que-pesa-de-un-error.ts`, el módulo que mide
+cuánto pesa **clínicamente** un error de transcripción en vez de contar palabras
+como el WER. Lo llama `scripts/medir-wer-limpio.ts:131`, que es el guion que
+produce `docs/voice/WER-MEDIDO.md`. Salía denunciado como muerto el instrumento
+con el que se mide la voz.
+
+Al meter `scripts/` en el universo apareció un agujero **peor que el falso
+positivo**: `leerConsulta` dejaba de estar en «sin uso» y no entraba en ningún
+otro cubo — **desaparecía del informe**. Un motor invisible es exactamente lo que
+este barrido existe para impedir; cambiar una acusación falsa por un silencio es
+empeorar.
+
+Por eso se separa **quién** llama, no sólo **si** llama, y hay un cuarto cubo:
+*«sólo lo llama una herramienta»*. Las semillas del recorrido siguen siendo
+`app/`, `components/` y `hooks/` **a propósito**: un guion no es el camino del
+médico, y que una herramienta de medición use algo no significa que corra en la
+consulta. Así `leerConsulta` queda donde de verdad está.
+
+Ese cubo **no se congela con trinquete**, y es deliberado: un instrumento de
+medición llamado sólo por su guion es legítimo, no deuda. Ponerle tope crearía
+presión para «arreglar» lo que está bien. Se informa; no se persigue.
+
+**LO QUE ESTO NO ERA.** El cubo nuevo destapó también
+`aprendizaje.ts::partesDelNombre` — el filtro que impide que un trozo del nombre
+del paciente entre al vocabulario compartido del consultorio. Se verificó antes
+de dar la alarma: **sí corre**. Lo llama `identidadDe` en su mismo archivo, y a
+ésa la llama `app/(dashboard)/consulta/[patientId]/page.tsx:1538`. No había fuga.
+Queda escrito porque el susto era razonable y la comprobación es lo que lo cerró.
+
 **LO QUE NO CUBRE.** El medidor sigue sin resolver importaciones de paquete
 (`react`, `firebase/…`) —correcto, no son de este árbol— ni rutas escritas con
 comillas dobles o backtick, que es una limitación real y queda declarada en el
