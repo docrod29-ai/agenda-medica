@@ -346,11 +346,50 @@ export interface PoliticaCorreccion {
   motivoObligatorio: boolean
 }
 
-export const POLITICA_CORRECCION: PoliticaCorreccion | null = null
+/**
+ * DECIDIDA POR EL DUEÑO EL 4-SEP-2026 (D-026). Ya no es `null`.
+ *
+ * Sus cuatro respuestas, con la razón que dio cada una:
+ *
+ * · **Cada quien corrige lo suyo.** Médico, enfermería, laboratorio y farmacia.
+ *   Una enfermera que teclea mal una tensión no debería tener que buscar a un
+ *   médico: el registro se degrada cuando corregir cuesta caro.
+ * · **Anular una administración: médico Y enfermería.** Se le ofreció
+ *   reservarlo al médico —anular borra la constancia de que un fármaco se dio—
+ *   y eligió que quien administra pueda deshacerlo. Es su decisión clínica.
+ * · **24 h, y nunca tras el egreso.** Cubre el turno y el siguiente, que es
+ *   cuando se detectan los errores de captura; un expediente cerrado deja de
+ *   moverse.
+ * · **El motivo se pide pero NO bloquea.** `motivoObligatorio: false`. La
+ *   pantalla debe pedirlo y marcarlo en ámbar si va vacío: es lo que él pidió,
+ *   y esa mitad vive en la interfaz, no aquí.
+ *
+ * ── LO QUE ESTA CONSTANTE NO HACE, Y HAY QUE DECIRLO ────────────────────────
+ *
+ * `validarCorreccion` **sigue sin tener un llamador en producción**. Tener la
+ * política decidida no enciende la función: falta el caso `corregir` en
+ * `api/hospital/mutar/route.ts` y la pantalla desde la que se dispara.
+ *
+ * Se rellena igualmente porque **la decisión es un dato real** y perderla
+ * costaría volver a molestar al dueño. Lo que no se hace es fingir que con esto
+ * ya se puede corregir. El hueco tiene nombre y guardián.
+ */
+export const POLITICA_CORRECCION: PoliticaCorreccion | null = {
+  rolesQueCorrigen: ['medico', 'enfermeria', 'laboratorio', 'farmacia'],
+  rolesQueAnulanAdministracion: ['medico', 'enfermeria'],
+  ventanaHoras: 24,
+  permiteEpisodioEgresado: false,
+  motivoObligatorio: false,
+}
 
-export const FALTA_POLITICA_Q2_Q4 =
-  'NEEDS_CLINICAL_REVIEW E0-09/Q2-Q4: no está definido quién puede corregir, ' +
-  'con qué ventana de tiempo ni si el motivo es obligatorio. No se asume un default.'
+/**
+ * Lo que sigue faltando tras D-026: ya no es la política, es el cableado.
+ */
+export const SIN_CABLEAR_CORRECCION =
+  'La política de corrección está decidida (D-026, 4-sep-2026), pero el ' +
+  'validador de este módulo no tiene llamador en producción: falta el caso ' +
+  '`corregir` en api/hospital/mutar y la pantalla que lo dispare. Es trabajo ' +
+  'de Hospital/UCI, que está en ALPHA y no se vende.'
 
 // ══════════════════════════════════════════════════════════════
 // 4 · Validación y construcción de una corrección (determinista)

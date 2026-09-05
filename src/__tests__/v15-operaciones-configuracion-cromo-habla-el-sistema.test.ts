@@ -254,6 +254,10 @@ describe('V15 /operaciones — roles §2 y freeze del índice administrativo', (
      * `CAPACIDADES_DEL_PACIENTE`. Escribir aquí las dos rutas a mano habría
      * convertido el freeze en una lista de deseos.
      */
+    // 4-sep-2026: `/hospitalizacion` y `/uci` siguen DECLARADAS aquí y en el
+    // `Sidebar`, pero en pausa en la navegación (`MODULOS_EN_PAUSA`). Este
+    // freeze cuenta declaraciones —«ninguna se cayó»—; lo que hoy se ofrece lo
+    // cuenta `hospital-y-uci-en-pausa.test.ts`.
     const enElIndice = ['/asistente', '/citas', '/calendario', '/lista-espera', '/hospitalizacion',
       '/uci', '/crm', '/resenas', '/reactivacion', '/farmacia',
       '/finanzas', '/membresias', '/cumplimiento', '/legal', '/migracion', '/chat', '/guia',

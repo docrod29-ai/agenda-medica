@@ -18,7 +18,7 @@
  *
  * | Símbolo | Por qué no tiene llamador |
  * |---|---|
- * | `validarCorreccion` | **Bloqueado en el dueño.** Exige una política como parámetro obligatorio y `POLITICA_CORRECCION` nace en `null` a propósito |
+ * | `validarCorreccion` | **Decidida y sin cablear.** La política la decidió el dueño el 4-sep-2026 (D-026); lo que falta es el caso `corregir` en `api/hospital/mutar` y la pantalla |
  * | `coherenteConElTipo` | Su comentario dice «se exporta para que un caso del golden la ejecute», y el golden la ejecuta |
  * | `invariantesProtegidos` | Deriva el conjunto protegido para la compuerta clínica; su consumidor es esa compuerta |
  * | `correrBenchmark` | Arranque de un banco de pruebas que se corre a mano y se paga |
@@ -49,17 +49,43 @@ const medir = () => JSON.parse(execSync(
 
 /** Los cinco, con la razón por la que NO se conectan. */
 const EXPLICADOS: Record<string, RegExp> = {
-  'src/lib/hospital/eventos.ts::validarCorreccion': /Bloqueado en el dueño/,
+  'src/lib/hospital/eventos.ts::validarCorreccion': /Decidida y sin cablear/,
+  /**
+   * ── LOS DOS QUE APARECIERON AL ARREGLAR EL INSTRUMENTO (4-sep-2026) ───────
+   *
+   * Hasta ese día el script contaba las apariciones del símbolo sobre el texto
+   * CRUDO, así que **nombrarlo en un comentario lo daba por conectado**. Estos
+   * dos llevaban tapados por eso. No son motores nuevos: son motores que el
+   * barrido no podía ver.
+   *
+   * Se miraron, y los DOS resultaron ser lo mismo: una función huérfana cuyo
+   * COMENTARIO afirmaba un uso que no existe. En los dos casos el trabajo que
+   * prometían ya lo hace otra ruta —`nom004.ts` alerta por alerta,
+   * `RevisionPanel.tsx` campo por campo—, así que no hay hueco de seguridad.
+   *
+   * Se declararon primero como «huecos reales» y era falso. Corregido el mismo
+   * día tras ir a mirar. Queda escrito porque el error iba en la dirección cara:
+   * asustar sobre una compuerta que sí funciona.
+   */
+  'src/lib/seguridad/clasificacion.ts::masGrave': /comentario afirmaba un uso que no existe/,
+  'src/lib/expediente/extraction-schema.ts::camposQueRequierenRevision': /comentario prometía un consumidor que no llegó/,
   'src/lib/hospital/estados-cama.ts::coherenteConElTipo': /golden/i,
   'src/lib/clinical/safety-gate.ts::invariantesProtegidos': /compuerta clínica/,
   'src/lib/uci/benchmark.ts::correrBenchmark': /se corre a mano/,
   'src/lib/expediente/versioning.ts::obtenerVersion': /Redundante/,
-  /**
-   * TR-VOZ. Compara una transcripción contra su GOLD, y en una consulta de
-   * verdad no hay gold: si lo hubiera, no haría falta transcribir. Evaluación,
-   * misma categoría que `correrBenchmark`.
+  /*
+   * `leerConsulta` SE FUE DE AQUÍ el 5-sep-2026, y no porque se conectara.
+   *
+   * La explicación decía la verdad —evalúa contra un gold, y en una consulta
+   * real no hay gold— pero estaba en la lista equivocada: el barrido lo daba
+   * por «sin ningún uso» y era falso. Lo llama
+   * `scripts/medir-wer-limpio.ts:131`. El universo de llamadores no incluía
+   * `scripts/` (REG-512).
+   *
+   * Ahora sale en el cubo «sólo lo llama una herramienta», que es lo que es. Su
+   * razón no se pierde: vive en `los-motores-llegan-al-medico.test.ts`, en el
+   * caso que vigila que no vuelva a declararse muerto.
    */
-  'src/lib/asr/lo-que-pesa-de-un-error.ts::leerConsulta': /Evaluación, no camino del médico/,
 }
 
 describe('el residuo está explicado, uno a uno', () => {
@@ -93,10 +119,33 @@ describe('el residuo está explicado, uno a uno', () => {
 }, 300_000)
 
 describe('las razones son verificables en el código, no de palabra', () => {
-  it('`validarCorreccion` exige la política y la constante sigue en null', () => {
+  it('`validarCorreccion` exige la política, y la política YA está decidida', () => {
+    /**
+     * Hasta el 4-sep-2026 este caso exigía que la constante siguiera en `null`,
+     * y tenía razón: inventar quién puede corregir un registro clínico habría
+     * sido enterrar política NOM-004 en una constante.
+     *
+     * El dueño la decidió (D-026), así que lo que se vigila cambia: que el
+     * motor siga EXIGIENDO la política —no vaya a aparecer un default— y que la
+     * constante esté rellena. Lo que falta ahora tiene otro nombre y lo vigila
+     * el caso siguiente.
+     */
     const ev = leer('src', 'lib', 'hospital', 'eventos.ts')
     expect(ev).toMatch(/politica: PoliticaCorreccion,/)
-    expect(ev).toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion \| null = null/)
+    expect(ev).not.toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion \| null = null/)
+    expect(ev).toMatch(/ventanaHoras: 24/)
+  })
+
+  it('y el hueco que QUEDA se llama por su nombre: no tiene llamador', () => {
+    /**
+     * El riesgo de rellenar la constante es que alguien lea el archivo y crea
+     * que corregir ya funciona. `SIN_CABLEAR_CORRECCION` existe para que el
+     * repositorio lo diga en voz alta, y este caso para que no se borre.
+     */
+    const ev = leer('src', 'lib', 'hospital', 'eventos.ts')
+    expect(ev).toMatch(/SIN_CABLEAR_CORRECCION/)
+    expect(ev, 'el hueco tiene que nombrar QUÉ falta, no sólo que falta')
+      .toMatch(/api\/hospital\/mutar/)
   })
 
   it('`coherenteConElTipo` la ejecuta de verdad el golden', () => {
@@ -121,7 +170,11 @@ describe('el trabajo hecho no se deshace', () => {
   it('el trinquete sigue por debajo de donde empezó', () => {
     /** Empezó en 50. Once motores conectados de verdad. */
     const m = medir()
-    expect(m.huerfanas.length).toBeLessThanOrEqual(39)
+    /* 39 → 46 el 4-sep-2026. No creció la deuda: se arregló el instrumento,
+       que contaba sobre el texto CRUDO y daba por conectado cualquier motor
+       nombrado en un comentario. Siete estaban tapados así. La razón larga, con
+       cómo se descubrió, está en `los-motores-llegan-al-medico.test.ts`. */
+    expect(m.huerfanas.length).toBeLessThanOrEqual(46)
   })
 
   it('y los envoltorios siguen siendo la mayoría', () => {

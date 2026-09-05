@@ -383,7 +383,56 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * La reparación no añade capacidad: mueve la ejecución al único sitio donde
      * las dos mitades ya están juntas.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 425, 426, 427, 431, 434, 436],
+    /**
+     * 506 es esta familia sobre el DESPLIEGUE, y con el comando contestando que
+     * sí. `firebase.json` no declaraba `firestore.indexes`, y en firebase-tools
+     * el envío entero cuelga de esa clave: el paso imprimía «deploying
+     * indexes...», recorría una lista vacía y contestaba `Deploy complete!`.
+     *
+     * Lo que lo hace de esta familia y no de `depende_de_recordar`: nadie
+     * olvidó nada. El paso corría, en el momento correcto, y su salida decía
+     * que había ido bien. Lo que faltaba era mirar QUÉ contestó el proveedor.
+     *
+     * Nota de concurrencia, que es media lección: otra sesión encontró el mismo
+     * defecto en paralelo y su arreglo llegó antes a `main` —y llegó más lejos,
+     * con el diagnóstico del 403 de IAM—. Dos carriles gastando el mismo
+     * hallazgo es T-1 del tablero, y se ve al fusionar, no antes.
+     */
+
+    /**
+     * 507 es esta familia con el matiz más incómodo: la maquinaria de firma
+     * estaba escrita, probada y CONECTADA en tres caminos —impresión, PDF y la
+     * vista previa del dashboard—. El cuarto, el Word, no podía conectarse:
+     * `receta-word` no lee del DOM, lee la URL guardada en la configuración.
+     *
+     * O sea que la cobertura no era «casi completa»: era completa en el eje que
+     * alguien miró —los caminos que pasan por el DOM— y vacía en el que no.
+     * Contar caminos cubiertos no dice nada si no se enumeran TODOS los
+     * consumidores de la ruta que se va a cerrar.
+     */
+
+    /**
+     * 508 es esta familia en su forma más literal —`meta-connect` declaraba una
+     * constante que no usaba nadie— pero el daño estaba en el otro extremo: la
+     * PANTALLA imprimía ese literal como instrucción para teclear en Meta, y el
+     * servidor no lo acepta. Lo que estaba «sin conectar» no era una función:
+     * era el ACUERDO entre lo que el producto le dice al médico que ponga y lo
+     * que el producto va a aceptar después.
+     *
+     * Y el síntoma no se parece a la causa: «no me llegan los mensajes de
+     * WhatsApp» no lleva a «la pantalla me dictó un token equivocado».
+     */
+
+    /**
+     * 509 es esta familia aplicada a una HERRAMIENTA, no al producto: el
+     * inventario de entorno leía la lista de `grep`, que llega en el orden del
+     * sistema de archivos, y elegía el respaldo «del primero que apareciera».
+     * El artefacto derivado salía distinto en cada máquina, y eso convierte a su
+     * guardián en una trampa —rojo en CI, verde en local— cuyo camino corto es
+     * borrar la comprobación. Se ve una sola vez: cuando corre en otra parte.
+     */
+
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509],
   },
   {
     clave: 'se_contradice',
@@ -507,7 +556,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * ofrecer. El campo de alergias de un paciente acabó diciendo «Negadas,
      * Negadas, Negadas».
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417],
+    /**
+     * 444 es esta familia sobre una LISTA. `SEGMENTOS_CON_ID` decía «aquí viene
+     * un identificador» y las rutas del paciente decían «aquí viene una
+     * credencial»: dos afirmaciones sobre el mismo segmento, y ninguna estaba
+     * mal por su cuenta. El fallo vivía en que nadie las comparó cuando
+     * aparecieron las segundas.
+     *
+     * Su lección: una lista que nombra una CLASE de cosa envejece cuando llega
+     * una clase nueva que se le parece. Filtrar un id revela a quién le pasó
+     * algo; filtrar un token entrega el acceso.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444],
   },
   {
     clave: 'habla_real',
@@ -737,7 +797,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * método, no el método.
      */
     /**
-     * 506 es esta familia mordiéndose la cola: el defecto estaba **en el
+     * 514 es esta familia mordiéndose la cola: el defecto estaba **en el
      * instrumento**, y era el de creerse medido. La sonda guardaba un archivo
      * llamado `…-completa.png` que salía byte a byte idéntico al del pliegue —
      * el cascarón scrollea un `<main>` de dentro, así que `fullPage` no tenía
@@ -758,7 +818,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * una medición que aprueba de sobra esconde, mientras que la que grita en
      * falso sólo molesta.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 444, 506],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 513, 514],
   },
   {
     clave: 'hueco_como_dato',
@@ -837,7 +897,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * mirar si cambia también lo que el usuario VE. Si no, se entrega algo
      * distinto de lo que se enseñó.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432],
+    /**
+     * 511 es esta familia con la peor forma posible: el hueco se leía como una
+     * BUENA noticia. Un `npm audit` que no llegó a correr se publicaba como
+     * «cero vulnerabilidades» en el acta que cita la página de seguridad, sobre
+     * un árbol que tenía veintiuna, tres de ellas `high`.
+     *
+     * Y el guardián llevaba una copia del mismo lector, así que cuando no podía
+     * medir acusaba al documento —correcto— y mandaba a correr el script que
+     * escribiría los ceros. La familia sobrevive a tener guardián cuando el
+     * guardián hereda el defecto.
+     */
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511],
   },
   {
     clave: 'aislamiento',
@@ -881,7 +952,23 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Una sección del charter que vivía como carpeta vacía. No rompe nada hoy; ' +
       'es la diferencia entre un sistema que dice tener un control y uno que lo ' +
       'tiene.',
-    regs: [201, 202, 203, 204, 205, 206, 207, 208, 385, 386],
+    /**
+     * 446 es esta familia con la sección del charter MEDIDA y aun así vacía, y
+     * por eso vale la pena distinguirlo del resto.
+     *
+     * El §2 de `patient-facing-ai.md` fija cinco clases de respuesta. El código
+     * implementaba una. Las otras cuatro vivían en un `as const` con un
+     * comentario que decía «se nombran aquí para que quien las implemente no
+     * invente un nombre nuevo», y el golden de las doce preguntas COMPROBABA que
+     * sólo una tuviera clasificador — para no fingir cobertura.
+     *
+     * O sea: el repositorio sabía exactamente lo que le faltaba, lo tenía
+     * escrito, lo tenía medido y tenía una prueba en verde vigilando el hueco.
+     * No es un defecto escondido; es un hueco declarado que nadie llenó, y el
+     * destino «Preguntar» del portal llevaba meses siendo un párrafo que le
+     * decía al paciente que llamara por teléfono.
+     */
+    regs: [201, 202, 203, 204, 205, 206, 207, 208, 385, 386, 446],
   },
   {
     clave: 'estorba',
@@ -991,7 +1078,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * distintos con una sola casilla — y por eso la cierra la misma idea:
      * separar los actos, no mejorar el mensaje.
      */
-    regs: [155, 156, 251, 317, 327, 328, 433],
+    /**
+     * 510 es la forma más cara de esta familia: la causa y el síntoma están
+     * separados por SEMANAS. Un documento operativo mandaba activar una casilla
+     * de GitHub que exige la aprobación de un code owner, en un repositorio
+     * donde el único code owner es el autor de todos los PR — condición que
+     * nadie puede cumplir. El síntoma habría sido «no puedo fusionar nada»; la
+     * causa, unos ajustes tocados el mes pasado.
+     *
+     * Lo que la mete aquí y no en `charter_vacio` es que la instrucción se leía
+     * CORRECTA. Una configuración se revisa leyéndola, y leyéndola no se ve que
+     * del otro lado no haya nadie que pueda decir que sí.
+     */
+    regs: [155, 156, 251, 317, 327, 328, 433, 510],
   },
   {
     clave: 'decision_del_dueno',
@@ -1175,7 +1274,28 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * nada — se cierran a mano. Lo único que se puede automatizar es que olvidarlo
      * ponga la suite en rojo.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 502, 504, 505],
+    /**
+     * 446 es esta familia en su forma más pura: un contador GLOBAL que se asigna
+     * A MANO y tiene VARIOS ESCRITORES. Seis colisiones el mismo día entre varias
+     * sesiones que no se veían, y ninguna la vio una compuerta: las dos primeras
+     * se vieron leyendo un conflicto de fusión, la tercera leyendo por casualidad
+     * un aviso de otra sesión, y otras tres se las llevó el propio guardián — nació
+     * como REG-438, otra rama reclamó ese número mientras corría su CI, pasó a
+     * REG-440 y luego a REG-444, y al fusionarse ESE número ya estaba en `main`.
+     *
+     * La sexta ocurrió DESPUÉS de que el guardián existiera, y la cazó él: es la
+     * prueba de que la reparación funciona sobre el caso que la motivó.
+     *
+     * REG-267 ya había escrito la causa palabra por palabra y se quedó en lección
+     * sin guardián, que es cómo esta familia sobrevive: el dato existe, alguien
+     * tiene que acordarse, y acordarse no falla ruidosamente.
+     *
+     * Lo que la distingue de 241 o 505 es que aquí NO se puede derivar el dato: la
+     * fuente de verdad del contador está repartida entre ramas que no se ven. Por
+     * eso la reparación no es derivarlo —sería mentir— sino mover el rojo al único
+     * momento en que las dos mitades existen a la vez: la fusión.
+     */
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505],
   },
   {
     /**

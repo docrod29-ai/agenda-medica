@@ -1486,9 +1486,25 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
             Copiar
           </button>
         </p>
+        {/*
+          * REG-508 — aquí se imprimía un token literal como si fuera EL valor a
+          * teclear en Meta. No lo era: el servidor sólo acepta lo que valga
+          * `WHATSAPP_WEBHOOK_TOKEN` (o su alias) en Vercel, y sin respaldo.
+          *
+          * Con la variable puesta a otra cosa —lo normal— seguir esta
+          * instrucción hacía que Meta NO verificara el webhook, sin decir por
+          * qué; y con la variable puesta a ese literal, el secreto compartido
+          * quedaba publicado en la propia pantalla. Ninguna de las dos salidas
+          * era buena.
+          *
+          * Ahora se nombra la variable y no se enseña ningún valor: un token de
+          * verificación es un secreto, y una pantalla no es donde se reparte.
+          */}
         <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
-          Token de verificación: <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>agenda-medica-bot</code>
-          &nbsp;(variable WHATSAPP_WEBHOOK_TOKEN en Vercel)
+          Token de verificación: el mismo valor que tengas en{' '}
+          <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>WHATSAPP_WEBHOOK_TOKEN</code>{' '}
+          en Vercel. Tiene que coincidir <strong>exactamente</strong> con el que teclees en Meta;
+          si no, la verificación del webhook se rechaza.
         </p>
       </div>
 

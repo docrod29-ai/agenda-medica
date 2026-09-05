@@ -35,7 +35,7 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 1073 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 1293 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
@@ -48,7 +48,7 @@
 | `/calendario` | medico | ✅ | 894 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1231 | 6 | — | ✅ | — |
-| `/configuracion` | medico | ✅ | 2669 | 1 | — | ✅ | — |
+| `/configuracion` | medico | ✅ | 2685 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 7470 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 355 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 341 | 0 | — | ✅ | — |
@@ -69,7 +69,7 @@
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 1020 | 2 | — | ✅ | — |
-| `/operaciones` | medico | ✅ | 405 | 1 | — | ✅ | — |
+| `/operaciones` | medico | ✅ | 536 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 863 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1239 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 780 | 3 | — | ✅ | ✅ |

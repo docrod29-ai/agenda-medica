@@ -146,18 +146,28 @@ describe('LO QUE ESTA PUERTA NO CUBRE, COMPROBADO EN VEZ DE SUPUESTO', () => {
     expect(CLASES_RESPUESTA_PACIENTE.length, 'cinco clases, y ninguna sexta').toBe(5)
   })
 
-  it('…y sólo UNA tiene clasificador determinista hoy', () => {
+  it('…CUATRO tienen clasificador determinista, y la quinta se declara', () => {
     /**
-     * Se comprueba a propósito. Fingir cobertura de las otras cuatro sería el
-     * verde falso que esta puerta existe para impedir — y el día que alguien las
-     * implemente, este caso le recordará que aquí hay sitio esperándolas.
+     * ── ESTE CASO DECÍA «SÓLO UNA», Y LA DECLARACIÓN CADUCÓ ──────────────────
+     *
+     * Cuando se escribió, el código implementaba `URGENT_REVIEW_REQUIRED` y
+     * nada más; este caso lo COMPROBABA en vez de fingir cobertura, y dejaba
+     * dicho que «el día que alguien las implemente, este caso le recordará que
+     * aquí hay sitio esperándolas».
+     *
+     * Llegó ese día: `PATIENT-AI-001` añade `pregunta-del-paciente.ts` con las
+     * otras tres. La declaración se ACTUALIZA, no se borra — y sigue siendo una
+     * comprobación, no una promesa: se lee el fuente y se exige que emita
+     * exactamente las cuatro que dice emitir.
      */
-    const src = readFileSync('src/lib/paciente/urgencia.ts', 'utf8')
-    for (const clase of ['ANSWER_FROM_APPROVED_PLAN', 'EDUCATIONAL_EXPLANATION', 'ADMINISTRATIVE_ACTION', 'ESCALATE_TO_CLINICIAN']) {
-      // Aparecen en la lista de clases, pero nada las DEVUELVE.
-      expect(src).not.toContain(`clase: '${clase}'`)
+    const motor = readFileSync('src/lib/paciente/pregunta-del-paciente.ts', 'utf8')
+    for (const clase of ['ANSWER_FROM_APPROVED_PLAN', 'ADMINISTRATIVE_ACTION', 'ESCALATE_TO_CLINICIAN', 'URGENT_REVIEW_REQUIRED']) {
+      expect(motor, `${clase} tiene que tener una rama que la devuelva`).toContain(`clase: '${clase}'`)
     }
-    expect(src).toContain("clase: 'URGENT_REVIEW_REQUIRED'")
+    // La quinta sigue sin implementación, y sigue siendo lo honesto: explicar en
+    // palabras más simples es el nivel 9 del §1, y aquí no hay modelo.
+    expect(motor).not.toContain("clase: 'EDUCATIONAL_EXPLANATION'")
+    expect(motor).toContain('CLASES_QUE_ESTE_MOTOR_NO_EMITE')
   })
 
   it('y el README lo dice, para que nadie lea esta suite como cobertura completa', () => {

@@ -109,7 +109,41 @@ export function redactarString(s: string): string {
  * son de 20 caracteres, pero se acepta desde 12 para cubrir otros formatos) y
  * también la última parte de rutas conocidas, aunque no lo parezca.
  */
-const SEGMENTOS_CON_ID = ['consulta', 'expediente', 'paciente', 'patients', 'uci', 'hospital', 'internamiento', 'nota', 'notas', 'dr']
+/**
+ * ── LAS RUTAS DE CARA AL PACIENTE SE AÑADIERON DESPUÉS, Y POR UN MOTIVO PEOR
+ *    QUE EL ORIGINAL (REG-323) ────────────────────────────────────────────────
+ *
+ * La lista nació para tapar identificadores de paciente. `mi`, `resena`,
+ * `verificar` y `unirse` no llevan un identificador: llevan un **token de
+ * portador**. `/mi/<token>` ES la sesión del paciente — quien tenga esa cadena
+ * abre su expediente.
+ *
+ * Y el token no lo cazaba la heurística de abajo, porque su formato es
+ * `base64url(payload).base64url(firma)`: el punto rompe el patrón
+ * `^[A-Za-z0-9_-]+$` y el segmento pasaba entero al registro de errores, que es
+ * una colección RAÍZ legible desde la consola del dueño de la plataforma.
+ */
+const SEGMENTOS_CON_ID = [
+  'consulta', 'expediente', 'paciente', 'patients', 'uci', 'hospital',
+  'internamiento', 'nota', 'notas', 'dr',
+  // De cara al paciente: el segmento siguiente es una CREDENCIAL, no un id.
+  'mi', 'resena', 'verificar', 'unirse', 'reservar', 'teleconsulta',
+]
+
+/**
+ * ¿El segmento tiene forma de token con firma (`algo.algo`, estilo JWT o HMAC
+ * en base64url)?
+ *
+ * Se exige que **las dos** mitades sean largas y de alfabeto base64url. Así
+ * `favicon.ico`, `sitemap.xml` y `pdf.worker.min.mjs` se quedan como están —
+ * un redactor que estropea lo inocuo hace ilegible el informe, y entonces
+ * alguien lo apaga.
+ */
+function pareceTokenFirmado(seg: string): boolean {
+  const partes = seg.split('.')
+  if (partes.length < 2 || partes.length > 3) return false
+  return partes.every(p => p.length >= 10 && /^[A-Za-z0-9_-]+$/.test(p))
+}
 
 export function redactarRuta(ruta: string): string {
   if (!ruta || typeof ruta !== 'string') return ruta
@@ -119,6 +153,10 @@ export function redactarRuta(ruta: string): string {
     if (!seg) return seg
     const previo = (partes[i - 1] ?? '').toLowerCase()
     if (SEGMENTOS_CON_ID.includes(previo)) return ':id'
+    // Un token firmado es una credencial: se borra aunque nadie declarara el
+    // segmento anterior. Va ANTES de la heurística de id porque el punto la
+    // esquivaba.
+    if (pareceTokenFirmado(seg)) return ':id'
     // Un segmento largo sin espacios y con mezcla de letras y dígitos es un id.
     if (seg.length >= 12 && /^[A-Za-z0-9_-]+$/.test(seg) && /\d/.test(seg) && /[A-Za-z]/.test(seg)) return ':id'
     return seg

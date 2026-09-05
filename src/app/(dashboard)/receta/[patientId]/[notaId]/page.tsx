@@ -415,7 +415,7 @@ export default function GeneradorRecetaPage() {
   // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
   // a su propio formato/membrete en lugar de la plantilla generada.
   const descargarWord = () => {
-    descargarRecetaWord(
+    void descargarRecetaWord(
       {
         tipo: 'receta',
         folio,

@@ -23,14 +23,26 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
-    " M scripts/ausculta-transformacion/mirar-la-consulta.mjs",
-    " M scripts/design/sembrar-emulador.mjs",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-captura-completa-ensenaba-un-tercio-de-la-pantalla.test.ts"
+    "M  .claude/rules/data-privacy.md",
+    "A  .env.example",
+    "M  .github/CODEOWNERS",
+    "M  .github/workflows/deploy-production.yml",
+    "M  .gitignore",
+    "M  CLAUDE.md",
+    "M  agent-state/BACKLOG.json",
+    "M  agent-state/BLOCKERS.md",
+    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "MM agent-state/MASTER_STATE.json",
+    "M  agent-state/OWNER_DECISIONS_REQUIRED.md",
+    "M  agent-state/V9_COMPLETE_CRITERIA.md",
+    "M  docs/DECISIONES-DEL-DUENO.md",
+    "M  docs/ai/V9-BITACORA-Y-OPERACION.md",
+    "M  docs/audit/regression-ledger.md",
+    "A  docs/clinical-decisions/tamizaje-preventivo.md",
+    "MM docs/data-room/INDICE.md",
+    "MM docs/design/SCREEN_INVENTORY.md",
+    "A  docs/maintenance/PAQUETE-PRODUCCION-2026-09-04-v1180.md",
+    "A  docs/maintenance/PAQUETE-PRODUCCION-2026-09-05-v1181.md"
   ],
   "actualizado": "2026-09-02",
   "resumenDesdeElUltimoEstado": {
@@ -66,11 +78,11 @@
   ],
   "ramaActual": "claude/ausculta-product-transformation-mckih5",
   "derivado": {
-    "regsEnElLedger": 298,
-    "ultimaREG": "REG-506",
-    "archivosDePrueba": 924,
-    "casosDePrueba": 11218,
+    "regsEnElLedger": 308,
+    "ultimaREG": "REG-514",
+    "archivosDePrueba": 936,
+    "casosDePrueba": 11349,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1179"
+  "versionEnElRepo": "nexusmed-v1181"
 }

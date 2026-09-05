@@ -10,9 +10,9 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-1 | Validar los 23 motores en `pendiente_validacion` + 1 experimental | Revisarlos por lotes, empezando por los que tocan dosis | Que dejen de mostrarse con la marca de «no validado» | Todo lo demás; la marca es honesta |
 | C-2 | Las ~39 recomendaciones de inmuno **sin fuente** | Citarlas o retirarlas de pantalla | El charter §E1 exige que lo no fundamentado no se muestre como clínico | Se muestran declarando que no tienen fuente |
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
-| C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
+| ~~C-4~~ | ~~¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2?~~ | **RESUELTA 4-sep-2026 (D-027): NO se deduce.** Escrita en `src/lib/hospital/news2.ts` | — | — |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
-| C-6 | ¿Un CrCl a menos de 1 mL/min del umbral merece aviso propio de «estás en la frontera»? | **No por omisión.** El umbral es «por debajo de», no «cerca de»; un aviso de cercanía en los 18 umbrales es fatiga de alerta | Nada — el umbral funciona | REG-214 ya devolvió las alertas del borde que el redondeo se comía; esto sería una capa NUEVA, no la reparación |
+| ~~C-6~~ | ~~¿Un CrCl cerca del umbral merece aviso de «estás en la frontera»?~~ | **RESUELTA 4-sep-2026 (D-028): NO.** Fatiga de alerta en 18 umbrales, y REG-214 ya cerró el hueco real. Escrita en `src/lib/expediente/funcion-renal.ts` | — | — |
 
 ## DESPLIEGUE Y OPERACIÓN
 
@@ -27,7 +27,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 
 | # | Decisión | Recomendación | Bloqueado | Sigue sin ella |
 |---|---|---|---|---|
-| E-1 | ¿Se pueden reinyectar transcripciones de producción **desidentificadas** al corpus? | **No, por omisión.** La voz es biométrica | El número «de verdad» de consulta real | El corpus actuado ya mide atribución de rol |
+| ~~E-1~~ | ~~¿Se pueden reinyectar transcripciones de producción desidentificadas al corpus?~~ | **RESUELTA 4-sep-2026 (D-029): NO.** La vía abierta es consentimiento explícito, no desidentificar a posteriori. Escrita en `.claude/rules/data-privacy.md` | — | Queda dicho lo que se pierde: **hoy no hay medición sobre habla de consulta real** |
 | E-2 | Corpus **oro** del motor de temporalidad (EVAL-002): ¿quién etiqueta? | **Usted, sobre frases sintéticas.** Que el agente escriba más casos no arregla nada: la queja del ítem es justo que los casos los escribió el agente, y un oro etiquetado por quien escribió el motor mide su propia opinión | Saber si la defensa protege o estorba | El motor corre y declara la duda; sus casos actuales siguen sellados |
 
 ## COMERCIALES
@@ -118,7 +118,28 @@ borrado automático.
 
 **Qué cuesta responder**: una frase.
 
-## CLÍNICA/OPERACIÓN · Política de correcciones a un registro ya hecho
+## CLÍNICA/OPERACIÓN · Política de correcciones a un registro ya hecho — **RESUELTA 4-sep-2026 (D-026)**
+
+> **Contestada por el dueño**, las cuatro preguntas:
+>
+> | | |
+> |---|---|
+> | Quién corrige | médico · enfermería · laboratorio · farmacia — cada quien lo suyo |
+> | Quién **anula** una administración | médico · enfermería |
+> | Ventana | **24 h**, y nunca tras el egreso |
+> | Motivo escrito | se pide y se marca en ámbar, **no bloquea** |
+>
+> Escrita en `src/lib/hospital/eventos.ts` → `POLITICA_CORRECCION`, y fijada por
+> `hospital-eventos-append-only.test.ts` para que nadie la «corrija» a lo que se
+> le había recomendado: en dos de los cuatro campos eligió distinto.
+>
+> **Lo que sigue faltando, y no es la política**: `validarCorreccion` no tiene
+> llamador. Falta el caso `corregir` en `api/hospital/mutar/route.ts` y la
+> pantalla. Es trabajo de **Hospital/UCI**, en ALPHA y no a la venta, así que no
+> compite con el consultorio. Declarado en `SIN_CABLEAR_CORRECCION`.
+
+<details><summary>El planteamiento original, conservado</summary>
+
 
 **Encontrado por el instrumento de REG-255** (`validarCorreccion`, 18 líneas de
 cuerpo real, sin llamador). **No es un defecto de software**: la función exige
@@ -145,6 +166,8 @@ NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
 no hace.
 
 **Qué cuesta responder**: cuatro frases.
+
+</details>
 
 ---
 

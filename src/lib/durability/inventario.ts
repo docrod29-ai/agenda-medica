@@ -325,6 +325,14 @@ const CRUDO: Omit<ClaseDeDato, 'backupIncluded'>[] = [
     integrityInvariant: 'Un paquete que estaba en DRAFT vuelve en DRAFT. Restaurar NUNCA es una vía para liberarle al paciente un paquete que su médico no aprobó: el estado, `approvedAt`, `approvedBy` y `version` viajan juntos o el paquete queda para revisión.',
   },
   {
+    dataClass: 'patient-questions',
+    sourcePath: 'patients.preguntas_paciente',
+    systemOfRecord: 'firestore', mutable: false, signedOrImmutable: false,
+    restoreAllowed: 'solo-si-falta', retentionClass: 'clinica', containsPHI: true,
+    referenceDependencies: ['patient-demographics'],
+    integrityInvariant: 'Lo que el paciente preguntó por el portal, con la clase que le puso el servidor y la respuesta CONGELADA de aquel día (V9 PATIENT-AI-001). No es mutable: una pregunta no se reescribe, igual que no se reescribe lo que se le entregó. Restaurar es `solo-si-falta` por eso mismo — pisar una pregunta existente con otra versión borraría el registro de qué se le contestó y cuándo, que es la mitad medicolegal de este canal. Una restauración parcial que deje esta clase vacía tiene que DECIRLO: un historial vacío se lee como «este paciente nunca preguntó», y eso es una afirmación que nadie comprobó.',
+  },
+  {
     dataClass: 'physicians',
     sourcePath: 'doctors',
     systemOfRecord: 'firestore', mutable: true, signedOrImmutable: false,

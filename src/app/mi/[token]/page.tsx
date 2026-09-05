@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
   Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck, CreditCard, Video,
-  Home, MessageCircle, HeartPulse, FileText, User,
+  Home, MessageCircle, HeartPulse, FileText, User, Send, Quote,
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -64,6 +64,26 @@ const RECETA_CONFIG_DEFAULT = {
  * pintar un borrador ni equivocándose. La compuerta vive en el servidor porque
  * esconder una pestaña no cierra una ruta HTTP.
  */
+/**
+ * Una pregunta ya hecha, tal como la devuelve el servidor.
+ *
+ * NO trae `motivo` — el servidor no se lo manda al paciente, y este tipo lo
+ * refleja: saber que su frase encajó en `cambio_de_dosis` no le sirve y le
+ * enseña a esquivar el clasificador. El motivo es para el consultorio.
+ */
+interface PreguntaHecha {
+  id: string
+  /** Lo que preguntó el paciente. */
+  texto: string
+  /** Lo que se le contestó, CONGELADO — no se recalcula al leerlo. */
+  respuesta: string
+  clase: string
+  procedencia: { fechaConsulta?: string; version?: number } | null
+  escalada: boolean
+  atendidaEn: number | null
+  creadaEn: number
+}
+
 interface PaqueteVisible {
   id: string
   fechaConsulta: string
@@ -210,6 +230,25 @@ export default function MiPortalPage() {
   const [errorPago, setErrorPago] = useState('')
   const [destino, setDestino] = useState<(typeof DESTINOS)[number]['id']>('hoy')
 
+  /**
+   * PREGUNTAR — V9 · PATIENT-AI-001.
+   *
+   * `preguntas` es el historial que devuelve el servidor. Existe para que una
+   * respuesta **sobreviva a recargar**: la especificación pone la pérdida de
+   * estado entre las prioridades más altas, y el paciente está en un teléfono
+   * que se bloquea solo. Una respuesta que sólo vive en la memoria de la
+   * pestaña se pierde en el primer bloqueo de pantalla.
+   *
+   * `null` mientras no se sabe; `[]` cuando se leyó y no hay ninguna. Y el
+   * error aparte, por lo mismo que `docsError`.
+   */
+  const [preguntas, setPreguntas] = useState<PreguntaHecha[] | null>(null)
+  const [preguntasBloqueadas, setPreguntasBloqueadas] = useState(false)
+  const [borrador, setBorrador] = useState('')
+  const [enviandoPregunta, setEnviandoPregunta] = useState(false)
+  const [errorPregunta, setErrorPregunta] = useState('')
+  const idPregunta = useId()
+
   const cargar = useCallback(async () => {
     try {
       const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'session', token }) })
@@ -242,6 +281,19 @@ export default function MiPortalPage() {
           setPaquetes((d.paquetes || []) as PaqueteVisible[])
         })
         .catch(() => setPaquetesError(true))
+      /*
+        LO QUE YA PREGUNTÓ (PATIENT-AI-001). También en paralelo. Un fallo de
+        red deja `preguntas` en `null` —«no se sabe»— y la pantalla lo dice; no
+        se pinta un historial vacío, que se leería como «nunca he preguntado».
+      */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'preguntas', token }) })
+        .then(async res => {
+          if (res.status === 403) { setPreguntasBloqueadas(true); setPreguntas([]); return }
+          if (!res.ok) return
+          const d = await res.json()
+          setPreguntas((d.preguntas || []) as PreguntaHecha[])
+        })
+        .catch(() => { /* se queda en null: «no se sabe» */ })
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -250,6 +302,55 @@ export default function MiPortalPage() {
   }, [token])
 
   useEffect(() => { cargar() }, [cargar])
+
+  /**
+   * MANDAR LA PREGUNTA.
+   *
+   * La pantalla NO clasifica: manda el texto y pinta lo que el servidor
+   * decidió. Es el §3 de `patient-facing-ai.md` dicho en el cliente — si la
+   * prohibición viviera aquí, bastaría con abrir la consola para saltársela.
+   *
+   * Y no se limpia el borrador hasta que el servidor confirma: si falla la red,
+   * el paciente no pierde lo que escribió.
+   */
+  const enviarPregunta = useCallback(async () => {
+    const texto = borrador.trim()
+    if (!texto || enviandoPregunta) return
+    setEnviandoPregunta(true)
+    setErrorPregunta('')
+    try {
+      const r = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'preguntar', token, texto }),
+      })
+      if (r.status === 403) { setPreguntasBloqueadas(true); return }
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        setErrorPregunta(String(d?.error || 'No pudimos enviar tu pregunta. Intenta de nuevo.'))
+        return
+      }
+      const d = await r.json()
+      setPreguntas(p => [
+        {
+          id: String(d.id ?? ''),
+          texto,
+          respuesta: String(d.texto ?? ''),
+          clase: String(d.clase ?? ''),
+          procedencia: d.procedencia ?? null,
+          escalada: Boolean(d.escalada),
+          atendidaEn: null,
+          creadaEn: Date.now(),
+        },
+        ...(p ?? []),
+      ])
+      setBorrador('')
+    } catch {
+      setErrorPregunta('Sin conexión. Tu pregunta no se envió; vuelve a intentarlo.')
+    } finally {
+      setEnviandoPregunta(false)
+    }
+  }, [borrador, enviandoPregunta, token])
 
   // Título de pestaña con la marca de la clínica (confianza)
   useEffect(() => {
@@ -328,7 +429,7 @@ export default function MiPortalPage() {
      * configuración viva del consultorio, que cambiaría el autor de una receta
      * vieja al actualizar el perfil.
      */
-    descargarRecetaWord(
+    void descargarRecetaWord(
       {
         tipo: 'receta',
         folio: `RX-${doc.id.slice(-7).toUpperCase()}`,
@@ -593,23 +694,142 @@ export default function MiPortalPage() {
         </>)}
         {destino === 'preguntar' && (<>
           {/*
-            ASK NEXUS TODAVÍA NO RESPONDE, Y ESO ES LO CORRECTO HOY.
+            ASK NEXUS — V9 · PATIENT-AI-001.
 
-            La especificación es explícita en que esto NO es un chatbot médico
-            genérico, sino «inteligencia acotada al plan de cuidado»: cada
-            respuesta clasificada, y todo dato específico del paciente sostenido
-            en material que su médico aprobó. Eso llega en PATIENT-AI-001.
+            Esto NO es un chatbot médico. Lo que contesta sale, LITERALMENTE, de
+            lo que su médico liberó: la pantalla manda el texto y pinta lo que el
+            servidor decidió. Aquí no se clasifica nada — si la prohibición
+            viviera en el cliente, bastaría con abrir la consola para saltarla
+            (§3 de `patient-facing-ai.md`: «la prohibición vive en el servidor»).
 
-            Mientras tanto **la escalación es el producto, no el fallo** (§3 de
-            la regla de IA de cara al paciente). Poner aquí un cuadro de texto
-            que conteste «lo que sea» sería justo lo que la regla prohíbe, y se
-            lo diría a alguien que no puede detectar el error.
+            Y cuando no hay respuesta sostenida en material aprobado, **se
+            escala**: la escalación es el producto, no el fallo.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Preguntar</h2>
+
+          {preguntasBloqueadas ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 12 }}>
+              <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+                Este enlace no tiene permiso para preguntar. Pídele a tu médico
+                que te mande uno nuevo desde su sesión.
+              </p>
+            </div>
+          ) : (
+            <div style={{ padding: 16, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 12 }}>
+              {/*
+                ETIQUETA DE VERDAD, no un `placeholder`. Un campo cuyo único
+                rótulo es el texto de ejemplo se queda mudo para un lector de
+                pantalla en cuanto el paciente escribe la primera letra.
+              */}
+              <label htmlFor={idPregunta} style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+                ¿Qué quieres preguntar sobre tu tratamiento?
+              </label>
+              <textarea
+                id={idPregunta}
+                value={borrador}
+                onChange={e => setBorrador(e.target.value.slice(0, 300))}
+                rows={3}
+                maxLength={300}
+                placeholder="Por ejemplo: ¿cada cuándo tomo la pastilla que me recetó?"
+                style={{
+                  width: '100%', padding: 12, fontSize: 16, lineHeight: 1.5,
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+                  background: 'var(--bg)', color: 'var(--text)', resize: 'vertical',
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10 }}>
+                <span style={{ fontSize: 12, color: 'var(--text3)' }}>{borrador.trim().length}/300</span>
+                <button
+                  type="button"
+                  onClick={enviarPregunta}
+                  disabled={!borrador.trim() || enviandoPregunta}
+                  /* `aria-busy` y no sólo `disabled`: con la ruedecita girando, un
+                     lector de pantalla que sólo ve `disabled` anuncia «no
+                     disponible» — que se entiende como «esto no se puede usar»,
+                     no como «está trabajando». */
+                  aria-busy={enviandoPregunta}
+                  className="btn btn-primary"
+                  /* 44×44 es el mínimo táctil de la compuerta de accesibilidad. */
+                  style={{ minHeight: 44, minWidth: 44, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                >
+                  {enviandoPregunta
+                    ? <><Loader2 size={16} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> Enviando…</>
+                    : <><Send size={16} aria-hidden="true" /> Enviar</>}
+                </button>
+              </div>
+              {errorPregunta && (
+                /* El fallo se escribe en la pantalla, no en un `alert()` que se
+                   cierra sin dejar rastro. */
+                <p role="alert" style={{ fontSize: 14, color: 'var(--red-texto)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                  {errorPregunta}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/*
+            LO QUE YA PREGUNTÓ, con su respuesta congelada. `null` es «todavía no
+            se sabe»: no se pinta un historial vacío, que se leería como «nunca
+            he preguntado».
+          */}
+          {preguntas && preguntas.length > 0 && (
+            <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
+              {preguntas.map(p => {
+                const urgente = p.clase === 'URGENT_REVIEW_REQUIRED'
+                return (
+                  <div
+                    key={p.id || String(p.creadaEn)}
+                    style={{
+                      padding: 14,
+                      border: `1px solid ${urgente ? 'color-mix(in srgb, var(--red) 42%, transparent)' : 'var(--border)'}`,
+                      borderRadius: 'var(--r-lg)',
+                      background: 'var(--s1)',
+                    }}
+                  >
+                    {/*
+                      EL AVISO URGENTE VA EN LA PRIMERA LÍNEA (§6).
+                      «Un aviso urgente que llega en el tercer párrafo no llegó.»
+                      Y no se representa SÓLO con el color: lleva icono y palabra,
+                      porque el riesgo clínico nunca se pinta sólo con color.
+                    */}
+                    {urgente && (
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: 'var(--red-texto)' }}>
+                        <AlertTriangle size={16} aria-hidden="true" /> Esto puede ser una urgencia
+                      </p>
+                    )}
+                    <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', lineHeight: 1.5 }}>
+                      Preguntaste: «{p.texto}»
+                    </p>
+                    <p style={{ fontSize: 16, color: 'var(--text)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {p.respuesta}
+                    </p>
+                    {/*
+                      PROCEDENCIA — el principio del sistema de diseño, aquí.
+                      Sin esto, una cita textual del plan de su médico y una
+                      frase compuesta por una máquina se leen exactamente igual.
+                    */}
+                    {p.procedencia?.fechaConsulta && (
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text3)', margin: '10px 0 0' }}>
+                        <Quote size={12} aria-hidden="true" />
+                        Esto lo dejó escrito tu médico en tu consulta del {p.procedencia.fechaConsulta}
+                      </p>
+                    )}
+                    {p.escalada && (
+                      <p style={{ fontSize: 12, color: 'var(--text3)', margin: '10px 0 0' }}>
+                        {p.atendidaEn ? 'Tu consultorio ya la revisó.' : 'Tu consultorio la tiene pendiente de revisar.'}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)' }}>
             <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
-              Si tienes una duda sobre tu tratamiento, habla con tu consultorio.
-              Quien te responde es el equipo de tu médico.
+              Hay preguntas que sólo puede contestar tu médico. Cuando sea una de
+              ésas, aquí te lo digo y tu consultorio la recibe — pero si es algo
+              que no puede esperar, llámales.
             </p>
             {/*
               ESTE DESTINO NO PUEDE QUEDARSE SIN NINGUNA ACCIÓN.

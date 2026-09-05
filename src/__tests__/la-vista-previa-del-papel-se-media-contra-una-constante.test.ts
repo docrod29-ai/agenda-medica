@@ -1,5 +1,5 @@
 /**
- * LA VISTA PREVIA DEL PAPEL SE MEDÍA CONTRA UNA CONSTANTE — REG-444.
+ * LA VISTA PREVIA DEL PAPEL SE MEDÍA CONTRA UNA CONSTANTE — REG-513.
  *
  * ── DE DÓNDE VIENE ──────────────────────────────────────────────────────────
  *
