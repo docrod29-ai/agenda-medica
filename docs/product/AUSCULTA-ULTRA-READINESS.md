@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…518 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…519 |
 |---|---|---|
 | `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 628 pasan · 1 falla** tras REG-514 (937 archivos); la de REG-515 se anota en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **464 · 6 509** |
-| Ledger | 305 REG · última REG-511 | **312 · REG-518** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **465 · 6 514** |
+| Ledger | 305 REG · última REG-511 | **313 · REG-519** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -116,7 +116,7 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 - `reclamarCanal` es check-then-write sin transacción; `dueño === ''` cuenta como libre. MEDIO-BAJO.
 - 360dialog: la llave viva como id de documento; webhook sin HMAC. MEDIO-BAJO.
 - `String(err)` hacia el cliente en ~25 rutas y en un redirect. BAJO.
-- `arco/cancelar` no sube `portalTokenVersion`: el portal sigue vivo tras una cancelación ARCO. Sospecha S2, con nombre.
+- ~~`arco/cancelar` no sube `portalTokenVersion`~~ — **CERRADO, REG-519 (D-034)**: el bloqueo ARCO revoca el portal en el mismo acto.
 - `npm audit`: 0 críticas; lo único servido al navegador es `dompurify` (moderada) vía `html2pdf.js`.
 
 ### Test-the-test — cifras
@@ -168,6 +168,7 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **516** | La pregunta atendida seguía «pendiente de revisar» en el portal | `la-pregunta-atendida-se-ve-en-el-portal.test.ts` (9) | con `/pendientes` sin el gancho, el guardián se pone rojo |
 | **517** | Sin edad en el expediente, la receta aplicaba topes de adulto a un niño, en silencio | `la-edad-que-falta-se-dice-no-se-supone-adulto.test.ts` (9) | con las dos pantallas como estaban, cuatro casos rojos |
 | **518** | La huella de una receta larga se perdía entera en la bitácora, con `ok: true` | `la-huella-de-la-receta-larga-no-se-pierde.test.ts` (8) | con la ruta como estaba, `meta: null` para 80 fármacos |
+| **519** | La cancelación ARCO dejaba vivo el enlace del portal del paciente | `la-cancelacion-arco-apaga-el-portal.test.ts` (5) | con la ruta como estaba, la versión no subía y `decidirVigencia` seguía diciendo «vigente» |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -187,9 +188,9 @@ REG-512 es de servidor y se midió ejecutando la ruta.
 
 | # | Decisión | Recomendación por omisión | Qué sigue sin ella |
 |---|---|---|---|
-| D-A | ¿Una alergia crítica ↔ betalactámico o una interacción mayor debe **bloquear** imprimir/firmar, o basta con acuse visible y registrado? | Acuse **registrado** (como ya hace la firma con `lo-que-se-aviso-al-firmar`), sin bloquear: bloquear cambia el acto clínico | Se pinta y se imprime igual, sin rastro de que se vio |
-| D-B | La pregunta del paciente viaja **literal** (300 caracteres + nombre) al WhatsApp del consultorio; el formulario previo, en la misma ruta, no viaja «porque son datos de salud». WA-9 del registro de riesgos de WhatsApp | Mandar sólo motivo + enlace al portal | Sigue viajando literal |
-| D-C | ¿La cancelación ARCO debe **revocar el portal** (subir `portalTokenVersion`) además de la baja de mensajería? | Sí | El enlace del paciente cancelado sigue leyendo su agenda hasta caducar |
+| ~~D-A~~ | **RESUELTA 5-sep-2026 (D-032): sólo AVISAR.** Una alergia crítica o una interacción mayor no bloquea imprimir ni firmar. Escrita en la receta, junto al cruce de alergias | — | — |
+| ~~D-B~~ | **RESUELTA 5-sep-2026 (D-033): SÍ viaja completa.** La pregunta escalada va entera (hasta 300 caracteres, con nombre) al WhatsApp del consultorio. WA-9 queda resuelto por decisión. Escrita en `pregunta-del-paciente.ts` | — | — |
+| ~~D-C~~ | **RESUELTA 5-sep-2026 (D-034): SÍ.** El bloqueo ARCO sube `portalTokenVersion` en el mismo acto y el enlace del paciente deja de servir. Implementada como **REG-519** | — | — |
 
 Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 `agent-state/OWNER_DECISIONS_REQUIRED.md`.

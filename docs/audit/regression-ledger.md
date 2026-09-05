@@ -19056,3 +19056,53 @@ la ruta como estaba, el asiento de la receta de 80 fármacos llevaba
   a un adversario. No cambia aquí.
 - **Los asientos históricos con `meta: null`** no se recuperan: lo que no se
   escribió no está.
+
+## REG-519 · La cancelación ARCO dejaba vivo el enlace del portal del paciente
+
+**CÓMO SE DESCUBRIÓ.** Sospecha S2 del equipo rojo de API del 5-sep-2026,
+verificada en `api/arco/cancelar/route.ts`: el camino de BLOQUEO escribía
+`arcoBloqueo` y daba de baja el WhatsApp; los únicos lectores de `arcoBloqueo`
+eran la reactivación y las campañas. `portalTokenVersion` no se tocaba.
+
+Se llevó al dueño como **decisión**, no como arreglo (D-C del readiness):
+revocar el portal es un acto sobre el paciente. Decidió que sí (**D-034**,
+5-sep-2026).
+
+**LO QUE PASABA.** El paciente que ejercía su derecho de cancelación —y cuyo
+expediente se conserva bloqueado porque hay notas firmadas— seguía teniendo un
+magic-link vivo que leía su agenda, sus documentos y sus recetas hasta caducar.
+Ese enlace viaja por WhatsApp y se reenvía: los tres motivos por los que
+existe la revocación (REG-331) aplican con más razón a un expediente que su
+titular pidió cancelar.
+
+### La causa raíz
+
+«Escrito y sin conectar»: el bloqueo se escribía y el portal no lo miraba. El
+contador que tumba los enlaces existía desde REG-331 y ningún camino de ARCO lo
+subía.
+
+### El arreglo
+
+El bloqueo sube `portalTokenVersion` **en el mismo `set`** que escribe
+`arcoBloqueo`: no hay ventana con el expediente bloqueado y el enlace vivo.
+`decidirVigencia` hace el resto —versión menor que la del expediente es
+`revocado`, 401 definitivo—, y con REG-512 eso alcanza también a la sala de
+video. En la SUPRESIÓN no hace falta: el expediente deja de existir, y eso ya
+cuenta como revocado.
+
+### Prueba
+
+`src/__tests__/la-cancelacion-arco-apaga-el-portal.test.ts` (5 casos): la ruta
+ejecutada con un doble que captura cada `set`; el mismo `set` lleva las dos
+claves y sólo ésas; sin versión previa arranca en 1; el ensayo y la falta de
+acreditación no escriben nada. **Probado al revés**: con la ruta como estaba,
+tres casos rojos (la versión no subía y `decidirVigencia` seguía diciendo
+«vigente»).
+
+### Qué NO cubre
+
+- **No ejecuta el portal después**: comprueba que la versión sube y que la
+  decisión pura la lee como revocación; el portal ya está probado contra esa
+  decisión (REG-331, REG-512).
+- **La oposición ARCO (`arco/oponerse`) no revoca el portal**, y es correcto:
+  oponerse es dejar de recibir contacto proactivo, no dejar de ver lo propio.

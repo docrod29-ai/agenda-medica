@@ -26,12 +26,15 @@
     "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
     " M docs/audit/regression-ledger.md",
     " M docs/product/AUSCULTA-ULTRA-READINESS.md",
+    " M docs/product/DECISION_REGISTER.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/api/auditoria/registrar/route.ts",
+    " M docs/whatsapp/policy-risk-register.md",
+    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    " M src/app/api/arco/cancelar/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-huella-de-la-receta-larga-no-se-pierde.test.ts",
-    "?? src/lib/expediente/meta-de-bitacora.ts"
+    " M src/lib/paciente/pregunta-del-paciente.ts",
+    "?? src/__tests__/la-cancelacion-arco-apaga-el-portal.test.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -67,10 +70,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 312,
-    "ultimaREG": "REG-518",
-    "archivosDePrueba": 940,
-    "casosDePrueba": 11381,
+    "regsEnElLedger": 313,
+    "ultimaREG": "REG-519",
+    "archivosDePrueba": 941,
+    "casosDePrueba": 11386,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

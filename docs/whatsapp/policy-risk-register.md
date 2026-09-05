@@ -12,7 +12,7 @@ Severidad: **Crítico** (bloqueo del número / violación de política / fuga PH
 | WA-6 | Sin **seguridad clínica** (detección de urgencias) en el canal | Clínico | **Alto** | Confirmado | El bot no detecta expresiones de urgencia ni deriva a emergencias. |
 | WA-7 | Sin **handoff a recepción** estructurado | Operativo | **Medio** | Confirmado | No se encontró estado de transferencia humana. |
 | WA-8 | Secreto (api_key 360dialog) usado como **ID de documento** (path) | Secretos | **Medio** | Confirmado | `whatsapp_channels/{apiKey}`. Recorte en logs ya corregido. |
-| WA-9 | Envío de **PHI** por WhatsApp (dx/resultados/notas) | Privacidad | **Alto** | Por verificar | Los mensajes actuales son administrativos (fecha/hora/médico/ubicación) — bien; verificar que ningún flujo mande contenido clínico en texto. |
+| WA-9 | Envío de **PHI** por WhatsApp (dx/resultados/notas) | Privacidad | **Alto** | **Decidido (D-033, 5-sep-2026)** | Verificado el 5-sep: dos flujos mandan texto del paciente — la pregunta escalada del portal (300 caracteres + nombre, `pregunta-del-paciente.ts`) y el aviso de urgencia (`urgencia.ts`, con teléfono). El dueño decidió que la pregunta viaje completa. Los demás mensajes siguen siendo administrativos. |
 | WA-10 | Proveedor = 360dialog (BSP), no Embedded Signup: el tenant no es 100% dueño de sus activos | Arquitectura | **Medio** | Confirmado | Aceptable como "solution partner"; el programa prefiere Embedded Signup + adaptador. |
 
 ## Reglas no negociables del programa vs estado
@@ -24,5 +24,5 @@ Severidad: **Crítico** (bloqueo del número / violación de política / fuga PH
 | Consentimiento granular + opt-out | ❌ Falta (WA-2) |
 | Plantillas aprobadas fuera de ventana | ❌ Falta (WA-1) |
 | Confirmación explícita no ambigua | ⚠️ Riesgo por texto (WA-4) |
-| PHI fuera de WhatsApp (portal seguro) | ⚠️ Por verificar (WA-9) |
+| PHI fuera de WhatsApp (portal seguro) | ⚠️ Excepción decidida por el dueño: la pregunta escalada viaja completa (D-033, WA-9) |
 | Sin PHI en logs | ✅ (sanitizador + guards) |
