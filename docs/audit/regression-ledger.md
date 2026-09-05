@@ -19164,3 +19164,58 @@ cuatro casos del guardián rojos.
   conservadora. Cuando la receta lo sepa, se le pasan las señales y REG-375
   abre la ventana sola.
 - **No mira la alergia ni la terapia duplicada**: siguen en el readiness §11.
+
+## REG-521 · La misma sustancia en dos renglones pasaba: «Paracetamol 500 mg» + «Tempra 1 g»
+
+**CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026
+(readiness §3: «sin detección de terapia duplicada, paracetamol + Tempra pasa,
+`NOT_IMPLEMENTED`»). Verificado por el orquestador: ningún módulo cruzaba los
+renglones entre sí; `revisarDosis` y `dosisPeligrosasDeLaLista` van renglón a
+renglón. El vocabulario que hacía falta **ya existía**: `CATALOGO` en
+`seguridad/dosis.ts` sabe que Tempra y Tylenol son paracetamol, y su nota dice
+«vigilar dosis acumulada». Nada acumulaba.
+
+**LO QUE PASABA.** 500 mg cada 8 h (1 500/día) y 1 g cada 8 h (3 000/día): cada
+renglón debajo del techo de 4 000, los dos juntos 4 500, y ni la consulta ni la
+receta decían nada. Tampoco cuando el Tempra estaba vigente en el expediente y
+hoy se recetaba paracetamol.
+
+### La causa raíz
+
+Función que los productos de referencia dan por supuesta y que aquí nunca
+existió: no había nada roto que una prueba pudiera delatar. Se ve comparando,
+no leyendo el código.
+
+### El arreglo
+
+Módulo puro `seguridad/terapia-duplicada.ts`: agrupa por sustancia con el
+catálogo (`buscarFarmaco`), o por nombre normalizado si no está. Dos renglones
+de hoy con la misma sustancia → `terapia_duplicada`; si todos traen mg y tomas,
+la suma diaria se compara con el techo **que ya estaba en el catálogo**
+(`maxDiaMg` / `hardMaxDiaMg` / oral cuando todos son orales), con los mismos
+tres niveles que `revisarDosis`. Un renglón de hoy que repite algo vigente del
+expediente → `terapia_duplicada` que lo dice, sin sumar. **Ninguna cifra
+nueva.** Entra por `dosisPeligrosasDeLaLista` (la consulta, con `yaToma` del
+cuadro) y por el bloque de dosis de la receta (con lo vigente que REG-520 ya
+carga). Es aviso de nivel «revisa»; no bloquea. El registro del motor de
+techos de dosis lo declara (v1.2.0, archivo y puerta de entrada).
+
+### Prueba
+
+`src/__tests__/la-misma-sustancia-dos-veces-se-dice.test.ts` (17 casos): lo
+que veía el producto antes (renglón a renglón, vacío); el caso con la suma
+contra el techo del catálogo; duplicado sin suma; por kilo; fuera del
+catálogo por texto; techo oral (ketorolaco); zona amarilla y absoluto
+(amoxicilina); contra el expediente; lo vigente entre sí no se cruza; dos
+AINE distintos NO son duplicado (declarado). **Probado al revés**: con
+`dosis-de-la-lista` y las dos pantallas como estaban, cinco casos rojos.
+
+### Qué NO cubre
+
+- **Clases terapéuticas** (ibuprofeno + naproxeno): no hay vocabulario en el
+  catálogo y no se inventa. `NOT_IMPLEMENTED`, declarado en el módulo.
+- **Sólo los 11 fármacos del catálogo** se reconocen por alias; fuera de él,
+  sólo el mismo nombre escrito dos veces. Señalar de menos, nunca de más.
+- **No suma con lo vigente**: lo que el expediente dice que toma puede ser
+  justo lo que hoy se cambia. Se dice; no se calcula.
+- **No bloquea** ni cambia la compuerta de firma (decisión del dueño, 5-ago).

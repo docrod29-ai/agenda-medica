@@ -35,7 +35,7 @@ y, para los cuatro que se cerraron, sin **reproducirlo** primero.
 | Seguridad | la escalación del paciente podía no llegarle a nadie; `safeLog` no redacta lo que promete; check-then-write en `reclamarCanal` |
 | Experiencia del paciente | el bucle de «Preguntar» estaba roto en la mitad del consultorio |
 
-## Qué cambió en esta rama — nueve slices, un commit cada uno (y uno para las decisiones)
+## Qué cambió en esta rama — diez slices, un commit cada uno (y uno para las decisiones)
 
 | REG | Qué | Al revés |
 |---|---|---|
@@ -48,6 +48,7 @@ y, para los cuatro que se cerraron, sin **reproducirlo** primero.
 | **518** | La huella de una receta larga se perdía entera en la bitácora, con `ok: true`; ahora se acota por campo y lo omitido se declara | `meta: null` para 80 fármacos |
 | **519** | La cancelación ARCO dejaba vivo el enlace del portal (D-034): el bloqueo sube `portalTokenVersion` en el mismo `set` | la versión no subía y `decidirVigencia` decía «vigente» |
 | **520** | La receta sólo veía el papel de hoy: ahora cruza con la medicación vigente (y dice qué ya existía) y precarga la creatinina del expediente con fecha y vigencia a 7 días | `detectarInteracciones(hoy)` no ve warfarina + ketorolaco; el guardián de fuente, cuatro rojos |
+| **521** | «Paracetamol 500 mg» + «Tempra 1 g» pasaban renglón a renglón (4 500 mg/día); ahora la misma sustancia se dice, con la suma contra el techo del catálogo, en consulta y receta | renglón a renglón, vacío; con la lista y las pantallas como estaban, cinco rojos |
 
 Cada uno con su golden (qué fallaba, cómo se descubrió, causa raíz, regla, **qué
 NO cubre**), su entrada en el ledger, su familia de defecto, su sello, y las
@@ -57,12 +58,12 @@ compuertas medidas en el mensaje del commit.
 
 | | |
 |---|---|
-| `npx vitest run` | **12 682 pasan · 0 fallan** · 942 archivos (tras REG-520; en corridas anteriores `ops-timeout-y-punto-ciego` fallaba por el proxy del contenedor) |
+| `npx vitest run` | **12 698 pasan · 1 falla** · 943 archivos (tras REG-521; la falla es `ops-timeout-y-punto-ciego`, el proxy del contenedor rechaza `10.255.255.1` al instante — entorno, no árbol; en la corrida de REG-520 pasó) |
 | `npx tsc --noEmit` | limpio |
 | `node scripts/lint-trinquete.mjs` | **93**, techo apretado en REG-517 |
 | `npm run build` | 164/164 páginas, con los placeholders del CI |
-| Sello | 466 archivos · 6 530 casos |
-| Ledger | 314 REG · última **REG-520** |
+| Sello | 467 archivos · 6 547 casos |
+| Ledger | 315 REG · última **REG-521** |
 
 ## Lo que se supo y no estaba escrito
 
@@ -76,9 +77,9 @@ compuertas medidas en el mensaje del commit.
 ## Lo que queda, con nombre
 
 `docs/product/AUSCULTA-ULTRA-READINESS.md` §3 y §11, y el checkpoint en
-`agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md`. Lo primero: en la receta,
-verificar la terapia duplicada y los validadores sin llamador; después el port
-de #442 con números nuevos y los tres del test-the-test.
+`agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md`. Lo primero: el port de #442
+con números nuevos; después los tres del test-the-test. Los tres validadores
+sin llamador son una decisión nueva para el dueño (D-D en el readiness §9).
 
 Las tres decisiones que se le llevaron al dueño (D-A, D-B, D-C) están
 resueltas y escritas donde se leen: **D-032** (la alergia crítica sólo avisa),

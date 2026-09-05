@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…520 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…521 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 682 pasan · 0 fallan** tras REG-520 (942 archivos); cada slice anota la suya en su commit |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 698 pasan · 1 falla (entorno)** tras REG-521 (943 archivos); cada slice anota la suya en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **466 · 6 530** |
-| Ledger | 305 REG · última REG-511 | **314 · REG-520** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **467 · 6 547** |
+| Ledger | 305 REG · última REG-511 | **315 · REG-521** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -103,10 +103,10 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 
 ### Receta (medication-safety) — PARTIAL / BROKEN, después de los P1
 
-- Sin detección de **terapia duplicada** (paracetamol + Tempra pasa) — `NOT_IMPLEMENTED`.
+- ~~Sin detección de **terapia duplicada** (paracetamol + Tempra pasa)~~ — **CERRADO, REG-521**: misma sustancia en dos renglones (por el catálogo de `dosis.ts`, que ya sabía que Tempra es paracetamol) o ya vigente en el expediente; la suma diaria contra el techo que ya estaba en el catálogo. En la consulta y en la receta. Clases terapéuticas (dos AINE distintos) siguen `NOT_IMPLEMENTED`, declarado.
 - ~~**Red pediátrica apagada en silencio** cuando `edad` falta~~ — **CERRADO, REG-517**: la fecha de nacimiento manda, la edad congelada después, y sin ninguna la receta lo pinta en ámbar junto a las dosis. No bloquea (D-A).
 - ~~La **creatinina del expediente** (`labsDelCuadro`) llega a la consulta y **no a la receta**; `interaccionesDelCuadro` (REG-188) tampoco~~ — **CERRADO, REG-520**: la receta carga paneles y notas firmadas, cruza lo de hoy con lo vigente (y dice qué ya existía) y precarga la creatinina más reciente con su fecha y su vigencia a 7 días (`STALE_RENAL_FUNCTION` cuando caduca; se sigue calculando, REG-375).
-- `validacionesGeneralesMedicamentos`, `tieneAlergiaGrave`, `esMedicamentoCritico`: **cero llamadores**.
+- `validacionesGeneralesMedicamentos`, `tieneAlergiaGrave`, `esMedicamentoCritico`: **cero llamadores, verificado el 5-sep** (sólo pruebas y el registro). Clasificación: `IMPLEMENTED_NOT_PROVEN`. No se cablean en este tramo a propósito: `validacionesGeneralesMedicamentos` necesita un contexto (embarazo, ERC, anticoagulación) que la receta no tiene estructurado y sus patrones (`aines`, `prednisona` como crítico) no los ha revisado el médico; conectarlos sin esa revisión sería señalar de más. Queda para el dueño (§9): decidir si esas reglas valen tal cual, y entonces se cablean con su prueba. `esMedicamentoCritico` y `tieneAlergiaGrave` son marcas de pantalla sin pantalla; el registro los declara como puertas de entrada y **existen**, pero no se llaman.
 - ~~El hash de lo impreso puede **perderse entero** si `meta` se trunca~~ — **CERRADO, REG-518**: se acota por campo, el hash y el folio siempre caben, lo omitido se declara en el asiento.
 - Que las alertas **no bloqueen** la impresión es **política**: no se toca sin decisión del dueño (cola §9).
 
@@ -170,6 +170,7 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **518** | La huella de una receta larga se perdía entera en la bitácora, con `ok: true` | `la-huella-de-la-receta-larga-no-se-pierde.test.ts` (8) | con la ruta como estaba, `meta: null` para 80 fármacos |
 | **519** | La cancelación ARCO dejaba vivo el enlace del portal del paciente | `la-cancelacion-arco-apaga-el-portal.test.ts` (5) | con la ruta como estaba, la versión no subía y `decidirVigencia` seguía diciendo «vigente» |
 | **520** | La receta sólo veía el papel de hoy: ni la medicación vigente ni la creatinina del expediente | `la-receta-ve-el-expediente-completo.test.ts` (16) | con la pantalla como estaba, los cuatro casos del guardián rojos; `detectarInteracciones(hoy)` no ve warfarina + ketorolaco y el cuadro sí |
+| **521** | «Paracetamol 500 mg» + «Tempra 1 g» pasaban renglón a renglón: 4 500 mg/día sin aviso | `la-misma-sustancia-dos-veces-se-dice.test.ts` (17) | `revisarDosis` por renglón, vacío; con la lista y las dos pantallas como estaban, cinco rojos |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -192,6 +193,7 @@ REG-512 es de servidor y se midió ejecutando la ruta.
 | ~~D-A~~ | **RESUELTA 5-sep-2026 (D-032): sólo AVISAR.** Una alergia crítica o una interacción mayor no bloquea imprimir ni firmar. Escrita en la receta, junto al cruce de alergias | — | — |
 | ~~D-B~~ | **RESUELTA 5-sep-2026 (D-033): SÍ viaja completa.** La pregunta escalada va entera (hasta 300 caracteres, con nombre) al WhatsApp del consultorio. WA-9 queda resuelto por decisión. Escrita en `pregunta-del-paciente.ts` | — | — |
 | ~~D-C~~ | **RESUELTA 5-sep-2026 (D-034): SÍ.** El bloqueo ARCO sube `portalTokenVersion` en el mismo acto y el enlace del paciente deja de servir. Implementada como **REG-519** | — | — |
+| **D-D** | Tres validadores escritos y sin llamador (`validacionesGeneralesMedicamentos`: embarazo/ERC/anticoagulación por expresión regular; `esMedicamentoCritico`; `tieneAlergiaGrave`). ¿Valen sus reglas tal cual para conectarlas a la receta y a la consulta, o se revisan antes? Conectarlas sin revisar sería señalar de más (regla 5) | `src/lib/expediente/medical-dictionary.ts`, `src/lib/seguridad/alergias.ts` | Se cablean con prueba en cuanto lo diga; si dice que no, se quitan del registro como puertas de entrada |
 
 Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 `agent-state/OWNER_DECISIONS_REQUIRED.md`.
@@ -208,10 +210,8 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 
 ## 11 · Siguiente slice
 
-**Receta**, lo que queda sin verificar: terapia duplicada (paracetamol +
-Tempra) y `validacionesGeneralesMedicamentos` / `tieneAlergiaGrave` sin
-llamador — verificar en el código antes de tocar nada, y si el vocabulario que
-haría falta no existe, declararlo como `NOT_IMPLEMENTED`, no inventarlo.
-Después el port de #442 con números nuevos, y los tres siguientes del
+**La receta queda cerrada en lo verificado** (REG-517, 518, 520, 521); los
+tres validadores sin llamador esperan decisión del dueño (§3, §9). Sigue el
+port de #442 con números nuevos, y los tres siguientes del
 test-the-test (`autorizacion-servidor` ignora el id del documento;
 `csp-manifest` no corre en CI; `el-llm-no-calcula` casa literales).

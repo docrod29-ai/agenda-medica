@@ -31,11 +31,15 @@
     " M docs/maintenance/BITACORA-2026-09-05-preservacion-y-auditoria.md",
     " M docs/product/AUSCULTA-ULTRA-READINESS.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
     " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-receta-ve-el-expediente-completo.test.ts",
-    "?? src/lib/seguridad/creatinina-para-la-receta.ts"
+    " M src/lib/clinical/registry.ts",
+    " M src/lib/seguridad/dosis-de-la-lista.ts",
+    " M src/lib/seguridad/dosis.ts",
+    "?? src/__tests__/la-misma-sustancia-dos-veces-se-dice.test.ts",
+    "?? src/lib/seguridad/terapia-duplicada.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -71,10 +75,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 314,
-    "ultimaREG": "REG-520",
-    "archivosDePrueba": 942,
-    "casosDePrueba": 11402,
+    "regsEnElLedger": 315,
+    "ultimaREG": "REG-521",
+    "archivosDePrueba": 943,
+    "casosDePrueba": 11419,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

@@ -1343,6 +1343,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * Se cuenta aparte a propósito. Mezclarla con los defectos haría creer que
      * el sistema falla más de lo que falla, y haría perder de vista que estos
      * se encuentran con OTRO instrumento: mirar afuera, no mirar el código.
+     *
+     * 521: la terapia duplicada («Paracetamol» + «Tempra» en la misma receta)
+     * es una comprobación que cualquier sistema de apoyo a la prescripción da
+     * por supuesta. Aquí no existía, y ninguna prueba podía delatarlo. El
+     * vocabulario sí existía —el catálogo de dosis— y por eso el arreglo no
+     * inventa ninguna cifra.
      */
     clave: 'hueco_frente_al_mercado',
     nombre: 'El mercado lo tiene y aquí nunca existió',
@@ -1351,7 +1357,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
-    regs: [242, 243, 250, 304, 326],
+    regs: [242, 243, 250, 304, 326, 521],
   },
   {
     clave: 'falta_un_eje',

@@ -1657,7 +1657,7 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
   {
     id: 'dosis-adulto-techos', nombre: 'Techos de dosis del adulto', especialidad: 'Farmacología/Seguridad del paciente',
     tipo: 'regla-de-seguridad',
-    version: '1.1.0', referencia: 'CATALOGO: semilla de valores de referencia comunes, declarada como PENDIENTE de validación en su propio encabezado',
+    version: '1.2.0', referencia: 'CATALOGO: semilla de valores de referencia comunes, declarada como PENDIENTE de validación en su propio encabezado',
     // E0-05: la dosis prescrita es una UNIÓN por dimensión — el booleano
     // `dosisPorKg` desapareció y con él el P0 de leer "50 mg/kg" como 50 mg.
     unidades: 'revisarDosis({ dosis: ClinicalQuantity<masa> (mg) | ClinicalQuantity<dosis_por_peso> (mg/kg/dosis), peso: ClinicalQuantity<masa> }); techos del CATALOGO en mg por toma y por día (y "mg de TMP" en trimetoprima-sulfametoxazol)',
@@ -1669,12 +1669,14 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
       ref: 'src/lib/seguridad/dosis.ts (CATALOGO, revisarDosis)',
     },
     file: 'src/lib/seguridad/dosis.ts',
-    entryPoints: ['revisarDosis', 'CATALOGO', 'buscarFarmaco'],
-    calculos: ['detección de error de decimal (50 → 500 mg)', 'zona amarilla entre máximo habitual y absoluto', 'topes por vía y edad mínima'],
+    /** REG-521: la misma sustancia en varios renglones se suma contra el MISMO catálogo. */
+    archivos: ['src/lib/seguridad/terapia-duplicada.ts'],
+    entryPoints: ['revisarDosis', 'CATALOGO', 'buscarFarmaco', 'terapiaDuplicadaDeLaLista'],
+    calculos: ['detección de error de decimal (50 → 500 mg)', 'zona amarilla entre máximo habitual y absoluto', 'topes por vía y edad mínima', 'terapia duplicada: misma sustancia (nombre o alias del CATALOGO) en dos renglones o ya vigente, con la dosis diaria acumulada contra el techo del catálogo (REG-521)'],
     missingData: 'fármaco fuera del catálogo ⇒ `sin_referencia` explícito. AUSENCIA de alerta ≠ dosis segura.',
     adr: ADR('dosis-adulto-techos'),
     adrExtra: [ADR('dosis-amoxicilina')],
-    goldenTests: ['seguridad-dosis.test.ts', 'dosis-decision-amoxicilina.test.ts', 'dosis-invariantes-property.test.ts'],
+    goldenTests: ['seguridad-dosis.test.ts', 'dosis-decision-amoxicilina.test.ts', 'dosis-invariantes-property.test.ts', 'la-misma-sustancia-dos-veces-se-dice.test.ts'],
     estado: 'pendiente_validacion',
     porQueExiste: 'Es el techo que evita el error de decimal; E0-02 documentó que 20 de 25 fármacos pediátricos no tienen aquí referencia adulta (REG-043).',
   },

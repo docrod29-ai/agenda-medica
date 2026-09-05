@@ -40,6 +40,7 @@ import { listarNotasCompat } from '@/lib/expediente/firestore'
 import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { listarPanelesLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
 import { creatininaDelExpediente, creatininaParaDosificar, comoSeDiceLaCreatinina } from '@/lib/seguridad/creatinina-para-la-receta'
+import { terapiaDuplicadaDeLaLista } from '@/lib/seguridad/terapia-duplicada'
 import { alergiasDe } from '@/lib/seguridad/alergias'
 import { revisarDosis, revisarUnidadDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
@@ -239,8 +240,14 @@ export default function GeneradorRecetaPage() {
         .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
+    /**
+     * REG-521 — «Paracetamol 500 mg» y «Tempra 1 g» pasaban renglón a renglón:
+     * 1 500 y 3 000 debajo del techo, 4 500 sumados. Se cruza la lista entera
+     * entre sí y contra lo vigente del expediente (lo que REG-520 ya carga).
+     */
+    out.push(...terapiaDuplicadaDeLaLista(medicamentos, vigentes.map(v => v.medicamento)))
     return out
-  }, [medicamentos, edadPaciente, pesoDeLaNota, pesoKg])
+  }, [medicamentos, edadPaciente, pesoDeLaNota, pesoKg, vigentes])
 
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).

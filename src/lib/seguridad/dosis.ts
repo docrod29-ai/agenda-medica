@@ -29,6 +29,8 @@ export interface AlertaDosis {
     | 'dosis_sin_unidad'
     /** No hay cifra: «Paracetamol, cada 8 horas» no se puede dispensar. */
     | 'dosis_sin_cifra'
+    /** La misma sustancia en dos renglones, o ya vigente en el expediente (REG-521). */
+    | 'terapia_duplicada'
   mensaje: string
 }
 

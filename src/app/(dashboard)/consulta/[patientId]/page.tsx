@@ -6231,6 +6231,8 @@ export default function ConsultaActivaPage() {
             // sin ninguna se pasa `undefined` — nunca se supone adulto.
             edadAnios: edadParaDosificar(patient).edad ?? undefined,
             pesoKg: signosNum.peso ?? undefined,
+            // REG-521: «Tempra» vigente en el expediente + «paracetamol» hoy se dice.
+            yaToma: medsDelCuadro.filter(m => !m.deHoy),
           }).map(d => ({
             med: d.med,
             mensaje: d.alertas.map(a => a.mensaje).join(' · '),

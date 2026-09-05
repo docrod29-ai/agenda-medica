@@ -32,6 +32,7 @@ import {
   type AlertaDosis,
 } from '@/lib/seguridad/dosis'
 import { cantidad, type ClinicalQuantity } from '@/types/clinical-quantity'
+import { terapiaDuplicadaDeLaLista, type RenglonDuplicable } from './terapia-duplicada'
 
 export interface MedicamentoRevisable {
   nombre?: string
@@ -44,6 +45,12 @@ export interface ContextoPaciente {
   edadAnios?: number
   /** Peso en kg. Sin él no se pueden comprobar las dosis pediátricas por kg. */
   pesoKg?: number
+  /**
+   * Lo que el paciente YA toma según el expediente (REG-521): un renglón de hoy
+   * con la misma sustancia que algo vigente se dice. Sin esto sólo se cruzan
+   * los renglones de hoy entre sí.
+   */
+  yaToma?: readonly RenglonDuplicable[]
 }
 
 export interface DosisPeligrosa {
@@ -89,6 +96,11 @@ export function dosisPeligrosasDeLaLista(
     }).filter(a => a.codigo !== 'sin_referencia')
     if (alertas.length) out.push({ med: nombre, alertas, severidad: peorSeveridad(alertas) })
   }
+  /**
+   * REG-521 — la misma sustancia en dos renglones («Paracetamol» + «Tempra»)
+   * pasaba renglón a renglón. Se cruza la lista entera, y contra lo vigente.
+   */
+  out.push(...terapiaDuplicadaDeLaLista(medicamentos, ctx.yaToma ?? []))
   return out
 }
 
