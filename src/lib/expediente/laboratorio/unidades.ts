@@ -41,6 +41,7 @@
  * con `VERIFY_UNIT` y no entra a la gráfica. Que es exactamente lo que su §1 pide.
  */
 import type { Analito } from './analitos'
+import { MOLECULA, VALENCIA, masaMolar, FUENTE_DE_LOS_PESOS } from './masa-molar'
 
 /** Los estados del §33 que esta capa sabe producir. Ni uno inventado. */
 export type EstadoDeValidacion =
@@ -89,29 +90,156 @@ export function claveDeUnidad(u: string | undefined | null): string {
 }
 
 /**
- * LAS ÚNICAS DOS EQUIVALENCIAS QUE EL DOCUMENTO DEL DUEÑO SOSTIENE.
+ * ── LAS CONVERSIONES YA NO SE TECLEAN: SE CALCULAN — REG-455 ────────────────
  *
- * Clave del analito → unidad de origen normalizada → cómo llegar a la canónica.
+ * Hasta ayer aquí vivían DOS factores, los únicos que el documento del dueño
+ * sostenía, y la glucosa se quedaba fuera aunque 18,0182 se sepa de memoria.
+ * Saberse un número no es tener una fuente.
+ *
+ * Ahora no hay ni un factor tecleado. Hay dos mecanismos, y los dos son
+ * aritmética comprobable:
+ *
+ *  1. **Escala** — `mg/dL` ↔ `mg/L` es dividir entre diez. Prefijos del SI, sin
+ *     química de por medio. Aquí entra la PCR reportada en mg/dL, que era el
+ *     caso silencioso de REG-451.
+ *  2. **Masa molar** — `mmol/L` → `mg/dL` es multiplicar por la masa molar
+ *     partida por diez, y la masa molar sale de la fórmula molecular y de los
+ *     pesos atómicos de la IUPAC (`masa-molar.ts`).
+ *
+ * ── Y HAY DOS TESTIGOS ──────────────────────────────────────────────────────
+ *
+ * El documento del médico dueño trae dos cifras trabajadas, y la derivación las
+ * reproduce **sin usarlas**:
+ *
+ *     §27.1  creatinina 140 µmol/L → 1,58 mg/dL     · derivado: 1,5837 ✔
+ *     §6     vitamina D ng/mL × 2,496 ≈ nmol/L      · derivado: 2,4960 ✔
+ *
+ * No son la fuente: son la prueba. Si la derivación se rompiera, esos dos caen.
  */
-export const CONVERSIONES: Readonly<Record<string, Readonly<Record<string, Conversion>>>> = {
-  vitaminaD: {
-    'nmol/l': {
-      factor: 1 / 2.496,
-      fuente:
-        'D-032 §6, literal: «25-OH vitamina D: ng/mL × 2.496 ≈ nmol/L». Aquí se '
-        + 'usa a la inversa para llegar a ng/mL, que es la unidad canónica del analito.',
-    },
-  },
-  creatinina: {
-    'umol/l': {
-      factor: 1 / 88.4,
-      fuente:
-        'D-032 §27.1, del ejemplo trabajado del propio documento: «original_value: 140 · '
-        + 'original_unit: µmol/L · canonical_value: 1.58 · canonical_unit: mg/dL». '
-        + '140 / 88.4 = 1,5837 → 1,58. El factor es el que reproduce su ejemplo, no uno traído de fuera.',
-    },
-  },
+
+/** Volumen del denominador en litros: `mg/dL` → 0,1 L. */
+const VOLUMEN: Readonly<Record<string, number>> = Object.freeze({ '/l': 1, '/dl': 0.1, '/ml': 0.001 })
+/** Gramos que hay en la unidad de masa: `mg` → 1e-3. */
+const MASA: Readonly<Record<string, number>> = Object.freeze({ g: 1, mg: 1e-3, ug: 1e-6, ng: 1e-9, pg: 1e-12 })
+/** Moles que hay en la unidad de cantidad: `mmol` → 1e-3. */
+const CANTIDAD: Readonly<Record<string, number>> = Object.freeze({ mol: 1, mmol: 1e-3, umol: 1e-6, nmol: 1e-9, pmol: 1e-12 })
+
+function partir(u: string): { numerador: string; denominador: string } | null {
+  const i = u.indexOf('/')
+  if (i <= 0) return null
+  return { numerador: u.slice(0, i), denominador: u.slice(i) }
 }
+
+/**
+ * ── LA MISMA ARITMÉTICA PARA LAS DOS COSAS, Y NO ES ELEGANCIA ───────────────
+ *
+ * La primera versión de la escala era una tabla escrita a mano con un factor por
+ * unidad. Medida antes de conectarla, daba esto:
+ *
+ *     ferritina µg/L → ng/mL  =  0,0001
+ *
+ * Son **la misma unidad**: 1 µg/L es 1 ng/mL. Ese factor habría dividido una
+ * ferritina entre diez mil, en silencio, y una ferritina de 200 000 en un HLH
+ * habría entrado al expediente como 20.
+ *
+ * La causa fue hacerme una tabla propia en vez de usar la aritmética que ya
+ * estaba: masa partida por volumen. Es el mismo error que el medidor casero de
+ * REG-450, en otra capa. Ahora la escala se calcula igual que la molar y con las
+ * mismas tablas de masa y volumen — no hay dos maneras de contar lo mismo.
+ */
+function factorDeEscala(desde: string, hacia: string): number | null {
+  const d = partir(desde), h = partir(hacia)
+  if (!d || !h) return null
+  const masaDesde = MASA[d.numerador], volDesde = VOLUMEN[d.denominador]
+  const masaHacia = MASA[h.numerador], volHacia = VOLUMEN[h.denominador]
+  if (masaDesde === undefined || volDesde === undefined) return null
+  if (masaHacia === undefined || volHacia === undefined) return null
+  // (masa/volumen) de origen, pasado a g/L, y de ahí a la unidad de destino.
+  return (masaDesde / volDesde) * volHacia / masaHacia
+}
+
+/**
+ * Factor de una unidad de CANTIDAD a una de MASA, con la masa molar.
+ *
+ * `mmol/L` → `mg/dL` con M = 180,156:
+ *   1 mmol/L = 1e-3 mol/L · 180,156 g/mol = 0,180156 g/L = 18,0156 mg/dL
+ */
+function factorMolar(desde: string, hacia: string, masaMolarGmol: number): number | null {
+  const d = partir(desde), h = partir(hacia)
+  if (!d || !h) return null
+  const moles = CANTIDAD[d.numerador], volDesde = VOLUMEN[d.denominador]
+  const gramos = MASA[h.numerador], volHacia = VOLUMEN[h.denominador]
+  if (moles === undefined || volDesde === undefined || gramos === undefined || volHacia === undefined) return null
+  // (moles/L) · (g/mol) = g/L ; luego se pasa a la unidad de masa y al volumen.
+  const gPorLitro = (moles / volDesde) * masaMolarGmol
+  return gPorLitro * volHacia / gramos
+}
+
+/**
+ * La conversión de una unidad reportada a la canónica del analito, o `null`.
+ *
+ * NUNCA devuelve un factor sin explicar de dónde sale. Y nunca devuelve uno
+ * cuando el analito no es una molécula sola: los triglicéridos usan una masa
+ * molar CONVENCIONAL, no una constante, y eso se declara en `LO_QUE_NO_SE_DERIVA`.
+ */
+export function conversionPara(a: Analito, unidadOrigen: string): Conversion | null {
+  const desde = claveDeUnidad(unidadOrigen)
+  const hacia = claveDeUnidad(a.unidad)
+  if (!desde || desde === hacia) return null
+
+  const escala = factorDeEscala(desde, hacia)
+  if (escala !== null) {
+    return {
+      factor: escala,
+      fuente: `Escala del SI: ${unidadOrigen} → ${a.unidad} es un cambio de prefijo (×${escala}). No hay química de por medio.`,
+    }
+  }
+
+  /**
+   * Equivalentes: `mEq/L = mmol/L × |z|`. Es la definición de equivalente y la
+   * carga del ion, no una convención de laboratorio.
+   */
+  const ion = VALENCIA[a.clave]
+  if (ion) {
+    const d = partir(desde), h = partir(hacia)
+    const esCantidad = d && CANTIDAD[d.numerador] !== undefined
+    const esEquivalente = h && h.numerador === 'meq' && CANTIDAD['mmol'] !== undefined
+    if (d && h && esCantidad && esEquivalente && d.denominador === h.denominador) {
+      const factor = (CANTIDAD[d.numerador] / CANTIDAD['mmol']) * ion.z
+      return {
+        factor,
+        fuente:
+          `Calculado, no tecleado: un equivalente es un mol por el valor absoluto de la carga `
+          + `(${ion.fuente}), así que ${unidadOrigen} → ${a.unidad} = ×${factor}.`,
+      }
+    }
+  }
+
+  const molecula = MOLECULA[a.clave]
+  if (!molecula) return null
+  const M = masaMolar(molecula.formula)
+  if (M === null) return null
+  const molar = factorMolar(desde, hacia, M)
+  if (molar === null || !Number.isFinite(molar) || molar <= 0) return null
+  return {
+    factor: molar,
+    fuente:
+      `Calculado, no tecleado: masa molar de ${molecula.formula} = ${M.toFixed(3)} g/mol `
+      + `(${molecula.fuente} Pesos atómicos: ${FUENTE_DE_LOS_PESOS}). `
+      + `De ahí, ${unidadOrigen} → ${a.unidad} = ×${molar.toPrecision(6)}.`,
+  }
+}
+
+/**
+ * LOS DOS TESTIGOS DEL MÉTODO — no son la fuente, son la prueba.
+ *
+ * El documento del dueño trae dos cifras trabajadas. La derivación las reproduce
+ * sin usarlas, y su golden lo comprueba. Si el método se rompiera, caen.
+ */
+export const TESTIGOS_DEL_DOCUMENTO = Object.freeze([
+  { que: 'creatinina 140 µmol/L → 1,58 mg/dL', donde: 'D-032 §27.1' },
+  { que: 'vitamina D ng/mL × 2,496 ≈ nmol/L', donde: 'D-032 §6' },
+])
 
 /**
  * LO QUE FALTA, DICHO POR SU NOMBRE.
@@ -121,22 +249,24 @@ export const CONVERSIONES: Readonly<Record<string, Readonly<Record<string, Conve
  */
 export const CONVERSIONES_QUE_FALTAN: readonly { readonly analito: string; readonly desde: string; readonly porQue: string }[] = Object.freeze([
   {
-    analito: 'glucosa', desde: 'mmol/L',
+    analito: 'trigliceridos', desde: 'mmol/L',
     porQue:
-      'NEEDS_CLINICAL_REVIEW. Es el caso que abrió todo esto (REG-449): una glucosa de 7,2 mmol/L '
-      + 'es normal y hoy no entra a la serie. El factor NO está en el catálogo del dueño y no se inventa.',
+      'NEEDS_CLINICAL_REVIEW. No es una molécula sola: es una mezcla, y el laboratorio usa una '
+      + 'masa molar CONVENCIONAL (la de la trioleína) elegida por acuerdo, no medida. Derivarla '
+      + 'sería inventar una equivalencia con aspecto de cálculo.',
   },
   {
-    analito: 'hemoglobina', desde: 'g/L',
-    porQue: 'NEEDS_CLINICAL_REVIEW. Reportada en g/L, una hemoglobina de 134 no es plausible en g/dL.',
+    analito: 'hormonas y marcadores en unidades de actividad', desde: 'IU/mL · U/mL',
+    porQue:
+      'NEEDS_CLINICAL_REVIEW. Una unidad internacional NO es masa: no hay masa molar que la '
+      + 'convierta, y el factor depende del ensayo y del fabricante. Se decide por analito.',
   },
   {
-    analito: 'colesterolTotal · hdl · ldl · trigliceridos', desde: 'mmol/L',
-    porQue: 'NEEDS_CLINICAL_REVIEW. Cada lípido tiene su propio factor: no es uno solo para los cuatro.',
-  },
-  {
-    analito: 'bilirrubinaTotal', desde: 'µmol/L',
-    porQue: 'NEEDS_CLINICAL_REVIEW. El §27.1 sólo trae el ejemplo de la creatinina.',
+    analito: 'calcio · magnesio · fósforo', desde: 'mmol/L',
+    porQue:
+      'NEEDS_CLINICAL_REVIEW. Son derivables por masa molar (son elementos), pero su unidad '
+      + 'canónica aquí viene del catálogo del dueño y todavía no se ha comprobado con un testigo '
+      + 'suyo. Se añaden cuando haya con qué comprobarlas, no antes.',
   },
 ])
 
@@ -276,9 +406,16 @@ export function dictaminar(a: Analito, valor: number, unidadReportada?: string):
   }
 
   // 2 · Otra unidad, con factor citado: se convierte y SE DICE con qué.
-  const conv = CONVERSIONES[a.clave]?.[uOriginal]
+  const conv = conversionPara(a, original)
   if (conv) {
-    const convertido = valor * conv.factor
+    /**
+     * `toPrecision(12)` quita el ruido del coma flotante binario —7,2 × 18,0156
+     * da 129,71232000000003— y NADA más: doce cifras significativas están muy por
+     * encima de lo que cualquier laboratorio reporta, así que esto no redondea el
+     * resultado, sólo borra la basura del binario. Truncar de verdad está
+     * prohibido por el §1 y no se hace en ningún sitio.
+     */
+    const convertido = Number((valor * conv.factor).toPrecision(12))
     return plausible(convertido)
       ? { ...base, estado: 'ACCEPTED', valor: convertido, unidad: a.unidad, conversion: conv, graficable: true, porQue: `Convertido desde ${original} con factor citado.` }
       : { ...base, estado: 'VERIFY_VALUE_OR_UNIT', valor: convertido, unidad: a.unidad, conversion: conv, graficable: false, porQue: `Convertido desde ${original}, y aun así queda fuera de ${a.min}–${a.max} ${a.unidad}.` }

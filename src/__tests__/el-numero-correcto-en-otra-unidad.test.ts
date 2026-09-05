@@ -62,9 +62,10 @@ import { join } from 'node:path'
 import { validarPanel, seriesDesdeHistorial } from '@/lib/expediente/laboratorio/extraccion'
 import { analitoPorClave } from '@/lib/expediente/laboratorio/analitos'
 import {
-  dictaminar, claveDeUnidad, CONVERSIONES, CONVERSIONES_QUE_FALTAN,
+  dictaminar, claveDeUnidad, conversionPara, CONVERSIONES_QUE_FALTAN,
   LO_QUE_ESTA_CAPA_NO_HACE, POR_QUE_NO_SE_TIRA_LA_FILA, POR_QUE_TAN_POCAS_CONVERSIONES,
 } from '@/lib/expediente/laboratorio/unidades'
+import { analitoPorClave as porClave } from '@/lib/expediente/laboratorio/analitos'
 
 const RAIZ = process.cwd()
 const CATALOGO = join(RAIZ, 'docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md')
@@ -81,13 +82,20 @@ describe('EL DEFECTO QUE NINGÚN RANGO PODÍA CAZAR — PCR en mg/dL', () => {
     expect(84 >= pcr.min && 84 <= pcr.max, 'el límite no ve nada raro').toBe(true)
   })
 
-  it('y ahora se marca en vez de entrar a la gráfica', () => {
+  it('y ahora se convierte a 840 y AUN ASÍ se marca', () => {
+    /**
+     * REG-455 le puso conversión (mg/dL → mg/L es escala del SI, ×10). Así que
+     * el 84 pasa a ser 840 mg/L, que es lo correcto — y el rango estrecho de
+     * este producto (0–600) dice que hay que mirarlo. Las dos cosas son ciertas
+     * a la vez: la conversión acertó y el valor sigue mereciendo revisión.
+     */
     const panel = validarPanel({
       fecha: '2026-09-02',
       filas: [{ estudio: 'PCR', valor: '84', unidad: 'mg/dL', referencia: '<0.5' }],
     })
     const r = panel.resultados[0]
-    expect(r.estado).toBe('VERIFY_UNIT')
+    expect(r.valor).toBe(840)
+    expect(r.estado).toBe('VERIFY_VALUE_OR_UNIT')
     expect(r.graficable, 'un 84 mg/dL en la serie de mg/L es una PCR de sepsis dibujada como un resfriado').toBe(false)
     expect(r.valorOriginal).toBe(84)
     expect(r.unidadOriginal).toBe('mg/dL')
@@ -140,14 +148,18 @@ describe('EL ORDEN DEL §28 — normalizar, y DESPUÉS juzgar', () => {
     const d = dictaminar(vd, 75, 'nmol/L')
     expect(d.estado).toBe('ACCEPTED')
     expect(d.valor).toBeCloseTo(30.05, 2)   // 75 / 2.496
-    expect(d.conversion?.fuente).toMatch(/§6/)
+    // REG-455: el 2,496 ya no se cita, se REPRODUCE desde C27H44O2.
+    expect(1 / d.conversion!.factor).toBeCloseTo(2.496, 3)
+    expect(d.conversion?.fuente).toMatch(/C27H44O2/)
   })
 
   it('el ORIGINAL nunca se pierde (§27.1)', () => {
     const d = dictaminar(analitoPorClave('creatinina')!, 80, 'umol/L')
     expect(d.valorOriginal).toBe(80)
     expect(d.unidadOriginal).toBe('umol/L')
-    expect(d.conversion?.fuente).toMatch(/§27\.1/)
+    // REG-455: la fuente ya no es su documento, es el cálculo. Su 1,58 pasó a
+    // ser el testigo que lo comprueba, y vive en el golden de REG-455.
+    expect(d.conversion?.fuente).toMatch(/C4H7N3O/)
   })
 
   it('µ, μ y u son la misma unidad', () => {
@@ -158,47 +170,54 @@ describe('EL ORDEN DEL §28 — normalizar, y DESPUÉS juzgar', () => {
 })
 
 describe('LO QUE NO SE INVENTA', () => {
-  it('la glucosa en mmol/L NO se convierte: el factor no está en el catálogo', () => {
+  it('la glucosa en mmol/L YA se convierte — pero calculada, no tecleada (REG-455)', () => {
     /**
-     * Es el caso que abrió todo esto y el que más apetecía cerrar. 18,0182 se
-     * sabe de memoria — y por eso mismo es la clase de cifra que la regla 1
-     * prohíbe escribir sin fuente: no rompe nada, no falla ninguna prueba, y sale
-     * impresa con cédula profesional.
+     * ── LA PREMISA CAMBIÓ, Y POR EL CAMINO BUENO ────────────────────────────
+     *
+     * Cuando se escribió esto, 7,2 mmol/L se quedaba en `VERIFY_UNIT` porque
+     * 18,0182 se sabe de memoria y saberse un número no es tener una fuente.
+     *
+     * REG-455 no fue a buscar el número: quitó la necesidad de tenerlo. El
+     * factor sale de la masa molar de la glucosa, y la masa molar sale de su
+     * fórmula (C₆H₁₂O₆) y de los pesos atómicos de la IUPAC. No hay ni un factor
+     * tecleado en el módulo.
      */
-    const d = dictaminar(analitoPorClave('glucosa')!, 7.2, 'mmol/L')
-    expect(d.estado).toBe('VERIFY_UNIT')
-    expect(d.valor, 'no se toca el número').toBe(7.2)
-    expect(d.graficable).toBe(false)
-    expect(d.conversion).toBeUndefined()
+    const d = dictaminar(porClave('glucosa')!, 7.2, 'mmol/L')
+    expect(d.estado).toBe('ACCEPTED')
+    expect(d.valor, '7,2 mmol/L son ~130 mg/dL').toBeCloseTo(129.7, 1)
+    expect(d.graficable).toBe(true)
+    expect(d.conversion?.fuente).toMatch(/Calculado, no tecleado/)
+    expect(d.conversion?.fuente).toMatch(/C6H12O6/)
   })
 
-  it('y falta declarado, con nombre', () => {
+  it('y lo que sigue sin convertirse está declarado, con nombre', () => {
     const faltan = CONVERSIONES_QUE_FALTAN.map(c => c.analito)
-    expect(faltan).toContain('glucosa')
+    expect(faltan.join(' ')).toMatch(/trigliceridos|actividad|inmunoensayo/)
     for (const c of CONVERSIONES_QUE_FALTAN) {
       expect(c.porQue, c.analito).toMatch(/NEEDS_CLINICAL_REVIEW/)
     }
   })
 
-  it('TODA conversión que existe cita su fuente, y la fuente está en el documento', () => {
+  it('TODA conversión que existe dice de dónde sale su factor', () => {
     /**
-     * El invariante que hace falsable la frase «aquí no se inventó ningún
-     * factor». Si alguien añade uno sin fuente, o con una fuente que el
-     * documento no contiene, esto se pone rojo.
+     * El invariante que hace falsable «aquí no se inventó ningún factor». Antes
+     * exigía que la fuente citara el documento del dueño, porque las dos únicas
+     * conversiones venían de ahí. REG-455 las calcula, así que ahora la fuente
+     * tiene que decir de QUÉ cálculo salen — y no vale una fuente vacía.
      */
-    const doc = readFileSync(CATALOGO, 'utf8')
-    let cuantas = 0
-    for (const porAnalito of Object.values(CONVERSIONES)) {
-      for (const conv of Object.values(porAnalito)) {
-        cuantas += 1
-        expect(conv.fuente).toMatch(/D-032 §/)
-        expect(Number.isFinite(conv.factor) && conv.factor > 0).toBe(true)
-      }
+    const casos: [string, string][] = [
+      ['glucosa', 'mmol/L'], ['creatinina', 'µmol/L'], ['pcr', 'mg/dL'],
+      ['hemoglobina', 'g/L'], ['sodio', 'mmol/L'], ['ferritina', 'µg/L'],
+    ]
+    for (const [clave, unidad] of casos) {
+      const c = conversionPara(porClave(clave)!, unidad)
+      expect(c, `${clave} desde ${unidad}`).not.toBeNull()
+      expect(c!.fuente, clave).toMatch(/Calculado, no tecleado|Escala del SI/)
+      expect(Number.isFinite(c!.factor) && c!.factor > 0, clave).toBe(true)
     }
-    expect(cuantas, 'hoy son exactamente dos').toBe(2)
-    // Las dos citas son comprobables contra el documento real.
+    // Y las dos cifras trabajadas del documento siguen ahí, ahora como testigos.
+    const doc = readFileSync(CATALOGO, 'utf8')
     expect(doc).toMatch(/ng\/mL × 2\.496 ≈ nmol\/L/)
-    expect(doc).toMatch(/original_unit: µmol\/L/)
     expect(doc).toMatch(/canonical_value: 1\.58/)
   })
 

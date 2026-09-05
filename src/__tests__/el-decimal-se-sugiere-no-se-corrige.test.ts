@@ -88,21 +88,29 @@ describe('EL EJEMPLO DEL PROPIO §29', () => {
 })
 
 describe('LA TRAMPA — no se sugiere en otra unidad', () => {
-  it('glucosa 7,2 mmol/L NO recibe sugerencia de decimal', () => {
+  it('una unidad SIN conversión no recibe sugerencia de decimal', () => {
     /**
-     * ×10 daría 72, que es una glucosa plausible en mg/dL, y estaría MAL:
-     * 7,2 mmol/L son 130 mg/dL. La sugerencia sería creíble y falsa.
+     * ── EL EJEMPLO CAMBIÓ, LA TRAMPA NO ────────────────────────────────────
+     *
+     * Este caso era la glucosa en mmol/L. REG-455 la convierte (desde la masa
+     * molar de C₆H₁₂O₆), así que ya no llega aquí — y eso es una mejora, no una
+     * pérdida: el peligro era que el sistema NO supiera convertir.
+     *
+     * El caso vivo son ahora los triglicéridos. No se convierten a propósito: no
+     * son una molécula sola y el laboratorio usa una masa molar CONVENCIONAL. Y
+     * 2,4 mmol/L × 10 da 24, que es un triglicérido plausible en mg/dL — creíble
+     * y falso, exactamente la misma trampa.
      */
-    const dic = dictaminar(analitoPorClave('glucosa')!, 7.2, 'mmol/L')
+    const dic = dictaminar(analitoPorClave('trigliceridos')!, 2.4, 'mmol/L')
     expect(dic.estado).toBe('VERIFY_UNIT')
     expect(dic.decimalCorrido, 'la explicación es la unidad, no el decimal').toBeUndefined()
   })
 
-  it('pero ese mismo 72 SÍ sería plausible: por eso la trampa es peligrosa', () => {
+  it('pero ese mismo 24 SÍ sería plausible: por eso la trampa es peligrosa', () => {
     // Se comprueba que el candidato equivocado existiría, para que nadie lea la
     // prueba de arriba como una casualidad.
-    const glu = analitoPorClave('glucosa')!
-    expect(72 >= glu.min && 72 <= glu.max).toBe(true)
+    const tg = analitoPorClave('trigliceridos')!
+    expect(24 >= tg.min && 24 <= tg.max).toBe(true)
   })
 
   it('y la razón está escrita, no sólo implementada', () => {

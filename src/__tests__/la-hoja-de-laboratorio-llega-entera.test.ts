@@ -88,10 +88,16 @@ const FILAS_QUE_NO_LLEGAN = 0
  * gráfica, y si sólo se midiera el eje, esas dos desaparecerían del informe justo
  * cuando dejaron de desaparecer del panel.
  *
- * Las dos son unidad sin factor de conversión citado: glucosa en mmol/L y PCR en
- * mg/dL. Sólo puede BAJAR, y baja cuando el médico entregue los factores.
+ * Eran DOS —glucosa en mmol/L y PCR en mg/dL, las dos sin factor—. REG-455 dejó
+ * de teclear factores y pasó a calcularlos, y la glucosa se cerró.
+ *
+ * La que queda es la PCR: se convierte BIEN (84 mg/dL son 840 mg/L) y aun así
+ * queda fuera del rango de este producto (0–600). Ése rango es NUESTRO y no
+ * tiene fuente citada; el del catálogo del dueño llega a 1000. Bajarlo a cero
+ * pide adoptar sus rangos, y eso sigue esperando a que la hoja muda deje de
+ * graficarse — ver REG-454.
  */
-const FILAS_SIN_GRAFICA = 2
+const FILAS_SIN_GRAFICA = 1
 
 interface Hoja { readonly id: string; readonly contexto: string; readonly filas: FilaCruda[] }
 
@@ -215,7 +221,7 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     expect(esVerde(lectura)).toBe(true)
   })
 
-  it('pero DOS llegan sin gráfica, y eso se cuenta aparte', () => {
+  it('pero UNA llega sin gráfica, y eso se cuenta aparte', () => {
     /**
      * «Llega al panel» y «entra a la serie» dejaron de ser lo mismo. Si sólo se
      * midiera el eje del médico, estas dos desaparecerían del informe justo
@@ -226,7 +232,7 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
       const panel = validarPanel({ fecha: '2026-09-01', filas: h.filas })
       sinGrafica.push(...panel.resultados.filter(r => !r.graficable).map(r => `${r.clave}:${r.estado}`))
     }
-    expect(sinGrafica.sort()).toEqual(['glucosa:VERIFY_UNIT', 'pcr:VERIFY_UNIT'])
+    expect(sinGrafica.sort()).toEqual(['pcr:VERIFY_VALUE_OR_UNIT'])
     expect(sinGrafica.length).toBe(FILAS_SIN_GRAFICA)
   })
 
@@ -239,7 +245,7 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     expect(fuera).toEqual([])
   })
 
-  it('la glucosa en mmol/L ya NO se cae: llega marcada (REG-451)', () => {
+  it('la glucosa en mmol/L ya NO se cae — y desde REG-455 se CONVIERTE', () => {
     /**
      * Hasta REG-451 esta fila desaparecía del panel: el analito estaba en el
      * catálogo y lo tiraba el rango plausible, porque 7,2 no es una glucosa en
@@ -248,9 +254,12 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
      * quedaba sin serie y sin aviso, y eso se ve como una gráfica corta, que es
      * como no verse.
      *
-     * Ahora se acepta provisionalmente (§1), se marca `VERIFY_UNIT` y NO entra a
-     * la gráfica. El valor NO se convierte: el factor mmol/L → mg/dL no está en
-     * el catálogo del dueño y una equivalencia no se inventa.
+     * REG-451 la aceptó provisionalmente y la marcó, sin convertirla: el factor
+     * no estaba en el catálogo del dueño y una equivalencia no se inventa.
+     *
+     * REG-455 no fue a buscar el factor: quitó la necesidad de tenerlo. Se
+     * calcula desde la masa molar de C₆H₁₂O₆, así que ahora 7,2 mmol/L entran a
+     * la serie como ~130 mg/dL, que es lo que son.
      */
     const panel = validarPanel({
       fecha: '2026-09-01',
@@ -258,8 +267,10 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     })
     expect(panel.noReconocidas).toEqual([])
     const glu = panel.resultados[0]
-    expect(glu.estado).toBe('VERIFY_UNIT')
-    expect(glu.graficable, 'un 7,2 en la serie de mg/dL sería un punto falso').toBe(false)
+    expect(glu.estado).toBe('ACCEPTED')
+    expect(glu.valor, 'lo que de verdad son').toBeCloseTo(129.7, 1)
+    expect(glu.graficable).toBe(true)
+    // Y el original nunca se pierde (§27.1).
     expect(glu.valorOriginal).toBe(7.2)
     expect(glu.unidadOriginal).toBe('mmol/L')
   })

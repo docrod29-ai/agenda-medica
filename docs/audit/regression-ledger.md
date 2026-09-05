@@ -17820,6 +17820,105 @@ se llama.
 
 ---
 
+## REG-455 — los factores de conversión se calculan, no se teclean
+
+**Eje.** Laboratorio · regla 1 de seguridad clínica. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-factor-no-se-teclea-se-calcula.test.ts`.
+
+### El problema que llevaba cuatro unidades sin resolverse
+
+La regla 1 nombra las **equivalencias** entre las cifras que no se inventan: «o
+salen de una fuente citada, o no existen». REG-451 puso sólo las dos
+conversiones que el documento del médico dueño sostenía y dejó fuera la de la
+glucosa —el caso que había abierto todo— aunque 18,0182 se sepa de memoria.
+
+Saberse un número no es tener una fuente. Y pedírselo al médico tampoco era la
+mejor respuesta: **un factor mmol/L → mg/dL no es una decisión clínica, es
+aritmética.**
+
+### La salida: no usar ningún número tecleado
+
+Aquí ya no hay factores. Hay fórmulas moleculares y pesos atómicos de la IUPAC, y
+el factor se calcula. Tres mecanismos, los tres comprobables:
+
+| | Ejemplo | De dónde sale |
+|---|---|---|
+| **Escala** | PCR mg/dL → mg/L, ×10 | prefijos del SI, sin química |
+| **Masa molar** | glucosa mmol/L → mg/dL, ×18,0156 | C₆H₁₂O₆ + pesos atómicos IUPAC |
+| **Equivalentes** | Na mmol/L → mEq/L, ×1 | `mEq = mmol × \|z\|`, la definición |
+
+### Los dos testigos, que son la parte que importa
+
+El documento del dueño trae dos cifras trabajadas. La derivación las **reproduce
+sin usarlas**:
+
+| Su documento | Derivado |
+|---|---|
+| §27.1 · creatinina 140 µmol/L → **1,58** mg/dL | **1,5837** ✔ |
+| §6 · vitamina D ng/mL × **2,496** ≈ nmol/L | **2,4960** ✔ |
+
+No son la fuente del factor: son la prueba de que el método es correcto. Dos
+cifras independientes, de dos moléculas distintas, que él dio antes de que este
+módulo existiera. Un peso atómico mal escrito rompe seis pruebas.
+
+### El fallo que la medición cazó antes de conectarlo
+
+La primera versión de la escala era una tabla escrita a mano con un factor por
+unidad. Medida antes de conectarla:
+
+> **ferritina µg/L → ng/mL = 0,0001**
+
+Son la misma unidad. Ese factor habría dividido una ferritina entre diez mil, en
+silencio: una de 200 000 en un HLH habría entrado al expediente como **20**.
+
+La causa fue hacerme una tabla propia en vez de usar la aritmética que ya estaba
+—masa partida por volumen—. Es el medidor casero de REG-450 otra vez, en otra
+capa. Ahora la escala se calcula con las mismas tablas que la molar: no hay dos
+maneras de contar lo mismo.
+
+### El hueco que el corpus no veía
+
+Los electrolitos. Casi todos los laboratorios los reportan en **mmol/L** y la
+unidad canónica de este producto es **mEq/L**, así que la química sanguínea más
+común del mundo salía marcada «verificar» entera desde REG-451 — y no se veía
+porque mis ocho hojas sintéticas usaban mEq/L. Para un ion monovalente los dos
+números son el mismo, y eso es la definición de equivalente, no una cifra.
+
+### Lo que NO se deriva, y no es un olvido
+
+- **Triglicéridos**: no son una molécula sola. El laboratorio usa una masa molar
+  **convencional** (la de la trioleína) elegida por acuerdo, no medida.
+  Convertir con ella sería inventar una equivalencia con aspecto de cálculo.
+- **Unidades de actividad** (IU/mL, U/mL): no son masa. No hay masa molar que
+  convierta una unidad internacional, y el factor depende del ensayo.
+- **Calcio, magnesio, fósforo**: sí serían derivables, pero **no hay testigo** del
+  dueño que lo compruebe. Se añaden cuando haya con qué comprobarlas.
+
+### El resultado sobre el corpus
+
+| | REG-451 | REG-455 |
+|---|---|---|
+| Filas que llegan al panel | 46/46 | 46/46 |
+| **Filas que entran a la gráfica** | 44 | **45** |
+
+La que queda es la PCR: se convierte **bien** (84 mg/dL son 840 mg/L) y aun así
+cae fuera del rango de este producto, 0–600. Y aquí está lo incómodo: **ese rango
+es nuestro y no tiene fuente citada**; el del catálogo del dueño llega a 1000.
+Bajo la regla 1, el suyo es el que tiene respaldo.
+
+No se adopta todavía, y el motivo sigue siendo el de REG-454: con la hoja muda,
+un rango ancho acepta en silencio un valor que venía en otra unidad —una glucosa
+de 7,2 sin unidad pasaría como 7,2 mg/dL si el rango empezara en 1—. El rango
+estrecho está haciendo el trabajo de `MISSING_UNIT`, y quitarlo antes de que la
+hoja muda deje de graficarse pierde una defensa. Ése es el precio, y ahora se
+puede nombrar exactamente.
+
+### Probado al revés cinco veces
+
+Un peso atómico mal (rompe seis) · volver a la tabla de escala casera (vuelve la
+ferritina entre diez mil) · teclear el factor de la glucosa · derivar los
+triglicéridos con la convención · convertir equivalentes sin la valencia.
+
 ## REG-454 — la hoja que no dijo la unidad dejaba constancia de haberla dicho
 
 **Eje.** Laboratorio · §27.1 y §33 de D-032. **Fecha.** 2-sep-2026.
