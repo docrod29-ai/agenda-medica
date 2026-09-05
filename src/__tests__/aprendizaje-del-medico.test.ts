@@ -29,6 +29,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { CLAVES_DE_SESGO_DEL_PACIENTE } from '@/hooks/useGrabacionAudio'
 import {
   esAprendible, paresDeUnaNota, loAprendido, MINIMO_REPETICIONES, identidadDe,
   POR_QUE_NO_SE_APRENDEN_CIFRAS, POR_QUE_HACEN_FALTA_DOS, POR_QUE_SOLO_SESGA,
@@ -164,9 +165,13 @@ describe('ESTÁ CONECTADO DE PUNTA A PUNTA', () => {
   })
 
   it('el hook lo envía en cada trozo y en el final', () => {
+    // REG-513: los cuatro puntos de envío recorren UNA lista compartida. Aquí se
+    // comprueba que `aprendidas` esté en la lista y que el final
+    // (`anexarContexto`) y los trozos (`flushChunks`) pasen por el ayudante.
+    expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain('aprendidas')
     const hook = leer('src', 'hooks', 'useGrabacionAudio.ts')
-    expect(hook).toMatch(/\['aprendidas', c\.aprendidas\]/)
-    expect(hook).toMatch(/\['aprendidas', contextoRef\.current\.aprendidas\]/)
+    expect(hook).toContain('anexarSesgoDelPaciente(fd, c)')
+    expect(hook).toContain('anexarSesgoDelPaciente(fd, contextoRef.current)')
   })
 
   it('y las dos rutas lo leen', () => {

@@ -47,6 +47,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { construir } from '@/lib/asr/lexicon'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
+import { CLAVES_DE_SESGO_DEL_PACIENTE } from '@/hooks/useGrabacionAudio'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 const MIAS = especialidadesDelMedico('Infectología')
@@ -114,9 +115,15 @@ describe('está conectado en TODO el camino, no sólo en el módulo', () => {
     expect(r).toMatch(/alergias: leerLista\('alergias'\)/)
   })
 
-  it('el grabador los sigue mandando', () => {
-    const h = leer('src/hooks/useGrabacionAudio.ts')
-    expect(h).toContain("['alergias', ctx.alergias]")
+  it('el grabador los sigue mandando — por los CUATRO puntos de envío', () => {
+    /**
+     * REG-513: este caso comprobaba `toContain("['alergias', ctx.alergias]")`
+     * y ese literal vivía UNA vez en el archivo, en la rama de AssemblyAI. Los
+     * dos puntos de Whisper no lo mandaban y el caso estaba verde. Ahora se
+     * mide sobre la lista compartida que recorren los cuatro puntos; que los
+     * cuatro la usen lo vigila `los-alergenos-llegan-tambien-a-whisper`.
+     */
+    expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain('alergias')
   })
 
   it('y la pantalla los sigue calculando del expediente', () => {

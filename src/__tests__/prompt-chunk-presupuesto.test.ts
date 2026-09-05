@@ -31,6 +31,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { CLAVES_DE_SESGO_DEL_PACIENTE } from '@/hooks/useGrabacionAudio'
 import {
   WHISPER_PROMPT_MEDICO, WHISPER_PROMPT_UCI, tokensAprox, LIMITE_TOKENS_PROMPT,
 } from '@/lib/expediente/medical-vocabulary'
@@ -128,10 +129,12 @@ describe('EL LÉXICO DEL PACIENTE TAMBIÉN EN VIVO', () => {
   })
 
   it('el hook manda fármacos, problemas y especialidades en cada trozo', () => {
+    // REG-513: por la lista compartida, desde la referencia viva.
+    for (const k of ['medicamentos', 'problemas', 'especialidades'] as const) {
+      expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain(k)
+    }
     const hook = leer('src', 'hooks', 'useGrabacionAudio.ts')
-    expect(hook).toMatch(/\['medicamentos', contextoRef\.current\.medicamentos\]/)
-    expect(hook).toMatch(/\['problemas', contextoRef\.current\.problemas\]/)
-    expect(hook).toMatch(/\['especialidades', contextoRef\.current\.especialidades\]/)
+    expect(hook).toContain('anexarSesgoDelPaciente(fd, contextoRef.current)')
   })
 
   it('desde la referencia, no desde el estado congelado', () => {

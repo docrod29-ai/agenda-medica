@@ -27,6 +27,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { CLAVES_DE_SESGO_DEL_PACIENTE } from '@/hooks/useGrabacionAudio'
 import { componerSesgo } from '@/lib/asr/sesgo-diarizado'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
@@ -88,14 +89,18 @@ describe('LA RUTA QUE DE VERDAD TRANSCRIBE LO LEE', () => {
 })
 
 describe('Y EL HOOK LAS MANDA POR LOS DOS CAMINOS', () => {
+  // REG-513: los dos caminos recorren la MISMA lista que los de Whisper.
+  it('la lista compartida lleva lo aprendido y la especialidad', () => {
+    expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain('aprendidas')
+    expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain('especialidades')
+  })
+
   it('el camino corto', () => {
-    expect(hook).toMatch(/\['aprendidas', ctx\.aprendidas\]/)
-    expect(hook).toMatch(/\['especialidades', ctx\.especialidades\]/)
+    expect(hook).toContain('anexarSesgoDelPaciente(fd, ctx)')
   })
 
   it('el camino largo', () => {
-    expect(hook).toContain('aprendidas: ctx.aprendidas ? [...ctx.aprendidas] : undefined')
-    expect(hook).toContain('especialidades: ctx.especialidades ? [...ctx.especialidades] : undefined')
+    expect(hook).toContain('...sesgoDelPacienteComoJson(ctx)')
   })
 })
 

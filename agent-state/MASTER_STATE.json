@@ -24,13 +24,15 @@
   },
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M src/__tests__/authz-rutas-declaradas.test.ts",
-    " M src/__tests__/telesalud-sala-or.test.ts",
-    " M src/app/api/telesalud/sala/route.ts",
-    " M src/lib/authz/registro-rutas.ts",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/aprendizaje-del-medico.test.ts",
+    " M src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts",
+    " M src/__tests__/los-alergenos-llegan-al-reconocedor.test.ts",
+    " M src/__tests__/prompt-chunk-presupuesto.test.ts",
+    " M src/hooks/useGrabacionAudio.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-enlace-revocado-no-abre-la-sala.test.ts"
+    "?? src/__tests__/los-alergenos-llegan-tambien-a-whisper.test.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +68,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 306,
-    "ultimaREG": "REG-512",
-    "archivosDePrueba": 935,
-    "casosDePrueba": 11333,
+    "regsEnElLedger": 307,
+    "ultimaREG": "REG-513",
+    "archivosDePrueba": 936,
+    "casosDePrueba": 11342,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

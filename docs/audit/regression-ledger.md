@@ -18595,3 +18595,91 @@ doble de `patient-token` pasa a ser parcial porque la ruta ahora consume
   `portalTokenVersion`; el expediente inexistente ya cuenta como revocado, pero
   el bloqueo ARCO sin baja no). Es sospecha S2 del mismo equipo rojo y queda
   abierta con nombre.
+
+## REG-513 · Los alérgenos del expediente no llegaban a Whisper por ningún camino
+
+**CÓMO SE DESCUBRIÓ.** Auditoría read-only del pipeline de voz, 5-sep-2026, con
+la tabla que `.claude/rules/voice-asr.md` pide y nadie había dibujado:
+**parámetro de sesgo × motor × camino**.
+
+| Parámetro | AAI corto | AAI largo | Whisper final | Whisper trozos |
+|---|:--:|:--:|:--:|:--:|
+| medicamentos · problemas · aprendidas · especialidades | ✅ | ✅ | ✅ | ✅ |
+| **alergias** | ✅ | ✅ | **❌** | **❌** |
+| contexto (módulo) | ❌ | ❌ | ✅ | ✅ |
+
+Dos celdas vacías. Ésta es la que importa clínicamente; la otra queda abajo,
+declarada.
+
+**LO QUE PASABA.** REG-232 cerró «los alérgenos se tiraban en el último metro»
+arreglando la RUTA: `transcribir` y `transcribir-chunk` leen `alergias` desde
+entonces y lo meten al léxico antes que los fármacos. Su cabecera decía «el
+grabador ya los mandaba por la red». Los mandaba **sólo por AssemblyAI**:
+`anexarContexto` (transcripción final de Whisper) y `flushChunks` (trozos en
+vivo) llevaban cada uno su lista de cuatro claves, sin `alergias`. Las dos
+rutas de Whisper leían el campo y recibían `[]`, siempre.
+
+Dónde se notaba: en todo dictado que va **directo a Whisper** —evolución
+hospitalaria, pase de UCI, `modoDeHabla: 'dictado'`— y en toda consulta donde
+la diarización se cae al repuesto, que es exactamente el caso para el que el
+repuesto existe. «Alergia a penicilina» dictado sin la penicilina en el prompt
+de 224 tokens; y el cruce alergia↔fármaco compara contra lo que se oyó.
+
+### La causa raíz
+
+Cuatro puntos de envío, **cuatro listas de claves escritas a mano**, y dos de
+ellas cortas. Es la **cuarta** vez de «dos motores, un mismo contrato»: la regla
+de voz cuenta las tres anteriores («ya pasó tres veces»), y las tres se
+cerraron añadiendo la clave que faltaba a la lista que faltaba. Con cuatro
+listas, la siguiente clave nueva vuelve a faltar en alguna.
+
+Y el guardián de REG-232 estaba verde: `expect(h).toContain("['alergias',
+ctx.alergias]")`. Ese literal aparecía **una** vez en el archivo — en la rama
+de AssemblyAI. La prueba vivía en un `describe` cuyos otros casos miran las
+rutas de Whisper, así que creía cubrir ese camino y medía el otro. Familia de
+REG-506: la prueba comprueba que el código DIGA algo y lo encuentra dicho en
+otra función.
+
+### El arreglo
+
+1. **Una lista**: `CLAVES_DE_SESGO_DEL_PACIENTE` en el grabador, y dos
+   ayudantes exportados que la recorren (`anexarSesgoDelPaciente` para los
+   tres puntos multipart, `sesgoDelPacienteComoJson` para el camino largo).
+   Los cuatro puntos pasan por ellos. Para AssemblyAI no cambia ni una clave;
+   para Whisper entra `alergias`, que es el defecto.
+2. Añadir una clave la lleva a los cuatro puntos por construcción, y el
+   guardián nuevo exige que **las tres rutas la lean** (`leerLista` en las de
+   Whisper, `formData.get` y `body?.` en la diarizada). La paridad deja de ser
+   un comentario.
+3. Los cuatro guardianes que casaban los literales viejos (`aprendizaje-del-
+   medico`, `lo-aprendido-llega-al-motor-que-transcribe`,
+   `prompt-chunk-presupuesto`, `los-alergenos-llegan-al-reconocedor`) pasan a
+   comprobar la lista compartida y el uso de los ayudantes, en vez de una
+   línea concreta que un refactor correcto apaga.
+
+### Prueba
+
+`src/__tests__/los-alergenos-llegan-tambien-a-whisper.test.ts` (8 casos).
+**Probado al revés** dentro del propio archivo: el caso «AL REVÉS» reproduce
+literalmente la lista de cuatro claves de `anexarContexto` sobre un `FormData`
+real y comprueba que `alergias` **no está**; el caso siguiente, con el
+ayudante compartido, comprueba que sí. El guardián de fuente exige que quede
+**un solo** `fd.append(k, JSON.stringify([...v]))` en el grabador —el del
+ayudante— y ninguna lista literal de claves fuera de la constante: con el
+árbol anterior nombraba las dos listas de Whisper.
+
+### Qué NO cubre
+
+- **`contexto` (el módulo) sigue llegando sólo a Whisper.** La ruta diarizada
+  no tiene el campo, y `CONTEXTOS_POR_MODULO` («Ventilación mecánica»,
+  «Aminas», «Sepsis y choque», «Antimicrobianos») sesga sólo al repuesto. Hoy
+  los módulos que más lo necesitan van por `dictado` (camino Whisper), así que
+  el reparto es tolerable — y accidental. Es la otra celda vacía de la tabla:
+  trabajo con nombre, no cerrado aquí porque exige tocar la ruta de AssemblyAI
+  y `componerSesgo`, y este arreglo no cambia nada de ese lado a propósito.
+- **No mide lo que el motor OYE.** Eso exige el corpus del dueño (B-01/B-11).
+  Aquí se mide que el dato SALGA del navegador por los cuatro sitios y que las
+  rutas lo LEAN; que `construirLexicon` lo meta al prompt lo cubre REG-232.
+- **El error clínicamente ponderado** (`lo-que-pesa-de-un-error.ts`) existe y
+  está probado, pero su único consumidor es un script que necesita el corpus:
+  no corre en ninguna compuerta. Declarado, no cerrado.

@@ -439,8 +439,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * del token y del otro lado nadie la miraba. El guardián de 331 importaba
      * sus dos rutas por nombre en vez de enumerar a quién le llega el token:
      * la forma exacta en que esta familia sobrevive a tener guardián.
+     *
+     * 513 es 337 en voz, y la CUARTA vez de «dos motores, un mismo contrato».
+     * REG-232 hizo que las rutas de Whisper leyeran `alergias`; el grabador
+     * lo mandaba sólo por AssemblyAI. Cuatro puntos de envío con cuatro
+     * listas escritas a mano: la clave nueva siempre falta en alguna. Se
+     * cierra dejando UNA lista, no añadiendo la clave a la lista que faltaba.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 512],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 512, 513],
   },
   {
     clave: 'se_contradice',
