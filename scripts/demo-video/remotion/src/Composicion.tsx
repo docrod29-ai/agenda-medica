@@ -1,6 +1,5 @@
 import React from 'react'
-import { AbsoluteFill, staticFile } from 'remotion'
-import { Audio } from '@remotion/media'
+import { AbsoluteFill, Audio, staticFile } from 'remotion'
 import { TransitionSeries, linearTiming } from '@remotion/transitions'
 import { fade } from '@remotion/transitions/fade'
 import type { LineaDeTiempo } from './datos'

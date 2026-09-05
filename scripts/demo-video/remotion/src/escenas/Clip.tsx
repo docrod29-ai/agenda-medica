@@ -1,6 +1,5 @@
 import React from 'react'
-import { AbsoluteFill, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
-import { Audio, Video } from '@remotion/media'
+import { AbsoluteFill, Audio, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { Pieza } from '../datos'
 import { FUENTE, TEMA } from '../tema'
 import { Subtitulos } from '../ui/Subtitulos'
@@ -54,7 +53,7 @@ const Pantalla: React.FC<{ pieza: PiezaClip }> = ({ pieza }) => {
         {/* El clip del teléfono se grabó a 390×844 dentro de un cuadro de 780×1688: se enseña su esquina a escala 1:1, nítida. */}
         <div style={{ position: 'absolute', right: 330, top: 84, width: 414, height: 892, borderRadius: 56, background: '#000', padding: 12, boxShadow: '0 50px 100px rgba(0,0,0,.65), inset 0 0 0 2px #2a2d33', opacity: s, transform: `translateY(${(1 - s) * 30}px)` }}>
           <div style={{ width: 390, height: 868, borderRadius: 46, overflow: 'hidden', background: TEMA.fondo, position: 'relative' }}>
-            <Video src={src} trimBefore={Math.round(pieza.desde * fps)} muted style={{ position: 'absolute', left: 0, top: 24, width: 780, height: 1688, objectFit: 'none', objectPosition: 'left top' }} />
+            <OffthreadVideo src={src} trimBefore={Math.round(pieza.desde * fps)} muted style={{ position: 'absolute', left: 0, top: 24, width: 780, height: 1688, objectFit: 'none', objectPosition: 'left top' }} />
           </div>
           <div style={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', width: 120, height: 28, borderRadius: 16, background: '#000' }} />
         </div>
@@ -65,7 +64,7 @@ const Pantalla: React.FC<{ pieza: PiezaClip }> = ({ pieza }) => {
   const { z, x, y } = acercamiento(pieza.id, t)
   return (
     <AbsoluteFill style={{ background: TEMA.fondo }}>
-      <Video src={src} trimBefore={Math.round(pieza.desde * fps)} muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${z})`, transformOrigin: `${x * 100}% ${y * 100}%` }} />
+      <OffthreadVideo src={src} trimBefore={Math.round(pieza.desde * fps)} muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${z})`, transformOrigin: `${x * 100}% ${y * 100}%` }} />
     </AbsoluteFill>
   )
 }

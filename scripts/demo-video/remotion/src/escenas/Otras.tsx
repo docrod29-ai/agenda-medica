@@ -1,6 +1,5 @@
 import React from 'react'
-import { AbsoluteFill, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
-import { Audio, Video } from '@remotion/media'
+import { AbsoluteFill, Audio, OffthreadVideo, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { Pieza } from '../datos'
 import { FUENTE, TEMA } from '../tema'
 import { Campana, Logotipo } from '../ui/Marca'
@@ -20,7 +19,7 @@ export const EscenaIntro: React.FC<{ pieza: Extract<Pieza, { tipo: 'intro' }> }>
   const zoom = interpolate(t, [0, 12], [1.08, 1], { extrapolateRight: 'clamp' })
   return (
     <AbsoluteFill style={{ background: TEMA.fondo }}>
-      <Video src={staticFile(`clips/${pieza.toma}.mp4`)} trimBefore={Math.round(pieza.desde * fps)} muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${zoom})` }} />
+      <OffthreadVideo src={staticFile(`clips/${pieza.toma}.mp4`)} trimBefore={Math.round(pieza.desde * fps)} muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${zoom})` }} />
       <AbsoluteFill style={{ background: TEMA.fondo, opacity: velo }} />
       <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', opacity: fuera }}>
         <div style={{ opacity: s1, transform: `translateY(${(1 - s1) * 20}px)` }}><Logotipo size={64} /></div>
