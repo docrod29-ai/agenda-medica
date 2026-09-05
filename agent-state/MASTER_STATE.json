@@ -23,20 +23,20 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M .github/workflows/ci.yml",
-    " M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
     " M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/BITACORA-2026-09-05-preservacion-y-auditoria.md",
     " M docs/product/AUSCULTA-ULTRA-READINESS.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/canal-whatsapp-no-se-secuestra.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/_harness/ordenes-de-aritmetica.ts",
-    "?? src/__tests__/el-prompt-no-ordena-aritmetica-con-otras-palabras.test.ts",
-    "?? src/__tests__/la-csp-del-artefacto-se-comprueba-despues-del-build.test.ts",
-    "?? src/__tests__/la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts"
+    " M src/lib/security/sanitize.ts",
+    " M src/lib/whatsapp/reclamar-canal.ts",
+    "?? src/__tests__/dos-consultorios-no-reclaman-el-mismo-canal-a-la-vez.test.ts",
+    "?? src/__tests__/el-log-no-guarda-el-nombre-del-paciente-ni-la-llave-de-stripe.test.ts"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -72,10 +72,10 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 320,
-    "ultimaREG": "REG-526",
-    "archivosDePrueba": 948,
-    "casosDePrueba": 11457,
+    "regsEnElLedger": 322,
+    "ultimaREG": "REG-528",
+    "archivosDePrueba": 950,
+    "casosDePrueba": 11468,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1181"

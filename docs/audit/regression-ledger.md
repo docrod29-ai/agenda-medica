@@ -19551,3 +19551,91 @@ capacidad. **Probado al revés** con tres mutantes sobre `auth-server.ts`:
 - `verificarModuloIA` y el paywall, con su asimetría fail-open: prueba aparte.
 - Las 99 rutas: siguen siendo del guardián estático. Aquí se prueba la guardia.
 - Firebase Auth: `verifyIdToken` es un doble.
+
+## REG-527 · `sanitize` prometía redactar nombres de pacientes y llaves de API, y no cazaba ni el nombre ni las de Stripe
+
+**CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 (readiness §3,
+«reportado»): «`safeLog` no redacta `nombre`, `pacienteNombre`, `diagnosticos`,
+`motivo` ni `sk_live_`/`whsec_` pese a prometerlo en su cabecera». Verificado
+por el orquestador leyendo `src/lib/security/sanitize.ts` y ejecutándolo: la
+cabecera decía «Nombres de pacientes (en estructura conocida `paciente.nombre`)»
+y no había ninguna estructura en el código; el patrón de tokens conocía OpenAI,
+Anthropic, Google y GitHub, y ninguna llave de Stripe.
+
+**LO QUE PASABA.** Hoy sin fuga activa: los ~40 llamadores de `safeLog` pasan
+ids y `Error`. Pero `safeLog` existe para el día en que alguien pase el objeto
+entero, y ese día la cabecera afirmaba que estaba cubierto.
+
+### La causa raíz
+
+El sistema se contradice: la cabecera prometía lo que el código no hacía. Una
+promesa en un comentario de un módulo de seguridad es peor que ninguna: quien
+lo lee deja de comprobarlo.
+
+### El arreglo
+
+Redacción POR LLAVE de `nombre`, `nombres`, `apellidos` (y paterno/materno),
+`pacienteNombre`, `nombrePaciente`, `nombreCompleto`, `paciente`, `diagnostico(s)`,
+`motivo`, `motivoConsulta`, `padecimiento`, `alergias` — sin mirar el valor,
+porque un nombre no tiene forma. Patrones nuevos para `sk_live_`, `sk_test_`,
+`rk_live_`, `rk_test_` y `whsec_`. `email` y `telefono` se quedan en el patrón:
+ya tenían su centinela y las pruebas de siempre lo pinan. La cabecera dice
+ahora lo que el código hace.
+
+### Prueba
+
+`src/__tests__/el-log-no-guarda-el-nombre-del-paciente-ni-la-llave-de-stripe.test.ts`
+(5 casos): llaves clínicas redactadas, Stripe por patrón también dentro de un
+`Error`, anidado y en arrays, lo previo intacto, y la cabecera con la lista
+real. **Probado al revés**: con el módulo como estaba, cuatro rojos.
+
+### Qué NO cubre
+
+- Un nombre dentro de una cadena libre no se reconoce por forma. La regla sigue
+  siendo no pasar texto clínico a los logs.
+- No revisa los llamadores de `safeLog`.
+
+## REG-528 · `reclamarCanal` leía, decidía y escribía en tres pasos: dos consultorios a la vez podían quedarse el mismo canal
+
+**CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 («check-then-write
+sin transacción; `dueño === ''` cuenta como libre»). Verificado por el
+orquestador en `src/lib/whatsapp/reclamar-canal.ts`.
+
+**LO QUE PASABA.** El módulo nació para que un canal de WhatsApp no se le
+pueda quitar a otro consultorio (los mensajes de los pacientes de A acabarían
+en la bandeja de B). Con `get` → decidir → `set`, dos reclamos en la misma
+ventana leían los dos «libre» y el último `set` ganaba: el mismo secuestro,
+sólo que hace falta una carrera para provocarlo. La prueba de entonces era de
+fuente y no podía ver una carrera.
+
+### La causa raíz
+
+Aislamiento entre consultorios que dependía de que dos peticiones no
+coincidieran. El contrato de Firestore para eso es la transacción, y no se
+usaba.
+
+### El arreglo
+
+Leer y escribir dentro de `adminDb.runTransaction`: la lectura queda fijada y
+Firestore reejecuta al que llegó tarde, que entonces ve al dueño. El
+fail-closed envuelve la transacción entera. Un documento sin `clinicId` sigue
+contando como libre a propósito: lo deja el alta de 360dialog antes de que el
+callback diga de quién es; queda dicho en el código.
+
+### Prueba
+
+`src/__tests__/dos-consultorios-no-reclaman-el-mismo-canal-a-la-vez.test.ts`
+(6 casos) sobre el arnés de Firestore en memoria, que reproduce el contrato de
+transacciones (versión por documento, reintento por conflicto): libre se
+reclama; ocupado por otro se rechaza y el mismo reconecta conservando lo
+previo; **la carrera provocada** (B se lleva el canal entre la lectura y el
+commit de A → A no sobrescribe, una reejecución); sin `clinicId` es libre;
+fail-closed sin escribir; sin id no toca la base. **Probado al revés**: con el
+módulo como estaba, la carrera la gana A (caso 3 rojo). El guardián de fuente
+de REG-3xx se adaptó a la lectura dentro de la transacción.
+
+### Qué NO cubre
+
+- No ejecuta las tres rutas que llaman a `reclamarCanal`: sigue en el guardián
+  de fuente.
+- No es Firestore de verdad: el arnés imita el contrato, no el motor.

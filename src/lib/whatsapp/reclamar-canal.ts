@@ -65,9 +65,34 @@ export async function reclamarCanal(
 
   const ref = adminDb.collection('whatsapp_channels').doc(canal)
 
-  let previo: FirebaseFirestore.DocumentSnapshot
+  /**
+   * EN UNA TRANSACCIÓN — REG-528. La primera versión leía, decidía y escribía
+   * en tres pasos sueltos: dos consultorios reclamando el mismo canal en la
+   * misma ventana leían los dos «libre» y el último `set` ganaba, que es
+   * exactamente el secuestro que este módulo existe para impedir, sólo que
+   * más difícil de reproducir. Con la transacción, la lectura queda fijada y
+   * Firestore reintenta al que llegó tarde, que entonces ve al dueño.
+   */
   try {
-    previo = await ref.get()
+    return await adminDb.runTransaction(async tx => {
+      const previo = await tx.get(ref)
+      if (previo.exists) {
+        const dueño = String((previo.data() as { clinicId?: string })?.clinicId ?? '')
+        if (dueño && dueño !== clinicId) {
+          return {
+            ok: false,
+            dueñoPrevio: dueño,
+            error: 'Ese número de WhatsApp ya está conectado a otro consultorio. Tiene que desconectarlo desde ahí antes de conectarlo aquí.',
+          } satisfies ResultadoReclamo
+        }
+      }
+      // Libre, o ya nuestro: se escribe. `merge` conserva lo que otro camino de
+      // conexión hubiera dejado (p. ej. `channelId` de 360dialog). Un documento
+      // sin `clinicId` cuenta como libre a propósito: lo deja el alta de
+      // 360dialog antes de que el callback diga de quién es.
+      tx.set(ref, { ...datos, clinicId }, { merge: true })
+      return { ok: true } satisfies ResultadoReclamo
+    })
   } catch {
     /**
      * FAIL-CLOSED. Sin poder comprobar de quién es, no se reclama.
@@ -78,25 +103,4 @@ export async function reclamarCanal(
      */
     return { ok: false, error: 'No se pudo comprobar si el canal ya está en uso. Inténtalo de nuevo.' }
   }
-
-  if (previo.exists) {
-    const dueño = String((previo.data() as { clinicId?: string })?.clinicId ?? '')
-    if (dueño && dueño !== clinicId) {
-      return {
-        ok: false,
-        dueñoPrevio: dueño,
-        error: 'Ese número de WhatsApp ya está conectado a otro consultorio. Tiene que desconectarlo desde ahí antes de conectarlo aquí.',
-      }
-    }
-  }
-
-  // Libre, o ya nuestro: se escribe. `merge` conserva lo que otro camino de
-  // conexión hubiera dejado (p. ej. `channelId` de 360dialog).
-  await ref.set({ ...datos, clinicId }, { merge: true })
-  return { ok: true }
 }
-
-export const POR_QUE_NO_BASTA_UN_SET =
-  'El índice `whatsapp_channels` decide a qué consultorio se entrega un mensaje ' +
-  'entrante. Sobrescribirlo sin mirar de quién era hace que los pacientes de un ' +
-  'consultorio acaben escribiéndole a otro sin que ninguno de los dos lo note.'

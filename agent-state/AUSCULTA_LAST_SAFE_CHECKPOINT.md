@@ -1,16 +1,16 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta cerrada en lo verificado, #442 absorbido y el test-the-test cerrado (REG-512…526) · tres decisiones del dueño escritas (D-032…034)**
+## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta cerrada en lo verificado, #442 absorbido el test-the-test cerrado y la seguridad reportada a medio cerrar (REG-512…528) · tres decisiones del dueño escritas (D-032…034)**
 
 ```
 CURRENT_BRANCH=claude/ausculta-preservation-improvement-44lutz
 CURRENT_HEAD=(este commit)
 CURRENT_PR=(sin PR: el dueño no lo pidió; la rama está en origin con 4 slices, cada uno con sus compuertas en el mensaje del commit)
 CURRENT_WORKSTREAM=Programa del pliego del 5-sep: UNDERSTAND → MEASURE → PRESERVE → IMPROVE. Fase 0 (reconciliación) y Fase 2 (P0/P1) — sin P0; los cuatro P1 confirmados, cerrados
-LAST_COMPLETED_UNIT=REG-524, 525 y 526 — test-the-test: csp-manifest corre tras el build; el prompt se vigila por frases sobre lo emitido; la membresía del servidor tiene por fin una prueba ejecutada contra un doble con id. Antes: REG-522 y REG-523 — port de PR #442 con número nuevo (vista previa medida, captura completa de la sonda); sus pruebas pasan aquí. Antes: REG-521 — terapia duplicada: la misma sustancia en dos renglones (catálogo de dosis: Tempra = paracetamol) o ya vigente, con la suma diaria contra el techo que ya existía; en consulta y receta. Antes: REG-520 (la receta ve el expediente completo), REG-519 (bloqueo ARCO revoca el portal, D-034); D-032 y D-033 escritas en el código que gobiernan
+LAST_COMPLETED_UNIT=REG-527 y 528 — sanitize redacta lo que su cabecera prometía (nombres por llave, Stripe por patrón); reclamarCanal en transacción con la carrera provocada. D-E escrita (360dialog: la llave como id de documento exige migración). Antes: REG-524, 525 y 526 — test-the-test: csp-manifest corre tras el build; el prompt se vigila por frases sobre lo emitido; la membresía del servidor tiene por fin una prueba ejecutada contra un doble con id. Antes: REG-522 y REG-523 — port de PR #442 con número nuevo (vista previa medida, captura completa de la sonda); sus pruebas pasan aquí. Antes: REG-521 — terapia duplicada: la misma sustancia en dos renglones (catálogo de dosis: Tempra = paracetamol) o ya vigente, con la suma diaria contra el techo que ya existía; en consulta y receta. Antes: REG-520 (la receta ve el expediente completo), REG-519 (bloqueo ARCO revoca el portal, D-034); D-032 y D-033 escritas en el código que gobiernan
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=Seguridad reportada y sin verificar (readiness §3): (a) `safeLog` no redacta `nombre`/`pacienteNombre`/`diagnosticos`/`motivo` ni `sk_live_`/`whsec_` pese a prometerlo — verificar en `src/lib/security/sanitize.ts` y cerrar con prueba al revés; (b) `reclamarCanal` check-then-write sin transacción; (c) llave de 360dialog como id de documento; (d) `String(err)` hacia el cliente en ~25 rutas. Después: verificación en navegador con el arnés (readiness §8). Los tres validadores sin llamador esperan D-D del dueño. Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
-FILES_IN_SCOPE=src/lib/security/sanitize.ts · src/lib/whatsapp/*.ts (reclamarCanal, 360dialog) · src/app/api/**/route.ts (String(err))
+EXACT_NEXT_ACTION=`String(err)` hacia el cliente en 25 rutas de `src/app/api` (lista con `grep -rl 'String(err)\|String(e)' src/app/api`): un helper en `src/lib/security/` que devuelva mensaje genérico + `safeLog` del detalle, migrar las 25, y un guardián de fuente que prohíba `String(e|err)` dentro de `NextResponse.json`. Cuidado: `consultorio-degradacion-segura.test.ts` pina un `String(e)` en la CONSULTA (cliente), que no es de esta lista. Después: verificación en navegador con el arnés (readiness §8). Decisiones del dueño pendientes: D-D (validadores sin llamador) y D-E (360dialog). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
+FILES_IN_SCOPE=src/lib/security/sanitize.ts (helper nuevo) · las 25 rutas de src/app/api con String(err)
 FILES_LOCKED=(ninguno — un solo writer)
 TESTS_PASSED=12634
 TESTS_FAILED=1
@@ -20,7 +20,7 @@ LINT=93 (techo apretado en REG-517)
 P0_OPEN=(ninguno; cross-tenant refutado en las 99 rutas)
 P1_OPEN=(ninguno confirmado). Receta: los cinco hallazgos de medication-safety verificados; cuatro cerrados (REG-517, 518, 520, 521) y el quinto (validadores sin llamador) es decisión del dueño (D-D)
 BLOCKED_EXTERNAL=reglas de Firestore sin desplegar · WebKit/iPhone · PITR y restore real · pentest · licencias de evidencia · llave AssemblyAI local. B-12 YA NO: el emulador de Firebase arranca en este contenedor (comprobado el 5-sep)
-DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida) · REG-517 (sin edad no se supone adulto) · REG-518 (la huella de la receta larga no se pierde) · REG-519 (el bloqueo ARCO apaga el portal) · REG-520 (la receta ve la medicación vigente y la creatinina del expediente) · REG-521 (la misma sustancia dos veces se dice, con la suma contra el techo del catálogo) · REG-522/523 (port de #442: la vista previa mide su sitio; la sonda recorre el scroller de dentro) · REG-524 (csp-manifest corre tras el build) · REG-525 (el prompt se vigila por frases, sobre lo emitido) · REG-526 (la membresía del servidor se ejecuta contra un doble con id)
+DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de sesgo para los cuatro puntos de envío) · REG-514 (la pregunta escalada abre tarea sin depender del teléfono) · REG-515 (guardián con autotest) · REG-516 (cerrar la tarea marca la pregunta atendida) · REG-517 (sin edad no se supone adulto) · REG-518 (la huella de la receta larga no se pierde) · REG-519 (el bloqueo ARCO apaga el portal) · REG-520 (la receta ve la medicación vigente y la creatinina del expediente) · REG-521 (la misma sustancia dos veces se dice, con la suma contra el techo del catálogo) · REG-522/523 (port de #442: la vista previa mide su sitio; la sonda recorre el scroller de dentro) · REG-524 (csp-manifest corre tras el build) · REG-525 (el prompt se vigila por frases, sobre lo emitido) · REG-526 (la membresía del servidor se ejecuta contra un doble con id) · REG-527 (sanitize redacta nombres y Stripe) · REG-528 (reclamarCanal en transacción)
 ```
 
 ### Qué se hizo en esta sesión, en orden
@@ -60,7 +60,10 @@ DO_NOT_REGRESS=REG-512 (revocación en telesalud/sala) · REG-513 (una lista de 
 14. **REG-524, 525, 526** — test-the-test: una prueba que el CI dejaba
     siempre saltada, un guardián que sellaba una redacción y no la regla, y la
     guardia de membresía de las 99 rutas sin una sola prueba que la ejecutara.
-15. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
+15. **REG-527 y REG-528** — seguridad: `sanitize` cumple lo que su cabecera
+    prometía; el candado del canal de WhatsApp resiste una carrera. D-E para
+    el dueño: la llave de 360dialog como id de documento exige migración.
+16. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
    en código y todo lo abierto con archivo y línea.
 
 ---

@@ -601,7 +601,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * una clase nueva que se le parece. Filtrar un id revela a quién le pasó
      * algo; filtrar un token entrega el acceso.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444],
+    /**
+     * 527: la cabecera de `sanitize.ts` prometía redactar «nombres de
+     * pacientes» y «API keys»; el código no tenía ninguna llave de nombre y no
+     * conocía las de Stripe. Una promesa en un módulo de seguridad que el
+     * código no cumple es la contradicción más cara: quien la lee deja de
+     * comprobar.
+     */
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 527],
   },
   {
     clave: 'habla_real',
@@ -991,7 +998,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * coincidan en el tiempo, que es la clase de fuga que ninguna revisión de
      * permisos encuentra porque los permisos estaban bien.
      */
-    regs: [153, 161, 162, 163, 224, 349, 419, 503],
+    /**
+     * 528: el candado del canal de WhatsApp (que un consultorio no se lleve el
+     * número de otro) era get → decidir → set, sin transacción. Dos reclamos a
+     * la vez leían «libre» los dos. Aislamiento que dependía de que dos
+     * peticiones no coincidieran.
+     */
+    regs: [153, 161, 162, 163, 224, 349, 419, 503, 528],
   },
   {
     clave: 'charter_vacio',

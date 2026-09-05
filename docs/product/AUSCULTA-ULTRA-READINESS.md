@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…526 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…528 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 736 pasan · 1 falla (entorno)** tras REG-526 (948 archivos); cada slice anota la suya en su commit |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 747 pasan · 1 falla (entorno)** tras REG-528 (950 archivos); cada slice anota la suya en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **472 · 6 585** |
-| Ledger | 305 REG · última REG-511 | **320 · REG-526** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **474 · 6 596** |
+| Ledger | 305 REG · última REG-511 | **322 · REG-528** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -112,9 +112,9 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 
 ### Seguridad — reportado
 
-- `safeLog` no redacta `nombre`, `pacienteNombre`, `diagnosticos`, `motivo` ni `sk_live_`/`whsec_` pese a prometerlo en su cabecera (hoy sin fuga activa: los ~40 sitios pasan ids y `Error`). MEDIO.
-- `reclamarCanal` es check-then-write sin transacción; `dueño === ''` cuenta como libre. MEDIO-BAJO.
-- 360dialog: la llave viva como id de documento; webhook sin HMAC. MEDIO-BAJO.
+- ~~`safeLog` no redacta `nombre`, `pacienteNombre`, `diagnosticos`, `motivo` ni `sk_live_`/`whsec_` pese a prometerlo en su cabecera~~ — **CERRADO, REG-527**: llaves clínicas por nombre, Stripe por patrón, cabecera con la lista real.
+- ~~`reclamarCanal` es check-then-write sin transacción~~ — **CERRADO, REG-528**: en `runTransaction`, con la carrera provocada en el arnés. `dueño === ''` sigue contando como libre a propósito (el alta de 360dialog deja el documento sin `clinicId` hasta el callback); declarado en el código.
+- 360dialog: la llave viva como id de documento (`whatsapp_channels/{apiKey}`, escrita por el callback, leída por el webhook con `findClinicByDialog360ApiKey` y borrada por `whatsapp-disconnect`) — **verificado**. Cambiarlo exige otra clave de documento (p. ej. `channelId`) y **migrar los documentos vivos**, que son datos de producción: es decisión del dueño (**D-E**, §9). El webhook se autentica con la cabecera `D360-API-KEY`, que es el mecanismo del proveedor; 360dialog no ofrece firma HMAC del cuerpo, así que «sin HMAC» no es un defecto de aquí. MEDIO-BAJO, sin cambios.
 - `String(err)` hacia el cliente en ~25 rutas y en un redirect. BAJO.
 - ~~`arco/cancelar` no sube `portalTokenVersion`~~ — **CERRADO, REG-519 (D-034)**: el bloqueo ARCO revoca el portal en el mismo acto.
 - `npm audit`: 0 críticas; lo único servido al navegador es `dompurify` (moderada) vía `html2pdf.js`.
@@ -182,6 +182,8 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **524** | `csp-manifest` llevaba saltada en cada corrida del CI: el build iba después de vitest | `la-csp-del-artefacto-se-comprueba-despues-del-build.test.ts` (3) | con `ci.yml` como estaba, dos rojos |
 | **525** | El guardián de «el modelo no calcula» casaba literales; una orden reformulada pasaba | `el-prompt-no-ordena-aritmetica-con-otras-palabras.test.ts` (7) | el viejo verde con «Estima la TFG con CKD-EPI»; el nuevo rojo |
 | **526** | Ninguna prueba ejecutaba la membresía del servidor; los dobles de las rutas ignoran el id | `la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts` (8) | tres mutantes sobre `auth-server.ts`: 4, 2 y 1 rojos |
+| **527** | `sanitize` prometía redactar nombres y llaves de API; no cazaba el nombre ni Stripe | `el-log-no-guarda-el-nombre-del-paciente-ni-la-llave-de-stripe.test.ts` (5) | con el módulo como estaba, cuatro rojos |
+| **528** | `reclamarCanal` sin transacción: dos consultorios a la vez podían quedarse el mismo canal | `dos-consultorios-no-reclaman-el-mismo-canal-a-la-vez.test.ts` (6) | la carrera provocada en el arnés la gana el segundo (caso 3 rojo) |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -205,6 +207,7 @@ REG-512 es de servidor y se midió ejecutando la ruta.
 | ~~D-B~~ | **RESUELTA 5-sep-2026 (D-033): SÍ viaja completa.** La pregunta escalada va entera (hasta 300 caracteres, con nombre) al WhatsApp del consultorio. WA-9 queda resuelto por decisión. Escrita en `pregunta-del-paciente.ts` | — | — |
 | ~~D-C~~ | **RESUELTA 5-sep-2026 (D-034): SÍ.** El bloqueo ARCO sube `portalTokenVersion` en el mismo acto y el enlace del paciente deja de servir. Implementada como **REG-519** | — | — |
 | **D-D** | Tres validadores escritos y sin llamador (`validacionesGeneralesMedicamentos`: embarazo/ERC/anticoagulación por expresión regular; `esMedicamentoCritico`; `tieneAlergiaGrave`). ¿Valen sus reglas tal cual para conectarlas a la receta y a la consulta, o se revisan antes? Conectarlas sin revisar sería señalar de más (regla 5) | `src/lib/expediente/medical-dictionary.ts`, `src/lib/seguridad/alergias.ts` | Se cablean con prueba en cuanto lo diga; si dice que no, se quitan del registro como puertas de entrada |
+| **D-E** | 360dialog: la llave de API viva es el **id del documento** `whatsapp_channels/{apiKey}` (la escribe el callback, la lee el webhook, la borra la desconexión). Un secreto como id aparece en rutas, reglas y bitácoras. Cambiarlo a `channelId` exige **migrar los documentos vivos** en producción y un periodo con los dos ids. ¿Se hace, y cuándo? | `src/app/api/whatsapp/360dialog-callback/route.ts`, `src/lib/whatsapp-send.ts` (`findClinicByDialog360ApiKey`), `src/app/api/clinic/whatsapp-disconnect/route.ts` | Con el sí: migración con doble lectura, prueba al revés, y borrar el id viejo al confirmar |
 
 Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 `agent-state/OWNER_DECISIONS_REQUIRED.md`.
@@ -223,10 +226,10 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 
 **La receta queda cerrada en lo verificado** (REG-517, 518, 520, 521); los
 tres validadores sin llamador esperan decisión del dueño (§3, §9). El port de
-#442 está hecho (REG-522, 523) y los tres del test-the-test también (REG-524,
-525, 526). Lo que sigue, por orden: (1) los ítems de seguridad reportados en
-§3 y todavía sin verificar por el orquestador (`safeLog` no redacta lo que
-promete; `reclamarCanal` sin transacción; la llave de 360dialog como id de
-documento; `String(err)` hacia el cliente); (2) la verificación en navegador
-(§8) con el arnés de emuladores, que hoy ya arranca aquí; (3) las decisiones
-del dueño pendientes en §9.
+#442 está hecho (REG-522, 523), los tres del test-the-test también (REG-524,
+525, 526) y de los cuatro de seguridad, dos cerrados (REG-527, 528), uno es
+decisión del dueño (D-E) y queda uno: **`String(err)` hacia el cliente en 25
+rutas** — un helper que devuelva un mensaje genérico y deje el detalle en
+`safeLog`, con un guardián de fuente que no permita `String(e)` dentro de un
+`NextResponse.json`. Después: la verificación en navegador (§8) con el arnés
+de emulador, y las decisiones del dueño pendientes en §9 (D-D, D-E).
