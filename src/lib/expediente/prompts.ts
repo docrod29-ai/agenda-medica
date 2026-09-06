@@ -674,6 +674,7 @@ ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "
   "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
 ${tipo === 'valoracion_preoperatoria' ? `
   "preopInputs": {
+    "needs_review": [],
     "edad": null,
     "cirugiaAltoRiesgo": false,
     "cirugiaElectiva": true,
@@ -820,7 +821,12 @@ REGLAS ADICIONALES PARA "preopInputs" (cuando es valoración preoperatoria):
 - Para ariscat.duracion usa EXACTAMENTE uno de: "menos2h" | "de2a3h" | "mas3h".
 - spo2: pon el número exacto si se mencionó (ej. 90, 95) — NO 0.
 - Si el paciente dice "ronca pero no fuerte" → stopbang.snoring=false (debe ser FUERTE para puntuar).
-- Si dice "le hicieron cirugía en las piernas" sin más → caprini.cirugiaMenor=true (asumir menor sin más detalle).
+- Una cirugía PASADA mencionada de pasada ("le hicieron cirugía en las piernas") NO puntúa:
+  caprini.cirugiaMenor y caprini.cirugiaMayor se quedan en false. Caprini puntúa la
+  cirugía QUE SE VA A REALIZAR, y sólo si el dictado dice si es menor o mayor. Si no lo
+  dice, deja las dos en false y añade "caprini.cirugiaMenor" a "preopInputs.needs_review"
+  (lista de casillas que el médico debe confirmar a mano; nunca marques una casilla por
+  inferencia).
 - Negación explícita ("nunca trombosis") deja en false (confirma el default).
 ` : ''}`
 }
