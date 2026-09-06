@@ -17,32 +17,15 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": {
-    "version": "nexusmed-v1184",
+    "version": "nexusmed-v1185",
     "confirmadaEl": "2026-09-06",
-    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34005457180",
+    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34006857815",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M  .env.example",
-    "M  .gitignore",
-    "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    "M  agent-state/MASTER_STATE.json",
-    "M  docs/audit/lane-product-excellence.md",
-    "M  docs/audit/regression-ledger.md",
-    "M  docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "A  docs/design/capturas/base/calendario-1440.png",
-    "A  docs/design/capturas/base/calendario-390.png",
-    "A  docs/design/capturas/base/citas-1440.png",
-    "A  docs/design/capturas/base/citas-390.png",
-    "A  docs/design/capturas/base/dashboard-1440.png",
-    "A  docs/design/capturas/base/dashboard-390.png",
-    "A  docs/design/capturas/base/expedientes-1440.png",
-    "A  docs/design/capturas/base/expedientes-390.png",
-    "A  docs/design/capturas/base/finanzas-1440.png",
-    "A  docs/design/capturas/base/finanzas-390.png",
-    "A  docs/design/capturas/base/pacientes-1440.png",
-    "A  docs/design/capturas/base/pacientes-390.png"
+    "M agent-state/MASTER_STATE.json",
+    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1185.md",
+    " M docs/maintenance/sw-changelog.md"
   ],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
@@ -76,7 +59,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
+  "ramaActual": "claude/app-production-deployment-cdhqdd",
   "derivado": {
     "regsEnElLedger": 343,
     "ultimaREG": "REG-555",

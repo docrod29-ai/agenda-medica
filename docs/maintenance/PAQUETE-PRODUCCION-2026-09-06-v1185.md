@@ -5,6 +5,20 @@
 > Este documento se escribe ANTES de fusionar, para que lo que se declara no se
 > pueda ajustar a lo que salga.
 
+> **Estado: PREPARADO, NO PUBLICADO** es lo que la línea de arriba quería decir
+> con su «PREPARADO» a secas; se transcribe entera porque el guardián
+> `el-tablero-del-loop-no-miente` busca esa frase para comprobar que el estado
+> original no se borró.
+
+> **SUPERADO — 6-sep-2026 02:36 UTC. PUBLICADO Y VERIFICADO.** Vercel publicó
+> `main` por su integración de git al fusionarse #461, y el botón corrió sobre
+> `18d56347`: ejecución
+> [#25](https://github.com/docrod29-ai/agenda-medica/actions/runs/34006857815),
+> en verde, con la Compuerta 3 midiendo `nexusmed-v1185` contra el sitio vivo.
+> Lo que pasó de verdad está en el §6. (Este aviso lo escribió la sesión del PR
+> #458, cuarenta minutos después de la ejecución, al encontrar el acta abierta
+> con la versión ya publicada.)
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1184` → **`nexusmed-v1185`** |
@@ -129,3 +143,49 @@ trague paquetes y el proxy del contenedor rechaza al instante. Falla también en
   CONNECT). **Queda pendiente y se declara**: es el paso que la regla de
   despliegue sitúa DESPUÉS de publicar, y hay que correrlo desde una máquina con
   salida a la red.
+
+## 6. Lo que pasó de verdad
+
+Se publicó el 6-sep-2026. Los tres pasos salieron en el orden previsto.
+
+| Paso | Qué fue | Resultado |
+|---|---|---|
+| 1 | PR #461 — service worker a v1185 y esta acta | fusionado con auto-merge, 5 checks de CI en verde |
+| — | Vercel publicó `main` (`18d56347`) por su integración de git | producción pasa a servir `nexusmed-v1185` |
+| 2 | PR #465 — `SHA_AUTORIZADO` repuntado a `18d56347` | fusionado, 5 checks en verde |
+| 3 | Workflow «Despliegue a producción (manual)», ejecución **#25** | `PRODUCTION_RELEASE=SUCCESS` (02:36 UTC) |
+
+Acta que emitió la ejecución #25:
+
+```
+PRODUCTION_URL=https://agenda-medica-one.vercel.app
+APP_SHA=18d56347fbbd12a9d387ecb72a602debc6d5bf37
+VERSION=nexusmed-v1185
+VERCEL_PROJECT=agenda-medica
+FIRESTORE_RULES=success
+FIRESTORE_INDICES=success
+FIRESTORE_RULES_SHA256=1d91d7077e616e2a600a0f0526d79c46b85d5ffe9d7d5bffd0d8b157923d2df7
+SECURITY_E2E=success
+SMOKE=success
+SMOKE_PORTAL=success
+PRODUCTION_RELEASE=SUCCESS
+```
+
+<https://github.com/docrod29-ai/agenda-medica/actions/runs/34006857815>
+
+### Lo que esta ejecución SÍ cierra del §5
+
+- **Las cabeceras de producción.** El §5 las dejaba pendientes porque el
+  contenedor no llega al sitio vivo. El botón sí llega: el paso «Seguridad ·
+  producción» corrió `e2e:seguridad:prod` contra `agenda-medica-one.vercel.app`
+  y salió en verde. Ese renglón queda cerrado por la ejecución, no por esta
+  sesión.
+
+### Lo que esta ejecución NO demuestra
+
+- **Reglas e índices**: se reenviaron sin cambio. El hash es el que dejó #18
+  (`1d91d707…`); no había ninguna regla nueva que publicar.
+- **Que el service worker viejo se haya retirado de los navegadores.** Sube la
+  versión del caché; la retirada ocurre cuando cada cliente recarga.
+- **iPhone y transcripción real**: siguen exactamente como los deja el §5.
+
