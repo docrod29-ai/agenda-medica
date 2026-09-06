@@ -48,6 +48,7 @@ import {
   SIN_RANGO_DECLARADO, POR_QUE_LA_FC_NO_SE_VIGILA, type UnidadDePeso,
 } from './signos-que-se-capturan'
 import { comprobarCitasDelAnalisis } from './citas-del-analisis'
+import { imc as imcDeterminista } from '@/lib/expediente/cardiometabolico/obesidad'
 import { avisoDeCirugiaYAnticoagulante, prellenadoPreoperatorio } from './anticoagulantes-y-cirugia'
 import { textoDelConsentimiento, puntosDelConsentimiento, VERSION_DEL_CONSENTIMIENTO } from './consentimiento-de-grabacion'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -755,6 +756,18 @@ export default function ConsultaActivaPage() {
       const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'))
       out[k] = Number.isFinite(n) ? n : undefined
     }
+    /**
+     * ── EL IMC SE CALCULA Y SE GUARDA (ASN-007, handoff de EXPEDIENTES) ──────
+     *
+     * El copiloto ya lo calculaba con motor determinista y lo ofrecía a la nota,
+     * pero `signos.imc` no lo escribía NADIE —cero escrituras de `imc:` en
+     * `src/`—, así que el expediente no podía pintarlo nunca. Se deriva aquí, de
+     * peso y talla, con el mismo motor que usa el panel cardiometabólico y con
+     * su fuente; si falta alguno de los dos, no se inventa.
+     */
+    const kg = Number(out.peso), cm = Number(out.talla)
+    const indice = imcDeterminista(kg, cm)
+    if (indice != null) out.imc = indice
     return out as SignosVitales
   }, [signos])
   /**

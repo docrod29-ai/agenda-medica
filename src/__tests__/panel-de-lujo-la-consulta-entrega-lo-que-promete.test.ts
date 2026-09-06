@@ -25,6 +25,10 @@
  *           donde la enfermera y el médico tocan el mismo campo.
  *   D-005   Los campos de la receta dentro de la consulta se nombraban sólo por
  *           marcador de posición, que desaparece al escribir.
+ *   ASN-007 (llegó por el handoff de EXPEDIENTES) El copiloto calculaba el IMC
+ *           con motor determinista y `signos.imc` no lo escribía NADIE —cero
+ *           escrituras de `imc:` en `src/`—, así que el expediente no podía
+ *           pintarlo nunca.
  *
  * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
  *
@@ -67,6 +71,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { comoSeLoExplico } from '@/lib/paciente/como-se-lo-explico'
+import { imc } from '@/lib/expediente/cardiometabolico/obesidad'
 
 const raiz = process.cwd()
 const leer = (...p: string[]) => readFileSync(join(raiz, ...p), 'utf8')
@@ -143,6 +148,18 @@ describe('ASN-012 · corregir un signo ya guardado deja rastro', () => {
     expect(consulta).toMatch(/Motivo \(ej\./)
     expect(consulta).toMatch(/agregarASeccion\('correccionDeSignos', 'Correcciones de signos vitales'\)/)
     expect(consulta).toMatch(/sin motivo declarado/)
+  })
+})
+
+describe('ASN-007 · el IMC calculado se guarda con los signos', () => {
+  it('control: el motor determinista existe y redondea a un decimal', () => {
+    expect(imc(70, 170)).toBe(24.2)
+    expect(imc(70, 0)).toBeNull()      // sin talla no se inventa
+  })
+
+  it('la consulta lo deriva de peso y talla y lo mete en los signos que salen de la pantalla', () => {
+    expect(consulta).toContain('imcDeterminista')
+    expect(consulta).toMatch(/if \(indice != null\) out\.imc = indice/)
   })
 })
 

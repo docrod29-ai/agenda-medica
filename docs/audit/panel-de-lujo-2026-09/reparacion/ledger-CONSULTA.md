@@ -2,7 +2,8 @@
 
 Rama `reparacion/CONSULTA`. 45 hallazgos en la lista: **41 CLOSED**, 4 sin
 reparar o reparados a medias (ver `no-reparado-CONSULTA.md` y
-`handoff-CONSULTA.md`).
+`handoff-CONSULTA.md`). Se cierra además **ASN-007**, que llegó por
+`handoff-EXPEDIENTES.md` y caía en un archivo de esta rebanada.
 
 El ID es el del hallazgo del Panel de Lujo; el orquestador asigna los REG-nnn al
 integrar.
@@ -13,6 +14,7 @@ integrar.
 | ASN-002 | consulta · signos | TA 400/300, T 45 °C y SpO₂ 9 % se aceptaban y llegaban al copiloto como hipotensión e hipoxemia reales | CLOSED | `src/__tests__/los-signos-capturados-se-preguntan-no-se-tragan.test.ts` |
 | ASN-003 | consulta · borrador | Los signos capturados en otro equipo no llegaban a la consulta abierta desde la agenda | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` |
 | ASN-005 | consulta · signos | «154 lb» se tragaba la unidad y viajaba como 154 kg a la verificación mg/kg | CLOSED | `src/__tests__/los-signos-capturados-se-preguntan-no-se-tragan.test.ts` |
+| ASN-007 | consulta · signos (handoff de EXPEDIENTES) | El IMC se calculaba y no se persistía: `signos.imc` no lo escribía nadie, así que el expediente no podía pintarlo | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` |
 | ASN-012 | consulta · signos | Corregir un signo ya guardado no pedía motivo ni dejaba rastro (C-5 sólo existía en Hospital) | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` |
 | B-009 | voz · sesgo | El módulo desde el que se dicta sesgaba sólo al motor de repuesto | CLOSED (mitad de la consulta; la ruta, en handoff) | `src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts` (existente, sigue verde) |
 | B-017 | voz · turnos | Al corregir turno por turno se tiraban las violaciones y los motivos de ese turno | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` no lo cubre: lo cubre el propio tipo `CorreccionDeTurnos` y `npx tsc`; ver decisiones |
@@ -68,7 +70,7 @@ integrar.
 | `src/__tests__/el-consentimiento-dice-donde-va-el-audio.test.ts` | nueva | 7 |
 | `src/__tests__/cirugia-programada-y-anticoagulante-se-cruzan.test.ts` | nueva | 9 |
 | `src/__tests__/panel-de-lujo-los-paneles-de-la-consulta.test.ts` | nueva | 20 |
-| `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` | nueva | 13 |
+| `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` | nueva | 15 |
 | `src/__tests__/consultorio-la-correccion-automatica-se-ve-y-se-deshace.test.ts` | invierte el sello anterior | 7 |
 
 ## Módulos nuevos (puros, junto a la pantalla que los usa)
