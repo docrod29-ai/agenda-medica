@@ -170,7 +170,7 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5, marginTop: 8 }}>
+            <div style={{ fontSize: 10.5, color: 'var(--text3)', lineHeight: 1.5, marginTop: 8 }}>
               «Aceptado en el portal» y «Aceptado por WhatsApp» ya no se asientan desde aquí:
               los escribe el propio portal o el bot cuando el paciente acepta, con la fecha y
               la huella de lo que él vio. Desde esta pantalla sólo se registra lo que ocurre

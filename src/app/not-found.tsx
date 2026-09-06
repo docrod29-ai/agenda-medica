@@ -84,11 +84,38 @@ export default function NotFound() {
     }}>
       <div style={{ maxWidth: 480, textAlign: 'center' }}>
         <div style={{ fontSize: 64, fontWeight: 600, color: 'var(--nexus)', marginBottom: 12, letterSpacing: '-0.04em' }}>404</div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Página no encontrada</h1>
-        <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 24 }}>
-          Es posible que tu navegador esté usando una versión vieja de la app.
-          Toca <strong>Reintentar</strong> para limpiar la caché y volver al inicio.
+        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Esta página no existe</h1>
+        {/*
+          ASR-012 y PO-019 — ESTA PÁGINA LE HABLABA A UN MÉDICO, Y AQUÍ LLEGAN
+          PACIENTES.
+          ──────────────────────────────────────────────────────────────────────
+          A quien abre un enlace de reserva mal copiado —el caso más frecuente de
+          404 en este producto: el enlace se manda por WhatsApp y se parte— se le
+          hablaba de «caché» y de «una versión vieja de la app», y se le ofrecía
+          «Ir al dashboard». Un paciente no tiene dashboard, no sabe qué es una
+          caché y no está en una app: está en el navegador de su teléfono
+          buscando a su médico.
+          No se puede saber quién llega —esta página es la misma para los dos— así
+          que se dicen los DOS caminos y se deja elegir, con el del paciente
+          primero porque es el que llega perdido. La jerga técnica baja al pie,
+          donde ya vivía el diagnóstico.
+        */}
+        <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 20 }}>
+          El enlace que abriste no lleva a ninguna parte. Puede estar incompleto
+          —los enlaces largos se cortan al copiarlos o al mandarlos por mensaje—
+          o la página pudo cambiar de sitio.
         </p>
+
+        <div style={{
+          textAlign: 'left', margin: '0 auto 22px', maxWidth: 400,
+          padding: '12px 14px', borderRadius: 10,
+          border: '1px solid var(--border)', background: 'var(--s1)',
+          fontSize: 14, color: 'var(--text2)', lineHeight: 1.6,
+        }}>
+          <b style={{ color: 'var(--text)' }}>¿Vienes a pedir una cita?</b> Pídele a tu
+          consultorio que te reenvíe su enlace de citas completo, o llámales: el enlace
+          entero termina con el nombre del consultorio.
+        </div>
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
@@ -100,7 +127,7 @@ export default function NotFound() {
               cursor: 'pointer', minWidth: 140, letterSpacing: '-0.005em',
             }}
           >
-            {intentando ? 'Limpiando…' : 'Reintentar'}
+            {intentando ? 'Limpiando…' : 'Volver a intentar'}
           </button>
           {/* El enlace ES el control: un <button> dentro de un <a> es HTML
               inválido y deja dos paradas de teclado para un destino.
@@ -117,12 +144,13 @@ export default function NotFound() {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             textDecoration: 'none',
           }}>
-            Ir al dashboard
+            Soy médico: ir a mi agenda
           </Link>
         </div>
 
         <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 24 }}>
-          Si el problema persiste, cierra y vuelve a abrir la app desde tu pantalla de inicio.
+          Si eres del consultorio y el problema no se va, cierra y vuelve a abrir la
+          aplicación desde tu pantalla de inicio.
         </div>
 
         {/* Diagnóstico — útil para reportar el problema */}

@@ -71,7 +71,20 @@ self.addEventListener('fetch', (event) => {
   // Rutas CLÍNICAS: aunque hoy el HTML es un shell (los datos del paciente cargan
   // después desde Firestore), por defensa en profundidad (§11.2) NO cacheamos su
   // HTML — así ningún dato clínico puede quedar en la caché del navegador.
-  const esRutaClinica = /^\/(expediente|consulta|nota|receta|orden|referencia|hospitalizacion|valoracion)(\/|$)/.test(url.pathname)
+  //
+  // PC-017 y A-007 (Panel de Lujo, 6-sep-2026) — FALTABAN LAS DEL PACIENTE.
+  //
+  // La lista no incluía `mi`, así que el HTML de `/mi/<token>` se guardaba en
+  // Cache Storage CON EL TOKEN COMO CLAVE: el enlace del paciente quedaba en el
+  // dispositivo —y en el del tercero al que se lo reenviaron por WhatsApp—
+  // después de caducar o de ser revocado. Se añaden las cuatro superficies del
+  // paciente que llevan token o identificador en la ruta.
+  //
+  // `valoracion` se retira: no existe ninguna ruta con ese prefijo en el árbol.
+  // Una entrada que no corresponde a nada da la impresión de cobertura y no
+  // cubre nada; el guardián de `las-rutas-sensibles-del-service-worker` la caza
+  // desde ahora.
+  const esRutaClinica = /^\/(expediente|consulta|nota|receta|orden|referencia|hospitalizacion|uci|mi|resena|teleconsulta|verificar)(\/|$)/.test(url.pathname)
 
   // Navegaciones de página: network-first
   if (req.mode === 'navigate') {

@@ -91,7 +91,7 @@ export default function AsientosSection({ clinicId }: { clinicId: string }) {
           {falloAlActualizar && (
             /* Que la actualización NO se aplicara es información: antes el
                catch vacío dejaba el botón como si no hubiera pasado nada. */
-            <div role="status" style={{ marginTop: 8, fontSize: 12.5, color: 'var(--text)' }}>{falloAlActualizar}</div>
+            <div role="status" style={{ marginTop: 8, fontSize: 12, color: 'var(--text)' }}>{falloAlActualizar}</div>
           )}
         </div>
       )}

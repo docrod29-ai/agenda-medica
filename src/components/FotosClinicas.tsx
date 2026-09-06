@@ -6,7 +6,9 @@
  * heridas quirúrgicas / úlceras.
  */
 import { useState, useEffect, useCallback } from 'react'
-import { zonaActiva } from '@/lib/timezone'
+import { zonaActiva, hoyISO } from '@/lib/timezone'
+import { resizeImageFile } from '@/lib/image-utils'
+import { enEspanolLlano } from '@/lib/texto-es'
 import { useToast } from '@/context/ToastContext'
 import { Camera, Loader2, Trash2, GitCompare, X } from 'lucide-react'
 import { subirImagen } from '@/lib/subir-imagen'
@@ -40,6 +42,10 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
   const [region, setRegion] = useState(REGIONES[0])
   const [descripcion, setDescripcion] = useState('')
   const [comparar, setComparar] = useState<{ a: FotoClinica; b: FotoClinica } | null>(null)
+  /** MC-012 — compuerta de consentimiento; ver el comentario del formulario. */
+  const [consintio, setConsintio] = useState(false)
+  /** MO-008 — la fecha de la TOMA; por omisión hoy, en la zona del consultorio. */
+  const [fechaDeLaToma, setFechaDeLaToma] = useState(() => hoyISO())
 
   const cargar = useCallback(async () => {
     if (!clinicId || !patientId) return
@@ -51,25 +57,64 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
 
   useEffect(() => { cargar() }, [cargar])
 
+  /**
+   * LA FOTO DE UNA HERIDA NO SUBE CON EL GPS DENTRO — Panel de Lujo MC-011 (P2).
+   *
+   * ── QUÉ FALLABA ────────────────────────────────────────────────────────────
+   *
+   * El archivo CRUDO del teléfono se leía con `FileReader.readAsDataURL` y se
+   * mandaba tal cual, así que sus metadatos EXIF —coordenadas GPS, modelo de
+   * dispositivo, hora original— viajaban dentro y el servidor guardaba el búfer
+   * íntegro sin reencodar. La foto de una lesión en el domicilio del paciente
+   * lleva su dirección pegada.
+   *
+   * El canvas que lo resuelve YA existía —`image-utils.ts`, que redibuja y
+   * reencoda, y en ese trayecto el EXIF se pierde por construcción— y este
+   * componente no lo llamaba. «Escrito y sin conectar», otra vez.
+   *
+   * De paso cae el segundo cargo del hallazgo: una foto de teléfono moderno pasa
+   * de 3.5 MB y fallaba con el mensaje de `subir-imagen.ts`, que habla de PDF y
+   * de firmas —«si viene de un PDF, exporta sólo la zona de la firma»— porque
+   * ese texto se escribió para otra pantalla. Reencodada ya no pesa eso, y si
+   * aun así falla, el mensaje es el de esta pantalla.
+   *
+   * ── QUÉ **NO** CAMBIA ──────────────────────────────────────────────────────
+   *
+   * No se toca la ruta de Storage: que la foto clínica acabe bajo
+   * `receta-diseno/{uid}/` es un defecto real que el equipo rojo verificó, y
+   * vive en `api/imagen/route.ts`, de otra rebanada. Va en el handoff.
+   */
   const onArchivo = async (file: File) => {
     setSubiendo(true); setError('')
     try {
-      const dataUrl = await new Promise<string>((res, rej) => {
-        const fr = new FileReader()
-        fr.onload = () => res(String(fr.result)); fr.onerror = () => rej(new Error('lectura'))
-        fr.readAsDataURL(file)
-      })
+      /*
+       * 1600 px de lado mayor: una foto clínica se mira para comparar evolución,
+       * no para hacer dermatoscopia — el detalle diagnóstico fino no vive en el
+       * archivo, vive en el ojo del médico delante del paciente. Es el mismo
+       * criterio con el que ya se reencodan las demás imágenes del producto.
+       */
+      const { dataUrl } = await resizeImageFile(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.88 })
       const url = await subirImagen(dataUrl, `fotos/${patientId}/${Date.now()}`)
       if (!url) throw new Error('Storage no devolvió URL')
       await crearFoto(clinicId, patientId, {
-        url, fecha: new Date().toISOString(), region,
+        url,
+        /*
+         * MO-008 — la fecha de la TOMA, no la de la subida.
+         *
+         * `fecha` era siempre `new Date()`, así que una radiografía traída de
+         * fuera quedaba fechada el día que se escaneó y la línea de tiempo del
+         * paciente mentía. Ahora se puede fechar; el valor por omisión sigue
+         * siendo hoy, que es el caso frecuente.
+         */
+        fecha: fechaDeLaToma ? new Date(`${fechaDeLaToma}T12:00:00`).toISOString() : new Date().toISOString(),
+        region,
         ...(descripcion.trim() ? { descripcion: descripcion.trim() } : {}),
         ...(notaId ? { notaId } : {}),
       })
       setDescripcion('')
       await cargar()
     } catch (e) {
-      setError('No se pudo guardar la foto: ' + (e instanceof Error ? e.message : String(e)))
+      setError(`No se pudo guardar la foto. ${enEspanolLlano(e)}`)
     } finally { setSubiendo(false) }
   }
 
@@ -113,16 +158,82 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
               placeholder="p. ej. placa eritematosa de 3 cm"
               style={{ ...input, width: '100%' }} />
           </label>
-          <span style={rotulo}>3 · Captura</span>
+          {/*
+            MO-008 — LA FECHA DE LA TOMA, EDITABLE.
+            La fecha era siempre `new Date()`, así que una radiografía traída de
+            fuera se fechaba el día que se escaneó y la línea de tiempo del
+            paciente decía algo falso. Por omisión, hoy: el caso frecuente sigue
+            costando cero.
+          */}
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={rotulo}>3 · Cuándo se tomó</span>
+            <input
+              type="date"
+              aria-label="Fecha en que se tomó la imagen"
+              value={fechaDeLaToma}
+              max={hoyISO()}
+              onChange={e => setFechaDeLaToma(e.target.value)}
+              style={{ ...input, width: '100%' }}
+            />
+            <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>
+              Déjala en hoy si la estás tomando ahora. Cámbiala si la imagen viene de fuera.
+            </span>
+          </label>
+          <span style={rotulo}>4 · Captura</span>
         </div>
-        <label style={{ ...cta, opacity: subiendo ? 0.6 : 1, cursor: subiendo ? 'wait' : 'pointer' }}>
+        {/*
+          MC-012 — EL CONSENTIMIENTO SE PIDE, NO SE MENCIONA.
+
+          El párrafo de abajo decía «Requiere consentimiento del paciente (dato
+          personal sensible)» y el código no lo pedía, no lo registraba y no lo
+          comprobaba: `FotoClinica` no tiene campo de consentimiento y `crearFoto`
+          no lo exige. Un requisito escrito sólo en un párrafo informativo es un
+          requisito que nadie cumple.
+
+          Lo que se hace AQUÍ, y lo que no: la compuerta —una casilla que hay que
+          marcar antes de poder capturar, en cada sesión de captura— impide que la
+          foto se tome sin que alguien lo afirme. Lo que NO se hace es inventar el
+          modelo de datos del consentimiento de imagen: guardar
+          `consentimientoImagen {fecha, recabadoPor}` en el expediente y anotarlo
+          en la bitácora de auditoría toca `fotos-clinicas.ts` y `audit-eventos.ts`
+          con una decisión de producto detrás (¿una vez por paciente, como la voz,
+          o por sesión?). Eso va al handoff y a `decisiones-UI-CONFIG.md`.
+
+          Sin el registro, esta compuerta no prueba nada ante un tercero — y por
+          eso lo dice en voz alta en vez de dar a entender que sí.
+        */}
+        <label style={{
+          display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 10,
+          padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+          border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+          background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
+        }}>
+          <input
+            type="checkbox"
+            checked={consintio}
+            onChange={e => setConsintio(e.target.checked)}
+            style={{ width: 17, height: 17, accentColor: 'var(--teal)', marginTop: 1, flexShrink: 0 }}
+          />
+          <span style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>
+            El paciente <b>consintió</b> que se le tome esta imagen y que quede en su
+            expediente. Es un dato personal sensible (Art. 9 LFPDPPP).
+            <span style={{ display: 'block', color: 'var(--text3)', marginTop: 3 }}>
+              Esta casilla bloquea la captura; todavía <b>no</b> queda registrada como
+              consentimiento formal en el expediente.
+            </span>
+          </span>
+        </label>
+        <label style={{
+          ...cta,
+          opacity: subiendo || !consintio ? 0.5 : 1,
+          cursor: subiendo ? 'wait' : consintio ? 'pointer' : 'not-allowed',
+        }}>
           {subiendo ? <><Loader2 size={16} className="spin" /> Guardando…</> : <><Camera size={16} /> Tomar / subir foto</>}
-          <input type="file" accept="image/*" capture="environment" disabled={subiendo} style={{ display: 'none' }}
+          <input type="file" accept="image/*" capture="environment" disabled={subiendo || !consintio} style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) onArchivo(f); e.target.value = '' }} />
         </label>
         <p style={{ fontSize: 10.5, color: 'var(--text3)', margin: '8px 0 0', lineHeight: 1.5 }}>
           Toma la foto siempre de la <b>misma zona, distancia y luz</b> para que la comparación sea válida.
-          Requiere consentimiento del paciente (dato personal sensible).
         </p>
       </div>
 

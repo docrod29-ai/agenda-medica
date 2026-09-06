@@ -474,9 +474,33 @@ export { fechaLocalDesdeISO } from '@/lib/fecha-local'
 import { fechaLocalDesdeISO } from '@/lib/fecha-local'
 
 /** Edad en meses a partir de la fecha de nacimiento (ISO) y una fecha de corte. */
-export function edadEnMeses(fechaNacimientoISO: string, hoyISO: string): number {
+/**
+ * CERO MESES SIGNIFICA «RECIÉN NACIDO» — Panel de Lujo MP-010.
+ *
+ * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
+ *
+ * Ante una fecha ilegible devolvía `0`, y el panel pediátrico sembraba ese cero
+ * como la edad del paciente: vacunas todas pendientes, percentil del mes 0, y
+ * TMP-SMX y nitrofurantoína bloqueados por edad mínima. Un dato que falta se
+ * convertía en la conclusión más extrema posible.
+ *
+ * El propio archivo trataba el mismo hueco de las dos formas: `edadEnAnios`, en
+ * la función de al lado, ya devolvía `null`. Ésta era la excepción.
+ *
+ * ── LO QUE EL EQUIPO ROJO CORRIGIÓ, Y POR QUÉ IMPORTA ────────────────────────
+ *
+ * La reproducción del auditor era falsa y lo comprobó: `'2020-13-40'` NO da 0
+ * —casa el patrón de fecha suelta y desborda a una fecha válida de febrero de
+ * 2021—, así que el panel no siembra un neonato por esa vía. Sólo una cadena que
+ * ni siquiera parece fecha da 0. La asimetría, en cambio, es real, y con ella la
+ * consecuencia: el día que una cadena así llegue, la respuesta será la cara.
+ *
+ * `null` cuesta un `?? ''` en quien llama, y evita que un hueco se lea como un
+ * recién nacido.
+ */
+export function edadEnMeses(fechaNacimientoISO: string, hoyISO: string): number | null {
   const n = fechaLocalDesdeISO(fechaNacimientoISO), h = fechaLocalDesdeISO(hoyISO)
-  if (isNaN(n.getTime()) || isNaN(h.getTime())) return 0
+  if (isNaN(n.getTime()) || isNaN(h.getTime())) return null
   let meses = (h.getFullYear() - n.getFullYear()) * 12 + (h.getMonth() - n.getMonth())
   if (h.getDate() < n.getDate()) meses--
   return Math.max(0, meses)

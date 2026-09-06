@@ -127,7 +127,17 @@ describe('Edad en meses', () => {
     expect(edadEnMeses('2026-01-20', '2026-07-18')).toBe(5)
   })
   it('fechas inválidas devuelven 0 en vez de NaN', () => {
-    expect(edadEnMeses('no-es-fecha', '2026-07-18')).toBe(0)
+    /**
+     * ── ESTA ASERCIÓN SE CAMBIÓ (Panel de Lujo MP-010) ──────────────────────
+     *
+     * Decía `.toBe(0)`, y con eso fijaba el defecto: cero meses no es «no se
+     * sabe», es **recién nacido**. El panel pediátrico sembraba ese cero como la
+     * edad del paciente, y de ahí colgaban las vacunas todas pendientes, el
+     * percentil del mes 0 y el bloqueo por edad mínima de TMP-SMX y
+     * nitrofurantoína. El propio archivo ya trataba bien el mismo hueco en la
+     * función de al lado: `edadEnAnios` devolvía `null` desde siempre.
+     */
+    expect(edadEnMeses('no-es-fecha', '2026-07-18')).toBeNull()
   })
 })
 

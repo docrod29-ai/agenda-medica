@@ -18,16 +18,37 @@
  * por la misma compuerta compartida que el resto del shell.
  */
 
+import { usePathname } from 'next/navigation'
 import { useTema } from '@/hooks/useTema'
 import { useGrabando } from '@/hooks/useGrabando'
+
+/**
+ * DÓNDE **NO** FLOTA — Panel de Lujo PI-019.
+ *
+ * `layout.tsx` lo monta sin ninguna condición de ruta, así que el botón
+ * acompañaba al paciente en `/mi`, en `/reservar`, en `/dr`, en el aviso de
+ * privacidad y en la reseña. Con la voz del paciente de la auditoría: «un botón
+ * flotante “Tema: oscuro (clic: claro)” me acompaña y no sé qué es».
+ *
+ * Para el médico es una preferencia de su herramienta de trabajo, y por eso se
+ * queda. Para el paciente es cromo de una aplicación que él no usa: entra una
+ * vez, a ver su cita o su receta, y lo único flotante de la pantalla no tiene
+ * nada que ver con lo que vino a hacer.
+ *
+ * La lista es de PREFIJOS de superficie del paciente, no de rutas exactas:
+ * todas llevan token o identificador detrás.
+ */
+const SUPERFICIES_DEL_PACIENTE = ['/mi', '/reservar', '/dr', '/privacidad', '/resena', '/verificar']
 
 export function ThemeToggle() {
   const { modo, ciclar, montado, titulo } = useTema()
   const grabando = useGrabando()
+  const pathname = usePathname()
 
   // Evita flicker SSR: hasta montar, no renderizamos el botón.
   if (!montado) return null
   if (grabando) return null
+  if (SUPERFICIES_DEL_PACIENTE.some(p => pathname === p || pathname.startsWith(`${p}/`))) return null
 
   return (
     <button

@@ -119,10 +119,10 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
               */}
               {gest.aviso && (
                 <div role="status" style={{
-                  padding: '10px 12px', borderRadius: 9, marginBottom: 10,
+                  padding: '10px 12px', borderRadius: 10, marginBottom: 10,
                   border: '1px solid color-mix(in srgb, var(--amber) 45%, transparent)',
                   background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
-                  fontSize: 12.5, lineHeight: 1.5, color: 'var(--text)',
+                  fontSize: 12, lineHeight: 1.5, color: 'var(--text)',
                 }}>
                   <b>Revisa la fecha antes de usar esta cuenta.</b> {gest.aviso}
                 </div>
@@ -139,7 +139,7 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
                   /* Una cuenta con aviso no se pega a la nota a un clic: el
                      hallazgo decía literalmente «y se puede pegar a la nota». */
                   gest.aviso ? (
-                    <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>
+                    <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8 }}>
                       No se puede agregar a la nota mientras la cuenta no cuadre.
                     </div>
                   ) : (
@@ -157,7 +157,7 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
                 pintaba como si estuviera cerrado. Va arriba de la lista porque
                 condiciona todo lo que hay debajo.
               */}
-              <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.45, marginBottom: 6 }}>
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', lineHeight: 1.45, marginBottom: 6 }}>
                 {HITOS_PRENATALES_AVISO}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 280, overflowY: 'auto' }}>

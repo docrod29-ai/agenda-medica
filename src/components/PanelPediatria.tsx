@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Baby, Syringe, Pill, Plus, AlertTriangle, TrendingUp } from 'lucide-react'
 import {
-  FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc, evaluarTodo, edadEnMeses,
+  FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc, evaluarTodo, edadEnMeses, edadEnDias,
   libraAKg, revisarPesoPediatrico, type UnidadPeso,
 } from '@/lib/expediente/pediatria'
 
@@ -37,8 +37,20 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
   const [unidadPeso, setUnidadPeso] = useState<UnidadPeso>('kg')
   const [pesoConfirmado, setPesoConfirmado] = useState(false)
   const [talla, setTalla] = useState('')
-  const mesesIniciales = fechaNacimiento
-    ? String(edadEnMeses(fechaNacimiento, new Date().toISOString().slice(0, 10)))
+  /**
+   * MP-010 — UNA FECHA ILEGIBLE DEJA EL CAMPO VACÍO, NO EN CERO.
+   *
+   * `edadEnMeses` devolvía `0` ante una fecha que no se puede leer, y ese cero
+   * se sembraba aquí como la edad del paciente: vacunas todas pendientes,
+   * percentil del mes 0, y dos fármacos bloqueados por edad mínima. Ahora
+   * devuelve `null` —igual que `edadEnAnios`, que ya lo hacía— y el campo se
+   * queda vacío para que lo llene quien sí lo sabe.
+   */
+  const mesesDeLaFecha = fechaNacimiento
+    ? edadEnMeses(fechaNacimiento, new Date().toISOString().slice(0, 10))
+    : null
+  const mesesIniciales = mesesDeLaFecha != null
+    ? String(mesesDeLaFecha)
     : (edadAnios != null ? String(Math.round(edadAnios * 12)) : '')
   const [meses, setMeses] = useState(mesesIniciales)
   const [busca, setBusca] = useState('')
@@ -52,15 +64,33 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
   useEffect(() => { setPesoConfirmado(false) }, [peso, unidadPeso])
   const edadMeses = Number(meses)
 
+  /**
+   * LOS DÍAS DE VIDA LLEGAN AL MOTOR — Panel de Lujo MP-003.
+   *
+   * El panel sólo sabía la edad en MESES, y «≤7 días» es irrepresentable en
+   * meses: por eso la pauta neonatal de gentamicina no podía acotarse y se
+   * ofrecía —o no— por la primera coincidencia de nombre. Cuando el expediente
+   * trae la fecha de nacimiento, aquí se saben los días exactos y se le pasan al
+   * motor; sin ella, el motor lo dice y no elige (`noAplicaPorEdad`), en vez de
+   * adivinar entre dos dosis distintas del mismo antibiótico.
+   *
+   * El campo de meses editable a mano se conserva: hay consultas en las que la
+   * fecha no está en el expediente y el médico la sabe. Lo que no puede pasar es
+   * que un dato que SÍ tenemos no llegue.
+   */
+  const diasDeVida = fechaNacimiento
+    ? edadEnDias(fechaNacimiento, new Date().toISOString().slice(0, 10))
+    : null
+
   const dosis = useMemo(() => {
     if (!(pesoKg > 0) || pesoBloqueado) return []   // sin dosis hasta confirmar el peso
     const q = busca.trim().toLowerCase()
     const edad = meses !== '' && edadMeses >= 0 ? edadMeses : undefined
     return FARMACOS_PED
       .filter(f => !q || f.nombre.toLowerCase().includes(q))
-      .map(f => calcularDosisPediatrica(f, pesoKg, edad))
+      .map(f => calcularDosisPediatrica(f, pesoKg, edad, diasDeVida ?? undefined))
       .filter(Boolean)
-  }, [pesoKg, pesoBloqueado, busca, meses, edadMeses])
+  }, [pesoKg, pesoBloqueado, busca, meses, edadMeses, diasDeVida])
 
   const vacunas = useMemo(
     () => (edadMeses >= 0 && meses !== '' ? vacunasSegunEdad(edadMeses) : []),

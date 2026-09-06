@@ -41,7 +41,10 @@ export default function IndicadoresPage() {
 
   useEffect(() => {
     if (!clinicId) return
-    setLoading(true)
+    /* El `setLoading(true)` que había aquí encadenaba un render de más y lo
+       marcaba el compilador de React: el estado ya nace en `true` y sólo hace
+       falta volver a levantarlo cuando se reintenta, que es lo que hace el
+       botón. */
     getInternamientos(clinicId)
       .then(r => { setTodos(r); setFalloAlLeer(undefined) })
       .catch((e: unknown) => { setFalloAlLeer(e ?? new Error('lectura fallida')) })
@@ -84,7 +87,7 @@ export default function IndicadoresPage() {
         <NoSePudoLeer
           que="los episodios de hospitalización"
           error={falloAlLeer}
-          alReintentar={() => setIntento(n => n + 1)}
+          alReintentar={() => { setLoading(true); setIntento(n => n + 1) }}
         />
       )}
 

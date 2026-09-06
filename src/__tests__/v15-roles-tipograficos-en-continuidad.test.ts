@@ -81,7 +81,14 @@ describe('ContinuidadPanel habla los roles de VISUAL_DNA §2', () => {
   })
 
   it('el pie «+N más» es .nx-meta, no un fontSize 12 inline', () => {
-    expect(PANEL).toMatch(/className="nx-meta"[^>]*>\s*\+\{ordenadas\.length - TOPE_VISIBLE\}/)
+    /*
+     * ZC-006 cambió el TEXTO de este pie —decía «+N más en el worklist», la
+     * palabra del código y no la del médico— y de paso le dio plural de verdad.
+     * Lo que este caso protege no es el texto sino el ROL tipográfico: que sea
+     * `.nx-meta` y no un `fontSize` en línea. Se afloja el patrón lo justo para
+     * que siga midiendo eso y no la redacción.
+     */
+    expect(PANEL).toMatch(/className="nx-meta"[\s\S]{0,220}?\+\{plural\(ordenadas\.length - TOPE_VISIBLE/)
   })
 
   it('los tamaños inline que esta rebanada retiró no vuelven (deriva contra la escala)', () => {

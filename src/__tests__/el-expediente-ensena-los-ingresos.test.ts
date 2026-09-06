@@ -106,7 +106,23 @@ describe('lo que NO hace, y es deliberado', () => {
      * que la lectura falló, sin abrir una segunda consulta) — mismo
      * comportamiento de "null ≠ vacío", forma de código distinta.
      */
-    expect(comp).toMatch(/\.catch\(\(\) => \{ if \(vivo\) \{ setLista\(null\); onCargadoRef\.current\?\.\(null\) \} \}\)/)
+    /**
+     * ── ESTA ASERCIÓN SE AMPLIÓ (Panel de Lujo ZC-005) ─────────────────────
+     *
+     * Antes exigía las dos líneas juntas: que el `catch` guardara `null` y que
+     * el `if` de abajo tratara ese `null` como el vacío. Las dos eran ciertas y
+     * las dos juntas fijaban el defecto — el componente NO enseñaba una lista
+     * vacía, es verdad, pero tampoco enseñaba nada, que para quien mira es lo
+     * mismo. El caso se llamaba «no enseña una lista vacía» y comprobaba que no
+     * enseñara NADA.
+     *
+     * Ahora el fallo tiene estado propio y se pinta con `NoSePudoLeer`, antes de
+     * cualquier rama de vacío. El orden lo vigila
+     * `no-se-pudo-leer-no-es-no-hay-nada.test.ts`.
+     */
+    expect(comp).toMatch(/setFalloAlLeer\(e \?\? new Error\('lectura fallida'\)\)/)
+    expect(comp).toMatch(/onCargadoRef\.current\?\.\(null\)/)
+    expect(comp).toMatch(/<NoSePudoLeer[\s\S]*?que="sus ingresos hospitalarios"/)
     expect(comp).toMatch(/if \(!lista \|\| lista\.length === 0\) return null/)
     expect(POR_QUE_NULL_NO_ES_VACIO).toMatch(/nunca estuvo ingresado/)
   })
@@ -116,8 +132,12 @@ describe('lo que NO hace, y es deliberado', () => {
      * Con `[p]` se redispara en cada render y relee Firestore sin que nada
      * haya cambiado. Ya lo marcó el compilador en la bandeja de alertas
      * (REG-256); no se repite.
+     *
+     * ZC-005 añadió `intento` a las dependencias — el contador del botón
+     * «Reintentar» — y es una dependencia por VALOR igual que las otras tres:
+     * sólo cambia cuando alguien pulsa, no en cada render.
      */
-    expect(comp).toMatch(/\}, \[clinicId, patientId, cargar\]\)/)
+    expect(comp).toMatch(/\}, \[clinicId, patientId, cargar, intento\]\)/)
   })
 })
 

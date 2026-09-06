@@ -41,8 +41,21 @@ export interface FotoClinica {
 export const REGIONES_AGRUPADAS: { grupo: string; regiones: string[] }[] = [
   { grupo: 'Cabeza y cuello', regiones: ['Cara', 'Cuero cabelludo', 'Cuello'] },
   { grupo: 'Tronco', regiones: ['Tórax anterior', 'Tórax posterior', 'Abdomen', 'Espalda', 'Glúteos'] },
-  { grupo: 'Extremidad superior', regiones: ['Hombro derecho', 'Hombro izquierdo', 'Brazo derecho', 'Brazo izquierdo', 'Antebrazo derecho', 'Antebrazo izquierdo', 'Mano derecha', 'Mano izquierda'] },
-  { grupo: 'Extremidad inferior', regiones: ['Muslo derecho', 'Muslo izquierdo', 'Pierna derecha', 'Pierna izquierda', 'Pie derecho', 'Pie izquierdo'] },
+  /**
+   * LAS ARTICULACIONES FALTABAN — Panel de Lujo MO-008.
+   *
+   * La lista estaba pensada para dermatología y heridas: había brazo, antebrazo,
+   * muslo y pierna, y **ninguna articulación**. Un ortopedista que fotografía una
+   * rodilla, un tobillo o un codo tenía que elegir «Otra» — y con eso se pierde
+   * el agrupado por región, que es lo único que hace comparable una serie.
+   *
+   * Todas llevan LADO explícito, como las que ya estaban: en una estructura par
+   * la región sin lado no identifica nada, y ésa es exactamente la clase de dato
+   * que este producto no deja a medias.
+   */
+  { grupo: 'Extremidad superior', regiones: ['Hombro derecho', 'Hombro izquierdo', 'Brazo derecho', 'Brazo izquierdo', 'Codo derecho', 'Codo izquierdo', 'Antebrazo derecho', 'Antebrazo izquierdo', 'Muñeca derecha', 'Muñeca izquierda', 'Mano derecha', 'Mano izquierda'] },
+  { grupo: 'Extremidad inferior', regiones: ['Cadera derecha', 'Cadera izquierda', 'Muslo derecho', 'Muslo izquierdo', 'Rodilla derecha', 'Rodilla izquierda', 'Pierna derecha', 'Pierna izquierda', 'Tobillo derecho', 'Tobillo izquierdo', 'Pie derecho', 'Pie izquierdo'] },
+  { grupo: 'Columna', regiones: ['Columna cervical', 'Columna dorsal', 'Columna lumbar'] },
   { grupo: 'Genital y perianal', regiones: ['Región inguinal', 'Región perianal'] },
   { grupo: 'Por tipo de lesión', regiones: ['Herida quirúrgica', 'Úlcera', 'Otra'] },
 ]

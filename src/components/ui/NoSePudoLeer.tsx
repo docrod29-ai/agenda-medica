@@ -75,13 +75,13 @@ export function NoSePudoLeer({ que, error, alReintentar, variante = 'bloque' }: 
         display: 'flex', alignItems: 'flex-start', gap: 10,
         padding: variante === 'linea' ? '9px 12px' : '13px 15px',
         marginBottom: variante === 'linea' ? 0 : 16,
-        borderRadius: 11,
+        borderRadius: 10,
         border: '1px solid color-mix(in srgb, var(--amber) 40%, var(--border))',
         background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
       }}
     >
       <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
-      <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
+      <div style={{ flex: 1, minWidth: 0, fontSize: 14, lineHeight: 1.55, color: 'var(--text)' }}>
         <strong>{encabezado}</strong>
         {porque ? ` ${porque}` : ''}
         {/*
@@ -89,7 +89,7 @@ export function NoSePudoLeer({ que, error, alReintentar, variante = 'bloque' }: 
           NO es la respuesta. Sin esta frase, el médico lee el hueco como «no
           hay nada» — que es lo que pasaba antes.
         */}
-        <div style={{ color: 'var(--text3)', marginTop: 4, fontSize: 12.5 }}>
+        <div style={{ color: 'var(--text3)', marginTop: 4, fontSize: 12 }}>
           Lo que ves abajo no está completo: puede haber información que no se cargó.
         </div>
       </div>
@@ -100,7 +100,7 @@ export function NoSePudoLeer({ que, error, alReintentar, variante = 'bloque' }: 
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
             minHeight: 44, minWidth: 44, padding: '0 12px',
-            background: 'var(--s3)', color: 'var(--text)', font: 'inherit', fontSize: 13,
+            background: 'var(--s3)', color: 'var(--text)', font: 'inherit', fontSize: 14,
             border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', cursor: 'pointer',
           }}
         >

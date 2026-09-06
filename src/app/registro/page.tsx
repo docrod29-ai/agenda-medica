@@ -283,7 +283,7 @@ function RegistroInner() {
             precio siga saliendo de `PLANES`, no de un número tecleado.
           */}
           <p style={{
-            fontSize: 13, color: 'var(--text2)', lineHeight: 1.55, margin: '0 0 16px',
+            fontSize: 14, color: 'var(--text2)', lineHeight: 1.55, margin: '0 0 16px',
             padding: '10px 12px', borderRadius: 10,
             background: 'var(--nexus-soft)',
             border: '1px solid color-mix(in srgb, var(--nexus) 22%, transparent)',

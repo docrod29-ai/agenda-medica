@@ -132,11 +132,35 @@ export function queFaltaParaCerrar(e: EstadoAlCerrar): PasoDeCierre[] {
     ruta: `/citas?d=${seg}`,
   })
 
+  /**
+   * EL PASO DEL COBRO DEJA DE SER UN BOTÓN MUERTO — Panel de Lujo ZC-007 (P2).
+   *
+   * ── QUÉ FALLABA ────────────────────────────────────────────────────────────
+   *
+   * `ruta: null` hacía que `ComoCerrarLaConsulta` pintara el paso como un botón
+   * DESHABILITADO y sin ninguna explicación. Y no era una limitación temporal:
+   * el único disparador del modal de cobro corre una sola vez, al firmar
+   * (`if (config?.pedirCobroAlCerrar === true) setCobrar(true)`), así que si el
+   * médico cerró ese modal ya no había forma de volver a él desde la consulta.
+   * Un callejón sin salida con la etiqueta de una tarea pendiente.
+   *
+   * ── CÓMO SE REPARA, Y POR QUÉ ASÍ ──────────────────────────────────────────
+   *
+   * El comentario de la propia pantalla de consulta ya decía cuál es la vía
+   * normal: **cobra la asistente, desde la ficha de la cita en Citas**. Eso no
+   * era un hueco, era una decisión — lo que faltaba era decírselo al médico. El
+   * paso lleva ahora la ruta a la agenda del día y su porqué, así que el botón
+   * hace algo y explica qué.
+   *
+   * No se abre un segundo disparador del modal de cobro dentro de la consulta:
+   * sería una segunda vía para el mismo acto, y el corte de caja acabaría con
+   * dos sitios donde se registra un cobro.
+   */
   if (e.pideCobro) out.push({
     que: 'cobro',
-    titulo: 'Registrar el cobro',
+    titulo: 'Registrar el cobro en la cita',
     siNoSeHace: 'La consulta no aparece en el corte del día.',
-    ruta: null,
+    ruta: '/citas',
   })
 
   out.push({

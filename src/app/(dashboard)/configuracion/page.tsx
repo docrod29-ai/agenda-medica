@@ -818,7 +818,7 @@ export default function ConfiguracionPage() {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44,
                       padding: '0 14px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
-                      background: 'var(--s3)', color: 'var(--text)', font: 'inherit', fontSize: 13,
+                      background: 'var(--s3)', color: 'var(--text)', font: 'inherit', fontSize: 14,
                       border: '1px solid var(--border)',
                     }}
                   >
@@ -1911,10 +1911,11 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
 
             `planInfo.price` es siempre `${precioTexto(PLANES[c])} MXN/mes`, y
             esta pantalla SABE el ciclo: `cicloActual` está tres líneas más
-            arriba y se usaba sólo para el checkout. Un cliente anual leía
-            «$1,590 MXN/mes» en la única pantalla donde comprueba qué paga, y el
-            comentario de esta misma sección ya decía por qué eso importa: «quien
-            lo descubre es él, comparando con su recibo».
+            arriba y se usaba sólo para el checkout. Un cliente anual leía el
+            importe MENSUAL de su plan, con la coletilla «/mes», en la única
+            pantalla donde comprueba qué paga; y el comentario de esta misma
+            sección ya decía por qué eso importa: «quien lo descubre es él,
+            comparando con su recibo».
 
             El importe anual sale de `precioAnual`, que ya existe en el catálogo.
             No se teclea ninguna cifra.
