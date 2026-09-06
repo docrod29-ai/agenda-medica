@@ -43,6 +43,10 @@ import {
   hayAlgoQuePerder, guardarRespaldoLocal, signosConValor,
   AVISO_SIN_ESPACIO, type EstadoDelBorrador,
 } from '@/lib/expediente/el-borrador-no-se-pierde'
+import {
+  avisosDeCaptura, leerCifraTecleada, pareceLibras, pareceKilos,
+  SIN_RANGO_DECLARADO, POR_QUE_LA_FC_NO_SE_VIGILA, type UnidadDePeso,
+} from './signos-que-se-capturan'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
@@ -136,7 +140,7 @@ import { alergenosDe, alergiasDe, laLecturaAnadeAlgo } from '@/lib/seguridad/ale
 
 import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
 
-import { vacunasSegunEdad, edadEnAnios } from '@/lib/expediente/pediatria'
+import { vacunasSegunEdad, edadEnAnios, edadEnMeses, libraAKg, revisarPesoPediatrico } from '@/lib/expediente/pediatria'
 import { rotulo } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 
@@ -735,6 +739,36 @@ export default function ConsultaActivaPage() {
     }
     return out as SignosVitales
   }, [signos])
+  /**
+   * ── EL PESO SE TECLEA CON SU UNIDAD A LA VISTA (MP-006 · ASN-005) ─────────
+   *
+   * `signos.peso` guarda SIEMPRE kilos —lo dice el tipo y lo asume todo lo que
+   * hay aguas abajo: la hoja del paciente, la nota, la receta y la verificación
+   * mg/kg—. Lo que faltaba era decir en qué unidad se está tecleando: la única
+   * pista era el marcador de posición «kg», que desaparece con el primer
+   * dígito, así que «154 lb» entraba como 154 kilos sin que nadie lo dijera.
+   *
+   * El selector es el mismo patrón que el panel de pediatría resolvió en L6.2
+   * (decisión del Dr.): unidad EXPLÍCITA, conversión visible, sin auto-detectar
+   * por magnitud. Lo tecleado vive aquí; lo convertido va a `signos`.
+   */
+  const [unidadPeso, setUnidadPeso] = useState<UnidadDePeso>('kg')
+  const [pesoEntrada, setPesoEntrada] = useState('')
+  /** Último valor en kg que escribió esta pantalla: distingue lo propio de lo ajeno. */
+  const pesoEscritoRef = useRef('')
+  /** Lo que se descartó al teclear, para poder decirlo (nada cambia en silencio). */
+  const [avisoDeTecla, setAvisoDeTecla] = useState<{ campo: string; texto: string; libras?: boolean } | null>(null)
+  const [pesoConfirmado, setPesoConfirmado] = useState(false)
+  /**
+   * EL PESO PREVIO ES EL PREVIO, NO EL DE HOY (MP-006).
+   *
+   * `revisarPesoPediatrico` detecta el error lb→kg comparando con la medición
+   * anterior. El panel recibía como «previo» el peso de HOY, así que la razón
+   * era 1 y la detección ×2.2 no podía saltar nunca. Sale de la última nota
+   * firmada que traiga peso, con su fecha para poder enseñarla.
+   */
+  const [pesoPrevio, setPesoPrevio] = useState<{ kg: number; fecha: string } | null>(null)
+
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([])
 
   // El panel perioperatorio solo estorba en una consulta que no es quirúrgica:
@@ -751,6 +785,56 @@ export default function ConsultaActivaPage() {
    * capturado: sin dato no se asume.
    */
   const esGineco = /^f/i.test(patient?.sexo ?? '') && (patient?.edad ?? 0) >= 10 && (patient?.edad ?? 0) <= 60
+
+  /**
+   * El campo de peso se resincroniza cuando el valor viene de FUERA (respaldo
+   * restaurado, dictado, nota recargada): eso siempre son kilos, así que el
+   * selector vuelve a kg. Si el valor lo escribió esta misma pantalla no se
+   * toca — sería pisarle la unidad al médico mientras teclea.
+   */
+  useEffect(() => {
+    const kg = signos.peso == null || signos.peso === ('' as unknown) ? '' : String(signos.peso)
+    if (kg === pesoEscritoRef.current) return
+    pesoEscritoRef.current = kg
+    setPesoEntrada(kg)
+    setUnidadPeso('kg')
+  }, [signos.peso])
+
+  /** Escribe el peso en kilos a partir de lo tecleado y de la unidad elegida. */
+  const escribirPeso = useCallback((texto: string, unidad: UnidadDePeso) => {
+    const n = Number(texto)
+    const kg = texto === '' || !Number.isFinite(n) || n <= 0
+      ? texto
+      : unidad === 'lb' ? String(Math.round(libraAKg(n) * 100) / 100) : texto
+    pesoEscritoRef.current = kg
+    setPesoEntrada(texto)
+    setPesoConfirmado(false)
+    setSignos(s => ({ ...s, peso: (kg === '' ? undefined : kg) as unknown as number }))
+  }, [])
+
+  /**
+   * ── EL ALTO EN SECO DEL PESO, TAMBIÉN AQUÍ (MP-006) ───────────────────────
+   *
+   * `revisarPesoPediatrico` (REG-013) tenía UN llamador en toda la aplicación:
+   * el panel de pediatría. El peso que de verdad alimenta la verificación mg/kg
+   * de esta pantalla —y el que la receta lee de la nota— es éste, y no pasaba
+   * por ninguna guarda. Se revisa antes de usarlo y, mientras no esté
+   * confirmado, NO se calcula nada por kilo: el hueco se ve, no se rellena.
+   */
+  const revisionDelPeso = useMemo(() => {
+    const kg = typeof signosNum.peso === 'number' ? signosNum.peso : NaN
+    if (!esPediatrico || !(kg > 0)) return { ok: true } as ReturnType<typeof revisarPesoPediatrico>
+    return revisarPesoPediatrico(kg, pesoPrevio?.kg)
+  }, [signosNum.peso, esPediatrico, pesoPrevio])
+  const pesoBloqueado = !revisionDelPeso.ok && !pesoConfirmado
+  /** El peso que sale de la pantalla hacia los motores por kilo. */
+  const pesoParaDosis = pesoBloqueado ? undefined : (signosNum.peso ?? undefined)
+
+  /** Lo que hay que preguntarle al médico sobre lo que acaba de capturar (ASN-002). */
+  const avisosDeSignos = useMemo(
+    () => avisosDeCaptura(signos as unknown as Record<string, unknown>),
+    [signos],
+  )
 
   /** Pega un texto en su sección de la nota (crea la sección si no existía). */
   /**
@@ -850,10 +934,33 @@ export default function ConsultaActivaPage() {
 
   // Vacunas atrasadas para la edad: se calcula aquí para que la barra lo avise
   // SIN tener que abrir la herramienta (es lo que no se debe pasar por alto).
-  const vacunasAtrasadas = useMemo(() => {
-    if (!esPediatrico || patient?.edad == null) return 0
-    return vacunasSegunEdad(Math.round(patient.edad * 12)).filter(v => v.estado === 'atrasada').length
-  }, [esPediatrico, patient?.edad])
+  /**
+   * ── LA EDAD EN MESES, DE VERDAD (MP-002) ──────────────────────────────────
+   *
+   * `Math.round(edad * 12)` colapsa a 0 en todo lactante —un niño de 11 meses
+   * tiene `edad: 0`— y `vacunasSegunEdad(0)` no devuelve nada: la barra callaba
+   * justo en la franja con más vacunas, mientras el panel, abierto a mano, decía
+   * otra cifra. El propio `PanelPediatria` ya lo evitaba con `edadEnMeses`; la
+   * barra no. Ahora las dos derivan igual, y con la fecha del consultorio.
+   */
+  const edadEnMesesDelPaciente = useMemo(() => {
+    if (patient?.fechaNacimiento) return edadEnMeses(patient.fechaNacimiento, hoyISO())
+    return patient?.edad != null ? Math.round(patient.edad * 12) : null
+  }, [patient?.fechaNacimiento, patient?.edad])
+
+  /**
+   * ── «CORRESPONDEN POR EDAD», NO «ATRASADAS» (MP-011) ──────────────────────
+   *
+   * La app NO tiene registro de qué se aplicó (`vacunasSegunEdad` se llama
+   * siempre sin `aplicadas`), así que afirmar «atrasadas» en rojo es afirmar un
+   * hecho clínico que nadie verificó — regla 4: ausencia de dato no es dato de
+   * ausencia. El panel ya había corregido ese texto en la auditoría de 2026-07;
+   * la barra seguía diciendo lo contrario dos centímetros más arriba.
+   */
+  const vacunasQueCorresponden = useMemo(() => {
+    if (!esPediatrico || edadEnMesesDelPaciente == null) return 0
+    return vacunasSegunEdad(edadEnMesesDelPaciente).filter(v => v.estado === 'atrasada').length
+  }, [esPediatrico, edadEnMesesDelPaciente])
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
 
   /**
@@ -2058,6 +2165,20 @@ export default function ConsultaActivaPage() {
         ))
         const ultima = firmadas.map(n => n.fecha).filter(Boolean).sort().pop()
         setUltimaVisita(ultima)
+        /**
+         * EL PESO DE LA CONSULTA ANTERIOR (MP-006). La comparación lb/kg de
+         * `revisarPesoPediatrico` sólo dice algo si el «previo» es de verdad
+         * previo: la nota abierta se excluye arriba, en `firmadas`.
+         */
+        const conPeso = ns
+          .filter(n => n.estado === 'firmada' && n.id !== notaIdRef.current)
+          .map(n => ({
+            fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+            kg: Number(n.signosVitales?.peso ?? NaN),
+          }))
+          .filter(n => Number.isFinite(n.kg) && n.kg > 0 && !!n.fecha)
+          .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        setPesoPrevio(conPeso.length ? conPeso[conPeso.length - 1] : null)
         /**
          * LEARN — lo que el médico corrigió a mano deja de perderse.
          *
@@ -6368,7 +6489,9 @@ export default function ConsultaActivaPage() {
             // REG-524: la fecha de nacimiento manda sobre la edad congelada, y
             // sin ninguna se pasa `undefined` — nunca se supone adulto.
             edadAnios: edadParaDosificar(patient).edad ?? undefined,
-            pesoKg: signosNum.peso ?? undefined,
+            // MP-006: el peso ya pasó por `revisarPesoPediatrico`; si está en
+            // duda llega `undefined` y el motor no calcula por kilo (lo dice).
+            pesoKg: pesoParaDosis,
             // REG-528: «Tempra» vigente en el expediente + «paracetamol» hoy se dice.
             yaToma: medsDelCuadro.filter(m => !m.deHoy),
           }).map(d => ({
@@ -6785,7 +6908,7 @@ export default function ConsultaActivaPage() {
                 <label htmlFor={`signo-${k}`} style={S.miniLabel}>{label}</label>
                 <input
                   id={`signo-${k}`}
-                  value={(signos[k] as string | number | undefined) ?? ''}
+                  value={k === 'peso' ? pesoEntrada : ((signos[k] as string | number | undefined) ?? '')}
                   /**
                    * DECIMALES. Esto hacía `Number(e.target.value)` en cada tecla:
                    * al escribir "70." el valor pasaba a 70, el input controlado se
@@ -6797,22 +6920,138 @@ export default function ConsultaActivaPage() {
                    * construcción (se acepta la coma y se normaliza a punto), y la
                    * conversión a número ocurre al construir la nota.
                    */
-                  onChange={e => setSignos(s => {
-                    if (k === 'ta') return { ...s, [k]: e.target.value }
-                    const v = e.target.value.replace(',', '.')
-                    if (v === '') return { ...s, [k]: undefined }
-                    if (!/^\d*\.?\d*$/.test(v)) return s      // ignora la tecla inválida
-                    return { ...s, [k]: v }
-                  })}
+                  /**
+                   * LO QUE NO ENTRA, SE DICE (ASN-005). Antes la tecla inválida
+                   * se descartaba en silencio: «154 lb» quedaba «154» y viajaba
+                   * como kilos a la verificación mg/kg. Ahora se conserva el
+                   * número, se dice qué se quitó y —si eran libras— se ofrece
+                   * cambiar la unidad en vez de adivinarla.
+                   */
+                  onChange={e => {
+                    if (k === 'ta') { setSignos(s => ({ ...s, [k]: e.target.value })); return }
+                    const { valor, descartado } = leerCifraTecleada(e.target.value)
+                    if (descartado) {
+                      const libras = k === 'peso' && pareceLibras(descartado)
+                      setAvisoDeTecla({
+                        campo: k,
+                        texto: libras
+                          ? `Se ignoró «${descartado}»: el campo está en kilos.`
+                          : pareceKilos(descartado) && k === 'peso'
+                            ? 'Se ignoró «' + descartado + '»: el campo ya está en kilos.'
+                            : `Se ignoró «${descartado}»: aquí sólo van cifras.`,
+                        libras,
+                      })
+                    } else if (avisoDeTecla?.campo === k) setAvisoDeTecla(null)
+                    if (valor === null) return
+                    if (k === 'peso') { escribirPeso(valor, unidadPeso); return }
+                    setSignos(s => ({ ...s, [k]: (valor === '' ? undefined : valor) as unknown as number }))
+                  }}
                 // Teclado numérico en el teléfono: sin esto salía el QWERTY completo
                 // para capturar FC, peso o talla. La TA lleva 'numeric' y no 'decimal'
                 // porque necesita la diagonal de "120/80".
                 inputMode={k === 'ta' ? 'numeric' : ['temperatura', 'peso', 'talla'].includes(k) ? 'decimal' : 'numeric'}
                   placeholder={ph} disabled={firmada} style={S.miniInput}
                 />
+                {/* La unidad del peso, VISIBLE y elegida — no un marcador que
+                    desaparece (ASN-005 · MP-006). Se guarda siempre en kilos. */}
+                {k === 'peso' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                    <select
+                      aria-label="Unidad del peso"
+                      value={unidadPeso}
+                      disabled={firmada}
+                      onChange={e => { const u = e.target.value as UnidadDePeso; setUnidadPeso(u); escribirPeso(pesoEntrada, u) }}
+                      style={{ ...S.miniInput, width: 62, padding: '4px 6px' }}
+                    >
+                      <option value="kg">kg</option>
+                      <option value="lb">lb</option>
+                    </select>
+                    {unidadPeso === 'lb' && Number(pesoEntrada) > 0 && (
+                      <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>
+                        = {(Math.round(libraAKg(Number(pesoEntrada)) * 100) / 100)} kg (así se guarda)
+                      </span>
+                    )}
+                  </div>
+                )}
+                {avisoDeTecla?.campo === k && (
+                  <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 4, lineHeight: 1.4 }}>
+                    {avisoDeTecla.texto}{' '}
+                    {avisoDeTecla.libras && (
+                      <button
+                        type="button"
+                        onClick={() => { setUnidadPeso('lb'); escribirPeso(pesoEntrada, 'lb'); setAvisoDeTecla(null) }}
+                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--nexus)', fontWeight: 700, fontSize: 10.5, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        capturar en libras
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
+
+          {/*
+            ── ¿LO CAPTURASTE BIEN? (ASN-002) ───────────────────────────────
+            Pregunta, no corrige y no bloquea: el valor se queda tal como se
+            tecleó. Las bandas son de lo POSIBLE y salen de donde ya vivían en
+            el repositorio (ver `signos-que-se-capturan.ts`); no son criterio
+            clínico ni rango de normalidad.
+          */}
+          {avisosDeSignos.length > 0 && (
+            <div style={{
+              marginTop: 10, borderRadius: 10, padding: '10px 12px',
+              border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+              background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--amber)' }}>
+                <AlertTriangle size={14} /> Revisa lo capturado antes de seguir
+              </div>
+              <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
+                {avisosDeSignos.map((a, i) => <li key={`${a.campo}-${i}`}>{a.texto}</li>)}
+              </ul>
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.45 }}>
+                {POR_QUE_LA_FC_NO_SE_VIGILA}
+              </div>
+            </div>
+          )}
+
+          {/*
+            ── EL ALTO EN SECO DEL PESO (MP-006 · REG-013) ───────────────────
+            Mientras el peso no esté confirmado NO se calcula nada por kilo, y
+            se dice que no se está calculando. No se corrige el valor: se
+            pregunta.
+          */}
+          {pesoBloqueado && (
+            <div style={{
+              marginTop: 10, borderRadius: 10, padding: '11px 13px',
+              border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)',
+              background: 'color-mix(in srgb, var(--red) 7%, transparent)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--red)', marginBottom: 3 }}>
+                    Verifica el peso antes de calcular dosis por kilo
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>
+                    {revisionDelPeso.motivo}
+                    {pesoPrevio && ` (el peso anterior es del ${formatDateMX(pesoPrevio.fecha)}).`}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, lineHeight: 1.45 }}>
+                    Mientras tanto la revisión de dosis por kilo de esta consulta no corre.
+                  </div>
+                  {!firmada && (
+                    <button type="button" onClick={() => setPesoConfirmado(true)}
+                      className="nx-acc-caja"
+                      style={{ marginTop: 9, border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}>
+                      Confirmar peso: {signosNum.peso} kg
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </Section>
       )}
 
@@ -7121,13 +7360,17 @@ export default function ConsultaActivaPage() {
         ...(esPediatrico ? [{
           id: 'pediatria', nombre: 'Pediatría', color: 'var(--purple)', icono: <Baby size={14} />,
           para: 'Dosis por peso con tope de adulto · vacunación',
-          aviso: vacunasAtrasadas > 0
-            ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
+          aviso: vacunasQueCorresponden > 0
+            ? { texto: `${vacunasQueCorresponden} vacuna${vacunasQueCorresponden > 1 ? 's' : ''} corresponde${vacunasQueCorresponden > 1 ? 'n' : ''} por edad · verifica cartilla` }
             : undefined,
-          abrirPorDefecto: vacunasAtrasadas > 0,
+          abrirPorDefecto: false,
           contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
             fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
-            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
+            /* MP-006: el previo es el de la última nota firmada con peso, no el de hoy. */
+            pesoPrevio={pesoPrevio?.kg} fechaDelPesoPrevio={pesoPrevio?.fecha}
+            hoy={hoyISO()}
+            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')}
+            onRecetar={med => setMedicamentos(prev => [...prev, med])} />,
         }] : []),
         ...(calcSugeridas.length > 0 ? [{
           id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
