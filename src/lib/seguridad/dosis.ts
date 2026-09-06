@@ -464,8 +464,19 @@ const RE_VOLUMEN = /\d\s*(ml|mililitros?|l|litros?|c\.?\s?c\.?|cc|gotas?|gts)\b/
 /**
  * Formas farmacéuticas y unidades biológicas: «1 tableta» no es ambiguo — la
  * presentación lleva la dosis y quien dispensa sabe cuál es.
+ *
+ * LAS GOTAS van aquí, no en el volumen: es lo que este módulo declaraba en
+ * prosa desde el principio (««2 gotas» es una presentación») y lo que su prueba
+ * exigía, aunque el patrón las tuviera del otro lado. Al darle aviso propio al
+ * volumen (MP-005) esa contradicción dejó de ser inofensiva, así que la
+ * clasificación se alinea con lo que el módulo dice de sí mismo.
+ *
+ * QUÉ NO CUBRE, dicho aquí para que nadie lo dé por vigilado: unas gotas orales
+ * pediátricas SÍ dependen de la concentración («100 mg/mL» frente a
+ * «80 mg/0.8 mL»). Pedirla en cada colirio sería ruido, y decidir dónde va la
+ * raya entre una cosa y otra es criterio clínico: NEEDS_CLINICAL_REVIEW.
  */
-const RE_FORMA = /\d\s*(tabletas?|tabs?|comprimidos?|caps?|c[áa]psulas?|grageas?|[áa]mpulas?|ampolletas?|frascos?|sobres?|sachets?|supositorios?|[óo]vulos?|parches?|puffs?|disparos?|inhalaci[óo]n(?:es)?|aplicaci[óo]n(?:es)?|nebulizaci[óo]n(?:es)?|u\.?i\.?|ui|unidades?|u|meq|mmol)\b/i
+const RE_FORMA = /\d\s*(tabletas?|tabs?|comprimidos?|caps?|c[áa]psulas?|grageas?|[áa]mpulas?|ampolletas?|frascos?|sobres?|sachets?|supositorios?|[óo]vulos?|parches?|puffs?|disparos?|inhalaci[óo]n(?:es)?|aplicaci[óo]n(?:es)?|nebulizaci[óo]n(?:es)?|gotas?|gts|microgotas?|u\.?i\.?|ui|unidades?|u|meq|mmol)\b/i
 /**
  * ── LA «U» SUELTA: INSULINA Y HEPARINA (REG-247) ────────────────────────────
  *
@@ -502,10 +513,23 @@ const RE_CIFRA = /\d/
 const RE_CONCENTRACION =
   /\d+(?:[.,]\d+)?\s*(mcg|µg|ug|mg|g|gr|ui|u\.?i\.?|meq|mmol)\s*(?:\/|por|en)\s*\d*(?:[.,]\d+)?\s*(ml|mililitros?|l|litros?|cc|c\.?\s?c\.?|gotas?|dosis|aplicaci[óo]n(?:es)?|puffs?|disparos?)\b/i
 
-/** ¿El texto dice de qué concentración es el volumen? Puro. */
+/**
+ * ── LA VELOCIDAD DE INFUSIÓN NO ES UNA DOSIS INCOMPLETA ─────────────────────
+ *
+ * «5 mL/h» es una VELOCIDAD, y en una infusión la concentración vive en la
+ * orden de preparación, no en el renglón. Exigirle concentración a cada bomba
+ * llenaría la terapia intensiva de avisos falsos — que es exactamente lo que
+ * este módulo lleva media docena de regresiones evitando (REG-247 entre ellas).
+ *
+ * Lo cazó una prueba que ya existía cuando se cerró MP-005: sin esta excepción,
+ * el arreglo del jarabe pediátrico rompía las infusiones.
+ */
+const RE_VELOCIDAD = /\d\s*(ml|mililitros?|cc|c\.?\s?c\.?|gotas?|gts|microgotas?)\s*(\/|por\s+)\s*(h|hr|hora|min|minuto|kg)\b/i
+
+/** ¿El texto dice de qué concentración es el volumen, o es una velocidad? Puro. */
 export function tieneConcentracion(texto: string | null | undefined): boolean {
   const t = String(texto ?? '')
-  return RE_CONCENTRACION.test(t) || RE_PORCENTAJE.test(t)
+  return RE_CONCENTRACION.test(t) || RE_PORCENTAJE.test(t) || RE_VELOCIDAD.test(t)
 }
 
 /**

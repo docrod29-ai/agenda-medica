@@ -67,12 +67,48 @@ describe('lo que NO se debe avisar — para que el aviso siga significando algo'
     }
   })
 
-  it('los volúmenes son OTRO problema, no éste', () => {
-    // Un jarabe en mL necesita la concentración para validarse, pero no es
-    // ambiguo en el sentido mg/mcg: no se mezclan los dos avisos.
-    for (const d of ['5 mL', '5ml', '10 cc', '2 gotas', '15 mililitros']) {
+  /**
+   * ── EL VOLUMEN YA TIENE SU PROPIO AVISO — MP-005 ──────────────────────────
+   *
+   * Esta prueba decía «los volúmenes son OTRO problema, no éste» y exigía
+   * `null`. El criterio era bueno —no mezclar el aviso de mg/mcg con el de la
+   * concentración— pero el OTRO problema no lo atendía nadie: la auditoría
+   * «Panel de Lujo» encontró como P0 (MP-005) que «Amoxicilina 5 mL cada 8
+   * horas» se firmaba, se imprimía y llegaba al cuidador sin decir de qué
+   * presentación, y que el verificador de dosis se saltaba el renglón.
+   *
+   * Así que el volumen deja de devolver `null` y devuelve SU aviso, distinto
+   * del de la unidad ausente. El criterio original se conserva y se comprueba
+   * abajo: los dos códigos no se mezclan.
+   *
+   * QUÉ NO CUBRE: que la concentración escrita sea la correcta. Eso exige un
+   * catálogo de presentaciones que este repositorio no tiene.
+   */
+  it('el volumen sin concentración avisa, y con su propio código', () => {
+    for (const d of ['5 mL', '5ml', '10 cc', '15 mililitros']) {
+      const a = revisarUnidadDosis('Amoxicilina', d)
+      expect(a, d).not.toBeNull()
+      expect(a!.codigo, d).toBe('volumen_sin_concentracion')
+      expect(a!.severidad, d).toBe('alta')
+    }
+  })
+
+  it('con la concentración escrita, el volumen ya no avisa', () => {
+    for (const d of ['5 mL (250 mg/5 mL)', '250 mg/5 mL', '10 mL de 100 mg/mL', 'crema al 1%']) {
       expect(revisarUnidadDosis('X', d), d).toBeNull()
     }
+  })
+
+  it('una VELOCIDAD de infusión no es una dosis incompleta', () => {
+    // En una infusión la concentración vive en la orden de preparación. Pedirla
+    // en cada renglón llenaría la terapia intensiva de avisos falsos.
+    for (const d of ['5 mL/h', '20 ml/hr', '2 cc/min', '10 mL/kg/h', '30 gotas/min']) {
+      expect(revisarUnidadDosis('X', d), d).toBeNull()
+    }
+  })
+
+  it('las gotas siguen siendo una presentación, no un volumen', () => {
+    expect(revisarUnidadDosis('X', '2 gotas')).toBeNull()
   })
 
   it('las combinadas se quedan con la masa', () => {
