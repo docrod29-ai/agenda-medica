@@ -11,11 +11,11 @@
  *   - Teléfonos (MX y formatos internacionales)
  *   - Números de tarjeta (Visa, MasterCard, AmEx)
  *   - Tokens tipo Bearer / API keys (OpenAI, Anthropic, Google, GitHub) y las
- *     llaves de Stripe (`sk_live_`, `sk_test_`, `rk_live_`, `whsec_`) — REG-527
+ *     llaves de Stripe (`sk_live_`, `sk_test_`, `rk_live_`, `whsec_`) — REG-528
  *   - JWT (header.payload.signature)
  *   - Nombres de pacientes y lo que dijeron: las llaves `nombre`, `apellidos`,
  *     `pacienteNombre`, `diagnostico(s)`, `motivo`, `padecimiento`, `alergias`
- *     se redactan ENTERAS por nombre de llave (REG-527). Antes esta cabecera lo
+ *     se redactan ENTERAS por nombre de llave (REG-528). Antes esta cabecera lo
  *     prometía «en estructura conocida `paciente.nombre`» y el código no lo hacía
  *     por ninguna estructura. Sobre-redactar un log es barato; un nombre de
  *     paciente en Vercel no se puede borrar.
@@ -50,7 +50,7 @@ const PATRONES_STRING: Array<{ regex: RegExp; reemplazo: string; nombre: string 
   // Bearer / API keys conocidos
   { regex: /\b(?:Bearer\s+|sk-(?:proj-|ant-)?|AIza|ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_-]{16,}\b/gi, reemplazo: '[TOKEN]', nombre: 'TOKEN' },
 
-  // Stripe — REG-527: llave secreta, llave restringida y secreto de webhook. La
+  // Stripe — REG-528: llave secreta, llave restringida y secreto de webhook. La
   // cabecera de arriba prometía «API keys» y estas tres no las cazaba nadie.
   { regex: /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{8,}\b/g, reemplazo: '[TOKEN]', nombre: 'STRIPE' },
   { regex: /\bwhsec_[A-Za-z0-9]{8,}\b/g, reemplazo: '[TOKEN]', nombre: 'STRIPE_WEBHOOK' },
@@ -78,7 +78,7 @@ const LLAVES_SENSIBLES = new Set([
   // Datos clínicos sensibles que no deben aparecer en logs
   'transcripcion', 'transcription', 'audioblob',
   /**
-   * REG-527 — quién es el paciente y qué le pasa. La cabecera lo prometía y no
+   * REG-528 — quién es el paciente y qué le pasa. La cabecera lo prometía y no
    * estaba. Se redacta por NOMBRE DE LLAVE, sin mirar el valor: un nombre no
    * tiene forma reconocible por expresión regular. Que también borre el nombre
    * de un consultorio o de un fármaco en un log es un precio aceptable.

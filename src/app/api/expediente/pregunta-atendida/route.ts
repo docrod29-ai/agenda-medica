@@ -4,11 +4,11 @@ import { verificarCapacidad } from '@/lib/authz/verificar'
 import { safeLog } from '@/lib/security/sanitize'
 
 /**
- * MARCAR ATENDIDA UNA PREGUNTA DEL PACIENTE — REG-516 (cierra el bucle de REG-514).
+ * MARCAR ATENDIDA UNA PREGUNTA DEL PACIENTE — REG-519 (cierra el bucle de REG-517).
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────────
  *
- * Desde REG-514 toda pregunta escalada abre una tarea en `/pendientes`. El
+ * Desde REG-517 toda pregunta escalada abre una tarea en `/pendientes`. El
  * médico la atiende, la cierra con su decisión… y el portal del paciente
  * seguía diciendo «Tu consultorio la tiene pendiente de revisar» para siempre:
  * `atendidaEn` nacía en `null` y **nadie lo escribía**. La rama del portal que

@@ -117,7 +117,7 @@ jobs:
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build.appspot.com
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
           NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000'
-      # ── REG-524: la CSP se comprueba SOBRE EL ARTEFACTO, después de construirlo ──
+      # ── REG-525: la CSP se comprueba SOBRE EL ARTEFACTO, después de construirlo ──
       #
       # `csp-manifest.test.ts` lee `.next/routes-manifest.json`, que es lo que
       # Vercel consume de verdad. En el paso «Pruebas (vitest)» de arriba ese

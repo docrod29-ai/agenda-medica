@@ -89,7 +89,7 @@ describe('LA RUTA QUE DE VERDAD TRANSCRIBE LO LEE', () => {
 })
 
 describe('Y EL HOOK LAS MANDA POR LOS DOS CAMINOS', () => {
-  // REG-513: los dos caminos recorren la MISMA lista que los de Whisper.
+  // REG-516: los dos caminos recorren la MISMA lista que los de Whisper.
   it('la lista compartida lleva lo aprendido y la especialidad', () => {
     expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain('aprendidas')
     expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain('especialidades')

@@ -627,17 +627,17 @@ async function main() {
   })
 
   /**
-   * ── UN PACIENTE PARA VER LA RECETA CON EL EXPEDIENTE DETRÁS (REG-517/520/521) ──
+   * ── UN PACIENTE PARA VER LA RECETA CON EL EXPEDIENTE DETRÁS (REG-520/520/521) ──
    *
    * `pac-006` existe para que tres avisos de la pantalla de receta se puedan
    * MIRAR, no sólo leer en el código:
    *
-   *   · no tiene fecha de nacimiento ni edad → «Falta la edad» (REG-517);
+   *   · no tiene fecha de nacimiento ni edad → «Falta la edad» (REG-520);
    *   · tiene un panel de laboratorio con creatinina de hace 25 días → la
-   *     receta la precarga con su fecha y la marca caduca a 7 días (REG-520);
+   *     receta la precarga con su fecha y la marca caduca a 7 días (REG-523);
    *   · tiene una nota firmada previa con warfarina y Tempra vigentes, y la
    *     nota de hoy receta ketorolaco y paracetamol → interacción con lo que ya
-   *     toma (REG-520) y «la misma sustancia dos veces» (REG-521).
+   *     toma (REG-523) y «la misma sustancia dos veces» (REG-524).
    *
    * Va FUERA de `PACIENTES` a propósito: ese bucle escribe `fechaNacimiento`
    * siempre, y aquí la ausencia es el caso. Las cifras son sintéticas y sirven
@@ -671,7 +671,7 @@ async function main() {
     sexo: 'Masculino',
     alergias: '',
     seguroMedico: '',
-    notas: 'Sin fecha de nacimiento a propósito (arnés REG-517).',
+    notas: 'Sin fecha de nacimiento a propósito (arnés REG-520).',
     noShowCount: 0, cancelacionCount: 0,
     createdAt: iso(hoy), updatedAt: iso(hoy),
   })

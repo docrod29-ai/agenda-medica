@@ -1,5 +1,5 @@
 /**
- * LA CAPTURA LLAMADA «COMPLETA» ENSEÑABA UN TERCIO DE LA PANTALLA — REG-523.
+ * LA CAPTURA LLAMADA «COMPLETA» ENSEÑABA UN TERCIO DE LA PANTALLA — REG-514.
  *
  * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
  *

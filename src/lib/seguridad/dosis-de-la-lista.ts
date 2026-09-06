@@ -46,7 +46,7 @@ export interface ContextoPaciente {
   /** Peso en kg. Sin él no se pueden comprobar las dosis pediátricas por kg. */
   pesoKg?: number
   /**
-   * Lo que el paciente YA toma según el expediente (REG-521): un renglón de hoy
+   * Lo que el paciente YA toma según el expediente (REG-524): un renglón de hoy
    * con la misma sustancia que algo vigente se dice. Sin esto sólo se cruzan
    * los renglones de hoy entre sí.
    */
@@ -97,7 +97,7 @@ export function dosisPeligrosasDeLaLista(
     if (alertas.length) out.push({ med: nombre, alertas, severidad: peorSeveridad(alertas) })
   }
   /**
-   * REG-521 — la misma sustancia en dos renglones («Paracetamol» + «Tempra»)
+   * REG-524 — la misma sustancia en dos renglones («Paracetamol» + «Tempra»)
    * pasaba renglón a renglón. Se cruza la lista entera, y contra lo vigente.
    */
   out.push(...terapiaDuplicadaDeLaLista(medicamentos, ctx.yaToma ?? []))

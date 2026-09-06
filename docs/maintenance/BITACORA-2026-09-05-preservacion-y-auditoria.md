@@ -53,7 +53,7 @@ y, para los cuatro que se cerraron, sin **reproducirlo** primero.
 | **524 · 525 · 526** | Test-the-test: `csp-manifest` corre tras el build (antes, siempre saltada); el prompt se vigila por frases sobre lo emitido (antes, literales); la membresía del servidor tiene su primera prueba ejecutada contra un doble con id | dos rojos sin el paso de CI; el guardián viejo verde con la orden reformulada; tres mutantes de `auth-server.ts` cazados |
 | **527 · 528** | Seguridad: `sanitize` redacta nombres por llave y llaves de Stripe por patrón (su cabecera lo prometía y no lo hacía); `reclamarCanal` en transacción, con la carrera provocada en el arnés en memoria | cuatro rojos con `sanitize.ts` como estaba; la carrera la gana el segundo con `reclamar-canal.ts` como estaba |
 | **529** | Cuarenta rutas devolvían `String(err)` al cliente (la auditoría contó 25; el guardián, 46 sitios): helper que no recibe el error, detalle a `safeLog`, barrido de todas las rutas | con `src/app/api` como estaba, el barrido lista los 46 |
-| **530** | Verificación en navegador (arnés de emuladores, paciente sintético `pac-006`, sonda nueva): los avisos de REG-517/520/521 se ven; y la receta contaba su propia nota como «ya lo toma» — arreglado en receta y consulta | caso 1 rojo con la receta como estaba; la sonda lo enseñó en rojo antes del arreglo |
+| **530** | Verificación en navegador (arnés de emuladores, paciente sintético `pac-006`, sonda nueva): los avisos de REG-520/520/521 se ven; y la receta contaba su propia nota como «ya lo toma» — arreglado en receta y consulta | caso 1 rojo con la receta como estaba; la sonda lo enseñó en rojo antes del arreglo |
 
 Cada uno con su golden (qué fallaba, cómo se descubrió, causa raíz, regla, **qué
 NO cubre**), su entrada en el ledger, su familia de defecto, su sello, y las
@@ -63,12 +63,12 @@ compuertas medidas en el mensaje del commit.
 
 | | |
 |---|---|
-| `npx vitest run` | **12 755 pasan · 1 falla** · 952 archivos (tras REG-530; la falla es `ops-timeout-y-punto-ciego`, el proxy del contenedor rechaza `10.255.255.1` al instante — entorno, no árbol; en la corrida de REG-520 pasó) |
+| `npx vitest run` | **12 755 pasan · 1 falla** · 952 archivos (tras REG-531; la falla es `ops-timeout-y-punto-ciego`, el proxy del contenedor rechaza `10.255.255.1` al instante — entorno, no árbol; en la corrida de REG-523 pasó) |
 | `npx tsc --noEmit` | limpio |
-| `node scripts/lint-trinquete.mjs` | **93**, techo apretado en REG-517 |
+| `node scripts/lint-trinquete.mjs` | **93**, techo apretado en REG-520 |
 | `npm run build` | 164/164 páginas, con los placeholders del CI |
 | Sello | 476 archivos · 6 604 casos |
-| Ledger | 324 REG · última **REG-530** |
+| Ledger | 324 REG · última **REG-531** |
 
 ## Lo que se supo y no estaba escrito
 
@@ -91,4 +91,4 @@ sin llamador son una decisión nueva para el dueño (D-D en el readiness §9).
 Las tres decisiones que se le llevaron al dueño (D-A, D-B, D-C) están
 resueltas y escritas donde se leen: **D-032** (la alergia crítica sólo avisa),
 **D-033** (la pregunta viaja completa por WhatsApp) y **D-034** (la
-cancelación ARCO revoca el portal, implementada como REG-519).
+cancelación ARCO revoca el portal, implementada como REG-522).

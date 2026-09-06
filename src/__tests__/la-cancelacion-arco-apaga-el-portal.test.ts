@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { decidirVigencia } from '@/lib/portal/vigencia-del-enlace'
 
 /**
- * LA CANCELACIÓN ARCO APAGA EL PORTAL DEL PACIENTE — REG-519 · D-034.
+ * LA CANCELACIÓN ARCO APAGA EL PORTAL DEL PACIENTE — REG-522 · D-034.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -39,7 +39,7 @@ import { decidirVigencia } from '@/lib/portal/vigencia-del-enlace'
  *
  * - No ejecuta el portal después: comprueba que la versión sube y que la
  *   decisión pura de vigencia la lee como revocación. El portal ya está
- *   probado contra esa decisión (REG-331, REG-512).
+ *   probado contra esa decisión (REG-331, REG-515).
  * - No cubre el bloqueo ARCO escrito por otro camino (hoy no hay otro).
  */
 
@@ -101,7 +101,7 @@ beforeEach(() => {
   escrituras.length = 0
 })
 
-describe('REG-519 · el bloqueo ARCO revoca el portal en el mismo acto', () => {
+describe('REG-522 · el bloqueo ARCO revoca el portal en el mismo acto', () => {
   it('1 · EL CASO: el `set` del bloqueo sube portalTokenVersion, y el token de antes queda revocado', async () => {
     const r = await cancelar()
     expect(r.status).toBe(200)

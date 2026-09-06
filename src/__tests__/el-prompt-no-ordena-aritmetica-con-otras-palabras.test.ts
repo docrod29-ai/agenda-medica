@@ -5,7 +5,7 @@ import { GUIAS } from '@/lib/expediente/guias-de-especialidad'
 import type { TipoNota } from '@/types/expediente'
 
 /**
- * EL PROMPT NO ORDENA ARITMÉTICA, CON NINGUNAS PALABRAS — REG-525.
+ * EL PROMPT NO ORDENA ARITMÉTICA, CON NINGUNAS PALABRAS — REG-526.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -53,7 +53,7 @@ const TIPOS: TipoNota[] = [
   'evolucion_uci',
 ]
 
-describe('REG-525 · el detector, contra los mutantes', () => {
+describe('REG-526 · el detector, contra los mutantes', () => {
   it('1 · EL CASO: las dos frases originales de REG-194 se delatan', () => {
     expect(ordenesDeAritmetica('- Pediatría: dosis en mg/kg/día Y mg/kg/dosis. Holliday-Segar para líquidos.')).toHaveLength(2)
     expect(ordenesDeAritmetica('percentiles si hay datos; dosis en mg/kg/día. Cálculo de líquidos Holliday-Segar cuando aplique.').length).toBeGreaterThanOrEqual(2)
@@ -92,7 +92,7 @@ describe('REG-525 · el detector, contra los mutantes', () => {
   })
 })
 
-describe('REG-525 · el prompt EMITIDO, en todas sus combinaciones', () => {
+describe('REG-526 · el prompt EMITIDO, en todas sus combinaciones', () => {
   const especialidades: (string | undefined)[] = [undefined, ...GUIAS.map(g => g.nombre)]
 
   it('6 · ningún tipo de nota × especialidad × huecos ordena aritmética', () => {

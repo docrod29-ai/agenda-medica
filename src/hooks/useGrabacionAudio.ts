@@ -721,7 +721,7 @@ export interface CtxDictado {
 }
 
 /**
- * LAS CLAVES DE SESGO DEL PACIENTE — UNA LISTA, CUATRO PUNTOS DE ENVÍO (REG-513).
+ * LAS CLAVES DE SESGO DEL PACIENTE — UNA LISTA, CUATRO PUNTOS DE ENVÍO (REG-516).
  *
  * El vocabulario de ESTE paciente sale del navegador por cuatro sitios: la
  * transcripción final de Whisper, los trozos en vivo de Whisper, y los dos
@@ -742,7 +742,7 @@ export interface CtxDictado {
  *
  * `contexto` (el módulo: uci, hospitalización…) NO está aquí a propósito: hoy
  * sólo lo leen las rutas de Whisper. Que llegue también a la diarización es
- * trabajo con nombre, declarado en el ledger de REG-513.
+ * trabajo con nombre, declarado en el ledger de REG-516.
  */
 export const CLAVES_DE_SESGO_DEL_PACIENTE = ['aprendidas', 'especialidades', 'medicamentos', 'problemas', 'alergias'] as const
 
@@ -1361,7 +1361,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (contextoRef.current.contexto) fd.append('contexto', contextoRef.current.contexto)
       // Y el vocabulario del paciente: el texto en vivo alimenta la nota
       // preliminar y es el último recurso si la transcripción final falla.
-      // Por la MISMA lista que los otros tres puntos de envío (REG-513): aquí
+      // Por la MISMA lista que los otros tres puntos de envío (REG-516): aquí
       // faltaban los alérgenos.
       anexarSesgoDelPaciente(fd, contextoRef.current)
       const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })

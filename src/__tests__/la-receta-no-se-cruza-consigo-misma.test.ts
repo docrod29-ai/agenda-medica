@@ -6,11 +6,11 @@ import { estadoDeMedicamentos } from '@/lib/expediente/ordenes-medicamento'
 import { terapiaDuplicadaDeLaLista } from '@/lib/seguridad/terapia-duplicada'
 
 /**
- * LA RECETA NO SE CRUZA CONSIGO MISMA — REG-530.
+ * LA RECETA NO SE CRUZA CONSIGO MISMA — REG-531.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
- * REG-520 hizo que la receta cargara las notas FIRMADAS del paciente para
+ * REG-523 hizo que la receta cargara las notas FIRMADAS del paciente para
  * cruzar lo de hoy con lo que ya toma. Pero la receta se abre desde una nota
  * ya firmada — la que se está imprimiendo — y esa nota entraba en «lo
  * vigente». Resultado, en pantalla: «Ketorolaco ya figura como vigente en el
@@ -22,7 +22,7 @@ import { terapiaDuplicadaDeLaLista } from '@/lib/seguridad/terapia-duplicada'
  *
  * **Mirando la pantalla**, no leyendo el código: la sonda
  * `mirar-la-receta-con-expediente.mjs` sobre el arnés de emuladores, 5-sep-2026,
- * con el paciente sintético `pac-006`. Las 33 pruebas de REG-520 y REG-521
+ * con el paciente sintético `pac-006`. Las 33 pruebas de REG-523 y REG-524
  * estaban en verde: ninguna ejercitaba «la nota que se imprime también está
  * firmada». `design-system.md`: «No se aprueba una interfaz leyendo el código».
  *
@@ -45,7 +45,7 @@ import { terapiaDuplicadaDeLaLista } from '@/lib/seguridad/terapia-duplicada'
  * - No renderiza la receta; la sonda del arnés es la que la mira.
  */
 
-describe('REG-530 · la nota que se imprime no cuenta como «ya lo toma»', () => {
+describe('REG-531 · la nota que se imprime no cuenta como «ya lo toma»', () => {
   const receta = limpiarComentarios(readFileSync(join(process.cwd(), 'src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx'), 'utf8'))
 
   it('1 · EL CASO: la receta excluye su propia nota al construir lo vigente', () => {

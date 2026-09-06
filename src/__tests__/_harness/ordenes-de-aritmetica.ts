@@ -1,5 +1,5 @@
 /**
- * ¿ESTE PROMPT LE PIDE AL MODELO QUE CALCULE? — REG-525.
+ * ¿ESTE PROMPT LE PIDE AL MODELO QUE CALCULE? — REG-526.
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────────
  *

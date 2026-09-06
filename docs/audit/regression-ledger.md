@@ -18500,7 +18500,7 @@ toca nada; con la máquina libre mide 11 y 21.
 - **No impide correr dos `npm` a la vez.** Impide que eso se convierta en una
   afirmación falsa, que es lo que importaba.
 
-## REG-512 · El enlace REVOCADO del paciente seguía abriendo la sala de video
+## REG-515 · El enlace REVOCADO del paciente seguía abriendo la sala de video
 
 **CÓMO SE DESCUBRIÓ.** Equipo rojo read-only sobre las 99 rutas de `src/app/api`,
 el 5-sep-2026, con una consigna: refutar cada hallazgo antes de reportarlo. La
@@ -18596,7 +18596,7 @@ doble de `patient-token` pasa a ser parcial porque la ruta ahora consume
   el bloqueo ARCO sin baja no). Es sospecha S2 del mismo equipo rojo y queda
   abierta con nombre.
 
-## REG-513 · Los alérgenos del expediente no llegaban a Whisper por ningún camino
+## REG-516 · Los alérgenos del expediente no llegaban a Whisper por ningún camino
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only del pipeline de voz, 5-sep-2026, con
 la tabla que `.claude/rules/voice-asr.md` pide y nadie había dibujado:
@@ -18684,7 +18684,7 @@ ayudante— y ninguna lista literal de claves fuera de la constante: con el
   está probado, pero su único consumidor es un script que necesita el corpus:
   no corre en ninguna compuerta. Declarado, no cerrado.
 
-## REG-514 · La pregunta escalada del paciente no le llegaba a nadie del consultorio
+## REG-517 · La pregunta escalada del paciente no le llegaba a nadie del consultorio
 
 **CÓMO SE DESCUBRIÓ.** Dos auditorías read-only independientes del 5-sep-2026
 —experiencia del paciente y seguridad— llegaron a la misma línea de
@@ -18776,7 +18776,7 @@ nuevo.
   decisión pendiente del dueño (D-B en `AUSCULTA-ULTRA-READINESS.md`), no
   se toca aquí.
 
-## REG-515 · El guardián del paciente equivocado se satisfacía con un comentario
+## REG-518 · El guardián del paciente equivocado se satisfacía con un comentario
 
 **CÓMO SE DESCUBRIÓ.** Test-the-test read-only del 5-sep-2026, con la consigna
 de meter el defecto y ver si el guardián lo caza. El mutante obvio, aplicado a
@@ -18856,9 +18856,9 @@ comentarios intactos ponen rojo el detector; el comentario largo entre
 - **`autorizacion-servidor.test.ts`**, cuyo doble ignora el id del documento
   (la frontera del Admin SDK). Hallazgo #3 del mismo informe, abierto.
 
-## REG-516 · La pregunta atendida seguía «pendiente de revisar» en el portal del paciente
+## REG-519 · La pregunta atendida seguía «pendiente de revisar» en el portal del paciente
 
-**CÓMO SE DESCUBRIÓ.** Lo declaró REG-514 en su «qué NO cubre», el mismo día:
+**CÓMO SE DESCUBRIÓ.** Lo declaró REG-517 en su «qué NO cubre», el mismo día:
 la tarea `pregunta_paciente` se cierra en `/pendientes` con su decisión, y el
 portal del paciente sigue diciendo «Tu consultorio la tiene pendiente de
 revisar» para siempre. `atendidaEn` nacía en `null` y **ningún código lo
@@ -18887,7 +18887,7 @@ colección que sólo tenía una.
    se responde `yaEstaba`. Un doble clic o un reintento no reescriben la
    historia. Una pregunta que no existe → 404 sin más detalle.
 3. **`/pendientes` la llama después de cerrar**, sólo para tareas
-   `pregunta_paciente` con `preguntaId` (la traza que REG-514 dejó puesta), y
+   `pregunta_paciente` con `preguntaId` (la traza que REG-517 dejó puesta), y
    si falla **lo dice** con un aviso: la tarea queda cerrada igual y nadie cree
    que el portal ya cambió.
 4. Declarada en `registro-rutas.ts`; los tres contadores congelados del
@@ -18918,7 +18918,7 @@ pregunta nadie avisa al servidor»).
 - **`atendidaPor` no sale al portal** (la lista blanca de `case 'preguntas'`
   no lo incluye) y no debe: es traza interna.
 
-## REG-517 · Sin edad en el expediente, la receta aplicaba topes de ADULTO a un niño, en silencio
+## REG-520 · Sin edad en el expediente, la receta aplicaba topes de ADULTO a un niño, en silencio
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026,
 siguiendo el dato desde el expediente hasta `revisarDosis`. Verificado por el
@@ -18995,7 +18995,7 @@ declarar una dependencia y el trinquete se aprieta.
   Pedirla ahí es un cambio de producto (fricción en la puerta más expuesta) y
   no se decide aquí.
 
-## REG-518 · La huella de una receta larga se perdía entera en la bitácora, con `ok: true`
+## REG-521 · La huella de una receta larga se perdía entera en la bitácora, con `ok: true`
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026,
 siguiendo la huella de lo impreso desde el botón de imprimir hasta Firestore.
@@ -19057,7 +19057,7 @@ la ruta como estaba, el asiento de la receta de 80 fármacos llevaba
 - **Los asientos históricos con `meta: null`** no se recuperan: lo que no se
   escribió no está.
 
-## REG-519 · La cancelación ARCO dejaba vivo el enlace del portal del paciente
+## REG-522 · La cancelación ARCO dejaba vivo el enlace del portal del paciente
 
 **CÓMO SE DESCUBRIÓ.** Sospecha S2 del equipo rojo de API del 5-sep-2026,
 verificada en `api/arco/cancelar/route.ts`: el camino de BLOQUEO escribía
@@ -19086,7 +19086,7 @@ subía.
 El bloqueo sube `portalTokenVersion` **en el mismo `set`** que escribe
 `arcoBloqueo`: no hay ventana con el expediente bloqueado y el enlace vivo.
 `decidirVigencia` hace el resto —versión menor que la del expediente es
-`revocado`, 401 definitivo—, y con REG-512 eso alcanza también a la sala de
+`revocado`, 401 definitivo—, y con REG-515 eso alcanza también a la sala de
 video. En la SUPRESIÓN no hace falta: el expediente deja de existir, y eso ya
 cuenta como revocado.
 
@@ -19103,11 +19103,11 @@ tres casos rojos (la versión no subía y `decidirVigencia` seguía diciendo
 
 - **No ejecuta el portal después**: comprueba que la versión sube y que la
   decisión pura la lee como revocación; el portal ya está probado contra esa
-  decisión (REG-331, REG-512).
+  decisión (REG-331, REG-515).
 - **La oposición ARCO (`arco/oponerse`) no revoca el portal**, y es correcto:
   oponerse es dejar de recibir contacto proactivo, no dejar de ver lo propio.
 
-## REG-520 · La receta sólo veía el papel de hoy: ni la medicación vigente ni la creatinina del expediente
+## REG-523 · La receta sólo veía el papel de hoy: ni la medicación vigente ni la creatinina del expediente
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026
 (readiness §3, «la creatinina del expediente llega a la consulta y no a la
@@ -19165,7 +19165,7 @@ cuatro casos del guardián rojos.
   abre la ventana sola.
 - **No mira la alergia ni la terapia duplicada**: siguen en el readiness §11.
 
-## REG-521 · La misma sustancia en dos renglones pasaba: «Paracetamol 500 mg» + «Tempra 1 g»
+## REG-524 · La misma sustancia en dos renglones pasaba: «Paracetamol 500 mg» + «Tempra 1 g»
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026
 (readiness §3: «sin detección de terapia duplicada, paracetamol + Tempra pasa,
@@ -19196,7 +19196,7 @@ la suma diaria se compara con el techo **que ya estaba en el catálogo**
 tres niveles que `revisarDosis`. Un renglón de hoy que repite algo vigente del
 expediente → `terapia_duplicada` que lo dice, sin sumar. **Ninguna cifra
 nueva.** Entra por `dosisPeligrosasDeLaLista` (la consulta, con `yaToma` del
-cuadro) y por el bloque de dosis de la receta (con lo vigente que REG-520 ya
+cuadro) y por el bloque de dosis de la receta (con lo vigente que REG-523 ya
 carga). Es aviso de nivel «revisa»; no bloquea. El registro del motor de
 techos de dosis lo declara (v1.2.0, archivo y puerta de entrada).
 
@@ -19220,216 +19220,7 @@ AINE distintos NO son duplicado (declarado). **Probado al revés**: con
   justo lo que hoy se cambia. Se dice; no se calcula.
 - **No bloquea** ni cambia la compuerta de firma (decisión del dueño, 5-ago).
 
-
-> **Nota del port (5-sep-2026).** Estas dos unidades venían en PR #442 con los números REG-444 y REG-506, que `main` ya había gastado en otras dos regresiones (el token en el registro de errores; los índices del despliegue). Séptima colisión del contador. Se traen aquí con número nuevo, el código y las pruebas tal cual, y se verificó que las pruebas pasan sobre esta rama. Las mediciones citadas (390 px, `md5sum`) son las de esa sesión; no se repitieron hoy.
-
-## REG-522 — la vista previa del papel se medía contra una constante (portado de PR #442)
-
-**DE DÓNDE VIENE.** REG-441 arregló la columna del editor de `/receta` y
-`/orden` y dejó declarado, con todas las letras, lo que **no** arreglaba: *«la
-vista previa del papel sigue saliéndose 6 px… `RecetaPreviewWrapper` calcula la
-escala contra un `maxWidth = 380` constante en píxeles… merece su propia
-unidad»*. Ésta es esa unidad.
-
-Un hueco declarado que nadie cierra es peor que uno que nadie nombró: queda por
-escrito que se sabía.
-
-**EL DEFECTO.** El componente existe, según su propia cabecera, «para que la
-receta se vea proporcional **sin desbordar el layout**». Lo hacía para cualquier
-tamaño de papel y para **un solo** tamaño de contenedor: `/receta` y `/orden` le
-pasaban `maxWidth={380}` escrito a mano, elegido para la columna de 420 px del
-escritorio.
-
-A 390 px esa columna mide 358. La hoja se pintaba a 380 y se salía 22 px de su
-columna —6 más allá del borde de la pantalla— con `overflow: hidden` encima:
-**recortada, y sin gesto que la trajera**. En la pantalla cuyo trabajo entero es
-enseñar cómo va a salir impreso.
-
-**POR QUÉ ERA DELICADO, Y POR QUÉ AL FINAL NO LO FUE.** La cabecera del
-componente cuenta que este número ya se desincronizó una vez entre dos sitios y
-«la receta salía RECORTADA por la derecha», de ahí su regla: «un número que dos
-sitios tienen que compartir no se copia: se pregunta».
-
-Al mirarlo, el riesgo se acotó solo: **los tres sitios que llaman pasan
-`maxWidth` explícito**, así que el `= 380` por omisión no lo usaba nadie.
-Configuración pasa su propio `TARGET_WIDTH` (340) y con ese mismo número coloca
-su recuadro arrastrable. No hizo falta tocar `escalaDeVistaPrevia` —sigue siendo
-una función pura de sus argumentos— ni la pantalla de configuración.
-
-Lo que cambia es sólo qué pasa **cuando no se pasa nada**: en vez de suponer 380,
-el componente **mide** su sitio. `/receta` y `/orden` dejan de pasarlo.
-
-### Medido
-
-| | Disponible | Hoja | ¿Cabe? |
-|---|---|---|---|
-| 390 px (teléfono) | 358 | **358** | sí — antes 380, se salía |
-| 1440 px (escritorio) | 420 | **420** | sí — antes 380, sobraba sitio |
-| Configuración a 390 | 358 | 340 | sí — su número, intacto |
-
-En escritorio la vista previa **gana** tamaño: 380 → 420. Estaba pequeña por la
-misma constante que la hacía salirse en el teléfono.
-
-Y en `/receta` y `/orden` a 390 px, los bloques que terminan fuera de la ventana
-pasan de **5 a 0** — los cinco que REG-441 había dejado declarados.
-
-`useLayoutEffect` y no `useEffect`: la medida llega antes de pintar, así que no
-hay salto visible de 380 a 358. Un parpadeo ya se rechazó en esta rama por la
-misma razón (REG-438).
-
-### Probado al revés
-
-Devolviendo `maxWidth = 380` a la firma, el caso cae — y en el navegador la hoja
-vuelve a pintarse a 380 en una columna de 358.
-
-### Estado
-
-**CLOSED.** `src/__tests__/la-vista-previa-del-papel-se-media-contra-una-constante.test.ts`
-(5 casos).
-
-### Qué NO cubre
-
-- **El guardián es de fuente.** Que la hoja quepa lo mide el navegador, y esa
-  medición **no corre en CI**.
-- **No comprueba la pantalla de configuración**, que es la que tiene el
-  acoplamiento delicado. Sólo se sella que sigue pasando su ancho explícito; que
-  su recuadro arrastrable siga cuadrando con la hoja se mira a ojo.
-- **No es un iPhone.** Chromium a 390 y 1440.
-- **No mide el caso multi-hoja** (`numPages > 1`): la escala mira una hoja y las
-  demás sólo alargan el contenedor, pero eso no se ha comprobado a 390.
-
-## REG-523 — la captura llamada «completa» enseñaba un tercio de la pantalla (portado de PR #442)
-
-**DE DÓNDE VIENE.** De sembrar `/pendientes` para poder juzgarla. La pantalla no
-tenía ni una tarea sembrada, así que salía siempre en su estado vacío y era la
-única del bucle diario sin auditar.
-
-### El defecto
-
-La sonda `mirar-la-consulta.mjs` guardaba dos archivos por pantalla: el del
-pliegue y uno llamado `…-completa.png`, con `fullPage: true`. Comprobado con
-`md5sum`, no deducido: **los dos salían byte a byte idénticos**. Y no era cosa de
-`/pendientes` — pasaba en las cinco pantallas ya auditadas de esta rama:
-
-| ruta | `documentElement.scrollHeight` | contenido real |
-|---|---|---|
-| `/consulta/pac-001` | 844 | 3 094 |
-| `/dashboard` | 844 | 2 651 |
-| `/pendientes` | 844 | 2 407 |
-| `/expediente/pac-001` | 844 | 1 844 |
-| `/citas` | 844 | 1 627 |
-
-### La causa
-
-El cascarón `(dashboard)` fija el documento al alto de la ventana y scrollea un
-`<main>` de dentro. `fullPage: true` extiende el DOCUMENTO, y el documento ya
-cabe: no tiene nada que extender. Por el mismo motivo el `alto` que publicaba la
-sonda decía 844, así que el número tampoco delataba nada.
-
-### Por qué es lo peor que le puede pasar a un arnés
-
-El master loop dice que una pantalla no se aprueba leyendo el código: se lanza,
-se mira y se recorre. Esta sonda existe exactamente para eso — y estaba dando por
-mirado lo que no había enseñado, con un nombre de archivo que prometía lo
-contrario. Cuatro pantallas de esta rama se declararon vistas habiendo visto el
-primer pliegue.
-
-Es «el dato tiene que LLEGAR» cometido en la herramienta que audita, y la hermana
-exacta de REG-440: allí la siembra enseñaba menos de lo que había y hacía
-perseguir un defecto inexistente; aquí la captura enseñaba menos de lo que había
-y hacía dar por buena una pantalla sin verla.
-
-**Lo que NO estaba mal, y hay que decirlo:** los conteos —desbordamiento, campos
-sin etiqueta, objetivos táctiles— salen de `getBoundingClientRect`, que se
-calcula sobre el layout entero independientemente del scroll. Esos números
-siempre fueron correctos. Lo ciego eran los ojos, no la aritmética. Se recorrió
-el bajo pliegue de las cinco pantallas con el arreglo puesto y no apareció ningún
-defecto nuevo.
-
-### El segundo defecto de la misma mirada: contar cajas no es contar dedos
-
-En `/pendientes` la sonda denunciaba **7 objetivos táctiles pequeños de 7**, y los
-siete eran el nombre del paciente que encabeza cada pendiente — `a.nx-ident`, que
-YA está en la familia de `globals.css` que estira el área de golpe con un pseudo
-(REG-442). Por su caja miden 20; al dedo, 45. En `/dashboard` eran 10 de 10.
-
-Un número que es cien por cien ruido no se lee — y la vez que traiga un objetivo
-pequeño de verdad, tampoco. Tercera vez que esta sonda grita en falso (REG-434,
-REG-439).
-
-**No se arregló filtrando por clase.** Lo barato era «no cuentes `a.nx-ident`», y
-eso es creerle al CSS: el día que alguien saque esa clase de la familia, la sonda
-seguiría callada. Ahora se le pregunta al navegador a quién atribuye cada punto,
-con el mismo barrido de `el-area-de-golpe-de-una-fila-de-cita.mjs` — que se
-generalizó (ruta + selector) en vez de clonarse, y sigue dando visible 39 / golpe
-45 en su caso de origen.
-
-**Y el barrido salió mal a la primera.** Aceptaba el punto si el elemento
-golpeado era el enlace, un hijo suyo **o un ancestro**: se derramaba por la
-tarjeta y un enlace de 20 px medía 59 de golpe. Lo cazó que las dos sondas
-dejaron de coincidir (45 contra 59). Una medición que aprueba de más es peor que
-la que grita en falso: aquélla molesta, ésta esconde.
-
-### El tercero: `/pendientes` no se podía juzgar
-
-La siembra no escribía ni una tarea. Ahora siembra ocho — **una por cada grupo**
-de `estado-de-accion.ts`, más una cerrada para «Ver cerrados recientemente» —
-porque un grupo que no se pinta no se puede juzgar.
-
-`pesoUrgencia` se DERIVA de la prioridad con la escalera del producto: sembrar
-directo a Firestore se salta `crearTareas`, que es «la única puerta» que lo
-escribe, y `orderBy` de Firestore **excluye** los documentos sin el campo — las
-tareas habrían desaparecido del worklist. Misma figura que REG-440 con
-`ultimaCita`, y por eso lleva el mismo guardián de dos listas que no pueden
-separarse. Las marcas de tiempo van en ISO completo y no en fecha suelta: una
-fecha suelta se fija en medianoche UTC, o sea siempre en el pasado, y una tarea
-que vence hoy se pintaría «venció» en rojo.
-
-### Medido
-
-- `/pendientes`: alto publicado 844 → **2 407**, capturas 1 → **4**; objetivos
-  táctiles 7 → **0** (7 salvados por el pseudo, 0 sin medir); cero
-  desbordamiento, cero campos sin etiqueta, cero errores de consola, **seis
-  grupos pintados** más el bloque de cerrados.
-- `/dashboard`: 10 candidatos → **0** reales, 10 salvados.
-- `/consulta`: sigue denunciando sus **dos** «ya no» de 34×44 — la afinación no
-  dejó ciega a la sonda.
-- `/expediente` y `/citas`: siguen en 0.
-
-### Probado al revés
-
-Cinco inversiones, cada una con su caso: reponer `h.contains(el)` en el barrido ·
-devolver el `fullPage: true` y el archivo `-completa` · desincronizar la escalera
-de la siembra · volver a la fecha suelta en `creadaEn` · quitar de la siembra el
-tipo que pinta «Otros pendientes». Las cinco ponen rojo su caso y sólo el suyo.
-
-La quinta **pasó en su primera versión con el defecto puesto**: el guardián leía
-el comentario que nombra ese tipo tres líneas más arriba. Tercera vez en esta
-rama (REG-437, REG-438); se compara sin comentarios.
-
-### Estado
-
-**CLOSED.** `src/__tests__/la-captura-completa-ensenaba-un-tercio-de-la-pantalla.test.ts`
-(15 casos).
-
-### Qué NO cubre
-
-- **El guardián es de fuente.** Que la captura enseñe la pantalla entera y que el
-  golpe mida 45 lo dice el navegador, y esas sondas **no corren en CI**.
-- **No se revisó el estilo de captura de las otras sondas.**
-  `caminar-con-el-teclado.mjs`, `el-estado-sobrevive-a-la-interrupcion.mjs` y las
-  de `carril-excelencia/` pueden tener el mismo defecto. Se dice, no se esconde.
-- **No dice que `/pendientes` esté auditada de punta a punta.** El recorrido con
-  teclado, el bloque de cerrados desplegado y el diálogo de «¿Por qué está aquí?»
-  quedan sin mirar.
-- **`aceptada` sigue ofreciendo «Tomarla»** — una tarea que ya es mía invita a
-  tomarla otra vez. Se vio y no se tocó: el texto sale de `siguientePaso`, la
-  fuente única del paso legal de una tarea clínica, y cambiar ahí una palabra sin
-  el dueño es fijar vocabulario de producto.
-- **No es un iPhone.** Chromium a 390 px.
-
-
-## REG-524 · Los cuatro casos de `csp-manifest` llevaban saltados en cada corrida del CI desde que existen
+## REG-525 · Los cuatro casos de `csp-manifest` llevaban saltados en cada corrida del CI desde que existen
 
 **CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026 («4 casos que nunca
 corren en CI porque vitest va antes del build»). Verificado leyendo
@@ -19466,7 +19257,7 @@ estaba, dos rojos.
 - No ejecuta el CI: comprueba el orden por fuente.
 - `csp-manifest` sigue sin sello, a propósito: en local sin build se salta.
 
-## REG-525 · El guardián de «el modelo no calcula» casaba literales: una orden con otras palabras pasaba
+## REG-526 · El guardián de «el modelo no calcula» casaba literales: una orden con otras palabras pasaba
 
 **CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026 («casa
 literales»). Verificado: `el-llm-no-calcula-en-ninguna-nota.test.ts` (REG-194)
@@ -19510,7 +19301,7 @@ verde con «Estima la TFG con CKD-EPI» en el prompt; el nuevo, rojo.
 - Es vocabulario: una fórmula fuera de la lista no se vigila.
 - No mira `buildUserPrompt`.
 
-## REG-526 · Ninguna prueba ejecutaba la membresía del servidor; los dobles de las rutas ignoran el id del documento
+## REG-527 · Ninguna prueba ejecutaba la membresía del servidor; los dobles de las rutas ignoran el id del documento
 
 **CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026: «el doble
 ignora el id del documento (la frontera del Admin SDK)» en un archivo que no
@@ -19552,7 +19343,7 @@ capacidad. **Probado al revés** con tres mutantes sobre `auth-server.ts`:
 - Las 99 rutas: siguen siendo del guardián estático. Aquí se prueba la guardia.
 - Firebase Auth: `verifyIdToken` es un doble.
 
-## REG-527 · `sanitize` prometía redactar nombres de pacientes y llaves de API, y no cazaba ni el nombre ni las de Stripe
+## REG-528 · `sanitize` prometía redactar nombres de pacientes y llaves de API, y no cazaba ni el nombre ni las de Stripe
 
 **CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 (readiness §3,
 «reportado»): «`safeLog` no redacta `nombre`, `pacienteNombre`, `diagnosticos`,
@@ -19595,7 +19386,7 @@ real. **Probado al revés**: con el módulo como estaba, cuatro rojos.
   siendo no pasar texto clínico a los logs.
 - No revisa los llamadores de `safeLog`.
 
-## REG-528 · `reclamarCanal` leía, decidía y escribía en tres pasos: dos consultorios a la vez podían quedarse el mismo canal
+## REG-529 · `reclamarCanal` leía, decidía y escribía en tres pasos: dos consultorios a la vez podían quedarse el mismo canal
 
 **CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 («check-then-write
 sin transacción; `dueño === ''` cuenta como libre»). Verificado por el
@@ -19641,7 +19432,7 @@ de REG-3xx se adaptó a la lectura dentro de la transacción.
 - No es Firestore de verdad: el arnés imita el contrato, no el motor.
 
 
-## REG-529 · Cuarenta rutas devolvían `String(err)` al cliente
+## REG-530 · Cuarenta rutas devolvían `String(err)` al cliente
 
 **CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 («`String(err)`
 hacia el cliente en ~25 rutas y en un redirect», BAJO). Verificado por el
@@ -19690,17 +19481,17 @@ verdes.
   guardián sólo vigila `String(…)`.
 - No ejecuta las rutas: es de fuente.
 
-## REG-530 · La receta contaba su propia nota como «lo que el paciente ya toma» y se avisaba a sí misma
+## REG-531 · La receta contaba su propia nota como «lo que el paciente ya toma» y se avisaba a sí misma
 
 **CÓMO SE DESCUBRIÓ.** **Mirando la pantalla**, no leyendo el código. Sonda
 `scripts/ausculta-transformacion/mirar-la-receta-con-expediente.mjs` sobre el
 arnés de emuladores (5-sep-2026), con el paciente sintético `pac-006` sembrado
-para ver los avisos de REG-517/520/521. En la captura a 1440: «Ketorolaco ya
+para ver los avisos de REG-520/520/521. En la captura a 1440: «Ketorolaco ya
 figura como vigente en el expediente («Ketorolaco 10 mg cada 8 horas») y hoy
 se receta «Ketorolaco 10 mg cada 8 horas»», en rojo, en cada renglón. Las 33
-pruebas de REG-520 y REG-521 estaban en verde.
+pruebas de REG-523 y REG-524 estaban en verde.
 
-**LO QUE PASABA.** La receta se abre desde una nota YA FIRMADA. REG-520 le
+**LO QUE PASABA.** La receta se abre desde una nota YA FIRMADA. REG-523 le
 hizo cargar las notas firmadas para cruzar lo de hoy con lo que ya toma, y la
 nota que se está imprimiendo es una de ellas: entraba en «lo vigente». La
 consulta tiene el mismo camino cuando se reabre una nota firmada (adenda).
@@ -19710,7 +19501,7 @@ consulta tiene el mismo camino cuando se reabre una nota firmada (adenda).
 Correcto por dentro, insoportable por fuera: cada motor hacía su trabajo con
 la entrada que se le dio, y la entrada incluía al propio sujeto. Ninguna
 prueba ejercitaba «la nota que se imprime también está firmada», porque las
-pruebas de REG-520 miraban helpers puros y fuente.
+pruebas de REG-523 miraban helpers puros y fuente.
 
 ### El arreglo
 

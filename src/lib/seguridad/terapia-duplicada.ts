@@ -1,5 +1,5 @@
 /**
- * LA MISMA SUSTANCIA, DOS VECES — REG-521.
+ * LA MISMA SUSTANCIA, DOS VECES — REG-524.
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────────
  *

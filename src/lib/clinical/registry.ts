@@ -1669,10 +1669,10 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
       ref: 'src/lib/seguridad/dosis.ts (CATALOGO, revisarDosis)',
     },
     file: 'src/lib/seguridad/dosis.ts',
-    /** REG-521: la misma sustancia en varios renglones se suma contra el MISMO catálogo. */
+    /** REG-524: la misma sustancia en varios renglones se suma contra el MISMO catálogo. */
     archivos: ['src/lib/seguridad/terapia-duplicada.ts'],
     entryPoints: ['revisarDosis', 'CATALOGO', 'buscarFarmaco', 'terapiaDuplicadaDeLaLista'],
-    calculos: ['detección de error de decimal (50 → 500 mg)', 'zona amarilla entre máximo habitual y absoluto', 'topes por vía y edad mínima', 'terapia duplicada: misma sustancia (nombre o alias del CATALOGO) en dos renglones o ya vigente, con la dosis diaria acumulada contra el techo del catálogo (REG-521)'],
+    calculos: ['detección de error de decimal (50 → 500 mg)', 'zona amarilla entre máximo habitual y absoluto', 'topes por vía y edad mínima', 'terapia duplicada: misma sustancia (nombre o alias del CATALOGO) en dos renglones o ya vigente, con la dosis diaria acumulada contra el techo del catálogo (REG-524)'],
     missingData: 'fármaco fuera del catálogo ⇒ `sin_referencia` explícito. AUSENCIA de alerta ≠ dosis segura.',
     adr: ADR('dosis-adulto-techos'),
     adrExtra: [ADR('dosis-amoxicilina')],

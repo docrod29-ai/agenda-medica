@@ -10,7 +10,7 @@ import { interaccionesDelCuadro, detectarInteracciones } from '@/lib/expediente/
 import { STALE_RENAL_FUNCTION } from '@/lib/expediente/laboratorio/vigencia-de-la-funcion-renal'
 
 /**
- * LA RECETA VE EL EXPEDIENTE COMPLETO — REG-520.
+ * LA RECETA VE EL EXPEDIENTE COMPLETO — REG-523.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -72,7 +72,7 @@ const panel = (fecha: string, creatinina?: number, extra: Record<string, unknown
   resultados: creatinina === undefined ? [] : [{ clave: 'creatinina', valor: creatinina, ...extra }],
 })
 
-describe('REG-520 · creatininaDelExpediente', () => {
+describe('REG-523 · creatininaDelExpediente', () => {
   it('EL CASO: la creatinina del panel más reciente, con su fecha', () => {
     expect(creatininaDelExpediente([panel('2026-07-01', 1.1), panel('2026-08-12', 2.4)]))
       .toEqual({ valor: 2.4, medidoEn: '2026-08-12' })
@@ -91,7 +91,7 @@ describe('REG-520 · creatininaDelExpediente', () => {
   })
 })
 
-describe('REG-520 · creatininaParaDosificar', () => {
+describe('REG-523 · creatininaParaDosificar', () => {
   const delExpediente = { valor: 2.4, medidoEn: '2026-08-12' }
 
   it('la tecleada manda, aunque haya una en el expediente', () => {
@@ -125,7 +125,7 @@ describe('REG-520 · creatininaParaDosificar', () => {
   })
 })
 
-describe('REG-520 · comoSeDiceLaCreatinina', () => {
+describe('REG-523 · comoSeDiceLaCreatinina', () => {
   it('sólo habla cuando la cifra viene del expediente', () => {
     expect(comoSeDiceLaCreatinina({ origen: 'tecleada', valor: 1.3 })).toBe('')
     expect(comoSeDiceLaCreatinina({ origen: 'ninguna' })).toBe('')
@@ -149,7 +149,7 @@ describe('REG-520 · comoSeDiceLaCreatinina', () => {
   })
 })
 
-describe('REG-520 · la interacción con lo que el paciente YA toma', () => {
+describe('REG-523 · la interacción con lo que el paciente YA toma', () => {
   const hoy = [{ nombre: 'Ketorolaco', dosis: '10 mg', via: 'oral' as const, frecuencia: 'cada 8 h', duracion: '3 días' }]
   const vigentes = [{ medicamento: { nombre: 'Warfarina', dosis: '5 mg', via: 'oral' as const, frecuencia: 'cada 24 h', duracion: 'crónico' } }]
 
@@ -176,7 +176,7 @@ describe('REG-520 · la interacción con lo que el paciente YA toma', () => {
   })
 })
 
-describe('REG-520 · la receta pasa por el cuadro completo (comentarios fuera)', () => {
+describe('REG-523 · la receta pasa por el cuadro completo (comentarios fuera)', () => {
   const receta = limpiarComentarios(readFileSync(join(process.cwd(), 'src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx'), 'utf8'))
 
   it('las interacciones salen del cuadro (hoy + vigentes), no sólo del papel de hoy', () => {

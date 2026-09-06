@@ -5,7 +5,7 @@ import { limpiarComentarios } from '@/lib/authz/analisis-estatico'
 import { errorAlCliente, MENSAJE_GENERICO } from '@/lib/security/error-al-cliente'
 
 /**
- * EL ERROR CRUDO NO SALE AL CLIENTE — REG-529.
+ * EL ERROR CRUDO NO SALE AL CLIENTE — REG-530.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -68,7 +68,7 @@ export function lineasQueFiltranElError(fuente: string): string[] {
     .map(l => l.trim())
 }
 
-describe('REG-529 · errorAlCliente', () => {
+describe('REG-530 · errorAlCliente', () => {
   it('1 · devuelve ok:false con el mensaje genérico y 500, y no acepta el error', async () => {
     const r = errorAlCliente()
     expect(r.status).toBe(500)
@@ -84,7 +84,7 @@ describe('REG-529 · errorAlCliente', () => {
   })
 })
 
-describe('REG-529 · ninguna ruta convierte el error en texto para el cliente', () => {
+describe('REG-530 · ninguna ruta convierte el error en texto para el cliente', () => {
   const todas = rutas(RAIZ)
 
   it('3 · EL CASO: en las rutas de src/app/api, String(err) sólo vive en líneas que loguean o redactan', () => {

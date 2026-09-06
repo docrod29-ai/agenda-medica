@@ -881,7 +881,7 @@ export async function POST(req: NextRequest) {
           .add(doc)
 
         /**
-         * LA ESCALACIÓN LLEGA AL WORKLIST, HAYA TELÉFONO O NO — REG-514.
+         * LA ESCALACIÓN LLEGA AL WORKLIST, HAYA TELÉFONO O NO — REG-517.
          *
          * Hasta hoy el consultorio se enteraba de una pregunta escalada SÓLO
          * por el WhatsApp de abajo, y ese WhatsApp sólo se intentaba si había
@@ -925,7 +925,7 @@ export async function POST(req: NextRequest) {
          * `avisarAlConsultorio` deja registro en `whatsapp_no_entregados`
          * cuando el envío falla (no en `whatsapp_outbox`: esa cola reintenta,
          * y ésta no —la pregunta ya tiene su tarea, y lo que no llegó queda
-         * dicho). Sin teléfono no se intenta nada, y desde REG-514 eso ya no
+         * dicho). Sin teléfono no se intenta nada, y desde REG-517 eso ya no
          * significa que nadie se entere.
          */
         if (r.avisarAlConsultorio && telConsultorio) {

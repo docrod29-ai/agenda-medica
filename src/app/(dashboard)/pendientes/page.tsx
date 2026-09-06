@@ -441,7 +441,7 @@ export default function PendientesPage() {
     if (!r.ok) { toast(r.motivo, 'error'); return }
     toast(nuevo === 'cerrada' ? 'Cerrada' : 'Actualizada', 'success')
     /**
-     * REG-516 — cerrar la tarea de una PREGUNTA del paciente marca la pregunta
+     * REG-519 — cerrar la tarea de una PREGUNTA del paciente marca la pregunta
      * como atendida, para que su portal deje de decir «pendiente de revisar».
      * Después del cierre, no antes: la constancia de la decisión es lo que
      * manda. Y si no se pudo marcar, se DICE — la tarea queda cerrada igual.

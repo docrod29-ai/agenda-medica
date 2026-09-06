@@ -1959,7 +1959,7 @@ export default function ConsultaActivaPage() {
          */
         setHistorialTruncado(truncada)
         /**
-         * SIN LA NOTA ABIERTA — REG-530. Una nota firmada se puede reabrir aquí
+         * SIN LA NOTA ABIERTA — REG-531. Una nota firmada se puede reabrir aquí
          * (adenda); entraba en «lo vigente» y la barra decía «ya figura como
          * vigente» de lo que ella misma receta. Se vio primero en la receta.
          */
@@ -6232,11 +6232,11 @@ export default function ConsultaActivaPage() {
            * cuando el paciente ya se había ido con la receta en la mano.
            */
           dosisPeligrosas: dosisPeligrosasDeLaLista(medicamentos, {
-            // REG-517: la fecha de nacimiento manda sobre la edad congelada, y
+            // REG-520: la fecha de nacimiento manda sobre la edad congelada, y
             // sin ninguna se pasa `undefined` — nunca se supone adulto.
             edadAnios: edadParaDosificar(patient).edad ?? undefined,
             pesoKg: signosNum.peso ?? undefined,
-            // REG-521: «Tempra» vigente en el expediente + «paracetamol» hoy se dice.
+            // REG-524: «Tempra» vigente en el expediente + «paracetamol» hoy se dice.
             yaToma: medsDelCuadro.filter(m => !m.deHoy),
           }).map(d => ({
             med: d.med,

@@ -165,7 +165,7 @@ describe('ESTÁ CONECTADO DE PUNTA A PUNTA', () => {
   })
 
   it('el hook lo envía en cada trozo y en el final', () => {
-    // REG-513: los cuatro puntos de envío recorren UNA lista compartida. Aquí se
+    // REG-516: los cuatro puntos de envío recorren UNA lista compartida. Aquí se
     // comprueba que `aprendidas` esté en la lista y que el final
     // (`anexarContexto`) y los trozos (`flushChunks`) pasen por el ayudante.
     expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain('aprendidas')

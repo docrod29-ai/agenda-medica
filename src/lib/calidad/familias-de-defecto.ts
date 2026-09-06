@@ -433,40 +433,40 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      */
 
     /**
-     * 512 es 337 en seguridad. REG-331 cerró la revocación del magic-link en
+     * 515 es 337 en seguridad. REG-331 cerró la revocación del magic-link en
      * las dos rutas que conocía; la tercera —la sala de video— consumía el
      * mismo token y nunca leyó `portalTokenVersion`. La versión viajaba dentro
      * del token y del otro lado nadie la miraba. El guardián de 331 importaba
      * sus dos rutas por nombre en vez de enumerar a quién le llega el token:
      * la forma exacta en que esta familia sobrevive a tener guardián.
      *
-     * 513 es 337 en voz, y la CUARTA vez de «dos motores, un mismo contrato».
+     * 516 es 337 en voz, y la CUARTA vez de «dos motores, un mismo contrato».
      * REG-232 hizo que las rutas de Whisper leyeran `alergias`; el grabador
      * lo mandaba sólo por AssemblyAI. Cuatro puntos de envío con cuatro
      * listas escritas a mano: la clave nueva siempre falta en alguna. Se
      * cierra dejando UNA lista, no añadiendo la clave a la lista que faltaba.
      *
-     * 514 es la variante de 337 en el portal del paciente: la pregunta
+     * 517 es la variante de 337 en el portal del paciente: la pregunta
      * escalada se guardaba y salía un WhatsApp SI había teléfono. Sin
      * teléfono, nada; y ninguna pantalla leía la colección. El producto ya
      * tenía el worklist donde un humano mira lo que espera decisión, y la
      * pregunta no entraba ahí. Había llamador — no por todos los caminos.
      *
-     * 516 es la vuelta del mismo bucle: el portal tenía la rama «ya la
+     * 519 es la vuelta del mismo bucle: el portal tenía la rama «ya la
      * revisó» escrita y `atendidaEn` no lo escribía nadie, porque la colección
      * está cerrada al navegador y no existía puerta de servidor. Escrito,
      * leído, y sin nadie que lo llenara.
      *
-     * 519: el bloqueo ARCO se escribía y el portal no lo miraba. El contador
+     * 522: el bloqueo ARCO se escribía y el portal no lo miraba. El contador
      * que tumba los enlaces existía desde 331 y ningún camino de ARCO lo
      * subía. Cerrado por decisión del dueño (D-034), en el mismo `set`.
      *
-     * 520 es 188 en la otra pantalla: el cuadro completo (medicación vigente
+     * 523 es 188 en la otra pantalla: el cuadro completo (medicación vigente
      * + creatinina del expediente) se cableó en la consulta y la receta —donde
      * se imprime lo que se dispensa— conservó la llamada vieja sobre el papel
      * de hoy. Dos entradas al mismo motor; la más importante era la ciega.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 512, 513, 514, 516, 519, 520],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 515, 516, 517, 519, 522, 523],
   },
   {
     clave: 'se_contradice',
@@ -602,13 +602,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * algo; filtrar un token entrega el acceso.
      */
     /**
-     * 527: la cabecera de `sanitize.ts` prometía redactar «nombres de
+     * 528: la cabecera de `sanitize.ts` prometía redactar «nombres de
      * pacientes» y «API keys»; el código no tenía ninguna llave de nombre y no
      * conocía las de Stripe. Una promesa en un módulo de seguridad que el
      * código no cumple es la contradicción más cara: quien la lee deja de
      * comprobar.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 527],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 528],
   },
   {
     clave: 'habla_real',
@@ -838,7 +838,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * método, no el método.
      */
     /**
-     * 515 es el instrumento que existía y medía otra cosa. El guardián del
+     * 518 es el instrumento que existía y medía otra cosa. El guardián del
      * paciente equivocado —cero #1 del charter— comprobaba que el símbolo del
      * motor apareciera en la fuente, y aparecía en los comentarios que explican
      * por qué existe: con la llamada sustituida por `candidatos[0]` seguía
@@ -847,26 +847,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * mutante no se sabe si mide.
      */
     /**
-     * 522 y 523 venían en PR #442 como 444 y 506, números que main ya había
-     * gastado; se portaron el 5-sep-2026 con número nuevo. 523 es esta familia
-     * mordiéndose la cola: el defecto estaba EN EL INSTRUMENTO, y era el de
-     * creerse medido. La sonda guardaba un archivo llamado `…-completa.png`
-     * que salía byte a byte idéntico al del pliegue —el cascarón scrollea un
-     * `<main>` de dentro, así que `fullPage` no tenía documento que extender—
-     * y publicaba un alto de 844 para pantallas de 1 627 a 3 094 px. Y la
-     * cuenta de objetivos táctiles medía CAJAS: 7 de 7 que el pseudo de 442
-     * ya cubría. 522 es su hermana pequeña: la vista previa del papel se
-     * medía contra una constante de 380 px que nadie había medido en un
-     * teléfono, declarada como hueco por 441 y sin cerrar.
-     *
-     * 524, 525 y 526 son el test-the-test del 5-sep-2026, los tres de esta
+     * 525, 526 y 527 son el test-the-test del 5-sep-2026, los tres de esta
      * familia: una prueba que el CI dejaba siempre saltada (el artefacto se
      * construía después de medirlo); un guardián que sellaba la REDACCIÓN de un
      * arreglo y no la regla (una orden de calcular con otras palabras pasaba);
      * y la guardia de membresía de la que cuelgan las 99 rutas, sin una sola
      * prueba que la ejecutara contra un doble que distinga ids.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 515, 522, 523, 524, 525, 526],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 518, 525, 526, 527],
   },
   {
     clave: 'hueco_como_dato',
@@ -957,13 +945,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * guardián hereda el defecto.
      */
     /**
-     * 517 es la regla 4 de seguridad clínica al revés, en la receta: sin
+     * 520 es la regla 4 de seguridad clínica al revés, en la receta: sin
      * `edad` en el expediente, `undefined` caía por el lado de «adulto» y se
      * aplicaban los techos de adulto a un niño — sin mg/kg y sin aviso. «No
      * hay edad» leído como «no es niño». El resultado se LEÍA bien: una receta
      * sin alertas.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 517],
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 520],
   },
   {
     clave: 'aislamiento',
@@ -999,12 +987,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * permisos encuentra porque los permisos estaban bien.
      */
     /**
-     * 528: el candado del canal de WhatsApp (que un consultorio no se lleve el
+     * 529: el candado del canal de WhatsApp (que un consultorio no se lleve el
      * número de otro) era get → decidir → set, sin transacción. Dos reclamos a
      * la vez leían «libre» los dos. Aislamiento que dependía de que dos
      * peticiones no coincidieran.
      */
-    regs: [153, 161, 162, 163, 224, 349, 419, 503, 528],
+    regs: [153, 161, 162, 163, 224, 349, 419, 503, 529],
   },
   {
     clave: 'charter_vacio',
@@ -1048,12 +1036,12 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * aviso que interrumpe: correcto en su intención, intolerable en su efecto.
      */
     /**
-     * 530: la receta contaba su propia nota firmada como «lo que ya toma» y se
+     * 531: la receta contaba su propia nota firmada como «lo que ya toma» y se
      * avisaba a sí misma en rojo, renglón por renglón. Cada motor correcto;
      * la entrada incluía al sujeto. Se vio mirando la pantalla en el arnés,
      * con 33 pruebas en verde.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 530],
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 531],
   },
   {
     clave: 'perdida',
@@ -1113,13 +1101,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * exactamente lo que se hace después de firmar.
      */
     /**
-     * 518 es la pérdida que responde `ok: true`. El asiento de bitácora que
+     * 521 es la pérdida que responde `ok: true`. El asiento de bitácora que
      * guarda qué decía la receta impresa acotaba `meta` cortando el JSON por
      * carácter y descartándolo ENTERO si quedaba inválido: en las recetas
      * largas el hash y el folio se iban a `null` sin ningún error. Se acota
      * por campo y lo omitido se declara en el propio asiento.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 518],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 521],
   },
   {
     clave: 'tarde',
@@ -1370,13 +1358,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * momento en que las dos mitades existen a la vez: la fusión.
      */
     /**
-     * 529: `public/booking` había dejado de devolver `String(err)` al cliente
+     * 530: `public/booking` había dejado de devolver `String(err)` al cliente
      * con un `catch` bien escrito; las otras cuarenta rutas siguieron igual y
      * cada ruta nueva nacía con el patrón viejo. Un arreglo que vive en un
      * `catch` y no en un helper con guardián depende de que el siguiente se
      * acuerde.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505, 529],
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505, 530],
   },
   {
     /**
@@ -1390,7 +1378,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * el sistema falla más de lo que falla, y haría perder de vista que estos
      * se encuentran con OTRO instrumento: mirar afuera, no mirar el código.
      *
-     * 521: la terapia duplicada («Paracetamol» + «Tempra» en la misma receta)
+     * 524: la terapia duplicada («Paracetamol» + «Tempra» en la misma receta)
      * es una comprobación que cualquier sistema de apoyo a la prescripción da
      * por supuesta. Aquí no existía, y ninguna prueba podía delatarlo. El
      * vocabulario sí existía —el catálogo de dosis— y por eso el arreglo no
@@ -1403,7 +1391,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
-    regs: [242, 243, 250, 304, 326, 521],
+    regs: [242, 243, 250, 304, 326, 524],
   },
   {
     clave: 'falta_un_eje',

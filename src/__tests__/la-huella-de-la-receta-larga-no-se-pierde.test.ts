@@ -4,7 +4,7 @@ import { acotarMeta, TOPE_META } from '@/lib/expediente/meta-de-bitacora'
 import { huellaImpreso } from '@/lib/expediente/huella-impreso'
 
 /**
- * LA HUELLA DE LA RECETA LARGA NO SE PIERDE — REG-518.
+ * LA HUELLA DE LA RECETA LARGA NO SE PIERDE — REG-521.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -49,7 +49,7 @@ import { huellaImpreso } from '@/lib/expediente/huella-impreso'
  *   un adversario. Eso no cambia aquí.
  */
 
-describe('REG-518 · acotarMeta, la función pura', () => {
+describe('REG-521 · acotarMeta, la función pura', () => {
   it('lo que cabe se guarda tal cual, sin marcas', () => {
     const m = { hash: 'abcd1234', folio: 'F-1', total: 3, farmacos: ['a', 'b', 'c'] }
     expect(acotarMeta(m)).toBe(m)
@@ -136,7 +136,7 @@ function peticion(body: unknown) {
 
 beforeEach(() => { asientos.length = 0 })
 
-describe('REG-518 · la ruta escribe la huella acotada, nunca null por larga', () => {
+describe('REG-521 · la ruta escribe la huella acotada, nunca null por larga', () => {
   it('EL CASO: receta_generada con 80 fármacos → el asiento lleva hash, folio y la marca de truncado', async () => {
     const farmacos = Array.from({ length: 80 }, (_, i) => `Fármaco ${i} 500 mg · vía oral · cada 8 horas · durante 10 días`)
     const r = await POST(peticion({

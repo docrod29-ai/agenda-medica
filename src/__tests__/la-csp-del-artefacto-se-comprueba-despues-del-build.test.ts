@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
- * LA CSP DEL ARTEFACTO SE COMPRUEBA DESPUÉS DEL BUILD — REG-524.
+ * LA CSP DEL ARTEFACTO SE COMPRUEBA DESPUÉS DEL BUILD — REG-525.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -58,7 +58,7 @@ function job(nombre: string): string {
   return siguiente === -1 ? resto : resto.slice(0, siguiente + 1)
 }
 
-describe('REG-524 · csp-manifest corre donde hay artefacto', () => {
+describe('REG-525 · csp-manifest corre donde hay artefacto', () => {
   const VERIFICAR = job('verificar')
 
   it('1 · EL CASO: el job que construye vuelve a correr csp-manifest.test.ts después', () => {

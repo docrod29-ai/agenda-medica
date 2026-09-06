@@ -68,7 +68,7 @@ export function RecetaPreviewWrapper({
   paperWidthMm, paperHeightMm, numPages = 1, maxWidth, maxHeight = 720, children,
 }: RecetaPreviewWrapperProps) {
   /**
-   * EL ANCHO SE MIDE, NO SE ADIVINA — REG-522.
+   * EL ANCHO SE MIDE, NO SE ADIVINA — REG-513.
    *
    * Este componente existe, según su propia cabecera, «para que la receta se vea
    * proporcional **sin desbordar el layout**». Lo hacía para cualquier tamaño de

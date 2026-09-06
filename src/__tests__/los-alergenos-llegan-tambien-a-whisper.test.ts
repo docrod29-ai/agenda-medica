@@ -8,7 +8,7 @@ import {
 } from '@/hooks/useGrabacionAudio'
 
 /**
- * LOS ALÉRGENOS LLEGAN TAMBIÉN A WHISPER — REG-513.
+ * LOS ALÉRGENOS LLEGAN TAMBIÉN A WHISPER — REG-516.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -75,7 +75,7 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace
 /** Datos sintéticos. */
 const CTX = { alergias: ['penicilina', 'sulfas'], medicamentos: ['metformina'], problemas: [], aprendidas: ['ceftriaxona'] }
 
-describe('REG-513 · una lista para los cuatro puntos de envío', () => {
+describe('REG-516 · una lista para los cuatro puntos de envío', () => {
   it('la lista incluye los alérgenos', () => {
     expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain('alergias')
   })
@@ -115,7 +115,7 @@ describe('REG-513 · una lista para los cuatro puntos de envío', () => {
   })
 })
 
-describe('REG-513 · guardián: los cuatro puntos de envío pasan por la lista, y las tres rutas la leen', () => {
+describe('REG-516 · guardián: los cuatro puntos de envío pasan por la lista, y las tres rutas la leen', () => {
   const hook = sinComentarios(leer('src', 'hooks', 'useGrabacionAudio.ts'))
 
   it('no queda ninguna lista de claves escrita a mano en el grabador', () => {

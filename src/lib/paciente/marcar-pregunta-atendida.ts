@@ -1,6 +1,6 @@
 'use client'
 /**
- * Avisar al servidor de que la pregunta del paciente ya fue atendida — REG-516.
+ * Avisar al servidor de que la pregunta del paciente ya fue atendida — REG-519.
  *
  * Lo llama `/pendientes` al cerrar una tarea `pregunta_paciente`. Es la mitad
  * del navegador de lo que la ruta `expediente/pregunta-atendida` hace del otro

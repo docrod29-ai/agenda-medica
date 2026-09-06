@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
      */
     const autorizadoPorToken = !!tk && tk.clinicId === clinicId && !!tk.patientId && tk.patientId === cita.pacienteId
     /**
-     * Y LA REVOCACIÓN, QUE AQUÍ NO SE COMPROBABA — REG-512.
+     * Y LA REVOCACIÓN, QUE AQUÍ NO SE COMPROBABA — REG-515.
      *
      * Esta ruta acepta el MISMO magic-link que `/api/portal` y que
      * `/api/payment/create-checkout`. Las dos hermanas comprueban
