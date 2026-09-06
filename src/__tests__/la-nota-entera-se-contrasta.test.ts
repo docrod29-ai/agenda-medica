@@ -110,8 +110,13 @@ describe('ESTÁ CABLEADO EN LA PANTALLA', () => {
      * esa comparación leyera una nota distinta de la que se firma, avisaría de
      * un procedimiento que sí está documentado —o callaría uno que no—, que es
      * el modo de fallo que este guardián existe para impedir.
+     *
+     * Y desde MO-001 son SEIS: el cotejo de LATERALIDAD compara el lado que
+     * dice la nota contra el que se dictó, región por región. Si leyera una
+     * nota distinta de la que se firma, señalaría una rodilla que sí coincide
+     * —o callaría la que no—, que es exactamente el mismo modo de fallo.
      */
-    const DEFENSAS_QUE_LEEN_LA_NOTA = 5
+    const DEFENSAS_QUE_LEEN_LA_NOTA = 6
     expect(page.split('textoDeLaNota(resumen, diagnosticos, secciones)').length - 1)
       .toBe(DEFENSAS_QUE_LEEN_LA_NOTA)
   })

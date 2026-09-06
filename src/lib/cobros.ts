@@ -10,7 +10,7 @@
  * Para corregir un error → registrar un cobro negativo (refund/ajuste).
  */
 import {
-  collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction,
+  collection, addDoc, getDocs, query, where, orderBy, limit, doc, updateDoc, runTransaction,
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
@@ -33,6 +33,16 @@ import { logAudit } from '@/lib/expediente/audit-log'
  * también LO YA GUARDADO: el instante siempre fue correcto, lo que estaba mal
  * era la etiqueta derivada. Sin migración y sin tocar un solo cobro histórico.
  */
+/**
+ * Topes de las dos lecturas que preguntan por un cobro concreto.
+ *
+ * No son cifras clínicas: son cotas de escala, y están puestas muy por encima
+ * de lo que ocurre en un consultorio real. Lo que impiden es que un defecto de
+ * datos convierta una pregunta puntual en una lectura de la colección entera.
+ */
+const TOPE_HUELLAS_IGUALES = 25
+const TOPE_DEVOLUCIONES_POR_COBRO = 50
+
 function limitesDelDia(desde: string, hasta: string, tz: string = TZ_DEFAULT): { ini: string; fin: string } {
   return {
     ini: instanteMX(desde, '00:00', tz).toISOString(),
@@ -431,7 +441,14 @@ export async function registrarCobroDetallado(
    */
   const huella = huellaDeCobro({ citaId: data.citaId, patientId: data.patientId, concepto: String(data.concepto), monto, dia })
   if ((esAbono || !data.citaId) && !opciones.esOtroDistinto) {
-    const iguales = await getDocs(query(COL(clinicId), where('huella', '==', huella)))
+    /**
+     * Acotada, y aquí acotar es seguro: la pregunta es «¿existe ya uno vivo
+     * igual?», y más resultados sólo pueden reforzar el sí. La huella lleva el
+     * DÍA dentro, así que en un día no puede haber decenas del mismo cobro
+     * exacto; el tope está muy por encima de lo posible y sólo impide que una
+     * huella repetida por un defecto acabe leyendo la colección entera.
+     */
+    const iguales = await getDocs(query(COL(clinicId), where('huella', '==', huella), limit(TOPE_HUELLAS_IGUALES)))
     const vivo = iguales.docs
       .map(d => ({ id: d.id, ...(d.data() as Partial<Cobro>) }))
       .find(c => !c.cancelado && c.id !== idDeterminista)
@@ -545,9 +562,26 @@ export async function registrarReembolso(
   const monto = Number(d.monto)
   if (!Number.isFinite(monto) || monto <= 0) throw new Error('El importe a devolver debe ser mayor que cero.')
   const originalRef = doc(COL(clinicId), d.cobroOriginalId)
-  // Lo ya devuelto de ESE cobro, para no devolver de más. Lectura fuera de la
-  // transacción: acota, no cierra; el tope duro es el importe del original.
-  const previas = await getDocs(query(COL(clinicId), where('cobroOriginalId', '==', d.cobroOriginalId)))
+  /**
+   * Lo ya devuelto de ESE cobro, para no devolver de más. Lectura fuera de la
+   * transacción: acota, no cierra; el tope duro es el importe del original.
+   *
+   * La cota se pide con UNO DE MÁS a propósito. Truncar esta lista en silencio
+   * subestimaría lo ya devuelto y dejaría devolver por encima del original:
+   * dinero. Así que si llegan más de las que caben, no se calcula un total
+   * incompleto — se para y se dice.
+   */
+  const previas = await getDocs(query(
+    COL(clinicId),
+    where('cobroOriginalId', '==', d.cobroOriginalId),
+    limit(TOPE_DEVOLUCIONES_POR_COBRO + 1),
+  ))
+  if (previas.size > TOPE_DEVOLUCIONES_POR_COBRO) {
+    throw new Error(
+      `Este cobro ya tiene más de ${TOPE_DEVOLUCIONES_POR_COBRO} devoluciones registradas. ` +
+      'No puedo sumar lo ya devuelto sin arriesgarme a devolver de más: revísalo a mano.',
+    )
+  }
   const yaDevuelto = previas.docs
     .map(x => x.data() as Partial<Cobro>)
     .filter(x => !x.cancelado && String(x.tipo) === 'REFUND')

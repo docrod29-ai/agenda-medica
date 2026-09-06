@@ -678,7 +678,7 @@ export async function updatePatient(
   if (typeof data.telefono === 'string') {
     return propagarTelefonoACitas(clinicId, id, data.telefono)
   }
-  return { citasActualizadas: 0, esperaActualizadas: 0 }
+  return { citasActualizadas: 0, esperaActualizadas: 0, truncada: false }
 }
 
 export interface TelefonoPropagado {
@@ -686,7 +686,25 @@ export interface TelefonoPropagado {
   citasActualizadas: number
   /** Entradas activas de la lista de espera que ahora llevan el teléfono nuevo. */
   esperaActualizadas: number
+  /**
+   * `true` = el paciente tiene MÁS citas o entradas de las que caben en el tope,
+   * así que puede haber alguna que se quedó con el teléfono viejo.
+   *
+   * Es la misma regla que `ListaDeEspera.truncada` (REG-351): un recorte sin
+   * etiqueta se lee como el trabajo completo. Aquí eso significa un recordatorio
+   * saliendo al número equivocado y nadie enterándose.
+   */
+  truncada: boolean
 }
+
+/**
+ * Cuántas citas y entradas de espera de UN paciente se leen para propagar.
+ *
+ * No es una cifra clínica: es el techo de una lectura. Doscientas cubren un
+ * historial largo de sobra; lo que importa no es acertar el número sino DECIR
+ * cuándo se alcanzó, que es lo que hace `truncada`.
+ */
+export const TOPE_CITAS_AL_PROPAGAR = 200
 
 /** Estados en los que una cita todavía puede recibir un recordatorio o una llamada. */
 const ESTADOS_CITA_CON_TELEFONO_VIVO = ['confirmada', 'pendiente-confirmar', 'solicitada', 'recordatorio-enviado', 'en-sala']
@@ -708,29 +726,33 @@ export async function propagarTelefonoACitas(clinicId: string, pacienteId: strin
   const digitos = (t: unknown) => String(t ?? '').replace(/\D/g, '')
   let citas: { id: string; pacienteTelefono?: string; fechaHora?: string; estado?: string }[] = []
   let espera: { id: string; pacienteTelefono?: string; estado?: string }[] = []
+  let truncada = false
   try {
     const [cs, es] = await Promise.all([
-      getDocs(query(col(clinicId, COLLECTIONS.appointments), where('pacienteId', '==', pacienteId))),
-      getDocs(query(col(clinicId, COLLECTIONS.waitlist), where('pacienteId', '==', pacienteId))),
+      // Acotadas, y con UNA DE MÁS para poder distinguir «cabían justas» de
+      // «hay más y no las veo».
+      getDocs(query(col(clinicId, COLLECTIONS.appointments), where('pacienteId', '==', pacienteId), limitarA(TOPE_CITAS_AL_PROPAGAR + 1))),
+      getDocs(query(col(clinicId, COLLECTIONS.waitlist), where('pacienteId', '==', pacienteId), limitarA(TOPE_CITAS_AL_PROPAGAR + 1))),
     ])
-    citas = cs.docs.map(x => ({ id: x.id, ...(x.data() as Record<string, unknown>) }))
-    espera = es.docs.map(x => ({ id: x.id, ...(x.data() as Record<string, unknown>) }))
+    truncada = cs.size > TOPE_CITAS_AL_PROPAGAR || es.size > TOPE_CITAS_AL_PROPAGAR
+    citas = cs.docs.slice(0, TOPE_CITAS_AL_PROPAGAR).map(x => ({ id: x.id, ...(x.data() as Record<string, unknown>) }))
+    espera = es.docs.slice(0, TOPE_CITAS_AL_PROPAGAR).map(x => ({ id: x.id, ...(x.data() as Record<string, unknown>) }))
   } catch {
-    return { citasActualizadas: 0, esperaActualizadas: 0 }
+    return { citasActualizadas: 0, esperaActualizadas: 0, truncada: false }
   }
   const citasPorTocar = citas.filter(c =>
     String(c.fechaHora ?? '') >= hoy
     && ESTADOS_CITA_CON_TELEFONO_VIVO.includes(String(c.estado ?? ''))
     && digitos(c.pacienteTelefono) !== digitos(nuevo))
   const esperaPorTocar = espera.filter(e => String(e.estado ?? '') === 'activo' && digitos(e.pacienteTelefono) !== digitos(nuevo))
-  if (citasPorTocar.length === 0 && esperaPorTocar.length === 0) return { citasActualizadas: 0, esperaActualizadas: 0 }
+  if (citasPorTocar.length === 0 && esperaPorTocar.length === 0) return { citasActualizadas: 0, esperaActualizadas: 0, truncada }
 
   const lote = writeBatch(db)
   const updatedAt = ahora.toISOString()
   for (const c of citasPorTocar) lote.update(d(clinicId, COLLECTIONS.appointments, c.id), { pacienteTelefono: nuevo, updatedAt })
   for (const e of esperaPorTocar) lote.update(d(clinicId, COLLECTIONS.waitlist, e.id), { pacienteTelefono: nuevo })
   await lote.commit()
-  return { citasActualizadas: citasPorTocar.length, esperaActualizadas: esperaPorTocar.length }
+  return { citasActualizadas: citasPorTocar.length, esperaActualizadas: esperaPorTocar.length, truncada }
 }
 
 // ── Waitlist ──────────────────────────────────────────────────

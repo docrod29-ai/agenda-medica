@@ -112,7 +112,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, pesoPr
    * que un dato que SÍ tenemos no llegue.
    */
   const diasDeVida = fechaNacimiento
-    ? edadEnDias(fechaNacimiento, new Date().toISOString().slice(0, 10))
+    ? edadEnDias(fechaNacimiento, hoy ?? hoyDelConsultorio(zonaActiva()))
     : null
 
   const dosis = useMemo(() => {

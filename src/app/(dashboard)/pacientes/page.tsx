@@ -1153,8 +1153,39 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
          * alergia en su pestaña mientras aquí se corregía el teléfono—, la
          * escritura se rechaza en vez de pisarla.
          */
-        await updatePatient(clinicId!, patient.id, payload, patient.updatedAt)
-        toast('Paciente actualizado', 'success')
+        const propagado = await updatePatient(clinicId!, patient.id, payload, patient.updatedAt)
+        /**
+         * QUÉ PASÓ CON EL TELÉFONO — y qué NO pasó (ASM-004).
+         *
+         * `updatePatient` lleva el teléfono nuevo a las citas futuras, porque
+         * el recordatorio lo lee de la CITA y no del expediente. Decir sólo
+         * «Paciente actualizado» dejaba invisible la mitad útil del trabajo.
+         *
+         * Y `truncada` es la parte que no se puede callar: si el paciente tiene
+         * más citas de las que cabe leer, alguna puede haberse quedado con el
+         * número viejo. Un recorte sin etiqueta se lee como el trabajo completo
+         * (REG-351), y aquí eso es un recordatorio saliendo a un número que ya
+         * no es de nadie.
+         */
+        if (propagado.truncada) {
+          toast(
+            'Paciente actualizado, pero tiene demasiadas citas para revisarlas todas: '
+            + 'puede quedar alguna con el teléfono anterior. Revísalas en la agenda.',
+            'error',
+          )
+        } else if (propagado.citasActualizadas > 0 || propagado.esperaActualizadas > 0) {
+          const partes = [
+            propagado.citasActualizadas > 0
+              ? `${propagado.citasActualizadas} cita${propagado.citasActualizadas === 1 ? '' : 's'}`
+              : '',
+            propagado.esperaActualizadas > 0
+              ? `${propagado.esperaActualizadas} en lista de espera`
+              : '',
+          ].filter(Boolean).join(' y ')
+          toast(`Paciente actualizado. El teléfono nuevo llegó también a ${partes}.`, 'success')
+        } else {
+          toast('Paciente actualizado', 'success')
+        }
       } else {
         /**
          * LA SEGUNDA RED, CONTRA DATOS FRESCOS.

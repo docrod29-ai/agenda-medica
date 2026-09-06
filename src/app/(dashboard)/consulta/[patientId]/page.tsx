@@ -73,6 +73,7 @@ import {
   farmacosSoloMencionadosEnPasado, avisoDeFarmacoEnPasado,
 } from '@/lib/expediente/el-farmaco-que-ya-no-toma'
 import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
+import { verificarLateralidad, describirDiscrepancia } from '@/lib/asr/lateralidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
@@ -1710,6 +1711,28 @@ export default function ConsultaActivaPage() {
    *
    * No se escribe solo: se señala antes de firmar y decide el médico.
    */
+  /**
+   * ── EL LADO DE LA NOTA CONTRA EL LADO QUE SE DICTÓ — MO-001 ────────────────
+   *
+   * `contradiccionesDeLateralidad` ya vigilaba el dictado consigo mismo («el
+   * derecho… perdón, el izquierdo»). Lo que faltaba es lo que de verdad sale
+   * impreso: que la NOTA diga un lado que el dictado no dijo, o que diga el
+   * contrario. Una rodilla equivocada en una orden de imagen es la clase de
+   * error que nadie relee porque la nota se ve impecable.
+   *
+   * No decide cuál es el lado bueno: dice dónde no coinciden, y decide el
+   * médico. Las regiones que el vocabulario no conoce NO se vigilan, y eso es
+   * lo que `regionesCotejadas` deja dicho: que falte una región significa que
+   * ese caso no se mira, no que esté bien (regla 5 de seguridad clínica).
+   */
+  const discrepanciasDeLado = useMemo(() => {
+    const dictado = voz.transcripcion ?? ''
+    if (!dictado.trim()) return []
+    return verificarLateralidad(dictado, textoDeLaNota(resumen, diagnosticos, secciones))
+      .discrepancias
+      .filter(d => !avisosRevisados.includes(`lado:${d.region}`))
+      .map(d => ({ region: d.region, mensaje: describirDiscrepancia(d) }))
+  }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
   const procedimientosPerdidos = useMemo(() => {
     const oidos = (entidades as { procedures?: { texto: string; fecha?: string; lateralidad?: string }[] } | null)?.procedures
     if (!oidos?.length) return []
@@ -4246,6 +4269,7 @@ export default function ConsultaActivaPage() {
    * que aparecen aquí, que es cuando sirven. Ver `lib/expediente/cuando-avisar.ts`.
    */
   const avisosParaFirmar = useMemo(() => alFirmar(construirAvisos({
+    discrepanciasDeLado,
     dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
     contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
     desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
@@ -6717,6 +6741,7 @@ export default function ConsultaActivaPage() {
       {(() => {
         const alergiasPaciente = alergiasDe(patient ?? {})
         const avisos = construirAvisos({
+    discrepanciasDeLado,
           dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
           alergiaMedicamento: validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
             .map(a => ({ mensaje: `[${a.severidad.toUpperCase()}] ${a.mensaje}`, severidad: a.severidad })),

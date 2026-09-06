@@ -92,6 +92,12 @@ vi.mock('firebase/firestore', () => {
     updateDoc: async (ref: Ref, d: Record<string, unknown>) => escribir('update', ref, d),
     addDoc: async (col: Ref, d: Record<string, unknown>) => { const r = doc(col); escribir('set', r, d); return r },
     orderBy: () => ({ campo: '__orderBy', valor: undefined }),
+    // El doble ignora la cota a propósito: lo que se prueba aquí es la REGLA de
+    // negocio, y un tope que recortara los documentos escondería justo los casos
+    // que estas pruebas montan. Que la cota exista lo vigila
+    // `las-lecturas-sin-cota-solo-bajan.test.ts`; que no recorte de más, el
+    // guardián de «más devoluciones de las que caben» de `cobros.ts`.
+    limit: () => ({ campo: '__limit', valor: undefined }),
   }
 })
 

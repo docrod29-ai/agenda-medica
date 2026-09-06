@@ -87,6 +87,18 @@ export type OrigenAviso =
    */
   | 'procedimiento_sin_escribir'
   /**
+   * ── LA NOTA DICE UN LADO Y EL DICTADO DIJO OTRO — MO-001 ──────────────────
+   *
+   * El aviso de lateralidad que ya existía miraba el dictado contra sí mismo
+   * («el derecho… perdón, el izquierdo»). Éste mira lo que de verdad sale
+   * impreso: la nota afirma un lado que el dictado no dijo, o el contrario.
+   *
+   * Una rodilla equivocada en una orden de imagen no se relee, porque la nota
+   * se ve impecable. `lado_sin_respaldo` es el caso silencioso: nadie dictó ese
+   * lado y aun así está escrito.
+   */
+  | 'lado_de_la_nota_sin_respaldo'
+  /**
    * Un fármaco figura como vigente y el dictado sólo lo nombra en pasado
    * (REG-373). «Le dieron warfarina cuando la operaron» entrando a la lista de
    * lo que toma, porque el esquema de extracción no tiene campo `estado` y la
@@ -170,6 +182,13 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
    * mismo criterio que `pauta_deformada`.
    */
   procedimiento_sin_escribir: 'revisa',
+  /**
+   * `revisa`, no `bloquea`. La lateralidad se dicta muchas veces sin nombrarla
+   * («esta rodilla») y bloquear la firma por cada nota cuyo lado no se oyó
+   * convertiría la compuerta en algo que se aprende a esquivar — y entonces
+   * tampoco frenaría el lado de verdad equivocado.
+   */
+  lado_de_la_nota_sin_respaldo: 'revisa',
   /**
    * `revisa`, no `bloquea`: «ya no la toma» y «se la suspendimos y la vamos a
    * reanudar» se dictan igual de pasado, y la diferencia la sabe el médico.
@@ -329,6 +348,15 @@ export interface EntradaAvisos {
    * no este constructor.
    */
   procedimientosSinEscribir?: readonly { texto: string; mensaje: string }[]
+  /**
+   * Regiones donde el lado de la NOTA no lo sostiene el dictado (MO-001).
+   *
+   * Lo calcula `verificarLateralidad` en `lib/asr/lateralidad.ts`, que sabe qué
+   * región reconoce y qué manda tras una retractación. Llega ya cotejado Y ya
+   * redactado por `describirDiscrepancia`: quien decide cómo se dice es el
+   * módulo que sabe qué es una discrepancia de lado, no este constructor.
+   */
+  discrepanciasDeLado?: readonly { region: string; mensaje: string }[]
   /**
    * Fármacos que figuran como vigentes y que el dictado sólo nombra en pasado
    * (REG-373). El texto viene redactado por `avisoDeFarmacoEnPasado`.
@@ -656,6 +684,23 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       nivel: nivelDe('procedimiento_sin_escribir'),
       texto: p.mensaje,
       ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * ── EL LADO DE LA NOTA QUE EL DICTADO NO SOSTIENE — MO-001 ───────────────
+   *
+   * Ancla en la nota: lo accionable es corregir el lado ahí, o volver a oír el
+   * dictado. No se corrige solo — la regla 3 de seguridad clínica.
+   */
+  for (const d of e.discrepanciasDeLado ?? []) {
+    out.push({
+      id: `lado:${d.region}`,
+      origen: 'lado_de_la_nota_sin_respaldo',
+      nivel: nivelDe('lado_de_la_nota_sin_respaldo'),
+      texto: `${d.mensaje} Confirma el lado antes de firmar.`,
+      ancla: { seccion: 'nota' },
+      descartable: true,
     })
   }
 

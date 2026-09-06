@@ -153,8 +153,24 @@ describe('zona horaria · el cliente ya recibe la zona del consultorio', () => {
      * de UTC a la zona del consultorio es exactamente lo que este guardián
      * quiere; el contador sube porque ahora esas líneas EXISTEN como llamadas.
      */
+    /**
+     * 43 → 45 (Panel de Lujo, sep-2026). Por el mismo motivo, y comprobado uno
+     * por uno contra el árbol anterior:
+     *
+     * · `FotosClinicas` estrena la FECHA DE LA TOMA (MO-008). Antes la foto se
+     *   fechaba con `new Date().toISOString()` —el instante de la SUBIDA, en
+     *   UTC—, así que una foto tomada el lunes por la tarde y subida a las
+     *   19:30 de México quedaba fechada el martes. Ahora la fecha se pide, y
+     *   por omisión es hoy EN LA ZONA DEL CONSULTORIO.
+     * · La devolución de un cobro (rebanada DINERO) sella su `dia` con
+     *   `fechaISOLocal`, igual que ya hacía el cobro original.
+     *
+     * Ninguna es deuda: las dos llaman a funciones cuyo valor por omisión ES
+     * `zonaActiva()`. Suben el contador porque el contador cuenta llamadas sin
+     * argumento explícito, y eso es justo lo que se quiere tener a la vista.
+     */
     const cliente = sitiosSinZona(r => !esServidor(r))
     expect(cliente.length).toBeGreaterThan(0)
-    expect(cliente.length, `Llamadas de cliente:\n${cliente.join('\n')}`).toBeLessThanOrEqual(43)
+    expect(cliente.length, `Llamadas de cliente:\n${cliente.join('\n')}`).toBeLessThanOrEqual(45)
   })
 })

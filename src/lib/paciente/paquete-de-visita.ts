@@ -451,10 +451,14 @@ export function cambiosDeMedicacion(
  *
  * ── LO QUE NO COMPONE, Y POR QUÉ ────────────────────────────────────────────
  *
- * `warningSigns` y `educationalMaterial` siguen vacíos. Los signos de alarma son
- * indicación médica y el material educativo es evidencia curada: no hay de
- * dónde sacarlos sin inventarlos, y «lo habitual» impreso bajo una cédula
- * profesional es exactamente el fallo más caro posible aquí.
+ * `educationalMaterial` sigue vacío: es evidencia curada y no hay de dónde
+ * sacarla sin inventarla, y «lo habitual» impreso bajo una cédula profesional
+ * es exactamente el fallo más caro posible aquí.
+ *
+ * `warningSigns` YA NO está vacío, y el matiz es el que importa: no se compone,
+ * se COPIA. Si el médico escribió los signos de alarma en su nota firmada, bajo
+ * su rótulo, se transcriben tal cual (PC-002, MG-015). Si no los escribió, van
+ * vacíos — como antes. Lo que no ocurre nunca es que salgan de otro sitio.
  *
  * `encounterSummary` son los DIAGNÓSTICOS que el médico dejó en la nota, no el
  * `resumenEjecutivo`: ese lo redacta un modelo para el clínico, con su jerga y

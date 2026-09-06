@@ -110,10 +110,11 @@ describe('ASM-009 · lo que inicia el negocio respeta la ventana de 24 h', () =>
     }
     // El `send` reactivo del bot es legítimo; los demás son el trinquete (handoff AGENDA-MENSAJERIA).
     const PERMITIDOS = new Set(['src/app/api/whatsapp/webhook/route.ts'])
+    // Bajó de 4 a 3 el 2026-09-06: `cron/reminders` ya declara quién inicia
+    // (AGENDA-MENSAJERIA). Esta lista sólo se vacía; nunca se rellena.
     const PENDIENTES = new Set([
       'src/app/api/public/booking/route.ts',
       'src/app/api/hospital/alerta/route.ts',
-      'src/app/api/cron/reminders/route.ts',
       'src/lib/whatsapp/avisar-consultorio.ts',
     ])
     const nuevos = [...directos].filter(f => !PERMITIDOS.has(f) && !PENDIENTES.has(f))

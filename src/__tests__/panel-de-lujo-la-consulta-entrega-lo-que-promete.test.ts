@@ -107,9 +107,27 @@ describe('PO-004 · PG-002 — lo que no viaja no se promete', () => {
     expect(entregar).toMatch(/todavía no viajan/)
   })
 
-  it('control: el paquete sigue sin componer signos de alarma por su cuenta', () => {
+  it('control: el paquete no ORIGINA signos de alarma — copia los del médico', () => {
+    /**
+     * Este control exigía `warningSigns: []`, y eso era una forma indirecta de
+     * decir lo que de verdad importa. PC-002 y MG-015 cerraron la otra mitad
+     * del hallazgo: si el médico ESCRIBIÓ los signos de alarma en su nota
+     * firmada, ahora llegan — que era justo lo que PO-004 echaba en falta.
+     *
+     * Lo que no puede cambiar es de DÓNDE salen. `lineasDeIndicaciones` los
+     * transcribe de las secciones de la nota FIRMADA, bajo su rótulo, tal cual.
+     * Nivel 6 de la jerarquía de fuentes de `patient-facing-ai.md`. No hay
+     * modelo, no hay catálogo, no hay «lo habitual».
+     *
+     * El material educativo sí sigue vacío: es evidencia curada y no hay de
+     * dónde sacarla sin inventarla.
+     */
     const paquete = leer('src', 'lib', 'paciente', 'paquete-de-visita.ts')
-    expect(paquete).toMatch(/warningSigns: \[\]/)
+    expect(paquete).toMatch(/warningSigns: alarma/)
+    expect(paquete).toMatch(/const \{ indicaciones, alarma \} = lineasDeIndicaciones\(n\)/)
+    // Sólo de la nota firmada, y sólo de sus secciones: ni una fuente más.
+    expect(paquete).toMatch(/if \(texto\(n\.estado\) !== 'firmada'\) return \{ ok: false, motivo: 'nota-sin-firmar' \}/)
+    expect(paquete).toMatch(/educationalMaterial: \[\]/)
   })
 })
 

@@ -92,12 +92,36 @@ const DECIDE_CON_EL_RESULTADO: Record<Camino, RegExp[]> = {
   ],
   'src/app/api/whatsapp/webhook/route.ts': [
     /const elegido = elegirExpedienteParaCita\(/,
-    /if \(elegido\) return elegido\.id/,
+    // El bot devuelve un OBJETO desde que marca «por confirmar» (RT-008): lo que
+    // se exige sigue siendo lo mismo —decidir con `elegido`— con su forma de hoy.
+    /if \(elegido\) return \{ id: elegido\.id \}/,
   ],
 }
 
-/** El único `[0]` sobre candidatos que está permitido, y sólo en el bot. */
-const FALLBACK_DECLARADO = /if \(nombreUtil\.length < 4\) return candidatosPac\[0\]\.id/
+/**
+ * El único `[0]` sobre candidatos que está permitido, y sólo en el bot.
+ *
+ * ── SE ESTRECHÓ, NO SE AFLOJÓ (RT-008, sep-2026) ────────────────────────────
+ *
+ * Antes el fallback sin nombre se quedaba con el primero SIEMPRE. Ahora sólo
+ * cuando hay UN candidato, y además lo marca «por confirmar» para que la
+ * consulta lo enseñe antes de dictar. Con dos o más —la madre y la hija con el
+ * WhatsApp de la casa— la cita nace SIN expediente y la cuelga una persona.
+ *
+ * Por eso el guardián exige la guarda `length === 1`: si alguien vuelve a
+ * tomar el primero de varios, el patrón deja de casar y el `[0]` pasa a estar
+ * de más.
+ */
+const FALLBACK_DECLARADO =
+  /if \(candidatosPac\.length === 1\) return \{ id: candidatosPac\[0\]\.id, porConfirmar: 'telefono-sin-nombre' \}/
+
+/**
+ * El segundo camino del bot: la notificación al consultorio resuelve de qué
+ * paciente es la pregunta. Sus dos `snap.docs[0]` sólo valen dentro de
+ * `if (snap.size === 1)` — con dos expedientes bajo el mismo teléfono no se
+ * elige, se deja sin resolver y la tarea sale igual.
+ */
+const UNICO_O_NINGUNO = /if \(snap\.size === 1\) \{/
 
 /**
  * Las listas de EXPEDIENTES candidatos de cada camino. Por nombre y por camino a
@@ -121,7 +145,11 @@ export function defectosDe(camino: Camino, codigo: string): string[] {
   }
   // Ningún «el primero de la lista» sobre candidatos o documentos.
   const primeros = codigo.match(LISTAS_DE_CANDIDATOS[camino]) ?? []
-  const permitidos = camino === 'src/app/api/whatsapp/webhook/route.ts' && FALLBACK_DECLARADO.test(codigo) ? 1 : 0
+  // Uno por el fallback sin nombre; dos más por la notificación, y sólo si de
+  // verdad están dentro de la guarda «hay exactamente uno».
+  const permitidos = camino === 'src/app/api/whatsapp/webhook/route.ts'
+    ? (FALLBACK_DECLARADO.test(codigo) ? 1 : 0) + (UNICO_O_NINGUNO.test(codigo) ? 2 : 0)
+    : 0
   if (primeros.length > permitidos) {
     d.push(`se queda con «el primero»: ${primeros.join(', ')} (permitidos: ${permitidos})`)
   }
@@ -144,6 +172,10 @@ describe('a qué expediente se cuelga una cita', () => {
     const codigo = limpiarComentarios(leer('src/app/api/whatsapp/webhook/route.ts'))
     expect(codigo).toMatch(FALLBACK_DECLARADO)
     expect(codigo.match(/candidatosPac\[0\]/g)).toHaveLength(1)
+    expect(codigo, 'la notificación no elige entre varios').toMatch(UNICO_O_NINGUNO)
+    // Al revés: sin la guarda, los dos `snap.docs[0]` dejan de estar permitidos.
+    expect(defectosDe('src/app/api/whatsapp/webhook/route.ts', codigo.replace(UNICO_O_NINGUNO, 'if (true) {')).join(' '))
+      .toMatch(/se queda con «el primero»/)
   })
 })
 

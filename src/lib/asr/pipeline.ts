@@ -35,12 +35,18 @@
  */
 
 import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
-import { corregirVigilado, alertasDe, type AlertaDictado } from '@/lib/asr/corrector-vigilado'
+import { corregirVigilado, cambiosDescartados, alertasDe, type AlertaDictado } from '@/lib/asr/corrector-vigilado'
 import { verificar, type Violacion } from '@/lib/asr/guardian-sustituciones'
 import { normalizar, type CambioNormalizacion } from '@/lib/asr/normalizacion'
 import { normalizarSiglas, type CambioSigla } from '@/lib/asr/siglas'
 import type { MotivoConfirmacion } from '@/lib/asr/politica-critica'
 import { contradiccionesDeLateralidad, type ContradiccionDeLado } from '@/lib/asr/lateralidad'
+import {
+  dictaminarSujetoDelDictado,
+  type DictamenSujetoDelDictado,
+  type OtroPaciente,
+} from '@/lib/asr/sujeto-del-dictado'
+import type { IdentidadDelPaciente } from '@/lib/asr/aprendizaje'
 
 export interface EtapaTexto {
   /** Nombre de la etapa, para poder auditar dónde cambió qué. */
@@ -65,6 +71,17 @@ export interface ResultadoPipeline {
    * su dictado sin decírselo.
    */
   cambiosLexicos: CambioTranscripcion[]
+  /**
+   * Lo que el corrector QUISO cambiar y el guardián le tiró.
+   *
+   * Cuando el guardián revierte, `cambiosLexicos` viene vacío —correcto: no se
+   * anuncia como hecha una corrección que no se aplicó—, pero entonces el
+   * médico no ve NADA, y no se entera de que sobre su dictado se intentó una
+   * corrección y se rechazó. «Nada cambia en silencio» (regla 3) vale también
+   * para lo que no cambió: saber que el guardián frenó algo es lo que le dice
+   * dónde volver a escuchar.
+   */
+  cambiosDescartados: CambioTranscripcion[]
   cambiosNormalizacion: CambioNormalizacion[]
   cambiosSiglas: CambioSigla[]
   /** Lo que hay que enseñarle al médico. */
@@ -75,6 +92,12 @@ export interface ResultadoPipeline {
    * violaciones porque no las produjo ninguna etapa: las dijo el médico.
    */
   contradiccionesDeLado: ContradiccionDeLado[]
+  /**
+   * ¿De quién es este dictado? (B-013). `undefined` cuando el llamador no pasó
+   * la identidad del expediente abierto: entonces NO se comprueba, y eso es
+   * distinto de haber comprobado y no haber encontrado nada.
+   */
+  sujeto?: DictamenSujetoDelDictado
   /** Gate de ambigüedad: por qué hay que preguntarle. Vacío = no hay que preguntar. */
   motivos: MotivoConfirmacion[]
   requiereConfirmacion: boolean
@@ -88,8 +111,14 @@ export interface ResultadoPipeline {
  * de texto puro fabrique o transporte autoridad clínica que no posee.
  *
  * @param crudo lo que devolvió el ASR, sin tocar.
+ * @param contexto identidad del expediente ABIERTO y otros pacientes plausibles
+ *   (la agenda del día, los atendidos recientes). Opcional: sin él la compuerta
+ *   de sujeto no corre, y su ausencia se nota porque `sujeto` viene `undefined`.
  */
-export function procesarTranscript(crudo: string): ResultadoPipeline {
+export function procesarTranscript(
+  crudo: string,
+  contexto?: { pacienteAbierto?: IdentidadDelPaciente; otrosPacientes?: readonly OtroPaciente[] },
+): ResultadoPipeline {
   const trazas: EtapaTexto[] = [{ etapa: 'crudo', texto: crudo }]
 
   // ── 1. Corrección léxica, con el guardián delante ───────────────────────
@@ -136,6 +165,21 @@ export function procesarTranscript(crudo: string): ResultadoPipeline {
   const contradiccionesDeLado = contradiccionesDeLateralidad(texto)
   if (contradiccionesDeLado.length > 0) motivos.add('lateralidad_contradictoria')
 
+  // ── 5-ter. ¿De quién es este dictado? (B-013) ──────────────────────────
+  // Un laboratorio no se archiva por tener un expediente abierto: se compara el
+  // nombre y se pregunta. Un dictado sí se archivaba. Aquí se compara igual.
+  //
+  // Sólo corre cuando el llamador dice a QUIÉN tiene abierto: sin eso no hay
+  // con qué comparar, y `sujeto` se queda `undefined` para que se vea que no se
+  // comprobó. Ausencia de comprobación no es comprobación en verde.
+  //
+  // Se PREGUNTA, no se bloquea: `sin_nombre` —el caso normal, porque la mayoría
+  // de las consultas no dicen el apellido en voz alta— no levanta ningún motivo.
+  const sujeto = contexto?.pacienteAbierto
+    ? dictaminarSujetoDelDictado(texto, contexto.pacienteAbierto, contexto.otrosPacientes ?? [])
+    : undefined
+  if (sujeto?.veredicto === 'nombra_a_otro') motivos.add('paciente_nombrado_no_coincide')
+
   const alertas: AlertaDictado[] = [
     ...alertasDe(vig),
     ...roto.map((v): AlertaDictado => ({
@@ -143,6 +187,13 @@ export function procesarTranscript(crudo: string): ResultadoPipeline {
       titulo: `La normalización alteró «${v.antes}»`,
       detalle: `${v.mensaje} Se conservó el texto anterior a esa etapa.`,
     })),
+    ...(sujeto?.veredicto === 'nombra_a_otro'
+      ? [{
+        tipo: 'sustitucion' as const,
+        titulo: 'El dictado nombra a otro paciente',
+        detalle: `${sujeto.texto} Confirma de quién es esta consulta antes de archivarla.`,
+      }]
+      : []),
     ...contradiccionesDeLado.map((c): AlertaDictado => ({
       tipo: 'lateralidad',
       titulo: c.region
@@ -160,9 +211,11 @@ export function procesarTranscript(crudo: string): ResultadoPipeline {
     // Si el guardián revirtió, `vig.cambios` ya viene vacío: no se anuncian como
     // hechas correcciones que no se aplicaron.
     cambiosLexicos: vig.cambios,
+    cambiosDescartados: cambiosDescartados(vig),
     cambiosNormalizacion: num.cambios,
     cambiosSiglas: sig.cambios,
     contradiccionesDeLado,
+    sujeto,
     alertas,
     motivos: [...motivos],
     requiereConfirmacion: motivos.size > 0,
