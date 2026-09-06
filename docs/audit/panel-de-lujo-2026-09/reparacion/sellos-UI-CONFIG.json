@@ -1,61 +1,131 @@
 [
   {
     "archivo": "src/__tests__/la-pauta-neonatal-no-es-la-de-un-escolar.test.ts",
-    "minCasos": 11,
-    "hallazgos": ["MP-003"],
+    "minCasos": 12,
+    "hallazgos": [
+      "MP-003"
+    ],
     "nota": "P1. Nació como REP-052 y se movió aquí con el arreglo puesto. Cubre el escolar (falsa alarma crítica), el recién nacido (pauta de adulto), la ambigüedad sin edad en días y `edadEnDias`."
   },
   {
     "archivo": "src/__tests__/el-silencio-clinico-lleva-etiqueta.test.ts",
     "minCasos": 28,
-    "hallazgos": ["MG-010", "MG-021", "MG-018", "MI-007", "MI-008", "MI-013"],
+    "hallazgos": [
+      "MG-010",
+      "MG-021",
+      "MG-018",
+      "MI-007",
+      "MI-008",
+      "MI-013"
+    ],
     "nota": "Los motores que se callaban: cuenta gestacional sin techo, hitos prenatales sin fuente, cruce de interacciones sin declarar alcance, vocabulario de cesación, y la farmacia dispensando sin cruzar alergias."
   },
   {
     "archivo": "src/__tests__/no-se-pudo-leer-no-es-no-hay-nada.test.ts",
     "minCasos": 23,
-    "hallazgos": ["ZC-001", "ZC-004", "ZC-005", "ZC-006", "C-010", "C-037"],
+    "hallazgos": [
+      "ZC-001",
+      "ZC-004",
+      "ZC-005",
+      "ZC-006",
+      "C-010",
+      "C-037"
+    ],
     "nota": "Seis superficies clínicas pintaban el mismo hueco para «falló la lectura» y «no hay nada». Incluye el guardián de orden (la rama del fallo va antes que la del vacío) y el que prohíbe `catch(() => {})`."
   },
   {
     "archivo": "src/__tests__/la-alerta-tiene-quien-la-lea.test.ts",
     "minCasos": 12,
-    "hallazgos": ["ZC-001"],
+    "hallazgos": [
+      "ZC-001"
+    ],
     "nota": "Prueba ya sellada (REG-256). Se actualizó el caso de la línea 105, que fijaba el defecto: comprobaba que el componente guardara `null` y que el `if` lo tratara como vacío. La cabecera del caso explica por qué se cambió."
   },
   {
     "archivo": "src/__tests__/cada-campo-dice-como-se-llama.test.ts",
     "minCasos": 29,
-    "hallazgos": ["C-025", "ASM-025", "ZC-012", "C-026", "D-006", "D-004", "ZC-003"],
+    "hallazgos": [
+      "C-025",
+      "ASM-025",
+      "ZC-012",
+      "C-026",
+      "D-006",
+      "D-004",
+      "ZC-003"
+    ],
     "nota": "Accesibilidad de los campos y de las pestañas, más el trinquete de campos sin nombre (techo 81) y el guardián de «un ejemplo no es un nombre», que nació porque el arreglo automático lo hizo mal en seis campos."
   },
   {
     "archivo": "src/__tests__/la-pantalla-habla-como-persona.test.ts",
     "minCasos": 18,
-    "hallazgos": ["C-020", "C-021", "C-022", "ZC-011", "ZC-020", "ZC-021", "ZC-024"],
+    "hallazgos": [
+      "C-020",
+      "C-021",
+      "C-022",
+      "ZC-011",
+      "ZC-020",
+      "ZC-021",
+      "ZC-024"
+    ],
     "nota": "Incluye el trinquete de avisos «Error…» con techo 25: el resto vive en archivos de otras rebanadas y está declarado en el handoff."
   },
   {
     "archivo": "src/__tests__/lo-que-la-pantalla-promete-lo-cumple.test.ts",
     "minCasos": 34,
     "hallazgos": [
-      "C-001", "C-002", "ASM-016", "C-003", "C-004", "ASM-015", "ASM-018",
-      "N-008", "N-010", "N-011", "N-012", "N-013", "N-017", "N-018",
-      "C-028", "C-013", "C-031", "C-036", "ZC-008", "ZC-009", "RT-007",
-      "PC-010", "ASC-006", "ASE-018", "D-014", "D-024"
+      "C-001",
+      "C-002",
+      "ASM-016",
+      "C-003",
+      "C-004",
+      "ASM-015",
+      "ASM-018",
+      "N-008",
+      "N-010",
+      "N-011",
+      "N-012",
+      "N-013",
+      "N-017",
+      "N-018",
+      "C-028",
+      "C-013",
+      "C-031",
+      "C-036",
+      "ZC-008",
+      "ZC-009",
+      "RT-007",
+      "PC-010",
+      "ASC-006",
+      "ASE-018",
+      "D-014",
+      "D-024"
     ],
     "nota": "Campos que nadie leía y textos que decían otra cosa. Incluye el guardián que exige que TODO comando citado en CLAUDE.md exista en package.json — el que evita que se repita lo de `npm run mantenimiento`."
   },
   {
     "archivo": "src/__tests__/el-enlace-del-paciente-no-se-queda-en-el-telefono.test.ts",
-    "minCasos": 20,
-    "hallazgos": ["PC-017", "A-007", "PI-019", "ASR-012", "PO-019", "MC-011", "MC-012", "MO-008", "ZC-007", "MP-010"],
+    "minCasos": 23,
+    "hallazgos": [
+      "PC-017",
+      "A-007",
+      "PI-019",
+      "ASR-012",
+      "PO-019",
+      "MC-011",
+      "MC-012",
+      "MO-008",
+      "ZC-007",
+      "MP-010"
+    ],
     "nota": "Incluye el guardián que compara la lista escrita a mano del service worker con el árbol real de rutas: es el que caza la próxima entrada muerta como `valoracion`."
   },
   {
     "archivo": "src/__tests__/pediatria.test.ts",
-    "minCasos": 90,
-    "hallazgos": ["MP-003", "MP-010"],
+    "minCasos": 60,
+    "hallazgos": [
+      "MP-003",
+      "MP-010"
+    ],
     "nota": "Prueba existente. Dos casos cambiados, los dos fijaban un defecto: «todos los fármacos calculan sin romperse» exigía dosis a una pauta que sólo vale para los primeros días de vida, y `edadEnMeses('no-es-fecha')` esperaba 0. Las dos cabeceras explican el cambio."
   }
 ]

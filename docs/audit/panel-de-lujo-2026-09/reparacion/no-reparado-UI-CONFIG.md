@@ -94,6 +94,25 @@ que ahora **tienen un trinquete que impide que crezcan**.
 | D-018 | `/uci/antimicrobianos` hace dos trabajos en una pantalla | El propio hallazgo dice «al reactivar UCI»: está en pausa (D-030) |
 | PI-012 | El portal sin señal enseña la página de venta para médicos | En el handoff, para PORTAL |
 
+## El único rojo que deja esta rama, y no es de esta rama
+
+`src/__tests__/ops-timeout-y-punto-ciego.test.ts` → «el error dice cuánto esperó
+y a quién» falla, y **falla igual sin mis cambios**. Lo comprobé como se
+comprueba esto: `git stash` de todo el árbol de trabajo, correr el caso solo, y
+sigue rojo sobre el commit anterior. Y `git diff 595c89a` no toca ninguno de los
+dos archivos implicados (`src/lib/fetch-con-timeout.ts` ni el propio golden).
+
+La causa es del entorno, no del código: el caso hace una petición REAL a
+`10.255.255.1` esperando que el respaldo de tiempo agotado se dispare a los 30 ms,
+y en este contenedor la salida a esa dirección se rechaza al instante, así que
+lo que llega es un error de red y no un `TiempoAgotado`. En una máquina con la
+ruta abierta —o en CI— el caso pasa.
+
+Lo dejo dicho aquí y no lo toco: cambiar un golden ajeno para que pase en mi
+contenedor sería aflojar una prueba por una razón que no es del producto.
+Resultado de la suite completa: **13 045 casos en verde, 1 en rojo, el de
+arriba.**
+
 ## Lo que se pidió y no era mío
 
 - **A-006** (`registrarUso` sin esperar en ocho rutas): el orquestador me lo
