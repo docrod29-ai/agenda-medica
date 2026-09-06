@@ -74,6 +74,64 @@ export const FAMILIA_BETALACTAMICOS = [
   'piperacilina', 'meropenem', 'imipenem', 'ertapenem',
 ]
 
+/**
+ * ── LA ALERGIA ESCRITA POR CLASE, NO POR FÁRMACO — MI-004 y MI-005 ──────────
+ *
+ * Los médicos escriben la alergia como se la cuenta el paciente: «alérgico a
+ * las cefalosporinas», «a los betalactámicos», «a las penicilinas». El motor
+ * sólo conocía nombres de principio activo, así que «Cefalosporinas» +
+ * ceftriaxona no disparaba **nada** (MI-004).
+ *
+ * El parche que había para eso era peor que el hueco: `a.includes('beta')`, una
+ * subcadena suelta que convertía «betametasona» y «betabloqueadores» en alergia
+ * a betalactámicos, bloqueaba la firma de la nota, y la única salida era borrar
+ * la alergia del expediente (MI-005). Un corticoide y un antihipertensivo no
+ * comparten nada con la penicilina salvo cinco letras.
+ *
+ * QUÉ DISPARA QUÉ. Un término de SUBFAMILIA alerta sobre su propia subfamilia;
+ * el término paraguas alerta sobre todas. Extenderlo —que una alergia a
+ * cefalosporinas alerte también sobre penicilinas— es criterio clínico sobre
+ * reactividad cruzada, no una decisión de programación: `NEEDS_CLINICAL_REVIEW`.
+ * Se deja en el lado que no fabrica alarmas, porque la alarma de más ya causó
+ * el defecto de arriba.
+ */
+export const SUBFAMILIAS_BETALACTAMICOS: Record<string, string[]> = {
+  penicilinas: ['penicilina', 'amoxicilina', 'ampicilina', 'dicloxacilina', 'oxacilina', 'piperacilina'],
+  cefalosporinas: ['cefalexina', 'ceftriaxona', 'cefepime', 'cefuroxima', 'cefotaxima', 'cefazolina', 'ceftazidima', 'cefixima'],
+  carbapenemicos: ['meropenem', 'imipenem', 'ertapenem', 'doripenem'],
+}
+
+/**
+ * Cómo se escribe cada clase en un expediente mexicano. Van con límite de
+ * palabra al comparar: «beta» suelto es lo que produjo MI-005.
+ */
+const DISPARADORES_DE_CLASE: Record<'todas' | keyof typeof SUBFAMILIAS_BETALACTAMICOS, RegExp> = {
+  todas: /\bbeta[\s-]?lact[áa]mic[oa]s?\b|\bbetalactamas?\b/i,
+  penicilinas: /\bpenicilinas?\b|\bpenicilinicos?\b/i,
+  cefalosporinas: /\bcefalosporinas?\b|\bcefalospor[íi]nicos?\b|\bcefas\b/i,
+  carbapenemicos: /\bcarbapen[ée]mic[oa]s?\b|\bcarbapenems?\b/i,
+}
+
+/**
+ * Los miembros de la familia que cubre esta alergia escrita, o lista vacía.
+ * Puro y exportado para poder probarlo solo — incluida la prueba al revés, que
+ * es la que caza el regreso de MI-005.
+ */
+export function miembrosCubiertosPorAlergia(textoAlergia: string): string[] {
+  const a = (textoAlergia ?? '').toLowerCase()
+  if (!a.trim()) return []
+  if (DISPARADORES_DE_CLASE.todas.test(a)) return [...FAMILIA_BETALACTAMICOS]
+  const cubiertos = new Set<string>()
+  for (const [clase, miembros] of Object.entries(SUBFAMILIAS_BETALACTAMICOS)) {
+    if (DISPARADORES_DE_CLASE[clase as keyof typeof SUBFAMILIAS_BETALACTAMICOS].test(a)) {
+      for (const m of miembros) cubiertos.add(m)
+    }
+  }
+  // Y el fármaco nombrado tal cual, que es el caso de siempre.
+  for (const f of FAMILIA_BETALACTAMICOS) if (a.includes(f)) cubiertos.add(f)
+  return [...cubiertos]
+}
+
 /* ─── Normalización conservadora ─────────────────────────────────── */
 
 export interface NormalizacionResult {
@@ -143,11 +201,15 @@ export function validarAlergiasVsMedicamentos(
     const nom = (med.nombre ?? '').toLowerCase()
     if (!nom) continue
 
-    // Alergia a penicilina + betalactámico
-    const alergicoBetalactamico = alergiasLow.some(a =>
-      FAMILIA_BETALACTAMICOS.some(f => a.includes(f) || a.includes('beta'))
-    )
+    /**
+     * Alergia a betalactámicos + betalactámico prescrito. La cobertura ya no es
+     * «¿aparece alguna letra?» sino «¿este fármaco está entre los que cubre lo
+     * que el médico escribió?» — ver `miembrosCubiertosPorAlergia` (MI-004,
+     * MI-005).
+     */
+    const cubiertos = new Set(alergiasLow.flatMap(a => miembrosCubiertosPorAlergia(a)))
     const esBetalactamico = FAMILIA_BETALACTAMICOS.some(f => nom.includes(f))
+    const alergicoBetalactamico = [...cubiertos].some(f => nom.includes(f))
     if (alergicoBetalactamico && esBetalactamico) {
       /**
        * CARBAPENÉMICOS — decisión clínica del médico dueño (E0-15d, 2026-07-28).

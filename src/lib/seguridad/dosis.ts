@@ -31,6 +31,21 @@ export interface AlertaDosis {
     | 'dosis_sin_cifra'
     /** La misma sustancia en dos renglones, o ya vigente en el expediente (REG-528). */
     | 'terapia_duplicada'
+    /**
+     * Un VOLUMEN sin la concentración: «Amoxicilina 5 mL» no dice cuánto
+     * fármaco lleva. Panel de Lujo MP-005 (P0).
+     */
+    | 'volumen_sin_concentracion'
+    /**
+     * Producto COMBINADO con dos cifras («325/37.5 mg»): el motor no puede
+     * repartirlas entre componentes. Panel de Lujo MI-006.
+     */
+    | 'dosis_combinada_no_repartible'
+    /**
+     * La unidad escrita es IMPOSIBLE para ese fármaco: «digoxina 250 mg» donde
+     * la presentación real es 0.25 mg. Panel de Lujo RT-003.
+     */
+    | 'unidad_improbable_para_el_farmaco'
   mensaje: string
 }
 
@@ -276,6 +291,24 @@ export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
  */
 export function extraerMg(texto: string): number | null {
   const t = normaliza(texto)
+  /**
+   * ── 0) PRODUCTO COMBINADO: DOS CIFRAS, UNA UNIDAD — MI-006 ────────────────
+   *
+   * «Paracetamol/tramadol 325/37.5 mg» son 325 mg de paracetamol y 37.5 de
+   * tramadol. El paso 1 casaba `37.5 mg` —la cifra que está pegada a la
+   * unidad— y devolvía **la del otro componente**: el motor comparaba 37.5 mg
+   * contra el techo del paracetamol y le decía al médico una cifra que él no
+   * escribió.
+   *
+   * Repartir la cifra exige una tabla de formulaciones que este repositorio no
+   * tiene, y adivinar cuál de las dos toca es exactamente lo que produjo el
+   * defecto. Así que el motor **no opina**: devuelve `null`, como ya hace con
+   * los mililitros, y `revisarUnidadDosis` lo dice en voz alta.
+   *
+   * El `/` con cifras a ambos lados es el patrón; se excluye la concentración
+   * («250 mg/5 mL»), donde la barra separa masa de volumen y no dos principios.
+   */
+  if (esDosisCombinada(t)) return null
   // 1) Cantidad con unidad de MASA explícita (mg/g/mcg) — la que de verdad importa.
   /**
    * ── «500 MICROGRAMOS» SE LEÍA COMO 500 mg — REG-289 ────────────────────────
@@ -458,6 +491,86 @@ const RE_PORCENTAJE = /\d\s*%/
 /** Un número, en cualquier forma («0.5», «1,5», «100»). */
 const RE_CIFRA = /\d/
 
+/**
+ * ── LA CONCENTRACIÓN: «250 mg / 5 mL» ───────────────────────────────────────
+ *
+ * Es lo que convierte un volumen en una dosis. Sin ella, «5 mL» no dice cuánto
+ * fármaco lleva: con amoxicilina de 125 mg/5 mL son 125 mg, y con la de
+ * 500 mg/5 mL son cuatro veces más. Se acepta también la forma por 100 mL y el
+ * porcentaje, que son las otras dos maneras de escribir lo mismo.
+ */
+const RE_CONCENTRACION =
+  /\d+(?:[.,]\d+)?\s*(mcg|µg|ug|mg|g|gr|ui|u\.?i\.?|meq|mmol)\s*(?:\/|por|en)\s*\d*(?:[.,]\d+)?\s*(ml|mililitros?|l|litros?|cc|c\.?\s?c\.?|gotas?|dosis|aplicaci[óo]n(?:es)?|puffs?|disparos?)\b/i
+
+/** ¿El texto dice de qué concentración es el volumen? Puro. */
+export function tieneConcentracion(texto: string | null | undefined): boolean {
+  const t = String(texto ?? '')
+  return RE_CONCENTRACION.test(t) || RE_PORCENTAJE.test(t)
+}
+
+/**
+ * ¿Es un producto COMBINADO escrito con dos cifras y una unidad? MI-006.
+ *
+ * «325/37.5 mg», «500/125 mg», «80/12.5 mg». Se excluye a propósito la
+ * concentración («250 mg/5 mL»), donde la barra separa masa de volumen: ahí la
+ * primera cifra SÍ es la dosis del principio y el motor puede leerla.
+ */
+export function esDosisCombinada(texto: string | null | undefined): boolean {
+  const t = String(texto ?? '')
+  if (tieneConcentracion(t)) return false
+  return /\d+(?:[.,]\d+)?\s*\/\s*\d+(?:[.,]\d+)?\s*(mcg|µg|ug|mg|g|gr)\b/i.test(t)
+}
+
+/**
+ * ── FÁRMACOS QUE SE DOSIFICAN EN MICROGRAMOS — RT-003 ───────────────────────
+ *
+ * Esto NO es una tabla de dosis: es una tabla de DIMENSIÓN. No dice cuánto se
+ * da, dice en qué unidad se escribe. Por eso puede vivir aquí sin la validación
+ * clínica que sí exige un techo (REG-043): equivocarse de dimensión es un
+ * factor de mil, y la alerta que genera es «verifica la unidad», nunca «la
+ * dosis correcta es otra».
+ *
+ * FUENTE, dentro de este repositorio y no inventada:
+ *   · el propio comentario de este módulo (más arriba) ya nombra levotiroxina,
+ *     fentanilo, digoxina, clonidina y levonorgestrel como el caso que motivó
+ *     la compuerta de unidad ausente;
+ *   · `src/lib/hospital/medicamentos-catalogo.ts` guarda sus presentaciones
+ *     reales — Digoxina «0.25 mg», Levotiroxina «50 mcg»/«100 mcg», Fentanilo
+ *     «0.05 mg/mL» —, que es de donde sale la dimensión.
+ *
+ * AMPLIARLA es criterio clínico: `NEEDS_CLINICAL_REVIEW`. La lista corta no
+ * declara que los demás fármacos estén vigilados — declara lo contrario, y por
+ * eso el aviso dice «no verificada» y no «correcta» (regla 5 de seguridad
+ * clínica: señalar de menos, nunca de más).
+ */
+const EN_MICROGRAMOS = [
+  'levotiroxina', 'digoxina', 'fentanilo', 'clonidina', 'levonorgestrel',
+  'desmopresina', 'misoprostol', 'buprenorfina', 'formoterol', 'salmeterol',
+] as const
+
+/**
+ * Umbral de dimensión, en mg. Por encima de esto, una dosis escrita para un
+ * fármaco de la lista de microgramos es casi con seguridad un factor de mil:
+ * 1 mg de cualquiera de ellos ya es una dosis muy alta, y el aviso pide
+ * verificar, no corrige.
+ */
+const MG_IMPROBABLE_EN_MICROGRAMOS = 1
+
+/**
+ * ── ENOXAPARINA Y LOS QUE NUNCA SE ESCRIBEN EN MICROGRAMOS ──────────────────
+ *
+ * El espejo del caso anterior: «enoxaparina 60 mcg» es la milésima parte de la
+ * jeringa que existe. Aquí la dimensión también es un hecho de la
+ * presentación, no un juicio: la enoxaparina se surte en miligramos.
+ */
+const NUNCA_EN_MICROGRAMOS = [
+  'enoxaparina', 'metformina', 'paracetamol', 'amoxicilina', 'ibuprofeno',
+  'ceftriaxona', 'azitromicina', 'omeprazol', 'prednisona', 'naproxeno',
+] as const
+
+/** mcg por debajo de los cuales la dimensión es improbable en esos fármacos. */
+const MCG_IMPROBABLE_EN_MILIGRAMOS = 1000
+
 export type ClaseUnidadDosis = 'masa' | 'volumen' | 'forma' | 'sin_unidad' | 'sin_cifra'
 
 /**
@@ -496,6 +609,52 @@ export function claseDeUnidad(texto: string | null | undefined): ClaseUnidadDosi
  */
 export type DondeSeEscribe = 'receta' | 'indicacion_hospital'
 
+/**
+ * ── LA UNIDAD IMPOSIBLE PARA ESE FÁRMACO — RT-003 ───────────────────────────
+ *
+ * La compuerta de arriba vigila la unidad que FALTA. Esta vigila la que está
+ * escrita y no puede ser: «digoxina 250 mg» (mil veces la presentación de
+ * 0.25 mg) o «enoxaparina 60 mcg» (la milésima parte de la jeringa). El propio
+ * comentario de este módulo nombra ese factor de mil como su motivo de existir,
+ * y sin embargo sólo se miraba cuando la unidad no estaba.
+ *
+ * No propone una dosis ni corrige nada: dice que la DIMENSIÓN no cuadra con la
+ * presentación del fármaco, que es comprobable. Severidad `alta`, como sus
+ * hermanas: se puede firmar, pero queda dicho.
+ *
+ * Puro y exportado para poder probarlo solo.
+ */
+export function revisarDimensionUnidad(
+  farmaco: string,
+  dosis: string | null | undefined,
+): AlertaDosis | null {
+  const nombre = String(farmaco ?? '').trim()
+  const n = normaliza(nombre)
+  const t = normaliza(String(dosis ?? ''))
+  if (!n || !t) return null
+  // Un volumen o una forma farmacéutica no llevan la dimensión en la cifra.
+  if (claseDeUnidad(dosis) !== 'masa') return null
+  const mg = extraerMg(t)
+  if (mg == null || !Number.isFinite(mg) || mg <= 0) return null
+  const escritoEnMicrogramos = /\d\s*(mcg|µg|ug|microgramos?)\b/i.test(t)
+
+  if (EN_MICROGRAMOS.some(f => n.includes(f)) && !escritoEnMicrogramos && mg > MG_IMPROBABLE_EN_MICROGRAMOS) {
+    return {
+      severidad: 'alta',
+      codigo: 'unidad_improbable_para_el_farmaco',
+      mensaje: `${nombre || 'el medicamento'}: se dosifica en microgramos y aquí van ${mg} mg. Verifica la unidad — la diferencia entre mg y mcg es de mil veces.`,
+    }
+  }
+  if (NUNCA_EN_MICROGRAMOS.some(f => n.includes(f)) && escritoEnMicrogramos && mg * 1000 < MCG_IMPROBABLE_EN_MILIGRAMOS) {
+    return {
+      severidad: 'alta',
+      codigo: 'unidad_improbable_para_el_farmaco',
+      mensaje: `${nombre || 'el medicamento'}: se dosifica en miligramos y aquí van ${Math.round(mg * 1000)} mcg. Verifica la unidad — la diferencia entre mcg y mg es de mil veces.`,
+    }
+  }
+  return null
+}
+
 export function revisarUnidadDosis(
   farmaco: string,
   dosis: string | null | undefined,
@@ -512,6 +671,46 @@ export function revisarUnidadDosis(
         : `${nombre}: la receta no lleva cantidad. Quien la surta no puede saber cuánto dispensar.`,
     }
   }
+  /**
+   * ── EL VOLUMEN SIN CONCENTRACIÓN — MP-005 (P0) ────────────────────────────
+   *
+   * «Amoxicilina 5 mL cada 8 horas» se firmaba, se imprimía y llegaba al
+   * cuidador sin decir de qué presentación. Con 125 mg/5 mL y con 500 mg/5 mL
+   * son la misma receta y cuatro veces la dosis. El verificador de dosis
+   * tampoco protestaba: `extraerMg` devuelve `null` para un volumen y el
+   * renglón se saltaba en silencio.
+   *
+   * Es el mismo hecho del texto que la unidad ausente —falta un dato, y se
+   * puede comprobar leyendo— así que va con la misma severidad `alta`: se
+   * puede firmar (hay recetas legítimas donde la presentación va escrita en las
+   * indicaciones), pero nadie puede decir que no se avisó.
+   */
+  if (clase === 'volumen' && !tieneConcentracion(dosis)) {
+    return {
+      severidad: 'alta',
+      codigo: 'volumen_sin_concentracion',
+      mensaje: donde === 'indicacion_hospital'
+        ? `${nombre}: la indicación dice el volumen pero no la concentración. Escribe la presentación (por ejemplo «250 mg/5 mL») — enfermería no puede saber cuánto fármaco lleva ese volumen.`
+        : `${nombre}: dice el volumen pero no de qué concentración. Escribe la presentación (por ejemplo «250 mg/5 mL») — con dos jarabes distintos, los mismos mL son dosis distintas.`,
+    }
+  }
+  /**
+   * ── EL PRODUCTO COMBINADO — MI-006 ────────────────────────────────────────
+   *
+   * «Paracetamol/tramadol 325/37.5 mg». El motor leía 37.5 y se lo comparaba
+   * al paracetamol. Decir «no puedo repartirla» es la respuesta honesta, y es
+   * la que este módulo ya da para los mililitros y para las unidades
+   * internacionales.
+   */
+  if (esDosisCombinada(dosis)) {
+    return {
+      severidad: 'info',
+      codigo: 'dosis_combinada_no_repartible',
+      mensaje: `${nombre}: es un producto combinado y el verificador de dosis no reparte la cifra entre sus componentes. Revísala tú (ausencia de alerta ≠ dosis segura).`,
+    }
+  }
+  const improbable = revisarDimensionUnidad(nombre, dosis)
+  if (improbable) return improbable
   if (clase === 'sin_unidad') {
     return {
       severidad: 'alta',
