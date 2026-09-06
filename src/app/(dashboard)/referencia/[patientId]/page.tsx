@@ -13,7 +13,7 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
-import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { alergiasParaElPapel } from '@/lib/impreso-medico'
 
 type Tipo = 'referencia' | 'contrarreferencia'
 type Urgencia = 'Rutina' | 'Prioritario' | 'Urgente'
@@ -242,7 +242,7 @@ export default function CartaReferenciaPage() {
           {/* Misma fuente que la pantalla y que la receta: leer `patient.alergias`
               en crudo se salta el campo estructurado, y esta hoja viaja a OTRO
               médico. */}
-          ALERGIAS: {alergiasParaImpreso(patient) || 'Negadas / no referidas'}
+          ALERGIAS: {alergiasParaElPapel(patient)}
         </div>
 
         {/* Cuerpo */}

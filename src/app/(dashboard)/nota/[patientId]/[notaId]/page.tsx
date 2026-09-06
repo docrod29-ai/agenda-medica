@@ -27,7 +27,7 @@ import { descargarComoPDF, descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
-import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { alergiasParaElPapel } from '@/lib/impreso-medico'
 import { fechaLegible } from '@/lib/fecha-local'
 import { hoyISO } from '@/lib/timezone'
 
@@ -384,7 +384,7 @@ export default function NotaImprimiblePage() {
           </button>
           {/* Word editable — para ajustar la nota al membrete/formato propio (igual
               que receta y orden; capacidad consistente entre documentos). */}
-          <button onClick={() => { if (configError) return; descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: patient ? (alergiasParaImpreso(patient) || 'Negadas / no referidas') : 'NO DISPONIBLE — verificar con el paciente', membrete }).catch(() => toast('No se pudo generar el Word', 'error')) }} disabled={!!configError} className="btn btn-secondary">
+          <button onClick={() => { if (configError) return; descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: alergiasParaElPapel(patient), membrete }).catch(() => toast('No se pudo generar el Word', 'error')) }} disabled={!!configError} className="btn btn-secondary">
             <FileText size={16} /> Word
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}
@@ -466,9 +466,7 @@ export default function NotaImprimiblePage() {
           {/* Tres estados, no dos: si el paciente NO se pudo leer, la nota NO puede
                   afirmar que las alergias se interrogaron y se negaron. Es un
                   documento legal (NOM-004) y eso sería un dato inventado. */}
-              ALERGIAS: {patient
-              ? (alergiasParaImpreso(patient) || 'Negadas / no referidas')
-              : 'NO DISPONIBLE — verificar con el paciente'}
+              ALERGIAS: {alergiasParaElPapel(patient)}
         </div>
 
         {/* Resumen ejecutivo */}

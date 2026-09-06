@@ -19,7 +19,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
-import { entradaPorMedico, resolverIdMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
+import { entradaPorMedico, resolverIdMedico, overrideRecetaValido, firmaValida, alergiasParaElPapel } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -511,7 +511,11 @@ export default function GeneradorRecetaPage() {
         pacienteEdad: patient?.edad,
         pacienteSexo: patient?.sexo,
         pacienteFechaNac: patient?.fechaNacimiento,
-        alergias: patient?.alergias,
+        /* MI-002 — el .doc leía `patient.alergias` en crudo: se saltaba
+           `alergiasEstructuradas` (la misma alergia que la pantalla enseña en
+           rojo desaparecía del archivo que el paciente reenvía) y dejaba que
+           `receta-word` rellenara el hueco. La frase la decide un solo sitio. */
+        alergias: alergiasParaElPapel(patient),
         diagnostico: diagnostico || undefined,
         medicamentos: medicamentos.filter(m => m.nombre?.trim()),
         indicaciones,

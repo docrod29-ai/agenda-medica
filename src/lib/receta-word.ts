@@ -15,6 +15,7 @@
  */
 import type { ClinicConfig, RecetaConfig } from '@/types'
 import type { Medicamento } from '@/types/expediente'
+import { SIN_REGISTRO_DE_ALERGIAS } from '@/lib/impreso-medico'
 
 export interface RecetaWordData {
   tipo: 'receta' | 'orden'
@@ -128,7 +129,7 @@ export function construirRecetaHTML(
   const alergiaTexto = (data.alergias ?? '').trim()
   const alergias = recetaConfig.mostrarAlergias !== false
     ? `<div style="border:1pt solid #b91c1c;color:#b91c1c;padding:3pt 8pt;font-size:10pt;font-weight:bold;margin:6pt 0;">
-        ALERGIAS: ${esc(alergiaTexto || 'Sin registro en el expediente')}</div>`
+        ALERGIAS: ${esc(alergiaTexto || SIN_REGISTRO_DE_ALERGIAS)}</div>`
     : ''
 
   const dx = (recetaConfig.mostrarDiagnostico !== false && data.diagnostico)

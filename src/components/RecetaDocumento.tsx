@@ -28,6 +28,7 @@ import { PAPER_SIZES, papelPersonalizado } from '@/lib/receta-template'
 import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/receta-paginacion'
 import type { Medicamento } from '@/types/expediente'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { alergiasParaElPapel } from '@/lib/impreso-medico'
 
 /**
  * EN EL PAPEL NO SE USAN VARIABLES DE COLOR — Y ES DELIBERADO.
@@ -974,7 +975,13 @@ function HojaGenerada({
               fontWeight: 700,
               marginBottom: 6,
             }}>
-              ALERGIAS: {data.paciente?.alergias || 'Negadas / no referidas'}
+              {/* MI-002 — la hoja de FÁBRICA afirmaba «Negadas / no referidas»
+                  a partir de un campo vacío, y leía el texto libre en crudo (se
+                  saltaba `alergiasEstructuradas`). Las dos cosas las resuelve
+                  `alergiasParaElPapel`, que es la frase única de todos los
+                  impresos: alérgeno, «Sin registro en el expediente» o «NO
+                  DISPONIBLE». Ninguna de las tres inventa una negación. */}
+              ALERGIAS: {alergiasParaElPapel(data.paciente)}
             </div>
           )}
 

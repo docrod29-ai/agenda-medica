@@ -1,3 +1,5 @@
+import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+
 /**
  * Resuelve el valor "por médico" de un impreso (hoja membretada de notas, formato
  * de receta, firma) tolerando un desajuste histórico de identificadores:
@@ -108,3 +110,58 @@ export const POR_QUE_HAY_QUE_TRADUCIR =
   'Porque la nota firma con el uid de la sesión y la firma se guarda por el id ' +
   'del documento de `doctors`. Son dos nombres de la misma persona, y sin ' +
   'traducirlos la receta de un consultorio con dos médicos sale sin firma.'
+
+/* ─── Lo que un impreso dice de las alergias ────────────────────────────── */
+
+/**
+ * UN CAMPO VACÍO NO NIEGA NADA (MI-002).
+ *
+ * ── El defecto ───────────────────────────────────────────────────────────────
+ * La hoja de receta de fábrica (`RecetaDocumento` → `HojaGenerada`) pintaba
+ * `ALERGIAS: {data.paciente?.alergias || 'Negadas / no referidas'}`. Con el
+ * campo vacío, el papel que va a la farmacia AFIRMABA una negación que nadie
+ * hizo; y al leer el texto libre en crudo se saltaba `alergiasEstructuradas`,
+ * así que una alergia capturada sólo ahí desaparecía del impreso mientras la
+ * pantalla enseñaba la alerta roja.
+ *
+ * El mismo relleno vivía en la carta de referencia —que viaja a OTRO médico— y
+ * en la nota. Cada impreso redactaba su propia frase.
+ *
+ * ── La regla ─────────────────────────────────────────────────────────────────
+ * clinical-safety §4: ausencia de dato no es dato de ausencia. «Negadas» es una
+ * afirmación clínica (se preguntó y el paciente negó); vacío significa que no se
+ * preguntó. Los tres estados que un papel puede decir con verdad son:
+ *
+ *   1. el alérgeno, cuando el expediente lo tiene (venga del texto libre o del
+ *      campo estructurado: lo decide `alergiasParaImpreso`, la misma fuente que
+ *      usa la pantalla);
+ *   2. `Sin registro en el expediente`, cuando el expediente está vacío;
+ *   3. `NO DISPONIBLE — verificar con el paciente`, cuando ni siquiera se pudo
+ *      leer el expediente del paciente.
+ *
+ * Si el médico escribió «Negadas», eso sí sale impreso — porque lo dijo él.
+ */
+export const SIN_REGISTRO_DE_ALERGIAS = 'Sin registro en el expediente'
+
+/** No se pudo leer al paciente: el papel no puede afirmar nada de sus alergias. */
+export const ALERGIAS_NO_DISPONIBLES = 'NO DISPONIBLE — verificar con el paciente'
+
+/**
+ * El texto de alergias de CUALQUIER impreso médico (receta, orden, nota,
+ * referencia, Word). Nunca devuelve cadena vacía y nunca afirma una negación
+ * que el expediente no traiga.
+ *
+ * `paciente === null | undefined` significa «no se pudo leer», que no es lo
+ * mismo que «no tiene»: por eso son dos frases distintas.
+ */
+export function alergiasParaElPapel(
+  paciente: Parameters<typeof alergiasParaImpreso>[0],
+): string {
+  if (paciente === null || paciente === undefined) return ALERGIAS_NO_DISPONIBLES
+  return alergiasParaImpreso(paciente).trim() || SIN_REGISTRO_DE_ALERGIAS
+}
+
+export const POR_QUE_NO_SE_RELLENA_CON_NEGADAS =
+  'Porque «Negadas» es una afirmación clínica y un campo vacío sólo dice que ' +
+  'nadie preguntó. El papel que va a la farmacia no puede convertir un hueco ' +
+  'del expediente en una negación firmada con cédula.'
