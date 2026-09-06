@@ -24,6 +24,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { interpretarAntibiograma, type EntradaAntibiograma } from '@/lib/expediente/antibiograma'
 import { resumenDeterminista, RAZONAR_SYSTEM, buildRazonarUser } from '@/lib/expediente/antibiograma/razonar'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ENV_OPENAI = process.env.OPENAI_API_KEY ?? ''
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }
-  if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (Configuración → Llaves de IA).' }, { status: 503 })
+  if (!API_KEY) return NextResponse.json({ ok: false, error: iaNoDisponible('razonamiento').mensaje }, { status: 503 })
 
   let body: { organismo?: string; resultados?: EntradaAntibiograma['resultados']; sitio?: EntradaAntibiograma['sitio']; pruebas?: EntradaAntibiograma['pruebas']; motor?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }

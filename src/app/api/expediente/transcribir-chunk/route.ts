@@ -27,6 +27,8 @@ import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
+import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
   const corteCreditos = await gateCreditos(clinicId, fuente)
   if (corteCreditos) return corteCreditos
   if (!apiKey) {
-    return NextResponse.json({ ok: false, error: 'OPENAI_API_KEY no configurada' }, { status: 503 })
+    return NextResponse.json({ ok: false, error: iaNoDisponible('transcripcion').mensaje }, { status: 503 })
   }
 
   let formData: FormData
@@ -257,7 +259,7 @@ export async function POST(req: NextRequest) {
       }
       if (![404, 403, 400].includes(res.status)) {
         const err = (await res.text()).slice(0, 200)
-        return NextResponse.json({ ok: false, error: `OpenAI ${res.status}`, detail: err, chunkIdx }, { status: 502 })
+        return NextResponse.json({ ok: false, error: avisoAlMedico(claseDeFallo(res.status, err), quienPaga(fuente), 'openai').texto, detail: err, chunkIdx }, { status: 502 })
       }
     } catch (err) {
       safeLog.error(`[transcribir-chunk] ${model}:`, String(err).slice(0, 200))

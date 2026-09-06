@@ -63,11 +63,11 @@
   ],
   "ramaActual": "claude/app-production-deployment-cdhqdd",
   "derivado": {
-    "regsEnElLedger": 329,
-    "ultimaREG": "REG-535",
-    "archivosDePrueba": 956,
-    "casosDePrueba": 11512,
+    "regsEnElLedger": 343,
+    "ultimaREG": "REG-555",
+    "archivosDePrueba": 968,
+    "casosDePrueba": 11601,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1184"
+  "versionEnElRepo": "nexusmed-v1185"
 }

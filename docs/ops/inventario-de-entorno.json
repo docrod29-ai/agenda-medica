@@ -1,7 +1,7 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
   "generado": "2026-09-06",
-  "total": 129,
+  "total": 130,
   "variables": [
     {
       "nombre": "ANCHOS",
@@ -194,12 +194,16 @@
         "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
         "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
         "scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
+        "scripts/carril-excelencia/el-dia-de-un-medico.mjs",
         "scripts/carril-excelencia/el-foco-se-ve.mjs",
         "scripts/carril-excelencia/el-hueco-dice-que-esta-cargando.mjs",
+        "scripts/carril-excelencia/el-telefono-medido-en-el-navegador.mjs",
         "scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs",
         "scripts/carril-excelencia/el-texto-largo-cabe.mjs",
         "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
         "scripts/carril-excelencia/la-cita-fuera-de-hora-se-ve.mjs",
+        "scripts/carril-excelencia/la-confirmacion-no-se-dispara-sola.mjs",
+        "scripts/carril-excelencia/la-pantalla-no-cambia-sola.mjs",
         "scripts/carril-excelencia/las-listas-largas.mjs",
         "scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
         "scripts/carril-excelencia/todo-dialogo-se-cierra-con-escape.mjs",
@@ -397,6 +401,20 @@
         "scripts/design/medir-motion-tokens-v15.mjs",
         "scripts/design/medir-trabajos-moviles-2-v15.mjs",
         "scripts/design/medir-trabajos-moviles-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "CHROME",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+      "defectoDe": "scripts/carril-excelencia/el-dia-de-un-medico.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-dia-de-un-medico.mjs",
+        "scripts/carril-excelencia/el-telefono-medido-en-el-navegador.mjs",
+        "scripts/carril-excelencia/la-confirmacion-no-se-dispara-sola.mjs",
+        "scripts/carril-excelencia/la-pantalla-no-cambia-sola.mjs"
       ]
     },
     {

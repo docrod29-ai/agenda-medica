@@ -5972,3 +5972,594 @@ necesita una IP que trague paquetes y el proxy de esta caja contesta — ya
 declarado en REG-414) · lint **95 = techo** · trinquete de diseño sin deuda nueva
 · `tsc` limpio · golden nuevo **5 casos, probado al revés ×3** · sellado en
 `invariantes-clinicos.json` · sala de datos, tablero e inventario regenerados.
+
+---
+
+## Unidad 91 — el primer pliegue de la consulta, mirado como médico
+
+Primera unidad del bloque de núcleo. Producto corriendo, Chromium real, 1440 y
+390, tema oscuro. **BEFORE/AFTER en `docs/design/capturas/v91/`.**
+
+La consulta es la pantalla donde el médico pasa el día. Su primer pliegue tenía
+**cinco defectos reales**, y ninguno lo cazaba una prueba: cuatro sólo se ven
+mirando, y el quinto sólo se ve mirando **en un teléfono**.
+
+### 91a · La lista de alergias se cortaba en el teléfono
+
+A 390 px se leía `Penicilina (anafilaxia), sulfas, AINE` — sin la «s» final, sin
+puntos suspensivos y sin ningún indicio de que hubiera más. **El dato más letal
+del producto, cortado a media palabra.**
+
+La causa es el control: un `<input>` de una línea recorta su contenido al ancho,
+en silencio. No lo cazó ninguna medición —la página no desbordaba, el recorte
+pasaba DENTRO del campo— y ninguna prueba puede cazarlo leyendo el código.
+
+`<textarea>` de una fila que crece con el contenido: envuelve en vez de cortar y
+conserva la edición directa que el médico pidió.
+
+Y el mismo defecto, dos filas más abajo: el segundo medicamento vigente llegaba
+a **x=418 en un viewport de 390**, y esos 28 px de fuera se llevaban su «ya no»
+— el control que SUSPENDE un fármaco, invisible en el teléfono.
+
+### 91b · La edad no estaba, y de ella cuelgan las compuertas clínicas
+
+El subtítulo decía `· Femenino · Nota de Primera Vez`, con un separador huérfano
+donde debía ir la edad. El paciente **sí** tenía `fechaNacimiento`.
+
+El separador era lo de menos. `patient.edad` se lee en **trece sitios** de esta
+pantalla, y con el campo vacío todos degradan **en silencio**:
+
+| Lectura | Con la edad ausente |
+|---|---|
+| `esPediatrico` | nunca se enciende → sin modo pediátrico |
+| `esGineco` | nunca se enciende → sin módulo de ginecología |
+| vacunas atrasadas | devuelve 0 — un cero que no vigila nada |
+| memo de contexto de **seguridad** y cada motor | reciben `undefined` |
+| copiloto | recibe, literalmente, «? años» |
+
+`edadEnAnios` —motor determinista, ya probado— **existía y esta pantalla no lo
+llamaba**: la regla «escrito, probado y sin conectar» del propio repositorio.
+
+Y lo derivado manda sobre lo guardado: un número guardado es la foto del día que
+se escribió. Quien se registró con 66 sigue teniendo 66 cinco años después, y de
+esa cifra cuelgan el ajuste renal y la dosis pediátrica. → **REG-542**.
+
+### 91c · La alergia se decía DOS VECES en la misma franja
+
+```
+Alergias: Penicilina (anafilaxia), sulfas, AINEs    se lee: Penicilina (anafilaxia) · sulfas · AINEs
+```
+
+La condición era `alergenos.join(' · ') !== texto.trim()`: comparar dos **cadenas
+ya puntuadas**. El texto separa con «, » y la lectura con « · », así que difieren
+como cadena aunque digan lo mismo — y se cumplía **siempre**.
+
+Es REG-311 —«dos avisos del mismo dato compiten, y el segundo se aprende a
+ignorar»— reapareciendo **en horizontal** cuando se fusionaron los dos avisos
+verticales. Ahora se compara por conjunto normalizado. → **REG-543**.
+
+**Y el guardián de RTC-14 clavaba el defecto**: exigía esa expresión literal.
+Estaba en verde mientras el defecto estaba en pantalla, porque comprobaba que el
+código dijera una cadena concreta en vez de que hiciera lo que su nombre promete.
+
+### 91d · `Visitas anteriores: [2026-09-01]`
+
+Corchetes que parecen un array de depuración, fecha ISO en un producto es-MX, y
+**vacío** cuando la nota no traía resumen: una caja entera con borde que no decía
+nada. Ahora `1 sep 2026 — sin resumen`: la visita sigue apareciendo y declara lo
+que le falta, porque quitarla habría sido más limpio de leer y clínicamente
+falso — el paciente vino ese día.
+
+Mismo ISO crudo en «Lleva puesto: … del 2026-09-01», por la misma razón: nadie
+había mirado el renglón.
+
+### 91e · Cinco cajas del mismo peso no son jerarquía: son inventario
+
+El contexto del paciente se pintaba con **cinco contenedores de geometría
+idéntica** —problemas, medicación, dispositivos, trayectorias, visitas— todos
+`1px solid var(--border)` + radio 10 + icono de 16 + etiqueta en negrita.
+Cambiaba el icono y nada más.
+
+Es lo que la ley de diseño prohíbe: «tablero hecho enteramente de tarjetas
+redondeadas» y «todo con el mismo peso visual». El médico no puede saber,
+mirando, cuál de las cinco le importa hoy.
+
+No se arregla repintándolas: se les quita la caja (**R3** de la gramática
+NexusMED). Las cinco pasan a ser filas de **una** banda separadas por una línea
+de pelo. **De 5 contenedores a 1.** La alergia se queda fuera a propósito: no es
+contexto, es riesgo, y es lo único de este pliegue que debe poder gritar.
+
+Con adyacencia CSS (`+` y `:has`) y no con un envoltorio, porque las cinco filas
+son condicionales: un `<div>` envolvente pintaría la caja aunque dentro no
+quedara ninguna.
+
+### RIESGO RESIDUAL
+
+- **La banda lidera con lo más débil**: «Última consulta hoy.» ocupa la primera
+  fila —la posición más prominente— con el dato menos accionable. La jerarquía
+  DENTRO de la banda no está resuelta.
+- El círculo de grabar sigue a 96 px dominando el pliegue, y en modo «vivo» usa
+  `var(--teal)` y un `#ef4444` a mano mientras `EmpezarAGrabar` usa
+  `--nexus-solido`: **dos colores para la misma acción** según el modo de voz.
+- `EmpezarAGrabar` declara **dos** estados (`listo | procesando`) contra los
+  **seis** de la máquina (`inactivo | grabando | pausado | subiendo | listo |
+  error`). La unidad 92 entra por ahí.
+- Sólo tema oscuro y sólo Chromium. Claro y WebKit, sin medir.
+- La derivación de edad es **sólo en la consulta**: otras pantallas que lean
+  `edad` siguen viendo la foto vieja.
+
+### COMPUERTAS
+
+`npx vitest run` 12 062/12 064 —los dos rojos son el inventario (regenerado
+después) y `ops-timeout-y-punto-ciego`, de entorno, ya declarado en REG-414— ·
+lint **95 = techo** · trinquete de diseño sin deuda nueva · `tsc` limpio · dos
+golden nuevos **8 + 8 casos**, probados al revés · recorte a 390 medido en
+navegador: **de 2 elementos fuera de pantalla a 0**.
+
+---
+
+## Unidad 92 — un estado, dicho una vez
+
+Segunda unidad del núcleo. **Grabando de verdad**: Chromium con micrófono falso,
+ciclo completo desde el consentimiento. Capturas en `docs/design/capturas/v92/`.
+
+### Lo que ve el médico mientras habla
+
+| Medido grabando | Antes | Después |
+|---|---|---|
+| Relojes en pantalla | 4, en **2 formatos** (`0:39` / `00:39`) | 4, en **1** |
+| Palabras para el estado | **3** — Grabando · Escuchando · Esperando voz | **2** |
+| Regiones `aria-live` que releen el reloj | **2** | **0** |
+| Relojes escritos a mano en el código | **5** | **0** |
+
+### 92a · No eran cuatro fuentes de verdad. Era una, pintada cuatro veces
+
+Hay **una** fuente —el `EVENTO_GRABANDO` que escuchan `MarcoEscuchando`,
+`InstrumentStrip`, `FlowRail` y `BottomNav`— y el propio código lo declara. El
+invariante de arquitectura se respetaba.
+
+Lo duplicado era la **presentación**. «La misma entidad se pinta distinto según
+dónde se mire» permite que la barra superior sea discreta y la banda del
+encuentro grande. No permite que una diga «Escuchando» y otra «Grabando» del
+mismo segundo: eso no es pintar distinto, es **decir** distinto.
+
+El vocabulario pasa a vivir en un módulo —`vocabulario-de-la-escucha`— y los
+cuatro sitios lo piden en vez de escribirlo.
+
+### 92b · «Grabando», no «Escuchando»
+
+«Escuchando» suena mejor y es la palabra equivocada. El paciente firmó un
+consentimiento para que la conversación **se grabe** y se transcriba; el audio se
+guarda y `data-privacy` declara que **la voz es biométrica**. Llamarle «escuchar»
+a un acto que el paciente consintió como grabar suaviza justo lo que no se debe
+suavizar, y en la pantalla donde está delante.
+
+### 92c · El reloj se calla para el lector de pantalla
+
+Dos regiones `role="status"` contenían el cronómetro. `role="status"` implica
+`aria-live`, así que un lector de pantalla releía «Rosalía Mendieta Cuevas ·
+Grabando · 00:39» **entero, una vez por segundo**, encima de todo lo demás —
+durante una consulta con el paciente hablando.
+
+No se quita `role="status"`: está ahí para satisfacer la regla `region` de axe
+que `v15-a11y-avisos-en-landmark` ya cerró, y quitarlo reabriría la violación más
+repetida de la rama. Se calla **el reloj**, no la franja. El cambio de estado
+—empezó, se pausó, se está armando la nota, falló— lo anuncia **una vez** un
+renglón invisible.
+
+### 92d · Y tres guardianes clavaban los defectos que venían a evitar
+
+`v15-rtc14` §4 exigía la comparación de cadenas de la alergia. `v15-rtc22` §5
+exigía literalmente `Grabando · {formatearDuracion(segundos)}` — una de las
+cuatro copias. **Mientras el guardián exigiera la copia, la copia no se podía
+quitar.** Los dos se reescribieron para exigir la conducta.
+
+### 92e · Y mi propio guardián nuevo tampoco cazaba nada
+
+La regla «nadie vuelve a escribir el reloj a mano» pedía
+`Math.floor(...)/ 60)).padStart` — la ortografía exacta, espacios incluidos. Al
+probarla al revés con `Math.floor(s/60)` siguió en **verde**. Un guardián que
+sólo reconoce la versión del defecto que ya conocía no vigila la familia: vigila
+un recuerdo. Al ampliarlo encontró **un quinto reloj** que yo había dejado en
+`MientrasHablas`.
+
+### RIESGO RESIDUAL
+
+- **Siguen siendo cuatro indicadores.** Ahora dicen lo mismo, pero el médico ve
+  cuatro. Reducirlos es la unidad siguiente y toca decidir cuál manda.
+- **Dos controles de detener** con texto (`Terminar`, `Detener y generar nota`)
+  más un ⏹ sin texto. Sin tocar.
+- **`Esperando voz…` sigue contradiciendo** a «Grabando» mientras la barra de
+  nivel se mueve. Es otro hecho —¿llega señal?—, no otro estado, pero se lee como
+  contradicción.
+- El control flotante queda **encima de un campo de signos vitales** (`FR`).
+  Medido; no arreglado.
+- Sólo tema oscuro, sólo Chromium, sólo escritorio. Voice a 390 sin medir.
+- El círculo de 96 px y `--nexus-solido` siguen sin revisarse.
+
+### COMPUERTAS
+
+`npx vitest run` 12 068/12 071 —inventario regenerado después, y
+`ops-timeout-y-punto-ciego` de entorno (REG-414)— · lint **95 = techo** ·
+trinquete de diseño sin deuda nueva · `tsc` limpio · golden nuevo **7 casos,
+probado al revés ×3**, y el propio reverso corrigió el guardián.
+
+---
+
+## Unidad 93 — Patient State: una sola fecha en todo el producto
+
+Tercera unidad del núcleo. Capturas en `docs/design/capturas/v93/`.
+
+### Lo que se vio mirando el expediente longitudinal
+
+Dos renglones seguidos decían la misma fecha de dos maneras:
+
+```
+Actividad: 1 consulta · última visita  01 sep 2026
+                        · desde         1 sep 2026
+```
+
+Y un tercer sitio de la misma pantalla decía `· desde el 2026-09-01`. Tres
+lecturas de la misma clase de hecho —cuándo pasó algo— en un pliegue, y la
+tercera no es español: es el formato en que la base guarda el dato.
+
+### Lo medido en el árbol entero
+
+| | Antes | Después |
+|---|---|---|
+| Pantallas que enseñan ISO al médico | **9** | **0** |
+| Especificaciones de formato de fecha | **6+** | **1** (`fechaCorta`) |
+| Formatos en el pliegue del expediente | **3** | **1** |
+
+Una fecha en un expediente no es adorno: es cuándo se prescribió, cuándo se
+firmó, desde cuándo toma un fármaco. Leerlas en tres formatos obliga a traducir,
+y traducir es donde se equivoca uno. El producto ya tuvo un defecto de esta
+familia —«08/09/2026», formato de EE. UU. en un producto es-MX, defecto #8 de la
+auditoría de identidad— y volvió por otra puerta.
+
+**Los usos técnicos se separaron uno a uno, no en bloque**: FHIR **exige**
+`birthDate` en ISO, Google Calendar arma un `datetime` de API, y los nombres de
+archivo de respaldo llevan la fecha ordenable a propósito. Cada uno queda
+nombrado en el guardián, para que añadir otro sea una decisión y no un descuido.
+
+### 93b · El renglón de identidad, que era el residual de la unidad 91
+
+`· Femenino · 5555010101` — el mismo separador huérfano de la consulta, sin edad,
+y con el **teléfono** ocupando el subtítulo de la identidad CLÍNICA. La edad se
+deriva ahora con el mismo motor determinista; el teléfono baja a «Datos del
+paciente», que es su sitio. Queda `68 años · Femenino`.
+
+### 93c · Y CINCO guardianes más clavaban la ortografía
+
+`dosing-consulta`, `stripe-prueba-una-vez`,
+`la-alergia-sellada-en-una-nota-firmada-no-desaparece` (×2) y
+`la-duda-de-la-otra-vez-vuelve-a-salir` exigían el ISO literal
+(`toContain('2026-08-01')`, `toContain('a.selladaEn.slice(0, 10)')`).
+
+Ninguno era una regresión: la fecha sigue llegando, que es lo que esos casos
+protegen. Lo que exigían era **cómo se escribe**. Van **ocho** guardianes en tres
+unidades clavando una ortografía en vez de una conducta — es un patrón del
+repositorio, no un accidente.
+
+### RIESGO RESIDUAL
+
+- **La pregunta de Patient State sigue sin contestarse.** «¿Cómo está este
+  paciente AHORA?» exige distinguir activo / resuelto / histórico / incierto /
+  sugerido / confirmado / descartado, y hoy todo pesa igual. Esta unidad arregló
+  la fecha y la identidad; la **jerarquía de estado** no.
+- Las dos cajas de contexto del expediente siguen sin usar la banda `.nx-ctx` de
+  la unidad 91: el mismo hecho se pinta distinto en dos pantallas.
+- El avatar-círculo con inicial sigue ahí (defecto #9 de identidad).
+- `0 dx · 2 fármacos` — jerga abreviada en la navegación primaria.
+- Sólo tema oscuro, sólo Chromium, sólo escritorio.
+
+### COMPUERTAS
+
+`npx vitest run` **12 076 de 12 077** —el único rojo es `ops-timeout-y-punto-ciego`,
+de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
+· `tsc` limpio · golden nuevo **6 casos, probado al revés ×3**, uno de ellos con
+otra ortografía a propósito.
+
+---
+
+## Unidad 94 — Evidence: lo que el médico lee cuando la IA no está
+
+Cuarta unidad del núcleo. Capturas en `docs/design/capturas/v94/`.
+
+### Lo primero, declarado: la RESPUESTA no se pudo medir
+
+`/api/consultor-evidencia` necesita `ANTHROPIC_API_KEY` y PubMed. En esta caja no
+hay ninguna de las dos. **La calidad de la respuesta —jerarquía de evidencia,
+solidez, aplicabilidad a ESTE paciente, contradicciones— queda `BLOCKED_EXTERNAL`
+y sin medir.** Lo que sí se pudo ejercitar es lo que el brief nombra aparte: el
+vacío y el error.
+
+### 94a · Se preguntó de verdad, y esto es lo que contestó
+
+```
+⚠️ No hay API key de Claude configurada.
+```
+
+En el **sitio de la respuesta**. Contado después en el árbol:
+
+| | Antes | Después |
+|---|---|---|
+| Rutas que mandan jerga de proveedor al cliente | **19** | **0** |
+| Redacciones distintas del mismo hecho | **7** | **1** |
+
+Cuatro de ellas eran fallos **en marcha**, no falta de llave: un médico que acaba
+de grabar a un paciente leía `OpenAI 429` o `AssemblyAI upload HTTP 413`.
+
+### 94b · Y una de cara al PACIENTE
+
+`/api/telesalud/sala` devolvía `ok: true` con una URL de `meet.example.com` y el
+aviso «DAILY_API_KEY no configurada — usando URL ficticia». Esa pantalla la abre
+**el paciente** con su token del portal. El producto entregaba un enlace de
+videoconsulta que no lleva a ninguna consulta, explicado en lenguaje de
+programador.
+
+### 94c · Y casi escribo un módulo paralelo
+
+Escribí `cuando-la-ia-no-esta.ts` antes de buscar. **`fallo-proveedor.ts` ya
+existía** y es exactamente «lo que el médico lee cuando la IA no funciona»: tiene
+`claseDeFallo`, `quienPaga`, `avisoAlMedico`. Al descubrirlo, el archivo nuevo se
+fusionó dentro en vez de quedarse al lado — `AGENTS.md` §5 lo prohíbe, y aquí
+además habría dejado **dos vocabularios para el mismo momento**, que es el
+defecto que las unidades 92 y 93 vinieron a quitar.
+
+Y me hizo ver algo que estaba **bien** y casi rompo: `avisoAlMedico` nombra al
+proveedor **a propósito** cuando la llave es del consultorio —«Tu llave de
+Anthropic fue rechazada… Actualízala»—. Si el médico le paga a ese proveedor,
+tiene que saber a cuál entrar. El guardián lo respeta.
+
+### 94d · El vacío del Consultor: 56% de la pantalla
+
+Medido: **506 px de 900** entre el último ejemplo y el campo de escribir. La
+pantalla es un chat vacío con cuatro ejemplos arriba y un campo abajo. Declarado,
+**no arreglado**.
+
+### RIESGO RESIDUAL
+
+- **La respuesta de evidencia sigue sin medirse.** `BLOCKED_EXTERNAL`.
+- **El error sigue saliendo en el hueco de la RESPUESTA**, con `⚠️` delante. En
+  una superficie de evidencia, lo que ocupa el lugar de la evidencia tiene que
+  ser inconfundiblemente no-evidencia.
+- **No está en región viva**: quien usa lector de pantalla no se entera de que su
+  pregunta falló. Anunciar el flujo delta a delta sería REG-544 otra vez, así que
+  hay que anunciar la CONCLUSIÓN — decisión de diseño, no hecha.
+- El vacío de 506 px, sin tocar.
+- El paciente no aparece por ningún lado en la superficie de evidencia: «¿aplica
+  a ESTE paciente?» no se contesta.
+
+### COMPUERTAS
+
+`npx vitest run` **12 082 de 12 083** —el único rojo es `ops-timeout-y-punto-ciego`,
+de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
+· `tsc` limpio · golden nuevo **6 casos, probado al revés ×3**, uno con otra
+redacción de la jerga · verificado en navegador preguntando de verdad.
+
+---
+
+## Unidad 95 — Agenda: el riel mira el reloj
+
+Quinta unidad del núcleo, y la última de tu orden antes de la pasada transversal.
+Capturas en `docs/design/capturas/v95/`.
+
+### Primero, lo que estaba BIEN
+
+La agenda es, con diferencia, la mejor pantalla del producto. El riel R1 está
+implementado de verdad: nodos sobre una línea vertical, **una acción por
+entrada**, el estado en versalitas con punto de color —no píldoras—, sin
+avatar-círculo, y el **marcador de AHORA** en cobalto. La gramática NexusMED
+existe aquí, no sólo en el documento.
+
+### 95a · Y el riel no miraba el reloj
+
+Medido a las **18:08** (hora del consultorio), con las ocho citas del día ya
+pasadas:
+
+| | Antes | Después |
+|---|---|---|
+| Pintadas a peso completo | **6 de 8** | **0** |
+| Atenuadas | 2, y por **estado** | **8**, por hora |
+| Mañana 10:30 (por venir) | peso completo | peso completo ✔ |
+
+R1 dice que el marcador de ahora separa «lo pasado (**atenuado**) de lo que
+viene». La mitad de esa frase no estaba.
+
+**Y todo lo demás sí estaba construido**: el marcador existe, la hoja ya atenuaba
+`hecho` y `cerrado` por token —su propio comentario lo explica— y la fila
+**recibía** `ahoraHHMM`.
+
+Pero `ahoraHHMM` estaba en el **tipo** de props y **no se desestructuraba**. El
+padre lo mandaba, el tipo lo declaraba, y la firma lo tiraba al suelo: no es que
+no se usara, es que **era imposible usarlo**. Y `momentoDeCita` mapeaba estado →
+momento sin recibir el reloj nunca. → **REG-547**.
+
+### 95b · Un momento nuevo, porque «hecho» habría sido mentira
+
+Una cita confirmada cuya hora pasó no está **hecha** —nadie la atendió— ni
+**cerrada** —nadie la canceló—. Llamarle `hecho` para que se atenuara habría sido
+mentir con tal de que se viera bien.
+
+`pasado` se atenúa como lo pasado y su nodo va **ámbar y hueco**: en la paleta
+del riel, ámbar es «requiere confirmación humana», que es exactamente lo que son.
+En pantalla forman ahora una columna visible de «estos seis se pasaron» — la
+respuesta operativa que el riel debe dar al cerrar el día.
+
+**Lo que NO cambia, a propósito**: la acción primaria se conserva (se puede
+iniciar una consulta tarde o cobrar una visita de la mañana), y el **riesgo no se
+atenúa** — el badge `Alto`, el aviso `Calendario descuadrado` y los estados
+mantienen su peso. Atenuar la identidad es correcto; atenuar una advertencia, no.
+
+### 95c · Y mi prueba no servía
+
+Los reversos encontraron que borrar la comparación del producto dejaba **los diez
+casos en verde**: los de conducta usaban una COPIA local de la regla. Es el
+defecto que este carril lleva encontrando toda la sesión —un guardián que
+comprueba su recuerdo de la regla en vez de la regla— esta vez en la mía. Van
+**nueve** en cinco unidades.
+
+### RIESGO RESIDUAL
+
+- **La acción primaria de una cita pasada sigue siendo la misma.** «Iniciar
+  consulta» a las 18:08 para una cita de las 09:00 es ahora visualmente
+  secundaria, pero sigue diciendo lo mismo. Qué debe ofrecer una cita que se
+  pasó —¿reagendar? ¿marcar no asistió?— es una decisión de producto, no mía.
+- El riel no se midió a 390 px ni en tema claro.
+- «Fin del día · mañana: N citas» no se comprobó con el día vacío.
+
+### COMPUERTAS
+
+`npx vitest run` **12 092 de 12 094** —inventario regenerado después y
+`ops-timeout-y-punto-ciego` de entorno (REG-414)— · lint **95 = techo** ·
+trinquete de diseño sin deuda nueva · `tsc` limpio · golden nuevo **11 casos,
+probado al revés ×3** · verificado en navegador en los dos sentidos: hoy 8/8
+atenuadas, mañana a peso completo.
+
+---
+
+## Unidad 96 — el expediente dice quién puso cada diagnóstico
+
+Primera de la pasada transversal (tu paso 6), y cobra el residual más grande que
+llevaba declarado: la jerarquía de estado del paciente.
+
+### 96a · No se podía juzgar sobre una lista vacía
+
+El consultorio de prueba no tenía **ni un** diagnóstico. Se sembraron los tres
+ejes del modelo —`tipo`, `estado`, `tipoOrigen`— con seis casos: crónico
+definitivo, activo definitivo, sospecha del médico, **propuesta del modelo sin
+avalar**, descartado y resuelto.
+
+Sin eso, la jerarquía se estaba dando por buena porque no había nada que enseñar.
+
+### 96b · Y los cuatro vigentes eran indistinguibles
+
+Medido: los cuatro se pintaban **en el mismo nodo de texto**, mismo color, peso y
+tamaño, bajo «Diagnósticos activos». Un hecho puesto por el médico y una
+propuesta del modelo que nadie avaló, iguales.
+
+La causa: `ResumenPaciente` empujaba `d.descripcion` **pelada**. `tipo` y
+`tipoOrigen` viajaban en el documento firmado y se tiraban ahí. → **REG-548**.
+
+### 96c · El modelo ya lo sabía todo, y el producto ya lo había decidido
+
+No hubo que inventar ninguna jerarquía:
+
+| Ya existía | Dónde |
+|---|---|
+| Los tres ejes (`tipo`, `estado`, `tipoOrigen`) | `types/expediente.ts` |
+| «`medico` es lo único que autoriza a decir confirmado» | el propio tipo |
+| `confirmed` de FHIR reservado a `medico` | `la-certeza-que-sale-al-mundo.ts` |
+| Selector de tipo por fila, que marca `tipoOrigen: 'medico'` | consulta (REG-407) |
+| Aviso antes de firmar, **una vez y no por fila** | consulta |
+| **El hueco, declarado**: «FALTA en las otras superficies (expediente…)» | `requisitos.ts` |
+
+La unidad es coherencia transversal en su forma más literal: llevar a una
+pantalla la distinción que el resto del producto ya aplica.
+
+### 96d · Y estuve a punto de romper REG-365
+
+Mi primer plan era etiquetar `presuntivo`. El comentario de `nombreConCerteza` lo
+impidió: **`presuntivo` es el valor de fábrica del esquema** —«nadie dijo nada»—,
+y escribirlo junto a una crónica confirmada afirma una duda que el médico nunca
+expresó, en casi todos los renglones. Una etiqueta que sale siempre deja de
+leerse el día que sí significa algo.
+
+La prueba nueva lo fija **en los dos sentidos**, para que un arreglo futuro de la
+procedencia no se lo lleve por delante.
+
+Y el aviso habla del **registro**, no de la clínica: «lo puso el dictado o la
+plantilla, no una persona» — nunca «no confirmado» ni «dudoso». Lo que falta es
+una firma, no certeza. Hay un reverso dedicado a eso.
+
+### RIESGO RESIDUAL
+
+- **Dice cuántos, no cuáles.** En la consulta «una vez y no por fila» funciona
+  porque cada diagnóstico tiene su fila con selector; aquí van unidos por « · ».
+  Marcar por fila contradiría la política del producto y el argumento de ruido de
+  REG-365; reordenar por procedencia rompería el orden cronológico. **Es decisión
+  del dueño**, y queda abierta.
+- Avalar un diagnóstico **desde el expediente** sigue sin poder hacerse.
+- UCI y hospitalización muestran diagnósticos con el mismo hueco. Sin tocar.
+- Sigue sin distinguirse `activo` de `crónico` de `en seguimiento` en esa línea:
+  esta unidad cerró el eje de PROCEDENCIA, no el de momento clínico.
+
+### COMPUERTAS
+
+`npx vitest run` **12 099 de 12 100** —el único rojo es `ops-timeout-y-punto-ciego`,
+de entorno (REG-414)— · lint **95 = techo** · trinquete de diseño sin deuda nueva
+· `tsc` limpio · golden nuevo **6 casos, probado al revés ×4**, uno de ellos
+protegiendo una decisión ajena (REG-365).
+
+---
+
+## Unidad 97 — el tema claro, que llevaba seis unidades sin mirarse
+
+Segunda de la pasada transversal. Capturas en `docs/design/capturas/v97/`.
+
+Seis unidades habían añadido CSS —la banda `.nx-ctx`, el nodo `pasado` del riel,
+`.nx-accion-en-prosa`— y **ninguna se había visto en tema claro**. Este producto
+tiene dos temas y sus tokens no son los mismos.
+
+### 97a · Dos defectos, y uno era mío
+
+| | claro | oscuro | mínimo |
+|---|---|---|---|
+| Nodo `pasado` del riel (70 % de ámbar) | **2.89 : 1** | 3.50 : 1 | 3 : 1 (1.4.11) |
+| `--text3` sobre el tinte de la franja de alergias | **4.49 : 1** | ok | 4.5 : 1 (AA) |
+
+El primero lo introduje en la **unidad 95**. Un `color-mix` contra `transparent`
+se apoya en el fondo, y el fondo es justo lo que cambia entre temas.
+
+El segundo lo encontró el arnés, y cae en la franja del **dato más letal del
+producto**, fallando por una centésima. → **REG-549**.
+
+Lo que sí pasó a la primera: `.nx-ctx` (19.57 : 1 y 6.94 : 1) y
+`.nx-accion-en-prosa` (5.76 : 1) en claro.
+
+### 97b · Y casi midiendo el tema oscuro llamándolo claro
+
+Mi primera sonda escribía la llave equivocada **después** de navegar. El tema no
+cambió y reporté contrastes de oscuro como si fueran de claro. Lo cazó mirar la
+captura, y el arnés de tema ya documentaba esa trampa exacta: «la primera versión
+de este guion no lo hacía y midió el tema oscuro dos veces llamándolo claro».
+Ahora la sonda **comprueba que el tema quedó puesto** y descarta la medida si no.
+
+### 97c · Y otra vez la app en blanco leída como defectos
+
+Una corrida dio `document-title` ausente en casi todas las rutas y un contraste
+de 1.88 : 1. No eran defectos: era la app **sin renderizar** porque el build había
+fallado y el servidor servía un árbol roto. La causa del fallo: **por tercera vez
+en la sesión**, un comentario `{/* */}` dentro de un `{cond && ( … )}`, que sólo
+admite un elemento.
+
+### 97d · Dos errores de forma, cazados por los guardianes del repositorio
+
+1. Puse el color en el `style={{ }}`. El guardián de roles tipográficos lo cazó
+   con razón: es lo que este carril lleva quitando desde la unidad 91 — **la
+   apariencia vive en la hoja, no en el JSX**. Ahora es `.nx-franja-alergias .nx-meta`.
+2. Escribí los hex de los tokens en un comentario y el trinquete de diseño subió
+   **357 → 359**. Tenía razón: los valores viven en `globals.css`.
+
+Y un tercero, mío contra mí: el caso de `el-riel-mira-el-reloj` que mira la hoja
+pedía `amber` dentro de 160 caracteres del selector, y se puso rojo cuando el
+arreglo del contraste añadió un comentario en medio. **Un guardián que se rompe
+al documentar el porqué empuja a no documentarlo.** Ahora mira el bloque.
+
+### RIESGO RESIDUAL
+
+- El arnés de claro corre **axe y foco**, no las sondas de estructura. Si un
+  cambio de tema mueve una caja, no lo ve. Declarado en el propio arnés.
+- `TEMA=auto` —el que tiene la mayoría sin saberlo— no se midió en esta corrida.
+- El nodo `pasado` **no se pudo ver en pantalla**: a las 02:47 del consultorio no
+  hay ninguna cita pasada. Su contraste está calculado por token, no observado.
+- 390 px sólo se midió con axe, no con las sondas de recorte de la unidad 91.
+
+### COMPUERTAS
+
+`npx vitest run` **12 100 de 12 100 — la suite entera en verde**, incluido
+`ops-timeout-y-punto-ciego`, que llevaba toda la sesión rojo (es intermitente por
+carga de la máquina: pasó esta vez, no se arregló) · `el-tema-claro-tambien-cuenta`
+**44 combinaciones · axe 0 · 0 de 91 campos sin foco** · lint **95 = techo** ·
+trinquete de diseño sin deuda nueva · `tsc` limpio.

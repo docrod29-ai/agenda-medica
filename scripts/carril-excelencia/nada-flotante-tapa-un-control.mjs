@@ -54,9 +54,72 @@ const RUTAS = (process.env.RUTAS ?? [
   '/crm', '/reactivacion', '/resenas', '/membresias', '/farmacia',
   '/corte-caja', '/cumplimiento', '/cumplimiento/retencion', '/consultor',
   '/guia', '/consulta/pac-001', '/expediente/pac-001',
+  /**
+   * LA CONSULTA MIENTRAS SE GRABA — el estado en el que el médico TRABAJA.
+   *
+   * Todas las rutas de arriba se miran en reposo, y la consulta en reposo no
+   * tiene ninguna capa flotante: aparecen al grabar. Así que la pantalla donde
+   * el médico pasa la consulta entera se estaba midiendo en un estado en el que
+   * nadie trabaja, y el guardián salía verde.
+   *
+   * Lo que había debajo, medido a 390 px el 3-sep: una píldora flotante tapaba
+   * TRES controles —manos libres, grabar y pausa—, que son los del instrumento
+   * que ella misma duplicaba.
+   *
+   * El sufijo ` · grabando` no es una ruta: es el escenario. La URL es la parte
+   * de antes.
+   */
+  '/consulta/pac-001 · grabando',
 ].join(',')).split(',')
 
-const nav = await chromium.launch({ executablePath: CHROME })
+/** Poner la pantalla en su estado de trabajo antes de medirla. */
+const ESCENARIOS = {
+  grabando: async (pag) => {
+    const b = pag.getByRole('button', { name: /^Grabar la consulta/ }).first()
+    if (!(await b.count().catch(() => 0))) return 'no hay botón de grabar'
+    await b.click().catch(() => {})
+    await pag.waitForTimeout(1200)
+    const ok = pag.getByRole('button', { name: /Confirmo el consentimiento/ })
+    if (await ok.count().catch(() => 0)) { await ok.click().catch(() => {}); }
+    await pag.waitForTimeout(4500)
+    /**
+     * ¿Está grabando? Se pregunta por el CONTROL DE PARADA, no por una palabra.
+     *
+     * La primera versión buscaba «Grabando» en el texto visible y daba falso a
+     * 390 px: ahí la barra dice «Escuchando», y el rótulo con «Grabando» vive
+     * en una región viva que `innerText` no devuelve. O sea que el escenario se
+     * paraba acusando a una pantalla que estaba grabando perfectamente.
+     *
+     * El botón de terminar sólo existe mientras se graba, y no depende de cómo
+     * se redacte el estado ni de qué ancho sea la pantalla.
+     */
+    const graba = await pag.evaluate(() =>
+      [...document.querySelectorAll('button')].some(b => {
+        const n = b.getAttribute('aria-label') || b.textContent || ''
+        return /^Terminar la grabación$|^Detener y generar nota$/.test(n.trim())
+      }))
+    if (graba) return null
+    // Si no arrancó, se dice POR QUÉ: un «no está grabando» a secas manda a
+    // buscar un defecto del producto donde puede haber sólo un clic perdido.
+    const porQue = await pag.evaluate(() => {
+      const b = [...document.querySelectorAll('button')]
+        .find(x => /^Grabar la consulta/.test(x.getAttribute('aria-label') || ''))
+      if (!b) return 'no hay botón de grabar en la pantalla'
+      const r = b.getBoundingClientRect()
+      const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+      if (e && !b.contains(e)) return `el botón está tapado por ${e.tagName}.${(e.className || '').toString().slice(0, 30)}`
+      if (b.disabled) return 'el botón está deshabilitado'
+      return `se pulsó y la pantalla dice: «${document.body.innerText.replace(/\s+/g, ' ').slice(0, 90)}»`
+    })
+    return `pidió grabar y no está grabando — ${porQue}`
+  },
+}
+
+const nav = await chromium.launch({
+  executablePath: CHROME,
+  // Un micrófono falso: sin él, el escenario «grabando» se queda en el permiso.
+  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+})
 let tapadosTotal = 0
 /* Rutas que montaron y no pintaron un solo control: sin medir, no en cero. */
 const rutasVacias = []
@@ -65,7 +128,10 @@ let avisoPortalPendiente = true
 let controlesTotal = 0
 
 for (const ancho of ANCHOS) {
-  const ctx = await nav.newContext({ viewport: { width: ancho, height: 900 } })
+  const ctx = await nav.newContext({
+    viewport: { width: ancho, height: 900 },
+    permissions: ['microphone'],
+  })
   const pag = await ctx.newPage()
   await pag.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' })
   try {
@@ -92,13 +158,52 @@ for (const ancho of ANCHOS) {
   const rutasDeEsteAncho = conPortal(RUTAS, { avisar: avisoPortalPendiente })
   avisoPortalPendiente = false
   for (const ruta of rutasDeEsteAncho) {
-    await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded' }).catch(() => {})
+    const [url, escenario] = ruta.split(' · ')
+    await pag.goto(BASE + url, { waitUntil: 'domcontentloaded' }).catch(() => {})
     await pag.waitForTimeout(4500)
-    for (const t of [/^saltar$/i, /^entendido$/i]) {
-      const b = pag.locator('button:visible').filter({ hasText: t }).first()
+    /**
+     * QUITAR DE EN MEDIO EL TOUR DE BIENVENIDA — Y COMPROBAR QUE SE FUE.
+     *
+     * Esto buscaba el botón con `hasText: /^saltar$/i`. Con una expresión
+     * regular, `hasText` mira el texto CRUDO del elemento, y el del botón es
+     * «\n                Saltar\n              »: los anclas nunca casaban, así
+     * que el tour **no se cerraba nunca**. Y el tour es una capa `fixed` con
+     * z-index 200 que tapa la pantalla entera.
+     *
+     * O sea que este guardián llevaba midiendo la pantalla del TOUR y diciendo
+     * «ok»: 16 controles mirados que eran los suyos, no los de la ruta. Se vio
+     * porque el escenario `· grabando` no conseguía pulsar «Grabar la
+     * consulta» a 390 px — el clic caducaba contra el tour.
+     *
+     * Ahora se busca por nombre accesible (que sí se normaliza) y, sobre todo,
+     * **se comprueba que la capa se fue**: si sigue ahí, medir es mentir.
+     */
+    for (const nombre of [/^Saltar$/, /^Entendido$/, /^Empezar$/]) {
+      const b = pag.getByRole('button', { name: nombre }).first()
       if (await b.count().catch(() => 0)) {
         await b.click().catch(() => {})
-        await pag.waitForTimeout(600)
+        await pag.waitForTimeout(700)
+      }
+    }
+    const tourEncima = await pag.evaluate(() => {
+      const t = document.querySelector('[aria-label="Bienvenida a Ausculta"]')
+      if (!t) return false
+      const r = t.getBoundingClientRect()
+      return r.width > innerWidth * 0.5 && r.height > innerHeight * 0.5
+    }).catch(() => false)
+    if (tourEncima) {
+      console.error(`\n  ${ruta}@${ancho}: el tour de bienvenida sigue tapando la pantalla.`)
+      console.error('  Medir aquí daría los controles del tour, no los de la ruta.\n')
+      await nav.close()
+      process.exit(2)
+    }
+    if (escenario) {
+      const fallo = await ESCENARIOS[escenario]?.(pag)
+      if (fallo) {
+        console.error(`\n  ${ruta}: no se pudo poner la pantalla en su estado — ${fallo}.`)
+        console.error('  Medirla igual diría «nada tapa nada» sobre un estado que no es el de trabajo.\n')
+        await nav.close()
+        process.exit(2)
       }
     }
 

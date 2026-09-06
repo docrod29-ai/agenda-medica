@@ -315,7 +315,7 @@ export default function FinanzasPage() {
       ) : (
         <>
           {/* Hero: total + Efectivo vs Transferencia */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div className="grid-titular-par" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
             <div style={{
               padding: 18, borderRadius: 14, border: '1px solid var(--border)',
               background: 'linear-gradient(135deg, color-mix(in srgb, var(--nexus) 14%, transparent), color-mix(in srgb, var(--nexus) 4%, transparent))',
@@ -460,7 +460,7 @@ export default function FinanzasPage() {
           )}
 
           {/* Breakdowns */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
+          <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
             <Breakdown
               titulo="Por método de pago"
               items={(Object.entries(resumen.porMetodo) as [MetodoPago, { monto: number; n: number }][])
@@ -481,7 +481,7 @@ export default function FinanzasPage() {
 
           {/* Top pacientes + por médico */}
           {(resumen.topPacientes.length > 0 || Object.keys(resumen.porMedico).length > 1) && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
+            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
               {resumen.topPacientes.length > 0 && (
                 <Breakdown
                   titulo="Top pacientes"
@@ -725,9 +725,12 @@ function Breakdown({ titulo, items, total }: { titulo: string; items: { label: s
           items.slice(0, 10).map(it => {
             const pct = total > 0 ? (it.monto / total) * 100 : 0
             return (
-              <div key={it.label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 3 }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+              // minWidth:0 en la fila: es hija de rejilla, y sin esto su mínimo
+              // es el de su contenido —el nombre entero— y desborda la tarjeta
+              // por mucho que el nombre de dentro sepa truncarse.
+              <div key={it.label} style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 3, minWidth: 0 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%', minWidth: 0 }}>
                     {it.label}
                   </span>
                   <span style={{ fontWeight: 700, color: 'var(--text)', fontFamily: 'monospace' }}>{fmtMXN(it.monto)}</span>

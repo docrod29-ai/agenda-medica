@@ -2,7 +2,7 @@
   "sellado": "2026-09-02",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6685,
+  "totalCasos": 6772,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -417,6 +417,10 @@
       "minCasos": 8
     },
     {
+      "archivo": "src/__tests__/el-dinero-cabe-en-un-telefono.test.ts",
+      "minCasos": 6
+    },
+    {
       "archivo": "src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts",
       "minCasos": 22
     },
@@ -433,8 +437,16 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/el-error-de-la-ia-no-nombra-al-proveedor.test.ts",
+      "minCasos": 6
+    },
+    {
       "archivo": "src/__tests__/el-escudo-no-cruza-el-punto.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/el-expediente-dice-quien-puso-el-diagnostico.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/el-expediente-ensena-los-ingresos.test.ts",
@@ -561,6 +573,10 @@
       "minCasos": 25
     },
     {
+      "archivo": "src/__tests__/el-riel-mira-el-reloj.test.ts",
+      "minCasos": 11
+    },
+    {
       "archivo": "src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts",
       "minCasos": 3
     },
@@ -615,6 +631,10 @@
     {
       "archivo": "src/__tests__/en-la-pantalla-de-buscar-no-se-dice-no-esta.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/en-un-bloque-estrecho-el-nombre-manda.test.ts",
+      "minCasos": 10
     },
     {
       "archivo": "src/__tests__/en-un-telefono-el-control-recibe-el-toque.test.ts",
@@ -801,6 +821,10 @@
       "minCasos": 14
     },
     {
+      "archivo": "src/__tests__/la-alergia-no-se-dice-dos-veces-en-la-misma-franja.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/la-alergia-sellada-en-una-nota-firmada-no-desaparece.test.ts",
       "minCasos": 24
     },
@@ -875,6 +899,10 @@
     {
       "archivo": "src/__tests__/la-duracion-que-ya-vencio.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/la-edad-de-la-consulta-no-es-una-foto-vieja.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-edad-que-falta-se-dice-no-se-supone-adulto.test.ts",
@@ -1059,6 +1087,10 @@
     {
       "archivo": "src/__tests__/la-sobredosis-se-ve-antes-de-firmar.test.ts",
       "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/la-tarde-no-envejece-al-paciente.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/la-trayectoria-del-laboratorio-llega-a-la-consulta.test.ts",
@@ -1291,6 +1323,10 @@
     {
       "archivo": "src/__tests__/ngramas-antonimos.test.ts",
       "minCasos": 1
+    },
+    {
+      "archivo": "src/__tests__/ningun-dialogo-se-escribe-su-propio-teclado.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/ninguna-llamada-a-proveedor-cuelga-la-funcion.test.ts",
@@ -1741,6 +1777,10 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/un-estado-de-la-escucha-se-dice-una-sola-vez.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/un-hueco-se-escribe-no-se-reclama.test.ts",
       "minCasos": 20
     },
@@ -1833,6 +1873,10 @@
       "minCasos": 6
     },
     {
+      "archivo": "src/__tests__/una-sola-fecha-en-todo-el-producto.test.ts",
+      "minCasos": 6
+    },
+    {
       "archivo": "src/__tests__/una-sola-implementacion-fhir.test.ts",
       "minCasos": 8
     },
@@ -1871,6 +1915,10 @@
     {
       "archivo": "src/__tests__/v15-la-lista-vacia-dice-cuantos-hay-fuera.test.ts",
       "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/v15-rtc14-una-sola-presentacion-de-alergias.test.ts",
+      "minCasos": 5
     },
     {
       "archivo": "src/__tests__/v15-rtc18-el-spine-no-se-viste-de-filtro.test.ts",

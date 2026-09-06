@@ -29,6 +29,7 @@ import {
   construirContexto, conValidacionDelMedico, numeroOpcional, boolOpcional, COMO_SE_LEE,
 } from '@/lib/dosing/consulta'
 import { recomendar } from '@/lib/dosing/motor'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 describe('un campo vacío es «no sé», nunca un cero', () => {
   it('`numeroOpcional` no convierte el vacío en 0', () => {
@@ -135,7 +136,11 @@ describe('la validación la pone quien puede saberla', () => {
     })
     expect(con.validacion).toBe('validado_por_medico')
     expect(con.avisoValidacion).toContain('Dr. X')
-    expect(con.avisoValidacion).toContain('2026-08-01')
+        /* Antes exigía el ISO literal. La fecha sigue llegando —es lo que este caso
+       protege—, pero ahora en es-MX, como todo el producto (unidad 93). Se
+       compara con el mismo formateador para no clavar una abreviatura de mes
+       que depende del ICU del entorno. */
+    expect(con.avisoValidacion).toContain(fechaCorta('2026-08-01'))
   })
 
   it('una firma CADUCADA no cuenta como validada', () => {

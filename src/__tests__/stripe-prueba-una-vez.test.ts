@@ -26,6 +26,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { decidirPrueba, DIAS_PRUEBA, POR_QUE_UNA_SOLA_PRUEBA } from '@/lib/finanzas/prueba-gratis'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 
@@ -55,7 +56,11 @@ describe('quien estrena, estrena una vez', () => {
       pruebaEstrenadaEn: '2026-06-01T10:00:00.000Z',
     })
     expect(d.dias).toBeUndefined()
-    expect(d.porQue).toContain('2026-06-01')
+        /* Antes exigía el ISO literal. La fecha sigue llegando —es lo que este caso
+       protege—, pero ahora en es-MX, como todo el producto (unidad 93). Se
+       compara con el mismo formateador para no clavar una abreviatura de mes
+       que depende del ICU del entorno. */
+    expect(d.porQue).toContain(fechaCorta('2026-06-01'))
   })
 })
 

@@ -20,6 +20,7 @@ import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { safeLog } from '@/lib/security/sanitize'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }
   const t0Costo = Date.now()
-  if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (Configuración → Llaves de IA).' }, { status: 503 })
+  if (!API_KEY) return NextResponse.json({ ok: false, error: iaNoDisponible('nota').mensaje }, { status: 503 })
 
   const userMsg = `NOTA ACTUAL (JSON):\n${JSON.stringify(body.nota)}\n\nCONTEXTO DEL PACIENTE (referencia, no lo metas a la nota salvo que se pida):\n${JSON.stringify(body.contexto ?? {})}\n\nINSTRUCCIÓN DE CORRECCIÓN DEL MÉDICO:\n"${instruccion}"\n\nDevuelve la nota corregida en JSON aplicando SOLO ese cambio.`
 
