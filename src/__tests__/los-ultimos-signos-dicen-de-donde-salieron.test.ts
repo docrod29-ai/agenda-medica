@@ -63,9 +63,10 @@ const fuente = readFileSync(resolve(process.cwd(), 'src/components/expediente/Re
 const codigo = fuente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 
 describe('ASN-008 · los signos dicen si vienen de una nota firmada', () => {
-  it('la fuente de los signos guarda el estado de la nota, no sólo la cifra', () => {
-    expect(codigo).toMatch(/firmada:\s*n\.estado === 'firmada'/)
-    expect(codigo).toMatch(/fecha:\s*n\.fechaConsulta \|\| n\.createdAt/)
+  it('se guarda la NOTA de la que salen los signos, no sólo la cifra', () => {
+    expect(codigo).toMatch(/const notaDeLosSignos = useMemo\(/)
+    expect(codigo).toMatch(/notaDeLosSignos\?\.estado === 'firmada'/)
+    expect(codigo).toMatch(/notaDeLosSignos\?\.fechaConsulta \|\| notaDeLosSignos\?\.createdAt/)
   })
 
   it('el borrador se MARCA, no se esconde: el signo recién tomado es información', () => {
@@ -76,7 +77,7 @@ describe('ASN-008 · los signos dicen si vienen de una nota firmada', () => {
   })
 
   it('la marca del borrador se distingue en color, no sólo en palabras', () => {
-    expect(codigo).toMatch(/fuenteDeSignos\.firmada \? 'var\(--text3\)' : 'var\(--amber\)'/)
+    expect(codigo).toMatch(/signosFirmados \? 'var\(--text3\)' : 'var\(--amber\)'/)
   })
 })
 
@@ -96,7 +97,7 @@ describe('ASN-007 · cada cifra con su unidad, y la fecha de la toma', () => {
   })
 
   it('la fecha de la toma va pegada a los signos, no deducida de «última visita»', () => {
-    expect(codigo).toMatch(/tomados el \$\{fmt\(fuenteDeSignos\.fecha\)\}|tomados el/)
+    expect(codigo).toMatch(/tomados el \$\{fmt\(fechaDeLaToma\)\}/)
   })
 })
 

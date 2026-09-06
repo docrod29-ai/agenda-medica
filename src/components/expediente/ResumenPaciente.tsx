@@ -38,19 +38,19 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
    * Es PROCEDENCIA, que es lo que distingue este producto: no se cambia el
    * dato, se dice de dónde salió.
    */
-  const fuenteDeSignos = useMemo(() => {
-    for (const n of orden) {
-      if (n.signosVitales && Object.values(n.signosVitales).some(Boolean)) {
-        return {
-          signos: n.signosVitales,
-          firmada: n.estado === 'firmada',
-          fecha: n.fechaConsulta || n.createdAt || '',
-        }
-      }
-    }
-    return null
-  }, [orden])
-  const signos = fuenteDeSignos?.signos ?? null
+  /*
+    Se memoriza la NOTA, no un objeto nuevo con sus tres datos: devolver un
+    objeto recién construido rompe la memorización que el compilador de React
+    puede preservar (lo caza el lint), y además obliga a leerlo por un nombre
+    intermedio. La nota ya existe; lo demás se deriva de ella.
+  */
+  const notaDeLosSignos = useMemo(
+    () => orden.find(n => n.signosVitales && Object.values(n.signosVitales).some(Boolean)) ?? null,
+    [orden],
+  )
+  const signos = notaDeLosSignos?.signosVitales ?? null
+  const signosFirmados = notaDeLosSignos?.estado === 'firmada'
+  const fechaDeLaToma = notaDeLosSignos?.fechaConsulta || notaDeLosSignos?.createdAt || ''
 
   /**
    * ── AQUÍ SE PERDÍA QUIÉN PUSO CADA DIAGNÓSTICO ───────────────────────────
@@ -219,10 +219,10 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
               un borrador, se dice — el bloque vecino promete «notas firmadas» y
               éste no filtraba.
             */}
-            {fuenteDeSignos && (
-              <span className="nx-meta" style={{ marginLeft: 6, color: fuenteDeSignos.firmada ? 'var(--text3)' : 'var(--amber)' }}>
-                {fmt(fuenteDeSignos.fecha) ? `tomados el ${fmt(fuenteDeSignos.fecha)}` : 'sin fecha de la toma'}
-                {!fuenteDeSignos.firmada && ' · de un borrador sin firmar'}
+            {notaDeLosSignos && (
+              <span className="nx-meta" style={{ marginLeft: 6, color: signosFirmados ? 'var(--text3)' : 'var(--amber)' }}>
+                {fmt(fechaDeLaToma) ? `tomados el ${fmt(fechaDeLaToma)}` : 'sin fecha de la toma'}
+                {!signosFirmados && ' · de un borrador sin firmar'}
               </span>
             )}
           </div>
