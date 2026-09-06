@@ -89,3 +89,6 @@ tests/visual/capturas/
 
 # Los diffs de la regresión visual son de una corrida, no del repositorio.
 docs/design/capturas/base/diff/
+
+# Worktrees temporales de los agentes de reparación
+.claude/worktrees/
