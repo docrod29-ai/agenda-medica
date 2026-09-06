@@ -14,6 +14,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verificarUsuario } from '@/lib/auth-server'
 import { adminDb } from '@/lib/firebase-admin'
 import { DEFAULT_CONFIG } from '@/types'
+import { safeLog } from '@/lib/security/sanitize'
+// SIN CADUCIDAD NO ES VÁLIDA (ZL-011): la vigencia la decide un módulo puro
+// compartido con el cliente, para que los dos lados no digan cosas distintas.
+import { invitacionVigente } from '@/lib/security/invitacion-vigente'
 
 /** Crea la ficha del médico en el catálogo (para su agenda) si aún no existe
  *  una con ese correo. Toma el horario base de la config de la clínica. */
@@ -69,8 +73,8 @@ export async function POST(req: NextRequest) {
       const snap = await tx.get(invRef)
       if (!snap.exists) return { ok: false as const, motivo: 'Invitación no encontrada.' }
       const inv = snap.data() as { clinicId: string; role: string; used?: boolean; expiresAt?: string; creadoPor?: string; nombreInvitado?: string; especialidad?: string }
-      if (inv.used === true) return { ok: false as const, motivo: 'Esta invitación ya fue usada.' }
-      if (inv.expiresAt && new Date() > new Date(inv.expiresAt)) return { ok: false as const, motivo: 'Esta invitación ha expirado.' }
+      const vigencia = invitacionVigente(inv, Date.now())
+      if (!vigencia.ok) return { ok: false as const, motivo: vigencia.motivo }
 
       tx.set(memberRef, {
         clinicId: inv.clinicId,
@@ -92,7 +96,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: resultado.ok, clinicId: resultado.ok ? resultado.clinicId : undefined, motivo: resultado.ok ? undefined : resultado.motivo }, { status: resultado.ok ? 200 : 409 })
   } catch (e) {
-    return NextResponse.json({ ok: false, motivo: e instanceof Error ? e.message : 'error' }, { status: 500 })
+    // El mensaje del Admin SDK no viaja al navegador (S-006 · REG-534).
+    safeLog.error('[clinic/unirse]', e)
+    return NextResponse.json({ ok: false, motivo: 'No se pudo aceptar la invitación. Intenta de nuevo en un momento.' }, { status: 500 })
   }
 }
 

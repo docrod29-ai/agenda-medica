@@ -98,6 +98,7 @@ export const SIN_BARRER: Record<string, string> = {
   recargas_procesadas: 'Ídem para las recargas de créditos: la marca es lo que impide duplicar una compra.',
   platform_recargas: 'Lo que el dueño abona a cada proveedor de IA. Es contabilidad y además es el minuendo del saldo: borrar una recarga vieja haría aparecer un saldo negativo y un aviso de agotamiento falso.',
   soporte: 'Tickets de soporte del médico. Es correspondencia con el cliente, no telemetría: se archiva, no se purga.',
+  pruebas_estrenadas: 'Huella de que un correo ya estrenó la prueba de 14 días. Es la marca que impide estrenarla otra vez: barrerla por antigüedad devolvería la prueba gratis a quien ya la usó, y justamente a quien lleve más tiempo esperando. No lleva el correo, sólo su huella, así que no crece con PHI ni hay nada que minimizar.',
 }
 
 /**

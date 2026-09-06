@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { desdeVentana, alcanceDePagos, alcanceDeClinicas, TOPE_CLINICAS, TOPE_PAGOS } from '@/lib/ops/alcance'
 import { verificarSuperadmin, precioPlanMXN } from '@/lib/superadmin'
+import { safeLog } from '@/lib/security/sanitize'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { calcularPrecioPaquete } from '@/lib/pricing'
 import { planDeNivel } from '@/lib/planes-ia'
 import { tipoDeAsiento, efectivoDe, type EstadoDisputa } from '@/lib/finanzas/movimientos'
@@ -195,7 +197,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, clientes, totales, alcance })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'error' }, { status: 500 })
+    safeLog.error('[superadmin/clientes]', e)   // S-006: el texto del proveedor no viaja al cliente
+    return errorAlCliente()
   }
 }
 

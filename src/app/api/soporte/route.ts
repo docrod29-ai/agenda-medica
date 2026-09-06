@@ -9,14 +9,21 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { errorAlCliente } from '@/lib/security/error-al-cliente'
+import { safeLog } from '@/lib/security/sanitize'
+import { documentoDeSoporte, TIPOS_DE_SOPORTE } from '@/lib/security/soporte-redactado'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { verificarSuperadmin } from '@/lib/superadmin'
 
 type Any = Record<string, unknown>
-const TIPOS = ['queja', 'falla', 'felicitacion', 'duda', 'sugerencia']
+const TIPOS: readonly string[] = TIPOS_DE_SOPORTE
 
+/**
+ * LA PROSA SE REDACTA ANTES DE GUARDARSE (Panel de Lujo S-003). Ver
+ * `src/lib/security/soporte-redactado.ts`: la colección es de plataforma y se
+ * lee desde fuera del consultorio; `/api/errores` ya lo hacía, esta ruta no.
+ */
 export async function POST(req: NextRequest) {
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
@@ -33,18 +40,17 @@ export async function POST(req: NextRequest) {
   if (limite) return limite
 
   try {
-    await adminDb.collection('soporte').add({
-      uid: acceso.uid,
-      email: String(body.email ?? '').slice(0, 160),
-      nombre: String(body.nombre ?? '').slice(0, 160),
-      clinicId: String(body.clinicId ?? ''),
-      tipo,
-      mensaje,
-      estado: 'nuevo',
-      fecha: new Date().toISOString(),
-    })
+    // El consultorio del ticket es el de la membresía verificada, no el que diga el cuerpo.
+    const miembro = await adminDb.collection('clinic_members').doc(acceso.uid).get()
+    const clinicId = String(miembro.data()?.clinicId ?? '')
+    await adminDb.collection('soporte').add(documentoDeSoporte({
+      uid: acceso.uid, clinicId, tipo, mensaje,
+      email: body.email, nombre: body.nombre,
+      ahoraIso: new Date().toISOString(),
+    }))
     return NextResponse.json({ ok: true })
   } catch (e) {
+    safeLog.error('[soporte]', e)
     return errorAlCliente()
   }
 }

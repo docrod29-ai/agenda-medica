@@ -3,6 +3,9 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
 import { DEFAULT_CONFIG } from '@/types'
 import { zonaMXDe } from '@/lib/zona-horaria-mx'
+import { safeLog } from '@/lib/security/sanitize'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
+import { huellaDeIdentidad, decidirFinDePrueba } from '@/lib/security/prueba-por-identidad'
 
 /**
  * Alta del consultorio, ATÓMICA.
@@ -61,21 +64,37 @@ export async function POST(req: NextRequest) {
   }
 
   const uid = acceso.uid
-  const ahora = new Date().toISOString()
-  // Fin de prueba en DOS formas: ISO (lo lee la UI) y epoch-ms (lo compara la regla
-  // Firestore, que no sabe parsear ISO). El paywall del servidor usa trialEndsAtMs.
-  const finPruebaMs = Date.now() + 14 * 24 * 60 * 60 * 1000
-  const finPrueba = new Date(finPruebaMs).toISOString()
+  const ahoraMs = Date.now()
+  const ahora = new Date(ahoraMs).toISOString()
+  /**
+   * UNA PRUEBA POR IDENTIDAD (Panel de Lujo N-007 · decisión N-1 por su valor
+   * seguro). La huella del correo verificado decide si la prueba se concede o
+   * nace vencida; el alta ocurre igual. Ver `prueba-por-identidad.ts`.
+   */
+  const huella = huellaDeIdentidad(String(acceso.email ?? ''))
+  const huellaRef = huella ? adminDb.collection('pruebas_estrenadas').doc(huella) : null
 
   try {
     const clinicId = await adminDb.runTransaction(async (tx) => {
       const miembroRef = adminDb.collection('clinic_members').doc(uid)
-      const miembro = await tx.get(miembroRef)
+      const [miembro, estreno] = await Promise.all([
+        tx.get(miembroRef),
+        huellaRef ? tx.get(huellaRef) : Promise.resolve(null),
+      ])
       // Si ya pertenece a un consultorio, se devuelve ese: nunca se crea un segundo
       // ni se pisa la membresía existente.
       if (miembro.exists) {
         const cid = miembro.data()?.clinicId
         if (cid) return String(cid)
+      }
+
+      // Fin de prueba en DOS formas: ISO (lo lee la UI) y epoch-ms (lo compara la regla
+      // Firestore, que no sabe parsear ISO). El paywall del servidor usa trialEndsAtMs.
+      const prueba = decidirFinDePrueba({ yaEstrenada: !!estreno?.exists, ahoraMs })
+      const finPruebaMs = prueba.finMs
+      const finPrueba = new Date(finPruebaMs).toISOString()
+      if (huellaRef && prueba.concedida) {
+        tx.set(huellaRef, { estrenadaEn: ahora })
       }
 
       // Ref con id generado por adelantado: hace falta para poder escribir la
@@ -107,9 +126,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, clinicId })
   } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message.slice(0, 200) : 'No se pudo crear el consultorio' },
-      { status: 502 },
-    )
+    // El texto del Admin SDK trae rutas de documento y nombres de colección:
+    // al log redactado, no al navegador (S-006 · REG-534).
+    safeLog.error('[clinic/crear]', e)
+    return errorAlCliente('No se pudo crear el consultorio. Intenta de nuevo en un momento.', 502)
   }
 }

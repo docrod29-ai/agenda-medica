@@ -57,8 +57,34 @@ Que ese paso no se pueda borrar en silencio lo vigila
 Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
-**Hoy está vacía.** Lo escrito en `firestore.rules` es lo que rige: el sha256 del
-archivo coincide con `hashDesplegado` en `firestore.rules.estado.json`.
+**Hoy NO está vacía.** La auditoría «Panel de Lujo» (6-sep-2026) reescribió
+`firestore.rules` —339 líneas nuevas— y nada de eso rige todavía en producción.
+Rige la versión anterior, la publicada en la ejecución **#18** del botón de
+producción.
+
+Mientras no se despliegue, lo que sigue **está escrito y no protege nada**:
+
+| Regla escrita | Qué NO rige hoy | Qué se rompe mientras tanto |
+|---|---|---|
+| S-001 · `arcoBloqueo` y `portalTokenVersion` congelados en `patients` | El congelado de esos dos campos | Un miembro del consultorio le quita a un paciente el bloqueo ARCO desde el navegador, y baja la versión del token del portal para revivir un enlace ya revocado |
+| S-007 · ASC-002 · ASC-003 · campos de servidor de la cita congelados y `cobroId` atado a un cobro real | `camposDeServidorIntactos()` y `citaCoherenteConSuCobro()` | Una cita se marca pagada desde el navegador con un `cobroId` inventado, o «sobreagendada» sin que lo decidiera el servidor |
+| S-012 · forma congelada (`hasOnly`) en doce colecciones | El `hasOnly` de `appointments`, `memberships`, `membership_plans`, `reviews`, `chat`, `waitlist`, `branches`, `time_blocks`, `learning`, `chat_reads`, `hospital_roles` y `clinic_invitations` | Las doce siguen aceptando cualquier campo con cualquier valor |
+| ZL-012 · el mensaje de chat sólo lleva `text`, `senderId`, `createdAtTs` | El `hasOnly` del chat y `uid == senderId` | Se escribe un mensaje firmado con el nombre y el rol de otra persona |
+| ZL-011 · la invitación nace con caducidad, autor y `used:false` | La forma congelada de `clinic_invitations` y el tope de 8 días | Una invitación de equipo sin `expiresAt` no caduca nunca (la ruta de unirse SÍ la rechaza ya: eso es código, no regla) |
+| ZL-015 · `esDuenoDelConsultorio` protege al dueño | La función y su guarda en `clinic_members` | Otro miembro le cambia el rol al dueño del consultorio |
+| S-010 · quince `match` de raíz nuevos | Los `match` de `platform_config`, `platform_incidentes`, `platform_heartbeats`, `platform_recargas`, `platform_csp`, `errores`, `soporte`, `rate_limits`, `oauthStates`, `transcript_owners`, `whatsapp_channels`, `whatsapp_dedup`, `anticipos_procesados`, `recargas_procesadas` y `pruebas_estrenadas` | Nada: sin `match` propio caen en el deniego general y quedan cerradas. Lo que falta es que la regla DIGA quién puede, que es lo que exige el guardián de la matriz |
+| S-012 · `notification_logs` cerrado al cliente | El cierre | Se lee y se escribe el registro de notificaciones desde el navegador |
+
+Ninguna de estas filas es una regresión nueva: es el estado que ya había antes
+de la auditoría, y sigue vigente hasta que se publique. El aislamiento entre
+consultorios —lo que impide que un consultorio lea a otro— **sí** rige: el
+equipo rojo lo probó contra el emulador con las reglas de hoy y denegó los 13
+ataques.
+
+Se despliega con el paso `FIRESTORE_RULES` del botón de producción
+(`.github/workflows/deploy-production.yml`), que es lo único que publica este
+archivo: `vercel --prod` no lo toca. **Esta sección se vacía al desplegar, no
+a mano.**
 
 La última fila que hubo aquí era el `match` de
 `clinics/{id}/patients/{pid}/preguntas_paciente/{doc}` (V9 `PATIENT-AI-001`),

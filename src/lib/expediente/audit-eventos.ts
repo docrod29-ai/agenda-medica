@@ -51,6 +51,7 @@ export type AuditEvento =
   | 'aviso_privacidad_aceptado'  // paciente aceptó aviso LFPDPPP
   | 'arco_solicitud_recibida'    // paciente solicitó ARCO
   | 'arco_solicitud_resuelta'    // médico resolvió solicitud ARCO
+  | 'arco_solicitud_ligada'      // se ató una solicitud del portal a un expediente identificado
   | 'login_exitoso'              // usuario inició sesión
   | 'login_fallido'              // intento de login fallido
   | 'export_datos'               // se exportaron datos del paciente
@@ -157,6 +158,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   aviso_privacidad_aceptado: 'Aviso aceptado',
   arco_solicitud_recibida: 'Solicitud ARCO',
   arco_solicitud_resuelta: 'ARCO resuelta',
+  arco_solicitud_ligada: 'ARCO ligada a expediente',
   login_exitoso: 'Inicio de sesión',
   login_fallido: 'Login fallido',
   export_datos: 'Export de datos',
